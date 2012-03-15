@@ -1,0 +1,155 @@
+\ProvidesPackageRCS $Header: /cvsroot/latex-beamer/latex-beamer/themes/outer/beamerouterthememiniframes.sty,v 1.7 2004/10/14 09:48:48 tantau Exp $
+
+% Copyright 2003 by Till Tantau <tantau@users.sourceforge.net>
+%
+% This program can be redistributed and/or modified under the terms
+% of the GNU Public License, version 2.
+
+\newif\ifbeamer@theme@subsection
+\beamer@theme@subsectiontrue
+
+
+\mode<presentation>
+
+\def\beamer@theme@footline@empty{}
+\def\beamer@theme@footline@authorinstitute{
+  \defbeamertemplate*{footline}{PSI}
+  {%
+    \begin{beamercolorbox}[colsep=0.5pt]{upper separation line foot}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{author in head/foot}%
+      \leavevmode{\usebeamerfont{author in head/foot}\insertshortauthor}%
+      \hfill%
+      {\usebeamerfont{institute in head/foot}\usebeamercolor[fg]{institute in head/foot}\insertshortinstitute}%
+    \end{beamercolorbox}%
+  }
+}
+\def\beamer@theme@footline@authortitle{
+  \defbeamertemplate*{footline}{PSI}
+  {%
+    \begin{beamercolorbox}[colsep=0.5pt]{upper separation line foot}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{title in head/foot}%
+      \leavevmode{\usebeamerfont{title in head/foot}\insertshorttitle}%
+      \hfill%
+      {\usebeamerfont{author in head/foot}\usebeamercolor[fg]{author in head/foot}\insertshortauthor}%
+    \end{beamercolorbox}%
+  }
+}
+\def\beamer@theme@footline@institutetitle{
+  \defbeamertemplate*{footline}{PSI}
+  {%
+    \begin{beamercolorbox}[colsep=0.5pt]{upper separation line foot}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{title in head/foot}%
+      \leavevmode{\usebeamerfont{title in head/foot}\insertshorttitle}%
+      \hfill%
+      {\usebeamerfont{institute in head/foot}\usebeamercolor[fg]{institute in head/foot}\insertshortinstitute}%
+    \end{beamercolorbox}%
+  }
+}
+\def\beamer@theme@footline@authorinstitutetitle{
+  \defbeamertemplate*{footline}{PSI}
+  {%
+    \begin{beamercolorbox}[colsep=0.5pt]{upper separation line foot}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{author in head/foot}%
+      {\usebeamerfont{institute in head/foot}\usebeamercolor[fg]{institute in head/foot}\insertshortinstitute}%
+      \hfill%
+	  \leavevmode{\usebeamerfont{author in head/foot}\insertshortauthor} %
+	   {\usebeamerfont{title in head/foot}\insertframenumber}%
+    \end{beamercolorbox}%
+  }
+}
+\def\beamer@theme@footline@authorinstitutetitlesubtitle{
+  \defbeamertemplate*{footline}{PSI}
+  {%
+    \begin{beamercolorbox}[colsep=0.5pt]{upper separation line foot}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{author in head/foot}%
+      {\usebeamerfont{institute in head/foot}\usebeamercolor[fg]{institute in head/foot}\insertshortinstitute}%
+      \hfill%
+      \ifx\insertsubtitle\@empty%
+      \else%
+      {\usebeamerfont{title in head/foot}\insertsubtitle} %
+      - %
+	  \fi%
+	  \leavevmode{\usebeamerfont{author in head/foot}\insertshortauthor} %
+	   {\usebeamerfont{title in head/foot}\insertframenumber}%
+    \end{beamercolorbox}%
+  }
+}
+
+                                % Head
+\defbeamertemplate*{headline}{PSI}
+{%
+  \begin{beamercolorbox}[ht=10.5ex,dp=1.125ex,%
+      leftskip=.1cm,rightskip=.3cm plus1fil,wd=8.4cm]{subsection in head/foot}
+      \insertlogo
+	  \begin{beamercolorbox}[colsep=0.5pt,wd=10cm]{middle separation line head}
+	  \end{beamercolorbox}
+  \end{beamercolorbox}%
+  \ifx\insertframetitle\@empty%
+  {
+	\ifnum\beamer@sectionstartpage=\insertframenumber
+	{
+	  \ifbeamercolorempty[bg]{frametitle}{}{\nointerlineskip}%
+	  \@tempdima=\textwidth%
+	  \advance\@tempdima by\beamer@leftmargin%
+	  \advance\@tempdima by\beamer@rightmargin%
+	  \begin{beamercolorbox}[sep=0.3cm,left,wd=\the\@tempdima,ht=10.5ex,dp=1.125ex,%
+		  leftskip=1.cm,rightskip=.3cm plus1fil]{frametitle}
+		\usebeamerfont{frametitle}%
+		\vbox{}\vskip-1ex%
+		\if@tempswa\else\csname beamer@fteleft\endcsname\fi%
+		\strut\insertsection\strut\par%
+		\vskip-1ex%
+		\if@tempswa\else\vskip-.3cm\fi% set inside beamercolorbox... evil here...
+	  \end{beamercolorbox}%
+	  }
+	\fi
+  }
+  \fi
+}
+
+\defbeamertemplate*{frametitle}{PSI}
+{
+  \ifx\insertframetitle\noframetitle
+  {
+  \ifbeamercolorempty[bg]{frametitle}{}{\nointerlineskip}%
+  \@tempdima=\textwidth%
+  \advance\@tempdima by\beamer@leftmargin%
+  \advance\@tempdima by\beamer@rightmargin%
+  \begin{beamercolorbox}[sep=0.3cm,left,wd=\the\@tempdima]{frametitle}
+    \usebeamerfont{frametitle}%
+    \vbox{}\vskip-1ex%
+    \if@tempswa\else\csname beamer@fteleft\endcsname\fi%
+    \strut\insertframetitle\strut\par%
+    {%
+      \ifx\insertframesubtitle\@empty%
+      \else%
+      {\usebeamerfont{framesubtitle}\usebeamercolor[fg]{framesubtitle}\insertframesubtitle\strut\par}%
+      \fi
+    }%
+    \vskip-1ex%
+    \if@tempswa\else\vskip-.3cm\fi% set inside beamercolorbox... evil here...
+  \end{beamercolorbox}%
+  }
+  \fi
+}
+
+\defbeamertemplate*{sidebar right}{PSI}{}
+
+
+\DeclareOptionBeamer{footline}{\csname beamer@theme@footline@#1\endcsname}
+\DeclareOptionBeamer{subsection}[true]{\csname beamer@theme@subsection#1\endcsname}
+\ProcessOptionsBeamer
+
+\setbeamertemplate{frametitle}[PSI]
+
+\mode<all>

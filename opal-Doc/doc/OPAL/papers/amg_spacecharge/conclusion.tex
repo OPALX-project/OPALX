@@ -1,0 +1,37 @@
+\section{Conclusion}
+\label{sec:concl}
+
+We have presented a scalable Poisson solver suitable to handle domains
+with irregular boundaries as they arise, for example, in beam dynamics
+simulations.  PEC and open-space boundary approximations have been
+discussed.  A real world example where the solver was used in an beam
+dynamics code (OPAL) shows the relevance of this approach.
+{\color{red}Why?}  The code exhibits excellent scalability up to 2048
+processors with cylindrial tubes embedded in meshes with up to $1024^3$
+nodes.  This will enable precise beam dynamics simulations of a new
+level of detail in the very near future.
+
+In real particle simulations (and other test cases encountered) system
+matrices are only mildly nonsymmetric such that PCG could be applied..
+{\color{red}Shortley-Weller bc}
+
+Variants reducing time to solution..
+
+\subsection{Future work}
+
+We already possess a boundary treatment for simply connected geometries.
+In the future we will conduct the same benchmarks mentioned here to
+measure the performance of ``arbitrary'' boundaries.  An interesting
+study will concern the effect on the physics of a simulation run or even
+studies requiring a larger level of detail.
+
+Another improvement will be to implement adaptive mesh refinement to
+reduce the number of gridpoints in regions less relevant for
+space-charge calculations.
+
+Study: meshsize...
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 

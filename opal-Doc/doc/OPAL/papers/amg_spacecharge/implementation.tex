@@ -1,0 +1,159 @@
+\section{Implementation details}
+\label{sec:impl}
+
+The multigrid preconditioner and iterative solver are implemented with
+the help of the Trilinos framework~\cite{Trilinos-Web-Site,
+  Trilinos-TOMS}.  Trilinos provides state-of-the-art tools for
+numerical computation in various packages.  Aztec, e.g., provides
+iterative solvers and ML~\cite{gsht:06} multilevel preconditioners.  By
+means of ML, we created our smoothed aggregation-based AMG
+preconditioner.  The essential parameters of the preconditioner
+discussed above are listed in Tab.~\ref{tab:sa_setup}.
+%%
+\begin{table}[htb]
+  \begin{center}
+    \begin{tabular}{l|l}
+      \hline
+      name & value \\
+      \hline
+      preconditioner type & MGV \\
+      aggregation type & Uncoupled \\
+      smoother type & Chebyshev \\
+      smoother & pre and post \\
+      coarse level solver & Amesos-KLU \\
+      maximal coarse level size & 1000 \\
+      \hline
+    \end{tabular}
+    \caption{Parameters for multilevel
+      preconditioner ML}
+    \label{tab:sa_setup}
+  \end{center}
+\end{table}
+
+To embed the solver in the physical simulation code (\opal~\cite{opal})
+we utilized the Independent Parallel Particle Layer (\ippl~\cite{ippl}).
+This library is an object-oriented framework for particle based
+applications in computational science designed for the use on
+high-performance parallel computers.  In the context of this paper
+\ippl\ is only relevant because \opal\ uses \ippl\ to represent and
+sample the particles at grid points with a charge conserving
+Cloud-in-Cell area weighting scheme.  ML requires an
+\texttt{Epetra\_Map} handling the parallel decomposition to create
+parallel distributed matrices and vectors. To avoid additional
+communication the \texttt{Epetra\_Map} and \ippl\ field are determined
+to have the same parallel decomposition. In this special case the task
+of converting the \ippl\ field to an \texttt{Epetra\_Vector} is as
+simple as looping over local indices and assigning values.  
+
+A particle based domain decomposition technique based on recursive coordinate
+bisection is used (in section \ref{sec:physrun}) to parallelize the computation
+on a distributed memory environment.  One, two and three-dimensional
+decompositions are available.  For problems of beam dynamics with highly
+nonuniform and time dependent particle distributions, a dynamic load balancing
+is necessary to preserve the parallel efficiency of the particle integration
+scheme.  Here, we rely on the fact that \ippl\ attains a good load balance of
+the data.
+
+%{\color{red}TODO: distribution scheme.}
+
+%Since we are using ML with Epetra vectors and matrices it is necessary to
+%convert IPPL grids to Epetra vectors and visa versa.  Epetra uses maps to
+%describe the parallel distribution of vectors and matrices.  To avoid any
+%communication the distribution of Epetra vectors correspond to the
+%distribution of IPPL grid points.  Once both representations have the
+%%same parallel layout the task of converting one into the other becomes
+%simple.  Here we rely on the fact that IPPL already attained a good load
+%balancing of the data.  {\color{red}TODO: distribution scheme.}
+
+We use the solution of one time step as the initial guess for the next
+time step.
+
+% We store the solution vector so that it can be reused as an initial
+% guess for the next execution of the iterative solver in the
+% consecutive time-step.
+
+\subsection{Domains}
+
+The simplest domains under consideration are regular, rectangular
+domains.  This domains are used by the FFT solver with so-called
+open-space boundary conditions.  {\color{red}These are Dirichlet
+  boundary conditions where the boundary values are obtained from the
+  Green's function with a pole of strength ??? at ???.  REFERENCE
+  needed!}
+% \begin{equation*}
+%   \phi \rightarrow 0 \; \text{ as } \; \vert \mathbf{x} \vert
+%   \rightarrow \infty.
+% \end{equation*}
+% {\color{red}(how do you derive from this the boundary conditions on the cube?)}
+
+The AMG solver is not restricted to rectangular domains.  It can handle
+irregular domains as the ones introduced in the next section.
+
+\subsection*{Non-rectangular domains}
+
+To properly handle emerging irregular domains we implemented an abstract
+class providing an interface to query the discretization near the
+boundary.  Every implementation of an irregular domain has to identify
+boundary points and provide the stencil for \textit{near-boundary}
+points given one of the extrapolation schemes discussed in
+Section~\ref{sec:discr}.  Boundary points are stored in \texttt{STL}
+containers. Essentially the coordinate value of a gridline is mapped to
+its intersection values, providing a fast look-up table for a given
+gridline.
+
+In this work we use the AMG solver mainly for cylindrical domains with
+an elliptic base area.  These domains can be characterized by means of
+two parameters: the semi-major and semi-minor axis.  We compute the
+intersection points of the grid with the elliptical domain boundary by
+using its implicit representation and subsequently store them into a
+\texttt{STL} container.  These intersections have to be recomputed
+whenever the parameters of the ellipse or the mesh spacings change.
+
+%For the rest of this paper the ``default'' domain for AMG is considered to be
+%cylindrical.
+
+%\subsubsection*{Arbitrary Domains}
+
+%TODO: finish and refine
+%In the following we will define an arbitrary boundary as a continuous,
+%bijective, computable function $r=f(z, \theta)$ where $z$ is the coordinate of
+%the cross-section and $\theta \in [0,2\pi]$ denotes the angle {\color{red}TODO:
+%def angle}. Consequently the boundary can take arbitrary shapes as long as the
+%properties of $f$ are retained. Therefore each $x$ and $y$ gridline has
+%exactly two intersection points $(r_1,r_2)$ with the boundary at a given
+%cross-section $z$ and $(\theta_1, \theta_2)$.
+
+%Compared to the cylindrical domain the boundary treatment for arbitrary
+%domains is slightly more complex. The difficulties mainly arise because
+%we possess no algebraic closed from describing the boundary. To this end
+%we generate surface meshes of beam line elements, like, i.e. cavities and
+%solenoids.
+
+%Subsequently OPAL has to read surface meshes and compute the boundary points by
+%intersecting gridlines and surface mesh. Both tasks require a good share of
+%cycles (computing time) and memory. Once the mesh has loaded the intersections
+%can be computed and stored. This is accomplished when creating the boundary
+%object by checking if and where a given grid line intersects a triangle of the
+%surface mesh. The utilized algorithm is described to a great extent
+%in~\cite{motr:97}.
+%{\color{red}TODO: more details}
+
+%, are
+%designed in a CAD like software product that can export STEP files.
+%With the help of \textsc{Heronion}~\cite{oswald2007c}, a surface mesh
+%can be computed from STEP files which subsequently can be dumped in
+%\textsc{H5Fed} \cite{H5FED-Web} files.
+
+%In a second step the triangular surface mesh (in form of a
+%\textsc{H5Fed} file) has to be imported in OPAL and the intersection of
+%the grid with the surface mesh has to be computed.  This is done by an
+%algorithm~\cite{motr:97} using the barycentric coordinate system,
+%essentially shifting the triangle to the origin and projecting it down
+%onto a plane.  Once the triangle is in this position its very easy to
+%determine if a grid-line intersects the triangle and to compute the
+%intersection.
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 

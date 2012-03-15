@@ -1,0 +1,11 @@
+
+THIS only works on merlin00 AND needs E/B-field data 
+from Thomas Schietinger 
+
+Run Impact:
+
+./runOBLAWithGun.py SP1B=110 SP4B=50 VGAP=500
+
+Run OPAL:
+
+./runOBLAWithGun.py SP1B=110 SP4B=50 VGAP=500 CORES=8 -OPAL

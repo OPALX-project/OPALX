@@ -1,0 +1,59 @@
+\documentclass[a4paper,10pt,3p,preprint,pdftex]{elsarticle}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{url}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{multirow}
+
+
+\newcommand {\RM}[1]{\mathrm{#1}}
+\renewcommand{\Re}{\mathbb{R}}
+
+\newcommand{\opal}{\textsc{OPAL}}
+\newcommand{\ippl}{\textsc{IP$^2$L}}
+
+
+\graphicspath{{figures/}}
+
+\title{The Object Oriented Parallel Accelerator Library (OPAL), Design, Implementation and Application}
+
+\author[psi]{A.~Adelmann\corref{cor}}
+\ead{andreas.adelmann@psi.ch}
+\author[psi]{Ch.~Kraus}
+\author[psi]{Y.~Ineichen}
+
+\author[lanl]{S.~Russel}
+\author[ciae]{J. J. Yang}
+
+
+\address[psi]{Paul Scherrer Institut, CH-5234 Villigen, Switzerland}
+\address[eth]{ETH Z\"urich, Computer Science Department, Universit\"atsstrasse 6, CH-8092 Z\"urich, Switzerland}
+\address[lanl]{Los Alamos National Laboratory}
+\address[ciae]{China Institute of Atomic Energy, Beijing, 102413, China \&  Department of Engineering Physics, Tsinghua University, Beijing, 100084, China}
+
+\cortext[cor]{\color{red}Corresponding author}
+\journal{ICAP2009 San Fransisco}
+
+
+\begin{document}
+
+\begin{keyword}
+  %Parallel HDF5 \sep FastBit \sep Particle Accelerator Science
+\end{keyword}
+
+\begin{abstract}
+OPAL (Object Oriented Parallel Accelerator Library) is a tool for charged-particle optics in accelerator structures and beam lines including 3D space charge, 
+short range wake-fields and 1D coherent synchrotron radiation. Built from first principles as a parallel application, OPAL admits simulations of any scale, 
+from the laptop to the largest HPC clusters available today. Simulations, in particular HPC (High Performance Computing) simulations, form the third pillar of science, 
+complementing theory and experiment. In this paper we present numerical and HPC capabilities such as fast direct and iterative solvers together with timings up to 
+several thousands of processors. The application of OPAL to the PSI-XFEL project as well as to the ongoing high power cyclotron upgrade will demonstrate OPAL's versatile capabilities.
+Plans for future developments w.r.t. a 3D finite element time domain Maxwell solver and 3D synchrotron radiation will be discussed.
+\end{abstract}
+
+\maketitle
+
+\end{document}

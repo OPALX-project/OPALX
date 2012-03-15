@@ -1,0 +1,23 @@
+// Purpose: 
+//  Shows a simple while loop in opal
+//  Concatenate a string using data from the loop
+
+
+En =72;
+dE =100.0;
+
+WHILE (En<590)
+{
+
+VALUE,VALUE={En};
+En=En+dE;
+
+
+ECHO,STRING(En);
+ECHO,'OUtFN-' & STRING(En);
+
+
+ECHO,'ring' & STRING(En);
+
+
+}

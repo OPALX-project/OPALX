@@ -1,0 +1,3 @@
+cp TwoStep.h5 opal-valid.h5
+mpirun -np $1 opal opal-valid.in -restart 2 --commlib mpi --info 0 2>&1 | tee opal-valid-P$1.out
+mv opal-valid.h5 opal-valid-P$1.h5

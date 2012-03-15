@@ -1,0 +1,9 @@
+This directory contains the following sub-directories:
+
+classes			the OPAL class descriptions.
+
+conversion_guide	the MAD-8 to OPAL conversion guide.
+
+reports			reports on OPAL.
+
+user_guide		the OPAL user guide.

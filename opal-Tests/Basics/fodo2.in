@@ -1,0 +1,38 @@
+Option, TFS=FALSE;
+// ----DesignEnergy ----------------------------------------------------
+//GAMMMONE=0.849425847892200; 
+//gamma=1.0+GAMMMONE;
+// ---------------------------------------------------------------------
+Title,string="fodo1.mad9";
+
+Edes=0.4;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+Proton1: BEAM, PARTICLE=PROTON, pc=P0;
+
+d1: Drift, L=1.0;	
+hfq: Quadrupole, L=1.0, K1= .17676047;
+hdq: Quadrupole, L=1.0, K1= -.17676047;
+ 
+l1: Line = (d1,hfq,d1,hdf,d1);	
+
+Select, Line=l1;
+T1:Twiss, Line=l1, Beam=Proton1, Method="THICK", Order=4 , static=false;
+List, Table=T1,   File="fodo1Twiss.mou",All=true;
+Matrix, Table=T1, File="fodo1Matr.mou";
+
+Doom, shut;
+//System,"doom_plot -db sdb9 < ltk/plot.ir1.b1.mad9";
+Doom,open;
+
+
+Stop;
+
+
+
+

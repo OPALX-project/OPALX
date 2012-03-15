@@ -1,0 +1,93 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=5;
+
+Title, string="OPAL Simulation of Ideal Diode, No Space Charge";
+
+Edes=1.0e-9;
+gamma = (Edes+EMASS) / EMASS;
+beta = sqrt(1.0 - (1.0 / gamma^2));
+gambet = gamma * beta;
+P0 = gambet * EMASS;
+brho = (EMASS * 1.0e9 * gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+// Begin: Diode-Field ////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Artificial "perfect" diode field. No radial component, just z field.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+//
+DiodeEField: RFCavity, L = 0.02, VOLT = -100.0, FMAPFN = "ideal-diode.T7",
+		      ELEMEDGE = 0.0, TYPE = "STANDING", FREQ = 0.0;
+
+Diode: Line = (DiodeEField);
+
+// End: Diode-Field ////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: Fieldsolver ///////////////////////////////////////////
+//
+// Definition of first field solver.
+//
+Fs1:FIELDSOLVER, FSTYPE = NONE, MX = 32, MY = 32, MT = 32,
+		 PARFFTX = true, PARFFTY = true, PARFFTT = false,
+		 BCFFTX = open, BCFFTY = open, BCFFTT = open,
+		 BBOXINCR = 0, GREENSF = INTEGRATED;
+// End: Fieldsolver ////////////////////////////////////////////
+
+
+// Begin: Gaussian Distribution ////////////////////////////////
+//
+// Define initial beam gaussian distribution.
+//
+v0 = beta * CLIGHT;
+T1s = 6.0e-12;
+lz = T1s * v0;
+value,{v0,lz};
+
+Dist1:DISTRIBUTION, DISTRIBUTION = gungauss,
+sigmax = 0.00027, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.00027, sigmapy = 0.0, corry = 0.0,
+sigmat = lz, pt = 1.0, sigmapt = 0.0, corrt = 0.0,
+TEMISSION = 39.0e-12, NBIN = 1, DEBIN = 1;
+
+MINSTEPFORREBIN = 800;
+
+// End: Gaussian Distribution //////////////////////////////////
+
+// Begin: Uniform Distribution ////////////////////////////////
+//
+// Define initial uniform beam distribution.
+//
+v0 = beta * CLIGHT;
+T1s = 30.0e-12;
+lz = T1s * v0;
+value,{v0,lz};
+
+Dist2:DISTRIBUTION, DISTRIBUTION = gununiform,
+sigmax = 0.0005, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.0005, sigmapy = 0.0, corry = 0.0,
+sigmat = lz, pt = 1.0, sigmapt = 0.0, corrt = 0.0,
+TEMISSION = 30.0e-12, NBIN = 10, DEBIN = 1;
+
+MINSTEPFORREBIN = 800;
+
+// End: Uniform Distribution //////////////////////////////////
+
+
+beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 50000, BFREQ = 1498.956e6, BCURRENT = 0.1, CHARGE = -1;
+
+Select, Line = Diode;
+
+track, line = Diode, beam = beam1, MAXSTEPS = 1000, DT = 1.0e-13;
+ run, method = "PARALLEL-T", beam = beam1, fieldsolver = Fs1, distribution = Dist2;
+endtrack;
+Stop;

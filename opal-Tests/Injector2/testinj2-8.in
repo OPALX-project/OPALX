@@ -1,0 +1,74 @@
+Option, ECHO=FALSE;
+// test for 3 bunches particle tracking with space charge effects in parallel inveronment 
+// for PSI Injector2 cyclotron.
+// the initial conditions are obtained from FIXPO EORBIT mode.
+// because there is a field bump at the injection point, there is 
+// no SEO for the first turns. 
+Option, PSDUMPFREQ=200;
+Option, SPTDUMPFREQ=10;
+Option, REPARTFREQ=10;
+Option, REBINFREQ=50;
+Title,string="OPAL-CyclT test";
+
+Edes=0.000870;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+
+//value,{gamma,brho,Edes,beta,gambet};
+
+phi01= 48.4812-15.0;
+phi02=phi01+200.0;
+phi03=phi01+1800.0;
+phi04=phi01+2000.0;
+phi05=(phi01+820.0)*3.0;
+phi06=(phi01+2620.0)*3.0;
+
+frequency=50.6370;
+frequency3=3.0*frequency;
+
+inj2: Cyclotron, TYPE="Injector2", CYHARMON=10, PHIINIT=30.0,
+PRINIT=-0.0067, RINIT=392.5, SYMMETRY=1.0, RFFREQ=50.6370,
+FMAPFN="../ZYKL9Z.NAR";
+
+rf0: RFCavity, VOLT=0.25796, FMAPFN="../Cav1.dat", TYPE="SINGLEGAP",
+FREQ=50.637, RMIN = 350.0, RMAX = 3350.0, ANGLE=35.0,   PDIS = 0.0,
+GAPWIDTH = 0.0, PHI0=phi01;
+rf1: RFCavity, VOLT=0.25796, FMAPFN="../Cav1.dat", TYPE="SINGLEGAP",
+FREQ=50.637, RMIN = 350.0, RMAX = 3350.0, ANGLE=55.0,   PDIS = 0.0,
+GAPWIDTH = 0.0, PHI0=phi02;
+rf2: RFCavity, VOLT=0.25796, FMAPFN="../Cav1.dat", TYPE="SINGLEGAP",
+FREQ=50.637, RMIN = 350.0, RMAX = 3350.0, ANGLE=215.0,  PDIS = 0.0,
+GAPWIDTH = 0.0, PHI0=phi03;
+rf3: RFCavity, VOLT=0.25796, FMAPFN="../Cav1.dat", TYPE="SINGLEGAP",
+FREQ=50.637, RMIN = 350.0, RMAX = 3350.0, ANGLE=235.0,  PDIS = 0.0,
+GAPWIDTH = 0.0, PHI0=phi04;
+rf4: RFCavity, VOLT=0.06380, FMAPFN="../Cav3.dat", TYPE="SINGLEGAP",
+FREQ=151.911, RMIN = 830.0, RMAX = 3330.0, ANGLE=135.0, PDIS = 0.0,
+GAPWIDTH = 0.0, PHI0=phi05;
+rf5: RFCavity, VOLT=0.06380, FMAPFN="../Cav3.dat", TYPE="SINGLEGAP",
+FREQ=151.911, RMIN = 830.0, RMAX = 3330.0, ANGLE=315.0, PDIS = 0.0,
+GAPWIDTH = 0.0, PHI0=phi06;
+
+l1:   Line = (inj2,rf0,rf1,rf2,rf3,rf4,rf5);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  2.0e-03, sigmapx=1.0e-7, corrx=0.0,
+sigmay=  2.0e-03, sigmapy=1.0e-7, corry=0.0,
+sigmat=  2.0e-03, sigmapt=1.8e-4, corrt=0.0;
+
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=16, MY=16, MT=16, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open,BBOXINCR=5;
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=true, NPART=1e5, BCURRENT=3.0E-3, CHARGE=1.0, BFREQ= frequency;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1,MAXSTEPS=2000*80,STEPSPERTURN=2000;
+ run, file = "track_output", turns = 3, mbmode="AUTO", paramb= 5.0, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;

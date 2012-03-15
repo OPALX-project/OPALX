@@ -1,0 +1,153 @@
+!Welcome to IMPACT-T input file.
+!All comment lines start with "!" as the first character of the line.
+!
+!Purpose: use to track one particle and obtain the static fields 
+!         as function of time
+!         stored in fort.14
+!  ./plotfort.sh 14 "Pulsed Minicoil 4200 [A]   " 1 5 "z [m]" "Bz [Gauss]"
+!  ./plotfort.sh 14 "gunb11   " 1 5 "z [m]" "Bz [Gauss]"  
+!
+!
+! processor layout
+! col row
+1 1 /
+!
+! information needed by the integrator:
+! step-size, number of steps, and number of bunches/bins (??)
+!
+!   dt    Ntstep  Nbunch
+_DTGUN_ _NTSTGUN_ _NBUNCH_ /
+!
+! more information needed by the integrator:
+! phase-space dimension, number of particles, a series of flags
+! that set the type of integrator, error study, diagnostics, and
+! image charge, and the cutoff distance for the image charge
+!
+! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m)
+6  _NPBUNCH_ 1 0 1 1 0.02 /
+!
+! information about mesh: number of points in x, y, and z, type
+! of boundary conditions, transverse aperture size (m), 
+! and longitudinal domain size (m), which should be larger than the total
+! beamline element length
+!
+!  Nx  Ny  Nz  bcF   Rx    Ry    Lz
+_NX_ _NY_ _NZ_ 1 0.003 0.003 0.05 /
+!
+!
+! distribution type number, restart flag, space-charge substep
+! flag, number of emission steps, and max emission time
+!
+! distType  restartF  substepF  Nemission  Temission
+_DIST_ 0 0 _NSLICES_ _TEMISS_ /
+!
+! the distribution type codes have the following correspondence
+!   #  dist type    nparam  parameters (1..21)
+!   1  Uniform        21    sigx, sigpx, muxpx, xscale, pxscale, xmu1, xmu2,
+!                           sigy, sigpy, muypy, yscale, pyscale, xmu3, xmu4,
+!                           sigz, sigpz, muzpz, zscale, pzscale, xmu5, xmu6
+!   2  Gauss3         21    as in Uniform
+!   3  Waterbag       21    as in Uniform
+!   4  Semigauss      21    as in Uniform
+!   5  KV3d           21    as in Uniform
+!  15  GaussDouble    21    as in Uniform
+!  16  read           21    none
+!  17  Cylcold        21    as in Uniform
+!  18  CylGaussTest   21   
+!  19  CylDbGauss     21   
+!  20  UniformChain   21   
+!
+! following three lines contain a total of 21 parameters (seven
+! per degree of freedom) particular to the particle distribution
+!
+! in most cases, the columns are given by
+!  sig*   sigp*  mu*p*  *scale  p*scale  xmu*      xmu*
+!
+_SIGX_ 0.0 0.0 1.0 1.0 0.0 0.0 /
+_SIGY_ 0.0 0.0 1.0 1.0 0.0 0.0 /
+_SIGZ_ 0.0 0.0 1.0 1.0 _CENTZ_ _CENTPZ_ /
+!
+! information about the beam: current, kinetic energy, particle
+! rest energy, particle charge, scale frequency, and initial
+! cavity phase
+!
+! I/A     Ek/eV     Mc2/eV        Q/e   freq/Hz  phs/rad
+_IBUNCH_  _EKIN_  0.511005e+06   -1.0    _FREQ_  0.0
+!
+! ======= machine description starts here =======
+! the following lines, which must each be terminated with a '/',
+! describe one beam-line element per line; the basic structure is
+! element length, ???, ???, element type, and then a sequence of
+! at most 24 numbers describing the element properties
+!
+! the numeric type codes have the following correspondence
+!  #    element    nparams  parameters (v0..v23)
+! < 0  bpm           8
+!   0  drift tube    2      zedge radius
+!   1  quadrupole    9      zedge, quad grad, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!   2  constFocus    5      zedge, foc grads kx0^2, ky0^2, kz0^2, radius
+!   3  solenoid      9      zedge, Bz0, fileID
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!   4  dipole       10      zedge, field strength x, y, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!   5  multipole    10      zedge, typeID (2=sex,3=oct,4=dec),
+!                             field strength, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 101  DTL          15      zedge, ...
+! 102  CCDTL        11      zedge, ...
+! 103  CCL          11      zedge, ...
+! 104  SC cavity    11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 105  SolRF        12      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z,
+!                             Bz0
+! 110  EMfld        13      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z,
+!                             field flag (=discrete,=analytic),
+!                             coordinate system flag (=cart,=cyl)
+! 111  EMfld cart   11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 112  EMfld cyl    11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 113  EMfld anal   11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!
+! choose 3D solver
+0.0 10 20 -5 0.0 0.0 0.0 /
+! merge energy  bins into one (btype -7) at z = 1.45 cm:
+0.0 1 1    -7 0.0 0.0 _SMERGE_ 0.0 /
+! output particle phase-space and prepare restart file 
+!  (btype = -3) at z = 1.50 cm:
+!!0.0 1 901  -3 0.0 0.0 1.5E-2  /
+! 4mm diode DIODE_4_MM.T7
+_LDIODE_ 10 20 112 0.000 _VSCALE_ 1.0E-6 0.0 1.0 0.0253 0.0 0.0 0.0 0.0 0.0 /
+! start of OBLA beam line
+0.024 10 20 0 0.0 0.105 /
+! PSL: pulsed solenoid, length 1.2 m, starting at z= 6.15-60+gap = -53.85 cm + gap [cm], 
+! file ID for field = 2.0 (=> file 1T2.T7), scale factor 0.3125 (?T)
+0.12 10 20 3 _PSLS_ _PSLB_ 2.0 0.001 0.0 0.0 0.0 0.0 0.0 /
+!
+!2 Frequency cavity - fundamental mode 1T3.T7
+0.540 10 20 112 _RACS_ 35.50 1498.956e6 _PHASE_ 3.0 0.108 0.0 0.0 0.0 0.0 0.0 /
+! harmonic mode 1T4.T7
+!!0.540 10 20 112 0.069  10.95 4497.536e6 136.0000679 4.0 0.108 0.0 0.0 0.0 0.0 0.0 /
+!
+! add 1.205 m to z_0 to get the peak!!                               
+1.000 10 20 3 _SL10S_  _SL10B_ 5.0 0.001 _SL10X_ _SL10Y_ 0.0 0.0 0.0 /
+1.000 10 20 3 _SL11S_  _SL11B_ 5.0 0.001 _SL11X_ _SL11Y_ 0.0 0.0 0.0 /
+1.000 10 20 3 _SL20S_  _SL20B_ 5.0 0.001 _SL20X_ _SL20Y_ 0.0 0.0 0.0 /
+1.000 10 20 3 _SL21S_  _SL21B_ 5.0 0.001 _SL21X_ _SL21Y_ 0.0 0.0 0.0 /
+
+
+

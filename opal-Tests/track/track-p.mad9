@@ -1,0 +1,31 @@
+ // title,"tracking test"
+
+ p_0 = 46.0;
+ quad: quadrupole;
+ sext: sextupole;
+ rfcav: rfcavity;
+
+ b: rbend, l = 35.09, angle = 0.011306116, e1=0.005, e2=-.005,
+    h1=.001, h2=.002;
+ l1: drift, l = 1.21;
+ l2: drift, l = 0.56;
+ l3: drift, l = 0.28;
+ l4: drift, l = 1.57;
+ qf: quad, l = 1.6, k1 = -0.02268553;
+ qd: quad, l = 0.8, k1 =  0.022683642;
+ rf: rfcav, l = 0, volt = 200, freq = 114, lag = 0.5, harmon = 30;
+ sf: sext,  l = 0.4,  k2 = -0.13129;
+ sd: sext,  l = 0.76, k2 =  0.26328;
+
+ lin: line = (qd,l4, b, l2, sf, l3, qf, l1, b, l2, sd, l3, qd);
+ rflin: line = (-lin,rf,lin);
+ rfseq: line = (rflin);
+
+ beam, pc = 46.1;
+
+ track,line=rfseq;
+ run, file = "track_output", turns = 1, method = "PARALLEL";
+ endtrack;
+
+ stop;
+

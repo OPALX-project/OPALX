@@ -1,0 +1,20 @@
+\begin{picture}(0,0)%
+\includegraphics{figures/boundary2.pdf}%
+\end{picture}%
+\setlength{\unitlength}{3315sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFontNFSS\undefined%
+\gdef\SetFigFontNFSS#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(4094,3846)(2679,-6169)
+\put(3331,-3571){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\familydefault}{\mddefault}{\updefault}$W$}}}}
+\put(4771,-4966){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\familydefault}{\mddefault}{\updefault}$S$}}}}
+\put(4771,-2626){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\familydefault}{\mddefault}{\updefault}$N$}}}}
+\put(4816,-4066){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\familydefault}{\mddefault}{\updefault}$O$}}}}
+\put(3286,-6046){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\familydefault}{\mddefault}{\updefault}$\Gamma$}}}}
+\put(5761,-4066){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\familydefault}{\mddefault}{\updefault}$E$}}}}
+\put(4051,-4111){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\familydefault}{\mddefault}{\updefault}$W^*$}}}}
+\end{picture}%
