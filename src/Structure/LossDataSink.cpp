@@ -1,0 +1,241 @@
+//#include "Ippl.h"
+#include "Algorithms/PBunchDefs.h"
+#include <Structure/LossDataSink.h>
+
+
+void LossDataSink::openH5(string element) {
+
+    if((!hdf5FileIsOpen_m) && doHdf5Save_m) {
+        // open h5 file
+        fn_m = element + string(".h5");
+        /// Open H5 file. Check that it opens correctly.
+#ifdef PARALLEL_IO
+        H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, Ippl::getComm());
+#else
+        H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, 0);
+#endif
+
+        if(!H5file_m) {
+            ERRORMSG("h5 file open failed: exiting!" << endl);
+            exit(0);
+        }
+
+        writeH5FileAttributes() ;
+
+        hdf5FileIsOpen_m = true;
+        INFOMSG("H5 file of proble " << element << " is open" << endl);
+    }
+}
+
+void LossDataSink::writeH5FileAttributes() {
+    h5_int64_t rc;
+    // Write file attributes to describe phase space to H5 file.
+    std::stringstream OPAL_version;
+    OPAL_version << PACKAGE_STRING << " rev. " << SVN_VERSION;
+    rc = H5WriteFileAttribString(H5file_m, "OPAL_version", OPAL_version.str().c_str());
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "tUnit", "s");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "xUnit", "mm");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "yUnit", "mm");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "zUnit", "mm");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "pxUnit", "#beta#gamma");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "pyUnit", "#beta#gamma");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "pzUnit", "#beta#gamma");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "idUnit", "1");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "SPOSUnit", "mm");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "TIMEUnit", "s");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteFileAttribString(H5file_m, "mpart", "GeV");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "qi", "C");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5AddAttachment(H5file_m, OpalData::getInstance()->getInputFn().c_str());
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    INFOMSG("H5 Header of is written" << endl);
+}
+
+void LossDataSink::addParticle(Vector_t x, Vector_t p, size_t  id) {
+    x_m.push_back(x(0));
+    y_m.push_back(x(1));
+    z_m.push_back(x(2));
+    px_m.push_back(p(0));
+    py_m.push_back(p(1));
+    pz_m.push_back(p(2));
+    id_m.push_back(id);
+}
+
+void LossDataSink::save(string element) {
+    h5_int64_t rc;
+    element_m = element;
+
+    if(hdf5FileIsOpen_m) {
+        size_t nLoc = x_m.size();
+        void *varray = malloc(nLoc * sizeof(double));
+        double *farray = (double *)varray;
+        h5_int64_t *larray = (h5_int64_t *)varray;
+
+        ///Get the particle decomposition from all the compute nodes.
+        size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+        size_t  *globN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+
+        for(int i = 0; i < Ippl::getNodes(); i++) {
+            globN[i] = locN[i] = 0;
+        }
+        locN[Ippl::myNode()] = nLoc;
+        reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
+
+        /// Set current record/time step.
+        rc = H5SetStep(H5file_m, H5call_m);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        rc = H5PartSetNumParticles(H5file_m, nLoc);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        // Write all data
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] = x_m[i];
+        rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] = y_m[i];
+        rc = H5PartWriteDataFloat64(H5file_m, "y", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] = z_m[i];
+        rc = H5PartWriteDataFloat64(H5file_m, "z", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] = px_m[i];
+        rc = H5PartWriteDataFloat64(H5file_m, "px", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] = py_m[i];
+        rc = H5PartWriteDataFloat64(H5file_m, "py", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] = pz_m[i];
+        rc = H5PartWriteDataFloat64(H5file_m, "pz", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        /// Write particle id numbers.
+        for(size_t i = 0; i < nLoc; i++)
+            larray[i] =  id_m[i];
+        rc = H5PartWriteDataInt64(H5file_m, "id", larray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        /// Step record/time step index.
+        H5call_m++;
+
+        if(varray)
+            free(varray);
+    } else {
+        int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
+        if(Ippl::Comm->myNode() == 0) {
+            const unsigned partCount = x_m.size();
+            for(unsigned i = 0; i < partCount; i++) {
+                os_m << element_m   << "   ";
+                os_m << x_m[i] << "   ";
+                os_m << y_m[i] << "   ";
+                os_m << z_m[i] << "   ";
+                os_m << px_m[i] << "   ";
+                os_m << py_m[i] << "   ";
+                os_m << pz_m[i] << "   ";
+                os_m << id_m[i]   << "   " << std::endl;
+
+            }
+            int notReceived =  Ippl::getNodes() - 1;
+            while(notReceived > 0) {
+                unsigned dataBlocks = 0;
+                int node = COMM_ANY_NODE;
+                Message *rmsg =  Ippl::Comm->receive_block(node, tag);
+                if(rmsg == 0) {
+                    ERRORMSG("LossDataSink: Could not receive from client nodes output." << endl);
+                }
+                notReceived--;
+                rmsg->get(&dataBlocks);
+                for(unsigned i = 0; i < dataBlocks; i++) {
+                    long id;
+                    double rx, ry, rz, px, py, pz;
+                    rmsg->get(&id);
+                    rmsg->get(&rx);
+                    rmsg->get(&ry);
+                    rmsg->get(&rz);
+                    rmsg->get(&px);
+                    rmsg->get(&py);
+                    rmsg->get(&pz);
+                    os_m << element_m << "   ";
+                    os_m << rx << "   ";
+                    os_m << ry << "   ";
+                    os_m << rz << "   ";
+                    os_m << px << "   ";
+                    os_m << py << "   ";
+                    os_m << pz << "   ";
+                    os_m << id << " " << std::endl;
+
+                }
+                delete rmsg;
+            }
+        } else {
+            Message *smsg = new Message();
+            const unsigned msgsize = x_m.size();
+            smsg->put(msgsize);
+            for(unsigned i = 0; i < msgsize; i++) {
+                smsg->put(id_m[i]);
+                smsg->put(x_m[i]);
+                smsg->put(y_m[i]);
+                smsg->put(z_m[i]);
+                smsg->put(px_m[i]);
+                smsg->put(py_m[i]);
+                smsg->put(pz_m[i]);
+            }
+            bool res = Ippl::Comm->send(smsg, 0, tag);
+            if(! res)
+                ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
+        }
+    }
+    x_m.clear();
+    y_m.clear();
+    z_m.clear();
+    px_m.clear();
+    py_m.clear();
+    pz_m.clear();
+    id_m.clear();
+}
