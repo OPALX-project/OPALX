@@ -1,0 +1,27 @@
+#!/bin/bash
+# Example: ./runit 1 16  solTest5 solTest5.dat
+mkdir -p data
+tail -14 $0 > script.tmp
+change -f "NODES"  "$1" ./script.tmp
+change -f "TOTALTAS"  "$2" ./script.tmp
+change -f "NAME"  "$3" ./script.tmp
+#
+#
+#
+llsubmit ./script.tmp
+rm ./script.tmp
+exit
+#!/usr/bin/csh
+#@ job_name        = NAME-TOTALTAS
+#@ output          = data/NAME-TOTALTAS.out
+#@ error           = data/NAME-TOTALTAS.err
+#@ job_type        = parallel
+#@ class           = regular_n3e 
+#@ total_tasks     = TOTALTAS 
+#@ node            = NODES
+#@ wall_clock_limit= 05:30:00
+#@ notification    = complete
+#@ network.MPI     = csss,not_shared,us
+#@ queue
+setenv MP_PIPE_SIZE 16 
+poe+ ./run --commlib mpi --processes TOTALTAS 

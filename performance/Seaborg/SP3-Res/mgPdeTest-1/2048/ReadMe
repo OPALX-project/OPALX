@@ -1,0 +1,3 @@
+Submit this job with the following command:
+
+% ./runit 128 16 test2048

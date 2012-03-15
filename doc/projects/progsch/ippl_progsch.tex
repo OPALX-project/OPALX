@@ -1,0 +1,149 @@
+\documentclass[10pt,a4paper]{scrartcl}
+
+\usepackage{iff}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{url}  
+\usepackage{tikz}
+\usepackage{pgflibraryshapes}  
+\usetikzlibrary{arrows}
+\usetikzlibrary{mindmap,trees}
+\usepackage[overlay,absolute]{textpos}
+
+\usepackage[latin1]{inputenc}
+\usepackage[english]{babel}
+\usepackage{pgfpages}
+
+\newcommand{\ippl}{\textsc{IP$^2$L}}
+
+\begin{document}
+
+\title{\ippl~ Improvements: \\ \texttt{Update}, \texttt{CachedParticleLayout}
+and P$^3$M}
+\author{A.~Adelmann, Y.~Ineichen\\ 
+        \url{{andreas.adelmann, yves.ineichen}@psi.ch} \\
+        \small{Paul Scherrer Institut, Villigen, Switzerland}
+}
+\date{\today}
+\maketitle
+
+
+\section{Introduction}
+
+\ippl~ (Independent Parallel Particle Layer) is an object-oriented framework for
+particle based applications in computational science requiring high-performance
+parallel computers. One of \ippl's most attractive features is its high
+performance on both single-processor and distributed-memory multicomputers
+machines. As future releases of the library will also support shared-memory
+multicomputers, \ippl's authors have had to think very carefully about how to
+obtain the best possible performance across a wide range of applications on
+different architectures.
+
+As with all big software frameworks maintainability is a difficult task. In the
+last couple of years some deeply anchored issues resurfaced, e.g. the particle
+update mechanism seems to have problems dealing with particles located directly
+on a processor boundary. Unfortunately barely no man power could be spared to
+properly address these issues.
+
+This project aims to get rid of remaining issues and include new feature arising
+in state-of-the-art problems, maintaining \ippl's usefulness in current and future
+applications.
+
+\section{Goals}
+
+This project consists of tree goals, one fix (particle update) and two new
+features (particle cached layout and P$^3$M (Particle-Particle-Particle Mesh)).
+At least the first two tasks should be achievable in the available 3 months.
+
+\subsection{\texttt{Update}}
+
+\ippl's update function is responsible for handling all the administrative stuff
+introduced by the parallel nature of the code. It ensures that all particles are
+on the rightful processor (after having moved around) and updates (if necessary)
+topology information.
+
+As mentioned there are a couple of issues with the current version of the
+\texttt{Update} method:
+%
+\begin{itemize}
+    \item particles on a processor boundary have to be ``nudged'' into one of
+    the two processors domains
+    \item the communication scheme is not always optimal (MPI Buffer problems in
+    some cases)
+    \item proper handling of processors that do not possess any particle at all
+\end{itemize}
+%
+To remedy this situation we propose the following:
+%
+\begin{itemize}
+    \item review methods: update, binary repartition and boundp
+    \item draw flow diagrams explaining the application flow of these methods to
+    establish understanding
+    \item investigate problems causing cores with 0 particles to crash
+    \item rewrite update: fixing all remaining issues, plan how to
+    handle different communication scheme
+    \item update \ippl~ manual
+\end{itemize}
+
+
+\subsection{\texttt{CachedParticleLayout}}
+
+In some application it is useful to have knowledge of particles contained on
+neighboring processors. There is already a \texttt{ParticleInteractLayout},
+containing all particles within a sphere of radius $r$, available. The
+\texttt{CachedParticleLayout} is just another interpretation of the
+\texttt{ParticleInteractLayout} with a different geometrical shape (box instead
+of sphere).
+
+There already exists a very crude adaption of the interact layout.
+Unfortunately, this has never been tested. The tasks contain of the following
+item:
+%
+\begin{itemize}
+    \item code review of cached particle layout
+    \item test and fix or rewrite cached particle layout
+    \item in case of rewrite: class abstraction where any geometrical ``caching
+    shape'' can be specified..
+    \item update \ippl~ manual
+\end{itemize}
+
+
+\subsection{P$^3$M}
+
+If there is still time we would like to add a P$^3$M code. This will improve
+situation where we have to take into account multiple resolutions to study
+effects on different scales, e.g., study micro-bunch instabilities.
+
+\TODO[add]{LITERATURE}
+\begin{itemize}
+    \item \url{http://en.wikipedia.org/wiki/P3M}
+    \item \url{http://arxiv.org/abs/astro-ph/9805096}
+    \item \url{http://arxiv.org/abs/astro-ph/0512030}
+\end{itemize}
+
+
+
+
+\section{Timetable}
+
+In Table \ref{tbl:time} we propose a timetable.
+
+\TODO[FINISH]{Timetable}
+\begin{table}[ht]\footnotesize
+\begin{center}  
+\begin{tabular}{lclllll} 
+\hline 
+\bf & \bf Week  & \bf Activity & \bf Milestone  \\
+\hline \\
+%\hline
+1 & 1-2 & review update/repart/bound  & gain understanding of underlaying \\
+  &     & and draw flow diagrams      & mechanisms of these important IPPL methods. \\
+\\
+\hline 
+\end{tabular} 
+\caption{Time schedule of the proposed project}
+\label{tbl:time}
+\end{center}
+\end{table}
+
+\end{document}

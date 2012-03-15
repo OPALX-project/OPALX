@@ -1,0 +1,21 @@
+      subroutine sgizzfft(isign,n,scale,x,y,table,work,isys)
+c------------------------------------------------------------------------
+      implicit double precision (a-h,o-z)
+      implicit integer (i-n)
+c------------------------------------------------------------------------
+      dimension x(*), y(*), table(*), work(*)
+      call zzfft(isign,n,scale,x,y,table,work,isys)
+
+c     C. BEKAS
+c      dcft (isign, x, 1, 1, y, 1, 1, n, m, isign, scale, aux1, naux1,aux2, naux2)
+
+      return
+
+
+Constantine Bekas, PhD
+Research Staff Member
+IBM Research Division
+Computational Sciences - Zurich Research Laboratory
+Saumerstrasse 4, 8803 Rueschlikon - Switzerland
+e-mail: bek@zurich.ibm.com
+www:    www.zurich.ibm.com/~bek

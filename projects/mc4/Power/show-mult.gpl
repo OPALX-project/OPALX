@@ -1,0 +1,11 @@
+set log
+set title '1 - 32 Processors'
+plot 'fort.33.P1' w linesp
+repl 'fort.33.P2' w linesp
+repl 'fort.33.P16' w linesp
+#repl 'fort.33.P32' w linesp
+#repl 'fort.33.P64' w linesp
+repl 'fort.33-mc2-32x32-10Steps' w l
+set term post col
+set out 'mc2mc4.ps'
+repl

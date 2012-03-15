@@ -1,0 +1,56 @@
+#!/usr/local/bin/perl
+######################################################################
+
+#
+# A simple script to scan a list of files and pull out
+# tag information about each.
+#
+# Run with a list of files on the command line.
+#
+
+#
+# Print the name of the array of strings we'll be building.
+#
+print "const char *ippl_version_log[] = {\n";
+
+#
+# Loop over the input files.
+#
+$filelist = <>;
+chop($filelist);
+
+$itemnum = 0;
+
+foreach $file ( split(/ /,$filelist) ) {
+
+    # Open the file.
+    open(FILE,"<$file") || die("Could not open $file!");
+
+    # Strip off the directories above src.
+    $file =~ s,\S+/src/,,;
+
+    # Read through the file.
+    while (<FILE>) {
+
+	# If we find the IPPL_VERSION_ID line
+	# extract the version number and date.
+	if ( /IPPL_VERSION_ID: \$Id:\s+\S+\s+(\S+)\s+(\S+)/ ) {
+
+	    # print out the tag line.
+	    print "    \"$file $1 $2\",\n";
+
+	    # count the number of lines.
+	    $itemnum += 1;
+	}
+    }
+
+    # Close the file.
+    close(FILE);
+}
+
+# print the trailer for the array of strings.
+print "    \"\"\n";
+print "};\n";
+
+# Spit out setting telling how many filenames there are
+print "const unsigned int ippl_version_numfiles = $itemnum;\n";

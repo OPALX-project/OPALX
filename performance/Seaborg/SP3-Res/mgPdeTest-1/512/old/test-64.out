@@ -1,0 +1,74 @@
+
+ Solving Poisson's equation 
+ with Dirichlet boundary conditions by MG: 
+ Meshsize of grid: 0.00800000
+ Number of relaxations: 1
+ Maximal number of iterations: 10
+
+ Structure a= 0.10000000 b= 0.10000000 l= 12.00000000
+   take p_level: 2 max_level:    12
+ Information about processes: 
+ Number of processes: 64
+ Number of active processes: 64
+
+ information about finest level: 
+------------------------------------ 
+number of interior points is:       115346
+number of points near the boundary: 66154
+number of boundary points:          72242
+number of points in boundary cells: 11992
+sum of all points:                  265734
+ratio of points interior / near boundary: 0.76698939
+ Number of grid points: 265734.00000000
+
+ MG: 
+-------------------- 
+0. Iteration: Error: Max:0.45893086,  L2: 0.11484738
+1. Iteration: Error: Max:0.11563093,  L2: 0.02794894
+2. Iteration: Error: Max:0.02910209,  L2: 0.00721865
+3. Iteration: Error: Max:0.00773047,  L2: 0.00192150
+4. Iteration: Error: Max:0.00220859,  L2: 0.00052219
+5. Iteration: Error: Max:0.00062816,  L2: 0.00014597
+6. Iteration: Error: Max:0.00018219,  L2: 0.00004572
+7. Iteration: Error: Max:0.00013754,  L2: 0.00002246
+8. Iteration: Error: Max:0.00013798,  L2: 0.00001862
+9. Iteration: Error: Max:0.00013817,  L2: 0.00001802
+ 
+ End: 
+ adding counter 5 event 12 Cycles
+ adding counter 0 event 1 Instructions completed
+ adding counter 7 event 0 TLB misses
+ adding counter 2 event 9 Stores completed
+ adding counter 3 event 5 Loads completed
+ adding counter 4 event 5 FPU 0 instructions
+ adding counter 1 event 35 FPU 1 instructions
+ adding counter 6 event 9 FMAs executed
+
+
+################################################################################
+ hpmcount (V 2.4.2) summary (aggregate of 64 POE tasks)
+ Average execution time (wall clock time)   : 1056.34 seconds
+ Average amount of time in user mode        : 1044.142812 seconds
+ Average amount of time in system mode      : 1.799219 seconds
+ Total maximum resident set size            : 757 Mbytes
+ Total shared memory use in text segment    : 3105975736 Kbytes*sec
+ Total unshared memory use in data segment  : 52736941854 Kbytes*sec
+ PM_CYC (Cycles)                            : 24988803064676
+ PM_INST_CMPL (Instructions completed)      : 26621708814802
+ PM_TLB_MISS (TLB misses)                   : 58098908629        
+ PM_ST_CMPL (Stores completed)              : 5236165215656
+ PM_LD_CMPL (Loads completed)               : 11001351266677
+ PM_FPU0_CMPL (FPU 0 instructions)          : 3415858775
+ PM_FPU1_CMPL (FPU 1 instructions)          : 824280771
+ PM_EXEC_FMA (FMAs executed)                : 1469614066
+ Utilization rate                           : 98.55221875 %
+ Avg number of loads per TLB miss           : 211634.380625
+ Load and store operations                  : 16237516.48 M
+ MIPS                                       : 25204.128
+ Instructions per cycle                     : 1.065125
+ HW Float points instructions per Cycle     : 0.00015625
+ Total Floating point instructions + FMAs   : 5709.753 M
+ Total Float point instructions + FMA rate  : 5.43899999999999 Mflip/s
+ Average FMA percentage                     : 55.29025 %
+ Average computation intensity              : 0.000875 
+################################################################################

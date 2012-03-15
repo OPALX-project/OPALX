@@ -1,0 +1,25 @@
+# psend -> precv
+# sending to a IPPL II receiver
+
+paws load resources.paws
+
+#set DEBUG 17
+
+set psend [runPawsTask scalar-send $HOST 1]
+set precv [runPawsTask scalar-recv-II $HOST 1]
+
+# Connect programs
+connectPawsTasks $psend $precv
+
+# Connect datas
+# psend:s1 -> precv:s1
+# psend:s2 <- precv:s2
+#
+connectPawsData [ paws get data $psend s1 ] [ paws get data $precv s1 ]
+connectPawsData [ paws get data $precv s2 ] [ paws get data $psend s2 ]
+
+# Then go......
+paws go $psend $precv
+paws show tasks
+paws show data
+

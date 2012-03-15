@@ -1,0 +1,194 @@
+Proc 0
+Header: Particles this file 34157866
+LOCATION RANGE Dimension 0 [5.2762e-06:385.045]
+LOCATION RANGE Dimension 1 [3.23822e-06:256.526]
+LOCATION RANGE Dimension 2 [5.88945e-07:513.565]
+
+Proc 1
+Header: Particles this file 33099739
+LOCATION RANGE Dimension 0 [256.526:513.565]
+LOCATION RANGE Dimension 1 [5.01416e-05:385.045]
+LOCATION RANGE Dimension 2 [1.10854e-05:513.565]
+
+Proc 2
+Header: Particles this file 34205416
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [1.4837e-05:642.085]
+LOCATION RANGE Dimension 2 [7.39074e-06:256.526]
+
+Proc 3
+Header: Particles this file 32939897
+LOCATION RANGE Dimension 0 [449.305:770.604]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 4
+Header: Particles this file 34589572
+LOCATION RANGE Dimension 0 [6.67369e-06:256.526]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [513.565:899.124]
+
+Proc 5
+Header: Particles this file 32493389
+LOCATION RANGE Dimension 0 [1.55933e-06:256.526]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 6
+Header: Particles this file 34231507
+LOCATION RANGE Dimension 0 [3.97194e-06:385.045]
+LOCATION RANGE Dimension 1 [256.526:577.824]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 7
+Header: Particles this file 33385195
+LOCATION RANGE Dimension 0 [256.526:513.565]
+LOCATION RANGE Dimension 1 [128.006:513.565]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 8
+Header: Particles this file 33356935
+LOCATION RANGE Dimension 0 [128.006:513.565]
+LOCATION RANGE Dimension 1 [7.78648e-06:256.526]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 9
+Size of header 256
+Header: Particles this file 33659997
+LOCATION RANGE Dimension 0 [6.90964e-06:256.526]
+LOCATION RANGE Dimension 1 [6.04654e-06:256.526]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 10
+Header: Particles this file 34136239
+LOCATION RANGE Dimension 0 [128.006:513.565]
+LOCATION RANGE Dimension 1 [256.526:513.565]
+LOCATION RANGE Dimension 2 [1.60441e-05:513.565]
+
+Proc 11
+Header: Particles this file 32381443
+LOCATION RANGE Dimension 0 [2.42315e-06:256.526]
+LOCATION RANGE Dimension 1 [256.526:513.565]
+LOCATION RANGE Dimension 2 [1.47685e-05:513.565]
+
+Proc 12
+Header: Particles this file 34546903
+LOCATION RANGE Dimension 0 [1.21003e-05:256.526]
+LOCATION RANGE Dimension 1 [385.045:1027.13]
+LOCATION RANGE Dimension 2 [5.16677e-06:385.044]
+
+Proc 13
+Header: Particles this file 33486466
+LOCATION RANGE Dimension 0 [5.12964e-06:385.045]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [256.526:513.565]
+
+Proc 14
+Header: Particles this file 32823262
+LOCATION RANGE Dimension 0 [256.526:513.565]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [256.526:513.565]
+
+Proc 15
+Header: Particles this file 33993296
+LOCATION RANGE Dimension 0 [256.526:513.565]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [5.43857e-06:385.045]
+
+Proc 16
+Header: Particles this file 33212224
+LOCATION RANGE Dimension 0 [449.305:770.604]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [3.8391e-07:256.526]
+
+Proc 17
+Header: Particles this file 34142243
+LOCATION RANGE Dimension 0 [513.565:770.604]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [128.006:513.565]
+
+Proc 18
+Header: Particles this file 33452987
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [256.526:513.565]
+
+Proc 19
+Header: Particles this file 33004846
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [2.80184e-06:385.045]
+Tag exceeded 0
+
+Proc 20
+Header: Particles this file 31977439
+LOCATION RANGE Dimension 0 [513.565:834.863]
+LOCATION RANGE Dimension 1 [4.17586e-06:513.565]
+LOCATION RANGE Dimension 2 [7.02514e-07:256.526]
+
+Proc 21
+Header: Particles this file 34138376
+LOCATION RANGE Dimension 0 [513.565:770.604]
+LOCATION RANGE Dimension 1 [6.87389e-06:513.565]
+LOCATION RANGE Dimension 2 [128.006:513.565]
+
+Proc 22
+Header: Particles this file 32912786
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [1.33292e-06:513.565]
+LOCATION RANGE Dimension 2 [256.526:513.565]
+
+Proc 23
+Header: Particles this file 35445935
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [1.01656e-05:513.565]
+LOCATION RANGE Dimension 2 [449.305:770.604]
+
+Proc 24
+Header: Particles this file 32796312
+LOCATION RANGE Dimension 0 [513.565:770.604]
+LOCATION RANGE Dimension 1 [7.96916e-06:513.565]
+LOCATION RANGE Dimension 2 [513.565:899.124]
+
+Proc 25
+Header: Particles this file 34014064
+LOCATION RANGE Dimension 0 [513.565:899.124]
+LOCATION RANGE Dimension 1 [2.26004e-05:513.565]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 26
+Header: Particles this file 33410081
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [3.90077e-06:642.085]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 27
+Header: Particles this file 33956785
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 28
+Header: Particles this file 32878126
+LOCATION RANGE Dimension 0 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [513.565:770.604]
+
+Proc 29
+Header: Particles this file 34116278
+LOCATION RANGE Dimension 0 [513.565:770.604]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [513.565:899.124]
+
+Proc 30
+Header: Particles this file 33647960
+LOCATION RANGE Dimension 0 [256.526:513.565]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [4.88281e-06:1027.13]
+
+Proc 31
+Header: Particles this file 33148260
+LOCATION RANGE Dimension 0 [128.006:513.565]
+LOCATION RANGE Dimension 1 [4.88281e-06:1027.13]
+LOCATION RANGE Dimension 2 [513.565:770.604]
+

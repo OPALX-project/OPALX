@@ -1,0 +1,198 @@
+      program pow
+
+      implicit none
+
+      integer np,ng,hdfform,byteo,rprec,iprec,frm
+
+      real hubble,pmass,ain,deut,omegatot,omegal,rL,xmin,omegab      
+      real ss8,ns,h0,gpscal
+
+      write(6,*)'running'
+
+      open(7,file="indat.pow",status='old')
+      
+      read(7,*)h0     ! Hubble constant
+      read(7,*)np     ! # particle per dimension
+      read(7,*)ng     ! # grid-points per dimension
+      read(7,*)rL     ! physcial box size
+      read(7,*)frm    ! format, 1: MC2, 2: 2LPT	
+
+      close(7)
+
+      hubble=h0/100.0
+      gpscal=(1.0*ng)/(1.0*np)
+      write(6,*)'physical box size',rL
+      np=np*np*np
+
+      call solve(np,ng,rL,hubble,gpscal,frm)
+
+      stop
+      end
+
+
+      subroutine solve(np,ng,rL,hubble,gpscal,frm)
+
+!-----Reads in particles and positions provided from outside
+    
+      implicit none
+
+      integer ng,np,mm,ii,isign,jj,frm
+
+      integer indx(np),jndx(np),kndx(np)
+      integer indxp1(np),jndxp1(np),kndxp1(np)
+
+      real tpi,tpiL,hubble
+      real rL,rscale,gpscal
+      real xscal,vscal,vfac,pfac,scal,icpy
+
+      real coor(6,np)
+      real pkf(ng/2),pkfc(ng/2)
+      real rho(ng,ng,ng)
+      real ab(np),de(np),gh(np)
+
+!hpf$ distribute pkf(block)
+!hpf$ align (:) with pkf(:) :: pkfc
+!hpf$ distribute coor(*,block)
+!hpf$ align (:) with coor(*,:) :: indx,jndx,kndx,ab,de,gh
+!hpf$ align (:) with coor(*,:) :: indxp1,jndxp1,kndxp1
+!hpf$ distribute rho(*,*,block)
+
+      tpi=8.0*atan(1.0)  ! 2 pi
+
+!-----Read-in of particles_001
+
+      write(6,*)'read-in starts'
+
+      if(frm.eq.1)then	
+      open(78,file='xpos_z=0',form='unformatted',
+     #     access='direct',recl=4*np)  
+
+      read(78)coor(1,:)
+
+      open(79,file='ypos_z=0',form='unformatted',
+     #     access='direct',recl=4*np)  
+
+      read(79)coor(3,:)
+
+      open(80,file='zpos_z=0',form='unformatted',
+     #     access='direct',recl=4*np)  
+
+      read(80)coor(5,:)
+      endif
+	
+      if(frm.eq.2)then	
+      open(78,file='ZA_disp_x',form='unformatted')  
+      read(78)coor(1,:)
+
+      open(79,file='ZA_disp_y',form='unformatted')  
+      read(79)coor(3,:)
+
+      open(80,file='ZA_disp_z',form='unformatted')  
+      read(80)coor(5,:)
+      endif
+
+      write(6,*)'read-in finish'
+
+      close(78)
+
+      if(frm.eq.3)then
+      open(1,file='pos.dat',form='formatted')
+      do ii=1,np	
+      read(1,*)coor(1,ii),coor(3,ii),coor(5,ii)			
+      enddo
+      endif		
+
+      if(frm.eq.4)then
+      open(1,file='step-10.dat',form='formatted')
+      do ii=1,np	
+      read(1,*)coor(1,ii),coor(2,ii),coor(3,ii),coor(4,ii),
+     #         coor(5,ii),coor(6,ii)
+      enddo
+      endif		
+
+
+      write(6,*)maxval(coor(1,:)),maxval(coor(3,:)),maxval(coor(5,:))
+      write(6,*)minval(coor(1,:)),minval(coor(3,:)),minval(coor(5,:))
+
+!-----Conversion to MC^2 units
+
+!      coor(1,:)=coor(1,:)*hubble
+!      coor(3,:)=coor(3,:)*hubble     
+!      coor(5,:)=coor(5,:)*hubble
+
+!      coor(1,:)=coor(1,:)/hubble
+!      coor(3,:)=coor(3,:)/hubble
+!      coor(5,:)=coor(5,:)/hubble
+
+
+!-----Converting to box-units for further use in the code:
+     
+      xscal=rL/(1.0*ng)
+      vscal=100.0*xscal
+      
+      coor(1,:)=coor(1,:)/xscal
+!      coor(2,:)=coor(2,:)/vscal
+      coor(3,:)=coor(3,:)/xscal
+!      coor(4,:)=coor(4,:)/vscal
+      coor(5,:)=coor(5,:)/xscal
+!      coor(6,:)=coor(6,:)/vscal
+      
+      write(6,*)xscal,vscal
+
+!-----Compute CIC density field from particle positions 
+!-----Normalized to particle number density.
+
+      write(6,*)'after converting into box units'
+      write(6,*)maxval(coor(1,:)),maxval(coor(3,:)),maxval(coor(5,:))
+      write(6,*)minval(coor(1,:)),minval(coor(3,:)),minval(coor(5,:))
+      
+      write(6,*)coor(1,2),coor(3,2),coor(5,2)
+
+      call rhoord(coor,rho,np,ng,ab,de,gh,
+     #      indx,jndx,kndx,indxp1,jndxp1,kndxp1,gpscal)
+
+      write(6,*)'after rhoord'
+
+!-----Compute 1-D power spectrum (physical units)
+
+      rho=(rho-1.0)
+
+      call pspec1(rho,ng,pkf)
+
+      tpiL=tpi/rL
+      rscale=rL/(1.0*ng)
+
+      do mm=1,ng/2
+      write(33,*) mm*tpiL,pkf(mm)*rscale**3
+      enddo
+
+!-----Compute 1-D power spectrum with de-convolution
+
+      call psp1cic(rho,ng,pkfc)
+
+      do mm=1,ng/2
+      write(34,*)mm*tpiL,pkfc(mm)*rscale**3
+      enddo
+
+103   format(6(e12.5,1x))
+
+      return
+      end subroutine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

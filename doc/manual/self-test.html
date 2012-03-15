@@ -1,0 +1,312 @@
+<!-- self-.html : tail end of POOMA II tutorials -->
+<!-- $Id: self-test.html,v 1.4 1998/10/26 13:58:04 gvwilson Exp $ -->
+
+<html>
+<head>
+<title>IPPL Tutorials: A Quick Self-Test</title>
+</head>
+<body background="back.gif">
+
+
+<center><h1>IPPL Tutorials<br>A Quick Self-Test</h1></center>
+
+<!---------------------------------------------------------------------->
+<h2>Introduction</h2>
+
+<p>The implementation of IPPL uses many advanced or obscure
+features of the ANSI/ISO C++ standard.  Its interface is less
+exacting, but programmers must still have a solid understanding of C++
+to use it effectively.  If you feel comfortable with the questions
+below, and their answers, you should have little or no difficulty
+using IPPL.  If, on the other hand, you find the questions
+and their answers difficult, you may wish to look at some of the books
+in the <a href="reading.html">recommended reading</a> before trying to
+use this library.
+
+<!---------------------------------------------------------------------->
+<h2>Questions</h2>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Object Creation</h3>
+
+Assume that a default constructor, a copy constructor, and an
+overloaded assignment operator have been defined for the class
+<tt>Fred</tt>.  How many times is each called when the following
+program is executed?
+
+<blockquote><pre>
+Fred red;
+
+void func(
+    Fred cyan
+){
+    Fred magenta;
+    magenta = cyan;
+    return magenta;
+}
+
+int main()
+{
+    Fred green = red;
+    blue = func(green);
+    return 0;
+}
+</pre></blockquote>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Virtual Methods and Inheritance</h3>
+
+<p>What does the following program print out?
+
+<blockquote><pre>
+class A
+{
+  public :
+    A()                 { cout &lt;&lt; "A new" &lt;&lt; endl; }
+    virtual void left() { cout &lt;&lt; "A left" &lt;&lt; endl; }
+    void right()        { cout &lt;&lt; "A right" &lt;&lt; endl; }
+};
+
+class B : public A
+{
+  public :
+    B()                 { cout &lt;&lt; "B new" &lt;&lt; endl; }
+    void left()         { cout &lt;&lt; "B left" &lt;&lt; endl; }
+    void right()        { cout &lt;&lt; "B right" &lt;&lt; endl; }
+};
+
+int main()
+{
+    A a;
+    a.left();
+    a.right();
+    cout &lt;&lt; endl;
+
+    B b;
+    b.left();
+    b.right();
+    cout &lt;&lt; endl;
+
+    A * ap = &amp;b;
+    ap-&gt;left();
+    ap-&gt;right();
+    cout &lt;&lt; endl;
+
+    A * ap = (A*)&amp;b;
+    ap-&gt;left();
+    ap-&gt;right();
+    cout &lt;&lt; endl;
+
+    ((A*)ap)-&gt;left();
+    ((A*)ap)-&gt;right();
+
+    return 0;
+}
+</pre></blockquote>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Trait Classes</h3>
+
+<p>What does the following program print out?
+
+<blockquote><pre>
+class Blue
+{
+  public :
+    enum { Val = 240; };
+};
+
+template&lt;class T&gt;
+class Green
+{
+  public :
+    const int Val = 88;
+};
+
+template&lt;class T&gt;
+class Red
+{
+  public :
+    enum { Val = T::Val/2; };
+};
+
+int main()
+{
+    cout &lt;&lt; Blue::Val &lt;&lt; endl;
+    cout &lt;&lt; Green&lt;Blue&gt;::Val &lt;&lt; endl;
+    cout &lt;&lt; Red&lt;Blue&gt;::Val &lt;&lt; endl;
+    cout &lt;&lt; Red&lt;Green&lt;Blue&gt;&gt;::Val &lt;&lt; endl;
+    cout &lt;&lt; Red&lt;Green&lt;Green&lt;Blue&gt;&gt;&gt;::Val &lt;&lt; endl;
+    cout &lt;&lt; Red&lt;Red&lt;Green&lt;Blue&gt;&gt;&gt;::Val &lt;&lt; endl;
+    return 0;
+}
+</pre></blockquote>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Values, References, and Constant References</h3>
+
+<p>Which of the calls to <tt>value()</tt>, <tt>reference</tt>, and
+<tt>const_reference</tt> below produce errors during compilation?
+
+<blockquote><pre>
+void value(int x)
+{}
+
+void reference(int &amp; x)
+{}
+
+void const_reference(const int &amp; x)
+{}
+
+int main()
+{
+    int x;
+    const int y = 2;
+
+    value(1);
+    value(x);
+    value(y);
+    value(x+1);
+
+    reference(1);
+    reference(x);
+    reference(y);
+    reference(x+1);
+
+    const_reference(1);
+    const_reference(x);
+    const_reference(y);
+    const_reference(x+1);
+
+    return 0;
+}
+</pre></blockquote>
+
+<!---------------------------------------------------------------------->
+<h2>Answers</h2>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Object Creation</h3>
+
+<p>The listing below shows where constructor calls and assignments
+occur:
+
+<blockquote><pre>
+Fred red;                               // <em>default constructor</em>
+
+void func(
+    Fred cyan                           // <em>copy constructor</em>
+                                        // <em>(pass by value)</em>
+){
+    Fred magenta;                       // <em>default constructor</em>
+    magenta = cyan;                     // <em>assignment operator</em>
+    return magenta;                     // <em>copy constructor</em>
+                                        // <em>(magenta is copied into</em>
+                                        // <em>a nameless temporary to</em>
+                                        // <em>be returned)</em>
+}
+
+int main()
+{
+    Fred green = red;                   // <em>copy constructor</em>
+    blue = func(green);                 // <em>copy constructor twice</em>
+                                        // <em>('green' is copied into</em>
+                                        // <em>'cyan' during call, and</em>
+                                        // <em>temporary return value</em>
+                                        // <em>is copied into 'blue' on</em>
+                                        // <em>exit)</em>
+    return 0;
+}
+</pre></blockquote>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Virtual Methods and Inheritance</h3>
+
+<p>The program prints the following:
+
+<blockquote><pre>
+A new                                   // <em>A::A()</em>
+A left                                  // <em>A::left()</em>
+A right                                 // <em>A::right()</em>
+
+A new                                   // <em>B::B() invokes A::A()</em>
+B new                                   // <em>body of B::B()</em>
+B left                                  // <em>B::left()</em>
+B right                                 // <em>B::right()</em>
+
+B left                                  // <em>left() is virtual</em>
+A right                                 // <em>right() is not virtual</em>
+
+B left                                  // <em>cast on right irrelevant</em>
+A right                                 // <em>right() is not virtual</em>
+
+A left                                  // <em>cast relevant</em>
+A right                                 // <em>right() is not virtual</em>
+</pre></blockquote>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Trait Classes</h3>
+
+<p>The key here is that <tt>Green&lt;&gt;</tt> always defines its own
+<tt>Val</tt>, while <tt>Red&lt;&gt;</tt> defines its <tt>Val</tt> in
+terms of its argument class's <tt>Val</tt>.  The answer is therefore:
+
+<blockquote><pre>
+int main()
+{
+    cout &lt;&lt; Blue::Val &lt;&lt; endl;                    // <em>240</em>
+    cout &lt;&lt; Green&lt;Blue&gt;::Val &lt;&lt; endl;             // <em>88</em>
+    cout &lt;&lt; Red&lt;Blue&gt;::Val &lt;&lt; endl;               // <em>120</em>
+    cout &lt;&lt; Red&lt;Green&lt;Blue&gt;&gt;::Val &lt;&lt; endl;        // <em>44</em>
+    cout &lt;&lt; Red&lt;Green&lt;Green&lt;Blue&gt;&gt;&gt;::Val &lt;&lt; endl; // <em>44</em>
+    cout &lt;&lt; Red&lt;Red&lt;Green&lt;Blue&gt;&gt;&gt;::Val &lt;&lt; endl;   // <em>22</em>
+    return 0;
+}
+</pre></blockquote>
+
+<! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ->
+<h3>Values, References, and Constant References</h3>
+
+<p>The only outright errors occur when a constant value (such as a
+literal or the result of an arithmetic expression) is passed where a
+non-constant reference parameter is expected.  There is also a warning
+when <tt>x</tt> is used before being assigned a value:
+
+<blockquote><pre>
+int main()
+{
+    int x;
+    const int y = 2;
+
+    value(1);
+    value(x);                           // <em>Warning, value used before set.</em>
+    value(y);
+    value(x+1);
+
+    reference(1);                       // <em>Error. Non-const reference to const.</em>
+    reference(x);
+    reference(y);                       // <em>Error. Non-const reference to const.</em>
+    reference(x+1);                     // <em>Error. Non-const reference to const.</em>
+
+    const_reference(1);
+    const_reference(x);
+    const_reference(y);
+    const_reference(x+1);
+
+    return 0;
+}
+</pre></blockquote>
+
+<br>
+<br>
+<center>
+<table>
+<tr>	<td><a href="tut-4.html">[Prev]</a>
+	<td><a href="index.html">[Home]</a>
+	<td><a href="threading.html">[Next]</a>
+	</tr>
+</table>
+</center>
+
+</body>
+</html>

@@ -1,0 +1,112 @@
+
+ Solving Poisson's equation 
+ with Dirichlet boundary conditions by MG: 
+ Meshsize of grid: 0.00100000
+ Number of relaxations: 1
+ Maximal number of iterations: 10
+
+ Structure a= 0.75000000 b= 0.75000000 l= 1.00000000
+ Generate_processes(); 
+   take p_level: 4 max_level:    10
+ Grid_generation(); 
+  I Basic grid generation by edges; 
+   I.2 edge correction; 
+  II Calculation of points and cells; 
+   II.2 construct basic points; 
+        send them; 
+   II.3 fullfill B1B2; 
+   II.4 construct cell points; 
+   II.61 interior cell part 1; 
+   II.62 sends of boundary cells; 
+   II.63 interior cell part 2; 
+        send them; 
+   II.7 calc multigrid points; 
+   II.7 remove exterior points; 
+   II.8 calc interior points; 
+   II.9 send coarse grid points; 
+  III Calculation of boundary; 
+   III.2 boundary cells; 
+ Information about processes: 
+ Number of processes: 2048
+ Number of active processes: 2048
+ Initialize_variable(); 
+   III.3.1 construct boundary points; 
+         remove edges; 
+   III.4.1 storage for boundary cells; 
+   III.4.2 storage for cells and stencils; 
+   III.4.3 storage for boundary matrices; 
+ IV. calculate lists; 
+   IV. 2. interior points and points near boundary; 
+   IV. 5. pointer in boundary cells; 
+   IV. 6. restriction weights; 
+   IV. 7. coarsest level; 
+   IV. 8. initialize lists; 
+   IV. 9. calc mg; 
+   V.1 prepare evaluation; 
+   V.2 prepare parallel; 
+   a) ; 
+   b) ; 
+   c) ; 
+   end prepare ; 
+
+ information about finest level: 
+------------------------------------ 
+number of interior points is:       438350211
+number of points near the boundary: 3876574
+number of boundary points:          3890574
+number of points in boundary cells: 672000
+sum of all points:                  446789359
+ratio of points interior / near boundary: 51.94247227
+ Number of grid points: 446789359.00000000
+
+ MG: 
+-------------------- 
+0. Iteration: Error: Max:0.89312897,  L2: 0.44070623
+1. Iteration: Error: Max:0.80274571,  L2: 0.38610117
+2. Iteration: Error: Max:0.71926196,  L2: 0.33623747
+3. Iteration: Error: Max:0.64093011,  L2: 0.29160019
+4. Iteration: Error: Max:0.56737047,  L2: 0.25213493
+5. Iteration: Error: Max:0.49898557,  L2: 0.21752917
+6. Iteration: Error: Max:0.43627746,  L2: 0.18736392
+7. Iteration: Error: Max:0.37956670,  L2: 0.16118633
+8. Iteration: Error: Max:0.32890080,  L2: 0.13854663
+9. Iteration: Error: Max:0.28409214,  L2: 0.11901778
+ 
+ End: 
+ adding counter 5 event 12 Cycles
+ adding counter 0 event 1 Instructions completed
+ adding counter 7 event 0 TLB misses
+ adding counter 2 event 9 Stores completed
+ adding counter 3 event 5 Loads completed
+ adding counter 4 event 5 FPU 0 instructions
+ adding counter 1 event 35 FPU 1 instructions
+ adding counter 6 event 9 FMAs executed
+
+
+################################################################################
+ hpmcount (V 2.4.2) summary (aggregate of 2048 POE tasks)
+ Average execution time (wall clock time)   : 1503.55 seconds
+ Average amount of time in user mode        : 1465.160522 seconds
+ Average amount of time in system mode      : 17.331904 seconds
+ Total maximum resident set size            : 219 Gbytes
+ Total shared memory use in text segment    : 144926517832 Kbytes*sec
+ Total unshared memory use in data segment  : 4350707320408 Kbytes*sec
+ PM_CYC (Cycles)                            : 1.12113041422818e+15
+ PM_INST_CMPL (Instructions completed)      : 1.23090298171727e+15
+ PM_TLB_MISS (TLB misses)                   : 435876745286        
+ PM_ST_CMPL (Stores completed)              : 169325076050536
+ PM_LD_CMPL (Loads completed)               : 292901659952880
+ PM_FPU0_CMPL (FPU 0 instructions)          : 1881877795883
+ PM_FPU1_CMPL (FPU 1 instructions)          : 257248837078
+ PM_EXEC_FMA (FMAs executed)                : 528301433330
+ Utilization rate                           : 97.0753222656252 %
+ Avg number of loads per TLB miss           : 874.502478027344
+ Load and store operations                  : 462226736.008 M
+ MIPS                                       : 818672.271000002
+ Instructions per cycle                     : 1.09790380859375
+ HW Float points instructions per Cycle     : 0.00211132812499991
+ Total Floating point instructions + FMAs   : 2667428.04700001 M
+ Total Float point instructions + FMA rate  : 1774.31499999998 Mflip/s
+ Average FMA percentage                     : 39.201412109375 %
+ Average computation intensity              : 0.00589111328125003 
+################################################################################

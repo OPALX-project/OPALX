@@ -1,0 +1,93 @@
+Initializer v 0.4
+
+###############
+
+Description:
+
+Sets up initial particle positions and velocities for a given cosmology. 
+Code roughly follows MC2 pattern; several departures are made to make the code 
+running about 8X faster, using 8X less memory than the original version. 
+It's C/C++/MPI, and parallel scaling should be determined by the FFT.
+1_to_3 D transformation is applied to transfer data into cubes, as 
+we currently only have 1D FFT (FFTW) available.
+
+###############
+
+Compiling:
+
+Should need only to set desired compilers and flags in the makefile. 
+FFTW has to be linked, supported are both FFTW 2 and 3 versions. See the 
+header of the Makefile for additional flags and explanations...
+
+###############
+
+Running:
+
+mpirun -np X init <indatName> <tfName> <outBase>
+
+<indatName> is the name of the indat file (see important change regarding the 
+                                           transfer function below!!)
+
+<tfName> is the name of the transfer function file (see cmb.tf)
+
+<outBase> is the base for output name, actual files will have ".X" appended,
+where X is the mpi rank, one file per mpi rank
+
+It is possible to run on one processor with -np 1. Serial run case is treated 
+separately throughout the code, so that can be done as well...
+
+###############
+
+Sources:
+
+There are 2 C files:
+      PerfMon.c
+      distribution.c
+6 C++ files:
+      Initializer.cpp
+      Cosmology.cpp
+      DataBase.cpp
+      MT_Random.cpp
+      Parallelization.cpp
+      main.cpp
+and 9 header files. 
+
+###############
+
+Input:
+      cmb.tf  -- needed only if CMBFAST trasfer function is used
+      indat   -- input parameters (always needed)
+
+indat:
+      In indat one should specify cosmology (see the example file 
+      provided), and run parameters. The file is taken from MC2 and 
+      most of parameters listed are actually unused in the initializer. 
+      
+      IMPORTANT DIFFERENCE FROM THE MC2 INDAT FILE:
+
+      Transfer function: 0=CMBFast, 1=KH, 2=HS, 3=PD, 4=BBKS
+                                CMB for CMBFAST trasfer function
+                                BBKS for Bardeen et al. 1986, ApJ 304, 15
+                                PD for Peacock & Dodds, 1994, MNRAS, 267, 1020
+                                HS for Hu & Sugiyama, 1996, ApJ, 471, 542
+                                KH for Klypin & Holtzman, astro-ph/9712217
+
+      Domain decomposition: should be kept as 1 for now, as only FFTW
+                            exists for now; data is transfered into
+                            cubes at the very end, by calling David's
+                            distribution.c
+
+###############
+
+Output:
+
+Particles are directed to the position and velocity arrays, and example 
+main.cpp showcase the calling of the initializer code. There, Adrian also 
+provided example output (parallel, binary) in cosmo format, where positions 
+are in Mpc/h, velocities in km/s.
+
+###############
+
+
+Contact:
+         zarija@lanl.gov

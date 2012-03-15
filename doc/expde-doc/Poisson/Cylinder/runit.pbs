@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=2,walltime=01:30:00 
+#PBS -o out
+#PBS -e err
+
+test -d ~/.gmpi || mkdir ~/.gmpi
+GMCONF=~/.gmpi/conf.$PBS_JOBID
+/usr/local/xcat/bin/pbsnodefile2gmconf $PBS_NODEFILE >$GMCONF
+NP=$(head -1 $GMCONF)
+cd $PBS_O_WORKDIR
+
+rm -rf out err OUT
+mpirun.ch_gm --gm-kill 10 --gm-f $GMCONF -np $NP ./run  > OUT
+rm -rf $GMCONF

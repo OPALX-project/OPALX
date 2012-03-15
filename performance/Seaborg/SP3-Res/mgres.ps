@@ -1,0 +1,1519 @@
+%!PS-Adobe-3.0
+%%Title: mgres.txt
+%%For: Andreas Adelmann
+%%Creator: a2ps version 4.13
+%%CreationDate: Wed Mar 12 21:55:56 2003
+%%BoundingBox: 24 24 588 768
+%%DocumentData: Clean7Bit
+%%Orientation: Landscape
+%%Pages: 5
+%%PageOrder: Ascend
+%%DocumentMedia: Letter 612 792 0 () ()
+%%DocumentNeededResources: font Courier
+%%+ font Courier-Bold
+%%+ font Courier-BoldOblique
+%%+ font Courier-Oblique
+%%+ font Helvetica
+%%+ font Helvetica-Bold
+%%+ font Symbol
+%%+ font Times-Bold
+%%+ font Times-Roman
+%%DocumentProcessColors: Black 
+%%DocumentSuppliedResources: procset a2ps-a2ps-hdr
+%%+ procset a2ps-black+white-Prolog
+%%+ encoding ISO-8859-1Encoding
+%%EndComments
+/a2psdict 200 dict def
+a2psdict begin
+%%BeginProlog
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Check PostScript language level.
+/languagelevel where {
+  pop /gs_languagelevel languagelevel def
+} {
+  /gs_languagelevel 1 def
+} ifelse
+
+% EPSF import as in the Red Book
+/BeginInclude {
+  /b4_Inc_state save def    		% Save state for cleanup
+  /dict_count countdictstack def	% Count objects on dict stack
+  /op_count count 1 sub def		% Count objects on operand stack 
+  userdict begin
+    0 setgray 0 setlinecap
+    1 setlinewidth 0 setlinejoin
+    10 setmiterlimit [ ] 0 setdash newpath
+    gs_languagelevel 1 ne {
+      false setstrokeadjust false setoverprint 
+    } if
+} bind def
+
+/EndInclude {
+  count op_count sub { pos } repeat	% Clean up stacks
+  countdictstack dict_count sub { end } repeat
+  b4_Inc_state restore
+} bind def
+
+/BeginEPSF {
+  BeginInclude
+  /showpage { } def
+} bind def
+
+/EndEPSF {
+  EndInclude
+} bind def
+
+% Page prefeed
+/page_prefeed {         % bool -> -
+  statusdict /prefeed known {
+    statusdict exch /prefeed exch put
+  } {
+    pop
+  } ifelse
+} bind def
+
+/deffont {
+  findfont exch scalefont def
+} bind def
+
+/reencode_font {
+  findfont reencode 2 copy definefont pop def
+} bind def
+
+% Function c-show (str => -)
+% centers text only according to x axis.
+/c-show { 
+  dup stringwidth pop
+  2 div neg 0 rmoveto
+  show
+} bind def
+
+% Function l-show (str => -)
+% prints texts so that it ends at currentpoint
+/l-show {
+  dup stringwidth pop neg 
+  0 
+  rmoveto show
+} bind def
+
+% center-fit show (str w => -)
+% show centered, and scale currentfont so that the width is less than w
+/cfshow {
+  exch dup stringwidth pop
+  % If the title is too big, try to make it smaller
+  3 2 roll 2 copy
+  gt
+  { % if, i.e. too big
+    exch div
+    currentfont exch scalefont setfont
+  } { % ifelse
+    pop pop 
+  }
+  ifelse
+  c-show			% center title
+} bind def
+
+% Return the y size of the current font
+% - => fontsize
+/currentfontsize {
+  currentfont /FontType get 0 eq {
+    currentfont /FontMatrix get 3 get
+  }{
+    currentfont /FontMatrix get 3 get 1000 mul
+  } ifelse
+} bind def
+
+% reencode the font
+% <encoding-vector> <fontdict> -> <newfontdict>
+/reencode { %def
+  dup length 5 add dict begin
+    { %forall
+      1 index /FID ne 
+      { def }{ pop pop } ifelse
+    } forall
+    /Encoding exch def
+
+    % Use the font's bounding box to determine the ascent, descent,
+    % and overall height; don't forget that these values have to be
+    % transformed using the font's matrix.
+    % We use `load' because sometimes BBox is executable, sometimes not.
+    % Since we need 4 numbers an not an array avoid BBox from being executed
+    /FontBBox load aload pop
+    FontMatrix transform /Ascent exch def pop
+    FontMatrix transform /Descent exch def pop
+    /FontHeight Ascent Descent sub def
+
+    % Define these in case they're not in the FontInfo (also, here
+    % they're easier to get to.
+    /UnderlinePosition 1 def
+    /UnderlineThickness 1 def
+    
+    % Get the underline position and thickness if they're defined.
+    currentdict /FontInfo known {
+      FontInfo
+      
+      dup /UnderlinePosition known {
+	dup /UnderlinePosition get
+	0 exch FontMatrix transform exch pop
+	/UnderlinePosition exch def
+      } if
+      
+      dup /UnderlineThickness known {
+	/UnderlineThickness get
+	0 exch FontMatrix transform exch pop
+	/UnderlineThickness exch def
+      } if
+      
+    } if
+    currentdict 
+  end 
+} bind def
+
+% composite fonts for ASCII-EUC mixed string
+% Version 1.2 1/31/1990
+% Orignal Ken'ichi HANDA (handa@etl.go.jp)
+% Modified Norio Katayama (katayama@rd.nacsis.ac.jp),1998
+% Extend & Fix Koji Nakamaru (maru@on.cs.keio.ac.jp), 1999
+% Anyone can freely copy, modify, distribute this program.
+
+/copyfont {	% font-dic extra-entry-count  copyfont  font-dic
+	1 index maxlength add dict begin
+	{	1 index /FID ne 2 index /UniqueID ne and
+		{def} {pop pop} ifelse
+	} forall
+	currentdict
+	end
+} bind def
+
+/compositefont { % ASCIIFontName EUCFontName RomanScale RomanOffset Rot(T/F) compositefont font
+    /RomanRotation exch def
+    /RomanOffset exch def
+    /RomanScale exch def
+    userdict /fixeucfont_dict known not {
+	userdict begin
+	    /fixeucfont_dict 2 dict begin
+		/UpperByteEncoding [
+		    16#00 1 16#20 { pop 0 } for
+		    16#21 1 16#28 { 16#20 sub } for
+		    16#29 1 16#2F { pop 0 } for
+		    16#30 1 16#74 { 16#27 sub } for
+		    16#75 1 16#FF { pop 0 } for
+		] def
+	        /LowerByteEncoding [
+		    16#00 1 16#A0 { pop /.notdef } for
+		    16#A1 1 16#FE { 16#80 sub 16 2 string cvrs
+				    (cXX) dup 1 4 -1 roll
+				    putinterval cvn } for
+		    /.notdef
+		] def
+		currentdict
+	    end def
+	end
+    } if
+    findfont dup /FontType get 0 eq {
+	14 dict begin
+	    %
+	    % 7+8 bit EUC font
+	    %
+	    12 dict begin
+		/EUCFont exch def
+		/FontInfo (7+8 bit EUC font) readonly def
+		/PaintType 0 def
+		/FontType 0 def
+		/FontMatrix matrix def
+		% /FontName
+		/Encoding fixeucfont_dict /UpperByteEncoding get def
+		/FMapType 2 def
+		EUCFont /WMode known
+		{ EUCFont /WMode get /WMode exch def }
+		{ /WMode 0 def } ifelse
+		/FDepVector [
+		    EUCFont /FDepVector get 0 get
+		    [ 16#21 1 16#28 {} for 16#30 1 16#74 {} for ]
+		    {
+			13 dict begin
+			    /EUCFont EUCFont def
+			    /UpperByte exch 16#80 add def	
+			    % /FontName
+			    /FontInfo (EUC lower byte font) readonly def
+			    /PaintType 0 def
+			    /FontType 3 def
+			    /FontMatrix matrix def
+			    /FontBBox {0 0 0 0} def
+			    /Encoding
+				fixeucfont_dict /LowerByteEncoding get def
+			    % /UniqueID
+			    % /WMode
+			    /BuildChar {
+				gsave
+				exch dup /EUCFont get setfont
+				/UpperByte get
+				2 string
+				dup 0 4 -1 roll put
+				dup 1 4 -1 roll put
+				dup stringwidth setcharwidth
+				0 0 moveto show
+				grestore
+			    } bind def
+			    currentdict
+			end
+			/lowerbytefont exch definefont
+		    } forall
+		] def
+		currentdict
+	    end
+	    /eucfont exch definefont
+	    exch
+	    findfont 1 copyfont dup begin
+		RomanRotation {
+			/FontMatrix FontMatrix
+			[ 0 RomanScale neg RomanScale 0 RomanOffset neg 0 ]
+			matrix concatmatrix def
+		}{
+			/FontMatrix FontMatrix
+			[ RomanScale 0 0 RomanScale 0 RomanOffset ] matrix concatmatrix
+			def
+			/CDevProc
+			    {pop pop pop pop 0 exch -1000 exch 2 div 880} def
+		} ifelse
+	    end
+	    /asciifont exch definefont
+	    exch
+	    /FDepVector [ 4 2 roll ] def
+	    /FontType 0 def
+	    /WMode 0 def
+	    /FMapType 4 def
+	    /FontMatrix matrix def
+	    /Encoding [0 1] def
+	    /FontBBox {0 0 0 0} def
+%	    /FontHeight 1.0 def % XXXX
+	    /FontHeight RomanScale 1.0 ge { RomanScale }{ 1.0 } ifelse def
+	    /Descent -0.3 def   % XXXX
+	    currentdict
+	end
+	/tmpfont exch definefont
+	pop
+	/tmpfont findfont
+    }{
+	pop findfont 0 copyfont
+    } ifelse
+} def	
+
+/slantfont {	% FontName slant-degree  slantfont  font'
+    exch findfont 1 copyfont begin
+    [ 1 0 4 -1 roll 1 0 0 ] FontMatrix exch matrix concatmatrix
+    /FontMatrix exch def
+    currentdict
+    end
+} def
+
+% Function print line number (<string> # -)
+/# {
+  gsave
+    sx cw mul neg 2 div 0 rmoveto
+    f# setfont
+    c-show
+  grestore
+} bind def
+
+% -------- Some routines to enlight plain b/w printings ---------
+
+% Underline
+% width --
+/dounderline {
+  currentpoint
+  gsave
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    0 rlineto
+    stroke
+  grestore
+} bind def
+
+% Underline a string
+% string --
+/dounderlinestring {
+  stringwidth pop
+  dounderline
+} bind def
+
+/UL {
+  /ul exch store
+} bind def
+
+% Draw a box of WIDTH wrt current font
+% width --
+/dobox {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    stroke
+  grestore
+} bind def
+
+/BX {
+  /bx exch store
+} bind def
+
+% Box a string
+% string --
+/doboxstring {
+  stringwidth pop
+  dobox
+} bind def
+
+%
+% ------------- Color routines ---------------
+%
+/FG /setrgbcolor load def
+
+% Draw the background
+% width --
+/dobackground {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    bgcolor aload pop setrgbcolor
+    fill
+  grestore
+} bind def
+
+% Draw bg for a string
+% string --
+/dobackgroundstring {
+  stringwidth pop
+  dobackground
+} bind def
+
+
+/BG {
+  dup /bg exch store
+  { mark 4 1 roll ] /bgcolor exch store } if
+} bind def
+
+
+/Show {
+  bg { dup dobackgroundstring } if
+  ul { dup dounderlinestring } if
+  bx { dup doboxstring } if
+  show
+} bind def
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add
+  bg { dup currentpoint pop sub dobackground } if
+  ul { dup currentpoint pop sub dounderline } if
+  bx { dup currentpoint pop sub dobox } if
+  y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n {
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+/S {
+  Show
+} bind def
+
+%%BeginResource: procset a2ps-a2ps-hdr 2.0 2
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Function title: prints page header.
+% <ct> <rt> <lt> are passed as argument
+/title { 
+  % 1. Draw the background
+  x v get y v get moveto
+  gsave
+    0 th 2 div neg rmoveto 
+    th setlinewidth
+    0.95 setgray
+    pw 0 rlineto stroke
+  grestore
+  % 2. Border it
+  gsave
+    0.7 setlinewidth
+    pw 0 rlineto
+    0 th neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+  % stk: ct rt lt
+  x v get y v get th sub 1 add moveto
+%%IncludeResource: font Helvetica
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  % 3. The left title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    fnfs 0.8 mul hm rmoveto
+    show			% left title
+  grestore
+  exch
+  % stk: ct ltw rt
+  % 4. the right title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    dup
+    pw exch stringwidth pop fnfs 0.8 mul add sub
+    hm
+    rmoveto
+    show			% right title
+  grestore
+  % stk: ct ltw rtw
+  % 5. the center title
+  gsave
+    pw 3 1 roll
+    % stk: ct pw ltw rtw
+    3 copy 
+    % Move to the center of the left room
+    sub add 2 div hm rmoveto
+    % What is the available space in here?
+    add sub fnfs 0.8 mul sub fnfs 0.8 mul sub
+    % stk: ct space_left
+%%IncludeResource: font Helvetica-Bold
+  fHelvetica-Bold fnfs scalefont setfont
+    cfshow
+  grestore
+} bind def
+
+% Function border: prints virtual page border
+/border { %def
+  gsave				% print four sides
+    0 setgray
+    x v get y v get moveto
+    0.7 setlinewidth		% of the square
+    pw 0 rlineto
+    0 ph neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+} bind def
+
+% Function water: prints a water mark in background
+/water { %def
+  gsave
+    scx scy moveto rotate
+%%IncludeResource: font Times-Bold
+  fTimes-Bold 100 scalefont setfont
+    .97 setgray
+    dup stringwidth pop 2 div neg -50 rmoveto
+    show
+  grestore
+} bind def
+
+% Function rhead: prints the right header
+/rhead {  %def
+  lx ly moveto
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  l-show
+} bind def
+
+% Function footer (cf rf lf -> -)
+/footer {
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  dx dy moveto
+  show
+
+  snx sny moveto
+  l-show
+  
+  fnx fny moveto
+  c-show
+} bind def
+%%EndResource
+%%BeginResource: procset a2ps-black+white-Prolog 2.0 1
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T { 
+  cw mul x0 add y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n { %def
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+}  bind def
+
+/S {
+  Show
+} bind def
+
+/p {
+  false UL
+  false BX
+  fCourier bfs scalefont setfont
+  Show
+} bind def
+
+/sy {
+  false UL
+  false BX
+  fSymbol bfs scalefont setfont
+  Show
+} bind def
+
+/k {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/K {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/c {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/C {
+  false UL
+  false BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show 
+} bind def
+
+/l {
+  false UL
+  false BX
+  fHelvetica bfs scalefont setfont
+  Show
+} bind def
+
+/L {
+  false UL
+  false BX
+  fHelvetica-Bold bfs scalefont setfont
+  Show 
+} bind def
+
+/str{
+  false UL
+  false BX
+  fTimes-Roman bfs scalefont setfont
+  Show
+} bind def
+
+/e{
+  false UL
+  true BX
+  fHelvetica-Bold bfs scalefont setfont
+  Show
+} bind def
+
+%%EndResource
+%%EndProlog
+%%BeginSetup
+%%IncludeResource: font Courier
+%%IncludeResource: font Courier-Oblique
+%%IncludeResource: font Courier-Bold
+%%IncludeResource: font Times-Roman
+%%IncludeResource: font Symbol
+%%IncludeResource: font Courier-BoldOblique
+%%BeginResource: encoding ISO-8859-1Encoding
+/ISO-8859-1Encoding [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /minus /period /slash 
+/zero /one /two /three /four /five /six /seven 
+/eight /nine /colon /semicolon /less /equal /greater /question 
+/at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O 
+/P /Q /R /S /T /U /V /W 
+/X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore 
+/quoteleft /a /b /c /d /e /f /g 
+/h /i /j /k /l /m /n /o 
+/p /q /r /s /t /u /v /w 
+/x /y /z /braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen /registered /macron 
+/degree /plusminus /twosuperior /threesuperior /acute /mu /paragraph /bullet 
+/cedilla /onesuperior /ordmasculine /guillemotright /onequarter /onehalf /threequarters /questiondown 
+/Agrave /Aacute /Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla 
+/Egrave /Eacute /Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis 
+/Eth /Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply 
+/Oslash /Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex /idieresis 
+/eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis /divide 
+/oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn /ydieresis 
+] def
+%%EndResource
+% Initialize page description variables.
+/sh 612 def
+/sw 792 def
+/llx 24 def
+/urx 768 def
+/ury 588 def
+/lly 24 def
+/#copies 1 def
+/th 15.000000 def
+/fnfs 11 def
+/bfs 7.493857 def
+/cw 4.496314 def
+
+% Dictionary for ISO-8859-1 support
+/iso1dict 8 dict begin
+  /fCourier ISO-8859-1Encoding /Courier reencode_font
+  /fCourier-Bold ISO-8859-1Encoding /Courier-Bold reencode_font
+  /fCourier-BoldOblique ISO-8859-1Encoding /Courier-BoldOblique reencode_font
+  /fCourier-Oblique ISO-8859-1Encoding /Courier-Oblique reencode_font
+  /fHelvetica ISO-8859-1Encoding /Helvetica reencode_font
+  /fHelvetica-Bold ISO-8859-1Encoding /Helvetica-Bold reencode_font
+  /fTimes-Bold ISO-8859-1Encoding /Times-Bold reencode_font
+  /fTimes-Roman ISO-8859-1Encoding /Times-Roman reencode_font
+currentdict end def
+/bgcolor [ 0 0 0 ] def
+/bg false def
+/ul false def
+/bx false def
+% The font for line numbering
+/f# /Helvetica findfont bfs .6 mul scalefont def
+/fSymbol /Symbol findfont def
+/hm fnfs 0.25 mul def
+/pw
+   cw 81.400000 mul
+def
+/ph
+   522.321860 th add
+def
+/pmw urx llx sub pw 2 mul sub 1 div def
+/pmh 0 def
+/v 0 def
+/x [
+  0
+  dup pmw add pw add
+] def
+/y [
+  pmh ph add 0 mul ph add
+  dup
+] def
+/scx sw 2 div def
+/scy sh 2 div def
+/snx urx def
+/sny lly 2 add def
+/dx llx def
+/dy sny def
+/fnx scx def
+/fny dy def
+/lx snx def
+/ly ury fnfs 0.8 mul sub def
+/sx 0 def
+/tab 8 def
+/x0 0 def
+/y0 0 def
+%%EndSetup
+
+%%Page: (1-2) 1
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p n
+( Solving Poisson's equation ) N
+( with Dirichlet boundary conditions by MG: ) N
+( Meshsize of grid: 0.00400000) N
+( Number of relaxations: 1) N
+( Maximal number of iterations: 10) N
+() N
+( Structure a= 0.10000000 b= 0.10000000 l= 12.00000000) N
+( Generate_processes\(\); ) N
+(   take p_level: 3 max_level:    12) N
+( Grid_generation\(\); ) N
+(  I Basic grid generation by edges; ) N
+(   I.2 edge correction; ) N
+(  II Calculation of points and cells; ) N
+(   II.2 construct basic points; ) N
+(        send them; ) N
+(   II.3 fullfill B1B2; ) N
+(   II.4 construct cell points; ) N
+(   II.61 interior cell part 1; ) N
+(   II.62 sends of boundary cells; ) N
+(   II.63 interior cell part 2; ) N
+(        send them; ) N
+(   II.7 calc multigrid points; ) N
+(   II.7 remove exterior points; ) N
+(   II.8 calc interior points; ) N
+(   II.9 send coarse grid points; ) N
+(  III Calculation of boundary; ) N
+(   III.2 boundary cells; ) N
+( Information about processes: ) N
+( Number of processes: 512) N
+( Number of active processes: 512) N
+( Initialize_variable\(\); ) N
+(   III.3.1 construct boundary points; ) N
+(         remove edges; ) N
+(   III.4.1 storage for boundary cells; ) N
+(   III.4.2 storage for cells and stencils; ) N
+(   III.4.3 storage for boundary matrices; ) N
+( IV. calculate lists; ) N
+(   IV. 2. interior points and points near boundary; ) N
+(   IV. 5. pointer in boundary cells; ) N
+(   IV. 6. restriction weights; ) N
+(   IV. 7. coarsest level; ) N
+(   IV. 8. initialize lists; ) N
+(   IV. 9. calc mg; ) N
+(   V.1 prepare evaluation; ) N
+(   V.2 prepare parallel; ) N
+(   a\) ; ) N
+(   b\) ; ) N
+(   c\) ; ) N
+(   end prepare ; ) N
+() N
+( information about finest level: ) N
+(------------------------------------ ) N
+(number of interior points is:       1175608) N
+(number of points near the boundary: 276876) N
+(number of boundary points:          289064) N
+(number of points in boundary cells: 66000) N
+(sum of all points:                  1807548) N
+(ratio of points interior / near boundary: 1.86031585) N
+( Number of grid points: 1807548.00000000) N
+() N
+( MG: ) N
+(-------------------- ) N
+(0. Iteration: Error: Max:0.92933219,  L2: 0.16713706) N
+(1. Iteration: Error: Max:0.74611675,  L2: 0.05721208) N
+(2. Iteration: Error: Max:0.57589839,  L2: 0.02468763) N
+(3. Iteration: Error: Max:0.43037185,  L2: 0.01386725) N
+(4. Iteration: Error: Max:0.31589022,  L2: 0.00901881) N
+(5. Iteration: Error: Max:0.22932706,  L2: 0.00615829) N
+(mgres.txt) (Page 1/10) (Mar 12, 03 21:54) title
+border
+/v 1 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(6. Iteration: Error: Max:0.16527587,  L2: 0.00426628) p n
+(7. Iteration: Error: Max:0.11850670,  L2: 0.00297097) N
+(8. Iteration: Error: Max:0.08465244,  L2: 0.00207438) N
+(9. Iteration: Error: Max:0.06029589,  L2: 0.00145087) N
+( ) N
+( End: ) N
+( adding counter 5 event 12 Cycles) N
+( adding counter 0 event 1 Instructions completed) N
+( adding counter 7 event 0 TLB misses) N
+( adding counter 2 event 9 Stores completed) N
+( adding counter 3 event 5 Loads completed) N
+( adding counter 4 event 5 FPU 0 instructions) N
+( adding counter 1 event 35 FPU 1 instructions) N
+( adding counter 6 event 9 FMAs executed) N
+() N
+() N
+(################################################################################) N
+( hpmcount \(V 2.4.2\) summary \(aggregate of 512 POE tasks\)) N
+( Average execution time \(wall clock time\)   : 1684.71 seconds) N
+( Average amount of time in user mode        : 1671.108398 seconds) N
+( Average amount of time in system mode      : 4.709062 seconds) N
+( Total maximum resident set size            : 5204 Mbytes) N
+( Total shared memory use in text segment    : 37722319996 Kbytes*sec) N
+( Total unshared memory use in data segment  : 640463936150 Kbytes*sec) N
+( PM_CYC \(Cycles\)                            : 319964199020443) N
+( PM_INST_CMPL \(Instructions completed\)      : 357850258773053) N
+( PM_TLB_MISS \(TLB misses\)                   : 31506364892        ) N
+( PM_ST_CMPL \(Stores completed\)              : 70910697017161) N
+( PM_LD_CMPL \(Loads completed\)               : 148654443393671) N
+( PM_FPU0_CMPL \(FPU 0 instructions\)          : 14450142635) N
+( PM_FPU1_CMPL \(FPU 1 instructions\)          : 2953162465) N
+( PM_EXEC_FMA \(FMAs executed\)                : 5741994609) N
+( Utilization rate                           : 98.9022578125001 %) N
+( Avg number of loads per TLB miss           : 50591.8247597656) N
+( Load and store operations                  : 219565140.417 M) N
+( MIPS                                       : 212410.716) N
+( Instructions per cycle                     : 1.11839453125) N
+( HW Float points instructions per Cycle     : 5.6640625e-05) N
+( Total Floating point instructions + FMAs   : 23145.301 M) N
+( Total Float point instructions + FMA rate  : 13.683 Mflip/s) N
+( Average FMA percentage                     : 50.776794921875 %) N
+( Average computation intensity              : 0.000326171875 ) N
+(################################################################################) N
+() N
+( V0.2 01-27 Solving Poisson's equation in a cylinder) N
+( with Dirichlet boundary conditions by MG: ) N
+( Meshsize of grid: 0.00200000) N
+( Number of relaxations: 3) N
+( Maximal number of iterations: 100) N
+() N
+( Structure a= 0.50000000 b= 0.50000000 l= 1.00000000) N
+( Generate_processes\(\); ) N
+(   take p_level: 4 max_level:    9) N
+( Grid_generation\(\); ) N
+(  I Basic grid generation by edges; ) N
+(   I.2 edge correction; ) N
+(  II Calculation of points and cells; ) N
+(   II.2 construct basic points; ) N
+(        send them; ) N
+(   II.3 fullfill B1B2; ) N
+(   II.4 construct cell points; ) N
+(   II.61 interior cell part 1; ) N
+(   II.62 sends of boundary cells; ) N
+(   II.63 interior cell part 2; ) N
+(        send them; ) N
+(   II.7 calc multigrid points; ) N
+(   II.7 remove exterior points; ) N
+(   II.8 calc interior points; ) N
+(   II.9 send coarse grid points; ) N
+(mgres.txt) (Page 2/10) (Mar 12, 03 21:54) title
+border
+grestore
+(Printed by Andreas Adelmann) rhead
+(mgres.txt) (1/5) (Wednesday March 12, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 2
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  III Calculation of boundary; ) p n
+(   III.2 boundary cells; ) N
+( Information about processes: ) N
+( Number of processes: 960) N
+( Number of active processes: 960) N
+( Initialize_variable\(\); ) N
+(   III.3.1 construct boundary points; ) N
+(         remove edges; ) N
+(   III.4.1 storage for boundary cells; ) N
+(   III.4.2 storage for cells and stencils; ) N
+(   III.4.3 storage for boundary matrices; ) N
+( IV. calculate lists; ) N
+(   IV. 2. interior points and points near boundary; ) N
+(   IV. 5. pointer in boundary cells; ) N
+(   IV. 6. restriction weights; ) N
+(   IV. 7. coarsest level; ) N
+(   IV. 8. initialize lists; ) N
+(   IV. 9. calc mg; ) N
+(   V.1 prepare evaluation; ) N
+(   V.2 prepare parallel; ) N
+(   a\) ; ) N
+(   b\) ; ) N
+(   c\) ; ) N
+(   end prepare ; ) N
+() N
+( information about finest level: ) N
+(------------------------------------ ) N
+(number of interior points is:       23992419) N
+(number of points near the boundary: 595158) N
+(number of boundary points:          601158) N
+(number of points in boundary cells: 124000) N
+(sum of all points:                  25312735) N
+(ratio of points interior / near boundary: 18.17172480) N
+( Number of grid points: 25312735.00000000) N
+() N
+( MG: ) N
+(-------------------- ) N
+(0. Iteration: Error: Max:0.68612201,  L2: 0.37924465 T= 4.49285901) N
+(1. Iteration: Error: Max:0.43357047,  L2: 0.22545531 T= 3.87686706) N
+(2. Iteration: Error: Max:0.25500858,  L2: 0.12849871 T= 3.84670496) N
+(3. Iteration: Error: Max:0.14372206,  L2: 0.07165167 T= 3.81696796) N
+(4. Iteration: Error: Max:0.07914290,  L2: 0.03958002 T= 3.80593705) N
+(5. Iteration: Error: Max:0.04306563,  L2: 0.02183446 T= 3.84563005) N
+(6. Iteration: Error: Max:0.02331463,  L2: 0.01209857 T= 3.73050189) N
+(7. Iteration: Error: Max:0.01280157,  L2: 0.00676564 T= 3.66333890) N
+(8. Iteration: Error: Max:0.00852393,  L2: 0.00383460 T= 3.84694302) N
+(9. Iteration: Error: Max:0.00572987,  L2: 0.00221124 T= 4.45673907) N
+(10. Iteration: Error: Max:0.00387225,  L2: 0.00130137 T= 3.79666698) N
+(11. Iteration: Error: Max:0.00262599,  L2: 0.00078310 T= 3.59768498) N
+(12. Iteration: Error: Max:0.00178375,  L2: 0.00048196 T= 3.71746099) N
+(13. Iteration: Error: Max:0.00121374,  L2: 0.00030298 T= 3.44159901) N
+(14. Iteration: Error: Max:0.00082632,  L2: 0.00019408 T= 3.89792097) N
+(15. Iteration: Error: Max:0.00056292,  L2: 0.00012633 T= 3.76075506) N
+(16. Iteration: Error: Max:0.00038371,  L2: 0.00008334 T= 3.71439803) N
+(17. Iteration: Error: Max:0.00026169,  L2: 0.00005561 T= 4.39288294) N
+(18. Iteration: Error: Max:0.00017855,  L2: 0.00003750 T= 3.76470399) N
+(19. Iteration: Error: Max:0.00012190,  L2: 0.00002557 T= 4.01031101) N
+(20. Iteration: Error: Max:0.00008331,  L2: 0.00001766 T= 3.49671805) N
+(21. Iteration: Error: Max:0.00005703,  L2: 0.00001242 T= 3.75066900) N
+(22. Iteration: Error: Max:0.00003913,  L2: 0.00000896 T= 3.79145205) N
+(23. Iteration: Error: Max:0.00002695,  L2: 0.00000670 T= 3.74515998) N
+(24. Iteration: Error: Max:0.00001868,  L2: 0.00000526 T= 3.58263600) N
+(25. Iteration: Error: Max:0.00001306,  L2: 0.00000436 T= 4.20031404) N
+(26. Iteration: Error: Max:0.00000928,  L2: 0.00000381 T= 3.72203100) N
+(27. Iteration: Error: Max:0.00000781,  L2: 0.00000349 T= 3.52020097) N
+(28. Iteration: Error: Max:0.00000767,  L2: 0.00000329 T= 3.64282608) N
+(29. Iteration: Error: Max:0.00000758,  L2: 0.00000317 T= 3.60192704) N
+(30. Iteration: Error: Max:0.00000752,  L2: 0.00000310 T= 3.79917502) N
+(31. Iteration: Error: Max:0.00000749,  L2: 0.00000306 T= 3.55265403) N
+(mgres.txt) (Page 3/10) (Mar 12, 03 21:54) title
+border
+/v 1 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(32. Iteration: Error: Max:0.00000746,  L2: 0.00000303 T= 3.85006797) p n
+(33. Iteration: Error: Max:0.00000745,  L2: 0.00000301 T= 4.15141296) N
+(34. Iteration: Error: Max:0.00000744,  L2: 0.00000300 T= 3.70829999) N
+(35. Iteration: Error: Max:0.00000743,  L2: 0.00000299 T= 3.62128890) N
+(36. Iteration: Error: Max:0.00000743,  L2: 0.00000299 T= 3.47896802) N
+(37. Iteration: Error: Max:0.00000742,  L2: 0.00000298 T= 3.90593994) N
+(38. Iteration: Error: Max:0.00000742,  L2: 0.00000298 T= 3.97860193) N
+(39. Iteration: Error: Max:0.00000742,  L2: 0.00000298 T= 3.68450296) N
+(40. Iteration: Error: Max:0.00000742,  L2: 0.00000298 T= 3.92982399) N
+(41. Iteration: Error: Max:0.00000742,  L2: 0.00000298 T= 4.23883998) N
+(42. Iteration: Error: Max:0.00000742,  L2: 0.00000298 T= 3.70697498) N
+(43. Iteration: Error: Max:0.00000742,  L2: 0.00000298 T= 3.83828902) N
+(44. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.67959094) N
+(45. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.83922195) N
+(46. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.72304404) N
+(47. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.55172098) N
+(48. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.81687295) N
+(49. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 4.16579401) N
+(50. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.64443398) N
+(51. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.60777295) N
+(52. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.65296006) N
+(53. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.94459105) N
+(54. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.74478197) N
+(55. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.95649195) N
+(56. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.93441498) N
+(57. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 4.16321206) N
+(58. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 4.96488106) N
+(59. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.75799799) N
+(60. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.62508798) N
+(61. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.66287601) N
+(62. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.55927491) N
+(63. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.71000397) N
+(64. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.80341899) N
+(65. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 4.07955503) N
+(66. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.59793603) N
+(67. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.51201296) N
+(68. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.52924705) N
+(69. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.92905402) N
+(70. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.51430404) N
+(71. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.72262609) N
+(72. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.79781103) N
+(73. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 4.00510609) N
+(74. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.63900697) N
+(75. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.67598510) N
+(76. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.89751101) N
+(77. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.67453992) N
+(78. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.72120500) N
+(79. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.53229189) N
+(80. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.63071609) N
+(81. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.96017706) N
+(82. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.63248301) N
+(83. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.72289193) N
+(84. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.59585202) N
+(85. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.82616103) N
+(86. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.62929893) N
+(87. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.68949497) N
+(88. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.70951295) N
+(89. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 4.00999403) N
+(90. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.83274400) N
+(91. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.41625500) N
+(92. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.78331697) N
+(93. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.52692604) N
+(94. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.70340800) N
+(95. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.68688393) N
+(96. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.90870404) N
+(97. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 4.10008001) N
+(98. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.78606796) N
+(99. Iteration: Error: Max:0.00000742,  L2: 0.00000297 T= 3.56442392) N
+(Ttot= 497.71126997 Tsol= 379.37105799 Tgrid= 118.27704000) N
+(mgres.txt) (Page 4/10) (Mar 12, 03 21:54) title
+border
+grestore
+(Printed by Andreas Adelmann) rhead
+(mgres.txt) (2/5) (Wednesday March 12, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (5-6) 3
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+( ) p n
+( End: ) N
+( adding counter 5 event 12 Cycles) N
+( adding counter 0 event 1 Instructions completed) N
+( adding counter 7 event 0 TLB misses) N
+( adding counter 2 event 9 Stores completed) N
+( adding counter 3 event 5 Loads completed) N
+( adding counter 4 event 5 FPU 0 instructions) N
+( adding counter 1 event 35 FPU 1 instructions) N
+( adding counter 6 event 9 FMAs executed) N
+() N
+() N
+(################################################################################) N
+( hpmcount \(V 2.4.2\) summary \(aggregate of 960 POE tasks\)) N
+( Average execution time \(wall clock time\)   : 520.365 seconds) N
+( Average amount of time in user mode        : 499.850698 seconds) N
+( Average amount of time in system mode      : 7.475542 seconds) N
+( Total maximum resident set size            : 20 Gbytes) N
+( Total shared memory use in text segment    : 36481219648 Kbytes*sec) N
+( Total unshared memory use in data segment  : 973780967788 Kbytes*sec) N
+( PM_CYC \(Cycles\)                            : 179262189890018) N
+( PM_INST_CMPL \(Instructions completed\)      : 179251154470335) N
+( PM_TLB_MISS \(TLB misses\)                   : 169983080793        ) N
+( PM_ST_CMPL \(Stores completed\)              : 31781980847237) N
+( PM_LD_CMPL \(Loads completed\)               : 62210891691268) N
+( PM_FPU0_CMPL \(FPU 0 instructions\)          : 570337807314) N
+( PM_FPU1_CMPL \(FPU 1 instructions\)          : 194287719254) N
+( PM_EXEC_FMA \(FMAs executed\)                : 185059149052) N
+( Utilization rate                           : 95.6779510416666 %) N
+( Avg number of loads per TLB miss           : 482.860630208334) N
+( Load and store operations                  : 93992872.544 M) N
+( MIPS                                       : 344476.228) N
+( Instructions per cycle                     : 0.999910416666666) N
+( HW Float points instructions per Cycle     : 0.00438749999999996) N
+( Total Floating point instructions + FMAs   : 949684.662 M) N
+( Total Float point instructions + FMA rate  : 1825.029 Mflip/s) N
+( Average FMA percentage                     : 36.2524895833333 %) N
+( Average computation intensity              : 0.0101333333333332 ) N
+(################################################################################) N
+() N
+( V0.2 01-27 Solving Poisson's equation in a cylinder) N
+( with Dirichlet boundary conditions by MG: ) N
+( Meshsize of grid: 0.00100000) N
+( Number of relaxations: 3) N
+( Maximal number of iterations: 100) N
+() N
+( Structure a= 0.75000000 b= 0.75000000 l= 1.00000000) N
+( Generate_processes\(\); ) N
+(   take p_level: 4 max_level:    10) N
+( Grid_generation\(\); ) N
+(  I Basic grid generation by edges; ) N
+(   I.2 edge correction; ) N
+(  II Calculation of points and cells; ) N
+(   II.2 construct basic points; ) N
+(        send them; ) N
+(   II.3 fullfill B1B2; ) N
+(   II.4 construct cell points; ) N
+(   II.61 interior cell part 1; ) N
+(   II.62 sends of boundary cells; ) N
+(   II.63 interior cell part 2; ) N
+(        send them; ) N
+(   II.7 calc multigrid points; ) N
+(   II.7 remove exterior points; ) N
+(   II.8 calc interior points; ) N
+(   II.9 send coarse grid points; ) N
+(  III Calculation of boundary; ) N
+(   III.2 boundary cells; ) N
+( Information about processes: ) N
+( Number of processes: 2048) N
+(mgres.txt) (Page 5/10) (Mar 12, 03 21:54) title
+border
+/v 1 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+( Number of active processes: 2048) p n
+( Initialize_variable\(\); ) N
+(   III.3.1 construct boundary points; ) N
+(         remove edges; ) N
+(   III.4.1 storage for boundary cells; ) N
+(   III.4.2 storage for cells and stencils; ) N
+(   III.4.3 storage for boundary matrices; ) N
+( IV. calculate lists; ) N
+(   IV. 2. interior points and points near boundary; ) N
+(   IV. 5. pointer in boundary cells; ) N
+(   IV. 6. restriction weights; ) N
+(   IV. 7. coarsest level; ) N
+(   IV. 8. initialize lists; ) N
+(   IV. 9. calc mg; ) N
+(   V.1 prepare evaluation; ) N
+(   V.2 prepare parallel; ) N
+(   a\) ; ) N
+(   b\) ; ) N
+(   c\) ; ) N
+(   end prepare ; ) N
+() N
+( information about finest level: ) N
+(------------------------------------ ) N
+(number of interior points is:       438350211) N
+(number of points near the boundary: 3876574) N
+(number of boundary points:          3890574) N
+(number of points in boundary cells: 672000) N
+(sum of all points:                  446789359) N
+(ratio of points interior / near boundary: 51.94247227) N
+( Number of grid points: 446789359.00000000) N
+() N
+( MG: ) N
+(-------------------- ) N
+(0. Iteration: Error: Max:0.72621912,  L2: 0.35428565 T= 26.48505890) N
+(1. Iteration: Error: Max:0.51975292,  L2: 0.24323700 T= 20.43599808) N
+(2. Iteration: Error: Max:0.36188783,  L2: 0.16372988 T= 19.75137901) N
+(3. Iteration: Error: Max:0.24587513,  L2: 0.10894769 T= 19.95464993) N
+(4. Iteration: Error: Max:0.16427448,  L2: 0.07205417 T= 20.76920497) N
+(5. Iteration: Error: Max:0.10865118,  L2: 0.04753825 T= 21.13069797) N
+(6. Iteration: Error: Max:0.07148004,  L2: 0.03136618 T= 19.96368504) N
+(7. Iteration: Error: Max:0.04693408,  L2: 0.02073440 T= 20.36519396) N
+(8. Iteration: Error: Max:0.03082785,  L2: 0.01375044 T= 19.49316895) N
+(9. Iteration: Error: Max:0.02029483,  L2: 0.00915794 T= 19.91633201) N
+(10. Iteration: Error: Max:0.01341934,  L2: 0.00613070 T= 20.49816692) N
+(11. Iteration: Error: Max:0.00892622,  L2: 0.00412818 T= 19.81165004) N
+(12. Iteration: Error: Max:0.00599901,  L2: 0.00279761 T= 19.92191494) N
+(13. Iteration: Error: Max:0.00434699,  L2: 0.00190884 T= 20.41385007) N
+(14. Iteration: Error: Max:0.00317155,  L2: 0.00131164 T= 20.09405601) N
+(15. Iteration: Error: Max:0.00232395,  L2: 0.00090774 T= 20.25369298) N
+(16. Iteration: Error: Max:0.00170797,  L2: 0.00063267 T= 20.57928491) N
+(17. Iteration: Error: Max:0.00125798,  L2: 0.00044400 T= 19.66611612) N
+(18. Iteration: Error: Max:0.00092800,  L2: 0.00031366 T= 19.92285597) N
+(19. Iteration: Error: Max:0.00068540,  L2: 0.00022296 T= 20.46605802) N
+(20. Iteration: Error: Max:0.00050668,  L2: 0.00015941 T= 20.47507298) N
+(21. Iteration: Error: Max:0.00037484,  L2: 0.00011460 T= 20.12143898) N
+(22. Iteration: Error: Max:0.00027749,  L2: 0.00008281 T= 20.40518808) N
+(23. Iteration: Error: Max:0.00020553,  L2: 0.00006013 T= 19.71267998) N
+(24. Iteration: Error: Max:0.00015232,  L2: 0.00004387 T= 19.96458304) N
+(25. Iteration: Error: Max:0.00011295,  L2: 0.00003217 T= 20.70385599) N
+(26. Iteration: Error: Max:0.00008381,  L2: 0.00002371 T= 19.61233807) N
+(27. Iteration: Error: Max:0.00006223,  L2: 0.00001757 T= 20.24015200) N
+(28. Iteration: Error: Max:0.00004626,  L2: 0.00001312 T= 20.30282402) N
+(29. Iteration: Error: Max:0.00003443,  L2: 0.00000987 T= 20.08165896) N
+(30. Iteration: Error: Max:0.00002567,  L2: 0.00000750 T= 20.56054699) N
+(31. Iteration: Error: Max:0.00001918,  L2: 0.00000578 T= 20.09716690) N
+(32. Iteration: Error: Max:0.00001438,  L2: 0.00000452 T= 20.51780605) N
+(33. Iteration: Error: Max:0.00001084,  L2: 0.00000361 T= 19.90831792) N
+(34. Iteration: Error: Max:0.00000822,  L2: 0.00000296 T= 21.46183193) N
+(35. Iteration: Error: Max:0.00000630,  L2: 0.00000249 T= 20.30041099) N
+(mgres.txt) (Page 6/10) (Mar 12, 03 21:54) title
+border
+grestore
+(Printed by Andreas Adelmann) rhead
+(mgres.txt) (3/5) (Wednesday March 12, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (7-8) 4
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(36. Iteration: Error: Max:0.00000493,  L2: 0.00000215 T= 20.31225896) p n
+(37. Iteration: Error: Max:0.00000444,  L2: 0.00000191 T= 19.86022806) N
+(38. Iteration: Error: Max:0.00000414,  L2: 0.00000174 T= 19.85645700) N
+(39. Iteration: Error: Max:0.00000394,  L2: 0.00000163 T= 20.19636595) N
+(40. Iteration: Error: Max:0.00000380,  L2: 0.00000154 T= 20.22320402) N
+(41. Iteration: Error: Max:0.00000371,  L2: 0.00000148 T= 20.02602899) N
+(42. Iteration: Error: Max:0.00000364,  L2: 0.00000144 T= 19.80495393) N
+(43. Iteration: Error: Max:0.00000359,  L2: 0.00000141 T= 20.16058004) N
+(44. Iteration: Error: Max:0.00000355,  L2: 0.00000139 T= 20.19381201) N
+(45. Iteration: Error: Max:0.00000352,  L2: 0.00000137 T= 20.37185597) N
+(46. Iteration: Error: Max:0.00000350,  L2: 0.00000136 T= 20.01379097) N
+(47. Iteration: Error: Max:0.00000349,  L2: 0.00000135 T= 20.22992599) N
+(48. Iteration: Error: Max:0.00000348,  L2: 0.00000135 T= 19.28957295) N
+(49. Iteration: Error: Max:0.00000347,  L2: 0.00000134 T= 20.51475704) N
+(50. Iteration: Error: Max:0.00000347,  L2: 0.00000134 T= 20.19390893) N
+(51. Iteration: Error: Max:0.00000346,  L2: 0.00000134 T= 19.51111305) N
+(52. Iteration: Error: Max:0.00000346,  L2: 0.00000133 T= 20.01100600) N
+(53. Iteration: Error: Max:0.00000346,  L2: 0.00000133 T= 19.96278906) N
+(54. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.63404906) N
+(55. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.93221200) N
+(56. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.86062992) N
+(57. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.19176292) N
+(58. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.16409707) N
+(59. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.44374204) N
+(60. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.96566308) N
+(61. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.25693202) N
+(62. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.59431994) N
+(63. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.46058011) N
+(64. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 21.06983697) N
+(65. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.86177993) N
+(66. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.72291005) N
+(67. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.74595308) N
+(68. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.33633804) N
+(69. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.65524399) N
+(70. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.72385395) N
+(71. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.03611302) N
+(72. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.90802598) N
+(73. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.75497699) N
+(74. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.13153493) N
+(75. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.80546796) N
+(76. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 21.03559506) N
+(77. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.64528906) N
+(78. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.46033800) N
+(79. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.15968609) N
+(80. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.72073102) N
+(81. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.51624894) N
+(82. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.67690694) N
+(83. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.98105705) N
+(84. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.68311989) N
+(85. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.93573403) N
+(86. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.17875600) N
+(87. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.97777998) N
+(88. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.88190889) N
+(89. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.29178095) N
+(90. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.94212008) N
+(91. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.44171500) N
+(92. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.37443292) N
+(93. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.47597599) N
+(94. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.65845799) N
+(95. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 21.12660503) N
+(96. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.73435199) N
+(97. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.74110901) N
+(98. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 20.47260404) N
+(99. Iteration: Error: Max:0.00000345,  L2: 0.00000133 T= 19.49411798) N
+(Ttot= 3411.28569901 Tsol= 2023.28957391 Tgrid= 1387.91975999) N
+( ) N
+( End: ) N
+( adding counter 5 event 12 Cycles) N
+( adding counter 0 event 1 Instructions completed) N
+(mgres.txt) (Page 7/10) (Mar 12, 03 21:54) title
+border
+/v 1 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+( adding counter 7 event 0 TLB misses) p n
+( adding counter 2 event 9 Stores completed) N
+( adding counter 3 event 5 Loads completed) N
+( adding counter 4 event 5 FPU 0 instructions) N
+( adding counter 1 event 35 FPU 1 instructions) N
+( adding counter 6 event 9 FMAs executed) N
+() N
+() N
+(################################################################################) N
+( hpmcount \(V 2.4.2\) summary \(aggregate of 2048 POE tasks\)) N
+( Average execution time \(wall clock time\)   : 3458.3 seconds) N
+( Average amount of time in user mode        : 3416.614824 seconds) N
+( Average amount of time in system mode      : 18.167236 seconds) N
+( Total maximum resident set size            : 219 Gbytes) N
+( Total shared memory use in text segment    : 480934480360 Kbytes*sec) N
+( Total unshared memory use in data segment  : 4398046509056 Kbytes*sec) N
+( PM_CYC \(Cycles\)                            : 2.61321457420405e+15) N
+( PM_INST_CMPL \(Instructions completed\)      : 2.10390910056753e+15) N
+( PM_TLB_MISS \(TLB misses\)                   : 2259604071765        ) N
+( PM_ST_CMPL \(Stores completed\)              : 340392288457282) N
+( PM_LD_CMPL \(Loads completed\)               : 641587625327946) N
+( PM_FPU0_CMPL \(FPU 0 instructions\)          : 8711656496736) N
+( PM_FPU1_CMPL \(FPU 1 instructions\)          : 2464028082370) N
+( PM_EXEC_FMA \(FMAs executed\)                : 1940583483295) N
+( Utilization rate                           : 98.3745273437499 %) N
+( Avg number of loads per TLB miss           : 405.429657226562) N
+( Load and store operations                  : 981979913.776999 M) N
+( MIPS                                       : 608375.363) N
+( Instructions per cycle                     : 0.805063476562499) N
+( HW Float points instructions per Cycle     : 0.00404785156249981) N
+( Total Floating point instructions + FMAs   : 13116268.048 M) N
+( Total Float point instructions + FMA rate  : 3792.65100000001 Mflip/s) N
+( Average FMA percentage                     : 29.4356967773439 %) N
+( Average computation intensity              : 0.0141435546875001 ) N
+(################################################################################) N
+() N
+( V0.2 01-27 Solving Poisson's equation in a cylinder) N
+( with Dirichlet boundary conditions by MG: ) N
+( Meshsize of grid: 0.00050000) N
+( Number of relaxations: 3) N
+( Maximal number of iterations: 15) N
+() N
+( Structure a= 0.84000000 b= 0.85000000 l= 1.59000000) N
+( Generate_processes\(\); ) N
+(   take p_level: 5 max_level:    12) N
+( Grid_generation\(\); ) N
+(  I Basic grid generation by edges; ) N
+(   I.2 edge correction; ) N
+(  II Calculation of points and cells; ) N
+(   II.2 construct basic points; ) N
+(        send them; ) N
+(   II.3 fullfill B1B2; ) N
+(   II.4 construct cell points; ) N
+(   II.61 interior cell part 1; ) N
+(   II.62 sends of boundary cells; ) N
+(   II.63 interior cell part 2; ) N
+(        send them; ) N
+(   II.7 calc multigrid points; ) N
+(   II.7 remove exterior points; ) N
+(   II.8 calc interior points; ) N
+(   II.9 send coarse grid points; ) N
+(  III Calculation of boundary; ) N
+(   III.2 boundary cells; ) N
+( Information about processes: ) N
+( Number of processes: 4075) N
+( Number of active processes: 4075) N
+( Initialize_variable\(\); ) N
+(   III.3.1 construct boundary points; ) N
+(         remove edges; ) N
+(mgres.txt) (Page 8/10) (Mar 12, 03 21:54) title
+border
+grestore
+(Printed by Andreas Adelmann) rhead
+(mgres.txt) (4/5) (Wednesday March 12, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (9-10) 5
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(   III.4.1 storage for boundary cells; ) p n
+(   III.4.2 storage for cells and stencils; ) N
+(   III.4.3 storage for boundary matrices; ) N
+( IV. calculate lists; ) N
+(   IV. 2. interior points and points near boundary; ) N
+(   IV. 5. pointer in boundary cells; ) N
+(   IV. 6. restriction weights; ) N
+(   IV. 7. coarsest level; ) N
+(   IV. 8. initialize lists; ) N
+(   IV. 9. calc mg; ) N
+(   V.1 prepare evaluation; ) N
+(   V.2 prepare parallel; ) N
+(   a\) ; ) N
+(   b\) ; ) N
+(   c\) ; ) N
+(   end prepare ; ) N
+() N
+( information about finest level: ) N
+(------------------------------------ ) N
+(number of interior points is:       -1480924453) N
+(number of points near the boundary: 25956956) N
+(number of boundary points:          25989550) N
+(number of points in boundary cells: 5215200) N
+(sum of all points:                  -1423762747) N
+(ratio of points interior / near boundary: -25.90763217) N
+( Number of grid points: 7166171845.00000000) N
+() N
+( MG: ) N
+(-------------------- ) N
+(0. Iteration: Error: Max:0.73929530,  L2: 0.30630656 T= 441.64855071) N
+(1. Iteration: Error: Max:0.66560513,  L2: 0.22676229 T= 161.29042931) N
+(2. Iteration: Error: Max:0.57787329,  L2: 0.16850862 T= 162.16292579) N
+(3. Iteration: Error: Max:0.48760451,  L2: 0.12601651 T= 160.71876680) N
+(4. Iteration: Error: Max:0.40267400,  L2: 0.09501407 T= 162.81425919) N
+(5. Iteration: Error: Max:0.32724493,  L2: 0.07227721 T= 159.80920781) N
+(6. Iteration: Error: Max:0.26274086,  L2: 0.05544356 T= 161.17172543) N
+(7. Iteration: Error: Max:0.20902305,  L2: 0.04283079 T= 158.67295344) N
+(8. Iteration: Error: Max:0.16514026,  L2: 0.03326379 T= 159.79437827) N
+(9. Iteration: Error: Max:0.12978238,  L2: 0.02592713 T= 160.71758745) N
+(10. Iteration: Error: Max:0.10158804,  L2: 0.02025167 T= 160.85748679) N
+(11. Iteration: Error: Max:0.07927597,  L2: 0.01583381 T= 159.73741864) N
+(12. Iteration: Error: Max:0.06172084,  L2: 0.01238114 T= 161.98168663) N
+(13. Iteration: Error: Max:0.04796703,  L2: 0.00967688 T= 159.78721069) N
+(14. Iteration: Error: Max:0.03722525,  L2: 0.00755703 T= 162.23397040) N
+(Ttot= 18799.84930361 Tsol= 3382.14115200 Tgrid= 15417.49985652) N
+( ) N
+( End: ) N
+( adding counter 5 event 12 Cycles) N
+( adding counter 0 event 1 Instructions completed) N
+( adding counter 7 event 0 TLB misses) N
+( adding counter 2 event 9 Stores completed) N
+( adding counter 3 event 5 Loads completed) N
+( adding counter 4 event 5 FPU 0 instructions) N
+( adding counter 1 event 35 FPU 1 instructions) N
+( adding counter 6 event 9 FMAs executed) N
+() N
+() N
+(################################################################################) N
+( hpmcount \(V 2.4.2\) summary \(aggregate of 4075 POE tasks\)) N
+( Average execution time \(wall clock time\)   : 18886.6 seconds) N
+( Average amount of time in user mode        : 18594.321053 seconds) N
+( Average amount of time in system mode      : 50.792449 seconds) N
+( Total maximum resident set size            : 3124 Gbytes) N
+( Total shared memory use in text segment    : 2646657744572 Kbytes*sec) N
+( Total unshared memory use in data segment  : 8750995861525 Kbytes*sec) N
+( PM_CYC \(Cycles\)                            : 2.83170345418037e+16) N
+( PM_INST_CMPL \(Instructions completed\)      : 2.72806581315964e+16) N
+( PM_TLB_MISS \(TLB misses\)                   : 20667630309964        ) N
+( PM_ST_CMPL \(Stores completed\)              : 3.90111047315023e+15) N
+(mgres.txt) (Page 9/10) (Mar 12, 03 21:54) title
+border
+/v 1 store
+/x0 x v get 3.147420 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+( PM_LD_CMPL \(Loads completed\)               : 6.95160653698281e+15) p n
+( PM_FPU0_CMPL \(FPU 0 instructions\)          : 44542812463316) N
+( PM_FPU1_CMPL \(FPU 1 instructions\)          : 7363869960803) N
+( PM_EXEC_FMA \(FMAs executed\)                : 10810641837159) N
+( Utilization rate                           : 98.0992753374235 %) N
+( Avg number of loads per TLB miss           : 407.051881472393) N
+( Load and store operations                  : 10852717010.122 M) N
+( MIPS                                       : 1444481.044) N
+( Instructions per cycle                     : 0.963070674846622) N
+( HW Float points instructions per Cycle     : 0.00201963190184037) N
+( Total Floating point instructions + FMAs   : 62717324.2480001 M) N
+( Total Float point instructions + FMA rate  : 3320.82400000004 Mflip/s) N
+( Average FMA percentage                     : 34.2020211042944 %) N
+( Average computation intensity              : 0.00596294478527623 ) N
+(################################################################################) N
+(mgres.txt) (Page 10/10) (Mar 12, 03 21:54) title
+border
+grestore
+(Printed by Andreas Adelmann) rhead
+(mgres.txt) (5/5) (Wednesday March 12, 2003) footer
+end % of iso1dict
+pagesave restore
+showpage
+
+%%Trailer
+end
+%%EOF

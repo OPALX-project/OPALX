@@ -1,0 +1,19 @@
+comp_4 and comp_32 are compile commands for r and 32 procs. generalize
+these to other numbers.
+
+how to run in scratch
+
+> cd /scratch1
+> cd habib
+> mkdir tmp
+> cp ~/MC2_II/inexe .
+> cp ~/MC2_II/indat .
+> cp ~/MC2_II/zprnt .
+
+>prun -n 4 -N 1 inexe [interactive]
+
+batch
+
+> bsub < qscrun [runs batch job]
+> bpeek jobnum [gives job info]
+> bjobs [shows job]

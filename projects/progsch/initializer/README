@@ -1,0 +1,112 @@
+Initializer v 0.5
+
+Chenges from previous version:
+   Neutrinos are included as option if Omega_nu is greater than zero.
+The whole initializer is inside namespace, and parser is included for 
+input parameters. 
+
+
+###############
+
+Description:
+
+Sets up initial particle positions and velocities for a given cosmology. 
+Code roughly follows MC2 pattern; several departures are made to make the code 
+running about 8X faster, using 8X less memory than the original version. 
+It's C/C++/MPI, and parallel scaling should be determined by the FFT.
+1_to_3 D transformation is applied to transfer data into cubes, as 
+we currently only have 1D FFT (FFTW) available.
+
+###############
+
+Compiling:
+
+Should need only to set desired compiler flags in the makefile. 
+FFTW has to be linked, supported are both FFTW 2 and 3 versions. See the 
+header of the Makefile for additional flags and explanations...
+
+###############
+
+Running:
+
+mpirun -np X init <indatName> <tfName> <outBase>
+
+<indatName> is the name of the indat file (see important change regarding the 
+                                           transfer function below!!)
+
+<tfName> is the name of the transfer function file (see cmb.tf)
+
+<outBase> is the base for output name, actual files will have ".X" appended,
+where X can be "dat", "bin", "gadget", "h5", or the mpi rank in the case of 
+parallel binary output. 
+
+It is possible to run on one processor with -np 1. Serial run case is treated 
+separately throughout the code, so that can be done as well...
+
+###############
+
+Sources:
+
+There are 2 C files:
+      PerfMon.c
+      distribution.c
+8 C++ files:
+      Initializer.cpp
+      InputParser.cpp
+      Cosmology.cpp
+      DataBase.cpp
+      MT_Random.cpp
+      Parallelization.cpp
+      Output.cpp
+      main.cpp
+and 11 header files (10 for each above file and TypesAndDefs.h). 
+
+###############
+
+Input:
+      cmb.tf    -- needed only if CMBFAST trasfer function is used
+      input.par -- input parameters (always needed)
+
+input.par:
+      In input.par one should specify cosmology (see the example file 
+      provided), and run parameters. The file may contain assignment lines 
+      (only integers and reals are supported, e.g. A=5), and comments, whose 
+      line should start with //
+      
+      Non-obvious elements of input file:
+
+      Transfer function: 0=CMBFast, 1=KH, 2=HS, 3=PD, 4=BBKS, 5=EH
+                                CMB for CMBFAST trasfer function
+                                BBKS for Bardeen et al. 1986, ApJ 304, 15
+                                PD for Peacock & Dodds, 1994, MNRAS, 267, 1020
+                                HS for Hu & Sugiyama, 1996, ApJ, 471, 542
+                                KH for Klypin & Holtzman, astro-ph/9712217
+                                EH for Eisenstein & Hu, 1999, ApJ, 511, 5
+
+      Domain decomposition: should be kept as 1 for now, as only FFTW
+                            exists for now; data can be transfered into
+                            cubes at the very end, by calling David's
+                            distribution.c
+                            
+      Seed: seed for random number generator, determines the phases of density 
+            perturbations. Should be some long integer number. 
+                            
+      Print format: 0-4
+                     0: Serial ASCII
+                     1: Serial binary
+                     2: Parallel binary
+                     3: HDF5 (both serial & binary are supported, see Makefile)
+                     4: Serial Gadget2 format
+
+###############
+
+Units:
+
+The code works in grid units where lengh=grid size, but the output is converted into 
+comoving coordinates, where positions are in Mpc/h, and velocities in km/s.
+
+###############
+
+
+Contact:
+         zarija@lanl.gov

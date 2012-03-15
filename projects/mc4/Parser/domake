@@ -1,0 +1,6 @@
+rm *.o
+g++ -I../ -I. -c Token.cpp
+g++ -I../ -I. -c TokenStream.cpp
+g++ -I../ -I. -c FileStream.cpp 
+g++ -I../ -I. -c AbsFileStream.cpp
+ls *.o
