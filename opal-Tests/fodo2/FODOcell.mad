@@ -1,0 +1,46 @@
+//                              Created at 09:42:31 on 14 Feb 2000 by JMJ
+// Simple matching to check basics
+
+p0=450.;
+
+b1: beam,particle=proton,pc=p0;
+
+LDR:=10;  LQ:=1.0;  LO:=0.3;
+
+dr1: drift,L=LDR-LO;
+dr2: drift,L=LDR;
+m1: marker;
+m2: marker;
+QF:  Quadrupole, L=LQ/2, K1:=KQF;
+QD:  Quadrupole, L=LQ/2, K1:=KQD;
+OF:  Octupole, L=LO,K3:=K3O;
+
+fodocell: line=(QF,OF,dr1,QD,m2,QD,dr2,QF,m1);
+
+KQF:=.1;
+KQD:=-.11;
+K3O:=1000.;
+
+twfodo: twiss,beam=b1,line=fodocell;
+
+match;
+    vary,name=KQF;
+    vary,name=KQD;
+//    value,KQF;   // doesn't work yet?
+//    value,CLIGHT;
+    constraint,row(twfodo,m1,{MUX,MUY})=={1/7,1/6},wgt=Table(2,1);
+    LMDIF,calls=100,tolerance=1.E-16;
+endmatch;
+
+select,line=twfodo,FULL;
+
+LIST,table=twfodo,file="twfodo.tfs",ALL;
+
+Static,line=fodocell,beam=b1,order=3,file="FodoOrder3.static";
+value,OF->K3;
+
+Static,line=fodocell,beam=b1,order=4,file="FodoOrder4.static";
+
+stop;
+
+

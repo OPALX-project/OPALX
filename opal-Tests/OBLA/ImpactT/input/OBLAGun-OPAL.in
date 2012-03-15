@@ -1,0 +1,55 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=10;
+
+Title,string="OBLA Gun";
+
+Edes=_EKIN_E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element length (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+SP1: Solenoid, L=1.20, ELEMEDGE=_SP1S_, FMAPFN="1T2.T7", KS=_SP1B_;
+SP2: Solenoid, L=1.20, ELEMEDGE=_SP2S_, FMAPFN="1T3.T7", KS=_SP2B_;
+SP3: Solenoid, L=1.20, ELEMEDGE=_SP3S_, FMAPFN="1T3.T7", KS=_SP3B_;
+
+gun: RFCavity, L=_LDIODE_, VOLT=_VSCALE_, FMAPFN="1T1.T7", ELEMEDGE=0.00, TYPE="STANDING", FREQ=1.0e-6;
+
+l1:   Line = (gun,sp1,sp2,sp3); 
+
+qb=_QBUNCH_;
+rf=_FREQ_;  
+v0=beta*CLIGHT;
+lz  = _SIGT_*v0;
+value,{v0,lz};
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gungauss,
+sigmax=  _SIGX_, sigmapx=0.0, corrx=0.0,
+sigmay=  _SIGY_, sigmapy=0.0, corry=0.0,
+sigmat=  lz, pt=1.0, sigmapt=0.0, corrt=0.0 , TEMISSION=_TEMISS_, NBIN=_NBUNCH_, DEBIN=1;
+
+MINSTEPFORREBIN=1000;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=_NX_, MY=_NY_, MT=_NZ_, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=_GREENSF_;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=_NPBUNCH_, BCURRENT=_IBUNCH_, BFREQ=rf, CHARGE=-1;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=_NTSTGUN_, DT=_DTGUN_;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+Quit;
