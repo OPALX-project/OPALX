@@ -1,0 +1,307 @@
+// ------------------------------------------------------------------------
+// $RCSfile: Multipole.cpp,v $
+// ------------------------------------------------------------------------
+// $Revision: 1.1.1.1 $
+// ------------------------------------------------------------------------
+// Copyright: see Copyright.readme
+// ------------------------------------------------------------------------
+//
+// Class: Multipole
+//   Defines the abstract interface for a Multipole magnet.
+//
+// ------------------------------------------------------------------------
+// Class category: AbsBeamline
+// ------------------------------------------------------------------------
+//
+// $Date: 2000/03/27 09:32:31 $
+// $Author: fci $
+//
+// ------------------------------------------------------------------------
+
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/BeamlineVisitor.h"
+
+
+// Class Multipole
+// ------------------------------------------------------------------------
+
+Multipole::Multipole():
+  Component(),
+  myFieldmap_m(NULL)
+{
+  setElType(isMultipole);
+}
+
+
+Multipole::Multipole(const Multipole &right):
+  Component(right),
+  NormalComponents(right.NormalComponents),
+  SkewComponents(right.SkewComponents),
+  max_SkewComponent_m(right.max_SkewComponent_m),
+  max_NormalComponent_m(right.max_NormalComponent_m),
+  myFieldmap_m(right.myFieldmap_m)
+{
+  setElType(isMultipole);
+}
+
+
+Multipole::Multipole(const string &name):
+  Component(name),
+  NormalComponents(4, 0.0),
+  SkewComponents(4, 0.0),
+  max_SkewComponent_m(0),
+  max_NormalComponent_m(0),
+  myFieldmap_m(NULL)
+{
+  setElType(isMultipole);
+}
+
+
+Multipole::~Multipole()
+{}
+
+
+void Multipole::accept(BeamlineVisitor &visitor) const
+{
+  visitor.visitMultipole(*this);
+}
+
+
+double Multipole::getNormalComponent(int n) const
+{
+  return getField().getNormalComponent(n);
+}
+
+
+double Multipole::getSkewComponent(int n) const
+{
+  return getField().getSkewComponent(n);
+}
+
+
+void Multipole::setNormalComponent(int n, double v)
+{
+//   getField().setNormalComponent(n, v);
+  NormalComponents[n-2] = v; //starting from the quad (= 2)
+  if (n - 1 > max_NormalComponent_m)
+    max_NormalComponent_m = n - 1;
+}
+
+
+void Multipole::setSkewComponent(int n, double v)
+{
+//   getField().setSkewComponent(n, v);
+  SkewComponents[n-2] = v;  //starting from the quad (= 2)
+  if (n - 1 > max_SkewComponent_m)
+    max_SkewComponent_m = n - 1;
+}
+
+bool Multipole::apply(const int &i, const double &t, double E[], double B[])
+{
+  Vector_t Ev(0,0,0), Bv(0,0,0);
+  if (apply(RefPartBunch_m->R[i],t,Ev,Bv)) return true;
+      
+  E[0] = Ev(0); E[1] = Ev(1); E[2] = Ev(2);
+  B[0] = Bv(0); B[1] = Bv(1); B[2] = Bv(2);
+      
+  return false;
+}
+
+bool Multipole::apply(const int &i, const double &t, Vector_t &E, Vector_t &B)
+{
+  const Vector_t &R = RefPartBunch_m->R[i];
+  Vector_t FieldFactor(1.0,0.0,0.0);
+    if (myFieldmap_m)
+    {
+      if (myFieldmap_m->getType() == T3DMagnetoStatic)
+        {
+          return false;
+        }
+      else if (myFieldmap_m->getType() == T1DProfile1 || myFieldmap_m->getType() == T1DProfile2)
+        {
+          Vector_t tmpE(0,0,0);
+          const bool out_of_bounds = myFieldmap_m->getFieldstrength(R,tmpE,FieldFactor);
+        }
+    }
+
+  if (R(2) > startField_m && R(2) <= endField_m)
+    {
+      if (max_NormalComponent_m > 0)
+        {
+          B(0) += NormalComponents[0] * (FieldFactor(0) * R(1) - FieldFactor(2) * R(1)*R(1)*R(1) / 6.);
+          B(1) += NormalComponents[0] * (FieldFactor(0) * R(0) - FieldFactor(2) * R(0)*R(0) / 2.);
+          B(2) += NormalComponents[0] * FieldFactor(1) * R(0) * R(1);
+
+          if (max_NormalComponent_m > 1)
+            {
+              const double R02 = R(0) * R(0);
+              const double R12 = R(1) * R(1);
+              B(0) += NormalComponents[1] * R(0) * R(1);
+              B(1) += NormalComponents[1] * (R02 - R12) / 2.;
+              
+              if (max_NormalComponent_m > 2)
+                {
+                  B(0) += NormalComponents[2] * (3. * R02 * R(1) - R12 * R(1)) / 6.;
+                  B(1) += NormalComponents[2] * (R02 * R(0) - 3. * R(0) * R12) / 6.;
+
+                  if (max_NormalComponent_m > 3)
+                    {
+                      B(0) += NormalComponents[3] * (R02 * R(0) * R(1) - R(0) * R12) / 6.;
+                      B(1) += NormalComponents[3] * (R02 * R02 - 6. * R02 * R12 + R12 * R12) / 24.;
+
+                      if (max_NormalComponent_m > 4)
+                        {
+                          Inform msg("Multipole ");
+                          msg << "* ************** W A R N I N G *****************************************************" << endl;
+                          msg << "* HIGHER MULTIPOLES THAN DECAPOLE NOT IMPLEMENTED!" << endl;
+                          msg << "* **********************************************************************************" << endl;
+                        }
+                    }
+                }
+            }
+        }
+
+      if (max_SkewComponent_m > 0)
+        {
+          B(0) += -SkewComponents[0] * R(0);
+          B(1) += SkewComponents[0] * R(1);
+
+          if (max_SkewComponent_m > 1)
+            {
+              const double R02 = R(0) * R(0);
+              const double R12 = R(1) * R(1);
+
+              B(0) += -SkewComponents[1] * (R02 - R12) / 2.;
+              B(1) += SkewComponents[1] * R(0) * R(1);
+                
+              if (max_SkewComponent_m > 2)
+                {
+                  B(0) += -SkewComponents[2] * (R02 * R(0) - 3. * R(0) * R12) / 6.;
+                  B(1) += -SkewComponents[2] * (3. * R02 * R(1) - R12 * R(1)) / 6.;
+
+                  if (max_SkewComponent_m > 3)
+                    {
+                      B(0) += -SkewComponents[3] * (R02 * R02 - 6. * R02 * R12 + R12 * R12) / 24.;
+                      B(1) += SkewComponents[3] * (R02 * R(0) * R(1) - R(0) * R12 * R(1)) / 6.;
+                      
+                        if (max_SkewComponent_m > 4)
+                        {
+                          Inform msg("Multipole ");
+                          msg << "* ************** W A R N I N G *****************************************************" << endl;
+                          msg << "* HIGHER MULTIPOLES THAN DECAPOLE NOT IMPLEMENTED!" << endl;
+                          msg << "* **********************************************************************************" << endl;
+                        }
+                    }          
+                }          
+            }          
+        }
+    }
+
+  return false;
+}
+  
+ bool Multipole::apply(const Vector_t &R, const double &t, Vector_t &E, Vector_t &B)
+{
+  if (R(2) > startField_m && R(2) <= endField_m)
+    {
+      if (max_NormalComponent_m > 0)
+        {
+          B(0) += NormalComponents[0] * R(1);
+          B(1) += NormalComponents[0] * R(0);
+          
+          if (max_NormalComponent_m > 1)
+            {
+              const double R02 = R(0) * R(0);
+              const double R12 = R(1) * R(1);
+              B(0) += NormalComponents[1] * R(0) * R(1);
+              B(1) += NormalComponents[1] * (R02 - R12) / 2.;
+              
+              if (max_NormalComponent_m > 2)
+                {
+                  B(0) += NormalComponents[2] * (3. * R02 * R(1) - R12 * R(1)) / 6.;
+                  B(1) += NormalComponents[2] * (R02 * R(0) - 3. * R(0) * R12) / 6.;
+
+                  if (max_NormalComponent_m > 3)
+                    {
+                      B(0) += NormalComponents[3] * (R02 * R(0) * R(1) - R(0) * R12) / 6.;
+                      B(1) += NormalComponents[3] * (R02 * R02 - 6. * R02 * R12 + R12 * R12) / 24.;
+
+                      if (max_NormalComponent_m > 4)
+                        {
+                          Inform msg("Multipole ");
+                          msg << "* ************** W A R N I N G *****************************************************" << endl;
+                          msg << "* HIGHER MULTIPOLES THAN DECAPOLE NOT IMPLEMENTED!" << endl;
+                          msg << "* **********************************************************************************" << endl;
+                        }
+                    }
+                }
+            }
+        }
+
+      if (max_SkewComponent_m > 0)
+        {
+          B(0) += -SkewComponents[0] * R(0);
+          B(1) += SkewComponents[0] * R(1);
+
+          if (max_SkewComponent_m > 1)
+            {
+              const double R02 = R(0) * R(0);
+              const double R12 = R(1) * R(1);
+
+              B(0) += -SkewComponents[1] * (R02 - R12) / 2.;
+              B(1) += SkewComponents[1] * R(0) * R(1);
+                
+              if (max_SkewComponent_m > 2)
+                {
+                  B(0) += -SkewComponents[2] * (R02 * R(0) - 3. * R(0) * R12) / 6.;
+                  B(1) += -SkewComponents[2] * (3. * R02 * R(1) - R12 * R(1)) / 6.;
+
+                  if (max_SkewComponent_m > 3)
+                    {
+                      B(0) += -SkewComponents[3] * (R02 * R02 - 6. * R02 * R12 + R12 * R12) / 24.;
+                      B(1) += SkewComponents[3] * (R02 * R(0) * R(1) - R(0) * R12 * R(1)) / 6.;
+                      
+                        if (max_SkewComponent_m > 4)
+                        {
+                          Inform msg("Multipole ");
+                          msg << "* ************** W A R N I N G *****************************************************" << endl;
+                          msg << "* HIGHER MULTIPOLES THAN DECAPOLE NOT IMPLEMENTED!" << endl;
+                          msg << "* **********************************************************************************" << endl;
+                        }
+                    }          
+                }          
+            }          
+        }
+    }
+
+  return false;
+}
+void Multipole::initialise(const PartBunch *bunch, double &startField, double &endField, const double &scaleFactor)
+{
+  RefPartBunch_m = bunch;
+  endField = startField + getElementLength();
+  startField_m = startField;
+  endField_m = endField;
+  online_m = true;
+}
+
+
+void Multipole::finalise()
+{
+  online_m = false;
+}
+
+void Multipole::rescaleFieldMap(const double &scaleFactor)
+{}
+
+bool Multipole::bends() const
+{
+  return false;
+}
+
+
+void Multipole::getDimensions(double &zBegin, double &zEnd) const
+{
+  zBegin = startField_m;
+  zEnd = endField_m;
+}

@@ -1,0 +1,5 @@
+# opal testcycl-3.in --commlib mpi --info 0 | tee testcycl-3.out
+opal testcycl-4.in --commlib mpi --info 0 | tee testcycl-4.out
+#opal testcycl-2.in --commlib mpi --info 0 | tee testcycl-2.out
+#opal testcycl-1.in --commlib mpi --info 0 | tee testcycl-1.out
+#opal opal-valid-fs.in --commlib mpi --info 0 | tee sim.out

@@ -1,0 +1,3 @@
+cp TwoStep.h5 Diagnostics.h5
+mpirun -np $1 opal Diagnostics.in -restart 2 --commlib mpi --info 0 2>&1|tee Diagnostics-P$1.out
+mv Diagnostics.h5 Diagnostics-P$1.h5

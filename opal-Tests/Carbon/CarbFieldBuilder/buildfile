@@ -1,0 +1,4 @@
+g++ -c -g CarbCycField.cpp
+g++ -c -g CheckPoint.cpp
+g++ -c -g Main.cpp
+g++ *.o -g -o CarbCycField

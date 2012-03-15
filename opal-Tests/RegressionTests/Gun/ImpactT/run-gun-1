@@ -1,0 +1,3 @@
+cd gun1MV-1
+mpirun -np 4 impactt-1.5.1 ImpactT.in 10 10 2>&1 |tee ../Gun-test-1-P4.out
+mv ImpactT000001.h5 ../Gun-test-1.h5

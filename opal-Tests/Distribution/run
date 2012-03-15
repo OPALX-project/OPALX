@@ -1,0 +1,1 @@
+../../src/opal Distribution-test1.in --commlib mpi --info 0 | tee  Gun-test.out

@@ -1,0 +1,175 @@
+\chapter{Physics Commands}
+\label{sec:physics}
+ 
+\section{Global Reference Momentum}
+\label{sec:P0}
+\index{P0}
+Before any physics computations are attempted the following command
+should be entered:
+\begin{verbatim}
+P0=real;
+\end{verbatim}
+This command sets the global reference momentum in GeV/c,
+which is used to compute the magnetic fields from the normalised
+multipole coefficients.
+The \secref{\texttt{BEAM}~command}{beam} then renormalises the
+multipole coefficients.
+This mechanism allows sending a beam with a momentum different from the
+design momentum through a beam line.
+
+\section{BEAM Command}
+\label{sec:beam}
+\index{BEAM}
+All OPAL commands working on a beam require the setting of various
+quantities related to this beam. 
+These are entered by a \texttt{BEAM} command:
+\begin{verbatim}
+label:BEAM,PARTICLE=name,MASS=real,CHARGE=real,
+      ENERGY=real,PC=real,GAMMA=real,BCURRENT=real,
+      EX=real,EXN=real,EY=real,EYN=real,ET=real,
+      KBUNCH=integer,NPART=real,BUNCHED=logical,
+      RADIATE=logical,DAMP=logical,QUANTUM=logical;
+\end{verbatim}
+The \texttt{label} is opional, it defaults to \texttt{UNNAMED\_BEAM}.
+\index{UNNAMED\_BEAM}
+The particle mass and charge are defined by:
+\begin{description}
+\item{PARTICLE}
+  \index{PARTICLE}
+  The name of particles in the machine.
+  OPAL knows the mass and the charge for the following particles:
+  \begin{description}
+  \item{POSITRON}
+    \index{POSITRON}
+    The particles are positrons (\texttt{MASS}=$m_e$,
+    \texttt{CHARGE}=1),
+  \item{ELECTRON}
+    \index{ELECTRON}
+    The particles are electrons (\texttt{MASS}=$m_e$,
+    \texttt{CHARGE}=-1),
+  \item{PROTON}
+    \index{PROTON}
+    The particles are protons (default, \texttt{MASS}=$m_p$,
+    \texttt{CHARGE}=1),
+  \item{ANTIPROTON}
+    \index{ANTIPROTON}
+    The particles are anti-protons (\texttt{MASS}=$m_p$,
+    \texttt{CHARGE}=-1).
+  \end{description}
+\end{description}
+For other particle names one may enter:
+\begin{description}
+\item{MASS}
+  \index{MASS}
+  \index{particle!mass}\index{mass}
+  The particle mass in GeV.
+\item{CHARGE}
+  \index{CHARGE}
+  \index{particle!charge}\index{charge}
+  The particle charge expressed in elementary charges.
+\end{description}
+By default the particle momentum is \secref{P0}{P0}.
+A different value can be defined by one of the following:
+\begin{description}
+\item{ENERGY}
+  \index{ENERGY}
+  \index{particle!energy}\index{energy}
+  \index{total energy}
+  The total energy per particle in GeV.
+  If given, it must be greater then the particle mass.
+\item{PC}
+  \index{PC}
+  \index{momentum}
+  \index{particle!momentum}
+  The momentum per particle in GeV/c.
+  If given, it must be greater than zero.
+\item{GAMMA}
+  \index{GAMMA}
+  The ratio between total energy and rest energy of the particles
+  $\gamma = E / m_0$.
+  If given, it must be greater than one.
+  If the mass is changed a new value for the energy should be entered.
+  Otherwise the energy remains unchanged,
+  and the momentum and $\gamma$ are recalculated.
+\end{description}
+The emittances are defined by:
+\begin{description}
+\item{EX}
+  \index{EX}
+  \index{emittance!horizontal}
+  The horizontal emittance
+  $E_x=\sigma_x^2/\beta_x$
+  (default:~1~m).
+\item{EY}
+  \index{EY}
+  \index{emittance!vertical}
+  The vertical emittance
+  $E_y=\sigma_y^2/\beta_y$
+  (default:~1~m).
+\item{ET}
+  \index{ET}
+  \index{emittance!longitudinal}
+  The longitudinal emittance
+  $E_t=\sigma_e/(p_0c) \cdot c\sigma_t$
+  (default:~1~m).
+  The emittances can be replaced
+  by the normalised emittances and the energy spread:
+\item{EXN}
+  \index{EXN}
+  \index{normalised emittance}\index{emittance!normalised}
+  The normalised horizontal emittance [m]:
+  $E_{xn}=4\beta\gamma E_x$
+  (ignored if $E_x$ is given).
+\item{EYN}
+  \index{EYN}
+  The normalised vertical emittance [m]:
+  $E_{yn}=4\beta \gamma E_y$
+  (ignored if $E_y$ is given).
+\item{SIGT}
+  \index{SIGT}
+  \index{bunch!length}
+  The bunch length $c\sigma_t$ [m].
+\item{SIGE}
+  \index{SIGE}
+  \index{energy!spread}
+  The {\em relative} energy spread $\sigma_e/p_0 c$ [1].
+\end{description}
+For the time being, only the particle definition
+(\texttt{PARTICLE,MASS,CHARGE,PC,
+ENERGY,GAMMA}) is used.
+The other parameters will be implemented as needed when new commands
+become available.
+%Certain commands compute the synchrotron tune $Q_s$
+%from the RF cavities.
+%If $Q_s\neq 0$,
+%the relative energy spread $\sigma_e/p_0c$
+%and the bunch length $c\sigma_t$ are
+%\[
+%\frac{\sigma_e}{p_0c}=\sqrt{\frac{2\pi Q_s E_t}{\eta C}},
+%\qquad
+%c\sigma_t=\sqrt{\frac{\eta C E_t}{2\pi Q_s}},
+%\]
+%where $C$ is the machine circumference, and
+%$\eta = (1/\gamma^2) - (1/\gamma_{tr}^2)$.
+%Finally, the \texttt{BEAM} command accepts
+%\begin{description}
+%\item{KBUNCH}
+%  \index{bunch!number}
+%  The number of particle bunches in the machine (default:~1).
+%\item{NPART}
+%  \index{bunch}
+%  The number of particles per bunch (default:~0).
+%\item{BCURRENT}
+%  \index{beam!current}\index{bunch!current}
+%  \index{current}
+%  The bunch current (default:~0~A).
+%\item{BUNCHED}
+%  \index{bunch}
+%  A logical flag.
+%  If set, the beam is treated as bunched whenever this makes sense.
+%\item{RADIATE}
+%  \index{radiation}
+%  \index{synchrotron!radiation}
+%  A logical flag.
+%  If set, synchrotron radiation is considered in all bipolar magnets.
+%\end{description}

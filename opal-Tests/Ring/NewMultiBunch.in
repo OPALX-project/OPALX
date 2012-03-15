@@ -1,0 +1,85 @@
+Option, ECHO=FALSE;
+//////////////////////////////////////////////////////////////////////////////
+// input file for single bunch tracking with space charge effects           //
+// in parallel inveronment for PSI Ring with 4 NEW copper cavities          //
+// the initial conditions are obtained from FIXPO GORBIT mode.              //
+//////////////////////////////////////////////////////////////////////////////
+Option, PSDUMPFREQ=2000000;
+Option, SPTDUMPFREQ=5;
+Option, REPARTFREQ=10;
+Option, REBINFREQ=360;
+Option, PSDUMPEACHTURN=true;
+Option, PSDUMPLOCALFRAME=false;
+
+Title,string="OPAL-CyclT for PSI 590MeV Ring";
+
+
+Edes=.072;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+phi01=192.0;
+phi02=phi01+180.0;
+phi04=phi01;
+phi05=phi01+180.0;
+phi03=111.40;
+
+volt1st=0.9;
+ptg=1.0;
+volt3rd=volt1st*4.0*0.112*ptg;
+
+r1=1003.38;
+r2=6203.38;
+rft1=1845.45;
+rft2=4477.24;
+
+frequency=50.65;
+frequency3=3.0*frequency;
+
+ring: Cyclotron, TYPE="RING", CYHARMON=6, PHIINIT=112.0,  
+PRINIT=-0.0022, RINIT=2043.5, SYMMETRY=8.0, RFFREQ=frequency, 
+FMAPFN="../s03av.nar";
+
+rf0: RFCavity, VOLT=volt1st, FMAPFN="../NewCav1.dat", TYPE="SINGLEGAP", 
+FREQ=frequency, RMIN = r1, RMAX = r2, ANGLE=35.0,  PDIS = 416.0, 
+GAPWIDTH = 300.0, PHI0=phi01; 
+
+rf1: RFCavity, VOLT=volt1st, FMAPFN="../NewCav1.dat", TYPE="SINGLEGAP", 
+FREQ=frequency, RMIN = r1, RMAX = r2, ANGLE=125.0, PDIS = 416.0, 
+GAPWIDTH = 300.0, PHI0=phi02;
+
+rf3: RFCavity, VOLT=volt1st, FMAPFN="../NewCav1.dat", TYPE="SINGLEGAP", 
+FREQ=frequency, RMIN = r1, RMAX = r2, ANGLE=215.0, PDIS = 416.0, 
+GAPWIDTH = 300.0, PHI0=phi04;
+
+rf4: RFCavity, VOLT=volt1st, FMAPFN="../NewCav1.dat", TYPE="SINGLEGAP", 
+FREQ=frequency, RMIN = r1, RMAX = r2, ANGLE=305.0, PDIS = 416.0, 
+GAPWIDTH = 300.0, PHI0=phi05; 
+
+rf2: RFCavity, VOLT=volt3rd, FMAPFN="../Cav3.dat", TYPE="SINGLEGAP", 
+FREQ=frequency3, RMIN = rft1, RMAX = rft2, ANGLE=260.0, PDIS = 452.0, 
+GAPWIDTH = 250.0, PHI0=phi03; 
+
+l1:   Line = (ring,rf0,rf1,rf2,rf3,rf4);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  2.0e-03, sigmapx=1.0e-7, corrx=0.0,
+sigmay=  2.0e-03, sigmapy=1.0e-7, corry=0.0,
+sigmat=  2.0e-03, sigmapt=3.394e-4, corrt=0.0;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=256, MY=32, MT=32, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open,BBOXINCR=2;
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=true, NPART=1e5, BCURRENT=3.0E-3, CHARGE=1.0, BFREQ= frequency;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1,MAXSTEPS=1440*172,STEPSPERTURN=1440;
+ run, file = "track_output", turns = 9, mbmode="AUTO", paramb= 4.5, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
