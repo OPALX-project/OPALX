@@ -1,0 +1,3 @@
+source ~/bin/setupOPAL
+cp TwoStep.h5 opal-valid.h5
+$HOME/svnwork/OPAL/src/opal opal-valid.in -restart 2 --commlib mpi --info 0 | tee opal-valid.out

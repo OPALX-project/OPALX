@@ -1,0 +1,67 @@
+Option, ECHO=FALSE;
+Option, TFS=FALSE;
+Option, PSDUMPFREQ=10;
+
+SSHIFT=-0.0005;
+
+Title,string="OPAL gun test";
+
+Edes=1.0E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+//value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element lenght (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+SP1: Solenoid, L=1.20, ELEMEDGE=-0.5265, FMAPFN="1T1.T7", KS=0.00011;
+SP2: Solenoid, L=1.20, ELEMEDGE=-0.3920, FMAPFN="1T2.T7", KS=0.00000;
+SP3: Solenoid, L=1.20, ELEMEDGE=-0.2620, FMAPFN="1T2.T7", KS=0.00000;
+
+gun: RFCavity, L=0.018, VOLT=-131/(1.052*2.658)*0.9616, FMAPFN="1T3.T7", ELEMEDGE=0.00, TYPE="STANDING", FREQ=1.0e-6;
+
+l1:   Line = (gun,sp1,sp2,sp3); 
+
+/*
+ We can specity ONE distribution
+
+ Note: sigmapt is in eV 
+
+*/
+qb=6.0e-12;
+rf=1498.956e6;
+v0=beta*CLIGHT;
+T1s = 6.5e-12;
+lz  = T1s*v0;
+//value,{v0,lz};
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gungauss,
+sigmax=  0.00030, sigmapx=0.0, corrx=0.0,
+sigmay=  0.00030, sigmapy=0.0, corry=0.0,
+sigmat=  lz, sigmapt=1.0, corrt=0.0 , TEMISSION=39.0e-12, NBIN=10, DEBIN=1;
+
+/*
+   We can specity ONE field solver object
+*/
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=32, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=5e4, BCURRENT=rf*qb, BFREQ=rf, CHARGE=-1;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=2000, DT=1.0e-13;
+ run, file = "track_output", turns = 1, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+Quit;
+

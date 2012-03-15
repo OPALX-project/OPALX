@@ -1,0 +1,3 @@
+source ~/bin/setupOPAL
+cp TwoStep.h5 ImpactT000002.h5 
+~russel/bin/impactt-1.5.1 ImpactT.in 3 3 | tee Impact-t.out

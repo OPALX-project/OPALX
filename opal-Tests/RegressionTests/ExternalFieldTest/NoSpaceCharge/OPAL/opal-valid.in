@@ -1,0 +1,87 @@
+Option, ECHO=FALSE;
+Option, TFS=FALSE;
+Option, PSDUMPFREQ=20;
+
+Title,string="OPAL External field test";
+
+Edes=1.0;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element lenght (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+//
+
+// 0.12 10 20 3 0.0580 0.31250 2.0 0.001 0.0 0.0 0.0 0.0 0.0 
+sol0: Solenoid, L=0.12, KS=0.31250, FMAPFN="1T2.T7", ELEMEDGE=0.0580;
+
+// add 1.205 m to z_0 to get the peak!!
+sol1: Solenoid, L=0.001, KS=0.08300, FMAPFN="1T5.T7", ELEMEDGE=0.364;
+sol2: Solenoid, L=0.001, KS=-0.0830, FMAPFN="1T5.T7", ELEMEDGE=0.464;
+sol3: Solenoid, L=0.001, KS=0.04780, FMAPFN="1T5.T7", ELEMEDGE=0.864;
+sol4: Solenoid, L=0.001, KS=-0.0478, FMAPFN="1T5.T7", ELEMEDGE=0.964;
+
+sol5: Solenoid, L=0.001, KS=0.073250, FMAPFN="1T5.T7", ELEMEDGE=1.364;
+sol6: Solenoid, L=0.001, KS=-0.07325, FMAPFN="1T5.T7", ELEMEDGE=1.464;
+sol7: Solenoid, L=0.001, KS=0.083470, FMAPFN="1T5.T7", ELEMEDGE=1.864;
+sol8: Solenoid, L=0.001, KS=-0.08347, FMAPFN="1T5.T7", ELEMEDGE=1.964;
+
+// L:        physical element lenght (real)
+// VOLT:     field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+// TYPE:     STANDING or TRAVELING wave (string)
+// FREQ:     fundamental mode/frequency of the cavity
+//
+
+// +2 keV, out of 3.25 MeV ->   
+// VOLT=0.9857*IMPACT-T
+rf1: RFCavity, L=0.54, VOLT=19.961*0.999230, FMAPFN="1T3.T7", ELEMEDGE=0.129, TYPE="STANDING", FREQ=1498.956, LAG=193.0/360.0;
+rf2: RFCavity, L=0.54, VOLT= 6.250*0.999230, FMAPFN="1T4.T7", ELEMEDGE=0.129, TYPE="STANDING", FREQ=4497.536, LAG=136.0/360.0;
+
+// L-Band Structure starts here
+// 40 cells in 2\pi/3 mode at 1.5 GHz (rfdata[1-4]); with 4 solenoids on top (1T6.T7)
+
+/*
+  FAST=TRUE -> enables fast calculation of electric fields (one FFT + interpolation)
+*/
+
+
+// 0.98 bevore
+lrf0: TravelingWave, L=0.0253, VOLT=14.750*30/31, FMAPFN="INLB-02-RAC.Ez", ELEMEDGE=2.73066, NUMCELLS=40, MODE=1/3, ACCURACY=20, FREQ=1498.956, LAG=248.0/360.0;
+
+l1:   Line = (sol0,rf1,rf2,sol1,sol2,sol3,sol4,sol5,sol6,sol7,sol8,lrf0);
+
+/*
+ We can specity ONE distribution
+*/
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  1.0e-03, sigmapx=1.0e-4, corrx=0.5,
+sigmay=  2.0e-03, sigmapy=1.0e-4, corry=-0.5,
+sigmat=  3.0e-03, sigmapt=1.0e-4, corrt=0.0;
+
+/*
+ We can specity ONE field solver object
+*/
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=64, MY=64, MT=64, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open,
+     BBOXINCR=1.0, GREENSF=INTEGRATED;
+
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=5e3;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=14226, DT=1.0e-12;
+ run, file = "track_output", turns = 1, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;

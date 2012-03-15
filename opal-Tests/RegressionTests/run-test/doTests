@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+#
+source $HOME/.bashrc
+#
+export BASEDIR=/Volumes/Opal-Tests/Regression-Tests
+export LOGFILE=$BASEDIR/Regression.log
+rm -rf $LOGFILE
+touch $LOGFILE
+#
+###########################################################################################
+#
+#
+echo "Build OPAL " >> $LOGFILE
+date >> $LOGFILE
+cd $HOME/svnwork/OPAL/classic/4.0/src
+rm *.a
+svn update
+make -j 5
+ls -al *.a >> $LOGFILE
+cd $HOME/svnwork/OPAL/src
+rm -rf opal
+svn update
+make -j 5
+ls -al opal >> $LOGFILE
+echo "Build OPAL done" >> $LOGFILE
+date >> $LOGFILE
+#
+###########################################################################################
+#
+#
+echo "Start OPAL regression tests " >> $LOGFILE
+date >> $LOGFILE
+#
+/usr/local/mpich2-1.0.4p1/bin/mpd --deamon
+#
+###########################################################################################
+#
+cd $BASEDIR/DriftTest/OPAL
+./run-restart 1
+./run-restart 4
+cd $BASEDIR
+#
+###########################################################################################
+#
+cd $BASEDIR/ExternalFieldTest/NoSpaceCharge/OPAL
+./run-restart-valid 1
+./run-restart-valid 4
+cd $BASEDIR
+#
+###########################################################################################
+#
+cd $BASEDIR/ExternalFieldTest/SpaceCharge/OPAL
+./run-restart-valid 1
+./run-restart-valid 4
+cd $BASEDIR
+#
+###########################################################################################
+#
+cd $BASEDIR/Gun/OPAL
+./run-gun-2 1
+./run-gun-2 4
+cd $BASEDIR
+
+echo "Start OPAL regression tests done ...." >> $LOGFILE
+date >> $LOGFILE
+###########################################################################################
+#
+#
+mail -s opal-regression-tests andreas.adelmann@psi.ch < $LOGFILE
+#
+#
+###########################################################################################
