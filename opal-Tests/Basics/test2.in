@@ -1,0 +1,19 @@
+Option, TFS=FALSE;
+Title,string="test2.mad9";
+Edes=1.0;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+value,{0.1/brho};
+hfq: Quadrupole, L=0.5, K1= 0.1/brho;      // T/m
+l1: Line = (hfq);
+
+Proton1: BEAM, PARTICLE=PROTON, pc=P0;
+
+Select, Line=l1;
+T1:Twiss, Line=l1, Beam=Proton1, Method="THICK", Order=2 , static=false;
+Matrix, Table=T1, File="test2MatrD.mou";
+Stop;

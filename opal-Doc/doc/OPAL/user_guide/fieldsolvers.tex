@@ -1,0 +1,74 @@
+\chapter{Fieldsolver}
+\label{sec:fieldsolver}
+\index{fieldsolver(}
+
+\section{Fieldsolver Command} 
+\label{sec:fieldsolvercmd}
+\begin{table}[ht]
+  \begin{center}
+    \begin{tabular}{|l|p{0.6\textwidth}|l|}
+      \hline
+      Command &Purpose \\
+      \hline
+      \tabline{FIELDSOLVER}{Specify a fieldsolver}{fieldsolver}
+      \tabline{FSTYPE}{Specify the type of field solver}{FSFSTYPE}
+       \tabline{PARFFTX}{If TRUE, the dimension $x$ is distributed among the processors}{FSDomDEC}
+       \tabline{PARFFTY}{If TRUE, the dimension $y$ is distributed among the processors}{FSDomDEC}
+       \tabline{PARFFTZ}{If TRUE, the dimension $z$ is distributed among the processors}{FSDomDEC}
+       \tabline{MX}{Number of grid points in $x$ specifying rectangular grid}{FSMX}
+       \tabline{MY}{Number of grid points in $y$ specifying rectangular grid}{FSMX}
+       \tabline{MZ}{Number of grid points in $z$ specifying rectangular grid}{FSMX}
+       \tabline{BCFFTX}{Boundary condition in $x$ [OPEN,PERIODIC]} {FSBC}
+        \tabline{BCFFTY}{Boundary condition in $y$ [OPEN,PERIODIC]}{FSBC}
+        \tabline{BCFFTZ}{Boundary condition in $z$ [OPEN,PERIODIC]}{FSBC}
+       \tabline{GREENSF}{Defines the Greens function for the FFT Solver}{FSGREEN}
+       \tabline{BBOXINCR}{Enlargement of the bounding box in \%}{FSBBOX}
+      \hline
+    \end{tabular}
+    \caption{Fieldsolver command summary}
+    \label{tab:fieldsolvercmd}
+  \end{center}
+\end{table}
+
+%\index{distr|)}
+\section{Define the Fieldsolver to be used}
+\label{sec:FSFSTYPE}
+\index{FSFSTYPE}
+At present only a FFT based solver is avaidable. Future solvers will include 
+Finite Element solvers and a Multi Grid solver with Shortley-Weller boundary conditions for 
+irregular domains. 
+
+\section{Define Domain Decomposition}
+\label{sec:FSDomDEC}
+\index{FSDomDEC}
+The dimensions in  $x$, $y$ and $z$ can be parallel (TRUE)  or serial FALSE. The
+default settings are: parallel in $z$ and serial in $x$ and $y$. 
+
+\section{Define Number of Gridpoints}
+\label{sec:FSMX}
+\index{FSMX}
+Number of grid points in $x$, $y$ and $z$ for a rectangular grid.
+
+\section{Define Boundary Conditions}
+\label{sec:FSBC}
+\index{FSBC}
+Two boundary conditions can be selected independently among $x$, $y$ and $z$, namely:  OPEN and PERIODIC. 
+
+\section{Define Greens Function}
+\label{sec:FSGREEN}
+\index{FSGREEN}
+Two Greens functions can be selected: INTEGRGREEN, GREEN. The integrated Green's function is described in \cite{qiang2005}. 
+
+\section{Define Bounding Box Enlargement}
+\label{sec:FSBBOX}
+\index{FSBBOX}
+The bounding box defines a minimal rectangular domain including all particles. With BBOXINCR 
+the bounding box can be enlarged by a factor given in percent of the minimal rectangular domain.
+
+\section{Define the number of Energy Bins to use}
+\label{sec:FSENBINS}
+\index{FSENBINS}
+Suppose $dE$ the energy spread in the particle bunch is to large, the electrostatic approximation is no longer valid. 
+One solution to that problem is to introduce  $k$ energy bins  and perform $k$ separate field solves
+in which $dE$ is again small and hence the electrostatic approximation valid. In case of a cyclotron 
+(Section \ref{sec:cyclotron}) the number of energy bins must be at minimum the number of neighbouring bunches (NNEIGHBB) i.e.  $\text{ENBINS} \le \text{NNEIGHBB}$ 

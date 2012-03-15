@@ -1,0 +1,33 @@
+OPAL (Object Oriented Parallel Accelerator Library) 
+V 1.1.2 17.9.2008
+
+A fusion of MAD9, CLASSIC (V3.3.1 -> 5.0) MAD9p 
+with the help of IPPL V 1.0 .
+
+Effort started 5/12/2006 by Andreas Adelmann (PSI)
+
+Goto amas.web.psi.ch for more informations.
+
+News in 1.1.2:
+
+- much faster now
+- Bend
+- Gun, SW TW structures fully benchmarked against IMPACT-T
+- Cyclotron model ready for: Ring and Injector 2 with neighbouring bunches
+
+- Experimental (only for geeks): 
+	=> iterative solver (needs special configure options)
+        => wake fields
+	=> envelope mode (SW,Solenoids) ok w.r.t. BET         
+
+- Many more regression tests
+
+Plans for 1.1.3
+
+- CSR 
+- Transision from experimental to production
+
+
+
+
+Andreas Adelmann

@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+#
+#
+#
+base=`echo $1| sed s/\.cfg//`
+source ./$1
+echo "use $1 as configuration file"
+#
+cp psi-gun-1.tmpl ImpactT.in
+perl -pi -e "s|SLICES|$SL|g" ImpactT.in
+perl -pi -e "s|EBINS|$BINS|g" ImpactT.in
+perl -pi -e "s|SIGMA|$BSIG|g" ImpactT.in
+perl -pi -e "s|CURRENT|$CURR|g" ImpactT.in
+perl -pi -e "s|NX|$NX|g" ImpactT.in
+perl -pi -e "s|NY|$NY|g" ImpactT.in
+perl -pi -e "s|NZ|$NZ|g" ImpactT.in
+perl -pi -e "s|NP|$NP|g" ImpactT.in
+perl -pi -e "s|DT|$DT|g" ImpactT.in
+perl -pi -e "s|PROCX|$PROCX|g" ImpactT.in
+perl -pi -e "s|PROCY|$PROCY|g" ImpactT.in
+
+#
+for i in $FILES
+ do
+  echo "makeing ImpactT$i.in"
+  cp ImpactT.in ImpactT$i.in
+  perl -pi -e "s|BCENTER|${BCE[$i-2]}|g" ImpactT$i.in
+ done
+#
+
+perl -pi -e "s|BCENTER|-$BSIG|g" ImpactT.in
+
+rm -rf $base
+mkdir  $base
+mv *.in $base
+
+
+echo " ------ $base ------"
+
+cd $base
+ln -s ../../../FIELDMAPS/ImpactT/FINEG-MSL10.T7 1T2.T7
+ln -s ../../../FIELDMAPS/ImpactT/FINEG-ECAT rfdata1

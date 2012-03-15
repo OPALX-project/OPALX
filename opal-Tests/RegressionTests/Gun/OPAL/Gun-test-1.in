@@ -1,0 +1,68 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=10;
+
+Title,string="OPAL gun test";
+
+Edes=1.0E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+MINSTEPFORREBIN = 754;
+MINBINEMITTED = 10;
+// L:        physical element lenght (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+FINEG_ECAT: RFCavity, L=0.004, VOLT=-100.057, FAST=False, FMAPFN="FINEG-ECAT.T7", ELEMEDGE=0.00, TYPE="STANDING", FREQ=1.0e-6;
+
+FINEG_MSL10: Solenoid, L=0.02, KS=0.31250, FMAPFN="FINEG-MSL10.T7", ELEMEDGE=0.00;
+
+l1:   Line = (FINEG_ECAT,FINEG_MSL10); 
+
+/*
+ We can specity ONE distribution
+
+ Note: sigmapt is in eV 
+
+*/
+qb=0.20e-9;
+rf=1498.956e6;
+v0=beta*CLIGHT;
+T1s = 36.6e-12;
+lz  = T1s*v0;
+value,{v0,lz,qb,rf};
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gununiform,
+                    sigmax=  0.00027, sigmapx=0.0, corrx=0.0,
+                    sigmay=  0.00027, sigmapy=0.0, corry=0.0,
+                    sigmat=  lz, pt=1.0, sigmapt=0.0, corrt=0.0 , TEMISSION=39.0e-12, NBIN=10;
+
+/*
+   We can specity ONE field solver object
+*/
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=32, MY=32, MT=32, 
+                 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=1e5, BCURRENT=qb*rf, BFREQ=rf, CHARGE=-1;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=1000, DT=1.0e-13;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+track,line=l1, beam=beam1, MAXSTEPS=500, DT=1.0e-12;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+Quit;
+

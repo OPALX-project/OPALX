@@ -1,0 +1,2 @@
+cp TwoStep.h5 opal-drift1.h5
+opal opal-drift1.in -restart 2 --commlib mpi --info 0 2>&1 | tee opal-drift1.out

@@ -1,0 +1,3 @@
+#!/bin/bash
+#
+13 22 * * * /Volumes/Opal-Tests/Regression-Tests/doTests

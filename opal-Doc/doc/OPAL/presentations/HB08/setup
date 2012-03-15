@@ -1,0 +1,2 @@
+cp /Users/adelmann/Movies/Ring9B3mA.mpeg .
+ln -s ../../figures/Halle.png .

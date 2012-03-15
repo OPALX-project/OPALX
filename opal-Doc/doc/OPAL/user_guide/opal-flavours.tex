@@ -1,0 +1,809 @@
+\chapter{\opal Flavours}
+\label{sec:opalFlavours}
+\index{opalFlavours}
+
+\section{\opalt}
+\opalt is a fully three-dimensional program to track in time, relativistic particles taking into account space charge forces, self-consistently in the electrostatic approximation, and short-range longitudinal and transverse wake fields (available in Version 1.1). \opalt  is one of the few
+codes  that is implemented using a parallel programming paradigm from the ground up. This makes \opalt indispensable for
+high statistics simulations of various kinds of existing and new accelerators. It has a comprehensive set of beamline
+elements, and furthermore allows arbitrary overlap of their fields, which gives \opalt a capability
+to model both the standing wave structure and traveling wave structure. Beside IMPACT-T it is the only code making use of
+space-charge solvers based on an integrated Green \cite{qiang2005} function to efficiently and accurately treat beams with
+large aspect ratio, and a shifted Green function to efficiently treat image charge effects of a cathode \cite{fubiani2006,qiang2006-2}. 
+For simulations of particles sources i.e. electron guns \opalt uses the technique of  energy binning in the electrostatic space-charge calculation to model beams with large
+energy spread. In the very near future a parallel Multi Grid solver taking into account the exact geometry will be implemented.  
+
+\subsection{Integration of the Equation of Motion}
+\opalt integrates the relativistic Lorentz equation
+\begin{equation}
+F(\vec{x},\vec{v},t) = m_0 \frac{\gamma \vec{v}}{dt} =   \frac{q}{e}[\vec{E}_{ext} + \vec{E}_{sc} + \vec{v} \times (\vec{B}_{ext} + \vec{B}_{sc})]
+\end{equation}
+where $\gamma$ is the relativistic mass factor and $\vec{E}$  and $\vec{B}$ are abbreviations for $\vec{E}(\vec{x},\vec{v},t)$ and $\vec{B}(\vec{x},\vec{v},t)$
+respectively. \latermore .
+
+%    NEED WORK ADA    
+%\begin{equation}
+%\vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} + \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}})
+%\end{equation}
+
+%Update the momenta using the $D_1$ algorithm as described in Birdsall and Langdon's book.        
+                                                                                
+%\begin{equation}                                                                                                                                                                                                  
+%    \vec{v}_{n+1/2} = \frac{1}{2} \overline{\vec{a}_{n}}   \Delta t +  R \cdot (\vec{v}_{n-1/2} + \frac{1}{2} \overline{\vec{a}_{n}}  \Delta t)                                         
+%\end{equation}
+%  
+%                                                                                                                                                                                                                
+%         where the operator $R$ effects a rotation through angle $-2\tan^{-1}(\vec{\Omega} \Delta t/2)$ where $\vec{\Omega} = Q \vec{B}_{n}/(m_{e} c)$.                                 
+%        $R$ can be written as                                                                                                                                                                     
+%        \begin{equation}                                                                                                                                                                                                    
+%         R = \frac{(1 - \Theta^2) I + 2  \Theta \Theta^{T} - 2  \Theta \times I }{1+\Theta}                                                                              
+%        \end{equation}                                                                                                                                                                                              
+%        where $\vec{\Theta} = \vec{\Omega}  \Delta t/2 $ and $I$ is the unit tensor.                                                                                                         
+%      
+
+
+\subsection{Space Charge}
+\label{sec:opalFlavours:spacecharge}
+\index{SpaceCharge}
+Space-charge effects will be included in the simulation by specifying a field solver described in Section \ref{sec:fieldsolver} and using the solver in the
+track command described in Section \ref{sec:track}. 
+By default, the code does not assume any symmetry i.e. full 3D. In the near future it is planed to implement also a slice (2D) model.
+This will allow the use of less numbers of macro-particles in the simulation which reduces the computational time
+significantly. 
+
+The space-charge forces are calculated by solving the 3D Poisson equation with open boundary conditions
+using a standard or integrated Green function method. The image charge effects of the conducting cathode are also
+included using a shifted Green function method. If more than one Lorentz frame is defined, the total space-charge forces are then the summation of contributions from all Lorentz frames. \latermore
+
+\subsubsection{FFT Based Particle-Mesh (PM) Solver}
+ \latermore
+
+%    NEED WORK ADA    
+%The Particle-Mesh (PM) \cite{Hockney} solver is one of the oldest improvements over the PP solver. Still one of the best references is the book by R.W.~Hockney \& J.W.~Eastwood \cite{Hockney}. 
+%The PM solver introduces a discretization of space. The rectangular computation domain $\Omega:=[-L_x,L_x]\times[-L_y,L_y]\times[-L_t,L_t]$, just big enough to include all particles, is segmented into a regular mesh of $M=M_x\times M_y\times M_t$ grid points. 
+
+
+%In order to obtain  ${\cal M}_2$ in Equation (\ref{eq:splitOper1}) we must solve Poisson's equation, 
+%where $\rho$ stands for the
+%charge density and $\phi$ for the scalar electrostatic potential:
+%\begin{equation}\label{Poisson}
+%\nabla^2 \phi(\vec{q}) = - \frac{\rho(\vec{q})}{\epsilon_0}
+%\end{equation}
+%subject to open boundary conditions in all spatial directions: $\phi (\vec{q}) \rightarrow 0$ as $|\vec{q}| \rightarrow \infty$ or
+%imposing periodic boundary conditions in longitudinal directions. The assumption of using an ``isolated system`` is physically 
+%motivated by observing the ratio of the beam size to vacuum vessel domensions. It has the computational advantages that one can use cyclic convolution in (\ref{eq:FourierPoisson}).
+%The computational domain $\Omega \subset \R^3$ is simply connected and has a cylindrical 
+%or rectilinear shape.
+%The corresponding integral equation reads:
+%\begin{equation}
+%\phi(\vec{q}) = \dis\int\limits_\Omega \, G(\vec{q} - \vec{q}^\prime) \,\rho (\vec{q'}) \,d \vec{q}^\prime , \;\;\Omega \subset \R^3 
+%\end{equation}
+%where $G$ is the Green's function which gives the response to a unit source term. In 3D we have
+%\begin{equation}
+%G(\vec{q}-\vec{q}^\prime) = \dis\frac{1}{4 \pi \,|\vec{q} - \vec{q}^\prime|} \,.
+%\end{equation}
+%The electric field then follows from the electrostatic potential
+%\begin{equation}\label{Electric}
+%\vec{E} = - \nabla \phi.
+%\end{equation}
+
+%The charges are assigned from the particle positions in continuum, onto the grid using 
+%one of two available interpolation schemes: cloud in cell (CIC) or nearest grid point (NGP). 
+%Then the Poisson equation is solved on the mesh and the electric field at the particle positions is obtained by 
+%interpolating back from the mesh. The use of the convolution theorem to solve the discretized Poisson 
+%equation \eqref{Poisson} on the grid can dramatically improve performance. 
+
+%Let $\Omega^D$ be spanned by a mesh of $l \times n \times m$ with $l= 1 \dots M_x$, $n= 1\dots M_x$ and $m= 1 \dots M_t$.
+%The solution of the discretized Poisson equation with $\vec{k}=(l,n,m,)$
+%\begin{equation}\label{eq:DiscretizedPoisson}
+%\nabla^{2} \phi^D(\vec{k}) = - \frac{\rho^D(\vec{k})}{\epsilon_0}, \vec{k} \in \Omega^D.
+%\end{equation}
+%$\phi^D$ then is given by convolution with the appropriate discretized Green's function $G_D$: 
+%\begin{equation}
+%\phi^D = \rho^D * G^D.
+%\end{equation}
+%In Fourier space (hats) the convolution becomes a simple multiplication, with
+%\[
+%G(\vec{q})=\frac{1}{4\pi}\frac{1}{|\vec{q}|}\longrightarrow  \widehat{G}(\vec{k})=-\frac{1}{4\pi}\frac{1}{|\vec{k}|^2}
+%\]
+%and we get: 
+%\begin{equation}\label{eq:FourierPoisson}
+%\widehat{\phi}^D = \widehat{\rho}^D \cdot \widehat{G}^D.
+%\end{equation}
+%Thus, the convolution sum is converted to a single multiplication at the cost of a Fourier transform. Fortunately, Fast Fourier Transform (FFT) on the mesh is a very fast and accurate method
+%of transforming mesh-defined quantities to Fourier space. It needs $\mathcal{O}$($M\log M$) computational effort, so that, together with the interpolations, an overall scaling of $\mathcal{O}$($N+M\log M$) is achieved.
+
+%In order to have good spatial resolution, small grid sizes are often necessary, which again require a 
+%large number of particles. Therefore, both the grid size $M$ and the particle number $N$ 
+%are limiting factors. 
+%The PM Solver Algorithm is summarized in the following algorithm: 
+%\begin{tabbing}
+%{\bf PM Solver Algorithm}\\
+%\quad $\triangleright$ Assign particle charges $q_i$ to nearby mesh points to obtain $\rho^D$ \\
+%\quad $\triangleright$ Use FFT on $\rho^D$ and $G^D$ to obtain $\widehat{\rho}^D$ and $\widehat{G}^D$ \\
+%\quad $\triangleright$ Determine $\widehat{\phi}^D$ on the grid using $\widehat{\phi}^D = \widehat{\rho}^D \cdot \widehat{G}^D$ \\
+%\quad $\triangleright$ Use inverse FFT on $\widehat{\phi }^D$ to obtain $\phi^D$ \\
+%\quad $\triangleright$ Compute $\vec{E}^D= -\nabla \phi^D$\footnote{using a second order finite difference method} \\
+%\quad $\triangleright$ Interpolate $\vec{E(\vec{q})}$ at particle positions $\vec{q}$ from $\vec{E}^D$  \\
+%\end{tabbing}
+%\subsubsection{Open and Periodic Boundary Conditions}
+%In order to meet open boundary conditions and to remove the intrinsic periodicity of the FFT, the grid size needs to be doubled in all spatial dimensions and the charge distribution is located at only one octant. The charge distribution is set equal to zero elsewhere. If the potential is then calculated in the entire enlarged region, the correct potential for an isolated system is obtained in the `physical' octant. This is referred to as the `Hockney Trick' \cite{Hockney}. For periodic boundary conditions in the longitudinal direction, the Hockney trick is applied to the transverse directions only.
+%The main drawback of this method is its high storage requirement. However, using symmetries one is 
+%able to bound the required storage to $2N_g$ where $N_g$ is the grid size used in the physical
+%region of the calculation (see \cite{Hockney} on p. 213). 
+\subsubsection{Interpolation Schemes}
+ \latermore
+
+%\label{sec:interpol}
+%Both charge assignment and electric field interpolation are related to the interpolation 
+%scheme used. A detailed discussion is given in~\cite{Hockney}. 
+%If $e_i$ is the charge of a particle, we can write the density at mesh point $\vec{k}_m$ as 
+%\begin{equation}\label{eq:discRho}
+%\rho(\vec{k}_m)^D = \sum_{i=1}^N e_i\cdot W(\vec{q}_i,\vec{k}_m), ~ m=1\dots M
+%\end{equation}
+%where $W$ is a suitably chosen weighting function (with local support).
+%The simplest scheme is the nearest grid point (NGP) method, where the total particle charge is assigned to 
+%the nearest grid point and the electric field is also evaluated at the nearest grid point. A more 
+%elaborate scheme is called cloud in cell (CIC). It assigns the charge to the $2^d$ nearest grid points and 
+%also interpolates the electric field from these grid points. The assigned density changes are continuous when 
+%a particle moves across a cell boundary, although the first derivative is discontinuous. A schematic of the 
+%CIC interpolation scheme is shown in Figure \ref{CIC} for the two-dimensional case.
+%%total momentum consered. errors small at large particle separations. charge assignement schould vary smoothly as particle position changes.
+% \begin{figure}
+% \begin{center}
+%% \includegraphics[width=0.75\linewidth]{\figdir/cic.eps}
+% \caption[CIC interpolation scheme]{\label{CIC} \it CIC interpolation scheme.}
+% \end{center}
+% \end{figure} 
+
+\subsubsection{Multigrid Based Solver}
+This is subject to a ETH masters thesis started in February 2008, more information as the work
+progresses.
+\subsubsection{Energy Binning}
+The beam out of a cathode or in a plasma wake field accelerator can have a large energy spread.
+In this case, the static approximation using one Lorentz frame might not be sufficient. Multiple
+Lorentz frames  can be used so that within each Lorentz frame the energy
+spread is small and hence the electrostatic approximation is valid. 
+ \latermore
+
+
+\subsection{Wake Fields}
+Longitudinal and transverse wake fields will be available in Version 1.1.
+
+\subsection{Multiple Species}
+In the present version only one particle species can be defined (Section \ref{sec:physics}), however 
+due to the underlying general structure the implementation of a true multi species version of \opal is 
+trivial. 
+
+\subsection{Field Maps}
+\label{sec:fieldmaps}
+The file format used for the field maps is derived from the  {\em T7} file format as produced by Superfish~\cite{superfish}. A valid field map consists of a few header lines and a rest representing regularly spaced interpolation points either in 1D, 2D or 3D. In the case of 2D and 3D field maps the fields at a given position are calculated by linear interpolation from the nearest grid points. In the case of 1D field maps a Fourier transformation is used to calculate the longitudinal derivatives of the on-axis field. From these the fields at any position in space are calculated.
+
+At the beginning of the first line information of the kind of field map has to be provided in form of a string. This can either be
+
+\begin{description}
+\item[1DElectroStatic]
+if the file describes a 1D electrostatic field map. 1D field maps are described by the on-axis field.\\
+Not implemented yet.
+\item[1DMagnetoStatic]
+if the file describes a 1D magnetostatic field map.\\
+Not implemented yet.
+<<<<<<< .mine
+\item[1DMagnetoStaticEnge]
+if the file describes a mid-plane on-axis fringe field which should be processed to get the corresponding Enge coefficients and from these the correct field at any position. This type of fieldmap is special in the sense that the class processing these files doesn't return the actual field at a position but rather the on-axis field and its first and second derivative. The classes (elements) supporting this kind of fieldmap have to deal with this appropriately. For the user this has no consequences but these fieldmaps can be used as any other fieldmap. The reason for this internal differences lies in the way how the fields have to be computed for the different elements.\\
+Not fully implemented yet.
+=======
+\item[1DProfile1]
+if the file contains Enge coefficients which describe the fringe field of an element. From these the correct field at any position is calculated. This type of field map is special in the sense that the class processing these files doesn't return the actual field at a position but rather the on-axis field profile and its first and second derivative. The classes (elements) supporting this kind of field map have to deal with this appropriately. For the user this has no consequences. The reason for this internal differences lies in the way how the fields have to be computed for the different elements.
+\item[1DProfile2]
+if the file describes a mid plane on-axis field profile which is processed to get the corresponding Enge coefficients. Otherwise this type is the same as 1DProfile1. 
+>>>>>>> .r6903
+\item[1DDynamic]
+if the file describes a 1D dynamic electromagnetic field map
+\item[2DElectroStatic]
+if the file describes a 2D electrostatic field map. 2D field maps are described by the electromagnetic field in one half-plane.
+\item[2DMagnetoStatic]
+if the file describes a 2D magnetostatic field map.
+\item[2DDynamic]
+if the file describes a 2D dynamic electromagnetic field map.
+\item[3DElectroStatic]
+if the file describes a 3D electrostatic field map.\\
+Not implemented yet.
+\item[3DMagnetoStatic]
+if the file describes a 3D magnetostatic field map.\\
+Not implemented yet.
+\item[3DDynamic]
+if the file describes a 3D dynamic electromagnetic field map.\\
+Not implemented yet.
+\end{description}
+In the case of the 1DDynamic, 1DMagnetoStatic and the 1DElectroStatic field maps one finds in addition one integer number describing the number of Fourier coefficients to be used in the calculation of the derivative of the on-axis field. 
+
+In the case of 2D and 3D field maps an additional string has to be provided describing the orientation of the field map. For 2D field maps this can either be 
+\begin{description}
+\item[XZ]
+if the primary direction is in z direction and the secondary in r direction.
+\item[ZX]
+if the primary direction is in r direction and the secondary in z direction.
+\end{description}
+For 3D field maps this can be
+\begin{description}
+\item[XYZ]
+if the primary direction is in z direction, the secondary in x direction and the tertiary in y direction
+\item[YXZ]
+if the primary direction is in z direction, the secondary in y direction and the tertiary in x direction
+\item[ZYX]
+if the primary direction is in x direction, the secondary in z direction and the tertiary in y direction
+\item[YZX]
+if the primary direction is in x direction, the secondary in y direction and the tertiary in z direction
+\item[XZY]
+if the primary direction is in y direction, the secondary in x direction and the tertiary in z direction
+\item[ZXY]
+if the primary direction is in y direction, the secondary in z direction and the tertiary in x direction
+\end{description}
+
+Each line after the header corresponds to a grid point of the field map. This point can be referred to by two indices in the case of a 2D field map and three indices in the case of a 3D field map respectively. Each column describes either $E_z,\; E_r,\; B_z,\; B_r\; \text{or}\;H_t$ in the 2D case and $E_x, E_y, E_z,\; B_x,\; B_y,\;\text{or}\; B_z$ in the 3D case.
+
+By primary, secondary and tertiary direction is meant the following, see also Figure~\ref{fig:order1} and Figure~\ref{fig:order2}:
+\begin{itemize}
+\item
+the index of the primary direction increases the fastest, the index of the tertiary direction the slowest. 
+\item
+the order of the columns is accordingly: if the z direction in an electrostatic field map is the primary direction then $E_z$ is on the first column, $E_r$ on the second. For all other cases it's analogous.
+\end{itemize}
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[origin=bl,height=40mm,angle=0]{./figures/Fieldmaps/order-1.pdf}
+    \caption{2D field map with primary direction corresponding to the longitudinal, secondary direction to the transverse direction}
+    \label{fig:order1}
+  \end{center}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[origin=bl,height=40mm,angle=0]{./figures/Fieldmaps/order-2.pdf}
+    \caption{2D field map with primary direction corresponding to the transverse, secondary direction to the longitudinal direction}
+    \label{fig:order2}
+  \end{center}
+\end{figure}
+
+For the 2D dynamic case in XZ orientation there are four columns: $E_z$, $E_r$, $H_t$ and an unused column in this order. In the other orientation the first and the second column and the third and fourth column are swapped.
+
+On the second line of the header of a 1D, 2D or 3D field map the beginning and the end of the electromagnetic field relative to the physical element in primary direction is written (in centimeters!). Also written on the second line is the number of grid points minus 1, corresponding to the number of spacings.
+On the third line is the frequency. For static cases this line is omitted.
+
+The fourth line corresponds to the second line but in secondary direction and the fifth accordingly for the tertiary direction. In the case of a 1D or 2D the fifth line is omitted since there is no tertiary direction.
+
+On the sixth line follows the first line with field values as described above.
+
+Even though there is no secondary direction in the 1D case the header of a 1D field map is equal to its 2D equivalent: the elements can be provided with a boolean attribute FAST which has only an effect in conjunction with a 1D field map. The code then generates internally a 2D field map and the field strengths are interpolated as in the case of 2D and 3D field maps instead of being calculated using the Fourier coefficients. The fourth line determines the transverse dimension and the grain size of the produced mesh.
+
+\noindent Example of a 2D dynamic field map:
+\begin{verbatim}
+2DDynamic XZ
+-3.0 51.0 4121
+1498.953425154
+0.0 1.0 75
+  0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00
+  4.36222e-06  0.00000e+00  4.36222e-06  0.00000e+00
+  8.83270e-06  0.00000e+00  8.83270e-06  0.00000e+00
+  .
+  . (313'266 lines)
+  .
+  1.32490e-05  0.00000e+00  1.32490e-05  0.00000e+00
+  1.73710e-05  0.00000e+00  1.73710e-05  0.00000e+00
+  2.18598e-05  0.00000e+00  2.18598e-05  0.00000e+00
+\end{verbatim}
+In this example the field map goes from $-3$~cm to $51$~cm using 4122 grid points in longitudinal direction (in local coordinates thus if ELEMEDGE=0.069 [m] then the field begins at $0.066$~m) and from $0$~cm to $1$~cm using 76 grid points in transverse direction (radius). The frequency is $\sim 1.5$~GHz. From line 5 to the end of the file the first column are the values for $E_z$, in the second for $E_r$, in the third for $B_z$ and in the last column for $H_t$.
+
+The field maps {\bf 1DProfile1} and {\bf 1DProfile2} are different from the rest since no actual fields are stored but a profile. They are used to represent the fringe fields of various elements. The fields have to be calculated using Enge functions \cite{enge} The fields calculated from this kind of field map depends on the kind of element in which they are used. Type 1 stores the coefficients of the Enge function whereas the type 2 stores the profile itself. From this profile the coefficients are calculated by solving a least-square equation. 
+
+On the first line after the string describing the type of field map two integer numbers and a floating point number follow. The first integer number describes the number of Enge coefficients to be used for the entry fringe field, the second the equivalent for the exit fringe field. The floating point number specifies the gap height. On the second line the first value describes the beginning of the entry fringe field (in local coordinates; corresponds to {\sl zbegin\_entry} in Figure~\ref{fig:fringefields}), the second the origin of the Enge polynomial, the third the end of the fring field ({\sl zend\_entry}). The last number of this line is only used in Profile2 and specifies the number of grid points minus 1. The third line looks identically but the last value on this line is not used yet. The values on this line correspond to {\sl zbegin\_exit, origin of Enge function} and {\sl zend\_exit} in Figure~\ref{fig:fringefields}. The following lines are the coefficients of the Enge function in the case of 1DProfile1 and the profile in 1DProfile2.
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[origin=bl,height=100mm,angle=0]{./figures/Fieldmaps/profile-1.pdf}
+    \caption{The profile of a rectangular bend and its corresponding design path.}
+    \label{fig:fringefields}
+  \end{center}
+\end{figure}
+
+\noindent Example of a 1D profile type 2:
+\begin{verbatim}
+1DProfile2 5 5 1.5
+-5.5 -1.0 3.5 346
+21.3819 25.8819 30.3819 1
+0
+3.79019e-05
+0.000120199
+.
+. (344 lines)
+.
+0.000282913
+9.84338e-05
+0
+\end{verbatim}
+\leftpointright As a general warning: be wise when you choose the type of field map to be used! The following three pictures show the longitudinal phase space after three gun simulations using different types of field maps. In the first picture, Figure~\ref{figure_1ddynamic_step82}, we used a 1D field map which stores a sampling of the electric field in longitudinal direction, $E_z$. From these values $E_z$, $E_r$ and $B_t$ off-axis are calculated resulting in a smooth field. All field maps we used are made of the same solution file from a Poisson/Superfish simulation.
+\begin{figure}
+  %
+  \begin{center}
+  \includegraphics[origin=bl,height=80mm,angle=0]{./figures/Fieldmaps/1DDynamic_step82.png}
+  %
+  \caption{\label{figure_1ddynamic_step82}
+    The longitudinal phase space after a gun simulation using a 1D field map (on-axis field) of the gun.
+  }
+  %
+  \end{center}
+%
+\end{figure}
+
+In Figure~\ref{figure_1ddynamic_fast_step82} we used the same on-axis field map as in the first but we used the FAST switch which constructs a 2D field map from the on-axis field maps. Between the grid points the fields are calculated using a linear interpolation. Here we see a structure which can be influence using more grid points in transverse direction.
+\begin{figure}
+  %
+  \begin{center}
+  \includegraphics[origin=bl,height=80mm,angle=0]{./figures/Fieldmaps/1DDynamic_fast_step82.png}
+  %
+  \caption{\label{figure_1ddynamic_fast_step82}
+    The longitudinal phase space after a gun simulation using a 1D field map (on-axis field) of the gun in combination with the FAST switch.
+  }
+  %
+  \end{center}
+%
+\end{figure}
+<<<<<<< .mine
+In the last picture, Figure~\ref{figure_2ddynamic_step82}, we generated directly a 2D fieldmap from the solution file of Poisson/Superfish. Here we could observe two different structures: first the fine structure stemming from the linear interpolation and secondly a much stronger structure of unknow origin.
+=======
+
+In the last picture, Figure~\ref{figure_2ddynamic_step82}, we generated directely a 2D field map from the solution file of Poisson/Superfish. Here we could observe two different structures: first the fine structure stemming from the linear interpolation and secondly a much stronger structure of unknow origin.
+>>>>>>> .r6903
+\begin{figure}
+  %
+  \begin{center}
+  \includegraphics[origin=bl,height=80mm,angle=0]{./figures/Fieldmaps/2DDynamic_step82.png}
+  %
+  \caption{\label{figure_2ddynamic_step82}
+<<<<<<< .mine
+    The longitudinal phase space after a gun simulation using a 2D fieldmap of the gun generated by Poisson/Superfish.
+=======
+    The longitudinal phase space after a gun simulation using a 2D field map of the gun.
+>>>>>>> .r6903
+  }
+  %
+  \end{center}
+%
+\end{figure}
+
+
+\subsection{Field Maps from the Femaxx 3D Eigenmode Solver}
+
+Electromagnetic field maps for beam dynamics calculations originate from a number of different
+electromagnetic solvers, e.g. Superfish and similar codes.
+%%
+%%
+Here, we describe the current status of work in progress which will, eventually,
+allow the usage of field maps that have been computed with the femaxx $3$-dimensional
+electromagnetic eigenmodal solver \cite{bib:arbenzetal2001,bib:arbenzetal2006}.
+%%
+%%
+The femaxx code computes electromagnetic eigenmodes of resonant cavities of
+arbitrary $3$-dimensional shape and boundary conditions.
+%%
+Unlike Superfish and similar $2$-dimensional codes, femaxx is not restricted in the
+kind of geometry it can model. It is therefore possible to consider arbitrary
+shapes and their inclusion in beam dynamics and particle tracking calculations.
+%%
+%%
+Given a mesh of a $3$-dimensional geometry femaxx computes eigenomdal field
+decompositions.
+%%
+The user then specifies sampling locations for the electromagnetic eigenfields.
+%%
+At present, sampling locations are specified in terms of a cylinder shape,
+i.e. the user indicates the cylinder axis, the radial cylinder vector and 
+the number of sampling locations in axial, radial and azimuthal directions.
+%%
+Once the eigenmodal solution has been computed the fields are sampled at
+these locations and stored in the T7 file format, for subsequent use in \opal.
+%%
+Considerable effort has been spent for the validation and benchmarking of
+beam dynamics calculations based on T7 field maps computed with femaxx.
+%%
+A pillbox cavity, i.e. a cylinder shape with a radius $r = 4.7$cm and
+height $h = 3$ cm, has been chosen for benchmarking purposes,
+due to the availability of an analytical solution.
+%%
+The analytical resonance frequency of the dominant mode is $2.441$ GHz.
+%%
+%%
+We have compared two cases with \opal: (1) The analytical solution has been
+sampled within a cylinder volume, stored into a T7 file and used in an \opal
+run; (2) the same pillbox shaped geometry has been discretization into tetrahedra
+and the eigenmodal fields were calculated with femaxx.
+%%
+These two cases were then compared, resulting in the following conclusions:
+%%
+(1) Using a relatively coarse mesh with some $110'000$ tetrahedra, the difference
+between the analytical and the numerical solution was usually smaller than
+$1$ percent.
+%%
+(2) Using an adaptively refined mesh, the difference between analytical and
+numerical solutions decreased below $1$ pro mille. The mesh is shown
+in the figure (\ref{figure_pillbox_adaptively_refined_mesh}).
+%%
+(3) It is thereofore imperative to usa a tetrahedral mesh which has been
+refined around the beam axis. It is definitely more efficient to use local
+refinement, based on physical argument, than simply refine the complete
+mesh in a uniform manner.
+%%
+
+
+We are now working towards benchmarking more complicated shapes in order to
+assess requirements w.r.t to meshes and modeling geometry so that we
+achieve the same or better accuracy as has been obtained from field
+maps that were computed with Superfish like solvers based on azimuthal symmetry.
+
+\begin{figure}
+  %
+  \begin{center}
+  \includegraphics[origin=bl,width=80mm,angle=0]{./figures/adaptivePillboxMesh.pdf}
+  %
+  \caption{\label{figure_pillbox_adaptively_refined_mesh}
+    We show the discretization of a pillbox shaped cavity geometry
+        into a tetrahedral mesh. The mesh has been adaptively
+        refined so that the region around the cylinder axis is
+        decomposed into smaller tetrahedra than those which are
+        further away from the axis.
+  }
+  %
+  \end{center}
+%
+\end{figure}
+
+\clearpage
+\subsection{Output}
+The data is stored in the H5Part file-format (\url{http://h5part.web.psi.ch/}) and can be analysed
+using the H5PartRoot (\url{http://amas.web.psi.ch/tools/H5PartROOT/index.html}). The frequency 
+of the data output (phase space and some statistical quantities) can be set using the \secref{\texttt{OPTION} statement}{option}, 
+statement and the flag PSDUMPFREQ. The file is named like in input file but the extension is {\tt .h5}. 
+
+\begin{figure}[ht]
+ \begin{center}
+ \includegraphics[width=0.45\linewidth,angle=0]{figures/H5rootPicture1}
+  \includegraphics[width=0.45\linewidth,angle=0]{figures/H5rootPicture2}
+  \caption{H5PartROOT enables a variety of data analysis and post processing task on \opal data}
+  \label{fig:h5root1}
+ \end{center}
+\end{figure}
+
+
+
+\begin{figure}[ht]
+ \begin{center}
+   \includegraphics[width=.9\linewidth,angle=0]{figures/H5rootPicture3}
+  \caption{Example of a longitudinal phase space shown with H5PartROOT}
+  \label{fig:h5root2}
+ \end{center}
+\end{figure}
+
+
+
+An ASCII file with statistical beam 
+parameters is stored in a {\tt .stat} file. An SDDS file output is in preparation.
+
+\section{\opalcycl}
+\label{sec:opalcycl}
+\index{opalFlavours}
+
+\subsection{Introduction}
+
+\opalcycl is a fully three-dimensional parallel beam dynamics simulation program dedicated to future high intensity cyclotrons 
+which is capable of doing single particle tracking for conventional orbit designs on single computation node and 
+multiple particles tracking in a parallel environment which takes into account both space charge effects 
+ 
+For the first time in the cyclotron community, \opalcycl has the capability to track multiple bunches simultaneously
+and take into account the beam-beam effects of the radial neighboring bunches( we call it neighboring bunch effects for short)
+by using a self-consistent numerical simulation model.
+
+According to the number of particles (defined by argument \texttt{NPART} in \texttt{BEAM}, see Section \ref{sec:beam}) , 
+\opalcycl works in the following three modes automatically:
+
+\begin{description}
+
+\item[Single Particle Tracking mode]
+
+  In this mode, only one particle is tracked, either with acceleration or not.  Working in this mode, \opalcycl
+  can be used as a tool during the preliminary design phase of a cyclotron.  
+
+  The 6D parameters of a single particle in the initial local frame must be read from a file. To do this, in the \opal input file, 
+  the command line \texttt{DISTRIBUTION}(See Chapter \ref{sec:distribution}) should be defined like this:
+\begin{verbatim}
+  Dist1: DISTRIBUTION, DISTRIBUTION=fromfile,
+         FNAME="PartDatabase.dat";
+\end{verbatim}
+ where the file $PartDatabase.dat$ should has two lines:
+\begin{verbatim}
+ 1
+ 0.001 0.001   0.001   0.001   0.001  0.001    
+\end{verbatim}
+The number in the first line is the total number of particles.
+In the second line the data represents $x, p_x, y,$$ p_y, z, p_z$ with the reference particle 
+in the local frame and the units are $m, rad,$ $ m,rad,$ $ m, rad$ respectively.
+
+Please don't try to run his mode in parallel environment. You should believe that a single processor of the 21st centery is capable of doing
+the single particle tracking.  
+
+\item[Tune Calculation mode]
+
+  In this mode, two particles are tracked, one with all data is set to zero is the reference particle and another one is an off-centering particle 
+  which has a little shift from the other one in both $r$ and $z$ directions. Working in this mode, \opalcycl can 
+  calculate the betatron oscillation frequency $\nu_r$ and $\nu_z$ for different energies to evaluate the focusing characteristics 
+  for a given magnetic field.
+
+  Like the single particle tracking mode, 
+  the 6D parameters of the two particles in initial local frame must be read from a file, too.
+  In the file should has three lines:
+\begin{verbatim}
+ 2
+ 0.0   0.0   0.0   0.0   0.0   0.0  
+ 0.001 0.0   0.0   0.0   0.001  0.0    
+\end{verbatim}
+
+When the total particle number equals 2, this mode is triggered automatically.
+Only the element \texttt{CYCLOTRON} in the beam line is used and other elements are omitted if any exists.
+
+Please don't try to run his mode in parallel environment, either.
+
+
+\item[Multi-bunches tracking mode]
+
+  In this mode, large scale particles can be tracked simultaneously, either with space charge or not, 
+  either single bunch or multi-bunches, either serial or parallel environment, 
+  either reading the initial distribution from a file or generating a typical distribution,  
+  either running from the beginning or restarting from the last step of a former simulation.
+
+  Beacuse this is the main mode as well as the key part of \opalcycl, 
+  we will describe this in detail in Section \ref{sec:opalcycl:MultiBunch}.
+
+\end{description}  
+  
+Generally speaking, the following aspects may be considered for quantitatively studying high intensity beam dynamics in cyclotrons:
+  \begin{itemize}
+  \item large scale particles, as many as possible, which is of course limited by computer sources;
+  \item measured magnetic field map or numerical calculated field with high precision;
+  \item numerical integrator with high precision;
+  \item powerful parallel Poisson solver with high precision and resolution;
+  \item imperfection and misalignment of the machine;
+  \item the influences of other factors induced by high intensity, such as beam-beam effects and weak field effects induced in the cavities. 
+  \end{itemize}
+  In the following sections of this chapter, some of the above issues will be described in detail for \opalcycl.
+
+\subsection{Field Map}
+\label{sec:opalcycl:fildmap}
+In \opalcycl, the magnetic field is read from an ASCII type file. The field data should be stored in the cylinder coordinates frame
+( because the field map on the median plane of the cyclotron is usually measured in this frame ). 
+
+There are two possible situations. One is the real field map on median plane of the exist cyclotron machine using measurement equipment.
+Limited by the narrow gaps of magnets, in most cases with cyclotrons, only vertical field $B_z$ on the median plane ($z=0$) is measured.
+Since the magnetic field data off the median plane field components is necessary for those particles with $z \neq 0$, the field need to be expanded in $Z$ direction. 
+According to the approach given by Gordon and Taivassalo, by using a magnetic potential and measured $B_z$ on the median plane, 
+at the point $(r,\theta, z)$ in cylindrical polar coordinates, the 3$th$ order field can be written as    
+\begin{eqnarray}\label{eq:Bfield}
+  B_r(r,\theta, z) & = & z\frac{\partial B_z}{\partial r}-\frac{1}{6}z^3 C_r, \nonumber\\    
+  B_\theta(r,\theta, z) & = & \frac{z}{r}\frac{\partial B_z}{\partial \theta}-\frac{1}{6}\frac{z^3}{r} C_{\theta}, \\     
+  B_z(r,\theta, z) & = & B_z-\frac{1}{2}z^2 C_z,  \nonumber    
+\end{eqnarray}
+where $B_z\equiv B_z(r, \theta, 0)$ and  
+\begin{eqnarray}\label{eq:Bcoeff}
+  C_r & = & \frac{\partial^3B_z}{\partial r^3} + \frac{1}{r}\frac{\partial^2 B_z}{\partial r^2} - \frac{1}{r^2}\frac{\partial B_z}{\partial r} 
+        + \frac{1}{r^2}\frac{\partial^3 B_z}{\partial r \partial \theta^2} - 2\frac{1}{r^3}\frac{\partial^2 B_z}{\partial \theta^2}, \nonumber  \\    
+  C_{\theta} & = & \frac{1}{r}\frac{\partial^2 B_z}{\partial r \partial \theta} + \frac{\partial^3 B_z}{\partial r^2 \partial \theta}
+        + \frac{1}{r^2}\frac{\partial^3 B_z}{\partial \theta^3},  \\
+  C_z & = & \frac{1}{r}\frac{\partial B_z}{\partial r} + \frac{\partial^2 B_z}{\partial r^2} + \frac{1}{r^2}\frac{\partial^2 B_z}{\partial \theta^2}. \nonumber
+\end{eqnarray}
+
+All the partial differential coefficients are on the median plane and can be calculated by interpolation. \opalcycl uses  Lagrange's  5-point formula.
+
+The other situation is calculating 3D fields for interesting region numerically by creating 3D model using commercial softwares,
+such as TOSCA, ANSOFT and ANSYS during the design phase of a new machine. The field should be more accurate than 
+expansion approach especially at the region far away from median plane in $Z$ direction.
+
+In the current version, we implemented the function $Cyclotron::$$getFieldFromFile()$ to read field data from 
+the PSI format field file {\small{ZYKL9Z.NAR}}. We put 4 parameters at the header of the file, namely, $r_{min}$, $\Delta r$,
+$\theta_{min}$ and $\Delta \theta$.
+{\bfseries You should revise this function or write your own function according to the instructions in the code to match your own field
+  format if it is different to the PSI format.}  
+The generic interface function for both the 2D measured map and the 3D field from file will be available in a later version.\\ 
+
+For more detail about the parameters of cyclotron, see Section \ref{sec:cyclotron}.
+
+In the current version of \opalcycl, the RF cavities are treated as straight lines with infinitely narrow gaps
+and the electric field is a $\delta$ function plus a transit time correction.
+the two-gap cavity is treated as two independent single-gap cavities. the spiral gap cavity is not implemented yet.
+
+For more detail about the parameters of cyclotron cavities, see Section \ref{sec:cavity-cycl}.
+
+The voltage profile of a cavity gap  is read from ASCII file. Here is an example:
+\begin{verbatim}
+6  
+0.00      0.15      2.40 
+0.20      0.65      2.41 
+0.40      0.98      0.66 
+0.60      0.88     -1.59 
+0.80      0.43     -2.65 
+1.00     -0.05     -1.71 
+\end{verbatim}
+The number in the first line means 6 sample points and in the following lines the three values represent the normalized distance to 
+the inner edge of the cavity, the normalized voltage and its derivative respectively.
+
+\subsection{Particle Tracking and Accelerating}  
+
+The precision of Tracking methods is vital for the entire simulation process, especially for long distance tracking jobs.
+\opalcycl uses a 4th order Runge-Kutta algorithm which has high precision and is widely used in the accelerator 
+community. It seeks the external magnetic field and does a field interpolation for 4 times in each time step $\tau$ .
+During the field interpolation process, for an arbitrary given point the code first interpolates Formula $B_z$
+for its counterpart on the median plane and then expands to this give point using (\ref{eq:Bfield}). 
+
+After each time step $i$, the code detects whether the particle crosses any one of the RF cavities during this step.
+If it does, the time point $t_c$ of crossing is calculated and the particle return back to the start point of 
+step $i$. Then this step is divided into three substeps:
+first, the code tracks this particle for $ t_1 = \tau - (t_c-t_{i-1})$;
+then it calculates the voltage and adds momentum kick to the particle and refreshes its relativistic parameters $\beta$ and $\gamma$; 
+and then trackes it for $t_2 = \tau - t_1$. 
+
+\subsection{Space Charge Effects}  
+
+\opalcycl uses the same IPPL module as \opalt to calculate the space charge effects (see Section \ref{sec:opalFlavours:spacecharge}).
+The difference is that, in a cyclotron,
+both the origin and orientation of the local Cartesian frame are changed from time to time. So the coordinates are transformed from 
+the global frame to the local frame first, then the space charge fields are calculated in the local frame. 
+After the space charge fields are solved, both coordinates and self electric and magnetic field are transformed back to global frame.
+ 
+In the current version, the space charge fields are calculated once for each track step and is kept constant during this step.      
+
+\subsection{Multi-bunches Issues}
+\label{sec:opalcycl:MultiBunch}
+				   
+The neighboring bunches problem is motivated by the fact  for high intensity cyclotrons with small turn
+separation, single bunch space charge effects are not the only contribution. Along with the increment of beam
+current, the mutual interaction of neighboring bunches in radial direction becomes more and more important,
+especially at large radius where the distances between neighboring bunches get increasingly small and even they
+can overlap each other.One good example is PSI 590 MeV Ring cyclotron with a current of about 2mA in
+CW operation and the beam power amounts to 1.2MW. A upgrade project for Ring is working in process with
+the goal of 1.8 MW CW on target by replacing four old aluminum resonators by for new copper ones with peak
+voltage increasing from about 0.7 MV to above 0.9 MV. After upgrade, the total turn 
+number is reduced from 200 turns to less then 170 turns. 
+Turn separation is increased a little bit, but still at the same order 
+of magnitude as the radial size bunch. So once the beam current increases from 2 mA to 3 mA, the mutual space
+charge effects between radially neighboring bunches can have significant impact on beam dynamics 
+So it is important to cover neighboring bunch effects in the simulation to quantitatively study its impact on the beam dynamics.
+
+In \opalcycl, we developed a new fully consistent algorithm of multi-bunches simulation.  We implemented two working modes, namely , 
+\texttt{AUTO} and \texttt{FORCE}. In the first mode, only a single bunch is tracked and accelerated at the beginning,
+until the radial neighboring bunch effects become an important factor to the bunches' beheaver. Then the new bunches will be injected automatically to 
+take these effects into accout. In this way, we can save time and memory sufficiently, and more important, 
+we can get higher precision for the simulation in the region where neighboring bunch effects are neglectable.
+In the other mode, multi-bunches simulation starts from the injection points. This mode is appropriate for the machines in which this effects is 
+unneglectable since the injection point.    
+
+In the space charge calculation for multi-bunches, the computation region covers all bunches.
+Because the energy of the bunches is quite different, it is inappropriate to use only one particle rest frame and a single Lorentz transformation any more.
+So the particles are grouped into different energy bins and in each bin the energy spread is relatively small. We apply Lorentz transforming, calculate
+the space charge fields and apply the back Lorentz transforming for each bin separately. Then add the field data together. Each particle has a ID number to identify 
+which energy bin it belongs to.
+
+\subsection{Input}  
+All the three working modes of \opalcycl use an input file written in MAD language which will be described in detail in the following chapters.
+
+For the  {\bfseries Tune Calculation mode}, one additional auxiliary file with the following format is needed.
+\begin{verbatim}
+   72.000 2131.4   -0.240  
+   74.000 2155.1   -0.296  
+   76.000 2179.7   -0.319 
+   78.000 2204.7   -0.309 
+   80.000 2229.6   -0.264 
+   82.000 2254.0   -0.166 
+   84.000 2278.0    0.025 
+\end{verbatim}
+In each line the three values represent energy, reference $P_\theta$ and reference $P_r$ for the SEO(Static Equilibrium Orbit) 
+at starting point respectively and their units are $MeV,  mrad,  mrad$.
+
+A bash script $tuning.sh$ is needed to execute \opalcycl once for each energy. 
+{ \footnotesize
+\begin{verbatim}
+  #!/bin/bash
+  rm -rf tempfile
+  rm -f plotdata
+  rm -f tuningresult
+
+  exec 6<FIXPO_SEO
+  N="260"
+  j="1"
+  while read -u 6 E1 r  pr
+  # read in Energy, initil R and intial Pr of each 
+  # SEO from FIXPO output
+  do
+  rm -rf tempfile
+  echo -n j =
+  echo "$j"
+  echo -n energy= > tempfile
+  echo -n "$E1"  >> tempfile
+  echo  ";" >> tempfile
+
+  echo -n r=  >> tempfile
+  echo -n "$r" >> tempfile
+  echo ";" >> tempfile
+
+  echo -n pr= >> tempfile
+  echo -n "$pr" >> tempfile
+  echo  ";" >> tempfile
+  # execute OPAL to calculate tuning frquency and store
+  opal testcycl.in --commlib mpi --info 0|grep "Max" >>tuningresult
+  j=$[$j+1]
+  done
+  exec 6<&-
+  rm -rf tempfile
+
+  # post porcess
+  exec 8<tuningresult
+    rm -f plotdata
+  i="0"
+
+  while [ $i -lt $N ]
+  do
+  read -u 8 a b ur1 d
+  read -u 8 aa bb uz1 dd
+  echo "$ur1   $uz1" >>plotdata
+  i=$[$i+1]
+  done
+
+  exec 8<&-
+  rm -f tuningresult
+\end{verbatim}
+}
+To start execution, just run $tuning.sh$ which uses the input file $testcycl.in$ and the auxiliary file {\footnotesize$FIXPO\_SEO$}.
+the output file is $plotdata$. Then one can plot a betatron tune diagram.
+
+\subsection{Output}  
+For the {\bfseries Single Particle Tracking mode}, the intermediate phase space data is stored in an ASCII file which can be used to
+the plot orbit. The file's name is combined by input file name (without extension) and $-trackOrbit.dat$.
+Another ASCII file stores the phase space data after one turn of tracking is finished. The file's name is a combination of input file name 
+(without extension) and $-afterEachTurn.dat$.\\
+ 
+For the {\bfseries Tune calculation mode}, the tunes $\nu_r$ and $\nu_z$ of each energy are stored in a ASCII file with name 
+$tuningresult$.\\
+
+For the {\bfseries Multi-bunches tracking mode}, the intermediate phase space data of all particles and some interesting parameters, 
+including RMS envelop size, RMS emittance, external field, time, energy, length of path, number of bunches and 
+tracking step, are stored in the H5Part file-format (\url{http://h5part.web.psi.ch/}) and can be analyzed
+using the H5PartRoot (\url{http://amas.web.psi.ch/tools/H5PartROOT/index.html}). The frequency 
+of the data output can be set using the \secref{\texttt{OPTION} statement}{option} and the flag PSDUMPFREQ. 
+The file is named like in the input file but the extension is $.h5$. 
+
+\section{\opalmap} \label{sec:SplitOperatorMethods}
+
+Typically, the total Hamiltonian can be written as the sum of two parts, $H = H_{1} + H_{2}$,
+which correspond to the external and space-charge contributions respectively.
+Such a situation is ideally suited to multi-map
+symplectic Split-Operator methods~\cite{forestall}, also known as fractional step methods \cite{SanzSerna}.
+A second-order accurate algorithm for a single step is given by
+\begin{equation} \label{eq:splitOper1}
+{\cal M}(\tau)={\cal M}_1(\tau/2)~{\cal M}_2(\tau)~{\cal M}_1(\tau/2) + \mathcal{O}(\tau^3)
+\end{equation}
+where $\tau$ denotes the step size, ${\cal M}_1$ is the map corresponding
+%(\ref{eq:mad9pham})
+to $H_{1}$  and ${\cal M}_2$ is the map corresponding to $H_{2}$.
+If desired this approach can be
+easily generalized to higher order accuracy using Yoshida's
+scheme. % ~\cite{yoshida}.
+This is the simplest 2nd order symplectic\footnote{Products of symplectic operators are symplectic as well.} Split-Operator integration method, which first applies all external forces for the first half of one integration step, then adds the complete influence of the internal forces for one entire integration step, and then applies another half of an integration step worth of external forces.
+Details following when \opalmap is implemented.
+
+
+
+
+
+
+
+
+
+\index{opalFlavours)}
