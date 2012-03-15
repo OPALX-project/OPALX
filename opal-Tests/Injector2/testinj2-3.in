@@ -1,0 +1,48 @@
+// test for betatron oscillation frequency calculation for PSI Injector2 cyclotron.
+// called by tuning.bash and work together with FIXPO EORBIT output data. 
+
+// The require the distribution file two particles: first one is referenc particle,
+// and the other is off center particle with a dx and dz. as following:
+// 2
+// 0.0         0.0           0.0           0.0          0.0           0.00
+// 0.0001      0.0           0.0           0.0          0.0001        0.00
+// When the totoal particle number equal to 2, SEO mode is triggered automatically,
+// navertheless of the existance of the cavity and other components. 
+
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Title,string="OPAL-CyclT tuning test";
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=64, MY=64, MT=64, 
+        	 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+CALL,FILE="data.dat";
+
+  Edes= energy/1000.0;
+  r0  = r;
+  pr0 = pr/1000.0;
+  VALUE,Edes;
+  VALUE,r0;
+  VALUE,pr0;
+ 
+  gamma=(Edes+PMASS)/PMASS;
+  beta=sqrt(1-(1/gamma^2)); 
+  gambet=gamma*beta; 
+  P0 = gamma*beta*PMASS;
+  brho = (PMASS*1.0e9*gambet) / CLIGHT;
+  value,{gamma,brho,Edes,beta,gambet};
+
+  Dist1:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="PartDatabase.dat"; 
+
+  inj2: Cyclotron, TYPE="Injector2", CYHARMON=10, PHIINIT=0.0, PRINIT=pr0, RINIT=r0 , SYMMETRY=1.0, RFFREQ=50.637, FMAPFN="ZYKL9Z.NAR";
+  l1:   Line = (inj2);
+  Select, Line=l1;
+
+
+  beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=true, NPART=1e4,BCURRENT=3.0E-3;
+
+  track,line=l1, beam=beam1, MAXSTEPS=987410, DT=1.0e-10;
+  run, file = "track_output", turns = 1, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+  endtrack;
+Stop;

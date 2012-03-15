@@ -1,0 +1,1057 @@
+\chapter{Tables}
+\label{sec:tables}
+\index{tables|(}
+
+\section{Introduction}
+\label{sec:tabintro}
+
+Please note Tables are not yet supported in \noopalt and \noopalcycl . They probable does not make sense in a non map based computation.  A typical computation in \opal  follows \figref{these steps}{tables}:
+
+\begin{enumerate}
+\item
+  Define a beam line using a \secref{\texttt{LINE}}{line}
+  or \secref{\texttt{SEQUENCE}}{sequence} command.
+\item
+  Define a beam with using \secref{\texttt{BEAM}}{beam} command.
+\item
+  If desired, define imperfections on the defined beam line,
+  using one of the \secref{error commands}{error}.
+\item
+  If desired, attach special integrators to selected elements of the
+  defined beam line,
+  using \secref{\texttt{SETINTEGRATOR}}{setint} commands.
+\item
+  If desired, perform an orbit correction on the defined beam line,
+  using \secref{\texttt{THREADBPM}}{thread} or
+  \secref{\texttt{MICADO}}{micado} command.
+\item
+  Define a ``Table Object'' using one of the \secref{table}{tables} commands. 
+  This selects a \secref{\texttt{RANGE}}{arange} of a beam line,
+  and defines an algorithm to fill the table,
+  e.~g. with the lattice functions, 
+  the accumulated transfer map from the beginning of the range to the
+  current position, or the \secref{\texttt{SURVEY} data}{survey}.
+  A table remains in memory and is recomputed as required.
+  It is erased only if one of the contained elements or beam lines is changed. 
+\item
+  If desired, apply the \secref{match module}{match} to adjust parameters
+  in the machine. The match module can work on any number of tables
+  simultaneously. 
+\item
+  Use a \secref{\texttt{LIST}}{list} command to print the contents of any
+  table. 
+\end{enumerate}
+
+\begin{figure}[ht]
+  \begin{center}
+    \begin{picture}(400,400)
+      \thinlines
+      \put(90,370){\vector(0,-1){30}}
+      \put(150,370){\vector(0,-1){30}}
+      \put(80,310){\framebox(80,30){beam line}}
+      \put(210,325){\vector(-1,0){50}}
+      \put(240,325){\circle{60}}
+      \put(240,325){\makebox(0,0){\shortstack{Error\\Generator}}}
+      \put(320,325){\vector(-1,0){50}}
+      \put(120,310){\vector(0,-1){30}}
+      \put(120,250){\circle{60}}
+      \put(120,250){\makebox(0,0){\shortstack{Table\\Generator}}}
+      \put(320,250){\vector(-1,0){170}}
+      \put(120,220){\vector(0,-1){30}}
+      \put(80,160){\framebox(80,30){Table object}}
+      \put(210,175){\vector(-1,0){50}}
+      \put(240,175){\circle{60}}
+      \put(240,175){\makebox(0,0){\shortstack{Match\\Module}}}
+      \put(320,175){\vector(-1,0){50}}
+      \put(120,100){\circle{60}}
+      \put(120,160){\vector(0,-1){30}}
+      \put(120,100){\makebox(0,0){\shortstack{Table\\Lister}}}
+      \put(320,100){\vector(-1,0){170}}
+      \put(120,70){\vector(0,-1){30}}
+      \put(80,10){\framebox(80,30){Output}}
+
+      \Thicklines
+      \put(20,370){\framebox(80,30){\shortstack{LINE or\\SEQUENCE}}}
+      \put(140,370){\framebox(80,30){BEAM}}
+      \put(320,310){\framebox(80,30){Error Command}}
+      \put(320,235){\framebox(80,30){Table Command}}
+      \put(320,160){\framebox(80,30){Match Command}}
+      \put(320,85){\framebox(80,30){LIST Command}}
+    \end{picture}
+    \caption{Schematic view of the Interaction between Objects in \opal}
+    \label{fig:tables}
+  \end{center}
+\end{figure}
+
+\section{Element Selection}
+\label{sec:select}
+\index{element!selection}
+\index{select!element}
+
+Many \opal commands allow for the possibility to process
+a subset of the elements occurring in a \secref{beam line}{lines}.
+For this purpose each \secref{beam line}{lines} and
+\secref{table}{tables} has a selection flag for each element.
+The \texttt{SELECT} command may be used to manipulate these flags.
+It affects the following commands:
+\begin{itemize}
+\item \secref{\texttt{EALIGN}}{erroralign},
+\item \secref{\texttt{EFIELD}}{errorfield},
+\item \secref{\texttt{EFCOM}}{errorfield},
+\item \secref{\texttt{EPRINT}}{errorprint},
+\item \secref{\texttt{ESAVE}}{errorsave},
+\item \secref{\texttt{SURVEY}}{survey},
+\item \secref{\texttt{TWISS}}{twiss},
+\item \secref{\texttt{ATTLIST}}{attlist},
+\item \secref{\texttt{LIST}}{list},
+\item \secref{\texttt{EIGEN}}{canned},
+\item \secref{\texttt{ENVELOPE}}{canned},
+\item \secref{\texttt{MATRIX}}{canned},
+\item \secref{\texttt{TWISS3}}{canned}.
+\end{itemize}
+Three formats are recognised for the command:
+\begin{verbatim}
+SELECT,LINE=name,FULL;
+SELECT,LINE=name,CLEAR;
+SELECT,LINE=name,RANGE=range,CLASS=name,TYPE=name,
+                PATTERN=regular_expression;
+\end{verbatim}
+\index{SELECT}
+All three forms require the parameter
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The label of a previously defined \secref{beam line}{lines} or
+  \secref{table}{tables} on which the selection is to be done (no default).
+\end{description}
+The first format sets the selection flag for all elements in the beam line
+and the second format clears the selection flags for all elements.
+
+The third format keeps all existing selections and additionally marks those
+elements as selected which belong to the intersection of the following four
+sets: 
+\begin{description}
+\item[RANGE]
+  \index{RANGE}
+  If \texttt{RANGE} is omitted, the first set contains all elements;
+  if it is given, the first set is limited to the named range in the line. 
+  The default is equivalent to \texttt{RANGE=\#S/\#E}.
+\item[CLASS]
+  \index{CLASS}
+  The \secref{\texttt{label}}{label} of an element class (default: blank).
+  If \texttt{CLASS} is omitted, the second set contains all elements;
+  if it is given, the set contains only the elements derived directly or
+  indirectly from the named class.
+\item[TYPE]
+  \index{TYPE}
+  If \texttt{TYPE} is omitted, the third set contains all elements;
+  if it is given, the set contains only the elements whose \texttt{TYPE}
+  attribute is equal to the given name. 
+\item[PATTERN]
+  \index{PATTERN}
+  If \texttt{PATTERN} is omitted, the fourth set contains all elements;
+  if it is given, the \secref{\texttt{regular expression}}{wildcard}
+  is applied to all element names, and the set contains only the matching
+  elements.
+\end{description}
+The effect of subsequent \texttt{SELECT} commands produces the union of all
+selections. 
+If a fresh selection is desired, precede the new \texttt{SELECT} command
+with the command
+\begin{verbatim}
+SELECT,LINE=name,CLEAR;
+\end{verbatim}
+Example:
+\begin{verbatim}
+SELECT,LINE=X,RANGE=IP1/IP2;                            // (1)
+SELECT,LINE=X,CLASS=BB;                                 // (2)
+SELECT,LINE=X,PATTERN=".*\.L1";                         // (3)
+SELECT,LINE=X,RANGE=IP1/IP2,CLASS=BB,PATTERN=".*\.L1";  // (4)
+SELECT,LINE=LHC,CLASS=IP;                               // (5)
+T:TWISS,LINE=LHC;                                       // (6)
+SELECT,LINE=T,CLASS=QUADRUPOLE;                         // (7)
+TWISS3,TABLE=T,FILE=name,TFS;                           // (8)
+U:TWISS,LINE=LHC;                                       // (9)
+\end{verbatim}
+Command (1) selects all elements from \texttt{IP}1 to \texttt{IP2}, 
+both included.
+Command (2) selects all elements in the ring which belong to or are 
+derived from class \texttt{BB}.
+Command (3) selects all elements in the ring whose names end \texttt{.L1}.
+Command (4) is the most restrictive, it selects all elements
+between \texttt{IP1} and \texttt{IP2} which are derived from class 
+\texttt{BB} and whose names end in \texttt{.L1}.
+
+Command (5) sets the selections flags on all interaction points in
+line \texttt{LHC}.
+The selection is transmitted to command (6), which generates the
+\texttt{TWISS} table \texttt{T} lists the default columns for the
+interaction points. 
+Command (7) sets additional selection flags on the table \texttt{T}
+for all quadrupoles,
+and command (8) lists the Mais-Ripken functions for all interaction
+points and all quadrupoles.
+Command (9) gets the selection from line \texttt{LHC}, i.~e. the
+selection concerns only the interaction points.
+
+\section{Attach Special Integrators}
+\label{sec:setint}
+\index{SETINTEGRATOR}
+\index{integrator}
+
+By default the algorithm applied to each element in the machine is
+defined by the table command.
+It may be overridden for selected elements by applying a \texttt{SETINTEGRATOR}
+command to attach a special integrator.
+It has the form
+\begin{verbatim}
+SETINTEGRATOR,LINE=name,TYPE=name,SLICES=integer;
+\end{verbatim}
+with the meaning
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The name of the beam line to be affected.
+\item[TYPE]
+  \index{TYPE}
+  The integrator type name.
+  For the time being, only the name \texttt{MPSPLITINTEGRATOR} is
+  known.
+  \index{MPSPLITINTEGRATOR}
+  This integrator type replaces any multipole-like element (dipole,
+  quadrupole, sextupole, octupole, general multipole) by one or
+  several thin lenses.
+\item[SLICES]
+  \index{SLICES}
+  The number of thin lenses to be used.
+  For one to four slices, the TEAPOT method of thin multipole slicing
+  \index{TEAPOT}
+  is used, for more slices, the thin lenses are placed in equidistant
+  places. 
+\end{description}
+The command runs through all elements in the beam line,
+and attaches an integrator as specified by \texttt{TYPE} to all
+selected elements.
+
+
+\section{Compute Geometric Layout}
+\label{sec:survey}
+\index{SURVEY}
+
+The \texttt{SURVEY} command builds a table containing the geometric layout
+of the machine.
+The table can be referred to by its label for later manipulation.
+It has the following read/write attributes:
+\begin{verbatim}
+label:SURVEY,LINE=name,RANGE=range,REVERSE=logical,
+	STATIC=logical, X0=real,Y0=real,Z0=real,THETA0=real,
+    	PHI0=real,PSI0=real;
+label:SURVEY,LINE=name,RANGE=range,REVERSE=logical,
+	STATIC=logical,INIT=table-row;
+\end{verbatim}
+Its parameter list specifies the initial position and orientation
+of the reference orbit in the \figref{global coordinate system}{global} 
+$(X,Y,Z)$.
+Omitted attributes assume zero values.
+Valid attributes are:
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The label of a previously defined beam line (no default).
+\item[RANGE]
+  \index{RANGE}
+  If this attribute is given, the table is restricted to the range given.
+\item[STATIC]
+  \index{STATIC}
+  If this attribute is true, the table is filled at definition time,
+  and it is then treated as frozen, even if parameters of the machine change.
+\item[INIT]
+  \index{INIT}
+  If this attribute is given, the initial position and direction is taken
+  from the specified row of another \texttt{SURVEY} table.
+  If this attribute is omitted, the initial position and direction is
+  constructed from the attributes listed below.
+\item[X0]
+  \index{X0}
+  The initial X coordinate [m].
+\item[Y0]
+  \index{Y0}
+  The initial Y coordinate [m].
+\item[Z0]
+  \index{Z0}
+  The initial Z coordinate [m].
+\item[THETA0]
+  \index{THETA0}
+  The initial angle theta [rad].
+\item[PHI0]
+  \index{PHI0}
+  The initial angle phi [rad].
+\item[PSI0]
+  \index{PSI0}
+  The initial angle psi [rad].
+\end{description}
+
+Example:
+\begin{verbatim}
+GEOMETRY:SURVEY,LINE=RING;
+\end{verbatim}
+This example computes the machine layout for the line \texttt{RING} with
+zero initial conditions and saves the result under the name
+\texttt{GEOMETRY}. 
+
+The \texttt{SURVEY} table has some \tabref{read-only attributes}{survey_glob}:
+\begin{table}[Ht]
+  \caption{Global read-only values in a \texttt{SURVEY} table}
+  \label{tab:survey_glob}
+  \begin{center}
+    \begin{tabular}{|l|l|l|}
+      \hline
+      Variable & Unit & Name \\
+      \hline
+      Total arc length & m & \texttt{L}\index{L} \\
+      Final X coordinate & m & \texttt{X}\index{X} \\
+      Final Y coordinate & m & \texttt{Y}\index{Y} \\
+      Final Z coordinate & m & \texttt{Z}\index{Z} \\
+      Final angle theta & rad & \texttt{THETA}\index{THETA} \\
+      Final angle phi & rad & \texttt{PHI}\index{PHI} \\
+      Final angle psi & rad & \texttt{PSI}\index{PSI} \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+In each position there are \tabref{table values}{survey_col}, 
+each of which is accessible with the \secref{syntax}{acell}
+\begin{verbatim}
+table-name "@" place "->" column-name
+\end{verbatim}
+The azimuth, elevation angle, and roll angle are defined as the
+components of a vector.
+This vector points in the direction of the rotation axis and has the
+rotation angle as its length.
+The direction cosines are the components of the unit vectors along the
+local coordinate axes, expressed in the global coordinate system.
+
+\begin{table}[Ht]
+  \caption{Column values available in a \texttt{SURVEY} table}
+  \label{tab:survey_col}
+  \begin{center}
+    \begin{tabular}{|l|l|l|}
+      \hline
+      Variable & Unit & Name \\
+      \hline
+      Arc length from beginning & m & \texttt{S}\index{S} \\
+      Global X coordinate & m & \texttt{X}\index{X} \\
+      Global Y coordinate & m & \texttt{Y}\index{Y} \\
+      Global Z coordinate  & m & \texttt{Z}\index{Z} \\
+      Azimuth & rad & \texttt{THETA}\index{THETA} \\
+      Elevation angle & rad & \texttt{PHI}\index{PHI} \\
+      Roll angle & rad & \texttt{PSI}\index{PSI} \\
+      \hline
+    \end{tabular}
+
+    \begin{tabular}{|l|l|l|l|}
+      \hline
+      Direction cosines for local axes & \multicolumn{3}{c|}{Local axis} \\
+      Global direction & \texttt{x} & \texttt{y} & \texttt{s} \\
+      \hline
+      \texttt{X} & \texttt{W11}\index{W11} &
+      \texttt{W12}\index{W12} & \texttt{W13}\index{W13} \\
+      \texttt{Y} & \texttt{W21}\index{W21} &
+      \texttt{W22}\index{W22} & \texttt{W23}\index{W23} \\
+      \texttt{Z} & \texttt{W31}\index{W31} &
+      \texttt{W32}\index{W32} & \texttt{W33}\index{W33} \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+\clearpage
+The default column set for the command
+\secref{\texttt{LIST,ALL}}{list} contains the element name,
+the arc length, the global positions and the three angles.
+
+\section{Orbit Threader}
+\label{sec:thread}
+\index{orbit threader}
+\index{THREADBPM}
+\index{threader}
+When the closed orbit search in a \secref{\texttt{MICADO}}{micado} or
+\secref{\texttt{TWISS}}{twiss} command fails due to machine imperfections, 
+it may be possible to thread the orbit through the machine using the command 
+\begin{verbatim}
+THREADBPM,LINE=name,BEAM=name,RANGE=range,TOL=real,
+                           LISTC=logical,LISTM=logical;
+\end{verbatim}
+This command has the attributes:
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The label of a previously defined beam line (no default).
+\item[BEAM]
+  \index{BEAM}
+  The label of a previously defined beam (default \texttt{UNNAMED\_BEAM}).
+  This is used to define the type and reference momentum for the
+  particles to be sent through the line.
+\item[RANGE]
+  \index{RANGE}
+  If this attribute is given, the table is restricted to the range given.
+\item[TOL]
+  \index{TOL}
+  The orbit is observed at all beam position monitors (BPM).
+  When the orbit deviation exceeds \texttt{TOL},
+  a correction is attempted.
+  \opal backtracks to find another monitor and two correctors and tunes the
+  latter so as to adjust the readings of the two monitors to zero.
+\item[LISTC]
+  \index{LISTC}
+  If true, list the corrector settings after correction.
+\item[LISTM]
+  \index{LISTM}
+  If true, list the monitor readings after correction.
+\end{description}
+
+\section{Closed Orbit Correction}
+\label{sec:micado}
+\index{MICADO}
+\index{closed orbit}
+\index{orbit correction}
+Closed orbit correction with the MICADO algorithm is initiated by the command 
+\begin{verbatim}
+MICADO,LINE=name,BEAM=name,RANGE=range,METHOD=name,
+	TOL=real, ITERATIONS=integer,CORRECTORS=integer,
+	PLANE=name, LISTC1=logical,LISTM1=logical,
+	LISTC2=logical,LISTM2=logical;
+\end{verbatim}
+This command has the attributes:
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The label of a previously defined beam line (no default).
+\item[BEAM]
+  \index{BEAM}
+  The label of a previously defined beam (default \texttt{UNNAMED\_BEAM}).
+  This is used to define the type and reference momentum for the
+  particles to be sent through the line.
+\item[RANGE]
+  \index{RANGE}
+  If this attribute is given, the table is restricted to the range given.
+\item[METHOD]
+  \index{METHOD}
+  This attribute specifies the method to be used for tracking the orbit.
+  Known names are:
+  \begin{description}
+  \item[THIN]
+    \index{THIN}
+    Use thin lens approximations.
+  \item[LINEAR]
+    \index{LINEAR}
+    Use linear map approximation (around the closed orbit).
+    This is the default.
+  \item[THICK]
+    \index{THICK}
+    Use finite-length lenses.
+  \end{description}
+\item[CORRECTORS]
+  \index{CORRECTORS}
+  The maximum number of correctors to be used in each iteration.
+\item[TOL]
+  \index{TOL}
+  The tolerance for the r.m.s. closed orbit.
+\item[ITERATIONS]
+  \index{ITERATIONS}
+  The number of iterations desired.
+  When this number is zero,
+  the orbit is only checked but not corrected.
+  Each iteration is terminated when the imposed number of correctors has been
+  used or when the tolerance is reached.
+\item[PLANE]
+  \index{PLANE}
+  The plane to be corrected.
+  Known names are:
+  \begin{description}
+  \item[X]
+    \index{X}
+    Correct the horizontal plane only.
+  \item[Y]
+    \index{Y}
+    Correct the vertical plane only.
+  \item[BOTH]
+    \index{BOTH}
+    Correct both planes (default).
+  \end{description}
+\item[LISTC1]
+  \index{LISTC1}
+  If true, list the corrector settings before each iteration.
+\item[LISTM1]
+  \index{LISTM1}
+  If true, list the monitor readings after each iteration.
+\item[LISTC2]
+  \index{LISTC2}
+  If true, list the corrector settings after correction.
+\item[LISTM2]
+  \index{LISTM2}
+  If true, list the monitor readings after correction.
+\end{description}
+
+\section{Lattice Function Tables}
+\label{sec:twiss}
+\index{lattice functions}
+\index{TWISS}
+\index{TWISSTRACK}
+
+Two commands are available to generate tables of lattice functions:
+\begin{verbatim}
+TWISS,LINE=name,BEAM=name,RANGE=range,STATIC=logical,METHOD= name,
+      REVBEAM=logical,REVTRACK=logical;
+TWISSTRACK,BEAM=name,RANGE=range,STATIC=logical,METHOD= name,
+      INIT=table-row,REVBEAM=logical,REVTRACK=logical;
+\end{verbatim}
+
+Either command builds a ``twiss'' table containing the lattice functions for
+a range of a previously defined \secref{beam line}{lines}.
+The first command, \texttt{TWISS}, uses the periodic solution for that
+range, while the second command, \texttt{TWISSTRACK} a selected line
+of another twiss table.
+The table can be referred to by its label for later manipulation.
+Both commands have the following read/write attributes:
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The label of a previously defined beam line (no default).
+\item[BEAM]
+  \index{BEAM}
+  The label of a previously defined beam (default \texttt{UNNAMED\_BEAM}).
+  This is used to define the type and reference momentum for the
+  particles to be sent through the line.
+\item[RANGE]
+  \index{RANGE}
+  If this attribute is given, the table is restricted to the range given.
+\item[STATIC]
+  \index{STATIC}
+  If this attribute is true, the table is filled at definition time,
+  and it is then treated as frozen, even if parameters of the machine change.
+\item[METHOD]
+  \index{METHOD}
+  This attribute specifies the method to be used for filling the table.
+  Known names are:
+  \begin{description}
+  \item[THIN]
+    \index{THIN}
+    Use thin lens approximations.
+  \item[LINEAR]
+    \index{LINEAR}
+    Use linear map approximation (around the closed orbit).
+    This is the default.
+  \item[THICK]
+    \index{THICK}
+    Use finite-length lenses.
+  \end{description}
+\item[REVBEAM]
+  \index{REVBEAM}
+  If true, the beam is assumed to run backwards through the beam line
+  (from $s=C$ to $s=0$).
+\item[REVTRACK]
+  \index{REVTRACK}
+  If true, the calculation proceeds in the direction opposite to the beam
+  direction.
+  This attribute may be used in matching, when tracking lattice
+  functions from a known position back to a position to be used to
+  adjust an insertion.
+\end{description}
+The \texttt{TWISS} command has the following read-only attributes:
+\begin{description}
+\item[L]
+  \index{L}
+  The total arc length [m].
+\item[FREQ0]
+  \index{FREQ0}
+  The computed revolution frequency in MHz.
+\item[QX]
+  \index{QX}
+  The computed tune for mode 1.
+\item[QY]
+  \index{QY}
+  The computed tune for mode 2.
+\item[QS]
+  \index{QS}
+  The computed tune for mode 3.
+\item[U0]
+  \index{U0}
+  The computed energy loss per turn [MeV].
+\item[JX]
+  \index{JX}
+  The computed damping partition number for mode 1.
+\item[JY]
+  \index{JY}
+  The computed damping partition number for mode 2.
+\item[JE]
+  \index{JE}
+  The computed damping partition number for mode 3.
+\end{description}
+The values related to damping exist only when the flag \texttt{DAMP}
+has been set.
+
+The \texttt{TWISSTRACK} can be initialised by the following attribute:
+\begin{description}
+\item[INIT]
+  \index{INIT}
+  If this attribute is given, the initial position and direction is taken
+  from the specified row of another \texttt{TWISS} table.
+\end{description}
+
+Example:
+\begin{verbatim}
+LATFUN:TWISS,LINE=CELL;
+\end{verbatim}
+This example computes the lattice functions for \texttt{CELL} with
+zero initial conditions and saves the result under the name
+\texttt{LATFUN}. 
+
+A table generated by \texttt{TWISS} (not \texttt{TWISSTRACK})
+also has some \tabref{read-only attributes}{twiss-glob}:
+\begin{table}[Ht]
+  \caption{Global read-only values in a \texttt{TWISS} table}
+  \label{tab:twiss-glob}
+  \begin{center}
+    \begin{tabular}{|l|l|l|}
+      \hline
+      Variable & Unit & Name \\
+      \hline
+      Revolution frequency & Hz & \texttt{FREQ}\index{FREQ} \\
+      Tune for mode 1 & 1 & \texttt{QX}\index{QX} \\
+      Tune for mode 2 & 1 & \texttt{QY}\index{QY} \\
+      Tune for mode 3 & 1 & \texttt{QS}\index{QS} \\
+      Energy loss per turn & MeV & \texttt{U0}\index{U0} \\
+      Damping partition number for mode 1 & 1 & \texttt{JX}\index{JX} \\
+      Damping partition number for mode 2 & 1 & \texttt{JY}\index{JY} \\
+      Damping partition number for mode 3 & 1 & \texttt{JE}\index{JE} \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+In each the \texttt{TWISS} table stores the closed orbit and the
+transfer map from the beginning to this position.
+Several \tabref{column values}{twiss-col},
+as well as the \tabref{eigenvectors}{twiss-eig},
+\tabref{second moments}{twiss-sig},
+and \tabref{transfer matrices}{twiss-mat} can be derived from this
+information
+These quantities are accessible with the \secref{syntax}{acell}
+\begin{verbatim}
+table-name "@" place "->" column-name
+\end{verbatim}
+
+\begin{table}[Ht] \footnotesize
+  \caption{Column values in a \texttt{TWISS} table}
+  \label{tab:twiss-col}
+  \begin{center}
+    \begin{tabular}{|l|l|l|}
+      \hline
+      Variable & Unit & Name \\
+      \hline
+      Arc length from beginning & m & \texttt{S}\index{S} \\
+      \hline
+      Horizontal position for closed orbit & m & \texttt{XC}\index{XC} \\
+      Horizontal momentum for closed orbit & 1 & \texttt{PXC}\index{PXC} \\
+      Vertical position for closed orbit & m & \texttt{YC}\index{YC} \\
+      Vertical momentum for closed orbit & 1 & \texttt{PYC}\index{PYC} \\
+      Longitudinal position for closed orbit & m & \texttt{TC}\index{TC} \\
+      Longitudinal momentum for closed orbit & 1 & \texttt{PTC}\index{PTC} \\
+      \hline
+      Dispersion for horizontal position & m & \texttt{DX}\index{DX} \\
+      Dispersion for horizontal momentum & 1 & \texttt{DPX}\index{DPX} \\
+      Dispersion for vertical position & m & \texttt{DY}\index{DY} \\
+      Dispersion for vertical momentum & 1 & \texttt{DPY}\index{DPY} \\
+      Dispersion for longitudinal position & m & \texttt{DT}\index{DT} \\
+      Dispersion for longitudinal momentum & 1 & \texttt{DPT}\index{DPT} \\
+      \hline                  
+    \end{tabular}
+
+    \begin{tabular}{|l|l|l|l|l|}
+      \hline
+      & & \multicolumn{3}{c|}{Plane} \\
+      Courant-Snyder Functions & Unit & \texttt{X} & \texttt{Y} & \texttt{T} \\
+      \hline
+      Beta-function  & m & \texttt{BETX}\index{BETX} &
+      \texttt{BETY}\index{BETY} & \texttt{BETT}\index{BETT} \\
+      Alpha-function & 1 & \texttt{ALFX}\index{ALFX} &
+      \texttt{ALFY}\index{ALFY} & \texttt{ALFT}\index{ALFT} \\
+      Phase          & 1 & \texttt{MUX}\index{MUX} &
+      \texttt{MUY}\index{MUY}   & \texttt{MUT}\index{MUT} \\
+      \hline
+    \end{tabular}
+    
+  \end{center}
+\end{table}
+\begin{table}[Ht] 
+  \caption{Mais-Ripken Functions  in a \texttt{TWISS} table}
+  \label{tab:twiss-col-mais}
+  \begin{center}
+    \begin{tabular}{|l|l|l|l|l|l|}
+      \hline
+      & & &
+        \multicolumn{3}{c|}{Plane} \\
+      Mais-Ripken Functions & Unit & Mode &
+      \texttt{X} & \texttt{Y} & \texttt{T} \\
+      \hline
+      & & 1 &
+      \texttt{BETX1}\index{BETX1} & \texttt{BETY1}\index{BETY1} &
+      \texttt{BETT1}\index{BETT1} \\
+      Beta-function & m & 2 &
+      \texttt{BETX2}\index{BETX2} & \texttt{BETY2}\index{BETY2} &
+      \texttt{BETT2}\index{BETT2} \\
+      & & 3 &
+      \texttt{BETX3}\index{BETX3} & \texttt{BETY3}\index{BETY3} &
+      \texttt{BETT3}\index{BETT3} \\
+      \hline
+      & & 1 &
+      \texttt{ALFX1}\index{ALFX1} & \texttt{ALFY1}\index{ALFY1} &
+      \texttt{ALFT1}\index{ALFT1} \\
+      Alpha-function & 1 & 2 &
+      \texttt{ALFX2}\index{ALFX2} & \texttt{ALFY2}\index{ALFY2} &
+      \texttt{ALFT2}\index{ALFT2} \\
+      & & 3 &
+      \texttt{ALFX3}\index{ALFX3} & \texttt{ALFY3}\index{ALFY3} &
+      \texttt{ALFT3}\index{ALFT3} \\
+      \hline
+      & & 1 &
+      \texttt{GAMX1}\index{GAMX1} & \texttt{GAMY1}\index{GAMY1} &
+      \texttt{GAMT1}\index{GAMT1} \\
+      Gamma-function & 1/m & 2 &
+      \texttt{GAMX2}\index{GAMX2} & \texttt{GAMY2}\index{GAMY2} &
+      \texttt{GAMT2}\index{GAMT2} \\
+      & & 3 &
+      \texttt{GAMX3}\index{GAMX3} & \texttt{GAMY3}\index{GAMY3} &
+      \texttt{GAMT3}\index{GAMT3} \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+\clearpage
+The Courant-Snyder lattice functions are calculated in a way analogous
+\index{Courant-Snyder}
+to the lattice functions given by \bibref{Edwards and Teng}{edwards}.
+\index{Edwards-Teng}
+After partitioning the eigenvector matrix into two~by~two blocks it
+can be factored as
+\[ 
+E = \left(
+  \begin{array}{lll}
+    E_{11} & E_{12} & E_{13} \\
+    E_{21} & E_{22} & E_{23} \\
+    E_{31} & E_{32} & E_{33}
+  \end{array}
+\right) = R W = \left(
+  \begin{array}{lll}
+    r_1 I  & R_{12} & R_{13} \\
+    R_{21} & r_2 I  & R_{23} \\
+    R_{31} & R_{32} & r_3 I
+  \end{array}
+\right) \left(
+  \begin{array}{lll}
+    W_1 & 0 & 0 \\ 0 & W_2 & 0 \\ 0 & 0 & W_3
+  \end{array}
+\right),
+\]
+where the $r_i$ are scalars and $R$ and $W$ are symplectic matrices.
+This implies
+\[
+r_i = \sqrt{|R_{ii}|}, \qquad
+W_i = R_{ii} / r_i \rightarrow |W_i| = 1, \qquad 
+R_{ik} = E_{ik} W_i^{-1}.
+\]
+The lattice functions are calculated from the diagonal blocks $W_i$.
+Note that the matrix $R$ which defines the coupling between planes is
+not available for output,
+and that the formalism breaks down when $r_i=0$.
+The default column set contains the element name,
+the arc length, the beta, alpha and mu functions for the transverse
+planes,
+the closed orbit position, and the horizontal dispersion.
+
+The Mais-Ripken functions have been introduced by
+\index{Mais-Ripken}
+\bibref{Mais and Ripken}{mais}.
+
+The second moments (beam envelope) are defined in the sense of
+\bibref{TRANSPORT}{transport}: 
+\index{second moments}
+\index{beam envelope}
+\[
+  \Sigma_{ik} = E_x ( E_{i1} E_{k1} + E_{i2} E_{k2}) +
+                E_y ( E_{i3} E_{k3} + E_{i4} E_{k4}) +
+                E_t ( E_{i5} E_{k5} + E_{i6} E_{k6}).
+\]
+
+\begin{table}[Ht]
+  \caption{Eigenvector components in a \texttt{TWISS} table}
+  \label{tab:twiss-eig}
+  \begin{center}
+    \begin{tabular}{|l|l|l|l|l|l|l|l|}
+      \hline
+      Eigenvector & &
+      \multicolumn{2}{c|}{Mode 1} &
+      \multicolumn{2}{c|}{Mode 2} &
+      \multicolumn{2}{c|}{Mode 3} \\
+      Component & Unit & real & imag & real & imag & real & imag \\
+      \hline
+      X-component & m &
+      \texttt{E11}\index{E11} & \texttt{E12}\index{E12} &
+      \texttt{E13}\index{E13} & \texttt{E14}\index{E14} &
+      \texttt{E15}\index{E15} & \texttt{E16}\index{E16} \\
+      PX-component & 1 &
+      \texttt{E21}\index{E21} & \texttt{E22}\index{E22} &
+      \texttt{E23}\index{E23} & \texttt{E24}\index{E24} &
+      \texttt{E25}\index{E25} & \texttt{E26}\index{E26} \\
+      Y-component & m &
+      \texttt{E31}\index{E31} & \texttt{E32}\index{E32} &
+      \texttt{E33}\index{E33} & \texttt{E34}\index{E34} &
+      \texttt{E35}\index{E35} & \texttt{E36}\index{E36} \\
+      PY-component & 1 &
+      \texttt{E41}\index{E41} & \texttt{E42}\index{E42} &
+      \texttt{E43}\index{E43} & \texttt{E44}\index{E44} &
+      \texttt{E45}\index{E45} & \texttt{E46}\index{E46} \\
+      T-component & m &
+      \texttt{E51}\index{E51} & \texttt{E52}\index{E52} &
+      \texttt{E53}\index{E53} & \texttt{E54}\index{E54} &
+      \texttt{E55}\index{E55} & \texttt{E56}\index{E56} \\
+      PT-component & 1 &
+      \texttt{E61}\index{E61} & \texttt{E62}\index{E62} &
+      \texttt{E63}\index{E63} & \texttt{E64}\index{E64} &
+      \texttt{E65}\index{E65} & \texttt{E66}\index{E66} \\
+      \hline                  
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\begin{table}[Ht]
+  \caption{Second moments \texttt{<X1,X2>} in a \texttt{TWISS} table}
+  \label{tab:twiss-sig}
+  \begin{center}
+    \begin{tabular}{|l|l|l|l|l|l|l|}
+      \hline
+      Second moment & \multicolumn{6}{c|}{Second variable \texttt{X2}} \\
+      First variable \texttt{X1} & \texttt{X} & \texttt{PX} &
+          \texttt{Y} & \texttt{PY} & \texttt{T} & \texttt{PT} \\
+      \hline
+      \texttt{X} &
+      \texttt{S11}\index{S11} & \texttt{S12}\index{S12} &
+      \texttt{S13}\index{S13} & \texttt{S14}\index{S14} &
+      \texttt{S15}\index{S15} & \texttt{S16}\index{S16} \\
+      \texttt{PX} &
+      \texttt{S21}\index{S21} & \texttt{S22}\index{S22} &
+      \texttt{S23}\index{S23} & \texttt{S24}\index{S24} &
+      \texttt{S25}\index{S25} & \texttt{S26}\index{S26} \\
+      \texttt{Y} & 
+      \texttt{S31}\index{S31} & \texttt{S32}\index{S32} &
+      \texttt{S33}\index{S33} & \texttt{S34}\index{S34} &
+      \texttt{S35}\index{S35} & \texttt{S36}\index{S36} \\
+      \texttt{PY} & 
+      \texttt{S41}\index{S41} & \texttt{S42}\index{S42} &
+      \texttt{S43}\index{S43} & \texttt{S44}\index{S44} &
+      \texttt{S45}\index{S45} & \texttt{S46}\index{S46} \\
+      \texttt{T} & 
+      \texttt{S51}\index{S51} & \texttt{S52}\index{S52} &
+      \texttt{S53}\index{S53} & \texttt{S54}\index{S54} &
+      \texttt{S55}\index{S55} & \texttt{S56}\index{S56} \\
+      \texttt{PT} & 
+      \texttt{S61}\index{S61} & \texttt{S62}\index{S62} &
+      \texttt{S63}\index{S63} & \texttt{S64}\index{S64} &
+      \texttt{S65}\index{S65} & \texttt{S66}\index{S66} \\
+      \hline                  
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\begin{table}[Ht]
+  \caption{Transfer matrix elements \texttt{(X2,X1)} in a \texttt{TWISS} table}
+  \label{tab:twiss-mat}
+  \begin{center}
+    \begin{tabular}{|l|l|l|l|l|l|l|}
+      \hline
+      Matrix Element & \multicolumn{6}{c|}{Second variable \texttt{X2}} \\
+      First variable \texttt{X1} & X & PX & Y & PY & T & PT \\
+      \hline
+      \texttt{X} &
+      \texttt{R11}\index{R11} & \texttt{R12}\index{R12} &
+      \texttt{R13}\index{R13} & \texttt{R14}\index{R14} &
+      \texttt{R15}\index{R15} & \texttt{R16}\index{R16} \\
+      \texttt{PX} &
+      \texttt{R21}\index{R21} & \texttt{R22}\index{R22} &
+      \texttt{R23}\index{R23} & \texttt{R24}\index{R24} &
+      \texttt{R25}\index{R25} & \texttt{R26}\index{R26} \\
+      \texttt{Y} &
+      \texttt{R31}\index{R31} & \texttt{R32}\index{R32} &
+      \texttt{R33}\index{R33} & \texttt{R34}\index{R34} &
+      \texttt{R35}\index{R35} & \texttt{R36}\index{R36} \\
+      \texttt{PY} &
+      \texttt{R41}\index{R41} & \texttt{R42}\index{R42} &
+      \texttt{R43}\index{R43} & \texttt{R44}\index{R44} &
+      \texttt{R45}\index{R45} & \texttt{R46}\index{R46} \\
+      \texttt{T} &
+      \texttt{R51}\index{R51} & \texttt{R52}\index{R52} &
+      \texttt{R53}\index{R53} & \texttt{R54}\index{R54} &
+      \texttt{R55}\index{R55} & \texttt{R56}\index{R56} \\
+      \texttt{PT} &
+      \texttt{R61}\index{R61} & \texttt{R62}\index{R62} &
+      \texttt{R63}\index{R63} & \texttt{R64}\index{R64} &
+      \texttt{R65}\index{R65} & \texttt{R66}\index{R66} \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\section{Listing Element Attributes}
+\label{sec:attlist}
+\index{ATTLIST}
+\index{list|(}
+Most element attributes can be listed for a beam line or table.
+The elements for which the attributes should be listed are selected
+by a \secref{\texttt{SELECT} command}{select}.
+The attributes are specified by the command
+\begin{verbatim}
+ATTLIST,LINE=name,FILE=name,COLUMN={string,string,...,string};
+\end{verbatim}
+Most element attributes can be listed as columns.
+At present, \opal does not recognize \texttt{ATTRIBUTES} or attributes
+of a \texttt{BEAMBEAM} element.
+Example:
+\begin{verbatim}
+ SELECT, LINE=LIN1, FULL;
+ ATTLIST, LINE=LIN1, FILE=TERM,
+   COLUMN={NAME,CLASS,KEYWORD,TYPE,LENGTH,K0L,UNKNOWN};
+\end{verbatim}
+This may produce the following output:
+\begin{verbatim}
+@ TYPE     %s  ATTRIBUTE
+@ LINE     %s  LIN1
+@ DATE     %s  11/10/1999
+@ TIME     %s  14.08.14
+@ ORIGIN   %s  OPAL_9.3
+@ COMMENT  %s  ""
+* NAME CLASS KEYWORD TYPE L K0L UNKNOWN
+$ %s %s %s %s %le %le %le
+  #S MARKER MARKER Null 0 0 0
+  L4 DRIFT DRIFT Null 1.57 0 0
+  B1 RBEND RBEND Null 35.09 0.0113061 0
+  L2 DRIFT DRIFT Null 0.56 0 0
+  SF SEXT SEXTUPOLE Null 0.4 0 0
+  L3 DRIFT DRIFT Null 0.28 0 0
+  QF QUAD QUADRUPOLE MQ 1.6 0 0
+  L1 DRIFT DRIFT Null 1.21 0 7
+  B1 RBEND RBEND Null 35.09 0.0113061 0
+  L2 DRIFT DRIFT Null 0.56 0 0
+  SD SEXT SEXTUPOLE Null 0.76 0 0
+  L3 DRIFT DRIFT Null 0.28 0 0
+  QD QUAD QUADRUPOLE MQ 1.6 0 0
+  #E MARKER MARKER Null 0 0 0
+\end{verbatim}
+As it can be seen, empty strings are printed as the word ``Null''.
+\clearpage
+\section{Listing a Table}
+\label{sec:list}
+Five commands exist which permit listing of a previously generated
+table. 
+All of these have the option of printing on a file or on the terminal,
+and using a human-readable or a TFS format.
+
+\subsection{LIST Command}
+\index{LIST}
+The most general of these commans is
+\begin{verbatim}
+LIST,TABLE=name,FILE=name,ALL=logical,
+          COLUMN={expression,...,expression};
+\end{verbatim}
+The attributes of this command are:
+\begin{description}
+\item[TABLE]
+  \index{TABLE}
+  The name of the table to be listed (no default). 
+  The rows to be listed can be selected by a
+  \secref{\texttt{SELECT}}{select} command.
+\item[FILE]
+  \index{FILE}
+  The name of the file to be written (default \texttt{LIST}).
+  The table is written in the \secref{TFS format}{TFS}.
+  If the file name is \texttt{TERM}, output goes to the terminal.
+\item[TFS]
+  \index{TFS}
+  If true, the format is in TFS format, otherwise in human-readable
+  format. 
+\item[ALL]
+  \index{ALL}
+  If true, the column selection is by default, and the column width
+  and precision is selected by \opal .
+  In this case \texttt{COLUMN} is ignored.
+\item[COLUMN]
+  \index{COLUMN}
+  A list of column descriptors.
+  Each column descriptor consists of a \secref{real expression}{areal},
+  which may also contain one or more names of columns as operands.
+  If a name refers both to a column and to a global parameter,
+  the column takes precedence.
+  The expression may optionally be followed by a format indication of
+  the form:
+\begin{verbatim}
+:width
+:width:precision
+\end{verbatim}
+  Both \texttt{width} and \texttt{precision} are unsigned integers.
+  \texttt{width} denotes the column width in characters (default~12),
+  and \texttt{precision} controls the number of digits in the column
+  (default~\texttt{width}-4).
+\end{description}
+Example:
+\begin{verbatim}
+list,table=su1,file=term,column={x,y,z,s*z:16:12};
+\end{verbatim}
+
+\subsection{``Canned'' List Commands}
+\label{sec:canned}
+Certain predefined column sets are obtainable with the commands
+\begin{verbatim}
+EIGEN,TABLE=name,FILE=name,TFS=logical;
+ENVELOPE,TABLE=name,FILE=name,TFS=logical;
+MATRIX,TABLE=name,FILE=name,TFS=logical;
+TWISS3,TABLE=name,FILE=name,TFS=logical;
+\end{verbatim}
+These commands provide the following output:
+\begin{description}
+\item[EIGEN]
+  \index{EIGEN}
+  The name of the element, the arc length, the closed orbit,
+  and the \tabref{eigenvectors}{twiss-eig}.
+\item[ENVELOPE]
+  \index{ENVELOPE}
+  The name of the element, the arc length, the closed orbit,
+  and the \tabref{beam envelope}{twiss-sig}.
+\item[MATRIX]
+  \index{MATRIX}
+  The name of the element, the arc length, the closed orbit,
+  and the \tabref{accumulated matrix}{twiss-mat}.
+\item[TWISS3]
+  \index{TWISS3}
+  The name of the element, the arc length, the closed orbit,
+  and the \tabref{Mais-Ripken functions}{twiss-col}.
+\end{description}
+The attributes of these commands are:
+\begin{description}
+\item[TABLE]
+  \index{TABLE}
+  The name of the table to be listed (no default). 
+  The rows to be listed can be selected by a
+  \secref{\texttt{SELECT}}{select} command.
+\item[FILE]
+  \index{FILE}
+  The name of the file to be written (default \texttt{LIST}).
+  The table is written in the \secref{TFS format}{TFS}.
+  If the file name is \texttt{TERM}, output goes to the terminal.
+\item[TFS]
+  \index{TFS}
+  If true, the format is in TFS format, otherwise in human-readable
+  format. 
+\end{description}
+
+\index{list|)}
+\index{tables|)}

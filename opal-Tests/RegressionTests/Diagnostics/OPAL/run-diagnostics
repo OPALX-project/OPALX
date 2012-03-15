@@ -1,0 +1,2 @@
+cp TwoStep.h5 Diagnostics.h5
+opal Diagnostics.in -restart 2 --commlib mpi --info 0 2>&1|tee Diagnostics.out

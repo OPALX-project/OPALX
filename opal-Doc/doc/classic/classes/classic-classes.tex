@@ -1,0 +1,794 @@
+\documentclass[11pt,a4paper]{report}
+%\usepackage{here}
+\usepackage{epic}
+
+% ========================================================================
+
+\setlength\hoffset{0pt}
+\setlength\oddsidemargin{0pt}
+\setlength\evensidemargin{\oddsidemargin}
+\setlength\textwidth{160mm}
+
+\setlength\headheight{12pt}
+\setlength\headsep{24pt}
+\setlength\voffset{-36pt}
+\setlength\textheight{9in}
+\setlength\footskip{36pt}
+
+\setlength\parindent{0pt}
+\setlength\partopsep{0pt}
+\setlength\topsep{0pt}
+\raggedbottom
+
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+
+\newcommand{\ejectpage}{\clearpage}
+
+% ------------------------------------------------------------------------
+
+% special macros
+
+\def\dline{\dashline[30]{8}}
+
+
+\def\updotarrow(#1,#2)(#3,#4){%
+  \dashline[30]{8}(#1,#2)(#3,#4)%
+  \put(#3,#4){%
+    \drawline(-2,-8)(0,0)(2,-8)%
+  }%
+}
+
+
+\def\leftdotarrow(#1,#2)(#3,#4){%
+  \dashline[30]{8}(#1,#2)(#3,#4)%
+  \put(#3,#4){%
+    \drawline(8,-2)(0,0)(8,2)%
+  }%
+}
+
+
+\def\downdotarrow(#1,#2)(#3,#4){%
+  \dashline[30]{8}(#1,#2)(#3,#4)%
+  \put(#3,#4){%
+    \drawline(-2,8)(0,0)(2,8)%
+  }%
+}
+
+
+\def\rightdotarrow(#1,#2)(#3,#4){%
+  \dashline[30]{8}(#1,#2)(#3,#4)%
+  \put(#3,#4){%
+    \drawline(-8,-2)(0,0)(-8,2)%
+  }%
+}
+
+
+\def\class(#1,#2)#3{%
+  \put(#1,#2){\framebox(80,40){\texttt{#3}}}%
+}
+
+
+\def\bclass(#1,#2)(#3,#4)#5{%
+  \put(#1,#2){\framebox(#3,#4){\texttt{#5}}}%
+}
+
+
+\def\template(#1,#2)#3#4{%
+  \put(#1,#2){%
+    \begin{picture}(90,50)%
+      \drawline(80,30)(80,0)(0,0)(0,40)(50,40)%
+      \put(0,0){\makebox(80,30){\texttt{#3}}}%
+      \dashline[30]{8}(50,30)(90,30)(90,50)(50,50)(50,30)
+      \put(50,30){\makebox(40,20){\texttt{#4}}}%
+    \end{picture}%
+  }%
+}
+
+
+\def\module(#1,#2)#3{%
+  \put(#1,#2){%
+    \begin{picture}(80,50)%
+      \drawline(0,0)(80,0)(80,40)(0,40)(0,0)%
+      \drawline(0,40)(0,50)(20,50)(20,40)%
+      \put(0,0){\makebox(80,40){\texttt{#3}}}%
+    \end{picture}%
+  }%
+}
+
+
+\def\smodule(#1,#2)(#3,#4)#5{{%
+  \put(#1,#2){%
+    \begin{picture}(#3,#4)%
+      \drawline(0,0)(#3,0)(#3,#4)(0,#4)(0,0)
+      \put(0,#4){%
+        \begin{picture}(40,0)
+          \put(0,0){\makebox(40,20){\texttt{\tiny #5}}}
+          \drawline(0,0)(0,20)(40,20)(40,0)
+        \end{picture}
+      }%
+    \end{picture}%
+  }%
+}}
+
+
+\newcounter{temp}
+\def\upderive(#1,#2)(#3,#4){%
+  \setcounter{temp}{#4}
+  \addtocounter{temp}{-12}
+  \drawline(#1,#2)(#3,\value{temp})
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(-6,-12)(6,-12)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\def\leftderive(#1,#2)(#3,#4){%
+  \setcounter{temp}{#3}
+  \addtocounter{temp}{12}
+  \drawline(#1,#2)(\value{temp},#4)
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(12,-6)(12,6)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\def\downderive(#1,#2)(#3,#4){%
+  \setcounter{temp}{#4}
+  \addtocounter{temp}{12}
+  \drawline(#1,#2)(#3,\value{temp})
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(6,12)(-6,12)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\def\rightderive(#1,#2)(#3,#4){%
+  \setcounter{temp}{#3}
+  \addtocounter{temp}{-12}
+  \drawline(#1,#2)(\value{temp},#4)
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(-12,-6)(-12,6)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\def\upcompose(#1,#2)(#3,#4){%
+  \setcounter{temp}{#4}
+  \addtocounter{temp}{-16}
+  \drawline(#1,#2)(#3,\value{temp})
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(-5,-8)(0,-16)(5,-8)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\def\leftcompose(#1,#2)(#3,#4){%
+  \setcounter{temp}{#3}
+  \addtocounter{temp}{16}
+  \drawline(#1,#2)(\value{temp},#4)
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(8,-5)(16,0)(8,5)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\def\downcompose(#1,#2)(#3,#4){%
+  \setcounter{temp}{#4}
+  \addtocounter{temp}{16}
+  \drawline(#1,#2)(#3,\value{temp})
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(-5,+8)(0,+16)(5,+8)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\def\rightcompose(#1,#2)(#3,#4){%
+  \setcounter{temp}{#3}
+  \addtocounter{temp}{-16}
+  \drawline(#1,#2)(\value{temp},#4)
+  \put(#3,#4){%
+    \begin{picture}(,)%
+      \drawline(0,0)(-8,-5)(-16,0)(-8,5)(0,0)%
+    \end{picture}%
+  }%
+}
+
+
+\newcounter{tempx}
+\newcounter{tempy}
+\def\note(#1,#2)(#3,#4)#5{%
+  \put(#1,#2){%
+    \begin{picture}(#3,#4)%
+      \setcounter{tempx}{#3}
+      \setcounter{tempy}{#4}
+      \addtocounter{tempx}{-10}
+      \addtocounter{tempy}{-10}
+      \drawline(#3,\value{tempy})(#3,0)(0,0)(0,#4)(\value{tempx},#4)%
+        (#3,\value{tempy})(\value{tempx},\value{tempy})(\value{tempx},#4)%
+    \end{picture}%
+  }%
+  \put(#1,#2){\makebox(#3,#4){#5}}
+}
+
+% ------------------------------------------------------------------------
+\begin{document}
+
+\begin{center}
+THE CLASSIC COLLABORATION \\
+\vspace{3cm}
+{\huge {\bf CLASSIC Reference Manual}}
+
+\vspace{1cm}
+F. C. Iselin
+
+\vspace{2cm}
+{\bf Abstract}
+\end{center}
+
+\begin{quote}
+  This report describes the classes implemented in the CLASSIC class
+  library,
+  as defined by the CLASSIC collaboration for the development of a
+  Class Library for Accelerator System SImulation and Control.
+\end{quote}
+
+\clearpage
+
+\setlength{\unitlength}{0.8pt}
+
+\tableofcontents
+\listoffigures
+
+% ========================================================================
+
+\chapter{Overview}
+
+\clearpage
+\section{Module Structure}
+The CLASSIC classes are grouped in several modules.
+The principal dependencies between the modules are shown in
+Fig.~\ref{fig:modules}.
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(580,420)
+      \module(120,0){Algorithms}
+      \dline(160,40)(160,80)
+      \module(420,0){Parser}
+      \dline(460,40)(460,80)
+
+      \module(60,120){\vbox{Fixed\\Algebra}}
+      \updotarrow(100,80)(100,120)
+      \module(240,120){\vbox{Component\\Wrappers}}
+      \updotarrow(280,80)(280,120)
+      \module(360,120){Beamlines}
+      \updotarrow(390,80)(390,120)
+      \updotarrow(410,80)(410,120)
+      \module(480,120){\vbox{Beamline\\Core}}
+      \updotarrow(520,80)(520,120)
+      \dline(100,80)(390,80)
+      \dline(410,80)(520,80)
+
+      \module(0,240){Algebra}
+      \updotarrow(40,200)(40,240)
+      \updotarrow(160,200)(160,240)
+      \dline(40,200)(160,200)
+      \dline(100,160)(100,200)
+      \module(120,240){Physics}
+      \dline(400,280)(400,360)
+      \module(360,240){AbsBeamline}
+      \updotarrow(400,160)(400,240)
+      \dline(200,80)(200,200)(520,200)(520,160)
+      \dline(280,160)(280,200)
+
+      \module(0,360){Utilities}
+      \updotarrow(40,280)(40,360)
+      \module(120,360){\vbox{Beamline-\\Geometry}}
+      \updotarrow(160,320)(160,360)
+      \module(240,360){Channels}
+      \updotarrow(280,320)(280,360)
+      \module(360,360){Fields}
+      \updotarrow(400,320)(400,360)
+      \module(480,360){\vbox{Memory\\Management}}
+      \updotarrow(520,320)(520,360)
+      \dline(160,320)(520,320)
+    \end{picture}
+  \end{center}
+  \caption{CLASSIC Modules and their Dependences}
+  \label{fig:modules}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Hierarchy of Field Representations}
+The magnetic field hierarchy is shown in Fig.~\ref{fig:fields}.
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(520,380)
+      \thinlines
+      \small
+      \class(100,0){\vbox{Accele-\\rating-\\Field}}
+
+      \class(150,170){\vbox{Constant-\\Electric-\\Field}}
+      \upderive(190,140)(190,170)
+      \class(350,170){\vbox{Constant-\\Magnetic-\\Field}}
+      \upderive(390,140)(390,170)
+      \template(0,140){\vbox{Oscillating-\\Field}}{Field}
+      \put(40,80){\makebox(0,0)[l]{``bind''}}
+      \dline(40,140)(40,20)(100,20)
+      \drawline(140,110)(140,140)(240,140)(240,110)
+      \class(100,70){\vbox{Constant-\\EzField}}
+      \upderive(140,40)(140,70)
+      \class(200,70){\vbox{EDipole-\\Field}}
+      \drawline(340,110)(340,140)(440,140)(440,110)
+      \class(300,70){\vbox{Constant-\\BzField}}
+      \class(400,70){\vbox{BDipole-\\Field}}
+
+      \drawline(90,280)(90,310)(390,310)(390,280)
+      \drawline(190,280)(190,310)
+      \drawline(290,280)(290,310)
+      \class(50,240){NullField}
+      \class(150,240){\vbox{Static-\\Electric-\\Field}}
+      \upderive(190,210)(190,240)
+      \drawline(90,280)(90,310)(390,310)(390,280)
+      \class(250,240){\vbox{BSingle-\\Multipole-\\Field}}
+      \class(350,240){\vbox{Static-\\Magnetic-\\Field}}
+      \upderive(390,210)(390,240)
+
+      \class(200,340){EMField}
+      \upderive(240,310)(240,340)
+    \end{picture}
+    \caption{Hierarchy for Electromagnetic Fields}
+    \label{fig:fields}
+  \end{center}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Hierarchy of Geometry Representations}
+The geometry of each element is represented by its geometry object.
+The geometry hierarchy is shown in Fig.~\ref{fig:geometry}.
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(480,210)
+      \thinlines
+      \class(100,0){\vbox{RBend-\\Geometry}}
+      \upderive(140,40)(140,70)
+      \class(300,0){Geometry}
+      \upcompose(340,40)(340,70)
+      \put(350,65){\makebox(0,0)[tl]{2}}
+      
+      \class(0,70){\vbox{Null-\\Geometry}}
+      \drawline(40,110)(40,140)(440,140)(440,110)
+      \class(100,70){\vbox{Straight-\\Geometry}}
+      \drawline(140,110)(140,140)
+      \class(200,70){\vbox{SRotated-\\Geometry}}
+      \upderive(240,110)(240,170)
+      \class(300,70){\vbox{Offset-\\Geometry}}
+      \drawline(340,110)(340,140)
+      \class(400,70){\vbox{PlanarArc-\\Geometry}}
+
+      \class(200,170){Geometry}
+    \end{picture}
+    \begin{picture}(260,170)
+      \thinlines
+      \class(0,0){Vector3D}
+      \class(120,0){Rotation3D}
+      \upcompose(90,70)(90,100)
+      \drawline(40,40)(40,70)(150,70)(150,40)
+      \class(50,100){Euclid3D}
+      \drawline(170,40)(170,70)(220,70)
+      \upderive(220,70)(220,100)
+      \class(180,100){Matrix3D}
+    \end{picture}
+    \caption{Hierarchy for Geometry Objects}
+    \label{fig:geometry}
+  \end{center}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Beam Line Elements}
+Most inactive elements follow a hierarchy as illustrated by the
+drift space~\ref{fig:drift}
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(220,450)
+      \thinlines
+      \smodule(0,0)(100,60){Fields}
+      \smodule(120,0)(100,60){\vbox{Beamline-\\Geometry}}
+      \smodule(60,110)(100,80){\vbox{Beamline-\\Core}}
+      \smodule(60,220)(100,210){\vbox{Abs-\\Beamline}}
+      \thicklines
+      \class(10,10){\vbox{Null-\\Field}}
+      \class(130,10){\vbox{Straight-\\Geometry}}
+      \upcompose(110,90)(110,130)
+      \drawline(50,50)(50,90)(170,90)(170,50)
+      \class(70,130){\vbox{Drift-\\Rep}}
+
+      \class(70,380){\vbox{Element-\\Base}}
+      \upderive(110,350)(110,380)
+      \class(70,310){Component}
+      \upderive(110,280)(110,310)
+      \class(70,240){Drift}
+      \upderive(110,170)(110,240)
+    \end{picture}
+  \end{center}
+  \caption[Hierarchy for Drift Elements]
+  {Hierarchy for Drift Elements. A similar hierarchy exists for all
+  other elements.}
+  \label{fig:drift}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Active Elements}
+All active elements have a hierarchy similar to the example for RBend
+elemens shown in Fig.~\ref{fig:rbend}. 
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(290,440)
+      \thinlines
+      \smodule(10,0)(100,60){Fields}
+      \smodule(140,0)(100,60){\vbox{Beamline-\\Geometry}}
+      \smodule(70,100)(100,70){\vbox{Beamline-\\Core}}
+      \smodule(190,100)(100,70){\vbox{Component-\\Wrappers}}
+      \smodule(130,220)(100,200){\vbox{Abs-\\Beamline}}
+
+      \thicklines
+      \class(20,10){\vbox{BMultipole-\\Field}}
+      \class(150,10){\vbox{RBend-\\Geometry}}
+      \class(80,120){\vbox{RBend-\\Rep}}
+      \upcompose(120,90)(120,120)
+      \drawline(60,50)(60,90)(190,90)(190,50)
+      \class(200,120){\vbox{RBend-\\Wrapper}}
+      \class(140,370){\vbox{Element-\\Base}}
+      \upderive(180,340)(180,370)
+      \class(140,300){Component}
+      \upderive(180,270)(180,300)
+      \class(140,230){RBend}
+      \upderive(180,200)(180,230)
+      \drawline(120,160)(120,200)(240,200)(240,160)
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for RBend Elements}
+  \label{fig:rbend}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Multipoles}
+The multipoles have an extended hierarchy as shown in
+Fig.~\ref{fig:multipole}. 
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(500,450)
+      \thinlines
+      \smodule(10,0)(110,70){Fields}
+      \smodule(140,0)(100,60){\vbox{Beamline-\\Geometry}}
+      \smodule(270,0)(100,60){Fields}
+      \smodule(70,100)(300,80){\vbox{Beamline-\\Core}}
+      \smodule(400,0)(100,60){\vbox{Beamline-\\Geometry}}
+      \smodule(400,100)(100,80){\vbox{Component-\\Wrappers}}
+      \smodule(200,220)(100,210){\vbox{Abs-\\Beamline}}
+
+      \thicklines
+      \template(20,10){{\vbox{BSingle-\\
+          Multipole-\\Field}}}{int N}
+      \class(150,10){\vbox{Straight-\\Geometry}}
+      \upcompose(120,90)(120,120)
+      \drawline(60,50)(60,90)(190,90)(190,50)
+
+      \class(280,10){\vbox{BMultipole-\\Field}}
+      \class(410,10){\vbox{Straight-\\Geometry}}
+      \upcompose(320,50)(320,120)
+      \drawline(320,90)(450,90)(450,50)
+
+      \template(80,120){\vbox{Single-\\Multipole}}{int}
+      \class(280,120){\vbox{Multipole-\\Rep}}
+      \class(410,120){\vbox{Multipole-\\Wrapper}}
+
+      \class(210,380){\vbox{Element-\\Base}}
+      \upderive(250,350)(250,380)
+      \class(210,310){Component}
+      \upderive(250,280)(250,310)
+      \class(210,240){Multipole}
+      \upderive(250,210)(250,240)
+      \drawline(320,160)(320,210)
+      \drawline(120,160)(120,210)(450,210)(450,160)
+    \end{picture}
+    \begin{picture}(540,190)
+      \thinlines
+      \note(40,100)(120,60){\vbox{Template for all\\
+          single multipoles\\of order $|N|$}}
+      \dline(160,120)(230,120)
+
+      \thicklines
+      \dline(40,40)(40,70)(500,70)(500,40)
+      \put(45,55){\makebox(0,0)[l]{``2''}}
+      \class(0,0){Quadrupole}
+      \dline(130,40)(130,70)
+      \put(135,55){\makebox(0,0)[l]{``3''}}
+      \class(90,0){Sextupole}
+      \dline(220,40)(220,70)
+      \put(225,55){\makebox(0,0)[l]{``4''}}
+      \class(180,0){Octupole}
+      \dline(320,40)(320,70)
+      \put(325,55){\makebox(0,0)[l]{``-2''}}
+      \class(280,0){\vbox{Skew-\\Quadrupole}}
+      \dline(410,40)(410,70)
+      \put(415,55){\makebox(0,0)[l]{``-3''}}
+      \class(370,0){\vbox{Skew-\\Sextupole}}
+      \put(515,55){\makebox(0,0)[l]{``-4''}}
+      \class(460,0){\vbox{Skew-\\Octupole}}
+
+      \template(230,100){\vbox{Single-\\Multipole}}{int N}
+      \dline(270,70)(270,100)
+      \put(275,85){\makebox(0,0)[l]{``bind''}}
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for Multipole Elements}
+  \label{fig:multipole}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Beam Lines}
+Beam lines are built from the hierarchy as shown in
+Fig.~\ref{fig:beamlines}. 
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(420,420)
+      \thinlines
+      \smodule(30,80)(360,240){Beamlines}
+      \smodule(160,330)(100,70){\vbox{Abs-\\Beamline}}
+      \note(0,0)(200,60){\vbox{\texttt{SimpleBeamline}\\
+          Beamline contains\\pointers to elements}}
+      \note(220,0)(200,60){\vbox{\texttt{FlaggedBeamline}\\
+          Beamline contains pointers\\to elements and flags}}
+
+      \thicklines
+      \dline(100,60)(100,90)
+      \bclass(40,90)(120,40){\vbox{TBeamline\\<ElmPtr>}}
+      \dline(320,60)(320,90)
+      \bclass(260,90)(120,40){\vbox{TBeamline\\<FlaggedElmPtr>}}
+      \dline(100,130)(100,160)(320,160)(320,130)
+      
+      \dline(210,160)(210,190)
+      \put(215,175){\makebox(0,0)[l]{``bind''}}
+      \template(170,190){TBeamline}{T}
+      \upderive(210,230)(210,270)
+      \class(170,270){Beamline}
+      \upderive(210,310)(210,350)
+      \class(170,350){\vbox{Element-\\Base}}
+    \end{picture}
+    \caption{Beam Line Hierarchy}
+    \label{fig:beamlines}
+  \end{center}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Algebra Objects}
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(320,110)
+      \thinlines
+      \template(0,0){Vector}{T}
+      \upderive(40,40)(40,70)
+      \template(0,70){Array1D}{T}
+
+      \template(120,0){Matrix}{T}
+      \upderive(160,40)(160,70)
+      \template(120,70){Array2D}{T}
+      \template(240,0){LUMatrix}{T}
+      \leftdotarrow(240,20)(200,20)
+    \end{picture}
+    \begin{picture}(400,280)
+      \thinlines
+      \template(0,0){LieMap}{T}
+      \upderive(40,40)(40,70)
+      \template(0,70){VpsInvMap}{T}
+      \upderive(40,110)(40,140)
+      \template(0,140){VpsMap}{T}
+      \upderive(40,180)(40,210)
+      \template(0,210){Vps}{T}
+      \leftcompose(220,230)(80,230)
+      \put(100,225){\makebox(0,0)[t]{1}}
+      \put(210,225){\makebox(0,0)[t]{n}}
+      \template(220,210){Tps}{T}
+      \dline(160,180)(360,180)
+      \downdotarrow(160,180)(160,150)
+      \class(120,110){TpsData}
+      \downdotarrow(260,210)(260,150)
+      \class(220,110){\vbox{Tps-\\Monomial}}
+      \downdotarrow(360,180)(360,150)
+      \class(320,110){\vbox{TpsSub-\\stitution}}
+    \end{picture}
+  \end{center}
+  \caption{Algebra Objects with Variable Dimensions}
+  \label{fig:algebra}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(320,110)
+      \thinlines
+      \template(0,0){FVector}{T,N}
+      \upderive(40,40)(40,70)
+      \template(0,70){FArray1D}{T,N}
+
+      \template(120,0){FMatrix}{T,M,N}
+      \upderive(160,40)(160,70)
+      \template(120,70){FArray2D}{T,M,N}
+      \template(240,0){FLUMatrix}{T,N}
+      \leftdotarrow(240,20)(200,20)
+    \end{picture}
+    \begin{picture}(400,170)
+      \thinlines
+      \template(0,100){FVps}{T,M,N}
+      \leftcompose(220,120)(80,120)
+      \put(100,115){\makebox(0,0)[t]{1}}
+      \put(210,115){\makebox(0,0)[t]{N}}
+      \template(220,100){FTps}{T,N}
+      \dline(160,70)(360,70)
+      \downdotarrow(160,70)(160,40)
+      \template(120,0){FTpsData}{N}
+      \downdotarrow(260,100)(260,40)
+      \template(220,0){\vbox{FTps-\\Monomial}}{N}
+      \downdotarrow(360,70)(360,40)
+      \class(320,0){\vbox{TpsSub-\\stitution}}
+    \end{picture}
+  \end{center}
+  \caption{Algebra Objects with Fixed Dimensions}
+  \label{fig:fixed}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Algorithms}
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(450,430)
+      \thinlines
+      \smodule(0,0)(450,330){Algorithms}
+      \smodule(200,340)(100,70){\vbox{Abs-\\Beamline}}
+
+      \thicklines
+      \class(10,10){\vbox{Thin-\\Mapper}}
+      \upderive(50,50)(50,80)
+      \class(10,80){Mapper}
+      \class(110,10){\vbox{Ideal-\\Mapper}}
+      \upderive(150,50)(150,80)
+      \class(110,80){\vbox{Linear-\\Mapper}}
+      \drawline(50,120)(50,150)(150,150)(150,120)
+      \upderive(100,150)(100,180)
+
+      \class(210,10){\vbox{Thin-\\Tracker}}
+      \upderive(250,50)(250,80)
+      \class(210,80){Tracker}
+      \class(310,80){\vbox{Thin-\\Mapper}}
+      \drawline(250,120)(250,150)(350,150)(350,120)
+      \upderive(300,150)(300,180)
+      
+      \class(60,180){\vbox{Abstract-\\Mapper}}
+      \class(160,180){Flagger}
+      \class(260,180){\vbox{Abstract-\\Tracker}}
+      \class(360,180){Surveyor}
+      \drawline(100,220)(100,250)(400,250)(400,220)
+      \drawline(200,220)(200,250)
+      \drawline(300,220)(300,250)
+      \upderive(250,250)(250,280)
+      \class(210,280){\vbox{Default-\\Visitor}}
+      \upderive(250,320)(250,360)
+      \class(210,360){\vbox{Beamline-\\Visitor}}
+    \end{picture}
+  \end{center}
+  \caption{Algorithms}
+  \label{fig:algorithms}
+  \begin{center}
+    \begin{picture}(300,90)
+      \thinlines
+      \smodule(0,0)(320,60){Algorithms}
+      \thicklines
+      \class(10,10){Integrator}
+      \leftderive(120,30)(90,30)
+      \class(120,10){\vbox{Track-\\Integrator}}
+      \leftderive(230,30)(200,30)
+      \class(230,10){\vbox{Map-\\Integrator}}
+    \end{picture}
+  \end{center}
+  \caption{Integrator Objects}
+  \label{fig:integrators}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{CLASSIC Exception Objects}
+The possible exceptions which can be thrown by CLASSIC routines have
+been arranged in the hierarchy shown in Fig.~\ref{fig:except}. 
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(480,300)
+      \thinlines
+      \class(0,0){\vbox{Convergence-\\Error}}
+      \drawline(40,40)(40,130)(440,130)(440,40)
+      \class(50,60){\vbox{Divide-\\Error}}
+      \drawline(90,100)(90,130)
+      \class(100,0){\vbox{Domain-\\Error}}
+      \drawline(140,40)(140,130)
+      \class(150,60){\vbox{Eigenvalue-\\Error}}
+      \drawline(190,100)(190,130)
+      \class(200,0){\vbox{NormalForm-\\Error}}
+      \upderive(240,40)(240,160)
+      \class(250,60){\vbox{Overflow-\\Error}}
+      \drawline(290,100)(290,130)
+      \class(300,0){\vbox{Range-\\Error}}
+      \drawline(340,40)(340,130)
+      \class(350,60){\vbox{Singular-\\Matrix-\\Error}}
+      \drawline(390,100)(390,130)
+      \class(400,0){\vbox{Size-\\Error}}
+
+      \class(0,160){\vbox{Attribute-\\Error}}
+      \drawline(40,200)(40,230)(440,230)(440,200)
+      \class(100,160){\vbox{Format-\\Error}}
+      \drawline(140,200)(140,230)
+      \class(200,160){\vbox{Arithmetic-\\Error}}
+      \upderive(240,200)(240,260)
+      \class(300,160){\vbox{Logical-\\Error}}
+      \drawline(340,200)(340,230)
+      \class(400,160){\vbox{Parse-\\Error}}
+
+      \class(200,260){\vbox{Classic-\\Exception}}
+    \end{picture}
+  \end{center}
+  \caption{CLASSIC Exception Objects}
+  \label{fig:except}
+\end{figure}
+
+% ========================================================================
+
+% include the file created by docker
+\chapter{Detailed Class Descriptions}
+%\input{docker}
+
+% ========================================================================
+
+\clearpage
+\begin{thebibliography}{99}
+
+\bibitem{Gamma}
+  E.~Gamma, R.~Helm, R.~Johnson, and J.~Vlissides,
+  \textit{Design Patterns, Elements of Reusable Object-Oriented
+    Software},
+  Addison-Wesley, 1995.
+
+\end{thebibliography}
+
+% ========================================================================
+
+\end{document}
+\bye

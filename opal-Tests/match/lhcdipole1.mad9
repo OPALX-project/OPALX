@@ -1,0 +1,54 @@
+//                              Created at 09:42:31 on 14 Feb 2000 by
+// 
+// 
+option, trace=false;
+option, tfs=false;
+
+m1: marker;
+m2: marker;
+m3: marker;
+
+QF:  Quadrupole, L:=LQ, K1:=KQF, dBdxMax:=  2.;
+QD:  Quadrupole, L:=LQ, K1:=KQD, dBdxMax:= -2.;
+MD:  Rbend, L=14.3, K0L=0.00051;
+
+cell: line=(m1,QF,m2,MD,m3,QD,m4);
+
+cell: line=(m1,MD,MD,MD,QF,m2,MD,MD,MD,QD,m3);
+
+LQ := 0.5;
+KQF:= 0.02;
+KQD:=-0.02;
+
+fodo1:  twiss,line=cell, static=false;
+
+value,KQF;
+
+select,line =fodo1,FULL;
+list,  table=fodo1, file="fodo1.bevoreMatch.mou", all;
+
+match;
+  vary,name=KQF,step=0.001;
+  vary,name=KQD,step=0.001;
+
+  constraint,row(fodo1,m1,{betX,betY}) == {172,38},wgt={1,1};
+  constraint,row(fodo1,m2,{betX,betY}) < {38,172},wgt={1,1};
+  constraint,row(fodo1,m3,{betX,betY}) < {172,38},wgt={1,1};
+
+  constraint,row(fodo1,m2,{betX,betY}) > {35,170},wgt={1,1};
+  constraint,row(fodo1,m3,{betX,betY}) > {170,35},wgt={1,1};
+
+  lmdif, calls=200,tolerance = 1.0E-12;
+
+endmatch;
+
+value,KQF;
+
+select,line =fodo1,FULL;
+list,  table=fodo1, file="fodo1.afterMatch.mou", all;
+
+stop;
+
+
+
+

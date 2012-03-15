@@ -1,0 +1,22 @@
+OPAL (Object Oriented Parallel Accelerator Library) 
+
+A fusion of MAD9, CLASSIC (V3.3.1 -> 4.0) MAD9p 
+with the help of IPPL.
+
+Effort started 5/12/2006 by Andreas Adelmann (PSI)
+
+
+Needs: 
+
+	IPPL
+	OPAL_ROOT environment variable set
+
+Merlin00 Modules:  1) sge/n1ge6            2) defaultenvironment   3) root/root-5.16.00    4) hdf5/hdf5-1.6.5      5) mpi/mpich2-1.0.3
+
+
+Build: 
+
+Goto opal-Build and edit make.all.sh accordingly. Then execute make.all.sh, good luck
+
+
+Andreas Adelmann

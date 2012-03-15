@@ -1,0 +1,20 @@
+Option, TFS=FALSE;
+Title,string="test1.mad9";
+Edes=1.0;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+d1: Drift, L=1.0;
+hfq: Quadrupole, L=1.25, K1= 3.0/brho;      // T/m
+
+l1: Line = (d1,hfq);
+
+Proton1: BEAM, PARTICLE=PROTON, pc=P0;
+
+Select, Line=l1;
+T1:Twiss, Line=l1, Beam=Proton1, Method="THICK", Order=2 , static=false;
+Stop;
