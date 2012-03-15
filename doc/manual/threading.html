@@ -1,0 +1,345 @@
+<!-- threading.html : example of threading in POOMA -->
+<!-- $Id: threading.html,v 1.3 1998/10/26 13:58:04 gvwilson Exp $ -->
+
+<html>
+<head>
+<title>POOMA&nbsp;II Tutorials: Managing Threads Explicitly</title>
+</head>
+<body background="back.gif">
+
+<H1><CENTER><IMG SRC="banner.gif" WIDTH=550 HEIGHT=100
+X-SAS-UseImageWidth X-SAS-UseImageHeight ALIGN=bottom></CENTER></H1>
+
+<center><h1>POOMA&nbsp;II Tutorials<br>Managing Threads Explicitly</h1></center>
+
+<p>The program shown in this appendix is the most complicated to
+appear in these tutorials.  Building on <a
+href="tut-4.html">tutorial&nbsp;4</a>, it sums the values in an array,
+taking the layout of that array into account.  Unlike the <a
+href="tut-4.html#multipatch">multi-patch</a> and <a
+href="tut-4.html#layout">layout</a> examples of <a
+href="tut-4.html">tutorial&nbsp;4</a>, however, this program
+explicitly spawns threads to perform the accumulation on each patch of
+the array.
+
+<p>Much of this code should seem familiar---the specialized
+<tt>accumulateWithLoop()</tt> functions, for example, have <a
+href="tut-4.html#layout">already</a> been discussed.  The novelty lies
+in the classes <tt>ResultHolder&lt;&gt;</tt> and
+<tt>ArrayAccumulator&lt;&gt;</tt>, the templated function
+<tt>spawn_accumulate()</tt>, and the specialized accumulation function
+<tt>accumulate()</tt>.  These are all discussed briefly after the code
+(which is in <tt>examples/Patches/Threaded/Accumulate.h</tt> in the
+release) is presented.
+
+<blockquote><pre>
+#ifndef ACCUMULATE_H
+#define ACCUMULATE_H
+
+#include &lt;pthread.h&gt;
+
+template&lt;int D, class T, class E&gt; class ConstArray;
+template&lt;int D&gt; class GridLayout;
+
+//----------------------------------------------------------------------
+// The guts of the accumulation algorithm.
+// Specialized here for dimension 1, 2 and 3.
+// Can't call these 'accumulate' because it would be ambiguous.
+//----------------------------------------------------------------------
+
+template&lt;class T, class E&gt;
+inline T accumulateWithLoop(
+    const ConstArray&lt;1, T, E&gt; &amp; x
+){
+    T sum = 0;
+    int f0 = x.first(0);
+    int l0 = x.last(0);
+    for (int i0=f0;i0&lt;=l0; ++i0)
+        sum += x(i0);
+    return sum;
+}
+
+template&lt;class T, class E&gt;
+inline T accumulateWithLoop(
+    const ConstArray&lt;2, T, E&gt; &amp; x
+){
+    T sum = 0;
+    int f0 = x.first(0);
+    int f1 = x.first(1);
+    int l0 = x.last(0);
+    int l1 = x.last(1);
+    for (int i1=f1; i1&lt;=l1; ++i1)
+    {
+        for (int i0=f0;i0&lt;=l0; ++i0)
+        {
+            sum += x(i0, i1);
+	}
+    }
+    return sum;
+}
+
+template&lt;class T, class E&gt;
+inline T accumulateWithLoop(
+    const ConstArray&lt;3, T, E&gt; &amp; x
+){
+    T sum = 0;
+    int f0 = x.first(0);
+    int f1 = x.first(1);
+    int f2 = x.first(2);
+    int l0 = x.last(0);
+    int l1 = x.last(1);
+    int l2 = x.last(2);
+    for (int i2=f2; i2&lt;=l2; ++i2)
+    {
+        for (int i1=f1; i1&lt;=l1; ++i1)
+	{
+            for (int i0=f0;i0&lt;=l0; ++i0)
+	    {
+                sum += x(i0, i1);
+	    }
+	}
+    }
+    return sum;
+}
+
+//----------------------------------------------------------------------
+// The user interface for accumulate.
+// Bricks just call the dimension specialized versions.
+//----------------------------------------------------------------------
+
+template&lt;int D, class T&gt;
+T accumulate(
+    const ConstArray&lt;D, T, Brick&gt; &amp; x
+){
+    return accumulateWithLoop(x);
+}
+
+template&lt;int D1, class T, int D2, bool S&gt;
+T accumulate(
+    const ConstArray&lt;D1, T, BrickView&lt;D2, S&gt;&gt; &amp; x
+){
+    return accumulateWithLoop(x);
+}
+
+//----------------------------------------------------------------------
+// class ResultHolder&lt;T&gt;
+//
+// A class which holds the result of a calculation in such
+// a way that you don't have to worry about how it got it.
+// That is handled in subclasses.
+//----------------------------------------------------------------------
+
+template&lt;class T&gt;
+class ResultHolder
+{
+  public:
+    ResultHolder()
+    {}
+
+    virtual ~ResultHolder()
+    {}
+
+    const T&amp; get()
+    {
+        return result;
+    }
+
+  protected:
+    T result;
+};
+
+//----------------------------------------------------------------------
+// class ArrayAccumulator&lt;T, ArrayType&gt;
+//
+// A specific type of calculation that returns using a ResultHolder.
+// This holds an array of arbitrary type and accumulates the sum
+// into the result.
+//----------------------------------------------------------------------
+
+template&lt;class T, class ArrayType&gt;
+class ArrayAccumulator : public ResultHolder&lt;T&gt;
+{
+  public:
+    // Remember my type.
+    typedef ArrayAccumulator&lt;T, ArrayType&gt; This_t;
+
+    // Let the member data destroy itself.
+    virtual ~ArrayAccumulator()
+    {}
+
+    // A static function that will be run in a thread.
+    // The data passed in is an object of type This_t.
+    static void *threadAccumulate(
+        void * x
+    ){
+        This_t *y = static_cast&lt;This_t*&gt;(x);
+        y-&gt;result = accumulate(y-&gt;array);
+        return x;
+    }
+
+    // Construct with a const ref to an array.
+    // Just remember the array.
+    ArrayAccumulator(
+        const ArrayType &amp; a
+    ) : array(a)
+    {}
+
+  private:
+    // Store the array by value since the one passed in could be
+    // a temporary.
+    ArrayType array;
+};
+
+//----------------------------------------------------------------------
+// void spawn_thread(pthread_id, ArrayType)
+//
+// Spawns a thread that runs an ArrayAccumultor.
+//----------------------------------------------------------------------
+
+template&lt;class ArrayType&gt;
+inline void
+spawn_accumulate(
+    pthread_t &amp;       id,
+    const ArrayType &amp; a
+){
+  // Typedefs to make the thread create more clear.
+  typedef typename ArrayType::Element_t T;
+  typedef ArrayAccumulator&lt;T, ArrayType&gt; Accumulator_t;
+
+  // Spawn a thread:
+  //   Store the id through the reference that is passed in.
+  //   The function to call is threadAccumulate
+  //   The thread data is an ArrayAccumulator using the passed in array.
+  pthread_create(&amp;id, NULL, Accumulator_t::threadAccumulate,
+		 new Accumulator_t(a));
+}
+
+//----------------------------------------------------------------------
+// Multipatch version.
+// Loop over patches and accumulate each patch.
+//----------------------------------------------------------------------
+
+template&lt;int D, class T&gt;
+T accumulate(
+    const ConstArray&lt;D, T, UniformMultiPatch&lt;Brick&gt;&gt; &amp; x
+){
+    // Get the GridLayout from the array.
+    const GridLayout&lt;2&gt;&amp; layout = x.message(GetGridLayoutTag&lt;2&gt;());
+
+    // Find the number of patches.  We'll have one thread per patch.
+    int patches = layout.size();
+
+    // An array of thread ids.
+    pthread_t *ids = new pthread_t[patches];
+
+    // Loop over patches.
+    typename GridLayout&lt;2&gt;::iterator i= x.message(GetGridLayoutTag&lt;2&gt;()).begin();
+    typename GridLayout&lt;2&gt;::iterator e= x.message(GetGridLayoutTag&lt;2&gt;()).end();
+    int c=0;
+    while (i!=e)
+    {
+        // Spawn a thread for each patch.
+        // cout &lt;&lt; "spawn" &lt;&lt; endl;
+        spawn_accumulate(ids[c], x(*i));
+        ++i;
+        ++c;
+    }
+
+    // Wait for all the threads to finish.
+    // Get the sum from each, and accumulate that
+    // in this thread.
+    T sum = 0;
+    for (int j=0; j&lt;c; ++j)
+    {
+        // Wait for a given thread to finish.
+        // cout &lt;&lt; "join" &lt;&lt; endl;
+        void * v;
+        pthread_join(ids[j], &amp;v);
+
+        // Get the result of the sum for that thread.
+        // We don't need to know the array type for this.
+        ResultHolder&lt;T&gt;* s = static_cast&lt;ResultHolder&lt;T&gt;*&gt;(v);
+        cout &lt;&lt; s-&gt;get() &lt;&lt; endl;
+        sum += s-&gt;get();
+
+        // Delete the data structure passed to the thread.
+        delete s;
+    }
+
+    // Return the full sum.
+    return sum;
+}
+
+//----------------------------------------------------------------------
+// General engine version.
+// If we don't know anything about the engine, at least get the right answer.
+//----------------------------------------------------------------------
+
+template&lt;int D, class T, class E&gt;
+T accumulate(
+    const ConstArray&lt;D, T, E&gt; &amp; x
+){
+    return accumulateWithLoop(x);
+}
+
+#endif
+</pre></blockquote>
+
+<p>We will not explain this code in detail, but rather will try to
+give an overview of the main issues it raises and addresses.  First,
+the pthreads library requires programs to pass a <tt>void*</tt> data
+pointer when creating a thread, but the thing you pass to the other
+subroutines is a temporary (in this case, <tt>x(*i)</tt>).  The
+program must therefore build an object (in this case an
+<tt>ArrayAccumulator&lt;&gt;</tt>) to store the array by value.  While
+this must be built on the heap, not the stack, the
+<tt>Array&lt;&gt;</tt> object is still of course just a handle on the
+real data.
+
+<p>Second, since the program constructs an object to pass to the
+thread, it must destroy that object appropriately.  In this case
+<tt>pthread_join()</tt> returns (via an argument) the pointer that was
+passed to it; the main <tt>accumulate()</tt> function picks up this
+pointer, and deletes the object it points to after casting it
+appropriately.
+
+<p>There is always the question of how the thread will return
+information to the rest of the code.  In this case, since it is
+passing the <tt>ArrayAccumulator&lt;&gt;</tt> back through
+<tt>pthread_join</tt>, the <tt>ArrayAccumulator&lt;&gt;</tt> has the
+result of the sum for that thread.
+
+<p><tt>ArrayAccumulator&lt;&gt;</tt> needs to know the exact type of
+<tt>x(*i)</tt> in order to do the accumulation, but it would be bad
+practice to make the subroutine that loops over the patches only work
+for one type of array.  Instead, the program uses a function called
+<tt>spawn_accumulate()</tt>, which is templated on the actual array
+type.
+
+<p>The program has now handled the problem of generating the threads
+without knowing the type of <tt>x(*i)</tt>, but it still needs to
+receive the <tt>ArrayAccumulator&lt;&gt;</tt>, and that also has the
+type.  The return data of type <tt>T</tt> is therefore split into the
+base class <tt>ResultHolder</tt>, which only knows the type
+<tt>T</tt>.  The thing passed back from <tt>pthread_join</tt> is a
+pointer to that; since its destructor is virtual, it can safely be
+deleted.
+
+<p>The result is verbose, but not any more so than most multi-threaded
+programs. The biggest complication is having to introduce the
+<tt>ArrayAccumulator&lt;&gt;</tt> class in order to put the array
+being summed over on the heap instead of the stack.
+
+<br>
+<br>
+<center>
+<table>
+<tr>	<td><a href="self-test.html">[Prev]</a>
+	<td><a href="index.html">[Home]</a>
+	<td><a href="compilers.html">[Next]</a>
+	</tr>
+</table>
+</center>
+
+</body>
+</html>

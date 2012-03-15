@@ -1,0 +1,1010 @@
+<html>
+<head>
+<title>IPPL Tutorials : Background and Terminology</title>
+<link rel=StyleSheet href="http://amas.web.psi.ch/css/basic-style.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+
+<h1>Background and Terminology</h1>
+
+<p><b>Contents:</b>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#intro">Introduction</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#architecture">Modern Architectures</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#optimize">Optimization</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#templates">Templates</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#stl">The Standard Template Library</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#expression-templates">Expression Templates</a>
+
+<a name="intro"><h2>Introduction</h2></a>
+
+<p>Object-oriented programming languages like C++ make development
+easier, but performance tuning harder.  The same abstractions that
+allow programmers to focus on what their program is doing, rather than
+how it is doing it, also make it harder for compilers to re-order
+operations, predict how many times a loop will be executed, or re-use
+an area of memory instead of making an unnecessary copy.
+
+<p>For example, suppose that a class <tt>FloatVector</tt> is being
+used to store and operate on vectors of floating-point values.  As
+well as constructors, a destructor, and element access methods, this
+class also has overloaded operators that add, multiply, and assign
+whole vectors:
+
+<blockquote><pre>
+class FloatVector
+{
+  public :
+    FloatVector();                      // <em>default constructor</em>
+
+    FloatVector(                        // <em>value constructor</em>
+        int size,                       // <em>..size of vector</em>
+        float val                       // <em>..initial element value</em>
+    );
+
+    FloatVector(                        // <em>copy constructor</em>
+        const FloatVector &amp; v           // <em>..what to copy</em>
+    );
+
+    virtual ~FloatVector();             // <em>clean up</em>
+
+    float getAt(                        // <em>get an element</em>
+        int index                       // <em>..which element to get</em>
+    ) const;
+
+    void setAt(                         // <em>change an element</em>
+        int index,                      // <em>..which element to set</em>
+        float val                       // <em>..new value for element</em>
+    );
+
+    FloatVector operator+(              // <em>add, creating a new vector</em>
+        const FloatVector &amp; right       // <em>..thing being added</em>
+    );
+
+    FloatVector operator*(              // <em>multiply (create result)</em>
+        const FloatVector &amp; right       // <em>..thing being multiplied</em>
+    );
+
+    FloatVector &amp; operator=(            // <em>assign, returning target</em>
+        const FloatVector &amp; right       // <em>..source</em>
+    );
+
+  protected :
+    int len_;                           // <em>current length</em>
+    float * val_;                       // <em>current values</em>
+};
+</pre></blockquote>
+
+<p>Look closely at what happens when a seemingly-innocuous statement
+like the following is executed:
+<blockquote><pre>
+FloatVector V, W, X, Y;
+// <em>initialization</em>
+V = W * X + Y;
+</pre></blockquote>
+
+<p><tt>W*X</tt> creates a new <tt>FloatVector</tt>, and fills it with
+the elementwise product of <tt>W</tt> and <tt>X</tt> by looping over
+the raw block of <tt>float</tt>s encapsulated by those two vectors.
+The call to the addition operator then creates another temporary
+<tt>FloatVector</tt>, and executes another loop to fill it.  The call
+to the assignment operator doesn't create a third temporary, but does
+execute a third loop.  The net result is that our statement does the
+equivalent of:
+<blockquote><pre>
+FloatVector V, W, X, Y;
+// <em>initialization</em>
+
+FloatVector temp_1;
+for (int i=0; i&lt;<em>vector_size</em>; ++i)
+{
+    temp_1.setAt(i, W.getAt(i) * X.getAt(i));
+}
+
+FloatVector temp_2;
+for (int i=0; i&lt;<em>vector_size</em>; ++i)
+{
+    temp_2.setAt(i, temp_1.getAt(i) + Y.getAt(i));
+}
+
+for (int i=0; i&lt;<em>vector_size</em>; ++i)
+{
+    V.setAt(i, temp_2.getAt(i));
+}
+</pre></blockquote>
+
+<p>Clearly, if this program was written in C instead of C++, the three
+loops would have been combined, and the two temporary vectors
+eliminated, to create the more efficient code shown below:
+<blockquote><pre>
+FloatVector V, W, X, Y;
+// <em>initialization</em>
+for (int i=0; i&lt;<em>vector_size</em>; ++i)
+{
+    V.setAt(i, W.getAt(i) * X.getAt(i) + Y.getAt(i));
+}
+</pre></blockquote>
+
+<p>Turning the compact C++ expression first shown into the single
+optimized loop shown above is beyond the capabilities of existing
+commercial compilers.  Because operations may involve aliasing---i.e.,
+because an expression like <tt>V=W*X+V</tt> can assign to a vector
+while also reading from it---optimizers must err on the side of
+caution, and neither eliminate temporaries nor fuse loops.  This has
+led many programmers to believe that C++ is intrinsically less
+efficient than C or Fortran&nbsp;77, and that however good
+object-oriented languages are for building user interfaces, they will
+never deliver the performance needed for modern scientific and
+engineering applications.
+
+<p>The good news is that this conclusion is wrong.  By making full use
+of the features of the new ANSI/ISO C++ standard, the POOMA&nbsp;II
+library can give a modern C++ compiler the information it needs to C++
+programs to achieve Fortran&nbsp;77 levels of performance.  What's
+more, POOMA&nbsp;II does not sacrifice either readability or usability
+in order to achieve this: in fact, POOMA&nbsp;II programs are more
+portable, and more readable, than many of their peers.
+
+<p>In order to understand how and why POOMA&nbsp;II does what it does,
+it is necessary to have at least some understanding of the <a
+href="#architecture">architecture</a> of a modern RISC-based computer,
+how compilers <a href="#optimize">optimize</a> code, and what C++ <a
+href="#templates">templates</a> can and cannot do.  The sections below
+discuss each of these topics in turn.
+
+<!---------------------------------------------------------------------->
+<a name="architecture"><h2>Modern Architectures</h2></a>
+
+<p>One of the keys to making modern RISC processors go fast is
+extensive use of caching.  A computer uses a cache to exploit the
+spatial and temporal locality of most programs.  The former term means
+that if a process accesses address <em>A</em>, the odds are good that
+it will access addresses near <em>A</em> shortly thereafter.  The
+latter means that if a process accesses a value, it is likely to
+access that value again shortly thereafter.  An example of spatial
+locality is access to the fields of record structures in high-level
+languages; an example of temporal locality is the repeated use of a
+loop index variable to subscript an array.
+
+<p>Since the extra hardware that makes a cache fast also makes it
+expensive, modern computer memory is organized as a set of
+increasingly large, but increasingly slow, layers.  For example, the
+memory hierarchy in a 500MHz DEC 21164 Alpha typically looks like
+this:
+<center><table>
+<tr><td>Register		<td align=right>  2ns</tr>
+<tr><td>L1 on-chip cache	<td align=right>  4ns</tr>
+<tr><td>L2 on-chip cache	<td align=right> 15ns</tr>
+<tr><td>L3 off-chip cache	<td align=right> 30ns</tr>
+<tr><td>Main memory		<td align=right>220ns</tr>
+</table></center>
+
+<p>Caches are usually built as associative memories.  In a normal
+computer memory, a location is accessed by specifying its physical
+address.  In an associative memory, on the other hand, each location
+keeps track of its own current logical address.  When the processor
+tries to read or write some address <em>A</em>, each cache location
+checks to see whether it is supposed to respond.
+
+<p>In practice, some restrictions are imposed.  The associativity is 
+often restricted to sets of two, 
+four or eight, so that every cache line isn't eligable to cache 
+every possible memory reference.  The values in a cache are then usually 
+grouped into lines
+containing from four to sixteen words each.  Together, these bring 
+the cost down---the cost of each piece of address-matching hardware is
+amortized over several cache locations---but can also lead to
+thrashing: if a program tries to access values at regularly-spaced
+intervals, it could find itself loading a cache line from memory,
+using just one of the values in the line, and then immediately
+replacing that whole line with another one.  One of the key features
+of POOMA&nbsp;II is that it reads and writes memory during vector and
+matrix operations in ways that are much less likely to lead to
+thrashing.  While this makes the implementation of POOMA&nbsp;II more
+complicated, it greatly increases its performance.
+
+<p>At the same time as some computer architects were making processors
+simpler, others were making computers themselves more complex by
+combining dozens or hundreds of processors in a single machine.  The
+simplest way to do this is to just attach a few extra processors to
+the computer's main bus.  Such a design allows a lot of pre-existing
+software to be recycled; in particular, since most operating systems
+are written so that process execution may be interleaved arbitrarily,
+they can often be re-targeted to multiprocessors with only minor
+modifications.  Similarly, if a loop performs an operation on each
+element of an array, and the operations are independent of one
+another, then each of <em>P</em> processors can run <em>1/P</em> of
+the loop iterations independently.
+
+<p>The weakness of shared-bus multiprocessors is the finite bandwidth
+of the bus.  As the number of processors increases, the time each one
+spends waiting to use the bus also increases.  To date, this has
+limited the practical size of such machines to about two dozen
+processors.
+
+<p>Today's answer to this problem is to give each processor its own
+memory, and to use a network to connect those processor/memory nodes
+together.  One advantage of this approach is that each node can be
+built using off-the-shelf hardware, such as a PC motherboard.  Another
+advantage is that each processor's reads or writes of its own memory
+will be very fast.  Remote reads and writes may either be done
+automatically by system software and hardware, or explicitly, using
+libraries such as PVM and MPI.  So long as there is sufficient
+locality in programs---i.e., so long as most references are
+local---this scheme can deliver very high performance.
+
+<p>Of course, distributed-memory machines have problems too. In
+particular, once memory has been divided up in this way, all pointers
+are not created equal.  On a distributed memory machine with global
+addressing (such as an SGI Origin 2000), dereferencing a pointer to 
+remote memory will be considerably slower than local memory.  On a 
+distributed memory machine without global addressing (like a cluster
+of Linux boxes), a pointer
+cannot safely be passed between processes running on different
+processors.  Similarly, if a data structure such as
+an array has been decomposed, and its components spread across the
+available processors so that each may work on a small part of it, a
+small change to an algorithm may have a large effect on performance.
+Another of POOMA&nbsp;II's strengths is that it automatically manages
+data distribution to achieve high performance in a nonuniform shared
+memory machine.  This not only lets
+programmers concentrate on algorithmic issues, it also saves them from
+having to learn the quirks of the architectures they want to run their
+programs on.
+
+<!---------------------------------------------------------------------->
+<a name="optimize"><h2>Optimization</h2></a>
+
+<p>Along with interpreting the footnotes in various language
+standards, inventing automatic ways to optimize programs is a major
+preoccupation of today's compiler writers.  Since a program is a
+specification of a function mapping input values to outputs, it ought
+to be possible for a sufficiently clever compiler to find the sequence
+of instructions that would calculate that function in the least time.
+
+<p>In practice, the phrase "sufficiently clever" glosses over some
+immense difficulties.  If computer memories were infinitely large, so
+that no location ever needed to be used more than once, the task would
+be easier.  However, programmers writing Fortran&nbsp;77 and C++
+invariably save values from one calculation to use in another
+(i.e. perform assignments), use pointers or index vectors to access
+data structures, or use several different names to access a single
+data structure (such as segments of an array).  Before applying a
+possible optimization, therefore, a compiler must be able to convince
+itself that the optimization will not have unpleasant side effects.
+
+<p>To make this more concrete, consider the following sequence of
+statements:
+<blockquote><pre>
+A = 5 * B + C;                          // S<sub>1</sub>
+X = (Y + Z)/2;                          // S<sub>2</sub>
+D = (A + 2)/E;                          // S<sub>3</sub>
+C = F(I, J);                            // S<sub>4</sub>
+A = I + J;                              // S<sub>5</sub>
+if (A < 0)                              // S<sub>6</sub>
+{
+    B = 0;
+}
+</pre></blockquote>
+
+<p><em>S<sub>1</sub></em> and <em>S<sub>2</sub></em> are independent,
+since no variable appears in both.  However, the result of
+<em>S<sub>3</sub></em> depends on the result of
+<em>S<sub>1</sub></em>, since <tt>A</tt> appears on the right hand
+side of <em>S<sub>1</sub></em>.  Similarly, <em>S<sub>4</sub></em>
+sets the value of <tt>C</tt>, which <em>S<sub>1</sub></em> uses, so
+<em>S<sub>4</sub></em> must not take place before
+<em>S<sub>1</sub></em> has read the previous value of <tt>C</tt>.
+<em>S<sub>5</sub></em>, which also sets the value of <tt>A</tt>,
+depends on <em>S<sub>1</sub></em>, since <em>S<sub>1</sub></em> must
+not perform its assignment after <em>S<sub>5</sub></em>'s if the
+result of the program are to be unchanged.  Finally,
+<em>S<sub>6</sub></em> depends on <em>S<sub>1</sub></em> because a
+value set in <em>S<sub>1</sub></em> is used to control the behavior of
+<em>S<sub>6</sub></em>.
+
+<p>While it is easy to trace the relationships in this short program
+by hand, it has been known since the mid-1960s that the general
+problem of determining dependencies among statements in the presence
+of conditional branches is undecidable.  The good news is that if all
+we want are sufficient, rather than necessary, conditions---i.e. if
+erring on the side of caution is acceptable---then the conditions
+which <em>S<sub>i</sub></em> and <em>S<sub>j</sub></em> must satisfy
+in order to be independent are relatively simple.
+
+<p>This analysis becomes even simpler if we restrict our analysis to
+basic blocks.  A basic block is a sequence of statements which can
+only be executed in a particular order.  Basic blocks have a single
+entry point, a single exit point, and do not contain conditional
+branches or loop-backs.  While they are usually short in systems
+programs like compilers and operating systems, most scientific
+programs contain basic blocks which are hundreds of instructions long.
+One of the aims of POOMA&nbsp;II is to use C++ templates to make it
+easier for compilers to find and optimize basic blocks.  In
+particular, as templates are expanded during compilation of
+POOMA&nbsp;II programs, temporary variables that can confuse
+optimizers are automatically eliminated.
+
+<p>Another goal of POOMA&nbsp;II's implementation is to make it easier
+for compilers to track data dependencies.  In C++, an array is really
+just a pointer to the area of memory that has been allocated to store
+the array's values.  This makes it easy for arrays to overlap and
+alias one another, which is often useful in improving performance, but
+it also makes it very difficult for compilers to determine when two
+memory references are, or are not, independent.
+
+<p>For example, suppose we re-write the first three statements in the
+example above as follows (using the '*' notation of C++ to indicate a
+pointer de-reference):
+<blockquote><pre>
+*A = *B + *C;                           // T<sub>1</sub>
+*X = (*Y + *Z)/2;                       // T<sub>2</sub>
+*D = (*A + 2)/*E;                       // T<sub>3</sub>
+</pre></blockquote>
+
+<p>In the worst case, all eight pointers could point to the same
+location in memory, which would make this calculation equivalent to:
+<blockquote><pre>
+J = 2 * (J + 1) / J;
+</pre></blockquote>
+(where <tt>J</tt> is the value in that one location).  At the other
+extreme, each pointer could point at a separate location, which would
+mean that the calculation would have a completely different result.
+Again, as templates are expanded during the compilation of
+POOMA&nbsp;II programs, the compiler is automatically given the extra
+information it needs to discriminate between cases like these, and
+thereby deliver better performance.
+
+<!---------------------------------------------------------------------->
+<a name="templates"><h2>Templates</h2></a>
+
+<p>So what exactly is a C++ template?  One way to look at them is as
+an improvement over macros.  Suppose, for example, that you wanted to
+create a set of classes to store pairs of <tt>int</tt>s, pairs of
+<tt>float</tt>s, and so on.  In C, or pre-standardization versions of
+C++, you might first define a macro:
+<blockquote><pre>
+#define DECLARE_PAIR_CLASS(name_, type_)                            \
+class name_                                                         \
+{                                                                   \
+  public :                                                          \
+    name_();                            // <em>default constructor      \</em>
+    name_(type_ left, type_ right);     // <em>value constructor        \</em>
+    name_(const name_ &amp; right);         // <em>copy constructor         \</em>
+    virtual ~name_();                   // <em>destructor               \</em>
+    type_ &amp; left();                     // <em>access left element      \</em>
+    type_ &amp; right();                    // <em>access right element     \</em>
+                                                                    \
+  protected :                                                       \
+    type_ left_, right_;                // <em>value storage            \</em>
+};
+</pre></blockquote>
+
+<p>You could then use that macro to create each class in turn:
+<blockquote><pre>
+DECLARE_PAIR_CLASS(IntPair, int)
+DECLARE_PAIR_CLASS(FloatPair, float)
+</pre></blockquote>
+
+<p>A better way to do this in standard C++ is to declare a template
+class, and then instantiate that class when and as needed:
+<blockquote><pre>
+template&lt;class DataType&gt;
+class Pair
+{
+  public :
+    Pair();                             // <em>default constructor</em>
+    Pair(DataType left,                 // <em>value constructor</em>
+         DataType right);
+    Pair(const Pair&lt;DataType&gt; &amp; right);           // <em>copy constructor</em>
+    virtual ~Pair();                    // <em>destructor</em>
+    DataType &amp; left();                  // <em>access left element</em>
+    DataType &amp; right();                 // <em>access right element</em>
+
+  protected :
+    DataType left_, right_;             // <em>value storage</em>
+};
+</pre></blockquote>
+
+<p>Here, the keyword <tt>template</tt> tells the compiler that the
+class cannot be compiled right away, since it depends on an
+as-yet-unknown data type.  When the declarations:
+
+<blockquote><pre>
+Pair&lt;int&gt;   pairOfInts;
+Pair&lt;float&gt; pairOfFloats;
+</pre></blockquote>
+
+<p>are seen, the compiler finds the declaration of
+<tt>Pair&lt;&gt;</tt>, and instantiates it once for each underlying
+data type.  This happens automatically: the programmer does
+<em>not</em> have to create the actual pair classes explicitly by
+saying:
+
+<blockquote><pre>
+typedef Pair&lt;int&gt; IntPair;
+IntPair pairOfInts;
+</pre></blockquote>
+
+<p>Templates can also be used to define functions, as in:
+
+<blockquote><pre>
+template&lt;class DataType&gt;
+void swap(DataType &amp; left, DataType &amp; right)
+{
+    DataType tmp(left);
+    left  = right;
+    right = tmp;
+}
+</pre></blockquote>
+
+<p>Once again, this function can be called with two objects of any
+matching type, without any further work on the programmer's part:
+
+<blockquote><pre>
+int   i, j;
+swap(i, j);
+
+Shape back, front;
+swap(back, front);
+</pre></blockquote>
+
+<p>Note that the implementation of <tt>swap()</tt> depends on the
+actual data type of its arguments having both a copy constructor (so
+that <tt>tmp</tt> can be initialized with the value of <tt>left</tt>)
+and an assignment operator (so that <tt>left</tt> and <tt>right</tt>
+can be overwritten).  If the actual data type does not provide either
+of these, the particular instantiation of <tt>swap()</tt> will fail
+to compile.
+
+<p>Note also that <tt>swap()</tt> can be made more flexible by not
+requiring the two objects to have exactly the same type.  The
+following re-definition of <tt>swap()</tt> will exchange the values of
+any two objects, provided appropriate assignment and conversion
+operators exist:
+
+<blockquote><pre>
+template&lt;class LeftType, class RightType&gt;
+void swap(LeftType &amp; left, RightType &amp; right)
+{
+    LeftType tmp(left);
+    left  = right;
+    right = tmp;
+}
+</pre></blockquote>
+
+<p>Finally, the word <tt>class</tt> appears in template definitions
+because other values, such as integers, can also be used.  The code
+below defines a template for a small fixed-size vector class, but
+does not fix either the size or the underlying data type:
+
+<blockquote><pre>
+template&lt;class DataType, int FixedSize&gt;
+class FixedVector
+{
+  public :
+    FixedVector();                      // <em>default constructor</em>
+    FixedVector(DataType filler);       // <em>value constructor</em>
+    virtual ~FixedVector();             // <em>destructor</em>
+
+    FixedVector(                        // <em>copy constructor</em>
+        FixedVector&lt;DataType, FixedSize&gt; right
+    );
+
+    FixedVector&lt;DataType&gt;               // <em>assignment</em>
+    operator=(
+        const FixedVector&lt;DataType, FixedSize&gt; &amp; right
+    );
+
+    DataType &amp; operator[](int index);   // <em>element access</em>
+
+  protected :
+    DataType storage[FixedSize];        // <em>fixed-size storage</em>
+};
+</pre></blockquote>
+
+<p>It is at this point that the possible performance advantages of
+templated classes start to become apparent.  Suppose that the copy
+constructor for this class is implemented as follows:
+
+<blockquote><pre>
+template&lt;class DataType, int FixedSize&gt;
+FixedVector::FixedVector(
+    FixedVector&lt;DataType, FixedSize&gt; right
+){
+    for (int i=0; i&lt;FixedSize; ++i)
+    {
+        storage[i] = right.storage[i];
+    }
+}
+</pre></blockquote>
+
+<p>When the compiler sees a use of the copy constructor, such as:
+
+<blockquote><pre>
+template&lt;class DataType, int FixedSize&gt;
+void someFunction(FixedVector&lt;DataType, FixedSize&gt; arg)
+{
+    FixedVector&lt;DataType, FixedSize&gt; tmp(arg);
+    // <em>operations on tmp</em>
+}
+</pre></blockquote>
+
+<p>it knows the size as well as the underlying data type of the
+objects being manipulated, and can therefore perform many more
+optimizations than it could if the size were variable.  What's more,
+the compiler can do this even when different calls to
+<tt>someFunction()</tt> operate on vectors of different sizes, as in:
+
+<blockquote><pre>
+FixedVector&lt;double, 8&gt; splineFilter;
+someFunction(splineFilter);
+
+FixedVector&lt;double, 22&gt; chebyshevFilter;
+someFunction(chebyshevFilter);
+</pre></blockquote>
+
+<p>Automatic instantiation of templates is both convenient and
+powerful, but does have one drawback.  Suppose the
+<tt>Pair&lt;&gt;</tt> class shown earlier is instantiated in one
+source file to create a pair of <tt>int</tt>s, and in another source
+file to create a pair of <tt>Shape</tt>s.  The compiler and linker
+could:
+<ol>
+<li>treat the two instantiations as completely separate classes;
+<li>detect and eliminate redundant instantiations; or
+<li>avoid redundancy by not instantiating templates until the program as
+a whole was being linked.
+</ol>
+
+<p>The first of these can lead to very large programs, as a
+commonly-used template class may be expanded dozens of times.  The
+second is difficult to do, as it involves patching up compiled files
+as they are being linked.  Most recent versions of C++ compilers are
+therefore taking the third approach, but POOMA&nbsp;II users should be
+aware that older versions might still produce much larger executables
+than one would expect.
+
+<p>The last use of templates that is important to this discussion is
+<a name="template-methods">template methods</a>, which are a logical
+extension of templated functions.  This feature was added to the
+ANSI/ISO C++ standard rather late, but has proved to be very powerful.
+Just as a templated function is instantiated on demand for different
+types of arguments, so too are templated methods instantiated for a
+class when and as they are used.  For example, suppose a class is
+defined as follows:
+
+<blockquote><pre>
+class Example
+{
+  public :
+    Example();                          // <em>default constructor</em>
+    virtual ~Example();                 // <em>destructor</em>
+
+    template&lt;class T&gt;
+    void foo(T object)
+    {
+        // <em>some operation on object</em>
+    }
+};
+</pre></blockquote>
+
+<p>Whenever the method <tt>foo()</tt> is called with an object of a
+particular type, the compiler instantiates the method for that type.
+Thus, both of the following calls in the following code are legal:
+
+<blockquote><pre>
+Example e;
+Shape box;
+e.foo(5);                               // <em>instantiate for int</em>
+e.foo(box);                             // <em>instantiate for Shape</em>
+</pre></blockquote>
+
+<!---------------------------------------------------------------------->
+<a name="stl"><h2>The Standard Template Library</h2></a>
+
+<p>The best-known use of templates to date has been the Standard
+Template Library, or STL.  The STL uses templates to separate
+containers (such as vectors and lists) from algorithms (such as
+finding, merging, and sorting).  The two are connected through the use
+of <em>iterators</em>, which are classes that know how to read or
+write particular containers, without exposing the actual type of those
+containers.
+
+<p>For example, consider the following code fragment, which finds the
+first occurrence of a particular value in a vector of floating-point
+numbers:
+
+<blockquote><pre>
+void findValue(vector&lt;double&gt; &amp; values, double target)
+{
+    vector&lt;double&gt;::iterator loc =
+        find(values.begin(), values.end(), target);
+    assert(*loc == target);
+}
+</pre></blockquote>
+
+<p>The STL class <tt>vector&lt;&gt;</tt> declares another class called
+<tt>iterator</tt>, whose job it is to traverse a
+<tt>vector&lt;&gt;</tt>.  The two methods <tt>begin()</tt> and
+<tt>end()</tt> return instances of <tt>vector&lt;&gt;::iterator</tt>
+marking the beginning and end of the vector.  STL's <tt>find()</tt>
+function iterates from the first of its arguments to the second,
+looking for a value that matches the one specified.  Finally,
+dereferencing (<tt>operator*</tt>) is overloaded for
+<tt>vector&lt;&gt;::iterator</tt>, so that <tt>*loc</tt> returns the
+value at the location specified by <tt>loc</tt>.
+
+<p>If we decide later to store our values in a list instead of in a
+vector, only the declaration of the container type needs to change,
+since <tt>list&lt;&gt;</tt> defines a nested iterator class, and
+<tt>begin()</tt> and <tt>end()</tt> methods, in exactly the same way
+as <tt>vector&lt;&gt;</tt>:
+
+<blockquote><pre>
+void findValue(list&lt;double&gt; &amp; values, double target)
+{
+    list&lt;double&gt;::iterator loc =
+        find(values.begin(), values.end(), target);
+    assert(*loc == target);
+}
+</pre></blockquote>
+
+<p>If we go one step further, and use a <tt>typedef</tt> to label our
+container type, then nothing in <tt>findValue()</tt> needs to change
+at all:
+
+<blockquote><pre>
+typedef vector&lt;double&gt; Storage;
+// <em>typedef list&lt;double&gt; Storage;</em>
+
+void findValue(Storage &amp; values, double target)
+{
+    Storage::iterator loc =
+        find(values.begin(), values.end(), target);
+    assert(*loc == target);
+}
+</pre></blockquote>
+
+<p>The performance of this code will change as the storage mechanism
+changes, but that's the point: STL-based code can often be tuned using
+only minor, non-algorithmic changes.  As the tutorials will show,
+POOMA&nbsp;II borrows many ideas from the STL in order to separate
+interface from implementation, and thereby make optimization easier.
+In particular, POOMA&nbsp;II's arrays are actually more like
+iterators, in that they are an interface to data, rather than the data
+itself.  This allows programmers to switch between dense and sparse,
+or centralized and distributed, array storage, with only minor,
+localized changes to the text of their programs.
+
+<!---------------------------------------------------------------------->
+<a name="expression-templates"><h2>Expression Templates</h2></a>
+
+<p>Expression templates use template instantiation to give compilers
+the information they need in order to optimize loops containing
+arithmetic expressions.  If templated classes and operators like the
+ones used in POOMA&nbsp;II have been defined, then a statement like:
+
+<blockquote><pre>
+MathVector x, a, b, c;
+x = (a / b) +c
+</pre></blockquote>
+
+<p>will automatically be turned into the optimal loop:
+
+<blockquote><pre>
+for (int i=0; i&lt;<em>vector_size</em>; i++)
+{
+    x[i] = (a[i] / b[i]) + c[i];
+}
+</pre></blockquote>
+
+<p>The trick is that the addition and division operators are defined
+so that as the compiler expands them, it has to parse the arithmetic
+expression in a way that pushes the arithmetic operations down into a
+single loop.
+
+<p>To see how this works, suppose we have defined an STL-like vector
+class as follows:
+
+<blockquote><pre>
+class DVec
+{
+  public:
+    // <em>what type of thing is used to iterate through a vector?</em>
+    typedef double * iterator;
+
+    // <em>construct a vector of a specified length</em>
+    DVec(int n)
+    : length_(n)
+    {
+        values_ = new double[n];
+    }
+
+    // <em>destroy a vector</em>
+    virtual ~DVec()
+    {
+        delete [] values_;
+    }
+
+    // <em>return an 'iterator' indicating the start of data</em>
+    iterator begin() const
+    {
+        return values_;
+    }
+
+    // <em>return an 'iterator' indicating the end of data</em>
+    iterator end() const
+    {
+        return values_ + length_;
+    }
+
+    // <em>get an element's value given an iterator for this class</em>
+    double operator*(iterator iter)
+    {
+        return *iter;
+    }
+
+    // <em>assign to this vector from an expression of some type</em>
+    template&lt;class A&gt;
+    DVec &amp; operator=(DVExpr&lt;A&gt;);
+
+  protected:
+    double * values_;                   // <em>storage for values</em>
+    int      length_;                   // <em>current length of storage</em>
+};
+</pre></blockquote>
+
+<p>This class is unremarkable in most respects.  However, it does two
+things that the expression template framework needs.  First, it
+defines a type <tt>iterator</tt>, along with <tt>begin()</tt> and
+<tt>end()</tt> methods, so that other templated classes and functions
+can access <tt>DVec</tt>'s elements.  For example, a function to print
+out the elements of any class in the framework is simply:
+
+<blockquote><pre>
+template&lt;class T&gt;
+void printElements(T &amp; object)
+{
+    T::iterator iter = object.begin();
+    while (iter != object.end())
+    {
+        cout &lt;&lt; *iter &lt;&lt; endl;
+    }
+}
+</pre></blockquote>
+
+<p>This function can be instantiated by any actual class that defines
+a type called <tt>iterator</tt> for traversing its elements, and has
+<tt>begin()</tt>, <tt>end()</tt>, and lookup methods (the latter being
+the overloaded <tt>operator()</tt>).  <tt>DVec</tt> is one such class;
+every other class in the expression template framework follows the
+same rules.
+
+<p>The second thing <tt>DVec</tt> does for the framework is define a
+templated assignment operator.  This operator is templated by a
+placeholder type <tt>A</tt>, but takes an argument of type
+<tt>DVExpr&lt;A&gt;</tt> (which is described below).  This means that
+the C++ compiler can only instantiate the method for objects which are
+themselves instantiations of the <tt>DVExpr&lt;&gt;</tt> template.
+For example, the following code would fail to compile:
+
+<blockquote><pre>
+DVec vec;
+vec = 5;
+</pre></blockquote>
+
+<p>since "5" cannot be made to match <tt>DVExpr&lt;A&gt;</tt> for any
+type <tt>A</tt>.  On the other hand, the following code would be
+legal:
+
+<blockquote><pre>
+class Foo;                              // <em>an arbitrary type</em>
+DVExpr&lt;Foo&gt; aFoo;                       // <em>instantiate DVExpr</em>
+vec = aFoo;                             // <em>assignment now matches</em>
+</pre></blockquote>
+
+<p>The class <tt>DVExpr</tt> represents an expression involving
+vectors---not the result of the expression, but the expression itself:
+
+<blockquote><pre>
+template&lt;class A&gt;
+class DVExpr
+{
+  public:
+    DVExpr(const A &amp; a)
+    : source_(a)
+    {}
+
+    double operator*() const
+    {
+        return *source_;
+    }
+
+    void operator++()
+    {
+        ++source_;
+    }
+
+  private:
+    A source_;
+};
+</pre></blockquote>
+
+<p>This templated expression class supports the same iterator-style
+interface as the actual vector class <tt>DVec</tt>.  Thus, any code
+that used <tt>*</tt> and <tt>++</tt> to read values from a vector
+iterator (a <tt>DVec::iterator</tt>) could also read values from a
+vector expression.  We can therefore use <tt>DVExpr&lt;&gt;</tt> to
+implement the assignment operator for <tt>DVec</tt> which was declared
+above, and implement it in a way that only evaluates the source
+expression on demand:
+
+<blockquote><pre>
+template&lt;class A&gt;
+DVec &amp; DVec::operator=(DVExpr&lt;A&gt; source)
+{
+    // <em>iterate over the element of the vector</em>
+    for (DVec::iterator iter = this-&gt;begin(); iter != this-&gt;end(); ++iter)
+    {
+        // <em>use 'operator*' to read 'source' and write to 'this'</em>
+        *iter = *source;
+
+        // <em>move on to next element of 'source'</em>
+        ++source;
+    }
+
+    // <em>by convention, 'operator=' returns the target of the assignment</em>
+    return *this;
+}
+</pre></blockquote>
+
+<p>The next step is to represent our unary and binary arithmetic
+operators in a uniform way.  For each of the binary operators, for
+example, we define a class that contains nothing except a method whose
+name, arguments, and return type are the same for all operators.  In
+the case of addition and multiplication, these classes are:
+
+<blockquote><pre>
+class DOpAdd
+{
+  public :
+    static inline double apply(double left, double right)
+    {
+        return left + right;
+    }
+};
+
+class DOpMul
+{
+  public :
+    static inline double apply(double left, double right)
+    {
+        return left * right;
+    }
+};
+</pre></blockquote>
+
+<p>The <tt>apply()</tt> methods look exactly the same to clients of
+<tt>DOpAdd</tt> and <tt>DOpMul</tt> so that those clients don't need
+to know what particular operation is being invoked.  A trivial example
+is the following a function, which combines two vectors in an
+arbitrary way:
+
+<blockquote><pre>
+// <em>definition</em>
+template&lt;class Op&gt;
+void combine(DVec &amp; left, DVec &amp; right)
+{
+    DVec::iterator il = left.begin(),
+                   ir = right.begin();
+    while ((il != left.end()) &amp;&amp; (ir != right.end()))
+    {
+        *il = Op::apply(*il, *ir);
+    }
+}
+
+// <em>use</em>
+void use()
+{
+    DVec a(100, 3.14), b(100, 2.17), c(100, 42.0);
+
+    // <em>a += b</em>
+    combine&lt;DOpAdd&gt;(a, b);
+
+    // <em>c *= b</em>
+    combine&lt;DOpMul&gt;(c, b);
+}
+</pre></blockquote>
+
+<p>However, functions of this kind would still leave us with multiple
+loops and temporaries.  Instead, the next step is to define a class to
+represent an arbitrary binary operation.  This class takes an
+<tt>Op</tt> class as a template parameter, and uses that class's
+<tt>apply()</tt> method to combine the values of its two data
+arguments.  Note that the types of these data arguments are not
+specified: anything that supports <tt>DVec</tt>'s iterator-style
+interface can be used.
+
+<blockquote><pre>
+template &lt;class A, class B, class Op&gt;
+class DBinExprOp
+{
+  public:
+    DBinExprOp(const A &amp; a, const B &amp; b)
+    : a_(a), b_(b)
+    {}
+
+    double operator()(double x) const
+    {
+        return Op::apply(a_(x), b_(x));
+    }
+
+  protected :
+    A a_;
+    B b_;
+};
+</pre></blockquote>
+
+<p>The final step is to overload <tt>operator+</tt> so that it adds
+expressions by creating a <tt>DBinExprOp</tt> for its data arguments
+using <tt>DOpAdd</tt>:
+
+<blockquote><pre>
+template &lt;class A, class B&gt; 
+DVExpr &lt; DBinExprOp &lt; DVExpr&lt;A&gt;, DVExpr&lt;B&gt;, DOpAdd &gt;  &gt; 
+operator+(const DVExpr &lt;A&gt; &amp; a, const DVExpr &lt;B&gt; &amp; b)
+{
+    typedef DBinExprOp &lt; DVExpr&lt;A&gt;, DVExpr&lt;B&gt;, DOpAdd &gt; ExprT;
+    return DVExpr&lt;ExprT&gt; ExprT(a, b);
+}
+</pre></blockquote>
+
+<p>The result is basically a <tt>DBinExprOp</tt>, which represents an
+as-yet-unevaluated binary operation.  Its two template parameters
+<tt>DVExpr&lt;A&gt;</tt> and <tt>DVExpr&lt;B&gt;</tt> are the two
+subexpressions being operated on, while <tt>DOpAdd</tt> specifies the
+addition operation.  The return value is wrapped up as a
+<tt>DVExpr</tt> so that it can be used in other arithmetic expressions
+directly, i.e. so that it has the right type to be used as an argument
+to <tt>DVec::operator=</tt>.
+
+<p>Note that this definition of <tt>operator+</tt> does <em>not</em>
+add the two vectors.  Instead, it specifies that the vectors are to be
+added.  The actual addition is triggered by the expansion of
+<tt>DVec</tt>'s assignment operator, which uses <tt>operator*</tt> to
+evaluate the assignment's source.  If that source is a raw
+<tt>DVec</tt>, evaluation consists of nothing more than reading a
+value through a pointer.  If the source is a <tt>DBinExprOp</tt>, on
+the other hand, then evaluation triggers the addition of two vector
+elements.  And if the source is a <tt>DBinExprOp</tt> that contains
+another <tt>DBinExprOp</tt>---for example, addition of the results of
+two multiplications---then the expansion of the assignment operator
+invokes the two multiplications and the addition <em>inside the same
+loop</em>, since the only loop in all of this code is the one inside
+<tt>DVec::operator=</tt>.  In other words, the process of template
+expansion has effectively fused the arithmetic operations into one
+loop, without temporaries, which in turn means that what the compiler
+is now simple enough to be optimized effectively.
+
+<p>This may seem complicated, but that's because it is. POOMA&nbsp;II,
+and other libraries based on expression templates, push C++ to its
+limits because that's what it takes to get high performance.  Defining
+the templated classes such a library requires is a painstaking task,
+as is ensuring that their expansion produces the correct result, but
+once it has been done, programmers can take full advantage of operator
+overloading to create compact, readable, maintainable programs without
+sacrificing performance.
+
+<br>
+<br>
+<center>
+<table>
+<tr>	<td><a href="introduction.html">[Prev]</a>
+	<td><a href="index.html">[Home]</a>
+	<td><a href="tut-1.html">[Next]</a>
+	</tr>
+</table>
+</center>
+
+</body>
+</html>

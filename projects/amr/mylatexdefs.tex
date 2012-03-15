@@ -1,0 +1,157 @@
+\newcommand{\opal}{\textsc{OPAL}}
+\newcommand{\opalcycl}{\textsc{OPAL-cycl}}
+\newcommand{\opalmap}{\textsc{OPAL-map}}
+\newcommand{\opalt}{\textsc{OPAL-t}}
+\newcommand{\opalenv}{\textsc{OPAL-envelope}}
+\newcommand{\ippl}{\textsc{$IP^{2}L$}}
+\newcommand{\mcfour}{\textsc{$MC^{4}$}}
+
+\newcommand{\mad}{\textsc{mad}}
+\newcommand{\madnine}{\textsc{mad9}}
+\newcommand{\madninep}{\textsc{mad9p}}
+\newcommand{\madeight}{\textsc{mad8}}
+
+\newcommand{\classic}{\textsc{classic}}
+\newcommand{\hfifehut}{\textsc{H5hut}}
+\newcommand{\hfifepart}{\textsc{H5Part}}
+\newcommand{\hfifeblock}{\textsc{H5Block}}
+\newcommand{\hfifefe}{\textsc{H5FED}}
+
+\newcommand{\hipa}{\textsc{PSI-HIPA}}
+\newcommand{\oursolver}{\textsc{SAAMG-PCG}}
+
+\renewcommand{\epsilon}{\varepsilon} 
+\renewcommand{\vec}[1]{{\bf #1}} 
+\newcommand{\dt}[1]{\frac{\partial #1}{\partial t}}
+\newcommand{\dtt}[1]{\frac{\partial^2 #1}{\partial t^2}}
+\newcommand{\dtvec}[1]{\frac{\partial {\mathbf #1}}{\partial t}}
+\newcommand{\dttvec}[1]{\frac{\partial^2 {\mathbf #1}}{\partial t^2}}
+\newcommand{\rot}{\vec{\nabla} \wedge }
+\renewcommand{\div}{\vec{\nabla} \cdot }
+
+\def\vec#1{\mathbf{#1}}
+\def\vecg#1{\boldsymbol{#1}}
+\def\norm#1{\| #1 \|} 
+\def\tr{^{\!\top}}
+
+\def\curl{{\bf curl}\,}
+\def\curlp{{\rm curl}_p\,}
+\def\div{{\rm div}\,}
+\def\grad{\nabla}
+\def\gradp{\nabla_p}
+\def\dotp#1#2{\langle#1,#2\rangle}
+\def\eps{\varepsilon}
+
+\newcommand{\mat}[1]{\ensuremath{\boldsymbol{#1}}}
+\newcommand{\vect}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\iprod}[2]{\ensuremath{\langle#1,#2\rangle}}
+\newcommand{\abs}[1]{\ensuremath{|#1|}}
+
+\newcommand{\Nedelec}{N\'{e}d\'{e}lec}
+
+\newcommand{\id}[1]{\structure{#1}}
+
+\newcommand {\Co}{{\mathbb{C}}}
+\newcommand {\Int}{{\mathbb{Z}}}
+\newcommand {\Nat}{{\mathbb{N}}}
+%
+%
+\newcommand {\Hcurl}{{H(\mathbf{curl};\Omega)}}
+\newcommand {\Hocurl}{{H_0(\mathbf{curl};\Omega)}}
+\newcommand {\Hdiv}{{H(\mathrm{div};\Omega)}}
+\newcommand {\Hodiv}{{H_0(\mathbf{div};\Omega)}}
+%
+\renewcommand {\Re}{{\rm I \kern-2pt R}}
+\newcommand{\vc}[1]{\mbox{\boldmath $#1$}}
+\newcommand {\RM}[1]{\mathrm{#1}}
+
+
+\newcommand{\bs}[1]{\mathbf #1}
+\newcommand{\rms}[1]
+{\overset{\sim}{#1}}
+
+%--------------
+% Draft helpers
+%--------------
+
+\usepackage{suffix}
+
+% A simple colored box inlined with the text
+%  #1: color to use
+%  #2: text to put
+\newcommand{\INLINEBOX}[2]{%
+   \begin{center}%
+    \fcolorbox{#1!60!black}{#1}{%
+      \addtolength{\linewidth}{-0.6cm}%  fixed value, works for normal article text
+      \begin{minipage}{\linewidth} #2 \end{minipage}%
+    }%
+   \end{center}\vspace{1pt}%
+}
+
+% A box at the margin containing the given text
+\newcommand{\MARGINBOX}[1]{%
+  \mbox{}%
+  \marginpar%
+   [\tiny\raggedleft\hspace{0pt}#1]%
+   {\tiny\raggedright\hspace{0pt}#1}%
+}
+
+% mark specific elements: starred versions use inline boxes
+\newcommand{\TODO}[2][]{\MARGINBOX{\textcolor{red!80!black}{\emph{ToDo (#1):}} #2}}
+\WithSuffix\newcommand\TODO*[2][]{\INLINEBOX{red!20!white}{\emph{ToDo (#1):} #2}}
+
+\newcommand{\FIXME}[2][]{\MARGINBOX{\textcolor{blue!80!black}{\emph{FixMe (#1):}} #2}}
+\WithSuffix\newcommand\FIXME*[2][]{\INLINEBOX{blue!20!white}{\emph{FixMe (#1):} #2}}
+
+\newcommand{\NOTE}[2][]{\MARGINBOX{\textcolor{green!80!black}{\emph{Note (#1):}} #2}}
+\WithSuffix\newcommand\NOTE*[2][]{\INLINEBOX{green!20!white}{\emph{Note (#1):} #2}}
+
+
+\graphicspath{
+{figures/figures-phys/},
+{figures/figures-arch/},
+{figures/figures-cycl/},
+{figures/figures-cycl/Inj2/},
+{figures/figures-general/},
+{figures/figures-general-accel/},
+{figures/figures-hpc/},
+{figures/figures-logo/},
+{figures/figures-mad9p/},
+{figures/figures-num/},
+{figures/figures-slides/},
+{figures/figures-xfel/},
+{figures/figuresjang/}
+}
+
+%------------------
+% OLD STUFF
+%------------------
+
+%\setbeamertemplate{footline}
+%{
+%	\leavevmode%
+%	\hbox{%
+%	\begin{beamercolorbox}[wd=.14\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+%		\usebeamerfont{author in head/foot}\insertshortauthor
+%	\end{beamercolorbox}%
+%	\begin{beamercolorbox}[wd=.48\paperwidth,ht=2.25ex,dp=1ex,center]{title	in head/foot}%
+%		\usebeamerfont{title in head/foot}\insertshorttitle
+%	\end{beamercolorbox}%
+%	\begin{beamercolorbox}[wd=.23\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+%		\usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}
+%		\insertframenumber{} /
+%		\inserttotalframenumber\hspace*{2ex} 
+%	\end{beamercolorbox}}%
+%	\vskip0pt%
+%}
+
+\newcommand{\rnb}{radially neighboring bunches }
+\newcommand{\nbe}{neighboring bunch effects }
+\newcommand{\sce}{space charge effects }
+\newcommand{\scf}{space charge force }
+
+
+
+
+
+

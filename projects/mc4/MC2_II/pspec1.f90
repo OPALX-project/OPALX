@@ -1,0 +1,97 @@
+      subroutine pspec1(phi,ng,pkf)
+
+!-----This routine computes the 1-D power spectrum of a 3-D input
+!-----field (given in real space). 
+
+      use hpf_library
+     
+      implicit none
+
+!-----scalars
+
+      integer ii,jj,mm,ksign,icpy,ng
+
+      real scal
+
+!-----arrrays
+
+      logical msk(ng,ng,ng)
+
+      integer ndx(ng,ng,ng)
+
+      real pkf(ng/2)
+      real pk(ng*2+1),nk(ng*2+1)
+      real psp(ng,ng,ng),phi(ng,ng,ng),tmpp(ng,ng,ng)
+
+      complex erho(ng,ng,ng),erhotr(ng,ng,ng)
+
+!-----nk:pk
+!-----msk,ndx,tmpp,erho:phi
+!-----psp:erhotr
+!-----distribute/aligns
+
+!hpf$ distribute pkf(block)
+!hpf$ distribute pk(block)
+!hpf$ align (:) with pk(:) :: nk
+!hpf$ distribute phi(*,*,block)
+!hpf$ align (*,*,:) with phi(*,*,:) :: msk,ndx,tmpp,erho
+!hpf$ distribute erhotr(*,*,block)
+!hpf$ align (*,*,:) with erhotr(*,*,:) :: psp
+
+      msk=.true.
+      erho=phi     
+
+!-----Forward fft. Because icpy=0, output goes to erhotr.
+
+      ksign=1
+      scal=1.0
+      icpy=0
+
+      call fft3d(ng,ng,ng,ksign,scal,icpy,erho,erhotr)
+
+!-----3-D power spectrum.
+
+      psp=real(erhotr*conjg(erhotr),8)
+
+!-----Bin to get 1-D spectrum
+
+      pk=0.0
+      nk=0.0
+
+      forall(ii=1:ng/2,jj=1:ng/2,mm=1:ng/2)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-1)**2+(jj-1)**2+(mm-1)**2)))
+      forall(ii=ng/2+1:ng,jj=1:ng/2,mm=1:ng/2)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-ng-1)**2+(jj-1)**2+(mm-1)**2)))
+      forall(ii=1:ng/2,jj=ng/2+1:ng,mm=1:ng/2)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-1)**2+(jj-ng-1)**2+(mm-1)**2)))
+      forall(ii=1:ng/2,jj=1:ng/2,mm=ng/2+1:ng)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-1)**2+(jj-1)**2+(mm-ng-1)**2)))
+      forall(ii=1:ng/2,jj=ng/2+1:ng,mm=ng/2+1:ng)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-1)**2+(jj-ng-1)**2+(mm-ng-1)**2)))
+      forall(ii=ng/2+1:ng,jj=ng/2+1:ng,mm=1:ng/2)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-ng-1)**2+(jj-ng-1)**2+(mm-1)**2)))
+      forall(ii=ng/2+1:ng,jj=1:ng/2,mm=ng/2+1:ng)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-ng-1)**2+(jj-1)**2+(mm-ng-1)**2)))
+      forall(ii=ng/2+1:ng,jj=ng/2+1:ng,mm=ng/2+1:ng)ndx(ii,jj,mm)=
+     #  1+nint(sqrt(real((ii-ng-1)**2+(jj-ng-1)**2+(mm-ng-1)**2)))
+
+      pk=sum_scatter(psp,pk,ndx,msk)
+      tmpp=1
+      nk=sum_scatter(tmpp,nk,ndx,msk)
+
+      do ii=1,ng/2
+      pkf(ii)=pk(ii+1)/nk(ii+1)
+      end do
+
+      pkf=pkf/(1.0*ng)**3
+
+      return
+      end subroutine
+
+
+
+
+
+
+
+

@@ -1,0 +1,188 @@
+// ------------------------------------------------------------
+// main.cc
+//
+// ------------------------------------------------------------
+
+#include <iostream>
+#include <fstream>
+    
+#include <math.h>
+#include <time.h> 
+ 
+#include "source/extpde.h"
+
+
+          /* Poisson on a Ball */
+       
+void Gauss_Seidel(Variable& u, Variable& f, int iter,
+		  Res_stencil_boundary& ResS) {
+  for(int i=0;i<iter;++i) {
+    u = u - (ResS(Laplace_FE(u)) +f) / ResS[Diag_Laplace_FE()];
+  }
+}
+
+void MG(Variable& u, Variable &f, Variable& r,
+        int k, int iter, Res_stencil_boundary& ResS) {
+
+  if(k > u.Give_grid()->Min_level()) {
+    // pre-smoothing
+    Gauss_Seidel(u,f,iter,ResS);
+    
+    // restriction
+    r = f + ResS(Laplace_FE(u));
+    f = Restriction_FE(r);
+    
+    u.Level_down();
+    u = 0.0;
+
+    // coarse-grid correction
+    MG(u,f,r,k-1,iter,ResS);
+
+    // prolongation
+    f.Level_up();
+    u = u + Prolongation_FE(u);
+    
+    // post-smoothing
+    Gauss_Seidel(u,f,iter,ResS);
+  }
+  else {
+    // smoothing on coarsest grid
+    Gauss_Seidel(u,f,iter,ResS);
+  }
+}
+         
+
+int main(int argc, char** argv)
+{
+  cout.precision(8);
+  cout.setf(ios::fixed,ios::floatfield);
+  ifstream PARAMETER;
+  int iteration, i, iter_relax;
+  double normi;
+  double sp;
+  double a,b,l;
+  int my_rank;        /* Rank of process */
+  int p;              /* Number of processes */
+
+  double meshsize,o_square,s_square;
+  int r_parallel, p_test;
+
+
+  double startT,endT;
+  double startGridGenT, endGridGenT;
+  double startSolverT, endSolverT;
+  double startMGStep, endMGStep;	
+
+  PARAMETER.open("para.dat",std::ios :: in);
+  PARAMETER >> meshsize  >> iteration >> iter_relax 
+            >> r_parallel  >> o_square >> s_square >> p_test 
+	    >> a >>  b >> l;
+  PARAMETER.close();
+
+  MPI_Init(&argc,&argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &p);
+ 
+  startT = MPI_Wtime();
+ 
+  ofstream DATEI;
+
+  if(my_rank==0) {
+    cout << "\n V0.2 01-27 Solving Poisson's equation in a cylinder\n";
+    cout << " with Dirichlet boundary conditions by MG: ";
+    cout << "\n Meshsize of grid: " << meshsize;
+    cout << "\n Number of relaxations: " << iter_relax;
+    cout << "\n Maximal number of iterations: " << iteration << endl;
+    cout << "\n Structure a= " << a << " b= " << b << " l= " << l << endl;
+  }    
+
+  // Ball   ball;
+
+  startGridGenT = MPI_Wtime();
+  Cylinder   cylinder;
+  D3vector Vs(a,b,l);
+  D3vector Vm(-a/2.0,-b/2.0,-l/2.0);
+  Domain domain(&cylinder*Vs+Vm);  
+
+  // Domain domain(&ball);                          Domain is a ball
+  Grid_gen_parameters ggen_parameter;
+  ggen_parameter.Set_r_parallel(r_parallel);           // choose larger than 1
+  ggen_parameter.Set_offset_square(o_square);
+  ggen_parameter.Set_stretch_square(s_square);                    
+
+
+  Grid grid(meshsize,&domain,
+	    ggen_parameter,MPI_COMM_WORLD); // Construction of grid
+
+  // Grid grid(n,&domain,MPI_COMM_WORLD); // Construction of grid
+
+  if(my_rank==0) grid.process_info();
+
+  Variable f(&grid);
+  Variable r(&grid);
+  Variable e(&grid);
+  Variable u(&grid);
+  Variable u_exakt(&grid);
+
+  Res_stencil_boundary ResS(&grid);           // definition of a stencil 
+
+  grid.Initialize();                 // Initialize storage
+
+  grid.Print_poi_Info();
+
+  endGridGenT = startSolverT =  MPI_Wtime();
+    
+  //  if(my_rank==0) DATEI.open("hex.dat",ios :: out);
+  // grid.Print_region_processes_UCD(&DATEI);
+  // if(my_rank==0) DATEI.close();
+
+  Function Cos(cos);                   // definition of a function
+  
+  u_exakt = Cos(X()*M_PI)*Cos(Y()*M_PI)*Cos(Z()*M_PI);   // exact solution
+
+  normi = 0.0;
+  u = 1.0;
+  normi = product(u,u);
+
+  if(my_rank==0) cout << " Number of grid points: " << normi << endl;
+
+  u = u_exakt | boundary_points;
+  u = 0.0     | interior_points;
+
+  r = Cos(X()*M_PI)*Cos(Y()*M_PI)*Cos(Z()*M_PI)     // right hand side
+    * -3.0 * M_PI * M_PI; 
+  f = Helm_FE(r)    | interior_points;
+  r = 0.0           | all_points;
+  r = r             | interior_points;
+  u_exakt = u_exakt | interior_points;
+
+  f = f | interior_points;
+  r = r | interior_points;
+  e = e | interior_points;
+
+  if(my_rank==0) cout << "\n MG: " << endl;
+  if(my_rank==0) cout << "-------------------- " << endl;
+  
+  for(i=0;i<iteration;++i) {
+    startMGStep =  MPI_Wtime();
+    if(my_rank==0) cout << i << ". ";
+    MG(u,f,r,u.Give_grid()->Max_level(),iter_relax,ResS);
+      
+    e = u - u_exakt;
+    sp = L_infty(e);
+    if(my_rank==0) cout << "Iteration: Error: Max:" << sp;
+    sp = product(e,e);
+    endMGStep = MPI_Wtime(); 
+    if(my_rank==0) cout << ",  L2: " << sqrt(sp/normi) << " T= " << endMGStep-startMGStep << endl;
+  }
+  endT = endSolverT = MPI_Wtime();
+  if(my_rank==0) cout << "Ttot= " << endT-startT << " Tsol= " << endSolverT-startSolverT << " Tgrid= " << endGridGenT-startGridGenT <<  endl;
+
+  //if(my_rank==0) DATEI.open("domain.dat",ios :: out);
+  //Print_UCD(u,&DATEI);
+  //if(my_rank==0) DATEI.close();
+
+  if(my_rank==0) cout << " \n End: " << endl;
+
+  MPI_Finalize();
+}

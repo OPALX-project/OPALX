@@ -1,0 +1,80 @@
+
+ V0.2 01-27 Solving Poisson's equation in a cylinder
+ with Dirichlet boundary conditions by MG: 
+ Meshsize of grid: 0.00050000
+ Number of relaxations: 3
+ Maximal number of iterations: 100
+
+ Structure a= 0.84000000 b= 0.85000000 l= 1.59000000
+ Generate_processes(); 
+   take p_level: 5 max_level:    12
+ Grid_generation(); 
+  I Basic grid generation by edges; 
+   I.2 edge correction; 
+  II Calculation of points and cells; 
+   II.2 construct basic points; 
+        send them; 
+   II.3 fullfill B1B2; 
+   II.4 construct cell points; 
+   II.61 interior cell part 1; 
+   II.62 sends of boundary cells; 
+   II.63 interior cell part 2; 
+        send them; 
+   II.7 calc multigrid points; 
+   II.7 remove exterior points; 
+   II.8 calc interior points; 
+   II.9 send coarse grid points; 
+  III Calculation of boundary; 
+   III.2 boundary cells; 
+ Information about processes: 
+ Number of processes: 4075
+ Number of active processes: 4075
+ Initialize_variable(); 
+   III.3.1 construct boundary points; 
+         remove edges; 
+   III.4.1 storage for boundary cells; 
+   III.4.2 storage for cells and stencils; 
+   III.4.3 storage for boundary matrices; 
+ IV. calculate lists; 
+   IV. 2. interior points and points near boundary; 
+   IV. 5. pointer in boundary cells; 
+   IV. 6. restriction weights; 
+   IV. 7. coarsest level; 
+   IV. 8. initialize lists; 
+   IV. 9. calc mg; 
+   V.1 prepare evaluation; 
+   V.2 prepare parallel; 
+   a) ; 
+   b) ; 
+   c) ; 
+   end prepare ; 
+
+ information about finest level: 
+------------------------------------ 
+number of interior points is:       -1480924453
+number of points near the boundary: 25956956
+number of boundary points:          25989550
+number of points in boundary cells: 5215200
+sum of all points:                  -1423762747
+ratio of points interior / near boundary: -25.90763217
+ Number of grid points: 7166171845.00000000
+
+ MG: 
+-------------------- 
+0. Iteration: Error: Max:0.73929530,  L2: 0.30630656 T= 441.64855071
+1. Iteration: Error: Max:0.66560513,  L2: 0.22676229 T= 161.29042931
+2. Iteration: Error: Max:0.57787329,  L2: 0.16850862 T= 162.16292579
+3. Iteration: Error: Max:0.48760451,  L2: 0.12601651 T= 160.71876680
+4. Iteration: Error: Max:0.40267400,  L2: 0.09501407 T= 162.81425919
+5. Iteration: Error: Max:0.32724493,  L2: 0.07227721 T= 159.80920781
+6. Iteration: Error: Max:0.26274086,  L2: 0.05544356 T= 161.17172543
+7. Iteration: Error: Max:0.20902305,  L2: 0.04283079 T= 158.67295344
+8. Iteration: Error: Max:0.16514026,  L2: 0.03326379 T= 159.79437827
+9. Iteration: Error: Max:0.12978238,  L2: 0.02592713 T= 160.71758745
+10. Iteration: Error: Max:0.10158804,  L2: 0.02025167 T= 160.85748679
+11. Iteration: Error: Max:0.07927597,  L2: 0.01583381 T= 159.73741864
+12. Iteration: Error: Max:0.06172084,  L2: 0.01238114 T= 161.98168663
+13. Iteration: Error: Max:0.04796703,  L2: 0.00967688 T= 159.78721069
+14. Iteration: Error: Max:0.03722525,  L2: 0.00755703 T= 162.23397040
+Ttot= 18799.84930361 Tsol= 3382.14115200 Tgrid= 15417.49985652
+

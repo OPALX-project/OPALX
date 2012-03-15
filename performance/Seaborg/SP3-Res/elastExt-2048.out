@@ -1,0 +1,162 @@
+
+ Solving FEM for laser: 
+ Construct grid. 
+ Generate_processes(); 
+   take p_level: 5 max_level:    11
+ Grid_generation(); 
+  I Basic grid generation by edges; 
+   I.2 edge correction; 
+  II Calculation of points and cells; 
+   II.2 construct basic points; 
+        send them; 
+   II.3 fullfill B1B2; 
+   II.4 construct cell points; 
+   II.61 interior cell part 1; 
+   II.62 sends of boundary cells; 
+   II.63 interior cell part 2; 
+        send them; 
+   II.7 calc multigrid points; 
+   II.7 remove exterior points; 
+   II.8 calc interior points; 
+   II.9 send coarse grid points; 
+  III Calculation of boundary; 
+   III.2 boundary cells; 
+ Information about processes: 
+ Number of processes: 2048
+ Number of active processes: 1884
+ Initialize_variable(); 
+   III.3.1 construct boundary points; 
+         remove edges; 
+   III.4.1 storage for boundary cells; 
+   III.4.2 storage for cells and stencils; 
+   III.4.3 storage for boundary matrices; 
+ IV. calculate lists; 
+   IV. 2. interior points and points near boundary; 
+   IV. 5. pointer in boundary cells; 
+   IV. 6. restriction weights; 
+   IV. 7. coarsest level; 
+   IV. 8. initialize lists; 
+   IV. 9. calc mg; 
+   V.1 prepare evaluation; 
+   V.2 prepare parallel; 
+   a) ; 
+   b) ; 
+   c) ; 
+   end prepare ; 
+ End construct grid. 
+
+ information about finest level: 
+------------------------------------ 
+number of interior points is:       392506548
+number of points near the boundary: 4271654
+number of boundary points:          4283854
+number of points in boundary cells: 595235
+sum of all points:                  401657291
+ratio of points interior / near boundary: 42.893407453362
+ Max_level: 12 Min_level: 1 Min_interior_level: 3 n_parallel: 7
+
+ Solving Poisson equation by mg! 
+ Number of smoothings iter + n: 14
+ Test: 0.892694563582
+
+ MG: 
+-------------------- 
+ Iteration: 1 Max: Temp: 4261.420849761022
+
+ Solving elasticity by MG-preconditioned cg. 
+--------------------------------------------- 
+ eps cg:0.000100000000
+ first delta:2.086796494516
+ Iteration:1.  Infty: 0.019095828338 Residuum: 2.354892560695
+ Iteration:2.  Infty: 0.031509741667 Residuum: 1.856654395803
+ Iteration:3.  Infty: 0.030128452497 Residuum: 0.980512974896
+ Iteration:4.  Infty: 0.025129218924 Residuum: 0.553781750411
+ Iteration:5.  Infty: 0.023513940085 Residuum: 0.331651641806
+ Iteration:6.  Infty: 0.023147171281 Residuum: 0.231539317113
+ Iteration:7.  Infty: 0.022699487338 Residuum: 0.199170056654
+ Iteration:8.  Infty: 0.022140922735 Residuum: 0.169681147605
+ Iteration:9.  Infty: 0.021521104162 Residuum: 0.144059334253
+ Iteration:10.  Infty: 0.020754772722 Residuum: 0.132267240420
+ Iteration:11.  Infty: 0.019841949411 Residuum: 0.110175050384
+ Iteration:12.  Infty: 0.019836078839 Residuum: 0.084847873632
+ Iteration:13.  Infty: 0.019963431072 Residuum: 0.070553148250
+ Iteration:14.  Infty: 0.020128251619 Residuum: 0.063612558982
+ Iteration:15.  Infty: 0.020391719464 Residuum: 0.059557588132
+ Iteration:16.  Infty: 0.020957155603 Residuum: 0.057424116725
+ Iteration:17.  Infty: 0.021586949552 Residuum: 0.054720436286
+ Iteration:18.  Infty: 0.022178280392 Residuum: 0.048853043700
+ Iteration:19.  Infty: 0.022772317766 Residuum: 0.041817645044
+ Iteration:20.  Infty: 0.023202072819 Residuum: 0.035397550837
+ Iteration:21.  Infty: 0.023466340048 Residuum: 0.028839564219
+ Iteration:22.  Infty: 0.023612959564 Residuum: 0.023094548037
+ Iteration:23.  Infty: 0.023643017390 Residuum: 0.019616698963
+ Iteration:24.  Infty: 0.023584036531 Residuum: 0.017719880153
+ Iteration:25.  Infty: 0.023584642662 Residuum: 0.015861414929
+ Iteration:26.  Infty: 0.023551464602 Residuum: 0.013597840672
+ Iteration:27.  Infty: 0.023528075134 Residuum: 0.011592581017
+ Iteration:28.  Infty: 0.023483068905 Residuum: 0.010124231662
+ Iteration:29.  Infty: 0.023379106969 Residuum: 0.008813397197
+ Iteration:30.  Infty: 0.023247180387 Residuum: 0.007506021110
+ Infty: 0.023247180387
+ Test Boundary, Integrals: -----------
+ X-Integral: 0.000000000000
+ Y-Integral: -0.000000000000
+ Z-Integral: 0.000000000000
+ X-curl: 0.000000000000
+ Y-curl: 0.000000000000
+ Z-curl: -0.000000000058
+ Residuum Infty: 0.004072047725
+ Maximum x: 0.009273326449 Minimum x: -0.009410978668
+ Maximum - Minimum x: 0.018684305118
+ Maximum y: 0.006958667768 Minimum y: -0.006830413837
+ Maximum - Minimum y: 0.013789081605
+ Maximum z: 0.006877533951 Minimum z: -0.006842138849
+ Maximum - Minimum z: 0.013719672800
+ Maximum sxx: 3400.789031372667 Minimum sxx: -592.785147984898
+
+ total time: 4346.630015969276 sec. 
+
+ calc time: 2384.246641039848 sec.  
+ end 
+
+ elastime time: 1727.168569087982 sec.  
+ end 
+ 
+ End: 
+ adding counter 5 event 12 Cycles
+ adding counter 0 event 1 Instructions completed
+ adding counter 7 event 0 TLB misses
+ adding counter 2 event 9 Stores completed
+ adding counter 3 event 5 Loads completed
+ adding counter 4 event 5 FPU 0 instructions
+ adding counter 1 event 35 FPU 1 instructions
+ adding counter 6 event 9 FMAs executed
+
+
+################################################################################
+ hpmcount (V 2.4.2) summary (aggregate of 2048 POE tasks)
+ Average execution time (wall clock time)   : 4404.92 seconds
+ Average amount of time in user mode        : 4180.131245 seconds
+ Average amount of time in system mode      : 180.733955 seconds
+ Total maximum resident set size            : 367 Gbytes
+ Total shared memory use in text segment    : 1040761605924 Kbytes*sec
+ Total unshared memory use in data segment  : 4398046509056 Kbytes*sec
+ PM_CYC (Cycles)                            : 3.19820557953027e+15
+ PM_INST_CMPL (Instructions completed)      : 2.91983591237161e+15
+ PM_TLB_MISS (TLB misses)                   : 2059721424886        
+ PM_ST_CMPL (Stores completed)              : 489494881427743
+ PM_LD_CMPL (Loads completed)               : 894276288959814
+ PM_FPU0_CMPL (FPU 0 instructions)          : 24415273106008
+ PM_FPU1_CMPL (FPU 1 instructions)          : 3651753086010
+ PM_EXEC_FMA (FMAs executed)                : 4388818136369
+ Utilization rate                           : 94.5231743164063 %
+ Avg number of loads per TLB miss           : 862.436130371094
+ Load and store operations                  : 1383771170.402 M
+ MIPS                                       : 662882.779
+ Instructions per cycle                     : 0.912956542968749
+ HW Float points instructions per Cycle     : 0.00886279296875001
+ Total Floating point instructions + FMAs   : 32455844.317 M
+ Total Float point instructions + FMA rate  : 7367.74299999998 Mflip/s
+ Average FMA percentage                     : 29.5289506835937 %
+ Average computation intensity              : 0.0266591796875002 
+################################################################################

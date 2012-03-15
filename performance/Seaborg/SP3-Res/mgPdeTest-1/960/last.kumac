@@ -1,0 +1,26 @@
+*** Begin of history file: Sun Mar 30 16:25:27 2003
+v/read n,max,l2,t conv960.dat
+option stat 1100000
+v/plo t
+v/plot max%n
+option stat 000000
+v/plot max%n
+help v/plot
+v/plot max%n C
+v/plot max%n ! C
+help v/plot
+v/plot max%n ! LC
+v/plot max%n ! *LC
+v/plot max%n ! * LC
+v/plot max%n ! *
+v/plot max%n  *
+v/plot max%n ! * LC
+v/plot max%n ! L
+v/plot max%n ! LC
+set hcol 2
+v/plot l2%n ! LC
+help graph
+help log
+help scale
+quit
+*** End   of history file: Sun Mar 30 16:29:42 2003

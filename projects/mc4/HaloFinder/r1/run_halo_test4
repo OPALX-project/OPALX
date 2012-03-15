@@ -1,0 +1,1 @@
+mpirun -np $1 /users/pkf/HaloFinder/r1/HaloTestP /scratch2/pkf/HaloFinder.files/test4.cosmo /scratch2/pkf/HaloFinder.out/test4.out 64.0 0.71 5.0 256 0.20 10 RECORD ROUND_ROBIN

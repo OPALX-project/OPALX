@@ -1,0 +1,26 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe mpi 32 
+#$ -N mc4-test1
+#$ -v MPIHOME=/opt/mpi/openmpi-1.2.6-intel-10.0,LD_LIBRARY_PATH=/opt/intel-mkl/mkl-10.0/lib/em64t:/opt/mpi/openmpi-1.2.6-intel-10.0/lib:/opt/intel/intel-10.0/fce-10.0/lib:/opt/intel/intel-10.0/cce-10.0/lib
+
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+cp $MACHINE_FILE machinefile.last
+
+echo "PE_HOSTFILE:"
+cat  $PE_HOSTFILE
+echo "MACHINE_FILE:"
+cat $MACHINE_FILE
+echo "SLOTS=$NSLOTS"
+#
+FN="test-1"
+DISTR=fort.66
+#
+OPAL="$HOME/svnwork/ippl/projects/mc4/mc4 $FN $DISTR --commlib mpi "
+CMD="$MPIHOME/bin/mpirun -machinefile $MACHINE_FILE -np $NSLOTS  --mca ras localhost --mca pls rsh  $OPAL "
+echo "Running $CMD"
+echo 
+$CMD
+cd ..

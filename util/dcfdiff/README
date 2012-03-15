@@ -1,0 +1,101 @@
+			dcfdiff
+			-------
+
+dcfdiff is a diff utility for DiscFields.  Given two DiscField files,
+with fields of the same size and domain, it can calculate the
+difference between the two and report the minimum, maximum, and
+root-mean-square difference of the elements in the fields.  You can
+specify a maximum RMSD value to signal when a special return code
+should be reported, or just have dcfdiff calculate the differences and 
+report them.
+
+Currently, you cannot choose to diff just subsets of a fields,
+although this capability could be added in the future.  Also, the type 
+of data in the two files must currently be the same (you cannot diff a 
+field of floats with field of doubles, for example, at present).
+
+The command-line options used by dcfdiff are:
+
+	dcfdiff -file1 <file> -file2 <file> [options]
+
+where [options] may be any of the following:
+   -h or -?           : print this help info and quit.
+   -conf1 <file>      : configuration file for file1 (if needed)
+   -conf2 <file>      : configuration file for file2 (if needed)
+   -field <n>         : which field to use from file (0 to numfields-1)
+   -record <n>        : which rec. to use from file (0 to numrecs-1)
+   -maxloc            : print out the location of max diff
+   -maxrmsd <val>     : maximum rmsd value. If the rmsd for a record
+                        is >= maxrmsd, return error code value of 3
+   -dim <dim>         : dim of field (will be inferred if not given)
+   -vec or -vector    : assume vector instead of scalar data
+   -tens or -tensor   : assume tensor instead of scalar data
+   -sym or -symtensor : assume symtensor instead of scalar data
+   -anti or -antisymtensor: assume antisymtensor instead of scalar
+   -i or -int         : assume integer instead of double data
+   -f or -flt         : assume float instead of double data
+   -d or -dbl         : assume double for the data (default)
+
+By default, dcfdiff will assume the field data type is just 'double'.
+If it is some other type, use the "-f" or "-i" options.  Also, if the
+field is some other IPPL type like Vektor, Tenzor, etc., use the
+"-vec", "-tens", etc. flags.  NOTE: The dimension of the Vektor or
+Tenzor will be assumed to be the dimension of the total field.  There
+is currently no way to specify anything else with dcfdiff.
+
+You should not ever have to use the "-dim <dim>" option anymore,
+dcfdiff will figure out the dimension properly.  You only have to
+specify a "conf" file if it is needed.
+
+For example, to print out the difference between two DiscFields "A" and
+"B", each with their own conf files:
+
+	dcfdiff -file1 A -conf1 A.conf -file2 B -conf2 B.conf
+
+This produces results somewhat like the following:
+
+	diff> F=0,R=0: mindiff = 0  maxdiff = 29  rmsd = 15.5563
+
+Note that the results are printed for each Field and Record in the
+files.  It will print a line like this for each record and field,
+unless you request this done for just a subset with the -record or
+-field flags.
+
+Normally, dcfdiff just returns a "0" return code when done.  If you
+would like to have dcfdiff check the rmsd values to see if any of them 
+are greater than some threshold value, and report a non-zero error
+code, use the -maxrmsd flag:
+
+	dcfdiff -file1 A -conf1 A.conf -file2 B -conf2 B.conf -maxrmsd 4.2
+
+If 4.2 is exceeded for the computed rmsd for any of the fields or
+records, a return code of "3" will be reported.
+
+If you would also like dcfdiff to print the location within the
+domain of the Fields where the maximum difference occurred, also
+specify the -maxloc flag:
+
+	dcfdiff -file1 A -conf1 A.conf -file2 B -conf2 B.conf -maxloc
+
+produced output like:
+
+	diff> F=0,R=0: mindiff = 0  maxdiff = 29  rmsd = 15.5563
+	      maxdiffloc = {[7:7:1],[7:7:1],[15:15:1]}
+
+If this maximum difference occurs in more than one location, this will 
+print the first position where the maximum occurs.
+
+dcfdiff will return an error code upon completion that signals what
+happened when it tried to read and diff the file contents.  The
+possible error codes:
+
+   0: OK, files compared within tolerance or no tolerance given
+   1: Error in reading data files
+   2: Error in command-line parameters or field configurations
+   3: Files read properly, but do not compare within given rmsd
+   4: Unsupported dimension
+
+There is no option for graphical display from dcfdiff.
+
+Since dcfdiff is a IPPL program, you can use the standard IPPL
+command-line options to start this program running in parallel.

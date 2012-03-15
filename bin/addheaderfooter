@@ -1,0 +1,70 @@
+#!/bin/sh
+###
+### add a header and footer comment section to each file listed as an argument
+###
+
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <file list>"
+  exit 1
+fi
+
+for f in $* ; do
+  if [ ! -f $f ]; then
+    echo "Error: Could not find file $f; skipping."
+  else
+    echo "Adding header and footer comments to $f ..."
+    # create temporary filename
+    fnm=$f.$$
+    touch $fnm
+
+    # write header to temp file
+    headfnd=`grep "W-7405-ENG-36" $f`
+    if [ "$headfnd" = "" ]; then
+      cat << \HEADERCOMMENT >> $fnm
+// -*- C++ -*-
+/***************************************************************************
+ *
+ * The IPPL Framework
+ * 
+ * This program was prepared by PSI. 
+ * All rights in the program are reserved by PSI.
+ * Neither PSI nor the author(s)
+ * makes any warranty, express or implied, or assumes any liability or
+ * responsibility for the use of this software
+ *
+ * Visit http://www.acl.lanl.gov/POOMS for more details
+ *
+ ***************************************************************************/
+
+HEADERCOMMENT
+    else
+#    echo "  $f already contains header "	
+     echo "  $f already contains header -> I delete the old header."
+     sed '6,14d' $f > tmp
+     mv tmp $f
+    fi
+
+    # copy over the file itself to temp file
+    cat $f >> $fnm
+
+    # write footer to temp file
+    tailfnd=`grep "IPPL_VERSION_ID" $f`
+    if [ "$tailfnd" = "" ]; then
+      cat << \FOOTERCOMMENT >> $fnm
+
+/***************************************************************************
+ * $RCSfile: addheaderfooter,v $   $Author: adelmann $
+ * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ ***************************************************************************/
+
+FOOTERCOMMENT
+    else
+      echo "  $f already contains footer text."
+    fi
+
+    # done; move temp file over original file
+    mv $fnm $f
+  fi
+done
+

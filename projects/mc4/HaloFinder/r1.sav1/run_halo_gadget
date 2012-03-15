@@ -1,0 +1,1 @@
+mpirun -np $1 HaloTestP /scratch1/heitmann/Grid/M032/G003/Gadget_1.0000 /scratch3/pkf/gadget.results/gadget.out 1027.14 5.0 1024 0.168 10 BLOCK ROUND_ROBIN

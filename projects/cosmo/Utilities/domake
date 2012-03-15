@@ -1,0 +1,5 @@
+rm *.o
+g++ -I.. -c LogicalError.cpp 
+g++ -I.. -c ClassicException.cpp 
+g++ -I.. -c ParseError.cpp 
+ls *.o

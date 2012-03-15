@@ -1,0 +1,10 @@
+.d.*
+ii_files
+core.*
+TestFieldNDIndexing
+TestScalarIndexing
+component
+drive1
+drive2
+drive3
+single
