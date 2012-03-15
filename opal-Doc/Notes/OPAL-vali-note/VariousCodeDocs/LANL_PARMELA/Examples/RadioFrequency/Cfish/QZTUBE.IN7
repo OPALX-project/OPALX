@@ -1,0 +1,8 @@
+line plotfiles 
+0. 0. 3 0.                ! Z1, R1, Z2, R2
+100                       ! number of intervals    
+line plotfiles 
+0. .19 3 .19
+100 
+end
+

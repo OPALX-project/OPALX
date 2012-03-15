@@ -1,0 +1,79 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{amsmath}
+\usepackage{epstopdf}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{url}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{verbatim}
+%\usepackage{hyperref}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{indentfirst}
+\usepackage{amssymb}
+%\usepackage{circuitikz}
+\usepackage{array} 
+\usepackage{appendix}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[colorlinks,linkcolor=blue,anchorcolor=blue,citecolor=blue]{hyperref} % hyper reference to contents
+\usepackage{algorithm,algorithmic}
+\usepackage{tikz}
+\usepackage{suffix}
+\usetikzlibrary{arrows,shapes,snakes}
+
+
+
+
+
+\usepackage[retainorgcmds]{IEEEtrantools}
+\geometry{left=3.17cm,right=3.17cm,top=2.54cm,bottom=2.54cm}
+\pagestyle{empty}
+
+\include{mylatexdefs}
+
+
+\begin{document}
+\begin{center}
+{\large The Dark Current and Multipacting Simulation Capability of \opal\\ - Modeling, Benchmarking and Applications} \\
+{\bf Chuan Wang}, A. Adelmann, Y. Ineichen \\
+%\today\\
+\end{center}
+\begin{abstract}
+ Dark current and multipacting phenomena, as observed in accelerator
+structures, are usually harmful to the equipment and the beam quality.
+These effects need to be suppressed to guarantee stable operation. Large scale
+simulations can be used to understand the cause and develop solutions for these
+phenomena.
+ 
+We extend OPAL, a parallel framework for charged particle
+optics in accelerator structures and beam lines, with the necessary physics models
+to simulate multipacting phenomena. This is achieved by adding a Fowler-Nordheim
+field emission model and two secondary electron emission models, developed by Furman-Pivi and Vaughan respectively, as well as efficient 3D boundary
+geometry handling capabilities to OPAL.
+
+In situations where the electron multiplication is very large, we have to renormalize the simulation particles in order to prevent excessive memory consumption. 
+
+Code to code comparison with the Tech-X physics library and comparison with a non-stationary multipacting  theory for the classic parallel plate geometry will be presented.
+
+Preliminary results on  dark current simulations of the CTF3 electron source and first multipacting simulation in large rf-cavities for compact high intensity Cyclotrons will be  presented. 
+
+\end{abstract}
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[width=.49\linewidth,angle=0]{Picture1}
+\includegraphics[width=7cm,height=6.43cm,angle=0]{cyclotron_multipacting}
+\label{fig:opal-astra-exrms-1}
+\end{center}
+\end{figure}
+
+{\bf BD-Palaver} 15.2.2011 WBGB 019 14.00 - 15.00
+\end{document}
+
+
+% LocalWords:  Anylitical

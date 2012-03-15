@@ -1,0 +1,55 @@
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=10;
+Option, SPTDUMPFREQ=1;
+Option, REPARTFREQ=10;
+
+Title,string="FFAG (Carol Design) I=3 (mA)";
+
+Edes=0.10513;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2)); 
+gambet=gamma*beta; 
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+
+r0  = 4000.0;
+phi0= 0.002;
+pr0 = 0.01;
+
+value,{gamma,brho,Edes,beta,gambet.r0,pr0};
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  2.0e-03, sigmapx=1.0e-7, corrx=0.0,
+sigmay=  2.0e-03, sigmapy=1.0e-7, corry=0.0,
+sigmat=  2.0e-03, sigmapt=3.394e-4, corrt=0.0;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=32, 
+                 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open, BBOXINCR=2;
+
+
+ffag: Cyclotron, TYPE="FFAG", CYHARMON=1, PHIINIT=phi0, PRINIT=pr0, RINIT=r0 , SYMMETRY=1.0, RFFREQ=200.0, FMAPFN="NSFFAGfieldPSI.dat", BSCALE=10.0;
+
+
+SYSTEM,"rm -rf ffag-e-scan.dat";
+SYSTEM,"touch ffag-e-scan.dat";
+
+ph=0;
+cavpha1=0.0;
+cavvol1=0.0;
+
+rf0: RFCavity, VOLT=cavvol1, FMAPFN="Cav1.dat", TYPE="SINGLEGAP", 
+FREQ=200.0, RMIN = 2100.0, RMAX = 4000.0, ANGLE=45.0,  PDIS = 0.0, 
+GAPWIDTH = 300.0, PHI0=ph; 
+
+l1: Line = (ffag); // l1: Line = (ffag,rf0);
+Select, Line=l1;
+
+beam1: BEAM, PARTICLE=HYDRONGEN_MINUS, pc=P0, SPACECHARGE=true, NPART=1.0e5, BCURRENT=3.0E-3, CHARGE=1.0, BFREQ= 200.0;
+
+track,line=l1, beam=beam1,MAXSTEPS=100*360*53,STEPSPERTURN=360;
+ run, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+
+
+Stop;

@@ -1,0 +1,57 @@
+; CDTfish control file 2DTHC
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+ 
+TITLE
+Example 2-drift-tube CCDTL cavity
+700-MHz half cell with 2-cm-long bore tube 
+Tuned by adjusting cavity diameter
+Unequal face angles on drift tubes
+ENDTITLE
+ 
+PARTICLE              H+
+TEMPerature           25
+ 
+HALF_cavity
+FILEname_prefix       2DTHC
+SEQuence_number       1
+FREQuency             700
+BETA                  0.14
+DIAMeter              28.9
+G_OVER_Beta_lambda    0.15
+E0T_Normalization     2
+NUMBER_of_gaps        3
+EQUATOR_flat          4
+INNER_CORNer_radius   0.25
+OUTER_NOSE_radius     0.4
+INNER_NOSE_radius     0.2
+FLAT_length           0
+CONE_angle            30
+SEPTUM_thickness      1
+BORE_radius           1
+LEFT_BEAM_tube        0
+RIGHT_BEAM_tube       2
+DT_DIAMeter           5
+DT_CORNer_radius      0.25
+DT_OUTER_NOSE_radius  0.4
+DT_INNER_NOSE_radius  0.2
+DT_FLAT_length        0
+DT_STEM_Diameter      1.1
+DT_STEM_Count         2
+DT_OUTER_FACE_angle   60
+DT_INNER_FACE_angle   20
+DELTA_frequency       0.05
+MESH_size             0.056
+INCrement             2
+START                 2
+
+; Start codes for CDTFISH:
+; 1 No tuning
+; 2 Adjust diameter and move gaps for S = 0
+; 3 Adjust gap(s) and move gaps for S = 0
+; 4 Adjust diameter, gap centers fixed
+; 5 Adjust gap(s), gap centers fixed 
+;  (When S = 0, geometric and electrical centers coincide.)
+
+ENDFILE
+

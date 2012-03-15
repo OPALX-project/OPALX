@@ -1,0 +1,14 @@
+This directory contains the run scripts, input files and ASTRA output files
+generated for comparison with OPAL distributions in the folder ../ ;
+the input distribution for ASTRA and OPAL are verified to be the same,
+see folder ../laser/
+
+
+test.003: space charge 200 pC 200k particles
+test.004: no space charge 200k particles
+
+
+
+
+
+

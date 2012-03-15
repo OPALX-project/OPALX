@@ -1,0 +1,432 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=50;
+Option, STATDUMPFREQ=5;
+Option, AUTOPHASE=true;
+
+Title, string="OPAL 250 Injector PSI FEL, CDR, with 1 MeV Pulsed Diode Electron Gun";
+
+Edes=4.0e-3;
+gamma = (Edes+EMASS) / EMASS;
+beta = sqrt(1.0 - (1.0 / gamma^2));
+gambet = gamma * beta;
+P0 = gambet * EMASS;
+brho = (EMASS * 1.0e9 * gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+// Begin: FINEG ////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector Electron Gun (FINEG) beam line section.
+//
+
+//
+// L:		physical element length (real in m)
+// VOLT:	field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+//
+FINEG_ECAT: RFCavity, L = 0.02, VOLT = -262.25, FMAPFN = "FINEG-ECAT.T7",
+		      ELEMEDGE = 0.0, TYPE = "STANDING", FREQ = 0.0;
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FINEG_MSL10: Solenoid, L=0.12, KS=0.31250, FMAPFN="FINEG-MSL10.T7", ELEMEDGE=-0.002;
+
+FINEG: Line = (FINEG_ECAT,
+               FINEG_MSL10);
+// End: FINEG /////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: FINLB01 /////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector L-Band beam line section #1 ==> First L-band accelerating
+// structure / 2 frequency cavity.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	peak RF voltage (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+// LAG:		cavity phase (radians)
+//
+// Fundamental mode of 2 frequency cavity.
+FINLB01_RACF: RFCavity, L = 0.54, VOLT = 35.5, FMAPFN = "FINLB01-RACF.T7",
+			ELEMEDGE = 0.069, TYPE = "STANDING", FREQ = 1498.956, LAG = 192.0000226 / 360.0;
+
+// Harmonic mode of 2 frequency cavity.
+FINLB01_RACH: RFCavity, L = 0.54, VOLT = 10.95, FMAPFN = "FINLB01-RACH.T7",
+			ELEMEDGE = 0.069, TYPE = "STANDING", FREQ = 4497.536, LAG = 136.0000679 / 360.0;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FINLB01_MSL10_1: Solenoid, L = 1.0, KS = 0.08500, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 0.304;
+FINLB01_MSL10_2: Solenoid, L = 1.0, KS = -0.0850, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 0.404;
+
+FINLB01_MSL20_1: Solenoid, L = 1.0, KS = 0.05, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 0.804;
+FINLB01_MSL20_2: Solenoid, L = 1.0, KS = -0.05, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 0.904;
+
+FINLB01_MSL30_1: Solenoid, L = 1.0, KS = 0.07, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 1.304;
+FINLB01_MSL30_2: Solenoid, L = 1.0, KS = -0.07, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 1.404;
+
+FINLB01_MSL40_1: Solenoid, L = 1.0, KS = 0.09, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 1.804;
+FINLB01_MSL40_2: Solenoid, L = 1.0, KS = -0.09, FMAPFN = "FINLB01-MSL.T7", ELEMEDGE = 1.904;
+
+// FINLB01_RACH,
+FINLB01: Line = (FINLB01_RACF, 
+		 FINLB01_MSL10_1, FINLB01_MSL10_2,
+		 FINLB01_MSL20_1, FINLB01_MSL20_2,
+		 FINLB01_MSL30_1, FINLB01_MSL30_2,
+		 FINLB01_MSL40_1, FINLB01_MSL40_2);
+
+// End: FINLB01 //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: FINLB02 ////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector L-Band beam line section #2 ==> Second L-band accelerating
+// structure.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	peak RF voltage (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+// LAG:		cavity phase (radians)
+//
+FINLB02_RAC: TravelingWave, L = 2.8, VOLT = 15.0, FMAPFN = "FINLB02-RAC.T7",
+		       	    ELEMEDGE = 2.704, NUMCELLS = 39, MODE = 1/3, ACCURACY = 39,
+			    FREQ = 1498.956, LAG = 252.0009054 / 360.0;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FINLB02_MSLAC10: Solenoid, L = 1.2, KS = 0.05, FMAPFN = "FINLB02-MSLAC.T7", ELEMEDGE = 2.454;
+
+FINLB02_MSLAC20: Solenoid, L = 1.2, KS = 0.05, FMAPFN = "FINLB02-MSLAC.T7", ELEMEDGE = 3.154;
+
+FINLB02_MSLAC30: Solenoid, L = 1.2, KS = 0.05, FMAPFN = "FINLB02-MSLAC.T7", ELEMEDGE = 3.854;
+
+FINLB02_MSLAC40: Solenoid, L = 1.2, KS = 0.05, FMAPFN = "FINLB02-MSLAC.T7", ELEMEDGE = 4.554;
+
+FINLB02: Line = (FINLB02_RAC,
+		 FINLB02_MSLAC10,
+		 FINLB02_MSLAC20,
+		 FINLB02_MSLAC30,
+		 FINLB02_MSLAC40);
+
+// End: FINLB02 //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: FINSB01 ////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector S-Band beam line section #1 ==> First S-band accelerating
+// structure.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	peak RF voltage (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+// LAG:		cavity phase (radians)
+//
+FINSB01_RAC: TravelingWave, L = 4.0, VOLT = 24.2, FMAPFN = "FINSB-RAC.T7",
+			    ELEMEDGE = 6.004, NUMCELLS = 119, MODE = 1/3, ACCURACY = 39, 
+			    FREQ = 2997.924, LAG = 338.004144067 / 360.0;
+
+
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FINSB01_MSLAC10: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 5.679;
+
+FINSB01_MSLAC20: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 6.679;
+
+FINSB01_MSLAC30: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 7.679;
+
+FINSB01_MSLAC40: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 8.679;
+
+FINSB01: Line = (FINSB01_RAC,
+                 FINSB01_MSLAC10,
+                 FINSB01_MSLAC20,
+                 FINSB01_MSLAC30,
+                 FINSB01_MSLAC40);
+// 
+// End: FINSB01 //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: FINSB02 ////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector S-Band beam line section #2 ==> Second S-band accelerating
+// structure.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	peak RF voltage (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+// LAG:		cavity phase (radians)
+//
+FINSB02_RAC: TravelingWave, L = 4.0, VOLT = 24.2, FMAPFN = "FINSB-RAC.T7",
+			    ELEMEDGE = 10.754, NUMCELLS = 119, MODE = 1/3, ACCURACY = 39, 
+			    FREQ = 2997.924, LAG = 158.007452356 / 360.0;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FINSB02_MSLAC10: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 10.429;
+
+FINSB02_MSLAC20: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 11.429;
+
+FINSB02_MSLAC30: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 12.429;
+
+FINSB02_MSLAC40: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 13.429;
+
+
+FINSB02: Line = (FINSB02_RAC,
+                 FINSB02_MSLAC10,
+                 FINSB02_MSLAC20,
+                 FINSB02_MSLAC30,
+                 FINSB02_MSLAC40);
+// 
+// End: FINSB02 //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: FINSB03 ////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector S-Band beam line section #3 ==> Third S-band accelerating
+// structure.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	peak RF voltage (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+// LAG:	
+//
+FINSB03_RAC: TravelingWave, L = 4.0, VOLT = 24.2, FMAPFN = "FINSB-RAC.T7",
+			    ELEMEDGE = 15.504, NUMCELLS = 119, MODE = 1/3, ACCURACY = 39,
+			    FREQ = 2997.924, LAG = 338.010760644 / 360.0;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FINSB03_MSLAC10: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 15.179;
+
+FINSB03_MSLAC20: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 16.179;
+
+FINSB03_MSLAC30: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 17.179;
+
+FINSB03_MSLAC40: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 18.179;
+
+FINSB03: Line = (FINSB03_RAC,
+                 FINSB03_MSLAC10,
+                 FINSB03_MSLAC20,
+                 FINSB03_MSLAC30,
+                 FINSB03_MSLAC40);
+// 
+// End: FINSB03 //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: FINSB04 ////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector S-Band beam line section #4 ==> Fourth S-band accelerating
+// structure.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	peak RF voltage (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+// LAG:		cavity phase (radians)
+//
+FINSB04_RAC: TravelingWave, L = 4.0, VOLT = 24.2, FMAPFN = "FINSB-RAC.T7",
+			    ELEMEDGE = 20.254, NUMCELLS = 119, MODE = 1/3, ACCURACY = 39,
+			    FREQ = 2997.924, LAG = 158.014068933 / 360.0;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FINSB04_MSLAC10: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 19.929;
+
+FINSB04_MSLAC20: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 20.929;
+
+FINSB04_MSLAC30: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 21.929;
+
+FINSB04_MSLAC40: Solenoid, L = 1.6, KS = 0.055, FMAPFN = "FINSB-MSLAC.T7", ELEMEDGE = 22.929;
+
+FINSB04: Line = (FINSB04_RAC,
+                 FINSB04_MSLAC10,
+                 FINSB04_MSLAC20,
+                 FINSB04_MSLAC30,
+                 FINSB04_MSLAC40);
+// 
+// End: FINSB04 //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: FINXB //////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of Free electron laser INjector X-Band beam line section ==> X-band accelerating structure.
+//
+//
+// L:		physical element length (real in m)
+// VOLT:	peak RF voltage (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+// LAG:		cavity phase (radians)
+//
+FINXB_RAC: TravelingWave, L = 1.0, VOLT = 38.0, FMAPFN = "FINXB-RAC.T7",
+			    ELEMEDGE = 24.9665, NUMCELLS = 119, MODE = 1/3, ACCURACY = 39, 
+			    FREQ = 11991.698, LAG = 205.009587433 / 360.0;
+
+FINXB: Line = (FINXB_RAC);
+// 
+// End: FINXB ////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Problem with parser
+// F10BC: Line = {F10BC_MD01,F10BC_MD02,F10BC_MD03,F10BC_MD04);
+//
+
+// Begin: Screen monitors ////////////////////////////////////////////////////////////////////////////////////
+//
+// Define screen monitors in beam line.
+//
+// L:		physical element length (real in m). Always equal to 1 cm.
+// ELEMEDGE:	position of screen (real in m). This is where the particle information is taken.
+// OUTFN:       name of .h5 file to store data. Include ".h5" on end.
+//
+SCREEN1: Monitor, L = 0.01, ELEMEDGE = 0.02,  OUTFN = "Screen1.h5"; // After diode.
+SCREEN2: Monitor, L = 0.01, ELEMEDGE = 0.609, OUTFN = "Screen2.h5"; // After 2 freq. structure.
+SCREEN3: Monitor, L = 0.01, ELEMEDGE = 5.8,   OUTFN = "Screen3.h5"; // After L-band TW structure.
+SCREEN4: Monitor, L = 0.01, ELEMEDGE = 10.3,  OUTFN = "Screen4.h5"; // After 1st S-band TW structure.
+SCREEN5: Monitor, L = 0.01, ELEMEDGE = 15.5,  OUTFN = "Screen5.h5"; // After 2nd S-band TW structure.
+SCREEN6: Monitor, L = 0.01, ELEMEDGE = 19.8,  OUTFN = "Screen6.h5"; // After 3rd S-band TW structure.
+SCREEN7: Monitor, L = 0.01, ELEMEDGE = 24.6,  OUTFN = "Screen7.h5"; // After 4th S-band TW structure.
+SCREEN8: Monitor, L = 0.01, ELEMEDGE = 29.0,  OUTFN = "Screen8.h5"; // After X-band TW structure.
+SCREEN9: Monitor, L = 0.01, ELEMEDGE = 42.0,  OUTFN = "Screen9.h5"; // After first beam buncher.
+
+SCREENS: Line = (SCREEN1,
+		 SCREEN2,
+		 SCREEN3,
+		 SCREEN4,
+		 SCREEN5,
+		 SCREEN6,
+		 SCREEN7,
+		 SCREEN8,
+		 SCREEN9);
+//
+// End: Screen monitors //////////////////////////////////////////////////////////////////////////////////////
+
+// Begin: Define beam lines //////////////////////////////////////
+//
+// Define injector beam line.
+//
+Gun: Line = (FINEG,
+	     SCREEN1);
+FullInjector: Line = (Gun,
+		      FINLB01,
+	 	      FINLB02,
+		      FINSB01,
+		      FINSB02,
+		      FINSB03,
+		      FINSB04,
+		      FINXB,
+		      SCREENS);
+
+// End: Define beam lines ////////////////////////////////////////
+
+
+// Begin: Fieldsolver ///////////////////////////////////////////
+//
+// Definition of first field solver.
+//
+Fs1:FIELDSOLVER, FSTYPE = NONE, MX = 32, MY = 32, MT = 128,
+		 PARFFTX = true, PARFFTY = true, PARFFTT = false,
+		 BCFFTX = open, BCFFTY = open, BCFFTT = open,
+		 BBOXINCR = 0, GREENSF = INTEGRATED;
+// End: Fieldsolver ////////////////////////////////////////////
+
+
+// Begin: Uniform Distribution ////////////////////////////////
+//
+// Define initial uniform beam distribution.
+//
+v0 = beta * CLIGHT;
+T1s = 36.3222802282e-12;
+lz = T1s * v0;
+value,{v0,lz};
+
+Dist1:DISTRIBUTION, DISTRIBUTION = gununiform,
+sigmax = 0.00027, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.00027, sigmapy = 0.0, corry = 0.0,
+sigmat = lz, pt = 1.0, sigmapt = 0.0, corrt = 0.0,
+TEMISSION = 36.3222802282e-12, NBIN = 32, DEBIN = 5;
+
+// End: Uniform Distribution //////////////////////////////////
+
+
+// Begin: Gaussian Distribution //////////////////////////////
+//
+// Use in restart.
+//
+
+Dist22:DISTRIBUTION, DISTRIBUTION=gauss,
+                    sigmax=  0.00018, sigmapx=0.0028, corrx=0.0,
+                    sigmay=  0.00018, sigmapy=0.0028, corry=0.0,
+                    t = 0.000001, sigmat=  0.00040, pt=70.8, sigmapt=2.78803e6, corrt=0.0;
+
+// End: Gaussian Distribution ////////////////////////////////
+
+Dist2:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="PartData.dat"; 
+
+
+MINSTEPFORREBIN = 800;
+
+beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 1, BFREQ = 1498.956e6, BCURRENT = 0.29959808, CHARGE = -1;
+
+
+Select, Line = FullInjector;
+
+track, line = FullInjector, beam = beam1, ZSTOP=26.0, MAXSTEPS = 104645, DT =1.0e-12;
+ run, method = "PARALLEL-T", beam = beam1, fieldsolver = Fs1, distribution = Dist2;
+endtrack;
+
+Quit;

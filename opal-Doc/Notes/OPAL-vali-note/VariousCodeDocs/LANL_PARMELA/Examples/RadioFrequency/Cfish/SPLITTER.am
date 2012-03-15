@@ -1,0 +1,64 @@
+TE mode waveguide - Tee splitter for WR340
+Courtesy of James M. Potter, JP Accelerator Works, Inc.
+This problem uses E and H in complimentary roles
+to their usual interpretation in the SUPERFISH codes.
+
+; Copyright 1998, by JP Accelerator Works, Inc.
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,             ; Superfish problem
+maxcy=1,                  ; Stop after one cycle
+norm=4,                   ; Normalize fields along line
+xnorm1=0.0,ynorm1=4.318,  ; First end point of line for normalization
+xnorm2=4.50,ynorm2=4.318, ; Second end point of line for normalization
+xreg=24.125,25.4,         ; Physical coordinate of line regions along X
+kreg=0,48,60,kmax=66,     ; Logical coordinate of line regions along X
+yreg=0.5,                 ; Physical coordinate of line regions along Y 
+lreg=0,10,lmax=130,       ; Logical coordinate of line regions along Y  
+icylin=0,                 ; Cartesian coordinates 
+freq=2450,                ; Frequency
+! For an example of a higher order mode this region set FREQ=4900 and 
+! NBSLO=0, and in the last region set SINEDRV=8.636,0.0.
+nbslo=1,                  ; Neumann boundary condition on lower edge
+nbsup=0,                  ; Dirichlet boundary condition on upper edge
+nbslf=0,                  ; Dirichlet boundary condition on left edge
+nbsrt=0 &                 ; Dirichlet boundary condition on right edge
+
+&po x=0.0,   y=0.0 &
+&po x=0.0,   y=4.318 &
+&po x=20.0,  y=4.318 &
+&po x=20.0,  y=39.318 &
+&po x=28.636,y=39.318 &
+&po x=28.636,y=0.0 &
+&po x=25.125,y=0.0 &
+&po nt=2, x0=24.75, y0=0.0, r= 0.375, theta=180 &
+&po x=0.0,   y=0.0 &
+
+&reg mat=3 &
+&po x=20.0,  y=24.318 &
+&po x=20.0,  y=39.318 &
+&po x=28.636,y=39.318 &
+&po x=28.636,y=24.318 &
+&po x=20.0,  y=24.318 &
+
+&reg ibound=0 &
+&po x=25.125, y=0.0 &
+&po nt=2, x0=24.75, y0=0.0, r= 0.375, theta=180 &
+
+&reg ibound=0 &
+&po x=0.0,   y=0. &
+&po x=0.0,   y=4.318 &
+&po x=20.0,  y=4.318 &
+&po x=20.0,  y=39.318 &
+&po x=28.636,y=39.318 &
+&po x=28.636,y=0.0 &
+
+&reg mat=1, ibound=-1,hdrive=1.0,sinedrv=17.272,90.0 &
+&po x=0.0, y=0.0 &
+&po x=0.0, y=4.318 &
+
+&mt mtid=3 
+epsilon=3.2,2.4,
+mu=1.6,1.2 &
+
+

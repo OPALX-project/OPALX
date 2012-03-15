@@ -1,0 +1,100 @@
+\chapter{Field Emission}
+\label{chp:femiss}
+\index{FieldEmission(}
+Field emission is a major source of both dark current particles and primary
+incident particles in secondary emission. The Fowler-Nordheim (F-N) formula
+we use here to predict the emitted current density is given in (\ref{eq:units})
+\cite{BC} \cite{FN}
+%
+\begin{equation}\label{eq:units}
+    J(\mathbf{r},t) = \frac{A(\beta E)^2}{\varphi t(y)^2}
+                      \exp{\left(\frac{-B v(y)\varphi^{3/2}}{\beta E}\right)}
+                      \left[\hbox{A/$m^2$}\right]
+\end{equation}
+%
+where $J(\mathbf{r},t)$ stands for emitted electric current density in position
+$\mathbf{r}$ and time $t$. The Greek letters $\varphi$ and $\beta$ denote the
+work function of the surface material and the local field enhancement factor
+respectively. The parameter $E$ is the electric field in the normal direction
+of surface. The parameters $A$ and $B$ are empirical constants. The functions
+$v(y)$ and $t(y)$ representing the image charge effects \cite{BC} as a function
+of the Fowler-Nordheim parameter $y$ with the following definition\cite{DE}
+%
+\begin{equation}\label{eq:imagecharge}
+    y = \sqrt{\frac{e^3}{4\pi\varepsilon}}\frac{\sqrt{\beta E}}{\varphi} 
+      = 3.795\times10^{-5}\frac{\sqrt{\beta E}}{\varphi} \text{.}
+\end{equation}
+%
+In our model, we have chosen a simpler approximation originated by J. H. Han\cite{DE}
+\begin{eqnarray*}
+v(y) &=& a-by^2 \\
+t(y) &\approx& 1 \text{.}
+\end{eqnarray*}
+These approximations are valid for a large range of $y$, corresponding to
+typical applied electric field ranges in RF guns.\\
+
+Whenever the normal components of an electric field are strong enough the field
+emission current density will be limited by space charge effect\cite{BC}. 
+To cover this situation we incorporated the 1D Child-Langmuir law
+%
+\begin{align}\label{eq:SpaceCharge}
+    J(\mathbf{r},t) & =\frac{4\varepsilon_0}{9}\sqrt{2\frac{e}{m}}\left(\frac{V^{3/2}}{d^2}\right)\notag\\
+    &
+    =\frac{4\varepsilon_0}{9}\sqrt{2\frac{e}{m}}\left(\frac{E^{3/2}}{d^{1/2}}\right)
+    \left[\hbox{A/$m^2$}\right]
+\end{align}
+%
+into our field emission model. $J(\mathbf{r},t)$ denotes space charge limited emission 
+current density in position $\mathbf{r}$ and time $t$, $\varepsilon_0$ the
+permittivity in vacuum, $E$ the normal component of electric field on the surface
+and $d$ the distance from the position where $E$ is evaluated. Currently we 
+choose $d$ to be equal to the distance traveled by emitted particles in one
+time step, i.e., $d=\frac{\displaystyle eE\Delta{t}^2}{\displaystyle 2m_0}$ where $\Delta{t}$ is simulation
+time step.
+
+\section{Field Emission Command}
+\label{sec:FieldEmissionCmd}
+\index{FIELDEMISSIONCMD}
+To perform field emission related simulation, a triangulated surface geometry defined by GEOMETRY command (see  Chapter \ref{chp:geometry})  should be specified and attached to the elements (currently only "RFCavity" element is valid for field emission). A "SURFACEEMISSION" type of distribution, defined in DISTRIBUTION command should be attached to the GEOMETRY command. And users can customize dark current simulation by specifying the value of the work
+function $\varphi$, local field enhancement factor $\beta$ and other parameters
+present in (\ref{eq:units}) and (\ref{eq:imagecharge}) in the "SURFACEEMISSION" type of distribution definition in input file. See the following example input file and Table \ref{tab:fieldfmissioncmd} for a summary of the field emission related command in the "SURFACEEMISSION" type of distribution definition.\\
+\begin{alltt}
+DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION", 
+          NPDARKCUR = 0, INWARDMARGIN=0.0, 
+          FNBETA = 30, FNMAXEMI = 2,  
+          FNFIELDTHR = -0.1;
+ge:       GEOMETRY, FGEOM="../New_Gun.h5", 
+          S=0.0, DISTR=DistSurf, 
+          ZSHIFT=0.0; 
+FINSSGUN: RFCavity, L = 0.175, 
+          VOLT = 100.0, FMAPFN = "../RF_GUN_PSI-fieldmap.T7" , 
+          GEOMETRY = ge, ELEMEDGE =0.0, 
+          TYPE = "STANDING", FREQ = 2997.922938148;
+\ldots
+\end{alltt}
+
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Field Emission Command summary}
+    \label{tab:fieldfmissioncmd}
+    \begin{tabular}{|l|p{0.8\textwidth}|l|}
+      \hline
+      Command &Purpose (Default) \\
+      \hline
+      FNA&Empirical constant A for F-N emission model ($1.54\times10^{-6}$)\\
+      FNB&Empirical constant B for F-N emission model ($6.83\times10^9$) \\
+      FNY&Constant for image charge effect parameter y(E) ($3.795\times10^{-5}$) \\
+      FNVYZERO&Zero order constant for v(y) function ($0.9632$) \\
+      FNVYSECOND&Second order constant for v(y) function ($1.065$)\\
+      FNPHIW&Work function of gun surface material ($4.65$ eV) \\
+      FNBETA&Field enhancement factor $\beta$ for F-N emission ($50.0$) \\
+      FNFIELDTHR&Field threshold for F-N emission ($30.0$ MV/m) \\
+      FNMAXEMI&Maximum Number of electrons emitted from a single triangle in each time step ($10$) \\
+
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+
+

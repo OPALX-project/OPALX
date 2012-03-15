@@ -1,0 +1,23 @@
+2.4-GHz TM010 Modified Pillbox Cavity 
+Pillbox cavity with a 2-cm-radius bore tube
+[Originally appeared in 1987 User's Guide 1.4]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,        ! Superfish problem
+icylin=1             ! Cylindrical symmetry
+dx=.25,              ! Mesh interval
+freq=2378.184,       ! Starting frequency 
+xdri=0,ydri=5,       ! Drive point coordinates
+kmethod=1            ! Use beta to compute wave number 
+beta=0.95 &          ! Particle velocity for transit-time integrals
+
+$po x=0.0,y=0.0 $
+$po x=0.0,y=5.0 $
+$po x=2.5,y=5.0 $
+$po x=2.5,y=2.0 $
+$po x=7.5,y=2.0 $
+$po x=7.5,y=0.0 $
+$po x=0.0,y=0.0 $
+

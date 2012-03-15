@@ -1,0 +1,29 @@
+\scalebox{0.5}{
+\begin{tikzpicture}
+\usetikzlibrary{arrows}
+\draw [<->,thick] (0,0.8) node (zaxis) [above] {$\mathbf{z}$}
+        |- (0.8,0) node (yaxis) [right] {$\mathbf{y}$};
+\draw [->,thick] (0,0) -- (-0.5656,-0.5656) node (xaxis) [above] {$\mathbf{x}$};
+
+\draw (-3.5,-1) -- (2.5,-1);
+\draw (2.5,-1) -- (5,3);
+\draw (0.5,3) -- (5,3);
+\draw (-3.5,-1) -- (0.5,3);
+\draw [<-] (-3.5,-1.05) -- (-3.5,-2.1) node (d) [left,below] {$\mathbf{d}$};
+\draw [<-] (-3.5,-3.75) -- (-3.5,-2.7);
+\draw (-3.5,-3.8) -- (2.5,-3.8);
+\draw (2.5,-3.8) -- (4.5,-0.5);
+\draw (-0.0,-0.5) -- (4.5,-0.5);
+\draw (-3.5,-3.8) -- (0.0,-0.5);
+
+
+\path[draw=black] (3.3,0.5) circle (2pt);
+%\node[above=7pt,left=2pt] (I) at (0.5,0.5) {};
+\path[draw=black,thick] (5.5,-1) circle (0.4);
+\draw [] (3.3,0.5) arc (90:37:2.9);
+\path[draw=black] (3.3,-2.5) circle (2pt);
+\draw [] (3.3,-2.5) arc (-90:-34:2.6);
+\draw [thick] (5.1,-1) sin (5.3,-0.9) cos (5.5,-1) sin (5.7,-1.1) cos (5.9,-1) sin (5.9,-1);
+\node[above=7pt,right=12pt] (I) at (5.5,-1) {$\vec{E}=-\mathbf{\hat{z}}\frac{V_0}{d} \sin \omega t$};
+\end{tikzpicture}
+}

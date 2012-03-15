@@ -1,0 +1,155 @@
+Permanent-Magnet Quadrupole (for PANDIRA) 
+Full geometry using 16 wegdes of permanent magnet material
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,        ; Poisson or Pandira problem
+mode=0,              ; Materials have variable permeability
+dx=0.11,             ; Mesh interval
+nbslo=0,             ; Dirichlet boundary condition on lower edge
+nbsup=0,             ; Dirichlet boundary condition on upper edge
+nbslf=0,             ; Dirichlet boundary condition on left edge
+nbsrt=0 &            ; Dirichlet boundary condition on right edge
+
+&po x=-3.5,y=-3.5 & ; Outer boundary of geometry
+&po x=3.5,y=-3.5 &
+&po x=3.5,y=3.5 &
+&po x=-3.5,y=3.5 &
+&po x=-3.5,y=-3.5 &
+
+&reg mat=2,         ; Material 2, first of 16 wedges of permanent magnet
+mshape=1,           ; Anisotropic material
+mtid=1 &            ; Properties defined in MT namelist with MTID = 1
+&po r=1,theta=-11.25 &
+&po r=3,theta=-11.25 &
+&po nt=2,r=3,theta=11.25 &
+&po r=1,theta=11.255 &
+&po nt=2,r=1,theta=-11.25 &
+
+&reg mat=3,mshape=1,mtid=2 &
+&po r=1,theta=11.25 &
+&po r=3,theta=11.25 &
+&po nt=2,r=3,theta=33.75 &
+&po r=1,theta=33.75 &
+&po nt=2,r=1,theta=11.25 &
+
+&reg mat=4,mshape=1,mtid=3 &
+&po r=1,theta=33.75 &
+&po r=3,theta=33.75 &
+&po nt=2,r=3,theta=56.25 &
+&po r=1,theta=56.25 &
+&po nt=2,r=1,theta=33.75 &
+
+&reg mat=5,mshape=1,mtid=4 &
+&po r=1,theta=56.25 &
+&po r=3,theta=56.25 &
+&po nt=2,r=3,theta=78.75 &
+&po r=1,theta=78.75 &
+&po nt=2,r=1,theta=56.25 &
+
+&reg mat=6,mshape=1,mtid=5 &
+&po r=1,theta=78.75 &
+&po r=3,theta=78.75 &
+&po nt=2,r=3,theta=101.25 &
+&po r=1,theta=101.25 &
+&po nt=2,r=1,theta=78.75 &
+
+&reg mat=7,mshape=1,mtid=6 &
+&po r=1,theta=101.25 &
+&po r=3,theta=101.25 &
+&po nt=2,r=3,theta=123.75 &
+&po r=1,theta=123.75 &
+&po nt=2,r=1,theta=101.25 &
+
+&reg mat=8,mshape=1,mtid=7 &
+&po r=1,theta=123.75 &
+&po r=3,theta=123.75 &
+&po nt=2,r=3,theta=146.25 &
+&po r=1,theta=146.25 &
+&po nt=2,r=1,theta=123.75 &
+
+&reg mat=9,mshape=1,mtid=8 &
+&po r=1,theta=146.25 &
+&po r=3,theta=146.25 &
+&po nt=2,r=3,theta=168.75 &
+&po r=1,theta=168.75 &
+&po nt=2,r=1,theta=146.25 &
+
+&reg mat=10,mshape=1,mtid=9 &
+&po r=1,theta=168.75 &
+&po r=3,theta=168.75 &
+&po nt=2,r=3,theta=191.25 &
+&po r=1,theta=191.25 &
+&po nt=2,r=1,theta=168.75 &
+
+&reg mat=11,mshape=1,mtid=10 &
+&po r=1,theta=191.25 &
+&po r=3,theta=191.25 &
+&po nt=2,r=3,theta=213.75 &
+&po r=1,theta=213.75 &
+&po nt=2,r=1,theta=191.25 &
+
+&reg mat=12,mshape=1,mtid=11 &
+&po r=1,theta=213.75 &
+&po r=3,theta=213.75 &
+&po nt=2,r=3,theta=236.25 &
+&po r=1,theta=236.25 &
+&po nt=2,r=1,theta=213.75 &
+
+&reg mat=13,mshape=1,mtid=12 &
+&po r=1,theta=236.25 &
+&po r=3,theta=236.25 &
+&po nt=2,r=3,theta=258.75 &
+&po r=1,theta=258.75 &
+&po nt=2,r=1,theta=236.25 &
+
+&reg mat=14,mshape=1,mtid=13 &
+&po r=1,theta=258.75 &
+&po r=3,theta=258.75 &
+&po nt=2,r=3,theta=281.25 &
+&po r=1,theta=281.25 &
+&po nt=2,r=1,theta=258.75 &
+
+&reg mat=15,mshape=1,mtid=14 &
+&po r=1,theta=281.25 &
+&po r=3,theta=281.25 &
+&po nt=2,r=3,theta=303.75 &
+&po r=1,theta=303.75 &
+&po nt=2,r=1,theta=281.25 &
+
+&reg mat=16,mshape=1,mtid=15 &
+&po r=1,theta=303.75 &
+&po r=3,theta=303.75 &
+&po nt=2,r=3,theta=326.25 &
+&po r=1,theta=326.25 &
+&po nt=2,r=1,theta=303.75 &
+
+&reg mat=17,mshape=1,mtid=16 &
+&po r=1,theta=326.25 &
+&po r=3,theta=326.25 &
+&po nt=2,r=3,theta=348.75 &
+&po r=1,theta=348.75 &
+&po nt=2,r=1,theta=326.25 &
+
+&mt mtid=1                  ; Material ID number
+aeasy=0.0,                  ; Easy axis direction
+gamper=1,                   ; Gamma perpendicular to easy axis
+hcept=-10800,bcept=11600. & ; H and B intercepts   
+
+&mt mtid=2,aeasy=67.5,gamper=1,hcept=-10800,bcept=11600. &  
+&mt mtid=3,aeasy=135,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=4,aeasy=202.5,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=5,aeasy=270,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=6,aeasy=337.5,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=7,aeasy=45,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=8,aeasy=112.5,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=9,aeasy=180,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=10,aeasy=247.5,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=11,aeasy=315,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=12,aeasy=22.5,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=13,aeasy=90,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=14,aeasy=157.5,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=15,aeasy=225,gamper=1,hcept=-10800,bcept=11600. &
+&mt mtid=16,aeasy=292.5,gamper=1,hcept=-10800,bcept=11600. &
+

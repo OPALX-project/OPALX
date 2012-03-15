@@ -1,0 +1,54 @@
+; CDTfish control file 1DTFC
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+ 
+Title
+Example 1-drift-tube CCDTL cavity
+700-MHz full cell with 3-cm-long bore tube on right side
+ENDTitle
+ 
+PARTICLE              H+
+TEMPerature           25
+ 
+FULL_cavity
+FILEname_prefix       1DTFC
+SEQuence_number       1
+FREQuency             700
+BETA                  0.29  
+DIAMeter              27.4
+G_OVER_Beta_lambda    0.24  
+EQUATOR_flat          5
+E0T_Normalization     1.5
+NUMBER_of_gaps        2
+INNER_CORNer_radius   0.25
+OUTER_nose_radius     0.4
+INNER_nose_radius     0.2
+FLAT_length           0
+CONE_angle            30
+SEPTUM_thickness      1
+BORE_radius           1.5
+LEFT_BEAM_TUBE        0
+RIGHT_BEAM_TUBE       3
+DT_DIAMeter           7.4
+DT_CORNer_radius      0.25
+DT_OUTER_NOSE_radius  0.4
+DT_INNER_NOSE_radius  0.2
+DT_FLAT_length        0
+DT_STEM_Diameter      1.1
+DT_STEM_Count         2
+DT_FACE_angle         45
+DELTA_frequency       0.05
+MESH_size             0.065
+INCrement             2
+START                 2 
+
+; Start codes for CDTFISH:
+; 1 No tuning
+; 2 Adjust diameter and move gaps for S = 0
+; 3 Adjust gap(s) and move gaps for S = 0
+; 4 Adjust diameter, gap centers fixed
+; 5 Adjust gap(s), gap centers fixed 
+;  (When S = 0, geometric and electrical centers coincide.)
+ 
+ENDFILE
+

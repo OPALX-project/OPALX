@@ -1,0 +1,88 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=1000000000;
+Option, SPTDUMPFREQ = 50000000000000;
+Option, PSDUMPEACHTURN=true;
+Option, PSDUMPLOCALFRAME=false;
+Option, REPARTFREQ=20;
+Option, SCSOLVEFREQ=20;
+
+Title,string="OPAL-CyclT test";
+
+
+Edes=1.49/1000.0; //GeV
+//SEO
+//rinit0= 23.039*10.0; // mm
+//pr0_m=0.0/100.0; //m
+
+//AEO
+rinit0= 23.144*10.0; // mm
+pr0_m=0.1517/100.0; //m
+
+hmass=0.939277; // GeV
+gamma=(Edes+hmass)/hmass;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+Moment0 = gamma*beta*hmass;
+brho = (hmass*1.0e9*gambet) / CLIGHT;
+
+bcon=0.728435; //Tesla
+frequency=bcon*clight*clight/(twopi*hmass*10.0^9)*4.0/10.0^6; //MHz
+pr0=pr0_m*(twopi*frequency*10.0^6)/4.0/clight; //radian
+
+value,{gamma,Edes,frequency,pr0};
+// -4.2821
+// -2.1367
+//    2. 1 4 5 4
+phi01=-90.0;
+phi02=phi01+180;
+phi03=phi01;
+phi04=phi01+180;
+
+pxinm0c = 0.000365;
+pyinm0c = 1.0e-10;
+pzinm0c = 0.00021;
+
+pxineV = hmass*1.0e9*( sqrt(pxinm0c*pxinm0c+1) - 1 );
+pyineV = hmass*1.0e9*( sqrt(pyinm0c*pyinm0c+1) - 1 );
+pzineV = hmass*1.0e9*( sqrt(pzinm0c*pzinm0c+1) - 1 );
+value,{pxinm0c,pyinm0c,pzinm0c};
+
+//frequency=44.32;
+
+cyciae: Cyclotron, TYPE="CYCIAE", CYHARMON=4, PHIINIT=0.0, PRINIT=pr0,
+RINIT=rinit0, SYMMETRY=4.0, 
+RFFREQ=frequency, FMAPFN="../cyc100_ANSYS_fine.dat";
+rf1: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE=-17.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi01; 
+rf2: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE= 17.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi02; 
+rf3: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE=162.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi03; 
+rf4: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE=197.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi04; 
+
+l1:   Line = (cyciae,rf1,rf2,rf3,rf4);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  1.217e-03, sigmapx=pxineV, corrx=0.0,
+sigmay=  7.0e-03,   sigmapy=pyineV, corry=0.0,
+sigmat=  2.108e-03, sigmapt=pzineV, corrt=0.0;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=256, MY=32, MT=32, 
+                 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+beam1: BEAM, PARTICLE=HYDRONGEN_MINUS, pc=Moment0, SPACECHARGE=false, NPART=1.5e3, BCURRENT=2.0E-2,CHARGE=1.0, BFREQ= frequency;
+
+Select, Line=l1;
+// in CYCIAE-100, the reference particle of 1.49MeV energy need about 311t to btain 100MeV
+track,line=l1, beam=beam1,MAXSTEPS=2000*1000,STEPSPERTURN=1000,TIMEINTEGRATOR="LF-2";
+ run, file = "track_output", turns = 1000, mbmode="AUTO", paramb= 5,  method="CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+

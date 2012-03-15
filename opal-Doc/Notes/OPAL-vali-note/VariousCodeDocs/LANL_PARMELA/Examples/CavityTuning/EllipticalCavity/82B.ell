@@ -1,0 +1,51 @@
+; ELLfish control file 82B.ELL
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+Title
+Sample problem for tuning elliptical cavity
+Design beta = 0.82
+Resonant frequency = 700 MHz, Bore radius = 8 cm
+ENDTitle
+ 
+PARTICLE              H+
+SUPERConductor        2   9.2  1.00000E-08
+ 
+NumberOfCells         8    ; used by the ELLCAV code
+HALF_cavity
+ 
+FILEname_prefix       82B
+SEQuence_number       1
+FREQuency             700
+BETA                  0.82
+DIAMeter              40.5
+E0T_Normalization     10
+DOME_B                5.5
+DOME_A/B              0.85
+WALL_Angle            7
+EQUATOR_flat          0
+IRIS_flat             0
+RIGHT_BEAM_tube       0
+IRIS_A/B              0.5
+BETASTART             0
+BETASTOP              0
+BETASTEP              0
+BETATABLE             0
+BORE_radius           8
+SECOND_Beam_tube      0
+SECOND_TUBE_Radius    0
+DELTA_frequency       0.01
+MESH_size             0.2
+INCrement             2
+START                 2
+
+; Start codes for ELLFISH:
+; 1 No tuning
+; 2 Adjust diameter
+; 3 Adjust dome ellipse size
+; 4 Adjust wall slope
+; 5 Adjust wall slope with fixed iris ellipse size
+;  (Right side only in full cavities for 3, 4, and 5.)
+
+ENDFile
+

@@ -1,0 +1,63 @@
+ &NEWRUN
+  Head='Charge  extraction vs. phase; 40MV/m 1nC'
+  RUN=1,
+  Loop=F, Nloop=2	
+  Distribution = 'rfgun.ini', Xoff=0.E-3, Yoff=0.0
+  Lmagnetized=.F
+  EmitS=.T
+  PhaseS=.T
+  TrackS=.T
+  RefS=.T
+  TcheckS=.T
+  CathodeS=.T
+  TRACK_ALL=.T,	PHASE_SCAN=.F,	AUTO_PHASE=.F
+  check_ref_part=.F,
+  ZSTART=0.0,	ZSTOP=0.25
+  Zemit=100
+  Zphase=20
+  H_max=0.01
+  H_min=0.001
+ /
+
+ &SCAN
+  LScan=.F.,
+  Scan_para='Phi(1)',
+  S_min=102 ,	S_max=118.0 ,	S_numb=9
+  FOM(1)='bunch charge',
+  FOM(2)='hor emit'
+  FOM(3)='bunch length'
+  FOM(4)='hor spot size'
+ /
+
+ &CHARGE
+  Loop=F
+  LSPCH=T
+  Nrad=10, Nlong_in=10
+  Cell_var=2.0
+  min_grid=0.4D-6
+  Max_scale=0.05
+  Max_count=100
+  Lmirror=.T
+ /
+
+ &Aperture
+ /
+
+ &FEM
+ /
+
+ &CAVITY
+  Loop=.F,
+  LEFieLD=.T
+  FILE_EFieLD(1) = 'efld.dat',
+  Nue(1)=1.3,	MaxE(1)=-40.0,	Phi(1)=6.0,	C_pos(1)=0.0, 
+ /
+
+ &SOLENOID
+  Loop=F
+  LBFieLD=.T,
+  FILE_BFieLD(1)='bfld.dat', MaxB(1)=0.2250,	
+  S_pos(1)=0.E-3, S_xoff(1)=0.0,	S_yoff(1)=0.0
+ /
+ &QUADRUPOLE
+ /

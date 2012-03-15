@@ -1,0 +1,7 @@
+; SEGFIELD control file
+OUTPUT_file        8CField
+INPUT_filename     8C82BE1.SFO
+
+SEGment_numbers      6 to 30
+E0T = 10
+ENDFILE

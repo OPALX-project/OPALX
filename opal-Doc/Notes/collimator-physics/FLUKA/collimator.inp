@@ -1,0 +1,55 @@
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
+TITLE
+Cu collimator 72 MeV proton
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
+BEAM           -.072      -0.0      -0.0   -1.1775   -1.1775          PROTON
+BEAMPOS          0.0       0.0       0.0
+GEOBEGIN                                                              COMBNAME
+    0    0                  A Cu collimator
+RPP body1      -5000000.0 +5000000.0 -5000000.0 +5000000.0 -5000000.0 +5000000.0
+RPP body2      -1000000.0 +1000000.0 -1000000.0 +1000000.0 -100.0 +1000000.0
+RPP collout    -2. 2. -2. 2. 1. 10.
+#if 0
+RPP collin     -0.3 0.3 -0.3 0.3 1. 10.
+#endif
+RCC elli       0.0 0.0 1. 0.0 0.0 10. 0.3
+END
+* black hole
+regBH1       5  +body1 -body2
+* vacuum around
+regVA2       5  +body2 -collout
+* Cu collimator
+regCu3       5  +collout -elli
+regIn        5  +elli
+END
+GEOEND
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
+*  Cu collimator
+ASSIGNMA      COPPER    regCu3
+*  External Black Hole
+ASSIGNMA    BLCKHOLE    regBH1
+*  Vacuum
+ASSIGNMA      VACUUM    regVA2
+ASSIGNMA      VACUUM     regIn
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
+* e+e- and gamma production threshold set at 73 MeV
+EMFCUT        -0.073     0.073       1.0    COPPER                    PROD-CUT
+* Boundary crossing fluence in the middle of the target (log intervals, one-way)
+USRBDX          101.    PROTON     -47.0     regIn    regVA2       1.0piFluenUD
+USRBDX        +0.072                144.                 0.0          &
+* Boundary crossing current in the middle of the target (log intervals, one-way)
+USRBDX            1.    PROTON      -48.     regIn    regVA2       1.0piCurrUD
+USRBDX        +0.072                144.                 0.0          &
+#if 0
+USRBDX          101.    PROTON      -49.     regIn    regCu3       1.0Cu
+USRBDX         0.072                144.                 0.0          &
+#endif
+#if 0
+USRBDX            1.    PROTON      -50.     regIn    regCu3       1.0Cu2
+USRBDX         0.072                144.                 0.0          &
+#endif
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
+RANDOMIZ         1.0
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
+START      1000000.0
+STOP

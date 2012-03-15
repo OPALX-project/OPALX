@@ -1,0 +1,27 @@
+Electrostatic problem with charge on a point-region - 4 quadrants
+Line charge has equivalent charge/cm as files C4q.am and C1q.am
+
+; Copyright 2004 by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,          ! Poisson or Pandira problem
+dx=0.04                ! Mesh interval
+icylin=0,              ! Cartesian coordinates
+nbsup=0,               ! Dirichlet boundary condition on all edges
+nbslo=0,               
+nbslf=0,               
+nbsrt=0,                
+ibound=0,              ! Dirichlet boundary condition on internal bounds
+xjfact=0.0 &           ! Electrostatic problem 
+
+
+&po x=4,y=0 &
+&po nt=2,r=4.,theta= 90,x0=0,y0=0 &
+&po nt=2,r=4.,theta=180,x0=0,y0=0 &
+&po nt=2,r=4.,theta=270,x0=0,y0=0 &
+&po nt=2,r=4.,theta=360,x0=0,y0=0 &
+
+&reg mat=1,charge=3.14159d-9 &   ! Charge is charge/cm
+&po x=0,y=0 &
+
+

@@ -1,0 +1,850 @@
+// ------------------------------------------------------------------------
+// $RCSfile: RFCavity.cpp,v $
+// ------------------------------------------------------------------------
+// $Revision: 1.1.1.1 $
+// ------------------------------------------------------------------------
+// Copyright: see Copyright.readme
+// ------------------------------------------------------------------------
+//
+// Class: RFCavity
+//   Defines the abstract interface for an accelerating structure.
+//
+// ------------------------------------------------------------------------
+// Class category: AbsBeamline
+// ------------------------------------------------------------------------
+//
+// $Date: 2000/03/27 09:32:31 $
+// $Author: fci $
+//
+// ------------------------------------------------------------------------
+
+#include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/BeamlineVisitor.h"
+#include "AbstractObjects/OpalData.h"
+#include "Fields/Fieldmap.hh"
+#include "ValueDefinitions/RealVariable.h"
+#include "Structure/BoundaryGeometry.h"
+
+#include "gsl/gsl_interp.h"
+#include "gsl/gsl_spline.h"
+#include <iostream>
+#include <fstream>
+
+extern Inform *gmsg;
+
+// Class RFCavity
+// ------------------------------------------------------------------------
+
+RFCavity::RFCavity():
+    Component(),
+    filename_m(""),
+    fieldmap_m(NULL),
+    scale_m(1.0),
+    phase_m(0.0),
+    frequency_m(0.0),
+    startField_m(0.0),
+    endField_m(0.0),
+    type_m(SW),
+    fast_m(false),
+    rmin_m(0.0),
+    rmax_m(0.0),
+    angle_m(0.0),
+    sinAngle_m(0.0),
+    cosAngle_m(0.0),
+    pdis_m(0.0),
+    gapwidth_m(0.0),
+    phi0_m(0.0),
+    RNormal_m(NULL),
+    VrNormal_m(NULL),
+    DvDr_m(NULL),
+    num_points_m(0) {
+    setElType(isRF);
+}
+
+
+RFCavity::RFCavity(const RFCavity &right):
+    Component(right),
+    filename_m(right.filename_m),
+    fieldmap_m(right.fieldmap_m),
+    scale_m(right.scale_m),
+    phase_m(right.phase_m),
+    frequency_m(right.frequency_m),
+    startField_m(right.startField_m),
+    endField_m(right.endField_m),
+    type_m(right.type_m),
+    fast_m(right.fast_m),
+    rmin_m(right.rmin_m),
+    rmax_m(right.rmax_m),
+    angle_m(right.angle_m),
+    sinAngle_m(right.sinAngle_m),
+    cosAngle_m(right.cosAngle_m),
+    pdis_m(right.pdis_m),
+    gapwidth_m(right.gapwidth_m),
+    phi0_m(right.phi0_m),
+    RNormal_m(NULL),
+    VrNormal_m(NULL),
+    DvDr_m(NULL),
+    num_points_m(right.num_points_m) {
+    setElType(isRF);
+}
+
+
+RFCavity::RFCavity(const string &name):
+    Component(name),
+    filename_m(""),
+    fieldmap_m(NULL),
+    scale_m(1.0),
+    phase_m(0.0),
+    frequency_m(0.0),
+    startField_m(0.0),
+    endField_m(0.0),
+    type_m(SW),
+    fast_m(false),
+    rmin_m(0.0),
+    rmax_m(0.0),
+    angle_m(0.0),
+    sinAngle_m(0.0),
+    cosAngle_m(0.0),
+    pdis_m(0.0),
+    gapwidth_m(0.0),
+    phi0_m(0.0),
+    RNormal_m(NULL),
+    VrNormal_m(NULL),
+    DvDr_m(NULL),
+    num_points_m(0) {
+    setElType(isRF);
+}
+
+
+RFCavity::~RFCavity() {
+    Fieldmap::deleteFieldmap(filename_m);
+    if(RNormal_m) {
+        delete[] RNormal_m;
+        delete[] VrNormal_m;
+        delete[] DvDr_m;
+    }
+}
+
+
+void RFCavity::accept(BeamlineVisitor &visitor) const {
+    visitor.visitRFCavity(*this);
+}
+
+void RFCavity::setFieldMapFN(string fn) {
+    filename_m = fn;
+}
+
+string RFCavity::getFieldMapFN() const {
+    return filename_m;
+}
+
+void RFCavity::setAmplitudem(double vPeak) {
+    scale_m = vPeak;
+}
+
+void RFCavity::setFrequency(double freq) {
+    frequency_m = freq;
+}
+
+void RFCavity::setFrequencym(double freq) {
+    frequency_m = freq;
+}
+
+
+double RFCavity::getFrequencym() const {
+return frequency_m;
+}
+
+void RFCavity::setPhasem(double phase) {
+    phase_m = phase;
+}
+
+double RFCavity::getPhasem() const {
+    return phase_m;
+}
+
+void RFCavity::setCavityType(string type) {
+
+}
+
+string RFCavity::getCavityType() const {
+
+}
+
+void RFCavity::setFast(bool fast) {
+    fast_m = fast;
+}
+
+
+bool RFCavity::getFast() const {
+    return fast_m;
+}
+
+/**
+ * calculate derivative of electric field
+ */
+double RFCavity::derivative(double z, double t) {
+
+    Vector_t tmpE2(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    Vector_t tpos(0.0, 0.0, 0.0), pos(0.0, 0.0, z);
+
+    double error = 1e-5;
+    double tmpEr = 1.0, h = 1.0;
+    double dnew = 0.0, dold = 0.0;
+
+    /// calculate E(z)
+    Vector_t tmpE1(0.0, 0.0, 0.0);
+    fieldmap_m->getFieldstrength(pos, tmpE1, tmpB);
+
+    //FIXME: I think FieldStrength returns the same value once we take to small direction steps
+    for(int i = 0; i < 100; i++) {
+
+        /// calculate E(z+h)
+        tmpE2 = (0.0, 0.0, 0.0);
+        tpos(2) = pos(2) + h;
+        fieldmap_m->getFieldstrength(tpos, tmpE2, tmpB);
+        /// calculate E(z-h)
+        tmpE1 = (0.0, 0.0, 0.0);
+        tpos(2) = pos(2) - h;
+        fieldmap_m->getFieldstrength(tpos, tmpE1, tmpB);
+
+        // accuracy of field interpolation reached
+        // return or choose larger h!
+        // XXX: how does BET do that
+        if(tmpE1(2) == tmpE2(2))
+            return dnew;
+
+        dold = dnew;
+        dnew = (tmpE2(2) - tmpE1(2)) / h / 2.0;
+        tmpEr = abs(dnew - dold);
+
+        if(i >= 2 && tmpEr < error)
+            return dnew;
+
+        if(i == 0)
+            h = 0.5;
+        else
+            h *= h;
+
+    }
+
+    ERRORMSG("Accuracy criteria for derivative not met: Error = " << tmpEr << " (>" << error << ")" << endl);
+    return dnew;
+}
+
+
+/**
+ * ENVELOPE COMPONENT for radial focussing of the beam
+ * Calculates the transverse envelope component for the RF cavity
+ * element and adds it to the K vector
+*/
+void RFCavity::addKR(int i, double t, Vector_t &K) {
+
+    double pz = RefPartBunch_m->getZ(i) - startField_m - ds_m;
+    const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
+
+    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+    double Ez = tmpE(2);
+
+    tmpE = (0.0, 0.0, 0.0);
+    fieldmap_m->getFieldstrength_fdiff(tmpR, tmpE, tmpB, DZ);
+
+    double wtf = frequency_m * t + phase_m;
+    double k = -Physics::q_e / (2.0 * RefPartBunch_m->getGamma(i) * Physics::EMASS);
+    k *= scale_m * (tmpE(2) * cos(wtf) - RefPartBunch_m->getBeta(i) * frequency_m * Ez * sin(wtf) / Physics::c);
+    K += Vector_t(k, k, 0.0);
+}
+
+
+/**
+ * ENVELOPE COMPONENT for transverse kick (only has an impact if x0, y0 != 0)
+ * Calculates the transverse kick component for the RF cavity element and adds it to
+ * the K vector. Only important for off track tracking, otherwise KT = 0.
+*/
+void RFCavity::addKT(int i, double t, Vector_t &K) {
+
+    RefPartBunch_m->actT();
+
+    double pz = RefPartBunch_m->getZ(i) - startField_m - ds_m;
+    const Vector_t tmpA(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
+
+    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    fieldmap_m->getFieldstrength(tmpA, tmpE, tmpB);
+
+    //XXX: BET parameter, default is 1.
+    //If cxy != 1, then cxy = true
+    bool cxy = false; // default
+    double kx = 0.0, ky = 0.0;
+    if(cxy) {
+        double phase = cos(fieldmap_m->getFrequency() * t + phase_m); // Physics::two_pi);
+        double cf = -Physics::q_e / (RefPartBunch_m->getGamma(i) * Physics::m_e);
+        kx = -cf * scale_m * tmpE(0) * phase;
+        ky = -cf * scale_m * tmpE(1) * phase;
+    }
+
+    double dx = RefPartBunch_m->getX0(i) - dx_m;
+    double dy = RefPartBunch_m->getY0(i) - dy_m;
+
+    Vector_t KR(0.0, 0.0, 0.0);
+    addKR(i, t, KR);
+    //FIXME ?? different in bet src
+    K += Vector_t(KR(1) * dx + kx, KR(1) * dy + ky, 0.0);
+    //
+    //K += Vector_t(kx - KR(1) * dx, ky - KR(1) * dy, 0.0);
+}
+
+
+bool RFCavity::apply(const int &i, const double &t, double E[], double B[]) {
+    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
+    Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
+    if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
+
+    E[0] = Ev(0);
+    E[1] = Ev(1);
+    E[2] = Ev(2);
+    B[0] = Bv(0);
+    B[1] = Bv(1);
+    B[2] = Bv(2);
+
+    return false;
+}
+
+bool RFCavity::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+    const double phase = frequency_m * t + phase_m;
+
+    const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
+    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    if(!fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB)) {
+        E += scale_m * cos(phase) * tmpE;
+        B -= scale_m * sin(phase) * tmpB;
+        return false;
+    }
+
+    return true;
+}
+
+bool RFCavity::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
+    const double phase = frequency_m * t + phase_m;
+
+    const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - startField_m - ds_m);
+    Vector_t  tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+
+    if(!fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB)) {
+        E += scale_m * cos(phase) * tmpE;
+        B -= scale_m * sin(phase) * tmpB;
+        return false;
+    }
+    return true;
+}
+
+void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+    using Physics::two_pi;
+    double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
+    Inform msg("RFCavity ");
+    stringstream errormsg;
+    RefPartBunch_m = bunch;
+
+    fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
+    if(fieldmap_m != NULL) {
+        fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
+        if(zEnd > zBegin) {
+            msg << getName() << " using file "; fieldmap_m->getInfo(&msg);
+            if(fabs((frequency_m - fieldmap_m->getFrequency()) / frequency_m) > 0.01) {
+                errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename_m << "';\n"
+                         << frequency_m / two_pi * 1e-6 << " MHz <> "
+                         << fieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER";
+                string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+                msg << errormsg_str << "\n"
+                    << endl;
+                if(Ippl::myNode() == 0) {
+                    ofstream omsg("errormsg.txt", ios_base::app);
+                    omsg << errormsg_str << endl;
+                    omsg.close();
+                }
+                frequency_m = fieldmap_m->getFrequency();
+            }
+
+
+
+            ElementEdge_m = startField;
+            startField_m = startField = ElementEdge_m + zBegin;
+            endField_m = endField = ElementEdge_m + zEnd;
+          
+        } else {
+            endField = startField - 1e-3;
+        }
+    } else {
+        endField = startField - 1e-3;
+    }
+
+    /**
+       NOT needed anymore in the new AUTOPHASE procedure
+    const double dPhi = OPAL.getGlobalPhaseShift()*frequency_m;
+    
+    msg << "Global Phase-Shift is " << dPhi/two_pi*360.0 << " (deg)" 
+	<< " old phase = " << phase_m/two_pi*360.0 << " (deg) ";
+    phase_m-=dPhi;
+    msg << "new phase = " << phase_m/two_pi*360.0 << " (deg) " << endl;
+    
+    */
+
+    /**
+
+    Just for testing
+    if (hasBoundaryGeometry()) {
+    getBoundaryGeometry()->writeToVtk( string("fromRFCavity.vtk") );
+    }
+
+    */
+
+}
+
+// In current version ,this function reads in the cavity voltage profile data from file.
+void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
+    using Physics::pi;
+
+    //    Inform msg("visitRFCavity read voltage");
+
+    RefPartBunch_m = bunch;
+
+    //    The variable doPhase is not used; If it should be used in the future the following
+    //    lines have to be implemented on the OPAL side
+    //    (THIS IS THE CLASSICS SIDE AND OPAL OBJECTS ARE INAPPROPRIATE HERE)
+    //     bool doPhase  = true;
+    //     RealVariable *ar = dynamic_cast<RealVariable *>(OPAL.find("OMITPHASE"));
+    //     if (ar) {
+    //         doPhase = false;
+    //         msg << "Phase of particle is not considered "<< endl;
+    //     }
+
+    INFOMSG("q= " << RefPartBunch_m->getQ() << " m= " << RefPartBunch_m->getM() / 1.0E9 << endl);
+
+
+    ifstream in(filename_m.c_str());
+    if(!in.good()) {
+       ERRORMSG("Error in Cyclotron::readFieldMap() !" << endl);
+       ERRORMSG(" Cannot open file " << filename_m << ", please check if it really exists." << endl);
+       exit(1);
+    }
+    INFOMSG("----------------------------------------------" << endl);
+    INFOMSG("            READ IN VOLTAGE DATA              " << endl);
+    INFOMSG("        (data format: s/L, v, dV/dr)          " << endl);
+    INFOMSG("----------------------------------------------" << endl);
+
+    in >> num_points_m;
+
+    if(RNormal_m != NULL) delete[] RNormal_m;
+    if(VrNormal_m != NULL)delete[] VrNormal_m;
+    if(DvDr_m != NULL)    delete[] DvDr_m;
+
+    RNormal_m  = new double[num_points_m];
+    VrNormal_m = new double[num_points_m];
+    DvDr_m     = new double[num_points_m];
+
+    for(int i = 0; i < num_points_m; i++) {
+        if(in.eof()) {
+	  ERRORMSG("Error in Cyclotron::readFieldMap() !" << endl);
+          ERRORMSG(" Not enough data in" << filename_m << ", please check data format." << endl);
+	  exit(1);
+        }
+        in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
+
+        VrNormal_m[i] *= RefPartBunch_m->getQ();
+        DvDr_m[i]     *= RefPartBunch_m->getQ();
+    }
+    sinAngle_m = sin(angle_m / 180.0 * pi);
+    cosAngle_m = cos(angle_m / 180.0 * pi);
+
+    *gmsg << "* Cavity voltage data read successfully!" << endl << endl;
+}
+
+void RFCavity::finalise()
+{}
+
+bool RFCavity::bends() const {
+    return false;
+}
+
+
+void RFCavity::goOnline() {
+    Fieldmap::readMap(filename_m);
+    online_m = true;
+}
+
+void RFCavity::goOffline() {
+    Fieldmap::freeMap(filename_m);
+    online_m = false;
+}
+
+void  RFCavity::setRmin(double rmin) {
+    rmin_m = rmin;
+}
+
+void  RFCavity::setRmax(double rmax) {
+    rmax_m = rmax;
+}
+
+void  RFCavity::setAzimuth(double angle) {
+    angle_m = angle;
+}
+
+void  RFCavity::setPerpenDistance(double pdis) {
+    pdis_m = pdis;
+}
+
+void  RFCavity::setGapWidth(double gapwidth) {
+    gapwidth_m = gapwidth;
+}
+
+void RFCavity::setPhi0(double phi0) {
+    phi0_m = phi0;
+}
+
+double  RFCavity::getRmin() const {
+    return rmin_m;
+}
+
+double  RFCavity::getRmax() const {
+    return rmax_m;
+}
+
+double  RFCavity::getAzimuth() const {
+    return angle_m;
+}
+
+double  RFCavity::getSinAzimuth() const {
+    return sinAngle_m;
+}
+
+double  RFCavity::getCosAzimuth() const {
+    return cosAngle_m;
+}
+
+double  RFCavity::getPerpenDistance() const {
+    return pdis_m;
+}
+
+double  RFCavity::getGapWidth() const {
+    return gapwidth_m;
+}
+
+double RFCavity::getPhi0() const {
+    return phi0_m;
+}
+
+void RFCavity::setComponentType(string name) {
+    if(name == "STANDING") {
+        type_m = SW;
+    } else if(name == "SINGLEGAP") {
+        type_m = SGSW;
+    } else {
+        if(name != "") {
+            Inform msg("RFCavity ");
+            stringstream errormsg;
+            errormsg << "CAVITY TYPE " << name << " DOES NOT EXIST; \n"
+                     << "CHANGING TO REGULAR STANDING WAVE";
+            string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+            msg << errormsg_str << "\n"
+                << endl;
+            if(Ippl::myNode() == 0) {
+                ofstream omsg("errormsg.txt", ios_base::app);
+                omsg << errormsg_str << endl;
+                omsg.close();
+            }
+        }
+        type_m = SW;
+    }
+
+}
+
+string RFCavity::getComponentType()const {
+    if(type_m == SGSW)
+        return string("SINGLEGAP");
+    else
+        return string("STANDING");
+}
+
+double RFCavity::getCycFrequency()const {
+    return  frequency_m;
+}
+
+void RFCavity::getMomentaKick(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass) {
+
+    using Physics::two_pi;
+    using Physics::pi;
+    using Physics::c;
+    double derivate;
+    double Voltage, dVdR;
+
+    double momentum2  = momentum[0] * momentum[0] + momentum[1] * momentum[1] + momentum[2] * momentum[2];
+    double betgam = sqrt(momentum2);
+
+    double gamma = sqrt(1.0 + momentum2);
+    double beta = betgam / gamma;
+
+    Voltage = spline(normalRadius, &derivate) * scale_m * 1.0e6; // V
+    // *gmsg<<" Voltage = " << Voltage/1000.0 <<"[kV]"<<endl;
+    dVdR = derivate;
+
+    if(fabs(Voltage) == 0.0) dVdR = 0.0;
+
+    //correct for transit time effect
+    // U = 1/2*omega*deltT Vnew = V*sinU/U;
+    //frequency_m = 2pi*Frf ,  [ rad/s]
+
+    double transit_factor = 0.0;
+    double U = 1.0;
+
+    if(gapwidth_m > 0.0) {
+        transit_factor = 0.5 * frequency_m * gapwidth_m * 1.0e-3 / (c * beta);
+        U = sin(transit_factor) / transit_factor;
+    }
+
+    Voltage *= U;
+
+    double dgam = 0.0, defl = 0.0;
+    double nphase = (frequency_m * (t + dtCorrt) * 1.0e-9) - phi0_m / 180.0 * pi ; // rad/s, ns --> rad
+
+    dgam = Voltage * cos(nphase) / (restMass);
+
+    double tempdegree = fmod(nphase * 360.0 / two_pi, 360.0);
+    if(tempdegree > 270.0) tempdegree -= 360.0;
+
+    gamma += dgam;
+    double newmomentum2 = pow(gamma, 2) - 1.0;
+
+    double pr = momentum[0] * cosAngle_m + momentum[1] * sinAngle_m;
+    double ptheta = sqrt(newmomentum2 - pow(pr, 2));
+    momentum[0] = pr * cosAngle_m - ptheta * sinAngle_m ; // x
+    momentum[1] = pr * sinAngle_m + ptheta * cosAngle_m; // y
+
+    if(PID == 0) {
+      Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+      gmsgALL << "* Cavity Phase= " << tempdegree << " [deg] transit time factor=  " << U 
+	   << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]" 
+	   << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
+    }
+
+    /*
+      if (phi0_m > 0.0){
+      //TODO: need to check units.
+      double Bcav = -2.5e6*scale_m*Voltage*derivate*sin(nphase)*U/(gapwidth_m* frequency_m*(Rmax_m-Rmin_m)*two_pi); // T
+      defl = -Bcav*gapwidth_m*1.0e-3/betgam/(m_p*1.0e9);
+      }
+
+      pr += DEFL*pl;
+      ptheta = sqrt(newmomentum2 - pow(pr,2));
+      momentum[0] = pr*cosAngle_m - ptheta*sinAngle_m ; // x
+      momentum[1] = pr*sinAngle_m + ptheta*cosAngle_m; // y
+      *gmsg<<"After correction for cavity magnetic field: "<<endl;
+      *gmsg<<" pr = " << pr <<""<<endl<<", ptheta = " << ptheta <<endl;
+      */
+}
+
+/* cubic spline subrutine */
+double RFCavity::spline(double z, double *za) {
+    double splint;
+
+    // domain-test and handling of case "1-support-point"
+    if(num_points_m < 1) {
+        printf("Error in RFCavity::SPLINT(): No Support-Points ! \n");
+        exit(1);
+    }
+    if(num_points_m == 1) {
+        splint = RNormal_m[0];
+        *za = 0.0;
+        return splint;
+    }
+
+    // search the two support-points
+    int il, ih;
+    il = 0;
+    ih = num_points_m - 1;
+    while((ih - il) > 1) {
+        int i = (int)((il + ih) / 2.0);
+        if(z < RNormal_m[i]) {
+            ih = i;
+        } else if(z > RNormal_m[i]) {
+            il = i;
+        } else if(z == RNormal_m[i]) {
+            il = i;
+            ih = i + 1;
+            break;
+        }
+    }
+
+    // Inform msg("visitRFCavity read voltage");
+
+    //*gmsg <<"num_points_m = "<<num_points_m<<", ih = "<<ih<<", il = "<<il<<endl;
+
+    double x1 =  RNormal_m[il];
+    double x2 =  RNormal_m[ih];
+    double y1 =  VrNormal_m[il];
+    double y2 =  VrNormal_m[ih];
+    double y1a = DvDr_m[il];
+    double y2a = DvDr_m[ih];
+    //
+    // determination of the requested function-values and its derivatives
+    //
+    double dx  = x2 - x1;
+    double dy  = y2 - y1;
+    double u   = (z - x1) / dx;
+    double u2  = u * u;
+    double u3  = u2 * u;
+    double dx2 = dx * dx;
+    double dx3 = dx2 * dx;
+    double dy2 = -2.0 * dy;
+    double ya2 = y2a + 2.0 * y1a;
+    double dy3 = 3.0 * dy;
+    double ya3 = y2a + y1a;
+    double yb2 = dy2 + dx * ya3;
+    double yb4 = dy3 - dx * ya2;
+    splint = y1  + u * dx * y1a +       u2 * yb4 +        u3 * yb2;
+    *za    =            y1a + 2.0 * u / dx * yb4 + 3.0 * u2 / dx * yb2;
+    // if(m>=1) za=y1a+2.0*u/dx*yb4+3.0*u2/dx*yb2;
+    // if(m>=2) za[1]=2.0/dx2*yb4+6.0*u/dx2*yb2;
+    // if(m>=3) za[2]=6.0/dx3*yb2;
+
+    return splint;
+}
+
+void RFCavity::getDimensions(double &zBegin, double &zEnd) const {
+    zBegin = startField_m;
+    zEnd = endField_m;
+}
+
+
+const string &RFCavity::getType() const {
+    static const string type("RFCavity");
+    return type;
+}
+
+double RFCavity::getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & mass) {
+    Inform msg("Autophasing ");
+    msg << setprecision(8);
+    vector<double> t, E, t2, E2;
+    vector<pair<double, double> > F;
+    int N;
+    double A, B;
+    double phi = 0.0, tmp_phi, dphi = 0.5 * Physics::pi / 180.;
+
+    fieldmap_m->getOnaxisEz(F);
+    if (F.size() > 0) {
+        N = F.size();
+        
+        t.resize(N, t0);
+        t2.resize(N, t0);
+        E.resize(N, E0);
+        E2.resize(N, E0);
+
+        for (int i = 1; i < N; ++ i) {
+            E[i] = E0 + (F[i].first + F[i-1].first) * scale_m / (2. * mass);
+            E2[i] = E[i];
+        }
+
+        for (int iter = 0; iter < 10; ++ iter) {
+            A = B = 0.0;
+            for (int i = 1; i < N; ++ i) {
+                t[i] = t[i-1] + getdT(i, E, F, mass);
+                t2[i] = t2[i-1] + getdT(i, E2, F, mass);
+                A += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdA(i, i, t, 0.0, F);
+                B += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdB(i, i, t, 0.0, F);
+            }
+
+            if (fabs(B) > 0.0000001) {
+                tmp_phi = atan(A / B);
+            } else {
+                tmp_phi = Physics::pi / 2;
+            }
+            if (q * (A * sin(tmp_phi) + B * cos(tmp_phi)) < 0) {
+                tmp_phi += Physics::pi;
+            }
+            
+            if (fabs(phi - tmp_phi) < frequency_m * (t[N-1] - t[0]) / (10 * N)) {
+                for (int i = 1; i < N; ++ i) {
+                    E[i] = E[i-1] + q * scale_m * getdE(i, t, phi, F) ;
+                }
+                msg << "estimated phi= " << tmp_phi << " rad, "
+                    << "Ekin= " << E[N-1] << " MeV" << endl;
+//                 stringstream fn;
+//                 fn << getName() << ".dat";
+//                 ofstream ckrtest(fn.str().c_str());
+//                 ckrtest << setprecision(12);
+//                 for (int i = 0; i < N; ++ i) {
+//                     ckrtest << startField_m + F[i].first << "\t"
+//                             << t[i] << "\t"
+//                             << scale_m * cos(frequency_m * t[i] + phi) * F[i].second << "\t"
+//                             << E[i] << endl;
+//                 }
+//                 ckrtest.close();
+                return tmp_phi;
+            }
+            phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
+
+
+            for (int i = 1; i < N; ++ i) {
+                E[i] = E[i-1] + q * scale_m * getdE(i, t, phi, F) ;
+                E2[i] = E2[i-1] + q * scale_m * getdE(i, t2, phi + dphi, F); 
+                t[i] = t[i-1] + getdT(i, E, F, mass);
+                t2[i] = t2[i-1] + getdT(i, E2, F, mass);
+                E[i] = E[i-1] + q * scale_m * getdE(i, t, phi, F) ;
+                E2[i] = E2[i-1] + q * scale_m * getdE(i, t2, phi + dphi, F); 
+            }
+//             msg << ", Ekin= " << E[N-1] << " MeV" << endl;
+        }
+
+        return phi;
+    } else {
+        return 0.0;
+    }
+}
+
+pair<double, double> RFCavity::trackOnAxisParticle(const double & p0, 
+                                                   const double & t0, 
+                                                   const double & dt, 
+                                                   const double & q, 
+                                                   const double & mass) {
+    double phase = frequency_m * t0 + phase_m;
+    double p = p0;
+    double t = t0;
+    double cdt = Physics::c * dt;
+    vector<pair<double, double> > F;
+    fieldmap_m->getOnaxisEz(F);
+
+    double *zvals = new double[F.size()];
+    double *onAxisField = new double[F.size()];
+    double Ezmax = 0.0;
+    for(int i = 0; i < F.size(); ++i) {
+        zvals[i] = F[i].first;
+        onAxisField[i] = F[i].second;
+        if (fabs(onAxisField[i]) > Ezmax) Ezmax = fabs(onAxisField[i]);
+    }
+    //    Ezmax /= 1e6;
+    double z = zvals[0];
+    double zend = zvals[F.size() - 1];
+
+    gsl_spline *onAxisInterpolants = gsl_spline_alloc(gsl_interp_cspline, F.size());
+    gsl_interp_accel *onAxisAccel = gsl_interp_accel_alloc();
+    gsl_spline_init(onAxisInterpolants, zvals, onAxisField, F.size());
+    
+    delete[] zvals;
+    delete[] onAxisField;
+
+    while (z < zend) {
+        z += 0.5 * p / sqrt(1.0 + p * p) * cdt;
+        double ez = scale_m * gsl_spline_eval(onAxisInterpolants, z, onAxisAccel) / Ezmax;
+        p += cos(phase) * ez * q * cdt / mass;
+        z += 0.5 * p / sqrt(1.0 + p * p) * cdt;
+        phase += frequency_m * dt;
+        t += dt;
+    }
+
+    gsl_spline_free(onAxisInterpolants);
+    gsl_interp_accel_free(onAxisAccel);
+
+    const double beta = sqrt(1. - 1 / (p * p + 1.));
+    const double tErr  = (z - zend) / (Physics::c * beta);
+
+    return pair<double, double>(p,t - tErr);
+}

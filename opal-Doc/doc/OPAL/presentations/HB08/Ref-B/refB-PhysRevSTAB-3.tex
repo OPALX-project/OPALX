@@ -1,0 +1,127 @@
+\documentclass[10pt]{report}
+\usepackage{graphicx}
+ \setlength{\parskip}{6.0mm}
+ \setlength{\parindent}{0pt}
+ \begin{document}
+ Villigen \& Beijing \today \\
+ 
+ Respected Referee
+ 
+ we have carefully answered all you question and implemented many
+ of your suggestions. Our response is clearly stated, below each of your raised points.
+ 
+ With the best regards
+
+Andreas Adelmann \& Jianjun Yang
+
+Point 1.1 
+{\it p.9: Delta R is first the radial gain per turn. Then it is $R_e-R_s$. Are
+these also neighboring turns? I think not, since it states "the single
+bunch is tracked for MAYBE several revolution periods". (My emphasis on
+MAYBE.) So how to make sense of eq.11? At first I thought it was a test
+that the single circulating bunch of distribution $f_0$ (What is $f_0$?
+Uniform? Gaussian?) had been tracked with no energy gain to see if it
+had stabilized. But now I think it is checking with energy gain to find
+the point where the radial gain per turn is less than M times the bunch
+transverse rms size. But then I'm bothered by the word "several" instead
+of "one". But this interpretation may also be wrong, since according to it, M is
+only a condition of closeness parameter, whereas in Fig. 4 it appears to
+be a parameter that actually CAUSES the electric field to
+change. Perhaps Fig.4 is for bunches separated by $M*r_{rms}$, i.e., it
+applies exactly when the condition 11 is fulfilled as if it were an
+equality. This is not stated. I am still uncertain.}
+
+{\it {\bf Our response} to Point 1.1: } In order to make the algorithm more clear,
+we described the procedure of multi-bunch injection more in detail. 
+We hope all the above questions are answered accordingly.
+
+Point 1.2
+{\it Furthermore, Delta R varies with azimuth around the cyclotron, so is an
+arbitrary azimuth chosen or is it the average? If so, why is it found by
+tracking? The average radius gain per turn can be calculated simply
+analytically? }
+
+{\it {\bf Our response} to Point 1.2: } In order to decide if a neighboring bunch has to be injected condition (11) is evaluated at the injection azimuth of the cyclotron. 
+Of course an average over azimuthal angle could be considered as well but this will add much overhead of execution time.
+Considering the imperfection of the field map and the non constant RF voltage along radius in many real cyclotrons, 
+it is not easy to obtain the precise value of analytic average radius gain per turn, and this of course need more work before doing simulation.
+that is the reason why we calculate everything from the tracked particle distribution.
+
+Point 2 
+{\it p.9: I puzzled a long time till I realized that in the sentence before
+eqn.11, "A new..." should be "The new...". At least, I think so. I am
+assuming that $R_e$ is the average R over the bunch. This is stated
+nowhere; the sentence in question mentions only that it is stored, not
+from whence it comes. 
+}
+
+{\it {\bf Our response} to Point 2: }  We adopt the suggestion of the referee and change {\it {\bf A new} } to {\it {\bf The new }} 
+and change {\it {\bf radial position $R_e$}} to {\it {\bf average radial position of the bunch $R_e$}}
+
+Point 3
+{\it p.9: The Ansatz that "all bunches have the same phase space distribution
+when they reach a certain position" eliminates all coherent
+oscillations. Neighboring bunch effects may or may not cause coherent
+instability, but this code will not discover such. This could be
+mentioned. }
+
+{\it {\bf Our response} to Point 3: } It is correct that no coherent oscillation between the bunches can occur before
+we take neighboring bunches into account. We clarify this fact by writing: 
+{\it The underlying assumption for this Ansatz is that all bunches have the same phase space distribution when they reach a certain position, 
+i.e. when $f_{R_{e}}$ is saved. This is realistic and reasonable when the machine is running in a steady state. 
+It needs to be mentioned that up to that position the coherent instabilities which might be caused by neighboring bunch effects, 
+are not covered by this model.}
+
+Point 4
+{\it Alg.2 still uses computer jargon. The authors don't seem to understand
+the meaning of the word "example". In my previous report, I gave one
+example of this problem of Alg.2, and they corrected only that one
+example. Here is another: Step 6: $R_s=R_e$ cannot be true as this means
+$R_s-R_e=0$. Again there is a confusion of memory locations and physical
+parameters. }
+
+{\it {\bf Our response} to Point 4: } $R_s=R_e$ here means the value of the variable $R_s$ is set to $R_e$.
+In order to avoid further confusion we changed this slightly in Alg. 2.
+We insist that it is common and reasonable in a paper to describe a algorithm in a code 
+with the help of pseudo-code.
+
+Point 5
+{\it Alg.2, step 7: Why is the calculation continually re-started with the
+initial distribution $f_0$? Should you not use the tracked distribution?}
+
+{\it {\bf Our response} to Point 5: }
+We change the typo $f_0$ to $f_{R_{e}}$ .
+
+Point 6
+
+{\it p.10: Seem to confuse the words "beam" and "bunch". A beam is a steady stream
+of particles. A bunch is a localized assembly of particles.}
+
+{\it {\bf Our response} to Point 6: }
+We adopt the suggestion of the referee and distinguish "beam" and "bunch" as suggested.
+
+
+Point 7
+
+{\it p.12, line 3: not {\tt -> }nor 
+
+p.12, line 8: are {\tt ->} is 
+
+p.12, consistently mis-typeset. i should be in math mode but is not, th
+as a superscript should NOT be in math mode, but is. Should be 
+$i^{\rm th}$. 
+}
+
+{\it {\bf Our response} to Point 7: }
+We corrected all mistakes in point 7.
+
+Point 8
+
+{\it p.18 and elsewhere: Still using the expression "spherical beam". Firstly,
+it is a bunch, not a beam, and secondly, the bunches are not spherical, 
+but circular in the median plane.
+}
+
+{\it {\bf Our response} to Point 8: } We change beam to bunch use circular instead of spherical.
+
+\end{document}

@@ -1,0 +1,97 @@
+Ferrite tuner example   
+Six ferrite blocks:    Material 2, Epsilon = 14.5, Mu = 1.5
+Five ceramic-spacers:  Material 4, Epsilon = 10.0, Mu = 1.0
+Ceramic vacuum window: Material 3, Epsilon =  9.0, Mu = 1.0
+Initialize one large ferrite block, then superimpose ceramic spacers
+[Originally appeared in 1987 Reference Manual C.12.2]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,              ! Superfish problem
+icylin=1                   ! Cylindrical symmetry
+freq=57.76775,             ! Starting frequency 
+dslope=-1,                 ! Allow convergence after one iteration
+xreg1=94.0,                ! X line region
+kreg1=188,                 ! Logical coordinate for XREG1
+yreg1=8,yreg2=9,           ! Y line regions
+yreg3=13,yreg4=17.5
+lreg1=12,lreg2=15,         ! Logical coordinates for YREGs
+lreg3=21,lreg4=31,
+kmax=260,lmax=43 &         ! Maximum X and Y logical coordinates
+
+&po x=0.0,y=0.0 &
+&po x=116.88,y=0.0 &
+&po x=116.88,y=8.0 &
+&po x=5.0,y=8.0 &
+&po x=5.0,y=9.0 &
+&po x=96.64,y=9.0 &
+&po x=116.88,y=13.0 &
+&po x=116.88,y=25.0 &
+&po x=96.64,y=25.0 &
+&po x=96.64,y=14.0 &
+&po x=95.64,y=13.0 &
+&po x=93.0,y=13.0 &
+&po x=85.0,y=17.5 &
+&po x=0.0,y=17.5 &
+&po x=0.0,y=0.0 &
+
+&reg mat=2 &            ; Ferrite region
+&po x=96.64,y=16.0 &
+&po x=96.64,y=25.0 &
+&po x=116.88,y=25.0 &
+&po x=116.88,y=16.0 &
+&po x=96.64,y=16.0 &
+
+
+&reg mat=3 &            ; Ceramic vacuum window region
+&po x=96.64,y=14.0 &
+&po x=116.88,y=14.0 &
+&po x=116.88,y=14.75 &
+&po x=96.64,y=14.75 &
+&po x=96.64,y=14.0 &
+
+&reg mat=4 &            ; First ceramic-spacer region
+&po x=99.18,y=16.0 &
+&po x=100.18,y=16.0 &
+&po x=100.18,y=25.0 &
+&po x=99.18,y=25.0 &
+&po x=99.18,y=16.0 &
+
+&reg mat=4 &            ; Second ceramic-spacer region
+&po x=102.72,y=16.0 &
+&po x=103.72,y=16.0 &
+&po x=103.72,y=25.0 &
+&po x=102.72,y=25.0 &
+&po x=102.72,y=16.0 &
+
+&reg mat=4 &            ; Third ceramic-spacer region
+&po x=106.26,y=16.0 &
+&po x=107.26,y=16.0 &
+&po x=107.26,y=25.0 &
+&po x=106.26,y=25.0 &
+&po x=106.26,y=16.0 &
+
+&reg mat=4 &            ; Fourth ceramic-spacer region
+&po x=109.80,y=16.0 &
+&po x=110.80,y=16.0 &
+&po x=110.80,y=25.0 &
+&po x=109.80,y=25.0 &
+&po x=109.80,y=16.0 &
+
+&reg mat=4 &            ; Fifth ceramic-spacer region
+&po x=113.34,y=16.0 &
+&po x=114.34,y=16.0 &
+&po x=114.34,y=25.0 &
+&po x=113.34,y=25.0 &
+&po x=113.34,y=16.0 &
+
+; These MT namelists will be numbered 2, 3, and 4 by AUTOMESH.
+; The numbers correspond to MAT numbers is the REG namelists.
+
+&mt epsilon = 14.5, mu = 1.5 &
+
+&mt epsilon = 9, mu = 1   &
+
+&mt epsilon = 10, mu = 1 &
+

@@ -1,0 +1,15 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe orte 16
+#$ -N opal-cc-sc
+#$ -v LD_LIBRARY_PATH,OPAL_EXE_PATH,OPENMPI
+#
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE
+#
+OPAL="$OPAL_EXE_PATH/opal opal-cc_astra_fm.in --commlib mpi --info 0 --warn 0 "
+CMD="$OPENMPI/bin/mpirun -x LD_LIBRARY_PATH -machinefile $MACHINE_FILE -np $NSLOTS $OPAL "
+#
+$CMD
+

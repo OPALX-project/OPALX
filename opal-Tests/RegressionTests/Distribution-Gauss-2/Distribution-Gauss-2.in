@@ -1,0 +1,42 @@
+OPTION, ECHO=FALSE; //ECHO Controls printing of an echo of input lines on the standard error file.
+OPTION, TFS =FALSE; //TFS If true, the format is in TFS format, otherwise in human-readable format.
+OPTION, INFO=FALSE; //INFO If this option is turned off, OPAL suppresses all information messages.
+OPTION, STATDUMPFREQ=1;
+
+TITLE, STRING="Gauss Distribution Electrons";
+
+Edes   = 0.500;    // 0.5 GeV             
+QB     = 0.77e-12;   // charge in Cb
+BF     = 1300.0;   // frequency in Mhz
+BC     = QB*BF;    // bunch current
+
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+
+
+Q1: QUADRUPOLE, L=1.0, ELEMEDGE=0.0, K1=0.0;
+
+lattice: LINE = (Q1);
+
+Fs1:FIELDSOLVER, FSTYPE = FFT, MX = 16, MY = 16, MT = 32,
+PARFFTX = TRUE, PARFFTY = TRUE, PARFFTT = TRUE,
+BCFFTX  = OPEN, BCFFTY  = OPEN, BCFFTT  = OPEN,
+BBOXINCR = 1, GREENSF = INTEGRATED;
+
+
+Dist2:DISTRIBUTION, DISTRIBUTION = GAUSS,
+SIGMAX = 0.00001, SIGMAPX=0.00001, 
+SIGMAY = 0.00001, SIGMAPY=0.00001, 
+SIGMAT = 1e-8 , PT=Edes*1e9;
+
+// pc:   momentum per particle in GeV/c
+beam1: BEAM, PARTICLE = ELECTRON, PC = P0, NPART = 1000000, BFREQ = BF*1E6, BCURRENT = BC;
+
+SELECT, LINE=lattice;
+
+TRACK, LINE=lattice, BEAM=beam1, MAXSTEPS=10, DT=1e-11, ZSTOP=0.25;  
+ RUN, METHOD = "PARALLEL-T", BEAM = beam1, FIELDSOLVER = Fs1, DISTRIBUTION = Dist2;
+ENDTRACK;
+QUIT;

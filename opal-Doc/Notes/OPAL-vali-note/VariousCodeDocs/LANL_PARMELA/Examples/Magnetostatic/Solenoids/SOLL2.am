@@ -1,0 +1,95 @@
+Solenoid Magnet with Bucking Coil    [L. Young]
+Bucking coil current has been adjusted for nearly zero 
+axial magnetic field at Z = 0 (which corresponds to YMIN).
+
+; Copyright 1998-2004, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,       ! Poisson or Pandira problem 
+mode=-1,            ! Materials have fixed permeability
+icylin=1,           ! Cylindrical symmetry
+dx=.08,dy=.08,      ! Mesh size intervals
+nbslo=0,            ! Dirichlet boundary condition on lower edge
+nbsup=0,            ! Dirichlet boundary condition on upper edge
+nbslf=0,            ! Dirichlet boundary condition on left edge
+nbsrt=0,            ! Dirichlet boundary condition on right edge
+
+; Uncomment the next two lines and set ParmelaFields=Yes in the 
+; [Poisson] section of SF.INI to use Poisson to produce the same 
+; input file for Parmela produced by program SF7.
+;ktop=10,ltop=50,
+;xminf=0,xmaxf=2,yminf=20,ymaxf=60
+ 
+; Define X (physical) and K (logical) line regions:
+xreg1=2.7, kreg1=16,
+xreg2=11.5,kreg2=50,
+xreg3=30.0,kreg3=80,
+kmax=98,            ! Logical coordinate corresponding to XMAX
+; Define Y (physical) and L (logical) line regions:
+yreg1=6, lreg1=5,   
+yreg2=19,lreg2=50,
+yreg3=29,lreg3=70,
+yreg4=35,lreg4=80,
+lmax=98 &           ! Logical coordinate corresponding to YMAX
+
+
+&po y=0.0,x=0.0 &
+&po y=80.0,x=0.0 &
+&po y=80.0,x=60.0 &
+&po y=0.0,x=60.0 &
+&po y=0.0,x=13.0 &
+&po y=0.0,x=2.0 &
+&po y=0.0,x=0.0 &
+
+&reg mat=1,cur=19500. &
+&po y=16.0,x=14.0 &
+&po y=16.0,x=19.73 &
+&po y=30.0,x=19.73 &
+&po y=30.0,x=14.0 &
+&po y=16.0,x=14.0 &
+
+&reg mat=2 &
+&po y=13.0,x=14.0 &
+&po y=13.0,x=21.0 &
+&po y=32.5,x=21.0 &
+&po y=32.5,x=14.0 &
+&po y=30.0,x=14.0 &
+&po y=30.0,x=19.73 &
+&po y=16.0,x=19.73 &
+&po y=16.0,x=14.0 &
+&po y=13.0,x=14.0 &
+
+&reg mat=1,cur=-8165.6 &
+&po y=7.988,x=6.0 &
+&po y=15.1,x=6.0 &
+&po y=15.1,x=10.064 &
+&po y=7.988,x=10.064 &
+&po y=7.988,x=6.0 &
+
+&reg mat=2 &
+&po y=6.0,x=6.0 &
+&po y=6.0,x=14.0 &
+&po y=17.142, x=14.0 &
+&po y=17.142, x=8.636 &
+&po y=18.1,x=8.636 &
+&po y=18.1,x=6.4 &
+&po nt=2 x0=6.4,y0=17.8,x=-.3,y=0. &
+&po y=17.22426,x=6.1 &
+&po nt=2 x0=6.4,y0=17.22426,x=-.21213,y=-.21213 &
+&po y=15.1,x=8.6 &
+&po y=15.1,x=10.064 &
+&po y=7.988,x=10.064 &
+&po y=7.988,x=6.0 &
+&po y=6.0,x=6.0 &
+
+&reg mat=2 &
+&po y=6.0,x=2.8 &
+&po y=6.0,x=6.0 &
+&po y=11.0,x=6.0 &
+&po y=15.1,x=4.3 &
+&po y=17.0726, x=3.791 &
+&po nt=2 x0=3.5,y0=17.0,x=0.,y=.3 &
+&po y=17.3,x=3.1 &
+&po nt=2 x0=3.1,y0=17.0,x=-.3,y=0. &
+&po y=6.0,x=2.8 &
+

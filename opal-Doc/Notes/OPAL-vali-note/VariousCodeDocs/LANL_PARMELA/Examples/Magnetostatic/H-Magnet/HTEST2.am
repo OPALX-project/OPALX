@@ -1,0 +1,42 @@
+H-Shaped Magnet with special options
+Adjust XJFACT to make B = 16 kG at X,Y = 0.5,0.25.
+[Originally appeared in 1987 User's Guide 10.2]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Declares a POISSON problem
+dx=.3,                  ; Mesh interval
+mode=0,                 ; Use B,gamma table for material 2
+ktop=4,                 ; Field interpolation at 4 points along X
+ltop=3,                 ; Field interpolation at 3 points along Y
+xminf=0,xmaxf=2.5,      ; X range for field interpolation
+yminf=0,ymaxf=5,        ; Y range
+bdes=16000,             ; B field for scaling option
+xbzero=.5,ybzero=.25 &  ; Location X,Y = 0.5,0.25 for scaled B field
+
+&po x=0.,y=0. &         ; Start of the air-region points
+&po x=22.,y=0. &
+&po x=22.,y=13. &
+&po x=0.,y=13. &
+&po x=0.,y=0. &
+
+&reg mat=2 &            ; Start of the iron region
+&po x=0., y=2. &
+&po x=5.1,y=2. &
+&po x=5.5,y=2.4 &
+&po x=5.5,y=6. &
+&po x=15.,y=6. &
+&po x=15.,y=0. &
+&po x=22.,y=0. &
+&po x=22.,y=13. &
+&po x=0.,y=13. &
+&po x=0.,y=2. &
+
+&reg mat=1,cur=-25455.791 & ; Start of the coil region
+&po x=6.,y=0. &
+&po x=14.5,y=0. &
+&po x=14.5,y=5.5 &
+&po x=6.0,y=5.5 &
+&po x=6.,y=0. &
+

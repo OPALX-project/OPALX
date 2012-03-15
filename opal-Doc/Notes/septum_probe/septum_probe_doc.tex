@@ -1,0 +1,86 @@
+\documentclass{article}
+\usepackage{graphicx}% Include figure files
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+
+\begin{document}
+
+\section{Septum}
+\subsection{The input parameters}
+The particles hitting on the septum is removed from the bunch. There are five parameters to describe a septum:\\
+xstart: The x cooradinate of start point.[mm]\\
+xend: The x cooradinate of end point.[mm]\\
+ystart: The y cooradinate of start point.[mm]\\
+yend: The y cooradinate of end point.[mm]\\
+width:The width of the septum.[mm]\\
+yend1:Not used since it is treated as a string in the input file which should be a real argument.
+
+example:
+eec2:Septum,xstart=4100.0,xend=4300.0,ystart=-1200.0,yend=-150.0,width=0.05;
+
+\begin{tikzpicture}[scale=1.5,axis/.style={very thick, ->, >=stealth'}]
+    % Draw axes
+    \draw [->,thick] (1,-2.0) -- (1,2.0) node (yaxis) [above] {$y$};
+    \draw [->,thick] (-1.2,1.0)  -- (4.0,1.0) node (xaxis) [right] {$x$};
+    \draw (3.5,-0.2) --(2.0,-1.5)
+          (2.0,-1.5) --(2.1,-1.6)
+          (2.1,-1.6) --(3.6,-0.3)
+          (3.6,-0.3) --(3.5,-0.2);
+    \fill[red] (2.05,-1.55)  circle (1pt) node (start)[below] {(xstart,ystart)};
+    \fill[red] (3.55,-0.25)  circle (1pt) node (end)[above] {(xend,yend)};;
+    \node (steptum) at (2.55,-0.55)[anchor=mid] {septum};
+    \draw [<->,thick,red] (2.75,-0.85)--(2.85,-0.95) node [right] {width}; 
+    
+   
+
+\end{tikzpicture}
+
+
+\section{Probe}
+\subsection{The input parameters}
+
+There are five parameters to describe a probe:\\
+xstart: The x cooradinate of start point.[mm]\\
+xend: The x cooradinate of end point.[mm]\\
+ystart: The y cooradinate of start point.[mm]\\
+yend: The y cooradinate of end point.[mm]\\
+width:The width of the probe.[mm] \\
+This argument is not used in the current version of probe since
+the width is calculated in the code, and the width is equal to the length of one step.\\
+yend1:Not used since it is treated as a string in the input file which should be a real argument.
+
+\begin{tikzpicture}[scale=1.5,axis/.style={very thick, ->, >=stealth'}]
+    % Draw axes
+    \draw [->,thick] (0.5,-2.0) -- (0.5,2.0) node (yaxis) [above] {$y$};
+    \draw [->,thick] (-1.2,1.0)  -- (4.0,1.0) node (xaxis) [right] {$x$};
+    \draw (1.5,-0.5) --(3.0,-1.5)
+          (3.0,-1.5) --(3.1,-1.4)
+          (3.1,-1.4) --(1.6,-0.4)
+          (1.6,-0.4) --(1.5,-0.5);
+    \fill[red] (1.55,-0.45)  circle (1pt) node (start)[above] {(xstart,ystart)};
+    \fill[red] (3.05,-1.45)  circle (1pt) node (end)[below] {(xend,yend)};;
+    \node (steptum) at (2.55,-0.55)[anchor=mid] {probe};
+    \draw [<->,thick,red] (2.25,-1.0)--(2.35,-0.9) node [right] {width};
+
+
+
+\end{tikzpicture}
+
+
+The algorithm:
+After defining the edge line of the probe, the width of it is calculated using the following method:\\
+1)Calculate the length of one step for each turn.\\
+2)Calculate the angle $\alpha$ between particle path and the perpendicular line of the probe. \\
+3)The width of the probe is equal to stepsize*$\cos(\alpha)$. \\
+4)Record particles inside the width of the probe.\\
+5)Using the recording coordinates and momentum of the particle, we trace back to the position of the line of the probe, and get the beam
+parameters on this line.
+
+example:
+
+prob1:Probe,xstart=4166.16,xend=4250,ystart=-1226.85,yend=-1241.3;
+
+\end{document}
+
+

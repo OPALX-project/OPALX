@@ -1,0 +1,665 @@
+\section{Numerical Experiments and Results}
+\label{sec:results}
+
+In this section we discuss various numerical experiments and results
+concerning different variants of the preconditioner and comparisons of
+solvers and boundary extrapolation methods.  Unless otherwise stated the
+measurements are done on a tube embedded in a rectangular equidistant
+$256\times256\times256$ grid.  This is a common problem size in beam
+dynamics simulations.  Most of the computations were performed on the
+Cray XT4 cluster of the Swiss Supercomputing Center (CSCS) in Manno,
+Switzerland. Computations up to 512~cores were conducted on the XT4
+cluster (\textsc{Buin}) with 468 AMD dual core Opteron 2.6\,GHz
+processors and a total of 936 GB DDR RAM on a 7.6\,GB/s interconnect
+bandwith network.  Larger computations were performed on the XT3 cluster
+(\textsc{Palu}) with 1692 AMD dual core Opteron 2.6\,GHz processors and a
+total of 3552\,GB DDR RAM interconnected with a 6.4\,GB/s interconnect
+bandwith network.
+%\begin{table}[ht]
+  %\begin{center}
+    %\begin{tabular}{l|lll}
+      %\hline
+      %& AMD dual core Opteron 2.6 GHz & total DDR RAM & interconnect bandwith \\
+      %\hline
+      %XT3 (\textsc{Palu}) & 1692 & 3552 GB & 6.4 GB/s \\
+      %XT4 (\textsc{Buin}) & 468 & 836 GB & 7.6 GB/s \\ 
+      %\hline
+    %\end{tabular}
+    %\caption{Description of machines used for computations}
+    %\label{tbl:machines}
+  %\end{center}
+%\end{table}
+
+Throughout this section we will report the timings of portions of the
+code as listed in Table~\ref{tbl:timings_description}.
+\begin{table}[ht]
+  \begin{center}
+    \begin{tabular}{ll}
+      \hline
+      name & description \\
+      \hline
+      construction & time for constructing the ML hierarchy \\
+      application  & time for applying the ML preconditioner \\
+      total ML     & total time used by ML ($=$ construction $+$ application) \\
+      solution     & time needed by the iterative solver \\
+      \hline
+    \end{tabular}
+    \caption{Description of various timings used.}
+    \label{tbl:timings_description}
+  \end{center}
+\end{table}
+
+\subsection{Comparison of Extrapolation Schemes}
+
+For validation and comparison purposes we applied our solver to a
+problem with a known analytical solution.  We solved the Poisson problem
+with homogeneous Dirichlet boundary conditions ($\phi = 0$) on a
+cylindrical domain $\Omega = \{ |r|<\frac{1}{2} \} \times
+(-\frac{1}{2},\frac{1}{2})$.  The axisymmetric charge density
+\begin{equation*}
+  \rho = -\left( \pi^2 r^2 - \frac{\pi^2}{4} - 4 \right)
+  \sin(\pi(z-0.5))
+\end{equation*}
+gives rise to the potential distribution
+%
+\begin{equation*}
+  \phi(r, \theta, z) = \left( \frac{1}{4}-r^2 \right) \sin(\pi(z-0.5)).
+\end{equation*}
+The charge density in our test problem is smoother than in real
+problems.  Nevertheless, it is very small close to the boundary.  This
+reflects the situation in particle accelerators where most particles are
+close to the axis of rotation and, thus, charge densities are very small
+close to the boundary. 
+% For this reason, we do not expect the boundary treatment to be a
+% crucial issue of our simulations.
+
+We measure the error on the grid $\Omega_h$ with mesh spacing $h$ in the
+discrete norms
+%
+\begin{gather*}
+  \Vert e_h \Vert_2 = \Vert \hat{\phi}_h - \phi
+  \Vert_2 =  \sqrt{h^3 \sum_{i \in 
+      \Omega_h} \vert (\hat{\phi}_{i,h}-\phi_i)\vert^2}, \\
+  \Vert e_h \Vert_\infty = \Vert \hat{\phi}_h - \phi
+  \Vert_\infty =  \max_{i \in \Omega_h} 
+  \vert \hat{\phi}_{i,h} - \phi_i \vert,
+\end{gather*}
+where $\hat{\phi}_h$ is the approximation of the solution $\phi$ on
+$\Omega_h$, and $e_h$ denotes the corresponding error.
+%
+The convergence rate is approximately
+%
+\begin{equation*}
+  r = \log_2 \left( \frac{\Vert e_{2h} \Vert}{\Vert e_h
+      \Vert} \right).
+\end{equation*}
+%
+\begin{table*}[htb]
+  \begin{center}
+    \begin{tabular}{llllll}
+      \hline
+      $h$ & $\Vert e_h \Vert_2$ & $r$ & $\Vert e_h
+      \Vert_\infty$ & $r$ & $\Vert e_h \Vert_\infty /
+      \Vert \phi \Vert_\infty$ \\ [0.2ex] \hline 
+      \vphantom{\rule{0pt}{2.7ex}}
+      $1/64$  & $2.162 \times 10^{-3}$ & & $7.647 \times 10^{-3}$ & &
+      $3.061 \times 10^{-2}$ \\ 
+      $1/128$ & $1.240 \times 10^{-3}$ & 0.80 & $4.153 \times 10^{-3}$ &
+      0.88 & $1.662 \times 10^{-2}$ \\ [0.2ex]
+      \hline
+    \end{tabular}
+    \caption{Solution error for constant extrapolation, $d=3$.}
+    \label{tbl:rel_error_const}
+  \end{center}
+
+  \begin{center}
+    \begin{tabular}{llllll}
+      \hline
+      $h$ & $\Vert e_h \Vert_2$ & $r$ & $\Vert e_h
+      \Vert_\infty$ & $r$ & $\Vert e_h \Vert_\infty /
+      \Vert \phi \Vert_\infty$\\ [0.2ex]
+      \hline 
+      \vphantom{\rule{0pt}{2.7ex}}
+      $1/64$  & $2.460 \times 10^{-5}$ & & $6.020 \times 10^{-5}$ & &
+      $2.410 \times 10^{-4}$ \\
+      $1/128$ & $6.226 \times 10^{-6}$ & 1.98 & $1.437 \times 10^{-5}$ &
+      2.07 & $5.751 \times 10^{-5}$ \\ [0.2ex]
+      \hline
+    \end{tabular}
+    \caption{Solution error for linear extrapolation, $d=3$.}
+    \label{tbl:rel_error_lin}
+  \end{center}
+
+  \begin{center}
+    \begin{tabular}{llllll}
+      \hline
+      $h$ & $\Vert e_h \Vert_2$ & $r$ & $\Vert e_h
+      \Vert_\infty$ & $r$ & $\Vert e_h \Vert_\infty /
+      \Vert \phi \Vert_\infty$\\ [0.2ex]
+      \hline 
+      \vphantom{\rule{0pt}{2.7ex}}
+      $1/64$  & $5.581 \times 10^{-6}$ & & $1.689 \times 10^{-5}$ & &
+      $6.761 \times 10^{-5}$ \\ 
+      $1/128$ & $1.384 \times 10^{-7}$ & 2.01 & $4.550 \times 10^{-6}$ &
+      1.89 & $1.820 \times 10^{-5}$ \\ [0.2ex]
+      \hline
+    \end{tabular}
+    \caption{Solution error for quadratic extrapolation, $d=3$.}
+    \label{tbl:rel_error_quad}
+  \end{center}
+\end{table*}
+
+We solved the Poisson equation with the boundary extrapolation methods
+introduced earlier.  The errors are listed in
+Tables~\ref{tbl:rel_error_const}--\ref{tbl:rel_error_quad}.  The numbers
+confirm the expected convergence rates, i.e., linear for the constant
+extrapolation and quadratic for the linear and quadratic
+extrapolation~\cite{joma:05}.  The results obtained with the
+linear extrapolation scheme are more accurate than constant
+extrapolation by two orders of magnitude.  Quadratic extrapolation is
+again more accurate than linear extrapolation, but for both norms by
+only a factor~3 to~5.  It evidently does not make sense to use constant
+extrapolation as the cost of solving with linear boundary extrapolation
+is equal.  In contrast, the quadratic boundary treatment entails the
+drawback that discretization matrices lose symmetry.  They are still
+positive definite, however.  In the particular setting of this test
+problem as well as in others we have investigated (e.g.\ in real
+particle simulations) the system matrices were just `mildly'
+nonsymmetric such that PCG could be applied savely and without
+performance loss.
+
+
+% under consideration has not been chosen arbitrary.
+% For instance the smoothness characteristic concurs with charge densities
+% appearing in our particle accelerator simulations. One small difference
+% concerns the behaviour at the boundary.  In simulations we usually have
+% particles closer to the axis of rotation in contrast to this charge
+% density with non-zeros values at the boundary.  This will mainly be
+% responsible for accuracy discrepancies between linear and quadratic
+% extrapolation schemes.
+
+\subsection{ML variations}\label{sec:ml_var}
+
+Multilevel preconditioners are highly sophisticated preconditioners.
+Not surprisingly, their construction is very time consuming.  To build
+an SA-AMG preconditioner (1) the ``grid'' hierarchy (including
+aggregation and construction of tentative prolongator), (2) the final
+grid transfer operators (smoothing the prolongators), and (3) the coarse
+grid solver have to be set up.
+
+In the following subsections we investigate various variants of the
+preconditioner or more precisely variants of the construction of the
+preconditioner when solving a sequence of related Poisson problems.
+%The goal is to decrease the time-to-solution.
+
+The default variant builds a new preconditioner in every time step.  In
+the sequel we will investigate how costly this is.  Other variants reuse
+portions of previous preconditioners.
+
+We compare with the FFT-based Poisson solver~\cite{hoea:88} that
+\textsc{OPAL} (version 1.1.5) provides for open-space boundary conditions.  
+The FFT kernel is based  on a variant of the FFTPACK library~\cite{FFTPACK, Swar:82}.
+
+\subsubsection*{Reusing the aggregation hierarchy}
+
+Since the geometry often changes only slowly in time, the
+\emph{topology} of the computational grid does not or only rarely alter.
+Therefore, it makes sense to reuse the aggregation hierarchy and in
+particular the tentative prolongators for some or all iterations.  Only
+smoothed prolongators and other components of the hierarchy, like
+smoothers and coarse solver, are recomputed~\cite[p.16]{gsht:06}.
+%%
+%%The most straightforward improvement presents itself with the insight
+%%that the geometries usually vary slowly or not at all in time.  In this
+%%case it makes no sense to discard the information about the aggregation
+%%hierarchy computed in the last time-step.  
+This leads to a preconditioner variation in which the aggregation
+hierarchy is kept as long as possible.  The numbers in
+Table~\ref{tbl:timings_reuse_hierarchy} show that this minor change in
+the set up phase reduces construction times by approximately 30\%.
+
+\begin{table}[ht]
+  \begin{center}
+    \begin{tabular}{ccc}
+      \hline
+      \rule{15mm}{0mm} & \rule{30mm}{0mm} & \rule{30mm}{0mm} \\[-4mm]
+      cores & average of 10 & one \\
+      &time steps (s) &  time step (s) \\
+      \hline
+      16  & 6.98 & 10.3 \\
+      32  & 4.36 &  6.44 \\
+      64  & 2.38 &  3.48 \\
+      128 & 1.34 &  1.91 \\ 
+      256 & 0.735 &  1.04 \\
+      512 & 0.518 &  0.745 \\
+      \hline
+    \end{tabular}
+    \caption{Preconditioner construction times.  Left: average cost of
+      10 time steps reusing the hierarchy of the first iteration step.
+      Right: cost of a time step when building the whole
+      preconditioner.
+      %% Construction times in seconds for 10 time-steps reusing
+      %% hierarchy vs 1
+      %% time-step building hierarchy
+    }
+    \label{tbl:timings_reuse_hierarchy}
+  \end{center}
+\end{table}
+
+Reusing the aggregation hierarchy is a feature provided by ML.  It is
+intended for use in nonlinear systems solving.  In our simulations it
+reduced the time per AMG solve in a simulation run by approximately
+25\%, see Table~\ref{tbl:timings_variations_overview}.
+
+\subsubsection*{Reusing the preconditioner}
+
+We can be more aggressive by reusing the preconditioner of the first
+iteration throughout a whole simulation.  Although the iteration count
+increased, the time-to-solution reduced considerably.  To counteract an
+excessive increase of the iteration steps the preconditioner can be
+recomputed once the number of iterations exceeds a certain threshold.
+(This was not necessary in our experiments, though.)
+
+Applying this approach to a cylinder-shaped beam pipe, a single
+preconditioner could be used throughout the entire simulation without
+any severe impact on the number of iteration steps.
+
+\begin{figure}[ht]
+  \begin{minipage}[b]{0.5\textwidth}
+    \centering
+    \include{figures/mesh_samept}
+
+    (a)
+  \end{minipage}
+  %\hspace{0.2cm}
+  \begin{minipage}[b]{0.5\textwidth}
+    \centering
+    \include{figures/mesh_sameres}
+
+    (b)
+  \end{minipage} 
+  \caption{Sketch of the test cases with equal number of mesh points
+    (a), and equal mesh resolution (b), respectively.  Displayed are the
+    shared (square), FFT only (triangle), and AMG only (filled circle) mesh
+    points on a cross section of the grid plane.  Illustrative particles
+    (gray) inside the FFT domain denote the charge density.}
+
+  \label{fig:meshcmp}
+\end{figure}
+
+In the following we compare accuracy and performance of the
+SA-AMG preconditioned conjugate gradient algorithm with a FFT-based
+solver.  The principle difficulty in the comparison stems from the fact
+that the CG-based and the FFT-based solvers use different
+discretizations of the tube-shaped domain~$\Omega$.  Although both use
+finite-difference discretizations, with PCG the whole domain is
+discretized while with FFT just a rectangular domain along the center
+line of the cylinder is taken into account.  In some applications
+(beam pipes of light sources) the rectangular domain is contained in $\Omega$.  In
+our application the rectangular domain has a similar volume such that
+the boundaries can be intertwined.  Therefore, we expect that the more
+accurate boundary treatment in the iterative solver has a noticeable
+positive effect on the solution.
+
+So, we came up with two test cases as illustrated in
+Figure~\ref{fig:meshcmp}.
+\begin{itemize}
+\item The first test case (a) displayed on the left corresponds to a
+  situation where both methods have about the same number of unknowns.
+  In the FFT-based approach only the close vicinity of the particle
+  bunch is discretized.  In contrast, in the PCG approach the grid
+  extends to the whole domain, entailing a coarser grid than with the
+  FFT-based approach.
+
+\item The second test case (b) displayed on the right corresponds to a
+  situation where both methods have the same mesh resolution in the
+  vicinity of the particles.  This results in a higher number of mesh
+  points for the PCG approach.
+\end{itemize}
+
+We consider a cylindrical tube of radius $r=0.001$\,m.  The FFT-based
+solver used a grid with $128^2\cdot256=4,194,304$ nodes.  The grid with
+a similar number of points but coarser resolution consisted of 3,236,864
+grid points.  To obtained the same resolution with PCG, 5,462,016 grid
+points were required.  They are embedded in a $166\times166\times256$
+grid that coincides in the middle of the region of simulation with the
+$128\times128\times256$ grid for the FFT-based solver.  The boundary
+conditions were implemented by linear
+extrapolation~\eqref{eq:lin_extrapol}.  In
+Table~\ref{tbl:timings_variations_overview} we give execution times for
+the first and second iteration in a typical simulation.  Since we start
+with quite a good vector the number of steps in the second iteration is
+about 30\% smaller than in the first iteration.  This accounts for the
+reduced execution time in the runs where the complete preconditioners
+are recomputed for each iteration.  The savings from this
+straightforward mode to the two cases reusing either hierarchy or the
+entire preconditioner amounts to approximately $20\%$ and $40\%$
+respectively.
+
+\begin{table}[ht]
+  \begin{center}
+    \begin{tabular}{cccccc}
+    \hline
+        solver & reusing & mesh size & mesh points & first [s] & second [s] \\
+        \hline
+        FFT & --- & $128\times128\times256$ & 4,194,304 & 12.3 & --- \\
+        \hline
+        AMG & --- & $128\times128\times256$ & 3,236,864 & 49.9 & 42.2 \\
+        AMG & hierarchy & $128\times128\times256$ & 3,236,864 & --- & 35.5 \\
+        AMG & preconditioner & $128\times128\times256$ & 3,236,864 & --- & 28.2 \\
+        \hline
+        AMG & --- & $166\times166\times256$ & 5,462,016 & 81.8 & 71.2 \\
+        AMG & hierarchy & $166\times166\times256$ & 5,462,016 & --- & 60.4 \\
+        AMG & preconditioner & $166\times166\times256$ & 5,462,016 & --- & 43.8 \\
+        \hline
+  \end{tabular}
+  \caption{Simulation timings of one solve in the first and second time
+    step, respectively, with $r=0.001$\,m.  Equal number of mesh points
+    (above) and equal mesh spacings (below) for FFT and AMG.}
+  \label{tbl:timings_variations_overview} \end{center}
+\end{table}
+%%
+
+%(The results in Table~\ref{tbl:timings_variations_overview} indicate that the
+%additional mesh points considerably hurt the performance of the AMG solver.
+%{\color{red}Why so much??? Iteration count??})
+
+We inspected the PCG results for the two mesh sizes and found no
+physically relevant differences. This behaviour depends on the ratio of
+bunch and boundary radius.  Based on the differences of the FFT and
+the iterative solver (e.g. boundary treatment and implementation details) it
+is hard to come up with a `fair' comparison.  There certainly exists a
+correlation between the number of performed (CG) iterations and the time
+to solution.  Determining the right stopping criteria and tolerance
+therefore has an important impact on the performance.  While still
+achieving the same accuracy of the physics of a simulation it could be
+possible to execute fewer CG iterations by using a higher tolerance.
+For the measurements in Table \ref{tbl:timings_variations_overview} we
+used the stopping criterion
+\begin{equation*}
+  \Vert r \Vert_2 \le \varepsilon  {\Vert b \Vert_2},
+\end{equation*}
+with the tolerance $\varepsilon = 10^{-6}$.
+
+%This results show that the price we pay for increasing the accuracy of the
+%simulation is approximately a factor of 2.3 in the best case.
+
+These results illustrate that an increase in solution accuracy of approximately
+2.3 in the best case (when the domain has irregularities) is incurred in moving
+from an FFT-based scheme to a more versatile approach. Of course, this more
+versatile approach gives rise to increased accuracy.
+
+\subsubsection*{Coarse level solver}
+
+Another decisive portion of the AMG preconditioner is the coarse level
+solver.  We applied either a direct solver (KLU) or used a couple of
+steps of Gauss-Seidel iteration.  
+Our experiments indicate that for our problems ML setup time and scalability are
+not affected significantly by the two coarse level solvers. The difference in
+setup and application of KLU and Gauss-Seidel  differ only within a few
+percent. Only the construction of the preconditioner is cheaper with the
+iterative coarse level solver.  
+%FIXME AA: construction at 512 is more around 30% need to rephrase ??
+
+As stated by Tuminaro \& Tong~\cite{tuto:00} the number of iterations
+done by the iterative coarse level solver is crucial for the performance of the
+preconditioner.  Too many iteration steps slow down the preconditioner without a
+corresponding increase of its quality.  Too
+few iteration steps with the coarse level solver degrade the quality of
+the overall preconditioner and lead to an increased number of steps of
+the global system solver.  We tuned the iterative coarse level solver
+such that the overall quality of the preconditioner was about the same
+as with the direct coarse level solver.  It turned out that 3~iteration
+steps sufficed.
+
+%The relaxation of the approximation quality entails an increase of the steps of
+%the overall PCG iteration.
+
+%\begin{table}[ht]
+  %\begin{center}
+    %\begin{tabular}{cccccccc}
+      %\hline
+      %\multirow{2}{*}{cores} & \multicolumn{3}{c}{KLU [s]} & &
+      %\multicolumn{3}{c}{Gauss-Seidel [s]} \\
+      %\cline{2-4} \cline{6-8}
+      %&  construction & all applications & total ML & & construction & all
+      %applications & total ML\\
+      %\hline
+      %16  & 10.44 & 13.58 & 24.02 & & 10.27 & 13.54 & 23.81 \\
+      %32  & 6.69 & 8.48 & 15.18 & & 6.44 & 8.41 & 14.85 \\
+      %64  & 3.91 & 4.31 & 8.21 & & 3.48 & 4.49 & 7.97 \\
+      %128 & 1.93 & 2.21 & 4.23 & & 1.91 & 2.28 & 4.18 \\
+      %256 & 1.14 & 1.39 & 2.53 & & 1.04 & 1.36 & 2.40 \\
+      %512 & 1.07 & 0.96 & 2.03 & & 0.74 & 0.92 & 1.66 \\
+      %\hline
+    %\end{tabular}
+    %\caption{KLU vs.\ Gauss-Seidel (3) as coarse level
+    %solver}\label{tab:gs_vs_klu} \end{center}
+%%  \begin{center}
+%%    \begin{tabular}{cccc}
+%%      \hline
+%%      cores &  construction [s] & all applications [s] & total ML [s] \\
+%%%           &  (s) & (s) & (s) \\
+%%      \hline
+%%      16  & 10.27 & 13.54 & 23.81 \\
+%%      32  & 6.44 & 8.41 & 14.85 \\
+%%      64  & 3.48 & 4.49 & 7.97 \\
+%%      128 & 1.91 & 2.28 & 4.18 \\ 
+%%      256 & 1.04 & 1.36 & 2.40 \\
+%%      512 & 0.74 & 0.92 & 1.66 \\
+%%      \hline
+%%    \end{tabular}
+%%    \caption{3 iterative solver steps at coarsest level}
+%%    \label{tab:v_smooth}
+%%  \end{center}
+%\end{table}
+
+\subsubsection*{Coarse level size}
+
+We also tested the performance of the solver for varying sizes of the
+coarsest level.  ML seems to perform best when the coarsest grid size is
+around 1000.  With a limit of 1000, the coarsest grid sizes ranged from
+128 to 849 when running a tube embedded in a $256 \times 256 \times 256$
+grid on 16 to 512 cores.
+
+At the same time we tried to set the size of the coarsest level
+proportional to the total available number of cores in order to get a
+sufficiently large coarse level size.  It turned out to be very difficult
+to set a coarse level size with heuristics like this.  The factorization
+time increased to up to 2\,s in contrast to $0.25$\,s for the case where
+the coarsest level size is limited by~1000.
+
+
+\subsection{Speedup and efficiency}
+
+The efficiency of the AMG solver using constant boundary extrapolation
+is shown in Figure~\ref{fig:speedup}.  On the left of this figure, the
+results listed in Table~\ref{tbl:timings_solver_256} for a $256^3$ grid
+are plotted.  We observe an efficiency of approximately 62\% for 256
+cores relative to the timing on 16~processors, the minimal number of
+processors to solve the problem.  The efficiency dropped just below 50\%
+for 512 cores.  The parallel efficiency is affected most by the poor
+scalability of the construction phase of ML.  After studying various ML
+timings we could not identify a specific reason that causes this loss in
+efficiency for the construction phase other than the assumption that the
+problem is too small with respect to the number of cores.
+
+\begin{figure}[htb] 
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{figures/eff_256.pdf}
+    \includegraphics[width=0.45\textwidth]{figures/eff_512.pdf}
+    \caption{Relative efficiency for AMG on a tube embedded in a
+      $256\times256\times256$ grid (left) and in a
+      $512\times512\times512$ grid (right) with constant extrapolation
+      at the boundary.}
+    \label{fig:speedup}
+  \end{center} 
+\end{figure}
+
+\begin{table}[htb]
+  \begin{center}
+    \begin{tabular}{ccccc}
+      \hline
+      cores & solution [s] & construction [s] & application [s] & total ML [s] \\
+%            & (s) & (s) & (s) & (s) \\
+      \hline
+      16  & 10.91 &  7.75 &  9.52 & 17.28 \\
+      32  &  6.66 &  4.93 &  5.68 & 10.61 \\
+      64  &  3.82 &  2.87 &  3.19 &  6.06 \\
+      128 &  1.95 &  1.51 &  1.64 &  3.15 \\
+      256 &  1.15 &  0.93 &  0.94 &  1.88 \\
+      512 &  0.71 &  0.83 &  0.61 &  1.44 \\
+      \hline
+    \end{tabular}
+    \caption{Timings for AMG on a tube embedded in a $256\times256\times256$
+      grid with linear extrapolation at the boundary.}
+    \label{tbl:timings_solver_256}
+    \end{center}
+\end{table}
+
+
+\begin{table}[htb]
+  \begin{center}
+    \begin{tabular}{ccccc}
+      \hline
+      cores & solution [s] & construction [s] & application [s] & total ML [s] \\
+%            & (s) & (s) & (s) & (s) \\
+      \hline
+      256  &  10.51 &  5.79 &  8.70 &  14.49 \\
+      512  &  5.03 &  3.03 &  4.16 &  7.19 \\
+      1024 &  2.90 &  2.31 &  2.45 &  4.76 \\
+      2048 &  2.54 &  7.58 &  2.27 &  9.85 \\
+      \hline
+    \end{tabular}
+    \caption{Timings for AMG on a tube embedded in a $512\times512\times512$
+      grid with constant extrapolation at the boundary.}
+    \label{tbl:timings_solver_512} 
+  \end{center}
+\end{table}
+
+Similar conclusions can be drawn for the parallel efficiency of our
+solver on a $512^3$ grid with constant boundary treatment, see
+Table~\ref{tbl:timings_solver_512} and Figure~\ref{fig:speedup}.  Again the
+construction phase of ML scales poorly for larger numbers of cores.
+
+Notice that by applying the improvements discussed in
+Section~\ref{sec:ml_var}, i.e., reusing (parts of) the preconditioner,
+the time needed for the construction phase can be reduced significantly
+or avoided altogether.  If the preconditioner has to be built just once
+in an entire simulation the efficiency will get close to the 52\% that
+we measured for the solution phase.  
+
+Finally, in Table~\ref{tbl:timings_solver_1024} we report on timings
+obtained for the tube embedded in a $1024\times1024\times1024$ grid.  In
+Figure~\ref{fig:speedup_1024} the corresponding efficiencies are listed.
+For this large problem we observe good efficiencies.  The solver runs at
+82\% efficiency with 2048 cores relative to the 512-cores performance.
+The construction phase is still performing the worst with an efficiency
+of 73\%.  In this setup the problem size is still reasonably large when
+employing 2048 cores.  This consolidates our understanding of the
+influence of the problem size on the low performance of the aggregation
+in ML.
+%%
+\begin{figure}[htb] 
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{figures/eff_1024_lin.pdf}
+    \caption{Relative efficiency for AMG on a tube embedded in a
+      $1024\times1024\times1024$ grid with linear extrapolation at the
+      boundary, corresponding to the numbers in
+      Table~\ref{tbl:timings_solver_1024}.}
+    \label{fig:speedup_1024}
+  \end{center} 
+\end{figure}
+%%
+\begin{table}[htb]
+  \begin{center}
+    \begin{tabular}{ccccc}
+      \hline
+      cores & solution [s] & construction [s] & application [s] & total ML [s] \\
+%            & (s) & (s) & (s) & (s) \\
+      \hline
+      512  &  35.83 &  20.78 &  29.53 &  50.31  \\
+      1024 &  18.87 &  11.80 &  15.65 &  27.46  \\
+      2048 &  10.93 &  6.68 &  9.25 &  15.93   \\
+      \hline
+    \end{tabular}
+    \caption{Timings for AMG on a tube embedded in a
+      $1024\times1024\times1024$ grid with linear extrapolation at the
+      boundary.}
+    \label{tbl:timings_solver_1024}
+  \end{center}
+\end{table}
+
+Tables~\ref{tbl:timings_solver_256}--\ref{tbl:timings_solver_1024}
+provide a few data to investigate weak scability.  The timings for 2048
+processors in Table~\ref{tbl:timings_solver_1024} should ideally equal
+those for 256 processors in Table~\ref{tbl:timings_solver_512}.  In
+fact, they are quite close.  A comparison of the timings in
+Tables~\ref{tbl:timings_solver_512} and~\ref{tbl:timings_solver_256} is
+not so favorable.  The efficiency is at most 84\%.  The numbers for 2048
+processors in Table~\ref{tbl:timings_solver_512} show that the
+construction of the multilevel preconditioner becomes excessively
+expensive if the number of processors is high.
+
+\subsection{Open-space vs.\ PEC Boundary Conditions} 
+\label{sec:physrun}
+
+In this section we compare the impact of two different boundary
+conditions in the setting of a physical simulation consisting of an
+electron source (4 MeV) followed by a beam transport section
+\cite{schiet:08}.  As the pipe radius gets close to the particles in the
+beam, the fields become nonlinear due to the image charge on the pipe.
+We compare the root-mean-square (rms) beam size in a field-free region
+(drift) of a convergent beam, cf.~\cite[pp.171ff]{wied:07}.  The beam
+pipe radius is $r = 0.00085$\,m in case of the PCG solver.  This is an
+extreme case in which the particles fill almost the whole beam pipe and
+hence the effect is very visible.  The capability to have an exact
+representation of the fields near the boundaries is very important,
+because the beam pipe radius is an important optimization quantity,
+towards lower construction and operational costs in the design and
+operation of future particle accelerators.
+
+In Figure~\ref{fig:vareps} we compare rms beam sizes for the two
+boundary conditions applied to the boundary of a cylinder with
+elliptical base-area as described in Section~\ref{sec:discr}.
+
+%\begin{figure}[ht]
+  %\begin{center}
+    %\includegraphics[width=0.45\textwidth]{figures/os_vs_pec_varepsilon_x.pdf}
+    %\includegraphics[width=0.45\textwidth]{figures/os_vs_pec_RMSX_x.pdf}
+    %\caption{Comparison of emittance (left) and $\text{RMS}_{x_1}$ vs.\ position for open-space and PEC boundary conditions (region of interest
+    %magnified). The computational domain $\Omega$ is a cylinder with $r=0.001$\,m  \label{fig:vareps}} 
+  %\end{center} 
+%\end{figure}
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{figures/fft-drift-mg-drift-small-RMSX-x-SPOS}
+    \caption{Comparison of rms beam size vs.\ position of a convergent
+      beam. The FFT solver is applied for open-space boundary
+      conditions, for PEC two variants of the SA AMG-PCG solver is used:
+      with linear and quadratic boundary interpolation.  (region of
+      interest magnified). The computational domain $\Omega$ is a
+      cylinder with $r=0.00085$\,m \label{fig:vareps}.}
+  \end{center} 
+\end{figure}
+
+%TODO: compare paper PR ST AC E II 100703
+
+The differences are up to $~40\%$ (at $z=1.435$\,m) in rms beam size,
+when comparing the PEC and the open-space approach. We clearly see the
+shift of the beam size minimum (beam waist) towards larger $z$ values
+and smaller minima, which means that the force of the self fields are
+larger when considering the beam pipe.
+% This results agree with physical prediction (intuition?) and numerical
+% comparisons of electrostatic potentials.
+This increase in accuracy justifies the 
+%%necessity for an appropriately
+accurate boundary treatment in situations where the spatial extent of
+the beam is comparable with that of the beam pipe.
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End:

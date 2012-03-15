@@ -1,0 +1,6 @@
+2              ! Region number on which to calculate force
+0.2  20.2 c    ! Point (X,Y) on the object 
+3
+0.9 19.9 c
+end
+

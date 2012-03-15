@@ -1,0 +1,63 @@
+//                              Created at 09:42:31 on 14 Feb 2000 by
+// JMJ& ADA
+// Simple matching to check basics
+option, trace=false;
+option, tfs=false;
+
+LDR:= 10;  
+LQ := 1.0;
+KQF:= 0.02;
+KQD:=-0.02;
+
+dr1: drift,L:=LDR;
+dr2: drift,L:=LDR;
+
+m1: marker;
+m2: marker;
+m3: marker;
+
+QF:  Quadrupole, L=LQ/2, K1:=KQF, dBdxMax:=  2.;
+QD:  Quadrupole, L=LQ/2, K1:=KQD, dBdxMax:= -2.;
+
+fodocell2000: line=(fodocell,1999*fodocellm);
+fodocellm: line=(m3,QF,dr1,QD,m2,QD,dr2,QF);
+fodocell: line=(m3,QF,dr1,QD,m2,QD,dr2,QF,m1);
+
+
+twfodo2000:  twiss,line=fodocell2000, static=false, Method=ParallelT;
+
+value,KQF;
+
+select,line =twfodo2000,FULL;
+
+list,  table=twfodo2000, file="fodo1.bevoreMatch.mou", all;
+
+match, Line=fodocell2000, Method=Parallel;
+
+  vary,name=KQF,step=0.001;
+  vary,name=KQD,step=0.001;
+
+// Some strength limits
+  CONSTRAINT, KQF <  (QF ->dBdxMax), WGT=1; 
+  CONSTRAINT, KQD >  (QD ->dBdxMax), WGT=1; 
+
+// Some constraints in a compact way 
+  constraint,row(twfodo2000,m1,{betX,betY}) < {100.,100.}, wgt=table(2,1);
+  constraint,row(twfodo2000,m1,{MUX,MUY})=={0.27,1/6},wgt={1,1};
+
+  lmdif, calls=200,tolerance = 1.0E-12;
+
+endmatch;
+
+value,KQF;
+
+select,line =twfodo2000,FULL;
+list,  table=twfodo2000, file="fodo1.afterMatch.mou", all;
+
+
+
+stop;
+
+
+
+

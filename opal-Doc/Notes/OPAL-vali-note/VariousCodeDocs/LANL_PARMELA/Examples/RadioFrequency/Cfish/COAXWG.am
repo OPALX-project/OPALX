@@ -1,0 +1,37 @@
+CFISH Test:  Coax with Lossy Dielectric on One End
+Uses line drive at X = 0.
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,          ; Superfish problem
+dx=.2,                 ; Mesh interval
+maxcy=1,               ; Stop after one cycle
+freq=805.0,            ; Frequency
+nbslo=1,               ; Neumann boundary condition at lower edge 
+beta=1                 ; avoids a warning message in SFO
+xreg1=60.,xreg2=70. &  ; X line regions where mesh doubles
+
+&po x=0,  y=1.657 &
+&po x=0,  y=3.81 &
+&po x=150,y=3.81 &
+&po x=150,y=1.657 &
+&po x=0,  y=1.657 &
+
+&reg mat=2 &
+&po x=50, y=1.657 &
+&po x=50, y=3.81 &
+&po x=150,y=3.81 &
+&po x=150,y=1.657 &
+&po x=50, y=1.657 &
+
+&reg mat=1,
+ibound=-1,hdrive=1.0 &   
+&po x=0,y=1.657 &
+&po x=0,y=3.81 &
+
+&mt mtid=2
+epsilon=0.6,0.8
+mu=0.6,0.8 &
+
+

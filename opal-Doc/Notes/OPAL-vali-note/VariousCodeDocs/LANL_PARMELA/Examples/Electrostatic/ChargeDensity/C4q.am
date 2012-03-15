@@ -1,0 +1,34 @@
+Electrostatic problem with space charge - 4 quadrants
+4 nC/cm^3 charge density or line charge of 3.1416 nC/cm
+
+; Copyright 2004 by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,          ! Poisson or Pandira problem
+dx=0.04                ! Mesh interval 
+icylin=0,              ! Cartesian coordinates
+nbsup=0,               ! Dirichlet boundary condition on all edges
+nbslo=0,               
+nbslf=0,               
+nbsrt=0,                
+ibound=0,              ! Dirichlet boundary condition on internal bounds
+xjfact=0.0 &           ! Electrostatic problem 
+
+
+&po x=4,y=0 &
+&po nt=2,r=4.,theta= 90,x0=0,y0=0 &
+&po nt=2,r=4.,theta=180,x0=0,y0=0 &
+&po nt=2,r=4.,theta=270,x0=0,y0=0 &
+&po nt=2,r=4.,theta=360,x0=0,y0=0 &
+
+
+&reg mat=1,den=4.d-9 &   ! DEN is charge density in Coul/cm^3
+&po x=0.5,y=0 &
+&po nt=2,r=0.5,theta= 90,x0=0,y0=0 &
+&po nt=2,r=0.5,theta=180,x0=0,y0=0 &
+&po nt=2,r=0.5,theta=270,x0=0,y0=0 &
+&po nt=2,r=0.5,theta=360,x0=0,y0=0 &
+
+
+
+

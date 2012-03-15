@@ -1,0 +1,76 @@
+Permanent-Magnet Quadrupole (for PANDIRA)
+One quadrant of the geometry 
+3 full wedges and 2 half wedges of permanent magnet material
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,       ; Poisson or Pandira problem
+mode=0,             ; Some materials have variable permeability
+dx=0.09,            ; Mesh size
+nbslo=0,            ; Dirichlet boundary condition on lower edge
+nbsup=0,            ; Dirichlet boundary condition on upper edge
+nbslf=0,            ; Dirichlet boundary condition on left edge
+nbsrt=0  &          ; Dirichlet boundary condition on right edge
+
+&po x=0,y=0 &
+&po x=4,y=0 &
+&po x=4,y=4 &
+&po x=0,y=4 &
+&po x=0,y=0 &
+
+&reg mat=2,mshape=1,mtid=1 &
+&po x=1,y=0 &
+&po x=3,y=0 &
+&po nt=2,r=3,theta=11.25 &
+&po r=1,theta=11.255 &
+&po nt=2,r=1,theta=0, &
+
+&reg mat=3,mshape=1,mtid=2 &
+&po r=1,theta=11.25 &
+&po r=3,theta=11.25 &
+&po nt=2,r=3,theta=33.75 &
+&po r=1,theta=33.75 &
+&po nt=2,r=1,theta=11.25 &
+
+&reg mat=4,mshape=1,mtid=3 &
+&po r=1,theta=33.75 &
+&po r=3,theta=33.75 &
+&po nt=2,r=3,theta=56.25 &
+&po r=1,theta=56.25 &
+&po nt=2,r=1,theta=33.75 &
+
+&reg mat=5,mshape=1,mtid=4 &
+&po r=1,theta=56.25 &
+&po r=3,theta=56.25 &
+&po nt=2,r=3,theta=78.75 &
+&po r=1,theta=78.75 &
+&po nt=2,r=1,theta=56.25 &
+
+&reg mat=6,mshape=1,mtid=5 &
+&po r=1,theta=78.75 &
+&po r=3,theta=78.75 &
+&po nt=2,r=3,theta=90 &
+&po r=1,theta=90 &
+&po nt=2,r=1,theta=78.75 &
+
+&mt mtid=1
+aeasy=0.0,gamper=1        ! Easy axis direction, gamma perpendicular to easy axis
+hcept=-10800,bcept=11600. & ! H and B intercepts
+
+&mt mtid=2
+aeasy=67.5,gamper=1
+hcept=-10800,bcept=11600. &
+
+&mt mtid=3
+aeasy=135,gamper=1
+hcept=-10800,bcept=11600. &
+
+&mt mtid=4
+aeasy=202.5,gamper=1
+hcept=-10800,bcept=11600. &
+
+&mt mtid=5
+aeasy=270,gamper=1
+hcept=-10800,bcept=11600. &
+

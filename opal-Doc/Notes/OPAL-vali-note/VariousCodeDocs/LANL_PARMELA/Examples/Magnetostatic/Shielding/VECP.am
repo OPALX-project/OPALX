@@ -1,0 +1,47 @@
+Vector potential problem 
+Magnetic shielding produced by thin, highly permeable sheet
+Geometry has very large changes in triangle size near the metal.
+[Originally appeared in 1987 User's Manual 10.7]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+                      
+&reg kprob=0,             ; Poisson or Pandira problem
+mode=-1,                  ; Use fixed but finite permeability
+fixgam=0.00005,           ; Reluctivity
+nbslo=0,                  ; Dirichlet boundary condition on lower edge
+nbsup=0,                  ; Dirichlet boundary condition on upper edge
+nbslf=1,                  ; Neumann boundary condition on left edge
+nbsrt=1,                  ; Neumann boundary condition on right edge
+; Define X (physical) and K (logical) line regions:
+xreg1=175.2,kreg1=36, 
+xreg2=175.4,kreg2=40, 
+kmax=86                   ; Logical coordinate for XMAX
+; Define Y (physical) and L (logical) line regions:
+yreg1=129.5,lreg1=26, 
+yreg2=129.7,lreg2=30,     
+lmax=76  &                ; Logical coordinate for YMAX
+
+&po x=0.0,y=0.0 &               ; Rectangular box 
+&po x=400.4,y=0.0 &
+&po x=400.4,y=354.7 &
+&po x=0.0,y=354.7 &
+&po x=0.0,y=0.0 &
+
+&reg mat=2 &                    ; Thin permeable metal box
+&po x=175.2,y=0.0 &
+&po x=175.4,y=0.0 &
+&po x=175.4,y=129.7 &
+&po x=0.0,y=129.7 &
+&po x=0.0,y=129.5 &
+&po x=175.2,y=129.5 &
+&po x=175.2,y=0.0 &
+
+&reg mat=1,cur=10.0,ibound=-1 &  ; Current sheet along lower edge
+&po x=0.0,y=0.0 &
+&po x=400.4,y=0.0 &
+
+&reg mat=1,cur=188.0,ibound=-1 & ; Current sheet along upper edge
+&po x=0.0,y=354.7 &
+&po x=400.4,y=354.7 &
+

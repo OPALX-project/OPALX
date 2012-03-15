@@ -1,0 +1,34 @@
+CFISH Test:  Pillbox with a Lossy Dielectric Rod
+Uses line drive at Y = 6.752
+1 iteration, no resonance search
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,          ; Superfish problem
+dx=0.15,               ; Mesh interval
+maxcy=1,               ; Stop after one cycle
+freq=1700.0 &          ; Frequency
+
+
+&po x=0.0,y=0.0 &
+&po x=0.0,y=6.752 &
+&po x=3.376,y=6.752 &
+&po x=3.376,y=0.0 &
+&po x=0.0,y=0.0 &
+
+&reg mat=2 &
+&po x=0.0,y=0.0 &
+&po x=0. ,y=1.000 &
+&po x=3.376 ,y=1.000 &
+&po x=3.376 ,y=0. &
+&po x=0., y=0. &
+
+&reg mat=1,ibound=-1,hdrive=1.0 &
+&po x=0.000,y=6.752 &
+&po x=3.376,y=6.752 &
+
+&mt mtid=2
+epsilon=.6,.8,
+mu=.6,.8 &
+

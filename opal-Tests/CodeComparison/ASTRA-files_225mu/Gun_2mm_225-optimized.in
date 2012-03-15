@@ -1,0 +1,123 @@
+! This is ASTRA input file for SwissFEL Project 
+!
+! Designed by Antonio Falone, PSI, on July 13 2010
+! PSI RF-GUN optimization. 
+
+&NEWRUN
+  Head='PSI Gun based Injector for SwissFEL Project - 130 MeV with 200 pC '
+  RUN=1,
+ ! Distribution = '225_beam.ini',
+  Distribution = '225_beam_250k.ini',	  Xoff=0.0, Yoff=0.0
+  Qbunch=0.200  ! To be changed for Q
+  Lmagnetized=.F
+  Lsub_cor=.T
+  EmitS=.T
+  PhaseS=.T
+  TrackS=.F
+  RefS=.T
+  TcheckS=.F
+  CathodeS=.T
+  Local_emit=.T
+  High_res=.T.
+  TRACK_ALL=.T, PHASE_SCAN=.F,  AUTO_PHASE=.T
+  ZSTART=0.0,   ZSTOP=13.0 ! for whole Injector
+  !ZSTART=0.0,   ZSTOP=7.5 ! for whole Injector
+
+  Zemit=1000
+  Zphase=10
+  Lmonitor=.F
+  check_ref_part=.F
+  H_max=0.001
+  H_min=0.000
+! MAX_STEP = 5000000
+  LSUB_COR =.T
+  Debunch=0.0
+  Screen(1)=0.15
+  Screen(2)=4.4626
+  Screen(3)=8.4227
+ /
+
+ &SCAN 
+  LScan=F
+  Scan_para='MaxB(1)'
+  S_min=0.19, S_max=0.22, S_numb=10
+  FOM(1)='length'
+  FOM(2)='hor emit'
+  FOM(3)='hor spot'
+ 
+/
+
+
+ &CHARGE
+  Loop=F,
+  LSPCH=T
+  Nrad=15, Nlong_in=20
+  Cell_var=2.0
+  min_grid=0.0
+  Max_scale=0.05
+  Lmirror=.T
+ /
+
+ &Aperture
+ /
+ 
+ &FEM
+ /
+  
+ &CAVITY
+  Loop=.F,
+  LEFieLD=.T
+
+  FILE_EFieLD(1) = 'e2.txt',
+  Nue(1)=2.9988, MaxE(1)=100.0, Phi(1)=-3.25, C_pos(1)=0.0, C_smooth(1)=50
+
+! First S-band Tube
+  FILE_EFIELD(2) = 'TWS_PSI_Sband_ASTRA.dat'
+  Nue(2)=2.9988, MaxE(2)=19.0, Phi(2)=0.0, C_pos(2)=2.95, C_Numb(2)=120
+
+! Second S-band Tube
+  FILE_EFIELD(3) = 'TWS_PSI_Sband_ASTRA.dat'
+  Nue(3)=2.9988, MaxE(3)=22.0, Phi(3)=0.0, C_pos(3)=7.95, C_Numb(3)=120
+
+ /
+ 
+ &SOLENOID
+  Loop=F,
+  LBFieLD=.T,
+
+! Gun Soleneoid 
+  FILE_BFieLD(1)='NEW_SINGLE_SOL_NOFRINGE_ASTRA.dat', MaxB(1)=0.21035
+  S_pos(1)=0.30, S_xoff(1)=0.0, S_yoff(1)=0.0, S_smooth(1)=10 
+
+! Solenoids in First S-band Tube
+  FILE_BFieLD(2)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(2)=0.08
+  S_pos(2)=3.0, S_xoff(2)=0.0, S_yoff(2)=0.0, S_smooth(2)=10
+
+  FILE_BFieLD(3)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(3)=0.08
+  S_pos(3)=3.85, S_xoff(3)=0.0, S_yoff(3)=0.0, S_smooth(3)=10
+
+  FILE_BFieLD(4)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(4)=0.12
+  S_pos(4)=4.7, S_xoff(4)=0.0, S_yoff(4)=0.0, S_smooth(4)=10
+
+  FILE_BFieLD(5)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(5)=0.12
+  S_pos(5)=5.55, S_xoff(5)=0.0, S_yoff(5)=0.0, S_smooth(5)=10
+
+! Solenoids in Second S-band Tube
+  FILE_BFieLD(6)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(6)=0.068
+  S_pos(6)=8.0, S_xoff(6)=0.0, S_yoff(6)=0.0, S_smooth(6)=10
+
+  FILE_BFieLD(7)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(7)=0.068
+  S_pos(7)=8.85, S_xoff(7)=0.0, S_yoff(7)=0.0, S_smooth(7)=10
+
+  FILE_BFieLD(8)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(8)=0.068
+  S_pos(8)=9.7, S_xoff(8)=0.0, S_yoff(8)=0.0, S_smooth(8)=10
+
+  FILE_BFieLD(9)='INSB_MSLAC_Bz_NOFRINGE_ASTRA.dat', MaxB(9)=0.068
+  S_pos(9)=10.55, S_xoff(9)=0.0, S_yoff(9)=0.0, S_smooth(9)=10
+
+ /
+ 
+ &QUADRUPOLE
+  LQUAD=.F,
+ /
+

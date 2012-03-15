@@ -1,0 +1,24 @@
+On-Axis Coupled Cavity, Frequency scan over 100 MHz    
+[courtesy of R. Cooper]
+
+&reg kprob=1,    ; Superfish problem
+nstep=81,        ; Number of steps in frequency scan
+delfr=1.25,      ; Frequency step in MHz
+freqs=750.0,     ; Starting frequency in MHz
+ccl=1,           ; Coupled-cavity linac cell
+dphi=180,        ; Phase change over the cell length
+dx=0.2,          ; Mesh spacing
+xdri=1.,         ; Drive point X coordinate 
+ydri=8., &       ; Drive point Y coordinate 
+
+&po x=0.,y=0. &
+&po x=0.,y=16.24 &
+&po x=1.4899,y=16.24 &
+&po nt=2,x0=1.4899,y0=10.74,x=5.5,y=0.0 &
+&po x=6.9899,y=7.64 &
+&po nt=2,x0=7.85895,y0=7.64,y=0,x=0.86905 &
+&po x=8.728,y=17.2 &
+&po x=9.4,y=17.2 &
+&po x=9.4,y=0. &
+&po x=0.,y=0. &
+

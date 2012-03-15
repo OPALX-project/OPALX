@@ -1,0 +1,75 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=50;
+
+Title,string="OPAL Bunch Compressor 1 test";
+
+Edes=0.2479;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+dt1 = 3.3355e-12;
+dt2 = 1.0e-12;
+cdt = dt2;
+
+// L:        physical element lenght (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+f1: Filter, TYPE="FixedFFTLowPass", NFREQ=9;
+f2: Filter, TYPE="Savitzky-Golay", NLEFT=64, NRIGHT=64, POLYORDER=1;
+CSRWAKE: Wake, TYPE="1D-CSR", FILTERS={f2, f1};
+
+F10BC_MB01: RBend, L=0.282000, K0=0.1585,  FMAPFN="F10BC-MB01.T7", ELEMEDGE=29.9640000000, ALPHA=3.035,  DESIGNENERGY=247.6, WAKEF=CSRWAKE;
+F10BC_MB02: RBend, L=0.282000, K0=-0.1585, FMAPFN="F10BC-MB01.T7", ELEMEDGE=34.4644203647, ALPHA=-3.035, DESIGNENERGY=247.6, WAKEF=CSRWAKE;
+F10BC_MB03: RBend, L=0.282000, K0=-0.1585, FMAPFN="F10BC-MB01.T7", ELEMEDGE=35.2144203647, ALPHA=-3.035, DESIGNENERGY=247.6, WAKEF=CSRWAKE;
+F10BC_MB04: RBend, L=0.282000, K0=0.1585,  FMAPFN="F10BC-MB01.T7", ELEMEDGE=39.7338407293, ALPHA=3.035,  DESIGNENERGY=247.6, WAKEF=CSRWAKE;
+
+l1:   Line = (F10BC_MB01, F10BC_MB02, F10BC_MB03, F10BC_MB04); 
+
+/*
+ We can specity ONE distribution
+
+ Note: sigmapt is in eV 
+
+*/
+qb=0.20e-9;
+rf=1498.956e6;
+v0=beta*CLIGHT;
+T1s = 36.6e-12;
+lz  = T1s*v0;
+value,{v0,lz,qb,rf};
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+                    sigmax=  0.00018, sigmapx=0.0028, corrx=0.0,
+                    sigmay=  0.00018, sigmapy=0.0028, corry=0.0,
+                    t = 29.50000, sigmat=  0.00040, pt=248.14e6, sigmapt=2.78803e6, corrt=-0.9994;
+
+/*
+   We can specity ONE field solver object
+*/
+
+Fs1:FIELDSOLVER, FSTYPE=None, MX=32, MY=32, MT=2048, 
+                 PARFFTX=false, PARFFTY=false, PARFFTT=true,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=1e3, BCURRENT=qb*rf, BFREQ=rf, CHARGE=-1;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=402*dt1/cdt, DT=cdt;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+track,line=l1, beam=beam1, MAXSTEPS=400*dt1/cdt, DT=cdt;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+Quit;
+

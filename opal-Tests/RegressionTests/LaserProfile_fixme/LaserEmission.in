@@ -1,0 +1,67 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=1;
+
+Title,string="OBLA 4 MeV Gun and Beam";
+
+Edes=1.0E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element length (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+gun: RFCavity, L=0.008, VOLT=-98.954, FMAPFN="1T1.T7", ELEMEDGE=0.00, TYPE="STANDING", FREQ=1.0e-6;
+psl: Solenoid, L=0.12, ELEMEDGE=0.0, FMAPFN="1T2.T7", KS=0.2;
+rac: RFCavity, L=0.54, VOLT=35.5, FMAPFN="1T3.T7", ELEMEDGE=0.103, TYPE="STANDING", FREQ=1498.956e6, LAG=76.*RADDEG;
+sl10: Solenoid, L=1.00, ELEMEDGE=0.334, FMAPFN="1T5.T7", KS=0.133;
+sl11: Solenoid, L=1.00, ELEMEDGE=0.434, FMAPFN="1T5.T7", KS=-0.133;
+sl20: Solenoid, L=1.00, ELEMEDGE=0.834, FMAPFN="1T5.T7", KS=0.08;
+sl21: Solenoid, L=1.00, ELEMEDGE=0.934, FMAPFN="1T5.T7", KS=-0.08;
+
+end: Solenoid, L=0.01, ELEMEDGE=100., FMAPFN="1T5.T7", KS=0.01;
+
+l1:   Line = (gun,psl,rac,sl10,sl11,sl20,sl21,end); 
+
+TRise    = 10.0e-12;
+TFall    = 10.0e-12;
+TFlatTop = 30.0e-12;
+
+Dist1:DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+sigmax = 0.001620, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.001620, sigmapy = 0.0, corry = 0.0,
+sigmat = 0.0, pt = 0.0, sigmapt = 0.0, corrt = 0.0, ekin = 0.23,
+risetime = TRise, falltime = TFall, flattoptime = TFlatTop,
+
+TEMISSION = 50.0e-12, NBIN = 100, DEBIN = 30, LASERPROFFN = "QuickSave.h5", IMAGENAME = "/entry1/OBLA/Laser/FINLS_TR_SCACAT", INTENSITYCUT = 0.01;
+
+
+MINSTEPFORREBIN=1000;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=64, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=100000, BCURRENT=0.2997912, BFREQ=1498.956e6, CHARGE=-1;
+
+Select, Line=l1;
+// Simulation of the gun with step size DTGUN
+track,line=l1, beam=beam1, MAXSTEPS=1500, DT=1.0e-13;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+
+// Simulation of the beam with step size DT 
+track,line=l1, beam=beam1, MAXSTEPS=8000, DT=1.0e-12;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1;
+ endtrack;
+
+Stop;
+Quit;

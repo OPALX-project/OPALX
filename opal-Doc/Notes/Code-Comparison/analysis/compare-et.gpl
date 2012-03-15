@@ -1,0 +1,85 @@
+set line style 1 lt 1 lw 2
+set line style 2 lt 2 lw 2 
+set line style 3 lt 3 lw 2 
+set line style 4 lt 6 lw 2 
+set line style 5 lt 1 lw 2 
+
+set line style 7 lt 3 lw 2 
+set line style 8 lt 6 lw 2 
+
+# for points
+set line style 6 lt 1 lw 2 lc 2
+
+fopA='../opal/nosc-t/opal-cc_astra_fm.stat'
+fopB='../opal/sc-t/opal-cc_astra_fm.stat'
+fopC='../opal/nosc-e/opal-cc_astra_fm.stat'
+fopD='../opal/sc-e/opal-cc_astra_fm.stat'
+
+
+set grid
+set key default
+#set title "OPAL-t OPAL-envelope "
+
+set xlabel 'z (m)' font 'Helvetica-Bold,25'
+set ylabel 'rms_x ({/Symbol m}m)' font 'Helvetica-Bold,25'
+plot   [:] fopA u 2:($6*1E6) w l ls 2 t 'OPAL-t I=0'
+replot     fopB u 2:($6*1E6) w l ls 1 t 'OPAL-t'
+replot     fopC u 2:($6*1E6) w l ls 4 t 'OPAL-e I=0'
+replot     fopD u 2:($6*1E6) w l ls 3 t 'OPAL-e'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - ../report/figures/et-tt-xrms.pdf'
+replot
+pause -1
+set term x11
+set out
+
+set xlabel 'z (m)' font 'Helvetica-Bold,25'
+set ylabel 'rms_z ({/Symbol m}m)' font 'Helvetica-Bold,25'
+set key bottom right
+set yrange [550:850]
+plot   [:] fopA u 2:($8*1E6) w l ls 2 t 'OPAL-t I=0'
+replot     fopB u 2:($8*1E6) w l ls 1 t 'OPAL-t'
+replot     fopC u 2:($8*1E6) w l ls 4 t 'OPAL-e I=0'
+replot     fopD u 2:($8*1E6) w l ls 3 t 'OPAL-e'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - ../report/figures/et-tt-zrms.pdf'
+replot
+pause -1
+set term x11
+set out
+set key default
+
+#reset
+#set log y
+set yrange [0:1]
+set xlabel 'z (m)' font 'Helvetica-Bold,25'
+set ylabel 'ex_{rms} ()' font 'Helvetica-Bold,25'
+plot   [:]  fopA u 2:($12*1E6) w l ls 2 t  'OPAL-t I=0'
+replot      fopB u 2:($12*1E6) w l ls 1 t  'OPAL-t'
+replot      fopC u 2:($12*1E6) w l ls 4 t  'OPAL-e I=0'
+replot      fopD u 2:($12*1E6) w l ls 3 t  'OPAL-e'
+
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - ../report/figures/et-tt-exrms.pdf'
+replot
+pause -1
+set term x11
+set out
+
+
+#reset
+unset log y
+set auto y
+set xlabel 'z (m)' font 'Helvetica-Bold,25'
+set ylabel 'E  (MeV)' font 'Helvetica-Bold,25'
+plot [:]  fopA u 2:5 w l ls 1 t 'OPAL-t I=0'
+replot    fopC u 2:($5*1e-6) w l ls 4 t 'OPAL-e I=0'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - ../report/figures/et-tt-energy.pdf'
+replot
+pause -1
+set term x11
+set out
+
+exit
+

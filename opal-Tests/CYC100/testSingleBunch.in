@@ -1,0 +1,78 @@
+// test for single particle tracking (with RF on)in PSI Injector2 cyclotron.
+// the initial conditions are obtained from FIXPO GORBIT mode.
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=100000000;
+Option, SPTDUMPFREQ = 4;
+Option, PSDUMPEACHTURN=true;
+Option, PSDUMPLOCALFRAME=false;
+
+Title,string="OPAL-CyclT test";
+
+Edes=1.49/1000.0; //GeV
+rinit0= 23.144*10.0; // mm
+pr0_m=0.1517/100.0; //m
+
+hmass=0.939277; // GeV
+gamma=(Edes+hmass)/hmass;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+Moment0 = gamma*beta*hmass;
+brho = (hmass*1.0e9*gambet) / CLIGHT;
+
+bcon=0.728435; //Tesla
+frequency=bcon*clight*clight/(twopi*hmass*10.0^9)*4.0/10.0^6; //MHz
+pr0=pr0_m*(twopi*frequency*10.0^6)/4.0/clight; //radian
+
+value,{gamma,Edes,frequency,pr0};
+// -4.2821
+// -2.1367
+//    2. 1 4 5 4
+phi01=-90.0;
+phi02=phi01+180;
+phi03=phi01;
+phi04=phi01+180;
+
+//frequency=44.32;
+
+cyciae: Cyclotron, TYPE="CYCIAE", CYHARMON=4, PHIINIT=0.0, PRINIT=pr0, RINIT=rinit0, SYMMETRY=4.0, 
+RFFREQ=frequency, FMAPFN="../cyc100_ANSYS.dat";
+rf1: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE=-17.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi01; 
+rf2: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE= 17.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi02; 
+rf3: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE=162.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi03; 
+rf4: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+RMAX = 1900.0, ANGLE=197.5, PDIS = 0.0, GAPWIDTH = 20.0, PHI0=phi04; 
+//PDIS != 0
+//rf1: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+//RMAX = 1900.0, ANGLE=-17.5, PDIS = 18.54, GAPWIDTH = 25.0, PHI0=phi01; 
+//rf2: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+//RMAX = 1900.0, ANGLE= 17.5, PDIS =-18.54, GAPWIDTH = 25.0, PHI0=phi02; 
+//rf3: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+//RMAX = 1900.0, ANGLE=162.5, PDIS = 18.54, GAPWIDTH = 25.0, PHI0=phi03; 
+//rf4: RFCavity, VOLT=0.117432, FMAPFN="../CavVolt.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 100.0, 
+//RMAX = 1900.0, ANGLE=197.5, PDIS =-18.54, GAPWIDTH = 25.0, PHI0=phi04; 
+
+l1:   Line = (cyciae,rf1,rf2,rf3,rf4);
+//l1:   Line = (cyciae);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  2.0e-03, sigmapx=1.0e-7, corrx=0.0,
+sigmay=  2.0e-03, sigmapy=1.0e-7, corry=0.0,
+sigmat=  2.0e-03, sigmapt=1.0e-7, corrt=0.0;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=32, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+beam1: BEAM, PARTICLE=HYDRONGEN_MINUS, pc=Moment0, SPACECHARGE=false, NPART=3*1e4, BCURRENT=2.0E-4,CHARGE=1.0, BFREQ= frequency;
+
+Select, Line=l1;
+// in CYCIAE-100, the reference particle of 2MeV energy need about 302t to obtain 100MeV
+track,line=l1, beam=beam1,MAXSTEPS=1000*312,STEPSPERTURN=1000;
+ run, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+

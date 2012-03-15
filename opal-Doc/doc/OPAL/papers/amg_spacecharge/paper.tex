@@ -1,0 +1,103 @@
+\documentclass[a4paper,10pt,3p,final,pdftex]{elsarticle}
+
+\biboptions{sort&compress}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{url}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{multirow}
+%\usepackage{cite}
+
+\newdefinition{remark}{Remark}
+\newcommand {\RM}[1]{\mathrm{#1}}
+\renewcommand{\Re}{\mathbb{R}}
+
+\newcommand{\opal}{\textsc{OPAL}}
+\newcommand{\ippl}{\textsc{IP$^2$L}}
+%%\newcommand{\oursolver}{\textsc{SAAMG-PCG}}
+
+\journal{Journal of Computational Physics}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{A Fast Parallel Poisson Solver on Irregular Domains Applied to Beam
+  Dynamics Simulations}
+
+\author[psi]{A.~Adelmann\corref{cor}}
+\ead{andreas.adelmann@psi.ch}
+
+\author[eth]{P.~Arbenz}
+\ead{arbenz@inf.ethz.ch}
+
+\author[psi,eth]{Y.~Ineichen}
+\ead{ineichen@inf.ethz.ch}
+
+\address[psi]{Paul Scherrer Institut, CH-5234 Villigen, Switzerland}
+\address[eth]{ETH Z\"urich, Chair of Computational Science,
+  Universit\"atsstrasse 6, CH-8092 Z\"urich, Switzerland}
+
+\cortext[cor]{Corresponding author}
+
+
+
+\begin{abstract}
+  We discuss the scalable parallel solution of the Poisson equation
+  within a Particle-In-Cell (PIC) code for the simulation of electron
+  beams in particle accelerators of irregular shape.  The problem is
+  discretized by Finite Differences.  Depending on the treatment of the
+  Dirichlet boundary the resulting system of equations is symmetric or
+  `mildly' nonsymmetric positive definite.  In all cases, the system is
+  solved by the preconditioned conjugate gradient algorithm with
+  smoothed aggregation (SA) based algebraic multigrid (AMG)
+  preconditioning.  We investigate variants of the implementation of
+  SA-AMG that lead to considerable improvements in the execution times.
+  We demonstrate good scalability of the solver on distributed memory
+  parallel processor with up to 2048 processors.  We also compare our
+  iterative solver with an FFT-based solver that is more commonly used
+  for applications in beam dynamics.
+\end{abstract}
+
+%MAX: 6 keywords
+\begin{keyword}
+  Poisson equation \sep Irregular domains \sep Preconditioned conjugate
+  gradient algorithm \sep Algebraic multigrid \sep Beam dynamics \sep
+  Space-charge
+\end{keyword}
+
+\end{frontmatter}
+
+\nocite{*}
+ 
+\input{intro}
+\input{discretization}
+\input{method}
+\input{implementation}
+\input{results}
+\input{conclusion}
+
+\section*{Acknowledgments}
+
+The majority of computations have been performed on the Cray XT4 in the
+framework of the PSI CSCS ``Horizon'' collaboration.  We acknowledge the
+help of the XT4 support team at CSCS, most notably Timothy Stitt.
+%%
+The XT5 performance results have been obtained on a Cray XT5
+supercomputer system, courtesy of Cray Inc.  We acknowledge the help of
+Stefan Andersson (Cray Inc.).
+%%
+We thank Jonathan Hu and Raymond Tuminaro (Sandia National Laboratories)
+for valuable information and help regarding the ML package.
+%%
+% Special thanks are addressed to reviewers for their valuable
+% suggestions.
+
+\bibliography{paper}
+\bibliographystyle{elsarticle-num}
+
+\end{document}

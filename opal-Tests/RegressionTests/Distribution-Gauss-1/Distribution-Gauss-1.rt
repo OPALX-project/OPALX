@@ -1,0 +1,4 @@
+"Distribution-Gauss-1"
+stat "rms_x" last 1E-15    #this is a comment
+stat "rms_y" last 1E-15    #this is a comment
+stat "rms_s" last 1E-15    #this is a comment

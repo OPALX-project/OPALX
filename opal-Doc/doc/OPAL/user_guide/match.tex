@@ -1,0 +1,391 @@
+\chapter{Matching Module}
+\label{chp:match}
+\index{matching|(}
+ Please note Matching are not yet supported in \noopalt and \noopalcycl . There are Python scripts available to perform a simple low dimensional 
+ Matching is needed. 
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Commands accepted in Matching Mode}
+    \label{tab:matchcmd}
+    \begin{tabular}{|l|p{0.6\textwidth}|l|}
+      \hline
+      Command &Purpose \\
+      \hline
+      \tabline{MATCH}{Enter matching mode}{matchmode}
+      \tabline{name=expression}{Parameter relation}{variable}
+      \tabline{CONSTRAINT}{Impose matching constraint}{constraint}
+      \tabline{VARY}{Vary parameter}{vary}
+      \tabline{OPTION}{Set print level}{matchoption}
+      \tabline{LMDIF}{Minimisation by gradient method}{matchmethod}
+      \tabline{MIGRAD}{Minimisation by gradient method}{matchmethod}
+      \tabline{SIMPLEX}{Minimisation by simplex method}{matchmethod}
+      \tabline{ENDMATCH}{Leave matching mode}{matchmode}
+      \tabline{SURVEY}{Define a survey table}{survey}
+      \tabline{TWISS}{Define a periodic lattice function table}{twiss}
+      \tabline{TWISSTRACK}{Define a lattice function table}{twiss}
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\section{Matching Mode}
+\label{sec:matchmode}
+\index{MATCH}
+\index{ENDMATCH}
+To initiate a matching operation,
+the command
+\begin{verbatim}
+MATCH;
+\end{verbatim}
+is entered.
+\opal then enters ``matching mode'', in which it accepts only the
+\tabref{matching commands}{matchcmd}.
+Most of the procedures have originated in the \bibref{MINUIT}{MINUIT}
+program. 
+
+This command must be followed by command to
+\begin{itemize}
+\item
+  Define one or more \chpref{tables}{tables} to be matched.
+  The tables can also be defined before the \texttt{MATCH} command. 
+\item
+  Define \secref{matching constraints}{constraint} on these tables.
+\item
+  Define the \secref{variables}{vary} to be adjusted.
+\item
+  Select the \secref{verbosity}{matchoption} of output.
+\item
+  \secref{Initiate matching}{matchmethod}.
+\end{itemize}
+The \texttt{ENDMATCH} command terminates matching mode and deletes all
+tables related to a matching run: 
+\begin{verbatim}
+ENDMATCH;
+\end{verbatim}
+
+\section{Variable Parameters}
+\label{sec:vary}
+\index{VARY}
+A parameter to be varied is specified by the command:
+\begin{verbatim}
+VARY, NAME=variable, STEP=real, LOWER=real, UPPER=real;
+\end{verbatim}
+It has four attributes:
+\begin{description}
+\item{NAME:}
+  \index{NAME}
+  The name of the \secref{parameter}{variable} or
+  \secref{attribute}{areal} to be varied.
+\item{STEP:}
+  \index{STEP}
+  \index{step size}
+  The approximate initial step size for varying the parameter.
+  If the step is not entered, \opal tries to find a reasonable step,
+  but this may not always work.
+\item{LOWER:}
+  \index{LOWER}
+  \index{matching!limits}
+  \index{limits!matching}
+  Lower limit for the parameter (optional),
+\item{UPPER:}
+  \index{UPPER}
+  Upper limit for the parameter (optional).
+\end{description}
+Upper and/or lower limits can also be imposed via the
+\secref{\texttt{CONSTRAINT}~command}{constraint},
+which is usually faster than entering limits on the
+\texttt{VARY}~command. 
+Examples:
+\begin{verbatim}
+VARY, PAR1, STEP=1.0E-4;      // vary global param. PAR1 
+VARY, QL11->K1, STEP=1.0E-6;  // vary attribute K1 of QL11 
+VARY, Q15->K1, STEP=0.0001, LOWER=0.0, UPPER=0.08;
+                             // vary w. limits
+\end{verbatim}
+If the upper limit is smaller than the lower limit,
+the two limits are interchanged.
+If the current value is outside the range defined by the limits,
+it is brought back to range.
+After a matching operation all varied attributes retain their last value.
+They are never reset to an old value.
+If a matching variable depends on another variable,
+this dependency is broken by the \texttt{VARY}~command.
+Example:
+\begin{verbatim}
+P1:=10.0-P2
+\end{verbatim}
+Both \texttt{P1} and \texttt{P2} may be varied.
+If \texttt{P1} is varied however, its dependence on \texttt{P2} is broken.
+
+%The command \texttt{FIX} removes
+%\ttnindex{NAME}
+%a parameter or attribute from the table of variable parameters:
+%\begin{verbatim}
+%FIX,NAME=variable
+%\end{verbatim}
+%Example:
+%\begin{verbatim}
+%FIX,NAME=QF->K1;
+%\end{verbatim}
+ 
+\section{Constraints}
+\label{sec:constraint}
+\index{CONSTRAINT}
+All constraints are imposed by the \texttt{CONSTRAINT} command:
+\begin{verbatim}
+CONSTRAINT, left relation right, WGT=weight;
+\end{verbatim}
+In this command \texttt{relation} is one of the relational operator
+$==$, $<$, or~$>$. 
+All of \texttt{left}, \texttt{right}, and \texttt{weight}
+are \secref{vector expressions}{vector}.
+All three must evaluate to the same number $n$ of components.
+The command is interpreted as $n$ matching constraints like
+\texttt{left[i] relation right[i]} with a weight of
+\texttt{weight[i]}, where $i$ runs from one to $n$.
+A wide spectrum of vector expressions are possible.
+
+Examples. Single constraint:
+\begin{verbatim}
+CONSTRAINT, T1@M[3]->BETX==120, WGT=1;
+\end{verbatim} 
+Two constraints in the same point:
+\begin{verbatim}
+CONSTRAINT, ROW(T1, M[3], {BETX,BETY})=={120, 120}, 
+            WGT=TABLE(2,1);
+\end{verbatim} 
+Maximum over a range:
+\begin{verbatim}
+CONSTRAINT, COLUMN(T1, BETX, #S/#E)<200, WGT=1;
+\end{verbatim} 
+Coupling between two points:
+\begin{verbatim}
+CONSTRAINT, ROW(T1, M1, {BETX, BETY})==
+            ROW(T1, M2, {BETX, BETY}), WGT=TABLE(2,1);
+\end{verbatim} 
+Interchange of \texttt{BETX} and \texttt{BETY}:
+\begin{verbatim}
+CONSTRAINT, ROW(T1, M1, {BETX, BETY})==
+            ROW(T1, M2, {BETY, BETX}), WGT=TABLE(2,1);
+\end{verbatim} 
+
+For complex matching conditions in Version~8 of \opal one had to
+introduce ancillary variables.
+Several quantities could then be tied to such a variable,
+resulting in coupling between these quantities.
+This is no longer needed in Version~9, as can be seen from these
+examples. 
+
+\section{Matching Output Level}
+\label{sec:matchoption}
+\index{OPTION}
+\index{matching!output}
+The \texttt{OPTION} command sets the output level for matching:
+\begin{verbatim}
+OPTION, LEVEL=integer;
+\end{verbatim}
+Recognised level numbers are:
+\begin{description}
+\item[0]
+Minimum printout: Messages and final values only,
+\item[1]
+Normal printout: Messages, initial and final values,
+\item[2]
+Like \texttt{LEVEL=1}, plus every tenth new minimum found,
+\item[3]
+Like \texttt{LEVEL=2}, plus every new minimum found,
+\item[4]
+Like \texttt{LEVEL=3}, plus eigenvalues of covariance matrix
+(\texttt{MIGRAD} method only).
+\end{description}
+Example:
+\begin{verbatim}
+OPTION, LEVEL=2;
+\end{verbatim}
+ 
+\section{Matching Methods}
+\label{sec:matchmethod}
+\index{matching!methods}
+
+\subsection{LMDIF, Gradient Minimisation}
+\index{gradient minimisation}
+\index{LMDIF}
+The \texttt{LMDIF} command minimises the sum of squares of the constraint
+functions using their numerical derivatives:
+\begin{verbatim}
+LMDIF, CALLS=integer, TOLERANCE=real;
+\end{verbatim}
+It is the fastest minimisation method available in \opal.
+The command has two attributes:
+\begin{description}
+\item{CALLS}
+  \index{CALLS}
+  The maximum number of calls to the penalty function (default:~1000).
+\item{TOLERANCE}
+  \index{TOLERANCE}
+  The desired tolerance for the minimum (default:~\(10^{-6}\)).
+\end{description}
+Example:
+\begin{verbatim}
+LMDIF, CALLS=2000, TOLERANCE=1.0E-8;
+\end{verbatim}
+
+\subsection{MIGRAD, Gradient Minimisation}
+\index{gradient minimisation}
+\index{MIGRAD}
+The \texttt{MIGRAD} command minimises the penalty
+function using its numerical derivatives of the sum of squares:
+\begin{verbatim}
+MIGRAD, CALLS=integer, TOLERANCE=real, STRATEGY=1;
+\end{verbatim}
+The command has three attributes:
+\begin{description}
+\item{CALLS}
+  \index{CALLS}
+  The maximum number of calls to the penalty function (default:~1000).
+\item{TOLERANCE}
+  \index{TOLERANCE}
+  The desired tolerance for the minimum (default:~\(10^{-6}\)).
+\item{STRATEGY}
+  \index{STRATEGY}
+  A code for the strategy to be used (default:~1).
+  The user is referred to the MINUIT manual for
+  \bibref{explanations}{MINUIT}. 
+\end{description}
+Example:
+\begin{verbatim}
+MIGRAD, CALLS=2000, TOLERANCE=1.0E-8;
+\end{verbatim}
+
+\subsection{SIMPLEX, Minimisation by Simplex Method}
+\index{simplex minimisation}
+\index{SIMPLEX}
+The \texttt{SIMPLEX} command minimises the penalty
+function by the simplex method:
+\begin{verbatim}
+SIMPLEX, CALLS=integer, TOLERANCE=real;
+\end{verbatim}
+The user is referred to the MINUIT manual for
+\bibref{explanations}{MINUIT}. 
+The command has two attributes:
+\begin{description}
+\item{CALLS}
+  \index{CALLS}
+  The maximum number of calls to the penalty function (default:~1000).
+\item{TOLERANCE}
+  \index{TOLERANCE}
+  The desired tolerance for the minimum (default:~\(10^{-6}\)).
+\end{description}
+Example:
+\begin{verbatim}
+SIMPLEX, CALLS=2000, TOLERANCE=1.0E-8;
+\end{verbatim}
+\index{matching!methods}
+
+\section{Matching Examples}
+\index{examples!matching|(}
+
+\subsection{Simple Periodic Beam Line}
+Match a simple cell with given phase advances:
+\begin{verbatim}
+// Some definitions:
+QF:     QUADRUPOLE,...;
+QD:     QUADRUPOLE,...;
+EM:     MARKER;
+CELL1:  LINE=(...,QF,...,QD,...,EM);
+P0 = ...;
+BEAM1:  BEAM, PC=P0;
+TW1:    TWISS, LINE=CELL1, BEAM=BEAM1, METHOD=LINEAR;
+
+// Match CELL1:
+MATCH;
+  VARY, NAME=QD->K1, STEP=0.01;
+  VARY, NAME=QF->K1, STEP=0.01;
+  CONSTRAINT, ROW(TW1, EM, {MUX, MUY})=={0.25, 1/6};
+  LMDIF, CALLS=200;
+ENDMATCH;
+\end{verbatim}
+
+\subsection{Insertion Matching}
+Match an insertion \texttt{INSERT} to go between
+two different cells \texttt{CELL1} and \texttt{CELL2}:
+\begin{verbatim}
+// Some definitions:
+BI:     MARKER;
+EI:     MARKER;
+BM:     MARKER;
+EM:     MARKER;
+CELL1:  LINE=(...);
+CELL2:  LINE=(...);
+INSERT: LINE=(...);
+MAIN:   LINE=(BM, CELL1, BI, INSERT, EI, CELL2, EM);
+P0 = ...;
+BEAM1:  BEAM,PC=P0;
+C1:     TWISS, LINE=CELL1, BEAM=BEAM1, METHOD=LINEAR,
+		RANGE=BM/BI, STATIC;
+C1:     TWISS, LINE=CELL2, BEAM=BEAM1, METHOD=LINEAR,
+        RANGE=EI/EM, STATIC;
+MATCH;
+  INS:  TWISS, LINE=INSERT, BEAM=BEAM1, METHOD=LINEAR,
+        RANGE=BI/EI;
+  VARY,...;
+  CONSTRAINT,
+    ROW(C1, BI, {BETX, ALFX, BETY, ALFY})==
+       ROW(INS, BI, {BETX, ALFX, BETY, ALFY}),
+    WGT={10, 1, 10, 1};
+  CONSTRAINT,
+    ROW(C2, EI, {BETX, ALFX, BETY, ALFY})==ROW(INS,EI,
+              {BETX,ALFX,BETY,ALFY}),
+    WGT={10, 1, 10, 1};
+  CONSTRAINT, ROW(INS, EI, {MUX, MUX})={...,...},
+              WGT={10,10};
+  SIMPLEX; 
+  MIGRAD;
+ENDMATCH;
+\end{verbatim}
+This matches the optical functions \texttt{BETX, ALFX, BETY, ALFY} to fit
+together at the markers \texttt{BI, EI}, and the phase advances over
+the insertion.
+
+\subsection{A Matching Example for LHC}
+In this case we impose constraints on maximum values of \texttt{BETX}.
+This is done by means of the vector to scalar function
+\secref{\texttt{VMAX}}{vector} with the vector-valued function
+\secref{\texttt{COLUMN}}{vector}.
+\begin{verbatim}
+MATCH;
+  BIR2:TWISS, LINE=LHC, RANGE=CELL23;
+  IR2:TWISSTRACK, LINE=LHC, RANGE=S.DS.L2/E.DS.R2, 
+      INIT=BIR2@S.DS.L2, METHOD=LINEAR;
+
+  // Some constraints
+  ...;
+
+  // (Part of the ) beta limitation in the 
+  //  dispersion suppressor
+  CONSTRAINT, VMAX(COLUMN(
+  	IR2, BETX, S.DS.L2/Q7.L2)) < BETMAX, WGT=10;
+  CONSTRAINT, VMAX(COLUMN(
+  	IR2, BETX, Q7.L2/Q5A.L2))  < 350.0, WGT=10;
+  CONSTRAINT, VMAX(COLUMN(
+  	IR2, BETX, Q5A.R2/Q7.R2))  < 350.0, WGT=10;
+  CONSTRAINT, VMAX(COLUMN(
+  	IR2, BETX, Q7.R2/E.DS.R2)) < BETMAX, WGT=10;
+
+  // Some strength limits
+  CONSTRAINT, KQ4.L2 > -9.6E-3, WGT=1;
+  CONSTRAINT, KQ5.L2 <  9.6E-3, WGT=1;
+  CONSTRAINT, KQ6.L2 > -9.6E-3, WGT=1;
+  CONSTRAINT, KQ7.L2 <  9.6E-3, WGT=1;
+
+  // Vary commands
+  ...;
+
+  // Matching method
+  OPTION, LEVEL=3;
+  LMDIF, CALLS=200, TOLERANCE=1.E-16;
+ENDMATCH;
+\end{verbatim}
+\index{examples!matching|)}
+
+\index{matching|)}

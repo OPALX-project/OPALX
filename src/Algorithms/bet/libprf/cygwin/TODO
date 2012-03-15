@@ -1,0 +1,5 @@
+<ctype.h> and isprint(): is that always what we want ?
+
+Programming of the zero padding character (cf. %#s and %#c).
+
+Support for control character notation ^X.

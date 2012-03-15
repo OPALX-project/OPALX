@@ -1,0 +1,8 @@
+how to run
+========
+Files starting with 'make... .m' computes always something and either write the results to a file or make matlab plots. This files can be used to run the program.
+
+how to look at the data
+===============
+the data are either plotted by the plot function of matlab or the data is written to a file. The files can be plotted by gnuplot 'filename.dat'.
+In the header of the file information to the parameter is written. 

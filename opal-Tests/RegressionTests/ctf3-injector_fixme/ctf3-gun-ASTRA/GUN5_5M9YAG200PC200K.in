@@ -1,0 +1,92 @@
+! This is ASTRA input file for PSI-XFEL Project - December 27th, 2008 Verison
+! 200 pC Operation
+! Designed by Yujong Kim, PSI
+
+&NEWRUN
+  Head='RF Photoinjector for PSI-XFEL Project - 150 MeV with QMs and 200 pC'
+  RUN=1,
+  Distribution = 'Q200pC_th0p195um_XYrms270um_Tfwhm9p900ps_R&F0p7ps_200k.ini',
+  Xoff=0.0, Yoff=0.0
+  Qbunch=0.200  ! To be changed for Q
+  Lmagnetized=.F
+  Lsub_cor=.T
+  EmitS=.T
+  PhaseS=.T
+  TrackS=.F
+  RefS=.T
+  TcheckS=.F
+  CathodeS=.T
+  Local_emit=.T
+  High_res=.T.
+  TRACK_ALL=.T, PHASE_SCAN=.F,  AUTO_PHASE=.T
+  ZSTART=0.0,   ZSTOP=5.5   ! 5.5 m downstream from cathode
+  Zemit=1000
+  Zphase=2
+  Lmonitor=.T
+  check_ref_part=.F
+  H_max=0.001
+  H_min=0.000
+  LSUB_COR =.T
+  Debunch=0.0
+  Screen(1)=0.902  ! 1st YAG !before RFD
+  Screen(2)=1.0165 ! virtual YAG just at the centre of RFD
+  Screen(3)=1.1295 ! 2nd YAG !before quad triplet
+  Screen(4)=2.2525 ! 3rd YAG !after quad triplet
+  Screen(5)=2.735  ! 4th YAG 
+  Screen(6)=3.000  ! 5th YAG
+  Screen(7)=3.126  ! 6th YAG
+  Screen(8)=3.252  ! 7th YAG
+  Screen(9)=4.126  ! 8th YAG
+  Screen(10)=5.126 ! 9th YAG
+ /
+
+ &SCAN
+  LScan=.F.,
+ /
+
+
+ &CHARGE
+  Loop=.F,
+  LSPCH=.T
+  Nrad=15, Nlong_in=32
+  Cell_var=2.0
+  min_grid=0.0
+  Max_scale=0.05
+  Lmirror=.T
+ /
+
+ &Aperture
+ /
+ 
+ &FEM
+ /
+  
+ &CAVITY
+  Loop=.F,
+  LEFieLD=.T
+
+  FILE_EFieLD(1) = 'CTF3_Ez_ASTRA.dat',
+  Nue(1)=2.9985, MaxE(1)=100.0, Phi(1)=5.7, C_pos(1)=0.0, C_smooth(1)=50
+ /
+ 
+ &SOLENOID
+  Loop=F,
+  LBFieLD=.T,
+
+  FILE_BFieLD(1)='NEW_SINGLE_SOL_NOFRINGE_ASTRA.dat', MaxB(1)=0.2060000
+  S_pos(1)=0.30, S_xoff(1)=0.0, S_yoff(1)=0.0, S_smooth(1)=10 
+ /
+ 
+ &QUADRUPOLE
+  LQUAD=.T,
+
+  Q_grad(1)=0.0,  Q_length(1)=0.1, Q_pos(1)=1.430
+  Q_grad(2)=0.0, Q_length(2)=0.1, Q_pos(2)=1.610
+  Q_grad(3)=0.0,  Q_length(3)=0.1, Q_pos(3)=1.790
+
+! Q_type(1)='doublets',
+! Q_k(1)=5.0, Q_length(1)=0.1, Q_pos(1)=4.9, Q_dist(1)=0.3
+!
+! Q_type(1)='triplets',
+! Q_k(1)=1.5, Q_length(1)=0.1, Q_pos(1)=4.9, Q_dist(1)=0.2
+ /

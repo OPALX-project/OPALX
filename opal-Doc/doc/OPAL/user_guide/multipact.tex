@@ -1,0 +1,239 @@
+\chapter{Multipacting}
+\label{chp:multpact}
+\index{Multipacting(}
+Multiple electron impacting (multipacting) is a phenomenon in radio frequency (RF) structure that under certain conditions (material and geometry of the RF structure, frequency and level of the electromagnetic field, with or without the appearance of the magnetic field \ldots), electrons secondary emission yield (SEY) coefficient will be larger than one and lead to exponential multiplication of electrons.  
+
+Besides the particle tracker in \opal, the computational model for solving multipacting problem contains an accurate representation of 3D geometry of RF structure by using triangulated surface mesh (see Chapter \ref{chp:geometry} and Chapter \ref{chp:femiss}), an efficient particle-boundary collision test scheme, two different secondary emission models, and necessary post-processing scripts.
+
+As we use a triangulated surface mesh to represent the RF structure, our particle-boundary collision test scheme is based on line segment-triangle intersection test. An axis aligned boundary box combined with surface triangle inward normal method is adopted to speedup the particle-boundary collision test \cite{WangHB2010}.
+
+The SEY curve is a very important property of the surface material for the development of a multipacting in a RF structure. Figure \ref{fig:typicalSEY}  shows a typical SEY curve.
+\begin{figure}[ht]
+ \begin{center}
+ \includegraphics[width=0.8\linewidth,angle=0]{figures/Multipacting/SEY_curve.pdf}
+  \caption{Typical SEY curve}
+  \label{fig:typicalSEY}
+ \end{center}
+\end{figure}  
+Here, the horizontal axis is the energy of impacting electron, the vertical axis is the SEY value $\delta$, defined as \cite{Furman-Pivi}:
+ \begin{equation}
+\delta = \frac{I_s}{I_0} \label{eq:SEY}
+\end{equation}
+where $I_0$ is the incident electron beam current and $I_s$ is the secondary current, i.e., the electron current emitted from the surface. Usually the SEY value $\delta$ appeared in an SEY curve is the measured SEY with normal incident, i.e., the impacting electron is perpendicular to the surface. The energy $E_1$ and $E_2$ are the first crossover energy and the second crossover energy respectively, where the SEY value $\delta$ exceed and fall down to $\delta = 1$ at the first time. Obviously, only the energy range of $\delta>1$, i.e., $E \in (E_1,E_2)$ can contribute to multipacting. 
+
+Both Furman-Pivi's probabilistic secondary emission model \cite{Furman-Pivi} and Vaughan's formula based secondary emission model \cite{Vaughan} have been implemented in \opal and have been benchmarked (see Section \ref{sec:RunPP}).
+
+The Furman and Pivi's secondary emission model calculates the number of secondary electrons that result from an incident electron of a given energy on a material at a given angle (see Figure~\ref{incident electrons}). For each of the generated secondary electrons the associated process: {\em true secondary}, {\em rediffused} or {\em backscattered} is recorded, as is sketched in Figure~\ref{incident electrons}.  
+\begin{figure}
+    \centering
+    \input{figures/Multipacting/HB_Fig4.tikz}
+    % \includegraphics[width=3 in]{incident_diagram.pdf}
+    \caption{Sketch map of the secondary emission process.}
+    \label{incident electrons}
+\end{figure}
+This model is mathematically self-consistent, which means that (1) when averaging over an infinite number of secondary-emission events, the reconstructed $\delta$ and $d\delta /dE$ are guaranteed to agree with the corresponding input quantities; (2) the energy integral of $d\delta/dE$ is guaranteed to equal $\delta$; (3) the energy of any given emitted electron is guaranteed not to exceed the primary energy; and (4) the aggregate energy of the electrons emitted in any multielectron event is also guaranteed not to exceed the primary energy. This model contains built-in SEY curves for copper and stainless steel and the only thing user need to set is to choose the material type, i.e., copper or stainless steel, as long as the surface material of user's RF structure has the same SEY curve as built-in SEY curves. 
+
+Although a set of parameters in the model can be adjusted to model different SEY curves without breaking the above mentioned mathematical self-consistency, it is easier to use Vaughan's formula based secondary emission model if user has to model a different SEY curve.
+
+The Vaughan's secondary emission model is based on a secondary emission yield formula \cite{Vaughan, VaughanRv}:
+\begin{subequations}
+\label{allequations}
+\begin{eqnarray}
+    \delta(E,\theta)&=&\delta_{max}(\theta)\cdot (v e^{1-v})^k,\ \text{for}\ v \le 3.6 \label{eq:VaughanA} 
+\\
+\delta(E,\theta)&=&\delta_{max}(\theta)\cdot 1.125/v^{0.35},\ \text{for}\ v > 3.6 \label{eq:VaughanB} 
+\\
+\delta(E,\theta)&=&\delta_0,\ \text{for}\ v \le 0 \label{eq:VaughanC} 
+\end{eqnarray}
+\end{subequations}
+where 
+\begin{eqnarray*}
+v=\frac{\displaystyle E-E_0}{\displaystyle E_{max}(\theta)-E_0},
+\end{eqnarray*}
+\begin{eqnarray*}
+k=0.56,\ \ \text{for}\ v<1,
+\end{eqnarray*}
+\begin{eqnarray*}
+k=0.25,\ \ \text{for}\ 1<v\le{3.6},
+\end{eqnarray*}
+\begin{eqnarray*}
+\delta_{max}(\theta)=\delta_{max}(0)\cdot (1+k_{\theta}\theta^2/2\pi),
+\end{eqnarray*}
+\begin{eqnarray*}
+E_{max}(\theta)=E_{max}(0)\cdot (1+k_E\theta^2/2\pi).
+\end{eqnarray*}
+The secondary emission yield value for an impacting electron energy $E$ and incident angle $\theta$ w.r.t the surface normal is denoted as $\delta(E,\theta)$. Parameter $k_{\theta}$ and $k_E$ denotes the dependence on surface roughness. Both
+should be assigned a default value of 1.0, which appears appropriate for typical dull surfaces in a working tube environment, and lower values down to zero or higher values, up to about 2.0, are only valid for specified cases \cite{Vaughan}. $E_{max}(0)$ is the impacting energy when incident angle is zero and secondary yield reaches its maximum value. $E_0$ is an adjustable parameter to make the first crossover energy be fitted to the experiment data \cite{FS}. $\delta_0$ is the user specified constant denote the SEY of low impacting energy. 
+
+The emission energy obeys the thermal energy distribution:
+\begin{equation}
+f(\epsilon) = \frac{\epsilon}{(k_BT)^2}exp\left(\frac{-\epsilon}{k_BT}\right) \label{eq:emienergy}
+\end{equation}
+The polar angles of emitted secondaries $\theta \in [0, \pi/2]$ are with probability density $cos^{\alpha}\theta$, and the azimuthal angles $\phi \in [0, 2\pi]$ are with uniform probability density. These emission angles of the secondary electrons is relative to the local coordinate system which is centered at the collision point and whose ‘‘z’’ axis is along the inward normal of the surface.
+
+Motivated by the fact that the population of particles in simulation domain may continually grow exponentially and lead to tens of magnitude larger within limited simulation time steps, which may cause the exhaust of computing memory, a re-normalization of simulation particle number approach is also implemented. In each electron impacting events, instead of emitting the real number of simulation particles predicted by secondary emission models, this re-normalization approach emit only one particle, and the current of newly emitted particle will be the current of incident particle multiplied by SEY value $\delta$.    
+\clearpage
+\section{Commands Related to Multipacting Simulation}
+\label{sec:MultipactingCmd}
+\index{MULTIPACTING}
+To perform multipacting simulation, a triangulated surface geometry defined in the  GEOMETRY command (see  Chapter \ref{chp:geometry})  must be specified and attached to the elements (currently only {\tt RFCavity}, {\tt ParallelPlate} and {\tt Drift} elements are avaidable for multipacting simulation). 
+
+A distribution array, containing {\tt SURFACEEMISSION} and {\tt SURFACERANDCREATE} type of distributions, defined in the {\tt DISTRIBUTION} command must be attached to the  
+{\tt GEOMETRY}. Users can use commands contained in {\tt SURFACERANDCREATE} type of distribution to specify the position of initial {\em seed} electrons. And commands within {\tt SURFACEEMISSION} type of distribution can be used to customize the type and the parameters of secondary emission model in input file.
+
+A summary of multipacting simulation related parameters are given in Table \ref{tab:Multipactingcmd}.
+
+The following example shows the usage of the multipacting simulation related command.\\
+\begin{alltt}
+Title, string="Cyclotron_Multipacting_Simulation_example";
+
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, INFO=FALSE;
+
+Option, PSDUMPFREQ=1;
+Option, STATDUMPFREQ=1;
+Option, PPDEBUG=FALSE;
+Option, SURFDUMPFREQ=100;
+
+// Set an upper limit of simulation particle number 
+// to prevent memory overflow. 
+
+MAXPARTSNUM=1000000;
+
+// SECONDARYFLAG = 1: Using Furman-Pivi's model
+// SURFMATERIAL=0: surface material is copper 
+// Set NEMISSIONMODE=false will use re-normalize 
+// simulation particle approach. 
+// Set the field enhancement factor FNBETA to 
+// a very small number to prevent field 
+// emission.
+
+DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION", 
+                        NPDARKCUR =0,INWARDMARGIN = 0.0, 
+                        FNBETA = 0.1, FNMAXEMI = 2,  
+                        SECONDARYFLAG = 1, 
+                        NEMISSIONMODE=false, 
+                        SURFMATERIAL=0; 
+
+// INWARDMARGIN: seed electron positions along the 
+// inward normal w.r.t the boundary surface.
+DistSurf1: DISTRIBUTION, 
+           DISTRIBUTION = "SURFACERANDCREATE",
+           INWARDMARGIN = 0.0, NPDARKCUR =10000, 
+           EINITHR = 0.2; 
+
+// For multipacting study of cyclotron cavity, 
+// the axis z in geometry file is actually axis y 
+// in ParallelTTracker, so we need to shift z 
+// coordinates of the geometry by specifying ZSHIFT to make 
+// sure that the z coordinates read in by ParallelTTracker 
+// will be correct.
+						    
+ge: GEOMETRY, FGEOM="../10.h5", S=0.0, 
+       ZSHIFT=0.631, DISTRS={DistSurf, DistSurf1};
+
+Box: RFCavity, PLENGTH = 1.262, VOLT = 1, 
+               GEOMETRY = ge, FMAPFN = "../CyciaeEM.h5",
+	       ELEMEDGE =0, FAST=true, 
+               FREQ =44.6, LAG = 0.0, 
+               DX = 0, DY = 0, DZ = 0;
+
+// This element is used to model the magnetic field in 
+// the valley of a cyclotron, where the RF cavity is installed.
+ 
+Mag: CYCLOTRONVALLEY, FMAPFN = "../CyciaeMagReal.h5", 
+                      ELEMEDGE =0,DX = 0, DY = 0, DZ = 0;
+
+Benchmark: Line = (Box, Mag);
+
+Fs1:FIELDSOLVER, FSTYPE = NONE, MX = 32, 
+                 MY = 32, MT = 256,
+		 PARFFTX = true, PARFFTY = true, 
+                 PARFFTT = false, BCFFTX = open, 
+                 BCFFTY = open, BCFFTT = open,
+		 BBOXINCR = 0.1, GREENSF = INTEGRATED;
+		 
+qb=0.2e-9;
+bfreq=300;
+bcurrent=qb*bfreq;
+
+beam1: BEAM, PARTICLE = ELECTRON, pc = P0, 
+             NPART = 2000, BFREQ = bfreq , 
+             BCURRENT = bcurrent, CHARGE =-1;
+
+Select, Line=Benchmark;
+
+track, line= Benchmark, beam=beam1, 
+       MAXSTEPS=23000, DT=4e-12, ZSTOP=3;  
+
+run, method = "PARALLEL-T", beam = beam1, 
+     fieldsolver = Fs1, MULTIPACTING=true;
+endtrack;
+
+Quit;
+
+\end{alltt}
+
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Multipacting Related Command Summary}
+    \label{tab:Multipactingcmd}
+    \begin{tabular}{|l|p{0.8\textwidth}|l|}
+      \hline
+      Command &Purpose (Default) \\
+      \hline
+      VW&Velocity scalar in Maxwellian Dist ($1.0$ m/s)\\
+      VVTHERMAL&Thermal velocity in Maxwellian Dist ($7.268929821\times10^5$ m/s)\\
+      SECONDARYFLAG&Secondary model type, 0:none, 1:Furman-Pivi, 2:Vaughan ($0$)\\
+      NEMISSIONMODE&Emit real No. secondaries or not ($\mathbf{true}$)\\
+      VEZERO&SEY will be $\delta_0$, if energy is less than VEZERO in Vaughan's model ($12.5$ eV)\\
+      VSEYZERO&$\delta_0$ in Vaughan's model ($0.5$)\\
+      VSEYMAX&$\delta_{max}$ in Vaughan's model ($2.22$)\\
+      VEMAX&Energy related to $\delta_{max}$ in Vaughan's model ($165$ eV)\\
+      VKENERGY&The roughness of surface for impact energy in Vaughan's model($1.0$) \\
+      VKTHETA&The roughness of surface for impact angle in Vaughan's model($1.0$)\\
+      SURFMATERIAL&The material type for Furman-Pivi model, 0: copper; 1: stainless steel ($0$)\\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\clearpage
+\section{Run Parallel Plate Benchmark}
+\label{sec:RunPP}
+\index{RunPP}
+Both the Furman-Pivi's model and Vaughan's model have been carefully benchmarked in both re-normalize simulation particle approach and real simulation particles approach against a non-stationary multipacting theory \cite{nonstationary}. The \opal simulation results and the theory match very well (see figure \ref{fig:PPFurman-Pivi} and figure \ref{fig:PPVaughan}).
+\begin{figure}[ht]
+ \begin{center}
+ \includegraphics[width=1\linewidth,angle=0]{figures/Multipacting/const_particle_benchmark_FurmanPivi.pdf}
+  \caption{Time evolution of electron number predicted by theoretical model and \opal\ simulation using Furman-Pivi's secondary emission model with both constant simulation particle approach and real emission particle approach at $f=200MHz$, $V_0=120V$, $d=5mm$}
+  \label{fig:PPFurman-Pivi}
+ \end{center}
+\end{figure}  
+\begin{figure}[ht]
+ \begin{center}
+ \includegraphics[width=1\linewidth,angle=0]{figures/Multipacting/const_particle_benchmark.pdf}
+  \caption{Time evolution of electron number predicted by theoretical model and \opal\ simulation using Vaughan's secondary emission model with both constant simulation particle approach and real emission particle approach at $f=1640$MHz, $V_0=120$V, $d=1$mm.}
+  \label{fig:PPVaughan}
+ \end{center}
+\end{figure}  
+
+To run the parallel plate benchmark simulation, user need to set the option {\tt PPDEBUG} in the input file $\mathbf{true}$. The input file and the geometry file needed by the parallel plate benchmark simulation can be found in the regression test folder. 
+\clearpage
+\section{Post Processing}
+\label{sec:Post_Processing}
+\index{Post_Processing}
+In the general case (not only in multipacting simulations), \opal will dump the $6$D phase space and statistical information of the particles in the simulation domain, into a {\tt h5} file. The dump frequency, i.e., after how many time steps the particle information will be saved can be specified with the option {\tt PSDUMPFREQ}. Setting {\tt Option, PSDUMPFREQ=1} dumps the information in each time step. 
+
+A utility tool {\tt h5ToVtk}  converts the {\tt h5} file to the Visualization Toolkit (VTK) legacy format. The number of VTK files equals to the number of time steps in {\tt h5} file. These VTK files together with a VTK file automatically generated by the geometry class of \opal which contains the geometry of the RF structure under study can be visualized using for example with Paraview \cite{paraview}. The animation and clip feature of Paraview is very useful to visualize the particle motion inside the RF structure. 
+
+For simulations involving the geometry (multipacting and field emission), \opal will also dump the position and current of incident particles into another {\tt h5} file with the name {\tt *\_Surface.h5}, where the asterisk stands for the base name of the user's \opal input file. If we need this surface loss data during post processing, we should specify the dump frequency in the option {\tt SURFDUMPFREQ} with a positive integer in the \opal input file, otherwise, the default value of the option is {\tt SURFDUMPFREQ=-1}, and the {\tt *\_Surface.h5} will not be generated. Another utility tool {\tt h5SurfaceVtk}  convert the {\tt *\_Surface.h5}  file to VTK files. For multipacting simulation, these VTK files can be used to visualize the {\em hot spots} of the RF structure where multipacting happens. 
+
+The above mentioned utility tools are based on H5hut library, and will soon be available in the distribution.
+
+Some of the boundary geometry related simulations, like the multipacting simulation using re-normalizing particle number approach, or dark current simulations where the current of field emitted particles from a single triangle has been re-normalized as the model predicted current has exceeded the user defined upper limit, the current (weight) of simulation particles varies and each simualtion particle stands for more physical particles than the initial simulation particles. In these cases, instead of using simulation particles, we count the number of {\em effective particles} defined as the ratio of total current in simulation over the current of a single initial particle.
+
+An ASCII file named {\tt Part\_statistics.dat} containing the simulation time, the number of impacts and associated total SEY value as well as the number of {\em effective particles} in each time step. This makes the analysis of the time evolution of particle density feasible with  tools like GNUPLOT. 
+
+ 

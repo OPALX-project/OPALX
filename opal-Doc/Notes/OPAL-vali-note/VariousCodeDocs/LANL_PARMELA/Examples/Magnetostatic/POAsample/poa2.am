@@ -1,0 +1,49 @@
+Example using POA namelist, part 2
+Sets the potential on a previously defined boundary.
+This example shows procedure only, not a real magnet.   
+Procedure is as follows:
+1. Run Automesh on POA1.AM to get coordinates assigned along arc.
+2. Copy coordinates from OUTAUT.TXT to file POA2.AM 
+3. Create POA namelist for each point XA,YA and add potential ASET
+
+
+&REG KPROB=0,                  ; Poisson problem
+DX=1,                          ; mesh size
+MODE=0,                        ; variable permeability
+MAT=1 &                        ; air region
+
+
+&PO X= 0.0000, Y=0.0000 &            
+&PO X= 10.000, Y=0.0000 &   
+&PO NT=2, R=10.0, THETA=30 &            
+&PO NT=2, R=10.0, THETA=90 &
+&PO X= 0.0000, Y=0.0000 &            
+
+&REG MAT=2 &                    ; iron region
+&PO X= 0.0000, Y= 2.7500 &
+&PO X= 5.5000, Y= 2.7500 &
+&PO X= 7.7000, Y= 5.0000 &   
+&PO R=10.0, THETA=30 &
+&PO NT=2, R=10.0, THETA=90 &
+&PO X=  0.0000, Y=  2.7500 &
+
+
+&poa xa=10.0000000,ya=0.00000000,aset=1000.000 &
+&poa xa=9.96292929,ya=0.86025570,aset=941.1765 &
+&poa xa=9.85165806,ya=1.71605170,aset=882.3529 &
+&poa xa=9.66601501,ya=2.56284096,aset=823.5294 &
+&poa xa=9.40574898,ya=3.39586309,aset=764.7059 &
+&poa xa=9.07057597,ya=4.21006551,aset=705.8824 &
+&poa xa=8.66025404,ya=5.00000000,aset=647.0588 &
+&poa xa=8.18617544,ya=5.74339026,aset=588.2353 &
+&poa xa=7.64034430,ya=6.45175472,aset=529.4118 &
+&poa xa=7.02346452,ya=7.11835277,aset=470.5882 &
+&poa xa=6.33694557,ya=7.73583356,aset=411.7647 &
+&poa xa=5.58325760,ya=8.29621809,aset=352.9412 &
+&poa xa=4.76622735,ya=8.79107939,aset=294.1176 &
+&poa xa=3.89144047,ya=9.21176916,aset=235.2941 &
+&poa xa=2.96654993,ya=9.54984720,aset=176.4706 &
+&poa xa=2.00142290,ya=9.79766842,aset=117.6471 &
+&poa xa=1.00801310,ya=9.94906577,aset=58.82350 &
+&poa xa=0.00000000,ya=10.0000000,aset=0.000000 &
+

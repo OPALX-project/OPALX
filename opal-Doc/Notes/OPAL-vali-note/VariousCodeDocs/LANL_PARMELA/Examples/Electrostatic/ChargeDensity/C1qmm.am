@@ -1,0 +1,29 @@
+Electrostatic problem in millimeters with space charge - one quadrant
+Charge density = 400 nC/mm^3 produces same current/length as file C1q.am
+
+; Copyright 2004 by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,          ! Poisson or Pandira problem
+dx=0.4,                ! Mesh interval
+conv=0.1               ! Units are millimeters 
+icylin=0,              ! Cartesian coordinates
+nbsup=0,               ! Dirichlet boundary condition at upper edge
+nbslo=1,               ! Neumann boundary condition at lower edge
+nbslf=1,               ! Neumann boundary condition at left edge
+nbsrt=0                ! Dirichlet boundary condition at right edge
+ibound=0,              ! Dirichlet boundary condition on internal bounds
+xjfact=0.0 &           ! Electrostatic problem 
+
+&po x=40.,y=0. &
+&po nt=2,r=40.,theta= 90.,x0=0.,y0=0. &
+&po x=0.,y=0. &
+&po x=40.,y=0. &
+
+&reg mat=1,den=4.d-11 &   ! DEN is charge density in Coul/mm^3
+&po x=5,y=0. &
+&po nt=2,r=5,theta=90.,x0=0.,y0=0. &
+&po x=0.,y=0. &
+&po x=5,y=0. &
+
+

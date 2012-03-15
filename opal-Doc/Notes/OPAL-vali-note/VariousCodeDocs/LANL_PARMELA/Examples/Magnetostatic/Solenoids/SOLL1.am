@@ -1,0 +1,63 @@
+Permanent-Magnet Solenoid (for PANDIRA)  
+Originally appeared in 1987 Reference Manual B.12.3
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,             ! Poisson or Pandira problem 
+icylin=1,                 ! Cylindrical symmetry
+mode=0,                   ! Some materials have variable permeability
+dx=0.102,dy=0.078,        ! Mesh intervals
+xreg1=3.58,               ! X line region coordinate where mesh doubles
+yreg1=3.0,                ! Y line region coordinate where mesh doubles
+nbslo=0,                  ! Dirichlet boundary condition on lower edge
+ktop=1,lmin=1,ltop=46 &   ! Logical bounds for field interpolation
+
+&po x=0.00,y=0.0 &
+&po x=6.58,y=0.0 &
+&po x=6.58,y=5.0 &
+&po x=0.00,y=5.0 &
+&po x=0.00,y=0.0 &
+
+&reg mat=2 &
+&po x=1.00,y=0.0 &
+&po x=6.58,y=0.0 &
+&po x=6.58,y=4.0 &
+&po x=1.00,y=4.0 &
+&po x=1.00,y=2.5 &
+&po x=1.58,y=2.5 &
+&po x=1.58,y=1.5 &
+&po x=1.00,y=1.5 &
+&po x=1.00,y=0.0 &
+
+&reg mat=1 &
+&po x=3.58,y=1.0 &
+&po x=3.58,y=3.0 &
+&po x=5.58,y=3.0 &
+&po x=5.58,y=1.0 &
+&po x=3.58,y=1.0 &
+
+&reg mat=6,mtid=6,mshape=1 &
+&po x=1.58,y=1.0 &
+&po x=3.58,y=1.0 &
+&po x=3.58,y=3.0 &
+&po x=1.58,y=3.0 &
+&po x=1.58,y=1.0 &
+
+&reg mat=7,mtid=7,mshape=1 &
+&po x=3.58,y=0.0 &
+&po x=5.58,y=0.0 &
+&po x=5.58,y=1.0 &
+&po x=3.58,y=1.0 &
+&po x=3.58,y=0.0 &
+
+&mt mtid=6               ! Material ID
+aeasy=270,               ! Easy axis direction
+gamper=1.0,              ! Gamma perpendicular to easy axis
+hcept=-8500,bcept=8500 & ! H and B intercepts   
+
+&mt mtid=7               ! Material ID
+aeasy=180,               ! Easy axis direction
+gamper=1.0,              ! Gamma perpendicular to easy axis
+hcept=-8500,bcept=8500 & ! H and B intercepts   
+

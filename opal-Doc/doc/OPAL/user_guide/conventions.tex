@@ -1,0 +1,1078 @@
+\chapter{Conventions}
+
+\label{chp:definitions}
+\index{conventions|(}
+\index{global!reference}
+\index{reference!global}
+The accelerator and/or beam line to be studied with \opalmap is described as
+a sequence of beam elements placed sequentially along a reference or
+design orbit.
+The global reference orbit, also known as the \figref{design orbit}{global} 
+is the path of a charged particle having the central design momentum 
+of the accelerator through idealised magnets with no fringe fields.
+
+In case of \opalt and \opalcycl with time as the independent variable no such 
+explicit design orbit exists. The rest of this chapter is only relevant to 
+\opalmap except Section \ref{sec:units} on the physical units. 
+
+
+\section{Design or Reference Orbit}
+\index{design!orbit}
+\index{orbit!design}
+\index{reference!orbit}
+\index{orbit!reference}
+The reference orbit consists of a series of
+straight line segments and circular arcs.
+It is defined under the assumption that all elements are
+perfectly aligned along the design orbit.
+The accompanying tripod of the reference orbit spans
+a local curvilinear right handed coordinate system $(x,y,s)$.
+The local $s$-axis is the tangent to the reference orbit.
+The other two axes are perpendicular to the reference orbit and
+are labelled~$x$ (in the bend plane)
+and~$y$ (perpendicular to the bend plane).
+
+\section{Closed Orbit}
+\index{closed!orbit}
+\index{orbit!closed}
+\index{misalignment}
+\index{field!error}
+\index{error!field}
+\index{error!misalignment}
+\index{fringe field}
+\index{field!fringe}
+Due to various errors like misalignment errors, field errors,
+fringe fields etc.,
+the closed orbit does not coincide with the design orbit.
+It also changes with the momentum error.
+The closed orbit is described with respect to the reference orbit, 
+using the \figref{local reference system}{local}.
+It is evaluated including any nonlinear effects.
+
+\begin{figure}[ht]
+  \begin{center}
+    \setlength{\unitlength}{1pt}
+    \begin{picture}(400,250)
+                                % axes
+      \thicklines
+      \put(180,100){\vector(0,1){90}}
+      \put(180,0){\line(0,1){33.3}}
+      \put(187,185){\makebox(0,0){$y$}}
+      \put(280,0){\vector(-1,1){160}}
+      \put(120,150){\makebox(0,0){$x$}}
+      \thinlines
+      \put(180,100){\circle*{4}}
+                                % coordinates
+      \put(150,130){\line(0,1){60}}
+      \put(155,125){\line(0,1){60}}
+      \put(160,120){\line(0,1){60}}
+      \put(165,115){\line(0,1){60}}
+      \put(170,110){\line(0,1){60}}
+      \put(175,105){\line(0,1){60}}
+      \put(180,160){\line(-1,1){30}}
+      \put(180,150){\line(-1,1){30}}
+      \put(180,140){\line(-1,1){30}}
+      \put(180,130){\line(-1,1){30}}
+      \put(180,120){\line(-1,1){30}}
+      \put(180,110){\line(-1,1){30}}
+                                % radius of curvature and centre
+      \put(280,0){\vector(-3,1){172}}
+      \put(160,30){\makebox(0,0){$\rho$}}
+      \put(280,0){\vector(0,1){142}}
+      \put(290,60){\makebox(0,0){$\rho$}}
+      \put(280,0){\circle*{4}}
+      \put(295,15){\vector(-1,-1){12}}
+      \put(295,15){\makebox(0,0)[bl]{\shortstack{centre of \\curvature}}}
+      \path(270,3.3)(280,9)
+      \path(260,6.7)(280,18)
+      \path(250,10)(280,27)
+      \path(240,13.3)(280,36)
+      \path(230,16.7)(280,45)
+      \path(220,20)(280,54)
+      \path(210,23.3)(280,63)
+      \path(200,26.7)(280,72)
+      \path(190,30)(280,81)
+      \path(180,33.3)(280,90)
+      \path(170,36.7)(280,99)
+      \path(160,40)(280,108)
+      \path(150,43.3)(280,117)
+      \path(140,46.7)(280,126)
+      \path(130,50)(280,135)
+      \path(120,53.3)(278,142)
+      \path(110,56.7)(218,117.9)
+                                % actual orbit
+      \thicklines
+      \bezier{150}(0,100)(75,165)(150,190)
+      \bezier{150}(150,190)(240,220)(320,220)
+      \put(320,220){\vector(1,0){4}}
+      \put(80,180){\vector(1,-1){12}}
+      \put(80,180){\makebox(0,0)[br]{\shortstack{actual \\orbit}}}
+                                % reference orbit
+      \bezier{150}(40,0)(100,60)(180,100)
+      \bezier{150}(180,100)(260,140)(340,160)
+      \put(340,160){\vector(4,1){4}}
+      \put(330,165){\makebox{$s$}}
+      \put(320,135){\vector(-1,1){12}}
+      \put(320,135){\makebox(0,0)[tl]{\shortstack{reference \\orbit}}}
+    \end{picture}
+    \caption{Local Reference System}
+    \label{fig:local}
+  \end{center}
+\end{figure}
+
+\index{betatron motion}
+\index{synchrotron motion}
+\opalmap computes the betatron and synchrotron oscillations
+with respect to the closed orbit.
+Results are given in the local $(x, y, s)$-system
+defined by the reference orbit.
+
+\section{Global Reference System}
+\index{global!reference}
+\index{reference!global}
+
+The \figref{global reference orbit}{global} 
+of the accelerator is uniquely defined by the sequence of physical elements.
+The local reference system $(x, y, s)$
+may thus be related to a global Cartesian coordinate system $(X, Y, Z)$.
+The positions between beam elements are numbered $0, \ldots , i, \ldots n$.
+The local reference system $(x_i, y_i, s_i)$ at position $i$,
+i.e.\ the displacement and direction of the reference orbit
+with respect to the system $(X, Y, Z)$ are defined by three displacements 
+$(X_i, Y_i, Z_i)$ and three angles $(\Theta_i, \Phi_i, \Psi_i)$.
+
+\begin{figure}[ht]%                                         1.2
+  \begin{center}
+    \setlength{\unitlength}{1pt}
+    \begin{picture}(400,270)
+                                % global axes
+      \thicklines
+      \put(20,150){\line(2,-1){40}}
+      \dashline{3}(60,130)(100,110)
+      \put(100,110){\line(2,-1){60}}
+      \put(193,63){\vector(2,-1){90}}
+      \put(300,20){\makebox(0,0){$Z$}}
+      \put(20,100){\line(3,1){30}}
+      \dashline{3}(50,110)(248,176)
+      \put(248,176){\vector(3,1){132}}
+      \put(373,210){\makebox(0,0){$X$}}
+      \put(80,0){\vector(0,1){270}}
+      \put(70,265){\makebox(0,0){$Y$}}
+                                %local axes
+      \put(133.3,0){\vector(1,3){90}}
+      \put(215,270){\makebox(0,0){$x$}}
+      \put(300,150){\vector(-2,1){160}}
+      \put(140,220){\makebox(0,0){$y$}}
+      \put(0,100){\vector(2,1){270}}
+      \put(260,240){\makebox(0,0){$s$}}
+                                % projection of s onto ZX
+      \thinlines
+      \put(100,110){\circle*{4}}
+      \put(200,200){\circle*{4}}
+      \path(0,110)(170,110)
+      \dashline{3}(170,110)(240,110)
+      \path(240,110)(290,110)
+      \put(280,90){\makebox(0,0)[t]{\shortstack{projection of $s$ \\
+            onto $(Z,X)$-plane}}}
+      \put(280,95){\vector(0,1){13}}
+      \put(20,110){\circle*{4}}
+      \put(50,110){\circle*{4}}
+                                % hashing of xy plane
+      \path(210,195)(160,45)
+      \path(220,190)(169.7,39.7)
+      \path(230,185)(187.5,57.5)
+      \path(240,180)(205,75)
+      \path(250,175)(222.5,92.5)
+      \path(260,170)(240,110)
+      \path(270,165)(257.5,127.5)
+      \path(280,160)(275,145)
+
+      \path(196.7,190)(278.9,148.9)
+      \path(193.3,180)(271.1,141.1)
+      \path(190,170)(263.3,133.3)
+      \path(186.7,160)(255.5,125.5)
+      \path(183.3,150)(247.7,117.7)
+      \path(180,140)(239.9,109.9)
+      \path(176.7,130)(232.1,101.1)
+      \path(173.3,120)(224.3,94.3)
+      \path(170,110)(216.5,86.5)
+      \path(166.7,100)(208.7,78.7)
+      \path(163.3,90)(200.9,70.9)
+      \path(160,80)(193.1,63.1)
+      \path(156.7,70)(185.3,55.3)
+      \path(153.3,60)(177.5,47.5)
+      \path(150,50)(169.7,39.7)
+                                % hashing of projection plane
+      \put(70,110){\line(0,1){25}}
+      \put(80,110){\line(0,1){30}}
+      \put(90,110){\line(0,1){35}}
+      \put(100,110){\line(0,1){40}}
+      \put(110,110){\line(0,1){45}}
+      \put(120,110){\line(0,1){50}}
+      \put(130,110){\line(0,1){55}}
+      \put(140,110){\line(0,1){60}}
+      \put(150,110){\line(0,1){65}}
+      \put(160,110){\line(0,1){70}}
+      \put(170,110){\line(0,1){75}}
+      \put(180,140){\line(0,1){50}}
+      \put(190,170){\line(0,1){25}}
+                                % intersection of xy and ZX
+      \put(130,0){\line(1,1){230}}
+      \put(135,5){\circle*{4}}
+      \put(193.3,63.3){\circle*{4}}
+      \put(240,110){\circle*{4}}
+      \put(286.7,156.7){\circle*{4}}
+      \put(335,205){\circle*{4}}
+      \thicklines
+      \put(200,25){\vector(-1,1){20}}
+      \put(200,20){\makebox(0,0)[t]{\shortstack{intersection of \\
+            $(x,y)$ and $(Z,X)$ planes}}}
+                                % reference orbit
+      \bezier{80}(140,150)(170,185)(200,200)
+      \bezier{80}(200,200)(230,215)(260,220)
+      \put(260,220){\makebox(0,0)[l]{\shortstack{reference \\orbit}}}
+                                % roll angle
+      \bezier{30}(160,30)(160,40)(150,50)
+      \put(152,48){\vector(-1,1){2}}
+      \put(150,30){\makebox(0,0){$\psi$}}
+      \put(140,30){\makebox(0,0)[br]{roll angle}}
+                                % pitch angle
+      \bezier{20}(60,110)(60,120)(55,125)
+      \put(57,123){\vector(-1,2){2}}
+      \put(50,118){\makebox(0,0){$\phi$}}
+      \put(40,125){\makebox(0,0)[br]{pitch angle}}
+                                % azimuth
+      \bezier{20}(130,95)(140,100)(140,110)
+      \put(140,105){\vector(0,1){5}}
+      \put(130,105){\makebox(0,0){$\theta$}}
+      \put(115,95){\makebox(0,0)[t]{azimuth}}
+    \end{picture}
+    \caption{Global Reference System}
+    \label{fig:global}
+  \end{center}
+\end{figure}
+
+\index{displacement}
+The above quantities are defined more precisely as follows:
+\begin{description}
+\item[X]
+  \index{horizontal displacement}
+  Displacement of the local origin in $X$-direction.
+\item[Y]
+  \index{vertical displacement}
+  Displacement of the local origin in $Y$-direction.
+\item[Z]
+  \index{longitudinal displacement}
+  Displacement of the local origin in $Z$-direction.
+  \index{angle}
+\item[THETA]
+  \index{azimuth angle}
+  Angle of rotation (azimuth) about the global $Y$-axis,
+  between the global $Z$-axis and the projection
+  of the reference orbit onto the $(Z, X)$-plane.
+  A positive angle \texttt{THETA} forms a right-hand screw with the $Y$-axis.
+\item[PHI]
+  \index{pitch angle}
+  Pitch angle, i.e. the angle between the reference orbit and its projection
+  onto the $(Z, X)$-plane.
+  A positive angle \texttt{PHI} correspond to $Y$ increasing with $s$.
+  If only horizontal bends are present,
+  the reference orbit remains in the ($Z$, $X$)-plane.
+  In this case \texttt{PHI} is always zero.
+\item[PSI]
+  \index{roll angle}
+  Roll angle about the local $s$-axis,
+  i.e. the angle between the intersection $(x, y)$- and
+  $(Z, X)$-planes and the local $x$-axis.
+  A positive angle \texttt{PSI} forms a right-hand screw with the $s$-axis.
+\end{description}
+The angles \texttt{(THETA, PHI, PSI)} are \textbf{not} the Euler angles.
+The reference orbit starts at the origin and points by default
+in the direction of the positive $Z$-axis.
+The initial local axes $(x, y, s)$ 
+coincide with the global axes $(X, Y, Z)$ in this order.
+The six quantities $(X_0, Y_0, Z_0, \Theta_0, \Phi_0, \Psi_0)$
+thus all have zero initial values by default.
+The program user may however specify different initial conditions.
+
+Internally the displacement is described by a vector $V$
+and the orientation by a unitary matrix $W$.
+The column vectors of $W$ are the unit vectors spanning 
+the local coordinate axes in the order $(x, y, s)$.
+$V$ and $W$ have the values:
+\[
+V=\left(\begin{array}{c}
+    X \\
+    Y \\
+    Z
+  \end{array}\right),
+\qquad
+W=\Theta\Phi\Psi
+\]
+where
+\[
+\Theta=\left(\begin{array}{ccc}
+    \cos\theta &  0 &  \sin\theta \\
+    0         &  1 &   0 \\
+    -\sin\theta &  0 &  \cos\theta
+  \end{array}\right),
+\quad
+\Phi=\left(\begin{array}{ccc}
+    1 &  0        &  0 \\
+    0 &  \cos\phi &  \sin\phi \\
+    0 & -\sin\phi &  \cos\phi
+  \end{array}\right),
+\quad
+\]
+\[
+\Psi=\left(\begin{array}{ccc}
+    \cos\psi & -\sin\psi &  0 \\
+    \sin\psi &  \cos\psi &  0 \\
+    0        &  0        &  1
+  \end{array}\right).
+\]
+
+The reference orbit should be closed and it should not be twisted.
+This means that the displacement of the local reference system
+must be periodic with the revolution frequency of the accelerator,
+while the position angles must be periodic $\pmod{2\pi}$
+with the revolution frequency.
+If \texttt{PSI} is not periodic $\pmod{2\pi}$, 
+coupling effects are introduced.
+When advancing through a beam element,
+\opalmap computes $V_i$ and $W_i$
+by the recurrence relations
+\[
+V_i = W_{i-1}R_i + V_{i-1}, \qquad
+W_i = w_{i-1}S_i.
+\]
+
+The vector $R_i$ is the displacement and the matrix
+$S_i$ is the rotation of the local reference system 
+at the exit of the element $i$ with respect to the entrance 
+of the same element.
+The values of $R_i$ and $S_i$
+are listed below for each physical element type.
+
+\section{Local Reference Systems}
+\index{local!reference}
+\index{reference!local}
+\subsection{Reference System for Straight Beam Elements}
+\label{sec:straight}
+In straight elements the \figref{local reference system}{straight} 
+is simply translated by the length of the element along the local $s$-axis.
+This is true for
+\begin{itemize}
+\item \secref{Drift spaces}{drift}
+\item \secref{Quadrupoles}{quadrupole}
+\item \secref{Sextupoles}{sextupole}
+\item \secref{Octupoles}{octupole}
+\item \secref{Multipoles}{octupole}
+\item \secref{Solenoids}{solenoid}
+\item \secref{RF cavities}{cavity}
+\item \secref{Electrostatic separators}{separator}
+\item \secref{Closed orbit correctors}{corrector}
+\item \secref{Beam position monitors}{monitors}
+\end{itemize}
+The corresponding $R$, $S$ are
+\[
+R=\left(\begin{array}{c}
+    0 \\
+    0 \\
+    L
+  \end{array}\right),
+\qquad
+S=\left(\begin{array}{ccc}
+    1 & 0 & 0 \\
+    0 & 1 & 0 \\
+    0 & 0 & 1 \\
+  \end{array}\right).
+\]
+A rotation of the element about the $S$-axis has no effect
+on $R$ and $S$, since the rotations of the reference system 
+before and after the element cancel.
+
+\begin{figure}[ht]
+  \begin{center}
+    \setlength{\unitlength}{1pt}
+    \begin{picture}(400,100)
+      \thinlines
+                                % axes
+      \put(150,50){\circle{8}}\put(150,50){\circle*{2}}
+      \put(140,40){\makebox(0,0){$y_1$}}
+      \put(250,50){\circle{8}}\put(250,50){\circle*{2}}
+      \put(260,40){\makebox(0,0){$y_2$}}
+      \put(100,50){\line(1,0){46}}
+      \put(154,50){\line(1,0){92}}
+      \put(254,50){\vector(1,0){46}}
+      \put(290,40){\makebox(0,0){$s$}}
+      \put(150,0){\line(0,1){46}}
+      \put(150,54){\vector(0,1){46}}
+      \put(140,90){\makebox(0,0){$x_1$}}
+      \put(250,0){\line(0,1){46}}
+      \put(250,54){\vector(0,1){46}}
+      \put(260,90){\makebox(0,0){$x_2$}}
+                                % magnet outline
+      \thicklines
+      \put(150,54){\line(0,1){26}}
+      \put(150,46){\line(0,-1){26}}
+      \put(250,54){\line(0,1){26}}
+      \put(250,46){\line(0,-1){26}}
+      \put(150,20){\line(1,0){100}}
+      \put(150,80){\line(1,0){100}}
+      \put(200,2){\vector(1,0){50}}
+      \put(200,2){\vector(-1,0){50}}
+      \put(200,10){\makebox(0,0){L}}
+    \end{picture}
+    \caption{Reference System for Straight Beam Elements}
+    \label{fig:straight}
+  \end{center}
+\end{figure}
+
+\subsection{Reference System for Bending Magnets}
+\label{rbend}
+Both \figref{rectangular}{rbend} and \figref{sector}{sbend}
+bending magnets have a curved reference orbit.
+For both types of magnets
+\[
+R=\left(\begin{array}{c}
+    \rho(\cos\alpha-1) \\
+    0 \\
+    \rho\sin\alpha
+  \end{array}\right),
+\qquad
+S=\left(\begin{array}{ccc}
+    \cos\alpha & 0 & -\sin\alpha \\
+    0          & 1 &  0 \\
+    \sin\alpha & 0 &  \cos\alpha
+  \end{array}\right),
+\]
+where $\alpha$ is the bend angle.
+A positive bend angle represents a bend to the right,
+i.e. towards negative $x$ values.
+For sector bending magnets,
+the bend radius is given by $\rho$,
+and for rectangular bending magnets it has the value
+\[
+\rho = L / 2 \sin(\alpha/2).
+\]
+If the magnet is rotated about the $s$-axis by an angle psi,
+$R$ and $S$ are transformed by
+\[
+R^{*} = T R, \qquad S^{*} = T S T^{-1}.
+\]
+where $T$ is the orthogonal rotation matrix
+\[
+T=
+\begin{pmatrix}
+    \cos\psi & -\sin\psi &  0 \\
+    \sin\psi &  \cos\psi &  0 \\
+    0        &  0        &  1 
+\end{pmatrix}.
+\]
+The special value $\psi = \pi/2$ represents a bend down.
+
+\begin{figure}[ht]
+  \begin{center}
+    \setlength{\unitlength}{1pt}
+    \begin{picture}(400,215)
+                                % axes
+      \thinlines
+      \put(150,150){\circle{8}}\put(150,150){\circle*{2}}
+      \put(160,140){\makebox(0,0){$y_1$}}
+      \put(250,150){\circle{8}}\put(250,150){\circle*{2}}
+      \put(240,140){\makebox(0,0){$y_2$}}
+      \put(74,124.7){\vector(3,1){72}}
+      \put(84,135){\makebox(0,0){$s_1$}}
+      \put(254,148.7){\vector(3,-1){72}}
+      \put(316,135){\makebox(0,0){$s_2$}}
+      \put(200,0){\vector(-1,3){48.7}}
+      \put(165,75){\makebox(0,0){$\rho$}}
+      \put(148.7,154){\vector(-1,3){18}}
+      \put(118,206){\makebox(0,0){$x_1$}}
+      \put(200,0){\vector(1,3){48.7}}
+      \put(235,75){\makebox(0,0){$\rho$}}
+      \put(251.3,154){\vector(1,3){18}}
+      \put(282,206){\makebox(0,0){$x_2$}}
+      \bezier{20}(190.5,28.5)(200,31.7)(209.5,28.5)
+      \put(200,20){\makebox(0,0){$\alpha$}}
+      \put(154,150){\line(1,0){92}}
+      \put(200,150){\circle*{4}}
+      \put(200,150){\vector(0,1){60}}
+      \put(210,200){\makebox(0,0){$x$}}
+      \put(150,154){\line(0,1){44}}
+      \put(150,146){\line(0,-1){46}}
+      \put(151,154){\line(1,4){11}}
+      \put(250,154){\line(0,1){44}}
+      \put(250,146){\line(0,-1){46}}
+      \put(249,154){\line(-1,4){11}}
+                                % magnet outline
+      \thicklines
+      \put(200,102){\vector(-1,0){50}}
+      \put(200,102){\vector(1,0){50}}
+      \put(200,110){\makebox(0,0){L}}
+      \put(151,154){\line(1,4){6}}
+      \put(149,146){\line(-1,-4){6}}
+      \put(249,154){\line(-1,4){6}}
+      \put(251,146){\line(1,-4){6}}
+      \put(157,178){\line(1,0){86}}
+      \put(143,122){\line(1,0){114}}
+      \bezier{10}(150,195)(155.5,195)(160.9,193.7)
+      \put(155.5,195){\vector(3,-1){5.4}}
+      \put(150,205){\makebox(0,0)[l]{$e_1$}}
+      \bezier{10}(250,195)(244.5,195)(239.1,193.7)
+      \put(244.5,195){\vector(-3,-1){5.4}}
+      \put(250,205){\makebox(0,0)[r]{$e_2$}}
+    \end{picture}
+    \caption[Reference System for a Rectangular Bending Magnet]%
+    {Reference System for a Rectangular Bending Magnet;
+      the signs of pole-face rotations are positive as shown.}
+    \label{fig:rbend}
+  \end{center}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{center}
+    \setlength{\unitlength}{1pt}
+    \begin{picture}(400,215)
+                                % axes
+      \thinlines
+      \put(150,150){\circle{8}}\put(150,150){\circle*{2}}
+      \put(160,140){\makebox(0,0){$y_1$}}
+      \put(250,150){\circle{8}}\put(250,150){\circle*{2}}
+      \put(240,140){\makebox(0,0){$y_2$}}
+      \put(74,124.7){\vector(3,1){72}}
+      \put(84,135){\makebox(0,0){$s_1$}}
+      \put(254,148.7){\vector(3,-1){72}}
+      \put(316,135){\makebox(0,0){$s_2$}}
+      \put(200,0){\vector(-1,3){48.7}}
+      \put(165,75){\makebox(0,0){$\rho$}}
+      \put(148.7,154){\vector(-1,3){18}}
+      \put(118,206){\makebox(0,0){$x_1$}}
+      \put(200,0){\vector(1,3){48.7}}
+      \put(235,75){\makebox(0,0){$\rho$}}
+      \put(251.3,154){\vector(1,3){18}}
+      \put(282,206){\makebox(0,0){$x_2$}}
+      \bezier{20}(190.5,28.5)(200,31.7)(209.5,28.5)
+      \put(200,20){\makebox(0,0){$\alpha$}}
+      \put(200,158.8){\circle*{4}}
+      \put(200,158.8){\vector(0,1){50}}
+      \put(210,200){\makebox(0,0){$r$}}
+      \put(151,154){\line(1,4){10}}
+      \put(249,154){\line(-1,4){10}}
+                                % magnet outline
+      \thicklines
+      \bezier{100}(154,151.3)(200,166.7)(246,151.3)
+      \put(162,154){\vector(-3,-1){8}}
+      \put(238,154){\vector(3,-1){8}}
+      \put(210,168){\makebox(0,0){L}}
+      \put(151,154){\line(1,4){6}}
+      \put(149,146){\line(-1,-4){6}}
+      \put(249,154){\line(-1,4){6}}
+      \put(251,146){\line(1,-4){6}}
+      \bezier{90}(157,178)(200,188.4)(243,178)
+      \bezier{110}(143,122)(200,148.6)(257,122)
+      \bezier{20}(137.4,187.9)(149.1,191.5)(159.7,188.8)
+      \put(153.7,190.8){\vector(3,-1){6}}
+      \put(150,180){\makebox(0,0){$e_1$}}
+      \bezier{20}(262.6,187.9)(250.9,191.5)(240.3,188.8)
+      \put(246.3,190.8){\vector(-3,-1){6}}
+      \put(250,180){\makebox(0,0){$e_2$}}
+    \end{picture}
+    \caption[Reference System for a Sector Bending Magnet]%
+    {Reference System for a Sector Bending Magnet;
+      the signs of pole-face rotations are positive as shown.}
+    \label{fig:sbend}
+  \end{center}
+\end{figure}
+
+\subsection{Rotation of the Reference System}
+\label{sec:refrot}
+For a 
+\figref{rotation of the reference system by an angle $\psi$ about the
+  beam ($s$) axis}{srot}: 
+\[
+S=\left(\begin{array}{ccc}
+    \cos\psi & -\sin\psi &  0 \\
+    \sin\psi &  \cos\psi &  0 \\
+    0        &  0        &  1 \\
+  \end{array}\right),
+\]
+while for a 
+\figref{rotation of the reference system by an angle $\theta$ about
+  the vertical ($y$) axis}{yrot}:
+\[
+S=\left(\begin{array}{ccc}
+    \cos\theta &  0 & -\sin\theta \\
+    0          &  1 &  0 \\
+    \sin\theta &  0 &  \cos\theta
+  \end{array}\right).
+\]
+In both cases the displacement $R$ is zero.
+
+\begin{figure}[ht]%
+  \begin{center}
+    \setlength{\unitlength}{1pt}
+    \begin{picture}(400,200)
+      \thinlines
+      \put(200,100){\circle{8}}\put(200,100){\circle*{2}}
+      \put(190,90){\makebox(0,0){$s$}}
+      \put(100,100){\line(1,0){96}}
+      \put(204,100){\vector(1,0){96}}
+      \put(290,90){\makebox(0,0){$x_1$}}
+      \put(200,0){\line(0,1){96}}
+      \put(200,104){\vector(0,1){96}}
+      \put(190,210){\makebox(0,0){$y_1$}}
+      \put(103,75.75){\line(4,1){93}}
+      \put(204,101){\vector(4,1){93}}
+      \put(287,134){\makebox(0,0){$x_2$}}
+      \put(224.25,3){\line(-1,4){23.25}}
+      \put(199,104){\vector(-1,4){23.25}}
+      \put(166,187){\makebox(0,0){$y_2$}}
+      \bezier{20}(260,100)(260,107.5)(258,114.5)
+      \put(260,106.5){\vector(-1,4){2}}
+      \put(250,106.25){\makebox(0,0){$\psi$}}
+      \put(220,150){\circle{8}}\put(220,150){\circle*{2}}
+      \put(220,140){\makebox(0,0){beam}}
+    \end{picture}
+    \caption{Reference System for a Rotation Around the s-Axis}
+    \label{fig:srot}
+  \end{center}
+\end{figure}
+
+\begin{figure}[ht]%
+  \begin{center}
+    \setlength{\unitlength}{1pt}
+    \begin{picture}(400,200)
+      \thinlines
+      \put(200,100){\circle{8}}\put(200,100){\circle*{2}}
+      \put(190,90){\makebox(0,0){$y$}}
+      \put(100,100){\line(1,0){96}}
+      \put(204,100){\vector(1,0){96}}
+      \put(290,110){\makebox(0,0){$s_1$}}
+      \put(200,0){\line(0,1){96}}
+      \put(200,104){\vector(0,1){96}}
+      \put(190,190){\makebox(0,0){$x_1$}}
+      \put(103,124.25){\line(4,-1){93}}
+      \put(204,99){\vector(4,-1){93}}
+      \put(287,66){\makebox(0,0){$s_2$}}
+      \put(175.75,3){\line(1,4){23.25}}
+      \put(201,104){\vector(1,4){23.25}}
+      \put(234,187){\makebox(0,0){$x_2$}}
+      \bezier{20}(260,100)(260,92.5)(258,85.5)
+      \put(260,93.5){\vector(-1,-4){2}}
+      \put(250,93.75){\makebox(0,0){$\theta$}}
+      \thicklines
+      \put(100,130){\vector(1,0){200}}
+      \put(290,140){\makebox(0,0){beam}}
+    \end{picture}
+    \caption{Reference System for a Rotation Around the y-Axis}
+    \label{fig:yrot}
+  \end{center}
+\end{figure}
+
+\subsection{Elements which do not Change the Local Reference}
+The following elements do not affect the
+reference orbit and are ignored for geometry calculations:
+\begin{itemize}
+\item Beam-beam interactions %\secref{Beam-beam interactions}{sec:beambeam}
+\item \secref{Marker}{marker}
+\end{itemize}
+
+\section{Sign Conventions for Magnetic Fields}
+\label{sec:sign}
+\index{sign conventions for fields}
+\index{field!signs}
+The \opalmap program uses the following Taylor expansion for the normal and
+skewed field components respectively in the mid-plane $y$=0, 
+described in \bibref{SLAC-75}{matrix}:
+\[
+B_x(x,0)=\sum_{k=0}^{\infty}\frac{B_{kn}x^k}{k!}, \qquad
+B_x(x,0)=\sum_{k=0}^{\infty}\frac{B_{ks}x^k}{k!}.
+\]
+Note the factorial in the denominator.
+The field coefficients have the following meaning:
+\begin{description}
+\item[$B_{0n}$] Normal dipole field component.
+  The component is positive if the field points in the positive $y$
+  direction. 
+  A positive field bends a positively charged particle travelling in
+  positive $s$-direction to the right.
+\item[$B_{0s}$] Skew dipole field component.
+  The component is positive if the field points in the negative $y$
+  direction. 
+  A positive field bends a positively charged particle travelling in
+  positive $s$-direction down.
+\item[$B_{1n}$] Normal quadrupole field component
+  $B_{1n}=\partial B_y/\partial x$.
+  The component is positive if $B_y$ is positive on the positive $x$-axis.
+  A positive value corresponds to horizontal focussing of a positively
+  charged particle.
+\item[$B_{1s}$] Skew quadrupole field component
+  $B_{1s}=\partial B_x/\partial x$.
+  The component is positive if $B_x$ is negative on the positive $x$-axis.
+\item[$B_{2n}$] Normal sextupole field component
+  $B_{2n}=\partial^2 B_y/\partial x^2$.
+  The component is positive if $B_y$ is positive on the $x$-axis.
+\item[$B_{2s}$] Skew sextupole field component
+  $B_{2s}=\partial^2 B_x/\partial x^2$.
+  The component is negative if $B_x$ is positive on the $x$-axis.
+\item[$B_{3n}$] Normal octupole field component
+  $B_{3n}=\partial^3 B_y/\partial x^3$.
+  The component is positive if $B_y$ is positive on the positive $x$-axis.
+\item[$B_{3s}$] Skew octupole field component
+  $B_{3s}=\partial^3 B_x/\partial x^3$.
+  The component is negative if $B_x$ is positive on the $x$-axis.
+\end{description}
+All derivatives are taken on the $x$-axis.
+Using this expansion and the curvature $h$ of the reference orbit,
+the longitudinal component of the vector potential for a magnet with
+mid-plane symmetry is to order~4:
+\index{field!vector potential}
+\index{vector potential}
+
+\begin{align*} 
+  A_s \quad = \quad 
+  & B_{0n}\left(x-\frac{hx^2}{2(1+hx)}\right) \\
+  &+B_{1n}\left(\frac{1}{2}(x^2-y^2)-\frac{h}{6}x^{3}
+  +\frac{h^2}{24}(4x^{4}-y^{4})+\ldots\right) \\
+  &+B_{2n}\left(\frac{1}{6}(x^{3}-3xy^2)-\frac{h}{24}(x^{4}-y^{4})
+   +\ldots\right) \\
+  &+B_{3n}\left(\frac{1}{24}(x^{4}-6x^2y^2+y^{4})+\ldots\right)
+   + \ldots
+\end{align*}
+Taking $\mathrm{curl} A$ in curvilinear coordinates,
+the field components can be computed as
+\index{field!components}
+\begin{align*} 
+  B_x(x,y) \quad = \quad
+  & B_{1n}\left(y+\frac{h^2}{6}y^{3}+\ldots\right) 
+   +B_{2n}\left(xy-\frac{h^{3}}{6}y^{3}+\ldots\right) \\
+  &+B_{3n}\left(\frac{1}{6}(3x^2y-y^{3})+\ldots\right) + \ldots \\
+  B_y(x,y) \quad = \quad 
+  & B_{0n}
+   +B_{1n}\left(x-\frac{h}{2}y^2+\frac{h^2}{2}xy^2+\ldots\right) \\
+  &+B_{2n}\left(\frac{1}{2}(x^2-y^2)-\frac{h}{2}xy^2+\ldots\right) \\
+  &+B_{3n}\left(\frac{1}{6}(x^{3}-3xy^2)+\ldots\right) + \ldots
+\end{align*}
+One can easily verify that both $\mathrm{curl} B$ and $\mathrm{div} B$
+are zero to the order of the $B_3$ term.
+Introducing the magnetic rigidity $B \rho$,
+the multipole coefficients are computed as
+\[
+K_{kn}=eB_{kn}/p_0=B_{kn}/B\rho,\qquad
+K_{ks}=eB_{ks}/p_0=B_{ks}/B\rho.
+\]
+Note that the $K_k$ have the \textbf{same sign} as the corresponding
+field components $B_k$.
+The signs will be changed due to the sign of particle charges and
+the direction of travel of the beam.
+
+\section{Variables in \opalt}
+\label{sec:variablesopalt}
+\index{variablesopalt}
+For each variable the physical units are listed in square brackets.
+
+\subsection{Variables Describing Orbits}
+\label{sec:opalt:canon}
+\index{canonical variables}
+\index{variables!canonical}
+\opalt uses the following canonical variables
+to describe the motion of particles:
+
+\begin{description}
+\item[X]
+  Horizontal position $x$ of a particle relative to the axis of the element [m].
+
+\item[PX]
+  Horizontal canonical momentum:
+  $\mathtt{PX} = \beta_x \gamma$.
+
+\item[Y]
+  Horizontal position $y$ of a particle relative to the axis of the element [m].
+
+\item[PY]
+  Horizontal canonical momentum:
+  $\mathtt{PY} = \beta_y \gamma$.
+
+\item[Z]
+  Longitudinal position $z$ of a particle in floor co-ordinates [m].
+
+\item[PZ]
+ Longitudinal canonical momentum: 
+ $\mathtt{PZ} = \beta_z \gamma$.
+
+ \end{description}
+
+The independent variable is:
+\begin{description}
+\item[t]
+  Time [s].
+\end{description}
+
+\section{Variables in \opalcycl}
+\label{sec:variablesopalcycl}
+\index{variablesopalcycl}
+
+\subsection{Variables Describing Orbits}
+\label{sec:opalcycl:canon}
+\index{canonical variables}
+\index{variables!canonical}
+
+\opalcycl uses the following canonical variables to describe the motion of particles:
+
+\begin{description}
+\item[X]
+  Horizontal position $x$ of a particle in given global Cartesian coordinates [m].
+
+\item[PX]
+  Horizontal momentum:
+  $\mathtt{PX}$ rad.
+
+\item[Y]
+  Horizontal position $x$ of a particle in global Cartesian coordinates [m].
+
+\item[PY]
+  Horizontal canonical momentum:
+  $\mathtt{PY} $ rad.
+
+\item[Z]
+  Vertical position $z$ of a particle in global Cartesian coordinates [m].
+
+\item[PZ]
+  Vertical canonical momentum:
+  $\mathtt{PZ}  $ rad.
+
+\end{description}
+
+The independent variable is: \textbf{t} [s].
+
+
+\subsubsection{Unit Conversion}
+Convert the unit of momentum from $\beta \gamma$ to
+$mrad$.
+
+\begin{equation}
+\label{eq:betagamma1}
+(\beta\gamma)_z=\frac{P}{m_0c}=\frac{Pc}{m_0c^2}.
+\end{equation}
+\begin{equation}
+\label{eq:betagamma2} P_x[
+mrad]=1000\frac{P_x[\beta\gamma]}{(\beta\gamma)_z}
+\end{equation}
+
+Convert the unit from eV to $\beta\gamma$.
+\begin{equation}
+\label{eq:eVtobetagamma}
+\sqrt{(\frac{T}{m_0c^2}+1)^2-1}=\beta\gamma.
+\end{equation}
+
+
+
+
+\subsection{Local frame initial distribution}
+\label{sec:opalcycl:localframe}
+To ensure compatibility with \opalt and \opalmap 
+the initial distribution of the bunch,
+either read from file or generated by specifying rms beam quantities,
+is specified in the local Cartesian coordinates.
+During run time,the 6 phase space variables \((x, y, z, p_x, p_y, p_z)\) 
+are transformed to the global Cartesian coordinates
+using initial reference $r_0$,$\theta_0$ and $p_{r0}$, $p_{\theta 0}$.
+These 4 parameters are defined at the \secref{\texttt{CYCLOTRON} command }{cyclotron}
+before particle tracking starts. 
+
+\begin{align*}  
+X &= x\cos(\theta_0) - y\sin(\theta_0) + r_0\cos(\theta_0)  \\
+Y &= x\sin(\theta_0) + y\cos(\theta_0) + r_0\sin(\theta_0)  \\
+Z &= z 
+\end{align*}
+\begin{align*}  
+PX &= (p_x+p_{r0})\cos(\theta_0) - (p_y+p_{\theta 0})\sin(\theta_0) \\
+PY &= (p_x+p_{r0})\sin(\theta_0) + (p_y+p_{\theta 0})\cos(\theta_0) \\
+PZ &= p_z 
+\end{align*}    
+
+\section{Variables in \opalmap}
+\label{sec:variables}
+\index{variables}
+For each variable the physical units are listed in square brackets.
+
+\subsection{Canonical Variables Describing Orbits}
+\label{sec:canon}
+\index{canonical variables}
+\index{variables!canonical}
+\opalmap uses the following canonical variables
+to describe the motion of particles:
+
+\begin{description}
+\item[X]
+  Horizontal position $x$ of the (closed) orbit,
+  referred to the ideal orbit [m].
+
+\item[PX]
+  Horizontal canonical momentum of the (closed) orbit referred 
+  to the ideal orbit, divided by the reference momentum:
+  $\mathtt{PX} = p_x / p_0$.
+
+\item[Y]
+  Vertical position $y$ of the (closed) orbit,
+  referred to the ideal orbit [m].
+
+\item[PY]
+  Vertical canonical momentum of the (closed) orbit referred 
+  to the ideal orbit, divided by the reference momentum:
+  $\mathtt{PY} = p_y / p_0$.
+
+\item[T]
+  The negative time difference, 
+  multiplied by the instantaneous velocity of the particle [m]:
+  $\mathtt{T} = - v \delta(t)$.
+  A positive \texttt{T} means that the particle arrives ahead of the 
+  \textbf{reference particle}.
+  \texttt{T} describes the deviation of the particle from the orbit of 
+  a fictitious reference particle having the constant 
+  \textbf{reference momentum} $p_s$ and the 
+  \textbf{reference velocity} $v_s$.
+  $v_s$ defines the revolution frequency.
+  The velocities have the values 
+  \[
+  v = c p / \sqrt{p^2 + m^2 c^2}, \qquad
+  v_s = c p_s / \sqrt{p_s^2 + m^2 c^2},
+  \]
+  where $c$ is the velocity of light, $m$ is the particle rest mass, 
+  and $p$ is the instantaneous momentum of the particle.
+
+\item[PT]
+  Momentum error, divided by the reference momentum:
+  $\mathtt{PT} = \delta p / p_s$.
+  This value is only non-zero when synchrotron motion is present.
+  It describes the deviation of the particle from the orbit of a
+  particle with the reference momentum $p_s$.
+\end{description}
+
+The independent variable is:
+\begin{description}
+\item[S]
+  Arc length $s$ along the reference orbit [m].
+\end{description}
+
+The longitudinal variables is in the limit of fully relativistic particles
+($\gamma \gg 1, v = c, p c = E$),
+the variables \texttt{T, PT} used here agree with the longitudinal variables
+used in \bibref{TRANSPORT}{transport}.
+This means that \texttt{T} becomes the negative path length difference,
+while \texttt{PT} is the fractional momentum error.
+The reference momentum must be constant in order to keep the system 
+canonical.
+
+\subsection{Normalised Variables and other Derived Quantities}
+\label{sec:normal}
+\index{normalised variables}
+\index{variables!normalised}
+\begin{description}
+\item[XN]
+  The normalised horizontal displacement [$\mathrm{m}^{1/2}$]:
+  $\mathtt{XN} = x_n = \Re(E_1^T S Z)$.
+
+\item[PXN]
+  The normalised horizontal transverse momentum [$\mathrm{m}^{1/2}$]:
+  $\mathtt{PXN} = p_{xn} = \Im(E_1^T S Z$).
+
+\item[WX]
+  The horizontal Courant-Snyder invariant [m]:
+  $\mathtt{WX} = \sqrt{x_n^2 + p_{xn}^2}$.
+
+\item[PHIX]
+  The horizontal phase:
+  $\mathtt{PHIX} = - \arctan(p_{xn} / x_n) / 2 \pi$.
+
+\item[YN]
+  The normalised vertical displacement [$\mathrm{m}^{1/2}$]:
+  $\mathtt{YN} = y_n = \Re(E_2^T S Z)$.
+
+\item[PYN]
+  The normalised vertical transverse momentum [$\mathrm{m}^{1/2}$]:
+  $\mathtt{PYN} = p_{yn} = \Im(E_2^T S Z)$.
+
+\item[WY]
+  The vertical Courant-Snyder invariant [m]:
+  $\mathtt{WY} = \sqrt{y_n^2 + p_{yn}^2}$.
+
+\item[PHIY]
+  The vertical phase:
+  $\mathtt{PHIY} = - \arctan(p_{yn} / y_n) / 2 \pi$.
+
+\item[TN]
+  The normalised longitudinal displacement [$\mathrm{m}^{1/2}$]:
+  $\mathtt{TN} = t_n = \Re(E_3^T S Z)$.
+
+\item[PTN]
+  The normalised longitudinal transverse momentum [$\mathrm{m}^{1/2}$]:
+  $\mathtt{PTN} = p_{tn} = Im(E_3^T S Z)$.
+
+\item[WT]
+  The longitudinal invariant [m]:
+  $\mathtt{WT} = \sqrt{t_n^2 + p_{tn}^2}$.
+
+\item[PHIT]
+  The longitudinal phase:
+  $\mathtt{PHIT} = + \arctan(p_{tn} / t_n) / 2 \pi$.
+
+\end{description}
+in the above formulas $Z$ is the phase space vector
+$Z = (x, p_x, y, p_y, t, p_t)^T$.
+The matrix $S$ is the ``symplectic unit matrix''
+\[
+S = 
+\begin{pmatrix} 
+    0 & 1 & 0 & 0 & 0 & 0 \\
+   -1 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 &-1 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0 &-1 & 0
+  \end{pmatrix},
+\]
+and the vectors $E_i$ are the three complex eigenvectors.
+The superscript $T$ denotes the transpose of a vector or matrix.
+
+\section{Physical Units}
+\label{sec:units}
+\index{units}
+\index{physical units}
+Throughout the computations \opal uses \tabref{international units}{units},
+as defined by SI (Syst\`eme International).
+
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Physical Units}
+    \label{tab:units}
+    \begin{tabular}{|l|l|} 
+      \hline
+      quantity                         & dimension \\
+      \hline
+      Length                           & m (metres) \\
+      Angle                            & rad (radians) \\
+      Quadrupole coefficient           & $\mathrm{m}^{-2}$ \\
+      Multipole coefficient, 2n poles  & $\mathrm{m}^{-n}$ \\
+      Electric voltage                 & MV (Megavolts) \\
+      Electric field strength          & MV/m \\
+      Frequency                        & MHz (Megahertz) \\
+      Phase angles                     & $2\pi$ \\
+      Particle energy                  & GeV \\
+      Particle mass                    & GeV/$c^2$ \\
+      Particle momentum                & GeV/c \\
+      Beam current                     & A (Amperes) \\
+      Particle charge                  & e (elementary charges) \\
+      Impedances                       & M$\Omega$ (Megohms) \\
+      Emittances                       & $\pi$ m mrad \\
+      Emittances \opalt             & m rad \footnote{(normalized and un-normalized)}\\
+      RF power                         & MW (Megawatts) \\
+      Higher mode loss factor          & V/pc \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\index{conventions|)}

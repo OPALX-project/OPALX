@@ -1,0 +1,751 @@
+Ippl> CommMPI: Started job 2 on host `felsim03'.
+Ippl> CommMPI: Parent process waiting for children ...
+Ippl> CommMPI: Started job 1 on host `felsim03'.
+Ippl> CommMPI: Started job 3 on host `felsim03'.
+Ippl> CommMPI: Child 2 ready.
+Ippl> CommMPI: Child 3 ready.
+Ippl> CommMPI: Child 1 ready.
+Ippl> CommMPI: Initialization complete.
+{0}>                ____  _____       ___ 
+{0}>               / __ \|  __ \ /\   | | 
+{0}>              | |  | | |__) /  \  | |
+{0}>              | |  | |  ___/ /\ \ | |
+{0}>              | |__| | |  / ____ \| |____
+{0}>               \____/|_| /_/    \_\______|
+OPAL {0}> 
+OPAL {0}> This is OPAL (Object Oriented Parallel Accelerator Library) Version 1.1.8 SVN version 11730M  (c) PSI, http://amas.web.psi.ch
+OPAL {0}> 
+OPAL {0}> Please send cookies, goodies or other motivations (wine and beer ... ) to andreas.adelmann@psi.ch
+OPAL {0}> Time: 11.02.07 date: 29/01/2011
+OPAL {0}> No startup file "/gpfs/homefelsim/adelmann/init.opal" found.
+OPAL {0}> Reading input stream "ParallelPlateFurman1.in".
+   +2 Option, ECHO=FALSE;
+   +2   +2 Option, ECHO=FALSE;
+ Option, ECHO=FALSE;
+   +2 Option, ECHO=FALSE;
+OPAL {0}> 
+OPAL {0}> value: {PHI}={0}
+OPAL {0}> 
+OPAL {0}> Iniitializing Boundary Geometry ... ...
+OPAL {0}> * *************Boundary Geometry Info*********************************************** 
+OPAL {0}> * GEOMETRY                   BOX_geometry
+OPAL {0}> * FGEOM                      pplate_5mm.h5
+OPAL {0}> * TOPO                       ELLIPTIC
+OPAL {0}> * LENGTH                     1
+OPAL {0}> * S                          0
+OPAL {0}> * A                          0.025
+OPAL {0}> * B                          0.025
+OPAL {0}> * Total triangle num         14054
+OPAL {0}> * Total points num           18762
+OPAL {0}> * Triangle side(m)   Max=    0.00147207
+OPAL {0}> *                    Min=    0.000707325
+OPAL {0}> * Geometry bounds(m) Max=    ( 0.05 , 0.05 , 0.005 )
+OPAL {0}> *                    Min=    ( 0 , 0 , 0 )
+OPAL {0}> * Geometry length(m)         ( 0.05 , 0.05 , 0.005 )
+OPAL {0}> * Boundary box grid num      ( 169 , 169 , 33 )
+OPAL {0}> * Boundary box size(m)       ( 0.000295858 , 0.000295858 , 0.000151515 )
+OPAL {0}> * Size of boundary index set 81419
+OPAL {0}> * Number of all boxes        942513
+OPAL {0}> * Aligned Triangle Number    7027
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> 
+OPAL {0}> 3 elements selected.
+OPAL {0}> 
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}>   Selected Tracking Method == PARALLEL-T, NEW TRACK
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> Multipacting flag is true. Distributions in Run command, if there are any, will be ignored 
+OPAL {0}> * ************* B E A M ************************************************************ 
+OPAL {0}> * BEAM        BEAM1
+OPAL {0}> * PARTICLE    ELECTRON
+OPAL {0}> * CURRENT     6e-08 A
+OPAL {0}> * FREQENCY    300 Hz
+OPAL {0}> * CHARGE      -e * 1 
+OPAL {0}> * REST MASS   0.000510999 GeV
+OPAL {0}> * MOMENTUM    1
+OPAL {0}> * NPART       3000
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * ************* F I E L D S O L V E R ********************************************** 
+OPAL {0}> * FIELDSOLVER  FS1
+OPAL {0}> * TYPE         NONE
+OPAL {0}> * N-PROCESSORS 4
+OPAL {0}> * MX           32
+OPAL {0}> * MY           32
+OPAL {0}> * MT           128
+OPAL {0}> * BBOXINCR     1
+OPAL {0}> * GEOMETRY     
+OPAL {0}> * ITSOLVER     CG
+OPAL {0}> * INTERPL      LINEAR
+OPAL {0}> * TOL          1e-08
+OPAL {0}> * MAXITERS     100
+OPAL {0}> * PRECMODE     HIERARCHY
+OPAL {0}> * XDIM is parallel  
+OPAL {0}> * YDIM is parallel  
+OPAL {0}> * Z(T)DIM is serial  
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> 
+OPAL {0}> Phase space dump frequency 1 and statistics dump frequency 1 w.r.t. the time step.
+OPAL {0}> totalParticle_i= 0
+OPAL {0}> Track start at: 11.04.04, t= 0; zstop at: 0.9 [m]
+OPAL {0}> Executing ParallelTTracker, initial DT 2e-12 [s];
+OPAL {0}> max integration steps 21, step= 1, Nplocal= 0
+OPAL {0}> 
+OPAL {0}> --- BEGIN FIELD LIST ---------------------------------------------------------------
+OPAL {0}> 
+OPAL {0}> --- 0 m -- 0.005 m -- alpha = 0 -- beta = 0  has boundary geometry -----------------
+OPAL {0}> BOX
+OPAL {0}> 
+OPAL {0}> --- END FIELD LIST -----------------------------------------------------------------
+OPAL {0}> 
+OPAL {0}> ************************************************************************************************* 
+OPAL {0}> * Find boundary geometry, start at: 0 (m). 
+OPAL {0}> * Attached more than one distribution: 
+OPAL {0}> * Distribution: DISTSURF distribution type: SURFACEEMISSION
+OPAL {0}> ************************************************************************************************* 
+OPAL {0}> * ************* D I S T R I B U T I O N ******************************************** 
+OPAL {0}> * Distribution:	DISTSURF
+OPAL {0}> * Distribution type:	SURFACEEMISSION
+OPAL {0}> * Number of electrons for surface emission  0
+OPAL {0}> * Initialized electrons inward margin for surface emission  0.001
+OPAL {0}> * E field threshold (MV), only in position r with E(r)>EINITHR that particles will be initialized   0
+OPAL {0}> * Field enhancement for surface emission  0.1
+OPAL {0}> * Maximum number of electrons emitted from a single triangle for Fowler-Nordheim emission  2
+OPAL {0}> * Field Threshold for Fowler-Nordheim emission (MV/m)  30
+OPAL {0}> * Empirical constant A for Fowler-Nordheim emission model  1.54e-06
+OPAL {0}> * Empirical constant B for Fowler-Nordheim emission model  6.83e+09
+OPAL {0}> * Constant for image charge effect parameter y(E) in Fowler-Nordheim emission model  3.795e-05
+OPAL {0}> * Zero order constant for image charge effect parameter v(y) in Fowler-Nordheim emission model  0.9632
+OPAL {0}> * Second order constant for image charge effect parameter v(y) in Fowler-Nordheim emission model  1.065
+OPAL {0}> * Select secondary model type(0:no secondary emission; 1:Furman-Pivi; 2 or larger: Vaughan's model  1
+OPAL {0}> * Secondary emission mode type(true: emit n true secondaries; false: emit one particle with n times charge  0
+OPAL {0}> * Sey_0 in Vaughan's model 0.5
+OPAL {0}> * Energy related to sey_0 in Vaughan's model in eV  12.5
+OPAL {0}> * Sey max in Vaughan's model  2.22
+OPAL {0}> * Emax in Vaughan's model in eV  165
+OPAL {0}> * Fitting parameter denotes the roughness of surface for impact energy in Vaughan's model  1
+OPAL {0}> * Fitting parameter denotes the roughness of surface for impact angle in Vaughan's model  1
+OPAL {0}> * Thermal velocity of Maxwellian distribution of secondaries in Vaughan's model  726893
+OPAL {0}> * VW denote the velocity scalar for Parallel plate benchmark  3.35454e+06
+OPAL {0}> * Material type number of the cavity surface for Furman-Pivi's model, 0 for copper, 1 for stainless steel  0
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Distribution: DISTSURF1 distribution type: SURFACERANDCREATE
+OPAL {0}> ************************************************************************************************* 
+OPAL {0}> * ************* D I S T R I B U T I O N ******************************************** 
+OPAL {0}> * Distribution:	DISTSURF1
+OPAL {0}> * Distribution type:	SURFACERANDCREATE
+OPAL {0}> * Number of electrons initialized on the surface as primaries  10000
+OPAL {0}> * Initialized electrons inward margin for surface emission  0
+OPAL {0}> * E field threshold (MV), only in position r with E(r)>EINITHR that particles will be initialized   0
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= -1 [MeV] dEkin= -0 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.005 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 0 ) [m]
+OPAL {0}> * rms beam size= ( 0 , 0 , 0 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0 , 0 , 0 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 0 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , 0 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93701e-05 ) [m]
+OPAL {0}> * spos= 0.00249886 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= -1 [MeV] dEkin= -0 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.005 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 0 ) [m]
+OPAL {0}> * rms beam size= ( 0 , 0 , 0 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0 , 0 , 0 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 0 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , 0 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93701e-05 ) [m]
+OPAL {0}> * spos= 0.00249886 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99873e-06 [MeV] dEkin= 5.99738e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.005 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 0 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.0025 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.0025 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.67062e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.887246 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93701e-05 ) [m]
+OPAL {0}> * spos= 0.00249886 [m]
+OPAL {0}> * ********************************************************************************** 
+nEmissionMode 0
+nEmissionMode 0
+OPAL {0}> 
+nEmissionMode 0
+nEmissionMode 0
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99873e-06 [MeV] dEkin= 5.99738e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.005 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 0 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.0025 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.0025 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.67062e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.887246 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93701e-05 ) [m]
+OPAL {0}> * spos= 0.00249886 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> Boundary geometry initialized 
+OPAL {0}> Emission done. Switching back to track timestep: 2e-12
+OPAL {0}> 11.04.04 Step 1 at 0.00249887 [m] t= 2e-12 [s] E=2.99873e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99873e-06 [MeV] dEkin= 5.99738e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499994 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 1.73562e-08 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00249818 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250001 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.67415e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.887071 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93695e-05 ) [m]
+OPAL {0}> * spos= 0.00249887 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.05 Step 2 at 0.00249888 [m] t= 4e-12 [s] E=2.99873e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99873e-06 [MeV] dEkin= 5.99738e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499989 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 3.47548e-08 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00249636 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250002 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.68477e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.886896 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93689e-05 ) [m]
+OPAL {0}> * spos= 0.00249888 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.05 Step 3 at 0.00249889 [m] t= 6e-12 [s] E=2.99873e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99873e-06 [MeV] dEkin= 5.99739e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499983 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 5.22383e-08 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00249453 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250003 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.70246e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.88672 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93684e-05 ) [m]
+OPAL {0}> * spos= 0.00249889 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.05 Step 4 at 0.0024989 [m] t= 8e-12 [s] E=2.99874e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99874e-06 [MeV] dEkin= 5.99739e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499978 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 6.98491e-08 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00249271 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250004 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.72724e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.886544 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93678e-05 ) [m]
+OPAL {0}> * spos= 0.0024989 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.06 Step 5 at 0.00249891 [m] t= 1e-11 [s] E=2.99874e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99874e-06 [MeV] dEkin= 5.99739e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499972 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 8.76297e-08 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00249089 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250005 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.75908e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.886367 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93672e-05 ) [m]
+OPAL {0}> * spos= 0.00249891 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.06 Step 6 at 0.00249892 [m] t= 1.2e-11 [s] E=2.99874e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99874e-06 [MeV] dEkin= 5.99739e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499967 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 1.05622e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00248907 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250006 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.79801e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115323 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.88619 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93666e-05 ) [m]
+OPAL {0}> * spos= 0.00249892 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.06 Step 7 at 0.00249894 [m] t= 1.4e-11 [s] E=2.99875e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99875e-06 [MeV] dEkin= 5.9974e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499961 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 1.2387e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00248725 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250007 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.84401e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115322 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.886013 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93661e-05 ) [m]
+OPAL {0}> * spos= 0.00249894 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.07 Step 8 at 0.00249895 [m] t= 1.6e-11 [s] E=2.99875e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99875e-06 [MeV] dEkin= 5.9974e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499956 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 1.42414e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00248543 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250008 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.89709e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115322 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.885835 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93655e-05 ) [m]
+OPAL {0}> * spos= 0.00249895 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.07 Step 9 at 0.00249896 [m] t= 1.8e-11 [s] E=2.99876e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99876e-06 [MeV] dEkin= 5.99741e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499951 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 1.61298e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00248361 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.0025001 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 1.95724e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115322 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.885657 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93649e-05 ) [m]
+OPAL {0}> * spos= 0.00249896 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.07 Step 10 at 0.00249897 [m] t= 2e-11 [s] E=2.99876e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99876e-06 [MeV] dEkin= 5.99742e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499945 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 1.80564e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00248179 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250011 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.02447e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115322 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.885479 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93643e-05 ) [m]
+OPAL {0}> * spos= 0.00249897 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.08 Step 11 at 0.00249899 [m] t= 2.2e-11 [s] E=2.99877e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99877e-06 [MeV] dEkin= 5.99742e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.0049994 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 2.00254e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00247997 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250012 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.09878e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115322 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.8853 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93638e-05 ) [m]
+OPAL {0}> * spos= 0.00249899 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.08 Step 12 at 0.002499 [m] t= 2.4e-11 [s] E=2.99878e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99878e-06 [MeV] dEkin= 5.99743e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499935 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 2.2041e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00247816 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250013 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.18016e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115322 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.885121 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93632e-05 ) [m]
+OPAL {0}> * spos= 0.002499 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.08 Step 13 at 0.00249902 [m] t= 2.6e-11 [s] E=2.99879e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99879e-06 [MeV] dEkin= 5.99744e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499929 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 2.41076e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00247634 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250015 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.26861e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115322 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.884941 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93626e-05 ) [m]
+OPAL {0}> * spos= 0.00249902 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.08 Step 14 at 0.00249903 [m] t= 2.8e-11 [s] E=2.9988e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.9988e-06 [MeV] dEkin= 5.99745e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499924 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 2.62294e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00247452 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250016 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.36414e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115321 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.884761 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.9362e-05 ) [m]
+OPAL {0}> * spos= 0.00249903 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.09 Step 15 at 0.00249905 [m] t= 3e-11 [s] E=2.99882e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99882e-06 [MeV] dEkin= 5.99747e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499919 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 2.84105e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.0024727 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250017 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.46674e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115321 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.88458 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93615e-05 ) [m]
+OPAL {0}> * spos= 0.00249905 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.09 Step 16 at 0.00249906 [m] t= 3.2e-11 [s] E=2.99883e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99883e-06 [MeV] dEkin= 5.99748e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499914 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 3.06553e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00247089 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250019 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.57642e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115321 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.884399 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93609e-05 ) [m]
+OPAL {0}> * spos= 0.00249906 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.09 Step 17 at 0.00249908 [m] t= 3.4e-11 [s] E=2.99885e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99885e-06 [MeV] dEkin= 5.9975e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499909 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 3.2968e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00246907 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250021 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.69316e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115321 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.884218 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93603e-05 ) [m]
+OPAL {0}> * spos= 0.00249908 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.10 Step 18 at 0.0024991 [m] t= 3.6e-11 [s] E=2.99886e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99886e-06 [MeV] dEkin= 5.99751e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499904 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 3.53528e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00246725 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250022 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.81698e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.0011532 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.884036 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93597e-05 ) [m]
+OPAL {0}> * spos= 0.0024991 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.10 Step 19 at 0.00249912 [m] t= 3.8e-11 [s] E=2.99888e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.99888e-06 [MeV] dEkin= 5.99753e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499899 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 3.78139e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00246544 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250024 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 2.94787e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.0011532 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.883854 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93592e-05 ) [m]
+OPAL {0}> * spos= 0.00249912 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> 11.04.10 Step 20 at 0.00249914 [m] t= 4e-11 [s] E=2.9989e-06 [MeV] 
+OPAL {0}> * Wrote beam phase space.
+OPAL {0}> * ************** B U N C H ********************************************************* 
+OPAL {0}> * NP= 10000 Qtot= 0.666667 [nC]  Qi= 6.66667e-14 [C]
+OPAL {0}> * Ekin= 2.9989e-06 [MeV] dEkin= 5.99755e-06 [MeV]
+OPAL {0}> * rmax= ( 0.0494974 , 0.0494901 , 0.00499895 ) [m]
+OPAL {0}> * rmin= ( 0.000503865 , 0.00050306 , 4.03556e-07 ) [m]
+OPAL {0}> * rms beam size= ( 0.014294 , 0.0142117 , 0.00246362 ) [m]
+OPAL {0}> * rms momenta= ( 0 , 0 , 0.00342586 ) [beta gamma]
+OPAL {0}> * mean beam size= ( 0.0250944 , 0.0248363 , 0.00250026 ) [m]
+OPAL {0}> * mean momenta= ( 0 , 0 , 3.08582e-05 ) [beta gamma]
+OPAL {0}> * rms emmitance= ( 0 , 0 , 0.00115319 ) (not normalized)
+OPAL {0}> * rms correlation= ( 0 , 0 , -0.883672 )
+OPAL {0}> * dh= 0 [m] dT= 2e-12 [s]
+OPAL {0}> * hr= ( 0.00158044 , 0.00158023 , 3.93586e-05 ) [m]
+OPAL {0}> * spos= 0.00249914 [m]
+OPAL {0}> * ********************************************************************************** 
+OPAL {0}> 
+OPAL {0}> * Wrote beam statistics.
+OPAL {0}> done executing ParallelTTracker at 11.04.11
+OPAL {0}> End of input stream "ParallelPlateFurman1.in".
+Timings{0}> -----------------------------------------------------------------
+Timings{0}>      Timing results for 4 nodes:
+Timings{0}> -----------------------------------------------------------------
+Timings{0}> mainTimer ........... Wall tot =    116.651, CPU tot =      70.01
+Timings{0}> 
+Timings{0}> Secondary emission .. Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> Particle Inside ..... Wall max =    2.45613, CPU max =       2.39
+Timings{0}>                       Wall avg =    2.01529, CPU avg =     2.0025
+Timings{0}>                       Wall min =    1.28498, CPU min =       1.24
+Timings{0}> 
+Timings{0}> zshiftPre Processing  Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> Ray tracing ......... Wall max =    0.54078, CPU max =       0.48
+Timings{0}>                       Wall avg =   0.329873, CPU avg =     0.3375
+Timings{0}>                       Wall min =   0.001763, CPU min =       0.01
+Timings{0}> 
+Timings{0}> Pre Processing ...... Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> SelfField ........... Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> Boundingbox ......... Wall max =    1.19211, CPU max =       1.15
+Timings{0}>                       Wall avg =   0.458503, CPU avg =       0.44
+Timings{0}>                       Wall min =   0.019718, CPU min =       0.02
+Timings{0}> 
+Timings{0}> Statistics .......... Wall max =   0.013131, CPU max =       0.04
+Timings{0}>                       Wall avg =   0.012834, CPU avg =      0.015
+Timings{0}>                       Wall min =   0.012312, CPU min =          0
+Timings{0}> 
+Timings{0}> Potential ........... Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> CreatDistr .......... Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> LoadDistr ........... Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> H5PartTimer ......... Wall max =    0.67693, CPU max =       0.28
+Timings{0}>                       Wall avg =   0.675628, CPU avg =      0.255
+Timings{0}>                       Wall min =   0.674227, CPU min =       0.24
+Timings{0}> 
+Timings{0}> H5BlockTimer ........ Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> StatMarkerTimer ..... Wall max =   0.008629, CPU max =          0
+Timings{0}>                       Wall avg =  0.0053245, CPU avg =          0
+Timings{0}>                       Wall min =   0.004219, CPU min =          0
+Timings{0}> 
+Timings{0}> TIntegration1 ....... Wall max =   0.012251, CPU max =       0.02
+Timings{0}>                       Wall avg =   0.012197, CPU avg =       0.01
+Timings{0}>                       Wall min =   0.012093, CPU min =          0
+Timings{0}> 
+Timings{0}> TIntegration2 ....... Wall max =    1.28985, CPU max =       1.23
+Timings{0}>                       Wall avg =    1.06741, CPU avg =      1.055
+Timings{0}>                       Wall min =   0.693801, CPU min =       0.66
+Timings{0}> 
+Timings{0}> Fieldeval ........... Wall max =   0.011632, CPU max =       0.03
+Timings{0}>                       Wall avg =  0.0116005, CPU avg =     0.0125
+Timings{0}>                       Wall min =   0.011584, CPU min =          0
+Timings{0}> 
+Timings{0}> Binaryrepart ........ Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> WakeField ........... Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> -----------------------------------------------------------------
+[felsim03:31948] *** Process received signal ***
+[felsim03:31946] *** Process received signal ***
+[felsim03:31946] Signal: Segmentation fault (11)
+[felsim03:31946] Signal code: Address not mapped (1)
+[felsim03:31946] Failing at address: 0x38
+[felsim03:31948] Signal: Segmentation fault (11)
+[felsim03:31948] Signal code: Address not mapped (1)
+[felsim03:31948] Failing at address: 0x38
+[felsim03:31947] *** Process received signal ***
+[felsim03:31947] Signal: Segmentation fault (11)
+[felsim03:31947] Signal code: Address not mapped (1)
+[felsim03:31947] Failing at address: 0x38
+[felsim03:31949] *** Process received signal ***
+[felsim03:31949] Signal: Segmentation fault (11)
+[felsim03:31949] Signal code: Address not mapped (1)
+[felsim03:31949] Failing at address: 0x38
+[felsim03:31948] [ 0] /lib64/libpthread.so.0 [0x3ab1c0eb10]
+[felsim03:31948] [ 1] /opt/mpi/openmpi-1.4.2-intel-11.1/lib/libopen-pal.so.0 [0x2b446f53dddf]
+[felsim03:31948] [ 2] /lib64/libc.so.6(cfree+0xd1) [0x3ab14727f1]
+[felsim03:31948] [ 3] opal(_ZN16BoundaryGeometryD0Ev+0x60) [0x80d340]
+[felsim03:31948] [ 4] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0xaa) [0x4f60ea]
+[felsim03:31948] [ 5] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31946] [ 0] /lib64/libpthread.so.0 [0x3ab1c0eb10]
+[felsim03:31946] [ 1] /opt/mpi/openmpi-1.4.2-intel-11.1/lib/libopen-pal.so.0 [0x2b71382f1ddf]
+[felsim03:31946] [ 2] /lib64/libc.so.6(cfree+0xd1) [0x3ab14727f1]
+[felsim03:31946] [ 3] opal(_ZN16BoundaryGeometryD0Ev+0x60) [0x80d340]
+[felsim03:31946] [ 4] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0xaa) [0x4f60ea]
+[felsim03:31946] [ 5] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31946] [ 6] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31946] [ 7] opal(_ZN9Directory5eraseEv+0x51) [0x4f5921]
+[felsim03:31946] [ 8] opal(_ZN8OpalDataD1Ev+0x37) [0x4fa907]
+[felsim03:31946] [ 9] /lib64/libc.so.6(exit+0xe5) [0x3ab14333a5]
+[felsim03:31946] [10] /lib64/libc.so.6(__libc_start_main+0xfb) [0x3ab141d99b]
+[felsim03:31946] [11] opal(_ZNSt8ios_base4InitD1Ev+0x39) [0x4f31f9]
+[felsim03:31946] *** End of error message ***
+[felsim03:31948] [ 6] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31948] [ 7] opal(_ZN9Directory5eraseEv+0x51) [0x4f5921]
+[felsim03:31948] [ 8] opal(_ZN8OpalDataD1Ev+0x37) [0x4fa907]
+[felsim03:31948] [ 9] /lib64/libc.so.6(exit+0xe5) [0x3ab14333a5]
+[felsim03:31948] [10] /lib64/libc.so.6(__libc_start_main+0xfb) [0x3ab141d99b]
+[felsim03:31948] [11] opal(_ZNSt8ios_base4InitD1Ev+0x39) [0x4f31f9]
+[felsim03:31948] *** End of error message ***
+[felsim03:31947] [ 0] /lib64/libpthread.so.0 [0x3ab1c0eb10]
+[felsim03:31947] [ 1] /opt/mpi/openmpi-1.4.2-intel-11.1/lib/libopen-pal.so.0 [0x2af0c385addf]
+[felsim03:31947] [ 2] /lib64/libc.so.6(cfree+0xd1) [0x3ab14727f1]
+[felsim03:31947] [ 3] opal(_ZN16BoundaryGeometryD0Ev+0x60) [0x80d340]
+[felsim03:31947] [ 4] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0xaa) [0x4f60ea]
+[felsim03:31947] [ 5] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31947] [ 6] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31947] [ 7] opal(_ZN9Directory5eraseEv+0x51) [0x4f5921]
+[felsim03:31947] [ 8] opal(_ZN8OpalDataD1Ev+0x37) [0x4fa907]
+[felsim03:31947] [ 9] /lib64/libc.so.6(exit+0xe5) [0x3ab14333a5]
+[felsim03:31947] [10] /lib64/libc.so.6(__libc_start_main+0xfb) [0x3ab141d99b]
+[felsim03:31947] [11] opal(_ZNSt8ios_base4InitD1Ev+0x39) [0x4f31f9]
+[felsim03:31947] *** End of error message ***
+[felsim03:31949] [ 0] /lib64/libpthread.so.0 [0x3ab1c0eb10]
+[felsim03:31949] [ 1] /opt/mpi/openmpi-1.4.2-intel-11.1/lib/libopen-pal.so.0 [0x2af682262ddf]
+[felsim03:31949] [ 2] /lib64/libc.so.6(cfree+0xd1) [0x3ab14727f1]
+[felsim03:31949] [ 3] opal(_ZN16BoundaryGeometryD0Ev+0x60) [0x80d340]
+[felsim03:31949] [ 4] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0xaa) [0x4f60ea]
+[felsim03:31949] [ 5] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31949] [ 6] opal(_ZNSt8_Rb_treeISsSt4pairIKSs7PointerI6ObjectEESt10_Select1stIS5_ESt4lessISsESaIS5_EE8_M_eraseEPSt13_Rb_tree_nodeIS5_E+0x3a) [0x4f607a]
+[felsim03:31949] [ 7] opal(_ZN9Directory5eraseEv+0x51) [0x4f5921]
+[felsim03:31949] [ 8] opal(_ZN8OpalDataD1Ev+0x37) [0x4fa907]
+[felsim03:31949] [ 9] /lib64/libc.so.6(exit+0xe5) [0x3ab14333a5]
+[felsim03:31949] [10] /lib64/libc.so.6(__libc_start_main+0xfb) [0x3ab141d99b]
+[felsim03:31949] [11] opal(_ZNSt8ios_base4InitD1Ev+0x39) [0x4f31f9]
+[felsim03:31949] *** End of error message ***
+--------------------------------------------------------------------------
+mpirun noticed that process rank 0 with PID 31946 on node felsim03 exited on signal 11 (Segmentation fault).
+--------------------------------------------------------------------------

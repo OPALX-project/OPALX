@@ -1,0 +1,54 @@
+; SCCfile control file LF.SCC
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+Title
+Intrasegment coupling cavity for left side of bridge coupler
+Nominal accelerator frequency = 805 MHz
+This cavity tuned 12 MHz high anticipating coupling slot detuning 
+ENDTitle
+
+FULL_cavity
+ 
+FILEname_prefix       LF
+SEQuence_number       1
+FREQuency             817
+LENGTH                8.7376
+DIAMeter              27.0002
+POST_Length           0
+LEFT_POST_Length      0.310134
+RIGHT_POST_Length     0.978662
+POST_Diameter         0
+LEFT_POST_Diameter    13.001752
+RIGHT_POST_Diameter   12.99972
+OUTER_Corner_radius   0.9525
+LEFT_OUTER_Corner_r   0.9525
+RIGHT_OUTER_Corner_r  0
+INNER_Corner_radius   0
+LEFT_INNER_Corner_r   0.1524
+RIGHT_INNER_Corner_r  0.16002
+OUTER_Post_radius     0
+LEFT_OUTER_Post_r     0.1524
+RIGHT_OUTER_Post_r    0.16002
+INNER_Post_radius     0
+LEFT_INNER_Post_r     0
+RIGHT_INNER_Post_r    0
+FLAT_length           1.00584
+LEFT_FLAT_length      1.00584
+RIGHT_FLAT_length     1.00584
+FACE_angle            0
+LEFT_FACE_angle       0
+RIGHT_FACE_angle      3
+DELTA_frequency       0.02
+MESH_size             0.08
+START                 1
+
+; Start codes for SCCFISH:
+; 1 No tuning
+; 2 Adjust diameter
+; 3 Adjust gap (equal length changes on both posts)
+; 4 Adjust left post length (full cavities only)
+; 5 Adjust right post length
+
+ENDFile
+

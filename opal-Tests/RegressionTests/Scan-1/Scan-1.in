@@ -1,0 +1,75 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=10;
+Option, SCAN=TRUE;
+Option, SEED=12345;
+
+REPARTFREQ=1000;
+MINSTEPFORREBIN=1500;
+
+Title,string="Error study test";
+
+Edes=1.0E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element length (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+qb=20.7E-12;
+rf=1498.956e6;  
+v0=beta*CLIGHT;
+lz  = 6.5E-12*v0;
+
+Dist1:DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+sigmax = 0.0005455, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.0005455, sigmapy = 0.0, corry = 0.0,
+sigmat = 0.0, pt = 0.0, sigmapt = 0.0, corrt = 0.0, tRise=4.15e-12, tFall=4.15e-12, tPulseFWHM=6.2e-12, ekin=0.4, NBIN=5, DEBIN=80;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=16, MY=16, MT=16, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=3, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=1000, BCURRENT=0.0310283892, BFREQ=rf, CHARGE=-1;
+
+I=0;
+WHILE (I < 3) {
+   rv1:= (RANF()*4.7);
+   rv2:=0.0; //(RANF()*8.246e-07);
+   rv3:=0.0; //(RANF()*1.615e-07);
+   rv4:=0.0; //(RANF()*1.016e-07);
+   rv5:=0.0; //(RANF()*4.750e-07);
+
+   Col: ECollimator, L=3.0E-3, ELEMEDGE=7.0E-3, XSIZE=7.5E-4, YSIZE=7.5E-4, OUTFN="Coll.h5";
+   SP1: Solenoid, L=1.20, ELEMEDGE=-0.5315, FMAPFN="1T2.T7", KS=8.246e-05 + rv2;
+   SP2: Solenoid, L=1.20, ELEMEDGE=-0.397,  FMAPFN="1T3.T7", KS=1.615e-05 + rv3;
+   SP3: Solenoid, L=1.20, ELEMEDGE=-0.267,  FMAPFN="1T3.T7", KS=1.016e-05 + rv4;
+   SP4: Solenoid, L=1.20, ELEMEDGE=-0.157,  FMAPFN="1T3.T7", KS=4.750e-05 + rv5;
+   SP5: Solenoid, L=1.20, ELEMEDGE=-0.047,  FMAPFN="1T3.T7", KS=0.0;
+
+   gun: RFCavity, L=0.013, VOLT=(-47.51437343 + rv1), FMAPFN="1T1.T7", ELEMEDGE=0.00, TYPE="STANDING", FREQ=1.0e-6;
+
+   value,{I,rv1,rv2,rv3,rv4,rv5};
+
+   l1:   Line = (gun,sp1,sp2,sp3,sp4,sp5); 
+
+   SELECT, Line=l1;
+   TRACK,line=l1, beam=beam1, MAXSTEPS=50, DT=4.0e-13;
+    RUN, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution:=Dist1;
+   ENDTRACK;
+
+   //SYSTEM,"mkdir -p Scan-" & STRING(I);
+   //SYSTEM,"mv Scan.h5 Scan.stat Scan.lbal Scan-" & STRING(I);
+
+   I=EVAL(I+1.0);	
+}
+
+Quit;

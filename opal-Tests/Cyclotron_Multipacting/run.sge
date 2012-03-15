@@ -1,0 +1,26 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe orte 16
+#$ -N CIAE_Cavity_Vaughan_model_const_part
+#$ -v LD_LIBRARY_PATH,OPAL_EXE_PATH,OPENMPI
+
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE
+cp $MACHINE_FILE .machinefile.last
+#
+#
+FN=$JOB_NAME
+
+#
+rm -rf $FN
+mkdir -p $FN/Logs
+cd   $FN
+cp ../$FN.in .
+mv ../.machinefile.last .
+#
+OPAL="$OPAL_EXE_PATH/opal $FN.in --commlib mpi --info 9 --warn 0 "
+CMD="$OPENMPI/bin/mpirun -x LD_LIBRARY_PATH -machinefile $MACHINE_FILE -np $NSLOTS  $OPAL "
+echo "Running $CMD"
+echo
+$CMD

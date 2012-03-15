@@ -1,0 +1,46 @@
+H-Shaped Magnet 
+Including harmonic analysis for H type dipole magnet
+Field output is requested along the X axis
+[Originally appeared in 1987 Reference Manual B.2.1]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Declares a POISSON problem
+dx=.3,                  ; Mesh interval
+mode=-1                 ; Use fixed gamma for material 2
+xminf=0,xmaxf=22,       ; X range for field interpolation
+yminf=0,ymaxf=0,        ; Y range (along line y = 0)
+; The next 6 terms refer to the harmonic analysis:
+ktype=6,                ; H dipole symmetry
+nterm=7,                ; Number of coefficients
+nptc=11,                ; Number of arc points for interpolation
+rint=1.5,               ; Radius of the arc
+angle=90,               ; Angular extent of arc (default start = 0)
+rnorm=1.5 &             ; Aperture radius
+
+&po x=0.,y=0. &         ; Start of the air-region points
+&po x=22.,y=0. &
+&po x=22.,y=13. &
+&po x=0.,y=13. &
+&po x=0.,y=0. &
+
+&reg mat=2 &            ; Start of the iron region
+&po x=0., y=2. &
+&po x=5.1,y=2. &
+&po x=5.5,y=2.4 &
+&po x=5.5,y=6. &
+&po x=15.,y=6. &
+&po x=15.,y=0. &
+&po x=22.,y=0. &
+&po x=22.,y=13. &
+&po x=0.,y=13. &
+&po x=0.,y=2. &
+
+&reg mat=1,cur=-25455.791 & ; Start of the coil region
+&po x=6.,y=0. &
+&po x=14.5,y=0. &
+&po x=14.5,y=5.5 &
+&po x=6.0,y=5.5 &
+&po x=6.,y=0. &
+

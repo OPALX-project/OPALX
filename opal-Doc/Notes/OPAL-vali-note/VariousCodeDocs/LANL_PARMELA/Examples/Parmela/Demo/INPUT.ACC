@@ -1,0 +1,76 @@
+run 1 1 1300. -.002806 .00001 9
+title
+ Example of one cell photo injector followed by a traveling wave acc.
+; This example is only meant to demonstrate some of the elements
+; in a parmela input file. It does not represent a real accelerator.
+drift 0.0 2.0 1
+cell 6.665 1.2 1 0.000 26. 1 5. -1 0 0 0
+ 0.1551113E+01,-.1297884E+00,-.7242164E-01,0.4755327E-01,
+ -.1684164E-01,0.4277525E-02,-.6665214E-03,-.1467097E-04,
+ 0.8780015E-04,-.4094113E-04,0.1824233E-04,-.6261408E-05,
+ -.1619545E-05,0.3140922E-05
+drift 20 2.0 1
+;  This is a comment line and is ignored.
+cell 8.65 2.54 1 150.000 4.75 2 5. 1 0 0 0 ;this is a comment too
+ 0.1819523E+01,0.8274025E+00,0.1129347E+00,-.5197137E-01, :this is a comment
+ -.3271770E-01,-.7732846E-02,0.8754907E-03,0.1490549E-02,!this is too.
+ 0.4951317E-03,-.1471407E-04,-.6959761E-04,-.2246184E-04,
+ 0.8182504E-07,0.2409466E-05
+: Parameter 14 on the following trwave card causes the file trwdata to be 
+: written. This file can be displayed with the program TRWBEAD. 
+: set parameter 14 to 0 to suppress the writing of the trwdata file.
+trwave 4.325 3.19 1  60.000 7.52 2 5 1300 4 -5 5 .75 5 0 0 0 0 0 0
+  0.000020  0.000897 -0.006674 -0.018529  0.557918  0.829216  0.023465
+ -0.013701  0.000897  0.000125 -0.000026
+trwave 8.651 3.19 1  60.0 7.42 2 5 1300 4 
+trwave 8.651 3.17 1  60.0 7.43 2 5 1300 4 
+trwave 8.651 3.15 1  60.0 7.42 2 5 1300 4 
+trwave 8.651 3.13 1  60.0 7.47 2 5 1300 4 
+drift 10 1.4 1
+drift 10 1.4 1
+drift 10 1.4 1
+drift 6 1.4 1
+quad 7 1.4 1   123
+drift 3 1.4 1
+quad 14 1.4 1 -104.5
+drift 3 1.4 1
+quad 7 1.4 1   123
+drift 10 1.4 1
+drift 10 1.4 1
+drift 10 1.4 1
+drift  5 1.4 1
+wiggler 1.25 .5 1 .5 40 -3041. .7071 0 0 0
+wiggler 2.5 .5 1 1 40 6082 .7071 0 0 0  
+wiggler 10 .5 1 4 40 6082 .7071 0 0 0
+wiggler 1.25 .5 1 .5 40 3041. .7071 0 0 0
+coil -5. 7.0 -25000 0. 100.
+coil  5. 7.0  25000
+coil 50  10.  12000
+coil -50  10.  -12000
+zout  500 45 0 75 1.
+input 9 1111 10. .500 1 5. 0.
+input 9 1111 10. .500 1 5. 4.4
+input 9 1111 10. .500 1 5. -4.4
+input 9 1111 10. .500 1 5. 3.3
+input 9 1111 10. .500 1 5. -3.3
+input 9 1111 10. .500 1 5. 2.2
+input 9 1111 10. .500 1 5. -2.2
+input 9 1111 10. .500 1 5. 1.1
+input 9 1111 10. .500 1 5. -1.1
+output 5
+; This part of input from this comment to next comment can be removed to
+; restart with saved coordinates... 
+scheff 6.5 1. 1.5 12 200 0 0 5 0 0 
+start 21. 1 92 1 10
+scheff 6.5 1. 1.5 12 100 0 0 3 0 0 
+continue 5. 200. 2 0
+save 1
+; ...to here. If the above input is removed or put after the END line,
+; the problem can be restarted.
+scheff 6.5 1.1 1.5 20 100 0 0 3 0 0  
+restart 30. 52. 2 0 0 1
+save 2
+scheff 6.5 .3 1.5 20 100 0 0 3 0 0 
+continue 30 600. 2 0
+end
+

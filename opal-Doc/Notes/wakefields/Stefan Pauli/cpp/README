@@ -1,0 +1,12 @@
+how to build
+=========
+call 'make' in the terminal
+
+how to run
+========
+call 'make' in the terminal. Then a wakefields and energy spreads with different parameters are calculated. This can be changed in 'task.cpp / make()'.
+
+how to look at the data
+================
+the data are written to a file. The files can be plotted by gnuplot 'filename.dat'.
+In the header of the file information to the parameter is written. 

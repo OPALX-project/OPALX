@@ -1,0 +1,33 @@
+\section{Conclusion}
+\label{sec:concl}
+
+We have presented a scalable Poisson solver suitable to handle domains
+with irregular boundaries as they arise, for example, in beam dynamics
+simulations.  The solver employs the conjugate gradient algorithm
+preconditioned by smoothed aggregation based AMG.  PEC and
+open-space boundary approximations have been discussed.  A real world
+example where the solver was used in a beam dynamics code (OPAL) shows
+the relevance of this approach by observing up to $~40\%$ difference in
+the rms beam size when comparing to the FFT-based solver with open
+domains.  The code exhibits excellent scalability up to 2048 processors
+with cylindrial tubes embedded in meshes with up to $1024^3$ grid
+points.  In the very near future, this approach will enable precise beam
+dynamics simulations in large particle accelerator structures with a
+level of detail not obtained before.
+
+In real particle simulations (and other test cases encountered) system
+matrices arising from quadratic boundary treatment are only `mildly'
+nonsymmetric such that PCG can be applied.
+
+Planed future work includes adaptive mesh refinement in order to reduce
+the number of grid points in regions that are less relevant for the
+space charge calculation.  The boundary treatment for simply connected
+geometries will be extended to cope with more realistic geometries.  This
+new method, designed for accurate 3D space charge calculations, will be
+used in the beam dynamics simulations for the SwissFEL project, a next
+generation light source foreseen to be built in Switzerland.
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 

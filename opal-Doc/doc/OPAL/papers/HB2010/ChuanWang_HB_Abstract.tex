@@ -1,0 +1,72 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{amsmath} 
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{url}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{indentfirst}
+\geometry{left=3.17cm,right=3.17cm,top=2.54cm,bottom=2.54cm}
+%\begin{comment}
+\pagestyle{empty}
+%\end{comment}
+\begin{document}
+\begin{center}
+{\large A Field Emission and Secondary Emission Model in OPAL} \\
+Ch. Wang, A. Adelmann \\
+\end{center}
+\begin{abstract}
+Dark current and multipacting phenomena, have been observed in accelerator structures, and are usually harmful to the equipment and the beam quality. These effects need to be suppressed to guarantee stable operation.
+Large scale simulations can be used to understand the origin and develop cures of these phenomena.
+We extend OPAL ($\mathbf{O}$bject Oriented $\mathbf{P}$arallel $\mathbf{A}$ccelerator $\mathbf{L}$ibrary),  a parallel framework for charged particle optics in accelerator structures and beam lines \cite{OP} with the necessary physics to simulate   multipacting phenomena.
+We add a Fowler-Nordheim field emission model \cite{BC,FN} and secondary emission model \cite{SE}, as well as 3D boundary geometry handling capabilities to OPAL. These capabilities allows us to evaluate dark current and multipacting in high-gradient linac structures and in RF cavities of high intensity Cyclotrons. The electric field in present accelerator structures is high enough, such that space charge effects in the Fowler-Nordheim model can not be neglect. First a Child-Langmuir model is added to phenomenologically model space charge limited field emission. In a second step a space charge solver capable of handling complicated boundary geometries is implemented in OPAL to make our field emission model more self-consistent. 
+
+
+
+
+
+These new features make OPAL a feasible tool in durk current and multipacting simulation application.    
+\end{abstract}
+\begin{thebibliography}{99}
+\bibitem{OP} A. Adelmann and Ch. Kraus and Y. Ineichen and  J. Yang,
+The OPAL (Object Oriented Parallel Accelerator Library) 
+              Framework, Paul Scherrer Institut, PSI-PR-08-02, 2008
+\bibitem{BC} Y. Feng and J. P. Verboncoeur,
+Phys.Plasmas 13, 073105 (2006)
+\bibitem{FN} R. H. Fowler and L. Nordheim, 
+Proc. R. Soc. London, Ser. A 119, 173 (1928)
+\bibitem{SE} M. A. Furman and M. T. F. Pivi,  
+Phys. Rev. ST Accel. Beams 5, 124404 (2002)
+
+
+\bibitem{ Adelmann20104554}
+title = "A fast parallel Poisson solver on irregular domains applied to beam dynamics simulations",
+journal = "Journal of Computational Physics",
+volume = "229",
+number = "12",
+pages = "4554 - 4566",
+year = "2010",
+note = "",
+issn = "0021-9991",
+doi = "DOI: 10.1016/j.jcp.2010.02.022",
+url = "http://www.sciencedirect.com/science/article/B6WHY-4YHP08T-1/2/41309c23eb7fa1b4af95d9401a21da39",
+author = "A. Adelmann and P. Arbenz and Y. Ineichen",
+keywords = "Poisson equation",
+keywords = "Irregular domains",
+keywords = "Preconditioned conjugate gradient algorithm",
+keywords = "Algebraic multigrid",
+keywords = "Beam dynamics",
+keywords = "Space-charge"
+}
+
+
+
+
+\end{thebibliography} 
+\end{document}

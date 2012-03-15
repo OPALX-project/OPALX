@@ -1,0 +1,93 @@
+body { background-color: white;
+       color: black;
+       font-size: 12pt;
+       font-family: sans-serif;
+       margin-left: 5%;
+       margin-right: 5%;
+}
+
+<!-- the following redefinitions needed due
+to browser bug with using div -->
+
+
+p,ul,ol,dl,tr { 
+  font-family: sans-serif;
+  color: black;
+}
+
+p,ul,ol,dl,tr,td,th,h4 { font-size: 12pt;}
+h1   { font-size: 24pt;}
+h2   { font-size: 18pt;}
+h3   { font-size: 14pt;}
+h1 { margin-left: -4%;}
+h2 { margin-left: -2%; }
+
+h1,h2,h3,h4,h5 {
+  font-family: sans-serif;
+  color: navy;
+}
+
+sub,sup {font-size: 80%;}
+
+li {margin-top: 1em;}
+
+tt, code, pre { 
+   font-family: "Courier New", monospace; 
+   font-size: 80%;
+   font-weight: bold;
+   color: black;
+}
+
+code, pre {
+   margin-top: 0em;
+   margin-bottom: 0em;
+   margin-left: 2%;
+   white-space: pre;
+}
+
+img  { 
+   vertical-align: text-bottom 
+}
+
+em { font-style: italic; font-weight: bold }
+
+strong { font-weight: bold }
+
+em.ssi  { font-style: normal; font-family: courier}
+em.alt  { color: rgb(51,151,51); font-style: normal; font-weight: bold; 
+          font-size: large }
+
+<!-- to avoid problems only use predefined colors... -->
+:link { color: blue }         /* unvisited link */
+:visited { color: teal }      /* visited links */
+:active { color: red }        /* active links */
+:hover { color: fuchsia }     /* mouse over link */
+
+div.thinbox { 
+  border: solid; 
+  border-width: thin; 
+  width: 100%;
+}
+
+div.silverbox { 
+  background: silver;
+  padding: 0.5em;
+  border: none;
+  width: 100%;
+}
+
+table {
+  margin-left: -4%
+  font-family: sans-serif;
+  background: white;
+  border-width: 0;
+  border-color: white;
+}
+th { font-family: sans-serif; 
+     color: black; 
+     background: #99CCFF }
+td { font-family: sans-serif; 
+     color: black; 
+     background: #CCFFFF }
+
+#cleanTable td,th {background: white}

@@ -1,0 +1,2 @@
+#!/bin/bash
+root -l -b analyze.C | tee analyze.out

@@ -1,0 +1,89 @@
+\documentclass{JAC2003}
+
+%%
+%%  This file was updated in April 2009 by J. Poole to be in line with Word tempaltes
+%%
+%%  Use \documentclass[boxit]{JAC2003}
+%%  to draw a frame with the correct margins on the output.
+%%
+%%  Use \documentclass[acus]{JAC2003}
+%%  for US letter paper layout
+%%
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+%%
+%%   VARIABLE HEIGHT FOR THE TITLE BOX (default 35mm)
+%%
+
+\setlength{\titleblockheight}{27mm}
+
+\begin{document}
+\title{Precise Simulations of High Power Cyclotrons: how does it work?}
+
+\author{A. Adelmann, PSI, Villingen, Switzerland}
+
+\maketitle
+
+\begin{abstract}
+In space charge dominated regimes non-linear forces acting over large spatial and temporal scales render precise beam dynamics simulation a challenging task. Other possibly important physics processes to be considered are: collimation including secondary effects and interaction from neighboring turns. For accurate field solutions and the precise calculation of quantities such as emittance, controlled and uncontrolled losses, sufficient particle statistics together with corresponding spatial and temporal resolution is required. These requirements call for state-of-the-art numerical algorithms and efficient parallel implementation. Many of the above mentioned challenges are met by the beam dynamics program OPAL (Object Oriented Parallel Accelerator Library). I will touch on physics and numerical modeling questions with particular emphasis on the implementation on high performance computing architectures. A short overview of the program and its unique features will be presented. Examples of OPAL simulations include space charge studies on high-intensity proton cyclotrons.
+\end{abstract}
+
+\section{MOTIVATION}
+In present and future high power cyclotrons, one of the main challenges are the ability to control losses beyond our precent capabilities. Very general, losses can be
+categorized into {\em controlled} and {\em uncontrolled looses}. Taking as example the PSI high power proton accelerator facility,
+the total loss budget is in the order of 2 $\mu A$ out of 2.2 mA of production current. In Fig.\ \ref{fig:loss1} the absolute
+\begin{figure}[htb]
+   \centering
+   \includegraphics*[width=80mm]{loss-seidel-1}
+  %   \includegraphics*[width=34mm]{loss-seidel-2}
+   \caption{Absolute losses as function of  the current with two different setups of the PSI Ring Cyclotron \cite{pc-seidel}.}
+   \label{fig:loss1}
+\end{figure}
+losses of the PSI Ring Cyclotron for different setups are shown. We can draw two important consequences w.r.t. the message
+of this paper:
+\begin{enumerate}
+\item a large dynamic range of 3-4 order of magnitude must be provided by any
+beam dynamics simulations in order to predict losses at a suitable level, 
+\item different machine setups can have a huge impact on the losses, demanding start-to-end simulations not only of the cyclotron,  but also including beam delivery systems.
+\end{enumerate}
+In order to {\em quantitatively} understand the losses in large and complex structures, precise start-to-end simulations are necessary.
+
+In the sequel of the paper we will show the current capabilities of OPAL (Object Oriented Parallel Accelerator Library) and describe future research w.r.t.\ a more
+complete and accurate computational model. 
+\section{The Model OF OPAL}
+
+
+\section{FUTURE ENHANCEMENT OF OPAL}
+
+
+\section{APPLICATIONS}
+
+
+\section{CONCLUSIONS}
+The computational model described is necessary to better understand existing machines and will help
+design next generation high power cyclotron.
+\subsection{Acknowledgments}
+The paper has enormously profited from discussion with the following colleagues:  
+
+%\begin{equation}\label{eq:units}
+   % C_B={q^3\over 3\epsilon_{0} mc}=3.54\,\hbox{$\mu$eV/T}
+%\end{equation}
+
+
+\begin{thebibliography}{9}   % Use for  1-9  references
+
+\bibitem{pc-seidel} Private communication M. Seidel
+
+\bibitem{bi-2010} Y. J.\ Bi,  A.\ Adelmann, et.al ``Towards Quantitative Predictions of High Power Cyclotrons", Cyclorons 2010,  \texttt{http://www.JACoW.org}.
+
+\bibitem{opal} A.\ Adelmann, C.\ Kraus et.al ``The OPAL Framework (Object Oriented Parallel Accelerator Library)", Paul Scherrer Institut, PSI-PR-08-02, 2008-10.
+
+\bibitem{yang-2010} J.\ Yang, A.\ Adelmann et.al, ``Beam Dynamics in High Intensity Cyclotrons Including Neighboring Bunch Effects: Model, Implementation and Application", 
+Phys. Rev.\ ST Accel.\ Beams Volume 13 Issue 6 064201 (2010)
+
+
+\end{thebibliography}
+
+\end{document}

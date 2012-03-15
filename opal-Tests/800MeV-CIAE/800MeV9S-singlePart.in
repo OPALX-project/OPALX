@@ -1,0 +1,51 @@
+OPTION, ECHO=FALSE;
+/////////////////////////////////////////////////////////////////////////////////////
+// input file for single particle track for 800 MeV CIAE Ring with 9 sectors and   //
+// 5  cavities.                                                                    //
+// the initial conditions are obtained from ???.                                   //
+/////////////////////////////////////////////////////////////////////////////////////
+OPTION, PSDUMPFREQ=10000000;
+OPTION, SPTDUMPFREQ=1;
+
+TITLE,STRING="OPAL-Cycl for 800 MeV 8 sector Ring";
+rinf= 644.777462;
+
+Edes= 0.140;
+myR = 2832.6962;
+myPr= 9.98643/rinf;
+
+//Edes= 0.200;
+//myR = 3513.3556;
+//myPr= 39.80542/644.777462;
+
+frequency=44.4;
+
+gamma = (Edes+PMASS)/PMASS;
+beta  = sqrt(1-(1/gamma^2));
+gambet= gamma*beta;
+P0    = gamma*beta*PMASS;
+brho  = (PMASS*1.0e9*gambet) / CLIGHT;
+
+VALUE,{gamma,brho,Edes,beta,gambet,PMASS};
+
+turns = 1;
+
+ring: CYCLOTRON, TYPE="CARBONCYCL", CYHARMON=6, PHIINIT=0.0, PRINIT=myPr, RINIT=myR, SYMMETRY=9.0, RFFREQ=frequency, FMAPFN="ring800MeV9S-1S-0.2deg.dat";
+
+
+l1: LINE = (ring);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="PartDatabase.dat";
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=32, MY=32, MT=32,
+                 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+beam1: BEAM, PC=P0, PARTICLE=PROTON, CHARGE=1, SPACECHARGE=false, NPART=1, BCURRENT=0.0, BFREQ= frequency;
+
+SELECT, LINE=l1;
+
+TRACK,LINE=l1, BEAM=beam1, MAXSTEPS=7200*turns, STEPSPERTURN=7200;
+RUN, METHOD = "CYCLOTRON-T",BEAM=beam1, FIELDSOLVER=Fs1, DISTRIBUTION=Dist1;
+ENDTRACK;
+STOP;

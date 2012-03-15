@@ -1,0 +1,25 @@
+Quarter-wave coaxial resonator 
+[Courtesy Amit Roy, Argonne National Laboratory]
+
+&reg kprob=1,             ! Superfish problem
+icylin=1                  ! Cylindrical symmetry
+freq=101.22777,           ! Starting frequency 
+dslope=-1,                ! Allow convergence after one iteration
+dx=.25,                   ! Mesh interval
+xdri=0.,ydri=7.0,         ! Drive point coordinates
+norm=4,                   ! Normalize to fields integral between points
+xnorm1=51.0,ynorm1=4.6,   ! First point coordinates for field normalization
+xnorm2=51.0,ynorm2=7.95,  ! First point coordinates for field normalization
+enorm=1000000. &          ! Field integral value for normalizing between points
+
+&po x= 0.00,  y= 3.00 &
+&po x= 0.00,  y= 7.95 &
+&po x= 71.6,  y= 7.95 &
+&po x= 71.6,  y= 0.00 &
+&po x= 58.9,  y= 0.00 &
+&po x= 58.9,  y= 2.10 &
+&po nt=2, r=2.5, theta=90.,x0=56.4,y0=2.1  &
+&po x=29.93238, y=4.60 &
+&po nt=2, r=2.5,theta=158.8998,x0=29.93238,y0=2.1 &
+&po x= 0.00, y= 3.00 &
+

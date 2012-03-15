@@ -1,0 +1,41 @@
+# opal-cc.data
+#
+FINLB01ks				0.2089  # GUN solenoid
+#
+CTF3phi					-3.5    #
+FINSB01phi 				0.0     #
+FINSB02phi				0.0	#
+#
+TFWHM      				9.9     # Laser fwhm time [ps]
+TRISE      				0.7     # Laser rise time [ps]
+TFALL      				0.7     # Laser fall time [ps]
+#
+SIGX       				275     # Laser spot size (x) [um]
+SIGY       				275     # Laser spot size (y) [um]
+#
+EKIN       				0.63    # kinetic energy of electrons at emission [eV]
+QBUNCH     				200     # Bunch charge [pC]
+#
+NBIN      				20   	# Number of energy bins (gun)
+DEBIN      				80 	# energy span for which particles are merged to one bin [keV]
+#
+MX         				32 	# Mesh size in X
+MY         				32  	# Mesh size in Y
+MT         				32   	# Mesh size in T/Z
+#
+NPART      				200000	# Number of simulation particles
+#
+DTGUN      				0.1  	# time step in gun [ps]
+DT         				1.0   	# time step in beamline [ps]
+#
+ZSTOP      	       			13.0	# z where simulation stops [m]
+ZSTOPGUN   				0.2  	# z where simulation of the gun stops [m]
+#
+CORES      				16  	# number of cores (cpus) to use
+#
+FREQ       				2997.912 # rf frequency Mhz
+#
+H5PSFQ     				100000  # h5 phase space dump frequency
+#
+USEET          				-1      # flag for envelope-tracker (-1 = t-tracker, 1 e-tracker)		
+NSLICE					100	# slices used by the e-tracker 

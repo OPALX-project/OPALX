@@ -1,0 +1,7 @@
+; SEGFIELD control file
+OUTPUT_file         segs
+INPUT_filename      mode763
+
+SEGment_numbers      2 to 7
+E0T = 1
+ENDFILE

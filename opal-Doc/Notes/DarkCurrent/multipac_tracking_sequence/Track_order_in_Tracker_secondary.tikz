@@ -1,0 +1,68 @@
+%\usepackage[latin1]{inputenc}
+%\usepackage{tikz}
+%\usetikzlibrary{shapes,arrows}
+
+%<
+%\usepackage{verbatim}
+%\usepackage[active,tightpage]{preview}
+%\PreviewEnvironment{tikzpicture}
+%\setlength\PreviewBorder{5pt}%
+%
+
+
+
+% Define block styles
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=2.2cm, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw, fill=blue!20, 
+    text width=7.5em, text badly centered, inner sep=3pt, rounded corners, minimum height=4em]
+\tikzstyle{newblock} = [rectangle, draw, fill=red!20, 
+    text width=7.5em, text badly centered, inner sep=3pt, rounded corners, minimum height=4em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=2.2cm,
+    minimum height=2em]
+\tikzstyle{every node}=[font=\small]  
+ \scalebox{0.85}{ 
+\begin{tikzpicture}[node distance = 2.2cm, auto, every node/.style={anchor=base,font=\small}]
+    % Place nodes
+    \node [block] (inte1) {Integration first half step};
+    \node [newblock, above of=inte1, node distance=3.2cm] (additional) {Additional collision test for newly generated secondaries};
+    \node [newblock, right of=additional, node distance=6.2cm] (mark1) {Mark the collision particles};
+   % \node [cloud, left of=incident] (expert) {expert};
+   % \node [cloud, right of=incident] (system) {system};
+   % \node [block, below of=inte1, node distance=2.2cm] (boundp) {Do boundp and calculate beam parameters};
+    \node [block, below of=inte1, node distance=2.2cm] (multi) {Calculate space charge, bins, external field};
+    \node [block, below of=multi, node distance=2.2cm] (delete) {Delete particles};
+    \node [block, below of=delete, node distance=2.2cm] (kick) {Kick particles};
+   
+    \node [newblock, below of=kick, node distance=2.2cm] (collision) {Collision test before integration in second half step};
+    \node [block, below of=collision, node distance=3.2cm] (inte2) {Integration second half step};
+    \node [block, below of=inte2, node distance=2.2cm] (main) {Do main collision test};
+    \node [newblock, right of=main, node distance=6.2cm] (mark3) {Mark the collision particles};
+    \node [block, below of=main, node distance=2.8cm] (main1) {Do field emission  and update time to the next time step};
+    \node [newblock, right of=collision, node distance=6.2cm] (mark2) {Mark the collision particles};
+    \node [newblock, right of=main1, node distance=4.2cm] (secondary) {Call secondary emission model};
+    % Draw edges
+    \path [line] (0,5) -- (additional);
+    \path [line] (inte1) -- (multi);
+    \path [line] (multi) --  (delete);		
+    \path [line] (delete) -- (kick);
+    \path [line] (kick) --  (collision);
+    \path [line] (collision) -- node [near start, right=4pt] {not hit} (inte2);
+    \path [line] (collision) -- node [near start,above=2pt] {hit} (mark2);	
+     \path [line] (inte2) -- (main);
+     \path [line] (additional) -- node [near start, right=4pt] {not hit} (inte1);
+     \path [line] (main) --  node [near start, right=4pt] {not hit} (main1);
+     %\path [line] (main) --  node [near start] {not hit} (inte1);
+    \draw[->] (main1) -| +(-2.5,3) |- (additional);
+    \path [line] (additional) -- node [near start,above=2pt] {hit} (mark1);
+    \path [line] (mark1) -- (mark2);
+    %\draw[->] (main) -| node [near start,above=2pt] {hit} (secondary);
+    %\path [line] (mark2) |- (secondary);
+    \path [line] (secondary) -- (main1);
+    %\draw[->] (secondary) -- +(-0,-2) -- +(-8,-2) |- (additional);
+    \path [line] (mark3) |- (secondary);
+    \path [line] (mark2) -- (mark3);
+    \path [line] (main) -- node [near start,above=2pt] {hit} (mark3);
+\end{tikzpicture}
+}

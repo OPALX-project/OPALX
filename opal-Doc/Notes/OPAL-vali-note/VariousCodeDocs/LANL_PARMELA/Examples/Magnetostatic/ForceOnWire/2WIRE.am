@@ -1,0 +1,46 @@
+Two Long Current Carrying Wires at X,Y = (+1,0) and (-1,0)
+Current in each wire = 1000 A
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+
+&reg kprob=0,         ! Poisson or Pandira problem
+xreg1=-3.0,kreg1=11,  ! X line region physical and logical coordinate 
+xreg2=-2.0,kreg2=21, 
+xreg3= 2.0,kreg3=101,
+xreg4= 3.0,kreg4=111,
+kmax=122, 
+yreg1=-2.0,lreg1=11,  ! Y line region physical and logical coordinate 
+yreg2=-1.5,lreg2=17, 
+yreg3= 1.5,lreg3=67, 
+yreg4= 2.0,lreg4=73, 
+lmax=84, 
+icylin=0,             ! Cartesian coordinates
+nbsup=0,              ! Dirichlet boundary condition at upper edge
+nbslo=0,              ! Dirichlet boundary condition at lower edge
+nbsrt=0,              ! Dirichlet boundary condition at right edge
+nbslf=0               ! Dirichlet boundary condition at left edge
+xminf=-10,xmaxf=10    ! Bounds for computing field and gradient
+ktop=40   &           ! Use 40 steps from X = -10 to X = 10
+
+&po x=10.,y=0. &
+&po nt=2,r=10.,theta=90.,x0=0.,y0=0 &
+&po nt=2,r=10.,theta=180.,x0=0.,y0=0 &
+&po nt=2,r=10.,theta=270.,x0=0.,y0=0 &
+&po nt=2,r=10.,theta=360.,x0=0.,y0=0 &
+
+&reg mat=1,cur=1000. &
+&po x=1.5,y=0. &
+&po nt=2,r=0.5,theta=90.,x0=1.,y0=0.0 &
+&po nt=2,r=0.5,theta=180.,x0=1.,y0=0.0 &
+&po nt=2,r=0.5,theta=270.,x0=1.,y0=0.0 &
+&po nt=2,r=0.5,theta=360.,x0=1.,y0=0.0 &
+
+&reg mat=1,cur=1000. &
+&po x=-0.5,y=0. &
+&po nt=2,r=0.5,theta=90.,x0=-1.,y0=0.0 &
+&po nt=2,r=0.5,theta=180.,x0=-1.,y0=0.0 &
+&po nt=2,r=0.5,theta=270.,x0=-1.,y0=0.0 &
+&po nt=2,r=0.5,theta=360.,x0=-1.,y0=0.0 &
+

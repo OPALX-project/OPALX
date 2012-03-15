@@ -1,0 +1,8 @@
+line  plot Bz
+0 0 0 80                 ! Line end points: x1,y1,x2,y2
+500                      ! number of intervals along line
+Parmela                  ! Creates input 2-D field map for Parmela
+0, 20, 2, 60             ! Grid corners for map
+9 49                     ! Number of radial and longitudinal increments 
+end
+

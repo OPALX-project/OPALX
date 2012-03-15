@@ -1,0 +1,8 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe orte 1
+#$ -N astracc-sc
+#$ -v LD_LIBRARY_PATH,OPAL_EXE_PATH,OPENMPI
+#
+$HOME/packages/astra/Astra sc | tee sc.out

@@ -1,0 +1,37 @@
+; CCLfish control file 3GHz
+; Copyright 1998, by the University of California.
+; Unauthorized commercial use is prohibited.
+
+TITLE
+Sample problem using special shape option for a CCL cell
+Resonant frequency = 3000 MHz, Bore radius = 0.25 cm
+ENDTITLE
+
+PARTICLE              H+
+Cavity_Shape          1
+
+FILEname_prefix       3GHZ
+SEQuence_number       1
+PI_MODE
+FREQuency             3000
+BETA                  0.999
+DIAMeter              7.65
+E0_Normalization      1
+OUTER_CORNer_radius   0
+SEPTUM_thickness      0.3
+BORE_radius           0.875
+PHASE_length          67.5
+DELTA_frequency       0.05
+MESH_size             0.01
+INCrement             2
+START                 4
+
+; Start codes for CCLFISH:
+; 1 No tuning
+; 2 Adjust diameter
+; 3 Adjust spectum thickness (not recommended)
+; 4 Adjust gap
+; 5 Adjust cone angle
+
+ENDFILE
+

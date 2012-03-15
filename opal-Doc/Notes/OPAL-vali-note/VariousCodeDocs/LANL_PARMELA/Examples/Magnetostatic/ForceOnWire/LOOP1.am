@@ -1,0 +1,31 @@
+Force on wire loop in approimately uniform field using R,Z Coordinates 
+Calculated field may be compared to the analytic result of 0.05 N/radian
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,    ! Poisson or Pandira problem
+dx=0.05          ! Mesh interval
+icylin=1,        ! Cylindrical coordinates
+nbsup=1,         ! Neumann boundary condition at upper edge
+nbslo=1,         ! Neumann boundary condition at lower edge
+nbsrt=0,         ! Dirichlet boundary condition at right edge
+nbslf=0  &       ! Dirichlet boundary condition at left edge
+
+&po x=0.000,y=0.000 &
+&po x=0.000,y=2.00 &
+&po x=2.000,y=2.00 &
+&po x=2.000,y=0.000 &
+&po x=0.000,y=0.000 &
+
+&reg mat=1,cur=50000.0,ibound=-1 &  ; Current sheet along outer edge
+&po x=2,y=0 &
+&po x=2,y=2 &
+
+&reg mat=1,cur=2. &  
+&po x=0.9, y=0.9 &
+&po x=0.9, y=1.1 &
+&po x=1.1, y=1.1 &
+&po x=1.1, y=0.9 &
+&po x=0.9, y=0.9 &
+

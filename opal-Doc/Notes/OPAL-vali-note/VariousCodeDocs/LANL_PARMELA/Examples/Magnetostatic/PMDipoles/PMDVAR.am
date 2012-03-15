@@ -1,0 +1,45 @@
+Permanent-Magnet Dipole (for PANDIRA) 
+Full geometry uses the variable easy axis option
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,         ; Poisson or Pandira problem
+mode=0,               ; Some materials have variable permeability
+dx=0.18,              ; Mesh interval
+nbslo=0,              ; Dirichlet boundary condition on lower edge
+nbsup=0,              ; Dirichlet boundary condition on upper edge
+nbslf=0,              ; Dirichlet boundary condition on left edge
+nbsrt=0,              ; Dirichlet boundary condition on right edge
+ibound=0              ; Dirichlet boundary conditions on entire outer boundary
+xminf=-2,xmaxf=2      ; X range for field interpolation 
+yminf=0.5,ymaxf=0.5 & ; Fixed Y for field interpolation
+
+&po x=3.5,y=0 &
+&po nt=2,r=3.5,theta=90 &
+&po nt=2,r=3.5,theta=180 &
+&po nt=2,r=3.5,theta=270 &
+&po nt=2,r=3.5,theta=360 &
+
+&reg mat=3,mshape=1,mtid=1 &
+&po x=3,y=0 &
+&po nt=2,r=3,theta=90 &
+&po nt=2,r=3,theta=180 &
+&po nt=2,r=3,theta=270 &
+&po nt=2,r=3,theta=360 &
+
+&reg mat=1 &
+&po x=1.0,y=0 &
+&po nt=2,r=1.0,theta=90 &
+&po nt=2,r=1.0,theta=180 &
+&po nt=2,r=1.0,theta=270 &
+&po nt=2,r=1.0,theta=360 &
+
+
+&mt mtid=1,                   ; Material ID
+x0a=0,y0a=0,                  ; Center of circle for variable easy axis 
+phia=0,                       ; Starting angle for variable easy axis 
+multa=2,                      ; Multiplier for dipole with variable easy axis 
+gamper=1,                     ; Gamma along hard axis
+hcept=-10800,bcept=11600. &   ; H and B intercepts   
+

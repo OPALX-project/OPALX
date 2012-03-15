@@ -1,0 +1,83 @@
+\documentclass[11pt,a4paper]{report}
+%\usepackage{here}
+\usepackage{epic}
+\usepackage{makeidx}
+
+% ========================================================================
+
+\setlength\hoffset{0pt}
+\setlength\oddsidemargin{0pt}
+\setlength\evensidemargin{\oddsidemargin}
+\setlength\textwidth{160mm}
+
+\setlength\headheight{12pt}
+\setlength\headsep{24pt}
+\setlength\voffset{-36pt}
+\setlength\textheight{9in}
+\setlength\footskip{36pt}
+
+\setlength\parindent{0pt}
+\setlength\partopsep{0pt}
+\setlength\topsep{0pt}
+\raggedbottom
+
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+
+\makeindex
+\newcommand{\ejectpage}{\clearpage}
+
+\input{uml}
+
+% ------------------------------------------------------------------------
+\begin{document}
+
+\begin{center}
+THE CLASSIC COLLABORATION \\
+\vspace{3cm}
+{\huge {\bf CLASSIC Reference Manual}}
+
+\vspace{1cm}
+F. C. Iselin
+
+\vspace{2cm}
+{\bf Abstract}
+\end{center}
+
+\begin{quote}
+  This report gives the class diagrams forthe CLASSIC class library,
+  as defined by the CLASSIC collaboration for the development of a
+  Class Library for Accelerator System SImulation and Control.
+\end{quote}
+
+\clearpage
+
+\setlength{\unitlength}{0.8pt}
+
+\tableofcontents
+\listoffigures
+
+% ========================================================================
+
+\chapter{Overview}
+\input{classic-uml}
+
+% ========================================================================
+
+\clearpage
+\begin{thebibliography}{99}
+
+\bibitem{Gamma}
+  E.~Gamma, R.~Helm, R.~Johnson, and J.~Vlissides,
+  \textit{Design Patterns, Elements of Reusable Object-Oriented
+    Software},
+  Addison-Wesley, 1995.
+
+\end{thebibliography}
+
+% ========================================================================
+
+\clearpage
+\printindex
+\end{document}
+\bye

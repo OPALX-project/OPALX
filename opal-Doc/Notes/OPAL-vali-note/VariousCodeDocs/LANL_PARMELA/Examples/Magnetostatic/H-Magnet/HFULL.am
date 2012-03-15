@@ -1,0 +1,82 @@
+Full H-Shaped Magnet including all four quadrants
+with harmonic analysis with no-symmetry option
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Poisson or Pandira problem
+mode=-1                 ; Use fixed gamma for material 2
+mat=2,                  ; First region is material iron
+nbslo=0,                ; Dirichlet boundary condition on lower edge
+nbsup=0,                ; Dirichlet boundary condition on upper edge
+nbslf=0,                ; Dirichlet boundary condition on left edge
+nbsrt=0,                ; Dirichlet boundary condition on right edge
+; Define X (physical) and K (logical) line regions:
+xreg1=-15,  kreg1=12,  
+xreg2=-14.5,kreg2=14,  
+xreg3=14.5, kreg3=106, 
+xreg4=15,   kreg4=108, 
+kmax=119,  
+; Define Y (physical) and L (logical) line regions:
+yreg1=-6,   lreg1=12, 
+yreg2=-5.5, lreg2=14, 
+yreg3=5.5,  lreg3=53, 
+yreg4=6     lreg4=55, 
+lmax=66   
+; The next 6 terms refer to the harmonic analysis:
+ktype=1,                ; H dipole symmetry
+nterm=9,                ; Number of coefficients
+nptc=41,                ; Number of arc points for interpolation
+rint=1.5,               ; Radius of the arc for interpolation
+angle=360,              ; Angular extent of arc (default start = 0)
+rnorm=1.5 &             ; Aperture radius for normalization
+
+&po x=-22.,y=-13. &     ; Entire geometry is iron, intially
+&po x=22.,y=-13. &
+&po x=22.,y=13. &
+&po x=-22.,y=13. &
+&po x=-22.,y=-13. &
+
+&reg mat=1 &            ; Start of air region
+&po x=-15.,y=-6. &
+&po x=-5.1,y=-6. &
+&po x=-5.1,y=-2. &
+&po x=5.1,y=-2. &
+&po x=5.1,y=-6. &
+&po x=15.,y=-6. &
+&po x=15.,y=6. &
+&po x=5.1,y=6. &
+&po x=5.1,y=2. &
+&po x=-5.1,y=2. &
+&po x=-5.1,y=6. &
+&po x=-15.,y=6. &
+&po x=-15.,y=-6. &
+
+&reg mat=1,cur=-50911.582 &     ; Start of left-side coil
+&po x=6.,y=-5.5 &
+&po x=14.5,y=-5.5 &
+&po x=14.5,y=5.5 &
+&po x=6.0,y=5.5 &
+&po x=6.,y=-5.5 &
+
+&reg mat=1,cur=50911.582 &      ; Start of right-side coil
+&po x=-6.,y=-5.5 &
+&po x=-14.5,y=-5.5 &
+&po x=-14.5,y=5.5 &
+&po x=-6.0,y=5.5 &
+&po x=-6.,y=-5.5 &
+
+; Retrace a section of the iron for calculating the force on it.
+; Use a finer mesh than this example for better accuracy.
+&reg mat=2 &            
+&po x=-22.,y=6. &
+&po x=-22.,y=13. &
+&po x=22.,y=13. &
+&po x=22.,y=6. &
+&po x=5.1,y=6. &
+&po x=5.1,y=2. &
+&po x=-5.1,y=2. &
+&po x=-5.1,y=6. &
+&po x=-22.,y=6. &
+
+

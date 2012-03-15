@@ -1,0 +1,159 @@
+
+A note on documentation etc. for collegues starting work on OPAL:
+
+1) Please take the time and get custom to LaTex: http://www.ctan.org/tex-archive/info/lshort/english/lshort.pdf
+
+2) Also the C++ source code must be documented please read: http://en.wikipedia.org/wiki/Doxygen and document
+   your source code accordingly.
+
+3) We have to do some artwork for our paper(s) and documentation. Please use only TikZ and see the power of
+   this package (and many examples to start) at http://www.texample.net/tikz/examples/ .
+
+
+
+
+
+
+
+
+
+
+As you maybe know I use the KCC compiler for my purposes. In the sequel of
+my work I detected the following problems. 
+
+
+
+----------------------------------------------------------------------------
+Object.cc:
+line 234: warning: reference is to variable "i" (declared at line 226) 
+-- under old for-init scoping rules it would have been variable
+          "i" (declared at line 231)
+        os << i->getHelp();
+              ^
+----------------------------------------------------------------------------
+mad9/src/Attributes/TokenList.hh",
+line 75: warning:
+          qualified name is not allowed in member declaration
+    static Attribute TokenList::make(const string &name, const string &help);
+
+The warning is about as clear as it could be.  The code is in violation of
+the ISO Standard, the the issue is pedantic.
+
+----------------------------------------------------------------------------
+mad9/src/Structure/Beam.hh", line
+102: warning:
+          nonstandard member constant declaration (standard form is a static
+          const integral member)  const double energy_scale = 1.0e+9;
+
+Once again, the warning is quite clear.  The code violates the ISO Standard.
+
+----------------------------------------------------------------------------
+mad9/src/ValueDefinitions/RealVector.hh, line 70: warning:
+          function "ValueDefinition::getReal() const" is hidden by
+          "RealVector::getReal" -- virtual function override intended?
+          virtual double getReal(size_t) const;
+
+This sort of thing often ends up causing trouble eventually.  
+The identifier getReal in RealVector shadows the identifier regReal 
+in ValueDefinition.  If you try to use method getReal() 
+(without qualification) on class RealVector,  the compiler will not find it.  
+See the name lookup rules in the ISO Standard for why.
+
+----------------------------------------------------------------------------
+Warning: Cannot instantiate SingleMultipole<N1>::entries  [withN1=(int)4] 
+           1st referenced by Parser/ClassicParser.o 
+
+classic/src/BeamlineCore/SingleMultipole.hh:238: 
+undefined reference to `SingleMultipole<(int)4>::entries(void)' 
+
+
+The code appears to be in violation of Section 14.7.3p6 of the ISO standard,
+at least as far as how "entries" is declared.  I went after "entries"
+since it was easy to find/grep for.
+
+Diagnosing the problem requires reading the warning and error very
+carefully.  Here's the warning:
+
+Notice that the "entries" look almost the same, except that the warning
+says "[with N1=(int)4]".  When a template is followed by brackets like
+that, it means that it is a template instantiation.  When *not* followed
+by the brackets, it means that it is an explicit template specialization.
+
+Down in BeamlineCore/Octupole.cc I found a definition for entries:
+
+        template<>
+        const SingleMultipole<4>::Entry SingleMultipole<4>::entries[] = {
+ 
+The definition is an explicit specialization, not a template.
+Section 14.7.3p6 requires such specializations be declared in every
+translation unit in which they are used - I could find no such declaration.
+So at the site where it is used in Parser/ClassicParser.o, KCC is
+trying to instantiate the template definition for entries.
+But it can't find it, hence the warning (with the critical bracketed "with").
+
+You'll need to add declarations such as:
+
+        template<>
+        const SingleMultipole<4>::Entry SingleMultipole<4>::entries[];
+
+somewhere between where template SingleMultipole is defined and
+SingleMultipole<4>::entries is used.  
+----------------------------------------------------------------------------
+KCC linker said AttributeSet::getChannel was missing ElementBase.cc
+
+The code appears to be in violation of 3.2p3 of the ISO C++ standard,
+which says: ...An inline function shall be defined in every translation 
+unit in which it is used.
+
+I went looking for the definition of AttributeSet::getChannel
+(which the linker said was missing from ElementBase.cc), 
+and I find that it has an inline definition in AttributeSet.cc .
+Either the inline keyword needs to be removed, or the definition
+needs to be moved to a header.
+
+
+----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+
+KCC Warnings 
+
+
+"/home/adelmann/private/classic/src/Algebra/Tps.cc", line 88: warning: 
+          function "TpsRep<T>::operator new" has no corresponding operator
+          delete (to be called if an exception is thrown during initialization
+          of an allocated object)
+    static void *operator new(size_t s, size_t extra);
+
+
+How to add a new element:
+=========================
+
+./AbsBeamline/BeamlineVisitor.hh:  virtual void visitDrift(const Drift &) = 0;
+./Algorithms/DefaultVisitor.cc:void DefaultVisitor::visitDrift(const Drift &drf)
+./Algorithms/DefaultVisitor.hh:  virtual void visitDrift(const Drift &);
+./Algorithms/PThinTracker.cc:void PThinTracker<T,Dim>::visitDrift(const Drift &drift)
+./Algorithms/PThinTracker.hh:  virtual void visitDrift(const Drift &);
+
+
+./AbsBeamline/Drift.cc
+./AbsBeamline/Drift.hh
+./BeamlineCore/Drift.cc
+./BeamlineCore/Drift.hh
+
+
+
+
+
+./AbsBeamline/BeamlineVisitor.hh:  virtual void visitConstFoc(const ConstFoc &) = 0;
+./AbsBeamline/ConstFoc.cc:  visitor.visitConstFoc(*this);
+./Algorithms/DefaultVisitor.cc:void DefaultVisitor::visitConstFoc(const ConstFoc &drf)
+./Algorithms/DefaultVisitor.hh:  virtual void visitConstFoc(const ConstFoc &);
+./Algorithms/PThinTracker.cc:void PThinTracker<T,Dim>::visitConstFoc(const ConstFoc &drift)
+./Algorithms/PThinTracker.hh:  virtual void visitConstFoc(const ConstFoc &);
+
+
+
+./AbsBeamline/ConstFoc.cc
+./AbsBeamline/ConstFoc.hh
+./BeamlineCore/ConstFocRep.cc
+./BeamlineCore/ConstFocRep.hh

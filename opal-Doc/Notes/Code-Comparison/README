@@ -1,0 +1,35 @@
+11-1-2011 Andreas Adelmann
+
+The CodeComparison directory so conists of the following directories:
+
+	analysis  astra  gpt  html impactt  opal  README  report
+
+All field maps, input files and refernce runs are stored together with analysis and a report. SGE batch
+scripts are provided for the PSI felsim cluster. 
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+analysis: here all scripts are located to analyze the data from teh various runs. The output
+	  goes to report/figures
+
+report: the files (opal-vali-note.tex) of a report comparing the varoius codes and other neccesary tex stuff.
+
+html: still empty
+
+astra: Astra input files for the first part of the PSI 250 MeV test injector (Gun, 2 s-band TW structures and some solenoids). With (sc) and without (nosc)
+       space charge.      
+
+gpt: still empty
+
+impactt: still empty  
+
+opal: OPAL input files for the first part of the PSI 250 MeV test injector (Gun, 2 s-band TW structures and some solenoids). With (sc) and without (nosc)
+      space charge.    
+
+README: this file
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+

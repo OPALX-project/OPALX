@@ -1,0 +1,15 @@
+ &WIN_CONFIG
+ FIXED   = F,
+ LINE_WIDTH      =           2,
+ CHARACTER_HEIGHT        =   1.200000    ,
+ COLOR_MODE      =           2,
+ CONTRA  =   1.000000    ,
+ BRIGHT  =  0.5000000    ,
+ PLOT_MODE       =           1,
+ WIN101_SCALE    =   1.000000    ,
+ WIN102_SCALE    =   1.000000    
+ /
+          -1      0      0   1132   3200
+           3    206      9     36     97
+           4     96     27     36     97
+           6      0      0     44    361

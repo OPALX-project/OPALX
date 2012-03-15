@@ -1,0 +1,32 @@
+Electrostatic Problem, Parallel Plates in a Pipe  
+Plate voltage = 500 V
+[Originally appeared in 1987 User's Guide 10.8]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,    ! Poisson or Pandira problem
+xjfact=0.0,      ! Electrostatic problem
+dx=0.05,         ! Mesh interval
+icylin=0,        ! Cartesian coordinates
+nbsup=0,         ! Dirichlet boundary condition at upper edge
+nbslo=0,         ! Dirichlet boundary condition at lower edge
+nbsrt=0,         ! Dirichlet boundary condition at right edge
+nbslf=0,         ! Dirichlet boundary condition at left edge
+ltop=10 &        ! Maximum row number for field interpolation
+
+&po x=0.,y=0. &
+&po x=4.5,y=0. &
+&po x=4.5,y=1.75 &
+&po nt=2,x0=4.0,y0=1.75,r=0.5,theta=90. &
+&po x=0.5,y=2.25 &
+&po nt=2,x0=0.5,y0=1.75,r=0.5,theta=180. &
+&po x=0.,y=0. &
+
+&reg mat=0,voltage=500.0,ibound=-1 &
+&po x=1.0,y=1.4375 &
+&po x=3.5,y=1.4375 &
+&po x=3.5,y=1.5625 &
+&po x=1.0,y=1.5625 &
+&po x=1.0,y=1.4375 &
+

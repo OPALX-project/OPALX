@@ -1,0 +1,28 @@
+\scalebox{0.7} {
+\begin{tikzpicture}
+\usetikzlibrary{arrows}
+\draw [very thick] (-2.5,0) -- (2.5,0);
+\draw[gray!30,fill=gray!30] (-2.5,-1.5) rectangle (2.5,0); 
+\draw [->,dashed,-latex] (0,0) -- (0,3);
+%\node[below] (w) at (-0.15,0.5) {$\vec{w}$};
+\node[right] (n) at (0,3) {Surface normal $\vec{n}$};
+\path[draw=black,fill=black] (-2,2.0) circle (2pt);
+\node[above] (electron) at (-2,2) {Incident electron};
+\path[draw=black,fill=black] (2,2.0) circle (2pt);
+\node[above] (electron1) at (2,2) {Backscattered electron};
+\draw [->,-latex] (-2,2.0) -- (0,0);
+\draw [dashed,->,-latex]  (0,0) -- (2,2.0);
+\draw [dashed,->,-latex]  (0,0) -- (0.5,-0.8);
+\draw [dashed,->,-latex]  (0.5,-0.8) -- (2,1);
+\path[draw=black,fill=black] (2,1.0) circle (2pt);
+\node[right] (electron1) at (2,1) {Rediffused electron};
+\draw [dashed,->,-latex]  (0.5,-0.8) -- (-0.5,-0.2);
+\draw [dashed,->,-latex] (-0.5,-0.2) -- (-2,0.4);
+\draw [dashed,->,-latex] (-0.5,-0.2) -- (-1.7,0.8);
+\path[draw=black,fill=black] (-2,0.4) circle (2pt);
+\path[draw=black,fill=black] (-1.7,0.8) circle (2pt);
+\node[left] (electron1) at (-1.7,0.8) {True secondaries};
+\node[above] (theta) at (-0.15,0.25) {$\theta$};
+\draw (0,0.3) arc (90:135:0.3);
+\end{tikzpicture}
+}

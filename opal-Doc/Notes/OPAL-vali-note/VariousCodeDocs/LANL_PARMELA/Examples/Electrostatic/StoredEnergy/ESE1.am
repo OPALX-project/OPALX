@@ -1,0 +1,36 @@
+Parallel Plate Capacitor ICYLYN = 0 for XY, 1 for RZ
+Calculated field may be compared to the analytic result:
+Ex = 0, Ey = -200 V/cm for the following conditions
+Voltage on lower plate = 0.0 V
+Voltage on upper plate = 1000.0 V
+Plate separation = 5 cm
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+
+&reg kprob=0,    ! Poisson or Pandira problem
+xjfact=0.0,      ! Electrostatic problem
+dx=0.20,         ! Mesh interval
+icylin=0,        ! Cartesian coordinates
+nbsup=0,         ! Dirichlet boundary condition at upper edge
+nbslo=0,         ! Dirichlet boundary condition at lower edge
+nbsrt=1,         ! Neumann boundary condition at right edge
+nbslf=1,         ! Neumann boundary condition at left edge
+ienergy=1 &      ! Compute stored energy 
+
+
+&po x=0.0,y=0.0 &
+&po x=0.0,y=5.0 &
+&po x=5.0,y=5.0 &
+&po x=5.0,y=0.0 &
+&po x=0.0,y=0.0 &
+
+&reg mat=1,voltage=1000.0,ibound=-1 &
+&po x=0.0,y=5.0 &
+&po x=5.0,y=5.0 &
+
+&reg mat=1,voltage=0.0,ibound=-1 &
+&po x=0.0,y=0.0 &
+&po x=5.0,y=0.0 &
+

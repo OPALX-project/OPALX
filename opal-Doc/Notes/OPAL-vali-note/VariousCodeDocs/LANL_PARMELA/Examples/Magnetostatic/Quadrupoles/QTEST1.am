@@ -1,0 +1,70 @@
+Quadrupole Magnet Problem     
+Harmonic analysis using 11 points at Rint = 1.86 cm
+between 0 and 45 degrees shows relatively poor field
+purity (i.e., large values of higher-order coefficients).
+[Originally appeared in 1987 Reference Manual B.12.1]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Poisson or Pandira problem
+mode=0                  ; Some materials have variable permeability
+mat=2,                  ; First region is material iron
+dx=.08,                 ; Mesh interval 
+rx=2.,                  ; X mesh interval multiplier at line regions
+ry=2.4,                 ; Y mesh interval multiplier at line regions
+yminf=0,ymaxf=0         ; Fixed Y for field interpolation
+xminf=0,xmaxf=4.5       ; X range for field interpolation
+; Define X line regions:
+xreg1=5,
+xreg2=14.5,
+xreg3=16.5,
+; Define Y line regions:
+yreg1=3.75,
+yreg2=6.8,
+yreg3=7.5,
+; The next 6 terms refer to the harmonic analysis:
+ktype=4,                ; Quadrupole symmetry
+nterm=5,                ; Number of coefficients
+nptc=11,                ; Number of arc points for interpolation
+rint=1.86,              ; Radius of the arc for interpolation
+angle=45,               ; Angular extent of arc (default start = 0)
+rnorm=1.86 &            ; Aperture radius for normalization
+
+&po x=0.0,y=0.0 &
+&po r=19.1883,theta=0.0 &
+&po x=19.9,y=1.4 &
+&po x=22.4421,y=1.905 &
+&po nt=2,r=22.5228,theta=45.0 &
+&po x=0.0,y=0.0 &
+
+&reg mat=1 &
+&po x=0.0,y=0.0 &
+&po r=14.25,theta=0.0 &
+&po nt=2,x=12.59852,y=6.65882 &
+&po x=9.5,y=3.5603 &
+&po x=7.02870,y=2.47058 &
+&po x=4.28368,y=0.99522 &
+&po nt=3,r=2.92,x=2.0647518,y=2.0647518 &
+&po x=0.0,y=0.0 &
+
+&reg cur=9400.0 &
+&po x=11.86,y=5.6 &
+&po x=7.8,y=1.6 &
+&po x=7.15,y=2.3 &
+&po x=5.82,y=1.0 &
+&po x=6.48,y=0.32 &
+&po x=7.15,y=1.0 &
+&po x=7.85,y=0.32 &
+&po x=8.5,y=1.0 &
+&po x=9.18,y=0.32 &
+&po x=13.18,y=4.14 &
+&po x=11.86,y=5.6 &
+
+&reg cur=0.0,ibound=0 &   ! Dirichlet boundary condition on this path
+&po x=0.0,y=0.0 &
+&po r=22.5228,theta=45.0 &
+&po nt=2,x=22.4421,y=1.905 &
+&po x=19.9,y=1.4 &
+&po x=19.1883,y=0.0 &
+

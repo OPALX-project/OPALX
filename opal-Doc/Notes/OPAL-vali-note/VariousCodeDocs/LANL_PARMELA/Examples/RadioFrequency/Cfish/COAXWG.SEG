@@ -1,0 +1,8 @@
+NormalizationSegment = 1  ; NRMSEG
+SegmentH = 1000.          ; End of segment number 1 has H = 1000
+NormalizationCode= 2      ; NORM = 2 option
+FieldSegments 
+2 3 4 6 7 8      ; Segment numbers
+Enddata
+End
+

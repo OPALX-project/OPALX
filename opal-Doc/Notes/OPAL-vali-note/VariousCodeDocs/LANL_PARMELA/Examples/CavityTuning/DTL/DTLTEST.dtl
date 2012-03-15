@@ -1,0 +1,63 @@
+; DTLfish control file DTLTEST.DTL
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+TITLE
+Sample problems for tuning drift-tube linac cells.
+Resonant frequency = 425 MHz
+ENDTITLE
+ 
+PARTICLE              H+
+ 
+FILEname_prefix       TEST
+SEQuence_number       1
+FREQuency             425
+LENGTH                6.075783
+DIAMeter              43
+GAP_Length            1.1
+E0_Normalization      4.4
+CORNER_radius         0.5
+INNER_nose_radius     0.325
+OUTER_nose_radius     0.325
+FLAT_length           0
+FACE_angle            5
+DRIFT_TUBE_Diameter   8.0594
+STEM_Diameter         1.905
+STEM_Count            1
+BORE_radius           0.4
+PHASE_length          180
+DELTA_frequency       0.01
+MESH_size             0.05
+INCrement             2
+START                 2
+
+; Start codes for DTLFISH:
+; 1 No tuning
+; 2 Adjust tank diameter
+; 3 Adjust drift tube diameter (not recommended)
+; 4 Adjust gap
+; 5 Adjust face angle
+
+G_OVER_Beta_lambda    0.091
+DIAMeter              Previous
+DRIFT_TUBE_Diameter   8.0594
+START                 3
+
+LENGTH                6.075783
+DIAMeter              43
+GAP_Length            1.1
+DRIFT_TUBE_Diameter   8.0594
+START                 4
+
+FILEname_prefix       TEST    TESTP
+SEQuence_number       4
+BEAD_radius           0.15875
+GAP_Change            -0.00508
+LENGTH                6.075783
+DIAMeter              43
+GAP_Length            1.1
+DRIFT_TUBE_Diameter   8.0594
+START                 5
+
+ENDFILE
+

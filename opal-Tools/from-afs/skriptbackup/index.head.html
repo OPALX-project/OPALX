@@ -1,0 +1,70 @@
+<html>
+<head>
+<title>A Ring Model for the PSI High Current Update</title>
+<link rel=StyleSheet href="basic-style.css" type="text/css">
+<SCRIPT language="JavaScript" type="text/javascript">
+var nextFrame = 'topframe';
+
+function hideDIV(elements_id){
+var display_div = document.getElementById(elements_id);
+var controls_td = document.getElementById(elements_id + '_controls')
+var mchild = controls_td.firstChild;
+while (mchild != controls_td.lastChild){
+	var nmchild = mchild.nextSibling;
+	controls_td.removeChild(mchild);
+	mchild = nmchild
+}
+controls_td.removeChild(mchild);
+var newDIV = document.createElement("div");
+var newA = document.createElement("a");
+newA.setAttribute("href", "javascript: showDIV('" + elements_id + "');");
+newA.setAttribute("style", "font-size: 20px; text-decoration: none;");
+var newText = document.createTextNode("+");
+newA.appendChild(newText);
+newDIV.appendChild(newA);
+controls_td.appendChild(newDIV);
+display_div.style.height = '0px';
+//<div id="Scenario6_closed" style="width: 0px; overflow:hidden; float: right;"><a href="javascript: showDIV('Scenario6');" style="font-size:20px; text-decoration: none;">+</a></div>
+}
+function showDIV(elements_id){
+var display_div = document.getElementById(elements_id);
+var controls_td = document.getElementById(elements_id + '_controls')
+var mchild = controls_td.firstChild;
+while (mchild != controls_td.lastChild){
+	var nmchild = mchild.nextSibling;
+	controls_td.removeChild(mchild);
+	mchild = nmchild
+}
+controls_td.removeChild(mchild);
+var newDIV = document.createElement("div");
+var newA = document.createElement("a");
+newA.setAttribute("href", "javascript: hideDIV('" + elements_id + "');");
+newA.setAttribute("style", "font-size: 20px; text-decoration: none;");
+var newText = document.createTextNode("-");
+newA.appendChild(newText);
+newDIV.appendChild(newA);
+controls_td.appendChild(newDIV);
+display_div.style.height = '200px';
+}
+
+function showResult(hreftogo){
+parent.frames[nextFrame].location.href = hreftogo;
+if (nextFrame == 'topframe') nextFrame = 'bottomframe';
+else nextFrame = 'topframe';
+}
+</SCRIPT>
+</head>
+<body bgcolor="#FFFFFF">
+
+<h1>A Ring Model for the PSI High Current Update</h1>
+
+The purpose of this page is to give i) a constant update of the current state of the affair and ii) 
+
+<h2>Simulation code used</h2>
+We use the mad9p code .
+
+<h2>Building the Ring Model</h2>
+
+<p>
+The Ring model ..... 
+

@@ -1,0 +1,48 @@
+; MDTfish sample control file MDTTEST.MDT
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+TITLE
+Sample Multiple Drift Tube Cavity
+End tuning differences produce an end-to-end field "tilt"
+ENDTITLE
+
+PARTICLE              H+
+FILEname_prefix       TEST_
+SEQuence_number       1
+FREQuency             850
+DIAMeter              17.633
+DRIFT_TUBE_Diameter   5.50672
+BORE_radius           0.5
+LEFT_WALL_shift       0
+RIGHT_WALL_shift      0
+LEFT_BEAM_tube        0
+RIGHT_BEAM_tube       0
+STEM_diameter         1.27
+PHASE_per_cell        720
+DELTA_frequency       0.02
+MESH_size             0.05
+INCrement             2
+
+POST_DATA
+  -1    0.9525000    5.5730000
+   1    0.9525000    5.5730000
+   2    0.9525000    5.5730000
+  -2    0.9525000    5.5730000
+ENDDATA
+
+; Start codes for MDTFISH on CELL_DATA line:
+; 1 No tuning
+; 2 Adjust diameter
+; 3 Adjust gaps proportionally
+
+
+CELL_DATA  1
+; GapCen  GapLen  AngL    AngR  Rc    Rni_L  Rni_R FlatL FlatR Rno_L Rno_R   Length     E0
+ 3.15655  1.0483  41.55   40    0.254 0.15   0.15  0.554 0.554 0.635 0.635  7.33618784  3.19674310
+ 3.65731  1.0766  40.00   40    0.254 0.15   0.15  0.254 0.254 0.635 0.635  7.42908408  3.29715543
+ 3.71868  1.1067  40.00   40    0.254 0.15   0.15  0.254 0.254 0.635 0.635  7.52938968  3.39312782
+ENDDATA
+
+ENDFILE
+

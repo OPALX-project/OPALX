@@ -1,0 +1,33 @@
+Disk-loaded waveguide structure, 1.5 cells, 3 GHz
+Boundary conditions set for 2pi/3 mode
+
+&reg kprob=1,                 ; SUPERFISH problem
+ezero=1e6
+nbsrt=1,nbslf=1,              ; Right and left edge Neumann boundaries
+beta=0.999,                   ; Velocity near speed of light
+kmethod=1
+icylin=1,                     ; Cylindrical symmetry
+freq=3000,                    ; Frequency in MHz
+xdri=0.66,ydri=3.3,           ; Drive point
+dslope=-1                     ; Slope of D(k^2), can quit after 1 iteration
+xreg=1.26667,2.06667,4.6,   ; X line regions
+kreg=1,16,56,86,              ; Logical K values for X line regions
+;xmax=5,                       ; Maximum X coordinate
+kmax=106,                     ; Maximum logical K coordinate
+dy=.02                        ; Y mesh interval
+yreg1=1.2,yreg2=1.5  &         ; Y line regions
+;ymax=3.88182 &                ; Maximum Y coordinate
+
+&po x=0,y=0 &
+&po x=0,y=3.881820 &
+&po x=1.3885,y=3.881820 &
+&po x=1.3885,y=1.06338 &
+&po nt=2,x0=1.66667,y0=1.15822,x=0.2782,y=-0.09484 &
+&po x=1.9449,y=3.881820 &
+&po x=3.3333,y=3.881820 &
+&po x=4.7218,y=3.881820 &
+&po x=4.7218,y=1.06338 &
+&po nt=2,x0=5.0000,y0=1.15822,x=0,y=-0.293922 &
+&po x=5,y=0 &
+&po x=0,y=0 &
+

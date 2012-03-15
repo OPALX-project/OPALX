@@ -1,0 +1,7 @@
+intel/intel-11.1_64
+mpi/openmpi-1.4.2-intel-11.1
+gsl/gsl-1.14
+hdf5/hdf5-1.6.10-openmpi-1.4.2-intel-11.1
+intel-mkl/mkl-10.0_em64t
+parmetis/parmetis-3.1
+trilinos/trilinos-10.2.0

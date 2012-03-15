@@ -1,0 +1,32 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe mpi 16
+#$ -N ctf3-injector-20100211-sc-1
+#$ -v MPIHOME=/opt/mpi/openmpi-1.2.6-intel-10.0,LD_LIBRARY_PATH=/opt/intel-mkl/mkl-10.0/lib/em64t:/opt/mpi/openmpi-1.2.6-intel-10.0/lib:/opt/intel/intel-10.0/fce-10.0/lib:/opt/intel/intel-10.0/cce-10.0/lib
+
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+cp $MACHINE_FILE machinefile.last
+
+echo "PE_HOSTFILE:"
+cat  $PE_HOSTFILE
+echo "MACHINE_FILE:"
+cat $MACHINE_FILE
+echo "SLOTS=$NSLOTS"
+#
+FIELDMAPS=../FieldMaps
+FN=$JOB_NAME
+mkdir -p $FN
+cd   $FN
+cp ../$FN.in .
+ln -s ../*.opal .
+mv ../machinefile.last .
+#
+OPAL="/home2/adelmann/svnwork/OPAL/src/opal $FN.in --commlib mpi --info 0 --warn 0 "
+CMD="$MPIHOME/bin/mpirun -machinefile $MACHINE_FILE -np $NSLOTS  --mca ras localhost --mca pls rsh  $OPAL "
+echo "Running $CMD"
+echo 
+$CMD
+cd ..
+

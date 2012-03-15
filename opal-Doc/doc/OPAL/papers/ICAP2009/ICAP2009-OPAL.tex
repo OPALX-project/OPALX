@@ -1,0 +1,419 @@
+\documentclass[acus]{JAC2003}
+
+%%
+%%  This file was updated in April 2009 by J. Poole to be in line with Word tempaltes
+%%
+%%  Use \documentclass[boxit]{JAC2003}
+%%  to draw a frame with the correct margins on the output.
+%%
+%%  Use \documentclass[acus]{JAC2003}
+%%  for US letter paper layout
+%%
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage[colorlinks,linkcolor=blue,anchorcolor=blue,citecolor=blue]{hyperref} % hyper reference to contents 
+\usepackage{algorithm,algorithmic}
+\usepackage{tikz}
+\usepackage{pgflibraryshapes}  
+\usepackage{textcomp}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\include{mylatexdefs}
+\newcommand{\bs}[1]{\mathbf #1}
+
+%%
+%%   VARIABLE HEIGHT FOR THE TITLE BOX (default 35mm)
+%%
+
+
+\setlength{\titleblockheight}{40mm}
+
+
+\begin{document}
+\title{DRAFT --- THE OBJECT ORIENTED PARALLEL ACCELERATOR LIBRARY (OPAL), DESIGN, IMPLEMENTATION AND APPLICATION}
+
+\author{A.~Adelmann\thanks{andreas.adelmann@psi.ch}, Ch.~Kraus, Y. Ineichen, PSI, Villigen Switzerland \\
+S.~Russell, LANL, Los Alamos, USA,\\ Y. Bi, J.J~Yang, CIAE, Beijing, China}
+
+\maketitle
+
+\begin{abstract}
+   \opal\  (Object Oriented Parallel Accelerator Library) is a tool for charged-particle optic calculations in accelerator structures and beam lines including 3D space charge, 
+short range wake-fields and 1D coherent synchrotron radiation and particle matter interaction. Built from first principles as a parallel application, OPAL admits simulations of any scale, 
+from the laptop to the largest High Performance Computing (HPC) clusters available today. Simulations, in particular HPC simulations, form the third pillar of science, 
+complementing theory and experiment. \opal\ has a fast FFT based direct solver and an iterative solver, able to handle efficiently exact boundary conditions on complex geometries. 
+We present timings of \opalt using the FFT based space charge solver with up to several thousands of cores. 
+%The application of OPAL to the PSI-XFEL project as well as to the ongoing high power cyclotron upgrade will demonstrate OPAL's versatile capabilities.
+%Plans for future developments towards a 3D finite element time domain Maxwell solver for large structures and simulation capabilities for 3D synchrotron radiation will be discussed.
+\end{abstract}
+
+\section{OPAL In A NUTSHELL}
+\opal\ is a tool for charged-particle optics in
+accelerator structures and beam lines. 
+Using the \mad language with extensions, \opal\ is derived from \madninep and is based 
+on the CLASSIC class library,
+which was started in 1995 by an international collaboration.  The Independent Parallel Particle Layer (\ippl) is
+the framework which provides parallel particles and fields using data parallel ansatz, together with Trilinos for linear solvers and preconditioners. Parallel input/output is
+provided by H5Part/Block a special purpose API on top of HDF5. For some special numerical algorithms we use the Gnu Scientific Library (GSL).
+
+
+\opal\ is built from the ground up as a parallel application exemplifying the fact that HPC (High Performance Computing) 
+is the third leg of science, complementing theory and experiment. 
+HPC is now made possible through the increasingly sophisticated mathematical models and evolving computer power available on the desktop
+and in super computer centres. \opal\ runs on your laptop as well as on the largest HPC clusters available today.
+
+The state-of-the-art software design philosophy based on design patterns, makes it easy  to add new features into \opal, in the form of new \texttt{C++}~classes.
+Figure \ref{fig:opalstr} presents a more detailed view into the complex architecture of \opal. 
+
+\begin{figure}[htb]
+\begin{center}
+ \begin{tikzpicture}[scale=0.8, transform shape]
+    \footnotesize
+      \begin{scope}[shape=rectangle,rounded corners,minimum width=3.0cm,minimum height=0.5cm,fill=yellow,text centered]
+      
+      \draw[rounded corners, draw=green!40, thick, fill=green!25, opacity=0.5, text centered] (-1.55, 1.31) rectangle (8.55,-0.31) node[black, thick, anchor=center, opacity=1., font=\Large] at (3.5, 0.5) {\opal};
+      \node[fill= green!40] (0_00) at (0.0,1.0) {MAD-Parser};
+      \node[fill= green!40] (0_00) at (3.5,1.0) {Flavors: t,Cycl};
+      \node[fill= green!40] (0_00) at (7.0,1.0) {Optimization};
+      \node[fill= green!40] (0_00) at (0,0.0)   {Solvers: Direct, Iterative};
+      \node[fill= green!40] (0_00) at (3.5,0.0) {Integrators};
+      \node[fill= green!40] (0_00) at (7.0,0.0) {Distributions};
+
+       \draw[rounded corners, draw=red!45, thick, fill=red!25, opacity=0.5, text centered] (-1.55, -0.69) rectangle (8.55,-3.81) node[black, thick, anchor=center, opacity=1.0, font=\Large] at (3.5, -3.5) {\ippl};
+       \node[fill= red!45] (q_00) at (0,-1) {FFT};
+       \node[fill= red!45] (q_01) at (3.5,-1) {D-Operators};
+       \node[fill= red!45] (q_02) at (7,-1) {NGP,CIC, TSI};
+       \node[fill= red!45] (q_10) at (0,-1.75) {Fields};
+       \node[fill= red!45] (q_11) at (3.5,-1.75) {Mesh};
+       \node[fill= red!45] (q_12) at (7,-1.75) {Particles};
+       \node[fill=red!45] (q_20) at (0,-2.75) {Load Balancing};
+       \node[fill=red!45] (q_21) at (3.5,-2.75) {Domain Decomp.};
+       \node[fill=red!45] (q_22) at (7,-2.75) {Communication};
+       \node[fill=red!45] (q_21) at (0,-3.5) {PETE};
+       \node[fill=red!45] (q_22) at (7,-3.5) {Polymorphism};
+
+       \node[rotate=90,minimum width=1.7cm,fill=gray] (bla) at (-1.9,0.49){\textcolor{white} {\classic}};
+       \node[rotate=90,minimum width=3.15cm,fill= magenta] (bla) at (-1.9,-2.225){\textcolor{white}{H5Part and H5FED}};
+       \node[fill=blue!65,minimum width=10.75cm] (q_23) at (3.25,-4.25) {\textcolor{white}{Trilinos \& GSL}};
+
+      \end{scope}
+ \end{tikzpicture}
+\caption{The \opal\ software structure}
+\label{fig:opalstr}
+\end{center}
+\end{figure}
+
+
+OPAL comes in the following flavors:
+\begin{itemize}
+\item \opalt
+\item \opalcycl 
+\item \opalmap\ (not yet fully released)
+\item \opalenv\ (not yet fully released)
+\end{itemize}
+
+\opalt  tracks particles with time as the independent variable and can be used to model beam lines, dc guns, photo guns and complete XFEL's excluding the undulator. 
+Collective effects such as space charge (3D solver), coherent synchrotron radiation (1D solver) and longitudinal and transverse wake fields are considered.
+When comparing simulation results to measured data, collimators (at the moment without secondary effects) and pepper pot elements are important devices. 
+%\opalt is a superset of IMPACT-T \cite{qiang2005} and can be used to model guns, injectors and complete XFEL's excluding the undulator. 
+\opalcycl is another flavor which tracks particles with 3D space charge including neighboring turns in cyclotrons, with time as the independent variable. Both flavors can be used in sequence, hence
+full start-to-end cyclotron simulations are possible.  
+\opalmap tracks particles with 3D space charge using split operator techniques.  \opalenv\ is based on the 3D-envelope equation (\`a la HOMDYN) and can be used to design XFEL's
+
+Documentation and quality assurance are given our highest attention since we are convinced that adequate documentation 
+is a key factor in the usefulness of a code like \opal\ to study present and future particle accelerators. 
+Using tools such as a source code version control system (subversion), and source code documentation (Doxygen) together with an extensive user manual
+we are committed to provide users as well as co-developers with state-of-the-art documentation for \opal. Rigorous quality control is realized by means of daily build and regression tests.
+
+In the sequel we will only discuss features of \opalt based on the current production version 1.1.5.
+
+\section{MODELS}
+In recent years, precise beam dynamics simulations in the design of
+high-current low-energy hadron machines as well as of 4th generation
+light sources have become a very important research topic.  Hadron
+machines are characterized by high currents and hence require excellent
+control of beam losses and/or keeping the emittance of the beam in narrow ranges.  This is a challenging
+problem which requires the accurate modeling of the dynamics of a large
+ensemble of macro or real particles subject to complicated external
+focusing, accelerating fields and wake fields, particle-matter interaction, as well as the self-fields
+caused by Coulomb interaction of the particles.  In general the
+geometries of particle accelerators are large and complicated which has
+a direct impact on the numerical solution method.
+
+Some of the effects can be studied by using a low dimensional model,
+i.e., envelope equations~\cite{sach:68, sach:71, stru-reis:1984,
+  gluckstern1}.  These are a set of ordinary differential equations for
+the second-order moments of a time-dependent particle distribution.
+They can be calculated fast, however the level of detail is mostly not
+sufficient for quantitative studies.  Furthermore, a priori knowledge of
+critical beam parameters such as the emittance is required with the consequence that the
+envelope equations cannot be used as a self-consistent method.
+
+One way to overcome these limitations is by considering the
+Vlasov-Poisson description of the phase space, including external fields and
+self-fields and, if needed, other effects such as wakes.  To that end
+let $f(\mathbf{x},\mathbf{v},t)$ be the density of the particles in the
+phase space, i.e., the position-velocity $(\mathbf{x}, \mathbf{v})$
+space.  Its evolution is determined by the collisionless \emph{Vlasov
+  equation},
+%%
+% Neglecting
+% particles collisions, because typical bunch densities are low, the
+% evolution of the beam's distribution function
+% $f(\mathbf{x},\mathbf{v},t)$ can be considered as a Cauchy problem.
+% Denoting the computational domain $\Omega \subset \Re^d$ with $d=2,3$,
+% and using $\mathbf {x} \in \Re^d$ to describe a position in
+% configuration and $\mathbf {v} \in \Re^d$ a point in velocity space, the
+% collision-less Vlasov-Poisson equation can be expressed by
+\begin{equation}\label{eq:Vlasov}
+  \frac{df}{dt}=\partial_t f + \mathbf{v} \cdot \nabla_{\mathbf{x}} f
+  +\frac{q}{m_0}(\mathbf{E}+ \mathbf{v}\times\mathbf{B})\cdot
+  \nabla_{\mathbf{v}} f  =  0,
+\end{equation}
+where $m_0$, $q$ denote particle mass and charge, respectively.  The
+electric and magnetic fields $\mathbf{E}$ and $\mathbf{B}$ are
+superpositions of external fields and self-fields (space charge),
+%%and other collective effects such as wake fields,
+\begin{equation}\label{eq:allfield}
+%%  \begin{aligned}
+    \mathbf{E} =
+    \mathbf{E_{\RM{ext}}} + \mathbf{E_{\RM{self}}}  + \mathbf{E_{\RM{wake}}}, \quad
+    \mathbf{B} =
+    \mathbf{B_{\RM{ext}}} + \mathbf{B_{\RM{self}}}.
+%%  \end{aligned}
+\end{equation}
+%%
+If $\mathbf{E}$ and $\mathbf{B}$ are known, then each particle can be
+propagated according to the equation of motion for charged particles in an
+electromagnetic field,
+\begin{equation*}\label{eq:motion}
+  \frac{d\mathbf{x}(t)}{dt}  = \mathbf{v},
+  \quad
+  \frac{d\mathbf{v}(t)}{dt}  = \frac{q}{m_0}\left(\mathbf{E} +
+    \mathbf{v}\times \mathbf{B}\right).
+\end{equation*}
+%%which is numerically integrated for each particle.  
+%%
+% We assume for the rest of the paper that the external fields and the
+% wake fields are known and furthermore treat the physical system
+% electrostatic (which we obtain without loss of generality by an
+% appropriate Lorentz transformation).
+
+After the movement of the particles 
+$\mathbf{E_{\RM{self}}}$ and $\mathbf{B_{\RM{self}}}$ have to be updated.  
+%%
+To that end we change the coordinate system into one moving with the
+particles.  By means of the appropriate \emph{Lorentz
+  transformation}~\cite{lali:84} we arrive at a (quasi-) static
+approximation of the system in which the transformed magnetic field
+becomes negligible, $\hat{\mathbf{B}}\! \approx\! \mathbf{0}$.  The
+transformed electric field is obtained from
+\begin{equation}\label{eq:e-field}
+  \hat{\mathbf{E}}=\hat{\mathbf{E}}_{\RM{self}}=-\nabla\hat{\phi},
+\end{equation}
+where the electrostatic potential $\hat{\phi}$ is the solution of the
+\emph{Poisson problem}
+\begin{equation}\label{eq:poisson0}
+  - \Delta \hat{\phi}(\mathbf{x}) =
+  \frac{\hat{\rho}(\mathbf{x})}{\varepsilon_0},
+\end{equation}
+equipped with appropriate boundary conditions. Here, $\hat{\rho}$ denotes the spatial charge
+density and $\varepsilon_0$ is the dielectric constant.
+% in the (beam rest) frame
+% If we can make an appropriate Lorentz transformation to arrive at a
+% (quasi-)static approximation of the system, the space charge fields can
+% be obtained by solving a Poisson problem with appropriate boundary
+% conditions:
+% \begin{equation}\label{eq:Poisson}
+%   - \nabla^{2} \phi(\mathbf{x}) = \frac{\rho(\mathbf{x})}{\varepsilon_0},
+% \end{equation}
+% where $\phi$ and $\rho$ are the electrostatic potential and the spatial
+% charge density in the appropriate (beam rest) frame.  The electric field
+% can then be calculated by
+% \begin{equation}\label{eq:Efield}
+%   \mathbf{E}=\mathbf{E_{\RM{self}}}=-\nabla\phi.
+% \end{equation}
+By means of the inverse Lorentz transformation the electric field
+$\hat{\mathbf{E}}$ can then be transformed back to yield both the
+electric and the magnetic fields in~\eqref{eq:allfield}.
+% corresponding to the static grid.  
+
+In \opal\ the discretized Poisson equation is either solved by a combination of a Green function and FFT or by a conjugate gradient algorithm, preconditioned
+with algebraic multi-grid using smoothed aggregation (SA-AMG PCG). This 3D solver has the unique capability to include the exact
+boundary geometry. %\cite{Hockney:1} 
+%The Poisson problem~\eqref{eq:poisson0} discretized by finite
+%differences can efficiently be solved on a rectangular grid by a
+%Particle-In-Cell (PIC) approach~\cite{qiry:01}.  
+The right hand side in~\eqref{eq:poisson0} is discretized by sampling the particles at the
+grid points.  In~\eqref{eq:e-field}, $\hat{\phi}$ is interpolated at the
+particle positions from its values at the grid points. We also note that
+the FFT-based Poisson solvers and similar
+approaches~\cite{qiry:01,qigl:04} are usually restricted to box-shaped or open domains in order to obtain
+good performance.
+
+
+%\subsection{Time Integration}
+
+\subsection{Field Solver}
+\subsubsection{A Direct FFT Based Poisson Solver}
+In our implementation of the PIC method, firstly a rectangular 3D grid containing all particles is constructed.  Subsequently, the charges 
+are interpolated onto the grid points. Then the discretized Poisson equation is solved on the grid to obtain the scalar field at the grid points. 
+The electric field is calculated on the grid and interpolated back on to the positions of the particles .
+
+
+%At each time step, in order to solve for the space charge fields, the frames $\bs{S}_{\RM{local}}$ and $\bs{S}_{\RM{beam}}$ are redefined according to current 6D 
+%phase space distribution, and all particles are transformed from $\bs{S}_{\RM{lab}}$ to $\bs{S}_{\RM{local}}$.
+%Then a Lorentz transformation is performed to transform all particles to $\bs{S}_{\RM{beam}}$.
+%The Poisson equation is then solved in the frame $\bs{S}_{\RM{beam}}$. 
+In 3D Cartesian coordinates, the solution of the Poisson equation at point $\bs{x}$ can be expressed by 
+\begin{equation}\label{eq:Poten}
+  \phi(\bs{x})= \frac{1}{4\pi\varepsilon_0}\int{G(\bs{x},\bs{x}')\rho(\bs{x},\bs{x}')d\bs{x}'}
+\end{equation}
+with $G$ the 3D Green function 
+\begin{equation}\label{eq:Green}
+  G(\bs{x},\bs{x}')= \frac{1}{\sqrt{(\bs{x}-\bs{x}')^2}}
+\end{equation}
+assuming open boundary conditions.
+The typical steps of calculating space charge fields using Hockney's FFT algorithm is sketched in Algorithm \ref{alg1:sc3d},
+where the quantities with superscript $D$ (discrete) refer to grid quantities.
+
+\begin{algorithm}
+  \caption{3D Space Charge Calculation} 
+  \label{alg1:sc3d}
+  \begin{algorithmic}[1]
+    \STATE \textbf{procedure} 3DSpaceCharge(In: $\rho$, $G$, Out: $\bs{E_{sc}}$,$\bs{B_{sc}}$)
+       \STATE Create 3D rectangular grid which contains all particles, % and doubled it in each dimension, 
+       \STATE Interpolate the charge $q$ of each macro-particle to nearby mesh points to obtain $\rho^D$, 
+       \STATE Lorentz transformation to obtain $\rho^D$ in the beam rest frame $\bs{S}_{\RM{beam}}$,
+       \STATE FFT $\rho^D$ and $G^D$ to obtain $\widehat{\rho}^D$ and $\widehat{G}^D$,
+       \STATE Determine $\widehat{\phi}^D$ on the grid using $\widehat{\phi}^D = \widehat{\rho}^D \cdot \widehat{G}^D$,
+       \STATE Use FFT$^{-1}$ of $\widehat{\phi }^D$ to obtain $\phi^D$,
+       \STATE Compute $\bs{E}^D= -\nabla \phi^D$,
+       \STATE Interpolate $\bs{E}$ at the particle positions $\bs{x}$ from $\bs{E}^D$,
+       \STATE Perform Lorentz back transform to obtain $\bs{E_{\RM{sc}}}$ and $\bs{B_{\RM{sc}}}$ in  frame $\bs{S}_{\RM{local}}$ and transform back  to $\bs{S}_{\RM{lab}}$.
+       \STATE \textbf{end procedure}
+  \end{algorithmic}
+\end{algorithm}
+
+The image charge of a beam near a cathode is not negligible, hence
+open boundary conditions are not justified in such a case. To find the space-charge forces on the beam from
+the image charge by the standard Green function method,
+we need to solve the Poisson equation with a computational
+domain containing both the image charge and the beam.
+We are using a shifted-Green function \cite{Qiang:2006p95} technique in order to efficiently compute the correct potential at the cathode.
+With this technique, the FFT is used to calculate the cyclic convolution
+and the previous algorithm can be used to calculate the
+potential in the shifted field domain.
+
+At  emission from a dc gun, or when calculating neighboring turns in a cyclotron, the electrostatic approximation is not valid anymore. To overcome this problem
+we divide the beam into $n$ energy bins. The space charge solver uses now $n$ separate Lorentz transformations. 
+
+To show the parallel performance of \opalt  we consider two problems, the first one has $5 \cdot 10^6$ particles on a $64 \times 64\times128$ mesh and 200 time steps are considered.
+The used CPU time as a function of cores is shown in Figure \ref{fig:parperfsmall}. 
+We obtain in the order of $5 \cdot 10^6$ particle pushes  per second on a 16 nodes (HP BL460c blades) cluster, each node having a dual-socket quad core Intel Xeon E5450 $3.0$ GHz with 16GB ECC RAM.
+For a high-bandwidth low-latency communication the InfiniBand interconnect is used.
+\begin{figure}[htb]
+   \centering
+  \includegraphics*[scale=0.25]{drift1}
+  \vspace{-5mm}
+   \caption{CPU time of a production run showing the scaling of the most important parts of \opalt on a 128 core HP Cluster.}
+   \label{fig:parperfsmall}
+\end{figure}
+
+The second problem consists of $1 \cdot 10^{8}$ particles on a $512^3$ mesh and timings for 3 integration steps are shown in Figure \ref{fig:parperfbig}. 
+The timings where obtained on the Cray XT5 cluster of the Swiss Supercomputing Center (CSCS) in Manno.
+Each of the 1844 compute nodes consists of 2 quad-core AMD Opteron 2.4 GHz Shanghai processors giving 8 cores in total per node with 16 GBytes of memory. 
+The high-speed network based on a SeaStar 2.2 communications processor which is able to provide 2 GBytes/s of injection bandwidth for the node, with a theoretical 
+peak of 9.6 GBytes/s of bandwidth in each direction for the through-flow of packets out on the network.
+\begin{figure}[htb]
+   \centering
+  \includegraphics*[scale=0.25]{drift2b}
+  \vspace{-5mm}
+   \caption{CPU time of a test run showing the scaling of the most important parts of \opalt on a Cray XT5.}
+   \label{fig:parperfbig}
+\end{figure}
+
+\subsubsection{A Fast Iterative Parallel Poisson Solver on Irregular Domains} 
+ The problem is discretized by finite differences.  Depending on the treatment of the
+  Dirichlet boundary the resulting system of equations is symmetric or
+  `mildly' nonsymmetric positive definite.  In all cases, the system is
+  solved by the preconditioned conjugate gradient algorithm with
+  smoothed aggregation (SA) based algebraic multigrid (AMG)
+  preconditioning.  Additionally we investigated variants of the implementation of
+  SA-AMG that lead to considerable improvements in the execution times.
+  We demonstrate good scalability of the solver on distributed memory
+  parallel processor with up to 2048 processors in \cite{Adelmann:2009p543}. In this paper we also compare our
+  \oursolver\ solver with the FFT-based solver described in the preceding paragraph.
+  
+\subsection{Particle Matter Interaction}
+The physics models describing particle matter interaction includes energy loss and Coulomb scattering. 
+The nuclear scattering is not yet included for particles in the order of  hundreds of MeVs. Their contribution 
+is  negligible compared to Coulomb scattering. The energy loss model is based on the Bethe-Bloch equation. 
+Comparing the stopping power with the PSTAR program of National Institute of Standards and Technology (NIST), we find
+errors in the order of 10\% for copper, from several MeV to 10 GeV. Important for our immediate application at PSI, the error is within 3\% in the region from 50 MeV to 1 GeV. 
+In general, there is energy straggling when a beam passes through the material. 
+For relatively thick absorbers such that the number of collisions is large, the energy loss distribution is Gaussian \cite{William}. 
+The Coulomb scattering is treated as two independent events: the multiple Coulomb scattering and the large angle Rutherford scattering, 
+using the distribution given in \cite{Jackson}.
+
+\subsubsection{Validation}
+A 72 MeV cold Gaussian beam with $\sigma_x=\sigma_y=5$ mm is send through a copper slit with the half aperture of $3$ mm from 0.01 to 0.1 m. 
+Figure \ref{fig:trace3} shows some trajectories of particles which are either absorbed or deflected by the collimator. 
+\begin{figure}[htb]
+   \centering
+  \includegraphics*[width=90mm]{trace3}
+   \caption{Trajectories of particles which are either absorbed or deflected by the collimator.}
+   \label{fig:trace3}
+\end{figure}
+Most of the particles  were absorbed within a range of about 7.4 mm, except for a few which were deflected by the collimator. 
+As a benchmark of the elliptic collimator models in OPAL, the energy spectrum and angle deviation is compared against two general-purpose Monte Carlo codes, 
+MCNPX \cite{MCNPX} and FLUKA \cite{FLUKA1,FLUKA2}, as shown in Fig. \ref{fig:spectandscatter}. 
+%A ellipse collimator with the half aperture of $3$ mm in both x and y direction is selected. 
+The deflected particles contribute to the energy spectrum and angle deviation after a collimator. These particles may be lost downstream.
+\begin{figure}[htb]
+   \centering
+  \includegraphics*[width=90mm]{spectandscatter}
+   \caption{Energy spectrum and angle deviation (small plot)}
+   \label{fig:spectandscatter}
+\end{figure}
+
+
+
+
+
+%\section{EXAMPLES}
+
+%\subsection{Cyclotron including Neighboring Turns}
+
+%\subsection{Electron Source Modeling}
+
+
+\section{ACKNOWLEDGMENTS}
+The majority of computations have been performed on the Cray XT5 in the
+framework of the PSI CSCS ``Horizon'' collaboration.  We acknowledge the
+help of the XT5 support team at CSCS, most notably Timothy Stitt and D. Kiselev 
+for the MCNPX simulations and fruitful discussions w.r.t. the particle matter interaction models.
+
+\bibliography{paper}
+\bibliographystyle{unsrt}
+%\bibliographystyle{elsarticle-num}
+
+%\begin{thebibliography}{9}   % Use for  1-9  references
+%\begin{thebibliography}{99} % Use for 10-99 references
+
+%\bibitem{accelconf-ref}
+%C. Petit-Jean-Genaz and J. Poole, ``JACoW, A service to the Accelerator Community'',
+%EPAC'04, Lucerne, July 2004, THZCH03,  p.~249, \texttt{http://www.JACoW.org}.
+
+%\bibitem{jacow-help} A. Name and D. Person, Phys. Rev. Lett. 25 (1997) 56.
+
+%\bibitem{exampl-ref}
+%A.N. Other, ``A Very Interesting Paper'', EPAC'96, Sitges, June 1996, MOPCH31, p. 7984 (1996),
+%\texttt{http://www.JACoW.org}.
+
+
+%\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,32 @@
+Waveguide problem for a full hexagonal guide
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,                ; Superfish problem
+conv=2.54                    ; Dimensions are inches
+icylin=0                     ; Cartesian coordinates
+; Uncomment only one of the following lines to find a mode
+freq=377.0                   ; Starting frequency for mode 1
+;freq=620.0                  ; Starting frequency for mode 2
+;freq=788.0                  ; Starting frequency for mode 3
+;freq=940.0                  ; Starting frequency for mode 4
+dx=.3,                       ; Mesh interval
+nbsup=1,                     ; Neumann boundary condition at upper edge
+nbslo=1,                     ; Neumann boundary condition at lower edge
+nbslf=1,                     ; Neumann boundary condition at left edge
+nbsrt=1,                     ; Neumann boundary condition at right edge
+xdri=4,ydri=1  &             ; Drive point coordinates
+
+&po x=-10, y=0.0 &
+&po x=-5,  y=-8.66025 &
+&po x=-1,  y=-8.66025 &      ; This small perturbation removes degeneracy
+&po x=-0.3,y=-8.33 &       
+&po x=0.3, y=-8.33 &
+&po x=1,   y=-8.66025 &      ; End of small perturbation 
+&po x=5,   y=-8.66025 &
+&po x=10,  y=0.0 &
+&po x=5,   y=8.66025 &
+&po x=-5,  y=8.66025 &
+&po x=-10, y=0.0 &
+

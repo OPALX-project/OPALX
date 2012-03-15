@@ -1,0 +1,52 @@
+; CCLfish control file 805ER.CCL
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+Title
+Sample problems for tuning coupled-cavity linac cells.
+Resonant frequency = 805 MHz, Bore radius = 2.25 cm
+ENDTitle
+ 
+PARTICLE              H+
+ 
+FILEname_prefix       805ER
+SEQuence_number       1
+PI_MODE
+FREQuency             805
+BETA                  0.4350009365479
+LENGTH                8.1
+DIAMeter              28.365
+G_OVER_Beta_lambda    0.2424933584088
+GAP_Length            3.928392406223
+E0_Normalization      1.5
+E0T_Normalization     1.211078158199
+;EQUATOR_Flat         0.576 ; for use in CDTFISH
+OUTER_CORNer_radius   3
+INNER_CORNer_radius   0.5
+INNER_NOSE_radius     0.085
+OUTER_NOSE_radius     0.25
+FLAT_length           0
+CONE_angle            20
+SEPTUM_thickness      1.524
+BORE_radius           2.25
+PHASE_length          90
+Ring_Type             2
+RING_DY               0
+RING_Effect           4
+RING_Width            2.50
+RING_Angle            20
+RING_Thickness        .242
+DELTA_frequency       0.02
+MESH_size             0.035
+INCrement             2
+START                 4
+
+; Start codes for CCLFISH:
+; 1 No tuning
+; 2 Adjust diameter
+; 3 Adjust spectum thickness (not recommended)
+; 4 Adjust gap
+; 5 Adjust cone angle
+
+ENDFile
+

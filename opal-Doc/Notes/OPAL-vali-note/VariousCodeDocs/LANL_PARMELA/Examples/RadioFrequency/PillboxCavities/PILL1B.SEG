@@ -1,0 +1,10 @@
+NormalizationCode = 1      ; NORM, normalize fields to EZEROT
+E0T = 2.e6                 ; EZEROT in Volts/meter
+GeometryPhaseLength = 90   ; DPHI, phase length of cavity in degrees  
+FieldSegments
+1 2 3                      ; segment numbers  
+EndData
+End
+
+
+
