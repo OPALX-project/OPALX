@@ -1,0 +1,9 @@
+set title "z coordinate while drifting - OPAL"
+set ylabel "z coord in m"
+set xlabel "step no."
+set time
+plot "zpos.dat" u 1:2 title 'z'
+set term postscript color
+set out 'zpos_OPAL_eTS.ps'
+replot
+

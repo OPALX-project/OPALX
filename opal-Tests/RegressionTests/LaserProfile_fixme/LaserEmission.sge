@@ -1,0 +1,29 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe mpi 8
+#$ -N opalpre1.6 
+#$ -v MPIHOME=/opt/mpi/openmpi-1.2.6-intel-10.0,LD_LIBRARY_PATH=/opt/intel-mkl/mkl-10.0/lib/em64t:/opt/mpi/openmpi-1.2.6-intel-10.0/lib:/opt/intel/intel-10.0/fce-10.0/lib:/opt/intel/intel-10.0/cce-10.0/lib
+
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+cp $MACHINE_FILE machinefile.last
+
+echo "PE_HOSTFILE:"
+cat  $PE_HOSTFILE
+echo "MACHINE_FILE:"
+cat $MACHINE_FILE
+echo "SLOTS=$NSLOTS"
+#
+FN=TEmission
+mkdir $FN-P$NSLOTS
+cd $FN-P$NSLOTS
+ln -s ../*.T7 .
+ln -s ../$FN.in .
+#
+OPAL="/home2/adelmann/svnwork/OPAL/src/opal $FN.in --commlib mpi "
+CMD="$MPIHOME/bin/mpirun -machinefile $MACHINE_FILE -np $NSLOTS  --mca ras localhost --mca pls rsh  $OPAL "
+echo "Running $CMD"
+echo 
+$CMD
+cd ..

@@ -1,0 +1,52 @@
+The physics models in collimator include energy loss and Coulomb scattering. 
+The nuclear scattering is not included for particles of hundreds of MeV since it has negligible contribution compared to Coulomb scattering. 
+The energy loss is simulated using the Bethe-Bloch equation. 
+Comparing the stopping power with the PSTAR program of National Institute of Standards and Technology (NIST),
+the error is within 10\% from several MeV to 10 GeV for copper. Especially, the error is within 3\% in the region from 50 MeV to 1 GeV. 
+In general, there is energy straggling when a beam passes through the material. 
+For relatively thick absorbers such that the number of collisions is large, the energy loss distribution is shown to be Gaussian in form, with the spread $\sigma$ given by \cite{William}. 
+The Coulomb scattering is treated as two independent events: the multiple Coulomb scattering and the large angle Rutherford scattering,
+ using the distribution given in Classical Electrodynamics \cite{Jackson}.
+
+A 72 MeV cold Gaussian beam with $\sigma_x=\sigma_y=5$ mm meets a copper slit with the half aperture of $3$ mm from 0.01 m to 0.1 m. 
+Figure \ref{fig:trace3} shows the trajectory of particles which didn't pass through the collimator directly. 
+Most of the partiles in collimator were absorbed with a range of about 7 mm, except a few ones were deflected by the collimator. 
+As a benchmarking of the collimator models in OPAL, the energy spectrum and angle deviation is compared with two general-purpose Monte Carlo codes: 
+MCNPX \cite{MCNPX} and FLUKA \cite{FLUKA1,FLUKA2} as shown in Fig. \ref{fig:spectandscatter}. 
+A ellipse collimator with the half aperture of $3$ mm in both x and y direction is selected. 
+The deflected particles contribute to the energy spectrum and angle deviation after a collimator, and these partilces may be lost downstream.
+
+
+
+@book{William,
+  Address =	 {Berlin Heidelberg New York},
+  Author =	 {William R. Leo},
+  Edition =	 {2nd},
+  Publisher =	 {Springer-Verlag},
+  Title =	 {Techniques for nuclear and particle physics experiments},
+  Year =	 1994
+}
+@book{Jackson,
+  Address =	 {New York},
+  Author =	 {J. D. Jackson},
+  Edition =	 {3rd},
+  Publisher =	 {John Wiley &. Sons},
+  Title =	 {Classical Electrodynamics},
+  Year =	 1998
+}
+@inproceedings{FLUKA1,
+  author =	 "G. Battistoni, S. Muraro, P.R. Sala, F. Cerutti, A. Ferrari,
+S. Roesler, A. Fasso`, J. Ranft",
+  title =	 "The FLUKA code: Description and benchmarking",
+  booktitle =	 "Proceedings of the Hadronic Shower Simulation Workshop 2006",
+  address =	 "Fermilab",
+  year =	 2006,
+  note =	 "M. Albrow, R. Raja eds., AIP Conference Proceeding 896, 31-49, (2007)"
+}
+@techreport{FLUKA2,
+  author =	 "A. Fasso`, A. Ferrari, J. Ranft, and P.R. Sala",
+  title =	 "FLUKA: a multi-particle transport code",
+  type =	 "Tech. Report",
+  year =	 2005,
+  number =	 "CERN-2005-10 (2005), INFN/TC_05/11, SLAC-R-773"
+}

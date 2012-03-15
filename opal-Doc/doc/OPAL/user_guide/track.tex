@@ -1,0 +1,415 @@
+\chapter{Tracking}
+\label{chp:track}
+\index{tracking|(}
+
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Commands accepted in Tracking Mode}
+    \label{tab:trackcmd}
+    \begin{tabular}{|p{0.3\textwidth}|p{0.6\textwidth}|}
+      \hline
+      Command & Purpose \\
+      \hline
+      \tabline{TRACK}{Enter tracking mode}{trackmode}
+      \tabline{DT}{Initial time step for tracking} {trackmode}
+      \tabline{MAXSTEPS}{The maximal number of timesteps}{trackmode} 
+      \tabline{ZSTOP}{Defines a z-location [m], after which the simulation stops when $SPOS > ZSTOP$}{trackmode} 
+      \tabline{STEPSPERTURN}{The timsteps per revolution period}{trackmode} 
+      \tabline{name=expression}{Parameter relation}{variable}
+%      \tabline{NOISE}{Define power supply ripple}{tracknoise}
+      \tabline{START}{Define initial conditions}{trackstart}
+      \tabline{RUN}{Run particles for specified number of turns or steps}{trackrun}
+      \tabline{TSAVE}{Save end conditions}{tracksave}
+      \tabline{ENDTRACK}{Leave tracking mode}{trackmode}
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\section{Track Mode}
+\label{sec:trackmode}
+\index{TRACK}
+\index{ENDTRACK}
+
+Before starting to track, a working \secref{beam line}{line} or
+\secref{sequence}{sequence} and a \secref{beam}{beam} must be selected. 
+The time step and  maximal timesteps should be set. 
+
+This command causes \opal to enter ``tracking mode'',
+in which it accepts only the \tabref{track commands}{trackcmd}.
+The attributes of the command are:
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The label of a preceding \secref{\texttt{LINE}}{line} or
+  \secref{\texttt{SEQUENCE}}{sequence} (no default).
+\item[BEAM]
+  \index{BEAM}
+  The named \texttt{BEAM} command defines the particle mass, charge
+  and reference momentum (default: \texttt{UNNAMED\_BEAM}).
+  \index{UNNAMED\_BEAM}
+\item[MAXSTEPS]
+  \index{MAXSTEPS}
+  The maximal number of timesteps,default value is 10.
+ \item[ZSTOP]
+  \index{ZSTOP}
+  Defines a z-location [m], after which the simulation stops when $SPOS > ZSTOP$. The initial 
+  value for ZSTOP is $1E6$ [m].
+
+ \item[TIMEINTEGRATOR]
+  \index{TIMEINTEGRATOR}
+  Define the time integrator. Currently only available in \opalcycl. 
+  The valid options are:
+  \begin{itemize}
+    \item RK-4: the fourth-order Runge-Kutta integrator.
+    \item LF-2: the second-order Leap-Frog integrator. 
+      Currently, LF-2 is only availabe for multi-particles with/without space charge.
+      For single particle tracking and tune calculations, use the RK-4 for the time being.
+  \end{itemize}
+  RK-4 is the default integrator for \opalcycl.
+\item[DT]
+  \index{DT}
+  Initial time step for tracking, default value is 1 ps.
+\item[STEPSPERTURN]
+  \index{STEPSPERTURN}
+  The timsteps per revolution period. Only available for \opalcycl, default value is 720.
+  
+\end{description}
+
+In \opalt and \opalmap, the commond format is:
+\begin{verbatim}
+TRACK, LINE=name, BEAM=name, MAXSTEPS=value, DT=value;
+\end{verbatim}
+
+In \opalcycl, instead of setting time step, the timesteps per-turn should be set. 
+The commond format is:  
+\begin{verbatim}
+TRACK, LINE=name, BEAM=name, MAXSTEPS=value, 
+       STEPSPERTURN=value;
+\end{verbatim}
+
+Particles are tracked in parallel i.e. the coordinates of all particles
+are transformed at each beam element as it is reached.
+
+\opal leaves \textbf{track mode} when it sees the command
+\begin{verbatim}
+  ENDTRACK;
+\end{verbatim}
+
+%\section{Define Power Supply Ripple}
+%\label{sec:tracknoise}
+%\index{NOISE}
+
+%One may define noise to be applied to magnet excitations
+%with the statement
+%\begin{verbatim}
+%NOISE,VARIABLE=variable,AMPLITUDE=real_vector,
+%      FREQUENCY=real_vector,PHASE=real_vector;
+%\end{verbatim}
+%The NOISE statement must be entered after the
+%\secref{\texttt{TRACK} command}{trackmode},
+%but before the \secref{\texttt{RUN} command}{trackrun}.
+%It has the effect to apply several sinusoidal variations to the
+%specified parameter.
+%The command has four attributes.
+%\begin{description}
+%\item[VARIABLE]
+%  Reference to the \secref{\texttt{variable}}{avariable} to be affected.
+%\item[AMPLITUDE]
+%  A \secref{\texttt{vector}}{avector} of \secref{\texttt{real}}{areal} 
+%  noise amplitudes $A_i$.
+%\item[FREQUENCY]
+%  A \secref{\texttt{vector}}{avector} of \secref{\texttt{real}}{areal} 
+%  noise frequencies $f_i$.
+%\item[PHASE]
+%  A \secref{\texttt{vector}}{avector} of \secref{\texttt{real}}{areal} 
+%  noise phases $phi_i$.
+%\end{description}
+%Example:
+%\begin{verbatim}
+%NOISE,VARIABLE=QF[K1],AMPLITUDE={1.e-3,2.e-4},
+%      FREQUENCY=table(2,50*(#+1)),PHASE=table(2,0);
+%\end{verbatim}
+%Before each turn is tracked, the noise is re-evaluated as
+%\[
+%\Delta A = \sum_{i=1}^N A_i \cos ( 2\pi (f_i t + \phi_i)).
+%\]
+%where $t$ is the real time.
+
+\section{Define Initial Conditions}
+\label{sec:trackstart}
+\index{START}
+The \texttt{START} command is not used in \noopalt and \noopalcycl . In 
+\opalt and \opalcycl initial conditions are defined by generating a particle
+distribution using the \texttt{DISTRIBUTION} command (see Chapter \ref{chp:distribution}) or
+run \opal in the restart mode (see Section \ref{sec:Restart}). 
+
+The \texttt{START} command defines the initial coordinates of
+the particles to be tracked.
+There may be many \texttt{START} statements, one for each particle.
+Particles are always started with coordinates relative
+to the computed closed orbit for the defined energy error.
+The command format is:
+\begin{verbatim}
+START, X=real, PX=real, Y=real, PY=real, T=real, 
+       DELTAP=real;
+START, FX=real, PHIX=real, FY=real, PHIY=real, FT=real, 
+       PHIT=real;
+\end{verbatim}
+\texttt{START} statements must be entered after the
+\secref{\texttt{TRACK} command}{trackmode},
+but before the \secref{\texttt{RUN} command}{trackrun}.
+
+\subsection{Absolute Particle Positions}
+The first form of the \secref{\texttt{START} command}{trackstart} defines 
+\secref{absolute particle positions}{variables}:
+\begin{description}
+\item[X]
+  \index{X}
+  Horizontal position $x$, referred to the ideal orbit [m].
+\item[PX]
+  \index{PX}
+  Horizontal canonical momentum, divided by the reference momentum [1].
+\item[Y]
+  \index{Y}
+  Vertical position $y$, referred to the ideal orbit [m].
+\item[PY]
+  \index{PY}
+  Vertical canonical momentum, divided by the reference momentum [1].
+\item[T]
+  \index{T}
+  The negative time difference, 
+  multiplied by the instantaneous velocity of the particle [m].
+\item[PT]
+  \index{PT}
+  Momentum error, divided by the reference momentum [1].
+\end{description}
+
+\subsection{Normalised Particle Positions}
+The second form of the \texttt{START} command defines 
+\secref{normalised particle positions}{normal}:
+\begin{description}
+\item[FX]
+  \index{FX}
+  The normalised amplitude for mode 1 [1]:
+\item[PHIX]
+  \index{PHIX}
+  The phase for mode 1 [1]:
+  $\phi_x = - \arctan(p_{xn}/x_n) / 2 \pi$,
+\item[FY]
+  \index{FY}
+  The normalised amplitude for mode 2 [1]:
+\item[PHIY]
+  \index{PHIY}
+  The phase for mode 2 [1]:
+  $\phi_y = - \arctan(p_{yn}/y_n) / 2 \pi$,
+\item[FT]
+  \index{FT}
+  The normalised amplitude for mode 3 [1]:
+\item[PHIT]
+  \index{PHIT}
+  The phase for mode 3 [1]:
+  $\phi_t = + \arctan(p_{tn}/t_n) / 2 \pi$,
+\end{description}
+
+\subsection{Initial Conditions}
+Mixing absolute and normalised positions is possible,
+in this case the results are added.
+Initial conditions $Z$ in unnormalised phase space are related 
+to the closed orbit and the absolute and normalised coordinates as follows:
+\[
+\begin{array}{rcl}
+  Z = Z_{co}&+& \sqrt{E_x} \hbox{\tt FX}
+  (\Re V_k \cos \hbox{\tt PHIX} + \Im V_k \sin \hbox{\tt PHIX}) \\
+  &+& \sqrt{E_y} \hbox{\tt FY}
+  (\Re V_k \cos \hbox{\tt PHIY} + \Im V_k \sin \hbox{\tt PHIY}) \\
+  &+& \sqrt{E_t} \hbox{\tt FT}
+  (\Re V_k \cos \hbox{\tt PHIT} + \Im V_k \sin \hbox{\tt PHIT})
+\end{array}
+\]
+where $Z_{co}$ is the closed orbit vector, and $Z$ is the vector 
+\[
+Z = (\texttt{X,PX,Y,PY,T,PT})^T,
+\]
+and $\Re V_k$ and $\Im V_k$ are the real and imaginary parts of the 
+$k^{th}$ eigenvector,
+which are computed in the \secref{\texttt{TRACK} command}{trackmode}.
+
+\subsection{Track a Random Machine} \label{sec:randmach}
+This example shows how to track a {\em random} machine i.e. some
+parameters are random variables. At the moment (Version 1.1.4) there seams to be a problem when 
+having random variables in the Distribution command.
+\begin{verbatim}
+Option, SCAN=TRUE;
+
+...... 
+
+I=0;
+WHILE (I < 3) {
+
+   rv1:= (RANF()*4.7);
+   rv2:=0.0; 
+   rv3:=0.0; 
+   rv4:=0.0; 
+   rv5:=0.0; 
+
+   Ppo: PepperPot, L=200.0E-6, ELEMEDGE=6.0E-3, 
+        R=1.0E-4, PITCH=0.5E-4, NHOLX=20, NHOLY=20, 
+        XSIZE=5.0E-3, YSIZE=5.0E-3, OUTFN="ppo.h5";
+
+   Col: ECollimator, L=3.0E-3, ELEMEDGE=7.0E-3, 
+        XSIZE=7.5E-4, YSIZE=7.5E-4, OUTFN="Coll.h5";
+   SP1: Solenoid, L=1.20, ELEMEDGE=-0.5315, 
+        FMAPFN="1T2.T7", KS=8.246e-05 + rv2;
+   SP2: Solenoid, L=1.20, ELEMEDGE=-0.397,  
+        FMAPFN="1T3.T7", KS=1.615e-05 + rv3;
+   SP3: Solenoid, L=1.20, ELEMEDGE=-0.267,  
+        FMAPFN="1T3.T7", KS=1.016e-05 + rv4;
+   SP4: Solenoid, L=1.20, ELEMEDGE=-0.157, 
+        FMAPFN="1T3.T7", KS=4.750e-05 + rv5;
+   SP5: Solenoid, L=1.20, ELEMEDGE=-0.047,  
+        FMAPFN="1T3.T7", KS=0.0;
+
+   gun: RFCavity, L=0.013, VOLT=(-47.51437343 + rv1), 
+        FMAPFN="1T1.T7", ELEMEDGE=0.00, 
+        TYPE="STANDING", FREQ=1.0e-6;
+
+   value,{I, rv1, rv2, rv3, rv4, rv5};
+
+   l1: Line=(gun, Ppo, sp1, sp2, sp3, sp4, sp5); 
+
+   SELECT, Line=l1;
+   TRACK, line=l1, beam=beam1, MAXSTEPS=500, DT=2.0e-13;
+    RUN, method="PARALLEL-T", beam=beam1, 
+    fieldsolver=Fs1, distribution:=Dist1;
+   ENDTRACK;
+
+   SYSTEM,"mkdir -p scan0-" & STRING(I);
+   SYSTEM,"mv scan-0.h5 scan-0.stat scan-0.lbal scan0-"
+          & STRING(I);
+   I=EVAL(I+1.0);
+}
+\end{verbatim}
+
+\section{Track Particles for a Specified Number of Turns}
+\label{sec:trackrun}
+\index{RUN}
+
+This command starts or continues the actual tracking:
+\begin{verbatim}
+RUN, METHOD=name, FILE=string, TURNS=integer;
+\end{verbatim}
+The \texttt{RUN} command initialises tracking and uses the most recent 
+particle bunch for initial conditions.
+The particle positions may be the result of previous tracking,
+or they may have been generated by 
+\secref{\texttt{START} commands}{trackstart}.
+The command writes a file of particle positions.
+Its attributes are:
+\begin{description}
+\item[METHOD]
+  \index{METHOD}
+  The name of the tracking method to be used.
+  For the time being only one method is known:
+  \begin{description}
+  \item[THIN]
+    \index{THIN}
+    All elements are treated a s thin lenses.
+    This is the fastest of the known method which do not lump elements.
+    \item[PARALLEL-T]
+    \index{PARALLEL-T}
+    This methods finally puts \opal in \opalt mode.
+     \item[CYCLOTRON-T]
+    \index{CYCLOTRON-T}
+    This methods finally puts \opal in \opalcycl mode.
+     \end{description}  
+    \item[FIELDSOLVER]
+    \index{FIELDSOLVER}
+     The used field solver see Chapter \ref{chp:fieldsolver} is specified.	
+    
+     \item[DISTRIBUTION]
+    \index{DISTRIBUTION}
+     The used particle distribution see Chapter \ref{chp:distribution} is specified.	
+ 
+   \item[BEAM]
+    \index{BEAM}
+     The used particle beam Section \ref{sec:beam} is specified.	
+
+
+\item[FILE]
+  \index{FILE}
+  The name of the file to be writen (default="\texttt{track}").
+\item[TURNS]
+  \index{TURNS}
+  The number of turns (integer) to be tracked (default: 1, namely single bunch).
+
+  In \opalcycl, this parameter represents the number of bunches those will be injected into the cyclotron. In restart mode, the code
+  firstly read an attribute $NumBunch$ from $.h5$ file which records how many bunches have already been injected. If $NumBunch$
+  $<$ $TURNS$, the last $TURNS$$ -$ $NumBunch$ bunches will be injected in sequence by reading the initial distribution from $.h5$ file.   
+
+\item[MBMODE]
+  \index{MBMODE}
+  This defines which mode of multi-bunch runs. There are two options for it, namely, \texttt{AUTO} and \texttt{FORCE}. 
+  See Section \ref{sec:opalcycl:MultiBunch} for their explanations in detail.
+  
+  For restarting run with \texttt{TURNS} large than one, if the existing bunches of the read-in step is large than one, 
+  the mode is forcely set to \texttt{FORCE}. Otherwise, it is forcely set to \texttt{AUTO}.
+
+  This argument is available for \opalcycl.
+  
+\item[PARAMB]
+   \index{PARAMB}
+   This is a control parameter to define when to start to transfer from single bunch to multi-bunches for \texttt{AUTO} mode (default: 5.0). 
+
+   This argument is only available for \texttt{AUTO} mode multi-bunch run in \opalcycl.
+
+\end{description}
+Example:
+\begin{verbatim}
+run, file="table", turns=5, mbmode="AUTO", paramb=10.0,
+     method="CYCLOTRON-T", beam=beam1, fieldsolver=Fs1,
+     distribution=Dist1;
+\end{verbatim}
+
+This command tracks 5 bunches in cyclotron and writes the results on file \texttt{table}.
+
+\section{Save Particle Positions}
+\label{sec:tracksave}
+\index{TSAVE}
+The \texttt{TSAVE} command is not used in \noopalt and \noopalcycl . The command
+\begin{verbatim}
+TSAVE, FILE=string;
+\end{verbatim}
+saves the most recent particle bunch positions on the file named by 
+\texttt{string}.
+\index{FILE}
+These will normally be the positions of surviving particles after the
+most recent \secref{\texttt{RUN} command}{trackrun}.
+If no \texttt{RUN} command has been seen yet,
+the positions are the result of any 
+\secref{\texttt{START} commands}{trackstart} seen.
+The positions are written as \texttt{START} commands,
+and the file may be read by a subsequent tracking run.
+
+\index{tracking|)}
+
+\section{Tracking Example}
+\label{sec:trackxmpl}
+
+\begin{verbatim}
+L: LINE=(OCT,-OCT); 
+// Misalignments and closed orbit correction may be done here. 
+P0=60.0;
+B:BEAM, ENERGY=60.0; 
+TRACK, LINE=L,BEAM=B;
+   START, X=0.001, Y=0.001, PT=0.001;
+   RUN, TURNS=1024; 
+ENDTRACK;
+\end{verbatim}
+
+
+\section{Autophase Example}
+\label{sec:trackautoph}
+
+is coming soon
+

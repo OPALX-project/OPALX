@@ -1,0 +1,7 @@
+#!/bin/bash
+export PBS_O_WORKDIR=/scratch2/amas/l_felsimsvn/src/opal/opal-Tests/RegressionTests/ExternalFieldTest
+pushd .
+cd /scratch2/amas/l_felsimsvn/src/opal/opal-Tests/RegressionTests/ExternalFieldTest
+cp TwoStep.h5 ExternalFieldTest.h5
+qsub ExternalFieldTest.sge -v OPAL_EXE_PATH
+popd

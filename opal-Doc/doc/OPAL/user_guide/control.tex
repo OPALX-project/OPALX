@@ -1,0 +1,778 @@
+\chapter{Control Statements}
+\label{chp:control}
+\index{control statements|(}
+\index{program control}
+
+\section{Getting Help}
+
+\subsection{HELP Command}
+\label{sec:help}
+\index{HELP}
+A user who is uncertain about the attributes of a command
+should try the command \texttt{HELP}, which has three formats:
+\begin{verbatim}
+HELP;                 // Give help on the "HELP" command
+HELP,NAME=label;      // List funct. and attr. types of 
+                      // "label"
+HELP,label;           // Shortcut for the second format
+\end{verbatim}
+\texttt{label} is an \secref{\texttt{identifier}}{label}.
+If it is non-blank,
+\opal prints the function of the object \texttt{label} and lists its
+attribute types.
+Entering \texttt{HELP} alone displays help on the \texttt{HELP}
+command. 
+
+\noindent Examples:
+\begin{verbatim}
+HELP;
+HELP,NAME=TWISS;
+HELP,TWISS;
+\end{verbatim}
+
+\subsection{SHOW Command}
+\label{sec:show}
+\index{SHOW}
+The \texttt{SHOW} statement displays the current attribute values
+of an object.
+It has three formats:
+\begin{verbatim}
+SHOW;                 // Give help on the "SHOW" command
+SHOW,NAME=pattern;    // Show names matching of "pattern"
+SHOW,pattern;         // Shortcut for the second format
+\end{verbatim}
+\texttt{pattern} is an \secref{\texttt{regular expression}}{wildcard}.
+If it is non-blank,
+\opal displays all object names matching the \texttt{pattern}.
+Entering \texttt{SHOW} alone displays help on the \texttt{SHOW}
+command. 
+%If the \secref{\texttt{OPTION,MAD8}}{option} is active,
+%the format is MAD-8 format, otherwise it is \opal format.
+\noindent Examples:
+\begin{verbatim}
+SHOW;
+SHOW,NAME="QD.*\.L*";
+SHOW,"QD.*\.L*";
+\end{verbatim}
+
+\subsection{WHAT Command}
+\label{sec:what}
+\index{WHAT}
+The \texttt{WHAT} statement displays all object names matching a given
+regular expression.
+It has three formats:
+\begin{verbatim}
+WHAT;                   // Give help on the "WHAT" command
+WHAT,NAME=label;        // Show definition of "label"
+WHAT,label;             // Shortcut for the second format
+\end{verbatim}
+\texttt{label} is an \secref{\texttt{identifier}}{label}.
+If it is non-blank,
+\opal displays the object \texttt{label} in a format similar to the
+input statement that created the object. 
+Entering \texttt{WHAT} alone displays help on the \texttt{WHAT}
+command. 
+\noindent Examples:
+\begin{verbatim}
+WHAT;
+WHAT,NAME=QD;
+WHAT,QD;
+\end{verbatim}
+
+\section{STOP / QUIT Statement}
+\label{sec:stop}
+\index{STOP / QUIT}
+The statement
+\begin{verbatim}
+STOP or QUIT;
+\end{verbatim}
+terminates execution of the \opal program,
+or, when the statement occurs in a \secref{\texttt{CALL} file}{call},
+returns to the calling file.
+Any statement following the \texttt{STOP} or  \texttt{QUIT} statement is ignored.
+
+\section{OPTION Statement}
+\label{sec:option}
+\index{OPTION}
+The \texttt{OPTION} command controls global command execution and sets
+a few global quantities:
+\begin{verbatim}
+
+OPTION,ECHO=logical,INFO=logical,TRACE=logical,
+       VERIFY=logical,WARN=logical,ADDERROR=logical,
+       SEED=real,TELL=logical,PSDUMPFREQ=integral, 
+       STATDUMPFREQ=integral, SPTDUMFREQ=integral,
+       REPARTFREQ=integral, REBINFREQ=integral;
+\end{verbatim}
+The first five logical flags activate or deactivate execution options:
+\begin{description}
+\item[ECHO]
+  \index{ECHO}
+  Controls printing of an echo of input lines on the standard error file.
+\item[INFO]
+  \index{INFO}
+  If this option is turned off, \opal suppresses all information messages. 
+%\item[\opal8]
+%  \index{\opal8}
+%  When the \opal8 option is on,
+%  all output of the \secref{\texttt{SHOW}}{show},
+%  \secref{\texttt{SAVE}}{save}, 
+%  \secref{\texttt{ESAVE}}{errorsave}, and
+%  \secref{\texttt{MAKESEQ}}{makeseq} is written in \opal-8 format.
+%  \opal can thus serve as a translator from \opal to \opal-8 format.
+\item[TRACE]
+  \index{TRACE}
+  When the TRACE option is on,
+  \opal writes additional trace information on the standard error file 
+  for each executable command. 
+  This information includes the command name
+  and elapsed CPU time before and after the command.
+\item[VERIFY]
+  \index{VERIFY}
+  If this option is on, \opal gives a message for each undefined variable
+  or element in a beam line.
+\item[WARN]
+  \index{WARN}
+  If this option is turned off, \opal suppresses all warning messages.
+\item[ADDERROR]
+  \index{ADDERROR}
+  If this logical flag is set,
+  an \texttt{EALIGN}, \texttt{EFIELD}, or \texttt{EFCOMP}, causes the errors to
+  be added on top of existing ones.
+  If it is not set, new errors overwrite any previous definitions.
+\item[SEED]
+  \index{SEED}
+  Selects a particular sequence of random values.
+  A SEED value is an integer in the range [0...999999999] (default: 123456789).
+  SEED can be an expression.
+  See also: \secref{random values}{adefer}.
+\item[PSDUMPFREQ]
+ \index{PSDUMPFREQ}
+   Defines after how many time steps the phase space is dumped into the H5Part file. Default value is 10. 
+\item[STATDUMPFREQ]
+ \index{STATDUMPFREQ}
+ 	Defines after how many time steps we dump statistical data, such as RMS beam emittiance, to the .stat file.
+ 	The default value is 10. Currently only available for \opalt.
+\item[SPTDUMPFREQ]
+ \index{SPTDUMPFREQ}
+   Defines after how many time steps we dump the phase space of single particle.
+   It is always useful to record the trajectory of reference particle
+   or some specified particle for primary study. Its default value is 1.  
+\item[REPARTFREQ]
+ \index{REPARTFREQ}
+   Defines after how many time steps we do particles repartition to balance the computational load of  
+   the computer nodes. Its default value is 10.  
+   
+\item[REBINFREQ]
+ \index{REBINFREQ}
+   Defines after how many time steps we update the energy Bin ID of each particle. For the time being. 
+   Only available for multi-bunch simulation in \opalcycl. Its default value is 100.  
+
+\item[PSDUMPEACHTURN]
+ \index{PSDUMPEACHTURN}
+ Control option of phase space dumping. If true, dump phase space after each turn. 
+ For the time being, this is only use for multi-bunch simulation in \opalcycl. Its default set is false. 
+
+\item[PSDUMPLOCALFRAME]
+ \index{PSDUMPLOCALFRAME}
+ Control option whether the phase space data is dumped in the global Cartesian frame or in the local Cartesian frame.
+ If true, in local frame, otherwise in global Cartesian frame. Only available for \opalcycl. Its default set is false.
+ Note that restarting run cannot be launched by reading in phase space data in local frame.
+\item[SCSOLVEFREQ]
+ \index{SCSOLVEFREQ}
+ If the space charge fields are slowly varying w.r.t. the external fields,  this option allows to change the frequency of space charge calculation,
+ i.e. the space charge fields is evaluated every SCSOLVEFREQ step. Currently it is only available for \opalcycl. Its default value is 1.
+\item[RHODUMP]
+\index{RHODUMP}  
+ If true the scalar $\rho$ field is saved each time a phase space is written. There exists a reader in Visit with versions 
+ greater or equal 1.11.1.
+
+\item[EFDUMP]
+\index{EFDUMP}  
+ If true the electric field (from the space charge) is saved each time a phase space is written. 
+
+\item[AUTOPHASE]
+\index{AUTOPHASE}  
+ If true, single particle tracking is enabled in order to find the maximum energy. A phase scan is performed and a file ({\tt inputfn.phases}) with
+ the phases corresponding to the maximum energies is written. With this option only one \chpref{track}{track} can be executed, on one core. An example
+ is \secref{given in}{trackautoph}.
+
+\item[SCAN]
+\index{SCAN}  
+ If true one can simulate in a loop several machines where some variables can be random variables. Find an
+ example at \ref{sec:randmach}. 
+
+\end{description}
+
+The last attribute requests listing of the current settings:
+\begin{description}
+\item[TELL]
+  \index{TELL}
+  If true, the current settings are listed.
+\end{description}
+
+
+\noindent Examples:
+\begin{verbatim}
+OPTION,ECHO=FALSE,TELL;
+OPTION,SEED=987456321
+\end{verbatim}
+
+\begin{table}[ht] \footnotesize
+  \caption{Default Settings for Options}
+  \label{tab:option}
+  \begin{center}
+    \begin{tabular}{|ll|ll|ll|}
+      \hline
+      \texttt{ECHO}     & = \texttt{true}  &
+      \texttt{INFO}     & = \texttt{true}  &
+      \texttt{TRACE}    & = \texttt{false} \\
+%      \texttt{PSDUMPFREQ}   & = \texttt{10} \\
+      \hline
+      \texttt{WARN}     & = \texttt{true } &
+      \texttt{ADDERROR} & = \texttt{false} &
+      \texttt{SEED}     & = 123456789      \\
+      \hline
+       \texttt{PSDUMPFREQ} & = \texttt{10 } &
+      \texttt{SPTDUMPFREQ} & = \texttt{1} &
+      \texttt{REPARTFREQ}  & = 10  \\
+      \hline
+      \texttt{ }     & = \texttt{-1 } &
+      \texttt{ }     &  = 64 &
+      \texttt{TELL}     & = \texttt{false} \\
+      \hline
+      \texttt{VERIFY}   & = \texttt{false} &
+      \texttt{STATDUMPFREQ}     & =10  &
+      \texttt{}     & \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\section{Parameter Statements}
+\label{sec:parameter}
+\index{parameter}
+\index{variable}
+
+\subsection{Variable Definitions}
+\label{sec:variable}
+\opal recognises several types of variables.
+
+\subsubsection{Real Scalar Variables}
+\index{variable!real}
+\index{real!variable}
+\begin{verbatim}
+REAL variable-name=real-expression;
+\end{verbatim}
+The keyword \texttt{REAL} is optional.
+For backward compatibility the program also accepts the form
+\begin{verbatim}
+variable-name:=real-expression;
+\end{verbatim}
+This statement creates a new global variable \texttt{variable-name}
+and discards any old variable with the same name.
+Its value depends on all quantities occurring
+in \secref{\texttt{real-expression}}{areal}.
+Whenever an operand changes in \texttt{real-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+An assignment in the sense of the FORTRAN or C languages can be achieved
+by using the \secref{\texttt{EVAL} function}{eval}.
+
+A reserved variable is the value \texttt{P0} which is used as the
+global reference momentum for normalising all magnetic field coefficients.
+\noindent Example:
+\begin{verbatim}
+REAL GEV=100;
+P0=GEV;
+\end{verbatim}
+Circular definitions are not allowed:
+\begin{verbatim}
+X=X+1;    // X cannot be equal to X+1
+A=B;
+B=A;      // A and B are equal, but of unknown value
+\end{verbatim}
+However, redefinitions by assignment are allowed:
+\begin{verbatim}
+X=EVAL(X+1);
+\end{verbatim}
+
+\subsubsection{Real Vector Variables}
+\index{real vector}
+\index{variable!vector}
+\index{vector!real}
+\begin{verbatim}
+REAL VECTOR variable-name=vector-expression;
+\end{verbatim}
+The keyword \texttt{REAL} is optional.
+This statement creates a new global variable \texttt{variable-name}
+and discards any old variable with the same name.
+Its value depends on all quantities occurring
+in \secref{\texttt{vector-expression}}{anarray} on the right-hand side.
+Whenever an operand changes in \texttt{vector-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+\noindent Example:
+\begin{verbatim}
+REAL VECTOR A = TABLE(10, #);
+REAL VECTOR B = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+\end{verbatim}
+Circular definitions are not allowed, but redefinitions by assignment 
+are allowed.
+
+\subsubsection{Logical Variables}
+\index{variable!logical}
+\index{logical!variable}
+\begin{verbatim}
+BOOL variable-name=logical-expression;
+\end{verbatim}
+This statement creates a new global variable \texttt{variable-name}
+and discards any old variable with the same name.
+Its value depends on all quantities occurring
+in \secref{\texttt{logical-expression}}{alogical}.
+Whenever an operand changes in \texttt{logical-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+\noindent Example:
+\begin{verbatim}
+BOOL FLAG = X != 0;
+\end{verbatim}
+Circular definitions are not allowed, but redefinitions by assignment 
+are allowed.
+
+\subsection{Symbolic Constants}
+\label{sec:constant}
+\index{constant!real}
+\index{real constant}
+\opal recognises a few build-in built-in \tabref{mathematical and physical
+constants.}{constant} 
+Additional constants can be defined by the command
+\begin{verbatim}
+REAL CONST label:CONSTANT=<real-expression>;
+\end{verbatim}
+which defines a constant with the name \texttt{label}.
+The keyword \texttt{REAL} is optional, and \texttt{label} must be unique.
+An existing symbolic constant can never be redefined.
+The \texttt{real-expression} is evaluated at the time the
+\texttt{CONST} definition is read, and the result is stored as the
+value of the constant.
+
+\noindent Example:
+\begin{verbatim}
+CONST IN=0.0254; // conversion of inches to metres
+\end{verbatim}
+
+\subsection{Vector Values}
+\label{sec:vector}
+\index{vector!real}
+\index{real vector}
+A vector of expressions is established by a statement
+\begin{verbatim}
+REAL VECTOR vector-name=vector-expression;
+\end{verbatim}
+The keyword \texttt{REAL} is optional.
+It creates a new global vector \texttt{vector-name}
+and discards any old vector with the same name.
+Its value depends on all quantities occurring in 
+\secref{\texttt{vector-expression}}{anarray}.
+Whenever an operand changes in \texttt{vector-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+\noindent Example:
+\begin{verbatim}
+VECTOR A_AMPL={2.5e-3,3.4e-2,0,4.5e-8};
+VECTOR A_ON=TABLE(10,1);
+\end{verbatim}
+Circular definitions are not allowed.
+
+\subsection{Assignment to Variables}
+\label{sec:eval}
+\index{variable!assignment}
+\index{assignment}
+A value is assigned to a variable or vector by using the function
+\texttt{EVAL(real- expression)}.
+When seen, this function is immediately evaluated and replaced by the
+result treated like a constant.
+\begin{verbatim}
+variable-name=EVAL(real-expression);
+\end{verbatim}
+This statement acts like a FORTRAN or C assignment.
+The \texttt{real-expression} or \texttt{vector-expression} is
+\textbf{evaluated}, 
+and the result is assigned as a constant to the variable or vector on
+the left-hand side. 
+Finally the expression is discarded.
+The \texttt{EVAL} function can also be used within an expression, e.~g.:
+\begin{verbatim}
+vector-name=TABLE(range,EVAL(real-expression));
+vector-name={...,EVAL(real-expression),...);
+\end{verbatim}
+A sequence like the following is permitted:
+\begin{verbatim}
+...                 // some definitions
+X=0;                // create variable X with value 
+                    // zero
+WHILE (X <= 0.10) {
+  TWISS,LINE=...;   // uses X=0, 0.01, ..., 0.10
+  X=EVAL(X+.01);    // increment variable X by 0.01
+                    // CANNOT use: X=X+.01;
+}
+\end{verbatim}
+
+\subsection{VALUE: Output of Expressions}
+\label{sec:value}
+\index{variable!value}
+\index{value of variable}
+The statement
+\begin{verbatim}
+VALUE,VALUE=expression-vector;
+\end{verbatim}
+\index{VALUE}
+evaluates a set of expressions using the most recent values of
+any operands and prints the results on the standard error file.
+
+\noindent Example:
+\begin{verbatim}
+A=4;
+VALUE,VALUE=TABLE(5,#*A);
+P1=5;
+P2=7;
+VALUE,VALUE={P1,P2,P1*P2-3};
+\end{verbatim}
+These commands give the results:
+\begin{verbatim}
+value: {0*A,1*A,2*A,3*A,4*A} = {0,4,8,12,16}
+value: {P1,P2,P1*P2-3} = {5,7,32}
+\end{verbatim}
+This commands serves mainly for printing one or more quantities
+which depend on matched attributes.
+It also allows use of \opal as a programmable calculator.
+One may also tabulate functions.
+
+
+\section{H5Part Export}
+\label{sec:h5partexport}
+\index{H5Part}
+By default \opal writes all data into the H5Part (parallel) file format.
+The extension of the input-file will be replaced by {\em .h5}.
+
+
+\section{Restart Mode}
+\label{sec:Restart}
+\index{H5Part}
+There are two ways to restart from existing file. 
+If you want to always restart from and dump phase space data into a single $.h5$ file, 
+restart new job using following command.
+\begin{verbatim}
+opal input.in -restart N --commlib mpi
+\end{verbatim}
+Here N is the dumpping step from which the job restart.  
+
+On some cluster, if the $.h5$ is very big, it may cause some problems when open the file or
+append new data into it. So as another option,you cant create a new $.h5$ file to dump the 
+new phase space data for each restart run. In this case you can restart new job using following command.  
+\begin{verbatim}
+opal input.in -restart N -restartfn H5filename 
+     --commlib mpi
+\end{verbatim}
+Here H5filename is $.h5$ file name (include extension). The rule for the new file is like this:
+If H5filename is $input.h5$, then the new file will be $input\_Part00002.h5$,
+If H5filename is $input\_Part00002.h5$, then the new file will be $input\_Part00003.h5$.
+The rest may be deduced by analogy.
+
+\section{DOOM: Interact with the DOOM Data Base}
+\label{sec:doom}
+\index{DOOM}
+\index{data base}
+\opal can now be interfaced to the 
+\htmladdnormallink{DOOM}{http://wwwslap.cern.ch/act/doom/} 
+(\opal Object-Oriented Database)
+data base; this allows the user to transmit most objects known by \opal
+to and from user-written programs.
+We assume that \opal has been launched with:
+\begin{verbatim}
+opal -db data-base-name
+\end{verbatim}
+It will then open the data base \texttt{data-base-name} and read all
+data stored therein.
+Whenever the user requests it, or when a \texttt{STOP} statement is 
+executed, \opal will write all modified objects to the data base and
+(temporarily) close it.
+Another program can then access the data base and optionally modify it.
+\opal regains access to the data base by explicitely re-opening it.
+
+Please note this is not and will never be support for \noopalt and \noopalcycl .
+
+Interaction with the data base is done with the command
+\index{DOOM!command}
+\begin{verbatim}
+DOOM,OPEN=logical,CLOSE=logical,SHUT=logical,
+     NOUPDATE=logical,DEBUG=integer;
+\end{verbatim}
+which has the following attributes:
+\begin{description}
+\item[CLOSE]
+  \index{CLOSE}
+  Close the database for good. Afterwards one may continue with \opal without 
+  affecting the database contents. At the \texttt{STOP;} command a \\
+  \texttt{DOOM,CLOSE;} is executed by default.
+\item[SHUT]
+  \index{SHUT}
+  Close the database temporarily before a launching a user program by a
+  \secref{\texttt{SYSTEM} call}{system}.
+\item[OPEN]
+  \index{OPEN}
+  Reopen the database after \texttt{DOOM,CLOSE;} or \texttt{DOOM,SHUT;} 
+  and possible execution of a system call. 
+  The first \texttt{DOOM,OPEN;} is performed automatically when \opal 
+  is launched with a data base name and need not be requested explicitly. 
+\item[NOUPDATE]
+  \index{NOUPDATE}
+  After this command, the database is not updated any more, be it at
+  a \texttt{DOOM,SHUT;}, \texttt{DOOM,CLOSE;}, or at the \texttt{STOP;} 
+  command. 
+  This can come handy when you do not want to spoil the contents of the 
+  database. 
+  You can revoke the effect (i.e. enable updating) with
+\begin{verbatim}
+DOOM,NOUPDATE=false;
+\end{verbatim}
+\item[DEBUG]
+  \index{DEBUG}
+  Enables debugging, if the \texttt{<integer>} is non-zero.
+\end{description}
+\noindent Example:
+\begin{verbatim}
+// Open the data base by default when launching \opal.
+// Read some input.
+...
+DOOM,CLOSE; // Allow access to another program
+// Do something which does not require 
+// access to the data base
+...
+SYSTEM,"..."; // Use the data base from outside \opal
+// Do another thing which does not require 
+// access to the data base
+...
+DOOM,OPEN; // Re-gain access to the data base
+// Modify something.
+...
+STOP; // Data base is closed by default.
+\end{verbatim}
+
+\section{Miscellaneous Commands}
+
+\subsection{ECHO Statement}
+\label{sec:echo}
+\index{echo of commands}
+\index{ECHO}
+The \texttt{ECHO} statement has two formats:
+\begin{verbatim}
+ECHO,MESSAGE=message;
+ECHO,message;           // shortcut
+\end{verbatim}
+\texttt{message} is a \secref{string value}{astring}.
+It is immediately transmitted to the \texttt{ECHO} stream.
+
+\subsection{SYSTEM: Execute System Command}
+\label{sec:system}
+\index{system command}
+\index{SYSTEM}
+During an interactive \opal session the command \texttt{SYSTEM}
+allows to execute operating system commands.
+After execution of the system command, successful or not,
+control returns to \opal.
+At present this command is only available under UNIX or VM/CMS.
+It has two formats:
+\begin{verbatim}
+SYSTEM,CMD=string;
+SYSTEM,string;         // shortcut
+\end{verbatim}
+The \secref{string}{astring} \texttt{string} must be a valid operating
+system command. 
+
+\subsection{SYSTEM Command under UNIX}
+Most UNIX commands can be issued directly.
+
+\noindent Example:
+\begin{verbatim}
+SYSTEM,"ls -l"
+\end{verbatim}
+causes a listing of the current directory in long form on the terminal.
+
+\section{TITLE Statement}
+\label{sec:title}
+\index{page title}
+\index{TITLE}
+The \texttt{TITLE} statement has three formats:
+\begin{verbatim}
+TITLE,STRING=page-header;   // define new page header
+TITLE,page-header;          // shortcut for first format
+TITLE,STRING="";            // clear page header
+\end{verbatim}
+\texttt{page-header} is a \secref{string value}{astring}.
+It defines the page header which will be used as a title for
+subsequent output pages. 
+Before the first \texttt{TITLE} statement is encountered, 
+the page header is empty.
+It can be redefined at any time.
+
+\section{File Handling} 
+ 
+\subsection{CALL Statement}
+\label{sec:call}
+\index{CALL}
+The \texttt{CALL} command has two formats:
+\begin{verbatim}
+CALL,FILE=file-name;
+CALL,file-name;
+\end{verbatim}
+\texttt{file-name} is a \secref{string}{astring}.
+The statement causes the input to switch to the named file.
+Input continues on that file until a \texttt{STOP} or an end of file
+is encountered. 
+\noindent Example:
+\begin{verbatim}
+CALL,FILE="structure";
+CALL,"structure";
+\end{verbatim}
+
+\subsection{SAVE Statement}
+\label{sec:save}
+\index{SAVE}
+The \texttt{SAVE} command has two formats:
+\begin{verbatim}
+SAVE,FILE=file-name
+\end{verbatim}
+\texttt{file-name} is a \secref{string}{astring}.
+The command causes all beam element, beam line, and parameter definitions
+to be written on the named file.
+%If the \secref{\texttt{OPTION,\opal8}}{option} is active,
+%the format is \opal-8 format, otherwise it is \opal format.
+%The file may be read again in the same run.
+\noindent Examples:
+\begin{verbatim}
+SAVE,FILE="structure";
+SAVE,"structure";
+\end{verbatim}
+
+\subsection{MAKESEQ Statement}
+\label{sec:makeseq}
+\index{MAKESEQ}
+A file containing a machine sequence can be generated in \opal by the
+command 
+\begin{verbatim}
+MAKESEQ,LINE=string,NAME=string,FILE=string;
+\end{verbatim}
+
+Please note this is not yet supported for \opalt and \opalcycl .
+
+
+The named \secref{beam line}{line} or \secref{sequence}{sequence} is
+written as a flat \secref{\texttt{SEQUENCE}}{sequence} with the given
+name on the named file. 
+%If the \secref{\texttt{OPTION,\opal8}}{option} is active,
+%the format is \opal-8 format, otherwise it is \opal format.
+All required elements and parameters are also written.
+All expressions are evaluated and only their values appear in the
+output. 
+The command has the following attributes:
+\begin{description}
+\item[LINE]
+  The line for which a flat sequence is to be written.
+\item[NAME]
+  The name to be given to the sequence written.
+\item[FILE]
+  The name of the file to receive the output.
+\end{description}
+
+\section{IF: Conditional Execution}
+\label{sec:if}
+\index{IF}
+Conditional execution can be requested by an \texttt{IF} statement.
+It allows usages similar to the C language \texttt{if} statement:
+\begin{verbatim}
+IF (logical) statement;
+IF (logical) statement; ELSE statement;
+IF (logical) { statement-group; }
+IF (logical) { statement-group; } 
+  ELSE { statement-group; }
+\end{verbatim}
+Note that all statements must be terminated with semicolons (\texttt{;}),
+but there is no semicolon after a closing brace.
+The statement or group of statements following the \texttt{IF} is
+executed if the condition is satisfied.
+If the condition is false, and there is an \texttt{ELSE},
+the statement or group following the \texttt{ELSE} is executed.
+
+\section{WHILE: Repeated Execution}
+\label{sec:while}
+\index{WHILE}
+Repeated execution can be requested by a \texttt{WHILE} statement.
+It allows usages similar to the C language \texttt{while} statement:
+\begin{verbatim}
+WHILE (logical) statement;
+WHILE (logical) { statement-group; }
+\end{verbatim}
+Note that all statements must be terminated with semicolons (\texttt{;}),
+but there is no semicolon after a closing brace.
+The condition is re-evaluated in each iteration.
+The statement or group of statements following the \texttt{WHILE} is
+repeated as long as the condition is satisfied.
+Of course some variable(s) must be changed within the \texttt{WHILE} group 
+to allow the loop to terminate.
+
+\section{MACRO: Macro Statements (Subroutines)}
+\label{sec:macro}
+\index{MACRO}
+Subroutine-like commands can be defined by a \texttt{MACRO} statement.
+It allows usages similar to C language function call statements.
+A macro is defined by one of the following statements:
+\begin{verbatim}
+name(formals): MACRO { token-list }
+name(): MACRO { token-list }
+\end{verbatim}
+A macro may have formal arguments, which will be replaced by actual arguments 
+at execution time. An empty formals list is denoted by \texttt{()}.
+Otherwise the \texttt{formals} consist of one or more names, 
+separated by commas.
+The \texttt{token-list} consists of input tokens 
+(strings, names, numbers, delimiters etc.) 
+and is stored unchanged in the definition.
+
+A macro is executed by one of the statements:
+\begin{verbatim}
+name(actuals);
+name();
+\end{verbatim}
+Each actual consists of a set of tokens which replaces all occurrences of
+the corresponding formal name.
+The actuals are separated by commas.
+\noindent Example:
+\begin{verbatim}
+// macro definitions:
+SHOWIT(X): MACRO {
+   SHOW, NAME = X;
+}
+DOIT(): MACRO {
+   DYNAMIC,LINE=RING,FILE="DYNAMIC.OUT";
+}
+
+// macro calls:
+SHOWIT(PI);
+DOIT();
+\end{verbatim}
+
+\index{control statements|)}

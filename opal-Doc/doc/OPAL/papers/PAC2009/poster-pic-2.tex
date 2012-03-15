@@ -1,0 +1,51 @@
+\documentclass[acus]{JAC2003}
+
+%%
+%%  This file was updated in April 2009 by J. Poole to be in line with Word tempaltes
+%%
+%%  Use \documentclass[boxit]{JAC2003}
+%%  to draw a frame with the correct margins on the output.
+%%
+%%  Use \documentclass[acus]{JAC2003}
+%%  for US letter paper layout
+%%
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage[colorlinks,linkcolor=blue,anchorcolor=blue,citecolor=blue]{hyperref} % hyper reference to contents 
+\usepackage{algorithm,algorithmic}
+\usepackage{tikz}
+\usepackage{pgflibraryshapes}  
+
+\include{mylatexdefs}
+\newcommand{\bs}[1]{\mathbf #1}
+
+%%
+%%   VARIABLE HEIGHT FOR THE TITLE BOX (default 35mm)
+%%
+
+\setlength{\titleblockheight}{37mm}
+
+\begin{document}
+\begin{algorithm}
+  \caption{3D Space Charge Calculation} 
+  \label{alg1:sc3d}
+  \begin{algorithmic}[1]
+    \STATE \textbf{procedure} 3DSpaceCharge(In: $\rho$, $G$, Out: $\bs{E_{sc}}$,$\bs{B_{sc}}$)
+       \STATE Create 3D rectangular grid which contains all particles, % and doubled it in each dimension, 
+       \STATE Interpolate the charge $q$ of each macro-particle to nearby mesh points to obtain $\rho^D$, 
+       \STATE Lorentz transformation to obtain $\rho^D$ in the beam rest frame $\bs{S}_{\RM{beam}}$,
+       \STATE FFT $\rho^D$ and $G^D$ to obtain $\widehat{\rho}^D$ and $\widehat{G}^D$,
+       \STATE Determine $\widehat{\phi}^D$ on the grid using $\widehat{\phi}^D = \widehat{\rho}^D \cdot \widehat{G}^D$,
+       \STATE Use FFT$^{-1}$ of $\widehat{\phi }^D$ to obtain $\phi^D$,
+       \STATE Compute $\bs{E}^D= -\nabla \phi^D$,
+       \STATE Interpolate $\bs{E}$ at the particle positions $\bs{x}$ from $\bs{E}^D$,
+       \STATE Perform Lorentz back transform to obtain $\bs{E_{\RM{sc}}}$ and $\bs{B_{\RM{sc}}}$ in  frame $\bs{S}_{\RM{local}}$ and transform back  to $\bs{S}_{\RM{lab}}$.
+       \STATE \textbf{end procedure}
+  \end{algorithmic}
+\end{algorithm}
+
+
+
+\end{document}

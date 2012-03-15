@@ -1,0 +1,2 @@
+"Create Binomial distribution with 1E6 particles"
+out "rms emmitance" last 1E-15

@@ -1,0 +1,10 @@
+This directory contains the LaTeX source for the following documents:
+
+opal-classes.tex	the full document for OPAL class descriptions
+
+The other files are:
+
+opal-uml.tex		the source for drawing the class diagrams, included
+			by both documents.
+
+uml.tex			a link to the macros used for class diagrams.

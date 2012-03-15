@@ -1,0 +1,13 @@
+This test case is for a "perfect" diode field. That is, the field is fake and consists of only a longitudinal electric field.
+This test is useful when debugging OPAL because it is a very basic simulation and the results should ease to understand.
+
+There are two subdirectories:
+
+fields:
+
+Contains field maps.
+
+
+input:
+
+Contains input files and run scripts.

@@ -1,0 +1,31 @@
+# Makefile
+
+CC = gcc
+
+INC += prf.h prfflt.h ./prflocal.h
+
+LIBSRCS = clrprf.c clrtprf.c defprf.c deftprf.c dprf.c dprfv.c extprf.c exttprf.c \
+	iprf.c iprfv.c lprf.c lprfv.c prf_C.c prf_R.c prf_S.c prf_X.c prf__conv.c \
+	prf__cput.c prf__d.c prf__mput.c prf__ncput.c prf__num.c prf__parse.c \
+	prf__thectab.c prf__udigs.c prf_b.c prf_c.c prf_d.c prf_m.c prf_o.c prf_p.c \
+	prf_plural.c prf_repeat.c prf_s.c prf__stretch.c prf_u.c prf_unknown.c \
+	prf_x.c setprf.c settprf.c sprf.c sprfv.c stdprf.c stdtprf.c uprf.c uprfv.c \
+	prf__naninf.c prf__efcvt.c prf__e.c prf__f.c prf_e.c prf_f.c prf_g.c \
+	prf_eE.c prf_gG.c fltprf.c flttprf.c fprf.c fprfv.c prf.c prfv.c
+
+LIBRARY = prf
+LIBTYPE := SHARED
+
+PROD = Example
+Example_SRCS = Example.c
+Example_LDFLAGS += -L$(INSTALL_LIB)
+Example_LIBS += prf
+
+#----------------------------------------
+#  ADD RULES AFTER THIS LINE
+
+./prflocal.h:   ./mklocal.c
+	$(CC) $<
+	rm -f "$@"
+	./a.out > "$@"
+	rm -f a.out

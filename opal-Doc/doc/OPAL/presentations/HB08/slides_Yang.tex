@@ -1,0 +1,631 @@
+\documentclass[xcolor=pdftex,table,10pt,yellow,mathserif]{beamer}
+\usepackage[3D]{movie15}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{beamerthemesplit} 
+\mode<presentation>
+{
+\usetheme{PSI}
+}
+
+\usepackage[overlay,absolute]{textpos}
+\TPGrid[4mm,25mm]{10}{5}
+
+
+\newcommand{\opal}{\textsc{OPAL }}
+\newcommand{\opalt}{\textsc{OPAL-t }}
+\newcommand{\opalcycl}{\textsc{OPAL-cycl }}
+\newcommand{\opalmap}{\textsc{OPAL-map }}
+\newcommand{\opalenv}{\textsc{OPAL-envelop}}
+
+
+\newcommand{\rnb}{radially neighboring bunches }
+\newcommand{\nbe}{neighboring bunch effects }
+\newcommand{\sce}{space charge effects }
+\newcommand{\scf}{space charge force }
+\newcommand{\bs}[1]{\mathbf #1}
+\newcommand {\RM}[1]{\mathrm{#1}}
+
+\AtBeginSection[]{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection,hideothersubsections]
+  \end{frame}
+}
+
+\title{Modeling High Intensity Beams in Cyclotrons}
+\subtitle{\opalcycl and its applications}
+
+\author{J. Yang (CIAE \& PSI \& Tsinghua Univ.), A. Adelmann, \\ 
+  M. Humbel, M. Seidel (PSI), T. Zhang (CIAE)}
+
+\date{\today}
+
+\titlegraphic{
+%\begin{columns}
+%    \begin{column}{3cm}
+%      \includegraphics[width=3cm]{figures-slides/psi_logo_blue.png} \\
+%    \end{column}
+%    \begin{column}{3cm}
+%      \includegraphics[width=3cm, height=1.5cm]{figures-slides/ciae_logo.png} \\
+%    \end{column}
+%  \end{columns}
+
+{ \center For more information visit http://amas.web.psi.ch/ }
+}
+
+\begin{document} 
+
+\frame{\titlepage} 
+
+\frame{\includegraphics[width=11.5cm]{Movie-Picture1}} 
+\frame{\includegraphics[width=11.5cm]{Movie-Picture2}} 
+
+\begin{frame}
+\frametitle{Outline}
+\tableofcontents
+\end{frame}
+
+\section{Background \& Motivation} 
+
+%\frame{
+%  \frametitle{}
+%590 MeV @ 2.0 mA $\rightarrow$ 1.18 MW
+%\includegraphics[angle=90,scale=0.08]{Halle}
+%}
+
+\frame{
+  \frametitle{Background: {History}}
+
+  \begin{columns}
+    \begin{column}{5.0cm}
+      \begin{block}{}
+      In the past decades, new applications motivated the need of cyclotrons with higher beam intensity,
+      in which \alert{space charge} strongly affects the beam dynamics.\\
+      \end{block}
+      \begin{block}{}
+      It is important to study its influence by means of \alert{quantitative modeling}.
+      \end{block}
+    \end{column}
+
+    \begin{column}{7.0cm}
+      \includegraphics[width=6.0cm]{figures-slides/currentHist_Ring.pdf}
+      \\Space charge limits in 590 MeV Ring cyclotron (courtesy by W. Joho, 1981)
+    \end{column}
+  \end{columns}
+}
+
+\frame{
+  \frametitle{Background: {Space charge studies in Cyclotrons}}
+  \begin{block}{} 
+ %   \begin{itemize}  
+    \alert{Analytic Models } 
+    \begin{itemize}  
+    \item Disk model by M.M.Gordon (1970s)
+    \item Sector model by W.Joho (1980s)
+    \end{itemize}
+    \alert{Numerical solution}
+    \begin{itemize}  
+    \item 2D serial P-M codes: PICS, PICN by S.Adam and S. Koscielniak (1990s)
+    \item 3D Parallel P-M codes: LIONS SP by P.Bertrand (2000s) \& MAD9P by A.Adelmann (2001) 
+    \end{itemize}
+    \alert{Neighboring bunch effects} $\Rightarrow$ Not much work has been done yet.\\
+    E.Pozdeyev introduced ``auxiliary bunch'' in his serial code CYCO (2003). 
+    %    \end{itemize}
+    \begin{columns}
+      \begin{column}{4.0cm}
+	\includegraphics[width=\linewidth]{figures-slides/Multi-bunch}
+      \end{column}
+    \end{columns}
+  \end{block}
+  
+
+}
+
+\frame{
+  \frametitle{Motivation:{Upgrade Project of PSI Cyclotron Facility}}
+  \begin{columns}
+    \begin{column}{6.0cm}
+      \begin{block}{590 MeV Ring (CW)}
+        \begin{itemize}
+        \item Beam Current/Power:\\ 
+	  \alert{2mA/1.2MW} $\Rightarrow$ \alert{3 mA/1.8MW}\\
+	  The \alert {highest beam power cyclotron} in the world
+	\item Turns number: \\
+	  \alert{~200} $\Rightarrow$ less than \alert{160}
+	\item Larger turn separation after upgrade
+	\end{itemize}
+      \end{block}
+    \end{column}
+
+    \begin{column}{6.0cm}
+      \includegraphics[width=\linewidth]{figures-slides/ringcyc}
+    \end{column}
+  \end{columns}
+}
+
+\frame{
+  \frametitle{Motivation: {Upgrade Project of PSI Cyclotron Facility}}
+%  \begin{block}{}
+%  \begin{columns}
+%    \begin{column}{6.0cm}
+%      \includegraphics[width=5.0cm,trim=2.5cm 2.5cm 2.5cm 2.5cm]{figures/R_dR_Ring.pdf}
+%    \end{column}
+
+%    \begin{column}{6.0cm}
+%      \includegraphics[width=5.0cm,trim=2.5cm 2.5cm 2.5cm 2.5cm]{figures/Turn_dR_Ring.pdf}
+%    \end{column}
+%  \end{columns}
+%  \end{block}
+\vspace{-3mm}
+
+  \includegraphics[width=0.6\linewidth]{figures/Turn_dR_Ring.pdf}
+  \vspace{-3mm}
+  \begin{block}{After upgrade}
+    \begin{itemize}
+    \item $\Delta R$ is still at the same order of magnitude as bunch's radial size
+    \item $I$ increases from 2 mA to 3 mA
+    \end{itemize}
+    \center  \alert{$\Rightarrow$ Neighboring bunch effects will increase!  }
+  \end{block} 
+}
+
+
+\frame{\begin{center}
+\frametitle{Motivation: {Understanding radial density profiles}}
+\includegraphics[width=0.75\linewidth]{ring_profile}
+\end{center}
+courtesy of M. Sidel (PSI)
+} 
+
+
+
+\frame{
+  \frametitle{Motivation:  \small{Compact Cyclotron under Construction at CIAE}}
+  \begin{columns}
+    \begin{column}{6.0cm}
+      \begin{block}{100MeV $H^-$ CYCIAE-100}
+        \begin{itemize}
+        \item Designed beam current \alert{0.2mA}, future \alert{0.5mA}
+	\item Turns number is about \alert{~500}
+	\item Energy gain per turn is \alert{0.2MeV}
+	\item Multi-turn extraction by stripper at radius of \alert{1.9m}
+	\item At extraction point, \\\alert{$\Delta R_{n,n+1}=1.5$mm}\\
+	  Far smaller than beam size, multi-bunches will \alert{overlap} 
+	\end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{6.0cm}
+      \includegraphics[width=\linewidth]{figures-slides/cyciae100.png}
+    \end{column}
+  \end{columns}
+}
+
+\section{\opalcycl: Physical Model and Algorithm}
+
+\frame{
+  \frametitle{ Introduction to \opalcycl}
+  \begin{block}{}  
+  \begin{itemize} \footnotesize
+ \item \opal is a tool for charged-particle optics in large accelerator structures and beam lines including 3D space charge
+  \item Flavours: \alert{\opalcycl}, \opalt and \opalmap 
+  \item \opal is built from the ground up as a parallel application exemplifying the fact that HPC (High Performance Computing) is the third leg of science, complementing theory and the experiment
+\end{itemize}
+\end{block}
+  
+  \begin{block}{}
+    \begin{itemize}
+    \item  \alert{\opalcycl} is a 3D parallel P-M code for cyclotrons
+  %  \item Based on several other framework (IPPL, CLASSIC, H5Part, HDF5)
+    \item Solve Poisson equation with spectral methods
+    \item Track in global Cartesian coordinates using RK-4 as time integrator
+    \item Store (phase space) data in the parallel H5Part format
+    \item Has three working modes: 
+      \begin{enumerate}
+      \item Tune calculation mode (single particle tracking)
+      \item Single bunch tracking mode including 3D space charge
+      \alert{\item Multiple bunch tracking mode including 3D space charge}
+      \end{enumerate}
+    \end{itemize}
+  \end{block}
+}
+
+\subsection{3D Parallel Space Charge Solver}  
+
+\frame{
+  \frametitle{Equations of Motion}
+
+  \begin{block}{}
+    Equations of motion of single charged particle in electromagnetic field:
+    \footnotesize
+    \begin{equation*}
+      \dot{\bs{p}} = \bs{F}(\bs{v},\bs{x},t) = q\;(\bs{v} \times \bs{B} + \bs{E}),
+    \end{equation*}
+    \begin{equation*}
+      \bs{E} = \bs{E_{\RM{ext}}}+\bs{E_{\RM{self}}},
+    \end{equation*}
+    \begin{equation*}
+      \bs{B} = \bs{B_{\RM{ext}}}+\bs{B_{\RM{self}}}.
+    \end{equation*}
+  \end{block}
+
+  \begin{block}{Two assumptions are valid for Cyclotrons}
+    \begin{itemize}
+    \item Wake field \& image charge effects are far smaller than space charge
+    \item Particles relative motion in a bunch is non-relativistic
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{}
+    $\bs{E_{\RM{ext}}} $\, $ \bs{B_{\RM{ext}}} $$\Leftarrow$  measured field map or commercial software,\\
+    $\bs{E_{\RM{self}}}$\, $ \bs{B_{\RM{self}}} $$\Leftarrow$  solve Poisson equation.
+  \end{block}
+}
+
+\frame{
+  \frametitle{The Coordinates Frames}
+  \begin{columns}
+    \begin{column}{6.0cm}
+      \includegraphics[width=5cm]{figures/SM-frame.pdf}
+    \end{column}
+  \end{columns}
+  \begin{block}{3 frames}
+    \begin{itemize}
+    \item  ${\bs{S}_{\RM{lab}}}$  :  The global lab frame
+    \item  ${\bs{S}_{\RM{local}}}$:  The local instantaneous frame
+    \item  ${\bs{S}_{\RM{beam}}}$ :  The beam rest frame
+    \end{itemize}
+  \end{block}
+}
+
+\frame{
+  \frametitle{3D Parallel Poisson Solver: { P-M/FFT methods}}
+%  \begin{columns}
+   % \begin{column}{6.0cm}
+      \begin{block}{}
+        Space charge fields can be obtain by solving 
+        the Poisson equation using Particle-Mesh (P-M) method in a co-moving frame.
+      \end{block}
+    %\end{column}
+    %\begin{column}{4.0cm}
+      %\includegraphics[width=4.0cm]{figures-slides/Grid}
+    %\end{column}
+%  \end{columns}
+
+  \begin{block} {Solve Poisson equation on a rectangular domain with open BC }  
+    A 3D rectangular grid which contains all particles is built (following quantities with superscript of $D$ means on grid).    
+    The solution of the discretized Poisson equation with $\vec{k}=(l,n,m,)$
+    \begin{equation*}\label{eq:DiscretizedPoisson}
+      \nabla^{2} \phi^D(\vec{k}) = - \frac{\rho^D(\vec{k})}{\epsilon_0}, \vec{k} \in \Omega^D
+    \end{equation*}
+    
+    $\phi^D$ is given by convolution with the appropriate discretized Green's function $G_D$: 
+    \begin{equation*}
+      \phi^D = \rho^D * G^D
+    \end{equation*}
+ %   Open or periodic boundary conditions can be applied.
+  \end{block}
+
+}
+
+\frame{
+  \frametitle{3D Parallel Poisson Solver: { P-M/FFT methods}}  
+  \begin{block}{Algorithm of the Poisson Solver}
+    \begin{tabbing}
+      \quad $\triangleright$ Assign all particles charges $q_i$ to nearby mesh points to obtain $\rho^D$ \\
+      \quad $\triangleright$ Lorentz transform to obtain $\rho^D$ in $\bs{S_{\RM{beam}}}$\\
+      \quad $\triangleright$ Use FFT on $\rho^D$ and $G^D$ to obtain $\widehat{\rho}^D$ and $\widehat{G}^D$ \\
+      \quad $\triangleright$ Determine $\widehat{\phi}^D$ on the grid using $\widehat{\phi}^D = \widehat{\rho}^D \cdot \widehat{G}^D$  \\
+      \quad $\triangleright$ Use inverse FFT on $\widehat{\phi }^D$ to obtain $\phi^D$\\
+      \quad $\triangleright$ Compute $\bs{E}^D= -\nabla \phi^D$\\
+      \quad $\triangleright$ Interpolate $\bs{E}$ at particle positions $\bs{x}$ from $\bs{E}^D$ \\
+      \quad $\triangleright$ Lorentz back transform to obtain $\bs{E_{\RM{sc}}}$ and $\bs{B_{\RM{sc}}}$ in $\bs{S_{\RM{lab}}}$\\ 
+    \end{tabbing}
+  \end{block}
+  
+}
+
+\subsection{Modeling Neighboring bunch effects}
+\frame{
+  \frametitle{Neighboring Bunch Effects: {Multi-bunch model}}
+  \begin{block}{}
+    In our model, the injection-to-extraction simulation is divided into two stages,  
+    \begin{itemize}
+    \item First stage, big $\Delta R$  \alert{$\Rightarrow$}  single bunch tracking
+    \item Second stage, small $\Delta R$ \alert{$\Rightarrow$}  multiple bunches tracking
+    \end{itemize} 
+    The working mode transfers from single bunch mode to multiple bunches mode automatically when
+    $\Delta R$ is comparable with the size of bunch.
+  \end{block}
+
+%  \begin{block}{Summary}
+%    \begin{itemize}
+%    \item Fully self-consistent model of dealing with \rnb effects in time domain
+%    \item Using multiple bunches simulation, \nbe can be evaluated precisely
+%    \end{itemize} 
+%  \end{block}  
+}
+
+\frame{
+  \frametitle{Neighboring Bunch Effects: {Algorithm}}
+  \includegraphics[height=7cm]{figures-slides/NBplot.pdf}
+}
+
+\frame{
+  \frametitle{Neighboring Bunch Effects: {Algorithm}}
+  \includegraphics[width=8cm]{figures/SM-MultiBunch.pdf}
+  \begin{block}{Energy bins}
+    \begin{itemize}
+    \item One energy bin for each bunch
+    \item All particles grouped into bins
+   % \item Compute each bin's contribution separately
+   \item For all $n$-bins compute space charge in the correct frame
+    \item Rebin when energy spread exceeds a given threshold value
+    \end{itemize}
+  \end{block}
+}
+
+\section{Validations and Applications}
+
+\subsection{\opalcycl Scaling }
+
+\begin{frame} 
+  \frametitle{Parallel Scalability: {On a Cray XT3 at CSCS, Switzerland}}
+  \begin{columns}
+    \begin{column}{4.cm}
+      \scriptsize
+      \begin{block}{Setup}
+        \begin{itemize}
+        \item  \alert{$10^6$} particles, 
+        \item 3D FFT on a  \alert{$64^3$} grid,
+	\item \alert{2D} domain decomposition
+	\item Track  \alert{200} time steps
+        \item Gaussian distribution
+	\item Dump data into \alert{single} H5Part file every 10 steps
+        \end{itemize}
+      \end{block}
+      
+      \begin{block}{Observations}
+        \begin{itemize}
+        \item The code scales well
+	\item Good load-balancing
+	\item Dumping time increased 
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{6.5cm}
+    \begin{block}{}    
+      \includegraphics[width=\linewidth]{figures/Timing64mesh}
+      \center Time to solution is reduced approximately by a factor of \alert{60},(256P Vs 1P).
+    \end{block}  
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\subsection{Applications}
+
+\frame{
+  \frametitle{Applications: {PSI 590MeV Ring}}
+  \framesubtitle{Accelerating orbit and tune diagram}
+  \begin{block}{}
+  \begin{columns}
+    \begin{column}{5.0cm}
+      \includegraphics[width=\linewidth]{figures-slides/AEO-Ring2.pdf}  \\
+      Extraction @ 590 MeV       
+    \end{column}
+    \begin{column}{5.0cm}
+      \includegraphics[width=\linewidth]{figures-slides/nurnuz_Ring} \\
+      Tune calculation result is agree with FIXPO code very well!
+    \end{column}
+  \end{columns}
+  \end{block}
+}
+
+%\frame{
+%  \frametitle{Applications: \small{PSI 590MeV Ring}}
+%  \framesubtitle{\alert {Simulation} and \alert{measurement} }
+%  \begin{block}{}
+%  \begin{columns}
+%    \begin{column}{5.0cm}
+%      \includegraphics[width=\linewidth]{figures-slides/AEO-Ring2.pdf}
+%    \end{column}
+%    \begin{column}{5.0cm}
+%      \includegraphics[width=\linewidth]{figures-slides/measureNew1.pdf} \\
+%      Beam center position difference is less than +/- 5 mm.
+%    \end{column}
+%  \end{columns}
+%  \end{block}
+%}
+
+\frame{
+  \frametitle{Applications: {PSI 590MeV Ring}}
+  \framesubtitle{\alert {Simulation} and \alert{measurement} }
+  \vspace{-9mm}
+   %  \begin{block}{}
+         \includegraphics[width=.8\linewidth]{figures-slides/measureNew1.pdf} \\
+      Beam center position difference is less than +/- 5 mm.
+   
+  %\end{block}
+}
+
+
+
+\frame{
+  \frametitle{Applications: {PSI 590MeV Ring}}
+  \framesubtitle{\alert{Single bunch} with space charge}
+
+  \begin{block}{Compare different initial phase widths of 3 mA beam}  
+  \begin{columns}
+    \begin{column}{3.0cm}
+      \includegraphics[angle=90,width=\linewidth]{figures/Theta-Turn-0.pdf} \\
+      \center Turn 0
+    \end{column}
+    \begin{column}{3.0cm}
+      \includegraphics[angle=90,width=\linewidth]{figures/Theta-Turn-50.pdf} \\
+      \center Turn 50
+    \end{column}
+    \begin{column}{3.0cm}
+      \includegraphics[angle=90,width=\linewidth]{figures/Theta-Turn-150.pdf} \\
+      \center Turn 150
+    \end{column}
+  \end{columns}
+  \end{block}
+  \begin{block}{}  
+    \begin{itemize}
+      \item $2^o$:  Keep compact shape, no tails exist
+      \item $6^o$:  With tails about 3 cm long
+      \item $10^o$: With long tails of more than 6 cm long
+    \end{itemize}
+  \end{block}
+
+}
+
+\frame{
+  \frametitle{Applications: {PSI 590MeV Ring}}
+  \framesubtitle{\alert{Single bunch} with space charge}
+
+  \begin{block}{Start-to-end RMS sizes comparison of 3 mA beam}  
+    \includegraphics[width=0.48\linewidth]{figures/Comp-Transverse.pdf}
+    \includegraphics[width=0.48\linewidth]{figures/Comp-Longitudinal.pdf}
+  \end{block}
+}
+
+\frame{
+  \frametitle{Applications: {PSI 590MeV Ring}}
+  \framesubtitle{\alert{Single bunch}  and \alert{multiple bunches} at turn 80 and 130}
+  
+  \includegraphics[angle=90,width=0.95\linewidth]{figures/C9B7BSB-2D-1mA-80.pdf}\\
+  \includegraphics[angle=90,width=0.95\linewidth]{figures/C9B7BSB-2D-1mA-130.pdf}
+}
+
+
+\frame{
+ \frametitle{Applications: {PSI 590MeV Ring}}
+  \framesubtitle{\alert{Single bunch}  and \alert{multiple bunches} at turn 80 and 130}
+ 
+  \includegraphics[angle=90,width=0.42\linewidth]{figures/C9B7BSB-R-1mA-80.pdf}
+  \includegraphics[angle=90,width=0.42\linewidth]{figures/C9B7BSB-Energy-1mA-80.pdf}\\
+   \includegraphics[angle=90,width=0.42\linewidth]{figures/C9B7BSB-R-1mA-130.pdf}
+  \includegraphics[angle=90,width=0.42\linewidth]{figures/C9B7BSB-Energy-1mA-130.pdf}
+}
+
+
+
+\begin{frame} { }
+\includemovie[
+poster,
+text=(Neighboring bunch effects of 1mA beam),
+mouse,
+repeat
+]{
+.8\linewidth
+}{
+.6\linewidth
+}{Ring9B3mA.mpeg}
+\end{frame}
+
+
+
+%\frame{
+%  %url base
+%  \hyperbaseurl{/home2/yang/svnwork/OPAL/opal-Doc/doc/OPAL/presentations/HB08/}
+
+%  \frametitle{Applications: \small{PSI 590MeV Ring}}  
+%  \begin{block}{Conclusion of neighboring bunch effects of 1 mA beam}
+%    \begin{itemize}
+%      \item 9 bunches is enough to give out precise solution
+%      \item It has visible impacts on beam dynamics
+%      \item It makes the bunch more compact in transverse direction
+%      \end{itemize}
+%  \end{block}
+%}
+
+%\frame{ 
+%
+%  \frametitle{Applications: \small{3 MeV coasting beam in Injector2}}
+%  \begin{columns}
+%    \begin{column}{4.0cm}
+%      Animations of ``round beam'' formation:\\
+%
+%      {\color{blue}\underline{\href{Movie/0mA.mpeg}{0mA beam animation}}}\\
+%      
+%      {\color{blue}\underline{\href{Movie/1mA.mpeg}{1mA beam animation}}} \\
+%      
+%      {\color{blue}\underline{\href{Movie/3mA.mpeg}{3mA beam animation}}}
+%    \end{column}
+%    
+%    \begin{column}{6.0cm}
+%      \includegraphics[width=0.8\linewidth]{figures-slides/INJII.png}
+%    \end{column}
+%  \end{columns}  
+%
+%  \begin{block}{Conclusion} 
+%    In Injector2, \sce help to develop a very compact stable core in the first several turns for more than 1mA beam.
+%  \end{block}
+%}
+
+%\frame{
+%  \frametitle{Applications: \small{3 MeV coasting beam in Injector2}}
+%  \center{
+%    \includegraphics[width=0.8\linewidth]{figures-slides/PICS.pdf}\\
+%    I=1mA. Up: turn 0, 5, 10. Down: turn 20, 30, 40 by PICS (courtesy by S. Adam)
+%  }
+%}
+
+%\frame{
+%  \frametitle{Applications: \small{3 MeV coasting beam in Injector2}}
+%  \includegraphics[angle=90,width=0.3\linewidth]{figures/Inj2/1mA0.pdf}
+%  \includegraphics[angle=90,width=0.3\linewidth]{figures/Inj2/1mA5.pdf}
+%  \includegraphics[angle=90,width=0.3\linewidth]{figures/Inj2/1mA10.pdf}\\
+%  \includegraphics[angle=90,width=0.3\linewidth]{figures/Inj2/1mA20.pdf}
+%  \includegraphics[angle=90,width=0.3\linewidth]{figures/Inj2/1mA30.pdf}
+%  \includegraphics[angle=90,width=0.3\linewidth]{figures/Inj2/1mA40.pdf}\\
+%  I=1mA.Up: turn 0, 5, 10. Down: turn 20, 30, 40 by \opalcycl
+%}
+
+
+\section{Conclusions \& Outlook}
+\frame{
+  \frametitle{Conclusions \& Outlook }
+  \begin{block}{}
+    \begin{itemize}
+    \item We developed a 3D parallel P-M code \opalcycl
+    \item The model includes \alert{for the first time} neighboring bunch effects self consistently in a S-E simulation of the PSI-Ring Cyclotron
+    \item Quantitative studies of neighboring bunch effects for the PSI Ring cyclotron are presented:
+     \begin{itemize}
+      \item 9 bunches for converging solution
+      \item It has visible impacts on beam dynamics
+      %\item It makes the bunch more compact in transverse direction
+      \end{itemize}
+    \end{itemize}
+\end{block}
+
+    \begin{block}{}      
+    \begin{itemize}
+      \item In 2009 we plan an extensive BD-studies to
+        \begin{enumerate}
+        	\item obtain proper initial conditions for the Ring Cyclotron
+	\item match mesured profiles with simulations in the Ring Cyclotron
+       \end{enumerate}
+       \item Add collimation in \opalcycl
+       \end{itemize}   
+       \end{block}
+      
+}
+
+\frame{
+  \frametitle{Acknowledgments}
+  \begin{block}{}
+  \large{
+    C. Kraus, T. Schietinger, W. Joho, S. Adam, R. Doelling and AMAS group members,
+    and those who have rendered support and help.}
+  \end{block}
+%  \center { \Huge { *** } }
+%  \begin{block}{} 
+%    \center \Huge {Thank you for your attention!}
+%  \end{block}
+}
+
+\end{document}
+

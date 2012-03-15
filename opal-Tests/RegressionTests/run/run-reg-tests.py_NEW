@@ -1,0 +1,334 @@
+#!/usr/bin/python 
+import datetime
+import time
+import commands
+import os
+import sys
+import xml.dom.ext
+import xml.dom.minidom
+
+from tools import readfile
+from tools import sendmails
+from tools import checktest
+from tools import buildtest
+
+#XML reporter
+xml_report = xml.dom.minidom.Document()
+root_element = xml_report.createElement("Tests")
+xml_report.appendChild(root_element)
+
+#FIXME: ugly global variables
+totalNrTests = 0
+totalNrPassed = 0
+
+"""
+This method traverses the directory tree. It will check and execute regression tests for the following directory-layouts:
+
+    DIR Structure:
+    name/name.in
+         name.rt
+         run
+         run-parallel
+         *.T7
+         reference/name.lbal
+         reference/name.out
+         reference/name.stat
+         reference/name.lbal.md5
+         reference/name.out.md5
+         reference/name.stat.md5
+
+Please make sure you use this naming scheme!
+"""
+def callback(arg, dirname, fnames):
+
+    global totalNrPassed
+    global totalNrTests
+
+    if not ".svn" in dirname and not "reference" in dirname: #exclude svn and reference dirs
+
+        dir = str.split(dirname, "/")
+        simname = dir[len(dir)-1]
+        report = ""
+
+        if os.path.isfile(dirname + "/" + simname + ".in") and \
+           os.path.isfile(dirname + "/" + simname + ".rt") and \
+           os.path.isdir(dirname + "/" + "reference") and \
+           os.path.isfile(dirname + "/" + "run"):
+
+                report += "Found valid test in %s \n" % dirname
+                d = datetime.date.today()
+                resultdir = "results/" + d.isoformat() + "/" + simname
+                if not os.path.isdir(resultdir):
+                    commands.getoutput("mkdir -p " + resultdir)
+                
+                simulation_report = xml_report.createElement("Simulation")
+                simulation_report.setAttribute("name", simname)
+                simulation_report.setAttribute("date", "%s" % d)
+
+                curd = os.getcwd()
+                os.chdir(dirname)
+
+                (isValid, vrep) = validateReferenceFiles(simname)
+                report += vrep
+                
+                if isValid == True:
+                    report += "\t run simulation\n"
+                    runout = commands.getoutput("./run")
+
+                    #cleanup all OLD job files
+                    commands.getoutput("rm " + simname + "-RT.*")
+                    #wait for job to finish for now do this serially
+                    qstatout = commands.getoutput("qstat -u ineichen")
+                    while len(qstatout) > 0:
+                        #we only check every minute if job has finished
+                        time.sleep(60)
+                        qstatout = commands.getoutput("qstat -u ineichen")
+
+                    #copy o to out file
+                    commands.getoutput("cp " + simname + "-RT.o* " + simname + ".out")
+
+                    #perform tests
+                    tests = readfile(simname + ".rt")
+                    simulation_report.setAttribute("description", tests[0].lstrip("\"").rstrip("\""))
+                    root_element.appendChild(simulation_report)
+                    tests = tests[1::] #strip first line
+                    for test in tests:
+                        totalNrTests += 1
+                        test_report = xml_report.createElement("Test")
+                        checkrprt = checktest(test, simname, test_report, xml_report)
+                        if "passed" in checkrprt:
+                            totalNrPassed += 1
+                        report += "\t %s" % (checkrprt)
+                        simulation_report.appendChild(test_report)
+
+                    #move tests to result folder
+                    commands.getoutput("mv " + simname + ".stat " + curd + "/" + resultdir) 
+                    commands.getoutput("mv " + simname + ".lbal " + curd + "/" + resultdir) 
+                    commands.getoutput("mv " + simname + ".out " + curd + "/" + resultdir) 
+
+                os.chdir(curd)
+
+        arg.append(report)
+
+"""
+This method checks if all files in the reference directory are present
+and if their md5 checksums still concure with the ones stored after
+the simulation run
+"""
+def validateReferenceFiles(simname):
+
+    olddir = os.getcwd()
+    os.chdir("reference")
+    allok = False
+    report = ""
+
+    if os.path.isfile(simname + ".stat") and \
+       os.path.isfile(simname + ".stat.md5") and \
+       os.path.isfile(simname + ".out") and \
+       os.path.isfile(simname + ".out.md5") and \
+       os.path.isfile(simname + ".lbal") and \
+       os.path.isfile(simname + ".lbal.md5"):
+
+        statout = commands.getoutput("md5sum --check " + simname + ".stat.md5")
+        outout = commands.getoutput("md5sum --check " + simname + ".out.md5")
+        lbalout = commands.getoutput("md5sum --check " + simname + ".lbal.md5")
+
+        report += "\t Checksum for reference %s \n" % statout
+        report += "\t Checksum for reference %s \n" % outout
+        report += "\t Checksum for reference %s \n" % lbalout
+        allok = statout == simname + ".stat: OK" and outout == simname + ".out: OK" and lbalout == simname + ".lbal: OK"
+
+    else:
+        report += "\t Error: reference dir is incomplete! \n"
+
+    os.chdir(olddir)
+    return (allok,report)
+
+"""
+also preform buildTest
+"""
+def buildTest(buildbasedir):
+
+    global totalNrPassed
+    global totalNrTests
+
+    #export environment variables!
+    os.putenv("CLASSIC_ROOT", buildbasedir + "/classic/5.0")
+    os.putenv("OPAL_ROOT", buildbasedir)
+    os.putenv("DOOM_ROOT", buildbasedir + "/doom")
+    os.putenv("IPPL_ROOT", "/home2/ineichen/svnwork/ippl")
+    os.putenv("IPPL_ARCH", "LINUX")
+    os.putenv("H5Part", "/home2/ineichen/felsim/H5Part")
+
+    report = "Start Build Test on %s \n" % datetime.datetime.today()
+    report += "==========================================================\n"
+    
+
+    #IPPL
+    #(report_ippl, revision) = buildtest('./src/ippl/src', 'IPPL', 'libIPPL.a')
+
+    #CLASSIC
+    (report_classic, revision) = buildtest(buildbasedir + '/classic/5.0/src', "CLASSIC", 'libCLASSIC.a')
+    totalNrTests += 1
+    report_classic += "==========================================================\n"
+    build_report = xml_report.createElement("Build")
+    build_report.setAttribute("name", "classic")
+    build_report.setAttribute("revision", "%s" % revision)
+    if "passed" in report_classic:
+        build_report.setAttribute("status", "OK")
+        totalNrPassed += 1
+    else:
+        build_report.setAttribute("status", "FAILED")
+    root_element.appendChild(build_report)
+
+    #OPAL
+    (report_opal, revision) = buildtest(buildbasedir + '/src', "OPAL", 'opal')
+    totalNrTests += 1
+    report_opal += "==========================================================\n"
+    build_report = xml_report.createElement("Build")
+    build_report.setAttribute("name", "OPAL")
+    build_report.setAttribute("revision", "%s" % revision)
+    if "passed" in report_opal:
+        build_report.setAttribute("status", "OK")
+        totalNrPassed += 1
+    else:
+        build_report.setAttribute("status", "FAILED")
+    root_element.appendChild(build_report)
+
+    #copy opal binary to result dir
+    if os.path.isfile(buildbasedir + '/src/opal'):
+        d = datetime.date.today()
+        resultdir = buildbasedir + "/opal-Tests/RegressionTests/results/" + d.isoformat()
+        if not os.path.isdir(resultdir):
+            commands.getoutput("mkdir -p " + resultdir)
+    
+        commands.getoutput("cp " + buildbasedir + "/src/opal " + resultdir) 
+
+    #send report
+    report += report_classic + report_opal
+    report += "Finished Build Test on %s \n" % datetime.datetime.today()
+    
+    return report
+
+"""
+main method
+"""
+def main(argv):
+
+    #various paths needed
+    www_folder = "/afs/psi.ch/project/amas/www/regressiontests"
+    os.chdir(sys.path[0]) #chdir to path of script
+    rundir = os.getcwd()
+    regdir = (str.split(rundir, "/run"))[0]
+    srcdir = (str.split(rundir, "/opal-Tests"))[0]
+    d = datetime.date.today()
+    global totalNrPassed
+    global totalNrTests
+    totalNrTests = 0
+    totalNrPassed = 0
+    runAsUser = False
+    report = ""
+
+    if "--user" in argv:
+        runAsUser = True
+    else:
+    	#set environment variables from file    
+        env_vars = readfile("envvar")
+        for evar in env_vars:
+            var = str.split(evar, "=")
+            os.putenv(var[0], var[1])
+    
+        #klog to be able to do svn stuff
+        #os.environ["KRB5_CONFIG"] = "/home/l_felsimsvn/krb5.conf"
+        #commands.getoutput("kinit -k -t ~/.krb5.keytab.D.PSI.CH l_felsimsvn")
+        #commands.getoutput("kinit -k -t ~/.krb5.keytab l_felsimsvn")
+
+    #check if user also wants build test
+    if "--build" in argv:
+        report = buildTest(srcdir)
+        if runAsUser:
+            print report
+
+    #check if user has already set an OPAL executable
+    #if not use the one from the last build test
+    env = os.getenv("OPAL_EXE_PATH")
+    if env is None:
+         os.environ["OPAL_EXE_PATH"] = srcdir + "/src"
+
+    if not runAsUser:
+        report += "\n"
+        report += "Start Regression Test on %s \n" % datetime.datetime.today()
+        report += "==========================================================\n"
+
+    #only run regression tests if opal executable is valid
+    if os.path.isfile(os.getenv("OPAL_EXE_PATH") + "/opal"):
+        os.chdir(regdir)
+        #first update all tests
+        #commands.getoutput("svn update")
+        #walk the run dir tree
+        arglist = []
+        os.path.walk("./", callback, arglist)
+    else:
+        print "Error: OPAL_EXE_PATH is invalid"
+        if "--build" in argv:
+            print report
+            #send builderrors to all
+            if not runAsUser:
+                emails = readfile("email-list")
+                sendmails(emails, report, 2)
+    
+    #report
+    #print xml.dom.ext.PrettyPrint(xml_report)
+
+    #ADD: stylesheet line to xmlfile (FIXME: maybe theres a better way to do this)
+    xml.dom.ext.PrettyPrint(xml_report, open("results.xml", "w"))
+    xmllines = open("results.xml", "r").readlines()
+    xmllines.insert(1, "<?xml-stylesheet type=\"text/xsl\" href=\"results.xslt\"?>\n") #add stylesheet information
+    xmloutfile = open("results.xml", "w")
+    xmloutfile.writelines(xmllines) #dump to file again
+    xmloutfile.close()
+    
+    #cp report to webdir and add entry in index.html
+    if not runAsUser:
+        commands.getoutput("aklog")
+        webfilename = "results_%s_%s_%s.xml" % (d.day, d.month, d.year)
+        commands.getoutput("cp results.xml " + www_folder + "/" + webfilename)
+        indexhtml = open(www_folder + "/index.html").readlines()
+        for line in range(len(indexhtml)):
+            if "insert here" in indexhtml[line]:
+                indexhtml.insert(line+1, "<a href=\"%s\">%s.%s.%s</a> (passed %d/%d) <br/>\n" % (webfilename, d.day, d.month, d.year, totalNrPassed, totalNrTests))
+                break
+        indexhtmlout = open(www_folder + "/index.html", "w")
+        indexhtmlout.writelines(indexhtml)
+        indexhtmlout.close()
+
+    #move xml results to result-dir
+    if os.path.isfile('results.xml'):
+        resultdir = regdir + "/results/" + d.isoformat()
+        if not os.path.isdir(resultdir):
+            commands.getoutput("mkdir -p " + resultdir)
+    
+        commands.getoutput("mv " + "results.xml " + resultdir) 
+    
+    if runAsUser:
+        for rep in arglist:
+            print rep
+    else:
+        for rp in arglist:
+            if not (rp == ""): 
+                report += rp + "\n"
+        report += "==========================================================\n"
+        report += "Finished Regression Test on %s \n" % datetime.datetime.today()
+        report += "\n"
+        report += "http://amas.web.psi.ch/regressiontests/results_%s_%s_%s.xml \n\n" % (d.day, d.month, d.year)
+    
+    if not runAsUser:
+        os.chdir(sys.path[0])
+        emails = readfile("email-list")
+        sendmails(emails, report, totalNrTests)
+
+        commands.getoutput("kdestroy")
+
+#call main
+if __name__ == "__main__":
+    main(sys.argv[1:])

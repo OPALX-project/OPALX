@@ -1,0 +1,6 @@
+#!/bin/bash
+export PBS_O_WORKDIR=/scratch2/amas/l_felsimsvn/src/opal/opal-Tests/RegressionTests/RingCyclotron
+pushd .
+cd /scratch2/amas/l_felsimsvn/src/opal/opal-Tests/RegressionTests/RingCyclotron
+qsub RingCyclotron.sge -v OPAL_EXE_PATH
+popd

@@ -1,0 +1,19 @@
+\begin{picture}(0,0)%
+\includegraphics{figures/cylinder.pdf}%
+\end{picture}%
+\setlength{\unitlength}{1657sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFontNFSS\undefined%
+\gdef\SetFigFontNFSS#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(6900,5046)(3646,-6766)
+\put(10531,-3526){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{12}{14.4}{\familydefault}{\mddefault}{\updefault}$x_3=z$}}}}
+\put(9001,-6181){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{12}{14.4}{\familydefault}{\mddefault}{\updefault}$x_1$}}}}
+\put(6301,-2131){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{12}{14.4}{\familydefault}{\mddefault}{\updefault}$x_2$}}}}
+\put(8101,-3391){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{12}{14.4}{\familydefault}{\mddefault}{\updefault}$\Gamma_1$}}}}
+\put(4411,-4561){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{12}{14.4}{\familydefault}{\mddefault}{\updefault}$\Gamma_2$}}}}
+\put(9856,-2266){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{12}{14.4}{\familydefault}{\mddefault}{\updefault}$\Gamma_2$}}}}
+\end{picture}%

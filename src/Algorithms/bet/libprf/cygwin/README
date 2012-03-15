@@ -1,0 +1,46 @@
+$Header: /opt/csr/CVS/GUI/libprf/README,v 1.1.1.1 1995/06/09 08:44:58 birke Exp $
+
+This is the ``prf'' library, an extended and user programmable printf clone.
+For a description of function and interface see the manual page (prf.3x).
+
+The intent of the copyright notice in the sources is to avoid legal problems
+and prevent others from claiming to be the author.  No further restrictions
+are intended.
+
+When installing the prf library system wide (e.g. in /usr/lib) changes and
+extensions should be avoided except portability of software using the library
+is not necessary.
+Local changes and extensions are easy and intended.
+
+This library inherently needs ``varargs''.  Thus prf.h includes <varargs.h>.
+As buffered streams are a standard output destination, <stdio.h>
+is also included by prf.h.  Some functions need <ctype.h> and
+<string.h> (BSD) or <strings.h> (System V).
+When porting/installing this library "prfflt.h" needs manual adaption.
+It may be convenient to change "prf_p.c" to local standards, too.
+
+There are some manifests, which when defined outside "prf.h" make the prf
+library more standalone. Defined(PRF_NOSTDIO) masks inclusion of <stdio.h>,
+and the definition and usage of the corresponding destination type.
+Defined(PRF_NOLIBC) avoids the usage of all library functions,
+i.e. in this case the prf library is complete, with the exception
+of <varargs.h> which is always necessary.
+
+As far as possible and meaningful the prf library is consistent
+with ``printf'' as described in SVID and BSD 4.3 printf(1) manual page.
+As those descriptions are not at all complete, different behaviour
+of printf and prf in some details should be expected.
+As a reduced and encapsulated version of ``prf'' successfully has been
+used by SPECS GmbH to implement printf in its BSD 4.3 port,
+there should not be major problems.
+
+Most exported identifiers use one of the prefixes "prf", "Prf" and "PRF".
+Exceptions are a few manifests in prf.h ("PD"), and some functions.
+
+This software is developed and running on a Clipper CPU with BSD 4.3.
+
+In case you have bug fixes, useful extensions or important portability
+fixes feel free to e-mail them to the author:
+	heiner@specs.UUCP
+As far as I like your changes, find the time to maintain the package
+and net response justifies it I will try deal with further versions.

@@ -1,0 +1,179 @@
+\chapter{Introduction}
+\label{chp:Introduction}
+
+
+\section{Aim of \opal\ and History}
+\opal\ is a tool for charged-particle optics in
+accelerator structures and beam lines. 
+Using the \mad\ language with extensions, \opal\ is derived from \madninep\ and is based 
+on the
+\htmladdnormallink{CLASSIC}{http://wwwslap.cern.ch/classic/} class library,
+which was started in 1995 by an international collaboration.  IPPL (Independent Parallel Particle Layer) is
+the framework which provides parallel particles and fields using data parallel ansatz. 
+\opal\ is built from the ground up as a parallel application exemplifying the fact that HPC (High Performance Computing) 
+is the third leg of science, complementing theory and the experiment. 
+HPC is made possible now through the increasingly sophisticated mathematical models and evolving computer power available on the desktop
+and in super computer centres. \opal\ runs on your laptop as well as on the largest HPC clusters available today. 
+
+The \opal\ framework makes it easy to add new features in the form of new
+\texttt{C++}~classes.
+
+OPAL comes in the following flavours:
+\begin{itemize}
+\item \opalmap\ (\latermore)
+\item \opalcycl 
+\item \opalt .
+\item \opalenv\ (\latermore)
+\end{itemize}
+
+\opalmap\ tracks particles with 3D space charge using split operator techniques, and is a proper subset of \madninep. In the future 
+a linear space charge mode will become available
+allowing the user to track moments of the distribution. 
+
+\opalcycl\ tracks particles with 3D space charge including neighbouring turns in cyclotrons
+with time as the independent variable. 
+
+\opalt\ is a superset of IMPACT-T \cite{qiang2005} and can be used to model guns, injectors and complete XFEL's excluding the undulator.
+
+It should be noted that not all features of \opal\ are available in all flavours.\\ The following icon \noopalt\ means that a feature is not yet 
+available in \opalt\ . Similar icons are used for the other flavours. 
+
+\section{Parallel Processing Capabilities}
+\opal\ is built to harness the power of parallel processing for an improved quantitative understanding
+of particle accelerators.
+This goal can only be achieved with
+detailed 3D modelling capabilities and a sufficient number of simulation particles to obtain meaningful statistics on various 
+quantities of the particle ensemble such as emittance, slice emittance, halo extension etc. 
+
+The following example is exemplifying this fact: 
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Parameters Parallel Performance Example}
+    \label{tab:pex1} 
+    \begin{tabular}{c c c c c c} 
+      \hline
+      \hline 
+      Distribution & Particles  & Mesh & Greens Function & Time steps  \\ [0.75ex] 
+      \hline 
+      Gauss 3D & $10^8$ & $1024^3$ & Integrated  & 10 \\ [1ex] 
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+in Figure \ref{fig:walldrift} the parallel efficiency time as a function of used cores is shown for the test example with parameters given in Table \ref{tab:pex1}.  The data where obtained on a Cray XT5 at the
+Swiss Center for Scientific Computing.
+\begin{figure}[ht]
+ \begin{center}
+ \includegraphics[width=0.50\linewidth,angle=0]{figures/drift2c1}
+  \caption{Parallel efficiency and particles pushed per $\mu s$ as a function of cores}
+  \label{fig:walldrift}
+ \end{center}
+\end{figure}
+\clearpage
+\section{Quality Management}
+Documentation and quality assurance are given our highest attention since we are convinced that adequate documentation 
+is a key factor in the usefulness of a code like \opal\ to study present and future particle accelerators. 
+ Using tools such as a source code version
+control system (subversion  \url{http://subversion.tigris.org/}), source code documentation (Doxygen)\footnote{check out, for instance, \url{http://amas.web.psi.ch/docs/opal/html/classParallelTTracker.html}} and the extensive user maunal
+you are now enjoying, we are committed to providing users as well as co-developers with 
+state-of-the-art documentation to \opal.
+
+One example of an non trivial test-example is the PSI DC GUN. In Figure \ref{fig:guncomp1} the comparison between \impactt\ and \opalt\ is shown. This example is part of the regression test suite
+that is run every night. The inputfile is found in Section \ref{sec:oblagun}.  
+\begin{figure}[ht]
+ \begin{center} 
+   \includegraphics[width=0.60\linewidth,angle=90]{figures/Gun/GunCompEn}
+   \includegraphics[width=0.60\linewidth,angle=90]{figures/Gun/GunCompEx}
+   \caption{Comparison of energy and emittance in $x$ between \impactt and \opalt}   
+   \label{fig:guncomp1}
+ \end{center}
+\end{figure}
+
+\section{Revision \opalversion\ - Feature List}
+\label{sec:featurelist}
+In the current version of \opal\ many features have been implemented while others are still missing. 
+Table~\ref{featurelist} lists the implemented features whereas Table~\ref{roadmap} outlines a rough road map to where we intend to bring \opal\ in the near and not so near future.
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{List of implemented and tested features in version \opalversion\ of \opal.}
+    \label{featurelist}
+    \begin{tabular}{p{5cm}cc}
+      \hline
+          {\bf Name} & {\bf implemented} & {\bf tested}\\
+          \hline
+          {\bf Algorithms} & & \\
+          ParallelTTracker & x & x \\
+          ParallelCyclotronTracker & x & x \\
+          FFT based space charge solver & x & x \\
+          integrated Greens function, FFT based space charge solver & x & x \\
+          1D csr wake fields & x& x\\
+          iterative space charge solver & x & \\
+          longitudinal and transverse wake fields & x& x \\
+          transverse emittance & x& x \\
+          particle matter interaction (p only) & x & x \\
+          \hline
+          {\bf Elements} & & \\
+          Cyclotron & x & x \\
+          RFCavity & x & x \\
+          Solenoid & x & x \\
+          Traveling Wave & x & x \\
+          Traveling Wave fast algorithm & x & x \\
+          RBend \& SBend & x & x\\
+          Collimator \& Pepper-Pot & x & x\\
+          Screen  & x & x\\
+          Probe  & x & x \\
+          \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+\clearpage
+\begin{table}[ht]\footnotesize
+  \begin{center}
+    \caption{List of features which will be implemented in versions to come (please note: the estimated version numbers are non-binding).}
+    \label{roadmap}
+    \begin{tabular}{p{7cm}c}
+      \hline
+      {\bf Name} & {\bf Version (estimated)} \\
+      \hline
+      {\bf Algorithms} & \\
+      envelope model (a.k.a Homdyn or Bet)  & 1.1.7 \\
+      3D FETD self-consistent solver & 1.2 \\
+      \opalmap & 1.2 \\
+      \hline
+      {\bf Elements} &  \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+If there is any feature you are missing let us know. Alternatively you can check out the source code from our repository and implement it. In this case let us know and send a patch so that we can incorporate your work into \opal.
+\clearpage
+\section{Acknowledgements}
+The contributions of various individuals and groups are acknowledged in the relevant chapters, however a few individuals have or had considerable influence on the 
+development of \opal, namely Chris Iselin, John Jowett, Julian Cummings, Ji Qiang, Robert Ryne and Stefan Adam. For the \partroot visualisation tool credits go to Thomas Schietinger.
+The effort to couple FEMAXX to \opal\ is led by Benedikt Oswald. 
+
+Misprints and obscurity are almost inevitable in a document of this size.
+Comments and {\em active contributions}  from readers are therefore most welcome.
+They may be sent to \htmladdnormallink{\texttt{andreas.adelmann@psi.ch}}{mailto:andreas.adelmann@psi.ch}.
+
+
+\subsection{Citation}
+Please cite \opal\ in the following way:
+\begin{footnotesize}
+\begin{verbatim} 
+@techreport{Opal-User-Guide,
+title = "{The OPAL (Object Oriented Parallel Accelerator Library) 
+          Framework }",
+author = "A. Adelmann and Ch. Kraus and Y. Ineichen and S. Russel 
+          and J. Yang",
+institution = "Paul Scherrer Institut",
+number = "PSI-PR-08-02",
+year ={2008}
+\end{verbatim}
+\end{footnotesize}
+
+
+%& OPAL \\
+% & V 1.0
+
+

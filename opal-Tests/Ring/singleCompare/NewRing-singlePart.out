@@ -1,0 +1,3390 @@
+Ippl> CommMPI: Parent process waiting for children ...
+Ippl> CommMPI: Initialization complete.
+>                ____  _____       ___ 
+>               / __ \|  __ \ /\   | | 
+>              | |  | | |__) /  \  | |
+>              | |  | |  ___/ /\ \ | |
+>              | |__| | |  / ____ \| |____
+>               \____/|_| /_/    \_\______|
+OPAL> 
+OPAL> This is OPAL (Object Oriented Parallel Accelerator Library) Version 1.1.0 (c) PSI, http://amas.web.psi.ch
+OPAL> 
+OPAL> Please send cookies, goodies or other motivations (wine and beer ... ) to andreas.adelmann@psi.ch
+OPAL> Reading startup file "/home2/yang/init.opal".
+OPAL> Finished reading startup file.
+OPAL> Reading input stream "NewRing-singlePart.in".
+OPAL> * ********************************************************************************** 
+OPAL>   Selected Tracking Method == CYCLOTRON-T
+OPAL> * ********************************************************************************** 
+Ippl> no solver attached
+OPAL> Beam current =0 [mA]
+OPAL> Total charge in a bunch =0 [pC]
+OPAL> Number of tracked neighbour bunches is set to 1
+OPAL> ---------------------------------------------
+OPAL>      READ ININITAL DISTRIBUTION FROM FILE    
+OPAL>                      DONE !                  
+OPAL> ---------------------------------------------
+OPAL> * DT          1e-12
+OPAL> * MAXSTEPS    1238400
+Ippl> NewRing-singlePart.in
+OPAL> * ************* D I S T R I B U T I O N ******************************************** 
+OPAL> * Distribution:	DIST1
+OPAL> * Distribution type:	FROMFILE
+OPAL> * sigmax=	0.01	 sigmay=	0.01	 sigmat=	0.01
+OPAL> * sigmapx=	0	 sigmapy=	0	 pt +- sigmapt=	0+-0
+OPAL> * corr x-px=	-0.5	 corr y=py=	0.5	 corr t-pt=	0
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * ************* B E A M ************************************************************ 
+OPAL> * BEAM        BEAM1
+OPAL> * PARTICLE    PROTON
+OPAL> * CURRENT     0
+OPAL> * FREQENCY    50.65
+OPAL> * CHARGE      1
+OPAL> * MASS        0.938272
+OPAL> * MOMENTUM    0.37456
+OPAL> * NPART       1
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * ************* F I E L D S O L V E R ********************************************** 
+OPAL> * FIELDSOLVER  FS1
+OPAL> * TYPE         NONE
+OPAL> * N-PROCESSORS 1
+OPAL> * MX           32
+OPAL> * MY           32
+OPAL> * MT           32
+OPAL> * BBOXINCR     2
+OPAL> * GRRENSF      INTEGRATED
+OPAL> * XDIM is parallel  
+OPAL> * YDIM is parallel  
+OPAL> * Z(T)DIM is serial  
+Ippl> ======UniformCartesian<3,MFLOAT>==begin======
+Ippl> gridSizes[0] = 33
+Ippl> gridSizes[1] = 33
+Ippl> gridSizes[2] = 33
+Ippl> origin = ( 0 , 0 , 0 )
+Ippl> meshSpacing[0] = 0
+Ippl> meshSpacing[1] = 0
+Ippl> meshSpacing[2] = 0
+Ippl> Dvc[0] = ( -inf , -inf , -inf )
+Ippl> Dvc[1] = ( inf , -inf , -inf )
+Ippl> Dvc[2] = ( -inf , inf , -inf )
+Ippl> Dvc[3] = ( inf , inf , -inf )
+Ippl> Dvc[4] = ( -inf , -inf , inf )
+Ippl> Dvc[5] = ( inf , -inf , inf )
+Ippl> Dvc[6] = ( -inf , inf , inf )
+Ippl> Dvc[7] = ( inf , inf , inf )
+Ippl> cell volume = 0
+Ippl> ======UniformCartesian<3,MFLOAT>==end========
+Ippl> 
+Ippl> ParticleSpatialLayout, with particle distribution:
+Ippl>     Number of particles 1  
+Ippl> SpatialLayout decomposition = Total Domain = {[0,0),[0,0),[0,0)}
+Ippl> Local Rnodes = 1
+Ippl>  rnode 0 : {[0,0),[0,0),[0,0)}
+Ippl> Remote Rnodes = 0
+Ippl> Internal FieldLayout = Domain = {[0:31:1],[0:31:1],[0:31:1]}
+Ippl> FieldLayoutUsers = 3
+Ippl> Total number of vnodes = 1
+Ippl> Local Vnodes = 1
+Ippl>  vnode 0: Node = 0 ; vnode_m = 0 ; Domain = {[0:31:1],[0:31:1],[0:31:1]}
+Ippl> Remote Vnodes = 0
+Ippl> 
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * ************** B U N C H ********************************************************* 
+OPAL> * NP= 1 Qtot= 0 [nC]  Qi= 0 [C] 
+OPAL> * rmax= ( 0 , 0 , 0 )
+OPAL> * rmin= ( 0 , 0 , 0 )
+OPAL> * rms beam size= ( 0 , 0 , 0 )
+OPAL> * rms momenta= ( 0 , 0 , 0 )
+OPAL> * mean beam size= ( 0 , 0 , 0 )
+OPAL> * mean momenta= ( 0 , 0 , 0 )
+OPAL> * rms emmitance= ( nan , nan , nan ) (not normalized)
+OPAL> * rms correlation= ( 0 , 0 , 0 )
+OPAL> * dh = 0.02	 dT= 2.74213e-12
+OPAL> * hr = ( 0 , 0 , 0 )
+OPAL> * tEmission= 0
+OPAL> * spos= 0
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> Phase space dump frequency is set to 50000000
+OPAL> Inputfile is NewRing-singlePart.in
+OPAL> The particle species: PROTON
+OPAL> Charge number = 1
+OPAL> Rest mass = 0.938272 [GeV]
+OPAL> executing ParallelCyclotronTracker( 4 order Runge-Kutta Algorithm )
+OPAL> The total particle number in a bunch : 1
+OPAL> The max steps number: 1238400
+visitCyclotron > RINIT= 2132 [mm]
+visitCyclotron > PHIINIT= 90 [deg]
+visitCyclotron > Initial gamma = 1.07674
+visitCyclotron > Initial beta = 0.370752
+visitCyclotron > Total reference momentum   = 399.202 [MCU]
+visitCyclotron > Reference azimuthal momentum  = 399.201 [MCU]
+visitCyclotron > Reference radial momentum     = 0.76 [MCU]
+visitCyclotron > Field symmetry= 8 
+visitCyclotron > Rf frequency= 50.65 [MHz]
+visitCyclotron > Field map file name= ../s03av.nar 
+visitCyclotron > Type of cyclotron= RING 
+visitCyclotron > Harmonic number h= 6 
+visitCyclotron read field > ----------------------------------------------
+visitCyclotron read field >             READ IN RING FIELD MAP            
+visitCyclotron read field >      (The first data block is useless)       
+visitCyclotron read field > ----------------------------------------------
+visitCyclotron read field > Minimal radius of measured field map: 1900 [mm]
+visitCyclotron read field > Stepsize in radial direction: 20 [mm]
+visitCyclotron read field > Minimal angle of measured field map: 0 [deg.]
+visitCyclotron read field > Stepsize in azimuth direction: 0.333333 [deg.]
+visitCyclotron read field > Index in radial direction: 141
+visitCyclotron read field > Index in azimuthal direction: 135
+visitCyclotron read field > Accordingly, total grid point along azimuth:  136
+visitCyclotron read field > Total stored grid point number ( ntetS * nrad ) : 19176
+visitCyclotron read field > read -in loop one block per radius
+visitCyclotron read field > rescaling of the fields with factor: 1
+visitCyclotron read field > Field Map read successfully!
+OPAL> ----------------------------------------------
+visitRFCavity > ---------------------------------------
+visitRFCavity > Minimal radius of cavity = 1003.38 [mm]
+visitRFCavity > Maximal radius of cavity = 6203.38 [mm]
+visitRFCavity > RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity > RF Field map file name = ../NewCav1.dat
+visitRFCavity > Cavity azimuth position = 35 [deg.] 
+visitRFCavity > Cavity gap width = 300 [mm] 
+visitRFCavity > Cavity Shift distance = 416 [mm] 
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage> Cavity voltage data read successfully!
+visitRFCavity > ---------------------------------------
+visitRFCavity > Minimal radius of cavity = 1003.38 [mm]
+visitRFCavity > Maximal radius of cavity = 6203.38 [mm]
+visitRFCavity > RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity > RF Field map file name = ../NewCav1.dat
+visitRFCavity > Cavity azimuth position = 125 [deg.] 
+visitRFCavity > Cavity gap width = 300 [mm] 
+visitRFCavity > Cavity Shift distance = 416 [mm] 
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage> Cavity voltage data read successfully!
+visitRFCavity > ---------------------------------------
+visitRFCavity > Minimal radius of cavity = 1845.45 [mm]
+visitRFCavity > Maximal radius of cavity = 4477.24 [mm]
+visitRFCavity > RF frequency (2*pi*f) = 9.5473e+08 [rad./s]
+visitRFCavity > RF Field map file name = ../Cav3.dat
+visitRFCavity > Cavity azimuth position = 260 [deg.] 
+visitRFCavity > Cavity gap width = 250 [mm] 
+visitRFCavity > Cavity Shift distance = 452 [mm] 
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage> Cavity voltage data read successfully!
+visitRFCavity > ---------------------------------------
+visitRFCavity > Minimal radius of cavity = 1003.38 [mm]
+visitRFCavity > Maximal radius of cavity = 6203.38 [mm]
+visitRFCavity > RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity > RF Field map file name = ../NewCav1.dat
+visitRFCavity > Cavity azimuth position = 215 [deg.] 
+visitRFCavity > Cavity gap width = 300 [mm] 
+visitRFCavity > Cavity Shift distance = 416 [mm] 
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage> Cavity voltage data read successfully!
+visitRFCavity > ---------------------------------------
+visitRFCavity > Minimal radius of cavity = 1003.38 [mm]
+visitRFCavity > Maximal radius of cavity = 6203.38 [mm]
+visitRFCavity > RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity > RF Field map file name = ../NewCav1.dat
+visitRFCavity > Cavity azimuth position = 305 [deg.] 
+visitRFCavity > Cavity gap width = 300 [mm] 
+visitRFCavity > Cavity Shift distance = 416 [mm] 
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage> ----------------------------------------------
+visitRFCavity read voltage> Cavity voltage data read successfully!
+OPAL> -----------------------------
+OPAL> The selected Beam line elements are :
+OPAL> CYCLOTRON
+OPAL> CAVITY
+OPAL> CAVITY
+OPAL> CAVITY
+OPAL> CAVITY
+OPAL> CAVITY
+OPAL> -----------------------------
+OPAL> Start time of this run is 0 [ns]
+OPAL> Time step is set to 0.0164528 [ns]
+OPAL> phase space dumping in glabol frame at initial position 
+OPAL> Dump step = 0
+OPAL> single particle trajectory dump frequency is set to 10
+OPAL> particles repartition frequency is set to 10
+OPAL> ***---------------------------- SINGLE PARTICLE MODE------ ----------------------------*** 
+OPAL> Instruction: when the totoal particle number equal to 1, single particle mode is triggered automatically,
+OPAL>  The initial distribution file must be specified which should contain only one line for the single particle 
+OPAL> ***------------WARNING: SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON SINGLE NODE ------------------*** 
+OPAL> ***---------------------------- Start tracking   ------------------------------------------*** 
+Gap Crossing > Cavity phase = -4.29244[deg.], transit factor =  0.96954
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.493274 [MeV]
+Gap Crossing > Current Energy = 72.4933 [MeV]
+Gap Crossing > Cavity phase = -3.24436[deg.], transit factor =  0.969723
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.49688 [MeV]
+Gap Crossing > Current Energy = 72.9902 [MeV]
+Gap Crossing > Cavity phase = 164.701[deg.], transit factor =  0.820709
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0911813 [MeV]
+Gap Crossing > Current Energy = 72.899 [MeV]
+Gap Crossing > Cavity phase = -2.44663[deg.], transit factor =  0.969872
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.499016 [MeV]
+Gap Crossing > Current Energy = 73.398 [MeV]
+Gap Crossing > Cavity phase = -2.27427[deg.], transit factor =  0.970054
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.500916 [MeV]
+Gap Crossing > Current Energy = 73.8989 [MeV]
+OPAL> meanR=( -2.95154 2154.66 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 7207
+OPAL>  Dump step = 1, time = 118.575 [ns]
+Gap Crossing > Cavity phase = -2.04802[deg.], transit factor =  0.970233
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.50458 [MeV]
+Gap Crossing > Current Energy = 74.4035 [MeV]
+Gap Crossing > Cavity phase = -1.39694[deg.], transit factor =  0.970412
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.507852 [MeV]
+Gap Crossing > Current Energy = 74.9113 [MeV]
+Gap Crossing > Cavity phase = 169.785[deg.], transit factor =  0.824586
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.101697 [MeV]
+Gap Crossing > Current Energy = 74.8096 [MeV]
+Gap Crossing > Cavity phase = -1.074[deg.], transit factor =  0.970554
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.509467 [MeV]
+Gap Crossing > Current Energy = 75.3191 [MeV]
+Gap Crossing > Cavity phase = -1.38597[deg.], transit factor =  0.970729
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.511381 [MeV]
+Gap Crossing > Current Energy = 75.8305 [MeV]
+OPAL> meanR=( -3.5299 2178.53 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 14407
+OPAL>  Dump step = 2, time = 237.035 [ns]
+Gap Crossing > Cavity phase = -1.4185[deg.], transit factor =  0.970904
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.515353 [MeV]
+Gap Crossing > Current Energy = 76.3458 [MeV]
+Gap Crossing > Cavity phase = -0.8773[deg.], transit factor =  0.971077
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.518612 [MeV]
+Gap Crossing > Current Energy = 76.8645 [MeV]
+Gap Crossing > Cavity phase = 171.325[deg.], transit factor =  0.828339
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.111267 [MeV]
+Gap Crossing > Current Energy = 76.7532 [MeV]
+Gap Crossing > Cavity phase = -0.725337[deg.], transit factor =  0.971212
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.520006 [MeV]
+Gap Crossing > Current Energy = 77.2732 [MeV]
+Gap Crossing > Cavity phase = -1.22783[deg.], transit factor =  0.971382
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.521943 [MeV]
+Gap Crossing > Current Energy = 77.7951 [MeV]
+OPAL> meanR=( -2.05705 2203.21 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 21604
+OPAL>  Dump step = 3, time = 355.446 [ns]
+Gap Crossing > Cavity phase = -1.30929[deg.], transit factor =  0.971551
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.526155 [MeV]
+Gap Crossing > Current Energy = 78.3213 [MeV]
+Gap Crossing > Cavity phase = -0.727147[deg.], transit factor =  0.971719
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.529409 [MeV]
+Gap Crossing > Current Energy = 78.8507 [MeV]
+Gap Crossing > Cavity phase = 171.956[deg.], transit factor =  0.831973
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.120724 [MeV]
+Gap Crossing > Current Energy = 78.73 [MeV]
+Gap Crossing > Cavity phase = -0.597481[deg.], transit factor =  0.971848
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.530605 [MeV]
+Gap Crossing > Current Energy = 79.2606 [MeV]
+Gap Crossing > Cavity phase = -1.15607[deg.], transit factor =  0.972014
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.532564 [MeV]
+Gap Crossing > Current Energy = 79.7931 [MeV]
+OPAL> meanR=( -2.54076 2228.29 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 28802
+OPAL>  Dump step = 4, time = 473.873 [ns]
+Gap Crossing > Cavity phase = -1.1905[deg.], transit factor =  0.972178
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.536947 [MeV]
+Gap Crossing > Current Energy = 80.3301 [MeV]
+Gap Crossing > Cavity phase = -0.538103[deg.], transit factor =  0.972341
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.54009 [MeV]
+Gap Crossing > Current Energy = 80.8702 [MeV]
+Gap Crossing > Cavity phase = 172.712[deg.], transit factor =  0.835494
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.130165 [MeV]
+Gap Crossing > Current Energy = 80.74 [MeV]
+Gap Crossing > Cavity phase = -0.430204[deg.], transit factor =  0.972464
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.541119 [MeV]
+Gap Crossing > Current Energy = 81.2811 [MeV]
+Gap Crossing > Cavity phase = -0.991544[deg.], transit factor =  0.972624
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.543163 [MeV]
+Gap Crossing > Current Energy = 81.8243 [MeV]
+OPAL> meanR=( -2.11062 2253.43 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 36000
+OPAL>  Dump step = 5, time = 592.3 [ns]
+Gap Crossing > Cavity phase = -0.953888[deg.], transit factor =  0.972783
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.547607 [MeV]
+Gap Crossing > Current Energy = 82.3719 [MeV]
+Gap Crossing > Cavity phase = -0.267634[deg.], transit factor =  0.972941
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.550542 [MeV]
+Gap Crossing > Current Energy = 82.9224 [MeV]
+Gap Crossing > Cavity phase = 173.644[deg.], transit factor =  0.838904
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.139511 [MeV]
+Gap Crossing > Current Energy = 82.7829 [MeV]
+Gap Crossing > Cavity phase = -0.20229[deg.], transit factor =  0.973059
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.551481 [MeV]
+Gap Crossing > Current Energy = 83.3344 [MeV]
+Gap Crossing > Cavity phase = -0.753143[deg.], transit factor =  0.973214
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.55364 [MeV]
+Gap Crossing > Current Energy = 83.8881 [MeV]
+OPAL> meanR=( -3.14831 2278.4 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 43199
+OPAL>  Dump step = 6, time = 710.744 [ns]
+Gap Crossing > Cavity phase = -0.671434[deg.], transit factor =  0.973368
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.55803 [MeV]
+Gap Crossing > Current Energy = 84.4461 [MeV]
+Gap Crossing > Cavity phase = -0.0324466[deg.], transit factor =  0.973522
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.560737 [MeV]
+Gap Crossing > Current Energy = 85.0068 [MeV]
+Gap Crossing > Cavity phase = 174.435[deg.], transit factor =  0.842206
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.148729 [MeV]
+Gap Crossing > Current Energy = 84.8581 [MeV]
+Gap Crossing > Cavity phase = -0.0277642[deg.], transit factor =  0.973634
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.561698 [MeV]
+Gap Crossing > Current Energy = 85.4198 [MeV]
+Gap Crossing > Cavity phase = -0.551001[deg.], transit factor =  0.973785
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.563952 [MeV]
+Gap Crossing > Current Energy = 85.9837 [MeV]
+OPAL> meanR=( -2.50223 2303.13 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 50397
+OPAL>  Dump step = 7, time = 829.171 [ns]
+Gap Crossing > Cavity phase = -0.462795[deg.], transit factor =  0.973934
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.568201 [MeV]
+Gap Crossing > Current Energy = 86.5519 [MeV]
+Gap Crossing > Cavity phase = 0.107358[deg.], transit factor =  0.974083
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.570775 [MeV]
+Gap Crossing > Current Energy = 87.1227 [MeV]
+Gap Crossing > Cavity phase = 174.959[deg.], transit factor =  0.845404
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.157863 [MeV]
+Gap Crossing > Current Energy = 86.9649 [MeV]
+Gap Crossing > Cavity phase = 0.0899678[deg.], transit factor =  0.97419
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.571843 [MeV]
+Gap Crossing > Current Energy = 87.5367 [MeV]
+Gap Crossing > Cavity phase = -0.400886[deg.], transit factor =  0.974336
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.574089 [MeV]
+Gap Crossing > Current Energy = 88.1108 [MeV]
+OPAL> meanR=( -2.16716 2327.68 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 57595
+OPAL>  Dump step = 8, time = 947.598 [ns]
+Gap Crossing > Cavity phase = -0.333723[deg.], transit factor =  0.974481
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.578178 [MeV]
+Gap Crossing > Current Energy = 88.689 [MeV]
+Gap Crossing > Cavity phase = 0.202924[deg.], transit factor =  0.974625
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.580774 [MeV]
+Gap Crossing > Current Energy = 89.2697 [MeV]
+Gap Crossing > Cavity phase = 175.475[deg.], transit factor =  0.848499
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.167022 [MeV]
+Gap Crossing > Current Energy = 89.1027 [MeV]
+Gap Crossing > Cavity phase = 0.242304[deg.], transit factor =  0.974727
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.581929 [MeV]
+Gap Crossing > Current Energy = 89.6846 [MeV]
+Gap Crossing > Cavity phase = -0.198077[deg.], transit factor =  0.974869
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.584032 [MeV]
+Gap Crossing > Current Energy = 90.2687 [MeV]
+OPAL> meanR=( -3.53289 2352.12 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 64794
+OPAL>  Dump step = 9, time = 1066.04 [ns]
+Gap Crossing > Cavity phase = -0.169371[deg.], transit factor =  0.97501
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.588005 [MeV]
+Gap Crossing > Current Energy = 90.8567 [MeV]
+Gap Crossing > Cavity phase = 0.37228[deg.], transit factor =  0.975149
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.59068 [MeV]
+Gap Crossing > Current Energy = 91.4474 [MeV]
+Gap Crossing > Cavity phase = 176.249[deg.], transit factor =  0.851497
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.176123 [MeV]
+Gap Crossing > Current Energy = 91.2712 [MeV]
+Gap Crossing > Cavity phase = 0.471599[deg.], transit factor =  0.975247
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.591793 [MeV]
+Gap Crossing > Current Energy = 91.863 [MeV]
+Gap Crossing > Cavity phase = 0.0162249[deg.], transit factor =  0.975384
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.593717 [MeV]
+Gap Crossing > Current Energy = 92.4568 [MeV]
+OPAL> meanR=( -2.79071 2376.48 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 71992
+OPAL>  Dump step = 10, time = 1184.47 [ns]
+Gap Crossing > Cavity phase = -0.00897372[deg.], transit factor =  0.975521
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.597702 [MeV]
+Gap Crossing > Current Energy = 93.0545 [MeV]
+Gap Crossing > Cavity phase = 0.57221[deg.], transit factor =  0.975656
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.600448 [MeV]
+Gap Crossing > Current Energy = 93.6549 [MeV]
+Gap Crossing > Cavity phase = 177.124[deg.], transit factor =  0.854398
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.18504 [MeV]
+Gap Crossing > Current Energy = 93.4699 [MeV]
+Gap Crossing > Cavity phase = 0.71529[deg.], transit factor =  0.975749
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.601407 [MeV]
+Gap Crossing > Current Energy = 94.0713 [MeV]
+Gap Crossing > Cavity phase = 0.202604[deg.], transit factor =  0.975883
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.603214 [MeV]
+Gap Crossing > Current Energy = 94.6745 [MeV]
+OPAL> meanR=( -4.03229 2400.94 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 79191
+OPAL>  Dump step = 11, time = 1302.91 [ns]
+Gap Crossing > Cavity phase = 0.168151[deg.], transit factor =  0.976015
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.607297 [MeV]
+Gap Crossing > Current Energy = 95.2818 [MeV]
+Gap Crossing > Cavity phase = 0.791421[deg.], transit factor =  0.976146
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.609979 [MeV]
+Gap Crossing > Current Energy = 95.8918 [MeV]
+Gap Crossing > Cavity phase = 177.935[deg.], transit factor =  0.857208
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.193679 [MeV]
+Gap Crossing > Current Energy = 95.6981 [MeV]
+Gap Crossing > Cavity phase = 0.900506[deg.], transit factor =  0.976235
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.61074 [MeV]
+Gap Crossing > Current Energy = 96.3088 [MeV]
+Gap Crossing > Cavity phase = 0.321529[deg.], transit factor =  0.976364
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.61258 [MeV]
+Gap Crossing > Current Energy = 96.9214 [MeV]
+OPAL> meanR=( -3.46583 2425.47 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 86389
+OPAL>  Dump step = 12, time = 1421.34 [ns]
+Gap Crossing > Cavity phase = 0.306338[deg.], transit factor =  0.976492
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.616751 [MeV]
+Gap Crossing > Current Energy = 97.5381 [MeV]
+Gap Crossing > Cavity phase = 0.946002[deg.], transit factor =  0.976619
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.619273 [MeV]
+Gap Crossing > Current Energy = 98.1574 [MeV]
+Gap Crossing > Cavity phase = 178.472[deg.], transit factor =  0.859927
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.202097 [MeV]
+Gap Crossing > Current Energy = 97.9553 [MeV]
+Gap Crossing > Cavity phase = 0.99563[deg.], transit factor =  0.976704
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.619938 [MeV]
+Gap Crossing > Current Energy = 98.5753 [MeV]
+Gap Crossing > Cavity phase = 0.405456[deg.], transit factor =  0.976829
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.621881 [MeV]
+Gap Crossing > Current Energy = 99.1971 [MeV]
+OPAL> meanR=( -2.80519 2450 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 93587
+OPAL>  Dump step = 13, time = 1539.77 [ns]
+Gap Crossing > Cavity phase = 0.439705[deg.], transit factor =  0.976953
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.626035 [MeV]
+Gap Crossing > Current Energy = 99.8232 [MeV]
+Gap Crossing > Cavity phase = 1.07638[deg.], transit factor =  0.977077
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.628369 [MeV]
+Gap Crossing > Current Energy = 100.452 [MeV]
+Gap Crossing > Cavity phase = 178.974[deg.], transit factor =  0.86256
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.210361 [MeV]
+Gap Crossing > Current Energy = 100.241 [MeV]
+Gap Crossing > Cavity phase = 1.08797[deg.], transit factor =  0.977158
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.629024 [MeV]
+Gap Crossing > Current Energy = 100.87 [MeV]
+Gap Crossing > Cavity phase = 0.525455[deg.], transit factor =  0.97728
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.631047 [MeV]
+Gap Crossing > Current Energy = 101.501 [MeV]
+OPAL> meanR=( -3.92461 2474.33 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 100786
+OPAL>  Dump step = 14, time = 1658.21 [ns]
+Gap Crossing > Cavity phase = 0.592536[deg.], transit factor =  0.9774
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.635074 [MeV]
+Gap Crossing > Current Energy = 102.136 [MeV]
+Gap Crossing > Cavity phase = 1.18686[deg.], transit factor =  0.977519
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.637254 [MeV]
+Gap Crossing > Current Energy = 102.774 [MeV]
+Gap Crossing > Cavity phase = 179.413[deg.], transit factor =  0.86511
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.218443 [MeV]
+Gap Crossing > Current Energy = 102.555 [MeV]
+Gap Crossing > Cavity phase = 1.17311[deg.], transit factor =  0.977597
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.63798 [MeV]
+Gap Crossing > Current Energy = 103.193 [MeV]
+Gap Crossing > Cavity phase = 0.657423[deg.], transit factor =  0.977715
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.640017 [MeV]
+Gap Crossing > Current Energy = 103.833 [MeV]
+OPAL> meanR=( -2.93085 2498.33 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 107984
+OPAL>  Dump step = 15, time = 1776.64 [ns]
+Gap Crossing > Cavity phase = 0.721749[deg.], transit factor =  0.977831
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.643874 [MeV]
+Gap Crossing > Current Energy = 104.477 [MeV]
+Gap Crossing > Cavity phase = 1.26721[deg.], transit factor =  0.977947
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.646 [MeV]
+Gap Crossing > Current Energy = 105.123 [MeV]
+Gap Crossing > Cavity phase = 179.774[deg.], transit factor =  0.867579
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.226367 [MeV]
+Gap Crossing > Current Energy = 104.897 [MeV]
+Gap Crossing > Cavity phase = 1.26569[deg.], transit factor =  0.978022
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.646807 [MeV]
+Gap Crossing > Current Energy = 105.543 [MeV]
+Gap Crossing > Cavity phase = 0.779756[deg.], transit factor =  0.978136
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.648767 [MeV]
+Gap Crossing > Current Energy = 106.192 [MeV]
+OPAL> meanR=( -4.14343 2522.12 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 115183
+OPAL>  Dump step = 16, time = 1895.08 [ns]
+Gap Crossing > Cavity phase = 0.816983[deg.], transit factor =  0.978249
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.652486 [MeV]
+Gap Crossing > Current Energy = 106.845 [MeV]
+Gap Crossing > Cavity phase = 1.34234[deg.], transit factor =  0.978361
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.654637 [MeV]
+Gap Crossing > Current Energy = 107.499 [MeV]
+Gap Crossing > Cavity phase = 180.2[deg.], transit factor =  0.86997
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.23412 [MeV]
+Gap Crossing > Current Energy = 107.265 [MeV]
+Gap Crossing > Cavity phase = 1.38262[deg.], transit factor =  0.978432
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.655459 [MeV]
+Gap Crossing > Current Energy = 107.921 [MeV]
+Gap Crossing > Cavity phase = 0.917979[deg.], transit factor =  0.978543
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.65729 [MeV]
+Gap Crossing > Current Energy = 108.578 [MeV]
+OPAL> meanR=( -3.07756 2545.78 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 122381
+OPAL>  Dump step = 17, time = 2013.51 [ns]
+Gap Crossing > Cavity phase = 0.926079[deg.], transit factor =  0.978652
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.660948 [MeV]
+Gap Crossing > Current Energy = 109.239 [MeV]
+Gap Crossing > Cavity phase = 1.4641[deg.], transit factor =  0.978761
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.663139 [MeV]
+Gap Crossing > Current Energy = 109.902 [MeV]
+Gap Crossing > Cavity phase = 180.815[deg.], transit factor =  0.872286
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.241702 [MeV]
+Gap Crossing > Current Energy = 109.66 [MeV]
+Gap Crossing > Cavity phase = 1.55976[deg.], transit factor =  0.97883
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.663888 [MeV]
+Gap Crossing > Current Energy = 110.324 [MeV]
+Gap Crossing > Cavity phase = 1.08512[deg.], transit factor =  0.978937
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.665612 [MeV]
+Gap Crossing > Current Energy = 110.99 [MeV]
+OPAL> meanR=( -3.75921 2569.48 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 129580
+OPAL>  Dump step = 18, time = 2131.95 [ns]
+Gap Crossing > Cavity phase = 1.08735[deg.], transit factor =  0.979043
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.669272 [MeV]
+Gap Crossing > Current Energy = 111.659 [MeV]
+Gap Crossing > Cavity phase = 1.67073[deg.], transit factor =  0.979148
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.671417 [MeV]
+Gap Crossing > Current Energy = 112.331 [MeV]
+Gap Crossing > Cavity phase = 181.619[deg.], transit factor =  0.874529
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.249005 [MeV]
+Gap Crossing > Current Energy = 112.082 [MeV]
+Gap Crossing > Cavity phase = 1.76991[deg.], transit factor =  0.979214
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.672039 [MeV]
+Gap Crossing > Current Energy = 112.754 [MeV]
+Gap Crossing > Cavity phase = 1.27755[deg.], transit factor =  0.979318
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.673746 [MeV]
+Gap Crossing > Current Energy = 113.427 [MeV]
+OPAL> meanR=( -4.11533 2593.15 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 136779
+OPAL>  Dump step = 19, time = 2250.39 [ns]
+Gap Crossing > Cavity phase = 1.29483[deg.], transit factor =  0.979421
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.677415 [MeV]
+Gap Crossing > Current Energy = 114.105 [MeV]
+Gap Crossing > Cavity phase = 1.89459[deg.], transit factor =  0.979523
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.679422 [MeV]
+Gap Crossing > Current Energy = 114.784 [MeV]
+Gap Crossing > Cavity phase = 182.389[deg.], transit factor =  0.876702
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.255992 [MeV]
+Gap Crossing > Current Energy = 114.528 [MeV]
+Gap Crossing > Cavity phase = 1.95595[deg.], transit factor =  0.979586
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.679957 [MeV]
+Gap Crossing > Current Energy = 115.208 [MeV]
+Gap Crossing > Cavity phase = 1.43921[deg.], transit factor =  0.979687
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.681734 [MeV]
+Gap Crossing > Current Energy = 115.89 [MeV]
+OPAL> meanR=( -4.48142 2616.72 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 143978
+OPAL>  Dump step = 20, time = 2368.84 [ns]
+Gap Crossing > Cavity phase = 1.48426[deg.], transit factor =  0.979786
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.685358 [MeV]
+Gap Crossing > Current Energy = 116.575 [MeV]
+Gap Crossing > Cavity phase = 2.06677[deg.], transit factor =  0.979885
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.687193 [MeV]
+Gap Crossing > Current Energy = 117.262 [MeV]
+Gap Crossing > Cavity phase = 182.962[deg.], transit factor =  0.878807
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.262737 [MeV]
+Gap Crossing > Current Energy = 117 [MeV]
+Gap Crossing > Cavity phase = 2.07927[deg.], transit factor =  0.979946
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.687735 [MeV]
+Gap Crossing > Current Energy = 117.687 [MeV]
+Gap Crossing > Cavity phase = 1.58317[deg.], transit factor =  0.980044
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.689582 [MeV]
+Gap Crossing > Current Energy = 118.377 [MeV]
+OPAL> meanR=( -2.66288 2640.03 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 151176
+OPAL>  Dump step = 21, time = 2487.27 [ns]
+Gap Crossing > Cavity phase = 1.6511[deg.], transit factor =  0.98014
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.693079 [MeV]
+Gap Crossing > Current Energy = 119.07 [MeV]
+Gap Crossing > Cavity phase = 2.19055[deg.], transit factor =  0.980236
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.694786 [MeV]
+Gap Crossing > Current Energy = 119.765 [MeV]
+Gap Crossing > Cavity phase = 183.409[deg.], transit factor =  0.880846
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.26929 [MeV]
+Gap Crossing > Current Energy = 119.496 [MeV]
+Gap Crossing > Cavity phase = 2.1831[deg.], transit factor =  0.980295
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.695406 [MeV]
+Gap Crossing > Current Energy = 120.191 [MeV]
+Gap Crossing > Cavity phase = 1.72431[deg.], transit factor =  0.980389
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.697254 [MeV]
+Gap Crossing > Current Energy = 120.888 [MeV]
+OPAL> meanR=( -3.07398 2663.09 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 158375
+OPAL>  Dump step = 22, time = 2605.71 [ns]
+Gap Crossing > Cavity phase = 1.79347[deg.], transit factor =  0.980483
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.700584 [MeV]
+Gap Crossing > Current Energy = 121.589 [MeV]
+Gap Crossing > Cavity phase = 2.29749[deg.], transit factor =  0.980576
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.702253 [MeV]
+Gap Crossing > Current Energy = 122.291 [MeV]
+Gap Crossing > Cavity phase = 183.874[deg.], transit factor =  0.882823
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.275651 [MeV]
+Gap Crossing > Current Energy = 122.015 [MeV]
+Gap Crossing > Cavity phase = 2.31439[deg.], transit factor =  0.980632
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.702931 [MeV]
+Gap Crossing > Current Energy = 122.718 [MeV]
+Gap Crossing > Cavity phase = 1.89975[deg.], transit factor =  0.980724
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.704684 [MeV]
+Gap Crossing > Current Energy = 123.423 [MeV]
+OPAL> meanR=( -3.32624 2685.87 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 165574
+OPAL>  Dump step = 23, time = 2724.15 [ns]
+Gap Crossing > Cavity phase = 1.94583[deg.], transit factor =  0.980814
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.707885 [MeV]
+Gap Crossing > Current Energy = 124.131 [MeV]
+Gap Crossing > Cavity phase = 2.43576[deg.], transit factor =  0.980905
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.709567 [MeV]
+Gap Crossing > Current Energy = 124.84 [MeV]
+Gap Crossing > Cavity phase = 184.471[deg.], transit factor =  0.884739
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.281767 [MeV]
+Gap Crossing > Current Energy = 124.559 [MeV]
+Gap Crossing > Cavity phase = 2.49101[deg.], transit factor =  0.980959
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.710233 [MeV]
+Gap Crossing > Current Energy = 125.269 [MeV]
+Gap Crossing > Cavity phase = 2.08136[deg.], transit factor =  0.981048
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.711881 [MeV]
+Gap Crossing > Current Energy = 125.981 [MeV]
+OPAL> meanR=( -3.43724 2708.52 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 172773
+OPAL>  Dump step = 24, time = 2842.6 [ns]
+Gap Crossing > Cavity phase = 2.11064[deg.], transit factor =  0.981136
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.715022 [MeV]
+Gap Crossing > Current Energy = 126.696 [MeV]
+Gap Crossing > Cavity phase = 2.60192[deg.], transit factor =  0.981223
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.716684 [MeV]
+Gap Crossing > Current Energy = 127.413 [MeV]
+Gap Crossing > Cavity phase = 185.143[deg.], transit factor =  0.886596
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.28757 [MeV]
+Gap Crossing > Current Energy = 127.125 [MeV]
+Gap Crossing > Cavity phase = 2.66657[deg.], transit factor =  0.981275
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.717275 [MeV]
+Gap Crossing > Current Energy = 127.842 [MeV]
+Gap Crossing > Cavity phase = 2.24027[deg.], transit factor =  0.981361
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.718879 [MeV]
+Gap Crossing > Current Energy = 128.561 [MeV]
+OPAL> meanR=( -3.65283 2731.09 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 179972
+OPAL>  Dump step = 25, time = 2961.04 [ns]
+Gap Crossing > Cavity phase = 2.25214[deg.], transit factor =  0.981447
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.722002 [MeV]
+Gap Crossing > Current Energy = 129.283 [MeV]
+Gap Crossing > Cavity phase = 2.75152[deg.], transit factor =  0.981531
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.72359 [MeV]
+Gap Crossing > Current Energy = 130.007 [MeV]
+Gap Crossing > Cavity phase = 185.682[deg.], transit factor =  0.888397
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.293133 [MeV]
+Gap Crossing > Current Energy = 129.714 [MeV]
+Gap Crossing > Cavity phase = 2.79837[deg.], transit factor =  0.981582
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.724128 [MeV]
+Gap Crossing > Current Energy = 130.438 [MeV]
+Gap Crossing > Cavity phase = 2.35156[deg.], transit factor =  0.981665
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.725745 [MeV]
+Gap Crossing > Current Energy = 131.163 [MeV]
+OPAL> meanR=( -4.01241 2753.58 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 187171
+OPAL>  Dump step = 26, time = 3079.48 [ns]
+Gap Crossing > Cavity phase = 2.3712[deg.], transit factor =  0.981748
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.728819 [MeV]
+Gap Crossing > Current Energy = 131.892 [MeV]
+Gap Crossing > Cavity phase = 2.86123[deg.], transit factor =  0.98183
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.730306 [MeV]
+Gap Crossing > Current Energy = 132.623 [MeV]
+Gap Crossing > Cavity phase = 186.112[deg.], transit factor =  0.890143
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.298479 [MeV]
+Gap Crossing > Current Energy = 132.324 [MeV]
+Gap Crossing > Cavity phase = 2.88312[deg.], transit factor =  0.981878
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.730836 [MeV]
+Gap Crossing > Current Energy = 133.055 [MeV]
+Gap Crossing > Cavity phase = 2.4471[deg.], transit factor =  0.981959
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.732468 [MeV]
+Gap Crossing > Current Energy = 133.787 [MeV]
+OPAL> meanR=( -4.43445 2775.89 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 194370
+OPAL>  Dump step = 27, time = 3197.93 [ns]
+Gap Crossing > Cavity phase = 2.47724[deg.], transit factor =  0.98204
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.735447 [MeV]
+Gap Crossing > Current Energy = 134.523 [MeV]
+Gap Crossing > Cavity phase = 2.94319[deg.], transit factor =  0.98212
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.73686 [MeV]
+Gap Crossing > Current Energy = 135.26 [MeV]
+Gap Crossing > Cavity phase = 186.457[deg.], transit factor =  0.891837
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.30363 [MeV]
+Gap Crossing > Current Energy = 134.956 [MeV]
+Gap Crossing > Cavity phase = 2.95962[deg.], transit factor =  0.982166
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.737408 [MeV]
+Gap Crossing > Current Energy = 135.693 [MeV]
+Gap Crossing > Cavity phase = 2.54536[deg.], transit factor =  0.982245
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.739012 [MeV]
+Gap Crossing > Current Energy = 136.433 [MeV]
+OPAL> meanR=( -4.75994 2797.95 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 201569
+OPAL>  Dump step = 28, time = 3316.37 [ns]
+Gap Crossing > Cavity phase = 2.57536[deg.], transit factor =  0.982323
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.741879 [MeV]
+Gap Crossing > Current Energy = 137.174 [MeV]
+Gap Crossing > Cavity phase = 3.02683[deg.], transit factor =  0.9824
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.743243 [MeV]
+Gap Crossing > Current Energy = 137.918 [MeV]
+Gap Crossing > Cavity phase = 186.821[deg.], transit factor =  0.89348
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.308529 [MeV]
+Gap Crossing > Current Energy = 137.609 [MeV]
+Gap Crossing > Cavity phase = 3.04579[deg.], transit factor =  0.982445
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.743799 [MeV]
+Gap Crossing > Current Energy = 138.353 [MeV]
+Gap Crossing > Cavity phase = 2.63897[deg.], transit factor =  0.982521
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.745358 [MeV]
+Gap Crossing > Current Energy = 139.098 [MeV]
+OPAL> meanR=( -2.6889 2819.71 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 208767
+OPAL>  Dump step = 29, time = 3434.8 [ns]
+Gap Crossing > Cavity phase = 2.65986[deg.], transit factor =  0.982597
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.74814 [MeV]
+Gap Crossing > Current Energy = 139.846 [MeV]
+Gap Crossing > Cavity phase = 3.10194[deg.], transit factor =  0.982672
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.749471 [MeV]
+Gap Crossing > Current Energy = 140.596 [MeV]
+Gap Crossing > Cavity phase = 187.169[deg.], transit factor =  0.895074
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.313218 [MeV]
+Gap Crossing > Current Energy = 140.283 [MeV]
+Gap Crossing > Cavity phase = 3.1264[deg.], transit factor =  0.982716
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.750006 [MeV]
+Gap Crossing > Current Energy = 141.033 [MeV]
+Gap Crossing > Cavity phase = 2.72662[deg.], transit factor =  0.98279
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.751518 [MeV]
+Gap Crossing > Current Energy = 141.784 [MeV]
+OPAL> meanR=( -3.03893 2841.41 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 215966
+OPAL>  Dump step = 30, time = 3553.24 [ns]
+Gap Crossing > Cavity phase = 2.74284[deg.], transit factor =  0.982863
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.754239 [MeV]
+Gap Crossing > Current Energy = 142.538 [MeV]
+Gap Crossing > Cavity phase = 3.17455[deg.], transit factor =  0.982936
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.755514 [MeV]
+Gap Crossing > Current Energy = 143.294 [MeV]
+Gap Crossing > Cavity phase = 187.501[deg.], transit factor =  0.896621
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.317668 [MeV]
+Gap Crossing > Current Energy = 142.976 [MeV]
+Gap Crossing > Cavity phase = 3.18624[deg.], transit factor =  0.982978
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.756023 [MeV]
+Gap Crossing > Current Energy = 143.732 [MeV]
+Gap Crossing > Cavity phase = 2.78074[deg.], transit factor =  0.98305
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.757528 [MeV]
+Gap Crossing > Current Energy = 144.49 [MeV]
+OPAL> meanR=( -3.50739 2862.96 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 223165
+OPAL>  Dump step = 31, time = 3671.68 [ns]
+Gap Crossing > Cavity phase = 2.79956[deg.], transit factor =  0.983121
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.760178 [MeV]
+Gap Crossing > Current Energy = 145.25 [MeV]
+Gap Crossing > Cavity phase = 3.20921[deg.], transit factor =  0.983191
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.761376 [MeV]
+Gap Crossing > Current Energy = 146.011 [MeV]
+Gap Crossing > Cavity phase = 187.666[deg.], transit factor =  0.898123
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.321989 [MeV]
+Gap Crossing > Current Energy = 145.689 [MeV]
+Gap Crossing > Cavity phase = 3.19205[deg.], transit factor =  0.983232
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.761902 [MeV]
+Gap Crossing > Current Energy = 146.451 [MeV]
+Gap Crossing > Cavity phase = 2.79196[deg.], transit factor =  0.983302
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.763407 [MeV]
+Gap Crossing > Current Energy = 147.215 [MeV]
+OPAL> meanR=( -4.26767 2884.3 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 230364
+OPAL>  Dump step = 32, time = 3790.13 [ns]
+Gap Crossing > Cavity phase = 2.80914[deg.], transit factor =  0.983371
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.765953 [MeV]
+Gap Crossing > Current Energy = 147.981 [MeV]
+Gap Crossing > Cavity phase = 3.18145[deg.], transit factor =  0.983439
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.767107 [MeV]
+Gap Crossing > Current Energy = 148.748 [MeV]
+Gap Crossing > Cavity phase = 187.653[deg.], transit factor =  0.89958
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.326227 [MeV]
+Gap Crossing > Current Energy = 148.422 [MeV]
+Gap Crossing > Cavity phase = 3.15065[deg.], transit factor =  0.983479
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.767675 [MeV]
+Gap Crossing > Current Energy = 149.189 [MeV]
+Gap Crossing > Cavity phase = 2.76755[deg.], transit factor =  0.983546
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.769135 [MeV]
+Gap Crossing > Current Energy = 149.958 [MeV]
+OPAL> meanR=( -2.84098 2905.27 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 237562
+OPAL>  Dump step = 33, time = 3908.56 [ns]
+Gap Crossing > Cavity phase = 2.76988[deg.], transit factor =  0.983613
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.771577 [MeV]
+Gap Crossing > Current Energy = 150.73 [MeV]
+Gap Crossing > Cavity phase = 3.11676[deg.], transit factor =  0.98368
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.772733 [MeV]
+Gap Crossing > Current Energy = 151.503 [MeV]
+Gap Crossing > Cavity phase = 187.575[deg.], transit factor =  0.900996
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.330307 [MeV]
+Gap Crossing > Current Energy = 151.172 [MeV]
+Gap Crossing > Cavity phase = 3.09964[deg.], transit factor =  0.983718
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.773309 [MeV]
+Gap Crossing > Current Energy = 151.946 [MeV]
+Gap Crossing > Cavity phase = 2.72774[deg.], transit factor =  0.983784
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.774687 [MeV]
+Gap Crossing > Current Energy = 152.72 [MeV]
+OPAL> meanR=( -4.00524 2926.18 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 244761
+OPAL>  Dump step = 34, time = 4027 [ns]
+Gap Crossing > Cavity phase = 2.71417[deg.], transit factor =  0.983849
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.777064 [MeV]
+Gap Crossing > Current Energy = 153.497 [MeV]
+Gap Crossing > Cavity phase = 3.06307[deg.], transit factor =  0.983914
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.778215 [MeV]
+Gap Crossing > Current Energy = 154.276 [MeV]
+Gap Crossing > Cavity phase = 187.547[deg.], transit factor =  0.90237
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.334118 [MeV]
+Gap Crossing > Current Energy = 153.941 [MeV]
+Gap Crossing > Cavity phase = 3.06048[deg.], transit factor =  0.98395
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.778747 [MeV]
+Gap Crossing > Current Energy = 154.72 [MeV]
+Gap Crossing > Cavity phase = 2.67965[deg.], transit factor =  0.984014
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.780072 [MeV]
+Gap Crossing > Current Energy = 155.5 [MeV]
+OPAL> meanR=( -2.54745 2946.88 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 251959
+OPAL>  Dump step = 35, time = 4145.43 [ns]
+Gap Crossing > Cavity phase = 2.66592[deg.], transit factor =  0.984077
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.782405 [MeV]
+Gap Crossing > Current Energy = 156.283 [MeV]
+Gap Crossing > Cavity phase = 3.02231[deg.], transit factor =  0.98414
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.783496 [MeV]
+Gap Crossing > Current Energy = 157.066 [MeV]
+Gap Crossing > Cavity phase = 187.506[deg.], transit factor =  0.903706
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.337702 [MeV]
+Gap Crossing > Current Energy = 156.729 [MeV]
+Gap Crossing > Cavity phase = 3.00114[deg.], transit factor =  0.984176
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.783997 [MeV]
+Gap Crossing > Current Energy = 157.512 [MeV]
+Gap Crossing > Cavity phase = 2.61457[deg.], transit factor =  0.984238
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.78532 [MeV]
+Gap Crossing > Current Energy = 158.298 [MeV]
+OPAL> meanR=( -3.66232 2967.57 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 259158
+OPAL>  Dump step = 36, time = 4263.87 [ns]
+Gap Crossing > Cavity phase = 2.6112[deg.], transit factor =  0.984299
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.787582 [MeV]
+Gap Crossing > Current Energy = 159.085 [MeV]
+Gap Crossing > Cavity phase = 2.94391[deg.], transit factor =  0.98436
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.788612 [MeV]
+Gap Crossing > Current Energy = 159.874 [MeV]
+Gap Crossing > Cavity phase = 187.333[deg.], transit factor =  0.905003
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.341182 [MeV]
+Gap Crossing > Current Energy = 159.533 [MeV]
+Gap Crossing > Cavity phase = 2.90523[deg.], transit factor =  0.984395
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.789134 [MeV]
+Gap Crossing > Current Energy = 160.322 [MeV]
+Gap Crossing > Cavity phase = 2.54428[deg.], transit factor =  0.984455
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.790432 [MeV]
+Gap Crossing > Current Energy = 161.112 [MeV]
+OPAL> meanR=( -4.77589 2987.99 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 266357
+OPAL>  Dump step = 37, time = 4382.31 [ns]
+Gap Crossing > Cavity phase = 2.54502[deg.], transit factor =  0.984515
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.792581 [MeV]
+Gap Crossing > Current Energy = 161.905 [MeV]
+Gap Crossing > Cavity phase = 2.84956[deg.], transit factor =  0.984574
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.793584 [MeV]
+Gap Crossing > Current Energy = 162.699 [MeV]
+Gap Crossing > Cavity phase = 187.136[deg.], transit factor =  0.906264
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.344487 [MeV]
+Gap Crossing > Current Energy = 162.354 [MeV]
+Gap Crossing > Cavity phase = 2.81413[deg.], transit factor =  0.984607
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.794133 [MeV]
+Gap Crossing > Current Energy = 163.148 [MeV]
+Gap Crossing > Cavity phase = 2.47483[deg.], transit factor =  0.984666
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.795362 [MeV]
+Gap Crossing > Current Energy = 163.944 [MeV]
+OPAL> meanR=( -3.36583 3007.98 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 273555
+OPAL>  Dump step = 38, time = 4500.74 [ns]
+Gap Crossing > Cavity phase = 2.46009[deg.], transit factor =  0.984724
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.797419 [MeV]
+Gap Crossing > Current Energy = 164.741 [MeV]
+Gap Crossing > Cavity phase = 2.75089[deg.], transit factor =  0.984781
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.798431 [MeV]
+Gap Crossing > Current Energy = 165.539 [MeV]
+Gap Crossing > Cavity phase = 186.961[deg.], transit factor =  0.907489
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.34758 [MeV]
+Gap Crossing > Current Energy = 165.192 [MeV]
+Gap Crossing > Cavity phase = 2.73347[deg.], transit factor =  0.984814
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.798963 [MeV]
+Gap Crossing > Current Energy = 165.991 [MeV]
+Gap Crossing > Cavity phase = 2.39169[deg.], transit factor =  0.984871
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.800117 [MeV]
+Gap Crossing > Current Energy = 166.791 [MeV]
+OPAL> meanR=( -4.57706 3027.96 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 280754
+OPAL>  Dump step = 39, time = 4619.18 [ns]
+Gap Crossing > Cavity phase = 2.36444[deg.], transit factor =  0.984927
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.802131 [MeV]
+Gap Crossing > Current Energy = 167.593 [MeV]
+Gap Crossing > Cavity phase = 2.66545[deg.], transit factor =  0.984983
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.803127 [MeV]
+Gap Crossing > Current Energy = 168.396 [MeV]
+Gap Crossing > Cavity phase = 186.835[deg.], transit factor =  0.90868
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.350421 [MeV]
+Gap Crossing > Current Energy = 168.046 [MeV]
+Gap Crossing > Cavity phase = 2.65556[deg.], transit factor =  0.985014
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.803609 [MeV]
+Gap Crossing > Current Energy = 168.849 [MeV]
+Gap Crossing > Cavity phase = 2.31238[deg.], transit factor =  0.98507
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.804725 [MeV]
+Gap Crossing > Current Energy = 169.654 [MeV]
+OPAL> meanR=( -3.0067 3047.73 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 287952
+OPAL>  Dump step = 40, time = 4737.61 [ns]
+Gap Crossing > Cavity phase = 2.29658[deg.], transit factor =  0.985125
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.806697 [MeV]
+Gap Crossing > Current Energy = 170.461 [MeV]
+Gap Crossing > Cavity phase = 2.60481[deg.], transit factor =  0.985179
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.807627 [MeV]
+Gap Crossing > Current Energy = 171.268 [MeV]
+Gap Crossing > Cavity phase = 186.725[deg.], transit factor =  0.909839
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.353024 [MeV]
+Gap Crossing > Current Energy = 170.915 [MeV]
+Gap Crossing > Cavity phase = 2.57929[deg.], transit factor =  0.985209
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.808086 [MeV]
+Gap Crossing > Current Energy = 171.723 [MeV]
+Gap Crossing > Cavity phase = 2.24402[deg.], transit factor =  0.985263
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.809201 [MeV]
+Gap Crossing > Current Energy = 172.533 [MeV]
+OPAL> meanR=( -3.80591 3067.48 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 295151
+OPAL>  Dump step = 41, time = 4856.05 [ns]
+Gap Crossing > Cavity phase = 2.24885[deg.], transit factor =  0.985316
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.811088 [MeV]
+Gap Crossing > Current Energy = 173.344 [MeV]
+Gap Crossing > Cavity phase = 2.54151[deg.], transit factor =  0.985369
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.811956 [MeV]
+Gap Crossing > Current Energy = 174.156 [MeV]
+Gap Crossing > Cavity phase = 186.586[deg.], transit factor =  0.910965
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.355451 [MeV]
+Gap Crossing > Current Energy = 173.8 [MeV]
+Gap Crossing > Cavity phase = 2.50784[deg.], transit factor =  0.985399
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.812438 [MeV]
+Gap Crossing > Current Energy = 174.613 [MeV]
+Gap Crossing > Cavity phase = 2.20188[deg.], transit factor =  0.985451
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.813519 [MeV]
+Gap Crossing > Current Energy = 175.426 [MeV]
+OPAL> meanR=( -4.39682 3086.88 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 302350
+OPAL>  Dump step = 42, time = 4974.5 [ns]
+Gap Crossing > Cavity phase = 2.20905[deg.], transit factor =  0.985503
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.815297 [MeV]
+Gap Crossing > Current Energy = 176.242 [MeV]
+Gap Crossing > Cavity phase = 2.4798[deg.], transit factor =  0.985554
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.81615 [MeV]
+Gap Crossing > Current Energy = 177.058 [MeV]
+Gap Crossing > Cavity phase = 186.499[deg.], transit factor =  0.91206
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.357663 [MeV]
+Gap Crossing > Current Energy = 176.7 [MeV]
+Gap Crossing > Cavity phase = 2.46104[deg.], transit factor =  0.985583
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.816643 [MeV]
+Gap Crossing > Current Energy = 177.517 [MeV]
+Gap Crossing > Cavity phase = 2.17316[deg.], transit factor =  0.985634
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.817651 [MeV]
+Gap Crossing > Current Energy = 178.334 [MeV]
+OPAL> meanR=( -4.9512 3105.99 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 309549
+OPAL>  Dump step = 43, time = 5092.94 [ns]
+Gap Crossing > Cavity phase = 2.16359[deg.], transit factor =  0.985684
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.819359 [MeV]
+Gap Crossing > Current Energy = 179.154 [MeV]
+Gap Crossing > Cavity phase = 2.43186[deg.], transit factor =  0.985734
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.820214 [MeV]
+Gap Crossing > Current Energy = 179.974 [MeV]
+Gap Crossing > Cavity phase = 186.472[deg.], transit factor =  0.913126
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.359645 [MeV]
+Gap Crossing > Current Energy = 179.614 [MeV]
+Gap Crossing > Cavity phase = 2.42829[deg.], transit factor =  0.985762
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.820672 [MeV]
+Gap Crossing > Current Energy = 180.435 [MeV]
+Gap Crossing > Cavity phase = 2.13297[deg.], transit factor =  0.985812
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.821627 [MeV]
+Gap Crossing > Current Energy = 181.257 [MeV]
+OPAL> meanR=( -2.84793 3124.82 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 316747
+OPAL>  Dump step = 44, time = 5211.37 [ns]
+Gap Crossing > Cavity phase = 2.11764[deg.], transit factor =  0.985861
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.823303 [MeV]
+Gap Crossing > Current Energy = 182.08 [MeV]
+Gap Crossing > Cavity phase = 2.39038[deg.], transit factor =  0.985909
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.824122 [MeV]
+Gap Crossing > Current Energy = 182.904 [MeV]
+Gap Crossing > Cavity phase = 186.441[deg.], transit factor =  0.914164
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.361432 [MeV]
+Gap Crossing > Current Energy = 182.543 [MeV]
+Gap Crossing > Cavity phase = 2.37687[deg.], transit factor =  0.985936
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.824541 [MeV]
+Gap Crossing > Current Energy = 183.367 [MeV]
+Gap Crossing > Cavity phase = 2.07438[deg.], transit factor =  0.985984
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.825489 [MeV]
+Gap Crossing > Current Energy = 184.193 [MeV]
+OPAL> meanR=( -3.36682 3143.74 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 323946
+OPAL>  Dump step = 45, time = 5329.81 [ns]
+Gap Crossing > Cavity phase = 2.07236[deg.], transit factor =  0.986032
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.827111 [MeV]
+Gap Crossing > Current Energy = 185.02 [MeV]
+Gap Crossing > Cavity phase = 2.34106[deg.], transit factor =  0.986079
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.827869 [MeV]
+Gap Crossing > Current Energy = 185.848 [MeV]
+Gap Crossing > Cavity phase = 186.347[deg.], transit factor =  0.915173
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.363075 [MeV]
+Gap Crossing > Current Energy = 185.484 [MeV]
+Gap Crossing > Cavity phase = 2.31259[deg.], transit factor =  0.986106
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.828294 [MeV]
+Gap Crossing > Current Energy = 186.313 [MeV]
+Gap Crossing > Cavity phase = 2.02808[deg.], transit factor =  0.986153
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.829225 [MeV]
+Gap Crossing > Current Energy = 187.142 [MeV]
+OPAL> meanR=( -3.76633 3162.37 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 331145
+OPAL>  Dump step = 46, time = 5448.26 [ns]
+Gap Crossing > Cavity phase = 2.03213[deg.], transit factor =  0.986199
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.830755 [MeV]
+Gap Crossing > Current Energy = 187.973 [MeV]
+Gap Crossing > Cavity phase = 2.28032[deg.], transit factor =  0.986245
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.83149 [MeV]
+Gap Crossing > Current Energy = 188.804 [MeV]
+Gap Crossing > Cavity phase = 186.25[deg.], transit factor =  0.916156
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.364546 [MeV]
+Gap Crossing > Current Energy = 188.44 [MeV]
+Gap Crossing > Cavity phase = 2.26378[deg.], transit factor =  0.986271
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.831929 [MeV]
+Gap Crossing > Current Energy = 189.272 [MeV]
+Gap Crossing > Cavity phase = 2.00228[deg.], transit factor =  0.986316
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.832798 [MeV]
+Gap Crossing > Current Energy = 190.104 [MeV]
+OPAL> meanR=( -4.04494 3180.69 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 338344
+OPAL>  Dump step = 47, time = 5566.7 [ns]
+Gap Crossing > Cavity phase = 1.99452[deg.], transit factor =  0.986361
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.834255 [MeV]
+Gap Crossing > Current Energy = 190.939 [MeV]
+Gap Crossing > Cavity phase = 2.23853[deg.], transit factor =  0.986406
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.834989 [MeV]
+Gap Crossing > Current Energy = 191.774 [MeV]
+Gap Crossing > Cavity phase = 186.236[deg.], transit factor =  0.917112
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.365779 [MeV]
+Gap Crossing > Current Energy = 191.408 [MeV]
+Gap Crossing > Cavity phase = 2.24069[deg.], transit factor =  0.986431
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.835401 [MeV]
+Gap Crossing > Current Energy = 192.243 [MeV]
+Gap Crossing > Cavity phase = 1.97764[deg.], transit factor =  0.986475
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.836216 [MeV]
+Gap Crossing > Current Energy = 193.079 [MeV]
+OPAL> meanR=( -4.27892 3198.87 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 345543
+OPAL>  Dump step = 48, time = 5685.14 [ns]
+Gap Crossing > Cavity phase = 1.96126[deg.], transit factor =  0.986519
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.837635 [MeV]
+Gap Crossing > Current Energy = 193.917 [MeV]
+Gap Crossing > Cavity phase = 2.21127[deg.], transit factor =  0.986563
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.838343 [MeV]
+Gap Crossing > Current Energy = 194.755 [MeV]
+Gap Crossing > Cavity phase = 186.242[deg.], transit factor =  0.918044
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.366818 [MeV]
+Gap Crossing > Current Energy = 194.389 [MeV]
+Gap Crossing > Cavity phase = 2.21472[deg.], transit factor =  0.986587
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.838725 [MeV]
+Gap Crossing > Current Energy = 195.227 [MeV]
+Gap Crossing > Cavity phase = 1.95314[deg.], transit factor =  0.98663
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.83952 [MeV]
+Gap Crossing > Current Energy = 196.067 [MeV]
+OPAL> meanR=( -4.31747 3216.98 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 352742
+OPAL>  Dump step = 49, time = 5803.59 [ns]
+Gap Crossing > Cavity phase = 1.95193[deg.], transit factor =  0.986673
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.840888 [MeV]
+Gap Crossing > Current Energy = 196.908 [MeV]
+Gap Crossing > Cavity phase = 2.20274[deg.], transit factor =  0.986716
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.841542 [MeV]
+Gap Crossing > Current Energy = 197.749 [MeV]
+Gap Crossing > Cavity phase = 186.28[deg.], transit factor =  0.918952
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.367666 [MeV]
+Gap Crossing > Current Energy = 197.382 [MeV]
+Gap Crossing > Cavity phase = 2.19946[deg.], transit factor =  0.986739
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.841919 [MeV]
+Gap Crossing > Current Energy = 198.224 [MeV]
+Gap Crossing > Cavity phase = 1.95871[deg.], transit factor =  0.986781
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.842698 [MeV]
+Gap Crossing > Current Energy = 199.066 [MeV]
+OPAL> meanR=( -3.99706 3234.82 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 359941
+OPAL>  Dump step = 50, time = 5922.03 [ns]
+Gap Crossing > Cavity phase = 1.97064[deg.], transit factor =  0.986823
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.843982 [MeV]
+Gap Crossing > Current Energy = 199.91 [MeV]
+Gap Crossing > Cavity phase = 2.20061[deg.], transit factor =  0.986864
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.844597 [MeV]
+Gap Crossing > Current Energy = 200.755 [MeV]
+Gap Crossing > Cavity phase = 186.335[deg.], transit factor =  0.919836
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.368339 [MeV]
+Gap Crossing > Current Energy = 200.387 [MeV]
+Gap Crossing > Cavity phase = 2.19737[deg.], transit factor =  0.986887
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.84499 [MeV]
+Gap Crossing > Current Energy = 201.232 [MeV]
+Gap Crossing > Cavity phase = 1.9795[deg.], transit factor =  0.986928
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.845729 [MeV]
+Gap Crossing > Current Energy = 202.077 [MeV]
+OPAL> meanR=( -3.61528 3252.31 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 367140
+OPAL>  Dump step = 51, time = 6040.47 [ns]
+Gap Crossing > Cavity phase = 1.98124[deg.], transit factor =  0.986969
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.846935 [MeV]
+Gap Crossing > Current Energy = 202.924 [MeV]
+Gap Crossing > Cavity phase = 2.19199[deg.], transit factor =  0.987009
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.847543 [MeV]
+Gap Crossing > Current Energy = 203.772 [MeV]
+Gap Crossing > Cavity phase = 186.39[deg.], transit factor =  0.920697
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.368851 [MeV]
+Gap Crossing > Current Energy = 203.403 [MeV]
+Gap Crossing > Cavity phase = 2.19569[deg.], transit factor =  0.987032
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.84793 [MeV]
+Gap Crossing > Current Energy = 204.251 [MeV]
+Gap Crossing > Cavity phase = 1.97779[deg.], transit factor =  0.987071
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.848624 [MeV]
+Gap Crossing > Current Energy = 205.099 [MeV]
+OPAL> meanR=( -3.45191 3269.64 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 374339
+OPAL>  Dump step = 52, time = 6158.92 [ns]
+Gap Crossing > Cavity phase = 1.96646[deg.], transit factor =  0.987111
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.849792 [MeV]
+Gap Crossing > Current Energy = 205.949 [MeV]
+Gap Crossing > Cavity phase = 2.17752[deg.], transit factor =  0.98715
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.850379 [MeV]
+Gap Crossing > Current Energy = 206.8 [MeV]
+Gap Crossing > Cavity phase = 186.419[deg.], transit factor =  0.921537
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.369225 [MeV]
+Gap Crossing > Current Energy = 206.43 [MeV]
+Gap Crossing > Cavity phase = 2.17493[deg.], transit factor =  0.987172
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.850738 [MeV]
+Gap Crossing > Current Energy = 207.281 [MeV]
+Gap Crossing > Cavity phase = 1.94619[deg.], transit factor =  0.987211
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.851419 [MeV]
+Gap Crossing > Current Energy = 208.133 [MeV]
+OPAL> meanR=( -3.41142 3286.93 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 381538
+OPAL>  Dump step = 53, time = 6277.36 [ns]
+Gap Crossing > Cavity phase = 1.94205[deg.], transit factor =  0.987249
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.852549 [MeV]
+Gap Crossing > Current Energy = 208.985 [MeV]
+Gap Crossing > Cavity phase = 2.15212[deg.], transit factor =  0.987287
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.85309 [MeV]
+Gap Crossing > Current Energy = 209.838 [MeV]
+Gap Crossing > Cavity phase = 186.39[deg.], transit factor =  0.922355
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.369487 [MeV]
+Gap Crossing > Current Energy = 209.469 [MeV]
+Gap Crossing > Cavity phase = 2.13268[deg.], transit factor =  0.987309
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.853439 [MeV]
+Gap Crossing > Current Energy = 210.322 [MeV]
+Gap Crossing > Cavity phase = 1.91049[deg.], transit factor =  0.987347
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.854113 [MeV]
+Gap Crossing > Current Energy = 211.176 [MeV]
+OPAL> meanR=( -3.31934 3303.99 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 388737
+OPAL>  Dump step = 54, time = 6395.8 [ns]
+Gap Crossing > Cavity phase = 1.91483[deg.], transit factor =  0.987384
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.855178 [MeV]
+Gap Crossing > Current Energy = 212.031 [MeV]
+Gap Crossing > Cavity phase = 2.10906[deg.], transit factor =  0.987421
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.85569 [MeV]
+Gap Crossing > Current Energy = 212.887 [MeV]
+Gap Crossing > Cavity phase = 186.321[deg.], transit factor =  0.923153
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.369627 [MeV]
+Gap Crossing > Current Energy = 212.517 [MeV]
+Gap Crossing > Cavity phase = 2.08686[deg.], transit factor =  0.987442
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.856047 [MeV]
+Gap Crossing > Current Energy = 213.374 [MeV]
+Gap Crossing > Cavity phase = 1.88249[deg.], transit factor =  0.987479
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.856679 [MeV]
+Gap Crossing > Current Energy = 214.23 [MeV]
+OPAL> meanR=( -3.22795 3320.73 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 395936
+OPAL>  Dump step = 55, time = 6514.25 [ns]
+Gap Crossing > Cavity phase = 1.87492[deg.], transit factor =  0.987515
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.857686 [MeV]
+Gap Crossing > Current Energy = 215.088 [MeV]
+Gap Crossing > Cavity phase = 2.05747[deg.], transit factor =  0.987552
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.858197 [MeV]
+Gap Crossing > Current Energy = 215.946 [MeV]
+Gap Crossing > Cavity phase = 186.269[deg.], transit factor =  0.923932
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.369605 [MeV]
+Gap Crossing > Current Energy = 215.576 [MeV]
+Gap Crossing > Cavity phase = 2.05428[deg.], transit factor =  0.987572
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.858532 [MeV]
+Gap Crossing > Current Energy = 216.435 [MeV]
+Gap Crossing > Cavity phase = 1.8485[deg.], transit factor =  0.987608
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.85912 [MeV]
+Gap Crossing > Current Energy = 217.294 [MeV]
+OPAL> meanR=( -3.17126 3337.33 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 403135
+OPAL>  Dump step = 56, time = 6632.69 [ns]
+Gap Crossing > Cavity phase = 1.83135[deg.], transit factor =  0.987644
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.860095 [MeV]
+Gap Crossing > Current Energy = 218.154 [MeV]
+Gap Crossing > Cavity phase = 2.01901[deg.], transit factor =  0.987679
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.860586 [MeV]
+Gap Crossing > Current Energy = 219.015 [MeV]
+Gap Crossing > Cavity phase = 186.228[deg.], transit factor =  0.92469
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.369429 [MeV]
+Gap Crossing > Current Energy = 218.645 [MeV]
+Gap Crossing > Cavity phase = 2.01532[deg.], transit factor =  0.987699
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.860895 [MeV]
+Gap Crossing > Current Energy = 219.506 [MeV]
+Gap Crossing > Cavity phase = 1.80761[deg.], transit factor =  0.987734
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.861466 [MeV]
+Gap Crossing > Current Energy = 220.368 [MeV]
+OPAL> meanR=( -3.00904 3353.85 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 410334
+OPAL>  Dump step = 57, time = 6751.14 [ns]
+Gap Crossing > Cavity phase = 1.8003[deg.], transit factor =  0.987769
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.862395 [MeV]
+Gap Crossing > Current Energy = 221.23 [MeV]
+Gap Crossing > Cavity phase = 1.97828[deg.], transit factor =  0.987803
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.862846 [MeV]
+Gap Crossing > Current Energy = 222.093 [MeV]
+Gap Crossing > Cavity phase = 186.145[deg.], transit factor =  0.925431
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.369145 [MeV]
+Gap Crossing > Current Energy = 221.724 [MeV]
+Gap Crossing > Cavity phase = 1.96202[deg.], transit factor =  0.987823
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.863159 [MeV]
+Gap Crossing > Current Energy = 222.587 [MeV]
+Gap Crossing > Cavity phase = 1.76931[deg.], transit factor =  0.987857
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.863714 [MeV]
+Gap Crossing > Current Energy = 223.451 [MeV]
+OPAL> meanR=( -5.63876 3370.39 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 417534
+OPAL>  Dump step = 58, time = 6869.6 [ns]
+Gap Crossing > Cavity phase = 1.76634[deg.], transit factor =  0.98789
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.864576 [MeV]
+Gap Crossing > Current Energy = 224.315 [MeV]
+Gap Crossing > Cavity phase = 1.92765[deg.], transit factor =  0.987924
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.865008 [MeV]
+Gap Crossing > Current Energy = 225.18 [MeV]
+Gap Crossing > Cavity phase = 186.055[deg.], transit factor =  0.926153
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.368725 [MeV]
+Gap Crossing > Current Energy = 224.812 [MeV]
+Gap Crossing > Cavity phase = 1.91607[deg.], transit factor =  0.987943
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.865324 [MeV]
+Gap Crossing > Current Energy = 225.677 [MeV]
+Gap Crossing > Cavity phase = 1.7365[deg.], transit factor =  0.987976
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.865839 [MeV]
+Gap Crossing > Current Energy = 226.543 [MeV]
+OPAL> meanR=( -5.43091 3386.4 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 424733
+OPAL>  Dump step = 59, time = 6988.04 [ns]
+Gap Crossing > Cavity phase = 1.72422[deg.], transit factor =  0.988009
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.866656 [MeV]
+Gap Crossing > Current Energy = 227.409 [MeV]
+Gap Crossing > Cavity phase = 1.88732[deg.], transit factor =  0.988042
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.867078 [MeV]
+Gap Crossing > Current Energy = 228.276 [MeV]
+Gap Crossing > Cavity phase = 186.015[deg.], transit factor =  0.926858
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.368138 [MeV]
+Gap Crossing > Current Energy = 227.908 [MeV]
+Gap Crossing > Cavity phase = 1.88202[deg.], transit factor =  0.988061
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.867366 [MeV]
+Gap Crossing > Current Energy = 228.776 [MeV]
+Gap Crossing > Cavity phase = 1.69372[deg.], transit factor =  0.988093
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.867857 [MeV]
+Gap Crossing > Current Energy = 229.644 [MeV]
+OPAL> meanR=( -5.23129 3402.33 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 431932
+OPAL>  Dump step = 60, time = 7106.48 [ns]
+Gap Crossing > Cavity phase = 1.68484[deg.], transit factor =  0.988125
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.868646 [MeV]
+Gap Crossing > Current Energy = 230.512 [MeV]
+Gap Crossing > Cavity phase = 1.85601[deg.], transit factor =  0.988157
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.869033 [MeV]
+Gap Crossing > Current Energy = 231.381 [MeV]
+Gap Crossing > Cavity phase = 185.974[deg.], transit factor =  0.927546
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.367435 [MeV]
+Gap Crossing > Current Energy = 231.014 [MeV]
+Gap Crossing > Cavity phase = 1.84029[deg.], transit factor =  0.988175
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.869303 [MeV]
+Gap Crossing > Current Energy = 231.883 [MeV]
+Gap Crossing > Cavity phase = 1.65404[deg.], transit factor =  0.988207
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.869785 [MeV]
+Gap Crossing > Current Energy = 232.753 [MeV]
+OPAL> meanR=( -4.88621 3418.06 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 439131
+OPAL>  Dump step = 61, time = 7224.93 [ns]
+Gap Crossing > Cavity phase = 1.65392[deg.], transit factor =  0.988238
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.870524 [MeV]
+Gap Crossing > Current Energy = 233.623 [MeV]
+Gap Crossing > Cavity phase = 1.80915[deg.], transit factor =  0.988269
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.870885 [MeV]
+Gap Crossing > Current Energy = 234.494 [MeV]
+Gap Crossing > Cavity phase = 185.881[deg.], transit factor =  0.928218
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.366644 [MeV]
+Gap Crossing > Current Energy = 234.128 [MeV]
+Gap Crossing > Cavity phase = 1.78966[deg.], transit factor =  0.988287
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.871161 [MeV]
+Gap Crossing > Current Energy = 234.999 [MeV]
+Gap Crossing > Cavity phase = 1.62267[deg.], transit factor =  0.988318
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.871608 [MeV]
+Gap Crossing > Current Energy = 235.87 [MeV]
+OPAL> meanR=( -4.53972 3433.45 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 446330
+OPAL>  Dump step = 62, time = 7343.37 [ns]
+Gap Crossing > Cavity phase = 1.6088[deg.], transit factor =  0.988349
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.872295 [MeV]
+Gap Crossing > Current Energy = 236.743 [MeV]
+Gap Crossing > Cavity phase = 1.74326[deg.], transit factor =  0.988379
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.872657 [MeV]
+Gap Crossing > Current Energy = 237.615 [MeV]
+Gap Crossing > Cavity phase = 185.765[deg.], transit factor =  0.928873
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.365748 [MeV]
+Gap Crossing > Current Energy = 237.25 [MeV]
+Gap Crossing > Cavity phase = 1.73698[deg.], transit factor =  0.988397
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.872921 [MeV]
+Gap Crossing > Current Energy = 238.123 [MeV]
+Gap Crossing > Cavity phase = 1.56834[deg.], transit factor =  0.988427
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.873332 [MeV]
+Gap Crossing > Current Energy = 238.996 [MeV]
+OPAL> meanR=( -4.41057 3448.74 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 453529
+OPAL>  Dump step = 63, time = 7461.81 [ns]
+Gap Crossing > Cavity phase = 1.5434[deg.], transit factor =  0.988456
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.873992 [MeV]
+Gap Crossing > Current Energy = 239.87 [MeV]
+Gap Crossing > Cavity phase = 1.68037[deg.], transit factor =  0.988486
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.874335 [MeV]
+Gap Crossing > Current Energy = 240.744 [MeV]
+Gap Crossing > Cavity phase = 185.622[deg.], transit factor =  0.929514
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.364767 [MeV]
+Gap Crossing > Current Energy = 240.379 [MeV]
+Gap Crossing > Cavity phase = 1.66501[deg.], transit factor =  0.988503
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.874579 [MeV]
+Gap Crossing > Current Energy = 241.254 [MeV]
+Gap Crossing > Cavity phase = 1.4883[deg.], transit factor =  0.988533
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.874982 [MeV]
+Gap Crossing > Current Energy = 242.129 [MeV]
+OPAL> meanR=( -4.30863 3464.01 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 460728
+OPAL>  Dump step = 64, time = 7580.26 [ns]
+Gap Crossing > Cavity phase = 1.47766[deg.], transit factor =  0.988562
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.875605 [MeV]
+Gap Crossing > Current Energy = 243.005 [MeV]
+Gap Crossing > Cavity phase = 1.61502[deg.], transit factor =  0.988591
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.875914 [MeV]
+Gap Crossing > Current Energy = 243.881 [MeV]
+Gap Crossing > Cavity phase = 185.463[deg.], transit factor =  0.930139
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.363684 [MeV]
+Gap Crossing > Current Energy = 243.517 [MeV]
+Gap Crossing > Cavity phase = 1.58869[deg.], transit factor =  0.988607
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.876153 [MeV]
+Gap Crossing > Current Energy = 244.393 [MeV]
+Gap Crossing > Cavity phase = 1.42681[deg.], transit factor =  0.988636
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.876539 [MeV]
+Gap Crossing > Current Energy = 245.27 [MeV]
+OPAL> meanR=( -4.03153 3478.99 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 467927
+OPAL>  Dump step = 65, time = 7698.7 [ns]
+Gap Crossing > Cavity phase = 1.42144[deg.], transit factor =  0.988664
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877112 [MeV]
+Gap Crossing > Current Energy = 246.147 [MeV]
+Gap Crossing > Cavity phase = 1.55239[deg.], transit factor =  0.988693
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877408 [MeV]
+Gap Crossing > Current Energy = 247.024 [MeV]
+Gap Crossing > Cavity phase = 185.353[deg.], transit factor =  0.930751
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.362439 [MeV]
+Gap Crossing > Current Energy = 246.662 [MeV]
+Gap Crossing > Cavity phase = 1.54343[deg.], transit factor =  0.988709
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877636 [MeV]
+Gap Crossing > Current Energy = 247.539 [MeV]
+Gap Crossing > Cavity phase = 1.39169[deg.], transit factor =  0.988737
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877984 [MeV]
+Gap Crossing > Current Energy = 248.417 [MeV]
+OPAL> meanR=( -3.56319 3493.71 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 475126
+OPAL>  Dump step = 66, time = 7817.14 [ns]
+Gap Crossing > Cavity phase = 1.37837[deg.], transit factor =  0.988765
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.878525 [MeV]
+Gap Crossing > Current Energy = 249.296 [MeV]
+Gap Crossing > Cavity phase = 1.51924[deg.], transit factor =  0.988792
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.878809 [MeV]
+Gap Crossing > Current Energy = 250.175 [MeV]
+Gap Crossing > Cavity phase = 185.339[deg.], transit factor =  0.931348
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.361029 [MeV]
+Gap Crossing > Current Energy = 249.814 [MeV]
+Gap Crossing > Cavity phase = 1.52472[deg.], transit factor =  0.988808
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.879011 [MeV]
+Gap Crossing > Current Energy = 250.693 [MeV]
+Gap Crossing > Cavity phase = 1.37528[deg.], transit factor =  0.988836
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.879339 [MeV]
+Gap Crossing > Current Energy = 251.572 [MeV]
+OPAL> meanR=( -5.75396 3508.72 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 482326
+OPAL>  Dump step = 67, time = 7935.6 [ns]
+Gap Crossing > Cavity phase = 1.37546[deg.], transit factor =  0.988863
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.879847 [MeV]
+Gap Crossing > Current Energy = 252.452 [MeV]
+Gap Crossing > Cavity phase = 1.51937[deg.], transit factor =  0.98889
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.880098 [MeV]
+Gap Crossing > Current Energy = 253.332 [MeV]
+Gap Crossing > Cavity phase = 185.378[deg.], transit factor =  0.931931
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.359507 [MeV]
+Gap Crossing > Current Energy = 252.972 [MeV]
+Gap Crossing > Cavity phase = 1.51647[deg.], transit factor =  0.988906
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.880293 [MeV]
+Gap Crossing > Current Energy = 253.853 [MeV]
+Gap Crossing > Cavity phase = 1.38655[deg.], transit factor =  0.988932
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.880608 [MeV]
+Gap Crossing > Current Energy = 254.733 [MeV]
+OPAL> meanR=( -4.57209 3523.13 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 489525
+OPAL>  Dump step = 68, time = 8054.05 [ns]
+Gap Crossing > Cavity phase = 1.40131[deg.], transit factor =  0.988959
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881067 [MeV]
+Gap Crossing > Current Energy = 255.614 [MeV]
+Gap Crossing > Cavity phase = 1.53362[deg.], transit factor =  0.988985
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881295 [MeV]
+Gap Crossing > Current Energy = 256.496 [MeV]
+Gap Crossing > Cavity phase = 185.474[deg.], transit factor =  0.932501
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.357851 [MeV]
+Gap Crossing > Current Energy = 256.138 [MeV]
+Gap Crossing > Cavity phase = 1.53584[deg.], transit factor =  0.989
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881487 [MeV]
+Gap Crossing > Current Energy = 257.019 [MeV]
+Gap Crossing > Cavity phase = 1.4189[deg.], transit factor =  0.989026
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881775 [MeV]
+Gap Crossing > Current Energy = 257.901 [MeV]
+OPAL> meanR=( -3.30056 3537.21 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 496724
+OPAL>  Dump step = 69, time = 8172.49 [ns]
+Gap Crossing > Cavity phase = 1.4246[deg.], transit factor =  0.989052
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.8822 [MeV]
+Gap Crossing > Current Energy = 258.783 [MeV]
+Gap Crossing > Cavity phase = 1.56102[deg.], transit factor =  0.989078
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882417 [MeV]
+Gap Crossing > Current Energy = 259.666 [MeV]
+Gap Crossing > Cavity phase = 185.634[deg.], transit factor =  0.933059
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.356059 [MeV]
+Gap Crossing > Current Energy = 259.31 [MeV]
+Gap Crossing > Cavity phase = 1.57408[deg.], transit factor =  0.989093
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882585 [MeV]
+Gap Crossing > Current Energy = 260.192 [MeV]
+Gap Crossing > Cavity phase = 1.44692[deg.], transit factor =  0.989118
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882856 [MeV]
+Gap Crossing > Current Energy = 261.075 [MeV]
+OPAL> meanR=( -5.05635 3551.59 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 503924
+OPAL>  Dump step = 70, time = 8290.95 [ns]
+Gap Crossing > Cavity phase = 1.4517[deg.], transit factor =  0.989144
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.883258 [MeV]
+Gap Crossing > Current Energy = 261.958 [MeV]
+Gap Crossing > Cavity phase = 1.58946[deg.], transit factor =  0.989169
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88345 [MeV]
+Gap Crossing > Current Energy = 262.842 [MeV]
+Gap Crossing > Cavity phase = 185.764[deg.], transit factor =  0.933604
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.354224 [MeV]
+Gap Crossing > Current Energy = 262.487 [MeV]
+Gap Crossing > Cavity phase = 1.59199[deg.], transit factor =  0.989184
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.883608 [MeV]
+Gap Crossing > Current Energy = 263.371 [MeV]
+Gap Crossing > Cavity phase = 1.47202[deg.], transit factor =  0.989208
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.883869 [MeV]
+Gap Crossing > Current Energy = 264.255 [MeV]
+OPAL> meanR=( -3.67474 3565.4 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 511123
+OPAL>  Dump step = 71, time = 8409.39 [ns]
+Gap Crossing > Cavity phase = 1.48212[deg.], transit factor =  0.989233
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884231 [MeV]
+Gap Crossing > Current Energy = 265.139 [MeV]
+Gap Crossing > Cavity phase = 1.59657[deg.], transit factor =  0.989258
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884408 [MeV]
+Gap Crossing > Current Energy = 266.024 [MeV]
+Gap Crossing > Cavity phase = 185.817[deg.], transit factor =  0.934137
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.352357 [MeV]
+Gap Crossing > Current Energy = 265.671 [MeV]
+Gap Crossing > Cavity phase = 1.59553[deg.], transit factor =  0.989272
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884568 [MeV]
+Gap Crossing > Current Energy = 266.556 [MeV]
+Gap Crossing > Cavity phase = 1.48728[deg.], transit factor =  0.989296
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884805 [MeV]
+Gap Crossing > Current Energy = 267.441 [MeV]
+OPAL> meanR=( -5.55304 3579.35 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 518323
+OPAL>  Dump step = 72, time = 8527.85 [ns]
+Gap Crossing > Cavity phase = 1.4847[deg.], transit factor =  0.98932
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885138 [MeV]
+Gap Crossing > Current Energy = 268.326 [MeV]
+Gap Crossing > Cavity phase = 1.59679[deg.], transit factor =  0.989344
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885305 [MeV]
+Gap Crossing > Current Energy = 269.211 [MeV]
+Gap Crossing > Cavity phase = 185.88[deg.], transit factor =  0.934659
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.350404 [MeV]
+Gap Crossing > Current Energy = 268.861 [MeV]
+Gap Crossing > Cavity phase = 1.59725[deg.], transit factor =  0.989359
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885446 [MeV]
+Gap Crossing > Current Energy = 269.746 [MeV]
+Gap Crossing > Cavity phase = 1.47204[deg.], transit factor =  0.989382
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885673 [MeV]
+Gap Crossing > Current Energy = 270.632 [MeV]
+OPAL> meanR=( -4.62598 3592.87 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 525522
+OPAL>  Dump step = 73, time = 8646.3 [ns]
+Gap Crossing > Cavity phase = 1.46572[deg.], transit factor =  0.989406
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885986 [MeV]
+Gap Crossing > Current Energy = 271.518 [MeV]
+Gap Crossing > Cavity phase = 1.57791[deg.], transit factor =  0.989429
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886133 [MeV]
+Gap Crossing > Current Energy = 272.404 [MeV]
+Gap Crossing > Cavity phase = 185.854[deg.], transit factor =  0.935169
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.348442 [MeV]
+Gap Crossing > Current Energy = 272.055 [MeV]
+Gap Crossing > Cavity phase = 1.56461[deg.], transit factor =  0.989443
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886266 [MeV]
+Gap Crossing > Current Energy = 272.942 [MeV]
+Gap Crossing > Cavity phase = 1.44067[deg.], transit factor =  0.989467
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886482 [MeV]
+Gap Crossing > Current Energy = 273.828 [MeV]
+OPAL> meanR=( -3.75274 3606.22 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 532721
+OPAL>  Dump step = 74, time = 8764.74 [ns]
+Gap Crossing > Cavity phase = 1.43489[deg.], transit factor =  0.98949
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886763 [MeV]
+Gap Crossing > Current Energy = 274.715 [MeV]
+Gap Crossing > Cavity phase = 1.52698[deg.], transit factor =  0.989512
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.8869 [MeV]
+Gap Crossing > Current Energy = 275.602 [MeV]
+Gap Crossing > Cavity phase = 185.743[deg.], transit factor =  0.935668
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.346434 [MeV]
+Gap Crossing > Current Energy = 275.255 [MeV]
+Gap Crossing > Cavity phase = 1.51697[deg.], transit factor =  0.989526
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887029 [MeV]
+Gap Crossing > Current Energy = 276.142 [MeV]
+Gap Crossing > Cavity phase = 1.40549[deg.], transit factor =  0.989549
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88722 [MeV]
+Gap Crossing > Current Energy = 277.03 [MeV]
+OPAL> meanR=( -6.0669 3619.78 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 539921
+OPAL>  Dump step = 75, time = 8883.2 [ns]
+Gap Crossing > Cavity phase = 1.39076[deg.], transit factor =  0.989571
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887475 [MeV]
+Gap Crossing > Current Energy = 277.917 [MeV]
+Gap Crossing > Cavity phase = 1.48269[deg.], transit factor =  0.989594
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887601 [MeV]
+Gap Crossing > Current Energy = 278.805 [MeV]
+Gap Crossing > Cavity phase = 185.671[deg.], transit factor =  0.936156
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.344317 [MeV]
+Gap Crossing > Current Energy = 278.46 [MeV]
+Gap Crossing > Cavity phase = 1.47638[deg.], transit factor =  0.989607
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887714 [MeV]
+Gap Crossing > Current Energy = 279.348 [MeV]
+Gap Crossing > Cavity phase = 1.35968[deg.], transit factor =  0.989629
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887892 [MeV]
+Gap Crossing > Current Energy = 280.236 [MeV]
+OPAL> meanR=( -5.27568 3632.91 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 547120
+OPAL>  Dump step = 76, time = 9001.65 [ns]
+Gap Crossing > Cavity phase = 1.35415[deg.], transit factor =  0.989651
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888123 [MeV]
+Gap Crossing > Current Energy = 281.124 [MeV]
+Gap Crossing > Cavity phase = 1.45719[deg.], transit factor =  0.989673
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888226 [MeV]
+Gap Crossing > Current Energy = 282.012 [MeV]
+Gap Crossing > Cavity phase = 185.637[deg.], transit factor =  0.936634
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.342116 [MeV]
+Gap Crossing > Current Energy = 281.67 [MeV]
+Gap Crossing > Cavity phase = 1.44618[deg.], transit factor =  0.989687
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888327 [MeV]
+Gap Crossing > Current Energy = 282.559 [MeV]
+Gap Crossing > Cavity phase = 1.33828[deg.], transit factor =  0.989708
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888491 [MeV]
+Gap Crossing > Current Energy = 283.447 [MeV]
+OPAL> meanR=( -4.164 3645.78 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 554319
+OPAL>  Dump step = 77, time = 9120.09 [ns]
+Gap Crossing > Cavity phase = 1.33871[deg.], transit factor =  0.98973
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88869 [MeV]
+Gap Crossing > Current Energy = 284.336 [MeV]
+Gap Crossing > Cavity phase = 1.42664[deg.], transit factor =  0.989751
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888784 [MeV]
+Gap Crossing > Current Energy = 285.225 [MeV]
+Gap Crossing > Cavity phase = 185.593[deg.], transit factor =  0.937102
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.33984 [MeV]
+Gap Crossing > Current Energy = 284.885 [MeV]
+Gap Crossing > Cavity phase = 1.42414[deg.], transit factor =  0.989764
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888877 [MeV]
+Gap Crossing > Current Energy = 285.774 [MeV]
+Gap Crossing > Cavity phase = 1.33029[deg.], transit factor =  0.989785
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889018 [MeV]
+Gap Crossing > Current Energy = 286.663 [MeV]
+OPAL> meanR=( -6.13182 3658.83 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 561519
+OPAL>  Dump step = 78, time = 9238.55 [ns]
+Gap Crossing > Cavity phase = 1.32123[deg.], transit factor =  0.989806
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889194 [MeV]
+Gap Crossing > Current Energy = 287.552 [MeV]
+Gap Crossing > Cavity phase = 1.40911[deg.], transit factor =  0.989827
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889276 [MeV]
+Gap Crossing > Current Energy = 288.441 [MeV]
+Gap Crossing > Cavity phase = 185.593[deg.], transit factor =  0.937559
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.337479 [MeV]
+Gap Crossing > Current Energy = 288.104 [MeV]
+Gap Crossing > Cavity phase = 1.4069[deg.], transit factor =  0.98984
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889355 [MeV]
+Gap Crossing > Current Energy = 288.993 [MeV]
+Gap Crossing > Cavity phase = 1.30368[deg.], transit factor =  0.989861
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889486 [MeV]
+Gap Crossing > Current Energy = 289.882 [MeV]
+OPAL> meanR=( -5.05743 3671.43 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 568718
+OPAL>  Dump step = 79, time = 9356.99 [ns]
+Gap Crossing > Cavity phase = 1.3007[deg.], transit factor =  0.989881
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88964 [MeV]
+Gap Crossing > Current Energy = 290.772 [MeV]
+Gap Crossing > Cavity phase = 1.39172[deg.], transit factor =  0.989902
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889704 [MeV]
+Gap Crossing > Current Energy = 291.662 [MeV]
+Gap Crossing > Cavity phase = 185.57[deg.], transit factor =  0.938008
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.335094 [MeV]
+Gap Crossing > Current Energy = 291.327 [MeV]
+Gap Crossing > Cavity phase = 1.37867[deg.], transit factor =  0.989914
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889776 [MeV]
+Gap Crossing > Current Energy = 292.216 [MeV]
+Gap Crossing > Cavity phase = 1.28033[deg.], transit factor =  0.989935
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889895 [MeV]
+Gap Crossing > Current Energy = 293.106 [MeV]
+OPAL> meanR=( -3.91424 3683.77 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 575917
+OPAL>  Dump step = 80, time = 9475.44 [ns]
+Gap Crossing > Cavity phase = 1.27596[deg.], transit factor =  0.989955
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890023 [MeV]
+Gap Crossing > Current Energy = 293.996 [MeV]
+Gap Crossing > Cavity phase = 1.35018[deg.], transit factor =  0.989975
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890079 [MeV]
+Gap Crossing > Current Energy = 294.886 [MeV]
+Gap Crossing > Cavity phase = 185.492[deg.], transit factor =  0.938447
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.332661 [MeV]
+Gap Crossing > Current Energy = 294.554 [MeV]
+Gap Crossing > Cavity phase = 1.34504[deg.], transit factor =  0.989987
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890141 [MeV]
+Gap Crossing > Current Energy = 295.444 [MeV]
+Gap Crossing > Cavity phase = 1.25296[deg.], transit factor =  0.990007
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890242 [MeV]
+Gap Crossing > Current Energy = 296.334 [MeV]
+OPAL> meanR=( -6.04203 3696.41 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 583117
+OPAL>  Dump step = 81, time = 9593.9 [ns]
+Gap Crossing > Cavity phase = 1.23791[deg.], transit factor =  0.990027
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890352 [MeV]
+Gap Crossing > Current Energy = 297.225 [MeV]
+Gap Crossing > Cavity phase = 1.31357[deg.], transit factor =  0.990046
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890396 [MeV]
+Gap Crossing > Current Energy = 298.115 [MeV]
+Gap Crossing > Cavity phase = 185.426[deg.], transit factor =  0.938877
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.330186 [MeV]
+Gap Crossing > Current Energy = 297.785 [MeV]
+Gap Crossing > Cavity phase = 1.30317[deg.], transit factor =  0.990058
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890447 [MeV]
+Gap Crossing > Current Energy = 298.675 [MeV]
+Gap Crossing > Cavity phase = 1.20219[deg.], transit factor =  0.990078
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890539 [MeV]
+Gap Crossing > Current Energy = 299.566 [MeV]
+OPAL> meanR=( -5.11041 3708.58 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 590316
+OPAL>  Dump step = 82, time = 9712.34 [ns]
+Gap Crossing > Cavity phase = 1.19355[deg.], transit factor =  0.990097
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890627 [MeV]
+Gap Crossing > Current Energy = 300.456 [MeV]
+Gap Crossing > Cavity phase = 1.27028[deg.], transit factor =  0.990116
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890656 [MeV]
+Gap Crossing > Current Energy = 301.347 [MeV]
+Gap Crossing > Cavity phase = 185.326[deg.], transit factor =  0.939298
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.327686 [MeV]
+Gap Crossing > Current Energy = 301.019 [MeV]
+Gap Crossing > Cavity phase = 1.25418[deg.], transit factor =  0.990128
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.8907 [MeV]
+Gap Crossing > Current Energy = 301.91 [MeV]
+Gap Crossing > Cavity phase = 1.16094[deg.], transit factor =  0.990147
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890777 [MeV]
+Gap Crossing > Current Energy = 302.801 [MeV]
+OPAL> meanR=( -4.06656 3720.47 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 597515
+OPAL>  Dump step = 83, time = 9830.78 [ns]
+Gap Crossing > Cavity phase = 1.15054[deg.], transit factor =  0.990166
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890843 [MeV]
+Gap Crossing > Current Energy = 303.692 [MeV]
+Gap Crossing > Cavity phase = 1.21838[deg.], transit factor =  0.990185
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890864 [MeV]
+Gap Crossing > Current Energy = 304.583 [MeV]
+Gap Crossing > Cavity phase = 185.228[deg.], transit factor =  0.939711
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.325095 [MeV]
+Gap Crossing > Current Energy = 304.257 [MeV]
+Gap Crossing > Cavity phase = 1.21528[deg.], transit factor =  0.990196
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890894 [MeV]
+Gap Crossing > Current Energy = 305.148 [MeV]
+Gap Crossing > Cavity phase = 1.12755[deg.], transit factor =  0.990215
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890956 [MeV]
+Gap Crossing > Current Energy = 306.039 [MeV]
+OPAL> meanR=( -6.13723 3732.76 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 604715
+OPAL>  Dump step = 84, time = 9949.24 [ns]
+Gap Crossing > Cavity phase = 1.11805[deg.], transit factor =  0.990233
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891003 [MeV]
+Gap Crossing > Current Energy = 306.93 [MeV]
+Gap Crossing > Cavity phase = 1.19407[deg.], transit factor =  0.990252
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891009 [MeV]
+Gap Crossing > Current Energy = 307.821 [MeV]
+Gap Crossing > Cavity phase = 185.2[deg.], transit factor =  0.940115
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.322437 [MeV]
+Gap Crossing > Current Energy = 307.499 [MeV]
+Gap Crossing > Cavity phase = 1.1864[deg.], transit factor =  0.990263
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.89103 [MeV]
+Gap Crossing > Current Energy = 308.39 [MeV]
+Gap Crossing > Cavity phase = 1.10178[deg.], transit factor =  0.990282
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.89108 [MeV]
+Gap Crossing > Current Energy = 309.281 [MeV]
+OPAL> meanR=( -4.80291 3744.44 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 611914
+OPAL>  Dump step = 85, time = 10067.7 [ns]
+Gap Crossing > Cavity phase = 1.1051[deg.], transit factor =  0.9903
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891103 [MeV]
+Gap Crossing > Current Energy = 310.172 [MeV]
+Gap Crossing > Cavity phase = 1.1812[deg.], transit factor =  0.990318
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891096 [MeV]
+Gap Crossing > Current Energy = 311.063 [MeV]
+Gap Crossing > Cavity phase = 185.204[deg.], transit factor =  0.940512
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.319699 [MeV]
+Gap Crossing > Current Energy = 310.743 [MeV]
+Gap Crossing > Cavity phase = 1.17934[deg.], transit factor =  0.990329
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891106 [MeV]
+Gap Crossing > Current Energy = 311.635 [MeV]
+Gap Crossing > Cavity phase = 1.1069[deg.], transit factor =  0.990347
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891142 [MeV]
+Gap Crossing > Current Energy = 312.526 [MeV]
+OPAL> meanR=( -6.43416 3756.31 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 619114
+OPAL>  Dump step = 86, time = 10186.1 [ns]
+Gap Crossing > Cavity phase = 1.10417[deg.], transit factor =  0.990364
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891148 [MeV]
+Gap Crossing > Current Energy = 313.417 [MeV]
+Gap Crossing > Cavity phase = 1.17196[deg.], transit factor =  0.990382
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891132 [MeV]
+Gap Crossing > Current Energy = 314.308 [MeV]
+Gap Crossing > Cavity phase = 185.22[deg.], transit factor =  0.9409
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.316912 [MeV]
+Gap Crossing > Current Energy = 313.991 [MeV]
+Gap Crossing > Cavity phase = 1.17278[deg.], transit factor =  0.990393
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891131 [MeV]
+Gap Crossing > Current Energy = 314.882 [MeV]
+Gap Crossing > Cavity phase = 1.09757[deg.], transit factor =  0.990411
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891157 [MeV]
+Gap Crossing > Current Energy = 315.773 [MeV]
+OPAL> meanR=( -4.96975 3767.61 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 626313
+OPAL>  Dump step = 87, time = 10304.6 [ns]
+Gap Crossing > Cavity phase = 1.09439[deg.], transit factor =  0.990428
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891145 [MeV]
+Gap Crossing > Current Energy = 316.664 [MeV]
+Gap Crossing > Cavity phase = 1.16423[deg.], transit factor =  0.990445
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891117 [MeV]
+Gap Crossing > Current Energy = 317.556 [MeV]
+Gap Crossing > Cavity phase = 185.225[deg.], transit factor =  0.941281
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.314109 [MeV]
+Gap Crossing > Current Energy = 317.242 [MeV]
+Gap Crossing > Cavity phase = 1.15595[deg.], transit factor =  0.990456
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891111 [MeV]
+Gap Crossing > Current Energy = 318.133 [MeV]
+Gap Crossing > Cavity phase = 1.08008[deg.], transit factor =  0.990473
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891126 [MeV]
+Gap Crossing > Current Energy = 319.024 [MeV]
+OPAL> meanR=( -3.52401 3778.76 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 633512
+OPAL>  Dump step = 88, time = 10423 [ns]
+Gap Crossing > Cavity phase = 1.07792[deg.], transit factor =  0.99049
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891096 [MeV]
+Gap Crossing > Current Energy = 319.915 [MeV]
+Gap Crossing > Cavity phase = 1.1399[deg.], transit factor =  0.990507
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.89106 [MeV]
+Gap Crossing > Current Energy = 320.806 [MeV]
+Gap Crossing > Cavity phase = 185.196[deg.], transit factor =  0.941654
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.311261 [MeV]
+Gap Crossing > Current Energy = 320.495 [MeV]
+Gap Crossing > Cavity phase = 1.13842[deg.], transit factor =  0.990518
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891041 [MeV]
+Gap Crossing > Current Energy = 321.386 [MeV]
+Gap Crossing > Cavity phase = 1.0681[deg.], transit factor =  0.990535
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891045 [MeV]
+Gap Crossing > Current Energy = 322.277 [MeV]
+OPAL> meanR=( -5.294 3790.27 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 640712
+OPAL>  Dump step = 89, time = 10541.5 [ns]
+Gap Crossing > Cavity phase = 1.06041[deg.], transit factor =  0.990551
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.891001 [MeV]
+Gap Crossing > Current Energy = 323.168 [MeV]
+Gap Crossing > Cavity phase = 1.12087[deg.], transit factor =  0.990568
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890954 [MeV]
+Gap Crossing > Current Energy = 324.059 [MeV]
+Gap Crossing > Cavity phase = 185.172[deg.], transit factor =  0.94202
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.308396 [MeV]
+Gap Crossing > Current Energy = 323.75 [MeV]
+Gap Crossing > Cavity phase = 1.11413[deg.], transit factor =  0.990578
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890929 [MeV]
+Gap Crossing > Current Energy = 324.641 [MeV]
+Gap Crossing > Cavity phase = 1.0407[deg.], transit factor =  0.990595
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890923 [MeV]
+Gap Crossing > Current Energy = 325.532 [MeV]
+OPAL> meanR=( -3.89263 3801.2 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 647911
+OPAL>  Dump step = 90, time = 10659.9 [ns]
+Gap Crossing > Cavity phase = 1.03803[deg.], transit factor =  0.990611
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.89086 [MeV]
+Gap Crossing > Current Energy = 326.423 [MeV]
+Gap Crossing > Cavity phase = 1.09891[deg.], transit factor =  0.990627
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890804 [MeV]
+Gap Crossing > Current Energy = 327.314 [MeV]
+Gap Crossing > Cavity phase = 185.141[deg.], transit factor =  0.942379
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.305498 [MeV]
+Gap Crossing > Current Energy = 327.008 [MeV]
+Gap Crossing > Cavity phase = 1.09209[deg.], transit factor =  0.990638
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.89077 [MeV]
+Gap Crossing > Current Energy = 327.899 [MeV]
+Gap Crossing > Cavity phase = 1.02432[deg.], transit factor =  0.990654
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890752 [MeV]
+Gap Crossing > Current Energy = 328.79 [MeV]
+OPAL> meanR=( -5.64746 3812.44 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 655111
+OPAL>  Dump step = 91, time = 10778.4 [ns]
+Gap Crossing > Cavity phase = 1.01828[deg.], transit factor =  0.99067
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890676 [MeV]
+Gap Crossing > Current Energy = 329.681 [MeV]
+Gap Crossing > Cavity phase = 1.07315[deg.], transit factor =  0.990686
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890611 [MeV]
+Gap Crossing > Current Energy = 330.571 [MeV]
+Gap Crossing > Cavity phase = 185.106[deg.], transit factor =  0.942731
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.302566 [MeV]
+Gap Crossing > Current Energy = 330.269 [MeV]
+Gap Crossing > Cavity phase = 1.0716[deg.], transit factor =  0.990696
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890565 [MeV]
+Gap Crossing > Current Energy = 331.159 [MeV]
+Gap Crossing > Cavity phase = 1.00682[deg.], transit factor =  0.990712
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890539 [MeV]
+Gap Crossing > Current Energy = 332.05 [MeV]
+OPAL> meanR=( -4.10718 3823.06 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 662310
+OPAL>  Dump step = 92, time = 10896.8 [ns]
+Gap Crossing > Cavity phase = 1.00337[deg.], transit factor =  0.990727
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890446 [MeV]
+Gap Crossing > Current Energy = 332.94 [MeV]
+Gap Crossing > Cavity phase = 1.06203[deg.], transit factor =  0.990743
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.89037 [MeV]
+Gap Crossing > Current Energy = 333.83 [MeV]
+Gap Crossing > Cavity phase = 185.103[deg.], transit factor =  0.943077
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.299616 [MeV]
+Gap Crossing > Current Energy = 333.531 [MeV]
+Gap Crossing > Cavity phase = 1.05474[deg.], transit factor =  0.990753
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890319 [MeV]
+Gap Crossing > Current Energy = 334.421 [MeV]
+Gap Crossing > Cavity phase = 0.989604[deg.], transit factor =  0.990768
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890282 [MeV]
+Gap Crossing > Current Energy = 335.311 [MeV]
+OPAL> meanR=( -5.81494 3834.07 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 669510
+OPAL>  Dump step = 93, time = 11015.3 [ns]
+Gap Crossing > Cavity phase = 0.986516[deg.], transit factor =  0.990784
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890176 [MeV]
+Gap Crossing > Current Energy = 336.202 [MeV]
+Gap Crossing > Cavity phase = 1.03858[deg.], transit factor =  0.990799
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.890093 [MeV]
+Gap Crossing > Current Energy = 337.092 [MeV]
+Gap Crossing > Cavity phase = 185.071[deg.], transit factor =  0.943415
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.296637 [MeV]
+Gap Crossing > Current Energy = 336.795 [MeV]
+Gap Crossing > Cavity phase = 1.03624[deg.], transit factor =  0.990809
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.89003 [MeV]
+Gap Crossing > Current Energy = 337.685 [MeV]
+Gap Crossing > Cavity phase = 0.97585[deg.], transit factor =  0.990824
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889985 [MeV]
+Gap Crossing > Current Energy = 338.575 [MeV]
+OPAL> meanR=( -4.21184 3844.37 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 676709
+OPAL>  Dump step = 94, time = 11133.7 [ns]
+Gap Crossing > Cavity phase = 0.969697[deg.], transit factor =  0.990839
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889865 [MeV]
+Gap Crossing > Current Energy = 339.465 [MeV]
+Gap Crossing > Cavity phase = 1.02114[deg.], transit factor =  0.990854
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889773 [MeV]
+Gap Crossing > Current Energy = 340.355 [MeV]
+Gap Crossing > Cavity phase = 185.049[deg.], transit factor =  0.943748
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.293633 [MeV]
+Gap Crossing > Current Energy = 340.061 [MeV]
+Gap Crossing > Cavity phase = 1.014[deg.], transit factor =  0.990864
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889705 [MeV]
+Gap Crossing > Current Energy = 340.951 [MeV]
+Gap Crossing > Cavity phase = 0.951232[deg.], transit factor =  0.990879
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88965 [MeV]
+Gap Crossing > Current Energy = 341.84 [MeV]
+OPAL> meanR=( -5.96186 3855.16 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 683909
+OPAL>  Dump step = 95, time = 11252.2 [ns]
+Gap Crossing > Cavity phase = 0.947827[deg.], transit factor =  0.990893
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889515 [MeV]
+Gap Crossing > Current Energy = 342.73 [MeV]
+Gap Crossing > Cavity phase = 0.997738[deg.], transit factor =  0.990908
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889416 [MeV]
+Gap Crossing > Current Energy = 343.619 [MeV]
+Gap Crossing > Cavity phase = 185.013[deg.], transit factor =  0.944074
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.290593 [MeV]
+Gap Crossing > Current Energy = 343.329 [MeV]
+Gap Crossing > Cavity phase = 0.991945[deg.], transit factor =  0.990918
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889338 [MeV]
+Gap Crossing > Current Energy = 344.218 [MeV]
+Gap Crossing > Cavity phase = 0.932979[deg.], transit factor =  0.990932
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889274 [MeV]
+Gap Crossing > Current Energy = 345.107 [MeV]
+OPAL> meanR=( -4.35556 3865.19 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 691108
+OPAL>  Dump step = 96, time = 11370.6 [ns]
+Gap Crossing > Cavity phase = 0.925206[deg.], transit factor =  0.990947
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88913 [MeV]
+Gap Crossing > Current Energy = 345.997 [MeV]
+Gap Crossing > Cavity phase = 0.967768[deg.], transit factor =  0.990961
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.889023 [MeV]
+Gap Crossing > Current Energy = 346.886 [MeV]
+Gap Crossing > Cavity phase = 184.953[deg.], transit factor =  0.944394
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.287542 [MeV]
+Gap Crossing > Current Energy = 346.598 [MeV]
+Gap Crossing > Cavity phase = 0.959635[deg.], transit factor =  0.990971
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888938 [MeV]
+Gap Crossing > Current Energy = 347.487 [MeV]
+Gap Crossing > Cavity phase = 0.897869[deg.], transit factor =  0.990985
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888867 [MeV]
+Gap Crossing > Current Energy = 348.376 [MeV]
+OPAL> meanR=( -6.20711 3875.74 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 698308
+OPAL>  Dump step = 97, time = 11489.1 [ns]
+Gap Crossing > Cavity phase = 0.88963[deg.], transit factor =  0.990999
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888709 [MeV]
+Gap Crossing > Current Energy = 349.265 [MeV]
+Gap Crossing > Cavity phase = 0.935256[deg.], transit factor =  0.991013
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888593 [MeV]
+Gap Crossing > Current Energy = 350.153 [MeV]
+Gap Crossing > Cavity phase = 184.888[deg.], transit factor =  0.944708
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.284463 [MeV]
+Gap Crossing > Current Energy = 349.869 [MeV]
+Gap Crossing > Cavity phase = 0.926028[deg.], transit factor =  0.991023
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888502 [MeV]
+Gap Crossing > Current Energy = 350.757 [MeV]
+Gap Crossing > Cavity phase = 0.864788[deg.], transit factor =  0.991037
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888421 [MeV]
+Gap Crossing > Current Energy = 351.646 [MeV]
+OPAL> meanR=( -4.69055 3885.57 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 705507
+OPAL>  Dump step = 98, time = 11607.6 [ns]
+Gap Crossing > Cavity phase = 0.8563[deg.], transit factor =  0.99105
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888252 [MeV]
+Gap Crossing > Current Energy = 352.534 [MeV]
+Gap Crossing > Cavity phase = 0.894846[deg.], transit factor =  0.991064
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888131 [MeV]
+Gap Crossing > Current Energy = 353.422 [MeV]
+Gap Crossing > Cavity phase = 184.801[deg.], transit factor =  0.945017
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.281368 [MeV]
+Gap Crossing > Current Energy = 353.141 [MeV]
+Gap Crossing > Cavity phase = 0.887117[deg.], transit factor =  0.991073
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.888029 [MeV]
+Gap Crossing > Current Energy = 354.029 [MeV]
+Gap Crossing > Cavity phase = 0.831162[deg.], transit factor =  0.991087
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887941 [MeV]
+Gap Crossing > Current Energy = 354.917 [MeV]
+OPAL> meanR=( -6.50052 3895.88 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 712707
+OPAL>  Dump step = 99, time = 11726 [ns]
+Gap Crossing > Cavity phase = 0.822446[deg.], transit factor =  0.991101
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88776 [MeV]
+Gap Crossing > Current Energy = 355.804 [MeV]
+Gap Crossing > Cavity phase = 0.864124[deg.], transit factor =  0.991114
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887629 [MeV]
+Gap Crossing > Current Energy = 356.692 [MeV]
+Gap Crossing > Cavity phase = 184.74[deg.], transit factor =  0.94532
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.278245 [MeV]
+Gap Crossing > Current Energy = 356.414 [MeV]
+Gap Crossing > Cavity phase = 0.855264[deg.], transit factor =  0.991123
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887522 [MeV]
+Gap Crossing > Current Energy = 357.301 [MeV]
+Gap Crossing > Cavity phase = 0.797452[deg.], transit factor =  0.991137
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887426 [MeV]
+Gap Crossing > Current Energy = 358.189 [MeV]
+OPAL> meanR=( -4.9381 3905.48 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 719906
+OPAL>  Dump step = 100, time = 11844.5 [ns]
+Gap Crossing > Cavity phase = 0.789971[deg.], transit factor =  0.99115
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887233 [MeV]
+Gap Crossing > Current Energy = 359.076 [MeV]
+Gap Crossing > Cavity phase = 0.827513[deg.], transit factor =  0.991163
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.887097 [MeV]
+Gap Crossing > Current Energy = 359.963 [MeV]
+Gap Crossing > Cavity phase = 184.661[deg.], transit factor =  0.945617
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.275111 [MeV]
+Gap Crossing > Current Energy = 359.688 [MeV]
+Gap Crossing > Cavity phase = 0.820364[deg.], transit factor =  0.991173
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88698 [MeV]
+Gap Crossing > Current Energy = 360.575 [MeV]
+Gap Crossing > Cavity phase = 0.768517[deg.], transit factor =  0.991186
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886876 [MeV]
+Gap Crossing > Current Energy = 361.462 [MeV]
+OPAL> meanR=( -6.66406 3915.54 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 727106
+OPAL>  Dump step = 101, time = 11962.9 [ns]
+Gap Crossing > Cavity phase = 0.760194[deg.], transit factor =  0.991199
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886674 [MeV]
+Gap Crossing > Current Energy = 362.348 [MeV]
+Gap Crossing > Cavity phase = 0.797084[deg.], transit factor =  0.991212
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886531 [MeV]
+Gap Crossing > Current Energy = 363.235 [MeV]
+Gap Crossing > Cavity phase = 184.599[deg.], transit factor =  0.945909
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.271963 [MeV]
+Gap Crossing > Current Energy = 362.963 [MeV]
+Gap Crossing > Cavity phase = 0.787625[deg.], transit factor =  0.991221
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886409 [MeV]
+Gap Crossing > Current Energy = 363.849 [MeV]
+Gap Crossing > Cavity phase = 0.732286[deg.], transit factor =  0.991234
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886297 [MeV]
+Gap Crossing > Current Energy = 364.736 [MeV]
+OPAL> meanR=( -5.10139 3924.88 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 734305
+OPAL>  Dump step = 102, time = 12081.4 [ns]
+Gap Crossing > Cavity phase = 0.723091[deg.], transit factor =  0.991246
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.886084 [MeV]
+Gap Crossing > Current Energy = 365.622 [MeV]
+Gap Crossing > Cavity phase = 0.757524[deg.], transit factor =  0.991259
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885935 [MeV]
+Gap Crossing > Current Energy = 366.508 [MeV]
+Gap Crossing > Cavity phase = 184.51[deg.], transit factor =  0.946196
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.268812 [MeV]
+Gap Crossing > Current Energy = 366.239 [MeV]
+Gap Crossing > Cavity phase = 0.74861[deg.], transit factor =  0.991268
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885804 [MeV]
+Gap Crossing > Current Energy = 367.125 [MeV]
+Gap Crossing > Cavity phase = 0.697513[deg.], transit factor =  0.991281
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885685 [MeV]
+Gap Crossing > Current Energy = 368.01 [MeV]
+OPAL> meanR=( -3.48238 3934.11 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 741504
+OPAL>  Dump step = 103, time = 12199.8 [ns]
+Gap Crossing > Cavity phase = 0.688472[deg.], transit factor =  0.991293
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885464 [MeV]
+Gap Crossing > Current Energy = 368.896 [MeV]
+Gap Crossing > Cavity phase = 0.720066[deg.], transit factor =  0.991306
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885308 [MeV]
+Gap Crossing > Current Energy = 369.781 [MeV]
+Gap Crossing > Cavity phase = 184.425[deg.], transit factor =  0.946478
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.265656 [MeV]
+Gap Crossing > Current Energy = 369.515 [MeV]
+Gap Crossing > Cavity phase = 0.70929[deg.], transit factor =  0.991315
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885171 [MeV]
+Gap Crossing > Current Energy = 370.401 [MeV]
+Gap Crossing > Cavity phase = 0.656865[deg.], transit factor =  0.991327
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.885046 [MeV]
+Gap Crossing > Current Energy = 371.286 [MeV]
+OPAL> meanR=( -5.30194 3943.86 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 748704
+OPAL>  Dump step = 104, time = 12318.3 [ns]
+Gap Crossing > Cavity phase = 0.646253[deg.], transit factor =  0.991339
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884814 [MeV]
+Gap Crossing > Current Energy = 372.171 [MeV]
+Gap Crossing > Cavity phase = 0.677788[deg.], transit factor =  0.991352
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884652 [MeV]
+Gap Crossing > Current Energy = 373.055 [MeV]
+Gap Crossing > Cavity phase = 184.33[deg.], transit factor =  0.946755
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.262492 [MeV]
+Gap Crossing > Current Energy = 372.793 [MeV]
+Gap Crossing > Cavity phase = 0.66791[deg.], transit factor =  0.99136
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884508 [MeV]
+Gap Crossing > Current Energy = 373.677 [MeV]
+Gap Crossing > Cavity phase = 0.617087[deg.], transit factor =  0.991372
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884375 [MeV]
+Gap Crossing > Current Energy = 374.562 [MeV]
+OPAL> meanR=( -3.69318 3952.86 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 755903
+OPAL>  Dump step = 105, time = 12436.7 [ns]
+Gap Crossing > Cavity phase = 0.606875[deg.], transit factor =  0.991384
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.884136 [MeV]
+Gap Crossing > Current Energy = 375.446 [MeV]
+Gap Crossing > Cavity phase = 0.632075[deg.], transit factor =  0.991396
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.883971 [MeV]
+Gap Crossing > Current Energy = 376.33 [MeV]
+Gap Crossing > Cavity phase = 184.212[deg.], transit factor =  0.947027
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.259345 [MeV]
+Gap Crossing > Current Energy = 376.07 [MeV]
+Gap Crossing > Cavity phase = 0.617341[deg.], transit factor =  0.991405
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88382 [MeV]
+Gap Crossing > Current Energy = 376.954 [MeV]
+Gap Crossing > Cavity phase = 0.564186[deg.], transit factor =  0.991417
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.883681 [MeV]
+Gap Crossing > Current Energy = 377.838 [MeV]
+OPAL> meanR=( -5.64433 3962.39 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 763103
+OPAL>  Dump step = 106, time = 12555.2 [ns]
+Gap Crossing > Cavity phase = 0.547875[deg.], transit factor =  0.991429
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.883434 [MeV]
+Gap Crossing > Current Energy = 378.721 [MeV]
+Gap Crossing > Cavity phase = 0.571536[deg.], transit factor =  0.991441
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.88326 [MeV]
+Gap Crossing > Current Energy = 379.605 [MeV]
+Gap Crossing > Cavity phase = 184.064[deg.], transit factor =  0.947294
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.256174 [MeV]
+Gap Crossing > Current Energy = 379.348 [MeV]
+Gap Crossing > Cavity phase = 0.557416[deg.], transit factor =  0.991449
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.883104 [MeV]
+Gap Crossing > Current Energy = 380.231 [MeV]
+Gap Crossing > Cavity phase = 0.502735[deg.], transit factor =  0.991461
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882959 [MeV]
+Gap Crossing > Current Energy = 381.114 [MeV]
+OPAL> meanR=( -4.23825 3971.23 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 770302
+OPAL>  Dump step = 107, time = 12673.6 [ns]
+Gap Crossing > Cavity phase = 0.487927[deg.], transit factor =  0.991472
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882702 [MeV]
+Gap Crossing > Current Energy = 381.997 [MeV]
+Gap Crossing > Cavity phase = 0.507292[deg.], transit factor =  0.991484
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882527 [MeV]
+Gap Crossing > Current Energy = 382.88 [MeV]
+Gap Crossing > Cavity phase = 183.888[deg.], transit factor =  0.947557
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.253015 [MeV]
+Gap Crossing > Current Energy = 382.627 [MeV]
+Gap Crossing > Cavity phase = 0.488227[deg.], transit factor =  0.991492
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882362 [MeV]
+Gap Crossing > Current Energy = 383.509 [MeV]
+Gap Crossing > Cavity phase = 0.435855[deg.], transit factor =  0.991504
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.882209 [MeV]
+Gap Crossing > Current Energy = 384.391 [MeV]
+OPAL> meanR=( -6.30961 3980.59 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 777502
+OPAL>  Dump step = 108, time = 12792.1 [ns]
+Gap Crossing > Cavity phase = 0.417376[deg.], transit factor =  0.991515
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881947 [MeV]
+Gap Crossing > Current Energy = 385.273 [MeV]
+Gap Crossing > Cavity phase = 0.436441[deg.], transit factor =  0.991527
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881761 [MeV]
+Gap Crossing > Current Energy = 386.155 [MeV]
+Gap Crossing > Cavity phase = 183.71[deg.], transit factor =  0.947815
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.249817 [MeV]
+Gap Crossing > Current Energy = 385.905 [MeV]
+Gap Crossing > Cavity phase = 0.42074[deg.], transit factor =  0.991535
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881593 [MeV]
+Gap Crossing > Current Energy = 386.787 [MeV]
+Gap Crossing > Cavity phase = 0.366329[deg.], transit factor =  0.991546
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881435 [MeV]
+Gap Crossing > Current Energy = 387.668 [MeV]
+OPAL> meanR=( -4.95457 3989.24 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 784701
+OPAL>  Dump step = 109, time = 12910.5 [ns]
+Gap Crossing > Cavity phase = 0.349576[deg.], transit factor =  0.991557
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.881162 [MeV]
+Gap Crossing > Current Energy = 388.549 [MeV]
+Gap Crossing > Cavity phase = 0.363973[deg.], transit factor =  0.991569
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.880977 [MeV]
+Gap Crossing > Current Energy = 389.43 [MeV]
+Gap Crossing > Cavity phase = 183.508[deg.], transit factor =  0.948069
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.246643 [MeV]
+Gap Crossing > Current Energy = 389.184 [MeV]
+Gap Crossing > Cavity phase = 0.342002[deg.], transit factor =  0.991577
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.8808 [MeV]
+Gap Crossing > Current Energy = 390.064 [MeV]
+Gap Crossing > Cavity phase = 0.288622[deg.], transit factor =  0.991588
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.880634 [MeV]
+Gap Crossing > Current Energy = 390.945 [MeV]
+OPAL> meanR=( -3.7036 3997.74 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 791900
+OPAL>  Dump step = 110, time = 13029 [ns]
+Gap Crossing > Cavity phase = 0.266096[deg.], transit factor =  0.991599
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.880358 [MeV]
+Gap Crossing > Current Energy = 391.825 [MeV]
+Gap Crossing > Cavity phase = 0.27853[deg.], transit factor =  0.99161
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.880162 [MeV]
+Gap Crossing > Current Energy = 392.706 [MeV]
+Gap Crossing > Cavity phase = 183.286[deg.], transit factor =  0.948318
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.243438 [MeV]
+Gap Crossing > Current Energy = 392.462 [MeV]
+Gap Crossing > Cavity phase = 0.258214[deg.], transit factor =  0.991618
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.879982 [MeV]
+Gap Crossing > Current Energy = 393.342 [MeV]
+Gap Crossing > Cavity phase = 0.200664[deg.], transit factor =  0.991629
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.879811 [MeV]
+Gap Crossing > Current Energy = 394.222 [MeV]
+OPAL> meanR=( -5.95893 4006.89 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 799100
+OPAL>  Dump step = 111, time = 13147.4 [ns]
+Gap Crossing > Cavity phase = 0.178977[deg.], transit factor =  0.991639
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.879524 [MeV]
+Gap Crossing > Current Energy = 395.101 [MeV]
+Gap Crossing > Cavity phase = 0.185681[deg.], transit factor =  0.99165
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.87933 [MeV]
+Gap Crossing > Current Energy = 395.981 [MeV]
+Gap Crossing > Cavity phase = 183.019[deg.], transit factor =  0.948563
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.240265 [MeV]
+Gap Crossing > Current Energy = 395.741 [MeV]
+Gap Crossing > Cavity phase = 0.157784[deg.], transit factor =  0.991658
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.87914 [MeV]
+Gap Crossing > Current Energy = 396.62 [MeV]
+Gap Crossing > Cavity phase = 0.101582[deg.], transit factor =  0.991669
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.878962 [MeV]
+Gap Crossing > Current Energy = 397.499 [MeV]
+OPAL> meanR=( -4.93235 4015.22 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 806299
+OPAL>  Dump step = 112, time = 13265.9 [ns]
+Gap Crossing > Cavity phase = 0.072481[deg.], transit factor =  0.991679
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.878672 [MeV]
+Gap Crossing > Current Energy = 398.377 [MeV]
+Gap Crossing > Cavity phase = 0.0770353[deg.], transit factor =  0.99169
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.878466 [MeV]
+Gap Crossing > Current Energy = 399.256 [MeV]
+Gap Crossing > Cavity phase = 182.725[deg.], transit factor =  0.948805
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.237055 [MeV]
+Gap Crossing > Current Energy = 399.019 [MeV]
+Gap Crossing > Cavity phase = 0.0519169[deg.], transit factor =  0.991698
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.878273 [MeV]
+Gap Crossing > Current Energy = 399.897 [MeV]
+Gap Crossing > Cavity phase = -0.00879868[deg.], transit factor =  0.991708
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.878089 [MeV]
+Gap Crossing > Current Energy = 400.775 [MeV]
+OPAL> meanR=( -3.94824 4023.56 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 813498
+OPAL>  Dump step = 113, time = 13384.3 [ns]
+Gap Crossing > Cavity phase = -0.0338254[deg.], transit factor =  0.991719
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877786 [MeV]
+Gap Crossing > Current Energy = 401.653 [MeV]
+Gap Crossing > Cavity phase = -0.0310916[deg.], transit factor =  0.991729
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877583 [MeV]
+Gap Crossing > Current Energy = 402.53 [MeV]
+Gap Crossing > Cavity phase = 182.417[deg.], transit factor =  0.949042
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.233865 [MeV]
+Gap Crossing > Current Energy = 402.297 [MeV]
+Gap Crossing > Cavity phase = -0.0606957[deg.], transit factor =  0.991737
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877379 [MeV]
+Gap Crossing > Current Energy = 403.174 [MeV]
+Gap Crossing > Cavity phase = -0.115728[deg.], transit factor =  0.991747
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.877188 [MeV]
+Gap Crossing > Current Energy = 404.051 [MeV]
+OPAL> meanR=( -6.4066 4032.41 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 820698
+OPAL>  Dump step = 114, time = 13502.8 [ns]
+Gap Crossing > Cavity phase = -0.144998[deg.], transit factor =  0.991757
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.876884 [MeV]
+Gap Crossing > Current Energy = 404.928 [MeV]
+Gap Crossing > Cavity phase = -0.142496[deg.], transit factor =  0.991768
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.876669 [MeV]
+Gap Crossing > Current Energy = 405.805 [MeV]
+Gap Crossing > Cavity phase = 182.117[deg.], transit factor =  0.949275
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.230642 [MeV]
+Gap Crossing > Current Energy = 405.574 [MeV]
+Gap Crossing > Cavity phase = -0.169303[deg.], transit factor =  0.991775
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.876465 [MeV]
+Gap Crossing > Current Energy = 406.451 [MeV]
+Gap Crossing > Cavity phase = -0.230388[deg.], transit factor =  0.991785
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.876269 [MeV]
+Gap Crossing > Current Energy = 407.327 [MeV]
+OPAL> meanR=( -5.46298 4040.55 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 827897
+OPAL>  Dump step = 115, time = 13621.2 [ns]
+Gap Crossing > Cavity phase = -0.25905[deg.], transit factor =  0.991795
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.875954 [MeV]
+Gap Crossing > Current Energy = 408.203 [MeV]
+Gap Crossing > Cavity phase = -0.26577[deg.], transit factor =  0.991806
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.875745 [MeV]
+Gap Crossing > Current Energy = 409.078 [MeV]
+Gap Crossing > Cavity phase = 181.748[deg.], transit factor =  0.949504
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.227469 [MeV]
+Gap Crossing > Current Energy = 408.851 [MeV]
+Gap Crossing > Cavity phase = -0.304255[deg.], transit factor =  0.991813
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.875528 [MeV]
+Gap Crossing > Current Energy = 409.727 [MeV]
+Gap Crossing > Cavity phase = -0.368168[deg.], transit factor =  0.991823
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.875326 [MeV]
+Gap Crossing > Current Energy = 410.602 [MeV]
+OPAL> meanR=( -4.86072 4048.54 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 835096
+OPAL>  Dump step = 116, time = 13739.7 [ns]
+Gap Crossing > Cavity phase = -0.412905[deg.], transit factor =  0.991833
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.875011 [MeV]
+Gap Crossing > Current Energy = 411.477 [MeV]
+Gap Crossing > Cavity phase = -0.428955[deg.], transit factor =  0.991843
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.874785 [MeV]
+Gap Crossing > Current Energy = 412.352 [MeV]
+Gap Crossing > Cavity phase = 181.283[deg.], transit factor =  0.94973
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.224271 [MeV]
+Gap Crossing > Current Energy = 412.127 [MeV]
+Gap Crossing > Cavity phase = -0.470707[deg.], transit factor =  0.99185
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.874565 [MeV]
+Gap Crossing > Current Energy = 413.002 [MeV]
+Gap Crossing > Cavity phase = -0.542772[deg.], transit factor =  0.99186
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.874352 [MeV]
+Gap Crossing > Current Energy = 413.876 [MeV]
+OPAL> meanR=( -4.54793 4056.66 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 842295
+OPAL>  Dump step = 117, time = 13858.1 [ns]
+Gap Crossing > Cavity phase = -0.58209[deg.], transit factor =  0.99187
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.87402 [MeV]
+Gap Crossing > Current Energy = 414.75 [MeV]
+Gap Crossing > Cavity phase = -0.594126[deg.], transit factor =  0.991879
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.873795 [MeV]
+Gap Crossing > Current Energy = 415.624 [MeV]
+Gap Crossing > Cavity phase = 180.812[deg.], transit factor =  0.949952
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.221052 [MeV]
+Gap Crossing > Current Energy = 415.403 [MeV]
+Gap Crossing > Cavity phase = -0.633152[deg.], transit factor =  0.991887
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.873564 [MeV]
+Gap Crossing > Current Energy = 416.277 [MeV]
+Gap Crossing > Cavity phase = -0.693391[deg.], transit factor =  0.991896
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.873344 [MeV]
+Gap Crossing > Current Energy = 417.15 [MeV]
+OPAL> meanR=( -3.91621 4064.61 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 849494
+OPAL>  Dump step = 118, time = 13976.5 [ns]
+Gap Crossing > Cavity phase = -0.727927[deg.], transit factor =  0.991906
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.873011 [MeV]
+Gap Crossing > Current Energy = 418.023 [MeV]
+Gap Crossing > Cavity phase = -0.730416[deg.], transit factor =  0.991915
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.872774 [MeV]
+Gap Crossing > Current Energy = 418.896 [MeV]
+Gap Crossing > Cavity phase = 180.452[deg.], transit factor =  0.95017
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.217786 [MeV]
+Gap Crossing > Current Energy = 418.678 [MeV]
+Gap Crossing > Cavity phase = -0.755758[deg.], transit factor =  0.991923
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.872544 [MeV]
+Gap Crossing > Current Energy = 419.551 [MeV]
+Gap Crossing > Cavity phase = -0.809806[deg.], transit factor =  0.991932
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.872322 [MeV]
+Gap Crossing > Current Energy = 420.423 [MeV]
+OPAL> meanR=( -6.32773 4073.15 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 856694
+OPAL>  Dump step = 119, time = 14095 [ns]
+Gap Crossing > Cavity phase = -0.831319[deg.], transit factor =  0.991941
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.87198 [MeV]
+Gap Crossing > Current Energy = 421.295 [MeV]
+Gap Crossing > Cavity phase = -0.829456[deg.], transit factor =  0.991951
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.871752 [MeV]
+Gap Crossing > Current Energy = 422.167 [MeV]
+Gap Crossing > Cavity phase = 180.175[deg.], transit factor =  0.950385
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.214554 [MeV]
+Gap Crossing > Current Energy = 421.952 [MeV]
+Gap Crossing > Cavity phase = -0.85338[deg.], transit factor =  0.991958
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.871512 [MeV]
+Gap Crossing > Current Energy = 422.824 [MeV]
+Gap Crossing > Cavity phase = -0.897073[deg.], transit factor =  0.991967
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.871286 [MeV]
+Gap Crossing > Current Energy = 423.695 [MeV]
+OPAL> meanR=( -4.97194 4080.74 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 863893
+OPAL>  Dump step = 120, time = 14213.4 [ns]
+Gap Crossing > Cavity phase = -0.921133[deg.], transit factor =  0.991976
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.870949 [MeV]
+Gap Crossing > Current Energy = 424.566 [MeV]
+Gap Crossing > Cavity phase = -0.918011[deg.], transit factor =  0.991986
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.870707 [MeV]
+Gap Crossing > Current Energy = 425.436 [MeV]
+Gap Crossing > Cavity phase = 179.945[deg.], transit factor =  0.950596
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.211298 [MeV]
+Gap Crossing > Current Energy = 425.225 [MeV]
+Gap Crossing > Cavity phase = -0.937228[deg.], transit factor =  0.991993
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.870469 [MeV]
+Gap Crossing > Current Energy = 426.096 [MeV]
+Gap Crossing > Cavity phase = -0.984475[deg.], transit factor =  0.992002
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.87024 [MeV]
+Gap Crossing > Current Energy = 426.966 [MeV]
+OPAL> meanR=( -3.56591 4088.3 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 871092
+OPAL>  Dump step = 121, time = 14331.9 [ns]
+Gap Crossing > Cavity phase = -1.00332[deg.], transit factor =  0.992011
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.869891 [MeV]
+Gap Crossing > Current Energy = 427.836 [MeV]
+Gap Crossing > Cavity phase = -1.00163[deg.], transit factor =  0.99202
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.869657 [MeV]
+Gap Crossing > Current Energy = 428.705 [MeV]
+Gap Crossing > Cavity phase = 179.706[deg.], transit factor =  0.950804
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.208073 [MeV]
+Gap Crossing > Current Energy = 428.497 [MeV]
+Gap Crossing > Cavity phase = -1.02471[deg.], transit factor =  0.992027
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.869407 [MeV]
+Gap Crossing > Current Energy = 429.367 [MeV]
+Gap Crossing > Cavity phase = -1.06713[deg.], transit factor =  0.992036
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.869174 [MeV]
+Gap Crossing > Current Energy = 430.236 [MeV]
+OPAL> meanR=( -5.66938 4096.38 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 878292
+OPAL>  Dump step = 122, time = 14450.3 [ns]
+Gap Crossing > Cavity phase = -1.09272[deg.], transit factor =  0.992045
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.868828 [MeV]
+Gap Crossing > Current Energy = 431.105 [MeV]
+Gap Crossing > Cavity phase = -1.09439[deg.], transit factor =  0.992054
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.86858 [MeV]
+Gap Crossing > Current Energy = 431.973 [MeV]
+Gap Crossing > Cavity phase = 179.453[deg.], transit factor =  0.951009
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.204831 [MeV]
+Gap Crossing > Current Energy = 431.769 [MeV]
+Gap Crossing > Cavity phase = -1.11881[deg.], transit factor =  0.992061
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.868332 [MeV]
+Gap Crossing > Current Energy = 432.637 [MeV]
+Gap Crossing > Cavity phase = -1.16969[deg.], transit factor =  0.992069
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.868092 [MeV]
+Gap Crossing > Current Energy = 433.505 [MeV]
+OPAL> meanR=( -4.43745 4103.78 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 885491
+OPAL>  Dump step = 123, time = 14568.8 [ns]
+Gap Crossing > Cavity phase = -1.19448[deg.], transit factor =  0.992078
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.867735 [MeV]
+Gap Crossing > Current Energy = 434.373 [MeV]
+Gap Crossing > Cavity phase = -1.20272[deg.], transit factor =  0.992087
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.867492 [MeV]
+Gap Crossing > Current Energy = 435.24 [MeV]
+Gap Crossing > Cavity phase = 179.137[deg.], transit factor =  0.951211
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.201607 [MeV]
+Gap Crossing > Current Energy = 435.039 [MeV]
+Gap Crossing > Cavity phase = -1.23265[deg.], transit factor =  0.992094
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.867229 [MeV]
+Gap Crossing > Current Energy = 435.906 [MeV]
+Gap Crossing > Cavity phase = -1.28147[deg.], transit factor =  0.992102
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.866987 [MeV]
+Gap Crossing > Current Energy = 436.773 [MeV]
+OPAL> meanR=( -6.88257 4111.75 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 892691
+OPAL>  Dump step = 124, time = 14687.2 [ns]
+Gap Crossing > Cavity phase = -1.31489[deg.], transit factor =  0.992111
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.866628 [MeV]
+Gap Crossing > Current Energy = 437.639 [MeV]
+Gap Crossing > Cavity phase = -1.32445[deg.], transit factor =  0.99212
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.866371 [MeV]
+Gap Crossing > Current Energy = 438.506 [MeV]
+Gap Crossing > Cavity phase = 178.794[deg.], transit factor =  0.951409
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.198367 [MeV]
+Gap Crossing > Current Energy = 438.307 [MeV]
+Gap Crossing > Cavity phase = -1.3575[deg.], transit factor =  0.992126
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.866112 [MeV]
+Gap Crossing > Current Energy = 439.174 [MeV]
+Gap Crossing > Cavity phase = -1.41381[deg.], transit factor =  0.992135
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.865858 [MeV]
+Gap Crossing > Current Energy = 440.039 [MeV]
+OPAL> meanR=( -5.96247 4119.05 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 899890
+OPAL>  Dump step = 125, time = 14805.7 [ns]
+Gap Crossing > Cavity phase = -1.44636[deg.], transit factor =  0.992143
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.865492 [MeV]
+Gap Crossing > Current Energy = 440.905 [MeV]
+Gap Crossing > Cavity phase = -1.4636[deg.], transit factor =  0.992152
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.865237 [MeV]
+Gap Crossing > Current Energy = 441.77 [MeV]
+Gap Crossing > Cavity phase = 178.389[deg.], transit factor =  0.951605
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.195127 [MeV]
+Gap Crossing > Current Energy = 441.575 [MeV]
+Gap Crossing > Cavity phase = -1.49897[deg.], transit factor =  0.992158
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.86496 [MeV]
+Gap Crossing > Current Energy = 442.44 [MeV]
+Gap Crossing > Cavity phase = -1.55376[deg.], transit factor =  0.992167
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.864708 [MeV]
+Gap Crossing > Current Energy = 443.305 [MeV]
+OPAL> meanR=( -5.16216 4126.26 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 907089
+OPAL>  Dump step = 126, time = 14924.1 [ns]
+Gap Crossing > Cavity phase = -1.59215[deg.], transit factor =  0.992175
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.864335 [MeV]
+Gap Crossing > Current Energy = 444.169 [MeV]
+Gap Crossing > Cavity phase = -1.60625[deg.], transit factor =  0.992184
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.86407 [MeV]
+Gap Crossing > Current Energy = 445.033 [MeV]
+Gap Crossing > Cavity phase = 177.984[deg.], transit factor =  0.951797
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.191879 [MeV]
+Gap Crossing > Current Energy = 444.841 [MeV]
+Gap Crossing > Cavity phase = -1.64369[deg.], transit factor =  0.99219
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.863798 [MeV]
+Gap Crossing > Current Energy = 445.705 [MeV]
+Gap Crossing > Cavity phase = -1.69987[deg.], transit factor =  0.992198
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.863531 [MeV]
+Gap Crossing > Current Energy = 446.569 [MeV]
+OPAL> meanR=( -4.33742 4133.45 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 914288
+OPAL>  Dump step = 127, time = 15042.6 [ns]
+Gap Crossing > Cavity phase = -1.73437[deg.], transit factor =  0.992207
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.863158 [MeV]
+Gap Crossing > Current Energy = 447.432 [MeV]
+Gap Crossing > Cavity phase = -1.75469[deg.], transit factor =  0.992215
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.862892 [MeV]
+Gap Crossing > Current Energy = 448.295 [MeV]
+Gap Crossing > Cavity phase = 177.559[deg.], transit factor =  0.951986
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.188622 [MeV]
+Gap Crossing > Current Energy = 448.106 [MeV]
+Gap Crossing > Cavity phase = -1.78954[deg.], transit factor =  0.992221
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.862605 [MeV]
+Gap Crossing > Current Energy = 448.969 [MeV]
+Gap Crossing > Cavity phase = -1.84549[deg.], transit factor =  0.992229
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.862344 [MeV]
+Gap Crossing > Current Energy = 449.831 [MeV]
+OPAL> meanR=( -7.13262 4141.23 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 921488
+OPAL>  Dump step = 128, time = 15161 [ns]
+Gap Crossing > Cavity phase = -1.88389[deg.], transit factor =  0.992237
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.861959 [MeV]
+Gap Crossing > Current Energy = 450.693 [MeV]
+Gap Crossing > Cavity phase = -1.8999[deg.], transit factor =  0.992245
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.86169 [MeV]
+Gap Crossing > Current Energy = 451.555 [MeV]
+Gap Crossing > Cavity phase = 177.141[deg.], transit factor =  0.952173
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.185387 [MeV]
+Gap Crossing > Current Energy = 451.369 [MeV]
+Gap Crossing > Cavity phase = -1.93945[deg.], transit factor =  0.992252
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.861405 [MeV]
+Gap Crossing > Current Energy = 452.231 [MeV]
+Gap Crossing > Cavity phase = -1.9935[deg.], transit factor =  0.99226
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.861128 [MeV]
+Gap Crossing > Current Energy = 453.092 [MeV]
+OPAL> meanR=( -6.30768 4148.25 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 928687
+OPAL>  Dump step = 129, time = 15279.5 [ns]
+Gap Crossing > Cavity phase = -2.03005[deg.], transit factor =  0.992268
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.86075 [MeV]
+Gap Crossing > Current Energy = 453.952 [MeV]
+Gap Crossing > Cavity phase = -2.05253[deg.], transit factor =  0.992276
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.860472 [MeV]
+Gap Crossing > Current Energy = 454.813 [MeV]
+Gap Crossing > Cavity phase = 176.708[deg.], transit factor =  0.952357
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.18213 [MeV]
+Gap Crossing > Current Energy = 454.631 [MeV]
+Gap Crossing > Cavity phase = -2.08813[deg.], transit factor =  0.992282
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.860179 [MeV]
+Gap Crossing > Current Energy = 455.491 [MeV]
+Gap Crossing > Cavity phase = -2.14612[deg.], transit factor =  0.99229
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.859907 [MeV]
+Gap Crossing > Current Energy = 456.351 [MeV]
+OPAL> meanR=( -5.58391 4155.22 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 935886
+OPAL>  Dump step = 130, time = 15397.9 [ns]
+Gap Crossing > Cavity phase = -2.1847[deg.], transit factor =  0.992298
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.859512 [MeV]
+Gap Crossing > Current Energy = 457.21 [MeV]
+Gap Crossing > Cavity phase = -2.20487[deg.], transit factor =  0.992305
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.859238 [MeV]
+Gap Crossing > Current Energy = 458.07 [MeV]
+Gap Crossing > Cavity phase = 176.262[deg.], transit factor =  0.952538
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.178905 [MeV]
+Gap Crossing > Current Energy = 457.891 [MeV]
+Gap Crossing > Cavity phase = -2.24609[deg.], transit factor =  0.992312
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.858938 [MeV]
+Gap Crossing > Current Energy = 458.75 [MeV]
+Gap Crossing > Cavity phase = -2.29904[deg.], transit factor =  0.992319
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.858654 [MeV]
+Gap Crossing > Current Energy = 459.608 [MeV]
+OPAL> meanR=( -4.80259 4162.09 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 943085
+OPAL>  Dump step = 131, time = 15516.4 [ns]
+Gap Crossing > Cavity phase = -2.33838[deg.], transit factor =  0.992327
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.858266 [MeV]
+Gap Crossing > Current Energy = 460.467 [MeV]
+Gap Crossing > Cavity phase = -2.35995[deg.], transit factor =  0.992335
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.857978 [MeV]
+Gap Crossing > Current Energy = 461.325 [MeV]
+Gap Crossing > Cavity phase = 175.828[deg.], transit factor =  0.952716
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.17565 [MeV]
+Gap Crossing > Current Energy = 461.149 [MeV]
+Gap Crossing > Cavity phase = -2.39499[deg.], transit factor =  0.992341
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.857679 [MeV]
+Gap Crossing > Current Energy = 462.007 [MeV]
+Gap Crossing > Cavity phase = -2.45103[deg.], transit factor =  0.992349
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.857395 [MeV]
+Gap Crossing > Current Energy = 462.864 [MeV]
+OPAL> meanR=( -3.98368 4168.95 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 950284
+OPAL>  Dump step = 132, time = 15634.8 [ns]
+Gap Crossing > Cavity phase = -2.48553[deg.], transit factor =  0.992356
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.856995 [MeV]
+Gap Crossing > Current Energy = 463.721 [MeV]
+Gap Crossing > Cavity phase = -2.50563[deg.], transit factor =  0.992364
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.856716 [MeV]
+Gap Crossing > Current Energy = 464.578 [MeV]
+Gap Crossing > Cavity phase = 175.404[deg.], transit factor =  0.952891
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.172436 [MeV]
+Gap Crossing > Current Energy = 464.405 [MeV]
+Gap Crossing > Cavity phase = -2.54212[deg.], transit factor =  0.99237
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.856405 [MeV]
+Gap Crossing > Current Energy = 465.262 [MeV]
+Gap Crossing > Cavity phase = -2.59053[deg.], transit factor =  0.992377
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.85612 [MeV]
+Gap Crossing > Current Energy = 466.118 [MeV]
+OPAL> meanR=( -6.6321 4176.34 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 957484
+OPAL>  Dump step = 133, time = 15753.3 [ns]
+Gap Crossing > Cavity phase = -2.62744[deg.], transit factor =  0.992385
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.855724 [MeV]
+Gap Crossing > Current Energy = 466.973 [MeV]
+Gap Crossing > Cavity phase = -2.6441[deg.], transit factor =  0.992392
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.855433 [MeV]
+Gap Crossing > Current Energy = 467.829 [MeV]
+Gap Crossing > Cavity phase = 175.018[deg.], transit factor =  0.953064
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.169217 [MeV]
+Gap Crossing > Current Energy = 467.66 [MeV]
+Gap Crossing > Cavity phase = -2.67707[deg.], transit factor =  0.992398
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.855131 [MeV]
+Gap Crossing > Current Energy = 468.515 [MeV]
+Gap Crossing > Cavity phase = -2.72681[deg.], transit factor =  0.992406
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.854836 [MeV]
+Gap Crossing > Current Energy = 469.37 [MeV]
+OPAL> meanR=( -5.56407 4183.03 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 964683
+OPAL>  Dump step = 134, time = 15871.7 [ns]
+Gap Crossing > Cavity phase = -2.75632[deg.], transit factor =  0.992413
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.854439 [MeV]
+Gap Crossing > Current Energy = 470.224 [MeV]
+Gap Crossing > Cavity phase = -2.77524[deg.], transit factor =  0.99242
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.854154 [MeV]
+Gap Crossing > Current Energy = 471.078 [MeV]
+Gap Crossing > Cavity phase = 174.642[deg.], transit factor =  0.953235
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.166025 [MeV]
+Gap Crossing > Current Energy = 470.912 [MeV]
+Gap Crossing > Cavity phase = -2.80575[deg.], transit factor =  0.992426
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.853837 [MeV]
+Gap Crossing > Current Energy = 471.766 [MeV]
+Gap Crossing > Cavity phase = -2.85059[deg.], transit factor =  0.992433
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.853551 [MeV]
+Gap Crossing > Current Energy = 472.62 [MeV]
+OPAL> meanR=( -4.4118 4189.57 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 971882
+OPAL>  Dump step = 135, time = 15990.2 [ns]
+Gap Crossing > Cavity phase = -2.88321[deg.], transit factor =  0.992441
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.853148 [MeV]
+Gap Crossing > Current Energy = 473.473 [MeV]
+Gap Crossing > Cavity phase = -2.89701[deg.], transit factor =  0.992448
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.852858 [MeV]
+Gap Crossing > Current Energy = 474.326 [MeV]
+Gap Crossing > Cavity phase = 174.297[deg.], transit factor =  0.953403
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.162851 [MeV]
+Gap Crossing > Current Energy = 474.163 [MeV]
+Gap Crossing > Cavity phase = -2.92916[deg.], transit factor =  0.992454
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.852548 [MeV]
+Gap Crossing > Current Energy = 475.015 [MeV]
+Gap Crossing > Cavity phase = -2.97205[deg.], transit factor =  0.992461
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.852247 [MeV]
+Gap Crossing > Current Energy = 475.868 [MeV]
+OPAL> meanR=( -6.76462 4196.75 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 979082
+OPAL>  Dump step = 136, time = 16108.6 [ns]
+Gap Crossing > Cavity phase = -3.0005[deg.], transit factor =  0.992468
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.851853 [MeV]
+Gap Crossing > Current Energy = 476.719 [MeV]
+Gap Crossing > Cavity phase = -3.01693[deg.], transit factor =  0.992475
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.851557 [MeV]
+Gap Crossing > Current Energy = 477.571 [MeV]
+Gap Crossing > Cavity phase = 173.965[deg.], transit factor =  0.953568
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.159663 [MeV]
+Gap Crossing > Current Energy = 477.411 [MeV]
+Gap Crossing > Cavity phase = -3.04202[deg.], transit factor =  0.992481
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.851241 [MeV]
+Gap Crossing > Current Energy = 478.263 [MeV]
+Gap Crossing > Cavity phase = -3.08481[deg.], transit factor =  0.992488
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.85095 [MeV]
+Gap Crossing > Current Energy = 479.114 [MeV]
+OPAL> meanR=( -5.42104 4203.17 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 986281
+OPAL>  Dump step = 137, time = 16227.1 [ns]
+Gap Crossing > Cavity phase = -3.11065[deg.], transit factor =  0.992495
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.850543 [MeV]
+Gap Crossing > Current Energy = 479.964 [MeV]
+Gap Crossing > Cavity phase = -3.12164[deg.], transit factor =  0.992502
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.850257 [MeV]
+Gap Crossing > Current Energy = 480.814 [MeV]
+Gap Crossing > Cavity phase = 173.664[deg.], transit factor =  0.953731
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.156525 [MeV]
+Gap Crossing > Current Energy = 480.658 [MeV]
+Gap Crossing > Cavity phase = -3.14924[deg.], transit factor =  0.992508
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.849937 [MeV]
+Gap Crossing > Current Energy = 481.508 [MeV]
+Gap Crossing > Cavity phase = -3.18438[deg.], transit factor =  0.992515
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.84964 [MeV]
+Gap Crossing > Current Energy = 482.357 [MeV]
+OPAL> meanR=( -3.88462 4209.45 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 993480
+OPAL>  Dump step = 138, time = 16345.5 [ns]
+Gap Crossing > Cavity phase = -3.21064[deg.], transit factor =  0.992521
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.849245 [MeV]
+Gap Crossing > Current Energy = 483.207 [MeV]
+Gap Crossing > Cavity phase = -3.22085[deg.], transit factor =  0.992528
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.848944 [MeV]
+Gap Crossing > Current Energy = 484.056 [MeV]
+Gap Crossing > Cavity phase = 173.398[deg.], transit factor =  0.953892
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.153371 [MeV]
+Gap Crossing > Current Energy = 483.902 [MeV]
+Gap Crossing > Cavity phase = -3.24212[deg.], transit factor =  0.992534
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.848633 [MeV]
+Gap Crossing > Current Energy = 484.751 [MeV]
+Gap Crossing > Cavity phase = -3.27934[deg.], transit factor =  0.992541
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.848333 [MeV]
+Gap Crossing > Current Energy = 485.599 [MeV]
+OPAL> meanR=( -5.88586 4216.42 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1000680
+OPAL>  Dump step = 139, time = 16464 [ns]
+Gap Crossing > Cavity phase = -3.29758[deg.], transit factor =  0.992548
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.847932 [MeV]
+Gap Crossing > Current Energy = 486.447 [MeV]
+Gap Crossing > Cavity phase = -3.3077[deg.], transit factor =  0.992554
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.847646 [MeV]
+Gap Crossing > Current Energy = 487.295 [MeV]
+Gap Crossing > Cavity phase = 173.152[deg.], transit factor =  0.95405
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.150261 [MeV]
+Gap Crossing > Current Energy = 487.144 [MeV]
+Gap Crossing > Cavity phase = -3.32731[deg.], transit factor =  0.99256
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.847319 [MeV]
+Gap Crossing > Current Energy = 487.992 [MeV]
+Gap Crossing > Cavity phase = -3.35751[deg.], transit factor =  0.992567
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.84703 [MeV]
+Gap Crossing > Current Energy = 488.839 [MeV]
+OPAL> meanR=( -4.0971 4222.53 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1007879
+OPAL>  Dump step = 140, time = 16582.4 [ns]
+Gap Crossing > Cavity phase = -3.37876[deg.], transit factor =  0.992573
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.846628 [MeV]
+Gap Crossing > Current Energy = 489.685 [MeV]
+Gap Crossing > Cavity phase = -3.38272[deg.], transit factor =  0.99258
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.846335 [MeV]
+Gap Crossing > Current Energy = 490.532 [MeV]
+Gap Crossing > Cavity phase = 172.948[deg.], transit factor =  0.954207
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.147177 [MeV]
+Gap Crossing > Current Energy = 490.385 [MeV]
+Gap Crossing > Cavity phase = -3.40348[deg.], transit factor =  0.992586
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.846021 [MeV]
+Gap Crossing > Current Energy = 491.231 [MeV]
+Gap Crossing > Cavity phase = -3.43352[deg.], transit factor =  0.992592
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.845717 [MeV]
+Gap Crossing > Current Energy = 492.076 [MeV]
+OPAL> meanR=( -5.85498 4229.29 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1015079
+OPAL>  Dump step = 141, time = 16700.9 [ns]
+Gap Crossing > Cavity phase = -3.45096[deg.], transit factor =  0.992599
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.845325 [MeV]
+Gap Crossing > Current Energy = 492.922 [MeV]
+Gap Crossing > Cavity phase = -3.46051[deg.], transit factor =  0.992605
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.845027 [MeV]
+Gap Crossing > Current Energy = 493.767 [MeV]
+Gap Crossing > Cavity phase = 172.737[deg.], transit factor =  0.954361
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.144088 [MeV]
+Gap Crossing > Current Energy = 493.623 [MeV]
+Gap Crossing > Cavity phase = -3.47595[deg.], transit factor =  0.992611
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.844704 [MeV]
+Gap Crossing > Current Energy = 494.467 [MeV]
+Gap Crossing > Cavity phase = -3.50745[deg.], transit factor =  0.992617
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.844411 [MeV]
+Gap Crossing > Current Energy = 495.312 [MeV]
+OPAL> meanR=( -3.97927 4235.3 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1022278
+OPAL>  Dump step = 142, time = 16819.3 [ns]
+Gap Crossing > Cavity phase = -3.5247[deg.], transit factor =  0.992624
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.844004 [MeV]
+Gap Crossing > Current Energy = 496.156 [MeV]
+Gap Crossing > Cavity phase = -3.53014[deg.], transit factor =  0.99263
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.843717 [MeV]
+Gap Crossing > Current Energy = 496.999 [MeV]
+Gap Crossing > Cavity phase = 172.537[deg.], transit factor =  0.954512
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.141053 [MeV]
+Gap Crossing > Current Energy = 496.858 [MeV]
+Gap Crossing > Cavity phase = -3.55013[deg.], transit factor =  0.992636
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.843388 [MeV]
+Gap Crossing > Current Energy = 497.702 [MeV]
+Gap Crossing > Cavity phase = -3.57533[deg.], transit factor =  0.992642
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.843089 [MeV]
+Gap Crossing > Current Energy = 498.545 [MeV]
+OPAL> meanR=( -5.66205 4241.88 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1029478
+OPAL>  Dump step = 143, time = 16937.8 [ns]
+Gap Crossing > Cavity phase = -3.59512[deg.], transit factor =  0.992649
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.842696 [MeV]
+Gap Crossing > Current Energy = 499.388 [MeV]
+Gap Crossing > Cavity phase = -3.60148[deg.], transit factor =  0.992655
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.842391 [MeV]
+Gap Crossing > Current Energy = 500.23 [MeV]
+Gap Crossing > Cavity phase = 172.35[deg.], transit factor =  0.954662
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.138004 [MeV]
+Gap Crossing > Current Energy = 500.092 [MeV]
+Gap Crossing > Cavity phase = -3.61819[deg.], transit factor =  0.99266
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.842073 [MeV]
+Gap Crossing > Current Energy = 500.934 [MeV]
+Gap Crossing > Cavity phase = -3.64854[deg.], transit factor =  0.992667
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.841767 [MeV]
+Gap Crossing > Current Energy = 501.776 [MeV]
+OPAL> meanR=( -3.69433 4247.8 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1036677
+OPAL>  Dump step = 144, time = 17056.2 [ns]
+Gap Crossing > Cavity phase = -3.66296[deg.], transit factor =  0.992673
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.841367 [MeV]
+Gap Crossing > Current Energy = 502.617 [MeV]
+Gap Crossing > Cavity phase = -3.6714[deg.], transit factor =  0.992679
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.841073 [MeV]
+Gap Crossing > Current Energy = 503.458 [MeV]
+Gap Crossing > Cavity phase = 172.152[deg.], transit factor =  0.95481
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.134987 [MeV]
+Gap Crossing > Current Energy = 503.323 [MeV]
+Gap Crossing > Cavity phase = -3.68669[deg.], transit factor =  0.992685
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.840738 [MeV]
+Gap Crossing > Current Energy = 504.164 [MeV]
+Gap Crossing > Cavity phase = -3.71158[deg.], transit factor =  0.992691
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.840445 [MeV]
+Gap Crossing > Current Energy = 505.004 [MeV]
+OPAL> meanR=( -5.33009 4254.27 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1043877
+OPAL>  Dump step = 145, time = 17174.7 [ns]
+Gap Crossing > Cavity phase = -3.72892[deg.], transit factor =  0.992697
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.840041 [MeV]
+Gap Crossing > Current Energy = 505.844 [MeV]
+Gap Crossing > Cavity phase = -3.73029[deg.], transit factor =  0.992703
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.839744 [MeV]
+Gap Crossing > Current Energy = 506.684 [MeV]
+Gap Crossing > Cavity phase = 171.995[deg.], transit factor =  0.954955
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.131999 [MeV]
+Gap Crossing > Current Energy = 506.552 [MeV]
+Gap Crossing > Cavity phase = -3.74642[deg.], transit factor =  0.992708
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.839421 [MeV]
+Gap Crossing > Current Energy = 507.392 [MeV]
+Gap Crossing > Cavity phase = -3.76833[deg.], transit factor =  0.992715
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.839113 [MeV]
+Gap Crossing > Current Energy = 508.231 [MeV]
+OPAL> meanR=( -6.79823 4260.69 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1051077
+OPAL>  Dump step = 146, time = 17293.1 [ns]
+Gap Crossing > Cavity phase = -3.78068[deg.], transit factor =  0.992721
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.838725 [MeV]
+Gap Crossing > Current Energy = 509.069 [MeV]
+Gap Crossing > Cavity phase = -3.78543[deg.], transit factor =  0.992727
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.838421 [MeV]
+Gap Crossing > Current Energy = 509.908 [MeV]
+Gap Crossing > Cavity phase = 171.856[deg.], transit factor =  0.955099
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.12901 [MeV]
+Gap Crossing > Current Energy = 509.779 [MeV]
+Gap Crossing > Cavity phase = -3.79414[deg.], transit factor =  0.992732
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.838096 [MeV]
+Gap Crossing > Current Energy = 510.617 [MeV]
+Gap Crossing > Cavity phase = -3.81657[deg.], transit factor =  0.992738
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.837799 [MeV]
+Gap Crossing > Current Energy = 511.455 [MeV]
+OPAL> meanR=( -4.50116 4266.39 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1058276
+OPAL>  Dump step = 147, time = 17411.6 [ns]
+Gap Crossing > Cavity phase = -3.82432[deg.], transit factor =  0.992744
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.837396 [MeV]
+Gap Crossing > Current Energy = 512.292 [MeV]
+Gap Crossing > Cavity phase = -3.82186[deg.], transit factor =  0.99275
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.83711 [MeV]
+Gap Crossing > Current Energy = 513.129 [MeV]
+Gap Crossing > Cavity phase = 171.762[deg.], transit factor =  0.955241
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.126081 [MeV]
+Gap Crossing > Current Energy = 513.003 [MeV]
+Gap Crossing > Cavity phase = -3.82934[deg.], transit factor =  0.992755
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.836779 [MeV]
+Gap Crossing > Current Energy = 513.84 [MeV]
+Gap Crossing > Cavity phase = -3.83936[deg.], transit factor =  0.992761
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.836485 [MeV]
+Gap Crossing > Current Energy = 514.676 [MeV]
+OPAL> meanR=( -5.54585 4272.62 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1065476
+OPAL>  Dump step = 148, time = 17530 [ns]
+Gap Crossing > Cavity phase = -3.84322[deg.], transit factor =  0.992767
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.836099 [MeV]
+Gap Crossing > Current Energy = 515.513 [MeV]
+Gap Crossing > Cavity phase = -3.83086[deg.], transit factor =  0.992773
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.835801 [MeV]
+Gap Crossing > Current Energy = 516.348 [MeV]
+Gap Crossing > Cavity phase = 171.773[deg.], transit factor =  0.95538
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.123159 [MeV]
+Gap Crossing > Current Energy = 516.225 [MeV]
+Gap Crossing > Cavity phase = -3.82656[deg.], transit factor =  0.992778
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.835493 [MeV]
+Gap Crossing > Current Energy = 517.061 [MeV]
+Gap Crossing > Cavity phase = -3.82911[deg.], transit factor =  0.992784
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.835197 [MeV]
+Gap Crossing > Current Energy = 517.896 [MeV]
+OPAL> meanR=( -6.08348 4278.81 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1072676
+OPAL>  Dump step = 149, time = 17648.5 [ns]
+Gap Crossing > Cavity phase = -3.8149[deg.], transit factor =  0.99279
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.834821 [MeV]
+Gap Crossing > Current Energy = 518.731 [MeV]
+Gap Crossing > Cavity phase = -3.7919[deg.], transit factor =  0.992796
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.834542 [MeV]
+Gap Crossing > Current Energy = 519.565 [MeV]
+Gap Crossing > Cavity phase = 171.928[deg.], transit factor =  0.955518
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.120285 [MeV]
+Gap Crossing > Current Energy = 519.445 [MeV]
+Gap Crossing > Cavity phase = -3.76884[deg.], transit factor =  0.992801
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.834232 [MeV]
+Gap Crossing > Current Energy = 520.279 [MeV]
+Gap Crossing > Cavity phase = -3.7511[deg.], transit factor =  0.992807
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.833965 [MeV]
+Gap Crossing > Current Energy = 521.113 [MeV]
+OPAL> meanR=( -5.79265 4284.8 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1079876
+OPAL>  Dump step = 150, time = 17767 [ns]
+Gap Crossing > Cavity phase = -3.71936[deg.], transit factor =  0.992812
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.833594 [MeV]
+Gap Crossing > Current Energy = 521.947 [MeV]
+Gap Crossing > Cavity phase = -3.66831[deg.], transit factor =  0.992818
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.833334 [MeV]
+Gap Crossing > Current Energy = 522.78 [MeV]
+Gap Crossing > Cavity phase = 172.348[deg.], transit factor =  0.955654
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.117489 [MeV]
+Gap Crossing > Current Energy = 522.663 [MeV]
+Gap Crossing > Cavity phase = -3.62439[deg.], transit factor =  0.992823
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.83305 [MeV]
+Gap Crossing > Current Energy = 523.496 [MeV]
+Gap Crossing > Cavity phase = -3.57755[deg.], transit factor =  0.992829
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.832788 [MeV]
+Gap Crossing > Current Energy = 524.328 [MeV]
+OPAL> meanR=( -4.18512 4290.57 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1087076
+OPAL>  Dump step = 151, time = 17885.4 [ns]
+Gap Crossing > Cavity phase = -3.51677[deg.], transit factor =  0.992834
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.832455 [MeV]
+Gap Crossing > Current Energy = 525.161 [MeV]
+Gap Crossing > Cavity phase = -3.43943[deg.], transit factor =  0.99284
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.832202 [MeV]
+Gap Crossing > Current Energy = 525.993 [MeV]
+Gap Crossing > Cavity phase = 173.104[deg.], transit factor =  0.955788
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.114731 [MeV]
+Gap Crossing > Current Energy = 525.878 [MeV]
+Gap Crossing > Cavity phase = -3.35949[deg.], transit factor =  0.992845
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.831942 [MeV]
+Gap Crossing > Current Energy = 526.71 [MeV]
+Gap Crossing > Cavity phase = -3.28392[deg.], transit factor =  0.992851
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.831707 [MeV]
+Gap Crossing > Current Energy = 527.542 [MeV]
+OPAL> meanR=( -4.78011 4296.76 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1094277
+OPAL>  Dump step = 152, time = 18003.9 [ns]
+Gap Crossing > Cavity phase = -3.18669[deg.], transit factor =  0.992856
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.831381 [MeV]
+Gap Crossing > Current Energy = 528.373 [MeV]
+Gap Crossing > Cavity phase = -3.0739[deg.], transit factor =  0.992862
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.831161 [MeV]
+Gap Crossing > Current Energy = 529.205 [MeV]
+Gap Crossing > Cavity phase = 174.262[deg.], transit factor =  0.955921
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.112056 [MeV]
+Gap Crossing > Current Energy = 529.093 [MeV]
+Gap Crossing > Cavity phase = -2.96026[deg.], transit factor =  0.992867
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.830906 [MeV]
+Gap Crossing > Current Energy = 529.923 [MeV]
+Gap Crossing > Cavity phase = -2.84251[deg.], transit factor =  0.992872
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.830691 [MeV]
+Gap Crossing > Current Energy = 530.754 [MeV]
+OPAL> meanR=( -7.25707 4303.2 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1101479
+OPAL>  Dump step = 153, time = 18122.4 [ns]
+Gap Crossing > Cavity phase = -2.71097[deg.], transit factor =  0.992878
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.830385 [MeV]
+Gap Crossing > Current Energy = 531.584 [MeV]
+Gap Crossing > Cavity phase = -2.55609[deg.], transit factor =  0.992883
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.830161 [MeV]
+Gap Crossing > Current Energy = 532.415 [MeV]
+Gap Crossing > Cavity phase = 175.895[deg.], transit factor =  0.956051
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.109373 [MeV]
+Gap Crossing > Current Energy = 532.305 [MeV]
+Gap Crossing > Cavity phase = -2.40297[deg.], transit factor =  0.992888
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.82993 [MeV]
+Gap Crossing > Current Energy = 533.135 [MeV]
+Gap Crossing > Cavity phase = -2.24757[deg.], transit factor =  0.992894
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.829706 [MeV]
+Gap Crossing > Current Energy = 533.965 [MeV]
+OPAL> meanR=( -3.99493 4308.64 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1108680
+OPAL>  Dump step = 154, time = 18240.9 [ns]
+Gap Crossing > Cavity phase = -2.07135[deg.], transit factor =  0.992899
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.829406 [MeV]
+Gap Crossing > Current Energy = 534.794 [MeV]
+Gap Crossing > Cavity phase = -1.88359[deg.], transit factor =  0.992905
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.829184 [MeV]
+Gap Crossing > Current Energy = 535.624 [MeV]
+Gap Crossing > Cavity phase = 177.982[deg.], transit factor =  0.956181
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.106642 [MeV]
+Gap Crossing > Current Energy = 535.517 [MeV]
+Gap Crossing > Cavity phase = -1.69112[deg.], transit factor =  0.992909
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.828929 [MeV]
+Gap Crossing > Current Energy = 536.346 [MeV]
+Gap Crossing > Cavity phase = -1.50287[deg.], transit factor =  0.992915
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.828712 [MeV]
+Gap Crossing > Current Energy = 537.175 [MeV]
+OPAL> meanR=( -6.49168 4314.93 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1115883
+OPAL>  Dump step = 155, time = 18359.4 [ns]
+Gap Crossing > Cavity phase = -1.29911[deg.], transit factor =  0.99292
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.828379 [MeV]
+Gap Crossing > Current Energy = 538.003 [MeV]
+Gap Crossing > Cavity phase = -1.08003[deg.], transit factor =  0.992925
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.828136 [MeV]
+Gap Crossing > Current Energy = 538.831 [MeV]
+Gap Crossing > Cavity phase = 180.439[deg.], transit factor =  0.956308
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.103833 [MeV]
+Gap Crossing > Current Energy = 538.727 [MeV]
+Gap Crossing > Cavity phase = -0.866082[deg.], transit factor =  0.99293
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.827851 [MeV]
+Gap Crossing > Current Energy = 539.555 [MeV]
+Gap Crossing > Cavity phase = -0.64846[deg.], transit factor =  0.992935
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.827588 [MeV]
+Gap Crossing > Current Energy = 540.383 [MeV]
+OPAL> meanR=( -3.86729 4320.21 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1123085
+OPAL>  Dump step = 156, time = 18477.9 [ns]
+Gap Crossing > Cavity phase = -0.42266[deg.], transit factor =  0.992941
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.827233 [MeV]
+Gap Crossing > Current Energy = 541.21 [MeV]
+Gap Crossing > Cavity phase = -0.181863[deg.], transit factor =  0.992946
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.826928 [MeV]
+Gap Crossing > Current Energy = 542.037 [MeV]
+Gap Crossing > Cavity phase = 183.189[deg.], transit factor =  0.956434
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.100801 [MeV]
+Gap Crossing > Current Energy = 541.936 [MeV]
+Gap Crossing > Cavity phase = 0.0567165[deg.], transit factor =  0.992951
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.826604 [MeV]
+Gap Crossing > Current Energy = 542.763 [MeV]
+Gap Crossing > Cavity phase = 0.290934[deg.], transit factor =  0.992956
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.826289 [MeV]
+Gap Crossing > Current Energy = 543.589 [MeV]
+OPAL> meanR=( -3.92932 4325.94 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1130288
+OPAL>  Dump step = 157, time = 18596.4 [ns]
+Gap Crossing > Cavity phase = 0.540526[deg.], transit factor =  0.992961
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.825872 [MeV]
+Gap Crossing > Current Energy = 544.415 [MeV]
+Gap Crossing > Cavity phase = 0.792943[deg.], transit factor =  0.992966
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.82553 [MeV]
+Gap Crossing > Current Energy = 545.24 [MeV]
+Gap Crossing > Cavity phase = 186.141[deg.], transit factor =  0.956558
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0975844 [MeV]
+Gap Crossing > Current Energy = 545.143 [MeV]
+Gap Crossing > Cavity phase = 1.04385[deg.], transit factor =  0.992971
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.82513 [MeV]
+Gap Crossing > Current Energy = 545.968 [MeV]
+Gap Crossing > Cavity phase = 1.28662[deg.], transit factor =  0.992976
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.824778 [MeV]
+Gap Crossing > Current Energy = 546.793 [MeV]
+OPAL> meanR=( -7.24317 4332 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1137492
+OPAL>  Dump step = 158, time = 18714.9 [ns]
+Gap Crossing > Cavity phase = 1.53409[deg.], transit factor =  0.992981
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.824301 [MeV]
+Gap Crossing > Current Energy = 547.617 [MeV]
+Gap Crossing > Cavity phase = 1.78801[deg.], transit factor =  0.992987
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.8239 [MeV]
+Gap Crossing > Current Energy = 548.441 [MeV]
+Gap Crossing > Cavity phase = 189.129[deg.], transit factor =  0.956681
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0942158 [MeV]
+Gap Crossing > Current Energy = 548.347 [MeV]
+Gap Crossing > Cavity phase = 2.03005[deg.], transit factor =  0.992991
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.823454 [MeV]
+Gap Crossing > Current Energy = 549.17 [MeV]
+Gap Crossing > Cavity phase = 2.2684[deg.], transit factor =  0.992996
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.823035 [MeV]
+Gap Crossing > Current Energy = 549.993 [MeV]
+OPAL> meanR=( -7.00121 4337.3 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1144695
+OPAL>  Dump step = 159, time = 18833.4 [ns]
+Gap Crossing > Cavity phase = 2.5049[deg.], transit factor =  0.993001
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.822525 [MeV]
+Gap Crossing > Current Energy = 550.816 [MeV]
+Gap Crossing > Cavity phase = 2.74545[deg.], transit factor =  0.993006
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.822062 [MeV]
+Gap Crossing > Current Energy = 551.638 [MeV]
+Gap Crossing > Cavity phase = 192.001[deg.], transit factor =  0.956801
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0906977 [MeV]
+Gap Crossing > Current Energy = 551.547 [MeV]
+Gap Crossing > Cavity phase = 2.97562[deg.], transit factor =  0.993011
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.821577 [MeV]
+Gap Crossing > Current Energy = 552.369 [MeV]
+Gap Crossing > Cavity phase = 3.19481[deg.], transit factor =  0.993016
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.821119 [MeV]
+Gap Crossing > Current Energy = 553.19 [MeV]
+OPAL> meanR=( -7.49051 4342.66 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1151898
+OPAL>  Dump step = 160, time = 18951.9 [ns]
+Gap Crossing > Cavity phase = 3.41689[deg.], transit factor =  0.993021
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.820567 [MeV]
+Gap Crossing > Current Energy = 554.01 [MeV]
+Gap Crossing > Cavity phase = 3.63326[deg.], transit factor =  0.993026
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.820089 [MeV]
+Gap Crossing > Current Energy = 554.83 [MeV]
+Gap Crossing > Cavity phase = 194.641[deg.], transit factor =  0.956921
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0871654 [MeV]
+Gap Crossing > Current Energy = 554.743 [MeV]
+Gap Crossing > Cavity phase = 3.83994[deg.], transit factor =  0.993031
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.819571 [MeV]
+Gap Crossing > Current Energy = 555.563 [MeV]
+Gap Crossing > Cavity phase = 4.02817[deg.], transit factor =  0.993036
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.81912 [MeV]
+Gap Crossing > Current Energy = 556.382 [MeV]
+OPAL> meanR=( -5.53975 4347.38 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1159100
+OPAL>  Dump step = 161, time = 19070.4 [ns]
+Gap Crossing > Cavity phase = 4.21376[deg.], transit factor =  0.99304
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.818561 [MeV]
+Gap Crossing > Current Energy = 557.2 [MeV]
+Gap Crossing > Cavity phase = 4.38907[deg.], transit factor =  0.993045
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.818103 [MeV]
+Gap Crossing > Current Energy = 558.019 [MeV]
+Gap Crossing > Cavity phase = 196.85[deg.], transit factor =  0.957039
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0838003 [MeV]
+Gap Crossing > Current Energy = 557.935 [MeV]
+Gap Crossing > Cavity phase = 4.55002[deg.], transit factor =  0.99305
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.817595 [MeV]
+Gap Crossing > Current Energy = 558.752 [MeV]
+Gap Crossing > Cavity phase = 4.69451[deg.], transit factor =  0.993055
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.817171 [MeV]
+Gap Crossing > Current Energy = 559.569 [MeV]
+OPAL> meanR=( -5.78696 4352.32 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1166302
+OPAL>  Dump step = 162, time = 19188.9 [ns]
+Gap Crossing > Cavity phase = 4.82924[deg.], transit factor =  0.99306
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.816647 [MeV]
+Gap Crossing > Current Energy = 560.386 [MeV]
+Gap Crossing > Cavity phase = 4.95768[deg.], transit factor =  0.993065
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.816219 [MeV]
+Gap Crossing > Current Energy = 561.202 [MeV]
+Gap Crossing > Cavity phase = 198.493[deg.], transit factor =  0.957155
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0806755 [MeV]
+Gap Crossing > Current Energy = 561.122 [MeV]
+Gap Crossing > Cavity phase = 5.06626[deg.], transit factor =  0.993069
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.815764 [MeV]
+Gap Crossing > Current Energy = 561.937 [MeV]
+Gap Crossing > Cavity phase = 5.16199[deg.], transit factor =  0.993074
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.815376 [MeV]
+Gap Crossing > Current Energy = 562.753 [MeV]
+OPAL> meanR=( -4.73786 4356.98 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1173503
+OPAL>  Dump step = 163, time = 19307.4 [ns]
+Gap Crossing > Cavity phase = 5.24535[deg.], transit factor =  0.993079
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.814917 [MeV]
+Gap Crossing > Current Energy = 563.568 [MeV]
+Gap Crossing > Cavity phase = 5.32259[deg.], transit factor =  0.993083
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.814535 [MeV]
+Gap Crossing > Current Energy = 564.382 [MeV]
+Gap Crossing > Cavity phase = 199.528[deg.], transit factor =  0.95727
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0778335 [MeV]
+Gap Crossing > Current Energy = 564.304 [MeV]
+Gap Crossing > Cavity phase = 5.38158[deg.], transit factor =  0.993088
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.814144 [MeV]
+Gap Crossing > Current Energy = 565.119 [MeV]
+Gap Crossing > Cavity phase = 5.42518[deg.], transit factor =  0.993092
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.813816 [MeV]
+Gap Crossing > Current Energy = 565.932 [MeV]
+OPAL> meanR=( -6.25646 4362.04 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1180704
+OPAL>  Dump step = 164, time = 19425.9 [ns]
+Gap Crossing > Cavity phase = 5.45904[deg.], transit factor =  0.993097
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.813424 [MeV]
+Gap Crossing > Current Energy = 566.746 [MeV]
+Gap Crossing > Cavity phase = 5.48204[deg.], transit factor =  0.993102
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.813115 [MeV]
+Gap Crossing > Current Energy = 567.559 [MeV]
+Gap Crossing > Cavity phase = 199.944[deg.], transit factor =  0.957383
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0753197 [MeV]
+Gap Crossing > Current Energy = 567.484 [MeV]
+Gap Crossing > Cavity phase = 5.49112[deg.], transit factor =  0.993106
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.812786 [MeV]
+Gap Crossing > Current Energy = 568.296 [MeV]
+Gap Crossing > Cavity phase = 5.4809[deg.], transit factor =  0.993111
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.812537 [MeV]
+Gap Crossing > Current Energy = 569.109 [MeV]
+OPAL> meanR=( -6.6137 4366.86 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1187904
+OPAL>  Dump step = 165, time = 19544.3 [ns]
+Gap Crossing > Cavity phase = 5.46542[deg.], transit factor =  0.993116
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.812201 [MeV]
+Gap Crossing > Current Energy = 569.921 [MeV]
+Gap Crossing > Cavity phase = 5.43843[deg.], transit factor =  0.99312
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.811968 [MeV]
+Gap Crossing > Current Energy = 570.733 [MeV]
+Gap Crossing > Cavity phase = 199.751[deg.], transit factor =  0.957495
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0731134 [MeV]
+Gap Crossing > Current Energy = 570.66 [MeV]
+Gap Crossing > Cavity phase = 5.39975[deg.], transit factor =  0.993125
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.811691 [MeV]
+Gap Crossing > Current Energy = 571.472 [MeV]
+Gap Crossing > Cavity phase = 5.4[deg.], transit factor =  0.993129
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.811694 [MeV]
+Gap Crossing > Current Energy = 572.283 [MeV]
+Gap Crossing > Cavity phase = 5.30864[deg.], transit factor =  0.993134
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.810975 [MeV]
+Gap Crossing > Current Energy = 573.094 [MeV]
+OPAL> meanR=( -5.0136 4372.9 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1195103
+OPAL>  Dump step = 166, time = 19662.8 [ns]
+Gap Crossing > Cavity phase = 5.31801[deg.], transit factor =  0.993138
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.811032 [MeV]
+Gap Crossing > Current Energy = 573.905 [MeV]
+Gap Crossing > Cavity phase = 5.12482[deg.], transit factor =  0.993143
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.810777 [MeV]
+Gap Crossing > Current Energy = 574.716 [MeV]
+Gap Crossing > Cavity phase = 199.024[deg.], transit factor =  0.957633
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0698969 [MeV]
+Gap Crossing > Current Energy = 574.646 [MeV]
+Gap Crossing > Cavity phase = 5.18437[deg.], transit factor =  0.993147
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.810358 [MeV]
+Gap Crossing > Current Energy = 575.457 [MeV]
+Gap Crossing > Cavity phase = 4.94137[deg.], transit factor =  0.993152
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.810642 [MeV]
+Gap Crossing > Current Energy = 576.267 [MeV]
+OPAL> meanR=( -7.30567 4379 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1202302
+OPAL>  Dump step = 167, time = 19781.2 [ns]
+Gap Crossing > Cavity phase = 4.97717[deg.], transit factor =  0.993156
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.80976 [MeV]
+Gap Crossing > Current Energy = 577.077 [MeV]
+Gap Crossing > Cavity phase = 4.79732[deg.], transit factor =  0.993161
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.810293 [MeV]
+Gap Crossing > Current Energy = 577.887 [MeV]
+Gap Crossing > Cavity phase = 197.632[deg.], transit factor =  0.957742
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0687442 [MeV]
+Gap Crossing > Current Energy = 577.819 [MeV]
+Gap Crossing > Cavity phase = 4.7289[deg.], transit factor =  0.993165
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.809384 [MeV]
+Gap Crossing > Current Energy = 578.628 [MeV]
+Gap Crossing > Cavity phase = 4.67881[deg.], transit factor =  0.99317
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.809694 [MeV]
+Gap Crossing > Current Energy = 579.438 [MeV]
+OPAL> meanR=( -5.60415 4381.93 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1209500
+OPAL>  Dump step = 168, time = 19899.6 [ns]
+Gap Crossing > Cavity phase = 4.48581[deg.], transit factor =  0.993174
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.809202 [MeV]
+Gap Crossing > Current Energy = 580.247 [MeV]
+Gap Crossing > Cavity phase = 4.56365[deg.], transit factor =  0.993179
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.808807 [MeV]
+Gap Crossing > Current Energy = 581.056 [MeV]
+Gap Crossing > Cavity phase = 196.935[deg.], transit factor =  0.95785
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0669457 [MeV]
+Gap Crossing > Current Energy = 580.989 [MeV]
+Gap Crossing > Cavity phase = 4.34512[deg.], transit factor =  0.993183
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.809013 [MeV]
+Gap Crossing > Current Energy = 581.798 [MeV]
+Gap Crossing > Cavity phase = 4.40603[deg.], transit factor =  0.993187
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.808045 [MeV]
+Gap Crossing > Current Energy = 582.606 [MeV]
+OPAL> meanR=( -7.62274 4387.57 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1216700
+OPAL>  Dump step = 169, time = 20018.1 [ns]
+Gap Crossing > Cavity phase = 4.3323[deg.], transit factor =  0.993192
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.808399 [MeV]
+Gap Crossing > Current Energy = 583.414 [MeV]
+Gap Crossing > Cavity phase = 4.27391[deg.], transit factor =  0.993196
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.807547 [MeV]
+Gap Crossing > Current Energy = 584.222 [MeV]
+Gap Crossing > Cavity phase = 196.683[deg.], transit factor =  0.957956
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0631581 [MeV]
+Gap Crossing > Current Energy = 584.159 [MeV]
+Gap Crossing > Cavity phase = 4.41606[deg.], transit factor =  0.9932
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.807273 [MeV]
+Gap Crossing > Current Energy = 584.966 [MeV]
+Gap Crossing > Cavity phase = 4.28919[deg.], transit factor =  0.993204
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.807219 [MeV]
+Gap Crossing > Current Energy = 585.773 [MeV]
+OPAL> meanR=( -4.90702 4394.68 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1223899
+OPAL>  Dump step = 170, time = 20136.5 [ns]
+Gap Crossing > Cavity phase = 4.49346[deg.], transit factor =  0.993209
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.806027 [MeV]
+Gap Crossing > Current Energy = 586.579 [MeV]
+Gap Crossing > Cavity phase = 4.59428[deg.], transit factor =  0.993213
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.806176 [MeV]
+Gap Crossing > Current Energy = 587.385 [MeV]
+Gap Crossing > Cavity phase = 197.305[deg.], transit factor =  0.958061
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0611257 [MeV]
+Gap Crossing > Current Energy = 587.324 [MeV]
+Gap Crossing > Cavity phase = 4.66904[deg.], transit factor =  0.993217
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.805227 [MeV]
+Gap Crossing > Current Energy = 588.129 [MeV]
+Gap Crossing > Cavity phase = 5.09075[deg.], transit factor =  0.993222
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.804142 [MeV]
+Gap Crossing > Current Energy = 588.933 [MeV]
+OPAL> meanR=( -5.81293 4399.3 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1231102
+OPAL>  Dump step = 171, time = 20255.1 [ns]
+Gap Crossing > Cavity phase = 5.3148[deg.], transit factor =  0.993226
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.803936 [MeV]
+Gap Crossing > Current Energy = 589.737 [MeV]
+Gap Crossing > Cavity phase = 5.70327[deg.], transit factor =  0.99323
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.802289 [MeV]
+Gap Crossing > Current Energy = 590.54 [MeV]
+Gap Crossing > Cavity phase = 201.805[deg.], transit factor =  0.958165
+Gap Crossing > Energy Gain in Gap-crossing dE = -0.0546066 [MeV]
+Gap Crossing > Current Energy = 590.485 [MeV]
+Gap Crossing > Cavity phase = 6.46558[deg.], transit factor =  0.993234
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.800532 [MeV]
+Gap Crossing > Current Energy = 591.286 [MeV]
+Gap Crossing > Cavity phase = 7.07989[deg.], transit factor =  0.993238
+Gap Crossing > Energy Gain in Gap-crossing dE = 0.799558 [MeV]
+Gap Crossing > Current Energy = 592.085 [MeV]
+OPAL> meanR=( -4.91195 4408.33 0 ) [mm] 
+OPAL>  Phase space dumping in global frame after step 1238309
+OPAL>  Dump step = 172, time = 20373.6 [ns]
+OPAL> ***---------------------------- PARTICLES TRACK DONE------ ----------------------------*** 
+CycTracker> Final Energy E of reference particle = 592.085 [MeV]
+OPAL> Total phase space dump number(includes the initial distribution) = 173
+OPAL> One can restart simulation from the last dump step ( -restart 172 )
+OPAL> Total finished turn number (for the time being, not correct for restart mode) = 172
+OPAL> End of input stream "NewRing-singlePart.in".
+Timings> -----------------------------------------------------------------
+Timings>      Timing results for 1 nodes:
+Timings> -----------------------------------------------------------------
+Timings> mainTimer ........... Wall tot =    8.13692, CPU tot =       6.35
+Timings> 
+Timings> computeSelfField .... Wall max =          0, CPU max =          0
+Timings>                       Wall avg =          0, CPU avg =          0
+Timings>                       Wall min =          0, CPU min =          0
+Timings> 
+Timings> Compute bounding box  Wall max =    3.8e-05, CPU max =          0
+Timings>                       Wall avg =    3.8e-05, CPU avg =          0
+Timings>                       Wall min =    3.8e-05, CPU min =          0
+Timings> 
+Timings> Compute Statistics .. Wall max =      7e-06, CPU max =          0
+Timings>                       Wall avg =      7e-06, CPU avg =          0
+Timings>                       Wall min =      7e-06, CPU min =          0
+Timings> 
+Timings> Compute Potential ... Wall max =          0, CPU max =          0
+Timings>                       Wall avg =          0, CPU avg =          0
+Timings>                       Wall min =          0, CPU min =          0
+Timings> 
+Timings> creatDistr .......... Wall max =   0.000661, CPU max =          0
+Timings>                       Wall avg =   0.000661, CPU avg =          0
+Timings>                       Wall min =   0.000661, CPU min =          0
+Timings> 
+Timings> loadDistr ........... Wall max =          0, CPU max =          0
+Timings>                       Wall avg =          0, CPU avg =          0
+Timings>                       Wall min =          0, CPU min =          0
+Timings> 
+Timings> H5PartTimer ......... Wall max =    1.76271, CPU max =       0.19
+Timings>                       Wall avg =    1.76271, CPU avg =       0.19
+Timings>                       Wall min =    1.76271, CPU min =       0.19
+Timings> 
+Timings> StatMarkerTimer ..... Wall max =   0.002411, CPU max =          0
+Timings>                       Wall avg =   0.002411, CPU avg =          0
+Timings>                       Wall min =   0.002411, CPU min =          0
+Timings> 
+Timings> Time of integration . Wall max =          0, CPU max =          0
+Timings>                       Wall avg =          0, CPU avg =          0
+Timings>                       Wall min =          0, CPU min =          0
+Timings> 
+Timings> Time of frame transform  Wall max =          0, CPU max =          0
+Timings>                       Wall avg =          0, CPU avg =          0
+Timings>                       Wall min =          0, CPU min =          0
+Timings> 
+Timings> Time of dump ........ Wall max =    1.79486, CPU max =       0.19
+Timings>                       Wall avg =    1.79486, CPU avg =       0.19
+Timings>                       Wall min =    1.79486, CPU min =       0.19
+Timings> 
+Timings> Time of Binary repart.  Wall max =          0, CPU max =          0
+Timings>                       Wall avg =          0, CPU avg =          0
+Timings>                       Wall min =          0, CPU min =          0
+Timings> 
+Timings> -----------------------------------------------------------------

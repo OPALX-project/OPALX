@@ -1,0 +1,433 @@
+@string{CMAME = "Comput. Methods Appl. Mech. Engrg."}
+@string{ETNA = "Electron. Trans. Numer. Anal."}
+@string{FGCS = "Future Generation Computer Systems"}
+@string{JCP = "J. Comp. Phys."}
+@string{LAA = "Linear Algebra Appl."}
+@string{MC = "Mathematics of Computation"}
+@string{MC = "Math. Comp."}
+@string{NLAA = "Numer. Linear Algebra Appl."}
+@string{NuMath = "Numer. Math."}
+@string{PARCO = "Parallel Comput."}
+@string{SIMA = "SIAM J. Math. Appl."}
+@string{SIMAX = "SIAM J. Matrix Anal. Appl."}
+@string{SINUM = "SIAM J. Numer. Anal."}
+@string{SIREV = "SIAM Rev."}
+@string{SISC = "SIAM J. Sci. Comput."}
+@string{SISSC = "SIAM J. Sci. Stat. Comput."}
+@string{TOMS = "ACM Trans. Math. Softw."}
+@string{ZAMP = "Z. Angew. Math. Phys."}
+@string{IJNME = "Int. J. Numer. Methods Engrg."}
+@string{SIAM = "Society for Industrial and Applied Mathematics"}
+@string{SIAM = "SIAM"}
+@string{cpc = {Comp.~Phys.~Comm.}}
+@string{pacl = {Part. Accel.}}
+@string{phrl = {Phys. Rev. Lett.}}
+
+@preamble{"\providecommand{\SortNoop}[1]{} "}
+
+@article{Qiang:2006p95,
+author = {Ji Qiang and Steve Lidia and Robert D Ryne}, 
+journal = {Phys. Rev. ST Accel. Beams},
+title = {Three-dimensional quasistatic model for high brightness beam dynamics simulation},
+number = {4},
+pages = {1--10},
+volume = {9},
+year = {2006},
+month = {Apr},
+date-added = {2009-08-07 07:47:56 +0200},
+date-modified = {2009-08-07 07:50:05 +0200},
+doi = {10.1103/PhysRevSTAB.9.044204},
+local-url = {file://localhost/Users/adelmann/Documents/Papers/2006/Qiang/Phys.%20Rev.%20ST%20Accel.%20Beams%202006%20Qiang.},
+uri = {papers://64773080-4C16-43A9-911C-DFF933249BFF/Paper/p95},
+rating = {0}
+}
+
+
+@article{Adelmann:2009p543,
+author = {A Adelmann and P Arbenz and Y Ineichen}, 
+journal = {arXiv},
+title = {A Fast Parallel Poisson Solver on Irregular Domains Applied to Beam  Dynamic Simulations},
+abstract = { We discuss the scalable parallel solution of the Poisson equation within a Particle-In-Cell (PIC) code for the simulation of electron beams in particle accelerators of irregular shape. The problem is discretized by Finite Differences. Depending on the treatment of the Dirichlet boundary the resulting system of equations is symmetric or `mildly' nonsymmetric positive definite. In all cases, the system is solved by the preconditioned conjugate gradient algorithm with smoothed aggregation (SA) based algebraic multigrid (AMG) preconditioning. We investigate variants of the implementation of SA-AMG that lead to considerable improvements in the execution times. We demonstrate good scalability of the solver on distributed memory parallel processor with up to 2048 processors. We also compare our SAAMG-PCG solver with an FFT-based solver that is more commonly used for applications in beam dynamics. },
+eprint = {0907.4863v1},
+volume = {physics.comp-ph},
+year = {2009},
+month = {July},
+keywords = {physics.comp-ph, physics.acc-ph}, 
+date-added = {2009-08-08 17:19:01 +0200},
+date-modified = {2009-08-08 17:19:01 +0200},
+pmid = {0907.4863v1},
+URL = {http://arxiv.org/abs/0907.4863v1},
+uri = {papers://64773080-4C16-43A9-911C-DFF933249BFF/Paper/p543},
+rating = {0}
+}
+
+
+
+
+@book{William,
+  Address =	 {Berlin Heidelberg New York},
+  Author =	 {William R. Leo},
+  Edition =	 {2nd},
+  Publisher =	 {Springer-Verlag},
+  Title =	 {Techniques for nuclear and particle physics experiments},
+  Year =	 1994
+}
+@book{Jackson,
+  Address =	 {New York},
+  Author =	 {J. D. Jackson},
+  Edition =	 {3rd},
+  Publisher =	 {John Wiley \&. Sons},
+  Title =	 {Classical Electrodynamics},
+  Year =	 1998
+}
+@inproceedings{FLUKA1,
+  author =	 "G. Battistoni and S. Muraro and P.R. Sala and F. Cerutti and A. Ferrari and S. Roesler and A. Fasso and J. Ranft",
+  title =	 "The FLUKA code: Description and benchmarking",
+  booktitle =	 "Proceedings of the Hadronic Shower Simulation Workshop 2006",
+  address =	 "Fermilab",
+  year =	 2006,
+  note =	 "M. Albrow, R. Raja eds., AIP Conference Proceeding 896, 31-49, (2007)"
+}
+@techreport{FLUKA2,
+  author =	 "A. Fasso and A. Ferrari and J. Ranft  and P.R. Sala",
+  title =	 "FLUKA: a multi-particle transport code",
+  type =	 "Tech. Report",
+  year =	 2005,
+  number =	 "CERN-2005-10 (2005), INFN/TC\_05/11, SLAC-R-773"
+}
+
+@article{abht:03,
+  author =	 "M. Adams and M. Brezina and J. Hu and R. Tuminaro",
+  title =	 "Parallel multigrid smoothing: polynomial versus
+                  {G}auss--{S}eidel",
+  journal =	 JCP,
+  volume =	 188,
+  number =	 2,
+  pages =	 "593-610 ",
+  year =	 2003
+}
+ 
+ @techreport{MCNPX,
+  title =	 "{MCNPX User’s Manual}",
+  author =	 "D. Pelowitz ed.",
+  number =	 "Version 2.5.0 LA-CP-05-0369"
+}       
+      
+        
+@techreport{Opal,
+  title =	 "{The OPAL (Object Oriented Parallel Accelerator
+                  Library) Framework}",
+  author =	 "A. Adelmann and Ch. Kraus and Y. Ineichen and J. J. Yang",
+  institution =	 "Paul Scherrer Institut",
+  number =	 "PSI-PR-08-02",
+  year =	 2008
+}
+
+@techreport{ippl,
+  title = "{The IP$^2$L (Independent Parallel Particle Layer) Framework}",
+  author = "A. Adelmann",
+  institution = "Paul Scherrer Institut",
+  number = "PSI-PR-09-05",
+  year ={2009}
+}
+
+@misc{FFTPACK,
+  key =		 "FFTPACK",
+  title =	 "{FFTPACK}",
+  note =	 "A package of FORTRAN subprograms for the Fast Fourier
+                  Transform of periodic and other symmetric sequences by
+                  P. N. Swarztrauber.  Available from
+                  \url{http://www.netlib.org/fftpack/}"
+}
+
+@book{fowa:60,
+  author =	 "G.~E.~Forsythe and W.~R.~Wasow",
+  title =	 "Finite-difference methods for partial differential
+                  equations",
+  publisher =	 "Wiley",
+  address =	 "New York",
+  year =	 1960
+}
+
+@article{gluckstern1,
+  title =	 "Analytic Model for Halo Formation in High Current Ion
+                  Linacs",
+  author =	 "R. L. Gluckstern",
+  journal =	 phrl,
+  volume =	 73,
+  number =	 9,
+  pages =	 "1247-1250",
+  Year =	 1994,
+  annote =	 "doi=10.1103/PhysRevLett.73.1247"
+}
+
+@techreport{gsht:06,
+  author =	 "M. W. Gee and C. M. Siefert and J.J. Hu and
+                  R. S. Tuminaro and M. Sala",
+  title =	 "{ML 5.0 Smoothed Aggregation User's Guide}",
+  institution =	 "Sandia National Laboratories",
+  month =	 may,
+  year =	 2006,
+  type =	 "Tech. Report",
+  number =	 "SAND2006-2649"
+}
+
+@book{gree:97,
+  author =	 "A. Greenbaum",
+  title =	 "Iterative Methods for Solving Linear Systems",
+  publisher =	 "SIAM",
+  address =	 "Philadelphia, PA",
+  year =	 1997
+}
+                
+@book{hack:85,
+  author =	 "W. Hackbusch",
+  title =	 "Multigrid Methods and Applications",
+  publisher =	 "Springer",
+  address =	 "Berlin",
+  year =	 1985
+}
+
+@book{hack:94,
+author =       "W. Hackbusch",
+  title =        "Iterative solution of large sparse systems of equations",
+  publisher =    "Springer",
+  address =      "Berlin",
+  year =         1994
+}
+
+@article{Trilinos-TOMS,
+  title =	 "An Overview of the {T}rilinos Project",
+  author =	 "Heroux et al., M.~A.",
+  journal =	 TOMS,
+  volume =	 31,
+  number =	 3,
+  pages =	 "397-423",
+  year =	 2005
+}
+
+@article{hest:52,
+  author =	 "M. R. Hestenes and E. Stiefel",
+  title =	 "Methods of Conjugent Gradients for Solving Linear
+                  Systems",
+  journal =	 "J. Res. Nat. Bur. Standards",
+  volume =	 49,
+  pages =	 "409-436",
+  year =	 1952
+}
+
+@book{hoea:88,
+  author =	 "R. W.~Hockney and J. W.~Eastwood",
+  publisher =	 "Institute of Physics Publishing",
+  address =	 "Bristol",
+  title =	 "Computer Simulation using Particles",
+  year =	 1988
+}               
+
+@book{lali:84,
+  Address =	 {Oxford},
+  Author =	 {L. D. Landau and E. M. Lifshitz},
+  Edition =	 {2nd},
+  Publisher =	 {Pergamon},
+  Title =	 {Electrodynamics of Continuous Media},
+  Year =	 1984
+}
+
+@article{mcgv:04,
+  author =	 "P. McCorquodale and P. Colella and D. P. Grote and
+                  J.-L. Vay",
+  title =	 "A Node-Centered Local Refinement Algorithm for
+                  {P}oisson's Equation in Complex Geometries",
+  journal =	 JCP,
+  volume =	 201,
+  number =	 1,
+  pages =	 "34-60",
+  year =	 2004
+}
+                  
+@article{poplau_self-adaptive_2008,
+  author =	 "G. P{\"o}plau and U. van Rienen",
+  title =	 "A Self-Adaptive Multigrid Technique for {3-D} Space
+                  Charge Calculations",
+  volume =	 44,
+  annote =	 "doi:10.1109/TMAG.2007.914831",
+  number =	 6,
+  journal =	 "IEEE Trans. Magn.",
+  pages =	 "1242-1245",
+  year =	 2008
+}
+                
+                      
+                  
+@article{qigl:04,
+  Author =	 {Ji Qiang and Robert L. Gluckstern},
+  Title =	 {Three-dimensional {P}oisson solver for a charged beam
+                  with large aspect ratio in a conducting pipe},
+  Journal =	 cpc,
+  Volume =	 {160},
+  number =	 {2},
+  Year =	 {2004},
+  Pages =	 {120-128}
+}
+
+@article{qiry:01,
+  Author =	 {Ji Qiang and Robert D. Ryne},
+  Title =	 {Parallel {3D} {P}oisson solver for a charged beam in a
+                  conducting pipe},
+  Journal =	 cpc,
+  Volume =	 {138},
+  number =	 {1},
+  Year =	 {2001},
+  Pages =	 {18-28}
+}
+
+@phdthesis{sach:68,
+  author =	 "Frank James Sacherer",
+  school =	 "University of California, Berkeley",
+  title =	 "Transverse Space-Charge Effects in Circular
+                  Accelerators",
+  year =	 1968
+}
+
+@article{sach:71,
+  author =	 "Sacherer, Frank J.",
+  title =	 "{RMS} Envelope Equations with Space Charge",
+  Journal =	 "IEEE Trans. Nucl. Sci.",
+  volume =	 18,
+  number =	 3,
+  pages =	 "1105-1107",
+  year =	 1971,
+  annote =	 "doi=10.1109/TNS.1971.4326293"
+}
+
+
+@article{sasc:86,
+  author =	 "Y. Saad and M. H. Schultz",
+  title =	 "{GMRES}: {A} Generalized Minimal Residual Algorithm
+                  for Solving Nonsymmetric Linear Systems",
+  journal =	 SISSC,
+  volume =	 7,
+  number =	 3,
+  pages =	 "856-869",
+  year =	 1986
+}
+
+@article{serafini_2005,
+  author =	 "D. B. Serafini and P. McCorquodale and P. Colella",
+  title =	 "Advanced {3D} {P}oisson solvers and particle-in-cell
+                  methods for accelerator modeling",
+  journal =	 "J. Phys.: Conf. Ser.",
+  volume =	 16,
+  pages =	 "481-485",
+  year =	 2005,
+  annote =	 "doi:10.1088/1742-6596/16/1/066"
+}                
+                
+@inproceedings{schiet:08,
+  author =	 "Schietinger et al., T.",
+  title =	 "Measurements and Modeling at the {PSI-XFEL} {500-kV}
+                  Low-Emittance Electron Source",
+  booktitle =	 "Proceedings of the 24th Linear Accelerator Conference",
+  address =	 "Victoria",
+  pages =	 "621-623",
+  year =	 2008,
+  note =	 "Available from
+                  \url{http://trshare.triumf.ca/~linac08proc/Proceedings/papers/tup097.pdf}"
+}
+
+@article{shwe:39,
+  author = 	 "G.~H.~Shortley and R.~Weller",
+  title = 	 "The Numerical Solution of {L}aplace's equation",
+  journal = 	 "J. Appl. Phys.",
+  volume =	 9,
+  pages =	 "334-344",
+  year = 	 1939
+}
+
+@article{stru-reis:1984,
+  title =	 "Theoretical studies of envelope oscillations and
+                  instabilities of mismatched intense charged-particle
+                  beams in periodic focusing channels",
+  author =	 "J. Struckmeier and M. Reiser",
+  journal =	 pacl,
+  volume =	 14,
+  number =	 "2-3",
+  pages =	 "227-260",
+  year =	 1984
+}
+
+@incollection{Swar:82,
+  author =	 "Swarztrauber, P.",
+  title =	 "Vectorizing the {FFTs}",
+  booktitle =	 "Parallel Computations",
+  editor =	 "Rodrigue, G.",
+  publisher =	 "Academic Press",
+  address =	 "New York",
+  pages =	 "51-83",
+  year =	 "1982"
+}
+
+@misc{Trilinos-Web-Site,
+  key =		 "Trilinos",
+  title =	 "{The Trilinos Project Home Page}",
+  note =	 "\url{http://trilinos.sandia.gov}"
+}
+
+@book{tros:00,
+  author =	 "U. Trottenberg and C. W. Oosterlee and
+                  A. {Sch\"uller}",
+  title =	 "Multigrid",
+  publisher =	 "Academic Press",
+  year =	 2000
+}
+
+@inproceedings{tuto:00,
+  author =	 "R. S. Tuminaro and Ch. Tong",
+  title =	 "Parallel smoothed aggregation multigrid: {A}ggregation
+                  strategies on massively parallel machines",
+  booktitle =	 "ACM/IEEE SC2000 Conference (SC2000)",
+  year =	 2000,
+  note =	 "21 pages, \url{doi:10.1109/SC.2000.10008}"
+}
+
+@article{vamb:96a,
+  author =	 "P. {Van\v{e}k} and J. Mandel and M. Brezina",
+  title =	 "Algebraic multigrid based on smoothed aggregation for
+                  second and fourth order problems",
+  journal =	 "Computing",
+  volume =	 56,
+  number =	 3,
+  year =	 1996,
+  pages =	 "179-196",
+}
+
+@article{vors:92,
+  author =	 "{\SortNoop{Vorst}}van der Vorst, H. A.",
+  title =	 "{Bi-CGSTAB}: A Fast and Smoothly Converging Variant of
+                  {Bi-CG} for the Solution of Nonsymmetric Linear
+                  Systems",
+  journal =	 SISSC,
+  volume =	 13,
+  number =	 2,
+  pages =	 "631-644",
+  year =	 1992
+}
+
+@book{wied:07,
+  author =	 "H.~Wiedemann",
+  title =	 "Particle Accelerator Physics",
+  publisher =	 "Springer",
+  address =	 "Berlin",
+  year =	 2007
+}
+
+@article{yoje:80,
+  author =	 "D. M. Young and K. C. Jea",
+  title =	 "Generalized Conjugate-Gradient Acceleration of
+                  Nonsymmetrizable Iterative Methods",
+  journal =	 LAA,
+  volume =	 34,
+  pages =	 "159-194",
+  year =	 1980
+}
+

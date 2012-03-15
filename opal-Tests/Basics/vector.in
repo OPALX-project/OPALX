@@ -1,0 +1,14 @@
+// Purpose: 
+//  Shows a simple while loop and vector expression in opal 
+
+VECTOR a={2.5,2.6,2.7};
+
+i=1;
+
+
+WHILE (i<=3)
+{
+b=a[i];
+VALUE,b;
+i = i + 1;
+}

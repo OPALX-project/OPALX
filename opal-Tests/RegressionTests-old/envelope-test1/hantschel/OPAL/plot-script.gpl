@@ -1,0 +1,11 @@
+set title "B Field of Solenoid (OPAL)"
+set ylabel "B field"
+set xlabel "z Position in m"
+set xrange [0:0.12]
+set time
+plot "testfields.dat" u 1:5 title 'Bx'
+replot "testfields.dat" u 1:6 title 'By'
+replot "testfields.dat" u 1:7 title 'Bz'
+set term postscript color
+set out 'OPAL_solenoid_B.ps'
+replot

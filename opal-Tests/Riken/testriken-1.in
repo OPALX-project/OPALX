@@ -1,0 +1,50 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=24500000;
+Option, SPTDUMPFREQ = 50;
+
+Title,string="Riken Cyclotron";
+
+Edes=0.000870;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+phi01= 48.4812-15.0;
+phi02=phi01+200.0;
+phi03=phi01+1800.0;
+phi04=phi01+2000.0;
+phi05=(phi01+820.0)*3.0;
+phi06=(phi01+2620.0)*3.0;
+
+frequency=50.6370;
+frequency3=3.0*frequency;
+
+inj2: Cyclotron, TYPE="AVFEQ", CYHARMON=10, PHIINIT=30.0, PRINIT=-0.0067, RINIT=392.5, SYMMETRY=1.0, RFFREQ=frequency, FMAPFN="bmap.dat";
+
+rf0: RFCavity, VOLT=0.25796, FMAPFN="Cav1.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 350.0, RMAX = 3350.0, ANGLE=35.0,   PDIS = 0.0, GAPWIDTH = 0.0, PHI0=phi01; 
+rf1: RFCavity, VOLT=0.25796, FMAPFN="Cav1.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 350.0, RMAX = 3350.0, ANGLE=55.0,   PDIS = 0.0, GAPWIDTH = 0.0, PHI0=phi02; 
+rf2: RFCavity, VOLT=0.25796, FMAPFN="Cav1.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 350.0, RMAX = 3350.0, ANGLE=215.0,  PDIS = 0.0, GAPWIDTH = 0.0, PHI0=phi03; 
+rf3: RFCavity, VOLT=0.25796, FMAPFN="Cav1.dat", TYPE="SINGLEGAP", FREQ=frequency, RMIN = 350.0, RMAX = 3350.0, ANGLE=235.0,  PDIS = 0.0, GAPWIDTH = 0.0, PHI0=phi04; 
+rf4: RFCavity, VOLT=0.06380, FMAPFN="Cav3.dat", TYPE="SINGLEGAP", FREQ=frequency3, RMIN = 830.0, RMAX = 3330.0, ANGLE=135.0, PDIS = 0.0, GAPWIDTH = 0.0, PHI0=phi05; 
+rf5: RFCavity, VOLT=0.06380, FMAPFN="Cav3.dat", TYPE="SINGLEGAP", FREQ=frequency3, RMIN = 830.0, RMAX = 3330.0, ANGLE=315.0, PDIS = 0.0, GAPWIDTH = 0.0, PHI0=phi06; 
+l1:   Line = (inj2,rf0,rf1,rf2,rf3,rf4,rf5);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="PartDatabase.dat"; 
+
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=64, MY=64, MT=64, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=false, NPART=1, BCURRENT=3.0E-3,CHARGE=1.0, BFREQ= frequency;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1,MAXSTEPS=2000*106,STEPSPERTURN=2000;
+ run, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;

@@ -1,0 +1,6 @@
+"Simulation of a perfect emission without space charge based on S. Russels model"
+stat "rms_x" avg 1E-15    #this is a comment
+stat "rms_y" avg 1E-15    #this is a comment
+stat "rms_z" avg 1E-15    #this is a comment
+out "Emean" avg 1E-15
+out "rms emmitance" avg 1E-15

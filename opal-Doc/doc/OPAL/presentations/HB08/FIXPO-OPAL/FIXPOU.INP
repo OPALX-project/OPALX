@@ -1,0 +1,8 @@
+RUN       102, Kollimatoren C6
+TAPEI1    ZYKL9Z    F3557
+GORBIT    100.      2.
+GUESS     638.2     1.158
+FIXPO     360.      0.0
+LONG      0.        5.        360.
+PLOT
+NO MORE

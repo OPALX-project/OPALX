@@ -1,0 +1,49 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=1;
+
+Title,string="OPAL distribution test";
+
+Edes=1.0E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+
+SP1: Solenoid, L=0.12, ELEMEDGE=-0.01, FMAPFN="1T1.T7", KS=0.312500;
+
+l1:   Line = (SP1); 
+
+/*
+ Note: sigmapt is in eV 
+*/
+
+v0=beta*CLIGHT;
+T1s = 6.5e-12;
+lz  = T1s*v0;
+value,{v0,lz};
+
+Dist2:DISTRIBUTION, DISTRIBUTION=binomial,
+sigmax=  0.0001, sigmapx=1.0E-5, corrx=0.0, mx=0.000001,
+sigmay=  0.0002, sigmapy=1.0E-5, corry=0.0, my=1.0,
+sigmat=  0.0003, sigmapt=1.0E-5, corrt=0.0, mt=9000.0, TEMISSION=0.0;
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=32, MY=32, MT=32, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=1e6, BCURRENT=0.299, BFREQ=1.498956e9, CHARGE=-1;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=0,DT=1.0e-12;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist2;
+endtrack;
+Stop;
+Quit;
+

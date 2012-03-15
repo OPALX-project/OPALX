@@ -1,0 +1,4 @@
+mpirun -np 4 $OPAL_EXE_PATH/opal Distribution-1.in --commlib mpi --info 0 --warn 0 2>&1 | tee  Distribution-1.out
+# because this test does not generate lbal and stat files
+touch Distribution-1.lbal
+touch Distribution-1.stat
