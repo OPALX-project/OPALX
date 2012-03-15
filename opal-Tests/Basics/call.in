@@ -1,0 +1,16 @@
+// Purpose: 
+// Shows a simple while loop and vector expression in opal
+// The vector is read in from the file data.in 
+
+
+CALL,FILE="data.dat";
+
+i=1;
+
+
+WHILE (i<=3)
+{
+b=a[i];
+VALUE,b;
+i = i + 1;
+}

@@ -1,0 +1,14 @@
+
+How to obtain the tune landscape of the Ring cyclotron?
+
+Run tuning.bash and tuning.bash uses testcycl-3.in, FIXPO_SEO and FIXPOUdata,
+
+the output file is plotdata, its format is:
+
+eneryg, ur_fixpo, uz_fixpo, ur_opal-cycl, ur_opal-cycl 
+
+then one can plot betatron resonance diragram using following commond in gunplot:
+
+ plot "plotdata" using 2:3 with lines  title 'FIXPO',\
+      "plotdata" using 4:5 with linespoints title 'OPAL',\
+      "plotdata" using 2:(0.5*$2) with lines title 'nur = 2nurz'
