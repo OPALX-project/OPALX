@@ -1,0 +1,290 @@
+THIS	= DistMake
+DESTDIR	= 
+DEFS	= 
+XDEFS	= 
+XXDEFS	= # to be set on make command line
+CC	= cc
+CPP	= cpp
+CCM	= cc -M
+CPLUS	= CC
+CPLUSM	= CC -M
+INCPATH	= 
+CFLAGS	=  $(DEFS) $(XDEFS) $(XXDEFS) $(INCPATH)
+DFLAGS	=  $(DEFS) $(XDEFS) $(XXDEFS) $(INCPATH)
+LD	= ld
+LDFLAGS	= 
+LEX	= lex
+LFLAGS	= 
+LINT	= lint
+LIFLAGS	= -axbh
+YACC	= yacc
+YFLAGS	= 
+EQUEL	= equel
+QFLAGS	= 
+F77	= f77
+FFLAGS	= 
+AR	= ar
+AS	= as
+AS_R	= $(AS) -R
+STRIP	= strip
+SHELL	= /bin/sh
+PATH	= /bin:/usr/bin:/etc:/usr/ucb
+INSTALL	= install
+IFLAGS	= 
+MAKEARGS= 'CC=$(CC)' 'CCM=$(CCM)' \
+		  'CPLUS=$(CPLUS)' 'CPLUSM=$(CPLUSM)' 'AS=$(AS)' 'LD=$(LD)' \
+		  'DEFS=$(DEFS)' 'DESTDIR=$(DESTDIR)' 'INSTALL=$(INSTALL)' \
+		  -$(MAKEFLAGS)
+
+all:	# just to make it the first dependency
+FRC:	# dummy target
+
+oAn	= objs
+oAp	= objs-p
+oLn	= objs.nolibc
+oLp	= objs.nolibc-p
+oSn	= objs.nostdio
+oSp	= objs.nostdio-p
+
+
+ofAn	= $(oAn)/clrprf.o $(oAn)/clrtprf.o $(oAn)/defprf.o $(oAn)/deftprf.o \
+		$(oAn)/dprf.o $(oAn)/dprfv.o $(oAn)/extprf.o $(oAn)/exttprf.o \
+		$(oAn)/iprf.o $(oAn)/iprfv.o $(oAn)/lprf.o $(oAn)/lprfv.o \
+		$(oAn)/prf_C.o $(oAn)/prf_R.o $(oAn)/prf_S.o $(oAn)/prf_X.o \
+		$(oAn)/prf__conv.o $(oAn)/prf__cput.o $(oAn)/prf__d.o \
+		$(oAn)/prf__mput.o $(oAn)/prf__ncput.o $(oAn)/prf__num.o \
+		$(oAn)/prf__parse.o $(oAn)/prf__thectab.o $(oAn)/prf__udigs.o \
+		$(oAn)/prf_b.o $(oAn)/prf_c.o $(oAn)/prf_d.o $(oAn)/prf_m.o \
+		$(oAn)/prf_o.o $(oAn)/prf_p.o $(oAn)/prf_plural.o \
+		$(oAn)/prf_repeat.o $(oAn)/prf_s.o $(oAn)/prf__stretch.o \
+		$(oAn)/prf_u.o $(oAn)/prf_unknown.o $(oAn)/prf_x.o \
+		$(oAn)/setprf.o $(oAn)/settprf.o $(oAn)/sprf.o $(oAn)/sprfv.o \
+		$(oAn)/stdprf.o $(oAn)/stdtprf.o $(oAn)/uprf.o $(oAn)/uprfv.o \
+		$(oAn)/prf__naninf.o $(oAn)/prf__efcvt.o $(oAn)/prf__e.o \
+		$(oAn)/prf__f.o $(oAn)/prf_e.o $(oAn)/prf_f.o $(oAn)/prf_g.o \
+		$(oAn)/prf_eE.o $(oAn)/prf_gG.o $(oAn)/fltprf.o \
+		$(oAn)/flttprf.o $(oAn)/fprf.o $(oAn)/fprfv.o $(oAn)/prf.o \
+		$(oAn)/prfv.o
+
+ofAp	= $(oAp)/clrprf.o $(oAp)/clrtprf.o $(oAp)/defprf.o $(oAp)/deftprf.o \
+		$(oAp)/dprf.o $(oAp)/dprfv.o $(oAp)/extprf.o $(oAp)/exttprf.o \
+		$(oAp)/iprf.o $(oAp)/iprfv.o $(oAp)/lprf.o $(oAp)/lprfv.o \
+		$(oAp)/prf_C.o $(oAp)/prf_R.o $(oAp)/prf_S.o $(oAp)/prf_X.o \
+		$(oAp)/prf__conv.o $(oAp)/prf__cput.o $(oAp)/prf__d.o \
+		$(oAp)/prf__mput.o $(oAp)/prf__ncput.o $(oAp)/prf__num.o \
+		$(oAp)/prf__parse.o $(oAp)/prf__thectab.o $(oAp)/prf__udigs.o \
+		$(oAp)/prf_b.o $(oAp)/prf_c.o $(oAp)/prf_d.o $(oAp)/prf_m.o \
+		$(oAp)/prf_o.o $(oAp)/prf_p.o $(oAp)/prf_plural.o \
+		$(oAp)/prf_repeat.o $(oAp)/prf_s.o $(oAp)/prf__stretch.o \
+		$(oAp)/prf_u.o $(oAp)/prf_unknown.o $(oAp)/prf_x.o \
+		$(oAp)/setprf.o $(oAp)/settprf.o $(oAp)/sprf.o $(oAp)/sprfv.o \
+		$(oAp)/stdprf.o $(oAp)/stdtprf.o $(oAp)/uprf.o $(oAp)/uprfv.o \
+		$(oAp)/prf__naninf.o $(oAp)/prf__efcvt.o $(oAp)/prf__e.o \
+		$(oAp)/prf__f.o $(oAp)/prf_e.o $(oAp)/prf_f.o $(oAp)/prf_g.o \
+		$(oAp)/prf_eE.o $(oAp)/prf_gG.o $(oAp)/fltprf.o \
+		$(oAp)/flttprf.o $(oAp)/fprf.o $(oAp)/fprfv.o $(oAp)/prf.o \
+		$(oAp)/prfv.o
+
+ofLn	= $(oLn)/clrprf.o $(oLn)/clrtprf.o $(oLn)/defprf.o $(oLn)/deftprf.o \
+		$(oLn)/dprf.o $(oLn)/dprfv.o $(oLn)/extprf.o $(oLn)/exttprf.o \
+		$(oLn)/iprf.o $(oLn)/iprfv.o $(oLn)/lprf.o $(oLn)/lprfv.o \
+		$(oLn)/prf_C.o $(oLn)/prf_R.o $(oLn)/prf_S.o $(oLn)/prf_X.o \
+		$(oLn)/prf__conv.o $(oLn)/prf__cput.o $(oLn)/prf__d.o \
+		$(oLn)/prf__mput.o $(oLn)/prf__ncput.o $(oLn)/prf__num.o \
+		$(oLn)/prf__parse.o $(oLn)/prf__thectab.o $(oLn)/prf__udigs.o \
+		$(oLn)/prf_b.o $(oLn)/prf_c.o $(oLn)/prf_d.o $(oLn)/prf_m.o \
+		$(oLn)/prf_o.o $(oLn)/prf_p.o $(oLn)/prf_plural.o \
+		$(oLn)/prf_repeat.o $(oLn)/prf_s.o $(oLn)/prf__stretch.o \
+		$(oLn)/prf_u.o $(oLn)/prf_unknown.o $(oLn)/prf_x.o \
+		$(oLn)/setprf.o $(oLn)/settprf.o $(oLn)/sprf.o $(oLn)/sprfv.o \
+		$(oLn)/stdprf.o $(oLn)/stdtprf.o $(oLn)/uprf.o $(oLn)/uprfv.o \
+		$(oLn)/prf__naninf.o $(oLn)/prf__efcvt.o $(oLn)/prf__e.o \
+		$(oLn)/prf__f.o $(oLn)/prf_e.o $(oLn)/prf_f.o $(oLn)/prf_g.o \
+		$(oLn)/prf_eE.o $(oLn)/prf_gG.o $(oLn)/fltprf.o \
+		$(oLn)/flttprf.o
+
+ofLp	= $(oLp)/clrprf.o $(oLp)/clrtprf.o $(oLp)/defprf.o $(oLp)/deftprf.o \
+		$(oLp)/dprf.o $(oLp)/dprfv.o $(oLp)/extprf.o $(oLp)/exttprf.o \
+		$(oLp)/iprf.o $(oLp)/iprfv.o $(oLp)/lprf.o $(oLp)/lprfv.o \
+		$(oLp)/prf_C.o $(oLp)/prf_R.o $(oLp)/prf_S.o $(oLp)/prf_X.o \
+		$(oLp)/prf__conv.o $(oLp)/prf__cput.o $(oLp)/prf__d.o \
+		$(oLp)/prf__mput.o $(oLp)/prf__ncput.o $(oLp)/prf__num.o \
+		$(oLp)/prf__parse.o $(oLp)/prf__thectab.o $(oLp)/prf__udigs.o \
+		$(oLp)/prf_b.o $(oLp)/prf_c.o $(oLp)/prf_d.o $(oLp)/prf_m.o \
+		$(oLp)/prf_o.o $(oLp)/prf_p.o $(oLp)/prf_plural.o \
+		$(oLp)/prf_repeat.o $(oLp)/prf_s.o $(oLp)/prf__stretch.o \
+		$(oLp)/prf_u.o $(oLp)/prf_unknown.o $(oLp)/prf_x.o \
+		$(oLp)/setprf.o $(oLp)/settprf.o $(oLp)/sprf.o $(oLp)/sprfv.o \
+		$(oLp)/stdprf.o $(oLp)/stdtprf.o $(oLp)/uprf.o $(oLp)/uprfv.o \
+		$(oLp)/prf__naninf.o $(oLp)/prf__efcvt.o $(oLp)/prf__e.o \
+		$(oLp)/prf__f.o $(oLp)/prf_e.o $(oLp)/prf_f.o $(oLp)/prf_g.o \
+		$(oLp)/prf_eE.o $(oLp)/prf_gG.o $(oLp)/fltprf.o \
+		$(oLp)/flttprf.o
+
+ofSn	= $(oSn)/clrprf.o $(oSn)/clrtprf.o $(oSn)/defprf.o $(oSn)/deftprf.o \
+		$(oSn)/dprf.o $(oSn)/dprfv.o $(oSn)/extprf.o $(oSn)/exttprf.o \
+		$(oSn)/iprf.o $(oSn)/iprfv.o $(oSn)/lprf.o $(oSn)/lprfv.o \
+		$(oSn)/prf_C.o $(oSn)/prf_R.o $(oSn)/prf_S.o $(oSn)/prf_X.o \
+		$(oSn)/prf__conv.o $(oSn)/prf__cput.o $(oSn)/prf__d.o \
+		$(oSn)/prf__mput.o $(oSn)/prf__ncput.o $(oSn)/prf__num.o \
+		$(oSn)/prf__parse.o $(oSn)/prf__thectab.o $(oSn)/prf__udigs.o \
+		$(oSn)/prf_b.o $(oSn)/prf_c.o $(oSn)/prf_d.o $(oSn)/prf_m.o \
+		$(oSn)/prf_o.o $(oSn)/prf_p.o $(oSn)/prf_plural.o \
+		$(oSn)/prf_repeat.o $(oSn)/prf_s.o $(oSn)/prf__stretch.o \
+		$(oSn)/prf_u.o $(oSn)/prf_unknown.o $(oSn)/prf_x.o \
+		$(oSn)/setprf.o $(oSn)/settprf.o $(oSn)/sprf.o $(oSn)/sprfv.o \
+		$(oSn)/stdprf.o $(oSn)/stdtprf.o $(oSn)/uprf.o $(oSn)/uprfv.o \
+		$(oSn)/prf__naninf.o $(oSn)/prf__efcvt.o $(oSn)/prf__e.o \
+		$(oSn)/prf__f.o $(oSn)/prf_e.o $(oSn)/prf_f.o $(oSn)/prf_g.o \
+		$(oSn)/prf_eE.o $(oSn)/prf_gG.o $(oSn)/fltprf.o \
+		$(oSn)/flttprf.o
+
+ofSp	= $(oSp)/clrprf.o $(oSp)/clrtprf.o $(oSp)/defprf.o $(oSp)/deftprf.o \
+		$(oSp)/dprf.o $(oSp)/dprfv.o $(oSp)/extprf.o $(oSp)/exttprf.o \
+		$(oSp)/iprf.o $(oSp)/iprfv.o $(oSp)/lprf.o $(oSp)/lprfv.o \
+		$(oSp)/prf_C.o $(oSp)/prf_R.o $(oSp)/prf_S.o $(oSp)/prf_X.o \
+		$(oSp)/prf__conv.o $(oSp)/prf__cput.o $(oSp)/prf__d.o \
+		$(oSp)/prf__mput.o $(oSp)/prf__ncput.o $(oSp)/prf__num.o \
+		$(oSp)/prf__parse.o $(oSp)/prf__thectab.o $(oSp)/prf__udigs.o \
+		$(oSp)/prf_b.o $(oSp)/prf_c.o $(oSp)/prf_d.o $(oSp)/prf_m.o \
+		$(oSp)/prf_o.o $(oSp)/prf_p.o $(oSp)/prf_plural.o \
+		$(oSp)/prf_repeat.o $(oSp)/prf_s.o $(oSp)/prf__stretch.o \
+		$(oSp)/prf_u.o $(oSp)/prf_unknown.o $(oSp)/prf_x.o \
+		$(oSp)/setprf.o $(oSp)/settprf.o $(oSp)/sprf.o $(oSp)/sprfv.o \
+		$(oSp)/stdprf.o $(oSp)/stdtprf.o $(oSp)/uprf.o $(oSp)/uprfv.o \
+		$(oSp)/prf__naninf.o $(oSp)/prf__efcvt.o $(oSp)/prf__e.o \
+		$(oSp)/prf__f.o $(oSp)/prf_e.o $(oSp)/prf_f.o $(oSp)/prf_g.o \
+		$(oSp)/prf_eE.o $(oSp)/prf_gG.o $(oSp)/fltprf.o \
+		$(oSp)/flttprf.o
+
+prflocal.h:	./prflocal.h
+./prflocal.h:	mklocal.c
+	$(CC) mklocal.c
+	rm -f "$@"
+	./a.out > "$@"
+	rm -f a.out
+
+libprf.a:	FRC
+	$(MAKE) -$(MFLAGS)$(MAKEFLAGS) -f LibMake CC='$(CC)'	\
+		DEFS='$(DEFS)' \
+		oDIR=objs oFs='$(ofAn)' lIB='$@' $@
+
+libprf_p.a:	FRC
+	$(MAKE) -$(MFLAGS)$(MAKEFLAGS) -f LibMake CC='$(CC)'	\
+		DEFS='$(DEFS) -p' \
+		oDIR=objs-p oFs='$(ofAp)' lIB='$@' $@
+
+libprf-libc.a:	FRC
+	$(MAKE) -$(MFLAGS)$(MAKEFLAGS) -f LibMake CC='$(CC)'	\
+		DEFS='$(DEFS) -DPRF_NOLIBC' \
+		oDIR=objs.nolibc oFs='$(ofLn)' lIB='$@' $@
+
+libprf-libc_p.a:	FRC
+	$(MAKE) -$(MFLAGS)$(MAKEFLAGS) -f LibMake CC='$(CC)'	\
+		DEFS='$(DEFS) -DPRF_NOLIBC -p' \
+		oDIR=objs.nolibc-p oFs='$(ofLp)' lIB='$@' $@
+
+libprf-stdio.a:	FRC
+	$(MAKE) -$(MFLAGS)$(MAKEFLAGS) -f LibMake CC='$(CC)'	\
+		DEFS='$(DEFS) -DPRF_NOSTDIO' \
+		oDIR=objs.nostdio oFs='$(ofSn)' lIB='$@' $@
+
+libprf-stdio_p.a:	FRC
+	$(MAKE) -$(MFLAGS)$(MAKEFLAGS) -f LibMake CC='$(CC)'	\
+		DEFS='$(DEFS) -DPRF_NOSTDIO -p' \
+		oDIR=objs.nostdio-p oFs='$(ofSp)' lIB='$@' $@
+
+idir_INC	= /usr/include
+idir_LIB	= /usr/lib
+idir_LLIB	= /usr/lib/lint
+idir_MAN	= /usr/man/manl
+
+
+all: libprf.a libprf_p.a libprf-libc.a libprf-libc_p.a libprf-stdio.a \
+		libprf-stdio_p.a
+
+TAGFILES	= prf.h prfflt.h prfnolibc.h prfnostdio.h ./prflocal.h \
+		clrprf.c clrtprf.c defprf.c deftprf.c dprf.c dprfv.c extprf.c \
+		exttprf.c iprf.c iprfv.c lprf.c lprfv.c prf_C.c prf_R.c \
+		prf_S.c prf_X.c prf__conv.c prf__cput.c prf__d.c prf__mput.c \
+		prf__ncput.c prf__num.c prf__parse.c prf__thectab.c \
+		prf__udigs.c prf_b.c prf_c.c prf_d.c prf_m.c prf_o.c prf_p.c \
+		prf_plural.c prf_repeat.c prf_s.c prf__stretch.c prf_u.c \
+		prf_unknown.c prf_x.c setprf.c settprf.c sprf.c sprfv.c \
+		stdprf.c stdtprf.c uprf.c uprfv.c prf__naninf.c prf__efcvt.c \
+		prf__e.c prf__f.c prf_e.c prf_f.c prf_g.c prf_eE.c prf_gG.c \
+		fltprf.c flttprf.c fprf.c fprfv.c prf.c prfv.c
+
+tags: $(TAGFILES)
+	/usr/ucb/ctags $(TAGFILES)
+
+lint:
+	@echo Nothing to lint in `pwd`/$(THIS).
+
+clean:
+	cd $(oAn) ; rm -f $(CLEAN_SOME_) fprf.o fprfv.o prf.o prfv.o
+	cd $(oAp) ; rm -f $(CLEAN_SOME_) fprf.o fprfv.o prf.o prfv.o
+	cd $(oLn) ; rm -f $(CLEAN_SOME_) 
+	cd $(oLp) ; rm -f $(CLEAN_SOME_) 
+	cd $(oSn) ; rm -f $(CLEAN_SOME_) 
+	cd $(oSp) ; rm -f $(CLEAN_SOME_) 
+	rm -f libprf.a libprf_p.a libprf-libc.a libprf-libc_p.a libprf-stdio.a \
+		libprf-stdio_p.a
+
+CLEAN_SOME_	= clrprf.o clrtprf.o defprf.o deftprf.o dprf.o dprfv.o \
+		extprf.o exttprf.o iprf.o iprfv.o lprf.o lprfv.o prf_C.o \
+		prf_R.o prf_S.o prf_X.o prf__conv.o prf__cput.o prf__d.o \
+		prf__mput.o prf__ncput.o prf__num.o prf__parse.o \
+		prf__thectab.o prf__udigs.o prf_b.o prf_c.o prf_d.o prf_m.o \
+		prf_o.o prf_p.o prf_plural.o prf_repeat.o prf_s.o \
+		prf__stretch.o prf_u.o prf_unknown.o prf_x.o setprf.o \
+		settprf.o sprf.o sprfv.o stdprf.o stdtprf.o uprf.o uprfv.o \
+		prf__naninf.o prf__efcvt.o prf__e.o prf__f.o prf_e.o prf_f.o \
+		prf_g.o prf_eE.o prf_gG.o fltprf.o flttprf.o
+
+
+$(DESTDIR)$(idir_INC)/prf.h: prf.h
+	$(INSTALL) $(IFLAGS) -m 444 -c prf.h $@
+
+$(DESTDIR)$(idir_INC)/prfflt.h: prfflt.h
+	$(INSTALL) $(IFLAGS) -m 444 -c prfflt.h $@
+
+$(DESTDIR)$(idir_INC)/prfnolibc.h: prfnolibc.h
+	$(INSTALL) $(IFLAGS) -m 444 -c prfnolibc.h $@
+
+$(DESTDIR)$(idir_INC)/prfnostdio.h: prfnostdio.h
+	$(INSTALL) $(IFLAGS) -m 444 -c prfnostdio.h $@
+
+$(DESTDIR)$(idir_INC)/prflocal.h: ./prflocal.h
+	$(INSTALL) $(IFLAGS) -m 444 -c ./prflocal.h $@
+
+$(DESTDIR)$(idir_MAN)/prf.): prf.3x
+	$(INSTALL) $(IFLAGS) -m 444 -c prf.3x $@
+
+install: $(DESTDIR)$(idir_LIB) $(DESTDIR)$(idir_INC) $(DESTDIR)$(idir_MAN) \
+		$(DESTDIR)$(idir_INC)/prf.h $(DESTDIR)$(idir_INC)/prfflt.h \
+		$(DESTDIR)$(idir_INC)/prfnolibc.h \
+		$(DESTDIR)$(idir_INC)/prfnostdio.h \
+		$(DESTDIR)$(idir_INC)/prflocal.h $(DESTDIR)$(idir_MAN)/prf.)
+	$(INSTALL) $(IFLAGS) -m 444 libprf.a $(DESTDIR)$(idir_LIB)/libprf.a 
+	$(INSTALL) $(IFLAGS) -m 444 libprf_p.a \
+		$(DESTDIR)$(idir_LIB)/libprf_p.a 
+	$(INSTALL) $(IFLAGS) -m 444 libprf-libc.a \
+		$(DESTDIR)$(idir_LIB)/libprf-libc.a 
+	$(INSTALL) $(IFLAGS) -m 444 libprf-libc_p.a \
+		$(DESTDIR)$(idir_LIB)/libprf-libc_p.a 
+	$(INSTALL) $(IFLAGS) -m 444 libprf-stdio.a \
+		$(DESTDIR)$(idir_LIB)/libprf-stdio.a 
+	$(INSTALL) $(IFLAGS) -m 444 libprf-stdio_p.a \
+		$(DESTDIR)$(idir_LIB)/libprf-stdio_p.a
+
+dirs:
+	@echo No directories in `pwd`/DistMake.
+
+idirs: $(DESTDIR)$(idir_LIB) $(DESTDIR)$(idir_INC) $(DESTDIR)$(idir_MAN) 
+
+$(DESTDIR)$(idir_LIB) $(DESTDIR)$(idir_INC) $(DESTDIR)$(idir_MAN):
+	mkdir $@
+
+depend:
+	@echo No dependencies in `pwd`/$(THIS).
