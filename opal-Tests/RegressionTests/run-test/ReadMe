@@ -1,0 +1,43 @@
+
+Renews afs token all 30 secods.
+
+./aexe -t 30 -p ./.p ./sayHello.sh
+
+
+Crontab file:
+
+30,40 6 * * * /dshome/adelmann/AMAS-Doc/amas-cron-job
+
+
+Add, Delete and list a crontab:
+
+crontab ./amas-cron-job                   
+crontab -r
+crontab -l
+
+
+Mail version 8.1 6/6/93.  Type ? for help.
+"/var/spool/mail/adelmann": 1 message 1 new
+>N  1 root@slsbd7.psi.ch    Sun Oct 28 06:40  24/1176  "Cron <adelmann@slsbd7> /dshome/adelmann/AMAS-Doc/aexe -t 30 -p /dshome/adelmann/AMAS-Doc/.p /dshom"
+& 1
+Message 1:
+From adelmann@slsbd7.psi.ch  Sun Oct 28 06:40:02 2007
+Date: Sun, 28 Oct 2007 06:40:02 +0100
+From: root@slsbd7.psi.ch (Cron Daemon)
+To: adelmann@slsbd7.psi.ch
+Subject: Cron <adelmann@slsbd7> /dshome/adelmann/AMAS-Doc/aexe -t 30 -p /dshome/adelmann/AMAS-Doc/.p /dshome/adelmann/AMAS-Doc/doIt
+X-Cron-Env: <SHELL=/bin/sh>
+X-Cron-Env: <HOME=/dshome/adelmann>
+X-Cron-Env: <PATH=/usr/bin:/bin>
+X-Cron-Env: <LOGNAME=adelmann>
+X-Cron-Env: <USER=adelmann>
+
+match /dshome/adelmann/AMAS-Doc/doIt
+/dshome/adelmann/AMAS-Doc/aexe: line 1: reauth: command not found
+/dshome/adelmann/AMAS-Doc/doIt: line 3: /afs/psi.ch/user/a/adelmann/private/txt: Permission denied
+kill: usage: kill [-s sigspec | -n signum | -sigspec] [pid | job]... or kill -l [sigspec]
+
+
+
+
+

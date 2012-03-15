@@ -1,0 +1,87 @@
+\documentclass[11pt,a4paper]{report}
+%% ada \usepackage{here}
+\usepackage{epic}
+
+% ========================================================================
+
+\setlength\hoffset{0pt}
+\setlength\oddsidemargin{0pt}
+\setlength\evensidemargin{\oddsidemargin}
+\setlength\textwidth{160mm}
+
+\setlength\headheight{12pt}
+\setlength\headsep{24pt}
+\setlength\voffset{-36pt}
+\setlength\textheight{9in}
+\setlength\footskip{36pt}
+
+\setlength\parindent{0pt}
+\setlength\partopsep{0pt}
+\setlength\topsep{0pt}
+\raggedbottom
+
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+
+\newcommand{\ejectpage}{\clearpage}
+
+\input{uml}
+
+% ------------------------------------------------------------------------
+\begin{document}
+
+\begin{center}
+PSI Paul Scherrer Institut\\
+\vspace{3cm}
+{\huge {\bf OPAL Class Reference Manual}}
+
+\vspace{1cm}
+Andreas Adelmann
+
+\vspace{2cm}
+{\bf Abstract}
+\end{center}
+
+\begin{quote}
+  This report describes the classes implemented in the OPAL program
+  and their relationship with the CLASSIC classes.
+\end{quote}
+
+\clearpage
+
+\setlength{\unitlength}{0.8pt}
+
+\tableofcontents
+\listoffigures
+
+% ========================================================================
+
+\chapter{Overview}
+The class diagrams below do not show all classes nor all dependencies,
+but they do explain the general structure of the program.
+
+\input{opal-uml}
+
+% ========================================================================
+
+% include the file created by docker
+\chapter{Detailed Class Descriptions}
+The detailed class description can be found at the AMAS documentation web site.
+
+% ========================================================================
+
+\clearpage
+\begin{thebibliography}{99}
+
+\bibitem{Gamma}
+  E.~Gamma, R.~Helm, R.~Johnson, and J.~Vlissides,
+  \textit{Design Patterns, Elements of Reusable Object-Oriented
+    Software},
+  Addison-Wesley, 1995.
+
+\end{thebibliography}
+
+% ========================================================================
+
+\end{document}
+\bye

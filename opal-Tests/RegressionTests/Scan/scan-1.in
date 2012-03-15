@@ -1,0 +1,80 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=1;
+Option, SCAN=TRUE;
+
+REPARTFREQ=1000;
+MINSTEPFORREBIN=1500;
+
+Title,string="Error study test";
+
+Edes=1.0E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element length (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+
+
+qb=20.7E-12;
+rf=1498.956e6;  
+v0=beta*CLIGHT;
+lz  = 6.5E-12*v0;
+value,{v0,lz};
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gungauss3d,
+      sigmax=0.000330*RANF(), sigmapx=0.0, corrx=0.0,
+      sigmay=0.000370, sigmapy=0.0, corry=0.0, TRANSVCUTOFF=10.0,
+      sigmat=lz, pt=1.0, sigmapt=0.0, corrt=0.0 , TEMISSION=3.9e-11, NBIN=1, DEBIN=2;
+
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=64, 
+		 PARFFTX=false, PARFFTY=false, PARFFTT=true,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=3, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=10000, BCURRENT=0.0310283892, BFREQ=rf, CHARGE=-1;
+
+I=0;
+WHILE (I < 3) {
+
+   rv1:= (RANF()*4.7);
+   rv2:=0.0; //(RANF()*8.246e-07);
+   rv3:=0.0; //(RANF()*1.615e-07);
+   rv4:=0.0; //(RANF()*1.016e-07);
+   rv5:=0.0; //(RANF()*4.750e-07);
+
+   Ppo: PepperPot, L=200.0E-6, ELEMEDGE=6.0E-3, R=1.0E-4, PITCH=0.5E-4, NHOLX=20, NHOLY=20, XSIZE=5.0E-3, YSIZE=5.0E-3, OUTFN="ppo.h5";
+
+   Col: ECollimator, L=3.0E-3, ELEMEDGE=7.0E-3, XSIZE=7.5E-4, YSIZE=7.5E-4, OUTFN="Coll.h5";
+   SP1: Solenoid, L=1.20, ELEMEDGE=-0.5315, FMAPFN="1T2.T7", KS=8.246e-05 + rv2;
+   SP2: Solenoid, L=1.20, ELEMEDGE=-0.397,  FMAPFN="1T3.T7", KS=1.615e-05 + rv3;
+   SP3: Solenoid, L=1.20, ELEMEDGE=-0.267,  FMAPFN="1T3.T7", KS=1.016e-05 + rv4;
+   SP4: Solenoid, L=1.20, ELEMEDGE=-0.157,  FMAPFN="1T3.T7", KS=4.750e-05 + rv5;
+   SP5: Solenoid, L=1.20, ELEMEDGE=-0.047,  FMAPFN="1T3.T7", KS=0.0;
+
+   gun: RFCavity, L=0.013, VOLT=(-47.51437343 + rv1), FMAPFN="1T1.T7", ELEMEDGE=0.00, TYPE="STANDING", FREQ=1.0e-6;
+
+   value,{I,rv1,rv2,rv3,rv4,rv5};
+
+   l1:   Line = (gun,Ppo,sp1,sp2,sp3,sp4,sp5); 
+
+   SELECT, Line=l1;
+   TRACK,line=l1, beam=beam1, MAXSTEPS=500, DT=2.0e-13;
+    RUN, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution:=Dist1;
+   ENDTRACK;
+
+   SYSTEM,"mkdir -p scan0-" & STRING(I);
+   SYSTEM,"mv scan-0.h5 scan-0.stat scan-0.lbal scan0-" & STRING(I);
+   I=EVAL(I+1.0);	
+}
+
+Quit;

@@ -1,0 +1,52 @@
+\tikzstyle{format} = [draw, thin, fill=blue!20]
+\tikzstyle{pblock} = [rectangle, draw, fill=blue!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{mblock} = [rectangle, draw, fill=green!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{bblock} = [rectangle, draw, fill=gray!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{prblock} = [rectangle, draw, fill=red!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{rblock} = [rectangle, draw, fill=black!50, text width=6em, text centered, rounded corners, minimum height=0.4em]
+%\tikzstyle{block} = [rectangle, draw, fill=blue!20, text centered, rounded corners]
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{medium} = [ellipse, draw, thin, fill=green!20, minimum height=2.5em]
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm, minimum height=2em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{emptyblock} = [rectangle]
+
+
+\begin{tikzpicture}[scale=0.8,transform shape,node distance=3cm]%[node distance = 3cm, scale=0.5]
+    % Place nodes
+    \node [pblock] (STEP) {
+		     STEP file};
+    \node [rblock, right of=STEP] (BOGUI) {
+		     heronion};
+    \node [mblock, right of=BOGUI] (surfmesh) {
+		     surface mesh};
+    \node [mblock, below of=surfmesh] (add) {
+		     mesh, ...};
+    \node [pblock, right of=surfmesh] (H5FED) {
+		     H5FED};
+    \node [pblock, above of=H5FED] (H5Part) {
+		     H5Part};
+
+    \node [pblock, below of=H5FED] (VTK) {
+    		     VTK};
+    \node [bblock, right of=H5FED] (OPAL) {
+    		     OPAL};
+		  
+    % Draw edges
+    \path [line] (STEP) -> (BOGUI);
+    \path [line] (BOGUI) -> (surfmesh);
+    \path [line,style=dashed, ->] (BOGUI) edge [out=-90, in=90] (add);
+    \path [line] (surfmesh) -> (H5FED);
+    \path [line,style=dashed, ->] (surfmesh) edge [out=-90, in=90] (VTK);
+    %\path [->] (fifth) edge [out=-90, in=90] (distmesh);
+    \path [<->] (H5FED) edge (OPAL);
+    \path [line,style=dashed, ->] (H5FED) edge [out=90, in=180] node[right] {part of} (H5Part);
+    \path [<->] (H5Part) edge [out=0, in=90] (OPAL);
+    
+
+\end{tikzpicture}
+
+%\begin{tikzpicture}[overlay]
+%	\path[->]<1-> (third) (fifth);
+%	\path[->,red!40,thick]<2-> (second) edge [bend right] (fifth);
+%\end{tikzpicture}
