@@ -1,0 +1,237 @@
+\section{The discretization}
+\label{sec:discr}
+
+In this section we discuss the solution of th Poisson equation in a
+domain 
+%%
+% Widely used methods for the calculation of the space-charge fields are
+% the particle-mesh method and the particle-particle method.  The
+% particle-mesh method, based on solving Poisson's equation for the
+% electrostatic potential, is typically much faster than the
+% particle-particle method.  Furthermore, it provides better numerical
+% results for sufficiently 'smooth' distributed particles.
+%%
+\begin{figure}[htb]
+  \centering
+  \input{figures/cylinder.pdf_t}
+  \caption{Sketch of a typical domain}
+  \label{fig:domain}
+\end{figure}
+%%
+$\Omega \subset \Re^3$ as indicated in Fig.~\ref{fig:domain}.  The
+boundary of the domain is composed of two parts, a curved, smooth
+surface $\Gamma_1$ and two planar portions at $z=-d$ and $z=+d$ that
+form together $\Gamma_2$.  In physical terms $\Gamma_1$ forms the casing
+of the pipe, while $\Gamma_2$ is the open boundary at the inlet and
+outlet of the beam pipe.  The centroid of the particle bunch is at the
+origin of the coordinate system.  The Poisson problem that we are going
+to solve is given by
+\begin{equation} \label{eq:poisson}
+  \begin{aligned}
+    -\Delta \phi &= \frac{\rho}{\epsilon_0}\ \text{in}\ \Omega, \\
+    \phi &= g \equiv 0\ \text{on}\ \Gamma_1,   \\
+    \frac{\partial \phi}{\partial \mathbf{n}} + \frac {1}{d} \phi &= 0\
+    \text{on}\ \Gamma_2.
+  \end{aligned}
+\end{equation}
+The parameter $d$ in the Robin boundary condition is introduced by the
+Lorentz transformation mentioned earlier (CORRECT???).
+
+We discretize~\eqref{eq:poisson} by a second order finite difference
+scheme defined on a rectangular lattice (grid)
+\begin{displaymath}
+  \Omega_h:=\left\{ \mathbf{x} \in {\Omega}\cup\Gamma_2 \ |\ x_i/h_i \in
+    \mathbb{Z} \ \mbox{for}\ i=1,2,3. \right\},
+\end{displaymath}
+where $h_i$ is the grid spacing in the $i$-th coordinate direction. The
+grid is arranged in a way that the two portions of $\Gamma_2$ lie in
+grid planes.  A lattice point is called an \emph{interior} point if all
+its direct neighbours are in $\Omega$.  All other grid points are called
+\emph{near-boundary} points.  At interior points $\mathbf{x}$ we
+approximate $\Delta u (\mathbf{x})$ by the well known 7-point difference
+star
+\begin{equation}  \label{eq:7pt-star}
+  -\Delta_h u(\mathbf{x}) = 
+  \sum_{i=1}^3
+  \frac{-u(\mathbf{x}\!-\!h_i\mathbf{e}_i) + 2 u(\mathbf{x})
+  - u(\mathbf{x}\!+\!h_i\mathbf{e}_i)}{h_i^2}.
+\end{equation}
+At grid points near the boundary we have to take the boundary conditions
+in~\eqref{eq:poisson} into account.  To explain the schemes on the
+Dirichlet (or PEC) boundary $\Gamma_1$ let $\mathbf{x}$ be a
+near-boundary point.  Let $\mathbf{x}' := \mathbf{x} - h_i\mathbf{e}_i$
+for some $i$ be outside $\Omega$ and let $\mathbf{x}^* := \mathbf{x} - s
+h_i\mathbf{e}_i$, $0<s\le1$, be the boundary point between $\mathbf{x}$
+and $\mathbf{x}'$ that is closest to $\mathbf{x}$,
+cf.~Fig.~\ref{fig:boundary}.
+
+
+% We are dealing with the finite difference method for the Poisson
+% equation
+% \begin{equation}  \label{eq:poisson}
+%   -\Delta u (\mathbf{x}) = f(\mathbf{x}), \qquad \mathbf{x}\in\Omega.
+% \end{equation}
+% on irregular domains $\Omega$ in two or three space dimensions.  For the
+% presentation we restrict ourselves to the 2-dimensional case.  We are
+% given a \emph{regular} mesh $\Omega_h$ with grid size $h$.  $\Delta u
+% (\mathbf{x})$ is approximated at the interior point $O=\mathbf{x} \in
+% \Omega_h$ by the well known 5-point difference star
+% \begin{equation}  \label{eq:5pt-star}
+%   -\Delta_h u(x,y) = 
+%   \frac{1}{h^2}
+%   \left( 4 u_O - u_W - u_S - u_E - u_N \right)
+% \end{equation}
+% Here, $u_N$, $u_W$, $u_S$, and $u_E$, are the values of the FD
+% approximation at the grid points in a distance $h$ of the central point
+% $O$ in the north, west, south, and east direction, respectively.  This
+% formula cannot be applied if one of the grid points is outside $\Omega$.
+% We discuss three approaches for dealing with near-boundary points%
+%%
+\begin{figure}[htb]
+  \centering
+  \input{figures/bdry.pdf_t}
+  \caption{1-dimensional sketch of a near-boundary point $x$}
+  \label{fig:boundary}
+\end{figure}
+%%
+If $s=1$, i.e., if $\mathbf{x}'\in \partial\Omega$ then $u(\mathbf{x}')$
+in~\eqref{eq:7pt-star} is replaced by the prescribed boundary value.
+%%
+Otherwise, we proceed in one of the three following ways~\cite{fowa:60,
+  hack:94}
+\begin{enumerate}
+\item In \emph{constant extrapolation} the boundary value prescribed at
+  $\mathbf{x} - s h_i\mathbf{e}_i \in \Gamma_1$ is assigned to
+  $u(\mathbf{x}')$,
+  \begin{equation}
+    \label{eq:const_extrapol}
+    u(\mathbf{x}') = u(\mathbf{x} - h_i\mathbf{e}_i) := g(\mathbf{x}^*).
+  \end{equation}
+  % Insertion in the five-point difference approximation gives
+  % \begin{equation}  \label{eq:5pt-star0}
+  %   -\Delta_h^0 u(x,y) = 
+  %   \frac{1}{h^2} \left( 4 u_O - g(W^*) - u_S - u_E - u_N \right)
+  % \end{equation}
+  % This boundary treatment leads to global matrices that are symmetric
+  % and positive definite.
+\item In \emph{linear extrapolation} the value at $\mathbf{x}'$ is
+  obtained by means of the values $u$ at $\mathbf{x}$ and at $\mathbf{x}
+  - sh_i\mathbf{e}_i$,
+  \begin{equation}
+    \label{eq:lin_extrapol}
+    u(\mathbf{x}') := (1-\frac{1}{s})\, u(\mathbf{x}) + \frac{1}{s}\,
+    g(\mathbf{x}^*).
+  \end{equation}
+  % This modifies the five-point difference approximation to
+  % \begin{equation}  \label{eq:5pt-star1}
+  %   \begin{aligned}
+  %     -\Delta_h^1 u(x,y) &= \frac{1}{h^2} \left((3+\frac{1}{s})\, u_O -
+  %     \right. \\ 
+  %     &\quad \left. \frac{1}{s}\, g(W^*) - u_S - u_E - u_N \right).
+  %   \end{aligned}
+  % \end{equation}
+  % \begin{equation}  \label{eq:5pt-star1}
+  %   \begin{split}
+  %     -\Delta_h^1 u(x,y) =  \\
+  %     \frac{1}{h^2} \left((3+\frac{1}{s})\, u_O - \frac{1}{s}\, \right.\\
+  %     \left. g(W^*) - u_S - u_E - u_N \right).
+  %   \end{split}
+  % \end{equation}
+  % \begin{equation}  \label{eq:5pt-star1}
+  %   -\Delta_h^1 u(x,y) = 
+  %   \frac{1}{h^2} \left((3+\frac{1}{s})\, u_O - \frac{1}{s}\,
+  %     g(W^*) - u_S - u_E - u_N \right).
+  % \end{equation}
+
+% (Note that possibly $\mathbf{x}'\in \partial\Omega$.)
+
+\item In \emph{quadratic extrapolation} we assume that $\mathbf{x}'' :=
+  \mathbf{x} + h_i\mathbf{e}_i \in \Omega_h$ which requires a
+  sufficiently fine grid and a sufficiently smooth boundary.  Then the
+  value $ u(\mathbf{x}')$ is obtained by means of the values of $u$ at
+  $\mathbf{x}$, $\mathbf{x}''$, and the boundary point $\mathbf{x}^*$,
+  \begin{equation} \label{eq:quad_extrapol}
+    %% \begin{aligned}
+    u(\mathbf{x}') := \frac{2(s\!-\!1)}{s} u(\mathbf{x}) -
+    \frac{s\!-\!1}{s\!+\!1} u(\mathbf{x''}) + %%\\
+    %% &\hspace*{10mm}
+    \frac{2}{s(s\!+\!1)} g(\mathbf{x}^*),
+    %% \end{aligned}
+  \end{equation}
+%   Substituting $u_W$ in~\eqref{eq:5pt-star} gives
+%   \begin{equation}  \label{eq:5pt-star2}
+%     \begin{aligned}
+%       -\Delta_h^2 u(x,y) &=
+%       \frac{1}{h^2} \left( (2+\frac{2}{s})\,  u_O -\frac{2}{s + 1}\, u_E
+%       \right. \\ 
+%       &\quad\ \left. -\frac{2}{(s + 1)s}\, g(W^*) - u_N - u_S \right),
+%     \end{aligned}
+%   \end{equation}
+  %\begin{equation}  \label{eq:5pt-star2}
+  %  -\Delta_h^2 u(x,y) = 
+  %  \frac{1}{h^2} \left(
+  %    (2+\frac{2}{s})\,  u_O
+  %    -\frac{2}{s + 1}\, u_E
+  %    -\frac{2}{(s + 1)s}\, g(W^*)
+  %    - u_N - u_S \right),
+  %\end{equation}
+  which leads to the Shortley-Weller approximation~\cite{shwe:39,mcgv:04}.
+\end{enumerate}
+In all extrapolation formulae above $g(\mathbf{x}^*) =
+g(\mathbf{x}\!-\!sh_i\mathbf{e}_i) = 0$.  The value on the right side
+of~\eqref{eq:const_extrapol}--\eqref{eq:quad_extrapol} substitutes
+$u(\mathbf{x}\! -\! h_i\mathbf{e}_i)$ in~\eqref{eq:7pt-star}.
+
+Let us now look at a grid point $\mathbf{x}$ on the open boundary
+$\Gamma_2$.  If $\mathbf{x}$ is located on the inlet of the beam pipe
+then $\mathbf{x}'':=\mathbf{x}\! +\! h_3\mathbf{e}_3 \in \Omega$ and
+$\mathbf{x}':=\mathbf{x}\! -\! h_3\mathbf{e}_3 \not\in \Omega$.  The
+Robin boundary condition is approximated by a central difference,
+\begin{displaymath}
+  - \frac{u(\mathbf{x}'') - u(\mathbf{x}')}{2h_3}
+  + \frac{1}{d}u(\mathbf{x}) = 0,
+\end{displaymath}
+which leads to
+\begin{equation}  \label{eq:inlet}
+  u(\mathbf{x}') = u(\mathbf{x}'') - \frac{2h_3}{d}u(\mathbf{x}) = 0.
+\end{equation}
+The same formula holds on the outlet boundary portion if $\mathbf{x}'$
+denotes the virtual grid point outside $\Omega$.
+
+Notice that some lattice points may be close to the boundary with regard
+to more than one coordinate direction.  Then, the
+procedures~\eqref{eq:const_extrapol}--\eqref{eq:quad_extrapol} must be
+applied in all of them.  This holds in particular for points on the open
+boundary $\Gamma_2$.
+
+The boundary treatment just described leads to systems of equations  
+\begin{equation} \label{eq:lin-syst}
+  A \mathbf{x} = \mathbf{b},
+\end{equation}
+where $\mathbf{x}$ is the vector of unknown values of the potential and
+$\mathbf{b}$ is the vector of the given charge density at the grid
+points.
+
+The Poisson matrix $A$ is an $M$-matrix irrespective of the boundary
+treatment~\cite{hack:94}.  Constant and linear extrapolation lead to a
+\emph{symmetric} positive definite $A$ while quadratic extrapolation
+yields a \emph{nonsymmetric} but still positive definite Poisson matrix.
+
+Notice that the boundary extrapolation introduces large diagonal
+elements in $A$ if $s$ gets close to zero.  In order to avoid numerical
+troubles it is advisable to scale the system matrix.  If $D =
+\mbox{diag}{A}$, then we replace $A$ by $D^{-1/2} A D^{-1/2}$ and adapt
+the right-hand side accordingly.
+
+% \begin{remark}
+%   $\Delta u-\Delta_h^0u = \mathcal{O}(h)$,
+%   $\Delta u-\Delta_h^1u = \mathcal{O}(h^2)$,
+%   $\Delta u-\Delta_h^2u = \mathcal{O}(h^2)$
+% \end{remark}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 
+%+ motivate irregular domains

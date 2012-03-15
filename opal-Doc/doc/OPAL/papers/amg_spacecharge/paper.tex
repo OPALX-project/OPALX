@@ -1,0 +1,82 @@
+\documentclass[a4paper,10pt,twocolumn,5p,preprint,pdftex]{elsarticle}
+
+\biboptions{sort&compress}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+
+\newdefinition{remark}{Remark}
+\newcommand {\RM}[1]{\mathrm{#1}}
+\renewcommand{\Re}{\mathbb{R}}
+
+\graphicspath{{figures/}}
+
+%TODO:
+\title{A Fast Parallel Poisson Solver on Irregular Domains for Beam
+  Dynamic Simulations}
+
+%\tnotetext[t1]{This document is a collaborative effort.}
+
+\author[psi]{A.~Adelmann}
+\ead{andreas.adelmann@psi.ch}
+
+\author[eth]{P.~Arbenz}
+\ead{arbenz@inf.ethz.ch}
+
+\author[eth]{Y.~Ineichen}
+\ead{ineichen@inf.ethz.ch}
+
+\address[psi]{Paul Scherrer Institut, CH-5234 Villigen, Switzerland}
+\address[eth]{ETH Z\"urich, Computer Science Department,
+  Universit\"atsstrasse 6, CH-8092 Z\"urich, Switzerland}
+
+\journal{Computer Physics Communications}
+
+\begin{document}
+
+%MAX: 6 keywords
+\begin{keyword}
+  Algebraic multigrid \sep Poisson equation \sep Irregular Domains \sep
+  Space-Charge \sep Beam Dynamics
+\end{keyword}
+
+\begin{abstract}
+  We discuss the scalable parallel solution of Poisson equation within a
+  Particle-In-Cell (PIC) approach for the simulation of electron beams
+  in particle accelerators of complicated shape.  Finite difference
+  discretization with various boundary treatments.  Preconditioned
+  conjugate gradient method with SA-AMG preconditioning.  Results on
+  distributed memory parallel processor.
+\end{abstract}
+
+\maketitle
+
+
+
+%\section{Introduction and Motivation}
+\input{intro}
+
+%\section{Methodik}
+\input{discretization}
+\input{method}
+
+%\section{Implementation}
+\input{implementation}
+
+%\section{Numerical Experiments and Results}
+\input{results}
+
+%\section{Conclusion}
+\input{conclusion}
+
+
+\section*{Acknowledgments}
+
+%references
+
+\bibliography{bib,literature}
+\bibliographystyle{elsarticle-num}
+
+\end{document}

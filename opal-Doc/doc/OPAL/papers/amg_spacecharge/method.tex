@@ -1,0 +1,259 @@
+\section{The solution method}
+\label{sec:method}
+
+In this section we discuss the solution of the Poisson
+problem~\eqref{eq:lin-syst} discretized by finite differences as
+described in the previous section.
+
+\subsection{The conjugate gradient algorithm}
+
+For symmetric positive definite (spd) systems, the conjugate gradient
+(CG) algorithm~\cite{hest:52} provides a fast and memory efficient
+solver.  The CG algorithm minimizes the quadratic functional
+\begin{equation} \label{eq:cg-funct}
+  \varphi(\mathbf{x}) = \frac{1}{2}\mathbf{x}^T A \mathbf{x} - \mathbf{x}^T
+  \mathbf{b}
+\end{equation}
+in the Krylov space that is implicitely constructed in the iteration.
+In the $k$-th iteration step the CG algorithm minimizes the quadratic
+functional along a search direction $\mathbf{d}_k$.  The search
+directions turn out to by pairwise conjugate, $\mathbf{d}_k^T A
+\mathbf{d}_j = 0$ for all $k\neq j$.
+
+If we use the quadratic extrapolation~\eqref{eq:quad_extrapol} at the
+boundary then $A$ in~\eqref{eq:lin-syst} is not symmetric positive
+definite anymore.  Nevertheless, the solution of~\eqref{eq:lin-syst} is
+still a minimizer of $\varphi(\mathbf{x})$.  The CG algorithm can be
+used to solve~\eqref{eq:lin-syst}.  However, the orthogonality among the
+search directions is lost.  Only consecutive search directions are
+conjugate, $\mathbf{d}_k^T A \mathbf{d}_{k-1} = 0$, reflecting the fact
+that $\varphi(\mathbf{x})$ is minimized only locally.  So, in the
+nonsymmetric positive definite case, CG is essentially steepest descent,
+or, equivalently, \textsc{Orthomin}(1)~\cite{yoje:80}.
+\textsc{Orthomin}($s$) enforces conjugacy among $\mathbf{d}_k, \ldots,
+\mathbf{d}_{k-s}$.  GMRES enforces orthogonality among all previous
+search directions.  All the \textsc{Orthomin} variants and
+GMRES~\cite{sasc:86} converge for nonsymmetric positive definite
+systems.  The memory consumption increases with $s$ and is maximal with
+GMRES that is designed for solving arbitrary nonsymmetric linear
+systems.  To save memory space bi-conjugate methods like, e.g., the
+stabilized biconjugate gradient (BiCGStab) method~\cite{vors:92} are
+good candidates for solving~\eqref{eq:lin-syst}.  When considering
+computational costs we note that BiCGStab requires two matrix-vector
+products in contrast to CG that reqires only one.
+
+Although $A$ is nonsymmetric it is so `only in the boundary points'.
+Therefore, one may hope that the conjugate gradient method still
+performes reasonably well.
+
+\subsection{Preconditioning}
+
+To improve the convergence properties of CG methods one can try to
+improve the condition number of the matrix by preconditioning the
+system.  This is due to the fact that usually the convergence of an
+iterative solver degrades when the condition number of a system
+increases.  A preconditioned system has the following form
+\begin{equation*}
+  \underbrace{{M}^{-1}{A}}_{\overline{{A}}}
+  \mathbf{x} =
+  \underbrace{{M}^{-1}\mathbf{b}}_{\overline{{b}}},
+\end{equation*}
+where the positive definite matrix $\mathbf{M}^{-1}$ is called
+preconditioner.  When the preconditioner is well chosen the new system
+has a smaller condition number.
+
+In this paper we are concerned with multilevel preconditioners.
+Multigrid or multilevel preconditioners are the most effective
+preconditioners, in particular for the Poisson problems that we want to
+solve~\cite{hack:85,tros:00}.  Multigrid methods are based on the
+observation that a smooth error on a fine grid can be well approximated
+on a coarser grid.  When this coarser grid is chosen to be a sufficient
+factor smaller than the fine grid the resulting problem is smaller and
+thus cheaper to solve.  Obviously one can continue coarsening the grid
+until one arrives at a problem size that can be cheaply solved by a
+direct solver.  This observation suggests an algorithm similar to
+Algorithm~\ref{alg:mg_algo}.
+
+\begin{algorithm}
+  \caption{Multigrid V-cycle Algorithm} \label{alg:mg_algo}
+  \begin{algorithmic}[1]
+    \STATE \textbf{procedure} MultiGridSolve($A_\ell$, $b_\ell$, $x_\ell$, $\ell$)
+    
+    \IF{$\ell$ = maxLevel-1}
+    \STATE DirectSolve $A_\ell \mathbf{x}_\ell = \mathbf{b}_\ell$
+    \ELSE
+    \STATE $\mathbf{x}_\ell$ $\leftarrow$ $S^{pre}_\ell$($A_\ell$, $\mathbf{b}_\ell$, $0$)
+    \STATE $\mathbf{r}_\ell$ $\leftarrow$ $\mathbf{b}_\ell$ - $A_\ell
+    \mathbf{x}_\ell$ \COMMENT{calculate residual}
+    \STATE $\mathbf{b}_{\ell+1}$ $\leftarrow$ $R_\ell \mathbf{r}_\ell$
+    \COMMENT{Restriction} 
+    \STATE $\mathbf{v}_{\ell+1}$ $\leftarrow$ $\mathbf{0}$
+    \STATE MultiGridSolve($A_{\ell+1}$, $\mathbf{b}_{\ell+1}$,
+    $\mathbf{v}_{\ell+1}$, $\ell+1$) 
+    \STATE $\mathbf{x}_\ell$ $\leftarrow$ $\mathbf{x}_\ell$ + $P_\ell
+    \mathbf{v}_{\ell+1}$ \COMMENT{coarse grid correction} 
+    \STATE $\mathbf{x}_\ell$ $\leftarrow$ $S^{post}_\ell$($A_\ell$,
+    $\mathbf{b}_\ell$, $\mathbf{x}_\ell$) 
+    \ENDIF
+    \STATE \textbf{end procedure}
+  \end{algorithmic}
+\end{algorithm}
+
+The procedure starts on the finest level ($\ell\!=\!0$) and repeatedly
+coarsens the grid until the coarsest level is reached
+(\texttt{maxLevel}) on which a direct solver is used to solve the
+problem at hand.  On all other levels $\ell$ the algorithm starts by
+presmoothing $S_\ell^{pre}$ the problem to damp high frequency
+components of the error (line 5).  Subsequently the fine grid on level
+$\ell$ can be restricted with the restriction operator $R_\ell$ to a
+coarser grid on level $\ell+ 1$ (line $7$).  This essentially
+``transfers'' the low frequency components on the fine grid to high
+frequency components on the coarse grid.  After the recursion has
+reached the coarsest level and used the direct solver to solve the
+coarse level problem the solution can be prolongated back to a finer
+grid.  This is achieved with the prolongation operator $P_\ell$
+(line~10).  Often a postsmoother $S_\ell^{post}$ is used to remove
+artifacts caused by the prolongation operator.  Usually these operators
+(for every level $\ell$) are defined in a setup phase preceding the
+execution of the actual Multigrid algorithm.  Lastly $A_\ell$ denotes
+the matrix of the discretized system in level $\ell$.
+
+The described Multigrid algorithm has order $O(n)$ and its convergence
+should be independent of the grid-spacings.  Multigrid methods work well
+for symmetric positive definite systems obtained from elliptic PDE's.
+
+\subsection{A Multigrid Preconditioner for Space Charge
+  Calculations} \label{sec:mgprec}
+
+As described in~\cite{oowa:98}, Multigrid methods provide a less
+sensitive convergence behavior to parameter changes when used as a
+preconditioner applied to an iterative solver.  Additionally the
+algebraic Multigrid (AMG) performs better when used as preconditioner
+opposed the application as stand-alone solver.  This provides a
+sufficient motivation to use an AMG (described in this subsection) as
+preconditioner for an iterative solver (CG, BiCGStab).
+
+Independent of the application of Multigrid methods the performance
+profoundly depends on the choices of the operators (introduced in the
+previous subsection) and their interplay.  To ensure that the resulting
+preconditioner is symmetric we use the same pre- and postsmoother $S_l$
+and the restriction operator is chosen to be the transpose of the
+prolongation operator $R_l = P_l^T$.  This leaves us with two operators
+($P_l$ and $S_l$) that have to be defined for every level.
+
+The prolongation and restriction operator can be defined in various
+ways.  When using a Geometric Multigrid (GMG) the restriction and
+prolongation operator is defined by using geometric information about
+the grid.   Another approach is to solely base these operators on the
+algebraic information contained in the system of equations without
+considering the und erlaying grid hierarchy.  This describes the basic
+property of operators utilized in AMG's.  The independence of the
+underlying geometric grid makes the AMG very robust in the presence of
+complicated structured or unstructured grids.  Since we are dealing with
+an anisotropic grid this property makes the AMG a valuable choice,
+saving us a great deal of trouble and additional effort.  Normally when
+applying a GMG to an anisotropic grid special transfer operators are
+needed (i.   e.  semi-coarsening).  Aside the more costly transfer
+operators we will experience that the standard smoothers applied to an
+anisotropic problem will perform badly.  The reason for the bad
+performance is that the smoother has no averaging effect in directions
+that are anisotropic (or extremely stretched).  Therefore the smoothing
+effect in these direction is inexistent or very weak causing the
+Multigrid method to converge very slowly.  In contrast AMG's work
+efficiently on all error components.  In comparison the convergence rate
+of an AMG is about the same as for a GMG.
+
+\paragraph{Prolongation Operator $P_l$} Aggregation based methods
+cluster the fine grid unknowns to aggregates (of a specific form, size,
+etc.) as representation for the unknowns on the coarse grid.  First the
+discretization matrix $A_l$ is converted into a graph $G_l$.  Each vertex
+of $G_l$ is then assigned to one aggregate of the disjoint aggregate
+set.  In a next step a tentative prolongation operator matrix is formed
+where matrix rows correspond to vertices and matrix columns to
+aggregates.  A matrix entry $(i,j)$ has a value of $1$ if the $it^{th}$
+vertex is contained in $j^{th}$ aggregate and $0$ otherwise.  This
+prolongation operator basically corresponds to a piecewise constant
+interpolation operation.  To improve the robustness one can additionally
+smooth (normally with a damped Jacobi smoother) the tentative
+prolongation operator.  In general applying the smoother results in
+better interpolation properties opposed to the piecewise constant
+polynomials.  The application of the smoother is beneficial for spd
+problems arising from elliptic problems improving convergence.
+In~\cite{tuto:00} various strategies are proposed how this process
+can be parallelized.  One of the simplest parallel method is to let each
+processor aggregate its portion of the grid.  This method is called
+``decoupled'' since every processor act independently of others.  Usually
+the aggregates have a size of $3^d$ in $d$ dimensions.  For our 3D
+problems aggregates therefore have a size of $3 \times 3 \times 3 = 27$
+forming small cubic aggregates with no overlapping elements.
+
+\paragraph{Smoothing Operator $S_l$} As advised in~\cite{abht:03} we
+choose a Chebyshev polynomial smoother.  The choice is motivated by the
+result that polynomial smoothers perform better than (e.g.) Gauss-Seidel
+smoothers for a parallel solver.  Advantages are e.g.\ that polynomial
+smoother do not need special matrix kernels and formats for optimal
+performance and generally polynomial methods can profit of architecture
+optimized matrix vector products.  Additionally polynomial smoothers are
+much easier to parallelize than e.g.\ Gauss-Seidel methods.
+
+\paragraph{Coarse Level Solver} The coarse level equation is solved by a
+direct LU based solver.  In particular Trilinos (the software framework
+employed) provides a package (Amesos) offering various direct
+solvers.  The employed solver (KLU) ships the coarse level problem to
+node $0$ and solves it by means of a LU decomposition.  Once the solution
+has been calculated it is broadcast to all nodes.
+
+\subsubsection*{Implementation}
+
+The Multigrid preconditioner and solver is implemented with help of the
+Trilinos \cite{Trilinos-TOMS} library.  Trilinos provides
+state-of-the-art tools for numerical computation in various
+packages.  Amongst others there is a package called ML \cite{gsht:06}
+providing a Multigrid preconditioner.  We utilized this package to create
+the AMG preconditioner using a smoothed aggregation-based transfer
+operator.   A summary of the essential AMG preconditioner parameters
+discussed in the previous subsection are presented in
+Table~\ref{tab:sa_setup}.  Currently the solver is parallelized in $z$
+direction.
+
+\begin{table}[h!b!p!]
+  \begin{center}
+    \begin{tabular}{l|l}
+      \hline
+      name & value \\
+      \hline
+      \hline
+      max levels & 5 \\
+      increasing or decreasing & decreasing \\
+      prec type & MGW \\
+      aggregation: type & Uncoupled \\
+      smoother: type & Chebyshev \\
+      smoother: sweeps & 3 \\
+      smoother: pre or post & both \\
+      coarse: type & Amesos-KLU \\
+      \hline
+    \end{tabular}
+    \caption{Parameters for multilevel
+      preconditioner ML}
+    \label{tab:sa_setup}
+  \end{center}
+\end{table}
+
+For the embedding in the physical simulation code we utilized
+Independent Parallel Particle Layer (IPPL).  This library is an
+object-oriented framework for particle based applications in
+computational science requiring high-performance parallel computers,
+hence it is used by \textsc{OPAL} to a great extent to handle particles,
+fields, operators on grids and fields and communication.  In the context
+of this thesis IPPL is only relevant because \textsc{OPAL} also uses
+IPPL to represent the grid with the interpolated charges of the
+particles.
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 
+%+ motivate irregular domains

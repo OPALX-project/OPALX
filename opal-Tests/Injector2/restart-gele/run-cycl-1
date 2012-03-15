@@ -1,0 +1,7 @@
+#!/bin/bash
+# 
+export FN=testinj2-7
+#PBS -N Inj2 
+cd $PBS_O_WORKDIR
+yod -VN -small_pages -size  $PBS_NNODES $HOME/bin/opal-gele $FN.in  --warning 9 --info 9 --commlib mpi > $FN-P$PBS_NNODES.out 
+

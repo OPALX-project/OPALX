@@ -1,0 +1,7 @@
+This directory contains the LaTeX source for the following document:
+
+conversion.tex		the MAD-8 to OPAL conversion guide.
+
+It also contains a shell script:
+
+makeconv		convert the above to HTML
