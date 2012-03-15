@@ -1,0 +1,479 @@
+\chapter{OPAL Language Syntax}
+\label{sec:syntax}
+\index{syntax|(}
+Words in \textit{italic font} are syntactic entities, and characters in
+\texttt{monospaced font} must be entered as shown.
+Comments are given in \textbf{bold font}.
+
+\section*{Statements:}
+\begin{tabular}{p{4cm}cl}
+\textit{comment}
+  &:& \texttt{//} \textit{anything-except-newline} \\
+  &\texttt{|}& \texttt{/*} \textit{anything-except-}\texttt{*/} \texttt{*/}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{identifier}
+  &:& \texttt{[a-zA-Z][a-zA-Z0-9-]}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{integer}
+  &:& \texttt{[0-9]+}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{string}
+  &:& \texttt{'}\textit{anything-except-single-quote}\texttt{'} \\
+  &\texttt{|}& \texttt{"}anything-except-double-quote\texttt{"}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{command}
+  &:& \textit{keyword} \textit{attribute-list} \\
+  &\texttt{|}& \textit{label} \texttt{:} \textit{keyword} \textit{attribute-list}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{keyword}
+  &:& \textit{identifier}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{label}
+  &:& \textit{identifier}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{attribute-list}
+  &:& \textit{empty} \\
+  &\texttt{|}& \textit{attribute-list} \texttt{,} \textit{attribute}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{attribute}
+  &:& \textit{attribute-name} \textbf{// only for logical attribute} \\
+  &\texttt{|}& \textit{attribute-name} \texttt{=} \textit{attribute-value}
+    \textbf{// expression evaluated} \\
+  &\texttt{|}& \textit{attribute-name} \texttt{:=} \textit{attribute-value}
+    \textbf{// expression retained}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{attribute-name}
+  &:& \textit{identifier}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{attribute-value}
+  &:& \textit{string-expression} \\
+  &\texttt{|}& \textit{logical-expression} \\
+  &\texttt{|}& \textit{real-expression} \\
+  &\texttt{|}& \textit{array-expression} \\
+  &\texttt{|}& \textit{constraint} \\
+  &\texttt{|}& \textit{variable-reference} \\
+  &\texttt{|}& \textit{place} \\
+  &\texttt{|}& \textit{range} \\
+  &\texttt{|}& \textit{token-list} \\
+  &\texttt{|}& \textit{token-list-array} \\
+  &\texttt{|}& \textit{regular-expression}
+\end{tabular}
+
+\section*{Real expressions:}
+\begin{tabular}{p{4cm}cl}
+\textit{real-expression}
+  &:& \textit{real-term} \\
+  &\texttt{|}& \texttt{+} \textit{real-term} \\
+  &\texttt{|}& \texttt{-} \textit{real-term} \\
+  &\texttt{|}& \textit{real-expression} \texttt{+} \textit{real-term} \\
+  &\texttt{|}& \textit{real-expression} \texttt{-} \textit{real-term}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{real-term}
+  &:& \textit{real-factor} \\
+  &\texttt{|}& \textit{real-term} \texttt{*} \textit{real-factor} \\
+  &\texttt{|}& \textit{real-term} \texttt{/} \textit{real-factor}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{real-factor}
+  &:& \textit{real-primary} \\
+  &\texttt{|}& \textit{real-factor} \texttt{\^{}} \textit{real-primary}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{real-primary}
+  &:& \textit{real-literal} \\
+  &\texttt{|}& \textit{symbolic-constant} \\
+  &\texttt{|}& \texttt{\#} \\
+  &\texttt{|}& \textit{real-name} \\
+  &\texttt{|}& \textit{array} \texttt{[} \textit{index} \texttt{]} \\
+  &\texttt{|}& \textit{object-name} \texttt{->} \textit{real-attribute} \\
+  &\texttt{|}& \textit{object-name} \texttt{->} \textit{array-attribute}
+    \texttt{[} \textit{index} \texttt{]} \\
+  &\texttt{|}& \textit{table-reference} \\
+  &\texttt{|}& \textit{real-function} \texttt{()} \\
+  &\texttt{|}& \textit{real-function} \texttt{(} \textit{real-expression}
+    \texttt{)} \\
+  &\texttt{|}& \textit{real-function} \texttt{(} \textit{real-expression}
+    \texttt{,} \textit{real-expression} \texttt{)} \\
+  &\texttt{|}& \textit{function-of-array}
+    \texttt{(} \textit{array-expression} \texttt{)} \\
+  &\texttt{|}& \texttt{(} \textit{real-expression} \texttt{)}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{real-function}
+  &:& \texttt{RANF} \\
+  &\texttt{|}& \texttt{GAUSS} \\
+  &\texttt{|}& \texttt{USER0} \\
+  &\texttt{|}& \texttt{SI} \\
+  &\texttt{|}& \texttt{SC} \\
+  &\texttt{|}& \texttt{SO} \\
+  &\texttt{|}& \texttt{ABS} \\
+  &\texttt{|}& \texttt{TRUNC} \\
+  &\texttt{|}& \texttt{ROUND} \\
+  &\texttt{|}& \texttt{FLOOR} \\
+  &\texttt{|}& \texttt{CEIL} \\
+  &\texttt{|}& \texttt{SIGN} \\
+  &\texttt{|}& \texttt{SQRT} \\
+  &\texttt{|}& \texttt{LOG} \\
+  &\texttt{|}& \texttt{EXP} \\
+  &\texttt{|}& \texttt{SIN} \\
+  &\texttt{|}& \texttt{COS} \\
+  &\texttt{|}& \texttt{ABS} \\
+  &\texttt{|}& \texttt{TAN} \\
+  &\texttt{|}& \texttt{ASIN} \\
+  &\texttt{|}& \texttt{ACOS} \\
+  &\texttt{|}& \texttt{ATAN} \\
+  &\texttt{|}& \texttt{TGAUSS} \\
+  &\texttt{|}& \texttt{USER1} \\
+  &\texttt{|}& \texttt{ATAN2} \\
+  &\texttt{|}& \texttt{MAX} \\
+  &\texttt{|}& \texttt{MIN} \\
+  &\texttt{|}& \texttt{MOD} \\
+  &\texttt{|}& \texttt{POW} \\
+  &\texttt{|}& \texttt{USER2}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{function-of-array}
+  &:& \texttt{VMIN} \\
+  &\texttt{|}& \texttt{VMAX} \\
+  &\texttt{|}& \texttt{VRMS} \\
+  &\texttt{|}& \texttt{VABSMAX}
+\end{tabular}
+
+\section*{Real variables and constants:}
+\begin{tabular}{p{4cm}cl}
+\textit{real-prefix}
+  &:& empty \\
+  &\texttt{|}& \texttt{REAL} \\
+  &\texttt{|}& \texttt{REAL CONST} \\
+  &\texttt{|}& \texttt{CONST}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{real-definition}
+  &:& \textit{real-prefix} \textit{real-name} \texttt{=}
+    \textit{real-expression} \textbf{// expression evaluated} \\
+  &\texttt{|}& \textit{real-prefix} \textit{real-name} \texttt{:=}
+    \textit{real-expression} \textbf{// expression ratained}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{symbolic-constant}
+  &:& \texttt{PI} \\
+  &\texttt{|}& \texttt{TWOPI} \\
+  &\texttt{|}& \texttt{DEGRAD} \\
+  &\texttt{|}& \texttt{RADDEG} \\
+  &\texttt{|}& \texttt{E} \\
+  &\texttt{|}& \texttt{EMASS} \\
+  &\texttt{|}& \texttt{PMASS} \\
+  &\texttt{|}& \texttt{CLIGHT} \\
+  &\texttt{|}& \textit{real-name}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{real-name}
+  &:& \textit{identifier}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{object-name}
+  &:& \textit{identifier}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{table-reference}
+  &:& \textit{table-name} \texttt{@} \textit{place} \texttt{->}
+    \textit{column-name}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{table-name}
+  &:& \textit{identifier}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{column-name}
+  &:& \textit{identifier}
+\end{tabular}
+
+\section*{Logical expressions:}
+\begin{tabular}{p{4cm}cl}
+\textit{logical-expression}
+  &:& \textit{and-expression} \\
+  &\texttt{|}& \textit{logical-expression} \texttt{||} \textit{and-expression}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{and-expression}
+  &:& \textit{relation} \\
+  &\texttt{|}& \textit{and-expression} \texttt{\&\&} \textit{relation}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{relation}
+  &:& \textit{logical-name} \\
+  &\texttt{|}& \texttt{TRUE} \\
+  &\texttt{|}& \texttt{FALSE} \\
+  &\texttt{|}& \textit{real-expression} \textit{relation-operator}
+    \textit{real-expression}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{logical-name}
+  &:& \textit{identifier}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{relation-operator}
+  &:& \texttt{==} \\
+  &\texttt{|}& \texttt{!=} \\
+  &\texttt{|}& \texttt{<} \\
+  &\texttt{|}& \texttt{>} \\
+  &\texttt{|}& \texttt{>=} \\
+  &\texttt{|}& \texttt{<=}
+\end{tabular}
+
+\section*{Logical variables:}
+\begin{tabular}{p{4cm}cl}
+\textit{logical-prefix}
+  &:& \texttt{BOOL} \\
+  &\texttt{|}& \texttt{BOOL CONST}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{logical-definition}
+  &:& \textit{logical-prefix} \textit{logical-name} \texttt{=}
+    \textit{logical-expression} \textbf{// expression evaluated} \\
+  &\texttt{|}& \textit{logical-prefix} \textit{logical-name \texttt{:=}}
+    \textit{logical-expression} \textbf{// expression retained}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\end{tabular}
+
+\section*{String expressions:}
+\begin{tabular}{p{4cm}cl}
+\textit{string-expression}
+  &:& \textit{string} \\
+  &\texttt{|}& \textit{identifier} \textbf{// taken as a string} \\
+  &\texttt{|}& \textit{string-expression} \texttt{\&} \textit{string}
+\end{tabular}
+
+\section*{String constants:}
+\begin{tabular}{p{4cm}cl}
+\textit{string-prefix}
+  &:& \texttt{STRING}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{string-definition}
+  &:& \textit{string-prefix} \textit{string-name} \texttt{=}
+    \textit{string-expression} \textbf{// expression evaluated} \\
+  &\texttt{|}& \textit{string-prefix} \textit{string-name} \texttt{:=}
+    \textit{string-expression} \textbf{// expression retained}
+\end{tabular}
+
+\section*{Real array expressions:}
+\begin{tabular}{p{4cm}cl}
+\textit{array-expression}
+  &:& \textit{array-term} \\
+  &\texttt{|}& \texttt{+} \textit{array-term} \\
+  &\texttt{|}& \texttt{-} \textit{array-term} \\
+  &\texttt{|}& \textit{array-expression} \texttt{+} \textit{array-term} \\
+  &\texttt{|}& \textit{array-expression} \texttt{-} \textit{array-term}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{array-term}
+  &:& \textit{array-factor} \\
+  &\texttt{|}& \textit{array-term} \texttt{*} \textit{array-factor} \\
+  &\texttt{|}& \textit{array-term} \texttt{/} \textit{array-factor}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{array-factor}
+  &:& \textit{array-primary} \\
+  &\texttt{|}& \textit{array-factor} \texttt{\^{}} \textit{array-primary}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{array-primary}
+  &:& \texttt{\{} \textit{array-literal} \texttt{\}} \\
+  &\texttt{|}& \textit{array-reference} \\
+  &\texttt{|}& \textit{table-generator} \\
+  &\texttt{|}& \textit{row-reference} \\
+  &\texttt{|}& \textit{column-reference} \\
+  &\texttt{|}& \textit{real-function}
+    \texttt{(} \textit{array-expression} \texttt{)} \\
+  &\texttt{|}& \texttt{(} \textit{array-expression} \texttt{)}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{table-generator}
+  &\texttt{|}& \texttt{TABLE} \texttt{(} \textit{last} \texttt{,}
+    \textit{real-expression} \texttt{)} \\
+  &:& \texttt{TABLE} \texttt{(} \textit{first} \texttt{:}
+    \textit{last} \texttt{,} \textit{real-expression} \texttt{)} \\
+  &:& \texttt{TABLE} \texttt{(} \textit{first} \texttt{:}
+    \textit{last} \texttt{:} \textit{step} \texttt{,}
+    \textit{real-expression} \texttt{)}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{first}
+  &:& \textit{integer}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{last}
+  &:& \textit{integer}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{step}
+  &:& \textit{integer}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{table-row}
+  &:& \textit{table-name} \texttt{@} \textit{place}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{row-reference}
+  &:& \texttt{ROW} \texttt{(} \textit{table-name} \texttt{,}
+    \textit{place} \texttt{)} \texttt{|} \\
+  &\texttt{|}& \texttt{ROW} \texttt{(} \textit{table-name} \texttt{,}
+    \textit{place} \texttt{, \{} \textit{column-list} \texttt{\})}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{column-reference}
+  &:& \texttt{COLUMN} \texttt{(} \textit{table-name} \texttt{,}
+    \textit{column-name} \texttt{)} \\
+  &\texttt{|}& \texttt{COLUMN} \texttt{(} \textit{table-name} \texttt{,}
+    \textit{column-name} \texttt{,} \textit{range} \texttt{)}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{column-list}
+  &:& \textit{column-name} \\
+  &\texttt{|}& \textit{column-list} \texttt{,} \textit{column-name}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{array-literal}
+  &:& \textit{real-expression} \\
+  &\texttt{|}& \textit{array-literal} \texttt{,} \textit{real expression}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{array-reference}
+  &:& \textit{array-name} \\
+  &\texttt{|}& \textit{object-name} \texttt{->} \textit{array-attribute}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{array-name}
+  &:& \textit{identifier}
+\end{tabular}
+
+\section*{Real array definitions:}
+\begin{tabular}{p{4cm}cl}
+\textit{array-prefix}
+  &:& \texttt{REAL VECTOR}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{array-definition}
+  &:& \textit{array-prefix} \textit{array-name} \texttt{=}
+    \textit{array-expression} \\
+  &\texttt{|}& \textit{array-prefix} \textit{array-name} \texttt{:=}
+    \textit{array-expression}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\end{tabular}
+
+\section*{Constraints:}
+\begin{tabular}{p{4cm}cl}
+\textit{constraint}
+  &:& \textit{array-expression} \textit{constraint-operator}
+    \textit{array-expression}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{constraint-operator}
+  &:& \texttt{==} \\
+  &\texttt{|}& \texttt{<} \\
+  &\texttt{|}& \texttt{>}
+\end{tabular}
+
+\section*{Variable references:}
+\begin{tabular}{p{4cm}cl}
+\textit{variable-reference}
+  &:& \textit{real-name} \\
+  &\texttt{|}& \textit{object-name} \texttt{->} \textit{attribute-name}
+\end{tabular}
+
+\section*{Places:}
+\begin{tabular}{p{4cm}cl}
+\textit{place}
+  &:& \textit{element-name} \\
+  &\texttt{|}& \textit{element-name} \texttt{[} \textit{integer} \texttt{]} \\
+  &\texttt{|}& \texttt{\#S} \\
+  &\texttt{|}& \texttt{\#E} \\
+  &\texttt{|}& \texttt{\#}{integer} \\
+  &\texttt{|}& \textit{line-name} \texttt{::} \textit{place}
+\end{tabular}
+
+\section*{Ranges:}
+\begin{tabular}{p{4cm}cl}
+\textit{range}
+  &:& \textit{place} \\
+  &\texttt{|}& \textit{place} \texttt{/} \textit{place}
+\end{tabular}
+
+\section*{Token lists:}
+\begin{tabular}{p{4cm}cl}
+\textit{token-list}
+  &:& \textit{anything-except-comma}
+\end{tabular}
+\\
+\begin{tabular}{p{4cm}cl}
+\textit{token-list-array}
+  &:& \textit{token-list} \\
+  &\texttt{|}& \textit{token-list-array} \texttt{,} \textit{token-list}
+\end{tabular}
+
+\section*{Regular expressions:}
+\begin{tabular}{p{4cm}cl}
+\textit{regular-expression}
+  &:& \texttt{"}\textit{UNIX-regular-expression}\texttt{"}
+\end{tabular}
+\index{syntax|)}

@@ -1,0 +1,42 @@
+Option, ECHO=FALSE;
+/////////////////////////////////////////////////////////////////////////////////////
+// input file for single particle track for PSI Ring with 4 NEW copper cavities.   //
+// the initial conditions are obtained from FIXPO EORBIT mode.                     //
+// NOTE: ONLY WORKS SERIALLY ON SINGLE NODE.                                       //
+/////////////////////////////////////////////////////////////////////////////////////
+
+Option, PSDUMPFREQ=100000000;
+Option, SPTDUMPFREQ=1;
+
+Title,string="OPAL-CyclT for Carbon Cyclotron";
+
+Edes=0.25*12;
+
+CMASS=0.931494*12;
+CCHARGE=6.0;
+
+gamma=(Edes+CMASS)/CMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*CMASS;
+brho = (CMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+ring: Cyclotron, TYPE="CARBONCYCL", CYHARMON=18, PHIINIT=0.0, PRINIT=0.0, RINIT=3250.0, SYMMETRY=6.0, RFFREQ=frequency, FMAPFN="CarbField.dat";
+
+l1: Line = (ring);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="PartDatabase.dat";
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=32, MY=32, MT=32,
+                 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+beam1: BEAM, PC=P0, PARTICLE=CARBON, CHARGE=CCHARGE, MASS=CMASS, SPACECHARGE=false, NPART=1, BCURRENT=0.0, BFREQ= frequency;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=1190*2, DT=0.05e-9;
+run, file = "track_output", turns = 1, method = "CYCLOTRON-T",beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;

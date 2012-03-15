@@ -1,0 +1,179 @@
+\chapter{Introduction}
+\label{sec:Introduction}
+
+
+\section{Aim of \opal and History}
+\opal is a tool for charged-particle optics in
+accelerator structures and beam lines. \opal is derived from \madninep and is based 
+on the
+\htmladdnormallink{CLASSIC}{http://wwwslap.cern.ch/classic/} class library,
+which was started in 1995 by an international collaboration.  IPPL (Independent Parallel Particle Layer) is
+the framework which provides parallel particles and fields using data parallel ansatz. \opal is build from ground up
+as a parallel application having in mind that: HPC (High Performance Computing) is the third leg of 
+science, which complements theory and the experiment. HPC is made possible now through the increasingly sophisticated mathematical models and evolving computer power available on the desktop
+and in super computer centres. \opal runs on your laptop as well as on the largest HPC clusters available today. \opal uses the \mad language with extensions.
+
+The \opal framework makes it easy to add new features in the form of new
+\texttt{C++}~classes.
+
+The following OPAL flavours exist:
+\begin{itemize}
+\item \opalmap (not yet released in V1.0)
+\item \opalcycl 
+\item \opalt .
+\end{itemize}
+
+\opalmap tracks particles with 3D space charge using split operator techniques, and is a proper subset of \madninep. In the future there will be also a linear space charge mode available
+which allows one to track moments of the distribution. 
+
+\opalcycl tracks particles which 3D space charge including neighbouring turns in cyclotrons
+with time as the independent variable. 
+
+\opalt is an superset of \impactt \cite{qiang2005} and can be used to model guns, injectors and complete XFEL's.
+
+Please note not all features of \opal are available in all flavours.\\ The following icon \noopalt means that a feature is not yet 
+available please check section \ref{sec:featurelist} to see when this feature becomes available.
+
+\section{Parallel Processing Capabilities}
+\opal is build with the fact in mind that parallel processing will help us to quantitatively better understand particle accelerators. Such a goal will be only achieved if one has
+detailed 3D modelling capabilities and is able to use sufficient simulation particles in order to obtain meaningful  statistics on various quantities of the particle ensemble such as
+emittance, slice emittance, halo etc. 
+
+In consequence the architecture of \opal is based from ground up on data parallelism but  following the shared memory paradigm. 
+
+\begin{table}[ht]
+\caption{Parameters Parallel Performance Examples }
+   \label{tab:drift}
+\centering % used for centering table
+\begin{tabular}{c c c c c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Test & Particles  & Mesh & Greens Function & Time steps  \\ [0.75ex] % inserts table
+%heading
+\hline % inserts single horizontal line
+PPE1 & $10^6$ & $128^3$ & Integrated  & 100 \\ [1ex] % inserting body of the table
+\hline %inserts single line
+\end{tabular}
+\label{table:nonlin} % is used to refer this table in the text
+\end{table}
+
+In Figure \ref{fig:walldrift} the $W_{all}$ time as a function of used processors is shown for a test example. The simulation parameters for {\em PPE1 (Parallel Performance Example 1)}  are given in 
+Table \ref{tab:drift}.
+\begin{figure}[ht]
+ \begin{center}
+ \includegraphics[width=0.5\linewidth,angle=0]{figures/speedup/Drift/mainTimer}
+  \caption{$W_{all}$ time as a function of cores}
+  \label{fig:walldrift}
+ \end{center}
+\end{figure}
+
+In Figure \ref{fig:speedupdrift} speedup for PPE1 is shown. \latermore .
+
+\begin{figure}[ht]
+ \begin{center}
+  \includegraphics[width=0.6\linewidth,angle=0]{figures/speedup/Drift/mainTimer-speedup}
+  \caption{Speedup as a function of used cores}
+   \label{fig:speedupdrift}
+ \end{center}
+\end{figure}
+
+\section{Quality Management}
+Documentation and quality assurance are regarded as very important. Using  tools such as source code version
+control system (subversion),  doxygen a source code documentation tool (check out  \url{http://amas.web.psi.ch/docs/opal/html/classParallelTTracker.html}) and the extensive user documentation
+you are just enjoying, we are convinced to provide you with a state of the art documentation to \opal, for studying present and future particle accelerators. 
+
+One example of an non trivial test-example is the PSI DC GUN. In Figure \ref{fig:guncomp1} the comparison between \impactt and \opalt is shown. This example is part of the regression test suite
+running every night. The the inputfile is found in Section \ref{sec:oblagun}.  
+\begin{figure}[ht]
+ \begin{center} 
+   \includegraphics[width=0.60\linewidth,angle=90]{figures/Gun/GunCompEn}
+   \includegraphics[width=0.60\linewidth,angle=90]{figures/Gun/GunCompEx}
+   \caption{Comparison of energy and emittance in $x$ between \impactt and \opalt}   
+   \label{fig:guncomp1}
+ \end{center}
+\end{figure}
+
+\section{Revision 1.0 - Feature List}
+\label{sec:featurelist}
+As of the current version of \opal many features are implemented whereas many others are still missing. Table~\ref{featurelist} gives information about the implemented features whereas Table~\ref{roadmap} outlines a rought road map to where we intend to bring \opal in the near and not so near future.
+\begin{table}[ht] \footnotesize
+\begin{center}
+\begin{tabular}{p{5cm}cc}
+\hline
+{\bf Name} & {\bf implemented} & {\bf tested}\\
+\hline
+{\bf Algorithms} & & \\
+ParallelTTracker & x & x \\
+ParallelCyclotronTracker & x & x \\
+FFT based space charge solver & x & x \\
+integrated Greens function, FFT based space charge solver & x & x \\
+\hline
+{\bf Elements} & & \\
+Cyclotron & x & x \\
+RFCavity & x & x \\
+Solenoid & x & x \\
+Traveling Wave & x & x \\
+Traveling Wave fast algorithm & x & x \\
+RBend & x & \\
+\hline
+\end{tabular}
+\caption{List of implemented and tested features in version 1.0 of \opal. For testing the output was compared to results of Impact-T.}
+\label{featurelist}
+\end{center}
+\end{table}
+\clearpage
+\begin{table}[ht]\footnotesize
+\begin{center}
+\begin{tabular}{p{7cm}c}
+\hline
+{\bf Name} & {\bf Version (estimated)} \\
+\hline
+{\bf Algorithms} & \\
+longitudinal and transverse wake fields& 1.1.x \\
+ML based space charge solver & 1.1.x \\
+1D csr wake fields & 1.1.x \\
+2D FETD self-consistent solver & 1.2 \\
+3D FETD self-consistent solver & 1.2 \\
+\opalmap & 1.2 \\
+\hline
+{\bf Elements} &  \\
+SBend & 1.1.x \\
+Collimator & 1.1.x \\
+\hline
+\end{tabular}
+\caption{List of features which will be implemented in versions to come (please note: the estimated version numbers are non-binding).}
+\label{roadmap}
+\end{center}
+\end{table}
+If there is any feature you are missing let us know. Alternatively you can check out the source code from our repository and implement it. In this case let us know and send a patch such that we can incorporate your work into \opal.
+\clearpage
+\section{Acknowledgements}
+The contributions of various individuals and groups are acknowledged in the relevant chapters, however a few individuals have or had considerably influence on the 
+development of \opal, namely Chris Iselin, John Jowett, Julian Cummings, Ji Qiang Robert Ryne and Stefan Adam. For the \partroot visualisation tool credits go to T. Schietinger,
+the effort to couple FEMAXX to \opal is lead by B. Oswald. 
+
+Misprints and obscurity are almost inevitable in a document of this size.
+Comments and {\em active contributions}  from readers are therefore most welcome.
+They may also be sent to \htmladdnormallink{\texttt{andreas.adelmann@psi.ch}}{mailto:andreas.adelmann@psi.ch}.
+
+
+
+
+\subsection{Citation}
+Please cite \opal in the following way:
+\begin{small}
+\begin{verbatim} 
+@techreport{Opal-User-Guide,
+title = "{The OPAL (Object Oriented Parallel Accelerator Library) 
+              Framework }",
+author = "A. Adelmann and Ch. Kraus and Y. Ineichen and  J. Yang",
+institution = "Paul Scherrer Institut",
+number = "PSI-PR-08-02",
+year ={2008}
+\end{verbatim}
+\end{small}
+
+
+%& OPAL \\
+% & V 1.0
+
+

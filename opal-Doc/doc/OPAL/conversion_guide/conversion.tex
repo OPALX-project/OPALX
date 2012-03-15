@@ -1,0 +1,619 @@
+\documentclass{article}
+%\usepackage{a4p}
+\usepackage{html}
+\usepackage{epsfig}
+\usepackage{epic}
+\usepackage{eepic}
+\usepackage{makeidx}
+
+\makeindex
+\renewcommand{\topfraction}{1.0}
+\renewcommand{\bottomfraction}{1.0}
+\renewcommand{\textfraction}{0.0}
+
+\newcommand{\bibref}[2]{\hypercite[cite]{#1}{}{}{bib:#2}}
+
+\newcommand{\tabline}[3]{\hyperref{\texttt{#1}}%
+  {\texttt{#1} (}{)}{sec:#3} & #2 \\}
+\newcommand{\figref}[2]{\hyperref{#1}{#1 (see Figure~}{)}{fig:#2}}
+\newcommand{\secref}[2]{\hyperref{#1}{#1 (see Section~}{)}{sec:#2}}
+\newcommand{\tabref}[2]{\hyperref{#1}{#1 (see Table~}{)}{tab:#2}}
+
+\begin{htmlonly}
+\bodytext{bgcolor = "#ffffff"}
+\end{htmlonly}
+
+
+\newcommand{\documentlabel}{PSI - GFA (AMAS)}
+
+\begin{document}
+
+\begin{titlepage}
+
+\begin{htmlonly}
+\begin{rawhtml}
+<center>
+PAUL SCHERRER INSTITUT
+<br>
+<h1>The OPAL Framework , Version 0.1</h1>
+<h2>(Object Oriented Parallel Accelerator Library)</h2>
+<h2>MAD-8 (X) to OPAL Conversion Guide </h2>
+<br>
+Andreas Adelmann
+</center>
+\end{rawhtml}
+\end{htmlonly}
+\begin{latexonly}
+\begin{center}\normalsize
+PSI
+\end{center}
+\vskip 0.7cm
+\begin{flushright}
+%\documentlabel \\                    % document label
+\end{flushright}
+\vskip 2.3cm
+\begin{center}\LARGE                 % document title
+{\bf The OPAL Framework } \\
+(Object Oriented Parallel Accelerator Library) \\
+Version 0.1 \\
+{\bf MAD-8 (X) to OPAL Conversion Guide}
+\end{center}
+\vskip 1.5em
+\begin{center}                       % author
+Andreas Adelmann
+\vskip 2em
+{\large Abstract}
+\end{center}
+\end{latexonly}
+\begin{quotation}
+This guide is aimed at users of MAD version 8 and earlier.
+It shows how to change input files to the OPAL MAD format.
+
+Please send any comments grep hito 
+\htmladdnormallink{\texttt{andreas.adelmann@psi.ch}}{mailto:andreas.adelmann@psi.ch}.
+\end{quotation}
+\vfill
+\begin{center}
+PSI, Villigen \\
+\today
+\end{center}
+\end{titlepage}
+
+\tableofcontents
+
+\section{Basic Language Format}
+The following changes have been made to the MAD input language in order
+to reduce the risk of ambiguity and to have an input language closer to
+well-known programming languages like Pascal, C, or C++:
+
+\begin{description}
+\item[Statement termination]
+  All statements are now terminated by a semicolon (;).
+  This removes the need for a continuation character when a statement is 
+  longer than one line.
+
+\item[Comments]
+  Comments are now denoted as in C++, namely
+  \begin{itemize}
+  \item Text following with a double slash (\texttt{//}) is ignored up to
+    the end of line (like in MAD-8 for the '!' character). 
+    Example:
+\begin{verbatim}
+// This is a comment
+\end{verbatim}
+  \item Comment can also be delimited by "/*" (begin) and "*/" (end). 
+    They may span several lines, and the begin/end markers may be nested
+    (like in MAD-8 for COMMENT/ENDCOMMENT).
+    Example:
+\begin{verbatim}
+/* This is also a comment */
+\end{verbatim}
+  \end{itemize}
+
+\item[Line length]
+  The input line length is no longer limited to 80 characters.
+
+\item[Keywords]
+  All command and attribute keywords must be entered in full.
+  Abbreviations are no longer accepted.
+
+\item[Attributes]
+  On all commands, all attribute keywords are mandatory.
+  This removes potential ambiguities between string values of attributes
+  which could be mistaken for attribute names.
+
+\item[Object attributes]
+  Command attributes are now written in the form
+\begin{verbatim}
+<object-name> -> <attribute-name>
+\end{verbatim}
+  which replaces the MAD-8 syntax
+\begin{verbatim}
+<object-name>[<attribute-name>]
+\end{verbatim}
+\end{description}
+
+\section{Conventions}
+Following the CLASSIC standard, the phase-space coordinates are now:
+\[
+x, p_{x}, y, p_{y}, - v\cdot t, p_{t} = \delta p / p_{s}.
+\]
+where $p_{s}$ is the constant momentum of a "synchronous"
+particle, and $v$ is the instantaneous velocity of the particle.
+
+\section{Multipoles}
+A \texttt{MULTIPOLE} \textbf{Always has a finite length.}
+Some algorithms, notably tracking and map accumulation,
+allow to replace finite length multipoles by thin lenses.
+Special integrators will be made available which approximate thick lenses 
+by sets of thin lenses.
+
+It has an open set of \textbf{multipole components.}
+These are entered as two \secref{vectors}{vect} 
+\texttt{knormal} and \texttt{kskew}.
+
+\section{Variables and constants}
+The format for variables (parameters) and constants has been unified,
+and a data types have been introduced:
+\begin{itemize}
+\item \secref{logical variable}{logical},
+\item \secref{real constant}{real},
+\item \secref{real variable}{real},
+\item \secref{real vector}{vect},
+\item \secref{string variable}{string}.
+\end{itemize}
+\begin{verbatim}
+REAL P=<logical expression>;          // a logical variable
+BOOL B=<real expression>;             // a real variable
+REAL CONST C=<constant expression>;   // a real constant
+REAL VECTOR V=<vector expression>;    // a real vector
+STRING S=<string expression>;         // a string constant
+\end{verbatim}
+The word \texttt{REAL} is optional.
+For backward compatibility, a variable parameter can still be entered with
+\begin{verbatim}
+P:=<expression>
+\end{verbatim}
+A variable or vector also can be redefined by the above syntax.
+To assigne a \textbf{constant} value to one of them, use
+\begin{verbatim}
+P=<expression>;
+V=<vector-expression>;
+\end{verbatim}
+
+\subsection{Logical Expressions}
+\label{sec:logical}
+A logical expression has the same format as a logical expression in C.
+It is built from \tabref{operators}{operators} and operands.
+Operands may include \tabref{functions}{functions}:
+\begin{verbatim}
+   <relation> ::=
+     true | false |
+     <real expression> <relational operator> <real expression>
+   <relational operator> ::= "==" | "!=" |
+     "<" | ">" | ">=" | "<="
+   <and expression> ::= <relation> |
+     <and expression> "&&" <relation>
+   <logical expression> ::= <and expression> |
+     <logical> "||" <and expression>
+\end{verbatim}
+
+\subsection{Real Expressions}
+\label{sec:real}
+
+A real expression is built from operators \tabref{operators}{operators} and 
+operands. Operands may include
+\tabref{functions}{functions}:
+
+\begin{verbatim}
+   <primary> ::= <literal constant> |
+                 <symbolic constant> |
+                 <real variable> |
+                 <real vector>"["<index>"]" |
+                 <function name>"("<arguments>")" |
+                 (<real expression>)
+   <factor>  ::= <primary> |
+                 <factor> "^" <primary>
+   <term>    ::= <factor> |
+                 <term> "*" <factor> |
+                 <term> "/" <factor>
+   <real expression> ::= <term> |
+                 "+" <term> |
+                 "-" <term> |
+                 <real expression> "+" <term> |
+                 <real expression> "-" <term> |
+\end{verbatim}
+
+\subsection{Vector Expressions}
+\label{sec:vect}
+A \texttt{<vector-expression>} can have one of the following formats:
+\begin{verbatim}
+   <real expression>
+   {<real expression>, <real expression>, ... , <real expression>}
+   TABLE(<max>, <real expression>)
+   TABLE(<min>:<max>, <real expression>)
+   TABLE(<min>:<max>:<step>, <real expression>)
+\end{verbatim}
+It can be entered as a single scalar value,
+giving a vector of length one,
+as a table of scalar values with an unlimited number of values,
+or as a \texttt{TABLE} generator/
+In the \texttt{TABLE} generator the \texttt{<count>} specifies how
+many components are wanted,
+and the \texttt{<real expression>} may contain the special value
+\texttt{\#}.
+It allws to generate arbitrary tables.
+The generator fills the vector with zeros from \verb'1 ... <max>',
+and the generates the expressions for all values \verb'<min> ... <max>'
+with steps \verb'<step>'.
+Thus 
+\begin{verbatim}
+TABLE(4, #*A+B)
+\end{verbatim} 
+generates the vector 
+\begin{verbatim}
+{1*A+B, 2*A+B, 3*A+B, 4*A+B},
+\end{verbatim}
+and 
+\begin{verbatim}
+TABLE(1,9,4, V[#+1])
+\end{verbatim} 
+returns the components \verb'2, 6, 10' of the vector \texttt{V} and
+stores them in components \verb'1, 5, 9'.
+
+\textbf{A vector component} is referred to by the syntax
+\begin{verbatim}
+<vector>[<index>]
+\end{verbatim}
+where the \texttt{index} must have a positive non-zero value not
+exceeding the length of the vector.
+This may be combined with the attribute notation like
+\begin{verbatim}
+MULTIPOLE->KNORMAL[1]
+\end{verbatim}
+which denotes the normal quadrupole component of \texttt{multipole}.
+
+\subsection{String Expressions}
+\label{sec:string}
+All \textbf{string values}, including object names,
+but not attribute keywords,
+can be written using string concatenation:
+\begin{verbatim}
+   <simple string> :: " <litteral> " | <label> |
+      STRING(<numeric expression>)
+   <string expression> ::= <simple string> |
+      <string expression> "&" <simple string>
+\end{verbatim}
+The '\&' is the concatenation operator.
+\begin{verbatim}
+QF & STRING(I): QUADRUPOLE, L=1.6, K1=KF & STRING(I);
+\end{verbatim}
+An operand of the form
+\begin{verbatim}
+STRING(<numeric expression>)
+\end{verbatim}
+generates a string representation of the <numeric expression>.
+
+\subsection{Expressions}
+All arithmetic is done in floating-point.
+When an integer is required, the \textbf{last} operation consists in rounding
+to the nearest integer.
+A different behaviour can be requested by use of one of the functions
+\texttt{ROUND(X), TRUNC(X), FLOOR(X), CEIL(X)}
+All available operators are listed in \tabref{operators}{operators},
+all available functions are listed in \tabref{functions}{functions},
+
+The complete list of available operators in expressions is now:
+\begin{table}[ht]
+\begin{center}  
+\begin{tabular}{|l|p{0.6\textwidth}|l|l|}
+\hline
+Operator & Meaning & result type & operand type \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Operators with one operand}} \\
+\hline
+\texttt{+ X} & unary plus, returns \texttt{X} & real &real \\
+\hline
+\texttt{- X} & unary minus, returns the negative of \texttt{X} & real
+&real \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Operators with two operands}} \\
+\hline
+\texttt{X + Y} & add \texttt{X} to \texttt{Y} & real & real,real \\
+\hline
+\texttt{X - Y} & subtract \texttt{Y} from \texttt{X} & real & real,real \\
+\hline
+\texttt{X * Y} & multiply \texttt{X} by \texttt{Y} & real & real,real \\
+\hline
+\texttt{X / Y} & divide \texttt{X} by \texttt{Y} & real & real,real \\
+\hline
+\texttt{X \^\  Y} & power, return \texttt{X} raised to the power \texttt{Y > 0} &
+real & real,real \\
+\hline
+\texttt{X \& Y} & concatenate the strings \texttt{X} and \texttt{Y} &
+string & string,string \\
+\texttt{X < Y} &
+true, if \texttt{X} is less than \texttt{Y} & logical & real,real \\
+\hline
+\texttt{X <= Y} & true, if \texttt{X} is not greater than \texttt{Y} &
+logical & real,real \\
+\hline
+\texttt{X > Y} &
+true, if \texttt{X} is greater than \texttt{Y} & logical & real,real \\
+\hline
+\texttt{X >= Y} & true, if \texttt{X} is not less than \texttt{Y} &
+logical & real,real \\
+\hline
+\texttt{X == Y} & true, if \texttt{X} is equal to \texttt{Y} & 
+logical & real,real \\
+\hline
+\texttt{X != Y} & true, if \texttt{X} is not equal to \texttt{Y} & 
+logical & real,real \\
+\hline
+\texttt{X \&\& Y} & true, if both \texttt{X} and \texttt{Y} are true &
+logical & logical,logical \\
+\hline
+\texttt{X || Y} & true, if at least one of \texttt{X} and \texttt{Y} is true &
+logical & logical,logical \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Operators available in MAD-9 Expressions}
+\label{tab:operators}
+\end{table}
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|p{0.6\textwidth}|l|l|}
+\hline
+Function & Meaning & result type & operand type \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Functions with no arguments}} \\
+\hline
+\texttt{RANF()} & random number, uniform distribution in [0,1) & real & \\
+\hline
+\texttt{GAUSS()} &
+random number, Gaussian distribution with $sigma$=1 & real & \\
+\hline
+\texttt{USER0()} & random number, user-defined distribution & real & \\
+\hline
+\texttt{SI()} &
+arc length from start of ring to the entry of the current element &
+real & \\
+\hline
+\texttt{SC()} &
+arc length from start of ring to the centre of the current element &
+real & \\
+\hline
+\texttt{SO()} &
+arc length from start of ring to the exit of current the element &
+real & \\
+\hline
+\multicolumn{4}{|c}{\textbf{Functions with one argument}} \\
+\hline
+\texttt{TRUNC(X)} & 
+truncate \texttt{X} towards zero (discard fractional part) & real & real \\
+\hline
+\texttt{ROUND(X)} & round \texttt{X} to nearest integer & real &real \\
+\hline
+\texttt{FLOOR(X)} & return largest integer not greater than \texttt{X} &
+real & real \\
+\hline
+\texttt{CEIL(X)} &
+return smallest integer not less than \texttt{X} & real & real \\
+\hline
+\texttt{SIGN(X)} & return sign of \texttt{X}
+(+1 for \texttt{X} positive, -1 for \texttt{X} negative,
+ 0 for \texttt{X} zero) & real & real \\
+\hline
+\texttt{SQRT(X)} & return square root of \texttt{X} & real & real \\
+\hline
+\texttt{LOG(X)} &
+return natural logartithm of \texttt{X} & real & real \\
+\hline
+\texttt{EXP(X)} &
+return exponential to the base $e$ of \texttt{X} & real & real \\
+\hline
+\texttt{SIN(X)} &
+return trigonometric sine of \texttt{X} & real & real \\
+\hline
+\texttt{COS(X)} & return trigonometric cosine of \texttt{X} & real & real \\
+\hline
+\texttt{ABS(X)} & return absolute value of \texttt{X} & real & real \\
+\hline
+\texttt{TAN(X)} & return trigonometric tangent of \texttt{X} & real & real \\
+\hline
+\texttt{ASIN(X)} & return inverse trigonometric sine of \texttt{X} &
+real & real \\
+\hline
+\texttt{ACOS(X)} & return inverse trigonometric cosine of \texttt{X} &
+real & real \\
+\hline
+\texttt{ATAN(X)} & return inverse trigonometric tangent of \texttt{X} &
+real & real \\
+\hline
+\texttt{TGAUSS(X)} & random number, Gaussian distribution with $sigma$=1,
+ truncated at \texttt{X} & real & real \\
+\hline
+\texttt{USER1(X)} & 
+random number, user-defined distribution with one parameter &
+real & real \\
+\hline
+\texttt{STRING(X)} &
+return string representation of the value<br>
+of the numeric expression \texttt{X} &
+string & real \\
+\hline
+\multicolumn{4}{|c}{\textbf{Functions with two arguments}} \\
+\hline
+\texttt{ATAN2(X,Y)} & return inverse trigonometric tangent of \texttt{Y/X} &
+real & real,real \\
+\hline
+\texttt{MAX(X,Y)} & return the larger of \texttt{X, Y} & real & real,real \\
+\hline
+\texttt{MIN(X,Y)} & return the smaller of \texttt{X, Y} & real & real,real \\
+\hline
+\texttt{MOD(X,Y)} & return the largest value less than \texttt{Y}
+ which differs from \texttt{X} by a multiple of \texttt{Y} &
+real & real,real \\
+\hline
+\texttt{USER2(X,Y)} & 
+random number, user-defined distribution with two parameters &
+real & real,real \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Functions Available in MAD-9 Expressions}
+\label{tab:functions}
+\end{table}
+
+\section{Program Flow Control}
+
+\subsection{If Statements}
+\textbf{\texttt{IF} statements} can now be written like in C:
+\begin{verbatim}
+IF (X < 10) {
+   LAG = 0.0;
+} ELSE {
+   LAG = 0.5;
+}
+\end{verbatim}
+The expression folllowing \texttt{IF} is a 
+\secref{\texttt{<logical expression>}}{logical}
+
+\subsection{While Statements}
+\textbf{\texttt{WHILE} statements} can now be written like in C:
+\begin{verbatim}
+X = 0;
+WHILE (X < 10) {
+   SHOW, NAME = QF & STRING(X);
+   X = X + 1;
+}
+\end{verbatim}
+The expression folllowing \texttt{WHILE} is a 
+\secref{\texttt{<logical expression>}}{logical}
+
+\subsection{Macros}
+The subroutines of MAD-8 have been replaced by the \textbf{\texttt{MACRO} 
+construct}, which allows arguments to be handed over:
+\begin{verbatim}
+// MACRO DEFINITIONS:
+SHOWIT(X): MACRO {
+   SHOW, NAME = X;
+}
+DOIT(): MACRO {
+   DYNAMIC,LINE=RING,FILE="DYNAMIC.OUT";
+}
+
+// MACRO CALLS:
+SHOWIT(PI);
+DOIT();
+\end{verbatim}
+An empty parameter list must be indicated by \texttt{()}.
+Macros can occur anywhere in the input.
+However, a macro expansion always produces zero or more \textbf{complete}
+statements.
+
+\section{Lines and Sequences}
+
+\subsection{Sequences}
+The length of a \texttt{SEQUENCE} must now be given either on its 
+header line or on the \texttt{END} line:
+\begin{verbatim}
+LHC: SEQUENCE, L=...;
+   ...
+END, L=...; // Do not use both ways to specify the length!!!
+\end{verbatim}
+The preferred way is on the header line.
+
+A \texttt{SEQUENCE} may now have arguments like an \texttt{LINE}:
+\begin{verbatim}
+S(X): SEQUENCE,L=10;
+   SF.&X:SF,AT=2;
+   X:QF,AT=5;
+   OF.&X:OF,AT=8;
+ENDSEQUENCE;
+\end{verbatim}
+This half-cell may be instantiated with
+\begin{verbatim}
+S1:S(Q1);
+\end{verbatim}
+giving the same effect as
+\begin{verbatim}
+S1: SEQUENCE,L=10;
+   SF.Q1:SF,AT=2;
+   Q1:QF,AT=5;
+   OF.Q1:OF,AT=8;
+ENDSEQUENCE;
+\end{verbatim}
+Note the generated names.
+
+A \texttt{LINE} or \texttt{SEQUENCE} can now be nested within a
+\texttt{SEQUENCE}.
+If the nested objects have arguments,
+their use causes an instantiation.
+\begin{verbatim}
+LHC: SEQUENCE, L=...;
+   ...
+   S(QF1),AT=...;
+   S(QD1),AT=...;
+   ...
+END
+\end{verbatim}
+
+\section{Physical Actions}
+\label{sec:action}
+
+In order to make matching much more flexible,
+the \texttt{USE} command has been removed.
+In MAD-8 the example
+\begin{verbatim}
+USE,PERIOD=LINE1
+BEAM,...
+SURVEY
+TWISS
+TRACK
+...
+ENDTRACK
+\end{verbatim}
+allows only the use of one beam line at a time.
+In MAD-9, the equivalent commands are:
+\begin{verbatim}
+BEAM1:BEAM,...
+SU1:SURVEY,LINE=LINE1;
+TW1:TWISS,LINE=LINE1,BEAM=BEAM1;
+TR1:TRACK,LINE=LINE1,BEAM=BEAM1;
+...
+ENDTRACK
+\end{verbatim}
+The labels on the \texttt{SURVEY}, \texttt{TWISS}, and \texttt{TRACK}
+commands are optional, but they may be referred to in matching.
+The following should be noted:
+\begin{enumerate}
+\item
+  If the \texttt{BEAM} command is not labelled, its name defaults to
+  \texttt{UNNAMED\_BEAM}. 
+  If it is labelled, different subsequent commands can refer to
+  different \texttt{BEAM} commands.
+\item
+  If no \texttt{BEAM} command is given on \texttt{TWISS} or
+  \texttt{TRACK}, the command \texttt{UNNAMED\_BEAM} is used.
+  Its default definition is:
+  \begin{verbatim}
+UNNAMED_BEAM:BEAM,PARTICLE=PROTON,PC=1,EX=1,EY=1,ET=1;
+  \end{verbatim}
+\item
+  The \texttt{TWISS} and \texttt{SURVEY} commands create a table
+  object.
+  All values contained in a table object can be referred to in
+  matching with the syntax
+  \begin{verbatim}
+table-name@place->column-name
+  \end{verbatim}
+  To avoid re-computation of a table which does not change during
+  matching, declare it as \texttt{STATIC}.
+\end{enumerate}
+
+\printindex
+
+\end{document}

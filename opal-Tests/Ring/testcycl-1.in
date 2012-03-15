@@ -1,0 +1,35 @@
+// test for static equilibrium orbit of reference particle in PSI Ring cyclotron
+ 
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+
+Title,string="OPAL-CyclT test";
+
+Edes=.072;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+
+ring: Cyclotron, TYPE="RING", CYHARMON=6, PHIINIT=0.0, PRINIT=-0.000240, RINIT=2131.4 , SYMMETRY=8.0, RFFREQ=50.650, FMAPFN="s03av.nar";
+
+l1:   Line = (ring);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="PartDatabase.dat"; 
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=64, MY=64, MT=64, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=true, NPART=1e4, BCURRENT=3.0E-3;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=118700, DT=1.0e-11;
+ run, file = "track_output", turns = 1, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;

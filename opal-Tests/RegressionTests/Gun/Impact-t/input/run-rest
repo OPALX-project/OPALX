@@ -1,0 +1,2 @@
+FN=OBLAPostGun-OPAL.in
+mpirun -np $1 opal $FN -restart 172 --commlib mpi --info 0 --warn 0 | tee  $FN-P$1.out

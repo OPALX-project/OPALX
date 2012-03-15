@@ -1,0 +1,545 @@
+\chapter{Error Definitions}
+\label{sec:error}
+\index{imperfections}
+\index{errors|(}
+Please note Error Definitions are not yet supported in \noopalt and \noopalcycl . 
+\section{Error Commands}
+\label{sec:errorcmd}
+
+\begin{table}[ht]
+  \begin{center}
+    \begin{tabular}{|p{0.3\textwidth}|p{0.6\textwidth}|}
+      \hline
+      Command & Purpose \\
+      \hline
+      \tabline{name=expression}{Parameter relation}{variable}
+      \tabline{ERROR}{Start error mode}{errormode}
+      \tabline{SELECT}{Select elements to be affected}{select}
+      \tabline{EALIGN}{Define misalignment errors}{erroralign}
+      \tabline{EFIELD}%
+      {Define multipole field errors (by amplitude and rotation)}{errorfield}
+      \tabline{EFCOMP}{Define multipole field errors (by components)}%
+      {errorfield}
+      \tabline{EPRINT}{Print error definitions}{errorprint}
+      \tabline{ESAVE}{Save error definitions to file}{errorsave}
+      \tabline{ENDERROR}{End error mode}{errormode}
+      \hline
+    \end{tabular}
+    \caption{Error Commands}
+    \label{tab:errorcmd}
+  \end{center}
+\end{table}
+
+\section{Error Mode}
+\label{sec:errormode}
+\index{ERROR}
+\index{ENDERROR}
+\index{error mode}
+\index{mode!error}
+
+For all \tabref{error-defining commands}{errorcmd},
+the \secref{beam line}{line} or \secref{sequence}{sequence} to be
+affected must be specified with the command
+\begin{verbatim}
+ERROR,LINE=name,SEED=real,ADD=logical,CLEAR=logical;
+\end{verbatim}
+It has the following attributes:
+\begin{description}
+\item[LINE]
+  \index{LINE}
+  The line to be affected.
+\item[SEED]
+  \index{SEED}
+  Selects a particular sequence of random values.
+  A SEED value is an integer in the range [0...999999999] (default: 123456789).
+  SEED can be an expression.
+  See also: \secref{random values}{adefer}.
+\item[ADD]
+  \index{ADD}
+  If this value is entered as true, the subsequent error definitions
+  are added to any existing ones.
+  Otherwise, the subsequent error definitions overwrite any existing
+  ones.
+\item[CLEAR]
+  \index{CLEAR}
+  If this value is true, all errors are erased from the given line.
+\end{description}
+After this command \opal enters ``error mode'', in which it accepts only
+the \tabref{error defining commands}{errorcmd}.
+Normal mode is resumed by entering the command
+\begin{verbatim}
+ENDERROR;
+\end{verbatim}
+It is possible to assign alignment errors and field errors
+to single beam elements or to ranges of beam elements.
+Errors can be entered both with given or with random values.
+
+\section{Define Misalignments}
+\label{sec:erroralign}
+\index{EALIGN}
+\index{error!alignment}
+\index{misalignment}
+Alignment errors are defined by the \texttt{EALIGN} command.
+The misalignments refer to a \figref{local reference system}{local}
+for a perfectly aligned machine, placed half-way through the element
+on the design orbit.
+Possible misalignments are displacements along the three coordinate axes,
+and rotations about the coordinate axes.
+Alignment errors can be assigned to all beam elements except drift spaces.
+The effect of misalignments is treated in a linear approximation.
+
+\secref{Beam position monitors}{monitor}
+can be given read errors in both horizontal and vertical planes.
+Monitor read errors are ignored for all other elements.
+Each new \texttt{EALIGN} statement replaces the misalignment errors
+for all elements in its range, unless \texttt{ERROR,ADD}
+has been entered.
+
+The elements to be misaligned must first be selected by the 
+\secref{\texttt{SELECT} command}{select}.
+Alignment errors can then be defined by the statement
+\begin{verbatim}
+EALIGN,DX=real,DY=real,DS=real,DPHI=real,DTHETA=real,DPSI=real,
+       MREX=real,MREY=real;
+\end{verbatim}
+Its attributes are:
+\begin{description}
+\item[DX]
+  \index{DX}
+  The misalignment in the $x$-direction
+  for the entry of the beam element (default: 0 m).
+  A positive value displaces the element 
+  \figref{in the positive $x$-direction}{xsdisp}.
+\item[DY]
+  \index{DY}
+  The misalignment in the $y$-direction
+  for the entry of the beam element (default: 0 m).
+  A positive value displaces the element 
+  \figref{in the positive $y$-direction}{ysdisp}.
+\item[DS]
+  \index{DS}
+  The misalignment in the $s$-direction
+  for the entry of the beam element (default: 0 m).
+  A positive value displaces the element 
+  \figref{in the positive $s$-direction}{xsdisp}.
+\item[DPHI]
+  \index{DPHI}
+  The rotation around the $x$-axis, (default: 0 rad).
+  A \figref{positive angle}{xsdisp} gives a greater $x$-coordinate for the exit 
+  than for the entry.
+\item[DTHETA]
+  \index{DTHETA}
+  The rotation around the $y$-axis (default: 0 rad) according to 
+  the \figref{right hand rule}{xsdisp}.
+\item[DPSI]
+  \index{DPSI}
+  The rotation around the $s$-axis (default: 0 rad) according to 
+  the \figref{right hand rule}{xydisp}.
+\item[MREX]
+  \index{MREX}
+  The horizontal read error for a beam position monitor (default: 0 m).
+  This is ignored if the element is not a monitor
+  For a \figref{positive value}{monitor} the reading for $x$ is too high.
+\item[MREY]
+  \index{MREY}
+  The vertical read error for a beam position monitor (default: 0 m).
+  This is ignored if the element is not a monitor.
+  For a \figref{positive value}{monitor} the reading for $y$ is too high.
+\end{description}
+Example:
+\begin{verbatim}
+EALIGN,QF[2],DX=0.002,DY=0.0004*RANF(),DPHI=0.0002*GAUSS();
+\end{verbatim}
+See also: 
+\begin{itemize}
+\item \secref{Deferred Expressions}{adefer},
+\item \secref{Random Generators}{adefer}.
+\end{itemize}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{picture}(400,140)(0,30)
+\put(50,75){\line(1,0){96}}
+\put(154,75){\vector(1,0){246}}
+\put(50,75){\makebox(0,0)[r]{\shortstack{original \\beam line}}}
+\put(390,65){\makebox(0,0)[r]{s}}
+\put(150,75){\circle{8}}
+\put(150,75){\circle*{2}}
+\put(140,85){\makebox(0,0){y}}
+\put(150,30){\line(0,1){41}}
+\put(150,79){\vector(0,1){91}}
+\put(140,160){\makebox(0,0){x}}
+\put(130,55){\vector(1,1){15}}
+\put(130,55){\makebox(0,0)[tr]{\shortstack{original entrance \\
+of the magnet}}}
+\put(150,55){\vector(1,0){50}}
+\put(175,45){\makebox(0,0){DS}}
+\put(130,75){\vector(0,1){50}}
+\put(125,100){\makebox(0,0)[r]{DX}}
+\put(125,125){\line(1,0){185}}
+\put(200,50){\line(0,1){120}}
+\put(200,125){\circle*{4}}
+\put(168,117){\vector(4,1){144}}
+\put(210,85){\vector(-1,4){20}}
+\bezier{30}(300,125)(300,137)(297,149)
+\put(299,140){\vector(-1,4){2}}
+\put(305,137){\makebox(0,0)[l]{DTHETA}}
+\put(282,137){\line(-1,4){4}}
+\put(202,117){\line(-1,4){4}}
+\put(198,133){\line(4,1){80}}
+\put(202,117){\line(4,1){80}}
+\put(150,67){\line(1,0){80}}
+\put(150,83){\line(1,0){80}}
+\put(150,67){\line(0,1){4}}
+\put(150,79){\line(0,1){4}}
+\put(230,67){\line(0,1){16}}
+\end{picture}
+\caption{Example of Misplacement in the $(x, s)$-plane.}
+\label{fig:xsdisp}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{picture}(400,140)(0,30)
+\put(50,75){\line(1,0){96}}
+\put(154,75){\vector(1,0){246}}
+\put(50,75){\makebox(0,0)[r]{\shortstack{original \\beam line}}}
+\put(390,65){\makebox(0,0)[r]{s}}
+\put(150,75){\circle{8}}\put(150,75){\makebox(0,0){$\times$}}
+\put(140,85){\makebox(0,0){x}}
+\put(150,30){\line(0,1){41}}
+\put(150,79){\vector(0,1){91}}
+\put(140,160){\makebox(0,0){y}}
+\put(130,55){\vector(1,1){15}}
+\put(130,55){\makebox(0,0)[tr]{\shortstack{original entrance \\
+of the magnet}}}
+\put(150,55){\vector(1,0){50}}
+\put(175,45){\makebox(0,0){DS}}
+\put(130,75){\vector(0,1){50}}
+\put(125,100){\makebox(0,0)[r]{DY}}
+\put(125,125){\line(1,0){185}}
+\put(200,50){\line(0,1){120}}
+\put(200,125){\circle*{4}}
+\put(168,133){\vector(4,-1){144}}
+\put(189,81){\vector(1,4){22}}
+\bezier{30}(300,125)(300,113)(297,101)
+\put(299,109){\vector(-1,-4){2}}
+\put(305,113){\makebox(0,0)[l]{DPHI}}
+\put(278,97){\line(1,4){4}}
+\put(198,117){\line(1,4){4}}
+\put(202,133){\line(4,-1){80}}
+\put(198,117){\line(4,-1){80}}
+\put(150,67){\line(1,0){80}}
+\put(150,83){\line(1,0){80}}
+\put(150,67){\line(0,1){4}}
+\put(150,79){\line(0,1){4}}
+\put(230,67){\line(0,1){16}}
+\end{picture}
+\caption{Example of Misplacement in the $(y, s)$-plane.}
+\label{fig:ysdisp}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{picture}(400,150)
+\put(204,75){\line(1,0){96}}
+\put(196,75){\vector(-1,0){96}}
+\put(305,75){\makebox(0,0)[l]{\shortstack{horizontal \\plane}}}
+\put(110,65){\makebox(0,0)[l]{x}}
+\put(200,75){\circle{8}}
+\put(200,75){\makebox(0,0){\(\times\)}}
+\put(210,65){\makebox(0,0){s}}
+\put(200,0){\line(0,1){71}}
+\put(200,79){\vector(0,1){71}}
+\put(190,140){\makebox(0,0){y}}
+\put(196,76.3){\vector(-3,1){70}}
+\put(204,73.7){\line(3,-1){70}}
+\put(198.7,72){\line(-1,-3){23.3}}
+\put(201.3,78){\vector(1,3){23.3}}
+\bezier{20}(260,75)(260,65)(257,56)
+\put(259,62){\vector(-1,-3){2}}
+\put(265,67){\makebox(0,0)[l]{DPSI}}
+\put(160,55){\line(3,-1){60}}
+\put(180,115){\line(3,-1){60}}
+\put(160,55){\line(1,3){20}}
+\put(220,35){\line(1,3){20}}
+\put(202.8,77.8){\line(1,1){50}}
+\put(197.2,72.2){\line(-1,-1){50}}
+\bezier{20}(213,114)(222,111)(229,104)
+\put(227,106){\vector(1,-1){2}}
+\put(233,125){\makebox(0,0){ROT}}
+\end{picture}
+\caption{Example of Misplacement in the $(x, y)$-plane.}
+\label{fig:xydisp}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\begin{picture}(400,150)(0,20)
+\put(204,75){\line(1,0){96}}
+\put(196,75){\vector(-1,0){196}}
+\put(305,75){\makebox(0,0)[l]{\shortstack{horizontal \\plane}}}
+\put(10,65){\makebox(0,0)[l]{x}}
+\put(200,75){\circle{8}}\put(200,75){\makebox(0,0){\(\times\)}}
+\put(220,55){\vector(-1,1){15}}
+\put(220,55){\makebox(0,0)[tl]{\shortstack{true beam \\position}}}
+\put(210,85){\makebox(0,0){s}}
+\put(200,30){\line(0,1){41}}
+\put(200,79){\vector(0,1){101}}
+\put(190,170){\makebox(0,0){y}}
+\put(100,50){\vector(0,1){125}}
+\put(150,125){\vector(-1,0){100}}
+\put(100,125){\circle*{4}}
+\put(80,145){\vector(1,-1){15}}
+\put(80,145){\makebox(0,0)[br]{\shortstack{beam position given \\
+by the monitor}}}
+\put(200,55){\vector(-1,0){100}}
+\put(150,45){\makebox(0,0){MREX}}
+\put(80,75){\vector(0,1){50}}
+\put(70,100){\makebox(0,0)[r]{MREY}}
+\end{picture}
+\caption{Example of Read Errors in a monitor.}
+\label{fig:monitor}
+\end{center}
+\end{figure}
+
+\section{Define Field Errors}
+\label{sec:errorfield}
+\index{EFCOMP}
+\index{EFIELD}
+\index{error!field}
+\index{field!error}
+
+Field errors can be entered as relative or absolute errors.
+Different multipole components can be specified with
+different kinds of errors (relative or absolute).
+If an attempt is made to assign both a relative
+and an absolute error to the same multipole component,
+the absolute error is used and a warning is given.
+Relations between absolute and relative field errors are listed below.
+
+All field errors are specified as the integrated value $\int K_k ds$ of the 
+field components along the magnet axis in $\mathrm{m}^{-k}$.
+At present field errors may only affect field components
+allowed as normal components in a magnet.
+This means for example that a dipole may have errors of the type dipole,
+quadrupole, sextupole, and octupole; but not of the type decapole.
+There is no provision to specify a global relative
+excitation error affecting all field components in a combined function
+magnet.
+Such an error may only be entered by defining the same relative error
+for all field components.
+
+First the elements to be affected must be selected by the 
+\secref{\texttt{SELECT} command}{select}.
+Field errors can then be specified for magnetic elements
+by one of the statements
+\begin{verbatim}
+EFIELD,ORDER=integer,RADIUS=real,ROT=deferred-vector,
+       DKR=deferred-vector,DK=deferred-vector;
+EFCOMP,ORDER=integer,RADIUS=real,
+       DKN=deferred-vector,DKS=deferred-vector,
+       DKNR=deferred-vector,DKSR=deferred-vector;
+\end{verbatim}
+Each new \texttt{EFIELD} or \texttt{EFCOMP} statement
+replaces the field errors for all selected elements.
+Any old field errors present in the range are discarded
+or incremented depending on the setting of \texttt{ERROR,ADD}.
+\texttt{EFIELD} defines the error in terms 
+of relative or absolute amplitude and rotation;
+while \texttt{EFCOMP} defines them in terms 
+of relative or absolute components.
+
+Both commands have the attributes:
+\begin{description}
+\item[ORDER]
+  \index{ORDER}
+  If relative errors are entered for multipoles,
+  this defines the order of the base component to which the relative 
+  errors refer.
+  The default is zero.
+\item[RADIUS]
+  Radius $R$ were the relative components are specified (default 1 m).
+  This attribute is required if any relative component is used.
+\end{description}
+The command \texttt{EFIELD} has the following additional attributes:
+\begin{description}
+\item[DK]
+  \index{DK}
+  A \secref{\texttt{vector}}{vector} of \secref{deferred expressions}{adefer}.
+  Its component $k$ is the absolute error amplitude 
+  for the multipole strength with $(2k+2)$-poles 
+  (default: $0 \mathrm{m}^k$).
+\item[DKR]
+  \index{DKR}
+  A \secref{\texttt{vector}}{vector} of \secref{deferred expressions}{adefer}.
+  Its component $k$ is the relative error amplitude 
+  for the multipole strength with $(2k+2)$-poles 
+  (default: $0 \mathrm{m}^k$).
+\item[ROT]
+  \index{ROT}
+  A \secref{\texttt{vector}}{vector} of \secref{deferred expressions}{adefer}.
+  Its component $k$ is the \figref{rotation angle}{xydisp}
+  for the multipole strength with $(2k+2)$-poles 
+  (default: 0 rad).
+\end{description}
+The command \texttt{EFCOMP} has the following additional attributes:
+\begin{description}
+\item[DKN]
+  \index{DKN}
+  A \secref{\texttt{vector}}{vector} of \secref{deferred expressions}{adefer}.
+  Its component $k$ is the absolute error for the normal multipole 
+  strength with $(2k+2)$-poles (default: $0 \mathrm{m}^k$).
+\item[DKS]
+  \index{DKS}
+  A \secref{\texttt{vector}}{vector} of \secref{deferred expressions}{adefer}.
+  Its component $k$ is the absolute error for the skew multipole 
+  strength with $(2k+2)$-poles (default: $0 \mathrm{m}^k$).
+\item[DKNR]
+  \index{DKNR}
+  A \secref{\texttt{vector}}{vector} of \secref{deferred expressions}{adefer}.
+  Its component $k$ is the relative error for the normal multipole 
+  strength with $(2k+2)$-poles (default: $0 \mathrm{m}^k$).
+\item[DKSR]
+  \index{DKSR}
+  A \secref{\texttt{vector}}{vector} of \secref{deferred expressions}{adefer}.
+  Its component $k$ is the relative error for the skew multipole 
+  strength with $(2k+2)$-poles (default: $0 \mathrm{m}^k$).
+\end{description}
+All random vectors have an unlimited length.
+
+Examples:
+\begin{verbatim}
+EFIELD,DK={0,0.0025*RANF(),0,0,0,DK(5)=0.0092*GAUSS()};
+EFIELD,DKR={0,0,0,0.0025*RANF(),0,DKR(5)=0.0092*GAUSS()};
+\end{verbatim}
+See also: 
+\begin{itemize}
+\item \secref{Multipole Field Errors}{errorfield},
+\item \secref{Sign Conventions for magnetic fields}{sign},
+\item \secref{Attribute Vectors}{vector}
+\item \secref{Deferred Expressions}{adefer},
+\item \secref{Random Generators}{adefer}.
+\end{itemize}
+
+\subsection{Multipole Field Errors}
+\label{sec:errormulti}
+Multipole field errors can be assigned to all multipole-like elements:
+\begin{itemize}
+\item \secref{\texttt{RBEND}}{rbend},
+\item \secref{\texttt{SBEND}}{sbend},
+\item \secref{\texttt{QUADRUPOLE}}{quadrupole},
+\item \secref{\texttt{SEXTUPOLE}}{sextupole},
+\item \secref{\texttt{OCTUPOLE}}{octupole},
+\item \secref{\texttt{MULTIPOLE}}{multipole},
+\end{itemize}
+The main field and the error field are evaluated separately and then added.
+Error field components can be absolute or relative values.
+Relative errors are referred to the amplitude of the nominal component 
+of order \texttt{ORDER} = $n$ (default = 0), 
+taken at the radius \texttt{RADIUS} = $R$ (default = 1).
+
+Given the factors
+\[
+\psi_k = (k + 1) * \texttt{ROT[k]}, 
+c_k = \cos \psi_k, 
+s_k = - \sin \psi_k, 
+f_k = \texttt{RADIUS[k]}^(k-n) * n! / k!.
+\]
+the field components 
+$\delta K_{kn}$ (normal) and $\delta K_{ks}$ (skew) 
+are computed as follows from the input data:
+\[
+\begin{array}{lclclclcl}
+  \delta K_{kn} &=& c_k \mathtt{DK[k]} &=& f_k c_k \mathtt{DKR[k]} &=&
+  \mathtt{DKN[k]} &=& f_k \mathtt{DKNR[k]} \\
+  \delta K_{ks} &=& s_k \mathtt{DK[k]} &=& f_k s_k \mathtt{DKR[k]} &=&
+  \mathtt{DKS[k]} &=& f_k \mathtt{DKSR[k]}
+\end{array}
+\]
+The first line gives the normal components, 
+the second line the skew components.
+
+\section{Print Machine Imperfections}
+\label{sec:errorprint}
+\index{EPRINT}
+\index{error!print}
+\index{print!errors}
+
+Before imperfections can be listed, 
+the elements to be printed must be selected by a
+\secref{\texttt{SELECT} command}{select}.
+Then a table of errors assigned to these elements can be printed 
+by the command
+\begin{verbatim}
+EPRINT,FILE=string,ALIGN=logical,FIELD=logical,
+               ORDER=integer,RADIUS=real;
+\end{verbatim}
+The command has the following attributes:
+\begin{description}
+\item[FILE]
+  \index{FILE}
+  The file to receive the output.
+\item[ALIGN]
+  \index{ALIGN}
+  If true, the alignment errors are printed.
+\item[FIELD]
+  \index{FIELD}
+  If true, the field errors are printed.
+\item[ORDER]
+  \index{ORDER}
+  The order used for normalizing, like on \texttt{EFIELD} and
+  \texttt{EFCOMP}. 
+\item[RADIUS]
+  \index{RADIUS}
+  The radius used for normalizing, like on \texttt{EFIELD} and
+  \texttt{EFCOMP}.
+\end{description}
+
+\section{Save Machine Imperfections}
+\label{sec:errorsave}
+\index{ESAVE}
+\index{error!save}
+\index{saving!errors}
+
+Before imperfections can be saved, 
+the elements to be saved must be selected by a
+\secref{\texttt{SELECT} command}{select}.
+The element imperfections can then be saved to a file with the command
+\begin{verbatim}
+ESAVE,FILE=string,ALIGN=logical,FIELD=logical,ORDER=integer,RADIUS=real;
+\end{verbatim}
+This command saves a table of errors assigned to elements on a file,
+using a format which can be read again by \opal to obtain the same results.
+This allows dumping the errors and reloading them for the same line.
+Field errors are saved as relative errors,
+and the \texttt{RADIUS} and \texttt{ORDER} must be entered as used on the
+\secref{\texttt{EFIELD}}{errorfield} or 
+\secref{\texttt{EFCOMP}}{errorfield} commands.
+%If \secref{\texttt{OPTION,\opal8}}{option} is active,
+%the output is given in \opal-8 format.
+The command has the following attributes:
+\begin{description}
+\item[FILE]
+  \index{FILE}
+  The file to receive the output.
+\item[ALIGN]
+  \index{ALIGN}
+  If true, the alignment errors are saved.
+\item[FIELD]
+  \index{FIELD}
+  If true, the field errors are saved.
+\item[ORDER]
+  \index{ORDER}
+  The order used for normalizing, like on \texttt{EFIELD} and
+  \texttt{EFCOMP}. 
+\item[RADIUS]
+  \index{RADIUS}
+  The radius used for normalizing, like on \texttt{EFIELD} and
+  \texttt{EFCOMP}.
+\end{description}
+
+\index{errors|)}
