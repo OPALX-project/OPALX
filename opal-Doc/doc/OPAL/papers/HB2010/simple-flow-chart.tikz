@@ -1,0 +1,60 @@
+%\usepackage[latin1]{inputenc}
+%\usepackage{tikz}
+%\usetikzlibrary{shapes,arrows}
+
+%<
+%\usepackage{verbatim}
+%\usepackage[active,tightpage]{preview}
+%\PreviewEnvironment{tikzpicture}
+%\setlength\PreviewBorder{5pt}%
+%
+
+
+
+% Define block styles
+\tikzstyle{decision} = [draw,diamond, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=2.2cm, inner sep=0pt]
+\tikzstyle{block} = [draw,rectangle, fill=blue!20, 
+    text width=7.5em, text badly centered, inner sep=3pt, rounded corners, minimum height=4em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, \ellipse,fill=red!20, node distance=2.2cm,
+    minimum height=2em]
+\tikzstyle{every node}=[font=\small]
+\scalebox{0.75}{
+\begin{tikzpicture}[node distance = 2.2cm, auto, every node/.style={anchor=base,font=\small}]
+    % Place nodes
+    \node [block] (incident) {Incident $E_0$, $\theta_0$};
+   % \node [cloud, left of=incident] (expert) {expert};
+   % \node [cloud, right of=incident] (system) {system};
+    \node [block, below of=incident, node distance=2.2cm] (yield) {Compute $\delta_e(E_0,\theta_0)$, $\delta_r(E_0,\theta_0)$, $\delta_{ts}(E_0,\theta_0)$};
+    \node [block, below of=yield, node distance=2.2cm] (probability) {Compute $P_n, n=0,1,...,M$};
+    \node [block, below of=probability, node distance=2.5cm] (secondaryNum) {Random integer $n$ with probability distribution $\{P_n\}$};
+    \node [decision, right of=incident, node distance=3.5cm] (decide) {$n=0$?};
+    \node [block, right of=decide, node distance=3.5cm] (zero) {Delete the incident electron};
+    \node [decision, below of=decide, node distance=3.0cm] (decide1) {$n=1$?};
+    \node [block, right of=decide1, node distance=3.5cm] (one) {Emitted energy $E\in[0,E_0]$ with PDF $f_{1,e}+f_{1,r}+f_{1,ts}$ };	\node [block, below of=decide1, node distance=3.5cm] (ts) {Emitted energy $E_k\in[0,E_0]$, $k=1,...,n$ with PDF $f_{n,ts}$ };
+    \node [block, below of=one, node distance=3.5cm] (angle) {Generate $\theta_k\in[0,\pi/2]$, with PDF $cos^{\alpha}$; and $\phi_k\in[0,2\pi]$, $k=1,...,n$. Calc momenta accordingly. };
+    % Draw edges
+    \path [line] (incident) -- (yield);
+    \path [line] (yield) -- (probability);
+    \path [line] (probability) --  (secondaryNum);		
+   % \path [line] (probability) -- (secondaryNum);
+   % \path [line] (decide) -- node [near start] {$No$} (secondaryNum);
+    \draw[->] (secondaryNum) -| +(1.8,3) |- (decide);
+    %\path [line] (decide) -- node [near start,above] {yes} (zero);
+    \draw[->] (decide) -- node [midway,above=2pt] {yes} (zero);	
+    \path [line] (decide) -- node [midway,right=2pt] {no} (decide1);
+    \path [line] (decide1) -- node [midway,above=2pt] {yes} (one);
+    \path [line] (decide1) -- node [midway,right=2pt] {no} (ts);
+    \path [line] (ts) -- (angle);
+
+    \path [line] (one) -- (angle);
+    \path [line] (zero) -- +(0,1.5)-| node [near start,above=2pt] {Next event} (incident);
+    \path [line] (angle) -- +(0,-2.)--  node [midway,above=2pt] {Next event} (-2,-8.65) |- (incident) ;
+ %\path [line] (secondaryNum) -|- (decide);
+  %  \path [line] (decide) -- node {no}(stop);
+   % \path [line,dashed] (expert) -- (incident);
+  %  \path [line,dashed] (system) -- (incident);
+   % \path [line,dashed] (system) |- (probability);
+\end{tikzpicture}
+}

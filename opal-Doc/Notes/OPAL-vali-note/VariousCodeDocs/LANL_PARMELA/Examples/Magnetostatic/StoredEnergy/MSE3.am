@@ -1,0 +1,90 @@
+Magnetic stored energy in a solenoid surrounded by highly permeable metal
+Cylindrically symmetric geometry
+Finite current sheet at X = 1.5 cm
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Poisson or Pandira problem
+mode=0                  ; Some materials have variable permeability
+icylin=1                ; Cylindrical symmetry
+dx=0.25,dy=0.5,         ; Mesh intervals
+yminf=0,ymaxf=0         ; Fixed Y for field interpolation
+xminf=0,xmaxf=3.5       ; X range for field interpolation
+nbslo=0,                ; Dirichlet boundary condition on lower edge
+nbsup=0,                ; Dirichlet boundary condition on upper edge
+nbslf=0,                ; Dirichlet boundary condition on left edge
+nbsrt=0,                ; Dirichlet boundary condition on right edge
+ienergy=1  &            ; Compute stored energy 
+
+
+&po x=0.0, y= 0.0 &
+&po x=0.0, y=12.0 &
+&po x=3.5, y=12.0 &
+&po x=3.5, y= 0.0 &
+&po x=0.0, y= 0.0 &
+
+&reg mat=3,mtid=3 &
+&po x=0.0, y= 0.0 &
+&po x=0.0, y= 1.0 &
+&po x=2.5, y= 1.0 &
+&po x=2.5, y=11.0 &
+&po x=0.0, y=11.0 &
+&po x=0.0, y=12. &
+&po x=3.5, y=12. &
+&po x=3.5, y= 0.0 &
+&po x=0.0, y= 0.0 &
+
+&reg mat=1,cur=2125. &
+&po x=1.5, y= 1.0 &
+&po x=1.5, y=11.0 &
+
+&mt mtid=3
+bgam=0.00000E+00  0.00001751
+0.11420E+04  0.00001751
+0.29530E+04  0.00001015
+0.51140E+04  0.00000782
+0.84760E+04  0.00000707
+0.96670E+04  0.00000724
+0.10578E+05  0.00000756
+0.11319E+05  0.00000795
+0.11940E+05  0.00000837
+0.12451E+05  0.00000883
+0.12912E+05  0.00000929
+0.13313E+05  0.00000976
+0.13654E+05  0.00001025
+0.13935E+05  0.00001076
+0.14216E+05  0.00001125
+0.14447E+05  0.00001176
+0.14618E+05  0.00001231
+0.14789E+05  0.00001284
+0.15020E+05  0.00001331
+0.15131E+05  0.00001387
+0.15252E+05  0.00001442
+0.15432E+05  0.00001491
+0.15594E+05  0.00001538
+0.15705E+05  0.00001591
+0.16180E+05  0.00001854
+0.16840E+05  0.00002375
+0.17150E+05  0.00002915
+0.17360E+05  0.00003456
+0.17620E+05  0.00003972
+0.17830E+05  0.00004486
+0.18200E+05  0.00005494
+0.18950E+05  0.00007917
+0.19500E+05  0.00010256
+0.20200E+05  0.00014858
+0.20650E+05  0.00019379
+0.20950E+05  0.00023866
+0.21600E+05  0.00037037
+0.21900E+05  0.00045662
+0.23000E+05  0.00086956
+0.23386E+05  0.00100281
+0.23850E+05  0.00118163
+0.24408E+05  0.00138742
+0.25079E+05  0.00162246
+0.25885E+05  0.00188858
+0.26854E+05  0.00218695
+0.28019E+05  0.00251784  &
+
+

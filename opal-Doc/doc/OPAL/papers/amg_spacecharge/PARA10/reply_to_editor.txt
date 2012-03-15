@@ -1,0 +1,263 @@
+Dear Kristjan,
+
+we have completed the revision of our paper 
+
+"Improvements of a Fast Parallel Poisson Solver on Irregular Domains".
+
+Notice the correct title of the paper!
+
+We addressed all issues that the referees raised.  Most were minor
+rewordings and we do not mention them here.  Two however are worth
+noting:
+
+(1) We (hopefully) better explain the differences of our iterative
+solver and the traditional FFT-based solver.  This concerns the first
+paragraph of section 4.  We hope that it is now intelligible why there
+can be significant differences in the results.
+
+(2) We added a sentence on p.5, emphasizing the meaning of column 'total ML'.
+
+(3) We added a small paragraph on p. 8, addressing the question how much
+scalability depends on the problem size.
+
+We hope that you are satisfied with the changes.
+
+
+Congratulations for adhering to the tight schedule.  I am amazed at the
+number of papers you could handle in this period of time.
+
+
+Best wishes,
+Peter
+
+
+On Monday 13 December 2010 13:33:25 Kristjan Jonasson wrote:
+> Dear Peter Arbenz,
+> 
+> I am pleased to inform you that your manuscript,
+> 
+>   "A Fast Parallel Poisson Solver on Irregular Domains",
+> 
+> submitted for publication in the PARA 2010 conference proceedings, has been
+> accepted subject to minor revision. Referee reports are included below.
+> Please forward this message to your co-authors (if any).
+> 
+> Revised papers must be prepared using LaTeX with the Springer LNCS style
+> and be at most 11 pages. The submission should include both a pdf file and
+> all LaTeX files that are not part of the standard TeX archive (CTAN). All
+> authors are requested to check the English of their papers carefully for
+> spelling and grammar.
+> 
+> Please submit a revised manuscript directly to me on or before 10 January
+> 2011, along with a letter where you describe all changes that have been
+> done to the manuscript with respect to the referee reports, and (if
+> applicable) motivating why any of the comments have not resulted in
+> changes in the submitted revision. If you do not receive a reply from me
+> acknowledging receipt, please write again.
+> 
+> In addition, please fill in the copyright form at
+> http://vefir.hi.is/para10/lncs, print it out, sign it, and send it to me,
+> either with ordinary mail, or e-mail (scanned as pdf).
+> 
+> As it worked out, I am an associate editor for 49 papers (the ones outside
+> minisymposia or authored by minisymposium organizers), and it is proving a
+> little difficult to find reviewers for all of them. I hope the delay will
+> not be more than about a month compared to the original plan.
+> 
+> Best wishes,
+> -----
+> Kristján Jónasson
+> Department of Computer Science
+> University of Iceland
+> Hjardarhaga 4, 107 Reykjavik, Iceland
+> -----
+> Professor and head organizer of Para 2010
+> jonasson@hi.is
+> tel. +354-8228860 (mob.), +354-5254735 (off.)
+> conference web: http://vefir.hi.is/para10
+> 
+> 
+> 
+> REPORT FROM REFEREE 1:
+> ===========================================================================
+> === A  Information about submitted manuscript:
+> 
+>    Author(s): Adelmann, Arbenz, Ineichen
+>    Title: Improvements of a fast parallel Poisson solver on irregular
+> domains Minisymposium/topic:
+> 
+> ---------------------------------------------------------------------------
+> --- B  Please supply grades on a scale 0-5 (5 best) in the following
+> subcategories (the primary purpose of this grading is to help in making a
+> well founded decision on the final recommendation on acceptance of the
+> paper):
+> 
+>    a) Originality of the research work ....... : 2
+>    b) Technical strength of the manuscript ... : 4
+>    c) Quality of presentation in manuscript .. : 4
+>    d) Relevance to conference attendees ...... : 3
+>    e) LNCS style and page limit .............. : OK
+>    f) Reviewer familiarity with the topic .... : 4
+> 
+> ---------------------------------------------------------------------------
+> --- C  Please select one of the following recommendations for the
+> manuscript (by marking with an X):
+> 
+>    [ ] Accept as is
+>    [X] Accept after minor changes (that need not be reviewed again)
+>    [ ] Accept conditionally on a successful second review after revision
+>    [ ] Reject
+> 
+> ---------------------------------------------------------------------------
+> --- D  Provide comments and advise on revision that will be sent to the
+> author(s) (if required, these can instead be put in an attachment):
+> 
+> The paper seems to be rather incremental to ref. [2], however the
+> load-balancing discussion and results are interesting.
+> 
+> - Section 3, line 6: "In this situation the CG algorithm is applicable
+> etc". Is this possible to prove or is it just an observation? This should
+> be clarified.
+> 
+> - Same section, second paragraph. A reference (or several) to SA-AMG should
+> be added.
+> 
+> 
+> 
+> ---------------------------------------------------------------------------
+> ---
+> 
+> REPORT FROM REFEREE 2:
+> ===========================================================================
+> === A  Information about submitted manuscript:
+> 
+>    Author(s): Andreas Adelmann, Peter Arbenz, and Yves Ineichen
+>    Title: Improvements of a Fast Parallel Poisson Solver on Irregular
+> Domains Minisymposium/topic: HPC algorithms
+> 
+> ---------------------------------------------------------------------------
+> --- B  Please supply grades on a scale 0-5 (5 best) in the following
+> subcategories (the primary purpose of this grading is to help in making a
+> well founded decision on the final recommendation on acceptance of the
+> paper):
+> 
+>    a) Originality of the research work ....... : 3
+>    b) Technical strength of the manuscript ... : 3
+>    c) Quality of presentation in manuscript .. : 4
+>    d) Relevance to conference attendees ...... : 5
+>    e) LNCS style and page limit .............. : 9 pages, style looks OK.
+>                                                  I have not checked the
+> details. f) Reviewer familiarity with the topic .... : 4
+> 
+> ---------------------------------------------------------------------------
+> --- C  Please select one of the following recommendations for the
+> manuscript (by marking with an X):
+> 
+>    [ ] Accept as is
+>    [X] Accept after minor changes (that need not be reviewed again)
+>    [ ] Accept conditionally on a successful second review after revision
+>    [ ] Reject
+> 
+> ---------------------------------------------------------------------------
+> --- D  Provide comments and advise on revision that will be sent to the
+> author(s) (if required, these can instead be put in an attachment):
+> 
+> 1. Question: How much does scalability depend on problem size? You are
+> solving a huge problem here, could you say something about how many nodes
+> per core you need to have decent performance?
+> 
+> 2. Suggestion: Page 4, third paragraph. In the comparison with the FFT
+> solver, you say that the results can differ significantly. This sounds a
+> bit alarming... You may want to explain why. Which computation is wrong
+> and what kind of approximation does this come from. Also, in general. You
+> might want to say something about the order of accuracy of the embedding
+> approach.
+> 
+> 3. Suggestion: Page 4, last paragraph. The load-imbalance of the previous
+> approach is discussed, and the new approach is not mentioned. Then the
+> following experiments are using the previous approach. To help the reader,
+> you might want to say that you are comparing the old and new approach in
+> the experiments. Then the reader can follow the series of results better.
+> 
+> 4. Suggestion: In the tables, I am gussing that the "total ML" wich equals
+> "construction"+"application" is the total execution time. You might want to
+> be a little bit more explicit about the meaning of the different columns
+> to make it easier for the reader to compare numbers.
+> 
+> 5. Minor comment: Page 5, just before last paragraph: The iteration counts
+> do change even if it is a very minor change.
+> 
+> 6. Question: Page 7. The communication pattern is more complex with the RCB
+> approach. Is the "user" in some way confronted with this or is everything
+> automatically handled by the different packages?
+> 
+> 7. Minor typo: Page 3, last paragraph of section 2, introduces should be
+> introduce.
+> 
+> 8. Minor comment: Page 3, next to last paragraph. "cluster the fine grid
+> unknowns to aggregates (of a specific form, size, etc.)..." The comment
+> within () makes it all sound very unspecific. It makes me wonder about how
+> many strategies there really are, and which one you are using.
+> 
+> 
+> ---------------------------------------------------------------------------
+> ---
+> 
+> REPORT FROM REFEREE 3:
+> ===========================================================================
+> === A  Information about submitted manuscript:
+> 
+>    Author(s): Andreas Adelmann, Peter Arbenz2 and Yves Ineichen
+>    Title: Improvements of a Fast Parallel Poisson Solver on Irregular
+> Domains Minisymposium/topic: HPC Algorithms
+> 
+> ---------------------------------------------------------------------------
+> --- B  Please supply grades on a scale 0-5 (5 best) in the following
+> subcategories (the primary purpose of this grading is to help in making a
+> well founded decision on the final recommendation on acceptance of the
+> paper):
+> 
+>    a) Originality of the research work ....... : 4
+>    b) Technical strength of the manuscript ... : 4
+>    c) Quality of presentation in manuscript .. : 3
+>    d) Relevance to conference attendees ...... : 5
+>    e) LNCS style and page limit .............. : 5
+>    f) Reviewer familiarity with the topic .... : 5
+> 
+> ---------------------------------------------------------------------------
+> --- C  Please select one of the following recommendations for the
+> manuscript (by marking with an X):
+> 
+>    [ ] Accept as is
+>    [X] Accept after minor changes (that need not be reviewed again)
+>    [ ] Accept conditionally on a successful second review after revision
+>    [ ] Reject
+> 
+> ---------------------------------------------------------------------------
+> --- D  Provide comments and advise on revision that will be sent to the
+> author(s) (if required, these can instead be put in an attachment):
+> 
+> This is a good paper, but there are some phrases that could be improved for
+> readability. Here are a few specifics:
+> 
+> - Pg 1, line 2: "OPAL allows to tackle ..." should be something like "OPAL
+> enables the solution of ..."
+> 
+> - Pg 3, first paragraph of Sec 3:  You repeat the observation that the
+> matrix is symmetric if constant or linear BCs and nonsymmetric otherwise.
+> 
+> - Your comparison with the FFT-based solver seems incomplete.  Can you
+> elaborate?
+> 
+> - Sec 4, paragraph 3, first sentence: Try something like this: "Our
+> computational domains are embedded in a 3D rectangular domain, as
+> illustrated in Fig. 1."
+> 
+> - Same paragraph: "much fewer" should be "far fewer"
+> 
+> 
+> 
+> 
+> 
+> ---------------------------------------------------------------------------
+> ---

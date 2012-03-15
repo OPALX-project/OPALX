@@ -1,0 +1,8 @@
+GeometryPhaseLength = 90   ; DPHI, phase length of cavity in degrees  
+NormalizationSegment = 2   ; NRMSEG  
+SegmentH = 3500            ; HPHI
+NormalizationCode = 2      ; NORM, normalize fields to HPHI at end of segment NRMSEG
+FieldSegments
+1 2 3                      ; Segment numbers  
+EndData
+End

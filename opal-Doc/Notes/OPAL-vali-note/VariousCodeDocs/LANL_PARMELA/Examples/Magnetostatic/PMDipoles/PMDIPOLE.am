@@ -1,0 +1,57 @@
+Permanent-Magnet Dipole (for PANDIRA)  
+[Originally appeared in 1987 User's Guide, Chapter 10.5]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,       ; Poisson or Pandira problem
+mode=0,             ; Some materials have variable permeability
+dx=0.09,dy=0.09,    ; Mesh intervals
+nbslo=1,            ; Neumann boundary condition on lower edge
+nbsup=0,            ; Dirichlet boundary condition on upper edge
+nbslf=0,            ; Dirichlet boundary condition on left edge
+nbsrt=0,            ; Dirichlet boundary condition on right edge
+xreg1=7.3,          ; X Line region where mesh interval doubles 
+yreg1=7.3 &         ; Y Line region where mesh interval doubles  
+
+&po x=0.0,y=0.0 &
+&po x=12.0,y=0.0 &
+&po x=12.0,y=12.0 &
+&po x=0.0,y=12.0 &
+&po x=0.0,y=0.0 &
+
+&reg mat=6,mshape=1,mtid=1 &
+&po x=2.5,y=0.0 &
+&po x=7.3,y=0.0 &
+&po x=7.3,y=1.8285 &
+&po x=4.5,y=1.8285 &
+&po x=2.5,y=1.0 &
+&po x=2.5,y=0.0 &
+
+&reg mat=7,mshape=1,mtid=2 &
+&po x=0.0,y=2.5 &
+&po x=1.0,y=2.5 &
+&po x=1.8285,y=4.5 &
+&po x=1.8285,y=7.3 &
+&po x=0.0,y=7.3 &
+&po x=0.0,y=2.5 &
+
+&reg mat=8,mshape=1,mtid=4 &
+&po x=2.5,y=1.0 &
+&po x=4.5,y=1.8285 &
+&po x=6.47,y=3.82 &
+&po x=3.82,y=6.47 &
+&po x=1.8285,y=4.5 &
+&po x=1.0,y=2.5 &
+&po x=2.5,y=1.0 &
+
+&mt mtid=1,                   ; Material ID
+aeasy=90,                     ; Easy axis direction
+gamper=1                      ; Gamma along hard axis
+hcept=-10800,bcept=11600. &   ; H and B intercepts   
+
+&mt mtid=2,aeasy=-90,gamper=1,hcept=-10800,bcept=11600. & 
+
+&mt mtid=4,aeasy=180,gamper=1,hcept=-10800,bcept=11600. &
+
+

@@ -1,0 +1,54 @@
+; File: QDEMO.QKP
+; Data on Electro-Craft motor controller reading versus voltage.
+
+Center
+Title
+Voltage versus Electro-Craft motor controller reading
+
+
+LeftFooter
+Use this area for other information regarding the data. 
+
+RightFooter
+Right footer area. 
+
+Xscale 0 5000
+Yscale 0 12
+
+Xlabel       ! Line following labels the X axis
+Reading
+
+Ylabel       ! Line following labels the Y axis
+Voltage (volts)
+
+Data Set 1
+; 58 .4      !  Unused entries. Remove the semicolon to include in plot. 
+; 137 .6
+224 .8
+315 1
+408 1.2
+502 1.4
+597 1.6
+692 1.8
+784 2.
+929 2.3
+977 2.4
+EndData
+
+Data Set 2
+1001 2.45
+1075 2.6
+1123 2.7
+1268 3
+1487 3.45
+1756 4
+2000 4.5
+2981 6.5
+3005 6.55
+3964 8.5
+3999 8.57
+4703 10.
+EndData
+EndFile
+
+

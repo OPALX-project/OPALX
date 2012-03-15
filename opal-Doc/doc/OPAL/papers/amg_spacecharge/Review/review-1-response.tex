@@ -1,0 +1,277 @@
+\documentclass[10pt,pdftex]{report}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\setlength{\parskip}{6.0mm}
+\setlength{\parindent}{0pt}
+\begin{document}
+Villigen \today \\
+ 
+Respected Referee,
+ 
+we have carefully answered all your questions and implemented many of
+your suggestions.  You find the details below.
+ 
+With best regards,
+
+Andreas Adelmann, Peter Arbenz and Yves Ineichen
+
+{\bf Reviewer \#1:}
+
+For beam dynamic simulations, it is necessary to solve Poisson's
+equation with boundary conditions of third kind at each time step.  The
+large number of time steps and small mesh sizes require a very fast
+parallel iterative solver for Poisson's equation on non-rectangular
+domains. The paper studies two questions: what discretization and
+iterative solver is suitable for such an application and which software
+should be used. Since fast iterative solvers for Poisson's equations on
+general domains are needed for several applications in computational
+physics, the paper is relevant for \texttt{COMP.PHYS}. Furthermore, the
+paper gives helpful hints about using software implementation issues.
+
+a) However, the numerical results and the choice of the discretization
+is not convincing.  The authors compare three kind of discretizations.
+The most accurate is the Shortly-Weller-discretization. It is well-known
+that this discretization is of order $O(h^2)$ in case of Dirichlet
+boundary conditions.  However, the $O(h)$ consistency error at the
+boundary leads to an $O(h)$ convergence in case of boundary conditions
+of third kind.  The paper neglects this fact by presenting numerical
+results only for Dirichlet boundary conditions. The $O(h)$ consistency
+error of the Shortly-Weller-discretization at the boundary is the
+reason, why Finite Elements are wildly used in case of boundary
+conditions of third kind.
+
+{\textbf{Our response:}} In the problems we are solving, all boundary
+points of the third kind (Robin) fall on a paraxial plane (named inlet and
+outlet, cf.~Fig.~1) perpendicular to the $z$-axis.  Therefore the
+Shortley-Weller-discretization does not need to be applied in
+$z$-direction.  This makes sense in our context (beam-dynamics) and is
+motivated by the fact that the particle beam is moving along the $z$-axis.
+In the introduction we elaborate more on the applications in order to
+better motivate our approach.
+
+
+b) Furthermore, the numerical results for the cg algorithm with aggregation
+based AMG preconditioning are not very interesting, either. The reason is that
+in case of Dirichlet boundary conditions multigrid with geometric coarsening
+leads to a fast iterative solver.  To implement such a multigrid algorithm is
+much easier than aggregation based AMG. I recommend that the authers study the
+case of non trivial boundary conditions of third kind in detail. 
+
+{\textbf{Our response:}} First of all we use a black-box multigrid
+preconditioner. Furthermore GMG's for anisotropic problems are tricky
+and special coarsening schemes have to be applied. We added a short
+paragraph to the introduction (page 2) incorporating these statements:
+
+\textit{The geometric multigrid solver
+used in their approach is much more sensitive to anisotropic grids
+arising in beam dynamic simulations (e.g.\ special coarsening operators
+have to be defined).  With smoothed aggregation-based algebraic
+multigrid (AMG) preconditioning as used in this paper the aggregation
+smoother takes care of anisotropies and related issues and leads to a
+robustness superior to geometric multigrid, see~[30] for a
+discussion.  The preconditioner easily adapts to the elongation  of the
+computational domain that happens during our simulation.
+}
+
+c) Futhermore, a comparison with the computational amount of a standard
+geometric multigrid algorithm on a unit cube would be helpful to see, how
+curvilinear bounded domains increase computational time.
+
+{\textbf{Our response:}} We added a reference ([30]) where AMG vs. GMG
+is discussed in more detail as shown in the paragraph above.  In~[30],
+the authors (Trottenberg \& Clees) emphasize that the breakthrough of
+multigrid came only with its algebraic version, since anisotropies,
+highly varying coefficients, etc., were hard to handle with geometric
+multigrid.  This applies precisely to our problem with a domain
+expanding in time which would have required a variable coarsening
+scheme.  The SA-AMG approach is much more elegant and flexible.
+Therefore we did not spend much effort in the direction of geometric
+multigrid.
+
+\pagebreak
+
+{\bf Reviewer \#2: }
+
+This paper discusses the application of algebriac multigrid techniques to a PIC
+code for the simulation of electron beams. The formulation of the equations
+gives rise to an electrostratic potential  Poisson problem that must be
+repeatedly solved. The paper demonstrates the value of an approach that is
+suitable for irregular domains as compared to a more traditional FFT based
+approach. A number of algebraic multigrid options are discussed and relatively
+good scalability is demonstrated.  Overall, the paper is well-written and
+organized. The results illustrate tradeoffs associated with boundary treatment
+as well as tradeoffs associated with parallel algebraic multigrid choices:
+algebraic multigrid setup vs. reusing existing preconditioner (or part of an
+existing preconditioner), stopping criteria, coarse level solver, and
+scalability.  
+
+a) It should be noted that other choices such as the relaxation scheme, the
+cycling method (V or W), and coarsening choices are not really addressed, though
+it is unclear what impact they would have on the solution time. 
+
+{\textbf{Our response:}} We added a small paragraph concerning the cycling
+method shortcomings in the paragraph ``Cycling Method'' on page 7: 
+
+\textit{We observed a tendency that timings for the W-cycle are 10\% -- 20\% slower
+compared with the V-cycle.}
+ 
+Coarsening strategies are discussed in the paragraph ``Prolongation Operator''
+and relaxation schemes in the paragraph ``Smoothing Operator''. By
+definition the terms prolongation/interpolation as well as
+relaxation/smoother (in fact smoother is a more general term) are just
+different terminologies for basically the same thing.  Since we have chosen
+to use the restriction operator to  be the transpose of the interpolation
+(as mentioned on page 6) we only discuss one operator (prolongation).
+
+We added a couple of lines to the coarsening paragraph to briefly mention
+coupled coarsening strategies:
+
+\textit{``Coupled'' coarsening strategies, e.g. Parmetis, introduce
+interprocessor communication and are often needed in the presence of highly
+irregular domains.  In our context applying uncoupled methods only restrict
+the size of the coarsest problem.  This is due to the fact that on the
+coarsest level each processor must at least hold one degree of freedom.}
+
+For the smoother (as mentioned in the paper) we have to use something that
+scales well. The common smoothers (e.g. Gauss-Seidel) don't have
+this property. The different flavors of Gauss-Seidel smoothers cannot
+improve the situation: the multicolor Gauss-Seidel produces a lot of cache
+misses and the processor-localized Gauss-Seidel hampers convergence.
+
+b) However, in this aspect, this case study is certainly limited to a few
+algebraic multigrid concerns. It might be nice to see some other algebraic
+multigrid issues discussed.
+
+{\textbf{Our response:}} It is not clear to us what other AMG issues the
+referee refers to.
+
+c) The over-riding concern that I have is that the paper primarily boils down to
+solving a Poisson problem in parallel with algebraic multigrid.  While the
+results of the computational experiments are illuminating, this is definitely not
+a completely new subject. It is certainly embedded within a larger realistic
+application and this is not a small accomplishment.  Overall, I feel that this
+paper is a bit borderline for this journal in terms of the significance of this
+contribution from an algorithm point of view.  
+
+{\textbf{Our response:}} 
+
+The algorithm we use is not new per se, but by combining various techniques
+we were able to create a massively parallel code that pushes the accuracy
+at which we can do particle accelerator simulations to a higher level (large
+grids require a large number of processors). In future beam dynamic codes
+it will be very important to be able to resolve small scale structures to
+better understand and improve particle accelerators.
+
+%In order to refute the "borderline argument", we mention three similar
+%papers published recently:
+We are surprised about the ``borderline argument''. One reason why we
+considered the Journal of Computational Physics was the publication of
+McCorquodale et al.
+%
+\begin{itemize}
+\item {\it P. McCorquodale, P. Colella, D. P. Grote, J.-L. Vay, A
+    node-centered local refinement algorithm for Poisson's equation in
+    complex geometries, J. Comp. Phys. 201 (1) (2004) 34--60}
+\end{itemize}
+%
+tackling a related problem. 
+%%
+Further related publications found in JCP are:
+
+\begin{enumerate}
+\item {\it Synergia: An accelerator modeling tool with 3-D space charge},
+  J. Comp. Phys., 211 (1) (2005), 229--248
+
+\item {\it A parallel particle-in-cell model for beam-beam interaction
+    in high energy ring colliders}, J. Comp. Phys., 198 (1) (2004),
+  278--294
+
+\item {\it An object-oriented parallel particle-in-cell code for beam
+    dynamics simulation in linear accelerators}, J. Comp. Phys., 163 (2)
+  (2000), 434 -- 451
+\end{enumerate}
+
+{\bf Minor Remarks}
+
+1) 'Preconditioning is inevitable for system ... since their condition number
+increases as $h^{-2}$ ...
+
+This is fairly general statement that is only valid for certain types of PDEs.
+This should be properly qualified.
+
+{\textbf{Our response:}} We now write: {\it Preconditioning is inevitable
+for systems originating in finite difference discretizations of 2nd order
+PDE's since their condition number increases as $h^{-2}$ where $h$ is the
+mesh width~[16]. }
+
+2) `Independent of the application of multigrid methods the performance depends
+on the choices ...' The wording here is awkward.
+
+{\textbf{Our response:}} We rearranged the sentence: {\it The performance of
+multigrid methods profoundly depends on the choices and interplay of the
+smoothing and restriction operators.}
+
+
+3) Much of the material on pages 5-6 is fairly standard. It could perhaps be
+condensed.
+
+{\textbf{Our response:}} For the sake of better readability we would
+like to leave pages 5-6 at this this level of detail.
+
+4) Large numbers such as 4,194,304 are usually separated with commas. In some
+spots in the text quotes are used instead.
+
+{\textbf{Our response:}}  Done as suggested.
+
+5) 'This results' should be changed to 'These results'. This sentence seems to
+just hang by itself (in its own paragraph). It would be better to be a little
+more explicit. For example, These results illustrate that an increase in
+solution of approximately 2.3 in the best case is incurred in moving from an
+FFT-based scheme to a more general approach. Of course, this more general
+approach gives rise to increased accuracy when the domain has irregularities.
+
+{\textbf{Our response:}}  We reworded the sentence to: {\it These results
+illustrate that an increase in solution accuracy of approximately 2.3 in the
+best case (when the domain has irregularities) is incurred in moving from an
+FFT-based scheme to a more versatile approach.  Of course, this more
+versatile approach gives rise to increased accuracy.}
+
+6) The results in Table 8 really don't show any big differences. The results can
+be summarized in a few sentences without actually giving the data.
+
+{\textbf{Our response:}} We replaced Table 8 by the sentence:
+
+\textit{
+Our experiments indicate that for our problems ML setup time and scalability are
+not affected significantly by the two coarse level solvers. The difference in
+setup and application of KLU and Gauss-Seidel differ only within a few
+percent. Only the construction of the preconditioner is cheaper with the
+iterative coarse level solver.  
+}
+
+7) The construction times in Tables 9, 10, and 11 jump around. Specifically, it
+appears that something bad has happened in the 2048 Table 10 results (which does
+not occur for the 2048 core Table 11 data). Is there any data which explains
+where this occurs and perhaps why?
+
+{\textbf{Our response:}} The difference between results shown in Tables
+10 and 11 is due to the difference in the grid size. The grid ($512^3$)
+used for Table 10 is getting too small (65,536~dofs/core) for the
+large amount of cores employed (as described in the corresponding
+section), while in Table 11 we use a $1024^3$ grid which still has a
+sufficiently large amount of unknowns per core (524,288) when using 2048
+cores.  Therefore the construction timings are reasonable in this case.
+
+%%{\bf TODO: EVT. ADD IN RESULT SECTION}
+
+8) On page 14, `The solver employs on the conjugate ...'. The word `on' should
+be removed from this sentence.
+
+{\textbf{Our response:}}  Done as suggested.
+
+9) On page 15, `cpe' should be changed to `cope'.
+
+{\textbf{Our response:}}  Done as suggested.
+
+
+\end{document}

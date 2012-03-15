@@ -1,0 +1,53 @@
+set line style 1 lt 1 lw 2
+set line style 2 lt 2 lw 2 
+set line style 3 lt 3 lw 2 
+set line style 4 lt 6 lw 2 
+set line style 5 lt 1 lw 2 
+set line style 6 lt 2 lw 2 
+set line style 7 lt 3 lw 2 
+set line style 8 lt 6 lw 2 
+set grid
+set title "Laminarity parameter Phase1"
+set xlabel 's (m)'
+set ylabel '{/Symbol l} ()'
+set y2label 'I (A), E (MeV)' font 'Helvetica-Bold,25'
+set ytics nomirror
+set y2tics
+#
+#
+#fn = '/home2/adelmann/scratch3/PSI-GUN1/fm-3/Gun_2mm_225-optimized/Gun_2mm_225-optimized.stat'
+fn = 'FinPhase1/FinPhase1.stat'
+#
+E0   = 0.511006
+C    = 2.9979E8
+I0   = 17e3
+#
+#
+gam(e) = (e/E0)
+#
+bet(e) = sqrt(1-(1/gam(e)**2))
+#
+I(e,bl,q)= (q/(3*bl))*(bet(e)*C)
+#
+# Rene
+#lami(en,sigx,sigz,emi,q) = (I(en,sigz,q) * sigx**2)/(2*I0*gam(en)*bet(en)*emi**2)
+#
+#
+# Rosenzweig
+lami(en,sigx,sigz,emi,q) = (I(en,sigz,q) * sigx**2)/(2*I0*gam(en)*emi**2)
+#
+set log y
+plot [:] fn u 2:(lami($5,$6,$8,$12,-1*$4)) w l ls 1 t '{/Symbol l}'
+#
+repl fn u 2:(I($5,$8,-1*$4)) w l axis x1y2 ls 2 t 'I_{3{/Symbol s}_z} (A) '
+#
+repl fn u 2:5 w l axis x1y2 ls 3 t 'E (MeV) '
+
+#repl fn u 2:8 w l 0  t '{/Symbol s}_x '
+
+#
+pause -1
+set term post enh col 'Helvetica,22' lw 3
+set out 'lami.ps'
+repl
+

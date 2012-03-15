@@ -1,0 +1,41 @@
+Permanent-Magnet Quadrupole (for PANDIRA) 
+Full geometry using the variable easy axis option
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,        ; Poisson or Pandira problem
+mode=0,              ; Materials have variable permeability
+dx=0.11,             ; Mesh interval
+nbslo=0,             ; Dirichlet boundary condition on lower edge
+nbsup=0,             ; Dirichlet boundary condition on upper edge
+nbslf=0,             ; Dirichlet boundary condition on left edge
+nbsrt=0,             ; Dirichlet boundary condition on right edge
+ibound=0             ; Dirichlet boundary conditions on entire outer boundary
+xminf=-2,xmaxf=2     ; X coordinates for interpolation along 45-degree line
+yminf=-2,ymaxf=2 &   ; Y coordinates for interpolation along 45-degree line
+
+&po x=3.5,y=0 &
+&po nt=2,r=3.5,theta=90 &
+&po nt=2,r=3.5,theta=180 &
+&po nt=2,r=3.5,theta=270 &
+&po nt=2,r=3.5,theta=360 &
+
+&reg mat=3,mshape=1,mtid=1 &
+&po x=3,y=0 &
+&po nt=2,r=3,theta=90 &
+&po nt=2,r=3,theta=180 &
+&po nt=2,r=3,theta=270 &
+&po nt=2,r=3,theta=360 &
+
+&reg mat=1 &
+&po x=1.0,y=0 &
+&po nt=2,r=1.0,theta=90 &
+&po nt=2,r=1.0,theta=180 &
+&po nt=2,r=1.0,theta=270 &
+&po nt=2,r=1.0,theta=360 &
+
+&mt mtid=1,x0a=0,y0a=0,phia=180,multa=3, ; Material ID, variable easy axis parameters
+gamper=1,hcept=-10800,bcept=11600. &     ; Gamma along hard axis, H and B intercepts   
+
+

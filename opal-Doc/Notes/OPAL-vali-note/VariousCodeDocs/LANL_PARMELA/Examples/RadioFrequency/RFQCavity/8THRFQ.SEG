@@ -1,0 +1,10 @@
+NormalizationCode= 0  ; NORM, normalize fields to EZERO 
+E0 =  11.207e6        ; EZERO, in Volts/meter
+FieldSegments
+ 5 6 7 8 9 10         ; Start of segment numbers
+11 12 13 14 15
+16 17 18 19 20
+EndData
+End
+
+

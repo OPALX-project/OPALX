@@ -1,0 +1,208 @@
+\documentclass[a4paper]{report}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{color}
+\frenchspacing
+
+\definecolor{code}{rgb}{0.72,0.84,0.93}
+
+\newcommand{\opalgui}{OPAL Pilot }
+\newcommand{\opalguivers}{0.8.0 }
+
+\lstloadlanguages{bash,SQL}
+\lstset{
+	frame=single,
+	backgroundcolor=\color{code},
+	basicstyle=\ttfamily\small\mdseries,
+	breaklines=true
+}
+
+\begin{document}
+
+%
+% Title
+%
+\begin{titlepage}
+\begin{center}
+\LARGE\textbf{\opalgui}\\
+(GUI and Provenance for the OPAL Framework)\\
+Version \opalguivers \\
+\textbf{User's Guide}\\[1cm]
+\normalsize{David Uhlig}
+\end{center}
+\end{titlepage}
+
+%
+% ToC
+%
+\tableofcontents
+
+%
+% Users Guide
+%
+\chapter{User's Guide}
+\section{Installation}
+The requirements refer to the versions that were used at the time this GUI was developed. Later versions might be used if they are compatible to each other.
+Required packages for the GUI were successfully compiled on the FELSIM cluster with the following module settings:
+\begin{lstlisting}[language=bash]
+module unload intel
+module unload gcc
+module unload mpi
+module load mpi/openmpi-1.3.3-gcc-4.3.1
+module load gcc/gcc-4.3.1
+unset CXX
+unset CC
+\end{lstlisting}
+
+\subsubsection{Required packages:}
+\begin{itemize}
+
+	\item Python 2.7 (not 3.0)\footnotemark, \url{http://www.python.org/download/}
+	
+	
+\footnotetext{Python 3.0 is not yet supported by some of the required packages.}
+
+	\item setuptools 2.7, \url{http://pypi.python.org/pypi/setuptools#downloads}, Pick the egg corresponding to your Python version and run
+	\begin{lstlisting}
+sh setuptools-*.egg
+	\end{lstlisting}
+
+	\item Qt 4.6.3, LGPL, libraries, \url{http://qt.nokia.com/downloads/}
+	\begin{lstlisting}[language=bash]
+echo "yes" > accept_license
+./configure --prefix=$HOME/extlib -opensource -no-qt3support -fast < accept_license
+make -j 8
+make install
+	\end{lstlisting}
+	\item SIP 4.11.1, \url{http://www.riverbankcomputing.co.uk/software/sip/download}
+	\item PyQt4 4.7.6, \url{http://www.riverbankcomputing.co.uk/software/pyqt/download}
+	\item MySQL 5.1, Platform: Source Code, ´´Generic Linux (Architecture Independent)'', \url{http://www.mysql.de/downloads/mysql/}
+	\item MySQLdb 1.2.3, \url{http://sourceforge.net/projects/mysql-python/}
+	\item Paramiko 1.7.6, \url{http://www.lag.net/paramiko/}
+	\item NumPy 1.5, \url{http://sourceforge.net/projects/numpy/files/}, 
+	\begin{lstlisting}[language=bash]
+python setup.py build --fcompiler=gnu95
+python setup.py install
+	\end{lstlisting}
+	\item SciPy 0.8, \url{http://sourceforge.net/projects/scipy/files/}
+	\item matplotlib 1.0, \url{http://sourceforge.net/projects/matplotlib/}
+\end{itemize}
+
+%
+% Developers Guide
+%
+\chapter{Developer's Guide}
+
+
+
+\section{Introduction}
+One core priciple of the \opalgui development is that it should be easy to add new \textit{static} accelerators to the GUI and provenance system. This is achieved by building up the interface genericly from the data structure provided in the databse. This again enables developers to specify any kind of accelerator, as long as it is static. \\
+To do so it is required to have access to the database. You might want to use one of the following tools:
+\begin{itemize}
+\item MySQL Workbench, \url{http://www.mysql.de/downloads/workbench/}
+\item phpMyAdmin, \url{http://www.phpmyadmin.net/home_page/index.php}
+\end{itemize}
+The following sections guide you through the process of creating the most important parts of the OPAL Pilot by adding entities to the database.
+
+
+\subsection{Database conventions}
+
+\subsubsection{Table names}
+Names are \textbf{all lowercase} in \textbf{singular}. Use underscores to seperate words, but avoid where possible because of their special meaning.
+Creating a N:M relation between two tables (foo and bar) is done by creating a table named bar\_foo. Place the table names in their alphabetical order (i.e.: bar\_foo and not foo\_bar).
+
+\subsubsection{Column names}
+Like with table names, column names are \textbf{all lowercase} in \textbf{singular}. Use underscores to seperate words. The \textbf{index column} is always called id. Foreign keys consist of the referenced table name, followed by ''\_id'' (foo\_id).
+
+\subsubsection{User interface related}
+Tables and columns that solely have an influence on the GUI, but not on simulations, are prefixed with ui\_.
+
+
+\subsection{Sytax used in this guide}
+Words written in bold refer to a database table name, possibly followed by a dot and annother word refering to a column in that table.
+
+\subsubsection{Examples:}
+\textbf{accelerator} refers to the database table accelerator \\
+\textbf{parameter.ui\_label} refers to the database table parameter and the column ui\_label 
+
+
+\section{Accelerator}
+One accelerator row represents one static machine. It has a variable amount of parameters, that are edited by the end-users in the interface. Furthermore it has at least two files (infile, phasefile) and a variable amount of magnet, RF-files etc. The infile parser grabs the infile specified in \textbf{accelerator.input\_file} and replaces any occurence of the linked \textbf{parameter.parameter}s (enclosed in ''\_'') with the user specified input from the GUI. Any magnet or RF-file specified in the \textbf{accelerator.input\_file} needs to have exactly the same name as specified in \textbf{file.filename}. The \textbf{accelerator.phase\_file} is not parsed.
+\subsection{Add an accelerator}
+You will need to create rows in the tables: \textbf{accelerator}, \textbf{accelerator\_parameter}, \textbf{accelerator\_file}.
+Optionally you might need to create rows in the tables: \textbf{parameter}, \textbf{file}. Please refer to the corresponding sections for detailed instructions.
+\subsubsection{Step by step}
+\begin{enumerate}
+	
+	\item Table: accelerator, add exactly 1 row.
+		\begin{itemize}
+			\item ui\_alias - name that is shown on tabs in the gui
+			\item input\_file - opal input file with wildcards as specified in parameter.parameter (enclosed in ''\_'')
+			\item phase\_file - opal phase file 
+		\end{itemize}
+	
+	\item Table: accelerator\_parameter, add at least 1 row.
+		\begin{itemize}
+			\item accelerator\_id - id of the accelerator that you have just created
+			\item parameter\_id - id of the parameter that should be linked to this accelerator
+			\item ui\_default\_value - this value is shown by default in the \textbf{New} interface
+		\end{itemize}
+		Before you can add rows to this table you might have to create new parameters first.
+	
+	\item Table: accelerator\_file, add at least 1 row.
+		\begin{itemize}
+			\item accelerator\_id - id of the accelerator that you have just created
+			\item file\_id - id of the magnet or RF file that is used by this accelerator
+		\end{itemize}
+	Before you can add rows to this table you might have to create new files first.
+\end{enumerate}
+After adding an accelerator you will need to restart \opalgui to come into effect.
+
+\section{File}
+File rows represent any file, for example Magnet or RF-Files. They are not limited to any file type or content. Whatever file you can use in OPAL, you can use here aswell. The maximum file size supported is 4.2GB.
+
+\subsection{Add a file}
+You only need to create rows in the table: \textbf{file}. \\
+\textbf{Important}: The filename specified in the file table has to match the filename specified in \textbf{accelerator.input\_file} exactly.
+\subsubsection{Step by step}
+\begin{enumerate}
+	\item Table: file, add exactly 1 row
+		\begin{itemize}
+			\item content - content of the file
+			\item filename - filename as used in the input file. Files will be created on the remote server with this filename.
+		\end{itemize} 
+\end{enumerate}
+
+\subsection{Big files}
+Importing big files to the database can be tricky. For that matter you can use the Python script bin/file\_import.py to comfortly import a single or a batch of files.
+\begin{lstlisting}[language=bash]
+python bin/file_import.py path/to/file.R7
+\end{lstlisting}
+or
+\begin{lstlisting}
+python bin/file_import.py path/to/files/*
+\end{lstlisting}
+
+\section{Parameter}
+Parameters define the variable part of an accelerator. At the point when the simulation is submitted the application reads the input file template in \textbf{simulation.input\_file} and replaces all occurences of linked parameters parameter.parameter (enclosed in ''\_'') with the value that the user inserted in the GUI.
+
+\section{Simulation}
+\subsection{Hiding a simulation}
+In some situations there is the need to hide a simulation from the interface. For example if you want to give the user the ability to delete simulations but have an extra bit of security to undo unwanted deletetions.
+To do so simply set the deleted flag in the simulation table to 1.
+\subsection{Deleting a simulation}
+Deleting a simulation consists of two parts.
+\subsubsection{Remove files from the server}
+Files belonging to one simulations are found in the path: \textbf{server.path}/\textbf{simulation.id}
+\subsubsection{Remove the simulation from the database}
+\begin{lstlisting}[language=SQL]
+DELETE FROM simulation_statistic_column WHERE simulation_id = <id>;
+DELETE FROM simulation_parameter WHERE simulation_id = <id>;
+DELETE FROM simulation WHERE id = <id>;
+\end{lstlisting}
+Replace $<id>$ with the id of the simulation that you want to delete.
+
+\section{Statistic}
+
+\end{document}

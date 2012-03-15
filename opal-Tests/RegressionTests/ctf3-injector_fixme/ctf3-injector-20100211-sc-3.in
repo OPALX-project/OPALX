@@ -1,0 +1,177 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=10000000;
+Option, STATDUMPFREQ=10;
+Option, INFO=TRUE;
+
+Title, string="First part of PSI FEL 250 Injector with CTF3 RF Photoinjector for startup";
+
+//Edes=1.0e-9;
+//gamma = (Edes+EMASS) / EMASS;
+//beta = sqrt(1.0 - (1.0 / gamma^2));
+//gambet = gamma * beta;
+//P0 = gambet * EMASS;
+//brho = (EMASS * 1.0e9 * gambet) / CLIGHT;
+
+//value,{gamma,brho,Edes,beta,gambet};
+
+// set autophasing flag or comment this line
+AUTO = 0;
+
+FINSS_RGUN_phi= 0;    
+FINSB01_RACC_phi= 0; 
+FINSB02_RACC_phi= 0;    
+
+if (AUTO==1) {
+
+Option, AUTOPHASE=TRUE;
+
+} else {
+
+call, "../FinPhase1.phases";
+
+}
+
+value,{FINSS_RGUN_phi, FINSB01_RACC_phi, FINSB02_RACC_phi};
+
+
+// Begin: CTF3 /////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of CTF3 RF photoinjector.
+//
+
+//
+// L:		physical element length (real in m)
+// VOLT:	field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+//
+FINSS_RGUN: RFCavity, L = 0.34986, VOLT = 100.0, FMAPFN = "CTF3_Ez_ASTRA.opal",
+		ELEMEDGE =0.0, TYPE = "STANDING", FREQ = 2998.0,
+		LAG = FINSS_RGUN_phi +(6.5/180.0*PI);
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FIND1_MSOL10: Solenoid, L = 0.6, KS = 0.206, FMAPFN = "NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal", ELEMEDGE = 0.3;
+
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FIND1_MQ10: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.38;
+FIND1_MQ20: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.56;
+FIND1_MQ30: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.74;
+
+//elemento fittizio utilizzato per prolungare la linea del fascio
+END: Solenoid, L=0.01, KS = 0.01, ELEMEDGE=100., FMAPFN="FIND1-MSOL10.T7";
+
+Injector: Line = (FINSS_RGUN, FIND1_MSOL10, FIND1_MQ10, FIND1_MQ20, FIND1_MQ30, END);
+// End: CTF3 //////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: Screen monitors ////////////////////////////////////////////////////////////////////////////////////
+//
+// Define screen monitors in beam line.
+//
+// L:		physical element length (real in m). Always equal to 1 cm.
+// ELEMEDGE:	position of screen (real in m). This is where the particle information is taken.
+// OUTFN:       name of .h5 file to store data. Include ".h5" on end.
+//
+SCREEN1: Monitor, L = 0.01, ELEMEDGE = 0.902, OUTFN = "Screen1.h5";
+SCREEN2: Monitor, L = 0.01, ELEMEDGE = 1.0165, OUTFN = "Screen2.h5";
+//previous screen, virtual screen placed in the mid point of RFD
+SCREEN3: Monitor, L = 0.01, ELEMEDGE = 1.1295, OUTFN = "Screen3.h5";
+SCREEN4: Monitor, L = 0.01, ELEMEDGE = 2.2525, OUTFN = "Screen4.h5";
+SCREEN5: Monitor, L = 0.01, ELEMEDGE = 2.735, OUTFN = "Screen5.h5";
+SCREEN6: Monitor, L = 0.01, ELEMEDGE = 3.0, OUTFN = "Screen6.h5";
+SCREEN7: Monitor, L = 0.01, ELEMEDGE = 3.126, OUTFN = "Screen7.h5";
+SCREEN8: Monitor, L = 0.01, ELEMEDGE = 3.252, OUTFN = "Screen8.h5";
+SCREEN9: Monitor, L = 0.01, ELEMEDGE = 4.126, OUTFN = "Screen9.h5";
+SCREEN10: Monitor, L = 0.01, ELEMEDGE = 5.126, OUTFN = "Screen10.h5"; 
+
+SCREENS: Line = (SCREEN1,SCREEN2,SCREEN3,SCREEN4,SCREEN5,SCREEN6,SCREEN7,SCREEN8,SCREEN9,SCREEN10);
+// End: Screen monitors //////////////////////////////////////////////////////////////////////////////////////
+
+// Begin: Define beam lines //////////////////////////////////////
+//
+// Define injector beam line.
+//
+Gun: Line = (Injector,SCREENS);
+
+
+// End: Define beam lines ////////////////////////////////////////
+
+
+// Begin: Fieldsolver ///////////////////////////////////////////
+//
+// Definition of first field solver.
+//
+Fs1:FIELDSOLVER, FSTYPE = FFT, MX = 32, MY = 32, MT = 32,
+		 PARFFTX = true, PARFFTY = true, PARFFTT = true,
+		 BCFFTX = open, BCFFTY = open, BCFFTT = open,
+		 BBOXINCR = 1, GREENSF = INTEGRATED;
+// End: Fieldsolver ////////////////////////////////////////////
+
+SRise = 0.7e-12;
+SFall = 0.7e-12;
+CRise = 3.0;
+CFall = 3.0;
+TFlatTop = 9.9e-12*0.925;
+TEmis = TFlatTop + CRise* SRise + CFall* SFall;
+
+value,{TFlatTop,TEmis};
+
+Dist1:DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+sigmax = 0.000270*2.0, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.000270*2.0, sigmapy = 0.0, corry = 0.0,
+sigmat = 0.0, pt = 0.0, sigmapt = 0.0, corrt = 0.0, ekin = 0.4,
+sigmarise = SRise, sigmafall = SFall, flattoptime = TFlatTop,
+cutoffrise = CRise, cutofffall = CFall, 
+TEMISSION = TEmis, NBIN = 10, DEBIN = 80; 
+
+Dist2:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="ReferenceParticles.dat";
+
+MINSTEPFORREBIN = 1000;
+
+qb=0.2e-9;
+bfreq=2998.0;
+bcurrent=qb*bfreq;
+
+beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 200000, BFREQ = bfreq , BCURRENT = bcurrent, CHARGE = -1;
+
+//Select, Line = Gun;
+Select, Line=Injector;
+
+if (AUTO==1) {
+
+// Autophasing with fine time steps for the complete beamline  
+track, line=Injector, beam=beam1, MAXSTEPS=1000000, DT=5.0e-14, ZSTOP=12.95;
+ run, method = "PARALLEL-T", beam = beam1, fieldsolver = Fs1, distribution = Dist2;
+endtrack;
+
+} else {
+
+// Simulation of the gun with step size DTGUN
+track, line= Injector, beam=beam1, MAXSTEPS=1000000, DT=1.0e-12, ZSTOP=2.0;
+ run, method = "PARALLEL-T", beam = beam1, fieldsolver = Fs1, distribution = Dist1;
+endtrack;
+
+// Simulation of the beam with step size DT 
+//track,line= Injector, beam=beam1, MAXSTEPS=1000000, DT=1.0e-12, ZSTOP=5.5;
+// run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1;
+//endtrack;
+}
+
+//track, line = Gun, beam = beam1, MAXSTEPS = 1500, DT = 1.0e-12;
+//track, Line = Injector, beam = beam1, MAXSTEPS = 200000, DT = 1.0e-12, ZSTOP=5.5;
+//run, method = "PARALLEL-T", beam = beam1, fieldsolver = Fs1, distribution = Dist1;
+//endtrack;
+
+Quit;

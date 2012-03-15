@@ -1,0 +1,13 @@
+To do parallel plate benchmark simulation and to plot results, please do the following:
+
+1. Edit the run.sge, change the job name to your input file name (ParallelPlate_test_FurmanPivi_const) and change the core number to your prefered number (1,2,4,8,16......).
+
+2. After simulation done, go to directory ./jobname, open the  Part_statistics-.dat, delete the first line (the title for gnuplot), and save the file to ../FurmanPivi_const_part.dat if you use Furman-Pivi model and constant simulation particle approach in your simulation. 
+
+Do the similar procedure on Part_statistics-.dat when you done the simualtion with Furman-Pivi model and real simulation particles, and save ../FurmanPivi_real_part.dat.
+
+3. Go back to the parent directory, load matlab module, run the plot_Furman_Pivi_compare.m to get the time evolution plot of both constant simulation approach and real simulation particle approach. The results from thoery is already in  theory_Furman_Pivi.txt.
+
+4. repeat 1-3 on Vaughan's model. 
+
+Enjoy!

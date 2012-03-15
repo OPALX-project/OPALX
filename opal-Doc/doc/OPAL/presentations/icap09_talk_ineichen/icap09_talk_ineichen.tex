@@ -1,0 +1,1445 @@
+\documentclass[xcolor=pdftex,table,10pt]{beamer}
+\usepackage{pgfpages}
+%\pgfpagesuselayout{4 on 1}[a4paper, border shrink=5mm, landscape]
+
+
+\mode<presentation> {
+%  \usetheme{Madrid}
+  \usecolortheme{seahorse}
+  \usecolortheme{rose}
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection,hideothersubsections]
+  \end{frame}
+}
+
+\AtBeginSubsection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+%change bottom line
+\setbeamertemplate{footline}
+{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.23\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.54\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}\insertshorttitle
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.23\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}
+    \insertframenumber{} / \inserttotalframenumber\hspace*{2ex} 
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage{listings}
+\usepackage{colortbl}
+\usepackage{tikz}
+\usepackage{verbatim}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{url}
+\usetikzlibrary{shapes,arrows,snakes,backgrounds}
+\usefonttheme[onlymath]{serif}
+%\usepackage[T1]{fontenc}
+%\usepackage{color}
+%\usepackage[x11names, rgb]{xcolor}
+%\usepackage{dot2texi}
+%\usepackage{pgfplots}
+%\usefonttheme{professionalfonts}
+
+\tikzstyle{format} = [draw, thin, fill=blue!20]
+\tikzstyle{pblock} = [rectangle, draw, fill=blue!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{mblock} = [rectangle, draw, fill=green!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{bblock} = [rectangle, draw, fill=gray!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{prblock} = [rectangle, draw, fill=red!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{rblock} = [rectangle, draw, fill=black!50, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{block} = [rectangle, draw, fill=gray!20, text centered, rounded corners]
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{medium} = [ellipse, draw, thin, fill=green!20, minimum height=2.5em]
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm, minimum height=2em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{emptyblock} = [rectangle]
+\tikzstyle{progblock} = [rectangle, draw, fill=yellow!20, text width=6em, text centered, minimum height=0.4em]
+\tikzstyle{null} = [rectangle, fill=blue!0, text width=6em, text centered, rounded corners, minimum height=0.4em]
+
+
+\newcommand{\opal}{\textsc{OPAL }}
+\renewcommand {\Re}{{\mathbb{R}}}
+\setbeamertemplate{navigation symbols}{} 
+
+\title[ICAP 2009]{A Fast Parallel Poisson Solver on Irregular Domains Applied to Beam Dynamic Simulations}
+\author[Y. Ineichen]{Yves Ineichen$^{*,**}$ \\ Andreas Adelmann$^{**}$ \\ Peter Arbenz$^{*}$}
+\institute{$^{*}$Federal Institute of Technology\\ Department of Computer Science\\ Universitaetsstrasse 6, CH-8092 Zuerich, Switzerland \\ \vspace{0.2cm} $^{**}$Paul Scherrer Institute \\ Accelerator Modelling and Advanced Simulations \\ CH-5234 Villigen, Switzerland}
+\date{31st August 2009}
+\titlegraphic{
+	\begin{columns}
+		\begin{column}{3cm}
+			\includegraphics[width=2cm]{ethlogo} \\
+		\end{column}
+		\begin{column}{2cm}
+			\includegraphics[width=3cm]{psilogo} \\
+		\end{column}
+	\end{columns}
+}
+
+\begin{document}
+
+% For every picture that defines or uses external nodes, you'll have to
+% apply the 'remember picture' style. To avoid some typing, we'll apply
+% the style to all pictures.
+\tikzstyle{every picture}+=[remember picture]
+
+% By default all math in TikZ nodes are set in inline mode. Change this to
+% displaystyle so that we don't get small fractions.
+\everymath{\displaystyle}
+
+	\lstset{language=C++, basicstyle=\small}
+
+	\begin{frame}
+            \titlepage
+	\end{frame}
+	
+	\begin{frame}
+	  \frametitle{Outline}
+	  \tableofcontents
+	\end{frame}
+
+	\section{Motivation}
+
+
+	\begin{frame}
+		\frametitle{Self Force Calculation}
+		
+		\begin{block}{Self Forces in the Electrostatic Approximation}
+        \begin{minipage}[b]{0.80\textwidth}
+			Whenever we have a number of moving charged particles:
+			\begin{itemize}
+				\item electric fields  caused by Coulomb repulsion are present
+				\item magnetic fields arising from the moving particles
+			\end{itemize}
+		Both effects act as \alert{forces} on to the particles!	
+        \end{minipage}
+        \begin{minipage}[b]{0.10\textwidth}
+        \centering
+		\begin{tikzpicture}[scale=1.0,transform shape,node distance=1cm]	
+			\fill[color=red,opacity=0.6] (0.5,0.5) circle (3pt) node[below] {$\mathbf{e}^{-}$};
+			\fill[color=red,opacity=0.6] (1.0,1.0) circle (3pt) node[above] {$\mathbf{e}^{-}$};
+			
+            \path[style=thick,dashed, ->] (1.0,1.0) edge (1.5,1.5);
+            \path[style=thick,dashed, ->] (0.5,0.5) edge (0.0,0.0);
+
+		\end{tikzpicture}
+
+        \end{minipage} 
+		\end{block}
+		\vspace{0.5cm}
+%	\begin{block}{ }
+		Express the Coulomb potential $\phi$ in terms of charge densities $\rho$ (proportional to the particle density)
+        %The electric field can be expressed by 
+		%The arising Poisson's equation for the electrostatic potential has the form
+		\[
+			\nabla^2 \phi = - \frac{\rho}{\varepsilon_0} \;\; \text{in} \;\; \Omega \subset \Re^3
+		\]
+		\[
+			\mathbf{E} = - \nabla \phi \text{.}
+		\]
+
+        \vspace{0.2cm}
+		The magnetic field can be calculated from the electric field (Lorentz transformation).
+		
+		%Solve Maxwell's equation in the non-relativistic bunch frame on the grid
+		%\begin{eqnarray*}
+		%	\nabla \times \mathbf{E} + \frac{\partial\mathbf{B}}{\partial \mathbf{t}} = \mathbf{0} \\
+		%	\nabla \cdot \mathbf{B} = 0
+		%\end{eqnarray*}
+%\end{block}
+	\end{frame}
+	
+	\begin{frame}
+		\frametitle{Self Force Calculation}
+
+		\begin{block}{Particle-in-cell (PIC) Method in N-body Simulations}
+        \begin{minipage}[b]{0.75\textwidth}
+		\begin{itemize}
+			\item interpolate individual particle charges to the grid
+			\item solve the Poisson equation on the mesh in a Lorentz frame
+			%\item values of the potential at the location of individual particles is interpolated from the potential at the grid points
+			\item typically faster $\mathcal{O}(n \log{n})$ than Particle-Particle method $\mathcal{O}(n^2)$
+		\end{itemize}
+        \end{minipage}
+        \begin{minipage}[b]{0.15\textwidth}
+        \centering
+		\begin{tikzpicture}[scale=1.0,transform shape,node distance=1cm]	
+			\draw[very thin,color=gray,step=2cm] (-0.2,-0.2) grid (2.2,2.2);
+			\fill[color=blue,opacity=0.6] (1.3,0.5) circle (3pt);
+			%\fill[color=red,opacity=0.6] (2.0,2.0) circle (1pt);
+			%\fill[color=red,opacity=0.6] (2.0,0.0) circle (1pt);
+			%\fill[color=red,opacity=0.6] (0.0,0.0) circle (1pt);
+			%\fill[color=red,opacity=0.6] (0.0,2.0) circle (1pt);
+			\fill[color=red,opacity=0.6] (2.0,2.0) circle (1pt);
+			\fill[color=red,opacity=0.6] (2.0,0.0) circle (1pt);
+			\fill[color=red,opacity=0.6] (0.0,0.0) circle (1pt);
+			\fill[color=red,opacity=0.6] (0.0,2.0) circle (1pt);
+			
+            \path[style=thick,dashed, ->] (1.3,0.5) edge (2.0,2.0);
+            \path[style=thick,dashed, ->] (1.3,0.5) edge (2.0,0.0);
+            \path[style=thick,dashed, ->] (1.3,0.5) edge (0.0,2.0);
+            \path[style=thick,dashed, ->] (1.3,0.5) edge (0.0,0.0);
+
+		\end{tikzpicture}
+
+        \end{minipage} 
+		\end{block}
+
+		\vspace{0.5cm}
+        %\begin{minipage}[b]{0.80\textwidth}
+	
+        \begin{itemize}
+		%\item We apply a second order finite difference scheme which leads to a set of linear equations
+		\item Finite difference scheme leading to a set of linear equations
+		\[
+			\mathbf{A} \mathbf{x} = \mathbf{b} \text{,}
+		\]
+		$\textbf{b}$ denotes the charge densities on the mesh
+
+        \item Integrated into code tracking relativistic particles in \alert{time}
+        \end{itemize}
+
+        %\end{minipage}
+        %\begin{minipage}[b]{0.15\textwidth}
+        %\centering
+		%\begin{tikzpicture}[scale=0.5, join=round, transform shape,node distance=1cm]	
+            %\coordinate (C) at (0,0);
+            %\coordinate (E) at (2,0);
+            %\coordinate (W) at (-2,0);
+            %\coordinate (N) at (0,2);
+            %\coordinate (S) at (0,-2);
+            %\coordinate (F) at (-1,-1);
+            %\coordinate (B) at (1,1);
+            
+            %\fill[blue!60] (C) circle (4pt);
+            %\draw (C) node[above left] {};
+            %\fill[blue!60] (E) circle (4pt);
+            %\draw (C) -- (E) node[right] {};
+            %\fill[blue!60] (W) circle (4pt);
+            %\draw (C) -- (W) node[left] {};
+            %\fill[blue!60] (N) circle (4pt);
+            %\draw (C) -- (N) node[above] {};
+            %\fill[blue!60] (S) circle (4pt);
+            %\draw (C) -- (S) node[below] {};
+            %\fill[blue!60] (F) circle (4pt);
+            %\draw (C) -- (F) node[below left] {};
+            %\fill[blue!60] (B) circle (4pt);
+            %\draw (C) -- (B) node[above right] {};
+		
+        %\end{tikzpicture}
+
+        %\end{minipage} 
+
+	\end{frame}
+    
+    \begin{frame}
+        \frametitle{\opal in a Nutshell}
+
+        \begin{alertblock}{}  
+         \opal is a tool for charged-particle optics in large
+         accelerator structures and beam lines including 3D space charge
+        \end{alertblock}
+
+        \vspace{0.2cm}
+
+        \begin{block}{Some of the features}  
+         \begin{itemize}
+         \item \opal is built from the ground up as a parallel application exemplifying the fact that HPC (High Performance Computing) 
+         is the third leg of science, complementing theory and the experiment
+         \item  \opal runs on your laptop as well as on the largest HPC clusters
+         \item \opal uses the \textsc{MAD} language with extensions
+         \item \opal (and all other used frameworks) are written in C++ using OO-techniques, hence \opal is very easy to extend.
+         \item Documentation is taken very seriously at both levels: source code and user manual (\url{ http://amas.web.psi.ch/docs/index.html})
+         \end{itemize}
+        \end{block}
+
+        \alert{Wednesday 13:30 A. Adelmann: OPAL Design, Implementation and Application}
+
+    \end{frame}
+
+	\begin{frame}
+		\frametitle{Motivation}
+
+		\begin{exampleblock}{State of the art space charge calculation as implemented in \opal}
+		\begin{itemize}
+			\item FFT based direct solver: convolution with Green's function
+			\item rectangular domain with open and periodic boundary conditions
+		\end{itemize}
+		\end{exampleblock}
+		\vspace{0.5cm}
+
+		\begin{alertblock}{A New Iterative Solver}
+		\begin{itemize}
+			\item solve anisotropic electrostatic Poisson PDE with an iterative solver
+            \item reuse information available from previous time steps
+            \item achieving good parallel efficiency
+			\item \alert{\textbf{irregular}} domain with ``exact'' boundary conditions
+            \item easy to specify boundary surface
+            \item similar to P. McCorquodale, P. Colella, D. P. Grote, J.-L. Vay, J. Comp. Phys., 2004
+            %A node-centered local reﬁnement algorithm for Poissons equation in complex geometries
+		\end{itemize}
+		\end{alertblock}
+
+	\end{frame}
+	
+    \section{Solver}
+
+    \begin{frame}
+        \frametitle{Solver in a Nutshell}
+
+		\begin{columns}
+		\begin{column}{5.5cm}
+			\begin{itemize}
+                \item second order finite difference scheme
+				\item standard 7 point stencil (3D) on Cartesian grid
+				\item preconditioned CG {\color{blue!60}iterative} solver
+				\item {\color{blue!60}algebraic} multigrid preconditioner (using smoothed aggregation)
+			\end{itemize}
+		\end{column}
+		\begin{column}{4.5cm}
+            \centering
+            \input{dom_cyl.tex}
+		\begin{tikzpicture}[scale=0.5, join=round, transform shape,node distance=1cm]	
+            \coordinate (C) at (0,0);
+            \coordinate (E) at (2,0);
+            \coordinate (W) at (-2,0);
+            \coordinate (N) at (0,2);
+            \coordinate (S) at (0,-2);
+            \coordinate (F) at (-1,-1);
+            \coordinate (B) at (1,1);
+            
+            \fill[blue!60] (C) circle (4pt);
+            \draw (C) node[above left] {};
+            \fill[blue!60] (E) circle (4pt);
+            \draw (C) -- (E) node[right] {};
+            \fill[blue!60] (W) circle (4pt);
+            \draw (C) -- (W) node[left] {};
+            \fill[blue!60] (N) circle (4pt);
+            \draw (C) -- (N) node[above] {};
+            \fill[blue!60] (S) circle (4pt);
+            \draw (C) -- (S) node[below] {};
+            \fill[blue!60] (F) circle (4pt);
+            \draw (C) -- (F) node[below left] {};
+            \fill[blue!60] (B) circle (4pt);
+            \draw (C) -- (B) node[above right] {};
+		
+        \end{tikzpicture}
+		\end{column}
+		\end{columns}
+
+    \end{frame}
+
+	
+	\begin{frame}
+		\frametitle{AMG Parameters}
+			
+        \begin{minipage}[b]{0.6\textwidth}
+			\begin{itemize}
+			    \item ``decoupled'' {\color{blue!60}aggregation scheme}: aggregates of size $3\times3\times3$
+                \begin{itemize}
+    				\item each processor aggregate its portion of the grid
+	    			\item many aggregates near inter-processor boundaries with non-optimal size
+			    	\item number of vertices is substantially reduced in every coarsening step
+		    		%\item number of processors determine number of aggregates: coarse problem may still be to big
+				    %IFF: memory consumption for SA AMG prec AND linear system matrix A_0 \approx 1.5*Storage(A_0)
+    				%\item typical operator complexity for decoupled aggregation is $1.5$
+                \end{itemize}
+            \end{itemize}
+        \end{minipage}
+        \begin{minipage}[b]{0.3\textwidth}
+        \centering
+                \begin{tikzpicture}[scale=0.6]
+                    \colorlet{CRSTENCIL}{blue!60!white}
+                    \colorlet{ML}{green!75!black!60!white}
+                    \colorlet{CG}{red!60!white}
+                    \colorlet{RECALCMAP}{black!60}
+
+                    \node [coordinate] at (0,0) (N1) {};
+                    \fill[color=blue!60] (N1) circle (0.2);
+                    \node [coordinate] at (1,0.7) (N2) {};
+                    \fill[color=blue!60] (N2) circle (0.2);
+                    \node [coordinate] at (-0.10,1.2) (N3) {};
+                    \fill[color=blue!60] (N3) circle (0.2);
+
+                    \node [coordinate] at (-0.80,2.2) (N4) {};
+                    \fill[color=blue!60] (N4) circle (0.2);
+                    \node [coordinate] at (-0.10,3.2) (N5) {};
+                    \fill[color=blue!60] (N5) circle (0.2);
+                    \node [coordinate] at (-1.00,3.3) (N6) {};
+                    \fill[color=blue!60] (N6) circle (0.2);
+
+                    \node [coordinate] at (2,1.7) (N7) {};
+                    \fill[color=blue!60] (N7) circle (0.2);
+                    \node [coordinate] at (0.5,2.1) (N8) {};
+                    \fill[color=blue!60] (N8) circle (0.2);
+                    \node [coordinate] at (2,3.3) (N9) {};
+                    \fill[color=blue!60] (N9) circle (0.2);
+                    \node [coordinate] at (0.8,3.2) (N10) {};
+                    \fill[color=blue!60] (N10) circle (0.2);
+
+                    \path[-,thick,color=black!60]<1-> (N1) edge (N2);
+                    \path[-,thick,color=black!60]<1-> (N1) edge (N3);
+                    \path[-,thick,color=black!60]<1-> (N2) edge (N3);
+                    
+                    \path[-,thick,color=black!60]<1-> (N2) edge (N7);
+                    \path[-,thick,color=black!60]<1-> (N3) edge (N8);
+                    
+                    \path[-,thick,color=black!60]<1-> (N4) edge (N5);
+                    \path[-,thick,color=black!60]<1-> (N4) edge (N6);
+                    \path[-,thick,color=black!60]<1-> (N5) edge (N6);
+                    
+                    \path[-,thick,color=black!60]<1-> (N3) edge (N4);
+                    \path[-,thick,color=black!60]<1-> (N8) edge (N4);
+
+                    \path[-,thick,color=black!60]<1-> (N7) edge (N8);
+                    \path[-,thick,color=black!60]<1-> (N7) edge (N9);
+                    \path[-,thick,color=black!60]<1-> (N8) edge (N10);
+                    \path[-,thick,color=black!60]<1-> (N9) edge (N10);
+                    
+                    \path[-,thick,color=black!60]<1-> (N5) edge (N10);
+
+                    \draw[thick,rounded corners=8pt,color=red!60] (-0.2,-0.5) -- (1.8,0.9) -- (-0.6,1.8) -- (-0.2,-0.5);
+                    \draw[thick,rounded corners=8pt,color=red!60] (2.4,3.7) -- (0.5, 3.5) -- (0.0,1.9) -- (2.3,1.3) -- (2.4,3.7);
+                    \draw[thick,rounded corners=8pt,color=red!60] (-1.4,3.6) -- (-0.9,1.6) -- (0.5,3.5) -- (-1.4,3.6);
+
+
+                \end{tikzpicture}
+                \scriptsize{\\clustering vertices into aggregates}
+
+        \end{minipage} 
+        \begin{itemize}
+			    \item Chebyshev polynomial {\color{blue!60}pre and postsmoothers} perform well for parallel solvers (M. Adams, M. Brezina, J. Hu, R. Tuminaro, J. Comp. Phys., 2003)
+    		    \item LU based direct {\color{blue!60}coarse level solver}
+        \end{itemize}
+
+            \vspace{0.3cm}
+            \alert{AMG performance critically depends on choice of parameters!}
+
+	\end{frame}
+
+	\begin{frame}
+		\frametitle{Implementation (1/2)}
+
+		For preconditioner setup and iterative solver we used \textsc{Trilinos}:
+		\begin{itemize}
+			\item \textsc{Epetra}: distributed matrices and vectors
+			\item \textsc{Amesos}: direct coarse level solver
+			\item \textsc{AztecOO}: iterative solver
+			\item \textsc{ML}: smoothed aggregation based AMG preconditioner
+		\end{itemize}
+
+		\vspace{0.8cm}
+
+		\opal in conjunction with Independent Parallel Particle Layer (\textsc{IP$^2$L}) offers:
+		\begin{itemize}
+			\item parallel fields
+			\item particle representation
+			\item operators on fields
+		\end{itemize}
+
+	\end{frame}
+
+	\begin{frame}
+		\frametitle{Implementation (2/2)}
+		\framesubtitle{Integrating the Solver in \opal}
+
+		\begin{center}
+		\begin{tikzpicture}[scale=0.5, transform shape, node distance = 2cm, auto]
+			\tikzstyle{decision} = [diamond, draw, fill=blue!20, text width=12em, text badly centered, node distance=3cm, inner sep=0pt]
+			\tikzstyle{block} = [rectangle, draw, fill=blue!20, text width=16em, text centered, rounded corners, minimum height=4em, shade,top color=white,bottom color=blue!50!black!20, draw=blue!40!black!60, very thick]
+			\tikzstyle{line} = [draw, -latex'];
+			\tikzstyle{cloud} = [draw, ellipse, node distance=8cm, minimum height=2em, shade, top color=white,bottom color=red!50!black!20, draw=red!40!black!60, very thick];
+			
+			\node [block] (redistSol) {redistribute solution of last time-step};
+			\node [cloud, right of=redistSol] (entry) {method entry point};
+			\node [block, below of=redistSol] (stencil) {build stencil and RHS};
+            \node [block, below of=stencil] (hier) {build hierarchy};
+			\node [block, below of=hier] (ml) {build multilevel preconditioner};
+			\node [block, below of=ml] (solve) {solve the system using LHS as initial guess};
+			\node [block, below of=solve] (lhs) {write solution to IP$^2$L grid};
+			%\node [decision, below of=evaluate] (decide) {is best candidate better?};
+			\path [line] (redistSol) -- (stencil);
+			\path [line] (stencil) -- (hier);
+			\path [line] (hier) -- (ml);
+			\path [line] (ml) -- (solve);
+			\path [line] (solve) -- (lhs);
+			\path [line] (entry) -- (redistSol);
+			\path [line,dashed] (lhs.east) -- node {store LHS} + (2.3,0.0) |- (redistSol.370);
+			\path [->,dashed,color=red!60,very thick] (stencil.west) edge [bend right] node [left]{\textbf{reuse preconditioner}} (solve.west);
+			\path [->,dashed,color=red!60,very thick] (stencil.east) edge [bend left] node {\textbf{reuse hierarchy}} (ml.east);
+
+			\draw [<-,dashed] (entry) -- node [above, text width=5em] {} + (0,1.5) node[above] {\opal};
+			\draw [->,dashed] (lhs.270) -- node [above, text width=5em] {} + (0,-1.0) node[below] {\opal};
+
+
+			\begin{pgfonlayer}{background}
+        			\path (redistSol.north west)+(-0.3,0.3) node (a) {};
+			        \path (lhs.south -| entry.east)+(+0.3,-0.3) node (b) {};
+			        \path[fill=black!10,rounded corners, draw=black!50, dashed] (a) rectangle (b);
+			        \path (lhs.east)+(5.9,-0.5) node (name) {MGPoissonSolver};
+			\end{pgfonlayer}
+
+		\end{tikzpicture}
+		\end{center}
+
+	\end{frame}
+
+
+
+    \section{Boundary Conditions}
+	
+	\begin{frame}
+		\frametitle{Boundary Conditions}
+
+		\begin{columns}
+		\begin{column}{5cm}
+
+		\begin{block}{Boundary Problem}
+    		%\begin{eqnarray*}
+            \[
+	    		\nabla^2 \phi = -\frac{\rho}{\epsilon_0} \text{, in } \Omega \subset \Re^3 , \nonumber 
+            \]
+            \[
+                \phi = 0 \text{, on }\Gamma_1  
+            \]
+            \[
+                \frac{\partial \phi}{\partial \vec{n}} + \frac {1}{d} \phi = 0  \text{, on } \Gamma_2
+            \]
+    		%\end{eqnarray*}
+		\end{block}
+        \begin{itemize}
+		\item $\Omega \subset \Re^3$: simply connected computational domain
+		\item $\epsilon_0$: the dielectric constant
+        \item $\Gamma= \Gamma_1 \cup \Gamma_2$: boundary of $\Omega$
+        \item $d$: distance of bunch centroid to the boundary
+        \end{itemize}
+		
+		\end{column}
+		\begin{column}{5cm}
+            \begin{center}
+            \input{dom_cyl.tex} \\
+            \end{center}
+            \vspace{0.2cm} 
+			$\Gamma_1$ is the surface of an
+    		\begin{enumerate}
+	    		\item elliptic beam-pipe
+		    	\item arbitrary beam-pipe element
+    		\end{enumerate}
+		\end{column}
+		\end{columns}
+		
+	\end{frame}
+	
+	\begin{frame}
+		\frametitle{Using Real Beam-Pipe Geometries}
+
+		\begin{columns}
+		\begin{column}{5cm}
+			\begin{exampleblock}{Components}
+			\begin{itemize}
+				\item arbitrary bounded domains are specified in files
+				\item \opal imports triangulated surface mesh
+				\item efficient intersection of grid with surface mesh
+				\item discretization approach
+			\end{itemize}
+			\end{exampleblock}
+			\begin{block}{Motivation}
+			\begin{itemize}
+				\item more accurate simulation of space-charges
+			\end{itemize}
+			\end{block}
+		\end{column}
+		\begin{column}{5cm}
+            \centering
+			\includegraphics[width=1.0\textwidth]{superbuncher.png} \\
+			\scriptsize{Super Buncher (courtesy of M. Bopp \& J. Raguin (PSI))}
+		\end{column}
+		\end{columns}
+
+	\end{frame}
+
+    \begin{frame}
+    \frametitle{Extrapolation at Boundary}
+
+        \begin{center}
+            \begin{tikzpicture}
+                \node [coordinate] at (-4,0) (xp) {};
+                \fill[color=blue!60] (xp) circle (0.2);
+                \node [coordinate] at (0,0) (x) {};
+                \node at (-4,-0.2) [below] {$x'$};
+                \fill[color=blue!60] (x) circle (0.2);
+                \node [coordinate] at (4,0) (xpp) {};
+                \node at (0,-0.24) [below] {$x$};
+                \fill[color=blue!60] (xpp) circle (0.2);
+                \node at (4,-0.2) [below] {$x''$};
+                
+                \node [coordinate] at (-2.7,0) (xs) {};
+                \draw[very thick,rounded corners=8pt,color=red!60] (-2.7,-0.2) -- (-2.7,0.2);
+                \draw (-3.32,-0.4) to[out=20,in=180] node [sloped,below] {} (-1.4,0.8);
+                \node at (-2.7,-0.2) [below] {$x^*$};
+                %\node at (-2.75,0.2) [above] {$x-sh$};
+
+                \path[-,thick,color=black!60]<1-> (xp) edge (x);
+                \path[-,thick,color=black!60]<1-> (x) edge (xpp);
+
+            \end{tikzpicture}
+        \end{center}
+        \vspace{0.2cm}
+
+        \begin{enumerate}
+            %\item {\color{blue!60}\emph{Constant extrapolation}}: the boundary value prescribed at
+                %$x^* \in \Gamma_1$ is assigned to $u(x')$
+            \item {\color{blue!60}\emph{Constant extrapolation}}: $u(x') = u(x^*)$ and $x^* \in \Gamma_1$ 
+
+            \item {\color{blue!60}\emph{Linear extrapolation}}: $u(x')$ is obtained by means of $u(x)$ and $u(x^*)$
+
+            \item {\color{blue!60}\emph{Quadratic extrapolation}} (Shortley-Weller
+                approximation): $u(x')$ is obtained by quadratic interpolation of $u(x)$, $u(x'')$, and $u(x^*)$\\
+                $\rightarrow$ \alert{non-symmetric} stencil
+        \end{enumerate}
+
+    \end{frame}
+    	
+	
+
+     \section{Results}
+
+     	\begin{frame}
+		\frametitle{Environment}
+
+		\begin{exampleblock}{Buin: Cray XT4 cluster at the CSCS in Manno (Switzerland)}
+		\begin{itemize}
+			\item 468 AMD dual core Opteron at 2.6 GHz
+			\item 936 GB DDR RAM
+			\item 30 TB Disk
+			\item 7.6 GB/s interconnect bandwith
+		\end{itemize}
+		\end{exampleblock}
+
+		\begin{center}
+\begin{tikzpicture}[scale=0.8]
+  \colorlet{CRSTENCIL}{blue!60!white}
+  \colorlet{ML}{green!75!black!60!white}
+  \colorlet{CG}{red!60!white}
+  \colorlet{RECALCMAP}{black!60}
+
+  \node[text centered,text width=3cm]{computeSelfField (301.21s)};
+
+  \begin{scope}[line width=4mm,rotate=270]
+    \draw[CRSTENCIL]	(-110:2cm) arc (-110:-88:2cm);
+    \draw[CG]	        (-88:2cm) arc (-88:136:2cm);
+    \draw[ML]           (136:2cm)  arc (136:230:2cm);
+    \draw[RECALCMAP]	(230:2cm) arc (230:250:2cm);
+
+    \newcount\mycount
+    \foreach \angle in {0,72,...,3599}
+    {
+      \mycount=\angle\relax
+      \divide\mycount by 10\relax
+      \draw[black!15,thick] (\the\mycount:18mm) -- (\the\mycount:22mm);
+    }
+    
+    \draw (180:2.2cm) node[above] {ML 26.16\%};
+    \draw (-100:2.2cm) node[left] {Create Stencil 7.79\%};
+    \draw (-125:2.2cm) node[left] {Create Map 2.80\%};
+    \draw (35:2.2cm) node[right] {CG 62.05\%};
+  \end{scope}  
+  \draw[gray] (0,0) circle (2.2cm) circle (1.8cm);
+\end{tikzpicture}
+		\end{center}
+
+	\end{frame}
+
+     	\begin{frame}
+		\frametitle{Validation of the Solver}
+
+		For validation purposes we defined an along the $z$ axis axi-symmetric potential function and calculated the analytical solution. 
+
+    	\begin{center}
+	    \rowcolors{1}{blue!20}{blue!5}
+        \begin{tabular}{lllll}
+              \hline
+              $h$ & $\vert\vert e_h \vert\vert_2$ & $r$ & $\vert\vert e_h
+              \vert\vert_\infty$ & $r$ \\ [0.2ex] \hline \hline
+              $1/64$  & $2.162 \times 10^{-3}$ & --- & $7.647 \times 10^{-3}$ & --- \\ 
+              $1/128$ & $1.240 \times 10^{-3}$ & 0.80 & $4.153 \times 10^{-3}$ & 0.88 \\ 
+              \hline
+              \hline
+              $1/64$  & $2.460 \times 10^{-5}$ & --- & $6.020 \times 10^{-5}$ & --- \\
+              $1/128$ & $6.226 \times 10^{-6}$ & 1.98 & $1.437 \times 10^{-5}$ & 2.07 \\
+              \hline
+              \hline
+              $1/64$  & $5.581 \times 10^{-6}$ & --- & $1.689 \times 10^{-5}$ & --- \\ 
+              $1/128$ & $1.384 \times 10^{-7}$ & 2.01 & $4.550 \times 10^{-6}$ & 1.89  \\ 
+            \hline
+        \end{tabular}
+        \end{center}
+
+        \vspace{0.4cm}
+
+
+        %To measure the error on the grid $\Omega_h$ with mesh spacing $h$ in the
+        %\[
+            %\Vert e_h \Vert_2 = \Vert \hat{\phi}_h - \phi \Vert_2 =  \sqrt{h^3 \sum_{i \in \Omega_h} \vert (\hat{\phi}_{i,h}-\phi_i)\vert^2}, 
+        %\]
+        %\[
+            %\Vert e_h \Vert_\infty = \Vert \hat{\phi}_h - \phi  \Vert_\infty =  \max_{i \in \Omega_h}   \vert \hat{\phi}_{i,h} - \phi_i \vert,
+        %\]
+        %where $\hat{\phi}_h$ is the approximation of the solution $\phi$ on $\Omega_h$ and $e_h$ denotes the corresponding error.
+       
+
+        The convergence rate $r$ is defined by
+        %
+        \[
+            r = \log_2 \left( \frac{\vert\vert e_{2h} \vert\vert}{\vert\vert e_h \vert\vert} \right)
+        \]
+
+	\end{frame}
+    
+    %\begin{frame}
+		%\frametitle{FFT vs. PCG}
+
+        %\begin{minipage}[b]{0.45\textwidth}
+        %\centering
+        %\include{mesh_samept}
+
+        %\end{minipage}
+        %\begin{minipage}[b]{0.45\textwidth}
+        %\centering
+        %\include{mesh_sameres}
+
+        %\end{minipage} 
+
+    %\end{frame}
+
+    %\begin{frame}
+		%\frametitle{FFT vs. PCG}
+
+        %\begin{center}
+          %\rowcolors{1}{blue!20}{blue!5}
+          %\begin{tabular}{cccccc}
+            %\hline
+            %solver & reusing & mesh size & mesh points & first [s] & second [s] \\
+            %\hline
+            %FFT & --- & $128\times128\times256$ & 4'194'304 & 12.3 & --- \\
+            %\hline
+            %PCG & --- & $128\times128\times256$ & 3'236'864 & 49.9 & 42.2 \\
+            %PCG & hier & $128\times128\times256$ & 3'236'864 & --- & 35.5 \\
+            %PCG & prec & $128\times128\times256$ & 3'236'864 & --- & 28.2 \\
+            %\hline
+            %PCG & --- & $166\times166\times256$ & 5'462'016 & 81.8 & 71.2 \\
+            %PCG & hier & $166\times166\times256$ & 5'462'016 & --- & 60.4 \\
+            %PCG & prec & $166\times166\times256$ & 5'462'016 & --- & 43.8 \\
+            %\hline
+          %\end{tabular}
+        %\end{center}
+
+        %\vspace{0.1cm}
+
+        %\begin{itemize}
+            %\item time savings for the two cases reusing either hierarchy or the entire preconditioner amounts to {\color{red!60}approximately $20\%$ and $40\%$}
+            %\item price we pay for increasing the accuracy of the simulation is approximately a {\color{red!60}factor of 2.3} in the best case
+        %\end{itemize}
+
+    %\end{frame}
+
+	\begin{frame}
+		\frametitle{Parallel Efficiency}
+		
+		\begin{columns}
+		\begin{column}{6.5cm}
+            \centering
+		        \includegraphics[width=0.99\textwidth]{plots/eff_1024_lin-crop.pdf}
+        \end{column}
+        \begin{column}{4.5cm}
+            \begin{itemize} 
+                \item obtained for a tube embedded in a $1024\times1024\times1024$ grid
+                \item construction phase is performing the worst with an efficiency of 73\%
+                \item influence of problem size on the low performance of the aggregation in ML
+            \end{itemize}
+        \end{column}
+        \end{columns}
+
+	\end{frame}
+	
+    \begin{frame}
+		\frametitle{Impact on Physics of \opal Simulations}
+	
+		\begin{columns}
+		\begin{column}{6.5cm}
+            \centering
+		    \includegraphics[width=0.99\textwidth]{plots/fft-drift-mg-drift-small-RMSX-x-SPOS-crop.pdf}
+        \end{column}
+        \begin{column}{4.5cm}
+            \begin{itemize} 
+                \item shift of the beam size minimum (waist) towards larger $z$ values
+                \item a {\color{red!60}smaller minimum} $\rightarrow$ self forces are larger when considering the beam pipe
+                \item beam pipe radius is an important optimization quantity
+            \end{itemize}
+        \end{column}
+        \end{columns}
+
+	\end{frame}
+
+
+    \section{Summary}
+
+    \begin{frame}
+		\frametitle{Summary}
+
+		\begin{itemize}
+			\item smoothed aggregation based algebraic Multigrid preconditioned CG
+			\item implemented 3 extrapolation schemes at boundary intersection
+            \item non-symmetric equations resulting from quadratic boundary treatment converge well with PCG
+			\item elliptic and arbitrary domains based on real geometries
+            \item reducing time to solution (20 and 40\%) by reusing hierarchy or preconditioner
+            \item compared to FFT more flexibilities for only a small performance loss
+            \item attaining good parallel efficiency: 73\% for the worst performing phase
+            \item considerable impact on physics (e.g. for narrow beam pipes)
+		\end{itemize}
+
+        \vspace{0.5cm}
+
+        \alert{\textbf{\url{http://arxiv.org/abs/0907.4863}}} and submitted to JCP
+
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Further Work}
+
+		\begin{itemize}
+			\item validation of arbitrary domains against complex geometries
+			\item adaptive mesh refinement (AMR)
+            \item overcome Trilinos global index 32 bit integer size limitation
+		\end{itemize}
+
+	\end{frame}
+
+%DONT COUNT BACKUP SLIDES
+\addtocounter{framenumber}{-16}
+\setbeamertemplate{footline}[default]
+
+	\begin{frame}
+	  	\frametitle{Backup}
+		\begin{center}
+			\color{blue}{\LARGE{Backup}}
+		\end{center}
+	\end{frame}
+
+	\begin{frame}
+		\frametitle{Implementation (2/4)}
+		\framesubtitle{Integration in \opal I: Class Hierarchy}
+
+		\begin{center}
+		\begin{tikzpicture}[scale=0.7, transform shape, grow=down, level 1/.style={sibling distance=6cm,level distance=3cm},edge from parent/.style={very thick,draw=blue!40!black!60,shorten >=5pt, shorten <=5pt},edge from parent path={(\tikzparentnode.south) -- (\tikzchildnode.north)},every node/.style={text ragged, inner sep=2mm}]
+
+			\tikzstyle{class} = [rectangle, rounded corners, shade, top color=white,bottom color=blue!50!black!20, draw=blue!40!black!60, very thick];
+			\tikzstyle{newclass} = [rectangle, rounded corners, shade, top color=white,bottom color=green!50!black!20, draw=green!40!black!60, very thick];
+
+			\node[class] [rectangle split, rectangle split, rectangle split parts=2, text ragged] {
+			    \textbf{PoissonSolver}
+			    \nodepart{second} 
+			    	\textit{void::computeSelfField()}
+			}
+			    child {
+			        node[class] [rectangle split, rectangle split parts=2, text ragged] {
+			            \textbf{FFTPoissonSolver}
+			            \nodepart{second} 
+				      void::computeSelfField() 
+			        }
+		        edge from parent [<-]
+		    }
+			    child {
+			    	node[newclass] [rectangle split, rectangle split parts=2, text ragged] {
+				    \textbf{MGPoissonSolver}
+				    \nodepart{second} 
+				      void::computeSelfField() 
+				}
+		        edge from parent [<-, draw=green!40!black!60]
+		   };
+		\end{tikzpicture}
+		\end{center}
+
+	\end{frame}
+
+	\begin{frame}
+		\frametitle{Implementation (1/3)}
+		\framesubtitle{Class Diagram}
+
+		\begin{center}
+		\begin{tikzpicture}[scale=0.8, transform shape, grow=down, level 1/.style={sibling distance=6cm,level distance=4cm},edge from parent/.style={very thick,draw=blue!40!black!60,shorten >=5pt, shorten <=5pt},edge from parent path={(\tikzparentnode.south) -- (\tikzchildnode.north)},every node/.style={text ragged, inner sep=2mm}]
+
+\tikzstyle{class} = [rectangle, rounded corners, shade, top color=white,bottom color=blue!50!black!20, draw=blue!40!black!60, very thick];
+
+\node[class] [rectangle split, rectangle split parts=2, text width=5.2cm] {
+    \textbf{IrregularDomain}
+    \nodepart{second} 
+    	\textit{compute(Vector\_t hr):void} \\
+	\textit{getBoundaryStencil():void} \\
+	\textit{getNeighbours():void} \\
+	\textit{isInside(x:int, y:int, z:int):boolean}
+    }
+    child {
+        node[class] [rectangle split, rectangle split parts=2, text width=4.1cm] {
+            \textbf{EllipticalDomain}
+            \nodepart{second} 
+	      compute(Vector\_t hr):void \\
+	      getBoundaryStencil():void \\
+	      getNeighbours():void \\
+	      isInside():boolean
+        }
+        edge from parent [<-]
+    }
+    child {
+    	node[class] [rectangle split, rectangle split parts=2, text width=4.1cm] {
+	    \textbf{ArbitraryDomain}
+	    \nodepart{second} 
+	      compute(Vector\_t hr):void \\
+	      getBoundaryStencil():void \\
+	      getNeighbours():void \\
+	      isInside():boolean
+	}
+        edge from parent [<-]
+   };
+\end{tikzpicture}
+\end{center}
+
+
+	\end{frame}
+	
+    \begin{frame}
+        \frametitle{Implementation (3/3)}
+        \framesubtitle{Interface between \textsc{IPPL} and \textsc{Epetra}}
+
+        \begin{block}{\textsc{IPPL} to \textsc{Epetra} Map}
+        \begin{algorithmic}[1]
+            \STATE \textbf{procedure} IPPLToMap3D(localidx)
+
+            \STATE idx $\leftarrow$ 0
+
+            \FORALL{localidx.$x$}
+                \FORALL{localidx.$y$}
+                    \FORALL{localidx.$z$}
+                        \STATE MyGlobalElements[idx] $\leftarrow$ bp$\rightarrow$getIdx($x$,$y$,$z$)
+                        \STATE idx $\leftarrow$ $\text{idx} + 1$
+                    \ENDFOR
+                \ENDFOR
+            \ENDFOR
+            
+            \RETURN \textbf{new} Epetra\_Map(-1, NumMyElements, \&MyGlobalElements[0], 0, Comm)
+            \STATE \textbf{end procedure}
+          \end{algorithmic}
+        \end{block}
+
+    \end{frame}
+    
+    \begin{frame}{Implementation}
+		\framesubtitle{Importing geometries in \opal}
+    
+		\begin{columns}
+		\begin{column}{6.6cm}
+        \begin{center}
+        \begin{tikzpicture}[scale=0.7,transform shape,node distance=2.2cm] \footnotesize
+            \node [pblock] (CAD) {CAD input};
+            \node [progblock, below of= CAD] (HERONION) {Mesh pre/post processing};
+            \node [progblock,below of= HERONION] (FEMAXX) {femaxx};
+            \node [pblock,left of= FEMAXX] (OPALGEO) {OPAL Geometry input};
+            \node [pblock,right of= FEMAXX] (OPALLAT) {OPAL Lattice input};
+            \node [progblock, below of=FEMAXX] (OPAL) {OPAL};
+            \node [cloud,below right of= OPAL](DISK){Storage};
+
+            % Draw edges
+            \path [line] (CAD) -> (HERONION);
+            \path [line,->] (HERONION) edge   node[right] {\bf H5FED} (FEMAXX);
+            \path [line] (FEMAXX) -> (OPAL);
+            \path [line,->] (OPAL) edge node[left] {\bf H5Part}   (DISK);
+            \path [line] (HERONION) -> (OPALGEO);
+
+            \path [line] (OPALLAT) -> (OPAL);
+            \path [line] (OPALGEO) -> (OPAL);
+        \end{tikzpicture}\\
+        \end{center}
+		\end{column}
+		\begin{column}{5cm}	
+			\begin{center}
+			\includegraphics[width=1.0\textwidth]{cylinder-col.jpg} %problem? 
+
+            \vspace{0.2cm}
+
+            Efficient Intersection of Grid-Lines with Triangular Surface Mesh (T. Moeller, B. Trumbore, 1997)
+			\end{center}
+		\end{column}
+		\end{columns}
+
+    \end{frame}
+	
+    \begin{frame}
+        \frametitle{Implementation (2/2)}
+        \framesubtitle{Setup Phase}
+
+        \begin{columns}
+        \begin{column}{6.6cm}
+        \begin{itemize}
+            \item extended \textsc{Heronion} to dump H5Fed surface mesh
+            \item \opal imports H5Fed files (serial): $m$ triangles and $v$ vertices
+            \item efficient intersection of grid-lines with triangular surface mesh (T. Moeller and B. Trumbore (1997)): 
+                \begin{itemize}
+                    \item arbitrary domain: $O(m(n_x+n_y+local_z))$ 
+                    \item elliptic domain: $O(n_x + n_y)$
+                \end{itemize}
+            \item building index table
+                \begin{itemize}
+                    \item arbitrary domain: $O(n_x n_y local_z)$
+                    \item elliptic domain: $O(n_x n_y)$
+                \end{itemize}
+        \end{itemize}
+        \end{column}
+        \begin{column}{4cm}	
+            \begin{center}
+            \includegraphics[width=1.0\textwidth]{cylinder.jpg}
+            \end{center}
+        \end{column}
+        \end{columns}
+
+    \end{frame}
+
+	\begin{frame}
+		\frametitle{SW: non-symmetries}
+
+		\begin{center}
+		    \include{sw_notwork}
+		\end{center}
+
+	\end{frame}
+	
+	\begin{frame}
+		\frametitle{Grid Operators}
+		\framesubtitle{AMG: smoothed aggregation}
+
+		%TODO: finish
+
+		Operate on directly on (linear sparse) algebraic equations:
+
+		\[
+			\sum_j a_{ij}^h x_j^h = b_i^h
+		\]
+
+		\begin{itemize}
+			\item replace "grid" with "variables"
+			%\item AMG fixes smoother and adjusts coarsening (GMG inverse)
+			\item coarse level equations are generated without the use of any geometry
+			\item no coarse level grids have to be generated or stored
+			\item good preconditioner: works on all error components (in contrast to level-one preconditioner)
+		\end{itemize}
+
+		\vspace{0.2cm}
+		SA restrict operator:
+
+		\[
+			I_H^h = (I_h - \omega D_h^{-1} A_h^f) \hat{I}_H^h
+		\]
+
+		%generate operator dependet interpolation and Galerkin operator can be derived directly from the underlying matrices, without any reference to the actual grids.
+	
+  	\end{frame}
+
+    	\begin{frame}
+		\frametitle{Multigrid Theory (1/2)}
+		\framesubtitle{Motivation}
+
+		\begin{block}{Important Observations}
+			\begin{itemize}
+				\item Some classical iterative methods (i.e. Gauss Seidel) have a smoothing effect on the error of any approximation for discrete elliptic problems.
+				\vspace{0.2cm}
+				\item A smooth error can be well approximated on a coarse grid. This coarse grid has considerably fewer grid points and is therefore cheaper to solve.
+			\end{itemize}
+		\end{block}
+
+		\vspace{0.4cm}
+
+		From this two observations a Two-Grid can be deduced:
+
+		\begin{enumerate}
+			\item apply smoother
+			\item restrict to a grid with considerably fewer grid points (coarse)
+			\item solve
+			\item interpolate back to the fine grid
+			\item compute a new approximation
+		\end{enumerate}
+
+	\end{frame}
+    	
+	\begin{frame}
+		\frametitle{Multigrid Theory (2/2)}
+		\framesubtitle{The Two-Grid: Smoothed Coarse Grid Correction}
+
+		The discretized system is solved by a Two-Grid:
+
+		\[
+			A\mathbf{x} = \mathbf{b}
+		\]
+		\[
+			e_h^m = x_h - x_h^m\text{, } r_h^m = b_h - A_hx_h^m
+		\]
+		\[
+			r_h^m = A_h e_h^m
+		\]
+
+		\vspace{0.1cm}
+
+		\begin{center}
+		\begin{tikzpicture}[scale=1,transform shape,node distance=2cm]	
+            		\node[fill=blue!20] (res)
+            		{$ r_h^m = b_h - A_h x_h^m $};
+			\node[right of=res] (dummy6) {};
+            		\node[fill=blue!20, right of=dummy6] (smooth)
+            		{$ smoothing $};
+			\node[below of=res] (dummy1) {};
+            		\node[fill=yellow!20, right of=dummy1] (restrict)
+            		{$ r_H^m = I_h^H r_h^m$};
+			\node[below of=restrict] (dummy2) {};
+            		\node[fill=green!20, right of=dummy2] (solve)
+            		{$ A_H \hat{e}_H^m = r_H^m $};
+			\node[right of=solve] (dummy3) {};
+            		\node[fill=yellow!20, above of=dummy3] (interpolate)
+            		{$ \hat{e}_h^m = I_H^h \hat{e}_H^m $};
+			\node[right of=interpolate] (dummy4) {};
+            		\node[fill=blue!20, above of=dummy4] (newapprox)
+			{$ x_h^{m+1} = x_h^m + \hat{e}_h^m $};
+
+        		\path[->] (res) edge node[right] {restrict} (restrict);
+        		\path[->] (restrict) edge node[right] {solve} (solve);
+        		\path[->] (solve) edge node[right] {interpolate} (interpolate);
+        		\path[->] (interpolate) edge node[left] {new approx} (newapprox);
+        		\path[->] (smooth) edge (res);
+        		\path[->,dashed] (newapprox) edge node[below] {iterate} (smooth);
+		\end{tikzpicture}
+		\end{center}
+
+	\end{frame}
+
+	\begin{frame}
+		\frametitle{Grid Operators}
+		\framesubtitle{Geometric Multigrid}
+
+		\begin{columns}
+		\begin{column}{4.5cm}
+		\textbf{restriction} \\
+		\vspace{0.4cm}
+		\begin{tikzpicture}[scale=1.0,transform shape,node distance=1cm]	
+			\draw[very thin,color=red,step=1cm] (-0.2,-0.2) grid (4.2,4.2);
+			\draw[very thin,color=gray,step=2cm] (-0.2,-0.2) grid (4.2,4.2);
+			
+			%\draw[very thin,color=gray,step=2cm] (5,-0.2) grid (9.2,4.2);
+    
+			\fill[color=blue,opacity=0.4] (2.0,2.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (1.0,2.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (1.0,1.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (2.0,1.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (3.0,2.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (2.0,3.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (3.0,3.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (1.0,3.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (3.0,1.0) circle (3pt);
+			
+    			\path[style=dashed, ->] (1.0,2.0) edge [out=90, in=90] node[above] {\footnotesize{$1/8$}} (1.9,2.1);
+    			\path[style=dashed, ->] (1.0,1.0) edge node[below] {\footnotesize{$1/16$}} (1.9,1.9);
+    			\path[style=dashed, ->] (2.0,2.2) edge [out=90, in=91] node[right] {\footnotesize{$1/4$}} (2.0,1.9);
+
+		\end{tikzpicture}
+		\end{column}
+
+		\begin{column}{4.5cm}
+		\textbf{bilinear interpolation} \\
+		\vspace{0.4cm}
+		\begin{tikzpicture}[scale=1.0 ,transform shape,node distance=1cm]	
+			\draw[very thin,color=red,step=1cm] (-0.2,-0.2) grid (4.2,4.2);
+			\draw[very thin,color=gray,step=2cm] (-0.2,-0.2) grid (4.2,4.2);
+			
+			%\draw[very thin,color=gray,step=2cm] (5,-0.2) grid (9.2,4.2);
+    
+			\fill[color=blue,opacity=0.4] (2.0,2.0) circle (3pt);
+			\fill[color=blue,opacity=0.4] (1.0,2.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (1.0,1.0) circle (3pt);
+			\fill[color=blue,opacity=0.4] (2.0,1.0) circle (3pt);
+			\fill[color=blue,opacity=0.4] (3.0,2.0) circle (3pt);
+			\fill[color=blue,opacity=0.4] (2.0,3.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (3.0,3.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (1.0,3.0) circle (3pt);
+			\fill[color=red,opacity=0.4] (3.0,1.0) circle (3pt);
+			
+    			
+			\path[style=dashed, ->] (3.0,3.0) edge [out=-90, in=10] node[left] {\footnotesize{$1/4$}} (2.1,2.1);
+    			\path[style=dashed, ->] (1.0,3.0) edge [out=-90, in=170] node[right] {\footnotesize{$1/4$}} (1.9,2.1);
+    			\path[style=dashed, ->] (3.0,1.0) edge [out=90, in=-10] node[left] {\footnotesize{$1/4$}} (2.1,1.9);
+    			\path[style=dashed, ->] (1.0,1.0) edge [out=90, in=-170] node[right] {\footnotesize{$1/4$}} (1.9,1.9);
+
+    			\path[style=dashed, ->] (1.0,1.0) edge [out=-90, in=-90] node[below] {\footnotesize{$1/2$}} (2.0,0.9);
+    			\path[style=dashed, ->] (1.0,1.0) edge [out=180, in=180] node[below] {\footnotesize{$1/2$}} (0.9,1.9);
+		\end{tikzpicture}
+		\end{column}
+		\end{columns}
+
+	\end{frame}
+	
+
+	\begin{frame}
+		\frametitle{Multigrid}
+		\framesubtitle{from Two-Grid to Multigrid}
+
+		%v -> V / W (etc)
+		\begin{center}
+		\begin{tikzpicture}[scale=1,transform shape,node distance=1cm]	
+			\tikzstyle{circ} = [circle, draw, thin, fill=blue!20, minimum height=1.5em]
+
+			%v
+			\node[circ] (v1) {};
+			\node[right of=v1] (dummy1) {};
+			\node[circ,below of=dummy1] (v2) {};
+			\node[circ,right of=dummy1] (v3) {};
+        		\path[->] (v1) edge node[left] {restrict} (v2);
+        		\path[->] (v2) edge node[right] {interpolate} (v3);
+			
+			%V
+			\node[right of=v3] (DD) {};
+			\node[right of=DD] (D) {};
+			\node[circ,right of=D] (V1) {};
+			\node[right of=V1] (Dummy1) {};
+			\node[circ,below of=Dummy1] (V2) {};
+			\node[right of=V2] (Dummy2) {};
+			\node[circ,below of=Dummy2] (V3) {};
+			\node[circ,right of=Dummy2] (V4) {};
+			\node[above of=V4] (Dummy3) {};
+			\node[circ,right of=Dummy3] (V5) {};
+			
+        		\path[->] (V1) edge node[left] {restrict} (V2);
+        		\path[->] (V2) edge node[left] {restrict} (V3);
+        		\path[->] (V3) edge node[right] {interpolate} (V4);
+        		\path[->] (V4) edge node[right] {interpolate} (V5);
+        		
+		\end{tikzpicture}
+		\end{center}
+
+		\vspace{0.3cm}
+
+		Depending on how the recursion is coded, some variants of the V-cycle can be produced.
+
+		\begin{itemize}
+			\item grid-independence convergence 
+			\item iterative solver: reuse information
+			\item $\mathcal{O}(n)$ algorithm
+		\end{itemize}
+			
+		\textbf{Anisotropy} is handled in the discretized problem
+
+	\end{frame}
+	
+    \begin{frame}
+        \frametitle{Multigrid Algorithm}
+
+        %\begin{algorithm}
+        %\caption{Multigrid V-cycle Algorithm}
+        \begin{block}{Mutligrid V-Cycle Algorithm}
+        \begin{algorithmic}[1]
+            \STATE \textbf{procedure} MultiGridSolve($A_l$, $b_l$, $x_l$, $l$)
+
+            \IF{$l$ = maxLevel-1}
+                \STATE DirectSolve $A_l \mathbf{x}_l = \mathbf{b}_l$
+            \ELSE
+                \STATE $\mathbf{x}_l$ $\leftarrow$ $S^{pre}_l$($A_l$, $\mathbf{b}_l$, $0$)
+                \STATE $\mathbf{r}_l$ $\leftarrow$ $\mathbf{b}_l$ - $A_l \mathbf{x}_l$ \COMMENT{calculate residual}
+                \STATE $\mathbf{b}_{l+1}$ $\leftarrow$ $R_l \mathbf{r}_l$ \COMMENT{Restriction}
+                \STATE $\mathbf{v}_{l+1}$ $\leftarrow$ $\mathbf{0}$
+                \STATE MultiGridSolve($A_{l+1}$, $\mathbf{b}_{l+1}$, $\mathbf{v}_{l+1}$, $l+1$)
+                \STATE $\mathbf{x}_l$ $\leftarrow$ $\mathbf{x}_l$ + $P_l \mathbf{v}_{l+1}$ \COMMENT{coarse grid correction}
+                \STATE $\mathbf{x}_l$ $\leftarrow$ $S^{post}_l$($A_l$, $\mathbf{b}_l$, $\mathbf{x}_l$)
+            \ENDIF
+            \STATE \textbf{end procedure}
+        \end{algorithmic}
+        %\end{algorithm}
+        \end{block}
+
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Smoothed Aggregation: The Grid Transfer Operator}
+
+        \begin{columns}
+        \begin{column}{6.7cm}
+            \begin{enumerate}
+                \item discretization matrix $A_l$ is converted into a graph $G_l$
+                \item assign each {\color{blue!60}vertex} of $G_l$ is assigned to one {\color{red!60}aggregate} % of the disjoint aggregate set where each aggregate represents a coarse grid vertex
+                \item the tentative prolongation operator matrix is formed 
+                \begin{itemize}
+                    \item matrix rows correspond to vertices
+                    \item matrix columns to aggregates
+                    \[
+                        p_{i,j} = \begin{cases} 1 & \text{if } i^{th} \text{ vertex in } j^{th} \text{ aggregate} \\ 
+                                        0 & \text{otherwise}
+                              \end{cases}
+                    \]
+                \end{itemize}
+                \item improve robustness by smoothing the tentative prolongation operator
+
+            \end{enumerate}
+        \end{column}
+
+        \begin{column}{4cm}
+            \begin{center}
+                %%\includegraphics[width=1.0\textwidth]{aggregation.jpg} 
+                \begin{tikzpicture}
+                    \colorlet{CRSTENCIL}{blue!60!white}
+                    \colorlet{ML}{green!75!black!60!white}
+                    \colorlet{CG}{red!60!white}
+                    \colorlet{RECALCMAP}{black!60}
+
+                    \node [coordinate] at (0,0) (N1) {};
+                    \fill[color=blue!60] (N1) circle (0.2);
+                    \node [coordinate] at (1,0.7) (N2) {};
+                    \fill[color=blue!60] (N2) circle (0.2);
+                    \node [coordinate] at (-0.10,1.2) (N3) {};
+                    \fill[color=blue!60] (N3) circle (0.2);
+
+                    \node [coordinate] at (-0.80,2.2) (N4) {};
+                    \fill[color=blue!60] (N4) circle (0.2);
+                    \node [coordinate] at (-0.10,3.2) (N5) {};
+                    \fill[color=blue!60] (N5) circle (0.2);
+                    \node [coordinate] at (-1.00,3.3) (N6) {};
+                    \fill[color=blue!60] (N6) circle (0.2);
+
+                    \node [coordinate] at (2,1.7) (N7) {};
+                    \fill[color=blue!60] (N7) circle (0.2);
+                    \node [coordinate] at (0.5,2.1) (N8) {};
+                    \fill[color=blue!60] (N8) circle (0.2);
+                    \node [coordinate] at (2,3.3) (N9) {};
+                    \fill[color=blue!60] (N9) circle (0.2);
+                    \node [coordinate] at (0.8,3.2) (N10) {};
+                    \fill[color=blue!60] (N10) circle (0.2);
+
+                    \path[-,thick,color=black!60]<1-> (N1) edge (N2);
+                    \path[-,thick,color=black!60]<1-> (N1) edge (N3);
+                    \path[-,thick,color=black!60]<1-> (N2) edge (N3);
+                    
+                    \path[-,thick,color=black!60]<1-> (N2) edge (N7);
+                    \path[-,thick,color=black!60]<1-> (N3) edge (N8);
+                    
+                    \path[-,thick,color=black!60]<1-> (N4) edge (N5);
+                    \path[-,thick,color=black!60]<1-> (N4) edge (N6);
+                    \path[-,thick,color=black!60]<1-> (N5) edge (N6);
+                    
+                    \path[-,thick,color=black!60]<1-> (N3) edge (N4);
+                    \path[-,thick,color=black!60]<1-> (N8) edge (N4);
+
+                    \path[-,thick,color=black!60]<1-> (N7) edge (N8);
+                    \path[-,thick,color=black!60]<1-> (N7) edge (N9);
+                    \path[-,thick,color=black!60]<1-> (N8) edge (N10);
+                    \path[-,thick,color=black!60]<1-> (N9) edge (N10);
+                    
+                    \path[-,thick,color=black!60]<1-> (N5) edge (N10);
+
+                    \draw[thick,rounded corners=8pt,color=red!60] (-0.2,-0.5) -- (1.8,0.9) -- (-0.6,1.8) -- (-0.2,-0.5);
+                    \draw[thick,rounded corners=8pt,color=red!60] (2.4,3.7) -- (0.5, 3.5) -- (0.0,1.9) -- (2.3,1.3) -- (2.4,3.7);
+                    \draw[thick,rounded corners=8pt,color=red!60] (-1.4,3.6) -- (-0.9,1.6) -- (0.5,3.5) -- (-1.4,3.6);
+
+
+                \end{tikzpicture}
+                \scriptsize{\\clustering vertices into aggregates}
+            \end{center}
+        \end{column}
+        \end{columns}
+
+    \end{frame}
+	
+    \begin{frame}
+		\frametitle{Discretization: Irregular Domains (1/2)}
+		\framesubtitle{$O(h)$ Approach}
+
+		The key idea of this approach is to only consider grid points inside the domain neglecting the distance to the domain boundary:
+		\[
+			(h_w^{-1}+h_s^{-1}+h_e^{-1}+h_n^{-1})u_p - h_n^{-1} u_n - h_w^{-1} u_w - h_s^{-1} u_s - h_e^{-1} \underbrace{u_e}_{=0} = f_p
+		\]
+
+		\vspace{0.5cm}
+	
+		\begin{alertblock}{Properties}
+		\begin{itemize}
+			\item the resulting discretization matrix is symmetric
+			\item $O(h)$ accurate
+		\end{itemize}
+		\end{alertblock}
+
+	\end{frame}
+	
+	\begin{frame}
+		\frametitle{Discretization: Irregular Domains (2/2)}
+		\framesubtitle{Shortley-Weller approximation}
+	
+		\begin{columns}
+		\begin{column}{4cm}	
+			\include{mg}
+		\end{column}
+		\begin{column}{6.5cm}	
+		\small{	
+			\[
+				2 \begin{bmatrix}
+				& \frac{b}{h_N (h_N + h_S)} & \\ 
+                \frac{a}{h_W (h_W + h_E)} & -\frac{a}{h_w h_E} -\frac{b}{h_S h_N} & \frac{a}{h_E (h_W + h_E)} \\
+                & \frac{b}{h_S (h_N + h_S)} & \\
+                \end{bmatrix}_h
+			\] 
+		}
+		\end{column}
+		\end{columns}
+		
+		\begin{alertblock}{Properties}
+		\begin{itemize}
+			\item the resulting discretization matrix is non-symmetric for boundary points
+			\item $O(h^2)$ accurate
+		\end{itemize}
+		\end{alertblock}
+
+	\end{frame}
+
+%	\appendix
+%	\begin{frame}
+%	  \frametitle<presentation>{References}
+%	  \begin{thebibliography}{10}
+%	  \beamertemplatearticlebibitems
+%	
+%	  \bibitem{BAISU2005}
+%	    Z.\ Bai. \scriptsize{AND} \normalsize{Y.\ Su.}
+%	    \newblock {\em SOAR: A Second-Order Arnoldi Method for the Solution of the Quadratic Eigenvalue Problem}.
+%	    \newblock SIAM J. Matrix Anal. Appl., 2005.
+%
+%	  \bibitem{PRESVAR}
+%	    \textbf{L.\ Lee.}, L.\ Ge., Z.\ Li., C.\ Ng., K.\ Ko., B.\ Liao., Z.\ Bai., D.\ Gao., W.\ Gao., C.\ Yang., P.\ Husbands., E.G.\ Ng.
+%	    \newblock{\em Solving Nonlinear Eigenproblems in Acclerator Cavity Design}.
+%	    \newblock SIAM Annual Meeting, MS 44 and MS 56: Nonlinear Eigenvalue Problems, 2005
+%	    
+%	  \end{thebibliography}
+%	\end{frame}
+
+\end{document}

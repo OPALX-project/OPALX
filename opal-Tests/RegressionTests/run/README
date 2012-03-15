@@ -1,0 +1,32 @@
+Arguments
+=========
+
+As for now there are three flags:
+
+--build 
+
+updates and tries to build the sources in ../../opal and ../../classic
+
+--user
+
+should be used when the regression test is run by a user (not cron job). In this
+case the script will not send emails and also does not copy the xml results to
+the web directory. Additionally the script will be more verbose.  
+Note: After submitting a regression test to the batch system the script will
+check **every 60 seconds** if the job has finished.
+
+--tests
+
+specifies which regression tests are run, e.g. 
+
+    --tests=BC1-1,RingCyclotron
+
+runs only the BC1-1 and RingCyclotron regression tests (matching on directory 
+name).
+
+
+Required Environment Variables
+==============================
+
+The OPAL executable path has to be set with the environment variable 
+OPAL_EXE_PATH.

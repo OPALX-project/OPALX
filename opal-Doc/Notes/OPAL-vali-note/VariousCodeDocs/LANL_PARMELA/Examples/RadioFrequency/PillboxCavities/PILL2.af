@@ -1,0 +1,17 @@
+2.4-GHz TM010 Long Pillbox Cavity
+In this problem, Kmax > Lmax
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,           ; Superfish problem
+dx=.2,                  ; X mesh spacing
+freq=2500.,             ; Starting frequency in MHz
+xdri=0.,ydri=4.7 &      ; Drive point location
+
+&po x=0.0,y=0.0 &       ; Start of the boundary points
+&po x=0.0,y=4.7 &
+&po x=6.7,y=4.7 &
+&po x=6.7,y=0.0 &
+&po x=0.0,y=0.0 &
+

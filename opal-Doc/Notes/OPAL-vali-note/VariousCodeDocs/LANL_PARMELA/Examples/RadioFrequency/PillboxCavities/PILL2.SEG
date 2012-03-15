@@ -1,0 +1,8 @@
+GeometryPhaseLength = 200   ; DPHI, phase length of cavity in degrees  
+FieldSegments
+1 2 3                       ; segment numbers  
+EndData
+End
+
+
+

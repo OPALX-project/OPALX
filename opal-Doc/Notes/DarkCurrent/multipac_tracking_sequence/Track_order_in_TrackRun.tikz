@@ -1,0 +1,41 @@
+
+% Define block styles
+\tikzstyle{decision} = [draw,diamond, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=2.2cm, inner sep=0pt]
+\tikzstyle{block} = [draw,rectangle, fill=blue!20, 
+    text width=7.5em, text badly centered, inner sep=3pt, rounded corners, minimum height=4em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, \ellipse,fill=red!20, node distance=2.2cm,
+    minimum height=2em]
+\tikzstyle{every node}=[font=\small]
+\scalebox{0.75}{
+\begin{tikzpicture}[node distance = 2.2cm, auto, every node/.style={anchor=base,font=\small}]
+    % Place nodes
+     \node [block] (first) {Setup track method, multipacting flag(mpacflg), etc.};
+     % \node [decision, below of=first, node distance=3.2cm] (d1) {method\\="PARALLEL-T"};
+     \node [block, below of=first, node distance=3.2cm] (second) {Setup beam, fieldsolver; initial solver BCond};
+     \node [decision, below of=second, node distance=2.5cm] (d2) {mpacflg};
+     \node [block, left of=d2, node distance=3.5cm] (n1) {Normal initialization of primary particle, set dT for tracking};
+     \node [block, right of=d2, node distance=3.5cm] (m1) {Only calc charge per macroparticle, set dT for tracking};
+     \node [block, below of=n1, node distance=2.5cm] (n2) {Set charge for each particle in bunch};
+     \node [block, below of=m1, node distance=2.5cm] (m2) {Set qi\_m for empty bunch};
+     \node [block, below of=n2, node distance=2.5cm] (n3) {Set coupling const, calc beam parameter and print distribution of primary bunch};
+     \node [block, below of=m2, node distance=2.5cm] (m3) {Calc beam parameter for empty bunch};
+     \node [block, right of=n3, node distance=3.5cm] (third) {Call constructor of ParalelTTracker};
+     \node [block, below of=third, node distance=2.5cm] (forth) {Pass multipacting flag value to ParallelTTracker};
+     \node [block, below of=forth, node distance=2.5cm] (fifth) {Call execute method in ParallelTTracker};
+    % Draw edges
+     \path [line] (first) -- (second);
+     \path [line] (second) --  (d2);		
+     \draw[->] (d2) -- node [midway,above=2pt] {false} (n1);
+     \draw[->] (d2) -- node [midway,above=2pt] {true} (m1);	
+     \path [line] (n1) -- (n2);
+     \path [line] (m1) -- (m2);
+     \path [line] (m2) -- (m3);
+     \path [line] (third) -- (forth);
+     \path [line] (n2) -- (n3);
+     \path [line] (n3) -- (third); 
+     \path [line] (m3) -- (third);  
+     \path [line] (forth) -- (fifth);
+\end{tikzpicture}
+}

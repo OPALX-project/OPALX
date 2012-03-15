@@ -1,0 +1,29 @@
+; This file contains start-up settings for WSFplot
+MainWindowXPosition=  124
+MainWindowYPosition=   62
+MainWindowWidth= 1024
+MainWindowHeight=  819
+EditWindowXPosition=  980
+EditWindowYPosition=  150
+HardcopyFileExtension=    
+NumberOfContours=   30
+ContourLineWidth=1
+AxisLineWidth=1
+ArrowLineWidth=1
+CircleLineWidth=1
+BoundaryLineWidth=1
+MeshLineWidth=1
+GridSpacing=  0.30000000    
+TitleStatus=1
+AxisStatus=1
+TriangleStatus=1
+ContourStatus=1
+ArrowStatus=0
+CircleStatus=0
+FooterStatus=1
+XYSwapStatus=0
+OriginStatus=0
+LastProblemFile=C:\LANL\EXAMPLES\ELECTROSTATIC\STOREDENERGY\ESE1.AM
+ZoomLimits  1   -0.20000000E-01   6.4952135     -0.17241379E-01   5.0172416       0.0000000    
+ZoomLevel=1
+MaxZoomLevel=1

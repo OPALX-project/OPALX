@@ -1,0 +1,238 @@
+#!/usr/bin/python
+#
+# script that launches Injector simulations
+#
+# Need: OPAL_EXE_PATH
+# 
+import sys,re,os,string
+from math import sqrt
+import re
+from os import listdir
+#
+##########################################################################
+# input parameters without real default values                           #
+##########################################################################
+
+infile ='Injector2-1.in'
+
+if (os.environ.get('INJ2FIELD_MAP_PATH')) :
+    fieldmapPath = os.environ.get('INJ2FIELD_MAP_PATH')
+else :
+    fieldmapPath = '..'
+
+print ' -------------------------------------- \n'
+print ' SUBMIT OPAL JOB : PSI INJECTOR 2       \n'
+print ' \n'
+print ' Using fieldmaps at '+fieldmapPath+' \n'
+
+
+##########################################################################
+# input parameters with default values                                   #
+##########################################################################
+
+NBUNCH='3'        # number of neighboring bunches
+
+NPTCL='100000'    # total number of particles
+
+NX='16'           # mesh size in x
+NY='16'           # mesh size in y
+NZ='16'           # mesh size in z
+
+SIGT='2e-3'  
+SIGX='2e-3'  
+SIGY='2e-3'
+
+SIGPT='1.8e-4'
+SIGPX='1.0e-7'
+SIGPY='1.0e-7'
+
+CORT='0.0'
+CORX='0.0'
+CORY='0.0'
+
+EKIN='0.000870'   # initial kinetic energy in GeV
+FREQ='50.6370'    # rf frequency
+IBUNCH='3.0e-3'
+
+CORES='4'         # number of cores (cpu's) to use
+
+##########################################################################
+# collect input from command line                                        #
+##########################################################################
+dirname=''        # will be augmented by changes of default values
+N=-1              # a running number; if given use it to label directory!
+valre=re.compile('^[a-zA-Z]\w*=-?\d+\.?\d*([eE]-?\d*)?$')
+varre=re.compile('^[a-zA-Z]\w*')
+numre=re.compile('=(-?\d+\.?\d*([eE]-?\d*)?)$')
+for arg in sys.argv[1:]:
+    if valre.search(arg):
+        var=varre.match(arg)
+        num=numre.search(arg)
+        if var.group() == "N":
+            N=num.group(1)
+        if var.group() == "CORES":
+            CORES=num.group(1)
+            dirname+='_CORES='+CORES
+        if var.group() == "NBUNCH":
+            NBUNCH=num.group(1)
+            dirname+='_NBUNCH='+NBUNCH
+        if var.group() == "NPTCL":
+            NPTCL=num.group(1)
+            dirname+='_NPTCL='+NPTCL
+        if var.group() == "NX":
+            NX=num.group(1)
+            dirname+='_NX='+NX
+        if var.group() == "NY":
+            NY=num.group(1)
+            dirname+='_NY='+NY
+        if var.group() == "NZ":
+            NZ=num.group(1)
+            dirname+='_NZ='+NZ
+            
+        if var.group() == "SIGT":
+            SIGT=num.group(1)
+            dirname+='_SIGT='+SIGT
+        if var.group() == "SIGX":
+            SIGX=num.group(1)
+            dirname+='_SIGX='+SIGX
+        if var.group() == "SIGY":
+            SIGY=num.group(1)
+            dirname+='_SIGY='+SIGY
+
+        if var.group() == "SIGPT":
+            SIGPT=num.group(1)
+            dirname+='_SIGPT='+SIGPT
+        if var.group() == "SIGPX":
+            SIGPX=num.group(1)
+            dirname+='_SIGPX='+SIGPX
+        if var.group() == "SIGPY":
+            SIGPY=num.group(1)
+            dirname+='_SIGPY='+SIGPY
+
+
+        if var.group() == "CORT":
+            SIGPT=num.group(1)
+            dirname+='_CORT='+CORT
+        if var.group() == "CORX":
+            CORX=num.group(1)
+            dirname+='_CORX='+CORX
+        if var.group() == "CORY":
+            CORY=num.group(1)
+            dirname+='_CORY='+CORY
+
+        if var.group() == "EKIN":
+            EKIN=num.group(1)
+            dirname+='_EKIN='+EKIN
+        if var.group() == "FREQ":
+            FREQ=num.group(1)
+            dirname+='_FREQ='+FREQ
+    else:
+        print ' ----> bad argument: '+arg+' -- will be ignored!'
+
+if N>=0:
+    inj2dirname='INJ2'+str(N)
+else:
+    inj2dirname='INJ2'+dirname
+
+# create directories
+os.mkdir(inj2dirname)
+os.chdir(inj2dirname)
+
+# linking magnet and rf files
+os.system('ln -fs '+fieldmapPath+'/ZYKL9Z.NAR')
+os.system('ln -fs '+fieldmapPath+'/Cav1.dat')
+os.system('ln -fs '+fieldmapPath+'/Cav3.dat')
+
+os.system('cp ../'+infile+' .')
+   
+# particles per bunch:
+NPBUNCH=str(int(NPTCL))
+
+os.system('sed -i \'s/_NBUNCH_/'+NBUNCH+'/\' '+infile)
+
+os.system('sed -i \'s/_NPBUNCH_/'+NPBUNCH+'/\' '+infile)
+
+os.system('sed -i \'s/_NX_/'+NX+'/\' '+infile)
+os.system('sed -i \'s/_NY_/'+NY+'/\' '+infile)
+os.system('sed -i \'s/_NZ_/'+NZ+'/\' '+infile)
+
+os.system('sed -i \'s/_SIGX_/'+SIGX+'/\' '+infile)
+os.system('sed -i \'s/_SIGY_/'+SIGY+'/\' '+infile)
+os.system('sed -i \'s/_SIGT_/'+SIGT+'/\' '+infile)
+
+os.system('sed -i \'s/_SIGPX_/'+SIGPX+'/\' '+infile)
+os.system('sed -i \'s/_SIGPY_/'+SIGPY+'/\' '+infile)
+os.system('sed -i \'s/_SIGPT_/'+SIGPT+'/\' '+infile)
+
+os.system('sed -i \'s/_CORX_/'+CORX+'/\' '+infile)
+os.system('sed -i \'s/_CORY_/'+CORY+'/\' '+infile)
+os.system('sed -i \'s/_CORT_/'+CORT+'/\' '+infile)
+
+
+os.system('sed -i \'s/_IBUNCH_/'+IBUNCH+'/\' '+infile)
+os.system('sed -i \'s/_EKIN_/'+EKIN+'/\' '+infile)
+os.system('sed -i \'s/_FREQ_/'+FREQ+'/\' '+infile)
+
+opalexe = os.environ.get('OPAL_EXE_PATH')
+
+print ' -------------------------------------- \n'
+def WriteSGE():
+    myfile=open('my.sge','w')
+    myfile.write(s1)
+    myfile.close()
+
+s1='''#!/bin/bash
+#$ -cwd
+#$ -pe mpi '''+CORES+'''
+#$ -N INJ2
+#$ -v MPIHOME=/opt/mpi/openmpi-1.2.6-intel-10.0,LD_LIBRARY_PATH=/opt/intel-mkl/mkl-10.0/lib/em64t:/opt/mpi/openmpi-1.2.6-intel-10.0/lib:/opt/intel/intel-10.0/fce-10.0/lib:/opt/intel/intel-10.0/cce-10.0/lib
+
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+cp $MACHINE_FILE machinefile.last
+
+echo "PE_HOSTFILE:"
+cat  $PE_HOSTFILE
+echo "MACHINE_FILE:"
+cat $MACHINE_FILE
+echo "SLOTS=$NSLOTS"
+#
+OPAL="'''+opalexe+''' '''+infile+''' --commlib mpi --info 0 --warn 0"
+CMD="$MPIHOME/bin/mpirun -machinefile $MACHINE_FILE -np $NSLOTS  --mca ras localhost --mca pls rsh  $OPAL "
+echo "Running $CMD"
+echo 
+$CMD
+'''
+
+def WritePBS():
+    myfile=open('my.pbs','w')
+    myfile.write(s1)
+    myfile.close()
+
+s1='''#!/bin/bash
+#$ -cwd
+#$ -pe mpi '''+CORES+'''
+#$ -N INJ2
+#$ -v MPIHOME=/opt/mpi/openmpi-1.2.6-intel-10.0,LD_LIBRARY_PATH=/opt/intel-mkl/mkl-10.0/lib/em64t:/opt/mpi/openmpi-1.2.6-intel-10.0/lib:/opt/intel/intel-10.0/fce-10.0/lib:/opt/intel/intel-10.0/cce-10.0/lib
+
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+cp $MACHINE_FILE machinefile.last
+
+echo "PE_HOSTFILE:"
+cat  $PE_HOSTFILE
+echo "MACHINE_FILE:"
+cat $MACHINE_FILE
+echo "SLOTS=$NSLOTS"
+#
+OPAL="'''+opalexe+''' '''+infile+''' --commlib mpi --info 0 --warn 0 "
+CMD="$MPIHOME/bin/mpirun -machinefile $MACHINE_FILE -np $NSLOTS  --mca ras localhost --mca pls rsh  $OPAL "
+echo "Running $CMD"
+echo 
+$CMD
+'''
+# 
+#
+WriteSGE()
+os.system('qsub -pe mpi '+str(CORES)+' my.sge')
+os.chdir('..')

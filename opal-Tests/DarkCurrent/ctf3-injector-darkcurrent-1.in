@@ -1,0 +1,104 @@
+Option, ECHO=FALSE;
+Option, TFS=FALSE;
+Option, PSDUMPFREQ=1;
+Option, STATDUMPFREQ=1;
+
+Title, string="First part of PSI FEL 250 Injector with CTF3 RF Photoinjector for startup";
+
+REPARTFREQ       = 50;
+FINSS_RGUN_phi   = 0;    
+FINSB01_RACC_phi = 0; 
+FINSB02_RACC_phi = 0;    
+
+MINSTEPFORREBIN  = 1000;
+
+QB               = 0.2e-9;
+BFREQ            = 2998.0;
+BCURRENT         = QB*BFREQ;
+
+CALL, "../ctf3-injector-darkcurrent-ap.phases";
+
+// BoundaryGeometry ge with distribution DistSurf is defined here. 
+// User can use the following parameters to control their own simulation.
+// 
+// SURFACEEMISSION: Distribution type;
+// NPDARKCUR:       Initialized dark current number (if not 0, there will be NPDARKCUR dark current 
+//                  particles randomly  initialized on the boundary geometry surface.)
+// FNBETA:          Electric field enhancement fact beta in Fowler-Nordheim field emission model 
+//                  (Electric field enhancement fact beta is relevant to surface material.Typically between 40 to 80);
+// FNMAXEMI:        The maximum number of emitted particles per surface triangle( Used to control simulated particle number )
+// FNFIELDTHR:      The Fowler-Nordheim emission threshold(MV/m), if field exceed FNFIELDTHR,
+//                  field emission procedure will be called, user can spesify an optimized threshold by measurement data
+// ge:              The name of boundary geometry (user can specify another name)
+// FGEOM:           The name of boundary geometry model file(file format: FEMAXX readable ".h5" file);
+// S:               The location(start point) of boundary geometry in global coordinate:;
+// DISTR:           The distribution of BoundaryGeometry;
+
+DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION", NPDARKCUR = 0, FNBETA = 55, FNMAXEMI = 20,  FNFIELDTHR = 40;
+DistSEY: DISTRIBUTION, DISTRIBUTION = "IMPACTIONIZATION", NPDARKCUR = 0, FNBETA = 55, FNMAXEMI = 20,  FNFIELDTHR = 40;
+
+ge: GEOMETRY, FGEOM="../FINSS_test1.h5", S=0.0, DISTR={DistSurf,DistSEY}
+
+VALUE,{FINSS_RGUN_phi, FINSB01_RACC_phi, FINSB02_RACC_phi};
+
+
+// L:		physical element length (real in m)
+// VOLT:	field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+
+FINSS_RGUN: RFCavity, L = 0.34986, VOLT = 100.0, FMAPFN = "../FINSS_unitconvert.T7" , GEOMETRY = ge,
+		ELEMEDGE =0.0, TYPE = "STANDING", FREQ = 2998.0,
+		LAG = FINSS_RGUN_phi;
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+
+FIND1_MSOL10: Solenoid, L = 0.6, KS = 0.206, FMAPFN = "NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal", ELEMEDGE = 0.3;
+
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+
+FIND1_MQ10: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.38;
+FIND1_MQ20: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.56;
+FIND1_MQ30: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.74;
+
+
+SCREEN1: Monitor, L = 0.01, ELEMEDGE = 0.180, OUTFN = "Screen1.h5";
+
+
+//elemento fittizio utilizzato per prolungare la linea del fascio
+END: Solenoid, L=0.01, KS = 0.01, ELEMEDGE=100., FMAPFN="NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal";
+
+Injector: Line = (FINSS_RGUN, FIND1_MSOL10, FIND1_MQ10, FIND1_MQ20, FIND1_MQ30, SCREEN1, END);
+
+Fs1:FIELDSOLVER, FSTYPE = NONE, MX = 32, MY = 32, MT = 32,
+		 PARFFTX = TRUE, PARFFTY = TRUE, PARFFTT = TRUE,
+		 BCFFTX = open, BCFFTY = open, BCFFTT = open,
+		 BBOXINCR = 1, GREENSF = INTEGRATED;
+
+Dist1:DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+sigmax = 0.000275*2.0, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.000275*2.0, sigmapy = 0.0, corry = 0.0,
+sigmat = 0.0, pt = 0.0, sigmapt = 0.0, corrt = 0.0, tRise=0.7e-12, tFall=0.7e-12, tPulseFWHM=9.9e-12, ekin=0.63, NBIN=1, DEBIN=80;
+
+
+beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 3000, BFREQ = bfreq , BCURRENT = bcurrent, CHARGE = -1;
+
+
+Select, Line=Injector;
+
+// Simulation of the gun with step size DTGUN 
+track, line= Injector, beam=beam1, MAXSTEPS=100, DT=1.0e-13, ZSTOP=0.175;  
+ run, method = "PARALLEL-T", beam = beam1, fieldsolver = Fs1, distribution = Dist1;
+endtrack;
+
+Quit;

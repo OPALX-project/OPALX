@@ -1,0 +1,138 @@
+Dear Dr. Adelmann,
+
+The Editorial Office has received the decision on the paper entitled "A Fast
+Parallel Poisson Solver on Irregular Domains Applied to Beam Dynamic
+Simulations".
+
+The reviewers' comments are as follows:
+************************************************************ Reviewer #1: Report
+on the paper
+
+"A Fast Parallel Poisson Solver on Irregular Domains Applied to Beam Dynamic
+Simulations"
+
+by Adelmann, Arbenz and Ineichen
+
+For beam dynamic simulations, it is necessary to solve Poisson's equation with
+boundary conditions of third kind at each time step.  The large number of time
+steps and small mesh sizes require a very fast parallel iterative solver for
+Poisson's equation on non-rectangular domains. The paper studies two questions:
+what discretization and iterative solver is suitable for such an application and
+which software should be used. Since fast iterative solvers for Poisson's
+equations on general domains are needed for several applications in
+computational physics, the paper is relevant for COMP. PHYS. Furthermore, the
+paper gives helpful hints about using software implementation issues.  However,
+the numerical results and the choice of the discretization is not convincing.
+The authors compare three kind of discretizations.  The most accurate is the
+Shortly-Weller-discretization. It is well-known that this discretization is of
+order O(h^2) in case of Dirichlet boundary conditions. However, the O(h)
+consistency error at the boundary leads to an O(h) convergence in case of
+boundary conditions of third kind.  The paper neglects this fact by presenting
+numerical results only for Dirichelt boundary conditions. The O(h) consistency
+error of the Shortly-Weller-discretization at the boundary is the reason, why
+Finite Elements are widly used in case of boundary conditions of third kind.
+Furthermore, the numerical results for the cg algorithm with aggregation based
+AMG preconditioning are not very interesting, either.  The reason is that in
+case of Dirichlet boundary conditions multigrid with geometric coarsening leads
+to a fast iterative solver.  To implement such a multigrid algorithm is much
+easier than aggregation based AMG. I recommend that the authers study the case
+of non trivial boundary conditions of third kind in detail.  Futhermore, a
+comparison with the computational amount of a standard geometric multigrid
+algorithm on a unit cube would be helpful to see, how curvilinear bounded
+domains increase computational time.
+
+
+Reviewer #2: This paper discusses the application of algebriac multigrid
+techniques to a PIC code for the simulation of electron beams. The formulation
+of the equations gives rise to an electrostratic potential  Poisson problem that
+must be repeatedly solved. The paper demonstrates the value of an approach that
+is suitable for irregular domains as compared to a more traditional FFT based
+approach. A number of algebraic multigrid options are discussed and relatively
+good scalability is demonstrated.  Overall, the paper is well-written and
+organized. The results illustrate tradeoffs associated with boundary treatment
+as well as tradeoffs associated with parallel algebraic multigrid choices:
+algebraic multigrid setup vs. reusing existing preconditioner (or part of an
+existing preconditioner), stopping criteria, coarse level solver, and
+scalability.  It should be noted that other choices such as the relaxation
+scheme, the cycling method (V or W), and coarsening choices are not really
+addressed, though it is unclear what impact they would have on the solution
+time. However, in this aspect, this case study is certainly limited to a few
+algebraic multigrid concerns. It might be nice to see some other algebraic
+multigrid issues discussed.
+
+The over-riding concern that I have is that the paper primarily boils down to
+solving a Poisson problem in parallel with algebraic multigrid.  While the
+results of the compuational experiments are illuminating, this is definitely not
+a completely new subject. It is certainly embedded within a larger realistic
+application and this is not a small accomplishment.  Overall, I feel that this
+paper is a bit borderline for this journal in terms of the significance of this
+contribution from an algorithm point of view.  
+
+Minor Remarks 
+=============
+
+1) 'Preconditioning is inevitable for system ... since their condition number
+increases as h^-2 '...
+
+This is fairly general statement that is only valid for certain types of PDEs.
+This should be properly qualified.
+
+2) 'Independent of the application of multigrid methods the performance depends
+on the choices ...'
+
+The wording here is awkward.
+
+3) Much of the material on pages 5-6 is fairly standard. It could perhaps be
+condensed.
+
+4) Large numbers such as 4,194,304 are usually separated with commas. In some
+spots in the text quotes are used instead.
+
+5) 'This results' should be changed to 'These results'. This sentence seems to
+just hang by itself (in its own paragraph). It would be better to be a little
+more explicit. For example, These results illustrate that an increase in
+solution of approximately 2.3 in the best case is incurred in moving from an
+FFT-based scheme to a more general approach. Of course, this more general
+approach gives rise to increased accuracy when the domain has irregularities.
+
+6) The results in Table 8 really don't show any big differences. The results can
+be summarized in a few sentences without actually giving the data.
+
+7) The construction times in Tables 9, 10, and 11 jump around. Specifically, it
+appears that something bad has happened in the 2048 Table 10 results (which does
+not occur for the 2048 core Table 11 data). Is there any data which explains
+where this occurs and perhaps why?
+
+8) On page 14, 'The solver employs on the conjugate ...'. The word 'on' should
+be removed from this sentence.
+
+9) On page 15, 'cpe' should be changed to 'cope'.
+
+
+************************************************************
+
+In view of these comments made the Associate Editor who guided your article,
+Professor Knoll, has decided that the paper can be reconsidered for publication
+after major revisions. Therefore we look forward to receiving the revised
+version of the paper together with a reply to the reports and a summary of the
+revisions made.
+
+If the revised version is submitted within three months of receipt of this
+e-mail, the manuscript will retain the original submission date. After three
+months, your paper might be treated as a new submission and may be sent to new
+reviewers.
+
+Yours sincerely,
+
+Jeanette Bakker on behalf of the Editors of Journal of Computational Physics
+
+Editorial-Production Department, Elsevier Radarweg 29 1043 NX Amsterdam The
+Netherlands
+
+Tel: +31 20 485 3426 Fax: +31 20 485 2521 E-mail: jcp@elsevier.com
+
+
+
+Journal of Computational Physics is available electronically at
+http://www.ElsevierPhysics.com/
+

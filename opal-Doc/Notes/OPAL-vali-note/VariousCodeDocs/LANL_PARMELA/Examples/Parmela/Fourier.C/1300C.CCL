@@ -1,0 +1,45 @@
+; CCLFISH control file 1300C00.CCL
+
+Title
+Sample problem for 1300-MHz coupled-cavity linac cell.
+ENDTitle
+ 
+PARTICLE              E-
+CAVITY_shape          0
+InitialEnergy         100    ; Energies used in program CCLCells
+FinalEnergy           2000
+ 
+FILEname_prefix       1300C
+SEQuence_number       1
+PI_MODE
+FREQuency             1300
+BETA                  0.99
+LENGTH                11.41517436231
+DIAMeter              17
+G_OVER_Beta_lambda    0.278438
+GAP_Length            6.356836638184
+E0_Normalization      1
+E0T_Normalization     0.8171856362359
+;EQUATOR_Flat         2.215174362308 ; for use in CDTFISH
+OUTER_CORNer_radius   4
+INNER_CORNer_radius   0.5
+INNER_NOSE_radius     0.1
+OUTER_NOSE_radius     0.3
+FLAT_length           0
+CONE_angle            20
+SEPTUM_thickness      1.2
+BORE_radius           1.5
+PHASE_length          90
+DELTA_frequency       0.002
+MESH_size             0.027
+INCrement             2
+START                 1
+
+; Start codes for CCLFISH:
+; 1 No tuning
+; 2 Adjust diameter
+; 3 Adjust spectum thickness (not recommended)
+; 4 Adjust gap
+; 5 Adjust cone angle
+
+ENDFile

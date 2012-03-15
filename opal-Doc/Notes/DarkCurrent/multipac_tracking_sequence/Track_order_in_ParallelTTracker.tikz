@@ -1,0 +1,46 @@
+
+% Define block styles
+\tikzstyle{decision} = [draw,diamond, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=2.2cm, inner sep=0pt]
+\tikzstyle{block} = [draw,rectangle, fill=blue!20, 
+    text width=7.5em, text badly centered, inner sep=3pt, rounded corners, minimum height=4em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, \ellipse,fill=red!20, node distance=2.2cm,
+    minimum height=2em]
+\tikzstyle{every node}=[font=\small]
+\scalebox{0.85}{
+\begin{tikzpicture}[node distance = 2.2cm, auto, every node/.style={anchor=base,font=\small}]
+    % Place nodes
+     \node [block] (first) {Accept beamline, prepare sections, update RF cavities and do autophase if required.};
+      \node [block, below of=first, node distance=3.2cm] (second) {Set total particle number in bunch, starting time and time steps.};
+     \node [decision, below of=second, node distance=3.0cm] (d1) {mpacflg};
+     \node [block, left of=first, node distance=4.5cm] (n1) {Set emission steps if required and set time step for all particles already in simulation};
+     \node [block, below of=n1, node distance=3.5cm] (n2) {Set section and proper local coordinate system for each partcles};
+     \node [block, below of=n2, node distance=3.0cm] (n3) {Do binary repartition if required};
+     \node [block, below of=n3, node distance=3.0cm] (n4) {Calc beam parameters, update space orientation and activate elements};
+     \node [block, below of=d1, node distance=3.3cm] (third) {Find BoundaryGeometry and attached distributions, generate particles according to geometry};
+     \node [decision, below of=third, node distance=3.5cm] (d2) {mpacflg};
+     \node [block, right of=d2, node distance=4.5cm] (m1) {Set section and proper local coordinate system for each partcles};
+     \node [block, below of=m1, node distance=2.5cm] (m2) {Calc beam parameter and activate all elements in simulation};
+     \node [block, below of=d2, node distance=2.5cm] (forth) {Set parameters for field emission and secondary emission model};
+     \node [block, below of=forth, node distance=2.5cm] (fifth) {Set variables for particle bins};
+     \node [block, below of=fifth, node distance=2.5cm] (sixth) {Track in each step};
+    % Draw edges
+     \path [line] (0,1) -- (first);
+     \path [line] (first) -- (second);
+     \path [line] (second) -- (d1);
+     \draw [->] (d1) -- +(-2.2,0)-- +(-2.2,6.2) -- node [near start,above=2pt] {false} (n1);
+     \path [line] (forth) --  (fifth);		
+     \draw[->] (d2) -- node [midway,right=2pt] {false} (forth);
+     \draw[->] (d2) -- node [midway,above=2pt] {true} (m1);	
+      \path [line] (n1) -- (n2);
+      \path [line] (m1) -- (m2);
+      \path [line] (m2) -- (forth);
+      \path [line] (fifth) -- (sixth);
+      \path [line] (n2) -- (n3);
+      \path [line] (n3) -- (n4);
+      \path [line] (n4) --  (third); 
+      \path [line] (d1) -- node [midway,right=2pt] {true} (third);  
+     \path [line] (third) -- (d2);
+    \end{tikzpicture}
+}

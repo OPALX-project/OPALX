@@ -1,0 +1,7 @@
+ScalingFactor = 3767.30313461771  ; ASCALE
+NormalizationCode = 3             ; NORM, normalize fields using supplied ASCALE
+GeometryPhaseLength = 90          ; DPHI, phase length of cavity in degrees  
+FieldSegments
+1 2 3                             ; Segment numbers  
+EndData
+End

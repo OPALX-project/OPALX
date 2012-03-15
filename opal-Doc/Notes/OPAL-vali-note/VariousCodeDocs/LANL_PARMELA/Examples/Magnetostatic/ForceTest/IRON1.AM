@@ -1,0 +1,48 @@
+Force between wire loop and iron cylindrical tube in R,Z Coordinates
+Iron shape does not have sharp corners for accuracy in FORCE
+Force on iron will be equal and opposite force on loop 
+
+; Copyright 2002, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0           ! Poisson or Pandira problem    
+dx=.025,               ! Mesh interval                 
+mode=-2                ! Iron has infinite permeability
+xreg1=1.2              ! X line region coordinates where mesh interval doubles
+xreg2=1.6
+xreg3=2.0
+yreg1=19.4,lreg1=220,  ! Y line region physical and logical coordinates
+yreg2=19.5,lreg2=225, 
+yreg3=24.5,lreg3=475, 
+yreg4=24.6,lreg4=480, 
+lmax=700               ! Logical coordinates at upper edge
+icylin=1,              ! Cylindrical coordinates                   
+nbsup=1,               ! Neumann boundary condition at upper edge  
+nbslo=1,               ! Neumann boundary condition at lower edge  
+nbsrt=0,               ! Dirichlet boundary condition at right edge
+nbslf=0 &              ! Dirichlet boundary condition at left edge 
+
+&po x=0.000,y=0.000 &
+&po x=0.000,y=40.00 &
+&po x=12.000,y=40.00 &
+&po x=12.000,y=0.000 &
+&po x=0.000,y=0.000 &
+
+
+&reg mat=2 &  
+&po x=0.200,y=20.20 &
+&po x=0.200,y=23.80 &
+&po nt=2,x0=0.4,y0=23.8,x=0.0,y=0.2 &
+&po nt=2,x0=0.4,y0=23.8,x=0.2,y=0.0 &
+&po x=0.600,y=20.20 &
+&po nt=2,x0=0.4,y0=20.2,x=0.0,y=-0.20 &
+&po nt=2,x0=0.4,y0=20.2,x=-0.20,y=0.0 &
+
+
+&reg mat=1,cur=2000  &  
+&po x=0.9, y=19.9 &
+&po x=0.9, y=20.1 &
+&po x=1.1, y=20.1 &
+&po x=1.1, y=19.9 &
+&po x=0.9, y=19.9 &
+

@@ -1,0 +1,28 @@
+Example using POA namelist, part 1
+Sets the potential on a previously defined boundary
+This example shows procedure only, not a real magnet.   
+Procedure is as follows:
+1. Run Automesh on POA1.AM to get coordinates assigned along arc.
+2. Copy coordinates from OUTAUT.TXT to file POA2.AM 
+3. Create POA namelist for each point XA,YA and add potential ASET
+
+
+&REG KPROB=0,                  ; Poisson problem
+DX=1,                          ; mesh size
+MODE=0,                        ; variable permeability
+MAT=1 &                        ; air region
+
+
+&PO X= 0.0000, Y=0.0000 &            
+&PO X= 10.000, Y=0.0000 &   
+&PO NT=2, R=10.0, THETA=30 &            
+&PO NT=2, R=10.0, THETA=90 &
+&PO X= 0.0000, Y=0.0000 &            
+
+&REG MAT=2 &                    ; iron region
+&PO X= 0.0000, Y= 2.7500 &
+&PO X= 5.5000, Y= 2.7500 &
+&PO X= 7.7000, Y= 5.0000 &   
+&PO R=10.0, THETA=30 &
+&PO NT=2, R=10.0, THETA=90 &
+&PO X=  0.0000, Y=  2.7500 &

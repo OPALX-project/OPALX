@@ -1,0 +1,8 @@
+
+FELSIM submit (assume ffag1-1.in exists)
+----------------------------------------
+$ qsub -N ffag1-1 ffag.sge
+
+
+
+A. Adelmann 

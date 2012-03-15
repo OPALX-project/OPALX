@@ -1,0 +1,8 @@
+; SFOTABLE control file
+OUTPUT_file           RGDTL
+FILEname_prefix       RGDTL
+SEQuence_numbers      1 to 11
+E0*T = 1.73333
+INCLude  Length       L
+INCLude  G_Over_Beta_Lambda  g/bl
+ENDFile

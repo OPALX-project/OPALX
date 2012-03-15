@@ -1,0 +1,108 @@
+\section{Implementation details}
+\label{sec:impl}
+
+The multigrid preconditioner and iterative solver are implemented with
+the help of the Trilinos framework~\cite{Trilinos-Web-Site,
+  Trilinos-TOMS}.  Trilinos provides state-of-the-art tools for
+numerical computation in various packages.  Aztec, e.g., provides
+iterative solvers and ML~\cite{gsht:06} multilevel preconditioners.  By
+means of ML, we created our smoothed aggregation-based AMG
+preconditioner.  The essential parameters of the preconditioner
+discussed above are listed in Table~\ref{tab:sa_setup}.
+%%
+\begin{table}[htb]
+  \begin{center}
+    \begin{tabular}{l|l}
+      \hline
+      name & value \\
+      \hline
+      preconditioner type & MGV \\
+      smoother & pre and post \\
+      smoother type & Chebyshev \\
+      aggregation type & Uncoupled \\
+      coarse level solver & Amesos-KLU \\
+      maximal coarse level size & 1000 \\
+      \hline
+    \end{tabular}
+    \caption{Parameters for multilevel preconditioner ML.}
+    \label{tab:sa_setup}
+  \end{center}
+\end{table}
+
+To embed the solver in the physical simulation code (\opal~\cite{opal})
+we utilized the Independent Parallel Particle Layer (\ippl~\cite{ippl}).
+This library is an object-oriented framework for particle based
+applications in computational science designed for the use on
+high-performance parallel computers.  In the context of this paper
+\ippl\ is only relevant because \opal\ uses \ippl\ to represent and
+interpolate the particles at grid points with a charge conserving
+Cloud-in-Cell area weighting scheme.  ML requires an
+\texttt{Epetra\_Map} handling the parallel decomposition to create
+parallel distributed matrices and vectors. To avoid additional
+communication the \texttt{Epetra\_Map} and the \ippl\ field are determined
+to have the same parallel decomposition. In this special case the task
+of converting the \ippl\ field to an \texttt{Epetra\_Vector} is as
+simple as looping over local indices and assigning values.  
+
+A particle based domain decomposition technique based on recursive coordinate
+bisection is used (see Section~\ref{sec:physrun}) to parallelize the computation
+on a distributed memory environment.  One, two and three-dimensional
+decompositions are available.  For problems of beam dynamics with highly
+nonuniform and time dependent particle distributions, a dynamic load balancing
+is necessary to preserve the parallel efficiency of the particle integration
+scheme.  Here, we rely on the fact that \ippl\ attains a good load balance of
+the data.
+
+%{\color{red}TODO: distribution scheme.}
+
+%Since we are using ML with Epetra vectors and matrices it is necessary to
+%convert IPPL grids to Epetra vectors and visa versa.  Epetra uses maps to
+%describe the parallel distribution of vectors and matrices.  To avoid any
+%communication the distribution of Epetra vectors correspond to the
+%distribution of IPPL grid points.  Once both representations have the
+%%same parallel layout the task of converting one into the other becomes
+%simple.  Here we rely on the fact that IPPL already attained a good load
+%balancing of the data.  {\color{red}TODO: distribution scheme.}
+
+We use the solution of one time step as the initial guess for the next
+time step.
+
+% We store the solution vector so that it can be reused as an initial
+% guess for the next execution of the iterative solver in the
+% consecutive time-step.
+
+\subsection{Domains}
+
+The simplest domains under consideration are regular, rectangular
+domains.  These domains are used by the FFT solver with so-called
+open-space boundary conditions as described in \cite{hoea:88}.
+%%
+Our iterative PCG solver is not restricted to rectangular domains.  It
+can handle irregular domains as the ones introduced in the next section.
+
+\subsection*{Non-rectangular domains}
+
+To properly handle emerging irregular domains we implemented an abstract
+class providing an interface to query the discretization near the
+boundary.  Every implementation of an irregular domain has to identify
+boundary points and provide the stencil for \textit{near-boundary}
+points given one of the extrapolation schemes discussed in
+Section~\ref{sec:discr}.  Boundary points are stored in \texttt{STL}
+containers. Essentially the coordinate value of a gridline is mapped to
+its intersection values, providing a fast look-up table for a given
+gridline.
+
+In this work we use the SA-AMG preconditioned conjugate gradient solver
+mainly for cylindrical domains with an elliptic base area.  These
+domains can be characterized by means of two parameters: the semi-major
+and semi-minor axis.  We compute the intersection points of the grid
+with the elliptical domain boundary by using its implicit representation
+and subsequently store them into a \texttt{STL} container.  These
+intersections have to be recomputed whenever the parameters of the
+ellipse or the mesh spacings change.
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 

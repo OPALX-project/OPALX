@@ -1,0 +1,59 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, INFO=TRUE;
+Option, PSDUMPFREQ=50;
+Option, BET=TRUE;
+
+Title, string="SwissFEL Injector, Phase 1 (Feb. 2010)";
+
+FINSS_RGUN_phi= 0;    
+FINSB01_RACC_phi= 0; 
+FINSB02_RACC_phi= 0;    
+
+call, "FinPhase1.phases";
+
+REPARTFREQ= 100;
+
+value,{FINSS_RGUN_phi, FINSB01_RACC_phi, FINSB02_RACC_phi, REPARTFREQ};
+
+
+FINSS_RGUN: RFCavity, L = 0.34986, VOLT = 100., FMAPFN = "FINSS-RGUN.dat",
+    ELEMEDGE = 0.0, TYPE = "STANDING", FREQ = 2998.0,
+    LAG = FINSS_RGUN_phi + (5.7/180.0*PI);
+
+FIND1_MSOL10: Solenoid, L = 0.6, KS = 0.2089, FMAPFN = "FIND1-MSOL10.T7", ELEMEDGE = 0.0;
+
+l1: Line = (FINSS_RGUN,FIND1_MSOL10,END);
+
+// Define initial uniform beam distribution (== laser distribution)
+// or use test particles for autophasing
+Dist1:DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+    sigmax = 0.000275 * 2., sigmapx = 0.0, corrx = 0.0,
+    sigmay = 0.000275 * 2., sigmapy = 0.0, corry = 0.0,
+    sigmat = 0.0, pt = 0.0, sigmapt = 0.0, corrt = 0.0, ekin = 0.63,
+    tRise = 0.7e-12, tFall = 0.7e-12, tPulseFWHM = 9.9e-12,
+    NBIN = 50, DEBIN = 80, nbin = 101;
+
+MINSTEPFORREBIN = 300;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=16, MY=16, MT=32, 
+    PARFFTX=true, PARFFTY=true, PARFFTT=true,
+    BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+    BBOXINCR=1, GREENSF=INTEGRATED;
+
+qb=0.2e-9;
+bfreq=2998.0;
+bcurrent=qb*bfreq;
+Edes=0.63;
+gamma=(Edes+EMASS)/EMASS;
+
+beam1: BEAM, PARTICLE=ELECTRON, GAMMA=gamma, pc=P0, NSLICE=101, BFREQ=bfreq, BCURRENT=bcurrent, CHARGE=-1;
+
+Select, Line = l1;
+
+// Simulation of the gun with step size 0.1 ps
+track, line=l1, beam=beam1, MAXSTEPS=1000000, DT=1.0e-13, ZSTOP=1.5;
+run, method = "PARALLEL-SLICE", beam = beam1, fieldsolver = Fs1, distribution = Dist1;
+endtrack;
+
+Quit;

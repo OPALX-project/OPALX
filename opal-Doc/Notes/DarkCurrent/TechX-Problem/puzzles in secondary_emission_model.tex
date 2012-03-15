@@ -1,0 +1,42 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{amsmath} 
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{url}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{indentfirst}
+\usepackage{amssymb}
+
+
+\usepackage{listings}
+\usepackage{makeidx}
+
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage[latin1]{inputenc}
+\usepackage{longtable}
+\usetikzlibrary{shapes,arrows}
+\geometry{left=3.17cm,right=3.17cm,top=2.54cm,bottom=2.54cm}
+%\begin{comment}
+\pagestyle{empty}
+%\end{comment}
+\begin{document}
+%We write this latex/pdf file for better denote the symbols used in M. A. Furman and M. Pivi's secondary emission model. \\
+
+We have implemented the secondary emission model according to M. A. Furman and M. Pivi, Phys. Rev. ST Accel. Beams 5, 124404 (2002), pp 124404-14 in the code OPAL. We benchmark against the  and TxPhysics library for secondary emission and found some discrepancy. We guess, that the problem may be a tiny difference between the model itself and its implementation in the TxPhysics library. When we calculate the energy $E$ of emitted electrons according to appendix D in the mentioned paper, for the case $n=1$, the SEY reads:
+\begin{equation} 
+\delta_1(E_0) \equiv \delta_e(E_0)+\delta_r(E_0)+P_{1,ts}(E_0) %\ equiv P_1(E_0)
+\end{equation}
+ which is in agreement with the model from the paper. However, in TxPhysics the SEY is implemented like: 
+ \begin{equation} 
+ \delta_1(E_0) \equiv \delta_e(E_0)+\delta_r(E_0)+P_{1,ts}(E_0) = \delta_e(E_0)+\delta_r(E_0)+P_1(E_0), 
+ \end{equation}
+ which implies that $P_{1,ts}(E_0) = P_1(E_0)$ which is in our understanding not in accordance with the model of M. A. Furman and M. Pivi.\\
+\end{document}

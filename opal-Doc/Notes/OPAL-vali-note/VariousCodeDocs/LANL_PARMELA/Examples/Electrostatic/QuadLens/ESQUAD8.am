@@ -1,0 +1,37 @@
+Simple Electrostatic Quadrupole Lens (1/8th geometry)
+Circular poles with Radius = 1.15 * Radial Aperture
+Pole-tip voltages = +/- 20 KV
+Uses one eighth of the geometry between 0 and 45 degrees
+Neumann boundary along bottom; Dirichlet boundary along 45-degree line
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,      ! Poisson or Pandira problem
+xjfact=0.0,        ! Electrostatic problem
+dx=0.05,           ! Mesh interval
+icylin=0,          ! Cartesian coordinates
+nbslo=1 &          ! Neumann boundary condition at lower edge
+
+&po x=0.,y=0. &
+&po r=4.,theta=45. &
+&po nt=2,r=4.,theta=0.,x0=0.,y0=0. &
+&po x=3.3,y=0. &
+&po nt=2,r=1.15,theta=180.,x0=2.15,y0=0. &
+&po x=0.,y=0. &
+
+&reg mat=0,ibound=-1,voltage=20000.0 &
+&po x=3.3,y=0. &
+&po nt=2,r=1.15,theta=180.,x0=2.15,y0=0. &
+
+&reg ibound=0 &    ! Set Dirichlet boundary on the 45-degree line
+&po x=0.,y=0. &
+&po r=4.,theta=45. &
+
+stop  ! Voltage = 0.0 on the outer arc is the default, so the last
+      ! REG section is not needed.
+
+&reg ibound=-1,voltage=0.0 &
+&po r=4.,theta=45. &
+&po nt=2,r=4.,theta=0.,x0=0.,y0=0. &
+

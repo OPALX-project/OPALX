@@ -1,0 +1,58 @@
+// first test for single particle tracking with space charge effects in parallel inveronment 
+// for PSI Injector2 cyclotron.
+// the initial conditions are obtained from FIXPO EORBIT mode.
+// because there is a field bump at the injection point, there is 
+// no SEO for the first turns. 
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=100000000;
+Option, SPTDUMPFREQ = 10000000000;
+Option, PSDUMPEACHTURN=false;
+
+Title,string="OPAL-CyclT test";
+
+Edes=0.002;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+// value,{gamma,brho,Edes,beta,gambet};
+
+phi01= 48.4812-15.0;
+phi02=phi01+200.0;
+phi03=phi01+1800.0;
+phi04=phi01+2000.0;
+phi05=(phi01+820.0)*3.0;
+phi06=(phi01+2620.0)*3.0;
+frequency=50.6370;
+frequency3=3.0*frequency; 
+
+inj2: Cyclotron, TYPE="Injector2", CYHARMON=10, PHIINIT=0.0, PRINIT=0.0011653, RINIT=636.3, SYMMETRY=1.0, RFFREQ=50.6370, FMAPFN="../ZYKL9Z.NAR";
+l1:   Line = (inj2);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="../PartDatabase.dat"; 
+
+Dist2:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  2.0e-03, sigmapx=1.0e-5, corrx=0.0,
+sigmay=  2.0e-03, sigmapy=1.0e-5, corry=0.0,
+sigmat=  2.0e-03, sigmapt=1.8e-5, corrt=0.0;
+
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=64, MY=64, MT=64, 
+		 PARFFTX=true, PARFFTY=false, PARFFTT=true,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open,BBOXINCR=5;
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=true, NPART=1, BCURRENT=3.0E-3, CHARGE=1.0, BFREQ= frequency;
+
+Select, Line=l1;
+
+// In FIXPO, 106turns * 197.482 ns = 20933.092 ns  get 72.159 MeV
+// 10turns		
+//track,line=l1, beam=beam1,MAXSTEPS=100000*100,STEPSPERTURN=100000;
+track,line=l1, beam=beam1,MAXSTEPS=100000*100,STEPSPERTURN=100000;
+
+//track,line=l1, beam=beam1, MAXSTEPS=100, DT=0.001e-9;
+ run, file = "track_output", turns = 1, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;

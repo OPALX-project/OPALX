@@ -1,0 +1,26 @@
+! This is the initial laser beam distribution for PSI-XFEL Project.
+! December 27th, 2008 by Yujong Kim, PSI
+! 
+ &INPUT
+  FNAME = 'Q200pC_th0p195um_XYrms270um_Tfwhm9p900ps_R&F0p7ps_2k.ini'
+  ADD=.F
+  IPart=2000
+  Species='electrons'
+  Probe=.True.
+  Noise_reduc=.T.
+  High_res=.T.
+  Cathode=.T.
+  Q_total=0.200
+  Ref_zpos=0.
+  Ref_clock=0E-3
+  Ref_Ekin=0.
+  Dist_z='p', sig_z=0.0, Lz=0.,	rz=0.
+  Lt=9.900E-3, rt=0.7E-3
+  Dist_pz='i', 
+
+  LE=0.400E-03,
+  Dist_x='radial',  sig_x=0.270
+  Dist_px='r', Nemit_x=0.,   cor_px=0.0E0
+  Dist_y='r' , sig_y=0.270
+  Dist_py='r', Nemit_y=0.,   cor_py=0.0E0
+ /

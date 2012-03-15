@@ -1,0 +1,33 @@
+Force on Wire using R,Z Coordinates 
+Calculated field may be compared to the analytic result.
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,       ! Poisson or Pandira problem
+dx=0.14             ! Mesh interval
+icylin=1,           ! Cylindrical coordinates
+nbsup=0,            ! Dirichlet boundary condition at upper edge
+nbslo=0,            ! Dirichlet boundary condition at lower edge
+nbsrt=0,            ! Dirichlet boundary condition at right edge
+nbslf=0             ! Dirichlet boundary condition at left edge
+xreg1=14,xreg2=16   ! X line region coordinates where mesh interval doubles
+yreg1=9,yreg2=11 &  ! Y line region coordinates where mesh interval doubles
+
+&po x=0, y=0 &
+&po x=0, y=50 &
+&po nt=2,r=50,theta=0 &
+&po x=0, y=0 &
+
+&reg ibound=0 &
+&po x=0, y=50 &
+&po nt=2,r=50,theta=0 &
+
+&reg mat=1,cur=100. &
+&po x=10.5,y=5 &
+&po nt=2,r=.5,theta=90.,x0=10.,y0=5 &
+&po nt=2,r=.5,theta=180.,x0=10.,y0=5 &
+&po nt=2,r=.5,theta=270.,x0=10.,y0=5 &
+&po nt=2,r=.5,theta=360.,x0=10.,y0=5 &
+
+

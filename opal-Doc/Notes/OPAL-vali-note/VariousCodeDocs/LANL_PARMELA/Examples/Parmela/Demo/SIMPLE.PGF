@@ -1,0 +1,63 @@
+subnum 7
+output 2 1 1 50
+optcon 2 1. 1 100  0 10 0 100 0
+begin
+subnum 7
+output 2 1 1 50
+optcon 1 1. 1 100  0 10 0 100 0
+begin
+subnum 5
+output 2 1 1 200
+optcon 0. 8.0 8 1. 2 1. 2
+begin
+subnum 7
+output 2 1 1 15
+optcon 5 1. 1 100  0 20 0 100 0
+begin
+subnum 7
+output 2 1 1 15
+optcon 6 1. 1 100  0 20 0 100 0
+begin
+end
+subnum 9
+output 2 1 1 50
+optcon 0 150 15 0.75 3 180 0 500 0
+begin
+subnum 3
+output 2 1 1 32
+optcon 360 720 1000 .5 1 100 0
+begin
+subnum 7
+output 1 1  29
+optcon 1 0.50 1 5 1 90 0 1000 0 12
+begin
+subnum 7
+output 1 1  29
+optcon 1 0.50 1 5 1 90 0 4000 0 17
+begin
+subnum 7
+output 1 1  29
+optcon 3 0.50 1 5 1 90 0 1000 0
+begin
+subnum 7
+output 2 1 2 3
+optcon 1 .50 2 100 0 180 1 100 0 12
+begin
+subnum 7
+output 2 1 4 6
+optcon 1 .50 2 100 0 45 1 200 0 12
+begin
+subnum 7
+output 2 1 7 20
+optcon 1 .5 2 5 1 45 0 500 0 12
+begin
+subnum 7
+output 2 1 21 32
+optcon 1 .5 2 5 1 45 0 1000 0 12
+begin
+subnum 7
+output 2 1 1 5
+optcon 2 .5 2 200 0 180 0 100 0
+begin
+end
+

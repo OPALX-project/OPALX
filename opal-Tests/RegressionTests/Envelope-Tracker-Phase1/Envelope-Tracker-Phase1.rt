@@ -1,0 +1,5 @@
+"Envelope-Tracker Phase1 regression test with space charge (contains solenoid and SW)"
+stat "rms_x" last 1E-6    #this is a comment
+stat "rms_y" last 1E-6    #this is a comment
+stat "rms_s" last 1E-6    #this is a comment
+stat "energy" last 1E-6    #this is a comment

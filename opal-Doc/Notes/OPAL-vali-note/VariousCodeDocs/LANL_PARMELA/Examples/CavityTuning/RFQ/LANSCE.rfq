@@ -1,0 +1,56 @@
+; RFQfish control file LANSCE.RFQ
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+TITLE
+RFQ conceptual design at 201.25 MHz
+Los Alamos Neutron Science Center (LANSCE) accelerator
+ENDTitle
+
+PARTICLE              H+
+
+FILEname_prefix       LA
+SEQuence_number       1
+RFQ_MODE
+FREQuency             201.25
+CORNer_radius         0.767
+BREAK_out_angle       20
+RHO/R0                0.85
+BLANK_Width           1.2
+BLANK_Depth           3.5
+VANE_ANGLE_1          25.5
+VANE_ANGLE_2          0
+DELTA_frequency       0.01
+MESH_size             0.05
+INCrement             2
+
+
+; Start codes for RFQFISH (Nv parameter on DATA lines):
+; 1 No tuning
+; 2 No tuning
+; 3 Adjust vane-tip radius rho
+; 4 Adjust vane-shoulder half width Ws
+; 5 Adjust vane-shoulder length Ls
+; 6 Adjust vane-base half width Wb
+; 7 Adjust vane-base height H
+; 8 Adjust vane half width W
+
+
+DATA
+;R0,Vg, rho, Ws, Ls, Wb, H, W, Nv
+ 0.5946 0.1040 0.50541 5.6 0 5.6 17.85701821595 0 7.
+ 1.1134 0.2491 0.94639 4.0 0 4.0 17.85701821595 0 6.
+ENDDATA
+
+BREAK_out_angle       15
+BLANK_Width           0.9
+VANE_ANGLE_1          21.5
+
+DATA
+;R0,Vg, rho, Ws, Ls, Wb, H, W, Nv
+ 0.4219 0.08000 0.358615 5.6 0 5.6 17.02566577503 0 7.
+ 0.8575 0.15522 0.000000 4.0 0 4.0 17.02566577503 0 6.
+ENDDATA
+
+ENDFILE
+

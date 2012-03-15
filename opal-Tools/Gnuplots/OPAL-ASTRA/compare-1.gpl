@@ -1,0 +1,156 @@
+set line style 1 lt 1 lw 2
+set line style 2 lt 2 lw 2 
+set line style 3 lt 3 lw 2 
+set line style 4 lt 6 lw 2 
+set line style 5 lt 1 lw 2 
+set line style 6 lt 2 lw 2 
+set line style 7 lt 3 lw 2 
+set line style 8 lt 6 lw 2 
+#
+#
+ofn1=   'ctf3-gun-OPAL-nosc/ctf3-gun-OPAL-nosc-1/ctf3-gun-OPAL-nosc-1.stat'
+omifn1= 'ctf3-gun-OPAL-nosc/ctf3-gun-OPAL-nosc-3/ctf3-gun-OPAL-nosc-3.stat'
+oplfn1= 'ctf3-gun-OPAL-nosc/ctf3-gun-OPAL-nosc-2/ctf3-gun-OPAL-nosc-2.stat'
+
+afn1= 'ctf3-gun-ASTRA-nosc/GUN5_5M9YAG200PC200K-nosc.Zemit.001'
+afn2= 'ctf3-gun-ASTRA-nosc/GUN5_5M9YAG200PC200K-nosc.Xemit.001'
+afn3= 'ctf3-gun-ASTRA-nosc/GUN5_5M9YAG200PC200K-nosc.ref.001'
+
+
+amifn1= 'ctf3-gun-ASTRA-nosc-minusphase/GUN5_5M9YAG200PC200K-nosc.Zemit.001'
+amifn2= 'ctf3-gun-ASTRA-nosc-minusphase/GUN5_5M9YAG200PC200K-nosc.Xemit.001'
+amifn3= 'ctf3-gun-ASTRA-nosc-minusphase/GUN5_5M9YAG200PC200K-nosc.ref.001'
+
+
+aplfn1= 'ctf3-gun-ASTRA-nosc-plusphase/GUN5_5M9YAG200PC200K-nosc.Zemit.001'
+aplfn2= 'ctf3-gun-ASTRA-nosc-plusphase/GUN5_5M9YAG200PC200K-nosc.Xemit.001'
+aplfn3= 'ctf3-gun-ASTRA-nosc-plusphase/GUN5_5M9YAG200PC200K-nosc.ref.001'
+
+#
+set grid
+set key below
+set title "CTF3 200k no-sc"
+# 
+#
+#
+#
+set xlabel 'z (m)' font 'Helvetica-Bold,25'
+set ylabel 'E  (MeV)' font 'Helvetica-Bold,25'
+plot [.9:]       afn1 u 1:3 w l ls 1 t 'ASTRA {/Symbol Df}=5.7'
+repl       amifn1 u 1:3 w l ls 2 t 'ASTRA {/Symbol Df}=3.7'
+repl       aplfn1 u 1:3 w l ls 3 t 'ASTRA {/Symbol Df}=7.7'
+
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-A-nosc-energy-1.ps'
+replot
+set term x11
+set out
+#
+#
+#
+plot [0.9:] ofn1   u 2:5 w l ls 1 t 'OPAL {/Symbol Df}=0'
+repl        omifn1 u 2:5 w l ls 2 t 'OPAL {/Symbol Df}=-2.0'
+repl        oplfn1 u 2:5 w l ls 3 t 'OPAL {/Symbol Df}=+2.0'
+
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-O-nosc-energy-1.ps'
+replot
+set term x11
+set out
+
+
+set ylabel 'rms values ({/Symbol m}m)' font 'Helvetica-Bold,25'
+pl   afn2 u 1:($4*1E3) w l ls 1 t 'x ASTRA {/Symbol Df}=5.7'
+repl afn1 u 1:($4*1E3) w l ls 4 t 'z ASTRA {/Symbol Df}=5.7'
+
+repl amifn2 u 1:($4*1E3) w l ls 2 t 'x ASTRA {/Symbol Df}=3.7'
+repl amifn1 u 1:($4*1E3) w l ls 5 t 'z ASTRA {/Symbol Df}=3.7'
+
+repl aplfn2 u 1:($4*1E3) w l ls 3 t 'x ASTRA {/Symbol Df}=7.7'
+repl aplfn1 u 1:($4*1E3) w l ls 6 t 'z ASTRA {/Symbol Df}=7.7'
+#
+#
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-A-nosc-xzrms-1.ps'
+replot
+set term x11
+set out
+#
+#
+#
+set ylabel '{/Symbol e}x_{rms} ()' font 'Helvetica-Bold,25'
+set yrange[1.9e-7:2.1e-7]
+plot [0.9:] afn2 u 1:($6*1E-6) w l ls 1 t 'ASTRA {/Symbol Df}=5.7'
+repl amifn2 u 1:($6*1E-6) w l ls 2 t 'ASTRA {/Symbol Df}=3.7'
+repl aplfn2 u 1:($6*1E-6) w l ls 3 t 'ASTRA {/Symbol Df}=7.7'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-A-nosc-exrms-1.ps'
+replot
+set term x11
+set out
+#
+#
+#
+plot [0.9:] ofn1   u 2:12 w l ls 1 t 'OPAL {/Symbol Df}=0'
+repl        omifn1 u 2:12 w l ls 2 t 'OPAL {/Symbol Df}=-2.0'
+repl        oplfn1 u 2:12 w l ls 3 t 'OPAL {/Symbol Df}=+2.0'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-O-nosc-exrms-1.ps'
+replot
+set term x11
+set out
+
+
+
+
+
+
+exit
+#
+set ylabel 'dE/dz (MeV/m)' font 'Helvetica-Bold,25'
+plot [:0.2] ofn1 u 2:34 w l ls 2 t 'OPAL'
+repl     afn3 u 1:(-1*$4) w l ls 1 t 'Astra'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-OA-nosc-dEdz-1.ps'
+replot
+set term x11
+set out
+
+set log y
+set ylabel 'ex_{rms} ()' font 'Helvetica-Bold,25'
+plot [:] ofn1  u 2:12 w l ls 2 t 'OPAL 0.43'
+repl     afn2 u 1:($6*1E-6) w l ls 1 t 'ASTRA'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-OA-nosc-exrms-2.ps'
+replot
+set term x11
+set out
+
+
+
+
+exit
+
+
+
+
+set ylabel 'ez_{rms} (m)' font 'Helvetica-Bold,25'
+plot [:] ofn1 u 2:14 w l ls 2 t 'OPAL'
+repl     afn1 u 1:($6*1E-6*2) w l ls 1 t 'Astra'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'ctf3-OA-nosc-ezrms-1.ps'
+replot
+set term x11
+set out
+#
+#
+#
+#

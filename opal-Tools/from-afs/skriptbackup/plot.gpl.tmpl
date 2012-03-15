@@ -1,0 +1,50 @@
+#
+# to replace: _TIT_, _FN_ _DIR_
+#
+set term x11
+set out
+set pointsize 4.5
+set key left
+set ylabel 'E [MeV]'  font "Times,24" 
+set xlabel 's [m]'  font "Times,24" 
+set title  '_TIT_ '  font "Times,22" 
+plot '_DIR__FN_' u 1:(($3-1.0)*938.272) title '' w li lw 3
+set term png col 
+set out 'pngs/_TIT_.png' 
+repl
+set term post enh col
+set out 'pss/_TIT_.ps' 
+repl
+
+set term x11
+set out
+set pointsize 4.5
+set xlabel 'E [MeV]'  font "Times,24" 
+set ylabel 'Beamsizes [m]'  font "Times,24" 
+set title  '_TIT_ '  font "Times,22" 
+plot '_DIR__FN_' u (($3-1.0)*938.272):4 title 'x_{rms}' w li lw 3
+replot '_DIR__FN_' u (($3-1.0)*938.272):5 title 'y_{rms}' w li lw 3
+replot '_DIR__FN_' u (($3-1.0)*938.272):6 title 'z_{rms}' w li lw 3
+set term png col 
+set out 'pngs/_TIT_-xyz.png' 
+repl
+set term post enh
+set out 'pss/_TIT_-xyz.ps' 
+repl
+
+
+set term x11
+set out
+set pointsize 4.5
+set xlabel 'E [MeV]'  font "Times,24" 
+set ylabel 'Momenta p/p_{0} [] '  font "Times,24" 
+set title  '_TIT_ '  font "Times,22" 
+plot '_DIR__FN_' u (($3-1.0)*938.272):7 title 'px_{rms}' w li lw 3
+replot '_DIR__FN_' u (($3-1.0)*938.272):8 title 'py_{rms}' w li lw 3
+replot '_DIR__FN_' u (($3-1.0)*938.272):9 title 'pz_{rms}' w li lw 3
+set term png col 
+set out 'pngs/_TIT_-pxyz.png' 
+repl
+set term post enh
+set out 'pss/_TIT_-pxyz.ps' 
+repl

@@ -1,0 +1,34 @@
+\begin{tikzpicture}
+\usetikzlibrary{arrows}
+\draw [->,black,-latex] (-1.5,0) -- (1.5,0);
+\draw [->,black,-latex] (-1.5,0) -- (-1.5,2);
+\draw (1.5,0) -- (0.0,2);
+\draw  [<-,black,latex-](0.0,2) -- (-1.5,0.0);
+\draw [->,black,-latex,dashed] (-1.5,0) -- (0.5,0.5);
+\node[below] (w) at (-0.15,0.5) {$\vec{w}$};
+\draw[dashed] (0.5,0.5) -- (-1.18,0.5);
+\draw[dashed] (0.5,0.5) -- (0.01,0.0);
+\node[above] (ti) at (-1.18,0.5) {$t_i$};
+\node[below] (si) at (0.01,0.0) {$s_i$};
+\node[above] (t0) at (-1.7,0.) {$\mathbf{t_0}$};
+\node[right] (t1) at (1.5,0) {$\mathbf{t_1}$};
+\node[above] (t2) at (0.0,2.0) {$\mathbf{t_2}$};
+\node[above] (n) at (-1.5,2) {$\vec{n}$};
+\node[above] (v) at (-0.5,1.5) {$\vec{v}$};
+\node[below] (u) at (1.2,0.0) {$\vec{u}$};
+\path[draw=black,fill=black] (0.0,2.0) circle (2pt);
+\path[draw=black,fill=black] (1.5,0.0) circle (2pt);
+\path[draw=black,fill=black] (-1.5,0.0) circle (2pt);
+\draw (-3.5,-1) -- (2.5,-1);
+\draw (2.5,-1) -- (5,3);
+\draw (0,3) -- (5,3);
+\draw (-3.5,-1) -- (0,3);
+\draw (0.5,0.5) -- (1.6,5);
+\path[draw=black] (0.5,0.5) circle (2pt);
+\node[above] (itsc) at (0.2,0.5) {$\mathbf{I}$};
+\node[right] (x0) at (1.6,5) {$\mathbf{x_0}$};
+\draw[dashed] (0.5,0.5) -- (-0.1,-1.9);
+\node[right] (x1) at (0.0,-1.9) {$\mathbf{x_1}$};
+\path[draw=black,fill=black] (-0.1,-1.9) circle (2pt);
+\path[draw=black,fill=black] (1.6,5) circle (2pt);
+\end{tikzpicture}

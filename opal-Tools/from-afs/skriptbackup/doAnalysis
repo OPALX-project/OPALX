@@ -1,0 +1,60 @@
+#!/bin/bash
+# do the analysis
+source ~/.bashrc
+
+#### ./H5rootAnalyze aaa | tee analyze.out
+
+rm -rf  /home2/adelmann/afs/www/ring
+mkdir /home2/adelmann/afs/www/ring
+
+# make summary
+for d in $( ls -1 -d Ring-FlatTopScenario-* ); do 
+ cd $d
+ source simDef
+ for i in $cases; do
+ echo item: ln case$i/.mad .mad-$i
+ ln -fs case$i/.mad .mad-$i
+ done
+ makeSummary
+ convert -density 120x120 $title-summary.pdf /home2/adelmann/afs/www/ring/$d-summary.png
+ cd ..
+done
+
+# make and copy html files
+# convert ps to png
+cp html-templates/*.* /afs/psi.ch/user/a/adelmann/www/ring/
+cd www
+for i in $( ls -1 index-sc* ); do
+ echo append $i  /afs/psi.ch/user/a/adelmann/www/ring/leftframe.html
+ cat $i >> /afs/psi.ch/user/a/adelmann/www/ring/leftframe.html
+done
+#
+# Add hide script
+#  
+echo "<script language=\"javascript\" type=\"text/javascript\">" >> /afs/psi.ch/user/a/adelmann/www/ring/leftframe.html
+n=1
+for d in $( ls -1 -d Ring-FlatTopScenario-* ); do 
+ source $d/simDef
+ for i in $cases; do
+  echo "hideDIV('Scenario"$n"Case"$i"');" >> /afs/psi.ch/user/a/adelmann/www/ring/leftframe.html
+ done
+(( n+=1 ))
+done
+echo "</script>" >> /afs/psi.ch/user/a/adelmann/www/ring/leftframe.html
+#
+# Close the html file 
+#
+cat ../index.tail.html >> /afs/psi.ch/user/a/adelmann/www/ring/leftframe.html
+#
+#
+#
+cd ..
+for d in $( ls -1 -d Ring-FlatTopScenario-* ); do 
+ cd www
+ for i in $( ls $d*.ps ); do
+  echo item: convert $i  /afs/psi.ch/user/a/adelmann/www/ring/$i.png
+  convert $i  /afs/psi.ch/user/a/adelmann/www/ring/$i.png
+  rm $i
+ done
+ cd ..
+done

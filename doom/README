@@ -1,0 +1,18 @@
+BUILDING CONFIGURE FILES FROM SOURCES
+
+There are source files Makefile.am and configure.ac here that can be
+used to build configure and Makefile.in.  These require GNU
+autoconf-2.52 and automake-1.5.  autoconf versions prior to 2.50 will
+almost certainly NOT work, and earlier versions of automake will also
+most likely not work.
+
+To generate the needed files, issue the following commands:
+
+$ aclocal
+$ autoconf
+$ automake -a -c 
+
+Now do configure/make/make install like you normally would, and
+everything should work.
+
+CXX=mpicxx ./configure

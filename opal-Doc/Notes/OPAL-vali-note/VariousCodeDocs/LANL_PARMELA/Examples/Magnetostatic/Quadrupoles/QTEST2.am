@@ -1,0 +1,95 @@
+Quadrupole Magnet with Special Options   
+[Originally appeared in 1987 User's Guide 10.3 and 10.4]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Poisson or Pandira problem
+mode=-1                 ; Materials have fixed permeability
+dx=.30,dy=.30,          ; Mesh intervals 
+yminf=0,ymaxf=0         ; Fixed Y for field interpolation
+xminf=0,xmaxf=15        ; X range for field interpolation
+;; The next 6 terms refer to the harmonic analysis:
+ktype=4,                ; Quadrupole symmetry
+nterm=10,               ; Number of coefficients
+nptc=10,                ; Number of arc points for interpolation
+rint=7.0,               ; Radius of the arc for interpolation
+angle=45,               ; Angular extent of arc (default start = 0)
+rnorm=1.0 &             ; Aperture radius for normalization
+
+&po x=0.0,y=0.0 &
+&po x=33.080,y=0.0 &
+&po x=33.080,y=33.080 &
+&po x=0.0,y=0.0 &
+
+&reg mat=3,mtid=3 &
+&po x=5.837,y=5.837 &
+&po nt=3,r=8.255,x=13.507,y=2.523 &
+&po x=14.214,y=3.230 &
+&po x=22.470,y=11.486 &
+&po x=25.700,y=8.256 &
+&po x=25.700,y=0.0 &
+&po x=33.080,y=0.0 &
+&po x=33.080,y=33.080 &
+&po x=5.837,y=5.837 &
+
+&reg mat=1,cur=11416.4 &
+&po x=14.214,y=3.230 &
+&po x=22.470,y=11.486 &
+&po x=25.700,y=8.256 &
+&po x=17.444,y=0.0 &
+&po x=14.214,y=3.230 &
+
+&reg ibound=0 &
+&po x=33.080,y=33.080 &
+&po x=5.837,y=5.837 &
+&po x=0.0,y=0.0 &
+
+&mt mtid=3
+bgam=0.00000E+00  0.0017513135 ! Start of B,Gamma data
+0.11420E+04  0.0017513135
+0.29530E+04  0.0010159504
+0.51140E+04  0.0007821666
+0.84760E+04  0.0007078644
+0.96670E+04  0.0007241130
+0.10578E+05  0.0007562580
+0.11319E+05  0.0007951022
+0.11940E+05  0.0008375209
+0.12451E+05  0.0008834703
+0.12912E+05  0.0009293680
+0.13313E+05  0.0009764671
+0.13654E+05  0.0010253255
+0.13935E+05  0.0010764263
+0.14216E+05  0.0011254924
+0.14447E+05  0.0011767475
+0.14618E+05  0.0012313603
+0.14789E+05  0.0012846865
+0.15020E+05  0.0013315579
+0.15131E+05  0.0013879251
+0.15252E+05  0.0014423770
+0.15432E+05  0.0014912019
+0.15594E+05  0.0015389351
+0.15705E+05  0.0015918497
+0.16180E+05  0.0018542555
+0.16840E+05  0.0023752969
+0.17150E+05  0.0029154519
+0.17360E+05  0.0034566194
+0.17620E+05  0.0039729837
+0.17830E+05  0.0044863167
+0.18200E+05  0.0054945055
+0.18950E+05  0.0079176564
+0.19500E+05  0.0102564103
+0.20200E+05  0.0148588410
+0.20650E+05  0.0193798450
+0.20950E+05  0.0238663484
+0.21600E+05  0.0370370370
+0.21900E+05  0.0456621005
+0.23000E+05  0.0869565217
+0.23386E+05  0.1002810000
+0.23850E+05  0.1181630000
+0.24408E+05  0.1387420000
+0.25079E+05  0.1622460000
+0.25885E+05  0.1888580000
+0.26854E+05  0.2186950000
+0.28019E+05  0.2517840000  &
+

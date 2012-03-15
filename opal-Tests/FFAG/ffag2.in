@@ -1,0 +1,66 @@
+//single particle track test for Carol's FFAG
+
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=24500000;
+Option, SPTDUMPFREQ = 50;
+Option, PSDUMPEACHTURN=false;
+Option, PSDUMPLOCALFRAME=false;
+Option, SCAN=TRUE;
+//Option, RDUMP=2.0;
+
+Title,string="FFAG (Carol Design) I=0";
+
+Edes=0.10513;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2)); 
+gambet=gamma*beta; 
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+
+r0  = 4018.3;
+phi0= 0.002;
+pr0 = 0.0085;
+
+value,{gamma,brho,Edes,beta,gambet.r0,pr0};
+
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=64, MY=64, MT=64, 
+        	 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+Dist1:DISTRIBUTION, DISTRIBUTION=fromfile,FNAME="PartDatabase.dat"; 
+
+ffag: Cyclotron, TYPE="FFAG", CYHARMON=1, PHIINIT=phi0, PRINIT=pr0, RINIT=r0 , SYMMETRY=1.0, RFFREQ=200.0, FMAPFN="NSFFAGfieldPSI.dat", BSCALE=10.0;
+
+
+SYSTEM,"rm -rf ffag-e-scan.dat";
+SYSTEM,"touch ffag-e-scan.dat";
+
+ph=0;
+//WHILE (ph < 1) {
+
+cavpha1=0.0;
+cavvol1=0.0;
+
+rf0: RFCavity, VOLT=cavvol1, FMAPFN="Cav1.dat", TYPE="SINGLEGAP", 
+FREQ=200.0, RMIN = 2100.0, RMAX = 4000.0, ANGLE=45.0,  PDIS = 0.0, 
+GAPWIDTH = 300.0, PHI0=ph; 
+
+l1: Line = (ffag);
+// l1: Line = (ffag,rf0);
+Select, Line=l1;
+
+beam1: BEAM, PARTICLE=HYDRONGEN_MINUS, pc=P0, SPACECHARGE=false, NPART=1, BCURRENT=1.0E-6,CHARGE=1.0, BFREQ= 200.0;
+//beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=false, NPART=1, BCURRENT=1.0E-6,CHARGE=1.0, BFREQ= 200.0;
+
+track,line=l1, beam=beam1,MAXSTEPS=10*360*39,STEPSPERTURN=360;
+ run, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+
+// SYSTEM,"grep Energy ffag.out | tail -1 >> ffag-e-scan.dat"
+// SYSTEM,"mv ffag.out ffa-ph" & STRING(ph);
+ph=EVAL(ph+1.0);
+//}
+
+Stop;

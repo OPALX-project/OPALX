@@ -1,0 +1,64 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{amsmath} 
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{url}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{indentfirst}
+\usepackage{amssymb}
+
+%\usepackage{draftwatermark}
+\usepackage{listings}
+\usepackage{makeidx}
+
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage[latin1]{inputenc}
+\usepackage{longtable}
+\usetikzlibrary{shapes,arrows}
+\geometry{left=3.17cm,right=3.17cm,top=2.54cm,bottom=2.54cm}
+%\begin{comment}
+\pagestyle{empty}
+%\end{comment}
+\begin{document}
+\begin{center}
+{\large The secondary emission model used in ParallTTracker} \\
+Chuan Wang \\
+\today\\
+\end{center}
+\begin{figure}[H]
+\begin{center}
+\input{Track_order_in_TrackRun.tikz}
+\end{center}
+\caption{  Basic order in TrackRun.\label{fig:T-R}}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\input{Track_order_in_ParallelTTracker.tikz}
+\end{center}
+\caption{  Basic order in ParallelTTracker.\label{fig:T-T}}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\input{Track_order_in_Tracker_secondary.tikz}
+\end{center}
+\caption{  Basic order in ParallTTracker for each time step .\label{fig:se}}
+\end{figure}
+Here we need two additional collision tests, as is shown in Fig.\ref{fig:se}.\\
+
+The first collision test is only on the newly generated secondaries before we do integration in the first time step. This is because secondary emission happens after the main collision test in the previous time step, and we can not make sure that these newly generated secondaries will remain inside boundary after integration in the first half time step.\\
+
+The second collision test is before the integration in the second half time step and on all the particles except for those already have collisions with boundary in the first collision test.\\
+
+During both of the above mentioned collision tests, we mark the collision particles by set their triangle number: $itsBunch->TriID[i]$ to the ID of collision triangles. We using these informations to do secondary emission after the main collision test.     
+
+\end{document}

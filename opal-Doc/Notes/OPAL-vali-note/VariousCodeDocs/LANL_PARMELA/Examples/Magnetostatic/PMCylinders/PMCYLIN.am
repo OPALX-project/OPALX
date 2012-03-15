@@ -1,0 +1,47 @@
+Four Permanent-Magnet Cylinders (for PANDIRA) 
+Cylindrically symmetric, R = 0 is at the left edge of geometry 
+Dirichlet boundary at Z = 0 
+[Originally appeared in 1987 User's Guide 10.6]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Poisson or Pandira problem
+mode=0                  ; Some materials have variable permeability
+icylin=1,               ; Cylindrical symmetry
+nbslo=0,                ; Dirichlet boundary condition on lower edge
+nbsup=0,                ; Dirichlet boundary condition on upper edge
+nbslf=0,                ; Dirichlet boundary condition on left edge
+nbsrt=0,                ; Dirichlet boundary condition on right edge
+dx=.7,                  ; X Mexh interval
+xreg1=11 &              ; Line region where mesh interval doubles 
+
+
+&po x=  0.00,y=  0.00 &
+&po x=  0.00,y=150.00 &
+&po x= 60.00,y=150.00 &
+&po x= 60.00,y=  0.00 &
+&po x=  0.00,y=  0.00 &
+
+&reg mat=6,mshape=1,mtid=1 &
+&po x=0.00 ,y= 10.20 &
+&po x=0.00 ,y=103.00 &
+&po x=7.62 ,y=103.00 &
+&po x=7.62 ,y= 10.20 &
+&po x=0.00 ,y= 10.20 &
+
+&reg mat=7,mshape=1,mtid=2 &
+&po x=0.00,y= 3.00 &
+&po x=7.62,y= 3.00 &
+&po x=7.62,y=10.20 &
+&po x=0.00,y=10.20 &
+&po x=0.00,y= 3.00 &
+
+&mt mtid=1
+aeasy=-90,gamper=1
+hcept=-10000,bcept=10000 &
+
+&mt mtid=2
+aeasy=90,gamper=1
+hcept=-10000,bcept=10000 &
+

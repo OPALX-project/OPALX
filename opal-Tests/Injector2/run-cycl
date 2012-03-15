@@ -1,0 +1,10 @@
+# opal testinj2-1.in --commlib mpi --info 0 | tee testinj2-1.out
+# opal testinj2-2.in --commlib mpi --info 0 | tee testinj2-2.out
+# opal testinj2-3.in --commlib mpi --info 0 | tee testinj2-3.out
+# opal testinj2-4.in --commlib mpi --info 0 | tee testinj2-4.out
+#opal testinj2-5.in --commlib mpi --info 0 | tee testinj2-5.out
+#rm -rf data
+#grep "Field along"  testinj2-5.out > data
+# opal testinj2-5.in --commlib mpi --info 0 | tee testinj2-5.out
+opal testinj2-6.in --commlib mpi --info 0 | tee testinj2-6.out
+#opal testinj2-7.in --commlib mpi --info 0 | tee testinj2-7.out

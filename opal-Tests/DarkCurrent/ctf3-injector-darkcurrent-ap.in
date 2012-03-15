@@ -1,0 +1,100 @@
+Option, ECHO=FALSE;
+Option, TFS=FALSE;
+Option, PSDUMPFREQ=1;
+Option, STATDUMPFREQ=1;
+
+Title, string="First part of PSI FEL 250 Injector with CTF3 RF Photoinjector for startup";
+
+AUTO             = 1;      // set autophasing flag or comment this line
+REPARTFREQ       = 100;
+FINSS_RGUN_phi   = 0;    
+FINSB01_RACC_phi = 0; 
+FINSB02_RACC_phi = 0;    
+
+MINSTEPFORREBIN  = 1000;
+
+QB               = 0.2e-9;
+BFREQ            = 2998.0;
+BCURRENT         = QB*bfreq;
+
+
+if (AUTO==1) {
+
+Option, AUTOPHASE=10;
+
+} else {
+
+call, "../ctf3-injector-darkcurrent-1.phases";
+
+}
+
+DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION";
+
+ge: GEOMETRY, FGEOM="../FINSS_test1.h5", S=0.0, DISTR=DistSurf;
+
+// Begin: CTF3 /////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of CTF3 RF photoinjector.
+//
+
+//
+// L:		physical element length (real in m)
+// VOLT:	field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+
+FINSS_RGUN: RFCavity, L = 0.34986, VOLT = 100.0, FMAPFN = "../FINSS_02mm.T7" , GEOMETRY = ge,
+		ELEMEDGE =0.0, TYPE = "STANDING", FREQ = 2998.0,
+		LAG = FINSS_RGUN_phi;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+
+FIND1_MSOL10: Solenoid, L = 0.6, KS = 0.206, FMAPFN = "NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal", ELEMEDGE = 0.3;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FIND1_MQ10: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.38;
+FIND1_MQ20: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.56;
+FIND1_MQ30: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.74;
+
+//elemento fittizio utilizzato per prolungare la linea del fascio
+END: Solenoid, L=0.01, KS = 0.01, ELEMEDGE=100., FMAPFN="NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal";
+
+Injector: Line = (FINSS_RGUN, FIND1_MSOL10, FIND1_MQ10, FIND1_MQ20, FIND1_MQ30, END);
+
+
+Fs1:FIELDSOLVER, FSTYPE = NONE, MX = 32, MY = 32, MT = 128,
+		 PARFFTX = false, PARFFTY = false, PARFFTT = true,
+		 BCFFTX = open, BCFFTY = open, BCFFTT = open,
+		 BBOXINCR = 1, GREENSF = INTEGRATED;
+
+Dist1:DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+sigmax = 0.000275*2.0, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.000275*2.0, sigmapy = 0.0, corry = 0.0,
+sigmat = 0.0, pt = 0.0, sigmapt = 0.0, corrt = 0.0, tRise=0.7e-12, tFall=0.7e-12, tPulseFWHM=9.9e-12, ekin=0.63, NBIN=1, DEBIN=80;
+
+Dist2:DISTRIBUTION, DISTRIBUTION=fromfile, FNAME="../ReferenceParticles.dat";
+
+beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 1000, BFREQ = bfreq , BCURRENT = bcurrent, CHARGE = -1;
+
+Select, Line=Injector;
+
+if (AUTO==1) {
+
+// Autophasing with fine time steps for the complete beamline  
+track, line=Injector, beam=beam1, MAXSTEPS=1000000, DT=5.0e-14, ZSTOP=0.2;
+ run, method = "PARALLEL-T", beam = beam1, fieldsolver = Fs1, distribution = Dist2;
+endtrack;
+
+}
+
+Quit;

@@ -1,0 +1,110 @@
+set line style 1 lt 1 lw 2
+set line style 2 lt 2 lw 2 
+set line style 3 lt 3 lw 2 
+set line style 4 lt 6 lw 2 
+set line style 5 lt 1 lw 2 
+set line style 6 lt 2 lw 2 
+set line style 7 lt 3 lw 2 
+set line style 8 lt 6 lw 2 
+#
+#
+ofn1= 'ctf3-injector-20100211-sc-1/ctf3-injector-20100211-sc-1.stat'
+ofn2= 'ctf3-injector-20100211-sc-2/ctf3-injector-20100211-sc-2.stat
+ofn3= 'ctf3-injector-20100211-sc-3/ctf3-injector-20100211-sc-3.stat
+
+afnx= 'ctf3-gun-ASTRA/GUN5_5M9YAG200PC200K.Xemit.001'
+afny= 'ctf3-gun-ASTRA/GUN5_5M9YAG200PC200K.Yemit.001'
+afnz= 'ctf3-gun-ASTRA/GUN5_5M9YAG200PC200K.Zemit.001'
+#
+#
+#
+set grid
+set key below
+set title "Gian Lucas OPAL-t ASTRA on CTF3 with sc"
+#set y2label 'Particles-Pushed [ {/Symbol m}s^{-1}]' font 'Helvetica-Bold,25'
+#set ytics nomirror
+#set y2tics 
+# 
+#
+#
+#
+set xlabel 'z (m)' font 'Helvetica-Bold,25'
+set ylabel 'E  (MeV)' font 'Helvetica-Bold,25'
+plot [.25:.3] ofn3 u 2:5 w l ls 2 t 'OPAL 6.5 (3)'
+repl       ofn2 u 2:5 w l ls 3 t 'OPAL 6.75 (2)'
+repl afnz u 1:3 w l ls 1 t 'Astra'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'orlandi-ctf3-energy-1.ps'
+replot
+pause -1
+set term x11
+set out
+#
+#
+#
+#
+set ylabel 'rms values ({/Symbol m}m)' font 'Helvetica-Bold,25'
+plot [:] ofn3 u 2:($6*1E6) w l ls 2 t 'x OPAL 6.5 (3)'
+repl     ofn2 u 2:($6*1E6) w l ls 3 t 'x OPAL 6.75 (2)'
+repl afnx u 1:($4*1E3) w l ls 1 t 'x Astra'
+repl ofn3 u 2:($8*1E6) w l ls 2 t 'z OPAL 6.5 (3)'
+repl ofn2 u 2:($8*1E6) w l ls 3 t 'z OPAL 6.75 (2)'
+repl afnz u 1:($4*1E3) w l ls 1 t 'z Astra'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'orlandi-ctf3-xrms-1.ps'
+replot
+pause -1
+set term x11
+set out
+#
+#
+
+#
+#
+set ylabel 'rms values ({/Symbol m}m)' font 'Helvetica-Bold,25'
+plot [:.1] ofn3 u 2:($6*1E6) w l ls 2 t 'x OPAL 6.5 (3)'
+repl     ofn2 u 2:($6*1E6) w l ls 3 t 'x OPAL 6.75 (2)'
+repl afnx u 1:($4*1E3) w l ls 1 t 'x Astra'
+repl ofn3 u 2:($8*1E6) w l ls 2 t 'z OPAL 6.5 (3)'
+repl ofn2 u 2:($8*1E6) w l ls 3 t 'z OPAL 6.75 (2)'
+repl afnz u 1:($4*1E3) w l ls 1 t 'z Astra'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'orlandi-ctf3-xrms-2.ps'
+replot
+pause -1
+set term x11
+set out
+#
+#
+#
+
+#
+set ylabel '{/Symbol e}_{xrms} (mm-mr)' font 'Helvetica-Bold,25'
+plot [:.1] ofn3 u 2:($12*1E3) w l ls 2 t 'OPAL 6.5 (3)'
+repl     ofn2 u 2:($12*1E3) w l ls 3 t 'OPAL 6.75 (2)'
+repl afnx u 1:4 w l ls 1 t 'Astra'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'orlandi-ctf3-exrms-1.ps'
+replot
+pause -1
+set term x11
+set out
+exit
+#
+#
+#
+#
+set ylabel 'ez_{rms} (m)' font 'Helvetica-Bold,25'
+plot [:] ofn1 u 2:14 w l ls 2 t 'OPAL-t'
+repl      'ctf3-gun-ASTRA/GUN5_5M9YAG200PC200K.Zemit.001' u 1:($4*1E-3) w l ls 1 t 'Astra'
+#
+set term post enh col 'Helvetica,22' lw 3
+set out 'orlandi-ctf3-zrms-1.ps'
+replot
+pause -1
+set term x11
+set out

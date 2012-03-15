@@ -1,0 +1,11 @@
+Xstart = 0.0             ; XNORM1
+Ystart = 0.0             ; YNORM1
+Xend  =  3.0             ; XNORM2
+Yend  =  0.0             ; YNORM2   
+En = 1.d6                ; ENORM
+NormalizationCode = 4    ; NORM, normalize fields to ENORM between points:
+GeometryPhaseLength = 90 ; DPHI, phase length of cavity in degrees  
+FieldSegments
+1 2 3                    ; Segment numbers  
+EndData
+End

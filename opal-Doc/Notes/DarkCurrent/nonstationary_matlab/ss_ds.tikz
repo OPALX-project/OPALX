@@ -1,0 +1,21 @@
+\scalebox{0.7}{
+\begin{tikzpicture}
+\usetikzlibrary{arrows}
+\draw[fill=gray!60,dashed] (-3,0) rectangle (6,0.3);
+\draw[fill=gray!60,dashed] (-3,-4) rectangle (6,-3.7);
+\draw[very thick] (-3,-3.7) .. controls (-2.5,-3.5) and (-1.5,-2) .. (-1,0);
+\draw[very thick] (-1,0) .. controls (-0.7,-0.4) and (-0.2,-0.4) .. (0.1,0);
+\draw[very thick] (0.1,0) .. controls (0.8,-2.4) and (2.2,-1.6) .. (3.2,-3.7);
+\draw[very thick] (3.2,-3.7) .. controls (3.4,-3.1) and (3.7,-3.0) .. (4.2,-3.7);
+\draw (5.5,-3.7) node (d) [above] {$\mathbf{D}$};
+\draw (5.5,0) node (u) [below] {$\mathbf{U}$};
+\draw (-2.0,-2.5) node (ds1) [right] {$\mathbf{ds}$};
+\draw (-0.45,-0.25) node (ss1) [below] {$\mathbf{ss}$};
+\draw (1.5,-2) node (ds2) [below] {$\mathbf{ds}$};
+\draw (3.6,-3.2) node (ss2) [above] {$\mathbf{ss}$};
+%\draw [dashed,thick] (0,0.8) node (zaxis) [above] {$\mathbf{z}$}
+%        |- (0.8,0) node (yaxis) [right] {$\mathbf{y}$};
+\draw [<-,thick] (-3.,-3.7) -- (-3,-1.85) node (d) [left] {$\mathbf{\lambda}$};
+\draw [<-,thick] (-3,0) -- (-3,-1.85);
+\end{tikzpicture}
+}

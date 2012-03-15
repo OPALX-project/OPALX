@@ -1,0 +1,12 @@
+for d in $( ls -1 -d Ring-FlatTopScenario-* ); do 
+ cd $d
+ source simDef
+ for i in $cases; do
+ echo item: ln case$i/.mad .mad-$i
+ ln -s Ring-$i case$i
+ ln -fs case$i/.mad .mad-$i
+ done
+ makeSummary
+ convert -density 120x120 $title-summary.pdf /home2/adelmann/afs/www/ring/$d-summary.png
+ cd ..
+done

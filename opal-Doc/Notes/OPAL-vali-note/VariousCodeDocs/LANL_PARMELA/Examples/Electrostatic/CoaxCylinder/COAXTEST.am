@@ -1,0 +1,33 @@
+Electrostatic problem, coaxial cylinder   
+Voltage = 1 kV on the inner conductor
+[Originally appeared in 1987 Reference Manual B.12.2]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,    ! Poisson or Pandira problem
+xjfact=0.0,      ! Electrostatic problem
+dx=.1,dy=.1,     ! Mesh intervals
+icylin=1,        ! Cylindrical symmetry
+nbsup=0,         ! Dirichlet boundary condition at upper edge
+nbslo=1,         ! Neumann boundary condition at lower edge
+nbsrt=0,         ! Dirichlet boundary condition at right edge
+nbslf=1          ! Neumann boundary condition at left edge
+ktop=31,         ! Logical coordinate limit in X for interpolation
+ltop=43 &        ! Logical coordinate limit in Y for interpolation
+
+&po x=0.,y=0. &
+&po x=0.,y=5. &
+&po nt=2,r=5.,theta=0. &
+&po x=0.,y=0. &
+
+&reg mat=0,voltage=1000.0,ibound=-1 &
+&po x=0.,y=0. &
+&po x=0.,y=2. &
+&po nt=2,r=2.,theta=60. &
+&po r=3.,theta=60. &
+&po nt=2,r=3.,theta=30. &
+&po r=2.,theta=30. &
+&po nt=2,r=2.,theta=0. &
+&po x=0.,y=0. &
+

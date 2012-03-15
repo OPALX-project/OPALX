@@ -1,0 +1,39 @@
+Current Carrying Wire Inside an Iron Pipe
+Current = 100 A in a 2-cm-diameter conductor
+Wire is to right and above center of pipe
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,    ! Poisson or Pandira problem
+mat=2,           ! Material is iron
+mode=-1,         ! Some materials have fixed permeability
+fixgam=0.0005,   ! Permeability 
+dx=0.3,dy=0.3    ! Mesh intervals
+icylin=0,        ! Cartesian coordinates
+nbsup=0,         ! Dirichlet boundary condition at upper edge
+nbslo=0,         ! Dirichlet boundary condition at lower edge
+nbsrt=0,         ! Dirichlet boundary condition at right edge
+nbslf=0          ! Dirichlet boundary condition at left edge
+ibound=0 &       ! Dirichlet boundary condition on this region's boundary
+
+&po x=30.,y=15. &
+&po nt=2,r=15.,theta=90.,x0=15.,y0=15 &
+&po nt=2,r=15.,theta=180.,x0=15.,y0=15 &
+&po nt=2,r=15.,theta=270.,x0=15.,y0=15 &
+&po nt=2,r=15.,theta=360.,x0=15.,y0=15 &
+
+&reg mat=1 &
+&po x=25.,y=15. &
+&po nt=2,r=10.,theta=90.,x0=15.,y0=15 &
+&po nt=2,r=10.,theta=180.,x0=15.,y0=15 &
+&po nt=2,r=10.,theta=270.,x0=15.,y0=15 &
+&po nt=2,r=10.,theta=360.,x0=15.,y0=15 &
+
+&reg mat=1,cur=100. &
+&po x=19.535534,y=18.535534 &
+&po nt=2,r=1.,theta=90.,y0=18.535534,x0=18.535534 &
+&po nt=2,r=1.,theta=180.,y0=18.535534,x0=18.535534 &
+&po nt=2,r=1.,theta=270.,y0=18.535534,x0=18.535534 &
+&po nt=2,r=1.,theta=360.,y0=18.535534,x0=18.535534 &
+

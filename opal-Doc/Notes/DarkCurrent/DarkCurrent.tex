@@ -1,0 +1,52 @@
+
+\documentclass{article}
+\usepackage{graphicx}% Include figure files
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+
+\begin{document}
+\title{Dark Current Model}
+\author{Chuan Wang \& Andreas Adelmann}
+\date{\today}
+\maketitle
+
+\section{Introduction}
+Particles hitting on the surface of the accelerator structure are removed from the Simulation. 
+\section{Model}
+
+\section{Implementation}
+
+\subsection{The input parameters}
+
+
+
+
+
+\begin{tikzpicture}[scale=1.5,axis/.style={very thick, ->, >=stealth'}]
+    % Draw axes
+    \draw [->,thick] (1,-2.0) -- (1,2.0) node (yaxis) [above] {$y$};
+    \draw [->,thick] (-1.2,1.0)  -- (4.0,1.0) node (xaxis) [right] {$x$};
+    \draw (3.5,-0.2) --(2.0,-1.5)
+          (2.0,-1.5) --(2.1,-1.6)
+          (2.1,-1.6) --(3.6,-0.3)
+          (3.6,-0.3) --(3.5,-0.2);
+    \fill[red] (2.05,-1.55)  circle (1pt) node (start)[below] {(xstart,ystart)};
+    \fill[red] (3.55,-0.25)  circle (1pt) node (end)[above] {(xend,yend)};;
+    \node (steptum) at (2.55,-0.55)[anchor=mid] {septum};
+    \draw [<->,thick,red] (2.75,-0.85)--(2.85,-0.95) node [right] {width}; 
+    
+   
+
+\end{tikzpicture}
+
+
+
+
+\subsection{The algorithm}
+
+
+
+\end{document}
+
+

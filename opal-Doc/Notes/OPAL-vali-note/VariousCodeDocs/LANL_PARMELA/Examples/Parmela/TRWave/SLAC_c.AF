@@ -1,0 +1,37 @@
+Cavity geometry for the SLAC traveling-wave linac
+Boundary conditions are for the cosine solution read by TRWCField line
+See page 270 in Linear Accelerators, ed. Lapostolle and Septier
+Nominal geometry in inches from Table 1 (SLAC input):
+2a = 1.0323, 2b = 3.2859, d = 1.377, t = 0.23  
+Outer radius adjusted for resonant frequency = 2856 MHz 
+
+&REG KPROB=1,                    ; SUPERFISH problem
+FREQ=2856                        ; Mode frequency
+BETA=1.0                         ; Particle velocity
+kmethod=1                        ; Use beta to compute wave number
+norm=4                           ; Normalization method in SFO
+ENORM=1000000.0                  ; Field normalization for NORM=4 option
+XNORM1=0                         ; Starting X for NORM=4 integration path
+XNORM2=1.74879                   ; Ending X for NORM=4 integration path
+YNORM1=0                         ; Starting Y for NORM=4 integration path
+YNORM2=0                         ; Ending Y for NORM=4 integration path
+NBSUP=1,                         ; Neumann boundary condition at upper edge
+NBSLO=0,                         ; Dirichlet boundary condition at r = 0
+NBSLF=1,                         ; Neumann boundary condition at left edge
+NBSRT=1,                         ; Neumann boundary condition at right edge
+XDRI=0.,YDRI=3.5                 ; Drive point coordinates
+DX=.049,                         ; Mesh interval
+DSLOPE=-1      &                 ; Allow convergence in 1 iteration
+
+; Start of boundary points
+&PO X=0.,Y=0. &
+&PO X=0.,Y=4.17255425 &
+&PO X=1.45669,Y=4.17255425 &
+&PO X=1.45669,Y=1.603121 &
+&PO NT=2,X0=1.74879,Y0=1.603121,X=0.2921,Y=0. &
+&PO X=2.04099,Y=4.17255425 &
+&PO X=4.95427,Y=4.17255425 &
+&PO X=4.95427,Y=1.603121 &
+&PO NT=2,X0=5.24637,Y0=1.603121,X=0,Y=-.2921 &
+&PO X=5.24637,Y=0 &
+&PO X=0.,Y=0. &

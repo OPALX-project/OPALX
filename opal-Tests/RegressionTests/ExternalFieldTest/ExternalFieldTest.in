@@ -1,0 +1,93 @@
+Option, ECHO=FALSE;
+Option, TFS=FALSE;
+Option, PSDUMPFREQ=20;
+//Option, AUTOPHASE=10;
+
+Title,string="OPAL External field test";
+
+FINSS_RGUN_phi   = 0;    
+FINSB01_RACC_phi = 0; 
+FINSB02_RACC_phi = 0;    
+
+REPARTFREQ       = 100;
+MINSTEPFORREBIN  = 600;
+
+QB               = 0.2e-9;
+BF               = 2998.0;
+BC               = QB*BF;
+
+call, "ExternalFieldTest.phases";
+
+FINSS_RGUN: RFCavity, L = 0.34986, VOLT = 100.0, FMAPFN = "CTF3_Ez_ASTRA.opal",
+		ELEMEDGE =0.0, TYPE = "STANDING", FREQ = BF,
+		LAG = FINSS_RGUN_phi; // -(14.0/180.0*PI);
+
+FIND1_MSOL10: Solenoid, L = 0.6, KS = 0.206, FMAPFN = "NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal", ELEMEDGE = 0.3;
+
+FIND1_MQ10: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.38;
+FIND1_MQ20: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.56;
+FIND1_MQ30: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.74;
+
+Injector: Line = (FINSS_RGUN, FIND1_MSOL10, FIND1_MQ10, FIND1_MQ20, FIND1_MQ30);
+
+// L-Band Structure starts here
+// 40 cells in 2\pi/3 mode at 1.5 GHz (rfdata[1-4]); with 4 solenoids on top (1T6.T7)
+
+/*
+  FAST=TRUE -> enables fast calculation of electric fields (one FFT + interpolation)
+*/
+
+FINLB02_RAC: TravelingWave, L=2.80, VOLT=14.750*30/31, FMAPFN="FINLB02-RAC.T7", ELEMEDGE=2.67066, NUMCELLS=40, MODE=1/3, ACCURACY=39, FREQ=1498.956, LAG=FINLB02_RAC_lag;
+
+FINLB02_MSLAC10: Solenoid, L=0.5, KS=0.05, FMAPFN="FINLB02-MSLAC.T7", ELEMEDGE=2.454;
+
+FINLB02_MSLAC20: Solenoid, L=0.5, KS=0.05, FMAPFN="FINLB02-MSLAC.T7", ELEMEDGE=3.154;
+
+FINLB02_MSLAC30: Solenoid, L=0.5, KS=0.05, FMAPFN="FINLB02-MSLAC.T7", ELEMEDGE=3.854;
+
+FINLB02_MSLAC40: Solenoid, L=0.5, KS=0.05, FMAPFN="FINLB02-MSLAC.T7", ELEMEDGE=4.554;
+
+FINLB02: Line = (FINLB02_RAC,
+                 FINLB02_MSLAC10,
+                 FINLB02_MSLAC20,
+                 FINLB02_MSLAC30,
+                 FINLB02_MSLAC40);
+
+l1:   Line = (Injector,FINLB02);
+
+/*
+ We can specity ONE distribution
+*/
+Dist2:DISTRIBUTION, DISTRIBUTION=fromfile, FNAME="ReferenceParticles.dat";
+
+
+Dist1:DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+sigmax = 0.000395, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.000395, sigmapy = 0.0, corry = 0.0,
+sigmat = 0.0, pt = 0.0, sigmapt = 0.0, corrt = 0.0, tRise=7.45e-12, tFall=7.45e-12, tPulseFWHM=10.4e-12, ekin=0.4, NBIN=10, DEBIN=80;
+
+/*
+ We can specity ONE field solver object
+*/
+
+Fs1:FIELDSOLVER, FSTYPE=None, MX=16, MY=16, MT=128,
+                 PARFFTX=false, PARFFTY=false, PARFFTT=true,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open,
+                 BBOXINCR=1.0, GREENSF=INTEGRATED;
+
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=1e3, BFREQ=1498.953425154e6, BCURRENT=0.032912, CHARGE=-1;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, ZSTOP=5.0, MAXSTEPS=14226, DT=1.0e-11;
+ run, file = "track_output", method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+
+
+
+
+
+
+

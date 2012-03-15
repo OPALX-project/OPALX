@@ -1,0 +1,5 @@
+"Parallel plate test using the Vaughan model with constant number of particles"
+stat "rms_x" last 1E-8    #this is a comment
+stat "rms_y" last 1E-8    #this is a comment
+stat "rms_s" last 1E-8    #this is a comment
+stat "Ez_ref" avg 1E-8

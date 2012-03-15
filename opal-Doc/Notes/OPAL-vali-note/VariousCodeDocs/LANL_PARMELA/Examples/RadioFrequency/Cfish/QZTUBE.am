@@ -1,0 +1,43 @@
+5.65-GHz TM010 Pillbox Cavity with Gas-Filled Quartz Tube
+Resonant frequency 5.65 GHz
+
+; Copyright 1998,2003 by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,          ; Superfish problem
+dx=.03,dy=.017,        ; Mesh interval
+xdri=0.,ydri=1.9,      ; Drive point coordinates 
+freq=5600              ; Frequency
+yreg1=0.3,yreg2=0.6,   ; Y line regions where mesh doubles
+beta=0.1 &             ; Particle velocity for transit-time integrals
+
+&po x=0.,y=0. &
+&po x=0.,y=1.9 &
+&po x=2.0,y=1.9 &
+&po x=2.0,y=0.3 &
+&po x=3.0,y=0.3 &
+&po x=3.0,y=0. &
+&po x=0.,y=0. &
+
+&reg mat=2 &
+&po x=0.,y=0.2 &
+&po x=0.,y=0.3 &
+&po x=3.0,y=0.3 &
+&po x=3.0,y=0.2 &
+&po x=0.,y=0.2 &
+
+&reg mat=3 &
+&po x=0.,y=0.0 &
+&po x=0.,y=0.2 &
+&po x=3.0,y=0.2 &
+&po x=3.0,y=0.0 &
+&po x=0.,y=0.0 &
+
+&mt mtid=2   
+epsilon=3.78,0.0006426,  ; permittivity of quartz
+mu=1.0,0.0 &
+
+&mt mtid=3 
+epsilon=1.00,0.0001250,
+mu=1.0,0.0 &
+

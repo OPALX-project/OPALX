@@ -1,0 +1,179 @@
+Ippl> CommMPI: Parent process waiting for children ...
+Ippl> CommMPI: Initialization complete.
+>                ____  _____       ___ 
+>               / __ \|  __ \ /\   | | 
+>              | |  | | |__) /  \  | |
+>              | |  | |  ___/ /\ \ | |
+>              | |__| | |  / ____ \| |____
+>               \____/|_| /_/    \_\______|
+OPAL > 
+OPAL > This is OPAL (Object Oriented Parallel Accelerator Library) Version 1.1.6 SVN version 9668M  (c) PSI, http://amas.web.psi.ch
+OPAL > 
+OPAL > Please send cookies, goodies or other motivations (wine and beer ... ) to andreas.adelmann@psi.ch
+OPAL > Time: 03.10.07 date: 21/02/2010
+OPAL > No startup file "/home2/adelmann/init.opal" found.
+OPAL > Reading input stream "ctf3-injector-20100211-nosc.in".
+OPAL > 
+OPAL > value: {FINSS_RGUN_PHI,FINSB01_RACC_PHI,FINSB02_RACC_PHI}={2.23517,0,0}
+OPAL > 
+OPAL > 
+OPAL > value: {TFLATTOP,TEMIS}={9.1575e-12,1.33575e-11}
+OPAL > 
+OPAL > 
+OPAL > 8 elements selected.
+OPAL > 
+OPAL > * ********************************************************************************** 
+OPAL >   Selected Tracking Method == PARALLEL-T, NEW TRACK
+OPAL > * ********************************************************************************** 
+Ippl> no solver attached
+OPAL >  -- B I N N I N G in T -----------------------------------------
+OPAL >  ---------------------I N P U T --------------------------------
+OPAL >  GUNGAUSS FLAT TOP &  THERMAL EMITTANCE in ASTRA MODE
+OPAL >  Kinetic energy (thermal emittance) = 0.4 [eV]  
+OPAL >  Phi max = 90 [deg]  
+OPAL >  tBin = 1.33575e-12 [sec]  nBins = 10 tEmission =  1.33575e-11 [sec] 
+OPAL >  Write distribution to file dist.dat
+OPAL > -----------------------------------------
+OPAL >      CREATE BINNED GAUSS DISTRIBUTION DONE        
+OPAL > Bins= 10 hBin= 0 Particle vector length 0
+OPAL > Bin # 0 val 941
+OPAL > Bin # 1 val 17949
+OPAL > Bin # 2 val 27082
+OPAL > Bin # 3 val 27033
+OPAL > Bin # 4 val 27108
+OPAL > Bin # 5 val 26946
+OPAL > Bin # 6 val 27121
+OPAL > Bin # 7 val 26902
+OPAL > Bin # 8 val 17971
+OPAL > Bin # 9 val 947
+OPAL > Last emitted bin is 0
+OPAL > 
+OPAL > * ************* D I S T R I B U T I O N ******************************************** 
+OPAL > * Distribution:	DIST1
+OPAL > * Distribution type:	GUNGAUSSFLATTOPTH
+OPAL > * sigmax=	0.00054 [m];	sigmay=	0.00054 [m];	sigmat=	0 [m];
+OPAL > * transverse cut  3 [sigma] 
+OPAL > * sigmapx=	0 [eV];	sigmapy=	0 [eV];	pt +- sigmapt=	0+-0 [eV]
+OPAL > * corr x-px=	0	 corr y-py=	0	 corr t-pt=	0
+OPAL > * -------- G U N -------------------------------------------------------------------
+OPAL > * temission [s] 	1.33575e-11	 n bins 	10
+OPAL > 	 dEbin [keV] 	80
+OPAL > * ----------------------------------------------------------------------------------
+OPAL > * ********************************************************************************** 
+OPAL > 
+OPAL > * ************* B E A M ************************************************************ 
+OPAL > * BEAM        BEAM1
+OPAL > * PARTICLE    ELECTRON
+OPAL > * CURRENT     5.996e-07 A
+OPAL > * FREQENCY    2998 Hz
+OPAL > * CHARGE      -e * 1 
+OPAL > * REST MASS   0.000510999 GeV
+OPAL > * MOMENTUM    1
+OPAL > * NPART       200000
+OPAL > * ********************************************************************************** 
+OPAL > 
+OPAL > * ************* F I E L D S O L V E R ********************************************** 
+OPAL > * FIELDSOLVER  FS1
+OPAL > * TYPE         NONE
+OPAL > * N-PROCESSORS 1
+OPAL > * MX           16
+OPAL > * MY           16
+OPAL > * MT           32
+OPAL > * BBOXINCR     1
+OPAL > * GEOMETRY     
+OPAL > * ITSOLVER     CG
+OPAL > * INTERPL      LINEAR
+OPAL > * TOL          1e-08
+OPAL > * MAXITERS     100
+OPAL > * PRECMODE     HIERARCHY
+OPAL > * XDIM is parallel  
+OPAL > * YDIM is parallel  
+OPAL > * Z(T)DIM is parallel  
+Ippl> ======UniformCartesian<3,MFLOAT>==begin======
+Ippl> gridSizes[0] = 17
+Ippl> gridSizes[1] = 17
+Ippl> gridSizes[2] = 33
+Ippl> origin = ( 0 , 0 , 0 )
+Ippl> meshSpacing[0] = 1
+Ippl> meshSpacing[1] = 1
+Ippl> meshSpacing[2] = 1
+Ippl> Dvc[0] = ( -0.25 , -0.25 , -0.25 )
+Ippl> Dvc[1] = ( 0.25 , -0.25 , -0.25 )
+Ippl> Dvc[2] = ( -0.25 , 0.25 , -0.25 )
+Ippl> Dvc[3] = ( 0.25 , 0.25 , -0.25 )
+Ippl> Dvc[4] = ( -0.25 , -0.25 , 0.25 )
+Ippl> Dvc[5] = ( 0.25 , -0.25 , 0.25 )
+Ippl> Dvc[6] = ( -0.25 , 0.25 , 0.25 )
+Ippl> Dvc[7] = ( 0.25 , 0.25 , 0.25 )
+Ippl> cell volume = 1
+Ippl> ======UniformCartesian<3,MFLOAT>==end========
+Ippl> 
+Ippl> ParticleSpatialLayout, with particle distribution:
+Ippl>     Number of particles 0  
+Ippl> SpatialLayout decomposition = Total Domain = {[0,16),[0,16),[0,32)}
+Ippl> Local Rnodes = 1
+Ippl>  rnode 0 : {[0,16),[0,16),[0,32)}
+Ippl> Remote Rnodes = 0
+Ippl> Internal FieldLayout = Domain = {[0:15:1],[0:15:1],[0:31:1]}
+Ippl> FieldLayoutUsers = 1
+Ippl> Total number of vnodes = 1
+Ippl> Local Vnodes = 1
+Ippl>  vnode 0: Node = 0 ; vnode_m = 0 ; Domain = {[0:15:1],[0:15:1],[0:31:1]}
+Ippl> Remote Vnodes = 0
+Ippl> 
+OPAL > * ********************************************************************************** 
+OPAL > 
+OPAL > 
+OPAL > Phase space dump frequency 10000000 and statistics dump frequency 20 w.r.t. the time step.
+OPAL > Track start at: 03.10.07 t= 0 zstop@ 2 [m]
+OPAL > Do emission for 1.33575e-11 [s] using 10 energy bins 
+OPAL > Change dT from 1e-12 [s] to 1e-12 [s] during emission 
+OPAL > Executing ParallelTTracker, initial DT 1e-12 [s]; max integration steps 1000001 step= 1
+RFCavity > FINSS_RGUN using file CTF3_Ez_ASTRA.opal (1D dynamic); zini= 0 m; zfinal= 0.17493 m;
+Solenoid > FIND1_MSOL10 using file NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal (1D magnetostatic); zini= -0.3 m; zfinal= 0.3 m;
+Solenoid > END using file FIND1-MSOL10.T7 (1D magnetostatic); zini= 0 m; zfinal= 0.6 m;
+OPAL > 
+OPAL > --- BEGIN FIELD LIST ---------------------------------------------------------------
+OPAL > 
+OPAL > --- 0 m -- 0.17493 m -- alpha = 0 -- beta = 0 --------------------------------------
+OPAL > FINSS_RGUN
+OPAL > FIND1_MSOL10
+OPAL > --- 0.17493 m -- 0.6 m -- alpha = 0 -- beta = 0 ------------------------------------
+OPAL > FIND1_MSOL10
+OPAL > --- 1.38 m -- 1.48 m -- alpha = 0 -- beta = 0 --------------------------------------
+OPAL > FIND1_MQ10
+OPAL > --- 1.56 m -- 1.66 m -- alpha = 0 -- beta = 0 --------------------------------------
+OPAL > FIND1_MQ20
+OPAL > --- 1.74 m -- 1.84 m -- alpha = 0 -- beta = 0 --------------------------------------
+OPAL > FIND1_MQ30
+OPAL > --- 100 m -- 100.6 m -- alpha = 0 -- beta = 0 --------------------------------------
+OPAL > END
+OPAL > 
+OPAL > --- END FIELD LIST -----------------------------------------------------------------
+OPAL > 
+*1DD > 
+*1DD > * ************ I N F O *********************************************************
+*1DD > * read in fieldmap 'CTF3_Ez_ASTRA.opal'                                        *
+*1DD > * ******************************************************************************
+*1DD > 
+*1DD > 
+OPAL > FINSS_RGUN gone live
+*1DMS > 
+*1DMS > * ************ I N F O *********************************************************
+*1DMS > * read in fieldmap 'NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal'                        *
+*1DMS > * ******************************************************************************
+*1DMS > 
+*1DMS > 
+OPAL > FIND1_MSOL10 gone live
+OPAL > MINSTEPFORREBIN 1000
+OPAL > Changing emission time step to: 1.33575e-12
+OPAL > * Bin number: 0 has emitted all 941 particles.
+OPAL > 03.10.07 Step 1 at 2.60902e-06 [m] t= 1.33575e-12 [s] E=0 [MeV] 
+OPAL > * Bin number: 1 has emitted all 17949 particles.
+OPAL > 03.13.19 Step 2 at 3.5881e-06 [m] t= 2.6715e-12 [s] E=0.00368315 [MeV] 
+OPAL > * Bin number: 2 has emitted all 27082 particles.
+OPAL > 03.20.51 Step 3 at 1.03036e-05 [m] t= 4.00725e-12 [s] E=0.00132007 [MeV] 
+OPAL > * Bin number: 3 has emitted all 27033 particles.
+OPAL > 03.28.06 Step 4 at 2.27381e-05 [m] t= 5.343e-12 [s] E=0.00194954 [MeV] 
+OPAL > * Bin number: 4 has emitted all 27108 particles.
+OPAL > 03.35.37 Step 5 at 4.10576e-05 [m] t= 6.67875e-12 [s] E=0.00311129 [MeV] 

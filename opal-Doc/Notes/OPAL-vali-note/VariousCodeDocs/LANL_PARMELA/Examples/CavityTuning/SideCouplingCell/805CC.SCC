@@ -1,0 +1,44 @@
+; SCCfish control file 805CC.SCC
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+TITLE
+Sample problems for coupling cells.
+Resonant frequency = 805 MHz
+ENDTITLE
+
+FILEname_prefix       805cc
+SEQuence_number       1
+FREQuency             805
+NEWFREQuency            700
+LENGTH                9.13156
+DIAMeter              17.4498
+POST_Length           3.35
+POST_Diameter         8.7249
+OUTER_CORNer_radius   0
+INNER_CORNer_radius   0
+INNER_POST_radius     0
+OUTER_POST_radius     0
+FLAT_length           0
+FACE_angle            0
+DELTA_frequency       0.02
+MESH_size             0.08
+START                 3
+
+; Start codes for SCCFISH:
+; 1 No tuning
+; 2 Adjust diameter
+; 3 Adjust gap (equal length changes on both posts)
+; 4 Adjust left post length (full cavities only)
+; 5 Adjust right post length
+
+OUTER_CORNer_radius   0.9525
+INNER_CORNer_radius   0.3175
+INNER_POST_radius     0.5
+OUTER_POST_radius     0.3175
+FLAT_length           2
+FACE_angle            10
+START                 3
+
+ENDFILE
+

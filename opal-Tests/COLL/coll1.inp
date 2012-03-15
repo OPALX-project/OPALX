@@ -1,0 +1,53 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=50;
+//Option, SCAN=TRUE;
+
+Title,string="collimator test";
+
+Edes=0.0724976;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+
+
+KX1I_PHYS: SurfacePhysics, TYPE="Collimator",MATERIAL="Cu";
+
+KX0I: ECollimator, L=0.09, ELEMEDGE=0.01, XSIZE=0.003, YSIZE=0.003, APERTURE={0.003,0.003},OUTFN="KX0I.h5", SURFACEPHYSICS='KX1I_PHYS';
+DR1:DRIFT, L=0.09, ELEMEDGE=0.01,APERTURE={0.003,0.003}, SURFACEPHYSICS='KX1I_PHYS';
+QXA1:QUADRUPOLE,L=0.19,ELEMEDGE=0.11,APERTURE={0.003,0.003},K1=0.0, SURFACEPHYSICS='KX1I_PHYS';
+
+MXP00: Monitor, L=0.002, ELEMEDGE=0.1, OUTFN="MXP00.h5";
+
+IW2Line: Line=(MXP00,KX0I);
+
+qb=0.0;
+rf=50.6328e6; 
+
+Distcoll:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  5.0e-03, sigmapx= 0.00, corrx=0.0,
+sigmay=  5.0e-03, sigmapy=0.00, corry=0.0,
+t=1.0e-10, sigmat= 1.0e-10, pt=72e6,sigmapt=0.0,corrt=0.0, r61=0.0;
+
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=32, MY=32, MT=32, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=STANDARD;
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, NPART=1e6, BCURRENT=3.0e-03, BFREQ=rf, CHARGE=1;
+
+Select, Line=IW2Line;
+
+track,line=IW2Line, beam=beam1, MAXSTEPS=3500, DT=1.0e-12;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Distcoll;
+endtrack;
+Stop;
+
+Quit;
+

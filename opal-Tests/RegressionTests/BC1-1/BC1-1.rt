@@ -1,0 +1,5 @@
+"One dipole with 1D csr, no space charge is considered"
+stat "rms_x" last 2E-8    #this is a comment
+stat "rms_y" last 2E-8    #this is a comment
+stat "rms_s" last 2E-8    #this is a comment
+out "rms emmitance" last 2E-8

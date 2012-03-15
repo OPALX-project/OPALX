@@ -1,0 +1,15 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe orte 1
+#$ -N Envelope-Tracker-Phase1-RT
+#$ -v LD_LIBRARY_PATH,OPENMPI,OPAL_EXE_PATH,REG_TEST_DIR
+
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+cp $MACHINE_FILE machinefile.last
+
+cd $REG_TEST_DIR
+OPAL="$OPAL_EXE_PATH/opal Envelope-Tracker-Phase1.in --commlib mpi --info 0 --warn 0 "
+CMD="$OPENMPI/bin/mpirun -x LD_LIBRARY_PATH -machinefile $MACHINE_FILE -np $NSLOTS $OPAL "
+$CMD

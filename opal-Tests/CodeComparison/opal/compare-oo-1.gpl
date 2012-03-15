@@ -1,0 +1,186 @@
+set line style 1 lt 1 lw 2
+set line style 2 lt 2 lw 2 
+set line style 3 lt 3 lw 2 
+set line style 4 lt 6 lw 2 
+set line style 5 lt 1 lw 2 
+set line style 6 lt 2 lw 2 
+set line style 7 lt 3 lw 2 
+set line style 8 lt 6 lw 2 
+#
+fopA='opal-cc/opal-cc.stat'
+fopB='opal-cc_USEET=1_CORES=1_TFWHM=9.9/opal-cc.stat'
+fopC='opal-cc_USEET=1_CORES=1_TFWHM=9.5/opal-cc.stat'
+#
+titAx='x t'
+titCx='x e'
+titBx='x e'
+titAz='z t'
+titCz='z e'
+titBz='z e'
+#
+fa1='ASTRA-new/test.Log.004'
+fa2='ASTRA-new/test.ref.004'
+fa3='ASTRA-new/test.Zemit.004'
+fa4='ASTRA-new/test.Xemit.004'
+#
+set grid
+set key default
+set title "OPAL-t OPAL-envelope "
+#set size square
+#
+#
+set ylabel 'rms values ({/Symbol m}m)' font 'Helvetica-Bold,25'
+plot   [:] fopA u 2:($6*1E6) w l ls 1 t titAx
+replot     fopB u 2:($6*1E6) w l ls 2 t titBx
+replot     fopC u 2:($6*1E6) w l ls 3 t titCx
+
+replot     fopA u 2:($8*1E6) w l ls 1 t titAz
+replot     fopB u 2:($8*1E6) w l ls 2 t titBz
+replot     fopC u 2:($8*1E6) w l ls 3 t titCz
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-xzrms-1.pdf'
+replot
+pause -1
+set term x11
+set out
+
+set log y
+set ylabel 'ex_{rms} ()' font 'Helvetica-Bold,25'
+plot   [:] fopA u 2:12 w l ls 1 t titAx
+replot     fopB u 2:12 w l ls 2 t titBx
+replot     fopC u 2:12 w l ls 3 t titCx
+
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-exrms-1.pdf'
+replot
+pause -1
+set term x11
+set out
+
+exit
+
+
+
+
+set xlabel 'z (m)' font 'Helvetica-Bold,25'
+set ylabel 'E  (MeV)' font 'Helvetica-Bold,25'
+plot [:] fop u 2:5 w l ls 2 t 'OPAL-t'
+repl        fa3 u 1:3 w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - opal-astra-energy-1.pdf'
+replot
+pause -1
+set term x11
+set out
+
+plot [:0.2] fop u 2:5 w l ls 2 t 'OPAL-t'
+repl        fa3 u 1:3 w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-energy-2.pdf'
+replot
+pause -1
+set term x11
+set out
+
+plot [2.9:3.5] fop u 2:5 w l ls 2 t 'OPAL-t'
+repl        fa3 u 1:3 w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-energy-3.pdf'
+replot
+pause -1
+set term x11
+set out
+
+plot [7.9:8.5] fop u 2:5 w l ls 2 t 'OPAL-t'
+repl        fa3 u 1:3 w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-energy-4.pdf'
+replot
+pause -1
+set term x11
+set out
+
+
+#
+#
+#
+set ylabel 'dE/dz (MeV/m)' font 'Helvetica-Bold,25'
+plot [:] fop u 2:34 w l ls 2 t 'OPAL-t'
+repl        fa2 u 1:(-1*$4) w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-dEdz-1.pdf'
+replot
+pause -1
+set term x11
+set out
+#
+#
+#
+set ylabel 'rms values ({/Symbol m}m)' font 'Helvetica-Bold,25'
+plot [:] fop u 2:($6*1E6) w l ls 2 t 'x OPAL '
+repl fa4 u 1:($4*1E3) w l ls 1 t 'x Astra'
+rep  fop u 2:($8*1E6) w l ls 2 t 'z OPAL'
+repl fa3 u 1:($4*1E3) w l ls 1 t 'z Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-xzrms-1.pdf'
+replot
+pause -1
+set term x11
+set out
+
+plot [:0.2] fop u 2:($6*1E6) w l ls 2 t 'x OPAL '
+repl fa4 u 1:($4*1E3) w l ls 1 t 'x Astra'
+rep  fop u 2:($8*1E6) w l ls 2 t 'z OPAL'
+repl fa3 u 1:($4*1E3) w l ls 1 t 'z Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-xzrms-2.pdf'
+replot
+pause -1
+set term x11
+set out
+#
+#
+#
+set log y
+set ylabel 'ex_{rms} ()' font 'Helvetica-Bold,25'
+plot [:] fop u 2:12 w l ls 2 t 'OPAL-t'
+repl       fa4 u 1:($6*1E-6) w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-exrms-1.pdf'
+replot
+pause -1
+set term x11
+set out
+
+plot [:.2] fop u 2:12 w l ls 2 t 'OPAL-t'
+repl       fa4 u 1:($6*1E-6) w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-exrms-2.pdf'
+replot
+pause -1
+set term x11
+set out
+
+plot [7.0:7.5] fop u 2:12 w l ls 2 t 'OPAL-t'
+repl       fa4 u 1:($6*1E-6) w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '|ps2pdf - figures/opal-astra-exrms-3.pdf'
+replot
+pause -1
+set term x11
+set out
+#
+#
+#
+set ylabel 'ez_{rms} (m)' font 'Helvetica-Bold,25'
+plot [:] fop u 2:14 w l ls 2 t 'OPAL-t'
+repl       fa3 u 1:($4*1E-6) w l ls 1 t 'Astra'
+set term post enh col 'Helvetica,22' lw 3
+set out '| ps2pdf - figures/opal-astra-ezrms-1.pdf'
+replot
+pause -1
+set term x11
+set out
+#
+#
+#

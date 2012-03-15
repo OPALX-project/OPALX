@@ -1,0 +1,50 @@
+RFQ full quadrant
+Lowest dipole-mode frequency = 412.043 MHz
+Bore radius at quadrupole symmetry point r0 = 0.297 cm
+Vane-tip radius of curvature rho = 0.24371 cm
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=1,          ; Superfish problem
+; Define X (physical) and K (logical) line regions:
+xreg1=0.70, kreg1=50,  
+xreg2=1.4,  kreg2=80,  
+xreg3=2.1,  kreg3=95,  
+kmax=120,  
+; Define X (physical) and K (logical) line regions:
+yreg1=0.70, lreg1=50,  
+yreg2=1.4,  lreg2=80,  
+yreg3=2.1,  lreg3=95,  
+lmax=120,  
+icylin=0,              ; Cartesian coordinates
+freq=412.04344,        ; Starting frequency
+dslope=-1,             ; Allow convergence in one iteration
+rfq=1,                 ; Cavity type is RFQ
+; The following line is for dipole modes; use nbslf=0 for quadrupole modes
+nbslf=1,               ; Neumann boundary condition at left edge 
+lines=0 &              ; allow line region points to move in mesh optimization
+
+&po x=0.,y=0. &
+&po x=0.,y=.297 &
+&po nt=2,x0=0.,y0=.54071,y=-0.04232,x=.24001 &
+&po x=.342,y=1.07680 &
+&po x=.342,y=2.0 &
+&po x=1.0253,y=3.8734 &
+&po x=1.7267,y=5.7469 &
+&po x=2.428,y=7.6203 &
+&po x=2.428,y=7.7274 &
+&po nt=2,x0=3.063,y0=7.7274,x=0.,y=.635 &
+&po x=3.4638, y=8.3624 &
+&po x=8.3624, y=3.4638 &
+&po x=8.3624, y=3.0630 &
+&po nt=2, x0=7.7274, y0=3.0630,x=0.,y=-.635 &
+&po x=7.6203, y=2.428 &
+&po x=5.7469, y=1.7267 &
+&po x=3.8734, y=1.0253 &
+&po x=2.000, y=.3420 &
+&po x=1.07680,y=.342 &
+&po x=.49839, y=.24001 &
+&po nt=2,x0=0.54071,y0=0.,x=-.24371,y=0. &
+&po x=0.,y=0. &
+

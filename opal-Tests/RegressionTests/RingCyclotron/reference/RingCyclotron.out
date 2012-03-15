@@ -1,0 +1,419 @@
+PE_HOSTFILE:
+felsim14.psi.ch 4 all.q@felsim14.psi.ch <NULL>
+MACHINE_FILE:
+felsim14.psi.ch slots=4
+SLOTS=4
+/home1/sgefelsim/ge62/felsimsge/spool/felsim14/job_scripts/21217: line 18: cd: ./RingCyclotron: No such file or directory
+Ippl> CommMPI: Started job 3 on host `felsim14'.
+Ippl> CommMPI: Parent process waiting for children ...
+Ippl> CommMPI: Child 1 ready.
+Ippl> CommMPI: Child 3 ready.
+Ippl> CommMPI: Child 2 ready.
+Ippl> CommMPI: Initialization complete.
+Ippl> CommMPI: Started job 1 on host `felsim14'.
+Ippl> CommMPI: Started job 2 on host `felsim14'.
+{0}>                ____  _____       ___ 
+{0}>               / __ \|  __ \ /\   | | 
+{0}>              | |  | | |__) /  \  | |
+{0}>              | |  | |  ___/ /\ \ | |
+{0}>              | |__| | |  / ____ \| |____
+{0}>               \____/|_| /_/    \_\______|
+OPAL {0}> 
+OPAL {0}> This is OPAL (Object Oriented Parallel Accelerator Library) Version pre-1.1.8 SVN version   (c) PSI, http://amas.web.psi.ch
+OPAL {0}> 
+OPAL {0}> Please send cookies, goodies or other motivations (wine and beer ... ) to andreas.adelmann@psi.ch
+OPAL {0}> Time: 11.13.23 date: 02/12/2010
+OPAL {+0}> Reading startup file "/home2/adelmann/init.opal".
+OPAL {+0}> Finished reading startup file.
+OPAL {+0}> Reading input stream "RingCyclotron.in".
+OPAL {+0}> * ************* D I S T R I B U T I O N ******************************************** 
+OPAL {+0}> * Distribution:	DIST1
+OPAL {+0}> * Distribution type:	GAUSS
+OPAL {+0}> * sigmax=	0.002 [m];	sigmay=	0.002 [m];	sigmat=	0.002 [m];
+OPAL {+0}> * transverse cut  3 [sigma] 
+OPAL {+0}> * sigmapx=	1e-07 [eV];	sigmapy=	1e-07 [eV];	pt +- sigmapt=	0+-0.0003394 [eV]
+OPAL {+0}> * corr x-px=	0	 corr y-py=	0	 corr t-pt=	0
+OPAL {+0}> * ********************************************************************************** 
+OPAL {+0}> 
+OPAL {+0}> * ************* B E A M ************************************************************ 
+OPAL {+0}> * BEAM        BEAM1
+OPAL {+0}> * PARTICLE    PROTON
+OPAL {+0}> * CURRENT     0.001 A
+OPAL {+0}> * FREQENCY    50.65 Hz
+OPAL {+0}> * CHARGE      +e * 1 
+OPAL {+0}> * REST MASS   0.938272 GeV
+OPAL {+0}> * MOMENTUM    0.37456
+OPAL {+0}> * NPART       100000
+OPAL {+0}> * ********************************************************************************** 
+OPAL {+0}> 
+OPAL {+0}> * ************* F I E L D S O L V E R ********************************************** 
+OPAL {+0}> * FIELDSOLVER  FS1
+OPAL {+0}> * TYPE         FFT
+OPAL {+0}> * N-PROCESSORS 4
+OPAL {+0}> * MX           32
+OPAL {+0}> * MY           32
+OPAL {+0}> * MT           32
+OPAL {+0}> * BBOXINCR     2
+OPAL {+0}> * GRRENSF      INTEGRATED
+OPAL {+0}> * XDIM is parallel  
+OPAL {+0}> * YDIM is parallel  
+OPAL {+0}> * Z(T)DIM is parallel  
+OPAL {+0}> 
+OPAL {+0}> * ********************************************************************************** 
+OPAL {+0}> 
+OPAL {+0}> * ************** B U N C H ********************************************************* 
+OPAL {+0}> * NP= 100000 Qtot= 0.0197433 [nC]  Qi= 1.97433e-16 [C]
+OPAL {+0}> * Ekin= 3.40041e-10 [MeV] dEkin= 0 [MeV]
+OPAL {+0}> * rmax= ( 0.00870208 , 0.00918156 , 0.00830176 ) [m]
+OPAL {+0}> * rmin= ( -0.00849196 , -0.00958415 , -0.00881951 ) [m]
+OPAL {+0}> * rms beam size= ( 0.0019993 , 0.00201161 , 0.00200342 ) [m]
+OPAL {+0}> * rms momenta= ( 0 , 0 , 8.51427e-07 ) [beta gamma]
+OPAL {+0}> * mean beam size= ( -2.77074e-06 , 1.69163e-07 , 6.36214e-06 ) [m]
+OPAL {+0}> * mean momenta= ( 0 , 0 , -2.69482e-09 ) [beta gamma]
+OPAL {+0}> * rms emmitance= ( 0 , 0 , 0.0020036 ) (not normalized)
+OPAL {+0}> * rms correlation= ( 0 , 0 , -0.000460002 )
+OPAL {+0}> * dh= 0.02 [m] dT= 2.74213e-11 [s]
+OPAL {+0}> * hr= ( 0.000554646 , 0.000605346 , 0.000552299 ) [m]
+OPAL {+0}> * spos= 6.24535e-06 [m]
+OPAL {+0}> * ********************************************************************************** 
+OPAL {+0}> 
+OPAL {+0}> * ********************************************************************************** 
+OPAL {+0}>   Selected Tracking Method == CYCLOTRON-T, NEW TRACK
+OPAL {+0}> * ********************************************************************************** 
+OPAL {+0}> * Number of neighbour bunches= 1
+OPAL {+0}> * DT                         = 1e-10
+OPAL {+0}> * MAXSTEPS                   = 2000
+OPAL {+0}> * Phase space dump frequency = 10000
+OPAL {+0}> * Statistics dump frequency  = 1 w.r.t. the time step.
+OPAL {+0}> * ********************************************************************************** 
+visitCyclotron {+0}> RINIT= 2130 [mm]
+visitCyclotron {+0}> PHIINIT= 0 [deg]
+visitCyclotron {+0}> Initial gamma = 1.07674
+visitCyclotron {+0}> Initial beta = 0.370752
+visitCyclotron {+0}> Total reference momentum   = 399.202 [MCU]
+visitCyclotron {+0}> Reference azimuthal momentum  = 399.202 [MCU]
+visitCyclotron {+0}> Reference radial momentum     = -0.174 [MCU]
+visitCyclotron {+0}> Field symmetry= 8 
+visitCyclotron {+0}> Rf frequency= 50.65 [MHz]
+visitCyclotron {+0}> Field map file name= s03av.nar 
+visitCyclotron {+0}> Type of cyclotron= RING 
+visitCyclotron {+0}> Harmonic number h= 6 
+visitCyclotron read field {+0}> ----------------------------------------------
+visitCyclotron read field {+0}>             READ IN RING FIELD MAP            
+visitCyclotron read field {+0}>      (The first data block is useless)       
+visitCyclotron read field {+0}> ----------------------------------------------
+visitCyclotron read field {+0}> Minimal radius of measured field map: 1900 [mm]
+visitCyclotron read field {+0}> Stepsize in radial direction: 20 [mm]
+visitCyclotron read field {+0}> Minimal angle of measured field map: 0 [deg.]
+visitCyclotron read field {+0}> Stepsize in azimuth direction: 0.333333 [deg.]
+visitCyclotron read field {+0}> Index in radial direction: 141
+visitCyclotron read field {+0}> Index in azimuthal direction: 135
+visitCyclotron read field {+0}> Accordingly, total grid point along azimuth:  136
+visitCyclotron read field {+0}> Total stored grid point number ( ntetS * nrad ) : 19176
+visitCyclotron read field {+0}> read -in loop one block per radius
+visitCyclotron read field {+0}> rescaling of the fields with factor: 1
+visitCyclotron read field {+0}> Field Map read successfully!
+visitRFCavity {+0}> ---------------------------------------
+visitRFCavity {+0}> Minimal radius of cavity = 1900 [mm]
+visitRFCavity {+0}> Maximal radius of cavity = 4500 [mm]
+visitRFCavity {+0}> RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity {+0}> RF Field map file name = Cav1.dat
+visitRFCavity {+0}> Cavity azimuth position = 35 [deg.] 
+visitRFCavity {+0}> Cavity gap width = 220 [mm] 
+visitRFCavity {+0}> Cavity Shift distance = 416 [mm] 
+visitRFCavity {+0}> Initial RF phase (t=0) of cavity   = 139.428[deg.] 
+visitRFCavity read voltage{+0}> q= 1 m= 0.938272
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage{+0}>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}> Cavity voltage data read successfully!
+visitRFCavity {+0}> ---------------------------------------
+visitRFCavity {+0}> Minimal radius of cavity = 1900 [mm]
+visitRFCavity {+0}> Maximal radius of cavity = 4500 [mm]
+visitRFCavity {+0}> RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity {+0}> RF Field map file name = Cav1.dat
+visitRFCavity {+0}> Cavity azimuth position = 125 [deg.] 
+visitRFCavity {+0}> Cavity gap width = 220 [mm] 
+visitRFCavity {+0}> Cavity Shift distance = 416 [mm] 
+visitRFCavity {+0}> Initial RF phase (t=0) of cavity   = 319.428[deg.] 
+visitRFCavity read voltage{+0}> q= 1 m= 0.938272
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage{+0}>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}> Cavity voltage data read successfully!
+visitRFCavity {+0}> ---------------------------------------
+visitRFCavity {+0}> Minimal radius of cavity = 1900 [mm]
+visitRFCavity {+0}> Maximal radius of cavity = 4500 [mm]
+visitRFCavity {+0}> RF frequency (2*pi*f) = 9.5473e+08 [rad./s]
+visitRFCavity {+0}> RF Field map file name = Cav3.dat
+visitRFCavity {+0}> Cavity azimuth position = 170 [deg.] 
+visitRFCavity {+0}> Cavity gap width = 250 [mm] 
+visitRFCavity {+0}> Cavity Shift distance = 452 [mm] 
+visitRFCavity {+0}> Initial RF phase (t=0) of cavity   = 149.428[deg.] 
+visitRFCavity read voltage{+0}> q= 1 m= 0.938272
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage{+0}>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}> Cavity voltage data read successfully!
+visitRFCavity {+0}> ---------------------------------------
+visitRFCavity {+0}> Minimal radius of cavity = 1900 [mm]
+visitRFCavity {+0}> Maximal radius of cavity = 4500 [mm]
+visitRFCavity {+0}> RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity {+0}> RF Field map file name = Cav1.dat
+visitRFCavity {+0}> Cavity azimuth position = 215 [deg.] 
+visitRFCavity {+0}> Cavity gap width = 220 [mm] 
+visitRFCavity {+0}> Cavity Shift distance = 416 [mm] 
+visitRFCavity {+0}> Initial RF phase (t=0) of cavity   = 139.428[deg.] 
+visitRFCavity read voltage{+0}> q= 1 m= 0.938272
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage{+0}>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}> Cavity voltage data read successfully!
+visitRFCavity {+0}> ---------------------------------------
+visitRFCavity {+0}> Minimal radius of cavity = 1900 [mm]
+visitRFCavity {+0}> Maximal radius of cavity = 4500 [mm]
+visitRFCavity {+0}> RF frequency (2*pi*f) = 3.18243e+08 [rad./s]
+visitRFCavity {+0}> RF Field map file name = Cav1.dat
+visitRFCavity {+0}> Cavity azimuth position = 305 [deg.] 
+visitRFCavity {+0}> Cavity gap width = 220 [mm] 
+visitRFCavity {+0}> Cavity Shift distance = 416 [mm] 
+visitRFCavity {+0}> Initial RF phase (t=0) of cavity   = 319.428[deg.] 
+visitRFCavity read voltage{+0}> q= 1 m= 0.938272
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}>             READ IN VOLTAGE DATA              
+visitRFCavity read voltage{+0}>         (data format: s/L, v, dV/dr)          
+visitRFCavity read voltage{+0}> ----------------------------------------------
+visitRFCavity read voltage{+0}> Cavity voltage data read successfully!
+OPAL {+0}> -----------------------------
+OPAL {+0}> The selected Beam line elements are :
+OPAL {+0}> CYCLOTRON
+OPAL {+0}> CAVITY
+OPAL {+0}> CAVITY
+OPAL {+0}> CAVITY
+OPAL {+0}> CAVITY
+OPAL {+0}> CAVITY
+OPAL {+0}> -----------------------------
+OPAL {+0}> * 4th order Runge-Kuta integrator
+OPAL {+0}> * Beginning of this run is at t= 0 [ns]
+OPAL {+0}> * The time step is set to dt= 0.164528 [ns]
+OPAL {+0}> * meanR=( 2130 0 0 ) [mm] 
+OPAL {+0}> * Phase space dump at step 0 in the global frame 
+OPAL {+0}> * Single particle trajectory dump frequency is set to 10000
+OPAL {+0}> * The frequency to solve space charge fields is set to 1
+OPAL {+0}> * The repartition frequency is set to 10
+OPAL {+0}> * ---------------------------- MULTI-PARTICLES MODE------ ----------------------------*** 
+OPAL {+0}> ***---------------------------- Start tracking   ------------------------------------------*** 
+Gap Crossing {+2}> Cavity phase = -0.0340591[deg.], transit factor =  0.983549
+Gap Crossing {+2}> Energy Gain in Gap-crossing dE = 0.595159 [MeV]
+Gap Crossing {+2}> Current Energy = 72.5952 [MeV]
+Gap Crossing {+0}> Cavity phase = -0.283084[deg.], transit factor =  0.983669
+Gap Crossing {+0}> Energy Gain in Gap-crossing dE = 0.598876 [MeV]
+Gap Crossing {+0}> Current Energy = 73.194 [MeV]
+Gap Crossing {+2}> Cavity phase = 160.65[deg.], transit factor =  0.82113
+Gap Crossing {+2}> Energy Gain in Gap-crossing dE = -0.0723034 [MeV]
+Gap Crossing {+2}> Current Energy = 73.1217 [MeV]
+Gap Crossing {+2}> Cavity phase = 1.22024[deg.], transit factor =  0.983774
+Gap Crossing {+2}> Energy Gain in Gap-crossing dE = 0.603825 [MeV]
+Gap Crossing {+2}> Current Energy = 73.7256 [MeV]
+Gap Crossing {+0}> Cavity phase = 2.23209[deg.], transit factor =  0.983892
+Gap Crossing {+0}> Energy Gain in Gap-crossing dE = 0.603631 [MeV]
+Gap Crossing {+0}> Current Energy = 74.3292 [MeV]
+OPAL {+0}> one turn finished!
+Gap Crossing {+0}> Cavity phase = 1.13481[deg.], transit factor =  0.984008
+Gap Crossing {+0}> Energy Gain in Gap-crossing dE = 0.605475 [MeV]
+Gap Crossing {+0}> Current Energy = 74.9347 [MeV]
+Gap Crossing {+3}> Cavity phase = 1.32872[deg.], transit factor =  0.984122
+Gap Crossing {+3}> Energy Gain in Gap-crossing dE = 0.61133 [MeV]
+Gap Crossing {+3}> Current Energy = 75.546 [MeV]
+Gap Crossing {+2}> Cavity phase = 166.713[deg.], transit factor =  0.825826
+Gap Crossing {+2}> Energy Gain in Gap-crossing dE = -0.0864126 [MeV]
+Gap Crossing {+2}> Current Energy = 75.4596 [MeV]
+Gap Crossing {+1}> Cavity phase = 2.9186[deg.], transit factor =  0.98422
+Gap Crossing {+1}> Energy Gain in Gap-crossing dE = 0.613418 [MeV]
+Gap Crossing {+1}> Current Energy = 76.073 [MeV]
+Gap Crossing {+2}> Cavity phase = 2.44315[deg.], transit factor =  0.984333
+Gap Crossing {+2}> Energy Gain in Gap-crossing dE = 0.612856 [MeV]
+Gap Crossing {+2}> Current Energy = 76.6859 [MeV]
+OPAL {+0}> one turn finished!
+Gap Crossing {+3}> Cavity phase = 1.09255[deg.], transit factor =  0.984444
+Gap Crossing {+3}> Energy Gain in Gap-crossing dE = 0.617357 [MeV]
+Gap Crossing {+3}> Current Energy = 77.3032 [MeV]
+Gap Crossing {+2}> Cavity phase = 2.19867[deg.], transit factor =  0.984554
+Gap Crossing {+2}> Energy Gain in Gap-crossing dE = 0.623038 [MeV]
+Gap Crossing {+2}> Current Energy = 77.9263 [MeV]
+Gap Crossing {+1}> Cavity phase = 169.382[deg.], transit factor =  0.830304
+Gap Crossing {+1}> Energy Gain in Gap-crossing dE = -0.0984083 [MeV]
+Gap Crossing {+1}> Current Energy = 77.8279 [MeV]
+Gap Crossing {+0}> Cavity phase = 3.33341[deg.], transit factor =  0.984646
+Gap Crossing {+0}> Energy Gain in Gap-crossing dE = 0.622905 [MeV]
+Gap Crossing {+0}> Current Energy = 78.4508 [MeV]
+OPAL {+0}> ***---------------------------- PARTICLES TRACK DONE------ ----------------------------*** 
+CycTracker RK4{+1}> Final energy of reference particle = 78.4508 [MeV]
+CycTracker RK4{+1}> Total phase space dump number(includes the initial distribution) = 1
+CycTracker RK4{+1}> One can restart simulation from the last dump step ( -restart 0 )
+OPAL {+0}> * ************** B U N C H ********************************************************* 
+OPAL {+0}> * NP= 100000 Qtot= 0.0197433 [nC]  Qi= 1.97433e-16 [C]
+OPAL {+0}> * Ekin= 78.4509 [MeV] dEkin= 0 [MeV]
+OPAL {+0}> * rmax= ( 0.01808 , 0.00650199 , 0.00786164 ) [m]
+OPAL {+0}> * rmin= ( -0.0177348 , -0.00723967 , -0.00750291 ) [m]
+OPAL {+0}> * rms beam size= ( 0.00338581 , 0.00146825 , 0.00177596 ) [m]
+OPAL {+0}> * rms momenta= ( 0.000207058 , 0.000410075 , 0.000101037 ) [beta gamma]
+OPAL {+0}> * mean beam size= ( -2.30543e-15 , 1.0939e-15 , 3.88578e-20 ) [m]
+OPAL {+0}> * mean momenta= ( 0.392019 , 0.143305 , 6.56582e-07 ) [beta gamma]
+OPAL {+0}> * rms emmitance= ( 1.31915e-06 , 6.22623e-07 , 3.84149e-07 ) (not normalized)
+OPAL {+0}> * rms correlation= ( 0.619007 , -0.902054 , -0.448931 )
+OPAL {+0}> * dh= 0.02 [m] dT= 2.74213e-11 [s]
+OPAL {+0}> * hr= ( 0.00115532 , 0.000443279 , 0.000495631 ) [m]
+OPAL {+0}> * spos= -0.00484104 [m]
+OPAL {+0}> * ********************************************************************************** 
+OPAL {+0}> 
+OPAL {+0}> -----------------------------
+OPAL {+0}> Finalize i.e. write data and close files :
+OPAL {+0}> -----------------------------
+OPAL {+0}> End of input stream "RingCyclotron.in".
+Timings{+0}> -----------------------------------------------------------------
+Timings{+0}>      Timing results for 4 nodes:
+Timings{+0}> -----------------------------------------------------------------
+Timings{+0}> mainTimer ........... Wall tot =    267.172, CPU tot =     266.89
+Timings{+0}> 
+Timings{+0}> Particle Inside ..... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> Pre Processing ...... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> Ray tracing ......... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> SelfField ........... Wall max =    135.866, CPU max =     136.06
+Timings{+0}>                       Wall avg =    135.786, CPU avg =    135.815
+Timings{+0}>                       Wall min =    135.704, CPU min =     135.66
+Timings{+0}> 
+Timings{+0}> Boundingbox ......... Wall max =     5.5942, CPU max =       5.77
+Timings{+0}>                       Wall avg =    5.53767, CPU avg =     5.6025
+Timings{+0}>                       Wall min =    5.45613, CPU min =       5.44
+Timings{+0}> 
+Timings{+0}> Statistics .......... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> Potential ........... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> CreatDistr .......... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> LoadDistr ........... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> GreensFTotal ........ Wall max =    55.4351, CPU max =      55.34
+Timings{+0}>                       Wall avg =    55.0473, CPU avg =      55.02
+Timings{+0}>                       Wall min =    54.4411, CPU min =      54.24
+Timings{+0}> 
+Timings{+0}> IntGreenF1 .......... Wall max =    22.7194, CPU max =      22.81
+Timings{+0}>                       Wall avg =    6.79567, CPU avg =       6.81
+Timings{+0}>                       Wall min =   0.726825, CPU min =       0.78
+Timings{+0}> 
+Timings{+0}> IntGreenF2 .......... Wall max =    21.4695, CPU max =      21.42
+Timings{+0}>                       Wall avg =    11.2846, CPU avg =    11.3325
+Timings{+0}>                       Wall min =   0.340441, CPU min =       0.32
+Timings{+0}> 
+Timings{+0}> IntGreenF3 .......... Wall max =    26.0155, CPU max =      25.92
+Timings{+0}>                       Wall avg =    9.75432, CPU avg =       9.75
+Timings{+0}>                       Wall min =    4.12458, CPU min =       4.11
+Timings{+0}> 
+Timings{+0}> IntGreenF4 .......... Wall max =    27.8873, CPU max =      28.03
+Timings{+0}>                       Wall avg =    27.1844, CPU avg =     27.075
+Timings{+0}>                       Wall min =    25.9611, CPU min =      25.75
+Timings{+0}> 
+Timings{+0}> ShIntGreenF1 ........ Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> ShIntGreenF2 ........ Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> ShIntGreenF3 ........ Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> ShIntGreenF4 ........ Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> GreenF1 ............. Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> GreenF2 ............. Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> GreenF3 ............. Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> GreenF4 ............. Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> H5PartTimer ......... Wall max =    0.15217, CPU max =       0.03
+Timings{+0}>                       Wall avg =   0.150721, CPU avg =     0.0225
+Timings{+0}>                       Wall min =   0.147609, CPU min =       0.01
+Timings{+0}> 
+Timings{+0}> H5BlockTimer ........ Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> StatMarkerTimer ..... Wall max =          0, CPU max =          0
+Timings{+0}>                       Wall avg =          0, CPU avg =          0
+Timings{+0}>                       Wall min =          0, CPU min =          0
+Timings{+0}> 
+Timings{+0}> Integration ......... Wall max =    116.087, CPU max =     116.26
+Timings{+0}>                       Wall avg =    115.969, CPU avg =    115.855
+Timings{+0}>                       Wall min =    115.841, CPU min =     115.64
+Timings{+0}> 
+Timings{+0}> Frametransform ...... Wall max =    12.6358, CPU max =       12.8
+Timings{+0}>                       Wall avg =    12.5837, CPU avg =    12.5425
+Timings{+0}>                       Wall min =    12.5366, CPU min =      12.01
+Timings{+0}> 
+Timings{+0}> Dump ................ Wall max =     0.0002, CPU max =          0
+Timings{+0}>                       Wall avg = 0.00015675, CPU avg =          0
+Timings{+0}>                       Wall min =   0.000111, CPU min =          0
+Timings{+0}> 
+Timings{+0}> Binaryrepart ........ Wall max =    1.84863, CPU max =       2.01
+Timings{+0}>                       Wall avg =    1.84858, CPU avg =     1.8925
+Timings{+0}>                       Wall min =    1.84851, CPU min =       1.79
+Timings{+0}> 
+Timings{+0}> RC-RRtranspose ...... Wall max =    7.83063, CPU max =       7.73
+Timings{+0}>                       Wall avg =    7.19864, CPU avg =      7.215
+Timings{+0}>                       Wall min =    6.24229, CPU min =       6.34
+Timings{+0}> 
+Timings{+0}> RC-CCtranspose ...... Wall max =    26.6252, CPU max =      27.01
+Timings{+0}>                       Wall avg =    25.8575, CPU avg =      25.87
+Timings{+0}>                       Wall min =    24.6921, CPU min =      24.93
+Timings{+0}> 
+Timings{+0}> RC-RC1Dfft .......... Wall max =    14.2018, CPU max =      14.37
+Timings{+0}>                       Wall avg =     14.168, CPU avg =      14.14
+Timings{+0}>                       Wall min =    14.1129, CPU min =      13.94
+Timings{+0}> 
+Timings{+0}> RC-CC1Dfft .......... Wall max =    27.7317, CPU max =      27.92
+Timings{+0}>                       Wall avg =    27.0372, CPU avg =      26.99
+Timings{+0}>                       Wall min =    26.5845, CPU min =      26.33
+Timings{+0}> 
+Timings{+0}> RC-total ............ Wall max =    76.1776, CPU max =      75.74
+Timings{+0}>                       Wall avg =     74.862, CPU avg =    74.7675
+Timings{+0}>                       Wall min =    72.2315, CPU min =      72.17
+Timings{+0}> 
+Timings{+0}> -----------------------------------------------------------------

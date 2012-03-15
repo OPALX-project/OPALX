@@ -1,0 +1,13 @@
+function Y = myfun(t)
+e=1.6E-019;
+m=9.10938188E-031;
+JtoeV=6.2415E+018;%eV/J
+d=0.001;%m
+f=1.64e9;%Hz
+w=2*pi*f;
+Vo=120;%V
+vw=e*Vo/m/w/d;
+lambda=w*d/vw;
+phi_s=122/180*pi;
+Y(:,1) = (lambda-sin(phi_s)+sin(t(:)+phi_s))/t(:)-cos(phi_s);
+Y(:,2) = (-sin(phi_s)+sin(t(:)+phi_s))/t(:)-cos(phi_s);

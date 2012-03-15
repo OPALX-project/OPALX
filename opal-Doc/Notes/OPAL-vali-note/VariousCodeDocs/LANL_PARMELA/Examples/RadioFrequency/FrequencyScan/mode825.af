@@ -1,0 +1,23 @@
+On-Axis Coupled Cavity, Resonance search for pi mode at 825 MHz
+[courtesy of R. Cooper]
+
+&reg kprob=1,    ; Superfish problem
+freq=825.17992,  ; Frequency in MHz
+ccl=1,           ; Coupled-cavity linac cell
+dphi=180,        ; Phase change over the cell length
+dx=0.2,          ; Mesh spacing
+xdri=1.,         ; Drive point X coordinate 
+ydri=8.,         ; Drive point Y coordinate 
+dslope=-1 &      ; Allows FISH to converge in 1 iteration
+
+&po x=0.,y=0. &
+&po x=0.,y=16.24 &
+&po x=1.4899,y=16.24 &
+&po nt=2,x0=1.4899,y0=10.74,x=5.5,y=0.0 &
+&po x=6.9899,y=7.64 &
+&po nt=2,x0=7.85895,y0=7.64,y=0,x=0.86905 &
+&po x=8.728,y=17.2 &
+&po x=9.4,y=17.2 &
+&po x=9.4,y=0. &
+&po x=0.,y=0. &
+

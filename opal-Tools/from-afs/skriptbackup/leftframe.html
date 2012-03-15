@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>A Ring Model for the PSI High Current Update</title>
+<link rel=StyleSheet href="basic-style.css" type="text/css">
+<SCRIPT language="JavaScript" type="text/javascript">
+var nextFrame = 'topframe';
+
+function hideDIV(elements_id){
+var display_div = document.getElementById(elements_id);
+var controls_td = document.getElementById(elements_id + '_controls')
+var mchild = controls_td.firstChild;
+while (mchild != controls_td.lastChild){
+	var nmchild = mchild.nextSibling;
+	controls_td.removeChild(mchild);
+	mchild = nmchild
+}
+controls_td.removeChild(mchild);
+var newDIV = document.createElement("div");
+var newA = document.createElement("a");
+newA.setAttribute("href", "javascript: showDIV('" + elements_id + "');");
+newA.setAttribute("style", "font-size: 20px; text-decoration: none;");
+var newText = document.createTextNode("+");
+newA.appendChild(newText);
+newDIV.appendChild(newA);
+controls_td.appendChild(newDIV);
+display_div.style.height = '0px';
+//<div id="Scenario6_closed" style="width: 0px; overflow:hidden; float: right;"><a href="javascript: showDIV('Scenario6');" style="font-size:20px; text-decoration: none;">+</a></div>
+}
+function showDIV(elements_id){
+var display_div = document.getElementById(elements_id);
+var controls_td = document.getElementById(elements_id + '_controls')
+var mchild = controls_td.firstChild;
+while (mchild != controls_td.lastChild){
+	var nmchild = mchild.nextSibling;
+	controls_td.removeChild(mchild);
+	mchild = nmchild
+}
+controls_td.removeChild(mchild);
+var newDIV = document.createElement("div");
+var newA = document.createElement("a");
+newA.setAttribute("href", "javascript: hideDIV('" + elements_id + "');");
+newA.setAttribute("style", "font-size: 20px; text-decoration: none;");
+var newText = document.createTextNode("-");
+newA.appendChild(newText);
+newDIV.appendChild(newA);
+controls_td.appendChild(newDIV);
+display_div.style.height = '200px';
+}
+
+function showResult(hreftogo){
+parent.frames[nextFrame].location.href = hreftogo;
+if (nextFrame == 'topframe') nextFrame = 'bottomframe';
+else nextFrame = 'topframe';
+}
+</SCRIPT>
+</head>
+<body bgcolor="#FFFFFF">
+
+<h1>A Ring Model for the PSI High Current Update</h1>
+
+The purpose of this page is to give i) a constant update of the current state of the affair and ii) 
+
+<h2>Simulation code used</h2>
+We use the mad9p code .
+
+<h2>Building the Ring Model</h2>
+
+<p>
+The Ring model ..... 
+
+<table width="450" cellpadding="0" cellspacing="0" border="0" style="background-color: rgb(255,255,255); padding-top: 30px;">
+<TR><TD style="background-color: rgb(255,255,255);"><h2>Ring Flat-Top Scenario 6 case 1</h2></TD><TD id="Scenario6Case1_controls" style="vertical-align: top; background-color: rgb(255,255,255);"><div><a href="javascript: hideDIV('Scenario6Case1');" style="font-size:20px; text-decoration: none; float: left;">-</a></div></TD></TR></table>
+<div id="Scenario6Case1" style="height: 200px; width:450px; overflow: auto;">
+<table border='3' frame='void'>
+<tr> 
+<td><b>Turn</b></TD> 
+<td><b>spos [m] </b></td> 
+<td><b>V Flat-Top [%] </b></td> 
+<td><b>Phi initial </b></td> 
+<td><b>Results </b></td> 
+</tr>
+<tr>   <td> 1 </td> <td>26.7246</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step1.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 2 </td> <td>40.3614</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step2.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 3 </td> <td>54.1815</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step3.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 4 </td> <td>68.1839</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step4.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 5 </td> <td>82.3665</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step5.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 6 </td> <td>96.7274</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step6.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 7 </td> <td>111.265</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step7.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 8 </td> <td>125.979</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step8.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 9 </td> <td>140.871</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-1-step9.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+</table></div>
+<table width="450" cellpadding="0" cellspacing="0" border="0" style="background-color: rgb(255,255,255); padding-top: 30px;">
+	<TR>
+		<TD style="background-color: rgb(255,255,255);"><h2>Ring Flat-Top Scenario 6 case 2</h2></TD>
+		<TD id="Scenario6Case2_controls" style="vertical-align: top; background-color: rgb(255,255,255);"><div><a href="javascript: hideDIV('Scenario6Case2');" style="font-size:20px; text-decoration: none; float: left;">-</a></div>
+		</TD>
+	</TR>
+</table>
+<div id="Scenario6Case2" style="height: 200px; width:450px; overflow: auto;">
+<table border='3' frame='void'>
+<tr> <td><b>Turn</b></td> <td><b>spos [m] </b></td> <td><b>V Flat-Top [%] </b></td> <td><b>Phi initial </b></td> <td><b>Results </b></td> </tr>
+<tr>   <td> 1 </td> <td>26.7246</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step1.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 2 </td> <td>40.3614</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step2.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 3 </td> <td>54.1815</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step3.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 4 </td> <td>68.1839</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step4.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 5 </td> <td>82.3665</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step5.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 6 </td> <td>96.7274</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step6.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 7 </td> <td>111.265</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step7.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 8 </td> <td>125.979</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step8.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+<tr>   <td> 9 </td> <td>140.871</td> <td> 90 </td>  <td> 2 </td>  <td> <a href="javascript: showResult('Ring-FlatTopScenario-6-combined-case-2-step9.ps.png');"> <img border=0  width=400 src='ImpactT.mpeg' ALT='link' TITLE='link'></a> </td> </tr>
+</table>
+</div>
+Last update: 
+
+2007.06.25 
+<p align="right">
+<a href="mailto:Andreas.Adelmann@&#112;&#115;&#105;.&#99;&#104;">
+Andreas.Adelmann@&#112;&#115;&#105;.&#99;&#104;</a>
+</p>
+<hr>
+
+</body></html>

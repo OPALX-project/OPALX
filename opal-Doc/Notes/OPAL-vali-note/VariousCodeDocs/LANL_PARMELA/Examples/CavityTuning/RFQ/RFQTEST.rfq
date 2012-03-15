@@ -1,0 +1,102 @@
+; RFQfish control file RFQTEST.RFQ
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+TITLE
+Sample Tuning of Radio-Frequency Quadrupole Cavities
+Target frequency = 350 MHz
+ENDTITLE
+
+PARTICLE              H+
+FILEname_prefix       RFQ_A
+SEQuence_number       1
+RFQ_MODE
+FREQuency             350
+CORNer_radius         1
+BREAK_out_angle       10
+RHO/R0                0.85
+BLANK_Width           0.4
+BLANK_Depth           2
+VANE_ANGLE_1          20
+VANE_ANGLE_2          20
+DELTA_frequency       0.05
+MESH_size             0.035
+INCrement             2
+
+
+; Start codes for RFQFISH:
+; 1 No tuning
+; 2 No tuning
+; 3 Adjust vane-tip radius rho
+; 4 Adjust vane-shoulder half width Ws
+; 5 Adjust vane-shoulder length Ls
+; 6 Adjust vane-base half width Wb
+; 7 Adjust vane-base height H
+; 8 Adjust vane half width W
+
+DATA
+; r0, Vg, rho, Ws, Ls, Wb, H, W, Nv
+  0.3  0.06  0.255  1  1.  1.5  9.452896754653  0  7.
+ENDDATA
+
+FILEname_prefix       RFQ_B
+SEQuence_number       1
+CORNer_radius         0
+
+DATA
+; r0, Vg, rho, Ws, Ls, Wb, H, W, Nv
+  0.3  0.06  0.255  1  1  1.5  9.452896754653  0  7
+ENDDATA
+
+FILEname_prefix       RFQ_C
+SEQuence_number       1
+VANE_ANGLE_2          0
+
+DATA
+; r0, Vg, rho, Ws, Ls, Wb, H, W, Nv
+  0.3  0.06  0.255  1  0  1.5  9.452896754653  0  7
+ENDDATA
+
+FILEname_prefix       RFQ_D
+SEQuence_number       1
+CORNer_radius         1
+MESH_size             0.03
+
+DATA
+; r0, Vg, rho, Ws, Ls, Wb, H, W, Nv
+  0.38  0.07  0.3315  1.500000000000  0  1.500000000000  9.69927320455  0  7
+  0.30  0.06  0.2550  1.873804140320  0  1.873804140320  9.69927320455  0  6
+  0.25  0.06  0.2125  2.221233041589  0  2.221233041589  9.69927320455  0  6
+ENDDATA
+
+FILEname_prefix       RFQ_E
+SEQuence_number       1
+RHO/R0                0.8
+VANE_ANGLE_2          10
+
+DATA
+; r0, Vg, rho, Ws, Ls, Wb, H, W, Nv
+  0.3  0.06  0  1  0  1.5  9.452896754653  0  7
+ENDDATA
+
+FILEname_prefix       RFQ_F
+SEQuence_number       1
+CORNer_radius         0
+RHO/R0                0.85
+
+DATA
+; r0, Vg, rho, Ws, Ls, Wb, H, W, Nv
+  0.3  0.06  0.255  1  0  1.5  9.452896754653  0  8
+ENDDATA
+
+FILEname_prefix       RFQ_G
+SEQuence_number       1
+CORNer_radius         1
+
+DATA
+; r0, Vg, rho, Ws, Ls, Wb, H, W, Nv
+  0.3  0.06  0.24  1  0  1.5  9.452896754653  0  6
+ENDDATA
+
+ENDFILE
+

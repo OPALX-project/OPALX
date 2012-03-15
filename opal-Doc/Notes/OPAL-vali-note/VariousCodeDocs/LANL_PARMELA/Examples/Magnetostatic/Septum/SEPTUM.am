@@ -1,0 +1,76 @@
+Septum Magnet   
+[Originally appeared in 1987 User's Guide 10.9]
+
+; Copyright 1987, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Poisson or Pandira problem
+mode=0                  ; Some materials have variable permeability
+mat=2,                  ; First region is material iron
+dx=0.25,                ; Mesh interval 
+nbslo=0,                ; Dirichlet boundary condition on lower edge
+nbsup=0,                ; Dirichlet boundary condition on upper edge
+nbslf=0,                ; Dirichlet boundary condition on left edge
+nbsrt=0,                ; Dirichlet boundary condition on right edge
+yminf=1.75,ymaxf=1.75   ; Fixed Y for field interpolation
+xminf=-2,xmaxf=2        ; X range for field interpolation
+; The next 6 terms refer to the harmonic analysis:
+ktype=1,                ; No symmetry assumed for harmonic analysis
+nterm=14,               ; Number of coefficients
+nptc=37,                ; Number of arc points for interpolation
+rint=1.0,               ; Radius of the arc for interpolation
+angle=360,              ; Angular extent of arc (default start = 0)
+rnorm=1.0 &             ; Aperture radius for normalization
+
+&po x=-7.0,y=-4.5 &
+&po x= 7.0,y=-4.5 &
+&po x= 7.0,y= 8.0 &
+&po x=-7.0,y= 8.0 &
+&po x=-7.0,y=-4.5 &
+
+&reg mat=1 &
+&po x=-4.0,y=-1.5 &
+&po x= 4.0,y=-1.5 &
+&po x= 4.0,y= 1.5 &
+&po x=-4.0,y= 1.5 &
+&po x=-4.0,y=-1.5 &
+
+&reg mat=1 &
+&po x=-4.0,y= 2.0 &
+&po x= 4.0,y= 2.0 &
+&po x= 4.0,y= 5.0 &
+&po x=-4.0,y= 5.0 &
+&po x=-4.0,y= 2.0 &
+
+&reg mat=1,cur=11937. &
+&po x= 3.0,y=-1.5 &
+&po x= 4.0,y=-1.5 &
+&po x= 4.0,y= 1.5 &
+&po x= 3.0,y= 1.5 &
+&po x= 3.0,y=-1.5 &
+
+&reg mat=1,cur=-11937. &
+&po x= 3.0,y= 2.0 &
+&po x= 4.0,y= 2.0 &
+&po x= 4.0,y= 5.0 &
+&po x= 3.0,y= 5.0 &
+&po x= 3.0,y= 2.0 &
+
+&reg mat=1,cur=-11937. &
+&po x=-4.0,y=-1.5 &
+&po x=-3.0,y=-1.5 &
+&po x=-3.0,y= 1.5 &
+&po x=-4.0,y= 1.5 &
+&po x=-4.0,y=-1.5 &
+
+&reg mat=1,cur=11937. &
+&po x=-4.0,y= 2.0 &
+&po x=-3.0,y= 2.0 &
+&po x=-3.0,y= 5.0 &
+&po x=-4.0,y= 5.0 &
+&po x=-4.0,y= 2.0 &
+
+&reg mat=1,ibound=0 &
+&po x= 0.0,y=-4.5 &
+&po x= 0.0,y= 8.0 &
+

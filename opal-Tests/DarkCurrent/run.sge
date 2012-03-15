@@ -1,0 +1,36 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe mpi 16
+#$ -N ctf3-injector-darkcurrent-1
+#$ -v LD_LIBRARY_PATH,OPAL_EXE_PATH,OPENMPI
+#
+MACHINE_FILE=$TMPDIR/machinefile
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+cp $MACHINE_FILE .machinefile.last
+#
+#
+#
+FN=$JOB_NAME
+#
+if test "${FIELDMAPDIR+set}" != set ; then
+ FIELDMAPDIR=/home2/adelmann/scratch3/250MeVInjector/Phase1/fieldmaps/
+else
+ echo "FIELDMAPDIR is set to $FIELDMAPDIR"
+fi
+
+#
+rm -rf $FN
+mkdir -p $FN/vtk
+cd   $FN
+cp ../$FN.in .
+ln -sf  $FIELDMAPDIR/*.opal .
+ln -sf  ../*.phases .
+mv ../.machinefile.last .
+#
+OPAL="$OPAL_EXE_PATH/opal $FN.in --commlib mpi --info 0 --warn 9 | tee $FN.out"
+CMD="$OPENMPI/bin/mpirun -machinefile $MACHINE_FILE -np $NSLOTS  --mca ras localhost --mca pls rsh  $OPAL ; mv ../$FN.*o* ./Logs "
+echo "Running $CMD"
+echo 
+$CMD
+cd ..

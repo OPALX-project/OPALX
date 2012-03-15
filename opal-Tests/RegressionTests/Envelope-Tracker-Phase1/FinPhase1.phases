@@ -1,0 +1,3 @@
+FINSS_RGUN_phi= 2.22368; // E= 6.63134 (MeV)
+FINSB01_RACC_phi= -0.313154; // E= 36.1093 (MeV)
+FINSB02_RACC_phi= 5.835; // E= 67.2898 (MeV)

@@ -1,0 +1,1252 @@
+.\" $Header: /opt/csr/CVS/GUI/libprf/prf.3x,v 1.1.1.1 1995/06/09 08:44:58 birke Exp $
+.\" $Log: prf.3x,v $
+.\" Revision 1.1.1.1  1995/06/09 08:44:58  birke
+.\" First rev. checked in at Bessy II
+.\"
+.\" Revision 1.5  90/04/23  19:15:24  heiner
+.\" PrfUfuncPtr splitted into 3 types.
+.\" += PDflags & return value from user putchar and buffer flush functions
+.\" += %!..
+.\" += %m
+.\" += %#d and prf__stretch
+.\" corrected usage of DS/DE (after TH)
+.\" 
+.\" Revision 1.4  89/07/06  22:58:35  heiner
+.\" Added own definition of DS/DE.
+.\" 
+.\" Revision 1.3  89/07/06  22:28:55  heiner
+.\" Minor corrections.
+.\" += PRF_{MIN,MAX}CHAR
+.\" 
+.\" Revision 1.2  89/07/02  21:13:44  heiner
+.\" first somewhat complete version.
+.\" 
+.\" Revision 1.1  89/05/01  22:25:31  heiner
+.\" Initial revision
+.\" 
+.\"
+.TH PRF 3X "Apr 12, 1990" "Extension"
+.\"
+.\"	subsection header: bold
+.de sh
+.sp
+.ne 6
+.PP
+\fB\h'4n'\\$1\fR
+.PP
+..
+.\"	DS/DE	encloses citations from a program
+.rm DS
+.rm DE
+.\"
+.de DS
+.if t .sp .5
+.if n .sp
+.if !"\\$1"" .ne \\$1
+.nf
+.if t .in +5n
+.if n .in +3n
+..
+.\"
+.de DE
+.if t .in -5n
+.if n .in -3n
+.fi
+.if t .sp .5
+.if n .sp
+..
+.\"
+.\"	star spacing
+.ds s \\h'\\w'*'u'
+.\"
+.SH NAME
+.\"
+prf, fprf, sprf, lprf, uprf, dprf,
+prfv, fprfv, sprfv, lprfv, uprfv, dprfv,
+stdprf, fltprf, extprf, setprf, defprf, clrprf,
+prf__parse, prf__conv,
+prf__cput, prf__ncput, prf__mput, ...
+.br
+\- flexible formatted output conversion
+.\"
+.SH SYNOPSIS
+.\"
+.ta 12n
+.B #include <prf.h>
+.PP
+.B void prf(format
+.RB [ ,
+arg ] ...
+.B )
+.br
+.B "char	*format;
+.PP
+.B void fprf(stream, format
+.RB [ ,
+arg ] ...
+.B )
+.br
+.B "FILE	*stream;
+.br
+.B "char	*format;
+.PP
+.B void sprf(buf, format
+.RB [ ,
+arg ] ...
+.B )
+.br
+.B "char	*buf;
+.br
+.B "char	*format;
+.PP
+.B void lprf(limbp, format
+.RB [ ,
+arg ] ...
+.B )
+.br
+.B "PrfLimBuf	*limbp;
+.br
+.B "char	*format;
+.PP
+.B void uprf(ufuncp, format
+.RB [ ,
+arg ] ...
+.B )
+.br
+.B "PrfPutFPtr	\*sufuncp;
+.br
+.B "char	*format;
+.PP
+.B "void iprf(indirp, format
+.RB [ ,
+arg ] ...
+.B )
+.br
+.B "PrfIndir	*indirp;
+.br
+.B "char	*format;
+.PP
+.B void dprf(dp, format
+.RB [ ,
+arg ] ...
+.B )
+.br
+.B "PrfDest	*dp;
+.br
+.B "char	*format;
+.PP
+.B void prfv(format, argp)
+.br
+.B "char	*format;
+.br
+.B "va_list	*argp;
+.PP
+.B void fprfv(stream, format, argp)
+.br
+.B "FILE	*stream;
+.br
+.B "char	*format;
+.br
+.B "va_list	*argp;
+.PP
+.B void sprfv(buf, format, argp)
+.br
+.B "char	*buf;
+.br
+.B "char	*format;
+.br
+.B "va_list	*argp;
+.PP
+.B void lprfv(limbp, format, argp)
+.br
+.B "PrfLimBuf	*limbp;
+.br
+.B "char	*format;
+.br
+.B "va_list	*argp;
+.PP
+.B void uprfv(ufuncp, format, argp)
+.br
+.B "PrfPutFPtr	\*sufuncp;
+.br
+.B "char	*format;
+.br
+.B "va_list	*argp;
+.PP
+.B void iprfv(indirp, format, argp)
+.br
+.B "PrfIndir	*indirp;
+.br
+.B "char	*format;
+.br
+.B "va_list	*argp;
+.PP
+.B void dprfv(dp, format, argp)
+.br
+.B "PrfDest	*dp;
+.br
+.B "char	*format;
+.br
+.B "va_list	*argp;
+.PP
+.B void stdprf()
+.br
+.B void fltprf()
+.br
+.B void extprf()
+.PP
+.B PrfCvtFPtr setprf(c, funcp)
+.br
+.B "char	\*sc;
+.br
+.B "PrfCvtFPtr	\*sfuncp;
+.PP
+.B void defprf(str
+.RB [ ,
+funcp1 ] ...
+.B )
+.br
+.B "char	*str;
+.br
+.B "PrfCvtFPtr	\*sfuncp1;
+.PP
+.B void clrprf()
+.PP
+\&... further synopsis embedded below
+.\"
+.SH DESCRIPTION
+.\"
+.IR Prf ,
+.I fprf
+and
+.I sprf
+perform a function which is basically the same as that of
+.IR printf (3S),
+.IR fprintf (3S)
+and
+.IR sprintf (3S),
+respectively.
+Each of them interprets a character string to convert and format
+its further arguments.
+They differ in the destination of their output:
+.I prf
+puts its output into the buffered stream
+.BR stdout ,
+.I fprf
+into the specified buffered stream, and
+.I sprf
+into the specified unlimited memory area.
+The
+.I prf
+library is much more flexible than
+.IR printf (3S)
+and friends with respect to two major aspects:
+.IP \(bu 3
+The user can program his/her own conversion functions,
+bind them to conversion characters in the format string
+and/or redefine standard conversion functions.
+This allows to print arbitrary data in any wanted format.
+.IP \(bu 3
+There is an object type explicitly describing the destination
+of output.
+Buffered streams and unlimited memory buffers
+(as supported by
+.IR printf (3S)
+and friends)
+are just two of the predefined destination types.
+The
+.I prf
+library defines also e.g a limited, flush controlled memory buffer
+and a type that calls a user defined function for each
+output character.
+This allows very flexible postprocessing.
+.PP
+Additionally, the
+.I prf
+library is distributed as C source code
+and can be changed and extended where necessary.
+.PP
+The rest of this manual assumes some familiarity with
+.IR printf (3S),
+and hence does not repeat all the details of format string interpretation.
+.PP
+In order to fetch arguments of different type and number
+in a portable way the
+.I prf
+library uses
+.IR varargs (3).
+.PP
+In order to use
+.I prf
+in a program it must be linked with the option
+.BR -lprf .
+.\"
+.sh "Interface Functions"
+.\"
+Functions that have a format string argument are called interface functions.
+.IR Prf ,
+.I fprf
+and
+.I sprf
+have been explained above.
+.I Uprf
+calls a user specified function
+for each generated output character
+with that character as argument.
+.I Lprf
+maintains a user specified and allocated object of type
+.IR PrfLimBuf ,
+which describes a limited buffer and a function used to flush that buffer.
+This type is defined in <prf.h>:
+.DS 3
+.ta 13n 30n
+typedef void	(*PrfCvtFPtr)();	/* pointer to conversion function */
+typedef int	(*PrfFlsFPtr)();	/* pointer to buffer flush function */
+typedef int	(*PrfPutFPtr)();	/* pointer to putchar function */
+.sp
+.ta 15n 26n
+.ne 6
+typedef struct PrfLimBuf {  /* describes limited memory buffer */
+   int	\*sPLBsize;	/* current size of free space */
+   char	*PLBptr;	/* current free space */
+   char	*PLBbase;	/* begin of total buffer */
+   PrfFlsFPtr	\*sPLBflush;	/* user routine on overflow */
+} PrfLimBuf;
+.DE
+When a character is to be put and
+the limited buffer is full the flush function is called
+with the pointer to the
+.I PrfLimBuf
+object as argument.
+After depositing the buffered data
+the flush function has to reset PLBptr
+and increase PLBsize to indicate the new starting point and length
+of free space.
+.PP
+.I Iprf
+maintains a user specified and allocated object of type
+.IR PrfIndir ,
+which specifies the three functions to be called indirectly by 
+.IR prf__cput ,
+.I prf__ncput
+and
+.IR prf__mput .
+All effective output
+is performed by these three functions,
+which are explained in a later section.
+.DS 10
+.ta 15n 36n
+typedef void	(*PrfIcputFPtr)();	/* ptr to fcn like prf__cput */
+typedef void	(*PrfIncputFPtr)();	/* ptr to fcn like prf__ncput */
+typedef void	(*PrfImputFPtr)();	/* ptr to fcn like prf__mput */
+.sp
+.ta 18n 36n
+typedef struct PrfIndir {
+   PrfIcputFPtr	\*sPIcput;	/* effective prf__cput */
+   PrfIncputFPtr	\*sPIncput;	/* effective prf__ncput */
+   PrfImputFPtr	\*sPImput;	/* effective prf__mput */
+   void	*PIsomep;	/* for convenience */
+} PrfIndir;
+.DE
+The
+.I iprf
+interface can be used to efficiently implement arbitrary other interfaces.
+.PP
+Whichever the wanted destination of output is,
+it can be represented explicitly in an object of type
+.IR PrfDest ,
+which is defined in <prf.h>:
+.DS 11
+.ta 18n 30n
+typedef struct PrfDest {	/* destination description */
+   short	\*sPDtype;	/* type of destination */
+   unsigned short	\*sPDflags;	/* for convenience */
+   PrfCtab	*PDctab;	/* null, or preferred conversions */
+   union {
+      FILE	*PDDstream;	/* target stream */
+      char	*PDDbuff;	/* target buffer pointer */
+      PrfLimBuf	*PDDlimb;	/* limited target buffer ptr */
+      PrfPutFPtr	\*sPDDufuncp;	/* putchar user function */
+      PrfIndir	*PDDindir;	/* -> effective cput/ncput/mput */
+   } PDdest;
+} PrfDest;
+.DE
+Passing a pointer to such a destination description object to
+.I dprf
+can yield the effect of any of the above mentioned interface functions.
+The values returned by buffer flush functions or putchar user functions
+are ored into the PDflags component of the corresponding
+.I PrfDest
+object.
+The following bits of "PDflags" have a predefined meaning:
+.DS
+.ta 24n 32n
+#define PRFF_ERROR	0x01	/* some error did occur */
+.DE
+The following destination types (values in "PDtype")
+are predefined in <prf.h>:
+.DS 6
+.ta 22n 25n
+#define PRFT_NULL	0	/* to waste paper basket */
+#define PRFT_STREAM	1	/* to a stream */
+#define PRFT_BUFF	2	/* to a buffer */
+#define PRFT_LIMBUFF	3	/* to a limited buffer */
+#define PRFT_USER	4	/* via user defined putchar function */
+#define PRFT_INDIR	5	/* via user defined cput/ncput/mput */
+.DE
+.PP
+All these seven interfaces have a second form
+with an additional "v" as name suffix.
+Those expect its conversion arguments to be already under control
+of <varargs.h>:
+they get a "va_list" object passed by reference
+.RB ( not
+by value).
+.PP
+Thus the most general interface to a
+.I prf
+like function is
+.IR dprfv .
+Its function is similar to that of
+.IR _doprnt (3S),
+and is called by all the other more specialized interfaces.
+.I Dprfv
+is the only function that really interprets format strings.
+.\"
+.sh "Format Strings"
+.\"
+Format strings are passed to all interface functions
+and are interpreted by
+.I dprfv
+in a manner which is nearly totally compatible to that of
+.IR printf (3S).
+By default the characters in the format string are literally passed
+to the output destination via
+.I prf__mput
+(explained below).
+This changes when a percent character '%' appears in the format string,
+which starts a conversion specification.
+A conversion specification consists of
+an optional exclamation mark '!',
+zero or more flags out of "\ \-+#",
+an optional zero padding indicator,
+an optional width, an optional precision with a leading dot '.',
+and an optional length modifier character 'h' or 'l'.
+A more formal syntax of a conversion specification is
+.DS 6
+.ta 9n
+spec:	'%' ['!'] flag* ['0'] [width] [ '.' [prec] ] [lenmod]
+flag:	'#' | '\-' | '+' | ' '
+width:	digit+ | '*'
+prec:	digit+ | '*'
+lenmod:	'l' | 'h'
+digit:	'0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'
+.DE
+.PP
+Such a conversion specification is scanned by the support function
+.I prf__parse
+which fills an object of type
+.I PrfSpec
+with the result of its scanning,
+and returns the pointer to the conversion character.
+.PP
+A double percent character is a special sequence used to denote
+one single literal percent character.
+.PP
+An exclamation mark character '!' immediately after the percent designator
+character causes
+.I prf__parse
+to fetch a value of type `PrfSpec*' from the list
+of conversion values.
+The contents of the pointed at object are used to initialize
+the flags, width and precision values in the target
+.I PrfSpec
+object.
+This is an extension of the standard
+.IR printf (3S).
+.PP
+An asterisk character '*'
+specified instead of a numerical width or precision causes
+.I prf__parse
+to fetch a value of type `int' from the list of conversion values.
+A negative width is negated and causes simulation of a minus flag '\-'.
+.DS 4
+.ta 9n 22n
+char * prf__parse( fmt, psp, argp )
+char	*fmt;	/* points behind initiating '%' */
+PrfSpec	*psp;	/* to be filled */
+va_list	*argp;	/* to fetch values for a '*' */
+.DE
+.PP
+The type
+.I PrfSpec
+is defined in <prf.h>:
+.DS 7
+.ta 9n 22n
+typedef struct PrfSpec {
+   char	*PSpercp;	/* points to initiating '%' */
+   char	*PSconvp;	/* points to conversion char */
+   int	\*sPSwidth;	/* specified width or 0 */
+   int	\*sPSprec;	/* specified precision or 0 */
+   int	\*sPSflags;	/* flag bits defined below */
+} PrfSpec;
+.DE
+.PP
+The predefined bits in "PSflags" filled by
+.I prf__parse
+are
+.DS 9
+.ta 19n 26n
+#define PRF_ALT	0x001	/* whether '#' seen */
+#define PRF_MINUS	0x002	/* whether '\-' seen */
+#define PRF_PLUS	0x004	/* whether '+' seen */
+#define PRF_BLANK	0x008	/* whether ' ' seen */
+#define PRF_ZPAD	0x010	/* whether '0' started the width */
+#define PRF_WIDTH	0x020	/* whether width was specified */
+#define PRF_PREC	0x040	/* whether precision was specified */
+#define PRF_LONG	0x080	/* whether 'l' preceded conv. char */
+#define PRF_HALF	0x100	/* whether 'h' preceded conv. char */
+.DE
+.PP
+A conversion specification is terminated by the conversion character,
+which determines the conversion function to be called.
+Selection and call of the appropriate conversion function
+is done by the support function
+.IR prf__conv .
+.\"
+.sh "Selection of Conversion Functions"
+.\"
+For a mapping of conversion characters to conversion functions
+in <prf.h> there is defined the type
+.IR PrfCtab :
+.DS 7
+.ta 24n
+#define PRF_CC_LEGAL(c)	( ((unsigned)(c) \- PRF_CC_MIN)  \\\&
+	\ \ <= (PRF_CC_MAX \- PRF_CC_MIN))
+#define PRF_CC_RANGE	(PRF_CC_MAX \- PRF_CC_MIN + 1)
+#define PRF_CC_INDEX(c)	((unsigned)(c) \- PRF_CC_MIN + 1)
+.sp
+.ta 15n 26n 42n
+typedef struct PrfCtab {	/* defines a table of conversion functions */
+   PrfCvtFPtr	PCtab[1 + PRF_CC_RANGE];	/* [0] is default function */
+} PrfCtab;
+.DE
+The macro PRF_CC_INDEX(c) is used to determine the index into the PCtab array
+to find the conversion function for conversion character c.
+The first array element (index 0) is reserved to indicate
+the default conversion function.
+An undefined conversion function is indicated by a NULL pointer.
+.PP
+There is a global conversion function table
+.IR prf_thectab ,
+which initially contains NULL pointers.
+It is used by the support function
+.I prf__conv
+to determine and call the appropriate conversion function.
+.DS 4
+.ta 9n
+void prf__conv( dp, psp, argp )
+PrfDest	*dp;
+PrfSpec	*psp;
+va_list	*argp;
+.DE
+Normally
+.I prf__conv
+uses the standard conversion function table
+.IR prf_thectab .
+This can be overridden partially or completely by the "PDctab"
+component of the PrfDest object pointed at by
+.BR dp .
+Interface routines which set up a PrfDest object set the "PDctab"
+component to NULL.
+If it is not NULL,
+.I prf__conv
+first tries to find a conversion function in that table,
+and falls back to the standard table
+.I prf__thectab
+only if the table at "PDctab" does not have a default conversion function.
+.PP
+If
+.I prf__conv
+finds neither a conversion function for the given conversion character,
+nor a default conversion function,
+as a last resort it calls the conversion function
+.IR prf_unknown ,
+the library version of which prints the format literally.
+.PP
+.I Prf
+and friends do not perform the standard
+.IR printf (3S)
+function before they are told to do so.
+This is done by three functions typically called once in main:
+.IR stdprf ,
+.I fltprf
+and
+.IR extprf .
+.I Stdprf
+defines conversions for "cdosuxX",
+which are the standard conversions except those for floating point values.
+.I Fltprf
+defines conversions for "feEgG",
+which are the standard conversions for floating point values.
+.I Extprf
+defines conversions for "bCmpPRS@",
+which are useful extensions to the standard conversions.
+.PP
+.IR Stdprf ,
+.I fltprf
+and
+.IR extprf
+are a shorthand for a series of calls to
+.IR setprf .
+.I Setprf
+binds the conversion function pointed at by
+.B funcp
+to the conversion character
+.BR c ,
+and returns the former conversion function for
+.BR c .
+For convenience a series of
+.I setprf
+calls, the results of which are ignored,
+can be shortened into one call of
+.IR defprf .
+.I Clrprf
+defines all conversion characters to be undefined.
+.PP
+The above six functions all operate on the standard conversion function table
+.IR prf_thectab .
+For each of them there is another function with an additional first
+argument of type `PrfCtab*', explicitly specifying
+the conversion function table to operate on.
+They are called
+.IR settprf ,
+.IR deftprf ,
+.IR clrtprf ,
+.IR stdtprf ,
+.I flttprf
+and
+.IR exttprf .
+.\"
+.sh "Conversion Functions and Literal Output"
+.\"
+The user may define his/her own conversion functions and bind them
+to some conversion specification character.
+All conversion functions have to be declared like
+.DS 4
+.ta 9n
+void prf_myconv( dp, psp, argp )
+PrfDest	*dp;
+PrfSpec	*psp;
+va_list	*argp;
+.DE
+.PP
+When a conversion function has decided for some literal output
+it has to use the following three functions to do it:
+.DS 3
+.ta 9n
+void prf__cput( dp, c )
+PrfDest	*dp;
+char	\*sc;
+.DE
+which puts the character
+.BR c ,
+.DS 4
+.ta 9n
+void prf__ncput( dp, c, count )
+PrfDest	*dp;
+char	\*sc;
+int	\*scount;
+.DE
+which puts the character
+.B c
+.B count
+times, or
+.DS 4
+.ta 9n
+void prf__mput( dp, str, length )
+PrfDest	*dp;
+char	*str;
+int	\*slength;
+.DE
+which puts the
+.B length
+characters at
+.B str
+to the destination defined at
+.BR dp .
+These three are the functions that interpret destination description objects
+of type
+.IR PrfDest .
+When any of the above functions cannot deposit its output,
+it sets the PRFF_ERROR bit in the PDflags component of the
+.I PrfDest
+object.
+Values returned by user defined putchar functions (PRFT_USER)
+and buffer flush functions (PRFT_LIMBUFF)
+are ored into the PDflags.
+.\" FFS:
+.\"	Nevertheless,
+.\"	neither of the above three functions changes its behaviour
+.\"	upon the value of PDflags.
+.PP
+A conversion function may also call
+.I dprf
+or
+.I dprfv
+with perhaps another format string
+and perhaps other conversion arguments
+to produce the wanted output.
+When a recursively defined data type (like an expression tree)
+is to be printed by a conversion function
+it is convenient to do it recursively via
+.IR dprf .
+.PP
+A conversion function can freely change the
+.I PrfSpec
+object passed to it,
+with one exception.
+On return from the conversion function
+.I prf__parse
+interprets the "PSconvp" component of it
+as pointing to the last effective character of the conversion specification
+character
+and considers the immediately following character
+to be the next in the format string.
+This allows multi-character conversion `characters',
+rescanning of format strings
+or even silent change of format strings.
+.\"
+.sh "Predefined Conversions"
+.\"
+There are predefined conversion functions in the
+.I prf
+library
+for the standard conversions known from
+.IR printf (3S)
+and for some other useful extensions.
+There are also some conversion functions
+just to demonstrate what can be done
+at the conversion function interface.
+We include a brief summary of the predefined conversion functions.
+For more details read the sources and/or run some experiments.
+.de Cf
+.IP \\fI\\$1\\fR 8n
+..
+.Cf prf_b
+Extended conversion "%b", integer unsigned binary.
+The alternate form "%#c" uses digits "\-+" instead of "01".
+.Cf prf_c
+Standard conversion "%c", character.
+The alternate form "%#c" prints dots instead of non-printable characters
+and performs zero padding with dots.
+.Cf prf_C
+Extended conversion "%C", character C style.
+Nonprintable and some special characters are printed as those escape sequences
+which are used in C inside single quoted character constants
+or double quoted string literals.
+The alternate form "%#C" embeds the output into single quotes.
+.Cf prf_d
+Standard conversion "%d", integer signed decimal.
+The alternate form "%#d" inserts commas before blocks of 3 digits
+(except before the first digit),
+which is more readable for large numbers.
+.Cf prf_e
+Standard conversion "%e", floating point scientific style.
+.Cf prf_eE
+Standard conversion "%E", floating point scientific style.
+Sets the flag PRF_CAPS in "PSflags" and calls
+.I prf_e
+which now will print a capital 'E' to introduce the exponent.
+.Cf prf_f
+Standard conversion "%f", floating point standard style.
+.Cf prf_g
+Standard conversion "%g", floating point appropriate style.
+Selects one of the styles "%ld", "%e" and "%f".
+.Cf prf_gG
+Standard conversion "%G", floating point appropriate style.
+Sets the flag PRF_CAPS in "PSflags" and calls
+.IR prf_g .
+.Cf prf_m
+Extended conversion for "%m", readable system error string
+(those, which are also printed by
+.IR perror (3)).
+The alternate form "%#m" causes the error number to be fetched from
+the argument list.
+Without the alternate flag the global variable "int\ errno" is fetched.
+.Cf prf_o
+Standard conversion "%o", integer unsigned octal.
+The alternate form "%#o" forces a leading zero digit.
+.Cf prf_p
+Extended conversion "%p", pointer standard style.
+Prints the value of a pointer in a format common and convenient
+in this system.
+The actual pointer value is expected to be casted to type `void*',
+the generic pointer type.
+.Cf prf_plural
+Extended conversion for "%P", integer plural suffix.
+Prints the string "s" for absolute value not equal to one,
+else the string "".
+The alternate form "%#Pxyz#" replaces the string "s" by
+the following characters in the format string up to but excluding
+the next sharp sign, here "xyz".
+.Cf prf_repeat
+Extended conversion "%@", format repetition.
+This is similar to format repetion counts in Fortran format specifications.
+E.g. the format "%9@[%d]%@" causes the inner part "[%d]" of the format string
+to be interpreted nine times.
+This is tricky and included mainly for demonstration purposes.
+.Cf prf_R
+Extended conversion "%R", recursive format string.
+A string argument is interpreted as format string.
+The alternate form "%#R" additionally fetches a pointer to
+a variable argument list object (i.e. of type `va_list*').
+All other flags, width and precision are ignored.
+Conversion specifications inside the argument must be complete.
+.Cf prf_s
+Standard conversion "%s", string.
+The precision limits the source.
+The alternate form "%#s" prints dots instead of non-printable characters,
+and performs zero padding with dots.
+.Cf prf_S
+Extended conversion "%S", string C style.
+Nonprintable and some special characters are printed as those escape sequences
+which are used in C inside single quoted character constants
+or double quoted string literals.
+The alternate form "%#S" embeds the output into double quotes.
+.Cf prf_u
+Standard conversion "%u", integer unsigned decimal.
+The alternate form "%#u" inserts commas before blocks of 3 digits
+(except before the first digit),
+which is more readable for large numbers.
+.Cf prf_x
+Standard conversion "%x", integer unsigned hexadecimal.
+The alternate form "%#x" prepends "0x".
+.Cf prf_X
+Standard conversion "%X", integer unsigned hexadecimal with capital
+digits 'A' through 'F'.
+The alternate form "%#X" prepends "0X".
+.\"
+.sh "Support Functions"
+.\"
+Some of the predefined conversion functions
+use support functions to convert and put numerical values.
+A brief description is given below,
+for more details read the sources.
+.DS 6
+.ta 14n
+int prf__udigs( val, base, digs, buf, len )
+unsigned long	\*sval;
+int	\*sbase;
+char	*digs;
+char	*buf;
+int	\*slen;
+.DE
+.I Prf__udigs
+converts the value
+.B val
+into digits to the base
+.BR base ,
+taken from the digit string
+.BR digs .
+The result is put into the target buffer
+.BR buf ,
+which has length
+.BR len .
+The conversion result is aligned to the far end of the buffer
+.BR buf .
+The number of filled characters is returned.
+.DS 8
+.ta 9n 20n
+int prf__stretch( buf, buflen, usedlen, interval, str, slen )
+char	*buf;	/* buffer to be modified */
+int	\*sbuflen;	/* allocated size */
+int	\*susedlen;	/* that many filled at end */
+int	\*sinterval;	/* before that many chars insert */
+char	*str;	/* ... this string */
+int	\*sslen;	/* ... of this size */
+.DE
+.I Prf__stretch
+inserts the
+.B slen
+characters at
+.B str
+before each (except the first) block of
+.B interval
+characters which are stored in the last
+.B uselen
+of totally
+.B buflen
+characters in the buffer at
+.BR buf .
+The number of resulting characters
+(still at the end of the buffer) is returned.
+.I Prf__stretch
+is used by
+.IR prf_d ,
+.I prf_u
+and
+.I prf__d
+to insert commas for their alternate form.
+.DS 7
+.ta 9n
+void prf__num( dp, psp, str, len, pref, preflen )
+PrfDest	*dp;
+PrfSpec	*psp;
+char	*str;
+int	\*slen;
+char	*pref;
+int	\*spreflen;
+.DE
+.I Prf__num
+puts an already converted numerical value,
+.B len
+characters at
+.BR str ,
+with
+.B preflen
+characters at
+.B pref
+to be prepended (e.g. "0x" or "+")
+into the specified destination
+.BR dp .
+Zero padding occurs to reach the precision.
+Zero or blank padding occurs to reach the field width.
+Left or right adjustment is done according to PRF_MINUS.
+.DS 4
+.ta 9n
+void prf__naninf( dp, psp, val )
+PrfDest	*dp;
+PrfSpec	*psp;
+double	\*sval;
+.DE
+The already fetched value
+.B val
+for some floating point conversion
+has been detected to be nonfinite.
+.I Prf__naninf
+puts an appropriate string (e.g. "(NaN)")
+into the specified destination.
+.DS 4
+.ta 9n
+void prf__d( dp, psp, val )
+PrfDest	*dp;
+PrfSpec	*psp;
+long	\*sval;
+.DE
+.I Prf__d
+performs the main part of the standard conversion for "%d":
+the value
+.B val
+has already been fetched from the argument list.
+The alternate flag causes commas to be inserted before blocks of 3 digits
+(except before the first digit).
+.DS 8
+.ta 9n 20n
+void prf__efcvt( val, buf, siz, round, style, expop, isnegp )
+double	\*sval;	/* convert this value */
+char	*buf;	/* fill digits here */
+int	\*ssiz;	/* that much space available */
+int	\*sround;	/* round for this significance */
+int	\*sstyle;	/* in this style, 'f' or 'e' */
+int	*expop;	/* fill how many digits before decimal point */
+int	*isnegp;	/* fill whether negative number */
+.DE
+.I Prf__efcvt
+performs a function that is similar to that of
+.IR ecvt (3)
+and
+.IR fcvt (3).
+The buffer to be filled and its size
+are passed to the support function
+.I prf__efcvt
+as
+.B buf
+and
+.BR siz .
+In style 'f'
+.B round
+specifies the wanted decimal digits behind the decimal point,
+in style 'e' it specifies the totally wanted significant decimal digits.
+The last wanted digit is rounded
+and the result is terminated with a null byte.
+When the buffer length is exhausted before the digit to be rounded
+is put, rounding occurs at the last digit put into the buffer.
+If
+.B round
+is negative no rounding occurs.
+This conversion function may yield less than the best possible accuracy.
+.DS 7
+.ta 9n 20n
+void prf__e( dp, psp, val, mant, expo, isneg )
+PrfDest	*dp;
+PrfSpec	*psp;
+double	\*sval;	/* which was converted & rounded */
+char	*mant;	/* into these digits + '\\0' */
+int	\*sexpo;	/* |val| == 0.mant E expo */
+int	\*sisneg;	/* whether minus sign needed */
+.DE
+After the value
+.B val
+has been fetched, the precision is checked and adjusted,
+the value is converted and rounded into a string of significant digits at
+.B mant
+(e.g. with
+.IR prf__efcvt ),
+the exponent and need of a minus sign is determined,
+.I prf__e
+performs the rest of the standard conversion for "%e" or "%E",
+i.e. exponent conversion, padding and adjustment.
+This is also used for "%g" and "%G".
+.DS 7
+.ta 9n 20n
+void prf__f( dp, psp, val, mant, expo, isneg )
+PrfDest	*dp;
+PrfSpec	*psp;
+double	\*sval;	/* which was converted & rounded */
+char	*mant;	/* into these digits + '\\0' */
+int	\*sexpo;	/* |val| == 0.mant E expo */
+int	\*sisneg;	/* whether minus sign needed */
+.DE
+.I Prf__f
+has the same interface as
+.I prf__e
+and performs the rest of the standard conversion for "%f".
+This is also used for "%g" and "%G".
+.\"
+.sh "Library Versions"
+.\"
+There are also reduced library versions
+which avoid to access <stdio.h> and buffered streams,
+or even avoid to access anything from the C library.
+Such reduced versions are useful for non-UNIX environments.
+.PP
+To use a library version without buffered streams
+include <prfnostdio.h> instead of <prf.h>,
+and link your program with option
+.B -lprf-stdio
+instead of
+.BR -lprf .
+The include file <prfnostdio.h> defines PRF_NOSTDIO
+and then includes <prf.h>.
+.PP
+To use a library version without any reference
+to a function outside itself
+include <prfnolibc.h> instead of <prf.h>,
+and link your program with option
+.B -lprf-libc
+instead of
+.BR -lprf .
+The include file <prfnolibc.h> defines PRF_NOLIBC
+and then includes <prf.h>.
+.PP
+All versions of the
+.I prf
+library inherently need
+.IR varargs (3).
+.\"
+.sh "Include Files"
+.\"
+The main include file is <prf.h>.
+Two alternatives are mentioned above for reduced versions of the library.
+The include file <prflocal.h>
+is always included by <prf.h>
+and is produced automatically by a special utility.
+It defines or `undef's some manifests
+to reflect properties of the local system,
+which are necessary or useful to know.
+Among these are:
+.HP
+PRF_MINCHAR
+.br
+defines the most negative value of type (char).
+.HP
+PRF_MAXCHAR
+.br
+defines the most positive value of type (char).
+.HP
+PRF_MINLONG
+.br
+defines the most negative value of type (long).
+.HP
+PRF_MAXLONG
+.br
+defines the most positive value of type (long).
+.HP
+PRF_LONGBITS
+.br
+defines the number of bits that is sufficient to code
+all values of type (long) or (unsigned long).
+.HP
+PRF_INTISLONG
+.br
+is defined iff the types (int) and (long) are totally the same.
+.HP
+PRF_EASYDECDIGS
+.br
+is defined iff the character codes for the decimal digits are easy,
+i.e. linearly increasing and dense.
+This is true for both ASCII and EBCDIC.
+.HP
+PRF_ASCII
+.br
+is defined iff the character codes of
+those characters that are printable in ASCII
+are the same as in ASCII.
+The local character set then definitely looks like ASCII.
+.PP
+The include file <prfflt.h>
+reflects local properties of floating point numbers
+and some layout decisions for formatting of floating point numbers.
+Here are defined:
+.HP
+PRF_MAXEXP
+.br
+defines (an upper bound for) the largest possible absolute value
+which a standard "%e" conversion might happen to print as exponent.
+.HP
+PRF_MAXFCVT
+.br
+defines the maximum number of significant digits to be printed
+for floating point conversion "%f".
+.HP
+PRF_MAXECVT
+.br
+defines the maximum number of significant digits to be printed
+for floating point conversions "%e" and "%g".
+.HP
+is_NaN(x)
+.br
+evaluates to nonzero iff the floating point value x is not-a-number.
+.HP
+is_nonfinite(x)
+.br
+evaluates to nonzero iff the floating point value x is
+not a finite number (e.g. NaN or infinity).
+.PP
+These have to be adapted manually to the local system when porting the
+.I prf
+library.
+This include file normally is needed by conversion functions
+for floating point values, only.
+.PP
+All library versions and include files are usable with C++ version 1.2.
+Include files use the manifest ``c_plusplus'' to distinguish between
+C and C++.
+.\"
+.SH "NAME SPACE"
+.\"
+In order to avoid conflicts with other libraries and programs
+the names defined and used by the
+.I prf
+library are chosen carefully.
+Most of them begin with one of "prf", "Prf" or "PRF",
+or incorporate such a three letter sequence.
+.\"
+.SH "CAVEATS"
+.\"
+The effect of
+.I stdprf
+and
+.I fltprf
+is not default,
+i.e. they must be called before
+.I prf
+has approximately the same effect as
+.IR printf (3S).
+If these calls have been omitted by mistake
+no arguments get fetched and converted
+and all format strings appear literally unchanged in the output.
+Nevertheless, this is more of a feature than of a bug,
+because it allows to link only the necessary conversion functions
+into a program.
+Especially the floating point conversions may occupy
+a significant amount of code space,
+and are frequently unused.
+.\"
+.SH "EXAMPLE
+.\"
+The following program fragment shows a typical implementation
+of an error routine, which prepends the program name to the error message,
+and appends a newline to it:
+.DS 14
+.ta 8n 16n
+#include <prf.h>
+char	*prog_name = (char*)0;
+
+void	/*VARARGS*/
+error(va_alist)
+va_dcl
+{
+    va_list	ap;
+
+    va_start(ap);
+    fprf(stderr, "(%S:) %#R\\n", prog_name, va_arg(ap, char*), &ap);
+    va_end(ap);
+    (void) exit(1);
+}
+.DE
+A typical fragment of the corresponding main might look like:
+.DS 10
+.ta 8n 16n
+main(argc, argv)
+char	**argv;
+{
+    prog_name = argv[0];
+    stdprf(); extprf();
+    ...
+    if( NULL == freopen(argv[1], "r", stdin) )
+	error("Can't open %#S, %m", argv[1]);
+    ...
+}
+.DE
+.\"
+.SH "FILES
+.\"
+.IP prf.h 15n
+Standard include file.
+.IP prfflt.h 15n
+Include file for floating point conversion functions.
+.IP prfnostdio.h 15n
+To be included instead of prf.h
+for the library version without destination type PRFT_STREAM.
+.IP prfnolibc.h 15n
+To be included instead of prf.h
+for the library version without any explicit reference to the C library.
+.\"
+.SH "SEE ALSO"
+.\"
+printf(3S),
+fprintf(3S),
+sprintf(3S),
+perror(3),
+_doprnt(3S),
+varargs(3),
+ecvt(3)
+.\"
+.SH BUGS
+.\"
+Exact compatability with
+.IR printf (3S)
+and friends cannot be guaranteed,
+as there does not exist an exact specification of their function.
+Compatability is high as far as their function is
+described in the manual pages of BSD\|4.3
+and SYSTEM\|V.3,
+except for some extensions,
+most notably the alternate forms of "cdsu".
+.PP
+The floating point conversions should also have a flag to cause
+comma insertion.
+.PP
+Support for C++ version 1.2 could be better.
+.PP
+No attempt is made to return a value like
+System\|V.3
+.IR printf (3S),
+which returns the number of characters transmitted
+(negative value on output error).
+.\"
+.SH AUTHOR
+.\"
+Heiner Marxen, Specs GmbH, Berlin, (heiner@specs.UUCP)

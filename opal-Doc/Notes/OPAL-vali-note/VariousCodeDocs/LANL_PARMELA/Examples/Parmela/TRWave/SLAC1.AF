@@ -1,0 +1,23 @@
+Input cell geometry for the SLAC traveling-wave linac
+See page 270 in Linear Accelerators, ed. Lapostolle and Septier 
+Nominal geometry in inches from Table 1 (SLAC input): 
+2a = 1.0323, 2b = 3.2859, d = 1.377, t = 0.23  
+Outer radius adjusted for resonant frequency = 2856 MHz 
+
+&REG KPROB=1,                    ; SUPERFISH problem
+FREQ=2856                        ; Mode frequency
+NBSUP=1,NBSLO=0,NBSRT=0,NBSLF=1, ; Boundary conditions
+XDRI=0.1,YDRI=3.55               ; Drive point coordinates
+DX=.05,                          ; Mesh interval
+DSLOPE=-1          &             ; Allow convergence in 1 iteration
+
+; Start of boundary points
+&PO X=0.,Y=0. &
+&PO X=0.,Y=4.1476422 &
+&PO X=1.45669,Y=4.1476422 &
+&PO X=1.45669,Y=1.603121 &
+&PO NT=2,X0=1.74879,Y0=1.603121,X=0,Y=-.2921 &
+&PO X=5.24637,Y=1.311021 &
+&PO X=5.24637,Y=0 &
+&PO X=0.,Y=0. &
+

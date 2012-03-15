@@ -1,0 +1,1106 @@
+\documentclass[xcolor=pdftex,table,10pt,yellow,mathserif]{beamer}
+\usepackage[3D]{movie15}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{algorithm,algorithmic}
+\usepackage{tikz}
+\usepackage{pgflibraryshapes}  
+\usetheme{PSI}
+\usetikzlibrary{shapes,arrows,snakes,backgrounds}
+%\usetikzlibrary{arrows}
+\usepackage[overlay,absolute]{textpos}
+\usepackage[latin1]{inputenc}
+\usepackage[english]{babel}
+\usepackage{listings}
+\usepackage{pgfpages}
+
+%\pgfpagesuselayout{4 on 1}[a4paper, border shrink=5mm, landscape]
+
+\usepackage{pgfpages}\include{mylatexdefs}
+
+\TPGrid[4mm,25mm]{10}{5}
+
+\tikzstyle{format} = [draw, thin, fill=blue!20]
+\tikzstyle{pblock} = [rectangle, draw, fill=blue!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{mblock} = [rectangle, draw, fill=green!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{bblock} = [rectangle, draw, fill=gray!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{prblock} = [rectangle, draw, fill=red!20, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{rblock} = [rectangle, draw, fill=black!50, text width=6em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{block} = [rectangle, draw, fill=gray!20, text centered, rounded corners]
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{medium} = [ellipse, draw, thin, fill=green!20, minimum height=2.5em]
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm, minimum height=2em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{emptyblock} = [rectangle]
+\tikzstyle{progblock} = [rectangle, draw, fill=yellow!20, text width=6em, text centered, minimum height=0.4em]
+\tikzstyle{null} = [rectangle, fill=blue!0, text width=6em, text centered, rounded corners, minimum height=0.4em]
+
+% Figure 1
+\tikzstyle{f1pblock} = [rectangle, draw, fill=blue!20, text width=5em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{f1pblockr} = [rectangle, draw, fill=red!20, text width=5em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{f1pblockw} = [rectangle, draw, text width=5em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{f1rblock} = [rectangle, draw, fill=gray!50, text width=10em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{f1medium} = [ellipse, draw, fill=green!20, text width=5em, text centered, rounded corners, minimum height=0.4em]
+\tikzstyle{f1mediumr} = [ellipse, draw, thin, fill=red!20, minimum height=2.5em]
+\tikzstyle{f1line} = [draw, -latex']
+\tikzstyle{f1null} = [rectangle, fill=blue!0, text width=6em, text centered, rounded corners, minimum height=0.4em]
+
+
+
+\mode<presentation>
+{
+  \usepackage{pgf}
+  \usepackage{hyperref}
+  \setbeamercovered{transparent}
+  \setbeamercovered{transparent}  
+}
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection,hideothersubsections]
+  \end{frame}
+}
+
+\AtBeginSubsection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+\lstnewenvironment{code}[1][]
+{\textbf{Code Listing} \hspace{1cm} \hrulefill \lstset{language=C++, basicstyle=\ttfamily\scriptsize, keywordstyle=\color{blue}\bfseries,commentstyle=\color{mygreen}, stringstyle=\color{red}}}
+{\hrule\smallskip}
+%{\textbf{Code Listing} \hspace{1cm} \hrulefill \lstset{language=C++, basicstyle=\ttfamily\scriptsize, #1}}
+
+\lstnewenvironment{codeln}[1][]
+{\textbf{Code Listing} \hspace{1cm} \hrulefill \lstset{language=C++, basicstyle=\ttfamily\scriptsize, numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt, keywordstyle=\color{blue}\bfseries,commentstyle=\color{mygreen}, stringstyle=\color{red}}}
+{\hrule\smallskip}
+
+\lstnewenvironment{smallcode}[1][]
+{\lstset{language=C++, basicstyle=\ttfamily\scriptsize, keywordstyle=\color{myblue}\bfseries,commentstyle=\color{mygreen}, stringstyle=\color{red}}}
+{\smallskip}
+
+\xdefinecolor{mygreen}{RGB}{0,220,0}
+\xdefinecolor{myblue}{RGB}{26,150,255}
+
+
+
+
+ 
+%\pgfpagesuselayout{4 on 1}[a4paper, border shrink=5mm, landscape]
+
+\title{Precise Beam Dynamics Simulation: how does it work?}
+
+\author{A. Adelmann (PSI-AMAS) \\ Acknowledgments: Y. Ineichen Ch. Kraus (PSI) Y. Bi, J. Yang (CIAE) \& S. Russel (LANL)}
+
+\date{CYCLOTRONS 2010 - Lanzhou 9.\ September}
+
+\titlegraphic{
+%      \includegraphics[width=10cm]{./amas1} \\
+ }
+
+
+\begin{document}
+\frame{
+\maketitle
+}
+
+\begin{frame}
+	  \frametitle{Outline}
+	  \tableofcontents
+	\end{frame}
+
+\section{Motivation \& Problem Setup}
+
+\begin{frame}{Today's High Intensity Issues}
+Consider a 0.59 GeV, 2.3 mA Proton Cyclotron facility. \\
+\begin{itemize}
+\item uncontrolled \& controlled beam loss \alert{$\mathcal{O}(2 \mu A)$}
+\item injection \& extraction Ring: \alert{99.98\% transmission}
+\item small changes in injection affects extraction
+\end{itemize}
+ 
+    \begin{overprint}
+  \begin{center}
+    \includegraphics<1>[width=0.5\linewidth]{Ring-newCavity.jpg}
+     \includegraphics<2>[width=0.5\linewidth]{Cu-Kav3.jpg}
+     %§\includegraphics<3>[width=0.5\linewidth]{AWDkolalt39}  
+  \end{center}
+     \end{overprint}
+ 
+%\alert{Develop a precise beam dynamics simulation mode to enable S2E simulations.}
+\end{frame}
+
+
+\begin{frame}{} 
+  \begin{center}
+\vspace{-15mm}
+\begin{tikzpicture}[scale=0.75,transform shape,node distance=2.5cm]
+\node [f1null] (origin) {}; 
+\node [f1pblockw, below of=origin] (e11) {Ion Source \\ \alert{IC} };
+\node [f1pblock, right of=e11] (e12) {LEBT (DC) };
+\node [f1pblock, right of=e12] (e13) {Injector II};
+\node [f1pblock, right of=e13] (e14) {MEBT}; 
+\node [f1pblock, right of=e14] (e15) {Ring}; 
+\node [f1pblockw, right of=e15] (e16) {Target}; 
+% 
+\node [f1null, below of=e11] (e21) {}; 
+ \node [f1rblock, below of=e12] (e22) {50/150 MHz Buncher };  
+ \node [f1rblock, below of=e14] (e24) {500 MHz Buncher };  
+%
+ \node [f1medium, below of=e21] (e31) {Scales};
+ \node [f1medium, right of=e31] (e32) { m, \\ keV, $\mathcal{O}$(10) mA };
+ \node [f1medium, right of=e32] (e33) { km \\ MeV, $\mathcal{O}$(1) mA };
+  \node [f1medium, right of=e33] (e34) { m \\ MeV, $\mathcal{O}$(1) mA};
+   \node [f1medium, right of=e34] (e35) { km \\ M(G)eV, $\mathcal{O}$(1) mA};
+   %    
+ \node [f1mediumr, below of=e31] (e41) {Processes};
+  \node [f1pblockr, right of=e41] (e42) { 2/3D SC \\ Collimation\\\&Particle Matter };
+ \node [f1pblockr, right of=e42] (e43) { 3D SC \\ Collimation\\\&Particle Matter };
+  \node [f1pblockr, right of=e43] (e44) { 3D SC \\ Collimation\\\&Particle Matter };
+   \node [f1pblockr, right of=e44] (e45) { 3D SC \\ Extraction };
+   
+% Draw edges
+\path [f1line] (e11) -> (e12);
+\path [f1line] (e12) -> (e13);
+\path [f1line] (e13) -> (e14);
+\path [f1line] (e14) -> (e15);	
+\path [f1line] (e15) -> (e16);	
+
+\path [f1line] (e12) -- (e22);	
+\path [f1line] (e22) -- (e32);
+\path [f1line] (e32) -- (e42);	
+
+\path [f1line] (e13) -- (e33);	
+\path [f1line] (e33) -- (e43);
+
+\path [f1line] (e14) -- (e24);
+\path [f1line] (e24) -- (e34);
+\path [f1line] (e34) -- (e44);
+
+\path [f1line] (e15) -- (e35);	
+\path [f1line] (e35) -- (e45);
+\end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\frame{
+  %\frametitle{A Numeric and HPC Point of View}
+   \frametitle{Precise Modeling of High Intensity Beam Transport in large Structures}
+    \begin{block}{}
+
+  \begin{itemize}  
+  \item Multiscale / Multiresolution 
+  \begin{itemize}  
+  \item  Maxwell's equations or \alert{reduced set } combined with particles
+  \item N-body problem $n \sim 10^9$ per bunch in case of PSI
+ \item Spatial scales: $10^{-4} \dots 10^{4}$ (m) $\rightarrow \mathcal{O}(1e5)$ integration steps
+ \item $v \ll c \dots v \sim c$
+  \item Large (complicated structures)
+  \item neighboring bunches
+  \end{itemize} 
+   \item Multiphysics
+   \begin{itemize}
+    \item Particle mater interaction: monte carlo
+  \item Secondary particles i.e. multi specis
+ \end{itemize} 
+  \end{itemize}  
+  \end{block}
+  
+  }
+
+
+\section{Beam Dynamics Modell}
+
+\begin{frame}{Governing Equations} {}
+%\vspace{-0.95cm}
+Consider the Vlasov-Poisson description of the phase space $(\Omega \subset \mathcal{R}^3 \times \mathcal{R}^3)$, including external fields and
+self-fields and, if needed, other effects such as wakes. 
+Let $f(\mathbf{x},\mathbf{p},t)$  be the density of the particles in the
+phase space, i.e., the position-momenta $(\mathbf{x}, \mathbf{p})$
+space.  Its evolution is determined by the collisionless \emph{Vlasov equation},
+\begin{equation*}\label{eq:Vlasov}
+  \frac{df}{dt}=\partial_t f + \mathbf{p} \cdot \nabla_{\mathbf{x}} f
+  +q(\mathbf{E}+ \mathbf{p}\times\mathbf{B})\cdot
+  \nabla_{\mathbf{p}} f  =  0,
+\end{equation*}
+where $q$ denote the charge.  The
+electric and magnetic fields $\mathbf{E}$ and $\mathbf{B}$ are
+superpositions of external fields and self-fields (space charge),
+%%and other collective effects such as wake fields,
+\begin{equation*}\label{eq:allfield}
+%%  \begin{aligned}
+    \mathbf{E} =
+    \mathbf{E_{\RM{ext}}} + \mathbf{E_{\RM{self}}}  + \mathbf{E_{\RM{wake}}}, \quad
+    \mathbf{B} =
+    \mathbf{B_{\RM{ext}}} + \mathbf{B_{\RM{self}}}.
+%%  \end{aligned}
+\end{equation*}
+If $\mathbf{E}$ and $\mathbf{B}$ are known, then each particle can be
+propagated according to the equation of motion for charged particles in an
+electromagnetic field,
+\begin{equation*}\label{eq:motion}
+  \frac{d\mathbf{x}(t)}{dt}  = \mathbf{p},
+  \quad
+  \frac{d\mathbf{p}(t)}{dt}  = q\left(\mathbf{E} +
+    \mathbf{p}\times \mathbf{B}\right).
+\end{equation*}
+
+ \end{frame}
+
+\begin{frame}{Maxwell's Equation in the Electrostatic approximation} {}
+\vspace{-0.8cm}
+   \begin{center}
+     \begin{tikzpicture}
+       \begin{scope}[shape=rectangle,rounded corners,fill=yellow!40,text centered]
+         \node[shape=circle,fill=yellow!40, text width=2cm] (magopt) at (-3,0) {Magnetic Optics};
+         \node[shape=circle,fill=blue!40, text width=2cm] (mpd) at (3,0) {N-Body Dynamics};
+         \node[fill=yellow!40,text width=3.6cm,minimum height=1.8cm] at (-2,2.0) {\vspace{-\abovedisplayskip}\begin{gather*}\curl \mat{E} + \frac{\partial\mat{B}}{\partial t} = 0 \\ \div \mat{B} = 0\end{gather*}\vspace{-2\belowdisplayskip}};
+         \node[fill=blue!40,text width=3.6cm,minimum height=1.8cm] at (2,2.0) {$\div \mat{E} = \rho/\eps_0$};
+         \node (h) at (0,0) {$\mat{H} = \mat{H}_\text{ext} + \mat{H}_\text{sc}$};
+         \node (formM) at (0,-2) {};
+         \node[fill=red!40] at (0,-2.0) {\opalt\ and \opalcycl: RK-4, Leap-Frog and the implicit $D_1$ scheme \footnote{\tiny Birdsall \& Langdon "Plasma Physics via Computer Simulation}};
+         \node[fill=red!40] at (0,-3.0) {\opalenv: \opalt\ but linear space charge in slices of the bunch };
+          \node[fill=red!40] at (0,-4.0) {\opalmap: ${\cal M}(s) = {\cal M}_\text{ext}(s/2) \otimes {\cal M}_\text{sc}(s) \otimes {\cal M}_\text{ext}(s/2) + { \cal O}(s^3)$};
+       \end{scope}
+       \node[draw,text width=2.5cm,text centered] at (-4.5,1.2) {\bf Lie Algebraic Methods \\ Field-Maps 2D\&3D};
+       \node[draw,text width=2.5cm,text centered] at (4.5,1.2) {\bf 3D Poisson Solver(s) \& \\ Slice model};
+     \end{tikzpicture}
+   \end{center}
+%   When using time integration: RK4 and $D_1$ algorithm from Birdsall and Langdon's book (ada need more)
+ \end{frame}
+
+\begin{frame}{Particle Matter Interaction - Collimation}{}
+%  \begin{block}{}  
+ \begin{itemize}
+ \item Energy loss $-dE/dx$ (Bethe-Bloch)
+ \item Coulomb scattering is treated as two independent events: the multiple Coulomb scattering and the large angle Rutherford scattering
+ \end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Secondary and Field Emission Model}{}
+
+\begin{columns}
+\begin{column}[t]{6.5cm}
+\begin{figure}[H]
+\begin{center}
+\input{figures/Latex-Figures/Incident.tikz}
+\end{center}
+%\caption{Line segment-triangle intersection()\label{fig:L-T}}
+\end{figure}
+
+A Probabilistic model developed by \cite{SE}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{itemize}
+\item Mathematically self-consistent
+\item Phenomenological- don't involve secondary physics but fit the data.
+\item A serial of parameters to fit the measured SEY data.
+\item The Monte Carlo technique has been used
+\end{itemize}
+\end{column}
+\end{columns}
+
+
+
+
+
+\end{frame}
+
+
+
+\section{\opal and its Flavours}
+
+\begin{frame}{\opal in a Nutshell} {}
+\begin{alertblock}{}  
+ \opal is a tool for charged-particle optics in large
+accelerator structures and beam lines including 3D space charge
+\end{alertblock}
+\begin{block}{Some of the features}  
+\begin{itemize}
+\item \opal is built from the ground up as a parallel application exemplifying the fact that HPC (High Performance Computing) 
+is the third leg of science, complementing theory and the experiment
+\item  \opal runs on your laptop as well as on the largest HPC clusters
+\item \opal uses the \mad language with extensions
+\item \opal (and all other used frameworks) are written in C++ using OO-techniques, hence \opal is very easy to extend.
+\item Documentation is taken very seriously at both levels: source code and user manual (\url{ http://amas.web.psi.ch/docs/index.html})
+\item Regression tests running evert day on the head of the repository
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+\begin{frame}{\opal and its Flavours} {}
+%\begin{block}{}  
+\opal is developed by an international collaboration including Los Alamos (LANL),  China Institute of Atomic Energy (CIAE) and Tsinghua University, Beijing.
+
+The following OPAL flavours  exist:
+\begin{itemize}
+\item \opalt 
+\begin{itemize}
+\item \opalt   tracks particles which 3D space charge uses time as the independent variable, and can be used to model beamlines, guns, injectors and complete XFEL's but without the undulator.
+\item many more linac features ... 
+\end{itemize}
+\item \opalenv\ 
+\begin{itemize}
+\item \opalenv\ is based on the 3D-envelope equation (\`a la HOMDYN) and can be used to {\em design} XFEL's.
+\item same lattice than \opalt
+\end{itemize}
+\item \opalmap (not yet released)
+\begin{itemize}
+\item \opalmap tracks particles with 3D space charge using split operator techniques.
+\end{itemize}
+\end{itemize}
+%\end{block}
+\end{frame}
+
+
+
+
+\begin{frame}{\opal and its Flavours} {}
+%\begin{block}{}  
+\begin{itemize}
+\item \opalcycl 
+\begin{itemize}
+\item \opalcycl tracks particles which 3D space charge 
+\item neighboring turns
+\item time is the independent variable. 
+\item from p to Uranium (q/m is a parameter) 
+\item Solve Poisson equation with spectral methods
+    \item Use 4th-order RK and Leap Frog
+      \item Single particle tracking mode
+      \item Tune calculation mode   
+\end{itemize}
+\end{itemize}
+%\end{block}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Sketch of an inputfile} 
+%\framesubtitle{Sketch of an inputfile - \opalt}
+%\begin{block}{}
+\begin{verbatim}
+Option, PSDUMPLOCALFRAME=TRUE;
+Option, STATDUMPFREQ=1;
+Option, REPARTFREQ=10;
+
+Edes=.072;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+
+....
+
+ring: Cyclotron, TYPE="RING", CYHARMON=6, PHIINIT=0.0,
+			PRINIT=-0.000174, RINIT=2130.0,
+			SYMMETRY=8.0, RFFREQ=frequency,
+			FMAPFN="s03av.nar";
+
+\end{verbatim}
+%\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Sketch of an inputfile - cont.} 
+%\framesubtitle{Sketch of an inputfile - \opalt}
+%\begin{block}{}
+\begin{verbatim}
+rf4: RFCavity, VOLT=volt1st, FMAPFN="Cav1.dat", 
+       TYPE="SINGLEGAP", FREQ=frequency, 
+       RMIN = 1900.0, RMAX = 4500.0, ANGLE=305.0, 
+       PDIS = 416.0,  GAPWIDTH = 220.0, PHI0=phi05; 
+
+l1:   Line = (ring,rf0,rf1,rf2,rf3,rf4);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  2.0e-03, sigmapx=1.0e-7, corrx=0.0,
+sigmay=  2.0e-03, sigmapy=1.0e-7, corry=0.0,
+sigmat=  2.0e-03, sigmapt=3.394e-4, corrt=0.0;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=32, 
+                 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=2;
+\end{verbatim}
+%\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Sketch of an inputfile - cont.} 
+%\framesubtitle{Sketch of an inputfile - \opalt}
+%\begin{block}{}
+\begin{verbatim}
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, SPACECHARGE=true, 
+               NPART=1e5, BCURRENT=1.0E-3, CHARGE=1.0, 
+               BFREQ= frequency;
+
+Select, Line=l1;
+
+track, line=l1, beam=beam1, MAXSTEPS=2000, DT=0.1e-9;
+ run, method = "CYCLOTRON-T", beam=beam1, 
+ fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;
+\end{verbatim}
+%\end{block}
+\end{frame}
+
+
+
+\begin{frame}{\opal Architecture} {}
+\begin{figure}[htb]
+\begin{center}
+ \begin{tikzpicture}[scale=0.8, transform shape]
+    \footnotesize
+      \begin{scope}[shape=rectangle,rounded corners,minimum width=3.0cm,minimum height=0.5cm,fill=yellow,text centered]
+      
+      \draw[rounded corners, draw=green!40, thick, fill=green!25, opacity=0.5, text centered] (-1.55, 1.31) rectangle (8.55,-0.31) node[black, thick, anchor=center, opacity=1., font=\Large] at (3.5, 0.5) {\opal};
+      \node[fill= green!40] (0_00) at (0.0,1.0) {Ext. MAD Lang. Parser};
+      \node[fill= green!40] (0_00) at (3.5,1.0) {Flavors: t,Cycl,Envelope};
+      \node[fill= green!40] (0_00) at (7.0,1.0) {Optimization};
+      \node[fill= green!40] (0_00) at (0,0.0)   {Solvers: Direct, Iterative};
+      \node[fill= green!40] (0_00) at (3.5,0.0) {Integrators};
+      \node[fill= green!40] (0_00) at (7.0,0.0) {Distributions};
+
+ \draw[rounded corners, draw=red!45, thick, fill=red!25, opacity=0.5, text centered] (-1.55, -0.69) rectangle (8.55,-3.81) 
+                 node[black, thick, anchor=center, opacity=1.0, font=\Large] at (3.5, -2.25) {\ippl};
+       \node[fill= red!45] (q_00) at (0,-1) {FFT};
+       \node[fill= red!45] (q_01) at (3.5,-1) {D-Operators};
+       \node[fill= red!45] (q_02) at (7,-1) {NGP, CIC, TSI};
+       \node[fill= red!45] (q_10) at (0,-1.75) {Fields};
+       \node[fill= red!45] (q_11) at (3.5,-1.75) {Mesh};
+       \node[fill= red!45] (q_12) at (7,-1.75) {Particles};
+       \node[fill=red!45] (q_20) at (0,-2.75) {Load Balancing};
+       \node[fill=red!45] (q_21) at (3.5,-2.75) {Domain Decomp.};
+       \node[fill=red!45] (q_22) at (7,-2.75) {Message Passing};
+       \node[fill=red!45] (q_20) at (0,-3.5) {Particle Cash};
+       \node[fill=red!45] (q_21) at (3.5,-3.5) {PETE};
+       \node[fill=red!45] (q_22) at (7,-3.5) {Trilinos Interface};
+
+       \node[rotate=90,minimum width=1.7cm,fill=gray] (bla) at (-1.9,0.49){\textcolor{white} {\classic}};
+       \node[rotate=90,minimum width=3.15cm,fill= magenta] (bla) at (-1.9,-2.225){\textcolor{white}{\hfifehut}};
+       \node[fill=blue!65,minimum width=10.75cm] (q_23) at (3.25,-4.25) {\textcolor{white}{Trilinos \& GSL}};
+
+      \end{scope}
+ \end{tikzpicture}
+%\caption{The \opal software structure}
+\label{fig:opalstr}
+\end{center}
+\end{figure}
+ \vspace{-0cm}
+   \begin{itemize}
+   \item {\bf\color{green}  {\bf \opal Object Oriented Parallel Accelerator Library}}
+   \item {\color{red} $\text{IP}^{2}L$ {\bf Independent Parallel Particle Layer}}
+   \item {\color{gray}  {\bf Class Library for Accelerator Simulation System and Control}}
+   \item  {\bf\color{magenta} {\bf \hfifehut for parallel particle and field I/O (HDF5)}}
+   \item {\bf\color{blue!65} {\bf Trilinos} http://trilinos.sandia.gov/}
+  \end{itemize}
+ \end{frame}
+
+
+\begin{frame}{Maxwell's Equation in the Electrostatic approximation} {}
+\begin{block}{}
+In 3D Cartesian coordinates, the solution of the Poisson equation at point $\bs{x}$ can be expressed by 
+\begin{equation}\label{eq:Poten}
+  \phi(\bs{x})= \frac{1}{4\pi\varepsilon_0}\int{G(\bs{x},\bs{x}')\rho(\bs{x},\bs{x}')d\bs{x}'}
+\end{equation}
+with $G$ the 3D Green function 
+\begin{equation}\label{eq:Green}
+  G(\bs{x},\bs{x}')= \frac{1}{\sqrt{(\bs{x}-\bs{x}')^2}}
+\end{equation}
+assuming open boundary conditions.
+The typical steps of calculating space charge fields using the parallelized Hockney's FFT algorithm.
+\end{block}
+ \end{frame}
+
+\begin{frame}
+\frametitle{Iterative Poisson Solver \oursolver}
+\begin{block}{}
+We apply a second order finite difference scheme which leads to a set of linear equations
+		\[
+			\mathbf{A} \mathbf{x} = \mathbf{b} \text{,}
+		\]
+		where $\textbf{b}$ denotes the charge densities on the mesh.
+\end{block}
+\begin{alertblock}{}
+		\begin{itemize}
+		
+			\item solve anisotropic electrostatic Poisson PDE with an iterative solver
+            \item reuse information available from previous time steps
+            \item achieving good parallel efficiency
+			\item irregular domain with ``exact'' boundary conditions
+            \item easy to specify boundary surface
+            \item P. McCorquodale, P. Colella, D. P. Grote, J.-L. Vay, J. Comp. Phys., 2004
+            
+		\end{itemize}
+		
+		
+		
+			
+		\end{alertblock}
+\small{J. Comp. Phys., 229, 4554-4566, 2010}
+\end{frame}
+
+\begin{frame}
+		\frametitle{Boundary Conditions cont.}
+
+		\begin{columns}
+		\begin{column}{5cm}
+
+		\begin{block}{Boundary Problem}
+    		%\begin{eqnarray*}
+            \[
+	    		\nabla^2 \phi = -\frac{\rho}{\epsilon_0} \text{, in } \Omega \subset \Re^3 , \nonumber 
+            \]
+            \[
+                \phi = 0 \text{, on }\Gamma_1  
+            \]
+            \[
+                \frac{\partial \phi}{\partial \vec{n}} + \frac {1}{d} \phi = 0  \text{, on } \Gamma_2
+            \]
+    		%\end{eqnarray*}
+		\end{block}
+        \begin{itemize}
+		\item $\Omega \subset \Re^3$: simply connected computational domain
+		\item $\epsilon_0$: the dielectric constant
+        \item $\Gamma= \Gamma_1 \cup \Gamma_2$: boundary of $\Omega$
+        \item $d$: distance of bunch centroid to the boundary
+        \end{itemize}
+		
+		\end{column}
+		\begin{column}{5cm}
+            \begin{center}
+            \input{figures/figures-num/dom_cyl.tex} \\
+            \end{center}
+            \vspace{0.2cm} 
+			$\Gamma_1$ is the surface of an
+    		\begin{enumerate}
+	    		\item elliptic beam-pipe
+		    	\item arbitrary beam-pipe element
+    		\end{enumerate}
+		\end{column}
+		\end{columns}
+		
+	\end{frame}
+
+
+
+\begin{frame}
+		\frametitle{Boundary Conditions}
+
+		\begin{columns}
+		\begin{column}{5cm}
+
+		\begin{block}{Boundary Problem}
+    		%\begin{eqnarray*}
+            \[
+	    		\nabla^2 \phi = -\frac{\rho}{\epsilon_0} \text{, in } \Omega \subset \Re^3 , \nonumber 
+            \]
+            \[
+                \phi = 0 \text{, on }\Gamma_1  
+            \]
+            \[
+                \frac{\partial \phi}{\partial \vec{n}} + \frac {1}{d} \phi = 0  \text{, on } \Gamma_2
+            \]
+    		%\end{eqnarray*}
+		\end{block}
+        \begin{itemize}
+		\item $\Omega \subset \Re^3$: simply connected computational domain
+		\item $\epsilon_0$: the dielectric constant
+        \item $\Gamma= \Gamma_1 \cup \Gamma_2$: boundary of $\Omega$
+        \item $d$: distance of bunch centroid to the boundary
+        \end{itemize}
+		
+		\end{column}
+		\begin{column}{5cm}
+            \begin{center}
+            \input{figures/figures-num/mg_new.tex} \\
+            \end{center}
+            \vspace{0.2cm} 
+			
+    			For quadratic interpolation:
+	    		\begin{itemize}
+			\item the resulting discretization matrix is non-symmetric for boundary points
+			\item $O(h^2)$ accurate
+		\end{itemize}
+    		
+		\end{column}
+		\end{columns}
+		
+	\end{frame}
+
+
+
+
+
+\begin{frame}{\opal Parallel Scaling on Cray XT5 at CSCS}{Direct FFT Based Solver}
+ \vspace{-3mm}  
+   \begin{columns}
+    \begin{column}{11.0cm}
+      \scriptsize
+%      \begin{block}{Production Run Setup}
+        \begin{itemize}
+       \item Tracking $10^8$ particles 
+        \item 3D FFT on a $1024^3$ grid
+        \item Gaussian distribution
+       \end{itemize}
+    
+        
+    %  \end{block}
+    
+    \end{column}
+%    \begin{column}{7.0cm}
+%%    \begin{block}{}
+%      \includegraphics[scale=0.35]{figures/drift2c1} 
+% %   \end{block}
+%    \end{column}
+   
+  \end{columns}
+  \vspace{-5mm}
+  \includegraphics[scale=0.32]{drift2c1}
+%    \begin{block}{Observation}
+%      \begin{center}
+%         \alert{Time to solution reduced approximately by a factor of 100}
+%        \end{center}
+%     \end{block}
+\end{frame}
+
+
+
+
+
+\begin{frame}{\opal within the Simulation Live-Cycle}{Online Modeling: Data Formats, Post Processing - cont.}
+
+\begin{tikzpicture}[scale=0.7,transform shape,node distance=2.2cm] \footnotesize
+\node [pblock] (CAD) {CAD input};	
+\node [progblock, below of= CAD] (HERONION) {Mesh pre/post processing};
+\node [progblock,below of= HERONION] (FEMAXX) {femaxx};
+\node [pblock,left of= FEMAXX] (OPALGEO) {OPAL Geometry input};
+\node [pblock,right of= FEMAXX] (OPALLAT) {OPAL Lattice input};
+\node [progblock, below of=FEMAXX] (OPAL) {OPAL};
+\node [cloud,below right of= OPAL](DISK){Storage};
+
+\node [null, right of= CAD] (NULLH1) {};	
+\node [null, right of= NULLH1] (NULLH2) {};
+\node [null, right of= NULLH2] (NULLH3) {};
+\node [mblock, right of= NULLH2](XFEL) {OBLA / PSI-XFEL};
+\node [block,below of= XFEL](EPICS) {EPICS};
+\node [null, below of= EPICS](NULL4) {};
+\node [progblock, left of=NULL4](CA) {CAFE/ROOT};
+%\node [progblock,right of=NULL4](MCA) {MCA/Matlab};
+
+  \node (pic1) at (6.5,-3.5) { \includegraphics[width=0.6\linewidth]{H5PartROOT}};
+ %  \node (txtpic1) at (1,6.5) {\bf{H5PartROOT}};
+ % Draw edges
+\path [line] (CAD) -> (HERONION);
+\path [line,->] (HERONION) edge   node[right] {\bf H5hut} (FEMAXX);
+\path [line] (FEMAXX) -> (OPAL);
+\path [line,->] (OPAL) edge node[left] {\bf H5hut}   (DISK);
+\path [line] (HERONION) -> (OPALGEO);
+
+\path [line] (OPALLAT) -> (OPAL);
+\path [line] (OPALGEO) -> (OPAL);
+\end{tikzpicture}
+\end{frame}
+
+
+
+
+\section{Applications}
+
+
+
+\begin{frame}{72 MeV p, Line Connection two Cyclotrons } {}
+ \vspace{-5mm}
+ \begin{center}
+  \includegraphics[width=0.75\linewidth]{envelopefit}
+ \end{center}
+ \vspace{-5mm}
+ \begin{itemize}
+ \item Work in progress, towards the quantitative understanding of high intensity beam transport
+\end{itemize}
+\end{frame}
+
+\frame{
+  \frametitle{Comparison of beam profile monitors in the PSI-IW2 Line}
+      \includegraphics[width=0.9\linewidth]{MXP0304.pdf}
+}
+
+
+
+\frame{
+  \frametitle{Comparison of beam losses on the slits with measurements}
+      \includegraphics[width=1.0\linewidth]{fx5.pdf}
+}
+
+
+
+
+
+
+\begin{frame}{\opalcycl Accelerating orbit \& Tune diagram}{}
+ % \begin{block}{}
+  \begin{columns}
+    \begin{column}{5.5cm}
+      \includegraphics[width=\linewidth]{AEO-Ring2.pdf}         
+    \end{column}
+    \begin{column}{5.5cm}
+      \includegraphics[width=\linewidth]{nurnuz_Ring} \\
+      Tune calculation result is agree with FIXPO code very well!
+    \end{column}
+  \end{columns}
+ % \end{block}
+\end{frame}
+
+
+\frame{
+  \frametitle{PSI 590 MeV Ring - last 8 truns} 
+ \framesubtitle{\alert{Compare with measured profiles}}
+
+
+%  \begin{block}{Start-to-end RMS sizes comparison of a 3MeV beam}  
+    \includegraphics[width=0.9\linewidth]{rre4v0120all}
+   
+ % \end{block}
+}
+
+\frame{
+  \frametitle{Neighboring Bunch Effects- Multi Bunch Model}
+  \begin{block}{}
+    In our model, the injection-to-extraction simulation is divided into two stages,  
+    \begin{itemize}
+    \item First stage, big $\Delta R$  \alert{$\Rightarrow$}  single bunch tracking
+    \item Second stage, small $\Delta R$ \alert{$\Rightarrow$}  multiple bunches tracking
+    \item Full 3D
+    \item Energy bins \& re-binning 
+    \end{itemize} 
+  \end{block}  
+   \includegraphics[width=8cm]{SM-MultiBunch.pdf}
+}
+
+
+\frame{
+  \frametitle{PSI 590MeV Ring}
+  \framesubtitle{\alert{Single bunch}  and \alert{multiple bunches} at turn 80 and 130}
+  
+ \includegraphics[angle=90,width=0.95\linewidth]{C9B7BSB-2D-1mA-80.pdf}\\
+ \includegraphics[angle=0,width=0.95\linewidth]{C9B7BSB-2D-1mA-130.pdf}
+
+{\small Phys. Rev. ST Accel. Beams Volume 13 Issue 6 064201 (2010)}
+}
+
+
+%\begin{frame}{PSI 590MeV Ring}{\opalcycl Multiple bunches simulation of the Ring Cyclotron}
+%\includemovie[
+%poster,
+%text=(Ring Cyclotron),
+%mouse,
+%repeat
+%]{
+%.8\linewidth
+%}{
+%.6\linewidth
+%}{Movies/Ring9B3mA.mpeg}
+%\end{frame}
+
+
+
+
+
+
+\begin{frame}{Particle Matter Interaction}{}
+%  \begin{block}{}  
+ \begin{itemize}
+ \item Energy loss $-dE/dx$ (Bethe-Bloch)
+ \item Coulomb scattering is treated as two independent events: the multiple Coulomb scattering and the large angle Rutherford scattering
+ \end{itemize}
+
+A 72 MeV cold Gaussian beam with $\sigma_x=\sigma_y=5$ mm passing a copper slit with the half aperture of $3$ mm from 0.01 m to 0.1 m. 
+
+The deflected particles contribute to the energy spectrum and angle deviation after a collimator. 
+
+These particles may be lost downstream.
+\end{frame}
+
+\begin{frame}{Particle Matter Interaction cont.}{}
+\begin{figure}[htb]
+   \centering
+  \includegraphics[width=0.9\linewidth]{trace3}
+\end{figure}
+ %\end{block}
+\end{frame}
+
+
+\begin{frame}{Particle Matter Interaction cont.}{}
+ 
+\begin{figure}[htb]
+   \centering
+  \includegraphics[width=0.9\linewidth]{spectandscatter}
+ \end{figure}
+
+\end{frame}
+
+\begin{frame}{Secondary Emission and Field Emission}{}
+ 
+
+
+\end{frame}
+
+
+
+\section{Conclusion and Outlook}
+
+%\begin{frame}{Conclusion and Outlook}{Kurzweil - from  The Age of Spiritual Machines}
+%\setbeamercovered{invisible}
+%
+%%\begin{block}{}
+%\begin{center}
+%%figures/PPTExponentialGrowthof_Computing
+%\includegraphics<1>[width=0.85\linewidth]{Kur-Cycl1}
+%\includegraphics<2>[width=0.85\linewidth]{Kur-Cycl2}
+%\end{center}
+%%\end{block}
+%\end{frame}
+
+
+\begin{frame}{Conclusion and  Outlook}{}
+
+\begin{itemize}
+\item Some of the ongoing efforts towards precise S2E beam dynamics simulations where sketched and parts of our results presented.
+\item Using the HPC technology will enable us to speedup computations while increasing the accuracy of the used models: good statistics w.r.t losses $\rightarrow $ precise beam dynamics simulations!
+\item HPC technology is not enough: more accurate modeling, using the state-of-the-art numerical methods (Master \& Ph.D projects) and adequate software technology is mandatory! 
+
+\end{itemize}
+\alert{The \opal framework tries to combine these essential factors which will enables us to enter into
+new regimes of accelerator modeling and controls.}
+
+
+\end{frame}
+
+%\frame{
+%\frametitle{Outlook: Dark Current \& Multipacting Simulations}
+%\includemovie[
+%poster,
+%text=(Dark Current),
+%mouse,
+%repeat
+%]{
+%.8\linewidth
+%}{
+%.6\linewidth
+%}{Movies/dc-1.avi}
+
+%
+%}
+
+
+
+
+
+%\addtocounter{framenumber}{-12}
+\setbeamertemplate{footline}[default]
+
+	\begin{frame}
+	  	\frametitle{Backup}
+		\begin{center}
+			\color{blue}{\LARGE{Backup}}
+		\end{center}
+	\end{frame}
+
+
+
+%
+% B A C K U P -- S L I D E S
+%
+
+\begin{frame}[fragile]
+\begin{block}{}
+\begin{verbatim}
+
+GME:GEOMETRY, LENGTH=1, S=0.0, A=0.00085, B=0.00085;
+
+Fs1:FIELDSOLVER, FSTYPE=MG, MX=32, MY=32, MT=64, 
+        PARFFTX=false, PARFFTY=false, PARFFTT=true,
+        BCFFTX=dirichlet, BCFFTY=dirichlet, BCFFTT=open, 
+        GEOMETRY="GME", ITSOLVER="CG", INTERPL="linear",
+        TOL=1e-6, MAXITERS=100, PRECMODE="reuse";
+
+Fs2:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=64, 
+        PARFFTX=false, PARFFTY=false, PARFFTT=true,
+        BCFFTX=open, BCFFTY=open, BCFFTT=open,
+        BOXINCR=1.0, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, PC=P0, NPART=1e5, 
+	      BFREQ=1498.953425154e6, BCURRENT=0.299598, CHARGE=-1;
+
+SELECT, LINE=FIND1;
+\end{verbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+%\frametitle{\opal and its Flavours} 
+%\framesubtitle{Sketch of an inputfile - \opalt cont.}
+\begin{block}{}
+\begin{verbatim}
+TRACK,LINE=FIND1, BEAM=beam1, MAXSTEPS=10000, DT=1.0e-12;
+ RUN, METHOD = "PARALLEL-T", BEAM=beam1, 
+ FIELDSOLVER=Fs2, DISTRIBUTIONS={Dist1,Dist2};
+endtrack;
+
+f1: Filter, TYPE="FixedFFTLowPass", NFREQ=9;
+f2: Filter, TYPE="Savitzky-Golay", NLEFT=64, 
+	NRIGHT=64,POLYORDER=1;
+CSRWAKE: Wake, TYPE="1D-CSR", FILTERS={f2, f1};
+
+F10BC_MB01: RBend, L=0.282000, K0=0.1585,  
+	FMAPFN="F10BC-MB01.T7", ELEMEDGE=29.964, 
+	ALPHA=3.035,  DESIGNENERGY=247.6, WAKEF=CSRWAKE;
+\end{verbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+%\frametitle{\opal and its Flavours} 
+%\framesubtitle{Sketch of an inputfile - \opalt cont.}
+\begin{block}{}
+\begin{verbatim}
+KX1I_PHYS: SurfacePhysics, TYPE="Collimator",MATERIAL="Cu";
+
+KX0I: ECollimator, L=0.09, ELEMEDGE=0.01, 
+	XSIZE=0.003, YSIZE=0.003, 
+	APERTURE={0.003,0.003},SURFACEPHYSICS='KX1I_PHYS';
+
+DR1:DRIFT, L=0.09, ELEMEDGE=0.01,
+	APERTURE={0.003,0.003}, SURFACEPHYSICS='KX1I_PHYS';
+
+QXA1:QUADRUPOLE,L=0.19,ELEMEDGE=0.11,K1=1.0,
+	APERTURE={0.003,0.003}, SURFACEPHYSICS='KX1I_PHYS';
+
+MXP00: Monitor, L=0.002, ELEMEDGE=0.1, OUTFN="MXP00.h5";
+
+IW2Line: Line=(MXP00,KX0I);
+\end{verbatim}
+\end{block}
+\end{frame}
+
+
+\frame{
+   \frametitle{870 keV Injection Line}
+  \framesubtitle{\alert {Simulation} and \alert{measurement} DC beam 870 keV}
+ 
+  \begin{columns}
+    \begin{column}{6.0cm}
+     \begin{block}{}
+{\bf Estimate $\mathcal{D}_{start}$ and $\nu_e$ by $min(F)$:}
+\[
+F =\sum_{n=1}^{\#monitors}{(\rms{\mathcal{X}}_{mea}(s_n)-\rms{\mathcal{X}}_{sim}(s_n))^2} .
+\]
+\end{block}
+    \end{column}
+    \begin{column}{5.0cm}  
+     \begin{overprint}
+      \includegraphics<1>[keepaspectratio=true,width= 1.0\linewidth,angle=90]{beamline_without_accelerator_870keV} 
+      \includegraphics<2>[keepaspectratio=true,width= 0.99\linewidth,angle=0]{MWP30}
+      \end{overprint}
+    \end{column}
+  \end{columns}
+
+}
+
+\frame{
+   \frametitle{870 keV Injection Line}
+  \framesubtitle{\alert {Simulation} and \alert{measurement} DC beam 870 keV}
+ 
+{\bf Find $\mathcal{D}_{start}$ and $\nu_e$ by $min(F)$:} $F =\sum_{n=1}^{\#monitors}{(\rms{\mathcal{X}}_{mea}(s_n)-\rms{\mathcal{X}}_{sim}(s_n))^2} .$
+ %beamline_without_accelerator_870keV
+    \begin{center}
+     %\begin{overprint}
+      \includegraphics<1>[keepaspectratio=true,width= 0.50\linewidth,angle=90]{870line} 
+      \includegraphics<2>[keepaspectratio=true,width= 0.45\linewidth,angle=0]{MWP30}
+      %\end{overprint}
+ \end{center}
+}
+
+\frame{
+  \frametitle{Comparison of beam profile monitors in the PSI-IW2 Line}
+      \includegraphics[width=0.9\linewidth]{MNP1920.pdf}
+}
+
+\frame{
+  \frametitle{Comparison of beam losses on the slits with measurements}
+      \includegraphics[width=1.0\linewidth]{FX16.pdf}
+}
+
+\begin{frame} 
+  \frametitle{Parallel Scalability: \small{Test on Cray XT3 at CSCS, Switzerland}}
+  \begin{columns}
+    \begin{column}{4.cm}
+      \scriptsize
+      \begin{block}{Setup}
+        \begin{itemize}
+        \item  \alert{$10^6$} particles, 
+        \item 3D FFT on a  \alert{$64^3$} grid,
+	\item \alert{2D} domain decomposition
+	\item Track  \alert{200} time steps
+        \item Gaussian distribution
+	\item Dump data into \alert{single} H5Part file every 10 steps
+        \end{itemize}
+      \end{block}
+      
+      \begin{block}{Observations}
+        \begin{itemize}
+        \item The code scales well
+	\item Good load-balancing
+	\item I/O time is increasing 
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{6.5cm}
+%    \begin{block}{}    
+      \includegraphics[width=0.95\linewidth]{Timing64mesh}
+      \center Time to solution is reduced approximately by a factor of \alert{60}, (256P Vs 1P).
+   % \end{block}  
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+
+\begin{frame}
+		\frametitle{\oursolver\ Parallel Efficiency}
+		
+		\begin{columns}
+		\begin{column}{6.5cm}
+            \centering
+		        \includegraphics[width=0.99\textwidth]{eff_1024_lin-crop.pdf}
+        \end{column}
+        \begin{column}{4.5cm}
+            \begin{itemize} 
+                \item obtained for a tube embedded in a $1024\times1024\times1024$ grid
+                \item construction phase is performing the worst with an efficiency of 73\%
+                \item influence of problem size on the low performance of the aggregation in ML
+            \end{itemize}
+        \end{column}
+        \end{columns}
+
+	\end{frame}
+
+
+
+\end{document}
+
+
+
+
+

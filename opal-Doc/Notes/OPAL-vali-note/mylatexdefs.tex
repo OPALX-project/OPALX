@@ -1,0 +1,96 @@
+\newcommand{\opal}{\textsc{OPAL}}
+\newcommand{\opalt}{\textsc{OPAL-t }}
+\newcommand{\opale}{\textsc{OPAL-e }}
+\newcommand{\opalcycl}{\textsc{OPAL-cycl}}
+\newcommand{\opalmap}{\textsc{OPAL-map }}
+\newcommand{\opalenv}{\textsc{OPAL-envelop}}
+
+\newcommand{\mad}{\textsc{mad }}
+\newcommand{\madnine}{\textsc{mad9 }}
+\newcommand{\madninep}{\textsc{mad9p }}
+\newcommand{\madeight}{\textsc{mad8 }}
+
+\newcommand{\classic}{\textsc{classic }}
+\newcommand{\hfifepart}{\textsc{H5Part }}
+\newcommand{\hfifefe}{\textsc{H5FED }}
+
+\renewcommand{\epsilon}{\varepsilon} 
+\renewcommand{\vec}[1]{{\bf #1}} 
+\newcommand{\dt}[1]{\frac{\partial #1}{\partial t}}
+\newcommand{\dtt}[1]{\frac{\partial^2 #1}{\partial t^2}}
+\newcommand{\dtvec}[1]{\frac{\partial {\mathbf #1}}{\partial t}}
+\newcommand{\dttvec}[1]{\frac{\partial^2 {\mathbf #1}}{\partial t^2}}
+\newcommand{\rot}{\vec{\nabla} \wedge }
+\renewcommand{\div}{\vec{\nabla} \cdot }
+
+\def\vec#1{\mathbf{#1}}
+\def\vecg#1{\boldsymbol{#1}}
+\def\norm#1{\| #1 \|} 
+\def\tr{^{\!\top}}
+
+\def\curl{{\bf curl}\,}
+\def\curlp{{\rm curl}_p\,}
+\def\div{{\rm div}\,}
+\def\grad{\nabla}
+\def\gradp{\nabla_p}
+\def\dotp#1#2{\langle#1,#2\rangle}
+\def\eps{\varepsilon}
+
+\newcommand{\mat}[1]{\ensuremath{\boldsymbol{#1}}}
+\newcommand{\vect}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\iprod}[2]{\ensuremath{\langle#1,#2\rangle}}
+\newcommand{\abs}[1]{\ensuremath{|#1|}}
+
+\newcommand{\Nedelec}{N\'{e}d\'{e}lec}
+
+\newcommand{\id}[1]{\structure{#1}}
+
+\newcommand {\Co}{{\mathbb{C}}}
+\newcommand {\Int}{{\mathbb{Z}}}
+\newcommand {\Nat}{{\mathbb{N}}}
+%
+%
+\newcommand {\Hcurl}{{H(\mathbf{curl};\Omega)}}
+\newcommand {\Hocurl}{{H_0(\mathbf{curl};\Omega)}}
+\newcommand {\Hdiv}{{H(\mathrm{div};\Omega)}}
+\newcommand {\Hodiv}{{H_0(\mathbf{div};\Omega)}}
+%
+\renewcommand {\Re}{{\rm I \kern-2pt R}}
+\newcommand{\vc}[1]{\mbox{\boldmath $#1$}}
+\newcommand {\RM}[1]{\mathrm{#1}}
+
+
+
+% A simple colored box inlined with the text
+%  #1: color to use
+%  #2: text to put
+\newcommand{\INLINEBOX}[2]{%
+   \begin{center}%
+    \fcolorbox{#1!60!black}{#1}{%
+      \addtolength{\linewidth}{-0.6cm}%  fixed value, works for normal article text
+            \begin{minipage}{2\linewidth} #2 \end{minipage}%
+  \begin{minipage}{\linewidth} #2 \end{minipage}%
+    }%
+   \end{center}\vspace{1pt}%
+}
+
+% A box at the margin containing the given text
+\newcommand{\MARGINBOX}[1]{%
+  \mbox{}%
+  \marginpar%
+   [\tiny\raggedleft\hspace{0pt}#1]%
+   {\tiny\raggedright\hspace{0pt}#1}%
+}
+
+% mark specific elements: starred versions use inline boxes
+\newcommand{\TODO}[2][]{\MARGINBOX{\textcolor{red!80!black}{\emph{ToDo (#1):}} #2}}
+\WithSuffix\newcommand\TODO*[2][]{\INLINEBOX{red!20!white}{\emph{ToDo (#1):} #2}}
+
+\newcommand{\FIXME}[2][]{\MARGINBOX{\textcolor{blue!80!black}{\emph{FixMe (#1):}} #2}}
+\WithSuffix\newcommand\FIXME*[2][]{\INLINEBOX{blue!20!white}{\emph{FixMe (#1):} #2}}
+
+\newcommand{\NOTE}[2][]{\MARGINBOX{\textcolor{green!80!black}{\emph{Note (#1):}} #2}}
+\WithSuffix\newcommand\NOTE*[2][]{\INLINEBOX{green!20!white}{\emph{Note (#1):} #2}}
+
+\newcommand{\DRAFT}[2][]{\MARGINBOX{\textcolor{blue!80!black}{\textsc{Draft (#1):}} #2}}
+\WithSuffix\newcommand\DRAFT*[2][]{\INLINEBOX{blue!20!white}{\textsc{Draft (#1):} #2}}

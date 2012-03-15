@@ -1,0 +1,191 @@
+Los Alamos National Laboratory Poisson Superfish
+Program Fish written by
+Ron F. Holsinger in collaboration with Klaus Halbach
+
+The original Poisson Superfish codes were developed
+by Ron F. Holsinger in collaboration with Klaus Halbach.
+These programs are provided as a service to the accelerator
+community by the Los Alamos Accelerator Code Group (LAACG).
+
+(c) Copyright 1985-2004, by the Regents of the University of California.        
+This software was produced under U. S. Government contract W-7405-ENG-36        
+by Los Alamos National Laboratory, which is operated by the University          
+of California for the U. S. Department of Energy.  Neither the Government       
+nor the University makes any warranty, express or implied, or assumes           
+any liability or responsibility for its use, or represents that use of          
+this software would not infringe privately owned rights.                        
+Unpublished - rights reserved under Copyright Laws of the United States.        
+
+
+Program Fish  7.14  released 8-30-2004 
+
+Starting from file C:\LANL\Examples\RadioFrequency\RFQCavity\4THRFQ.T35.
+Program file: C:\LANL\AUTOFISH.EXE
+SF.INI file: C:\LANL\SF.INI  6-13-2005  16:38:04
+Memory used for 4THRFQ.T35 arrays:     535.824 K
+Memory used for other Fish arrays:       1.070 M
+
+Problem description:
+RFQ full quadrant
+Lowest dipole-mode frequency = 412.043 MHz
+Bore radius at quadrupole symmetry point r0 = 0.297 cm
+Vane-tip radius of curvature rho = 0.24371 cm
+Problem file: C:\LANL\EXAMPLES\RADIOFREQUENCY\RFQCAVITY\4THRFQ.AF  1-16-2003  16:57:06
+Problem file length:        1628 bytes
+Originating program: Autofish    Problem type: RFQ
+
+Coordinates and lengths have dimensions of centimeters.
+
+Problem constants and variables.
+Letter A in the code column indicates a value supplied in the
+Automesh input file.
+
+Variable Code         Value     Description
+ALPHAT          3.930000000E-03 Temperature coefficient of resistance
+ASCALE           3767.30313     Scaling factor for H at drive point
+BETA                    0.0     Particle velocity
+BETA1           0.100000000     Starting BETA in transit-time table
+BETA2           0.950000000     Ending BETA in transit-time table
+BETAD                   0.0     Design beta for a cavity
+CCLDELK          1.00000000     Increment for coupling for table in SFO
+CCLMAXK          6.00000000     Highest coupling for table in SFO
+CCLMINK          1.00000000     Lowest coupling for table in SFO
+CLENGTH                 0.0     Cavity length for normalization in SFO
+CLIGHT          2.997924580E+10 Exact speed of light in cm/sec
+CONV             1.00000000     Length conversion (number of units per cm)
+DBETA           5.000000000E-02 BETA increment in transit-time table
+DELFR                   0.0     Frequency step size for a resonance search
+DIAGDLL                   0     If 1, DLL writes diagnostics to DiagDLL.txt
+DPHI             180.000000     Phase length of the problem geometry
+DSLOPE     A    -1.00000000     Slope of D(k^2) function
+DSTOLER         2.000000000E-02 Tolerance required on D(k^2)
+DX1             1.428571429E-02 First X mesh interval (at XMIN)
+DXMIN           1.428571429E-02 Minimum X mesh interval (found by Automesh)
+DYMIN           1.428571429E-02 Minimum Y mesh interval (found by Automesh)
+ENORM            1000000.00     Field normalization for NORM=4 option
+EPS0            8.854187818E-12 Permittivity of free space
+EPSIK           1.000000000E-04 Frequency convergence parameter
+EPSO            1.000000000E-05 Convergence parameter in mesh optimization
+EZERO            1000000.00     E0 for normalization in SFO when NORM=0
+EZEROT           1000000.00     E0*T for normalization in SFO when NORM=1
+FMU0            1.256637061E-06 Permeability of free space
+FREQ       A     412.043440     RF cavity resonant frequency
+FREQD                   0.0     Design frequency for a cavity (MHz)
+HPHI             5000.00000     Normalization magnetic field for NORM=2
+IBETA                     0     If >0, SFO writes transit-time vs BETA
+ICCC                      1     1 for real arrays, 2 for complex arrays
+ICCP                      1     If 1, compute material power loss
+ICORNER1                  0     First corner segment for computing average H
+ICORNER2                  0     Last corner segment for computing average H
+ICYLIN     A              0     0 for X,Y problems, 1 for Z,R problems
+IMAX                    122     KMAX+2
+INFODATA                  0     Number of tuning-code parameters
+IOBSEG                   -1     First segment of the CCL outer boundary
+IPIVOT                    1     Pivoting in matrix inversion routines
+IRESID                    0     If 1, calculate potential residuals
+IRMAX                    25     Used in optimization of RHOXY
+IRTYPE                    0     Surface resistance option indicator
+ISLOT                     0     If 1, SFO computes coupling-slot power loss
+ITFILE                    0     If 1, SFO writes transit-time plot file
+ITOT                  14884     (KMAX+2)*(LMAX+2)
+KDRI                    101     K coordinate of the drive point
+KMAX                    120     Number of horizontal logical mesh points
+KMETHOD                   0     Wavenumber computation method
+KPROB      A              1     Problem type indicator (Superfish)
+LAST35                    1     Code for last program to update T35 file
+LCYCLE                  150     Iteration number in mesh optimization
+LDRI                    120     L coordinate of the drive point
+LINT                      1     Logical-mesh coordinate for Ez integration
+LMAX                    120     Number of vertical logical mesh points
+MAXCY                    19     Maximum number of cycles (-1: use default)
+MAXPPR                  412     Maximum points per region
+NAIR                   7435     Number of air points
+NBND                     22     Number of Dirichlet boundary points
+NBSLF      A              1     Left-side boundary condition
+NBSLO                     0     Lower boundary condition
+NBSRT                     1     Right-side boundary condition
+NBSUP                     1     Upper boundary condition
+NDRI                  14742     Drive point index = IRLAX(NPINP)
+NEGAT                     0     Zero-area triangle indicator
+NFE                       0     Number of iron points
+NHSTEM                    1     Number of half stems
+NINTER                    0     Number of interface points
+NMATR                     0     Number of material records in T35 file
+NORM                      0     Normalization method in SFO
+NPBOUND                 411     Total number of boundary points in the mesh
+NPINP                  7458     Total points in problem
+NPONTS                 7048     Number of unknown relaxation points
+NREG                      2     Number of regions
+NRMSEG                    1     Normalization segment number for NORM=2
+NSEG                     33     Number of boundary segments
+NSPL                      1     Number of special-potential points
+NSTEP                     0     Number of steps for a resonance search
+OMEGAM          1.000000000E-03 Used in optimization of RHOXY
+PI               3.14159265     The number pi to machine precision
+PLCELL           360.000000     Phase length per cell for multicell problems
+RESIDR          1.000000000E-08 Residual resistance of a superconductor
+RFMU             1.00000000     Permeability for rf surface resistance
+RHO             1.724100000E-06 Material resistivity (Ohm-m)
+RHOR            1.724100000E-06 Reference resistivity (Ohm-cm) at TEMPR
+RHOXY            1.60000000     Over-relaxation factor in mesh optimization
+RMASS           -2.00000000     Rest mass energy of particle in SFO
+RS                      0.0     RF surface resistance (Ohms)
+RSTEM            1.00000000     Stem radius in cm
+SLOSS           3.000000000E-02 Coupling-slot power factor per % coupling
+TC               9.20000000     Critical temperature of a superconductor
+TEMPC            20.0000000     Normal conductor operating temperature
+TEMPK            2.00000000     Operating temperature of a superconductor
+TEMPR            20.0000000     Reference temperature for IRTYPE=3
+TRIAVG          2.592188931E-03 Average area of all triangles
+TRIMAX          4.730449776E-02 Area of the largest positive-area triangle
+TRIMIN          5.245230646E-05 Area of the smallest positive-area triangle
+VOLUME                  0.0     Cavity volume (cylindrical symmetry only)
+XDRI             3.46380000     X coordinate of the drive point
+XMAXG            8.36240000     Upper X bound of the problem geometry
+XMING                   0.0     Lower X bound of the problem geometry
+XNORM1                  0.0     Starting X for NORM=4 integration path
+XNORM2                  0.0     Ending X for NORM=4 integration path
+XYAREA           37.5971083     Total cross sectional area
+YDRI             8.36240000     Y coordinate of the drive point
+YMAXG            8.36240000     Upper Y bound of the problem geometry
+YMING                   0.0     Lower Y bound of the problem geometry
+YNORM1                  0.0     Starting Y for NORM=4 integration path
+YNORM2                  0.0     Ending Y for NORM=4 integration path
+ZCTR                    0.0     Reference Z in transit-time integrals
+-------------------------------------------------------------------------------
+No materials other than air or empty space.
+-------------------------------------------------------------------------------
+      Kmax =  120, Lmax =  120                        k^2 = 0.00745769
+      ----------------------------------------------------------------
+      Writing temporary data arrays to memory.
+      Memory used:        13.498 M
+      ----------------------------------------------------------------
+      Total number of mesh points = 14884             freq = 412.04344
+                                                  D(k^2) = 4.18125E-11
+      Solution time =    0.913 sec.                       End cycle  0
+      ----------------------------------------------------------------
+                                                        Start cycle  1
+
+
+               Using a one-point line with slope=  -1.0.
+
+
+                              del(k^2) = 4.18125E-11   k^2 = 0.0074577
+                                                      freq = 412.04344
+      ----------------------------------------------------------------
+      Solution converged at the start of cycle 1.
+      Initial frequency = 412.04344        Final frequency = 412.04344
+      Elapsed time  =    0.99 sec
+
+Problem variables computed by this code.
+
+Variable Code         Value     Description
+DKSQ            4.181254388E-11 Change in k^2 after an iteration in Fish
+ERG              32.8361510     Integral (H^2 r dr dz)
+FREQ             412.043441     RF cavity resonant frequency
+ICYCLE                    1     Present iteration number
+METHOD                    1     Method used to get frequency in root finder
+Q2I                     0.0     1/2Q passed from CFish to SFO
+RESIK           5.606634562E-09 Residual = DKSQ/XKSQ
+XK0             8.635791950E-02 The wave number k = 2pif/c
+XKSQ            7.457690260E-03 Square of the wave number

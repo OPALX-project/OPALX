@@ -1,0 +1,33 @@
+Magnetic stored energy in a coaxial line
+Using two unclosed arc regions to enter the current effectively
+places the total current of 100 A on the surface of the cylinder.
+
+; Copyright 1998, by the University of California. 
+; Unauthorized commercial use is prohibited. 
+
+&reg kprob=0,           ; Poisson or Pandira problem
+mode=-2                 ; Materials have infinite permeability
+dx=0.2,dy=0.2,          ; Mesh intervals
+yminf=0,ymaxf=0         ; Fixed Y for field interpolation
+xminf=-5,xmaxf=5        ; X range for field interpolation
+nbslo=0,                ; Dirichlet boundary condition on lower edge
+nbsup=0,                ; Dirichlet boundary condition on upper edge
+nbslf=0,                ; Dirichlet boundary condition on left edge
+nbsrt=0,                ; Dirichlet boundary condition on right edge
+ibound=0,               ; Dirichlet boundary condition on entire path
+ienergy=1  &            ; Compute stored energy 
+
+&po x=5.,y=0. &
+&po nt=2,r=5.,theta=180.,x0=0.,y0=0. &
+&po nt=2,r=5.,theta=360.,x0=0.,y0=0. &
+
+&reg mat=1,cur=50. &
+&po x=1.,y=0. &
+&po nt=2,r=1.,theta=90.,x0=0.,y0=0. &
+&po nt=2,r=1.,theta=180.,x0=0.,y0=0. &
+
+&reg mat=1,cur=50. &
+&po x=-1.,y=0. &
+&po nt=2,r=1.,theta=270.,x0=0.,y0=0. &
+&po nt=2,r=1.,theta=360.,x0=0.,y0=0. &
+
