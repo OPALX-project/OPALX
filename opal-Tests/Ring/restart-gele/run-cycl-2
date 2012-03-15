@@ -1,0 +1,7 @@
+#!/bin/bash
+# 
+export FN=NewRing-multiBunch
+#PBS -N Ring3Bunch
+cd $PBS_O_WORKDIR
+yod -VN $HOME/bin/opal-palu $FN.in -restart STEP  --warning 9 --info 0 --commlib mpi >> $FN-P64.out 
+

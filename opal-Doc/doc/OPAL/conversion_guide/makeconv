@@ -1,0 +1,6 @@
+#!/bin/sh
+# make HTML version of the conversion guide
+
+latex2html -dir conversion -html_version 3.2 \
+    -index_in_navigation -t "The OPAL Program" -toc_depth 3\
+    -address andreas.adelmann@psi.ch conversion

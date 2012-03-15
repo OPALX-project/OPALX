@@ -1,0 +1,49 @@
+\ProvidesPackageRCS $Header: /cvsroot/latex-beamer/latex-beamer/themes/theme/beamerthemedefault.sty,v 1.6 2004/10/07 20:53:10 tantau Exp $
+
+% Copyright 2008 by Andreas Adelmann <andreas.adelmann@psi.ch>
+%
+\DeclareOptionBeamer{compress}{\beamer@compresstrue}
+\ProcessOptionsBeamer
+
+\pgfdeclareimage[width=1.1cm]{psi_logo}{figures-slides/psi_logo_blue}
+\pgfdeclareimage[width=1.1cm]{ciae_logo}{figures-slides/ciae_logo}
+
+\setbeamertemplate{footline}
+{
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.5\paperwidth,ht=2ex,dp=2ex,left]{title in head/foot}%
+      \usebeamerfont{title in head/foot}~~\insertshorttitle
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.5\paperwidth,ht=2ex,dp=2ex,right]{date in head/foot}%
+      \usebeamerfont{date in head/foot}\insertshortdate{}
+      Page \insertframenumber{} /
+      \inserttotalframenumber\hspace*{2ex} 
+    \end{beamercolorbox}}%
+  \vskip0pt%
+}
+
+
+\setbeamertemplate{headline} %customizing headline
+{
+ \vskip-5pt%
+\hbox
+ {
+   \begin{beamercolorbox}[wd=0.5\paperwidth,ht=1.1cm,dp=1ex,left]{}%
+        \parbox[t]{1.0cm}{\pgfuseimage{psi_logo}}
+    \end{beamercolorbox}
+   \begin{beamercolorbox}[wd=0.45\paperwidth,ht=1.1cm,dp=1ex,right]{}%
+        \parbox[t]{1.0cm}{\pgfuseimage{ciae_logo}}
+    \end{beamercolorbox}
+ }
+ \vskip-1pt%
+}
+
+\mode<presentation>
+\usefonttheme{PSI}
+\usecolortheme{PSI}
+\usecolortheme{orchid}
+\useinnertheme{PSI}
+\usenavigationsymbolstemplate{}
+\mode
+<all>
