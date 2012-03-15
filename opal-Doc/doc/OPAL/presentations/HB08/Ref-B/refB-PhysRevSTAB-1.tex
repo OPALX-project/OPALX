@@ -1,0 +1,268 @@
+\documentclass[10pt]{report}
+ \setlength{\parskip}{6.0mm}
+ \setlength{\parindent}{0pt}
+ \begin{document}
+ 
+ REFEREE B - ZC10034
+ 
+ This is much more of a technical computing note than a note on accelerator or
+ beam physics. An admittedly very complex and sophisticated computer code has
+ been built and seems to be producing new and exciting results for the case of
+ strong space charge in cyclotrons. But the results are not explained
+ physically, or if they are, the explanations are not convincing, perhaps even
+ incorrect. The authors may wish to re-consider submitting this paper unless
+ more physics is included.
+ 
+ Some major comments:
+ 
+ \begin{enumerate}
+  \item P.\ 2: \textit{``..., however in [5] it is shown that
+ under some special condition even a zero current beam is showing such a
+ behavior...''} The authors seem to misunderstand the claims of reference 5.
+ Certainly, if there is no space charge, there is no tendency towards round beam
+ bunches. (Ref. 5, by the way, incorrectly gives Catania as the conference
+ venue.)
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response}  Ref. 5 is fixed!}
+ \vspace{+2mm}
+
+ 
+  \item P.\ 3, bottom: \textit{``.... when the
+ beam current increases from 2 mA to 3 mA, the mutual space charge effects
+ between radially neighboring bunches will have more impact on the beam
+ dynamics...''} It is implied that the neighboring turn effect is more important
+ in the upgraded machine. This does not seem correct since before upgrade, turns
+ are closer together. The two effects -- higher current but larger turn
+ separation -- would seem to cancel.
+ 
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response}  We highlight the fact that in case of the PSI 590\,MeV Ring cyclotron
+ the turns {\em after the resonator upgrade} in the last 1/3 of the machine, are still not separated ($\mathcal{O}(3\sigma))$. This fact together with the
+ intensity upgrade are the motivating factors for the presented attempt to study/understad neighbouring bunch effects. }
+ \vspace{+2mm}
+ 
+{\it {\bf jjyang} After upgrade, the turn separation can be reduced by 25\%, and the beam intensity will increased by 50\%. In addition, the dependence of this two factors 
+are quite different. Therefore the cancellation of the two effects can only be partial.}
+  
+\vspace{+2mm} 
+
+  \item The condition equation 11 (p.9) is that the radius gain be less than
+ something 
+ written as the 
+ product of two user-chosen parameters. Is this a typo? These parameters are not
+ defined. It seems tp me that $r_{\rm rms}$ is meant to be the bunch width and
+ only $M$ is user-chosen, but that is not what is stated.
+ 
+  \vspace{+2mm}
+ {\it {\bf Our response} Yes, this is a typo and is fixed now. $M$ is a user-chosen parameter, $r_{rms}$ is the rms beam size calcuated after each intergration step.   
+ }
+ \vspace{+2mm}
+
+ \item P.9: \textit{...The underlying assumption for this is that all bunches
+ have the same phase space distribution when they reach a certain position.}
+ This cannot be true: the first bunch that was injected, having no neighbor at
+ higher energy, behaves differently than later ones that do. The statement
+ applies only to the steady state. I find this section describing the
+ multi-bunch algorithm extremely confusing. For example, why is the bunch that
+ has been tracked for one turn any more worthy of being stored than the initial
+ beam (which presumably is already stored anyway)? Does something irreversible
+ happen to the bunch over one turn? Then why is one turn sufficient?
+ 
+  \vspace{+2mm}
+ {\it {\bf Our response} We clearified: the model in this paper is to study the neighboring bunch effects under the steady state with all turns are filled with bunches. 
+   This means that the  {\bf i-1}th bunch beheaves exactly the same as the {\bf i}th bunch with the delay of revolution time. 
+   There is one sentence just after the sentence cited by referee: 
+   {\bf ...This is realistic and reasonable when the machine is running in a steady state...}
+
+   As we mentioned in P. 10.  The reason we only emply several bunches rather than the bunches of all turns is that 
+   {\bf ...The scale of particle number and the dimensions of the grid are beyond the capability of today's supercomputer resources...}
+
+   The phase space data is stored only when the Eq.11 is fulfilled.
+   We did not state that the second bunch will surely be injected after the first turn. 
+   If Eq.11 is not fulfilled after the first turn, it don't store data. It will run for the second turn, and then check whether Eq.11 is fulfilled or not, if not, it will run for 
+   the third trun ...., until Eq.11 is fulfilled, the phase space is stored in order to inject a new bunch from this data after one revolution time.
+ }
+ \vspace{+2mm}
+ 
+\item P.10: Algorithm 2 is to me no help at all; I find it totally
+ incomprehensible. 
+ What do the \# signs mean? Symbols like $T_r\rightarrow R_1,r_{\rm rms}$: what
+ do they mean? What does it mean that $R_0=R_1$? Etc. It also seems to assume
+ some familiarity with computer coding terms \textit{procedure, while,} etc. I
+ think it is a good idea to describe the algorithm systematically, but
+ introducing new symbols and words is not helpful. Algorithm 1 on the other hand
+ is very readable.
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response} Algorithm 2 is changed into a more easy-to-understand way.
+ }
+ \vspace{+2mm}
+
+  \item Equation 12: The sentence before this says that $\overline{\gamma}_i$ is
+ the 
+ average $\gamma$ for bunch $i$. The sentence after it states \textit{Then every
+ particle is grouped into the energy bin whose $\overline{\gamma}_i$ is closest
+ to its $\gamma$.}, implying that $i$ labels bins, not bunches. So which is it?
+ Or is there one bin per bunch? If this is the case, it needs stating. If not,
+ then I am far from understanding the binning technique.
+
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response}  Yes, there is one bin per bunch. the statement on this is added.
+ }
+ \vspace{+2mm}
+
+ \item P.19: In the last paragraph, \textit{``...particles with a radius smaller
+ than the center particle, the outward force is stronger than the inward force,
+ so they will move outwards;...''}. In an isochronous machine, radial space
+ charge forces result in azimuthal motion and vice versa. Yet here is stated
+ that radial forces result in radial motion. Why?
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response} As we stated in P.2 {\bf ...Secondly, there is a strong radial-longitudinal coupling which is influenced by non-linear radial and
+longitudinal space charge forces...}, we understand radial space charge forces not onluy result in azimuthal motion but also result in radial motion, 
+this is so called  ``vortex motion'' by Mr. Gordon in Ref[10]. Therefore when the outward force is stronger than the inward force the particle will move 
+in both radial and azimuthal direction, But here we want to emphasize that the phenomenon we observed should be attributed to radial motion rather than azimuthal motion.   
+
+ }
+ \vspace{+2mm} 
+
+ \end{enumerate}
+
+ There are also some rather more trivial comments:
+ 
+ \begin{enumerate}
+  \item P.\ 2: \textit{``...is developing a spatial
+ stationary spherical beam distribution.''} The stationary distribution is not
+ spherical except in the very special case where the vertical tune is as large
+ as the radial. In general, since vertical tune is smaller than radial, the
+ distribution in 3D is cigar-shaped.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+
+ 
+  \item P.\ 3, bottom: \textit{``.... The turn separation is consequently
+ increased, but 
+ remains at the same order of magnitude 
+ as the radial bunch size, as shown in Fig. 1.''} but the radial bunch size is 
+ not plotted on Fig.\ 1. As well, this statement begs the question Why increase
+ the turn spacing if the radial bunch sizes get larger anyway? I know the answer
+ is that the radial sizes become larger because the current is higher, but this
+ is nowhere stated. 
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+
+ 
+  \item I find the notation confusing since all vectors are bolded except
+ $\beta$, so I
+ continually forget that it is a vector. Should use boldmath as in {\boldmath
+ $\beta$}.
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response} fixed.
+ }
+ \vspace{+2mm}
+ 
+
+  \item Page 5 states that the magnet gap is large, while on page 7 it states
+ that 
+ cyclotron magnet gaps are narrow.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+ 
+  \item The paragraph just after equation 12 explains very well some details and
+ 
+ motivates the calculation, I suggest placing it at the start of section III,
+ rather than at the end.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+ 
+  \item There is an interesting systematic difference between OPAL and FIXPO
+ indicated in 
+ Figure 4. It is small, but still deserves a comment.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response} considering the quite different algorthim and numerical error, 
+   we think the differences is trivial. 
+ }
+ \vspace{+2mm}
+  
+
+  \item P.15: \textit{``Thereafter, the charge distribution stays at an
+ extremely narrow 
+ phase width (about 2$^\circ$)''} implies that the beam continues at a fixed
+ phase width. It doesn't, rather it continues at a fixed length so the phase
+ width decreases as $1/R$.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+ 
+ \item P.16: The explanation is unconvincing. There is no reason to suspect the
+ different treatment of the vertical motion results in a different
+ radial-longitudinal character. An odd thing is that the Sphere model of Ref.28
+ gives results that qualitatively look more similar to the OPAL results than the
+ Needle model does. See especially turn 5.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+
+ \item P.17: It is not clear to the reader that there are 4 main resonators and
+ only one 3$^{\rm rd}$ harmonic.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+ 
+ \item There is no table summarizing the main parameters of the cyclotrons in
+ question, so it is hard for the reader to judge what is meant by a 2$^\circ$
+ phase width. The harmonic number $h=6$ is nowhere mentioned.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+
+ \item Nothing is said regarding the details of the acceleration. It is known
+ that if the rf voltage increases with $R$, the bunches will shorten. This could
+ explain the Fig.8 result of steadily decreasing bunch lengths. But because of
+ lack of information, the reader cannot judge.
+
+
+ \vspace{+2mm}
+ {\it {\bf Our response}  
+ }
+ \vspace{+2mm}
+ 
+ \end{enumerate}
+ 
+ I counted 22 typographical and grammatical errors. This paper needs a good
+ editor to correct the English.
+ \end{document}

@@ -1,0 +1,19 @@
+Information
+===========
+
+As for now there are two flags:
+
+--build 
+
+that updates and tries builds the sources in ../../opal and ../../classic, and
+
+--user
+
+that should be used when the regression test is run as a user (not cron job). In
+this case the script will not send emails and also does not copy the xml results
+to the web directory. Additionally the script will be more verbose.
+
+OPAL Executable
+===============
+
+The OPAL executable path can be set with the environment variable OPAL_EXE_PATH.

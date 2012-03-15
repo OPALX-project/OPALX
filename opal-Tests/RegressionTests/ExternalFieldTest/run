@@ -1,0 +1,3 @@
+#!/bin/bash
+cp TwoStep.h5 ExternalFieldTest.h5
+mpirun -np 4 $OPAL_EXE_PATH/opal ExternalFieldTest.in -restart 2 --commlib mpi --info 0 2>&1 | tee ExternalFieldTest.out

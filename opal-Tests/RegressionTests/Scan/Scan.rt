@@ -1,0 +1,6 @@
+"Parameter scans with OPAL. The third run is used for comparison!"
+stat "rms_x" last 1E-5    #this is a comment
+stat "rms_y" last 1E-5    #this is a comment
+stat "rms_z" last 1E-5    #this is a comment
+out "rms emmitance" last 1E-5
+out "Emean" last 1E-5

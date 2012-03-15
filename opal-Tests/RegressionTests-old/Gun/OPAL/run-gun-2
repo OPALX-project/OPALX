@@ -1,0 +1,2 @@
+mpirun -np $1 opal Gun-test-2.in --commlib mpi --info 0 --warn 0 | tee  Gun-test-2-P$1.out
+mv Gun-test-2.h5 Gun-test-2-P$1.h5

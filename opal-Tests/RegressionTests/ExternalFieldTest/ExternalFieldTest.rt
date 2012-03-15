@@ -1,0 +1,4 @@
+"External field test (without space charge)"
+stat "rms_x" last 1E-5    #this is a comment
+stat "rms_y" last 1E-5    #this is a comment
+stat "rms_z" last 1E-5    #this is a comment

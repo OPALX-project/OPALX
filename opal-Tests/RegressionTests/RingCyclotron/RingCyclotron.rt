@@ -1,0 +1,4 @@
+"Three turns of the PSI Ring Cyclotron with space charge"
+out "Emean" last 1E-5
+out "rms beam size" last 1E-5
+out "rms emmitance" last 1E-5

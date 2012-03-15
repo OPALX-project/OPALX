@@ -1,0 +1,1 @@
+mpirun -np 4 $OPAL_EXE_PATH/opal RingCyclotron.in --commlib mpi --info 0 --warn 0 2>&1 | tee  RingCyclotron.out

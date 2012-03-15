@@ -1,0 +1,588 @@
+%\clearpage
+\section{Module Structure}
+The  OPAL classes are grouped in several modules.
+The principal dependencies between the modules are shown in
+Fig.~\ref{fig:modules}.
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(580,440)
+      \module(300,400){\vbox{Abstract-\\Objects}}
+      \module(0,400){Algorithms}
+      \module(500,400){Utilities}
+      \dline(40,340)(40,370)(540,370)(540,340)
+      \module(0,300){Structure}
+      \dline(50,240)(50,270)(90,270)(90,370)
+      \updotarrow(30,240)(30,300)
+      \module(0,200){\vbox{Physics-\\Actions}}
+      \dline(140,340)(140,370)
+      \module(100,300){\vbox{Value-\\Definitions}}
+      \dline(240,340)(240,370)
+      \module(200,300){Elements}
+      \updotarrow(340,340)(340,400)
+      \module(300,300){\vbox{Mad-\\Parser}}
+      \dline(440,340)(440,370)
+      \module(400,300){\vbox{Basic-\\Actions}}
+      \dline(250,140)(250,170)(530,170)(530,140)
+      \updotarrow(550,140)(550,200)
+      \updotarrow(230,140)(230,300)
+      \module(200,100){Lines}
+      \updotarrow(340,140)(340,300)
+      \module(300,100){Track}
+      \dline(440,140)(440,170)
+      \module(400,100){Match}
+      \module(500,100){Errors}
+      \module(500,300){Expressions}
+      \updotarrow(550,240)(550,300)
+      \dline(530,240)(530,270)(490,270)(490,370)
+      \module(500,200){Attributes}
+      \updotarrow(230,40)(230,100)
+      \dline(250,40)(250,70)(290,70)(290,170)
+      \module(200,0){Editor}
+    \end{picture}
+  \end{center}
+  \caption{CLASSIC Modules and their Dependences}
+  \label{fig:modules}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Hierarchy of Command Objects}
+All OPAL commands are represented by object classes.
+At start-up time OPAL creates a ``model'' object of each class, known
+as an ``exemplar''.
+When a parser reads a command, it clones the named object, reads its
+attributes, and executes the clone object by calling its execute()
+method.
+For details refer to the description of the parsers.
+The top level of the ``Object'' hierarchy is shown in Fig.~\ref{fig:objects}.
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(580,240)
+      \thinlines
+      \small
+      \class(60,200){Directory}
+      \rightdotarrow(140,220)(200,220)
+      \put(150,225){\makebox(0,0)[b]{1}}
+      \put(190,225){\makebox(0,0)[b]{*}}
+      \class(200,200){Object}
+      \leftcompose(340,220)(280,220)
+      \class(340,200){Attribute}
+      \put(290,225){\makebox(0,0)[b]{1}}
+      \put(330,225){\makebox(0,0)[b]{m}}
+      \drawline(40,140)(40,170)(540,170)(540,140)
+      \class(0,100){Action}
+      \drawline(140,140)(140,170)
+      \class(100,100){Editor}
+      \upderive(240,140)(240,200)
+      \class(200,100){Element}
+      \upderive(240,40)(240,100)
+      \class(200,0){\vbox{Beam-\\Sequence}}
+      \upcompose(260,70)(260,100)
+      \put(265,90){\makebox(0,0)[l]{1}}
+      \drawline(260,70)(340,70)(340,40)
+      \put(345,50){\makebox(0,0)[l]{1}}
+      \class(300,0){\vbox{Element-\\Base}}
+      \drawline(340,140)(340,170)
+      \class(300,100){Definition}
+      \drawline(440,140)(440,170)
+      \class(400,100){\vbox{Value-\\Definition}}
+      \class(500,100){Table}
+    \end{picture}
+    \caption{Hierarchy for Command Objects}
+    \label{fig:objects}
+  \end{center}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Command Attributes}
+Each attribute is represented by an object of class ``Attribute'',
+arranged in an array contained in the command object.  Each attribute
+points to
+\begin{enumerate}
+\item
+  An AttributeBase.
+  This contains the attribute value,
+  and is normally set to a default value in the exemplar object.
+  The clone process for the object creates a new reference to the
+  value in the exemplar,
+  and any new value overrides this value.
+  The values are templates, and may return several data types
+  (\texttt{double, string, PlaceRep, RangeRep, vector<>}, etc.).
+\item
+  An AttributeHandler.
+  This contains the name and the help text for the attribute.
+  It takes care of parsing and printing the attribute.
+  The attribute handlers for the same attribute of all object of a
+  given class are shared.
+\end{enumerate}
+The relationship of attribute objects is shown in
+Fig.~\ref{fig:attribute},
+the hierarchy for attribute values in Fig.~\ref{fig:values},
+and the hierarchy for attribute values in Fig.~\ref{fig:handlers}.
+
+Expressions entered by the user are kept in tree form.
+Expression trees are built from the classes in the hierarchy shown in
+Fig.~\ref{fig:express}.
+The expression classes are templates, and may return several data types
+(\texttt{double, string, PlaceRep, RangeRep, vector<>}, etc.).
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(180,140)
+      \small
+      \thinlines
+      \class(0,0){\vbox{Attribute-\\Base\\``abstract''}}
+      \class(100,0){\vbox{Attribute-\\Handler\\``abstract''}}
+      \class(50,100){Attribute}
+      \upcompose(90,70)(90,100)
+      \drawline(40,40)(40,70)(140,70)(140,40)
+    \end{picture}
+    \caption{Relationships between Attribute Objects}
+    \label{fig:attribute}
+  \end{center}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(580,310)
+      \thinlines
+      \small
+      \template(100,10){SAutomatic}{T}
+      \dline(80,30)(100,30)
+      \note(0,0)(80,60)%
+      {\vbox{automatic\\expression,\\returns \texttt{T}}}
+      \upderive(140,50)(140,90)
+      \template(100,90){SDeferred}{T}
+      \dline(80,110)(100,110)
+      \note(0,80)(80,60)%
+      {\vbox{deferred\\expression,\\returns \texttt{T}}}
+      \upderive(140,130)(140,170)
+      \template(100,170){SValue}{T}
+      \dline(80,190)(100,190)
+      \note(0,160)(80,60){\vbox{value,\\returns \texttt{T}}}
+      \template(200,170){SRefAttr}{T}
+      \dline(240,130)(240,170)
+      \note(200,70)(80,60)%
+      {\vbox{reference\\to scalar,\\returns \texttt{T}}}
+      \template(300,170){ARefAttr}{T}
+      \dline(340,130)(340,170)
+      \note(300,70)(80,60)%
+      {\vbox{reference\\to vector,\\returns\\\texttt{vector<T>}}}
+      \template(400,10){AAutomatic}{T}
+      \dline(480,30)(500,30)
+      \note(500,0)(80,60)%
+      {\vbox{automatic\\expression,\\returns\\\texttt{vector<T>}}}
+      \upderive(440,50)(440,90)
+      \template(400,90){ADeferred}{T}
+      \dline(480,110)(500,110)
+      \note(500,80)(80,60)%
+      {\vbox{deferred\\expression,\\returns\\\texttt{vector<T>}}}
+      \upderive(440,130)(440,170)
+      \template(400,170){AValue}{T}
+      \dline(480,190)(500,190)
+      \note(500,160)(80,60)%
+      {\vbox{value,\\returns\\\texttt{vector<T>}}}
+      \drawline(140,210)(140,240)(440,240)(440,210)
+      \drawline(240,210)(240,240)
+      \drawline(340,210)(340,240)
+      \upderive(290,240)(290,270)
+      \class(250,270){\vbox{Attribute-\\Base}}
+    \end{picture}
+    \caption{Hierarchy for Attribute Values}
+    \label{fig:values}
+  \end{center}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(380,340)
+      \thinlines
+      \class(150,300){\vbox{Attribute-\\Handler}}
+      \upderive(190,70)(190,300)
+      \drawline(40,240)(40,270)(340,270)(340,240)
+      \drawline(140,240)(140,270)
+      \drawline(240,240)(240,270)
+      \class(0,200){Place}
+      \class(100,200){Range}
+      \class(200,200){Reference}
+      \class(300,200){TableRow}
+      \drawline(40,140)(40,170)(340,170)(340,140)
+      \drawline(140,140)(140,170)
+      \drawline(240,140)(240,170)
+      \class(0,100){Bool}
+      \class(100,100){Real}
+      \class(200,100){String}
+      \class(300,100){TokenList}
+      \drawline(40,40)(40,70)(340,70)(340,40)
+      \drawline(140,40)(140,70)
+      \drawline(240,40)(240,70)
+      \class(0,0){\vbox{Bool-\\Array}}
+      \class(100,0){\vbox{Real-\\Array}}
+      \class(200,0){\vbox{String-\\Array}}
+      \class(300,0){\vbox{TokenList-\\Array}}
+    \end{picture}
+    \caption{Hierarchy for Attribute Handlers}
+    \label{fig:handlers}
+  \end{center}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(440,740)(-20,-10)
+      \small
+      \thinlines
+      \dline(-20,-10)(-20,320)(420,320)(420,-10)(-20,-10)
+      \template(0,430){SRefExpr}{T}
+      \dline(40,400)(40,410)
+      \note(0,360)(80,40){\vbox{reference\\to scalar}}
+      \drawline(40,470)(40,500)(360,500)(360,470)
+      \template(100,430){SCell}{T}
+      \dline(140,400)(140,430)
+      \note(100,360)(80,40){\vbox{cell from\\a table}}
+      \drawline(140,470)(140,500)
+      \upderive(200,140)(200,700)
+      \template(220,430){SHash}{T}
+      \dline(260,400)(260,430)
+      \note(220,360)(80,40){\vbox{\texttt{\#} sign in\\\texttt{TABLE()}}}
+      \drawline(260,470)(260,500)
+      \template(320,430){Indexer}{T}
+      \dline(360,400)(360,430)
+      \note(320,360)(80,40){\vbox{Index into\\\texttt{vector<T>}}}
+      \template(0,600){SConstant}{T}
+      \dline(40,570)(40,600)
+      \note(0,530)(80,40){\vbox{scalar\\constant}}
+      \drawline(40,640)(40,670)(360,670)(360,640)
+      \template(100,600){SNull}{T}
+      \dline(140,570)(140,600)
+      \note(100,530)(80,40){\vbox{expression,\\no scalars}}
+      \drawline(140,640)(140,670)
+      \template(220,600){SUnary}{T}
+      \dline(260,570)(260,600)
+      \note(220,530)(80,40){\vbox{expression,\\one scalar}}
+      \drawline(260,640)(260,670)
+      \template(320,600){SBinary}{T}
+      \dline(360,570)(360,600)
+      \note(320,530)(80,40){\vbox{expression,\\two scalars}}
+      \template(160,700){Expression}{T}
+
+      \dline(-20,350)(-20,680)(420,680)(420,350)(-20,350)
+      \template(0,70){ARefExpr}{T}
+      \dline(40,40)(40,70)
+      \note(0,0)(80,40){\vbox{reference\\to vector}}
+      \drawline(40,110)(40,140)(360,140)(360,110)
+      \template(100,70){AUnary}{T}
+      \dline(140,40)(140,70)
+      \note(100,0)(80,40){\vbox{expression\\one vector}}
+      \drawline(140,110)(140,140)
+      \template(220,70){ABinary}{T}
+      \dline(260,40)(260,70)
+      \note(220,0)(80,40){\vbox{expression\\two vectors}}
+      \drawline(260,110)(260,140)
+      \template(320,70){ASUnary}{T}
+      \dline(360,40)(360,70)
+      \note(320,0)(80,40){\vbox{expression\\vector to\\scalar}}
+      \template(0,240){AColumn}{T}
+      \dline(40,210)(40,240)
+      \note(0,170)(80,40){\vbox{expression\\table column}}
+      \drawline(40,280)(40,310)(360,310)(360,280)
+      \template(100,240){ARow}{T}
+      \dline(140,210)(140,240)
+      \note(100,170)(80,40){\vbox{expression,\\table row}}
+      \drawline(140,280)(140,310)
+      \template(220,240){ATable}{T}
+      \dline(260,210)(260,240)
+      \note(220,170)(80,40){\vbox{expression,\\\texttt{TABLE()}}}
+      \drawline(260,280)(260,310)
+      \template(320,240){AList}{T}
+      \dline(360,210)(360,240)
+      \note(320,170)(80,40){\vbox{expression\\\texttt{\{...\}}}}
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for scalar (top) and vector (bottom) Expressions}
+  \label{fig:express}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Active Elements}
+The OPAL element classes serve as an interface to the CLASSIC library.
+Each OPAL element contains a pointer to an instance of a corresponding
+CLASSIC element.
+The CLASSIC element handles the interface to the algorithms,
+whilst the OPAL element deals with the attributes in MAD language,
+and updates the CLASSIC element when its \texttt{update()} function is
+called.
+This happens before execution of any executable command,
+so as to ensure that the data structure is up to date.
+
+The OPAL element hierarchy is illustrated by two typical examples,
+namely the MadDrift and MadBend elements in Fig.~\ref{fig:elements}.
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(320,550)
+      \thinlines
+      \smodule(75,390)(120,140){\vbox{Abstract-\\Objects}}
+      \smodule(0,110)(320,260){Elements}
+      \smodule(0,0)(320,70){\vbox{Beamline-\\Core}}
+
+      \thicklines
+      \class(95,480){Object}
+      \upderive(135,450)(135,480)
+      \class(95,410){Element}
+      \upderive(135,360)(135,410)
+      \class(95,320){\vbox{Mad-\\Element}}
+      \upderive(135,290)(135,320)
+      \drawline(60,260)(60,290)(210,290)(210,260)
+      \class(20,220){\vbox{Mad-\\Drift}}
+      \put(60,220){\vector(0,-1){170}}
+      \class(20,10){DriftRep}
+
+      \class(170,220){\vbox{Mad-\\Bend}}
+      \upderive(210,190)(210,220)
+      \drawline(160,160)(160,190)(260,190)(260,160)
+      \class(120,120){MadRBend}
+      \class(220,120){MadSBend}
+      \put(160,120){\vector(0,-1){70}}
+      \class(120,10){RBendRep}
+      \put(260,120){\vector(0,-1){70}}
+      \class(220,10){SBendRep}
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for Drift and Bend Elements}
+  \label{fig:elements}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Beam Lines}
+The OPAL beam lines are treated like the elements.
+Again, a Line or Sequence points to a CLASSIC beam line.
+This is shown in Fig.~\ref{fig:lines}. 
+This same figure also shows the templates used for lines and sequences with
+arguments. 
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(460,560)
+      \thinlines
+      \smodule(10,0)(200,70){Beamlines}
+      \smodule(250,0)(200,70){Parser}
+      \smodule(10,110)(440,150){Lines}
+      \smodule(60,300)(220,240){\vbox{Abstract-\\Objects}}
+      \smodule(300,350)(100,70){MadParser}
+
+      \thicklines
+      \class(20,10){\vbox{TBeamline\\<...>}}
+      \put(60,160){\vector(0,-1){110}}
+      \class(20,160){Line}
+      \drawline(60,200)(60,280)(160,280)(160,200)
+      \class(120,10){\vbox{TBeamline\\<...>}}
+      \put(160,160){\vector(0,-1){110}}
+      \class(120,160){Sequence}
+      \upderive(110,280)(110,320)
+      \class(70,320){\vbox{Beam-\\Sequence}}
+      \upderive(110,360)(110,390)
+      \class(70,390){Element}
+
+      \class(310,10){\vbox{Token-\\Stream}}
+      \downderive(350,90)(350,50)
+      \drawline(300,130)(300,90)(400,90)(400,130)
+      \class(260,130){\vbox{Macro-\\Stream}}
+      \upcompose(300,170)(300,210)
+      \class(260,210){\vbox{Line-\\Template}}
+      \class(360,130){\vbox{Macro-\\Stream}}
+      \upcompose(400,170)(400,210)
+      \class(360,210){\vbox{Sequence-\\Template}}
+      \drawline(300,250)(300,280)(400,280)(400,250)
+      \upderive(350,280)(350,370)
+      \class(310,370){Macro}
+
+      \drawline(110,430)(110,460)(350,460)(350,410)
+      \upderive(230,460)(230,490)
+      \class(190,490){Object}
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for OPAL Beam Lines and Sequences}
+  \label{fig:lines}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Line Structure}
+The structure of a beam line or sequence follows the layout shown in
+Fig.~\ref{fig:structure}.
+For non-shared elements, all the objects except the concrete
+representations for \textbf{ideal} elemenst (\texttt{XXXRep}) are
+unique.
+For shared elements, also the wrappers (\texttt{XXXWrapper}) are
+unique. 
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(380,350)
+      \class(150,310){\vbox{Line \textrm{or}\\Sequence}}
+      \put(190,310){\vector(0,-1){30}}
+      \bclass(130,240)(120,40){\vbox{TBeamline\\<FlaggedElmPtr>}}
+      \drawline(190,210)(190,240)
+      \drawline(40,210)(340,210)
+      \multiput(40,210)(100,0){4}{\vector(0,-1){30}}
+      \class(0,140){MarkerRep}
+      \class(100,140){\vbox{Align-\\Wrapper}}
+      \class(200,140){\vbox{Align-\\Wrapper}}
+      \class(300,140){\vbox{Align-\\Wrapper}}
+      \multiput(140,140)(100,0){3}{\vector(0,-1){30}}
+      \class(100,70){\vbox{Solenoid-\\Rep}}
+      \class(200,70){\vbox{Multipole-\\Wrapper}}
+      \class(300,70){\vbox{RBend-\\Wrapper}}
+      \multiput(240,70)(100,0){2}{\vector(0,-1){30}}
+      \class(200,0){\vbox{Multipole-\\Rep}}
+      \class(300,0){\vbox{RBend-\\Rep}}
+    \end{picture}
+  \end{center}
+  \caption{Structure of a OPAL Beam Line or Sequence}
+  \label{fig:structure}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{Algorithms}
+The algorithm hierarchy is shown in Fig.~\ref{fig:algorithms}.
+An algorithms is constructed with a beam line as a parameter,
+and normally applied to that line by its \texttt{execute()} method.
+Most algorithms can also be applied to a table by simply looping over
+the table and using the \texttt{accept(BeamlineVisitor \&)} method of
+each contained \texttt{ElmPtr}.
+
+The integrator hierarchy is shown in Fig.~\ref{fig:integrators}.
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(580,410)
+      \thinlines
+      \class(325,370){\vbox{Beamline-\\Visitor}}
+      \upderive(365,340)(365,370)
+      \class(325,300){\vbox{Default-\\Visitor}}
+      \upderive(365,240)(365,300)
+      \drawline(140,240)(140,270)(490,270)(490,240)
+      \class(100,200){Flagger}
+      \drawline(240,240)(240,270)
+      \class(200,200){\vbox{Abstrac-\\Mapper}}
+      \upderive(240,140)(240,200)
+      \class(200,100){\vbox{Lie-\\Mapper}}
+      \drawline(140,140)(140,170)(340,170)(340,140)
+      \class(300,100){\vbox{Linear-\\Mapper}}
+      \upderive(340,40)(340,100)
+      \class(300,0){\vbox{Ideal-\\Mapper}}
+      \class(100,100){Mapper}
+      \upderive(140,40)(140,100)
+      \drawline(40,40)(40,70)(240,70)(240,40)
+      \class(0,0){\vbox{Thin-\\Mapper}}
+      \class(100,0){\vbox{Thick-\\Mapper}}
+      \class(200,0){\vbox{Transport-\\Mapper}}
+      \class(325,200){Surveyor}
+      \class(450,200){\vbox{Abstract-\\Tracker}}
+      \upderive(490,170)(490,200)
+      \drawline(440,140)(440,170)(540,170)(540,140)
+      \class(400,100){Tracker}
+      \upderive(440,40)(440,100)
+      \class(400,0){\vbox{Thin-\\Tracker}}
+      \class(500,100){\vbox{Orbit-\\Tracker}}
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for OPAL and CLASSIC Algorithms}
+  \label{fig:algorithms}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(410,110)
+      \thinlines
+      \class(0,0){Integrator}
+      \leftderive(110,20)(80,20)
+      \class(110,0){\vbox{Track-\\Integrator}}
+      \leftderive(220,20)(190,20)
+      \class(220,0){\vbox{Map-\\Integrator}}
+      \leftderive(330,20)(300,20)
+      \class(330,0){\vbox{MPSplit-\\Integrator}}
+      \dline(370,40)(370,70)
+      \note(210,70)(200,40)
+      {\vbox{replaces current element\\
+          by N thin multipoles}}
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for OPAL and CLASSIC Integrators}
+  \label{fig:integrators}
+\end{figure}
+
+% ========================================================================
+
+\clearpage
+\section{OPAL Parser and Streams}
+OPAL uses the class \texttt{MadParser} for parsing in the normal mode.
+When entering one of the special modes, it switches to another parser,
+derived from \texttt{MadParser}.
+The hierarchy for parsers and input streams is shown in
+Fig.~\ref{fig:parser}. 
+
+\begin{figure}[H]
+  \begin{center}
+    \begin{picture}(480,340)
+      \thinlines
+      \class(0,100){\vbox{Edit-\\Parser}}
+      \dline(40,70)(40,100)
+      \note(0,30)(80,40){edit mode}
+      \class(100,100){\vbox{Error-\\Parser}}
+      \dline(140,70)(140,100)
+      \note(100,30)(80,40){error mode}
+      \class(200,100){\vbox{Match-\\Parser}}
+      \dline(240,70)(240,100)
+      \note(200,30)(80,40){match mode}
+      \class(300,100){\vbox{Sequence-\\Parser}}
+      \dline(340,70)(340,100)
+      \note(300,30)(80,40){\vbox{sequence\\parsing}}
+      \class(400,100){\vbox{Track-\\Parser}}
+      \dline(440,70)(440,100)
+      \note(400,30)(80,40){track mode}
+      \drawline(40,140)(40,170)(440,170)(440,140)
+      \drawline(140,140)(140,170)
+      \drawline(340,140)(340,170)
+      \upderive(240,140)(240,200)
+      \class(200,200){\vbox{Mad-\\Parser}}
+      \upderive(240,240)(240,300)
+      \drawline(140,240)(140,270)(240,270)
+      \class(100,200){\vbox{Classic-\\Parser}}
+      \class(200,300){Parser}
+    \end{picture}
+
+    \begin{picture}(380,330)
+      \thinlines
+      \class(0,100){FileStream}
+      \dline(40,70)(40,100)
+      \note(0,0)(80,70){\vbox{reading\\from a\\file}}
+      \class(100,100){\vbox{Terminal-\\Stream}}
+      \dline(140,70)(140,100)
+      \note(100,0)(80,70){\vbox{reading\\from the\\terminal}}
+      \drawline(40,140)(40,170)(140,170)(140,140)
+      \upderive(90,170)(90,200)
+      \class(50,200){\vbox{Abstract-\\FileStream}}
+      \drawline(90,240)(90,270)(340,270)(340,240)
+      \upderive(240,240)(240,300)
+      \class(200,300){TokenStream}
+      \class(200,200){\vbox{Macro-\\Stream}}
+      \dline(240,170)(240,200)
+      \note(200,100)(80,70){\vbox{reading\\from a\\macro}}
+      \class(300,200){\vbox{String-\\Stream}}
+      \dline(340,170)(340,200)
+      \note(300,100)(80,70){\vbox{reading\\from a\\string}}
+    \end{picture}
+  \end{center}
+  \caption{Hierarchy for Parsers (top) and Streams (bottom)}
+  \label{fig:parser}
+\end{figure}

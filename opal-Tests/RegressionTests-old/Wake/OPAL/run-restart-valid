@@ -1,0 +1,2 @@
+cp TwoStep.h5 opal-wake1.h5
+opal opal-wake1.in -restart 2 --commlib mpi --info 0 2>&1 | tee opal-wake1.out

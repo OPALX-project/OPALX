@@ -1,0 +1,1 @@
+mpirun -np 4 $OPAL_EXE_PATH/opal BC1-1.in --commlib mpi --info 0 --warn 0 2>&1 | tee  BC1-1.out

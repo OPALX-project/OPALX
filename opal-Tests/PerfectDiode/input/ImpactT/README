@@ -1,0 +1,8 @@
+This directory contains all that is needed to run an ImpactT simulation of our perfect diode.
+
+The "input-files" directory contains a template file for the simulation.
+
+run-impactt.py	==> Python script for launching ImpactT simulations. This will need to be edited depending on where
+		    you want the simulations to take place, what machine you are on etc.
+
+subroutines.py	==> Python functions used by run-impactt.py

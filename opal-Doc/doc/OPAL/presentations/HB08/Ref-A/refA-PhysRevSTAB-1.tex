@@ -1,0 +1,163 @@
+\documentclass{article}
+ \usepackage{latexsym}
+ 
+ \begin{document}
+
+ REFEREE A - ZC10034 \\
+
+
+ \underline {General assessment of paper: }
+ 
+ This paper presents a new code for simulating intense cyclotron beams, 
+ including space charge effects between radially neighboring bunches. The 
+ referee feels that this is a unique tool and will be of value to the 
+ cyclotron community. To the best of the referee's knowledge, the work 
+ presented in the paper is accurate. 
+ 
+ The single major concern of this referee is whether or not the subject 
+ matter of this paper is appropriate for a PRSTAB. The bulk of the paper is 
+ dedicated to the computational method, which introduces a new implementation 
+ of standard PIC tools. The balance of the paper is focused on benchmarking 
+ the code and some applications. However, this latter portion, which 
+ represents the physics in the paper, is less than 25{\%} of the total paper 
+ length. In fact, the most interesting and the really unique portion of this 
+ work -- the neighboring bunch effects -- represents only 1 page ($\sim 
+ $5{\%}) of the total 20 page paper. 
+ 
+ This referee feels that this paper would make a good contribution to PRSTAB 
+ if the physics and applications sections of the paper could be ``bulked 
+ up''. A comparison with experimental data would certainly justify it's 
+ publication, but if this is not possible than perhaps a few more simulations 
+ of neighboring bunch effects for different machines or configurations would 
+ be appropriate. The referee encourages the authors to explore and present 
+ more of the physics that their model exposes, esp. for neighboring bunch 
+ effects, so that the paper is clearly a physics paper and not a 
+ computational paper. 
+ 
+ If the authors do not feel that this can be accomplished, then the referee 
+ would suggest that the paper be submitted to an alternate journal which is 
+ more accepting of computational papers, such as Nuclear Instr. and Methods. 
+ 
+ Other specific concerns about the paper are given below. 
+ 
+ \underline {Specific topical comments:}
+ 
+ 1. It is stated in Introduction that for PSI upgrade, ``when the beam 
+ current increases from 2mA to 3mA the mutual space charge effects between 
+ radially neighboring bunches{\ldots}need to be seriously considered. 
+ However, later on in the paper at the beginning of Section III on page 8, 
+ the authors state, ``{\ldots}$\backslash $DeltaR stays sufficiently 
+ large{\ldots}neighboring effects are negligible''. This seems to invalidate 
+ the statement made in the Introduction stating that neighboring effects 
+ should be considered. The point needs clarification as it is confusing for 
+ the reader. 
+ 
+  \vspace{+2mm}
+ {\it {\bf Our response}  We clarify:  the Injector II has separated turns (discussed in Section III on page 8) and
+ hence neighbouring turn simulations are not of utmost importance, while in the case of 
+ the Ring cyclotron (discussed in the Introduction)  with overlapping tuns such simulations are needed in order to 
+ refine the physical model. In detail:\\
+ 
+Introduction:  For high intensity cyclotrons, {\bf such as PSI 590\,MeV Ring cyclotron}, with small turn separation .... \\
+
+Beginning of Section III on page 8: Generally, in cyclotrons, $\Delta R$ reduces gradually  with increasing beam energy.
+For machines like the PSI Injector\,II, $\Delta R$ stays sufficiently large from injection to extraction, and in such cases,  neighboring bunch effects are negligible. 
+For others, {\bf  like the PSI 590\,MeV Ring cyclotron under consideration in this section}, $\Delta R$ decreases strongly during the course of acceleration resulting in the need to consider neighboring bunch effects in order to obtain a precise description of the beam dynamics.
+ \vspace{+2mm}
+ 
+ 
+ 
+ 2. Two methods for obtaining magnetic field data are presented in Section 
+ II, but it is unclear which of these methods is used for the simulations 
+ presented later in the paper. 
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response} We added: For all calculations in this paper, we use the method by Gordon and Taivassalo.
+ \vspace{+2mm}
+ 
+ 
+ 3. The parameter M presented in Section III needs more discussion. It is 
+ unclear to the reader what a reasonable choice of M would be and why one 
+ choice would be more reasonable than another. On page 11 it is stated that 
+ convergence is reached for N{\_}b=9 and M=4.5. However, this leads to the 
+ question of whether another combination of N{\_}b and M might also produce 
+ convergence, and if so, would it be equally valid and would the result of 
+ the simulation be the same? Does the value of a reasonable M depend on 
+ N{\_}b or is it independent? A more physical explanation for the choice of M 
+ should be included. 
+
+ \vspace{+2mm}
+ {\it {\bf Our response} 
+   The set of these two parameter is more or less empirical value after many simulation and comparison.
+   It is a balance between the computation accuracy and computation time.
+   In our model, when the turn separation is less than the 1/M times of beam's rms size, 
+   we start to inject new bunches, namely, start to take the effects of neighboring bunch into account. 
+   This means the effects before this time point is neglected. 
+   If the set of M is smaller, we include the neighboring bunche effects earlier, 
+   meanwhile need more computation time.   
+   On the other hand, N{\_}b represent the total bunches we injected. 
+   Theoretically speaking, more bunches we use, more self-consiscent result we can get, 
+   meanwhile need more computation time.   . 
+   Seen from above analysis, these two parameters are independent. Both of them can affect the simulation result significantly.
+
+   todo, add more explanation into paper
+ } 
+ \vspace{+2mm}
+
+ 
+ 4. The discussion of energy binning in section III needs to be placed within 
+ the context of the computational algorithm listed in section II, either by 
+ moving the discussion to this section, or by addressing the point 
+ specifically of how the energy binning and spatial binning are occurring 
+ simultaneously. Specifically, it is somewhat confusing to the reader for how 
+ particles are being binned by energy, which may allow them to cross spatial 
+ bunches (or not? Another confusing point), but are still giving the accurate 
+ spatial density grid. The referee is confident that the authors have thought 
+ this through and have come up with an accurate procedure, but the method is 
+ not clearly reflected in the text. 
+ 
+ \underline {Grammar and phraseology: }
+ 
+ \textit{Abstract: }
+ 
+ 1. ``Space charge being the most significant of collective effect{\ldots}'' 
+ Should be changed 2. to ``Space charge being one of the most significant of 
+ collective effects{\ldots}'', since for some machines other collective 
+ effects such as wakefields and impedances may be more of a concern than 
+ direct space charge. 
+ 
+
+\vspace{+2mm}
+ {\it {\bf Our response} We changed the wording according to the suggestion.
+\vspace{+2mm}
+
+ 3. ``{\ldots} in the light{\ldots}.'' Should be changed to ``{\ldots} in the 
+ context{\ldots} `` 
+ 
+ \vspace{+2mm}
+ {\it {\bf Our response} We changed the wording according to the suggestion.
+\vspace{+2mm}
+ 
+ 
+ \textit{Introduction: }
+ 
+ 1. ``3th'' should be changed to ``3$^{rd}$''
+ 
+  \vspace{+2mm}
+ {\it {\bf Our response} We changed the wording according to the suggestion.
+\vspace{+2mm}
+
+ \textit{Section II:}
+ 
+ 1. ``{\ldots} median plane date{\ldots}'' should be changed to 
+ ``{\ldots}median plane data{\ldots}''
+ 
+   \vspace{+2mm}
+ {\it {\bf Our response} We changed the typo.
+\vspace{+2mm}
+ 
+ The writing in this paper is good in general, but there are some small typos 
+ and grammatical errors throughout the paper that should be addressed. 
+ 
+ \end{document}
+ 

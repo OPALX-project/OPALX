@@ -1,0 +1,8 @@
+This directory contains 3 files:
+
+input-OPAL.in		==> Input file for OPAL simulation of the perfect diode.
+
+run-opal.py		==> Python script for launching simulations. This script will need to be edited
+			    in order to specify the directory path where the simulation will be run etc.
+
+subroutines.py		==> Contains Python functions used by run-opal.py

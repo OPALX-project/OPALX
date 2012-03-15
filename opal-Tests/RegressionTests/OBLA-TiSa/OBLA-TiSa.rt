@@ -1,0 +1,6 @@
+"OBLA TiSa simulation from Thomas: reduce gridsize and number of time steps, increase dT. This simulation has bins and does re binning"
+stat "rms_x" avg 1E-5    #this is a comment
+stat "rms_y" avg 1E-5    #this is a comment
+stat "rms_z" avg 1E-5    #this is a comment
+out "Emean" avg 1E-5
+out "rms emmitance" avg 1E-5

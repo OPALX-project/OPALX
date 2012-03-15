@@ -1,0 +1,315 @@
+\documentclass[12pt,a4paper]{report}
+%% does not work in Latex2Html mode
+%\usepackage{hyperref}
+\usepackage{url}
+\usepackage{html}
+\usepackage{epic}
+\usepackage{eepic}
+\usepackage{makeidx}
+\usepackage{array}
+\usepackage{times}
+\usepackage{amsmath}
+\usepackage{amsxtra}
+%\usepackage[dvips]{epsfig,rotating}
+\usepackage{graphicx}
+\usepackage{dingbat}
+
+
+\usepackage{pdfdraftcopy}             % Draft
+
+%\draftstring{Version 1.1.4}
+
+\setlength\topmargin{0.0cm}
+%\setlength\oddsidemargin{3.501cm}
+%\setlength\evensidemargin{3.501cm}
+
+% Definition neuer Zeichen
+\newcommand{\R}{{\mathbb R}}
+\newcommand{\N}{{\mathbb N}}
+\newcommand{\Z}{{\mathbb Z}}
+% Standard Notationen
+\newcommand{\vc}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\sv}[1]{\mbox{\boldmath $\vec{#1}$}}
+\newcommand{\mx}[1]{\mbox{\boldmath $\underline{#1}$}}
+\newcommand{\op}[1]{\mathcal{#1}}
+% Sonstige Abkuerzungen
+\newcommand{\backpar}{\rule{1mm}{0mm}\\[-5ex]\rule{1mm}{0mm}}
+\newcommand{\ds}{\displaystyle}
+\newcommand{\AND}{\quad\mbox{and}\quad}
+\newcommand{\diag}{\mbox{diag }}
+\newcommand{\arrstr}[1]{\rule[0mm]{0mm}{#1}}
+\newcommand{\hstrut}[1]{\rule{0mm}{#1}}
+\newlength{\mylablen}
+\newlength{\mycaplen}
+\newlength{\myislen}
+% caption fuer Bilder
+\newcommand{\fcap}[2]{\refstepcounter{figure} \settowidth{\mycaplen}{#2}
+\settowidth{\mylablen}{\bf Figure \thefigure:~}
+\settowidth{\myislen}{\textwidth-\mylablen}
+\begin{center}
+{\bf Figure \thefigure:~}\ifthenelse{\mycaplen > \myislen}{\parbox[t]{\textwidth-\mylablen}{#2}\label{#1}}{#2\label{#1}}\end{center}}
+% caption fuer Tabellen
+\newcommand{\tcap}[2]{\refstepcounter{table} \settowidth{\mycaplen}{#2}
+\settowidth{\mylablen}{\bf Table \thetable:~}
+\settowidth{\myislen}{\textwidth-\mylablen}
+\begin{center}
+{\bf Table \thetable:~}\ifthenelse{\mycaplen > \myislen}{\parbox[t]{\textwidth-\mylablen}{#2}\label{#1}}{#2\label{#1}}\end{center}}
+%
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newenvironment{proof}{{\bf Proof:}}{{}\hfill{$\square$}\par\smallskip}
+
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+
+\newcommand{\opalversion}{\text{1.1.5 }}
+\newcommand{\mad}{\textsc{mad }}
+\newcommand{\madnine}{\textsc{mad9 }}
+\newcommand{\madninep}{\textsc{mad9p }}
+\newcommand{\madeight}{\textsc{mad8 }}
+\newcommand{\pooma}{\textsc{pooma }}
+\newcommand{\classic}{\textsc{classic }}
+
+\newcommand{\opal}{\textsc{OPAL }}
+\newcommand{\opalt}{\textsc{OPAL-t }}
+\newcommand{\opalcycl}{\textsc{OPAL-cycl }}
+\newcommand{\opalmap}{\textsc{OPAL-map }}
+\newcommand{\opalenv}{\textsc{OPAL-Envelope }}
+
+\newcommand{\noopalt}{\leftthumbsdown \opalt }
+\newcommand{\noopalmap}{\leftthumbsdown \opal }
+\newcommand{\noopalcycl}{\leftthumbsdown \opalcycl }
+
+\newcommand{\impactt}{\textsc{Impact-t }}
+
+
+\newcommand{\latermore}{More details on this subject will be given in Version 1.1.5}
+
+\newcommand{\partroot}{\textsc{H5PartROOT }}
+
+\newcommand{\lieop}[1]
+{{:}{#1}{:}}
+\renewcommand{\arraystretch}{2.0}
+
+\newcommand{\rms}[1]
+{\overset{\sim}{#1}}
+
+% Pfister stuff
+\def\C{{{{\rm {\mbox{\small l}}} \kern -.50em {\rm C}}}}
+\def\R{{{{\rm l} \kern -.15em {\rm R}}}}
+\def\N{{{{\rm l} \kern -.15em {\rm N}}}}
+\def\E{{{{\rm l} \kern -.15em {\rm E}}}}
+\def\P{{{{\rm l} \kern -.15em {\rm P}}}}
+\def\D{{{{\rm l} \kern -.15em {\rm D}}}}
+\def\L{{{{\rm l} \kern -.15em {\rm L}}}}
+\def\Z{{{{\rm Z} \kern -.35em {\rm Z}}}}
+\def\Q{{{{\rm {\mbox{\small l}}} \kern -.45em {\rm Q}}}}
+\def\qQ{{{{\rm {\mbox{\scriptsize l}}} \kern -.33em {\rm Q}}}}
+\def\v{\vspace{1ex}}
+\def\-v{\vspace{-1ex}}
+\def\vv{\vspace{2ex}}
+\def\vvv{\vspace{3ex}}
+\def\vn{\vspace{3ex}\noindent}
+\def\hs{\hspace{-1ex}}
+\def\n{\noindent}
+\def\dsl{\dis\sum\limits}
+\def\dis{\displaystyle}
+\def\O{\Omega}
+\def\o{\omega}
+\def\fr{\mbox{\footnotesize $\dis\frac{1}{2}$}}
+\def\frvier{\mbox{\footnotesize $\dis\frac{1}{4}$}}
+\def\ov{\overline}
+\def\b{\big[}
+\def\B{\big]}
+\def\i{\big\{}
+\def\g{\big\}}
+\def\e{\epsilon}
+\def\f{\footnotesize}
+\def\l{\ell^\prime}
+\def\ll{\ell,\ell^\prime}
+\def\r{\rightarrow}
+\def\point{{\mbox{\large $.$}}}
+\def\wl{\widetilde{\ell}}
+\def\wll{\widetilde{\ell},\widetilde{\ell}^\prime}
+\def\w{\widetilde}
+\def\wh{\widehat}
+\def\wt{\widetilde}
+\def\cA{{\cal A}}
+\def\cT{{\cal T}}
+\def\cE{{\cal E}}
+\def\oS{\overline{S}}
+\def\oT{\overline{T}}
+\def\cI{{\cal I}}
+\def\cK{{\cal K}}
+\def\cH{{\cal H}}
+\def\cP{{\cal P}}
+\def\cF{{\cal F}}
+\def\cS{{\cal S}}
+\def\cG{{\cal G}}
+\def\cO{{\cal O}}
+\def\cU{{\cal U}}
+
+%% REAL ADA STUFF
+\def\bx{{\bf x}}
+\def\br{{\bf r}}
+\def\bv{{\bf v}}
+\newcommand{\matr}[1]{\mathcal{#1}}
+ \newcommand{\myvec}[1]{\bf{#1}}
+%\newcommand{\figref}[2]{#1 (see~Figure~\ref{fig:#2})}
+%\newcommand{\tabref}[2]{#1 (see~Table~\ref{tab:#2})}
+%\newcommand{\secref}[2]{#1 (see~Section~\ref{sec:#2})}
+\newcommand{\mytabline}[2]{\texttt{#1} & #2 \\}
+\renewcommand{\vec}{\myvec}
+
+
+\renewcommand{\epsilon}{\varepsilon} 
+\def\eps{\varepsilon}
+
+\makeindex
+
+\renewcommand{\topfraction}{1.0}
+\renewcommand{\bottomfraction}{1.0}
+\renewcommand{\textfraction}{0.0}
+
+\newenvironment{tex2html_nowrap}{}{}
+
+\newcommand{\bibref}[2]{\hypercite{#1}{}{}{bib:#2}}
+
+\newcommand{\tabline}[3]{\hyperref{\texttt{#1}}%
+  {\texttt{#1} (}{)}{sec:#3} & #2 \\}
+\newcommand{\figref}[2]{\hyperref{#1}{#1 (see~Figure~}{)}{fig:#2}}
+\newcommand{\secref}[2]{\hyperref{#1}{#1 (see~Section~}{)}{sec:#2}}
+\newcommand{\tabref}[2]{\hyperref{#1}{#1 (see~Table~}{)}{tab:#2}}
+\begin{htmlonly}
+\bodytext{bgcolor = "#ffffff"}
+\end{htmlonly}
+
+
+\begin{document}
+
+\begin{titlepage}
+
+\begin{htmlonly}
+\begin{rawhtml}
+<center>
+PAUL SCHERRER INSTITUT
+<br>
+<h1>The OPAL Framework , Version \opalversion \footnote{Release Date \today}</h1>
+<h2>(Object Oriented Parallel Accelerator Library)</h2>
+<h2>User's Reference Manual</h2>
+<br>
+Andreas Adelmann, Ch. Kraus (PSI), Y. Ineichen (ETH), S. Russell (LANL) and \\ Jianjun Yang (CIAE)
+</center>
+\end{rawhtml}
+\end{htmlonly}
+
+\begin{latexonly}
+\begin{center}\normalsize
+\includegraphics[width=1.\linewidth,angle=0]{figures/psi_logo_wide}  
+\end{center}
+\vskip 0.7cm
+PSI-PR-08-02
+
+\begin{flushright}
+%\documentlabel \\                    % document label
+\end{flushright}
+%\vskip 2.3cm
+\begin{center}\LARGE                 % document title
+{\bf The OPAL Framework } \\
+(Object Oriented Parallel Accelerator Library) \\
+Version \opalversion \footnote{Release Date: \today} \\
+{\bf User's Reference Manual}
+\end{center}
+\vskip 1.5em
+\begin{center}                       % author
+Andreas Adelmann, Ch. Kraus (PSI), Y. Ineichen (ETH), S. Russell (LANL) and\\ Jianjun Yang (CIAE)
+\vskip 2em
+{\large Abstract}
+\end{center}
+\end{latexonly}
+\begin{quotation}
+\opal is a tool for charged-particle optics in
+accelerator structures and beam lines. 
+Using the \mad language with extensions, \opal is derived from \madninep and is based 
+on the
+\htmladdnormallink{CLASSIC}{http://wwwslap.cern.ch/classic/} class library,
+which was started in 1995 by an international collaboration.  IPPL (Independent Parallel Particle Layer) is
+the framework which provides parallel particles and fields using data parallel ansatz. 
+\opal is built from the ground up as a parallel application exemplifying the fact that HPC (High Performance Computing) 
+is the third leg of science, complementing theory and the experiment. 
+HPC is made possible now through the increasingly sophisticated mathematical models and evolving computer power available on the desktop
+and in super computer centres. \opal runs on your laptop as well as on the largest HPC clusters available today.
+
+The \opal framework makes it easy to add new features in the form of new
+\texttt{C++}~classes.
+
+OPAL comes in the following flavours:
+\begin{itemize}
+\item \opalmap (not yet released in \opalversion)
+\item \opalcycl 
+\item \opalt
+\item \opalenv (not yet released in \opalversion)
+\end{itemize}
+
+\opalmap tracks particles with 3D space charge using split operator techniques, and is a proper subset of \madninep. In the future 
+a linear space charge mode will become available available
+allowing the user to track moments of the distribution. 
+
+\opalcycl tracks particles with 3D space charge including neighbouring turns in cyclotrons
+with time as the independent variable. 
+
+\opalt is a superset of IMPACT-T \cite{qiang2005} and can be used to model guns, injectors and complete XFEL's excluding the undulator.
+
+It should be noted that not all features of \opal are available in all flavours. The icon \noopalt means that a feature is not yet 
+available in \opalt. Similar icons are used for the other flavours. 
+
+Documentation and quality assurance are given our highest attention since we are convinced that adequate documentation 
+is a key factor in the usefulness of a code like \opal to study present and future particle accelerators. 
+ Using tools such as a source code version
+control system (subversion), source code documentation (Doxygen, check out, for instance,  \url{http://amas.web.psi.ch/docs/opal/html/classParallelTTracker.html}) and the extensive user manual
+you are now enjoying, we are committed to providing users as well as co-developers with 
+state-of-the-art documentation to \opal.
+
+\end{quotation}
+\vfill
+%\begin{center}
+%Villigen, Switzerland
+%\today
+%\end{center}
+\end{titlepage}
+
+\tableofcontents
+\listoftables
+\listoffigures
+\include{introduction}
+\include{installation}
+\include{conventions}
+\include{opal-flavours} 
+\include{format}
+\include{control}
+\include{elements}
+\include{lines}
+\include{physics}
+\include{tables}
+\include{actions}
+\include{match}
+\include{errors}
+\include{distribution}
+\include{fieldsolvers}
+\include{wakefields}
+%\include{geometry}
+\include{track}
+
+\appendix
+\include{syntax}
+
+\include{bibliography}
+
+\printindex
+
+\end{document}
