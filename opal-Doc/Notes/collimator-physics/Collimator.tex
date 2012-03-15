@@ -1,0 +1,180 @@
+\documentclass{article}
+\usepackage{graphicx}% Include figure files
+\usepackage{float}
+\begin{document}
+
+\section{The Physics Models Used in the Collimation Routine}
+\subsection{The Energy Loss}
+
+The energy loss is simulated using the Bethe-Bloch equation.
+
+\begin{equation}
+\label{eq:dEdx}
+-dE/dx=\frac{K z^2 Z}{A \beta^2}[\frac{1}{2} \ln\frac{2 m_e c^2\beta^2 \gamma^2 Tmax}{I^2}-\beta^2],
+\end{equation}
+where $Z$ is the aomic number of absorber, $A$ is the atomic mass of absorber, $m_e$ is the electron mass, $z$ is the charge number of the incident particle, $K=4\pi N_Ar_e^2m_ec^2$, $r_e$ is the classical electron radius, $N_A$ is the Avogadro's number, $I$ is the mean excitation energy. $\beta$ and $\gamma$ are kinematic variables. $T_{max}$ is the maximum kinetic energy which can be imparted to a free electron in a single collision.
+\begin{equation}
+T_{max}=\frac{2m_ec^2\beta^2\gamma^2}{1+2\gamma m_e/M+(m_e/M)^2},
+\end{equation}
+where $M$ is the incident particle mass.
+
+The stopping power is compared with PSTAR program of NIST in Fig. \ref{fig:dEdx}.
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=1.0\textwidth]{dEdx}
+\end{center}
+\caption{The comparison of stopping power with PSTAR. }
+\label{fig:dEdx}
+\end{figure}
+
+Energy straggling: For relatively thick absorbers such that the number of collisions is large, the energy loss distribution is shown to be Gaussian in form.
+For nonrelativistic heavy particles the spread $\sigma_0$ of the Gaussian distribution is calculated by:
+\begin{equation}
+\sigma_0^2=4\pi N_Ar_e^2(m_ec^2)^2\rho\frac{Z}{A}\Delta s,
+\end{equation}
+where $\rho$ is the density, $\Delta s$ is the thickness.
+
+
+\subsection{The Coulomb Scattering}
+The Coulomb scattering is treated as two independent events: the multiple Coulomb scattering and the large angle Rutherford scattering.\\
+Using the distribution given in Classical Electrodynamics, by J. D. Jackson, the multiple- and single-scattering distributions can be written:
+\begin{equation}
+\label{eq:PM}
+P_M(\alpha) d \alpha=\frac{1}{\sqrt{\pi}}e^{-\alpha^2}d\alpha,
+\end{equation}
+\begin{equation}
+\label{eq:Ps}
+P_S(\alpha) d \alpha=\frac{1}{8 \ln(204 Z^{-1/3})} \frac{d \alpha}{\alpha^3},
+\end{equation}
+where $\alpha=\frac{\theta}{<\Theta^2>^{1/2}}=\frac{\theta}{\sqrt 2 \theta_0}$.\\
+
+ the transition point is $\theta=2.5 \sqrt 2 \theta_0\approx3.5 \theta_0$,
+\begin{equation}
+\label{eq:Multiple}
+\theta_0=\frac{13.6MeV}{\beta c p} z \sqrt{\Delta s/X_0} [1+0.038 \ln(\Delta s/X_0)],
+\end{equation}
+where $p$ is the momentum, $\Delta s$ is the stepsize, and $X_0$ is the radiation length. 
+
+\subsubsection{Multiple Coulomb Scattering}
+Generate two independent Gaussian random variables  with mean zero and variance one: $z_1$ and $z_2$.
+If $z_2 \theta_0>3.5 \theta_0$, start over. Otherwise,
+\begin{equation}
+\label{eq:Multiplex}
+x=x+\Delta s p_x+z_1 \Delta s \theta_0/\sqrt{12}+z_2 \Delta s \theta_0/2,
+\end{equation}
+\begin{equation}
+\label{eq:Multiplepx}
+p_x=p_x+z_2 \theta_0.
+\end{equation}
+Generate two independent Gaussian random variables  with mean zero and variance one: $z_3$ and $z_4$.
+If $z_4 \theta_0>3.5 \theta_0$, start over. Otherwise,
+\begin{equation}
+\label{eq:Multipley}
+y=y+\Delta s p_y+z_3 \Delta s \theta_0/\sqrt{12}+z_4 \Delta s \theta_0/2,
+\end{equation}
+\begin{equation}
+\label{eq:Multiplepy}
+p_y=p_y+z_4 \theta_0.
+\end{equation}
+
+\subsubsection{Large Angle Rutherford Scattering}
+
+Generate a random number $\xi_1$, \textit{if} $\xi_1<\frac{\int_{2.5}^\infty P_S(\alpha)d\alpha}{\int_0^{2.5} P_M(\alpha)d\alpha+\int_{2.5}^\infty P_S(\alpha)d\alpha}=0.0047$, sampling the large angle
+Rutherford scattering.\\
+The cumulative distribution function of the large angle
+Rutherford scattering is
+\begin{equation}
+\label{eq:Fa}
+F(\alpha)=\frac{\int_{2.5}^\alpha P_S(\alpha) d \alpha}{\int_{2.5}^\infty P_S(\alpha) d \alpha}=\xi,
+\end{equation}
+where $\xi$ is a random variable. So
+\begin{equation}
+\label{eq:alpha}
+\alpha=\pm 2.5 \sqrt{\frac{1}{1-\xi}}=\pm 2.5 \sqrt{\frac{1}{\xi}}.
+\end{equation}
+Generate a random variable $P_3$,\\
+\textit{if} $P_3>0.5$
+\begin{equation}
+   \theta_{Ru}=2.5 \sqrt{\frac{1}{\xi}} \sqrt{2}\theta_0,
+\end{equation}
+\textit{else}
+\begin{equation}
+       \theta_{Ru}=-2.5 \sqrt{\frac{1}{\xi}} \sqrt{2}\theta_0.
+\end{equation}
+ 
+The angle distribution after Coulomb scattering is shown in Fig. \ref{fig:Coulomb}.
+The line is from Jackson's formula, and the points are simulations with Matlab.
+For a thickness of $\Delta s=1e-4$ $m$, $\theta=0.5349 \alpha$ (in degree).
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=1.2\textwidth]{10steps}
+\end{center}
+\caption{The comparison of Coulomb scattering with Jackson's book. }
+\label{fig:Coulomb}
+\end{figure}
+
+\section{The diagram of CollimatorPhysics in OPAL}
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=1.2\textwidth]{diagram}
+\end{center}
+\caption{The diagram of CollimatorPhysics in OPAL. }
+\label{fig:diagram}
+\end{figure}
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=0.8\textwidth]{Diagram2}
+\end{center}
+\caption{The diagram of CollimatorPhysics in OPAL(Continued). }
+\label{fig:diagram2}
+\end{figure}
+
+\section{The substep}
+
+Small step is needed in the routine of CollimatorPhysics. 
+
+If a large step is given in the main input file, in the file CollimatorPhysics.cpp,
+it is divided by a integer number $n$ to make the stepsize using for the calculation of collimator physics less than 1.01e-12 s. As shown
+by  Fig. \ref{fig:diagram} and Fig. \ref{fig:diagram2} in the previous section, first we track one step for the particles already in the 
+collimator and the newcomers, then another (n-1) steps to make sure the particles in the collimator experiencr the same time as the ones 
+in the main bunch.
+
+Now, if the particle leave the collimator during the  (n-1) steps, we track it as in a drift and put it back to the main bunch when  
+finishing (n-1) steps.
+
+\section{the example of Input file}
+
+KX1IPHYS: SurfacePhysics, TYPE="Collimator",MATERIAL="Cu";\\
+KX2IPHYS: SurfacePhysics, TYPE="Collimator",MATERIAL="Graphite";\\
+KX0I: ECollimator, L=0.09, ELEMEDGE=0.01, APERTURE=\{0.003,0.003\},OUTFN="KX0I.h5", SURFACEPHYSICS='KX1IPHYS';\\
+FX5: Slit, L=0.09, ELEMEDGE=0.01, APERTURE=\{0.005,0.003\}, SURFACEPHYSICS='KX2IPHYS';\\
+FX16: Slit, L=0.09, ELEMEDGE=0.01, APERTURE=\{-0.005,-0.003\}, SURFACEPHYSICS='KX2IPHYS';\\
+
+FX5 is a slit in x direction, the  APERTURE is \textbf{POSITIVE}, the first value in  APERTURE is the left part, the second value is the right part.
+
+FX16 is a slit in y direction,  the  APERTURE is \textbf{NEGTIVE}, the first value in  APERTURE is the down part, the second value is the up part.
+\section{A Simple Test}
+A cold Gaussian beam with $\sigma_x=\sigma_y=5$ mm.
+The position of the  collimator is from 0.01 m to 0.1 m, the half aperture in y direction is $3$ mm.  Fig. \ref{fig:longcoll}
+shows the trajectory of particles which are either absorbed or deflected by a copper slit. As a benchmark of the collimator model in OPAL, Fig. \ref{fig:Espectrum} shows the energy spectrum  and angle deviation at z=0.1 m after an elliptic collimator.
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=1.2\textwidth]{longcoll6}
+\end{center}
+\caption{The passage of protons through the collimator. }
+\label{fig:longcoll}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=1.2\textwidth]{spectandscatter}
+\end{center}
+\caption{The energy spectrum and scattering angle at z=0.1 m}
+\label{fig:Espectrum}
+\end{figure}
+
+
+\end{document}
+
+                 

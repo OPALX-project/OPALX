@@ -1,0 +1,72 @@
+\documentclass[acus]{JAC2003}
+
+%%
+%%  This file was updated in April 2009 by J. Poole to be in line with Word tempaltes
+%%
+%%  Use \documentclass[boxit]{JAC2003}
+%%  to draw a frame with the correct margins on the output.
+%%
+%%  Use \documentclass[acus]{JAC2003}
+%%  for US letter paper layout
+%%
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage[colorlinks,linkcolor=blue,anchorcolor=blue,citecolor=blue]{hyperref} % hyper reference to contents 
+\usepackage{algorithm,algorithmic}
+\usepackage{tikz}
+\usepackage{pgflibraryshapes}  
+
+\include{mylatexdefs}
+\newcommand{\bs}[1]{\mathbf #1}
+
+%%
+%%   VARIABLE HEIGHT FOR THE TITLE BOX (default 35mm)
+%%
+
+\setlength{\titleblockheight}{37mm}
+
+\begin{document}
+\begin{center}
+\begin{tikzpicture}[scale=0.7, transform shape]
+    \footnotesize
+      \begin{scope}[shape=rectangle,rounded corners,minimum width=3.0cm,minimum height=0.5cm,fill=yellow,text centered]
+      
+      \draw[rounded corners, draw=green!40, thick, fill=green!25, opacity=0.5, text centered] (-1.55, 1.31) rectangle (8.55,-0.31) node[black, thick, anchor=center, opacity=1., font=\Large] at (3.5, 0.5) {\opal};
+      \node[fill= green!40] (0_00) at (0.0,1.0) {MAD-Parser};
+      \node[fill= green!40] (0_00) at (3.5,1.0) {Flavors: t,Cycl};
+      \node[fill= green!40] (0_00) at (7.0,1.0) {Optimization};
+      \node[fill= green!40] (0_00) at (0,0.0)   {Solvers: Direct,MG};
+      \node[fill= green!40] (0_00) at (3.5,0.0) {Integrators};
+      \node[fill= green!40] (0_00) at (7.0,0.0) {Distributions};
+
+       \draw[rounded corners, draw=red!45, thick, fill=red!25, opacity=0.5, text centered] (-1.55, -0.69) rectangle (8.55,-3.81) node[black, thick, anchor=center, opacity=1.0, font=\Large] at (3.5, -2.25) {\ippl};
+       \node[fill= red!45] (q_00) at (0,-1) {FFT};
+       \node[fill= red!45] (q_01) at (3.5,-1) {D-Operators};
+       \node[fill= red!45] (q_02) at (7,-1) {NGP,CIC, TSI};
+       \node[fill= red!45] (q_10) at (0,-1.75) {Fields};
+       \node[fill= red!45] (q_11) at (3.5,-1.75) {Mesh};
+       \node[fill= red!45] (q_12) at (7,-1.75) {Particles};
+       \node[fill=red!45] (q_20) at (0,-2.75) {Load Balancing};
+       \node[fill=red!45] (q_21) at (3.5,-2.75) {Domain Decomp.};
+       \node[fill=red!45] (q_22) at (7,-2.75) {Message Passing};
+       \node[fill=red!45] (q_20) at (0,-3.5) {STL};
+       \node[fill=red!45] (q_21) at (3.5,-3.5) {PETE};
+       \node[fill=red!45] (q_22) at (7,-3.5) {Polymorphism};
+
+       \node[rotate=90,minimum width=1.7cm,fill=gray] (bla) at (-1.9,0.49){\textcolor{white} {\classic}};
+       \node[rotate=90,minimum width=3.15cm,fill= magenta] (bla) at (-1.9,-2.225){\textcolor{white}{H5Part and H5FED}};
+       \node[fill=blue!65,minimum width=10.75cm] (q_23) at (3.25,-4.25) {\textcolor{white}{Trilinos}};
+
+      \end{scope}
+ \end{tikzpicture}
+\end{center}
+% \begin{itemize}
+%   \item {\bf\color{green}  { \bf \opal Object Oriented Parallel Accelerator Library}}
+%   \item { $IP^{2}L$ {\bf Independent Parallel Particle Layer}}
+%   \item {\color{gray}  {\bf Class Library for Accelerator Simulation System and Control}}
+%   \item  {\bf\color{magenta} {\bf \hfifepart and \hfifefe for parallel particle and field I/O (HDF5)}}
+%   \item {\bf\color{blue!65} {\bf Trilinos} \texttt{http://trilinos.sandia.gov/}}
+% \end{itemize}
+\end{document}

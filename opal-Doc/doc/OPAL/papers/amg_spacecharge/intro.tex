@@ -1,0 +1,184 @@
+\section{Introduction}
+\label{sec:intro}
+
+In recent years, precise beam dynamics simulations in the design of
+high-current low-energy hadron machines as well as of 4th generation
+light sources have become a very important research topic.  Hadron
+machines are characterized by high currents and hence require excellent
+control of beam losses and/or keeping the emittance (a measure of the
+phase space) of the beam in narrow ranges.  This is a challenging
+problem which requires the accurate modeling of the dynamics of a large
+ensemble of macro or real particles subject to complicated external
+focusing, accelerating and wake-fields, as well as the self-fields
+caused by Coulomb interaction of the particles.  In general the
+geometries of particle accelerators are large and complicated which has
+a direct impact on the numerical solution method.
+
+Some of the effects can be studied by using a low dimensional model,
+i.e., envelope equations~\cite{sach:68, sach:71, stru-reis:1984,
+  gluckstern1}.  These are a set of ordinary differential equations for
+the second-order moments of a time-dependent particle distribution.
+They can be calculated fast, however the level of detail is mostly not
+sufficient for quantitative studies.  Furthermore, a priori knowledge of
+critical beam parameters such as the emittance is required with the consequence that the
+envelope equations cannot be used as a self-consistent method.
+
+One way to overcome these limitations is by considering the
+Vlasov-Poisson description of the phase space, including external and
+self-fields and, if needed, other effects such as wakes.  To that end
+let $f(\mathbf{x},\mathbf{v},t)$ be the density of the particles in the
+phase space, i.e., the position-velocity $(\mathbf{x}, \mathbf{v})$
+space.  Its evolution is determined by the collisionless \emph{Vlasov
+  equation},
+%%
+% Neglecting
+% particles collisions, because typical bunch densities are low, the
+% evolution of the beam's distribution function
+% $f(\mathbf{x},\mathbf{v},t)$ can be considered as a Cauchy problem.
+% Denoting the computational domain $\Omega \subset \Re^d$ with $d=2,3$,
+% and using $\mathbf {x} \in \Re^d$ to describe a position in
+% configuration and $\mathbf {v} \in \Re^d$ a point in velocity space, the
+% collision-less Vlasov-Poisson equation can be expressed by
+\begin{equation}\label{eq:Vlasov}
+  \frac{df}{dt}=\partial_t f + \mathbf{v} \cdot \nabla_{\mathbf{x}} f
+  +\frac{q}{m_0}(\mathbf{E}+ \mathbf{v}\times\mathbf{B})\cdot
+  \nabla_{\mathbf{v}} f  =  0,
+\end{equation}
+where $m_0$, $q$ denote particle mass and charge, respectively.  The
+electric and magnetic fields $\mathbf{E}$ and $\mathbf{B}$ are
+superpositions of external fields and self-fields (space charge),
+%%and other collective effects such as wake fields,
+\begin{equation}\label{eq:allfield}
+%%  \begin{aligned}
+    \mathbf{E} =
+    \mathbf{E_{\RM{ext}}} + \mathbf{E_{\RM{self}}}, \quad
+    \mathbf{B} =
+    \mathbf{B_{\RM{ext}}} + \mathbf{B_{\RM{self}}}.
+%%  \end{aligned}
+\end{equation}
+%%
+If $\mathbf{E}$ and $\mathbf{B}$ are known, then each particle can be
+propagated according to the equation of motion for charged particles in an
+electromagnetic field,
+\begin{equation*}\label{eq:motion}
+  \frac{d\mathbf{x}(t)}{dt}  = \mathbf{v},
+  \quad
+  \frac{d\mathbf{v}(t)}{dt}  = \frac{q}{m_0}\left(\mathbf{E} +
+    \mathbf{v}\times \mathbf{B}\right).
+\end{equation*}
+%%which is numerically integrated for each particle.  
+%%
+% We assume for the rest of the paper that the external fields and the
+% wake fields are known and furthermore treat the physical system
+% electrostatic (which we obtain without loss of generality by an
+% appropriate Lorentz transformation).
+
+After the movement of the particles 
+$\mathbf{E_{\RM{self}}}$ and $\mathbf{B_{\RM{self}}}$ have to be updated.  
+%%
+To that end we change the coordinate system into the one moving with the
+particles.  By means of the appropriate \emph{Lorentz
+  transformation}~\cite{lali:84} we arrive at a (quasi-) static
+approximation of the system in which the transformed magnetic field
+becomes negligible, $\hat{\mathbf{B}}\! \approx\! \mathbf{0}$.  The
+transformed electric field is obtained from
+\begin{equation}\label{eq:e-field}
+  \hat{\mathbf{E}}=\hat{\mathbf{E}}_{\RM{self}}=-\nabla\hat{\phi},
+\end{equation}
+where the electrostatic potential $\hat{\phi}$ is the solution of the
+\emph{Poisson problem}
+\begin{equation}\label{eq:poisson0}
+  - \Delta \hat{\phi}(\mathbf{x}) =
+  \frac{\hat{\rho}(\mathbf{x})}{\varepsilon_0},
+\end{equation}
+equipped with appropriate boundary conditions, see
+section~\ref{sec:discr}.  Here, $\hat{\rho}$ denotes the spatial charge
+density and $\varepsilon_0$ is the dielectric constant.
+% in the (beam rest) frame
+% If we can make an appropriate Lorentz transformation to arrive at a
+% (quasi-)static approximation of the system, the space charge fields can
+% be obtained by solving a Poisson problem with appropriate boundary
+% conditions:
+% \begin{equation}\label{eq:Poisson}
+%   - \nabla^{2} \phi(\mathbf{x}) = \frac{\rho(\mathbf{x})}{\varepsilon_0},
+% \end{equation}
+% where $\phi$ and $\rho$ are the electrostatic potential and the spatial
+% charge density in the appropriate (beam rest) frame.  The electric field
+% can then be calculated by
+% \begin{equation}\label{eq:Efield}
+%   \mathbf{E}=\mathbf{E_{\RM{self}}}=-\nabla\phi.
+% \end{equation}
+By means of the inverse Lorentz transformation the electric field
+$\hat{\mathbf{E}}$ can then be transformed back to yield both the
+electric and the magnetic fields in~\eqref{eq:allfield}.
+% corresponding to the static grid.  
+
+The Poisson problem~\eqref{eq:poisson0} discretized by finite
+differences can efficiently be solved on a rectangular grid by a
+Particle-In-Cell (PIC) approach~\cite{qiry:01}.  The right hand side
+in~\eqref{eq:poisson0} is discretized by sampling the particles at the
+grid points.  In~\eqref{eq:e-field}, $\hat{\phi}$ is interpolated at the
+particle positions from its values at the grid points. We also note that
+the FFT-based Poisson solvers and similar
+approaches~\cite{qiry:01,qigl:04} are restricted to box-shaped or open domains.
+
+Serafini et al.~\cite{serafini_2005} report on a state-of-the-art
+conventional FFT-based algorithm for solving the Poisson equation with
+`infinite-domain', i.e., open boundary conditions for large problems in
+accelerator modeling.  The authors show improvements in both accuracy
+and performance, by combining several techniques: the method of local
+corrections, the James algorithm, and adaptive mesh refinement.
+
+However with the quest of high intensity, high brightness beams together
+with ultra low particle losses, there is a high demand to consider the
+true geometry of the beam-pipe in the numerical model. This assures that
+the image charge components are taken properly into account. This
+results in a more exact modeling of the non-linear beam dynamics which
+is indispensable for the next generation of particle accelerators.
+
+In a related paper by P{\"o}plau et
+al.~\cite{poplau_self-adaptive_2008}, a solver based on geometric
+multigrid is used to calculate space-charge forces.  The authors employ
+a mesh with adaptive spacings to reduce the workload of the BiCGStab
+solver used to solve the nonsymmetric system arising from quadratic
+extrapolation at the boundary.  The geometric multigrid used in their
+approach is much more sensitive to anisotropic grids arising in beam
+dynamic simulations (e.g.\ special coarsening operators have to be
+defined).  With algebraic multigrid preconditioning as used in this
+paper the aggregation takes care of anisotropies and related issues.
+
+In Section~\ref{sec:method} we describe how the Poisson equation on a
+`general' domain $\Omega \subset \Re^3$ can be solved by finite
+differences and the PIC approach.  We treat the boundary in three
+different ways, by constant, by linear, and by quadratic extrapolation,
+the latter being similar to the approach of McCorquodale \textit{et
+  al.}~\cite{mcgv:04}.  The system of equation is solved by the
+conjugate gradient algorithm preconditioned by smoothed aggregation
+AMG~\cite{vamb:96a, tuto:00}. For this solver we coined the acronym: \oursolver.  The preconditioned conjugate
+gradient~(PCG) algorithm is also used if the system is `mildly'
+nonsymmetric.  In Section~\ref{sec:impl} we deal with details of the
+implementation, in particular its parallelization.  In
+Section~\ref{sec:results} we report on numerical experiments including a
+physical application from beam dynamics.  In Section~\ref{sec:concl} we
+draw our conclusions.
+% , and thanks to
+% high performance computing a three-dimensional (3D) model with
+% sufficient resolution is feasible.
+
+% A very attractive approach to solve the Poisson equation is by a fast
+% direct solver based on FFT's~\cite{qiry:01}.  However, this approach is
+% limited to simple geometries such as boxes and cylinders.  Other fast
+% and accurate methods are known~\cite{qigl:04} but they are also limited
+% to simple geometries.  Because $\rho$ is varying slowly in
+% time~\eqref{eq:poisson0}, it is desirable to use solutions from previous
+% time step(s).  In the sequel of the paper we consider iterative solvers
+% for~\eqref{eq:poisson0} on general but simply connected geometries
+% $\Omega \subset \Re^d$.
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 
+
+%+ motivate irregular boundaries
+

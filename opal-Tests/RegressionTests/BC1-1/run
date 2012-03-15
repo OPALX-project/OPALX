@@ -1,0 +1,6 @@
+#!/bin/bash
+export PBS_O_WORKDIR=/scratch2/amas/l_felsimsvn/src/opal/opal-Tests/RegressionTests/BC1-1
+pushd .
+cd /scratch2/amas/l_felsimsvn/src/opal/opal-Tests/RegressionTests/BC1-1
+qsub BC1-1.sge -v OPAL_EXE_PATH
+popd

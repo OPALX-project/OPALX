@@ -1,0 +1,2 @@
+opal envelope-test1.in --commlib mpi | tee envelope-test1.out
+

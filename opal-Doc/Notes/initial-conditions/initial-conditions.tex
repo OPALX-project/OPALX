@@ -1,0 +1,100 @@
+\documentclass{article}
+\usepackage{graphicx}% Include figure files
+\begin{document}
+
+
+
+\section{The Initial Distribution}
+\subsection{The variables}
+The parameters used in the initial distribution of OPAL-t are:\\
+\textbf{sigmax} the maximum half-width of the beam envelope in the x
+plane. [m] \\
+\textbf{sigmay} the
+maximum half-width of the beam envelope in the y plane. [m]\\
+\textbf{sigmat} one-half the longitudinal extent of the bunch of particles. [m]\\
+\textbf{pt} the average momentum of the bunch. [eV]\\
+\textbf{sigmapx} the maximum half-angular divergence of
+the beam envelope in the x plane. [eV]\\
+\textbf{sigmapy} the maximum half-angular divergence of the beam
+envelope in the y plane. [eV] \\
+\textbf{sigmapt} the half-width of the momentum interval. [eV] \\
+\textbf{corrx} the
+correlation coefficient between x and px. \\
+\textbf{corry} the correlation coefficient between y and py. \\
+\textbf{t} the longitudinal position of the beam center. [m]\\
+\textbf{corrt} the correlation coefficient between t and pt.\\
+\textbf{r61} the correlation coefficient between x and pt. \\
+\textbf{r62} the correlation coefficient between px and pt. \\
+\textbf{r51} the correlation coefficient between x and t. \\
+\textbf{r52} the correlation coefficient between px and t. \\
+
+To generate gaussian initial distribution with dispersion, first we
+generate the uncorrelated gaussian inputs matrix $R=(R1,...,R_n)$.
+The mean of $R_i$ is 0 and the standard deviation squared is 1. Then
+we correlate $R$.
+
+The correlation coefficient matrix in x and t phase space is
+
+
+$ \hspace{1.5cm}x \hspace{0.8cm}  px  \hspace{0.9cm} t\hspace{1.0cm}
+pt
+\\$
+
+$\sigma= \left[
+\begin{array}{cccc}
+1    &corrx&r51    &r61\\
+corrx&1    &r52    &r62\\
+r51  &r52  &1      &corrt\\
+r61  &r62  &corrt  &1\\
+
+\end{array}
+\right]$
+
+ The Cholesky decomposition of the symmetric
+positive-definite matrix $\sigma$ is $\sigma=C^TC$, then the
+ correlated distribution is $C^TR$.
+
+\textbf{Note}: This correlation is only done for gaussian distribution now.
+
+\subsection{Unit Conversion}
+Convert the unit of momentum from $\beta \gamma$ to
+$mrad$.
+
+\begin{equation}
+\label{eq:betagamma1}
+(\beta\gamma)_z=\frac{P}{m_0c}=\frac{Pc}{m_0c^2}.
+\end{equation}
+\begin{equation}
+\label{eq:betagamma2} P_x[
+mrad]=1000\frac{P_x[\beta\gamma]}{(\beta\gamma)_z}
+\end{equation}
+
+Convert the unit from eV to $\beta\gamma$.
+\begin{equation}
+\label{eq:eVtobetagamma}
+\sqrt{(\frac{T}{m_0c^2}+1)^2-1}=\beta\gamma.
+\end{equation}
+
+
+\subsection{Example}
+If the initial  correlation coefficient matrix
+
+$\sigma= \left[
+\begin{array}{cccc}
+1      &0.756  &0.023    &0.496\\
+0.756  &1      &0.385    &-0.042\\
+0.023  &0.385  &1        &-0.834\\
+0.496  &-0.042 &-0.834   &1\\
+
+\end{array}
+\right]$
+
+The corresponding input file is\\
+Distzs3:DISTRIBUTION, DISTRIBUTION=gauss,\\
+sigmax= 4.796e-03, sigmapx=231.0585, corrx=0.756,\\
+sigmay=  23.821e-03, sigmapy=1.6592e+03, corry=-0.999,\\
+t=0.466e-02, sigmat=  0.466e-02, pt=72e6,sigmapt=74.7, corrt=-0.834,\\
+r61=0.496,r62=-0.042,r51=0.023,r52=0.385;
+
+
+\end{document}

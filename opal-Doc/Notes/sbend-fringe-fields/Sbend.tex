@@ -1,0 +1,99 @@
+\documentclass{article}
+\usepackage{graphicx}% Include figure files
+\usepackage{float}
+\begin{document}
+
+
+
+\section{The Implement of Sbend in OPAL-t}
+Sbend is a sector bending magnet. To describe a sbend, we use the
+parameters: entrance angle $E1$, exit angle $E2$, orbit radius
+$\rho$ , gradient $K1$. Fig. \ref{fig:posi} and Fig. \ref{fig:neg}
+give the view of Sbend with $B>0$ and $B<0$.
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=0.8\textwidth]{posi}
+\end{center}
+\caption{Sbend with $B>0$ } \label{fig:posi}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=0.8\textwidth]{neg}
+\end{center}
+\caption{Sbend with $B<0$ } \label{fig:neg}
+\end{figure}
+
+\subsection{The Local Coordinate}
+At the entrance of the Sbend, a local coordinate is set as shown in
+Fig. \ref{fig:posi} and Fig. \ref{fig:neg}. The point $z=0$ means
+the element edge. The region between Line 1 and Line 3 is the
+entrance fringe field region, the region between Line 4 and Line 6
+is the exit fringe field region and the region between Line 3 and
+Line 4 is main field region with field gradient.
+\subsection{The Fringe Field}
+The fringe field of Sbend is described using three linear equations.
+For the
+entrance pole face, \\
+Line1: $z=zbegin\_entry$,\\
+Line2: $z=polynomial\_entry$,\\
+Line3: $z=zend\_entry$. \\For the
+exit pole face, \\Line4: $z=k_3x+b_3$, \\Line5: $z=k_{34} x+b_{34}$,\\
+Line6: $z=k_4x+b_4$.
+
+In most cases, the slope of the exit pole face $k_3=K_{34}=k_4$, and is given in the input file as EXITANGLE. Other parametars are given in the fieldmap file.
+
+
+If $B>0$,
+$k_{34}=\tan(\phi-E1-E2)$,
+\\$b_{34}=\rho\sin(\phi-E1)+\rho\sin
+E1-k_{34}[\rho\cos(\phi-E1)-\rho\cos E1]$.
+
+
+If $B<0$, $k_{34}=\tan(\phi-E1-E2)$,\\ $b_{34}=\rho\sin(\phi-E1)+\rho\sin
+E1-k_{34}[-\rho\cos(\phi-E1)+\rho\cos E1]$.
+
+\subsection{The Field Map 1DProfile1}
+(First line) \\
+string: 1DProfile1\\
+integer: The number of Enge coefficients for entry fringe field.\\
+integer: The number of Enge coefficients for exit fringe field.\\
+float: gap heigth [cm]\\
+(Second line) \\
+float: $zbegin\_entry$ [cm]\\
+float: $polynomial\_entry$ [cm]\\
+float: $zend\_entry$ [cm]\\
+integer: not used here\\
+(Third line)\\
+float: $b_3$ [cm]\\
+float: $b_{34}$ [cm]\\
+float: $b_4$ [cm]\\
+integer: not used here\\
+The following lines are the coefficients of the Enge function.
+
+\subsection{The Field Gradient}
+The parameter $K1$ in the description of Sbend is the field gradient
+$n$, where n is defined by the equation
+\begin{equation}
+\label{eq:gradient} B_y(x,0,t)=B_y(0,0,t)(1-nx/\rho+...),
+\end{equation}
+and
+\begin{equation}
+\label{eq:gradient2} B_x(x,0,t)=B_y(0,0,t)(-ny/\rho),
+\end{equation}
+
+
+\section{The Result}
+
+Fig. \ref{fig:envelope} shows the comparison of envelope IW2 line between
+opal-t, transport and measurements.
+
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics*[width=1.0\textwidth]{envelopefit}
+\end{center}
+\caption{The comparison of envelope between opal-t, transport and measurements. }
+\label{fig:envelope}
+\end{figure}
+\end{document}

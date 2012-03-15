@@ -1,0 +1,185 @@
+#ifndef CLASSIC_FIELDMAP_ICC
+#define CLASSIC_FIELDMAP_ICC
+
+
+#include <string>
+#include <iostream>
+#include <fstream>
+#include "Fields/Fieldmap.hh"
+
+using namespace std;
+
+inline Fieldmap::Fieldmap(const string & aFilename) :
+    Filename_m(aFilename),
+    lines_read_m(0)
+{ }
+
+
+inline void Fieldmap::getLine(ifstream & in, string & buffer)
+{
+    getLine(in, lines_read_m, buffer);
+}
+
+template<class T>
+bool Fieldmap::interpreteLine(ifstream & in, T & value, const bool & file_length_known) 
+{
+    static string expecting(TypeParseTraits<T>::name);
+    bool read_all = true;
+    string buffer;
+
+    getLine(in, buffer);
+    if (in.eof() && !file_length_known) {
+        return false;
+    }
+    istringstream interpreter(buffer, istringstream::in);
+
+    interpreter >> value;
+
+    if (interpreter.rdstate() ^ ios_base::eofbit) {
+        if (in.eof()) {
+            missingValuesWarning();
+            return false;
+        }
+        interpreteWarning((interpreter.rdstate() ^ ios_base::eofbit), read_all, expecting, buffer);
+    }
+    return (!(interpreter.rdstate() ^ ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
+}
+
+template<class S, class T>
+bool Fieldmap::interpreteLine(ifstream & in, S & value1, T & value2, const bool & file_length_known)
+{
+    static string expecting(string(TypeParseTraits<S>::name) + string(" ") + string(TypeParseTraits<T>::name));
+    bool read_all = true;
+    string buffer;
+
+    getLine(in, buffer);
+    if (in.eof() && !file_length_known) {
+        return false;
+    }
+    istringstream interpreter(buffer, istringstream::in);
+
+    interpreter >> value1;
+    if (interpreter.rdstate()) read_all = false;
+
+    interpreter >> value2;
+
+    if (interpreter.rdstate() ^ ios_base::eofbit) {
+        if (in.eof()) {
+            missingValuesWarning();
+            return false;
+        }
+        interpreteWarning((interpreter.rdstate() ^ ios_base::eofbit), read_all, expecting, buffer);
+    }
+    return (!(interpreter.rdstate() ^ ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
+}
+
+template<class S, class T, class U>
+bool Fieldmap::interpreteLine(ifstream & in, S & value1, T & value2, U & value3, const bool & file_length_known)
+{
+    static string expecting(string(TypeParseTraits<S>::name) + string(" ") + \
+                            string(TypeParseTraits<T>::name) + string(" ") + \
+                            string(TypeParseTraits<U>::name));
+    bool read_all = true;
+    string buffer;
+    
+    getLine(in, buffer);
+    if (in.eof() && !file_length_known) {
+        return false;
+    }
+    istringstream interpreter(buffer, istringstream::in);
+
+    interpreter >> value1;
+
+    interpreter >> value2;
+    if (interpreter.rdstate()) read_all = false;
+
+    interpreter >> value3;
+
+    if (interpreter.rdstate() ^ ios_base::eofbit) {
+        if (in.eof()) {
+            missingValuesWarning();
+            return false;
+        }
+        interpreteWarning((interpreter.rdstate() ^ ios_base::eofbit), read_all, expecting, buffer);
+    }
+    return (!(interpreter.rdstate() ^ ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
+}
+
+template<class S, class T, class U, class V>
+bool Fieldmap::interpreteLine(ifstream & in, S & value1, T & value2, U & value3, V & value4, const bool & file_length_known)
+{
+    static string expecting(string(TypeParseTraits<S>::name) + string(" ") + \
+                            string(TypeParseTraits<T>::name) + string(" ") + \
+                            string(TypeParseTraits<U>::name) + string(" ") + \
+                            string(TypeParseTraits<V>::name));
+    bool read_all = true;
+    string buffer;
+
+    getLine(in, buffer);
+    if (in.eof() && !file_length_known) {
+        return false;
+    }
+    istringstream interpreter(buffer, istringstream::in);
+
+    interpreter >> value1;
+
+    interpreter >> value2;
+
+    interpreter >> value3;
+    if (interpreter.rdstate()) read_all = false;
+
+    interpreter >> value4;
+
+    if (interpreter.rdstate() ^ ios_base::eofbit) {
+        if (in.eof()) {
+            missingValuesWarning();
+            return false;
+        }
+        interpreteWarning((interpreter.rdstate() ^ ios_base::eofbit), read_all, expecting, buffer);
+    }
+    return (!(interpreter.rdstate() ^ ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
+}
+
+template<class S>
+bool Fieldmap::interpreteLine(ifstream & in, S & value1, S & value2, S & value3, S & value4, S & value5, S & value6, const bool & file_length_known)
+{
+    static string expecting(string(TypeParseTraits<S>::name) + string(" ") + \
+                            string(TypeParseTraits<S>::name) + string(" ") + \
+                            string(TypeParseTraits<S>::name) + string(" ") + \
+                            string(TypeParseTraits<S>::name) + string(" ") + \
+                            string(TypeParseTraits<S>::name) + string(" ") + \
+                            string(TypeParseTraits<S>::name));
+    bool read_all = true;
+    string buffer;
+
+    getLine(in, buffer);
+    if (in.eof() && !file_length_known) {
+        return false;
+    }
+    istringstream interpreter(buffer, istringstream::in);
+
+    interpreter >> value1;
+
+    interpreter >> value2;
+
+    interpreter >> value3;
+
+    interpreter >> value4;
+
+    interpreter >> value5;
+    if (interpreter.rdstate()) read_all = false;
+
+    interpreter >> value6;
+
+    if (interpreter.rdstate() ^ ios_base::eofbit) {
+        if (in.eof()) {
+            missingValuesWarning();
+            return false;
+        }
+        interpreteWarning((interpreter.rdstate() ^ ios_base::eofbit), read_all, expecting, buffer);
+    }
+    return (!(interpreter.rdstate() ^ ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
+}
+
+
+#endif

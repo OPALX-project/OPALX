@@ -1,0 +1,275 @@
+\chapter{\opalt Field Maps}
+\label{chp:app_fieldmaps}
+In this chapter details of the different types of field maps in \opalt are presented. The possibility to add comments (almost) everywhere in the files is common to all field maps. Comments are initiated by a \# and contain the rest of a line. Comments are accepted at the beginning of the file, between the lines and at the end of a line. If in the following sections two values are shown on one line then they have to be on the same line. They should not be separated by a comment and, consequently, be on different lines. Three examples of valid comments:
+\begin{fmpage}
+\begin{verbatim}
+# This is valid a comment
+1DMagnetoStatic 40 # This is an other valid comment
+-60.0 60.0 9999
+  # and this is also a valid comment
+0.0 2.0 199
+\end{verbatim}
+\end{fmpage}
+
+The following examples will break the parsing of the field maps:
+\begin{fmpage}
+\begin{verbatim}
+1DMagnetoStatic # This is an invalid comment
+40
+-60.0 60.0 # This is an other invalid comment # 9999
+0.0 2.0 199
+\end{verbatim}
+\end{fmpage}
+
+If \opalt encounters an error while parsing a field map it disables the corresponding element, outputs a warning message and continues the simulation. The following messages may be output:
+\begin{fmpage}\footnotesize
+\begin{verbatim}
+************ W A R N I N G ***********************************
+THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP file.t7.
+There are only 10003 lines in the file, expecting more.
+Please check the section about field maps in the user manual.
+**************************************************************
+\end{verbatim}
+\end{fmpage}
+In this example there is something wrong with the number of grid spacings provided in the header of the file. Make sure that you provide the number of grid {\bf spacings} and not the number of grid {\bf points}! The two numbers always differ by 1.
+\begin{fmpage} \footnotesize
+\begin{verbatim}
+************ W A R N I N G ***********************************
+THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP file.t7.
+There are too many lines in the file, expecting only 10003 lines.
+Please check the section about field maps in the user manual.
+**************************************************************
+\end{verbatim}
+\end{fmpage}
+Again there seems to be something wrong with the number of grid spacings provided in the header. In this example \opalt found more lines than it expected. Note that comments and empty lines at the end of a file are ignored such that {\bf they don't cause} this warning.
+
+\begin{fmpage} \footnotesize
+\begin{verbatim}
+************ W A R N I N G ***********************************
+THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP file.t7.
+_error_msg_
+expeting: '_expecting_' on line 3,
+found instead: '_found_'.
+**************************************************************
+\end{verbatim}
+\end{fmpage}
+Where \texttt{\footnotesize \_error\_msg\_} is either 
+%\begin{table}[H!] \footnotesize
+  \begin{center}
+    \begin{tabular}{lp{6cm}}
+      \hline
+      \texttt{\footnotesize Didn't find enough values!} & If \opalt expects more values on this line. \\
+      \texttt{\footnotesize Found more values than expected!} & If \opalt expects less values on this line. \\
+      \texttt{\footnotesize Found wrong type of values!} & If \opalt found e.g. characters instead of an integer number. \\
+      \hline
+    \end{tabular}
+  \end{center}
+%\end{table}
+\texttt{\footnotesize `\_expecting\_'} is replaced by the types of values \opalt expects on the line. E.g. it could be replaced by \texttt{\footnotesize `double double int'}. Finally \texttt{\footnotesize `\_found\_'} is replaced by the actual content of the line without any comment possibly following the values. If line 3 of a file consists of \texttt{\footnotesize `-60.0 60.0 \# This is an other invalid comment \# 9999'} \opalt will output \texttt{\footnotesize `-60.0 60.0'}.
+\begin{fmpage} \footnotesize
+\begin{verbatim}
+************** W A R N I N G *********************************
+DISABLING FIELD MAP file.t7 SINCE FILE COULDN'T BE FOUND!
+**************************************************************
+\end{verbatim}
+\end{fmpage}
+This warning could be issued if the filename is mistyped or otherwise if the file couldn't be read.
+
+\begin{fmpage} \footnotesize
+\begin{verbatim}
+************ W A R N I N G **********************************
+THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELDMAP file.t7.
+Could not determine the file type.
+Please check the section about field maps in the user manual.
+*************************************************************
+\end{verbatim}
+\end{fmpage}
+In this case \opalt didn't recognise the string of characters which identify the type of field map stored in the file.
+
+\section{1DMagnetoStatic}
+\label{sec:1DMagnetoStatic}
+\index{1DMagnetoStatic}
+\begin{figure}[h]
+\label{fig:1DMagnetoStatic}
+\begin{fmpage}
+\begin{verbatim}
+1DMagnetoStatic 40
+-60.0 60.0 9999
+0.0 2.0 199
+  0.00000e+00  
+  4.36222e-06  
+  8.83270e-06  
+  + 9'994 lines
+  1.32490e-05  
+  1.73710e-05  
+  2.18598e-05  
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 1DMagnetoStatic field map]{A 1D field map describing a magnetostatic field using 10'000 grid points (9'999 grid spacings) in longitudinal direction. If the FAST switch is set in the input deck 200 values in transvers direction for each longitudinal grid point are calculated. The field is non-negligible from $-60.0\,cm$ to $+60.0\,cm$ relative to ELEMEDGE in longitudinal direction. The 200 grid points span a length of $2.0\,cm$ in radial direction. From the 10'000 field values 5'000 complex Fourier coefficients are calculated whereof only 40 are kept to calculate the off-axis field values.}
+\end{figure}
+\clearpage
+\section{1DDynamic}
+\label{sec:1DDynamic}
+\index{1DDynamic}
+\begin{figure}[h]
+\label{fig:1DDynamic}
+\begin{fmpage}
+\begin{verbatim}
+1DDynamic 40
+-3.0 57.0 4999
+1498.953425154
+0.0 2.0 199
+  0.00000e+00
+  4.36222e-06
+  8.83270e-06
+  + 4'994 lines
+  1.32490e-05
+  1.73710e-05
+  2.18598e-05
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 1DDynamic field map]{A 1D field map describing a dynamic field using 5'000 grid points in longitudinal direction. If the FAST switch is set in the input deck 200 values in transvers direction for each longitudinal grid point are calculated. The field is non-negligible from $-3.0\,cm$ to $57.0\,cm$ relative to ELEMEDGE in longitudinal direction. The 200 grid points span a length of $2.0\,cm$ in radial direction. From the 5'000 field values 2'500 complex Fourier coefficients are calculated whereof only 40 are kept to calculate the off-axis field values.}
+\end{figure}
+\clearpage
+
+\section{1DProfile1}
+\label{sec:1DProfile1}
+\index{1DProfile1}
+\begin{figure}[h]
+\label{fig:1DProfile1}
+\begin{fmpage}
+\begin{verbatim}
+1DProfile1 6 7 3.0
+-6.0 -2.0 2.0 1000
+24.0 28.0 32.0 0
+  0.00000e+00  
+  4.36222e-06  
+  8.83270e-06  
+  + 9 lines
+  1.32490e-05
+  1.73710e-05
+  2.18598e-05
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 1DProfile1 field map]{A 1D field map describing the fringe field of an element using 7 Enge coefficients for the entrance fringe field and 8 Enge coefficients for the exit fringe field (polynomial order 6 and 7 respectively). The element has a gap height of $3.0\,cm$, the entrance fringe field is non-negligible from $-6.0\,cm$ and reaches the core strength at $2.0\,cm$ relative to ELEMEDGE. The origin of the Enge function for the entrance fringe field is at $-2.0\,cm$ relative to ELEMEDGE. The exit fringe field is non-negligible up to $32.0\,cm$ from ELEMEDGE and starts to deviate from the core strength after $24.0\,cm$ from ELEMEDGE. The origin of the Enge function for the exit fringe field is at $28.0\,cm$ from ELEMEDGE.}
+\end{figure}
+\clearpage
+
+\section{1DProfile2}
+\label{sec:1DProfile2}
+\index{1DProfile2}
+\begin{figure}[h]
+\label{fig:1DProfile2}
+\begin{fmpage}
+\begin{verbatim}
+1DProfile2 6 7 3.0
+-6.0 -2.0 2.0 1000
+24.0 28.0 32.0 0
+  0.00000e+00
+  4.36222e-06
+  8.83270e-06
+  + 995 lines
+  1.32490e-05
+  1.73710e-05
+  2.18598e-05
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 1DProfile2 field map]{A 1D field map describing the fringe field of an element. The file provides field values at 1001 equidistant sampling points. To calculate the field between the grid points a Enge function is fitted to these values. To calculate the field the corresponding Enge coefficients, 7 for the entrance fringe field and 8 for the exit fringe field (polynomial order 6 and 7 respectively). The element has a gap height of $3.0\,cm$. The length of the entrance and the exit fringe field are determined by the field values and the total length, $32.0\,cm - (-6.0)\,cm = 38.0\,cm$.}
+\end{figure}
+\clearpage
+
+\section{2DElectroStatic}
+\label{sec:2DElectroStatic}
+\index{2DElectroStatic}
+\begin{figure}[h]
+\label{fig:2DElectroStatic}
+\begin{fmpage}
+\begin{verbatim}
+2DElectroStatic XZ
+-3.0 51.0 4999
+0.0 2.0 199
+  0.00000e+00  0.00000e+00
+  4.36222e-06  0.00000e+00
+  8.83270e-06  0.00000e+00
+  + 999'994 lines
+  1.32490e-05  0.00000e+00
+  1.73710e-05  0.00000e+00
+  2.18598e-05  0.00000e+00
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 2DElectroStatic field map]{A 2D field map describing an electrostatic field using 5'000 grid points in longitudinal direction times 200 grid points in transvers direction. The field between the grid points is calculated with a bilinear interpolation. The field is non-negligible from $-3.0\,cm$ to $51.0\,cm$ relative to ELEMEDGE and the 200 grid points in transverse direction span a length of $2.0\,cm$. The field values are ordered in XZ orientation, the index in longitudinal direction changes fastest, on the first column the $E_z$ values are stored, on the second the $E_r$ values.}
+\end{figure}
+\clearpage
+
+\section{2DMagnetoStatic}
+\label{sec:2DMagnetoStatic}
+\index{2DMagnetoStatic}
+\begin{figure}[h]
+\label{fig:2DMagnetoStatic}
+\begin{fmpage}
+\begin{verbatim}
+2DMagnetoStatic ZX
+0.0 2.0 199
+-3.0 51.0 4999
+  0.00000e+00  0.00000e+00
+  0.00000e+00  4.36222e-06
+  0.00000e+00  8.83270e-06
+  + 999'994 lines
+  0.00000e+00  1.32490e-05
+  0.00000e+00  1.73710e-05
+  0.00000e+00  2.18598e-05
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 2DMagnetoStatic field map]{A 2D field map describing a magnetostatic field using 5'000 grid points in longitudinal direction times 200 grid points in transvers direction. The field between the grid points is calculated with a bilinear interpolation. The field is non-negligible from $-3.0\,cm$ to $51.0\,cm$ relative to ELEMEDGE and the 200 grid points in transverse direction span a length of $2.0\,cm$. The field values are ordered in ZX orientation, the index in transvers direction changes fastest, on the first column the $B_r$ values are stored, on the second the $B_z$ values.}
+\end{figure}
+\clearpage
+
+\section{2DDynamic}
+\label{sec:2DDynamic}
+\index{2DDynamic}
+\begin{figure}[h]
+\label{fig:2DDynamic}
+\begin{fmpage}
+\begin{verbatim}
+2DDynamic XZ
+-3.0 51.0 4121
+1498.953425154
+0.0 1.0 75
+  0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00
+  4.36222e-06  0.00000e+00  4.36222e-06  0.00000e+00
+  8.83270e-06  0.00000e+00  8.83270e-06  0.00000e+00
+  + 313'266 lines
+  1.32490e-05  0.00000e+00  1.32490e-05  0.00000e+00
+  1.73710e-05  0.00000e+00  1.73710e-05  0.00000e+00
+  2.18598e-05  0.00000e+00  2.18598e-05  0.00000e+00
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 2DDynamic field map]{A 2D field map describing a dynamic field oszillating with $1.498953425154\,GHz$. The field map provides 4122 grid points in longitudinal direction times 76 grid points in transvers direction. The field between the grid points is calculated with a bilinear interpolation. The field is non-negligible between $-3.0\,cm$ and $51.0\,cm$ relative to ELEMEDGE and the 76 grid points in transvers direction span a distance of $1.0\,cm$. The field values are ordered in XZ orientation, the index in transvers direction changes fastest, on the first column the $E_z$ values are stored, on the second the $E_r$ values, on the third the $B_t$ values and the fourth column contains dummy values. For the ZX orientation the first column would contain the $E_r$ values, the second the $E_z$ values, the third dummy values and the fourth column the $B_t$ values. In addition the ordering of the values would be such that the index in transvers direction changes fastest and the second and fourth line of the file would be interchanged.}
+\end{figure}
+\clearpage
+
+\section{3DDynamic}
+\label{sec:3DDynamic}
+\index{3DDynamic}
+\begin{figure}[h]
+\label{fig:3DDynamic}
+\begin{fmpage}
+\begin{verbatim}
+3DDynamic XYZ
+1498.953425154
+-1.5 1.5 227
+-1.0 1.0 151
+-3.0 51.0 4121
+0.00e+00 0.00e+00 0.00e+00 0.00e+00 0.00e+00 0.00e+00
+4.36e-06 0.00e+00 4.36e-06 0.00e+00 4.36e-06 0.00e+00
+8.83e-06 0.00e+00 8.83e-06 0.00e+00 8.83e-06 0.00e+00
++ 142'852'026 lines
+1.32e-05 0.00e+00 1.32e-05 0.00e+00 1.32e-05 0.00e+00
+1.73e-05 0.00e+00 1.73e-05 0.00e+00 1.73e-05 0.00e+00
+2.18e-05 0.00e+00 2.18e-05 0.00e+00 2.18e-05 0.00e+00
+\end{verbatim}
+\end{fmpage}
+\caption[Example of a 3DDynamic field map]{A 3D field map describing a dynamic field oszillating with $1.498953425154\,GHz$. The field map provides 4122 grid points in z-direction times 228 grid points in x-direction and 152 grid points in y-direction. The field between the grid points is calculated with a bilinear interpolation. The field is non-negligible between $-3.0\,cm$ to $51.0\,cm$ relative to ELEMEDGE, the 228 grid points in x-direction range from $-1.5\,cm$ to $1.5\,cm$ and the 152 grid points in y-direction range from $-1.0\,cm$ to $1.0\,cm$ relative to the design path. The field values are ordered in XYZ orientation, the index in z-direction changes fastest, then the index in y-direction while the index in x-direction changes slowest. This is the only orientation that is implemented. The columns correspond to $E_x$, $E_y$, $E_z$, $B_x$, $B_y$ and $B_z$.}
+\end{figure}
+\clearpage
+

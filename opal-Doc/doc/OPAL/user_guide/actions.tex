@@ -1,0 +1,55 @@
+\chapter{Action Commands}
+\label{chp:action}
+\index{action}
+
+\section{Normal-Form Analysis}
+\index{normal form!dynamic}
+\index{normal form!static}
+\index{dynamic!normal form}
+\index{static!normal form}
+Please note Tables are not yet supported in \noopalt and \noopalcycl . Normal-Form Analysis does not make sense in a non map based computation. 
+The two commands
+\begin{verbatim}
+DYNAMIC, LINE=name, BEAM=name, FILE=string, ORDER=integer;
+STATIC, LINE=name, BEAM=name, FILE=string, ORDER=integer;
+\end{verbatim}
+both evaluate the truncated Taylor series map for one turn up to order
+\texttt{ORDER} and perform normal-form analysis on the result.
+Both have the following attributes:
+\begin{description}
+\item[LINE]
+\index{LINE}
+The label of a \chpref{\textbf{beam line or sequence}}{lines} defined
+previously (no default).  Its transfer map will be evaluated and
+analysed to the desired order.
+\item[BEAM]
+\index{LINE}
+The label of a \secref{\texttt{BEAM}~command}{beam} defined
+previously (default = \texttt{UNNAMED\_BEAM}).
+\index{UNNAMED\_BEAM}
+It defines the charge, kinetic energy, rest mass,
+and reference velocity for the reference
+particle. 
+\item[FILE]
+\index{FILE}
+The name of the file to be written 
+(default = "\texttt{dynamic}" or "\texttt{static}" respectively).
+\item[ORDER]
+\index{ORDER}
+The maximum order for the map.
+\end{description}
+
+\subsection{Normal-Form Analysis for Dynamic Map}
+\label{sec:dynamic}
+\index{DYNAMIC}
+The command interprets the transfer map as dynamic,
+i.e. there is synchrotron motion with an average momentum $p_s$.
+
+\subsection{Normal-Form Analysis for Static Map}
+\label{sec:static}
+\index{STATIC}
+The command assumes that there are no cavities,
+and interprets the transfer map as static,
+i.e. the particles have constant momentum.
+The \texttt{STATIC} command also finds the fixed point of the map,
+that is the variation of the closed orbit with momentum.

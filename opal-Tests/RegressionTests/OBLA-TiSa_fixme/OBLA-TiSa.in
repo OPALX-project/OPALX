@@ -1,0 +1,69 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=10;
+
+Title,string="OBLA 4 MeV Gun and Beam";
+
+Edes=1.0E-9;
+gamma=(Edes+EMASS)/EMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*EMASS;
+brho = (EMASS*1.0e9*gambet) / CLIGHT;
+
+value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element length (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+
+gun: RFCavity, L=0.008, VOLT=-98.954, FMAPFN="1T1.T7", ELEMEDGE=0.00, TYPE="STANDING", FREQ=1.0e-6;
+psl: Solenoid, L=0.12, ELEMEDGE=0.0, FMAPFN="1T2.T7", KS=0.2;
+rac: RFCavity, L=0.54, VOLT=35.5, FMAPFN="1T3.T7", ELEMEDGE=0.103, TYPE="STANDING", FREQ=1498.956e6, LAG=76.*RADDEG;
+sl10: Solenoid, L=1.00, ELEMEDGE=0.334, FMAPFN="1T5.T7", KS=0.133;
+sl11: Solenoid, L=1.00, ELEMEDGE=0.434, FMAPFN="1T5.T7", KS=-0.133;
+sl20: Solenoid, L=1.00, ELEMEDGE=0.834, FMAPFN="1T5.T7", KS=0.08;
+sl21: Solenoid, L=1.00, ELEMEDGE=0.934, FMAPFN="1T5.T7", KS=-0.08;
+
+end: Solenoid, L=0.01, ELEMEDGE=100., FMAPFN="1T5.T7", KS=0.01;
+
+l1:   Line = (gun,psl,rac,sl10,sl11,sl20,sl21,end); 
+
+v0 = beta * CLIGHT;
+TRise = 0.7e-12;
+TFall = 0.7e-12;
+TFlatTop = 9.9e-12 - TRise * sqrt(log(4)) - TFall * sqrt(log(4));
+lzRise = TRise * v0;
+lzFall = TFall * v0;
+lzFlatTop = TFlatTop * v0;
+value,{v0,lzRise,lzFall,lzFlatTop};
+
+Dist1:DISTRIBUTION, DISTRIBUTION = gungaussflattop,
+sigmax = 0.000540, sigmapx = 0.0, corrx = 0.0,
+sigmay = 0.000540, sigmapy = 0.0, corry = 0.0,
+sigmat = lzFlatTop, pt = 1.0, sigmapt = 0.0, corrt = 0.0,
+risetime = lzRise, falltime = lzFall, flattoptime = lzFlatTop,
+TEMISSION = 30.0e-12, NBIN = 5, DEBIN = 30; 
+
+MINSTEPFORREBIN=1000;
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=16, MY=16, MT=32, 
+		 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=INTEGRATED;
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=10000, BCURRENT=0.2997912, BFREQ=1498.956e6, CHARGE=-1;
+
+Select, Line=l1;
+// Simulation of the gun with step size DTGUN
+track,line=l1, beam=beam1, MAXSTEPS=240, DT=5.0e-13;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+
+// Simulation of the beam with step size DT 
+track,line=l1, beam=beam1, MAXSTEPS=1000, DT=5.0e-12;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1;
+endtrack;
+
+Stop;

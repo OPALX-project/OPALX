@@ -1,0 +1,16 @@
+OPTION,ECHO=FALSE;
+OPTION,SEED=ROUND(10000*RANF());
+
+I=1;
+WHILE (I <= 2) {
+
+ g1=GAUSS();
+ g2=GAUSS();
+ g3=GAUSS();
+ g4=GAUSS();
+ g5=GAUSS();
+ I=EVAL(I+1.0);
+ ECHO,"do: mkdir -p FN" & STRING(I) & " " & STRING(g1);
+ SYSTEM,"mkdir -p FN" & STRING(I);
+}
+QUIT;

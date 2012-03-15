@@ -1,0 +1,26 @@
+# Use this to generate the lables out of the tunedat file
+# cat tunedata | awk '{ print "set label \"E= "$1"\"  at " 1.002*$5" , "1.005*$6 } ' > t
+#
+set pointsize 3
+set view 60, 30, 1, 1
+set samples 100, 100
+unset tics
+set title " Carbon Cyclotron Tune Diagram" font "Helvetica 34"
+set xlabel "{/Symbol n}_r"
+set ylabel "{/Symbol n}_z"
+#
+plot 'tunedata' u 5:6 title " " w linesp
+set label "E= 250"  at 1.56563 , 1.62559
+set label "E= 270"  at 1.3026 , 1.70096
+set label "E= 290"  at 1.48046 , 1.72357
+set label "E= 310"  at 1.52805 , 1.58287
+set label "E= 330"  at 1.50801 , 1.48237
+set label "E= 350"  at 1.43036 , 1.43715
+set label "E= 370"  at 1.4003 , 1.40951
+set label "E= 390"  at 1.45791 , 1.37685
+set label "E= 410"  at 1.40681 , 1.54046
+set label "E= 430"  at 1.52324 , 1.38821
+set label "E= 450"  at 1.46001 , 1.41102
+set terminal post col enhanced
+set output 'tunelands.eps'
+repl

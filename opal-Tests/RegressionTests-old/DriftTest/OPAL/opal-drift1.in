@@ -1,0 +1,56 @@
+Option, TFS=FALSE;
+Option, ECHO=FALSE;
+Option, PSDUMPFREQ=1;
+Option, RHODUMP=TRUE;
+
+
+// Option, PHASESCAN=TRUE;
+
+Title,string="OPAL";
+
+Edes=1.0e-6;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+value,{gamma,brho,Edes,beta,gambet};
+
+// L:        physical element lenght (real)
+// KS:       field scaling factor (real)
+// FMAPFN:   field file name (string)
+// ELEMEDGE: physical start of the element on the floor (real)
+//
+
+FINEG_MSL10: Solenoid, L=0.12, KS=0.31250, FMAPFN="FINEG-MSL10.T7", ELEMEDGE=-0.002;
+FINEG_MSL20: Solenoid, L=0.12, KS=0.31250, FMAPFN="FINEG-MSL10.T7", ELEMEDGE=0.1;
+
+l1:   Line = (FINEG_MSL10,FINEG_MSL20);
+
+/*
+ We can specity ONE distribution
+*/
+
+Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+sigmax=  1.0e-04, sigmapx=1.0e-8, corrx=0.,
+sigmay=  1.0e-04, sigmapy=1.0e-8, corry=0.,
+sigmat=  1.0e-04, sigmapt=1.0e-8, corrt=0.;
+
+/*
+ We can specity ONE field solver object
+*/
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=32,
+		 PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open,
+	         BBOXINCR=1.0, GREENSF=STANDART;
+
+
+beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=1e4, BFREQ=1498.953425154e6, BCURRENT=0.032912, CHARGE=-1;
+
+Select, Line=l1;
+
+track,line=l1, beam=beam1, MAXSTEPS=2, DT=1.0e-12;
+ run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+Stop;

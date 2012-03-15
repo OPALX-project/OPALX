@@ -1,0 +1,2 @@
+../../../../src/opal envelope-test1.in | tee envelope-test1.out
+

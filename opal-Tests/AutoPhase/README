@@ -1,0 +1,4 @@
+Directory contains input files and scripts for running OPAL simulation of injector.
+in the autophase mode.
+
+run-injector ==> 			Script to launch OPAL simulation using "xfel-250MeV-injector-lem-aph.in" input file.

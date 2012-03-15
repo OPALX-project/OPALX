@@ -1,0 +1,143 @@
+!Welcome to IMPACT-T input file.
+!All comment lines start with "!" as the first character of the line.
+!
+! processor layout
+! col row
+2 2
+!
+! information needed by the integrator:
+! step-size, number of steps, and number of bunches/bins (??)
+!
+!   dt    Ntstep  Nbunch
+1e-12 10000 1
+!
+! more information needed by the integrator:
+! phase-space dimension, number of particles, a series of flags
+! that set the type of integrator, error study, diagnostics, and
+! image charge, and the cutoff distance for the image charge
+!
+! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m)
+6 100000 1 0 1 0 0.0
+!
+!
+! information about mesh: number of points in x, y, and z, type
+! of boundary conditions, transverse aperture size (m), 
+! and longitudinal domain size (m), which should be larger than the total
+! beamline element length, and the beam stop position. The beam stop
+! allows you to stop the beam, and simulation, at some long.
+! position in the beam line. If BeamStop <= 0.0 it is set equal to
+! Lz.
+!
+!  Nx  Ny  Nz  bcF   Rx    Ry    Lz BeamStop
+32 32 64 1 0.1 0.1 45.0 7.3858
+!
+!
+! distribution type number, restart flag, restart position, space-charge substep
+! flag, number of emission steps, and max emission time
+!
+! The restart was rewritten by Kristof Kraus to use a .h5 file. This added an extra
+! parameter "restartStep" to tell the program which step stored in the .h5 file
+! to use when restarting the program. If its value is negative, the program uses
+! the very last phase space stored in the found .h5 file.
+!
+! distType  restartF restartStep substepF  Nemission  Temission
+26 1 -2.0 0 0 0.0
+!
+! the distribution type codes have the following correspondence
+!   #  dist type    nparam  parameters (1..21)
+!   1  Uniform        21    sigx, sigpx, muxpx, xscale, pxscale, xmu1, xmu2,
+!                           sigy, sigpy, muypy, yscale, pyscale, xmu3, xmu4,
+!                           sigz, sigpz, muzpz, zscale, pzscale, xmu5, xmu6
+!   2  Gauss3         21    as in Uniform
+!   3  Waterbag       21    as in Uniform
+!   4  Semigauss      21    as in Uniform
+!   5  KV3d           21    as in Uniform
+!  15  GaussDouble    21    as in Uniform
+!  16  read           21    none
+!  17  Cylcold        21    as in Uniform
+!  18  CylGaussTest   21   
+!  19  CylDbGauss     21   
+!  20  UniformChain   21   
+!
+! following three lines contain a total of 21 parameters (seven
+! per degree of freedom) particular to the particle distribution
+!
+! in most cases, the columns are given by
+!  sig*   sigp*  mu*p*  *scale  p*scale  xmu*      xmu*
+!
+1.5e-4 0.0 0.0 1.0 1.0 0.0 0.0
+1.5e-4 0.0 0.0 1.0 1.0 0.0 0.0
+1.0e-2 0.0 0.0 1.0 1.0 0.0 0.0
+!
+!
+! information about the beam: current, kinetic energy, particle
+! rest energy, particle charge, scale frequency, and initial
+! cavity phase
+!
+! I/A   Ek/eV     Mc2/eV      Q/e  freq/Hz  phs/rad
+!0.00000000 1.0e6 0.511005e+06  -1.0 1498.956e6 0.0
+0.29959808 1.0e6 0.511005e+06  -1.0 1498.956e6 0.0
+!
+! Ensure we use full 3D space charge calculation.
+0.0 1 1 -5 0.0 0 0 0.0 /
+!
+! ======= machine description starts here =======
+! the following lines, which must each be terminated with a '/',
+! describe one beam-line element per line; the basic structure is
+! element length, ???, ???, element type, and then a sequence of
+! at most 24 numbers describing the element properties
+!
+! the numeric type codes have the following correspondence
+!  #    element    nparams  parameters (v0..v23)
+! < 0  bpm           8
+!   0  drift tube    2      zedge radius
+!   1  quadrupole    9      zedge, quad grad, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!   2  constFocus    5      zedge, foc grads kx0^2, ky0^2, kz0^2, radius
+!   3  solenoid      9      zedge, Bz0, fileID
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!   4  dipole       10      zedge, field strength x, y, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!   5  multipole    10      zedge, typeID (2=sex,3=oct,4=dec),
+!                             field strength, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 101  1e-12L          15      zedge, ...
+! 102  CC1e-12L        11      zedge, ...
+! 103  CCL          11      zedge, ...
+! 104  SC cavity    11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 105  SolRF        12      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z,
+!                             Bz0
+! 110  EMfld        13      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z,
+!                             field flag (=discrete,=analytic),
+!                             coordinate system flag (=cart,=cyl)
+! 111  EMfld cart   11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 112  EMfld cyl    11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+! 113  EMfld anal   11      zedge, scale, RF frequency, theta0, fileID,
+!                             radius, alignment error x, y
+!                             rotation error x, y, z
+!
+1.200 10 20 3 4.554  0.05000 6.0 0.001 0.0 0.0 0.0 0.0 0.0 /
+!
+0.4700000 10 20 0    5.4040000 0.0253 /
+!
+0.1000000 10 20 1    5.8740000 2.78800 -1 0.02 0.0 0.0 0.0 0.0 0.0 /
+0.1000000 10 20 0    5.9740000  0.0253 /
+0.1000000 10 20 1    6.0740000 -3.51700 -1 0.02 0.0 0.0 0.0 0.0 0.0 /
+0.1000000 10 20 0    6.1740000  0.0253 /
+0.3610000 10 20 4    6.2790000  0.0 -0.208668 6 0.00750 0.0 0.0 0.0 0.0 0.0 /
+!0.2617994 10 20 4    6.3240000  0.0 -0.208668 7 0.00750 0.0 0.0 0.0 0.0 0.0 /
+0.8000000 10 20 0    6.5867000  0.0253 /

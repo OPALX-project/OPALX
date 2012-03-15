@@ -1,0 +1,4 @@
+#!/bin/bash
+FN=xfel-250MeV-injector-lem-aph
+CORES=1
+mpirun -np $CORES $OPAL_ROOT/src/opal $FN.in --commlib mpi --info 0 --warn 0 | tee  $FN-NP$CORES.out

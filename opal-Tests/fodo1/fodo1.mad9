@@ -1,0 +1,41 @@
+// 
+// AA
+// Simple fodo to check static etc.
+option, trace=false;
+option, tfs=false;
+system, "rm *.mou";
+
+p0= 1.0;
+
+dr1: drift,L:=1.0;
+
+QF: Quadrupole, L=1.5, K1=0.02;
+QD: Quadrupole, L=1.5, K1=-0.02;
+
+b1: Rbend, L=.5, Angle=4*RADDEG;          //  , K0=0.01;
+b2: Rbend, L=.5, Angle=-4*RADDEG;         //  , K0=-0.01;
+
+
+l2: line=(dr1,QF,dr1,QD);
+l1: line=(dr1,b1,QF,b2,dr1,QD);
+
+beam1: beam,particle=proton,pc:=p0;
+
+// l1, fodo with bend
+select,line=l1,FULL;
+twl1: twiss, line=l1, beam=beam1, static=true, method="THICK", order=4;
+list,   table=twl1, file="fodo1Table_l1.mou", all;
+matrix, table=twl1, file="fodo1Matrix_l1.mou";
+eigen,  table=twl1, file="fodo1Eigen._l1.mou";
+static, line=l1, beam=beam1, file="fodo1_Static_l1_O4.mou";
+
+// l2, fodo
+select,line=l2,FULL;
+twl2: twiss, line=l2, beam=beam1, static=true, method="THICK", order=4;
+list,   table=twl2, file="fodo1Table_l2.mou", all;
+matrix, table=twl2, file="fodo1Matrix_l2.mou";
+eigen,  table=twl2, file="fodo1Eigen._l2.mou";
+static, line=l2, beam=beam1, file="fodo1_Static_l2_O4.mou";
+
+stop;
+

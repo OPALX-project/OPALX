@@ -1,0 +1,417 @@
+\chapter{Installation}
+\label{chp:installation}
+\opal\ and all its flavours are based on several packages which are all installable using the configure-make-install trilogy. \\ \\
+\opal\ is also preinstalled on the FELSIM cluster at PSI. The preinstalled version can be accessed 
+using the module command: 
+\begin{footnotesize}
+\begin{verbatim}
+module load opal
+\end{verbatim}
+\end{footnotesize}
+
+\section{Build and install \opal\ on a Mac (Snow Leopard)}
+\subsection{Supporting Libraries}
+The following libraries and tools must be present before starting with the actual \opal\ installation process described in (\ref{sec:instmacclop}).
+The following packages are maybe already installed. Please check the versions carefully and do not use older ones. 
+\begin{itemize}
+\item macport from www.macports.org
+\item Xcode \url{http://developer.apple.com/TOOLS/Xcode/}
+\item automake-1.10.2                
+\item autoconf-2.64
+\item libtool-2.2           
+\end {itemize}
+
+\subsubsection{Environment Variables}
+Assuming you install IPPL and \opal\ into {\tt \$HOME/svnwork}, five 
+environment variables must be set accordingly:
+\begin{footnotesize}
+\begin{verbatim}
+export OPAL_ROOT=$HOME/svnwork/OPAL/
+export DOOM_ROOT=$OPAL_ROOT/doom/
+export CLASSIC_ROOT=$OPAL_ROOT/classic/5.0/
+
+export IPPL_ROOT=$HOME/svnwork/ippl/
+export IPPL_ARCH=MACOSX
+\end{verbatim}
+\end{footnotesize}
+
+\subsubsection{Build/Install gcc (4.5.0)}
+\begin{footnotesize}
+\begin{verbatim}
+sudo port install gcc45
+\end{verbatim}
+\end{footnotesize}
+
+\subsubsection{Build/Install gsl (1.13)}
+\begin{footnotesize}
+\begin{verbatim}
+sudo port install gsl
+\end{verbatim}
+\end{footnotesize}
+
+\subsubsection{Build/Install OpenMPI (openmpi-1.3.3)}
+\begin{footnotesize}
+\begin{verbatim}
+CC=gcc CXX=g++ F77=gfortran ./configure
+\end{verbatim}
+\end{footnotesize}
+
+\subsubsection{Build/Install HDF5 1.6.5}
+\begin{footnotesize}
+\begin{verbatim}
+./configure --enable-parallel --prefix=/usr/local
+
+Libraries have been installed in:
+   /usr/local/lib
+
+If you ever happen to want to link against installed libraries
+in a given directory, LIBDIR, you must either use libtool, and
+specify the full pathname of the library, or use the `-LLIBDIR'
+flag during linking and do at least one of the following:
+   - add LIBDIR to the `DYLD_LIBRARY_PATH' environment variable
+     during execution
+
+See any operating system documentation about shared libraries 
+for more information, such as the ld(1) and ld.so(8) manual 
+pages.
+\end{verbatim}
+\end{footnotesize}
+
+\subsubsection{FFTW (3.2.1 www.fftw.org ) }
+\begin{footnotesize}
+\begin{verbatim}
+./configure --enable-mpi --prefix=/usr/local
+
+Libraries have been installed in:
+   /usr/local/lib
+
+If you ever happen to want to link against installed libraries
+in a given directory, LIBDIR, you must either use libtool, and
+specify the full pathname of the library, or use the `-LLIBDIR'
+flag during linking and do at least one of the following:
+   - add LIBDIR to the `DYLD_LIBRARY_PATH' environment variable
+     during execution
+
+See any operating system documentation about shared libraries 
+for more information, such as the ld(1) and ld.so(8) manual pages.
+\end{verbatim}
+\end{footnotesize}
+
+\subsubsection{Doom (H. Grothe CERN) }
+Use the {\tt autogen.sh} if you install for the first time:
+\begin{verbatim}
+cd $DOOM_ROOT
+autogen.sh
+\end{verbatim}
+The last two libraries to install (H5Part  and IPPL) are developed and hosted at PSI.
+\subsubsection{H5Part (1.4)}
+The tarball can be found at:
+\begin{center}
+\url{http:/h5part.web.psi.ch/Downloading.html} 
+\end{center}
+or alternatively the following svn checkout
+\begin{center}
+svn checkout svn+ssh://svn.psi.ch/repos/H5Part/H5Part/1.4
+\end{center}
+will get you the trunk of the repository. 
+Now we can build and install the package:
+\begin{footnotesize}
+\begin{verbatim}
+./configure --enable-parallel --disable-tools --prefix=/usr/local/
+make 
+sudo make install
+\end{verbatim}
+\end{footnotesize}
+
+\subsubsection{IPPL}
+The following svn checkout
+\begin{footnotesize}
+\begin{verbatim} cd $IPPL_ROOT
+\end{verbatim}
+\end{footnotesize}
+\begin{center}
+svn checkout svn+ssh://savannah.psi.ch/repos/amas/amas/ippl/trunk
+\end{center}
+will get you the trunk of the repository \footnote{If you can not checkout the sources
+send email to \url{andreas.adelmann@psi.ch}.}. Now we can build and install the package:
+\begin{footnotesize}
+\begin{verbatim}
+CXX=mpicxx F77=gfortran ./configure --with-ippl-linuxgcc 
+         --libdir=$IPPL_ROOT/lib/$IPPL_ARCH
+\end{verbatim}
+\end{footnotesize}
+Maybe {\tt Makefile.def} must be adapted prior to the {\tt configure} step.
+What remains is actually the installation of \classic\ and \opal.
+
+\subsection{Installing CLASSIC and OPAL} \label{sec:instmacclop}
+The following svn checkout \footnote{If you can not checkout the sources
+send an email to \url{andreas.adelmann@psi.ch}.}
+\begin{footnotesize}
+\begin{verbatim}cd $OPAL_ROOT
+\end{verbatim}
+\end{footnotesize}
+\begin{center}
+svn checkout svn+ssh://savannah.psi.ch/repos/amas/amas/OPAL/trunk
+\end{center}
+will get you the trunk of the repository. We start by installing \classic\:
+\begin{footnotesize}
+\begin{verbatim}
+cd $CLASSIC_ROOT
+\end{verbatim}
+\end{footnotesize}
+and then \opal :
+\begin{footnotesize}
+\begin{verbatim}
+cd $OPAL_ROOT
+\end{verbatim}
+\end{footnotesize}
+Please checkout the available {\tt autogenXX.sh} in the respective directories mentioned above.
+
+\section{Build and install OPAL on FELSIM (PSI)}
+This is a sample session for the PSI FELSIM, however it can be regarded as a prototype for any decent Linux cluster. 
+
+First add the following commands to your {\tt .bashrc} if you have not already  done so. 
+\begin{footnotesize}
+\begin{verbatim}
+module load mpi/mpich2-1.0.6
+module load hdf5
+
+export DOOM_ROOT=$HOME/svnwork/OPAL/doom/
+export CLASSIC_ROOT=$HOME/svnwork/OPAL/classic/5.0/
+export OPAL_ROOT=$HOME/svnwork/OPAL/
+export IPPL_ROOT=~adelmann/svnwork/ippl/
+export IPPL_ARCH=LINUX
+
+# use IPPL 
+source ~adelmann/svnwork/ippl/ENV/merlin3-Linux.bash
+# path for hdf5
+export HDF5ROOT=${HDF5HOME}
+export H5Part=~adelmann/svnwork/H5Part
+\end{verbatim}
+\end{footnotesize}
+Now we can checkout OPAL from the repository: 
+\begin{footnotesize}
+\begin{verbatim}
+cd ${HOME}/svnwork
+svn checkout \
+    file:///afs/psi.ch/project/amas/svn/root/amas/OPAL/trunk OPAL
+\end{verbatim}
+\end{footnotesize}
+To build OPAL we have to build DOOM and CLASSIC first.
+\begin{footnotesize}
+\begin{verbatim}
+cd $DOOM_ROOT
+autogen.sh
+
+cd $CLASSIC_ROOT/src
+autogen.sh
+\end{verbatim}
+\end{footnotesize}
+Now it is time to build OPAL and again replace {\tt /home2/adelmann} by your home directory.
+\begin{footnotesize}
+\begin{verbatim}
+cd $OPAL_ROOT/src
+autogen.sh
+\end{verbatim}
+\end{footnotesize}
+
+\section{Build and install OPAL on the Cray XT5}
+This is a sample session for the Cray XT5 "Rosa" at CSCS, Switzerland. First add the following commands to your {\tt .bashrc} if
+you have not already done so. It is assumed that IPPL and H5Part are installed in {\tt \${HOME}/svnwork/}.
+
+\subsection{Gele}
+
+\begin{footnotesize}
+\begin{verbatim}
+module load subversion/1.4.2
+module swap PrgEnv-pgi/1.4.48 PrgEnv-gnu/1.4.48
+module swap gcc/4.1.1 gcc/3.2.3
+module load craypat
+module load hdf5
+#
+export IPPL_ROOT=$HOME/svnwork/ippl
+export IPPL_ARCH=XT3
+
+# OPAL stuff
+export DOOM_ROOT=$HOME/svnwork/OPAL/doom
+export CLASSIC_ROOT=$HOME/svnwork/OPAL/classic/5.0/
+export OPAL_ROOT=$HOME/svnwork/OPAL/
+export H5Part=$HOME/svnwork/H5Part
+export HDF5HOME=/apps/hdf5-1.6.5
+
+export MPICH_ROMIO_NO_RECORD_LOCKING=1
+
+export CXX=CC
+export CPP=cc
+\end{verbatim}
+\end{footnotesize}
+
+Then login the shell again or activate it by 
+\begin{footnotesize}
+\begin{verbatim}
+$ source ~/.bashrc
+\end{verbatim}
+\end{footnotesize}
+Now we can checkout OPAL from the repository: 
+
+\begin{footnotesize}
+\begin{verbatim}
+$ cd ${HOME}/svnwork
+$ svn checkout \
+           https://svn.psi.ch/amas/amas/OPAL/trunk ~/svnwork/OPAL
+\end{verbatim}
+\end{footnotesize}
+To build OPAL we first have to build DOOM and CLASSIC. 
+
+\begin{footnotesize}
+\begin{verbatim}
+cd $DOOM_ROOT
+autogen-gele.sh
+
+cd $CLASSIC_ROOT/src
+autogen-gele.sh
+\end{verbatim}
+\end{footnotesize}
+Now it is time to build OPAL.
+\begin{footnotesize}
+\begin{verbatim}
+cd $OPAL_ROOT/src
+autogen-gele.sh
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{Palu}
+Use the same recipe as for Gele but replace  {\em autogen-gele.sh} by {\em autogen-palu.sh}.
+
+\clearpage
+\section{Used Compilers and Libraries}
+The supported operating systems and libraries are listed in Table \ref{tab:archlib}.
+\begin{table}[Ht] \footnotesize
+  \begin{center}
+    \caption{Supported Architectures and needed Libraries}
+    \label{tab:archlib}
+    \begin{tabular}{|lcccc|}
+      \hline
+      Operating System & HDF5  & H5Part & IPPL & MPICH2\\
+      \hline
+      Linux merlin00 2.6.9-55.0.9.ELsmp & hdf5-1.6.5 & V1.0 & 1.0 & 1.0.6 \\
+      Cray XT3/4 Palu 1.5.47 & hdf5-1.6.5 & V1.0 & 1.0 & - \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\section{Enabling the Multigrid Space Charge Solver}
+
+{\bf Please note:} The Multigrid space charge solver is in an experimental stage at the moment. You are advised to use the FFT space charge solver for stable and reliable simulations.
+
+We start by defining another environment variable that points to the directory where Trilinos is installed:
+\begin{footnotesize}
+\begin{verbatim}
+export TRILINOS_ROOT=~ineichen/lib/Trilinos/LINUX_MPI
+\end{verbatim}
+\end{footnotesize}
+If no Trilinos version ($>$8.0) is available, download and build the source code from the Trilinos webpage.\footnote{\url{http://trilinos.sandia.gov}} The following Trilinos packages are required:
+
+\begin{itemize}
+  \item epetra and epetraext
+  \item ml and ml\_parmetis3x
+  \item amesos and amesos-superludist
+  \item ifpack
+  \item teuchos and teuchos-extended
+  \item aztecco and aztecoo-teuchos
+  \item galeri 
+\end{itemize}
+To enable these packages run the Trilinos configure script with the following arguments:
+\begin{footnotesize}
+\begin{verbatim}
+--enable-epetra --enable-epetraext \
+--enable-ml --enable-ml_timing --enable-ml_flops \
+--with-ml_parmetis3x --enable-amesos --enable-ifpack \
+--enable-teuchos --enable-aztecoo-teuchos \
+--enable-teuchos-extended  --enable-galeri \
+--enable-amesos-superludist
+\end{verbatim}
+\end{footnotesize}
+Finally execute the following configure command (i.e. on the FELSIM cluster)
+\begin{footnotesize}
+\begin{verbatim}
+CXX=mpicxx ./configure \
+    --with-classic-includedir=$CLASSIC_ROOT/src \
+    --with-classic-libdir=$CLASSIC_ROOT/src \
+    --with-doom-includedir=$DOOM_ROOT 
+    --with-doom-libdir=$DOOM_ROOT \
+    --with-ippl-includedir=$IPPL_ROOT/src \
+    --with-ippl-libdir=$IPPL_ROOT/lib/$IPPL_ARCH \
+    --with-h5part-includedir=$H5Part/src \
+    --with-h5part-libdir=$H5Part/src \
+    --with-hdf5-includedir=$HDF5HOME/include \
+    --with-hdf5-libdir=$HDF5HOME/lib \
+    --with-libdir="-L/opt/parmetis/parmetis-3.1 \
+                   -L/opt/intel-mkl/mkl-10.0/lib/em64t \
+                   -L/opt/intel/intel-10.0/fce-10.0/lib" \
+    --with-libs="-lsuperlu_dist_2.0 -lifcore \
+                 -lparmetis -lmetis" \
+    --with-blas=mkl --with-lapack=mkl \
+    --with-trilinos-includedir=$TRILINOS_ROOT/include \
+    --with-trilinos-libdir=$TRILINOS_ROOT/lib \
+    --enable-ml-solver
+\end{verbatim}
+\end{footnotesize}
+
+\section{Debug Flags}\label{sec:debugflags}
+
+\begin{table}[ht]\footnotesize
+  \begin{center}
+    \caption{Debug flags.}
+    \label{tbl:debug_flags}
+      \begin{tabular}{lll}
+        \hline
+        {\bf Name} & {\bf Description} & {\bf Default} \\
+        \hline
+        DBG\_SCALARFIELD & dumps scalar potential on the grid & not set \\
+        DBG\_STENCIL & dumps stencil (MG solver) to a Matlab readable file & not set \\
+        \hline
+      \end{tabular}
+    \end{center}
+\end{table}
+
+\paragraph{DBG\_SCALARFIELD} dumps the field to a file called rho\_scalar. The structure of the data can be deduced from the following Matlab script:
+
+\begin{footnotesize}
+\begin{verbatim}
+function scalfield(RHO)
+
+rhosize=size(RHO)
+for i=1:rhosize(1)
+  x = RHO(i,1);
+  y = RHO(i,2);
+  z = RHO(i,3);
+  rhoyz(y,z) = RHO(i,4);
+  rhoxy(x,y) = RHO(i,4);
+  rhoxz(x,z) = RHO(i,4);
+  rho(x,y,z) = RHO(i,4);
+end
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{DBG\_STENCIL} dumps the discretization stencil to a file (A.dat). The following Matlab code will read and store the sparse matrix in the variable 'A'.
+
+\begin{footnotesize}
+\begin{verbatim}
+load A.dat;
+A = spconvert(A);
+\end{verbatim}
+\end{footnotesize}
+
+
+\section{Examples}
+When checking out the \opal\ framework you will find the {\em opal-Tests} directory and moreover
+a subdirectory called {\em RegressionTests}. There several input files can be found which are
+run every day to check the validity of the current version of \opal. This is a good starting-point to learn how to
+model accelerators with the various flavours of \opal. More examples will be given in subsequent chapters, enjoy!
+
+%& IPPL \\
+% & V 1.0
+
+

@@ -1,0 +1,350 @@
+\documentclass{article}
+
+\begin{document}
+
+\title{
+  Standard Input Language \\
+  for the CLASSIC Parser
+}
+\author{
+  F. Christoph Iselin (CERN)
+}
+
+\maketitle
+
+\section{Motivation}
+With the growing size of modern particle accelerators and charged
+particle beam lines the input data sets needed to describe these
+devices to computer programs become increasingly bulky.
+This makes data preparation a laborious and error-prone process.
+The situation gets even worse if data are to be prepared for several
+computer programs with widely different input formats.
+
+The {\em Standard Input Format\/} (SIF) was designed to tackle these
+problems.
+It is based on the language defined in~\cite{snowmass},
+and it has the following aims:
+\begin{itemize}
+\item
+  The accelerator structure must be described such that data can be
+  exchanged easily between all programs conforming to the standard.
+\item
+  The input must be easily readable by a human reader, and avoid
+  unnecessary work like repetition and expansion of symmetry.
+\end{itemize}
+
+\section{Definition of the Standard Language Statements}
+Normally the information is presented to the computer program by means
+of definitions.
+A definition introduces or redefines a beam line element, a sequence
+of elements, or a parameter,
+and must be entered {\em before} it is used in another definition.
+
+Definitions are entered sequentially,
+they are separated by semicolons ``;''.
+Like in \verb'C++' comments are marked by a double slash ``//'',
+and all characters from the ``//'' to the end of line are ignored.
+A comment {\em does not} terminate a definition.
+
+Examples for definition formats:
+\begin{verbatim}
+   definition-1;
+   definition-2; definition-3; // comment
+   definition-4; // comment
+\end{verbatim}
+
+\subsection{Keywords and Labels}
+Keywords denote element types and their parameters,
+as well as names of elementary functions.
+Labels denote beam elements, sequences of beam elements, and
+user-defined parameters.
+Either consists of a letter followed by a sequence of letters, digits,
+and/or underscores.
+The case of letters is not significant.
+In opposition to original SIF, abbreviations are {\em not} permitted.
+
+\subsection{Element Definitions}
+The general format for an element definition is
+\begin{verbatim}
+   label: type-keyword {, parameter-keyword=value};
+\end{verbatim}
+Subsequent definitions refer to an element by its label.
+The {\em type-keyword} selects the element type (dipole, quadrupole,
+drift space, etc.) to be used.
+When a label is already defined, a ``derived'' element can be defined
+as 
+\begin{verbatim}
+   label: defined-label {, parameter-keyword=value};
+\end{verbatim}
+It inherits all unspecified attributes from {\tt defined-label}.
+A program is allowed to define additional element types.
+An element whose {\em type-keyword} is unknown to a program is
+flagged with a message.
+
+When an element is redefined, all existing beam line definitions are
+updated to use the {\em new} definition.
+
+The table of elements is open-ended.
+The standard elements are shown in Table~\ref{elements}.
+\begin{table}[htb]
+  \centering
+  \caption{Standard beam elements}
+  \label{elements}
+  \vspace{1em}
+  \begin{tabular}{|lp{0.7\textwidth}|}
+    \hline
+    DRIFT       & Drift Space \\
+    RBEND       & Rectangular (parallel-faced) bending magnet
+                  with a cartesian reference system \\
+    SBEND       & Sector (normal-entry) bending magnet
+                  with a curvilinear reference system \\
+    QUADRUPOLE  & Quadrupole \\
+    SEXTUPOLE   & Sextupole \\
+    OCTUPOLE    & Octupole \\
+    MULTIPOLE   & General Multipole \\
+    SOLENOID    & Solenoid \\
+    ELSEPARATOR & Electrostatic Separator \\
+    RFCAVITY    & RF Cavity \\
+    HKICK       & Horizontal Orbit Corrector Kicker \\
+    VKICK       & Vertical Orbit Corrector Kicker \\
+    SROT        & Change of reference by rotation on longitudinal axis \\
+    ECOL        & Elliptic Collimator \\
+    RCOL        & Rectangular Collimator \\
+    HMONITOR    & Monitor for horizontal plane \\
+    VMONITOR    & Monitor for vertical plane \\
+    MONITOR     & Monitor for both planes \\
+    MARKER      & Marker (serves to mark a position) \\
+                & more to come... \\
+    \hline
+  \end{tabular}
+\end{table}
+Element parameters are given with {\em parameter-keywords}.
+The standard {\em parameter-keywords} are listed in
+Table~\ref{keywords}.
+\begin{table}[htb]
+  \centering
+  \caption{Standard parameter keywords}
+  \label{keywords}
+  \vspace{1em}
+  \begin{tabular}{|lp{0.7\textwidth}|}
+    \hline
+    L     & Element length \\
+    ANGLE & Bending angle or rotation angle \\
+    K0    & Dipole strength \\
+    K1    & Quadrupole strength \\
+    K2    & Sextupole strength \\
+    K3    & Octupole strength \\
+    K4    & Decapole strength \\
+    K5    & Dodecapole strength \\
+    KS    & Solenoid strength \\
+    E1    & Entrance edge angle for bending magnet \\
+    E2    & Exit edge angle for bending magnet \\
+    KICK  & Kick angle for orbit correctors \\
+    FREQ  & RF frequency \\
+    VOLT  & RF voltage \\
+    LAG   & RF phase lag \\
+    XSIZE & Horizontal half-aperture \\
+    YSIZE & Vertical half-aperture  \\
+    E     & Electrostatic field \\
+    \hline
+  \end{tabular}
+\end{table}
+Parameters accepted for various elements and their default values are
+shown in Table~\ref{values}.
+\begin{table}[htb]
+  \centering
+  \caption{Standard element parameters and default values}
+  \label{values}
+  \vspace{1em}
+  \begin{tabular}{|lp{0.7\textwidth}|}
+    \hline
+    DRIFT    & L=0.0 \\
+    RBEND    & L=0.0, ANGLE=0.0, K1=0.0, E1=0.0, E2=0.0, K2=0.0 \\
+    SBEND    & L=0.0, ANGLE=0.0, K1=0.0, E1=0.0, E2=0.0, K2=0.0 \\
+    QUADRUPO & L=0.0, K1=0.0 \\
+    SEXTUPOL & L=0.0, K2=0.0 \\
+    OCTUPOLE & L=0.0, K3=0.0 \\
+    MULTIPOL & L=0.0, multipole components to be defined \\
+    SOLENOID & L=0.0, KS=0.0 \\
+    ELSEPARA & L=0.0, E=0.0 \\
+    RFCAVITY & L=0.0, FREQ=0.0, VOLT=0.0, LAG=0.0 \\
+    HKICK    & L=0.0, KICK=0.0 \\
+    VKICK    & L=0.0, KICK=0.0 \\
+    SROT     & ANGLE=0.0 \\
+    ECOL     & L=0.0, XSIZ=0.0, YSIZ=0.0 \\
+    RCOL     & L=0.0, XSIZ=0.0, YSIZ=0.0 \\
+    HMONITOR & L=0.0 \\
+    VMONITOR & L=0.0 \\
+    MONITOR  & L=0.0 \\
+    MARKER   & \\
+             & more to come... \\
+    \hline
+  \end{tabular}
+\end{table}
+If a {\em parameter-keyword} is unknown to a program, the parameter
+is ignored with a message.
+
+Examples for beam elements:
+\begin{verbatim}
+   D1:  DRIFT, L=0.2
+   QF:  QUADRUPOLE, L=1.6
+   QF7: QF, K2=0.012834
+   B:   SBEND, L=5, ANGLE=0.0001
+\end{verbatim}
+
+\subsection{Coupling of Element Parameters}
+Often certain parameters are defined in terms of other paramters.
+This may be readily achieved by allowing expressions for element
+parameters involving parameters of other elements and/or globally
+known values.
+Expressions may contain any of the elementary functions listed in
+Table~\ref{functions}.
+\begin{table}[htb]
+  \centering
+  \caption{Standard functions allowed in expressions}
+  \label{functions}
+  \vspace{1em}
+  \begin{tabular}{|lp{0.7\textwidth}|}
+    \hline
+    SQRT($x$)    & Square root $\sqrt{x}$ \\
+    LOG($x$)     & Natural logarithm $\log(x)$ \\
+    EXP($x$)     & Exponential $e^x$ \\
+    SIN($x$)     & Trigonometric sine $\sin(x)$ \\
+    COS($x$)     & Trigonometric cosine $\cos(x)$ \\
+    ABS($x$)     & Absolute value $|x|$ \\
+    TAN($x$)     & Trigonometric tangent $\tan(x)$ \\
+    ASIN($x$)    & Inverse trigonometric sine $\arcsin(x)$ \\
+    ACOS($x$)    & Inverse trigonometric cosine $\arccos(x)$ \\
+    ATAN($x$)    & Inverse trigonometric tangent $\arctan(x)$ \\
+    ATAN2($x,y$) & Inverse trigonometric tangent $\arctan(x/y)$ \\
+    MAX($x,y$)   & Maximum of two values $\max(x,y)$ \\
+    MIN($x,y$)   & Minimum of two values $\min(x,y)$ \\
+    \hline
+  \end{tabular}
+\end{table}
+Global values can be introduced by a statement
+\begin{verbatim}
+   label = value
+\end{verbatim}
+where \verb'value' can be an expression involving defined quantities.
+All expressions are evaluated {\em immediately} when read;
+a future change of an operand {\em does not} affect their results.
+
+Examples for coupled parameters:
+\begin{verbatim}
+   KF  = 0.0128
+   QF: QUAD, L=1.6, K1=KF
+   QD: QUAD, L=1.6, K2=-KF
+
+   L1  = 2
+   D1: DRIFT, L=L1
+   D2: DRIFT, L=10-L1
+\end{verbatim}
+
+\subsection{Beam Line Definitions}
+Beam lines are described by the construct
+\begin{verbatim}
+   label: LINE=(member-1, member-2, ... member-n)
+\end{verbatim}
+Each {\em member-i} may be one of the following:
+\begin{itemize}
+\item
+  A beam element name,
+\item
+  The name of another beam line,
+\item
+  A sequence of names, separated by commas and enclose in parentheses.
+\item
+  One of the above, preceded by
+  \begin{itemize}
+  \item
+    a repetition count and an asterisk to indicate repetition,
+  \item
+    a minus sign to indicate reflection,
+  \item
+    a minus sign, a repetition count and an asterisk.
+  \end{itemize}
+\end{itemize}
+Examples for beam lines:
+\begin{verbatim}
+   CELL:   LINE = (QF,D,B,D,QD,D,B,D)
+   PERIOD: LINE = (3*CELL,QF,-3*CELL,D,B,D)
+   INSERT: LINE = (QF,D,B,D,QF)
+\end{verbatim}
+
+\subsection{Convention for Multipole Signs}
+The sign conventions for quadrupoles and higher multipoles and the
+numeric factors involved, and the orientation of coordinates are now
+the same in different programs.
+They may be described as follows:
+Let the $B_y$ field on the midplane be
+\[
+B_y(x) = B_0 + B_1 x + B_2 x^2 + B_3 x^3 + \ldots
+\]
+Then the field coefficients are
+\[\begin{array}{lcl}
+  h &=& + B_0/(B\rho), \\
+  K_1 &=& -nh^2 = + B_1 / (B\rho), \\
+  K_2 &=& +\beta h^3 = + B_3 / (B\rho), \\
+  K_k &=& + B_k / (B\rho) \qquad \hbox{general case.}
+\end{array}\]
+and the horizontal axis points to the left.
+A positive bend angle bends towards negative x,
+and a positive multipole coefficient always creates a positive field
+on the positive x-axis.
+\clearpage
+\section{Examples}
+\begin{verbatim}
+   !
+   ! DRIFT SPACES:
+   !
+   L1:   DRIF,L=0.5
+   L2:   DRIF,L=2.8
+   L3:   DRIF,L=47.5083
+   !
+   ! BENDING MAGNETS:
+   BW:   RBEN,L=23.4,ANGLE=0.753741D-03
+   B4:   RBEN,L=23.4,ANGLE=0.753741D-02
+   B6:   RBEN,L=35.09,ANGLE=0.11306116D-01
+   !
+   ! QUADRUPOLES:
+   !
+   QS1:  QUAD,TYPE=QS,L=5.0,K1=0.51741915D-01
+   QS2:  QUAD,TYPE=QS,L=3.0,K1=-0.4574919D-01
+   QS3:  QUAD,TYPE=QS,L=2.0,K1=0.37887276D-01
+   QF:   QUAD,TYPE=MQ,L=1.6,K1=-0.2268553D-01
+   QD:   QUAD,TYPE=MQ,L=1.6,K1=0.22683642D-01
+   !
+   ! SEXTUPOLES:
+   !
+   SF1:  SEXT,L=0.4,K2=0.13129
+   SD1:  SEXT,L=0.74,K2=0.26328
+   !
+   ! BEAM LINES:
+   !
+   CELL: LINE=(L24,B6,L22,SF,L23,QF,L21,B6,L22,SD,L23,QD)
+   LOBS: LINE=(L1,QS1,L2,QS2,L3,QS3,L4,QS4)
+   RFS:  LINE=(L5,QS5,L5,QS6,L5,2*(QS7,L5,QS8,L5))
+   DISS: LINE=(QS11,L25,BW,L2X,QS12,L25,B4,L2X,QS13,L25,B4,L2X,&
+               QS14,L25,B4,L31,AS15,L25,B4,L32,SF2,L23,QS16)
+   ARC:  LINE=(L21,B6,L22,SD2,L23,QD,15*CELL,L24,B6,L41,QF,&
+               L21,B6,L22,SD4,L23,QD,15*CELL,L24,B6,L22,SF3,L23)
+   DISL: LINE=(QL16,L34,B4,L2X,QL15,L33,B4,L2X,QL14,L25,B4,L2X,&
+               QL13,L25,B4,L2X,QL12,L25,BW,L2X,QL11)
+   RFL:  LINE=(2*(L5,QL8,L5,QL7),L5,QL6,L5,QL5,L5)
+   LOBL: LINE=(QL4,L14,QL3,L13,1L2,L12,QL1,L11)
+   OCT:  LINE=(LOBS,RFS,DISS,ARC,DISL,RFL,LOBL)
+\end{verbatim}
+
+\clearpage
+\begin{thebibliography}{99}
+\bibitem{snowmass}
+David C.~Carey and F.~Christoph Iselin,
+{\em A Standard Input Language for Particle Beam and Accelerator
+  Computer Programs}.
+Submitted to the 1984 Summer Study on the Design and Utilisation of
+the Superconducting Super Collider, Snowmass, Colorado, June~23 --
+July~13, 1984.
+\end{thebibliography}
+
+\end{document}
