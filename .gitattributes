@@ -1041,6 +1041,7 @@ projects/progsch/mc4.cpp -text
 projects/progsch/saved_svn_version.txt -text
 src/AppTypes/AntiSymTenzor.h -text
 src/AppTypes/AppTypeTraits.h -text
+src/AppTypes/CMakeLists.txt -text
 src/AppTypes/GenVektor.h -text
 src/AppTypes/SymTenzor.h -text
 src/AppTypes/TSVMeta.h -text
@@ -1077,6 +1078,7 @@ src/DataSource/ACLVISPtclAttribDataSource.cpp -text
 src/DataSource/ACLVISPtclAttribDataSource.h -text
 src/DataSource/ACLVISPtclBaseDataSource.cpp -text
 src/DataSource/ACLVISPtclBaseDataSource.h -text
+src/DataSource/CMakeLists.txt -text
 src/DataSource/DataConnect.cpp -text
 src/DataSource/DataConnect.h -text
 src/DataSource/DataConnectCreator.cpp -text
@@ -1146,8 +1148,10 @@ src/DataSource/inst/FileParBaseSpatialDS_Unif_3D.cpp -text
 src/DataSource/inst/FileParBaseUniformDS_1D.cpp -text
 src/DataSource/inst/FileParBaseUniformDS_2D.cpp -text
 src/DataSource/inst/FileParBaseUniformDS_3D.cpp -text
+src/DomainMap/CMakeLists.txt -text
 src/DomainMap/DomainMap.cpp -text
 src/DomainMap/DomainMap.h -text
+src/FFT/CMakeLists.txt -text
 src/FFT/FFT.cpp -text
 src/FFT/FFT.h -text
 src/FFT/FFTBase.cpp -text
@@ -1174,6 +1178,7 @@ src/Field/BrickExpression.cpp -text
 src/Field/BrickExpression.h -text
 src/Field/BrickIterator.cpp -text
 src/Field/BrickIterator.h -text
+src/Field/CMakeLists.txt -text
 src/Field/CompressedBrickIterator.cpp -text
 src/Field/CompressedBrickIterator.h -text
 src/Field/Field.cpp -text
@@ -1284,6 +1289,7 @@ src/Field/inst/LField_2D.cpp -text
 src/Field/inst/LField_3D.cpp -text
 src/FieldLayout/BinaryBalancer.cpp -text
 src/FieldLayout/BinaryBalancer.h -text
+src/FieldLayout/CMakeLists.txt -text
 src/FieldLayout/CenteredFieldLayout.cpp -text
 src/FieldLayout/CenteredFieldLayout.h -text
 src/FieldLayout/ConejoBalancer.cpp -text
@@ -1316,6 +1322,7 @@ src/FieldLayout/inst/CenteredFieldLayout_Unif_Vert_3D.cpp -text
 src/FieldLayout/inst/FieldLayout_1D.cpp -text
 src/FieldLayout/inst/FieldLayout_2D.cpp -text
 src/FieldLayout/inst/FieldLayout_3D.cpp -text
+src/Index/CMakeLists.txt -text
 src/Index/Index.cpp -text
 src/Index/Index.h -text
 src/Index/IndexInlines.h -text
@@ -1343,6 +1350,7 @@ src/Index/inst/SOffset_3D.cpp -text
 src/Ippl.h -text
 src/IpplVersions.h.in -text
 src/Meshes/.cvsignore -text
+src/Meshes/CMakeLists.txt -text
 src/Meshes/Cartesian.cpp -text
 src/Meshes/Cartesian.h -text
 src/Meshes/CartesianCentering.cpp -text
@@ -1364,6 +1372,7 @@ src/Meshes/inst/Mesh_3D.cpp -text
 src/Meshes/inst/UniformCartesian_1D.cpp -text
 src/Meshes/inst/UniformCartesian_2D.cpp -text
 src/Meshes/inst/UniformCartesian_3D.cpp -text
+src/Message/CMakeLists.txt -text
 src/Message/CRC.cpp -text
 src/Message/CRC.h -text
 src/Message/CommCreator.cpp -text
@@ -1385,11 +1394,13 @@ src/Message/Message.h -text
 src/Message/MessageFunctions.cpp -text
 src/Message/TagMaker.h -text
 src/Message/Tags.h -text
+src/PETE/CMakeLists.txt -text
 src/PETE/IpplExpressions.h -text
 src/PETE/IpplTypeComputations.h -text
 src/PETE/PETE.h -text
 src/PETE/TypeComputations.h -text
 src/Particle/BoxParticleCachingPolicy.h -text
+src/Particle/CMakeLists.txt -text
 src/Particle/CellParticleCachingPolicy.h -text
 src/Particle/GenArrayParticle.h -text
 src/Particle/GenParticle.h -text
@@ -1481,9 +1492,11 @@ src/Particle/inst/ParticleUniformLayout_1D.cpp -text
 src/Particle/inst/ParticleUniformLayout_2D.cpp -text
 src/Particle/inst/ParticleUniformLayout_3D.cpp -text
 src/Profile/.cvsignore -text
+src/Profile/CMakeLists.txt -text
 src/Profile/Profiler.cpp -text
 src/Profile/Profiler.h -text
 src/ReadMeBuild -text
+src/Region/CMakeLists.txt -text
 src/Region/NDRegion.h -text
 src/Region/PRegion.h -text
 src/Region/RegionLayout.cpp -text
@@ -1499,6 +1512,7 @@ src/Region/inst/RegionLayout_Cart_3D.cpp -text
 src/Region/inst/RegionLayout_Unif_1D.cpp -text
 src/Region/inst/RegionLayout_Unif_2D.cpp -text
 src/Region/inst/RegionLayout_Unif_3D.cpp -text
+src/SubField/CMakeLists.txt -text
 src/SubField/SubBareField.cpp -text
 src/SubField/SubBareField.h -text
 src/SubField/SubField.cpp -text
@@ -1508,11 +1522,13 @@ src/SubField/SubFieldAssign.h -text
 src/SubField/SubFieldAssignDefs.h -text
 src/SubField/SubFieldIter.h -text
 src/SubField/SubFieldTraits.h -text
+src/SubParticle/CMakeLists.txt -text
 src/SubParticle/SubParticleAssign.cpp -text
 src/SubParticle/SubParticleAssign.h -text
 src/SubParticle/SubParticleAssignDefs.h -text
 src/SubParticle/SubParticleAttrib.cpp -text
 src/SubParticle/SubParticleAttrib.h -text
+src/Utility/CMakeLists.txt -text
 src/Utility/DiscBuffer.cpp -text
 src/Utility/DiscBuffer.h -text
 src/Utility/DiscConfig.cpp -text
