@@ -1413,6 +1413,7 @@ src/Particle/PAssign.cpp -text
 src/Particle/PAssign.h -text
 src/Particle/PAssignDefs.h -text
 src/Particle/PairBuilder/BasicPairBuilder.h -text
+src/Particle/PairBuilder/CMakeLists.txt -text
 src/Particle/PairBuilder/HashPairBuilder.h -text
 src/Particle/PairBuilder/PairConditions.h -text
 src/Particle/PairBuilder/SortingPairBuilder.h -text
