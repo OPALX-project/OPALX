@@ -76,5 +76,53 @@ if (ENABLE_ML_SOLVER)
     
 endif (ENABLE_ML_SOLVER)
 
+# compiler dependent flags
+STRING(REGEX REPLACE ".*/([A-Za-z]*)$" "\\1" COMPILER_NAME ${CMAKE_CXX_COMPILER})
+MESSAGE("Your compiler is: ${COMPILER_NAME}")
+
+IF ("${COMPILER_NAME}" STREQUAL "mpicxx")
+
+    SET(MPI_UNDERLYING_COMPILER
+        "")
+
+    EXECUTE_PROCESS(COMMAND ${CMAKE_CXX_COMPILER} -show
+                    OUTPUT_VARIABLE MPI_COMPILER_OUTPUT
+                    ERROR_VARIABLE MPI_COMPILER_ERROR)
+
+    IF("${MPI_COMPILER_ERROR}" STREQUAL "")
+        STRING(REGEX REPLACE "([A-Za-z]*) .*$" "\\1" MPI_UNDERLYING_COMPILER ${MPI_COMPILER_OUTPUT})
+    ENDIF("${MPI_COMPILER_ERROR}" STREQUAL "")
+
+    IF("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
+        # using intel compiler
+        MESSAGE("The underlying compiler of ${COMPILER_NAME} is: icpc")
+        SET (OTHER_CMAKE_CXX_FLAGS
+             "-diag-disable 383 -diag-disable 981 ${OTHER_CMAKE_CXX_FLAGS}")
+
+    ELSEIF("${MPI_UNDERLYING_COMPILER}" STREQUAL "clang++")
+        # using clang compiler
+        MESSAGE("The underlying compiler of ${COMPILER_NAME} is: clang++")
+        SET (OTHER_CMAKE_CXX_FLAGS
+             "-Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CMAKE_CXX_FLAGS}")
+
+    ELSEIF("${MPI_UNDERLYING_COMPILER}" STREQUAL "g++")
+        # using gnu compiler
+        MESSAGE("The underlying compiler of ${COMPILER_NAME} is: g++")
+
+    ELSE("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
+        # using unknown compiler
+        MESSAGE("${COMPILER_NAME} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of! 
+                 Please use the gnu compiler or the intel compiler if you are having problems.")
+    ENDIF("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
+
+ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
+    # using unknown mpi implementation
+    MESSAGE("You are using an unsupported MPI compiler: ${COMPILER_NAME}!
+             Please use the OpenMPI or MPICH if you are having problems.")
+ENDIF ("${COMPILER_NAME}" STREQUAL "mpicxx")
+
+set(CMAKE_CXX_FLAGS
+  "${CMAKE_CXX_FLAGS} -Wall ${OTHER_CMAKE_CXX_FLAGS}")
+
 add_subdirectory (classic/5.0/src)
 add_subdirectory (src)

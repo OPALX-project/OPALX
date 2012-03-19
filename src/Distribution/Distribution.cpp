@@ -946,22 +946,23 @@ bool Distribution::addDistributions(PartBunch &beam, vector<Distribution *> dist
                         deltaT = Attributes::getReal(itsAttr[T]);
                         maxT = tEmission_m + deltaT;
                         minT = deltaT;
-
+                        
+                        // FIXME: floating point comparison
                     } else if(relativeWeight.at(distIterator) != 0.0) {
 
-                        // Find emission time without time shift.
-                        double pulseLengthFWHM = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TPULSEFWHM")));
-                        double cutOff = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF")));
-                        double riseTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TRISE")));
-                        double fallTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TFALL")));
+                        // // Find emission time without time shift.
+                        // double pulseLengthFWHM = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TPULSEFWHM")));
+                        // double cutOff = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF")));
+                        // double riseTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TRISE")));
+                        // double fallTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TFALL")));
 
-                        double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-                        double sigmaRiseTime = riseTime / timeRatio;
-                        double sigmaFallTime = fallTime / timeRatio;
+                        // double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
+                        // double sigmaRiseTime = riseTime / timeRatio;
+                        // double sigmaFallTime = fallTime / timeRatio;
 
-                        double emissionTime = pulseLengthFWHM + (cutOff - sqrt(2.0 * log(2.0))) * (sigmaRiseTime + sigmaFallTime);
-                        if(Attributes::getBool(itsAttr[LEGACYMODE]))
-                            emissionTime = pulseLengthFWHM + cutOff * (riseTime + fallTime);
+                        // double emissionTime = pulseLengthFWHM + (cutOff - sqrt(2.0 * log(2.0))) * (sigmaRiseTime + sigmaFallTime);
+                        // if(Attributes::getBool(itsAttr[LEGACYMODE]))
+                        //     emissionTime = pulseLengthFWHM + cutOff * (riseTime + fallTime);
 
                         // Find max. and min. time.
                         deltaT = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("T")));
