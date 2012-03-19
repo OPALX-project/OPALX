@@ -135,7 +135,15 @@ set (CMAKE_CXX_FLAGS
     
 add_subdirectory (src)
 
-add_subdirectory (test)
+EXECUTE_PROCESS(COMMAND uname 
+                OUTPUT_VARIABLE UNAMERES
+                ERROR_VARIABLE UNAMEERR)
+
+STRING(REGEX REPLACE "([A-Za-z]+).*$" "\\1" UNAME_RES ${UNAMERES})
+MESSAGE(${UNAME_RES})
+IF (NOT "${UNAME_RES}" STREQUAL "Darwin")
+   add_subdirectory (test)
+ENDIF (NOT "${UNAME_RES}" STREQUAL "Darwin")
 
 CONFIGURE_FILE( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config_install.cmake )
