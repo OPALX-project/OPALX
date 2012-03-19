@@ -50,3 +50,5 @@ add_sources(${_SRCS})
 add_headers(${_HDRS})
 
 install(FILES ${_HDRS} DESTINATION include/Particle)
+
+add_subdirectory(PairBuilder)
