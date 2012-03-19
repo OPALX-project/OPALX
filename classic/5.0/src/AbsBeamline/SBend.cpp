@@ -34,15 +34,16 @@ SBend::SBend():
     Component(),
     filename_m(""),
     fieldmap_m(NULL),
-    amplitude_m(0.0),
-    field_orientation_m(1.0, 0.0),
+    fast_m(false),
     ElementEdge_m(0.0),
+    startElement_m(0.0),
     startField_m(0.0),
+    endField_m(0.0),
     length_m(0.0),
     gap_m(0.0),
+    reinitialize_m(false),
     alpha_m(0.0),
     exitAngle_m(0.0),
-    reinitialize_m(false),
     sin_face_alpha_m(0.0),
     cos_face_alpha_m(1.0),
     tan_face_alpha_m(0.0),
@@ -50,16 +51,17 @@ SBend::SBend():
     cos_face_beta_m(1.0),
     tan_face_beta_m(0.0),
     gradient_m(0.0),
+    amplitude_m(0.0),
     angle_m(0.0),
+    R_m(0.0),
+    design_energy_m(0.0),
+    field_orientation_m(1.0, 0.0),
     map_m(NULL),
     map_size_m(0),
     map_step_size_m(0.0),
-    pusher_m(),
-    design_energy_m(0.0),
-    startElement_m(0.0),
-    R_m(0.0),
     effectiveLength_m(0.0),
-    effectiveCenter_m(0.0) {
+    effectiveCenter_m(0.0),
+    pusher_m() {
     setElType(isDipole);
 }
 
@@ -67,77 +69,74 @@ SBend::SBend(const SBend &right):
     Component(right),
     filename_m(right.filename_m),
     fieldmap_m(right.fieldmap_m),
-    amplitude_m(right.amplitude_m),
-    field_orientation_m(right.field_orientation_m),
+    fast_m(right.fast_m),
     ElementEdge_m(right.ElementEdge_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
     length_m(right.length_m),
     gap_m(right.gap_m),
     reinitialize_m(right.reinitialize_m),
-    gradient_m(right.gradient_m),
+    alpha_m(right.alpha_m),
+    exitAngle_m(right.exitAngle_m),
     sin_face_alpha_m(right.sin_face_alpha_m),
     cos_face_alpha_m(right.cos_face_alpha_m),
     tan_face_alpha_m(right.tan_face_alpha_m),
     sin_face_beta_m(right.sin_face_beta_m),
     cos_face_beta_m(right.cos_face_beta_m),
     tan_face_beta_m(right.tan_face_beta_m),
-    design_energy_m(right.design_energy_m),
+    gradient_m(right.gradient_m),
+    amplitude_m(right.amplitude_m),
     angle_m(right.angle_m),
+    R_m(right.R_m),
+    design_energy_m(right.design_energy_m),
+    field_orientation_m(right.field_orientation_m),
+    map_m(NULL),
     map_size_m(right.map_size_m),
     map_step_size_m(right.map_step_size_m),
-    pusher_m(right.pusher_m),
-    alpha_m(right.alpha_m),
-    exitAngle_m(right.exitAngle_m),
-    startElement_m(right.startElement_m),
-    R_m(right.R_m),
     effectiveLength_m(right.effectiveLength_m),
-    effectiveCenter_m(right.effectiveCenter_m) {
+    effectiveCenter_m(right.effectiveCenter_m),
+    pusher_m(right.pusher_m) {
     setElType(isDipole);
     if(map_size_m > 0) {
-        if(map_m)
-            delete[] map_m;
-
         map_m = new double[3 * (map_size_m + 1)];
         for(int i = 0; i < 3 * (map_size_m + 1); ++i)
             map_m[i] = right.map_m[i];
-    } else {
-        map_m = NULL;
     }
 }
 
 
 SBend::SBend(const string &name):
-    Component(name),
+    Component(),
     filename_m(""),
     fieldmap_m(NULL),
-    amplitude_m(0.0),
-    field_orientation_m(1.0, 0.0),
+    fast_m(false),
     ElementEdge_m(0.0),
+    startElement_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
     length_m(0.0),
     gap_m(0.0),
-    reinitialize_m(0.0),
-    gradient_m(0.0),
+    reinitialize_m(false),
+    alpha_m(0.0),
+    exitAngle_m(0.0),
     sin_face_alpha_m(0.0),
     cos_face_alpha_m(1.0),
     tan_face_alpha_m(0.0),
     sin_face_beta_m(0.0),
     cos_face_beta_m(1.0),
     tan_face_beta_m(0.0),
-    design_energy_m(0.0),
+    gradient_m(0.0),
+    amplitude_m(0.0),
     angle_m(0.0),
+    R_m(0.0),
+    design_energy_m(0.0),
+    field_orientation_m(1.0, 0.0),
     map_m(NULL),
     map_size_m(0),
     map_step_size_m(0.0),
-    pusher_m(),
-    alpha_m(0.0),
-    exitAngle_m(0.0),
-    startElement_m(0.0),
-    R_m(0.0),
     effectiveLength_m(0.0),
-    effectiveCenter_m(0.0) {
+    effectiveCenter_m(0.0),
+    pusher_m() {
     setElType(isDipole);
 }
 
@@ -215,11 +214,11 @@ bool SBend::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
     }
 
     // Get field.
-    double dd, dx, dz, rho;
     const Vector_t &X = RefPartBunch_m->X[i];
     Vector_t strength(0.0), info(0.0);
 
     fieldmap_m->getFieldstrength(X, strength, info);
+    // double dd, dx, dz, rho;
     //    const double &k34 = info(2);
     //
     //    if(k34 > 0) {
@@ -272,8 +271,6 @@ bool SBend::apply(const Vector_t &R, const Vector_t &centroid, const double &t, 
 
     int index = (int)floor((R(2) - startField_m) / map_step_size_m);
     if(index > 0 && index + 1 < map_size_m) {
-
-        double dd, dx, dz, rho;
 
         //        // Find indices for position in pre-computed central trajectory map.
         //        double lever = (R(2) - startField_m) / map_step_size_m - index;
@@ -332,6 +329,7 @@ bool SBend::apply(const Vector_t &R, const Vector_t &centroid, const double &t, 
         } else if(fabs(info(0)) < 0.01)
             tempB(1) += amplitude_m;
 
+        // double dd, dx, dz, rho;
         //        const double &k34 = info(2);
         //
         //        if(k34 > 0) {
@@ -595,7 +593,7 @@ double SBend::calculateBendAngle(double bendLength) {
     const double gamma = design_energy_m / mass + 1.0;
     const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
     const double deltaT = RefPartBunch_m->getdT();
-    const double charge = RefPartBunch_m->getQ();
+    // const double charge = RefPartBunch_m->getQ();
 
     // Integrate through field for initial angle.
     Vector_t X(0.0, 0.0, 0.0);
@@ -669,7 +667,7 @@ double SBend::calculateRefTrajectory(const double zBegin) {
     const double gamma = design_energy_m / mass + 1.;
     const double betagamma = sqrt(gamma * gamma - 1.);
     const double dt = RefPartBunch_m->getdT();
-    const double charge = RefPartBunch_m->getQ();
+    // const double charge = RefPartBunch_m->getQ();
     int j = 0;
 
     Vector_t tmp(0.0);
@@ -802,7 +800,6 @@ void SBend::calculateEffectiveCenter() {
         effectiveCenter += lengthAdjustment;
 
     }
-    double deltaZ = effectiveCenter + zBegin;
     effectiveCenter_m = effectiveCenter - R_m * sin(angle_m / 2.0) + R_m * angle_m / 2.0;
 
 

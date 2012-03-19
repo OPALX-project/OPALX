@@ -10,17 +10,17 @@ using Physics::mu_0;
 using Physics::c;
 using Physics::two_pi;
 
-FM1DProfile1::FM1DProfile1(string aFilename)
-    : Fieldmap(aFilename),
-      EngeCoefs_entry_m(NULL),
-      EngeCoefs_exit_m(NULL),
-      exit_slope_m(0.0),
-      xExit_m(0.0),
-      zExit_m(0.0),
-      cosEntranceRotation_m(1.0),
-      sinEntranceRotation_m(0.0),
-      cosExitRotation_m(1.0),
-      sinExitRotation_m(0.0) {
+FM1DProfile1::FM1DProfile1(string aFilename):
+    Fieldmap(aFilename),
+    EngeCoefs_entry_m(NULL),
+    EngeCoefs_exit_m(NULL),
+    xExit_m(0.0),
+    zExit_m(0.0),
+    cosEntranceRotation_m(1.0),
+    sinEntranceRotation_m(0.0),
+    cosExitRotation_m(1.0),
+    sinExitRotation_m(0.0),
+    exit_slope_m(0.0) {
 
     // Change inform message.
     Inform msg("FM1DP ");

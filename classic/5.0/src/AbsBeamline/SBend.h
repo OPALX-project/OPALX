@@ -180,38 +180,28 @@ private:
 
     // Name of field map that defines magnet.
     string filename_m;
-
     // Magnet field map.
     Fieldmap *fieldmap_m;
+    // Flag to turn on
+    bool fast_m;
 
+    double ElementEdge_m;
+    double startElement_m;
+    // Start of magnet field map.
+    double startField_m;
+    // End of magnet field map.
+    double endField_m;
     // Magnet length.
     double length_m;
-
     // Magnet gap.
     double gap_m;
-
-    // Bend angle of central trajectory.
-    double angle_m;
-
-    // Amplitude of magnet field (Tesla).
-    double amplitude_m;
 
     // Flag to reinitialize the field the first time the
     // magnet is applied.
     bool reinitialize_m;
 
-    Vektor<double, 2> field_orientation_m;
-    double ElementEdge_m;
-
-    // Start of magnet field map.
-    double startField_m;
-
-    // End of magnet field map.
-    double endField_m;
-
-
-    // Flag to turn on
-    bool fast_m;
+    double alpha_m; // Angle between incoming beam and the entrance face of the magnet.
+    double exitAngle_m; // Angle between the outgoing, reference trajectory and exit face of the magnet.
 
     double sin_face_alpha_m; // alpha is the angle between the projection of the normal of the face onto the
     double cos_face_alpha_m; // s-u plane
@@ -222,26 +212,29 @@ private:
     double tan_face_beta_m; // perpendicular to it
 
     double gradient_m;
+    // Bend angle of central trajectory.
+
+    // Amplitude of magnet field (Tesla).
+    double amplitude_m;
+    double angle_m;
+    double R_m;
     double design_energy_m;
-    double alpha_m; // Angle between incoming beam and the entrance face of the magnet.
-    double exitAngle_m; // Angle between the outgoing, reference trajectory and exit face of the magnet.
+
+    Vektor<double, 2> field_orientation_m;
+
     double *map_m;
     int map_size_m;
     double map_step_size_m;
-    BorisPusher pusher_m;
-    double startElement_m;
-    double R_m;
-
     // Effective length of hard edge dipole approximation.
     // This is in s-coordinates, so is the effective length
     // along the design energy central trajectory.
     double effectiveLength_m;
-
     // Effective center of hard edge dipole approximation.
-    //
     // This is defined as the s point at which the bend angle is
     // one half the full bend angle.
     double effectiveCenter_m;
+
+    BorisPusher pusher_m;
 
     void calculateEffectiveLength();
     void calculateEffectiveCenter();
@@ -280,11 +273,6 @@ inline void SBend::setK1(const double &k1) {
 inline void SBend::setExitAngle(const double &exitAngle) {
     exitAngle_m = exitAngle * Physics::pi / 180.0;
 }
-
-//inline void SBend::setL(const double &L)
-//{
-//  Leng_m = L;
-//}
 
 inline void SBend::setDesignEnergy(const double &energy)
 { design_energy_m = energy; }
