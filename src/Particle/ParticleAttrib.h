@@ -631,10 +631,10 @@ class ParticleAttribConstIterator : public PETE_Expr< ParticleAttribConstIterato
 
     ParticleAttribConstIterator() : attrib(0) { }
     
-    ParticleAttribConstIterator(ParticleAttrib<T> const * pa)
+    ParticleAttribConstIterator(const ParticleAttrib<T> * pa)
       : attrib(pa), curr(pa->ParticleList.begin()) { }
     
-    ParticleAttribConstIterator(ParticleAttrib<T> * const pa, size_t offset)
+    ParticleAttribConstIterator(const ParticleAttrib<T> * pa, size_t offset)
       : attrib(pa), curr(pa->ParticleList.begin()+offset) { }
 
     ParticleAttribConstIterator(const ParticleAttribConstIterator<T>& i)
