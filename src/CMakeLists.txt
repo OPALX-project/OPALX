@@ -1,17 +1,18 @@
 cmake_minimum_required (VERSION 2.6)
 
-IF(EXISTS ".svn")
+IF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
     include(FindSubversion)
     Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} IPPL)
-ELSE(EXISTS ".svn")
+ELSE(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
     set (IPPL_WC_REVISION 0)
     EXECUTE_PROCESS(
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMAND git rev-parse HEAD 
             OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_VARIABLE DEV_NULL
         )
         set (IPPL_WC_REVISION \"${GIT_OUT}\")
-ENDIF(EXISTS ".svn")
+ENDIF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
