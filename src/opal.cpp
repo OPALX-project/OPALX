@@ -14,7 +14,6 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
 
     gmsg = new  Inform("OPAL ");
     gmsg2all = new  Inform("OPAL", INFORM_ALL_NODES);
-    *gmsg << "running simulation " << inputfile << " in " << getcwd() << endl;
 
     OpalData *OPAL = OpalData::getInstance();
     Configure::configure();
