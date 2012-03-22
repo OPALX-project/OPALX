@@ -380,7 +380,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 // are read in or written to disk at one time.
                 if ( (i + 1) < argc && argv[i+1][0] != '-' && atoi(argv[i+1]) >= 0 ) {
                     ChunkSize = atoi(argv[++i]);
-                    char units = toupper(argv[i][strlen(argv[i])-1]);
+                    char units = static_cast<char>(toupper(argv[i][strlen(argv[i])-1]));
                     if (units == 'K')
                         ChunkSize *= 1024;
                     else if (units == 'M')

@@ -81,7 +81,7 @@ IF (LINUXGCC)
             # using intel compiler
             MESSAGE("The underlying compiler of ${COMPILER_NAME} is: icpc")
             SET (OTHER_CMAKE_CXX_FLAGS
-                 "-diag-disable 383 -diag-disable 981 ${OTHER_CMAKE_CXX_FLAGS}")
+                 "-diag-disable 383,981 ${OTHER_CMAKE_CXX_FLAGS}")
 
         ELSEIF("${MPI_UNDERLYING_COMPILER}" STREQUAL "clang++")
             # using clang compiler
@@ -130,7 +130,7 @@ IF (LINUXPGI)
 ENDIF (LINUXPGI)
 
 set (CMAKE_CXX_FLAGS
-    "${OTHER_CMAKE_CXX_FLAGS} ${IPPL_CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS}"
+    "${OTHER_CMAKE_CXX_FLAGS} ${IPPL_CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} "
 )
     
 add_subdirectory (src)

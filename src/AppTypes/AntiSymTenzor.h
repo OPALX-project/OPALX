@@ -470,12 +470,12 @@ T AntiSymTenzor<T,1U>::Zero = 0;
 //////////////////////////////////////////////////////////////////////
 
 template <class T, unsigned D>
-T trace(const AntiSymTenzor<T,D>&) {
+inline T trace(const AntiSymTenzor<T,D>&) {
   return T(0.0);
 }
 
 template <class T, unsigned D>
-AntiSymTenzor<T,D> transpose(const AntiSymTenzor<T,D>& rhs) {
+inline AntiSymTenzor<T,D> transpose(const AntiSymTenzor<T,D>& rhs) {
   return -rhs;
 }
 
@@ -512,13 +512,13 @@ det(const AntiSymTenzor<T,1>& t)
 // Only implement for 1D, 2D, 3D:
 
 template <class T, unsigned D>
-Tenzor<T,D> cofactors(const AntiSymTenzor<T,D>& rhs) {
+inline Tenzor<T,D> cofactors(const AntiSymTenzor<T,D>& rhs) {
   PInsist(D<4, "AntiSymTenzor cofactors() function not implemented for D>3!");
   return Tenzor<T,D>(-999999.999999);
 }
 
 template <class T>
-Tenzor<T,3> cofactors(const AntiSymTenzor<T,3>& rhs) {
+inline Tenzor<T,3> cofactors(const AntiSymTenzor<T,3>& rhs) {
 
   Tenzor<T,3> result = typename Tenzor<T,3>::DontInitialize();
 
@@ -535,7 +535,7 @@ Tenzor<T,3> cofactors(const AntiSymTenzor<T,3>& rhs) {
 }
 
 template <class T>
-Tenzor<T,2> cofactors(const AntiSymTenzor<T,2>& rhs) {
+inline Tenzor<T,2> cofactors(const AntiSymTenzor<T,2>& rhs) {
 
   Tenzor<T,2> result = typename Tenzor<T,2>::DontInitialize();
 
@@ -549,7 +549,7 @@ Tenzor<T,2> cofactors(const AntiSymTenzor<T,2>& rhs) {
 // For D=1, cofactor is the unit tensor, because det = single tensor element
 // value:
 template <class T>
-Tenzor<T,1> cofactors(const AntiSymTenzor<T,1>& rhs) {
+inline Tenzor<T,1> cofactors(const AntiSymTenzor<T,1>& rhs) {
   Tenzor<T,1> result = Tenzor<T,1>(1);
   return result;
 }
@@ -699,7 +699,7 @@ dotdot(const SymTenzor<T1,D> &lhs, const AntiSymTenzor<T2,D> &rhs)
 //----------------------------------------------------------------------
 // I/O
 template<class T, unsigned D>
-std::ostream& operator<<(std::ostream& out, const AntiSymTenzor<T,D>& rhs) {
+inline std::ostream& operator<<(std::ostream& out, const AntiSymTenzor<T,D>& rhs) {
   if (D >= 1) {
     for (int i=0; i<D; i++) {
       out << "(";

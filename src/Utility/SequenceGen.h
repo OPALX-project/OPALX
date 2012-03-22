@@ -78,7 +78,6 @@ class SequenceGen : public PETE_Expr< SequenceGen<GT> >
 public:
   SequenceGen() { }
   SequenceGen(const GT& gen) : Gen(gen) { }
-
   // Interface for PETE.
   enum { IsExpr = 1 };  // Treat SequenceGen as a PETE_Expr in expressions.
   typedef SequenceGen<GT> PETE_Expr_t;

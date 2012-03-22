@@ -263,7 +263,7 @@ cross(const Vektor<T1,D> &lhs, const Vektor<T2,D> &rhs)
 //----------------------------------------------------------------------
 // I/O
 template<class T, unsigned D>
-std::ostream& operator<<(std::ostream& out, const Vektor<T,D>& rhs)
+inline std::ostream& operator<<(std::ostream& out, const Vektor<T,D>& rhs)
 {
   if (D >= 1) {
     out << "( ";

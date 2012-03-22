@@ -1547,6 +1547,7 @@ src/Utility/FieldBlock.h -text
 src/Utility/FieldDebug.cpp -text
 src/Utility/FieldDebug.h -text
 src/Utility/FieldDebugFunctions.cpp -text
+src/Utility/FieldDebugFunctions.h -text
 src/Utility/FieldDebugPrint.cpp -text
 src/Utility/FieldDebugPrint.h -text
 src/Utility/FieldPrint.cpp -text
@@ -1574,6 +1575,7 @@ src/Utility/PAssert.h -text
 src/Utility/ParticleDebug.cpp -text
 src/Utility/ParticleDebug.h -text
 src/Utility/ParticleDebugFunctions.cpp -text
+src/Utility/ParticleDebugFunctions.h -text
 src/Utility/Pool.cpp -text
 src/Utility/Pool.h -text
 src/Utility/Pooled.cpp -text

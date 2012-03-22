@@ -83,7 +83,6 @@ template<class WrappedExpr>
 class PETE_Expr 
 {
 public:
-
   typedef WrappedExpr Wrapped;
 
   WrappedExpr& PETE_unwrap() 
@@ -778,7 +777,8 @@ for_each(PETE_TTTree<Op,T1,T2,T3>& node, Functor f)
 #endif
 
 template< class R, class T, class InitOp, class AccOp>
-void Reduction(R& ret, const PETE_Expr<T>& const_expr,
+inline void 
+Reduction(R& ret, const PETE_Expr<T>& const_expr,
   InitOp init_op, AccOp acc_op )
 {
   //  Extract the expression.

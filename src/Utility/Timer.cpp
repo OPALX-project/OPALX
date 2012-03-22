@@ -382,13 +382,13 @@ double Timer::user_time()
   if (timer_state == TIMEROFF)
     {
       //  Timer is off, just return accumulated time
-      ret_val = current_user_time;
+      ret_val = static_cast<double>(current_user_time);
     }
   else
     {
       //  Timer is on, add current running time to accumulated time
       times(&tmsbuf);
-      ret_val = current_user_time + tmsbuf.tms_utime - last_user_time;
+      ret_val = static_cast<double>(current_user_time + tmsbuf.tms_utime - last_user_time);
     }
 
   //  Convert from clock ticks to seconds using the
@@ -423,7 +423,7 @@ double Timer::system_time()
 #else
   double ret_val;		//  Return value
 
-#if ( defined(IPPL_T3E) || (IPPL_XT3) )
+#if ( defined(IPPL_T3E) || defined(IPPL_XT3) )
   // Not defined yet on T3E or TFLOP.
   // ERRORMSG("system_time() not defined." << endl);
   ret_val = -9999.0;
@@ -431,13 +431,13 @@ double Timer::system_time()
   if (timer_state == TIMEROFF)
     {
       //  Timer is off, just return accumulated time
-      ret_val = current_system_time;
+      ret_val = static_cast<double>(current_system_time);
     }
   else
     {
       //  Timer is on, return accumulated plus current
       times(&tmsbuf);
-      ret_val = current_system_time + tmsbuf.tms_stime - last_system_time;
+      ret_val = static_cast<double>(current_system_time + tmsbuf.tms_stime - last_system_time);
     }
 
   //  Convert from clock ticks to seconds using the

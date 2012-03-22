@@ -540,13 +540,13 @@ bool DiscField<Dim>::write_meta() {
 
   // write the initial header info
   fprintf(outputMeta, "Type =           %s\n", TypeString.c_str());
-  fprintf(outputMeta, "Dim =            %d\n", Dim);
+  fprintf(outputMeta, "Dim =            %u\n", Dim);
   for (d=0; d < Dim; ++d)
     fprintf(outputMeta, "Domain =         %d %d %d\n",
 	    Size[d].first(), Size[d].last(), Size[d].stride());
-  fprintf(outputMeta, "Fields =         %d\n", NumFields);
-  fprintf(outputMeta, "Records =        %d\n", NumRecords);
-  fprintf(outputMeta, "SMPs =           %d\n", fileSMPs());
+  fprintf(outputMeta, "Fields =         %u\n", NumFields);
+  fprintf(outputMeta, "Records =        %u\n", NumRecords);
+  fprintf(outputMeta, "SMPs =           %u\n", fileSMPs());
 
   // write information for each record.  When writing, we will only
   // write one file set per box, so we use '0' for the fileset number.

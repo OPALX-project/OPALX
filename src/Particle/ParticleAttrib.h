@@ -754,7 +754,7 @@ void scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
 // This scatter function computes the particle number density by 
 // scattering the scalar value val for each particle into the Field.
 template <class FT, unsigned Dim, class M, class C, class PT, class IntOp>
-void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
+inline void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
 	     const IntOp& intop){
   scatter(f, pp, intop, FT(1));
 }
@@ -763,7 +763,7 @@ void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
 // version which also caches mesh info
 template <class FT, unsigned Dim, class M, class C, class PT,
           class IntOp, class CacheData>
-void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
+inline void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
 	     const IntOp& intop, ParticleAttrib<CacheData>& cache) {
   scatter(f, pp, intop, cache, FT(1));
 }
@@ -772,7 +772,7 @@ void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
 // version which uses cached mesh info
 template <class FT, unsigned Dim, class M, class C,
           class IntOp, class CacheData>
-void scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
+inline void scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
              const ParticleAttrib<CacheData>& cache) {
   scatter(f, intop, cache, FT(1));
 }

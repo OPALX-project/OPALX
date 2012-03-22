@@ -13,6 +13,8 @@
 #ifndef PARTICLE_DEBUG_H
 #define PARTICLE_DEBUG_H
 
+#include "Utility/ParticleDebugFunctions.h"
+
 // forward declarations
 class Inform;
 template<class T> class ParticleAttrib;
@@ -27,8 +29,6 @@ extern int elementsPerLine;
 extern int digitsPastDecimal;
 extern int widthOfElements;
 
-// forward declarations of global functions in ParticleDebugFunctions.cpp
-void setPtclDbgInform(Inform& inform);
 
 //=============================================================================
 // Helper functions to print out (formatted ASCII) ParticleAttrib elements.

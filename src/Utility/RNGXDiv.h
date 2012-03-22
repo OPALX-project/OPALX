@@ -46,7 +46,7 @@ public:
   RNGXDiv(int advance = 0) {
     // set the first random number, composed of
     // SeedUpper (top 24 bits) and SeedLower (bottom 24 bits).
-    SeedUpper = long(FirstSeed * INV_SQR_RANMAX);
+    SeedUpper = static_cast<double>(long(FirstSeed * INV_SQR_RANMAX));
     SeedLower = FirstSeed - SeedUpper * SQR_RANMAX;
     AdvanceSeed(advance);  // advance the seed
   }
@@ -71,7 +71,7 @@ public:
   // set seed to user-specified value, plus shift to ensure it is large
   inline void SetSeed(unsigned long seed) {
     Return_t rijk = Return_t(seed) + FirstSeed;
-    SeedUpper = long(rijk * INV_SQR_RANMAX);
+    SeedUpper = static_cast<double>(long(rijk * INV_SQR_RANMAX));
     SeedLower = rijk - SeedUpper * SQR_RANMAX;
     // set sequence to new source
     RandLower = SeedLower;

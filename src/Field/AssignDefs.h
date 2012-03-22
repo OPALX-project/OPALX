@@ -498,7 +498,7 @@ for_each(IndexedBareFieldIterator<T,D>& p, PETE_CountElems, C)
 
 template<class T, class C, unsigned int D>
 inline int
-for_each(IndexedBareFieldIterator<T,D>& p, PETE_Increment s, C)
+for_each(IndexedBareFieldIterator<T,D>& p, PETE_Increment, C)
 {
   ++p;
   return 0;
@@ -507,7 +507,7 @@ for_each(IndexedBareFieldIterator<T,D>& p, PETE_Increment s, C)
 
 template<class T, class C, unsigned int D>
 inline int
-for_each(BareFieldIterator<T,D>& p, PETE_Increment s, C)
+for_each(BareFieldIterator<T,D>& p, PETE_Increment, C)
 {
   ++p;
   return 0;
@@ -516,7 +516,7 @@ for_each(BareFieldIterator<T,D>& p, PETE_Increment s, C)
 
 template<class T, class C, unsigned int D>
 inline int
-for_each(BrickIterator<T,D>& p, PETE_Increment s, C)
+for_each(BrickIterator<T,D>& p, PETE_Increment , C)
 {
   ++p;
   return 0;

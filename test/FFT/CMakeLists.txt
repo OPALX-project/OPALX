@@ -4,9 +4,12 @@ set (OLD_CMAKE_CXX_FLAGS
     ${CMAKE_CXX_FLAGS}
 )
 
-set (CMAKE_CXX_FLAGS
-    "-std=c++0x ${CMAKE_CXX_FLAGS}"
-)
+
+IF(${MPI_UNDERLYING_COMPILER} STREQUAL "g++")
+  set (CMAKE_CXX_FLAGS
+      "-std=c++0x ${CMAKE_CXX_FLAGS}"
+      )
+ENDIF(${MPI_UNDERLYING_COMPILER} STREQUAL "g++")
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src                    

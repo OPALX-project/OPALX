@@ -51,7 +51,7 @@
 
 // Generic makeMesh function
 template<class T, unsigned Dim, class M, class C>
-M* makeMesh(Field<T,Dim,M,C>& f)
+inline M* makeMesh(Field<T,Dim,M,C>& f)
 { 
   TAU_TYPE_STRING(taustr, "MeshType* (" + CT(f) + " )" );
   TAU_PROFILE("makeMesh()", taustr, TAU_FIELD);

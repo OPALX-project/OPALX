@@ -189,23 +189,23 @@ public:
     Message *receive_block(int& node, int& tag);
 
     //send and receive for raw data
-    virtual bool raw_send(void *buf, int size, int node, int tag)
+    virtual bool raw_send(void *, int , int , int )
     {
         return false;
     }
-    virtual MPI_Request raw_isend(void *buf, int size, int node, int tag)
+    virtual MPI_Request raw_isend(void *, int , int , int )
     {
         return MPI_Request();
     }
-    virtual int raw_receive(char *buf, int size, int &node, int &tag)
+    virtual int raw_receive(char *, int , int &, int &)
     {
         return 0;
     }
-    virtual MPI_Request raw_ireceive(char *buf, int size, int node, int tag)
+    virtual MPI_Request raw_ireceive(char *, int , int , int )
     {
         return MPI_Request();
     }
-    virtual int raw_probe_receive(char *&buf, int &node, int &tag)
+    virtual int raw_probe_receive(char *&, int &, int &)
     {
         return 0;
     }

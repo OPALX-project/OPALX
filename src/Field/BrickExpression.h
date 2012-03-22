@@ -49,7 +49,7 @@ public:
       {
       }
 
-#if (IPPL_RESTRICT_BUG)
+#ifdef IPPL_RESTRICT_BUG
   virtual void apply();
 #else
   virtual void apply() restrict;

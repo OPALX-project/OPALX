@@ -34,7 +34,7 @@ class TagMaker
 public:
     // constructor/destructor
     TagMaker(void) { }
-    ~TagMaker(void) { }
+    virtual ~TagMaker(void) { }
 
     // generate a new tag given a base tag.  If the base tag has not been
     // previously established by create_base_tag, it will be done so by

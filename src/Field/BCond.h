@@ -143,19 +143,23 @@ inline scalar_tag get_tag(short)    { return scalar_tag(); }
 
 // Tag for Vektor types:
 template<class T, unsigned D>
-vektor_tag get_tag(Vektor<T,D>) { return vektor_tag(); }
+inline vektor_tag 
+get_tag(Vektor<T,D>) { return vektor_tag(); }
 
 // Tag for Tenzor types:
 template<class T, unsigned D>
-tenzor_tag get_tag(Tenzor<T,D>) { return tenzor_tag(); }
+inline tenzor_tag 
+get_tag(Tenzor<T,D>) { return tenzor_tag(); }
 
 // Tag for AntiSymTenzor types
 template<class T, unsigned D>
-antisymtenzor_tag get_tag(AntiSymTenzor<T,D>) { return antisymtenzor_tag(); }
+inline antisymtenzor_tag 
+get_tag(AntiSymTenzor<T,D>) { return antisymtenzor_tag(); }
 
 // Tag for SymTenzor types
 template<class T, unsigned D>
-symtenzor_tag get_tag(SymTenzor<T,D>) { return symtenzor_tag(); }
+inline symtenzor_tag 
+get_tag(SymTenzor<T,D>) { return symtenzor_tag(); }
 
 // Functions which return an enum value indicating scalar, vector, tensor,
 // or anti/symtensor type; used in constructors for PeriodicFace, etc., to
@@ -163,15 +167,15 @@ symtenzor_tag get_tag(SymTenzor<T,D>) { return symtenzor_tag(); }
 // for pointer offsetting into the Tenzor/Anti/SymTenzor object:
 enum TensorOrder_e { IPPL_SCALAR=0, IPPL_VECTOR=1, IPPL_TENSOR=2, 
 		     IPPL_SYMTENSOR=3, IPPL_ANTISYMTENSOR=4 } ;
-inline TensorOrder_e getTensorOrder(const scalar_tag& ttag)
+inline TensorOrder_e getTensorOrder(const scalar_tag& )
 {return IPPL_SCALAR;}
-inline TensorOrder_e getTensorOrder(const vektor_tag& ttag)
+inline TensorOrder_e getTensorOrder(const vektor_tag& )
 {return IPPL_VECTOR;}
-inline TensorOrder_e getTensorOrder(const tenzor_tag& ttag)
+inline TensorOrder_e getTensorOrder(const tenzor_tag& )
 {return IPPL_TENSOR;}
-inline TensorOrder_e getTensorOrder(const antisymtenzor_tag& sttag)
+inline TensorOrder_e getTensorOrder(const antisymtenzor_tag& )
 {return IPPL_ANTISYMTENSOR;}
-inline TensorOrder_e getTensorOrder(const symtenzor_tag& sttag)
+inline TensorOrder_e getTensorOrder(const symtenzor_tag& )
 {return IPPL_SYMTENSOR;}
 
 //////////////////////////////////////////////////////////////////////

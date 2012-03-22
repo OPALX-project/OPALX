@@ -559,8 +559,8 @@ assign(PETE_TUTree<OpParens<TP>,A> lhs, RHS wrhs, OP op, Tag,
 		// Build an object that will carry out the expression.
 		const ParensIterator<LHS> ilhs =
 		  LHS(lhs.Value, lf->begin(local_domain));
-		ExprT expr(ilhs, rhs, op);
-		expr.apply();
+		ExprT expr2(ilhs, rhs, op);
+		expr2.apply();
 
 		// Try to compress this LField right after we've modified it,
 		// if the user wants us to do this now.

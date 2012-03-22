@@ -91,7 +91,7 @@ min(const PETE_Expr<T>& expr, NDIndex<D>& loc) {
 }
 #else
 template<class T, unsigned D> 
-typename T::PETE_Expr_t::PETE_Return_t
+inline typename T::PETE_Expr_t::PETE_Return_t
 min(const PETE_Expr<T>& expr, NDIndex<D>& loc)
 {
   return Reduction(Expressionize<typename T::PETE_Expr_t>::apply(expr.PETE_unwrap().MakeExpression()),
@@ -119,7 +119,7 @@ max(const PETE_Expr<T>& expr, NDIndex<D>& loc) {
 }
 #else
 template<class T, unsigned D>
-typename T::PETE_Expr_t::PETE_Return_t
+inline typename T::PETE_Expr_t::PETE_Return_t
 max(const PETE_Expr<T>& expr, NDIndex<D>& loc)
 {
   return Reduction(Expressionize<typename T::PETE_Expr_t>::apply(expr.PETE_unwrap().MakeExpression()),

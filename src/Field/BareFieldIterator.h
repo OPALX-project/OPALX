@@ -97,7 +97,7 @@ public:
   }
 
   // Destructor
-  ~BareFieldIterator() 
+   ~BareFieldIterator() 
   {
   }
 

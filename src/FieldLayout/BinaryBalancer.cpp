@@ -250,7 +250,7 @@ PerpReduce(BrickIterator<double,2>& data, int i, int cutAxis)
 //
 
 static inline double
-PerpReduce(BrickIterator<double,1>& data, int i, int cutAxis)
+PerpReduce(BrickIterator<double,1>& data, int i, int )
 {
   return data.offset(i);
 }

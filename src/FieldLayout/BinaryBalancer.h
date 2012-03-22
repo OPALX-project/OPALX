@@ -64,7 +64,7 @@ CalcBinaryRepartition(FieldLayout<Dim>&, BareField<double,Dim>&);
 
 // Calculate and apply a local domain for a binary repartition.
 template<unsigned Dim>
-void
+inline void
 BinaryRepartition(FieldLayout<Dim>& layout, BareField<double,Dim>& weights)
 {
   layout.Repartition( CalcBinaryRepartition(layout,weights) );

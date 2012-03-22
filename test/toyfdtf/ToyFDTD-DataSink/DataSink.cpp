@@ -99,7 +99,6 @@ void DataSink::dumpASCII(Field<Vektor<double,3>,3> &EFD, Field<Vektor<double,3>,
     int lxf, lxl, lyf, lyl, lzf, lzl;
 
     Vektor<double,3> maxE = 0.0, maxH = 0.0;
-    Vektor<double,3> tmp;
     NDIndex<3> elem;
     Index II, JJ, KK;
     
@@ -293,7 +292,6 @@ void DataSink::dumpBinary(Field<Vektor<double,3>,3> &EFD, Field<Vektor<double,3>
     uint32_t size_dataset;
 
     Vektor<double,3> maxE = 0.0, maxH = 0.0;
-    Vektor<double,3> tmp;
     float dummy_flt;
     NDIndex<3> elem;
     Index II, JJ, KK;
@@ -366,10 +364,13 @@ void DataSink::dumpBinary(Field<Vektor<double,3>,3> &EFD, Field<Vektor<double,3>
             elem[1]=Index(j,j);
             for (i = lxf; i < lxl; ++ i) {
                 elem[0]=Index(i,i);
-                Vektor<float, 3> tmp = NBV.localElement(elem);
-                vtkout.write(reinterpret_cast<char* >(&tmp(0)), sizeof(float));
-                vtkout.write(reinterpret_cast<char* >(&tmp(1)), sizeof(float));
-                vtkout.write(reinterpret_cast<char* >(&tmp(2)), sizeof(float));
+                Vektor<double, 3> tmp_d = NBV.localElement(elem);
+                Vektor<float, 3> tmp_f(static_cast<float>(tmp_d(0)),
+                                       static_cast<float>(tmp_d(1)),
+                                       static_cast<float>(tmp_d(2)));
+                vtkout.write(reinterpret_cast<char* >(&tmp_f(0)), sizeof(float));
+                vtkout.write(reinterpret_cast<char* >(&tmp_f(1)), sizeof(float));
+                vtkout.write(reinterpret_cast<char* >(&tmp_f(2)), sizeof(float));
             }
         }
     }
@@ -383,10 +384,13 @@ void DataSink::dumpBinary(Field<Vektor<double,3>,3> &EFD, Field<Vektor<double,3>
             elem[1]=Index(j,j);
             for (i = lxf; i < lxl; ++ i) {
                 elem[0]=Index(i,i);
-                Vektor<float, 3> tmp = NBV.localElement(elem);
-                vtkout.write(reinterpret_cast<char* >(&tmp(0)), sizeof(float));
-                vtkout.write(reinterpret_cast<char* >(&tmp(1)), sizeof(float));
-                vtkout.write(reinterpret_cast<char* >(&tmp(2)), sizeof(float));
+                Vektor<double, 3> tmp_d = NBV.localElement(elem);
+                Vektor<float, 3> tmp_f(static_cast<float>(tmp_d(0)),
+                                       static_cast<float>(tmp_d(1)),
+                                       static_cast<float>(tmp_d(2)));
+                vtkout.write(reinterpret_cast<char* >(&tmp_f(0)), sizeof(float));
+                vtkout.write(reinterpret_cast<char* >(&tmp_f(1)), sizeof(float));
+                vtkout.write(reinterpret_cast<char* >(&tmp_f(2)), sizeof(float));
             }
         }
     }
@@ -394,19 +398,19 @@ void DataSink::dumpBinary(Field<Vektor<double,3>,3> &EFD, Field<Vektor<double,3>
     size_dataset = lnx * sizeof(float);
     vtkout.write(reinterpret_cast<char* >(&size_dataset), sizeof(uint32_t));
     for (i = lxf; i < lxl; ++ i) {
-        dummy_flt = i * dx_m;
+        dummy_flt = static_cast<float>(i * dx_m);
         vtkout.write(reinterpret_cast<char* >(&dummy_flt), sizeof(float));
     }
     size_dataset = lny * sizeof(float);
     vtkout.write(reinterpret_cast<char* >(&size_dataset), sizeof(uint32_t));
     for (j = lyf; j < lyl; ++ j) {
-        dummy_flt = j * dy_m;
+        dummy_flt = static_cast<float>(j * dy_m);
         vtkout.write(reinterpret_cast<char* >(&dummy_flt), sizeof(float));
     }
     size_dataset = lnz * sizeof(float);
     vtkout.write(reinterpret_cast<char* >(&size_dataset), sizeof(uint32_t));
     for (k = lzf; k < lzl; ++ k) {
-        dummy_flt = k * dz_m;
+        dummy_flt = static_cast<float>(k * dz_m);
         vtkout.write(reinterpret_cast<char* >(&dummy_flt), sizeof(float));
     }
 

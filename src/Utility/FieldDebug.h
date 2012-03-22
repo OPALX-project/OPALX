@@ -16,6 +16,8 @@
 #ifndef FIELD_DEBUG_H
 #define FIELD_DEBUG_H
 
+#include "Utility/FieldDebugFunctions.h"
+
 // forward declarations
 class Inform;
 template<class T, unsigned Dim> class BareField;
@@ -26,11 +28,6 @@ extern bool FldDbgInformIsSet;
 extern int elementsPerLine;
 extern int digitsPastDecimal;
 extern int widthOfElements;
-
-// forward declarations of global functions in FieldDebugFunctions.cpp
-void setInform(Inform& inform);
-void setFormat(int ElementsPerLine, int DigitsPastDecimal, 
-	       int WidthOfElements = 0);
 
 //=============================================================================
 // Helper functions to print out (formatted ASCII) Field elements.

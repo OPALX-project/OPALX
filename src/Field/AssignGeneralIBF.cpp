@@ -363,9 +363,9 @@ IndexedLocalAssign(IndexedBareField<T1,D1,D1>& ilhs,
 		    {
 		      // Can't leave the left compressed.
 		      // Only fill in the data if you have to.
-		      bool c2 = lhsDomain.containsAllPoints(lo);
-		      bool c3 = OperatorTraits<Op>::IsAssign;
-		      bool filldom = ((!c2) || (!c3));
+		      bool c22 = lhsDomain.containsAllPoints(lo);
+		      bool c32 = OperatorTraits<Op>::IsAssign;
+		      bool filldom = ((!c22) || (!c32));
 		      ASSIGNMSG(msg << "Must uncompress, filldom = ");
 		      ASSIGNMSG(msg << filldom << endl);
 		      lf.Uncompress(filldom);
@@ -403,7 +403,7 @@ template<class T1, class T2, unsigned D1, unsigned D2,
          class Op, class Container>
 inline void
 IndexedReceive(IndexedBareField<T1,D1,D1>& ilhs,
-               IndexedBareField<T2,D2,D2>& irhs,
+               IndexedBareField<T2,D2,D2>& ,
 	       Op& op,
 	       Container& recv_ac, int msgnum,
 	       int tag)
@@ -468,8 +468,8 @@ IndexedReceive(IndexedBareField<T1,D1,D1>& ilhs,
       else {
 	// Can't leave the left compressed.
 	// Only fill in the data if you have to.
-	bool c2 = domain.containsAllPoints(lf.getOwned());
-	bool c3 = OperatorTraits<Op>::IsAssign;
+        c2 = domain.containsAllPoints(lf.getOwned());
+	c3 = OperatorTraits<Op>::IsAssign;
 	lf.Uncompress( !(c2&&c3) );
 	// Build iterators for the left and right hand sides.
 	LFI lhs_i = lf.begin(domain);

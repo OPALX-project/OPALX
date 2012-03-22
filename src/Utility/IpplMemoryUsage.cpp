@@ -121,7 +121,7 @@ IpplMemoryUsage::MemRef IpplMemoryUsage::getMemObserver(const char *nm, double m
 
 //////////////////////////////////////////////////////////////////////
 // sample memory
-void IpplMemoryUsage::sample(MemRef t, const char *nm) {
+void IpplMemoryUsage::sample(MemRef t, const char *) {
     if (t < 0 || (unsigned int) t >= MemoryList.size())
 	return;
     MemoryList[t]->doSample();

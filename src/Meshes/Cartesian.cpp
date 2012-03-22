@@ -829,7 +829,7 @@ struct OpMeshExtrapolate
 // template<class T>
 // inline void apply(OpMeshExtrapolate<T> e, T& a, T b) 
 template<class T>
-void PETE_apply(OpMeshExtrapolate<T> e, T& a, T b) 
+inline void PETE_apply(OpMeshExtrapolate<T> e, T& a, T b) 
 { 
   a = b*e.Slope+e.Offset;
 }

@@ -506,7 +506,7 @@ struct OpUMeshExtrapolate
 };
 
 template<class T>
-void PETE_apply(OpUMeshExtrapolate<T> e, T& a, T b) 
+inline void PETE_apply(OpUMeshExtrapolate<T> e, T& a, T b) 
 { 
   a = b*e.Slope+e.Offset;
 }
@@ -1563,7 +1563,7 @@ Div(Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 }
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
-Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
+inline Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
 Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
     Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
@@ -1588,7 +1588,7 @@ Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 // Divergence SymTenzor/Vert -> Vektor/Cell
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
-Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>&
+inline Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>&
 Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
     Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
@@ -1602,7 +1602,7 @@ Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 }
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
-Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>&
+inline Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>&
 Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
     Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
@@ -1619,7 +1619,7 @@ Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 }
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
-Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
+inline Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
 Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
     Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
@@ -2014,7 +2014,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 
 
 template < class T, class MFLOAT >
-Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
+inline Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
 Grad1Ord(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
      Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {

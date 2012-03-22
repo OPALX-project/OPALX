@@ -43,6 +43,7 @@
 #ifdef IPPL_STDSTL
 #include <vector>
 #include <map>
+#include <limits>
 #else
 #include <vector.h>
 #include <map.h>
@@ -56,7 +57,7 @@ public:
   typedef unsigned int TimerRef;
 
   // constructor
-  IpplTimerInfo() : name(""), cpuTime(0.0), wallTime(0.0), indx(-1) {
+  IpplTimerInfo() : name(""), cpuTime(0.0), wallTime(0.0), indx(std::numeric_limits<TimerRef>::max()) {
     clear();
   }
 

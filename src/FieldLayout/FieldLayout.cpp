@@ -35,7 +35,7 @@
 #include "Profile/Profiler.h"
 
 #include <cstdlib>
-
+#include <limits>
 
 //////////////////////////////////////////////////////////////////////
 // Default constructor, which should only be used if you are going to
@@ -512,7 +512,7 @@ FieldLayout<Dim>::initialize(const NDIndex<Dim> &domain,
   // intersect any other.  Also, add up the size of each vnode, if it
   // does not equal the size of the total domain, there are holes
   // and it is an error.
-  int coverage = 0;
+  size_t coverage = 0;
   for (i = 0; i < vnodes; ++i) {
     // Compare to other vnodes
     for (j = (i+1); j < vnodes; ++j) {
@@ -684,7 +684,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
 	vr=v2;
 	leftDomain=domains_c[vl];
 	lmax=0;
-	d=-1;
+	d=std::numeric_limits<unsigned int>::max();
 	for (unsigned int dd=0;dd<Dim;++dd) {
 	  if ( flags[dd] == PARALLEL ) {
 	    if ((len = leftDomain[dd].length()) > lmax) {
