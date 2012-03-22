@@ -106,6 +106,8 @@ int TrackCmd::getTIMEINTEGRATOR() const {
         nameID =  0;
     else if(name == string("LF-2"))
         nameID =  1;
+    else if(name == string("MTS"))
+        nameID = 2;
     else
         nameID = -1;
 

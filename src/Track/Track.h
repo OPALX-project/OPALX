@@ -72,6 +72,7 @@ public:
     /// The ID of time integrator
     // 0 --- RK-4(default)
     // 1 --- LF-2
+    // 2 --- MTS
     int timeIntegrator;
 
 private:

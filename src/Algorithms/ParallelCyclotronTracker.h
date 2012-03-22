@@ -237,10 +237,12 @@ private:
     // The ID of time integrator
     // 0 --- RK-4(default)
     // 1 --- LF-2
+    // 2 --- MTS
     int  timeIntegrator_m;
 
     void Tracker_LF();
     void Tracker_RK4();
+    void Tracker_MTS();
 
     /*
      Local Variables both used by the integration methods
@@ -355,11 +357,19 @@ private:
     // local reference frame to the global reference frame.
     void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, double phi, Vector_t const translationToGlobal = 0);
     
-    // Push particles with current speed for time h.
+    // Push particles for time h.
     // Apply effects of RF Gap Crossings.
     // Update time and path length.
     // Unit assumptions: [itsBunch->R] = m, [itsBunch->P] = 1, [h] = s, [c] = m/s, [itsBunch->getT()] = s
     void push(double h);
+
+    // Kick particles for time h
+    // The fields itsBunch->Bf, itsBunch->Ef are used to calculate the forces
+    void kick(double h);
+
+    // Apply the trilogy half push - kick - half push,
+    // considering only external fields
+    void borisExternalFields(double h);
 
 };
 
