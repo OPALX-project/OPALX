@@ -74,8 +74,8 @@ class ParallelCyclotronTracker: public Tracker {
 
 public:
 
-    typedef std::pair<double[8], Component *>        element_pair;
-    typedef std::pair<string, element_pair>       type_pair;
+    typedef std::pair<double[8], Component *>      element_pair;
+    typedef std::pair<string, element_pair>        type_pair;
     typedef std::list<type_pair *>                 beamline_list;
     /// Constructor.
     //  The beam line to be tracked is "bl".

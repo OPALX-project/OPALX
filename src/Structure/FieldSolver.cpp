@@ -84,7 +84,7 @@ FieldSolver::FieldSolver():
     itsAttr[BCFFTT] = Attributes::makeString("BCFFTT", "Boundary conditions in z(t): open, parallel");
 
     itsAttr[GREENSF]  = Attributes::makeString("GREENSF", "Which Greensfunction to be used [STANDARD | INTEGRATED]", "INTEGRATED");
-    itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR", "Increase of bounding box in \% ", 2.0);
+    itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
 
     // P3M only:
     itsAttr[RPP]  = Attributes::makeReal("RPP", "Defines in units of the meshsize where the PP interactions takes place ", 1);

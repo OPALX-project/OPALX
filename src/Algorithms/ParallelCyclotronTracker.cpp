@@ -234,8 +234,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     *gmsg << "* --------- Cyclotron ------------------------------" << endl;
 
-    myElements.push_back(dynamic_cast<Cyclotron *>(cycl.clone()));
-    Component *elptr = *(--myElements.end());
+    Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
+    myElements.push_back(elptr);
 
     double ri = elptr->getRinit();
     *gmsg << "* RINIT= " << ri << " [mm]" << endl;
@@ -273,8 +273,9 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     double sym = elptr->getSymmetry();
     *gmsg << "* " << sym << " fold field symmerty " << endl;
 
-    double rff = elptr->getRfFrequ();
-    *gmsg << "* Rf frequency= " << rff << " [MHz]" << endl;
+    // ckr: this just returned the default value as defined in Component.h
+    // double rff = elptr->getRfFrequ();
+    // *gmsg << "* Rf frequency= " << rff << " [MHz]" << endl;
 
     string fmfn = elptr->getFieldMapFN();
     *gmsg << "* Field map file name= " << fmfn << " " << endl;
@@ -341,22 +342,22 @@ void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
 
     Inform msg("visitCCollimator ");
 
-    myElements.push_back(dynamic_cast<Collimator *>(coll.clone()));
-    Component *elptr = *(--myElements.end());
+    Collimator* elptr = dynamic_cast<Collimator *>(coll.clone());
+    myElements.push_back(elptr);
 
-    double angstart = (dynamic_cast<Collimator *>(elptr))->getAngStart();
+    double angstart = elptr->getAngStart();
     msg << "AngStart= " << angstart << " [rad]" << endl;
 
-    double angend = (dynamic_cast<Collimator *>(elptr)) ->getAngEnd();
+    double angend = elptr->getAngEnd();
     msg << "AngEnd= " << angend << " [rad]" << endl;
 
-    double rstart = (dynamic_cast<Collimator *>(elptr))->getRStart();
+    double rstart = elptr->getRStart();
     msg << "RStart= " << rstart << " [mm]" << endl;
 
-    double rend = (dynamic_cast<Collimator *>(elptr)) ->getREnd();
+    double rend = elptr->getREnd();
     msg << "REnd= " << rend << " [mm]" << endl;
 
-    double width = (dynamic_cast<Collimator *>(elptr)) ->getWidth();
+    double width = elptr->getWidth();
     msg << "Width= " << width << " [mm]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
@@ -453,22 +454,22 @@ void ParallelCyclotronTracker::visitMultipole(const Multipole &mult) {
 void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     Inform msg("visitProbe ");
 
-    myElements.push_back(dynamic_cast<Probe *>(prob.clone()));
-    Component *elptr = *(--myElements.end());
+    Probe *elptr = dynamic_cast<Probe *>(prob.clone());
+    myElements.push_back(elptr);
 
-    double xstart = (dynamic_cast<Probe *>(elptr))->getXstart();
+    double xstart = elptr->getXstart();
     msg << "XStart= " << xstart << " [mm]" << endl;
 
-    double xend = (dynamic_cast<Probe *>(elptr)) ->getXend();
+    double xend = elptr->getXend();
     msg << "XEnd= " << xend << " [mm]" << endl;
 
-    double ystart = (dynamic_cast<Probe *>(elptr))->getYstart();
+    double ystart = elptr->getYstart();
     msg << "YStart= " << ystart << " [mm]" << endl;
 
-    double yend = (dynamic_cast<Probe *>(elptr)) ->getYend();
+    double yend = elptr->getYend();
     msg << "YEnd= " << yend << " [mm]" << endl;
 
-    double width = (dynamic_cast<Probe *>(elptr)) ->getWidth();
+    double width = elptr->getWidth();
     msg << "Width= " << width << " [mm]" << endl;
 
 
@@ -507,8 +508,9 @@ void ParallelCyclotronTracker::visitRBend(const RBend &bend) {
 void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
 
     *gmsg << "* --------- RFCavity ------------------------------" << endl;
-    myElements.push_back(dynamic_cast<RFCavity *>(as.clone()));
-    Component *elptr = *(--myElements.end());
+    
+    RFCavity *elptr = dynamic_cast<RFCavity *>(as.clone());
+    myElements.push_back(elptr);
 
     if((elptr->getComponentType() != "SINGLEGAP") && (elptr->getComponentType() != "DOUBLEGAP")) {
         *gmsg << (elptr->getComponentType()) << endl;
@@ -516,29 +518,29 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
                             "The ParallelCyclotronTracker can only play with cyclotron type RF system currently ...");
     }
 
-    double rmin = (dynamic_cast<RFCavity *>(elptr))->getRmin();
+    double rmin = elptr->getRmin();
     *gmsg << "* Minimal radius of cavity= " << rmin << " [mm]" << endl;
 
-    double rmax = (dynamic_cast<RFCavity *>(elptr))->getRmax();
+    double rmax = elptr->getRmax();
     *gmsg << "* Maximal radius of cavity= " << rmax << " [mm]" << endl;
 
-    double rff = (dynamic_cast<RFCavity *>(elptr))->getCycFrequency();
+    double rff = elptr->getCycFrequency();
     *gmsg << "* RF frequency (2*pi*f)= " << rff << " [rad/s]" << endl;
 
-    string fmfn = (dynamic_cast<RFCavity *>(elptr))->getFieldMapFN();
+    string fmfn = elptr->getFieldMapFN();
     *gmsg << "* RF Field map file name= " << fmfn << endl;
 
-    double angle = (dynamic_cast<RFCavity *>(elptr))->getAzimuth();
+    double angle = elptr->getAzimuth();
     *gmsg << "* Cavity azimuth position= " << angle << " [deg] " << endl;
 
-    double gap = (dynamic_cast<RFCavity *>(elptr))->getGapWidth();
+    double gap = elptr->getGapWidth();
     *gmsg << "* Cavity gap width= " << gap << " [mm] " << endl;
 
-    double pdis = (dynamic_cast<RFCavity *>(elptr))->getPerpenDistance();
+    double pdis = elptr->getPerpenDistance();
     *gmsg << "* Cavity Shift distance= " << pdis << " [mm] " << endl;
 
 
-    double phi0 = (dynamic_cast<RFCavity *>(elptr))->getPhi0();
+    double phi0 = elptr->getPhi0();
     *gmsg << "* Initial RF phase (t=0)= " << phi0 << " [deg] " << endl;
 
     // read cavity voltage profile data from file.
@@ -594,22 +596,22 @@ void ParallelCyclotronTracker::visitSeparator(const Separator &sep) {
 void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
     Inform msg("visitSeptum ");
 
-    myElements.push_back(dynamic_cast<Septum *>(sept.clone()));
-    Component *elptr = *(--myElements.end());
+    Septum *elptr = dynamic_cast<Septum *>(sept.clone());
+    myElements.push_back(elptr);
 
-    double xstart = (dynamic_cast<Septum *>(elptr))->getXstart();
+    double xstart = elptr->getXstart();
     msg << "XStart= " << xstart << " [mm]" << endl;
 
-    double xend = (dynamic_cast<Septum *>(elptr)) ->getXend();
+    double xend = elptr->getXend();
     msg << "XEnd= " << xend << " [mm]" << endl;
 
-    double ystart = (dynamic_cast<Septum *>(elptr))->getYstart();
+    double ystart = elptr->getYstart();
     msg << "YStart= " << ystart << " [mm]" << endl;
 
-    double yend = (dynamic_cast<Septum *>(elptr)) ->getYend();
+    double yend = elptr->getYend();
     msg << "YEnd= " << yend << " [mm]" << endl;
 
-    double width = (dynamic_cast<Septum *>(elptr)) ->getWidth();
+    double width = elptr->getWidth();
     msg << "Width= " << width << " [mm]" << endl;
 
 
@@ -687,28 +689,29 @@ void ParallelCyclotronTracker::applyEntranceFringe(double angle, double curve,
 void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
     *gmsg << "* ---------Stripper------------------------------" << endl;
-    myElements.push_back(dynamic_cast<Stripper *>(stripper.clone()));
-    Component *elptr = *(--myElements.end());
 
-    double xstart = (dynamic_cast<Stripper *>(elptr))->getXstart();
+    Stripper *elptr = dynamic_cast<Stripper *>(stripper.clone());
+    myElements.push_back(elptr);
+
+    double xstart = elptr->getXstart();
     *gmsg << "XStart= " << xstart << " [mm]" << endl;
 
-    double xend = (dynamic_cast<Stripper *>(elptr)) ->getXend();
+    double xend = elptr->getXend();
     *gmsg << "XEnd= " << xend << " [mm]" << endl;
 
-    double ystart = (dynamic_cast<Stripper *>(elptr))->getYstart();
+    double ystart = elptr->getYstart();
     *gmsg << "YStart= " << ystart << " [mm]" << endl;
 
-    double yend = (dynamic_cast<Stripper *>(elptr)) ->getYend();
+    double yend = elptr->getYend();
     *gmsg << "YEnd= " << yend << " [mm]" << endl;
 
-    double width = (dynamic_cast<Stripper *>(elptr)) ->getWidth();
+    double width = elptr->getWidth();
     *gmsg << "Width= " << width << " [mm]" << endl;
 
-    double opcharge = (dynamic_cast<Stripper *>(elptr)) ->getOPCharge();
+    double opcharge = elptr->getOPCharge();
     *gmsg << "Charge of outcome particle = +e * " << opcharge << endl;
 
-    double opmass = (dynamic_cast<Stripper *>(elptr)) ->getOPMass();
+    double opmass = elptr->getOPMass();
     *gmsg << "Mass of the outcome particle = " << opmass << " [GeV/c^2]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
@@ -874,7 +877,12 @@ void ParallelCyclotronTracker::Tracker_LF() {
     const int stepsPerTurn = itsBunch->getStepsPerTurn();
 
     beamline_list::iterator sindex = FieldDimensions.begin();
-    const double harm = (((*sindex)->second).second)-> getCyclHarm();
+    Cyclotron *elptr = dynamic_cast<Cyclotron *>(((*sindex)->second).second);
+    if (elptr == NULL)         
+        throw OpalException("ParallelCyclotronTracker::Tracker_LF()",
+                            "The first item in the FieldDimensions list does not seem to be a cyclotron element");
+
+    const double harm = elptr-> getCyclHarm();
 
     // load time
     const double dt = itsBunch->getdT() * 1.0e9 * harm; //[s]-->[ns]
@@ -1802,7 +1810,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     double variable_tuneSamParts_Z[NoSamplePart];
 
     beamline_list::iterator sindex = FieldDimensions.begin();
-    const double harm = (((*sindex)->second).second)-> getCyclHarm();
+    Cyclotron *elptr = dynamic_cast<Cyclotron *>(((*sindex)->second).second);
+    if (elptr == NULL)         
+        throw OpalException("ParallelCyclotronTracker::Tracker_LF()",
+                            "The first item in the FieldDimensions list does not seem to be a cyclotron element");
+    const double harm = elptr-> getCyclHarm();
 
     // load time
     double t  = itsBunch->getT() * 1.0e9;

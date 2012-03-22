@@ -87,13 +87,6 @@ trackMap(FVps<double, 6> &, const PartData &, bool, bool) const {
                        "Called for component \"" + getName() + "\".");
 }
 
-void Component::initialise(PartBunch *bunch, const double &scaleFactor)
-{}
-
-void Component::initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor)
-{}
-
-
 void Component::goOnline() {
     online_m = true;
 }

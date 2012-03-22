@@ -105,10 +105,6 @@ public:
 
     virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) = 0;
 
-    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
-
-    virtual void initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor);
-
     virtual void finalise() = 0;
 
     virtual bool bends() const = 0;
@@ -129,29 +125,7 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const = 0;
 
-    /**
-       Methods for the cyclotron cmd.
-
-    */
-
-    virtual double getRinit() const { return 0; }
-    virtual double getPRinit() const { return 0; }
-    virtual double getPHIinit() const { return 0; }
-
-    virtual string getFieldMapFN() const { return ""; }
-    virtual double getRfFrequ() const { return 0; }
-    virtual double getSymmetry() const { return 0; }
-    virtual double getTCr1() const { return 0; }
-    virtual double getTCr2() const { return 0; }
-    virtual double getMBtc() const { return 0; }
-    virtual double getSLPtc() const { return 0; }
-
     virtual const string &getType() const;
-    virtual double getCyclHarm() const { return 0; }
-    virtual void readFieldMap(double scaleFactor) { };
-    virtual double getBScale() const { return 0; }
-    virtual double getRmax() const { return 0; }
-    virtual double getRmin() const { return 0; }
 
     virtual void setComponentType(string name) { };
     virtual string getComponentType() const { return ""; };
