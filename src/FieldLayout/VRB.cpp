@@ -134,7 +134,7 @@ assign(int dim, const int *strides, const int *sizes, const int *offsets,
   // Termination condition: one dimension.
   if ( dim==1 )
     // Fill the one row with x.
-    for (int i=0; i<sizes[0]; ++i)
+    for (i=0; i<sizes[0]; ++i)
       procs[offsets[0]+i] = x;
 
   // Otherwise, loop over the outermost dimension and recurse.

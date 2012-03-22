@@ -49,6 +49,7 @@ std::ostream& operator<<(std::ostream& out, const Index& I) {
 // This version is optimized for small s1 and s2 and 
 // just uses an exhaustive search.
 //////////////////////////////////////////////////////////////////////
+inline 
 void lcm(int s1, int s2, int &s, int &m1, int &m2)
 {
   TAU_PROFILE("lcm()", "void (int, int, int, int, int)", TAU_SPARSE);

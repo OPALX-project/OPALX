@@ -605,7 +605,7 @@ Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& 
 Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
-    Field<Vektor<T,1U>,1U,Cartesian<2U,MFLOAT>,Cell>& r);
+    Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r);
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& 

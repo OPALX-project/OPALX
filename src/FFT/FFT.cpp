@@ -205,8 +205,8 @@ FFT<CCTransform,Dim,T>::transform(
   Complex_t* localdata;
       
   // Loop over the dimensions be transformed:
-  begdim = (direction == +1) ? 0 : (nTransformDims-1);
-  enddim = (direction == +1) ? nTransformDims : -1;
+  begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
+  enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim += direction) {
     TAU_PROFILE_START(timer_swap);
     // Now do the serial transforms along this dimension:
@@ -337,8 +337,8 @@ FFT<CCTransform,Dim,T>::transform(
   Complex_t* localdata;
       
   // Loop over the dimensions be transformed:
-  begdim = (direction == +1) ? 0 : (nTransformDims-1);
-  enddim = (direction == +1) ? nTransformDims : -1;
+  begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
+  enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim += direction) {
     TAU_PROFILE_START(timer_swap);
     // Now do the serial transforms along this dimension:
@@ -2964,8 +2964,8 @@ FFT<SineTransform,Dim,T>::transform(
   T* localdataR;
       
   // Loop over the dimensions to be sine transformed:
-  begdim = (direction == +1) ? 0 : nTransformDims-1;
-  enddim = (direction == +1) ? nTransformDims : -1;
+  begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
+  enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim+=direction) {
     TAU_PROFILE_START(timer_swap);
     // Now do the serial transforms along this dimension:
@@ -3101,8 +3101,8 @@ FFT<SineTransform,Dim,T>::transform(
   T* localdataR;
       
   // Loop over the dimensions to be sine transformed:
-  begdim = (direction == +1) ? 0 : nTransformDims-1;
-  enddim = (direction == +1) ? nTransformDims : -1;
+  begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
+  enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim+=direction) {
     TAU_PROFILE_START(timer_swap);
     // Now do the serial transforms along this dimension:

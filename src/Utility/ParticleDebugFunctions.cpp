@@ -29,6 +29,7 @@
 #include "Profile/Profiler.h"
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
+#include "Utility/ParticleDebugFunctions.h"
 
 // forward class declarations
 //class Inform;

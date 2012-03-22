@@ -280,18 +280,18 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
 	  ASSIGNMSG(msg << "Intersection is " << intersection << endl);
 
 	  // Build an iterator for the rhs.
-	  RFI rhs_i = rf.begin(intersection);
+	  RFI rhs_i2 = rf.begin(intersection);
 
 	  // Could we compress that rhs iterator, and if so,
 	  // Are we assigning the whole LField on the left?
 	  // If both of these are true, we can compress the whole thing.
 	  // Otherwise, we have to uncompress the LHS and do a full assign.
-	  if (rhs_i.CanCompress(*rf.begin(intersection)) &&
+	  if (rhs_i2.CanCompress(*rf.begin(intersection)) &&
 	      lhs.compressible() && intersection.containsAllPoints(la) &&
 	      OperatorTraits<Op>::IsAssign) {
 
 	    // Compress the whole LField to the value on the right:
-	    ASSIGNMSG(msg << "LHS BF is compressible, rhs_i compressed, ");
+	    ASSIGNMSG(msg << "LHS BF is compressible, rhs_i2 compressed, ");
 	    ASSIGNMSG(msg << "intersection contains ");
 	    ASSIGNMSG(msg << la << ", assignment ==> compress assign.");
 	    ASSIGNMSG(msg << endl);
@@ -314,11 +314,11 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
 
 	    // Get the iterator for it.
 	    ASSIGNMSG(msg << "Get iterator for LHS ..." << endl);
-	    LFI lhs_i = lf.begin(intersection);
+	    LFI lhs_i2 = lf.begin(intersection);
 
 	    // And do the assignment.
 	    ASSIGNMSG(msg << "And do expression evaluation." << endl);
-	    BrickExpression<Dim,LFI,RFI,Op>(lhs_i,rhs_i,op).apply();
+	    BrickExpression<Dim,LFI,RFI,Op>(lhs_i2,rhs_i2,op).apply();
 	  }
 	}
       }
@@ -346,9 +346,9 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
         intersection.getMessage(*rmess);
 
         // Extract the rhs iterator from it.
-        T2 rhs_compressed_data;
-        RFI rhs_i(rhs_compressed_data);
-        rhs_i.getMessage(*rmess);
+        T2 rhs_compressed_data2;
+        RFI rhs_i2(rhs_compressed_data2);
+        rhs_i2.getMessage(*rmess);
 
         // Find the LField it is destined for.
         typename ac_recv_type::iterator hit = recv_ac.find( intersection );
@@ -359,18 +359,18 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
 	const NDIndex<Dim> &lo = lf.getOwned();
 
         // Check and see if we really have to do this.
-        if ( !(rhs_i.IsCompressed() && lf.IsCompressed() &&
-	     (*rhs_i == *lf.begin())) )
+        if ( !(rhs_i2.IsCompressed() && lf.IsCompressed() &&
+	     (*rhs_i2 == *lf.begin())) )
 	{
 	  // Yep. gotta do it.
 	  // Only fill in the data if you have to.
 	  bool c2 = intersection.containsAllPoints(lo);
 	  bool c3 = OperatorTraits<Op>::IsAssign;
 	  lf.Uncompress( !(c2&&c3) );
-	  LFI lhs_i = lf.begin(intersection);
+	  LFI lhs_i2 = lf.begin(intersection);
 
 	  // Do the assignment.
-	  BrickExpression<Dim,LFI,RFI,Op>(lhs_i,rhs_i,op).apply();
+	  BrickExpression<Dim,LFI,RFI,Op>(lhs_i2,rhs_i2,op).apply();
 	}
 
         // Take that entry out of the receive list.

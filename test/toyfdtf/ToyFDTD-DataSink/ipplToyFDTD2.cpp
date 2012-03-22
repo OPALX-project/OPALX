@@ -472,8 +472,6 @@ int main(int argc, char *argv[]){
   msg << "meter^3 simulation region " << GUIDE_WIDTH << " " <<  GUIDE_HEIGHT << "  " <<  LENGTH_IN_WAVELENGTHS*lambda << endl;
   initialize(EFD, HFD, lDom, nx, ny, nz, kx, ky, kz, phase_x, phase_y, phase_z, dt, omega);
 
-  EVALTYPE whatToDo = HX;
-
   for(iteration = 0; iteration < MAXIMUM_ITERATION; iteration++) {
 
     // time in simulated seconds that the simulation has progressed:
@@ -502,15 +500,15 @@ int main(int argc, char *argv[]){
        Update in turn the hx, hy and hz values:
     */
 
-    updateIJK(II, JJ, KK, lDom, nx, ny, nz, whatToDo=HX);	
+    updateIJK(II, JJ, KK, lDom, nx, ny, nz, HX);
     HFD[II][JJ][KK](0) += dtmudz*(EFD[II][JJ  ][KK+1](1) - EFD[II][JJ][KK](1)) -
       dtmudy*(EFD[II][JJ+1][KK  ](2) - EFD[II][JJ][KK](2));
 
-    updateIJK(II, JJ, KK, lDom, nx, ny, nz, whatToDo=HY);
+    updateIJK(II, JJ, KK, lDom, nx, ny, nz, HY);
     HFD[II][JJ][KK](1) += dtmudx*(EFD[II+1][JJ][KK](2) - EFD[II][JJ][KK](2)) -
       dtmudz*(EFD[II][JJ][KK+1](0) - EFD[II][JJ][KK](0));
 
-    updateIJK(II, JJ, KK, lDom, nx, ny, nz, whatToDo=HZ);
+    updateIJK(II, JJ, KK, lDom, nx, ny, nz, HZ);
     HFD[II][JJ][KK](2) += dtmudy*(EFD[II][JJ+1][KK](0) - EFD[II][JJ][KK](0)) -
       dtmudx*(EFD[II+1][JJ][KK](1) - EFD[II][JJ][KK](1));
 
@@ -521,15 +519,15 @@ int main(int argc, char *argv[]){
 	Update in turn the ex, ey and ez values:
     */
 		
-    updateIJK(II, JJ, KK, lDom, nx, ny, nz, whatToDo=EX);
+    updateIJK(II, JJ, KK, lDom, nx, ny, nz, EX);
     EFD[II][JJ][KK](0) += dtepsdy*(HFD[II][JJ][KK](2) - HFD[II][JJ-1][KK  ](2)) -
       dtepsdz*(HFD[II][JJ][KK](1) - HFD[II][JJ  ][KK-1](1));
 
-    updateIJK(II, JJ, KK, lDom, nx, ny, nz, whatToDo=EY);
+    updateIJK(II, JJ, KK, lDom, nx, ny, nz, EY);
     EFD[II][JJ][KK](1) += dtepsdz*(HFD[II][JJ][KK](0) - HFD[II  ][JJ][KK-1](0)) -
       dtepsdx*(HFD[II][JJ][KK](2) - HFD[II-1][JJ][KK  ](2));
 
-    updateIJK(II, JJ, KK, lDom, nx, ny, nz, whatToDo=EZ);
+    updateIJK(II, JJ, KK, lDom, nx, ny, nz, EZ);
     EFD[II][JJ][KK](2) += dtepsdx*(HFD[II][JJ][KK](1) - HFD[II-1][JJ  ][KK](1)) -
       dtepsdy*(HFD[II][JJ][KK](0) - HFD[II  ][JJ-1][KK](0));
 

@@ -29,13 +29,13 @@
 
 // null BC; value is not changed
 template<class T>
-T ParticleNoBCond(const T t, const T /* minval */, const T /* maxval */) {
+inline T ParticleNoBCond(const T t, const T /* minval */, const T /* maxval */) {
   return t;
 }
 
 // periodic BC; values wrap around at endpoints of the interval
 template<class T>
-T ParticlePeriodicBCond(const T t, const T minval, const T maxval) {
+inline T ParticlePeriodicBCond(const T t, const T minval, const T maxval) {
   if (t < minval)
     return (maxval - (minval - t));
   else if (t >= maxval)
@@ -46,7 +46,7 @@ T ParticlePeriodicBCond(const T t, const T minval, const T maxval) {
 
 // reflective BC; values bounce back from endpoints
 template<class T>
-T ParticleReflectiveBCond(const T t, const T minval, const T maxval) {
+inline T ParticleReflectiveBCond(const T t, const T minval, const T maxval) {
   if (t < minval)
     return (minval + (minval - t));
   else if (t >= maxval)
@@ -57,7 +57,7 @@ T ParticleReflectiveBCond(const T t, const T minval, const T maxval) {
 
 // sink BC; particles stick to the selected face
 template<class T>
-T ParticleSinkBCond(const T t, const T minval, const T maxval) {
+inline T ParticleSinkBCond(const T t, const T minval, const T maxval) {
   if (t < minval)
     return minval;
   else if (t >= maxval)

@@ -287,7 +287,7 @@ min(const PETE_Expr<T>& expr) {
 }
 #else
 template<class T> 
-typename T::PETE_Expr_t::PETE_Return_t
+inline typename T::PETE_Expr_t::PETE_Return_t
 min(const PETE_Expr<T>& expr)
 {
   typename T::PETE_Expr_t::PETE_Return_t val ;
@@ -320,7 +320,7 @@ max(const PETE_Expr<T>& expr) {
 }
 #else
 template<class T> 
-typename T::PETE_Expr_t::PETE_Return_t
+inline typename T::PETE_Expr_t::PETE_Return_t
 max(const PETE_Expr<T>& expr)
 {
   typename T::PETE_Expr_t::PETE_Return_t val ;
@@ -380,7 +380,7 @@ struct MinMaxHolder {
 };
 
 template<class T1, class T2>
-void
+inline void
 minmax(const PETE_Expr<T1>& expr, T2& minval, T2& maxval)
 {
   typedef typename T1::PETE_Expr_t::PETE_Return_t val_t;
@@ -448,7 +448,7 @@ struct AnyHolder
 };
 
 template<class T1, class T2>
-bool
+inline bool
 any(const PETE_Expr<T1>& expr, T2 val)
 {
   AnyHolder<T2,OpEQ> ret(val,OpEQ());
@@ -460,7 +460,7 @@ any(const PETE_Expr<T1>& expr, T2 val)
 }
 
 template<class T1, class T2, class Op>
-bool
+inline bool
 any(const PETE_Expr<T1>& expr, T2 val, Op op)
 {
   AnyHolder<T2,Op> ret(val,op);
@@ -539,7 +539,7 @@ struct BoundsHolder {
 };
 
 template<class T1, class T2, unsigned int D>
-void
+inline void
 bounds(const PETE_Expr<T1>& expr, Vektor<T2,D>& minval, Vektor<T2,D>& maxval)
 {
   BoundsHolder<T2,D> ret;

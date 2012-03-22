@@ -94,7 +94,7 @@ void toss_cookies( const char *cond, const char *file, int line )
 // Function to perform the task of actually throwing an isistion.
 //---------------------------------------------------------------------------//
 
-void insist( const char *cond, const char *msg, const char *file, int line )
+void insist( const char *, const char *msg, const char *, int  )
 {
   // inform other nodes they should quit
   Ippl::exitAllNodes(msg, false);

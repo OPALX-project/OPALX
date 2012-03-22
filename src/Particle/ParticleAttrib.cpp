@@ -620,7 +620,7 @@ scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
 }
 
 template <class FT, unsigned Dim, class M, class C,
-          class CacheData, class IntOp>
+          class IntOp, class CacheData>
 void
 scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
         const ParticleAttrib<CacheData>& cache, FT val) {

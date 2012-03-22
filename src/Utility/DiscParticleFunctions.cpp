@@ -222,32 +222,32 @@ bool DiscParticle::write_meta() {
   // write the initial header info
   long rnum = RecordList.size();
   fprintf(outputMeta, "Type =           %s\n", TypeString.c_str());
-  fprintf(outputMeta, "SMPs =           %d\n", Config->fileSMPs());
+  fprintf(outputMeta, "SMPs =           %u\n", Config->fileSMPs());
   fprintf(outputMeta, "Records =        %ld\n", rnum);
   fprintf(outputMeta, "NextOffset =     %ld\n", CurrentOffset);
 
   // write information for each record
   for (unsigned int r=0; r < RecordList.size(); ++r) {
     // general record information
-    fprintf(outputMeta, "RecordAttribs =  %d  %d\n", r,
+    fprintf(outputMeta, "RecordAttribs =  %u  %d\n", r,
 	    RecordList[r]->attributes);
-    fprintf(outputMeta, "RecordLocPtcl =  %d  %d\n", r,
+    fprintf(outputMeta, "RecordLocPtcl =  %u  %d\n", r,
 	    RecordList[r]->localparticles[0]);
-    fprintf(outputMeta, "RecordGlobPtcl = %d  %d\n", r,
+    fprintf(outputMeta, "RecordGlobPtcl = %u  %d\n", r,
 	    RecordList[r]->globalparticles);
 
     // information about each attribute
-    fprintf(outputMeta, "RecordElemByte = %d ", r);
+    fprintf(outputMeta, "RecordElemByte = %u ", r);
     int b, bmax;
     bmax = RecordList[r]->bytesize.size();
     for (b=0; b<bmax; ++b)
       fprintf(outputMeta, " %d", RecordList[r]->bytesize[b]);
     fprintf(outputMeta, "\n");
-    fprintf(outputMeta, "RecordDiscType = %d ", r);
+    fprintf(outputMeta, "RecordDiscType = %u ", r);
     for (b=0; b<bmax; ++b)
       fprintf(outputMeta, " %s", RecordList[r]->disctypes[b].c_str());
     fprintf(outputMeta, "\n");
-    fprintf(outputMeta, "RecordOffset =   %d ", r);
+    fprintf(outputMeta, "RecordOffset =   %u ", r);
     bmax = RecordList[r]->offset[0].size();
     for (b=0; b<bmax; ++b)
       fprintf(outputMeta, " %ld", RecordList[r]->offset[0][b]);
@@ -289,9 +289,11 @@ bool DiscParticle::read_meta() {
 
   // initialize data before reading .meta file
   TypeString = "unknown";
-  std::vector<RecordInfo *>::iterator rec = RecordList.begin();
-  for ( ; rec != RecordList.end(); ++rec)
-    delete (*rec);
+  {
+      std::vector<RecordInfo *>::iterator rec = RecordList.begin();
+      for ( ; rec != RecordList.end(); ++rec)
+          delete (*rec);
+  }
   RecordList.erase(RecordList.begin(), RecordList.end());
 
   // on Box0 nodes, read in the meta data ... on others, wait for
@@ -395,8 +397,8 @@ bool DiscParticle::read_meta() {
 	      }
 	    }
 	    if (RecordList[recnum]->bytesize.size() !=
-		(RecordList[recnum]->attributes == 0 ? 1 :
-		 RecordList[recnum]->attributes)) {
+		(RecordList[recnum]->attributes == 0 ? 1u :
+		 static_cast<unsigned int>(RecordList[recnum]->attributes))) {
 	      ERRORMSG("Incorrect number of byte size values in file ");
 	      ERRORMSG(filename << endl);
 	      iserror = true;
@@ -420,8 +422,8 @@ bool DiscParticle::read_meta() {
 	      }
 	    }
 	    if (RecordList[recnum]->disctypes.size() !=
-		(RecordList[recnum]->attributes == 0 ? 1 :
-		 RecordList[recnum]->attributes)) {
+		(RecordList[recnum]->attributes == 0 ? 1u :
+		 static_cast<unsigned int>(RecordList[recnum]->attributes))) {
 	      ERRORMSG("Incorrect number of DiscType values in file ");
 	      ERRORMSG(filename << endl);
 	      iserror = true;
@@ -448,8 +450,8 @@ bool DiscParticle::read_meta() {
 	      }
 	    }
 	    if (sf == 0) {
-	      if (offsetvec.size() != (RecordList[recnum]->attributes==0 ? 1 :
-				       RecordList[recnum]->attributes)) {
+                if (offsetvec.size() != (RecordList[recnum]->attributes==0 ? 1u :
+                                         static_cast<unsigned int>(RecordList[recnum]->attributes))) {
 		ERRORMSG("Incorrect number of offset values in file ");
 		ERRORMSG(filename << endl);
 		iserror = true;

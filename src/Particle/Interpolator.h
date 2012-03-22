@@ -106,7 +106,7 @@ struct CacheData1 {
 };
 
 template <class T, unsigned Dim>
-std::ostream &operator<<(std::ostream &o, const CacheData1<T,Dim> &c)
+inline std::ostream &operator<<(std::ostream &o, const CacheData1<T,Dim> &c)
 {
   o << "(" << c.Index_m << "," << c.Delta_m << ")";
   return o;
@@ -122,7 +122,7 @@ struct CacheDataCIC {
 };
 
 template <class T, unsigned Dim>
-std::ostream &operator<<(std::ostream &o, const CacheDataCIC<T,Dim> &c)
+inline std::ostream &operator<<(std::ostream &o, const CacheDataCIC<T,Dim> &c)
 {
   Vektor<int,Dim> offset;
   for (int i=0; i < Dim; ++i)

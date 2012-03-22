@@ -475,7 +475,7 @@ void sfp3(BareField<T,3U>& field,
 //----------------------------------------------------------------------
 
 template< class T, unsigned Dim >
-void FieldDebugWriteb(BareField<T,Dim>& F)
+inline void FieldDebugWriteb(BareField<T,Dim>& F)
 {
   TAU_TYPE_STRING(taustr, CT(*this) + " void (char * )" );
   TAU_PROFILE("FieldDebugWriteb", taustr, TAU_FIELD | TAU_IO);

@@ -38,6 +38,7 @@ set (_HDRS
   FieldBlock.h
   FieldDebug.cpp
   FieldDebug.h
+  FieldDebugFunctions.h
   FieldDebugPrint.cpp
   FieldDebugPrint.h
   FieldPrint.cpp
@@ -56,6 +57,7 @@ set (_HDRS
   NamedObj.h
   ParticleDebug.cpp
   ParticleDebug.h
+  ParticleDebugFunctions.h
   PAssert.h
   Pooled.cpp
   Pooled.h

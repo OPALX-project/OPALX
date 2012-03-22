@@ -265,7 +265,7 @@ private:
 // trace() - sum of diagonal elements.
 
 template <class T, unsigned D>
-T trace(const Tenzor<T,D>& rhs) {
+inline T trace(const Tenzor<T,D>& rhs) {
   T result = 0.0;
   for (int i = 0 ; i < D ; i++ )
     result += rhs(i,i);
@@ -275,7 +275,7 @@ T trace(const Tenzor<T,D>& rhs) {
 // transpose(). transpose(i,j) = input(j,i).
 
 template <class T, unsigned D>
-Tenzor<T,D> transpose(const Tenzor<T,D>& rhs) {
+inline Tenzor<T,D> transpose(const Tenzor<T,D>& rhs) {
   Tenzor<T,D> result = typename Tenzor<T,D>::DontInitialize();
 
   for (int j = 0 ; j < D ; j++ ) 
@@ -287,13 +287,13 @@ Tenzor<T,D> transpose(const Tenzor<T,D>& rhs) {
 // Determinant: only implement for 1D, 2D, 3D:
 
 template <class T, unsigned D>
-T det(const Tenzor<T,D>& rhs) {
+inline T det(const Tenzor<T,D>& rhs) {
   PInsist(D<4, "Tenzor det() function not implemented for D>3!");
   return T(-999999.999999);
 }
 
 template <class T>
-T det(const Tenzor<T,3>& rhs) {
+inline T det(const Tenzor<T,3>& rhs) {
   T result;
   result = 
     rhs(0,0)*(rhs(1,1)*rhs(2,2) - rhs(1,2)*rhs(2,1)) +
@@ -303,14 +303,14 @@ T det(const Tenzor<T,3>& rhs) {
 }
 
 template <class T>
-T det(const Tenzor<T,2>& rhs) {
+inline T det(const Tenzor<T,2>& rhs) {
   T result;
   result = rhs(0,0)*rhs(1,1) - rhs(0,1)*rhs(1,0);
   return result;
 }
 
 template <class T>
-T det(const Tenzor<T,1>& rhs) {
+inline T det(const Tenzor<T,1>& rhs) {
   T result = rhs(0,0);
   return result;
 }
@@ -322,13 +322,13 @@ T det(const Tenzor<T,1>& rhs) {
 // Only implement for 1D, 2D, 3D:
 
 template <class T, unsigned D>
-Tenzor<T,D> cofactors(const Tenzor<T,D>& rhs) {
+inline Tenzor<T,D> cofactors(const Tenzor<T,D>& rhs) {
   PInsist(D<4, "Tenzor cofactors() function not implemented for D>3!");
   return Tenzor<T,D>(-999999.999999);
 }
 
 template <class T>
-Tenzor<T,3> cofactors(const Tenzor<T,3>& rhs) {
+inline Tenzor<T,3> cofactors(const Tenzor<T,3>& rhs) {
   Tenzor<T,3> result = typename Tenzor<T,3>::DontInitialize();
 
   result(0,0) = rhs(1,1)*rhs(2,2) - rhs(1,2)*rhs(2,1);
@@ -344,7 +344,7 @@ Tenzor<T,3> cofactors(const Tenzor<T,3>& rhs) {
 }
 
 template <class T>
-Tenzor<T,2> cofactors(const Tenzor<T,2>& rhs) {
+inline Tenzor<T,2> cofactors(const Tenzor<T,2>& rhs) {
   Tenzor<T,2> result = typename Tenzor<T,2>::DontInitialize();
 
   result(0,0) =  rhs(1,1);
@@ -357,7 +357,7 @@ Tenzor<T,2> cofactors(const Tenzor<T,2>& rhs) {
 // For D=1, cofactor is the unit tensor, because det = single tensor element
 // value:
 template <class T>
-Tenzor<T,1> cofactors(const Tenzor<T,1>& rhs) {
+inline Tenzor<T,1> cofactors(const Tenzor<T,1>& rhs) {
   Tenzor<T,1> result = Tenzor<T,1>(1);
   return result;
 }
@@ -458,7 +458,7 @@ outerProduct(const Vektor<T1,D>& v1, const Vektor<T2,D>& v2)
 //----------------------------------------------------------------------
 // I/O
 template<class T, unsigned D>
-std::ostream& operator<<(std::ostream& out, const Tenzor<T,D>& rhs)
+inline std::ostream& operator<<(std::ostream& out, const Tenzor<T,D>& rhs)
 {
   if (D >= 1) {
     for (int i=0; i<D; i++) {

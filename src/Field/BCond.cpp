@@ -1785,7 +1785,8 @@ void ExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 
 template<class T, unsigned D, class M, class C>
-void ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
+inline void 
+ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
   LField<T,D> &fill, LField<T,D> &from, const NDIndex<D> &from_alloc, 
   ExtrapolateFace<T,D,M,C> &ef)
 {	      
@@ -2462,7 +2463,8 @@ void ExtrapolateAndZeroFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 
 template<class T, unsigned D, class M, class C>
-void ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest, 
+inline void 
+ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest, 
   const NDIndex<D> &src, LField<T,D> &fill, LField<T,D> &from, 
   const NDIndex<D> &from_alloc, ExtrapolateAndZeroFace<T,D,M,C> &ef)
 {	      
@@ -2529,7 +2531,8 @@ void ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest,
 
 
 template<class T, unsigned D, class M, class C>
-void ExtrapolateAndZeroFaceBCApply3(const NDIndex<D> &dest, 
+inline void 
+ExtrapolateAndZeroFaceBCApply3(const NDIndex<D> &dest, 
   LField<T,D> &fill, ExtrapolateAndZeroFace<T,D,M,C> &ef)
 {	      
   // If the LField we're filling is compressed and setting the
@@ -4323,7 +4326,8 @@ void LinearExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 
 template<class T, unsigned D, class M, class C>
-void LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest, 
+inline void 
+LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest, 
 				   const NDIndex<D> &src1,
 				   const NDIndex<D> &src2,
 				   LField<T,D> &fill, 
@@ -4504,7 +4508,8 @@ void ComponentLinearExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 
 template<class T, unsigned D, class M, class C>
-void ComponentLinearExtrapolateFaceBCApply2(const NDIndex<D> &dest, 
+inline void 
+ComponentLinearExtrapolateFaceBCApply2(const NDIndex<D> &dest, 
 					    const NDIndex<D> &src1,
 					    const NDIndex<D> &src2,
 					    LField<T,D> &fill, 

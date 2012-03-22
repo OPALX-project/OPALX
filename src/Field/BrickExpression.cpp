@@ -126,7 +126,7 @@ public:
 // BrickExpression::apply - just use BrickExpLoop
 // ada: remove restrict from apply to make  g++ 2.95.3 happy
 template<unsigned Dim, class LHS, class RHS, class OP>
-#if (IPPL_RESTRICT_BUG)
+#ifdef IPPL_RESTRICT_BUG
  void BrickExpression<Dim,LHS,RHS,OP>::apply()
 #else
  void BrickExpression<Dim,LHS,RHS,OP>::apply() restrict

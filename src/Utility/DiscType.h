@@ -39,7 +39,7 @@ struct DiscTypeBase {
   static int scalarType(const std::string &s) {
     if (s.length() == 0 || s.length() == 2 || s.length() > 3)
       return UNKNOWN;
-    char c = tolower(s[s.length() - 1]);
+    char c = static_cast<char>(tolower(s[s.length() - 1]));
     if (c == 'c')
       return CHAR;
     else if (c == 's')
@@ -79,7 +79,7 @@ struct DiscTypeBase {
       return UNKNOWN;
     if (s.length() == 1)
       return SCALAR;
-    char c = tolower(s[0]);
+    char c = static_cast<char>(tolower(s[0]));
     if (c == 'v')
       return VEKTOR;
     else if (c == 't')

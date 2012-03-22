@@ -19,6 +19,7 @@
 template <class T>
 class Pooled
 {
+public:
 #ifndef IPPL_DONT_POOL
 public:
 
