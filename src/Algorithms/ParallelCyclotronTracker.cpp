@@ -899,14 +899,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
        for multi-particle Mode and single Particle Mode, output particles of ID = 0 and 1 for each  dumpfreq steps
     */
 
-    string SfileName = OpalData::getInstance()->getInputFn();
-    int pdot = SfileName.find(string("."), 0);
-    SfileName.erase(pdot, SfileName.size() - pdot);
-
-    string  SfileName1 = SfileName + string("-trackOrbit.dat");
-    ofstream outf;
-    outf.setf(ios::scientific, ios::floatfield);
-    outf.precision(8);
+    initTrackOrbitFile();
 
     if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
         readSEO();
@@ -938,21 +931,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
     *gmsg << "* Beginning of this run is at t= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
     *gmsg << "* The time step is set to dt= " << dt << " [ns]" << endl;
 
-    // add header in the data dump file for particle ID equal 0 and 1
-    if(myNode_m == 0) {
-        if(OpalData::getInstance()->inRestartRun()) {
-            outf.open(SfileName1.c_str(), ios::app);
-            outf      << "# Restart at " << step_m << " dumping step" << endl;
-        } else {
-            outf.open(SfileName1.c_str());
-            outf      << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]"
-                      << endl;
-        }
-    }
-
     // for single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1)
-        openFiles(SfileName);
+        openFiles(inputFileNameWithoutExtension());
 
     double const initialReferenceTheta = referenceTheta / 180.0 * pi;
     if(!OpalData::getInstance()->inRestartRun()) {
@@ -1145,113 +1126,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
         bool flagNeedUpdate = false;
-        // *****************II-1***************
-        // dump The particle with ID =0 & 1 for parallel run 
-        // *****************II-1***************
-      
-	if( step_m % SinglePartDumpFreq == 0) {
-	  IpplTimings::startTimer(DumpTimer_m);
-	  if( Ippl::getNodes() > 1 ) {
-            double x;
-            int  id;
-            vector<double> tmpr;
-            vector<int> tmpi;
-	    
-            int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
-
-            // for all nodes, find the location of particle with ID = 0 & 1 in bunch containers
-            int found[2] = { -1, -1};
-            int counter = 0;
-
-            for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                if(itsBunch->ID[ii] == 0) {
-                    found[counter] = ii;
-                    counter++;
-                }
-                if(itsBunch->ID[ii] == 1) {
-                    found[counter] = ii;
-                    counter++;
-                }
-            }
-
-            if(myNode_m == 0) {
-                // for root node
-                int notReceived =  Ippl::getNodes() - 1;
-                int numberOfPart = 0;
-
-                while(notReceived > 0) {
-                    int node = COMM_ANY_NODE;
-                    Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-                    if(rmsg == 0)
-                        ERRORMSG("Could not receive from client nodes in main." << endl);
-                    notReceived--;
-                    rmsg->get(&numberOfPart);
-                    for(int ii = 0; ii < numberOfPart; ii++) {
-                        rmsg->get(&id);
-                        tmpi.push_back(id);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                    }
-                    delete rmsg;
-
-                }
-                for(int ii = 0; ii < counter; ii++) {
-                    tmpi.push_back(itsBunch->ID[found[ii]]);
-                    for(int jj = 0; jj < 3; jj++) {
-                        tmpr.push_back(itsBunch->R[found[ii]](jj));
-                        tmpr.push_back(itsBunch->P[found[ii]](jj));
-                    }
-                }
-                vector<double>::iterator itParameter = tmpr.begin();
-                vector<int>::iterator  itId = tmpi.begin();
-
-                for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
-                    outf << "ID" << *itId;
-                    for(int ii = 0; ii < 6; ii++) {
-                        outf << " " << *itParameter;
-                        itParameter++;
-                    }
-                    outf << endl;
-                }
-
-            } else {
-                // for other nodes
-                Message *smsg = new Message();
-                smsg->put(counter);
-                for(int ii = 0; ii < counter; ii++) {
-                    smsg->put(itsBunch->ID[found[ii]]);
-                    for(int jj = 0; jj < 3; jj++) {
-                        smsg->put(itsBunch->R[found[ii]](jj));
-                        smsg->put(itsBunch->P[found[ii]](jj));
-                    }
-                }
-                bool res = Ippl::Comm->send(smsg, 0, tag);
-                if(!res)
-                    ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
-            }
-
-	  } else {
-	      for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-		if(itsBunch->ID[i] == 0 || itsBunch->ID[i] == 1){
-		  outf << "ID" <<itsBunch->ID[i];
-		  outf << " " << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " " <<itsBunch->R[i](1) 
-		       << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2)<< endl; 
-		}
-	      }
-	  }
-	  IpplTimings::stopTimer(DumpTimer_m);	
-	}
-        //end dump
+        if(step_m % SinglePartDumpFreq == 0) {
+            singleParticleDump();
+        }
         Ippl::Comm->barrier();
 
         // Push for first half step
@@ -1740,7 +1617,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     Ippl::Comm->barrier();
 
-    if(myNode_m == 0) outf.close();
+    if(myNode_m == 0) outfTrackOrbit_m.close();
 
     if(initialTotalNum_m == 1)
         closeFiles();
@@ -1806,14 +1683,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
       for multi-particle Mode and single Particle Mode, output particles of ID = 0 and 1 for each  dumpfreq steps
     */
 
-    string SfileName = OpalData::getInstance()->getInputFn();
-    int pdot = SfileName.find(string("."), 0);
-    SfileName.erase(pdot, SfileName.size() - pdot);
-
-    string  SfileName1 = SfileName + string("-trackOrbit.dat");
-    ofstream outf;
-    outf.setf(ios::scientific, ios::floatfield);
-    outf.precision(8);
+    initTrackOrbitFile();
 
     if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
         readSEO();
@@ -1834,21 +1704,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     *gmsg << "* Beginning of this run is at t= " << t << " [ns]" << endl;
     *gmsg << "* The time step is set to dt= " << dt << " [ns]" << endl;
 
-    // add header in the data dump file for particle ID equal 0 and 1
-    if(myNode_m == 0) {
-        if(OpalData::getInstance()->inRestartRun()) {
-            outf.open(SfileName1.c_str(), ios::app);
-            outf      << "# Restart at " << step_m << " dumping step" << endl;
-        } else {
-            outf.open(SfileName1.c_str());
-            outf      << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]"
-                      << endl;
-        }
-    }
-
     // for single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1)
-        openFiles(SfileName);
+        openFiles(inputFileNameWithoutExtension());
 
     if(!OpalData::getInstance()->inRestartRun()) {
         PathLength_m = 0.0;
@@ -2087,12 +1945,12 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         vector<int>::iterator  itId = tmpi.begin();
 
                         for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
-                            outf << "ID" << *itId;
+                            outfTrackOrbit_m << "ID" << *itId;
                             for(int ii = 0; ii < 6; ii++) {
-                                outf << " " << *itParameter;
+                                outfTrackOrbit_m << " " << *itParameter;
                                 itParameter++;
                             }
-                            outf << endl;
+                            outfTrackOrbit_m << endl;
                         }
                         // sample frequency = SinglePartDumpFreq
                     } else {
@@ -2176,12 +2034,12 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                             // dump into file 'INPUT_FILE_NAME-trackorbit.dat'
                             for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
                                 if(*itId < 10) {
-                                    outf << "ID" << *itId;
+                                    outfTrackOrbit_m << "ID" << *itId;
                                     for(int ii = 0; ii < 6; ii++) {
-                                        outf << " " << *itParameter;
+                                        outfTrackOrbit_m << " " << *itParameter;
                                         itParameter++;
                                     }
-                                    outf << endl;
+                                    outfTrackOrbit_m << endl;
                                 }
                             }
                             *gmsg << "Finish receiving!" << endl;
@@ -2825,8 +2683,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 for(int j = 0; j < 3; j++)variable_m[j+3] = itsBunch->P[i](j); //[px,py,pz]  units: []
 
                 if((step_m % SinglePartDumpFreq == 0)) {
-                    outf << "ID" << (itsBunch->ID[i]);
-                    outf << " " << variable_m[0] << " " << variable_m[3] << " " << variable_m[1] << " "
+                    outfTrackOrbit_m << "ID" << (itsBunch->ID[i]);
+                    outfTrackOrbit_m << " " << variable_m[0] << " " << variable_m[3] << " " << variable_m[1] << " "
                          << variable_m[4] << " " << variable_m[2] << " " << variable_m[5] << endl;
                 }
 
@@ -2866,8 +2724,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             if((step_m % SinglePartDumpFreq == 0)) {
 	      for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-		  outf << "ID" <<itsBunch->ID[i];
-		  outf << " " << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " " <<itsBunch->R[i](1) 
+		  outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
+		  outfTrackOrbit_m << " " << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " " <<itsBunch->R[i](1) 
 		       << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2)<< endl; 
 	      }
 	    }
@@ -3190,7 +3048,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     Ippl::Comm->barrier();
 
-    if(myNode_m == 0) outf.close();
+    if(myNode_m == 0) outfTrackOrbit_m.close();
 
     if(initialTotalNum_m == 1)
         closeFiles();
@@ -3595,13 +3453,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
        for multi-particle Mode and single Particle Mode, output particles of ID = 0 and 1 for each  dumpfreq steps
     */
 
-    string SfileName = OpalData::getInstance()->getInputFn();
-    int pdot = SfileName.find(string("."), 0);
-    SfileName.erase(pdot, SfileName.size() - pdot);
-    string SfileName1 = SfileName + string("-trackOrbit.dat");
-    ofstream outf;
-    outf.setf(ios::scientific, ios::floatfield);
-    outf.precision(8);
+    initTrackOrbitFile();
 
     if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
         readSEO();
@@ -3624,21 +3476,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     *gmsg << "* Beginning of this run is at t= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
     *gmsg << "* The time step is set to dt= " << dt * 1e9 << " [ns]" << endl;
 
-    // add header in the data dump file for particle ID equal 0 and 1
-    if(myNode_m == 0) {
-        if(OpalData::getInstance()->inRestartRun()) {
-            outf.open(SfileName1.c_str(), ios::app);
-            outf      << "# Restart at " << step_m << " dumping step" << endl;
-        } else {
-            outf.open(SfileName1.c_str());
-            outf      << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]"
-                      << endl;
-        }
-    }
-
     // for single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1) {
-        openFiles(SfileName);
+        openFiles(inputFileNameWithoutExtension());
     }
 
 	// In this method, we use [R] = m
@@ -3797,6 +3637,12 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
         bool flagNeedUpdate = false;
+        if(step_m % Options::sptDumpFreq == 0) {
+            itsBunch->R *= Vector_t(1000.0);
+            singleParticleDump();
+            itsBunch->R *= Vector_t(0.001);
+        }
+        Ippl::Comm->barrier();
 
         // External field integration for first half of large step
         for(int n = 0; n < innerstepsPerHalfStep; ++n) {
@@ -4005,102 +3851,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             }
         }
 
-        // dump The particle with ID =0 & 1
-        Vector_t const meanR = calcMeanR();
-        Vector_t const meanP = calcMeanP();
-        double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-        globalToLocal(itsBunch->R, phi, meanR);
-        globalToLocal(itsBunch->P, phi, meanP);
-        if(step_m % Options::sptDumpFreq == 0) {
-            IpplTimings::startTimer(DumpTimer_m);
-            double x;
-            int id;
-            vector<double> tmpr;
-            vector<int> tmpi;
-            int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
-
-            // for all nodes, find the location of particle with ID = 0 & 1 in bunch containers
-            int found[2] = {-1, -1};
-            int counter = 0;
-            for(unsigned int ii = 0; ii < itsBunch->getLocalNum(); ii++) {
-                if(itsBunch->ID[ii] == 0) {
-                    found[counter] = ii;
-                    counter++;
-                }
-                if(itsBunch->ID[ii] == 1) {
-                    found[counter] = ii;
-                    counter++;
-                }
-            }
-
-            if(myNode_m == 0) {
-                // for root node
-                int notReceived =  Ippl::getNodes() - 1;
-                int numberOfPart = 0;
-
-                while(notReceived > 0) {
-                    int node = COMM_ANY_NODE;
-                    Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-                    if(rmsg == 0)
-                        ERRORMSG("Could not receive from client nodes in main." << endl);
-                    notReceived--;
-                    rmsg->get(&numberOfPart);
-                    for(int ii = 0; ii < numberOfPart; ii++) {
-                        rmsg->get(&id);
-                        tmpi.push_back(id);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                        rmsg->get(&x);
-                        tmpr.push_back(x);
-                    }
-                    delete rmsg;
-                }
-                for(int ii = 0; ii < counter; ii++) {
-                    tmpi.push_back(itsBunch->ID[found[ii]]);
-                    for(int jj = 0; jj < 3; jj++) {
-                        tmpr.push_back(itsBunch->R[found[ii]](jj) * 1000.0);
-                        tmpr.push_back(itsBunch->P[found[ii]](jj));
-                    }
-                }
-                vector<double>::iterator itParameter = tmpr.begin();
-                vector<int>::iterator  itId = tmpi.begin();
-                for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
-                    outf << "ID" << *itId;
-                    for(int ii = 0; ii < 6; ii++) {
-                        outf << " " << *itParameter;
-                        itParameter++;
-                    }
-                    outf << endl;
-                }
-            } else {
-                // for other nodes
-                Message *smsg = new Message();
-                smsg->put(counter);
-                for(int ii = 0; ii < counter; ii++) {
-                    smsg->put(itsBunch->ID[found[ii]]);
-                    for(int jj = 0; jj < 3; jj++) {
-                        smsg->put(itsBunch->R[found[ii]](jj) * 1000.0);
-                        smsg->put(itsBunch->P[found[ii]](jj));
-                    }
-                }
-                bool res = Ippl::Comm->send(smsg, 0, tag);
-                if(!res)
-                    ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
-            }
-            IpplTimings::stopTimer(DumpTimer_m);
-        }
-        localToGlobal(itsBunch->R, phi, meanR);
-        localToGlobal(itsBunch->P, phi, meanP);
-        Ippl::Comm->barrier();
-
         // dump some data after one push in single particle tracking
         if(initialTotalNum_m == 1) {
             int i = 0;
@@ -4254,7 +4004,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         }
     }
     Ippl::Comm->barrier();
-    if(myNode_m == 0) outf.close();
+    if(myNode_m == 0) outfTrackOrbit_m.close();
     if(initialTotalNum_m == 1) closeFiles();
     *gmsg << *itsBunch << endl;
 
@@ -4435,4 +4185,120 @@ void ParallelCyclotronTracker::readSEO() {
     }
     inf.close();
     *gmsg << "Finish reading in SEO file for tune calculation" << endl;
+}
+
+void ParallelCyclotronTracker::initTrackOrbitFile() {
+    std::string f = inputFileNameWithoutExtension() + string("-trackOrbit.dat");
+    outfTrackOrbit_m.setf(ios::scientific, ios::floatfield);
+    outfTrackOrbit_m.precision(8);
+    if(myNode_m == 0) {
+        if(OpalData::getInstance()->inRestartRun()) {
+            outfTrackOrbit_m.open(f.c_str(), ios::app);
+            outfTrackOrbit_m << "# Restart at " << step_m << " dumping step" << endl;
+        } else {
+            outfTrackOrbit_m.open(f.c_str());
+            outfTrackOrbit_m << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]" << endl;
+        }
+    }
+}
+
+std::string ParallelCyclotronTracker::inputFileNameWithoutExtension() {
+    std::string f = OpalData::getInstance()->getInputFn();
+    int const pdot = f.find(string("."), 0);
+    return f.erase(pdot, f.size() - pdot);
+}
+
+void ParallelCyclotronTracker::singleParticleDump() {
+    IpplTimings::startTimer(DumpTimer_m);
+    if(Ippl::getNodes() > 1 ) {
+        double x;
+        int id;
+        vector<double> tmpr;
+        vector<int> tmpi;
+        int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
+
+        // for all nodes, find the location of particle with ID = 0 & 1 in bunch containers
+        int found[2] = {-1, -1};
+        int counter = 0;
+        for(size_t i = 0; i < itsBunch->getLocalNum(); ++i) {
+            if(itsBunch->ID[i] == 0) {
+                found[counter] = i;
+                counter++;
+            }
+            if(itsBunch->ID[i] == 1) {
+                found[counter] = i;
+                counter++;
+            }
+        }
+
+        if(myNode_m == 0) {
+            int notReceived = Ippl::getNodes() - 1;
+            int numberOfPart = 0;
+            while(notReceived > 0) {
+                int node = COMM_ANY_NODE;
+                Message *rmsg =  Ippl::Comm->receive_block(node, tag);
+                if(rmsg == 0) ERRORMSG("Could not receive from client nodes in main." << endl);
+                --notReceived;
+                rmsg->get(&numberOfPart);
+                for(int i = 0; i < numberOfPart; ++i) {
+                    rmsg->get(&id);
+                    tmpi.push_back(id);
+                    rmsg->get(&x);
+                    tmpr.push_back(x);
+                    rmsg->get(&x);
+                    tmpr.push_back(x);
+                    rmsg->get(&x);
+                    tmpr.push_back(x);
+                    rmsg->get(&x);
+                    tmpr.push_back(x);
+                    rmsg->get(&x);
+                    tmpr.push_back(x);
+                    rmsg->get(&x);
+                    tmpr.push_back(x);
+                }
+                delete rmsg;
+            }
+            for(int i = 0; i < counter; ++i) {
+                tmpi.push_back(itsBunch->ID[found[i]]);
+                for(int j = 0; j < 3; ++j) {
+                    tmpr.push_back(itsBunch->R[found[i]](j));
+                    tmpr.push_back(itsBunch->P[found[i]](j));
+                }
+            }
+            vector<double>::iterator itParameter = tmpr.begin();
+            vector<int>::iterator itId = tmpi.begin();
+            for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
+                outfTrackOrbit_m << "ID" << *itId;
+                for(int ii = 0; ii < 6; ii++) {
+                    outfTrackOrbit_m << " " << *itParameter;
+                    itParameter++;
+                }
+                outfTrackOrbit_m << endl;
+            }
+        } else {
+            // for other nodes
+            Message *smsg = new Message();
+            smsg->put(counter);
+            for(int i = 0; i < counter; ++i) {
+                smsg->put(itsBunch->ID[found[i]]);
+                for(int j = 0; j < 3; ++j) {
+                    smsg->put(itsBunch->R[found[i]](j));
+                    smsg->put(itsBunch->P[found[i]](j));
+                }
+            }
+            if(!Ippl::Comm->send(smsg, 0, tag)) {
+                ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
+            }
+        }
+    } else {
+        for(size_t i = 0; i < itsBunch->getLocalNum(); ++i) {
+            if(itsBunch->ID[i] == 0 || itsBunch->ID[i] == 1) {
+                outfTrackOrbit_m << "ID" << itsBunch->ID[i] << " ";
+                outfTrackOrbit_m << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " ";
+                outfTrackOrbit_m << itsBunch->R[i](1) << " " << itsBunch->P[i](1) << " ";
+                outfTrackOrbit_m << itsBunch->R[i](2) << " " << itsBunch->P[i](2) << endl; 
+            }
+        }
+    }
+    IpplTimings::stopTimer(DumpTimer_m);
 }

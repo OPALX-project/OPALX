@@ -373,6 +373,14 @@ private:
 
     void readSEO();
 
+    std::ofstream outfTrackOrbit_m;
+
+    void initTrackOrbitFile();
+
+    std::string inputFileNameWithoutExtension();
+
+    void singleParticleDump();
+
 };
 
 /**
