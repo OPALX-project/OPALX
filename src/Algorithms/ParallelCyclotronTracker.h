@@ -371,6 +371,8 @@ private:
     // considering only external fields
     void borisExternalFields(double h);
 
+    void readSEO();
+
 };
 
 /**

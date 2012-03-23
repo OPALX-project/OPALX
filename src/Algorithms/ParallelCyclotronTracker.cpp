@@ -908,35 +908,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
     outf.setf(ios::scientific, ios::floatfield);
     outf.precision(8);
 
-    if(initialTotalNum_m > 2)
-        if(myNode_m == 0 &&  flagDoTune_m) {
-            // FixMe: this can go into a function
-            ifstream inf;
-            char skipChar[100];
-            double skipNum;
-            Vector_t tempSEO;
-            string  SfileName5 = string("S") + SfileName + string("-trackOrbit.dat");
-            inf.open(SfileName5.c_str(), ios::in);
-            if(inf.fail()) {
-                *gmsg << "Cannot open file " << SfileName5 << " for tune calculation, please check if it really exists." << endl;
-                exit(1);
-            }
-
-            if(!inf.eof()) {
-                for(int i = 0; i < 14; i++) {
-                    inf >> skipChar;
-                }
-            }
-
-            while(!inf.eof()) {
-                inf >> skipChar >> tempSEO(1) >> skipNum >> tempSEO(2) >> skipNum >> skipNum >> skipNum;
-                if(inf.eof()) break;
-                tempSEO(0) = calculateAngle(tempSEO(1), tempSEO(2));
-                variable_SEO_m.push_back(tempSEO);
-            }
-            inf.close();
-            *gmsg << "Finish reading in SEO file for tune calculation" << endl;
-        }
+    if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
+        readSEO();
+    }
 
     // FixMe: make new element striper
 
@@ -1841,33 +1815,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     outf.setf(ios::scientific, ios::floatfield);
     outf.precision(8);
 
-    if(initialTotalNum_m > 2)
-        if(myNode_m == 0 &&  flagDoTune_m) {
-            ifstream inf;
-            char skipChar[100];
-            double skipNum;
-            Vector_t tempSEO;
-            string  SfileName5 = string("S") + SfileName + string("-trackOrbit.dat");
-            inf.open(SfileName5.c_str(), ios::in);
-            if(inf.fail()) {
-                *gmsg << "Cannot open file " << SfileName5 << " for the tune calculation, please check if the file exists." << endl;
-                exit(1);
-            }
-            if(!inf.eof()) {
-                for(int i = 0; i < 14; i++) {
-                    inf >> skipChar;
-                }
-            }
-
-            while(!inf.eof()) {
-                inf >> skipChar >> tempSEO(1) >> skipNum >> tempSEO(2) >> skipNum >> skipNum >> skipNum;
-                if(inf.eof()) break;
-                tempSEO(0) = calculateAngle(tempSEO(1), tempSEO(2));
-                variable_SEO_m.push_back(tempSEO);
-            }
-            inf.close();
-            *gmsg << "Finish reading in SEO file for the tune calculation" << endl;
-        }
+    if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
+        readSEO();
+    }
 
     // get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
@@ -3652,32 +3602,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     ofstream outf;
     outf.setf(ios::scientific, ios::floatfield);
     outf.precision(8);
-    if(initialTotalNum_m > 2) {
-        if(myNode_m == 0 &&  flagDoTune_m) {
-            ifstream inf;
-            char skipChar[100];
-            double skipNum;
-            Vector_t tempSEO;
-            string  SfileName5 = string("S") + SfileName + string("-trackOrbit.dat");
-            inf.open(SfileName5.c_str(), ios::in);
-            if(inf.fail()) {
-                *gmsg << "Cannot open file " << SfileName5 << " for tune calculation, please check if it really exists." << endl;
-                exit(1);
-            }
-            if(!inf.eof()) {
-                for(int i = 0; i < 14; i++) {
-                    inf >> skipChar;
-                }
-            }
-            while(!inf.eof()) {
-                inf >> skipChar >> tempSEO(1) >> skipNum >> tempSEO(2) >> skipNum >> skipNum >> skipNum;
-                if(inf.eof()) break;
-                tempSEO(0) = calculateAngle(tempSEO(1), tempSEO(2));
-                variable_SEO_m.push_back(tempSEO);
-            }
-            inf.close();
-            *gmsg << "Finish reading in SEO file for tune calculation" << endl;
-        }
+
+    if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
+        readSEO();
     }
 
     // parameter for reset bin in multi-bunch run, todo: readin from inputfile
@@ -4482,4 +4409,30 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // push particles for second half step
     push(0.5 * h);
 
+}
+
+void ParallelCyclotronTracker::readSEO() {
+    string f = string("S") + OpalData::getInstance()->getInputFn() + string("-trackOrbit.dat");
+    ifstream inf;
+    inf.open(f.c_str(), ios::in);
+    if(inf.fail()) {
+        *gmsg << "Cannot open file " << f << " for tune calculation, please check if it really exists." << endl;
+        exit(1);
+    }
+    char skipChar[100];
+    if(!inf.eof()) {
+        for(int i = 0; i < 14; ++i) {
+            inf >> skipChar;
+        }
+    }
+    double skipNum;
+    while(!inf.eof()) {
+        Vector_t tempSEO;
+        inf >> skipChar >> tempSEO(1) >> skipNum >> tempSEO(2) >> skipNum >> skipNum >> skipNum;
+        if(inf.eof()) break;
+        tempSEO(0) = calculateAngle(tempSEO(1), tempSEO(2));
+        variable_SEO_m.push_back(tempSEO);
+    }
+    inf.close();
+    *gmsg << "Finish reading in SEO file for tune calculation" << endl;
 }
