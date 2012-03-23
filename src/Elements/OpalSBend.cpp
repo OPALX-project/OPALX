@@ -164,7 +164,7 @@ void OpalSBend::update() {
 
     if(itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
-    else if(bend->getName() != "SBEND" && bend->getName() != "")
+    else if(bend->getName() != "SBEND")
         ERRORMSG(bend->getName() << ": No filename for a field map given" << endl);
 
     if(itsAttr[E1])
