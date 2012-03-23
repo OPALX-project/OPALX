@@ -106,7 +106,7 @@ SBend::SBend(const SBend &right):
 
 
 SBend::SBend(const string &name):
-    Component(),
+    Component(name),
     filename_m(""),
     fieldmap_m(NULL),
     fast_m(false),
