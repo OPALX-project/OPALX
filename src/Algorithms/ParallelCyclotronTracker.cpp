@@ -3627,7 +3627,12 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     Inform *gmsgAll;
     gmsgAll = new Inform("CycTracker MTS", INFORM_ALL_NODES);
     beamline_list::iterator sindex = FieldDimensions.begin();
-    const double harm = (((*sindex)->second).second)->getCyclHarm();
+    Cyclotron *elptr = dynamic_cast<Cyclotron *>(((*sindex)->second).second);
+    if (elptr == NULL)         
+        throw OpalException("ParallelCyclotronTracker::Tracker_LF()",
+                            "The first item in the FieldDimensions list does not seem to be a cyclotron element");
+
+    const double harm = elptr->getCyclHarm();
     const double dt = itsBunch->getdT() * harm;
     if(numBunch_m > 1) {
         *gmsg << "Time interval between neighbour bunches is set to " << itsBunch->getStepsPerTurn() * dt * 1.0e9 << "[ns]" << endl;
