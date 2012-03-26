@@ -270,6 +270,7 @@ void FM2DMagnetoStatic_cspline::getFieldDimensions(double &zBegin, double &zEnd,
     rBegin = rbegin_m;
     rEnd = rend_m;
 }
+void FM2DMagnetoStatic_cspline::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM2DMagnetoStatic_cspline::swap() {
     if(swap_m) swap_m = false;

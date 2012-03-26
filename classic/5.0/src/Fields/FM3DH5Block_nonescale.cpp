@@ -302,6 +302,7 @@ void FM3DH5Block_nonescale::getFieldDimensions(double &zBegin, double &zEnd, dou
     rBegin = xbegin_m;
     rEnd = xend_m;
 }
+void FM3DH5Block_nonescale::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM3DH5Block_nonescale::swap() { }
 

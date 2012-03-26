@@ -71,6 +71,7 @@ public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const = 0;
     virtual bool getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const = 0;
     virtual void getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const = 0;
+    virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const = 0;
     virtual void swap() = 0;
     virtual void getInfo(Inform *msg) = 0;
     virtual double getFrequency() const = 0;

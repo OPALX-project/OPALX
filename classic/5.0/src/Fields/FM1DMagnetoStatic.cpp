@@ -184,7 +184,7 @@ void FM1DMagnetoStatic::getFieldDimensions(double &zBegin, double &zEnd, double 
     rBegin = rbegin_m;
     rEnd = rend_m;
 }
-
+void FM1DMagnetoStatic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 void FM1DMagnetoStatic::swap()
 { }
 

@@ -223,6 +223,7 @@ void FM2DDynamic::getFieldDimensions(double &zBegin, double &zEnd, double &rBegi
     rBegin = rbegin_m;
     rEnd = rend_m;
 }
+void FM2DDynamic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM2DDynamic::swap() {
     if(swap_m) swap_m = false;

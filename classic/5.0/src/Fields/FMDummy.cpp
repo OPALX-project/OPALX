@@ -45,6 +45,7 @@ void FMDummy::getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, d
     zBegin = zbegin_m;
     zEnd = zend_m;
 }
+void FMDummy::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FMDummy::swap()
 { }

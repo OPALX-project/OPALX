@@ -177,6 +177,7 @@ void FM1DElectroStatic::getFieldDimensions(double &zBegin, double &zEnd, double 
     rBegin = rbegin_m;
     rEnd = rend_m;
 }
+void FM1DElectroStatic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM1DElectroStatic::swap()
 { }

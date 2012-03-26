@@ -283,6 +283,7 @@ void FM3DDynamic::getFieldDimensions(double &zBegin, double &zEnd, double &rBegi
     rBegin = xbegin_m;
     rEnd = xend_m;
 }
+void FM3DDynamic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM3DDynamic::swap() {}
 

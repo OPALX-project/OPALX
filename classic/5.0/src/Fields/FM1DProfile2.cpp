@@ -268,6 +268,7 @@ void FM1DProfile2::getFieldDimensions(double &zBegin, double &zEnd, double &rBeg
     zBegin = zbegin_entry_m;
     zEnd = zend_exit_m;
 }
+void FM1DProfile2::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM1DProfile2::swap()
 {}

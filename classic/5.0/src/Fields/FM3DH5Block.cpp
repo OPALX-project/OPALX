@@ -343,7 +343,15 @@ void FM3DH5Block::getFieldDimensions(double &zBegin, double &zEnd, double &rBegi
     rBegin = xbegin_m;
     rEnd = xend_m;
 }
-
+void FM3DH5Block::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {
+    xIni = xbegin_m;
+    xFinal = xend_m;
+    yIni = ybegin_m;
+    yFinal = yend_m;
+    zIni = zbegin_m;
+    zFinal = zend_m;
+    //INFOMSG("xIni " << xIni << "xFinal " << xFinal << endl);
+}
 void FM3DH5Block::swap() { }
 
 void FM3DH5Block::getInfo(Inform *msg) {

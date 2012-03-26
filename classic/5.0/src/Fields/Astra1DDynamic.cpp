@@ -226,6 +226,8 @@ void Astra1DDynamic::getFieldDimensions(double &zBegin, double &zEnd, double &rB
     zEnd = zend_m;
 }
 
+void Astra1DDynamic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+
 void Astra1DDynamic::swap()
 { }
 

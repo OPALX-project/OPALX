@@ -299,6 +299,7 @@ void FM3DMagnetoStaticH5Block::getFieldDimensions(double &zBegin, double &zEnd, 
     rBegin = xbegin_m;
     rEnd = xend_m;
 }
+void FM3DMagnetoStaticH5Block::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM3DMagnetoStaticH5Block::swap() {}
 

@@ -236,6 +236,8 @@ void Astra1DMagnetoStatic_fast::getFieldDimensions(double &zBegin, double &zEnd,
     zEnd = zend_m;
 }
 
+void Astra1DMagnetoStatic_fast::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+
 void Astra1DMagnetoStatic_fast::swap()
 { }
 

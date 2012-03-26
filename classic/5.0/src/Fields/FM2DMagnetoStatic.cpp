@@ -288,6 +288,8 @@ void FM2DMagnetoStatic::getFieldDimensions(double &zBegin, double &zEnd, double 
     rEnd = rend_m;
 }
 
+void FM2DMagnetoStatic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+
 void FM2DMagnetoStatic::swap() {
     if(swap_m) swap_m = false;
     else swap_m = true;

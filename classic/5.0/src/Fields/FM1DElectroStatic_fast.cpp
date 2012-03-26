@@ -219,6 +219,7 @@ void FM1DElectroStatic_fast::getFieldDimensions(double &zBegin, double &zEnd, do
     rBegin = rbegin_m;
     rEnd = rend_m;
 }
+void FM1DElectroStatic_fast::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM1DElectroStatic_fast::swap()
 { }

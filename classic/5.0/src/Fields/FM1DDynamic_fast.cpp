@@ -231,6 +231,8 @@ void FM1DDynamic_fast::getFieldDimensions(double &zBegin, double &zEnd, double &
     rEnd = rend_m;
 }
 
+void FM1DDynamic_fast::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+
 void FM1DDynamic_fast::swap()
 { }
 

@@ -204,6 +204,8 @@ void Astra1DElectroStatic::getFieldDimensions(double &zBegin, double &zEnd, doub
     zEnd = zend_m;
 }
 
+void Astra1DElectroStatic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+
 void Astra1DElectroStatic::swap()
 { }
 

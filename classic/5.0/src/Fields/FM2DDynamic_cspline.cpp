@@ -320,6 +320,8 @@ void FM2DDynamic_cspline::getFieldDimensions(double &zBegin, double &zEnd, doubl
     rEnd = rend_m;
 }
 
+void FM2DDynamic_cspline::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+
 void FM2DDynamic_cspline::swap() {
     if(swap_m) swap_m = false;
     else swap_m = true;
