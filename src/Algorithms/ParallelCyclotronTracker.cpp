@@ -281,6 +281,10 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     string type = elptr->getType();
     *gmsg << "* Type of cyclotron= " << type << " " << endl;
 
+    bool Sflag = elptr->getSuperpose();
+    *gmsg << "* Electric field map are superpoesed ?  " << Sflag << " " << endl;
+
+
     double h = elptr->getCyclHarm();
     *gmsg << "* Harmonic number h= " << h << " " << endl;
 

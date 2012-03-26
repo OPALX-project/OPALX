@@ -68,6 +68,7 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     tcr2_m(right.tcr2_m),
     mbtc_m(right.mbtc_m),
     slptc_m(right.slptc_m),
+    superpose_m(right.superpose_m),
     RFfilename_m(right.RFfilename_m) {
     Bfield.bfld = 0;
     Bfield.dbt = 0;
@@ -132,21 +133,9 @@ void Cyclotron::accept(BeamlineVisitor &visitor) const {
     visitor.visitCyclotron(*this);
 }
 
-/**
- *
- *
- * @param rinit initial set the radius of the beam (m)
- */
-
 void Cyclotron::setRinit(double rinit) {
     rinit_m = rinit;
 }
-/**
- *
- *
- *
- * @return get the initial radius of the beam (m)
- */
 
 double Cyclotron::getRinit() const {
     return rinit_m;
@@ -187,6 +176,14 @@ void Cyclotron::setRfPhi(vector<double> f) {
 
 void Cyclotron::setRfFrequ(vector<double> f) {
     rffrequ_m = f;
+}
+
+void Cyclotron::setSuperpose(bool flag) {
+    superpose_m = flag;
+}
+
+bool Cyclotron::getSuperpose() const {
+    return superpose_m;
 }
 
 void Cyclotron::setSymmetry(double s) {
@@ -452,29 +449,28 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         return true;
 
     }
-
     if(myBFieldType_m == BANDRF) {
-        /*
-          The RF field is suppose to be
-          sampled on a cartesian grid
-        */
-
-        // loop over all field maps and superpose fields
+      //The RF field is suppose to be sampled on a cartesian grid
         vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
         vector<double>::const_iterator rffi    = rffrequ_m.begin();
         vector<double>::const_iterator rfphii  = rfphi_m.begin();
         vector<double>::const_iterator escali  = escale_m.begin();
+        double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
         int fcount = 0;
         for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++fcount) {
-            Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-            if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
-                double phase = 2.0 * pi * 1E-3 * (*rffi) * t + *rfphii;
-                double ebscale = *escali;
-                E += ebscale * cos(phase) * tmpE;
-                B -= ebscale * sin(phase) * tmpB;
-                //INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " f= " << *rffi << " phi " << *rfphii << endl);
-            }
-        }
+	  (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
+	  if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
+	    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+	    if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
+	      double phase = 2.0 * pi * 1E-3 * (*rffi) * t + *rfphii;
+	      double ebscale = *escali;
+	      E += ebscale * cos(phase) * tmpE;
+	      B -= ebscale * sin(phase) * tmpB;
+	      //INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
+	    }
+	    if (!superpose_m) break;
+	  }
+    	}
     }
     return false;
 }
@@ -1022,10 +1018,6 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
 void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
 
     FILE *f = NULL;
-    // int lpar;
-    // char fout[100];
-    // double dtmp;
-
     *gmsg << "* ----------------------------------------------" << endl;
     *gmsg << "*    READ IN AVFEQ CYCLOTRON FIELD MAP     " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
@@ -1123,10 +1115,6 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
 void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
 
     FILE *f = NULL;
-    // int lpar;
-    // char fout[100];
-    // double dtmp;
-
     *gmsg << "* ----------------------------------------------" << endl;
     *gmsg << "*      READ IN CARBON CYCLOTRON FIELD MAP       " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
@@ -1222,7 +1210,6 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
 void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
 
     FILE *f = NULL;
-    // int lpar;
     char fout[100];
     int dtmp;
 
@@ -1309,7 +1296,7 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
     vector<double>::const_iterator rfphii  = rfphi_m.begin();
     vector<double>::const_iterator escali  = escale_m.begin();
     int fcount = 0;
-
+    
     for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali, ++fcount) {
         msg << "Load field map " << fcount << " - " << *fm << endl;
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);

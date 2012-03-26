@@ -153,6 +153,9 @@ public:
     void   setSLPtc(double slptc);
     virtual  double getSLPtc() const;
 
+    void   setSuperpose(bool flag);
+    virtual bool getSuperpose() const;
+
     virtual bool apply(const int &i, const double &t, double E[], double B[]);
 
     virtual bool apply(const int &i, const double &t, Vector_t &E, Vector_t &B);
@@ -177,6 +180,7 @@ private:
     std::vector<double> rffrequ_m;
     std::vector<double> rfphi_m;
     std::vector<double> escale_m; // a scale factor for the E-field
+    bool superpose_m; // electric fields are superposed or not 
 
     double symmetry_m;
 

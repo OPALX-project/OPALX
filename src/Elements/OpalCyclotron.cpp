@@ -36,7 +36,7 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[RINIT] = Attributes::makeReal
                      ("RINIT", "Initial radius of the reference particle [m]");
     itsAttr[PRINIT] = Attributes::makeReal
-                      ("PRINIT", "Initial radial momentum of the reference particle, pr=beta_r*gamma []");
+                      ("PRINIT", "Initial radial momentum of the reference particle, pr=beta_r*gamma");
     itsAttr[PHIINIT] = Attributes::makeReal
                        ("PHIINIT", "Initial azimuth of the reference particle [deg]");
     itsAttr[FMAPFN] = Attributes::makeString
@@ -49,6 +49,9 @@ OpalCyclotron::OpalCyclotron():
 
     itsAttr[ESCALE] = Attributes::makeRealArray
                       ("ESCALE", "Scale factor for the RF field(s)");
+    
+    itsAttr[SUPERPOSE] = Attributes::makeBool
+ 	       ("SUPERPOSE", "Option Whether all of the electric field maps are superposed, only used when TYPE = BANDRF", true);
 
     itsAttr[RFMAPFN] = Attributes::makeStringArray
                       ("RFMAPFN", "Filename for the RF fieldmap(s)");
@@ -128,7 +131,8 @@ void OpalCyclotron::update() {
     double tcr2 = Attributes::getReal(itsAttr[TCR2]);
     double mbtc = Attributes::getReal(itsAttr[MBTC]);
     double slptc = Attributes::getReal(itsAttr[SLPTC]);
-
+    bool   superpose = Attributes::getBool(itsAttr[SUPERPOSE]);
+    
     cycl->setFieldMapFN(fmapfm);
     cycl->setSymmetry(symmetry);
 
@@ -144,6 +148,7 @@ void OpalCyclotron::update() {
     cycl->setTCr2(tcr2);
     cycl->setMBtc(mbtc);
     cycl->setSLPtc(slptc);
+    cycl->setSuperpose(superpose);
 
     std::vector<string> fm_str = Attributes::getStringArray(itsAttr[RFMAPFN]);
     std::vector<double> scale_str = Attributes::getRealArray(itsAttr[ESCALE]);

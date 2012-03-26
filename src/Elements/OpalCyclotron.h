@@ -47,8 +47,8 @@ public:
         MBTC,    //max bfield of trim coil (kG)
         SLPTC,    //slope of the rising edge
 	RFPHI,   // the initial phase of RF field 
+	SUPERPOSE, // whether the electric field map are superposed or not 
         SIZE
-
     };
 
 
