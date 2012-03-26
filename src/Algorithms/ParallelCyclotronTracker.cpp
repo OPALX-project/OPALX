@@ -3345,6 +3345,8 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         globalToLocal(itsBunch->R, phi, meanR);
         itsBunch->boundp();
         double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
+        itsBunch->Bf = Vector_t(0.0);
+        itsBunch->Ef = Vector_t(0.0);
         itsBunch->computeSelfFields_cycl(meanGamma);
         localToGlobal(itsBunch->R, phi, meanR);
     }
@@ -3474,6 +3476,8 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         // calculate self fields Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
         if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
             Vector_t const meanR = calcMeanR();
+            itsBunch->Bf = Vector_t(0.0);
+            itsBunch->Ef = Vector_t(0.0);
             if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
                 IpplTimings::startTimer(TransformTimer_m);
                 double const binsPhi = itsBunch->calcMeanPhi() - 0.5 * pi;
@@ -3487,8 +3491,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 repartition();
 
                 // calculate space charge field for each energy bin
-                itsBunch->Bf = Vector_t(0.0);
-                itsBunch->Ef = Vector_t(0.0);
                 for(int b = 0; b < itsBunch->getLastemittedBin() ; b++) {
                     if(itsBunch->pbin_m->getTotalNumPerBin(b) >= 1000) {
                         itsBunch->setBinCharge(b, itsBunch->getChargePerParticle());
