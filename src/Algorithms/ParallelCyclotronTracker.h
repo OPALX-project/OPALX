@@ -32,42 +32,6 @@ class SurfacePhysicsHandler;
 
 // Class ParallelCyclotronTracker
 // ------------------------------------------------------------------------
-/// Track using thick-lens algorithm.
-// [p]
-// Phase space coordinates numbering:
-// [tab 3 b]
-// [row]number [&]name          [&]unit  [/row]
-// [row]0      [&]$x$           [&]metres [/row]
-// [row]1      [&]$p_x/p_r$     [&]1      [/row]
-// [row]2      [&]$y$           [&]metres [/row]
-// [row]3      [&]$p_y/p_r$     [&]1      [/row]
-// [row]4      [&]$v*delta_t$   [&]metres [/row]
-// [row]5      [&]$delta_p/p_r$ [&]1      [/row]
-// [/tab][p]
-// Where $p_r$ is the constant reference momentum defining the reference
-// frame velocity, $m$ is the rest mass of the particles, and $v$ is the
-// instantaneous velocity of the particle.
-// [p]
-// Other units used:
-// [tab 2 b]
-// [row]quantity             [&]unit           [/row]
-// [row]reference momentum   [&]electron-volts [/row]
-// [row]velocity             [&]metres/second  [/row]
-// [row]accelerating voltage [&]volts          [/row]
-// [row]separator voltage    [&]volts          [/row]
-// [row]frequencies          [&]hertz          [/row]
-// [row]phase lags           [&]$2*pi$         [/row]
-// [/tab][p]
-// Approximations used:
-// [ul]
-// [li] blah
-// [li] blah
-// [li] blah
-// [/ul]
-//
-// On going through an element, we use the following steps:
-// To complete the map, we propagate the closed orbit and add that to the map.
-
 enum CyclOperationModeT {SINGLEP, MULTIP, TUNECALC};
 
 class ParallelCyclotronTracker: public Tracker {
@@ -284,10 +248,6 @@ private:
 
     // mark the dumpstep to inject new bunch from here for AUTO mode of restart run of multibunch
     int backupDumpStep_m;
-
-    // flag to determine whether the tune of betatron oscillation is calculated or not for many paticles
-    // FixMe: read in from input file
-    bool flagDoTune_m;
 
     const int myNode_m;
     const size_t initialLocalNum_m;

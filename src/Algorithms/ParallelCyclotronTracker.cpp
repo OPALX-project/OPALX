@@ -104,7 +104,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
         bool revBeam, bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
     sphys(NULL),
-    flagDoTune_m(false),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0) {
@@ -133,7 +132,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     sphys(NULL),
     maxSteps_m(maxSTEPS),
     timeIntegrator_m(timeIntegrator),
-    flagDoTune_m(false),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch.getLocalNum()),
     initialTotalNum_m(bunch.getTotalNum()) {
@@ -892,22 +890,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
         *gmsg << "Time interval between neighbour bunches is set to " << stepsPerTurn *dt << "[ns]" << endl;
     }
 
-    /*
-       transform initial coordinates and momenta from local beam frame (relative value to the bunchcenter )
-       to global Cartesian frame (absolute value ).
-       Do some other initialisation work.
-       for multi-particle Mode and single Particle Mode, output particles of ID = 0 and 1 for each  dumpfreq steps
-    */
-
     initTrackOrbitFile();
-
-    if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
-        readSEO();
-    }
-
-    // FixMe: make new element striper
-
-    // flag and position of the striper for multi-bunch extraction
 
     // parameter for reset bin in multi-bunch run, todo: readin from inputfile
     const  double eta = 0.01;
@@ -945,16 +928,8 @@ void ParallelCyclotronTracker::Tracker_LF() {
                     itsBunch->R[ii] = Vector_t(0.0);
                     itsBunch->P[ii] = Vector_t(0.0);
                 }
-                // for tuning calculation
-                if(flagDoTune_m) {
-                    if(itsBunch->ID[ii] == 1) {
-                        itsBunch->R[ii] = Vector_t(0.003, 0.0, 0.003);
-                        itsBunch->P[ii] = Vector_t(0.0);
-                    }
-                }
             }
         }
-
 
         if(Options::psDumpLocalFrame) {
             // dump the initial distribution
@@ -1052,7 +1027,6 @@ void ParallelCyclotronTracker::Tracker_LF() {
     // if initialTotalNum_m = 2, trigger SEO mode
     // prepare for transverse tuning calculation
     vector<double> Ttime, Tdeltr, Tdeltz;
-    // if flagDoTune == tune for multi-particles mode
     // prepare for transverse tuning calculation
     vector<int> TturnNumber;
     int turnnumber = 1;
@@ -1633,33 +1607,14 @@ void ParallelCyclotronTracker::Tracker_LF() {
 void ParallelCyclotronTracker::Tracker_RK4() {
 
     Inform *gmsgAll;
-
     gmsgAll = new  Inform("CycTracker RK4", INFORM_ALL_NODES);
-
-    // prepare the tracker for doing its job
-    // prepare the elements of the line to be tracked, i.e. load fieldmaps and so on
-
     // time steps interval between bunches for multi-bunch simulation.
     const int stepsPerTurn = itsBunch->getStepsPerTurn();
-
     // record how many bunches has already been injected. ONLY FOR MPM
     BunchCount_m = itsBunch->getNumBunch();
-
     // decide how many energy bins. ONLY FOR MPM
-    // For the time being, we set bin number equal to bunch number.
     BinCount_m = BunchCount_m;
-
-    // determine how many sample particles used for tuning with SC
-    const unsigned int NoSamplePart = 500;
-    // determine when to record tune data;
-    const int StartTurnnumber = 30;
-
-    // temporal 3 real space variables of particle ID=0~NoSamplePart, [x,y,z]. for tune with SC.  Unit: mm
-    // todo: only processor 0 need this matrix.
-    double variable_tuneSamParts_X[NoSamplePart];
-    double variable_tuneSamParts_Y[NoSamplePart];
-    double variable_tuneSamParts_Z[NoSamplePart];
-
+ 
     beamline_list::iterator sindex = FieldDimensions.begin();
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(((*sindex)->second).second);
     if (elptr == NULL)         
@@ -1676,19 +1631,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         *gmsg << "Time interval between neighbour bunches is set to " << stepsPerTurn *dt << "[ns]" << endl;
     }
 
-    /*
-      transform initial coordinates and momenta from local beam frame (relative value to the bunchcenter )
-      to global Cartesian frame (absolute value ).
-      Do some other initialisation work.
-      for multi-particle Mode and single Particle Mode, output particles of ID = 0 and 1 for each  dumpfreq steps
-    */
-
     initTrackOrbitFile();
-
-    if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
-        readSEO();
-    }
-
     // get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
         restartStep0_m = itsBunch->getTrackStep();
@@ -1716,13 +1659,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 if(itsBunch->ID[ii] == 0) {
                     itsBunch->R[ii] = Vector_t(0.0);
                     itsBunch->P[ii] = Vector_t(0.0);
-                }
-                // for tuning calculation
-                if(flagDoTune_m) {
-                    if(itsBunch->ID[ii] == 1) {
-                        itsBunch->R[ii] = Vector_t(0.003, 0.0, 0.003);
-                        itsBunch->P[ii] = Vector_t(0.0);
-                    }
                 }
             }
         }
@@ -1813,11 +1749,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     if(numBunch_m > 1)
         *gmsg << "* The particles energy bin reset frequency is set to " << resetBinFreq << endl;
 
-
     // if initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
     vector<double> Ttime, Tdeltr, Tdeltz;
-    // if flagDoTune == tune for multi-particles mode and prepare for transverse tuning calculation
-    vector<double> TdeltrSC[NoSamplePart], TdeltzSC[NoSamplePart];
     vector<int> TturnNumber;
     int turnnumber = 1;
     int lastTurn = 1;
@@ -1869,12 +1802,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         bool dumpEachTurn = false;
         bool flagNeedUpdate = false;
 
-        /*
-           execute one step for initialTotalNum_m > 2 mode , initialTotalNum_m = 2 mode or initialTotalNum_m =1 mode
-
-        */
         if(initialTotalNum_m > 2) {
-
 
             // single particle dumping
             if(step_m % SinglePartDumpFreq == 0) { // dump
@@ -1887,7 +1815,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                 int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
 
-                if(!flagDoTune_m) {
                     // for all nodes, find the location of particle with ID = 0 & 1 in bunch containers
                     int found[2] = { -1, -1};
                     int counter = 0;
@@ -1970,145 +1897,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         // FixMe: why it block at here if I delete smsg? delete smsg;
 
                     }
-                } else {
-                    if(turnnumber <= StartTurnnumber)
-                        StartTime_m = t ; // [ns]
-                    else {
-                        // for all nodes, find the location of particle with ID = 0 & 1~NoSamplePart in bunch containers
-                        int found[NoSamplePart];
-                        int counter = 0;
-                        int counterAll = 0;
-                        for(unsigned int ii = 0; ii < NoSamplePart; ii++)
-                            found[ii] = -1;
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            if(itsBunch->ID[ii] < NoSamplePart) {
-                                found[counter] = ii;
-                                counter++;
-                            }
-                        }
-                        reduce(counter, counterAll, OpAddAssign());
-                        *gmsg << "Found " << counterAll << " sample particles." << endl;
-
-                        if(myNode_m == 0) {
-                            // for root node
-                            int notReceived =  Ippl::getNodes() - 1;
-                            int numberOfPart = counter;
-
-                            while(notReceived > 0) {
-                                int node = COMM_ANY_NODE;
-                                Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-                                if(rmsg == 0)
-                                    ERRORMSG("Could not receive from client nodes in main." << endl);
-                                notReceived--;
-                                rmsg->get(&numberOfPart);
-                                for(int ii = 0; ii < numberOfPart; ii++) {
-                                    rmsg->get(&id);
-                                    tmpi.push_back(id);
-                                    rmsg->get(&x);
-                                    tmpr.push_back(x);
-                                    rmsg->get(&x);
-                                    tmpr.push_back(x);
-                                    rmsg->get(&x);
-                                    tmpr.push_back(x);
-                                    rmsg->get(&x);
-                                    tmpr.push_back(x);
-                                    rmsg->get(&x);
-                                    tmpr.push_back(x);
-                                    rmsg->get(&x);
-                                    tmpr.push_back(x);
-                                }
-                                delete rmsg;
-                            }
-
-                            // check particles at local memory
-                            for(int ii = 0; ii < counter; ii++) {
-                                tmpi.push_back(itsBunch->ID[found[ii]]);
-                                for(int jj = 0; jj < 3; jj++) {
-                                    tmpr.push_back(itsBunch->R[found[ii]](jj));
-                                    tmpr.push_back(itsBunch->P[found[ii]](jj));
-                                }
-                            }
-                            vector<double>::iterator itParameter = tmpr.begin();
-                            vector<int>::iterator  itId = tmpi.begin();
-
-                            // dump into file 'INPUT_FILE_NAME-trackorbit.dat'
-                            for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
-                                if(*itId < 10) {
-                                    outfTrackOrbit_m << "ID" << *itId;
-                                    for(int ii = 0; ii < 6; ii++) {
-                                        outfTrackOrbit_m << " " << *itParameter;
-                                        itParameter++;
-                                    }
-                                    outfTrackOrbit_m << endl;
-                                }
-                            }
-                            *gmsg << "Finish receiving!" << endl;
-
-                            double r_tuning[2], z_tuning[2] ;
-                            itParameter = tmpr.begin();
-                            itId = tmpi.begin();
-
-                            for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
-                                variable_tuneSamParts_X[*itId] = *itParameter;
-                                itParameter = itParameter + 2;
-                                variable_tuneSamParts_Y[*itId] = *itParameter;
-                                itParameter = itParameter + 2;
-                                variable_tuneSamParts_Z[*itId] = *itParameter;
-                                itParameter = itParameter + 2;
-                            }
-
-                            for(unsigned int ii = 0; ii < NoSamplePart; ii++) {
-                                double tempTheta = 0.0;
-                                double minDTheta = 100.0;
-                                vector<Vector_t>::iterator itSEO, itSEO2;
-                                double tempx, tempy;
-                                double tempDTheta;
-                                variable_tune0_m[0] = variable_tuneSamParts_X[ii];
-                                variable_tune0_m[1] = variable_tuneSamParts_Y[ii];
-                                variable_tune0_m[2] = variable_tuneSamParts_Z[ii];
-                                tempTheta = calculateAngle(variable_tune0_m[0], variable_tune0_m[1]);
-
-                                for(itSEO = variable_SEO_m.begin(); itSEO != variable_SEO_m.end(); itSEO++) {
-                                    tempDTheta = std::abs(tempTheta - ((*itSEO)(0)));
-                                    if(tempDTheta < minDTheta) {
-                                        minDTheta = tempDTheta;
-                                        itSEO2 = itSEO;
-                                    }
-                                }
-
-                                tempx = (*itSEO2)(1);
-                                tempy = (*itSEO2)(2);
-
-                                r_tuning[0] = tempx * cos(tempTheta) + tempy * sin(tempTheta);
-
-                                r_tuning[1] = variable_tuneSamParts_X[ii] * cos(tempTheta) + variable_tuneSamParts_Y[ii] * sin(tempTheta);
-                                z_tuning[1] = variable_tuneSamParts_Z[ii];
-
-                                TdeltrSC[ii].push_back(r_tuning[1]  - r_tuning[0]);
-                                TdeltzSC[ii].push_back(z_tuning[1]);
-                            }
-
-                            Ttime.push_back((t - StartTime_m) * 1.0e-9);
-                            TturnNumber.push_back(turnnumber - StartTurnnumber);
-                            *gmsg << "Time = " << t << ", turn number = " << turnnumber << endl;
-                            *gmsg << "Acount time = " << t - StartTime_m << ", turn number = " << turnnumber - StartTurnnumber << endl;
-                        } else {
-                            // for other nodes
-                            Message *smsg = new Message();
-                            smsg->put(counter);
-                            for(int ii = 0; ii < counter; ii++) {
-                                smsg->put(itsBunch->ID[found[ii]]);
-                                for(int jj = 0; jj < 3; jj++) {
-                                    smsg->put(itsBunch->R[found[ii]](jj));
-                                    smsg->put(itsBunch->P[found[ii]](jj));
-                                }
-                            }
-                            bool res = Ippl::Comm->send(smsg, 0, tag);
-                            if(!res)
-                                ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
-                        }
-                    }
-                }
+                 
                 IpplTimings::stopTimer(DumpTimer_m);
             }
             //end dump
@@ -3012,34 +2801,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
               << "* Number of tracked turns: " << TturnNumber.back() << endl;
         double nur, nuz;
         getTunes(Ttime, Tdeltr, Tdeltz, TturnNumber.back(), nur, nuz);
-    } else if(flagNoDeletion && initialTotalNum_m > 2) {
-        if(myNode_m == 0 && flagDoTune_m) {
-            *gmsg << "* ******** The result for the tune calulation (WITH space charge) ********** " << endl
-                  << "* Number of tracked turns: " << TturnNumber.back() << endl;
-            double nur, nuz;
-            int  No_element = (int)(TdeltrSC[0].size());
-            for(unsigned int ii = 0; ii < NoSamplePart; ii++) {
-
-                double dR_total = accumulate(TdeltrSC[ii].begin(), TdeltrSC[ii].end(), 0);
-                double dR_average = (dR_total / No_element) ;
-                *gmsg << "* average dR = " << dR_average << endl;
-                double dZ_total = accumulate(TdeltzSC[ii].begin(), TdeltzSC[ii].end(), 0);
-                double dZ_average = (dZ_total / No_element);
-                *gmsg << "* average dZ = " << dZ_average << endl;
-                vector<double>::iterator tempIt;
-
-                for(tempIt = TdeltrSC[ii].begin(); tempIt != TdeltrSC[ii].end(); tempIt++) {
-                    *tempIt = *tempIt - dR_average;
-                }
-
-                for(tempIt = TdeltzSC[ii].begin(); tempIt != TdeltzSC[ii].end(); tempIt++) {
-                    *tempIt = *tempIt - dZ_average;
-                }
-
-                getTunes(Ttime, TdeltrSC[ii], TdeltzSC[ii], TturnNumber.back(), nur, nuz);
-
-            }
-        }
+	
     } else {
         // not for multibunch
         if(!(itsBunch->weHaveBins()))
@@ -3446,18 +3208,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         *gmsg << "Time interval between neighbour bunches is set to " << itsBunch->getStepsPerTurn() * dt * 1.0e9 << "[ns]" << endl;
     }
 
-    /*
-       transform initial coordinates and momenta from local beam frame (relative value to the bunchcenter )
-       to global Cartesian frame (absolute value ).
-       Do some other initialisation work.
-       for multi-particle Mode and single Particle Mode, output particles of ID = 0 and 1 for each  dumpfreq steps
-    */
-
     initTrackOrbitFile();
-
-    if(flagDoTune_m && initialTotalNum_m > 2 && myNode_m == 0) {
-        readSEO();
-    }
 
     // parameter for reset bin in multi-bunch run, todo: readin from inputfile
     const double eta = 0.01;
@@ -3493,13 +3244,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 if(itsBunch->ID[ii] == 0) {
                     itsBunch->R[ii] = Vector_t(0.0);
                     itsBunch->P[ii] = Vector_t(0.0);
-                }
-                // for tuning calculation
-                if(flagDoTune_m) {
-                    if(itsBunch->ID[ii] == 1) {
-                        itsBunch->R[ii] = Vector_t(0.003, 0.0, 0.003);
-                        itsBunch->P[ii] = Vector_t(0.0);
-                    }
                 }
             }
         }
