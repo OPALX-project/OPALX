@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -28,7 +28,7 @@
  * ParticleAttrib a capable expression-template participant.
  *
  * For some types such as Vektor, Tenzor, etc. which have multipple items,
- * we want to involve just the Nth item from each data element in an 
+ * we want to involve just the Nth item from each data element in an
  * expression.  The () operator here returns an object of type
  * ParticleAttribElem, which will use the () operator on each individual
  * element to access an item over which one can iterate and get just the
@@ -118,13 +118,13 @@ public:
 
 public:
   // default constructor
-  ParticleAttrib() : ParticleAttribBase(sizeof(T), DiscType<T>::str()), LocalSize(0) {
+  ParticleAttrib() : ParticleAttribBase(sizeof(T), DiscType<T>::str()), LocalSize(0), attributeIsDirty_(false) {
     INCIPPLSTAT(incParticleAttribs);
   }
 
   // copy constructor
   ParticleAttrib(const ParticleAttrib<T>& pa)
-    : ParticleAttribBase(pa), ParticleList(pa.ParticleList), LocalSize(pa.LocalSize)  {
+    : ParticleAttribBase(pa), ParticleList(pa.ParticleList), LocalSize(pa.LocalSize), attributeIsDirty_(false)  {
     INCIPPLSTAT(incParticleAttribs);
   }
 
@@ -137,7 +137,18 @@ public:
 
   typename ParticleList_t::reference
   operator[](size_t n) {
+    attributeIsDirty_ = true;
     return ParticleList[n];
+  }
+
+  /// notify user that attribute has changed. The user is responsible to
+  /// define the meaning of the dirt and clean state
+  bool isDirty() const {
+    return attributeIsDirty_;
+  }
+
+  void resetDirtyFlag() {
+    attributeIsDirty_ = false;
   }
 
   typename ParticleList_t::const_reference
@@ -197,7 +208,7 @@ public:
   scatter(Field<T,Dim,M,C>& f,
 	  const ParticleAttrib< Vektor<PT,Dim> >& pp,
 	  const IntOp& intop) const {
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", " 
+    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
 		    + CT(intop) + ")");
     TAU_PROFILE("ParticleAttrib::scatter()", taustr, TAU_PARTICLE);
 
@@ -230,7 +241,7 @@ public:
 	  const IntOp& intop,
 	  ParticleAttrib<CacheData>& cache) const {
 
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", " 
+    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
 		    + CT(intop) + ", " + CT(cache) + ")");
     TAU_PROFILE("ParticleAttrib::scatter()", taustr, TAU_PARTICLE);
 
@@ -261,7 +272,7 @@ public:
   scatter(Field<T,Dim,M,C>& f, const IntOp& intop,
 	  const ParticleAttrib<CacheData>& cache) const {
 
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", " 
+    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", "
 		    + CT(cache)  + " )" );
     TAU_PROFILE("ParticleAttrib::scatter()", taustr, TAU_PARTICLE);
 
@@ -290,7 +301,7 @@ public:
   gather(const Field<T,Dim,M,C>& f,
 	 const ParticleAttrib< Vektor<PT,Dim> >& pp,
 	 const IntOp& intop) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", " 
+    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
 		    + CT(intop)  + " )" );
     TAU_PROFILE("ParticleAttrib::gather()", taustr, TAU_PARTICLE);
 
@@ -324,7 +335,7 @@ public:
 	 const IntOp& intop,
 	 ParticleAttrib<CacheData>& cache) {
 
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", " 
+    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
 		    + CT(intop) + ", " + CT(cache) + ")");
     TAU_PROFILE("ParticleAttrib::gather()", taustr, TAU_PARTICLE);
 
@@ -356,7 +367,7 @@ public:
   gather(const Field<T,Dim,M,C>& f, const IntOp& intop,
 	 const ParticleAttrib<CacheData>& cache) {
 
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", " 
+    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", "
 		    + CT(cache)  + " )" );
     TAU_PROFILE("ParticleAttrib::gather()", taustr, TAU_PARTICLE);
 
@@ -452,7 +463,7 @@ public:
   }*/
   virtual void ghostCreate(size_t);/*
   {
-	  
+
   }*/
   // puts M particle's data starting from index I into a Message.
   // Return the number of particles put into the message.  This is for
@@ -478,7 +489,7 @@ public:
 
   // Calculate a "sort list", which is an array of data of the same
   // length as this attribute, with each element indicating the
-  // (local) index wherethe ith particle shoulkd go.  For example, 
+  // (local) index wherethe ith particle shoulkd go.  For example,
   // if there are four particles, and the sort-list is {3,1,0,2}, that
   // means the particle currently with index=0 should be moved to the third
   // position, the one with index=1 should stay where it is, etc.
@@ -514,36 +525,39 @@ protected:
   // storage for particle data
   ParticleList_t ParticleList;
   size_t LocalSize;
+
+private:
+  bool attributeIsDirty_;
 };
 
 
 //
 // iterator for data in a ParticleAttrib
 //
-//~ 
+//~
 //~ template <class T>
 //~ class ParticleAttribIterator : public PETE_Expr< ParticleAttribIterator<T> >
 //~ {
   //~ public:
     //~ typedef typename ParticleAttrib<T>::ParticleList_t ParticleList_t;
-//~ 
+//~
     //~ ParticleAttribIterator() : myList(0), curr(0) { }
-//~ 
+//~
 	//~ ParticleAttribIterator(ParticleList_t& pa)
 	  //~ : myList(&pa), curr(&(*pa.begin())) { }
-//~ 
+//~
 	//~ ParticleAttribIterator(ParticleList_t& pa, size_t offset)
 	  //~ : myList(&pa), curr(&(*(pa.begin()+offset))) { }
-//~ 
+//~
     //~ ParticleAttribIterator(const ParticleAttribIterator<T>& i)
       //~ : myList(i.myList), curr(i.curr) { }
-//~ 
+//~
     //~ // PETE interface.
     //~ typedef ParticleAttribIterator<T> PETE_Expr_t;
     //~ typedef T PETE_Return_t;
     //~ PETE_Expr_t MakeExpression() const { return *this; }
     //~ PETE_Return_t& operator*(void) const { return *curr; }
-//~ 
+//~
     //~ ParticleAttribIterator<T>& operator++(void) {
       //~ ++curr;
       //~ return *this;
@@ -560,7 +574,7 @@ protected:
     //~ }
     //~ const ParticleList_t& getParticleList() const { return *myList; }
     //~ T* getP() const { return curr; }
-//~ 
+//~
   //~ private:
     //~ ParticleList_t* myList;        // ParticleList I iterate over
     //~ T* curr;                       // iterator current position
@@ -579,7 +593,7 @@ class ParticleAttribIterator : public PETE_Expr< ParticleAttribIterator<T> >
     typedef std::input_iterator_tag iterator_category;
 
     ParticleAttribIterator() : attrib(0) { }
-	  
+
 	ParticleAttribIterator(ParticleAttrib<T> *pa)
 	  : attrib(pa), curr(pa->ParticleList.begin()) { }
 
@@ -630,10 +644,10 @@ class ParticleAttribConstIterator : public PETE_Expr< ParticleAttribConstIterato
     typedef std::input_iterator_tag iterator_category;
 
     ParticleAttribConstIterator() : attrib(0) { }
-    
+
     ParticleAttribConstIterator(const ParticleAttrib<T> * pa)
       : attrib(pa), curr(pa->ParticleList.begin()) { }
-    
+
     ParticleAttribConstIterator(const ParticleAttrib<T> * pa, size_t offset)
       : attrib(pa), curr(pa->ParticleList.begin()+offset) { }
 
@@ -731,7 +745,7 @@ void gather(ParticleAttrib<FT>& attrib, const Field<FT,Dim,M,C>& f,
   attrib.gather(f, intop, cache);
 }
 
-// This scatter function computes the particle number density by 
+// This scatter function computes the particle number density by
 // scattering the scalar value val for each particle into the Field.
 template <class FT, unsigned Dim, class M, class C, class PT, class IntOp>
 void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
@@ -751,7 +765,7 @@ void scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
              const ParticleAttrib<CacheData>& cache, FT val);
 
 // mwerks: addeded this to work around default-arg bug:
-// This scatter function computes the particle number density by 
+// This scatter function computes the particle number density by
 // scattering the scalar value val for each particle into the Field.
 template <class FT, unsigned Dim, class M, class C, class PT, class IntOp>
 inline void scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
@@ -784,5 +798,5 @@ inline void scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
 /***************************************************************************
  * $RCSfile: ParticleAttrib.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: ParticleAttrib.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleAttrib.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/
