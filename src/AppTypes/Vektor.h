@@ -19,6 +19,7 @@
 
 #ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
+#include <iomanip>
 #else
 #include <iostream.h>
 #endif
@@ -39,7 +40,7 @@ public:
   enum { Size = D };
 
   // Default Constructor initializes to zero.
-  Vektor() { 
+  Vektor() {
     TSV_MetaAssignScalar<Vektor<T,D>,T,OpAssign>::apply(*this,T(0));
   }
 
@@ -265,13 +266,15 @@ cross(const Vektor<T1,D> &lhs, const Vektor<T2,D> &rhs)
 template<class T, unsigned D>
 inline std::ostream& operator<<(std::ostream& out, const Vektor<T,D>& rhs)
 {
+  std::streamsize sw = out.width();
+  out << std::setw(1);
   if (D >= 1) {
     out << "( ";
     for (unsigned int i=0; i<D - 1; i++)
-      out << rhs[i] << " , ";
-    out << rhs[D - 1] << " )";
+      out << std::setw(sw) << rhs[i] << " , ";
+    out << std::setw(sw) << rhs[D - 1] << " )";
   } else {
-    out << "( " << rhs[0] << " )";
+    out << "( " << std::setw(sw) << rhs[0] << " )";
   }
 
   return out;
