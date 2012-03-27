@@ -113,13 +113,13 @@ public:
   typedef std::ios_base::fmtflags FmtFlags_t;
 #endif
 
-  FmtFlags_t setf(FmtFlags_t setbits, FmtFlags_t field) 
+  FmtFlags_t setf(FmtFlags_t setbits, FmtFlags_t field)
   { return FormatBuf.setf(setbits,field); }
-  
+
   FmtFlags_t setf(FmtFlags_t f) { return FormatBuf.setf(f); }
   void /*long*/ unsetf(FmtFlags_t f) { FormatBuf.unsetf(f); }
-  long flags() const { return FormatBuf.flags(); }
-  long flags(FmtFlags_t f) { return FormatBuf.flags(f); }
+  FmtFlags_t flags() const { return FormatBuf.flags(); }
+  FmtFlags_t flags(FmtFlags_t f) { return FormatBuf.flags(f); }
   int width() const { return FormatBuf.width(); }
   int width(int w) { return FormatBuf.width(w); }
   char fill() const { return FormatBuf.fill(); }
