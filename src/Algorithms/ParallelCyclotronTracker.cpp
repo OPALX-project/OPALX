@@ -15,13 +15,6 @@
 // $Author: adelmann, yang $
 //
 // ------------------------------------------------------------------------
-
-/*
-  - Have RK4 and LF the very same functions implemented?
-
-
-
-*/
 #include <cfloat>
 #include <iostream>
 #include <fstream>
@@ -51,7 +44,7 @@
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "BeamlineGeometry/RBendGeometry.h"
+b#include "BeamlineGeometry/RBendGeometry.h"
 #include "Beamlines/Beamline.h"
 
 #include "Fields/BMultipoleField.h"
@@ -896,7 +889,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     initTrackOrbitFile();
 
-    // parameter for reset bin in multi-bunch run, todo: readin from inputfile
+    // parameter for reset bin in multi-bunch run
     const  double eta = 0.01;
 
     int SteptoLastInj = itsBunch->getSteptoLastInj();
@@ -1103,7 +1096,6 @@ void ParallelCyclotronTracker::Tracker_LF() {
     *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
-        bool flagNeedUpdate = false;
         if(step_m % SinglePartDumpFreq == 0) {
             singleParticleDump();
         }
@@ -1360,78 +1352,17 @@ void ParallelCyclotronTracker::Tracker_LF() {
         itsBunch->R *= Vector_t(0.001);
         push(0.5 * dt * 1e-9);
         itsBunch->R *= Vector_t(1000.0);
-
-
-        for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-            if(((*sindex)->first) == "SEPTUM")    {
-                (dynamic_cast<Septum *>(((*sindex)->second).second))->checkSeptum(*itsBunch);
-            }
-
-            if(((*sindex)->first) == "PROBE")    {
-                (dynamic_cast<Probe *>(((*sindex)->second).second))->
-                    checkProbe(*itsBunch, turnnumber, dt);
-            }
-
-            if(((*sindex)->first) == "STRIPPER")    {
-                bool flag_stripper = (dynamic_cast<Stripper *>(((*sindex)->second).second))
-		  -> checkStripper(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
-		if(flag_stripper) {
-		  itsBunch->boundp();
-		  *gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
-		}
-	    }
-
-            if(((*sindex)->first) == "CCOLLIMATOR")    {
-                if((dynamic_cast<Collimator *>(((*sindex)->second).second))->hasSurfacePhysics()) {
-                    sphys = (dynamic_cast<Collimator *>(((*sindex)->second).second))
-                            ->getSurfacePhysics();
-                    sphys->apply(*itsBunch);
-                }else {
-		  (dynamic_cast<Collimator *>(((*sindex)->second).second))->
-                      checkCollimator(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
-		}
-            }
-        }
-        bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
-
-	size_t lostParticleNum = 0;
-	if(globPartOutOfBounds) {
-	  lostParticleNum=itsBunch->boundp_destroyT();
-	  *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator or septum" << endl;
-	  flagNeedUpdate = true;
-        }
-        reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-
-        // update immediately if some particle are lost during this step
-        if(flagNeedUpdate) {
-            Vector_t const meanR = calcMeanR();
-            Vector_t const meanP = calcMeanP();
-            double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-            globalToLocal(itsBunch->R, phi, meanR);
-
-            //scale coordinates
-            itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-            // now destroy particles and update pertinent parameters in local frame
-            itsBunch->boundp();
-            repartition();
-
-            //scale coordinates back
-            itsBunch->R *= Vector_t(1000.0); // m --> mm
-            
-            localToGlobal(itsBunch->R, phi, meanR);
-        }
-
-        if(itsBunch->weHaveBins() && flagNeedUpdate)
+	
+	// apply the plugin elements: probe, collimator, stripper, septum 
+	bool flagNeedUpdate=false;
+	flagNeedUpdate = applyPluginElements(turnnumber, dt);
+	if(itsBunch->weHaveBins() && flagNeedUpdate)
+	  itsBunch->resetPartBinID2(eta);
+	
+        // recalculate bingamma and reset the BinID for each particles according to its current gamma
+        if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
             itsBunch->resetPartBinID2(eta);
 
-        //end new element
-        // recalculate bingamma and reset the BinID for each particles according to its current gamma
-        if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
-            if(step_m % resetBinFreq == 0) {
-                itsBunch->resetPartBinID2(eta);
-            }
-        }
         // dump  data after one push in single particle tracking
         if(initialTotalNum_m == 1) {
             int i = 0;
@@ -1510,9 +1441,6 @@ void ParallelCyclotronTracker::Tracker_LF() {
                 *gmsg << "Turn " << turnnumber << " total particles " << itsBunch->getTotalNum() << endl;
             }
         }
-        // reset Bin ID for each particle
-        if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
-            itsBunch->resetPartBinID2(eta);
 
         // dump phase space distribution of bunch
         if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2) ||
@@ -1740,6 +1668,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     const int scSolveFreq = Options::scSolveFreq;
     const bool doDumpAfterEachTurn = Options::psDumpEachTurn;
 
+    // parameter for reset bin in multi-bunch run, todo: readin from inputfile
+    const  double eta = 0.01;
+
     int boundpDestroyFreq = 10; // todo: is it better treat as a control parameter
 
     // prepare for dump after each turn
@@ -1804,8 +1735,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
-        bool flagNeedUpdate = false;
-
         if(initialTotalNum_m > 2) {
 
             // single particle dumping
@@ -2362,98 +2291,16 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                     } // end if: gap-crossing monentum kicking at certain cavity
                 } //end for: finish checking for all cavities
             } //end for: finish one step tracking for all particles for initialTotalNum_m != 2 mode
-
-            for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-                if(((*sindex)->first) == "SEPTUM")    {
-                    (dynamic_cast<Septum *>(((*sindex)->second).second))->checkSeptum(*itsBunch);
-                }
-
-                if(((*sindex)->first) == "PROBE")    {
-                    (dynamic_cast<Probe *>(((*sindex)->second).second))->
-                        checkProbe(*itsBunch, turnnumber, dt);
-                }
-                if(((*sindex)->first) == "STRIPPER")    {
-                    bool flag_stripper = (dynamic_cast<Stripper *>(((*sindex)->second).second))
-		      -> checkStripper(*itsBunch, turnnumber, t, dt);
-                    if(flag_stripper) {
-		      itsBunch->boundp();
-		      *gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
-			
-                    }
-                }
-		
-		if(((*sindex)->first) == "CCOLLIMATOR")    {
-		  if((dynamic_cast<Collimator *>(((*sindex)->second).second))->hasSurfacePhysics()) {
-                    sphys = (dynamic_cast<Collimator *>(((*sindex)->second).second))
-		      ->getSurfacePhysics();
-                    sphys->apply(*itsBunch);
-		  }else {
-                      (dynamic_cast<Collimator *>(((*sindex)->second).second))->
-                          checkCollimator(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
-		  }
-		}
-            }
-            bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
-            size_t lostParticleNum = 0;
-            if(globPartOutOfBounds) {
-	      lostParticleNum=itsBunch->boundp_destroyT();
-	      *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator or septum" << endl;
-	      flagNeedUpdate = true;
-            }
-            reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-
-
-            // update immediately if some particle are lost during this step
-            if(flagNeedUpdate) {
-                Vector_t meanR = calcMeanR();
-                Vector_t meanP = calcMeanP();
-	      
-                // in global Cartesian frame, calculate the direction of longitudinal angle of bunch
-                double meanPhi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-
-                double cosTemp_meanPhi = cos(meanPhi);
-                double sinTemp_meanPhi = sin(meanPhi);
-
-                // remove mean coordinates
-                itsBunch->R -= meanR;
-
-                //scale coordinates
-                itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-                for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                    double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_meanPhi  + itsBunch->R[ii](1) * sinTemp_meanPhi;
-                    double temp_RLongitudinal = -itsBunch->R[ii](0) * sinTemp_meanPhi  + itsBunch->R[ii](1) * cosTemp_meanPhi;
-
-                    itsBunch->R[ii](0) = temp_RHorizontal;
-                    itsBunch->R[ii](1) = temp_RLongitudinal;
-                }
-
-                // now destroy particles and update pertinent parameters in local frame
-                itsBunch->boundp();
-
-                repartition();
-                for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                    double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_meanPhi  - itsBunch->R[ii](1) * sinTemp_meanPhi;
-                    double temp_RLongitudinal =  itsBunch->R[ii](0) * sinTemp_meanPhi  + itsBunch->R[ii](1) * cosTemp_meanPhi;
-
-                    itsBunch->R[ii](0) = temp_RHorizontal;
-                    itsBunch->R[ii](1) = temp_RLongitudinal;
-                }
-
-                //scale coordinates back
-                itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-                // retrieve mean coordinates
-                itsBunch->R += meanR;
-
-            }
-
-            //  if(itsBunch->weHaveBins() && flagNeedUpdate)
-            // todo: itsBunch->resetPartBinID2(eta);
-
-            if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
-                itsBunch->resetPartBinID();
-
+	    
+	    // apply the plugin elements: probe, collimator, stripper, septum 
+	    bool flagNeedUpdate=false;
+	    flagNeedUpdate = applyPluginElements(turnnumber, dt);
+	    if(itsBunch->weHaveBins() && flagNeedUpdate)
+	      itsBunch->resetPartBinID2(eta);
+	    
+	    // recalculate bingamma and reset the BinID for each particles according to its current gamma
+	    if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
+	      itsBunch->resetPartBinID2(eta);
 
             if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
                 turnnumber++;
@@ -2649,17 +2496,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 }// end if: gap-crossing monentum kicking at certain cavity
             }//end for: finish checking for all cavities
 
-            for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-                if(((*sindex)->first) == "STRIPPER")    {
-                    bool flag_stripper = (dynamic_cast<Stripper *>(((*sindex)->second).second))
-		      -> checkStripper(*itsBunch, turnnumber, t, dt);
-		    if(flag_stripper) {
-		      itsBunch->boundp();
-		      *gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
-                    }
-                }
-            }
-
+	    // apply the plugin elements: probe, collimator, stripper, septum 
+	    applyPluginElements(turnnumber, dt);
+	    
 	    IpplTimings::stopTimer(IntegrationTimer_m);
         }//end if: finish one step tracking either for initialTotalNum_m==2 || initialTotalNum_m==2 || initialTotalNum_m==1 mode
 
@@ -3386,7 +3225,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
-        bool flagNeedUpdate = false;
         if(step_m % Options::sptDumpFreq == 0) {
             itsBunch->R *= Vector_t(1000.0);
             singleParticleDump();
@@ -3545,54 +3383,11 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             borisExternalFields(dt_inner);
         }
 
-        for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-            if(((*sindex)->first) == "SEPTUM") {
-                Septum * septum = static_cast<Septum *>(((*sindex)->second).second);
-                septum->checkSeptum(*itsBunch);
-            }
-            if(((*sindex)->first) == "PROBE") {
-                Probe * probe = static_cast<Probe *>(((*sindex)->second).second);
-                probe->checkProbe(*itsBunch, turnnumber, dt * 1e9);
-            }
-            if(((*sindex)->first) == "STRIPPER") {
-                Stripper * stripper = static_cast<Stripper *>(((*sindex)->second).second);
-		        if(stripper->checkStripper(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt * 1e9)) {
-		            itsBunch->boundp();
-		            *gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
-		        }
-	        }
-            if(((*sindex)->first) == "CCOLLIMATOR") {
-                Collimator * collimator = static_cast<Collimator *>(((*sindex)->second).second);
-                if(collimator->hasSurfacePhysics()) {
-                    sphys = collimator->getSurfacePhysics();
-                    sphys->apply(*itsBunch);
-                } else {
-		            collimator->checkCollimator(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt * 1e9);
-		        }
-            }
-        }
-        bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
-        size_t lostParticleNum = 0;
-        if(globPartOutOfBounds) {
-            lostParticleNum=itsBunch->boundp_destroyT();
-            *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator or septum" << endl;
-            flagNeedUpdate = true;
-        }
-        reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-
-        // update immediately if some particle are lost during this step
-        if(flagNeedUpdate) {
-            Vector_t const meanP = calcMeanP();
-            double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-            Vector_t const meanR = calcMeanR();
-            globalToLocal(itsBunch->R, phi, meanR);
-            itsBunch->boundp();
-            repartition();
-            localToGlobal(itsBunch->R, phi, meanR);
-        }
-
-        if(itsBunch->weHaveBins() && flagNeedUpdate)
-            itsBunch->resetPartBinID2(eta);
+	// apply the plugin elements: probe, collimator, stripper, septum 
+	bool flagNeedUpdate=false;
+	flagNeedUpdate = applyPluginElements(turnnumber, dt);
+	if(itsBunch->weHaveBins() && flagNeedUpdate)
+	  itsBunch->resetPartBinID2(eta);
 
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
@@ -3908,35 +3703,73 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
 
     // push particles for second half step
     push(0.5 * h);
-
 }
 
-void ParallelCyclotronTracker::readSEO() {
-    string f = string("S") + OpalData::getInstance()->getInputFn() + string("-trackOrbit.dat");
-    ifstream inf;
-    inf.open(f.c_str(), ios::in);
-    if(inf.fail()) {
-        *gmsg << "Cannot open file " << f << " for tune calculation, please check if it really exists." << endl;
-        exit(1);
-    }
-    char skipChar[100];
-    if(!inf.eof()) {
-        for(int i = 0; i < 14; ++i) {
-            inf >> skipChar;
-        }
-    }
-    double skipNum;
-    while(!inf.eof()) {
-        Vector_t tempSEO;
-        inf >> skipChar >> tempSEO(1) >> skipNum >> tempSEO(2) >> skipNum >> skipNum >> skipNum;
-        if(inf.eof()) break;
-        tempSEO(0) = calculateAngle(tempSEO(1), tempSEO(2));
-        variable_SEO_m.push_back(tempSEO);
-    }
-    inf.close();
-    *gmsg << "Finish reading in SEO file for tune calculation" << endl;
-}
+bool ParallelCyclotronTracker::applyPluginElements(const int turnnumber, const double dt) {
 
+  bool flagNeedUpdate = false;
+  for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
+    if(((*sindex)->first) == "SEPTUM")    {
+      (static_cast<Septum *>(((*sindex)->second).second))->checkSeptum(*itsBunch);
+    }
+    
+    if(((*sindex)->first) == "PROBE")    {
+      (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch, turnnumber, dt);
+    }
+    
+    if(((*sindex)->first) == "STRIPPER")    {
+      bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
+	-> checkStripper(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
+      if(flag_stripper) {
+	itsBunch->boundp();
+	*gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
+      }
+    }
+    
+    if(((*sindex)->first) == "CCOLLIMATOR") {
+        Collimator * collim;
+	collim = static_cast<Collimator *>(((*sindex)->second).second);
+	if(collim->hasSurfacePhysics()) {
+	  sphys = collim->getSurfacePhysics();
+	  sphys->apply(*itsBunch);
+	} else {
+	  collim->checkCollimator(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
+	}
+    }
+    
+    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
+    
+    size_t lostParticleNum = 0;
+    if(globPartOutOfBounds) {
+      lostParticleNum=itsBunch->boundp_destroyT();
+      *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator or septum" << endl;
+      flagNeedUpdate = true;
+    }
+    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+    
+    // update immediately if some particle are lost during this step
+    if(flagNeedUpdate) {
+      Vector_t const meanR = calcMeanR();
+      Vector_t const meanP = calcMeanP();
+      double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+      globalToLocal(itsBunch->R, phi, meanR);
+      
+      //scale coordinates
+      itsBunch->R /= Vector_t(1000.0); // mm --> m
+      
+      // now destroy particles and update pertinent parameters in local frame
+      itsBunch->boundp();
+      repartition();
+      
+      //scale coordinates back
+      itsBunch->R *= Vector_t(1000.0); // m --> mm
+      
+      localToGlobal(itsBunch->R, phi, meanR);
+    }
+  }
+  return flagNeedUpdate;
+}
+  
 void ParallelCyclotronTracker::initTrackOrbitFile() {
     std::string f = inputFileNameWithoutExtension() + string("-trackOrbit.dat");
     outfTrackOrbit_m.setf(ios::scientific, ios::floatfield);

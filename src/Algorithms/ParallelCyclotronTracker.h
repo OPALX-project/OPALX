@@ -330,8 +330,9 @@ private:
     // Apply the trilogy half push - kick - half push,
     // considering only external fields
     void borisExternalFields(double h);
-
-    void readSEO();
+    
+    // apply the plugin elements: probe, collimator, stripper, septum 
+    bool applyPluginElements(const int turnnumber, const double dt);
 
     std::ofstream outfTrackOrbit_m;
 
