@@ -135,20 +135,21 @@ public:
   // bracket operators to access the Nth particle data
   //
 
-  typename ParticleList_t::reference
-  operator[](size_t n) {
-    attributeIsDirty_ = true;
-    return ParticleList[n];
-  }
-
   /// notify user that attribute has changed. The user is responsible to
   /// define the meaning of the dirt and clean state
-  bool isDirty() const {
+  bool isDirty() {
+    reduce(attributeIsDirty_, attributeIsDirty_, OpOr());
     return attributeIsDirty_;
   }
 
   void resetDirtyFlag() {
     attributeIsDirty_ = false;
+  }
+
+  typename ParticleList_t::reference
+  operator[](size_t n) {
+    attributeIsDirty_ = true;
+    return ParticleList[n];
   }
 
   typename ParticleList_t::const_reference
