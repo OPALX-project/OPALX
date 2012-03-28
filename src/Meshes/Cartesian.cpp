@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -40,7 +40,7 @@
 // Setup chores common to all constructors:
 //-----------------------------------------------------------------------------
 template <unsigned Dim, class MFLOAT>
-void 
+void
 Cartesian<Dim,MFLOAT>::
 setup()
 {
@@ -286,7 +286,7 @@ Cartesian(const Index& I, const Index& J, const Index& K)
   gridSizes[1] = J.length();  // Number of vertices along this dimension.
   gridSizes[2] = K.length();  // Number of vertices along this dimension.
   // Setup chores, such as array allocations
-  setup();                   
+  setup();
   origin(0) = I.first();    // Default origin at I.first(),J.first(),K.first()
   origin(1) = J.first();
   origin(2) = K.first();
@@ -624,7 +624,7 @@ initialize(const Index& I, const Index& J, const Index& K)
   gridSizes[1] = J.length();  // Number of vertices along this dimension.
   gridSizes[2] = K.length();  // Number of vertices along this dimension.
   // Setup chores, such as array allocations
-  setup();                   
+  setup();
   origin(0) = I.first();    // Default origin at I.first(),J.first(),K.first()
   origin(1) = J.first();
   origin(2) = K.first();
@@ -725,7 +725,7 @@ set_origin(const Vektor<MFLOAT,Dim>& o)
   for (unsigned d=0; d<Dim; ++d) {
     (meshPosition[d])[0] = o(d);
     for (unsigned vert=1; vert<gridSizes[d]; ++vert) {
-      (meshPosition[d])[vert] = (meshPosition[d])[vert-1] + 
+      (meshPosition[d])[vert] = (meshPosition[d])[vert-1] +
                                 (meshSpacing[d])[vert-1];
     }
   }
@@ -786,7 +786,7 @@ void Cartesian<Dim,MFLOAT>::
 get_meshSpacing(unsigned d, MFLOAT* spacings) const
 {
   PAssert(d<Dim);
-  for (int cell=0; cell < gridSizes[d]-1; cell++) 
+  for (int cell=0; cell < gridSizes[d]-1; cell++)
     spacings[cell] = (*(meshSpacing[d].find(cell))).second;
   return;
 }
@@ -796,14 +796,14 @@ get_meshSpacing(unsigned d, MFLOAT* spacings) const
 //leak {
 //leak   PAssert(d<Dim);
 //leak   MFLOAT* theMeshSpacing = new MFLOAT[gridSizes[d]-1];
-//leak   for (int cell=0; cell < gridSizes[d]-1; cell++) 
+//leak   for (int cell=0; cell < gridSizes[d]-1; cell++)
 //leak     theMeshSpacing[cell] = (*(meshSpacing[d].find(cell))).second;
 //leak   return theMeshSpacing;
 //leak }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// Applicative templates for Mesh BC PETE_apply() functions, used 
+// Applicative templates for Mesh BC PETE_apply() functions, used
 // by BrickExpression in storeSpacingFields()
 
 // Periodic:
@@ -827,10 +827,10 @@ struct OpMeshExtrapolate
   T Offset, Slope;
 };
 // template<class T>
-// inline void apply(OpMeshExtrapolate<T> e, T& a, T b) 
+// inline void apply(OpMeshExtrapolate<T> e, T& a, T b)
 template<class T>
-inline void PETE_apply(OpMeshExtrapolate<T> e, T& a, T b) 
-{ 
+inline void PETE_apply(OpMeshExtrapolate<T> e, T& a, T b)
+{
   a = b*e.Slope+e.Offset;
 }
 
@@ -896,11 +896,11 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
     // allocate layouts and spacing fields
     FlCell = new FieldLayout<Dim>(cells, et, vnodes);
     // Note: enough guard cells only for existing Div(), etc. implementations:
-    VertSpacings = 
+    VertSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlCell,GuardCellSizes<Dim>(1));
     FlVert = new FieldLayout<Dim>(verts, et, vnodes);
     // Note: enough guard cells only for existing Div(), etc. implementations:
-    CellSpacings = 
+    CellSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlVert,GuardCellSizes<Dim>(1));
   }
   // VERTEX-VERTEX SPACINGS:
@@ -911,7 +911,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
     cfi_end = vertSpacings.end();
   for (cfi = vertSpacings.begin(); cfi != cfi_end; ++cfi) {
     cfi.GetCurrentLocation(currentLocation);
-    for (d=0; d<Dim; d++) 
+    for (d=0; d<Dim; d++)
       vertexSpacing(d) = (*(meshSpacing[d].find(currentLocation[d]))).second;
     *cfi = vertexSpacing;
   }
@@ -923,7 +923,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
     vfi_end = cellSpacings.end();
   for (vfi = cellSpacings.begin(); vfi != vfi_end; ++vfi) {
     vfi.GetCurrentLocation(currentLocation);
-    for (d=0; d<Dim; d++) 
+    for (d=0; d<Dim; d++)
       cellSpacing(d) = 0.5 * ((meshSpacing[d])[currentLocation[d]] +
                               (meshSpacing[d])[currentLocation[d]-1]);
     *vfi = cellSpacing;
@@ -954,18 +954,18 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
     // Shrink it down to be the guards along the active face:
     d = face/2;
     // The following bitwise AND logical test returns true if face is odd
-    // (meaning the "high" or "right" face in the numbering convention) and 
-    // returns false if face is even (meaning the "low" or "left" face in 
+    // (meaning the "high" or "right" face in the numbering convention) and
+    // returns false if face is even (meaning the "low" or "left" face in
     // the numbering convention):
     if ( face & 1 ) {
-      cSlab[d] = Index(verts[d].max() + 1, 
+      cSlab[d] = Index(verts[d].max() + 1,
 		       verts[d].max() + cellSpacings.rightGuard(d));
-      vSlab[d] = Index(cells[d].max() + 1, 
+      vSlab[d] = Index(cells[d].max() + 1,
 		       cells[d].max() + vertSpacings.rightGuard(d));
     } else {
-      cSlab[d] = Index(verts[d].min() - cellSpacings.leftGuard(d), 
+      cSlab[d] = Index(verts[d].min() - cellSpacings.leftGuard(d),
 		       verts[d].min() - 1);
-      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d), 
+      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d),
 		       cells[d].min() - 1);
     }
     // Compute pointer offsets used with LField::iterator below:
@@ -978,7 +978,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
       } else {
 	coffset = verts[d].length();
 	voffset = cells[d].length();
-      }	
+      }
       break;
     case Reflective:
       bct = Reflective;
@@ -988,7 +988,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
       } else {
 	coffset = 2*verts[d].min() - 1;
 	voffset = 2*cells[d].min() - 1 + 1;
-      }	
+      }
       break;
     case NoBC:
       bct = NoBC;
@@ -998,7 +998,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
       } else {
 	coffset = 2*verts[d].min() - 1;
 	voffset = 2*cells[d].min() - 1 + 1;
-      }	
+      }
       break;
     default:
       ERRORMSG("Cartesian::storeSpacingFields(): unknown MeshBC type" << endl);
@@ -1007,7 +1007,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 
     // Loop over all the LField's in the BareField's:
     // +++++++++++++++cellSpacings++++++++++++++
-    for (cfill_i=cellSpacings.begin_if(); 
+    for (cfill_i=cellSpacings.begin_if();
 	 cfill_i!=cellSpacings.end_if(); ++cfill_i)
       {
 	// Cache some things we will use often below.
@@ -1015,7 +1015,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	LField<T,Dim> &fill = *(*cfill_i).second;
 	// NDIndex spanning all elements in the LField, including the guards:
 	const NDIndex<Dim> &fill_alloc = fill.getAllocated();
-	// If the previously-created boundary guard-layer NDIndex "cSlab" 
+	// If the previously-created boundary guard-layer NDIndex "cSlab"
 	// contains any of the elements in this LField (they will be guard
 	// elements if it does), assign the values into them here by applying
 	// the boundary condition:
@@ -1027,17 +1027,17 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	    // For exrapolation boundary conditions, the boundary guard-layer
 	    // elements are typically copied from interior values; the "src"
 	    // NDIndex specifies the interior elements to be copied into the
-	    // "dest" boundary guard-layer elements (possibly after some 
+	    // "dest" boundary guard-layer elements (possibly after some
 	    // mathematical operations like multipplying by minus 1 later):
 	    NDIndex<Dim> src = dest; // Create dest equal to src
-	    // Now calculate the interior elements; the coffset variable 
+	    // Now calculate the interior elements; the coffset variable
 	    // computed above makes this right for "low" or "high" face cases:
 	    src[d] = coffset - src[d];
 
 	    // TJW: Why is there another loop over LField's here??????????
 	    // Loop over the ones that src touches.
 	    typename BareField<T,Dim>::iterator_if from_i;
-	    for (from_i=cellSpacings.begin_if(); 
+	    for (from_i=cellSpacings.begin_if();
 		 from_i!=cellSpacings.end_if(); ++from_i)
 	      {
 		// Cache a few things.
@@ -1057,7 +1057,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 		    if (bct == Periodic) {
 		      BrickExpression<Dim,LFI,LFI,OpMeshPeriodic<T> >
 			(lhs,rhs,OpMeshPeriodic<T>()).apply();
-		    } else { 
+		    } else {
 		      if (bct == Reflective) {
 			BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			  (lhs,rhs,OpMeshExtrapolate<T>(v0,v1)).apply();
@@ -1065,7 +1065,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 			if (bct == NoBC) {
 			  BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			    (lhs,rhs,OpMeshExtrapolate<T>(v0,v0)).apply();
-			}		      
+			}
 		      }
 		    }
 		  }
@@ -1073,7 +1073,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	  }
       }
     // +++++++++++++++vertSpacings++++++++++++++
-    for (vfill_i=vertSpacings.begin_if(); 
+    for (vfill_i=vertSpacings.begin_if();
 	 vfill_i!=vertSpacings.end_if(); ++vfill_i)
       {
 	// Cache some things we will use often below.
@@ -1081,7 +1081,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	LField<T,Dim> &fill = *(*vfill_i).second;
 	// NDIndex spanning all elements in the LField, including the guards:
 	const NDIndex<Dim> &fill_alloc = fill.getAllocated();
-	// If the previously-created boundary guard-layer NDIndex "cSlab" 
+	// If the previously-created boundary guard-layer NDIndex "cSlab"
 	// contains any of the elements in this LField (they will be guard
 	// elements if it does), assign the values into them here by applying
 	// the boundary condition:
@@ -1093,17 +1093,17 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	    // For exrapolation boundary conditions, the boundary guard-layer
 	    // elements are typically copied from interior values; the "src"
 	    // NDIndex specifies the interior elements to be copied into the
-	    // "dest" boundary guard-layer elements (possibly after some 
+	    // "dest" boundary guard-layer elements (possibly after some
 	    // mathematical operations like multipplying by minus 1 later):
 	    NDIndex<Dim> src = dest; // Create dest equal to src
-	    // Now calculate the interior elements; the voffset variable 
+	    // Now calculate the interior elements; the voffset variable
 	    // computed above makes this right for "low" or "high" face cases:
 	    src[d] = voffset - src[d];
 
 	    // TJW: Why is there another loop over LField's here??????????
 	    // Loop over the ones that src touches.
 	    typename BareField<T,Dim>::iterator_if from_i;
-	    for (from_i=vertSpacings.begin_if(); 
+	    for (from_i=vertSpacings.begin_if();
 		 from_i!=vertSpacings.end_if(); ++from_i)
 	      {
 		// Cache a few things.
@@ -1123,7 +1123,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 		    if (bct == Periodic) {
 		      BrickExpression<Dim,LFI,LFI,OpMeshPeriodic<T> >
 			(lhs,rhs,OpMeshPeriodic<T>()).apply();
-		    } else { 
+		    } else {
 		      if (bct == Reflective) {
 			BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			  (lhs,rhs,OpMeshExtrapolate<T>(v0,v1)).apply();
@@ -1131,16 +1131,16 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 			if (bct == NoBC) {
 			  BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			    (lhs,rhs,OpMeshExtrapolate<T>(v0,v0)).apply();
-			}		      
+			}
 		      }
 		    }
 		  }
 	      }
 	  }
       }
-    
+
   }
-  
+
   hasSpacingFields = true; // Flag this as having been done to this object.
 }
 
@@ -1202,8 +1202,8 @@ storeSpacingFields(e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 // The general storeSpacingfields() function; others invoke this internally:
 template<unsigned Dim, class MFLOAT>
 void Cartesian<Dim,MFLOAT>::
-storeSpacingFields(e_dim_tag *p, 
-		   unsigned* vnodesPerDirection, 
+storeSpacingFields(e_dim_tag *p,
+		   unsigned* vnodesPerDirection,
 		   bool recurse, int vnodes) {
   int d;
   int currentLocation[Dim];
@@ -1214,15 +1214,15 @@ storeSpacingFields(e_dim_tag *p,
   }
   if (!hasSpacingFields) {
     // allocate layouts and spacing fields
-    FlCell = 
+    FlCell =
       new FieldLayout<Dim>(cells, p, vnodesPerDirection, recurse, vnodes);
     // Note: enough guard cells only for existing Div(), etc. implementations:
-    VertSpacings = 
+    VertSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlCell,GuardCellSizes<Dim>(1));
-    FlVert = 
+    FlVert =
       new FieldLayout<Dim>(verts, p, vnodesPerDirection, recurse, vnodes);
     // Note: enough guard cells only for existing Div(), etc. implementations:
-    CellSpacings = 
+    CellSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlVert,GuardCellSizes<Dim>(1));
   }
   // VERTEX-VERTEX SPACINGS:
@@ -1233,7 +1233,7 @@ storeSpacingFields(e_dim_tag *p,
     cfi_end = vertSpacings.end();
   for (cfi = vertSpacings.begin(); cfi != cfi_end; ++cfi) {
     cfi.GetCurrentLocation(currentLocation);
-    for (d=0; d<Dim; d++) 
+    for (d=0; d<Dim; d++)
       vertexSpacing(d) = (*(meshSpacing[d].find(currentLocation[d]))).second;
     *cfi = vertexSpacing;
   }
@@ -1245,7 +1245,7 @@ storeSpacingFields(e_dim_tag *p,
     vfi_end = cellSpacings.end();
   for (vfi = cellSpacings.begin(); vfi != vfi_end; ++vfi) {
     vfi.GetCurrentLocation(currentLocation);
-    for (d=0; d<Dim; d++) 
+    for (d=0; d<Dim; d++)
       cellSpacing(d) = 0.5 * ((meshSpacing[d])[currentLocation[d]] +
                               (meshSpacing[d])[currentLocation[d]-1]);
     *vfi = cellSpacing;
@@ -1276,18 +1276,18 @@ storeSpacingFields(e_dim_tag *p,
     // Shrink it down to be the guards along the active face:
     d = face/2;
     // The following bitwise AND logical test returns true if face is odd
-    // (meaning the "high" or "right" face in the numbering convention) and 
-    // returns false if face is even (meaning the "low" or "left" face in 
+    // (meaning the "high" or "right" face in the numbering convention) and
+    // returns false if face is even (meaning the "low" or "left" face in
     // the numbering convention):
     if ( face & 1 ) {
-      cSlab[d] = Index(verts[d].max() + 1, 
+      cSlab[d] = Index(verts[d].max() + 1,
 		       verts[d].max() + cellSpacings.rightGuard(d));
-      vSlab[d] = Index(cells[d].max() + 1, 
+      vSlab[d] = Index(cells[d].max() + 1,
 		       cells[d].max() + vertSpacings.rightGuard(d));
     } else {
-      cSlab[d] = Index(verts[d].min() - cellSpacings.leftGuard(d), 
+      cSlab[d] = Index(verts[d].min() - cellSpacings.leftGuard(d),
 		       verts[d].min() - 1);
-      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d), 
+      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d),
 		       cells[d].min() - 1);
     }
     // Compute pointer offsets used with LField::iterator below:
@@ -1300,7 +1300,7 @@ storeSpacingFields(e_dim_tag *p,
       } else {
 	coffset = verts[d].length();
 	voffset = cells[d].length();
-      }	
+      }
       break;
     case Reflective:
       bct = Reflective;
@@ -1310,7 +1310,7 @@ storeSpacingFields(e_dim_tag *p,
       } else {
 	coffset = 2*verts[d].min() - 1;
 	voffset = 2*cells[d].min() - 1 + 1;
-      }	
+      }
       break;
     case NoBC:
       bct = NoBC;
@@ -1320,7 +1320,7 @@ storeSpacingFields(e_dim_tag *p,
       } else {
 	coffset = 2*verts[d].min() - 1;
 	voffset = 2*cells[d].min() - 1 + 1;
-      }	
+      }
       break;
     default:
       ERRORMSG("Cartesian::storeSpacingFields(): unknown MeshBC type" << endl);
@@ -1329,7 +1329,7 @@ storeSpacingFields(e_dim_tag *p,
 
     // Loop over all the LField's in the BareField's:
     // +++++++++++++++cellSpacings++++++++++++++
-    for (cfill_i=cellSpacings.begin_if(); 
+    for (cfill_i=cellSpacings.begin_if();
 	 cfill_i!=cellSpacings.end_if(); ++cfill_i)
       {
 	// Cache some things we will use often below.
@@ -1337,7 +1337,7 @@ storeSpacingFields(e_dim_tag *p,
 	LField<T,Dim> &fill = *(*cfill_i).second;
 	// NDIndex spanning all elements in the LField, including the guards:
 	const NDIndex<Dim> &fill_alloc = fill.getAllocated();
-	// If the previously-created boundary guard-layer NDIndex "cSlab" 
+	// If the previously-created boundary guard-layer NDIndex "cSlab"
 	// contains any of the elements in this LField (they will be guard
 	// elements if it does), assign the values into them here by applying
 	// the boundary condition:
@@ -1349,17 +1349,17 @@ storeSpacingFields(e_dim_tag *p,
 	    // For exrapolation boundary conditions, the boundary guard-layer
 	    // elements are typically copied from interior values; the "src"
 	    // NDIndex specifies the interior elements to be copied into the
-	    // "dest" boundary guard-layer elements (possibly after some 
+	    // "dest" boundary guard-layer elements (possibly after some
 	    // mathematical operations like multipplying by minus 1 later):
 	    NDIndex<Dim> src = dest; // Create dest equal to src
-	    // Now calculate the interior elements; the coffset variable 
+	    // Now calculate the interior elements; the coffset variable
 	    // computed above makes this right for "low" or "high" face cases:
 	    src[d] = coffset - src[d];
 
 	    // TJW: Why is there another loop over LField's here??????????
 	    // Loop over the ones that src touches.
 	    typename BareField<T,Dim>::iterator_if from_i;
-	    for (from_i=cellSpacings.begin_if(); 
+	    for (from_i=cellSpacings.begin_if();
 		 from_i!=cellSpacings.end_if(); ++from_i)
 	      {
 		// Cache a few things.
@@ -1379,7 +1379,7 @@ storeSpacingFields(e_dim_tag *p,
 		    if (bct == Periodic) {
 		      BrickExpression<Dim,LFI,LFI,OpMeshPeriodic<T> >
 			(lhs,rhs,OpMeshPeriodic<T>()).apply();
-		    } else { 
+		    } else {
 		      if (bct == Reflective) {
 			BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			  (lhs,rhs,OpMeshExtrapolate<T>(v0,v1)).apply();
@@ -1387,7 +1387,7 @@ storeSpacingFields(e_dim_tag *p,
 			if (bct == NoBC) {
 			  BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			    (lhs,rhs,OpMeshExtrapolate<T>(v0,v0)).apply();
-			}		      
+			}
 		      }
 		    }
 		  }
@@ -1395,7 +1395,7 @@ storeSpacingFields(e_dim_tag *p,
 	  }
       }
     // +++++++++++++++vertSpacings++++++++++++++
-    for (vfill_i=vertSpacings.begin_if(); 
+    for (vfill_i=vertSpacings.begin_if();
 	 vfill_i!=vertSpacings.end_if(); ++vfill_i)
       {
 	// Cache some things we will use often below.
@@ -1403,7 +1403,7 @@ storeSpacingFields(e_dim_tag *p,
 	LField<T,Dim> &fill = *(*vfill_i).second;
 	// NDIndex spanning all elements in the LField, including the guards:
 	const NDIndex<Dim> &fill_alloc = fill.getAllocated();
-	// If the previously-created boundary guard-layer NDIndex "cSlab" 
+	// If the previously-created boundary guard-layer NDIndex "cSlab"
 	// contains any of the elements in this LField (they will be guard
 	// elements if it does), assign the values into them here by applying
 	// the boundary condition:
@@ -1415,17 +1415,17 @@ storeSpacingFields(e_dim_tag *p,
 	    // For exrapolation boundary conditions, the boundary guard-layer
 	    // elements are typically copied from interior values; the "src"
 	    // NDIndex specifies the interior elements to be copied into the
-	    // "dest" boundary guard-layer elements (possibly after some 
+	    // "dest" boundary guard-layer elements (possibly after some
 	    // mathematical operations like multipplying by minus 1 later):
 	    NDIndex<Dim> src = dest; // Create dest equal to src
-	    // Now calculate the interior elements; the voffset variable 
+	    // Now calculate the interior elements; the voffset variable
 	    // computed above makes this right for "low" or "high" face cases:
 	    src[d] = voffset - src[d];
 
 	    // TJW: Why is there another loop over LField's here??????????
 	    // Loop over the ones that src touches.
 	    typename BareField<T,Dim>::iterator_if from_i;
-	    for (from_i=vertSpacings.begin_if(); 
+	    for (from_i=vertSpacings.begin_if();
 		 from_i!=vertSpacings.end_if(); ++from_i)
 	      {
 		// Cache a few things.
@@ -1445,7 +1445,7 @@ storeSpacingFields(e_dim_tag *p,
 		    if (bct == Periodic) {
 		      BrickExpression<Dim,LFI,LFI,OpMeshPeriodic<T> >
 			(lhs,rhs,OpMeshPeriodic<T>()).apply();
-		    } else { 
+		    } else {
 		      if (bct == Reflective) {
 			BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			  (lhs,rhs,OpMeshExtrapolate<T>(v0,v1)).apply();
@@ -1453,16 +1453,16 @@ storeSpacingFields(e_dim_tag *p,
 			if (bct == NoBC) {
 			  BrickExpression<Dim,LFI,LFI,OpMeshExtrapolate<T> >
 			    (lhs,rhs,OpMeshExtrapolate<T>(v0,v0)).apply();
-			}		      
+			}
 		      }
 		    }
 		  }
 	      }
 	  }
       }
-    
+
   }
-  
+
   hasSpacingFields = true; // Flag this as having been done to this object.
 }
 
@@ -1472,26 +1472,26 @@ storeSpacingFields(e_dim_tag *p,
 //-----------------------------------------------------------------------------
 // Formatted output of Cartesian object:
 template< unsigned Dim, class MFLOAT >
-void 
+void
 Cartesian<Dim,MFLOAT>::
 print(std::ostream& out)
 {
   unsigned int d;
   out << "======Cartesian<" << Dim << ",MFLOAT>==begin======" << endl;
-  for (d=0; d < Dim; d++) 
+  for (d=0; d < Dim; d++)
     out << "gridSizes[" << d << "] = " << gridSizes[d] << endl;
   out << "origin = " << origin << endl;
   for (d=0; d < Dim; d++) {
     out << "--------meshSpacing[" << d << "]---------" << endl;
     typename std::map<int,MFLOAT>::iterator mi;
     for (mi=meshSpacing[d].begin(); mi != meshSpacing[d].end(); ++mi) {
-      out << "meshSpacing[" << d << "][" << (*mi).first << "] = " 
+      out << "meshSpacing[" << d << "][" << (*mi).first << "] = "
 	  << (*mi).second << endl;
     }
   }
-  for (unsigned b=0; b < (1<<Dim); b++) 
+  for (unsigned b=0; b < (1<<Dim); b++)
     out << "Dvc[" << b << "] = " << Dvc[b] << endl;
-  for (d=0; d < Dim; d++) 
+  for (d=0; d < Dim; d++)
     out << "MeshBC[" << 2*d << "] = " << Mesh<Dim>::MeshBC_E_Names[MeshBC[2*d]]
 	<< " ; MeshBC[" << 2*d+1 << "] = " << Mesh<Dim>::MeshBC_E_Names[MeshBC[2*d+1]]
 	<< endl;
@@ -1504,15 +1504,15 @@ print(std::ostream& out)
 
 // Volume of cell indexed by NDIndex:
 template <unsigned Dim, class MFLOAT>
-MFLOAT 
+MFLOAT
 Cartesian<Dim,MFLOAT>::
 getCellVolume(const NDIndex<Dim>& ndi) const
 {
   MFLOAT volume = 1.0;
   int d;
-  for (d=0; d<Dim; d++) 
+  for (d=0; d<Dim; d++)
     if (ndi[d].length() != 1) {
-      ERRORMSG("Cartesian::getCellVolume() error: arg is not a NDIndex" 
+      ERRORMSG("Cartesian::getCellVolume() error: arg is not a NDIndex"
 	       << "specifying a single element" << endl);
     }
     else {
@@ -1522,7 +1522,7 @@ getCellVolume(const NDIndex<Dim>& ndi) const
 }
 // Field of volumes of all cells:
 template <unsigned Dim, class MFLOAT>
-Field<MFLOAT,Dim,Cartesian<Dim,MFLOAT>,Cell>& 
+Field<MFLOAT,Dim,Cartesian<Dim,MFLOAT>,Cell>&
 Cartesian<Dim,MFLOAT>::
 getCellVolumeField(Field<MFLOAT,Dim,Cartesian<Dim,MFLOAT>,Cell>& volumes) const
 {
@@ -1555,14 +1555,14 @@ getVertRangeVolume(const NDIndex<Dim>& ndi) const
   for (d=0; d<Dim; d++) {
     i0 = ndi[d].first();
     if ( (i0 < -(int(gridSizes[d])-1)/2) ||
-         (i0 > 3*(int(gridSizes[d])-1)/2) ) 
+         (i0 > 3*(int(gridSizes[d])-1)/2) )
       ERRORMSG("Cartesian::getVertRangeVolume() error: " << ndi
 	       << " is an NDIndex ranging outside the mesh and guard layers;"
                << " not allowed." << endl);
     v0(d) = (*(meshPosition[d].find(i0))).second;
     i1 = ndi[d].last();
     if ( (i1 < -(int(gridSizes[d])-1)/2) ||
-         (i1 > 3*(int(gridSizes[d])-1)/2) ) 
+         (i1 > 3*(int(gridSizes[d])-1)/2) )
       ERRORMSG("Cartesian::getVertRangeVolume() error: " << ndi
 	       << " is an NDIndex ranging outside the mesh and guard layers;"
                << " not allowed." << endl);
@@ -1585,14 +1585,14 @@ getCellRangeVolume(const NDIndex<Dim>& ndi) const
   for (d=0; d<Dim; d++) {
     i0 = ndi[d].first();
     if ( (i0 < -(int(gridSizes[d])-1)/2) ||
-         (i0 > 3*(int(gridSizes[d])-1)/2) ) 
+         (i0 > 3*(int(gridSizes[d])-1)/2) )
       ERRORMSG("Cartesian::getCellRangeVolume() error: " << ndi
 	       << " is an NDIndex ranging outside the mesh and guard layers;"
                << " not allowed." << endl);
     v0(d) = (*(meshPosition[d].find(i0))).second;
     i1 = ndi[d].last()+1;
     if ( (i1 < -(int(gridSizes[d])-1)/2) ||
-         (i1 > 3*(int(gridSizes[d])-1)/2) ) 
+         (i1 > 3*(int(gridSizes[d])-1)/2) )
       ERRORMSG("Cartesian::getCellRangeVolume() error: " << ndi
 	       << " is an NDIndex ranging outside the mesh and guard layers;"
                << " not allowed." << endl);
@@ -1622,7 +1622,7 @@ getNearestVertex(const Vektor<MFLOAT,Dim>& x) const
       ERRORMSG("Cartesian::getNearestVertex() - input point is outside"
 	       << " mesh boundary and guard layers; not allowed." << endl);
 
-  // Find coordinate vectors of the vertices just above and just below the 
+  // Find coordinate vectors of the vertices just above and just below the
   // input point (extremal vertices on cell containing point);
   MFLOAT xVertexBelow, xVertexAbove, xVertex;
   int vertBelow, vertAbove, vertNearest[Dim];
@@ -1673,7 +1673,7 @@ getNearestVertex(const Vektor<MFLOAT,Dim>& x) const
 }
 // Nearest vertex index with all vertex coordinates below (x,y,z):
 template <unsigned Dim, class MFLOAT>
-NDIndex<Dim> 
+NDIndex<Dim>
 Cartesian<Dim,MFLOAT>::
 getVertexBelow(const Vektor<MFLOAT,Dim>& x) const
 {
@@ -1684,8 +1684,8 @@ getVertexBelow(const Vektor<MFLOAT,Dim>& x) const
     boxMin(d) = (*(meshPosition[d].find(-gs))).second;
     boxMax(d) = (*(meshPosition[d].find(3*gs))).second;
   }
-  for (d=0; d<Dim; d++) 
-    if ( (x(d) < boxMin(d)) || (x(d) > boxMax(d)) ) 
+  for (d=0; d<Dim; d++)
+    if ( (x(d) < boxMin(d)) || (x(d) > boxMax(d)) )
       ERRORMSG("Cartesian::getVertexBelow() - input point is outside"
 	       << " mesh boundary and guard layers; not allowed." << endl);
 
@@ -1734,19 +1734,19 @@ getVertexBelow(const Vektor<MFLOAT,Dim>& x) const
 }
 // (x,y,z) coordinates of indexed vertex:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim> 
+Vektor<MFLOAT,Dim>
 Cartesian<Dim,MFLOAT>::
 getVertexPosition(const NDIndex<Dim>& ndi) const
 {
   int d, i;
   Vektor<MFLOAT,Dim> vertexPosition;
   for (d=0; d<Dim; d++) {
-    if (ndi[d].length() != 1) 
+    if (ndi[d].length() != 1)
       ERRORMSG("Cartesian::getVertexPosition() error: " << ndi
 	       << " is not an NDIndex specifying a single element" << endl);
     i = ndi[d].first();
     if ( (i < -(int(gridSizes[d])-1)/2) ||
-         (i > 3*(int(gridSizes[d])-1)/2) ) 
+         (i > 3*(int(gridSizes[d])-1)/2) )
       ERRORMSG("Cartesian::getVertexPosition() error: " << ndi
 	       << " is an NDIndex outside the mesh and guard layers;"
                << " not allowed." << endl);
@@ -1756,7 +1756,7 @@ getVertexPosition(const NDIndex<Dim>& ndi) const
 }
 // Field of (x,y,z) coordinates of all vertices:
 template <unsigned Dim, class MFLOAT>
-Field<Vektor<MFLOAT,Dim>,Dim,Cartesian<Dim,MFLOAT>,Vert>& 
+Field<Vektor<MFLOAT,Dim>,Dim,Cartesian<Dim,MFLOAT>,Vert>&
 Cartesian<Dim,MFLOAT>::
 getVertexPositionField(Field<Vektor<MFLOAT,Dim>,Dim,
 		       Cartesian<Dim,MFLOAT>,Vert>& vertexPositions) const
@@ -1780,19 +1780,19 @@ getVertexPositionField(Field<Vektor<MFLOAT,Dim>,Dim,
 
 // (x,y,z) coordinates of indexed cell:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim> 
+Vektor<MFLOAT,Dim>
 Cartesian<Dim,MFLOAT>::
 getCellPosition(const NDIndex<Dim>& ndi) const
 {
   int d, i;
   Vektor<MFLOAT,Dim> cellPosition;
   for (d=0; d<Dim; d++) {
-    if (ndi[d].length() != 1) 
+    if (ndi[d].length() != 1)
       ERRORMSG("Cartesian::getCellPosition() error: " << ndi
 	       << " is not an NDIndex specifying a single element" << endl);
     i = ndi[d].first();
     if ( (i < -(int(gridSizes[d])-1)/2) ||
-         (i >= 3*(int(gridSizes[d])-1)/2) ) 
+         (i >= 3*(int(gridSizes[d])-1)/2) )
       ERRORMSG("Cartesian::getCellPosition() error: " << ndi
 	       << " is an NDIndex outside the mesh and guard layers;"
                << " not allowed." << endl);
@@ -1803,7 +1803,7 @@ getCellPosition(const NDIndex<Dim>& ndi) const
 }
 // Field of (x,y,z) coordinates of all cells:
 template <unsigned Dim, class MFLOAT>
-Field<Vektor<MFLOAT,Dim>,Dim,Cartesian<Dim,MFLOAT>,Cell>& 
+Field<Vektor<MFLOAT,Dim>,Dim,Cartesian<Dim,MFLOAT>,Cell>&
 Cartesian<Dim,MFLOAT>::
 getCellPositionField(Field<Vektor<MFLOAT,Dim>,Dim,
 		     Cartesian<Dim,MFLOAT>,Cell>& cellPositions) const
@@ -1829,7 +1829,7 @@ getCellPositionField(Field<Vektor<MFLOAT,Dim>,Dim,
 
 // Vertex-vertex grid spacing of indexed cell:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim> 
+Vektor<MFLOAT,Dim>
 Cartesian<Dim,MFLOAT>::
 getDeltaVertex(const NDIndex<Dim>& ndi) const
 {
@@ -1875,7 +1875,7 @@ getDeltaVertexField(Field<Vektor<MFLOAT,Dim>,Dim,
     fi_end = vertexSpacings.end();
   for (fi = vertexSpacings.begin(); fi != fi_end; ++fi) {
     fi.GetCurrentLocation(currentLocation);
-    for (unsigned int d=0; d<Dim; d++) 
+    for (unsigned int d=0; d<Dim; d++)
       vertexVertexSpacing[d]=(*(meshSpacing[d].find(currentLocation[d]))).second;
     *fi = vertexVertexSpacing;
   }
@@ -1884,7 +1884,7 @@ getDeltaVertexField(Field<Vektor<MFLOAT,Dim>,Dim,
 
 // Cell-cell grid spacing of indexed cell:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim> 
+Vektor<MFLOAT,Dim>
 Cartesian<Dim,MFLOAT>::
 getDeltaCell(const NDIndex<Dim>& ndi) const
 {
@@ -1892,7 +1892,7 @@ getDeltaCell(const NDIndex<Dim>& ndi) const
   Vektor<MFLOAT,Dim> cellCellSpacing(0);
 
   for (int d=0; d<Dim; d++) {
-    // endpoints of the index range ... make sure they are in ascending order   
+    // endpoints of the index range ... make sure they are in ascending order
     int a = ndi[d].first();
     int b = ndi[d].last();
     if (b < a) {
@@ -1931,7 +1931,7 @@ getDeltaCellField(Field<Vektor<MFLOAT,Dim>,Dim,
     fi_end = cellSpacings.end();
   for (fi = cellSpacings.begin(); fi != fi_end; ++fi) {
     fi.GetCurrentLocation(currentLocation);
-    for (unsigned int d=0; d<Dim; d++) 
+    for (unsigned int d=0; d<Dim; d++)
       cellCellSpacing[d]+=((*(meshSpacing[d].find(currentLocation[d]))).second +
 		   (*(meshSpacing[d].find(currentLocation[d]-1))).second) * 0.5;
     *fi = cellCellSpacing;
@@ -1940,7 +1940,7 @@ getDeltaCellField(Field<Vektor<MFLOAT,Dim>,Dim,
 }
 // Array of surface normals to cells adjoining indexed cell:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim>* 
+Vektor<MFLOAT,Dim>*
 Cartesian<Dim,MFLOAT>::
 getSurfaceNormals(const NDIndex<Dim>& ndi) const
 {
@@ -1961,7 +1961,7 @@ template <unsigned Dim, class MFLOAT>
 void
 Cartesian<Dim,MFLOAT>::
 getSurfaceNormalFields(Field<Vektor<MFLOAT,Dim>, Dim,
-		       Cartesian<Dim,MFLOAT>,Cell>** 
+		       Cartesian<Dim,MFLOAT>,Cell>**
 		       surfaceNormalsFields ) const
 {
   Vektor<MFLOAT,Dim>* surfaceNormals = new Vektor<MFLOAT,Dim>[2*Dim];
@@ -1974,13 +1974,13 @@ getSurfaceNormalFields(Field<Vektor<MFLOAT,Dim>, Dim,
     surfaceNormals[2*d](d)   = -1.0;
     surfaceNormals[2*d+1](d) =  1.0;
   }
-  for (d=0; d<2*Dim; d++) assign((*(surfaceNormalsFields[d])), 
+  for (d=0; d<2*Dim; d++) assign((*(surfaceNormalsFields[d])),
 				 surfaceNormals[d]);
   //  return surfaceNormalsFields;
 }
 // Similar functions, but specify the surface normal to a single face, using
 // the following numbering convention: 0 means low face of 1st dim, 1 means
-// high face of 1st dim, 2 means low face of 2nd dim, 3 means high face of 
+// high face of 1st dim, 2 means low face of 2nd dim, 3 means high face of
 // 2nd dim, and so on:
 // Surface normal to face on indexed cell:
 template <unsigned Dim, class MFLOAT>
@@ -1991,7 +1991,7 @@ getSurfaceNormal(const NDIndex<Dim>& ndi, unsigned face) const
   Vektor<MFLOAT,Dim> surfaceNormal;
   unsigned int d;
   // The following bitwise AND logical test returns true if face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
+  // (meaning the "high" or "right" face in the numbering convention) and
   // returns false if face is even (meaning the "low" or "left" face in the
   // numbering convention):
   if ( face & 1 ) {
@@ -2015,7 +2015,7 @@ getSurfaceNormal(const NDIndex<Dim>& ndi, unsigned face) const
 }
 // Field of surface normals to face on all cells:
 template <unsigned Dim, class MFLOAT>
-Field<Vektor<MFLOAT,Dim>,Dim,Cartesian<Dim,MFLOAT>,Cell>& 
+Field<Vektor<MFLOAT,Dim>,Dim,Cartesian<Dim,MFLOAT>,Cell>&
 Cartesian<Dim,MFLOAT>::
 getSurfaceNormalField(Field<Vektor<MFLOAT,Dim>, Dim,
 		      Cartesian<Dim,MFLOAT>,Cell>& surfaceNormalField,
@@ -2024,7 +2024,7 @@ getSurfaceNormalField(Field<Vektor<MFLOAT,Dim>, Dim,
   Vektor<MFLOAT,Dim> surfaceNormal;
   unsigned int d;
   // The following bitwise AND logical test returns true if face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
+  // (meaning the "high" or "right" face in the numbering convention) and
   // returns false if face is even (meaning the "low" or "left" face in the
   // numbering convention):
   if ( face & 1 ) {
@@ -2082,13 +2082,13 @@ Cartesian<Dim,MFLOAT>::
 updateMeshSpacingGuards(int face)
 {
   // Apply the current state of the mesh BC to add guards to meshSpacings map
-  // Assume worst case of needing ngridpts/2 guard layers (for periodic, most 
+  // Assume worst case of needing ngridpts/2 guard layers (for periodic, most
   // likely):
   int d = face/2;
   int cell, guardLayer;
   // The following bitwise AND logical test returns true if face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
-  // returns false if face is even (meaning the "low" or "left" face in 
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if face is even (meaning the "low" or "left" face in
   // the numbering convention):
   if ( face & 1 ) {
     // "High" guard cells:
@@ -2118,7 +2118,7 @@ updateMeshSpacingGuards(int face)
       }
       break;
     default:
-      ERRORMSG("Cartesian::updateMeshSpacingGuards(): unknown MeshBC type" 
+      ERRORMSG("Cartesian::updateMeshSpacingGuards(): unknown MeshBC type"
 	       << endl);
       break;
     }
@@ -2151,7 +2151,7 @@ updateMeshSpacingGuards(int face)
       }
       break;
     default:
-      ERRORMSG("Cartesian::updateMeshSpacingGuards(): unknown MeshBC type" 
+      ERRORMSG("Cartesian::updateMeshSpacingGuards(): unknown MeshBC type"
 	       << endl);
       break;
     }
@@ -2161,7 +2161,7 @@ updateMeshSpacingGuards(int face)
 // Get mesh boundary conditions:
 // One face at a time
 template <unsigned Dim, class MFLOAT>
-MeshBC_E 
+MeshBC_E
 Cartesian<Dim,MFLOAT>::
 get_MeshBC(unsigned face) const
 {
@@ -2196,7 +2196,7 @@ get_MeshBC() const
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,Cartesian<1U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2211,7 +2211,7 @@ Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,2U,Cartesian<2U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2229,7 +2229,7 @@ Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,Cartesian<3U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2254,7 +2254,7 @@ Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,Cartesian<1U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2269,7 +2269,7 @@ Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,2U,Cartesian<2U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2287,7 +2287,7 @@ Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,Cartesian<3U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2327,7 +2327,7 @@ Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,Cartesian<1U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2342,7 +2342,7 @@ Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,2U,Cartesian<2U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2355,15 +2355,15 @@ Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
   idx[1] = 0.0;
   idy[0] = 0.0;
   idy[1] = 1.0;
-  r[I][J] = 
-    dot(idx, (x[I+1][J  ] - x[I-1][J  ])/(vS[I  ][J  ] + vS[I-1][J  ])) + 
+  r[I][J] =
+    dot(idx, (x[I+1][J  ] - x[I-1][J  ])/(vS[I  ][J  ] + vS[I-1][J  ])) +
     dot(idy, (x[I  ][J+1] - x[I  ][J-1])/(vS[I  ][J  ] + vS[I  ][J-1]));
   return r;
 }
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,Cartesian<3U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2400,7 +2400,7 @@ Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,Cartesian<1U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2415,7 +2415,7 @@ Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,2U,Cartesian<2U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2436,7 +2436,7 @@ Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,Cartesian<3U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2455,7 +2455,7 @@ Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
   idz[0] = 0.0;
   idz[1] = 0.0;
   idz[2] = 1.0;
-  r[I][J][K] = 
+  r[I][J][K] =
     dot(idx, ((x[I+1][J  ][K  ] - x[I-1][J  ][K  ])/
 	      (cS[I  ][J  ][K  ] + cS[I-1][J  ][K  ]))) +
     dot(idy, ((x[I  ][J+1][K  ] - x[I  ][J-1][K  ])/
@@ -2469,7 +2469,7 @@ Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
-Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2484,7 +2484,7 @@ Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>&
-Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2502,7 +2502,7 @@ Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
-Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2527,7 +2527,7 @@ Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
-Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2542,7 +2542,7 @@ Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>&
-Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2560,7 +2560,7 @@ Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
-Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2586,7 +2586,7 @@ Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
-Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2601,7 +2601,7 @@ Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
-Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2619,7 +2619,7 @@ Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
-Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2645,7 +2645,7 @@ Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
-Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2660,7 +2660,7 @@ Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
-Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2678,7 +2678,7 @@ Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
-Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2706,21 +2706,21 @@ Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
-Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
   BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
-  r[I] = (x[I  ]*x.get_mesh().Dvc[0] + 
+  r[I] = (x[I  ]*x.get_mesh().Dvc[0] +
 	  x[I+1]*x.get_mesh().Dvc[1])/vertSpacings[I];
   return r;
 }
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>&
-Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x,
      Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2737,7 +2737,7 @@ Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
-Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2757,27 +2757,27 @@ Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x,
   return r;
 }
 //----------------------------------------------------------------------
-// Grad Scalar/Cell -> Vektor/Vert 
+// Grad Scalar/Cell -> Vektor/Vert
 // (cellSpacings[I,J,K]->[I-1,....] 1/20/1998 tjw)
 // (reverted to cellSpacings[I-1,J-1,K-1]->[I,....] 2/2/1998 tjw)
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
-Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
-  r[I] = (x[I-1]*x.get_mesh().Dvc[0] + 
+  r[I] = (x[I-1]*x.get_mesh().Dvc[0] +
 	  x[I  ]*x.get_mesh().Dvc[1])/cellSpacings[I];
   return r;
 }
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
-Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x,
      Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2785,16 +2785,16 @@ Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x,
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
-  r[I][J] = (x[I-1][J-1]*x.get_mesh().Dvc[0] + 
+  r[I][J] = (x[I-1][J-1]*x.get_mesh().Dvc[0] +
 	     x[I  ][J-1]*x.get_mesh().Dvc[1] +
-	     x[I-1][J  ]*x.get_mesh().Dvc[2] + 
+	     x[I-1][J  ]*x.get_mesh().Dvc[2] +
 	     x[I  ][J  ]*x.get_mesh().Dvc[3])/cellSpacings[I][J];
   return r;
 }
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
-Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -2834,11 +2834,11 @@ Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
-Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
-  BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings = 
+  BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings =
     *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2852,11 +2852,11 @@ Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
-Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x,
      Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
-  BareField<Vektor<MFLOAT,2U>,2U>& vertSpacings = 
+  BareField<Vektor<MFLOAT,2U>,2U>& vertSpacings =
     *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2868,7 +2868,7 @@ Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x,
   idy[0] = 0.0;
   idy[1] = 1.0;
 
-  r[I][J] = 
+  r[I][J] =
     idx*((x[I+1][J  ] - x[I-1][J  ])/
 	 (vertSpacings[I][J] + vertSpacings[I-1][J])) +
     idy*((x[I  ][J+1] - x[I  ][J-1])/
@@ -2878,11 +2878,11 @@ Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
-Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
-  BareField<Vektor<MFLOAT,3U>,3U>& vertSpacings = 
+  BareField<Vektor<MFLOAT,3U>,3U>& vertSpacings =
     *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2900,7 +2900,7 @@ Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x,
   idz[1] = 0.0;
   idz[2] = 1.0;
 
-  r[I][J][K] = 
+  r[I][J][K] =
     idx*((x[I+1][J  ][K  ] - x[I-1][J  ][K  ])/
 	 (vertSpacings[I][J][K] + vertSpacings[I-1][J][K])) +
     idy*((x[I  ][J+1][K  ] - x[I  ][J-1][K  ])/
@@ -2914,11 +2914,11 @@ Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
-Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
-  BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = 
+  BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings =
     *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2932,11 +2932,11 @@ Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>&
-Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x,
      Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
-  BareField<Vektor<MFLOAT,2U>,2U>& cellSpacings = 
+  BareField<Vektor<MFLOAT,2U>,2U>& cellSpacings =
     *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2948,7 +2948,7 @@ Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x,
   idy[0] = 0.0;
   idy[1] = 1.0;
 
-  r[I][J] = 
+  r[I][J] =
     idx*((x[I+1][J  ] - x[I-1][J  ])/
 	 (cellSpacings[I][J] + cellSpacings[I+1][J])) +
     idy*((x[I  ][J+1] - x[I  ][J-1])/
@@ -2958,11 +2958,11 @@ Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
-Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
-  BareField<Vektor<MFLOAT,3U>,3U>& cellSpacings = 
+  BareField<Vektor<MFLOAT,3U>,3U>& cellSpacings =
     *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2980,7 +2980,7 @@ Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
   idz[1] = 0.0;
   idz[2] = 1.0;
 
-  r[I][J][K] = 
+  r[I][J][K] =
     idx*((x[I+1][J  ][K  ] - x[I-1][J  ][K  ])/
 	 (cellSpacings[I][J][K] + cellSpacings[I+1][J][K])) +
     idy*((x[I  ][J+1][K  ] - x[I  ][J-1][K  ])/
@@ -2994,7 +2994,7 @@ Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
-Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -3009,7 +3009,7 @@ Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>&
-Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -3027,7 +3027,7 @@ Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
-Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -3054,14 +3054,14 @@ Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
-Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
-  r[I] = 
+  r[I] =
     outerProduct(x[I-1], x.get_mesh().Dvc[0]/cellSpacings[I-1]) +
     outerProduct(x[I  ], x.get_mesh().Dvc[1]/cellSpacings[I-1]);
   return r;
@@ -3069,7 +3069,7 @@ Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
-Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -3077,7 +3077,7 @@ Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
-  r[I][J] = 
+  r[I][J] =
     outerProduct(x[I-1][J-1], x.get_mesh().Dvc[0]/cS[I-1][J-1]) +
     outerProduct(x[I  ][J-1], x.get_mesh().Dvc[1]/cS[I-1][J-1]) +
     outerProduct(x[I-1][J  ], x.get_mesh().Dvc[2]/cS[I-1][J-1]) +
@@ -3087,7 +3087,7 @@ Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
-Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   PAssert(x.get_mesh().hasSpacingFields);
@@ -3096,7 +3096,7 @@ Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
   Index I = domain[0];
   Index J = domain[1];
   Index K = domain[2];
-  r[I][J][K] = 
+  r[I][J][K] =
     outerProduct(x[I-1][J-1][K-1], x.get_mesh().Dvc[0]/cS[I-1][J-1][K-1]) +
     outerProduct(x[I  ][J-1][K-1], x.get_mesh().Dvc[1]/cS[I-1][J-1][K-1]) +
     outerProduct(x[I-1][J  ][K-1], x.get_mesh().Dvc[2]/cS[I-1][J-1][K-1]) +
@@ -3116,9 +3116,9 @@ namespace IPPL {
 // Weighted average Cell to Vert
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
-Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& 
-Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
-	Field<T2,1U,Cartesian<1U,MFLOAT>,Cell>& w, 
+Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>&
+Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& x,
+	Field<T2,1U,Cartesian<1U,MFLOAT>,Cell>& w,
 	Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -3128,20 +3128,20 @@ Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
-Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& 
-Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
-	Field<T2,2U,Cartesian<2U,MFLOAT>,Cell>& w, 
+Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>&
+Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& x,
+	Field<T2,2U,Cartesian<2U,MFLOAT>,Cell>& w,
 	Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  r[I][J] = (x[I-1][J-1] * w[I-1][J-1] + 
+  r[I][J] = (x[I-1][J-1] * w[I-1][J-1] +
 	     x[I  ][J-1] * w[I  ][J-1] +
 	     x[I-1][J  ] * w[I-1][J  ] +
 	     x[I  ][J  ] * w[I  ][J  ])/
-    (w[I-1][J-1] + 
+    (w[I-1][J-1] +
      w[I  ][J-1] +
      w[I-1][J  ] +
      w[I  ][J  ]);
@@ -3149,9 +3149,9 @@ Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
-Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& 
-Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
-	Field<T2,3U,Cartesian<3U,MFLOAT>,Cell>& w, 
+Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>&
+Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x,
+	Field<T2,3U,Cartesian<3U,MFLOAT>,Cell>& w,
 	Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -3159,7 +3159,7 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  r[I][J][K] = (x[I-1][J-1][K-1] * w[I-1][J-1][K-1] + 
+  r[I][J][K] = (x[I-1][J-1][K-1] * w[I-1][J-1][K-1] +
 		x[I  ][J-1][K-1] * w[I  ][J-1][K-1] +
 		x[I-1][J  ][K-1] * w[I-1][J  ][K-1] +
 		x[I  ][J  ][K-1] * w[I  ][J  ][K-1] +
@@ -3167,7 +3167,7 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 		x[I  ][J-1][K  ] * w[I  ][J-1][K  ] +
 		x[I-1][J  ][K  ] * w[I-1][J  ][K  ] +
 		x[I  ][J  ][K  ] * w[I  ][J  ][K  ] )/
-    (w[I-1][J-1][K-1] + 
+    (w[I-1][J-1][K-1] +
      w[I  ][J-1][K-1] +
      w[I-1][J  ][K-1] +
      w[I  ][J  ][K-1] +
@@ -3178,13 +3178,13 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x,
   return r;
 }
 //----------------------------------------------------------------------
-// Weighted average Vert to Cell 
+// Weighted average Vert to Cell
 // N.B.: won't work except for unit-stride (& zero-base?) Field's.
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
-Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& 
-Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
-	Field<T2,1U,Cartesian<1U,MFLOAT>,Vert>& w, 
+Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>&
+Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& x,
+	Field<T2,1U,Cartesian<1U,MFLOAT>,Vert>& w,
 	Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -3194,20 +3194,20 @@ Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
-Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& 
-Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
-	Field<T2,2U,Cartesian<2U,MFLOAT>,Vert>& w, 
+Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>&
+Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& x,
+	Field<T2,2U,Cartesian<2U,MFLOAT>,Vert>& w,
 	Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  r[I][J] = (x[I+1][J+1] * w[I+1][J+1] + 
+  r[I][J] = (x[I+1][J+1] * w[I+1][J+1] +
 	     x[I  ][J+1] * w[I  ][J+1] +
 	     x[I+1][J  ] * w[I+1][J  ] +
 	     x[I  ][J  ] * w[I  ][J  ])/
-    (w[I+1][J+1] + 
+    (w[I+1][J+1] +
      w[I  ][J+1] +
      w[I+1][J  ] +
      w[I  ][J  ]);
@@ -3215,9 +3215,9 @@ Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
-Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& 
-Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
-	Field<T2,3U,Cartesian<3U,MFLOAT>,Vert>& w, 
+Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>&
+Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x,
+	Field<T2,3U,Cartesian<3U,MFLOAT>,Vert>& w,
 	Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -3225,7 +3225,7 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  r[I][J][K] = (x[I+1][J+1][K+1] * w[I+1][J+1][K+1] + 
+  r[I][J][K] = (x[I+1][J+1][K+1] * w[I+1][J+1][K+1] +
 		x[I  ][J+1][K+1] * w[I  ][J+1][K+1] +
 		x[I+1][J  ][K+1] * w[I+1][J  ][K+1] +
 		x[I  ][J  ][K+1] * w[I  ][J  ][K+1] +
@@ -3233,7 +3233,7 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 		x[I  ][J+1][K  ] * w[I  ][J+1][K  ] +
 		x[I+1][J  ][K  ] * w[I+1][J  ][K  ] +
 		x[I  ][J  ][K  ] * w[I  ][J  ][K  ])/
-    (w[I+1][J+1][K+1] + 
+    (w[I+1][J+1][K+1] +
      w[I  ][J+1][K+1] +
      w[I+1][J  ][K+1] +
      w[I  ][J  ][K+1] +
@@ -3248,8 +3248,8 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 // Unweighted average Cell to Vert
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
-Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& 
-Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& x, 
+Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>&
+Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 	Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -3259,8 +3259,8 @@ Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
-Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& 
-Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& x, 
+Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>&
+Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 	Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -3271,8 +3271,8 @@ Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
-Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& 
-Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x, 
+Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>&
+Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x,
 	Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -3285,12 +3285,12 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& x,
   return r;
 }
 //----------------------------------------------------------------------
-// Unweighted average Vert to Cell 
+// Unweighted average Vert to Cell
 // N.B.: won't work except for unit-stride (& zero-base?) Field's.
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
-Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& 
-Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& x, 
+Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>&
+Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 	Field<T1,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -3300,8 +3300,8 @@ Average(Field<T1,1U,Cartesian<1U,MFLOAT>,Vert>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
-Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& 
-Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& x, 
+Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>&
+Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 	Field<T1,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -3312,8 +3312,8 @@ Average(Field<T1,2U,Cartesian<2U,MFLOAT>,Vert>& x,
 }
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
-Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& 
-Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x, 
+Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>&
+Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 	Field<T1,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -3331,5 +3331,5 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 /***************************************************************************
  * $RCSfile: Cartesian.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:27 $
- * IPPL_VERSION_ID: $Id: Cartesian.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: Cartesian.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $
  ***************************************************************************/

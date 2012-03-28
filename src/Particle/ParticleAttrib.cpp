@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -82,14 +82,15 @@ void ParticleAttrib<T>::create(size_t M) {
 	//ParticleList.insert(ParticleList.end(), M, T());
     ParticleList.insert(ParticleList.begin()+LocalSize, M, T());
     LocalSize+=M;
+    attributeIsDirty_ = true;
   }
-    
+
 }
 
 
 /////////////////////////////////////////////////////////////////////
 // Delete the attribute storage for M particle attributes, starting at
-// the position I.  Boolean flag indicates whether to use optimized 
+// the position I.  Boolean flag indicates whether to use optimized
 // destroy method.  This function really erases the data, which will
 // change local indices of the data.  The optimized method just copies
 // data from the end of the storage into the selected block.  Otherwise,
@@ -124,6 +125,7 @@ void ParticleAttrib<T>::destroy(size_t M, size_t I, bool optDestroy) {
     ParticleList.erase(loc, loc + M);
   }
   LocalSize-=M;
+  attributeIsDirty_ = true;
   return;
 }
 
@@ -140,7 +142,7 @@ template <class T>
 void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& dlist,
                                 bool optDestroy)
 {
-  TAU_PROFILE("ParticleAttrib::destroy()", "void (std::vector< pair<unsigned,unsigned> >, bool)", TAU_PARTICLE); 
+  TAU_PROFILE("ParticleAttrib::destroy()", "void (std::vector< pair<unsigned,unsigned> >, bool)", TAU_PARTICLE);
 
   if (dlist.empty()) return;
   typedef std::vector< std::pair<size_t,size_t> > dlist_t;
@@ -218,6 +220,7 @@ void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& d
     LocalSize -= ParticleList.begin()+LocalSize - loc;
   }
 
+  attributeIsDirty_ = true;
   return;
 }
 
@@ -229,7 +232,7 @@ template<class T>
 size_t
 ParticleAttrib<T>::putMessage(Message& msg, size_t M, size_t I)
 {
-  TAU_PROFILE("ParticleAttrib::putMessage()", 
+  TAU_PROFILE("ParticleAttrib::putMessage()",
 	      "unsigned (Message, unsigned, unsigned)", TAU_PARTICLE);
 
   if (M > 0) {
@@ -254,9 +257,9 @@ template<class T>
 size_t
 ParticleAttrib<T>::putMessage(Message& msg,
 			      const std::vector<size_t>& putList)
-{  
-  TAU_PROFILE("ParticleAttrib::putMessage()", 
-    "unsigned (Message, std::vector<unsigned>)", TAU_PARTICLE); 
+{
+  TAU_PROFILE("ParticleAttrib::putMessage()",
+    "unsigned (Message, std::vector<unsigned>)", TAU_PARTICLE);
 
   std::vector<size_t>::size_type M = putList.size();
 
@@ -281,8 +284,8 @@ template<class T>
 size_t
 ParticleAttrib<T>::getMessage(Message& msg, size_t M)
 {
-  TAU_PROFILE("ParticleAttrib::getMessage()", 
-    "unsigned (Message, unsigned)", TAU_PARTICLE); 
+  TAU_PROFILE("ParticleAttrib::getMessage()",
+    "unsigned (Message, unsigned)", TAU_PARTICLE);
 
   if (M > 0) {
     if (isTemporary()) {
@@ -304,10 +307,10 @@ ParticleAttrib<T>::getMessage(Message& msg, size_t M)
 //~ virtual size_t ghostDestroy(size_t, size_t) {
     //~ return 0;
   //~ }
-  //~ 
+  //~
   //~ virtual void ghostCreate(size_t)
   //~ {
-	  //~ 
+	  //~
   //~ }
   //~ // puts M particle's data starting from index I into a Message.
   //~ // Return the number of particles put into the message.  This is for
@@ -323,12 +326,12 @@ ParticleAttrib<T>::getMessage(Message& msg, size_t M)
   size_t ParticleAttrib<T>::ghostPutMessage(Message&, const std::vector<size_t>&) {
     return 0;
   }
-//~ 
+//~
   //~ // Get ghost particle data from a message.
   //~ virtual size_t ghostGetMessage(Message&, size_t) {
     //~ return 0;
   //~ }
-  
+
 template<class T>
 void ParticleAttrib<T>::ghostCreate(size_t M) {
   TAU_PROFILE("ParticleAttrib::create()", "void (unsigned)", TAU_PARTICLE);
@@ -339,7 +342,7 @@ void ParticleAttrib<T>::ghostCreate(size_t M) {
 	//ParticleList.insert(ParticleList.end(), M, T());
     ParticleList.insert(ParticleList.end(), M, T());
   }
-    
+
 }
 
 template<class T>
@@ -358,8 +361,8 @@ template<class T>
 size_t
 ParticleAttrib<T>::ghostGetMessage(Message& msg, size_t M)
 {
-  TAU_PROFILE("ParticleAttrib::getMessage()", 
-    "unsigned (Message, unsigned)", TAU_PARTICLE); 
+  TAU_PROFILE("ParticleAttrib::getMessage()",
+    "unsigned (Message, unsigned)", TAU_PARTICLE);
 
   if (M > 0) {
       size_t currsize = ParticleList.size();
@@ -377,8 +380,8 @@ ParticleAttrib<T>::ghostGetMessage(Message& msg, size_t M)
 template<class T>
 void ParticleAttrib<T>::printDebug(Inform& o)
 {
-  TAU_PROFILE("ParticleAttrib::printDebug()", 
-    "void (Inform)", TAU_PARTICLE | TAU_IO); 
+  TAU_PROFILE("ParticleAttrib::printDebug()",
+    "void (Inform)", TAU_PARTICLE | TAU_IO);
 
   o << "PAttr: size = " << ParticleList.size()
     << ", capacity = " << ParticleList.capacity()
@@ -421,7 +424,7 @@ PA_SORT_COMPARE_SCALAR(double)
 /////////////////////////////////////////////////////////////////////
 // Calculate a "sort list", which is an array of data of the same
 // length as this attribute, with each element indicating the
-// (local) index wherethe ith particle shoulkd go.  For example, 
+// (local) index wherethe ith particle shoulkd go.  For example,
 // if there are four particles, and the sort-list is {3,1,0,2}, that
 // means the particle currently with index=0 should be moved to the third
 // position, the one with index=1 should stay where it is, etc.
@@ -566,7 +569,7 @@ template <class FT, unsigned Dim, class M, class C, class PT, class IntOp>
 void
 scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
         const IntOp& intop, FT val) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", " 
+  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
     + CT(intop)  + ", " + CT(val)  + " )" );
   TAU_PROFILE("scatter()", taustr, TAU_PARTICLE);
 
@@ -595,7 +598,7 @@ void
 scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
   const IntOp& intop, ParticleAttrib<CacheData>& cache, FT val) {
 
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", " 
+  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
     + CT(intop)  + ", " + CT(cache)  + ", " + CT(val)  + " )" );
   TAU_PROFILE("scatter()", taustr, TAU_PARTICLE);
 
@@ -625,7 +628,7 @@ void
 scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
         const ParticleAttrib<CacheData>& cache, FT val) {
 
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", " 
+  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", "
     + CT(cache)  + ", " + CT(val)  + " )" );
   TAU_PROFILE("scatter()", taustr, TAU_PARTICLE);
 
@@ -650,5 +653,5 @@ scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
 /***************************************************************************
  * $RCSfile: ParticleAttrib.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: ParticleAttrib.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleAttrib.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/
