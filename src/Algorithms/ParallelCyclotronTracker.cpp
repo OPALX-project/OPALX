@@ -44,7 +44,7 @@
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
-b#include "BeamlineGeometry/RBendGeometry.h"
+#include "BeamlineGeometry/RBendGeometry.h"
 #include "Beamlines/Beamline.h"
 
 #include "Fields/BMultipoleField.h"
