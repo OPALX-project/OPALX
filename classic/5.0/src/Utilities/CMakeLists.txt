@@ -18,6 +18,7 @@ set (_SRCS
   CLRangeError.cpp
   SingularMatrixError.cpp
   SizeError.cpp
+  SwitcherError.cpp
   User0.cpp
   User1.cpp
   User2.cpp

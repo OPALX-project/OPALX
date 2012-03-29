@@ -23,7 +23,7 @@ class ElementBase;
 #include "Algorithms/PartBunch.h"
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-//#include "Structure/SecondaryEmissionPhysics.h"
+#include "Structure/SecondaryEmissionPhysics.h"
 #include "Distribution/ranlib.h"
 #include <vector>
 #include <sstream>
@@ -42,7 +42,6 @@ class ElementBase;
 //  G1: Geometry, FILE="input.h5"
 //  G2: Geometry, L=1.0, A=0.0025, B=0.0001
 //
-class SecondaryEmissionPhysics;
 
 class BoundaryGeometry: public Definition {
 
@@ -99,7 +98,7 @@ public:
 
     std::string getDistribution();
     std::vector<std::string> getDistributionArray();
-    
+
     double getZshift();
 
     double getXYZScale();
@@ -107,7 +106,7 @@ public:
     void makeBoundaryIndexSet();
 
     int PartInside(const Vector_t r, const Vector_t v, const double dt, int Parttype, const double Qloss, Vector_t &intecoords, int &triId, double &Energy);
-    
+
     void setBGphysicstag();
 
     int doBGphysics(const Vector_t &intecoords, const int &triId); // non secondary emission version.
@@ -158,9 +157,9 @@ public:
     double vVThermal_m;// return thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
 
     /// @param ppVw_m denotes the velocity scalar for Parallel plate benchmark.
-    
+
     double ppVw_m;
-    
+
     double triangle_max_m;
     double triangle_min_m;
 
@@ -343,7 +342,7 @@ public:
         return maxcoords_m;
     }
 
-   
+
 
 
 private:
@@ -361,7 +360,7 @@ private:
     IpplTimings::TimerRef TRayTrace_m;
     IpplTimings::TimerRef Tinward_m;
 
-    SecondaryEmissionPhysics *sec_phys_m;
+    SecondaryEmissionPhysics sec_phys_m;
 
     // Not implemented.
     BoundaryGeometry(const BoundaryGeometry &);
@@ -512,7 +511,7 @@ private:
             }
         }
 	//*gmsg<<"mytemp: "<<mytemp<<" TriNormal_m[0] after align: "<<TriNormal_m[0]<<" isInside(mytemp) "<<isInside(mytemp)<<endl;
-       
+
         for(int i = 0; i < numbfaces_global_m; i++) { //for every triangle find adjacent triangles for each vertex ;
             for(int j = 1; j <= 3; j++) {
                 std::map< size_t, std::vector<size_t> >::iterator it;
@@ -549,8 +548,8 @@ private:
             }
             TriNormal_m.push_back(n);
 	}
-        
-        
+
+
     }
 
 
@@ -577,7 +576,7 @@ private:
         double hr_tmp=hr_m[0];
 	int dim = 3;
 	for (int i=1; i<dim; i++) { // interval should be no larger than the minimum size of box;
-	    
+
 	    if(hr_m[i]<hr_tmp)
 		hr_tmp = hr_m[i];
 
@@ -621,7 +620,7 @@ private:
     std::vector<Vector_t>  PartBoundaryInteNum(Vector_t x0, Vector_t x1) {
         std::vector<Vector_t> Isp;
         for(int i = 0; i < numbfaces_global_m; i++) {
-	    
+
 	    Vector_t tmp =  LineInsTri(x0, x1, i);
 
 	    if(tmp != x1) {
@@ -631,8 +630,8 @@ private:
         }
 	if (Isp.size()==0)
 	    Isp.push_back(x1);
-	
-	return Isp;   
+
+	return Isp;
 
     }
 
@@ -691,7 +690,7 @@ private:
         }
        	triangle_max_m = maximum;
 	triangle_min_m = min;
-        
+
     }
 
 
@@ -850,7 +849,7 @@ private:
 
 
 
-   
+
 
     /**
      * @param  nof_sym_m stores the count number of symmetry planes.
@@ -881,7 +880,7 @@ private:
      * @param maxcoords_m stores maximum of geometry coordinate.
      */
     Vector_t      maxcoords_m;
-   
+
     /**
      * @param partsp_m stores momenta of particles using STL vector.//for benchmark code.
      */
@@ -892,7 +891,7 @@ private:
      */
     std::vector<Vector_t> partsr_m;  // add particle positions
 
-   
+
     /**
      * @param CubicLookupTable_m is a stl map type variable.
      * The first member of the map is the id of a boundary cubic.
@@ -915,7 +914,7 @@ private:
      * @param alignedT_m stores the ids of oriented Triangles.
      */
     std::vector<size_t> alignedT_m;
-   
+
     /**
      * Define an outside domain point
      */
@@ -934,7 +933,7 @@ namespace BGphysics {
         Nop = 0x01,// tringle is transparent to particle like beam window
         Absorption = 0x02,// triangle has no field emission and secondary emission
         FNEmission = 0x04,// triangle has field emission
-        SecondaryEmission = 0x08// trangle has secondary emission 
+        SecondaryEmission = 0x08// trangle has secondary emission
     };
 }
 #endif // OPAL_BOUNDARY_GEOMETRY_HH

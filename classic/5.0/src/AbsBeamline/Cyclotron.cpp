@@ -57,6 +57,7 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     rffrequ_m(right.rffrequ_m),
     rfphi_m(right.rfphi_m),
     escale_m(right.escale_m),
+    superpose_m(right.superpose_m),
     symmetry_m(right.symmetry_m),
     rinit_m(right.rinit_m),
     prinit_m(right.prinit_m),
@@ -68,7 +69,6 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     tcr2_m(right.tcr2_m),
     mbtc_m(right.mbtc_m),
     slptc_m(right.slptc_m),
-    superpose_m(right.superpose_m),
     RFfilename_m(right.RFfilename_m) {
     Bfield.bfld = 0;
     Bfield.dbt = 0;
@@ -1296,7 +1296,7 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
     vector<double>::const_iterator rfphii  = rfphi_m.begin();
     vector<double>::const_iterator escali  = escale_m.begin();
     int fcount = 0;
-    
+
     for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali, ++fcount) {
         msg << "Load field map " << fcount << " - " << *fm << endl;
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);

@@ -226,9 +226,9 @@ private:
     ParallelTTracker(const ParallelTTracker &);
     void operator=(const ParallelTTracker &);
 
-    std::pair<FieldList::iterator, bool> checkCavity(double s);
+    void checkCavity(double s, Component *& comp, double & cavity_start_pos);
 
-    std::pair<FieldList::iterator, bool> doOneStep(BorisPusher pusher);
+    void doOneStep(BorisPusher pusher);
 #ifdef DBG_SYM
     ofstream of_m;
 #endif
@@ -236,30 +236,104 @@ private:
         return (sqrt(dot(p, p) + 1.0) - 1.0) * itsBunch->getM() * 1e-6;
     }
 
-    int LastVisited;
+    /******************** STATE VARIABLES ***********************************/
+
+    PartBunch        *itsBunch;
+    DataSink         *itsDataSink_m;
+    BoundaryGeometry *bgf_m;
 
     OpalBeamline itsOpalBeamline_m;
+    LineDensity  lineDensity_m;
 
-    PartBunch *itsBunch;
+    //FieldList cavities_m; //XXX: in Tracker.h
+
+
     Vector_t RefPartR_zxy_m;
     Vector_t RefPartP_zxy_m;
     Vector_t RefPartR_suv_m;
     Vector_t RefPartP_suv_m;
 
-    DataSink *itsDataSink;
+
+    bool globalEOL_m;
+
+    bool wakeStatus_m;
+
+    bool surfaceStatus_m;
+
+    int secondaryFlg_m;
+
+    /// multipacting flag
+    bool mpacflg_m;
+
+    bool nEmissionMode_m;
+
+    /// where to stop
+    double zStop_m;
+
+    /// The scale factor for dimensionless variables (FIXME: move to PartBunch)
+    double scaleFactor_m;
+
+    // Vector of the scale factor for dimensionless variables (FIXME: move to PartBunch)
+    Vector_t vscaleFactor_m;
+
+    double recpGamma_m;
+
+    double rescale_coeff_m;
+
+    double dtTrack_m;
+
+    int surfaceEmissionStop_m;
+
+    // This variable controls the minimal number of steps of emission (using bins)
+    // before we can merge the bins
+    int minStepforReBin_m;
+
+    // The space charge solver crashes if we use less than ~10 particles.
+    // This variable controls the number of particles to be emitted before we use
+    // the space charge solver.
+    size_t minBinEmitted_m;
+
+    // this variable controls the minimal number of steps until we repartition the particles
+    int repartFreq_m;
+
+    int lastVisited_m;
 
     /// The number of refinements of the search range of the phase
     int numRefs_m;
 
+    /// ??
+    int gunSubTimeSteps_m;
+
+    unsigned int emissionSteps_m;
+
     /// The maximal number of steps the system is integrated
     unsigned long long maxSteps_m;
 
-    /// where to stop
-    double zstop_m;
+    size_t maxNparts_m;
+    size_t numberOfFieldEmittedParticles_m;
 
-    /// The scale factor for dimensionless variables
-    double scaleFactor_m;
+    // flag which indicates whether any particle is within the influence of bending element.
+    // if this is the case we track the reference particle as if it were a real particle,
+    // otherwise the reference particle is defined as the centroid particle of the bunch
+    unsigned long bends_m;
+
+    size_t numParticlesInSimulation_m;
+
     Tenzor<double, 3> space_orientation_m;
+
+    FieldList::iterator currently_ap_cavity_m;
+
+    // Vector of the scale factor for dimensionless variables (FIXME: move to PartBunch)
+
+    IpplTimings::TimerRef timeIntegrationTimer1_m;
+    IpplTimings::TimerRef timeIntegrationTimer2_m;
+    IpplTimings::TimerRef timeFieldEvaluation_m ;
+    IpplTimings::TimerRef BinRepartTimer_m;
+    IpplTimings::TimerRef WakeFieldTimer_m;
+
+    /********************** END VARIABLES ***********************************/
+
+    int LastVisited;
 
     // Fringe fields for entrance and exit of magnetic elements.
     void applyEntranceFringe(double edge, double curve,
@@ -287,19 +361,37 @@ private:
     void executeAutoPhase(int numRefs, double zStop);
 
     double ptoEMeV(Vector_t p);
-    bool mpacflg_m;// multipacting flag
 
-    inline double APtrack(const std::pair<FieldList::iterator, bool> & res, const double &phi) const;
+    inline double APtrack(Component *cavity, double cavity_start, const double &phi) const;
 
-    IpplTimings::TimerRef timeIntegrationTimer1_m;
-    IpplTimings::TimerRef timeIntegrationTimer2_m;
-    IpplTimings::TimerRef timeFieldEvaluation_m ;
-    IpplTimings::TimerRef BinRepartTimer_m;
-    IpplTimings::TimerRef WakeFieldTimer_m;
-    IpplTimings::TimerRef DarkCurrentTimer_m;
-
-    LineDensity lineDensity_m;
-
+    double getGlobalPhaseShift();
+    void handleOverlappingMonitors();
+    void prepareSections();
+    void doAutoPhasing();
+    void bgf_main_collision_test();
+    void timeIntegration1(BorisPusher pusher);
+    void timeIntegration1_bgf(BorisPusher pusher);
+    void timeIntegration2(BorisPusher pusher);
+    void timeIntegration2_bgf(BorisPusher pusher);
+    void selectDT();
+    void emitParticles(long long step);
+    void computeExternalFields();
+    void handleBends();
+    void switchElements(double scaleMargin = 3.0);
+    void computeSpaceChargeFields();
+    void prepareOpalBeamlineSections();
+    void dumpStats(long long step);
+    void setOptionalVariables();
+    bool hasEndOfLineReached();
+    void doSchottyRenormalization();
+    void setupSUV();
+    void handleRestartRun();
+    void prepareEmission();
+    void setTime();
+    void setLastStep();
+    void dumpPhaseSpaceOnScan();
+    void initializeBoundaryGeometry();
+    void doBinaryRepartition(long long step);
 };
 
 inline double ParallelTTracker::ptoEMeV(Vector_t p) {
@@ -482,11 +574,19 @@ inline void ParallelTTracker::updateReferenceParticleAutophase() {
 }
 
 inline void ParallelTTracker::updateSpaceOrientation(const bool &move) {
-    /* Update the position of the reference particle in ZXY-coordinates. The angle between the ZXY- and the SUV-coordinate
-     *  system is determined by the momentum of the reference particle. We calculate the momentum of the reference
-     *  particle by rotating the centroid momentum (= momentum of the reference particle in the SUV-coordinate system).
-     *  Then we push the reference particle with this momentum for half a time step.
+    /*
+       Update the position of the reference particle in
+       ZXY-coordinates. The angle between the ZXY- and the
+       SUV-coordinate system is determined by the momentum of the
+       reference particle. We calculate the momentum of the reference
+       particle by rotating the centroid momentum (= momentum of the
+       reference particle in the SUV-coordinate system). Then we push
+       the reference particle with this momentum for half a time step.
      */
+    itsBunch->calcBeamParameters();
+    RefPartR_suv_m = itsBunch->get_rmean();
+    RefPartP_suv_m = itsBunch->get_pmean();
+
     double AbsMomentum = sqrt(dot(RefPartP_suv_m, RefPartP_suv_m));
     double AbsMomentumProj = sqrt(RefPartP_suv_m(0) * RefPartP_suv_m(0) + RefPartP_suv_m(2) * RefPartP_suv_m(2));
 
@@ -513,9 +613,8 @@ inline void ParallelTTracker::updateSpaceOrientation(const bool &move) {
     // Rotate the local coordinate system of all sections which are online
     Vector_t smin(0.0), smax(0.0);
     itsBunch->get_bounds(smin, smax);
-    itsOpalBeamline_m.updateOrientation(EulerAngles, RefPartR_suv_m * scaleFactor_m, smin(2)*scaleFactor_m, smax(2)*scaleFactor_m);
+    itsOpalBeamline_m.updateOrientation(EulerAngles, RefPartR_suv_m, smin(2), smax(2));
 
-    // Rotate bunch about reference particle momentum
     itsBunch->rotateAbout(RefPartR_suv_m, RefPartP_suv_m);
     if(move)       // move the bunch such that the new centroid location is at (0,0,z)
         itsBunch->moveBy(Vector_t(-RefPartR_suv_m(0), -RefPartR_suv_m(1), 0.0));
@@ -652,7 +751,7 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
 
     if((step % Options::psDumpFreq == 0) || last) {
         // Write fields to .h5 file.
-        itsDataSink->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
+        itsDataSink_m->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
         msg << "* Wrote beam phase space." << endl;
         msg << *itsBunch << endl;
     }
@@ -660,43 +759,10 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
     if((step % Options::statDumpFreq == 0) || last) {
         // Write statistical data.
         msg << "* Wrote beam statistics." << endl;
-        itsDataSink->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
+        itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
     }
 
     //                   itsBunch->printBinHist();
-}
-
-double ParallelTTracker::APtrack(const std::pair<FieldList::iterator, bool> & res, const double &phi) const {
-    if((*res.first).getElement()->getType() == "TravelingWave") {
-        TravelingWave *tws = static_cast<TravelingWave *>((*res.first).getElement());
-        tws->updatePhasem(phi);
-        const double beta = sqrt(1. - 1 / (itsBunch->P[0](2) * itsBunch->P[0](2) + 1.));
-        const double tErr  = ((*res.first).getStart() - itsBunch->R[0](2)) / (Physics::c * beta);
-        std::pair<double, double> pe = tws->trackOnAxisParticle(itsBunch->P[0](2),
-                                  itsBunch->getT() + tErr,
-                                  itsBunch->dt[0],
-                                  itsBunch->getQ(),
-                                  itsBunch->getM() * 1e-6);
-        return (sqrt(1.0 + pe.first * pe.first) - 1.0) * itsBunch->getM() * 1e-6;
-    } else {
-        RFCavity *rfc = static_cast<RFCavity *>((*res.first).getElement());
-        rfc->updatePhasem(phi);
-
-        // Fixme:
-        // beta can be zero at the very begin!
-        //
-        double beta = sqrt(1. - 1 / (itsBunch->P[0](2) * itsBunch->P[0](2) + 1.));
-        if (beta < 0.001)
-            beta = 0.0001;
-        const double tErr  = ((*res.first).getStart() - itsBunch->R[0](2)) / (Physics::c * beta);
-        INFOMSG("beta = " << beta << " tErr = " << tErr << endl;); 
-        std::pair<double, double> pe = rfc->trackOnAxisParticle(itsBunch->P[0](2),
-                                  itsBunch->getT() + tErr,
-                                  itsBunch->dt[0],
-                                  itsBunch->getQ(),
-                                  itsBunch->getM() * 1e-6);
-        return (sqrt(1.0 + pe.first * pe.first) - 1.0) * itsBunch->getM() * 1e-6;
-    }
 }
 
 #endif // OPAL_ParallelTTracker_HH

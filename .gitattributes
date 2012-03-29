@@ -475,6 +475,8 @@ classic/5.0/src/Utilities/SingularMatrixError.cpp -text
 classic/5.0/src/Utilities/SingularMatrixError.h -text
 classic/5.0/src/Utilities/SizeError.cpp -text
 classic/5.0/src/Utilities/SizeError.h -text
+classic/5.0/src/Utilities/SwitcherError.cpp -text
+classic/5.0/src/Utilities/SwitcherError.h -text
 classic/5.0/src/Utilities/User0.cpp -text
 classic/5.0/src/Utilities/User1.cpp -text
 classic/5.0/src/Utilities/User2.cpp -text

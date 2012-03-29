@@ -124,7 +124,7 @@ BoundaryGeometry::BoundaryGeometry() :
 
     itsAttr[XYZSCALE] = Attributes::makeReal
                         ("XYZSCALE", "Multiplicative scaling factor for coordinates ", 1.0);
-        
+
 
     //itsAttr[ZFLAG] = Attributes::makeReal
     //("ZFLAG", "Flag control the changing of x/y axis with z axis", 0);
@@ -132,7 +132,6 @@ BoundaryGeometry::BoundaryGeometry() :
     itsAttr[ZSHIFT] = Attributes::makeReal
                       ("ZSHIFT", "Shift in z direction", 0.0);
 
-    sec_phys_m = new SecondaryEmissionPhysics();
     BoundaryGeometry *defGeometry = clone("UNNAMED_GEOMETRY");
     defGeometry->builtin = true;
 
@@ -173,7 +172,6 @@ BoundaryGeometry::BoundaryGeometry(
     TRayTrace_m = IpplTimings::getTimer("Ray tracing");
     Tinward_m = IpplTimings::getTimer("Check inward");
 
-    sec_phys_m = new SecondaryEmissionPhysics();
 }
 
 BoundaryGeometry::~BoundaryGeometry() {
@@ -195,7 +193,6 @@ BoundaryGeometry::~BoundaryGeometry() {
       if (TriSePartloss_m)
     delete TriSePartloss_m;
     */
-    delete sec_phys_m;
 }
 
 
@@ -419,7 +416,7 @@ int BoundaryGeometry::doBGphysics(
             } else {
                 idx = 4 * triId + 2; // intersection is the 1st vertex
             }
-            sec_phys_m->nSec(incEnergy,
+            sec_phys_m.nSec(incEnergy,
                              cosTheta,
                              seBoundaryMatType_m,
                              se_Num,
@@ -486,7 +483,7 @@ int BoundaryGeometry::doBGphysics(
                 // intersection is the 1st vertex
                 idx = 4 * triId + 2;
             }
-            sec_phys_m->nSec(incEnergy,
+            sec_phys_m.nSec(incEnergy,
                              cosTheta,
                              se_Num,
                              seType,

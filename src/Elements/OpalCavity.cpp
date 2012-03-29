@@ -151,7 +151,9 @@ void OpalCavity::update() {
     std::vector<string> fmapfns = Attributes::getStringArray(itsAttr[FMAPFN]);
     string type = Attributes::getString(itsAttr[TYPE]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
-    bool apVeto = Attributes::getBool(itsAttr[APVETO]);
+    double max_freq = 0.0;
+    for (size_t i = 0; i < freq.size(); ++ i) max_freq = std::max(std::abs(freq[i]), max_freq);
+    bool apVeto = (Attributes::getBool(itsAttr[APVETO]) || max_freq < 1e-9);
 
     double rmin = Attributes::getReal(itsAttr[RMIN]);
     double rmax = Attributes::getReal(itsAttr[RMAX]);
@@ -187,7 +189,7 @@ void OpalCavity::update() {
     rfc->setFrequency(frequency);
     if (phase.size() > 0) phi = phase[0];
     rfc->setPhase(phi);
-   
+
     rfc->dropFieldmaps();
 
     std::vector<double>::iterator peak_it;
@@ -196,7 +198,7 @@ void OpalCavity::update() {
     }
     std::vector<double>::iterator freq_it;
     for (freq_it = freq.begin(); freq_it != freq.end(); ++ freq_it) {
-        rfc->setFrequencym(1.0e6 * two_pi * (*freq_it));        
+        rfc->setFrequencym(1.0e6 * two_pi * (*freq_it));
     }
     std::vector<double>::iterator phase_it;
     for (phase_it = phase.begin(); phase_it != phase.end(); ++ phase_it) {

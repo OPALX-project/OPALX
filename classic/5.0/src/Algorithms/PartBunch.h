@@ -25,11 +25,10 @@
 #include "Algorithms/Particle.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
-// #include "FixedAlgebra/FVps.h"
-//#include "FixedAlgebra/LinearMap.h"
-#include "Algorithms/PartBins.h"
 #include "Algorithms/PartBinsCyc.h"
 #include "Algorithms/PartData.h"
+#include "Utilities/SwitcherError.h"
+#include "Physics/Physics.h"
 
 #include <iosfwd>
 #include <vector>
@@ -44,29 +43,6 @@ class ListElem;
 
 template <class T, int, int> class FMatrix;
 template <class T, int> class FVector;
-
-// typedef IntCIC  IntrplCIC_t;
-// typedef IntNGP  IntrplNGP_t;
-// typedef IntSUDS IntrplSUDS_t;
-
-// typedef ParticleSpatialLayout<double, 3>::ParticlePos_t Ppos_t;
-// typedef ParticleSpatialLayout<double, 3>::ParticleIndex_t PID_t;
-
-// typedef ParticleAttrib<double> Pscalar_t;
-
-// typedef InterpolatorTraits<double, 3, IntrplCIC_t>::Cache_t Pcache_t;
-
-// typedef UniformCartesian<3, double> Mesh_t;
-
-// typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
-
-// typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
-
-// typedef Cell Center_t;
-
-// typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
-// typedef Field<double, 3, Mesh_t, Center_t>       Field_t;
-// typedef Field<Vector_t, 3, Mesh_t, Center_t>     VField_t;
 
 // Class PartBunch.
 // ------------------------------------------------------------------------
@@ -128,6 +104,64 @@ public:
     PartBunch(const PartBunch &);
     ~PartBunch();
 
+    // helpers to store and restore a PartBunch
+    void stash();
+    void pop();
+    Vector_t getStashIniP() const {return stash_iniP_m;}
+
+    enum UnitState_t { units = 0, unitless = 1 };
+    UnitState_t getUnitState() const {
+        return unit_state_;
+    }
+
+    //FIXME: unify methods, use convention that all particles have own dt
+    void switchToUnitlessPositions(bool use_dt_per_particle = false) {
+
+        if(unit_state_ == unitless)
+            throw SwitcherError("PartBunch::switchToUnitlessPositions",
+                                "Cannot make a unitless PartBunch unitless");
+
+        bool hasToReset = false;
+        if(!R.isDirty()) hasToReset = true;
+
+        for(size_t i = 0; i < getLocalNum(); i++) {
+            double dt = getdT();
+            if(use_dt_per_particle)
+                dt = this->dt[i];
+
+            R[i] /= Vector_t(Physics::c * dt);
+            X[i] /= Vector_t(Physics::c * dt);
+        }
+
+        unit_state_ = unitless;//(UnitState_t)(unit_state_ + 1 % 2);
+
+        if(hasToReset) R.resetDirtyFlag();
+    }
+
+    //FIXME: unify methods, use convention that all particles have own dt
+    void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
+
+        if(unit_state_ == units)
+            throw SwitcherError("PartBunch::switchOffUnitlessPositions",
+                                "Cannot apply units twice to PartBunch");
+
+        bool hasToReset = false;
+        if(!R.isDirty()) hasToReset = true;
+
+        for(size_t i = 0; i < getLocalNum(); i++) {
+            double dt = getdT();
+            if(use_dt_per_particle)
+                dt = this->dt[i];
+
+            R[i] *= Vector_t(Physics::c * dt);
+            X[i] *= Vector_t(Physics::c * dt);
+        }
+
+        unit_state_ = units;//(UnitState_t)(unit_state_ + 1 % 2);
+
+        if(hasToReset) R.resetDirtyFlag();
+    }
+
     void makHistograms();
 
     /** \brief After each Schottky scan we delete
@@ -185,7 +219,7 @@ public:
     bool doEmission() {return (tEmission_m > 0.0);}
 
     bool weHaveBins() const {
-        if(pbin_m)
+        if(pbin_m != NULL)
             return pbin_m->weHaveBins();
         else
             return false;
@@ -196,8 +230,9 @@ public:
     }
 
     void weHaveNOBins() {
-        if(pbin_m)
+        if(pbin_m != NULL)
             delete pbin_m;
+        pbin_m = NULL;
     }
 
 
@@ -219,17 +254,19 @@ public:
     void rebin() {
         this->Bin = 0;
         pbin_m->resetBins();
+        // delete pbin_m; we did not allocate it!
+        pbin_m = NULL;
     }
 
 
     int getNumBins() {
-        if(pbin_m)
+        if(pbin_m != NULL)
             return pbin_m->getNBins();
         else
             return 0;
     }
     int getLastemittedBin() {
-        if(pbin_m)
+        if(pbin_m != NULL)
             return pbin_m->getLastemittedBin();
         else
             return 0;
@@ -237,7 +274,7 @@ public:
 
 
     void updatePartInBin(size_t countLost[]) {
-        if(pbin_m)
+        if(pbin_m != NULL)
             pbin_m->updatePartInBin(countLost);
     }
 
@@ -611,6 +648,10 @@ private:
       Member variables starts here
     */
 
+    // unit state of PartBunch
+    UnitState_t unit_state_;
+    UnitState_t stateOfLastBoundP_;
+
     /// hold the line-density
     double *lineDensity_m;
     /// how many bins the line-density has
@@ -711,6 +752,17 @@ public:
 
 
 private:
+    // variables for stashing a bunch
+    unsigned int stash_Nloc_m;
+    Vector_t stash_iniR_m;
+    Vector_t stash_iniP_m;
+    PID_t stash_id_m;
+    Ppos_t stash_r_m, stash_p_m, stash_x_m;
+    ParticleAttrib<double> stash_q_m, stash_dt_m;
+    ParticleAttrib<int> stash_bin_m;
+    ParticleAttrib<long> stash_ls_m;
+    ParticleAttrib<short> stash_ptype_m;
+    bool bunchStashed_m;
 
     ///
     int fieldDBGStep_m;

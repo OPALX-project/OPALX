@@ -22,14 +22,11 @@
 #include "Algorithms/PartBunch.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
-//#include "FixedAlgebra/FVps.h"
-//#include "FixedAlgebra/LinearMap.h"
 #include <iostream>
 #include <cfloat>
 #include <fstream>
 #include <iomanip>
 
-#include "Physics/Physics.h"
 #include "AbstractObjects/OpalData.h"
 #include "Distribution/Distribution.h"
 #include "Structure/LossDataSink.h"
@@ -37,7 +34,6 @@
 #include "ListElem.h"
 #include "BasicActions/Option.h"
 
-// #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_cdf.h>
@@ -61,6 +57,8 @@ PartBunch::PartBunch(const PartData *ref):
     fixed_grid(false),
     pbin_m(NULL),
     reference(ref),
+    unit_state_(units),
+    stateOfLastBoundP_(unitless),
     lineDensity_m(NULL),
     nBinsLineDensity_m(0),
     moments_m(),
@@ -91,6 +89,10 @@ PartBunch::PartBunch(const PartData *ref):
     lossDs_m(NULL),
     pmsg_m(NULL),
     f_stream(NULL),
+    stash_Nloc_m(0),
+    stash_iniR_m(0.0),
+    stash_iniP_m(0.0),
+    bunchStashed_m(false),
     fieldDBGStep_m(0),
     dh_m(0.0),
     tEmission_m(0.0),
@@ -151,6 +153,8 @@ PartBunch::PartBunch(const PartBunch &rhs):
     fixed_grid(rhs.fixed_grid),
     pbin_m(NULL),
     reference(rhs.reference),
+    unit_state_(rhs.unit_state_),
+    stateOfLastBoundP_(rhs.stateOfLastBoundP_),
     lineDensity_m(NULL),
     nBinsLineDensity_m(rhs.nBinsLineDensity_m),
     moments_m(rhs.moments_m),
@@ -181,6 +185,10 @@ PartBunch::PartBunch(const PartBunch &rhs):
     lossDs_m(NULL),
     pmsg_m(NULL),
     f_stream(NULL),
+    stash_Nloc_m(rhs.stash_Nloc_m),
+    stash_iniR_m(rhs.stash_iniR_m),
+    stash_iniP_m(rhs.stash_iniP_m),
+    bunchStashed_m(rhs.bunchStashed_m),
     fieldDBGStep_m(rhs.fieldDBGStep_m),
     dh_m(rhs.dh_m),
     tEmission_m(rhs.tEmission_m),
@@ -204,6 +212,8 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     fixed_grid(false),
     pbin_m(NULL),
     reference(ref),
+    unit_state_(units),
+    stateOfLastBoundP_(unitless),
     lineDensity_m(NULL),
     nBinsLineDensity_m(0),
     moments_m(),
@@ -234,6 +244,10 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     lossDs_m(NULL),
     pmsg_m(NULL),
     f_stream(NULL),
+    stash_Nloc_m(0),
+    stash_iniR_m(0.0),
+    stash_iniP_m(0.0),
+    bunchStashed_m(false),
     fieldDBGStep_m(0),
     dh_m(0.0),
     tEmission_m(0.0),
@@ -248,6 +262,18 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     globalPartPerNode_m(NULL),
     dist_m(NULL) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):" << endl);
+}
+
+PartBunch::~PartBunch() {
+    if(bingamma_m) delete bingamma_m;
+    if(binemitted_m) delete binemitted_m;
+    if(lineDensity_m) delete lineDensity_m;
+    if(partPerNode_m) delete[] partPerNode_m;
+    if(globalPartPerNode_m) delete[] globalPartPerNode_m;
+    if(lossDs_m) delete lossDs_m;
+    if(pmsg_m) delete pmsg_m;
+    if(f_stream) delete f_stream;
+
 }
 
 /// \brief make density histograms
@@ -386,18 +412,6 @@ bool PartBunch::hasFieldSolver() {
         return false;
 }
 
-PartBunch::~PartBunch() {
-    if(bingamma_m) delete bingamma_m;
-    if(binemitted_m) delete binemitted_m;
-    if(lineDensity_m) delete lineDensity_m;
-    if(partPerNode_m) delete[] partPerNode_m;
-    if(globalPartPerNode_m) delete[] globalPartPerNode_m;
-    if(lossDs_m) delete lossDs_m;
-    if(pmsg_m) delete pmsg_m;
-    if(f_stream) delete f_stream;
-
-}
-
 bool PartBunch::hasZeroNLP() {
     /**
        Check if a node has no particles
@@ -447,16 +461,17 @@ double PartBunch::getZ(int i) {
     return this->R[i](2);
 }
 
+
+/**
+ * \method calcLineDensity()
+ * \brief calculates the 1d line density (not normalized) and append it to a file.
+ * \see ParallelTTracker
+ * \warning none yet
+ *
+ * DETAILED TODO
+ *
+ */
 void PartBunch::calcLineDensity() {
-    /**
-     * \method calcLineDensity()
-     * \brief calculates the 1d line density (not normalized) and append it to a file.
-     * \see ParallelTTracker
-     * \warning none yet
-     *
-     * DETAILED TODO
-     *
-     */
     //   e_dim_tag decomp[3];
     list<ListElem> listz;
 
@@ -465,7 +480,7 @@ void PartBunch::calcLineDensity() {
     //   }
 
     FieldLayout_t &FL  = getFieldLayout();
-    double hz = getMesh().get_meshSpacing(2) * Physics::c * getdT();
+    double hz = getMesh().get_meshSpacing(2); // * Physics::c * getdT();
     //   FieldLayout_t *FL  = new FieldLayout_t(getMesh(), decomp);
 
     if(lineDensity_m == 0) {
@@ -594,7 +609,7 @@ void PartBunch::calcGammas() {
         reduce(pInBin, pInBin, OpAddAssign());
         if(pInBin != 0) {
             bingamma_m[i] /= pInBin;
-            INFOMSG("Bin " << i << " gamma = " << bingamma_m[i] << " NpInbin= " << pInBin << endl);
+            INFOMSG("Bin " << i << " gamma = " << setw(8) << scientific << setprecision(5) << bingamma_m[i] << "; NpInBin= " << setw(8) << setfill(' ') << pInBin << endl);
         } else {
             bingamma_m[i] = 1.0;
             INFOMSG("Bin " << i << " has no particles " << endl);
@@ -678,7 +693,8 @@ void PartBunch::computeSelfFields(int binNumber) {
         this->rho_m /= getdT();
 
         /// Calculate mesh-scale factor and get gamma for this specific slice (bin).
-        double scaleFactor = Physics::c * getdT();
+        double scaleFactor = 1;
+        // double scaleFactor = Physics::c * getdT();
         double gammaz = getBinGamma(binNumber);
 
         /// Scale charge density to get charge density in real units. Account for
@@ -863,7 +879,8 @@ void PartBunch::computeSelfFields() {
         double gammaz = sum(this->P)[2] / getTotalNum();
         gammaz *= gammaz;
         gammaz = sqrt(gammaz + 1.0);
-        double scaleFactor = Physics::c * getdT();
+        double scaleFactor = 1;
+        // double scaleFactor = Physics::c * getdT();
         //and get meshspacings in real units [m]
         Vector_t hr_scaled = hr_m * Vector_t(scaleFactor);
         hr_scaled[2] *= gammaz;
@@ -1153,34 +1170,42 @@ void PartBunch::boundp() {
      */
 
     IpplTimings::startTimer(boundpTimer_m);
-    Vector_t len;
-    const int dimIdx = 3;
 
-    if(~isGridFixed()) {
+    if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
+
+    stateOfLastBoundP_ = unit_state_;
+
+    if(!isGridFixed()) {
+        const int dimIdx = 3;
+
         NDIndex<3> domain = getFieldLayout().getDomain();
         for(int i = 0; i < Dim; i++)
             nr_m[i] = domain[i].length();
-
         get_bounds(rmin_m, rmax_m);
-        len = rmax_m - rmin_m;
+        Vector_t len = rmax_m - rmin_m;
         for(int i = 0; i < dimIdx; i++) {
             rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
             rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
             hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
         }
-        // rescale mesh
-        getMesh().set_meshSpacing(&(hr_m[0]));
-        getMesh().set_origin(rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0));
-        rho_m.initialize(getMesh(),
-                         getFieldLayout(),
-                         GuardCellSizes<Dim>(1),
-                         bc_m);
-        eg_m.initialize(getMesh(),
-                        getFieldLayout(),
-                        GuardCellSizes<Dim>(1),
-                        vbc_m);
+        if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
+            // rescale mesh
+            getMesh().set_meshSpacing(&(hr_m[0]));
+            getMesh().set_origin(rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0));
+            rho_m.initialize(getMesh(),
+                             getFieldLayout(),
+                             GuardCellSizes<Dim>(1),
+                             bc_m);
+            eg_m.initialize(getMesh(),
+                            getFieldLayout(),
+                            GuardCellSizes<Dim>(1),
+                            vbc_m);
+        }
     }
     update();
+
+    R.resetDirtyFlag();
+
     IpplTimings::stopTimer(boundpTimer_m);
 }
 
@@ -1253,7 +1278,7 @@ void PartBunch::rotateAbout(const Vector_t &Center, const Vector_t &Momentum) {
     double sin0 = -Momentum(1) / AbsMomentum;
     double cos1 = Momentum(2) / AbsMomentumProj;
     double sin1 = -Momentum(0) / AbsMomentumProj;
-    double sin2 = 0.0;//-Center(0) / Ds;
+    double sin2 = 0.0;
     double cos2 = sqrt(1.0 - sin2 * sin2);
 
 
@@ -2214,21 +2239,25 @@ void PartBunch::printBinHist() {
 
 Inform &PartBunch::print(Inform &os) {
     if(this->getTotalNum() != 0) {  // to suppress Nan's
+        Inform::FmtFlags_t ff = os.flags();
+        os << scientific;
         os << "* ************** B U N C H ********************************************************* " << endl;
         os << "* NP= " << this->getTotalNum() << " Qtot= " << abs(sum(Q) * 1.0E9) << " [nC]  Qi= " << abs(qi_m) << " [C]" << endl;
-        os << "* Ekin= " << eKin_m << " [MeV] dEkin= " << dE_m << " [MeV]" << endl;
-        os << "* rmax= " << rmax_m << " [m]" << endl;
-        os << "* rmin= " << rmin_m << " [m]" << endl;
-        os << "* rms beam size= " << rrms_m << " [m]" << endl;
-        os << "* rms momenta= " << prms_m << " [beta gamma]" << endl;
-        os << "* mean position= " << rmean_m << " [m]" << endl;
-        os << "* mean momenta= " << pmean_m << " [beta gamma]" << endl;
-        os << "* rms emittance= " << eps_m << " (not normalized)" << endl;
-        os << "* rms correlation= " << rprms_m << endl;
-        os << "* dh= " << dh_m << " [m] dT= " << getdT() << " [s]" << endl;
-        os << "* hr= " << hr_m << " [m]" << endl;
-        os << "* spos= " << get_sPos() << " [m]" << endl;
+        os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV] dEkin= " << dE_m << " [MeV]" << endl;
+        os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]" << endl;
+        os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]" << endl;
+        os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]" << endl;
+        os << "* rms momenta     = " << setw(12) << setprecision(5) << prms_m << " [beta gamma]" << endl;
+        os << "* mean position   = " << setw(12) << setprecision(5) << rmean_m << " [m]" << endl;
+        os << "* mean momenta    = " << setw(12) << setprecision(5) << pmean_m << " [beta gamma]" << endl;
+        os << "* rms emittance   = " << setw(12) << setprecision(5) << eps_m << " (not normalized)" << endl;
+        os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << endl;
+        os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]" << endl;
+        os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]" << endl;
+        os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s] dT= " << getdT() << " [s]" << endl;
+        os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]" << endl;
         os << "* ********************************************************************************** " << endl;
+        os.flags(ff);
     }
     return os;
 }
@@ -2606,4 +2635,85 @@ void PartBunch::setPBins(PartBinsCyc *pbin) {
     for(int i = 0; i < pbin_m->getNBins(); i++)
         binemitted_m[i] = 0;
 
+}
+
+void PartBunch::stash() {
+
+    size_t Nloc = getLocalNum();
+    if(Nloc == 0) return;
+    if(bunchStashed_m) {
+        *gmsg << "ERROR: bunch already stashed, call pop() first" << endl;
+        return;
+    }
+
+    // save all particles
+    stash_Nloc_m = Nloc;
+    stash_iniR_m = get_rmean();
+    stash_iniP_m = get_pmean();
+
+    stash_id_m.create(Nloc);
+    stash_r_m.create(Nloc);
+    stash_p_m.create(Nloc);
+    stash_x_m.create(Nloc);
+    stash_q_m.create(Nloc);
+    stash_bin_m.create(Nloc);
+    stash_dt_m.create(Nloc);
+    stash_ls_m.create(Nloc);
+    stash_ptype_m.create(Nloc);
+
+    stash_id_m    = this->ID;
+    stash_r_m     = this->R;
+    stash_p_m     = this->P;
+    stash_x_m     = this->X;
+    stash_q_m     = this->Q;
+    stash_bin_m   = this->Bin;
+    stash_dt_m    = this->dt;
+    stash_ls_m    = this->LastSection;
+    stash_ptype_m = this->PType;
+
+    // and destroy all particles in bunch
+    destroy(Nloc, 0);
+    update();
+
+    bunchStashed_m = true;
+}
+
+void PartBunch::pop() {
+
+    if(!bunchStashed_m) return;
+
+    size_t Nloc = getLocalNum();
+    if (getTotalNum() > 0) {
+        destroy(Nloc, 0);
+    }
+    update();
+
+    this->create(stash_Nloc_m);
+
+    this->ID          = stash_id_m;
+    this->R           = stash_r_m;
+    this->P           = stash_p_m;
+    this->X           = stash_x_m;
+    this->Q           = stash_q_m;
+    this->Bin         = stash_bin_m;
+    this->dt          = stash_dt_m;
+    this->LastSection = stash_ls_m;
+    this->PType       = stash_ptype_m;
+
+    stash_iniR_m = Vector_t(0.0);
+    stash_iniP_m = Vector_t (0.0, 0.0, 1E-6);
+
+    stash_id_m.destroy(stash_Nloc_m, 0);
+    stash_r_m.destroy(stash_Nloc_m, 0);
+    stash_p_m.destroy(stash_Nloc_m, 0);
+    stash_x_m.destroy(stash_Nloc_m, 0);
+    stash_q_m.destroy(stash_Nloc_m, 0);
+    stash_dt_m.destroy(stash_Nloc_m, 0);
+    stash_bin_m.destroy(stash_Nloc_m, 0);
+    stash_ls_m.destroy(stash_Nloc_m, 0);
+    stash_ptype_m.destroy(stash_Nloc_m, 0);
+
+    bunchStashed_m = false;
+
+    update();
 }

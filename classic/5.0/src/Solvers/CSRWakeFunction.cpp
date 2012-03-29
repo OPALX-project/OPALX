@@ -57,7 +57,7 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
     double Phi, SlippageLength;
     double min_relative_s, Ds_max, Ds_max2;
     double frac, x, dx1, dx2, dx3, dx4;
-    double scaleFactor = Physics::c * bunch.getdT();
+    double scaleFactor = 1.0; // Physics::c * bunch.getdT();
     Vector_t smin, smax;
     const double hz = bunch.getMesh().get_meshSpacing(2) * scaleFactor;
     const double hzsup = pow(hz, -1. / 3.);
