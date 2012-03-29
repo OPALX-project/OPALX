@@ -33,15 +33,15 @@ int RBend::RBend_counter_m = 0;
 
 RBend::RBend():
     Component(),
+    length_m(0.0),
+    gap_m(0.0),
+    reinitialize_m(false),
     filename_m(""),
     fieldmap_m(NULL),
     amplitude_m(0.0),
     field_orientation_m(1.0, 0.0),
     startField_m(0.0),
     endField_m(0.0),
-    length_m(0.0),
-    gap_m(0.0),
-    reinitialize_m(false),
     fast_m(false),
     sin_face_alpha_m(0.0),
     cos_face_alpha_m(1.0),
@@ -65,15 +65,15 @@ RBend::RBend():
 
 RBend::RBend(const RBend &right):
     Component(right),
+    length_m(right.length_m),
+    gap_m(right.gap_m),
+    reinitialize_m(right.reinitialize_m),
     filename_m(right.filename_m),
     fieldmap_m(right.fieldmap_m),
     amplitude_m(right.amplitude_m),
     field_orientation_m(right.field_orientation_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
-    length_m(right.length_m),
-    gap_m(right.gap_m),
-    reinitialize_m(right.reinitialize_m),
     fast_m(right.fast_m),
     sin_face_alpha_m(right.sin_face_alpha_m),
     cos_face_alpha_m(right.cos_face_alpha_m),
@@ -103,15 +103,15 @@ RBend::RBend(const RBend &right):
 
 RBend::RBend(const std::string &name):
     Component(name),
+    length_m(0.0),
+    gap_m(0.0),
+    reinitialize_m(false),
     filename_m(""),
     fieldmap_m(NULL),
     amplitude_m(0.0),
     field_orientation_m(1.0, 0.0),
     startField_m(0.0),
     endField_m(0.0),
-    length_m(0.0),
-    gap_m(0.0),
-    reinitialize_m(false),
     fast_m(false),
     sin_face_alpha_m(0.0),
     cos_face_alpha_m(1.0),
@@ -703,6 +703,5 @@ void RBend::calculateEffectiveCenter() {
         effectiveCenter += lengthAdjustment;
 
     }
-    double deltaZ = effectiveCenter + zBegin;
     effectiveCenter_m = effectiveCenter - R_m * sin(angle_m / 2.0) + R_m * angle_m / 2.0;
 }

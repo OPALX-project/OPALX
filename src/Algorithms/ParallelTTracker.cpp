@@ -23,7 +23,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
-
+#include <limits>
 
 #include "Algorithms/ParallelTTracker.h"
 
@@ -90,15 +90,15 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     dtTrack_m(0.0),
     surfaceEmissionStop_m(-1),
     minStepforReBin_m(-1),
-    minBinEmitted_m(-1),
+    minBinEmitted_m(std::numeric_limits<size_t>::max()),
     repartFreq_m(-1),
     lastVisited_m(-1),
     numRefs_m(-1),
     gunSubTimeSteps_m(-1),
-    emissionSteps_m(numeric_limits<unsigned int>::max()),
+    emissionSteps_m(std::numeric_limits<unsigned int>::max()),
     maxSteps_m(0),
     maxNparts_m(0),
-    numberOfFieldEmittedParticles_m(numeric_limits<size_t>::max()),
+    numberOfFieldEmittedParticles_m(std::numeric_limits<size_t>::max()),
     bends_m(0),
     numParticlesInSimulation_m(0),
     space_orientation_m(0.0),
@@ -143,7 +143,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     dtTrack_m(0.0),
     surfaceEmissionStop_m(-1),
     minStepforReBin_m(-1),
-    minBinEmitted_m(-1),
+    minBinEmitted_m(std::numeric_limits<size_t>::max()),
     repartFreq_m(-1),
     lastVisited_m(-1),
     numRefs_m(-1),
