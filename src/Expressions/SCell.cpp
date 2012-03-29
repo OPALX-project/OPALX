@@ -31,7 +31,7 @@ using namespace std;
 namespace Expressions {
 
     SCell::SCell
-    (const string &tab, const PlaceRep &place, const string &col):
+    (const std::string &tab, const PlaceRep &place, const std::string &col):
         tab_name(tab), position(place), col_name(col), itsChannel(0)
     {}
 

@@ -37,7 +37,7 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    explicit OpalException(const string &meth, const string &msg);
+    explicit OpalException(const std::string &meth, const std::string &msg);
 
     OpalException(const OpalException &);
     virtual ~OpalException();

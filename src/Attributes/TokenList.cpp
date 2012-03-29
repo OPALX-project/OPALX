@@ -29,7 +29,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    TokenList::TokenList(const string &name, const string &help):
+    TokenList::TokenList(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -38,8 +38,8 @@ namespace Attributes {
     {}
 
 
-    const string &TokenList::getType() const {
-        static const string type("token list");
+    const std::string &TokenList::getType() const {
+        static const std::string type("token list");
         return type;
     }
 

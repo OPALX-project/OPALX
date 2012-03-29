@@ -1677,7 +1677,6 @@ void ParallelTTracker::execute() {
     bool wakestatus = false;
     bool surfacestatus = false;
 
-    ofstream outfile("field.txt");
     for(; step < maxSteps_m; ++step) {
         global_EOL = true;  // check if any particle hasn't reached the end of the field from the last element
         bends = 0;
@@ -1945,10 +1944,6 @@ void ParallelTTracker::execute() {
 
             itsBunch->Ef[i] += externalE;
             itsBunch->Bf[i] += externalB;
-
-            if(i == 1)
-                outfile << itsBunch->Bf[i](0) << " " << itsBunch->Bf[i](1) << " " << itsBunch->Bf[i](2) << endl;
-
 
             itsBunch->R[i] /= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
 

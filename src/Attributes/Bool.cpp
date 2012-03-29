@@ -37,7 +37,7 @@ using std::endl;
 
 namespace Attributes {
 
-    Bool::Bool(const string &name, const string &help):
+    Bool::Bool(const std::string &name, const std::string &help):
         AttributeHandler(name, help, new SValue<bool>(true))
     {}
 
@@ -45,8 +45,8 @@ namespace Attributes {
     Bool::~Bool()
     {}
 
-    const string &Bool::getType() const {
-        static const string type("logical");
+    const std::string &Bool::getType() const {
+        static const std::string type("logical");
         return type;
     }
 

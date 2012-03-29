@@ -37,12 +37,12 @@ namespace Attributes {
 
         /// Constructor.
         //  Assign attribute name and help string.
-        TableRow(const string &name, const string &help);
+        TableRow(const std::string &name, const std::string &help);
 
         virtual ~TableRow();
 
         /// Return attribute type string ``table line''.
-        virtual const string &getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
         virtual void parse(Attribute &, Statement &, bool) const;

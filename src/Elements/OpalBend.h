@@ -64,7 +64,7 @@ public:
 protected:
 
     /// Clone constructor.
-    OpalBend(const string &name, OpalBend *parent);
+    OpalBend(const std::string &name, OpalBend *parent);
 
 private:
 

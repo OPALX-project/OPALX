@@ -34,7 +34,7 @@ bool Element::canReplaceBy(Object *object) {
 }
 
 
-Element *Element::find(const string &name) {
+Element *Element::find(const std::string &name) {
     OpalData *OPAL = OpalData::getInstance();
     Element *element = dynamic_cast<Element *>(OPAL->find(name));
     if(element == 0) {
@@ -45,7 +45,7 @@ Element *Element::find(const string &name) {
 }
 
 
-const string Element::getCategory() const {
+const std::string Element::getCategory() const {
     return "ELEMENT";
 }
 
@@ -101,6 +101,6 @@ Element::Element(int size, const char *name, const char *help):
 {}
 
 
-Element::Element(const string &name, Element *parent):
+Element::Element(const std::string &name, Element *parent):
     Object(name, parent)
 {}

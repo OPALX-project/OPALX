@@ -45,12 +45,12 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Boolean value.
 
-    Attribute makeBool(const string &name, const string &help) {
+    Attribute makeBool(const std::string &name, const std::string &help) {
         return Attribute(new Bool(name, help), 0);
     }
 
 
-    Attribute makeBool(const string &name, const string &help, bool ini) {
+    Attribute makeBool(const std::string &name, const std::string &help, bool ini) {
         return Attribute(new Bool(name, help), new SValue<bool>(ini));
     }
 
@@ -89,7 +89,7 @@ namespace Attributes {
 
     // ----------------------------------------------------------------------
     // Boolean array value.
-    Attribute makeBoolArray(const string &name, const string &help) {
+    Attribute makeBoolArray(const std::string &name, const std::string &help) {
         return Attribute(new BoolArray(name, help), 0);
     }
 
@@ -124,7 +124,7 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Place value.
 
-    Attribute makePlace(const string &name, const string &help) {
+    Attribute makePlace(const std::string &name, const std::string &help) {
         return Attribute(new Place(name, help),
                          new SValue<PlaceRep>(PlaceRep("#S")));
     }
@@ -158,7 +158,7 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Range value.
 
-    Attribute makeRange(const string &name, const string &help) {
+    Attribute makeRange(const std::string &name, const std::string &help) {
         return Attribute(new Range(name, help),
                          new SValue<RangeRep>(RangeRep()));
     }
@@ -192,13 +192,13 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Real value.
 
-    Attribute makeReal(const string &name, const string &help) {
+    Attribute makeReal(const std::string &name, const std::string &help) {
         return Attribute(new Real(name, help), 0);
     }
 
 
     Attribute
-    makeReal(const string &name, const string &help, double initial) {
+    makeReal(const std::string &name, const std::string &help, double initial) {
         return Attribute(new Real(name, help),
                          new SValue<double>(initial));
     }
@@ -239,7 +239,7 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Real array value.
 
-    Attribute makeRealArray(const string &name, const string &help) {
+    Attribute makeRealArray(const std::string &name, const std::string &help) {
         return Attribute(new RealArray(name, help), 0);
     }
 
@@ -273,7 +273,7 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Reference value.
 
-    Attribute makeReference(const string &name, const string &help) {
+    Attribute makeReference(const std::string &name, const std::string &help) {
         return Attribute(new Reference(name, help), 0);
     }
 
@@ -281,41 +281,41 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // String value.
 
-    Attribute makeString(const string &name, const string &help) {
+    Attribute makeString(const std::string &name, const std::string &help) {
         return Attribute(new String(name, help), 0);
     }
 
 
     Attribute
-    makeString(const string &name, const string &help, const string &initial) {
-        return Attribute(new String(name, help), new SValue<string>(initial));
+    makeString(const std::string &name, const std::string &help, const std::string &initial) {
+        return Attribute(new String(name, help), new SValue<std::string>(initial));
     }
 
 
-    string getString(const Attribute &attr) {
+    std::string getString(const Attribute &attr) {
         if(AttributeBase *base = &attr.getBase()) {
             if(dynamic_cast<String *>(&attr.getHandler())) {
-                return dynamic_cast<SValue<string> *>(base)->evaluate();
-            } else if(SValue<SRefAttr<string> > *ref =
-                          dynamic_cast<SValue<SRefAttr<string> > *>(base)) {
-                const SRefAttr<string> &value = ref->evaluate();
+                return dynamic_cast<SValue<std::string> *>(base)->evaluate();
+            } else if(SValue<SRefAttr<std::string> > *ref =
+                          dynamic_cast<SValue<SRefAttr<std::string> > *>(base)) {
+                const SRefAttr<std::string> &value = ref->evaluate();
                 return value.evaluate();
             } else {
                 throw OpalException("Attributes::getString()", "Attribute \"" +
                                     attr.getName() + "\" is not string.");
             }
         } else {
-            return string();
+            return std::string();
         }
     }
 
 
-    void setString(Attribute &attr, const string &val) {
+    void setString(Attribute &attr, const std::string &val) {
         if(dynamic_cast<const String *>(&attr.getHandler())) {
-            attr.set(new SValue<string>(val));
-        } else if(SValue<SRefAttr<string> > *ref =
-                      dynamic_cast<SValue<SRefAttr<string> >*>(&attr.getBase())) {
-            const SRefAttr<string> &value = ref->evaluate();
+            attr.set(new SValue<std::string>(val));
+        } else if(SValue<SRefAttr<std::string> > *ref =
+                      dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase())) {
+            const SRefAttr<std::string> &value = ref->evaluate();
             value.set(val);
         } else {
             throw OpalException("Attributes::setString()", "Attribute \"" +
@@ -327,29 +327,29 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // String array value.
 
-    Attribute makeStringArray(const string &name, const string &help) {
+    Attribute makeStringArray(const std::string &name, const std::string &help) {
         return Attribute(new StringArray(name, help), 0);
     }
 
-   
-    std::vector<string> getStringArray(const Attribute &attr) {
+
+    std::vector<std::string> getStringArray(const Attribute &attr) {
         if(AttributeBase *base = &attr.getBase()) {
             if(dynamic_cast<StringArray *>(&attr.getHandler())) {
-                return dynamic_cast<AValue<string>*>(base)->evaluate();
+                return dynamic_cast<AValue<std::string>*>(base)->evaluate();
             } else {
                 throw OpalException("Attributes::getStringArray()", "Attribute \"" +
                                     attr.getName() + "\" is not a string array.");
             }
         } else {
-            return std::vector<string>();
+            return std::vector<std::string>();
         }
     }
 
 
-    void setStringArray(Attribute &attr, const std::vector<string> &value) {
+    void setStringArray(Attribute &attr, const std::vector<std::string> &value) {
         if(dynamic_cast<const StringArray *>(&attr.getHandler())) {
             // Strings are never expressions, so AValue will do here.
-            attr.set(new AValue<string>(value));
+            attr.set(new AValue<std::string>(value));
         } else {
             throw OpalException("Attributes::setStringArray()", "Attribute \"" +
                                 attr.getName() + "\" is not a string array.");
@@ -360,7 +360,7 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Table row reference value.
 
-    Attribute makeTableRow(const string &name, const string &help) {
+    Attribute makeTableRow(const std::string &name, const std::string &help) {
         return Attribute(new TableRow(name, help), 0);
     }
 
@@ -395,7 +395,7 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Token list value.
 
-    Attribute makeTokenList(const string &name, const string &help) {
+    Attribute makeTokenList(const std::string &name, const std::string &help) {
         return Attribute(new TokenList(name, help), 0);
     }
 
@@ -427,7 +427,7 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Token list array value.
 
-    Attribute makeTokenListArray(const string &name, const string &help) {
+    Attribute makeTokenListArray(const std::string &name, const std::string &help) {
         return Attribute(new TokenListArray(name, help), 0);
     }
 

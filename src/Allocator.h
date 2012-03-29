@@ -47,10 +47,10 @@ struct Allocator {
     /// Destructor.
     //  Print statistics on allocation and deallocation.
     ~Allocator() {
-        cerr << "allocated: " << count1 << endl;
-        cerr << "freed:     " << count2 << endl;
-        cerr << "vector allocated: " << count3 << endl;
-        cerr << "vector freed:     " << count4 << endl;
+        std::cerr << "allocated: " << count1 << endl;
+        std::cerr << "freed:     " << count2 << endl;
+        std::cerr << "vector allocated: " << count3 << endl;
+        std::cerr << "vector freed:     " << count4 << endl;
     }
 } allocator;
 

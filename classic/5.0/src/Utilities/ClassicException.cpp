@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 ClassicException::ClassicException
-(const string &meth, const string &msg):
+(const std::string &meth, const std::string &msg):
     message(msg), method(meth)
 {}
 
@@ -39,11 +39,11 @@ ClassicException::~ClassicException()
 {}
 
 
-const string &ClassicException::what() const {
+const std::string &ClassicException::what() const {
     return message;
 }
 
 
-const string &ClassicException::where() const {
+const std::string &ClassicException::where() const {
     return method;
 }

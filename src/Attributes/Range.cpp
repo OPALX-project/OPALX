@@ -30,7 +30,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    Range::Range(const string &name, const string &help):
+    Range::Range(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -39,8 +39,8 @@ namespace Attributes {
     {}
 
 
-    const string &Range::getType() const {
-        static const string type("range");
+    const std::string &Range::getType() const {
+        static const std::string type("range");
         return type;
     }
 

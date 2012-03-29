@@ -30,7 +30,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    TableRow::TableRow(const string &name, const string &help):
+    TableRow::TableRow(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -39,8 +39,8 @@ namespace Attributes {
     {}
 
 
-    const string &TableRow::getType() const {
-        static const string type("table line");
+    const std::string &TableRow::getType() const {
+        static const std::string type("table line");
         return type;
     }
 

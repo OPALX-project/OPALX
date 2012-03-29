@@ -10,14 +10,12 @@ using Physics::mu_0;
 using Physics::c;
 using Physics::two_pi;
 
-FM1DProfile1::FM1DProfile1(string aFilename):
+FM1DProfile1::FM1DProfile1(std::string aFilename):
     Fieldmap(aFilename),
     EngeCoefs_entry_m(NULL),
     EngeCoefs_exit_m(NULL),
     xExit_m(0.0),
     zExit_m(0.0),
-    cosEntranceRotation_m(1.0),
-    sinEntranceRotation_m(0.0),
     cosExitRotation_m(1.0),
     sinExitRotation_m(0.0),
     exit_slope_m(0.0) {
@@ -56,13 +54,13 @@ FM1DProfile1::FM1DProfile1(string aFilename):
 
             // Declares some dummy variables.
             int tmpInt = 0;
-            string tmpString = "";
+            std::string tmpString = "";
             double tmpDouble = 0.0;
 
             // Parse field map file header. Check that it at
             // least has the right number of values on each line.
             bool parsing_passed =                               \
-                    interpreteLine<string, int, int, double>(file,
+                    interpreteLine<std::string, int, int, double>(file,
                             tmpString,
                             polynomialOrder_entry_m,
                             polynomialOrder_exit_m,
@@ -171,10 +169,10 @@ void FM1DProfile1::readMap() {
             ifstream in(Filename_m.c_str());
 
             int tmpInt;
-            string tmpString;
+            std::string tmpString;
             double tmpDouble;
 
-            interpreteLine<string, int, int, double>(in, tmpString, tmpInt, tmpInt, tmpDouble);
+            interpreteLine<std::string, int, int, double>(in, tmpString, tmpInt, tmpInt, tmpDouble);
             interpreteLine<double, double, double, int>(in, tmpDouble, tmpDouble, tmpDouble, tmpInt);
             interpreteLine<double, double, double, int>(in, tmpDouble, tmpDouble, tmpDouble, tmpInt);
 
@@ -208,20 +206,18 @@ void FM1DProfile1::freeMap() {
 }
 
 bool FM1DProfile1::getFieldstrength(const Vector_t &R, Vector_t &strength, Vector_t &info) const {
+
     info = Vector_t(0.0);
-    const Vector_t tmpR(R(0), R(1), R(2) + zbegin_entry_m);
 
     // Find coordinates in the entrance frame.
-    Vector_t REntrance(R(0), 0.0, 0.0);
-    REntrance(0) = R(0) * cosEntranceRotation_m + (R(2) + zbegin_entry_m - polynomialOrigin_entry_m) * sinEntranceRotation_m;
-    REntrance(2) = -R(0) * sinEntranceRotation_m + (R(2) + zbegin_entry_m - polynomialOrigin_entry_m) * cosEntranceRotation_m + polynomialOrigin_entry_m;
+    Vector_t REntrance(R(0), 0.0, R(2) + zbegin_entry_m);
 
-    // Find coordinates in the exit frame centered on (xExit_m, zExit_m)
-    // and rotated so that z is perpendicular to exit face.
+    // Find coordinates in the exit frame.
     Vector_t RExit(0.0, R(1), 0.0);
 
-    RExit(0) = (R(0) - xExit_m) * cosExitRotation_m + (R(2) + zbegin_entry_m - zExit_m) * sinExitRotation_m;
-    RExit(2) = -(R(0) - xExit_m) * sinExitRotation_m + (R(2) + zbegin_entry_m - zExit_m) * cosExitRotation_m + polynomialOrigin_exit_m;
+    RExit(0) = (R(0) - xExit_m) * cosExitRotation_m - (R(2) + zbegin_entry_m - zExit_m) * sinExitRotation_m;
+    RExit(2) = (R(0) - xExit_m) * sinExitRotation_m + (R(2) + zbegin_entry_m - zExit_m) * cosExitRotation_m + polynomialOrigin_exit_m;
+
 
     if(REntrance(2) >= zend_entry_m && RExit(2) <= zbegin_exit_m) {
         strength = Vector_t(1.0, 0.0, 0.0);
@@ -308,14 +304,12 @@ void FM1DProfile1::setExitFaceSlope(const double &m) {
 void FM1DProfile1::setEdgeConstants(const double &bendAngle, const double &entranceAngle, const double &exitAngle) {
 
     double deltaZ = polynomialOrigin_exit_m - polynomialOrigin_entry_m;
+
     zExit_m = polynomialOrigin_entry_m + deltaZ * cos(bendAngle / 2.0);
     xExit_m = -deltaZ * sin(bendAngle / 2.0);
 
-    cosEntranceRotation_m = cos(entranceAngle);
-    sinEntranceRotation_m = sin(entranceAngle);
-
-    cosExitRotation_m = cos(bendAngle - exitAngle);
-    sinExitRotation_m = sin(bendAngle - exitAngle);
+    cosExitRotation_m = cos(-bendAngle + entranceAngle + exitAngle);
+    sinExitRotation_m = sin(-bendAngle + entranceAngle + exitAngle);
 }
 
 void FM1DProfile1::setFieldGap(const double &gap) {

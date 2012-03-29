@@ -70,22 +70,22 @@ AttributeHandler &Attribute::getHandler() const {
 }
 
 
-const string &Attribute::getHelp() const {
+const std::string &Attribute::getHelp() const {
     return handler->getHelp();
 }
 
 
-string Attribute::getImage() const {
+std::string Attribute::getImage() const {
     return base->getImage();
 }
 
 
-const string &Attribute::getName() const {
+const std::string &Attribute::getName() const {
     return handler->getName();
 }
 
 
-const string &Attribute::getType() const {
+const std::string &Attribute::getType() const {
     return handler->getType();
 }
 
@@ -137,8 +137,8 @@ void Attribute::setDefault() {
 
 void Attribute::print(int &pos) const {
     if(*this) {
-        string name  = getName();
-        string image = getImage();
+        std::string name  = getName();
+        std::string image = getImage();
         int step = name.length() + image.length() + 2;
         pos += step;
 

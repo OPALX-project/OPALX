@@ -31,7 +31,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    Reference::Reference(const string &name, const string &help):
+    Reference::Reference(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -40,8 +40,8 @@ namespace Attributes {
     {}
 
 
-    const string &Reference::getType() const {
-        static const string type("reference");
+    const std::string &Reference::getType() const {
+        static const std::string type("reference");
         return type;
     }
 

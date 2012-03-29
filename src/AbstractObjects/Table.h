@@ -75,11 +75,11 @@ public:
     /// Find named Table.
     //  If a table with name [b]name[/b] exists, return a pointer to that table.
     //  If no such table exists, throw OpalException.
-    static Table *find(const string &name);
+    static Table *find(const std::string &name);
 
     /// Return the object category as a string.
     //  Return the string "TABLE".
-    virtual const string getCategory() const;
+    virtual const std::string getCategory() const;
 
     /// Trace flag.
     //  If true, the object's execute() function should be traced.
@@ -95,11 +95,11 @@ public:
     /// Return value in selected table cell.
     //  Return the value stored in the table cell identified by the row
     //  at [b]row[/b] and the column name [b]col[/b].
-    virtual double getCell(const PlaceRep &row, const string &col) = 0;
+    virtual double getCell(const PlaceRep &row, const std::string &col) = 0;
 
     /// Return column [b]col[/b] of this table, limited by [b]range[/b].
     virtual std::vector<double> getColumn
-    (const RangeRep &range, const string &col) = 0;
+    (const RangeRep &range, const std::string &col) = 0;
 
     /// Return the default print columns.
     //  Returns an array of column descriptors, which, when applied to a
@@ -119,14 +119,14 @@ public:
     //  Returns the values stored in the row specified by the first argument,
     //  with columns selected by the names stored in the second argument.
     virtual std::vector<double>
-    getRow(const PlaceRep &, const std::vector<string> &) = 0;
+    getRow(const PlaceRep &, const std::vector<std::string> &) = 0;
 
     /// Mark this table as invalid, if it is dynamic.
     virtual void invalidate();
 
     /// Find out if table depends on the object identified by [b]name[/b].
     //  Must be overridden in derived classes.
-    virtual bool isDependent(const string &name) const = 0;
+    virtual bool isDependent(const std::string &name) const = 0;
 
     /// Write TFS file for this table.
     virtual void makeTFS(std::ostream &, const CellArray &) const = 0;
@@ -136,7 +136,7 @@ public:
     //  [b]listTFS()[/b] or [b]printTable()[/b].  The expression then
     //  computes the value in the column identified by the argument.
     virtual Expressions::PtrToScalar<double>
-    makeColumnExpression(const string &) const = 0;
+    makeColumnExpression(const std::string &) const = 0;
 
     /// Check that [b]rhs[/b] is of same type as [b]this[/b].
     virtual bool matches(Table *rhs) const = 0;
@@ -153,7 +153,7 @@ protected:
     Table(int size, const char *name, const char *help);
 
     /// Constructor for clones.
-    Table(const string &name, Table *parent);
+    Table(const std::string &name, Table *parent);
 
 
     /// Flag dynamic table.

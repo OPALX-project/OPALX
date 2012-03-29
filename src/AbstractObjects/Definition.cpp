@@ -26,7 +26,7 @@ Definition::~Definition()
 {}
 
 
-const string Definition::getCategory() const {
+const std::string Definition::getCategory() const {
     return "DEFINITION";
 }
 
@@ -46,6 +46,6 @@ Definition::Definition(int size, const char *name, const char *help):
 {}
 
 
-Definition::Definition(const string &name, Definition *parent):
+Definition::Definition(const std::string &name, Definition *parent):
     Object(name, parent)
 {}

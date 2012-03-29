@@ -43,7 +43,7 @@ class SBend: public Component {
 public:
 
     /// Constructor with given name.
-    explicit SBend(const string &name);
+    explicit SBend(const std::string &name);
 
     SBend();
     SBend(const SBend &);
@@ -147,9 +147,9 @@ public:
     void setFaceAngleExit(double angle);
     /// Set the name of the "field map";
     /// For a bend this file contains the coefficients for the Enge function
-    void setFieldMapFN(string fmapfn);
+    void setFieldMapFN(std::string fmapfn);
 
-    string getFieldMapFN() const;
+    std::string getFieldMapFN() const;
 
     void setAlpha(const double &alpha);
 
@@ -161,7 +161,7 @@ public:
 
     void setExitAngle(const double &exitAngle);
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
@@ -179,7 +179,7 @@ private:
     void operator=(const SBend &);
 
     // Name of field map that defines magnet.
-    string filename_m;
+    std::string filename_m;
     // Magnet field map.
     Fieldmap *fieldmap_m;
     // Flag to turn on
@@ -243,8 +243,8 @@ private:
     // and the reference energy.
     void setBendStrength();
 
-    // Calculate bend angle given reference energy and field strength.
-    double calculateBendAngle(double bendLength);
+    // Calculate bend angle.
+    double calculateBendAngle(double bendLength, bool modifyField);
 
     // Calculate the reference particle trajectory map.
     double calculateRefTrajectory(const double zBegin);
@@ -252,8 +252,8 @@ private:
 
 inline void SBend::setAlpha(const double &alpha) {
     alpha_m = alpha * Physics::pi / 180.0;
-    Orientation_m(0) = 0.0;
-    //    Orientation_m(0) = alpha * Physics::pi / 180.0;
+    Orientation_m(0) = -alpha * Physics::pi / 180.0;
+    //    Orientation_m(0) = 0.0;
     sin_face_alpha_m = sin(Orientation_m(0));
     cos_face_alpha_m = cos(Orientation_m(0));
     tan_face_alpha_m = tan(Orientation_m(0));

@@ -130,7 +130,7 @@ private:
     void operator=(const AttString &);
 
     // The attribute value.
-    string itsValue;
+    std::string itsValue;
 };
 
 #endif // OPAL_AttCell_HH

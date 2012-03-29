@@ -34,7 +34,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    BoolArray::BoolArray(const string &name, const string &help):
+    BoolArray::BoolArray(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -43,8 +43,8 @@ namespace Attributes {
     {}
 
 
-    const string &BoolArray::getType() const {
-        static string type = "logical array";
+    const std::string &BoolArray::getType() const {
+        static std::string type = "logical array";
         return type;
     }
 

@@ -47,7 +47,7 @@ class Component: public ElementBase {
 public:
 
     /// Constructor with given name.
-    explicit Component(const string &name);
+    explicit Component(const std::string &name);
 
     Component();
     Component(const Component &right);
@@ -125,10 +125,10 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const = 0;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
-    virtual void setComponentType(string name) { };
-    virtual string getComponentType() const { return ""; };
+    virtual void setComponentType(std::string name) { };
+    virtual std::string getComponentType() const { return ""; };
 
     /// Return design element.
     //  If a component is a wrapper, this method returns a pointer to

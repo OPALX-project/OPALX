@@ -41,7 +41,7 @@ OpalRBend::OpalRBend():
 }
 
 
-OpalRBend::OpalRBend(const string &name, OpalRBend *parent):
+OpalRBend::OpalRBend(const std::string &name, OpalRBend *parent):
     OpalBend(name, parent),
     owk_m(0),
     sphys_m(NULL) {
@@ -57,7 +57,7 @@ OpalRBend::~OpalRBend() {
 }
 
 
-OpalRBend *OpalRBend::clone(const string &name) {
+OpalRBend *OpalRBend::clone(const std::string &name) {
     return new OpalRBend(name, this);
 }
 
@@ -85,11 +85,11 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     if(length != 0.0) scale *= length;
 
     for(int i = 1; i <= field.order(); ++i) {
-        string normName("K0L");
+        std::string normName("K0L");
         normName[1] += (i - 1);
         attributeRegistry[normName]->setReal(scale * field.normal(i));
 
-        string skewName("K0SL");
+        std::string skewName("K0SL");
         skewName[1] += (i - 1);
         attributeRegistry[skewName]->setReal(scale * field.skew(i));
         scale *= double(i);
@@ -147,15 +147,25 @@ void OpalRBend::update() {
     field.setSkewComponent(4, factor * Attributes::getReal(itsAttr[K3S]) / 6.0);
     bend->setField(field);
 
-    bend->setAmplitudem(sqrt(k0 * k0 + k0s * k0s));
-    bend->setAngle(k0, k0s);
+    // Set field amplitude or bend angle and the magnet rotation about the z axis.
+    if(itsAttr[ANGLE])
+        bend->setBendAngle(Attributes::getReal(itsAttr[ANGLE]));
+    else
+        bend->setAmplitudem(sqrt(k0 * k0 + k0s * k0s));
+
+    if(itsAttr[ROTATION])
+        bend->setLongitudinalRotation(Attributes::getReal(itsAttr[ROTATION]));
+    else
+        bend->setLongitudinalRotation(k0, k0s);
 
     if(itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     else if(bend->getName() != "RBEND")
         ERRORMSG(bend->getName() << ": No filename for a field map given" << endl);
 
-    if(itsAttr[ALPHA])
+    if(itsAttr[E1])
+        bend->setAlpha(Attributes::getReal(itsAttr[E1]));
+    else if(itsAttr[ALPHA])
         bend->setAlpha(Attributes::getReal(itsAttr[ALPHA]));
     else
         bend->setAlpha(0.0);
@@ -169,8 +179,18 @@ void OpalRBend::update() {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * 1e6); // convert from MeV to eV
     }
 
+    if(itsAttr[GAP])
+        bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+    else
+        bend->setFullGap(0.0);
+
+    if(itsAttr[LENGTH])
+        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
+    else
+        bend->setLength(0.0);
+
     if(itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*bend);
         bend->setWake(owk_m->wf_m);
     }
@@ -187,7 +207,7 @@ void OpalRBend::update() {
     }
 
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*bend, apert_major, apert_minor);
         bend->setSurfacePhysics(sphys_m->handler_m);
     }

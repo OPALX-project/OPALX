@@ -214,7 +214,7 @@ namespace Expressions {
     /// Parse string value.
     //  When no string is seen, a ParseError is thrown with the message
     //  given as the second argument.
-    extern string parseString(Statement &, const char msg[]);
+    extern std::string parseString(Statement &, const char msg[]);
 
 
     // ARRAY EXPRESSION PARSERS.
@@ -229,7 +229,7 @@ namespace Expressions {
     extern PtrToArray<double> parseRealConstArray(Statement &);
 
     /// Parse string array.
-    extern std::vector<string> parseStringArray(Statement &);
+    extern std::vector<std::string> parseStringArray(Statement &);
 
 
     // SPECIAL VALUE PARSERS.

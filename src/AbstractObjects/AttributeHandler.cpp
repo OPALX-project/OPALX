@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 AttributeHandler::AttributeHandler
-(const string &name, const string &help, AttributeBase *def):
+(const std::string &name, const std::string &help, AttributeBase *def):
     RCObject(), itsName(name), itsHelp(help), itsDefault(def),
     is_deferred(false), is_readonly(false)
 {}
@@ -51,12 +51,12 @@ AttributeBase *AttributeHandler::getDefault() const {
 }
 
 
-const string &AttributeHandler::getHelp() const {
+const std::string &AttributeHandler::getHelp() const {
     return itsHelp;
 }
 
 
-const string &AttributeHandler::getName() const {
+const std::string &AttributeHandler::getName() const {
     return itsName;
 }
 

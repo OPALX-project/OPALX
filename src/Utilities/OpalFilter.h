@@ -42,13 +42,13 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual OpalFilter *clone(const string &name);
+    virtual OpalFilter *clone(const std::string &name);
 
     /// Check the OpalFilter data.
     virtual void execute();
 
     /// Find named FILTER.
-    static OpalFilter *find(const string &name);
+    static OpalFilter *find(const std::string &name);
 
     /// Update the OpalFilter data.
     virtual void update();
@@ -71,7 +71,7 @@ private:
     void operator=(const OpalFilter &);
 
     // Clone constructor.
-    OpalFilter(const string &name, OpalFilter *parent);
+    OpalFilter(const std::string &name, OpalFilter *parent);
 
 };
 

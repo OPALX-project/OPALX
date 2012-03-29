@@ -105,7 +105,7 @@ SBend::SBend(const SBend &right):
 }
 
 
-SBend::SBend(const string &name):
+SBend::SBend(const std::string &name):
     Component(name),
     filename_m(""),
     fieldmap_m(NULL),
@@ -218,35 +218,40 @@ bool SBend::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
     Vector_t strength(0.0), info(0.0);
 
     fieldmap_m->getFieldstrength(X, strength, info);
-    // double dd, dx, dz, rho;
-    //    const double &k34 = info(2);
-    //
-    //    if(k34 > 0) {
-    //        dx = X(0) + R_m * cos_face_alpha_m;
-    //        dz = X(2) - R_m * sin_face_alpha_m;
-    //        rho = sqrt(dx * dx + dz * dz);
-    //        dd = 1.0 - rho / R_m;
-    //    } else {
-    //        dx = -X(0) + R_m * cos_face_alpha_m;
-    //        dz = -X(2) + R_m * sin_face_alpha_m;
-    //        rho = sqrt(dx * dx + dz * dz);
-    //        dd = -1.0 + rho / R_m;
-    //    }
+
+    double dd, dx, dz, rho;
+    const double &k34 = info(2);
+
+    if(k34 > 0) {
+        dx = X(0) + R_m * cos_face_alpha_m;
+        dz = X(2) - R_m * sin_face_alpha_m;
+        rho = sqrt(dx * dx + dz * dz);
+        dd = 1.0 - rho / R_m;
+    } else {
+        dx = -X(0) + R_m * cos_face_alpha_m;
+        dz = -X(2) + R_m * sin_face_alpha_m;
+        rho = sqrt(dx * dx + dz * dz);
+        dd = -1.0 + rho / R_m;
+    }
 
     if(info(0) > 0.99) {
 
-        B(1) += amplitude_m * (strength(0) - strength(2) / 2.0 * pow(X(1), 2.0));
+        B(1) += amplitude_m * (strength(0) - strength(2) / 2.0 * pow(X(1), 2.0)) * (1.0 - gradient_m * dd);
+        double bX = amplitude_m * (strength(0) - strength(2) / 2.0 * pow(X(1), 2.0)) * gradient_m * X(1) / (rho * R_m);
 
         if(info(1) > 0.99) {
-            B(0) -= amplitude_m * strength(1) * X(1) * sin(angle_m - exitAngle_m);
-            B(2) += amplitude_m * strength(1) * X(1) * cos(angle_m - exitAngle_m);
+            B(0) -= amplitude_m * strength(1) * X(1) * sin(angle_m - alpha_m - exitAngle_m) + bX * dx;
+            B(2) += amplitude_m * strength(1) * X(1) * cos(angle_m - alpha_m - exitAngle_m) + bX * dz;
         } else {
-            B(0) += amplitude_m * strength(1) * X(1) * sin(alpha_m);
-            B(2) -= amplitude_m * strength(1) * X(1) * cos(alpha_m);
+            B(0) += bX * dx;
+            B(2) -= amplitude_m * strength(1) * X(1) + bX * dz;
         }
 
-    } else if(fabs(info(0)) < 0.01)
-        B(1) += amplitude_m;
+    } else if(fabs(info(0)) < 0.01) {
+        B(0) += amplitude_m * gradient_m * X(1) * dx / (rho * R_m);
+        B(1) += amplitude_m * (1.0 - gradient_m * dd);
+        B(2) += amplitude_m * gradient_m * X(1) * dz / (rho * R_m);
+    }
     //    if(info(0) > 0.99) {
     //        B(1) +=  amplitude_m * (strength(0) - strength(2) / 2. * X(1) * X(1)) * (1. - gradient_m * dd);
     //        double Bx = amplitude_m * (strength(0) - strength(2) / 2. * X(1) * X(1)) * gradient_m * X(1) / (rho * R_m);
@@ -320,11 +325,10 @@ bool SBend::apply(const Vector_t &R, const Vector_t &centroid, const double &t, 
             tempB(1) += amplitude_m * (strength(0) - strength(2) / 2.0 * pow(X(1), 2.0));
 
             if(info(1) > 0.99) {
-                tempB(0) += amplitude_m * strength(1) * X(1) * sin(exitAngle_m);
+                tempB(0) -= amplitude_m * strength(1) * X(1) * sin(exitAngle_m);
                 tempB(2) += amplitude_m * strength(1) * X(1) * cos(exitAngle_m);
             } else {
-                tempB(0) += amplitude_m * strength(1) * X(1) * sin(alpha_m);
-                tempB(2) -= amplitude_m * strength(1) * X(1) * cos(alpha_m);
+                tempB(2) -= amplitude_m * strength(1) * X(1);
             }
         } else if(fabs(info(0)) < 0.01)
             tempB(1) += amplitude_m;
@@ -424,8 +428,6 @@ void SBend::initialise(PartBunch *bunch, double &startField, double &endField, c
             }
         }
 
-        fieldmap_m->setExitFaceSlope(exit_face_slope_m);
-
         length_m =  zEnd - zBegin;
         if(length_m < 0.0) {
             // There is probably something wrong with the fieldmap.
@@ -442,12 +444,13 @@ void SBend::initialise(PartBunch *bunch, double &startField, double &endField, c
             }
             setBendStrength();
             reinitialize_m = true;
-        } else {
-            angle_m = calculateBendAngle(length_m);
+        } else if(amplitude_m != 0.0) {
+            angle_m = calculateBendAngle(length_m, true);
             reinitialize_m = false;
         }
 
-        // Calculate the reference particle trajectory map.
+        // Calculate the reference particle trajectory map. Make sure field map edge constants
+        // are reset.
         double bendAngle = calculateRefTrajectory(zBegin);
 
         startField = startField_m;
@@ -492,11 +495,11 @@ void SBend::setLength(const double &length) {
     length_m = length;
 }
 
-void SBend::setFieldMapFN(string fmapfn) {
+void SBend::setFieldMapFN(std::string fmapfn) {
     filename_m = fmapfn;
 }
 
-string SBend::getFieldMapFN() const {
+std::string SBend::getFieldMapFN() const {
     return filename_m;
 }
 
@@ -525,18 +528,14 @@ double SBend::getR() const {
     return R_m;
 }
 
-
-const string &SBend::getType() const {
-    static const string type("SBend");
+const std::string &SBend::getType() const {
+    static const std::string type("SBend");
     return type;
 }
 
 void SBend::setBendStrength() {
     // This routine uses an iterative procedure to set the bend strength
     // so that the bend angle is the one we want.
-    //
-    // This is a primitive approach in that it is not very efficient. But it
-    // is stable and is only called once or twice during a simulation.
 
     // Estimate bend field magnitude.
     const double mass = RefPartBunch_m->getM();
@@ -544,60 +543,100 @@ void SBend::setBendStrength() {
     const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
     const double charge = RefPartBunch_m->getQ();
 
-    fieldmap_m->setEdgeConstants(angle_m, alpha_m, exitAngle_m);
+    fieldmap_m->setEdgeConstants(0.0, 0.0, 0.0);
     calculateEffectiveLength();
-    amplitude_m = (charge / fabs(charge)) * betaGamma * mass / (Physics::c * (effectiveLength_m * cos_face_alpha_m) / sin(angle_m));
+    double radius = effectiveLength_m / (2.0 * sin(angle_m / 2.0));
+
+    amplitude_m = (charge / fabs(charge)) * betaGamma * mass / (Physics::c * radius);
 
     // Find initial angle.
     double zBegin = 0.0;
     double zEnd = 0.0;
     double rBegin = 0.0;
     double rEnd = 0.0;
+    fieldmap_m->setEdgeConstants(angle_m, alpha_m, exitAngle_m);
     fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-    double actualBendAngle = calculateBendAngle(zEnd - zBegin);
+    double actualBendAngle = calculateBendAngle(zEnd - zBegin, false);
 
-    // Adjust field amplitude to get desired bend angle.
-    int iterations = 1;
-    double fieldAdjustment = amplitude_m / 10.0;
+    // Search for angle if initial guess is not good enough.
+    double error = fabs(actualBendAngle - angle_m);
+    if(error > 1.0e-6) {
 
-    if(fabs(actualBendAngle) > fabs(angle_m))
-        fieldAdjustment *= -1.0;
+        double amplitude1 = amplitude_m;
+        double bendAngle1 = actualBendAngle;
 
-    bool lastGreater = true;
-    if(fabs(actualBendAngle) < fabs(angle_m))
-        lastGreater = false;
+        double fieldAdjustment = amplitude_m / 10.0;
 
-    while(fabs(actualBendAngle - angle_m) > 1.0e-8 && iterations <= 1000) {
+        if(fabs(bendAngle1) > fabs(angle_m))
+            fieldAdjustment *= -1.0;
 
-        actualBendAngle = calculateBendAngle(zEnd - zBegin);
-        iterations++;
+        double amplitude2 = amplitude_m + fieldAdjustment;
+        amplitude_m = amplitude2;
+        double bendAngle2 = calculateBendAngle(zEnd - zBegin, false);
 
-        if((!lastGreater && fabs(actualBendAngle) > fabs(angle_m)) || (lastGreater && fabs(actualBendAngle) < fabs(angle_m)))
-            fieldAdjustment /= -10.0;
+        if(fabs(bendAngle1) > fabs(angle_m)) {
+            while(fabs(bendAngle2) > fabs(angle_m)) {
+                amplitude2 += fieldAdjustment;
+                amplitude_m = amplitude2;
+                bendAngle2 = calculateBendAngle(zEnd - zBegin, false);
+            }
+        } else {
+            while(fabs(bendAngle2) < fabs(angle_m)) {
+                amplitude2 += fieldAdjustment;
+                amplitude_m = amplitude2;
+                bendAngle2 = calculateBendAngle(zEnd - zBegin, false);
+            }
+        }
 
-        if(fabs(actualBendAngle) > fabs(angle_m)) lastGreater = true;
-        else lastGreater = false;
+        // Now we should have the proper field amplitude bracketed.
+        unsigned int iterations = 1;
+        while(error > 1.0e-6 && iterations < 100) {
 
-        amplitude_m += fieldAdjustment;
+            amplitude_m = (amplitude1 + amplitude2) / 2.0;
+            double newBendAngle = calculateBendAngle(zEnd - zBegin, false);
+
+            error = fabs(newBendAngle - angle_m);
+
+            if(error > 1.0e-6) {
+
+                if(bendAngle1 - angle_m < 0.0) {
+
+                    if(newBendAngle - angle_m < 0.0) {
+                        bendAngle1 = newBendAngle;
+                        amplitude1 = amplitude_m;
+                    } else {
+                        bendAngle2 = newBendAngle;
+                        amplitude2 = amplitude_m;
+                    }
+
+                } else {
+
+                    if(newBendAngle - angle_m < 0.0) {
+                        bendAngle2 = newBendAngle;
+                        amplitude2 = amplitude_m;
+                    } else {
+                        bendAngle1 = newBendAngle;
+                        amplitude1 = amplitude_m;
+                    }
+                }
+            }
+            iterations++;
+        }
     }
 }
 
-double SBend::calculateBendAngle(double bendLength) {
-    // This routine calculates the bend angle using an iterative process. The reason
-    // for this is because the bend has soft edges, in order to set the exit edge angle
-    // we need to know the bend angle. But, in order to properly integrate the field,
-    // we need to know the exit edge angle.
+double SBend::calculateBendAngle(double bendLength, bool modifyField) {
+    // This routine calculates the bend angle using an iterative process.
 
     // Make initial guess of angle.
     const double mass = RefPartBunch_m->getM();
     const double gamma = design_energy_m / mass + 1.0;
     const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
     const double deltaT = RefPartBunch_m->getdT();
-    // const double charge = RefPartBunch_m->getQ();
 
     // Integrate through field for initial angle.
     Vector_t X(0.0, 0.0, 0.0);
-    Vector_t P(0.0, 0.0, betaGamma);
+    Vector_t P(-betaGamma * sin_face_alpha_m, 0.0, betaGamma * cos_face_alpha_m);
     Vector_t strength(0.0, 0.0, 0.0);
     Vector_t bField(0.0, 0.0, 0.0);
     Vector_t temp(0.0, 0.0, 0.0);
@@ -621,16 +660,17 @@ double SBend::calculateBendAngle(double bendLength) {
 
     }
 
-    double angle =  -atan2(P(0), P(2));
+    double angle =  -atan2(P(0), P(2)) - Orientation_m(0);
 
     // Now iterate while adjusting the exit face.
     double error = 1.0;
     while(error > 1.0e-6) {
 
-        fieldmap_m->setEdgeConstants(angle, alpha_m, exitAngle_m);
+        if(modifyField)
+            fieldmap_m->setEdgeConstants(angle, angle_m, exitAngle_m);
 
         X = Vector_t(0.0);
-        P = Vector_t(0.0, 0.0, betaGamma);
+        P = Vector_t(-betaGamma * sin_face_alpha_m, 0.0, betaGamma * cos_face_alpha_m);
         temp = Vector_t(0.0);
 
         while(P(2) > 0.0 && X(2) < bendLength) {
@@ -652,7 +692,8 @@ double SBend::calculateBendAngle(double bendLength) {
 
         }
 
-        double newAngle = - atan2(P(0), P(2));
+        double newAngle =  -atan2(P(0), P(2)) - Orientation_m(0);
+
         error = fabs(newAngle - angle);
         angle = newAngle;
     }
@@ -665,23 +706,23 @@ double SBend::calculateRefTrajectory(const double zBegin) {
     // Calculate the reference trajectory map.
     const double mass = RefPartBunch_m->getM();
     const double gamma = design_energy_m / mass + 1.;
-    const double betagamma = sqrt(gamma * gamma - 1.);
+    const double betaGamma = sqrt(gamma * gamma - 1.);
     const double dt = RefPartBunch_m->getdT();
-    // const double charge = RefPartBunch_m->getQ();
+
     int j = 0;
 
     Vector_t tmp(0.0);
     Vector_t Bfield(0.0);
     Vector_t strength(0.0);
     Vector_t X(0.0);
-    Vector_t P(0.0, 0.0, betagamma); // TODO: make it 3D
+    Vector_t P(-betaGamma * sin_face_alpha_m, 0.0, betaGamma * cos_face_alpha_m); // TODO: make it 3D
 
     bool EntryFringe_passed = false;
     double PathLengthEntryFringe = 0.0;  // in S coordinates. This value is different from zBegin due to the curvature!
 
     if(map_m != NULL) delete map_m;
 
-    map_step_size_m = betagamma / gamma * Physics::c * dt;
+    map_step_size_m = betaGamma / gamma * Physics::c * dt;
     map_size_m = (int)floor(length_m / 2. * Physics::pi / map_step_size_m);
     map_m = new double[3 * (map_size_m + 1)];
     map_m[0] = map_m[1] = map_m[2] = 0.0;
@@ -711,13 +752,13 @@ double SBend::calculateRefTrajectory(const double zBegin) {
     }
 
     map_size_m = j;
-    double angle = -atan2(P(0), P(2));
+    double angle = -atan2(P(0), P(2)) - Orientation_m(0);
 
     startField_m = startElement_m - PathLengthEntryFringe;
     endField_m = startField_m + map_step_size_m * j;
 
     // Set "ideal" bend radius and effective length.
-    R_m = fabs(betagamma * mass / (Physics::c * amplitude_m));
+    R_m = fabs(betaGamma * mass / (Physics::c * amplitude_m));
     effectiveLength_m = R_m * angle;
     calculateEffectiveCenter();
 
@@ -773,7 +814,7 @@ void SBend::calculateEffectiveCenter() {
     double effectiveCenter = fabs(R_m * angle_m / 2.0) - zBegin;
 
     // Find initial angle.
-    double actualBendAngle = calculateBendAngle(effectiveCenter);
+    double actualBendAngle = calculateBendAngle(effectiveCenter, false);
 
     // Adjust effective center to get a bend angle 0.5 times the full bend angle.
     int iterations = 1;
@@ -788,7 +829,7 @@ void SBend::calculateEffectiveCenter() {
 
     while(fabs(actualBendAngle - angle_m / 2.0) > 1.0e-8 && iterations <= 100) {
 
-        actualBendAngle = calculateBendAngle(effectiveCenter);
+        actualBendAngle = calculateBendAngle(effectiveCenter, false);
         iterations++;
 
         if((!lastGreater && fabs(actualBendAngle) > fabs(angle_m / 2.0)) || (lastGreater && fabs(actualBendAngle) < fabs(angle_m / 2.0)))
@@ -801,46 +842,6 @@ void SBend::calculateEffectiveCenter() {
 
     }
     effectiveCenter_m = effectiveCenter - R_m * sin(angle_m / 2.0) + R_m * angle_m / 2.0;
-
-
-    //    // Uses Simpson's rule to integrate field. Make step size 1 mm.
-    //
-    //    // This must be odd.
-    //    unsigned int numberOfIntSteps = 2 * static_cast<unsigned int>(floor((zEnd - zBegin) * 1000.0 / 2.0)) + 1;
-    //
-    //    double deltaZ = 0.001;
-    //    double integral = 0.0;
-    //
-    //    double zBracket1 = 0.0;
-    //    double integralOld = 0.0;
-    //
-    //    unsigned int integralIndex = 1;
-    //    while(effectiveCenter_m == 0.0 && integralIndex <= (numberOfIntSteps - 1) / 2) {
-    //
-    //        Vector_t strength(0.0);
-    //        Vector_t info(0.0);
-    //        Vector_t X(0.0);
-    //        X(2) = (2 * integralIndex - 1) * deltaZ;
-    //        zBracket1 = X(2);
-    //        fieldmap_m->getFieldstrength(X, strength, info);
-    //        double field1 = strength(0);
-    //
-    //        X(2) = 2 * integralIndex * deltaZ;
-    //        fieldmap_m->getFieldstrength(X, strength, info);
-    //        double field2 = strength(0);
-    //
-    //        X(2) = (2 * integralIndex + 1) * deltaZ;
-    //        fieldmap_m->getFieldstrength(X, strength, info);
-    //        double field3 = strength(0);
-    //
-    //        integralOld = integral;
-    //        integral += deltaZ * (field1 + 4.0 * field2 + field3) / 3.0;
-    //
-    //        if(integral >= effectiveLength_m / 2.0)
-    //            effectiveCenter_m = zBracket1 + deltaZ * 2.0 * (effectiveLength_m / 2.0 - integralOld) / (integral - integralOld);
-    //
-    //        integralIndex++;
-    //    }
 }
 
 

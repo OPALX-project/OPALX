@@ -65,11 +65,11 @@ public:
     //  If an element with the name [b]name[/b] exists,
     //  return a pointer to that element.
     //  If no such element exists, throw [b]OpalException[/b].
-    static Element *find(const string &name);
+    static Element *find(const std::string &name);
 
     /// Return the object category as a string.
     //  Return the string "ELEMENT".
-    virtual const string getCategory() const;
+    virtual const std::string getCategory() const;
 
     /// Trace flag.
     //  If true, the object's execute() function should be traced.
@@ -108,7 +108,7 @@ protected:
     Element(int size, const char *name, const char *help);
 
     /// Constructor for clones.
-    Element(const string &name, Element *parent);
+    Element(const std::string &name, Element *parent);
 
 private:
 

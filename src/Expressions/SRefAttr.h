@@ -51,7 +51,7 @@ namespace Expressions {
         /// Constructor.
         //  Use object name [b]oName[/b] to identify the object containing
         //  the scalar, and [b]aName[/b] to identify the scalar itself.
-        SRefAttr(const string &oName, const string &aName, int index);
+        SRefAttr(const std::string &oName, const std::string &aName, int index);
 
         SRefAttr(const SRefAttr &);
         virtual ~SRefAttr();
@@ -88,11 +88,11 @@ namespace Expressions {
         void fill() const;
 
         // The name of the type referred to.
-        static const string typeName;
+        static const std::string typeName;
 
         // The referred object, attribute and index.
-        const string obj_name;
-        const string att_name;
+        const std::string obj_name;
+        const std::string att_name;
         const int itsIndex;
 
         // The object and attribute referred to.
@@ -113,7 +113,7 @@ namespace Expressions {
 
     template <class T>
     SRefAttr<T>::SRefAttr
-    (const string &oName, const string &aName, int index):
+    (const std::string &oName, const std::string &aName, int index):
         obj_name(oName), att_name(aName), itsIndex(index),
         itsObject(0), itsAttr(0)
     {}
@@ -150,7 +150,7 @@ namespace Expressions {
                         throw OpalException("SRefAttr::evaluate()", "Reference \"" +
                                             getImage() + "\" has index out of range.");
                     } else {
-                        return array[itsIndex-1];
+                        return array[itsIndex - 1];
                     }
                 } else {
                     throw OpalException("SRefAttr::evaluate()", "Reference \"" +

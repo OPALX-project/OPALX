@@ -37,12 +37,12 @@ namespace Attributes {
 
         /// Constructor.
         //  Assign attribute name and help string.
-        TokenListArray(const string &name, const string &help);
+        TokenListArray(const std::string &name, const std::string &help);
 
         virtual ~TokenListArray();
 
         /// Return attribute type string ``token list array''.
-        virtual const string &getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
         virtual void parse(Attribute &, Statement &, bool) const;

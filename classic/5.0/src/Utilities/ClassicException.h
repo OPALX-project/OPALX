@@ -34,10 +34,10 @@ class ClassicException {
 public:
 
     /// Return the message string for the exception.
-    virtual const string &what() const;
+    virtual const std::string &what() const;
 
     /// Return the name of the method or function which detected the exception.
-    virtual const string &where() const;
+    virtual const std::string &where() const;
 
 protected:
 
@@ -49,7 +49,7 @@ protected:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    ClassicException(const string &meth, const string &msg);
+    ClassicException(const std::string &meth, const std::string &msg);
 
     ClassicException(const ClassicException &);
     virtual ~ClassicException();
@@ -60,8 +60,8 @@ protected:
     ClassicException();
 
     // The method detecting the exception and the message.
-    const string message;
-    const string method;
+    const std::string message;
+    const std::string method;
 };
 
 #endif // CLASSIC_ClassicException_HH

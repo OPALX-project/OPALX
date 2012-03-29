@@ -35,12 +35,12 @@ namespace Attributes {
 
         /// Constructor.
         //  Assign attribute name and help string.
-        Place(const string &name, const string &help);
+        Place(const std::string &name, const std::string &help);
 
         virtual ~Place();
 
         /// Return attribute type string ``place''.
-        virtual const string &getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
         virtual void parse(Attribute &, Statement &, bool) const;

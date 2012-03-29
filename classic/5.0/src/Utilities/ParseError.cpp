@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 
-ParseError::ParseError(const string &meth, const string &msg):
+ParseError::ParseError(const std::string &meth, const std::string &msg):
     ClassicException(meth, msg) {
 }
 

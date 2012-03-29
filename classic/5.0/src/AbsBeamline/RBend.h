@@ -137,9 +137,14 @@ public:
 
     virtual bool bends() const;
 
+    void setBendAngle(const double &angle);
     void setAmplitudem(double vPeak);
 
-    void setAngle(const double &, const double &);
+    void setFullGap(const double &gap);
+    void setLength(const double &length);
+
+    void setLongitudinalRotation(const double &rotation);
+    void setLongitudinalRotation(const double &k0, const double &k0s);
 
     /// Set the name of the "field map";
     /// For a bend this file contains the coefficients for the Enge function
@@ -168,6 +173,16 @@ public:
 
 private:
 
+    // Magnet length.
+    double length_m;
+
+    // Magnet gap.
+    double gap_m;
+
+    // Flag to reinitialize the field the first time the
+    // magnet is applied.
+    bool reinitialize_m;
+
     // Not implemented.
     void operator=(const RBend &);
     std::string filename_m;             /**< The name of the inputfile*/
@@ -178,7 +193,6 @@ private:
     Vektor<double, 2> field_orientation_m;   // (cos(alpha), sin(alpha))
     double startField_m;
     double endField_m;
-    double length_m;
 
     bool fast_m;
 
@@ -213,10 +227,20 @@ private:
 
     void calculateEffectiveLength();
     void calculateEffectiveCenter();
+
+    // Set the bend strength based on the desired bend angle
+    // and the reference energy.
+    void setBendStrength();
+
+    // Calculate bend angle given reference energy and field strength.
+    double calculateBendAngle(double bendLength);
+
+    // Calculate the reference particle trajectory map.
+    double calculateRefTrajectory(const double zBegin);
 };
 
 inline void RBend::setAlpha(const double &alpha) {
-    Orientation_m(0) = alpha * Physics::pi / 180.0;
+    Orientation_m(0) = -alpha * Physics::pi / 180.0;
     sin_face_alpha_m = sin(Orientation_m(0));
     cos_face_alpha_m = cos(Orientation_m(0));
     tan_face_alpha_m = tan(Orientation_m(0));
@@ -232,7 +256,11 @@ inline void RBend::setBeta(const double &beta) {
 inline void RBend::setDesignEnergy(const double &energy)
 { design_energy_m = energy; }
 
-inline void RBend::setAngle(const double &k0, const double &k0s) {
+inline void RBend::setLongitudinalRotation(const double &rotation) {
+    Orientation_m(2) = rotation * Physics::pi / 180.0;
+}
+
+inline void RBend::setLongitudinalRotation(const double &k0, const double &k0s) {
 
     Orientation_m(2) = atan2(k0s, k0);
     amplitude_m = sqrt(pow(k0, 2.0) + pow(k0s, 2.0));

@@ -35,12 +35,12 @@ namespace Attributes {
 
         /// Constructor.
         //  Assign attribute name and help string.
-        StringArray(const string &name, const string &help);
+        StringArray(const std::string &name, const std::string &help);
 
         virtual ~StringArray();
 
         /// Return attribute type string ``string array''.
-        virtual const string &getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
         virtual void parse(Attribute &, Statement &, bool) const;

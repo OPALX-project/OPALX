@@ -105,7 +105,7 @@ OpalBend::OpalBend(const char *name, const char *help):
 }
 
 
-OpalBend::OpalBend(const string &name, OpalBend *parent):
+OpalBend::OpalBend(const std::string &name, OpalBend *parent):
     OpalElement(name, parent)
 {}
 

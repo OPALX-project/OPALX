@@ -36,7 +36,7 @@ namespace Expressions {
 
 
     AColumn::AColumn
-    (const string &tName, const string &cName, const RangeRep &rng):
+    (const std::string &tName, const std::string &cName, const RangeRep &rng):
         Array<double>(), tab_name(tName), col_name(cName), itsRange(rng)
     {}
 

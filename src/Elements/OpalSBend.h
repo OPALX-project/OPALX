@@ -37,7 +37,7 @@ public:
     virtual ~OpalSBend();
 
     /// Make clone.
-    virtual OpalSBend *clone(const string &name);
+    virtual OpalSBend *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -52,7 +52,7 @@ private:
     void operator=(const OpalSBend &);
 
     // Clone constructor.
-    OpalSBend(const string &name, OpalSBend *parent);
+    OpalSBend(const std::string &name, OpalSBend *parent);
 
     OpalWake *owk_m;
     SurfacePhysics *sphys_m;

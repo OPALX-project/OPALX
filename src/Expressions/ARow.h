@@ -40,8 +40,8 @@ namespace Expressions {
         //  Identify the table by [b]tabName[/b] and the row by the place
         //  reference [b]row[/b].  The array [b]col[/b] contains the column
         //  names to select the columns by name.
-        ARow(const string &tabName, const PlaceRep &row,
-             const std::vector<string> &col);
+        ARow(const std::string &tabName, const PlaceRep &row,
+             const std::vector<std::string> &col);
 
         ARow(const ARow &);
         ~ARow();
@@ -62,13 +62,13 @@ namespace Expressions {
         const ARow &operator=(const ARow &);
 
         // The table name.
-        const string tabName;
+        const std::string tabName;
 
         // The row specification.
         PlaceRep position;
 
         // The std::vector of column names.
-        const std::vector<string> columns;
+        const std::vector<std::string> columns;
     };
 
 }

@@ -42,7 +42,7 @@ public:
     // [DD]the message string identifying the exception
     // [/DL]
     // Construction/destruction.
-    ParseError(const string &meth, const string &msg);
+    ParseError(const std::string &meth, const std::string &msg);
 
     ParseError(const ParseError &);
     virtual ~ParseError();

@@ -31,7 +31,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    TokenListArray::TokenListArray(const string &name, const string &help):
+    TokenListArray::TokenListArray(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -40,8 +40,8 @@ namespace Attributes {
     {}
 
 
-    const string &TokenListArray::getType() const {
-        static const string type("token list array");
+    const std::string &TokenListArray::getType() const {
+        static const std::string type("token list array");
         return type;
     }
 
@@ -63,7 +63,7 @@ namespace Attributes {
             array.push_back(std::list<Token>());
         }
 
-        array[index-1] = Expressions::parseTokenList(statement);
+        array[index - 1] = Expressions::parseTokenList(statement);
         Attributes::setTokenListArray(attr, array);
     }
 

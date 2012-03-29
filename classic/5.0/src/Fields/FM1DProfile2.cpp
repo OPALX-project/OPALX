@@ -10,14 +10,18 @@ using Physics::mu_0;
 using Physics::c;
 using Physics::two_pi;
 
-FM1DProfile2::FM1DProfile2(string aFilename)
+FM1DProfile2::FM1DProfile2(std::string aFilename)
     : Fieldmap(aFilename),
       EngeCoefs_entry_m(NULL),
       EngeCoefs_exit_m(NULL),
+      xExit_m(0.0),
+      zExit_m(0.0),
+      cosExitRotation_m(1.0),
+      sinExitRotation_m(0.0),
       exit_slope_m(0.0) {
     Inform msg("FM1DP ");
     int tmpInt;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
     int num_gridpz = -1;
 
@@ -26,7 +30,7 @@ FM1DProfile2::FM1DProfile2(string aFilename)
 
     if(file.good()) {
         bool parsing_passed =                               \
-                interpreteLine<string, int, int, double>(file,
+                interpreteLine<std::string, int, int, double>(file,
                         tmpString,
                         polynomialOrder_entry_m,
                         polynomialOrder_exit_m,
@@ -94,7 +98,7 @@ void FM1DProfile2::readMap() {
         ifstream in(Filename_m.c_str());
 
         int tmpInt;
-        string tmpString;
+        std::string tmpString;
         double tmpDouble;
 
         double minValue = 99999999.99, maxValue = -99999999.99;
@@ -106,7 +110,7 @@ void FM1DProfile2::readMap() {
         double *leastSquareMatrix;
         double dZ;
 
-        interpreteLine<string, int, int, double>(in, tmpString, tmpInt, tmpInt, tmpDouble);
+        interpreteLine<std::string, int, int, double>(in, tmpString, tmpInt, tmpInt, tmpDouble);
         interpreteLine<double, double, double, int>(in, tmpDouble, tmpDouble, tmpDouble, num_gridpz);
         interpreteLine<double, double, double, int>(in, tmpDouble, tmpDouble, tmpDouble, tmpInt);
 
@@ -158,7 +162,7 @@ void FM1DProfile2::readMap() {
             double Z = (first - dZ * i) / gapHeight_m;
             rightHandSide[i] = log(1. / RealValues[num_gridp_before_fringe_entry + i + 1] - 1.);
             for(int j = 0; j < polynomialOrder_entry_m + 1; ++j) {
-                leastSquareMatrix[i*(polynomialOrder_entry_m + 1) + j] = powerOfZ;
+                leastSquareMatrix[i * (polynomialOrder_entry_m + 1) + j] = powerOfZ;
                 powerOfZ *= Z;
             }
         }
@@ -171,7 +175,7 @@ void FM1DProfile2::readMap() {
             double Z = (dZ * i - first) / gapHeight_m;
             rightHandSide[i] = log(1. / RealValues[num_gridp_before_fringe_exit + i + 1] - 1.);
             for(int j = 0; j < polynomialOrder_exit_m + 1; ++j) {
-                leastSquareMatrix[i*(polynomialOrder_exit_m + 1) + j] = powerOfZ;
+                leastSquareMatrix[i * (polynomialOrder_exit_m + 1) + j] = powerOfZ;
                 powerOfZ *= Z;
             }
         }
@@ -206,28 +210,37 @@ void FM1DProfile2::freeMap() {
 }
 
 bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vector_t &info) const {
-    info = Vector_t(0.0);
-    const Vector_t tmpR(R(0), R(1), R(2) + zbegin_entry_m);
 
-    if(tmpR(2) >= zend_entry_m && tmpR(2) <= exit_slope_m * tmpR(0) + zbegin_exit_m) {
+    info = Vector_t(0.0);
+
+    // Find coordinates in the entrance frame.
+    Vector_t REntrance(R(0), 0.0, R(2) + zbegin_entry_m);
+
+    // Find coordinates in the exit frame.
+    Vector_t RExit(0.0, R(1), 0.0);
+
+    RExit(0) = (R(0) - xExit_m) * cosExitRotation_m - (R(2) + zbegin_entry_m - zExit_m) * sinExitRotation_m;
+    RExit(2) = (R(0) - xExit_m) * sinExitRotation_m + (R(2) + zbegin_entry_m - zExit_m) * cosExitRotation_m + polynomialOrigin_exit_m;
+
+
+    if(REntrance(2) >= zend_entry_m && RExit(2) <= zbegin_exit_m) {
         strength = Vector_t(1.0, 0.0, 0.0);
-        info(0) = 3.0;
     } else {
         double S, dSdz, d2Sdz2 = 0.0;
         double expS, f, dfdz, d2fdz2;
         double z;
         double *EngeCoefs;
         int polynomialOrder;
-        if(tmpR(2) >= zbegin_entry_m && tmpR(2) < zend_entry_m) {
-            z = -(tmpR(2) - polynomialOrigin_entry_m) / gapHeight_m;
+        info(0) = 1.0;
+        if(REntrance(2) >= zbegin_entry_m && REntrance(2) < zend_entry_m) {
+            z = -(REntrance(2) - polynomialOrigin_entry_m) / gapHeight_m;
             EngeCoefs = EngeCoefs_entry_m;
             polynomialOrder = polynomialOrder_entry_m;
-            info(0) = 1.0;
-        } else if(tmpR(2) > exit_slope_m * tmpR(0) + zbegin_exit_m && tmpR(2) <= exit_slope_m * tmpR(0) + zend_exit_m) {
-            z = (tmpR(2) - exit_slope_m * tmpR(0) - polynomialOrigin_exit_m) / sqrt(exit_slope_m * exit_slope_m + 1) / gapHeight_m;
+        } else if(RExit(2) > zbegin_exit_m && RExit(2) <= zend_exit_m) {
+            z = (RExit(2) - polynomialOrigin_exit_m) / gapHeight_m;
             EngeCoefs = EngeCoefs_exit_m;
             polynomialOrder = polynomialOrder_exit_m;
-            info(0) = 2.0;
+            info(1) = 1.0;
         } else {
             return true;
         }
@@ -238,14 +251,17 @@ bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vecto
 
         for(int i = polynomialOrder - 2; i >= 0; i--) {
             S = S * z + EngeCoefs[i];
-            dSdz = dSdz * z + (i + 1) * EngeCoefs[i+1];
-            d2Sdz2 = d2Sdz2 * z + (i + 2) * (i + 1) * EngeCoefs[i+2];
+            dSdz = dSdz * z + (i + 1) * EngeCoefs[i + 1];
+            d2Sdz2 = d2Sdz2 * z + (i + 2) * (i + 1) * EngeCoefs[i + 2];
         }
         expS = exp(S);
         f = 1.0 / (1.0 + expS);
         if(f > 1.e-30) {
-            dfdz = - f * ((f * expS) * dSdz); // first derivative of f
-            d2fdz2 = ((-d2Sdz2 - dSdz * dSdz * (1. - 2. * (expS * f))) * (f * expS) * f) / (gapHeight_m * gapHeight_m);  // second derivative of f
+            // First derivative of Enge function, f.
+            dfdz = - f * ((f * expS) * dSdz);
+
+            // Second derivative of Enge functioin, f.
+            d2fdz2 = ((-d2Sdz2 - dSdz * dSdz * (1. - 2. * (expS * f))) * (f * expS) * f) / (gapHeight_m * gapHeight_m);
 
             strength(0) = f;
             strength(1) = dfdz / gapHeight_m;
@@ -255,8 +271,61 @@ bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vecto
         }
 
     }
-    info(1) = exit_slope_m;
+    info(2) = exit_slope_m;
+
     return true;
+
+    //    info = Vector_t(0.0);
+    //    const Vector_t tmpR(R(0), R(1), R(2) + zbegin_entry_m);
+    //
+    //    if(tmpR(2) >= zend_entry_m && tmpR(2) <= exit_slope_m * tmpR(0) + zbegin_exit_m) {
+    //        strength = Vector_t(1.0, 0.0, 0.0);
+    //        info(0) = 3.0;
+    //    } else {
+    //        double S, dSdz, d2Sdz2 = 0.0;
+    //        double expS, f, dfdz, d2fdz2;
+    //        double z;
+    //        double *EngeCoefs;
+    //        int polynomialOrder;
+    //        if(tmpR(2) >= zbegin_entry_m && tmpR(2) < zend_entry_m) {
+    //            z = -(tmpR(2) - polynomialOrigin_entry_m) / gapHeight_m;
+    //            EngeCoefs = EngeCoefs_entry_m;
+    //            polynomialOrder = polynomialOrder_entry_m;
+    //            info(0) = 1.0;
+    //        } else if(tmpR(2) > exit_slope_m * tmpR(0) + zbegin_exit_m && tmpR(2) <= exit_slope_m * tmpR(0) + zend_exit_m) {
+    //            z = (tmpR(2) - exit_slope_m * tmpR(0) - polynomialOrigin_exit_m) / sqrt(exit_slope_m * exit_slope_m + 1) / gapHeight_m;
+    //            EngeCoefs = EngeCoefs_exit_m;
+    //            polynomialOrder = polynomialOrder_exit_m;
+    //            info(0) = 2.0;
+    //        } else {
+    //            return true;
+    //        }
+    //
+    //        S = EngeCoefs[polynomialOrder] * z;
+    //        S += EngeCoefs[polynomialOrder - 1];
+    //        dSdz = polynomialOrder * EngeCoefs[polynomialOrder];
+    //
+    //        for(int i = polynomialOrder - 2; i >= 0; i--) {
+    //            S = S * z + EngeCoefs[i];
+    //            dSdz = dSdz * z + (i + 1) * EngeCoefs[i+1];
+    //            d2Sdz2 = d2Sdz2 * z + (i + 2) * (i + 1) * EngeCoefs[i+2];
+    //        }
+    //        expS = exp(S);
+    //        f = 1.0 / (1.0 + expS);
+    //        if(f > 1.e-30) {
+    //            dfdz = - f * ((f * expS) * dSdz); // first derivative of f
+    //            d2fdz2 = ((-d2Sdz2 - dSdz * dSdz * (1. - 2. * (expS * f))) * (f * expS) * f) / (gapHeight_m * gapHeight_m);  // second derivative of f
+    //
+    //            strength(0) = f;
+    //            strength(1) = dfdz / gapHeight_m;
+    //            strength(2) = d2fdz2;
+    //        } else {
+    //            strength = Vector_t(0.0);
+    //        }
+    //
+    //    }
+    //    info(1) = exit_slope_m;
+    //    return true;
 
 }
 
@@ -286,6 +355,17 @@ void FM1DProfile2::setFrequency(double freq)
 
 void FM1DProfile2::setExitFaceSlope(const double &m) {
     exit_slope_m = m;
+}
+
+void FM1DProfile2::setEdgeConstants(const double &bendAngle, const double &entranceAngle, const double &exitAngle) {
+
+    double deltaZ = polynomialOrigin_exit_m - polynomialOrigin_entry_m;
+
+    zExit_m = polynomialOrigin_entry_m + deltaZ * cos(bendAngle / 2.0);
+    xExit_m = -deltaZ * sin(bendAngle / 2.0);
+
+    cosExitRotation_m = cos(-bendAngle + entranceAngle + exitAngle);
+    sinExitRotation_m = sin(-bendAngle + entranceAngle + exitAngle);
 }
 
 namespace QRDecomposition {

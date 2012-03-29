@@ -37,7 +37,7 @@ using std::endl;
 
 namespace Attributes {
 
-    Real::Real(const string &name, const string &help):
+    Real::Real(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -46,8 +46,8 @@ namespace Attributes {
     {}
 
 
-    const string &Real::getType() const {
-        static const string type("real");
+    const std::string &Real::getType() const {
+        static const std::string type("real");
         return type;
     }
 

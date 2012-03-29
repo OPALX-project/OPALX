@@ -54,7 +54,7 @@ public:
     /// Constructor.
     //  Assigns the attribute name [b]name[/b] and the help text [b]help[/b],
     //  as well as a possible default value [b]def[/b]for the attribute.
-    AttributeHandler(const string &name, const string &help, AttributeBase *def);
+    AttributeHandler(const std::string &name, const std::string &help, AttributeBase *def);
 
     virtual ~AttributeHandler();
 
@@ -69,15 +69,15 @@ public:
     virtual AttributeBase *getDefault() const;
 
     /// Return help string.
-    virtual const string &getHelp() const;
+    virtual const std::string &getHelp() const;
 
     /// Return attribute name.
-    virtual const string &getName() const;
+    virtual const std::string &getName() const;
 
     /// Return attribute type.
     //  Return a string describing the attribute type
     //  ("logical", "real", etc.).
-    virtual const string &getType() const = 0;
+    virtual const std::string &getType() const = 0;
 
     /// Parse new value.
     //  Parse value from the statement [b]s[/b] and assign it to the
@@ -116,10 +116,10 @@ public:
 protected:
 
     /// Attribute name.
-    const string itsName;
+    const std::string itsName;
 
     /// Help text.
-    const string itsHelp;
+    const std::string itsHelp;
 
     /// Default value.
     Pointer <AttributeBase> itsDefault;

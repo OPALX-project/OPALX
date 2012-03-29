@@ -35,12 +35,12 @@ namespace Attributes {
 
         /// Constructor.
         //  Assign attribute name and help string.
-        BoolArray(const string &name, const string &help);
+        BoolArray(const std::string &name, const std::string &help);
 
         virtual ~BoolArray();
 
         /// Return attribute type string ``logical array''.
-        virtual const string &getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
         virtual void parse(Attribute &, Statement &, bool) const;

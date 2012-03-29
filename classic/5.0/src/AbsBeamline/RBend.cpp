@@ -40,6 +40,8 @@ RBend::RBend():
     startField_m(0.0),
     endField_m(0.0),
     length_m(0.0),
+    gap_m(0.0),
+    reinitialize_m(false),
     fast_m(false),
     sin_face_alpha_m(0.0),
     cos_face_alpha_m(1.0),
@@ -70,6 +72,8 @@ RBend::RBend(const RBend &right):
     startField_m(right.startField_m),
     endField_m(right.endField_m),
     length_m(right.length_m),
+    gap_m(right.gap_m),
+    reinitialize_m(right.reinitialize_m),
     fast_m(right.fast_m),
     sin_face_alpha_m(right.sin_face_alpha_m),
     cos_face_alpha_m(right.cos_face_alpha_m),
@@ -97,7 +101,7 @@ RBend::RBend(const RBend &right):
 }
 
 
-RBend::RBend(const string &name):
+RBend::RBend(const std::string &name):
     Component(name),
     filename_m(""),
     fieldmap_m(NULL),
@@ -106,6 +110,8 @@ RBend::RBend(const string &name):
     startField_m(0.0),
     endField_m(0.0),
     length_m(0.0),
+    gap_m(0.0),
+    reinitialize_m(false),
     fast_m(false),
     sin_face_alpha_m(0.0),
     cos_face_alpha_m(1.0),
@@ -216,6 +222,30 @@ bool RBend::apply(const int &i, const double &t, double E[], double B[]) {
 
 bool RBend::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
 
+    // If this is the first call, the bend angle is specified in the input
+    // file and the design energy of the bend is different from the average
+    // energy of the beam, we reinitialize the bend.
+    if(reinitialize_m) {
+        if(design_energy_m != RefPartBunch_m->get_meanEnergy() * 1.0e6) {
+            design_energy_m = RefPartBunch_m->get_meanEnergy() * 1.0e6;
+
+            setBendStrength();
+
+            double zBegin = 0.0;
+            double zEnd = 0.0;
+            double rBegin = 0.0;
+            double rEnd = 0.0;
+            fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
+            calculateRefTrajectory(zBegin);
+
+            Inform msg("RBend ");
+            msg << "Bend design energy changed to: " << design_energy_m * 1.0e-6 << " MeV" << endl;
+            msg << "Field amplitude:               " << amplitude_m << " T" << endl;
+        }
+
+        reinitialize_m = false;
+    }
+
     const Vector_t &X = RefPartBunch_m->X[i];
     Vector_t strength(0.0), info(0.0);
 
@@ -292,7 +322,6 @@ bool RBend::apply(const Vector_t &R, const Vector_t &centroid, const double &t, 
 }
 
 void RBend::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-    using Physics::c;
 
     Inform msg("RBend ");
 
@@ -300,6 +329,7 @@ void RBend::initialise(PartBunch *bunch, double &startField, double &endField, c
     double zEnd = 0.0;
     double rBegin = 0.0;
     double rEnd = 0.0;
+
     startElement_m = startField;
 
     RefPartBunch_m = bunch;
@@ -309,76 +339,73 @@ void RBend::initialise(PartBunch *bunch, double &startField, double &endField, c
     fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
 
     if((fieldmap_m != NULL) && (zEnd > zBegin)) {
-        const double mass = bunch->getM();
-        const double gamma = design_energy_m / mass + 1.;
-        const double betagamma = sqrt(gamma * gamma - 1.);
-        const double dt = bunch->getdT();
-        int j = 0;
-        Vector_t tmp(0.0), Bfield(0.0), strength(0.0);
-        Vector_t X;
-        Vector_t P(-betagamma * sin_face_alpha_m, 0.0, betagamma * cos_face_alpha_m); // TODO: make it 3D
-        bool EntryFringe_passed = false;
-        double PathLengthEntryFringe = 0.0;  // in S coordinates. This value is different from zBegin due to the curvature!
 
+        // Read in field map.
         msg << getName() << " using file ";
         fieldmap_m->getInfo(&msg);
         Fieldmap::readMap(filename_m);
 
-        // Find effective length and effective center.
-        calculateEffectiveLength();
-        calculateEffectiveCenter();
+        // Check that the design energy is greater than zero.
+        if(design_energy_m <= 0.0) {
+            msg << "The bend must have a design enregy greater than zero set in the input file." << endl;
+            return;
+        }
 
-        X = Vector_t(0.0, 0.0, 0.0);
+        // If using default field map, set length and gap.
+        if(filename_m == "1DPROFILE1-DEFAULT") {
+            if(gap_m <= 0.0 || length_m <= 0.0) {
+                msg << "If using \"1DPROFILE1-DEFAULT\" field map you must set GAP (full magnet gap) and L (length) in the OPAL input file." << endl;
+                return;
+            } else {
+                fieldmap_m->setFieldGap(gap_m);
+                fieldmap_m->setFieldLength(length_m);
+                fieldmap_m->adjustFringeFields();
+                msg << "Adjusted fringe field parameters." << endl;
+                fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
+                fieldmap_m->getInfo(&msg);
+                startElement_m = startField;
+            }
+        }
+        fieldmap_m->setEdgeConstants(0.0, 0.0, 0.0);
 
         length_m = zEnd - zBegin;
-
-        map_step_size_m = betagamma / gamma * c * dt;
-
-        map_size_m = (int)floor(length_m / 2. * Physics::pi / map_step_size_m);
-        map_m = new double[map_size_m + 1];
-        map_m[0] = 0.0;
-
-        while(map_m[j] < length_m && j < map_size_m) {
-
-            strength = Vector_t(0.0);
-            X /= Vector_t(c * dt);
-            pusher_m.push(X, P, dt);
-            X *= Vector_t(c * dt);
-            fieldmap_m->getFieldstrength(X, strength, tmp);
-            if(X(2) >= fabs(zBegin) && !EntryFringe_passed) {
-                EntryFringe_passed = true;                       // this is the point where we enter we pass ELEMEDGE
-                PathLengthEntryFringe = j * map_step_size_m;     // not the end of the entry fringe field as the name
-                // suggests
-            }
-            Bfield(1) = amplitude_m * strength(0);
-            tmp = Vector_t(0.0);
-            X /= Vector_t(c * dt);
-            pusher_m.kick(X, P, tmp, Bfield, dt);
-            pusher_m.push(X, P, dt);
-            X *= Vector_t(c * dt);
-
-            map_m[++j] = X(2);
-
-            angle_m = atan2(P(0), P(2));
+        if(length_m < 0.0) {
+            // There is probably something wrong with the fieldmap.
+            return;
         }
-        map_size_m = j;
-        angle_m += Orientation_m(0);
 
-        startField -= PathLengthEntryFringe;
-        endField = startField + map_step_size_m * j;
+        // If the bend angle is specified, find proper field strength. If only
+        // the field strength is given, just calculate the bend angle. This also
+        // sets the bend exit angle appropriately.
+        if(angle_m != 0.0) {
+            if(angle_m < 0.0) {
+                angle_m *= -1.0;
+                Orientation_m(2) += Physics::pi;
+            }
+            setBendStrength();
+            reinitialize_m = true;
+        } else {
+            angle_m = calculateBendAngle(length_m);
+            reinitialize_m = false;
+        }
 
-        startField_m = startField;
-        endField_m = endField;
+        // Calculate the reference particle trajectory map.
+        double bendAngle = calculateRefTrajectory(zBegin);
 
-        msg << "Start:      " << startField_m << " End: " << endField_m << endl;
-        msg << "Bend angle: " << angle_m * 180.0 / Physics::pi << " degrees" << endl;
+        startField = startField_m;
+        endField = endField_m;
 
-        R_m = fabs(betagamma * mass / (c * amplitude_m));
+        msg << "Start:            " << startField_m << " m (in floor coordinates)" << endl;
+        msg << "End:              " << endField_m << " m (in floor coordinates)" << endl;
+        msg << "Bend angle:       " << bendAngle * 180.0 / Physics::pi << " degrees" << endl;
+        msg << "Field amplitude:  " << amplitude_m << " T" << endl;
+        msg << "Bend radius:      " << R_m << " m" << endl;
+        msg << "Effective length: " << effectiveLength_m << " m (in s coordinates)" << endl;
+        msg << "Effective center: " << effectiveCenter_m << " m (in s coordinates with respect to bend field map start position)" << endl;
 
     } else {
         endField = startField - 1e-3;
     }
-
 }
 
 void RBend::finalise() {
@@ -389,15 +416,27 @@ bool RBend::bends() const {
     return true;
 }
 
+void RBend::setBendAngle(const double &angle) {
+    angle_m = angle * Physics::pi / 180.0;
+}
+
 void RBend::setAmplitudem(double vPeak) {
     amplitude_m = vPeak;
 }
 
-void RBend::setFieldMapFN(string fmapfn) {
+void RBend::setFullGap(const double &gap) {
+    gap_m = gap;
+}
+
+void RBend::setLength(const double &length) {
+    length_m = length;
+}
+
+void RBend::setFieldMapFN(std::string fmapfn) {
     filename_m = fmapfn;
 }
 
-string RBend::getFieldMapFN() const {
+std::string RBend::getFieldMapFN() const {
     return filename_m;
 }
 
@@ -427,46 +466,166 @@ double RBend::getR() const {
 }
 
 
-const string &RBend::getType() const {
-    static const string type("RBend");
+const std::string &RBend::getType() const {
+    static const std::string type("RBend");
     return type;
 }
 
-//void RBend::calculateEffectiveLength() {
-//
-//    double zBegin = 0.0;
-//    double zEnd = 0.0;
-//    double rBegin = 0.0;
-//    double rEnd = 0.0;
-//    fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-//
-//    // Uses Simpson's rule to integrate field. Make step size about 1 mm.
-//
-//    // This must be odd.
-//    unsigned int numberOfIntSteps = 2 * static_cast<unsigned int>(floor((zEnd - zBegin) * 1000.0 / 2.0)) + 1;
-//
-//    double deltaZ = (zBegin - zEnd) / numberOfIntSteps;
-//    effectiveLength_m = 0.0;
-//    for(unsigned int integralIndex = 1; integralIndex <= (numberOfIntSteps - 1) / 2; integralIndex++) {
-//
-//        Vector_t strength(0.0);
-//        Vector_t info(0.0);
-//        Vector_t X(0.0);
-//        X(2) = (2 * integralIndex - 1) * deltaZ;
-//        fieldmap_m->getFieldstrength(X, strength, info);
-//        double field1 = strength(0);
-//
-//        X(2) = 2 * integralIndex * deltaZ;
-//        fieldmap_m->getFieldstrength(X, strength, info);
-//        double field2 = strength(0);
-//
-//        X(2) = (2 * integralIndex + 1) * deltaZ;
-//        fieldmap_m->getFieldstrength(X, strength, info);
-//        double field3 = strength(0);
-//
-//        effectiveLength_m += deltaZ * (field1 + 4.0 * field2 + field3) / 3.0;
-//    }
-//}
+void RBend::setBendStrength() {
+    // This routine uses an iterative procedure to set the bend strength
+    // so that the bend angle is the one we want.
+    //
+    // This is a primitive approach in that it is not very efficient. But it
+    // is stable and is only called a few times during a simulation.
+
+    // Estimate bend field magnitude.
+    const double mass = RefPartBunch_m->getM();
+    const double gamma = design_energy_m / mass + 1.0;
+    const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
+    const double charge = RefPartBunch_m->getQ();
+
+    calculateEffectiveLength();
+    amplitude_m = (charge / fabs(charge)) * betaGamma * mass / (Physics::c * (effectiveLength_m * cos_face_alpha_m) / sin(angle_m));
+
+    // Find initial angle.
+    double zBegin = 0.0;
+    double zEnd = 0.0;
+    double rBegin = 0.0;
+    double rEnd = 0.0;
+    fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
+    double actualBendAngle = calculateBendAngle(zEnd - zBegin);
+
+    // Adjust field amplitude to get desired bend angle.
+    int iterations = 1;
+    double fieldAdjustment = amplitude_m / 10.0;
+
+    if(fabs(actualBendAngle) > fabs(angle_m))
+        fieldAdjustment *= -1.0;
+
+    bool lastGreater = true;
+    if(fabs(actualBendAngle) < fabs(angle_m))
+        lastGreater = false;
+
+    while(fabs(actualBendAngle - angle_m) > 1.0e-8 && iterations <= 1000) {
+
+        actualBendAngle = calculateBendAngle(zEnd - zBegin);
+        iterations++;
+
+        if((!lastGreater && fabs(actualBendAngle) > fabs(angle_m)) || (lastGreater && fabs(actualBendAngle) < fabs(angle_m)))
+            fieldAdjustment /= -10.0;
+
+        if(fabs(actualBendAngle) > fabs(angle_m)) lastGreater = true;
+        else lastGreater = false;
+
+        amplitude_m += fieldAdjustment;
+    }
+}
+
+double RBend::calculateBendAngle(double bendLength) {
+    // This routine calculates the bend angle using an iterative process.
+
+    // Calculate angle.
+    const double mass = RefPartBunch_m->getM();
+    const double gamma = design_energy_m / mass + 1.0;
+    const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
+    const double deltaT = RefPartBunch_m->getdT();
+
+    // Integrate through field for initial angle.
+    Vector_t X(0.0, 0.0, 0.0);
+    Vector_t P(-betaGamma * sin_face_alpha_m, 0.0, betaGamma * cos_face_alpha_m);
+    Vector_t strength(0.0, 0.0, 0.0);
+    Vector_t bField(0.0, 0.0, 0.0);
+    Vector_t temp(0.0, 0.0, 0.0);
+
+    while(P(2) > 0.0 && X(2) < bendLength) {
+
+        strength = Vector_t(0.0);
+        X /= Vector_t(Physics::c * deltaT);
+        pusher_m.push(X, P, deltaT);
+        X *= Vector_t(Physics::c * deltaT);
+
+        fieldmap_m->getFieldstrength(X, strength, temp);
+        bField(1) = amplitude_m * strength(0);
+        temp = Vector_t(0.0);
+
+        X /= Vector_t(Physics::c * deltaT);
+        pusher_m.kick(X, P, temp, bField, deltaT);
+
+        pusher_m.push(X, P, deltaT);
+        X *= Vector_t(Physics::c * deltaT);
+
+    }
+
+    double angle =  -atan2(P(0), P(2)) - Orientation_m(0);
+
+    return angle;
+}
+
+double RBend::calculateRefTrajectory(const double zBegin) {
+
+    // Calculate the reference trajectory map.
+    const double mass = RefPartBunch_m->getM();
+    const double gamma = design_energy_m / mass + 1.;
+    const double betagamma = sqrt(gamma * gamma - 1.);
+    const double dt = RefPartBunch_m->getdT();
+    int j = 0;
+
+    Vector_t tmp(0.0);
+    Vector_t Bfield(0.0);
+    Vector_t strength(0.0);
+    Vector_t X(0.0);
+    Vector_t P(-betagamma * sin_face_alpha_m, 0.0, betagamma * cos_face_alpha_m); // TODO: make it 3D
+
+    bool EntryFringe_passed = false;
+    double PathLengthEntryFringe = 0.0;  // in S coordinates. This value is different from zBegin due to the curvature!
+
+    if(map_m != NULL) delete map_m;
+
+    map_step_size_m = betagamma / gamma * Physics::c * dt;
+    map_size_m = static_cast<int>(floor(length_m / 2. * Physics::pi / map_step_size_m));
+    map_m = new double[map_size_m + 1];
+    map_m[0] = 0.0;
+
+    while(map_m[j] < length_m && j < map_size_m) {
+        strength = Vector_t(0.0);
+        X /= Vector_t(Physics::c * dt);
+        pusher_m.push(X, P, dt);
+        X *= Vector_t(Physics::c * dt);
+
+        fieldmap_m->getFieldstrength(X, strength, tmp);
+        if(X(2) >= fabs(zBegin) && !EntryFringe_passed) {
+
+            // This is the point where we pass ELEMEDGE
+            // not the end of the entry fringe field as the
+            // name suggests.
+
+            EntryFringe_passed = true;
+            PathLengthEntryFringe = j * map_step_size_m;
+        }
+        Bfield(1) = amplitude_m * strength(0);
+        tmp = Vector_t(0.0);
+        X /= Vector_t(Physics::c * dt);
+        pusher_m.kick(X, P, tmp, Bfield, dt);
+        pusher_m.push(X, P, dt);
+        X *= Vector_t(Physics::c * dt);
+
+        map_m[++j] = X(2);
+
+    }
+
+    map_size_m = j;
+    double angle = -atan2(P(0), P(2)) - Orientation_m(0);
+
+    startField_m = startElement_m - PathLengthEntryFringe;
+    endField_m = startField_m + map_step_size_m * j;
+
+    // Set "ideal" bend radius and effective length.
+    R_m = fabs(betagamma * mass / (Physics::c * amplitude_m));
+    effectiveLength_m = R_m * angle;
+    calculateEffectiveCenter();
+
+    return angle;
+}
 
 void RBend::calculateEffectiveLength() {
 
@@ -513,43 +672,37 @@ void RBend::calculateEffectiveCenter() {
     double rEnd = 0.0;
     fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
 
-    // Uses Simpson's rule to integrate field. Make step size 1 mm.
+    // Initial guess for effective center.
+    double effectiveCenter = fabs(R_m * angle_m / 2.0) - zBegin;
 
-    // This must be odd.
-    unsigned int numberOfIntSteps = 2 * static_cast<unsigned int>(floor((zEnd - zBegin) * 1000.0 / 2.0)) + 1;
+    // Find initial angle.
+    double actualBendAngle = calculateBendAngle(effectiveCenter);
 
-    double deltaZ = 0.001;
-    double integral = 0.0;
+    // Adjust effective center to get a bend angle 0.5 times the full bend angle.
+    int iterations = 1;
+    double lengthAdjustment = effectiveCenter / 10.0;
 
-    double zBracket1 = 0.0;
-    double integralOld = 0.0;
+    if(fabs(actualBendAngle) > fabs(angle_m / 2.0))
+        lengthAdjustment *= -1.0;
 
-    unsigned int integralIndex = 1;
-    while(effectiveCenter_m == 0.0 && integralIndex <= (numberOfIntSteps - 1) / 2) {
+    bool lastGreater = true;
+    if(fabs(actualBendAngle) < fabs(angle_m / 2.0))
+        lastGreater = false;
 
-        Vector_t strength(0.0);
-        Vector_t info(0.0);
-        Vector_t X(0.0);
-        X(2) = (2 * integralIndex - 1) * deltaZ;
-        zBracket1 = X(2);
-        fieldmap_m->getFieldstrength(X, strength, info);
-        double field1 = strength(0);
+    while(fabs(actualBendAngle - angle_m / 2.0) > 1.0e-8 && iterations <= 100) {
 
-        X(2) = 2 * integralIndex * deltaZ;
-        fieldmap_m->getFieldstrength(X, strength, info);
-        double field2 = strength(0);
+        actualBendAngle = calculateBendAngle(effectiveCenter);
+        iterations++;
 
-        X(2) = (2 * integralIndex + 1) * deltaZ;
-        fieldmap_m->getFieldstrength(X, strength, info);
-        double field3 = strength(0);
+        if((!lastGreater && fabs(actualBendAngle) > fabs(angle_m / 2.0)) || (lastGreater && fabs(actualBendAngle) < fabs(angle_m / 2.0)))
+            lengthAdjustment /= -10.0;
 
-        integralOld = integral;
-        integral += deltaZ * (field1 + 4.0 * field2 + field3) / 3.0;
+        if(fabs(actualBendAngle) > fabs(angle_m / 2.0)) lastGreater = true;
+        else lastGreater = false;
 
-        if(integral >= effectiveLength_m / 2.0)
-            effectiveCenter_m = zBracket1 + deltaZ * 2.0 * (effectiveLength_m / 2.0 - integralOld) / (integral - integralOld);
+        effectiveCenter += lengthAdjustment;
 
-        integralIndex++;
     }
+    double deltaZ = effectiveCenter + zBegin;
+    effectiveCenter_m = effectiveCenter - R_m * sin(angle_m / 2.0) + R_m * angle_m / 2.0;
 }
-

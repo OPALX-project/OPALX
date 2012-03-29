@@ -55,7 +55,7 @@ Component::Component(const Component &right):
 {}
 
 
-Component::Component(const string &name):
+Component::Component(const std::string &name):
     ElementBase(name),
     dx_m(0.0),
     dy_m(0.0),
@@ -111,7 +111,7 @@ void Component::getMisalignment(double &x, double &y, double &s) const {
     s = ds_m;
 }
 
-const string &Component::getType() const {
-    static const string type("");
+const std::string &Component::getType() const {
+    static const std::string type("");
     return type;
 }

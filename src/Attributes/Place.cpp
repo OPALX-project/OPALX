@@ -30,7 +30,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    Place::Place(const string &name, const string &help):
+    Place::Place(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -39,8 +39,8 @@ namespace Attributes {
     {}
 
 
-    const string &Place::getType() const {
-        static const string type("place");
+    const std::string &Place::getType() const {
+        static const std::string type("place");
         return type;
     }
 

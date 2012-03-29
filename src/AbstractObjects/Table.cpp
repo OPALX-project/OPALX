@@ -38,7 +38,7 @@ bool Table::canReplaceBy(Object *newObject) {
 }
 
 
-Table *Table::find(const string &name) {
+Table *Table::find(const std::string &name) {
     Table *table = dynamic_cast<Table *>(OpalData::getInstance()->find(name));
     if(table == 0) {
         throw OpalException("Table::find()", "Table \"" + name + "\" not found.");
@@ -47,7 +47,7 @@ Table *Table::find(const string &name) {
 }
 
 
-const string Table::getCategory() const {
+const std::string Table::getCategory() const {
     return "TABLE";
 }
 
@@ -85,7 +85,7 @@ Table::Table(int size, const char *name, const char *help):
 }
 
 
-Table::Table(const string &name, Table *parent):
+Table::Table(const std::string &name, Table *parent):
     Object(name, parent), dynamic(true), refill(true) {
     // Link table to table directory.
     OpalData::getInstance()->registerTable(this);

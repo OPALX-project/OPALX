@@ -102,10 +102,6 @@ private:
     /// the exit edge.
     double zExit_m;
 
-    /// Cos and sin of the entrance edge rotation with respect to the local coordinates.
-    double cosEntranceRotation_m;
-    double sinEntranceRotation_m;
-
     /// Cos and sin of the exit edge rotation with respect to the local coordinates.
     double cosExitRotation_m;
     double sinExitRotation_m;

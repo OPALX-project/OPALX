@@ -35,7 +35,7 @@ public:
 
     /// Return the object category as a string.
     //  Return the string "DEFINITION".
-    virtual const string getCategory() const;
+    virtual const std::string getCategory() const;
 
     /// Trace flag.
     //  If true, the object's execute() function should be traced.
@@ -53,7 +53,7 @@ protected:
     Definition(int size, const char *name, const char *help);
 
     /// Constructor for clones.
-    Definition(const string &name, Definition *parent);
+    Definition(const std::string &name, Definition *parent);
 
 private:
 

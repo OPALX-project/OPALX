@@ -32,7 +32,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    StringArray::StringArray(const string &name, const string &help):
+    StringArray::StringArray(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -41,8 +41,8 @@ namespace Attributes {
     {}
 
 
-    const string &StringArray::getType() const {
-        static string type = "string array";
+    const std::string &StringArray::getType() const {
+        static std::string type = "string array";
         return type;
     }
 
@@ -54,17 +54,17 @@ namespace Attributes {
 
     void StringArray::parseComponent
     (Attribute &attr, Statement &statement, bool, int index) const {
-        std::vector<string> array = Attributes::getStringArray(attr);
+        std::vector<std::string> array = Attributes::getStringArray(attr);
 
         if(AttributeBase *base = &attr.getBase()) {
-            array = dynamic_cast<AValue<string>*>(base)->evaluate();
+            array = dynamic_cast<AValue<std::string>*>(base)->evaluate();
         }
 
         while(int(array.size()) < index) {
-            array.push_back(string());
+            array.push_back(std::string());
         }
 
-        array[index-1] =
+        array[index - 1] =
             Expressions::parseString(statement, "String value expected.");
         Attributes::setStringArray(attr, array);
     }

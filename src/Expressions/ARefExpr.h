@@ -50,7 +50,7 @@ namespace Expressions {
         /// Constructor.
         //  Use [b]objName[/b] to identify the object containg the array, and
         //  [b]attName[/b] to identify the array itself.
-        ARefExpr(const string &objName, const string &attName);
+        ARefExpr(const std::string &objName, const std::string &attName);
 
         ARefExpr(const ARefExpr<T> &rhs);
         virtual ~ARefExpr();
@@ -73,11 +73,11 @@ namespace Expressions {
         void fill() const;
 
         // Make print image.
-        const string getImage() const;
+        const std::string getImage() const;
 
         // The referred object and attribute.
-        const string obj_name;
-        const string att_name;
+        const std::string obj_name;
+        const std::string att_name;
 
         // The object and attribute referred to.
         mutable Object    *itsObject;
@@ -90,7 +90,7 @@ namespace Expressions {
 
     template <class T>
     ARefExpr<T>::ARefExpr
-    (const string &objName, const string &attName):
+    (const std::string &objName, const std::string &attName):
         obj_name(objName), att_name(attName),
         itsObject(0), itsAttr(0)
     {}
@@ -135,7 +135,7 @@ namespace Expressions {
 
 
     template <class T>
-    const string ARefExpr<T>::getImage() const {
+    const std::string ARefExpr<T>::getImage() const {
 #if defined(__GNUC__) && __GNUC__ < 3
         char buffer[128];
         std::ostrstream os(buffer, sizeof(buffer));
@@ -145,7 +145,7 @@ namespace Expressions {
         print(os);
         os << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-        return string(buffer);
+        return std::string(buffer);
 #else
         return os.str();
 #endif

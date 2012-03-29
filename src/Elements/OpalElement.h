@@ -66,31 +66,31 @@ public:
 
     /// Find a registered attribute.
     //  Return a pointer to the AttCell for a named attribute.
-    static AttCell *findRegisteredAttribute(const string &name);
+    static AttCell *findRegisteredAttribute(const std::string &name);
 
 
     /// Return element length.
     virtual double getLength() const;
 
     /// Return the element's type name.
-    const string getTypeName() const;
+    const std::string getTypeName() const;
 
     //return the element aperture vector
     std::vector<double> getApert() const;
 
 
     /// Return the element's type name.
-    const string getWakeF() const;
+    const std::string getWakeF() const;
 
-    const string getSurfacePhysics() const;
+    const std::string getSurfacePhysics() const;
 
-    const string getWMaterial() const;
+    const std::string getWMaterial() const;
 
-    const string getWakeGeom() const;
+    const std::string getWakeGeom() const;
 
     std::vector<double> getWakeParam() const;
 
-    const string getWakeConductivity() const;
+    const std::string getWakeConductivity() const;
 
     /// Parse the element.
     //  This special version for elements handles unknown attributes by
@@ -102,10 +102,10 @@ public:
     virtual void print(std::ostream &) const;
 
     /// Store a registered real attribute.
-    static void setRegisteredAttribute(const string &, double);
+    static void setRegisteredAttribute(const std::string &, double);
 
     /// Store a registered string attribute.
-    static void setRegisteredAttribute(const string &, const string &);
+    static void setRegisteredAttribute(const std::string &, const std::string &);
 
     /// Transmit the ``unknown'' (not known to OPAL) attributes to CLASSIC.
     virtual void updateUnknown(ElementBase *);
@@ -116,7 +116,7 @@ protected:
     OpalElement(int size, const char *name, const char *help);
 
     /// Clone constructor.
-    OpalElement(const string &name, OpalElement *parent);
+    OpalElement(const std::string &name, OpalElement *parent);
 
     /// Print multipole components in OPAL-8 format.
     //  This function is accessible to all multipole-like elements
@@ -124,34 +124,34 @@ protected:
     static void printMultipoleStrength(std::ostream &os,
                                        int order,
                                        int &len,
-                                       const string &sName,
-                                       const string &tName,
+                                       const std::string &sName,
+                                       const std::string &tName,
                                        const Attribute &length,
                                        const Attribute &vNorm,
                                        const Attribute &vSkew);
 
     /// Print an attribute with a OPAL-8 name (as an expression).
     static void printAttribute(std::ostream &os,
-                               const string &name,
-                               const string &image,
+                               const std::string &name,
+                               const std::string &image,
                                int &len);
 
     /// Print an attribute with a OPAL-8 name (as a constant).
     static void printAttribute(std::ostream &os,
-                               const string &name,
+                               const std::string &name,
                                double value,
                                int &len);
 
     /// Register a ``real'' element attribute.
     //  A registered attribute can be listed by the ATTLIST command.
-    static AttCell *registerRealAttribute(const string &name);
+    static AttCell *registerRealAttribute(const std::string &name);
 
     /// Register a ``string'' element attribute.
     //  A registered attribute can be listed by the ATTLIST command.
-    static AttCell *registerStringAttribute(const string &name);
+    static AttCell *registerStringAttribute(const std::string &name);
 
     /// The registry for named attributes.
-    static std::map < string, OwnPtr<AttCell> > attributeRegistry;
+    static std::map < std::string, OwnPtr<AttCell> > attributeRegistry;
 
 private:
 

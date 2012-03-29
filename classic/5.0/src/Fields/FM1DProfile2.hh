@@ -15,6 +15,7 @@ public:
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
     virtual void setExitFaceSlope(const double &);
+    virtual void setEdgeConstants(const double &bendAngle, const double &entranceAngle, const double &exitAngle);
 
 private:
     FM1DProfile2(std::string aFilename);
@@ -41,6 +42,18 @@ private:
 
     double length_m;
     double gapHeight_m;
+
+    /// x position in local coordinate system where central trajectory intersects
+    /// the exit edge.
+    double xExit_m;
+
+    /// z position in local coordinate system where central trajectory intersects
+    /// the exit edge.
+    double zExit_m;
+
+    /// Cos and sin of the exit edge rotation with respect to the local coordinates.
+    double cosExitRotation_m;
+    double sinExitRotation_m;
 
     friend class Fieldmap;
 };

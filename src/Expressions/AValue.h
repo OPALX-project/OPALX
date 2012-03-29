@@ -145,9 +145,9 @@ namespace Expressions {
 
 
     template<> inline
-    void AValue<string>::print(std::ostream &os) const {
+    void AValue<std::string>::print(std::ostream &os) const {
         os << '{';
-        std::vector<string>::const_iterator i = value.begin();
+        std::vector<std::string>::const_iterator i = value.begin();
 
         while(i != value.end()) {
             os << '"' << *i << '"';

@@ -40,7 +40,7 @@ namespace Expressions {
         /// Constructor.
         //  Use table name [b]tName[/b], column name [b]cName[/b], and range
         //  representation [b]rng[/b].
-        AColumn(const string &tName, const string &cName,
+        AColumn(const std::string &tName, const std::string &cName,
                 const RangeRep &rng);
 
         AColumn(const AColumn &);
@@ -62,8 +62,8 @@ namespace Expressions {
         const AColumn &operator=(const AColumn &);
 
         // Table and column name.
-        const string tab_name;
-        const string col_name;
+        const std::string tab_name;
+        const std::string col_name;
 
         // The range specification.
         RangeRep itsRange;

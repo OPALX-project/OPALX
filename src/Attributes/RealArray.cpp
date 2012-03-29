@@ -34,7 +34,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    RealArray::RealArray(const string &name, const string &help):
+    RealArray::RealArray(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -43,8 +43,8 @@ namespace Attributes {
     {}
 
 
-    const string &RealArray::getType() const {
-        static string type = "real array";
+    const std::string &RealArray::getType() const {
+        static std::string type = "real array";
         return type;
     }
 

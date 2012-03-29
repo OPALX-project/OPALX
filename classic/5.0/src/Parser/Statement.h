@@ -46,11 +46,11 @@ public:
 
     /// Constructor.
     //  Store the stream name and the line where the statement begins.
-    Statement(const string &name, int line);
+    Statement(const std::string &name, int line);
 
     /// Constructor.
     //  Stores a name (e.g. for a macro) and the token list.
-    Statement(const string &name, TokenList &);
+    Statement(const std::string &name, TokenList &);
 
     virtual ~Statement();
 
@@ -129,7 +129,7 @@ public:
     //  [li]Return true.
     //  [/ol]
     //  Otherwise return false.
-    bool str(string &value);
+    bool str(std::string &value);
 
     /// Return word value.
     //  If the next item is a word:
@@ -138,7 +138,7 @@ public:
     //  [li]Return true.
     //  [/ol]
     //  Otherwise return false.
-    bool word(string &value);
+    bool word(std::string &value);
 
     /// Mark position in command.
     //  Parsing can later be resumed by calling restore().
@@ -171,7 +171,7 @@ protected:
     int stat_line;
 
     // Input stream name.
-    string buffer_name;
+    std::string buffer_name;
 
     // Token list.
     TokenList tokens;

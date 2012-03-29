@@ -36,12 +36,12 @@ namespace Attributes {
 
         /// Constructor.
         //  Assign attribute name and help string.
-        Reference(const string &name, const string &help);
+        Reference(const std::string &name, const std::string &help);
 
         virtual ~Reference();
 
         /// Return attribute type string ``reference''.
-        virtual const string &getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
         virtual void parse(Attribute &, Statement &, bool) const;

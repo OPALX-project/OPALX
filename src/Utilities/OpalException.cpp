@@ -22,7 +22,7 @@
 // Class OpalException
 // ------------------------------------------------------------------------
 
-OpalException::OpalException(const string &meth, const string &msg):
+OpalException::OpalException(const std::string &meth, const std::string &msg):
     ClassicException(meth, msg)
 {}
 

@@ -34,8 +34,8 @@ namespace Expressions {
     {}
 
 
-    ARow::ARow(const string &tName, const PlaceRep &row,
-               const std::vector<string> &cols):
+    ARow::ARow(const std::string &tName, const PlaceRep &row,
+               const std::vector<std::string> &cols):
         Array<double>(), tabName(tName), position(row), columns(cols)
     {}
 
@@ -55,10 +55,10 @@ namespace Expressions {
         return table->getRow(position, columns);
     }
 
-    
+
     void ARow::print(std::ostream &os, int) const {
         os << "ROW(" << tabName << ',' << position << ",{";
-        std::vector<string>::const_iterator i = columns.begin();
+        std::vector<std::string>::const_iterator i = columns.begin();
 
         while(i != columns.end()) {
             os << '"' << *i << '"';

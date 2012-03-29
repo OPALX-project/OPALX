@@ -41,7 +41,7 @@ OpalSBend::OpalSBend():
 }
 
 
-OpalSBend::OpalSBend(const string &name, OpalSBend *parent):
+OpalSBend::OpalSBend(const std::string &name, OpalSBend *parent):
     OpalBend(name, parent),
     owk_m(NULL),
     sphys_m(NULL) {
@@ -57,7 +57,7 @@ OpalSBend::~OpalSBend() {
 }
 
 
-OpalSBend *OpalSBend::clone(const string &name) {
+OpalSBend *OpalSBend::clone(const std::string &name) {
     return new OpalSBend(name, this);
 }
 
@@ -85,11 +85,11 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     if(length != 0.0) scale *= length;
 
     for(int i = 1; i <= field.order(); ++i) {
-        string normName("K0L");
+        std::string normName("K0L");
         normName[1] += (i - 1);
         attributeRegistry[normName]->setReal(scale * field.normal(i));
 
-        string skewName("K0SL");
+        std::string skewName("K0SL");
         skewName[1] += (i - 1);
         attributeRegistry[skewName]->setReal(scale * field.skew(i));
         scale *= double(i);
@@ -202,7 +202,7 @@ void OpalSBend::update() {
         bend->setExitAngle(0.0);
 
     if(itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*bend);
         bend->setWake(owk_m->wf_m);
     }
@@ -227,7 +227,7 @@ void OpalSBend::update() {
     }
 
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*bend, apert_major, apert_minor);
         bend->setSurfacePhysics(sphys_m->handler_m);
     }

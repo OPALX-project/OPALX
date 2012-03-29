@@ -184,19 +184,19 @@ namespace Expressions {
     static const TFunction1<double, double> table1[] = {
         { "TRUNC",  -1, Truncate },
         { "ROUND",  -1, Round    },
-        { "FLOOR",  -1, floor    },
-        { "CEIL",   -1, ceil     },
+        { "FLOOR",  -1, std::floor    },
+        { "CEIL",   -1, std::ceil     },
         { "SIGN",   -1, Sign     },
-        { "SQRT",   -1, sqrt     },
-        { "LOG",    -1, log      },
-        { "EXP",    -1, exp      },
-        { "SIN",    -1, sin      },
-        { "COS",    -1, cos      },
+        { "SQRT",   -1, std::sqrt     },
+        { "LOG",    -1, std::log      },
+        { "EXP",    -1, std::exp      },
+        { "SIN",    -1, std::sin      },
+        { "COS",    -1, std::cos      },
         { "ABS",    -1, std::abs },
-        { "TAN",    -1, tan      },
-        { "ASIN",   -1, asin     },
-        { "ACOS",   -1, acos     },
-        { "ATAN",   -1, atan     },
+        { "TAN",    -1, std::tan      },
+        { "ASIN",   -1, std::asin     },
+        { "ACOS",   -1, std::acos     },
+        { "ATAN",   -1, std::atan     },
         { "TGAUSS", -2, Tgauss   },
         { "USER1",  -2, User1    },
         { 0,        -1, 0        }
@@ -400,9 +400,9 @@ namespace Expressions {
     }
 
 
-    string parseString(Statement &stat, const char msg[]) {
-        string result = string("");
-        string temp;
+    std::string parseString(Statement &stat, const char msg[]) {
+        std::string result = std::string("");
+        std::string temp;
 
         while(stat.word(temp) || stat.str(temp)) {
             if(temp == "STRING") {
@@ -417,7 +417,7 @@ namespace Expressions {
 #endif
                 os << value << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-                result += string(buffer);
+                result += std::string(buffer);
 #else
                 result += os.str();
 #endif
@@ -502,9 +502,9 @@ namespace Expressions {
     }
 
 
-    std::vector<string> parseStringArray(Statement &stat) {
-        std::vector<string> array;
-        string value;
+    std::vector<std::string> parseStringArray(Statement &stat) {
+        std::vector<std::string> array;
+        std::string value;
 
         if(stat.delimiter('{')) {
             // List of string values within braces.
@@ -525,7 +525,7 @@ namespace Expressions {
     void parseDelimiter(Statement &stat, char delim) {
         if(! stat.delimiter(delim)) {
             throw ParseError("Expressions::parseDelimiter()",
-                             string("Delimiter '") + delim + "' expected.");
+                             std::string("Delimiter '") + delim + "' expected.");
         }
     }
 
@@ -533,7 +533,7 @@ namespace Expressions {
     void parseDelimiter(Statement &stat, const char delim[2]) {
         if(! stat.delimiter(delim)) {
             throw ParseError("Expressions::parseDelimiter()",
-                             string("Delimiter '") + delim + "' expected.");
+                             std::string("Delimiter '") + delim + "' expected.");
         }
     }
 
@@ -556,7 +556,7 @@ namespace Expressions {
                     }
                     break;
                 } else {
-                    string name = parseString(stat, "Expected <name> or '#'.");
+                    std::string name = parseString(stat, "Expected <name> or '#'.");
                     int occurrence = 1;
                     if(stat.delimiter('[')) {
                         occurrence = int(Round(parseRealConst(stat)));
@@ -589,10 +589,10 @@ namespace Expressions {
 
 
     SRefAttr<double> *parseReference(Statement &stat) {
-        string objName = parseString(stat, "Object name expected.");
+        std::string objName = parseString(stat, "Object name expected.");
 
         // Test for attribute name.
-        string attrName;
+        std::string attrName;
 
         if(stat.delimiter("->")) {
             // Reference to object attribute.
@@ -618,7 +618,7 @@ namespace Expressions {
 
 
     TableRowRep parseTableRow(Statement &stat) {
-        string tabName = parseString(stat, "Table name expected.");
+        std::string tabName = parseString(stat, "Table name expected.");
         parseDelimiter(stat, '@');
         return TableRowRep(tabName, parsePlace(stat));
     }
@@ -738,7 +738,7 @@ namespace Expressions {
             array.push_back(new SConstant<double>(value));
             result = new AList<double>(array);
         } else {
-            string frstName = parseString(stat, "Object name expected.");
+            std::string frstName = parseString(stat, "Object name expected.");
             if(stat.delimiter('(')) {
                 // Possible function call.
                 PtrToArray<double> arg1;
@@ -770,13 +770,13 @@ namespace Expressions {
                 }
                 parseDelimiter(stat, ')');
             } else if(stat.delimiter("->")) {
-                string scndName = parseString(stat, "Attribute name expected.");
+                std::string scndName = parseString(stat, "Attribute name expected.");
                 result = new ARefExpr<double>(frstName, scndName);
             } else if(stat.delimiter('@')) {
                 PlaceRep row = parsePlace(stat);
                 // Possible column names.
                 if(stat.delimiter("->")) {
-                    std::vector<string> cols = parseStringArray(stat);
+                    std::vector<std::string> cols = parseStringArray(stat);
                     result = new ARow(frstName, row, cols);
                 } else {
                     throw ParseError("Expressions::parseReal()",
@@ -865,7 +865,7 @@ namespace Expressions {
             result = new SHash(*currentArray);
         } else {
             // Primary beginning with a name.
-            string frstName = parseString(stat, "Real primary expected.");
+            std::string frstName = parseString(stat, "Real primary expected.");
 
             if(stat.delimiter('(')) {
                 // Possible function call.
@@ -892,7 +892,7 @@ namespace Expressions {
                 parseDelimiter(stat, ')');
             } else if(stat.delimiter("->")) {
                 // Possible parameter or object->attribute clause.
-                string scndName =
+                std::string scndName =
                     parseString(stat, "Attribute or element name expected.");
 
                 // Possible index.
@@ -909,7 +909,7 @@ namespace Expressions {
                 PlaceRep row = parsePlace(stat);
                 // Possible column name.
                 if(stat.delimiter("->")) {
-                    string col = parseString(stat, "Column name expected.");
+                    std::string col = parseString(stat, "Column name expected.");
                     result = new SCell(frstName, row, col);
                 } else {
                     throw ParseError("Expressions::parseReal()",
@@ -945,7 +945,7 @@ namespace Expressions {
         PtrToScalar<double> second;
         PtrToScalar<bool>   result;
         bool value;
-        string name;
+        std::string name;
 
         if(stat.delimiter('(')) {
             result = parseBool(stat);
@@ -1013,11 +1013,11 @@ namespace Expressions {
         //         COLUMN(<table>, <column>, <range>).
         // The word "COLUMN" has already been seen by the caller.
         parseDelimiter(stat, '(');
-        string tabName = parseString(stat, "Table name expected.");
+        std::string tabName = parseString(stat, "Table name expected.");
 
         // Column name.
         parseDelimiter(stat, ',');
-        string colName = parseString(stat, "Column name expected.");
+        std::string colName = parseString(stat, "Column name expected.");
 
         // Optional range specification.
         RangeRep range;
@@ -1036,14 +1036,14 @@ namespace Expressions {
         //         ROW(<table>, <place>, <columns>).
         // The word "ROW" has already been seen by the caller.
         parseDelimiter(stat, '(');
-        string tabName = parseString(stat, "Table name expected.");
+        std::string tabName = parseString(stat, "Table name expected.");
 
         // Row position.
         parseDelimiter(stat, ',');
         PlaceRep row = parsePlace(stat);
 
         // Optional column specifications.
-        std::vector<string> columns;
+        std::vector<std::string> columns;
         if(stat.delimiter(',')) {
             columns = parseStringArray(stat);
             parseDelimiter(stat, ')');

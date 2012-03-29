@@ -45,13 +45,13 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual SurfacePhysics *clone(const string &name);
+    virtual SurfacePhysics *clone(const std::string &name);
 
     /// Check the SURFACEPHYSICS data.
     virtual void execute();
 
     /// Find named SURFACEPHYSICS.
-    static SurfacePhysics *find(const string &name);
+    static SurfacePhysics *find(const std::string &name);
 
     /// Update the SURFACEPHYSICS data.
     virtual void update();
@@ -74,7 +74,7 @@ private:
     void operator=(const SurfacePhysics &);
 
     // Clone constructor.
-    SurfacePhysics(const string &name, SurfacePhysics *parent);
+    SurfacePhysics(const std::string &name, SurfacePhysics *parent);
 
     // The particle reference data.
     PartData reference;
@@ -84,7 +84,7 @@ private:
 
     // the element the surface physics is attached to
     ElementBase *itsElement_m;
-    string material_m;
+    std::string material_m;
 
 };
 

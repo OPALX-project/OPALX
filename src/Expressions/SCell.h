@@ -40,7 +40,7 @@ namespace Expressions {
         /// Constructor.
         //  Identify the table by its name [b]tab[/b], the row by the place
         //  reference [b]place[/b] and the column by its name [b]col[/b].
-        SCell(const string &tab, const PlaceRep &place, const string &col);
+        SCell(const std::string &tab, const PlaceRep &place, const std::string &col);
 
         virtual ~SCell();
 
@@ -61,9 +61,9 @@ namespace Expressions {
         void operator=(const SCell &);
 
         // Names of table, of position, and of column, plus occurrence count.
-        const string tab_name;
+        const std::string tab_name;
         const PlaceRep position;
-        const string col_name;
+        const std::string col_name;
 
         // The Chanel leading to the table cell.
         mutable ConstChannel *itsChannel;

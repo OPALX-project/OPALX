@@ -45,13 +45,13 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual OpalWake *clone(const string &name);
+    virtual OpalWake *clone(const std::string &name);
 
     /// Check the WAKE data.
     virtual void execute();
 
     /// Find named WAKE.
-    static OpalWake *find(const string &name);
+    static OpalWake *find(const std::string &name);
 
     /// Update the WAKE data.
     virtual void update();
@@ -75,7 +75,7 @@ private:
     void operator=(const OpalWake &);
 
     // Clone constructor.
-    OpalWake(const string &name, OpalWake *parent);
+    OpalWake(const std::string &name, OpalWake *parent);
 
     // The particle reference data.
     PartData reference;

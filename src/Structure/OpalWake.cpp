@@ -101,7 +101,7 @@ OpalWake::OpalWake():
 }
 
 
-OpalWake::OpalWake(const string &name, OpalWake *parent):
+OpalWake::OpalWake(const std::string &name, OpalWake *parent):
     Definition(name, parent),
     wf_m(parent->wf_m)
 {}
@@ -119,7 +119,7 @@ bool OpalWake::canReplaceBy(Object *object) {
 }
 
 
-OpalWake *OpalWake::clone(const string &name) {
+OpalWake *OpalWake::clone(const std::string &name) {
     return new OpalWake(name, this);
 }
 
@@ -129,7 +129,7 @@ void OpalWake::execute() {
 }
 
 
-OpalWake *OpalWake::find(const string &name) {
+OpalWake *OpalWake::find(const std::string &name) {
     OpalWake *wake = dynamic_cast<OpalWake *>(OpalData::getInstance()->find(name));
 
     if(wake == 0) {
@@ -163,10 +163,10 @@ void OpalWake::initWakefunction(ElementBase &element) {
 
 
     itsElement_m = &element;
-    std::vector<string> filters_str = Attributes::getStringArray(itsAttr[FILTERS]);
+    std::vector<std::string> filters_str = Attributes::getStringArray(itsAttr[FILTERS]);
     std::vector<Filter *> filters;
 
-    for(std::vector<string>::const_iterator fit = filters_str.begin(); fit != filters_str.end(); ++ fit) {
+    for(std::vector<std::string>::const_iterator fit = filters_str.begin(); fit != filters_str.end(); ++ fit) {
         OpalFilter *f = OpalFilter::find(*fit);
 
         if(f) {

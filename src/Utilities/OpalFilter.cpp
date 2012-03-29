@@ -88,7 +88,7 @@ OpalFilter::OpalFilter():
 }
 
 
-OpalFilter::OpalFilter(const string &name, OpalFilter *parent):
+OpalFilter::OpalFilter(const std::string &name, OpalFilter *parent):
     Definition(name, parent),
     filter_m(0)
 {}
@@ -106,7 +106,7 @@ bool OpalFilter::canReplaceBy(Object *object) {
 }
 
 
-OpalFilter *OpalFilter::clone(const string &name) {
+OpalFilter *OpalFilter::clone(const std::string &name) {
     return new OpalFilter(name, this);
 }
 
@@ -116,7 +116,7 @@ void OpalFilter::execute() {
 }
 
 
-OpalFilter *OpalFilter::find(const string &name) {
+OpalFilter *OpalFilter::find(const std::string &name) {
     OpalFilter *filter = dynamic_cast<OpalFilter *>(OpalData::getInstance()->find(name));
 
     if(filter == 0) {
