@@ -1,113 +1,63 @@
-// ------------------------------------------------------------------------
-// $RCSfile: ParallelSliceTracker.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: ParallelSliceTracker
-//   The visitor class for tracking particles with time as independent
-//   variable.
-//
-// ------------------------------------------------------------------------
-//
-// $Date: 2004/11/12 20:10:11 $
-// $Author: adelmann $
-//
-// ------------------------------------------------------------------------
-
 #include <cfloat>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+
 #include "Algorithms/ParallelSliceTracker.h"
-
-
-#include "BeamlineGeometry/Euclid3D.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "BeamlineGeometry/RBendGeometry.h"
 #include "Beamlines/Beamline.h"
-#include "Lines/Sequence.h"
-
-#include "Fields/BMultipoleField.h"
-#include "FixedAlgebra/FTps.h"
-#include "FixedAlgebra/FTpsMath.h"
-#include "FixedAlgebra/FVps.h"
-
-#include "Utilities/NumToStr.h"
 #include "Distribution/Distribution.h"
+#include "Lines/Sequence.h"
 #include "Utilities/Timer.h"
 
-#define PSdim 6
 class PartData;
-using namespace OPALTimer;
-using Physics::c;
-
-extern Inform *gmsg;
-extern Inform *gmsg2all;
-
-// Class ParallelSliceTracker
-// ------------------------------------------------------------------------
 
 ParallelSliceTracker::ParallelSliceTracker(const Beamline &beamline,
-        const PartData &reference,
-        bool revBeam,
-        bool revTrack):
+        const PartData &reference, bool revBeam, bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack) {
-    itsOpalBeamline_m = new OpalBeamline();
+    itsOpalBeamline_m = std::unique_ptr<OpalBeamline>(new OpalBeamline());
 }
 
 
 ParallelSliceTracker::ParallelSliceTracker(const Beamline &beamline,
-        EnvelopeBunch &bunch,
-        DataSink &ds,
-        const PartData &reference,
-        bool revBeam,
-        bool revTrack,
-        int maxSTEPS,
-        double zstop,
+        EnvelopeBunch &bunch, DataSink &ds, const PartData &reference,
+        bool revBeam, bool revTrack, int maxSTEPS, double zstop,
         ParallelTTracker &mySlApTracker):
     Tracker(beamline, reference, revBeam, revTrack),
     maxSteps_m(maxSTEPS),
     zstop_m(zstop) {
-    itsBunch = &bunch;
-    itsOpalBeamline_m = new OpalBeamline();
 
-    mySlApTracker_m = & mySlApTracker;
+    itsBunch_m      = &bunch;
+    mySlApTracker_m = &mySlApTracker;
+    itsDataSink_m   = &ds;
 
-    itsDataSink = &ds;
-    scaleFactor_m = itsBunch->getdT() * c;
+    itsOpalBeamline_m = std::unique_ptr<OpalBeamline>(new OpalBeamline());
 
     timeIntegrationTimer1_m  = IpplTimings::getTimer("Time integration1");
     timeIntegrationTimer2_m  = IpplTimings::getTimer("Time integration2");
-    timeFieldEvaluation_m  = IpplTimings::getTimer("Field evaluation");
-
-    BinRepartTimer_m   = IpplTimings::getTimer("Time of Binary repart.");
-    WakeFieldTimer_m   = IpplTimings::getTimer("Time of Wake Field calc.");
-
+    timeFieldEvaluation_m    = IpplTimings::getTimer("Field evaluation");
+    BinRepartTimer_m         = IpplTimings::getTimer("Time of Binary repart.");
+    WakeFieldTimer_m         = IpplTimings::getTimer("Time of Wake Field calc.");
 }
 
 
-ParallelSliceTracker::~ParallelSliceTracker() {
-    delete itsOpalBeamline_m;
-}
+ParallelSliceTracker::~ParallelSliceTracker()
+{}
 
 
+/*
+ * The maximum phase is added to the nominal phase of
+ * the element. This is done on all nodes except node 0 where
+ * the Autophase took place.
+ */
 void ParallelSliceTracker::updateRFElement(string elName, double maxPhi) {
-    /**
-       The maximum phase is added to the nominal phase of
-       the element. This is done on all nodes except node 0 where
-       the Autophase took place.
-    */
-    FieldList cl = itsOpalBeamline_m->getElementByType("RFCavity");
+    FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
     FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
     cl.merge(twl, OpalField::SortAsc);
     double phi = 0.0;
 
-    for(FieldList::iterator fit = cl.begin(); fit != cl.end(); ++ fit) {
-        if((*fit).getElement()->getName() == elName) {
-            if((*fit).getElement()->getType() == "TravelingWave") {
+    for (FieldList::iterator fit = cl.begin(); fit != cl.end(); ++fit) {
+        if ((*fit).getElement()->getName() == elName) {
+            if ((*fit).getElement()->getType() == "TravelingWave") {
                 phi  =  static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
                 phi += maxPhi;
                 static_cast<TravelingWave *>((*fit).getElement())->setPhasem(phi);
@@ -120,20 +70,21 @@ void ParallelSliceTracker::updateRFElement(string elName, double maxPhi) {
     }
 }
 
-void ParallelSliceTracker::updateAllRFElements() {
-    /**
-       All RF-Elements gets updated, where the phiShift is the
-       global phase shift in units of seconds.
-    */
 
-    FieldList cl = itsOpalBeamline_m->getElementByType("RFCavity");
+/*
+ * All RF-Elements gets updated, where the phiShift is the
+ * global phase shift in units of seconds.
+ */
+void ParallelSliceTracker::updateAllRFElements() {
+
+    FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
     FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
     cl.merge(twl, OpalField::SortAsc);
 
     double phi;
 
-    for(FieldList::iterator it = cl.begin(); it != cl.end(); ++ it) {
-        if((*it).getElement()->getType() == "TravelingWave") {
+    for (FieldList::iterator it = cl.begin(); it != cl.end(); ++it) {
+        if ((*it).getElement()->getType() == "TravelingWave") {
             phi = static_cast<TravelingWave *>((*it).getElement())->getPhasem();
             phi = getCavityPhase(cavities_m, (*it).getElement()->getName());
             static_cast<TravelingWave *>((*it).getElement())->setPhasem(phi);
@@ -148,9 +99,9 @@ void ParallelSliceTracker::updateAllRFElements() {
 
 double ParallelSliceTracker::getCavityPhase(FieldList cav, string name) {
     double phi = 0.0;
-    for(FieldList::iterator fit = cav.begin(); fit != cav.end(); ++ fit) {
-        if((*fit).getElement()->getName() == name) {
-            if((*fit).getElement()->getType() == "TravelingWave")
+    for (FieldList::iterator fit = cav.begin(); fit != cav.end(); ++fit) {
+        if ((*fit).getElement()->getName() == name) {
+            if ((*fit).getElement()->getType() == "TravelingWave")
                 phi = static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
             else
                 phi = static_cast<RFCavity *>((*fit).getElement())->getPhasem();
@@ -169,165 +120,220 @@ void ParallelSliceTracker::applyExitFringe(double angle, double curve,
         const BMultipoleField &field, double scale) {
 }
 
+
 void ParallelSliceTracker::execute() {
 
     Inform msg("ParallelSliceTracker");
-    double t = itsBunch->getT();
-    const Vector_t vscaleFactor = Vector_t(scaleFactor_m);
-    long long step = 0.0;
-    OpalData *OPAL = OpalData::getInstance();
 
-    if(OPAL->inRestartRun()) {
-        int prevDumpFreq = OPAL->getRestartDumpFreq();
-        step = OPAL->getRestartStep() * prevDumpFreq + 1;
-        maxSteps_m += step;
-        t = itsBunch->getT();
-    }
+    currentSimulationTime_m = itsBunch_m->getT();
 
-    else if(OPAL->hasBunchAllocated() && Options::scan) {
-        step = 1;
-        if(!itsBunch->doEmission())
-            writePhaseSpace(step - 1, 0.0); // write initial phase space
-        itsBunch->setT(0.0);
-    } else {
-        step = OPAL->getLastStep() + 1;
-        maxSteps_m += step;
-        t = itsBunch->getT();
-    }
+    setTime();
+    setLastStep();
+    dumpPhaseSpaceOnScan();
 
-    *gmsg << "Track start at: t= " << itsBunch->getT() << " zstop@ " << zstop_m << " [m]" << endl;
+    msg << "Track start at: t= " << itsBunch_m->getT()
+        << " zstop@ " << zstop_m << " [m]" << endl;
 
-    Vector_t um, a, s;
-    Vector_t externalE, externalB, KR, KT;
-    BorisPusher pusher(itsReference);
+    unsigned long long step = OpalData::getInstance()->getLastStep();
+    msg << "executing ParallelSliceTracker, initial DT " << itsBunch_m->getdT()
+        << " [s]; max integration steps " << maxSteps_m << " step= " << step << endl
+        << "the mass is: " << itsReference.getM() * 1e-6 << " MeV, its charge: "
+        << itsReference.getQ() << endl;
+
+    prepareSections();
+    doAutoPhasing();
+
     Vector_t rmin, rmax;
 
-    bool global_EOL;
+    for (; step < maxSteps_m; ++step) {
 
-    msg << "executing ParallelSliceTracker, initial DT " << itsBunch->getdT()
-        << " [s]; max integration steps " << maxSteps_m << " step= " << step << endl
-        << "the mass is: " << itsReference.getM() * 1e-6 << " MeV, its charge: " << itsReference.getQ() << endl;
+        globalEOL_m = true;
 
-    itsBeamline_m.accept(*this);  // fill list allElements
-    itsOpalBeamline_m->prepareSections();
-    itsOpalBeamline_m->print(msg);
+        switchElements();
+        computeExternalFields();
 
-    for(int i = 0; i < itsBunch->getLocalNum(); i++) {
-        long &l = itsBunch->LastSection[i];
-        l = -1;
-        Vector_t pos = Vector_t(itsBunch->getX(i), itsBunch->getY(i), itsBunch->getZ(i));
-        itsOpalBeamline_m->getSectionIndexAt(pos, l);
+        //reduce(&globalEOL_m, &globalEOL_m, OpBitwiseOrAssign());
+        //reduce(&globalEOL_m, &globalEOL_m + 1, &globalEOL_m, OpBitwiseAndAssign());
+        MPI_Allreduce(MPI_IN_PLACE, &globalEOL_m, 1, MPI_INT, MPI_LAND, Ippl::getComm());
+
+        computeSpaceChargeFields();
+        timeIntegration();
+
+        if (step % 100 == 0)
+            msg << " Step " << step << " at " << itsBunch_m->zAvg() << " [m] t= "
+                << itsBunch_m->getT() << " [s] E=" << itsBunch_m->Eavg() * 1e-6
+                << " [MeV]" << endl;
+
+        currentSimulationTime_m += itsBunch_m->getdT();
+        itsBunch_m->setT(currentSimulationTime_m);
+
+        dumpStats(step);
+
+        if (hasEndOfLineReached()) break;
     }
 
+    OpalData::getInstance()->setLastStep(step);
+    writeLastStepPhaseSpace(step, itsBunch_m->get_sPos());
+    itsOpalBeamline_m->switchElementsOff();
+    msg << "done executing ParallelSliceTracker" << endl;
+}
 
-    /*
-      AAA DO AUTOPHASING
-    */
-    if(Options::autoPhase > 0 && !OPAL->hasBunchAllocated()) {
+
+void ParallelSliceTracker::timeIntegration() {
+
+    IpplTimings::startTimer(timeIntegrationTimer1_m);
+    itsBunch_m->timeStep(itsBunch_m->getdT());
+    IpplTimings::stopTimer(timeIntegrationTimer1_m);
+}
+
+
+void ParallelSliceTracker::doAutoPhasing() {
+
+    if (Options::autoPhase > 0 && !OpalData::getInstance()->hasBunchAllocated()) {
+
         cavities_m = mySlApTracker_m->executeAutoPhaseForSliceTracker();
         updateAllRFElements();
-    } else if(Options::autoPhase > 0 && OPAL->hasBunchAllocated()) {
-        for(std::vector<MaxPhasesT>::iterator it = OPAL->getFirstMaxPhases(); it < OPAL->getLastMaxPhases(); it++) {
+    } else if (Options::autoPhase > 0 && OpalData::getInstance()->hasBunchAllocated()) {
+
+        for (std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
             updateRFElement((*it).first, (*it).second);
         }
     }
 
-    /**
-       save autophase information in order to skip
-       autophase in a restart run
-    */
-
-    if((!OPAL->inRestartRun()) && (Options::autoPhase > 0))
-        itsDataSink->storeCavityInformation();
+    // save autophase information in order to skip autophase in a restart run
+    if ((!OpalData::getInstance()->inRestartRun()) && (Options::autoPhase > 0))
+        itsDataSink_m->storeCavityInformation();
+}
 
 
-    msg << " is starting tracking..." << endl;
+void ParallelSliceTracker::prepareSections() {
 
-    for(; step < maxSteps_m; ++step) {
+    Inform msg("ParallelSliceTracker");
+    itsBeamline_m.accept(*this);
+    itsOpalBeamline_m->prepareSections();
+    itsOpalBeamline_m->print(msg);
 
-        //check if any particle hasn't reached the end of the field from the last element
-        global_EOL = true;
+    for (int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        auto &l = itsBunch_m->LastSection[i];
+        l = -1;
+        Vector_t pos = Vector_t(itsBunch_m->getX(i),
+                itsBunch_m->getY(i), itsBunch_m->getZ(i));
+        itsOpalBeamline_m->getSectionIndexAt(pos, l);
+    }
+}
+
+
+void ParallelSliceTracker::computeExternalFields() {
+
+    IpplTimings::startTimer(timeFieldEvaluation_m);
+
+    Vector_t externalE, externalB, KR, KT;
+    bool globalEOL_m;
+
+    for (int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+
+        externalB = Vector_t(0.0);
+        externalE = Vector_t(0.0);
+        KR        = Vector_t(0.0);
+        KT        = Vector_t(0.0);
+
+        //FIXME: why not x=y=0.0?
+        Vector_t pos = Vector_t(itsBunch_m->getX(i),
+                itsBunch_m->getY(i), itsBunch_m->getZ(i));
+
+        auto &ls = itsBunch_m->LastSection[i];
+        itsOpalBeamline_m->getSectionIndexAt(pos, ls);
+
+        if (ls != itsBunch_m->LastSection[i])
+            itsBunch_m->LastSection[i] = ls;
+
+        unsigned long rtv = itsOpalBeamline_m->getFieldAt(i, pos, ls,
+                currentSimulationTime_m , externalE, externalB);
+
+        globalEOL_m = globalEOL_m && (rtv & BEAMLINE_EOL);
+
+        itsOpalBeamline_m->getKFactors(i, pos, ls, currentSimulationTime_m, KR, KT);
+
+        itsBunch_m->setExternalFields(i, externalE, externalB, KR, KT);
+    }
+
+    IpplTimings::stopTimer(timeFieldEvaluation_m);
+}
+
+
+void ParallelSliceTracker::computeSpaceChargeFields() {
+
+    itsBunch_m->computeSpaceCharge();
+}
+
+
+void ParallelSliceTracker::dumpStats(long long step) {
+
+        double sposRef = itsBunch_m->get_sPos();
+        if (step != 0 && (step % Options::psDumpFreq == 0 || step % Options::statDumpFreq == 0))
+            writePhaseSpace(step, sposRef);
+}
+
+
+void ParallelSliceTracker::switchElements(double scaleMargin) {
+
         double margin = 1e-7;
 
         itsOpalBeamline_m->resetStatus();
-        t = itsBunch->getT();
-        itsOpalBeamline_m->switchElements(itsBunch->zTail() - margin, itsBunch->zHead() + margin);
+        currentSimulationTime_m = itsBunch_m->getT();
+        itsOpalBeamline_m->switchElements(itsBunch_m->zTail() - margin,
+                                          itsBunch_m->zHead() + margin);
+}
 
-        //external field for all local slices
-        IpplTimings::startTimer(timeFieldEvaluation_m);
-        for(int i = 0; i < itsBunch->getLocalNum(); i++) {
 
-            externalB = Vector_t(0.0);
-            externalE = Vector_t(0.0);
-            KR        = Vector_t(0.0);
-            KT        = Vector_t(0.0);
+void ParallelSliceTracker::setLastStep() {
 
-            //FIXME: why not x=y=0.0?
-            Vector_t pos = Vector_t(itsBunch->getX(i), itsBunch->getY(i), itsBunch->getZ(i));
+    unsigned long long step = 0;
 
-            long &ls = itsBunch->LastSection[i];
-            itsOpalBeamline_m->getSectionIndexAt(pos, ls);
+    if (OpalData::getInstance()->inRestartRun()) {
 
-            if(ls != itsBunch->LastSection[i])
-                itsBunch->LastSection[i] = ls;
+        int prevDumpFreq = OpalData::getInstance()->getRestartDumpFreq();
+        step = OpalData::getInstance()->getRestartStep() * prevDumpFreq + 1;
+        maxSteps_m += step;
+    } else if (OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
 
-            //XXX: disregard itsBunch->dt
-            unsigned long rtv = itsOpalBeamline_m->getFieldAt(i, pos, ls, t , externalE, externalB);
-            global_EOL = global_EOL && (rtv & BEAMLINE_EOL);
+        step = 1;
+        if (!itsBunch_m->doEmission())
+            writePhaseSpace(step - 1, 0.0); // write initial phase space
+    } else {
 
-            //XXX: disregard itsBunch->dt
-            // Calculate factors for the envelope equation
-            itsOpalBeamline_m->getKFactors(i, pos, ls, t, KR, KT);
-
-            itsBunch->setExternalFields(i, externalE, externalB, KR, KT);
-        }
-        IpplTimings::stopTimer(timeFieldEvaluation_m);
-
-        //TEST the non-len reduce: reduce(&global_EOL, &global_EOL, OpBitwiseOrAssign());
-        //reduce(&global_EOL, &global_EOL + 1, &global_EOL, OpBitwiseAndAssign());
-        MPI_Allreduce(MPI_IN_PLACE, &global_EOL, 1, MPI_INT, MPI_LAND, Ippl::getComm());
-        if((bool)global_EOL)
-            break;
-
-        itsBunch->computeSpaceCharge();
-
-        IpplTimings::startTimer(timeIntegrationTimer1_m);
-        // solve the envelope equation for all active slices
-        itsBunch->timeStep(itsBunch->getdT());
-        IpplTimings::stopTimer(timeIntegrationTimer1_m);
-
-        // sets time for EnvelopeBunch
-        itsBunch->actT();
-
-        if(step % 1000 == 0)
-            msg << " Step " << step << " at " << itsBunch->zAvg() << " [m] t= "
-                << itsBunch->getT() << " [s] E=" << itsBunch->Eavg() * 1e-6
-                << " [MeV]" << endl;
-
-        //t after a full global timestep with dT "synchronization point" for simulation time
-        t += itsBunch->getdT();
-        itsBunch->setT(t);
-
-        double sposRef = itsBunch->get_sPos();
-        if(step != 0 && (step % Options::psDumpFreq == 0 || step % Options::statDumpFreq == 0))
-            writePhaseSpace(step, sposRef);
-
-        //  Stop simulation if beyond zstop_m or bunch invalid
-        if(sposRef > zstop_m || !(itsBunch->isValid_m)) {
-            maxSteps_m = step;
-        }
+        step = OpalData::getInstance()->getLastStep() + 1;
+        maxSteps_m += step;
     }
 
-    OPAL->setLastStep(step);
-
-    //dump last phase space
-    writeLastStepPhaseSpace(step, itsBunch->get_sPos());
-
-    //itsOpalBeamline_m->switchElements(numeric_limits<double>::max(), numeric_limits<double>::min());
-    itsOpalBeamline_m->switchElementsOff();
-
-    msg << "done executing ParallelSliceTracker" << endl;
+    OpalData::getInstance()->setLastStep(step);
+}
 
 
+void ParallelSliceTracker::setTime() {
+
+    if (OpalData::getInstance()->inRestartRun())
+        currentSimulationTime_m = itsBunch_m->getT();
+    else if (OpalData::getInstance()->hasBunchAllocated() && Options::scan)
+        itsBunch_m->setT(0.0);
+    else
+        currentSimulationTime_m = itsBunch_m->getT();
+}
+
+
+void ParallelSliceTracker::dumpPhaseSpaceOnScan() {
+
+    unsigned long long step = OpalData::getInstance()->getLastStep();
+
+    if (OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
+
+        if (!itsBunch_m->doEmission())
+            writePhaseSpace(step - 1, 0.0);
+    }
+}
+
+
+bool ParallelSliceTracker::hasEndOfLineReached() {
+    return (itsBunch_m->get_sPos() > zstop_m || !(itsBunch_m->isValid_m));
 }
 

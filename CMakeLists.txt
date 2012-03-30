@@ -28,17 +28,17 @@ find_package (H5Hut REQUIRED)
 find_package (HDF5 REQUIRED)
 find_package (GSL REQUIRED)
 
-if (DBG_SCALARFIELD)	
+if (DBG_SCALARFIELD)
    MESSAGE("\nWrite scalar rho_m field is enabled ")
-   set (CMAKE_CXX_FLAGS_RELEASE "-D DBG_SCALARFIELD") 
+   set (CMAKE_CXX_FLAGS_RELEASE "-D DBG_SCALARFIELD")
 endif (DBG_SCALARFIELD)
 
 if (DBG_STENCIL)
    MESSAGE("\nWrite stencil is enabled ")
-   set (CMAKE_CXX_FLAGS_RELEASE "-D DBG_STENCIL") 
+   set (CMAKE_CXX_FLAGS_RELEASE "-D DBG_STENCIL")
 endif (DBG_STENCIL)
 
-if (BUILD_LIBOPAL)	
+if (BUILD_LIBOPAL)
    MESSAGE("\nBuilding OPAL library")
 endif (BUILD_LIBOPAL)
 
@@ -73,7 +73,7 @@ if (ENABLE_ML_SOLVER)
     #SET(CMAKE_CXX_FLAGS  "${Trilinos_CXX_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
     #SET(CMAKE_C_FLAGS  "${Trilinos_C_COMPILER_FLAGS} ${CMAKE_C_FLAGS}")
     #SET(CMAKE_Fortran_FLAGS  "${Trilinos_Fortran_COMPILER_FLAGS} ${CMAKE_Fortran_FLAGS}")
-    
+
 endif (ENABLE_ML_SOLVER)
 
 # compiler dependent flags
@@ -111,7 +111,7 @@ IF ("${COMPILER_NAME}" STREQUAL "mpicxx")
 
     ELSE("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
         # using unknown compiler
-        MESSAGE("${COMPILER_NAME} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of! 
+        MESSAGE("${COMPILER_NAME} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of!
                  Please use the gnu compiler or the intel compiler if you are having problems.")
     ENDIF("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
 
@@ -122,7 +122,7 @@ ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
 ENDIF ("${COMPILER_NAME}" STREQUAL "mpicxx")
 
 set(CMAKE_CXX_FLAGS
-  "${CMAKE_CXX_FLAGS} -Wall ${OTHER_CMAKE_CXX_FLAGS}")
+  "${CMAKE_CXX_FLAGS} -Wall -std=c++0x ${OTHER_CMAKE_CXX_FLAGS}")
 
 add_subdirectory (classic/5.0/src)
 add_subdirectory (src)

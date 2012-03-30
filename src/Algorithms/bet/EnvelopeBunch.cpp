@@ -4,6 +4,9 @@
 #include <cmath>
 #include <string>
 #include <limits>
+#include <algorithm>
+#include <typeinfo>
+
 //FIXME: replace with IPPL Vector_t
 #include <vector>
 //FIXME: remove
@@ -41,7 +44,7 @@ extern Inform *gmsg;
 // Hack allows odeint in rk.C to be called with a class member function
 static EnvelopeBunch *thisBunch = NULL;  // pointer to access calling bunch
 static void Gderivs(double t, double Y[], double dYdt[]) { thisBunch->derivs(t, Y, dYdt); }
-//static double Gcur(double z) { return thisBunch->I->get(z, itype_lin); }
+//static double Gcur(double z) { return thisBunch->currentProfile_m->get(z, itype_lin); }
 static double rootValue = 0.0;
 
 // used in setLShape for Gaussian
@@ -51,6 +54,39 @@ static void erfRoot(double x, double *fn, double *df) {
 
     *fn = v - rootValue;
     *df = (erfc(fabs(x) + eps) - v) / eps;
+}
+
+
+EnvelopeBunch::EnvelopeBunch(const PartData *ref):
+    PartBunch(ref),
+    reference(ref),
+    numSlices_m(0),
+    numMySlices_m(0) {
+
+    calcITimer_m = IpplTimings::getTimer("calcI");
+    spaceChargeTimer_m = IpplTimings::getTimer("spaceCharge");
+    isValid_m = true;
+
+}
+
+
+EnvelopeBunch::EnvelopeBunch(const EnvelopeBunch &rhs):
+    PartBunch(rhs.reference),
+    reference(rhs.reference),
+    numSlices_m(0),
+    numMySlices_m(0)
+{}
+
+
+EnvelopeBunch::EnvelopeBunch(const std::vector<Particle> &rhs, const PartData *ref):
+    PartBunch(ref),
+    reference(ref),
+    numSlices_m(0),
+    numMySlices_m(0)
+{}
+
+
+EnvelopeBunch::~EnvelopeBunch() {
 }
 
 void EnvelopeBunch::calcBeamParameters() {
@@ -127,74 +163,74 @@ void EnvelopeBunch::calcBeamParameters() {
 
 void EnvelopeBunch::runStats(EnvelopeBunchParameter sp, double *xAvg, double *xMax, double *xMin, double *rms, int *nValid) {
     int i, nV = 0;
-    double *v = new double[numMySlices_m];
+    std::vector<double> v(numMySlices_m, 0.0);
 
     //FIXME: why from 1 to n-1??
     switch(sp) {
         case sp_beta:      // normalized velocity (total) [-]
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_beta];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_beta];
             }
             break;
         case sp_gamma:     // Lorenz factor
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->gamma();
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->computeGamma();
             }
             break;
         case sp_z:         // slice position [m]
             for(i = 0; i < numMySlices_m - 0; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_z];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_z];
             }
             break;
         case sp_I:         // slice position [m]
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_beta] > BETA_MIN1) && ((s[i]->p[SLI_z] > zCat) && s[i]->valid))
-                    v[nV++] = 0.0; //FIXME: I->get(s[i]->p[SLI_z], itype_lin);
+                if((s[i]->p[SLI_beta] > BETA_MIN1) && ((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()))
+                    v[nV++] = 0.0; //FIXME: currentProfile_m->get(s[i]->p[SLI_z], itype_lin);
             }
             break;
         case sp_Rx:        // beam size x [m]
             for(i = 0; i < numMySlices_m - 0; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = 2.* s[i]->p[SLI_x];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = 2.* s[i]->p[SLI_x];
             }
             break;
         case sp_Ry:        // beam size y [m]
             for(i = 0; i < numMySlices_m - 0; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = 2. * s[i]->p[SLI_y];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = 2. * s[i]->p[SLI_y];
             }
             break;
         case sp_Px:        // beam divergence x
             for(i = 0; i < numMySlices_m - 0; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_px];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_px];
             }
             break;
         case sp_Py:        // beam divergence y
             for(i = 0; i < numMySlices_m - 0; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_py];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_py];
             }
             break;
         case sp_Pz:
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_beta] * s[i]->gamma();
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_beta] * s[i]->computeGamma();
             }
             break;
         case sp_x0:        // position centroid x [m]
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_x0];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_x0];
             }
             break;
         case sp_y0:        // position centroid y [m]
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_y0];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_y0];
             }
             break;
         case sp_px0:       // angular deflection centroid x
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_px0];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_px0];
             }
             break;
         case sp_py0:      // angular deflection centroid y
             for(i = 1; i < numMySlices_m - 1; i++) {
-                if((s[i]->p[SLI_z] > zCat) && s[i]->valid) v[nV++] = s[i]->p[SLI_py0];
+                if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) v[nV++] = s[i]->p[SLI_py0];
             }
             break;
         default :
@@ -258,8 +294,6 @@ void EnvelopeBunch::runStats(EnvelopeBunchParameter sp, double *xAvg, double *xM
         else
             *rms = sqrt(M2 / nVTot - M1 * M1 / (nVTot * nVTot));
     }
-
-    delete[] v;
 }
 
 void EnvelopeBunch::calcEmittance(double *emtnx, double *emtny, double *emtx, double *emty, int *nValid) {
@@ -274,7 +308,7 @@ void EnvelopeBunch::calcEmittance(double *emtnx, double *emtny, double *emtx, do
     // find the amount of active slices
     int nV = 0;
     for(int i = 0; i < numMySlices_m; i++) {
-        if((s[i]->p[SLI_z] > zCat) && s[i]->valid)
+        if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid())
             nV++;
     }
 
@@ -283,13 +317,13 @@ void EnvelopeBunch::calcEmittance(double *emtnx, double *emtny, double *emtx, do
         nV = 0;
         double bg = 0.0;
         for(int i = 0; i < i1; i++) {
-            if((s[i]->p[SLI_z] > zCat) && s[i]->valid) {
+            if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) {
                 nV++;
 
                 if(solver & sv_radial) {
                     assert(i < numMySlices_m);
-                    EnvelopeSlice *sp = s[i];
-                    bg = sp->p[SLI_beta] * sp->gamma();
+                    auto sp = s[i];
+                    bg = sp->p[SLI_beta] * sp->computeGamma();
 
                     double pbc = bg * sp->p[SLI_px] / (sp->p[SLI_beta] * Physics::c);
                     sx   += sp->p[SLI_x] * sp->p[SLI_x];
@@ -342,9 +376,9 @@ void EnvelopeBunch::calcEmittance(double *emtnx, double *emtny, double *emtx, do
 }
 
 void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int *nValid) {
-    double *dtl = new double[numMySlices_m];  /// z --> time
-    double *b  = new double[numMySlices_m];  /// beta
-    double *g  = new double[numMySlices_m];  /// gamma
+    std::vector<double> dtl(numMySlices_m, 0.0);
+    std::vector<double> b(numMySlices_m, 0.0);
+    std::vector<double> g(numMySlices_m, 0.0);
 
     // defaults
     *g0   = 1.0;
@@ -355,12 +389,12 @@ void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int 
     double gAvg = 0.0;
     int j = 0;
     for(int i = 0; i < numMySlices_m; i++) {
-        EnvelopeSlice *cs = s[i];
-        if((cs->valid) && (cs->p[SLI_z] > zCat)) {
+        std::shared_ptr<EnvelopeSlice> cs = s[i];
+        if((cs->is_valid()) && (cs->p[SLI_z] > zCat)) {
             zAvg    += cs->p[SLI_z];
             dtl[i-j]  = cs->p[SLI_z];
             b[i-j]   = cs->p[SLI_beta];
-            g[i-j]   = cs->gamma();
+            g[i-j]   = cs->computeGamma();
             gAvg    += g[i-j];
         } else
             ++j;
@@ -380,22 +414,17 @@ void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int 
     // FIXME: working with global arrays
     // make dtl, b and g global
     if(nVTot > 2) {
-        double *dtG = new double[nVTot];  // z --> time
-        double *bG  = new double[nVTot];  // beta
-        double *gG  = new double[nVTot];  // gamma
+        std::vector<double> dtG(nVTot, 0.0);
+        std::vector<double> bG(nVTot, 0.0);
+        std::vector<double> gG(nVTot, 0.0);
 
         int numproc = Ippl::Comm->getNodes();
-        int *numsend = new int[numproc];
-        int *offsets = new int[numproc];
-        int *offsetsG = new int[numproc];
-        int *zeros = new int[numproc];
+        std::vector<int> numsend(numproc, nV);
+        std::vector<int> offsets(numproc);
+        std::vector<int> offsetsG(numproc);
+        std::vector<int> zeros(numproc, 0);
 
-        for(int i = 0; i < numproc; i++) {
-            zeros[i] = 0;
-            numsend[i] = nV;
-        }
-
-        MPI_Allgather(&nV, 1, MPI_INT, &offsets[0], 1, MPI_INT, Ippl::getComm());
+        MPI_Allgather(&nV, 1, MPI_INT, &offsets.front(), 1, MPI_INT, Ippl::getComm());
         offsetsG[0] = 0;
         for(int i = 1; i < numproc; i++) {
             if(offsets[i-1] == 0)
@@ -404,14 +433,17 @@ void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int 
                 offsetsG[i] = offsetsG[i-1] + offsets[i-1];
         }
 
-        MPI_Alltoallv(&dtl[0], numsend, zeros, MPI_DOUBLE, &dtG[0], offsets, offsetsG, MPI_DOUBLE, Ippl::getComm());
-        MPI_Alltoallv(&b[0], numsend, zeros, MPI_DOUBLE, &bG[0], offsets, offsetsG, MPI_DOUBLE, Ippl::getComm());
-        MPI_Alltoallv(&g[0], numsend, zeros, MPI_DOUBLE, &gG[0], offsets, offsetsG, MPI_DOUBLE, Ippl::getComm());
+        MPI_Alltoallv(&dtl.front(), &numsend.front(), &zeros.front(), MPI_DOUBLE,
+                      &dtG.front(), &offsets.front(), &offsetsG.front(), MPI_DOUBLE,
+                      Ippl::getComm());
 
-        delete[] offsets;
-        delete[] offsetsG;
-        delete[] numsend;
-        delete[] zeros;
+        MPI_Alltoallv(&b.front(), &numsend.front(), &zeros.front(), MPI_DOUBLE,
+                      &bG.front(), &offsets.front(), &offsetsG.front(), MPI_DOUBLE,
+                      Ippl::getComm());
+
+        MPI_Alltoallv(&g.front(), &numsend.front(), &zeros.front(), MPI_DOUBLE,
+                      &gG.front(), &offsets.front(), &offsetsG.front(), MPI_DOUBLE,
+                      Ippl::getComm());
 
         double dum2, dum3, dum4, rms, gZero, gt;
 
@@ -430,77 +462,11 @@ void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int 
         }
 
         *gInc = sqrt(rms / nVTot);
-
-        delete[] dtG;
-        delete[] bG;
-        delete[] gG;
     }
-
-    delete[] g;
-    delete[] b;
-    delete[] dtl;
-}
-
-EnvelopeBunch::EnvelopeBunch(const PartData *ref):
-    PartBunch(ref),
-    reference(ref) {
-    calcITimer_m = IpplTimings::getTimer("calcI");
-    spaceChargeTimer_m = IpplTimings::getTimer("spaceCharge");
-    isValid_m = true;
-
-    KR = 0;
-    KT = 0;
-    EF = 0;
-    BF = 0;
-
-    b_m = 0;
-    z_m = 0;
-    Exw = 0;
-    Eyw = 0;
-    Ezw = 0;
-    Esct = 0;
-    G = 0;
 }
 
 
-EnvelopeBunch::EnvelopeBunch(const EnvelopeBunch &rhs):
-    PartBunch(rhs.reference),
-    reference(rhs.reference)
-{}
-
-
-EnvelopeBunch::EnvelopeBunch(const std::vector<Particle> &rhs, const PartData *ref):
-    PartBunch(ref),
-    reference(ref)
-{}
-
-
-EnvelopeBunch::~EnvelopeBunch() {
-    delete[] LastSection;
-    //delete[] dt;
-    for(int i = 0; i < numMySlices_m; i++)
-        delete s[i];
-    delete[] s;
-    numMySlices_m = 0;
-    numSlices_m = 0;
-
-    if(KR) delete[] KR;
-    if(KT) delete[] KT;
-    if(EF) delete[] EF;
-    if(BF) delete[] BF;
-
-    if(z_m)  delete[] z_m;
-    if(b_m)  delete[] b_m;
-
-    if(Exw)  delete[] Exw;
-    if(Eyw)  delete[] Eyw;
-    if(Ezw)  delete[] Ezw;
-    if(Esct) delete[] Esct;
-    if(G)    delete[] G;
-    if(I)    delete I;
-}
-
-void EnvelopeBunch::createSlices(int nSlice) {
+void EnvelopeBunch::distributeSlices(int nSlice) {
     numSlices_m = nSlice;
     int rank = Ippl::Comm->myNode();
     int numproc = Ippl::Comm->getNodes();
@@ -524,36 +490,26 @@ void EnvelopeBunch::createSlices(int nSlice) {
     else
         mySliceStartOffset_m += numSlices_m % numproc;
     mySliceEndOffset_m = mySliceStartOffset_m + numMySlices_m - 1;
-
-    create(getLocalNum());
 }
 
-//FIXME: delete and free's seem to crash if we create a second envelope bunch
-void EnvelopeBunch::create(int N) {
 
-    //FIXME: memory issue when going to larger number of processors (this is
+void EnvelopeBunch::createBunch() {
+
+    // Memory issue when going to larger number of processors (this is
     // also the reason for the 30 slices hard limit per core!)
     // using heuristic (until problem is located)
-    size_t nSlices = (3 / 100.0 + 1.0) * numMySlices_m;
+    //size_t nSlices = (3 / 100.0 + 1.0) * numMySlices_m;
 
-    //delete[] LastSection;
-    //*gmsg << "H1" << endl;
-    LastSection = new long [nSlices];
-    //dt = new double [nSlices];
+    size_t nSlices = getLocalNum();
+    LastSection.resize(nSlices);
 
-    if(KR) delete[] KR;
-    if(KT) delete[] KT;
-    if(EF) delete[] EF;
-    if(BF) delete[] BF;
-    KR = new Vector_t[nSlices];
-    KT = new Vector_t[nSlices];
-    EF = new Vector_t[nSlices];
-    BF = new Vector_t[nSlices];
+    KR = std::unique_ptr<Vector_t[]>(new Vector_t[nSlices]);
+    KT = std::unique_ptr<Vector_t[]>(new Vector_t[nSlices]);
+    EF = std::unique_ptr<Vector_t[]>(new Vector_t[nSlices]);
+    BF = std::unique_ptr<Vector_t[]>(new Vector_t[nSlices]);
 
-    if(z_m)  delete[] z_m;
-    if(b_m)  delete[] b_m;
-    z_m = new double[numSlices_m];
-    b_m = new double[numSlices_m];
+    z_m.resize(numSlices_m, 0.0);
+    b_m.resize(numSlices_m, 0.0);
 
     for(unsigned int i = 0; i < nSlices; i++) {
         KR[i] = Vector_t(0);
@@ -565,6 +521,7 @@ void EnvelopeBunch::create(int N) {
     // set default DE solver method
     solver = sv_radial | sv_offaxis | sv_lwakes | sv_twakes;
 
+    //FIXME: WHY?
     if(numSlices_m < 14)
         throw OpalException("EnvelopeBunch::createSlices", "use more than 13 slices");
 
@@ -582,23 +539,27 @@ void EnvelopeBunch::create(int N) {
     dfi_x    = 0.0;
     dfi_y    = 0.0;     // no rotation of coordinate system
 
-    //if(s)
-    //delete[] s;
-    s = new EnvelopeSliceP[nSlices];
-    for(unsigned int i = 0; i < nSlices; i++)
-        s[i] = new EnvelopeSlice();
+    //for(unsigned int i = 0; i < nSlices; i++)
+        //s.push_back(std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice()));
 
-    /// allocate memory for internal arrays
-    if(Exw)  delete[] Exw;
-    if(Eyw)  delete[] Eyw;
-    if(Ezw)  delete[] Ezw;
-    if(Esct) delete[] Esct;
-    if(G)    delete[] G;
-    Esct = new double[nSlices];
-    G    = new double[nSlices];
-    Exw  = new double[nSlices];
-    Eyw  = new double[nSlices];
-    Ezw  = new double[nSlices];
+    s.resize(nSlices);
+    for( auto & slice : s ) {
+        slice = std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice());
+    }
+
+    //XXX: not supported by clang at the moment
+    //std::generate(s.begin(), s.end(),
+        //[]()
+        //{
+            //return std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice());
+        //});
+
+    Esct.resize(nSlices, 0.0);
+    G.resize(nSlices, 0.0);
+    Exw.resize(nSlices, 0.0);
+    Eyw.resize(nSlices, 0.0);
+    Ezw.resize(nSlices, 0.0);
+
     for(unsigned int i = 0; i < nSlices; i++) {
         Esct[i] = 0.0;
         G[i]    = 0.0;
@@ -607,7 +568,7 @@ void EnvelopeBunch::create(int N) {
         Eyw[i]  = 0.0;
     }
 
-    I     = NULL;
+    currentProfile_m = NULL;
     I0avg = 0.0;
     dStat = ds_fieldsSynchronized | ds_slicesSynchronized;
 }
@@ -719,7 +680,6 @@ void EnvelopeBunch::setTShape(double enx, double eny, double rx, double ry, doub
         s[i]->p[SLI_py] = 0.0;
     }
 
-    // save new state
     backup();
 }
 
@@ -742,7 +702,6 @@ void EnvelopeBunch::setEnergy(double E0, double dE) {
         s[i]->p[SLI_beta] = sqrt(1.0 - (1.0 / (g * g)));
     }
 
-    // save new states
     backup();
 }
 
@@ -769,12 +728,8 @@ void EnvelopeBunch::calcI() {
         return;
     already_called = 1;
 
-    // delete the old profile
-    if(I)
-        delete I;
-
-    double *z1 = new double[numSlices_m];
-    double *b  = new double[numSlices_m];
+    std::vector<double> z1(numSlices_m, 0.0);
+    std::vector<double> b(numSlices_m, 0.0);
     double bSum = 0.0;
     double dz2Sum = 0.0;
     int n1 = 0;
@@ -803,11 +758,9 @@ void EnvelopeBunch::calcI() {
         my_start++;
 
     if(n1 < 2) {
-        delete[] z1;
-        delete[] b;
         msg << "n1 (= " << n1 << ") < 2" << endl;
         //throw OpalException("EnvelopeBunch", "Insufficient points to calculate the current (n1)");
-        I = new Profile(0.0);
+        currentProfile_m = std::unique_ptr<Profile>(new Profile(0.0));
         return;
     }
 
@@ -815,15 +768,13 @@ void EnvelopeBunch::calcI() {
     double beta = bSum / n1;
 
     //sort z1 according to beta's
-    sort2(z1, b, n1);
+    sort2(&z1.front(), &b.front(), n1);
 
     double q = Q_m > 0.0 ? Q_m / numSlices_m : Physics::q_e;
     double dz = 0.0;
 
     // 1. Determine current from the slice distance
-    double *I1 = new double[n1];
-    for(int i = 0; i < n1; i++)
-        I1[i] = 0.0;
+    std::vector<double> I1(n1, 0.0);
 
     //limit the max current to 5x the sigma value to reduce noise problems
     double dzMin = 0.2 * sigma_dz;
@@ -867,10 +818,8 @@ void EnvelopeBunch::calcI() {
     double zMin = zTail();
     double zMax = zHead();
     dz = (zMax - zMin) / numSlices_m; // create a window of the average slice distance
-    double *z2 = new double[n1];
-    double *I2 = new double[n1];
-    //double *z2_temp = vector(n1);
-    //double *I2_temp = vector(n1);
+    std::vector<double> z2(n1, 0.0);
+    std::vector<double> I2(n1, 0.0);
     double Mz1 = 0.0;
     double MI1 = 0.0;
     int np = 0;
@@ -945,15 +894,16 @@ void EnvelopeBunch::calcI() {
     int n2 = n1 - k;
     if(n2 < 1) {
         msg << "Insufficient points to calculate the current (m = " << n2 << ")" << endl;
-        I = new Profile(0.0);
+        currentProfile_m = std::unique_ptr<Profile>(new Profile(0.0));
     } else {
         // 3. smooth further
         if(n2 > 40) {
-            sgSmooth(I2, n2, n2 / 20, n2 / 20, 0, 1);
+            sgSmooth(&I2.front(), n2, n2 / 20, n2 / 20, 0, 1);
         }
 
         // 4. create current profile
-        I = new Profile(z2, I2, n2);
+        currentProfile_m = std::unique_ptr<Profile>(new Profile(&z2.front(),
+                                                    &I2.front(), n2));
 
         /**5. Normalize profile to match bunch charge as a constant
          * However, only normalize for sufficient beam energy
@@ -964,20 +914,14 @@ void EnvelopeBunch::calcI() {
         double z = zMin;
         dz = (zMax - zMin) / 99;
         for(int i = 1; i < 100; i++) {
-            Qcalc += I->get(z, itype_lin);
+            Qcalc += currentProfile_m->get(z, itype_lin);
             z += dz;
         }
         Qcalc *= (dz / (beta * Physics::c));
-        I->scale((Q_m > 0.0 ? Q_m : Physics::q_e) / Qcalc);
+        currentProfile_m->scale((Q_m > 0.0 ? Q_m : Physics::q_e) / Qcalc);
     }
 
     dStat |= ds_currentCalculated;
-
-    delete[] z2;
-    delete[] I2;
-    delete[] b;
-    delete[] z1;
-    delete[] I1;
 }
 
 void EnvelopeBunch::cSpaceCharge() {
@@ -1017,7 +961,7 @@ void EnvelopeBunch::cSpaceCharge() {
         return;
     }
 
-    if((Q_m <= 0.0) || (I->max() <= 0.0)) {
+    if((Q_m <= 0.0) || (currentProfile_m->max() <= 0.0)) {
         msg << "Q or I_max <= 0.0, aborting calculation" << endl;
         return;
     }
@@ -1027,15 +971,12 @@ void EnvelopeBunch::cSpaceCharge() {
         G[i]    = 0.0;
     }
 
-    double Imax = I->max();
-    double *xi = new double[numSlices_m];
+    double Imax = currentProfile_m->max();
     int nV = 0;
     double sm = 0.0;
     double A0 = 0.0;
+    std::vector<double> xi(numSlices_m, 0.0);
 
-    for(int i = 0; i < numSlices_m; i++) {
-        xi[i] = 0.0;
-    }
     for(int i = 0; i < numMySlices_m; i++) {
         if(s[i]->p[SLI_z] > 0.0) {
             nV++;
@@ -1048,7 +989,6 @@ void EnvelopeBunch::cSpaceCharge() {
     int nVTot = nV;
     MPI_Allreduce(MPI_IN_PLACE, &nVTot, 1, MPI_INT, MPI_SUM, Ippl::getComm());
     if(nVTot < 2) {
-        delete[] xi;
         msg << "Exiting, to few nV slices" << endl;
         return;
     }
@@ -1083,7 +1023,7 @@ void EnvelopeBunch::cSpaceCharge() {
             double btsq = (bt - BETA_MIN1) / (BETA_MIN2 - BETA_MIN1) * (bt - BETA_MIN1) / (BETA_MIN2 - BETA_MIN1);
             Esct[localIdx] = (bt < BETA_MIN1 ? 0.0 : bt < BETA_MIN2 ? btsq : 1.0);
             Esct[localIdx] *= Q_m * sm / (Physics::two_pi * Physics::epsilon_0 * A0 * (nVTot - 1));
-            G[localIdx] = I->get(z0, itype_lin) / Imax;
+            G[localIdx] = currentProfile_m->get(z0, itype_lin) / Imax;
 
             // tweak to compensate for non-relativity
             if(bt < BETA_MIN2) {
@@ -1095,7 +1035,6 @@ void EnvelopeBunch::cSpaceCharge() {
         }
     }
 
-    delete[] xi;
     return;
 #endif
 }
@@ -1160,7 +1099,7 @@ void EnvelopeBunch::derivs(double tc, double Y[], double dYdt[]) {
     /// \f[ \dot{z} = \beta c cos(\alpha) \f]
     dYdt[SLI_z]  = Y[SLI_beta] * Physics::c * cos(alpha);
 
-    //FIXME: (reason for - when using Esl(2)) In OPAL we use e_0 with a sign.
+    //NOTE: (reason for - when using Esl(2)) In OPAL we use e_0 with a sign.
     // The same issue with K factors (accounted in K factor calculation)
     //
     /// \f[ \dot{\beta} = \frac{e_0}{mc\gamma^3} \left(E_{z,\text{ext}} + E_{z,\text{sc}} + E_{z, \text{wake}} \right)
@@ -1194,7 +1133,7 @@ void EnvelopeBunch::derivs(double tc, double Y[], double dYdt[]) {
         // transverse space charge
         // somewhat strange: I expected: c*c*I/(2*Ia) (R. Bakker)
         //XXX: Renes version, I[cs] already in G
-        double kpc  = 0.5 * Physics::c * Physics::c * I->max() / Physics::Ia;
+        double kpc  = 0.5 * Physics::c * Physics::c * currentProfile_m->max() / Physics::Ia;
 
         /// \f[ \dot{\sigma} = p \f]
         dYdt[SLI_x]  = Y[SLI_px];
@@ -1250,7 +1189,7 @@ void EnvelopeBunch::computeSpaceCharge() {
         //sgSmooth(Esct,n,n/20,n/20,0,4);
         //}
     } else {
-        I = new Profile(0.0);
+        currentProfile_m = std::unique_ptr<Profile>(new Profile(0.0));
     }
 
     IpplTimings::stopTimer(selfFieldTimer_m);
@@ -1309,7 +1248,7 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
     for(int i = 0; i < numMySlices_m; i++) {
         // make the current slice index global in this class
         cS = i;
-        EnvelopeSlice *sp = s[i];
+        std::shared_ptr<EnvelopeSlice> sp = s[i];
 
         //if(i + mySliceStartOffset_m == numSlices_m - activeSlices_m) {
         //sp->emitted = true;
@@ -1383,10 +1322,10 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
         //FIXME: BET calculates only 80 %, OPAL doesn't ?
 
         for(int i = 0; i < numMySlices_m; i++) {
-            EnvelopeSlice *sp  = s[i];
-            if((sp->p[SLI_z] >= zCat) && sp->valid) {
+            std::shared_ptr<EnvelopeSlice> sp  = s[i];
+            if((sp->p[SLI_z] >= zCat) && sp->is_valid()) {
                 ++nV;
-                ga  += sp->gamma();
+                ga  += sp->computeGamma();
                 x0a += sp->p[SLI_x0];
                 y0a += sp->p[SLI_y0];
                 px0a += sp->p[SLI_px0];
@@ -1421,7 +1360,7 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
         dfi_x -= fi_x;
         dfi_y -= fi_y;
         for(int i = 0; i < numMySlices_m; i++) {
-            EnvelopeSlice *sp = s[i];
+            std::shared_ptr<EnvelopeSlice> sp = s[i];
 
             sp->p[SLI_x0] -= x0a;
             sp->p[SLI_y0] -= y0a;
@@ -1439,7 +1378,8 @@ void EnvelopeBunch::initialize(int num_slices, double Q, double energy, double w
 #else
     *gmsg << "Using BET space-charge model" << endl;
 #endif
-    createSlices(num_slices);
+    distributeSlices(num_slices);
+    createBunch();
 
     this->setCharge(Q);
     this->setEnergy(energy);
@@ -1463,12 +1403,6 @@ void EnvelopeBunch::initialize(int num_slices, double Q, double energy, double w
     //FIXME:
     // 12: on-axis, radial, default track all
     this->setSolver(12);
-}
-
-// compare BET and OPAL time
-// set time of PartBunch to time of EnvelopeBunch
-void EnvelopeBunch::actT() {
-    setT(this->getT());
 }
 
 double EnvelopeBunch::AvBField() {
@@ -1499,8 +1433,8 @@ double EnvelopeBunch::Eavg() {
     int nValid = 0;
     double sum = 0.0;
     for(int i = 0; i < numMySlices_m; i++) {
-        if((s[i]->p[SLI_z] > zCat) && s[i]->valid) {
-            sum += s[i]->gamma();
+        if((s[i]->p[SLI_z] > zCat) && s[i]->is_valid()) {
+            sum += s[i]->computeGamma();
             nValid++;
         }
     }
@@ -1530,7 +1464,7 @@ double EnvelopeBunch::zAvg() {
     int nV = 0;
     double sum = 0.0;
     for(int i = 0; i < numMySlices_m; i++) {
-        if(s[i]->valid) {
+        if(s[i]->is_valid()) {
             sum += s[i]->p[SLI_z];
             nV++;
         }
@@ -1551,7 +1485,7 @@ double EnvelopeBunch::zTail() {
     double min;
 
     int i = 0;
-    while((i < numMySlices_m) && (!s[i]->valid))
+    while((i < numMySlices_m) && (!s[i]->is_valid()))
         i++;
     //throw OpalException("EnvelopeBunch", "EnvelopeBunch::zTail() no valid slices left");
     if(i == numMySlices_m)
@@ -1560,7 +1494,7 @@ double EnvelopeBunch::zTail() {
         min = s[i]->p[SLI_z];
 
     for(i = i + 1; i < numMySlices_m; i++)
-        if((s[i]->p[SLI_z] < min) && (s[i]->valid))
+        if((s[i]->p[SLI_z] < min) && (s[i]->is_valid()))
             min = s[i]->p[SLI_z];
 
     //reduce(min, min, OpMinAssign());
@@ -1572,7 +1506,7 @@ double EnvelopeBunch::zHead() {
     double max;
 
     int i = 0;
-    while((i < numMySlices_m) && (s[i]->valid == 0))
+    while((i < numMySlices_m) && (s[i]->is_valid() == 0))
         i++;
     //throw OpalException("EnvelopeBunch", "EnvelopeBunch::zHead() no valid slices left");
     if(i == numMySlices_m)
@@ -1607,6 +1541,26 @@ Inform &EnvelopeBunch::slprint(Inform &os) {
         //os << "* rms correlation= " << rprms_m << endl;
         //os << "* tEmission= " << getTEmission() << " [s]" << endl;
         os << "* ********************************************************************************** " << endl;
+
+        //Inform::FmtFlags_t ff = os.flags();
+        //os << scientific;
+        //os << "* ************** B U N C H ********************************************************* " << endl;
+        //os << "* NSlices= " << this->getTotalNum() << " Qtot= " << abs(sum(Q) * 1.0E9) << " [nC]" << endl;
+        //os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV] dEkin= " << dE_m << " [MeV]" << endl;
+        //os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]" << endl;
+        //os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]" << endl;
+        //os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]" << endl;
+        //os << "* rms momenta     = " << setw(12) << setprecision(5) << prms_m << " [beta gamma]" << endl;
+        //os << "* mean position   = " << setw(12) << setprecision(5) << rmean_m << " [m]" << endl;
+        //os << "* mean momenta    = " << setw(12) << setprecision(5) << pmean_m << " [beta gamma]" << endl;
+        //os << "* rms emittance   = " << setw(12) << setprecision(5) << eps_m << " (not normalized)" << endl;
+        //os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << endl;
+        //os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]" << endl;
+        //os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]" << endl;
+        //os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s] dT= " << getdT() << " [s]" << endl;
+        //os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]" << endl;
+        //os << "* ********************************************************************************** " << endl;
+        //os.flags(ff);
     }
     return os;
 }

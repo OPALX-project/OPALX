@@ -12,6 +12,8 @@
 #include <assert.h>
 #include <vector>
 
+#include <memory>
+
 enum EnvelopeBunchParameter {
     sp_beta,      /// normalized velocity (total) [-]
     sp_gamma,     /// Lorenz factor
@@ -69,38 +71,33 @@ public:
     /// Copy constructor
     EnvelopeBunch(const EnvelopeBunch &);
 
-    ~EnvelopeBunch();
+    virtual ~EnvelopeBunch();
+
+    /// create and initialize local num slices
+    void createBunch();
+
+    /// distributes nSlice amongst processors and initializes slices
+    void distributeSlices(int nSlice = 101);
 
     bool isValid_m;
 
     /// last em-field section
-    long *LastSection;
-
-    //FIXME: why do we need dt and where is it initialized?
-    /// eigen-time of the slice
-    //double *dt;
+    // PartBunch is created with 0 particles (all attribute containers empty)!
+    std::vector<long> LastSection;
 
     /// current profile of bunch (fit)
-    Profile *I;
+    std::unique_ptr<Profile> currentProfile_m;
 
     IpplTimings::TimerRef calcITimer_m;
     IpplTimings::TimerRef spaceChargeTimer_m;
 
-
-    /// initialize an envelope bunch
+    /// initialize an envelope bunch (interface for Distribution class)
     void initialize(int sli, double charge, double energy, double width, double te, double frac,
                     double current, double center, double bX, double bY, double mX, double mY, double Bz, int nbin);
 
-    //FIXME: private?
-    /// create and initialize N slices
-    void create(int N);
-    /// distributes nSlice amongst processors and initializes slices
-    void createSlices(int nSlice = 101);
-
-    /// synchronize time
-    void actT();
     /// check if solver includes radial
     bool isRadial() { return solver & sv_radial; }
+
     /// check if solver includes off-axis tracking
     bool isOffaxis() { return solver & sv_offaxis; }
 
@@ -208,7 +205,7 @@ public:
     /// returns gamma of slice i
     double getGamma(int i) {
         assert(i < numMySlices_m);
-        return s[i]->gamma();
+        return s[i]->computeGamma();
     }
 
     /// returns beta of slice i
@@ -296,7 +293,7 @@ public:
     /// returns Z momenta of slice i
     double getPz(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_beta] * Physics::m_e * s[i]->gamma();
+        return s[i]->p[SLI_beta] * Physics::m_e * s[i]->computeGamma();
     }
 
     /// returns angular deflection centroid in x of slice i
@@ -342,9 +339,9 @@ private:
     /// last global slice on this processor
     size_t mySliceEndOffset_m;
     /// synchronized z positions for parallel tracker
-    double *z_m;
+    std::vector<double> z_m;
     /// synchronized betas for parallel tracker
-    double *b_m;
+    std::vector<double> b_m;
     /// bins for emission
     std::vector< std::vector<int> > bins_m;
     /// emission bin width
@@ -387,15 +384,15 @@ private:
     /// transverse kick of beam
     Vector_t KTsl;
     /// define value of radial kick for each slice
-    Vector_t *KR;
+    std::unique_ptr<Vector_t[]> KR;
     /// define value of transversal kick for each slice
-    Vector_t *KT;
+    std::unique_ptr<Vector_t[]> KT;
     /// external E fields
-    Vector_t *EF;
+    std::unique_ptr<Vector_t[]> EF;
     /// external B fields
-    Vector_t *BF;
+    std::unique_ptr<Vector_t[]> BF;
     /// array of slices
-    EnvelopeSlice **s;
+    std::vector< std::shared_ptr<EnvelopeSlice> > s;
     /// gives the sign of charge Q
     int sign;
     /// current Slice set in run() & cSpaceCharge() and used in derivs() & zcsI()
@@ -403,15 +400,15 @@ private:
     /// cathode position
     double zCat;
     /// transverse wake field x
-    double *Exw;
+    std::vector<double> Exw;
     /// transverse wake field y
-    double *Eyw;
+    std::vector<double> Eyw;
     /// longitudinal wake field
-    double *Ezw;
+    std::vector<double> Ezw;
     /// Longitudinal Space-charge field
-    double *Esct;
+    std::vector<double> Esct;
     /// Transverse Space-charge term: Eq.(9)
-    double *G;
+    std::vector<double> G;
 
     int nValid_m;
     double z0_m;
@@ -533,8 +530,8 @@ private:
 
     /// backup slice values
     void backup() {
-        for(int i = 0; i < numMySlices_m; i++)
-            s[i]->backup();
+        for (auto & slice : s)
+            slice->backup();
     }
 
 
@@ -552,8 +549,6 @@ private:
     /// calculates the current current distribution
     void calcI();
 };
-
-typedef EnvelopeBunch *EnvelopeBunchP;
 
 inline Inform &operator<<(Inform &os, EnvelopeBunch &p) {
     return p.slprint(os);

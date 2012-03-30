@@ -946,7 +946,7 @@ bool Distribution::addDistributions(PartBunch &beam, vector<Distribution *> dist
                         deltaT = Attributes::getReal(itsAttr[T]);
                         maxT = tEmission_m + deltaT;
                         minT = deltaT;
-                        
+
                         // FIXME: floating point comparison
                     } else if(relativeWeight.at(distIterator) != 0.0) {
 
@@ -1644,7 +1644,8 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
     h5_int64_t totalSteps = H5GetNumSteps(H5file);
     *gmsg << "total number of slices = " << N << " total steps " << totalSteps << endl;
 
-    beam.createSlices(N);
+    beam.distributeSlices(N);
+    beam.createBunch();
     long long starti = beam.mySliceStartOffset();
     long long endi = beam.mySliceEndOffset();
 

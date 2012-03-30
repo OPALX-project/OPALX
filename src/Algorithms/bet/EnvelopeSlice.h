@@ -37,68 +37,37 @@ class EnvelopeSlice {
 
 public:
 
-    /**
-     * @brief parameters
-     */
-    double p[SLNPAR];
-    /**
-     * @brief parameters before last integration step (backup)
-     */
-    double p_old[SLNPAR];
-
-    /**
-     * @brief flag holding validity of slice
-     */
-    int valid;
-    /**
-     * @brief backup copy of valid
-     */
-    int was_valid;
-
     EnvelopeSlice();
 
-    ~EnvelopeSlice() {}
+    virtual ~EnvelopeSlice() {}
 
-    /**
-     * @brief set the memory buffer to a new location
-     *
-     * @param b pointer to new buffer location
-     */
-    void setBuffer(double *b);
+    /// parameters
+    double p[SLNPAR];
 
-    /**
-     * @brief calculates \gamma from \beta
-     *
-     * @return \gamma of the slice
-     */
-    inline double gamma() { return sqrt(1.0 / (1.0 - p[SLI_beta] * p[SLI_beta])); }
+    /// parameters before last integration step (backup)
+    double p_old[SLNPAR];
 
-    /**
-     * @brief backup the slice
-     */
+    inline double computeGamma() {
+        return sqrt(1.0 / (1.0 - p[SLI_beta] * p[SLI_beta]));
+    }
+
+    // backup the slice
     void backup();
-    /**
-     * @brief restore a slice
-     */
+
+    // restore a slice
     void restore();
 
-    /**
-     * @brief check if a slice has changed
-     *
-     * @return type of change
-     */
+    // check if a slice has changed
     int check();
-    /**
-     * @brief check if a slice is still valid
-     *
-     * @return 1 if valid, 0 otherwise
-     */
-    inline int is_valid() { return valid; }
 
-    bool emitted;
+    inline int is_valid() { return isValid_m; }
+
+    bool hasSliceBeenEmitted_m;
+
+private:
+    int isValid_m;
+    int backupedValid_m;
+
 };
 
-typedef EnvelopeSlice *EnvelopeSliceP;
-
 #endif
-
