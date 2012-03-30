@@ -65,7 +65,6 @@ public:
 
     void initWakefunction(ElementBase &element);
 
-    void updateElement(ElementBase *element);
     WakeFunction *wf_m;
 
 private:

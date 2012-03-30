@@ -205,10 +205,6 @@ void OpalWake::initWakefunction(ElementBase &element) {
     }
 }
 
-void OpalWake::updateElement(ElementBase *element) {
-    wf_m->updateElement(element);
-}
-
 void OpalWake::print(std::ostream &os) const {
     os << "* ************* W A K E ************************************************************ " << std::endl;
     os << "* WAKE         " << getOpalName() << '\n'

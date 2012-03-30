@@ -56,12 +56,6 @@ class PartData;
 using namespace std;
 using namespace OPALTimer;
 
-extern Inform *gmsg;
-extern Inform *gmsg2all;
-
-// Class ParallelTTracker
-// ------------------------------------------------------------------------
-
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    const PartData &reference,
                                    bool revBeam,
@@ -182,6 +176,7 @@ ParallelTTracker::~ParallelTTracker() {
 
 void ParallelTTracker::applySchottkyCorrection(PartBunch &itsBunch, int ne, double t, double rescale_coeff) {
 
+    Inform msg("ParallelTTracker ");
     const long ls = 0;
     /*
       Now I can calculate E_{rf} at each position
@@ -228,6 +223,8 @@ void ParallelTTracker::applySchottkyCorrection(PartBunch &itsBunch, int ne, doub
 
 double ParallelTTracker::schottkyLoop(double rescale_coeff) {
 
+    Inform msg("ParallelTTracker ");
+
     double recpgamma;
     double t = 0.0;
     double dt = itsBunch->getdT();
@@ -248,9 +245,9 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
 
     size_t totalParticles_i = itsBunch->getTotalNum();
 
-    *gmsg << "*****************************************************************" << endl;
-    *gmsg << " Estimate Schottky correction                                    " << endl;
-    *gmsg << "*****************************************************************" << endl;
+    msg << "*****************************************************************" << endl;
+    msg << " Estimate Schottky correction                                    " << endl;
+    msg << "*****************************************************************" << endl;
 
     double margin = 0.0;
     if(!mpacflg_m) {
@@ -307,7 +304,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
         minBinEmitted = ar->getReal();  // the space charge solver crashes if we use less than ~10 particles.
         // This variable controls the number of particles to be emitted before we use
         // the space charge solver.
-        *gmsg << "MINBINEMITTED " << minBinEmitted << endl;
+        msg << "MINBINEMITTED " << minBinEmitted << endl;
     }
 
 
@@ -316,14 +313,14 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
     if(br) {
         minStepforReBin = br->getReal();  // this variable controls the minimal number of steps of emission (using bins)
         // before we can merge the bins
-        *gmsg << "MINSTEPFORREBIN " << minStepforReBin << endl;
+        msg << "MINSTEPFORREBIN " << minStepforReBin << endl;
     }
 
     int repartFreq = 1000;
     RealVariable *rep = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("REPARTFREQ"));
     if(rep) {
         repartFreq = static_cast<int>(rep->getReal());  // this variable controls the minimal number of steps until we repartition the particles
-        *gmsg << "REPARTFREQ " << repartFreq << endl;
+        msg << "REPARTFREQ " << repartFreq << endl;
     }
 
     // there is no point to do repartitioning with one node
@@ -434,7 +431,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
                 itsBunch->setdT(dt);
                 scaleFactor_m = dt * Physics::c;
                 vscaleFactor = Vector_t(scaleFactor_m);
-                *gmsg << "Changing emission time step to: " << dt << endl;
+                msg << "Changing emission time step to: " << dt << endl;
                 hasSwitchedToTEmission = true;
             }
 
@@ -454,7 +451,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
                 itsBunch->setdT(dt);
                 scaleFactor_m = dt * Physics::c;
                 vscaleFactor = Vector_t(scaleFactor_m);
-                *gmsg << "Emission done. Switching back to track timestep: " << dt << endl;
+                msg << "Emission done. Switching back to track timestep: " << dt << endl;
                 hasSwitchedBackToTTrack = true;
                 break;
             }
@@ -466,7 +463,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
                 itsBunch->setdT(dt);
                 scaleFactor_m = dt * Physics::c;
                 vscaleFactor = Vector_t(scaleFactor_m);
-                *gmsg << "Emission done. Switching back to track timestep: " << dt << endl;
+                msg << "Emission done. Switching back to track timestep: " << dt << endl;
                 hasSwitchedBackToTTrack = true;
             }
 
@@ -532,7 +529,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
 
         totalParticles_f = totalParticles_i - ne;
         if(ne > 0)
-            *gmsg << "* Deleted " << ne << " particles, remaining " << totalParticles_f << " particles" << endl; //benchmark output
+            msg << "* Deleted " << ne << " particles, remaining " << totalParticles_f << " particles" << endl; //benchmark output
 
         kickParticles(pusher);
 
@@ -639,7 +636,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
     }
     OPALTimer::Timer myt3;
     OpalData::getInstance()->setLastStep(step);
-    *gmsg << "done executing Schottky loop " << myt3.time() << endl;
+    msg << "done executing Schottky loop " << myt3.time() << endl;
     return itsBunch->getCharge();
 }
 
@@ -808,20 +805,20 @@ void ParallelTTracker::applyExitFringe(double angle, double curve,
 }
 
 
-void ParallelTTracker::showCavities(Inform &m) {
+void ParallelTTracker::showCavities(Inform &msg) {
 
-    m << "Found the following cavities:" << endl;
+    msg << "Found the following cavities:" << endl;
 
     for(FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++ fit) {
-        m << (*fit).getElement()->getName()
-          << " from " << (*fit).getStart() << " to "
-          << (*fit).getEnd() << " (m) phi=";
+        msg << (*fit).getElement()->getName()
+            << " from " << (*fit).getStart() << " to "
+            << (*fit).getEnd() << " (m) phi=";
         if((*fit).getElement()->getType() == "TravelingWave")
-            m << static_cast<TravelingWave *>((*fit).getElement())->getPhasem() / Physics::pi * 180.0 << endl;
+            msg << static_cast<TravelingWave *>((*fit).getElement())->getPhasem() / Physics::pi * 180.0 << endl;
         else
-            m << static_cast<RFCavity *>((*fit).getElement())->getPhasem() / Physics::pi * 180.0 << endl;
+            msg << static_cast<RFCavity *>((*fit).getElement())->getPhasem() / Physics::pi * 180.0 << endl;
     }
-    m << endl << endl;
+    msg << endl << endl;
 }
 
 
@@ -853,18 +850,19 @@ void ParallelTTracker::updateAllRFElements(double phiShift) {
        All RF-Elements gets updated, where the phiShift is the
        global phase shift in units of seconds.
     */
+    Inform msg("ParallelTTracker ");
     double phi = 0;
     double freq = 0.0;
     const double RADDEG = 1.0 / Physics::pi * 180.0;
     //   Inform m ("updateALLRFElements ",INFORM_ALL_NODES);
-    *gmsg << "\n-------------------------------------------------------------------------------------\n";
+    msg << "\n-------------------------------------------------------------------------------------\n";
     for(FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++ fit) {
         if(fit != cavities_m.begin())
-            *gmsg << "\n";
+            msg << "\n";
         if((*fit).getElement()->getType() == "TravelingWave") {
             freq = static_cast<TravelingWave *>((*fit).getElement())->getFrequencym();
             phi = static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
-            *gmsg << (*fit).getElement()->getName()
+            msg << (*fit).getElement()->getName()
                   << ": phi_orig= phi_nom + phi_maxE= " << phi *RADDEG << " degree, "
                   << "global phase shift= " << -phiShift *freq *RADDEG << " degree\n";
             phi -= (phiShift * freq);
@@ -872,14 +870,14 @@ void ParallelTTracker::updateAllRFElements(double phiShift) {
         } else {
             freq = static_cast<RFCavity *>((*fit).getElement())->getFrequencym();
             phi = static_cast<RFCavity *>((*fit).getElement())->getPhasem();
-            *gmsg << (*fit).getElement()->getName()
+            msg << (*fit).getElement()->getName()
                   << ": phi_orig= phi_nom + phi_maxE= " << phi *RADDEG << " degree, "
                   << "global phase shift= " << -phiShift *freq *RADDEG << " degree\n";
             phi -= (phiShift * freq);
             static_cast<RFCavity *>((*fit).getElement())->updatePhasem(phi);
         }
     }
-    *gmsg << "-------------------------------------------------------------------------------------\n"
+    msg << "-------------------------------------------------------------------------------------\n"
           << endl;
 }
 
@@ -899,7 +897,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
         double zbegin, zend;
         it->getElement()->getDimensions(zbegin, zend);
         if(zbegin < zStop_m && zend >= zStop_m) {
-            *gmsg << "\033[0;31m"
+            msg << "\033[0;31m"
                   << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
                   << "% Removing '" << it->getElement()->getName() << "' since it resides in two tracks.   %\n"
                   << "% Please adjust zstop or place your monitor at a different position to prevent this. %\n "
@@ -1258,6 +1256,7 @@ double ParallelTTracker::APtrack(Component *cavity, double cavity_start_pos, con
 }
 
 void ParallelTTracker::execute() {
+    Inform msg("ParallelTTracker ");
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
     BorisPusher pusher(itsReference);
     secondaryFlg_m = false;
@@ -1274,7 +1273,7 @@ void ParallelTTracker::execute() {
     doAutoPhasing();
 
     numParticlesInSimulation_m = itsBunch->getTotalNum();
-    *gmsg << "totalParticle_i= " << numParticlesInSimulation_m << endl;
+    msg << "totalParticle_i= " << numParticlesInSimulation_m << endl;
 
     OPALTimer::Timer myt1;
 
@@ -1285,19 +1284,19 @@ void ParallelTTracker::execute() {
     double t = itsBunch->getT();
     unsigned long long step = OpalData::getInstance()->getLastStep();
 
-    *gmsg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m << " [m]" << endl;
+    msg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m << " [m]" << endl;
 
     gunSubTimeSteps_m = 10;
     prepareEmission();
 
     doSchottyRenormalization();
 
-    *gmsg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
+    msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
           << "max integration steps " << maxSteps_m << ", next step= " << step << endl;
 
     // itsBeamline_m.accept(*this);
     // itsOpalBeamline_m.prepareSections();
-    itsOpalBeamline_m.print(*gmsg);
+    itsOpalBeamline_m.print(msg);
 
     setupSUV();
 
@@ -1367,11 +1366,11 @@ void ParallelTTracker::execute() {
 
     bool doDump = true;
     writePhaseSpace((step + 1), itsBunch->get_sPos(), doDump);
-    *gmsg << "Dump phase space of last step" << endl;
+    msg << "Dump phase space of last step" << endl;
     OPALTimer::Timer myt3;
     OpalData::getInstance()->setLastStep(step);
     itsOpalBeamline_m.switchElementsOff();
-    *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
+    msg << "done executing ParallelTTracker at " << myt3.time() << endl;
 }
 
 
@@ -1392,12 +1391,13 @@ double ParallelTTracker::getGlobalPhaseShift() {
 
 void ParallelTTracker::handleOverlappingMonitors() {
     // make sure that no monitor has overlap with two tracks
+    Inform msg("ParallelTTracker ");
     FieldList monitors = itsOpalBeamline_m.getElementByType("Monitor");
     for(FieldList::iterator it = monitors.begin(); it != monitors.end(); ++ it) {
         double zbegin, zend;
         it->getElement()->getDimensions(zbegin, zend);
         if(zbegin < zStop_m && zend >= zStop_m) {
-            *gmsg << "\033[0;31m"
+            msg << "\033[0;31m"
                   << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
                   << "% Removing '" << it->getElement()->getName() << "' since it resides in two tracks.   %\n"
                   << "% Please adjust zstop or place your monitor at a different position to prevent this. %\n "
@@ -1498,15 +1498,22 @@ void ParallelTTracker::bgf_main_collision_test() {
 
     if(!bgf_m) return;
 
+    Inform msg("ParallelTTracker ");
+
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
     /**
       Here we check if a particles is
       outside the domain, flag it for
       deletion and create secondaries
       */
-    if(secondaryFlg_m == 1) { // entry for Furman-Pivi's secondary emission model
-        // itsBunch->getLocalNum() will change immediately, so we need Inc_num to record the local particle number
-        // before secondary emission, otherwise will be recursive generate secondaries and cause problem.
+    if(secondaryFlg_m == 1) {
+        /*
+           entry for Furman-Pivi's secondary emission model
+           itsBunch->getLocalNum() will change immediately, so we
+           need Inc_num to record the local particle number before
+           secondary emission, otherwise will be recursive generate
+           secondaries and cause problem.
+         */
         size_t Inc_num = itsBunch->getLocalNum();
 
         double dtime = 0.5 * itsBunch->getdT();
@@ -1516,11 +1523,19 @@ void ParallelTTracker::bgf_main_collision_test() {
         for(size_t i = 0; i < Inc_num; i++) {
 
             if(itsBunch->PType[i] == 3)
-                itsBunch->PType[i] = 2;// secondaries generated in last step will be set to be old secondaries.
+                // secondaries generated in last step will be set to be old
+                // secondaries.
+
+                itsBunch->PType[i] = 2;
 
             if(itsBunch->TriID[i] == 0) {
-                // for primary bunch, primary dark current particles, old secondaries in previous time steps and newly
-                // generated secondaries which have no collision with boundary in both first and second half step, do main collision test and emit the secondaries.
+                /*
+                  for primary bunch, primary dark current particles,
+                  old secondaries in previous time steps and newly
+                  generated secondaries which have no collision with
+                  boundary in both first and second half step, do main
+                  collision test and emit the secondaries.
+                */
                 Vector_t intecoords = outr;
                 int triId = 0;
                 double Energy = 0.0;
@@ -1534,9 +1549,14 @@ void ParallelTTracker::bgf_main_collision_test() {
                     SeyNum_m += seyNum;
                 }
             } else {
-                // Particles which collide the boundary in previous two tests will not do main collision test and directly call
-                // secondary emission module according to their energy and momentum before collision.
-                // Attention, these secondaries have not been kicked and are without new momentum.
+                /*
+                   Particles which collide the boundary in previous
+                   two tests will not do main collision test and directly
+                   call secondary emission module according to their
+                   energy and momentum before collision. Attention, these
+                   secondaries have not been kicked and are without new
+                   momentum.
+                */
 
                 double p_sq = dot(itsBunch->P[i], itsBunch->P[i]);
                 double Energy =  Physics::m_e * (sqrt(1.0 + p_sq) - 1.0) * 1.0e9;
@@ -1559,7 +1579,7 @@ void ParallelTTracker::bgf_main_collision_test() {
             itsBunch->boundp();
             numParticlesInSimulation_m = itsBunch->getTotalNum();
         } else
-            *gmsg << "* No field emission dT = " << itsBunch->getT() << endl;
+            msg << "* No field emission dT = " << itsBunch->getT() << endl;
 
     } else if(secondaryFlg_m != 0) {
         // entry for Vaughan's secondary emission model
@@ -1620,7 +1640,7 @@ void ParallelTTracker::bgf_main_collision_test() {
             itsBunch->boundp();
             numParticlesInSimulation_m = itsBunch->getTotalNum();
         } else
-            *gmsg << "* No field emission dT = " << itsBunch->getT() << endl;
+            msg << "* No field emission dT = " << itsBunch->getT() << endl;
 
     } else {// the case without secondary emission, i.e., secondaryFlg==0
         for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
@@ -1655,10 +1675,10 @@ void ParallelTTracker::bgf_main_collision_test() {
         if(itsBunch->getT() < surfaceEmissionStop_m)
             numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
         else
-            *gmsg << "* No field emission dT = " << itsBunch->getT() << endl;
+            msg << "* No field emission dT = " << itsBunch->getT() << endl;
         /*  if (itsBunch->getTotalNum()!= 0) {
             itsBunch->boundp();
-         *gmsg<<"After boundp"<<endl;
+         msg<<"After boundp"<<endl;
          }
          numParticlesInSimulation_m = itsBunch->getTotalNum();
          */
@@ -1907,6 +1927,7 @@ void ParallelTTracker::computeSpaceChargeFields() {
 
 void ParallelTTracker::computeExternalFields() {
     IpplTimings::startTimer(timeFieldEvaluation_m);
+    Inform msg("ParallelTTracker ");
 
     unsigned long hasWake = 0;
     unsigned long hasSurfacePhysics = 0;
@@ -1959,28 +1980,32 @@ void ParallelTTracker::computeExternalFields() {
 
     }
 
-    reduce(hasWake, hasWake, OpAddAssign());
-    reduce(hasSurfacePhysics, hasSurfacePhysics, OpAddAssign());
-    reduce(bends_m, bends_m, OpAddAssign());
-
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
     if(globPartOutOfBounds) {
         size_t ne = itsBunch->boundp_destroyT();
         if(ne > 0) {
-            *gmsg << "* Deleted " << ne << " particles, "
+            msg << "* Deleted " << ne << " particles, "
                   << "remaining " << numParticlesInSimulation_m << " particles" << endl;
             numParticlesInSimulation_m  = itsBunch->getTotalNum();
         }
     }
 
+    IpplTimings::stopTimer(timeFieldEvaluation_m);
+
+    reduce(hasWake, hasWake, OpAddAssign());
+    reduce(hasSurfacePhysics, hasSurfacePhysics, OpAddAssign());
+    reduce(bends_m, bends_m, OpAddAssign());
+
     if(hasWake > 0) {
         IpplTimings::startTimer(WakeFieldTimer_m);
-        if(!wakeStatus_m) {
-            *gmsg << "============== START WAKE CALCULATION =============" << endl;
-            wakeStatus_m = true;
-        }
         reduce(wfSection, wfSection, OpMaxAssign());
         WakeFunction *wf = itsOpalBeamline_m.getWakeFunction(wfSection);
+        if(!wakeStatus_m) {
+            msg << "============== START WAKE CALCULATION =============" << endl;
+            const ElementBase* element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
+            wf->initialize(element);
+            wakeStatus_m = true;
+        }
 
         if(wf == NULL) {
             INFOMSG("no wakefunction attached" << endl);
@@ -1990,13 +2015,13 @@ void ParallelTTracker::computeExternalFields() {
         IpplTimings::stopTimer(WakeFieldTimer_m);
 
     } else if(wakeStatus_m) {
-        *gmsg << "=============== END WAKE CALCULATION ==============" << endl;
+        msg << "=============== END WAKE CALCULATION ==============" << endl;
         wakeStatus_m = false;
     }
 
     if(hasSurfacePhysics > 0) {
         if(!surfaceStatus_m) {
-            *gmsg << "============== START SURFACE PHYSICS CALCULATION ===Inform &PartBunc==========" << endl;
+            msg << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
         }
         reduce(sphysSection, sphysSection, OpMaxAssign());
@@ -2008,11 +2033,9 @@ void ParallelTTracker::computeExternalFields() {
             sphys->apply(*itsBunch);
         }
     } else if(surfaceStatus_m) {
-        *gmsg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
+        msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
         surfaceStatus_m = false;
     }
-
-    IpplTimings::stopTimer(timeFieldEvaluation_m);
 }
 
 void ParallelTTracker::handleBends() {
@@ -2088,14 +2111,15 @@ void ParallelTTracker::doBinaryRepartition(long long step) {
 
 void ParallelTTracker::dumpStats(long long step) {
     OPALTimer::Timer myt2;
+    Inform msg("ParallelTTracker ");
 
     if(numParticlesInSimulation_m == 0) {
-        *gmsg << "Step " << step << " no emission yet "  << " t= " << itsBunch->getT() << " [s]" << endl;
+        msg << "Step " << step << " no emission yet "  << " t= " << itsBunch->getT() << " [s]" << endl;
         return;
     }
 
     //if(totalParticles_f == 0) {
-    //*gmsg << "Step " << step << " no emission yet "  << " t= " << itsBunch->getT() << " [s]" << endl;
+    //msg << "Step " << step << " no emission yet "  << " t= " << itsBunch->getT() << " [s]" << endl;
     //return;
     //}
 
@@ -2103,13 +2127,13 @@ void ParallelTTracker::dumpStats(long long step) {
 
     size_t totalParticles_f = numParticlesInSimulation_m;
     if(totalParticles_f <= minBinEmitted_m) {
-        *gmsg << myt2.time() << " Step " << step << "; only " << totalParticles_f << " particles emitted; t= " << itsBunch->getT()
+        msg << myt2.time() << " Step " << step << "; only " << totalParticles_f << " particles emitted; t= " << itsBunch->getT()
               << " [s] E=" << itsBunch->get_meanEnergy() << " [MeV] " << endl;
     } else if(std::isnan(sposRef) || std::isinf(sposRef)) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
-        *gmsg << myt2.time() << " Step " << step << " at " << sposRef << " [m] t= "
+        msg << myt2.time() << " Step " << step << " at " << sposRef << " [m] t= "
               << itsBunch->getT() << " [s] E=" << itsBunch->get_meanEnergy() << " [MeV] " << endl;
 
         writePhaseSpace(step, sposRef);
@@ -2140,30 +2164,31 @@ void ParallelTTracker::dumpStats(long long step) {
 
 
 void ParallelTTracker::setOptionalVariables() {
+    Inform msg("ParallelTTracker ");
 
     minBinEmitted_m  = 10;
     RealVariable *ar = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINBINEMITTED"));
     if(ar)
         minBinEmitted_m = static_cast<size_t>(ar->getReal());
-    *gmsg << "MINBINEMITTED " << minBinEmitted_m << endl;
+    msg << "MINBINEMITTED " << minBinEmitted_m << endl;
 
     minStepforReBin_m  = 200;
     RealVariable *br = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINSTEPFORREBIN"));
     if(br)
         minStepforReBin_m = static_cast<int>(br->getReal());
-    *gmsg << "MINSTEPFORREBIN " << minStepforReBin_m << endl;
+    msg << "MINSTEPFORREBIN " << minStepforReBin_m << endl;
 
     surfaceEmissionStop_m  = 1000;
     RealVariable *cr = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("SURFACEEMISSIONSTOP"));
     if(cr)
         surfaceEmissionStop_m = static_cast<int>(cr->getReal());
-    *gmsg << "SURFACEEMISSIONSTOP after " << surfaceEmissionStop_m << " seconds" <<  endl;
+    msg << "SURFACEEMISSIONSTOP after " << surfaceEmissionStop_m << " seconds" <<  endl;
 
     repartFreq_m = 1000;
     RealVariable *rep = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("REPARTFREQ"));
     if(rep)
         repartFreq_m = static_cast<int>(rep->getReal());
-    *gmsg << "REPARTFREQ " << repartFreq_m << endl;
+    msg << "REPARTFREQ " << repartFreq_m << endl;
 }
 
 
@@ -2174,19 +2199,20 @@ bool ParallelTTracker::hasEndOfLineReached() {
 
 
 void ParallelTTracker::doSchottyRenormalization() {
+    Inform msg("ParallelTTracker ");
     double init_erg = itsBunch->getEkin();
     double tol_iter = 1e-5;
     rescale_coeff_m = 1 / init_erg / init_erg;
 
     if(Options::schottkyRennormalization > 0) {
         rescale_coeff_m = Options:: schottkyRennormalization;
-        *gmsg << "Set schottky scale coefficient to  " << rescale_coeff_m << endl;
+        msg << "Set schottky scale coefficient to  " << rescale_coeff_m << endl;
     } else if(Options::schottkyCorrection) {
         while(true) {
             double real_charge = schottkyLoop(rescale_coeff_m);
 
             double total_charge = itsBunch->getTotalNum() * itsBunch->getChargePerParticle();
-            *gmsg << "Schottky scale coefficient " << rescale_coeff_m << ", actual emitted charge " << real_charge << " (Cb)" << endl;
+            msg << "Schottky scale coefficient " << rescale_coeff_m << ", actual emitted charge " << real_charge << " (Cb)" << endl;
             itsBunch->cleanUpParticles();
             itsBunch->setT(0);
             double scale_error = total_charge / real_charge - 1;
@@ -2195,7 +2221,7 @@ void ParallelTTracker::doSchottyRenormalization() {
             if(fabs(scale_error) < tol_iter)
                 break;
         }
-        *gmsg << "Schottky scan, final scale coefficient " << rescale_coeff_m << " ()" << endl;
+        msg << "Schottky scan, final scale coefficient " << rescale_coeff_m << " ()" << endl;
     }
 }
 
@@ -2275,11 +2301,12 @@ void ParallelTTracker::dumpPhaseSpaceOnScan() {
 }
 
 void ParallelTTracker::prepareEmission() {
+    Inform msg("ParallelTTracker ");
 
     if(mpacflg_m || !itsBunch->doEmission()) return;
 
     emissionSteps_m = static_cast<unsigned int>(itsBunch->pbin_m->getNBins()) * gunSubTimeSteps_m;
-    *gmsg << "Do emission for " << itsBunch->getTEmission() << " [s] using "
+    msg << "Do emission for " << itsBunch->getTEmission() << " [s] using "
           << itsBunch->pbin_m->getNBins() << " energy bins " << endl
           << "Change dT from " <<  itsBunch->getdT() << " [s] to "
           <<  itsBunch->getdT() << " [s] during emission " << endl;;
@@ -2287,7 +2314,7 @@ void ParallelTTracker::prepareEmission() {
 }
 
 void ParallelTTracker::initializeBoundaryGeometry() {
-
+    Inform msg("ParallelTTracker ");
     for(unsigned int i = 0; i < itsOpalBeamline_m.sections_m.size(); i++) {
 
         bgf_m = itsOpalBeamline_m.getBoundaryGeometry(i);
@@ -2299,29 +2326,29 @@ void ParallelTTracker::initializeBoundaryGeometry() {
         if(distr_str.size() == 0) {
             string distr = bgf_m->getDistribution();
             if(!distr.empty()) {
-                *gmsg << "* Find boundary geometry, start at: " << bgf_m->getS() << " (m) Distribution= " << bgf_m->getDistribution() << endl;
+                msg << "* Find boundary geometry, start at: " << bgf_m->getS() << " (m) Distribution= " << bgf_m->getDistribution() << endl;
                 dist = Distribution::find(bgf_m->getDistribution());
-                *gmsg << "* " << *dist << endl;
+                msg << "* " << *dist << endl;
             } else {
                 throw OpalException("ParallelTTracker::execute()",
                                     "No distribution attached to BoundaryGeometry. Please check the input file... ...");
 
             }
         } else {
-            *gmsg << "************************************************************************************************* " << endl;
-            *gmsg <<  "* Find boundary geometry, start at: " << bgf_m->getS()  << " (m). " << endl;
-            *gmsg << "* Attached more than one distribution: " << endl;
+            msg << "************************************************************************************************* " << endl;
+            msg <<  "* Find boundary geometry, start at: " << bgf_m->getS()  << " (m). " << endl;
+            msg << "* Attached more than one distribution: " << endl;
             for(vector<string>::const_iterator dit = distr_str.begin(); dit != distr_str.end(); ++ dit) {
                 Distribution *d = Distribution::find(*dit);
-                *gmsg << "* Distribution: " << *dit << " distribution type: " << d->getTypeofDistribution() << endl;
-                *gmsg << "************************************************************************************************* " << endl;
+                msg << "* Distribution: " << *dit << " distribution type: " << d->getTypeofDistribution() << endl;
+                msg << "************************************************************************************************* " << endl;
                 if(d->getTypeofDistribution() == "SURFACEEMISSION") {
                     dist = d;
-                    *gmsg << *dist << endl;
+                    msg << *dist << endl;
 
                 } else if(d->getTypeofDistribution() == "SURFACERANDCREATE") {
                     distrand = d;
-                    *gmsg << *distrand << endl;
+                    msg << *distrand << endl;
                     // here nbparts should be non zero as these particles will be the initialization of primary bunch.
                     size_t nbparts = distrand->getNumberOfDarkCurrentParticles();
                     double darkinwardmargin = distrand->getDarkCurrentParticlesInwardMargin();
@@ -2368,7 +2395,7 @@ void ParallelTTracker::initializeBoundaryGeometry() {
                         RefPartR_suv_m = RefPartR_zxy_m = itsBunch->get_rmean();
                         RefPartP_suv_m = RefPartP_zxy_m = itsBunch->get_pmean();
 
-                        *gmsg << *itsBunch << endl;
+                        msg << *itsBunch << endl;
                     }
                 } else {
                     throw OpalException("ParallelTTracker::execute()",
@@ -2460,7 +2487,7 @@ void ParallelTTracker::initializeBoundaryGeometry() {
             maxNparts_m = static_cast<size_t>(maxnp->getReal());  // set upper limit of particle number in simulation
         }
 
-        *gmsg << "Boundary geometry initialized " << endl;
+        msg << "Boundary geometry initialized " << endl;
 
         break;// only one boundary geometry allowed at present
     }

@@ -57,11 +57,7 @@ ElementBase::ElementBase(const ElementBase &right):
     wake_m(right.wake_m),
     bgeometry_m(right.bgeometry_m),
     sphys_m(right.sphys_m) {
-    Inform msg("ElementBase ");
 
-    if(wake_m) {
-        wake_m->updateElement(this);
-    }
     if(sphys_m) {
         sphys_m->updateElement(this);
     }

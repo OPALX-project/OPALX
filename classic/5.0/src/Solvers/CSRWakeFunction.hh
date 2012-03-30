@@ -1,12 +1,12 @@
 #ifndef CSRWAKEFUNCTION_HH
 #define CSRWAKEFUNCTION_HH
 
-#include "Filters/Filter.h"
-#include "Utilities/OpalFilter.h"
 #include "Solvers/WakeFunction.hh"
 #include <vector>
+#include <string>
 
 class ElementBase;
+class Filter;
 
 class CSRWakeFunction: public WakeFunction {
 public:
@@ -14,9 +14,15 @@ public:
 
     void apply(PartBunch &bunch);
 
-    virtual const string getType() const;
+    void initialize(const ElementBase * ref);
+
+    virtual const std::string getType() const;
 
 private:
+    void calculateLineDensity(PartBunch & bunch, double meshSpacing);
+
+    void calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing);
+    void calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing);
     double calcPsi(const double &psiInitial, const double &x, const double &Ds) const;
 
     std::vector<Filter *> filters_m;
@@ -41,10 +47,11 @@ private:
     double Length_m;
 
     // Radius of curvature of effective dipole.
-    double R_m;
+    double bendRadius_m;
 
-    // Bend angle.
-    double Phi_m;
+    std::string bendName_m;
+
+    double totalBendAngle_m;
 
     unsigned int NBin_m;
 

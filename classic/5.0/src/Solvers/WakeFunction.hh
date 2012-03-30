@@ -1,32 +1,27 @@
 #ifndef WAKEFUNCTION_HH
 #define WAKEFUNCTION_HH
 
+#include <string>
+#include <vector>
+
 class ElementBase;
 class PartBunch;
 
 class WakeFunction {
 public:
-    WakeFunction(std::string name, ElementBase *elref);
+    WakeFunction(std::string name, ElementBase *elref):
+        name_m(name) { }
     virtual ~WakeFunction(){ };
+    virtual void initialize(const ElementBase *ref){ };
     virtual void apply(PartBunch &bunch) = 0;
     virtual const std::string getType() const = 0;
-    const std::string getName();
-    void updateElement(ElementBase *newref);
-protected:
-    ElementBase *element_ref_m;
+    const std::string & getName() const {
+        return name_m;
+    }
 
 private:
     const std::string name_m;
 };
-
-inline WakeFunction::WakeFunction(std::string name, ElementBase *elref):
-    element_ref_m(elref),
-    name_m(name)
-{}
-
-inline const std::string WakeFunction::getName() {
-    return name_m;
-}
 
 class LineDensity: public std::vector<double> {
 public:
@@ -43,10 +38,6 @@ inline void LineDensity::getFirstDerivative(std::vector<double> &firstDerivative
     for(unsigned int i = 1; i + 1 < size; ++i)
         firstDerivative[i] = ((*this)[i + 1] - (*this)[i - 1]) / hz;
     firstDerivative[size - 1] = ((*this)[size - 1] - (*this)[size - 2]) / hz;
-}
-
-inline void WakeFunction::updateElement(ElementBase *newref) {
-    element_ref_m = newref;
 }
 
 #endif // WAKEFUNCTION_HH

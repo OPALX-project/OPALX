@@ -84,6 +84,7 @@ public:
     void switchElementsOff();
 
     WakeFunction *getWakeFunction(const unsigned int &);
+    const ElementBase *getWakeFunctionOwner(const unsigned int &);
 
     SurfacePhysicsHandler *getSurfacePhysicsHandler(const unsigned int &);
 
@@ -144,14 +145,21 @@ inline WakeFunction *OpalBeamline::getWakeFunction(const unsigned int &index) {
     if(index < sections_m.size()) {
         return sections_m[index].getWakeFunction();
     }
-    return 0;
+    return NULL;
+}
+
+inline const ElementBase *OpalBeamline::getWakeFunctionOwner(const unsigned int &index) {
+    if(index < sections_m.size()) {
+        return sections_m[index].getWakeFunctionOwner();
+    }
+    return NULL;
 }
 
 inline BoundaryGeometry *OpalBeamline::getBoundaryGeometry(const unsigned int &index) {
     if(index < sections_m.size()) {
         return sections_m[index].getBoundaryGeometry();
     }
-    return 0;
+    return NULL;
 }
 
 inline SurfacePhysicsHandler *OpalBeamline::getSurfacePhysicsHandler(const unsigned int &index) {
@@ -162,14 +170,14 @@ inline SurfacePhysicsHandler *OpalBeamline::getSurfacePhysicsHandler(const unsig
 }
 
 inline double OpalBeamline::getSectionStart(const long &index) const {
-    if(index > -1 && (unsigned long) index < sections_m.size()) 
+    if(index > -1 && (unsigned long) index < sections_m.size())
         return sections_m[index].getStart(0., 0.);
 
     return std::numeric_limits<double>::max();
 }
 
 inline double OpalBeamline::getSectionEnd(const unsigned int &index) const {
-    if(index < sections_m.size()) 
+    if(index < sections_m.size())
         return sections_m[index].getEnd(0., 0.);
 
     return std::numeric_limits<double>::min();

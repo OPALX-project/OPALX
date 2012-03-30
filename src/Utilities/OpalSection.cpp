@@ -34,6 +34,7 @@ OpalSection::OpalSection(CompVec &elements, const double &start, const double &e
                 wakefunction_m = NULL;
             } else {
                 wakefunction_m = (*clit)->getWake();
+                wakeFunctionOwner_m = (*clit);
             }
             has_wake_m = true;
         }

@@ -22,7 +22,7 @@ public:
     double getEnd(const double &, const double &) const;
     double getEnd() const {return end_m;}
     void setEnd(const double &);
-    
+
     void setOrientation(const Vector_t &);
     double getOrientation(const int &) const;
     const Vector_t &getOrientation() const;
@@ -31,6 +31,8 @@ public:
     const bool &getStatus() const;
 
     WakeFunction *getWakeFunction();
+    const ElementBase *getWakeFunctionOwner();
+
     SurfacePhysicsHandler *getSurfacePhysicsHandler();
     BoundaryGeometry *getBoundaryGeometry();
 
@@ -64,6 +66,7 @@ private:
     bool has_surface_physics_m;
     bool is_live_m;
     WakeFunction *wakefunction_m;
+    const ElementBase *wakeFunctionOwner_m;
     SurfacePhysicsHandler *sphys_handler_m;
     BoundaryGeometry *boundarygeometry_m;
 
@@ -111,6 +114,10 @@ inline const bool &OpalSection::hasBoundaryGeometry() const {
 
 inline WakeFunction *OpalSection::getWakeFunction() {
     return wakefunction_m;
+}
+
+inline const ElementBase *OpalSection::getWakeFunctionOwner() {
+    return wakeFunctionOwner_m;
 }
 
 inline BoundaryGeometry *OpalSection::getBoundaryGeometry() {
