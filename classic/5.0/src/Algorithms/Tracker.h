@@ -119,7 +119,7 @@ public:
     void addToBunch(const Particle &);
 
     /// Store the bunch.
-    void setBunch(const PartBunch &);
+    //~ void setBunch(const PartBunch &);
 
     /// Apply the algorithm to an arbitrary component.
     //  This override calls the component to track the bunch.

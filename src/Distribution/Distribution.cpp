@@ -1667,9 +1667,13 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     OpalData::getInstance()->setGlobalPhaseShift(dPhiGlobal);
 
-    void *varray = malloc(N * sizeof(double));
-    double *farray = (double *)varray;
-    h5_int64_t *larray = (h5_int64_t *)varray;
+    //~ void *varray = malloc(N * sizeof(double));
+    //~ double *farray = (double *)varray;
+    //~ h5_int64_t *larray = (h5_int64_t *)varray;
+    
+    std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
     rc = H5PartReadDataFloat64(H5file, "x", farray);
     if(rc != H5_SUCCESS)
@@ -1737,8 +1741,8 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
     for(unsigned long int n = 0; n < (unsigned int) N; ++n)
         beam.LastSection[n] = (short) larray[n];
 
-    if(farray)
-        free(farray);
+    //~ if(farray)
+        //~ free(farray);
 
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);
@@ -3266,10 +3270,14 @@ void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     OpalData::getInstance()->setGlobalPhaseShift(dPhiGlobal);
 
-    void *varray = malloc(N * sizeof(double));
-    //    double *farray = (double *)varray;
-    h5_float64_t *farray = (h5_float64_t *)varray;
-    h5_int64_t   *larray = (h5_int64_t *)varray;
+    //~ void *varray = malloc(N * sizeof(double));
+    //~ //    double *farray = (double *)varray;
+    //~ h5_float64_t *farray = (h5_float64_t *)varray;
+    //~ h5_int64_t   *larray = (h5_int64_t *)varray;
+    
+    std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
+    h5_float64_t *farray = reinterpret_cast<h5_float64_t *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
     beam.create(N);
 
@@ -3444,10 +3452,15 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
 
     // rc = H5ReadStepAttribFloat64(H5file, "GammaBin", gammaBin);
 
-    void *varray = malloc(localN * sizeof(double));
-    double *farray = (double *)varray;
+    //~ void *varray = malloc(localN * sizeof(double));
+    //~ double *farray = (double *)varray;
+    //~ h5_int64_t *larray = (h5_int64_t *)varray;
+    
+    std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());    
 
-    h5_int64_t *larray = (h5_int64_t *)varray;
+
 
     beam.create(localN);
 
@@ -3500,7 +3513,7 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
         beam.setPBins(new PartBinsCyc(1000, numBunch));
     }
 
-    if(farray) free(farray);
+    //~ if(farray) free(farray);
 
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);

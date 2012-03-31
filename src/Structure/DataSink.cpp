@@ -119,6 +119,7 @@
 //#include <algorithm>
 #include <cmath>
 #include "H5hut.h"
+#include <memory>
 
 extern Inform *gmsg;
 
@@ -639,7 +640,7 @@ int DataSink::storeFieldmaps() {
     }
     sort(fieldmap_list2.begin(), fieldmap_list2.end(), file_size_name::SortAsc);
 
-    char *FileContent;
+
 
     if(Ippl::myNode() < Np) {
         for(int i = 0; i < Nf / Np; ++ i) {
@@ -651,12 +652,11 @@ int DataSink::storeFieldmaps() {
             inputFileBuffer.open(filename.c_str(), ios::in);
             istream inputFile(&inputFileBuffer);
 
-            FileContent = new char[ContentLength];
+            std::unique_ptr<char[]> FileContent(new char[ContentLength]);
 
-            inputFile.get(FileContent, ContentLength, '\0');
+            inputFile.get(FileContent.get(), ContentLength, '\0');
 
             inputFileBuffer.close();
-            delete[] FileContent;
         }
     }
     //group_id = H5Gcreate ( H5file_m->file, group_name, 0 );
@@ -702,19 +702,19 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 
     beam.get_PBounds(minP, maxP);
 
-    void *varray = malloc(nLoc * sizeof(double));
-    double *farray = (double *)varray;
-    h5_int64_t *larray = (h5_int64_t *)varray;
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
     ///Get the particle decomposition from all the compute nodes.
-    size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
-    size_t  *globN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
+    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
 
     for(int i = 0; i < Ippl::getNodes(); i++) {
         globN[i] = locN[i] = 0;
     }
     locN[Ippl::myNode()] = nLoc;
-    reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
+    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
 
     /// Set current record/time step.
     rc = H5SetStep(H5file_m, H5call_m);
@@ -929,8 +929,8 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 #endif
-    if(varray)
-        free(varray);
+    //~ if(varray)
+        //~ free(varray);
 
     /// Write space charge field map if asked for.
     if(Options::rhoDump) {
@@ -948,7 +948,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
         if(herr < 0)
             *gmsg << "H5Block3dSetView err " << herr << endl;
 
-        h5_float64_t *data = (h5_float64_t *) malloc((idx[0].max() + 1)  * (idx[1].max() + 1) * (idx[2].max() + 1) * sizeof(*data));
+        std::unique_ptr<h5_float64_t[]> data(new h5_float64_t[(idx[0].max() + 1)  * (idx[1].max() + 1) * (idx[2].max() + 1)]);
 
         int ii = 0;
         // h5block uses the fortran convention of storing data:
@@ -962,7 +962,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
                 }
             }
         }
-        herr = H5Block3dWriteScalarFieldFloat64(H5file_m, "rho", data);
+        herr = H5Block3dWriteScalarFieldFloat64(H5file_m, "rho", data.get());
         if(herr < 0)
             *gmsg << "H5Block3dWriteScalarField err " << herr << endl;
 
@@ -976,8 +976,6 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
                                         (h5_float64_t)beam.get_hr()(0),
                                         (h5_float64_t)beam.get_hr()(1),
                                         (h5_float64_t)beam.get_hr()(2));
-        if(data)
-            free(data);
 
     }
 
@@ -1015,26 +1013,27 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
 
     beam.get_PBounds(minP, maxP);
 
-    void *varray = malloc(nLoc * sizeof(double));
-    double *farray = (double *)varray;
-    h5_int64_t *larray = (h5_int64_t *)varray;
+
+
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
     double  pathLength = beam.getLPath();
     h5_int64_t trackStep = (h5_int64_t)beam.getTrackStep();
     h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
     h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
 
-    /* ------------------------------------------------------------------------
-       Get the particle decomposition from all the nodes
-    */
-    size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
-    size_t  *globN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+
+    ///Get the particle decomposition from all the compute nodes.
+    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
+    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
 
     for(int i = 0; i < Ippl::getNodes(); i++) {
         globN[i] = locN[i] = 0;
     }
     locN[Ippl::myNode()] = nLoc;
-    reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
+    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
 
     /* ------------------------------------------------------------------------ */
     rc = H5SetStep(H5file_m, H5call_m);
@@ -1165,7 +1164,8 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
     if(herr < 0)
         gmsg << "H5BlockDefine3DFieldLayout err " << herr << endl;
 
-    h5_float64_t *data = (h5_float64_t *) malloc((idx[0].max() + 1)  * (idx[1].max() + 1) * (idx[2].max() + 1) * sizeof(*data));
+    //~ h5_float64_t *data = (h5_float64_t *) malloc((idx[0].max() + 1)  * (idx[1].max() + 1) * (idx[2].max() + 1) * sizeof(*data));
+	std::unique_ptr<h5_float64_t[]> data(new h5_float64_t[(idx[0].max() + 1)  * (idx[1].max() + 1) * (idx[2].max() + 1)]);
 
     int ii = 0;
     // h5block uses the fortran convention of storing data:
@@ -1183,7 +1183,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
         }
     }
 
-    herr = H5Block3dWriteScalarField(H5file_m, "EFmag", data);
+    herr = H5Block3dWriteScalarField(H5file_m, "EFmag", data.get());
     if(herr < 0)
         gmsg << "H5Block3dWriteScalarField err " << herr << endl;
 
@@ -1202,16 +1202,16 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
                 ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         }
     }
-    if(data)
-        free(data);
+    //~ if(data)
+        //~ free(data);
 #endif
 
     //H5Fflush(H5file_m->file, H5F_SCOPE_GLOBAL);
 
     H5call_m++;
 
-    if(varray)
-        free(varray);
+    //~ if(varray)
+        //~ free(varray);
 
     IpplTimings::stopTimer(H5PartTimer_m);
 
@@ -1271,18 +1271,18 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 
     //beam.get_PBounds(minP,maxP);
 
-    void *varray = malloc(nLoc * sizeof(double));
-    double *farray = (double *)varray;
-
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    
     ///Get the particle decomposition from all the compute nodes.
-    size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
-    size_t *globN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
+    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
 
     for(int i = 0; i < Ippl::getNodes(); i++) {
         globN[i] = locN[i] = 0;
     }
     locN[Ippl::myNode()] = nLoc;
-    reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
+    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
 
     /// Set current record/time step.
     rc = H5SetStep(H5file_m, H5call_m);
@@ -1458,8 +1458,8 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
     /// Step record/time step index.
     H5call_m++;
 
-    if(varray)
-        free(varray);
+    //~ if(varray)
+        //~ free(varray);
 
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -1503,15 +1503,14 @@ void DataSink::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
     //beam.get_PBounds(minP,maxP);
 
     ///Get the particle decomposition from all the compute nodes.
-    //TODO:
-    size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
-    size_t *globN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
+    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
 
     for(int i = 0; i < Ippl::getNodes(); i++) {
         globN[i] = locN[i] = 0;
     }
     locN[Ippl::myNode()] = nLoc;
-    reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
+    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
 
     stash_sposHead.push_back(sposHead);
     stash_sposRef.push_back(sposRef);
@@ -1563,8 +1562,8 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
     IpplTimings::startTimer(H5PartTimer_m);
 
     size_t nLoc = stash_nLoc[0];
-    void *varray = malloc(nLoc * sizeof(double));
-    double *farray = (double *)varray;
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
 
     //FIXME: restart step
     for(int step = 0; step < H5call_m; step++) {
@@ -1700,8 +1699,8 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
 
     }
 
-    if(varray)
-        free(varray);
+    //~ if(varray)
+        //~ free(varray);
 
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -2118,13 +2117,13 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
     size_t temp = lossWrCounter_m ;
 
     string ffn = fn + convert2Int(temp) + string("Z.dat");
-    Inform *ofp = new Inform(NULL, ffn.c_str(), Inform::OVERWRITE, 0);
+    std::unique_ptr<Inform> ofp(new Inform(NULL, ffn.c_str(), Inform::OVERWRITE, 0));
     Inform &fid = *ofp;
     setInform(fid);
     fid.precision(6);
 
     string ftrn =  fn + string("triangle") + convert2Int(temp) + string(".dat");
-    Inform *oftr = new Inform(NULL, ftrn.c_str(), Inform::OVERWRITE, 0);
+    std::unique_ptr<Inform> oftr(new Inform(NULL, ftrn.c_str(), Inform::OVERWRITE, 0));
     Inform &fidtr = *oftr;
     setInform(fidtr);
     fidtr.precision(6);
@@ -2184,8 +2183,6 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
             << fieldemissionPLoss << std::setw(18)
             << secondaryPLoss << std::setw(18) << t << endl;
     }
-    delete ofp;
-    delete oftr;
     lossWrCounter_m++;
 }
 
@@ -2217,9 +2214,9 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     if(Ippl::myNode() == 0) {
         N_mean += N_extra;
     }
-    void *varray = malloc(N_mean * sizeof(double));
-    double *farray = (double *)varray;
-    h5_int64_t *larray = (h5_int64_t *)varray;
+    std::unique_ptr<char[]> varray(new char[(N_mean)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
 
     rc = H5SetStep(H5fileS_m, step);
@@ -2231,11 +2228,11 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     double    qi = beam.getChargePerParticle();
     rc = H5WriteStepAttribFloat64(H5fileS_m, "qi", &qi, 1);
 
-    double *tmploss = (double *)malloc(nTot * sizeof(double));
+    std::unique_ptr<double[]> tmploss(new double[nTot]);
     for(int i = 0; i < nTot; i++)
         tmploss[i] = 0.0;
     //memset( tmploss, 0.0, nTot * sizeof(double));
-    reduce(bg.TriPrPartloss_m, bg.TriPrPartloss_m + nTot, tmploss, OpAddAssign()); // may be removed if we have parallelized the geometry .
+    reduce(bg.TriPrPartloss_m, bg.TriPrPartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we have parallelized the geometry .
 
     for(int i = 0; i < nTot; i++) {
         if(pc == Ippl::myNode()) {
@@ -2268,7 +2265,7 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     for(int i = 0; i < nTot; i++)
         tmploss[i] = 0.0;
-    reduce(bg.TriSePartloss_m, bg.TriSePartloss_m + nTot, tmploss, OpAddAssign()); // may be removed if we parallelize the geometry as well.
+    reduce(bg.TriSePartloss_m, bg.TriSePartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we parallelize the geometry as well.
     count = 0;
     pc = 0;
     for(int i = 0; i < nTot; i++) {
@@ -2304,7 +2301,7 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     for(int i = 0; i < nTot; i++)
         tmploss[i] = 0.0;
 
-    reduce(bg.TriFEPartloss_m, bg.TriFEPartloss_m + nTot, tmploss, OpAddAssign()); // may be removed if we parallelize the geometry as well.
+    reduce(bg.TriFEPartloss_m, bg.TriFEPartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we parallelize the geometry as well.
     count = 0;
     pc = 0;
     for(int i = 0; i < nTot; i++) {
@@ -2358,10 +2355,10 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    if(varray)
-        free(varray);
-    if(tmploss)
-        free(tmploss);
+    //~ if(varray)
+        //~ free(varray);
+    //~ if(tmploss)
+        //~ free(tmploss);
 
 
     /// %Stop timer.
@@ -2385,7 +2382,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
     if(Ippl::myNode() == 0) {
         string ffn = fn + string(".dat");
 
-        Inform *ofp = new Inform(NULL, ffn.c_str(), Inform::APPEND, 0);
+        std::unique_ptr<Inform> ofp(new Inform(NULL, ffn.c_str(), Inform::APPEND, 0));
         Inform &fid = *ofp;
         setInform(fid);
 
@@ -2400,7 +2397,6 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
             }
             fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18) << charge
                 << std::setw(18) << Npart_d << std::setw(18) << numberOfFieldEmittedParticles << endl ;
-            delete ofp;
         } else {
 
             if(step == 1) {
@@ -2409,7 +2405,6 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
             }
             fid << t << std::setw(18) << impact << std::setw(18) << sey_num
                 << std::setw(18) << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << endl ;
-            delete ofp;
         }
     }
 
@@ -2460,9 +2455,10 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
 
     const size_t nLoc = beam.getLocalNum();
 
-    void *varray = malloc(nLoc * sizeof(double));
-    double *farray = (double *)varray;
-    h5_int64_t *larray = (h5_int64_t *)varray;
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
+    
 
 #ifdef PARALLEL_IO
     H5file = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
@@ -2579,8 +2575,8 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    if(varray)
-        free(varray);
+    //~ if(varray)
+        //~ free(varray);
 
     rc = H5CloseFile(H5file);
     if(rc != H5_SUCCESS)
@@ -2629,9 +2625,10 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     const size_t InjectN = (size_t)H5PartGetNumParticles(H5file);
 
-    void *varray = malloc(InjectN * sizeof(double));
-    double *farray = (double *)varray;
-
+    
+    std::unique_ptr<char[]> varray(new char[(InjectN*sizeof(double))]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    
     const size_t LocalNum = beam.getLocalNum();
     const size_t NewLocalNum = LocalNum + InjectN;
 
@@ -2698,8 +2695,8 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
         beam.pbin_m->updateStatus(BinID + 1, InjectN);
 
     // free memory
-    if(varray)
-        free(varray);
+    //~ if(varray)
+        //~ free(varray);
 
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);

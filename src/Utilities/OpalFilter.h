@@ -19,6 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include <vector>
+#include <memory>
 #include "AbstractObjects/Definition.h"
 #include "Filters/Filter.h"
 

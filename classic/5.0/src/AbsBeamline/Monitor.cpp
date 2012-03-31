@@ -23,6 +23,7 @@
 #include "Fields/Fieldmap.hh"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include <fstream>
+#include <memory>
 
 using namespace std;
 
@@ -206,9 +207,9 @@ void Monitor::goOffline() {
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-        void *varray = malloc(nLoc * sizeof(double));
-        double *fvalues = (double *)varray;
-        h5_int64_t *ids = (h5_int64_t *)varray;
+        std::unique_ptr<char> varray(new char[nLoc * sizeof(double)]);
+        double *fvalues = reinterpret_cast<double*>(varray.get());
+        h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
 
         for(i = 0; i < nLoc; ++i) {
             fvalues[i] = PosX_m.front();
@@ -259,7 +260,6 @@ void Monitor::goOffline() {
         rc = H5PartWriteDataInt64(H5file, "id", ids);
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        free(varray);
 
         rc = H5CloseFile(H5file);
         if(rc != H5_SUCCESS)

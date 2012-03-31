@@ -24,6 +24,7 @@
 #include "Fields/Fieldmap.hh"
 #include "AbstractObjects/OpalData.h"
 #include "Structure/LossDataSink.h"
+#include <memory>
 
 extern Inform *gmsg;
 
@@ -413,9 +414,10 @@ void Collimator::goOffline() {
             rc = H5PartSetNumParticles(H5file_m, PosX_m.size());
             if(rc != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            void *varray = malloc(PosX_m.size() * sizeof(double));
-            double *fvalues = (double *)varray;
-            h5_int64_t *ids = (h5_int64_t *)varray;
+            
+            std::unique_ptr<char[]> varray(new char[PosX_m.size() * sizeof(double)]);
+            double *fvalues = reinterpret_cast<double*>(varray.get());
+            h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
 
             int i = 0;
             vector<double>::iterator it;
@@ -474,8 +476,6 @@ void Collimator::goOffline() {
             rc = H5PartWriteDataInt64(H5file_m, "id", ids);
             if(rc != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            free(varray);
 
         }
         rc = H5CloseFile(H5file_m);

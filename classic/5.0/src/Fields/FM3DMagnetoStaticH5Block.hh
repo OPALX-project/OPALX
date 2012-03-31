@@ -23,12 +23,12 @@ private:
     virtual void readMap();
     virtual void freeMap();
 
-    h5_float64_t *FieldstrengthEz_m;    /**< 3D array with Ez */
-    h5_float64_t *FieldstrengthEx_m;    /**< 3D array with Ex */
-    h5_float64_t *FieldstrengthEy_m;    /**< 3D array with Ey */
-    h5_float64_t *FieldstrengthBz_m;    /**< 3D array with Bz */
-    h5_float64_t *FieldstrengthBx_m;    /**< 3D array with Bx */
-    h5_float64_t *FieldstrengthBy_m;    /**< 3D array with By */
+    std::vector<h5_float64_t> FieldstrengthEz_m;    /**< 3D array with Ez */
+    std::vector<h5_float64_t> FieldstrengthEx_m;    /**< 3D array with Ex */
+    std::vector<h5_float64_t> FieldstrengthEy_m;    /**< 3D array with Ey */
+    std::vector<h5_float64_t> FieldstrengthBz_m;    /**< 3D array with Bz */
+    std::vector<h5_float64_t> FieldstrengthBx_m;    /**< 3D array with Bx */
+    std::vector<h5_float64_t> FieldstrengthBy_m;    /**< 3D array with By */
 
     h5_float64_t frequency_m;
 

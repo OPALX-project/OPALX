@@ -70,9 +70,9 @@ void Tracker::addToBunch(const Particle &part) {
 }
 
 
-void Tracker::setBunch(const PartBunch &bunch) {
-    itsBunch = bunch;
-}
+//~ void Tracker::setBunch(const PartBunch &bunch) {
+    //~ itsBunch = bunch;
+//~ }
 
 
 void Tracker::visitComponent(const Component &comp) {

@@ -55,17 +55,17 @@ PartBunch::PartBunch(const PartData *ref):
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(false),
-    pbin_m(NULL),
+    pbin_m(nullptr),
     reference(ref),
     unit_state_(units),
     stateOfLastBoundP_(unitless),
-    lineDensity_m(NULL),
+    lineDensity_m(nullptr),
     nBinsLineDensity_m(0),
     moments_m(),
     dt_m(0.0),
     t_m(0.0),
     eKin_m(0.0),
-    energy_m(NULL),
+    energy_m(nullptr),
     dE_m(0.0),
     rmax_m(0.0),
     rmin_m(0.0),
@@ -82,13 +82,13 @@ PartBunch::PartBunch(const PartData *ref):
     DDy_m(0.0),
     hr_m(.0),
     nr_m(0),
-    fs_m(NULL),
+    fs_m(nullptr),
     couplingConstant_m(0.0),
     qi_m(0.0),
     distDump_m(0),
-    lossDs_m(NULL),
-    pmsg_m(NULL),
-    f_stream(NULL),
+    lossDs_m(nullptr),
+    pmsg_m(nullptr),
+    f_stream(nullptr),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
     stash_iniP_m(0.0),
@@ -96,16 +96,16 @@ PartBunch::PartBunch(const PartData *ref):
     fieldDBGStep_m(0),
     dh_m(0.0),
     tEmission_m(0.0),
-    bingamma_m(NULL),
-    binemitted_m(NULL),
+    bingamma_m(nullptr),
+    binemitted_m(nullptr),
     lPath_m(0.0),
     stepsPerTurn_m(0),
     trackStep_m(0),
     numBunch_m(1),
     SteptoLastInj_m(0),
-    partPerNode_m(NULL),
-    globalPartPerNode_m(NULL),
-    dist_m(NULL) {
+    partPerNode_m(nullptr),
+    globalPartPerNode_m(nullptr),
+    dist_m(nullptr) {
     addAttribute(X);
     addAttribute(P);
     addAttribute(Q);
@@ -131,19 +131,19 @@ PartBunch::PartBunch(const PartData *ref):
     distrReload_m = IpplTimings::getTimer("LoadDistr");
 
 
-    partPerNode_m = new double[Ippl::getNodes()];
-    globalPartPerNode_m = new double[Ippl::getNodes()];
+    partPerNode_m = std::unique_ptr<double[]>(new double[Ippl::getNodes()]);
+    globalPartPerNode_m = std::unique_ptr<double[]>(new double[Ippl::getNodes()]);
 
     // initialize DataSink with H5Part output enabled
     bool doH5 = true;
-    lossDs_m = new LossDataSink(1000000, doH5);
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(1000000, doH5));
 
-    pmsg_m = 0;
-    f_stream = 0;
+    pmsg_m.release();
+    f_stream.release();
     if(Ippl::getNodes() == 1) {
-        f_stream = new ofstream;
+        f_stream = std::unique_ptr<ofstream>(new ofstream);
         f_stream->open("data/dist.dat", ios::out);
-        pmsg_m = new Inform(0, *f_stream, 0);
+        pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
     }
 }
 
@@ -151,17 +151,17 @@ PartBunch::PartBunch(const PartBunch &rhs):
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(rhs.fixed_grid),
-    pbin_m(NULL),
+    pbin_m(nullptr),
     reference(rhs.reference),
     unit_state_(rhs.unit_state_),
     stateOfLastBoundP_(rhs.stateOfLastBoundP_),
-    lineDensity_m(NULL),
+    lineDensity_m(nullptr),
     nBinsLineDensity_m(rhs.nBinsLineDensity_m),
     moments_m(rhs.moments_m),
     dt_m(rhs.dt_m),
     t_m(rhs.t_m),
     eKin_m(rhs.eKin_m),
-    energy_m(NULL),
+    energy_m(nullptr),
     dE_m(rhs.dE_m),
     rmax_m(rhs.rmax_m),
     rmin_m(rhs.rmin_m),
@@ -178,13 +178,13 @@ PartBunch::PartBunch(const PartBunch &rhs):
     DDy_m(rhs.DDy_m),
     hr_m(rhs.hr_m),
     nr_m(rhs.nr_m),
-    fs_m(NULL),
+    fs_m(nullptr),
     couplingConstant_m(rhs.couplingConstant_m),
     qi_m(rhs.qi_m),
     distDump_m(rhs.distDump_m),
-    lossDs_m(NULL),
-    pmsg_m(NULL),
-    f_stream(NULL),
+    lossDs_m(nullptr),
+    pmsg_m(nullptr),
+    f_stream(nullptr),
     stash_Nloc_m(rhs.stash_Nloc_m),
     stash_iniR_m(rhs.stash_iniR_m),
     stash_iniP_m(rhs.stash_iniP_m),
@@ -192,16 +192,16 @@ PartBunch::PartBunch(const PartBunch &rhs):
     fieldDBGStep_m(rhs.fieldDBGStep_m),
     dh_m(rhs.dh_m),
     tEmission_m(rhs.tEmission_m),
-    bingamma_m(NULL),
-    binemitted_m(NULL),
+    bingamma_m(nullptr),
+    binemitted_m(nullptr),
     lPath_m(rhs.lPath_m),
     stepsPerTurn_m(rhs.stepsPerTurn_m),
     trackStep_m(rhs.trackStep_m),
     numBunch_m(rhs.numBunch_m),
     SteptoLastInj_m(rhs.SteptoLastInj_m),
-    partPerNode_m(NULL),
-    globalPartPerNode_m(NULL),
-    dist_m(NULL) {
+    partPerNode_m(nullptr),
+    globalPartPerNode_m(nullptr),
+    dist_m(nullptr) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
 }
 
@@ -210,17 +210,17 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(false),
-    pbin_m(NULL),
+    pbin_m(nullptr),
     reference(ref),
     unit_state_(units),
     stateOfLastBoundP_(unitless),
-    lineDensity_m(NULL),
+    lineDensity_m(nullptr),
     nBinsLineDensity_m(0),
     moments_m(),
     dt_m(0.0),
     t_m(0.0),
     eKin_m(0.0),
-    energy_m(NULL),
+    energy_m(nullptr),
     dE_m(0.0),
     rmax_m(0.0),
     rmin_m(0.0),
@@ -237,13 +237,13 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     DDy_m(0.0),
     hr_m(.0),
     nr_m(0),
-    fs_m(NULL),
+    fs_m(nullptr),
     couplingConstant_m(0.0),
     qi_m(0.0),
     distDump_m(0),
-    lossDs_m(NULL),
-    pmsg_m(NULL),
-    f_stream(NULL),
+    lossDs_m(nullptr),
+    pmsg_m(nullptr),
+    f_stream(nullptr),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
     stash_iniP_m(0.0),
@@ -251,28 +251,28 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     fieldDBGStep_m(0),
     dh_m(0.0),
     tEmission_m(0.0),
-    bingamma_m(NULL),
-    binemitted_m(NULL),
+    bingamma_m(nullptr),
+    binemitted_m(nullptr),
     lPath_m(0.0),
     stepsPerTurn_m(0),
     trackStep_m(0),
     numBunch_m(1),
     SteptoLastInj_m(0),
-    partPerNode_m(NULL),
-    globalPartPerNode_m(NULL),
-    dist_m(NULL) {
+    partPerNode_m(nullptr),
+    globalPartPerNode_m(nullptr),
+    dist_m(nullptr) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):" << endl);
 }
 
 PartBunch::~PartBunch() {
-    if(bingamma_m) delete bingamma_m;
-    if(binemitted_m) delete binemitted_m;
-    if(lineDensity_m) delete lineDensity_m;
-    if(partPerNode_m) delete[] partPerNode_m;
-    if(globalPartPerNode_m) delete[] globalPartPerNode_m;
-    if(lossDs_m) delete lossDs_m;
-    if(pmsg_m) delete pmsg_m;
-    if(f_stream) delete f_stream;
+    //if(bingamma_m) delete bingamma_m;
+    //if(binemitted_m) delete binemitted_m;
+    //if(lineDensity_m) delete lineDensity_m;
+    //if(partPerNode_m) delete[] partPerNode_m;
+    //if(globalPartPerNode_m) delete[] globalPartPerNode_m;
+    //if(lossDs_m) delete lossDs_m;
+    //if(pmsg_m) delete pmsg_m;
+    //if(f_stream) delete f_stream;
 
 }
 
@@ -299,15 +299,14 @@ void PartBunch::makHistograms()  {
             double recVal = 0;
             while(notReceived > 0) {
                 int node = COMM_ANY_NODE;
-                Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-                if(rmsg == 0)
+                std::unique_ptr<Message> rmsg(Ippl::Comm->receive_block(node, tag));
+                if(!rmsg)
                     ERRORMSG("Could not receive from client nodes in makHistograms." << endl);
                 for(unsigned int i = 0; i < bins; i++) {
                     rmsg->get(&recVal);
                     gsl_histogram_increment(h, recVal);
                 }
                 notReceived--;
-                delete rmsg;
             }
             stringstream filename_str;
             static unsigned int file_number = 0;
@@ -412,6 +411,7 @@ bool PartBunch::hasFieldSolver() {
         return false;
 }
 
+
 bool PartBunch::hasZeroNLP() {
     /**
        Check if a node has no particles
@@ -483,10 +483,10 @@ void PartBunch::calcLineDensity() {
     double hz = getMesh().get_meshSpacing(2); // * Physics::c * getdT();
     //   FieldLayout_t *FL  = new FieldLayout_t(getMesh(), decomp);
 
-    if(lineDensity_m == 0) {
+    if(!lineDensity_m) {
         if(nBinsLineDensity_m == 0)
             nBinsLineDensity_m = nr_m[2];
-        lineDensity_m = new double[nBinsLineDensity_m];
+        lineDensity_m = std::unique_ptr<double[]>(new double[nBinsLineDensity_m]);
     }
 
     for(unsigned int i = 0; i < nBinsLineDensity_m; ++i)
@@ -524,8 +524,8 @@ void PartBunch::calcLineDensity() {
         double projVal;
         while(notReceived > 0) {
             int node = COMM_ANY_NODE;
-            Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-            if(rmsg == 0) {
+            std::unique_ptr<Message> rmsg(Ippl::Comm->receive_block(node, tag));
+            if(!rmsg) {
                 ERRORMSG("Could not receive from client nodes in main." << endl);
             }
             notReceived--;
@@ -535,11 +535,10 @@ void PartBunch::calcLineDensity() {
                 rmsg->get(&projVal);
                 listz.push_back(ListElem(spos, T, coor, coor, projVal));
             }
-            delete rmsg;
         }
         listz.sort();
         /// copy line density in listz to array of double
-        fillArray(lineDensity_m, listz);
+        fillArray(lineDensity_m.get(), listz);
     } else {
         Message *smsg = new Message();
         smsg->put(idx[2].max() - idx[2].min() + 1);
@@ -1372,7 +1371,7 @@ void PartBunch::gatherLoadBalanceStatistics() {
 
     partPerNode_m[Ippl::myNode()] = this->getLocalNum();
 
-    reduce(partPerNode_m, partPerNode_m + Ippl::getNodes(), globalPartPerNode_m, OpAddAssign());
+    reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
 
 }
 
@@ -2190,7 +2189,7 @@ void PartBunch::moveBunchToCathode(double &t) {
 
 void PartBunch::printBinHist() {
     if(weHaveBins()) {
-        int *binhisto = new int[getNumBins()];
+        std::unique_ptr<int[]> binhisto(new int[getNumBins()]);
         double maxz = -999999999.99, minz = 999999999.99;
 
         for(int bin = 0; bin < getNumBins(); ++bin) {
@@ -2231,8 +2230,6 @@ void PartBunch::printBinHist() {
             for(int bin = 0; bin < getNumBins(); ++bin)
                 INFOMSG(bin << ": " << binhisto[bin] << endl;);
         }
-
-        delete[] binhisto;
     }
 }
 
@@ -2334,13 +2331,13 @@ size_t PartBunch::boundp_destroyT() {
     for(int i = 0; i < Dim; i++)
         nr_m[i] = domain[i].length();
 
-    size_t *tmpbinemitted = NULL;
+    std::unique_ptr<size_t[]> tmpbinemitted;
 
     size_t ne = 0;
     boundp();
 
     if(weHaveBins()) {
-        tmpbinemitted = new size_t[pbin_m->getNBins()];
+        tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[pbin_m->getNBins()]);
         for(int i = 0; i < pbin_m->getNBins(); i++) {
             tmpbinemitted[i] = 0;
         }
@@ -2368,8 +2365,6 @@ size_t PartBunch::boundp_destroyT() {
         for(int i = 0; i < lastBin; i++) {
             binemitted_m[i] = tmpbinemitted[i];
         }
-        if(tmpbinemitted)
-            delete[] tmpbinemitted;
     }
     reduce(ne, ne, OpAddAssign());
     return ne;
@@ -2384,10 +2379,10 @@ void PartBunch::boundp_destroy() {
     const int dimIdx = 3;
     IpplTimings::startTimer(boundpTimer_m);
 
-    size_t *countLost = NULL;
+    std::unique_ptr<size_t[]> countLost;
     if(weHaveBins()) {
         const int tempN = pbin_m->getLastemittedBin();
-        countLost = new size_t[tempN];
+        countLost = std::unique_ptr<size_t[]>(new size_t[tempN]);
         for(int ii = 0; ii < tempN; ii++) countLost[ii] = 0;
     }
 
@@ -2436,8 +2431,7 @@ void PartBunch::boundp_destroy() {
 
 
     if(weHaveBins()) {
-        pbin_m->updatePartInBin_cyc(countLost);
-        if(countLost != NULL) delete[] countLost;
+        pbin_m->updatePartInBin_cyc(countLost.get());
     }
 
     update();
@@ -2620,8 +2614,8 @@ bool PartBunch::resetPartBinID2(const double eta) {
 void PartBunch::setPBins(PartBins *pbin) {
     pbin_m = pbin;
     *gmsg << *pbin_m << endl;
-    bingamma_m = new double[pbin_m->getNBins()];
-    binemitted_m = new size_t[pbin_m->getNBins()];
+    bingamma_m = std::unique_ptr<double[]>(new double[pbin_m->getNBins()]);
+    binemitted_m = std::unique_ptr<size_t[]>(new size_t[pbin_m->getNBins()]);
     for(int i = 0; i < pbin_m->getNBins(); i++)
         binemitted_m[i] = 0;
 }
@@ -2630,8 +2624,8 @@ void PartBunch::setPBins(PartBins *pbin) {
 void PartBunch::setPBins(PartBinsCyc *pbin) {
 
     pbin_m = pbin;
-    bingamma_m = new double[pbin_m->getNBins()];
-    binemitted_m = new size_t[pbin_m->getNBins()];
+    bingamma_m = std::unique_ptr<double[]>(new double[pbin_m->getNBins()]);
+    binemitted_m = std::unique_ptr<size_t[]>(new size_t[pbin_m->getNBins()]);
     for(int i = 0; i < pbin_m->getNBins(); i++)
         binemitted_m[i] = 0;
 

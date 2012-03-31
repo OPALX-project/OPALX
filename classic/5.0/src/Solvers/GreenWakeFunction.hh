@@ -140,7 +140,7 @@ private:
     /// save the line Density of the particle bunch
     std::vector<double> lineDensity_m;
     /// FFT of the zero padded wakefield
-    double  *FftWField_m;
+    std::vector<double>  FftWField_m;
 
     /// divides the particle bunch in NBin slices
     int NBin_m;

@@ -21,6 +21,7 @@
 #ifndef FFT_POISSON_SOLVER_H_
 #define FFT_POISSON_SOLVER_H_
 
+#include <memory>
 //////////////////////////////////////////////////////////////
 //#include "Ippl.h"
 #include "FFT/FFT.h"
@@ -114,19 +115,19 @@ private:
     IField_t grnIField_m[3];
 
     // the FFT object
-    FFT_t *fft_m;
+    std::unique_ptr<FFT_t> fft_m;
 
     // mesh and layout objects for rho_m
     Mesh_t *mesh_m;
     FieldLayout_t *layout_m;
 
     // mesh and layout objects for rho2_m
-    Mesh_t *mesh2_m;
-    FieldLayout_t *layout2_m;
+    std::unique_ptr<Mesh_t> mesh2_m;
+    std::unique_ptr<FieldLayout_t> layout2_m;
 
     //
-    Mesh_t *mesh3_m;
-    FieldLayout_t *layout3_m;
+    std::unique_ptr<Mesh_t> mesh3_m;
+    std::unique_ptr<FieldLayout_t> layout3_m;
 
     // tmp
     Field_t tmpgreen;

@@ -109,10 +109,7 @@ FieldSolver::FieldSolver(const string &name, FieldSolver *parent):
 
 
 FieldSolver::~FieldSolver() {
-    //FIXME: another strange IPPL behaviour: if we delete them here the exe crashes on exit
-    //if(mesh_m) delete mesh_m;
-    //if(FL_m) delete FL_m;
-    //if(PL_m) delete PL_m;
+
 }
 
 FieldSolver *FieldSolver::clone(const string &name) {
@@ -185,6 +182,9 @@ void FieldSolver::initCartesianFields() {
     mesh_m   = new Mesh_t(domain);
     FL_m     = new FieldLayout_t(*mesh_m, decomp);
     PL_m     = new Layout_t(*FL_m, *mesh_m);
+    OpalData::getInstance()->setMesh(mesh_m);
+    OpalData::getInstance()->setFieldLayout(FL_m);
+    OpalData::getInstance()->setLayout(PL_m);
 }
 
 void FieldSolver::initSolver(PartBunch &b) {

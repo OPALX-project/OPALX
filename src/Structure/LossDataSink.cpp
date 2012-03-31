@@ -95,19 +95,27 @@ void LossDataSink::save(string element) {
 
     if(hdf5FileIsOpen_m) {
         size_t nLoc = x_m.size();
-        void *varray = malloc(nLoc * sizeof(double));
-        double *farray = (double *)varray;
-        h5_int64_t *larray = (h5_int64_t *)varray;
+
+        //~ void *varray = malloc(nLoc * sizeof(double));
+        //~ double *farray = (double *)varray;
+        //~ h5_int64_t *larray = (h5_int64_t *)varray;
+
+        std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+		double *farray = reinterpret_cast<double *>(varray.get());
+		h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get()); 
 
         ///Get the particle decomposition from all the compute nodes.
-        size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
-        size_t  *globN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+        //~ size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+        //~ size_t  *globN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
+		std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
+		std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
+
 
         for(int i = 0; i < Ippl::getNodes(); i++) {
             globN[i] = locN[i] = 0;
         }
         locN[Ippl::myNode()] = nLoc;
-        reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
+        reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
 
         /// Set current record/time step.
         rc = H5SetStep(H5file_m, H5call_m);
@@ -164,8 +172,8 @@ void LossDataSink::save(string element) {
         /// Step record/time step index.
         H5call_m++;
 
-        if(varray)
-            free(varray);
+        //~ if(varray)
+            //~ free(varray);
     } else {
         int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
         if(Ippl::Comm->myNode() == 0) {

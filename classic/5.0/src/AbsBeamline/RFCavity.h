@@ -192,9 +192,9 @@ private:
     double gapwidth_m;
     double phi0_m;
 
-    double *RNormal_m;
-    double *VrNormal_m;
-    double *DvDr_m;
+    std::unique_ptr<double[]> RNormal_m;
+    std::unique_ptr<double[]> VrNormal_m;
+    std::unique_ptr<double[]> DvDr_m;
     int num_points_m;
 
     inline size_t numFieldmaps() const {

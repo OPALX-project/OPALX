@@ -57,7 +57,7 @@ GreenWakeFunction::GreenWakeFunction(const std::string &name,
                                      string fname):
     WakeFunction(name, element),
     lineDensity_m(),
-    FftWField_m(0),
+    //~ FftWField_m(0),
     NBin_m(NBIN),
     Z0_m(Z0),
     radius_m(radius),
@@ -76,9 +76,9 @@ GreenWakeFunction::GreenWakeFunction(const std::string &name,
 }
 
 GreenWakeFunction::~GreenWakeFunction() {
-    if(FftWField_m != 0) {
-        delete[] FftWField_m;
-    }
+    //~ if(FftWField_m != 0) {
+        //~ delete[] FftWField_m;
+    //~ }
 }
 
 
@@ -120,7 +120,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
     // or bunch.getChargePerParticle()?
     double K = 0; // constant to normalize the lineDensity_m to 1
     double spacing, mindist;
-    double *OutEnergy = new double[NBin_m];
+    std::vector<double> OutEnergy(NBin_m);
 
     bunch.calcBeamParameters();
     bunch.get_bounds(rmin, rmax);
@@ -135,15 +135,14 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
             spacing = rmax(0) * rmax(0) + rmax(1) * rmax(1);
             break;
         default:
-            delete[] OutEnergy;
             throw OpalException("GreenWakeFunction", "invalid direction specified");
     }
     assert(NBin_m > 0);
     spacing /= (NBin_m - 1); //FIXME: why -1? CKR: because grid spacings = grid points - 1
 
     // Calculate the Wakefield if needed
-    if(FftWField_m == 0) {
-        FftWField_m = new double[2*NBin_m-1];
+    if(FftWField_m.empty()) {
+        FftWField_m.resize(2*NBin_m-1);
         if(filename_m != "") {
             setWakeFromFile(NBin_m, spacing);
         } else {
@@ -175,7 +174,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
     K = 1 / K;
 
     // compute the kick due to the wakefield
-    compEnergy(K, charge, lineDensity_m, OutEnergy);
+    compEnergy(K, charge, lineDensity_m, OutEnergy.data());
 
     // Add the right OutEnergy[i] to all the particles
     //FIXME: can we specify LONG AND TRANS?
@@ -236,7 +235,6 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
     f2.flush();
     f2.close();
 #endif
-    delete[] OutEnergy;
 
 #endif //ENABLE_WAKE_TESTS
 }
@@ -249,19 +247,18 @@ void GreenWakeFunction::testApply(PartBunch &bunch) {
     // determine K and charge
     double charge = 0.8e-9; // nC
     double K = 0.20536314319923724e-9; //K normalizes nC data in lambda.h?
-    double *OutEnergy;
     spacing = 1e-6; //IFF: charge in testLambda.h in 1um spacings
     NBin_m = 294;
-    OutEnergy = new double[NBin_m];
+    std::vector<double> OutEnergy(NBin_m);
 
-    if(FftWField_m == 0) {
-        FftWField_m = new double[2*NBin_m - 1];
+    if(FftWField_m.empty()) {
+        FftWField_m.resize(2*NBin_m - 1);
         CalcWakeFFT(spacing);
     } else if(!constLength_m) {
         CalcWakeFFT(spacing);
     }
 
-    compEnergy(K, charge, testLambda, OutEnergy);
+    compEnergy(K, charge, testLambda, OutEnergy.data());
 
 #ifdef ENABLE_WAKE_TESTS
     ofstream  f2("OutEnergy.dat");
@@ -280,7 +277,6 @@ void GreenWakeFunction::testApply(PartBunch &bunch) {
     f2.flush();
     f2.close();
 #endif
-    delete[] OutEnergy;
 }
 
 /**
@@ -298,7 +294,7 @@ void GreenWakeFunction::compEnergy(const double K,
                                    double *OutEnergy) {
     int N = 2 * NBin_m - 1;
     // Allocate Space for the zero padded lambda and its Fourier Transformed
-    double *pLambda = new double[N];
+    std::vector<double> pLambda(N);
 
     gsl_fft_halfcomplex_wavetable *hc;
     gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(N);
@@ -311,7 +307,7 @@ void GreenWakeFunction::compEnergy(const double K,
     }
 
     //FFT of the lambda
-    gsl_fft_real_transform(pLambda, 1, N, real, work);
+    gsl_fft_real_transform(pLambda.data(), 1, N, real, work);
     gsl_fft_real_wavetable_free(real);
 
     // convolution -> multiplication in Fourier space
@@ -325,7 +321,7 @@ void GreenWakeFunction::compEnergy(const double K,
     // inverse transform to get c, the convolution of a and b;
     hc = gsl_fft_halfcomplex_wavetable_alloc(N);
 
-    gsl_fft_halfcomplex_inverse(pLambda, 1, N, hc, work);
+    gsl_fft_halfcomplex_inverse(pLambda.data(), 1, N, hc, work);
 
     // Write the result to the output:
     for(int i = 0; i < NBin_m; i ++) {
@@ -337,8 +333,6 @@ void GreenWakeFunction::compEnergy(const double K,
 
     }
 
-    // Free the Memory
-    delete[] pLambda;
 
     gsl_fft_halfcomplex_wavetable_free(hc);
     gsl_fft_real_workspace_free(work);
@@ -360,7 +354,7 @@ void GreenWakeFunction::compEnergy(const double K,
                                    double *OutEnergy) {
     int N = 2 * NBin_m - 1;
     // Allocate Space for the zero padded lambda and its Fourier Transformed
-    double *pLambda = new double[N];
+    std::vector<double> pLambda(N);
 
     gsl_fft_halfcomplex_wavetable *hc;
     gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(N);
@@ -373,7 +367,7 @@ void GreenWakeFunction::compEnergy(const double K,
     }
 
     //FFT of the lambda
-    gsl_fft_real_transform(pLambda, 1, N, real, work);
+    gsl_fft_real_transform(pLambda.data(), 1, N, real, work);
     gsl_fft_real_wavetable_free(real);
 
 
@@ -388,7 +382,7 @@ void GreenWakeFunction::compEnergy(const double K,
     // IFFT
     hc = gsl_fft_halfcomplex_wavetable_alloc(N);
 
-    gsl_fft_halfcomplex_inverse(pLambda, 1, N, hc, work);
+    gsl_fft_halfcomplex_inverse(pLambda.data(), 1, N, hc, work);
 
     // Write the result to the output:
     for(int i = 0; i < NBin_m; i ++) {
@@ -400,8 +394,6 @@ void GreenWakeFunction::compEnergy(const double K,
 
     }
 
-    // Free the Memory
-    delete[] pLambda;
 
     gsl_fft_halfcomplex_wavetable_free(hc);
     gsl_fft_real_workspace_free(work);
@@ -480,12 +472,12 @@ void GreenWakeFunction::CalcWakeFFT(double spacing) {
     }
 #endif
 
-    double *wf = new double[2*NBin_m-1];
+    std::vector<double> wf(2*NBin_m-1);
     for(int i = 0; i < 2 * NBin_m - 1; ++ i) {
         wf[i] = FftWField_m[i];
     }
     // calculate the FFT of the Wakefield
-    gsl_fft_real_transform(FftWField_m, 1, M, real, work);
+    gsl_fft_real_transform(FftWField_m.data(), 1, M, real, work);
 
 
 #ifdef ENABLE_WAKE_TESTS_FFT_OUT
@@ -512,7 +504,6 @@ void GreenWakeFunction::CalcWakeFFT(double spacing) {
     f2.flush();
     f2.close();
 #endif
-    delete[] wf;
     gsl_fft_real_wavetable_free(real);
     gsl_fft_real_workspace_free(work);
 }
@@ -525,7 +516,6 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     string name;
     char temp[256];
     int Np, j;
-    double *wake, *dist;
     double dummy;
     gsl_fft_real_wavetable *real;
     gsl_fft_real_workspace *work;
@@ -568,17 +558,15 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     }
 
     msg  << " Np = " << Np << endl;
-    wake = new double[Np];
-    dist = new double[Np];
-
+    std::vector<double> wake(Np);
+    std::vector<double> dist(Np);
+    
     // read the wakefunction
     for(int i = 0; i < Np; i ++) {
         if(!fs.eof()) {
             fs >> dist[i] >> wake[i] >> dummy;
         }
         if(fs.eof()) {
-            delete[] wake;
-            delete[] dist;
             throw OpalException("GreenWakeFunction::setWake",
                                 " End of file reached before the whole wakefield is imported, please check file \""
                                 + filename_m +  "\".");
@@ -589,10 +577,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     }
     // if needed interpolate the wake in a way that the wake form the file fits to the wake needs in the code (??)
 
-    if(FftWField_m != 0) {
-        delete[] FftWField_m;
-    }
-    FftWField_m = new double[NBin_m];
+    FftWField_m.resize(NBin_m);
 
     for(int i = 0; i < NBin_m; i ++) {
         j = 0;
@@ -607,13 +592,10 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     real = gsl_fft_real_wavetable_alloc(NBin_m);
     work = gsl_fft_real_workspace_alloc(NBin_m);
 
-    gsl_fft_real_transform(FftWField_m, 1, NBin_m, real, work);
+    gsl_fft_real_transform(FftWField_m.data(), 1, NBin_m, real, work);
 
     gsl_fft_real_wavetable_free(real);
     gsl_fft_real_workspace_free(work);
-
-    delete[] wake;
-    delete[] dist;
 }
 
 const string GreenWakeFunction::getType() const {

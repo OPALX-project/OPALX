@@ -12,13 +12,7 @@ using namespace std;
 using Physics::mu_0;
 
 FM3DH5Block::FM3DH5Block(string aFilename):
-    Fieldmap(aFilename),
-    FieldstrengthEz_m(NULL),
-    FieldstrengthEx_m(NULL),
-    FieldstrengthEy_m(NULL),
-    FieldstrengthHz_m(NULL),
-    FieldstrengthHx_m(NULL),
-    FieldstrengthHy_m(NULL) {
+    Fieldmap(aFilename) {
     Inform msg("FM3DH5 ");
     h5_err_t h5err;
     h5_size_t grid_rank;
@@ -80,18 +74,11 @@ FM3DH5Block::FM3DH5Block(string aFilename):
 
 
 FM3DH5Block::~FM3DH5Block() {
-    if(FieldstrengthEz_m != NULL) {
-        delete[] FieldstrengthEz_m;
-        delete[] FieldstrengthEx_m;
-        delete[] FieldstrengthEy_m;
-        delete[] FieldstrengthHz_m;
-        delete[] FieldstrengthHx_m;
-        delete[] FieldstrengthHy_m;
-    }
+
 }
 
 void FM3DH5Block::readMap() {
-    if(FieldstrengthEz_m == NULL) {
+    if(FieldstrengthEz_m.empty()) {
         Inform msg("FM3DH5 ");
         h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, MPI_COMM_WORLD);
 
@@ -108,7 +95,6 @@ void FM3DH5Block::readMap() {
             int N_read_start;
             int start = 0;
             int rbuf_size;
-            double *rbuf;
 
             long ii;
             int index_x;
@@ -140,7 +126,7 @@ void FM3DH5Block::readMap() {
             N_read_start = Nz_read_start[Ippl::myNode()] * num_gridpx_m * num_gridpy_m;
 
             rbuf_size = max(Nz_avrg, Nz_avrg - signNz);
-            rbuf = (double *) malloc(Ippl::getNodes() * rbuf_size * sizeof(double));
+			//std::unique_ptr<double> rbuf(new double[Ippl::getNodes() * rbuf_size]);
 
             h5err = H5Block3dSetView(file,
                                      0, num_gridpx_m - 1,
@@ -150,12 +136,12 @@ void FM3DH5Block::readMap() {
                 ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
             field_size = (num_gridpx_m * num_gridpy_m * num_gridpz_m);
-            FieldstrengthEx_m = new h5_float64_t[field_size];
-            FieldstrengthEy_m = new h5_float64_t[field_size];
-            FieldstrengthEz_m = new h5_float64_t[field_size];
-            FieldstrengthHx_m = new h5_float64_t[field_size];
-            FieldstrengthHy_m = new h5_float64_t[field_size];
-            FieldstrengthHz_m = new h5_float64_t[field_size];
+            FieldstrengthEx_m.resize(field_size);
+            FieldstrengthEy_m.resize(field_size);
+            FieldstrengthEz_m.resize(field_size);
+            FieldstrengthHx_m.resize(field_size);
+            FieldstrengthHy_m.resize(field_size);
+            FieldstrengthHz_m.resize(field_size);
             h5err = H5Block3dReadVector3dFieldFloat64(
                         file,
                         "Efield",
@@ -223,7 +209,6 @@ void FM3DH5Block::readMap() {
             msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                 << endl;
 
-            free(rbuf);
         } else {
             WARNMSG("could not read file '" << Filename_m << "'")
         }
@@ -231,14 +216,14 @@ void FM3DH5Block::readMap() {
 }
 
 void FM3DH5Block::freeMap() {
-    if(FieldstrengthEz_m != NULL) {
+    if(!FieldstrengthEz_m.empty()) {
         Inform msg("FM3DD ");
-        delete[] FieldstrengthEx_m;
-        delete[] FieldstrengthEy_m;
-        delete[] FieldstrengthEz_m;
-        delete[] FieldstrengthHx_m;
-        delete[] FieldstrengthHy_m;
-        delete[] FieldstrengthHz_m;
+        FieldstrengthEx_m.clear();
+        FieldstrengthEy_m.clear();
+        FieldstrengthEz_m.clear();
+        FieldstrengthHx_m.clear();
+        FieldstrengthHy_m.clear();
+        FieldstrengthHz_m.clear();
 
         msg << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
             << endl;

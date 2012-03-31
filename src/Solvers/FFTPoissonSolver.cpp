@@ -45,10 +45,10 @@ struct SpecializedGreensFunction<3> {
 FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction):
     mesh_m(mesh),
     layout_m(fl),
-    mesh2_m(0),
-    layout2_m(0),
-    mesh3_m(0),
-    layout3_m(0),
+    mesh2_m(nullptr),
+    layout2_m(nullptr),
+    mesh3_m(nullptr),
+    layout3_m(nullptr),
     greensFunction_m(greensFunction) {
     int i;
     domain_m = layout_m->getDomain();
@@ -75,8 +75,8 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     }
 
     // create double sized mesh and layout objects for the use in the FFT's
-    mesh2_m = new Mesh_t(domain2_m);
-    layout2_m = new FieldLayout_t(*mesh2_m, decomp);
+    mesh2_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
+    layout2_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_m, decomp));
     rho2_m.initialize(*mesh2_m, *layout2_m);
 
     NDIndex<3> tmpdomain;
@@ -91,8 +91,8 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
 
     // create mesh and layout for the new real-to-complex FFT's, for the
     // complex transformed fields
-    mesh3_m = new Mesh_t(domain3_m);
-    layout3_m = new FieldLayout_t(*mesh3_m, decomp2);
+    mesh3_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
+    layout3_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_m, decomp2));
     rho2tr_m.initialize(*mesh3_m, *layout3_m);
     imgrho2tr_m.initialize(*mesh3_m, *layout3_m);
     grntr_m.initialize(*mesh3_m, *layout3_m);
@@ -108,7 +108,7 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
         domainFFTConstruct_m[i] = tmpdomain[(i+1) % 3];
 
     // create the FFT object
-    fft_m = new FFT_t(layout2_m->getDomain(), domainFFTConstruct_m);
+    fft_m = std::unique_ptr<FFT_t>(new FFT_t(layout2_m->getDomain(), domainFFTConstruct_m));
 
     // these are fields that are used for calculating the Green's function.
     // they eliminate some calculation at each time-step.
@@ -144,10 +144,10 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
 FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
     mesh_m(&beam.getMesh()),
     layout_m(&beam.getFieldLayout()),
-    mesh2_m(0),
-    layout2_m(0),
-    mesh3_m(0),
-    layout3_m(0),
+    mesh2_m(nullptr),
+    layout2_m(nullptr),
+    mesh3_m(nullptr),
+    layout3_m(nullptr),
     itsBunch_m(&beam),
     greensFunction_m(greensFunction) {
     int i;
@@ -177,8 +177,8 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
 
 
     // create double sized mesh and layout objects for the use in the FFT's
-    mesh2_m = new Mesh_t(domain2_m);
-    layout2_m = new FieldLayout_t(*mesh2_m, decomp);
+    mesh2_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
+    layout2_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_m, decomp));
     rho2_m.initialize(*mesh2_m, *layout2_m);
 
     NDIndex<3> tmpdomain;
@@ -193,8 +193,8 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
 
     // create mesh and layout for the new real-to-complex FFT's, for the
     // complex transformed fields
-    mesh3_m = new Mesh_t(domain3_m);
-    layout3_m = new FieldLayout_t(*mesh3_m, decomp2);
+    mesh3_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
+    layout3_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_m, decomp2));
     rho2tr_m.initialize(*mesh3_m, *layout3_m);
     imgrho2tr_m.initialize(*mesh3_m, *layout3_m);
     grntr_m.initialize(*mesh3_m, *layout3_m);
@@ -210,7 +210,7 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
         domainFFTConstruct_m[i] = tmpdomain[(i+1) % 3];
 
     // create the FFT object
-    fft_m = new FFT_t(layout2_m->getDomain(), domainFFTConstruct_m);
+    fft_m = std::unique_ptr<FFT_t>(new FFT_t(layout2_m->getDomain(), domainFFTConstruct_m));
 
     // these are fields that are used for calculating the Green's function.
     // they eliminate some calculation at each time-step.
@@ -229,13 +229,13 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
 // destructor
 FFTPoissonSolver::~FFTPoissonSolver() {
     // delete the FFT object
-    delete fft_m;
+    //~ delete fft_m;
 
     // delete the mesh and layout objects
-    if(mesh2_m != 0)     delete mesh2_m;
-    if(layout2_m != 0)   delete layout2_m;
-    if(mesh3_m != 0)     delete mesh3_m;
-    if(layout3_m != 0)   delete layout3_m;
+    //~ if(mesh2_m != 0)     delete mesh2_m;
+    //~ if(layout2_m != 0)   delete layout2_m;
+    //~ if(mesh3_m != 0)     delete mesh3_m;
+    //~ if(layout3_m != 0)   delete layout3_m;
 }
 
 ////////////////////////////////////////////////////////////////////////////

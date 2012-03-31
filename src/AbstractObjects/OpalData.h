@@ -217,6 +217,14 @@ public:
     std::vector<MaxPhasesT>::iterator getLastMaxPhases();
     int getNumberOfMaxPhases();
 
+	Mesh_t* getMesh();
+	FieldLayout_t* getFieldLayout();
+	Layout_t* getLayout();
+
+	void setMesh(Mesh_t *mesh);
+	void setFieldLayout(FieldLayout_t *fieldlayout);
+	void setLayout(Layout_t *layout);
+
 private:
 
     static bool isInstatiated;

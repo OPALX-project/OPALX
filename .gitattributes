@@ -584,7 +584,6 @@ src/Algorithms/bet/profile.cpp -text
 src/Algorithms/bet/profile.h -text
 src/Algorithms/lomb.cc -text
 src/Algorithms/lomb.h -text
-src/Allocator.h -text
 src/Aperture/Aperture.cpp -text
 src/Aperture/Aperture.h -text
 src/Aperture/CMakeLists.txt -text

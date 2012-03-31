@@ -653,7 +653,7 @@ private:
     UnitState_t stateOfLastBoundP_;
 
     /// hold the line-density
-    double *lineDensity_m;
+    std::unique_ptr<double[]> lineDensity_m;
     /// how many bins the line-density has
     unsigned int nBinsLineDensity_m;
 
@@ -743,11 +743,11 @@ public:
       dead particles (absobed)
     */
 
-    LossDataSink *lossDs_m;
+    std::unique_ptr<LossDataSink> lossDs_m;
 
     // save particles in case of one core
-    Inform *pmsg_m;
-    std::ofstream *f_stream;
+    std::unique_ptr<Inform> pmsg_m;
+    std::unique_ptr<std::ofstream> f_stream;
 
 
 
@@ -764,6 +764,8 @@ private:
     ParticleAttrib<short> stash_ptype_m;
     bool bunchStashed_m;
 
+    PartBunch& operator=(const PartBunch&) = delete;
+
     ///
     int fieldDBGStep_m;
 
@@ -774,12 +776,12 @@ private:
     double tEmission_m;
 
     /// holds the gamma of the bin
-    double *bingamma_m;
+    std::unique_ptr<double[]> bingamma_m;
 
     //FIXME: this should go into the Bin class!
     // holds number of emitted particles of the bin
     // jjyang: opal-cycl use *nBin_m of pbin_m
-    size_t *binemitted_m;
+    std::unique_ptr<size_t[]> binemitted_m;
 
     /// path length from the start point
     double lPath_m;
@@ -802,8 +804,8 @@ private:
       Data structure for particle load balance information
     */
 
-    double *partPerNode_m;
-    double *globalPartPerNode_m;
+    std::unique_ptr<double[]> partPerNode_m;
+    std::unique_ptr<double[]> globalPartPerNode_m;
 
     Distribution *dist_m;
 

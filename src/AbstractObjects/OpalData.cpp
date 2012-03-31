@@ -39,6 +39,7 @@
 #include "OpalParser/OpalParser.h"
 #include "Parser/FileStream.h"
 #include "Parser/StringStream.h"
+#include "Algorithms/PBunchDefs.h"
 // /DTA
 
 using namespace std;
@@ -120,6 +121,15 @@ struct OpalDataImpl {
     BoundaryGeometry *bg_m;
 
     vector<MaxPhasesT> maxPhases_m;
+    
+    // The cartesian mesh
+    Mesh_t *mesh_m;
+
+    // The field layout f
+    FieldLayout_t *FL_m;
+
+    // The particle layout
+    Layout_t *PL_m;
 };
 
 
@@ -130,20 +140,28 @@ OpalDataImpl::OpalDataImpl():
     slbunch_m = 0;
     dataSink_m = 0;
     bg_m = 0;
+    mesh_m = 0;
+    FL_m = 0;
+    PL_m = 0;
 }
 
 
 OpalDataImpl::~OpalDataImpl() {
     // Make sure the main directory is cleared before the directories
     // for tables and expressions are deleted.
+    delete mesh_m;// somehow this needs to be deleted first
+	delete FL_m;
+    //delete PL_m; //this gets deleted by FL_m
+    
+    delete bunch_m;
+    delete slbunch_m;
+    delete bg_m;
+    delete dataSink_m;
+
+    
     mainDirectory.erase();
     tableDirectory.clear();
     exprDirectory.clear();
-
-    if(bunch_m) delete bunch_m;
-    if(slbunch_m) delete slbunch_m;
-    if(bg_m) delete bg_m;
-    if(dataSink_m) delete dataSink_m;
 }
 
 
@@ -165,6 +183,7 @@ OpalData *OpalData::getInstance() {
 
 void OpalData::deleteInstance() {
     delete instance;
+    instance = 0;
     isInstatiated = false;
 }
 
@@ -308,8 +327,29 @@ int OpalData::getNumberOfMaxPhases() {
 }
 
 
+Mesh_t* OpalData::getMesh() {
+	return p->mesh_m;
+}
 
+FieldLayout_t* OpalData::getFieldLayout() {
+	return p->FL_m;
+}
 
+Layout_t* OpalData::getLayout() {
+	return p->PL_m;
+}
+
+void OpalData::setMesh(Mesh_t *mesh) {
+	p->mesh_m = mesh;
+}
+	
+void OpalData::setFieldLayout(FieldLayout_t *fieldlayout) {
+	p->FL_m = fieldlayout;
+}
+	
+void OpalData::setLayout(Layout_t *layout) {
+	p->PL_m = layout;
+}
 
 void OpalData::setGlobalPhaseShift(double shift) {
     /// units: (sec)

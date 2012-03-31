@@ -32,24 +32,43 @@ enum BFieldType {PSIBF, CARBONBF,ANSYSBF,AVFEQBF, FFAGBF,BANDRF};
 struct BfieldData {
     std::string filename;
     // known from file: field and three theta derivatives
-    double *bfld;   //Bz
-    double *dbt;    //dBz/dtheta
-    double *dbtt;   //d2Bz/dtheta2
-    double *dbttt;  //d3Bz/dtheta3
+    //~ double *bfld;   //Bz
+    //~ double *dbt;    //dBz/dtheta
+    //~ double *dbtt;   //d2Bz/dtheta2
+    //~ double *dbttt;  //d3Bz/dtheta3
+//~ 
+    //~ // to be calculated in getdiffs: all other derivatives:
+    //~ double *dbr;    // dBz/dr
+    //~ double *dbrr;   // ...
+    //~ double *dbrrr;
+//~ 
+    //~ double *dbrt;
+    //~ double *dbrrt;
+    //~ double *dbrtt;
+//~ 
+    //~ // used to get (Br,Btheta,Bz) at any off-plane point
+    //~ double *f2;  // for Bz
+    //~ double *f3;  // for Br
+    //~ double *g3;  // for Btheta
+//~ 
+    std::vector<double> bfld;   //Bz
+    std::vector<double> dbt;    //dBz/dtheta
+    std::vector<double> dbtt;   //d2Bz/dtheta2
+    std::vector<double> dbttt;  //d3Bz/dtheta3
 
     // to be calculated in getdiffs: all other derivatives:
-    double *dbr;    // dBz/dr
-    double *dbrr;   // ...
-    double *dbrrr;
+    std::vector<double> dbr;    // dBz/dr
+    std::vector<double> dbrr;   // ...
+    std::vector<double> dbrrr;
 
-    double *dbrt;
-    double *dbrrt;
-    double *dbrtt;
+    std::vector<double> dbrt;
+    std::vector<double> dbrrt;
+    std::vector<double> dbrtt;
 
     // used to get (Br,Btheta,Bz) at any off-plane point
-    double *f2;  // for Bz
-    double *f3;  // for Br
-    double *g3;  // for Btheta
+    std::vector<double> f2;  // for Bz
+    std::vector<double> f3;  // for Br
+    std::vector<double> g3;  // for Btheta
 
     // Grid-Size
     //need to be read from inputfile.
@@ -73,7 +92,7 @@ struct BPositions {
     double  tetmin, dtet;
 
     // Radii and step width of initial Grid
-    double *rarr;
+    std::vector<double> rarr;
 
     //  int     ThetaPeriodicity; // Periodicity of Magnetic field
     double  Bfact;      // MULTIPLICATION FACTOR FOR MAGNETIC FIELD

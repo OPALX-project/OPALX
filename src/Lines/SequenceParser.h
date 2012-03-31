@@ -94,7 +94,7 @@ private:
     void parsePosition(Statement &, Object &, bool defined) const;
 
     // The sequence being parsed.
-    Sequence *itsSequence;
+    Sequence* itsSequence;
 
     // Flag for success.
     mutable bool okFlag;
