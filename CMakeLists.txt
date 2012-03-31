@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
-set (CMAKE_CXX_FLAGS_RELEASE "")
-set (CMAKE_CXX_FLAGS_DEBUG  "-g -O1")
+set (CMAKE_CXX_FLAGS_RELEASE "-O3")
+set (CMAKE_CXX_FLAGS_DEBUG  "-g -O2")
 #find_package (MPI REQUIRED)
 set (CMAKE_CXX_COMPILER ${MPI_COMPILER})
 
@@ -9,7 +9,7 @@ project(OPAL)
 set (OPAL_VERSION_MAJOR 1)
 set (OPAL_VERSION_MINOR 1.9)
 
-set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Debug)
 
 option (ENABLE_ML_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
