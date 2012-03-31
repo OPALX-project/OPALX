@@ -117,7 +117,7 @@ CommSHMEMPI::CommSHMEMPI(int& argc , char**& argv, int procs)
         }
 
         // wait for the spawned processes to report back that they're ready
-        int *child_ready = new int[TotalNodes];
+        std::vector<int> child_ready(TotalNodes);
         for (i = 0; i < TotalNodes; child_ready[i++] = 0);
         INFOMSG("CommSHMEMPI: Parent process waiting for children ..." << endl);
         reported = 1;		// since the parent is already ready
@@ -141,7 +141,6 @@ CommSHMEMPI::CommSHMEMPI(int& argc , char**& argv, int procs)
             }
         }
 
-        delete [] child_ready;
         INFOMSG("CommSHMEMPI: Initialization complete." << endl);
 
     }

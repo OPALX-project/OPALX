@@ -18,6 +18,7 @@
 #include "FieldLayout/FieldLayoutUser.h"
 #include "Utility/RefCounted.h"
 #include "Utility/Inform.h"
+#include <memory>
 
 #ifdef IPPL_STDSTL
 #include <vector>
@@ -74,7 +75,7 @@ class SIndex : public FieldLayoutUser {
 
 public:
   //# public typedefs
-  typedef std::vector< RefCountedP<LSIndex<Dim> > >  container_t;
+  typedef std::vector< std::shared_ptr<LSIndex<Dim> > >  container_t;
   typedef unsigned int                          size_type;
   typedef typename container_t::iterator        iterator_iv;
   typedef typename container_t::const_iterator  const_iterator_iv;

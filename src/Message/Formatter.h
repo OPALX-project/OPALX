@@ -13,6 +13,8 @@
 
 #include "Message/Message.h"
 #include <cstring>
+#include <vector>
+#include <algorithm>
 
 /*
  * Format and MsgBuffer class to allow serializing message objects into plain buffers
@@ -35,7 +37,6 @@ public:
     {
         return 2*items*sizeof(int);
     }
-
     unsigned int getItemElems(int i)
     {
         return format_array[2*i+0];
@@ -47,10 +48,9 @@ public:
 
     void print();
 
-    ~Format();
 private:
     unsigned int items, size;
-    unsigned int *format_array;
+    std::vector<unsigned int> format_array;
 };
 
 
@@ -67,14 +67,14 @@ public:
 	template<class T>
 	void get(T &v)
 	{
-		std::memcpy(&v, data+readpos, sizeof(T));
+		std::memcpy(&v, data.data()+readpos, sizeof(T));
 		readpos += sizeof(T);
 	}
 	
 	template<class T>
 	void put(T &v)
 	{
-		std::memcpy(data+writepos, &v, sizeof(T));
+		std::memcpy(data.data()+writepos, &v, sizeof(T));
 		writepos += sizeof(T);
 	}
 
@@ -84,7 +84,7 @@ public:
     }
     void* getBuffer()
     {
-        return data;
+        return data.data();
     }
     
     Format* getFormat() { return format; }
@@ -93,7 +93,7 @@ public:
 private:
     Format *format;
     unsigned int datasize, writepos, readpos;
-    char *data;
+    std::vector<char> data;
 };
 
 #endif // FORMATTER_H

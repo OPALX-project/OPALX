@@ -38,7 +38,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <unistd.h>
-
+#include <vector>
 
 // if an error occurs during myreceive more times than this, CommMPI
 // will just exit.  Make it negative to totally disable checking for a
@@ -133,7 +133,8 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
         }
 
         // wait for the spawned processes to report back that they're ready
-        int *child_ready = new int[TotalNodes];
+        //~ int *child_ready = new int[TotalNodes];
+        std::vector<int> child_ready(TotalNodes);
         for (i = 0; i < TotalNodes; child_ready[i++] = 0);
         INFOMSG("CommMPI: Parent process waiting for children ..." << endl);
         reported = 1;		// since the parent is already ready
@@ -156,7 +157,7 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
             }
         }
 
-        delete [] child_ready;
+        //~ delete [] child_ready;
         INFOMSG("CommMPI: Initialization complete." << endl);
 
     }
