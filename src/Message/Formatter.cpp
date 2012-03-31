@@ -4,7 +4,8 @@ Format::Format(Message *msg)
 {
     items = msg->size();
     size = 0;
-    format_array = new unsigned int[2*items];
+    
+    format_array.resize(2*items);
     for (unsigned int i=0; i<items; ++i)
     {
         Message::MsgItem &msgitem = msg->item(i);
@@ -12,11 +13,6 @@ Format::Format(Message *msg)
         format_array[2*i+1] = msgitem.numBytes();
         size += format_array[2*i+1];
     }
-}
-
-Format::~Format()
-{
-    delete[] format_array;
 }
 
 void Format::print()
@@ -33,7 +29,7 @@ MsgBuffer::MsgBuffer(Format *f, int count, int offset)
         : format(f), writepos(0), readpos(0)
 {
     datasize = count*format->getSize();
-    data = new char[datasize+offset];
+    data.resize(datasize+offset);
 }
 
 
@@ -41,12 +37,13 @@ MsgBuffer::MsgBuffer(Format *f, char *buf, int size)
         : format(f), writepos(0), readpos(0)
 {
     datasize = size;
-    data = buf;
+    data.resize(datasize);
+    std::copy(buf, buf+size, data.begin());
+    delete[] buf;
 }
 
 MsgBuffer::~MsgBuffer()
 {
-    delete[] data;
 }
 
 bool MsgBuffer::add(Message *msg)
@@ -68,7 +65,7 @@ bool MsgBuffer::add(Message *msg)
             return false;
 
         //actually copy to buffer
-        std::memcpy(data+pos, msgitem.data(), format->getItemBytes(i));
+        std::memcpy(data.data()+pos, msgitem.data(), format->getItemBytes(i));
         pos += format->getItemBytes(i);
     }
 
@@ -92,7 +89,7 @@ Message* MsgBuffer::get()
 
         msg->setCopy(false);
         msg->setDelete(false);
-        msg->putmsg(data+readpos, bytesize/elements, elements);
+        msg->putmsg(data.data()+readpos, bytesize/elements, elements);
         readpos += bytesize;
     }
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
-set (CMAKE_CXX_FLAGS_RELEASE "-g -O2")
-set (CMAKE_CXX_FLAGS_DEBUG  "-g -O2")
+set (CMAKE_CXX_FLAGS_RELEASE "-g -O2 -std=c++0x")
+set (CMAKE_CXX_FLAGS_DEBUG  "-g -O2 -std=c++0x")
 #find_package (MPI REQUIRED)
 set (CMAKE_CXX_COMPILER ${MPI_COMPILER})
 
@@ -56,7 +56,7 @@ IF (LINUXGCC)
         "${IPPLLINUXGCC} ${IPPLCOMMON}"
     ) 
     set (OTHER_CMAKE_CXX_FLAGS
-        "-Wall -ftemplate-depth-80 -funroll-loops -fstrict-aliasing "
+        "-Wall -ftemplate-depth-80 -funroll-loops -fstrict-aliasing -std=c++0x"
     )
     set (IPPL_VERSION_NAME \"V1.0 01-2007 Linux GNU\")
 

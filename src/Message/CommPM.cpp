@@ -138,7 +138,8 @@ CommPM::CommPM(int& argc , char**& argv, int procs)
         }
 
         // wait for the spawned processes to report back that they're ready
-        int *child_ready = new int[TotalNodes];
+        //~ int *child_ready = new int[TotalNodes];
+        std::vector<int> child_ready(TotalNodes);
         for (i = 0; i < TotalNodes; child_ready[i++] = 0);
         INFOMSG("CommPM: Parent process waiting for children ..." << endl);
         reported = 1;		// since the parent is already ready
@@ -161,7 +162,7 @@ CommPM::CommPM(int& argc , char**& argv, int procs)
             }
         }
 
-        delete [] child_ready;
+        //~ delete [] child_ready;
         INFOMSG("CommPM: Initialization complete." << endl);
 
     }
