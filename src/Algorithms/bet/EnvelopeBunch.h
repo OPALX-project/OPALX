@@ -530,8 +530,15 @@ private:
 
     /// backup slice values
     void backup() {
+#ifdef OPAL_NOCPLUSPLUS11_FOREACH
+        std::vector< std::shared_ptr<EnvelopeSlice> >::iterator slice;
+        for (slice = s.begin(); slice != s.end(); ++ slice) {
+            (*slice)->backup();
+        }
+#else
         for (auto & slice : s)
             slice->backup();
+#endif
     }
 
 

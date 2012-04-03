@@ -30,6 +30,10 @@
 #include <iostream>
 #include <fstream>
 
+#ifdef OPAL_NOCPLUSPLUS11_NULLPTR
+#define nullptr NULL
+#endif
+
 extern Inform *gmsg;
 
 using namespace std;
@@ -134,9 +138,12 @@ RFCavity::RFCavity(const string &name):
     pdis_m(0.0),
     gapwidth_m(0.0),
     phi0_m(0.0),
-    RNormal_m(std::nullptr_t(NULL)),
-    VrNormal_m(std::nullptr_t(NULL)),
-    DvDr_m(std::nullptr_t(NULL)),
+    RNormal_m(nullptr),
+    VrNormal_m(nullptr),
+    DvDr_m(nullptr),
+//     RNormal_m(std::nullptr_t(NULL)),
+//     VrNormal_m(std::nullptr_t(NULL)),
+//     DvDr_m(std::nullptr_t(NULL)),
     num_points_m(0) {
     setElType(isRF);
 }

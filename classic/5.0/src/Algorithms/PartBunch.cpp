@@ -41,7 +41,10 @@
 #include <gsl/gsl_sf_erf.h>
 #include <gsl/gsl_qrng.h>
 
-using Physics::c;
+#ifdef OPAL_NOCPLUSPLUS11_NULLPTR
+#define nullptr NULL
+#endif
+
 using Physics::pi;
 
 using namespace std;
@@ -802,10 +805,10 @@ void PartBunch::computeSelfFields(int binNumber) {
 
 void PartBunch::resizeMesh() {
     //get x, y range and scale to unit-less
-    double xmin = fs_m->solver_m->getXRangeMin() / (c * dt_m);
-    double xmax = fs_m->solver_m->getXRangeMax() / (c * dt_m);
-    double ymin = fs_m->solver_m->getYRangeMin() / (c * dt_m);
-    double ymax = fs_m->solver_m->getYRangeMax() / (c * dt_m);
+    double xmin = fs_m->solver_m->getXRangeMin() / (Physics::c * dt_m);
+    double xmax = fs_m->solver_m->getXRangeMax() / (Physics::c * dt_m);
+    double ymin = fs_m->solver_m->getYRangeMin() / (Physics::c * dt_m);
+    double ymax = fs_m->solver_m->getYRangeMax() / (Physics::c * dt_m);
 
 
     // Check if the new domain is larger than bunch max, mins

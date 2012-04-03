@@ -108,7 +108,15 @@ IF ("${COMPILER_NAME}" STREQUAL "mpicxx")
     ELSEIF("${MPI_UNDERLYING_COMPILER}" STREQUAL "g++")
         # using gnu compiler
         MESSAGE("The underlying compiler of ${COMPILER_NAME} is: g++")
-
+        EXECUTE_PROCESS(COMMAND g++ --version
+                        OUTPUT_VARIABLE GCC_VERSION_OUTPUT
+                        ERROR_VARIABLE GCC_VERSION_ERROR)
+        STRING(REGEX REPLACE ".*([0-9]\\.[0-9]\\.[0-9]).*" "\\1" GCC_VERSION ${GCC_VERSION_OUTPUT})
+        IF(${GCC_VERSION} VERSION_LESS "4.6.0" AND ${GCC_VERSION} VERSION_GREATER "4.5.0")
+          SET (OTHER_CMAKE_CXX_FLAGS
+               "-DOPAL_NOCPLUSPLUS11_NULLPTR -DOPAL_NOCPLUSPLUS11_FOREACH ${OTHER_CMAKE_CXX_FLAGS}")
+          MESSAGE("YOUR GCC VERSION IS: 4.5")
+        ENDIF(${GCC_VERSION} VERSION_LESS "4.6.0" AND ${GCC_VERSION} VERSION_GREATER "4.5.0")
     ELSE("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
         # using unknown compiler
         MESSAGE("${COMPILER_NAME} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of!

@@ -543,10 +543,15 @@ void EnvelopeBunch::createBunch() {
         //s.push_back(std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice()));
 
     s.resize(nSlices);
+#ifdef OPAL_NOCPLUSPLUS11_FOREACH
+    for( auto slice = s.begin(); slice != s.end(); ++ slice ) {
+        (*slice) = std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice());
+    }
+#else
     for( auto & slice : s ) {
         slice = std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice());
     }
-
+#endif
     //XXX: not supported by clang at the moment
     //std::generate(s.begin(), s.end(),
         //[]()
