@@ -58,7 +58,7 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
     }
 
 
-#ifdef CSRDEBUG
+#ifdef DBG_CSR
     static string oldBendName;
     static unsigned long counter = 0;
 
