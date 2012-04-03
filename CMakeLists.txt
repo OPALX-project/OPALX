@@ -17,6 +17,8 @@ option (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 option (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
 option (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
+option (NOCPLUSPLUS11_FOREACH "Disable C++11 foreach support" OFF)
+option (NOCPLUSPLUS11_NULLPTR "Disable C++11 nullptr support" OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 find_package (IPPL REQUIRED
@@ -41,6 +43,20 @@ endif (DBG_STENCIL)
 if (BUILD_LIBOPAL)
    MESSAGE("\nBuilding OPAL library")
 endif (BUILD_LIBOPAL)
+
+if (NOCPLUSPLUS11_FOREACH)
+    MESSAGE("\nBuilding OPAL without c++11 foreach support")
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -DOPAL_NOCPLUSPLUS11_FOREACH"
+    )
+endif (NOCPLUSPLUS11_FOREACH)
+
+if (NOCPLUSPLUS11_NULLPTR)
+    MESSAGE("\nBuilding OPAL without c++11 nullptr support")
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -DOPAL_NOCPLUSPLUS11_NULLPTR"
+    )
+endif (NOCPLUSPLUS11_NULLPTR)
 
 
 if (ENABLE_ML_SOLVER)
