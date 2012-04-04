@@ -1166,6 +1166,14 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
+void PartBunch::setBCAllOpen() {
+    for(int i = 0; i < 2 * 3; ++i) {
+        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+        getBConds()[i] = ParticleNoBCond;
+    }
+}
+
 void PartBunch::boundp() {
     /*
       Assume rmin_m < 0.0

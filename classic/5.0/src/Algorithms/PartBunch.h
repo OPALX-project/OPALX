@@ -326,13 +326,20 @@ public:
         return dynamic_cast<FieldLayout_t &>(getLayout().getLayout().getFieldLayout());
     }
 
-    inline void setBCAllOpen() {
-        for(int i = 0; i < 2 * 3; ++i) {
-            bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
-            vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
-            getBConds()[i] = ParticleNoBCond;
-        }
-    }
+#ifdef __GNUG__
+#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+    void setBCAllOpen();
+#ifdef __GNUG__
+#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic pop
+#else
+#pragma GCC diagnostic error "-Warray-bounds"
+#endif
+#endif
 
     void boundp();
     void boundpNoRep();
