@@ -297,6 +297,7 @@ void DataSink::writeH5FileAttributes() {
     rc = H5WriteFileAttribString(H5file_m, "OPAL_version", OPAL_version.str().c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
     rc = H5WriteFileAttribString(H5file_m, "tUnit", "s");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -2710,6 +2711,44 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
 
 }
 
+
+
+/** \brief Find out which flavor has written the data of 
+ *   the h5 file. 
+ *
+ *
+ */
+bool DataSink::isOPALt() {
+    char opalFlavour[128];
+    h5_int64_t rc = H5ReadFileAttribString(H5file_m, "OPAL_flavour", opalFlavour);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    return (std::string(opalFlavour)==std::string("opal-t"));
+}
+
+/** \brief 
+ *     
+ *
+ *
+ */
+void DataSink::setOPALcycl() {
+    string OPALFlavour("opal-cycl");
+    h5_int64_t rc = H5WriteFileAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+}
+
+/** \brief 
+ * 
+ *
+ *
+ */
+void DataSink::setOPALt() {
+    string OPALFlavour("opal-t");
+    h5_int64_t rc = H5WriteFileAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+}
 
 /***************************************************************************
  * $RCSfile: DataSink.cpp,v $   $Author: adelmann $

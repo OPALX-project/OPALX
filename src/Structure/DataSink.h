@@ -133,12 +133,25 @@ private:
 
 public:
 
+    /** \brief Set and querie which flavor has written the data
+     *
+     *
+     */
+    bool isOPALt();
+
+    void setOPALcycl();
+
+    void setOPALt();
+
+
     /** \brief Write the particle distribution data into a independent H5 file
      *   for bunch injection in multi-bunch simulation in cyclotrom
      *
      *
      */
     void storeOneBunch(const PartBunch &beam, const std::string fn_appendix);
+
+
 
     /** \brief Read the particle distribution data from a independent H5 file
      *   for bunch injection in multi-bunch simulation in cyclotrom
