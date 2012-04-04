@@ -154,51 +154,25 @@ public:
   Element_t& operator[](unsigned int i)
   {
     PAssert (i<D);
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
-#pragma GCC diagnostic pop
-#else
-    return X[i];
-#endif
-
   }
+
   Element_t operator[](unsigned int i) const
   {
     PAssert (i<D);
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
-#pragma GCC diagnostic pop
-#else
-    return X[i];
-#endif
   }
+
   Element_t& operator()(unsigned int i)
   {
     PAssert (i<D);
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
-#pragma GCC diagnostic pop
-#else
-    return X[i];
-#endif
   }
+
   Element_t operator()( unsigned int i) const
   {
     PAssert (i<D);
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
-#pragma GCC diagnostic pop
-#else
-    return X[i];
-#endif
   }
 
   // Comparison operators.

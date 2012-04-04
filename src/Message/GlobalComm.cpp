@@ -199,6 +199,12 @@ bool reduce(Communicate& comm, InputIterator s1, InputIterator s2,
 
 ////////////////////////////////////////////////////////////////////////////
 // same as above, but this uses the default Communicate object
+#ifdef __GNUG__
+#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
 template <class InputIterator, class OutputIterator, class ReduceOp>
 bool reduce(InputIterator s1, InputIterator s2,
             OutputIterator t1, const ReduceOp& op, bool *IncludeVal)
@@ -208,15 +214,15 @@ bool reduce(InputIterator s1, InputIterator s2,
                     + CT(t1) + ", " + CT(op) + ")");
     TAU_PROFILE("reduce()", profileString, TAU_MESSAGE);
 
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
     return reduce(*Ippl::Comm, s1, s2, t1, op, IncludeVal);
-#ifdef __GNUG__
-#pragma GCC diagnostic pop
-#endif
 }
+#ifdef __GNUG__
+#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic pop
+#else
+#pragma GCC diagnostic error "-Warray-bounds"
+#endif
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////
