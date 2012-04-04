@@ -94,7 +94,7 @@ void FM3DH5Block_nonescale::readMap() {
             int *Nz_read_length = new int[Ippl::getNodes()];
             int N_read_start;
             int start = 0;
-            int rbuf_size;
+            // int rbuf_size;
 
             h5_int64_t last_step = H5GetNumSteps(file) - 1;
             h5err = H5SetStep(file, last_step);
@@ -119,8 +119,8 @@ void FM3DH5Block_nonescale::readMap() {
 
             N_read_start = Nz_read_start[Ippl::myNode()] * num_gridpx_m * num_gridpy_m;
 
-            rbuf_size = max(Nz_avrg, Nz_avrg - signNz);
-			//std::unique_ptr<double> rbuf(new double[Ippl::getNodes() * rbuf_size]);
+            // rbuf_size = max(Nz_avrg, Nz_avrg - signNz);
+            // std::unique_ptr<double> rbuf(new double[Ippl::getNodes() * rbuf_size]);
 
             h5err = H5Block3dSetView(file,
                                      0, num_gridpx_m - 1,
