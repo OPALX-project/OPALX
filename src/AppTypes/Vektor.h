@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -48,7 +48,7 @@ public:
   class DontInitialize {};
   Vektor(DontInitialize) {}
 
-  // Copy Constructor 
+  // Copy Constructor
   Vektor(const Vektor<T,D> &rhs) {
     TSV_MetaAssign< Vektor<T,D> , Vektor<T,D> ,OpAssign >::apply(*this,rhs);
   }
@@ -78,7 +78,7 @@ public:
     X[2] = x02;
   }
 
-  // Destructor 
+  // Destructor
   ~Vektor() { }
 
   // Assignment Operators
@@ -139,37 +139,66 @@ public:
   template<class T1>
   Vektor<T,D>& operator/=(const Vektor<T1,D> &rhs)
   {
-    TSV_MetaAssign< Vektor<T,D> , Vektor<T1,D> , OpDivideAssign > :: 
+    TSV_MetaAssign< Vektor<T,D> , Vektor<T1,D> , OpDivideAssign > ::
       apply(*this,rhs);
     return *this;
   }
   Vektor<T,D>& operator/=(const T& rhs)
   {
-    TSV_MetaAssignScalar< Vektor<T,D> , T , OpDivideAssign > :: 
+    TSV_MetaAssignScalar< Vektor<T,D> , T , OpDivideAssign > ::
       apply(*this,rhs);
     return *this;
   }
 
   // Get and Set Operations
   Element_t& operator[](unsigned int i)
-  { 
+  {
     PAssert (i<D);
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
+#pragma GCC diagnostic pop
+#else
+    return X[i];
+#endif
+
   }
   Element_t operator[](unsigned int i) const
-  { 
+  {
     PAssert (i<D);
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
+#pragma GCC diagnostic pop
+#else
+    return X[i];
+#endif
   }
   Element_t& operator()(unsigned int i)
-  { 
+  {
     PAssert (i<D);
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
+#pragma GCC diagnostic pop
+#else
+    return X[i];
+#endif
   }
   Element_t operator()( unsigned int i) const
-  { 
+  {
     PAssert (i<D);
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
     return X[i];
+#pragma GCC diagnostic pop
+#else
+    return X[i];
+#endif
   }
 
   // Comparison operators.
@@ -245,7 +274,7 @@ TSV_ELEMENTWISE_OPERATOR(Vektor,Max,FnMax)
 
 template < class T1, class T2, unsigned D >
 inline typename PETEBinaryReturn<T1,T2,OpMultipply>::type
-dot(const Vektor<T1,D> &lhs, const Vektor<T2,D> &rhs) 
+dot(const Vektor<T1,D> &lhs, const Vektor<T2,D> &rhs)
 {
   return TSV_MetaDot< Vektor<T1,D> , Vektor<T2,D> > :: apply(lhs,rhs);
 }
@@ -256,7 +285,7 @@ dot(const Vektor<T1,D> &lhs, const Vektor<T2,D> &rhs)
 
 template < class T1, class T2, unsigned D >
 inline Vektor<typename PETEBinaryReturn<T1,T2,OpMultipply>::type,D>
-cross(const Vektor<T1,D> &lhs, const Vektor<T2,D> &rhs) 
+cross(const Vektor<T1,D> &lhs, const Vektor<T2,D> &rhs)
 {
   return TSV_MetaCross< Vektor<T1,D> , Vektor<T2,D> > :: apply(lhs,rhs);
 }
@@ -285,5 +314,5 @@ inline std::ostream& operator<<(std::ostream& out, const Vektor<T,D>& rhs)
 /***************************************************************************
  * $RCSfile: Vektor.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:24 $
- * IPPL_VERSION_ID: $Id: Vektor.h,v 1.1.1.1 2003/01/23 07:40:24 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: Vektor.h,v 1.1.1.1 2003/01/23 07:40:24 adelmann Exp $
  ***************************************************************************/

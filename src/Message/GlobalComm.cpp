@@ -208,7 +208,14 @@ bool reduce(InputIterator s1, InputIterator s2,
                     + CT(t1) + ", " + CT(op) + ")");
     TAU_PROFILE("reduce()", profileString, TAU_MESSAGE);
 
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     return reduce(*Ippl::Comm, s1, s2, t1, op, IncludeVal);
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
 }
 
 
