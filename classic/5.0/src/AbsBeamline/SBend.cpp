@@ -759,7 +759,7 @@ double SBend::calculateRefTrajectory(const double zBegin) {
 
     // Set "ideal" bend radius and effective length.
     R_m = fabs(betaGamma * mass / (Physics::c * amplitude_m));
-    effectiveLength_m = R_m * angle;
+    effectiveLength_m = R_m * std::abs(angle);
     calculateEffectiveCenter();
 
     return angle;
