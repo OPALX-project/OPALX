@@ -43,6 +43,9 @@ public:
     /// Return the timestep in seconds
     double getDT() const;
 
+    /// Return the elapsed time (sec) of the bunch 
+    double getT0() const;
+
     /// Return the maximum timsteps we integrate the system
     int getMAXSTEPS() const;
 

@@ -35,6 +35,7 @@ namespace {
         LINE,         // The name of lattice to be tracked.
         BEAM,         // The name of beam to be used.
         DT,           // The integration timestep in second.
+        T0,           // The elapsed time (sec) of the bunch 
         MAXSTEPS,     // The maximum timesteps we integrate
         ZSTOP,        // Defines a z-location [m], after which the simulation stops when the last particles passes
         STEPSPERTURN, // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
@@ -53,6 +54,8 @@ TrackCmd::TrackCmd():
                     ("BEAM", "Name of beam to be used", "UNNAMED_BEAM");
     itsAttr[DT] = Attributes::makeReal
                   ("DT", "THE INTEGRATION TIMESTEP IN SECONDS", 1e-12);
+    itsAttr[T0] = Attributes::makeReal
+                  ("T0", "THE ELAPSED TIME OF THE BUNCH IN SECONDS", 0.0);
     itsAttr[MAXSTEPS] = Attributes::makeReal
                         ("MAXSTEPS", "THE MAXIMUM NUMBER OF INTEGRATION STEPS DT, should be larger ZSTOP/(beta*c average)", 10);
     itsAttr[STEPSPERTURN] = Attributes::makeReal
@@ -80,6 +83,10 @@ TrackCmd *TrackCmd::clone(const string &name) {
 
 double TrackCmd::getDT() const {
     return Attributes::getReal(itsAttr[DT]);
+}
+
+double TrackCmd::getT0() const {
+    return Attributes::getReal(itsAttr[T0]);
 }
 
 double TrackCmd::getZSTOP() const {
@@ -120,6 +127,7 @@ void TrackCmd::execute() {
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
     double dt = getDT();
+    double t0 = getT0();
     int    maxsteps = getMAXSTEPS();
     int    stepsperturn = getSTEPSPERTURN();
     double zstop = getZSTOP();
@@ -127,7 +135,7 @@ void TrackCmd::execute() {
     int nslices = beam->getNumberOfSlices();
 
     // Execute track block.
-    Track::block = new Track(use, beam->getReference(), dt, maxsteps, stepsperturn, zstop, timeintegrator, nslices);
+    Track::block = new Track(use, beam->getReference(), dt, maxsteps, stepsperturn, zstop, timeintegrator, nslices, t0);
     Track::block->parser.run();
 
     // Clean up.

@@ -2270,9 +2270,16 @@ void ParallelTTracker::setupSUV() {
 void ParallelTTracker::setTime() {
 
     //if(Options::scan && OpalData::getInstance()->hasBunchAllocated())
+
+
+    /*
+      The track command set's T0 (or default 0.0)
+      so we do not need this anymore
+
     if(!OpalData::getInstance()->hasBunchAllocated() &&
        !OpalData::getInstance()->inRestartRun())
         itsBunch->setT(0.0);
+    */
 
     if(mpacflg_m) return;
 

@@ -34,11 +34,13 @@ otherwise a new bunch is allocated in the dictionary.
 */
 
 
-Track::Track(BeamSequence *u, const PartData &ref, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator, int nslices):
+Track::Track(BeamSequence *u, const PartData &ref, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator, 
+             int nslices, double t0):
     reference(ref),
     use(u),
     parser(),
     dT(dt),
+    t0_m(t0),
     maxTSteps(maxtsteps),
     stepsPerTurn(stepsperturn),
     zstop(zStop),

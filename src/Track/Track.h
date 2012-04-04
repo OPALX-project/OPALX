@@ -37,7 +37,8 @@ class Track {
 
 public:
 
-    Track(BeamSequence *, const PartData &, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator, int nslices);
+    Track(BeamSequence *, const PartData &, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator, int nslices,
+          double t0);
     ~Track();
 
     /// The particle bunch to be tracked.
@@ -59,6 +60,10 @@ public:
 
     /// The initial timestep
     double dT;
+   
+    /// The ellapsed time of the beam can be used to propper 
+    /// start the beam when created in a cavity i.e. without emission
+    double t0_m;
 
     /// Maximal number of timesteps
     int maxTSteps;

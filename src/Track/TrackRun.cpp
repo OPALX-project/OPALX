@@ -162,7 +162,6 @@ ParallelTTracker *TrackRun::setupForAutophase() {
 
 void TrackRun::execute() {
 
-
     // Get algorithm to use.
     string method = Attributes::getString(itsAttr[METHOD]);
     bool mpacflg = Attributes::getBool(itsAttr[MULTIPACTING]);
@@ -280,11 +279,13 @@ void TrackRun::execute() {
                                               *mySlApTracker);
     } else if(method == "PARALLEL-T") {
 
+        bool isFollowupTrack = (OPAL->hasBunchAllocated() && !Options::scan);
+
         if(!OPAL->hasBunchAllocated() && !Options::scan) {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "  Selected Tracking Method == PARALLEL-T, NEW TRACK" << endl;
             *gmsg << "* ********************************************************************************** " << endl;
-        } else if(OPAL->hasBunchAllocated() && !Options::scan) {
+        } else if(isFollowupTrack) {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "  Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK" << endl;
             *gmsg << "* ********************************************************************************** " << endl;
@@ -401,6 +402,10 @@ void TrackRun::execute() {
             charge /= beam->getNumberOfParticles();
 
         Track::block->bunch->setdT(Track::block->dT);
+
+        if (!isFollowupTrack)
+            Track::block->bunch->setT(Track::block->t0_m);
+
         if(!mpacflg) {
             Track::block->bunch->setCharge(charge);
         } else {
@@ -417,8 +422,6 @@ void TrackRun::execute() {
         } else {
             Track::block->bunch->calcBeamParametersInitial();// we have not initialized any particle yet.
         }
-
-
 
         if(!OPAL->inRestartRun()) {
             if(!OPAL->hasDataSinkAllocated() && !Options::scan) {
@@ -540,9 +543,11 @@ void TrackRun::execute() {
             ds = new DataSink(OPAL->getRestartStep() + 1);
             OPAL->setDataSink(ds);
         }
-
+        
         if(OPAL->hasBunchAllocated() && Options::scan)
             ds->reset();
+
+        ds->setOPALcycl();
 
         *gmsg << *dist << endl;
         *gmsg << *beam << endl;
