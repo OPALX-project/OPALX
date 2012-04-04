@@ -337,7 +337,7 @@ public:
 #if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
 #else
-#pragma GCC diagnostic error "-Warray-bounds"
+#pragma GCC diagnostic warning "-Warray-bounds"
 #endif
 #endif
 
