@@ -7,7 +7,7 @@ ELSE(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
     set (OPAL_WC_REVISION 0)
     EXECUTE_PROCESS(
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMAND git rev-parse HEAD 
+        COMMAND git rev-parse HEAD
             OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         )
         set (OPAL_WC_REVISION \"${GIT_OUT}\")
@@ -35,7 +35,7 @@ IF(ENABLE_ML_SOLVER)
     )
 ENDIF(ENABLE_ML_SOLVER)
 
-MESSAGE ("Compile OPAL with: ${CMAKE_CXX_FLAGS}")
+#MESSAGE ("Compile OPAL with: ${CMAKE_CXX_FLAGS}")
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 macro (add_sources)
@@ -77,7 +77,7 @@ add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
 include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR} 
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
