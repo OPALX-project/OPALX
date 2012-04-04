@@ -374,6 +374,6 @@ void Option::execute() {
     FileStream::setEcho(echo);
 
     if(Attributes::getBool(itsAttr[TELL])) {
-        ERRORMSG("\nCurrent settings of options:\n" << *this << endl);
+        *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
 }
