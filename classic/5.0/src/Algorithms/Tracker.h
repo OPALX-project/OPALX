@@ -166,9 +166,6 @@ public:
     // standing wave structures
     FieldList cavities_m;
 
-    // traveling wave structures
-    FieldList travelingwaves_m;
-
     const Beamline &itsBeamline_m;
     
 protected:
