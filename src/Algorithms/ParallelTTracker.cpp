@@ -2127,14 +2127,22 @@ void ParallelTTracker::dumpStats(long long step) {
 
     size_t totalParticles_f = numParticlesInSimulation_m;
     if(totalParticles_f <= minBinEmitted_m) {
-        msg << myt2.time() << " Step " << step << "; only " << totalParticles_f << " particles emitted; t= " << itsBunch->getT()
-              << " [s] E=" << itsBunch->get_meanEnergy() << " [MeV] " << endl;
+        msg << myt2.time() << " "
+            << "Step " << setw(6) << step << "; "
+            << "only " << setw(4) << totalParticles_f << " particles emitted; "
+            << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
+            << "E="    << fixed      << setprecision(3) << setw(9) << itsBunch->get_meanEnergy() << " [MeV] "
+            << endl;
     } else if(std::isnan(sposRef) || std::isinf(sposRef)) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
-        msg << myt2.time() << " Step " << step << " at " << sposRef << " [m] t= "
-              << itsBunch->getT() << " [s] E=" << itsBunch->get_meanEnergy() << " [MeV] " << endl;
+        msg << myt2.time() << " "
+            << "Step " << setw(6) << step << " "
+            << "at " << fixed      << setprecision(3) << setw(8) << sposRef << " [m] "
+            << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
+            << "E="  << fixed      << setprecision(3) << setw(9) << itsBunch->get_meanEnergy() << " [MeV] "
+            << endl;
 
         writePhaseSpace(step, sposRef);
     }

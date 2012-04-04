@@ -2242,8 +2242,11 @@ Inform &PartBunch::print(Inform &os) {
         Inform::FmtFlags_t ff = os.flags();
         os << scientific;
         os << "* ************** B U N C H ********************************************************* " << endl;
-        os << "* NP= " << this->getTotalNum() << " Qtot= " << abs(sum(Q) * 1.0E9) << " [nC]  Qi= " << abs(qi_m) << " [C]" << endl;
-        os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV] dEkin= " << dE_m << " [MeV]" << endl;
+        os << "* NP              =   " << this->getTotalNum() << "\n";
+        os << "* Qtot            =   " << setw(12) << setprecision(5) << abs(sum(Q)) * 1.0e9 << " [nC]       "
+           << "Qi    = " << setw(12) << std::abs(qi_m) * 1e9 << " [nC]" << "\n";
+        os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV]      "
+           << "dEkin = " << setw(12) << dE_m << " [MeV]" << endl;
         os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]" << endl;
         os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]" << endl;
         os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]" << endl;
@@ -2254,7 +2257,8 @@ Inform &PartBunch::print(Inform &os) {
         os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << endl;
         os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]" << endl;
         os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]" << endl;
-        os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s] dT= " << getdT() << " [s]" << endl;
+        os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s]        "
+           << "dT    = " << setw(12) << getdT() << " [s]" << endl;
         os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]" << endl;
         os << "* ********************************************************************************** " << endl;
         os.flags(ff);
