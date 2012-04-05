@@ -2066,8 +2066,7 @@ void ParallelTTracker::handleBends() {
         RefPartR_zxy_m += RefPartP_zxy_m * recpgamma * scaleFactor_m / 2.;
 
         RefPartP_suv_m = Vector_t(0.0, 0.0, sqrt(dot(RefPartP_suv_m, RefPartP_suv_m)));
-        RefPartR_suv_m += RefPartP_suv_m * recpgamma / 2.;
-        RefPartR_suv_m *= vscaleFactor_m;
+        RefPartR_suv_m += RefPartP_suv_m * recpgamma / 2. * Physics::c * itsBunch->getdT();
     }
 
 
