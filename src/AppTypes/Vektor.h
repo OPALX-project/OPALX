@@ -151,29 +151,13 @@ public:
   }
 
   // Get and Set Operations
-  Element_t& operator[](unsigned int i)
-  {
-    PAssert (i<D);
-    return X[i];
-  }
+  Element_t& operator[](unsigned int i);
 
-  Element_t operator[](unsigned int i) const
-  {
-    PAssert (i<D);
-    return X[i];
-  }
+  Element_t operator[](unsigned int i) const;
 
-  Element_t& operator()(unsigned int i)
-  {
-    PAssert (i<D);
-    return X[i];
-  }
+  Element_t& operator()(unsigned int i);
 
-  Element_t operator()( unsigned int i) const
-  {
-    PAssert (i<D);
-    return X[i];
-  }
+  Element_t operator()( unsigned int i) const;
 
   // Comparison operators.
   bool operator==(const Vektor<T,D>& that) const {
@@ -202,6 +186,34 @@ private:
   T X[D];
 
 };
+
+template<class T, unsigned D>
+typename Vektor<T,D>::Element_t& Vektor<T,D>::operator[](unsigned int i)
+{
+  PAssert (i<D);
+  return X[i];
+}
+
+template<class T, unsigned D>
+typename Vektor<T,D>::Element_t Vektor<T,D>::operator[](unsigned int i) const
+{
+  PAssert (i<D);
+  return X[i];
+}
+
+template<class T, unsigned D>
+typename Vektor<T,D>::Element_t& Vektor<T,D>::operator()(unsigned int i)
+{
+  PAssert (i<D);
+  return X[i];
+}
+
+template<class T, unsigned D>
+typename Vektor<T,D>::Element_t Vektor<T,D>::operator()( unsigned int i) const
+{
+  PAssert (i<D);
+  return X[i];
+}
 
 //////////////////////////////////////////////////////////////////////
 //
