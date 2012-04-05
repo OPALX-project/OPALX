@@ -2138,11 +2138,30 @@ void ParallelTTracker::dumpStats(long long step) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
+        double sposPrint = sposRef;
+        string sposUnit;
+        double en = itsBunch->get_meanEnergy();
+        string enUnit;
+        
+        if (sposRef < 1.0) {
+            sposPrint = 1000.0*sposRef;
+            sposUnit = string(" [mm] ");
+        }
+        else
+            sposUnit = string(" [m] ");        
+
+        if (en < 1.0) {
+            en *= 1000.0;
+            enUnit = string(" [keV] ");
+        }
+        else
+            enUnit = string(" [MeV] ");
+        
         msg << myt2.time() << " "
             << "Step " << setw(6) << step << " "
-            << "at " << fixed      << setprecision(3) << setw(8) << sposRef << " [m] "
+            << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
             << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
-            << "E="  << fixed      << setprecision(3) << setw(9) << itsBunch->get_meanEnergy() << " [MeV] "
+            << "E="  << fixed      << setprecision(3) << setw(9) << en << enUnit 
             << endl;
 
         writePhaseSpace(step, sposRef);
