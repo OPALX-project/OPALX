@@ -199,7 +199,7 @@ bool reduce(Communicate& comm, InputIterator s1, InputIterator s2,
 
 ////////////////////////////////////////////////////////////////////////////
 // same as above, but this uses the default Communicate object
-#ifdef __GNUG__
+#if (defined(__GNUG__) && !defined(__ICC))
 #if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic push
 #endif
@@ -216,7 +216,7 @@ bool reduce(InputIterator s1, InputIterator s2,
 
     return reduce(*Ippl::Comm, s1, s2, t1, op, IncludeVal);
 }
-#ifdef __GNUG__
+#if (defined(__GNUG__) && !defined(__ICC))
 #if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
 #else
