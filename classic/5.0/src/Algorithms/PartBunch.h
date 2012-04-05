@@ -326,20 +326,7 @@ public:
         return dynamic_cast<FieldLayout_t &>(getLayout().getLayout().getFieldLayout());
     }
 
-#ifdef __GNUG__
-#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
-#pragma GCC diagnostic push
-#endif
-#pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
     void setBCAllOpen();
-#ifdef __GNUG__
-#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
-#pragma GCC diagnostic pop
-#else
-#pragma GCC diagnostic warning "-Warray-bounds"
-#endif
-#endif
 
     void boundp();
     void boundpNoRep();

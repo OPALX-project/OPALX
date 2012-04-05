@@ -987,6 +987,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
 
     Vector_t rmin, rmax;
 
+    size_t maxStepsSave = maxSteps_m;
     size_t step = 0;
     int dtfraction = 2;
     itsBunch->dt = itsBunch->getdT() / dtfraction;         // need to fix this and make the factor 2 selectable
@@ -1219,7 +1220,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
                     << "E= " << getEnergyMeV(itsBunch->P[0]) << " [MeV] " << endl);
         }
     }
-
+    masSteps_m = maxStepsSave;
     scaleFactor_m = scaleFactorSave;
     itsBunch->setT(tSave);
 }
@@ -1271,9 +1272,8 @@ void ParallelTTracker::execute() {
     prepareSections();
 
     // do autophasing before tracking without a global phase shift!
-    int saveMaxSteps = maxSteps_m;
     doAutoPhasing();
-    maxSteps_m = saveMaxSteps; 
+
     numParticlesInSimulation_m = itsBunch->getTotalNum();
     msg << "totalParticle_i= " << numParticlesInSimulation_m << endl;
 

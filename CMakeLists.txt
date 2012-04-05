@@ -15,8 +15,6 @@ SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 SET (CMAKE_CXX_FLAGS_RELEASE "-O2")
 SET (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 
-#SET(CMAKE_BUILD_TYPE Debug)
-
 OPTION (ENABLE_ML_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
@@ -110,27 +108,29 @@ IF ("${COMPILER_NAME}" STREQUAL "mpicxx")
     EXECUTE_PROCESS (COMMAND ${CMAKE_CXX_COMPILER} -show
                     OUTPUT_VARIABLE MPI_COMPILER_OUTPUT
                     ERROR_VARIABLE MPI_COMPILER_ERROR)
-
     IF ("${MPI_COMPILER_ERROR}" STREQUAL "")
-        STRING (REGEX REPLACE "([A-Za-z]*) .*$" "\\1" MPI_UNDERLYING_COMPILER ${MPI_COMPILER_OUTPUT})
+        STRING (REGEX REPLACE "([A-Za-z.0-9/]*) .*$" "\\1" MPI_UNDERLYING_COMPILER ${MPI_COMPILER_OUTPUT})
+        STRING (REGEX REPLACE "/" ";" MPI_UNDERLYING_COMPILER_SPLIT ${MPI_UNDERLYING_COMPILER})
+        LIST (REVERSE MPI_UNDERLYING_COMPILER_SPLIT)
+        LIST (GET MPI_UNDERLYING_COMPILER_SPLIT 0 MPI_UNDERLYING_COMPILER_NAME)
     ENDIF ("${MPI_COMPILER_ERROR}" STREQUAL "")
 
-    IF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
+    IF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "icpc")
         # using intel compiler
         MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: icpc")
         SET (OTHER_CMAKE_CXX_FLAGS
              "-diag-disable 383 -diag-disable 981 ${OTHER_CMAKE_CXX_FLAGS}")
 
-    ELSEIF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "clang++")
+    ELSEIF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "clang++")
         # using clang compiler
         MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: clang++")
         SET (OTHER_CMAKE_CXX_FLAGS
              "-Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CMAKE_CXX_FLAGS}")
 
-    ELSEIF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "g++")
+    ELSEIF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "g++")
         # using gnu compiler
         MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: g++")
-        EXECUTE_PROCESS (COMMAND g++ --version
+        EXECUTE_PROCESS (COMMAND ${MPI_UNDERLYING_COMPILER} --version
                         OUTPUT_VARIABLE GCC_VERSION_OUTPUT
                         ERROR_VARIABLE GCC_VERSION_ERROR)
         STRING (REGEX REPLACE ".*([0-9]\\.[0-9]\\.[0-9]).*" "\\1" GCC_VERSION ${GCC_VERSION_OUTPUT})
@@ -139,11 +139,11 @@ IF ("${COMPILER_NAME}" STREQUAL "mpicxx")
                "-DOPAL_NOCPLUSPLUS11_NULLPTR -DOPAL_NOCPLUSPLUS11_FOREACH ${OTHER_CMAKE_CXX_FLAGS}")
           MESSAGE (STATUS "YOUR GCC VERSION IS: 4.5")
         ENDIF (${GCC_VERSION} VERSION_LESS "4.6.0" AND ${GCC_VERSION} VERSION_GREATER "4.5.0")
-    ELSE ("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
+    ELSE ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "icpc")
         # using unknown compiler
         MESSAGE (STATUS "${COMPILER_NAME} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of!
                  Please use the gnu compiler or the intel compiler IF you are having problems.")
-    ENDIF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
+    ENDIF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "icpc")
 
 ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
     # using unknown mpi implementation
@@ -151,8 +151,6 @@ ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
              Please use the OpenMPI or MPICH IF you are having problems.")
 ENDIF ("${COMPILER_NAME}" STREQUAL "mpicxx")
 
-#SET (CMAKE_CXX_FLAGS
-#  "-Wall -std=c++0x ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
 SET (CMAKE_CXX_FLAGS
   "-Wall -Werror -std=c++0x ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
 
