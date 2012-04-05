@@ -1220,7 +1220,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
                     << "E= " << getEnergyMeV(itsBunch->P[0]) << " [MeV] " << endl);
         }
     }
-    masSteps_m = maxStepsSave;
+    maxSteps_m = maxStepsSave;
     scaleFactor_m = scaleFactorSave;
     itsBunch->setT(tSave);
 }
