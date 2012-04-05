@@ -363,7 +363,9 @@ void TrackRun::execute() {
                     /*
                      * Here we set up the distribution. Most of the work is done elsewhere.
                      */
-                    Track::block->bunch->setDistribution(dist, beam->getNumberOfParticles(), Options::scan);  // inside we do the setup
+                    // inside we do the setup
+                    Track::block->bunch->setDistribution(dist, beam->getNumberOfParticles(), Options::scan);  
+
 
                     if(distrs_m.size() > 0)
                         if(!(Track::block->bunch->addDistributions(distrs_m, beam->getNumberOfParticles())))
@@ -403,7 +405,7 @@ void TrackRun::execute() {
 
         Track::block->bunch->setdT(Track::block->dT);
 
-        if (!isFollowupTrack)
+        if (!isFollowupTrack && !OPAL->inRestartRun())
             Track::block->bunch->setT(Track::block->t0_m);
 
         if(!mpacflg) {
