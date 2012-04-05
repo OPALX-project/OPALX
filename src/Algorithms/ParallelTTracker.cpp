@@ -165,6 +165,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     of_m.precision(9);
     of_m << "# spos Ex Ey Ez Bz By Bz at: (h,h),(h,-h),(-h,h)(-h,-h) h=0.001" << endl;
 #endif
+
 }
 
 
@@ -1270,8 +1271,9 @@ void ParallelTTracker::execute() {
     prepareSections();
 
     // do autophasing before tracking without a global phase shift!
+    int saveMaxSteps = maxSteps_m;
     doAutoPhasing();
-
+    maxSteps_m = saveMaxSteps; 
     numParticlesInSimulation_m = itsBunch->getTotalNum();
     msg << "totalParticle_i= " << numParticlesInSimulation_m << endl;
 
@@ -1292,7 +1294,7 @@ void ParallelTTracker::execute() {
     doSchottyRenormalization();
 
     msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
-          << "max integration steps " << maxSteps_m << ", next step= " << step << endl;
+        << "max integration steps " << maxSteps_m << ", next step= " << step << endl;
 
     // itsBeamline_m.accept(*this);
     // itsOpalBeamline_m.prepareSections();
