@@ -2301,7 +2301,11 @@ void ParallelTTracker::setLastStep() {
         OpalData::getInstance()->setLastStep(last_step);
 
     } else if(OpalData::getInstance()->hasBunchAllocated()) {
-       // use step of last bunch
+        /*
+          we are in a follow up track; maxSteps is the number of steps
+          that should be performed with the current track
+        */
+        maxSteps_m += OpalData::getInstance()->getLastStep();
     } else
         OpalData::getInstance()->setLastStep(0);
 }
