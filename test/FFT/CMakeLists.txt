@@ -1,9 +1,5 @@
-message("adding test ippltoyfdtd found in ${CMAKE_CURRENT_SOURCE_DIR}")
-
-set (OLD_CMAKE_CXX_FLAGS
-    ${CMAKE_CXX_FLAGS}
-)
-
+FILE (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+MESSAGE (STATUS "Adding test FFT found in ${_relPath}")
 
 IF(${MPI_UNDERLYING_COMPILER} STREQUAL "g++")
   set (CMAKE_CXX_FLAGS
@@ -23,6 +19,3 @@ link_directories (
 add_executable (TestFFT TestFFT.cpp)
 target_link_libraries (TestFFT ippl)
 
-#set (CMAKE_CXX_FLAGS
-#    ${OLD_CMAKE_CXX_FLAGS}
-#)

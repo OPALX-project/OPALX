@@ -1,113 +1,149 @@
-cmake_minimum_required (VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 
-IF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
-    include(FindSubversion)
-    Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} IPPL)
-ELSE(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
-    set (IPPL_WC_REVISION 0)
-    EXECUTE_PROCESS(
+IF (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
+    INCLUDE (FindSubversion)
+    Subversion_WC_INFO (${CMAKE_CURRENT_SOURCE_DIR} IPPL)
+ELSE (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
+    SET (IPPL_WC_REVISION 0)
+    EXECUTE_PROCESS (
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMAND git rev-parse HEAD 
+        COMMAND git rev-parse HEAD
             OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_VARIABLE DEV_NULL
         )
-        set (IPPL_WC_REVISION \"${GIT_OUT}\")
-ENDIF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
+        SET (IPPL_WC_REVISION \"${GIT_OUT}\")
+ENDIF (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
 
-configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+CONFIGURE_FILE (config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
-MESSAGE("configure: make IpplInfo.h")
-EXECUTE_PROCESS(
+MESSAGE (STATUS "configure: make IpplInfo.h")
+EXECUTE_PROCESS (
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMAND date
         OUTPUT_VARIABLE DATE_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-EXECUTE_PROCESS(
+EXECUTE_PROCESS (
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMAND uname -a
         OUTPUT_VARIABLE UNAME_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-set (IPPL_COMPILE_ARCH \"$ENV{IPPL_ARCH}\")
-set (IPPL_COMPILE_LINE \"${CMAKE_CXX_FLAGS}\")
-set (IPPL_COMPILE_DATE \"${DATE_OUT}\")
-set (IPPL_COMPILE_MACHINE \"${UNAME_OUT}\")
-set (IPPL_COMPILE_OPTIONS \"${CXXDEFINES}\")
-set (IPPL_COMPILE_USER \"adelmann\")
+SET (IPPL_COMPILE_ARCH \"$ENV{IPPL_ARCH}\")
+SET (IPPL_COMPILE_LINE \"${CMAKE_CXX_FLAGS}\")
+SET (IPPL_COMPILE_DATE \"${DATE_OUT}\")
+SET (IPPL_COMPILE_MACHINE \"${UNAME_OUT}\")
+SET (IPPL_COMPILE_OPTIONS \"${CXXDEFINES}\")
+SET (IPPL_COMPILE_USER \"adelmann\")
 #FIXME: "CVS" version of each file:
 #echo `find ${IPPL_ROOT}/src -name '*.cpp' -print` `find ${IPPL_ROOT}/src -name '*.h' -print` | perl ${IPPL_ROOT}/bin/mkver2 >> IpplVersions.h
-configure_file(IpplVersions.h.in ${CMAKE_CURRENT_SOURCE_DIR}/IpplVersions.h)
+CONFIGURE_FILE (IpplVersions.h.in ${CMAKE_CURRENT_SOURCE_DIR}/IpplVersions.h)
 
-MESSAGE (${CMAKE_CXX_FLAGS})
+### print the compiler flags #############################
+SET (PRETTY_PRINT_WIDTH 78)
+STRING (TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_STR)
+SET (COMPILE_FLAGS_STR
+ "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_STR}}")
+STRING (REGEX REPLACE " +" ";" COMPILE_FLAGS_LIST ${COMPILE_FLAGS_STR})
 
-set (IPPL_SRCS_FORT
+LIST (LENGTH COMPILE_FLAGS_LIST NUMBER_OF_COMPILE_FLAGS)
+SET (CURRENT_FLAG_INDEX 0)
+
+MESSAGE (STATUS "")
+MESSAGE (STATUS "Building IPPL with:")
+WHILE (${CURRENT_FLAG_INDEX} LESS ${NUMBER_OF_COMPILE_FLAGS})
+  SET (FLAGS_PRETTY_PRINT "")
+
+  LIST (GET COMPILE_FLAGS_LIST ${CURRENT_FLAG_INDEX} CURRENT_FLAG)
+  STRING (LENGTH ${CURRENT_FLAG} LENGTH_INCL_NEXT)
+
+  WHILE (${LENGTH_INCL_NEXT} LESS ${PRETTY_PRINT_WIDTH})
+    SET (FLAGS_PRETTY_PRINT
+        "${FLAGS_PRETTY_PRINT} ${CURRENT_FLAG}")
+
+    MATH (EXPR CURRENT_FLAG_INDEX "(${CURRENT_FLAG_INDEX} + 1)")
+
+    IF (${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
+      SET (LENGTH_INCL_NEXT ${PRETTY_PRINT_WIDTH})
+    ELSE(${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
+      LIST (GET COMPILE_FLAGS_LIST ${CURRENT_FLAG_INDEX} CURRENT_FLAG)
+      STRING (LENGTH ${CURRENT_FLAG} LENGTH_CURRENT_FLAG)
+      MATH (EXPR LENGTH_INCL_NEXT "${LENGTH_INCL_NEXT} + 1 + ${LENGTH_CURRENT_FLAG}")
+    ENDIF(${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
+
+  ENDWHILE (${LENGTH_INCL_NEXT} LESS ${PRETTY_PRINT_WIDTH})
+  STRING (STRIP ${FLAGS_PRETTY_PRINT} FLAGS_PRETTY_PRINT)
+  MESSAGE (STATUS "${FLAGS_PRETTY_PRINT}")
+ENDWHILE()
+MESSAGE (STATUS "")
+
+SET (IPPL_SRCS_FORT
 	FFT/fftpack.F
 )
 
-set (IPPL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-macro (add_sources)
-    file (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    foreach (_src ${ARGN})
-        if (_relPath)
-            list (APPEND IPPL_SRCS "${_relPath}/${_src}")
-        else()
-            list (APPEND IPPL_SRCS "${_src}")
-        endif()
-    endforeach()
-    if (_relPath)
+SET (IPPL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+MACRO (ADD_SOURCES )
+    FILE (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    FOREACH (_src ${ARGN})
+        IF (_relPath)
+            LIST (APPEND IPPL_SRCS "${_relPath}/${_src}")
+        ELSE ()
+            LIST (APPEND IPPL_SRCS "${_src}")
+        ENDIF ()
+    ENDFOREACH ()
+    IF (_relPath)
         # propagate SRCS to parent directory
-        set (IPPL_SRCS ${IPPL_SRCS} PARENT_SCOPE)
-    endif()
-endmacro()
+        SET (IPPL_SRCS ${IPPL_SRCS} PARENT_SCOPE)
+    ENDIF ()
+ENDMACRO ()
 
-macro (add_headers)
-    file (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    foreach (_hdr ${ARGN})
-        if (_relPath)
-            list (APPEND IPPL_HDRS "${_relPath}/${_hdr}")
-        else()
-            list (APPEND IPPL_HDRS "${_hdr}")
-        endif()
-    endforeach()
-    if (_relPath)
+MACRO (ADD_HEADERS )
+    FILE (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    FOREACH (_hdr ${ARGN})
+        IF (_relPath)
+            LIST (APPEND IPPL_HDRS "${_relPath}/${_hdr}")
+        ELSE ()
+            LIST (APPEND IPPL_HDRS "${_hdr}")
+        ENDIF ()
+    ENDFOREACH ()
+    IF (_relPath)
         # propagate HDRS to parent directory
-        set (IPPL_HDRS ${IPPL_HDRS} PARENT_SCOPE)
-    endif()
-endmacro()
+        SET (IPPL_HDRS ${IPPL_HDRS} PARENT_SCOPE)
+    ENDIF ()
+ENDMACRO ()
 
-set(IPPL_BASEDIR_HDRS
+SET (IPPL_BASEDIR_HDRS
   Ippl.h
   IpplVersions.h
   )
-add_headers(${IPPL_BASEDIR_HDRS})
+ADD_HEADERS (${IPPL_BASEDIR_HDRS})
 
-add_subdirectory(AppTypes)
-add_subdirectory(DataSource)
-add_subdirectory(DomainMap)
-add_subdirectory(FFT)
-add_subdirectory(Field)
-add_subdirectory(FieldLayout)
-add_subdirectory(Index)
-add_subdirectory(Meshes)
-add_subdirectory(Message)
-add_subdirectory(Particle)
-add_subdirectory(PETE)
-add_subdirectory(Profile)
-add_subdirectory(Region)
-add_subdirectory(SubField)
-add_subdirectory(SubParticle)
-add_subdirectory(Utility)
+ADD_SUBDIRECTORY (AppTypes)
+ADD_SUBDIRECTORY (DataSource)
+ADD_SUBDIRECTORY (DomainMap)
+ADD_SUBDIRECTORY (FFT)
+ADD_SUBDIRECTORY (Field)
+ADD_SUBDIRECTORY (FieldLayout)
+ADD_SUBDIRECTORY (Index)
+ADD_SUBDIRECTORY (Meshes)
+ADD_SUBDIRECTORY (Message)
+ADD_SUBDIRECTORY (Particle)
+ADD_SUBDIRECTORY (PETE)
+ADD_SUBDIRECTORY (Profile)
+ADD_SUBDIRECTORY (Region)
+ADD_SUBDIRECTORY (SubField)
+ADD_SUBDIRECTORY (SubParticle)
+ADD_SUBDIRECTORY (Utility)
 
-set (MAKE_DEF
+SET (MAKE_DEF
     ../test/Makefile.def
 )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_library( ippl ${IPPL_SRCS} ${IPPL_SRCS_FORT} )
+ADD_LIBRARY ( ippl ${IPPL_SRCS} ${IPPL_SRCS_FORT} )
 
-install(FILES ${MAKE_DEF} DESTINATION lib)
-install(TARGETS ippl DESTINATION lib)
-install(FILES ${IPPL_BASEDIR_HDRS} DESTINATION include)
+INSTALL (FILES ${MAKE_DEF} DESTINATION lib)
+INSTALL (TARGETS ippl DESTINATION lib)
+INSTALL (FILES ${IPPL_BASEDIR_HDRS} DESTINATION include)

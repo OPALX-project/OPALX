@@ -1,8 +1,8 @@
-set (_SRCS
+SET (_SRCS
   Centering.cpp
   )
 
-set (_HDRS
+SET (_HDRS
   CartesianCentering.cpp
   CartesianCentering.h
   Cartesian.cpp
@@ -15,11 +15,11 @@ set (_HDRS
   UniformCartesian.h
   )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
-add_headers(${_HDRS})
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
 
-install(FILES ${_HDRS} DESTINATION include/Meshes)
+INSTALL (FILES ${_HDRS} DESTINATION include/Meshes)

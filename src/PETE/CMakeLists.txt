@@ -1,18 +1,18 @@
-set (_SRCS
+SET (_SRCS
   )
 
-set (_HDRS
+SET (_HDRS
   IpplExpressions.h
   IpplTypeComputations.h
   PETE.h
   TypeComputations.h
   )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
-add_headers(${_HDRS})
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
 
-install(FILES ${_HDRS} DESTINATION include/PETE)
+INSTALL (FILES ${_HDRS} DESTINATION include/PETE)
