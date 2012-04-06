@@ -1,4 +1,4 @@
-set (_SRCS
+SET (_SRCS
   DiscBuffer.cpp
   DiscConfig.cpp
   DiscMeta.cpp
@@ -24,7 +24,7 @@ set (_SRCS
   PAssert.cpp
   )
 
-set (_HDRS
+SET (_HDRS
   bstring.h
   DiscBuffer.h
   DiscConfig.h
@@ -83,11 +83,11 @@ set (_HDRS
   vmap.h
   )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
-add_headers(${_HDRS})
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
 
-install(FILES ${_HDRS} DESTINATION include/Utility)
+INSTALL (FILES ${_HDRS} DESTINATION include/Utility)

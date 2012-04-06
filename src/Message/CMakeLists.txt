@@ -1,4 +1,4 @@
-set (_SRCS
+SET (_SRCS
   CRC.cpp
   Communicate.cpp
   CommCreator.cpp
@@ -7,7 +7,7 @@ set (_SRCS
   Formatter.cpp
   )
 
-set (_HDRS
+SET (_HDRS
   CommCreator.h
   CommMPI.h
   CommPM.h
@@ -23,11 +23,11 @@ set (_HDRS
   Tags.h
   )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
-add_headers(${_HDRS})
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
 
-install(FILES ${_HDRS} DESTINATION include/Message)
+INSTALL (FILES ${_HDRS} DESTINATION include/Message)

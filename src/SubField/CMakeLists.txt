@@ -1,7 +1,7 @@
-set (_SRCS
+SET (_SRCS
   )
 
-set (_HDRS
+SET (_HDRS
   SubBareField.cpp
   SubBareField.h
   SubFieldAssign.cpp
@@ -13,11 +13,11 @@ set (_HDRS
   SubFieldTraits.h
   )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
-add_headers(${_HDRS})
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
 
-install(FILES ${_HDRS} DESTINATION include/SubField)
+INSTALL (FILES ${_HDRS} DESTINATION include/SubField)

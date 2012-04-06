@@ -1,7 +1,7 @@
-set (_SRCS
+SET (_SRCS
   )
 
-set (_HDRS
+SET (_HDRS
   BoxParticleCachingPolicy.h
   CellParticleCachingPolicy.h
   GenArrayParticle.h
@@ -42,13 +42,13 @@ set (_HDRS
   PAssign.h
   )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
-add_headers(${_HDRS})
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
 
-install(FILES ${_HDRS} DESTINATION include/Particle)
+INSTALL (FILES ${_HDRS} DESTINATION include/Particle)
 
-add_subdirectory(PairBuilder)
+ADD_SUBDIRECTORY (PairBuilder)

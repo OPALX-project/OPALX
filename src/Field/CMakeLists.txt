@@ -1,7 +1,7 @@
-set (_SRCS
+SET (_SRCS
   )
 
-set (_HDRS
+SET (_HDRS
   Assign.cpp
   AssignDefs.h
   AssignGeneralBF.cpp
@@ -34,11 +34,11 @@ set (_HDRS
   ReductionLoc.h
   )
 
-include_directories (
+INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
-add_headers(${_HDRS})
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
 
-install(FILES ${_HDRS} DESTINATION include/Field)
+INSTALL (FILES ${_HDRS} DESTINATION include/Field)
