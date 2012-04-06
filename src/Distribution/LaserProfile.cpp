@@ -11,7 +11,6 @@
 // ------------------------------------------------------------------------
 #include "Distribution/LaserProfile.h"
 #include "Utility/Inform.h"
-#include "hdf5.h"
 
 using namespace std;
 
@@ -68,8 +67,8 @@ void LaserProfile::ReadFile(string fn, string imagestr, double cut) {
     m << "# Read image done .... sizeX= " << sizeX_m << " sizeY= " << sizeY_m << " Bits= " << bits << endl;
 
     int pixel = 0;
-    int col = 1;
-    int row = 1;
+    hsize_t col = 1;
+    hsize_t row = 1;
 
     hist2d_m = gsl_histogram2d_alloc(sizeX_m, sizeY_m);
     gsl_histogram2d_set_ranges_uniform(hist2d_m, 0.0, 1.0, 0.0, 1.0);   // all bins are set to 0 too

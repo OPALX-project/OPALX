@@ -15,7 +15,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram2d.h>
 #include <string>
-// #include <hdf5.h>
+#include "hdf5.h"
 
 
 class LaserProfile {
@@ -49,7 +49,7 @@ public:
 private:
     double X, Y;
     //unsigned short int profileMax_m;
-    int sizeX_m, sizeY_m;
+    hsize_t sizeX_m, sizeY_m;
     gsl_histogram2d *hist2d_m;
     const gsl_rng_type *rngT_m;
     gsl_rng *r_m;
