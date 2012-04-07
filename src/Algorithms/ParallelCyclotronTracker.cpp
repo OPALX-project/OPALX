@@ -3383,11 +3383,12 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             borisExternalFields(dt_inner);
         }
 
-	// apply the plugin elements: probe, collimator, stripper, septum 
-	bool flagNeedUpdate=false;
-	flagNeedUpdate = applyPluginElements(turnnumber, dt);
-	if(itsBunch->weHaveBins() && flagNeedUpdate)
-	  itsBunch->resetPartBinID2(eta);
+        // apply the plugin elements: probe, collimator, stripper, septum
+        itsBunch->R *= Vector_t(1000.0); // applyPluginElements expects [R] = mm
+        bool const flagNeedUpdate = applyPluginElements(turnnumber, dt * 1e9);
+        itsBunch->R *= Vector_t(0.001);
+        if(itsBunch->weHaveBins() && flagNeedUpdate)
+            itsBunch->resetPartBinID2(eta);
 
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
