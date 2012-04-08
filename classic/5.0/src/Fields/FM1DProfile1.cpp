@@ -374,7 +374,6 @@ bool FM1DProfile1::adjustFringeFields() {
     while(strength(0) > 1.0e-4) {
         zend_exit_m += 0.001;
         R(2) = -zbegin_entry_m + zend_exit_m - 0.001;
-        cout << R(2) << " " << strength(0) << endl;
         getFieldstrength(R, strength, info);
         adjustedPositions = true;
     }

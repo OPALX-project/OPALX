@@ -159,8 +159,10 @@ void OpalSBend::update() {
 
     if(itsAttr[ROTATION])
         bend->setLongitudinalRotation(Attributes::getReal(itsAttr[ROTATION]));
-    else
+    else if(itsAttr[K0] || itsAttr[K0S])
         bend->setLongitudinalRotation(k0, k0s);
+    else
+        bend->setLongitudinalRotation(0.0);
 
     if(itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));

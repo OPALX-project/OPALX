@@ -20,8 +20,8 @@ CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, 
 void CSRWakeFunction::apply(PartBunch &bunch) {
     Inform msg("CSRWake ");
 
-    const double & meshSpacing = bunch.getMesh().get_meshSpacing(2);
-    const Vector_t & meshOrigin = bunch.getMesh().get_origin();
+    const double &meshSpacing = bunch.getMesh().get_meshSpacing(2);
+    const Vector_t &meshOrigin = bunch.getMesh().get_origin();
 
     calculateLineDensity(bunch, meshSpacing);
 
@@ -35,12 +35,12 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
     double minPathLength = smin(2) - FieldBegin_m;
     Ez_m[0] = 0.0;
     // calculate wake field of bunch
-    for (unsigned int i = 1; i < lineDensity_m.size(); ++i) {
+    for(unsigned int i = 1; i < lineDensity_m.size(); ++i) {
         Ez_m[i] = 0.0;
 
         double angleOfSlice = 0.0;
         double pathLengthOfSlice = minPathLength + i * meshSpacing;
-        if (pathLengthOfSlice > 0.0)
+        if(pathLengthOfSlice > 0.0)
             angleOfSlice = pathLengthOfSlice / bendRadius_m;
 
         calculateContributionInside(i, angleOfSlice, meshSpacing);
@@ -51,7 +51,7 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
 
     // calculate the wake field seen by the particles
     for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
-        const Vector_t & R = bunch.R[i];
+        const Vector_t &R = bunch.R[i];
         int indexz = (int)floor((R(2) - meshOrigin(2)) / meshSpacing);
         double leverz = (R(2) - meshOrigin(2)) / meshSpacing - indexz;
         bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
@@ -66,9 +66,9 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
 
     const int every = 1;
     bool print_criterion = (counter + 1) % every == 0 && Ippl::myNode() == 0;
-    if (print_criterion) {
+    if(print_criterion) {
         static unsigned int file_number = 0;
-        if (counter == 0) file_number = 0;
+        if(counter == 0) file_number = 0;
 
         stringstream filename_str;
         filename_str << bendName_m << "-CSRWake" << file_number << ".txt";
@@ -90,7 +90,7 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
 
 }
 
-void CSRWakeFunction::initialize(const ElementBase * ref) {
+void CSRWakeFunction::initialize(const ElementBase *ref) {
     double End;
     if(dynamic_cast<const RBend *>(ref)) {
         const RBend *bend = dynamic_cast<const RBend *>(ref);
@@ -100,7 +100,7 @@ void CSRWakeFunction::initialize(const ElementBase * ref) {
         FieldBegin_m = Begin_m + bend->getEffectiveCenter() - Length_m / 2.0;
         totalBendAngle_m = std::abs(bend->getBendAngle());
         bendName_m = bend->getName();
-    } else if (dynamic_cast<const SBend *>(ref)) {
+    } else if(dynamic_cast<const SBend *>(ref)) {
         const SBend *bend = dynamic_cast<const SBend *>(ref);
         bendRadius_m = bend->getR();
         bend->getDimensions(Begin_m, End);
@@ -111,7 +111,7 @@ void CSRWakeFunction::initialize(const ElementBase * ref) {
     }
 }
 
-void CSRWakeFunction::calculateLineDensity(PartBunch & bunch, double meshSpacing) {
+void CSRWakeFunction::calculateLineDensity(PartBunch &bunch, double meshSpacing) {
     bunch.calcLineDensity();
     bunch.getLineDensity(lineDensity_m);
 
@@ -124,12 +124,12 @@ void CSRWakeFunction::calculateLineDensity(PartBunch & bunch, double meshSpacing
 }
 
 void CSRWakeFunction::calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing) {
-    if (angleOfSlice > totalBendAngle_m || angleOfSlice < 0.0) return;
+    if(angleOfSlice > totalBendAngle_m || angleOfSlice < 0.0) return;
 
     const double meshSpacingsup = pow(meshSpacing, -1. / 3.);
     double SlippageLength = pow(angleOfSlice, 3) * bendRadius_m / 24.;
     double relativeSlippageLength = SlippageLength / meshSpacing;
-    if (relativeSlippageLength > sliceNumber) {
+    if(relativeSlippageLength > sliceNumber) {
 
         /*
         Break integral into sum of integrals between grid points, then
@@ -151,12 +151,12 @@ void CSRWakeFunction::calculateContributionInside(size_t sliceNumber, double ang
     } else if(relativeSlippageLength < 1) {
 
         // First do transient term.
-        if (4.0 * relativeSlippageLength <= 1) {
+        if(4.0 * relativeSlippageLength <= 1) {
 
             Ez_m[sliceNumber] += 3.0 * pow(SlippageLength, 2.0 / 3.0) * (lineDensity_m[sliceNumber] - lineDensity_m[sliceNumber - 1]) / meshSpacing;
         } else {
 
-            if (4.0 * relativeSlippageLength < sliceNumber) {
+            if(4.0 * relativeSlippageLength < sliceNumber) {
 
                 int j = sliceNumber - static_cast<int>(floor(4.0 * relativeSlippageLength));
                 double frac = 4.0 * relativeSlippageLength - (sliceNumber - j);
@@ -210,7 +210,7 @@ void CSRWakeFunction::calculateContributionInside(size_t sliceNumber, double ang
 }
 
 void CSRWakeFunction::calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing) {
-    if (angleOfSlice <= totalBendAngle_m) return;
+    if(angleOfSlice <= totalBendAngle_m) return;
 
     double Ds_max = bendRadius_m * pow(totalBendAngle_m, 3) / 24. * (4. - 3.* totalBendAngle_m / angleOfSlice);
 
@@ -227,7 +227,7 @@ void CSRWakeFunction::calculateContributionAfter(size_t sliceNumber, double angl
 
     // Now do delta function contribution for particles whose retarded position
     // is in the bend.
-    if (Ds_max / meshSpacing < sliceNumber) {
+    if(Ds_max / meshSpacing < sliceNumber) {
         j = sliceNumber - static_cast<int>(floor(Ds_max / meshSpacing));
         frac = Ds_max / meshSpacing - (sliceNumber - j);
         Ez_m[sliceNumber] += (frac * lineDensity_m[j - 1] + (1.0 - frac) * lineDensity_m[j]) / (2. * angleOfSlice - totalBendAngle_m);
@@ -238,28 +238,28 @@ void CSRWakeFunction::calculateContributionAfter(size_t sliceNumber, double angl
 
     double angleOverlap = angleOfSlice - totalBendAngle_m;
     int k = sliceNumber;
-    if (Ds_max / meshSpacing < sliceNumber) {
+    if(Ds_max / meshSpacing < sliceNumber) {
         k = j;
         Psi_m[k] = calcPsi(Psi_m[k], angleOverlap, meshSpacing * (k + frac));
-        if (Psi_m[k] > 0 && Psi_m[k] < totalBendAngle_m)
+        if(Psi_m[k] > 0 && Psi_m[k] < totalBendAngle_m)
             Ez_m[sliceNumber] += 0.5 * (frac * dlineDensitydz_m[sliceNumber - k - 1] + (1.0 - frac) * dlineDensitydz_m[sliceNumber - k]) / (Psi_m[k] + 2.0 * angleOverlap);
     } else {
         Psi_m[0] = calcPsi(Psi_m[0], angleOverlap, meshSpacing * sliceNumber);
-        if (Psi_m[0] > 0 && Psi_m[0] < totalBendAngle_m)
+        if(Psi_m[0] > 0 && Psi_m[0] < totalBendAngle_m)
             Ez_m[sliceNumber] += 0.5 * dlineDensitydz_m[0] / (Psi_m[0] + 2.0 * angleOverlap);
     }
 
     // Do rest of integral.
     for(unsigned int l = sliceNumber - k + 1; l < sliceNumber; ++ l) {
         Psi_m[l] = calcPsi(Psi_m[l], angleOverlap, meshSpacing * (sliceNumber - l));
-        if (Psi_m[l] > 0 && Psi_m[l] < totalBendAngle_m)
+        if(Psi_m[l] > 0 && Psi_m[l] < totalBendAngle_m)
             Ez_m[sliceNumber] += dlineDensitydz_m[l] / (Psi_m[l] + 2.0 * angleOverlap);
     }
 
     // We don't go right to the end as there is a singularity in the numerical integral that we don't quite know
     // how to deal with properly yet. This introduces a very slight error in the calculation (fractions of a percent).
     Psi_m[sliceNumber] = calcPsi(Psi_m[sliceNumber], angleOverlap, meshSpacing / 4.0);
-    if (Psi_m[sliceNumber] > 0 && Psi_m[sliceNumber] < totalBendAngle_m)
+    if(Psi_m[sliceNumber] > 0 && Psi_m[sliceNumber] < totalBendAngle_m)
         Ez_m[sliceNumber] += 0.5 * dlineDensitydz_m[sliceNumber] / (Psi_m[sliceNumber] + 2.0 * angleOverlap);
 
     double prefactor = -4 / bendRadius_m;
@@ -278,7 +278,7 @@ double CSRWakeFunction::calcPsi(const double &psiInitial, const double &x, const
     const double eps = 1e-10;
     double residual = 0.0;
     double psi = pow(24. * Ds / bendRadius_m, 1. / 3.);
-    if (psiInitial != 0.0) psi = psiInitial;
+    if(psiInitial != 0.0) psi = psiInitial;
 
     for(int i = 0; i < Nmax; ++i) {
         residual = bendRadius_m * psi * psi * psi * (psi + 4. * x) - 24. * Ds * psi - 24. * Ds * x;
@@ -290,7 +290,7 @@ double CSRWakeFunction::calcPsi(const double &psiInitial, const double &x, const
     return psi;
 }
 
-const string CSRWakeFunction::getType() const {
+const std::string CSRWakeFunction::getType() const {
     return "CSRWakeFunction";
 }
 
