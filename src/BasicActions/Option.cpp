@@ -80,7 +80,7 @@ namespace Options {
     int scSolveFreq = 1;
 
     // How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator
-    int mtsSubsteps = 2;
+    int mtsSubsteps = 1;
 
     // The frequency to dump the particle-geometry surface interation data, -1 stands for no dump.
     int surfDumpFreq = -1;

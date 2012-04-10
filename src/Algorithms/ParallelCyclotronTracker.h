@@ -342,6 +342,8 @@ private:
 
     void singleParticleDump();
 
+    void evaluateSpaceChargeField();
+
 };
 
 /**

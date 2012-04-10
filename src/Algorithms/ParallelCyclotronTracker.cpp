@@ -3208,13 +3208,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         localToGlobal(itsBunch->R, phi, meanR);
     }
 
-    int const innerstepsPerHalfStep = std::max(Options::mtsSubsteps / 2, 1);
-    if(2 * innerstepsPerHalfStep != Options::mtsSubsteps) {
-        *gmsg << "MTS: WARNING: Option MTSSUBSTEPS has an invalid value. The current MTS implementation requires an even (positive) integer. ";
-        *gmsg << "Using MTSSUBSTEPS = " << 2 * innerstepsPerHalfStep << endl;
-    }
-    *gmsg << "MTS: Number of substeps per step is " << 2 * innerstepsPerHalfStep << endl;
-    double const dt_inner = 0.5 * dt / double(innerstepsPerHalfStep);
+    int const numSubsteps = std::max(Options::mtsSubsteps, 1);
+    *gmsg << "MTS: Number of substeps per step is " << numSubsteps << endl;
+    double const dt_inner = dt / double(numSubsteps);
     *gmsg << "MTS: The inner time step is therefore " << dt_inner << endl;
     int SteptoLastInj = itsBunch->getSteptoLastInj();
     double oldReferenceTheta = initialReferenceTheta;
@@ -3223,6 +3219,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     int stepsNextCheck = step_m + itsBunch->getStepsPerTurn(); // step point determining the next time point of check for transition
     const double deltaTheta = pi / itsBunch->getStepsPerTurn();
     *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
+    if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+        evaluateSpaceChargeField();
+    }
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
         if(step_m % Options::sptDumpFreq == 0) {
@@ -3232,12 +3231,18 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         }
         Ippl::Comm->barrier();
 
-        // External field integration for first half of large step
-        for(int n = 0; n < innerstepsPerHalfStep; ++n) {
+        // First half kick from space charge force
+        if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+            kick(0.5 * dt);
+        }
+
+        // Substeps for external field integration
+        for(int n = 0; n < numSubsteps; ++n) {
             borisExternalFields(dt_inner);
         }
 
         // bunch injection
+        // TODO: Where is correct location for this piece of code? Beginning/end of step? Before field solve?
         if(numBunch_m > 1) {
             if((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
                 if(step_m == stepsNextCheck) {
@@ -3313,51 +3318,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
         // calculate self fields Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
         if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
-            Vector_t const meanR = calcMeanR();
-            itsBunch->Bf = Vector_t(0.0);
-            itsBunch->Ef = Vector_t(0.0);
-            if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
-                IpplTimings::startTimer(TransformTimer_m);
-                double const binsPhi = itsBunch->calcMeanPhi() - 0.5 * pi;
-                globalToLocal(itsBunch->R, binsPhi, meanR);
-                itsBunch->boundp();
-                IpplTimings::stopTimer(TransformTimer_m);
-
-                // calculate gamma for each energy bin
-                itsBunch->calcGammas_cycl();
-
-                repartition();
-
-                // calculate space charge field for each energy bin
-                for(int b = 0; b < itsBunch->getLastemittedBin() ; b++) {
-                    if(itsBunch->pbin_m->getTotalNumPerBin(b) >= 1000) {
-                        itsBunch->setBinCharge(b, itsBunch->getChargePerParticle());
-                        itsBunch->computeSelfFields_cycl(b);
-                        INFOMSG("Bin:" << b << ", charge per particle " <<  itsBunch->getChargePerParticle() << endl);
-                    } else {
-                        INFOMSG("Note: Bin " << b << ": less than 1000 particles, omit space charge fields" << endl);
-                    }
-                }
-                itsBunch->Q = itsBunch->getChargePerParticle();
-
-                IpplTimings::startTimer(TransformTimer_m);
-                localToGlobal(itsBunch->R, binsPhi, meanR);
-                localToGlobal(itsBunch->Ef, binsPhi);
-                localToGlobal(itsBunch->Bf, binsPhi);
-            } else {
-                Vector_t const meanP = calcMeanP();
-                double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-                globalToLocal(itsBunch->R, phi, meanR);
-                itsBunch->boundp();
-                IpplTimings::stopTimer(TransformTimer_m);
-                repartition();
-                double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
-                itsBunch->computeSelfFields_cycl(meanGamma);
-                localToGlobal(itsBunch->Ef, phi);
-                localToGlobal(itsBunch->Bf, phi);
-                localToGlobal(itsBunch->R, phi, meanR);
-            }
-            IpplTimings::stopTimer(TransformTimer_m);
+            evaluateSpaceChargeField();
         } else {
             // if field solver is not available , only update bunch, to transfer particles between nodes if needed,
             // reset parameters such as LocalNum, initialTotalNum_m.
@@ -3373,14 +3334,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             }
         }
 
-        // Apply kick from space charge force
+        // Second half kick from space charge force
         if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
-            kick(dt);
-        }
-
-        // External field integration for second half of large step
-        for(int n = 0; n < innerstepsPerHalfStep; ++n) {
-            borisExternalFields(dt_inner);
+            kick(0.5 * dt);
         }
 
         // apply the plugin elements: probe, collimator, stripper, septum
@@ -3885,4 +3841,41 @@ void ParallelCyclotronTracker::singleParticleDump() {
         }
     }
     IpplTimings::stopTimer(DumpTimer_m);
+}
+
+void ParallelCyclotronTracker::evaluateSpaceChargeField() {
+    Vector_t const meanR = calcMeanR();
+    itsBunch->Bf = Vector_t(0.0);
+    itsBunch->Ef = Vector_t(0.0);
+    if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
+        double const binsPhi = itsBunch->calcMeanPhi() - 0.5 * pi;
+        globalToLocal(itsBunch->R, binsPhi, meanR);
+        itsBunch->boundp();
+        itsBunch->calcGammas_cycl();
+        repartition();
+        for(int b = 0; b < itsBunch->getLastemittedBin(); ++b) {
+            if(itsBunch->pbin_m->getTotalNumPerBin(b) >= 1000) {
+                itsBunch->setBinCharge(b, itsBunch->getChargePerParticle());
+                itsBunch->computeSelfFields_cycl(b);
+                INFOMSG("Bin:" << b << ", charge per particle " <<  itsBunch->getChargePerParticle() << endl);
+            } else {
+                INFOMSG("Note: Bin " << b << ": less than 1000 particles, omit space charge fields" << endl);
+            }
+        }
+        itsBunch->Q = itsBunch->getChargePerParticle();
+        localToGlobal(itsBunch->R, binsPhi, meanR);
+        localToGlobal(itsBunch->Ef, binsPhi);
+        localToGlobal(itsBunch->Bf, binsPhi);
+    } else {
+        Vector_t const meanP = calcMeanP();
+        double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+        globalToLocal(itsBunch->R, phi, meanR);
+        itsBunch->boundp();
+        repartition();
+        double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
+        itsBunch->computeSelfFields_cycl(meanGamma);
+        localToGlobal(itsBunch->Ef, phi);
+        localToGlobal(itsBunch->Bf, phi);
+        localToGlobal(itsBunch->R, phi, meanR);
+    }
 }
