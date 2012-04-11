@@ -50,6 +50,10 @@ Stripper::Stripper():
     opmass_m(0.0),
     stop_m(true),
     step_m(0) {
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m; 
+    R_m = sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 
@@ -66,6 +70,10 @@ Stripper::Stripper(const Stripper &right):
     opmass_m(right.opmass_m),
     stop_m(right.stop_m),
     step_m(right.step_m) {
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m; 
+    R_m = sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 
@@ -82,11 +90,19 @@ Stripper::Stripper(const string &name):
     opmass_m(0.0),
     stop_m(true),
     step_m(0){
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m; 
+    R_m = sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 void Stripper::setGeom(const double dist) {
 
-    const double slope = (yend_m - ystart_m) / (xend_m - xstart_m);
+    double slope; 
+    if (xend_m == xstart_m) 
+      slope = 1.0e12;
+    else
+      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
     
     geom_m[0].x = xstart_m - dist / 2.0 * slope / sqrt(1 + slope * slope);
     geom_m[0].y = ystart_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
@@ -103,10 +119,7 @@ void Stripper::setGeom(const double dist) {
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
     
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m; 
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+  
 }
 
 
@@ -262,19 +275,25 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
 	meanP = meanP / Vector_t(bunch.getTotalNum());
 
 	double sk1, sk2, stangle = 0.0;
-	if ( A_m == 0.0 ){
+	if ( B_m == 0.0 ){
 	  sk1 = meanP(1)/meanP(0);
-	  stangle = abs(1/sk1);
+ 	  if(sk1 == 0.0)
+	    stangle =1.0e12;
+	  else
+	    stangle = abs(1/sk1);
 	}else if (meanP(0) == 0.0 ){
-	  sk2 = -B_m/A_m;
-	  stangle = abs(1/sk2);
+	  sk2 = - A_m/B_m;
+ 	  if(sk2 == 0.0)
+	    stangle =1.0e12;
+	  else
+	    stangle = abs(1/sk2);
 	}else {
 	  sk1 = meanP(1)/meanP(0);
-	  sk2 = - B_m/A_m;
+	  sk2 = - A_m/B_m;
 	  stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));		    
 	}
 	double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
-	double Swidth = lstep /  sqrt( 1+stangle*stangle );
+	double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
 	setGeom(Swidth);
 
         for(unsigned int i = 0; i < tempnum; ++i) {
@@ -284,18 +303,24 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
 		  // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
 		  double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0; 
 		  double k1, k2, tangle = 0.0;
-		  if ( A_m == 0.0 ){
+		  if ( B_m == 0.0 ){
 		    k1 = bunch.P[i](1)/bunch.P[i](0);
-		    tangle = abs(1/k1);
+		    if (k1 == 0.0)
+		      tangle = 1.0e12;
+		    else
+		      tangle = abs(1/k1);
 		  }else if (bunch.P[i](0) == 0.0 ){
-		    k2 = -B_m/A_m;
-		    tangle = abs(1/k2);
+		    k2 = -A_m/B_m;
+		    if (k2 == 0.0)
+		      tangle = 1.0e12;
+		    else
+		      tangle = abs(1/k2);
 		  }else {
 		    k1 = bunch.P[i](1)/bunch.P[i](0);
-		    k2 = - B_m/A_m;
+		    k2 = -A_m/B_m;
 		    tangle = abs(( k1-k2 )/(1 + k1*k2));		    
 		  }
-		  double dist2 = dist1 * sqrt( 1+tangle*tangle );
+		  double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
 		  double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch.P[i], bunch.P[i]))) * Physics::c)*1.0e9;
 		  strippoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
 		  strippoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
@@ -317,7 +342,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                     bunch.Q[tempnum+count] = bunch.Q[i];
                     bunch.M[tempnum+count] = bunch.M[i];
 
-                    // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid re[etitive stripping.
+                    // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid repetitive stripping.
                     bunch.PType[tempnum+count] = 1;
 
                     if(bunch.weHaveBins())

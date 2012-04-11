@@ -41,8 +41,12 @@ Probe::Probe():
     ystart_m(0.0),
     yend_m(0.0),
     width_m(0.0),
-    step_m(0)
-{}
+    step_m(0){
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m;     
+    R_m = sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+}
 
 
 Probe::Probe(const Probe &right):
@@ -54,8 +58,12 @@ Probe::Probe(const Probe &right):
     ystart_m(right.ystart_m),
     yend_m(right.yend_m),
     width_m(right.width_m),
-    step_m(right.step_m)
-{}
+    step_m(right.step_m){
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m;     
+    R_m = sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+}
 
 
 Probe::Probe(const string &name):
@@ -67,8 +75,12 @@ Probe::Probe(const string &name):
     ystart_m(0.0),
     yend_m(0.0),
     width_m(0.0),
-    step_m(0)
-{}
+    step_m(0){
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m;     
+    R_m = sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+}
 
 
 Probe::~Probe() {
@@ -166,12 +178,14 @@ double  Probe::getWidth() const {
     return width_m;
 }
 
-
-
 void Probe::setGeom(const double dist) {
 
-    const double slope = (yend_m - ystart_m) / (xend_m - xstart_m);
-    
+    double slope; 
+    if (xend_m == xstart_m) 
+      slope = 1.0e12;
+    else
+      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
+
     geom_m[0].x = xstart_m - dist / 2.0 * slope / sqrt(1 + slope * slope);
     geom_m[0].y = ystart_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
 
@@ -185,15 +199,9 @@ void Probe::setGeom(const double dist) {
     geom_m[3].y = yend_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
 
     geom_m[4].x = geom_m[0].x;
-    geom_m[4].y = geom_m[0].y;
-    
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m; 
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+    geom_m[4].y = geom_m[0].y;    
 }
 
-//change the stripped particles to outcome particles
 bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double tstep) {
 
     bool flagprobed = false;
@@ -218,43 +226,39 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double tst
 	meanP = meanP / Vector_t(bunch.getTotalNum());
 
 	double sk1, sk2, stangle = 0.0;
-	if ( A_m == 0.0 ){
+	if ( B_m == 0.0 ){
 	  sk1 = meanP(1)/meanP(0);
-	  stangle = std::abs(1/sk1);
+	  if (sk1 == 0.0)
+	    stangle = 1.0e12;
+	  else
+	    stangle = std::abs(1/sk1);
 	}else if (meanP(0) == 0.0 ){
-	  sk2 = -B_m/A_m;
-	  stangle = std::abs(1/sk2);
+	  sk2 = - A_m/B_m;
+	  if ( sk2 == 0.0 )
+	    stangle = 1.0e12;
+	  else
+	    stangle = std::abs(1/sk2);
 	}else {
 	  sk1 = meanP(1)/meanP(0);
-	  sk2 = - B_m/A_m;
+	  sk2 = - A_m/B_m;
 	  stangle = std::abs(( sk1-sk2 )/(1 + sk1*sk2));		    
 	}
 	double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
-	double Swidth = lstep /  sqrt( 1+stangle*stangle );
+	double Swidth = lstep / sqrt( 1 + 1/stangle/stangle );
 	setGeom(Swidth);
 
         for(unsigned int i = 0; i < tempnum; ++i) {
-            if(bunch.PType[i] == 0) {
-	      pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-	      if(pflag != 0) {
-		  // double k1, k2;
-		  // if ( A_m == 0.0 ){
-		  //   k1 = bunch.P[i](1)/bunch.P[i](0);
-		  // }else if (bunch.P[i](0) == 0.0 ){
-		  //   k2 = -B_m/A_m;
-		  // }else {
-		  //   k1 = bunch.P[i](1)/bunch.P[i](0);
-		  //   k2 = - B_m/A_m;
-		  // }
-		  probepoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
-		  probepoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
-		  probepoint(2) = bunch.R[i](2);
-		  lossDs_m->addParticle(probepoint, bunch.P[i], bunch.ID[i]);
-		  flagprobed = true;		    
-	      }
-            }
-        }
+	  pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
+	  if(pflag != 0) {
+	    probepoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
+	    probepoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
+	    probepoint(2) = bunch.R[i](2);
+	    lossDs_m->addParticle(probepoint, bunch.P[i], bunch.ID[i]);
+	    flagprobed = true;		    
+	  }
+	}
     }
+
     if(flagprobed) lossDs_m->save(getName()); 
     return flagprobed;
 }
