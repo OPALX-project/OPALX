@@ -82,6 +82,10 @@ namespace Options {
     // How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator
     int mtsSubsteps = 1;
 
+    // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size of the bunch in any dimension,
+    // the particle will be deleted artifically to hold the accuracy of space charge calculation. The default setting of -1 stands for no deletion. 
+    int remotePartDel = -1;
+
     // The frequency to dump the particle-geometry surface interation data, -1 stands for no dump.
     int surfDumpFreq = -1;
 
@@ -128,6 +132,7 @@ namespace {
         REBINFREQ,
         SCSOLVEFREQ,
         MTSSUBSTEPS,
+	REMOTEPARTDEL,
         SCAN,
         RHODUMP,
         EFDUMP,
@@ -177,6 +182,8 @@ Option::Option():
     itsAttr[SCSOLVEFREQ] = Attributes::makeReal
                            ("SCSOLVEFREQ", "The frequency to solve space charge fields. its default value is 1");
     itsAttr[MTSSUBSTEPS] = Attributes::makeReal("MTSSUBSTEPS", "How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator");
+    itsAttr[REMOTEPARTDEL] = Attributes::makeReal
+                                ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, its default values is -1 (no delete) ");
     itsAttr[PSDUMPLOCALFRAME] = Attributes::makeBool
                                 ("PSDUMPLOCALFRAME", "If true, in local Cartesian frame, otherwise in global Cartesian frame, only aviable for OPAL-cycl, its default value is false");
     itsAttr[SPTDUMPFREQ] = Attributes::makeReal
@@ -246,6 +253,7 @@ Option::Option(const string &name, Option *parent):
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
     Attributes::setReal(itsAttr[SCSOLVEFREQ], scSolveFreq);
     Attributes::setReal(itsAttr[MTSSUBSTEPS], mtsSubsteps);
+    Attributes::setReal(itsAttr[REMOTEPARTDEL], remotePartDel);
     Attributes::setReal(itsAttr[REPARTFREQ], repartFreq);
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
     Attributes::setBool(itsAttr[SCAN], scan);
@@ -316,8 +324,14 @@ void Option::execute() {
         scSolveFreq = int(Attributes::getReal(itsAttr[SCSOLVEFREQ]));
     }
 
+
     if(itsAttr[MTSSUBSTEPS]) {
         mtsSubsteps = int(Attributes::getReal(itsAttr[MTSSUBSTEPS]));
+    }
+
+
+    if(itsAttr[REMOTEPARTDEL]) {
+        remotePartDel = int(Attributes::getReal(itsAttr[REMOTEPARTDEL]));
     }
 
     if(itsAttr[REPARTFREQ]) {

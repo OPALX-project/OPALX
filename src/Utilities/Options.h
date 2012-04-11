@@ -96,6 +96,11 @@ namespace Options {
     // How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator
     extern int mtsSubsteps;
 
+    // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size of the bunch in any dimension,
+    // the particle will be deleted artifically to hold the accuracy of space charge calculation. The default setting of -1 stands for no deletion. 
+    extern int remotePartDel;
+
+
     /// this allows to repeat tracks starting always at the begining of the lattice and
     /// generates a new distribution
 

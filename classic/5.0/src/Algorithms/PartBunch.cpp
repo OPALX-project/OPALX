@@ -2409,12 +2409,14 @@ void PartBunch::boundp_destroy() {
     len = rmax_m - rmin_m;
 
     calcBeamParameters_cycl();
-
-    // check the bunch if its full size is larger than 8 times of its rms size
-    if(len[0] > 10 * rrms_m[0] || len[1] > 10 * rrms_m[1] || len[2] > 10 * rrms_m[2]) {
+    
+    const int checkfactor = Options::remotePartDel;
+    // check the bunch if its full size is larger than checkfactor times of its rms size
+    if (checkfactor != -1) {
+    if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
         for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
             // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
-            if(abs(R[ii](0) - rmean_m(0)) > 8 * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > 8 * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > 8 * rrms_m[2]) {
+            if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
                 // put particle onto deletion list
                 destroy(1, ii);
                 //update bin parameter
@@ -2430,7 +2432,7 @@ void PartBunch::boundp_destroy() {
         rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
         hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
     }
-
+    }
     // rescale mesh
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(rmin_m);
