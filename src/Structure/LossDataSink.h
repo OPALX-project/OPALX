@@ -87,7 +87,7 @@ private:
 
     void writeHeader(size_t np) {
         if(Ippl::myNode() == 0) {
-            os_m << "# Element x y z px py pz id | np = " << np << std::endl;
+            os_m << "# Element x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id,  turn,  time (ns) " << std::endl;
         }
     }
 
@@ -95,9 +95,11 @@ private:
 
 public:
 
-    void addParticle(Vector_t x, Vector_t p, size_t id);
+    void addParticle(const Vector_t x, const Vector_t p, const size_t id);
+    void addParticle_time(const Vector_t x, const Vector_t p, const size_t  id, const double time, const size_t turn); 
     void openH5(std::string fn);
     void save(std::string element) ;
+    void save_time(std::string element) ;
 
 private:
     // filename without extension
@@ -125,6 +127,8 @@ private:
     std::vector<double> px_m;
     std::vector<double> py_m;
     std::vector<double> pz_m;
+    std::vector<size_t> turn_m;
+    std::vector<double> time_m;
 };
 #endif
 

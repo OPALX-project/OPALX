@@ -3671,7 +3671,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const int turnnumber, const d
     }
     
     if(((*sindex)->first) == "PROBE")    {
-      (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch, turnnumber, dt);
+      (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
     }
     
     if(((*sindex)->first) == "STRIPPER")    {
