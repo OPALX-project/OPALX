@@ -250,15 +250,6 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
     double r_ref = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
 
-    ofstream fstring;
-    fstring.precision(8);
-    fstring.setf(ios::scientific, ios::floatfield);
-    string SfileName = OpalData::getInstance()->getInputFn();
-    int pdot = SfileName.find(string("."), 0);
-    SfileName.erase(pdot, SfileName.size() - pdot);
-    string  SfileName1 = SfileName + string(".extract");
-    fstring.open(SfileName1.c_str(), ios::out | ios::app);
-
     if(r1 > r_ref - 10.0 ){
 
         size_t count = 0;
@@ -325,8 +316,8 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
 		  strippoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
 		  strippoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
 		  strippoint(2) = bunch.R[i](2);
-		  lossDs_m->addParticle(strippoint, bunch.P[i], bunch.ID[i]);
-		  fstring << "Turn " << turnnumber << " t= " << t+dt << " R= " << strippoint << " P= " << bunch.P[i] << endl;
+		  lossDs_m->addParticle_time(strippoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
+
 		  if (stop_m) {
 		    bunch.Bin[i] = -1;
 		    flagNeedUpdate = true;		    
@@ -369,7 +360,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
       }
     }
 
-    if(flagNeedUpdate) lossDs_m->save(getName()); 
+    if(flagNeedUpdate) lossDs_m->save_time(getName()); 
     return flagNeedUpdate;
 }
 

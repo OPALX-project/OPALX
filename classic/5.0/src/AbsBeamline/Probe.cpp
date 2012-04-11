@@ -202,7 +202,7 @@ void Probe::setGeom(const double dist) {
     geom_m[4].y = geom_m[0].y;    
 }
 
-bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double tstep) {
+bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagprobed = false;
     Vector_t rmin, rmax, probepoint;
@@ -250,16 +250,39 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double tst
         for(unsigned int i = 0; i < tempnum; ++i) {
 	  pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
 	  if(pflag != 0) {
+	     // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
+		  double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0; 
+		  double k1, k2, tangle = 0.0;
+		  if ( B_m == 0.0 ){
+		    k1 = bunch.P[i](1)/bunch.P[i](0);
+		    if (k1 == 0.0)
+		      tangle = 1.0e12;
+		    else
+		      tangle = abs(1/k1);
+		  }else if (bunch.P[i](0) == 0.0 ){
+		    k2 = -A_m/B_m;
+		    if (k2 == 0.0)
+		      tangle = 1.0e12;
+		    else
+		      tangle = abs(1/k2);
+		  }else {
+		    k1 = bunch.P[i](1)/bunch.P[i](0);
+		    k2 = -A_m/B_m;
+		    tangle = abs(( k1-k2 )/(1 + k1*k2));		    
+		  }
+		  double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
+		  double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch.P[i], bunch.P[i]))) * Physics::c)*1.0e9;
+
 	    probepoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
 	    probepoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
 	    probepoint(2) = bunch.R[i](2);
-	    lossDs_m->addParticle(probepoint, bunch.P[i], bunch.ID[i]);
+	    lossDs_m->addParticle_time(probepoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
 	    flagprobed = true;		    
 	  }
 	}
     }
 
-    if(flagprobed) lossDs_m->save(getName()); 
+    if(flagprobed) lossDs_m->save_time(getName()); 
     return flagprobed;
 }
 

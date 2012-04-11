@@ -78,7 +78,7 @@ public:
 
 
     virtual double getWidth() const;
-    bool  checkProbe(PartBunch &bunch, const int turnnumber, const double tstep);
+    bool  checkProbe(PartBunch &bunch, const int turnnumber, const double t, const double tstep);
     virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
