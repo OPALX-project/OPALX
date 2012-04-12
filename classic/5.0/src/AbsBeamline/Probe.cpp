@@ -118,7 +118,7 @@ void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
     // initialize DataSink with H5Part output enabled
     bool doH5 = false;
     lossDs_m = new LossDataSink(bunch->getTotalNum(), doH5);
-    lossDs_m->openH5(getName());
+    //    lossDs_m->openH5(getName());
 }
 
 void Probe::finalise() {
