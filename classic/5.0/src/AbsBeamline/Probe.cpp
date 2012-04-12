@@ -282,6 +282,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	}
     }
 
+    reduce(&flagprobed, &flagprobed + 1, &flagprobed, OpBitwiseOrAssign());
     if(flagprobed) lossDs_m->save_time(getName()); 
     return flagprobed;
 }

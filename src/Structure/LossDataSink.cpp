@@ -89,6 +89,7 @@ void LossDataSink::addParticle(const Vector_t x,const  Vector_t p, const size_t 
     id_m.push_back(id);
 }
 
+// For cyclotron simulation, dump the time and turn number 
 void LossDataSink::addParticle_time(const Vector_t x,const Vector_t p,const size_t id,const double time,const size_t turn) {
     addParticle(x, p, id); 
     turn_m.push_back(turn);
@@ -181,6 +182,7 @@ void LossDataSink::save(string element) {
         //~ if(varray)
             //~ free(varray);
     } else {
+      append();
         int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
         if(Ippl::Comm->myNode() == 0) {
             const unsigned partCount = x_m.size();
@@ -244,6 +246,7 @@ void LossDataSink::save(string element) {
             if(! res)
                 ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
         }
+    close();
     }
     x_m.clear();
     y_m.clear();
@@ -254,82 +257,86 @@ void LossDataSink::save(string element) {
     id_m.clear();
 }
 
+// For cyclotron simulation, dump the time and turn number 
+// Only dump in ASCII file 
 void LossDataSink::save_time(string element) {
     element_m = element;
-    if(!hdf5FileIsOpen_m) {
-        int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
-        if(Ippl::Comm->myNode() == 0) {
-            const unsigned partCount = x_m.size();
-            for(unsigned i = 0; i < partCount; i++) {
-                os_m << element_m   << "   ";
-                os_m << x_m[i] << "   ";
-                os_m << y_m[i] << "   ";
-                os_m << z_m[i] << "   ";
-                os_m << px_m[i] << "   ";
-                os_m << py_m[i] << "   ";
-                os_m << pz_m[i] << "   ";
-                os_m << id_m[i] << "   ";
-		os_m << turn_m[i] << "   ";
-		os_m << time_m[i] << " "<< std::endl;
+    append();
+    int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
+    if(Ippl::Comm->myNode() == 0) {
+      const unsigned partCount = x_m.size();
+      for(unsigned i = 0; i < partCount; i++) {
+	os_m << element_m   << "   ";
+	os_m << x_m[i] << "   ";
+	os_m << y_m[i] << "   ";
+	os_m << z_m[i] << "   ";
+	os_m << px_m[i] << "   ";
+	os_m << py_m[i] << "   ";
+	os_m << pz_m[i] << "   ";
+	os_m << id_m[i] << "   ";
+	os_m << turn_m[i] << "   ";
+	os_m << time_m[i] << " "<< std::endl;
 		
-            }
-            int notReceived =  Ippl::getNodes() - 1;
-            while(notReceived > 0) {
-                unsigned dataBlocks = 0;
-                int node = COMM_ANY_NODE;
-                Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-                if(rmsg == 0) {
-                    ERRORMSG("LossDataSink: Could not receive from client nodes output." << endl);
-                }
-                notReceived--;
-                rmsg->get(&dataBlocks);
-                for(unsigned i = 0; i < dataBlocks; i++) {
-                    long id;
-		    size_t turn;
-                    double rx, ry, rz, px, py, pz, time;
-                    rmsg->get(&id);
-                    rmsg->get(&rx);
-                    rmsg->get(&ry);
-                    rmsg->get(&rz);
-                    rmsg->get(&px);
-                    rmsg->get(&py);
-                    rmsg->get(&pz);
-                    rmsg->get(&turn);
-                    rmsg->get(&time);
-                    os_m << element_m << "   ";
-                    os_m << rx << "   ";
-                    os_m << ry << "   ";
-                    os_m << rz << "   ";
-                    os_m << px << "   ";
-                    os_m << py << "   ";
-                    os_m << pz << "   ";
-                    os_m << id << "   ";
-		    os_m << turn << "   ";
-		    os_m << time << " " << std::endl;
+      }
+      int notReceived =  Ippl::getNodes() - 1;
+      while(notReceived > 0) {
+	unsigned dataBlocks = 0;
+	int node = COMM_ANY_NODE;
+	Message *rmsg =  Ippl::Comm->receive_block(node, tag);
+	if(rmsg == 0) {
+	  ERRORMSG("LossDataSink: Could not receive from client nodes output." << endl);
+	}
+	notReceived--;
+	rmsg->get(&dataBlocks);
+	for(unsigned i = 0; i < dataBlocks; i++) {
+	  long id;
+	  size_t turn;
+	  double rx, ry, rz, px, py, pz, time;
+	  rmsg->get(&id);
+	  rmsg->get(&rx);
+	  rmsg->get(&ry);
+	  rmsg->get(&rz);
+	  rmsg->get(&px);
+	  rmsg->get(&py);
+	  rmsg->get(&pz);
+	  rmsg->get(&turn);
+	  rmsg->get(&time);
+	  os_m << element_m << "   ";
+	  os_m << rx << "   ";
+	  os_m << ry << "   ";
+	  os_m << rz << "   ";
+	  os_m << px << "   ";
+	  os_m << py << "   ";
+	  os_m << pz << "   ";
+	  os_m << id << "   ";
+	  os_m << turn << "   ";
+	  os_m << time << " " << std::endl;
 
-                }
-                delete rmsg;
-            }
-        } else {
-            Message *smsg = new Message();
-            const unsigned msgsize = x_m.size();
-            smsg->put(msgsize);
-            for(unsigned i = 0; i < msgsize; i++) {
-                smsg->put(id_m[i]);
-                smsg->put(x_m[i]);
-                smsg->put(y_m[i]);
-                smsg->put(z_m[i]);
-                smsg->put(px_m[i]);
-                smsg->put(py_m[i]);
-                smsg->put(pz_m[i]);
-                smsg->put(turn_m[i]);
-                smsg->put(time_m[i]);
-            }
-            bool res = Ippl::Comm->send(smsg, 0, tag);
-            if(! res)
-                ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
-        }
+	}
+	delete rmsg;
+      }
+    } else {
+      Message *smsg = new Message();
+      const unsigned msgsize = x_m.size();
+      smsg->put(msgsize);
+      for(unsigned i = 0; i < msgsize; i++) {
+	smsg->put(id_m[i]);
+	smsg->put(x_m[i]);
+	smsg->put(y_m[i]);
+	smsg->put(z_m[i]);
+	smsg->put(px_m[i]);
+	smsg->put(py_m[i]);
+	smsg->put(pz_m[i]);
+	smsg->put(turn_m[i]);
+	smsg->put(time_m[i]);
+      }
+      bool res = Ippl::Comm->send(smsg, 0, tag);
+      if(! res)
+	ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
     }
+
+    close();
+
     x_m.clear();
     y_m.clear();
     z_m.clear();
@@ -339,4 +346,5 @@ void LossDataSink::save_time(string element) {
     id_m.clear();
     turn_m.clear();
     time_m.clear();
+
 }

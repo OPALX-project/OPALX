@@ -26,14 +26,14 @@ public:
     LossDataSink(size_t np, bool hdf5Save = false):
         element_m("NULL"),
         doHdf5Save_m(hdf5Save) {
-        if(!doHdf5Save_m && Ippl::myNode() == 0) {
+        if(!doHdf5Save_m) {
             fn_m = OpalData::getInstance()->getInputFn();
             int pos = fn_m.find(std::string("."), 0);
             fn_m.erase(pos, fn_m.size() - pos);
             fn_m += std::string(".loss");
-	    // open();
-            append();
-            writeHeader(np);
+	    open();
+	    writeHeader(np);
+	    close();
         }
         hdf5FileIsOpen_m = false;
         H5call_m = 0;
@@ -41,7 +41,7 @@ public:
 
     LossDataSink():
         element_m("NULL") {
-        if(!doHdf5Save_m && Ippl::myNode() == 0) {
+        if(!doHdf5Save_m) {
             fn_m = OpalData::getInstance()->getInputFn();
             int pos = fn_m.find(std::string("."), 0);
             fn_m.erase(pos, fn_m.size() - pos);
