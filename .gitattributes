@@ -2,9 +2,7 @@
 /CMakeLists.txt -text
 CMakeModules/FindGSL.cmake -text
 CMakeModules/FindH5Hut.cmake -text
-CMakeModules/FindH5Part.cmake -text
 CMakeModules/FindHDF5.cmake -text
-CMakeModules/FindIPPL.cmake -text
 /Doxyfile -text
 /README -text
 classic/5.0/src/AbsBeamline/AlignWrapper.cpp -text

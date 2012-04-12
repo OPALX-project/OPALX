@@ -1,7 +1,7 @@
 #
 # Find GSL includes and library
 #
-# GSL 
+# GSL
 # It can be found at:
 #     http://amas.web.psi.ch/tools/GSL/index.html
 #
@@ -10,29 +10,19 @@
 # GSL_FOUND       - do not attempt to use if "no" or undefined.
 
 FIND_PATH(GSL_INCLUDE_DIR gsl/gsl_fft.h
-  PATHS $ENV{GSL_PREFIX}/include
-  NO_DEFAULT_PATH
-)
-FIND_PATH(GSL_INCLUDE_DIR gsl/gsl_fft.h
-  /usr/include
-  /usr/local/include
+    HINTS $ENV{GSL_PREFIX}/include
+    PATHS ENV CPP_INCLUDE_PATH
 )
 
+
 FIND_LIBRARY(GSL_LIBRARY gsl
-  PATHS $ENV{GSL_PREFIX}/lib
-  NO_DEFAULT_PATH
+    HINTS $ENV{GSL_PREFIX}/lib
+    PATHS ENV LIBRARY_PATH
 )
-FIND_LIBRARY(GSL_LIBRARY gsl
-  /usr/lib
-  /usr/local/lib
-)
-FIND_LIBRARY(GSL_LIBRARY_CBLAS gslcblas 
-  PATHS $ENV{GSL_PREFIX}/lib
-  NO_DEFAULT_PATH
-)
-FIND_LIBRARY(GSL_LIBRARY_CBLAS gslcblas 
-  /usr/lib
-  /usr/local/lib
+
+FIND_LIBRARY(GSL_LIBRARY_CBLAS gslcblas
+    HINTS $ENV{GSL_PREFIX}/lib
+    PATHS ENV LIBRARY_PATH
 )
 
 set( GSL_LIBRARY
@@ -46,7 +36,8 @@ ENDIF(GSL_INCLUDE_DIR AND GSL_LIBRARY)
 
 IF (GSL_FOUND)
    IF (NOT GSL_FIND_QUIETLY)
-      MESSAGE(STATUS "Found GSL: ${GSL_LIBRARY}")
+      MESSAGE(STATUS "Found GSL library dir: ${GSL_LIBRARY}")
+      MESSAGE(STATUS "Found GSL include dir: ${GSL_INCLUDE_DIR}")
    ENDIF (NOT GSL_FIND_QUIETLY)
 ELSE (GSL_FOUND)
    IF (GSL_FIND_REQUIRED)
