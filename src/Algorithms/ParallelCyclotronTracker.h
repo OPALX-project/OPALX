@@ -344,6 +344,8 @@ private:
 
     void evaluateSpaceChargeField();
 
+    void initDistInGlobalFrame();
+
 };
 
 /**
