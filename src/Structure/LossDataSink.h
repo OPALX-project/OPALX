@@ -31,6 +31,8 @@ public:
             int pos = fn_m.find(std::string("."), 0);
             fn_m.erase(pos, fn_m.size() - pos);
             fn_m += std::string(".loss");
+	    os_m.precision(8);
+	    os_m.setf(std::ios::scientific, std::ios::floatfield);
 	    open();
 	    writeHeader(np);
 	    close();
@@ -46,6 +48,8 @@ public:
             int pos = fn_m.find(std::string("."), 0);
             fn_m.erase(pos, fn_m.size() - pos);
             fn_m += std::string(".loss");
+	    os_m.precision(8);
+	    os_m.setf(std::ios::scientific, std::ios::floatfield);
             append();
         }
         hdf5FileIsOpen_m = false;
