@@ -3694,36 +3694,37 @@ bool ParallelCyclotronTracker::applyPluginElements(const int turnnumber, const d
 	}
     }
     
-    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
-    
-    size_t lostParticleNum = 0;
-    if(globPartOutOfBounds) {
-      lostParticleNum=itsBunch->boundp_destroyT();
-      *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator or septum" << endl;
-      flagNeedUpdate = true;
-    }
-    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+    bool flagNeedUpdate = (min(itsBunch->Bin) < 0);
+    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());    
     
     // update immediately if some particle are lost during this step
+    size_t lostParticleNum = 0;
     if(flagNeedUpdate) {
       Vector_t const meanR = calcMeanR();
       Vector_t const meanP = calcMeanP();
       double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
       globalToLocal(itsBunch->R, phi, meanR);
       
-      //scale coordinates
       itsBunch->R /= Vector_t(1000.0); // mm --> m
-      
+      for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+	if(itsBunch->Bin[i] < 0) {
+	  lostParticleNum++;
+	  itsBunch->destroy(1, i);
+	}
+      }
       // now destroy particles and update pertinent parameters in local frame
+      itsBunch->update();
       itsBunch->boundp();
-      repartition();
-      
-      //scale coordinates back
+      itsBunch->calcBeamParameters_cycl();
       itsBunch->R *= Vector_t(1000.0); // m --> mm
       
       localToGlobal(itsBunch->R, phi, meanR);
-    }
+
+      reduce(lostParticleNum, lostParticleNum, OpAddAssign());
+      *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator or septum" << endl;
+     }
   }
+
   return flagNeedUpdate;
 }
   
