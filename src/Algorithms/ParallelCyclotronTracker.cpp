@@ -3553,9 +3553,9 @@ std::string ParallelCyclotronTracker::inputFileNameWithoutExtension() {
 
 
 void  ParallelCyclotronTracker::initDistInGlobalFrame(){
-
+  size_t nlp = 0;
   if(!OpalData::getInstance()->inRestartRun()) {
-  double const initialReferenceTheta = referenceTheta / 180.0 * pi;
+    double const initialReferenceTheta = referenceTheta / 180.0 * pi;
     PathLength_m = 0.0;
     // Force the initial phase space values of the particle with ID=0 to zero, to set it as a reference particle.
     if(initialTotalNum_m > 2) {  // only for mulit-particle mode
@@ -3571,10 +3571,9 @@ void  ParallelCyclotronTracker::initDistInGlobalFrame(){
       // dump the initial distribution
       lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
       itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0);
-      *gmsg << "* Phase space dump at step " << lastDumpedStep_m << " in the local frame " << endl;
+      *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T= 0 [ns]" << endl;
     }
 
-    itsBunch->boundp();
     itsBunch->R *= Vector_t(1000.0); // m --> mm
         
     // Initialize global R
@@ -3598,11 +3597,9 @@ void  ParallelCyclotronTracker::initDistInGlobalFrame(){
       // dump the initial distribution
       itsBunch->R /= Vector_t(1000.0); // mm --> m
       lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-
       itsBunch->R *= Vector_t(1000.0); // m --> mm
       *gmsg << "meanR=( " << initMeanR(0) << " " << initMeanR(1) << " " << initMeanR(2) << " ) [mm] " << endl;
-      *gmsg << "phase space dumping in glabol frame at initial position " << endl;
-      *gmsg << "Dump step = " << lastDumpedStep_m << endl;
+      *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step 0 T= 0 [ns]" << endl;
     }
 
     // AUTO mode
@@ -3627,7 +3624,7 @@ void  ParallelCyclotronTracker::initDistInGlobalFrame(){
     }
 
   } else {
-    size_t nlp = 0;
+
     Vector_t const meanR = calcMeanR();
     Vector_t const meanP = calcMeanP();
     double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
@@ -3664,6 +3661,7 @@ void  ParallelCyclotronTracker::initDistInGlobalFrame(){
     }
 
     itsBunch->R *= Vector_t(1000.0); // m --> mm
+    localToGlobal(itsBunch->R, phi, meanR);
   }
 }
 
