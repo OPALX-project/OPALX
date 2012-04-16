@@ -3,16 +3,8 @@
 #define POISSON_SOLVER_H_
 
 //////////////////////////////////////////////////////////////
-//#include "Ippl.h"
 #include "Algorithms/PBunchDefs.h"
 //////////////////////////////////////////////////////////////
-
-// typedef UniformCartesian<3, double> Mesh_t;
-// typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
-// typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
-// typedef Cell Center_t;
-// typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
-// typedef Field<double, 3, Mesh_t, Center_t> Field_t;
 
 //use Barton and Nackman Trick to avoid virtual functions
 //template <class T_Leaftype>
@@ -41,4 +33,4 @@ inline Inform &operator<<(Inform &os, const PoissonSolver &fs) {
     return os << "";
 }
 
-#endif /* #ifndef MG_POISSON_SOLVER_H_ */
+#endif

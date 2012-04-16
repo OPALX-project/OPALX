@@ -24,16 +24,16 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/ElementImage.h"
-#include "BeamlineGeometry/Euclid3D.h"
-#include "BeamlineGeometry/Geometry.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Channels/Channel.h"
+#include <string>
+
+//#include "BeamlineGeometry/Euclid3D.h"
+//#include "BeamlineGeometry/Geometry.h"
+#include "Structure/BoundaryGeometry.h"
 #include "Solvers/WakeFunction.hh"
 #include "Solvers/SurfacePhysicsHandler.hh"
-#include <string>
+
 using namespace std;
-
-
 
 // Class ElementBase
 // ------------------------------------------------------------------------

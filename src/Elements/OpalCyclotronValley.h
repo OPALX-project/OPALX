@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalElement.h"
-#include "Structure/BoundaryGeometry.h"
 
 // Class OpalCyclotronValley
 // ------------------------------------------------------------------------
@@ -33,7 +32,7 @@ public:
 
     /// The attributes of class OpalCyclotronValley.
     enum {
-       
+
         FMAPFN,         // The filename of the fieldmap
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
@@ -65,7 +64,7 @@ private:
     // Clone constructor.
     OpalCyclotronValley(const string &name, OpalCyclotronValley *parent);
 
-  
+
 };
 
 #endif // OPAL_OpalCyclotronValley_HH

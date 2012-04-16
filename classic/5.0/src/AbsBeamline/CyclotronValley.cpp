@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 #include "Physics/Physics.h"
 #include "ValueDefinitions/RealVariable.h"
@@ -120,14 +120,14 @@ bool CyclotronValley::apply(const int &i, const double &t, double E[], double B[
 }
 
 bool CyclotronValley::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
-   
+
 
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
     if(!fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB)) {
         // E += scale_m * cos(phase) * tmpE;
         //B -= scale_m * sin(phase) * tmpB;
-	B +=scale_m * tmpB; 
+	B +=scale_m * tmpB;
         return false;
     }
 
@@ -135,7 +135,7 @@ bool CyclotronValley::apply(const int &i, const double &t, Vector_t &E, Vector_t
 }
 
 bool CyclotronValley::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    
+
 
     const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - startField_m - ds_m);
     Vector_t  tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
@@ -143,7 +143,7 @@ bool CyclotronValley::apply(const Vector_t &R, const Vector_t &centroid, const d
     if(!fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB)) {
         // E += scale_m * cos(phase) * tmpE;
         //B -= scale_m * sin(phase) * tmpB;
-	B +=scale_m * tmpB; 
+	B +=scale_m * tmpB;
         return false;
     }
     return true;
@@ -162,11 +162,11 @@ void CyclotronValley::initialise(PartBunch *bunch, double &startField, double &e
         if(zEnd > zBegin) {
             msg << getName() << " using file: " << "  ";
             fieldmap_m->getInfo(&msg);
-           
+
             ElementEdge_m = startField;
             startField_m = startField = ElementEdge_m + zBegin;
             endField_m = endField = ElementEdge_m + zEnd;
-          
+
         } else {
             endField = startField - 1e-3;
         }
@@ -174,7 +174,7 @@ void CyclotronValley::initialise(PartBunch *bunch, double &startField, double &e
         endField = startField - 1e-3;
     }
 
-   
+
 
 }
 

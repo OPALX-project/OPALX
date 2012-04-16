@@ -22,12 +22,7 @@
 
 #include "AbsBeamline/Component.h"
 
-struct Point 
-{
-  double x;
-  double y;
-};
-
+class LossDataSink;
 
 // Class Stripper
 // ------------------------------------------------------------------------
@@ -74,7 +69,7 @@ public:
 
     void setYend(double yend);
     virtual double getYend() const;
-    
+
     void setOPCharge(double charge);
     virtual double getOPCharge() const;
 
@@ -86,11 +81,11 @@ public:
 
     void setStop(bool stopflag);
     virtual bool getStop() const;
-    
-    bool  checkStripper(PartBunch &bunch, const int turnnumber, const double t, const double tsetp); 
-    
+
+    bool  checkStripper(PartBunch &bunch, const int turnnumber, const double t, const double tsetp);
+
     virtual void getDimensions(double &zBegin, double &zEnd) const;
- 
+
     virtual const string &getType() const;
 
 private:
@@ -107,7 +102,7 @@ private:
     bool   stop_m;
     std::vector<int> idrec_m;
     int step_m;
-    
+
     double A_m, B_m,R_m, C_m;
     void setGeom(const double dist);
     int  checkPoint( const double & x, const double & y );

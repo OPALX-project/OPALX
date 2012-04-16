@@ -44,6 +44,7 @@
 
 #include "Utilities/NumToStr.h"
 #include "Distribution/Distribution.h"
+#include "ValueDefinitions/RealVariable.h"
 #include "Utilities/Timer.h"
 #include "Solvers/WakeFunction.hh"
 #include "Utilities/OpalException.h"
@@ -1203,7 +1204,6 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
                 << Phimax *RADDEG <<  " deg, AstraPhi= " << PhiAstra << " deg,\n"
                 << "E= " << Emax << " (MeV), " << "phi_nom= " << orig_phi *RADDEG << endl;
 
-            maxPhases_m.push_back(MaxPhasesT(cavity->getName(), Phimax));
             OpalData::getInstance()->setMaxPhase(cavity->getName(), Phimax);
             //cavities_m.erase(res.first);
         }
@@ -2142,13 +2142,13 @@ void ParallelTTracker::dumpStats(long long step) {
         string sposUnit;
         double en = itsBunch->get_meanEnergy();
         string enUnit;
-        
+
         if (sposRef < 1.0) {
             sposPrint = 1000.0*sposRef;
             sposUnit = string(" [mm] ");
         }
         else
-            sposUnit = string(" [m] ");        
+            sposUnit = string(" [m] ");
 
         if (en < 1.0) {
             en *= 1000.0;
@@ -2156,12 +2156,12 @@ void ParallelTTracker::dumpStats(long long step) {
         }
         else
             enUnit = string(" [MeV] ");
-        
+
         msg << myt2.time() << " "
             << "Step " << setw(6) << step << " "
             << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
             << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
-            << "E="  << fixed      << setprecision(3) << setw(9) << en << enUnit 
+            << "E="  << fixed      << setprecision(3) << setw(9) << en << enUnit
             << endl;
 
         writePhaseSpace(step, sposRef);

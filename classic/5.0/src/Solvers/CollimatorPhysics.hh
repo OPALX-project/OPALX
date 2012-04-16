@@ -8,20 +8,23 @@
 // $Date: 2009/07/20 09:32:31 $
 // $Author: bi $
 //-------------------------------------------------------------------------
-#include "Solvers/SurfacePhysicsHandler.hh"
-#include "Algorithms/PartBunch.h"
-#include "Distribution/ranlib.h"
 #include <vector>
 
+#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Algorithms/PBunchDefs.h"
+
+class RANLIB_class;
 class ElementBase;
+class PartBunch;
+class LossDataSink;
 
 class CollimatorPhysics: public SurfacePhysicsHandler {
 public:
-    CollimatorPhysics(const string &name, ElementBase *element, const double &major, const double &minor, string &mat);
+    CollimatorPhysics(const std::string &name, ElementBase *element, const double &major, const double &minor, std::string &mat);
 
     void apply(PartBunch &bunch);
 
-    virtual const string getType() const;
+    virtual const std::string getType() const;
 
     ~CollimatorPhysics();
     void Material();
@@ -46,9 +49,9 @@ private:
 
     double Begin_m;
     double End_m;
-    string material_m;
-    string FN_m;
-    string collshape_m;
+    std::string material_m;
+    std::string FN_m;
+    std::string collshape_m;
     int Z_m;
     double A_m;
     double rho_m;

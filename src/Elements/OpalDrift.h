@@ -19,7 +19,8 @@
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalElement.h"
-#include "Structure/BoundaryGeometry.h"
+
+class BoundaryGeometry;
 
 // Class OpalDrift
 // ------------------------------------------------------------------------

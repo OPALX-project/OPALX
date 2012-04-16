@@ -20,10 +20,12 @@
 
 #include "AbstractObjects/Action.h"
 #include "Algorithms/Tracker.h"
-#include "Structure/FieldSolver.h"
-#include "Structure/DataSink.h"
-#include "Distribution/Distribution.h"
-#include "Algorithms/ParallelTTracker.h"
+
+class OpalData;
+class DataSink;
+class Distribution;
+class ParallelTTracker;
+
 // Class TrackRun
 // ------------------------------------------------------------------------
 /// The RUN command.

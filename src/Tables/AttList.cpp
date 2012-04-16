@@ -23,6 +23,7 @@
 #include "Elements/AttCell.h"
 #include "Elements/OpalElement.h"
 #include "Tables/AttWriter.h"
+#include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
 #include <fstream>
 #include <iostream>

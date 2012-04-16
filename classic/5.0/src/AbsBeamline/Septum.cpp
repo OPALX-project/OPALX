@@ -20,6 +20,7 @@
 
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include <iostream>
@@ -201,7 +202,7 @@ bool  Septum::checkSeptum(PartBunch &bunch) {
 // angle range [0~2PI) degree
 double Septum::calculateAngle(double x, double y) {
     double thetaXY = atan2(y, x);
-    
+
     // if(x < 0)                   thetaXY = pi + atan(y / x);
     // else if((x > 0) && (y >= 0))  thetaXY = atan(y / x);
     // else if((x > 0) && (y < 0))   thetaXY = 2.0 * pi + atan(y / x);

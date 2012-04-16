@@ -20,6 +20,7 @@
 
 #include "Physics/Physics.h"
 #include "AbsBeamline/Monitor.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include <fstream>

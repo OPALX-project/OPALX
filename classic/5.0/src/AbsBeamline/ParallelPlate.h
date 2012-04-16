@@ -24,6 +24,7 @@
 
 #include "AbsBeamline/Component.h"
 
+class PartBunch;
 class Fieldmap;
 
 // Class ParallelPlate
@@ -47,7 +48,7 @@ public:
     /// Apply visitor to ParallelPlate.
     virtual void accept(BeamlineVisitor &) const;
 
-  
+
 
     void getDimensions(double &zBegin, double &zEnd) const;
 
@@ -68,7 +69,7 @@ public:
     double getElementLength() const;
 
     virtual bool apply(const int &i, const double &t, double E[], double B[]);
-  
+
     virtual bool apply(const int &i, const double &t, Vector_t &E, Vector_t &B);
 
     virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
@@ -85,13 +86,13 @@ public:
 
     virtual void goOffline();
 
-  
 
-  
+
+
 
 private:
     string filename_m;             /**< The name of the inputfile*/
- 
+
     double scale_m;              /**< scale multiplier*/
     double phase_m;              /**< phase shift of time varying field(degrees)*/
     double frequency_m;          /**< Read in frequency of time varying field(MHz)*/

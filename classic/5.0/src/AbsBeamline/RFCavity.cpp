@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 #include "ValueDefinitions/RealVariable.h"
 #include "Structure/BoundaryGeometry.h"

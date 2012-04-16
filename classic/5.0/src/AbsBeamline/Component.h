@@ -25,14 +25,19 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/EMField.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PBunchDefs.h"
 
 #define EPS_MISALIGNMENT 1e-8
 
 class PartData;
-//class PartBunch;
+class PartBunch;
 template <class T, int N> class FVps;
 
+struct Point
+{
+  double x;
+  double y;
+};
 
 // Class Component
 // ------------------------------------------------------------------------

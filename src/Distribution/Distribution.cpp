@@ -10,12 +10,23 @@
 //   The class for the OPAL Distribution command.
 //
 // ------------------------------------------------------------------------
-#include "Algorithms/PartBinsCyc.h"
-
-#include "BasicActions/Option.h"
-
-#include "Distribution/LaserProfile.h"
 #include "Distribution/Distribution.h"
+#include "AbstractObjects/Expressions.h"
+#include "Attributes/Attributes.h"
+#include "Utilities/Options.h"
+#include "halton1d_sequence.hh"
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBins.h"
+#include "Algorithms/bet/EnvelopeBunch.h"
+#include "Structure/BoundaryGeometry.h"
+#include "Algorithms/PartBinsCyc.h"
+#include "BasicActions/Option.h"
+#include "Distribution/LaserProfile.h"
+
+#include <gsl/gsl_cdf.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_sf_erf.h>
 
 #include <cmath>
 #include <cfloat>
@@ -1670,7 +1681,7 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
     //~ void *varray = malloc(N * sizeof(double));
     //~ double *farray = (double *)varray;
     //~ h5_int64_t *larray = (h5_int64_t *)varray;
-    
+
     std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
@@ -3274,7 +3285,7 @@ void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
     //~ //    double *farray = (double *)varray;
     //~ h5_float64_t *farray = (h5_float64_t *)varray;
     //~ h5_int64_t   *larray = (h5_int64_t *)varray;
-    
+
     std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
     h5_float64_t *farray = reinterpret_cast<h5_float64_t *>(varray.get());
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
@@ -3455,10 +3466,10 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
     //~ void *varray = malloc(localN * sizeof(double));
     //~ double *farray = (double *)varray;
     //~ h5_int64_t *larray = (h5_int64_t *)varray;
-    
+
     std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());    
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
 
 

@@ -23,6 +23,8 @@
 #include "Algorithms/ThinTracker.h"
 #include "Algorithms/ThickTracker.h"
 
+#include "Algorithms/bet/EnvelopeBunch.h"
+
 #include "Algorithms/ParallelTTracker.h"
 #include "Algorithms/ParallelSliceTracker.h"
 #include "Algorithms/ParallelCyclotronTracker.h"
@@ -364,7 +366,7 @@ void TrackRun::execute() {
                      * Here we set up the distribution. Most of the work is done elsewhere.
                      */
                     // inside we do the setup
-                    Track::block->bunch->setDistribution(dist, beam->getNumberOfParticles(), Options::scan);  
+                    Track::block->bunch->setDistribution(dist, beam->getNumberOfParticles(), Options::scan);
 
 
                     if(distrs_m.size() > 0)
@@ -545,7 +547,7 @@ void TrackRun::execute() {
             ds = new DataSink(OPAL->getRestartStep() + 1);
             OPAL->setDataSink(ds);
         }
-        
+
         if(OPAL->hasBunchAllocated() && Options::scan)
             ds->reset();
 

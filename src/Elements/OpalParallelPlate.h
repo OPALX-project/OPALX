@@ -19,7 +19,8 @@
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalElement.h"
-#include "Structure/BoundaryGeometry.h"
+
+class BoundaryGeometry;
 
 // Class OpalParallelPlate
 // ------------------------------------------------------------------------
@@ -36,12 +37,12 @@ public:
         GEOMETRY,       // geometry of boundary
         FREQ,           // The RF frequency.
         LAG,            // The phase lag.
-       
-        PLENGTH,           //distance between two plates or length in s direction 
+
+        PLENGTH,           //distance between two plates or length in s direction
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
         DZ,             // Misalignment: translation in z direction
-     
+
         SIZE
     };
 
@@ -68,7 +69,7 @@ private:
     // Clone constructor.
     OpalParallelPlate(const string &name, OpalParallelPlate *parent);
 
-   
+
 
     BoundaryGeometry *obgeo_m;
 

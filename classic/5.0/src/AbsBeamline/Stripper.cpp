@@ -20,6 +20,7 @@
 
 #include "AbsBeamline/Stripper.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include <iostream>
@@ -51,7 +52,7 @@ Stripper::Stripper():
     stop_m(true),
     step_m(0) {
     A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m; 
+    B_m = xstart_m - xend_m;
     R_m = sqrt(A_m*A_m+B_m*B_m);
     C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
@@ -71,7 +72,7 @@ Stripper::Stripper(const Stripper &right):
     stop_m(right.stop_m),
     step_m(right.step_m) {
     A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m; 
+    B_m = xstart_m - xend_m;
     R_m = sqrt(A_m*A_m+B_m*B_m);
     C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
@@ -91,19 +92,19 @@ Stripper::Stripper(const string &name):
     stop_m(true),
     step_m(0){
     A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m; 
+    B_m = xstart_m - xend_m;
     R_m = sqrt(A_m*A_m+B_m*B_m);
     C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 void Stripper::setGeom(const double dist) {
 
-    double slope; 
-    if (xend_m == xstart_m) 
+    double slope;
+    if (xend_m == xstart_m)
       slope = 1.0e12;
     else
       slope = (yend_m - ystart_m) / (xend_m - xstart_m);
-    
+
     geom_m[0].x = xstart_m - dist / 2.0 * slope / sqrt(1 + slope * slope);
     geom_m[0].y = ystart_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
 
@@ -118,8 +119,6 @@ void Stripper::setGeom(const double dist) {
 
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
-    
-  
 }
 
 
@@ -255,7 +254,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
         size_t count = 0;
         size_t tempnum = bunch.getLocalNum();
         int pflag = 0;
-      
+
 	Vector_t meanP(0.0, 0.0, 0.0);
 	for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
 	  for(int d = 0; d < 3; ++d) {
@@ -281,7 +280,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
 	}else {
 	  sk1 = meanP(1)/meanP(0);
 	  sk2 = - A_m/B_m;
-	  stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));		    
+	  stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
 	}
 	double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
 	double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
@@ -292,7 +291,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
 	      pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
 	      if(pflag != 0) {
 		  // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
-		  double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0; 
+		  double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0;
 		  double k1, k2, tangle = 0.0;
 		  if ( B_m == 0.0 ){
 		    k1 = bunch.P[i](1)/bunch.P[i](0);
@@ -309,7 +308,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
 		  }else {
 		    k1 = bunch.P[i](1)/bunch.P[i](0);
 		    k2 = -A_m/B_m;
-		    tangle = abs(( k1-k2 )/(1 + k1*k2));		    
+		    tangle = abs(( k1-k2 )/(1 + k1*k2));
 		  }
 		  double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
 		  double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch.P[i], bunch.P[i]))) * Physics::c)*1.0e9;
@@ -320,7 +319,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
 
 		  if (stop_m) {
 		    bunch.Bin[i] = -1;
-		    flagNeedUpdate = true;		    
+		    flagNeedUpdate = true;
 		  }else{
                     bunch.M[i] = opmass_m;
                     bunch.Q[i] = opcharge_m * q_e;
@@ -340,9 +339,9 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                         bunch.Bin[bunch.getLocalNum()-1] = bunch.Bin[i];
 
                     // change charge and mass of PartData when the reference particle hits the stripper.
-                    if(bunch.ID[i] == 0) 
+                    if(bunch.ID[i] == 0)
 		      flagresetMQ = true;
-                    
+
 		    count++;
                     flagNeedUpdate = true;
 		  }
@@ -351,7 +350,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
         }
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-    
+
     if(!stop_m){
       reduce(&flagresetMQ, &flagresetMQ + 1, &flagresetMQ, OpBitwiseOrAssign());
       if(flagresetMQ){
@@ -360,7 +359,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
       }
     }
 
-    if(flagNeedUpdate) lossDs_m->save_time(getName()); 
+    if(flagNeedUpdate) lossDs_m->save_time(getName());
     return flagNeedUpdate;
 }
 

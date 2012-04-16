@@ -30,6 +30,8 @@
 #include "AbstractObjects/OpalData.h"
 #include "Distribution/Distribution.h"
 #include "Structure/LossDataSink.h"
+#include "Structure/FieldSolver.h"
+#include "Utilities/Options.h"
 
 #include "ListElem.h"
 #include "BasicActions/Option.h"
@@ -59,6 +61,9 @@ PartBunch::PartBunch(const PartData *ref):
     nodes_m(Ippl::getNodes()),
     fixed_grid(false),
     pbin_m(nullptr),
+    lossDs_m(nullptr),
+    pmsg_m(nullptr),
+    f_stream(nullptr),
     reference(ref),
     unit_state_(units),
     stateOfLastBoundP_(unitless),
@@ -89,9 +94,6 @@ PartBunch::PartBunch(const PartData *ref):
     couplingConstant_m(0.0),
     qi_m(0.0),
     distDump_m(0),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
     stash_iniP_m(0.0),
@@ -155,6 +157,9 @@ PartBunch::PartBunch(const PartBunch &rhs):
     nodes_m(Ippl::getNodes()),
     fixed_grid(rhs.fixed_grid),
     pbin_m(nullptr),
+    lossDs_m(nullptr),
+    pmsg_m(nullptr),
+    f_stream(nullptr),
     reference(rhs.reference),
     unit_state_(rhs.unit_state_),
     stateOfLastBoundP_(rhs.stateOfLastBoundP_),
@@ -185,9 +190,6 @@ PartBunch::PartBunch(const PartBunch &rhs):
     couplingConstant_m(rhs.couplingConstant_m),
     qi_m(rhs.qi_m),
     distDump_m(rhs.distDump_m),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
     stash_Nloc_m(rhs.stash_Nloc_m),
     stash_iniR_m(rhs.stash_iniR_m),
     stash_iniP_m(rhs.stash_iniP_m),
@@ -214,6 +216,9 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     nodes_m(Ippl::getNodes()),
     fixed_grid(false),
     pbin_m(nullptr),
+    lossDs_m(nullptr),
+    pmsg_m(nullptr),
+    f_stream(nullptr),
     reference(ref),
     unit_state_(units),
     stateOfLastBoundP_(unitless),
@@ -244,9 +249,6 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     couplingConstant_m(0.0),
     qi_m(0.0),
     distDump_m(0),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
     stash_iniP_m(0.0),

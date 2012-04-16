@@ -17,20 +17,18 @@
 // $Author: Andreas Adelmann $
 //
 // ------------------------------------------------------------------------
-class OpalBeamline;
-class ElementBase;
-
-#include "Algorithms/PartBunch.h"
 #include "AbstractObjects/Definition.h"
-#include "Algorithms/PartData.h"
 #include "Structure/SecondaryEmissionPhysics.h"
 #include "Distribution/ranlib.h"
 #include <vector>
 #include <sstream>
 #include <set>
 #include <cmath>
-//#include <algorithm>
-//#include "Ippl.h"
+
+class OpalBeamline;
+class ElementBase;
+class PartBunch;
+
 // Class BoundaryGeometry
 // ------------------------------------------------------------------------
 /// The GEOMETRY definition.

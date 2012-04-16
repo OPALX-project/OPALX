@@ -19,6 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Cyclotron.h"
+#include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 #include "Fields/Fieldmap.hh"
@@ -560,14 +561,14 @@ void Cyclotron::getdiffs() {
     //~ Bfield.dbrr  = new double[Bfield.ntot];
     //~ if(Bfield.dbrrr) delete[] Bfield.dbrrr;
     //~ Bfield.dbrrr = new double[Bfield.ntot];
-//~ 
+//~
     //~ if(Bfield.dbrt) delete[] Bfield.dbrt;
     //~ Bfield.dbrt  = new double[Bfield.ntot];
     //~ if(Bfield.dbrrt) delete[] Bfield.dbrrt;
     //~ Bfield.dbrrt = new double[Bfield.ntot];
     //~ if(Bfield.dbrtt) delete[] Bfield.dbrtt;
     //~ Bfield.dbrtt = new double[Bfield.ntot];
-//~ 
+//~
     //~ if(Bfield.f2) delete[] Bfield.f2;
     //~ Bfield.f2    = new double[Bfield.ntot];
     //~ if(Bfield.f3) delete[] Bfield.f3;
@@ -583,8 +584,8 @@ void Cyclotron::getdiffs() {
     Bfield.dbrtt.resize(Bfield.ntot);
 
     Bfield.f2.resize(Bfield.ntot);
-    Bfield.f3.resize(Bfield.ntot);   
-    Bfield.g3.resize(Bfield.ntot);  
+    Bfield.f3.resize(Bfield.ntot);
+    Bfield.g3.resize(Bfield.ntot);
 
     for(int i = 0; i < Bfield.nrad; i++) {
 
@@ -759,7 +760,7 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
     Bfield.ntot = idx(Bfield.nrad - 1, Bfield.ntet) + 1;
     //jjyang
     *gmsg << "* Total stored grid point number ( ntetS * nrad ) : " << Bfield.ntot << endl;
-	
+
     Bfield.bfld.resize(Bfield.ntot);
     Bfield.dbt.resize(Bfield.ntot);
     Bfield.dbtt.resize(Bfield.ntot);
@@ -1208,7 +1209,7 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
 
         for(int ii = 0; ii < 13; ii++)
 			CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
-        
+
         for(int k = 0; k < nHalfPoints; k++) {
             CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
             CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
@@ -1216,7 +1217,7 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
             CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &(Bfield.bfld[idx(i, k)])));
             Bfield.bfld[idx(i, k)] = Bfield.bfld[idx(i, k)] * (-10.0); //  T --> kGs, minus for minus hydrongen
         }
-        
+
         for(int k = nHalfPoints; k < Bfield.ntet; k++) {
             Bfield.bfld[idx(i, k)] = Bfield.bfld[idx(i, Bfield.ntet-k)];
         }

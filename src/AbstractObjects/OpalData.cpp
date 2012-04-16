@@ -18,6 +18,8 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/OpalData.h"
+#include "Structure/DataSink.h"
+#include "Structure/BoundaryGeometry.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Directory.h"
 #include "AbstractObjects/Object.h"
@@ -39,7 +41,8 @@
 #include "OpalParser/OpalParser.h"
 #include "Parser/FileStream.h"
 #include "Parser/StringStream.h"
-#include "Algorithms/PBunchDefs.h"
+#include "Algorithms/PartBunch.h"
+#include "Algorithms/bet/EnvelopeBunch.h"
 // /DTA
 
 using namespace std;
@@ -121,7 +124,7 @@ struct OpalDataImpl {
     BoundaryGeometry *bg_m;
 
     vector<MaxPhasesT> maxPhases_m;
-    
+
     // The cartesian mesh
     Mesh_t *mesh_m;
 
@@ -152,13 +155,13 @@ OpalDataImpl::~OpalDataImpl() {
     delete mesh_m;// somehow this needs to be deleted first
 	delete FL_m;
     //delete PL_m; //this gets deleted by FL_m
-    
+
     delete bunch_m;
     delete slbunch_m;
     delete bg_m;
     delete dataSink_m;
 
-    
+
     mainDirectory.erase();
     tableDirectory.clear();
     exprDirectory.clear();
@@ -342,11 +345,11 @@ Layout_t* OpalData::getLayout() {
 void OpalData::setMesh(Mesh_t *mesh) {
 	p->mesh_m = mesh;
 }
-	
+
 void OpalData::setFieldLayout(FieldLayout_t *fieldlayout) {
 	p->FL_m = fieldlayout;
 }
-	
+
 void OpalData::setLayout(Layout_t *layout) {
 	p->PL_m = layout;
 }

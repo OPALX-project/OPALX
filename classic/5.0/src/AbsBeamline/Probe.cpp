@@ -20,6 +20,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Probe.h"
+#include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
@@ -43,9 +44,9 @@ Probe::Probe():
     width_m(0.0),
     step_m(0){
     A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;     
+    B_m = xstart_m - xend_m;
     R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 
@@ -60,9 +61,9 @@ Probe::Probe(const Probe &right):
     width_m(right.width_m),
     step_m(right.step_m){
     A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;     
+    B_m = xstart_m - xend_m;
     R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 
@@ -77,9 +78,9 @@ Probe::Probe(const string &name):
     width_m(0.0),
     step_m(0){
     A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;     
+    B_m = xstart_m - xend_m;
     R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m; 
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 
@@ -180,8 +181,8 @@ double  Probe::getWidth() const {
 
 void Probe::setGeom(const double dist) {
 
-    double slope; 
-    if (xend_m == xstart_m) 
+    double slope;
+    if (xend_m == xstart_m)
       slope = 1.0e12;
     else
       slope = (yend_m - ystart_m) / (xend_m - xstart_m);
@@ -199,7 +200,7 @@ void Probe::setGeom(const double dist) {
     geom_m[3].y = yend_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
 
     geom_m[4].x = geom_m[0].x;
-    geom_m[4].y = geom_m[0].y;    
+    geom_m[4].y = geom_m[0].y;
 }
 
 bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
@@ -215,7 +216,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 
         size_t tempnum = bunch.getLocalNum();
         int pflag = 0;
-	
+
 	Vector_t meanP(0.0, 0.0, 0.0);
 	for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
 	  for(int d = 0; d < 3; ++d) {
@@ -241,7 +242,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	}else {
 	  sk1 = meanP(1)/meanP(0);
 	  sk2 = - A_m/B_m;
-	  stangle = std::abs(( sk1-sk2 )/(1 + sk1*sk2));		    
+	  stangle = std::abs(( sk1-sk2 )/(1 + sk1*sk2));
 	}
 	double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
 	double Swidth = lstep / sqrt( 1 + 1/stangle/stangle );
@@ -251,7 +252,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	  pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
 	  if(pflag != 0) {
 	     // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
-		  double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0; 
+		  double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0;
 		  double k1, k2, tangle = 0.0;
 		  if ( B_m == 0.0 ){
 		    k1 = bunch.P[i](1)/bunch.P[i](0);
@@ -268,7 +269,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 		  }else {
 		    k1 = bunch.P[i](1)/bunch.P[i](0);
 		    k2 = -A_m/B_m;
-		    tangle = abs(( k1-k2 )/(1 + k1*k2));		    
+		    tangle = abs(( k1-k2 )/(1 + k1*k2));
 		  }
 		  double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
 		  double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch.P[i], bunch.P[i]))) * Physics::c)*1.0e9;
@@ -277,13 +278,13 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	    probepoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
 	    probepoint(2) = bunch.R[i](2);
 	    lossDs_m->addParticle_time(probepoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
-	    flagprobed = true;		    
+	    flagprobed = true;
 	  }
 	}
     }
 
     reduce(&flagprobed, &flagprobed + 1, &flagprobed, OpBitwiseOrAssign());
-    if(flagprobed) lossDs_m->save_time(getName()); 
+    if(flagprobed) lossDs_m->save_time(getName());
     return flagprobed;
 }
 

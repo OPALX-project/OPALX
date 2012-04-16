@@ -132,7 +132,7 @@ namespace Options {
     /// if true create symmetric distribution
     extern bool cZero;
 
-    extern string rngtype;
+    extern std::string rngtype;
 
     /// if true
     extern bool schottkyCorrection;

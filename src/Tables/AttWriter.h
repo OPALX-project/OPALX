@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Element.h"
-#include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Elements/OpalElement.h"

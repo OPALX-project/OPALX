@@ -23,6 +23,7 @@
 
 #include "AbsBeamline/Component.h"
 
+class PartBunch;
 class Fieldmap;
 
 // Class Solenoid

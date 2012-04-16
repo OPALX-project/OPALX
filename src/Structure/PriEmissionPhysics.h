@@ -4,7 +4,6 @@
 class OpalBeamline;
 class ElementBase;
 
-//#include "Algorithms/PartBunch.h"
 #include "Algorithms/PBunchDefs.h"
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
@@ -20,19 +19,19 @@ public:
 
     ~PriEmissionPhysics();
 
-    static 
-    void Fieldemission(PartBunch *itsBunch, 
-                       const double &fa, 
-                       const double &Enormal, 
+    static
+    void Fieldemission(PartBunch *itsBunch,
+                       const double &fa,
+                       const double &Enormal,
                        const double &parameterFNB,
-                       const double &workFunction, 
-                       const double &parameterFNVYZe, 
+                       const double &workFunction,
+                       const double &parameterFNVYZe,
                        const double &parameterFNVYSe,
-                       const double &parameterFNY, 
-                       const double &fieldEnhancement, 
+                       const double &parameterFNY,
+                       const double &fieldEnhancement,
                        const double &maxFNemission,
-                       const double &TriArea, 
-                       const std::vector<Vector_t> &vertex, 
+                       const double &TriArea,
+                       const std::vector<Vector_t> &vertex,
                        const Vector_t TriNormal, size_t &Nstp);
 
 };

@@ -18,15 +18,13 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Algorithms/bet/EnvelopeBunch.h"
-#include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/Particle.h"
 #include "Track/TrackParser.h"
 
 class BeamSequence;
 class TrackParser;
-
+class PartBunch;
+class EnvelopeBunch;
 
 // Class Track
 // ------------------------------------------------------------------------
@@ -60,8 +58,8 @@ public:
 
     /// The initial timestep
     double dT;
-   
-    /// The ellapsed time of the beam can be used to propper 
+
+    /// The ellapsed time of the beam can be used to propper
     /// start the beam when created in a cavity i.e. without emission
     double t0_m;
 

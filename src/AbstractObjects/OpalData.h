@@ -17,21 +17,20 @@
 // $Author: adelmann $
 //
 // ------------------------------------------------------------------------
-#include "Structure/DataSink.h"
 #include "AbstractObjects/ObjectFunction.h"
-//#include "Algorithms/PartBunch.h"
-#include "Algorithms/bet/EnvelopeBunch.h"
-#include "Structure/BoundaryGeometry.h"
+#include "Algorithms/PBunchDefs.h"
 #include <iosfwd>
 #include <string>
 #include <vector>
 
 class PartBunch;
+class EnvelopeBunch;
 class AttributeBase;
 class Object;
 class Table;
 class ValueDefinition;
 class DataSink;
+class BoundaryGeometry;
 
 // store element name, max phase
 typedef std::pair<std::string, double > MaxPhasesT;

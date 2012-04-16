@@ -20,9 +20,9 @@
 
 #include "Physics/Physics.h"
 #include "AbsBeamline/Collimator.h"
+#include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
-#include "AbstractObjects/OpalData.h"
 #include "Structure/LossDataSink.h"
 #include <memory>
 
@@ -238,7 +238,7 @@ bool Collimator::apply(const Vector_t &R, const Vector_t &centroid, const double
 
 
 // rectangle collimators in cyclotron cyclindral coordiantes
-// without surfacephysics, the particle hitting collimator is deleted directly 
+// without surfacephysics, the particle hitting collimator is deleted directly
 bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
@@ -249,20 +249,20 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     if(r1 > rs_m - 50.0 && r1 < re_m + 50.0 ){
       size_t tempnum = bunch.getLocalNum();
       int pflag = 0;
-      
+
       for(unsigned int i = 0; i < tempnum; ++i) {
 	if(bunch.PType[i] == 0) {
 	  pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
 	  if(pflag != 0) {
 	    lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
 	    bunch.Bin[i] = -1;
-	    flagNeedUpdate = true;		    
+	    flagNeedUpdate = true;
 	  }
 	}
       }
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-    if(flagNeedUpdate) lossDs_m->save(getName()); 
+    if(flagNeedUpdate) lossDs_m->save(getName());
     return flagNeedUpdate;
 }
 
@@ -414,7 +414,7 @@ void Collimator::goOffline() {
             rc = H5PartSetNumParticles(H5file_m, PosX_m.size());
             if(rc != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            
+
             std::unique_ptr<char[]> varray(new char[PosX_m.size() * sizeof(double)]);
             double *fvalues = reinterpret_cast<double*>(varray.get());
             h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
@@ -643,22 +643,22 @@ string Collimator::getCollimatorShape() {
 
 void Collimator::setGeom() {
 
-    geom_m[0].x = rs_m*cos(as_m); 
-    geom_m[0].y = rs_m*sin(as_m); 
+    geom_m[0].x = rs_m*cos(as_m);
+    geom_m[0].y = rs_m*sin(as_m);
 
-    geom_m[1].x = re_m*cos(as_m); 
-    geom_m[1].y = re_m*sin(as_m); 
+    geom_m[1].x = re_m*cos(as_m);
+    geom_m[1].y = re_m*sin(as_m);
 
-    geom_m[2].x = re_m*cos(ae_m); 
-    geom_m[2].y = re_m*sin(ae_m); 
+    geom_m[2].x = re_m*cos(ae_m);
+    geom_m[2].y = re_m*sin(ae_m);
 
-    geom_m[3].x = rs_m*cos(ae_m); 
-    geom_m[3].y = rs_m*sin(ae_m); 
+    geom_m[3].x = rs_m*cos(ae_m);
+    geom_m[3].y = rs_m*sin(ae_m);
 
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
 
-    
+
 }
 
 

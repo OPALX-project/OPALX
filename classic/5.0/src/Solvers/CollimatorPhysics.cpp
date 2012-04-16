@@ -15,9 +15,11 @@
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/Multipole.h"
 #include "Structure/LossDataSink.h"
+#include "Distribution/ranlib.h"
+
 #include <iostream>
 #include <fstream>
-using Physics::c;
+//using Physics::c;
 using Physics::pi;
 using Physics::m_p;
 using Physics::m_e;
@@ -401,13 +403,13 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
                     double gamma = (Eng + m_p) / m_p;
                     double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
                     if(collshape_m == "CCollimator") {
-                        R(0) = R(0) + deltat * beta * c * P(0) / sqrt(dot(P, P)) / scalefactor * 1000;
-                        R(1) = R(1) + deltat * beta * c * P(1) / sqrt(dot(P, P)) / scalefactor * 1000;
-                        R(2) = R(2) + deltat * beta * c * P(2) / sqrt(dot(P, P)) / scalefactor * 1000;
+                        R(0) = R(0) + deltat * beta * Physics::c * P(0) / sqrt(dot(P, P)) / scalefactor * 1000;
+                        R(1) = R(1) + deltat * beta * Physics::c * P(1) / sqrt(dot(P, P)) / scalefactor * 1000;
+                        R(2) = R(2) + deltat * beta * Physics::c * P(2) / sqrt(dot(P, P)) / scalefactor * 1000;
                     } else {
-                        R(0) = R(0) + deltat * beta * c * P(0) / sqrt(dot(P, P)) / scalefactor;
-                        R(1) = R(1) + deltat * beta * c * P(1) / sqrt(dot(P, P)) / scalefactor;
-                        R(2) = R(2) + deltat * beta * c * P(2) / sqrt(dot(P, P)) / scalefactor;
+                        R(0) = R(0) + deltat * beta * Physics::c * P(0) / sqrt(dot(P, P)) / scalefactor;
+                        R(1) = R(1) + deltat * beta * Physics::c * P(1) / sqrt(dot(P, P)) / scalefactor;
+                        R(2) = R(2) + deltat * beta * Physics::c * P(2) / sqrt(dot(P, P)) / scalefactor;
                     }
 
                 }
@@ -484,7 +486,7 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
     double gamma2 = gamma * gamma;
     double beta2 = beta * beta;
 
-    double deltas = deltat * beta * c;
+    double deltas = deltat * beta * Physics::c;
     double deltasrho = deltas * 100 * rho_m;
 
     double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
@@ -537,7 +539,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat, d
     double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
     double normP = sqrt(dot(P, P));
 
-    double deltas = deltat * beta * c;
+    double deltas = deltat * beta * Physics::c;
 
     double theta0 = 13.6e6 / (beta * sqrt(dot(P, P)) * m_p * 1e9) * z_p * sqrt(deltas / X0_m) * (1.0 + 0.038 * log(deltas / X0_m));
 
@@ -565,9 +567,9 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat, d
 
     Rot(tmpP, Pcoutmp, normP);
     if(collshape_m == "CCollimator") {
-        R = R + (P * c / gamma * deltat / scalefactor + tmpP / beta / gamma * poscou / scalefactor) * 1000;
+        R = R + (P * Physics::c / gamma * deltat / scalefactor + tmpP / beta / gamma * poscou / scalefactor) * 1000;
     } else {
-        R = R + P * c / gamma * deltat / scalefactor + tmpP / beta / gamma * poscou / scalefactor;
+        R = R + P * Physics::c / gamma * deltat / scalefactor + tmpP / beta / gamma * poscou / scalefactor;
     }
     double P2 = rGen_m->uniform(0.0, 1.0);
     if(P2 < 0.0047) {

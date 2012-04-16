@@ -21,6 +21,7 @@
 
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 #include "Physics/Physics.h"
 #include "ValueDefinitions/RealVariable.h"
@@ -80,8 +81,8 @@ ParallelPlate::ParallelPlate(const string &name):
 
 
 ParallelPlate::~ParallelPlate() {
-   
-   
+
+
 }
 
 
@@ -152,7 +153,7 @@ bool ParallelPlate::apply(const int &i, const double &t, Vector_t &E, Vector_t &
 
     }
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
-   
+
     //Here we don't check if the particle is outof bounds, just leave the matter to the particle Boundary collision model in BoundaryGeometry
     if( (tmpR(2)>=startField_m-0.00001)
         && (tmpR(2)<=endField_m+0.00001) ) {
@@ -172,8 +173,8 @@ bool ParallelPlate::apply(const Vector_t &R, const Vector_t &centroid, const dou
 
     }
     const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - startField_m - ds_m);// Fixme: check this.
-   
-    
+
+
     //if(!fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB)) {
     if( (tmpR(2)>=startField_m-0.00001)
         && (tmpR(2)<=endField_m+0.00001) ) {
@@ -185,14 +186,14 @@ bool ParallelPlate::apply(const Vector_t &R, const Vector_t &centroid, const dou
 }
 
 void ParallelPlate::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-    
+
     Inform msg("PARALLELPLATE");
     std::stringstream errormsg;
     RefPartBunch_m = bunch;
     startField_m = ElementEdge_m = startField;
     //cout<<"Lenth_m in initialise: "<<length_m<<endl;
     endField_m = endField = ElementEdge_m + length_m;//fixme:Has length_m already been initialised before?
-   
+
 }
 
 // In current version ,not implemented yet.
@@ -204,7 +205,7 @@ void ParallelPlate::initialise(PartBunch *bunch, const double &scaleFactor) {
     RefPartBunch_m = bunch;
     // ElementEdge_m = startField;
     msg << " Currently parallelplate initialization for cyclotron tracker is  empty! " << endl;
-  
+
 }
 
 
@@ -218,12 +219,12 @@ bool ParallelPlate::bends() const {
 
 
 void ParallelPlate::goOnline() {
-  
+
     online_m = true;
 }
 
 void ParallelPlate::goOffline() {
-  
+
     online_m = false;
 }
 

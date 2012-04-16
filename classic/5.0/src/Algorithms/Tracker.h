@@ -26,7 +26,6 @@
 #include "Algorithms/Particle.h"
 #include "FixedAlgebra/FTps.h"
 
-#include "Utilities/OpalSection.h"
 #include "Utilities/OpalField.h"
 
 class BMultipoleField;
@@ -82,11 +81,9 @@ class Euclid3D;
 //  [/DL]
 
 
-typedef std::pair<string, double > MaxPhasesT;
-
 typedef std::list<OpalField> FieldList;
 
-typedef std::vector<OpalSection> SectionList;
+// typedef std::vector<OpalSection> SectionList;
 
 class Tracker: public AbstractTracker {
 
@@ -159,15 +156,11 @@ public:
     /// set multipacting flag
     virtual void setMpacflg(bool mpacflg) {};
 
-
-    // stores all the phases for maximum energies, computed on node 0
-    std::vector<MaxPhasesT> maxPhases_m;
-
     // standing wave structures
     FieldList cavities_m;
 
     const Beamline &itsBeamline_m;
-    
+
 protected:
 
     /// Apply a drift length.

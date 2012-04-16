@@ -25,7 +25,6 @@
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/Patch.h"
 #include "Algorithms/MapIntegrator.h"
-#include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Particle.h"
 #include "Fields/BMultipoleField.h"

@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "AbsBeamline/Component.h"
-#include "Algorithms/PartBunch.h"
 
 class WakeFunction;
 class SurfacePhysicsHandler;

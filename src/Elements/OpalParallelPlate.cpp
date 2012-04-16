@@ -17,6 +17,7 @@
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalParallelPlate.h"
+#include "Structure/BoundaryGeometry.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/ParallelPlateRep.h"
@@ -36,7 +37,7 @@ OpalParallelPlate::OpalParallelPlate():
                     ("FREQ", " frequency in MHz");
     itsAttr[LAG] = Attributes::makeReal
                    ("LAG", "Phase lag (rad), !!!! was before in multiples of (2*pi) !!!!");
-  
+
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "BoundaryGeometry for ParallelPlate");
 
@@ -48,14 +49,14 @@ OpalParallelPlate::OpalParallelPlate():
                   ("DY", "Misalignment in y direction");
     itsAttr[DZ] = Attributes::makeReal
                   ("DZ", "Misalignment in z direction");
-    
+
 
     registerRealAttribute("VOLT");
     registerRealAttribute("FREQ");
     registerRealAttribute("LAG");
     registerStringAttribute("GEOMETRY");
     registerRealAttribute("PLENGTH");
-   
+
     registerRealAttribute("DX");
     registerRealAttribute("DY");
     registerRealAttribute("DZ");
@@ -70,7 +71,7 @@ OpalParallelPlate::OpalParallelPlate(const string &name, OpalParallelPlate *pare
 
 
 OpalParallelPlate::~OpalParallelPlate() {
-  
+
 }
 
 
@@ -116,7 +117,7 @@ void OpalParallelPlate::update() {
         obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));
         if(obgeo_m) {
             //obgeo_m->initialize();
-           
+
             pplate->setBoundaryGeometry(obgeo_m);
         }
     }

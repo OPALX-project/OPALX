@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 
 #include "gsl/gsl_interp.h"
@@ -140,7 +140,7 @@ bool TravelingWave::getFast() const {
     return fast_m;
 }
 
-void TravelingWave::setAutophaseVeto(bool veto) {    
+void TravelingWave::setAutophaseVeto(bool veto) {
     autophaseVeto_m = veto;
 }
 
@@ -724,7 +724,7 @@ pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
         ez += scaleCore_m / Ezmax * cos(phase2) * gsl_spline_eval(onAxisInterpolants, tmpz, onAxisAccel);
 
         p += ez * q * cdt / mass;
-        dz = 0.5 * p / sqrt(1.0 + p * p) * cdt; 
+        dz = 0.5 * p / sqrt(1.0 + p * p) * cdt;
         z += dz;
         phase += dphi;
         phase2 += dphi;
@@ -738,7 +738,7 @@ pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
         tmpz += 3.0 * PeriodLength_m / 2.0;
         double ez = scale_m / Ezmax * cos(phase) * gsl_spline_eval(onAxisInterpolants, tmpz, onAxisAccel);
         p += ez * q * cdt / mass;
-        dz = 0.5 * p / sqrt(1.0 + p * p) * cdt; 
+        dz = 0.5 * p / sqrt(1.0 + p * p) * cdt;
         z += dz;
         phase += dphi;
         t += dt;

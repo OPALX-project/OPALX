@@ -101,22 +101,24 @@
 //
 // ------------------------------------------------------------------------
 
-#include "DataSink.h"
 #include "config.h"
+#include "DataSink.h"
+#include "Algorithms/PartBunch.h"
+#include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
 #include "ValueDefinitions/RealVariable.h"
 #include "Fields/Fieldmap.hh"
+#include "Structure/BoundaryGeometry.h"
+
 #include <iomanip>
 #include <iostream>
 #include <fstream>
-
 #include <string>
 #include <sstream>
 #include <cassert>
 #include <hdf5.h>
-//#include <algorithm>
 #include <cmath>
 #include "H5hut.h"
 #include <memory>
@@ -1274,7 +1276,7 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 
     std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
-    
+
     ///Get the particle decomposition from all the compute nodes.
     std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
     std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
@@ -2459,7 +2461,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
     std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-    
+
 
 #ifdef PARALLEL_IO
     H5file = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
@@ -2626,10 +2628,10 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     const size_t InjectN = (size_t)H5PartGetNumParticles(H5file);
 
-    
+
     std::unique_ptr<char[]> varray(new char[(InjectN*sizeof(double))]);
     double *farray = reinterpret_cast<double *>(varray.get());
-    
+
     const size_t LocalNum = beam.getLocalNum();
     const size_t NewLocalNum = LocalNum + InjectN;
 
@@ -2713,8 +2715,8 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
 
 
 
-/** \brief Find out which flavor has written the data of 
- *   the h5 file. 
+/** \brief Find out which flavor has written the data of
+ *   the h5 file.
  *
  *
  */
@@ -2726,8 +2728,8 @@ bool DataSink::isOPALt() {
     return (std::string(opalFlavour)==std::string("opal-t"));
 }
 
-/** \brief 
- *     
+/** \brief
+ *
  *
  *
  */
@@ -2738,8 +2740,8 @@ void DataSink::setOPALcycl() {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 }
 
-/** \brief 
- * 
+/** \brief
+ *
  *
  *
  */

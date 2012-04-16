@@ -79,17 +79,14 @@
 #include <iostream>
 
 #include <sys/stat.h>
-//using namespace std;
 
-#include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunch.h"
-#include "Algorithms/bet/EnvelopeBunch.h"
-#include "Ippl.h"
+#include "Algorithms/PBunchDefs.h"
 
-#include <hdf5.h>
 #include "H5hut.h"
 
-#include "Structure/BoundaryGeometry.h"
+class PartBunch;
+class EnvelopeBunch;
+class BoundaryGeometry;
 
 /** \brief Class: DataSink
  *

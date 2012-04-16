@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "Algebra/Array1D.h"
-#include <Utilities/SizeError.h>
+#include "Utilities/SizeError.h"
 #include <algorithm>
 #include <numeric>
 #include <cmath>

@@ -6,8 +6,6 @@
 #include <vector>
 
 #include "Algorithms/Tracker.h"
-#include "Algorithms/PartBunch.h"
-
 #include "Beamlines/Beamline.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
@@ -30,15 +28,13 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/ParallelPlate.h"
 
-#include "Solvers/SurfacePhysicsHandler.hh"
-#include "Structure/SurfacePhysics.h"
-#include "Structure/BoundaryGeometry.h"
-
 #include "Utilities/OpalSection.h"
 #include "Utilities/OpalField.h"
 
-class WakeFunction;
+class PartBunch;
+class SurfacePhysicsHandler;
 class BoundaryGeometry;
+class WakeFunction;
 
 #define BEAMLINE_EOL  0x80000000   // end of line
 #define BEAMLINE_OOB  0x40000000   // out of bounds
@@ -47,6 +43,7 @@ class BoundaryGeometry;
 #define BEAMLINE_BEND 0x10000000   // bends
 #define BEAMLINE_SURFACEPHYSICS 0x08000000 // has surface physics
 
+typedef std::vector<OpalSection> SectionList;
 
 class OpalBeamline {
 

@@ -17,44 +17,6 @@
 // $Author: Andreas Adelmann $
 //
 // ------------------------------------------------------------------------
-
-#include "AbstractObjects/Definition.h"
-#include "AbstractObjects/Expressions.h"
-#include "AbstractObjects/OpalData.h"
-#include "AbstractObjects/ObjectFunction.h"
-
-#include "Algorithms/PartData.h"
-#include "Algorithms/PartBins.h"
-#include "Algorithms/PartBunch.h"
-
-#include "Algorithms/bet/EnvelopeBunch.h"
-
-#include "Attributes/Attributes.h"
-#include "Attributes/opalstr.h"
-#include "Attributes/Real.h"
-#include "Attributes/RealArray.h"
-
-#include "Expressions/SAutomatic.h"
-#include "Expressions/SRefExpr.h"
-
-#include "Physics/Physics.h"
-
-#include "Structure/BoundaryGeometry.h"
-
-#include "Utilities/OpalException.h"
-
-#include "ValueDefinitions/StringConstant.h"
-#include "ValueDefinitions/RealVariable.h"
-
-#include "halton1d_sequence.hh"
-#include "ranlib.h"
-
-
-//#include "Ippl.h"
-
-#include <hdf5.h>
-#include "H5hut.h"
-
 #include <iosfwd>
 #include <fstream>
 #include <string>
@@ -62,13 +24,23 @@
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>
-#include <gsl/gsl_cdf.h>
-#include <gsl/gsl_randist.h>
 #include <gsl/gsl_qrng.h>
-#include <gsl/gsl_sf_erf.h>
+
+#include "H5hut.h"
+
+#include "AbstractObjects/Definition.h"
+#include "Algorithms/PartData.h"
+#include "ranlib.h"
+#include "Algorithms/PBunchDefs.h"
 
 #define RANLIBX
-#define sqr(x) pow(x,2.)
+#define sqr(x) x*x
+
+class PartBunch;
+class PartBins;
+class EnvelopeBunch;
+class BoundaryGeometry;
+class LaserProfile;
 
 enum DistrTypeT {GAUSS,
                  BINOMIAL,
@@ -82,8 +54,6 @@ enum DistrTypeT {GAUSS,
                  SURFACERANDCREATE,
                  ASTRAFLATTOPTH
                 };
-
-class LaserProfile;
 
 // Class Distribution
 // ------------------------------------------------------------------------

@@ -21,12 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/DefaultVisitor.h"
-#include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/Particle.h"
-
-class PartBunch;
-
 
 // Class AbstractTracker
 // ------------------------------------------------------------------------

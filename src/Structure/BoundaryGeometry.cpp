@@ -19,8 +19,9 @@
 
 //FIXME: cleanup
 #include "Structure/BoundaryGeometry.h"
+#include "Algorithms/PartBunch.h"
 #include "Structure/PriEmissionPhysics.h"
-#include "Structure/SecondaryEmissionPhysics.h"
+#include "Algorithms/PartData.h"
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
 #include "Expressions/SAutomatic.h"

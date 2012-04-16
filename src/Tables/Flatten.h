@@ -22,7 +22,7 @@
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/Element.h"
-#include "AbstractObjects/OpalData.h"
+//#include "AbstractObjects/OpalData.h"
 #include "BeamlineCore/PatchRep.h"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "Beamlines/TBeamline.h"

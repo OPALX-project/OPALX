@@ -17,6 +17,7 @@
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalDrift.h"
+#include "Structure/BoundaryGeometry.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
 #include "Structure/OpalWake.h"

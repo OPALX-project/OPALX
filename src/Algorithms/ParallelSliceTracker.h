@@ -4,6 +4,8 @@
 #include <vector>
 #include <list>
 
+class EnvelopeBunch;
+
 #include "Algorithms/Tracker.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Options.h"
@@ -39,8 +41,6 @@
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
-
-class EnvelopeBunch;
 
 class ParallelSliceTracker: public Tracker {
 

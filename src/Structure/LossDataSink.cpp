@@ -3,11 +3,11 @@
 #include <Structure/LossDataSink.h>
 
 
-void LossDataSink::openH5(string element) {
+void LossDataSink::openH5(std::string element) {
 
     if((!hdf5FileIsOpen_m) && doHdf5Save_m) {
         // open h5 file
-        fn_m = element + string(".h5");
+        fn_m = element + std::string(".h5");
         /// Open H5 file. Check that it opens correctly.
 #ifdef PARALLEL_IO
         H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, Ippl::getComm());
@@ -89,14 +89,14 @@ void LossDataSink::addParticle(const Vector_t x,const  Vector_t p, const size_t 
     id_m.push_back(id);
 }
 
-// For cyclotron simulation, dump the time and turn number 
+// For cyclotron simulation, dump the time and turn number
 void LossDataSink::addParticle_time(const Vector_t x,const Vector_t p,const size_t id,const double time,const size_t turn) {
-    addParticle(x, p, id); 
+    addParticle(x, p, id);
     turn_m.push_back(turn);
     time_m.push_back(time);
 }
 
-void LossDataSink::save(string element) {
+void LossDataSink::save(std::string element) {
     h5_int64_t rc;
     element_m = element;
 
@@ -109,7 +109,7 @@ void LossDataSink::save(string element) {
 
         std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
 		double *farray = reinterpret_cast<double *>(varray.get());
-		h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get()); 
+		h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
         ///Get the particle decomposition from all the compute nodes.
         //~ size_t *locN = (size_t *) malloc(Ippl::getNodes() * sizeof(size_t));
@@ -257,9 +257,9 @@ void LossDataSink::save(string element) {
     id_m.clear();
 }
 
-// For cyclotron simulation, dump the time and turn number 
-// Only dump in ASCII file 
-void LossDataSink::save_time(string element) {
+// For cyclotron simulation, dump the time and turn number
+// Only dump in ASCII file
+void LossDataSink::save_time(std::string element) {
     element_m = element;
     append();
     int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
@@ -276,7 +276,7 @@ void LossDataSink::save_time(string element) {
 	os_m << id_m[i] << "   ";
 	os_m << turn_m[i] << "   ";
 	os_m << time_m[i] << " "<< std::endl;
-		
+
       }
       int notReceived =  Ippl::getNodes() - 1;
       while(notReceived > 0) {

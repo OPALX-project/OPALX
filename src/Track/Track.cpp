@@ -17,6 +17,8 @@
 // ------------------------------------------------------------------------
 
 #include "Track/Track.h"
+#include "Algorithms/PartBunch.h"
+#include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
 // Class Track
@@ -34,7 +36,7 @@ otherwise a new bunch is allocated in the dictionary.
 */
 
 
-Track::Track(BeamSequence *u, const PartData &ref, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator, 
+Track::Track(BeamSequence *u, const PartData &ref, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator,
              int nslices, double t0):
     reference(ref),
     use(u),

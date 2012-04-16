@@ -22,7 +22,9 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
-#include "AbsBeamline/Stripper.h"
+
+class PartBunch;
+class LossDataSink;
 
 // Class Probe
 // ------------------------------------------------------------------------
