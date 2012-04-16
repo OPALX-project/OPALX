@@ -8,6 +8,7 @@
  ***************************************************************************/
 
 // include files
+#include "Algorithms/PartBunch.h"
 #include "FFTBoxPoissonSolver.h"
 #include "Physics/Physics.h"
 #include <fstream>

@@ -17,6 +17,11 @@
 // ------------------------------------------------------------------------
 
 #include "Structure/FieldSolver.h"
+#include "Solvers/FFTPoissonSolver.h"
+#include "Solvers/FFTBoxPoissonSolver.h"
+#ifdef HAVE_ML_SOLVER
+#include "Solvers/MGPoissonSolver.h"
+#endif
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -26,6 +31,7 @@
 #include "Utilities/OpalException.h"
 #include "BoundaryGeometry.h"
 #include "AbstractObjects/Element.h"
+#include "Algorithms/PartBunch.h"
 
 using namespace Expressions;
 using namespace Physics;

@@ -21,43 +21,19 @@
 #ifndef FFT_POISSON_SOLVER_H_
 #define FFT_POISSON_SOLVER_H_
 
+
+#ifdef dontOPTIMIZE_FIELD_ASSIGNMENT
+#define FIELDASSIGNOPTIMIZATION __attribute__((optimize(0)))
+#else
+#define FIELDASSIGNOPTIMIZATION
+#endif
+
 #include <memory>
 //////////////////////////////////////////////////////////////
-//#include "Ippl.h"
-#include "FFT/FFT.h"
-class PartBunch;
-class FFTPoissonSolver;
-//#include "Algorithms/PartBunch.h"
 #include "PoissonSolver.h"
+class PartBunch;
+
 //////////////////////////////////////////////////////////////
-
-// typedef IntCIC  IntrplCIC_t;
-// typedef IntNGP  IntrplNGP_t;
-// typedef IntSUDS IntrplSUDS_t;
-
-// typedef ParticleSpatialLayout<double, 3>::ParticlePos_t Ppos_t;
-// typedef ParticleSpatialLayout<double, 3>::ParticleIndex_t PID_t;
-
-// typedef ParticleAttrib<double> Pscalar_t;
-
-// typedef InterpolatorTraits<double, 3, IntrplCIC_t>::Cache_t Pcache_t;
-
-// typedef UniformCartesian<3, double> Mesh_t;
-
-// typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
-
-// typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
-
-// typedef Cell                                       Center_t;
-
-// typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
-// typedef Field<double, 3, Mesh_t, Center_t>       Field_t;
-// typedef Field<Vector_t, 3, Mesh_t, Center_t>     VField_t;
-
-
-typedef Field<int, 3, Mesh_t, Center_t>         IField_t;
-typedef Field<dcomplex, 3, Mesh_t, Center_t>    CxField_t;
-typedef FFT<RCTransform, 3, double>                  FFT_t;
 
 class FFTPoissonSolver : public PoissonSolver {
 public:
@@ -94,6 +70,9 @@ public:
 
     Inform &print(Inform &os) const;
 private:
+
+    void mirrorRhoField() FIELDASSIGNOPTIMIZATION;
+    void mirrorRhoField(Field_t & ggrn2) FIELDASSIGNOPTIMIZATION;
 
     // rho2_m is the charge-density field with mesh doubled in each dimension
     Field_t rho2_m;

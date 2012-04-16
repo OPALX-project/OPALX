@@ -446,26 +446,13 @@ void FFTPoissonSolver::integratedGreensFunction() {
            tmpgreen[I+1][J+1][K+1] - tmpgreen[I][J+1][K+1] - tmpgreen[I+1][J][K+1] + tmpgreen[I][J][K+1] - tmpgreen[I+1][J+1][K] +
            tmpgreen[I][J+1][K] + tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
 
-    rho2_m[0][0][0] = rho2_m[0][0][1];
-
-    Index IE(nr_m[0] + 1, 2 * nr_m[0] - 1);
-    Index JE(nr_m[1] + 1, 2 * nr_m[1] - 1);
-    Index KE(nr_m[2] + 1, 2 * nr_m[2] - 1);
-
-    rho2_m[IE][JE][KE] = rho2_m[2*nr_m[0] - IE][2*nr_m[1] - JE][2*nr_m[2] - KE];
-    rho2_m[IE][J ][K ] = rho2_m[2*nr_m[0] - IE][J][K];
-    rho2_m[I ][JE][K ] = rho2_m[I][2*nr_m[1] - JE][K];
-    rho2_m[I ][J ][KE] = rho2_m[I][J][2*nr_m[2] - KE];
-    rho2_m[IE][JE][K ] = rho2_m[2*nr_m[0] - IE][2*nr_m[1] - JE][K];
-    rho2_m[IE][J ][KE] = rho2_m[2*nr_m[0] - IE][J][2*nr_m[2] - KE];
-    rho2_m[I ][JE][KE] = rho2_m[I][2*nr_m[1] - JE][2*nr_m[2] - KE];
+    mirrorRhoField();
     IpplTimings::stopTimer(IntGreensFunctionTimer3_m);
 
     IpplTimings::startTimer(IntGreensFunctionTimer4_m);
     fft_m->transform(-1, rho2_m, grntr_m);
     IpplTimings::stopTimer(IntGreensFunctionTimer4_m);
 }
-
 
 void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
 
@@ -567,10 +554,6 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
     ggrn2[I][J][K] -= grn2[I][J+1][K+1];
     ggrn2[I][J][K] -= grn2[I][J][K];
 
-    Index IE(nr_m[0] + 1, 2 * nr_m[0] - 1);
-    Index JE(nr_m[1] + 1, 2 * nr_m[1] - 1);
-    Index KE(nr_m[2], 2 * nr_m[2] - 1);
-
     /**
      ** (x[0:nr_m[0]-1]^2 + y[0:nr_m[1]-1]^2 + (z_c + z[0:nr_m[2]-1])^2)^{-0.5}
      ** (x[nr_m[0]:1]^2   + y[0:nr_m[1]-1]^2 + (z_c + z[0:nr_m[2]-1])^2)^{-0.5}
@@ -583,14 +566,7 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
      ** (x[nr_m[0]:1]^2   + y[nr_m[1]:1]^2   + (z_c - z[nr_m[2]:1])^2)^{-0.5}
     */
 
-    rho2_m[IE][J ][K ] = rho2_m[2*nr_m[0] - IE][J][K];
-    rho2_m[I ][JE][K ] = rho2_m[I][2*nr_m[1] - JE][K];
-    rho2_m[IE][JE][K ] = rho2_m[2*nr_m[0] - IE][2*nr_m[1] - JE][K];
-
-    rho2_m[I ][J ][KE] = ggrn2[I][J][KE - nr_m[2]];
-    rho2_m[IE][J ][KE] = ggrn2[2*nr_m[0] - IE][J][KE - nr_m[2]];
-    rho2_m[I ][JE][KE] = ggrn2[I][2*nr_m[1] - JE][KE - nr_m[2]];
-    rho2_m[IE][JE][KE] = ggrn2[2*nr_m[0] - IE][2*nr_m[1] - JE][KE - nr_m[2]];
+    mirrorRhoField(ggrn2);
 
     //rho2_m[I ][J ][KE] = tmpgreen[I][J][2*nr_m[2] - KE];
     //rho2_m[IE][J ][KE] = tmpgreen[2*nr_m[0] - IE][J][2*nr_m[2] - KE];
@@ -606,12 +582,62 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
         for (int k=0;k<32;k++)
           fstr << k+1 << " " << j+1 << " " << i+1 << " " << rho2_m[k][j][i] << endl;
     fstr.close();*/
+
     IpplTimings::stopTimer(ShIntGreensFunctionTimer3_m);
 
     IpplTimings::startTimer(ShIntGreensFunctionTimer4_m);
     fft_m->transform(-1, rho2_m, grntr_m);
     IpplTimings::stopTimer(ShIntGreensFunctionTimer4_m);
 
+}
+
+void FFTPoissonSolver::mirrorRhoField() {
+
+    Index I(0, nr_m[0] + 1);
+    Index J(0, nr_m[1] + 1);
+    Index K(0, nr_m[2] + 1);
+
+    Index IE(nr_m[0] + 1, 2 * nr_m[0] - 1);
+    Index JE(nr_m[1] + 1, 2 * nr_m[1] - 1);
+    Index KE(nr_m[2] + 1, 2 * nr_m[2] - 1);
+
+    Index mirroredIE = 2*nr_m[0] - IE;
+    Index mirroredJE = 2*nr_m[1] - JE;
+    Index mirroredKE = 2*nr_m[2] - KE;
+
+    rho2_m[0][0][0] = rho2_m[0][0][1];
+
+    rho2_m[IE][J ][K ] = rho2_m[mirroredIE][J         ][K         ];
+    rho2_m[I ][JE][K ] = rho2_m[I         ][mirroredJE][K         ];
+    rho2_m[I ][J ][KE] = rho2_m[I         ][J         ][mirroredKE];
+    rho2_m[IE][JE][K ] = rho2_m[mirroredIE][mirroredJE][K         ];
+    rho2_m[IE][J ][KE] = rho2_m[mirroredIE][J         ][mirroredKE];
+    rho2_m[I ][JE][KE] = rho2_m[I         ][mirroredJE][mirroredKE];
+    rho2_m[IE][JE][KE] = rho2_m[mirroredIE][mirroredJE][mirroredKE];
+}
+
+void FFTPoissonSolver::mirrorRhoField(Field_t & ggrn2) {
+
+    Index I = nr_m[0] + 1;
+    Index J = nr_m[1] + 1;
+    Index K = nr_m[2] + 1;
+
+    Index IE(nr_m[0] + 1, 2 * nr_m[0] - 1);
+    Index JE(nr_m[1] + 1, 2 * nr_m[1] - 1);
+    Index KE(nr_m[2], 2 * nr_m[2] - 1);
+
+    Index mirroredIE = 2*nr_m[0] - IE;
+    Index mirroredJE = 2*nr_m[1] - JE;
+    Index shiftedKE(0, nr_m[2] - 1);
+
+    rho2_m[IE][J ][K ] = rho2_m[mirroredIE][J         ][K];
+    rho2_m[I ][JE][K ] = rho2_m[I         ][mirroredJE][K];
+    rho2_m[IE][JE][K ] = rho2_m[mirroredIE][mirroredJE][K];
+
+    rho2_m[I ][J ][KE] = ggrn2[I         ][J         ][shiftedKE];
+    rho2_m[IE][J ][KE] = ggrn2[mirroredIE][J         ][shiftedKE];
+    rho2_m[I ][JE][KE] = ggrn2[I         ][mirroredJE][shiftedKE];
+    rho2_m[IE][JE][KE] = ggrn2[mirroredIE][mirroredJE][shiftedKE];
 }
 
 Inform &FFTPoissonSolver::print(Inform &os) const {

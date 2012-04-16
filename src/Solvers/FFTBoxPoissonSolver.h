@@ -22,29 +22,9 @@
 #define FFT_BOXPOISSON_SOLVER_H_
 
 //////////////////////////////////////////////////////////////
-//#include "Ippl.h"
-//class PartBunch;
 #include "PoissonSolver.h"
-class FFTBoxPoissonSolver;
-#include "Algorithms/PartBunch.h"
+class PartBunch;
 //////////////////////////////////////////////////////////////
-
-// typedef ParticleSpatialLayout<double, 3>::ParticlePos_t Ppos_t;
-// typedef ParticleSpatialLayout<double, 3>::ParticleIndex_t PID_t;
-
-// typedef UniformCartesian<3, double> Mesh_t;
-
-// typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
-
-// typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
-
-// typedef Cell                                       Center_t;
-
-// typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
-// typedef Field<double, 3, Mesh_t, Center_t>       Field_t;
-
-typedef Field<int, 3, Mesh_t, Center_t>         IField_t;
-typedef FFT<SineTransform, 3, double>                  SINE_t;
 
 class FFTBoxPoissonSolver : public PoissonSolver {
 public:

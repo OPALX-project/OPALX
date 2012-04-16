@@ -21,16 +21,9 @@
 class FieldSolver;
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-//class PartBunch;
-#include "Algorithms/PartBunch.h"
-//#include "Ippl.h"
-//class FFTPosissonSolver;
 #include "Solvers/PoissonSolver.h"
-#include "Solvers/FFTPoissonSolver.h"
-#include "Solvers/FFTBoxPoissonSolver.h"
-#ifdef HAVE_ML_SOLVER
-#include "Solvers/MGPoissonSolver.h"
-#endif
+
+class PartBunch;
 
 
 // Class FieldSolver
@@ -39,29 +32,6 @@ class FieldSolver;
 //  A FieldSolver definition is used by most physics commands to define the
 //  particle charge and the reference momentum, together with some other
 //  data.
-
-// typedef IntCIC  IntrplCIC_t;
-// typedef IntNGP  IntrplNGP_t;
-// typedef IntSUDS IntrplSUDS_t;
-
-// typedef ParticleSpatialLayout<double, 3>::ParticlePos_t Ppos_t;
-// typedef ParticleSpatialLayout<double, 3>::ParticleIndex_t PID_t;
-
-// typedef ParticleAttrib<double> Pscalar_t;
-
-// typedef InterpolatorTraits<double, 3, IntrplCIC_t>::Cache_t Pcache_t;
-
-// typedef UniformCartesian<3, double> Mesh_t;
-
-// typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
-
-// typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
-
-// typedef Cell                                       Center_t;
-
-// typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
-// typedef Field<double, 3, Mesh_t, Center_t>       Field_t;
-// typedef Field<Vector_t, 3, Mesh_t, Center_t>     VField_t;
 
 class FieldSolver: public Definition {
 

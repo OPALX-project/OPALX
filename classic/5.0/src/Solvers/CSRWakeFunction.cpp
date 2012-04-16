@@ -218,7 +218,7 @@ void CSRWakeFunction::calculateContributionAfter(size_t sliceNumber, double angl
     // prior to the bend.
     double Ds_max2 = bendRadius_m * pow(totalBendAngle_m, 2) / 6. * (3. * angleOfSlice - 2. * totalBendAngle_m);
     int j = 0;
-    double frac;
+    double frac = 0.0;
     if(Ds_max2 / meshSpacing < sliceNumber) {
         j = sliceNumber - static_cast<int>(floor(Ds_max2 / meshSpacing));
         frac = Ds_max2 / meshSpacing - (sliceNumber - j);

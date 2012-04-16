@@ -11,6 +11,7 @@
 #include "Meshes/Centering.h"
 #include "FieldLayout/CenteredFieldLayout.h"
 #include "Field/Field.h"
+#include "FFT/FFT.h"
 
 typedef IntCIC  IntrplCIC_t;
 typedef IntNGP  IntrplNGP_t;
@@ -34,5 +35,10 @@ typedef Cell Center_t;
 typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
 typedef Field<double, 3, Mesh_t, Center_t>       Field_t;
 typedef Field<Vector_t, 3, Mesh_t, Center_t>     VField_t;
+
+typedef Field<int, 3, Mesh_t, Center_t>          IField_t;
+typedef Field<dcomplex, 3, Mesh_t, Center_t>     CxField_t;
+typedef FFT<RCTransform, 3, double>              FFT_t;
+typedef FFT<SineTransform, 3, double>            SINE_t;
 
 #endif
