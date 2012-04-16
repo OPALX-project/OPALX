@@ -2876,86 +2876,14 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         openFiles(inputFileNameWithoutExtension());
     }
 
-	// In this method, we use [R] = m
-	referenceR *= 0.001;
+    initDistInGlobalFrame();
+    itsBunch->R /= Vector_t(1000.0); 
+
+    // In this method, we use [R] = m
+    referenceR *= 0.001;
 
     double const initialReferenceTheta = referenceTheta / 180.0 * pi;
-    if(!OpalData::getInstance()->inRestartRun()) {
-        PathLength_m = 0.0;
-        // Force the initial phase space values of the particle with ID=0 to zero, to set it as a reference particle.
-        if(initialTotalNum_m > 2) {  // only for mulit-particle mode
-            for(unsigned int ii = 0; ii < initialLocalNum_m; ii++) {
-                if(itsBunch->ID[ii] == 0) {
-                    itsBunch->R[ii] = Vector_t(0.0);
-                    itsBunch->P[ii] = Vector_t(0.0);
-                }
-            }
-        }
 
-        if(Options::psDumpLocalFrame) {
-            // dump the initial distribution
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-            itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0);
-            *gmsg << "* Phase space dump at step " << lastDumpedStep_m << " in the local frame " << endl;
-        }
-
-        // Initialize global R
-        Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, 0.0);
-        localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
-
-        // Initialize global P
-        for(unsigned int ii = 0; ii < initialLocalNum_m; ++ii) {
-            itsBunch->P[ii](0) += referencePr;
-            itsBunch->P[ii](1) += referencePt;
-        }
-        localToGlobal(itsBunch->P, initialReferenceTheta);
-
-        // Initialize the bin number of the first bunch to 0
-        for(unsigned int ii = 0; ii < initialLocalNum_m; ++ii) {
-            itsBunch->Bin[ii] = 0;
-        }
-
-        if(!(Options::psDumpLocalFrame)) {
-
-            // dump the initial distribution
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-
-            *gmsg << "meanR=( " << initMeanR(0) * 1000.0 << " " << initMeanR(1) * 1000.0 << " " << initMeanR(2) * 1000.0 << " ) [mm] " << endl;
-            *gmsg << "phase space dumping in glabol frame at initial position " << endl;
-            *gmsg << "Dump step = " << lastDumpedStep_m << endl;
-        }
-
-        // AUTO mode
-        if(multiBunchMode_m == 2) {
-            Vector_t Rmean = itsBunch->get_centroid();
-            RLastTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
-            RThisTurn_m = RLastTurn_m;
-            *gmsg << "initial Radial position = " << RThisTurn_m * 1000.0 << " [mm]" << endl;
-        }
-
-        if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == 1)) {
-
-            // backup initial distribution
-            initialR_m = new Vector_t[initialLocalNum_m];
-            initialP_m = new Vector_t[initialLocalNum_m];
-            for(unsigned int ii = 0; ii < initialLocalNum_m; ++ii) {
-                initialR_m[ii] = itsBunch->R[ii];
-                initialP_m[ii] = itsBunch->P[ii];
-            }
-        }
-
-    } else {
-        PathLength_m = itsBunch->getLPath();
-
-        // AUTO mode
-        if(multiBunchMode_m == 2) {
-            itsBunch->calcBeamParameters_cycl();
-			Vector_t Rmean = itsBunch->get_centroid();
-            RLastTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
-            RThisTurn_m = RLastTurn_m;
-            *gmsg << "Radial position at restart position = " << RThisTurn_m * 1000.0 << " [mm]" << endl;
-        }
-    }
     *gmsg << "single particle trajectory dump frequency is set to " << Options::sptDumpFreq << endl;
     *gmsg << "particles repartition frequency is set to " << Options::repartFreq << endl;
     if(numBunch_m > 1) {
@@ -2988,24 +2916,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         itsBunch->Bf = Vector_t(0.0);
         itsBunch->Ef = Vector_t(0.0);
         itsBunch->computeSelfFields_cycl(meanGamma);
-        localToGlobal(itsBunch->R, phi, meanR);
-    }
-
-    // do repartation for restart run
-    if(OpalData::getInstance()->inRestartRun()) {
-        Vector_t const meanP = calcMeanP();
-        double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-        Vector_t const meanR = calcMeanR();
-        globalToLocal(itsBunch->R, phi, meanR);
-        itsBunch->boundp();
-        *gmsg << "Do binaryRepartation for restart run" << endl;
-        checkNumPart(string("Before repartation: "), itsBunch->getLocalNum());
-        IpplTimings::startTimer(BinRepartTimer_m);
-        itsBunch->do_binaryRepart();
-        IpplTimings::stopTimer(BinRepartTimer_m);
-        Ippl::Comm->barrier();
-        checkNumPart(string("After repartation: "), itsBunch->getLocalNum());
-        *gmsg << "Done binaryRepartation for restart run" << endl;
         localToGlobal(itsBunch->R, phi, meanR);
     }
 
