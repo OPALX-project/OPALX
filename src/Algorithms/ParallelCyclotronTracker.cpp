@@ -3406,7 +3406,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const int turnnumber, const d
 	}
     }
 
-    bool flagNeedUpdate = (min(itsBunch->Bin) < 0);
+    flagNeedUpdate = (min(itsBunch->Bin) < 0);
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
 
     // update immediately if some particle are lost during this step
