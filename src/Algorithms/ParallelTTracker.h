@@ -306,8 +306,8 @@ private:
 
     unsigned int emissionSteps_m;
 
-    /// The maximal number of steps the system is integrated
-    unsigned long long maxSteps_m;
+    /// The maximal number of steps the system is integrated per TRACK
+    unsigned long long localTrackSteps_m;
 
     size_t maxNparts_m;
     size_t numberOfFieldEmittedParticles_m;
@@ -388,7 +388,7 @@ private:
     void handleRestartRun();
     void prepareEmission();
     void setTime();
-    void setLastStep();
+    // Note: setLastStep is not needed anymore with the new local,global track step logic
     void dumpPhaseSpaceOnScan();
     void initializeBoundaryGeometry();
     void doBinaryRepartition(long long step);

@@ -64,7 +64,7 @@ public:
     double t0_m;
 
     /// Maximal number of timesteps
-    int maxTSteps;
+    int localTimeSteps;
 
     /// The timsteps per revolution period. ONLY available for OPAL-cycl.
     int stepsPerTurn;

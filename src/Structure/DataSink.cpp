@@ -183,7 +183,7 @@ DataSink::DataSink() :
 }
 
 DataSink::DataSink(int restartStep) :
-    lossWrCounter_m(0) {
+    lossWrCounter_m(0){
     /// Constructor steps:
     h5_int64_t rc;
     /// Get timers from IPPL.
@@ -423,7 +423,10 @@ void DataSink::writeH5FileAttributes() {
     rc = H5WriteFileAttribString(H5file_m, "StepUnit", " ");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "TrackStepUnit", " ");
+    rc = H5WriteFileAttribString(H5file_m, "LocalTrackStepUnit", " ");
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    rc = H5WriteFileAttribString(H5file_m, "GlobalTrackStepUnit", " ");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     rc = H5WriteFileAttribString(H5file_m, "NumBunchUnit", " ");
@@ -705,6 +708,9 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 
     beam.get_PBounds(minP, maxP);
 
+    h5_int64_t localTrackStep = (h5_int64_t)beam.getLocalTrackStep();
+    h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
+
     std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
@@ -721,6 +727,14 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 
     /// Set current record/time step.
     rc = H5SetStep(H5file_m, H5call_m);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep",        &localTrackStep, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep",        &globalTrackStep, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
@@ -1016,14 +1030,13 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
 
     beam.get_PBounds(minP, maxP);
 
-
-
     std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
     double  pathLength = beam.getLPath();
-    h5_int64_t trackStep = (h5_int64_t)beam.getTrackStep();
+    h5_int64_t localTrackStep = (h5_int64_t)beam.getLocalTrackStep();
+    h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
     h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
     h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
 
@@ -1096,9 +1109,15 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
     rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3); //normalized
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribInt64(H5file_m, "TrackStep",        &trackStep, 1);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep",        &localTrackStep, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep",        &globalTrackStep, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
     rc = H5WriteStepAttribInt64(H5file_m, "NumBunch",         &numBunch, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);

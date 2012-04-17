@@ -105,7 +105,8 @@ PartBunch::PartBunch(const PartData *ref):
     binemitted_m(nullptr),
     lPath_m(0.0),
     stepsPerTurn_m(0),
-    trackStep_m(0),
+    localTrackStep_m(0),
+    globalTrackStep_m(0),
     numBunch_m(1),
     SteptoLastInj_m(0),
     partPerNode_m(nullptr),
@@ -201,7 +202,8 @@ PartBunch::PartBunch(const PartBunch &rhs):
     binemitted_m(nullptr),
     lPath_m(rhs.lPath_m),
     stepsPerTurn_m(rhs.stepsPerTurn_m),
-    trackStep_m(rhs.trackStep_m),
+    localTrackStep_m(rhs.localTrackStep_m),
+    globalTrackStep_m(rhs.globalTrackStep_m),
     numBunch_m(rhs.numBunch_m),
     SteptoLastInj_m(rhs.SteptoLastInj_m),
     partPerNode_m(nullptr),
@@ -260,7 +262,8 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     binemitted_m(nullptr),
     lPath_m(0.0),
     stepsPerTurn_m(0),
-    trackStep_m(0),
+    localTrackStep_m(0),
+    globalTrackStep_m(0),
     numBunch_m(1),
     SteptoLastInj_m(0),
     partPerNode_m(nullptr),
@@ -404,7 +407,7 @@ void PartBunch::resetIfScan()
  */
 {
     dt = 0.0;
-    trackStep_m = 0;
+    localTrackStep_m = 0;
 }
 
 

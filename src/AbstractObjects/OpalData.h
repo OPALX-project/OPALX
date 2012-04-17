@@ -19,6 +19,7 @@
 // ------------------------------------------------------------------------
 #include "AbstractObjects/ObjectFunction.h"
 #include "Algorithms/PBunchDefs.h"
+
 #include <iosfwd>
 #include <string>
 #include <vector>
@@ -216,13 +217,17 @@ public:
     std::vector<MaxPhasesT>::iterator getLastMaxPhases();
     int getNumberOfMaxPhases();
 
-	Mesh_t* getMesh();
-	FieldLayout_t* getFieldLayout();
-	Layout_t* getLayout();
+    Mesh_t* getMesh();
+    FieldLayout_t* getFieldLayout();
+    Layout_t* getLayout();
 
-	void setMesh(Mesh_t *mesh);
-	void setFieldLayout(FieldLayout_t *fieldlayout);
-	void setLayout(Layout_t *layout);
+    void setMesh(Mesh_t *mesh);
+    void setFieldLayout(FieldLayout_t *fieldlayout);
+    void setLayout(Layout_t *layout);
+
+    unsigned long long getMaxTrackSteps();
+    void setMaxTrackSteps(unsigned long long s);
+    void incMaxTrackSteps(unsigned long long s);
 
 private:
 

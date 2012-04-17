@@ -91,7 +91,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     numRefs_m(-1),
     gunSubTimeSteps_m(-1),
     emissionSteps_m(std::numeric_limits<unsigned int>::max()),
-    maxSteps_m(0),
+    localTrackSteps_m(0),
     maxNparts_m(0),
     numberOfFieldEmittedParticles_m(std::numeric_limits<size_t>::max()),
     bends_m(0),
@@ -144,7 +144,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     numRefs_m(-1),
     gunSubTimeSteps_m(-1),
     emissionSteps_m(numeric_limits<unsigned int>::max()),
-    maxSteps_m(maxSTEPS),
+    localTrackSteps_m(maxSTEPS),
     maxNparts_m(0),
     numberOfFieldEmittedParticles_m(numeric_limits<size_t>::max()),
     bends_m(0),
@@ -331,7 +331,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
 
     size_t totalParticles_f = 0;
 
-    for(; step < maxSteps_m; ++step) {
+    for(; step < localTrackSteps_m; ++step) {
         global_EOL = true;  // check if any particle hasn't reached the end of the field from the last element
 
         itsOpalBeamline_m.resetStatus();
@@ -614,7 +614,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
                Stop simulation if beyond zStop_m
             */
             if(sposRef > zStop_m) {
-                maxSteps_m = step;
+                localTrackSteps_m = step;
             }
         } else {
             INFOMSG("Step " << step << " no emission yet "  << " t= " << t << " [s]" << endl);
@@ -988,7 +988,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
 
     Vector_t rmin, rmax;
 
-    size_t maxStepsSave = maxSteps_m;
+    size_t maxStepsSave = localTrackSteps_m;
     size_t step = 0;
     int dtfraction = 2;
     itsBunch->dt = itsBunch->getdT() / dtfraction;         // need to fix this and make the factor 2 selectable
@@ -1038,9 +1038,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
     double cavity_start = 0.0;
     Component *cavity = NULL;
 
-    for(; step < maxSteps_m * dtfraction; ++step) {
-
-        itsBunch->setTrackStep(step);
+    for(; step < localTrackSteps_m * dtfraction; ++step) {
 
         // let's do a drifting step to probe if the particle will reach element in next step
         Vector_t R_drift = itsBunch->R[0] + itsBunch->P[0] / sqrt(1.0 + dot(itsBunch->P[0],
@@ -1213,14 +1211,14 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
         double sposRef = itsBunch->R[0](2);
 
         if(sposRef > zStop)
-            maxSteps_m = floor(step / dtfraction);
+            localTrackSteps_m = floor(step / dtfraction);
 
         if(!(step % 1000)) {
             INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch->getT() << " [s], "
                     << "E= " << getEnergyMeV(itsBunch->P[0]) << " [MeV] " << endl);
         }
     }
-    maxSteps_m = maxStepsSave;
+    localTrackSteps_m = maxStepsSave;
     scaleFactor_m = scaleFactorSave;
     itsBunch->setT(tSave);
 }
@@ -1275,16 +1273,16 @@ void ParallelTTracker::execute() {
     doAutoPhasing();
 
     numParticlesInSimulation_m = itsBunch->getTotalNum();
-    msg << "totalParticle_i= " << numParticlesInSimulation_m << endl;
 
     OPALTimer::Timer myt1;
 
     setTime();
-    setLastStep();
+
     dumpPhaseSpaceOnScan();
 
     double t = itsBunch->getT();
-    unsigned long long step = OpalData::getInstance()->getLastStep();
+
+    unsigned long long step = itsBunch->getLocalTrackStep();
 
     msg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m << " [m]" << endl;
 
@@ -1294,7 +1292,7 @@ void ParallelTTracker::execute() {
     doSchottyRenormalization();
 
     msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
-        << "max integration steps " << maxSteps_m << ", next step= " << step << endl;
+        << "max integration steps " << localTrackSteps_m << ", next step= " << step << endl;
 
     // itsBeamline_m.accept(*this);
     // itsOpalBeamline_m.prepareSections();
@@ -1317,7 +1315,7 @@ void ParallelTTracker::execute() {
     wakeStatus_m = false;
     surfaceStatus_m = false;
 
-    for(; step < maxSteps_m; ++step) {
+    for(; step < localTrackSteps_m; ++step) {
         bends_m = 0;
         numberOfFieldEmittedParticles_m = 0;
 
@@ -1354,13 +1352,13 @@ void ParallelTTracker::execute() {
 
         if(hasEndOfLineReached()) break;
 
-        double margin = 10.0;
+        double margin = 0.1;
         switchElements(margin);
-        // free the memory allocated in monitors
-        Vector_t rmin(0.0), rmax(0.0);
-        itsBunch->get_bounds(rmin, rmax);
-        itsOpalBeamline_m.switchElementsOff(rmin(2) - margin, "Monitor");
+
+        itsBunch->incTrackSteps();
+
     }
+
     if(numParticlesInSimulation_m > minBinEmitted_m) {
         itsBunch->boundp();
         numParticlesInSimulation_m = itsBunch->getTotalNum();
@@ -1370,7 +1368,6 @@ void ParallelTTracker::execute() {
     writePhaseSpace((step + 1), itsBunch->get_sPos(), doDump);
     msg << "Dump phase space of last step" << endl;
     OPALTimer::Timer myt3;
-    OpalData::getInstance()->setLastStep(step);
     itsOpalBeamline_m.switchElementsOff();
     msg << "done executing ParallelTTracker at " << myt3.time() << endl;
 }
@@ -2069,7 +2066,6 @@ void ParallelTTracker::handleBends() {
         RefPartR_suv_m += RefPartP_suv_m * recpgamma / 2. * Physics::c * itsBunch->getdT();
     }
 
-
     itsBunch->RefPart_R = RefPartR_zxy_m;
     itsBunch->RefPart_P = RefPartP_zxy_m;
 }
@@ -2116,7 +2112,7 @@ void ParallelTTracker::dumpStats(long long step) {
 
     if(numParticlesInSimulation_m == 0) {
         msg << myt2.time() << " "
-            << "Step " << setw(6) << step << "; "
+            << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << "; "
             << "   -- no emission yet --     "
             << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s]"
             << endl;
@@ -2147,7 +2143,7 @@ void ParallelTTracker::dumpStats(long long step) {
     size_t totalParticles_f = numParticlesInSimulation_m;
     if(totalParticles_f <= minBinEmitted_m) {
         msg << myt2.time() << " "
-            << "Step " << setw(6) << step << "; "
+            << "Step " << setw(6) << itsBunch->getGlobalTrackStep() << "; "
             << "only " << setw(4) << totalParticles_f << " particles emitted; "
             << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
             << "E="    << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
@@ -2157,7 +2153,7 @@ void ParallelTTracker::dumpStats(long long step) {
                             "there seems to be something wrong with the position of the bunch!");
     } else {
         msg << myt2.time() << " "
-            << "Step " << setw(6) << step << " "
+            << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << " "
             << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
             << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
             << "E="  << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
@@ -2182,11 +2178,11 @@ void ParallelTTracker::dumpStats(long long step) {
         // If we are dealing with field emission and secondary emission, set upper
         // limit of particle number in simulation to prevent memory overflow.
         if(numParticlesInSimulation_m > maxNparts_m)
-            maxSteps_m = step;
+            localTrackSteps_m = step;
     }
 
     if(sposRef > zStop_m)
-        maxSteps_m = step;
+        localTrackSteps_m = step;
 }
 
 
@@ -2309,28 +2305,12 @@ void ParallelTTracker::setTime() {
     }
 }
 
-void ParallelTTracker::setLastStep() {
-
-    if(OpalData::getInstance()->inRestartRun()) {
-
-        int prevDumpFreq = OpalData::getInstance()->getRestartDumpFreq();
-        long long last_step = OpalData::getInstance()->getRestartStep() * prevDumpFreq + 1;
-        OpalData::getInstance()->setLastStep(last_step);
-
-    } else if(OpalData::getInstance()->hasBunchAllocated()) {
-        /*
-          we are in a follow up track; maxSteps is the number of steps
-          that should be performed with the current track
-        */
-        maxSteps_m += OpalData::getInstance()->getLastStep();
-    } else
-        OpalData::getInstance()->setLastStep(0);
-}
+// Note: setLastStep is not needed anymore with the new local,global track step logic
 
 void ParallelTTracker::dumpPhaseSpaceOnScan() {
 
     if(Options::scan && OpalData::getInstance()->hasBunchAllocated()) {
-        maxSteps_m -= OpalData::getInstance()->getLastStep();
+        localTrackSteps_m -= OpalData::getInstance()->getLastStep();
         OpalData::getInstance()->setLastStep(0);
         if(itsBunch->getLocalNum() != 0)
             writePhaseSpace(0, 0.0); // write initial phase space

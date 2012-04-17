@@ -368,11 +368,17 @@ public:
     void setStepsPerTurn(int n);
     int getStepsPerTurn() const;
 
-    void setTrackStep(long long n);
-    long long getTrackStep() const;
+    /// step in multiple TRACK commands
+    inline void setGlobalTrackStep(long long n) {globalTrackStep_m = n;}
+    inline long long getGlobalTrackStep() const {return globalTrackStep_m;}
 
-    void setNumBunch(int n);
-    int getNumBunch() const;
+    /// step in a TRACK command
+    inline void setLocalTrackStep(long long n) {localTrackStep_m = n;}
+    inline void incTrackSteps() {globalTrackStep_m++;localTrackStep_m++;}
+    inline long long getLocalTrackStep() const {return localTrackStep_m;}
+
+    inline void setNumBunch(int n);
+    inline int getNumBunch() const;
 
     void setSteptoLastInj(int n);
     int getSteptoLastInj();
@@ -600,8 +606,11 @@ private:
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
 
-    /// current track step
-    long long trackStep_m;
+    /// step in a TRACK command
+    long long localTrackStep_m;
+
+    /// if multiple TRACK commands
+    long long globalTrackStep_m;
 
     /// current bunch number
     int numBunch_m;
@@ -1136,16 +1145,6 @@ void PartBunch::setStepsPerTurn(int n) {
 inline
 int PartBunch::getStepsPerTurn() const {
     return stepsPerTurn_m;
-}
-
-inline
-void PartBunch::setTrackStep(long long n) {
-    trackStep_m = n;
-}
-
-inline
-long long PartBunch::getTrackStep() const {
-    return trackStep_m;
 }
 
 inline

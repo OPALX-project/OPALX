@@ -1646,7 +1646,6 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
         }
     }
 
-
     rc = H5SetStep(H5file, restartStep);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -1678,9 +1677,17 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     OpalData::getInstance()->setGlobalPhaseShift(dPhiGlobal);
 
-    //~ void *varray = malloc(N * sizeof(double));
-    //~ double *farray = (double *)varray;
-    //~ h5_int64_t *larray = (h5_int64_t *)varray;
+    h5_int64_t ltstep;
+    rc = H5ReadStepAttribInt64(H5file, "LocalTrackStep", &ltstep);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    beam.setLocalTrackStep((long long)ltstep);
+
+    h5_int64_t gtstep;
+    rc = H5ReadStepAttribInt64(H5file, "GlobalTrackStep", &gtstep);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    beam.setGlobalTrackStep((long long)gtstep);
 
     std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
@@ -1751,9 +1758,6 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     for(unsigned long int n = 0; n < (unsigned int) N; ++n)
         beam.LastSection[n] = (short) larray[n];
-
-    //~ if(farray)
-        //~ free(farray);
 
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);
@@ -3251,7 +3255,7 @@ void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     int N = (int)H5PartGetNumParticles(H5file);
 
-    h5_int64_t totalSteps = H5GetNumSteps(H5file);
+    //    h5_int64_t totalSteps = H5GetNumSteps(H5file);
 
     int numberOfParticlesPerNode = (int) floor((double) N / Ippl::getNodes());
     long long starti = Ippl::myNode() * numberOfParticlesPerNode;
@@ -3281,10 +3285,17 @@ void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     OpalData::getInstance()->setGlobalPhaseShift(dPhiGlobal);
 
-    //~ void *varray = malloc(N * sizeof(double));
-    //~ //    double *farray = (double *)varray;
-    //~ h5_float64_t *farray = (h5_float64_t *)varray;
-    //~ h5_int64_t   *larray = (h5_int64_t *)varray;
+    h5_int64_t ltstep;
+    rc = H5ReadStepAttribInt64(H5file, "LocalTrackStep", &ltstep);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    beam.setLocalTrackStep((long long)ltstep);
+
+    h5_int64_t gtstep;
+    rc = H5ReadStepAttribInt64(H5file, "GlobalTrackStep", &gtstep);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    beam.setGlobalTrackStep((long long)gtstep);
 
     std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
     h5_float64_t *farray = reinterpret_cast<h5_float64_t *>(varray.get());
@@ -3341,24 +3352,19 @@ void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
     for(unsigned long int n = 0; n < (unsigned int) N; ++n)
         beam.LastSection[n] = (short) larray[n];
 
-    //    m2all << "View set  N= " << N << " partciles created and read in" << endl;
-
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    //    if(farray) {
-    //   free(farray);
-    // }
-
-    // m2all << "File closed " << endl;
 
     beam.boundp();
 
     IpplTimings::stopTimer(beam.distrReload_m);
 
-    *gmsg << "total number of particles in the h5 file = " << N << " NBunch= " << beam.getTotalNum() << " total steps " << totalSteps
-          << " restart step= " << restartStep << " time of restart = " << actualT << " phishift= " << OpalData::getInstance()->getGlobalPhaseShift() << endl;
+    *gmsg << "Total number of particles in the h5 file = " << N << " NPerBunch= " << beam.getTotalNum() 
+          << " Global step " << gtstep << " Local step " << ltstep << endl
+          << " restart step= " << restartStep << " time of restart = " << actualT 
+          << " phishift= " << OpalData::getInstance()->getGlobalPhaseShift() << endl;
 }
 
 
@@ -3427,23 +3433,23 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
     const int localN = (int)H5PartGetNumParticles(H5file);
     assert(localN >= 0);
 
-    // debug
-    // Inform *gmsgAll;
-    // gmsgAll = new  Inform("Message",INFORM_ALL_NODES);
-    // *gmsgAll<< "total number of particles on this node = " <<localN <<endl;
-    // end debug
-
     double actualT;
     rc = H5ReadStepAttribFloat64(H5file, "TIME", &actualT);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     beam.setT(actualT);
 
-    h5_int64_t tstep;
-    rc = H5ReadStepAttribInt64(H5file, "TrackStep", &tstep);
+    h5_int64_t ltstep;
+    rc = H5ReadStepAttribInt64(H5file, "LocalTrackStep", &ltstep);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    beam.setTrackStep((long long)tstep);
+    beam.setLocalTrackStep((long long)ltstep);
+
+    h5_int64_t gtstep;
+    rc = H5ReadStepAttribInt64(H5file, "GlobalTrackStep", &gtstep);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    beam.setGlobalTrackStep((long long)gtstep);
 
     h5_int64_t SteptoLastInj;
     rc = H5ReadStepAttribInt64(H5file, "SteptoLastInj", &SteptoLastInj);

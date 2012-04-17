@@ -888,7 +888,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     // get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
-        restartStep0_m = itsBunch->getTrackStep();
+        restartStep0_m = itsBunch->getLocalTrackStep();
         step_m = restartStep0_m;
         if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
@@ -1323,7 +1323,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
             itsBunch->setSteptoLastInj(SteptoLastInj);
 
-            itsBunch->setTrackStep((step_m + 1));
+            itsBunch->setLocalTrackStep((step_m + 1));
 
             extE_m = Vector_t(0.0, 0.0, 0.0);
             extB_m = Vector_t(0.0, 0.0, 0.0);
@@ -1440,7 +1440,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     // get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
-        restartStep0_m = itsBunch->getTrackStep();
+        restartStep0_m = itsBunch->getLocalTrackStep();
         step_m = restartStep0_m;
         if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
@@ -2310,7 +2310,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
            || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
             IpplTimings::startTimer(DumpTimer_m);
 
-            itsBunch->setTrackStep((step_m + 1));
+            itsBunch->setLocalTrackStep((step_m + 1));
 
             extE_m = Vector_t(0.0, 0.0, 0.0);
             extB_m = Vector_t(0.0, 0.0, 0.0);
@@ -2839,7 +2839,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
     // get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
-        restartStep0_m = itsBunch->getTrackStep();
+        restartStep0_m = itsBunch->getLocalTrackStep();
         step_m = restartStep0_m;
 	    if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
@@ -3119,7 +3119,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         {
             IpplTimings::startTimer(DumpTimer_m);
             itsBunch->setSteptoLastInj(SteptoLastInj);
-            itsBunch->setTrackStep((step_m + 1));
+            itsBunch->setLocalTrackStep((step_m + 1));
 
             //--------------------- calculate mean coordinates of bunch -------------------------------//
             //------------ and calculate the external field at the mass of bunch -----------------------//
@@ -3420,7 +3420,7 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
     if(myNode_m == 0) {
         if(OpalData::getInstance()->inRestartRun()) {
             outfTrackOrbit_m.open(f.c_str(), ios::app);
-            outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getTrackStep() << endl;
+            outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getLocalTrackStep() << endl;
         } else {
             outfTrackOrbit_m.open(f.c_str());
             outfTrackOrbit_m << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]" << endl;

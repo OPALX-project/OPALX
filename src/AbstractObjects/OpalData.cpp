@@ -123,7 +123,7 @@ struct OpalDataImpl {
 
     BoundaryGeometry *bg_m;
 
-    vector<MaxPhasesT> maxPhases_m;
+    std::vector<MaxPhasesT> maxPhases_m;
 
     // The cartesian mesh
     Mesh_t *mesh_m;
@@ -133,6 +133,9 @@ struct OpalDataImpl {
 
     // The particle layout
     Layout_t *PL_m;
+
+    // the accumulated (over all TRACKs) number of steps
+    unsigned long long maxTrackSteps;
 };
 
 
@@ -147,7 +150,6 @@ OpalDataImpl::OpalDataImpl():
     FL_m = 0;
     PL_m = 0;
 }
-
 
 OpalDataImpl::~OpalDataImpl() {
     // Make sure the main directory is cleared before the directories
@@ -190,6 +192,19 @@ void OpalData::deleteInstance() {
     isInstatiated = false;
 }
 
+unsigned long long OpalData::getMaxTrackSteps() {
+    return p->maxTrackSteps;
+}
+
+void OpalData::setMaxTrackSteps(unsigned long long s) {
+    p->maxTrackSteps = s;
+}
+
+void OpalData::incMaxTrackSteps(unsigned long long s) { 
+    p->maxTrackSteps += s;
+}
+
+
 
 OpalData::OpalData() {
     p = new OpalDataImpl();
@@ -200,6 +215,7 @@ OpalData::OpalData() {
     p->hasSLBunchAllocated_m = false;
     p->gPhaseShift_m = 0.0;
     p->maxPhases_m.clear();
+    p->maxTrackSteps = 0;
 }
 
 OpalData::~OpalData() {
@@ -217,6 +233,8 @@ void OpalData::reset() {
     p->gPhaseShift_m = 0.0;
     p->maxPhases_m.clear();
 }
+
+
 
 bool OpalData::inRestartRun() {
     return p->isRestart;
@@ -317,11 +335,11 @@ void OpalData::setMaxPhase(string elName, double phi) {
     p->maxPhases_m.push_back(MaxPhasesT(elName, phi));
 }
 
-vector<MaxPhasesT>::iterator OpalData::getFirstMaxPhases() {
+std::vector<MaxPhasesT>::iterator OpalData::getFirstMaxPhases() {
     return p->maxPhases_m.begin();
 }
 
-vector<MaxPhasesT>::iterator OpalData::getLastMaxPhases() {
+std::vector<MaxPhasesT>::iterator OpalData::getLastMaxPhases() {
     return p->maxPhases_m.end();
 }
 

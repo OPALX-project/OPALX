@@ -43,7 +43,7 @@ Track::Track(BeamSequence *u, const PartData &ref, double dt, int maxtsteps, int
     parser(),
     dT(dt),
     t0_m(t0),
-    maxTSteps(maxtsteps),
+    localTimeSteps(maxtsteps),
     stepsPerTurn(stepsperturn),
     zstop(zStop),
     timeIntegrator(timeintegrator) {
@@ -62,6 +62,7 @@ Track::Track(BeamSequence *u, const PartData &ref, double dt, int maxtsteps, int
 
         bunch = OpalData::getInstance()->getPartBunch();
     }
+
 }
 
 

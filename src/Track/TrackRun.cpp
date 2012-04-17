@@ -156,7 +156,7 @@ ParallelTTracker *TrackRun::setupForAutophase() {
 
     return new ParallelTTracker(*Track::block->use->fetchLine(),
                                 dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                Track::block->reference, false, false, Track::block->maxTSteps,
+                                Track::block->reference, false, false, Track::block->localTimeSteps,
                                 Track::block->zstop);
 }
 
@@ -276,7 +276,7 @@ void TrackRun::execute() {
                                               *ds,
                                               Track::block->reference,
                                               false, false,
-                                              Track::block->maxTSteps,
+                                              Track::block->localTimeSteps,
                                               Track::block->zstop,
                                               *mySlApTracker);
     } else if(method == "PARALLEL-T") {
@@ -291,10 +291,13 @@ void TrackRun::execute() {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "  Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK" << endl;
             *gmsg << "* ********************************************************************************** " << endl;
+            Track::block->bunch->setLocalTrackStep(0);
         } else if(OPAL->hasBunchAllocated() && Options::scan) {
             *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "  Selected Tracking Method == PARALLEL-T, SCAN TRACK" << endl;
+            *gmsg << "  Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK in SCAN MODE" << endl;
             *gmsg << "* ********************************************************************************** " << endl;
+            Track::block->bunch->setLocalTrackStep(0);
+            Track::block->bunch->setGlobalTrackStep(0);
         } else if(!OPAL->hasBunchAllocated() && Options::scan) {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "  Selected Tracking Method == PARALLEL-T, NEW TRACK in SCAN MODE" << endl;
@@ -394,9 +397,6 @@ void TrackRun::execute() {
                 charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency() / beam->getNumberOfParticles(); // this is the macro particle charge
             }
         } else if(OPAL->hasBunchAllocated() && Options::scan) {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "  PARALLEL-T SCAN" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
             Track::block->bunch->setDistribution(dist, beam->getNumberOfParticles(), Options::scan); // inside we do the setup
             OPAL->setGlobalPhaseShift(0.5 * dist->getTEmission());
             Track::block->bunch->resetIfScan();
@@ -462,7 +462,7 @@ void TrackRun::execute() {
 
         itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                           dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                          Track::block->reference, false, false, Track::block->maxTSteps,
+                                          Track::block->reference, false, false, Track::block->localTimeSteps,
                                           Track::block->zstop);
         itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
 
@@ -574,14 +574,14 @@ void TrackRun::execute() {
         }
         *gmsg << "* Number of neighbour bunches= " << specifiedNumBunch << endl;
         *gmsg << "* DT                         = " << Track::block->dT << endl;
-        *gmsg << "* MAXSTEPS                   = " << Track::block->maxTSteps << endl;
+        *gmsg << "* MAXSTEPS                   = " << Track::block->localTimeSteps << endl;
         *gmsg << "* Phase space dump frequency = " << Options::psDumpFreq << endl;
         *gmsg << "* Statistics dump frequency  = " << Options::statDumpFreq << " w.r.t. the time step." << endl;
         *gmsg << "* ********************************************************************************** " << endl;
 
         itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
                 dynamic_cast<PartBunch &>(*Track::block->bunch), *ds, Track::block->reference,
-                false, false, Track::block->maxTSteps, Track::block->timeIntegrator);
+                false, false, Track::block->localTimeSteps, Track::block->timeIntegrator);
 
         itsTracker->setNumBunch(specifiedNumBunch);
 
