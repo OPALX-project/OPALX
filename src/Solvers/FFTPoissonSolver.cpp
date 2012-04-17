@@ -593,9 +593,9 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
 
 void FFTPoissonSolver::mirrorRhoField() {
 
-    Index I(0, nr_m[0] + 1);
-    Index J(0, nr_m[1] + 1);
-    Index K(0, nr_m[2] + 1);
+    Index I = nr_m[0] + 1;
+    Index J = nr_m[1] + 1;
+    Index K = nr_m[2] + 1;
 
     Index IE(nr_m[0] + 1, 2 * nr_m[0] - 1);
     Index JE(nr_m[1] + 1, 2 * nr_m[1] - 1);
@@ -628,7 +628,7 @@ void FFTPoissonSolver::mirrorRhoField(Field_t & ggrn2) {
 
     Index mirroredIE = 2*nr_m[0] - IE;
     Index mirroredJE = 2*nr_m[1] - JE;
-    Index shiftedKE(0, nr_m[2] - 1);
+    Index shiftedKE  = KE - nr_m[2];
 
     rho2_m[IE][J ][K ] = rho2_m[mirroredIE][J         ][K];
     rho2_m[I ][JE][K ] = rho2_m[I         ][mirroredJE][K];
