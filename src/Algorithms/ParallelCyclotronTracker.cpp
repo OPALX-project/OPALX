@@ -902,7 +902,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
         step_m = restartStep0_m;
         if (numBunch_m>1)
 	  itsBunch->resetPartBinID2(eta);
-        *gmsg << "Restart at integration step " << restartStep0_m << endl;
+        *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
 
     if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
@@ -1459,7 +1459,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         step_m = restartStep0_m;
         if (numBunch_m>1)
 	  itsBunch->resetPartBinID2(eta);
-        *gmsg << "Restart at integration step " << restartStep0_m << endl;
+        *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
 
     if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
@@ -2863,7 +2863,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         step_m = restartStep0_m;
 	if (numBunch_m > 1)
 	  itsBunch->resetPartBinID2(eta);
-        *gmsg << "Restart at integration step " << restartStep0_m << endl;
+        *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
     if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
         lastDumpedStep_m = 0;
@@ -3447,7 +3447,7 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
     if(myNode_m == 0) {
         if(OpalData::getInstance()->inRestartRun()) {
             outfTrackOrbit_m.open(f.c_str(), ios::app);
-            outfTrackOrbit_m << "# Restart at " << step_m << " dumping step" << endl;
+            outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getTrackStep() << endl;
         } else {
             outfTrackOrbit_m.open(f.c_str());
             outfTrackOrbit_m << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]" << endl;
@@ -3509,7 +3509,6 @@ void  ParallelCyclotronTracker::initDistInGlobalFrame(){
       itsBunch->R /= Vector_t(1000.0); // mm --> m
       lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
       itsBunch->R *= Vector_t(1000.0); // m --> mm
-      *gmsg << "meanR=( " << initMeanR(0) << " " << initMeanR(1) << " " << initMeanR(2) << " ) [mm] " << endl;
       *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step 0 T= 0 [ns]" << endl;
     }
 
@@ -3533,31 +3532,7 @@ void  ParallelCyclotronTracker::initDistInGlobalFrame(){
 	initialP_m[ii] = itsBunch->P[ii];
       }
     }
-
   } else {
-
-    Vector_t const meanR = calcMeanR();
-    Vector_t const meanP = calcMeanP();
-    double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-    globalToLocal(itsBunch->R, phi, meanR);
-
-    //scale coordinates
-    itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-    itsBunch->boundp();
-    *gmsg << "Do binaryRepartation for restart run" << endl;
-    nlp = itsBunch->getLocalNum();
-    checkNumPart(string("Before repartation: "), nlp);
-    IpplTimings::startTimer(BinRepartTimer_m);
-    itsBunch->do_binaryRepart();
-    IpplTimings::stopTimer(BinRepartTimer_m);
-    Ippl::Comm->barrier();
-    nlp = itsBunch->getLocalNum();
-    checkNumPart(string("After repartation: "), nlp);
-    *gmsg << "Done binaryRepartation for restart run" << endl;
-    //scale coordinates back
-    itsBunch->R *= Vector_t(1000.0); // m --> mm
-    localToGlobal(itsBunch->R, phi, meanR);
 
     PathLength_m = itsBunch->getLPath();
     // AUTO mode
@@ -3570,10 +3545,30 @@ void  ParallelCyclotronTracker::initDistInGlobalFrame(){
 
       *gmsg << "Radial position at restart position = " << RThisTurn_m << " [mm]" << endl;
     }
-
     itsBunch->R *= Vector_t(1000.0); // m --> mm
-    localToGlobal(itsBunch->R, phi, meanR);
   }
+
+  Vector_t const meanR = calcMeanR();
+  Vector_t const meanP = calcMeanP();
+  double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+  //scale coordinates
+  globalToLocal(itsBunch->R, phi, meanR);
+  itsBunch->R /= Vector_t(1000.0); // mm --> m
+
+  itsBunch->boundp();
+
+  nlp = itsBunch->getLocalNum();
+  checkNumPart(string("* Before repartation: "), nlp);
+
+  repartition(); 
+
+  nlp = itsBunch->getLocalNum();
+  checkNumPart(string("* After repartation: "), nlp);
+
+  //scale coordinates back
+  itsBunch->R *= Vector_t(1000.0); // m --> mm
+  localToGlobal(itsBunch->R, phi, meanR);
 }
 
 void ParallelCyclotronTracker::singleParticleDump() {
