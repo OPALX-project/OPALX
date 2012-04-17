@@ -217,6 +217,10 @@ private:
     long long step_m;
     long long restartStep0_m;
 
+    int turnnumber_m;
+
+    double const eta_m; // parameter for reset bin in multi-bunch run, todo: readin from inputfile
+
     // temporal 6 phase space varibles of particle [x,y,z,px,py,pz]. Unit: mm & dimensionless
     double variable_m[6];
     // temporal 3 real space varibles of particle ID=0 [x,y,z]. for tune with SC.  Unit: mm
@@ -332,7 +336,7 @@ private:
     void borisExternalFields(double h);
     
     // apply the plugin elements: probe, collimator, stripper, septum 
-    bool applyPluginElements(const int turnnumber, const double dt);
+    bool applyPluginElements(const double dt);
 
     std::ofstream outfTrackOrbit_m;
 

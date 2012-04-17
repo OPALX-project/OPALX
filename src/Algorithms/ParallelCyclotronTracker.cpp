@@ -98,6 +98,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
         bool revBeam, bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
     sphys(NULL),
+    eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0) {
@@ -126,6 +127,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     sphys(NULL),
     maxSteps_m(maxSTEPS),
     timeIntegrator_m(timeIntegrator),
+    eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch.getLocalNum()),
     initialTotalNum_m(bunch.getTotalNum()) {
@@ -890,18 +892,13 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     initTrackOrbitFile();
 
-    // parameter for reset bin in multi-bunch run
-    const  double eta = 0.01;
-
     int SteptoLastInj = itsBunch->getSteptoLastInj();
 
     // get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
-
         restartStep0_m = itsBunch->getTrackStep();
         step_m = restartStep0_m;
-        if (numBunch_m>1)
-	  itsBunch->resetPartBinID2(eta);
+        if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
 
@@ -943,7 +940,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
     vector<double> Ttime, Tdeltr, Tdeltz;
     // prepare for transverse tuning calculation
     vector<int> TturnNumber;
-    int turnnumber = 1;
+    turnnumber_m = 1;
 
 
     // flag to determine when to transit from single-bunch to multi-bunches mode
@@ -1024,7 +1021,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                         saveOneBunch();
                         flagTransition = true;
 
-                        *gmsg << "*** Save beam distribution at turn #" << turnnumber << " ***" << endl;
+                        *gmsg << "*** Save beam distribution at turn #" << turnnumber_m << " ***" << endl;
                         *gmsg << "*** After one revolution, Multi-Bunch Mode will be invorked ***" << endl;
 
                     }
@@ -1053,7 +1050,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                     // read initial distribution from h5 file
                     if(multiBunchMode_m == 1) {
                         readOneBunch(BunchCount_m - 1);
-                        itsBunch->resetPartBinID2(eta);
+                        itsBunch->resetPartBinID2(eta_m);
                     } else if(multiBunchMode_m == 2) {
 
                         if(OpalData::getInstance()->inRestartRun())
@@ -1061,7 +1058,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                         else
                             readOneBunch(BunchCount_m - 1);
 
-                        itsBunch->resetPartBinID2(eta);
+                        itsBunch->resetPartBinID2(eta_m);
                     }
 
                     SteptoLastInj = 0;
@@ -1239,13 +1236,13 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
 	// apply the plugin elements: probe, collimator, stripper, septum
 	bool flagNeedUpdate=false;
-	flagNeedUpdate = applyPluginElements(turnnumber, dt);
+	flagNeedUpdate = applyPluginElements(dt);
 	if(itsBunch->weHaveBins() && flagNeedUpdate)
-	  itsBunch->resetPartBinID2(eta);
+	  itsBunch->resetPartBinID2(eta_m);
 
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
-            itsBunch->resetPartBinID2(eta);
+            itsBunch->resetPartBinID2(eta_m);
 
         // dump  data after one push in single particle tracking
         if(initialTotalNum_m == 1) {
@@ -1260,10 +1257,10 @@ void ParallelCyclotronTracker::Tracker_LF() {
             double temp_meanTheta = calculateAngle2(variable_m[0], variable_m[1]);//[ -pi ~ pi ]
             if((oldReferenceTheta < initialReferenceTheta - deltaTheta) &&
                (temp_meanTheta >= initialReferenceTheta - deltaTheta)) {
-                turnnumber++;
-                *gmsg << "Turn " << turnnumber << endl;
+                ++turnnumber_m;
+                *gmsg << "Turn " << turnnumber_m << endl;
                 dumpEachTurn = true;
-                outfThetaEachTurn_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                                     << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                                     << " " << temp_meanTheta / pi * 180
@@ -1277,7 +1274,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             const double azimuth_angle1 = 22.5 / 180.0 * pi;
             const double azimuth_angle2 = 45.0 / 180.0 * pi;
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                outfTheta0_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -1287,7 +1284,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             }
 
             if((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                outfTheta1_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -1297,7 +1294,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             }
 
             if((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                outfTheta2_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -1320,9 +1317,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
             // avoid dump at the first step
             // dumpEachTurn has not been changed in first push
             if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
-                ++turnnumber;
+                ++turnnumber_m;
                 dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber << " total particles " << itsBunch->getTotalNum() << endl;
+                *gmsg << "Turn " << turnnumber_m << " total particles " << itsBunch->getTotalNum() << endl;
             }
         }
 
@@ -1449,16 +1446,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     initTrackOrbitFile();
 
-    // parameter for reset bin in multi-bunch run, todo: readin from inputfile
-    const double eta = 0.01;
-
     // get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
-
         restartStep0_m = itsBunch->getTrackStep();
         step_m = restartStep0_m;
-        if (numBunch_m>1)
-	  itsBunch->resetPartBinID2(eta);
+        if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
 
@@ -1498,7 +1490,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     // if initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
     vector<double> Ttime, Tdeltr, Tdeltz;
     vector<int> TturnNumber;
-    int turnnumber = 1;
+    turnnumber_m = 1;
     int lastTurn = 1;
 
     bool flagNoDeletion = false;
@@ -1667,7 +1659,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                             // since next turn, start multi-bunches
                             saveOneBunch();
                             flagTransition = true;
-                            *gmsg << "*** Save beam distribution at turn #" << turnnumber << " ***" << endl;
+                            *gmsg << "*** Save beam distribution at turn #" << turnnumber_m << " ***" << endl;
                             *gmsg << "*** After one revolution, Multi-Bunch Mode will be invorked ***" << endl;
 
                         }
@@ -1703,7 +1695,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         else
                             readOneBunch(BunchCount_m - 1);
 
-                        //itsBunch->resetPartBinID2(eta);
+                        //itsBunch->resetPartBinID2(eta_m);
                     }
                     itsBunch->setNumBunch(BunchCount_m);
 
@@ -2094,18 +2086,18 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
 	    // apply the plugin elements: probe, collimator, stripper, septum
 	    bool flagNeedUpdate=false;
-	    flagNeedUpdate = applyPluginElements(turnnumber, dt);
+	    flagNeedUpdate = applyPluginElements(dt);
 	    if(itsBunch->weHaveBins() && flagNeedUpdate)
-	      itsBunch->resetPartBinID2(eta);
+	      itsBunch->resetPartBinID2(eta_m);
 
 	    // recalculate bingamma and reset the BinID for each particles according to its current gamma
 	    if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
-	      itsBunch->resetPartBinID2(eta);
+	      itsBunch->resetPartBinID2(eta_m);
 
             if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
-                turnnumber++;
+                ++turnnumber_m;
                 dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber << " total particles " << itsBunch->getTotalNum() << endl;
+                *gmsg << "Turn " << turnnumber_m << " total particles " << itsBunch->getTotalNum() << endl;
             }
 
             IpplTimings::stopTimer(IntegrationTimer_m);
@@ -2133,7 +2125,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 OldTheta = calculateAngle(variable_m[0], variable_m[1]);
                 r_tuning[i] = variable_m[0] * cos(OldTheta) + variable_m[1] * sin(OldTheta);
                 z_tuning[i] = variable_m[2];
-                turnnumber = lastTurn;
+                turnnumber_m = lastTurn;
 
                 // integrate for one step in the lab Cartesian frame (absulate value ).
 
@@ -2154,7 +2146,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 Ttime.push_back(t * 1.0e-9);
                 Tdeltz.push_back(z_tuning [1]);
                 Tdeltr.push_back(r_tuning[1]  - r_tuning[0]);
-                TturnNumber.push_back(turnnumber);
+                TturnNumber.push_back(turnnumber_m);
             }
         } else if(initialTotalNum_m == 1) {
             // initialTotalNum_m == 1 trigger single particle mode
@@ -2181,11 +2173,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             double temp_meanTheta = calculateAngle2(variable_m[0], variable_m[1]);//[ -pi ~ pi ]
 
             if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
-                turnnumber++;
+                ++turnnumber_m;
                 dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber << endl;
+                *gmsg << "Turn " << turnnumber_m << endl;
 
-                outfThetaEachTurn_m << "#Turn number = " << turnnumber << ", Time = " << t << " [ns]" << endl;
+                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
                 outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                                     << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                                     << " " << temp_meanTheta / pi * 180
@@ -2200,7 +2192,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             const double azimuth_angle2 = 45.0 / 180.0 * pi;
 
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                outfTheta0_m << "#Turn number = " << turnnumber << ", Time = " << t << " [ns]" << endl;
+                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
                 outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -2210,7 +2202,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             }
 
             if((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                outfTheta1_m << "#Turn number = " << turnnumber << ", Time = " << t << " [ns]" << endl;
+                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
                 outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -2220,7 +2212,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             }
 
             if((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                outfTheta2_m << "#Turn number = " << turnnumber << ", Time = " << t << " [ns]" << endl;
+                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
                 outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -2297,7 +2289,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             }//end for: finish checking for all cavities
 
 	    // apply the plugin elements: probe, collimator, stripper, septum
-	    applyPluginElements(turnnumber, dt);
+	    applyPluginElements(dt);
 
 	    IpplTimings::stopTimer(IntegrationTimer_m);
         }//end if: finish one step tracking either for initialTotalNum_m==2 || initialTotalNum_m==2 || initialTotalNum_m==1 mode
@@ -2448,7 +2440,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     } else {
         // not for multibunch
         if(!(itsBunch->weHaveBins()))
-            *gmsg << "* Total finished turn number (not correct for restart mode) = " << turnnumber << endl;
+            *gmsg << "* Total finished turn number (not correct for restart mode) = " << turnnumber_m << endl;
     }
 
     Ippl::Comm->barrier();
@@ -2853,16 +2845,11 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
     initTrackOrbitFile();
 
-    // parameter for reset bin in multi-bunch run, todo: readin from inputfile
-    const double eta = 0.01;
-
     // get data from h5 file for restart run
-    if(OpalData::getInstance()->inRestartRun()){
-
+    if(OpalData::getInstance()->inRestartRun()) {
         restartStep0_m = itsBunch->getTrackStep();
         step_m = restartStep0_m;
-	if (numBunch_m > 1)
-	  itsBunch->resetPartBinID2(eta);
+	    if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
     if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
@@ -2926,7 +2913,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     *gmsg << "MTS: The inner time step is therefore " << dt_inner << endl;
     int SteptoLastInj = itsBunch->getSteptoLastInj();
     double oldReferenceTheta = initialReferenceTheta;
-    int turnnumber = 1;
+    turnnumber_m = 1;
     bool flagTransition = false; // flag to determine when to transit from single-bunch to multi-bunches mode
     int stepsNextCheck = step_m + itsBunch->getStepsPerTurn(); // step point determining the next time point of check for transition
     const double deltaTheta = pi / itsBunch->getStepsPerTurn();
@@ -2976,7 +2963,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                         // since next turn, start multi-bunches
                         saveOneBunch();
                         flagTransition = true;
-                        *gmsg << "*** Save beam distribution at turn #" << turnnumber << " ***" << endl;
+                        *gmsg << "*** Save beam distribution at turn #" << turnnumber_m << " ***" << endl;
                         *gmsg << "*** After one revolution, Multi-Bunch Mode will be invorked ***" << endl;
                     }
 
@@ -3001,14 +2988,14 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                     // read initial distribution from h5 file
                     if(multiBunchMode_m == 1) {
                         readOneBunch(BunchCount_m - 1);
-                        itsBunch->resetPartBinID2(eta);
+                        itsBunch->resetPartBinID2(eta_m);
                     } else if(multiBunchMode_m == 2) {
                         if(OpalData::getInstance()->inRestartRun())
                             readOneBunchFromFile(BunchCount_m - 1);
                         else
                             readOneBunch(BunchCount_m - 1);
 
-                        itsBunch->resetPartBinID2(eta);
+                        itsBunch->resetPartBinID2(eta_m);
                     }
                     SteptoLastInj = 0;
                     itsBunch->setNumBunch(BunchCount_m);
@@ -3051,17 +3038,10 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             kick(0.5 * dt);
         }
 
-        // apply the plugin elements: probe, collimator, stripper, septum
-        itsBunch->R *= Vector_t(1000.0); // applyPluginElements expects [R] = mm
-        bool const flagNeedUpdate = applyPluginElements(turnnumber, dt * 1e9);
-        itsBunch->R *= Vector_t(0.001);
-        if(itsBunch->weHaveBins() && flagNeedUpdate)
-            itsBunch->resetPartBinID2(eta);
-
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
             if(step_m % Options::rebinFreq == 0) {
-                itsBunch->resetPartBinID2(eta);
+                itsBunch->resetPartBinID2(eta_m);
             }
         }
 
@@ -3078,10 +3058,10 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             double temp_meanTheta = calculateAngle2(variable_m[0], variable_m[1]);//[ -pi ~ pi ]
             if((oldReferenceTheta < initialReferenceTheta - deltaTheta) &&
                (temp_meanTheta >= initialReferenceTheta - deltaTheta)) {
-                turnnumber++;
-                *gmsg << "Turn " << turnnumber << endl;
+                ++turnnumber_m;
+                *gmsg << "Turn " << turnnumber_m << endl;
                 dumpEachTurn = true;
-                outfThetaEachTurn_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                                     << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                                     << " " << temp_meanTheta / pi * 180.0
@@ -3095,7 +3075,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             const double azimuth_angle1 = 22.5 / 180.0 * pi;
             const double azimuth_angle2 = 45.0 / 180.0 * pi;
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                outfTheta0_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -3105,7 +3085,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             }
 
             if((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                outfTheta1_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -3115,7 +3095,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             }
 
             if((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                outfTheta2_m << "#Turn number = " << turnnumber << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
@@ -3137,14 +3117,14 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             // avoid dump at the first step
             // dumpEachTurn has not been changed in first push
             if((step_m > 10) && ((step_m + 1) % itsBunch->getStepsPerTurn()) == 0) {
-                ++turnnumber;
+                ++turnnumber_m;
                 dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber << " total particles " << itsBunch->getTotalNum() << endl;
+                *gmsg << "Turn " << turnnumber_m << " total particles " << itsBunch->getTotalNum() << endl;
             }
         }
         // reset Bin ID for each particle
         if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % Options::rebinFreq == 0)
-            itsBunch->resetPartBinID2(eta);
+            itsBunch->resetPartBinID2(eta_m);
 
         // dump phase space distribution of bunch
         if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2) ||
@@ -3372,9 +3352,15 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
 
     // push particles for second half step
     push(0.5 * h);
+
+    // apply the plugin elements: probe, collimator, stripper, septum
+    itsBunch->R *= Vector_t(1000.0); // applyPluginElements expects [R] = mm
+    bool const flagNeedUpdate = applyPluginElements(h * 1e9); // expects [dt] = ns
+    itsBunch->R *= Vector_t(0.001);
+    if(itsBunch->weHaveBins() && flagNeedUpdate) itsBunch->resetPartBinID2(eta_m);
 }
 
-bool ParallelCyclotronTracker::applyPluginElements(const int turnnumber, const double dt) {
+bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
   bool flagNeedUpdate = false;
   for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
@@ -3383,12 +3369,12 @@ bool ParallelCyclotronTracker::applyPluginElements(const int turnnumber, const d
     }
 
     if(((*sindex)->first) == "PROBE")    {
-      (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
+      (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
     }
 
     if(((*sindex)->first) == "STRIPPER")    {
       bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
-	-> checkStripper(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
+	-> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
       if(flag_stripper) {
 	itsBunch->boundp();
 	*gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
@@ -3402,7 +3388,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const int turnnumber, const d
 	  sphys = collim->getSurfacePhysics();
 	  sphys->apply(*itsBunch);
 	} else {
-	  collim->checkCollimator(*itsBunch, turnnumber, itsBunch->getT() * 1e9, dt);
+	  collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
 	}
     }
 
