@@ -2115,7 +2115,11 @@ void ParallelTTracker::dumpStats(long long step) {
     Inform msg("ParallelTTracker ");
 
     if(numParticlesInSimulation_m == 0) {
-        msg << "Step " << step << " no emission yet "  << " t= " << itsBunch->getT() << " [s]" << endl;
+        msg << myt2.time() << " "
+            << "Step " << setw(6) << step << "; "
+            << "   -- no emission yet --     "
+            << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s]"
+            << endl;
         return;
     }
 
@@ -2125,6 +2129,20 @@ void ParallelTTracker::dumpStats(long long step) {
     //}
 
     double sposRef = itsBunch->get_sPos();
+    double sposPrint = sposRef;
+    string sposUnit(" [m] ");
+    double meanEnergy = itsBunch->get_meanEnergy();
+    string meanEnergyUnit(" [MeV] ");
+
+    if (sposRef < 1.0) {
+        sposPrint = 1000.0*sposRef;
+        sposUnit = string(" [mm] ");
+    }
+
+    if (meanEnergy < 1.0) {
+        meanEnergy *= 1000.0;
+        meanEnergyUnit = string(" [keV] ");
+    }
 
     size_t totalParticles_f = numParticlesInSimulation_m;
     if(totalParticles_f <= minBinEmitted_m) {
@@ -2132,36 +2150,17 @@ void ParallelTTracker::dumpStats(long long step) {
             << "Step " << setw(6) << step << "; "
             << "only " << setw(4) << totalParticles_f << " particles emitted; "
             << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
-            << "E="    << fixed      << setprecision(3) << setw(9) << itsBunch->get_meanEnergy() << " [MeV] "
+            << "E="    << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
             << endl;
     } else if(std::isnan(sposRef) || std::isinf(sposRef)) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
-        double sposPrint = sposRef;
-        string sposUnit;
-        double en = itsBunch->get_meanEnergy();
-        string enUnit;
-
-        if (sposRef < 1.0) {
-            sposPrint = 1000.0*sposRef;
-            sposUnit = string(" [mm] ");
-        }
-        else
-            sposUnit = string(" [m] ");
-
-        if (en < 1.0) {
-            en *= 1000.0;
-            enUnit = string(" [keV] ");
-        }
-        else
-            enUnit = string(" [MeV] ");
-
         msg << myt2.time() << " "
             << "Step " << setw(6) << step << " "
             << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
             << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
-            << "E="  << fixed      << setprecision(3) << setw(9) << en << enUnit
+            << "E="  << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
             << endl;
 
         writePhaseSpace(step, sposRef);

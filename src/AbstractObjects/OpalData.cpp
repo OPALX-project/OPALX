@@ -406,9 +406,7 @@ void OpalData::define(Object *newObject) {
                                 "You cannot replace the object \"" + name + "\".");
         } else {
             if(Options::info) {
-                cerr << endl
-                     << "Replacing the object \"" << name << "\"." << endl
-                     << endl;
+                INFOMSG("Replacing the object \"" << name << "\"." << endl);
             }
 
             // Erase all tables which depend on the new object.
