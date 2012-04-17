@@ -350,6 +350,8 @@ private:
 
     void initDistInGlobalFrame();
 
+    void checkNumPart(std::string s);
+
 };
 
 /**
