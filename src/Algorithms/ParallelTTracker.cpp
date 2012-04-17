@@ -2332,7 +2332,7 @@ void ParallelTTracker::dumpPhaseSpaceOnScan() {
 
     if(Options::scan && OpalData::getInstance()->hasBunchAllocated()) {
         maxSteps_m -= OpalData::getInstance()->getLastStep();
-        OpalData::getInstance()->setLastStep(1);
+        OpalData::getInstance()->setLastStep(0);
         if(itsBunch->getLocalNum() != 0)
             writePhaseSpace(0, 0.0); // write initial phase space
 
