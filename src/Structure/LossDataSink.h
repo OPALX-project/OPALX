@@ -33,8 +33,11 @@ public:
             fn_m += std::string(".loss");
 	    os_m.precision(8);
 	    os_m.setf(std::ios::scientific, std::ios::floatfield);
-	    open();
-	    writeHeader(np);
+        if(OpalData::getInstance()->inRestartRun()) 
+            append();
+        else
+            open();
+        writeHeader(np);
 	    close();
         }
         hdf5FileIsOpen_m = false;
