@@ -5,10 +5,13 @@
 #include "Utilities/OpalFilter.h"
 #include "Solvers/WakeFunction.hh"
 #include "Physics/Physics.h"
+#include "Utility/IpplInfo.h"
 
 #include <vector>
 #include <cassert>
-#include "Ippl.h"
+#include <map>
+#include <string>
+#include <complex>
 
 //#define USE_FFTW
 using Physics::pi;

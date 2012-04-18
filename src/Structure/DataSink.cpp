@@ -112,6 +112,8 @@
 #include "Fields/Fieldmap.hh"
 #include "Structure/BoundaryGeometry.h"
 
+#include "H5hut.h"
+
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -120,7 +122,6 @@
 #include <cassert>
 #include <hdf5.h>
 #include <cmath>
-#include "H5hut.h"
 #include <memory>
 
 extern Inform *gmsg;

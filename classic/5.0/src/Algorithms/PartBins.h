@@ -17,7 +17,7 @@
 #define OPAL_Bins_HH
 
 #ifndef PartBinTest
-#include "Ippl.h"
+#include "Algorithms/PBunchDefs.h"
 #else
 #include "ranlib.h"
 #define Inform ostream
@@ -124,7 +124,7 @@ public:
     void resetPartInBin_cyc(size_t newPartNum[], int binID);
     /** update particles number in bin after particle deletion */
     void updatePartInBin(size_t countLost[]);
-    /** update local particles number in bin after particle deletion */    
+    /** update local particles number in bin after particle deletion */
     void updatePartInBin_cyc(size_t countLost[]);
 
     void updateDeletedPartsInBin(size_t countLost[]) ;
@@ -251,10 +251,6 @@ public:
 
     /** \brief How many particles are in the bin b */
     size_t getTotalNumPerBin(int b);
-
-
-
-
 
 
 private:

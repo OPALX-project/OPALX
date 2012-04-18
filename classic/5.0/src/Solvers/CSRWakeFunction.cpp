@@ -1,4 +1,5 @@
 #include "Solvers/CSRWakeFunction.hh"
+#include "Algorithms/PartBunch.h"
 #include "Filters/Filter.h"
 #include "Physics/Physics.h"
 #include "AbsBeamline/RBend.h"

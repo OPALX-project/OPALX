@@ -6,11 +6,10 @@
 
 class EnvelopeBunch;
 
+#include "Algorithms/Vektor.h"
 #include "Algorithms/Tracker.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Options.h"
-
-#include "Ippl.h"
 
 #include "Physics/Physics.h"
 

@@ -18,7 +18,6 @@
 
 #include "BasicActions/Value.h"
 #include "Attributes/Attributes.h"
-#include "Ippl.h"
 #include <iomanip>
 #include <iostream>
 #include <vector>

@@ -1,23 +1,14 @@
 #include "Structure/PriEmissionPhysics.h"
-//FIXME: cleanup
 #include "Algorithms/PartBunch.h"
-#include "AbstractObjects/Expressions.h"
-#include "Attributes/Attributes.h"
-#include "Expressions/SAutomatic.h"
-#include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
-#include "Utilities/OpalException.h"
-#include "AbsBeamline/ElementBase.h"
-#include "Elements/OpalBeamline.h"
-#include "Distribution/Distribution.h"
-#include "Ippl.h"
-#include "hdf5.h"
+
 #include <vector>
 #include <cassert>
 #include <cmath>
 #include <sys/stat.h>
 
 
+//FIXME: cleanup
 
 PriEmissionPhysics::PriEmissionPhysics() {
 
@@ -51,7 +42,7 @@ void PriEmissionPhysics::Fieldemission(PartBunch *itsBunch, const double &fa, co
 
 
     // Self-field is not considered at moment. Only 1D Child-Langmuir law is implemented for space charge limited current density.
-   
+
     double Jtmp = fa * Enormal * Enormal * exp(- parameterFNB *  workFunction * sqrt(workFunction) * (parameterFNVYZe -  parameterFNVYSe * pow(parameterFNY * sqrt(fieldEnhancement * (-Enormal)) /  workFunction, 2)) /  fieldEnhancement / (-Enormal));    // Fowler-Nordheim model;
     double tmpd = 0.5 * 1.7588e11 * (-Enormal) * itsBunch->getdT() * itsBunch->getdT();// assume particle move 0.5*a*t*t
     double Jchild = 2.33395e-6 * pow((-Enormal), 1.5) / sqrt(tmpd);// Child-Langmuir model;

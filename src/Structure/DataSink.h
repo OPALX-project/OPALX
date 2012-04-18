@@ -81,7 +81,6 @@
 #include <sys/stat.h>
 
 #include "Algorithms/PBunchDefs.h"
-
 #include "H5hut.h"
 
 class PartBunch;

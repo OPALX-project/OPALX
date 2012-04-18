@@ -20,6 +20,8 @@
 #include "AbstractObjects/Definition.h"
 #include "Structure/SecondaryEmissionPhysics.h"
 #include "Distribution/ranlib.h"
+#include "Algorithms/PBunchDefs.h"
+
 #include <vector>
 #include <sstream>
 #include <set>

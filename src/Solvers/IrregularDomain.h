@@ -4,14 +4,7 @@
 
 #include <vector>
 #include <string>
-#include "Ippl.h"
-
-typedef UniformCartesian<3, double> Mesh_t;
-typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
-typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
-typedef Cell Center_t;
-typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
-typedef Field<double, 3, Mesh_t, Center_t> Field_t;
+#include "Algorithms/PBunchDefs.h"
 
 /// enumeration corresponding to different interpolation methods at the boundary
 enum {

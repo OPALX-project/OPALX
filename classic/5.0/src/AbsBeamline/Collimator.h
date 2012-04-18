@@ -25,13 +25,11 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Algorithms/PBunchDefs.h"
 
-#include <hdf5.h>
-#include "H5hut.h"
+//#include "H5hut.h"
 #include <vector>
 
-
+typedef struct h5_file h5_file_t;
 class LossDataSink;
 
 // Class Collimator

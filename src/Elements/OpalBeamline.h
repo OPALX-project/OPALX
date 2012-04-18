@@ -9,28 +9,18 @@
 #include "Beamlines/Beamline.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
-#include "AbsBeamline/Drift.h"
-#include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
-#include "AbsBeamline/Monitor.h"
-#include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/RBend.h"
-#include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/RFQuadrupole.h"
-#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
-#include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/ParallelPlate.h"
 
 #include "Utilities/OpalSection.h"
 #include "Utilities/OpalField.h"
 
+class Tracker;
 class PartBunch;
 class SurfacePhysicsHandler;
 class BoundaryGeometry;
@@ -42,8 +32,6 @@ class WakeFunction;
 #define BEAMLINE_WAKE 0x20000000   // has wake
 #define BEAMLINE_BEND 0x10000000   // bends
 #define BEAMLINE_SURFACEPHYSICS 0x08000000 // has surface physics
-
-typedef std::vector<OpalSection> SectionList;
 
 class OpalBeamline {
 
@@ -109,7 +97,6 @@ public:
 
 private:
     FieldList elements_m;
-    //SectionList sections_m;
     bool prepared_m;
     int *online_sections_m;
     bool *online_secs_m;

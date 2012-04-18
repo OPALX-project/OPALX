@@ -188,9 +188,9 @@ void FieldSolver::initCartesianFields() {
     mesh_m   = new Mesh_t(domain);
     FL_m     = new FieldLayout_t(*mesh_m, decomp);
     PL_m     = new Layout_t(*FL_m, *mesh_m);
-    OpalData::getInstance()->setMesh(mesh_m);
-    OpalData::getInstance()->setFieldLayout(FL_m);
-    OpalData::getInstance()->setLayout(PL_m);
+    // OpalData::getInstance()->setMesh(mesh_m);
+    // OpalData::getInstance()->setFieldLayout(FL_m);
+    // OpalData::getInstance()->setLayout(PL_m);
 }
 
 void FieldSolver::initSolver(PartBunch &b) {

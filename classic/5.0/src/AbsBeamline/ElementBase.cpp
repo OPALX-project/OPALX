@@ -27,8 +27,6 @@
 #include "Channels/Channel.h"
 #include <string>
 
-//#include "BeamlineGeometry/Euclid3D.h"
-//#include "BeamlineGeometry/Geometry.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Solvers/WakeFunction.hh"
 #include "Solvers/SurfacePhysicsHandler.hh"

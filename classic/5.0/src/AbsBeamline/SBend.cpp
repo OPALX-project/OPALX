@@ -20,6 +20,7 @@
 
 #include "Algorithms/PartPusher.h"
 #include "AbsBeamline/SBend.h"
+#include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include <iostream>

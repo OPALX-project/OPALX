@@ -22,8 +22,6 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
-#include "ValueDefinitions/RealVariable.h"
-#include "Structure/BoundaryGeometry.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -512,16 +510,6 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
     //    Inform msg("visitRFCavity read voltage");
 
     RefPartBunch_m = bunch;
-
-    //    The variable doPhase is not used; If it should be used in the future the following
-    //    lines have to be implemented on the OPAL side
-    //    (THIS IS THE CLASSICS SIDE AND OPAL OBJECTS ARE INAPPROPRIATE HERE)
-    //     bool doPhase  = true;
-    //     RealVariable *ar = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("OMITPHASE"));
-    //     if (ar) {
-    //         doPhase = false;
-    //         msg << "Phase of particle is not considered "<< endl;
-    //     }
 
     INFOMSG("q= " << RefPartBunch_m->getQ() << " m= " << RefPartBunch_m->getM() / 1.0E9 << endl);
 

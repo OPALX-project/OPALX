@@ -24,6 +24,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
+#include "H5hut.h"
 #include <memory>
 
 extern Inform *gmsg;

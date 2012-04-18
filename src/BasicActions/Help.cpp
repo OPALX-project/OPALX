@@ -20,6 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/Object.h"
 #include "Attributes/Attributes.h"
+#include "Utility/IpplInfo.h"
 #include <iostream>
 
 

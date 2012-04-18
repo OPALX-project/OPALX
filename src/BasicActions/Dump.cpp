@@ -16,6 +16,7 @@
 //
 // ------------------------------------------------------------------------
 
+#include "Utility/IpplInfo.h"
 #include "BasicActions/Dump.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/ObjectFunction.h"

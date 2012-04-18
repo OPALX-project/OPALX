@@ -17,7 +17,6 @@
 #define OPAL_BinsCyc_HH
 
 #ifndef PartBinTest
-#include "Ippl.h"
 #else
 #include "ranlib.h"
 #define Inform ostream

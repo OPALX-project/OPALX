@@ -20,7 +20,6 @@
 
 #include "MemoryManagement/RCObject.h"
 #include "AbstractObjects/Invalidator.h"
-#include "Utility/Inform.h"
 #include <iosfwd>
 #include <string>
 

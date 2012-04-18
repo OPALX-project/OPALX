@@ -11,7 +11,8 @@
 #include <vector>
 
 #include "Solvers/SurfacePhysicsHandler.hh"
-#include "Algorithms/PBunchDefs.h"
+//#include "Algorithms/PBunchDefs.h"
+#include "Algorithms/Vektor.h"
 
 class RANLIB_class;
 class ElementBase;

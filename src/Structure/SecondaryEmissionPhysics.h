@@ -17,7 +17,6 @@ namespace myeps {
     const double FPMIN = std::numeric_limits<double>::min() / EPS;
 }
 
-//using namespace Physics;
 class SecondaryEmissionPhysics
 
 {

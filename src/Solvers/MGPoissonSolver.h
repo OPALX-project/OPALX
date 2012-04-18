@@ -9,7 +9,6 @@
 #define MG_POISSON_SOLVER_H_
 
 //////////////////////////////////////////////////////////////
-#include "Ippl.h"
 class MGPoissonSolver;
 class BoundaryGeometry;
 #include "Algorithms/PartBunch.h"
@@ -179,7 +178,7 @@ private:
     typedef Belos::MultiVecTraits<ST, MV>    MVT;
     Belos::LinearProblem<double, MV, OP> problem;
     RCP< Belos::EpetraPrecOp > prec;
-    RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest; 
+    RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest;
     RCP< Belos::SolverManager<double, MV, OP> > solver;
 
     /// parameter list for the ML solver

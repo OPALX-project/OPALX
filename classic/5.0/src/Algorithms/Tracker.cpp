@@ -19,16 +19,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include <float.h>
+#include <cfloat>
+#include <cmath>
 
 #include "Algorithms/Tracker.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/Patch.h"
 #include "Algorithms/MapIntegrator.h"
-#include "Algorithms/PartData.h"
-#include "Algorithms/Particle.h"
 #include "Fields/BMultipoleField.h"
-#include <cmath>
 
 typedef FTps<double, 2> Series2;
 typedef FTps<double, 6> Series;

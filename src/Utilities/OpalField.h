@@ -1,6 +1,8 @@
 #ifndef OPAL_FIELD_H
 #define OPAL_FIELD_H
 
+#include <vector>
+#include <list>
 #include "AbsBeamline/Component.h"
 
 class OpalField {
@@ -33,6 +35,7 @@ private:
     bool is_on_m;
 };
 
+typedef std::list<OpalField> FieldList;
 
 inline Component *OpalField::getElement() {
     return element_m;

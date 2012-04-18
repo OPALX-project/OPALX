@@ -19,12 +19,13 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Action.h"
-#include "Algorithms/Tracker.h"
 
 class OpalData;
 class DataSink;
 class Distribution;
+class Tracker;
 class ParallelTTracker;
+class FieldSolver;
 
 // Class TrackRun
 // ------------------------------------------------------------------------

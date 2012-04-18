@@ -3,9 +3,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 #include "Algorithms/PartBunch.h"
-#include "Distribution/Distribution.h"
 #include "Structure/SecondaryEmissionPhysics.h"
-#include "BasicActions/Option.h"
 #include "Utilities/Options.h"
 
 using namespace myeps;

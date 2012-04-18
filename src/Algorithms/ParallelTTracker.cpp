@@ -26,31 +26,42 @@
 #include <limits>
 
 #include "Algorithms/ParallelTTracker.h"
+#include "Algorithms/PartPusher.h"
+#include "AbsBeamline/AlignWrapper.h"
+#include "AbsBeamline/BeamBeam.h"
+#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/Corrector.h"
+#include "AbsBeamline/Diagnostic.h"
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Lambertson.h"
+#include "AbsBeamline/Marker.h"
+#include "AbsBeamline/Monitor.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/Probe.h"
+#include "AbsBeamline/RBend.h"
+#include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/TravelingWave.h"
+#include "AbsBeamline/RFQuadrupole.h"
+#include "AbsBeamline/SBend.h"
+#include "AbsBeamline/Separator.h"
+#include "AbsBeamline/Septum.h"
+#include "AbsBeamline/Solenoid.h"
+#include "AbsBeamline/ParallelPlate.h"
+#include "AbsBeamline/CyclotronValley.h"
+#include "Beamlines/Beamline.h"
+#include "Lines/Sequence.h"
 
 #include "AbstractObjects/OpalData.h"
 
 #include "BasicActions/Option.h"
 
-#include "BeamlineGeometry/Euclid3D.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "BeamlineGeometry/RBendGeometry.h"
-#include "Beamlines/Beamline.h"
-#include "Lines/Sequence.h"
-
-#include "Fields/BMultipoleField.h"
-#include "FixedAlgebra/FTps.h"
-#include "FixedAlgebra/FTpsMath.h"
-#include "FixedAlgebra/FVps.h"
-
-#include "Utilities/NumToStr.h"
 #include "Distribution/Distribution.h"
 #include "ValueDefinitions/RealVariable.h"
 #include "Utilities/Timer.h"
-#include "Solvers/WakeFunction.hh"
 #include "Utilities/OpalException.h"
+#include "Solvers/SurfacePhysicsHandler.hh"
 #include "Structure/BoundaryGeometry.h"
-
-#define PSdim 6
 
 class PartData;
 
@@ -657,7 +668,7 @@ void ParallelTTracker::checkCavity(double s, Component *& comp, double & cavity_
     }
 }
 
-void ParallelTTracker::doOneStep(BorisPusher pusher) {
+void ParallelTTracker::doOneStep(BorisPusher & pusher) {
     bool global_EOL = true;  //check if any particle hasn't reached the end of the field from the last element
     unsigned long bends = 0;
 
@@ -1687,7 +1698,7 @@ void ParallelTTracker::bgf_main_collision_test() {
     numParticlesInSimulation_m = itsBunch->getTotalNum();
 }
 
-void ParallelTTracker::timeIntegration1(BorisPusher pusher) {
+void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
     IpplTimings::startTimer(timeIntegrationTimer1_m);
 
     if(bgf_m != NULL && secondaryFlg_m > 0) return;
@@ -1709,7 +1720,7 @@ void ParallelTTracker::timeIntegration1(BorisPusher pusher) {
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
 }
 
-void ParallelTTracker::timeIntegration1_bgf(BorisPusher pusher) {
+void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
     IpplTimings::startTimer(timeIntegrationTimer1_m);
 
     if(bgf_m == NULL || secondaryFlg_m == 0) return;
@@ -1755,7 +1766,7 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher pusher) {
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
 }
 
-void ParallelTTracker::timeIntegration2(BorisPusher pusher) {
+void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
     IpplTimings::startTimer(timeIntegrationTimer2_m);
 
     /*
@@ -1812,7 +1823,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher pusher) {
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
-void ParallelTTracker::timeIntegration2_bgf(BorisPusher pusher) {
+void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
     IpplTimings::startTimer(timeIntegrationTimer2_m);
 
     /// After kick, we do collision test before integration in second half step with new momentum, if hit, then move collision particles to the position where collision occurs.

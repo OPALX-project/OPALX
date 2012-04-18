@@ -25,43 +25,40 @@
 
 #include "Physics/Physics.h"
 
-#include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/Collimator.h"
-#include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Diagnostic.h"
-#include "AbsBeamline/Drift.h"
-#include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Lambertson.h"
-#include "AbsBeamline/Marker.h"
-#include "AbsBeamline/Monitor.h"
-#include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/Probe.h"
-#include "AbsBeamline/RBend.h"
-#include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/RFQuadrupole.h"
-#include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Separator.h"
-#include "AbsBeamline/Septum.h"
-#include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/CyclotronValley.h"
+class BMultipoleField;
+class PartBunch;
+class AlignWrapper;
+class BeamBeam;
+class Collimator;
+class Corrector;
+class Diagnostic;
+class Drift;
+class ElementBase;
+class Lambertson;
+class Marker;
+class Monitor;
+class Multipole;
+class Probe;
+class RBend;
+class RFCavity;
+class TravelingWave;
+class RFQuadrupole;
+class SBend;
+class Separator;
+class Septum;
+class Solenoid;
+class ParallelPlate;
+class CyclotronValley;
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
-#include "Structure/SurfacePhysics.h"
-#include "Filters/Filter.h"
-#include "Utilities/OpalFilter.h"
 #include "Solvers/WakeFunction.hh"
 
 #include <list>
 #include <vector>
 
+class BorisPusher;
 
-class BMultipoleField;
-class PartBunch;
-class PlanarArcGeometry;
 
 
 // Class ParallelTTracker
@@ -228,7 +225,7 @@ private:
 
     void checkCavity(double s, Component *& comp, double & cavity_start_pos);
 
-    void doOneStep(BorisPusher pusher);
+    void doOneStep(BorisPusher & pusher);
 #ifdef DBG_SYM
     ofstream of_m;
 #endif
@@ -369,10 +366,10 @@ private:
     void prepareSections();
     void doAutoPhasing();
     void bgf_main_collision_test();
-    void timeIntegration1(BorisPusher pusher);
-    void timeIntegration1_bgf(BorisPusher pusher);
-    void timeIntegration2(BorisPusher pusher);
-    void timeIntegration2_bgf(BorisPusher pusher);
+    void timeIntegration1(BorisPusher & pusher);
+    void timeIntegration1_bgf(BorisPusher & pusher);
+    void timeIntegration2(BorisPusher & pusher);
+    void timeIntegration2_bgf(BorisPusher & pusher);
     void selectDT();
     void emitParticles(long long step);
     void computeExternalFields();

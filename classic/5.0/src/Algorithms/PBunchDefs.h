@@ -1,7 +1,7 @@
-//#include "Ippl.h"
 #ifndef PBUNCHDEFS_H
 #define PBUNCHDEFS_H
 
+#include "Algorithms/Vektor.h"
 #include "Particle/IntCIC.h"
 #include "Particle/IntNGP.h"
 #include "Particle/IntSUDS.h"
@@ -26,7 +26,7 @@ typedef InterpolatorTraits<double, 3, IntrplCIC_t>::Cache_t Pcache_t;
 
 typedef UniformCartesian<3, double> Mesh_t;
 
-typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
+//typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
 
 typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
 

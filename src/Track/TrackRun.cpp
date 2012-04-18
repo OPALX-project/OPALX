@@ -20,6 +20,7 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/ObjectFunction.h"
+#include "Algorithms/Tracker.h"
 #include "Algorithms/ThinTracker.h"
 #include "Algorithms/ThickTracker.h"
 

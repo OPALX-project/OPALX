@@ -6,9 +6,7 @@
 #include <string>
 #include <map>
 #include <vector>
-#include "Ippl.h"
-
-typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
+#include "Algorithms/Vektor.h"
 
 enum MapType {
     UNKNOWN = 0,

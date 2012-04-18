@@ -26,10 +26,10 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 //#include "Algorithms/PBunchDefs.h"
 
-#include <hdf5.h>
-#include "H5hut.h"
-#include <list>
+//#include "H5hut.h"
 
+#include <list>
+typedef struct h5_file h5_file_t;
 class PartBunch;
 
 // Class Monitor

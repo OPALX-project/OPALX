@@ -22,13 +22,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Channels/Channel.h"
+//#include "Channels/Channel.h"
 #include <functional>
 #include <string>
 #include <map>
 
 class ElementBase;
-
+class Channel;
+class ConstChannel;
 
 // Class AttributeSet
 // ------------------------------------------------------------------------

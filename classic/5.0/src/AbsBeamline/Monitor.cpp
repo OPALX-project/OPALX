@@ -23,6 +23,9 @@
 #include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 #include "AbsBeamline/BeamlineVisitor.h"
+
+#include "H5hut.h"
+
 #include <fstream>
 #include <memory>
 

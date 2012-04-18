@@ -141,6 +141,7 @@ classic/5.0/src/Algorithms/TrackIntegrator.cpp -text
 classic/5.0/src/Algorithms/TrackIntegrator.h -text
 classic/5.0/src/Algorithms/Tracker.cpp -text
 classic/5.0/src/Algorithms/Tracker.h -text
+classic/5.0/src/Algorithms/Vektor.h -text
 classic/5.0/src/Algorithms/rbendmap.h -text
 classic/5.0/src/BeamlineCore/BeamBeamRep.cpp -text
 classic/5.0/src/BeamlineCore/BeamBeamRep.h -text

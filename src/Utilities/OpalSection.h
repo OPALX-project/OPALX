@@ -75,6 +75,8 @@ private:
     OpalSection *glued_to_m;
 };
 
+typedef std::vector<OpalSection> SectionList;
+
 inline void OpalSection::setStart(const double &start) {
     start_m = start;
 }

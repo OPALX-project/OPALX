@@ -20,11 +20,12 @@
 //
 // ------------------------------------------------------------------------
 
-//#include "Ippl.h"
+#include "Ippl.h"
 #include "PBunchDefs.h"
 #include "Algorithms/Particle.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
+#include "Algorithms/PartBins.h"
 #include "Algorithms/PartBinsCyc.h"
 #include "Algorithms/PartData.h"
 #include "Utilities/SwitcherError.h"
@@ -34,12 +35,9 @@
 #include <vector>
 
 
-//class PartBunch;
 class Distribution;
 class LossDataSink;
 class FieldSolver;
-//#include "Structure/FieldSolver.h"
-
 class ListElem;
 
 template <class T, int, int> class FMatrix;

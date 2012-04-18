@@ -18,6 +18,17 @@
  */
 
 //FIXME: cleanup
+#include <fstream>
+#include <vector>
+#include <iostream>
+#include <sstream>
+#include <set>
+#include <cassert>
+#include <cmath>
+#include <algorithm>
+#include "hdf5.h"
+#include <sys/stat.h>
+
 #include "Structure/BoundaryGeometry.h"
 #include "Algorithms/PartBunch.h"
 #include "Structure/PriEmissionPhysics.h"
@@ -30,21 +41,10 @@
 #include "Utilities/OpalException.h"
 #include "AbsBeamline/ElementBase.h"
 #include "Elements/OpalBeamline.h"
-#include <fstream>
-#include <vector>
-#include <iostream>
-#include <sstream>
-#include <set>
-#include <cassert>
-#include <cmath>
-#include <algorithm>
-#include "hdf5.h"
 #include "Distribution/Distribution.h"
-#include <sys/stat.h>
-#include "Ippl.h"
 using namespace Expressions;
 using namespace Physics;
-using Physics::c;
+
 extern Inform *gmsg;//debug
 
 // Class BoundaryGeometry

@@ -20,7 +20,6 @@
 
 #include "AbstractObjects/Attribute.h"
 #include "MemoryManagement/RCObject.h"
-#include "Utility/Inform.h"
 #include <iosfwd>
 #include <set>
 #include <string>

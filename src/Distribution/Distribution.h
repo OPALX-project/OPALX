@@ -31,7 +31,7 @@
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "ranlib.h"
-#include "Algorithms/PBunchDefs.h"
+#include "Algorithms/Vektor.h"
 
 #define RANLIBX
 #define sqr(x) x*x

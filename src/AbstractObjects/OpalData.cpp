@@ -348,29 +348,29 @@ int OpalData::getNumberOfMaxPhases() {
 }
 
 
-Mesh_t* OpalData::getMesh() {
-	return p->mesh_m;
-}
+// Mesh_t* OpalData::getMesh() {
+// 	return p->mesh_m;
+// }
 
-FieldLayout_t* OpalData::getFieldLayout() {
-	return p->FL_m;
-}
+// FieldLayout_t* OpalData::getFieldLayout() {
+// 	return p->FL_m;
+// }
 
-Layout_t* OpalData::getLayout() {
-	return p->PL_m;
-}
+// Layout_t* OpalData::getLayout() {
+// 	return p->PL_m;
+// }
 
-void OpalData::setMesh(Mesh_t *mesh) {
-	p->mesh_m = mesh;
-}
+// void OpalData::setMesh(Mesh_t *mesh) {
+// 	p->mesh_m = mesh;
+// }
 
-void OpalData::setFieldLayout(FieldLayout_t *fieldlayout) {
-	p->FL_m = fieldlayout;
-}
+// void OpalData::setFieldLayout(FieldLayout_t *fieldlayout) {
+// 	p->FL_m = fieldlayout;
+// }
 
-void OpalData::setLayout(Layout_t *layout) {
-	p->PL_m = layout;
-}
+// void OpalData::setLayout(Layout_t *layout) {
+// 	p->PL_m = layout;
+// }
 
 void OpalData::setGlobalPhaseShift(double shift) {
     /// units: (sec)

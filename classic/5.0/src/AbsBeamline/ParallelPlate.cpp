@@ -24,8 +24,6 @@
 #include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 #include "Physics/Physics.h"
-#include "ValueDefinitions/RealVariable.h"
-#include "Structure/BoundaryGeometry.h"
 
 #include <iostream>
 #include <fstream>

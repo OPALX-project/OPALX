@@ -7,8 +7,6 @@
 #include "Algorithms/PartBunch.h"
 #include <Physics/Physics.h>
 
-#include "Ippl.h"
-
 #include <assert.h>
 #include <vector>
 

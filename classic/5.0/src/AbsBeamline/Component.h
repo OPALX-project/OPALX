@@ -25,7 +25,7 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/EMField.h"
-#include "Algorithms/PBunchDefs.h"
+#include "Algorithms/Vektor.h"
 
 #define EPS_MISALIGNMENT 1e-8
 

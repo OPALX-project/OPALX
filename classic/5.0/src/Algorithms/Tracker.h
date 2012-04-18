@@ -23,13 +23,13 @@
 #include "Algorithms/AbstractTracker.h"
 #include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/Particle.h"
 #include "FixedAlgebra/FTps.h"
 
 #include "Utilities/OpalField.h"
 
 class BMultipoleField;
 class Euclid3D;
+class Particle;
 
 
 // Class Tracker
@@ -80,10 +80,6 @@ class Euclid3D;
 //    multiples of (2*pi).
 //  [/DL]
 
-
-typedef std::list<OpalField> FieldList;
-
-// typedef std::vector<OpalSection> SectionList;
 
 class Tracker: public AbstractTracker {
 

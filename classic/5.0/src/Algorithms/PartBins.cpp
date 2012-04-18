@@ -1,6 +1,7 @@
 #include <cfloat>
 #include <vector>
 #include "Algorithms/PartBins.h"
+#include "Algorithms/PBunchDefs.h"
 #include "Physics/Physics.h"
 extern Inform *gmsg;
 

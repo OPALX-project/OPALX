@@ -19,8 +19,6 @@
 #include <set>
 #include <iostream>
 
-#include "Ippl.h"
-
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/AttributeBase.h"
 #include "Utilities/Options.h"

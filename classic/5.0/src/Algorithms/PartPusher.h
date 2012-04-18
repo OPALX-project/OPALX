@@ -1,10 +1,9 @@
 #ifndef CLASSIC_PartPusher_H
 #define CLASSIC_PartPusher_H
 
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/Vektor.h"
 #include "Algorithms/PartData.h"
 #include "Physics/Physics.h"
-#include "Ippl.h"
 
 class BorisPusher {
 public:
@@ -37,17 +36,17 @@ inline void BorisPusher::kick(const Vector_t &R, Vector_t &P, const Vector_t &Ef
 
 
 inline void BorisPusher::kick(const Vector_t &R, Vector_t &P, const Vector_t &Ef, const Vector_t &Bf, const double &dt, const double &mass, const double &charge) const {
-	
-	// Implementation follows chapter 4-4, p. 61 - 63 from 
+
+	// Implementation follows chapter 4-4, p. 61 - 63 from
 	// Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics via computer simulation.
 	//
 	// Up to finite precision effects, the new implementation is equivalent to the old one, but uses less floating point operations.
 	//
-	// Relativistic variant implemented below is described in chapter 15-4, p. 356 - 357. However, since other units are used here, small 
-	// modifications are required. The relativistic variant can be derived from the nonrelativistic one by replacing 
-	//     mass 
-	// by 
-	//     gamma * rest mass 
+	// Relativistic variant implemented below is described in chapter 15-4, p. 356 - 357. However, since other units are used here, small
+	// modifications are required. The relativistic variant can be derived from the nonrelativistic one by replacing
+	//     mass
+	// by
+	//     gamma * rest mass
 	// and transforming the units.
 	//
 	// Parameters:
@@ -63,17 +62,17 @@ inline void BorisPusher::kick(const Vector_t &R, Vector_t &P, const Vector_t &Ef
 
 	// Half step E
 	P += 0.5 * dt * charge * c / mass * Ef;
-	
+
 	// Full step B
 	double const gamma = sqrt(1.0 + dot(P, P));
 	Vector_t const t = 0.5 * dt * charge * c * c / (gamma * mass) * Bf;
 	Vector_t const w = P + cross(P, t);
 	Vector_t const s = 2.0 / (1.0 + dot(t, t)) * t;
 	P += cross(w, s);
-	
+
 	// Half step E
 	P += 0.5 * dt * charge * c / mass * Ef;
-	
+
 }
 
 

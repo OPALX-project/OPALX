@@ -45,6 +45,8 @@
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
+#include <cmath>
+
 using namespace Expressions;
 using namespace Physics;
 

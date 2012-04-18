@@ -22,6 +22,9 @@
 #include "Utilities/OpalException.h"
 #include "AbsBeamline/ElementBase.h"
 
+#include "Utility/IpplInfo.h"
+#include <cmath>
+
 #define NPOINTS_DEFAULT 129
 #define NLEFT_DEFAULT 64
 #define NRIGHT_DEFAULT 64
