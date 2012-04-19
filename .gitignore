@@ -53,3 +53,6 @@ classic/5.0/src/Utilities/Makefile
 classic/5.0/src/Utilities/cmake_install.cmake
 classic/5.0/src/cmake_install.cmake
 classic/5.0/src/config.h
+src/AbstractObjects/CMakeFiles
+src/AbstractObjects/Makefile
+src/AbstractObjects/cmake_install.cmake
