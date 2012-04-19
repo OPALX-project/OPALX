@@ -3258,10 +3258,17 @@ void ParallelCyclotronTracker::push(double h) {
         itsBunch->R[i] += h * v;
         for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
             if(((*sindex)->first) == "CAVITY") {
-                double distOld;
                 RFCavity * rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
-                bool const tagCrossing = checkGapCross(oldR * 1000.0, itsBunch->R[i] * 1000.0, rfcav, distOld);
-                distOld *= 0.001; // checkGapCross gives [distOld] == mm
+                double const sinx = rfcav->getSinAzimuth();
+                double const cosx = rfcav->getCosAzimuth();
+                double const PerpenDistance = rfcav->getPerpenDistance() * 0.001;
+                double const distNew = (itsBunch->R[i][0] * sinx - itsBunch->R[i][1] * cosx) - PerpenDistance;
+                bool tagCrossing = false;
+                double distOld;
+                if(distNew <= 0.0) {
+                    distOld = (oldR[0] * sinx - oldR[1] * cosx) - PerpenDistance;
+                    if(distOld > 0.0) tagCrossing = true;
+                }
                 if(tagCrossing) {
                     double const dt1 = distOld / sqrt(dot(v, v));
                     double const dt2 = h - dt1;
