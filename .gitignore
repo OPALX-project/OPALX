@@ -98,6 +98,9 @@ src/OpalConfigure/cmake_install.cmake
 src/OpalParser/CMakeFiles
 src/OpalParser/Makefile
 src/OpalParser/cmake_install.cmake
+src/PhysicsActions/CMakeFiles
+src/PhysicsActions/Makefile
+src/PhysicsActions/cmake_install.cmake
 src/Solvers/CMakeFiles
 src/Solvers/Makefile
 src/Solvers/cmake_install.cmake
