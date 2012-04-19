@@ -44,16 +44,6 @@ OPTION (NOCPLUSPLUS11_NULLPTR "Disable C++11 nullptr support" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
-SET (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
-FIND_PACKAGE (IPPL REQUIRED
-               PATHS /usr/local/include /usr/include $ENV{IPPL_PREFIX})
-MESSAGE (STATUS "Found IPPL library dir: ${IPPL_LIBRARY_DIR}")
-MESSAGE (STATUS "Found IPPL include dir: ${IPPL_INCLUDE_DIR}")
-
-FIND_PACKAGE (H5Hut REQUIRED)
-FIND_PACKAGE (HDF5 REQUIRED)
-FIND_PACKAGE (GSL REQUIRED)
-
 IF (DBG_SCALARFIELD)
    MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
    SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
