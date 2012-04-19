@@ -56,6 +56,9 @@ classic/5.0/src/config.h
 src/AbstractObjects/CMakeFiles
 src/AbstractObjects/Makefile
 src/AbstractObjects/cmake_install.cmake
+src/Algebra/CMakeFiles
+src/Algebra/Makefile
+src/Algebra/cmake_install.cmake
 src/Algorithms/CMakeFiles
 src/Algorithms/Makefile
 src/Algorithms/cmake_install.cmake
