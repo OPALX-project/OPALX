@@ -32,9 +32,9 @@ classic/5.0/src/Fields/cmake_install.cmake
 classic/5.0/src/Filters/CMakeFiles
 classic/5.0/src/Filters/Makefile
 classic/5.0/src/Filters/cmake_install.cmake
-classic/5.0/src/FixedAlgebra/MakeFiles
-classic/5.0/src/FixedAlgebra/akefile
-classic/5.0/src/FixedAlgebra/make_install.cmake
+classic/5.0/src/FixedAlgebra/CMakeFiles
+classic/5.0/src/FixedAlgebra/Makefile
+classic/5.0/src/FixedAlgebra/cmake_install.cmake
 classic/5.0/src/Makefile
 classic/5.0/src/MemoryManagement/CMakeFiles
 classic/5.0/src/MemoryManagement/Makefile
