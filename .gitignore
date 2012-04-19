@@ -59,6 +59,9 @@ src/AbstractObjects/cmake_install.cmake
 src/Algorithms/CMakeFiles
 src/Algorithms/Makefile
 src/Algorithms/cmake_install.cmake
+src/BasicActions/CMakeFiles
+src/BasicActions/Makefile
+src/BasicActions/cmake_install.cmake
 src/Lines/CMakeFiles
 src/Lines/Makefile
 src/Lines/cmake_install.cmake
