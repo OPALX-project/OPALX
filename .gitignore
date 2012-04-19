@@ -68,6 +68,9 @@ src/BasicActions/cmake_install.cmake
 src/Lines/CMakeFiles
 src/Lines/Makefile
 src/Lines/cmake_install.cmake
+src/Solvers/CMakeFiles
+src/Solvers/Makefile
+src/Solvers/cmake_install.cmake
 src/Tables/CMakeFiles
 src/Tables/Makefile
 src/Tables/cmake_install.cmake
