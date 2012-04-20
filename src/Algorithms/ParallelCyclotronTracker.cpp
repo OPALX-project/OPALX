@@ -3250,39 +3250,47 @@ void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particle
 
 void ParallelCyclotronTracker::push(double h) {
     IpplTimings::startTimer(IntegrationTimer_m);
+    struct CavityCrossData {
+        RFCavity * cavity;
+        double sinAzimuth;
+        double cosAzimuth;
+        double perpenDistance;
+    };
+    std::list<CavityCrossData> cavCrossDatas;
+    for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
+        if(((*sindex)->first) == "CAVITY") {
+            RFCavity * cav = static_cast<RFCavity *>(((*sindex)->second).second);
+            CavityCrossData ccd = {cav, cav->getSinAzimuth(), cav->getCosAzimuth(), cav->getPerpenDistance() * 0.001};
+            cavCrossDatas.push_back(ccd);
+        }
+    }
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         Vector_t const oldR = itsBunch->R[i];
         double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
         double const c_gamma = c / gamma;
         Vector_t const v = itsBunch->P[i] * c_gamma;
         itsBunch->R[i] += h * v;
-        for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-            if(((*sindex)->first) == "CAVITY") {
-                RFCavity * rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
-                double const sinx = rfcav->getSinAzimuth();
-                double const cosx = rfcav->getCosAzimuth();
-                double const PerpenDistance = rfcav->getPerpenDistance() * 0.001;
-                double const distNew = (itsBunch->R[i][0] * sinx - itsBunch->R[i][1] * cosx) - PerpenDistance;
-                bool tagCrossing = false;
-                double distOld;
-                if(distNew <= 0.0) {
-                    distOld = (oldR[0] * sinx - oldR[1] * cosx) - PerpenDistance;
-                    if(distOld > 0.0) tagCrossing = true;
-                }
-                if(tagCrossing) {
-                    double const dt1 = distOld / sqrt(dot(v, v));
-                    double const dt2 = h - dt1;
+        for(std::list<CavityCrossData>::const_iterator ccd = cavCrossDatas.begin(); ccd != cavCrossDatas.end(); ++ccd) {
+            double const distNew = (itsBunch->R[i][0] * ccd->sinAzimuth - itsBunch->R[i][1] * ccd->cosAzimuth) - ccd->perpenDistance;
+            bool tagCrossing = false;
+            double distOld;
+            if(distNew <= 0.0) {
+                distOld = (oldR[0] * ccd->sinAzimuth - oldR[1] * ccd->cosAzimuth) - ccd->perpenDistance;
+                if(distOld > 0.0) tagCrossing = true;
+            }
+            if(tagCrossing) {
+                double const dt1 = distOld / sqrt(dot(v, v));
+                double const dt2 = h - dt1;
 
-                    // Retrack particle from the old postion to cavity gap point
-                    itsBunch->R[i] = oldR + dt1 * v;
+                // Retrack particle from the old postion to cavity gap point
+                itsBunch->R[i] = oldR + dt1 * v;
 
-                    // Momentum kick
-                    itsBunch->R[i] *= 1000.0; // RFkick uses [itsBunch->R] == mm
-                    RFkick(rfcav, itsBunch->getT() * 1.0e9, dt1 * 1.0e9, i);
-                    itsBunch->R[i] *= 0.001;
+                // Momentum kick
+                itsBunch->R[i] *= 1000.0; // RFkick uses [itsBunch->R] == mm
+                RFkick(ccd->cavity, itsBunch->getT() * 1.0e9, dt1 * 1.0e9, i);
+                itsBunch->R[i] *= 0.001;
 
-                    itsBunch->R[i] += dt2 * itsBunch->P[i] * c_gamma;
-                }
+                itsBunch->R[i] += dt2 * itsBunch->P[i] * c_gamma;
             }
         }
     }
