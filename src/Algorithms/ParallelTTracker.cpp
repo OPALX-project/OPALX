@@ -1289,8 +1289,6 @@ void ParallelTTracker::execute() {
 
     setTime();
 
-    dumpPhaseSpaceOnScan();
-
     double t = itsBunch->getT();
 
     unsigned long long step = itsBunch->getLocalTrackStep();
@@ -2313,19 +2311,6 @@ void ParallelTTracker::setTime() {
     // i.e. when doing a restarted simulation
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         itsBunch->dt[i] = itsBunch->getdT();
-    }
-}
-
-// Note: setLastStep is not needed anymore with the new local,global track step logic
-
-void ParallelTTracker::dumpPhaseSpaceOnScan() {
-
-    if(Options::scan && OpalData::getInstance()->hasBunchAllocated()) {
-        localTrackSteps_m -= OpalData::getInstance()->getLastStep();
-        OpalData::getInstance()->setLastStep(0);
-        if(itsBunch->getLocalNum() != 0)
-            writePhaseSpace(0, 0.0); // write initial phase space
-
     }
 }
 

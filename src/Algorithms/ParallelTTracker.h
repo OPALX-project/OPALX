@@ -385,8 +385,6 @@ private:
     void handleRestartRun();
     void prepareEmission();
     void setTime();
-    // Note: setLastStep is not needed anymore with the new local,global track step logic
-    void dumpPhaseSpaceOnScan();
     void initializeBoundaryGeometry();
     void doBinaryRepartition(long long step);
 };
