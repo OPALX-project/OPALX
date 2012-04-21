@@ -42,14 +42,11 @@ class EnvelopeBunch;
 class BoundaryGeometry;
 class LaserProfile;
 
-enum DistrTypeT {GAUSS,
-                 BINOMIAL,
-                 UNIFORMXYZ,
+enum DistrTypeT {NODIST,
+                 GAUSS,
                  FROMFILE,
                  GUNGAUSSFLATTOPTH,
-                 GUNUNIFORM,
-                 GUNGAUSS3D,
-                 NODIST,
+                 BINOMIAL,
                  SURFACEEMISSION,
                  SURFACERANDCREATE,
                  ASTRAFLATTOPTH
@@ -176,9 +173,6 @@ private:
     void createBinom(Vector_t emit, Vector_t alpha, Vector_t beta, Vector_t gamma,
                      Vector_t bincoef, PartBunch &beam, size_t particles,
                      bool isBinned);
-
-    void createUniformTUniformL(Vector_t emit, Vector_t alpha, Vector_t beta, Vector_t gamma,
-                                PartBunch &beam, size_t particles, bool isBinned);
 
     void binnDistributionZ(PartBunch &beam, size_t Np, string distType);
     void binnDistributionT(PartBunch &beam, size_t Np, string distType);

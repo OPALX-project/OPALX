@@ -109,7 +109,6 @@ namespace {
         FE,
         AG,
         EKIN,
-
         NPDARKCUR,
         EINITHR,
         INWARDMARGIN,
@@ -148,8 +147,8 @@ Distribution::Distribution():
     R_m(NULL),
     qrng_m(NULL),
     distributionTable_m(NULL) {
-    itsAttr[DISTRIBUTION] = makeString("DISTRIBUTION", "Distribution type: GAUSS, BINOMIAL, ROTSYMBINOMIAL, FROMFILE,"
-                                       "GUNGAUSS, GUNGAUSS3D, GUNUNIFORM, GUNGAUSSFLATTOP, GUNGAUSSFLATTOPTH, UNIFORMXYZ, SURFACEEMISSION, SURFACERANDCREATE", "GAUSS");
+    itsAttr[DISTRIBUTION] = makeString("DISTRIBUTION", "Distribution type: GAUSS, BINOMIAL, FROMFILE,"
+                                       "GUNGAUSSFLATTOPTH, ASTRAFLATTOPTH, SURFACEEMISSION, SURFACERANDCREATE", "GAUSS");
 
     itsAttr[FNAME] = makeString("FNAME", "File for reading in 6D particle coordinates");
 
@@ -417,22 +416,12 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         distrTypeT_m = ASTRAFLATTOPTH;
     else if(distT_m == "FROMFILE")
         distrTypeT_m = FROMFILE;
-    else if(distT_m == "UNIFORMXYZ")
-        distrTypeT_m = UNIFORMXYZ;
     else if(distT_m == "BINOMIAL")
         distrTypeT_m = BINOMIAL;
     else if(distT_m == "SURFACEEMISSION")
         distrTypeT_m = SURFACEEMISSION;
     else if(distT_m == "SURFACERANDCREATE")
         distrTypeT_m = SURFACERANDCREATE;
-    // Create a an initial beam bunch that is:
-    // "GUNGAUSS": uniform in space transversely and with a Gaussian ("GUNGAUS") longitudinal profile
-    // "GUNUNIFORM": uniform in space transversely and longitudinally.
-    // "GUNGAUSS3D": Gaussian transversely and longitudinally.
-    // "GUNGAUSSFLATTOP": uniform in space transversely, a Gaussian rise and fall time longitudinally with
-    //                    a uniform flattop between.
-    // "GUNGAUSSFLATTOPTH": uniform in space transversely, a Gaussian rise and fall time longitudinally with
-    //                    a uniform flattop between, and a transvers thermal emittance
 
     switch(distrTypeT_m) {
         case SURFACERANDCREATE: {
@@ -442,7 +431,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             //vVThermal_m = Attributes::getReal(itsAttr[VVTHERMAL]);
         }
         break;
-
         case SURFACEEMISSION: {
             darkCurrentParts_m = (size_t) Attributes::getReal(itsAttr[NPDARKCUR]);
             darkInwardMargin_m = Attributes::getReal(itsAttr[INWARDMARGIN]);
@@ -603,7 +591,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                 }
                 os_m << "# x y ti px py pz Ekin= " << ekin_m << " [eV] " << endl;
             }
-
         }
 
         break;
@@ -683,7 +670,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             phimax_m = Physics::pi / 2.0;
             *gmsg << " -- B I N N I N G in T -----------------------------------------" << endl;
             *gmsg << " ---------------------I N P U T --------------------------------" << endl;
-            *gmsg << " GUNGAUSS FLAT TOP &  THERMAL EMITTANCE in ASTRA MODE" << endl;
+            *gmsg << " GUNGAUSS FLAT TOP &  THERMAL EMITTANCE" << endl;
             *gmsg << " Kinetic energy (thermal emittance) = " << ekin_m << " [eV]  " << endl;
             *gmsg << " Phi max = " << phimax_m * 180 / Physics::pi << " [deg]  " << endl;
             *gmsg << " tBin = " << tBin_m << " [sec]  nBins = " << nBins_m << " tEmission =  " << tEmission_m << " [sec] " << endl;
@@ -702,7 +689,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         break;
 
         case BINOMIAL: {
-
             corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
             corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
             corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
@@ -710,8 +696,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             corr_m[4] = Attributes::getReal(itsAttr[R62]);
             corr_m[5] = Attributes::getReal(itsAttr[R51]);
             corr_m[6] = Attributes::getReal(itsAttr[R52]);
-
-
 
             sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
                               Attributes::getReal(itsAttr[SIGMAY]),
@@ -729,6 +713,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                 double chi = asin(corr_m[j]);
                 emit_m[j] = sigx_m[j] * sigp_m[j] * cos(chi);
             }
+
             for(int j = 0; j < 3; j++) {
                 beta_m[j]  = sigx_m[j] * sigx_m[j] / emit_m[j];
                 gamma_m[j] = sigp_m[j] * sigp_m[j] / emit_m[j];
@@ -788,25 +773,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             IpplTimings::stopTimer(beam.distrCreate_m);
         }
         break;
-        case UNIFORMXYZ: {
-            corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
-            corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
-            corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
-
-            Hs2a_m = Attributes::getReal(itsAttr[SIGMAX]);
-            Hs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()); //in eV
-
-            Vs2a_m = Attributes::getReal(itsAttr[SIGMAY]);
-            Vs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()); //in eV
-
-            Ls2a_m = Attributes::getReal(itsAttr[SIGMAT]);
-            Ls2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()); //in eV
-
-            nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
-
-            rGen_m = new RANLIB_class(265314159, 4);
-        }
-        break;
         case FROMFILE: {
             *gmsg << "\n-------------------------------------------------------------" << endl;
             *gmsg << "     READ ININITAL DISTRIBUTION FROM FILE    " << endl;
@@ -819,7 +785,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                 binnDistributionFromFile(beam, fn);
 
             } else {
-
                 std::ofstream os;
                 if(Ippl::getNodes() == 1) {
                     *gmsg << " Write distribution to file dist.dat" << endl;
@@ -830,7 +795,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                     }
                     os << "# x px y py z pz " << endl;
                 }
-
 
                 if(Ippl::myNode() == 0) {
                     const string filename = Attributes::getString(itsAttr[FNAME]);
@@ -854,7 +818,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
 
                     for(unsigned int i = 0; i < Np; i++) {
                         if(!fs.eof()) {
-                            // create 1 particle
                             beam.create(1);
                             fs >> x0 >> px0 >> y0 >> py0 >> psi0 >> del0;
                             beam.R[i] = Vector_t(x0, y0, psi0);
@@ -1525,8 +1488,6 @@ void Distribution::createSlicedBunch(int sl, double charge, double gamma, double
         distrTypeT_m = GUNGAUSSFLATTOPTH;
     else if(distT_m == "FROMFILE")
         distrTypeT_m = FROMFILE;
-    else if(distT_m == "UNIFORMXYZ")
-        distrTypeT_m = UNIFORMXYZ;
     else if(distT_m == "BINOMIAL")
         distrTypeT_m = BINOMIAL;
 
@@ -1991,133 +1952,6 @@ void Distribution::createBinom(Vector_t emit, Vector_t alpha, Vector_t beta, Vec
 /**
  *
  *
- * @param emit
- * @param alpha
- * @param beta
- * @param gamma
- * @param beam
- * @param particles
- * @param isBinned
- */
-void Distribution::createUniformTUniformL(Vector_t emit, Vector_t alpha, Vector_t beta, Vector_t gamma,
-        PartBunch &beam, size_t particles, bool isBinned) {
-    const double &two_pi = Physics::two_pi;
-
-    gsl_rng_env_setup();
-
-    Vector_t M;
-    Vector_t PM;
-    Vector_t COSCHI;
-    Vector_t SINCHI;
-    Vector_t CHI;
-    Vector_t AMI;
-    Vector_t L;
-    Vector_t PL;
-
-    size_t pc = 0;
-    size_t count = 0;
-
-    for(int i = 0; i < 3; i++) {
-        gamma[i]  *= 4.0;
-        beta[i]   *= 4.0;
-        M[i]       =  sqrt(emit[i] * beta[i]);
-        PM[i]      =  sqrt(emit[i] * gamma[i]);
-        COSCHI[i]  =  sqrt(1.0 / (1.0 + alpha[i] * alpha[i]));
-        SINCHI[i]  = -alpha[i] * COSCHI[i];
-        CHI[i]     =  atan2(SINCHI[i], COSCHI[i]);
-    }
-
-    Vector_t x;
-    Vector_t p;
-    double betagamma_part = 0.0;
-    if(isBinned) {
-        double ekin = Attributes::getReal(itsAttr[PT]);
-        double mass = beam.getM();
-        double gamma_part = 1. + ekin / mass;
-        betagamma_part = sqrt(ekin * ekin / (mass * mass) + 2.*ekin / mass);
-        pbin_m->setGamma(gamma_part);
-        *gmsg << "* Gamma = " << gamma_part << "; Beta = " << betagamma_part / gamma_part  << endl;
-    }
-
-    for(size_t n = 0; n < particles; ++n) {
-        double S1, S2, S3, S4, S5, S6;
-        double A1, AL1, AC1, U1, V1, A2, AL2, AC2, U2, V2;
-        double AB = 2.0;
-        while(AB > 1.0) {
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            S3 = IpplRandom();
-            S4 = IpplRandom();
-            S5 = IpplRandom();
-            S6 = IpplRandom();
-            AL1 = two_pi * S1;
-            AL2 = two_pi * S2;
-            A1 = sqrt(1.0 - S3);
-            A2 = sqrt(1.0 - S4);
-            AC1 = cos(AL1);
-            U1 = A1 * AC1;
-            AC2 = cos(AL2);
-            U2 = A2 * AC2;
-            AB = sqrt(U1 * U1 + U2 * U2);
-        }
-
-        V1 = A1 * sin(AL1);
-        V2 = A2 * sin(AL2);
-        x[0] = M[0] * U1;
-        x[1] = M[1] * U2;
-        p[0] = PM[0] * (U1 * SINCHI[0] + V1 * COSCHI[0]);
-        p[1] = PM[1] * (U2 * SINCHI[1] + V2 * COSCHI[1]);
-
-
-        S1 = IpplRandom();
-        S2 = IpplRandom();
-
-        A1 = sqrt(1.0 - S5);
-        AL1 = two_pi * S6;
-        U1 = A1 * cos(AL1);
-        // now copy this over to the bunch
-        V1 = A1 * sin(AL1);
-        x[2] = M[2] * U1;
-        p[2] = betagamma_part + PM[2] * (U1 * SINCHI[2] + V1 * COSCHI[2]);
-
-
-        if(pc == (size_t) Ippl::myNode()) {
-            if(isBinned) {
-                vector<double> tmp;
-                tmp.push_back(x[0]);
-                tmp.push_back(x[1]);
-                tmp.push_back(x[2]);
-                tmp.push_back(p[0]);
-                tmp.push_back(p[1]);
-                tmp.push_back(p[2]);
-                tmp.push_back(0);
-                pbin_m->fill(tmp);
-            } else {
-                beam.create(1);
-                beam.R[count] = x;
-                beam.P[count] = p;
-                beam.Q[count] = beam.getChargePerParticle();
-                count++;
-            }
-        }
-
-        if(!isBinned) {
-            pc++;
-            if(pc == (size_t) Ippl::getNodes())
-                pc = 0;
-        }
-    }
-    if(isBinned) {
-        pbin_m->sortArray();
-        // now copy this over to the bunch
-        // so that we can emmit the particles
-        beam.setPBins(pbin_m);
-    }
-}
-
-/**
- *
- *
  * @param p   particle bunch
  * @param bg  boundary geometry
  */
@@ -2335,23 +2169,11 @@ void Distribution::create(PartBunch &beam, size_t Np) {
     beam.setTEmission(Attributes::getReal(itsAttr[TEMISSION]));
     beam.setNumBunch(1);
     const string disttype = Attributes::getString(itsAttr[DISTRIBUTION]);
-    if(disttype == "GUNGAUSS" || disttype == "GUNUNIFORM" || disttype == "GUNGAUSS3D" || disttype == "GUNGAUSSFLATTOP" || disttype == "GUNGAUSSFLATTOPTH" || disttype == "GUNGAUSSFLATTOPTH-T")
-        // Create a an initial beam bunch that is:
-        // "GUNGAUSS": uniform in space transversely and with a Gaussian ("GUNGAUS") longitudinal profile
-        // "GUNUNIFORM": uniform in space transversely and longitudinally.
-        // "GUNGAUSS3D": Gaussian transversely and longitudinally.
-        // "GUNGAUSSFLATTOP": uniform in space transversely, a Gaussian rise and fall time longitudinally with
-        //                    a uniform flattop between.
+    if(disttype == "GUNGAUSSFLATTOPTH") {
         // "GUNGAUSSFLATTOPTH": uniform in space transversely, a Gaussian rise and fall time longitudinally with
         //                    a uniform flattop between, and a transvers thermal emittance
-
-    {
-        if(disttype == "GUNGAUSSFLATTOPTH-T")
-            binnDistributionT(beam, Np, disttype);
-        else
-            binnDistributionZ(beam, Np, disttype);
+        binnDistributionZ(beam, Np, disttype);
     } else if(disttype == "BINOMIAL") {
-
         corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
         corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
         corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
@@ -2359,7 +2181,6 @@ void Distribution::create(PartBunch &beam, size_t Np) {
         corr_m[4] = Attributes::getReal(itsAttr[R62]);
         corr_m[5] = Attributes::getReal(itsAttr[R51]);
         corr_m[6] = Attributes::getReal(itsAttr[R52]);
-
 
         Vector_t corr(Attributes::getReal(itsAttr[CORRX]),
                       Attributes::getReal(itsAttr[CORRY]),
@@ -2393,36 +2214,6 @@ void Distribution::create(PartBunch &beam, size_t Np) {
         }
         msg << "About to create Binomial distribution -1 " << endl;
         createBinom(emit, alpha, beta, gamma, bincoef, beam, Np, isBinned);
-    } else if(disttype == "UNITUNIL") {
-
-        Vector_t corr(Attributes::getReal(itsAttr[CORRX]),
-                      Attributes::getReal(itsAttr[CORRY]),
-                      Attributes::getReal(itsAttr[CORRT]));
-
-        Vector_t sigX(Attributes::getReal(itsAttr[SIGMAX]),
-                      Attributes::getReal(itsAttr[SIGMAY]),
-                      Attributes::getReal(itsAttr[SIGMAT]));
-
-        Vector_t sigPX(eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()),
-                       eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()),
-                       eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()));
-
-        Vector_t emit;
-        Vector_t alpha;
-        Vector_t beta;
-        Vector_t gamma;
-
-        for(int j = 0; j < 3; j++) {
-            double chi = asin(corr[j]);
-            emit[j] = sigX[j] * sigPX[j] * cos(chi);
-        }
-        for(int j = 0; j < 3; j++) {
-            beta[j]  = sigX[j] * sigX[j] / emit[j];
-            gamma[j] = sigPX[j] * sigPX[j] / emit[j];
-            alpha[j] = -corr[j] * sqrt(beta[j] * abs(gamma[j]));
-        }
-
-        createUniformTUniformL(emit, alpha, beta, gamma, beam, Np, isBinned);
     } else if(disttype == "GAUSS") {
         double corr[7];
         corr[0] = Attributes::getReal(itsAttr[CORRX]);
@@ -2502,115 +2293,13 @@ void Distribution::create(PartBunch &beam, size_t Np) {
                 beam.Bin[count] = 0; // not initialized
                 beam.PType[count] = 0;
                 beam.TriID[count] = 0;
-                //           dist.precision(8);
-                //           dist << x0 << "\t"
-                //                << y0 << "\t"
-                //                << psi0 << "\t"
-                //                << px0 << "\t"
-                //                << py0 << "\t";
-                //           dist.precision(15);
-                //           dist << del0 << endl;
                 count++;
             }
             pc++;
             if(pc == (size_t) Ippl::getNodes())
                 pc = 0;
         }
-    } else if(disttype == "UNIFORMXYZ") {
-
-        double corr[3];
-
-        corr[0] = Attributes::getReal(itsAttr[CORRX]);
-        corr[1] = Attributes::getReal(itsAttr[CORRY]);
-        corr[2] = Attributes::getReal(itsAttr[CORRT]);
-
-        double Hs2a = Attributes::getReal(itsAttr[SIGMAX]);
-        double Hs2b = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()); //in eV
-
-        double Vs2a = Attributes::getReal(itsAttr[SIGMAY]);
-        double Vs2b = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()); //in eV
-
-        double Ls2a = Attributes::getReal(itsAttr[SIGMAT]);
-        double Ls2b = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()); //in eV
-
-        RANLIB_class *rGen = new RANLIB_class(265314159, 4);
-
-        unsigned int pc = 0;
-        unsigned int count = 0;
-
-        for(unsigned int i = 0; i < Np; i++) {
-
-            double x, y, z, px, py, pz;  // generate independent Gaussians, then correlate and finaly scale
-            double R = 3;
-
-            while(R > 1) {
-
-                x = rGen->uniform(-1.0, 1.0);
-                y = rGen->uniform(-1.0, 1.0);
-                z = rGen->uniform(-1.0, 1.0);
-
-                px = rGen->uniform(-1.0, 1.0);
-                py = rGen->uniform(-1.0, 1.0);
-                pz = rGen->uniform(-1.0, 1.0);
-
-                R = sqrt(x * x + y * y + z * z);
-
-                // or can generate uniform distribution in 6D phase space by
-                // using following line instead of above one.
-                // R = sqrt(x*x + y*y + z*z + px*px + py*py +pz*pz);
-            }
-
-            px  = x * corr[0] + px * sqrt(1.0 - corr[0] * corr[0]);
-            x   = x * Hs2a;
-            px *= Hs2b;
-
-            py  = y * corr[1] + py * sqrt(1.0 - corr[1] * corr[1]);
-            y   = y * Vs2a;
-            py *= Vs2b;
-
-            pz  = z * corr[2] + pz * sqrt(1.0 - corr[2] * corr[2]);
-            z   = z * Ls2a;
-            pz *= Ls2b;
-
-            if(pc == (size_t) Ippl::myNode()) {
-                beam.create(1);
-                beam.R[count] = Vector_t(x, y, z);
-                beam.P[count] = Vector_t(px, py, pz);
-                beam.Bin[count] = 0; // not initialized
-                count++;
-            }
-            pc++;
-            if(pc == (size_t) Ippl::getNodes())
-                pc = 0;
-        }
-
     } else if(disttype == "FROMFILE") {
-
-
-        /*
-
-        std::ofstream os;
-        if (Ippl::getNodes() == 1) {
-        string file("data/dist.dat");
-        os.open(file.c_str());
-        if (os.bad()) {
-        *gmsg << "Unable to open output file " <<  file << endl;
-        }
-        os << "# x px y py z pz " << endl;
-        }
-
-
-        if (Ippl::getNodes() == 1) {
-        os << x0 << "\t " << px0    << "\t "
-        << y0 << "\t " << py0    << "\t "
-        << psi0 << "\t " << del0 << "\t " << endl;
-        }
-
-        os.close();
-
-
-        */
-
         *gmsg << "\n-------------------------------------------------------------" << endl;
         *gmsg << "     READ ININITAL DISTRIBUTION FROM FILE    " << endl;
         *gmsg << "     BE AWARE OF THE FACT THAT ONLY NODE 0 IS READING IN " << endl;
@@ -2683,8 +2372,6 @@ double Distribution::getTEmission() {
         distrTypeT_m = GUNGAUSSFLATTOPTH;
     else if(distT_m == "FROMFILE")
         distrTypeT_m = FROMFILE;
-    else if(distT_m == "UNIFORMXYZ")
-        distrTypeT_m = UNIFORMXYZ;
     else if(distT_m == "BINOMIAL")
         distrTypeT_m = BINOMIAL;
 
@@ -3009,22 +2696,12 @@ void Distribution::binnDistributionZ(PartBunch &beam, size_t Np, string distType
         double u1, u2;
         double xy = 6;
 
-        if(distType != "GUNGAUSS3D") {
-            while(xy > 1) {
-                x  = rGen->uniform(-1.0, 1.0);
-                y  = rGen->uniform(-1.0, 1.0);
-                xy = sqrt(x * x + y * y);
-            }
-        }
-
-        else {
-            while(xy > transvCutOff || std::isnan(xy)) {
-                u1 = rGen->uniform(0.0, 1.0);
-                u2 = rGen->uniform(0.0, 1.0);
-                x = sqrt(-2. * log(1. - u1)) * cos(two_pi * u2);
-                y = sqrt(-2. * log(1. - u1)) * sin(two_pi * u2);
-                xy = sqrt(x * x + y * y);
-            }
+        while(xy > transvCutOff || std::isnan(xy)) {
+            u1 = rGen->uniform(0.0, 1.0);
+            u2 = rGen->uniform(0.0, 1.0);
+            x = sqrt(-2. * log(1. - u1)) * cos(two_pi * u2);
+            y = sqrt(-2. * log(1. - u1)) * sin(two_pi * u2);
+            xy = sqrt(x * x + y * y);
         }
 
         double x0   =  x * Hs2a;
@@ -3033,13 +2710,7 @@ void Distribution::binnDistributionZ(PartBunch &beam, size_t Np, string distType
         double del0 = 0.0;
         double psi0 = 0.0;
 
-        if(distType == "GUNGAUSS" || distType == "GUNGAUSS3D") {
-            x  = rGen->gauss(0.0, 1.0);
-            y  = rGen->gauss(0.0, 1.0);
-        } else if(distType == "GUNUNIFORM") {
-            x = rGen->uniform(0.0, 1.0);
-            y = rGen->uniform(0.0, 1.0);
-        } else if(distType == "GUNGAUSSFLATTOP" || distType == "GUNGAUSSFLATTOPTH") {
+        if(distType == "GUNGAUSSFLATTOPTH") {
             if(i < particlesFront) {
                 // Fill rise.
                 psi0 = -1.0;
@@ -3059,7 +2730,7 @@ void Distribution::binnDistributionZ(PartBunch &beam, size_t Np, string distType
             }
         }
 
-        if(distType != "GUNGAUSSFLATTOP" && distType != "GUNGAUSSFLATTOPTH") {
+        if(distType != "GUNGAUSSFLATTOPTH") {
             del0  = x * corr[2] + y * sqrt(1.0 - corr[2] * corr[2]);
             psi0  = x * Ls2a;
         }
@@ -3361,9 +3032,9 @@ void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
 
     IpplTimings::stopTimer(beam.distrReload_m);
 
-    *gmsg << "Total number of particles in the h5 file = " << N << " NPerBunch= " << beam.getTotalNum() 
+    *gmsg << "Total number of particles in the h5 file = " << N << " NPerBunch= " << beam.getTotalNum()
           << " Global step " << gtstep << " Local step " << ltstep << endl
-          << " restart step= " << restartStep << " time of restart = " << actualT 
+          << " restart step= " << restartStep << " time of restart = " << actualT
           << " phishift= " << OpalData::getInstance()->getGlobalPhaseShift() << endl;
 }
 
@@ -3465,19 +3136,9 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
     beam.setNumBunch((int)numBunch);
     *gmsg << numBunch << " Bunches(bins) exist in this file" << endl;
 
-    // h5_float64_t gammaBin[numBunch];
-
-    // rc = H5ReadStepAttribFloat64(H5file, "GammaBin", gammaBin);
-
-    //~ void *varray = malloc(localN * sizeof(double));
-    //~ double *farray = (double *)varray;
-    //~ h5_int64_t *larray = (h5_int64_t *)varray;
-
     std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-
 
     beam.create(localN);
 
@@ -3526,11 +3187,8 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
     // only for multi-bunch mode
     if(specifiedNumBunch > 1) {
         // the allowed maximal bin number is set to 1000
-        //
         beam.setPBins(new PartBinsCyc(1000, numBunch));
     }
-
-    //~ if(farray) free(farray);
 
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);
@@ -3605,9 +3263,6 @@ void Distribution::tfsDescriptors(std::ostream &os) const {
 double Distribution::getEkin() const {return Attributes::getReal(itsAttr[EKIN]);}
 double Distribution::getWorkFunctionRf() const {return Attributes::getReal(itsAttr[W]);}
 double Distribution::getLaserEnergy() const {return Attributes::getReal(itsAttr[ELASER]);}
-
-
-
 
 size_t Distribution::getNumberOfDarkCurrentParticles() { return (size_t) Attributes::getReal(itsAttr[NPDARKCUR]);}
 double Distribution::getDarkCurrentParticlesInwardMargin() { return Attributes::getReal(itsAttr[INWARDMARGIN]);}
@@ -3711,16 +3366,6 @@ Inform &Distribution::printInfo(Inform &os) const {
         }
     } else
         os << "* Distribution from restart file" << endl;
-    /*
-      switch (distT_m) {
-
-      case string("GUNGAUSSFLATTOPTH-T"):
-      os << "Selected Distribution " << distT_m << endl;
-      break;
-      default:
-      os << "Selected Distribution " << distT_m << " not known" << endl;
-      }
-    */
     os << "* ********************************************************************************** " << endl;
     return os;
 }
