@@ -166,7 +166,7 @@ MSplit::MSplit():
     itsAttr[STATIC] = Attributes::makeBool
                       ("STATIC", "recalculation if static equal false", true);
     itsAttr[FILE] = Attributes::makeString
-                    ("FILE", "Name of file to receive SPLIT output", "SPLIT.tfs");
+                    ("FILE", "Name of file to receive SPLIT output", "SPLIT.dat");
 }
 MSplit::MSplit(const string &name, MSplit *parent):
     DefaultVisitor(itsTable, false, false),
@@ -612,27 +612,6 @@ void MSplit::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp) {
     }
 }
 
-void MSplit::PrtTfsApert(A_row row, int nslice, double &len, ofstream &outFile) {
-    len += row.getElement()->getArcLength();
-
-    for(int j = 0; j < nslice; ++j) {
-        string name = row.getElement()->getName();
-        int size = name.size();
-
-        size = 16 - size;
-
-        outFile << setw(size) << " " << name << "[" << row.getCounter() << "]" <<
-
-                "[" << j << "]" << setprecision(6) << setw(15) << len - row.getElement()->getArcLength() + row.getElement()->getArcLength()*(j + 1) / nslice
-                << setw(15) << row.getElement()->getArcLength()*(j + 1) / nslice << setw(15) << data.phi / nslice << setw(15)
-                << data.kq << setw(15) << row.getBeta_x(j) << setw(15) << row.getBeta_y(j) << setw(15) <<
-                row.getAlpha_x(j) << setw(15) << row.getAlpha_y(j) <<
-                setw(15) << row.getDisp_x(j) << setw(15) << row.getDisp_x_prim(j) << setw(15) << row.getDisp_y(j) <<
-                setw(15) << row.getDisp_y_prim(j) << endl;
-    }
-    // outFile<<endl; // printed a blank line between elements
-}
-
 void MSplit::execute() {
     const string &beamName = Attributes::getString(itsAttr[BEAM]);
     beam = Beam::find(beamName);
@@ -647,7 +626,7 @@ void MSplit::fill() {
 
 void MSplit::run() {
     itsTable.erase(itsTable.begin(), itsTable.end());
-    double LineLength(0);
+
     int nslice = static_cast<int>(Attributes::getReal(itsAttr[NSLICE]));
     itsLine = Attributes::getString(itsAttr[LINE]);
     Table *t = Table::find(itsLine);
@@ -660,7 +639,7 @@ void MSplit::run() {
     string file = Attributes::getString(itsAttr[FILE]);
     ofstream outFile(file.c_str());
     if(!outFile) {
-        cerr << "MSplit: Cannot open TFS output file."
+        cerr << "MSplit: Cannot open output file."
              << endl;
         exit(-1);
     }
@@ -693,7 +672,6 @@ void MSplit::run() {
         i->accept(*this);
         calcul(i, row, nslice, tp);
         itsTable.append(row);
-        PrtTfsApert(row, nslice, LineLength, outFile);
     }
 
 }
@@ -782,66 +760,7 @@ Object *MSplit::clone(const string &name) {
     return new MSplit(name, this);
 }
 
-void MSplit::makeTFS(std::ostream &os, const CellArray &cells)const {
-    // Save the formatting flags.
-    std::streamsize old_prec = os.precision(12);
-    std::ios::fmtflags old_flag = os.setf(std::ios::fixed,
-                                          std::ios::floatfield);
-    // Write table body.
-    tfsBody(os, cells);
-
-    // Restore the formatting flags.
-    os.precision(old_prec);
-    os.flags(old_flag);
-
-}
 void MSplit::printTable(std::ostream &, const CellArray &)const {};
-void MSplit::tfsBody(std::ostream &os, const CellArray &cells) const {
-    // Write column headers, names.
-    os <<  "* NAME";
-    for(CellArray::const_iterator cell = cells.begin();
-        cell < cells.end(); ++cell) {
-#if defined(__GNUC__) && __GNUC__ < 3
-        char buffer[256];
-        std::ostrstream ss(buffer, 256);
-#else
-        std::ostringstream ss;
-#endif
-        cell->itsExpr->print(ss, 0);
-        ss <<  std::ends;
-#if defined(__GNUC__) && __GNUC__ < 3
-        os <<  "  " <<  buffer;
-        string image(buffer); // What is this doing?  jsberg 021206
-#else
-        os <<  "  " <<  ss.str();
-#endif
-    }
-    os <<  '\n';
-
-    os <<  '\n';
-
-    // Write column headers, formats.
-    os <<  "$ %s";
-    for(CellArray::const_iterator cell = cells.begin();
-        cell != cells.end(); ++cell) {
-        os <<  " %le";
-    }
-    os <<  '\n';
-
-    // Write table body.
-    for(current = begin(); current != end(); ++current) {
-        if(current->getSelectionFlag()) {
-            os <<  "  " <<  current->getElement()->getName();
-            for(CellArray::const_iterator cell = cells.begin();
-                cell != cells.end(); ++cell) {
-                os <<  setprecision(cell->printPrecision) <<  ' '
-                   <<  cell->itsExpr->evaluate();
-            }
-            os <<  '\n';
-        }
-    }
-}
-
 
 MSplit::A_row &MSplit::findRow(const PlaceRep &place) {
     PlaceRep row(place);

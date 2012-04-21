@@ -54,9 +54,6 @@ public:
     /// Update the OpalFilter data.
     virtual void update();
 
-    /// Print the TFS descriptors for the Filter
-    void tfsDescriptors(std::ostream &os) const;
-
     void print(std::ostream &os) const;
 
     void initOpalFilter();

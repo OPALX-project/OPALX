@@ -880,67 +880,6 @@ void Twiss::printTableTitle(std::ostream &os, const char *title) const {
 }
 
 
-void Twiss::tfsBody(std::ostream &os, const CellArray &cells) const {
-    // Write column headers, names.
-    os << "* NAME";
-    for(CellArray::const_iterator cell = cells.begin();
-        cell < cells.end(); ++cell) {
-#if defined(__GNUC__) && __GNUC__ < 3
-        char buffer[256];
-        std::ostrstream ss(buffer, 256);
-#else
-        std::ostringstream ss;
-#endif
-        cell->itsExpr->print(ss, 0);
-        ss << std::ends;
-#if defined(__GNUC__) && __GNUC__ < 3
-        os << "  " << buffer;
-        string image(buffer); // This does nothing!
-#else
-        os << "  " << ss.str();
-#endif
-    }
-    os << '\n';
-
-    os << '\n';
-
-    // Write column headers, formats.
-    os << "$ %s";
-    for(CellArray::const_iterator cell = cells.begin();
-        cell != cells.end(); ++cell) {
-        os << " %le";
-    }
-    os << '\n';
-
-    // Write table body.
-    for(current = begin(); current != end(); ++current) {
-        if(current->getSelectionFlag()) {
-            os << "  " << current->getElement()->getName();
-            for(CellArray::const_iterator cell = cells.begin();
-                cell != cells.end(); ++cell) {
-                os << std::setprecision(cell->printPrecision) << ' '
-                   << cell->itsExpr->evaluate();
-            }
-            os << '\n';
-        }
-    }
-}
-
-
-void Twiss::tfsSummary(std::ostream &os) const {
-    os << "@ BETXMAX  %le " << Attributes::getReal(itsAttr[BETXMAX]) << '\n'
-       << "@ BETYMAX  %le " << Attributes::getReal(itsAttr[BETYMAX]) << '\n'
-       << "@ XCMAX    %le " << Attributes::getReal(itsAttr[XCMAX]) << '\n'
-       << "@ YCMAX    %le " << Attributes::getReal(itsAttr[YCMAX]) << '\n'
-       << "@ XCRMS    %le " << Attributes::getReal(itsAttr[XCRMS]) << '\n'
-       << "@ YCRMS    %le " << Attributes::getReal(itsAttr[YCRMS]) << '\n'
-       << "@ DXMAX    %le " << Attributes::getReal(itsAttr[DXMAX]) << '\n'
-       << "@ DYMAX    %le " << Attributes::getReal(itsAttr[DYMAX]) << '\n'
-       << "@ DXRMS    %le " << Attributes::getReal(itsAttr[DXRMS]) << '\n'
-       << "@ DYRMS    %le " << Attributes::getReal(itsAttr[DYRMS]) << '\n';
-}
-
-
 // Protected methods.
 // ------------------------------------------------------------------------
 

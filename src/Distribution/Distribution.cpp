@@ -3251,15 +3251,6 @@ void Distribution::update() {
 
 }
 
-/**
- *
- *
- * @param os
- */
-void Distribution::tfsDescriptors(std::ostream &os) const {
-    os << "@ Distribution     %s  " << getOpalName() << '\n' ;
-}
-
 double Distribution::getEkin() const {return Attributes::getReal(itsAttr[EKIN]);}
 double Distribution::getWorkFunctionRf() const {return Attributes::getReal(itsAttr[W]);}
 double Distribution::getLaserEnergy() const {return Attributes::getReal(itsAttr[ELASER]);}

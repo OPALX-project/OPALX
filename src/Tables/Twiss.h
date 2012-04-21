@@ -161,18 +161,6 @@ public:
     /// Print standard information about the TWISS table.
     void printTableTitle(std::ostream &, const char *title) const;
 
-    /// Write TFS body for this table.
-    void tfsBody(std::ostream &, const CellArray &) const;
-
-    /// List TFS descriptors for table summary.
-    //  Writes the maximum and r.m.s. orbit and dispersion.
-    void tfsSummary(std::ostream &) const;
-
-    /// Write TFS descriptors for a TWISS table.
-    //  Writes the line and beam info, as well as length and tunes.
-    virtual void tfsTwissDescriptors(std::ostream &) const = 0;
-
-
     // Access to items in the table.
     // ----------------------------------------------------------------------
     /// Return initial curly A matrix.

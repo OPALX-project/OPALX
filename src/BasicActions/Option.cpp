@@ -39,7 +39,6 @@ namespace Options {
     bool mtrace = false;
     bool verify = false;
     bool warn = true;
-    bool tfsFormat = false;
     bool psDumpEachTurn = false;
     bool psDumpLocalFrame = false;
     bool scan = false;
@@ -118,7 +117,6 @@ namespace {
         TRACE,
         VERIFY,
         WARN,
-        TFS_FORMAT,
         SEED,
         TELL,
         PSDUMPFREQ,
@@ -164,8 +162,6 @@ Option::Option():
                       ("VERIFY", "If true, print warnings about assumptions", verify);
     itsAttr[WARN] = Attributes::makeBool
                     ("WARN", "If true, print warning messages", warn);
-    itsAttr[TFS_FORMAT] = Attributes::makeBool
-                          ("TFS", "If true, print tables in TFS format", tfsFormat);
     itsAttr[SEED] = Attributes::makeReal
                     ("SEED", "The seed for the random generator");
     itsAttr[TELL] = Attributes::makeBool
@@ -242,7 +238,6 @@ Option::Option(const string &name, Option *parent):
     Attributes::setBool(itsAttr[TRACE],      mtrace);
     Attributes::setBool(itsAttr[VERIFY],     verify);
     Attributes::setBool(itsAttr[WARN],       warn);
-    Attributes::setBool(itsAttr[TFS_FORMAT], tfsFormat);
     Attributes::setReal(itsAttr[SEED],       seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[RDUMP], rDump);
@@ -288,7 +283,6 @@ void Option::execute() {
     mtrace     = Attributes::getBool(itsAttr[TRACE]);
     verify    = Attributes::getBool(itsAttr[VERIFY]);
     warn      = Attributes::getBool(itsAttr[WARN]);
-    tfsFormat = Attributes::getBool(itsAttr[TFS_FORMAT]);
     psDumpEachTurn =   Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
     psDumpLocalFrame = Attributes::getBool(itsAttr[PSDUMPLOCALFRAME]);
     scan = Attributes::getBool(itsAttr[SCAN]);

@@ -56,9 +56,6 @@ public:
     /// Update the SURFACEPHYSICS data.
     virtual void update();
 
-    /// Print the TFS descriptors for the surfac physics
-    void tfsDescriptors(std::ostream &os) const;
-
     void print(std::ostream &os) const;
 
     void initSurfacePhysicsHandler(ElementBase &element, const double &major, const double &minor);

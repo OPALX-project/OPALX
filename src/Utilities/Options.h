@@ -52,10 +52,6 @@ namespace Options {
     //  If true, print warning messages.
     extern bool warn;
 
-    /// The table format flag.
-    //  If true, print tables in TFS format.
-    extern bool tfsFormat;
-
     /// Random generator.
     //  The global random generator.
     extern Random rangen;

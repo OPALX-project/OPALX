@@ -182,25 +182,6 @@ void Insertion::fill() {
 }
 
 
-void Insertion::makeTFS(std::ostream &os, const CellArray &cells) const {
-    // Save the formatting flags.
-    std::streamsize old_prec = os.precision(12);
-    os.setf(std::ios::fixed, std::ios::floatfield);
-
-    // Write table descriptors.
-    os << "@ TYPE     %s  TWISSTRACK\n";
-    tfsTwissDescriptors(os);
-    tfsSummary(os);
-
-    // Write table body.
-    tfsBody(os, cells);
-
-    // Restore the formatting flags.
-    os.precision(old_prec);
-    os.setf(std::ios::fixed, std::ios::floatfield);
-}
-
-
 void Insertion::printTable(std::ostream &os, const CellArray &cells) const {
     // Save the formatting flags.
     std::streamsize old_prec = os.precision(6);
@@ -240,12 +221,3 @@ void Insertion::printTable(std::ostream &os, const CellArray &cells) const {
 }
 
 
-void Insertion::tfsTwissDescriptors(std::ostream &os) const {
-    tfsTableDescriptors(os);
-    os << "@ LINE     %s  " << itsLine << '\n';
-    beam->tfsDescriptors(os);
-    os << "@ LENGTH   %le " << Attributes::getReal(itsAttr[LENGTH]) << '\n'
-       << "@ MU1      %le " << Attributes::getReal(itsAttr[MU1]) << '\n'
-       << "@ MU2      %le " << Attributes::getReal(itsAttr[MU2]) << '\n'
-       << "@ MU3      %le " << Attributes::getReal(itsAttr[MU3]) << '\n';
-}

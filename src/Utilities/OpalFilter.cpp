@@ -135,11 +135,6 @@ void OpalFilter::update() {
 }
 
 
-void OpalFilter::tfsDescriptors(std::ostream &os) const {
-    os << "@ FILTER     %s  " << getOpalName() << '\n'
-       << "@ TYPE       %le " << Attributes::getString(itsAttr[TYPE]) << '\n';
-}
-
 void OpalFilter::initOpalFilter() {
     if(filter_m == 0) {
         *gmsg << "* ************* F I L T E R ************************************************************" << endl;

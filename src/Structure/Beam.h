@@ -104,9 +104,6 @@ public:
     /// Update the BEAM data.
     virtual void update();
 
-    /// Print the TFS descriptors for the beam.
-    void tfsDescriptors(std::ostream &os) const;
-
     void print(std::ostream &os) const;
 
 private:

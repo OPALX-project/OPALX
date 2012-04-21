@@ -143,9 +143,6 @@ public:
     virtual Expressions::PtrToScalar<double>
     makeColumnExpression(const string &colName) const;
 
-    /// Write TFS file for this table.
-    virtual void makeTFS(std::ostream &, const CellArray &) const;
-
     /// Check compatibility.
     //  True, if [b]rhs[/b] is a survey table.
     virtual bool matches(Table *rhs) const;

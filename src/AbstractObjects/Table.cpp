@@ -67,18 +67,6 @@ void Table::invalidate() {
 }
 
 
-void Table::tfsTableDescriptors(std::ostream &os) const {
-    OPALTimer::Timer timer;
-    os << "@ NAME     %s  " << getOpalName() << "\n"
-       << "@ DATE     %s  " << timer.date() << "\n"
-       << "@ TIME     %s  " << timer.time() << "\n"
-       << "@ ORIGIN   %s  OPAL_9.5/4\n"
-       << "@ COMMENT  %s  \"";
-    OpalData::getInstance()->printTitle(os);
-    os << "\"\n";
-}
-
-
 Table::Table(int size, const char *name, const char *help):
     Object(size, name, help), dynamic(false), refill(false) {
     // Do not link table exemplar.

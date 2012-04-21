@@ -56,9 +56,6 @@ public:
     /// Update the WAKE data.
     virtual void update();
 
-    /// Print the TFS descriptors for the wake
-    void tfsDescriptors(std::ostream &os) const;
-
     void print(std::ostream &os) const;
 
     int getNumberOfBins();

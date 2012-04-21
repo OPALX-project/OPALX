@@ -150,11 +150,6 @@ void OpalWake::update() {
 }
 
 
-void OpalWake::tfsDescriptors(std::ostream &os) const {
-    os << "@ WAKE     %s  " << getOpalName() << '\n'
-       << "@ BINS     %le " << Attributes::getReal(itsAttr[NBIN]) << '\n';
-}
-
 void OpalWake::initWakefunction(ElementBase &element) {
     *gmsg << "* ************* W A K E ************************************************************\n";
     *gmsg << "OpalWake::initWakefunction ";

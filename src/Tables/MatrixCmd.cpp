@@ -97,11 +97,7 @@ void MatrixCmd::execute() {
 
 
 void MatrixCmd::format(std::ostream &os, const Twiss *table) {
-    if(Options::tfsFormat) {
-        formatTFS(os, table);
-    } else {
         formatPrint(os, table);
-    }
 }
 
 
@@ -168,51 +164,3 @@ void MatrixCmd::formatPrint(std::ostream &os, const Twiss *table) const {
 }
 
 
-void MatrixCmd::formatTFS(std::ostream &os, const Twiss *table) const {
-    // Save the formatting flags.
-    std::streamsize old_prec = os.precision(12);
-    os.setf(std::ios::fixed, std::ios::floatfield);
-
-    // Write table descriptors.
-    os << "@ TYPE     %s  MATRIX\n";
-    table->tfsTwissDescriptors(os);
-
-    // Write column header names.
-    std::string coNames[] = { " XC", " PXC", " YC", " PYC", " TC", " PTC" };
-    os << "* NAME S";
-    for(int i = 0; i < 6; ++i) os << coNames[i];
-    for(int i = 1; i <= 6; ++i) {
-        for(int j = 1; j <= 6; ++j) os << " R" << i << j;
-    }
-    os << '\n';
-
-    // Write column header formats.
-    os << "$ %s";
-    for(int i = 1; i <= 43; ++i) os << " %le";
-    os << '\n';
-
-    // Write table body.
-    for(Twiss::TLine::const_iterator row = table->begin();
-        row != table->end(); ++row) {
-        if(row->getSelectionFlag()) {
-            os << "  " << row->getElement()->getName()
-               << ' ' << table->getS(*row);
-            FVector<double, 6> orbit = table->getOrbit(*row);
-            for(int i = 0; i < 6; ++i) {
-                os << ' ' << orbit[i];
-            }
-            FMatrix<double, 6, 6> matrix = table->getMatrix(*row);
-            for(int i = 0; i < 6; ++i) {
-                for(int j = 0; j < 6; ++j) {
-                    os << ' ' << matrix[i][j];
-                }
-            }
-            os << '\n';
-        }
-    }
-
-    // Restore the formatting flags.
-    os.flush();
-    os.precision(old_prec);
-    os.setf(std::ios::fixed, std::ios::floatfield);
-}

@@ -40,15 +40,8 @@ public:
     /// Fill the buffer using the defined algorithm.
     virtual void fill();
 
-    /// Write TFS file for this table.
-    virtual void makeTFS(std::ostream &, const CellArray &) const;
-
     /// Print the table on an ASCII stream.
     virtual void printTable(std::ostream &, const CellArray &) const;
-
-    /// Write TFS descriptors for a TWISS table.
-    //  Writes the line and beam info, as well as length and tunes.
-    virtual void tfsTwissDescriptors(std::ostream &) const;
 
 private:
 

@@ -59,8 +59,6 @@ private:
     /// Print Twiss table in Mais-Ripken representation.
     void formatPrint(std::ostream &, const Twiss *) const;
 
-    /// Print Twiss table in Mais-Ripken representation.
-    void formatTFS(std::ostream &, const Twiss *) const;
 };
 
 #endif // OPAL_Twiss3_HH

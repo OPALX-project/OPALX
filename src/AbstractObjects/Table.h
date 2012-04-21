@@ -128,13 +128,6 @@ public:
     //  Must be overridden in derived classes.
     virtual bool isDependent(const std::string &name) const = 0;
 
-    /// Write TFS file for this table.
-    virtual void makeTFS(std::ostream &, const CellArray &) const = 0;
-
-    /// Return expression to compute the value in a column of the table.
-    //  The row is identified by setting a ``current'' row pointer in
-    //  [b]listTFS()[/b] or [b]printTable()[/b].  The expression then
-    //  computes the value in the column identified by the argument.
     virtual Expressions::PtrToScalar<double>
     makeColumnExpression(const std::string &) const = 0;
 
@@ -144,8 +137,6 @@ public:
     /// Print list for the table.
     virtual void printTable(std::ostream &, const CellArray &) const = 0;
 
-    /// Write TFS descriptors existing for all tables.
-    void tfsTableDescriptors(std::ostream &) const;
 
 protected:
 

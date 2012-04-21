@@ -177,7 +177,7 @@ Aperture::Aperture():
     itsAttr[DEFAULTAPERTURE] = Attributes::makeRealArray
                                ("DEFAULTAPERTURE", "The default beam screen for markers and drift generated in sequences");
     itsAttr[FILE] = Attributes::makeString
-                    ("FILE", "Name of file to receive APERTURE output", "APERTURE.tfs");
+                    ("FILE", "Name of file to receive APERTURE output", "APERTURE.dat");
 }
 Aperture::Aperture(const string &name, Aperture *parent):
     DefaultVisitor(itsTable, false, false),
@@ -828,26 +828,6 @@ vector<Aperture::coord> Aperture::getShape(vector<double> vec) {
     return S;
 }
 
-void Aperture::PrtTfsApert(A_Tline::iterator n, int nslice, ofstream &outFile) {
-
-    string typ = n->getType_elm();
-    int size2 = typ.size();
-    size2 = 12 - size2;
-
-    string name = n->getElement()->getName();
-    int size1 = name.size();
-    size1 = 16 - size1;
-
-    for(int j = 0; j < nslice; ++j) {
-        outFile << setw(size1) << " " << name << "[" << n->getCounter() << "]" << "[" << j << "]" << setw(size2) << " "
-                << typ << setprecision(6) << setw(15) <<
-                n->getOrb() - n->getElement()->getArcLength() + n->getElement()->getArcLength()*(j + 1) / nslice
-                << setw(15) << n->getElement()->getArcLength()*(j + 1) / nslice << setw(15) << setw(15) <<
-                n->getApert(j) << endl;
-    }
-    //  outFile<<endl; //opale a blank line after each element
-}
-
 void Aperture::execute() {
 
     const string &beamName = Attributes::getString(itsAttr[BEAM]);
@@ -887,9 +867,6 @@ void Aperture::execute() {
     outFile << "*" << setw(15) << "NAME" << setw(15) << "Type" << setw(15) << "S" << setw(15) << "L" << setw(15) << "Apert" << endl;
     outFile << "$" << setw(15) << "%23s" << setw(15) << "%12s" << setw(15) << "%e" << setw(15) << "%e" << setw(15) << "%e" << endl;
 
-    for(n = begin(); n != end(); ++n) {
-        PrtTfsApert(n, static_cast<int>(nslice), outFile);
-    }
 }
 
 void Aperture::fill() {
@@ -1044,66 +1021,7 @@ Object *Aperture::clone(const string &name) {
     return new Aperture(name, this);
 }
 
-void Aperture::makeTFS(std::ostream &os, const CellArray &cells)const {
-    // Save the formatting flags.
-    std::streamsize old_prec = os.precision(12);
-    std::ios::fmtflags old_flag = os.setf(std::ios::fixed,
-                                          std::ios::floatfield);
-    // Write table body.
-    tfsBody(os, cells);
-
-    // Restore the formatting flags.
-    os.precision(old_prec);
-    os.flags(old_flag);
-
-}
 void Aperture::printTable(std::ostream &, const CellArray &)const {};
-void Aperture::tfsBody(std::ostream &os, const CellArray &cells) const {
-    // Write column headers, names.
-    os << "* NAME";
-    for(CellArray::const_iterator cell = cells.begin();
-        cell < cells.end(); ++cell) {
-#if defined(__GNUC__) && __GNUC__ < 3
-        char buffer[256];
-        std::ostrstream ss(buffer, 256);
-#else
-        std::ostringstream ss;
-#endif
-        cell->itsExpr->print(ss, 0);
-        ss << ends;
-#if defined(__GNUC__) && __GNUC__ < 3
-        os <<  "  " <<  buffer;
-        string image(buffer); // What is this doing?  jsberg 021206
-#else
-        os <<  "  " <<  ss.str();
-#endif
-    }
-    os << '\n';
-
-    os << '\n';
-
-    // Write column headers, formats.
-    os << "$ %s";
-    for(CellArray::const_iterator cell = cells.begin();
-        cell != cells.end(); ++cell) {
-        os << " %le";
-    }
-    os << '\n';
-
-    // Write table body.
-    for(current = begin(); current != end(); ++current) {
-        if(current->getSelectionFlag()) {
-            os << "  " << current->getElement()->getName();
-            for(CellArray::const_iterator cell = cells.begin();
-                cell != cells.end(); ++cell) {
-                os << setprecision(cell->printPrecision) << ' '
-                   << cell->itsExpr->evaluate();
-            }
-            os << '\n';
-        }
-    }
-}
-
 
 Aperture::A_row &Aperture::findRow(const PlaceRep &place) {
     PlaceRep row(place);

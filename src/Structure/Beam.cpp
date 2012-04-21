@@ -27,8 +27,6 @@
 //   It would, of course, be preferable not to allow the user to specify
 //   GAMMA when he can specify PC, or EXN when he can specify EX but
 //   some people will want these conveniences.
-//   The base set of beam attributes should presumably be those given
-//   as the tfsDescriptors.
 // ------------------------------------------------------------------------
 //
 // $Date: 2003/08/11 22:09:00 $
@@ -352,18 +350,6 @@ double Beam::getPC() const { //obtain value for PC
 }
 
 
-void Beam::tfsDescriptors(std::ostream &os) const {
-    os << "@ BEAM     %s  " << getOpalName() << '\n'
-       << "@ PARTICLE %s  " << Attributes::getString(itsAttr[PARTICLE]) << '\n'
-       << "@ CHARGE   %le " << Attributes::getReal(itsAttr[CHARGE]) << '\n'
-       << "@ MASS     %le " << Attributes::getReal(itsAttr[MASS]) << '\n'
-       << "@ MOMENTUM %le " << Attributes::getReal(itsAttr[PC])   << '\n'
-       << "@ EX       %le " << Attributes::getReal(itsAttr[EX])   << '\n'
-       << "@ EY       %le " << Attributes::getReal(itsAttr[EY])   << '\n'
-       << "@ ET       %le " << Attributes::getReal(itsAttr[ET])   << '\n';
-}
-
-
 void Beam::print(std::ostream &os) const {
     double charge = Attributes::getReal(itsAttr[CHARGE]);
     os << "* ************* B E A M ************************************************************ " << std::endl;
@@ -381,4 +367,3 @@ void Beam::print(std::ostream &os) const {
 
 
 
-// Emittances added to tfsDescriptors by JMJ 4/4/2000

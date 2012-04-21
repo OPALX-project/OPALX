@@ -148,9 +148,5 @@ void List::list(std::ostream &os, Table *table) {
     }
 
     // Now list the table.
-    if(Options::tfsFormat) {
-        table->makeTFS(os, cells);
-    } else {
         table->printTable(os, cells);
-    }
 }

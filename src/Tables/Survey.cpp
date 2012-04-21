@@ -105,27 +105,6 @@ namespace {
     };
 
 
-    // The TFS column entries table.
-    const ColDesc listTFScolumns[] = {
-        { "S",   &Survey::getS, 14, 6, 0, 0 },
-
-        { "X",   &Survey::getX, 10, 6, 0, 0 },
-        { "Y",   &Survey::getY, 10, 6, 0, 0 },
-        { "Z",   &Survey::getZ, 10, 6, 0, 0 },
-
-        { "W11", &Survey::getW, 10, 6, 0, 0 },
-        { "W21", &Survey::getW, 10, 6, 1, 0 },
-        { "W31", &Survey::getW, 10, 6, 2, 0 },
-        { "W12", &Survey::getW, 10, 6, 0, 1 },
-        { "W22", &Survey::getW, 10, 6, 1, 1 },
-        { "W32", &Survey::getW, 10, 6, 2, 1 },
-        { "W13", &Survey::getW, 10, 6, 0, 2 },
-        { "W23", &Survey::getW, 10, 6, 1, 2 },
-        { "W33", &Survey::getW, 10, 6, 2, 2 },
-
-        { 0,       0,            0, 0, 0, 0 }
-    };
-
     // Find a column by name.
     const ColDesc *findCol(const Survey &table, const string &colName) {
         for(const ColDesc *col = allColumns; col->colName; ++col) {
@@ -538,76 +517,6 @@ bool Survey::isDependent(const string &name) const {
 Expressions::PtrToScalar<double>
 Survey::makeColumnExpression(const string &colName) const {
     return new Column(*this, colName, *findCol(*this, colName));
-}
-
-
-void Survey::makeTFS(std::ostream &os, const CellArray &cells) const {
-    // Save the formatting flags.
-    std::streamsize old_prec = os.precision(12);
-    os.setf(std::ios::fixed, std::ios::floatfield);
-
-    // Write table descriptors.
-    os << "@ TYPE     %s  SURVEY\n";
-    Table::tfsTableDescriptors(os);
-    os << "@ LINE     %s  " << itsAttr[LINE] << '\n'
-       << "@ LENGTH   %le " << itsTable->back().s << '\n';
-
-    // Write column headers, names.
-    os << "* NAME";
-    for(CellArray::const_iterator col = cells.begin();
-        col < cells.end(); ++col) {
-#if defined(__GNUC__) && __GNUC__ < 3
-        char buffer[256];
-        std::ostrstream ss(buffer, 256);
-#else
-        std::ostringstream ss;
-#endif
-        col->itsExpr->print(ss, 0);
-        ss << std::ends;
-#if defined(__GNUC__) && __GNUC__ < 3
-        os << "  " << buffer;
-        string image(buffer); // This does nothing!
-#else
-        os << ss.str();
-#endif
-    }
-    os << '\n';
-
-    // Write column headers, formats.
-    os << "$ %s";
-    for(CellArray::size_type i = 0; i < cells.size(); ++i) {
-        os << " %le";
-    }
-    os << '\n';
-
-    // Write table body.
-    for(current = itsTable->begin(); current != itsTable->end(); ++current) {
-        if(current->getSelectionFlag()) {
-            os << "  " << current->getElement()->getName();
-
-            if(cells.empty()) {
-                // Standard column selection.
-                for(const ColDesc *col = listTFScolumns; col->colName != 0; ++col) {
-                    os << std::setw(col->printWidth)
-                       << std::setprecision(col->printPrecision)
-                       << ' ' << (this->*(col->get))(*current, col->ind_1, col->ind_2);
-                }
-            } else {
-                for(CellArray::const_iterator cell = cells.begin();
-                    cell != cells.end(); ++cell) {
-                    os << std::setw(cell->printWidth)
-                       << std::setprecision(cell->printPrecision)
-                       << ' ' << cell->itsExpr->evaluate();
-                }
-            }
-
-            os << '\n';
-        }
-    }
-
-    // Restore the formatting flags.
-    os.precision(old_prec);
-    os.setf(std::ios::fixed, std::ios::floatfield);
 }
 
 

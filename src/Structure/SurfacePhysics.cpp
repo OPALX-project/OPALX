@@ -119,10 +119,6 @@ void SurfacePhysics::update() {
 }
 
 
-void SurfacePhysics::tfsDescriptors(std::ostream &os) const {
-    os << "@ SURFACEPHYSICS     %s  " << getOpalName() << '\n';
-}
-
 void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element, const double &major, const double &minor) {
     *gmsg << "* ************* S U R F A C E P H Y S I C S **************************************** " << endl;
     *gmsg << "* SurfacePhysics::initSurfacePhysicsHandler " << endl;

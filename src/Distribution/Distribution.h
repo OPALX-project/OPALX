@@ -126,9 +126,6 @@ public:
 
     void doRestartEnvelope(EnvelopeBunch &p, size_t Np, int restartStep);
 
-    /// Print the TFS descriptors for the beam.
-    void tfsDescriptors(std::ostream &os) const;
-
     Inform &printInfo(Inform &os) const;
 
     double getTBin() { return tBin_m; }

@@ -189,25 +189,6 @@ void Period::fill() {
 }
 
 
-void Period::makeTFS(std::ostream &os, const CellArray &cells) const {
-    // Save the formatting flags.
-    std::streamsize old_prec = os.precision(12);
-    os.setf(std::ios::fixed, std::ios::floatfield);
-
-    // Write table descriptors.
-    os << "@ TYPE     %s  TWISS\n";
-    tfsTwissDescriptors(os);
-    tfsSummary(os);
-
-    // Write table body.
-    tfsBody(os, cells);
-
-    // Restore the formatting flags.
-    os.precision(old_prec);
-    os.setf(std::ios::fixed, std::ios::floatfield);
-}
-
-
 void Period::printTable(std::ostream &os, const CellArray &cells) const {
     // Save the formatting flags.
     std::streamsize old_prec = os.precision(6);
@@ -256,17 +237,6 @@ void Period::printTable(std::ostream &os, const CellArray &cells) const {
     // Restore the formatting flags.
     os.precision(old_prec);
     os.setf(std::ios::fixed, std::ios::floatfield);
-}
-
-
-void Period::tfsTwissDescriptors(std::ostream &os) const {
-    tfsTableDescriptors(os);
-    os << "@ LINE     %s  " << itsLine << '\n';
-    beam->tfsDescriptors(os);
-    os << "@ CIRCUM   %le " << Attributes::getReal(itsAttr[CIRCUM]) << '\n'
-       << "@ Q1       %le " << Attributes::getReal(itsAttr[Q1]) << '\n'
-       << "@ Q2       %le " << Attributes::getReal(itsAttr[Q2]) << '\n'
-       << "@ Q3       %le " << Attributes::getReal(itsAttr[Q3]) << '\n';
 }
 
 

@@ -100,11 +100,7 @@ void Twiss3::execute() {
 
 
 void Twiss3::format(std::ostream &os, const Twiss *table) {
-    if(Options::tfsFormat) {
-        formatTFS(os, table);
-    } else {
         formatPrint(os, table);
-    }
 }
 
 
@@ -184,55 +180,3 @@ void Twiss3::formatPrint(std::ostream &os, const Twiss *table) const {
 }
 
 
-void Twiss3::formatTFS(std::ostream &os, const Twiss *table) const {
-    // Save the formatting flags.
-    std::streamsize old_prec = os.precision(12);
-    std::ios::fmtflags old_flag = os.setf(std::ios::fixed, std::ios::floatfield);
-
-    // Write table descriptors.
-    os << "@ TYPE     %s  TWISS3\n";
-    table->tfsTwissDescriptors(os);
-
-    // Write column header names.
-    std::string coNames[] = { " XC", " PXC", " YC", " PYC", " TC", " PTC" };
-    os << "* NAME S";
-    for(int i = 0; i < 6; ++i) os << coNames[i];
-    static const char c[] = "XYT";
-    for(int i = 0; i < 3; ++i) {
-        for(int j = 1; j <= 3; ++j) {
-            os << " BET" << c[i] << j << " ALF" << c[i] << j << " GAM" << c[i] << j;
-        }
-    }
-    os << '\n';
-
-    // Write column header formats.
-    os << "$ %s";
-    for(int i = 1; i <= 34; ++i) os << " %le";
-    os << '\n';
-
-    // Write table body.
-    for(Twiss::TLine::const_iterator row = table->begin();
-        row != table->end(); ++row) {
-        if(row->getSelectionFlag()) {
-            os << "  " << row->getElement()->getName()
-               << ' ' << table->getS(*row);
-            FVector<double, 6> orbit = table->getOrbit(*row);
-            for(int i = 0; i < 6; ++i) {
-                os << ' ' << orbit[i];
-            }
-            for(int i = 0; i < 3; ++i) {
-                for(int j = 0; j < 3; ++j) {
-                    os << ' ' << table->getBETik(*row, i, j)
-                       << ' ' << table->getALFik(*row, i, j)
-                       << ' ' << table->getGAMik(*row, i, j);
-                }
-            }
-            os << '\n';
-        }
-    }
-
-    // Restore the formatting flags.
-    os.flush();
-    os.precision(old_prec);
-    os.flags(old_flag);
-}

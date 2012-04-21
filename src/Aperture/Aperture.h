@@ -112,10 +112,8 @@ public:
     virtual bool matches(Table *rhs) const;
     virtual Expressions::PtrToScalar<double> makeColumnExpression(const string &colname) const;
     virtual Object *clone(const string &name);
-    virtual void makeTFS(std::ostream &os, const CellArray &cells)const;
     virtual void printTable(std::ostream &, const CellArray &)const;
     virtual void fill();
-    void tfsBody(std::ostream &os, const CellArray &cells) const;
 
     A_Tline::const_iterator begin() const;
     A_Tline::iterator begin();
@@ -137,7 +135,6 @@ public:
     void run();
 
     void calcul(Twiss::TLine::iterator i, A_row &a, int order, Twiss *tp);
-    void PrtTfsApert(A_Tline::iterator n, int order, std::ofstream &outFile);
 
 
 protected:
