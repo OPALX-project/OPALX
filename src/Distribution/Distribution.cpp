@@ -423,6 +423,80 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
     else if(distT_m == "SURFACERANDCREATE")
         distrTypeT_m = SURFACERANDCREATE;
 
+    /*
+      Setup some common data:
+    */
+    if (distrTypeT_m == GUNGAUSSFLATTOPTH || distrTypeT_m == ASTRAFLATTOPTH) {
+        corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
+        corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
+        corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
+
+        nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
+        sBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[SBIN])));
+        transvCutOff_m = Attributes::getReal(itsAttr[TRANSVCUTOFF]);
+    
+        sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
+                          Attributes::getReal(itsAttr[SIGMAY]),
+                          Attributes::getReal(itsAttr[SIGMAT]));
+        
+        sigp_m = Vector_t(eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()),
+                          eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()),
+                          eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()));
+
+        tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
+        cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
+        tRise_m = Attributes::getReal(itsAttr[TRISE]);
+        tFall_m = Attributes::getReal(itsAttr[TFALL]);
+        double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
+        sigmaRise_m = tRise_m / tratio;
+        sigmaFall_m = tFall_m / tratio;
+
+        double dEBins = Attributes::getReal(itsAttr[DEBIN]);
+
+        pbin_m->setRebinEnergy(dEBins);
+
+        /*
+          prepare quantities for thermal emittance calculation
+        */
+        workf_m = 0.0;         // eV
+        siglaser_m = 0.0;      // m
+        elaser_m = 0.0;        // eV
+        fe_m = 0.0;            // Fermi energy eV
+        ag_m = 0.0;            // Acceleration gradient eV/m
+        ekin_m = 0.0;          // eV
+        phimax_m = 0.0;        // rad
+        schottky_m = 0.0;      // eV
+        ptot_m = 0.0;          // beta gamma
+
+        ekin_m = Attributes::getReal(itsAttr[EKIN]);
+        ptot_m = eVtoBetaGamma(ekin_m, beam.getM());
+    }
+
+    if (distrTypeT_m == BINOMIAL || distrTypeT_m == GAUSS) {
+
+        corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
+        corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
+        corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
+        corr_m[3] = Attributes::getReal(itsAttr[R61]);
+        corr_m[4] = Attributes::getReal(itsAttr[R62]);
+        corr_m[5] = Attributes::getReal(itsAttr[R51]);
+        corr_m[6] = Attributes::getReal(itsAttr[R52]);
+        gauss_offset_m[0] = Attributes::getReal(itsAttr[OFFSETX]);
+        gauss_offset_m[1] = Attributes::getReal(itsAttr[OFFSETY]);
+
+        sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
+                          Attributes::getReal(itsAttr[SIGMAY]),
+                          Attributes::getReal(itsAttr[SIGMAT]));
+        
+        sigp_m = Vector_t(eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()),
+                          eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()),
+                          eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()));
+
+        binc_m = Vector_t(Attributes::getReal(itsAttr[MX]),
+                          Attributes::getReal(itsAttr[MY]),
+                          Attributes::getReal(itsAttr[MT]));
+    }
+
     switch(distrTypeT_m) {
         case SURFACERANDCREATE: {
             darkCurrentParts_m = (size_t) Attributes::getReal(itsAttr[NPDARKCUR]);
@@ -451,34 +525,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         }
         break;
         case ASTRAFLATTOPTH: {
-            double dEBins = Attributes::getReal(itsAttr[DEBIN]);
-
-            pbin_m->setRebinEnergy(dEBins);
-
-            corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
-            corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
-            corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
-
-            nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
-            sBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[SBIN])));
-            transvCutOff_m = Attributes::getReal(itsAttr[TRANSVCUTOFF]);
-
-            Hs2a_m = Attributes::getReal(itsAttr[SIGMAX]);
-            Hs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM());
-
-            Vs2a_m = Attributes::getReal(itsAttr[SIGMAY]);
-            Vs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM());
-
-            Ls2a_m = Attributes::getReal(itsAttr[SIGMAT]);
-            Ls2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM());
-
-            tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
-            cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
-            tRise_m = Attributes::getReal(itsAttr[TRISE]);
-            tFall_m = Attributes::getReal(itsAttr[TFALL]);
-            double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-            sigmaRise_m = tRise_m / tratio;
-            sigmaFall_m = tFall_m / tratio;
 
             if(Options::rngtype != string("RANDOM")) {
                 INFOMSG("RNGTYPE= " << Options::rngtype << endl);
@@ -551,27 +597,12 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                 for(int i = 0; i < bin_size; i++) {
                     double xx[2];
                     gsl_qrng_get(R_m, xx);
-                    gsl_histogram_increment(h_m, (hi * (xx[1] + static_cast<int>(gsl_ran_discrete(rn_m, table)) - binTotal / 2 + k * sBins_m) / (binTotal / 2)));
+                    gsl_histogram_increment(h_m, (hi * (xx[1] + 
+                    static_cast<int>(gsl_ran_discrete(rn_m, table)) - binTotal / 2 + k * sBins_m) / (binTotal / 2)));
                 }
                 gsl_ran_discrete_free(table);
             }
             pbin_m->setHistogram(h_m);
-
-            /*
-              prepare quantities for thermal emittance calculation
-            */
-            workf_m = 0.0;         // eV
-            siglaser_m = 0.0;      // m
-            elaser_m = 0.0;        // eV
-            fe_m = 0.0;            // Fermi energy eV
-            ag_m = 0.0;            // Acceleration gradient eV/m
-            ekin_m = 0.0;          // eV
-            phimax_m = 0.0;        // rad
-            schottky_m = 0.0;      // eV
-            ptot_m = 0.0;          // beta gamma
-
-            ekin_m = Attributes::getReal(itsAttr[EKIN]);
-            ptot_m = eVtoBetaGamma(ekin_m, beam.getM());
 
             // ASTRA mode
             phimax_m = Physics::pi / 2.0;
@@ -595,34 +626,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
 
         break;
         case GUNGAUSSFLATTOPTH: {
-            double dEBins = Attributes::getReal(itsAttr[DEBIN]);
-
-            pbin_m->setRebinEnergy(dEBins);
-
-            corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
-            corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
-            corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
-
-            nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
-            sBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[SBIN])));
-            transvCutOff_m = Attributes::getReal(itsAttr[TRANSVCUTOFF]);
-
-            Hs2a_m = Attributes::getReal(itsAttr[SIGMAX]);
-            Hs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM());
-
-            Vs2a_m = Attributes::getReal(itsAttr[SIGMAY]);
-            Vs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM());
-
-            Ls2a_m = Attributes::getReal(itsAttr[SIGMAT]);
-            Ls2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM());
-
-            tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
-            cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
-            tRise_m = Attributes::getReal(itsAttr[TRISE]);
-            tFall_m = Attributes::getReal(itsAttr[TFALL]);
-            double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-            sigmaRise_m = tRise_m / tratio;
-            sigmaFall_m = tFall_m / tratio;
 
             bool legacymode = Attributes::getBool(itsAttr[LEGACYMODE]);
             if(legacymode) {
@@ -650,22 +653,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             for(int i = 0; i < binTotal; i++)
                 distributionTable_m[i] = gsl_histogram_get(h_m, i);
 
-            /*
-              prepare quantities for thermal emittance calculation
-            */
-            workf_m = 0.0;         // eV
-            siglaser_m = 0.0;      // m
-            elaser_m = 0.0;        // eV
-            fe_m = 0.0;            // Fermi energy eV
-            ag_m = 0.0;            // Acceleration gradient eV/m
-            ekin_m = 0.0;          // eV
-            phimax_m = 0.0;        // rad
-            schottky_m = 0.0;      // eV
-            ptot_m = 0.0;          // beta gamma
-
-            ekin_m = Attributes::getReal(itsAttr[EKIN]);
-            ptot_m = eVtoBetaGamma(ekin_m, beam.getM());
-
             // ASTRA mode
             phimax_m = Physics::pi / 2.0;
             *gmsg << " -- B I N N I N G in T -----------------------------------------" << endl;
@@ -689,25 +676,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         break;
 
         case BINOMIAL: {
-            corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
-            corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
-            corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
-            corr_m[3] = Attributes::getReal(itsAttr[R61]);
-            corr_m[4] = Attributes::getReal(itsAttr[R62]);
-            corr_m[5] = Attributes::getReal(itsAttr[R51]);
-            corr_m[6] = Attributes::getReal(itsAttr[R52]);
-
-            sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
-                              Attributes::getReal(itsAttr[SIGMAY]),
-                              Attributes::getReal(itsAttr[SIGMAT]));
-
-            sigp_m = Vector_t(eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()),
-                              eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()),
-                              eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()));
-
-            binc_m = Vector_t(Attributes::getReal(itsAttr[MX]),
-                              Attributes::getReal(itsAttr[MY]),
-                              Attributes::getReal(itsAttr[MT]));
 
             for(int j = 0; j < 3; j++) {
                 double chi = asin(corr_m[j]);
@@ -724,24 +692,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         break;
 
         case GAUSS: {
-            corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
-            corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
-            corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
-            corr_m[3] = Attributes::getReal(itsAttr[R61]);
-            corr_m[4] = Attributes::getReal(itsAttr[R62]);
-            corr_m[5] = Attributes::getReal(itsAttr[R51]);
-            corr_m[6] = Attributes::getReal(itsAttr[R52]);
-            gauss_offset_m[0] = Attributes::getReal(itsAttr[OFFSETX]);
-            gauss_offset_m[1] = Attributes::getReal(itsAttr[OFFSETY]);
-
-            Hs2a_m = Attributes::getReal(itsAttr[SIGMAX]);
-            Hs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()); //in eV
-
-            Vs2a_m = Attributes::getReal(itsAttr[SIGMAY]);
-            Vs2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()); //in eV
-
-            Ls2a_m = Attributes::getReal(itsAttr[SIGMAT]);
-            Ls2b_m = eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()); //in eV
 
             avrgpt_m = eVtoBetaGamma(Attributes::getReal(itsAttr[PT]), beam.getM());
             avrgt_m  = Attributes::getReal(itsAttr[T]);
@@ -1139,14 +1089,14 @@ void Distribution::sampleGauss(PartBunch &beam, size_t Np) {
         double xx = x;
         double yy = y;
         double px0  = x * corr_m[0] + y * sqrt(1.0 - corr_m[0] * corr_m[0]);
-        double x0   = x * Hs2a_m + gauss_offset_m[0];
-        px0 *= Hs2b_m;
+        double x0   = x * sigx_m[0] + gauss_offset_m[0];
+        px0 *= sigp_m[0]; 
 
         x  = rGen_m->gauss(0.0, 1.0);
         y  = rGen_m->gauss(0.0, 1.0);
         double py0  = x * corr_m[1] + y * sqrt(1.0 - corr_m[1] * corr_m[1]);
-        double y0   =  x * Vs2a_m + gauss_offset_m[1];
-        py0 *= Vs2b_m;
+        double y0   =  x * sigx_m[1] + gauss_offset_m[1];
+        py0 *= sigp_m[1];
 
         double del0;
         double psi0;
@@ -1165,8 +1115,8 @@ void Distribution::sampleGauss(PartBunch &beam, size_t Np) {
         const double l44 = sqrt(abs(tempc)) * tempc / abs(tempc);
 
         del0 = xx * corr_m[3] + yy * l42 + x * l43 + y * l44;
-        psi0 = avrgt_m + psi0 * Ls2a_m;
-        del0 = avrgpt_m + Ls2b_m * del0;
+        psi0 = avrgt_m + psi0 * sigx_m[2];
+        del0 = avrgpt_m + sigp_m[2] * del0;
         if(pc == Ippl::myNode()) {
             beam.create(1);
             beam.R[count] = Vector_t(x0, y0, psi0);
@@ -1225,8 +1175,8 @@ pair<Vector_t, Vector_t> Distribution::sample(double dt, int binNumber) {
                 }
             }
 
-            x0   =  x * Hs2a_m;
-            y0   =  y * Vs2a_m;
+            x0   =  x * sigx_m[0];
+            y0   =  y * sigx_m[1];
 
             /*
               Now calculate the thermal emittances
@@ -1292,8 +1242,8 @@ pair<Vector_t, Vector_t> Distribution::sampleNEW(double dt, int binNumber) {
                 }
             }
 
-            x0   =  x * Hs2a_m;
-            y0   =  y * Vs2a_m;
+            x0   =  x * sigx_m[0];
+            y0   =  y * sigx_m[1];
 
             /*
               Now calculate the thermal emittances
@@ -1367,8 +1317,6 @@ void Distribution::createTimeBins(const int Np) {
         }
         gsl_rng_free(r);
     } else {
-
-        // AAA
 
         if(Options::rngtype != string("RANDOM")) {
             INFOMSG("RNGTYPE= " << Options::rngtype << endl);
@@ -1461,11 +1409,9 @@ void Distribution::createTimeBins(const int Np) {
             gsl_histogram_fprintf(fp, h_m, "%g", "%g");
             fclose(fp);
         }
-
         gsl_qrng_free(Qrng);
         gsl_rng_free(r);
     }
-
 }
 
 /**
@@ -1491,72 +1437,61 @@ void Distribution::createSlicedBunch(int sl, double charge, double gamma, double
     else if(distT_m == "BINOMIAL")
         distrTypeT_m = BINOMIAL;
 
+    corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
+    corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
+    corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
+    corr_m[3] = Attributes::getReal(itsAttr[R61]);
+    corr_m[4] = Attributes::getReal(itsAttr[R62]);
+    corr_m[5] = Attributes::getReal(itsAttr[R51]);
+    corr_m[6] = Attributes::getReal(itsAttr[R52]);
+    
+    sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
+                      Attributes::getReal(itsAttr[SIGMAY]),
+                      Attributes::getReal(itsAttr[SIGMAT]));
+    
     switch(distrTypeT_m) {
 
-        case GUNGAUSSFLATTOPTH: {
-            corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
-            corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
-            corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
+    case GUNGAUSSFLATTOPTH: {
+        
+        nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
+        
+        tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
+        cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
+        tRise_m = Attributes::getReal(itsAttr[TRISE]);
+        tFall_m = Attributes::getReal(itsAttr[TFALL]);
+        double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
+        sigmaRise_m = tRise_m / tratio;
+        sigmaFall_m = tFall_m / tratio;
+        tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
 
+        ekin_m = Attributes::getReal(itsAttr[EKIN]);
 
-            nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
+        // EnvelopeTracker expects [eV]
+        beamEnergy = ekin_m;
+        beamWidth = tEmission_m * Physics::c * sqrt(1.0 - (1.0 / pow(gamma, 2)));
+        
+        break;
+    }
+    case GAUSS: {
+        gauss_offset_m[0] = Attributes::getReal(itsAttr[OFFSETX]);
+        gauss_offset_m[1] = Attributes::getReal(itsAttr[OFFSETY]);        
+        avrgt_m  = Attributes::getReal(itsAttr[T]);
 
-            Hs2a_m = Attributes::getReal(itsAttr[SIGMAX]);
-            Vs2a_m = Attributes::getReal(itsAttr[SIGMAY]);
-            Ls2a_m = Attributes::getReal(itsAttr[SIGMAT]);
-
-            tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
-            cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
-            tRise_m = Attributes::getReal(itsAttr[TRISE]);
-            tFall_m = Attributes::getReal(itsAttr[TFALL]);
-            double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-            sigmaRise_m = tRise_m / tratio;
-            sigmaFall_m = tFall_m / tratio;
-            tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
-
-            ekin_m = Attributes::getReal(itsAttr[EKIN]);
-
-            // EnvelopeTracker expects [eV]
-            beamEnergy = ekin_m;
-            beamWidth = tEmission_m * Physics::c * sqrt(1.0 - (1.0 / pow(gamma, 2)));
-
-            break;
-        }
-        case GAUSS: {
-            corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
-            corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
-            corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
-            corr_m[3] = Attributes::getReal(itsAttr[R61]);
-            corr_m[4] = Attributes::getReal(itsAttr[R62]);
-            corr_m[5] = Attributes::getReal(itsAttr[R51]);
-            corr_m[6] = Attributes::getReal(itsAttr[R52]);
-            gauss_offset_m[0] = Attributes::getReal(itsAttr[OFFSETX]);
-            gauss_offset_m[1] = Attributes::getReal(itsAttr[OFFSETY]);
-
-            Hs2a_m = Attributes::getReal(itsAttr[SIGMAX]);
-            Vs2a_m = Attributes::getReal(itsAttr[SIGMAY]);
-            Ls2a_m = Attributes::getReal(itsAttr[SIGMAT]);
-
-            avrgt_m  = Attributes::getReal(itsAttr[T]);
-
-            //FIXME: why 1e9??
-            beamEnergy = (gamma * mass - mass) * 1e9;
-            beamWidth = Ls2a_m;
-            tEmission_m = 0.0;
-
-            break;
-        }
-        default:
-            ;
+        beamEnergy = (gamma * mass - mass) * 1e9;         //FIXME: why 1e9??
+        beamWidth = sigx_m[2];
+        tEmission_m = 0.0;
+        break;
+    }
+    default:
+        ;
     }
 
     center = -1 * beamWidth / 2.0;
-    *gmsg << "x = " << Hs2a_m << " y = " << Vs2a_m << endl;
-    //FIXME: fraction of gauss (get from input file)
+    *gmsg << "x = " << sigx_m[0] << " y = " << sigx_m[1] << endl;
     double frac = 0.9;
 
     // execute initialization command
-    p->initialize(sl, charge, beamEnergy, beamWidth, tEmission_m, frac, current, center, Hs2a_m, Vs2a_m, 0, 0, Bz0, nBins_m);
+    p->initialize(sl, charge, beamEnergy, beamWidth, tEmission_m, frac, current, center, sigx_m[0], sigx_m[1], 0, 0, Bz0, nBins_m);
     IpplTimings::stopTimer(p->distrCreate_m);
 }
 

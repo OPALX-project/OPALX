@@ -224,15 +224,7 @@ private:
     Vector_t beta_m;
     Vector_t gamma_m;
 
-    double Hs2a_m;
-    double Hs2b_m;
     double gauss_offset_m[2];
-
-    double Vs2a_m;
-    double Vs2b_m;
-
-    double Ls2a_m;
-    double Ls2b_m;
 
     double avrgpt_m;
     double avrgt_m;
