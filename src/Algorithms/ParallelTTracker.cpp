@@ -1719,9 +1719,9 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 }
 
 void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
-    IpplTimings::startTimer(timeIntegrationTimer1_m);
-
     if(bgf_m == NULL || secondaryFlg_m == 0) return;
+
+    IpplTimings::startTimer(timeIntegrationTimer1_m);
 
     /// We do collision test for newly generated secondaries before integration in the first half step of each time step.
     /// This is because only secondary emission model yield non zero inital momenta. The initial momenta of field emitted particles are zero.
@@ -1822,11 +1822,12 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 }
 
 void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
-    IpplTimings::startTimer(timeIntegrationTimer2_m);
 
-    /// After kick, we do collision test before integration in second half step with new momentum, if hit, then move collision particles to the position where collision occurs.
     if(!bgf_m) return;
 
+    /// After kick, we do collision test before integration in second half step with new momentum, if hit, then move collision particles to the position where collision occurs.
+
+    IpplTimings::startTimer(timeIntegrationTimer2_m);
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
 
     double dtime = 0.5 * itsBunch->getdT();
