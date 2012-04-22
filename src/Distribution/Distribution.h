@@ -185,6 +185,10 @@ private:
         return (sqrt(valueInbega * valueInbega + 1.) - 1.) * mass ;
     }
 
+    void writeToFile();
+
+
+
     // Not implemented.
     Distribution(const Distribution &);
     void operator=(const Distribution &);
@@ -263,6 +267,7 @@ private:
     double phimax_m;        // rad
     double schottky_m;;      // eV
     double ptot_m;          // beta gamma
+
     std::ofstream os_m;
 
     /**

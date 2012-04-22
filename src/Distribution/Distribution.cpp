@@ -59,9 +59,11 @@ namespace {
         XMULT,
         YMULT,
         TMULT,
+        ZMULT,
         PXMULT,
         PYMULT,
         PTMULT,
+        PZMULT,
         BETAX,
         BETAY,
         ALPHAX,
@@ -69,6 +71,7 @@ namespace {
         MX,
         MY,
         MT,
+        MZ,
         DX,
         DDX,
         DY,
@@ -78,25 +81,29 @@ namespace {
         R61,
         R62,
         PT,
+        PZ,
         T,
+        Z,
         SIGMAX,
         SIGMAY,
         SIGMAT,
+        SIGMAZ,
         TRANSVCUTOFF,
         SIGMAPX,
         SIGMAPY,
         SIGMAPT,
+        SIGMAPZ,
         TRISE,
         TFALL,
         CUTOFF,
         TPULSEFWHM,
-        LEGACYMODE,
         FTOSCAMPLITUDE,
         FTOSCPERIODS,
         WEIGHT,
         CORRX,
         CORRY,
         CORRT,
+        CORRZ,
         OFFSETX,
         OFFSETY,
         TEMISSION,
@@ -160,11 +167,13 @@ Distribution::Distribution():
     itsAttr[XMULT] = makeReal("XMULT", "Multiplier for X", 1.0);
     itsAttr[YMULT] = makeReal("YMULT", "Multiplier for Y", 1.0);
     itsAttr[TMULT] = makeReal("TMULT", "Multiplier for T", 1.0);
+    itsAttr[ZMULT] = makeReal("TMULT", "Multiplier for T", -99.0);
     itsAttr[TRANSVCUTOFF] = makeReal("TRANSVCUTOFF", "Transverse cut-off in units of sigma", 3.0);
 
     itsAttr[PXMULT] = makeReal("PXMULT", "Multiplier for PX", 1.0);
     itsAttr[PYMULT] = makeReal("PYMULT", "Multiplier for PY", 1.0);
     itsAttr[PTMULT] = makeReal("PTMULT", "Multiplier for PT", 1.0);
+    itsAttr[PZMULT] = makeReal("PZMULT", "Multiplier for PZ", -99.0);
 
     itsAttr[ALPHAX] = makeReal("ALPHAX", "Courant Synder parameter", 1.0);
     itsAttr[ALPHAY] = makeReal("ALPHAY", "Courant Synder parameter", 1.0);
@@ -175,10 +184,10 @@ Distribution::Distribution():
     itsAttr[MX]    = makeReal("MX", "Defines the distribution in x, 0+eps .. inf", 1.0);
     itsAttr[MY]    = makeReal("MY", "Defines the distribution in y, 0+eps .. inf", 1.0);
     itsAttr[MT]    = makeReal("MT", "Defines the distribution in t, 0+eps .. inf", 1.0);
+    itsAttr[MZ]    = makeReal("MZ", "Defines the distribution in z, 0+eps .. inf", -99.0);
 
     itsAttr[DX]    = makeReal("DX", "Dispersion in x (R16 in Transport notation)", 0.0);
     itsAttr[DDX]   = makeReal("DDX", "First derivative of Dx", 0.0);
-
 
     itsAttr[DY]    = makeReal("DY", "DY", 0.0);
     itsAttr[DDY]   = makeReal("DDY", "DDY", 0.0);
@@ -190,19 +199,24 @@ Distribution::Distribution():
     itsAttr[R62]   = makeReal("R62", "R62", 0.0);
 
     itsAttr[PT] = makeReal("PT", "average longitudinal momentum", 0.0);
+    itsAttr[PZ] = makeReal("PZ", "average longitudinal momentum", -99.0);
     itsAttr[T] = makeReal("T", "average longitudinal position", 0.0);
+    itsAttr[Z] = makeReal("Z", "average longitudinal position", -99.0);
 
     itsAttr[SIGMAX] = makeReal("SIGMAX", "SIGMAx (m)", 1.0e-2);
     itsAttr[SIGMAY] = makeReal("SIGMAY", "SIGMAy (m)", 1.0e-2);
     itsAttr[SIGMAT] = makeReal("SIGMAT", "SIGMAt (m)", 1.0e-2);
+    itsAttr[SIGMAZ] = makeReal("SIGMAZ", "SIGMAz (m)", -99.0);
 
     itsAttr[SIGMAPX] = makeReal("SIGMAPX", "SIGMApx", 0.0);
     itsAttr[SIGMAPY] = makeReal("SIGMAPY", "SIGMApy", 0.0);
     itsAttr[SIGMAPT] = makeReal("SIGMAPT", "SIGMApt", 0.0);
+    itsAttr[SIGMAPZ] = makeReal("SIGMAPZ", "SIGMApz", -99.0);
 
     itsAttr[CORRX] = makeReal("CORRX", "CORRx", -0.5);
     itsAttr[CORRY] = makeReal("CORRY", "CORRy", 0.5);
     itsAttr[CORRT] = makeReal("CORRT", "CORRt", 0.0);
+    itsAttr[CORRZ] = makeReal("CORRZ", "CORRz", -99.0);
 
     itsAttr[OFFSETX] = makeReal("OFFSETX", "OFFSETx", 0.0);
     itsAttr[OFFSETY] = makeReal("OFFSETY", "OFFSETy", 0.0);
@@ -216,7 +230,6 @@ Distribution::Distribution():
     itsAttr[TRISE]       = makeReal("TRISE", "Rise time for GUNGAUSSFLATTOP distribution type (s)", 0.0);
     itsAttr[TFALL]       = makeReal("TFALL", "Fall time for GUNGAUSSFLATTOP distribution type (s)", 0.0);
     itsAttr[CUTOFF]      = makeReal("CUTOFF", "Cutoff for GUNGAUSSFLATTOP distribution type in sigmas", 3.0);
-    itsAttr[LEGACYMODE]  = makeBool("LEGACYMODE", "Legacy mode for old GUNGAUSSFLATTOP distribution", false);
 
     itsAttr[FTOSCAMPLITUDE] = makeReal("FTOSCAMPLITUDE", "Amplitude of oscillations superimposed on flat top portion of GUNGAUSSFLATTOPTH distribtuion (in percent of flat top amplitude)", 0.0);
     itsAttr[FTOSCPERIODS]    = makeReal("FTOSCPERIODS", "Number of oscillations superimposed on flat top portion of GUNGAUSSFLATTOPTH distribution", 0.0);
@@ -368,14 +381,39 @@ Distribution::~Distribution() {
 }
 
 /**
- * This is the main entrypoint!
- *
+ * At the moment only write the header into the file dist.dat
+ * PartBunch will then append (very uggly)
+ * @param 
+ * @param 
+ * @param 
+ */
+void Distribution::writeToFile() {
+
+    if(Ippl::getNodes() == 1) {
+        if (os_m.is_open()) {
+            ;
+        }
+        else {
+            *gmsg << " Write distribution to file dist.dat" << endl;
+            string file("data/dist.dat");
+            os_m.open(file.c_str());
+            if(os_m.bad()) {
+                *gmsg << "Unable to open output file " <<  file << endl;
+            }
+            os_m << "# x y ti px py pz Ekin= " << ekin_m << " [eV] " << endl;
+            os_m.close();
+        }
+    }
+}
+
+/**
+ * This is the main entrypoint, called from PartBunch::setDistribution
+ * The envelope trackes is doing it differently by calling createSliceBunch
  * @param beam
  * @param Np
  * @param scan
  */
 void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
-
 
     scan_m = scan;
     nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
@@ -613,29 +651,15 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             *gmsg << " Phi max = " << phimax_m * 180 / Physics::pi << " [deg]  " << endl;
             *gmsg << " tBin = " << tBin_m << " [sec]  nBins = " << nBins_m << " tEmission =  " << tEmission_m << " [sec] " << endl;
 
-            if(Ippl::getNodes() == 1) {
-                *gmsg << " Write distribution to file dist.dat" << endl;
-                string file("data/dist.dat");
-                os_m.open(file.c_str());
-                if(os_m.bad()) {
-                    *gmsg << "Unable to open output file " <<  file << endl;
-                }
-                os_m << "# x y ti px py pz Ekin= " << ekin_m << " [eV] " << endl;
-            }
+            writeToFile();
+
         }
 
         break;
         case GUNGAUSSFLATTOPTH: {
 
-            bool legacymode = Attributes::getBool(itsAttr[LEGACYMODE]);
-            if(legacymode) {
-                *gmsg << "RUNNING IN DISTRIBUTION LEGACY MODE" << endl;
-                tEmission_m = tPulseLengthFWHM_m + cutoff_m * (tRise_m + tFall_m);
-                tBin_m = tEmission_m / nBins_m;
-            } else {
-                tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
-                tBin_m = tEmission_m / nBins_m;
-            }
+            tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
+            tBin_m = tEmission_m / nBins_m;
 
             rGen_m = new RANLIB_class(265314159, 4);
 
@@ -662,16 +686,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             *gmsg << " Phi max = " << phimax_m * 180 / Physics::pi << " [deg]  " << endl;
             *gmsg << " tBin = " << tBin_m << " [sec]  nBins = " << nBins_m << " tEmission =  " << tEmission_m << " [sec] " << endl;
 
-            if(Ippl::getNodes() == 1) {
-                *gmsg << " Write distribution to file dist.dat" << endl;
-                string file("data/dist.dat");
-                os_m.open(file.c_str());
-                if(os_m.bad()) {
-                    *gmsg << "Unable to open output file " <<  file << endl;
-                }
-                os_m << "# x y ti px py pz Ekin= " << ekin_m << " [eV] " << endl;
-            }
-
+            writeToFile();
         }
         break;
 
@@ -885,8 +900,6 @@ bool Distribution::addDistributions(PartBunch &beam, vector<Distribution *> dist
                         // double sigmaFallTime = fallTime / timeRatio;
 
                         // double emissionTime = pulseLengthFWHM + (cutOff - sqrt(2.0 * log(2.0))) * (sigmaRiseTime + sigmaFallTime);
-                        // if(Attributes::getBool(itsAttr[LEGACYMODE]))
-                        //     emissionTime = pulseLengthFWHM + cutOff * (riseTime + fallTime);
 
                         // Find max. and min. time.
                         deltaT = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("T")));
@@ -920,125 +933,68 @@ bool Distribution::addDistributions(PartBunch &beam, vector<Distribution *> dist
                         nParticles = numberOfParticles - particleCount;
 
                     // Add particles to time histogram.
-                    if(Attributes::getBool(itsAttr[LEGACYMODE])) {
-                        if(nParticles > 0) {
-
-                            double riseTime = 0.0;
-                            double fallTime = 0.0;
-                            double timeFlat = 0.0;
-                            double cutOff = 0.0;
-
-                            if(distIterator == 0) {
-                                riseTime = (1.0 + cutoff_m) * tRise_m;
-                                fallTime = (1.0 + cutoff_m) * tFall_m;
-                                timeFlat = tPulseLengthFWHM_m;
-                                cutOff = cutoff_m;
+                    if(nParticles > 0) {
+                        
+                        double sigmaRiseTime = 0.0;
+                        double sigmaFallTime = 0.0;
+                        double timeFlat = 0.0;
+                        double cutOff = 0.0;
+                        
+                        if(distIterator == 0) {
+                            sigmaRiseTime = sigmaRise_m;
+                            sigmaFallTime = sigmaFall_m;
+                            timeFlat = tPulseLengthFWHM_m - sqrt(2.0 * log(2.0)) * (sigmaRise_m + sigmaFall_m);
+                            cutOff = cutoff_m;
                                 deltaT = Attributes::getReal(itsAttr[T]);
-                            } else {
-                                riseTime = (1.0 + Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF"))))
-                                           * Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TRISE")));
-                                fallTime = (1.0 + Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF"))))
-                                           * Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TFALL")));
-                                timeFlat = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TPULSEFWHM")));
-                                cutOff = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF")));
-                                deltaT = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("T")));
-                            }
-                            if(timeFlat < 0.0) timeFlat = 0.0;
-
-                            const double totalArea = timeFlat + 0.5 * sqrt(2.0 * Physics::pi) * (riseTime + fallTime);
-
-                            unsigned int numPartInRise = nParticles * (gsl_cdf_ugaussian_P(1.0 + cutOff) - 0.5)
-                                                         * sqrt(2.0 * Physics::pi) * riseTime / totalArea;
-                            unsigned int numPartInFall = nParticles * (gsl_cdf_ugaussian_P(1.0 + cutOff) - 0.5)
-                                                         * sqrt(2.0 * Physics::pi) * fallTime / totalArea;
-                            unsigned int numPartInFlat = nParticles - numPartInRise - numPartInFall;
-
-                            if(timeFlat == 0.0) {
-                                numPartInRise += numPartInFlat / 2;
-                                numPartInFall = nParticles - numPartInRise;
-                                numPartInFlat = 0;
-                            }
-
-                            for(unsigned int partIterator = 0; partIterator < numPartInRise; partIterator++) {
-                                const double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, riseTime);
-                                gsl_histogram_increment(h_m, -tRandom + riseTime + deltaT - minT);
-                            }
-
-                            for(unsigned int partIterator = 0; partIterator < numPartInFall; partIterator++) {
-                                const double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, fallTime);
-                                gsl_histogram_increment(h_m, tRandom + riseTime + timeFlat + deltaT - minT);
-                            }
-
-                            for(unsigned int partIterator = 0; partIterator < numPartInFlat; partIterator++) {
-                                const double tRandom = gsl_ran_flat(ranNumberGen, riseTime, riseTime + timeFlat);
-                                gsl_histogram_increment(h_m, tRandom + deltaT - minT);
-                            }
+                        } else {
+                            double riseTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TRISE")));
+                            double fallTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TFALL")));
+                            
+                            cutOff = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF")));
+                            deltaT = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("T")));
+                            
+                            double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
+                            sigmaRiseTime = riseTime / timeRatio;
+                            sigmaFallTime = fallTime / timeRatio;
+                            
+                            timeFlat = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TPULSEFWHM")))
+                                - sqrt(2.0 * log(2.0)) * (sigmaRiseTime + sigmaFallTime);
                         }
-                    } else {
-
-                        if(nParticles > 0) {
-
-                            double sigmaRiseTime = 0.0;
-                            double sigmaFallTime = 0.0;
-                            double timeFlat = 0.0;
-                            double cutOff = 0.0;
-
-                            if(distIterator == 0) {
-                                sigmaRiseTime = sigmaRise_m;
-                                sigmaFallTime = sigmaFall_m;
-                                timeFlat = tPulseLengthFWHM_m - sqrt(2.0 * log(2.0)) * (sigmaRise_m + sigmaFall_m);
-                                cutOff = cutoff_m;
-                                deltaT = Attributes::getReal(itsAttr[T]);
-                            } else {
-                                double riseTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TRISE")));
-                                double fallTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TFALL")));
-
-                                cutOff = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF")));
-                                deltaT = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("T")));
-
-                                double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-                                sigmaRiseTime = riseTime / timeRatio;
-                                sigmaFallTime = fallTime / timeRatio;
-
-                                timeFlat = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TPULSEFWHM")))
-                                           - sqrt(2.0 * log(2.0)) * (sigmaRiseTime + sigmaFallTime);
-                            }
-                            if(timeFlat < 0.0) timeFlat = 0.0;
-
-                            const double totalArea = timeFlat + 0.5 * sqrt(2.0 * Physics::pi) * (sigmaRiseTime + sigmaFallTime);
-
-                            unsigned int numPartInRise = nParticles * 0.5 * gsl_sf_erf(cutOff / sqrt(2.0))
-                                                         * sqrt(2.0 * Physics::pi) * sigmaRiseTime / totalArea;
-                            unsigned int numPartInFall = nParticles * 0.5 * gsl_sf_erf(cutOff / sqrt(2.0))
-                                                         * sqrt(2.0 * Physics::pi) * sigmaFallTime / totalArea;
-                            unsigned int numPartInFlat = nParticles - numPartInRise - numPartInFall;
-
-                            if(timeFlat == 0.0) {
-                                numPartInRise += numPartInFlat / 2;
-                                numPartInFall = nParticles - numPartInRise;
-                                numPartInFlat = 0;
-                            }
-
-                            for(unsigned int partIterator = 0; partIterator < numPartInRise; partIterator++) {
-                                double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaRiseTime);
-                                while(tRandom > cutOff * sigmaRiseTime)
-                                    tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaRiseTime);
-                                gsl_histogram_increment(h_m, -tRandom + cutOff * sigmaRiseTime + deltaT - minT);
-                            }
-
-                            for(unsigned int partIterator = 0; partIterator < numPartInFall; partIterator++) {
-                                double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaFallTime);
-                                while(tRandom > cutOff * sigmaFallTime)
-                                    tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaFallTime);
-                                gsl_histogram_increment(h_m, tRandom + cutOff * sigmaRiseTime + timeFlat + deltaT - minT);
-                            }
-
-                            for(unsigned int partIterator = 0; partIterator < numPartInFlat; partIterator++) {
-                                double tRandom = 0.0;
-                                gsl_qrng_get(R_m, &tRandom);
-                                tRandom *= timeFlat;
-                                gsl_histogram_increment(h_m, tRandom + cutOff * sigmaRiseTime + deltaT - minT);
-                            }
+                        if(timeFlat < 0.0) timeFlat = 0.0;
+                        
+                        const double totalArea = timeFlat + 0.5 * sqrt(2.0 * Physics::pi) * (sigmaRiseTime + sigmaFallTime);
+                        
+                        unsigned int numPartInRise = nParticles * 0.5 * gsl_sf_erf(cutOff / sqrt(2.0))
+                            * sqrt(2.0 * Physics::pi) * sigmaRiseTime / totalArea;
+                        unsigned int numPartInFall = nParticles * 0.5 * gsl_sf_erf(cutOff / sqrt(2.0))
+                            * sqrt(2.0 * Physics::pi) * sigmaFallTime / totalArea;
+                        unsigned int numPartInFlat = nParticles - numPartInRise - numPartInFall;
+                        
+                        if(timeFlat == 0.0) {
+                            numPartInRise += numPartInFlat / 2;
+                            numPartInFall = nParticles - numPartInRise;
+                            numPartInFlat = 0;
+                        }
+                        
+                        for(unsigned int partIterator = 0; partIterator < numPartInRise; partIterator++) {
+                            double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaRiseTime);
+                            while(tRandom > cutOff * sigmaRiseTime)
+                                tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaRiseTime);
+                            gsl_histogram_increment(h_m, -tRandom + cutOff * sigmaRiseTime + deltaT - minT);
+                        }
+                        
+                        for(unsigned int partIterator = 0; partIterator < numPartInFall; partIterator++) {
+                            double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaFallTime);
+                            while(tRandom > cutOff * sigmaFallTime)
+                                tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaFallTime);
+                            gsl_histogram_increment(h_m, tRandom + cutOff * sigmaRiseTime + timeFlat + deltaT - minT);
+                        }
+                        
+                        for(unsigned int partIterator = 0; partIterator < numPartInFlat; partIterator++) {
+                            double tRandom = 0.0;
+                            gsl_qrng_get(R_m, &tRandom);
+                            tRandom *= timeFlat;
+                            gsl_histogram_increment(h_m, tRandom + cutOff * sigmaRiseTime + deltaT - minT);
                         }
                     }
                 }
@@ -1284,134 +1240,99 @@ pair<Vector_t, Vector_t> Distribution::sampleNEW(double dt, int binNumber) {
  */
 void Distribution::createTimeBins(const int Np) {
 
-    bool legacymode = Attributes::getBool(itsAttr[LEGACYMODE]);
-    if(legacymode) {
-        const double trise = (1 + cutoff_m) * tRise_m;
-        const double tfall = (1 + cutoff_m) * tFall_m;
-        double tflat = tPulseLengthFWHM_m;
-        if(tflat < 0.0) tflat = 0.0;
-        gsl_histogram_set_ranges_uniform(h_m, 0, trise + tfall + tflat);
-        gsl_rng_env_setup();
-        gsl_rng *r = gsl_rng_alloc(gsl_rng_default);
-
-        const double pi = Physics::pi;
-        //does not take into account cutoff
-        const double totA = tflat + 0.5 * sqrt(2.0 * pi) * (tRise_m + tFall_m);
-
-        //taking into account cutoff
-        int nrise = Np * (gsl_cdf_ugaussian_P(1 + cutoff_m) - 0.5) * sqrt(2.0 * pi) * tRise_m / totA;
-        int nfall = Np * (gsl_cdf_ugaussian_P(1 + cutoff_m) - 0.5) * sqrt(2.0 * pi) * tFall_m / totA;
-        int nflat = Np - nrise - nfall;
-
-        for(int i = 0; i < nrise; i++) {
-            const double r1 = gsl_ran_gaussian_tail(r, 0, tRise_m);
-            gsl_histogram_increment(h_m, -r1 + trise);
+    if(Options::rngtype != string("RANDOM")) {
+        INFOMSG("RNGTYPE= " << Options::rngtype << endl);
+        if(Options::rngtype == string("HALTON"))
+            qrng_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
+        else if(Options::rngtype == string("SOBOL"))
+            qrng_m = gsl_qrng_alloc(gsl_qrng_sobol, 2);
+        else if(Options::rngtype == string("NIEDERREITER"))
+            qrng_m = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 2);
+        else {
+            INFOMSG("RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl);
+            qrng_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
         }
-        for(int i = 0; i < nfall; i++) {
-            const double r1 = gsl_ran_gaussian_tail(r, 0, tFall_m);
-            gsl_histogram_increment(h_m, r1 + tfall + tflat);
-        }
-        for(int i = 0; i < nflat; i++) {
-            const double r1 = gsl_ran_flat(r, trise, trise + tflat);
-            gsl_histogram_increment(h_m, r1);
-        }
-        gsl_rng_free(r);
-    } else {
-
-        if(Options::rngtype != string("RANDOM")) {
-            INFOMSG("RNGTYPE= " << Options::rngtype << endl);
-            if(Options::rngtype == string("HALTON"))
-                qrng_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
-            else if(Options::rngtype == string("SOBOL"))
-                qrng_m = gsl_qrng_alloc(gsl_qrng_sobol, 2);
-            else if(Options::rngtype == string("NIEDERREITER"))
-                qrng_m = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 2);
-            else {
-                INFOMSG("RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl);
-                qrng_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
-            }
-        }
-
-        gsl_histogram_set_ranges_uniform(h_m, 0, tEmission_m);
-        gsl_rng_env_setup();
-        gsl_rng *r = gsl_rng_alloc(gsl_rng_default);
-        const double sq2pi = sqrt(2.0 * Physics::pi);
-        double tFlat = tPulseLengthFWHM_m - sqrt(2.0 * log(2.0)) * (sigmaRise_m + sigmaFall_m);
-        if(tFlat < 0.0) tFlat = 0.0;
-        const double totA = tFlat + 0.5 * sq2pi * (sigmaRise_m + sigmaFall_m);
-        int nrise = Np * 0.5 * gsl_sf_erf(cutoff_m / sqrt(2.0)) * sq2pi * sigmaRise_m / totA;
-        int nfall = Np * 0.5 * gsl_sf_erf(cutoff_m / sqrt(2.0)) * sq2pi * sigmaFall_m / totA;
-        int nflat = Np - nrise - nfall;
-
-        if(tFlat == 0.0) {
-            nrise += nflat / 2;
-            nfall = Np - nrise;
-            nflat = 0;
-        }
-
-        // Rise: [0, c\sigma_R]
-        for(int i = 0; i < nrise; i++) {
-            double r1 = gsl_ran_gaussian_tail(r, 0, sigmaRise_m);
-            while(r1 > cutoff_m * sigmaRise_m)
-                r1 = gsl_ran_gaussian_tail(r, 0, sigmaRise_m);
-            gsl_histogram_increment(h_m, -r1 + cutoff_m * sigmaRise_m);
-        }
-        // Fall: [c\sigma_R + tFlat, c\sigma_R + tFlat + c\sigma_F]
-        for(int i = 0; i < nfall; i++) {
-            double r1 = gsl_ran_gaussian_tail(r, 0, sigmaFall_m);
-            while(r1 > cutoff_m * sigmaFall_m)
-                r1 = gsl_ran_gaussian_tail(r, 0, sigmaFall_m);
-            gsl_histogram_increment(h_m, r1 + cutoff_m * sigmaRise_m + tFlat);
-        }
-        // Flattop: [c\sigma_R, c\sigma_R + tFlat]
-        //
-        // The flat top can also have sinusoidal modulations.
-
-        gsl_qrng *Qrng = gsl_qrng_alloc(gsl_qrng_halton, 1);
-
-        gsl_qrng *R2_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
-
-        // Get modulation parameters.
-        double modulationAmplitude = Attributes::getReal(itsAttr[FTOSCAMPLITUDE]) / 100.0;
-        double numberOfModulationPeriods = fabs(Attributes::getReal(itsAttr[FTOSCPERIODS]));
-        double modulationPeriod = 0.0;
-        if(numberOfModulationPeriods != 0) modulationPeriod = tFlat / numberOfModulationPeriods;
-
-        // Sample flat top.
-        for(int i = 0; i < nflat; i++) {
-            double r1 = 0.0;
-            double r2 = 0.0;
-            double rn[2] = {0.0, 0.0};
-            if(modulationAmplitude == 0.0 || numberOfModulationPeriods == 0) {
+    }
+    
+    gsl_histogram_set_ranges_uniform(h_m, 0, tEmission_m);
+    gsl_rng_env_setup();
+    gsl_rng *r = gsl_rng_alloc(gsl_rng_default);
+    const double sq2pi = sqrt(2.0 * Physics::pi);
+    double tFlat = tPulseLengthFWHM_m - sqrt(2.0 * log(2.0)) * (sigmaRise_m + sigmaFall_m);
+    if(tFlat < 0.0) tFlat = 0.0;
+    const double totA = tFlat + 0.5 * sq2pi * (sigmaRise_m + sigmaFall_m);
+    int nrise = Np * 0.5 * gsl_sf_erf(cutoff_m / sqrt(2.0)) * sq2pi * sigmaRise_m / totA;
+    int nfall = Np * 0.5 * gsl_sf_erf(cutoff_m / sqrt(2.0)) * sq2pi * sigmaFall_m / totA;
+    int nflat = Np - nrise - nfall;
+    
+    if(tFlat == 0.0) {
+        nrise += nflat / 2;
+        nfall = Np - nrise;
+        nflat = 0;
+    }
+    
+    // Rise: [0, c\sigma_R]
+    for(int i = 0; i < nrise; i++) {
+        double r1 = gsl_ran_gaussian_tail(r, 0, sigmaRise_m);
+        while(r1 > cutoff_m * sigmaRise_m)
+            r1 = gsl_ran_gaussian_tail(r, 0, sigmaRise_m);
+        gsl_histogram_increment(h_m, -r1 + cutoff_m * sigmaRise_m);
+    }
+    // Fall: [c\sigma_R + tFlat, c\sigma_R + tFlat + c\sigma_F]
+    for(int i = 0; i < nfall; i++) {
+        double r1 = gsl_ran_gaussian_tail(r, 0, sigmaFall_m);
+        while(r1 > cutoff_m * sigmaFall_m)
+            r1 = gsl_ran_gaussian_tail(r, 0, sigmaFall_m);
+        gsl_histogram_increment(h_m, r1 + cutoff_m * sigmaRise_m + tFlat);
+    }
+    // Flattop: [c\sigma_R, c\sigma_R + tFlat]
+    //
+    // The flat top can also have sinusoidal modulations.
+    
+    gsl_qrng *Qrng = gsl_qrng_alloc(gsl_qrng_halton, 1);
+    
+    gsl_qrng *R2_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
+    
+    // Get modulation parameters.
+    double modulationAmplitude = Attributes::getReal(itsAttr[FTOSCAMPLITUDE]) / 100.0;
+    double numberOfModulationPeriods = fabs(Attributes::getReal(itsAttr[FTOSCPERIODS]));
+    double modulationPeriod = 0.0;
+    if(numberOfModulationPeriods != 0) modulationPeriod = tFlat / numberOfModulationPeriods;
+    
+    // Sample flat top.
+    for(int i = 0; i < nflat; i++) {
+        double r1 = 0.0;
+        double r2 = 0.0;
+        double rn[2] = {0.0, 0.0};
+        if(modulationAmplitude == 0.0 || numberOfModulationPeriods == 0) {
+            // r1 = gsl_ran_flat(r, 0, tFlat);
+            gsl_qrng_get(Qrng, &r1);
+            
+            r1 *= tFlat;
+            
+        } else {
+            bool accept = false;
+            while(!accept) {
+                gsl_qrng_get(R2_m, rn);
                 // r1 = gsl_ran_flat(r, 0, tFlat);
-                gsl_qrng_get(Qrng, &r1);
-
-                r1 *= tFlat;
-
-            } else {
-                bool accept = false;
-                while(!accept) {
-                    gsl_qrng_get(R2_m, rn);
-                    // r1 = gsl_ran_flat(r, 0, tFlat);
-                    /// r2 = gsl_ran_flat(r, 0, 1.0);
+                /// r2 = gsl_ran_flat(r, 0, 1.0);
                     r1 = rn[0] * tFlat;
                     r2 = rn[1];
                     double function = (1.0 + modulationAmplitude * sin(Physics::two_pi * r1 / modulationPeriod))
-                                      / (1.0 + fabs(modulationAmplitude));
+                        / (1.0 + fabs(modulationAmplitude));
                     if(r2 <= function) accept = true;
-                }
             }
-            gsl_histogram_increment(h_m, r1 + cutoff_m * sigmaRise_m);
         }
-        if(Ippl::myNode() == 0) {
-            FILE *fp;
-            fp = fopen("data/hist.dat", "w");
-            gsl_histogram_fprintf(fp, h_m, "%g", "%g");
-            fclose(fp);
-        }
-        gsl_qrng_free(Qrng);
-        gsl_rng_free(r);
+        gsl_histogram_increment(h_m, r1 + cutoff_m * sigmaRise_m);
     }
+    if(Ippl::myNode() == 0) {
+        FILE *fp;
+        fp = fopen("data/hist.dat", "w");
+        gsl_histogram_fprintf(fp, h_m, "%g", "%g");
+        fclose(fp);
+    }
+    gsl_qrng_free(Qrng);
+    gsl_rng_free(r);
 }
 
 /**
@@ -2338,12 +2259,7 @@ double Distribution::getTEmission() {
             break;
         }
         case GUNGAUSSFLATTOPTH: {
-            bool legacymode = Attributes::getBool(itsAttr[LEGACYMODE]);
-            if(legacymode) {
-                tEmission_m = tPulseLengthFWHM_m + cutoff_m * (tRise_m + tFall_m);
-            } else {
-                tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
-            }
+            tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
             break;
         }
         default:
