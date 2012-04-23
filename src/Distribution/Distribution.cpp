@@ -652,7 +652,6 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
             *gmsg << " tBin = " << tBin_m << " [sec]  nBins = " << nBins_m << " tEmission =  " << tEmission_m << " [sec] " << endl;
 
             writeToFile();
-
         }
 
         break;
@@ -1056,7 +1055,6 @@ void Distribution::sampleGauss(PartBunch &beam, size_t Np) {
 
         double del0;
         double psi0;
-
         x  = rGen_m->gauss(0.0, 1.0);
         y  = rGen_m->gauss(0.0, 1.0);
 
@@ -1081,7 +1079,6 @@ void Distribution::sampleGauss(PartBunch &beam, size_t Np) {
             beam.Q[count] = beam.getChargePerParticle();
             beam.PType[count] = 0;
             beam.TriID[count] = 0;
-
             count++;
         }
         pc++;
@@ -2026,9 +2023,7 @@ void Distribution::create(PartBunch &beam, size_t Np) {
     beam.setNumBunch(1);
     const string disttype = Attributes::getString(itsAttr[DISTRIBUTION]);
     if(disttype == "GUNGAUSSFLATTOPTH") {
-        // "GUNGAUSSFLATTOPTH": uniform in space transversely, a Gaussian rise and fall time longitudinally with
-        //                    a uniform flattop between, and a transvers thermal emittance
-        binnDistributionZ(beam, Np, disttype);
+        binnDistribution(beam, Np, disttype);
     } else if(disttype == "BINOMIAL") {
         corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
         corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
@@ -2275,147 +2270,7 @@ double Distribution::getTEmission() {
  * @param Np
  * @param distType
  */
-void Distribution::binnDistributionT(PartBunch &beam, size_t Np, string distType) {
-    unsigned int pc = 0;
-
-    double dEBins = Attributes::getReal(itsAttr[DEBIN]);
-    pbin_m->setRebinEnergy(dEBins);
-
-    double nBins = Attributes::getReal(itsAttr[NBIN]);
-
-    double Hs2a = Attributes::getReal(itsAttr[SIGMAX]);
-
-    double Vs2a = Attributes::getReal(itsAttr[SIGMAY]);
-
-    tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
-    cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
-    tRise_m = Attributes::getReal(itsAttr[TRISE]);
-    tFall_m = Attributes::getReal(itsAttr[TFALL]);
-    sigmaRise_m = tRise_m / 1.6869;
-    sigmaFall_m = tFall_m / 1.6869;
-
-    tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
-    tBin_m = tEmission_m / nBins_m;
-
-    RANLIB_class *rGen = new RANLIB_class(265314159, 4);
-
-    gsl_histogram *h_m = gsl_histogram_alloc(nBins);
-    createTimeBins(Np);
-
-    /*
-      prepare quantities for thermal emittance calculation
-    */
-
-    double ekin = 0.0;          // eV
-    double phimax = 0.0;        // rad
-    double ptot = 0.0;          // beta gamma
-    std::ofstream os;
-
-    ekin = Attributes::getReal(itsAttr[EKIN]);
-    ptot = eVtoBetaGamma(ekin, beam.getM());
-
-    // ASTRA mode
-    phimax = Physics::pi / 2.0;
-    *gmsg << " -- B I N N I N G in T -----------------------------------------" << endl;
-    *gmsg << " ---------------------I N P U T --------------------------------" << endl;
-    *gmsg << " GUNGAUSS FLAT TOP &  THERMAL EMITTANCE in ASTRA MODE" << endl;
-    *gmsg << " Kinetic energy = " << ekin << " [eV]  " << endl;
-    *gmsg << " Phi max = " << phimax * 180 / Physics::pi << " [deg]  " << endl;
-    *gmsg << " tBin = " << tBin_m << " [sec]  nBins = " << nBins << " tEmission =  " << tEmission_m << " [sec] " << endl;
-
-    if(Ippl::getNodes() == 1) {
-        *gmsg << " Write distribution to file dist.dat" << endl;
-        string file("dist.dat");
-        os.open(file.c_str());
-        if(os.bad()) {
-            *gmsg << "Unable to open output file " <<  file << endl;
-        }
-        os << "# x y ti px py pz phi theta Ekin= " << ekin << " [eV] " << endl;
-    }
-
-    for(unsigned int b = 0; b < gsl_histogram_bins(h_m); b++) {
-        /*
-          now many particles are in bin-number b?
-        */
-        *gmsg << "Fill bin " << b << " with n " << gsl_histogram_get(h_m, b) << " particles "
-              << " myNode " << Ippl::myNode() << " getNodes " << Ippl::getNodes() << endl;
-        pc = 0;
-        for(int i = 0; i < gsl_histogram_get(h_m, b); i++) {
-
-            double x, y;      // generate independent Gaussians, then correlate and finally scale
-            double xy = 6;
-
-            while(xy > 1) {
-                x  = rGen->uniform(-1.0, 1.0);
-                y  = rGen->uniform(-1.0, 1.0);
-                xy = sqrt(x * x + y * y);
-            }
-
-            double x0   =  x * Hs2a;
-            double y0   =  y * Vs2a;
-
-            /*
-              Now calculate the thermal emittances
-            */
-
-            const double phi   = 2.0 * acos(sqrt(rGen->uniform(0.0, 1.0)));
-            const double theta = 2.0 * Physics::pi * rGen->uniform(0.0, 1.0);
-            const double bega = 0.0;
-            const double px0  = ptot * sin(phi) * cos(theta);
-            const double py0  = ptot * sin(phi) * sin(theta);
-            const double del0 = bega + (ptot * abs(cos(phi)));
-
-            if(pc == (size_t) Ippl::myNode()) {
-                vector<double> tmp;
-                tmp.push_back(x0);
-                tmp.push_back(y0);
-                tmp.push_back(0.0);
-                tmp.push_back(px0);
-                tmp.push_back(py0);
-                tmp.push_back(del0);
-                tmp.push_back((double)b);
-                pbin_m->fill(tmp);
-            }
-
-            pc++;
-            if(pc == (size_t) Ippl::getNodes())
-                pc = 0;
-
-            if(Ippl::getNodes() == 1) {
-                os << x0 << "\t " << px0    << "\t "
-                   << y0 << "\t " << py0    << "\t "
-                   << b << "\t " << del0 << "\t "
-                   << phi * 180. / Physics::pi << "\t " << theta * 180. / Physics::pi << "\t "
-                   << betaGammatoeV(px0, beam.getM())  << "\t "
-                   << betaGammatoeV(py0, beam.getM())  << "\t "
-                   << betaGammatoeV(del0, beam.getM()) << "\t " << endl;
-            }
-
-        }
-    }
-    if(Ippl::getNodes() == 1)
-        os.close();
-
-    pbin_m->setHistogram(h_m);
-    pbin_m->sortArrayT();
-
-    // now copy this over to the bunch
-    // so that we can emit the particles
-    beam.setPBins(pbin_m);
-
-    *gmsg << " ---------------------------------------------------------------" << endl;
-    *gmsg << " ----------- T - B I N N I N G  Done ---------------------------" << endl;
-    *gmsg << " ---------------------------------------------------------------" << endl;
-}
-
-/**
- *
- *
- * @param beam
- * @param Np
- * @param distType
- */
-void Distribution::binnDistributionZ(PartBunch &beam, size_t Np, string distType) {
+void Distribution::binnDistribution(PartBunch &beam, size_t Np, string distType) {
     const double &two_pi = Physics::two_pi;
     unsigned int pc = 0;
 

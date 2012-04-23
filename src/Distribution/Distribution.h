@@ -171,8 +171,7 @@ private:
                      Vector_t bincoef, PartBunch &beam, size_t particles,
                      bool isBinned);
 
-    void binnDistributionZ(PartBunch &beam, size_t Np, string distType);
-    void binnDistributionT(PartBunch &beam, size_t Np, string distType);
+    void binnDistribution(PartBunch &beam, size_t Np, string distType);
 
     void binnDistributionFromFile(PartBunch &beam, const string fn);
 
