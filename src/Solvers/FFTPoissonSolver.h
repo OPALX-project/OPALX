@@ -72,7 +72,7 @@ public:
 private:
 
     void mirrorRhoField() FIELDASSIGNOPTIMIZATION;
-    void mirrorRhoField(Field_t & ggrn2) FIELDASSIGNOPTIMIZATION;
+    void mirrorRhoField(Field_t & ggrn2);// FIELDASSIGNOPTIMIZATION;
 
     // rho2_m is the charge-density field with mesh doubled in each dimension
     Field_t rho2_m;
@@ -108,6 +108,10 @@ private:
     std::unique_ptr<Mesh_t> mesh3_m;
     std::unique_ptr<FieldLayout_t> layout3_m;
 
+    // mesh and layout for integrated greens function
+    std::unique_ptr<Mesh_t> mesh4_m;
+    std::unique_ptr<FieldLayout_t> layout4_m;
+
     // tmp
     Field_t tmpgreen;
 
@@ -117,6 +121,7 @@ private:
     // parameter to the constructor (mesh and layout object).
     NDIndex<3> domain2_m;            // doubled gridsize (2*Nx,2*Ny,2*Nz)
     NDIndex<3> domain3_m;            // field for the complex values of the RC transformation
+    NDIndex<3> domain4_m;
     // (2*Nx,Ny,2*Nz)
     NDIndex<3> domainFFTConstruct_m;
 
@@ -133,12 +138,13 @@ private:
     IpplTimings::TimerRef IntGreensFunctionTimer1_m;
     IpplTimings::TimerRef IntGreensFunctionTimer2_m;
     IpplTimings::TimerRef IntGreensFunctionTimer3_m;
-    IpplTimings::TimerRef IntGreensFunctionTimer4_m;
+    IpplTimings::TimerRef IntGreensMirrorTimer1_m;
 
     IpplTimings::TimerRef ShIntGreensFunctionTimer1_m;
     IpplTimings::TimerRef ShIntGreensFunctionTimer2_m;
     IpplTimings::TimerRef ShIntGreensFunctionTimer3_m;
     IpplTimings::TimerRef ShIntGreensFunctionTimer4_m;
+    IpplTimings::TimerRef IntGreensMirrorTimer2_m;
 
     IpplTimings::TimerRef GreensFunctionTimer1_m;
     IpplTimings::TimerRef GreensFunctionTimer2_m;

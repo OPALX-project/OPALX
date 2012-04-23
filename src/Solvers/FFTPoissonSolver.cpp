@@ -53,6 +53,8 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     layout2_m(nullptr),
     mesh3_m(nullptr),
     layout3_m(nullptr),
+    mesh4_m(nullptr),
+    layout4_m(nullptr),
     greensFunction_m(greensFunction) {
     int i;
     domain_m = layout_m->getDomain();
@@ -104,6 +106,14 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     // helper field for sin
     greentr_m.initialize(*mesh3_m, *layout3_m);
 
+    for(i = 0; i < 3; i++) {
+        domain4_m[i] = Index(nr_m[i] + 2);
+    }
+    mesh4_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain4_m));
+    layout4_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh4_m, decomp));
+
+    tmpgreen.initialize(*mesh4_m, *layout4_m);
+
     // create a domain used to indicate to the FFT's how to construct it's
     // temporary fields.  This is the same as the complex field's domain,
     // but permuted back to the left.
@@ -124,19 +134,18 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
                                           (2 * nr_m[i] - domain2_m[i]));
     }
 
-    tmpgreen.initialize(*mesh2_m, *layout2_m);
-
     GreensFunctionTimer_m = IpplTimings::getTimer("GreensFTotal");
 
     IntGreensFunctionTimer1_m = IpplTimings::getTimer("IntGreenF1");
     IntGreensFunctionTimer2_m = IpplTimings::getTimer("IntGreenF2");
     IntGreensFunctionTimer3_m = IpplTimings::getTimer("IntGreenF3");
-    IntGreensFunctionTimer4_m = IpplTimings::getTimer("IntGreenF4");
+    IntGreensMirrorTimer1_m = IpplTimings::getTimer("MirrorRho1");
 
     ShIntGreensFunctionTimer1_m = IpplTimings::getTimer("ShIntGreenF1");
     ShIntGreensFunctionTimer2_m = IpplTimings::getTimer("ShIntGreenF2");
     ShIntGreensFunctionTimer3_m = IpplTimings::getTimer("ShIntGreenF3");
     ShIntGreensFunctionTimer4_m = IpplTimings::getTimer("ShIntGreenF4");
+    IntGreensMirrorTimer2_m = IpplTimings::getTimer("MirrorRho2");
 
     GreensFunctionTimer1_m = IpplTimings::getTimer("GreenF1");
     GreensFunctionTimer2_m = IpplTimings::getTimer("GreenF2");
@@ -152,6 +161,8 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
     layout2_m(nullptr),
     mesh3_m(nullptr),
     layout3_m(nullptr),
+    mesh4_m(nullptr),
+    layout4_m(nullptr),
     itsBunch_m(&beam),
     greensFunction_m(greensFunction) {
     int i;
@@ -206,6 +217,14 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
     // helper field for sin
     greentr_m.initialize(*mesh3_m, *layout3_m);
 
+    for(i = 0; i < 3; i++) {
+        domain4_m[i] = Index(nr_m[i] + 2);
+    }
+    mesh4_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain4_m));
+    layout4_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh4_m, decomp));
+
+    tmpgreen.initialize(*mesh4_m, *layout4_m);
+
     // create a domain used to indicate to the FFT's how to construct it's
     // temporary fields.  This is the same as the complex field's domain,
     // but permuted back to the left.
@@ -225,8 +244,6 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
                                           (2 * nr_m[i] - domain2_m[i]) *
                                           (2 * nr_m[i] - domain2_m[i]));
     }
-
-    tmpgreen.initialize(*mesh2_m, *layout2_m);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -387,33 +404,33 @@ void FFTPoissonSolver::greensFunction() {
   */
 void FFTPoissonSolver::integratedGreensFunction() {
 
+    NDIndex<3> idx =  layout4_m->getLocalNDIndex();
+    double cellVolume = hr_m[0] * hr_m[1] * hr_m[2];
     tmpgreen = 0.0;
-    double tmpgrn, r;
-    NDIndex<3> idx =  layout2_m->getLocalNDIndex();
 
     IpplTimings::startTimer(IntGreensFunctionTimer1_m);
 
     /**
       * This integral can be calculated analytically in a closed from:
       */
-    for(int k = idx[2].first(); k < std::min(nr_m[2] + 2, idx[2].last() + 3); k++) {
-        for(int j = idx[1].first(); j < std::min(nr_m[1] + 2, idx[1].last() + 3); j++) {
-            for(int i = idx[0].first(); i < std::min(nr_m[0] + 2, idx[0].last() + 3); i++) {
+    for(int k = idx[2].first(); k <= idx[2].last() + 1; k++) {
+        for(int j = idx[1].first(); j <=  idx[1].last() + 1; j++) {
+            for(int i = idx[0].first(); i <= idx[0].last() + 1; i++) {
 
                 Vector_t vv = Vector_t(0.0);
                 vv(0) = i * hr_m[0] - hr_m[0] / 2;
                 vv(1) = j * hr_m[1] - hr_m[1] / 2;
                 vv(2) = k * hr_m[2] - hr_m[2] / 2;
 
-                r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
-                tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
+                double r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
+                double tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
                 tmpgrn += -vv(1) * vv(1) * atan(vv(0) * vv(2) / (vv(1) * r)) / 2;
                 tmpgrn += -vv(0) * vv(0) * atan(vv(1) * vv(2) / (vv(0) * r)) / 2;
                 tmpgrn += vv(1) * vv(2) * log(vv(0) + r);
                 tmpgrn += vv(0) * vv(2) * log(vv(1) + r);
                 tmpgrn += vv(0) * vv(1) * log(vv(2) + r);
 
-                tmpgreen[i][j][k] = tmpgrn / (hr_m[0] * hr_m[1] * hr_m[2]);
+                tmpgreen[i][j][k] = tmpgrn / cellVolume;
 
             }
         }
@@ -422,13 +439,19 @@ void FFTPoissonSolver::integratedGreensFunction() {
 
     IpplTimings::startTimer(IntGreensFunctionTimer2_m);
 
-    rho2_m = 0.0;
+    //assign seems to have problems when we need values that are on another CPU, i.e. [I+1]
+    /*assign(rho2_m[I][J][K] ,
+           tmpgreen[I+1][J+1][K+1] - tmpgreen[I][J+1][K+1] -
+           tmpgreen[I+1][J][K+1] + tmpgreen[I][J][K+1] -
+           tmpgreen[I+1][J+1][K] + tmpgreen[I][J+1][K] +
+           tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
 
     Index I = nr_m[0] + 1;
     Index J = nr_m[1] + 1;
     Index K = nr_m[2] + 1;
 
     // the actual integration
+    rho2_m = 0.0;
     rho2_m[I][J][K]  = tmpgreen[I+1][J+1][K+1];
     rho2_m[I][J][K] += tmpgreen[I+1][J][K];
     rho2_m[I][J][K] += tmpgreen[I][J+1][K];
@@ -439,56 +462,40 @@ void FFTPoissonSolver::integratedGreensFunction() {
     rho2_m[I][J][K] -= tmpgreen[I][J][K];
 
     IpplTimings::stopTimer(IntGreensFunctionTimer2_m);
-    IpplTimings::startTimer(IntGreensFunctionTimer3_m);
-
-    //assign seems to have problems when we need values that are on another CPU, i.e. [I+1]
-    /*assign(rho2_m[I][J][K] ,
-           tmpgreen[I+1][J+1][K+1] - tmpgreen[I][J+1][K+1] - tmpgreen[I+1][J][K+1] + tmpgreen[I][J][K+1] - tmpgreen[I+1][J+1][K] +
-           tmpgreen[I][J+1][K] + tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
 
     mirrorRhoField();
-    IpplTimings::stopTimer(IntGreensFunctionTimer3_m);
 
-    IpplTimings::startTimer(IntGreensFunctionTimer4_m);
+    IpplTimings::startTimer(IntGreensFunctionTimer3_m);
     fft_m->transform(-1, rho2_m, grntr_m);
-    IpplTimings::stopTimer(IntGreensFunctionTimer4_m);
+    IpplTimings::stopTimer(IntGreensFunctionTimer3_m);
 }
 
 void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
 
     tmpgreen = 0.0;
-    double tmpgrn, r;
-    NDIndex<3> idx =  layout2_m->getLocalNDIndex();
-    Field_t grn2, ggrn2;
-    grn2.initialize(*mesh2_m, *layout2_m);
+    Field_t grn2(*mesh4_m, *layout4_m);
     grn2 = 0.0;
-    ggrn2.initialize(*mesh2_m, *layout2_m);
-    ggrn2 = 0.0;
-
+    NDIndex<3> idx =  layout4_m->getLocalNDIndex();
+    double cellVolume = hr_m[0] * hr_m[1] * hr_m[2];
     IpplTimings::startTimer(ShIntGreensFunctionTimer1_m);
-    /*
-    for(int k=0; k < nr_m[2]; k++) {
-      for(int j=0; j < nr_m[1]; j++) {
-        for(int i=0; i < nr_m[0]+2; i++) {
-    */
-    for(int k = idx[2].first(); k < std::min(nr_m[2] + 2, idx[2].last() + 3); k++) {
-        for(int j = idx[1].first(); j < std::min(nr_m[1] + 2, idx[1].last() + 3); j++) {
-            for(int i = idx[0].first(); i < std::min(nr_m[0] + 2, idx[0].last() + 3); i++) {
+    for(int k = idx[2].first(); k <= idx[2].last(); k++) {
+        for(int j = idx[1].first(); j <= idx[1].last(); j++) {
+            for(int i = idx[0].first(); i <= idx[0].last(); i++) {
 
                 Vector_t vv = Vector_t(0.0);
                 vv(0) = i * hr_m[0] - hr_m[0] / 2;
                 vv(1) = j * hr_m[1] - hr_m[1] / 2;
                 vv(2) = k * hr_m[2] - hr_m[2] / 2 + zshift;
 
-                r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
-                tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
+                double r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
+                double tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
                 tmpgrn += -vv(1) * vv(1) * atan(vv(0) * vv(2) / (vv(1) * r)) / 2;
                 tmpgrn += -vv(0) * vv(0) * atan(vv(1) * vv(2) / (vv(0) * r)) / 2;
                 tmpgrn += vv(1) * vv(2) * log(vv(0) + r);
                 tmpgrn += vv(0) * vv(2) * log(vv(1) + r);
                 tmpgrn += vv(0) * vv(1) * log(vv(2) + r);
 
-                tmpgreen[i][j][k] = tmpgrn / (hr_m[0] * hr_m[1] * hr_m[2]);
+                tmpgreen[i][j][k] = tmpgrn / cellVolume;
 
             }
         }
@@ -496,63 +503,29 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
     IpplTimings::stopTimer(ShIntGreensFunctionTimer1_m);
 
     IpplTimings::startTimer(ShIntGreensFunctionTimer2_m);
-    /*
-    for(int k=0; k < nr_m[2]; k++) {
-      for(int j=0; j < nr_m[1]; j++) {
-        for(int i=0; i < nr_m[0]+2; i++) {
-    */
-    for(int k = idx[2].first(); k < std::min(nr_m[2] + 2, idx[2].last() + 3); k++) {
-        for(int j = idx[1].first(); j < std::min(nr_m[1] + 2, idx[1].last() + 3); j++) {
-            for(int i = idx[0].first(); i < std::min(nr_m[0] + 2, idx[0].last() + 3); i++) {
+    for(int k = idx[2].first(); k <= idx[2].last(); k++) {
+        for(int j = idx[1].first(); j <= idx[1].last(); j++) {
+            for(int i = idx[0].first(); i <= idx[0].last(); i++) {
 
                 Vector_t vv = Vector_t(0.0);
                 vv(0) = i * hr_m[0] - hr_m[0] / 2;
                 vv(1) = j * hr_m[1] - hr_m[1] / 2;
-                vv(2) = zshift - hr_m[2] * (nr_m[2] - k) - hr_m[2] / 2;
-                //vv(2) = zshift-k*hr_m[2]-hr_m[2]/2;
+                vv(2) = k * hr_m[2] - hr_m[2] / 2 + zshift - nr_m[2] * hr_m[2];
 
-                r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
-                tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
+                double r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
+                double tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
                 tmpgrn += -vv(1) * vv(1) * atan(vv(0) * vv(2) / (vv(1) * r)) / 2;
                 tmpgrn += -vv(0) * vv(0) * atan(vv(1) * vv(2) / (vv(0) * r)) / 2;
                 tmpgrn += vv(1) * vv(2) * log(vv(0) + r);
                 tmpgrn += vv(0) * vv(2) * log(vv(1) + r);
                 tmpgrn += vv(0) * vv(1) * log(vv(2) + r);
 
-                grn2[i][j][k] = tmpgrn / (hr_m[0] * hr_m[1] * hr_m[2]);
+                grn2[i][j][k] = tmpgrn / cellVolume;
 
             }
         }
     }
     IpplTimings::stopTimer(ShIntGreensFunctionTimer2_m);
-
-    IpplTimings::startTimer(ShIntGreensFunctionTimer3_m);
-
-    rho2_m = 0.0;
-
-    Index I = nr_m[0] + 1;
-    Index J = nr_m[1] + 1;
-    Index K = nr_m[2] + 1;
-
-    // the actual integration
-    rho2_m[I][J][K]  = tmpgreen[I+1][J+1][K+1];
-    rho2_m[I][J][K] += tmpgreen[I+1][J][K];
-    rho2_m[I][J][K] += tmpgreen[I][J+1][K];
-    rho2_m[I][J][K] += tmpgreen[I][J][K+1];
-    rho2_m[I][J][K] -= tmpgreen[I+1][J+1][K];
-    rho2_m[I][J][K] -= tmpgreen[I+1][J][K+1];
-    rho2_m[I][J][K] -= tmpgreen[I][J+1][K+1];
-    rho2_m[I][J][K] -= tmpgreen[I][J][K];
-    tmpgreen = 0.0;
-    //later replace ggrn2 with tmpgreen
-    ggrn2[I][J][K]  = grn2[I+1][J+1][K+1];
-    ggrn2[I][J][K] += grn2[I+1][J][K];
-    ggrn2[I][J][K] += grn2[I][J+1][K];
-    ggrn2[I][J][K] += grn2[I][J][K+1];
-    ggrn2[I][J][K] -= grn2[I+1][J+1][K];
-    ggrn2[I][J][K] -= grn2[I+1][J][K+1];
-    ggrn2[I][J][K] -= grn2[I][J+1][K+1];
-    ggrn2[I][J][K] -= grn2[I][J][K];
 
     /**
      ** (x[0:nr_m[0]-1]^2 + y[0:nr_m[1]-1]^2 + (z_c + z[0:nr_m[2]-1])^2)^{-0.5}
@@ -564,26 +537,37 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
      ** (x[nr_m[0]:1]^2   + y[0:nr_m[1]-1]^2 + (z_c - z[nr_m[2]:1])^2)^{-0.5}
      ** (x[0:nr_m[0]-1]^2 + y[nr_m[1]:1]^2   + (z_c - z[nr_m[2]:1])^2)^{-0.5}
      ** (x[nr_m[0]:1]^2   + y[nr_m[1]:1]^2   + (z_c - z[nr_m[2]:1])^2)^{-0.5}
-    */
+     */
 
-    mirrorRhoField(ggrn2);
+    IpplTimings::startTimer(ShIntGreensFunctionTimer3_m);
 
-    //rho2_m[I ][J ][KE] = tmpgreen[I][J][2*nr_m[2] - KE];
-    //rho2_m[IE][J ][KE] = tmpgreen[2*nr_m[0] - IE][J][2*nr_m[2] - KE];
-    //rho2_m[I ][JE][KE] = tmpgreen[I][2*nr_m[1] - JE][2*nr_m[2] - KE];
-    //rho2_m[IE][JE][KE] = tmpgreen[2*nr_m[0] - IE][2*nr_m[1] - JE][2*nr_m[2] - KE];
+    Index I = nr_m[0] + 1;
+    Index J = nr_m[1] + 1;
+    Index K = nr_m[2] + 1;
 
-    /*ofstream fstr;
-    fstr.precision(9);
-    fstr.open("green",ios::out);
+    // the actual integration
+    rho2_m = 0.0;
+    rho2_m[I][J][K]  = tmpgreen[I+1][J+1][K+1];
+    rho2_m[I][J][K] += tmpgreen[I+1][J][K];
+    rho2_m[I][J][K] += tmpgreen[I][J+1][K];
+    rho2_m[I][J][K] += tmpgreen[I][J][K+1];
+    rho2_m[I][J][K] -= tmpgreen[I+1][J+1][K];
+    rho2_m[I][J][K] -= tmpgreen[I+1][J][K+1];
+    rho2_m[I][J][K] -= tmpgreen[I][J+1][K+1];
+    rho2_m[I][J][K] -= tmpgreen[I][J][K];
 
-    for (int i=0;i<32;i++)
-      for (int j=0;j<32;j++)
-        for (int k=0;k<32;k++)
-          fstr << k+1 << " " << j+1 << " " << i+1 << " " << rho2_m[k][j][i] << endl;
-    fstr.close();*/
-
+    tmpgreen = 0.0;
+    tmpgreen[I][J][K]  = grn2[I+1][J+1][K+1];
+    tmpgreen[I][J][K] += grn2[I+1][J][K];
+    tmpgreen[I][J][K] += grn2[I][J+1][K];
+    tmpgreen[I][J][K] += grn2[I][J][K+1];
+    tmpgreen[I][J][K] -= grn2[I+1][J+1][K];
+    tmpgreen[I][J][K] -= grn2[I+1][J][K+1];
+    tmpgreen[I][J][K] -= grn2[I][J+1][K+1];
+    tmpgreen[I][J][K] -= grn2[I][J][K];
     IpplTimings::stopTimer(ShIntGreensFunctionTimer3_m);
+
+    mirrorRhoField(tmpgreen);
 
     IpplTimings::startTimer(ShIntGreensFunctionTimer4_m);
     fft_m->transform(-1, rho2_m, grntr_m);
@@ -593,51 +577,52 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
 
 void FFTPoissonSolver::mirrorRhoField() {
 
-    Index I = nr_m[0] + 1;
-    Index J = nr_m[1] + 1;
-    Index K = nr_m[2] + 1;
+    IpplTimings::startTimer(IntGreensMirrorTimer1_m);
+    Index aI(0, 2 * nr_m[0]);
+    Index aJ(0, 2 * nr_m[1]);
 
-    Index IE(nr_m[0] + 1, 2 * nr_m[0] - 1);
-    Index JE(nr_m[1] + 1, 2 * nr_m[1] - 1);
-    Index KE(nr_m[2] + 1, 2 * nr_m[2] - 1);
+    Index J(0, nr_m[1]);
+    Index K(0, nr_m[2]);
 
-    Index mirroredIE = 2*nr_m[0] - IE;
-    Index mirroredJE = 2*nr_m[1] - JE;
-    Index mirroredKE = 2*nr_m[2] - KE;
+    Index IE(nr_m[0] + 1, 2 * nr_m[0]);
+    Index JE(nr_m[1] + 1, 2 * nr_m[1]);
+    Index KE(nr_m[2] + 1, 2 * nr_m[2]);
+
+    Index mirroredIE = 2 * nr_m[0] - IE;
+    Index mirroredJE = 2 * nr_m[1] - JE;
+    Index mirroredKE = 2 * nr_m[2] - KE;
 
     rho2_m[0][0][0] = rho2_m[0][0][1];
 
     rho2_m[IE][J ][K ] = rho2_m[mirroredIE][J         ][K         ];
-    rho2_m[I ][JE][K ] = rho2_m[I         ][mirroredJE][K         ];
-    rho2_m[I ][J ][KE] = rho2_m[I         ][J         ][mirroredKE];
-    rho2_m[IE][JE][K ] = rho2_m[mirroredIE][mirroredJE][K         ];
-    rho2_m[IE][J ][KE] = rho2_m[mirroredIE][J         ][mirroredKE];
-    rho2_m[I ][JE][KE] = rho2_m[I         ][mirroredJE][mirroredKE];
-    rho2_m[IE][JE][KE] = rho2_m[mirroredIE][mirroredJE][mirroredKE];
+    rho2_m[aI][JE][K ] = rho2_m[aI        ][mirroredJE][K         ];
+    rho2_m[aI][aJ][KE] = rho2_m[aI        ][aJ        ][mirroredKE];
+
+    IpplTimings::stopTimer(IntGreensMirrorTimer1_m);
 }
 
 void FFTPoissonSolver::mirrorRhoField(Field_t & ggrn2) {
 
-    Index I = nr_m[0] + 1;
-    Index J = nr_m[1] + 1;
-    Index K = nr_m[2] + 1;
+    IpplTimings::startTimer(IntGreensMirrorTimer2_m);
+    Index aI(0, 2 * nr_m[0]);
+    Index aK(0, 2 * nr_m[2]);
 
-    Index IE(nr_m[0] + 1, 2 * nr_m[0] - 1);
-    Index JE(nr_m[1] + 1, 2 * nr_m[1] - 1);
-    Index KE(nr_m[2], 2 * nr_m[2] - 1);
+    Index I(0, nr_m[0]);
+    Index J(0, nr_m[1]);
+
+    Index IE(nr_m[0] + 1, 2 * nr_m[0]);
+    Index JE(nr_m[1] + 1, 2 * nr_m[1]);
+    Index KE(nr_m[2] + 1, 2 * nr_m[2]);
 
     Index mirroredIE = 2*nr_m[0] - IE;
     Index mirroredJE = 2*nr_m[1] - JE;
     Index shiftedKE  = KE - nr_m[2];
 
-    rho2_m[IE][J ][K ] = rho2_m[mirroredIE][J         ][K];
-    rho2_m[I ][JE][K ] = rho2_m[I         ][mirroredJE][K];
-    rho2_m[IE][JE][K ] = rho2_m[mirroredIE][mirroredJE][K];
+    rho2_m[I ][J ][KE] = ggrn2[I          ][J         ][shiftedKE];
+    rho2_m[IE][J ][aK] = rho2_m[mirroredIE][J         ][aK       ];
+    rho2_m[aI][JE][aK] = rho2_m[aI        ][mirroredJE][aK       ];
 
-    rho2_m[I ][J ][KE] = ggrn2[I         ][J         ][shiftedKE];
-    rho2_m[IE][J ][KE] = ggrn2[mirroredIE][J         ][shiftedKE];
-    rho2_m[I ][JE][KE] = ggrn2[I         ][mirroredJE][shiftedKE];
-    rho2_m[IE][JE][KE] = ggrn2[mirroredIE][mirroredJE][shiftedKE];
+    IpplTimings::stopTimer(IntGreensMirrorTimer2_m);
 }
 
 Inform &FFTPoissonSolver::print(Inform &os) const {
