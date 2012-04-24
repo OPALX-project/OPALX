@@ -269,6 +269,8 @@ public:
 
     void computeSelfFields_cycl(int b);
 
+    void resetInterpolationCache(bool clearCache = false);
+
     void calcWeightedAverages(Vector_t &CentroidPosition, Vector_t &CentroidMomentum) const;
 
     /** EulerAngle[0] = rotation about the y-axis, EulerAngle[1] = rotation about x-axis
@@ -558,6 +560,10 @@ private:
     double couplingConstant_m;
 
     double qi_m;
+
+    bool interpolationCacheSet_m;
+
+    ParticleAttrib<CacheDataCIC<double,3U> > interpolationCache_m;
 
     /// counter to store the distributin dump
     int distDump_m;
@@ -934,6 +940,14 @@ void   PartBunch::setT(double t) {
 inline
 double PartBunch::getT() const {
     return t_m;
+}
+
+inline
+void PartBunch::resetInterpolationCache(bool clearCache) {
+    interpolationCacheSet_m = false;
+    if (clearCache) {
+        interpolationCache_m.destroy(interpolationCache_m.size(), 0, true);
+    }
 }
 
 inline

@@ -93,6 +93,7 @@ PartBunch::PartBunch(const PartData *ref):
     fs_m(nullptr),
     couplingConstant_m(0.0),
     qi_m(0.0),
+    interpolationCacheSet_m(false),
     distDump_m(0),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
@@ -190,6 +191,7 @@ PartBunch::PartBunch(const PartBunch &rhs):
     fs_m(nullptr),
     couplingConstant_m(rhs.couplingConstant_m),
     qi_m(rhs.qi_m),
+    interpolationCacheSet_m(rhs.interpolationCacheSet_m),
     distDump_m(rhs.distDump_m),
     stash_Nloc_m(rhs.stash_Nloc_m),
     stash_iniR_m(rhs.stash_iniR_m),
@@ -250,6 +252,7 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     fs_m(nullptr),
     couplingConstant_m(0.0),
     qi_m(0.0),
+    interpolationCacheSet_m(false),
     distDump_m(0),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
@@ -692,10 +695,22 @@ void PartBunch::computeSelfFields(int binNumber) {
     eg_m = Vector_t(0.0);
 
     if(fs_m->hasValidSolver()) {
-
         /// Scatter charge onto space charge grid.
         this->Q *= this->dt;
-        this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
+        if (!interpolationCacheSet_m) {
+            if (interpolationCache_m.size() < getLocalNum()) {
+                interpolationCache_m.create(getLocalNum() - interpolationCache_m.size());
+            } else {
+                interpolationCache_m.destroy(interpolationCache_m.size() - getLocalNum(),
+                                           getLocalNum(),
+                                           true);
+            }
+            interpolationCacheSet_m = true;
+
+            this->Q.scatter(this->rho_m, this->R, IntrplCIC_t(), interpolationCache_m);
+        } else {
+            this->Q.scatter(this->rho_m, IntrplCIC_t(), interpolationCache_m);
+        }
         this->Q /= this->dt;
         this->rho_m /= getdT();
 
@@ -740,7 +755,8 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// cached information about where the particles are relative to the
         /// field, since the particles have not moved since this the most recent
         /// scatter operation.
-        Eftmp.gather(eg_m, this->R, IntrplCIC_t());
+        Eftmp.gather(eg_m, IntrplCIC_t(), interpolationCache_m);
+        //Eftmp.gather(eg_m, this->R, IntrplCIC_t());
 
         /** Magnetic field in x and y direction induced by the electric field.
          *
@@ -790,7 +806,8 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// cached information about where the particles are relative to the
         /// field, since the particles have not moved since this the most recent
         /// scatter operation.
-        Eftmp.gather(eg_m, this->R, IntrplCIC_t());
+        Eftmp.gather(eg_m, IntrplCIC_t(), interpolationCache_m);
+        //Eftmp.gather(eg_m, this->R, IntrplCIC_t());
 
         /** Magnetic field in x and y direction induced by the image charge electric field. Note that beta will have
          *  the opposite sign from the bunch charge field, as the image charge is moving in the opposite direction.
@@ -2414,7 +2431,7 @@ void PartBunch::boundp_destroy() {
     len = rmax_m - rmin_m;
 
     calcBeamParameters_cycl();
-    
+
     const int checkfactor = Options::remotePartDel;
     // check the bunch if its full size is larger than checkfactor times of its rms size
     if (checkfactor != -1) {
@@ -2437,7 +2454,7 @@ void PartBunch::boundp_destroy() {
         rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
         hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
     }
-    
+
     // rescale mesh
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(rmin_m);

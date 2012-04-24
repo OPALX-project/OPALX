@@ -399,6 +399,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
                 // When we have energy bins.
                 itsBunch->calcGammas();
                 ParticleAttrib<double> Q_back = itsBunch->Q;
+                itsBunch->resetInterpolationCache();
                 for(int binNumber = 0; binNumber <= itsBunch->getLastemittedBin() && binNumber < itsBunch->getNumBins(); ++binNumber) {
                     itsBunch->setBinCharge(binNumber);
                     itsBunch->computeSelfFields(binNumber);
@@ -1906,6 +1907,7 @@ void ParallelTTracker::emitParticles(long long step) {
 
     if(step > minStepforReBin_m) {
         itsBunch->rebin();
+        itsBunch->resetInterpolationCache(true);
     }
 }
 
@@ -1918,6 +1920,7 @@ void ParallelTTracker::computeSpaceChargeFields() {
     // itsBunch->boundp();
     if(itsBunch->weHaveBins()) {
         itsBunch->calcGammas();
+        itsBunch->resetInterpolationCache();
         ParticleAttrib<double> Q_back = itsBunch->Q;
         for(int binNumber = 0; binNumber <= itsBunch->getLastemittedBin() &&
                 binNumber < itsBunch->getNumBins(); ++binNumber) {
