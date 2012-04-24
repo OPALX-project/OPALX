@@ -254,7 +254,7 @@ public:
     const M& mesh = f.get_mesh();
     // iterate through ParticleAttrib data and call scatter operation
     typename ParticleList_t::const_iterator curr, last = ParticleList.begin()+LocalSize;
-    typename ParticleAttrib< Vektor<PT,Dim> >::iterator ppiter=pp.begin();
+    typename ParticleAttrib< Vektor<PT,Dim> >::const_iterator ppiter=pp.cbegin();
     typename ParticleAttrib<CacheData>::iterator citer=cache.begin();
     for (curr = ParticleList.begin(); curr != last; ++curr, ++ppiter, ++citer)
       IntOp::scatter(*curr,f,*ppiter,mesh,*citer);
@@ -284,7 +284,7 @@ public:
 
     // iterate through ParticleAttrib data and call scatter operation
     typename ParticleList_t::const_iterator curr, last = ParticleList.begin()+LocalSize;
-    typename ParticleAttrib<CacheData>::iterator citer=cache.begin();
+    typename ParticleAttrib<CacheData>::const_iterator citer=cache.cbegin();
     for (curr = ParticleList.begin(); curr != last; ++curr, ++citer)
       IntOp::scatter(*curr,f,*citer);
 
@@ -349,7 +349,7 @@ public:
     const M& mesh = f.get_mesh();
     // iterate through ParticleAttrib data and call gather operation
     typename ParticleList_t::iterator curr, last = ParticleList.begin()+LocalSize;
-    typename ParticleAttrib< Vektor<PT,Dim> >::iterator ppiter=pp.begin();
+    typename ParticleAttrib< Vektor<PT,Dim> >::const_iterator ppiter=pp.cbegin();
     typename ParticleAttrib<CacheData>::iterator citer=cache.begin();
     for (curr=ParticleList.begin(); curr != last; ++curr,++ppiter,++citer)
       IntOp::gather(*curr,f,*ppiter,mesh,*citer);
@@ -380,7 +380,7 @@ public:
 
     // iterate through ParticleAttrib data and call gather operation
     typename ParticleList_t::iterator curr, last = ParticleList.begin()+LocalSize;
-    typename ParticleAttrib<CacheData>::iterator citer=cache.begin();
+    typename ParticleAttrib<CacheData>::const_iterator citer=cache.cbegin();
     for (curr = ParticleList.begin(); curr != last; ++curr, ++citer)
       IntOp::gather(*curr,f,*citer);
 
