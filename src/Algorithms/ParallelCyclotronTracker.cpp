@@ -2858,6 +2858,8 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
     initDistInGlobalFrame();
     itsBunch->R *= Vector_t(0.001); // In MTS method, we use [R] = m for calculation
+    RLastTurn_m *= 0.001;
+    RThisTurn_m *= 0.001;
     double const initialReferenceTheta = referenceTheta / 180.0 * pi;
     *gmsg << "single particle trajectory dump frequency is set to " << Options::sptDumpFreq << endl;
     *gmsg << "particles repartition frequency is set to " << Options::repartFreq << endl;
