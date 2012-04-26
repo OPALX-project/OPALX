@@ -845,8 +845,10 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    /// Write beam phase space.
 
+    setOPALt();
+
+    /// Write beam phase space.
     for(size_t i = 0; i < nLoc; i++)
         farray[i] =  beam.R[i](0);
     rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
@@ -947,8 +949,6 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 #endif
-    //~ if(varray)
-        //~ free(varray);
 
     /// Write space charge field map if asked for.
     if(Options::rhoDump) {
@@ -996,9 +996,6 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
                                         (h5_float64_t)beam.get_hr()(2));
 
     }
-
-    //H5Fflush(H5file_m->file, H5F_SCOPE_GLOBAL);
-
     /// Step record/time step index.
     H5call_m++;
 
@@ -1126,6 +1123,8 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
+    setOPALcycl();
+
     for(size_t i = 0; i < nLoc; i++)
         farray[i] =  beam.R[i](0);
     rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
@@ -1225,16 +1224,8 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
                 ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         }
     }
-    //~ if(data)
-        //~ free(data);
 #endif
-
-    //H5Fflush(H5file_m->file, H5F_SCOPE_GLOBAL);
-
     H5call_m++;
-
-    //~ if(varray)
-        //~ free(varray);
 
     IpplTimings::stopTimer(H5PartTimer_m);
 
@@ -1481,9 +1472,6 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
     /// Step record/time step index.
     H5call_m++;
 
-    //~ if(varray)
-        //~ free(varray);
-
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
 }
@@ -1571,9 +1559,6 @@ void DataSink::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 
     /// Step record/time step index.
     H5call_m++;
-
-    //if(varray)
-    //free(varray);
 
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -1721,9 +1706,6 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
         //rc = H5Fflush(H5file_m->file, rc = H5F_SCOPE_GLOBAL);
 
     }
-
-    //~ if(varray)
-        //~ free(varray);
 
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -2378,12 +2360,6 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    //~ if(varray)
-        //~ free(varray);
-    //~ if(tmploss)
-        //~ free(tmploss);
-
-
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
 
@@ -2598,9 +2574,6 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    //~ if(varray)
-        //~ free(varray);
-
     rc = H5CloseFile(H5file);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -2716,10 +2689,6 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
     // update the bin status
     if(beam.weHaveBins())
         beam.pbin_m->updateStatus(BinID + 1, InjectN);
-
-    // free memory
-    //~ if(varray)
-        //~ free(varray);
 
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);
