@@ -214,6 +214,33 @@ double Cyclotron::getSLPtc() const {
     return slptc_m;
 }
 
+void Cyclotron::setMinR(double r) {
+    minr_m = r;
+}
+double Cyclotron::getMinR() const {
+    return minr_m;
+}
+
+void Cyclotron::setMaxR(double r) {
+    maxr_m = r;
+}
+double Cyclotron::getMaxR() const {
+    return maxr_m;
+}
+
+void  Cyclotron::setMinZ(double z) {
+    minz_m = z;
+}
+double Cyclotron::getMinZ() const {
+    return minz_m;
+}
+void Cyclotron::setMaxZ(double z) {
+    maxz_m = z;
+}
+double Cyclotron::getMaxZ() const {
+    return maxz_m;
+}
+
 bool Cyclotron::apply(const int &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     if(apply(RefPartBunch_m->R[i], Vector_t(0.0), t, Ev, Bv)) return true;

@@ -3387,13 +3387,13 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
     if(((*sindex)->first) == "CCOLLIMATOR") {
         Collimator * collim;
-	collim = static_cast<Collimator *>(((*sindex)->second).second);
+    collim = static_cast<Collimator *>(((*sindex)->second).second);
 	if(collim->hasSurfacePhysics()) {
-	  sphys = collim->getSurfacePhysics();
-	  sphys->apply(*itsBunch);
+        sphys = collim->getSurfacePhysics();
+        sphys->apply(*itsBunch);
 	} else {
-	  collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
-	}
+        collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
+	}   
     }
 
     flagNeedUpdate = (min(itsBunch->Bin) < 0);

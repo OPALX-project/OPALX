@@ -175,6 +175,17 @@ public:
     void   setSuperpose(bool flag);
     virtual bool getSuperpose() const;
 
+    void setMinR(double r);
+    virtual double getMinR() const;
+    void setMaxR(double r);
+    virtual double getMaxR() const;
+
+    void setMinZ(double z);
+    virtual double getMinZ() const;
+    void setMaxZ(double z);
+    virtual double getMaxZ() const;
+
+
     virtual bool apply(const int &i, const double &t, double E[], double B[]);
 
     virtual bool apply(const int &i, const double &t, Vector_t &E, Vector_t &B);
@@ -216,6 +227,12 @@ private:
     double tcr2_m;
     double mbtc_m;
     double slptc_m;
+
+    double minr_m;
+    double maxr_m;
+
+    double minz_m;
+    double maxz_m;
 
     // Not implemented.
     void operator=(const Cyclotron &);
