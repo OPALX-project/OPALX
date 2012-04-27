@@ -1432,11 +1432,8 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
         *gmsg << "Restart from a specified file:" << fn << endl;
 
     } else {
-        fn = OpalData::getInstance()->getInputFn();
-        int pos = fn.find(string("."), 0);
-        fn.erase(pos, fn.size() - pos);
         //        beam.setTEmission(Attributes::getReal(itsAttr[TEMISSION]));
-        fn += string(".h5");
+        fn = OpalData::getInstance()->getInputBasename() + string(".h5");
     }
 
 #ifdef PARALLEL_IO
@@ -2600,11 +2597,8 @@ void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
 
     IpplTimings::startTimer(beam.distrReload_m);
 
-    fn = OpalData::getInstance()->getInputFn();
-    int pos = fn.find(string("."), 0);
-    fn.erase(pos, fn.size() - pos);
     //        beam.setTEmission(Attributes::getReal(itsAttr[TEMISSION]));
-    fn += string(".h5");
+    fn = OpalData::getInstance()->getInputBasename() + string(".h5");
 
 #ifdef PARALLEL_IO
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());
@@ -2760,10 +2754,7 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
     *gmsg << "---------------- Start reading hdf5 file----------------" << endl;
     h5_file_t *H5file;
 
-    string fn = OpalData::getInstance()->getInputFn();
-    int pos = fn.find(string("."), 0);
-    fn.erase(pos, fn.size() - pos);
-    fn += string(".h5");
+    string fn = OpalData::getInstance()->getInputBasename() + string(".h5");
 
 #ifdef PARALLEL_IO
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());

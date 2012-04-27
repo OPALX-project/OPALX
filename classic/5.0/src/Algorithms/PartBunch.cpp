@@ -948,9 +948,7 @@ void PartBunch::computeSelfFields() {
         std::ostringstream istr;
         istr << fieldDBGStep_m;
 
-        string SfileName = OpalData::getInstance()->getInputFn();
-        int pdot = SfileName.find(string("."), 0);
-        SfileName.erase(pdot, SfileName.size() - pdot);
+        string SfileName = OpalData::getInstance()->getInputBasename();
 
         string rho_fn = string("fields/") + SfileName + string("-rho_scalar-") + string(istr.str());
         fstr2.open(rho_fn.c_str(), ios::out);

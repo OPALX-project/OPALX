@@ -591,6 +591,11 @@ string OpalData::getInputFn() {
     return p->inputFn;
 }
 
+std::string OpalData::getInputBasename() {
+    std::string & fn = p->inputFn;
+    int const pdot = fn.rfind(".");
+    return fn.substr(0, pdot);
+}
 
 void OpalData::update() {
     Inform msg("OpalData ");

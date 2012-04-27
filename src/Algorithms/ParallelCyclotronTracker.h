@@ -342,8 +342,6 @@ private:
 
     void initTrackOrbitFile();
 
-    std::string inputFileNameWithoutExtension();
-
     void singleParticleDump();
 
     void evaluateSpaceChargeField();

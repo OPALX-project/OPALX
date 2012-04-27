@@ -151,6 +151,9 @@ public:
     /// get opals input filename
     std::string getInputFn();
 
+    /// get input file name without extension
+    std::string getInputBasename();
+
     /// store opals input filename
     void storeInputFn(const std::string &fn);
 

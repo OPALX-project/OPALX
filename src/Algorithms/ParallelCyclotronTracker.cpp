@@ -904,7 +904,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     // for single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1)
-        openFiles(inputFileNameWithoutExtension());
+        openFiles(OpalData::getInstance()->getInputBasename());
 
     double const initialReferenceTheta = referenceTheta / 180.0 * pi;
 
@@ -1456,7 +1456,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     // for single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1)
-        openFiles(inputFileNameWithoutExtension());
+        openFiles(OpalData::getInstance()->getInputBasename());
 
     initDistInGlobalFrame();
 
@@ -2853,7 +2853,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
     // for single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1) {
-        openFiles(inputFileNameWithoutExtension());
+        openFiles(OpalData::getInstance()->getInputBasename());
     }
 
     initDistInGlobalFrame();
@@ -3431,7 +3431,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
 }
 
 void ParallelCyclotronTracker::initTrackOrbitFile() {
-    std::string f = inputFileNameWithoutExtension() + string("-trackOrbit.dat");
+    std::string f = OpalData::getInstance()->getInputBasename() + string("-trackOrbit.dat");
     outfTrackOrbit_m.setf(ios::scientific, ios::floatfield);
     outfTrackOrbit_m.precision(8);
     if(myNode_m == 0) {
@@ -3443,12 +3443,6 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
             outfTrackOrbit_m << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]" << endl;
         }
     }
-}
-
-std::string ParallelCyclotronTracker::inputFileNameWithoutExtension() {
-    std::string f = OpalData::getInstance()->getInputFn();
-    int const pdot = f.find(string("."), 0);
-    return f.erase(pdot, f.size() - pdot);
 }
 
 void ParallelCyclotronTracker::initDistInGlobalFrame() {

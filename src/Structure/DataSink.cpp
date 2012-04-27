@@ -150,11 +150,7 @@ DataSink::DataSink() :
     firstWriteH5part_m = true;
     firstWriteH5Surface_m = true;
     /// Define file names.
-    string fn = OpalData::getInstance()->getInputFn();
-
-    int pos = fn.find(string("."), 0);
-    fn.erase(pos, fn.size() - pos);
-
+    string fn = OpalData::getInstance()->getInputBasename();
     surfacLossFileName_m = fn + string(".SurfaceLoss.h5");
     statFileName_m = fn + string(".stat");
     lBalFileName_m = fn + string(".lbal");
@@ -196,10 +192,7 @@ DataSink::DataSink(int restartStep) :
     firstWriteToStat_m = true;
     firstWriteH5part_m = false;
     /// Get file name root.
-    string fn = OpalData::getInstance()->getInputFn();
-
-    int pos = fn.find(string(".in"), 0);
-    fn.erase(pos, fn.size() - pos);
+    string fn = OpalData::getInstance()->getInputBasename();
 
     statFileName_m = fn + string(".stat");
     lBalFileName_m = fn + string(".lbal");
@@ -2446,9 +2439,7 @@ void DataSink::writeGeomToVtk(BoundaryGeometry &bg, string fn) {
 void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
     h5_int64_t rc;
     /// Define file names.
-    string fn = OpalData::getInstance()->getInputFn();
-    int pos = fn.find(string("."), 0);
-    fn.erase(pos, fn.size() - pos);
+    string fn = OpalData::getInstance()->getInputBasename();
     fn = fn + fn_appendix + string(".h5");
     h5_file_t *H5file;
 
@@ -2583,9 +2574,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
 bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const size_t BinID) {
     h5_int64_t rc;
     /// Define file names.
-    string fn = OpalData::getInstance()->getInputFn();
-    int pos = fn.find(string("."), 0);
-    fn.erase(pos, fn.size() - pos);
+    string fn = OpalData::getInstance()->getInputBasename();
     fn = fn + fn_appendix + string(".h5");
     h5_file_t *H5file;
 

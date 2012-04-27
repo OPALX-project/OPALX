@@ -169,10 +169,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     //    itsBeamline = dynamic_cast<Beamline*>(beamline.clone());
 
 #ifdef DBG_SYM
-    string SfileName = OpalData::getInstance()->getInputFn();
-    int pdot = SfileName.find(string("."), 0);
-    SfileName.erase(pdot, SfileName.size() - pdot);
-    string fn = SfileName + string(".fields");
+    string fn = OpalData::getInstance()->getInputBasename() + string(".fields");
     of_m.open(fn.c_str(), ios::out);
     of_m.precision(9);
     of_m << "# spos Ex Ey Ez Bz By Bz at: (h,h),(h,-h),(-h,h)(-h,-h) h=0.001" << endl;

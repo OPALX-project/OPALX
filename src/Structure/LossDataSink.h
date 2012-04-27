@@ -27,10 +27,7 @@ public:
         element_m("NULL"),
         doHdf5Save_m(hdf5Save) {
         if(!doHdf5Save_m) {
-            fn_m = OpalData::getInstance()->getInputFn();
-            int pos = fn_m.find(std::string("."), 0);
-            fn_m.erase(pos, fn_m.size() - pos);
-            fn_m += std::string(".loss");
+            fn_m = OpalData::getInstance()->getInputBasename() + std::string(".loss");
 	    os_m.precision(8);
 	    os_m.setf(std::ios::scientific, std::ios::floatfield);
         if(OpalData::getInstance()->inRestartRun()) 
@@ -47,10 +44,7 @@ public:
     LossDataSink():
         element_m("NULL") {
         if(!doHdf5Save_m) {
-            fn_m = OpalData::getInstance()->getInputFn();
-            int pos = fn_m.find(std::string("."), 0);
-            fn_m.erase(pos, fn_m.size() - pos);
-            fn_m += std::string(".loss");
+            fn_m = OpalData::getInstance()->getInputBasename() + std::string(".loss");
 	    os_m.precision(8);
 	    os_m.setf(std::ios::scientific, std::ios::floatfield);
             append();
