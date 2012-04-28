@@ -3503,8 +3503,42 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         }
 
     } else {
-        PathLength_m = itsBunch->getLPath();
-        itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+      if((Options::psDumpLocalFrame)) {
+        *gmsg<<"* Restart in the local frame" <<endl;
+          double const initialReferenceTheta = referenceTheta / 180.0 * pi;
+          PathLength_m = 0.0;
+          
+          // Initial dump (if requested in local frame)
+          // lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
+          // itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0);
+          // *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T= 0 [ns]" << endl;
+
+          // Initialize global R
+          itsBunch->R *= Vector_t(1000.0); // m --> mm
+          Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, 0.0); // [referenceR] == mm
+          localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
+          
+          // Initialize global P
+          for(size_t i = 0; i < initialLocalNum_m; ++i) {
+              itsBunch->P[i](0) += referencePr;
+              itsBunch->P[i](1) += referencePt;
+          }
+          localToGlobal(itsBunch->P, initialReferenceTheta);
+
+          // Initialize the bin number of the first bunch to 0
+          for(size_t i = 0; i < initialLocalNum_m; ++i) {
+              itsBunch->Bin[i] = 0;
+          }
+          // multi-bunch mast not be done in the local frame
+          // if restart from opal-t h5 file, must dump in the local frame
+
+      //restart from the distribution in the global frame
+      }else{
+        *gmsg<<"* Restart in the global frame" <<endl;
+          PathLength_m = itsBunch->getLPath();
+          itsBunch->R *= Vector_t(1000.0); // m --> mm
+      }
     }
     Vector_t const meanR = calcMeanR();
 
