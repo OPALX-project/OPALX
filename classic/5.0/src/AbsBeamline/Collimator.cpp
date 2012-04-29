@@ -53,11 +53,11 @@ Collimator::Collimator():
     b_m(0.0),
     x0_m(0.0),
     y0_m(0.0),
-    as_m(0.0),
-    rs_m(0.0),
-    ae_m(0.0),
-    re_m(0.0),
-    w_m(0.0),
+    xstart_m(0.0),
+    xend_m(0.0),
+    ystart_m(0.0),
+    yend_m(0.0),
+    width_m(0.0),
     isAPepperPot_m(false),
     isASlit_m(false),
     isARColl_m(false),
@@ -89,11 +89,11 @@ Collimator::Collimator(const Collimator &right):
     b_m(right.b_m),
     x0_m(right.x0_m),
     y0_m(right.y0_m),
-    as_m(right.as_m),
-    rs_m(right.rs_m),
-    ae_m(right.ae_m),
-    re_m(right.re_m),
-    w_m(right.w_m),
+    xstart_m(right.xstart_m),
+    xend_m(right.xend_m),
+    ystart_m(right.ystart_m),
+    yend_m(right.yend_m),
+    width_m(right.width_m),
     isAPepperPot_m(right.isAPepperPot_m),
     isASlit_m(right.isASlit_m),
     isARColl_m(right.isARColl_m),
@@ -127,11 +127,11 @@ Collimator::Collimator(const string &name):
     b_m(0.0),
     x0_m(0.0),
     y0_m(0.0),
-    as_m(0.0),
-    rs_m(0.0),
-    ae_m(0.0),
-    re_m(0.0),
-    w_m(0.0),
+    xstart_m(0.0),
+    xend_m(0.0),
+    ystart_m(0.0),
+    yend_m(0.0),
+    width_m(0.0),
     isAPepperPot_m(false),
     isASlit_m(false),
     isARColl_m(false),
@@ -244,27 +244,29 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
 
     bool flagNeedUpdate = false;
     Vector_t rmin, rmax;
+
     bunch.get_bounds(rmin, rmax);
+    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
+    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-
-    if(r1 > rs_m - 50.0 && r1 < re_m + 50.0 ){
-      size_t tempnum = bunch.getLocalNum();
-      int pflag = 0;
-
-      for(unsigned int i = 0; i < tempnum; ++i) {
-	if(bunch.PType[i] == 0) {
-	  pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-	  if(pflag != 0) {
-	    lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
-	    bunch.Bin[i] = -1;
-	    flagNeedUpdate = true;
-	  }
-	}
-      }
+   
+    if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+        size_t tempnum = bunch.getLocalNum();
+        int pflag = 0;
+        for(unsigned int i = 0; i < tempnum; ++i) {
+            if(bunch.PType[i] == 0) {
+                pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
+                if(pflag != 0) {
+                  lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
+                  bunch.Bin[i] = -1;
+                  flagNeedUpdate = true;
+                }
+            }
+        }
     }
-    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-    if(flagNeedUpdate) lossDs_m->save(getName());
-    return flagNeedUpdate;
+  reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+  if(flagNeedUpdate) lossDs_m->save(getName());
+  return flagNeedUpdate;
 }
 
 
@@ -318,7 +320,7 @@ void Collimator::goOnline() {
     else if(isARColl_m)
         msg << "RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isACColl_m)
-        msg << "CCollimator angstart= " << as_m << " angend " << ae_m << " rstart " << rs_m << " rend " << re_m << endl;
+        msg << "CCollimator angstart= " << xstart_m << " angend " << ystart_m << " rstart " << xend_m << " rend " << yend_m << endl;
     else if(isAWire_m)
         msg << "Wire x= " << x0_m << " y= " << y0_m << endl;
     else
@@ -539,44 +541,44 @@ double Collimator::getYpos() {
 
     // --------Cyclotron collimator
 }
-void Collimator::setAngStart(double as) {
-    as_m = as;
+void Collimator::setXStart(double xstart) {
+    xstart_m = xstart;
 }
 
-void Collimator::setRStart(double rs) {
-    rs_m = rs;
+void Collimator::setXEnd(double xend) {
+    xend_m = xend;
 }
 
-void Collimator::setAngEnd(double ae) {
-    ae_m = ae;
+void Collimator::setYStart(double ystart) {
+    ystart_m = ystart;
 }
 
-void Collimator::setREnd(double re) {
-    re_m = re;
+void Collimator::setYEnd(double yend) {
+    yend_m = yend;
 }
 
-void Collimator::setWidth(double w) {
-    w_m = w;
+void Collimator::setWidth(double width) {
+    width_m = width;
 }
 
-double Collimator::getAngStart() {
-    return as_m;
+double Collimator::getXStart() {
+    return xstart_m;
 }
 
-double Collimator::getRStart() {
-    return rs_m;
+double Collimator::getXEnd() {
+    return xend_m;
 }
 
-double Collimator::getAngEnd() {
-    return ae_m;
+double Collimator::getYStart() {
+    return ystart_m;
 }
 
-double Collimator::getREnd() {
-    return re_m;
+double Collimator::getYEnd() {
+    return yend_m;
 }
 
 double Collimator::getWidth() {
-    return w_m;
+    return width_m;
 }
 
 //-------------------------------
@@ -644,21 +646,29 @@ string Collimator::getCollimatorShape() {
 
 void Collimator::setGeom() {
 
-    geom_m[0].x = rs_m*cos(as_m);
-    geom_m[0].y = rs_m*sin(as_m);
+    double slope;
+    if (xend_m == xstart_m)
+      slope = 1.0e12;
+    else
+      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
 
-    geom_m[1].x = re_m*cos(as_m);
-    geom_m[1].y = re_m*sin(as_m);
+    double coeff2 = sqrt(1 + slope * slope);
+    double coeff1 = slope / coeff2;
+    double halfdist = width_m / 2.0;
+    geom_m[0].x = xstart_m - halfdist * coeff1;
+    geom_m[0].y = ystart_m + halfdist / coeff2;
 
-    geom_m[2].x = re_m*cos(ae_m);
-    geom_m[2].y = re_m*sin(ae_m);
+    geom_m[1].x = xstart_m + halfdist * coeff1;
+    geom_m[1].y = ystart_m - halfdist / coeff2;
 
-    geom_m[3].x = rs_m*cos(ae_m);
-    geom_m[3].y = rs_m*sin(ae_m);
+    geom_m[2].x = xend_m + halfdist * coeff1;
+    geom_m[2].y = yend_m - halfdist  / coeff2;
+
+    geom_m[3].x = xend_m - halfdist * coeff1;
+    geom_m[3].y = yend_m + halfdist / coeff2;
 
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
-
 
 }
 

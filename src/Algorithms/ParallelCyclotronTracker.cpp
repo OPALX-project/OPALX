@@ -338,25 +338,25 @@ void ParallelCyclotronTracker::visitBeamBeam(const BeamBeam &) {
  */
 void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
 
-    Inform msg("visitCCollimator ");
+    *gmsg << "* --------- Collimator -----------------------------" << endl;
 
     Collimator* elptr = dynamic_cast<Collimator *>(coll.clone());
     myElements.push_back(elptr);
 
-    double angstart = elptr->getAngStart();
-    msg << "AngStart= " << angstart << " [rad]" << endl;
+    double xstart = elptr->getXStart();
+    *gmsg << "Xstart= " << xstart << " [mm]" << endl;
 
-    double angend = elptr->getAngEnd();
-    msg << "AngEnd= " << angend << " [rad]" << endl;
+    double xend = elptr->getXEnd();
+    *gmsg << "Xend= " << xend << " [mm]" << endl;
 
-    double rstart = elptr->getRStart();
-    msg << "RStart= " << rstart << " [mm]" << endl;
+    double ystart = elptr->getYStart();
+    *gmsg << "Ystart= " << ystart << " [mm]" << endl;
 
-    double rend = elptr->getREnd();
-    msg << "REnd= " << rend << " [mm]" << endl;
+    double yend = elptr->getYEnd();
+    *gmsg << "Yend= " <<yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    msg << "Width= " << width << " [mm]" << endl;
+    *gmsg << "Width= " << width << " [mm]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
 
@@ -364,10 +364,10 @@ void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
     string ElementType = "CCOLLIMATOR";
-    BcParameter[0] = angstart ;
-    BcParameter[1] = angend;
-    BcParameter[2] = rstart ;
-    BcParameter[3] = rend;
+    BcParameter[0] = xstart ;
+    BcParameter[1] = xend;
+    BcParameter[2] = ystart ;
+    BcParameter[3] = yend;
     BcParameter[4] = width ;
     buildupFieldList(BcParameter, ElementType, elptr);
 }
@@ -450,25 +450,25 @@ void ParallelCyclotronTracker::visitMultipole(const Multipole &mult) {
  * @param prob
  */
 void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
-    Inform msg("visitProbe ");
 
+    *gmsg << "* -----------  Probe -------------------------------" << endl;
     Probe *elptr = dynamic_cast<Probe *>(prob.clone());
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    msg << "XStart= " << xstart << " [mm]" << endl;
+    *gmsg << "XStart= " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    msg << "XEnd= " << xend << " [mm]" << endl;
+    *gmsg << "XEnd= " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    msg << "YStart= " << ystart << " [mm]" << endl;
+    *gmsg << "YStart= " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    msg << "YEnd= " << yend << " [mm]" << endl;
+    *gmsg << "YEnd= " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    msg << "Width= " << width << " [mm]" << endl;
+    *gmsg << "Width= " << width << " [mm]" << endl;
 
 
     // initialise, do nothing
@@ -592,25 +592,26 @@ void ParallelCyclotronTracker::visitSeparator(const Separator &sep) {
  * @param sept
  */
 void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
-    Inform msg("visitSeptum ");
+
+    *gmsg << "* -----------  Septum -------------------------------" << endl;
 
     Septum *elptr = dynamic_cast<Septum *>(sept.clone());
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    msg << "XStart= " << xstart << " [mm]" << endl;
+    *gmsg << "XStart= " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    msg << "XEnd= " << xend << " [mm]" << endl;
+    *gmsg << "XEnd= " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    msg << "YStart= " << ystart << " [mm]" << endl;
+    *gmsg << "YStart= " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    msg << "YEnd= " << yend << " [mm]" << endl;
+    *gmsg << "YEnd= " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    msg << "Width= " << width << " [mm]" << endl;
+    *gmsg << "Width= " << width << " [mm]" << endl;
 
 
     // initialise, do nothing
@@ -1226,7 +1227,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
         push(0.5 * dt * 1e-9);
         itsBunch->R *= Vector_t(1000.0);
 
-	// apply the plugin elements: probe, collimator, stripper, septum
+	// apply the plugin elements: probe, colilmator, stripper, septum
 	bool flagNeedUpdate=false;
 	flagNeedUpdate = applyPluginElements(dt);
 	if(itsBunch->weHaveBins() && flagNeedUpdate)

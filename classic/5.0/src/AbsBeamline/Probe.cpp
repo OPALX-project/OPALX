@@ -187,17 +187,20 @@ void Probe::setGeom(const double dist) {
     else
       slope = (yend_m - ystart_m) / (xend_m - xstart_m);
 
-    geom_m[0].x = xstart_m - dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[0].y = ystart_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    double coeff2 = sqrt(1 + slope * slope);
+    double coeff1 = slope / coeff2;
+    double halfdist = dist / 2.0;
+    geom_m[0].x = xstart_m - halfdist * coeff1;
+    geom_m[0].y = ystart_m + halfdist / coeff2;
 
-    geom_m[1].x = xstart_m + dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[1].y = ystart_m - dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    geom_m[1].x = xstart_m + halfdist * coeff1;
+    geom_m[1].y = ystart_m - halfdist / coeff2;
 
-    geom_m[2].x = xend_m + dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[2].y = yend_m - dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    geom_m[2].x = xend_m + halfdist * coeff1;
+    geom_m[2].y = yend_m - halfdist  / coeff2;
 
-    geom_m[3].x = xend_m - dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[3].y = yend_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    geom_m[3].x = xend_m - halfdist * coeff1;
+    geom_m[3].y = yend_m + halfdist / coeff2;
 
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
@@ -211,7 +214,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
     double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
     double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-
+   
     if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
 
         size_t tempnum = bunch.getLocalNum();

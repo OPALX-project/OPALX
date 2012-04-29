@@ -31,10 +31,10 @@ public:
 
     /// The attributes of class OpalCCollimator.
     enum {
-        ANGSTART = COMMON,  // Start of angle in rad.
-        ANGEND,       //End of angle in rad.
-        RSTART,  //Start of radius in mm.
-        REND,           // End of radius in mm.
+        XSTART = COMMON,           // Start of x coordinate
+        XEND,             // End of x coordinate
+        YSTART,           // Start of y coordinate
+        YEND,             // End of y coordinate
         WIDTH, //The width of collimator
         OUTFN,
         SIZE

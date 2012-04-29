@@ -6,13 +6,14 @@
 // Class category:
 // ------------------------------------------------------------------------
 // $Date: 2009/07/20 09:32:31 $
-// $Author: bi $
+// $Author: Bi, Yang $
 //-------------------------------------------------------------------------
 #include <vector>
 
 #include "Solvers/SurfacePhysicsHandler.hh"
 //#include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Vektor.h"
+#include "AbsBeamline/Component.h"
 
 class RANLIB_class;
 class ElementBase;
@@ -35,17 +36,17 @@ public:
     void EnergyLoss(double &Eng, bool &pdead, double &deltat);
     void  Rot(Vector_t &P, Vector_t Prot, double normP);
     double Rot(double &p1, double &p2, double &scatang);
-    double calculateAngle(double x, double y);
+
 private:
     RANLIB_class *rGen_m;
     double a_m;
     double b_m;
     double xp_m;
     double yp_m;
-    double angstart_m;
-    double angend_m;
-    double rstart_m;
-    double rend_m;
+    double xstart_m;
+    double xend_m;
+    double ystart_m;
+    double yend_m;
     double width_m;
 
     double Begin_m;
@@ -61,6 +62,7 @@ private:
     double n_m;
 
     bool incoll_m;
+    Point  geom_m[5];
 
     int index_m;
     std::vector<unsigned> label_m;
@@ -75,7 +77,9 @@ private:
     std::vector<Vector_t> Efincol_m;
     std::vector<double> time_m;
     std::vector<int> steps_m;
-
+  
+    void setCColimatorGeom();
+    int  checkPoint( const double & x, const double & y );
     LossDataSink *lossDs_m;
 };
 

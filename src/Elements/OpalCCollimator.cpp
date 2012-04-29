@@ -29,25 +29,25 @@ using Physics::pi;
 
 OpalCCollimator::OpalCCollimator():
     OpalElement(SIZE, "CCOLLIMATOR",
-                "The \"CCOLLIMATOR\" element defines a cyclotron collimator."),
+                "The \"CCOLLIMATOR\" element defines a rectangular-shape cyclotron collimator"),
     sphys_m(NULL) {
-    itsAttr[ANGSTART] = Attributes::makeReal
-                        ("ANGSTART", "Start of angle in rad");
-    itsAttr[ANGEND] = Attributes::makeReal
-                      ("ANGEND", "End of angle in rad");
-    itsAttr[RSTART] = Attributes::makeReal
-                      ("RSTART", "Start of radius in mm");
-    itsAttr[REND] = Attributes::makeReal
-                    ("REND", "End of radius in mm");
+    itsAttr[XSTART] = Attributes::makeReal
+                      ("XSTART", " Start of x coordinate [mm]");
+    itsAttr[XEND] = Attributes::makeReal
+                    ("XEND", " End of x coordinate, [mm]");
+    itsAttr[YSTART] = Attributes::makeReal
+                      ("YSTART", "Start of y coordinate, [mm]");
+    itsAttr[YEND] = Attributes::makeReal
+                    ("YEND", "End of y coordinate, [mm]");
     itsAttr[WIDTH] = Attributes::makeReal
-                     ("WIDTH", "Not used now");
+                     ("WIDTH", "Width of the collimator [mm]");
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "CCollimator output filename");
 
-    registerRealAttribute("ANGSTART");
-    registerRealAttribute("ANGEND");
-    registerRealAttribute("RSTART");
-    registerRealAttribute("REND");
+    registerRealAttribute("XSTART");
+    registerRealAttribute("XEND");
+    registerRealAttribute("YSTART");
+    registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
     registerStringAttribute("OUTFN");
 
@@ -82,33 +82,17 @@ void OpalCCollimator::update() {
     CollimatorRep *coll =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
-    double angstart = Attributes::getReal(itsAttr[ANGSTART]);
-    double angend = Attributes::getReal(itsAttr[ANGEND]);
-    double rstart = Attributes::getReal(itsAttr[RSTART]);
-    double rend = Attributes::getReal(itsAttr[REND]);
-
-    if (angstart > angend){
-      double temp = angstart;
-      angstart=angend;
-      angend=temp;
-      
-      temp = rstart;
-      rstart=rend;
-      rend=temp;
-    }
-    if (angstart < 0.0){
-      angstart = angstart + 2.0*pi;
-      angend   =  angend   + 2.0*pi;
-    }
-    rstart = fabs(rstart);
-    rend = fabs(rend);
-
+    double xstart = Attributes::getReal(itsAttr[XSTART]);
+    double xend = Attributes::getReal(itsAttr[XEND]);
+    double ystart = Attributes::getReal(itsAttr[YSTART]);
+    double yend = Attributes::getReal(itsAttr[YEND]);
+    double width = Attributes::getReal(itsAttr[WIDTH]);
     coll->setElementLength(length);
-    coll->setAngStart(angstart);
-    coll->setAngEnd(angend);
-    coll->setRStart(rstart);
-    coll->setREnd(rend);
-    coll->setWidth(Attributes::getReal(itsAttr[WIDTH]));
+    coll->setXStart(xstart);
+    coll->setXEnd(xend);
+    coll->setYStart(ystart);
+    coll->setYEnd(yend);
+    coll->setWidth(width);
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     coll->setCColl();
 

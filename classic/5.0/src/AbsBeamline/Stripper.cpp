@@ -99,26 +99,30 @@ Stripper::Stripper(const string &name):
 
 void Stripper::setGeom(const double dist) {
 
-    double slope;
+   double slope;
     if (xend_m == xstart_m)
       slope = 1.0e12;
     else
       slope = (yend_m - ystart_m) / (xend_m - xstart_m);
 
-    geom_m[0].x = xstart_m - dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[0].y = ystart_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    double coeff2 = sqrt(1 + slope * slope);
+    double coeff1 = slope / coeff2;
+    double halfdist = dist / 2.0;
+    geom_m[0].x = xstart_m - halfdist * coeff1;
+    geom_m[0].y = ystart_m + halfdist / coeff2;
 
-    geom_m[1].x = xstart_m + dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[1].y = ystart_m - dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    geom_m[1].x = xstart_m + halfdist * coeff1;
+    geom_m[1].y = ystart_m - halfdist / coeff2;
 
-    geom_m[2].x = xend_m + dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[2].y = yend_m - dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    geom_m[2].x = xend_m + halfdist * coeff1;
+    geom_m[2].y = yend_m - halfdist  / coeff2;
 
-    geom_m[3].x = xend_m - dist / 2.0 * slope / sqrt(1 + slope * slope);
-    geom_m[3].y = yend_m + dist / 2.0 * 1.0 / sqrt(1 + slope * slope);
+    geom_m[3].x = xend_m - halfdist * coeff1;
+    geom_m[3].y = yend_m + halfdist / coeff2;
 
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
+
 }
 
 

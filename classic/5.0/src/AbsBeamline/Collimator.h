@@ -115,23 +115,23 @@ public:
 
     // --------Cyclotron collimator
 
-    void setAngStart(double as) ;
+    void setXStart(double xstart) ;
 
-    void setRStart(double rs) ;
+    void setYStart(double ystart) ;
 
-    void setAngEnd(double ae) ;
+    void setXEnd(double xend) ;
 
-    void setREnd(double re) ;
+    void setYEnd(double yend) ;
 
-    void setWidth(double w) ;
+    void setWidth(double width) ;
 
-    double getAngStart() ;
+    double getXStart() ;
 
-    double getRStart() ;
+    double getYStart() ;
 
-    double getAngEnd() ;
+    double getXEnd() ;
 
-    double getREnd() ;
+    double getYEnd() ;
 
     double getWidth() ;
 
@@ -170,11 +170,13 @@ private:
     double b_m;
     double x0_m;
     double y0_m;
-    double as_m;
-    double rs_m;
-    double ae_m;
-    double re_m;
-    double w_m;
+
+    //parameters for CCollimator
+    double xstart_m;
+    double xend_m;
+    double ystart_m;
+    double yend_m;
+    double width_m;
 
 
     /** This defines a pepperpot */

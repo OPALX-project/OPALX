@@ -4,7 +4,7 @@
 // Class category:
 // ------------------------------------------------------------------------
 // $Date: 2009/07/20 09:32:31 $
-// $Author: bi $
+// $Author: Bi, Yang $
 //-------------------------------------------------------------------------
 #include "Solvers/CollimatorPhysics.hh"
 #include "Physics/Physics.h"
@@ -36,10 +36,10 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     b_m(minor),
     xp_m(0.0),
     yp_m(0.0),
-    angstart_m(0.0),
-    angend_m(0.0),
-    rstart_m(0.0),
-    rend_m(0.0),
+    xstart_m(0.0),
+    xend_m(0.0),
+    ystart_m(0.0),
+    yend_m(0.0),
     width_m(0.0),
     Begin_m(0.0),
     End_m(0.0),
@@ -64,11 +64,12 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
         collshape_m = coll->getCollimatorShape();
         xp_m = coll->getXpos();
         yp_m = coll->getYpos();
-        angstart_m = coll->getAngStart();
-        rstart_m = coll->getRStart();
-        angend_m = coll->getAngEnd();
-        rend_m = coll->getREnd();
+        xstart_m = coll->getXStart();
+        ystart_m = coll->getYStart();
+        xend_m = coll->getXEnd();
+        yend_m = coll->getYEnd();
         width_m = coll->getWidth();
+        setCColimatorGeom();
 
     } else if(dynamic_cast<Drift *>(element_ref_m)) {
         Drift *drf = dynamic_cast<Drift *>(element_ref_m);
@@ -113,12 +114,9 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     double scalefactor;
     // int flagcoll; !! carefull not initialized !!
     // Vector_t tmploss;
-    double angpar, rpar;
-
     double deltatbunch = bunch.getdT();
     double deltat = deltatbunch;
     double rr = 0.0, rr1 = 0.0, rr2 = 0.0;
-
 
     if(collshape_m == "CCollimator") {
         scalefactor = 1;
@@ -140,10 +138,11 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
             Vector_t &P = Pincol_m[i];
 
             if(collshape_m == "CCollimator") {
-                angpar = calculateAngle(R(0), R(1));
-                rpar = sqrt(R(0) * R(0) + R(1) * R(1));
-                if(angpar > angstart_m && angpar < angend_m && rpar > rstart_m && rpar < rend_m && fabs(R(2)) > a_m) incoll_m = true;
-
+                if( checkPoint(R(0), R(1)) == 1 )
+                    incoll_m = true;
+                else
+                    incoll_m = false;
+                
             } else {
 
                 if(collshape_m == "Slit") {
@@ -236,11 +235,11 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
             Vector_t R = bunch.R[i];
             Vector_t P = bunch.P[i];
 
-            if(collshape_m == "CCollimator") {
-                angpar = calculateAngle(R(0), R(1));
-                rpar = sqrt(R(0) * R(0) + R(1) * R(1));
-                if(angpar > angstart_m && angpar < angend_m && rpar > rstart_m && rpar < rend_m && fabs(R(2)) > a_m) incoll_m = true;
-
+             if(collshape_m == "CCollimator") {
+                if( checkPoint(R(0), R(1)) == 1 )
+                    incoll_m = true;
+                else
+                    incoll_m = false;
             } else {
                 if(collshape_m == "Slit") {
                     if(a_m > 0) {
@@ -339,9 +338,10 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
                 Vector_t &P = Pincol_m[i];
 
                 if(collshape_m == "CCollimator") {
-                    angpar = calculateAngle(R(0), R(1));
-                    rpar = sqrt(R(0) * R(0) + R(1) * R(1));
-                    if(angpar > angstart_m && angpar < angend_m && rpar > rstart_m && rpar < rend_m && fabs(R(2)) > a_m) incoll_m = true;
+                    if( checkPoint(R(0), R(1)) == 1 )
+                        incoll_m = true;
+                    else
+                        incoll_m = false;
                 } else {
                     if(collshape_m == "Slit") {
                         if(a_m > 0) {
@@ -584,16 +584,47 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat, d
     }
 }
 
+void CollimatorPhysics::setCColimatorGeom() {
 
-double CollimatorPhysics::calculateAngle(double x, double y) {
-    double thetaXY = atan2(y, x);
+    double slope;
+    if (xend_m == xstart_m)
+      slope = 1.0e12;
+    else
+      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
 
-    // if(x < 0)                   thetaXY = pi + atan(y / x);
-    // else if((x > 0) && (y >= 0))  thetaXY = atan(y / x);
-    // else if((x > 0) && (y < 0))   thetaXY = 2.0 * pi + atan(y / x);
-    // else if((x == 0) && (y > 0)) thetaXY = pi / 2.0;
-    // else if((x == 0) && (y < 0)) thetaXY = 3.0 / 2.0 * pi;
+    double coeff2 = sqrt(1 + slope * slope);
+    double coeff1 = slope / coeff2;
+    double halfdist = width_m / 2.0;
+    geom_m[0].x = xstart_m - halfdist * coeff1;
+    geom_m[0].y = ystart_m + halfdist / coeff2;
 
-    return thetaXY >= 0 ? thetaXY: thetaXY + Physics::two_pi;
+    geom_m[1].x = xstart_m + halfdist * coeff1;
+    geom_m[1].y = ystart_m - halfdist / coeff2;
+
+    geom_m[2].x = xend_m + halfdist * coeff1;
+    geom_m[2].y = yend_m - halfdist  / coeff2;
+
+    geom_m[3].x = xend_m - halfdist * coeff1;
+    geom_m[3].y = yend_m + halfdist / coeff2;
+
+    geom_m[4].x = geom_m[0].x;
+    geom_m[4].y = geom_m[0].y;
+
+}
+
+
+int CollimatorPhysics::checkPoint(const double &x, const double &y) {
+    int    cn = 0;
+
+    for(int i = 0; i < 4; i++) {
+        if(((geom_m[i].y <= y) && (geom_m[i+1].y > y))
+           || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
+
+            float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
+            if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
+                ++cn;
+        }
+    }
+    return (cn & 1);  // 0 if even (out), and 1 if odd (in)
 
 }
