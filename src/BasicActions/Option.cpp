@@ -43,6 +43,7 @@ namespace Options {
     bool psDumpLocalFrame = false;
     bool scan = false;
     bool rhoDump = false;
+    bool ebDump = false;
     bool efDump = false;
     bool ppdebug = false;
 
@@ -132,6 +133,7 @@ namespace {
 	REMOTEPARTDEL,
         SCAN,
         RHODUMP,
+        EBDUMP,
         EFDUMP,
         AUTOPHASE,
         PPDEBUG,
@@ -194,6 +196,9 @@ Option::Option():
     itsAttr[RHODUMP] = Attributes::makeBool
                        ("RHODUMP", "If true, in addition to the phase space the scalar rho field is also dumped (H5Block)", rhoDump);
 
+    itsAttr[EBDUMP] = Attributes::makeBool
+                       ("EBDUMP", "If true, in addition to the phase space the E and B field at each particle is also dumped into the H5 file)", ebDump);
+
     itsAttr[EFDUMP] = Attributes::makeBool
                       ("EFDUMP", "If true, in addition to the phase space the E vector field is also dumped (H5Block)", efDump);
 
@@ -252,6 +257,7 @@ Option::Option(const string &name, Option *parent):
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
     Attributes::setBool(itsAttr[SCAN], scan);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
+    Attributes::setBool(itsAttr[EBDUMP], ebDump);
     Attributes::setBool(itsAttr[EFDUMP], efDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[PPDEBUG], ppdebug);
@@ -287,6 +293,7 @@ void Option::execute() {
     psDumpLocalFrame = Attributes::getBool(itsAttr[PSDUMPLOCALFRAME]);
     scan = Attributes::getBool(itsAttr[SCAN]);
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
+    ebDump = Attributes::getBool(itsAttr[EBDUMP]);
     efDump = Attributes::getBool(itsAttr[EFDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
 

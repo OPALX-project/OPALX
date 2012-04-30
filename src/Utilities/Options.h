@@ -104,7 +104,7 @@ namespace Options {
 
     extern bool rhoDump;
 
-    extern bool efDunp;
+    extern bool ebDump;
 
     // if true opal find the phases in the cavities, such that the energy gain is at maximum
     extern int autoPhase;

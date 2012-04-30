@@ -938,44 +938,44 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 
     // Need this because rc = H5root does not yet work with
     // a vaiable number of data
-#define noEB_PARTICLE_DUMP
-#ifdef EB_PARTICLE_DUMP
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Ef[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "Ex", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Ef[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "Ey", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    if(Options::ebDump) {
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Ef[i](0);
+        rc = H5PartWriteDataFloat64(H5file_m, "Ex", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Ef[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "Ez", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Ef[i](1);
+        rc = H5PartWriteDataFloat64(H5file_m, "Ey", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Bf[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "Bx", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Ef[i](2);
+        rc = H5PartWriteDataFloat64(H5file_m, "Ez", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Bf[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "By", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Bf[i](0);
+        rc = H5PartWriteDataFloat64(H5file_m, "Bx", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Bf[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "Bz", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-#endif
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Bf[i](1);
+        rc = H5PartWriteDataFloat64(H5file_m, "By", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Bf[i](2);
+        rc = H5PartWriteDataFloat64(H5file_m, "Bz", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    }
 
     /// Write space charge field map if asked for.
     if(Options::rhoDump) {
@@ -1317,44 +1317,44 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]) {
 
     // Need this because rc = H5root does not yet work with
     // a vaiable number of data
-#define noEB_PARTICLE_DUMP
-#ifdef EB_PARTICLE_DUMP
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Ef[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "Ex", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    if(Options::ebDump) {
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Ef[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "Ey", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Ef[i](0);
+        rc = H5PartWriteDataFloat64(H5file_m, "Ex", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Ef[i](1);
+        rc = H5PartWriteDataFloat64(H5file_m, "Ey", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Ef[i](2);
+        rc = H5PartWriteDataFloat64(H5file_m, "Ez", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Ef[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "Ez", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Bf[i](0);
+        rc = H5PartWriteDataFloat64(H5file_m, "Bx", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Bf[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "Bx", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Bf[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "By", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Bf[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "Bz", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-#endif
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Bf[i](1);
+        rc = H5PartWriteDataFloat64(H5file_m, "By", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        
+        for(size_t i = 0; i < nLoc; i++)
+            farray[i] =  beam.Bf[i](2);
+        rc = H5PartWriteDataFloat64(H5file_m, "Bz", farray);
+        if(rc != H5_SUCCESS)
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    }
 
     /// Write space charge field map if asked for.
     if(Options::rhoDump) {
