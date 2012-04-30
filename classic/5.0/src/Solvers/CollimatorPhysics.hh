@@ -47,6 +47,8 @@ private:
     double xend_m;
     double ystart_m;
     double yend_m;
+    double zstart_m;
+    double zend_m;
     double width_m;
 
     double Begin_m;

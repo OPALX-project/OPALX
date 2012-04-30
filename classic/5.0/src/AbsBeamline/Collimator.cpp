@@ -93,6 +93,8 @@ Collimator::Collimator(const Collimator &right):
     xend_m(right.xend_m),
     ystart_m(right.ystart_m),
     yend_m(right.yend_m),
+    zstart_m(right.zstart_m),
+    zend_m(right.zend_m),
     width_m(right.width_m),
     isAPepperPot_m(right.isAPepperPot_m),
     isASlit_m(right.isASlit_m),
@@ -131,6 +133,8 @@ Collimator::Collimator(const string &name):
     xend_m(0.0),
     ystart_m(0.0),
     yend_m(0.0),
+    zstart_m(0.0),
+    zend_m(0.0),
     width_m(0.0),
     isAPepperPot_m(false),
     isASlit_m(false),
@@ -249,17 +253,19 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
     double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-   
-    if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-        size_t tempnum = bunch.getLocalNum();
-        int pflag = 0;
-        for(unsigned int i = 0; i < tempnum; ++i) {
-            if(bunch.PType[i] == 0) {
-                pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-                if(pflag != 0) {
-                  lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
-                  bunch.Bin[i] = -1;
-                  flagNeedUpdate = true;
+
+    if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
+        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+            size_t tempnum = bunch.getLocalNum();
+            int pflag = 0;
+            for(unsigned int i = 0; i < tempnum; ++i) {
+              if(bunch.PType[i] == 0 && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
+                    pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
+                    if(pflag != 0) {
+                        lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
+                        bunch.Bin[i] = -1;
+                        flagNeedUpdate = true;
+                    }
                 }
             }
         }
@@ -557,6 +563,14 @@ void Collimator::setYEnd(double yend) {
     yend_m = yend;
 }
 
+void Collimator::setZStart(double zstart) {
+    zstart_m = zstart;
+}
+
+void Collimator::setZEnd(double zend) {
+    zend_m = zend;
+}
+
 void Collimator::setWidth(double width) {
     width_m = width;
 }
@@ -575,6 +589,14 @@ double Collimator::getYStart() {
 
 double Collimator::getYEnd() {
     return yend_m;
+}
+
+double Collimator::getZStart() {
+    return zstart_m;
+}
+
+double Collimator::getZEnd() {
+    return zend_m;
 }
 
 double Collimator::getWidth() {
@@ -670,6 +692,12 @@ void Collimator::setGeom() {
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
 
+    if (zstart_m > zend_m){
+      double tempz = 0.0;
+      tempz = zstart_m;
+      zstart_m = zend_m;
+      zend_m = tempz;
+    }
 }
 
 

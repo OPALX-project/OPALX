@@ -40,6 +40,8 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     xend_m(0.0),
     ystart_m(0.0),
     yend_m(0.0),
+    zstart_m(0.0),
+    zend_m(0.0),
     width_m(0.0),
     Begin_m(0.0),
     End_m(0.0),
@@ -66,8 +68,10 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
         yp_m = coll->getYpos();
         xstart_m = coll->getXStart();
         ystart_m = coll->getYStart();
+        zstart_m = coll->getZStart();
         xend_m = coll->getXEnd();
         yend_m = coll->getYEnd();
+        zend_m = coll->getZEnd();
         width_m = coll->getWidth();
         setCColimatorGeom();
 
@@ -138,11 +142,12 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
             Vector_t &P = Pincol_m[i];
 
             if(collshape_m == "CCollimator") {
-                if( checkPoint(R(0), R(1)) == 1 )
-                    incoll_m = true;
+                if(R(2) < zend_m && R(2) > zstart_m ) {
+                    if(checkPoint(R(0), R(1)) == 1 )
+                        incoll_m = true;
+                }
                 else
                     incoll_m = false;
-                
             } else {
 
                 if(collshape_m == "Slit") {
@@ -235,12 +240,15 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
             Vector_t R = bunch.R[i];
             Vector_t P = bunch.P[i];
 
-             if(collshape_m == "CCollimator") {
-                if( checkPoint(R(0), R(1)) == 1 )
-                    incoll_m = true;
+            if(collshape_m == "CCollimator") {
+                if(R(2) < zend_m && R(2) > zstart_m ) {
+                    if(checkPoint(R(0), R(1)) == 1 )
+                        incoll_m = true;
+                }
                 else
                     incoll_m = false;
             } else {
+ 
                 if(collshape_m == "Slit") {
                     if(a_m > 0) {
                         rr1 = -R(0) * scalefactor / std::fabs(a_m);
@@ -338,11 +346,14 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
                 Vector_t &P = Pincol_m[i];
 
                 if(collshape_m == "CCollimator") {
-                    if( checkPoint(R(0), R(1)) == 1 )
-                        incoll_m = true;
+                    if(R(2) < zend_m && R(2) > zstart_m ) {
+                        if(checkPoint(R(0), R(1)) == 1 )
+                            incoll_m = true;
+                    }
                     else
                         incoll_m = false;
                 } else {
+                  
                     if(collshape_m == "Slit") {
                         if(a_m > 0) {
                             rr1 = -R(0) * scalefactor / std::fabs(a_m);
@@ -610,6 +621,12 @@ void CollimatorPhysics::setCColimatorGeom() {
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
 
+    if (zstart_m > zend_m){
+      double tempz = 0.0;
+      tempz = zstart_m;
+      zstart_m = zend_m;
+      zend_m = tempz;
+    }
 }
 
 

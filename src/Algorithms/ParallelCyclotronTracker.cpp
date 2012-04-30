@@ -355,6 +355,12 @@ void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
     double yend = elptr->getYEnd();
     *gmsg << "Yend= " <<yend << " [mm]" << endl;
 
+    double zstart = elptr->getZStart();
+    *gmsg << "Zstart= " << zstart << " [mm]" << endl;
+
+    double zend = elptr->getZEnd();
+    *gmsg << "Zend= " <<zend << " [mm]" << endl;
+
     double width = elptr->getWidth();
     *gmsg << "Width= " << width << " [mm]" << endl;
 

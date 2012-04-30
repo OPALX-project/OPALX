@@ -14,7 +14,7 @@
 // ------------------------------------------------------------------------
 //
 // $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// $Author: Andreas Adelmann, Jianjun Yang $
 //
 // ------------------------------------------------------------------------
 
@@ -35,6 +35,8 @@ public:
         XEND,             // End of x coordinate
         YSTART,           // Start of y coordinate
         YEND,             // End of y coordinate
+        ZSTART,             // Top boundary
+        ZEND,             // Bottom boundary
         WIDTH, //The width of collimator
         OUTFN,
         SIZE

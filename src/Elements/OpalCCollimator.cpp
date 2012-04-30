@@ -12,7 +12,7 @@
 // ------------------------------------------------------------------------
 //
 // $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// $Author: Andreas Adelmann, Jianjun Yang $
 //
 // ------------------------------------------------------------------------
 
@@ -39,6 +39,10 @@ OpalCCollimator::OpalCCollimator():
                       ("YSTART", "Start of y coordinate, [mm]");
     itsAttr[YEND] = Attributes::makeReal
                     ("YEND", "End of y coordinate, [mm]");
+    itsAttr[ZSTART] = Attributes::makeReal
+      ("ZSTART", "Start of vertical coordinate, [mm], default value: -100",-100.0);
+    itsAttr[ZEND] = Attributes::makeReal
+      ("ZEND", "End of vertical coordinate, [mm], default value: 100", 100.0);
     itsAttr[WIDTH] = Attributes::makeReal
                      ("WIDTH", "Width of the collimator [mm]");
     itsAttr[OUTFN] = Attributes::makeString
@@ -48,6 +52,8 @@ OpalCCollimator::OpalCCollimator():
     registerRealAttribute("XEND");
     registerRealAttribute("YSTART");
     registerRealAttribute("YEND");
+    registerRealAttribute("ZSTART");
+    registerRealAttribute("ZEND");
     registerRealAttribute("WIDTH");
     registerStringAttribute("OUTFN");
 
@@ -86,12 +92,16 @@ void OpalCCollimator::update() {
     double xend = Attributes::getReal(itsAttr[XEND]);
     double ystart = Attributes::getReal(itsAttr[YSTART]);
     double yend = Attributes::getReal(itsAttr[YEND]);
+    double zstart = Attributes::getReal(itsAttr[ZSTART]);
+    double zend = Attributes::getReal(itsAttr[ZEND]);
     double width = Attributes::getReal(itsAttr[WIDTH]);
     coll->setElementLength(length);
     coll->setXStart(xstart);
     coll->setXEnd(xend);
     coll->setYStart(ystart);
     coll->setYEnd(yend);
+    coll->setZStart(zstart);
+    coll->setZEnd(zend);
     coll->setWidth(width);
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     coll->setCColl();

@@ -116,23 +116,19 @@ public:
     // --------Cyclotron collimator
 
     void setXStart(double xstart) ;
-
     void setYStart(double ystart) ;
-
+    void setZStart(double zstart) ;
     void setXEnd(double xend) ;
-
     void setYEnd(double yend) ;
-
+    void setZEnd(double zend) ;
     void setWidth(double width) ;
 
     double getXStart() ;
-
     double getYStart() ;
-
+    double getZStart() ;
     double getXEnd() ;
-
     double getYEnd() ;
-
+    double getZEnd() ;
     double getWidth() ;
 
     //-----------------
@@ -176,6 +172,8 @@ private:
     double xend_m;
     double ystart_m;
     double yend_m;
+    double zstart_m;
+    double zend_m;
     double width_m;
 
 
