@@ -126,7 +126,7 @@ double ParallelPlate::getElementLength() const {
 }
 
 
-bool ParallelPlate::apply(const int &i, const double &t, double E[], double B[]) {
+bool ParallelPlate::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
     if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
@@ -142,7 +142,7 @@ bool ParallelPlate::apply(const int &i, const double &t, double E[], double B[])
 }
 
 
-bool ParallelPlate::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool ParallelPlate::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     const double phase = frequency_m * t + phase_m;
     Vector_t tmpE(0.0, 0.0, -1.0), tmpB(0.0, 0.0, 0.0);
     if (ptime_m!=t) {

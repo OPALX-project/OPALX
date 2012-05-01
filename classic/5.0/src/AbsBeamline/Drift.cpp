@@ -50,11 +50,11 @@ void Drift::accept(BeamlineVisitor &visitor) const {
     visitor.visitDrift(*this);
 }
 
-bool Drift::apply(const int &i, const double &t, double E[], double B[]) {
+bool Drift::apply(const size_t &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool Drift::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Drift::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
 

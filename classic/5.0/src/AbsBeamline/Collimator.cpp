@@ -156,12 +156,12 @@ void Collimator::accept(BeamlineVisitor &visitor) const {
     visitor.visitCollimator(*this);
 }
 
-bool Collimator::apply(const int &i, const double &t, double E[], double B[]) {
+bool Collimator::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return apply(i, t, Ev, Bv);
 }
 
-bool Collimator::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     const Vector_t &R = RefPartBunch_m->R[i] - Vector_t(dx_m, dy_m, ds_m); // including the missaligment
     const Vector_t &P = RefPartBunch_m->P[i];
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));

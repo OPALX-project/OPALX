@@ -282,9 +282,9 @@ private:
 
     void buildupFieldList(double BcParameter[], string ElementType, Component *elptr);
 
-    bool derivate(double *y, double t, double *yp, int Pindex);
+    bool derivate(double *y, const double &t, double *yp, const size_t &Pindex); 
 
-    bool rk4(double x[], double t, double tau, int Pindex);
+    bool rk4(double x[], const double &t, const double &tau, const size_t &Pindex);
 
     // angle range [0~2PI) degree
     double calculateAngle(double x, double y);

@@ -48,11 +48,11 @@ void Corrector::accept(BeamlineVisitor &visitor) const {
     visitor.visitCorrector(*this);
 }
 
-bool Corrector::apply(const int &i, const double &t, double E[], double B[]) {
+bool Corrector::apply(const size_t &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool Corrector::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Corrector::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
 

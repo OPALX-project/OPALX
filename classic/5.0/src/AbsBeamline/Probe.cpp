@@ -93,13 +93,13 @@ void Probe::accept(BeamlineVisitor &visitor) const {
     visitor.visitProbe(*this);
 }
 
-bool Probe::apply(const int &i, const double &t, double E[], double B[]) {
+bool Probe::apply(const size_t &i, const double &t, double E[], double B[]) {
     *gmsg << "septum1" << endl;
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return apply(i, t, Ev, Bv);
 }
 
-bool Probe::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Probe::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     *gmsg << "septum2" << endl;
     return false;
 }

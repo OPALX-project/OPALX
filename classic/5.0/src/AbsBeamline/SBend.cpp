@@ -186,7 +186,7 @@ void SBend::setSkewComponent(int n, double v) {
  *  the equivalent method but with the Vector_t data types.
  */
 
-bool SBend::apply(const int &i, const double &t, double E[], double B[]) {
+bool SBend::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     if(apply(RefPartBunch_m->R[i], RefPartBunch_m->get_rmean(), t, Ev, Bv)) return true;
 
@@ -200,7 +200,7 @@ bool SBend::apply(const int &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool SBend::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool SBend::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
 
     // Check if we need to reinitialize the bend field amplitude.
     if(reinitialize_m)

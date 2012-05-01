@@ -49,11 +49,11 @@ void RFQuadrupole::accept(BeamlineVisitor &visitor) const {
     visitor.visitRFQuadrupole(*this);
 }
 
-bool RFQuadrupole::apply(const int &i, const double &t, double E[], double B[]) {
+bool RFQuadrupole::apply(const size_t &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool RFQuadrupole::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool RFQuadrupole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
 

@@ -135,13 +135,13 @@ void Stripper::accept(BeamlineVisitor &visitor) const {
     visitor.visitStripper(*this);
 }
 
-bool Stripper::apply(const int &i, const double &t, double E[], double B[]) {
+bool Stripper::apply(const size_t &i, const double &t, double E[], double B[]) {
     *gmsg << "stripper1" << endl;
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return false;
 }
 
-bool Stripper::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Stripper::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     *gmsg << "stripper2" << endl;
     return false;
 }
@@ -259,108 +259,107 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
         size_t tempnum = bunch.getLocalNum();
         int pflag = 0;
 
-	Vector_t meanP(0.0, 0.0, 0.0);
-	for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
-	  for(int d = 0; d < 3; ++d) {
-            meanP(d) += bunch.P[i](d);
-	  }
-	}
-	reduce(meanP, meanP, OpAddAssign());
-	meanP = meanP / Vector_t(bunch.getTotalNum());
-
-	double sk1, sk2, stangle = 0.0;
-	if ( B_m == 0.0 ){
-	  sk1 = meanP(1)/meanP(0);
- 	  if(sk1 == 0.0)
-	    stangle =1.0e12;
-	  else
-	    stangle = abs(1/sk1);
-	}else if (meanP(0) == 0.0 ){
-	  sk2 = - A_m/B_m;
- 	  if(sk2 == 0.0)
-	    stangle =1.0e12;
-	  else
-	    stangle = abs(1/sk2);
-	}else {
-	  sk1 = meanP(1)/meanP(0);
-	  sk2 = - A_m/B_m;
-	  stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
-	}
-	double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
-	double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
-	setGeom(Swidth);
-
+        Vector_t meanP(0.0, 0.0, 0.0);
+        for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
+          for(int d = 0; d < 3; ++d) {
+              meanP(d) += bunch.P[i](d);
+          }
+        }
+        reduce(meanP, meanP, OpAddAssign());
+        meanP = meanP / Vector_t(bunch.getTotalNum());
+    
+        double sk1, sk2, stangle = 0.0;
+        if ( B_m == 0.0 ){
+            sk1 = meanP(1)/meanP(0);
+            if(sk1 == 0.0)
+                stangle =1.0e12;
+            else
+                stangle = abs(1/sk1);
+        }else if (meanP(0) == 0.0 ){
+            sk2 = - A_m/B_m;
+            if(sk2 == 0.0)
+              stangle =1.0e12;
+            else
+              stangle = abs(1/sk2);
+        }else {
+            sk1 = meanP(1)/meanP(0);
+            sk2 = - A_m/B_m;
+            stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
+        }
+        double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
+        double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
+        setGeom(Swidth);
+        
         for(unsigned int i = 0; i < tempnum; ++i) {
             if(bunch.PType[i] == 0) {
-	      pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-	      if(pflag != 0) {
-		  // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
-		  double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0;
-		  double k1, k2, tangle = 0.0;
-		  if ( B_m == 0.0 ){
-		    k1 = bunch.P[i](1)/bunch.P[i](0);
-		    if (k1 == 0.0)
-		      tangle = 1.0e12;
-		    else
-		      tangle = abs(1/k1);
-		  }else if (bunch.P[i](0) == 0.0 ){
-		    k2 = -A_m/B_m;
-		    if (k2 == 0.0)
-		      tangle = 1.0e12;
-		    else
-		      tangle = abs(1/k2);
-		  }else {
-		    k1 = bunch.P[i](1)/bunch.P[i](0);
-		    k2 = -A_m/B_m;
-		    tangle = abs(( k1-k2 )/(1 + k1*k2));
-		  }
-		  double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
-		  double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch.P[i], bunch.P[i]))) * Physics::c)*1.0e9;
-		  strippoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
-		  strippoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
-		  strippoint(2) = bunch.R[i](2);
-		  lossDs_m->addParticle_time(strippoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
-
-		  if (stop_m) {
-		    bunch.Bin[i] = -1;
-		    flagNeedUpdate = true;
-		  }else{
-                    bunch.M[i] = opmass_m;
-                    bunch.Q[i] = opcharge_m * q_e;
-                    bunch.PType[i] = 1;
-
-                    //create a new particle
-                    bunch.create(1);
-                    bunch.R[tempnum+count] = bunch.R[i];
-                    bunch.P[tempnum+count] = bunch.P[i];
-                    bunch.Q[tempnum+count] = bunch.Q[i];
-                    bunch.M[tempnum+count] = bunch.M[i];
-
-                    // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid repetitive stripping.
-                    bunch.PType[tempnum+count] = 1;
-
-                    if(bunch.weHaveBins())
-                        bunch.Bin[bunch.getLocalNum()-1] = bunch.Bin[i];
-
-                    // change charge and mass of PartData when the reference particle hits the stripper.
-                    if(bunch.ID[i] == 0)
-		      flagresetMQ = true;
-
-		    count++;
-                    flagNeedUpdate = true;
-		  }
-	      }
+                pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
+                if(pflag != 0) {
+                    // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
+                    double dist1 = (A_m*bunch.R[i](0)+B_m*bunch.R[i](1)+C_m)/R_m/1000.0;
+                    double k1, k2, tangle = 0.0;
+                    if ( B_m == 0.0 ){
+                        k1 = bunch.P[i](1)/bunch.P[i](0);
+                        if (k1 == 0.0)
+                            tangle = 1.0e12;
+                        else
+                            tangle = abs(1/k1);
+                    }else if (bunch.P[i](0) == 0.0 ){
+                        k2 = -A_m/B_m;
+                        if (k2 == 0.0)
+                            tangle = 1.0e12;
+                        else
+                            tangle = abs(1/k2);
+                    }else {
+                        k1 = bunch.P[i](1)/bunch.P[i](0);
+                        k2 = -A_m/B_m;
+                        tangle = abs(( k1-k2 )/(1 + k1*k2));
+                    }
+                    double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
+                    double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch.P[i], bunch.P[i]))) * Physics::c)*1.0e9;
+                    strippoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
+                    strippoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
+                    strippoint(2) = bunch.R[i](2);
+                    lossDs_m->addParticle_time(strippoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
+                    
+                    if (stop_m) {
+                        bunch.Bin[i] = -1;
+                        flagNeedUpdate = true;
+                    }else{
+                        bunch.M[i] = opmass_m;
+                        bunch.Q[i] = opcharge_m * q_e;
+                        bunch.PType[i] = 1;
+                        
+                        //create a new particle
+                        bunch.create(1);
+                        bunch.R[tempnum+count] = bunch.R[i];
+                        bunch.P[tempnum+count] = bunch.P[i];
+                        bunch.Q[tempnum+count] = bunch.Q[i];
+                        bunch.M[tempnum+count] = bunch.M[i];
+                        
+                        // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid repetitive stripping.
+                        bunch.PType[tempnum+count] = 1;
+                        
+                        if(bunch.weHaveBins())
+                            bunch.Bin[bunch.getLocalNum()-1] = bunch.Bin[i];
+                        // change charge and mass of PartData when the reference particle hits the stripper.
+                        if(bunch.ID[i] == 0)
+                          flagresetMQ = true;
+                        
+                        count++;
+                        flagNeedUpdate = true;
+                    }
+                }
             }
         }
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
 
     if(!stop_m){
-      reduce(&flagresetMQ, &flagresetMQ + 1, &flagresetMQ, OpBitwiseOrAssign());
-      if(flagresetMQ){
-	bunch.resetM(opmass_m * 1.0e9); // GeV -> eV
-	bunch.resetQ(opcharge_m);     // elementary charge
-      }
+        reduce(&flagresetMQ, &flagresetMQ + 1, &flagresetMQ, OpBitwiseOrAssign());
+        if(flagresetMQ){
+            bunch.resetM(opmass_m * 1.0e9); // GeV -> eV
+            bunch.resetQ(opcharge_m);     // elementary charge
+        }
     }
 
     if(flagNeedUpdate) lossDs_m->save_time(getName());

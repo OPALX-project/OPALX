@@ -276,9 +276,22 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     string type = elptr->getType();
     *gmsg << "* Type of cyclotron= " << type << " " << endl;
+    
+    double rmin = elptr->getMinR();
+    double rmax = elptr->getMaxR();
+    *gmsg << "* Radial aperture= " << rmin << " ... " << rmax<<" [mm] "<< endl;
+
+    double zmin = elptr->getMinZ();
+    double zmax = elptr->getMaxZ();
+    *gmsg << "* Vertical aperture= " << zmin << " ... " << zmax<<" [mm]"<< endl;
 
     bool Sflag = elptr->getSuperpose();
-    *gmsg << "* Electric field map are superpoesed ?  " << Sflag << " " << endl;
+    string flagsuperposed;
+    if (Sflag)
+      flagsuperposed="yes";
+    else
+      flagsuperposed="no";
+    *gmsg << "* Electric field map are superpoesed ?  " << flagsuperposed << " " << endl;
 
 
     double h = elptr->getCyclHarm();
@@ -1206,19 +1219,13 @@ void ParallelCyclotronTracker::Tracker_LF() {
         IpplTimings::startTimer(IntegrationTimer_m);
         for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
             Vector_t externalE, externalB;
-            double partR;
 
             externalB = Vector_t(0.0, 0.0, 0.0);
             externalE = Vector_t(0.0, 0.0, 0.0);
 
-            partR = sqrt(dot(itsBunch->R[i], itsBunch->R[i]));
-
             beamline_list::iterator sindex = FieldDimensions.begin();
-
-            if(((((*sindex)->second).first)[0] <= partR) && ((((*sindex)->second).first)[1] >= partR))
-                (((*sindex)->second).second)->apply(itsBunch->R[i], Vector_t(0.0), itsBunch->getT() * 1e9, externalE, externalB);
-
-	    externalB = externalB / 10.0; // kgauss -> T
+            (((*sindex)->second).second)->apply(i, itsBunch->getT() * 1e9, externalE, externalB);
+            externalB = externalB / 10.0; // kgauss -> T
 
             if(itsBunch->hasFieldSolver()) {
                 externalE += itsBunch->Ef[i];
@@ -1341,15 +1348,8 @@ void ParallelCyclotronTracker::Tracker_LF() {
             Vector_t const meanR = calcMeanR();
             *gmsg << "meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
 
-            double meanRadius = sqrt(meanR(0) * meanR(0) + meanR(1) * meanR(1));
-
             beamline_list::iterator DumpSindex = FieldDimensions.begin();
-
-            if(((((*DumpSindex)->second).first)[0] <= meanRadius) &&
-               ((((*DumpSindex)->second).first)[1] >= meanRadius)) {
-                (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
-            }
-
+            (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
             FDext_m[0] = extB_m / 10.0; // kgauss -> T
             FDext_m[1] = extE_m;
 
@@ -2335,15 +2335,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             double temp_cosPhi = cos(phi);
             double temp_sinPhi = sin(phi);
 
-            double meanRadius = sqrt(meanR(0) * meanR(0) +  meanR(1) * meanR(1));
-
             beamline_list::iterator DumpSindex = FieldDimensions.begin();
-
-            if(((((*DumpSindex)->second).first)[0] <= meanRadius)
-               && ((((*DumpSindex)->second).first)[1] >= meanRadius)) {
-                (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), t, extE_m, extB_m);
-            }
-
+            (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), t, extE_m, extB_m);
             FDext_m[0] = extB_m / 10.0; // kgauss -> T
             FDext_m[1] = extE_m;
 
@@ -2467,36 +2460,18 @@ void ParallelCyclotronTracker::Tracker_RK4() {
  *
  * @return
  */
-bool ParallelCyclotronTracker::derivate(double *y, double t, double *yp, int Pindex) {
+bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, const size_t &Pindex) {
     Vector_t externalE, externalB, tempR;
-
-    double partR;
-
-    // a flag of visit flag, if cyclotron is not visited, set false.
-    // bool visitflag = false;
-
-
     externalB = Vector_t(0.0, 0.0, 0.0);
     externalE = Vector_t(0.0, 0.0, 0.0);
 
     for(int i = 0; i < 3; i++)
         tempR(i) = y[i];
 
-    partR = sqrt(tempR(0) * tempR(0) + tempR(1) * tempR(1));
-
     beamline_list::iterator sindex = FieldDimensions.begin();
-
-    //debug
-    if(((*sindex)->first) != "CYCLOTRON") {
-        ERRORMSG("Error in ParallelCyclotronTracker, the CYCLOTRON object is not the first element in the beamline_list! " << endl);
-        exit(1);
-    }
-
-    if(((((*sindex)->second).first)[0] <= partR) && ((((*sindex)->second).first)[1] >= partR))
-        (((*sindex)->second).second)->apply(tempR, Vector_t(0.0), t, externalE, externalB);
-    else
-        return false;
-
+    itsBunch->R[Pindex] = tempR;
+    (((*sindex)->second).second)->apply(Pindex, t, externalE, externalB);
+    
     for(int i = 0; i < 3; i++) externalB(i) = externalB(i) * 0.10; //[kGauss] -> [T]
     for(int i = 0; i < 3; i++) externalE(i) = externalE(i) * 1.0e6; //[kV/mm ] -> [V/m]
 
@@ -2542,7 +2517,7 @@ bool ParallelCyclotronTracker::derivate(double *y, double t, double *yp, int Pin
  *
  * @return
  */
-bool ParallelCyclotronTracker::rk4(double x[], double t, double tau, int Pindex) {
+bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &tau, const size_t &Pindex) {
     // Forth order Runge-Kutta integrator
     // arguments:
     //   x          Current value of dependent variable
@@ -2566,8 +2541,8 @@ bool ParallelCyclotronTracker::rk4(double x[], double t, double tau, int Pindex)
     if(!visitflag) return false;
 
     // Evaluate f2 = f( x+tau*f1/2, t+tau/2 ).
-    double half_tau = 0.5 * tau;
-    double t_half = t + half_tau;
+    const double half_tau = 0.5 * tau;
+    const double t_half = t + half_tau;
 
     for(int i = 0; i < PSdim; i++)
         xtemp[i] = x[i] + half_tau * deriv1[i];
@@ -3140,14 +3115,10 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
             *gmsg << "meanR=( " << meanR(0) * 1000.0 << " " << meanR(1) * 1000.0 << " " << meanR(2) * 1000.0 << " ) [mm] " << endl;
-            double meanRadius = sqrt(meanR(0) * meanR(0) + meanR(1) * meanR(1)) * 1000.0;
 			extE_m = Vector_t(0.0, 0.0, 0.0);
             extB_m = Vector_t(0.0, 0.0, 0.0);
             beamline_list::iterator DumpSindex = FieldDimensions.begin();
-            if(((((*DumpSindex)->second).first)[0] <= meanRadius) &&
-               ((((*DumpSindex)->second).first)[1] >= meanRadius)) {
-                (((*DumpSindex)->second).second)->apply(meanR * 1000.0, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
-            }
+            (((*DumpSindex)->second).second)->apply(meanR * 1000.0, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
             FDext_m[0] = extB_m * 0.1; // kgauss -> T
             FDext_m[1] = extE_m;
 
@@ -3347,13 +3318,12 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // Evaluate external fields
     IpplTimings::startTimer(IntegrationTimer_m);
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-        double const partR = sqrt(dot(itsBunch->R[i], itsBunch->R[i])) * 1000.0;
         itsBunch->Ef[i] = Vector_t(0.0, 0.0, 0.0);
         itsBunch->Bf[i] = Vector_t(0.0, 0.0, 0.0);
         beamline_list::iterator sindex = FieldDimensions.begin();
-        if(((((*sindex)->second).first)[0] <= partR) && ((((*sindex)->second).first)[1] >= partR)) {
-            (((*sindex)->second).second)->apply(itsBunch->R[i] * 1000.0, Vector_t(0.0), itsBunch->getT() * 1e9, itsBunch->Ef[i], itsBunch->Bf[i]);
-        }
+        itsBunch->R[i] *= 1000.0;
+        (((*sindex)->second).second)->apply(i, itsBunch->getT() * 1e9, itsBunch->Ef[i], itsBunch->Bf[i]);
+        itsBunch->R[i] /= 1000.0;
         itsBunch->Bf[i] *= 0.1; // kgauss -> T
     }
     IpplTimings::stopTimer(IntegrationTimer_m);

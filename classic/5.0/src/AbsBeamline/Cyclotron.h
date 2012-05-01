@@ -26,6 +26,7 @@
 #include "Fields/BMultipoleField.h"
 
 class Fieldmap;
+class LossDataSink;
 
 enum BFieldType {PSIBF, CARBONBF,ANSYSBF,AVFEQBF, FFAGBF,BANDRF};
 
@@ -186,9 +187,9 @@ public:
     virtual double getMaxZ() const;
 
 
-    virtual bool apply(const int &i, const double &t, double E[], double B[]);
+    virtual bool apply(const size_t &id, const double &t, double E[], double B[]);
 
-    virtual bool apply(const int &i, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const size_t &id, const double &t, Vector_t &E, Vector_t &B);
 
     virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
 
@@ -249,6 +250,9 @@ private:
     //    Fieldmap *RFfield;
     std::vector<Fieldmap *> RFfields_m; 
     std::vector<std::string> RFfilename_m;
+
+    // handling for store the particle out of region 
+    LossDataSink *lossDs_m;
 
     void   getdiffs();
 

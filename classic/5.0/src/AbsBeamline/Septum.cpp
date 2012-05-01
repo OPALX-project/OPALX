@@ -76,13 +76,13 @@ void Septum::accept(BeamlineVisitor &visitor) const {
     visitor.visitSeptum(*this);
 }
 
-bool Septum::apply(const int &i, const double &t, double E[], double B[]) {
+bool Septum::apply(const size_t &i, const double &t, double E[], double B[]) {
 
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return apply(i, t, Ev, Bv);
 }
 
-bool Septum::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Septum::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
 
     return false;
 }

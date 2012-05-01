@@ -48,11 +48,11 @@ void Separator::accept(BeamlineVisitor &visitor) const {
     visitor.visitSeparator(*this);
 }
 
-bool Separator::apply(const int &i, const double &t, double E[], double B[]) {
+bool Separator::apply(const size_t &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool Separator::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Separator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
 

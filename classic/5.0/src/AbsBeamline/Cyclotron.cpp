@@ -22,6 +22,7 @@
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
+#include "Structure/LossDataSink.h"
 #include "Fields/Fieldmap.hh"
 #include "Utilities/OpalException.h"
 #include <fstream>
@@ -61,6 +62,10 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     tcr2_m(right.tcr2_m),
     mbtc_m(right.mbtc_m),
     slptc_m(right.slptc_m),
+    minr_m(right.minr_m),
+    maxr_m(right.maxr_m),
+    minz_m(right.minz_m),
+    maxz_m(right.maxz_m),
     RFfilename_m(right.RFfilename_m) {
 }
 
@@ -241,9 +246,10 @@ double Cyclotron::getMaxZ() const {
     return maxz_m;
 }
 
-bool Cyclotron::apply(const int &i, const double &t, double E[], double B[]) {
+bool Cyclotron::apply(const size_t &id, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    if(apply(RefPartBunch_m->R[i], Vector_t(0.0), t, Ev, Bv)) return true;
+
+    if(apply(id, t, Ev, Bv)) return true;
 
     E[0] = Ev(0);
     E[1] = Ev(1);
@@ -255,8 +261,33 @@ bool Cyclotron::apply(const int &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool Cyclotron::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
-    return apply(RefPartBunch_m->R[i], Vector_t(0.0), t, E, B);
+bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &B) {
+  
+  bool flagNeedUpdate = false;
+  const double rpos = sqrt(RefPartBunch_m->R[id](0) * RefPartBunch_m->R[id](0) 
+                           + RefPartBunch_m->R[id](1) * RefPartBunch_m->R[id](1));
+  const double zpos = RefPartBunch_m->R[id](2);
+
+  if (zpos > maxz_m || zpos < minz_m || rpos > maxr_m || rpos < minr_m){
+      flagNeedUpdate = true;
+      Inform gmsgALL("OPAL ", INFORM_ALL_NODES);    
+      gmsgALL<<getName() << ": particle "<< id <<" out of the global aperture of cyclotron!"<< endl;
+
+  } else{
+
+      flagNeedUpdate = apply(RefPartBunch_m->R[id], Vector_t(0.0), t, E, B);
+      if(flagNeedUpdate){ 
+          Inform gmsgALL("OPAL ", INFORM_ALL_NODES);    
+          gmsgALL<<getName() << ": particle "<< id <<" out of the field map boundary!"<< endl;
+      }
+  }
+  
+  if (flagNeedUpdate) {
+      lossDs_m->addParticle(RefPartBunch_m->R[id], RefPartBunch_m->P[id],id);
+      lossDs_m->save(getName());
+      RefPartBunch_m->Bin[id] = -1;
+  }
+  return flagNeedUpdate;
 }
 
 bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
@@ -415,12 +446,9 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
         B[1] = br * sin(tet_rad) + bt * cos(tet_rad);
         B[2] = bz;
-
+        
     } else {
-        ERRORMSG("Error!" << getName() << ".getFieldstrength(): out of boudaries (z,r) = (" << R[0] << "," << R[1] << "," << R[2] << ")" << endl
-                 << " rad=" << rad << " [mm], theta=" << tet << " [deg], it=" << it << ", ir=" << ir << endl);
-        return true;
-
+      return true;
     }
     if(myBFieldType_m == BANDRF) {
       //The RF field is suppose to be sampled on a cartesian grid
@@ -431,39 +459,33 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
         int fcount = 0;
         for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++fcount) {
-	  (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
-	  if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
-	    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-	    if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
-	      double phase = 2.0 * pi * 1E-3 * (*rffi) * t + *rfphii;
-	      double ebscale = *escali;
-	      E += ebscale * cos(phase) * tmpE;
-	      B -= ebscale * sin(phase) * tmpB;
-	      //INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
-	    }
-	    if (!superpose_m) break;
-	  }
+            (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
+            if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
+                Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+                if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
+                  double phase = 2.0 * pi * 1E-3 * (*rffi) * t + *rfphii;
+                  double ebscale = *escali;
+                  E += ebscale * cos(phase) * tmpE;
+                  B -= ebscale * sin(phase) * tmpB;
+                  //INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
+                }
+                if (!superpose_m) break;
+            }
     	}
     }
     return false;
 }
 
-void Cyclotron::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-    RefPartBunch_m = bunch;
-    online_m = true;
-}
-
 void Cyclotron::finalise() {
     online_m = false;
+    *gmsg << "Finalize cyclotron" << endl;
+    if(lossDs_m)
+        delete lossDs_m;
 }
 
 bool Cyclotron::bends() const {
     return true;
 }
-
-
-
-
 
 // calculate derivatives with 5-point lagrange's formula.
 double Cyclotron::gutdf5d(double *f, double dx, const int kor, const int krl, const int lpr)
@@ -837,9 +859,17 @@ void Cyclotron::initR(double rmin, double dr, int nrad) {
     BP.delr = dr;
 }
 
+void Cyclotron::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+    RefPartBunch_m = bunch;
+    online_m = true;
+}
 
 void Cyclotron::initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor) {
     RefPartBunch_m = bunch;
+
+    bool doH5 = false;
+    lossDs_m = new LossDataSink(bunch->getTotalNum(), doH5);
+
     //    PSIBF, AVFEQBF, ANSYSBF, FFAGBF
     // for your own format field, you should add your own getFieldFromFile() function by yourself.
 

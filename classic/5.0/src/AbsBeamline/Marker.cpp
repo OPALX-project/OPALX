@@ -49,11 +49,11 @@ void Marker::accept(BeamlineVisitor &visitor) const {
     visitor.visitMarker(*this);
 }
 
-bool Marker::apply(const int &i, const double &t, double E[], double B[]) {
+bool Marker::apply(const size_t &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool Marker::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Marker::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
 

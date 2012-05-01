@@ -50,9 +50,9 @@ public:
     /// Get vertical component Ey of field in V/m.
     virtual double getEy() const = 0;
 
-    virtual bool apply(const int &i, const double &t, double E[], double B[]);
+    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
 
-    virtual bool apply(const int &i, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
     virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
 

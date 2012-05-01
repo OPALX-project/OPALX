@@ -48,11 +48,11 @@ void Patch::accept(BeamlineVisitor &visitor) const {
     visitor.visitPatch(*this);
 }
 
-bool Patch::apply(const int &i, const double &t, double E[], double B[]) {
+bool Patch::apply(const size_t &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool Patch::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Patch::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
 

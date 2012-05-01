@@ -207,7 +207,7 @@ void RBend::addKT(int i, double t, Vector_t &K) {
     //FIXME: K += ??
 }
 
-bool RBend::apply(const int &i, const double &t, double E[], double B[]) {
+bool RBend::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     if(apply(i, t, Ev, Bv)) return true;
 
@@ -221,7 +221,7 @@ bool RBend::apply(const int &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool RBend::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool RBend::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
 
     // If this is the first call, the bend angle is specified in the input
     // file and the design energy of the bend is different from the average

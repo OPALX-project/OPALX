@@ -90,12 +90,12 @@ void Monitor::accept(BeamlineVisitor &visitor) const {
     visitor.visitMonitor(*this);
 }
 
-bool Monitor::apply(const int &i, const double &t, double E[], double B[]) {
+bool Monitor::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return apply(i, t, Ev, Bv);
 }
 
-bool Monitor::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Monitor::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));

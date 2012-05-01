@@ -333,7 +333,7 @@ void RFCavity::addKT(int i, double t, Vector_t &K) {
 }
 
 
-bool RFCavity::apply(const int &i, const double &t, double E[], double B[]) {
+bool RFCavity::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
     if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
@@ -348,7 +348,7 @@ bool RFCavity::apply(const int &i, const double &t, double E[], double B[]) {
     return false;
 }
 
-bool RFCavity::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool RFCavity::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     bool out_of_bounds = true;
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
 
@@ -508,11 +508,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
     using Physics::pi;
 
     //    Inform msg("visitRFCavity read voltage");
-
     RefPartBunch_m = bunch;
-
-    INFOMSG("q= " << RefPartBunch_m->getQ() << " m= " << RefPartBunch_m->getM() / 1.0E9 << endl);
-
+    //    INFOMSG("q= " << RefPartBunch_m->getQ() << " m= " << RefPartBunch_m->getM() / 1.0E9 << endl);
 
     ifstream in(filename_m.c_str());
     if(!in.good()) {
@@ -520,10 +517,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
         ERRORMSG(" Cannot open file " << filename_m << ", please check if it really exists." << endl);
         exit(1);
     }
-    INFOMSG("----------------------------------------------" << endl);
-    INFOMSG("            READ IN VOLTAGE DATA              " << endl);
-    INFOMSG("        (data format: s/L, v, dV/dr)          " << endl);
-    INFOMSG("----------------------------------------------" << endl);
+    *gmsg<<"* Read cavity voltage profile data"<<endl
+         <<"    (data format: s/L, v, dV/dr)" << endl;
 
     in >> num_points_m;
 
@@ -549,7 +544,7 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
     sinAngle_m = sin(angle_m / 180.0 * pi);
     cosAngle_m = cos(angle_m / 180.0 * pi);
 
-    *gmsg << "* Cavity voltage data read successfully!" << endl << endl;
+    *gmsg << "* Cavity voltage data read successfully!" << endl;
 }
 
 void RFCavity::finalise()

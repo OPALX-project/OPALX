@@ -102,7 +102,7 @@ bool CyclotronValley::getFast() const {
     return fast_m;
 }
 
-bool CyclotronValley::apply(const int &i, const double &t, double E[], double B[]) {
+bool CyclotronValley::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
     if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
@@ -117,7 +117,7 @@ bool CyclotronValley::apply(const int &i, const double &t, double E[], double B[
     return false;
 }
 
-bool CyclotronValley::apply(const int &i, const double &t, Vector_t &E, Vector_t &B) {
+bool CyclotronValley::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
 
 
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
