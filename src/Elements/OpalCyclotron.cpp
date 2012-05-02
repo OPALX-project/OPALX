@@ -71,13 +71,13 @@ OpalCyclotron::OpalCyclotron():
                     ("SLPTC", "slope of the rising edge");
 
     itsAttr[MINZ] = Attributes::makeReal
-                    ("MINZ","Minimal vertical extend of the machine [mm]",-10000.0);
+                    ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
     itsAttr[MAXZ] = Attributes::makeReal
-                    ("MAXZ","Maximal vertical extend of the machine [mm]",10000.0);
+                    ("MAXZ","Maximal vertical extent of the machine [mm]",10000.0);
     itsAttr[MINR] = Attributes::makeReal
-                    ("MINR","Minimal radial extend of the machine [mm]", 10.0);
+                    ("MINR","Minimal radial extent of the machine [mm]", 0.0);
     itsAttr[MAXR] = Attributes::makeReal
-                   ("MAXR","Maximal radial extend of the machine [mm]", 10000.0);
+                   ("MAXR","Maximal radial extent of the machine [mm]", 10000.0);
     
     registerStringAttribute("FMAPFN");
     registerStringAttribute("RFMAPFN");
