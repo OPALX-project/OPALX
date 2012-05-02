@@ -2462,6 +2462,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
  */
 bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, const size_t &Pindex) {
     Vector_t externalE, externalB, tempR;
+
     externalB = Vector_t(0.0, 0.0, 0.0);
     externalE = Vector_t(0.0, 0.0, 0.0);
 
@@ -2470,7 +2471,7 @@ bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, 
 
     beamline_list::iterator sindex = FieldDimensions.begin();
     itsBunch->R[Pindex] = tempR;
-    (((*sindex)->second).second)->apply(Pindex, t, externalE, externalB);
+    bool outOfBound = (((*sindex)->second).second)->apply(Pindex, t, externalE, externalB);
     
     for(int i = 0; i < 3; i++) externalB(i) = externalB(i) * 0.10; //[kGauss] -> [T]
     for(int i = 0; i < 3; i++) externalE(i) = externalE(i) * 1.0e6; //[kV/mm ] -> [V/m]
@@ -2503,7 +2504,7 @@ bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, 
     yp[4] = (externalE(1) / c  - (externalB(2) * y[3] - externalB(0) * y[5]) / tempgamma) * qtom; // [1/ns];
     yp[5] = (externalE(2) / c  + (externalB(1) * y[3] - externalB(0) * y[4]) / tempgamma) * qtom; // [1/ns];
 
-    return true;
+    return outOfBound;
 }
 
 
@@ -2525,20 +2526,17 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
     //   tau        Step size (usually time step)
     //   Pindex     index of particel, not used yet
 
-    bool visitflag ;
+    bool outOfBound = false;
     double  deriv1[PSdim];
     double  deriv2[PSdim];
     double  deriv3[PSdim];
     double  deriv4[PSdim];
     double  xtemp[PSdim];
 
-    visitflag = true;
-
     // Evaluate f1 = f(x,t).
 
-    visitflag = derivate(x, t, deriv1 , Pindex);
-
-    if(!visitflag) return false;
+    outOfBound = derivate(x, t, deriv1 , Pindex);
+    if(outOfBound) return false;
 
     // Evaluate f2 = f( x+tau*f1/2, t+tau/2 ).
     const double half_tau = 0.5 * tau;
@@ -2547,33 +2545,29 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
     for(int i = 0; i < PSdim; i++)
         xtemp[i] = x[i] + half_tau * deriv1[i];
 
-    visitflag = derivate(xtemp, t_half, deriv2 , Pindex);
-
-    if(!visitflag) return false;
+    outOfBound = derivate(xtemp, t_half, deriv2 , Pindex);
+    if(outOfBound) return false;
 
     // Evaluate f3 = f( x+tau*f2/2, t+tau/2 ).
     for(int i = 0; i < PSdim; i++)
         xtemp[i] = x[i] + half_tau * deriv2[i];
 
-    visitflag = derivate(xtemp, t_half, deriv3 , Pindex);
-
-    if(!visitflag) return false;
+    outOfBound = derivate(xtemp, t_half, deriv3 , Pindex);
+    if(outOfBound) return false;
 
     // Evaluate f4 = f( x+tau*f3, t+tau ).
     double t_full = t + tau;
     for(int i = 0; i < PSdim; i++)
         xtemp[i] = x[i] + tau * deriv3[i];
 
-    visitflag = derivate(xtemp, t_full, deriv4 , Pindex);
-
-    if(!visitflag) return false;
+    outOfBound = derivate(xtemp, t_full, deriv4 , Pindex);
+    if(outOfBound) return false;
 
     // Return x(t+tau) computed from fourth-order R-K.
     for(int i = 0; i < PSdim; i++)
         x[i] += tau / 6.*(deriv1[i] + deriv4[i] + 2.*(deriv2[i] + deriv3[i]));
 
     return true;
-
 }
 
 /**
