@@ -3394,7 +3394,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
       localToGlobal(itsBunch->R, phi, meanR);
 
       reduce(lostParticleNum, lostParticleNum, OpAddAssign());
-      *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator or septum" << endl;
+      *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, or out of cyclotron aperture" << endl;
      }
   }
 
