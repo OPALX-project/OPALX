@@ -49,7 +49,9 @@ private:
     // Radius of curvature of effective dipole.
     double bendRadius_m;
 
+    std::string bendNameOld_m;
     std::string bendName_m;
+    int bendCounter_m;
 
     double totalBendAngle_m;
 

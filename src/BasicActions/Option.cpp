@@ -44,6 +44,7 @@ namespace Options {
     bool scan = false;
     bool rhoDump = false;
     bool ebDump = false;
+    bool csrDump = false;
     bool efDump = false;
     bool ppdebug = false;
 
@@ -134,6 +135,7 @@ namespace {
         SCAN,
         RHODUMP,
         EBDUMP,
+	CSRDUMP,
         EFDUMP,
         AUTOPHASE,
         PPDEBUG,
@@ -199,6 +201,9 @@ Option::Option():
     itsAttr[EBDUMP] = Attributes::makeBool
                        ("EBDUMP", "If true, in addition to the phase space the E and B field at each particle is also dumped into the H5 file)", ebDump);
 
+    itsAttr[CSRDUMP] = Attributes::makeBool
+                       ("CSRDUMP", "If true, the csr E field, line density and the line density derivative is dumped into the data directory)", csrDump);
+
     itsAttr[EFDUMP] = Attributes::makeBool
                       ("EFDUMP", "If true, in addition to the phase space the E vector field is also dumped (H5Block)", efDump);
 
@@ -258,6 +263,7 @@ Option::Option(const string &name, Option *parent):
     Attributes::setBool(itsAttr[SCAN], scan);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
+    Attributes::setBool(itsAttr[CSRDUMP], csrDump);
     Attributes::setBool(itsAttr[EFDUMP], efDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[PPDEBUG], ppdebug);
@@ -294,10 +300,9 @@ void Option::execute() {
     scan = Attributes::getBool(itsAttr[SCAN]);
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
+    csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
     efDump = Attributes::getBool(itsAttr[EFDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
-
-
 
     if(itsAttr[SEED]) {
         seed = int(Attributes::getReal(itsAttr[SEED]));

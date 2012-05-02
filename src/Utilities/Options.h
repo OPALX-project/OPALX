@@ -85,7 +85,6 @@ namespace Options {
     // if true, in local Cartesian frame, otherwise in global Cartesian frame
     extern bool psDumpLocalFrame;
 
-
     /// The frequency to solve space charge fields.
     extern int scSolveFreq;
 
@@ -105,6 +104,8 @@ namespace Options {
     extern bool rhoDump;
 
     extern bool ebDump;
+
+    extern bool csrDump;
 
     // if true opal find the phases in the cavities, such that the energy gain is at maximum
     extern int autoPhase;
