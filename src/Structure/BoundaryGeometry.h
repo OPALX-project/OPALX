@@ -2,8 +2,18 @@
 //  Copyright & License: See Copyright.readme in src directory
 //
 
-/*!
-  :TODO: class documentation
+/**
+   \brief class BoundaryGeometry
+
+   A GEOMETRY definition is used by most physics commands to define the
+   particle charge and the reference momentum, together with some other
+   data.
+  
+   i.e:
+   G1: Geometry, FILE="input.h5"
+   G2: Geometry, L=1.0, A=0.0025, B=0.0001
+
+   :TODO: update above section
  */
 
 #ifndef _OPAL_BOUNDARY_GEOMETRY_H
