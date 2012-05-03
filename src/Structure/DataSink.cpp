@@ -1,128 +1,17 @@
-// ------------------------------------------------------------------------
-// $RCSfile: DataSink.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: DataSink
+//  Copyright & License: See Copyright.readme in src directory
 //
-// ------------------------------------------------------------------------
-//
-// Revision History:
-// $Date: 2004/06/02 19:38:54 $
-// $Author: adelmann $
-// $Log: DataSink.cpp,v $
-// Revision 1.3  2004/06/02 19:38:54  adelmann
-// add tabs in the stat file
-//
-// Revision 1.2  2003/12/12 10:46:39  adelmann
-// Remove old stuff
-//
-// Revision 1.1.1.2  2003/07/04 12:52:00  adelmann
-// July 4 2003
-//
-// Revision 3.2  2001/09/08 16:34:08  adelmann
-// Add writeout of: moments, dispersion
-//
-// Revision 3.1  2001/08/30 11:28:26  adelmann
-// add courant snyder parametres to statfile
-//
-// Revision 3.0  2001/08/22 14:41:33  adelmann
-// The stable Version
-//
-// Revision 2.17  2001/08/11 05:30:22  adelmann
-// Production Version
-//
-// Revision 1.6  2001/08/11 05:21:47  adelmann
-// August 11 2001 V2.17
-//
-// Add #-tag to string in statfile
-//
-// Revision 1.5  2001/07/05 20:52:53  adelmann
-// Mad9p V2.12
-//
-// Used reduction on one processor only -> program hangs
-//
-// Revision 1.4  2001/02/23 12:28:34  adelmann
-// Add space between the column of the STAMARKER
-//
-//
-// Revision 1.1.1.1  2000/11/30 20:29:48  adelmann
-// g++ and KCPP
-//
-// Revision 1.5  2000/11/09 15:24:24  adelmann
-// - no output in .progress file anymore
-//   the function is NOT removed so one can use
-//   this to dump some debug information
-//
-// - collect all reference data from PartData
-//
-// Revision 1.4  2000/11/05 04:24:47  adelmann
-// Add mean values of momentum to the statistics file LANL Nov 2000
-//
-// Revision 1.3  2000/10/26 05:17:58  adelmann
-// Remove DX stuff and add timestamp and title
-//
-// Revision 1.2  2000/08/10 10:56:34  adelmann
-// Some cleanup and add a option dx (data explorer) !
-// The new printall script extracts data from this stat file format
-//
-// Revision 1.1.1.1  2000/07/14 07:20:54  adelmann
-// linux version Fri Jul 14 09:15:27 CEST 2000
-//
-// Revision 1.1.1.1  2000/05/20 11:13:58  adelmann
-// Initial working version, thick elements, without: field dump and collimators
-//
-// Revision 1.3  2000/01/28 07:22:40  adelmann
-// Fixed some bugs with the Mad9pOutput
-//
-// Revision 1.2  2000/01/27 14:13:27  adelmann
-// - Add  bunch->dataSink_m.saveStatDataGnuplotFormat( . )
-//        DiscParticle write out
-//        updateDotProgress
-//
-// Revision 1.1.1.1  2000/01/06 07:33:27  adelmann
-// linux version works with gcc 991007 V2.96
-//
-// Revision 2.2  1999/10/29 05:02:05  adelmann
-// *** empty log message ***
-//
-// Revision 2.1  1999/10/27 06:36:59  adelmann
-// SGI-LINUX g++, with RF-Gap, REVSCATTER and read distribution from file
-//
-// Revision 1.1.1.1  1999/10/26 04:22:18  adelmann
-// Classic 2.1 (with p)
-//
-// Revision 1.1.1.1  1999/10/26 04:14:36  adelmann
-// Classic 2.1 (with p)
-//
-//
-// ------------------------------------------------------------------------
 
 #include "config.h"
 #include "DataSink.h"
-#include "Algorithms/PartBunch.h"
+
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
-#include "Physics/Physics.h"
 #include "Utilities/Options.h"
-#include "ValueDefinitions/RealVariable.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/BoundaryGeometry.h"
 
 #include "H5hut.h"
-
-#include <iomanip>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>
-#include <cassert>
-#include <hdf5.h>
-#include <cmath>
-#include <memory>
 
 extern Inform *gmsg;
 

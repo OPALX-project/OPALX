@@ -1,84 +1,32 @@
-// ------------------------------------------------------------------------
-// $RCSfile: DataSink.hh,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: DataSink
+//  Copyright & License: See Copyright.readme in src directory
+//
 //   Original, Observer in the Linac code written by  Tim Cleland,
 //             Julian Cummings, William Humphrey, and Graham Mark
 //             Salman Habib and Robert Ryne
 //             Los Alamos National Laboratory
 //
-// ------------------------------------------------------------------------
-//
-// Revision History:
-// $Date: 2003/01/23 13:29:44 $
-// $Author: adelmann $
-// $Log: DataSink.hh,v $
-// Revision 1.1.1.1  2003/01/23 13:29:44  adelmann
-// Classic
-//
-// Revision 3.1  2001/08/30 11:27:22  adelmann
-//
-// Revision 3.0  2001/08/22 14:41:33  adelmann
-// The stable Version
-//
-// Revision 2.17  2001/08/11 05:30:22  adelmann
-// Production Version
-//
-// Revision 1.1.1.1  2000/11/30 20:29:52  adelmann
-// g++ and KCC
-//
-// Revision 1.3  2000/10/26 05:17:59  adelmann
-// Remove DX stuff and add timestam and title
-//
-// Revision 1.2  2000/08/10 10:56:35  adelmann
-// Some cleanup and add a option dx (data explorer) !
-// The new printall skript extracts data from this stat file format
-//
-// Revision 1.1.1.1  2000/07/14 07:20:54  adelmann
-// linux version Fri Jul 14 09:15:27 CEST 2000
-//
-// Revision 1.1.1.1  2000/05/20 11:13:58  adelmann
-// Initial working version, thick elements, without: field dump and collimators
-//
-// Revision 1.3  2000/01/28 07:22:42  adelmann
-// Fixrd some bugs with the Mad9pOutput
-//
-// Revision 1.2  2000/01/27 14:13:29  adelmann
-// - Add  bunch->dataSink_m.saveStatDataGnuplotFormat( . )
-//        DiscParticle write out
-//        updateDotProgress
-//
-// Revision 1.1.1.1  2000/01/06 07:33:27  adelmann
-// linux version works with gcc 991007 V2.96
-//
-// Revision 2.2  1999/10/29 05:02:07  adelmann
-// *** empty log message ***
-//
-// Revision 2.1  1999/10/27 06:37:00  adelmann
-// SGI-LINUX g++, with RF-Gap, REVSCATTER and read distribution from file
-//
-// Revision 1.1.1.1  1999/10/26 04:22:18  adelmann
-// Classic 2.1 (with p)
-//
-// Revision 1.1.1.1  1999/10/26 04:14:36  adelmann
-// Classic 2.1 (with p)
-//
-//
-// ------------------------------------------------------------------------
 
-#ifndef DataSink_H_
-#define DataSink_H_
+/**
+   \brief Class: DataSink
+ 
+   This class acts as an observer during the calculation. It generates diagnostic
+   output of the accelerated beam such as statistical beam descriptors of particle
+   positions, momenta, beam phase space (emittance) etc. These are written to file
+   at periodic time steps during the calculation.
+   
+   This class also writes the full beam phase space to an H5 file at periodic time
+   steps in the calculation (this period is different from that of the statistical
+   numbers).
+   
+   Class also writes processor load balancing data to file to track parallel
+   calculation efficiency.
+*/
+
+#ifndef _OPAL_DATA_SINK_H
+#define _OPAL_DATA_SINK_H
 
 #include <fstream>
-#include <vector>
-#include <iostream>
-
-#include <sys/stat.h>
 
 #include "Algorithms/PBunchDefs.h"
 #include "H5hut.h"
@@ -87,20 +35,6 @@ class PartBunch;
 class EnvelopeBunch;
 class BoundaryGeometry;
 
-/** \brief Class: DataSink
- *
- * This class acts as an observer during the calculation. It generates diagnostic
- * output of the accelerated beam such as statistical beam descriptors of particle
- * positions, momenta, beam phase space (emittance) etc. These are written to file
- * at periodic time steps during the calculation.
- *
- * This class also writes the full beam phase space to an H5 file at periodic time
- * steps in the calculation (this period is different from that of the statistical
- * numbers).
- *
- * Class also writes processor load balancing data to file to track parallel
- * calculation efficiency.
- */
 
 class DataSink {
 public:

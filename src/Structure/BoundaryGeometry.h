@@ -1,22 +1,23 @@
-#ifndef OPAL_BOUNDARY_GEOMETRY_HH
-#define OPAL_BOUNDARY_GEOMETRY_HH
+//
+//  Copyright & License: See Copyright.readme in src directory
+//
+
+/*!
+  :TODO: class documentation
+ */
+
+#ifndef _OPAL_BOUNDARY_GEOMETRY_H
+#define _OPAL_BOUNDARY_GEOMETRY_H
 
 class OpalBeamline;
 class ElementBase;
 
-#include "Algorithms/PartBunch.h"
+#include <assert.h>
+
 #include "AbstractObjects/Definition.h"
-#include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/ranlib.h"
 #include "Structure/SecondaryEmissionPhysics.h"
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <set>
-#include <cmath>
-#include <assert.h>
 
 namespace BGphysics {
     enum TPHYACTION {
@@ -962,3 +963,4 @@ inline Inform &operator<< (Inform& os, const BoundaryGeometry& b) {
 
 
 #endif
+// vi: set et ts=4 sw=4 sts=4:

@@ -2,44 +2,20 @@
 // vi: set et ts=4 sw=4 sts=4:
 
 /*
-   Summary:
-        Implementation of the class BoundaryGeometry.
+  Implementation of the class BoundaryGeometry.
 
-   Notes:
-
-   Copyright:
-        2003-2011 Paul Scherrer Institut (PSI); Villigen; Switzerland
-        All rights reserved
-
-   License:
-        PSI open source license.
-        A copy of the license is included in the source distribution.
-
+  Copyright & License: See Copyright.readme in src directory
  */
 
-//FIXME: cleanup
 #include <fstream>
-#include <vector>
-#include <iostream>
-#include <sstream>
-#include <set>
-#include <cassert>
-#include <cmath>
-#include <algorithm>
-#include "hdf5.h"
-#include <sys/stat.h>
+
+#include "H5hut.h"
 
 #include "Structure/BoundaryGeometry.h"
-#include "Algorithms/PartBunch.h"
 #include "Structure/PriEmissionPhysics.h"
-#include "Algorithms/PartData.h"
-#include "Expressions/SAutomatic.h"
 #include "Expressions/SRefExpr.h"
-#include "Physics/Physics.h"
-#include "Utilities/OpalException.h"
-#include "AbsBeamline/ElementBase.h"
 #include "Elements/OpalBeamline.h"
-#include "Distribution/Distribution.h"
+
 using namespace Expressions;
 using namespace Physics;
 
