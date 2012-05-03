@@ -2328,7 +2328,7 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
         bg.TriPrPartlossZ_m[i] = 0;
         bg.TriSePartlossZ_m[i] = 0;
         bg.TriFEPartlossZ_m[i] = 0;
-        for(int j = 0; j < bg.numbfaces_global_m; j++) {
+        for(int j = 0; j < bg.getNumBFaces(); j++) {
             if(((Geo_mincoords[2] + Geo_hr(2)*i) < bg.Tribarycent_m[j](2))
                && (bg.Tribarycent_m[j](2) < (Geo_hr(2)*i + Geo_hr(2) + Geo_mincoords[2]))) {
                 bg.TriPrPartlossZ_m[i] += bg.TriPrPartloss_m[j];
@@ -2338,7 +2338,7 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
 
         }
     }
-    for(int j = 0; j < bg.numbfaces_global_m; j++) {
+    for(int j = 0; j < bg.getNumBFaces(); j++) {
         fidtr << t_step << std::setw(18) << j << std::setw(18)// fixme: maybe gether particle loss data, i.e., do a reduce() for each triangle in each node befor write to file.
               << bg.Tribarycent_m[j](0) << std::setw(18)
               << bg.Tribarycent_m[j](1) << std::setw(18)
@@ -2389,7 +2389,7 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
 
 
     }
-    int nTot = bg.numbfaces_global_m;
+    int nTot = bg.getNumBFaces();
 
     int N_mean = static_cast<int>(floor(nTot / Ippl::getNodes()));
     int N_extra = static_cast<int>(nTot - N_mean * Ippl::getNodes());
@@ -2585,10 +2585,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
                 << std::setw(18) << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << endl ;
         }
     }
-
 }
-
-
 
 void DataSink::writeGeomToVtk(BoundaryGeometry &bg, string fn) {
     if(Ippl::myNode() == 0) {
@@ -2596,25 +2593,25 @@ void DataSink::writeGeomToVtk(BoundaryGeometry &bg, string fn) {
         of.open(fn.c_str());
         assert(of.is_open());
         of.precision(6);
-        of << "# vtk DataFile Version 2.0" << endl;  // first line of a vtk file
-        of << "generated using DataSink::writeGeoToVtk" << endl;   // header
-        of << "ASCII" << endl << endl;   // file format
-        of << "DATASET UNSTRUCTURED_GRID" << endl;  // dataset structrue
-        of << "POINTS " << bg.numpoints_global_m << " float" << endl;   // data num and type
+        of << "# vtk DataFile Version 2.0" << endl;
+        of << "generated using DataSink::writeGeoToVtk" << endl;
+        of << "ASCII" << endl << endl;
+        of << "DATASET UNSTRUCTURED_GRID" << endl;
+        of << "POINTS " << bg.numpoints_global_m << " float" << endl;
         for(int i = 0; i < bg.numpoints_global_m ; i ++)
             of << bg.geo3Dcoords_m[i](0) << " " << bg.geo3Dcoords_m[i](1) << " " << bg.geo3Dcoords_m[i](2) << endl;
         of << endl;
 
-        of << "CELLS " << bg.numbfaces_global_m << " " << 4 * bg.numbfaces_global_m << endl;
-        for(int i = 0; i < bg.numbfaces_global_m ; i ++)
+        of << "CELLS " << bg.getNumBFaces() << " " << 4 * bg.getNumBFaces() << endl;
+        for(int i = 0; i < bg.getNumBFaces(); i ++)
             of << "3 " << bg.allbfaces_m[4 * i + 1] << " " << bg.allbfaces_m[4 * i + 2] << " " << bg.allbfaces_m[4 * i + 3] << endl;
-        of << "CELL_TYPES " << bg.numbfaces_global_m << endl;
-        for(int i = 0; i < bg.numbfaces_global_m ; i ++)
+        of << "CELL_TYPES " << bg.getNumBFaces() << endl;
+        for(int i = 0; i < bg.getNumBFaces(); i ++)
             of << "5" << endl;
-        of << "CELL_DATA " << bg.numbfaces_global_m << endl;
+        of << "CELL_DATA " << bg.getNumBFaces() << endl;
         of << "SCALARS " << "cell_attribute_data" << " float " << "1" << endl;
         of << "LOOKUP_TABLE " << "default" << endl ;
-        for(int i = 0; i < bg.numbfaces_global_m ; i ++)
+        for(int i = 0; i < bg.getNumBFaces(); i ++)
             of << (float)(i) << endl;
         of << endl;
 
