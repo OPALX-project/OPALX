@@ -77,13 +77,13 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual Distribution *clone(const string &name);
+    virtual Distribution *clone(const std::string &name);
 
     /// Check the Distribution data.
     virtual void execute();
 
     /// Find named Distribution.
-    static Distribution *find(const string &name);
+    static Distribution *find(const std::string &name);
 
     /// Return the embedded CLASSIC PartData.
     const PartData &getReference() const;
@@ -150,7 +150,7 @@ public:
     double getFNParameterVYSecond();
     int    getSecondaryEmissionFlag();
     bool   getEmissionMode() ;
-    string getTypeofDistribution();
+    std::string getTypeofDistribution();
 
     double getvSeyZero();//return sey_0 in Vaughan's model
     double getvEZero();//return the energy related to sey_0 in Vaughan's model
@@ -171,9 +171,9 @@ private:
                      Vector_t bincoef, PartBunch &beam, size_t particles,
                      bool isBinned);
 
-    void binnDistribution(PartBunch &beam, size_t Np, string distType);
+    void binnDistribution(PartBunch &beam, size_t Np, std::string distType);
 
-    void binnDistributionFromFile(PartBunch &beam, const string fn);
+    void binnDistributionFromFile(PartBunch &beam, const std::string fn);
 
     double eVtoBetaGamma(const double &valueIneV, const double &mass) {
         double tmp = 1. + valueIneV / mass;
@@ -193,7 +193,7 @@ private:
     void operator=(const Distribution &);
 
     // Clone constructor.
-    Distribution(const string &name, Distribution *parent);
+    Distribution(const std::string &name, Distribution *parent);
 
     //===============
     // Class members.
@@ -212,7 +212,7 @@ private:
 
     //`setup() fills the following variables
 
-    string distT_m;
+    std::string distT_m;
     DistrTypeT distrTypeT_m;   // will replace distT_m
 
     double corr_m[7];
@@ -272,8 +272,8 @@ private:
     /**
        Data for Laser Profile read in
     */
-    string laserProfileFn_m;
-    string laserImage_m;
+    std::string laserProfileFn_m;
+    std::string laserImage_m;
     double intensityCut_m;
 
     LaserProfile *lp_m;

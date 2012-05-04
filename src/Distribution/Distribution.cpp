@@ -168,7 +168,7 @@ Distribution::Distribution():
     itsAttr[YMULT] = makeReal("YMULT", "Multiplier for Y", 1.0);
     itsAttr[TMULT] = makeReal("TMULT", "Multiplier for T", 1.0);
     itsAttr[ZMULT] = makeReal("TMULT", "Multiplier for T", -99.0);
-    itsAttr[TRANSVCUTOFF] = makeReal("TRANSVCUTOFF", "Transverse cut-off in units of sigma", 3.0);
+    itsAttr[TRANSVCUTOFF] = makeReal("TRANSVCUTOFF", "Transverse cut-off in units of sigma", -3.0);
 
     itsAttr[PXMULT] = makeReal("PXMULT", "Multiplier for PX", 1.0);
     itsAttr[PYMULT] = makeReal("PYMULT", "Multiplier for PY", 1.0);
@@ -307,7 +307,7 @@ Distribution::Distribution():
  * @param name
  * @param parent
  */
-Distribution::Distribution(const string &name, Distribution *parent):
+Distribution::Distribution(const std::string &name, Distribution *parent):
     Definition(name, parent),
     reference(parent->reference),
     pbin_m(NULL),
@@ -383,19 +383,18 @@ Distribution::~Distribution() {
 /**
  * At the moment only write the header into the file dist.dat
  * PartBunch will then append (very uggly)
- * @param 
- * @param 
- * @param 
+ * @param
+ * @param
+ * @param
  */
 void Distribution::writeToFile() {
 
     if(Ippl::getNodes() == 1) {
-        if (os_m.is_open()) {
+        if(os_m.is_open()) {
             ;
-        }
-        else {
+        } else {
             *gmsg << " Write distribution to file dist.dat" << endl;
-            string file("data/dist.dat");
+            std::string file("data/dist.dat");
             os_m.open(file.c_str());
             if(os_m.bad()) {
                 *gmsg << "Unable to open output file " <<  file << endl;
@@ -436,7 +435,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
 
     laserProfileFn_m = Attributes::getString(itsAttr[LASERPROFFN]);
 
-    if(!(laserProfileFn_m == string(""))) {
+    if(!(laserProfileFn_m == std::string(""))) {
         laserImage_m  = Attributes::getString(itsAttr[IMAGENAME]);
         intensityCut_m = Attributes::getReal(itsAttr[INTENSITYCUT]);
         lp_m = new LaserProfile(laserProfileFn_m, laserImage_m, intensityCut_m);
@@ -464,7 +463,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
     /*
       Setup some common data:
     */
-    if (distrTypeT_m == GUNGAUSSFLATTOPTH || distrTypeT_m == ASTRAFLATTOPTH) {
+    if(distrTypeT_m == GUNGAUSSFLATTOPTH || distrTypeT_m == ASTRAFLATTOPTH) {
         corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
         corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
         corr_m[2] = Attributes::getReal(itsAttr[CORRT]);
@@ -472,11 +471,11 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
         sBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[SBIN])));
         transvCutOff_m = Attributes::getReal(itsAttr[TRANSVCUTOFF]);
-    
+
         sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
                           Attributes::getReal(itsAttr[SIGMAY]),
                           Attributes::getReal(itsAttr[SIGMAT]));
-        
+
         sigp_m = Vector_t(eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()),
                           eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()),
                           eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()));
@@ -510,7 +509,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         ptot_m = eVtoBetaGamma(ekin_m, beam.getM());
     }
 
-    if (distrTypeT_m == BINOMIAL || distrTypeT_m == GAUSS) {
+    if(distrTypeT_m == BINOMIAL || distrTypeT_m == GAUSS) {
 
         corr_m[0] = Attributes::getReal(itsAttr[CORRX]);
         corr_m[1] = Attributes::getReal(itsAttr[CORRY]);
@@ -525,7 +524,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
                           Attributes::getReal(itsAttr[SIGMAY]),
                           Attributes::getReal(itsAttr[SIGMAT]));
-        
+
         sigp_m = Vector_t(eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPX]), beam.getM()),
                           eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPY]), beam.getM()),
                           eVtoBetaGamma(Attributes::getReal(itsAttr[SIGMAPT]), beam.getM()));
@@ -564,13 +563,13 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
         break;
         case ASTRAFLATTOPTH: {
 
-            if(Options::rngtype != string("RANDOM")) {
+            if(Options::rngtype != std::string("RANDOM")) {
                 INFOMSG("RNGTYPE= " << Options::rngtype << endl);
-                if(Options::rngtype == string("HALTON"))
+                if(Options::rngtype == std::string("HALTON"))
                     qrng_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
-                else if(Options::rngtype == string("SOBOL"))
+                else if(Options::rngtype == std::string("SOBOL"))
                     qrng_m = gsl_qrng_alloc(gsl_qrng_sobol, 2);
-                else if(Options::rngtype == string("NIEDERREITER"))
+                else if(Options::rngtype == std::string("NIEDERREITER"))
                     qrng_m = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 2);
                 else {
                     INFOMSG("RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl);
@@ -635,8 +634,8 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                 for(int i = 0; i < bin_size; i++) {
                     double xx[2];
                     gsl_qrng_get(R_m, xx);
-                    gsl_histogram_increment(h_m, (hi * (xx[1] + 
-                    static_cast<int>(gsl_ran_discrete(rn_m, table)) - binTotal / 2 + k * sBins_m) / (binTotal / 2)));
+                    gsl_histogram_increment(h_m, (hi * (xx[1] +
+                                                        static_cast<int>(gsl_ran_discrete(rn_m, table)) - binTotal / 2 + k * sBins_m) / (binTotal / 2)));
                 }
                 gsl_ran_discrete_free(table);
             }
@@ -745,14 +744,14 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
 
             if(isBinned) {
                 *gmsg << "     DISTRIBUTION will be binned using " << nBins_m << " energy bins " << endl;
-                const string fn;
+                const std::string fn;
                 binnDistributionFromFile(beam, fn);
 
             } else {
                 std::ofstream os;
                 if(Ippl::getNodes() == 1) {
                     *gmsg << " Write distribution to file dist.dat" << endl;
-                    string file("data/dist.dat");
+                    std::string file("data/dist.dat");
                     os.open(file.c_str());
                     if(os.bad()) {
                         *gmsg << "Unable to open output file " <<  file << endl;
@@ -761,7 +760,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                 }
 
                 if(Ippl::myNode() == 0) {
-                    const string filename = Attributes::getString(itsAttr[FNAME]);
+                    const std::string filename = Attributes::getString(itsAttr[FNAME]);
                     double x0, px0, y0, py0, psi0, del0;
 
                     std::ifstream fs;
@@ -933,62 +932,62 @@ bool Distribution::addDistributions(PartBunch &beam, vector<Distribution *> dist
 
                     // Add particles to time histogram.
                     if(nParticles > 0) {
-                        
+
                         double sigmaRiseTime = 0.0;
                         double sigmaFallTime = 0.0;
                         double timeFlat = 0.0;
                         double cutOff = 0.0;
-                        
+
                         if(distIterator == 0) {
                             sigmaRiseTime = sigmaRise_m;
                             sigmaFallTime = sigmaFall_m;
                             timeFlat = tPulseLengthFWHM_m - sqrt(2.0 * log(2.0)) * (sigmaRise_m + sigmaFall_m);
                             cutOff = cutoff_m;
-                                deltaT = Attributes::getReal(itsAttr[T]);
+                            deltaT = Attributes::getReal(itsAttr[T]);
                         } else {
                             double riseTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TRISE")));
                             double fallTime = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TFALL")));
-                            
+
                             cutOff = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("CUTOFF")));
                             deltaT = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("T")));
-                            
+
                             double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
                             sigmaRiseTime = riseTime / timeRatio;
                             sigmaFallTime = fallTime / timeRatio;
-                            
+
                             timeFlat = Attributes::getReal(*(distributions.at(distIterator - 1)->findAttribute("TPULSEFWHM")))
-                                - sqrt(2.0 * log(2.0)) * (sigmaRiseTime + sigmaFallTime);
+                                       - sqrt(2.0 * log(2.0)) * (sigmaRiseTime + sigmaFallTime);
                         }
                         if(timeFlat < 0.0) timeFlat = 0.0;
-                        
+
                         const double totalArea = timeFlat + 0.5 * sqrt(2.0 * Physics::pi) * (sigmaRiseTime + sigmaFallTime);
-                        
+
                         unsigned int numPartInRise = nParticles * 0.5 * gsl_sf_erf(cutOff / sqrt(2.0))
-                            * sqrt(2.0 * Physics::pi) * sigmaRiseTime / totalArea;
+                                                     * sqrt(2.0 * Physics::pi) * sigmaRiseTime / totalArea;
                         unsigned int numPartInFall = nParticles * 0.5 * gsl_sf_erf(cutOff / sqrt(2.0))
-                            * sqrt(2.0 * Physics::pi) * sigmaFallTime / totalArea;
+                                                     * sqrt(2.0 * Physics::pi) * sigmaFallTime / totalArea;
                         unsigned int numPartInFlat = nParticles - numPartInRise - numPartInFall;
-                        
+
                         if(timeFlat == 0.0) {
                             numPartInRise += numPartInFlat / 2;
                             numPartInFall = nParticles - numPartInRise;
                             numPartInFlat = 0;
                         }
-                        
+
                         for(unsigned int partIterator = 0; partIterator < numPartInRise; partIterator++) {
                             double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaRiseTime);
                             while(tRandom > cutOff * sigmaRiseTime)
                                 tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaRiseTime);
                             gsl_histogram_increment(h_m, -tRandom + cutOff * sigmaRiseTime + deltaT - minT);
                         }
-                        
+
                         for(unsigned int partIterator = 0; partIterator < numPartInFall; partIterator++) {
                             double tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaFallTime);
                             while(tRandom > cutOff * sigmaFallTime)
                                 tRandom = gsl_ran_gaussian_tail(ranNumberGen, 0, sigmaFallTime);
                             gsl_histogram_increment(h_m, tRandom + cutOff * sigmaRiseTime + timeFlat + deltaT - minT);
                         }
-                        
+
                         for(unsigned int partIterator = 0; partIterator < numPartInFlat; partIterator++) {
                             double tRandom = 0.0;
                             gsl_qrng_get(R_m, &tRandom);
@@ -1045,7 +1044,7 @@ void Distribution::sampleGauss(PartBunch &beam, size_t Np) {
         double yy = y;
         double px0  = x * corr_m[0] + y * sqrt(1.0 - corr_m[0] * corr_m[0]);
         double x0   = x * sigx_m[0] + gauss_offset_m[0];
-        px0 *= sigp_m[0]; 
+        px0 *= sigp_m[0];
 
         x  = rGen_m->gauss(0.0, 1.0);
         y  = rGen_m->gauss(0.0, 1.0);
@@ -1166,7 +1165,8 @@ pair<Vector_t, Vector_t> Distribution::sampleNEW(double dt, int binNumber) {
     Vector_t r(0.0);
     Vector_t p(0.0);
 
-    double x0, y0;
+    double x0 = 0.0;
+    double y0 = 0.0;
 
     switch(distrTypeT_m) {
 
@@ -1179,24 +1179,33 @@ pair<Vector_t, Vector_t> Distribution::sampleNEW(double dt, int binNumber) {
                 lp_m->GetXY(&x, &y);
                 x = 2 * x - 1.0;
                 y = 2 * y - 1.0;
-            } else if(qrng_m != NULL) {
-                while(xy > 1) {
-                    double v0[2];
-                    gsl_qrng_get(qrng_m, v0);
-                    x = -1.0 + (2.0 * v0[0]);
-                    y = -1.0 + (2.0 * v0[1]);
-                    xy = sqrt(x * x + y * y);
+            } else if(transvCutOff_m > 0.0) {
+                x0 = rGen_m->gauss(0.0, sigx_m[0]);
+                y0 = rGen_m->gauss(0.0, sigx_m[1]);
+                while(sqrt(pow(x0, 2.0) + pow(y0, 2.0)) > transvCutOff_m) {
+                    x0 = rGen_m->gauss(0.0, sigx_m[0]);
+                    y0 = rGen_m->gauss(0.0, sigx_m[1]);
                 }
             } else {
-                while(xy > 1) {
-                    x  = rGen_m->uniform(-1.0, 1.0);
-                    y  = rGen_m->uniform(-1.0, 1.0);
-                    xy = sqrt(x * x + y * y);
+                if(qrng_m != NULL) {
+                    while(xy > 1) {
+                        double v0[2];
+                        gsl_qrng_get(qrng_m, v0);
+                        x = -1.0 + (2.0 * v0[0]);
+                        y = -1.0 + (2.0 * v0[1]);
+                        xy = sqrt(x * x + y * y);
+                    }
+                } else {
+                    while(xy > 1) {
+                        x  = rGen_m->uniform(-1.0, 1.0);
+                        y  = rGen_m->uniform(-1.0, 1.0);
+                        xy = sqrt(x * x + y * y);
+                    }
                 }
-            }
 
-            x0   =  x * sigx_m[0];
-            y0   =  y * sigx_m[1];
+                x0   =  x * sigx_m[0];
+                y0   =  y * sigx_m[1];
+            }
 
             /*
               Now calculate the thermal emittances
@@ -1237,20 +1246,20 @@ pair<Vector_t, Vector_t> Distribution::sampleNEW(double dt, int binNumber) {
  */
 void Distribution::createTimeBins(const int Np) {
 
-    if(Options::rngtype != string("RANDOM")) {
+    if(Options::rngtype != std::string("RANDOM")) {
         INFOMSG("RNGTYPE= " << Options::rngtype << endl);
-        if(Options::rngtype == string("HALTON"))
+        if(Options::rngtype == std::string("HALTON"))
             qrng_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
-        else if(Options::rngtype == string("SOBOL"))
+        else if(Options::rngtype == std::string("SOBOL"))
             qrng_m = gsl_qrng_alloc(gsl_qrng_sobol, 2);
-        else if(Options::rngtype == string("NIEDERREITER"))
+        else if(Options::rngtype == std::string("NIEDERREITER"))
             qrng_m = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 2);
         else {
             INFOMSG("RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl);
             qrng_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
         }
     }
-    
+
     gsl_histogram_set_ranges_uniform(h_m, 0, tEmission_m);
     gsl_rng_env_setup();
     gsl_rng *r = gsl_rng_alloc(gsl_rng_default);
@@ -1261,13 +1270,13 @@ void Distribution::createTimeBins(const int Np) {
     int nrise = Np * 0.5 * gsl_sf_erf(cutoff_m / sqrt(2.0)) * sq2pi * sigmaRise_m / totA;
     int nfall = Np * 0.5 * gsl_sf_erf(cutoff_m / sqrt(2.0)) * sq2pi * sigmaFall_m / totA;
     int nflat = Np - nrise - nfall;
-    
+
     if(tFlat == 0.0) {
         nrise += nflat / 2;
         nfall = Np - nrise;
         nflat = 0;
     }
-    
+
     // Rise: [0, c\sigma_R]
     for(int i = 0; i < nrise; i++) {
         double r1 = gsl_ran_gaussian_tail(r, 0, sigmaRise_m);
@@ -1285,17 +1294,17 @@ void Distribution::createTimeBins(const int Np) {
     // Flattop: [c\sigma_R, c\sigma_R + tFlat]
     //
     // The flat top can also have sinusoidal modulations.
-    
+
     gsl_qrng *Qrng = gsl_qrng_alloc(gsl_qrng_halton, 1);
-    
+
     gsl_qrng *R2_m = gsl_qrng_alloc(gsl_qrng_halton, 2);
-    
+
     // Get modulation parameters.
     double modulationAmplitude = Attributes::getReal(itsAttr[FTOSCAMPLITUDE]) / 100.0;
     double numberOfModulationPeriods = fabs(Attributes::getReal(itsAttr[FTOSCPERIODS]));
     double modulationPeriod = 0.0;
     if(numberOfModulationPeriods != 0) modulationPeriod = tFlat / numberOfModulationPeriods;
-    
+
     // Sample flat top.
     for(int i = 0; i < nflat; i++) {
         double r1 = 0.0;
@@ -1304,20 +1313,20 @@ void Distribution::createTimeBins(const int Np) {
         if(modulationAmplitude == 0.0 || numberOfModulationPeriods == 0) {
             // r1 = gsl_ran_flat(r, 0, tFlat);
             gsl_qrng_get(Qrng, &r1);
-            
+
             r1 *= tFlat;
-            
+
         } else {
             bool accept = false;
             while(!accept) {
                 gsl_qrng_get(R2_m, rn);
                 // r1 = gsl_ran_flat(r, 0, tFlat);
                 /// r2 = gsl_ran_flat(r, 0, 1.0);
-                    r1 = rn[0] * tFlat;
-                    r2 = rn[1];
-                    double function = (1.0 + modulationAmplitude * sin(Physics::two_pi * r1 / modulationPeriod))
-                        / (1.0 + fabs(modulationAmplitude));
-                    if(r2 <= function) accept = true;
+                r1 = rn[0] * tFlat;
+                r2 = rn[1];
+                double function = (1.0 + modulationAmplitude * sin(Physics::two_pi * r1 / modulationPeriod))
+                                  / (1.0 + fabs(modulationAmplitude));
+                if(r2 <= function) accept = true;
             }
         }
         gsl_histogram_increment(h_m, r1 + cutoff_m * sigmaRise_m);
@@ -1362,46 +1371,46 @@ void Distribution::createSlicedBunch(int sl, double charge, double gamma, double
     corr_m[4] = Attributes::getReal(itsAttr[R62]);
     corr_m[5] = Attributes::getReal(itsAttr[R51]);
     corr_m[6] = Attributes::getReal(itsAttr[R52]);
-    
+
     sigx_m = Vector_t(Attributes::getReal(itsAttr[SIGMAX]),
                       Attributes::getReal(itsAttr[SIGMAY]),
                       Attributes::getReal(itsAttr[SIGMAT]));
-    
+
     switch(distrTypeT_m) {
 
-    case GUNGAUSSFLATTOPTH: {
-        
-        nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
-        
-        tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
-        cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
-        tRise_m = Attributes::getReal(itsAttr[TRISE]);
-        tFall_m = Attributes::getReal(itsAttr[TFALL]);
-        double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-        sigmaRise_m = tRise_m / tratio;
-        sigmaFall_m = tFall_m / tratio;
-        tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
+        case GUNGAUSSFLATTOPTH: {
 
-        ekin_m = Attributes::getReal(itsAttr[EKIN]);
+            nBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[NBIN])));
 
-        // EnvelopeTracker expects [eV]
-        beamEnergy = ekin_m;
-        beamWidth = tEmission_m * Physics::c * sqrt(1.0 - (1.0 / pow(gamma, 2)));
-        
-        break;
-    }
-    case GAUSS: {
-        gauss_offset_m[0] = Attributes::getReal(itsAttr[OFFSETX]);
-        gauss_offset_m[1] = Attributes::getReal(itsAttr[OFFSETY]);        
-        avrgt_m  = Attributes::getReal(itsAttr[T]);
+            tPulseLengthFWHM_m = Attributes::getReal(itsAttr[TPULSEFWHM]);
+            cutoff_m = Attributes::getReal(itsAttr[CUTOFF]);
+            tRise_m = Attributes::getReal(itsAttr[TRISE]);
+            tFall_m = Attributes::getReal(itsAttr[TFALL]);
+            double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
+            sigmaRise_m = tRise_m / tratio;
+            sigmaFall_m = tFall_m / tratio;
+            tEmission_m = tPulseLengthFWHM_m + (cutoff_m - sqrt(2.0 * log(2.0))) * (sigmaRise_m + sigmaFall_m);
 
-        beamEnergy = (gamma * mass - mass) * 1e9;         //FIXME: why 1e9??
-        beamWidth = sigx_m[2];
-        tEmission_m = 0.0;
-        break;
-    }
-    default:
-        ;
+            ekin_m = Attributes::getReal(itsAttr[EKIN]);
+
+            // EnvelopeTracker expects [eV]
+            beamEnergy = ekin_m;
+            beamWidth = tEmission_m * Physics::c * sqrt(1.0 - (1.0 / pow(gamma, 2)));
+
+            break;
+        }
+        case GAUSS: {
+            gauss_offset_m[0] = Attributes::getReal(itsAttr[OFFSETX]);
+            gauss_offset_m[1] = Attributes::getReal(itsAttr[OFFSETY]);
+            avrgt_m  = Attributes::getReal(itsAttr[T]);
+
+            beamEnergy = (gamma * mass - mass) * 1e9;         //FIXME: why 1e9??
+            beamWidth = sigx_m[2];
+            tEmission_m = 0.0;
+            break;
+        }
+        default:
+            ;
     }
 
     center = -1 * beamWidth / 2.0;
@@ -1423,7 +1432,7 @@ void Distribution::createSlicedBunch(int sl, double charge, double gamma, double
 void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restartStep) {
     h5_file_t *H5file;
     h5_int64_t rc;
-    string fn;
+    std::string fn;
 
     IpplTimings::startTimer(beam.distrReload_m);
 
@@ -1433,7 +1442,7 @@ void Distribution::doRestartEnvelope(EnvelopeBunch &beam, size_t Np, int restart
 
     } else {
         //        beam.setTEmission(Attributes::getReal(itsAttr[TEMISSION]));
-        fn = OpalData::getInstance()->getInputBasename() + string(".h5");
+        fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
     }
 
 #ifdef PARALLEL_IO
@@ -1597,7 +1606,7 @@ bool Distribution::canReplaceBy(Object *object) {
  *
  * @return
  */
-Distribution *Distribution::clone(const string &name) {
+Distribution *Distribution::clone(const std::string &name) {
     return new Distribution(name, this);
 }
 
@@ -2018,7 +2027,7 @@ void Distribution::create(PartBunch &beam, size_t Np) {
 
     beam.setTEmission(Attributes::getReal(itsAttr[TEMISSION]));
     beam.setNumBunch(1);
-    const string disttype = Attributes::getString(itsAttr[DISTRIBUTION]);
+    const std::string disttype = Attributes::getString(itsAttr[DISTRIBUTION]);
     if(disttype == "GUNGAUSSFLATTOPTH") {
         binnDistribution(beam, Np, disttype);
     } else if(disttype == "BINOMIAL") {
@@ -2155,12 +2164,12 @@ void Distribution::create(PartBunch &beam, size_t Np) {
 
         if(isBinned) {
             *gmsg << "     DISTRIBUTION will be binned using " << ebins << " energy bins " << endl;
-            const string fn;
+            const std::string fn;
             binnDistributionFromFile(beam, fn);
         } else {
             double x0, px0, y0, py0, psi0, del0;
             if(Ippl::myNode() == 0) {
-                const string filename = Attributes::getString(itsAttr[FNAME]);
+                const std::string filename = Attributes::getString(itsAttr[FNAME]);
                 std::ifstream fs;
                 fs.open(filename.c_str());
 
@@ -2267,7 +2276,7 @@ double Distribution::getTEmission() {
  * @param Np
  * @param distType
  */
-void Distribution::binnDistribution(PartBunch &beam, size_t Np, string distType) {
+void Distribution::binnDistribution(PartBunch &beam, size_t Np, std::string distType) {
     const double &two_pi = Physics::two_pi;
     unsigned int pc = 0;
 
@@ -2286,7 +2295,7 @@ void Distribution::binnDistribution(PartBunch &beam, size_t Np, string distType)
                       Attributes::getReal(itsAttr[CORRT])
                      };
 
-    double transvCutOff = Attributes::getReal(itsAttr[TRANSVCUTOFF]);
+    double transvCutOff = std::abs(Attributes::getReal(itsAttr[TRANSVCUTOFF]));
     double Hs2a = Attributes::getReal(itsAttr[SIGMAX]);
 
     double Vs2a = Attributes::getReal(itsAttr[SIGMAY]);
@@ -2386,7 +2395,7 @@ void Distribution::binnDistribution(PartBunch &beam, size_t Np, string distType)
 
     if(Ippl::getNodes() == 1) {
         *gmsg << " Write distribution to file dist.dat" << endl;
-        string file("data/dist.dat");
+        std::string file("data/dist.dat");
         os.open(file.c_str());
         if(os.bad()) {
             *gmsg << "Unable to open output file " <<  file << endl;
@@ -2505,7 +2514,7 @@ void Distribution::binnDistribution(PartBunch &beam, size_t Np, string distType)
  * @param beam
  * @param fn
  */
-void Distribution::binnDistributionFromFile(PartBunch &beam, const string fn) {
+void Distribution::binnDistributionFromFile(PartBunch &beam, const std::string fn) {
     unsigned int pc = 0;
     size_t Np;
     double x0, y0, psi0, px0, py0, del0;
@@ -2523,7 +2532,7 @@ void Distribution::binnDistributionFromFile(PartBunch &beam, const string fn) {
 
     if(Ippl::getNodes() == 1) {
         *gmsg << " Write distribution to file dist.dat" << endl;
-        string file("data/dist.dat");
+        std::string file("data/dist.dat");
         os.open(file.c_str());
         if(os.bad()) {
             *gmsg << "Unable to open output file " <<  file << endl;
@@ -2593,12 +2602,12 @@ void Distribution::binnDistributionFromFile(PartBunch &beam, const string fn) {
 void Distribution::doRestart(PartBunch &beam, size_t Np, int restartStep) {
     h5_file_t *H5file;
     h5_int64_t rc;
-    string fn;
+    std::string fn;
 
     IpplTimings::startTimer(beam.distrReload_m);
 
     //        beam.setTEmission(Attributes::getReal(itsAttr[TEMISSION]));
-    fn = OpalData::getInstance()->getInputBasename() + string(".h5");
+    fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
 
 #ifdef PARALLEL_IO
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());
@@ -2754,7 +2763,7 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
     *gmsg << "---------------- Start reading hdf5 file----------------" << endl;
     h5_file_t *H5file;
 
-    string fn = OpalData::getInstance()->getInputBasename() + string(".h5");
+    std::string fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
 
 #ifdef PARALLEL_IO
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());
@@ -2824,56 +2833,56 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
 
     beam.create(localN);
 
-    if (strcmp(opalFlavour,"opal-t") == 0) {
-        *gmsg<<"Restart from hdf5 file generated by OPAL-t"<<endl;
-        
+    if(strcmp(opalFlavour, "opal-t") == 0) {
+        *gmsg << "Restart from hdf5 file generated by OPAL-t" << endl;
+
         // force the initial time to zero
         beam.setT(0.0);
-    
+
         rc = H5PartReadDataFloat64(H5file, "x", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.R[n](0) = -farray[n];
+            beam.R[n](0) = -farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "y", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.R[n](2) = farray[n];
+            beam.R[n](2) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "z", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.R[n](1) = farray[n];
+            beam.R[n](1) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "px", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.P[n](0) = -farray[n];
+            beam.P[n](0) = -farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "py", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.P[n](2) = farray[n];
+            beam.P[n](2) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "pz", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.P[n](1) = farray[n];
-        
+            beam.P[n](1) = farray[n];
+
         rc = H5PartReadDataInt64(H5file, "id", larray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.ID[n] = larray[n];
+            beam.ID[n] = larray[n];
 
-    }else{
-        *gmsg<<"Restart from hdf5 file generated by OPAL-cycl"<<endl;
+    } else {
+        *gmsg << "Restart from hdf5 file generated by OPAL-cycl" << endl;
 
         double actualT;
         rc = H5ReadStepAttribFloat64(H5file, "TIME", &actualT);
@@ -2884,64 +2893,64 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
         h5_int64_t SteptoLastInj;
         rc = H5ReadStepAttribInt64(H5file, "SteptoLastInj", &SteptoLastInj);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         beam.setSteptoLastInj((int)SteptoLastInj);
         *gmsg << "Tracking Step since last bunch injection is " << SteptoLastInj << endl;
 
         h5_int64_t numBunch;
         rc = H5ReadStepAttribInt64(H5file, "NumBunch", &numBunch);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         beam.setNumBunch((int)numBunch);
         *gmsg << numBunch << " Bunches(bins) exist in this file" << endl;
 
         rc = H5PartReadDataFloat64(H5file, "x", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.R[n](0) = farray[n];
+            beam.R[n](0) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "y", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.R[n](1) = farray[n];
+            beam.R[n](1) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "z", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.R[n](2) = farray[n];
+            beam.R[n](2) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "px", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.P[n](0) = farray[n];
+            beam.P[n](0) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "py", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.P[n](1) = farray[n];
+            beam.P[n](1) = farray[n];
 
         rc = H5PartReadDataFloat64(H5file, "pz", farray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.P[n](2) = farray[n];
+            beam.P[n](2) = farray[n];
 
         rc = H5PartReadDataInt64(H5file, "id", larray);
         if(rc != H5_SUCCESS)
-          ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
         for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-          beam.ID[n] = larray[n];
-        
+            beam.ID[n] = larray[n];
+
         // only for multi-bunch mode
         if(specifiedNumBunch > 1) {
-          // the allowed maximal bin number is set to 1000
-          beam.setPBins(new PartBinsCyc(1000, numBunch));
-        
+            // the allowed maximal bin number is set to 1000
+            beam.setPBins(new PartBinsCyc(1000, numBunch));
+
         }
 
     }
@@ -2953,25 +2962,25 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
     beam.boundp();
     beam.Q = beam.getChargePerParticle();
 
-    if (strcmp(opalFlavour,"opal-t") == 0) {
+    if(strcmp(opalFlavour, "opal-t") == 0) {
         Vector_t meanR(0.0, 0.0, 0.0);
         Vector_t meanP(0.0, 0.0, 0.0);
         unsigned long int newLocalN = beam.getLocalNum();
         for(unsigned int i = 0; i < newLocalN; ++i) {
-          for(int d = 0; d < 3; ++d) {
-              meanR(d) += beam.R[i](d);
-              meanP(d) += beam.P[i](d);
-          }
+            for(int d = 0; d < 3; ++d) {
+                meanR(d) += beam.R[i](d);
+                meanP(d) += beam.P[i](d);
+            }
         }
         reduce(meanR, meanR, OpAddAssign());
         meanR /= Vector_t(globalN);
         reduce(meanP, meanP, OpAddAssign());
         meanP /= Vector_t(globalN);
-        *gmsg <<"Rmean = " <<meanR<<"[m], Pmean="<<meanP<<endl;
-        
+        *gmsg << "Rmean = " << meanR << "[m], Pmean=" << meanP << endl;
+
         for(unsigned int i = 0; i < newLocalN; ++i) {
-          beam.R[i] -= meanR;
-          beam.P[i] -= meanP;
+            beam.R[i] -= meanR;
+            beam.P[i] -= meanP;
         }
     }
 
@@ -2987,7 +2996,7 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
  *
  * @return
  */
-Distribution *Distribution::find(const string &name) {
+Distribution *Distribution::find(const std::string &name) {
     Distribution *dist = dynamic_cast<Distribution *>(OpalData::getInstance()->find(name));
 
     if(dist == 0) {
@@ -3050,7 +3059,7 @@ double Distribution::getFNParameterVYSecond() { return Attributes::getReal(itsAt
 
 int    Distribution::getSecondaryEmissionFlag() { return Attributes::getReal(itsAttr[SECONDARYFLAG]);}
 bool   Distribution::getEmissionMode() { return Attributes::getBool(itsAttr[NEMISSIONMODE]);}
-string Distribution::getTypeofDistribution() { return (string) Attributes::getString(itsAttr[DISTRIBUTION]);}
+std::string Distribution::getTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[DISTRIBUTION]);}
 
 double Distribution::getvSeyZero() {return Attributes::getReal(itsAttr[VSEYZERO]);}// return sey_0 in Vaughan's model
 double Distribution::getvEZero() {return Attributes::getReal(itsAttr[VEZERO]);}// return the energy related to sey_0 in Vaughan's model
@@ -3075,7 +3084,7 @@ Inform &Distribution::printInfo(Inform &os) const {
     os << "* ************* D I S T R I B U T I O N ******************************************** " << endl;
     if(!OpalData::getInstance()->inRestartRun()) {
         os << "* Distribution:\t" << getOpalName() << endl;
-        if(!(Attributes::getString(itsAttr[LASERPROFFN]) == string(""))) {
+        if(!(Attributes::getString(itsAttr[LASERPROFFN]) == std::string(""))) {
             os << "* Distribution type:\t" << Attributes::getString(itsAttr[DISTRIBUTION]) << endl;
             os << "* Laser profile: " << Attributes::getString(itsAttr[LASERPROFFN])
                << " Image: " << Attributes::getString(itsAttr[IMAGENAME])
