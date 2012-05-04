@@ -7,8 +7,9 @@
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/SBend.h"
 #include "Utilities/Options.h"
+
 // using namespace std;
-#define DBG_CSR
+
 CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N):
     WakeFunction(name, element),
     filters_m(filters.begin(), filters.end()),
@@ -60,28 +61,38 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
         bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
     }
 
+
+
     if(Options::csrDump) {
+    static string oldBendName;
+    static unsigned long counter = 0;
 
-      if(bendNameOld_m != bendName_m) bendCounter_m = 0;
+    if(oldBendName != bendName_m) counter = 0;
 
-      bool print_criterion = Ippl::myNode() == 0;
-      if(print_criterion) {
+    const int every = 1;
+    bool print_criterion = (counter + 1) % every == 0 && Ippl::myNode() == 0;
+    if(print_criterion) {
+        static unsigned int file_number = 0;
+        if(counter == 0) file_number = 0;
 
-	  std::stringstream filename_str;
-	  filename_str << "data/" << bendName_m << "-CSRWake" << bendCounter_m << ".dat";
-	  std::ofstream csr(filename_str.str().c_str());
-	  csr << bunch.get_sPos() << std::endl;
-	  for(unsigned int i = 0; i < lineDensity_m.size(); ++i) {
-	    csr << i *meshSpacing << "\t"
-		<< Ez_m[i] << "\t"
-		<< lineDensity_m[i] << "\t"
-		<< dlineDensitydz_m[i] << std::endl;
-	  }
-	  csr.close();
-      }
-      ++ bendCounter_m;
-      bendNameOld_m = bendName_m;
+        std::stringstream filename_str;
+        filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
+        std::ofstream csr(filename_str.str().c_str());
+        csr << bunch.get_sPos() << std::endl;
+        for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
+            csr << i *meshSpacing << "\t"
+                << Ez_m[i] << "\t"
+                << lineDensity_m[i] << "\t"
+                << dlineDensitydz_m[i] << std::endl;
+        }
+        csr.close();
+        msg << "** wrote " << filename_str.str() << endl;
+        ++ file_number;
     }
+    ++ counter;
+    oldBendName = bendName_m;
+    }
+
 }
 
 void CSRWakeFunction::initialize(const ElementBase *ref) {
@@ -94,8 +105,6 @@ void CSRWakeFunction::initialize(const ElementBase *ref) {
         FieldBegin_m = Begin_m + bend->getEffectiveCenter() - Length_m / 2.0;
         totalBendAngle_m = std::abs(bend->getBendAngle());
         bendName_m = bend->getName();
-        bendNameOld_m = std::string("");
-	bendCounter_m = 0;
     } else if(dynamic_cast<const SBend *>(ref)) {
         const SBend *bend = dynamic_cast<const SBend *>(ref);
         bendRadius_m = bend->getR();
@@ -104,8 +113,6 @@ void CSRWakeFunction::initialize(const ElementBase *ref) {
         FieldBegin_m = Begin_m + bend->getEffectiveCenter() - Length_m / 2.0;
         totalBendAngle_m = bend->getBendAngle();
         bendName_m = bend->getName();
-        bendNameOld_m = std::string("");
-	bendCounter_m = 0;
     }
 }
 
