@@ -1240,11 +1240,12 @@ void ParallelCyclotronTracker::Tracker_LF() {
         push(0.5 * dt * 1e-9);
         itsBunch->R *= Vector_t(1000.0);
 
-	// apply the plugin elements: probe, colilmator, stripper, septum
-	bool flagNeedUpdate=false;
-	flagNeedUpdate = applyPluginElements(dt);
-	if(itsBunch->weHaveBins() && flagNeedUpdate)
-	  itsBunch->resetPartBinID2(eta_m);
+        // apply the plugin elements: probe, colilmator, stripper, septum
+        applyPluginElements(dt);
+        // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+        bool flagNeedUpdate = deleteParticle(); 
+        if(itsBunch->weHaveBins() && flagNeedUpdate)
+          itsBunch->resetPartBinID2(eta_m);
 
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
@@ -2083,12 +2084,13 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 } //end for: finish checking for all cavities
             } //end for: finish one step tracking for all particles for initialTotalNum_m != 2 mode
 
-	    // apply the plugin elements: probe, collimator, stripper, septum
-	    bool flagNeedUpdate=false;
-	    flagNeedUpdate = applyPluginElements(dt);
-	    if(itsBunch->weHaveBins() && flagNeedUpdate)
-	      itsBunch->resetPartBinID2(eta_m);
-
+            // apply the plugin elements: probe, collimator, stripper, septum
+            applyPluginElements(dt);
+            // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+            bool flagNeedUpdate = deleteParticle(); 
+            if(itsBunch->weHaveBins() && flagNeedUpdate)
+              itsBunch->resetPartBinID2(eta_m);
+            
 	    // recalculate bingamma and reset the BinID for each particles according to its current gamma
 	    if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
 	      itsBunch->resetPartBinID2(eta_m);
@@ -2287,10 +2289,12 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 }// end if: gap-crossing monentum kicking at certain cavity
             }//end for: finish checking for all cavities
 
-	    // apply the plugin elements: probe, collimator, stripper, septum
-	    applyPluginElements(dt);
+            // apply the plugin elements: probe, collimator, stripper, septum
+            applyPluginElements(dt);
+            // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+            deleteParticle(); 
 
-	    IpplTimings::stopTimer(IntegrationTimer_m);
+            IpplTimings::stopTimer(IntegrationTimer_m);
         }//end if: finish one step tracking either for initialTotalNum_m==2 || initialTotalNum_m==2 || initialTotalNum_m==1 mode
 
         // update bunch and some parameters and output some info. after one time step.
@@ -3330,14 +3334,16 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
 
     // apply the plugin elements: probe, collimator, stripper, septum
     itsBunch->R *= Vector_t(1000.0); // applyPluginElements expects [R] = mm
-    bool const flagNeedUpdate = applyPluginElements(h * 1e9); // expects [dt] = ns
+    applyPluginElements(h * 1e9); // expects [dt] = ns
+    // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+    bool const flagNeedUpdate = deleteParticle(); 
+
     itsBunch->R *= Vector_t(0.001);
     if(itsBunch->weHaveBins() && flagNeedUpdate) itsBunch->resetPartBinID2(eta_m);
 }
 
-bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
+void ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
-  bool flagNeedUpdate = false;
   for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
     if(((*sindex)->first) == "SEPTUM")    {
       (static_cast<Septum *>(((*sindex)->second).second))->checkSeptum(*itsBunch);
@@ -3349,30 +3355,34 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
     if(((*sindex)->first) == "STRIPPER")    {
       bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
-	-> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
+        -> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
       if(flag_stripper) {
-	itsBunch->boundp();
-	*gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
+        itsBunch->boundp();
+        *gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
       }
     }
-
+    
     if(((*sindex)->first) == "CCOLLIMATOR") {
-        Collimator * collim;
-    collim = static_cast<Collimator *>(((*sindex)->second).second);
-	if(collim->hasSurfacePhysics()) {
-        sphys = collim->getSurfacePhysics();
-        sphys->apply(*itsBunch);
-	} else {
-        collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
-	}   
+      Collimator * collim;
+        collim = static_cast<Collimator *>(((*sindex)->second).second);
+        if(collim->hasSurfacePhysics()) {
+          sphys = collim->getSurfacePhysics();
+            sphys->apply(*itsBunch);
+        } else {
+            collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
+        }   
     }
+  }
+}
 
-    flagNeedUpdate = (min(itsBunch->Bin) < 0);
-    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+bool ParallelCyclotronTracker::deleteParticle(){
+  // update immediately if some particle are lost during this step
 
-    // update immediately if some particle are lost during this step
-    size_t lostParticleNum = 0;
-    if(flagNeedUpdate) {
+  bool flagNeedUpdate = (min(itsBunch->Bin) < 0);
+  reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+  size_t lostParticleNum = 0;
+  
+  if(flagNeedUpdate) {
       Vector_t const meanR = calcMeanR();
       Vector_t const meanP = calcMeanP();
       double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
@@ -3380,11 +3390,12 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
       itsBunch->R /= Vector_t(1000.0); // mm --> m
       for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-	if(itsBunch->Bin[i] < 0) {
-	  lostParticleNum++;
-	  itsBunch->destroy(1, i);
-	}
+          if(itsBunch->Bin[i] < 0) {
+              lostParticleNum++;
+              itsBunch->destroy(1, i);
+          }
       }
+      
       // now destroy particles and update pertinent parameters in local frame
       itsBunch->update();
       itsBunch->boundp();
@@ -3395,9 +3406,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
       reduce(lostParticleNum, lostParticleNum, OpAddAssign());
       *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, or out of cyclotron aperture" << endl;
-     }
   }
-
   return flagNeedUpdate;
 }
 

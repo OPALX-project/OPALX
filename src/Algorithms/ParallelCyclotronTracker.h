@@ -336,8 +336,11 @@ private:
     void borisExternalFields(double h);
     
     // apply the plugin elements: probe, collimator, stripper, septum 
-    bool applyPluginElements(const double dt);
-
+    void applyPluginElements(const double dt);
+    
+    // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+    bool deleteParticle();
+    
     std::ofstream outfTrackOrbit_m;
 
     void initTrackOrbitFile();
