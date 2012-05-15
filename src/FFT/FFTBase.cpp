@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -42,7 +42,7 @@ GuardCellSizes<Dim> FFTBase<Dim,T>::nullGC = GuardCellSizes<Dim>();
 
 template <unsigned Dim, class T>
 FFTBase<Dim,T>::FFTBase(FFTBase<Dim,T>::FFT_e transform,
-                        const FFTBase<Dim,T>::Domain_t& domain, 
+                        const FFTBase<Dim,T>::Domain_t& domain,
 		        const bool transformTheseDims[Dim], bool compressTemps)
   : transformType_m(transform),               // transform type
     Domain_m(domain),                         // field domain
@@ -75,7 +75,7 @@ FFTBase<Dim,T>::FFTBase(FFTBase<Dim,T>::FFT_e transform,
 template <unsigned Dim, class T>
 FFTBase<Dim,T>::FFTBase(FFTBase<Dim,T>::FFT_e transform,
                         const FFTBase<Dim,T>::Domain_t& domain,
-                        bool compressTemps) 
+                        bool compressTemps)
   : transformType_m(transform),               // transform type
     Domain_m(domain),                         // field domain
     compressTempFields_m(compressTemps)       // compress temp fields?
@@ -83,7 +83,7 @@ FFTBase<Dim,T>::FFTBase(FFTBase<Dim,T>::FFT_e transform,
 
   // Tau profiling
   TAU_TYPE_STRING(taustr, " (FFT_e, " + CT(domain) + ", bool)");
-  TAU_PROFILE("FFTBase::FFTBase", taustr, TAU_FFT); 
+  TAU_PROFILE("FFTBase::FFTBase", taustr, TAU_FFT);
 
   // Default, transform all dims:
   nTransformDims_m = Dim;
@@ -107,26 +107,26 @@ void FFTBase<Dim,T>::write(std::ostream& out) const {
   TAU_PROFILE("void " + CT(*this) + "::write", taustr, TAU_FFT | TAU_IO);
 
   // Dump contents of FFT object
-  out << "---------------FFT Object Dump Begin-------------------" << endl;
+  out << "---------------FFT Object Dump Begin-------------------" << std::endl;
   // Output the user-defined names for transform directions:
-  out << "Map of transform direction names:" << endl;
+  out << "Map of transform direction names:" << std::endl;
   std::map<char*,unsigned>::const_iterator mi, m_end = directions_m.end();
   for (mi = directions_m.begin(); mi != m_end; ++mi)
-    out << "[" << (*mi).first << "," << (*mi).second << "]" << endl;
+    out << "[" << (*mi).first << "," << (*mi).second << "]" << std::endl;
   // Output type of transform
-  out << "Transform type = " << getTransformType(transformType_m) << endl;
+  out << "Transform type = " << getTransformType(transformType_m) << std::endl;
   // Output which dims are transformed:
   out << "Transform dimensions: ";
   for (unsigned d=0; d<Dim; ++d) {
     out << "dim " << d << " = ";
     if (transformDims_m[d])
-      out << "true" << endl;
+      out << "true" << std::endl;
     else
-      out << "false" << endl;
+      out << "false" << std::endl;
   }
-  out << endl;
-  out << "Input Field domain = " << Domain_m << endl; // Output the domain.
-  out << "---------------FFT Object Dump End---------------------" << endl;
+  out << std::endl;
+  out << "Input Field domain = " << Domain_m << std::endl; // Output the domain.
+  out << "---------------FFT Object Dump End---------------------" << std::endl;
 
   return;
 }
@@ -135,5 +135,5 @@ void FFTBase<Dim,T>::write(std::ostream& out) const {
 /***************************************************************************
  * $RCSfile: FFTBase.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:25 $
- * IPPL_VERSION_ID: $Id: FFTBase.cpp,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: FFTBase.cpp,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $
  ***************************************************************************/

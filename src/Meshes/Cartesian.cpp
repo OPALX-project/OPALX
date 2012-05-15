@@ -1477,25 +1477,25 @@ Cartesian<Dim,MFLOAT>::
 print(std::ostream& out)
 {
   unsigned int d;
-  out << "======Cartesian<" << Dim << ",MFLOAT>==begin======" << endl;
+  out << "======Cartesian<" << Dim << ",MFLOAT>==begin======" << std::endl;
   for (d=0; d < Dim; d++)
-    out << "gridSizes[" << d << "] = " << gridSizes[d] << endl;
-  out << "origin = " << origin << endl;
+    out << "gridSizes[" << d << "] = " << gridSizes[d] << std::endl;
+  out << "origin = " << origin << std::endl;
   for (d=0; d < Dim; d++) {
-    out << "--------meshSpacing[" << d << "]---------" << endl;
+    out << "--------meshSpacing[" << d << "]---------" << std::endl;
     typename std::map<int,MFLOAT>::iterator mi;
     for (mi=meshSpacing[d].begin(); mi != meshSpacing[d].end(); ++mi) {
       out << "meshSpacing[" << d << "][" << (*mi).first << "] = "
-	  << (*mi).second << endl;
+	  << (*mi).second << std::endl;
     }
   }
   for (unsigned b=0; b < (1<<Dim); b++)
-    out << "Dvc[" << b << "] = " << Dvc[b] << endl;
+    out << "Dvc[" << b << "] = " << Dvc[b] << std::endl;
   for (d=0; d < Dim; d++)
     out << "MeshBC[" << 2*d << "] = " << Mesh<Dim>::MeshBC_E_Names[MeshBC[2*d]]
 	<< " ; MeshBC[" << 2*d+1 << "] = " << Mesh<Dim>::MeshBC_E_Names[MeshBC[2*d+1]]
-	<< endl;
-  out << "======Cartesian<" << Dim << ",MFLOAT>==end========" << endl;
+	<< std::endl;
+  out << "======Cartesian<" << Dim << ",MFLOAT>==end========" << std::endl;
 }
 
 //--------------------------------------------------------------------------
