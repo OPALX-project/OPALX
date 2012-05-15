@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -37,10 +37,10 @@
 // create storage for per-node data
 template<class T, unsigned Dim>
 ParticleUniformLayout<T, Dim>::ParticleUniformLayout() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleUniformLayout::ParticleUniformLayout()", taustr, 
+  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
+  TAU_PROFILE("ParticleUniformLayout::ParticleUniformLayout()", taustr,
     TAU_PARTICLE);
-  
+
   int N = Ippl::getNodes();
   LocalSize = new int[N];
   Change = new int[N];
@@ -52,8 +52,8 @@ ParticleUniformLayout<T, Dim>::ParticleUniformLayout() {
 // destructor
 template<class T, unsigned Dim>
 ParticleUniformLayout<T, Dim>::~ParticleUniformLayout() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleUniformLayout::~ParticleUniformLayout()", taustr, 
+  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
+  TAU_PROFILE("ParticleUniformLayout::~ParticleUniformLayout()", taustr,
     TAU_PARTICLE);
 
   delete [] LocalSize;
@@ -71,8 +71,8 @@ template<class T, unsigned Dim>
 void ParticleUniformLayout<T, Dim>::update(
   ParticleBase< ParticleUniformLayout<T, Dim> >& PData,
   const ParticleAttrib<char>* canSwap) {
-  TAU_TYPE_STRING(taustr, " void (" + CT(PData) + "ParticleAttrib<char>* )"); 
-  TAU_PROFILE("ParticleUniformLayout::update()", taustr, 
+  TAU_TYPE_STRING(taustr, " void (" + CT(PData) + "ParticleAttrib<char>* )");
+  TAU_PROFILE("ParticleUniformLayout::update()", taustr,
     TAU_PARTICLE);
 
   int i, j;			// loop variables
@@ -310,10 +310,10 @@ void ParticleUniformLayout<T, Dim>::update(
 template<class T, unsigned Dim>
 inline
 std::ostream& operator<<(std::ostream& out, const ParticleUniformLayout<T,Dim>& L) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(L) + " )"); 
-  TAU_PROFILE("ParticleBase::singleInitNode()", taustr, 
+  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(L) + " )");
+  TAU_PROFILE("ParticleBase::singleInitNode()", taustr,
     TAU_PARTICLE | TAU_IO);
-  out << "ParticleUniformLayout" << endl;
+  out << "ParticleUniformLayout" << std::endl;
   return out;
 }
 
@@ -322,7 +322,7 @@ std::ostream& operator<<(std::ostream& out, const ParticleUniformLayout<T,Dim>& 
 // print out debugging information
 template<class T, unsigned Dim>
 void ParticleUniformLayout<T, Dim>::printDebug(Inform& o) {
-  TAU_PROFILE("ParticleUniformLayout::printDebug()", "void (Inform)", 
+  TAU_PROFILE("ParticleUniformLayout::printDebug()", "void (Inform)",
     TAU_PARTICLE | TAU_IO);
 
   o << "ParticleUniformLayout";
@@ -332,6 +332,6 @@ void ParticleUniformLayout<T, Dim>::printDebug(Inform& o) {
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
 
