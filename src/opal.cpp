@@ -1,8 +1,8 @@
 #include "opal.h"
+#include "Utilities/OpalException.h"
 
 Ippl *ippl;
 Inform *gmsg;
-Inform *gmsg2all;
 
 int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm) {
 
@@ -12,8 +12,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
     //Ippl *aippl = new Ippl(narg, arg, remove, comm);
     //ippl = aippl;
 
-    gmsg = new  Inform("OPAL ");
-    gmsg2all = new  Inform("OPAL", INFORM_ALL_NODES);
+    gmsg = new Inform("OPAL ");
 
     OpalData *OPAL = OpalData::getInstance();
     Configure::configure();
@@ -41,7 +40,6 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
     //OPAL->reset();
     OpalData::deleteInstance();
     delete parser;
-    delete gmsg2all;
     delete gmsg;
 
     //FIXME: strange side effects

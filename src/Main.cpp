@@ -73,7 +73,6 @@ void printStringVector(const vector<string> &strings) {
 //: A global Inform object
 
 Inform *gmsg;
-Inform *gmsg2all;
 Ippl *ippl;
 
 //: The OPAL main program.
@@ -92,7 +91,6 @@ int main(int argc, char *argv[]) {
 
     gmsg = new  Inform("OPAL ");
     Inform hmsg("");
-    gmsg2all = new  Inform("OPAL", INFORM_ALL_NODES);
     string mySpace("            ");
 
     if(Ippl::myNode() == 0) remove("errormsg.txt");
@@ -267,7 +265,6 @@ int main(int argc, char *argv[]) {
         // cleanup/free global data
         OpalData::deleteInstance();
         delete gmsg;
-        delete gmsg2all;
         delete ippl;
         return 0;
 
