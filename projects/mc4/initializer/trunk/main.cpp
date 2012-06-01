@@ -7,11 +7,10 @@
 #include "Initializer.h"
 
 #include <hdf5.h>
-#include "H5Part.h"
-extern "C" {
-    #include "H5Block.h"
-    #include "H5BlockTypes.h"
-}
+#include "H5hut.h"
+//#extern "C" {
+#include "H5Block.h"
+//}
 
 #include <string>
 
@@ -53,24 +52,30 @@ void grid2phys(float *pos_x, float *pos_y, float *pos_z,
 }
 
 void write_hcosmo_h5(float *pos_x, float *pos_y, float *pos_z,
-		  float *vel_x, float *vel_y, float *vel_z,
-		  int *id, int Npart, string outBase, 
-          h5part_int64_t ng, h5part_int64_t ng2d, h5part_int64_t np, 
-          h5part_int64_t rL, string indatName) {
+                     float *vel_x, float *vel_y, float *vel_z,
+                     int *id, int Npart, string outBase, 
+                     h5_int64_t ng, h5_int64_t ng2d, h5_int64_t np, 
+                     h5_int64_t rL, string indatName) {
   int i;
   int status=0;
 
   int H5call = 0;
-  H5PartFile *H5file;
+  h5_file_t *H5file;
   ostringstream fn;
   fn << outBase << ".h5";
 
-  //  H5PartSetVerbosityLevel(4);
+
+
+// backward compatibility with 1.99.5                                                          
+#if defined(H5_O_FLUSHSTEP)
+ #define H5_FLUSH_STEP H5_O_FLUSHSTEP
+#endif
+
 
 #ifdef PARALLEL_IO
-  H5file = H5PartOpenFileParallel(fn.str().c_str(), H5PART_WRITE, MPI_COMM_WORLD);
+  H5file = H5OpenFile(fn.str().c_str(), H5_FLUSH_STEP | H5_O_WRONLY, MPI_COMM_WORLD);
 #else
-  H5file = H5PartOpenFile(fn.str().c_str(), H5PART_WRITE);
+  H5file = H5OpenFile(fn.str().c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
 
   if(!H5file) {
@@ -78,29 +83,29 @@ void write_hcosmo_h5(float *pos_x, float *pos_y, float *pos_z,
       exit(0);
   }
 
-  H5PartWriteFileAttribString(H5file,"tUnit","s");
-  H5PartWriteFileAttribString(H5file,"xUnit","Mpc/h");
-  H5PartWriteFileAttribString(H5file,"yUnit","Mpc/h");
-  H5PartWriteFileAttribString(H5file,"zUnit","Mpc/h");
-  H5PartWriteFileAttribString(H5file,"pxUnit","km/s");
-  H5PartWriteFileAttribString(H5file,"pyUnit","km/s");
-  H5PartWriteFileAttribString(H5file,"pzUnit","km/s");
-  H5PartWriteFileAttribString(H5file,"idUnit","1");
+  H5WriteFileAttribString(H5file,"tUnit","s");
+  H5WriteFileAttribString(H5file,"xUnit","Mpc/h");
+  H5WriteFileAttribString(H5file,"yUnit","Mpc/h");
+  H5WriteFileAttribString(H5file,"zUnit","Mpc/h");
+  H5WriteFileAttribString(H5file,"pxUnit","km/s");
+  H5WriteFileAttribString(H5file,"pyUnit","km/s");
+  H5WriteFileAttribString(H5file,"pzUnit","km/s");
+  H5WriteFileAttribString(H5file,"idUnit","1");
 
-  H5PartWriteFileAttribString(H5file,"TIMEUnit","s");
+  H5WriteFileAttribString(H5file,"TIMEUnit","s");
     
-  H5PartWriteFileAttrib(H5file, "ng", H5PART_INT64, &ng, 1);
-  H5PartWriteFileAttrib(H5file, "ng2d", H5PART_INT64, &ng2d, 1);
-  H5PartWriteFileAttrib(H5file, "np", H5PART_INT64, &np, 1);
-  H5PartWriteFileAttrib(H5file, "rL", H5PART_INT64, &rL, 1);
-  H5PartWriteFileAttribString(H5file, "input filename", indatName.c_str());
+  H5WriteFileAttribInt64(H5file, "ng", &ng, 1);
+  H5WriteFileAttribInt64(H5file, "ng2d", &ng2d, 1);
+  H5WriteFileAttribInt64(H5file, "np", &np, 1);
+  H5WriteFileAttribInt64(H5file, "rL", &rL, 1);
+  H5WriteFileAttribString(H5file, "input filename", indatName.c_str());
 
   void *varray = malloc(Npart*sizeof(double));
   double *farray = (double*)varray;
-  h5part_int64_t *larray = (h5part_int64_t *)varray;
+  h5_int64_t *larray = (h5_int64_t *)varray;
 
   /// Set current record/time step.
-  H5PartSetStep(H5file, 0);
+  H5SetStep(H5file, 0);
   H5PartSetNumParticles(H5file, Npart);
 
   for(size_t i=0; i<Npart; i++)
@@ -128,12 +133,12 @@ void write_hcosmo_h5(float *pos_x, float *pos_y, float *pos_z,
       larray[i] =  id[i];
   H5PartWriteDataInt64(H5file,"id",larray);
 
-  H5Fflush(H5file->file,H5F_SCOPE_GLOBAL);
+  //H5Fflush(H5file->file,H5F_SCOPE_GLOBAL);
 
   //  if(varray)
   //  free(varray);
     
-  h5part_int64_t cres = H5PartCloseFile(H5file);
+  h5_int64_t cres = H5CloseFile(H5file);
   
   if (cres < 0)
     cout << "Error code close h5 " << cres  << endl;
@@ -230,11 +235,11 @@ int main(int argc, char * const argv[]) {
       id[i] = Npart*rank + i;
   }
   
-#ifdef H5PART
-  h5part_int64_t ng = bdata.ng();
-  h5part_int64_t ng2d = bdata.ng2d();
-  h5part_int64_t np = bdata.np();
-  h5part_int64_t rL = bdata.rL();
+#ifdef H5HUT
+  h5_int64_t ng = bdata.ng();
+  h5_int64_t ng2d = bdata.ng2d();
+  h5_int64_t np = bdata.np();
+  h5_int64_t rL = bdata.rL();
   np *= np * np;
   write_hcosmo_h5(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z,
 		  id, Npart, outBase, ng, ng2d, np, rL, indatName);

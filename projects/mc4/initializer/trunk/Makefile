@@ -24,22 +24,21 @@
 ##      several tests, most importantly
 ##      it checks for reality of the density field.
 
-H5Part = /home2/ineichen/svnwork/H5Part
-#HDF5HOME = /home2/ineichen/svnwork/hdf5-1.8.2/hdf5
-FFTW_HOME = /home2/ineichen/extlib/fftw3
+H5hut = /Users/adelmann/extlib/H5hut-p
+FFTW_HOME = /Users/adelmann/extlib/fftw-p
 EXEC = init
 CPP = mpicxx
 CC = mpicc
-CPPFLAGS = -O3 -funroll-loops -DH5PART -DFFTW3 -DTESTING -DPARALLEL_IO
+CPPFLAGS = -O3 -funroll-loops -DH5HUT -DFFTW3 -DTESTING -DPARALLEL_IO
 CFLAGS = -O3 -funroll-loops -std=c99
 
-LDFLAGS = -L$(FFTW_HOME)/lib -L$(H5Part)/src -L$(HDF5HOME)/lib
-FFTW_FLAGS = -I$(FFTW_HOME)/include -I$(H5Part)/src -I$(HDF5HOME)/include
+LDFLAGS = -L$(FFTW_HOME)/lib -L$(H5hut)/lib -L$(HDF5HOME)/lib
+FFTW_FLAGS = -I$(FFTW_HOME)/include -I$(H5hut)/include -I$(HDF5HOME)/include
 
 ## For FFTW2 uncomment this line:
 ##FFTWLIBS= -lfftw_mpi  -lrfftw_mpi -lrfftw -lfftw
 ## For FFTW3 uncomment this line:
-FFTWLIBS = -lfftw3_mpi -lfftw3 -lH5Part -lhdf5 -lz
+FFTWLIBS = -lfftw3_mpi -lfftw3 -lH5hut -lH5hutC -lhdf5 -lz
 
 
 ########## SHOULD NOT CHANGE ANYTHING BELOW ##############################
