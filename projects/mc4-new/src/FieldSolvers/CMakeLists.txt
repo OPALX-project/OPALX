@@ -1,6 +1,6 @@
 set (_SRCS
 #FieldSolver.cc
-FFTPoissonSolverPeriodic.cc
+#FFTPoissonSolverPeriodic.cc
 )
 
 include_directories (

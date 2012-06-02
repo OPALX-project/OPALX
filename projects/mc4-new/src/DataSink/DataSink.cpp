@@ -32,7 +32,7 @@
  #define H5_FLUSH_STEP H5_O_FLUSHSTEP
 #endif
 
-DataSink::DataSink(string fn, ChargedParticles<TT,3> *univ)
+DataSink::DataSink(std::string fn, ChargedParticles<TT,3> *univ)
 {
     univ_m = univ;
 
@@ -43,15 +43,15 @@ DataSink::DataSink(string fn, ChargedParticles<TT,3> *univ)
     /// write operation.
     firstWriteH5part_m = true;
 
-    int pos=fn.find(string("."), 0);
+    int pos=fn.find(std::string("."), 0);
     fn.erase(pos, fn.size() - pos);
 
-    fn += string(".h5");
+    fn += std::string(".h5");
 
 #ifdef PARALLEL_IO
-    H5file = H5OpenFile(fn.str().c_str(), H5_FLUSH_STEP | H5_O_WRONLY, MPI_COMM_WORLD);
+    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, MPI_COMM_WORLD);
 #else
-    H5file = H5OpenFile(fn.str().c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
+    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
 
     if(!H5file_m) {
@@ -67,7 +67,7 @@ DataSink::DataSink(string fn, ChargedParticles<TT,3> *univ)
     
 }
 
-DataSink::DataSink(string fn, ChargedParticles<TT,3> *univ, int restartStep)
+DataSink::DataSink(std::string fn, ChargedParticles<TT,3> *univ, int restartStep)
 {
     univ_m = univ;
     
@@ -78,9 +78,9 @@ DataSink::DataSink(string fn, ChargedParticles<TT,3> *univ, int restartStep)
     firstWriteH5part_m = false;
 
 #ifdef PARALLEL_IO
-    H5file = H5OpenFile(fn.str().c_str(), H5_FLUSH_STEP | H5_O_WRONLY, MPI_COMM_WORLD);
+    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, MPI_COMM_WORLD);
 #else
-    H5file = H5OpenFile(fn.str().c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
+    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
 
     if(!H5file_m) {
@@ -89,7 +89,7 @@ DataSink::DataSink(string fn, ChargedParticles<TT,3> *univ, int restartStep)
     }
     
     //currently always restart from last step
-    int numStepsInFile = H5PartGetNumSteps(H5file_m);
+    int numStepsInFile = H5GetNumSteps(H5file_m);
     restartStep = numStepsInFile;
     
     // Use same dump frequency.
@@ -167,13 +167,13 @@ void DataSink::writePhaseSpace(TT time, TT z, int step) {
 
     /// Set current record/time step.
     H5SetStep(H5file_m, H5call_m);
-    H5SetNumParticles(H5file_m, nLoc);
+    H5PartSetNumParticles(H5file_m, nLoc);
 
     H5WriteStepAttribFloat64(H5file_m,"SPOS", &z, 1);
     H5WriteStepAttribFloat64(H5file_m,"TIME", &time,1);
 
     /// Write number of compute nodes.
-    H5WriteStepAttribInt64(H5file_m,"nloc", globN, Ippl::getNodes());
+    H5WriteStepAttribInt64(H5file_m,"nloc", (h5_int64_t *)globN, Ippl::getNodes());
 
     /// Write univ phase space.
     for(size_t i=0; i<nLoc; i++)
@@ -250,7 +250,7 @@ void DataSink::readPhaseSpace()
 {
 
     H5SetStep(H5file_m, H5call_m);
-    int N = (int)H5GetNumParticles(H5file_m);
+    int N = (int)H5PartGetNumParticles(H5file_m);
 
     //TODO: do a more sophisticated distribution of particles?
     //my guess is that the end range index is EXCLUSIVE!
