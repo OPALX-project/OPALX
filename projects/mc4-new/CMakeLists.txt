@@ -31,7 +31,6 @@ FIND_PACKAGE (H5Hut REQUIRED)
 FIND_PACKAGE (HDF5 REQUIRED)
 FIND_PACKAGE (GSL REQUIRED)
 
-
 # Handle options
 OPTION (ENABLE_ML_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
@@ -78,38 +77,6 @@ IF (NO_FIELD_ASSIGN_OPTIMIZATION)
         "-DdontOPTIMIZE_FIELD_ASSIGNMENT ${CMAKE_CXX_FLAGS}"
     )
 ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
-
-IF (ENABLE_ML_SOLVER)
-    # Get Trilinos as one entity
-    FIND_PACKAGE (Trilinos PATHS $ENV{TRILINOS_INCLUDE_PATH})
-
-    IF (NOT Trilinos_FOUND)
-        MESSAGE (FATAL_ERROR "Could not find Trilinos!")
-    ENDIF (NOT Trilinos_FOUND)
-    # Echo trilinos build info just for fun
-    MESSAGE (STATUS "\nFound Trilinos!  Here are the details: ")
-    MESSAGE (STATUS "   Trilinos_DIR = ${Trilinos_DIR}")
-    MESSAGE (STATUS "   Trilinos_VERSION = ${Trilinos_VERSION}")
-    MESSAGE (STATUS "   Trilinos_PACKAGE_LIST = ${Trilinos_PACKAGE_LIST}")
-    MESSAGE (STATUS "   Trilinos_LIBRARIES = ${Trilinos_LIBRARIES}")
-    MESSAGE (STATUS "   Trilinos_INCLUDE_DIRS = ${Trilinos_INCLUDE_DIRS}")
-    MESSAGE (STATUS "   Trilinos_LIBRARY_DIRS = ${Trilinos_LIBRARY_DIRS}")
-    MESSAGE (STATUS "   Trilinos_TPL_LIST = ${Trilinos_TPL_LIST}")
-    MESSAGE (STATUS "   Trilinos_TPL_INCLUDE_DIRS = ${Trilinos_TPL_INCLUDE_DIRS}")
-    MESSAGE (STATUS "   Trilinos_TPL_LIBRARIES = ${Trilinos_TPL_LIBRARIES}")
-    MESSAGE (STATUS "   Trilinos_TPL_LIBRARY_DIRS = ${Trilinos_TPL_LIBRARY_DIRS}")
-    MESSAGE (STATUS "   Trilinos_BUILD_SHARED_LIBS = ${Trilinos_BUILD_SHARED_LIBS}")
-    MESSAGE (STATUS "End of Trilinos details\n")
-
-    # Make sure to use same compilers and flags as Trilinos
-    #SET(CMAKE_C_COMPILER ${Trilinos_C_COMPILER} )
-    #SET(CMAKE_CXX_COMPILER ${Trilinos_CXX_COMPILER} )
-    #SET(CMAKE_Fortran_COMPILER ${Trilinos_Fortran_COMPILER} )
-
-    #SET(CMAKE_CXX_FLAGS  "${Trilinos_CXX_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
-    #SET(CMAKE_C_FLAGS  "${Trilinos_C_COMPILER_FLAGS} ${CMAKE_C_FLAGS}")
-    #SET(CMAKE_Fortran_FLAGS  "${Trilinos_Fortran_COMPILER_FLAGS} ${CMAKE_Fortran_FLAGS}")
-ENDIF (ENABLE_ML_SOLVER)
 
 
 # compiler dependent flags
@@ -175,7 +142,7 @@ ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
 ENDIF ("${COMPILER_NAME}" STREQUAL "mpicxx")
 
 SET (CMAKE_CXX_FLAGS
-  "-Wno-deprecated -fpermissive -std=c++0x  ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
+  "-std=c++0x -DUSENAMESPACE ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
 
 #SET (CMAKE_CXX_FLAGS
 #  "-Wall -Werror -std=c++0x ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")

@@ -29,34 +29,32 @@ And for lesser output try:
 mpirun -np 1 mc4 indat fort.66 --info 0 --commlib mpi
 
  ***************************************************************************/
-
-#include "ChargedParticles/ChargedParticles.hh"
-
 #include <ctime>
-
-#include "FieldSolvers/FFTPoissonSolverPeriodic.hh"
 #include <iostream>
 #include <sstream>
 
+#include "ChargedParticles/ChargedParticles.hh"
+#include "FieldSolvers/FFTPoissonSolverPeriodic.hh"
 #include "Parser/FileStream.h"
 #include "SimData.hh"
-
 #include "config.h"
 
 /**
    Initializer stuff
 */
-//#include "Basedata.h"
+
 #include "Initializer/IPPLInitializer.h"
 #include "Initializer/Cosmology.h"
 #include "Initializer/InputParser.h"
 
 #ifdef MC4HALOFINDER
+
 /**
    Halo Finder stuff"
 */
 #include "CosmoHaloFinderP.h"
 #include "HaloProperties.h"
+
 #endif
 
 using namespace std;
@@ -78,7 +76,9 @@ using namespace std;
 #define NMAXPERCORE 500000
 
 /************************************/
-const string version = "1.1";
+
+const string version = PACKAGE_VERSION;
+
 /************************************/
 
 const unsigned int DimA = 3;
@@ -163,6 +163,7 @@ int main(int argc, char *argv[]) {
 
     msg << "This is MC 4 Version " << PACKAGE_VERSION << " SVN version " << SVN_VERSION  << endl;
     msg << "Please send cookies, goodies or other motivations (wine and beer ... ) to " << PACKAGE_BUGREPORT << endl;
+
 #ifdef IPPL_USE_SINGLE_PRECISION
     msg << "Running in SINGLE precision mode" << endl;
 #else
