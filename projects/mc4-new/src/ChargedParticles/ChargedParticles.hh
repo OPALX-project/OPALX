@@ -2,14 +2,14 @@
 #define CHARGED_PARTICLES_HH
 
 #include "Ippl.h"
-#include "FieldSolvers/FieldSolver.hh"
 
+template<class T, unsigned int Dim> class ChargedParticles;
+template <class T, unsigned int Dim> class FieldSolver;
+
+#include "FieldSolvers/FieldSolver.hh"
 #include "Parser/FileStream.h"
 #include "SimData.hh"
 #include "PwrSpec/PwrSpec.hh"
-
-template<class T, unsigned int Dim> class ChargedParticles;
-
 #include "DataSink/DataSink.h"
 
 #include <iostream>
@@ -17,8 +17,6 @@ template<class T, unsigned int Dim> class ChargedParticles;
 #include <strstream>
 #include <map>
 #include "ListElem.h"
-
-//corr stuff
 #include <vector>
 #include <ctime>
 #include <cstdlib>
@@ -26,8 +24,6 @@ template<class T, unsigned int Dim> class ChargedParticles;
 #include <algorithm>
 
 static IpplTimings::TimerRef TIUpdate_m = IpplTimings::getTimer("Initial Update");
-
-
 
 template <class T, unsigned int Dim>
 class ChargedParticles : public ParticleBase< ParticleCashedLayout<T,Dim> > {
@@ -47,8 +43,6 @@ private:
   std::map<unsigned int, unsigned int> SpeciesIDs;
   ///current species index
   unsigned int SpeciesIdx;
-
-
 
 public:
 
