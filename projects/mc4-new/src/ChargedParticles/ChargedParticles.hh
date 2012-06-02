@@ -520,7 +520,7 @@ public:
 
     inline void do_binaryRepart() {
         BinaryRepartition(*this);
-        boundp();
+        this->boundp();
     }
 
     inline void setBCAllPeriodic() {
