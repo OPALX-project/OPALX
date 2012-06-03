@@ -85,5 +85,5 @@ set (MC4_LIBS
 )
 
 add_executable( mc4 ${MC4_SRCS} mc4.cpp )
-target_link_libraries( mc4 CLASSIC ${MC4_LIBS} )
+target_link_libraries( mc4  ${MC4_LIBS} )
 

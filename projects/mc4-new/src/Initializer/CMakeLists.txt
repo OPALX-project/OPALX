@@ -1,7 +1,7 @@
 set (_SRCS
 Cosmology.cpp
 DataBase.cpp
-#IPPLInitializer.cpp
+IPPLInitializer.cpp
 Initializer.cpp
 InputParser.cpp
 MT_Random.cpp

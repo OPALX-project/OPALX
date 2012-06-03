@@ -17,15 +17,16 @@ namespace initializer {
 class IPPLInitializer : protected Initializer {
 
 public:
-    
-    // some useful typedefs
-    typedef Vert                                          Center_t;
-    typedef UniformCartesian<Ndim, real>                  Mesh_t;
-    typedef CenteredFieldLayout<Ndim, Mesh_t, Center_t>   FieldLayout_t;
+
+    typedef typename ChargedParticles<T,Dim>::Center_t      Center_t;
+    typedef typename ChargedParticles<T,Dim>::Mesh_t        Mesh_t;
+    typedef typename ChargedParticles<T,Dim>::FieldLayout_t FieldLayout_t;
+    typedef typename ChargedParticles<T,Dim>::Vector_t      Vector_t;
+    typedef typename ChargedParticles<T,Dim>::IntrplCIC_t   IntrplCIC_t;
+
     typedef Field<dcomplex, Ndim, Mesh_t, Center_t>       CxField_t;
     typedef FFT<CCTransform, Ndim, T>                FFT_t;
 
-    //typedef Field<real, Ndim, Mesh_t, Center_t>             RxField_t;
     
     CxField_t rho_m;
     Mesh_t *mesh;
@@ -35,8 +36,12 @@ public:
     //void init_particles_ippl(ParticleAttrib< Vektor<double, 3> > &pos, 
     //template <class T, unsigned Dim> 
     void init_particles(ParticleAttrib< Vektor<T, Dim> > &pos, 
-        ParticleAttrib< Vektor<T, Dim> > &vel, FieldLayout_t *layout, Mesh_t *mesh,
-        InputParser& bdata, const char *tfName, MPI_Comm comm);
+                        ParticleAttrib< Vektor<T, Dim> > &vel, 
+                        FieldLayout_t *layout, 
+                        Mesh_t *mesh,
+                        InputParser& bdata, 
+                        const char *tfName, 
+                        MPI_Comm comm);
 
 protected:
 
