@@ -1,3 +1,6 @@
+
+rm -rf CMakeCache.txt; CXX=mpicxx cmake ~/svnwork/ippl/projects/mc4-new/
+
 Does not compile:
 
  - FFTPoissonSolver line 400 does not compile.

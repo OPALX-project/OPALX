@@ -690,7 +690,7 @@ public:
     {
         double h=0.7, redshift=0.0, box_size=simData_m.rL;
         double r_min=0.02, r_max=box_size/2.0*1.732051;
-        double pi=3.14159265;
+        double mypi=3.14159265;
         int Nbins = corr_f.size() + 1;
 
         double rr, dr, dV, norm, d_max;
@@ -755,7 +755,7 @@ public:
         
         rr = r_min;
         for(int i=0; i<Nbins-2; i++) {
-            dV = 4.0*pi/3.0 * (pow(rr*(pow(10,dr)),3.0)-pow(rr,3.0));
+            dV = 4.0*mypi/3.0 * (pow(rr*(pow(10,dr)),3.0)-pow(rr,3.0));
             norm = 1.0/dV * pow(box_size,3.0)/(N*(N-1)/2.0);
             corr_f[i] = count[i]*norm;
             if(r_weight[i] < rr && r_weight[i] > rr*pow(10,dr)){

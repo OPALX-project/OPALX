@@ -4,6 +4,7 @@
 #include "Initializer.h"
 #include "Ippl.h"
 #include "FFT/FFT.h"
+#include <ChargedParticles/ChargedParticles.hh>
 
 #ifdef IPPL_USE_SINGLE_PRECISION
  #define T float

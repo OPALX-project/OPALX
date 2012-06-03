@@ -523,8 +523,8 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
             OffClock("Output");
             if (DataBase.Omega_nu > 0.0){
                 OnClock("Neutrinos");
-                buf_pos = (T *)malloc(ngy*ngz*sizeof(T));
-                buf_vel = (T *)malloc(ngy*ngz*sizeof(T));
+                buf_pos = (real *)malloc(ngy*ngz*sizeof(real));
+                buf_vel = (real *)malloc(ngy*ngz*sizeof(real));
                 exchange_buffers(tpos, tvel);
                 inject_neutrinos(tpos, tvel, i);
                 OffClock("Neutrinos");
