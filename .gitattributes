@@ -691,8 +691,6 @@ projects/mc4-new/src/Initializer/main.cpp -text
 projects/mc4-new/src/Parser/AbsFileStream.cpp -text
 projects/mc4-new/src/Parser/AbsFileStream.h -text
 projects/mc4-new/src/Parser/CMakeLists.txt -text
-projects/mc4-new/src/Parser/ClassicParser.cpp -text
-projects/mc4-new/src/Parser/ClassicParser.h -text
 projects/mc4-new/src/Parser/FileStream.cpp -text
 projects/mc4-new/src/Parser/FileStream.h -text
 projects/mc4-new/src/Parser/Parser.cpp -text

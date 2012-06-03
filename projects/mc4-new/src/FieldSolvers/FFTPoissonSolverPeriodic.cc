@@ -397,7 +397,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
     rhocic_m.initialize(*meshI_m, *layout_m, GuardCellSizes<3>(2), bc_m);
     rhocic_m = 0.0;
 
-    rhocic_m = real(rho_m);
+    //    rhocic_m = real(rho_m);
     gf_m = -Grad(rhocic_m,gf_m);
     univ->F.gather(gf_m, univ->R, IntCIC() );
 

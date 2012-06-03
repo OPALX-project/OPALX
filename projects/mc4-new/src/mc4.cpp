@@ -161,8 +161,8 @@ int main(int argc, char *argv[]) {
     msg << "  |  |  |  | |  `----.   | |   "<< endl;
     msg << "  |__|  |__|  \______|   |_|   "<< endl;
 
-    msg << "This is MC 4 Version " << PACKAGE_VERSION << " SVN version " << SVN_VERSION  << endl;
-    msg << "Please send cookies, goodies or other motivations (wine and beer ... ) to " << PACKAGE_BUGREPORT << endl;
+    //    msg << "This is MC 4 Version " << PACKAGE_VERSION << " SVN version " << SVN_VERSION  << endl;
+    // msg << "Please send cookies, goodies or other motivations (wine and beer ... ) to " << PACKAGE_BUGREPORT << endl;
 
 #ifdef IPPL_USE_SINGLE_PRECISION
     msg << "Running in SINGLE precision mode" << endl;

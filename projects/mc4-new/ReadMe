@@ -1,8 +1,6 @@
 Does not compile:
 
-ClassicParser.cpp
+ - FFTPoissonSolver line 400 does not compile.
 
-IPPLInitializer.cpp
-
-Nore: probable we do not need ClassicParser.cpp
-
+ - IPPLInitializer.cpp
+        Do we need to oompile this ?
