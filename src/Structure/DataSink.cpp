@@ -2458,7 +2458,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
         double t = beam.getT() * 1.0e9;
         if(!nEmissionMode) {
 
-            if(step == 1) {
+            if(step == 0) {
                 fid << "#Time/ns"  << std::setw(18) << "tot_impac" << std::setw(18) << "tot_sey" << std::setw(18)
                     << "TotalCharge" << std::setw(18) << "PartNum" << " numberOfFieldEmittedParticles " << endl ;
             }
@@ -2466,7 +2466,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
                 << std::setw(18) << Npart_d << std::setw(18) << numberOfFieldEmittedParticles << endl ;
         } else {
 
-            if(step == 1) {
+            if(step == 0) {
                 fid << "#Time/ns"  << std::setw(18) << "tot_impac" << std::setw(18) << "tot_sey" << std::setw(18)
                     << "ParticleNumber" << " numberOfFieldEmittedParticles " << endl;
             }

@@ -1728,9 +1728,10 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
     SeyNum_m = 0; // Initial parallel plate benchmark variable.
 
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
-
-    itsBunch->switchToUnitlessPositions();
-
+    double dt = itsBunch->getdT();
+    double bgf_scaleFactor = dt * Physics::c;
+    Vector_t bgf_vscaleFactor = Vector_t(bgf_scaleFactor);
+   
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         bool particleHitBoundary = false;
         Vector_t intecoords = outr;
@@ -1744,18 +1745,24 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
 
         if(particleHitBoundary) {// if hit, set particle position to intersection points coordinates and scale the position;
             // no scaling required
-            itsBunch->R[i] = intecoords/vscaleFactor_m;
+            itsBunch->R[i] = intecoords/bgf_vscaleFactor;
             itsBunch->TriID[i] = triId;
         } else {
+	    itsBunch->R[i] /= bgf_vscaleFactor;
             pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
         }
         // FIXME, is the local update necessary here?
         // update local coordinate system for particle
+	itsBunch->X[i] /= bgf_vscaleFactor;
         pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
+
+	itsBunch->R[i] *= bgf_vscaleFactor;
+        itsBunch->X[i] *= bgf_vscaleFactor;
+
+
     }
 
-    itsBunch->switchOffUnitlessPositions();
-
+    
     if(numParticlesInSimulation_m > minBinEmitted_m) {
         itsBunch->boundp();
     }
@@ -1763,6 +1770,7 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
 }
 
 void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
+    if(bgf_m) return;
     IpplTimings::startTimer(timeIntegrationTimer2_m);
 
     /*
@@ -1782,7 +1790,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
        in the very first step of a new-born particle.
 
     */
-
+    
     // push the reference particle by a half step
     double recpgamma = 1.0 / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
     RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor_m;
@@ -1792,8 +1800,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
     handleBends();
 
     //switchElements();
-    if(bgf_m) return;
-
+    
     itsBunch->switchToUnitlessPositions(true);
     // start normal particle loop part 2 for simulation without boundary geometry.
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
@@ -1826,15 +1833,28 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
     /// After kick, we do collision test before integration in second half step with new momentum, if hit, then move collision particles to the position where collision occurs.
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
+
+ // push the reference particle by a half step
+    double recpgamma = 1.0 / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
+    RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor_m;
+
+
+     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+
+        itsBunch->R[i] /= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
+
+	}
+    kickParticles(pusher, 0);
+    handleBends();
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
 
     double dtime = 0.5 * itsBunch->getdT();
 
-    itsBunch->switchToUnitlessPositions(true);
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         bool particleHitBoundary = false;
         Vector_t intecoords = outr;
         int triId = 0;
+	itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
         if(itsBunch->TriID[i] == 0) { // test all particles except those already have collided the boundary in the first half step.
             double Energy = 0.0;
             Vector_t scale_factor(0.0);
@@ -1842,18 +1862,20 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
             particleHitBoundary =  bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy) == 0;
 
             if(particleHitBoundary) {
-                itsBunch->R[i] = intecoords * Vector_t(Physics::c * itsBunch->dt[i]);
+	        itsBunch->R[i] = intecoords / Vector_t(Physics::c * itsBunch->dt[i]);
                 itsBunch->TriID[i] = triId;
                 scale_factor = vscaleFactor_m;
             } else {//if no collision do normal push in the second half-step
+	        itsBunch->R[i] /= Vector_t(Physics::c * itsBunch->dt[i]);
                 pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
             }
-
+	    itsBunch->X[i] /= Vector_t(Physics::c * itsBunch->dt[i]);
             pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
         }
+	itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
+	itsBunch->X[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
     }
 
-    itsBunch->switchOffUnitlessPositions(true);
     fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
 
     IpplTimings::stopTimer(timeIntegrationTimer2_m);

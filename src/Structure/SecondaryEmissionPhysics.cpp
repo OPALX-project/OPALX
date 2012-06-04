@@ -8,7 +8,6 @@
 
 using namespace myeps;
 using namespace Physics;
-
 SecondaryEmissionPhysics::SecondaryEmissionPhysics() {
 
     TPnSec_m = IpplTimings::getTimer("Secondary emission");
@@ -44,7 +43,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     seyNum=calcProb(incEnergy, cosTheta, prob);//calculate probability
     calcEmiNum(incEnergy, cosTheta, prob, seNum);//calculate emitted number
     PAssert(seNum<11);//debug
-    PAssert(seNum>=2);//debug
+    PAssert(seNum>=0);//debug
     double Eemit[10];
     double emiTheta[10];
     double emiPhi[10];
