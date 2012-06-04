@@ -214,9 +214,9 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
     double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
     double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+    double r2 = sqrt(rmin(0) * rmin(0) + rmin(1) * rmin(1));
    
-    if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-
+    if( r1 > r_start - 10.0 && r2 < r_end + 10.0 ){
         size_t tempnum = bunch.getLocalNum();
         int pflag = 0;
 
@@ -251,7 +251,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	double Swidth = lstep / sqrt( 1 + 1/stangle/stangle );
 	setGeom(Swidth);
 
-        for(unsigned int i = 0; i < tempnum; ++i) {
+    for(unsigned int i = 0; i < tempnum; ++i) {
 	  pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
 	  if(pflag != 0) {
 	     // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0

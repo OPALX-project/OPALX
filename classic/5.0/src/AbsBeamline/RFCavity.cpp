@@ -720,7 +720,8 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
 
 }
 
-
+// (1) include the effects of the B components in RF cavity, which cause bunching/debunching effects  
+// (2) OK when chargenumber of a particle is larger than 1
 void RFCavity::getMomentaKick2(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass, const int chargenumber) {
 
     using Physics::two_pi;
@@ -736,11 +737,6 @@ void RFCavity::getMomentaKick2(const double normalRadius, double momentum[], con
     double beta = betgam / gamma;
 
     Voltage = spline(normalRadius, &derivate) * scale_m * 1.0e6; // V
-    // *gmsg<<" Voltage = " << Voltage/1000.0 <<"[kV]"<<endl;
-
-    /// correct for transit time effect
-    /// U = 1/2*omega*deltT Vnew = V*sinU/U;
-    /// frequency_m = 2pi*Frf ,  [ rad/s]
 
     double transit_factor = 0.0;
     double Ufactor = 1.0;
@@ -757,9 +753,9 @@ void RFCavity::getMomentaKick2(const double normalRadius, double momentum[], con
     double nphase = (frequency_m * (t + dtCorrt) * 1.0e-9) - phi0_m / 180.0 * pi ; // rad/s, ns --> rad
 
     dgam = Voltage * cos(nphase) / (restMass);
-
-    double dbetgam = (gamma/betgam)*dgam;
     gamma += dgam;
+    //    double dbetgam = (gamma/betgam)*dgam;
+    double dbetgam = sqrt(gamma*gamma-1) - betgam;
 
     double tempdegree = fmod(nphase * 360.0 / two_pi, 360.0);
     if(tempdegree > 270.0) tempdegree -= 360.0;
