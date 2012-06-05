@@ -693,10 +693,10 @@ void CosmoClass::hunt(real xx[], unsigned long n, real x, unsigned long *jlo){
       jhi=n+1;
    } else {
       inc=1;
-      if (x >= xx[*jlo] == ascnd) {
+      if ((x >= xx[*jlo]) == ascnd) {
          if (*jlo == n) return;
          jhi=(*jlo)+1;
-         while (x >= xx[jhi] == ascnd) {
+         while ((x >= xx[jhi]) == ascnd) {
             *jlo=jhi;
             inc += inc;
             jhi=(*jlo)+inc;
@@ -711,7 +711,7 @@ void CosmoClass::hunt(real xx[], unsigned long n, real x, unsigned long *jlo){
             return;
          }
          jhi=(*jlo)--;
-         while (x < xx[*jlo] == ascnd) {
+         while ((x < xx[*jlo]) == ascnd) {
             jhi=(*jlo);
             inc <<= 1;
             if (inc >= jhi) {
@@ -724,7 +724,7 @@ void CosmoClass::hunt(real xx[], unsigned long n, real x, unsigned long *jlo){
    }
    while (jhi-(*jlo) != 1) {
       jm=(jhi+(*jlo)) >> 1;
-      if (x >= xx[jm] == ascnd)
+      if ((x >= xx[jm]) == ascnd)
          *jlo=jm;
       else
          jhi=jm;
