@@ -46,10 +46,12 @@ namespace initializer {
 
 void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
    std::ifstream inputFile;
-   integer i, ln;
+   integer  ln;
    real tmp, tfcdm, tfbar, norm;
    real akh1, akh2, alpha;
-   real file_kmax = M_PI/DataBase.box_size * DataBase.ngrid;
+
+   // check adafixme below
+   //   real file_kmax = M_PI/DataBase.box_size * DataBase.ngrid;
       
    Omega_m = DataBase.Omega_m;
    Omega_bar = DataBase.Omega_bar;
@@ -89,7 +91,7 @@ void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
       table_tf[0] = tfbar*Omega_bar/Omega_m + 
             tfcdm*(Omega_m-Omega_bar)/Omega_m;
       norm = table_tf[0];
-      for (i=1; i<table_size; ++i){
+      for (unsigned long i=1; i<table_size; ++i){
          inputFile >> table_kk[i] >> tfcdm >> tfbar >> tmp >> tmp;
          table_tf[i] = tfbar*Omega_bar/Omega_m + 
                tfcdm*(Omega_m-Omega_bar)/Omega_m;
@@ -325,7 +327,7 @@ void CosmoClass::genFDDist()
     neut_p[0] = 0.0;
     real norm = integrate(&CosmoClass::FD, 0, neut_pmax);
 
-    for(int j=1; j < neut_nmax; j++) {
+    for(unsigned int j=1; j < neut_nmax; j++) {
         neut_p[j] = (j)*neut_pmax/(1.0*neut_nmax-1);
         neut_c[j] = integrate(&CosmoClass::FD, 0, neut_p[j]) / norm;
     }
@@ -352,10 +354,9 @@ real CosmoClass::Maxwell(real vv)
 
 void CosmoClass::FDVelocity(real &x, real &y, real &z) 
 {
-    real aran, bran, cran, pp, mu, phi;
+    real aran, bran, pp, mu, phi;
     aran = genrand_real();
     bran = genrand_real();
-    cran = genrand_real();
 
     pp = interpolate(neut_c, neut_p, neut_nmax, aran);
     mu = 2.0*(aran-0.5);
@@ -373,7 +374,7 @@ void CosmoClass::FDVelocity(real &x, real &y, real &z)
 
 void CosmoClass::GrowthFactor(real z, real *gf, real *g_dot){
    real x1, x2, dplus, ddot;
-   const float redshift=200.0;
+
    real *ystart;
    
    x1 = 1.0/(1.0+100000.0);

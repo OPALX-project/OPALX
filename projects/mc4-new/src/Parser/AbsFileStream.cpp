@@ -94,7 +94,7 @@ Token AbsFileStream::readToken()
     // Word token.
     return readWord();
   } else if (isdigit(ch) ||
-	     ch == '.' && isdigit(line[curr_char+1]) ||
+	     (ch == '.' && isdigit(line[curr_char+1])) ||
 	     ispunct(ch)) {
     bool neg = false;
     if ((neg=ispunct(ch)))

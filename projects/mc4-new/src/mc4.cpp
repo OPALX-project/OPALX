@@ -150,19 +150,21 @@ void findHalo(ChargedParticles<TT,3> *univ, SimData<T,DimA> simData)
 
 
 int main(int argc, char *argv[]) {
-
     Ippl ippl(argc, argv);
     Inform msg ("mc4 ");
 
-    msg << "  .___  ___.  ______  _  _    "<< endl;
-    msg << "  |   \/   |  /      || || |   "<< endl;
-    msg << "  |  \  /  | |  ,----'| || |_  "<< endl;
-    msg << "  |  |\/|  | |  |     |__   _| "<< endl;
-    msg << "  |  |  |  | |  `----.   | |   "<< endl;
-    msg << "  |__|  |__|  \______|   |_|   "<< endl;
+    Inform hmsg("");
+    string mySpace("            ");
 
-    //    msg << "This is MC 4 Version " << PACKAGE_VERSION << " SVN version " << SVN_VERSION  << endl;
-    // msg << "Please send cookies, goodies or other motivations (wine and beer ... ) to " << PACKAGE_BUGREPORT << endl;
+    /*    hmsg << mySpace << "  .___  ___.  ______  _  _    "<< endl;
+    hmsg << mySpace << "  |   \/   |  /      || || |   "<< endl;
+    hmsg << mySpace << "  |  \  /  | |  ,----'| || |_  "<< endl;
+    hmsg << mySpace << "  |  |\/|  | |  |     |__   _| "<< endl;
+    hmsg << mySpace << "  |  |  |  | |  `----.   | |   "<< endl;
+    hmsg << mySpace << "  |__|  |__|  \______|   |_|   "<< endl;
+    */
+    hmsg << "This is MC 4 Version " << PACKAGE_VERSION << endl;
+    hmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) to " << PACKAGE_BUGREPORT << endl;
 
 #ifdef IPPL_USE_SINGLE_PRECISION
     msg << "Running in SINGLE precision mode" << endl;

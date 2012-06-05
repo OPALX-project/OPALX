@@ -7,3 +7,11 @@ Does not compile:
 
  - IPPLInitializer.cpp
         Do we need to oompile this ?
+
+
+Do not understand this:
+
+/Users/adelmann/svnwork/ippl/projects/mc4-new/src/Initializer/Cosmology.cpp:696:28: warning: suggest parentheses around comparison in operand of '==' [-Wparentheses]
+/Users/adelmann/svnwork/ippl/projects/mc4-new/src/Initializer/Cosmology.cpp:699:33: warning: suggest parentheses around comparison in operand of '==' [-Wparentheses]
+/Users/adelmann/svnwork/ippl/projects/mc4-new/src/Initializer/Cosmology.cpp:714:33: warning: suggest parentheses around comparison in operand of '==' [-Wparentheses]
+/Users/adelmann/svnwork/ippl/projects/mc4-new/src/Initializer/Cosmology.cpp:727:26: warning: suggest parentheses around comparison in operand of '==' [-Wparentheses]

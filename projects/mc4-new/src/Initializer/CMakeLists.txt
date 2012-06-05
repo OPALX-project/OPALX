@@ -7,6 +7,7 @@ InputParser.cpp
 MT_Random.cpp
 Output.cpp
 Parallelization.cpp
+PerfMon.c
 )
 
 include_directories (

@@ -67,7 +67,7 @@ Token StringStream::readToken()
     // Word token.
     return readWord();
   } else if (isdigit(ch) ||
-	     ch == '.' && isdigit(line[curr_char+1])) {
+	     (ch == '.' && isdigit(line[curr_char+1]))) {
     // Numeric token.
     return readNumber();
   } else {
