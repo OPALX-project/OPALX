@@ -73,12 +73,36 @@ private:
     double exit_face_angle_m;
     bool previous_is_glued_m;
     OpalSection *glued_to_m;
+
+    // Cache computation for calls to getStart and getEnd, because all these
+    // trigonometric function calls for every particle take too much time.
+    // If certain member variables are changed, the cache needs to be rebuilt.
+    // The cache is managed by this class, and its existence should be transparent for callers from
+    // outside (except the speed gains, of course :-)). See also functions
+    // updateGetStartCache, updateGetEndCache.
+    struct {
+        double u_factor;
+        double v_factor;
+    } getStartCache_m, getEndCache_m;
+
+    void updateGetStartCache();
+
+    void updateGetEndCache();
+
 };
 
 typedef std::vector<OpalSection> SectionList;
 
+inline double OpalSection::getStart(const double &u, const double &v) const {
+    return start_m + getStartCache_m.u_factor * u + getStartCache_m.v_factor * v;
+}
+
 inline void OpalSection::setStart(const double &start) {
     start_m = start;
+}
+
+inline double OpalSection::getEnd(const double &u, const double &v) const {
+    return end_m + getEndCache_m.u_factor * u + getEndCache_m.v_factor * v;
 }
 
 inline void OpalSection::setEnd(const double &end) {
@@ -147,10 +171,12 @@ inline CompVec &OpalSection::getElements() {
 
 inline void OpalSection::previous_is_glued() {
     previous_is_glued_m = true;
+    updateGetStartCache();
 }
 
 inline void OpalSection::glue_to(OpalSection *sec) {
     glued_to_m = sec;
+    updateGetEndCache();
 }
 
 inline bool OpalSection::is_glued_to(const OpalSection *sec) const {

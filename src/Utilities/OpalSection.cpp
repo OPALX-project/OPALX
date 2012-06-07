@@ -69,6 +69,9 @@ OpalSection::OpalSection(CompVec &elements, const double &start, const double &e
     if(has_surface_physics_m && !sphys_handler_m) {
         has_surface_physics_m = false;
     }
+
+    updateGetStartCache();
+    updateGetEndCache();
 }
 
 OpalSection::~OpalSection() {
@@ -77,44 +80,13 @@ OpalSection::~OpalSection() {
     }
 }
 
-double OpalSection::getStart(const double &u, const double &v) const {
-    if(previous_is_glued_m || cos(orientation_m(0)) < 1.e-8) {
-        return start_m;
-    } else {
-        //        return start_m - (sin(orientation_m(0)) * u + tan(orientation_m(1)) * v) / cos(orientation_m(0));
-
-        double cosa = cos(orientation_m(0));
-        double tana = tan(orientation_m(0));
-        double tanb = tan(orientation_m(1));
-        double cosc = cos(orientation_m(2));
-        double sinc = sin(orientation_m(2));
-
-        return start_m - tanb * (-u * sinc + v * cosc) / cosa - tana * (u * cosc + v * sinc);
-
-    }
-}
-
-double OpalSection::getEnd(const double &u, const double &v) const {
-    if(glued_to_m || cos(orientation_m(0) - exit_face_angle_m) < 1.e-8) {
-        return end_m;
-    } else {
-        //        return end_m - (sin(orientation_m(0) - exit_face_angle_m) * u + tan(orientation_m(1)) * v) / cos(orientation_m(0) - exit_face_angle_m);
-
-        double cosa = cos(orientation_m(0) - exit_face_angle_m);
-        double tana = tan(orientation_m(0) - exit_face_angle_m);
-        double tanb = tan(orientation_m(1));
-        double cosc = cos(orientation_m(2));
-        double sinc = sin(orientation_m(2));
-
-        return end_m - tanb * (-u * sinc + v * cosc) / cosa - tana * (u * cosc + v * sinc);
-    }
-}
-
 void OpalSection::setOrientation(const Vector_t &angle) {
     orientation_m = angle;
     if(glued_to_m) {
         glued_to_m->setOrientation(angle);
     }
+    updateGetStartCache();
+    updateGetEndCache();
 }
 
 bool OpalSection::find(const Component *check) const {
@@ -153,5 +125,37 @@ void OpalSection::print(Inform &msg) const {
     }
     for(CompVec::const_iterator clit = elements_m.begin(); clit != elements_m.end(); ++ clit) {
         msg << (*clit)->getName() << '\n';
+    }
+}
+
+void OpalSection::updateGetStartCache() {
+    if(previous_is_glued_m || cos(orientation_m(0)) < 1.e-8) {
+        // Setting the factors to zero will cause start_m to be returned
+        getStartCache_m.u_factor = 0.0;
+        getStartCache_m.v_factor = 0.0;
+    } else {
+        double const cosa = cos(orientation_m(0));
+        double const tana = tan(orientation_m(0));
+        double const tanb = tan(orientation_m(1));
+        double const cosc = cos(orientation_m(2));
+        double const sinc = sin(orientation_m(2));
+        getStartCache_m.u_factor = tanb * sinc / cosa - tana * cosc;
+        getStartCache_m.v_factor = -tanb * cosc / cosa - tana * sinc;
+    }
+}
+
+void OpalSection::updateGetEndCache() {
+    if(glued_to_m || cos(orientation_m(0) - exit_face_angle_m) < 1.e-8) {
+        // Setting the factors to zero will cause end_m to be returned
+        getEndCache_m.u_factor = 0.0;
+        getEndCache_m.v_factor = 0.0;
+    } else {
+        double const cosa = cos(orientation_m(0) - exit_face_angle_m);
+        double const tana = tan(orientation_m(0) - exit_face_angle_m);
+        double const tanb = tan(orientation_m(1));
+        double const cosc = cos(orientation_m(2));
+        double const sinc = sin(orientation_m(2));
+        getEndCache_m.u_factor = tanb * sinc / cosa - tana * cosc;
+        getEndCache_m.v_factor = -tanb * cosc / cosa - tana * sinc;
     }
 }
