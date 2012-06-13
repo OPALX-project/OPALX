@@ -983,6 +983,10 @@ void ParallelCyclotronTracker::Tracker_LF() {
             throw OpalException("Error in ParallelCyclotronTracker::execute", "SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
     }
 
+    // apply the plugin elements: probe, colilmator, stripper, septum
+    // make sure that we apply elements even on first step
+    applyPluginElements(dt);
+
     // *****************II***************
     // main integration loop
     // *****************II***************
@@ -1522,6 +1526,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         if(Ippl::getNodes() != 1)
             throw OpalException("Error in ParallelCyclotronTracker::execute", "SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
     }
+
+
+    // apply the plugin elements: probe, colilmator, stripper, septum
+    // make sure that we apply elements even on first step
+    applyPluginElements(dt);
 
     // main integration loop
     *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
