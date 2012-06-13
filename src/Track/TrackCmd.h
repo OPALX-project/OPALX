@@ -43,6 +43,10 @@ public:
     /// Return the timestep in seconds
     double getDT() const;
 
+    double getDTSCINIT() const;
+
+    double getDTAU() const;
+
     /// Return the elapsed time (sec) of the bunch 
     double getT0() const;
 

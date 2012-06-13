@@ -124,7 +124,8 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    bool revBeam,
                                    bool revTrack,
                                    int maxSTEPS,
-                                   double zstop):
+                                   double zstop,
+                                   int timeIntegrator):
     Tracker(beamline, reference, revBeam, revTrack),
     itsBunch(&bunch),
     itsDataSink_m(&ds),
@@ -165,7 +166,8 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     timeFieldEvaluation_m(IpplTimings::getTimer("Fieldeval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-    WakeFieldTimer_m(IpplTimings::getTimer("WakeField")) {
+    WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
+    timeIntegrator_m(timeIntegrator) {
     //    itsBeamline = dynamic_cast<Beamline*>(beamline.clone());
 
 #ifdef DBG_SYM
@@ -1264,7 +1266,7 @@ double ParallelTTracker::APtrack(Component *cavity, double cavity_start_pos, con
     return finalKineticEnergy;
 }
 
-void ParallelTTracker::execute() {
+void ParallelTTracker::Tracker_Default() {
     Inform msg("ParallelTTracker ");
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
     BorisPusher pusher(itsReference);
@@ -1300,6 +1302,7 @@ void ParallelTTracker::execute() {
 
     msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
         << "max integration steps " << localTrackSteps_m << ", next step= " << step << endl;
+    msg << "Using default (Boris-Buneman) integrator" << endl;
 
     // itsBeamline_m.accept(*this);
     // itsOpalBeamline_m.prepareSections();
@@ -1355,7 +1358,9 @@ void ParallelTTracker::execute() {
         t += itsBunch->getdT();
         itsBunch->setT(t);
 
-        dumpStats(step);
+        bool const psDump = step % Options::psDumpFreq == 0;
+        bool const statDump = step % Options::statDumpFreq == 0;
+        dumpStats(step, psDump, statDump);
 
         if(hasEndOfLineReached()) break;
 
@@ -1370,15 +1375,12 @@ void ParallelTTracker::execute() {
         itsBunch->boundp();
         numParticlesInSimulation_m = itsBunch->getTotalNum();
     }
-
-    bool doDump = true;
-    writePhaseSpace((step + 1), itsBunch->get_sPos(), doDump);
+    writePhaseSpace((step + 1), itsBunch->get_sPos(), true, true);
     msg << "Dump phase space of last step" << endl;
     OPALTimer::Timer myt3;
     itsOpalBeamline_m.switchElementsOff();
     msg << "done executing ParallelTTracker at " << myt3.time() << endl;
 }
-
 
 /**
  *  COMPONENTS
@@ -2138,7 +2140,7 @@ void ParallelTTracker::doBinaryRepartition(long long step) {
     }
 }
 
-void ParallelTTracker::dumpStats(long long step) {
+void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
     Inform msg("ParallelTTracker ");
 
@@ -2191,7 +2193,7 @@ void ParallelTTracker::dumpStats(long long step) {
             << "E="  << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
             << endl;
 
-        writePhaseSpace(step, sposRef);
+        writePhaseSpace(step, sposRef, psDump, statDump);
     }
 
     if(bgf_m) {
@@ -2512,7 +2514,7 @@ void ParallelTTracker::initializeBoundaryGeometry() {
         bgf_m->setFNParameterVYSe(parameterFNVYSe);
         numParticlesInSimulation_m = itsBunch->getTotalNum();
         if(numParticlesInSimulation_m > 0) {
-            writePhaseSpace(0, 0);// dump the initial particles
+            writePhaseSpace(0, 0, true, true); // dump the initial particles
         }
         itsDataSink_m->writeGeomToVtk(*bgf_m, string("data/testGeometry-00000.vtk"));
         //itsDataSink->writePartlossZASCII(*itsBunch, *bgf_m, string("vtk/PartlossZ-"));
@@ -2530,3 +2532,297 @@ void ParallelTTracker::initializeBoundaryGeometry() {
     }
 }
 
+void ParallelTTracker::execute() {
+    if(timeIntegrator_m == 3) { // AMTS
+        Tracker_AMTS();
+    } else {
+        Tracker_Default();
+    }
+}
+
+void ParallelTTracker::Tracker_AMTS() {
+    Inform msg("ParallelTTracker ");
+    const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
+    dtTrack_m = itsBunch->getdT();
+
+    // upper limit of particle number when we do field emission and secondary emission
+    // simulation. Could be reset to another value in input file with MAXPARTSNUM.
+    maxNparts_m = 100000000;
+
+    prepareSections();
+
+    // do autophasing before tracking without a global phase shift!
+    doAutoPhasing();
+
+    numParticlesInSimulation_m = itsBunch->getTotalNum();
+    setTime();
+    unsigned long long step = itsBunch->getLocalTrackStep();
+    msg << "Track start at: " << OPALTimer::Timer().time() << ", t = " << itsBunch->getT() << "; zstop at: " << zStop_m << " [m]" << endl;
+    msg << "Executing ParallelTTracker, next step = " << step << endl;
+    msg << "Using AMTS (adaptive multiple-time-stepping) integrator" << endl;
+    itsOpalBeamline_m.print(msg);
+    setupSUV();
+
+    itsOpalBeamline_m.switchAllElements();
+
+    setOptionalVariables();
+
+    // there is no point to do repartitioning with one node
+    if(Ippl::getNodes() == 1)
+        repartFreq_m = 1000000;
+
+    wakeStatus_m = false;
+    surfaceStatus_m = false;
+
+    // Count inner steps
+    int totalInnerSteps = 0;
+
+    itsBunch->boundp();
+    itsBunch->calcBeamParameters();
+    itsBunch->Ef = Vector_t(0.0);
+    itsBunch->Bf = Vector_t(0.0);
+    // for the moment assume only one process!
+    //doBinaryRepartition(step);
+    computeSpaceChargeFields();
+    // for the moment assume no binning!
+    //if(itsBunch->weHaveBins() && (long long) step > minStepforReBin_m) {
+    //    itsBunch->rebin();
+    //    itsBunch->resetInterpolationCache(true);
+    //}
+
+    // AMTS step size initialization
+    double const dt_inner_target = itsBunch->getdT();
+    msg << "AMTS initialization: dt_inner_target = " << dt_inner_target << endl;
+    double dt_outer, deltaTau;
+    if(itsBunch->deltaTau_m != -1.0) {
+        // DTAU is set in the inputfile, calc initial outer time step from that
+        deltaTau = itsBunch->deltaTau_m;
+        dt_outer = calcG() * deltaTau;
+    } else {
+        // Otherwise use DTSCINIT
+        dt_outer = itsBunch->dtScInit_m;
+        deltaTau = dt_outer / calcG();
+    }
+    msg << "AMTS initialization: dt_outer = " << dt_outer << " deltaTau = " << deltaTau << endl;
+
+    // AMTS calculation of stopping times
+    double const tEnd = itsBunch->getT() + double(localTrackSteps_m - step) * dt_inner_target;
+    double const psDumpInterval = double(Options::psDumpFreq) * dt_inner_target;
+    double const statDumpInterval = double(Options::statDumpFreq) * dt_inner_target;
+    double const tTrackStart = itsBunch->getT() - double(step) * dt_inner_target; // we could be in a restarted simulation!
+    double tNextPsDump = tTrackStart + psDumpInterval;
+    while(tNextPsDump < itsBunch->getT()) tNextPsDump += psDumpInterval;
+    double tNextStatDump = tTrackStart + statDumpInterval;
+    while(tNextStatDump < itsBunch->getT()) tNextStatDump += statDumpInterval;
+
+    IpplTimings::startTimer(IpplTimings::getTimer("AMTS"));
+
+    bool finished = false;
+    for(; !finished; ++step) {
+        itsOpalBeamline_m.resetStatus();
+
+        // AMTS choose new timestep
+        IpplTimings::startTimer(IpplTimings::getTimer("AMTS-TimestepSelection"));
+        dt_outer = calcG() * deltaTau;
+        double tAfterStep = itsBunch->getT() + dt_outer;
+        double const tNextStop = std::min(std::min(tEnd, tNextPsDump), tNextStatDump);
+        bool psDump = false, statDump = false;
+        if(tAfterStep > tNextStop) {
+            dt_outer = tNextStop - itsBunch->getT();
+            tAfterStep = tNextStop;
+        }
+        double const eps = 1e-14; // To test approx. equality of times
+        if(std::fabs(tAfterStep - tEnd) < eps) {
+            finished = true;
+        }
+        if(std::fabs(tAfterStep - tNextPsDump) < eps) {
+            psDump = true;
+            tNextPsDump += psDumpInterval;
+        }
+        if(std::fabs(tAfterStep - tNextStatDump) < eps) {
+            statDump = true;
+            tNextStatDump += statDumpInterval;
+        }
+        msg << "AMTS: dt_outer = " << dt_outer;
+        double numSubsteps = std::max(std::round(dt_outer / dt_inner_target), 1.0);
+        msg << " numSubsteps = " << numSubsteps;
+        double dt_inner = dt_outer / numSubsteps;
+        msg << " dt_inner = " << dt_inner << endl;
+        IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-TimestepSelection"));
+
+        IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Kick"));
+        if(itsBunch->hasFieldSolver()) {
+            kick(0.5 * dt_outer);
+        }
+        IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Kick"));
+
+        for(int n = 0; n < numSubsteps; ++n) {
+            borisExternalFields(dt_inner);
+            ++totalInnerSteps;
+        }
+
+        IpplTimings::startTimer(IpplTimings::getTimer("AMTS-SpaceCharge"));
+        if(itsBunch->hasFieldSolver()) {
+            itsBunch->boundp();
+            itsBunch->Ef = Vector_t(0.0);
+            itsBunch->Bf = Vector_t(0.0);
+            // for the moment assume only one process!
+            //doBinaryRepartition(step);
+            computeSpaceChargeFields();
+            // for the moment assume no binning!
+            //if(itsBunch->weHaveBins() && (long long) step > minStepforReBin_m) {
+            //    itsBunch->rebin();
+            //    itsBunch->resetInterpolationCache(true);
+            //}
+        }
+        IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-SpaceCharge"));
+
+        IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Kick"));
+        if(itsBunch->hasFieldSolver()) {
+            kick(0.5 * dt_outer);
+        }
+        IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Kick"));
+
+        IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Dump"));
+        itsBunch->RefPart_R = RefPartR_zxy_m;
+        itsBunch->RefPart_P = RefPartP_zxy_m;
+        itsBunch->calcBeamParameters();
+        dumpStats(step, psDump, statDump);
+        IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Dump"));
+
+        if(hasEndOfLineReached()) break;
+        itsBunch->incTrackSteps();
+    }
+
+    IpplTimings::stopTimer(IpplTimings::getTimer("AMTS"));
+
+    msg << "totalInnerSteps = " << totalInnerSteps << endl;
+
+    itsBunch->boundp();
+    numParticlesInSimulation_m = itsBunch->getTotalNum();
+    writePhaseSpace((step + 1), itsBunch->get_sPos(), true, true);
+    msg << "Dump phase space of last step" << endl;
+    itsOpalBeamline_m.switchElementsOff();
+    msg << "done executing ParallelTTracker at " << OPALTimer::Timer().time() << endl;
+}
+
+void ParallelTTracker::push(double h) {
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
+        Vector_t const v = itsBunch->P[i] * Physics::c / gamma;
+        itsBunch->R[i] += h * v;
+        itsBunch->X[i] += h * TransformTo(v, itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i]));
+    }
+
+    // Push the reference particle
+    double const gamma = sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
+    Vector_t v_zxy = RefPartP_zxy_m * Physics::c / gamma;
+    RefPartR_zxy_m += h * v_zxy;
+
+    itsBunch->setT(itsBunch->getT() + h);
+}
+
+void ParallelTTracker::kick(double h) {
+    double const q = itsReference.getQ();
+    double const M = itsReference.getM();
+    double const h12Halfqc_M = 0.5 * h * q * Physics::c / M;
+    double const h12Halfqcc_M = h12Halfqc_M * Physics::c;
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        itsBunch->P[i] += h12Halfqc_M * itsBunch->Ef[i];
+        double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
+        Vector_t const r = h12Halfqcc_M * itsBunch->Bf[i] / gamma;
+        Vector_t const w = itsBunch->P[i] + cross(itsBunch->P[i], r);
+        Vector_t const s = 2.0 / (1.0 + dot(r, r)) * r;
+        itsBunch->P[i] += cross(w, s);
+        itsBunch->P[i] += h12Halfqc_M * itsBunch->Ef[i];
+    }
+}
+
+void ParallelTTracker::computeExternalFields_AMTS() {
+    // We use a own function because the original computeExternalFields evaluates
+    // the field at times itsBunch->getT() + itsBunch->dt[i] / 2, but we
+    // need it evaluated at itsBunch->getT(). There is currently no need for individual time steps
+    // in AMTS, because we don't support emission.
+    // TODO: Unify these two functions
+    Inform msg("ParallelTTracker ");
+    bends_m = 0;
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        long ls = itsBunch->LastSection[i];
+        itsOpalBeamline_m.getSectionIndexAt(itsBunch->R[i], ls);
+        if(ls != itsBunch->LastSection[i]) {
+            if(!itsOpalBeamline_m.section_is_glued_to(itsBunch->LastSection[i], ls)) {
+                itsBunch->ResetLocalCoordinateSystem(i, itsOpalBeamline_m.getOrientation(ls), itsOpalBeamline_m.getSectionStart(ls));
+            }
+            itsBunch->LastSection[i] = ls;
+        }
+        Vector_t externalE, externalB;
+        const unsigned long rtv = itsOpalBeamline_m.getFieldAt(i, itsBunch->R[i], ls, itsBunch->getT(), externalE, externalB);
+        itsBunch->Ef[i] += externalE;
+        itsBunch->Bf[i] += externalB;
+        bends_m = bends_m || (rtv & BEAMLINE_BEND);
+    }
+    reduce(bends_m, bends_m, OpAddAssign());
+}
+
+void ParallelTTracker::borisExternalFields(double h) {
+
+    IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Push"));
+    push(0.5 * h);
+    IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Push"));
+
+    IpplTimings::startTimer(IpplTimings::getTimer("AMTS-EvalExternal"));
+    itsBunch->Ef = Vector_t(0.0);
+    itsBunch->Bf = Vector_t(0.0);
+    computeExternalFields_AMTS();
+    IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-EvalExternal"));
+
+    IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Kick"));
+    kick(h);
+
+    // Update momentum of reference particle
+    if(bends_m == 0) {
+        RefPartP_suv_m = calcMeanP();
+    } else {
+        updateSpaceOrientation(false);
+        RefPartP_suv_m = Vector_t(0.0, 0.0, sqrt(dot(RefPartP_suv_m, RefPartP_suv_m)));
+    }
+    RefPartP_zxy_m = dot(space_orientation_m, RefPartP_suv_m);
+    IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Kick"));
+
+    IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Push"));
+    push(0.5 * h);
+    IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Push"));
+
+}
+
+double ParallelTTracker::calcG() {
+    Vector_t p = itsBunch->get_pmean();
+    double const invGamma = 1.0 / sqrt(1.0 + dot(p, p));
+    Vector_t v = p * Physics::c * invGamma;
+    auto tmp = itsBunch->Ef + cross(v, itsBunch->Bf);
+    double const maxAcceleration = sqrt(max(dot(tmp, tmp))) * invGamma;
+    double const exponent = 1.0; // exponent == 0.0 means constant steps
+    return std::pow(maxAcceleration, -0.5 * exponent);
+}
+
+Vector_t ParallelTTracker::calcMeanR() const {
+    Vector_t meanR(0.0, 0.0, 0.0);
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        for(int d = 0; d < 3; ++d) {
+            meanR(d) += itsBunch->R[i](d);
+        }
+    }
+    reduce(meanR, meanR, OpAddAssign());
+    return meanR / Vector_t(itsBunch->getTotalNum());
+}
+
+Vector_t ParallelTTracker::calcMeanP() const {
+    Vector_t meanP(0.0, 0.0, 0.0);
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        for(int d = 0; d < 3; ++d) {
+            meanP(d) += itsBunch->P[i](d);
+        }
+    }
+    reduce(meanP, meanP, OpAddAssign());
+    return meanP / Vector_t(itsBunch->getTotalNum());
+}

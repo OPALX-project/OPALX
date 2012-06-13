@@ -158,7 +158,7 @@ ParallelTTracker *TrackRun::setupForAutophase() {
     return new ParallelTTracker(*Track::block->use->fetchLine(),
                                 dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                 Track::block->reference, false, false, Track::block->localTimeSteps,
-                                Track::block->zstop);
+                                Track::block->zstop, Track::block->timeIntegrator);
 }
 
 
@@ -407,6 +407,8 @@ void TrackRun::execute() {
             charge /= beam->getNumberOfParticles();
 
         Track::block->bunch->setdT(Track::block->dT);
+        Track::block->bunch->dtScInit_m = Track::block->dtScInit;
+        Track::block->bunch->deltaTau_m = Track::block->deltaTau;
 
         if (!isFollowupTrack && !OPAL->inRestartRun())
             Track::block->bunch->setT(Track::block->t0_m);
@@ -464,7 +466,7 @@ void TrackRun::execute() {
         itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                           dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                           Track::block->reference, false, false, Track::block->localTimeSteps,
-                                          Track::block->zstop);
+                                          Track::block->zstop, Track::block->timeIntegrator);
         itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
 
     } else if(method == "PARALLEL-Z") {

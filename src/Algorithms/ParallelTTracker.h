@@ -121,7 +121,7 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
-                              const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop);
+                              const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator);
 
     virtual ~ParallelTTracker();
 
@@ -328,6 +328,10 @@ private:
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
 
+    // 1 --- LF-2 (Boris-Buneman)
+    // 3 --- AMTS (Adaptive Boris-Buneman with multiple time stepping)
+    int timeIntegrator_m;
+
     /********************** END VARIABLES ***********************************/
 
     int LastVisited;
@@ -349,7 +353,7 @@ private:
     Vector_t TransformBack(const Vector_t &vec, const Vector_t &ori) const;
 
     void kickReferenceParticle(const Vector_t &externalE, const Vector_t &externalB);
-    void writePhaseSpace(const long long step, const double &sposRef, bool last = false);
+    void writePhaseSpace(const long long step, const double &sposRef, bool psDump, bool statDump);
 
     void showCavities(Inform &m);
 
@@ -377,7 +381,7 @@ private:
     void switchElements(double scaleMargin = 3.0);
     void computeSpaceChargeFields();
     void prepareOpalBeamlineSections();
-    void dumpStats(long long step);
+    void dumpStats(long long step, bool psDump, bool statDump);
     void setOptionalVariables();
     bool hasEndOfLineReached();
     void doSchottyRenormalization();
@@ -387,6 +391,15 @@ private:
     void setTime();
     void initializeBoundaryGeometry();
     void doBinaryRepartition(long long step);
+    void Tracker_Default();
+    void Tracker_AMTS();
+    void push(double h);
+    void kick(double h);
+    void computeExternalFields_AMTS();
+    void borisExternalFields(double h);
+    double calcG(); // Time step chooser for adaptive variant
+    Vector_t calcMeanR() const;
+    Vector_t calcMeanP() const;
 };
 
 inline double ParallelTTracker::ptoEMeV(Vector_t p) {
@@ -613,7 +626,6 @@ inline void ParallelTTracker::updateSpaceOrientation(const bool &move) {
     itsBunch->rotateAbout(RefPartR_suv_m, RefPartP_suv_m);
     if(move)       // move the bunch such that the new centroid location is at (0,0,z)
         itsBunch->moveBy(Vector_t(-RefPartR_suv_m(0), -RefPartR_suv_m(1), 0.0));
-    itsBunch->calcBeamParameters();
 }
 
 inline Vector_t ParallelTTracker::TransformTo(const Vector_t &vec, const Vector_t &ori) const {
@@ -687,7 +699,7 @@ inline void ParallelTTracker::kickReferenceParticle(const Vector_t &externalE, c
 }
 
 
-inline void ParallelTTracker::writePhaseSpace(const long long step, const double &sposRef, bool last) {
+inline void ParallelTTracker::writePhaseSpace(const long long step, const double &sposRef, bool psDump, bool statDump) {
 
     Inform msg("OPAL ");
     Vector_t externalE, externalB;
@@ -744,14 +756,14 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
         FDext[2 * k + 1] = externalE * 1e-6;
     }
 
-    if((step % Options::psDumpFreq == 0) || last) {
+    if(psDump) {
         // Write fields to .h5 file.
         itsDataSink_m->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
         msg << "* Wrote beam phase space." << endl;
         msg << *itsBunch << endl;
     }
 
-    if((step % Options::statDumpFreq == 0) || last) {
+    if(statDump) {
         // Write statistical data.
         msg << "* Wrote beam statistics." << endl;
         itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2));

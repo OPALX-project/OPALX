@@ -35,6 +35,13 @@ namespace {
         LINE,         // The name of lattice to be tracked.
         BEAM,         // The name of beam to be used.
         DT,           // The integration timestep in second.
+                      // In case of the adaptive integrator, time step guideline for
+                      // external field integration.
+        DTSCINIT,     // Only for adaptive integrator: Initial time step for space charge integration.
+        DTAU,         // Only for adaptive integrator: Alternative way to set accuracy of space
+                      // charge integration. Has no direct interpretation like DTSCINIT, but lower
+                      // means smaller steps and more accurate. If given, DTSCINIT is not used. Useful
+                      // for continuing with same step size in follow-up tracks.
         T0,           // The elapsed time (sec) of the bunch 
         MAXSTEPS,     // The maximum timesteps we integrate
         ZSTOP,        // Defines a z-location [m], after which the simulation stops when the last particles passes
@@ -54,6 +61,10 @@ TrackCmd::TrackCmd():
                     ("BEAM", "Name of beam to be used", "UNNAMED_BEAM");
     itsAttr[DT] = Attributes::makeReal
                   ("DT", "THE INTEGRATION TIMESTEP IN SECONDS", 1e-12);
+    itsAttr[DTSCINIT] = Attributes::makeReal
+                  ("DTSCINIT", "Only for adaptive integrator: Initial time step for space charge integration", 1e-12);
+    itsAttr[DTAU] = Attributes::makeReal
+                  ("DTAU", "Only for adaptive integrator: Alternative way to set accuracy of space integration.", -1.0);
     itsAttr[T0] = Attributes::makeReal
                   ("T0", "THE ELAPSED TIME OF THE BUNCH IN SECONDS", 0.0);
     itsAttr[MAXSTEPS] = Attributes::makeReal
@@ -83,6 +94,14 @@ TrackCmd *TrackCmd::clone(const string &name) {
 
 double TrackCmd::getDT() const {
     return Attributes::getReal(itsAttr[DT]);
+}
+
+double TrackCmd::getDTSCINIT() const {
+    return Attributes::getReal(itsAttr[DTSCINIT]);
+}
+
+double TrackCmd::getDTAU() const {
+    return Attributes::getReal(itsAttr[DTAU]);
 }
 
 double TrackCmd::getT0() const {
@@ -115,6 +134,8 @@ int TrackCmd::getTIMEINTEGRATOR() const {
         nameID =  1;
     else if(name == string("MTS"))
         nameID = 2;
+    else if(name == string("AMTS"))
+        nameID = 3;
     else
         nameID = -1;
 
@@ -135,7 +156,7 @@ void TrackCmd::execute() {
     int nslices = beam->getNumberOfSlices();
 
     // Execute track block.
-    Track::block = new Track(use, beam->getReference(), dt, maxsteps, stepsperturn, zstop, timeintegrator, nslices, t0);
+    Track::block = new Track(use, beam->getReference(), dt, maxsteps, stepsperturn, zstop, timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
     Track::block->parser.run();
 
     // Clean up.

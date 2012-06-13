@@ -36,7 +36,7 @@ class Track {
 public:
 
     Track(BeamSequence *, const PartData &, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator, int nslices,
-          double t0);
+          double t0, double dtScInit, double deltaTau);
     ~Track();
 
     /// The particle bunch to be tracked.
@@ -59,6 +59,9 @@ public:
     /// The initial timestep
     double dT;
 
+    // For AMTS integrator in OPAL-T
+    double dtScInit, deltaTau;
+
     /// The ellapsed time of the beam can be used to propper
     /// start the beam when created in a cavity i.e. without emission
     double t0_m;
@@ -76,6 +79,7 @@ public:
     // 0 --- RK-4(default)
     // 1 --- LF-2
     // 2 --- MTS
+    // 3 --- AMTS
     int timeIntegrator;
 
 private:

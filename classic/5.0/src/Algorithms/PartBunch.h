@@ -466,6 +466,9 @@ public:
     IpplTimings::TimerRef distrReload_m;
     IpplTimings::TimerRef distrCreate_m;
 
+    // For AMTS integrator in OPAL-T
+    double dtScInit_m, deltaTau_m;
+
 protected:
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
