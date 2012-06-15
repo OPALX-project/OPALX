@@ -1331,6 +1331,11 @@ void ParallelTTracker::Tracker_Default() {
 
         itsOpalBeamline_m.resetStatus();
 
+	
+	// we dump later, after one step.
+	// dumpStats(step, true, true);   
+        
+        
         timeIntegration1(pusher);
         timeIntegration1_bgf(pusher);
 
@@ -2151,12 +2156,7 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
             << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s]"
             << endl;
         return;
-    }
-
-    //if(totalParticles_f == 0) {
-    //msg << "Step " << step << " no emission yet "  << " t= " << itsBunch->getT() << " [s]" << endl;
-    //return;
-    //}
+    }  
 
     double sposRef = itsBunch->get_sPos();
     double sposPrint = sposRef;
