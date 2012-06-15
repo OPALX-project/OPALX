@@ -254,7 +254,7 @@ next_row:
             }
 
             // Guard against zero c or r due to underflow.
-            if(c != 0.0  &&  r == 0.0) {
+            if(c != 0.0  &&  r != 0.0) {
                 double g = r / radix;
                 double f = 1.0;
                 double s = c + r;
