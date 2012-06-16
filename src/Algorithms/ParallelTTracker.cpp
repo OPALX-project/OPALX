@@ -2795,6 +2795,9 @@ void ParallelTTracker::borisExternalFields(double h) {
 }
 
 double ParallelTTracker::calcG() {
+	if(!itsBunch->hasFieldSolver()) {
+		return 1.0;
+	}
     Vector_t p = itsBunch->get_pmean();
     double const invGamma = 1.0 / sqrt(1.0 + dot(p, p));
     Vector_t v = p * Physics::c * invGamma;
