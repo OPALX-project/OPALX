@@ -390,7 +390,7 @@ private:
     void prepareEmission();
     void setTime();
     void initializeBoundaryGeometry();
-    void doBinaryRepartition(long long step);
+    void doBinaryRepartition();
     void Tracker_Default();
     void Tracker_AMTS();
     void push(double h);

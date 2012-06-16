@@ -1345,7 +1345,9 @@ void ParallelTTracker::Tracker_Default() {
         itsBunch->Ef = Vector_t(0.0);
         itsBunch->Bf = Vector_t(0.0);
 
-        doBinaryRepartition(step);
+        if(step % repartFreq_m == 0 && step != 0) {
+        	doBinaryRepartition();
+        }
         computeSpaceChargeFields();
 
         selectDT();
@@ -2125,10 +2127,7 @@ void ParallelTTracker::switchElements(double scaleMargin) {
     itsOpalBeamline_m.switchElements((rmin(2) - margin), (rmax(2) + margin));
 }
 
-void ParallelTTracker::doBinaryRepartition(long long step) {
-
-    if(step % repartFreq_m != 0 || step == 0) return;
-
+void ParallelTTracker::doBinaryRepartition() {
     size_t particles_or_bins = std::max(minBinEmitted_m, size_t(1000));
     if(itsBunch->hasFieldSolver() && numParticlesInSimulation_m > particles_or_bins) {
 
@@ -2581,14 +2580,11 @@ void ParallelTTracker::Tracker_AMTS() {
     itsBunch->calcBeamParameters();
     itsBunch->Ef = Vector_t(0.0);
     itsBunch->Bf = Vector_t(0.0);
-    // for the moment assume only one process!
-    //doBinaryRepartition(step);
     computeSpaceChargeFields();
-    // for the moment assume no binning!
-    //if(itsBunch->weHaveBins() && (long long) step > minStepforReBin_m) {
-    //    itsBunch->rebin();
-    //    itsBunch->resetInterpolationCache(true);
-    //}
+    if(itsBunch->weHaveBins()) {
+        itsBunch->rebin();
+        itsBunch->resetInterpolationCache(true);
+    }
 
     // AMTS step size initialization
     double const dt_inner_target = itsBunch->getdT();
@@ -2609,11 +2605,13 @@ void ParallelTTracker::Tracker_AMTS() {
     double const tEnd = itsBunch->getT() + double(localTrackSteps_m - step) * dt_inner_target;
     double const psDumpInterval = double(Options::psDumpFreq) * dt_inner_target;
     double const statDumpInterval = double(Options::statDumpFreq) * dt_inner_target;
+    double const repartInterval = double(repartFreq_m) * dt_inner_target;
     double const tTrackStart = itsBunch->getT() - double(step) * dt_inner_target; // we could be in a restarted simulation!
     double tNextPsDump = tTrackStart + psDumpInterval;
     while(tNextPsDump < itsBunch->getT()) tNextPsDump += psDumpInterval;
     double tNextStatDump = tTrackStart + statDumpInterval;
     while(tNextStatDump < itsBunch->getT()) tNextStatDump += statDumpInterval;
+    double tDoNotRepartBefore = itsBunch->getT() + repartInterval;
 
     IpplTimings::startTimer(IpplTimings::getTimer("AMTS"));
 
@@ -2666,14 +2664,15 @@ void ParallelTTracker::Tracker_AMTS() {
             itsBunch->boundp();
             itsBunch->Ef = Vector_t(0.0);
             itsBunch->Bf = Vector_t(0.0);
-            // for the moment assume only one process!
-            //doBinaryRepartition(step);
+            if(itsBunch->getT() >= tDoNotRepartBefore) {
+            	doBinaryRepartition();
+            	tDoNotRepartBefore = itsBunch->getT() + repartInterval;
+            }
             computeSpaceChargeFields();
-            // for the moment assume no binning!
-            //if(itsBunch->weHaveBins() && (long long) step > minStepforReBin_m) {
-            //    itsBunch->rebin();
-            //    itsBunch->resetInterpolationCache(true);
-            //}
+            if(itsBunch->weHaveBins()) {
+                itsBunch->rebin();
+                itsBunch->resetInterpolationCache(true);
+            }
         }
         IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-SpaceCharge"));
 
