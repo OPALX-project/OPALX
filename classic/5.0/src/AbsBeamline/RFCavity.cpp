@@ -663,67 +663,7 @@ double RFCavity::getCycFrequency()const {
     return  frequency_m;
 }
 
-void RFCavity::getMomentaKick(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass) {
-
-    using Physics::two_pi;
-    using Physics::pi;
-    using Physics::c;
-    double derivate;
-    double Voltage;
-
-    double momentum2  = momentum[0] * momentum[0] + momentum[1] * momentum[1] + momentum[2] * momentum[2];
-    double betgam = sqrt(momentum2);
-
-    double gamma = sqrt(1.0 + momentum2);
-    double beta = betgam / gamma;
-
-    Voltage = spline(normalRadius, &derivate) * scale_m * 1.0e6; // V
-    // *gmsg<<" Voltage = " << Voltage/1000.0 <<"[kV]"<<endl;
-
-    //correct for transit time effect
-    // U = 1/2*omega*deltT Vnew = V*sinU/U;
-    //frequency_m = 2pi*Frf ,  [ rad/s]
-
-    double transit_factor = 0.0;
-    double U = 1.0;
-
-    if(gapwidth_m > 0.0) {
-        transit_factor = 0.5 * frequency_m * gapwidth_m * 1.0e-3 / (c * beta);
-        U = sin(transit_factor) / transit_factor;
-    }
-
-    Voltage *= U;
-
-    double dgam = 0.0;
-    double nphase = (frequency_m * (t + dtCorrt) * 1.0e-9) - phi0_m / 180.0 * pi ; // rad/s, ns --> rad
-
-    dgam = Voltage * cos(nphase) / (restMass);
-
-    double tempdegree = fmod(nphase * 360.0 / two_pi, 360.0);
-    if(tempdegree > 270.0) tempdegree -= 360.0;
-
-    gamma += dgam;
-
-    double newmomentum2 = pow(gamma, 2) - 1.0;
-
-    double pr = momentum[0] * cosAngle_m + momentum[1] * sinAngle_m;
-    double ptheta = sqrt(newmomentum2 - pow(pr, 2));
-    momentum[0] = pr * cosAngle_m - ptheta * sinAngle_m ; // x
-    momentum[1] = pr * sinAngle_m + ptheta * cosAngle_m; // y
-
-    if(PID == 0) {
-        Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-        gmsgALL << "* Cavity Phase= " << tempdegree << " [deg] transit time factor=  " << U
-                << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
-                << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
-    }
-
-}
-
-// (1) include the effects of the B components in RF cavity, which cause bunching/debunching effects  
-// (2) OK when chargenumber of a particle is larger than 1
-void RFCavity::getMomentaKick2(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass, const int chargenumber) {
-
+void RFCavity::getMomentaKick(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass, const int chargenumber) {
     using Physics::two_pi;
     using Physics::pi;
     using Physics::c;
@@ -749,26 +689,22 @@ void RFCavity::getMomentaKick2(const double normalRadius, double momentum[], con
     Voltage *= Ufactor;
 
     double dgam = 0.0;
-
     double nphase = (frequency_m * (t + dtCorrt) * 1.0e-9) - phi0_m / 180.0 * pi ; // rad/s, ns --> rad
 
     dgam = Voltage * cos(nphase) / (restMass);
-    gamma += dgam;
-    //    double dbetgam = (gamma/betgam)*dgam;
-    double dbetgam = sqrt(gamma*gamma-1) - betgam;
 
     double tempdegree = fmod(nphase * 360.0 / two_pi, 360.0);
     if(tempdegree > 270.0) tempdegree -= 360.0;
 
-    double angle_gap = angle_m + 90.0;
+    gamma += dgam;
 
-    double px, py;
+    double newmomentum2 = pow(gamma, 2) - 1.0;
 
-    /// E field effects
-    px = momentum[0] + dbetgam*cos(angle_gap / 180.0 * pi);
-    py = momentum[1] + dbetgam*sin(angle_gap / 180.0 * pi);
+    double pr = momentum[0] * cosAngle_m + momentum[1] * sinAngle_m;
+    double ptheta = sqrt(newmomentum2 - pow(pr, 2));
+    double px = pr * cosAngle_m - ptheta * sinAngle_m ; // x
+    double py = pr * sinAngle_m + ptheta * cosAngle_m; // y
 
-    /// Estimate the rotation effects of the time-varying magentic field in the nonuniform-voltage-distribution RF cavity
     double rotate = -derivate*(scale_m*1.0e6)/((rmax_m-rmin_m)/1000.0) * sin(nphase) / (frequency_m*two_pi) / (betgam*restMass/c/chargenumber); // radian
 
     /// B field effects
@@ -776,13 +712,13 @@ void RFCavity::getMomentaKick2(const double normalRadius, double momentum[], con
     momentum[1] = -sin(rotate)*px + cos(rotate)*py;
 
     if(PID == 0) {
-      Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-      gmsgALL << "* Cavity Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
-	      << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"<< " rotation angle= " << rotate*180.0/pi
-	      << " [deg] E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
+        Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+        gmsgALL << "* Cavity Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
+                << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
+                << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
     }
-}
 
+}
 
 /* cubic spline subrutine */
 double RFCavity::spline(double z, double *za) {

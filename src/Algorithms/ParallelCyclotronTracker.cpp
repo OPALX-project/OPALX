@@ -2620,7 +2620,7 @@ bool ParallelCyclotronTracker::RFkick(RFCavity * rfcavity, const double t, const
       tempP[j] = itsBunch->P[Pindex](j);  //[px,py,pz]  units: dimensionless
 
     // here evaluate voltage and conduct momenta kicking;
-    rfcavity -> getMomentaKick2(nomalRadius, tempP, t, dt, itsBunch->ID[Pindex], itsBunch->getM(), itsBunch->getQ()); // t : ns
+    rfcavity -> getMomentaKick(nomalRadius, tempP, t, dt, itsBunch->ID[Pindex], itsBunch->getM(), itsBunch->getQ()); // t : ns
 
     for(int j = 0; j < 3; j++)
       itsBunch->P[Pindex](j) = tempP[j];

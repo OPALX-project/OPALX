@@ -154,8 +154,7 @@ public:
 
     virtual double getCycFrequency()const;
 
-    void getMomentaKick(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass);
-    void getMomentaKick2(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass,const int chargenumber);
+    void getMomentaKick(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass,const int chargenumber);
 
     double spline(double z, double *za);
 
