@@ -66,11 +66,11 @@ using namespace std;
 #endif
 
 /**
-   Defines NMAXPERCORE how many particles 
+   Defines NMAXPERCORE how many particles
    will be breated at on time i.e. until
-   a update() takes place. With this I 
+   a update() takes place. With this I
    hope to reduce the load on the MPI
-   buffers. 
+   buffers.
 */
 
 #define NMAXPERCORE 500000
@@ -86,25 +86,25 @@ const unsigned int DimA = 3;
 
 typedef ChargedParticles<T,DimA>::Mesh_t Mesh_t;
 typedef ChargedParticles<T,DimA>::Layout_t Layout_t;
-typedef ChargedParticles<T,DimA>::Vector_t Vector_t;  
+typedef ChargedParticles<T,DimA>::Vector_t Vector_t;
 typedef ChargedParticles<T,DimA>::FieldLayout_t FieldLayout_t;
 
 #ifdef MC4HALOFINDER
-void findHalo(ChargedParticles<TT,3> *univ, SimData<T,DimA> simData) 
+void findHalo(ChargedParticles<TT,3> *univ, SimData<T,DimA> simData)
 {
     POSVEL_T boxSize = (POSVEL_T) simData.rL;
     POSVEL_T hubbleConstant = (POSVEL_T) simData.hubble;
     POSVEL_T rL = boxSize / hubbleConstant;
 
-    // Physical coordinate dead zone area   
+    // Physical coordinate dead zone area
     POSVEL_T deadSize = (POSVEL_T) (5.);
-    
+
     // Superimposed grid on physical box used to determine wraparound
     int np = simData.ng_comp;
-    
+
     // BB parameter for distance between particles comprising a halo
     POSVEL_T bb = (POSVEL_T) (0.3);
-    
+
     // Minimum number of particles to make a halo
     int pmin = 10;
 
@@ -112,35 +112,35 @@ void findHalo(ChargedParticles<TT,3> *univ, SimData<T,DimA> simData)
 
     CosmoHaloFinderP haloFinder(univ);
     haloFinder.setParameters(string(hOutFile), rL, deadSize, np, pmin, bb);
-    
-    /** 
+
+    /**
 	haloFinder.setParticles(univ);
-	 
+
 	At this point the particles which are
 	alive status==-1 are in the particle container i.e.
 	in univ. This should works with np=1
-	 
+
 	ToDO: What is left is a gather of the particles from
-	neighbor pe's, and add them to the particle container 
-	WITHOUT doing and UPDATE 
+	neighbor pe's, and add them to the particle container
+	WITHOUT doing and UPDATE
 	and do a propper haloFinder.setParticles.
-	 
-    */     
+
+    */
     // set interact radius to 5Mpc
     double radius = 5.0/simData.rL*simData.ng_comp;
     univ->getLayout().setInteractionRadius(radius);
     // ensure we have ghost particles ready
     univ->getLayout().getCashedParticles(*univ);
     haloFinder.setParticles(univ);
-     
+
     haloFinder.executeHaloFinder();
     // Collect the serial halo finder results
     haloFinder.collectHalos();
-     
-    /** Merge the halos so that only one copy of each is written 
-	Parallel halo finder must consult with each of the 26 possible neighbor 
+
+    /** Merge the halos so that only one copy of each is written
+	Parallel halo finder must consult with each of the 26 possible neighbor
 	halo finders to see who will report a particular halo
-    */                                                                                               
+    */
     haloFinder.mergeHalos();
 
     // Write halo results on each processor
@@ -172,7 +172,6 @@ int main(int argc, char *argv[]) {
     msg << "Running in DOUBLE precision mode" << endl;
 #endif
 
-    const T Pi = 4.0*atan(1.0);
     IpplTimings::TimerRef TWall = IpplTimings::getTimer("Wall");
     IpplTimings::TimerRef TCDist = IpplTimings::getTimer("Create Distribution");
     IpplTimings::TimerRef TStep = IpplTimings::getTimer("Step Total");
@@ -183,10 +182,10 @@ int main(int argc, char *argv[]) {
     static IpplMemoryUsage::MemRef initiMemWatch = IpplMemoryUsage::getMemObserver("beforePartCrea", memoryPerNode);
     static IpplMemoryUsage::MemRef initfMemWatch = IpplMemoryUsage::getMemObserver("afterPartCrea ", memoryPerNode);
 
-    static IpplMemoryUsage::MemRef afterSolverInitWatch = IpplMemoryUsage::getMemObserver("afterSolverInit", memoryPerNode);     
+    static IpplMemoryUsage::MemRef afterSolverInitWatch = IpplMemoryUsage::getMemObserver("afterSolverInit", memoryPerNode);
     static IpplMemoryUsage::MemRef afterPwrSpecWatch = IpplMemoryUsage::getMemObserver("afterPwrSpec", memoryPerNode);
 
- 
+
     IpplMemoryUsage::sample(mainMemWatch,"");
     IpplTimings::startTimer(TWall);
     size_t chunksize = 0;
@@ -200,7 +199,7 @@ int main(int argc, char *argv[]) {
     /**
        univ is used in the calculation
     */
-    ChargedParticles<T,DimA>* univ;
+    ChargedParticles<T,DimA>* univ = NULL;
 
     /// here we read in all data from the input
     /// file and compute simple derifed quantities
@@ -220,14 +219,14 @@ int main(int argc, char *argv[]) {
     NDIndex<DimA> domainF(A,B,C); //Force solver domain
 
     e_dim_tag decomp[DimA];
-    for (int d=0; d < DimA; ++d)
+    for (unsigned int d=0; d < DimA; ++d)
        	decomp[d] = PARALLEL;
 
     if(decomp[0] == PARALLEL && decomp[1] == PARALLEL && decomp[2] == PARALLEL)
 	msg << "Using 3D domain decomposition" << endl;
     else
 	msg << "Using 1D or 2D  domain decomposition" << endl;
-    
+
     // create mesh and layout objects for this problem domain
     Mesh_t *meshI, *meshF;
     FieldLayout_t *FLI, *FLF;
@@ -235,14 +234,14 @@ int main(int argc, char *argv[]) {
     meshF = new Mesh_t(domainF);
     FLI = new FieldLayout_t(*meshI, decomp);
     FLF = new FieldLayout_t(*meshF, decomp);
-    Layout_t * PLI = new Layout_t(*FLI, *meshI);  
+    Layout_t * PLI = new Layout_t(*FLI, *meshI);
     Layout_t * PLF = new Layout_t(*FLF, *meshF);
 
     /**
        simData.jinit == 0 (generate)
        simData.jinit == 1 ASCII (fort.66)
        simData.jinit == 3 H5Part
-       simData.jinit == 4 Uniform 
+       simData.jinit == 4 Uniform
     */
 
     IpplTimings::startTimer(TCDist);
@@ -250,7 +249,7 @@ int main(int argc, char *argv[]) {
 
     if ((simData.jinit == 1) || (simData.jinit == 3)) {
         univ = new ChargedParticles<T,DimA>(PLF,simData,Vector_t(1.0*simData.ng_comp));
-        univ->readInputDistribution(string(argv[2]));   
+        univ->readInputDistribution(string(argv[2]));
     }
     else if (simData.jinit == 0) {
         //use initialize wrapper to create universe
@@ -260,7 +259,7 @@ int main(int argc, char *argv[]) {
         initializer::InputParser bdata("init.in");
 
         size_t Npart;
-        int NumProcs, rank, i;
+        int NumProcs, rank;
 
         NumProcs = Ippl::Comm->getNodes();
         rank = Ippl::Comm->myNode();
@@ -268,7 +267,7 @@ int main(int argc, char *argv[]) {
         //DETERMINE HOWMANY PROCS TO USE
         int np = 0;
         bdata.getByName("np", np);
-        
+
         ParticleAttrib<Vector_t> pos;
         ParticleAttrib<Vector_t> vel;
         ParticleAttrib<T> mass;
@@ -282,7 +281,7 @@ int main(int argc, char *argv[]) {
 	initializer::InputParser par("init.in");
 	init.init_particles(pos, vel, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
 	mass = 1.0;
-        	
+
 	size_t rest = 0;
 	int iterations = 0;
 	int tag = IPPL_APP_TAG1;
@@ -308,12 +307,12 @@ int main(int argc, char *argv[]) {
 	msg << "about to copy ics over to univ junksize= " << chunksize << " iterations " << iterations << " rest " << rest << endl;
         //pos, vel and mass particle attributes are destroyed in copy constructor
         univ = new ChargedParticles<T,DimA>(PLF, simData, pos, vel, mass, Npart, Vector_t(simData.ng_comp), chunksize, iterations, rest);
-        msg << "done coping ics to univ" << endl;	 	 
-        
+        msg << "done coping ics to univ" << endl;
+
         //XXX; make sure R is scaled from [0, ng_comp]
         univ->R *= Vector_t((double)simData.ng_comp/simData.np);
 
-        //if (simData.doNeutrinos) 
+        //if (simData.doNeutrinos)
         //injectNeutrinos(bdata,simData,usedNumProcs,tfName,gridgencomm,univ);
 
     }
@@ -328,7 +327,7 @@ int main(int argc, char *argv[]) {
         //T gpscal = (1.0*simData.np);
         T gpscal = (1.0*simData.ng_comp);
         univ0->genLocalUniformICiter(gpscal);
-        
+
         // create an empty ChargedParticles object and set the BC's
         univ = univ0;
             //new ChargedParticles<T,DimA>(PLF,simData,
@@ -344,7 +343,7 @@ int main(int argc, char *argv[]) {
     IpplMemoryUsage::sample(initfMemWatch,"");
 
     /*
-      FIXME: At the moment deleting univ0 causes a core dump, no idea why 
+      FIXME: At the moment deleting univ0 causes a core dump, no idea why
       delete univ0;
       delete FLI;
       delete meshI;
@@ -354,13 +353,13 @@ int main(int argc, char *argv[]) {
     T ain  = 1.0 /(1+simData.zin);
     T ainv = 1.0 /(simData.alpha);
     T pp   = pow(ain,simData.alpha);
-     
+
     //     DataSink *itsDataSink = NULL;
     DataSink *itsDataSink = new DataSink("universe.h5", univ);
     if (simData.iprint < 99)
         itsDataSink->writePhaseSpace(pow(pp, ainv), 1.0/pow(pp,ainv)-1.0, 0);
 
-    univ->setTime(0.0);  
+    univ->setTime(0.0);
     univ->set_FieldSolver(new FFTPoissonSolverPeriodic<T,DimA>(univ,simData));
     msg << "field solver ready " << endl;
     IpplMemoryUsage::sample(afterSolverInitWatch,"");
@@ -368,20 +367,20 @@ int main(int argc, char *argv[]) {
     T omegab   = simData.deut / simData.hubble / simData.hubble;
     T omegatot = simData.omegadm + omegab;
 
-    /// Convert to `symplectic velocities' at a=a_in 
+    /// Convert to `symplectic velocities' at a=a_in
     univ->V *= Vector_t(ain*ain,ain*ain,ain*ain);
-    
+
     size_t localNp = univ->getLocalNum();
     reduce(localNp, localNp, OpAddAssign());
-    msg << "Sanity check: total Np= " << localNp << endl; 
+    msg << "Sanity check: total Np= " << localNp << endl;
 
-/** 
+/**
 	Initial dump
     */
     if ((simData.np < 128) && (Ippl::getNodes()==1))
-	univ->dumpParticles(string("mc4-out/step-univ"));      
-     
-    /** 
+	univ->dumpParticles(string("mc4-out/step-univ"));
+
+    /**
 	Initial P(k)
     */
     IpplTimings::startTimer(TPwrSpec);
@@ -395,7 +394,7 @@ int main(int argc, char *argv[]) {
     IpplTimings::startTimer(TStep);
     univ->tStep(itsDataSink);
     IpplTimings::stopTimer(TStep);
-     
+
     //if (Ippl::getNodes()==1)
 	//findHalo(univ,simData);
 
@@ -423,12 +422,12 @@ int main(int argc, char *argv[]) {
 
     if(univ)
 	delete univ;
-     
+
     if (itsDataSink)
 	delete itsDataSink;
 
     Ippl::Comm->barrier();
     return 0;
-	
+
 }
 

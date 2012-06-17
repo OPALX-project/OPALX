@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -59,9 +59,9 @@
 // constructor, from a FieldLayout
 template < class T, unsigned Dim, class Mesh >
 ParticleCashedLayout<T,Dim,Mesh>::ParticleCashedLayout(FieldLayout<Dim>&
-							   fl) 
+							   fl)
   : ParticleSpatialLayout<T,Dim,Mesh>(fl) {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -71,7 +71,7 @@ template < class T, unsigned Dim, class Mesh >
 ParticleCashedLayout<T,Dim,Mesh>::ParticleCashedLayout(FieldLayout<Dim>&
 							   fl, Mesh& mesh)
   : ParticleSpatialLayout<T,Dim,Mesh>(fl,mesh) {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -80,7 +80,7 @@ ParticleCashedLayout<T,Dim,Mesh>::ParticleCashedLayout(FieldLayout<Dim>&
 template < class T, unsigned Dim, class Mesh >
 ParticleCashedLayout<T,Dim,Mesh>::ParticleCashedLayout(const
   RegionLayout<T,Dim,Mesh>& rl) : ParticleSpatialLayout<T,Dim,Mesh>(rl) {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -90,7 +90,7 @@ ParticleCashedLayout<T,Dim,Mesh>::ParticleCashedLayout(const
 template < class T, unsigned Dim, class Mesh >
 ParticleCashedLayout<T,Dim,Mesh>::ParticleCashedLayout()
   : ParticleSpatialLayout<T,Dim,Mesh>() {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -139,7 +139,7 @@ T ParticleCashedLayout<T,Dim,Mesh>::getMaxLocalInteractionRadius() {
 template < class T, unsigned Dim, class Mesh >
 void ParticleCashedLayout<T,Dim,Mesh>::getCashedParticles(ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData) {
 
-  //IFF: all the swap_ghost_particle methods will return immediately if 
+  //IFF: all the swap_ghost_particle methods will return immediately if
   //no swap is necessary
 
   // check if we have any particle boundary conditions
@@ -433,20 +433,20 @@ void ParticleCashedLayout<T,Dim,Mesh>::update(
   // set up our layout, if not already done ... we could also do this if
   // we needed to expand our spatial region.
   if ( ! this->RLayout.initialized())
-    rebuild_layout(LocalNum,PData);
+    this->rebuild_layout(LocalNum,PData);
 
   // apply boundary conditions to the particle positions
-  if (getUpdateFlag(ParticleLayout<T,Dim>::BCONDS))
-    apply_bconds(LocalNum, PData.R, this->getBConds(), this->RLayout.getDomain());
+  if (this->getUpdateFlag(ParticleLayout<T,Dim>::BCONDS))
+    this->apply_bconds(LocalNum, PData.R, this->getBConds(), this->RLayout.getDomain());
 
   // Now we can swap particles that have moved outside the region of
   // local field space.  This is done in several passes, one for each
   // spatial dimension.  The NodeCount values are updated by this routine.
-  if (N > 1 && getUpdateFlag(this->SWAP)) {
-    if (canSwap==0) 
-      LocalNum = swap_particles(LocalNum, PData);
+  if (N > 1 && this->getUpdateFlag(this->SWAP)) {
+    if (canSwap==0)
+      LocalNum = this->swap_particles(LocalNum, PData);
     else
-      LocalNum = swap_particles(LocalNum, PData, *canSwap);
+      LocalNum = this->swap_particles(LocalNum, PData, *canSwap);
   }
 
   // flag we need to update our ghost particles
@@ -467,7 +467,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::update(
 
       // put local particle count in the message
       msg->put(LocalNum);
-      
+
       // also put in our maximum interaction radius
       msg->put(maxrad);
 
@@ -520,7 +520,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::update(
   if (maxrad != getMaxInteractionRadius()) {
     setMaxInteractionRadius(maxrad);
     // check if we have any particle boundary conditions
-    if (getUpdateFlag(ParticleLayout<T,Dim>::BCONDS)) {
+    if (this->getUpdateFlag(ParticleLayout<T,Dim>::BCONDS)) {
       // check which boundaries, if any, are periodic
       ParticleBConds<T,Dim>& pBConds = this->getBConds();
       bool periodicBC[2*Dim];
@@ -555,7 +555,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::update(
 // building the pairlists.
 //FIXME: is this not working anyways?
 template < class T, unsigned Dim, class Mesh >
-void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned 
+void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 							      LocalNum,
    ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData) {
 
@@ -600,20 +600,20 @@ void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
   for (i=0; i < N; i++)
     if (InterNodeList[i] && this->NodeCount[i] > 0)
       this->SwapMsgList[i] = new Message;
-  
+
   // Go through the particles, find those with interaction radius
   // which overlaps with a neighboring left node, and copy into a message.
   // The interaction radius used to check for whether to send the particle
   // is (max inter. radius of system)*2.
-  
-  
+
+
   //  for (i=0; i < LocalNum; ++i) {
-  
+
   // initialize the flags which indicate which node the particle will be
   // sent to
-  
+
   // ada    memset((void *)SentToNodeList, 0, N * sizeof(bool));
-  
+
   // get the position of the ith particle, and form an NDRegion which
   // is a cube with sides of length twice the interaction radius
   // ada    for (j=0; j < Dim; ++j)
@@ -626,7 +626,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
   // ada   for ( ; tVNit != touchingVN.second; ++tVNit) {
   // ada   Rnode<T,Dim> *tVN = (*tVNit).second;
   // ada  unsigned node = tVN->getNode();
-  
+
   // the node has been found - copy particle data into a message,
   // ada  if (this->NodeCount[node] > 0 && ! SentToNodeList[node]) {
   // ada	if (! InterNodeList[node]) {
@@ -640,10 +640,10 @@ void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
   //      }
   //    }
   //  }
-  
+
   // send out messages with ghost particles
 
-  /* 
+  /*
      ada: buggy     BUGGY node hangs in later receive_block
 
   int tag = Ippl::Comm->next_tag(P_SPATIAL_GHOST_TAG, P_LAYOUT_CYCLE);
@@ -668,7 +668,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 
     while (PData.ghostGetMessage(*recmsg, node) > 0);
     delete recmsg;
-    
+
     // find pairs with these ghost particles
     find_pairs(LocalNum, LocalNum + oldGN, LocalNum + PData.getGhostNum(),
     false, PData);
@@ -682,7 +682,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 // copy particles to other nodes to cashed particle container.  The arguments
 // are the current number of local particles, and the ParticleBase object.
 // Make sure not to send any particles to, or receive particles from,
-// nodes which have no particles on them. 
+// nodes which have no particles on them.
 //
 // special version to take care of periodic boundaries
 template < class T, unsigned Dim, class Mesh >
@@ -946,5 +946,5 @@ void ParticleCashedLayout<T,Dim,Mesh>::Repartition(UserList* userlist) {
 /***************************************************************************
  * $RCSfile: ParticleCashedLayout.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:29 $
- * IPPL_VERSION_ID: $Id: ParticleCashedLayout.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleCashedLayout.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $
  ***************************************************************************/

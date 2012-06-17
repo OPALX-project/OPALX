@@ -27,7 +27,7 @@
 #include "H5Block.h"
 
 
-// backward compatibility with 1.99.5                                                                      
+// backward compatibility with 1.99.5
 #if defined(H5_O_FLUSHSTEP)
  #define H5_FLUSH_STEP H5_O_FLUSHSTEP
 #endif
@@ -61,16 +61,16 @@ DataSink::DataSink(std::string fn, ChargedParticles<TT,3> *univ)
 
     /// Write file attributes.
     writeH5FileAttributes();
-    
+
     /// Set current record/time step to 0.
     H5call_m = 0;
-    
+
 }
 
 DataSink::DataSink(std::string fn, ChargedParticles<TT,3> *univ, int restartStep)
 {
     univ_m = univ;
-    
+
     /// Get timers from IPPL.
     H5PartTimer_m = IpplTimings::getTimer("H5PartTimer");
 
@@ -87,15 +87,15 @@ DataSink::DataSink(std::string fn, ChargedParticles<TT,3> *univ, int restartStep
         ERRORMSG("h5 file open failed: exiting!" << endl);
         exit(0);
     }
-    
+
     //currently always restart from last step
     int numStepsInFile = H5GetNumSteps(H5file_m);
     restartStep = numStepsInFile;
-    
+
     // Use same dump frequency.
     //int dumpfreq = 0;
     //H5PartReadFileAttrib(H5file_m, "dump frequency", &dumpfreq);
-    
+
     // Set current record/time step to restart step.
     H5call_m = restartStep-1;
 
@@ -138,8 +138,8 @@ void DataSink::writePhaseSpace(TT time, TT z, int step) {
     msg << " number " << H5call_m << endl;
     /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
- 
-    size_t nTot                   = univ_m->getTotalNum();
+
+    //size_t nTot                   = univ_m->getTotalNum();
     size_t nLoc                   = univ_m->getLocalNum();
 
 #ifdef IPPL_USE_SINGLE_PRECISION
@@ -250,7 +250,7 @@ void DataSink::readPhaseSpace()
 {
 
     H5SetStep(H5file_m, H5call_m);
-    int N = (int)H5PartGetNumParticles(H5file_m);
+    unsigned long int N = static_cast<unsigned long int>(H5PartGetNumParticles(H5file_m));
 
     //TODO: do a more sophisticated distribution of particles?
     //my guess is that the end range index is EXCLUSIVE!
@@ -264,7 +264,7 @@ void DataSink::readPhaseSpace()
         endi = starti + numberOfParticlesPerNode;
 
     H5PartSetView(H5file_m,starti,endi);
-    N = (int)H5PartGetNumParticles(H5file_m);
+    N = static_cast<unsigned long int>(H5PartGetNumParticles(H5file_m));
 
     //double actualT;
     //H5PartReadStepAttrib(H5file,"TIME",&actualT);
@@ -289,7 +289,7 @@ void DataSink::readPhaseSpace()
 	univ_m->M[n]=1.0;
     }
 
-#ifdef IPPL_USE_SINGLE_PRECISION    
+#ifdef IPPL_USE_SINGLE_PRECISION
     H5PartReadDataFloat32(H5file_m,"y",farray);
 #else
     H5PartReadDataFloat64(H5file_m,"y",farray);

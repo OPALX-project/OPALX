@@ -1,13 +1,13 @@
 // -*- C++ -*-
 
 /***************************************************************************
- * FFTPoissonSolverPeriodic.hh 
- * 
- * Periodic BC in x,y and z. 
+ * FFTPoissonSolverPeriodic.hh
+ *
+ * Periodic BC in x,y and z.
  ***************************************************************************/
 
 ////////////////////////////////////////////////////////////////////////////
-// This class contains methods for solving Poisson's equation for the 
+// This class contains methods for solving Poisson's equation for the
 // space charge portion of the calculation.
 ////////////////////////////////////////////////////////////////////////////
 
@@ -21,7 +21,7 @@
 //////////////////////////////////////////////////////////////
 
 template <class T, unsigned int Dim>
-class FFTPoissonSolverPeriodic : public FieldSolver<T,Dim> 
+class FFTPoissonSolverPeriodic : public FieldSolver<T,Dim>
 {
 public:
     // some useful typedefs
@@ -40,9 +40,9 @@ public:
     FFTPoissonSolverPeriodic(ChargedParticles<T,Dim> *univ, SimData<T,Dim> simData);
     FFTPoissonSolverPeriodic(Mesh_t *mesh, FieldLayout_t *FL, SimData<T,Dim> simData);
     virtual ~FFTPoissonSolverPeriodic();
-    
+
     /// computes the force field from density field rho
-    virtual void computeForceField(ChargedParticles<T,Dim> *univ); 
+    virtual void computeForceField(ChargedParticles<T,Dim> *univ);
 
     /// CIC forward move (deposits mass on rho_m)
     virtual void CICforward(ChargedParticles<T,Dim> *univ);
@@ -50,38 +50,38 @@ public:
     /// dumps power spectra in file fn
     virtual void calcPwrSpecAndSave(ChargedParticles<T,Dim> *univ, string fn) ;
 
-private:    
+private:
 
     void saveField(string fn, CxField_t &f, int n );
     void saveField(string fn, RxField_t &f, int n );
     void doInit();
 
-    /// fortrans nint function                                                                                            
+    /// fortrans nint function
     inline T nint(T x)
     {
 	return ceil(x + 0.5) - (fmod(x*0.5 + 0.25, 1.0) != 0);
     }
-    
+
     FFT_t *fft_m;
 
     // mesh and layout objects for rho_m
-    Mesh_t *mesh_m;
     FieldLayout_t *layout_m;
+    Mesh_t *mesh_m;
 
     // bigger mesh (length+1)
     FieldLayout_t *FLI_m;
     Mesh_t *meshI_m;
-      
+
     /// global domain for the various fields
-    NDIndex<Dim> gDomain_m;  
+    NDIndex<Dim> gDomain_m;
     /// local domain for the various fields
-    NDIndex<Dim> lDomain_m;             
+    NDIndex<Dim> lDomain_m;
     /// simulation input data
     SimData<T,Dim> simData_m;
 
-    /// global domain for the enlarged fields 
-    NDIndex<Dim> gDomainL_m;  
-  
+    /// global domain for the enlarged fields
+    NDIndex<Dim> gDomainL_m;
+
     BConds<T,Dim,Mesh_t,Center_t> bc_m;
     BConds<T,Dim,Mesh_t,Center_t> zerobc_m;
     //BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
@@ -94,7 +94,7 @@ private:
 
     /// Fourier transformed density field
     CxField_t rho_m;
-    
+
     /// real part of rho_m in bigger box (len+1)
     RxField_t rhocic_m;
 

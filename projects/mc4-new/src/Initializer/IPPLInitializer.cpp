@@ -27,7 +27,7 @@ void IPPLInitializer::indens(){
                 NDIndex<3> l(Index(i, i), Index(j, j), Index(k, k));
                 rho_m.localElement(l) = dcomplex(rn2 * sqrt(-2.0*log(rn)/rn), 0.0);
             }
-        }   
+        }
     }
 
     // Go to the k-space:
@@ -60,7 +60,7 @@ void IPPLInitializer::test_reality() {
     int i,j,k;
     float test_zero, max_rho, min_rho, ave_rho, scal;
     Inform msg ("mc4 ");
-    
+
     min_rho = 1.0e30;
     max_rho = -1.0e30;
     ave_rho = 0.0;
@@ -118,8 +118,8 @@ void IPPLInitializer::test_reality() {
         }
     }
     ave_rho = ave_rho/My_Ng;
-    
-    MPI_Allreduce(MPI_IN_PLACE, &test_zero, 1, MPI_FLOAT, MPI_MAX, Parallel.GetMpiComm());	
+
+    MPI_Allreduce(MPI_IN_PLACE, &test_zero, 1, MPI_FLOAT, MPI_MAX, Parallel.GetMpiComm());
     MPI_Allreduce(MPI_IN_PLACE, &max_rho, 1, MPI_FLOAT, MPI_MAX, Parallel.GetMpiComm());
     MPI_Allreduce(MPI_IN_PLACE, &min_rho, 1, MPI_FLOAT, MPI_MIN, Parallel.GetMpiComm());
     MPI_Allreduce(MPI_IN_PLACE, &ave_rho, 1, MPI_FLOAT, MPI_SUM, Parallel.GetMpiComm());
@@ -131,17 +131,16 @@ void IPPLInitializer::test_reality() {
 }
 
 void IPPLInitializer::gravity_force(integer axis) { // 0=x, 1=y, 2=z
-    long i, j, k, k_i, k_j, k_k, index;
+    long i, j, k, k_i, k_j, k_k;
     const real tpi=2.0*pi;
     const integer ngrid=DataBase.ngrid;
     const integer nq=ngrid/2;
     real kk, Grad, Green, scal;
-    real xx, yy, zz;
-    float min_F, max_F, ave_F, test_zero;
+    real xx=0.0, yy=0.0, zz=0.0;
     dcomplex temp;
     Inform msg ("mc4 ");
 
-    /* Multiply by the Green's function (-1/k^2), 
+    /* Multiply by the Green's function (-1/k^2),
        and take the gradient in k-space (-ik_i) */
     switch (axis) {
     case 0:
@@ -202,12 +201,11 @@ void IPPLInitializer::gravity_force(integer axis) { // 0=x, 1=y, 2=z
 }
 
 void IPPLInitializer::gravity_potential() {
-    long i, j, k, k_i, k_j, k_k, index;
+    long i, j, k, k_i, k_j, k_k;
     const real tpi=2.0*pi;
     const integer ngrid=DataBase.ngrid;
     const integer nq=ngrid/2;
     real kk, Green, scal;
-    float min_phi, max_phi, ave_phi, test_zero;
     Inform msg ("mc4 ");
 
     /* Multiply by the Green's function (-1/k^2) */
@@ -220,7 +218,7 @@ void IPPLInitializer::gravity_potential() {
             for (k=0; k<ngz; ++k){
                 k_k = k+nz1;
                 if (k_k >= nq) {k_k = -MOD(ngrid-k_k,ngrid);}
-                index = (i*ngy+j)*ngz+k;
+                //index = (i * ngy + j) * ngz + k;
                 kk = tpi/ngrid*sqrt(k_i*k_i+k_j*k_j+k_k*k_k);
                 Green = -1.0/(kk*kk);
                 if (kk == 0.0) Green = 0.0;
@@ -246,7 +244,7 @@ void IPPLInitializer::gravity_potential() {
             for (k=0; k<ngz; ++k){
                 NDIndex<3> l(Index(nx1+i, nx1+i), Index(ny1+j, ny1+j), Index(nz1+k, nz1+k));
                 rho_m.localElement(l) = dcomplex(std::real(rho_m.localElement(l))*scal, std::imag(rho_m.localElement(l)));
-            }   
+            }
         }
     }
 
@@ -254,15 +252,15 @@ void IPPLInitializer::gravity_potential() {
 }
 
 
-void IPPLInitializer::non_gaussian(integer axis) { // 0=x, 1=y, 2=z 
+void IPPLInitializer::non_gaussian(integer axis) { // 0=x, 1=y, 2=z
     const real f_NL=DataBase.f_NL;
     const integer ngrid=DataBase.ngrid;
     const integer nq=ngrid/2;
     const real tpi=2.0*pi;
     const real tpiL=tpi/DataBase.box_size; // k0, physical units
-    long i, j, k, k_i, k_j, k_k, index;
+    long i, j, k, k_i, k_j, k_k;
     float ave_phi2;
-    float xx, yy, zz;
+    float xx=0.0, yy=0.0, zz=0.0;
     real Grad, kk, trans_f, fff;
     dcomplex temp;
     CxField_t phi;
@@ -358,11 +356,9 @@ void IPPLInitializer::non_gaussian(integer axis) { // 0=x, 1=y, 2=z
 }
 
 void IPPLInitializer::set_particles(real z_in, real d_z, real ddot, integer axis){ // 0=x, 1=y, 2=z
-   const integer ngrid=DataBase.ngrid;
-   long i, j, k, index;
-   real pos_0, xx, yy, zz;
-   float  move, max_move, ave_move;
-      
+   long i, j, k;
+   real pos_0, xx=0.0, yy=0.0, zz=0.0;
+
    switch (axis) {
       case 0:
          xx = 1.0;
@@ -381,14 +377,14 @@ void IPPLInitializer::set_particles(real z_in, real d_z, real ddot, integer axis
          break;
    }
 
-   /* Move particles according to Zeldovich approximation 
-   particles will be put in rho array; real array will 
+   /* Move particles according to Zeldovich approximation
+   particles will be put in rho array; real array will
    hold positions, imaginary will hold velocities */
 
    for (i=0; i<ngx; ++i){
       for (j=0; j<ngy; ++j){
          for (k=0; k<ngz; ++k){
-            index = (i*ngy+j)*ngz+k;
+            //index = (i*ngy+j)*ngz+k;
             pos_0 = (i+nx1)*xx + (j+ny1)*yy + (k+nz1)*zz;
             NDIndex<3> l(Index(nx1+i, nx1+i), Index(ny1+j, ny1+j), Index(nz1+k, nz1+k));
             dcomplex tmp = rho_m.localElement(l);
@@ -396,13 +392,13 @@ void IPPLInitializer::set_particles(real z_in, real d_z, real ddot, integer axis
          }
       }
    }
-      
+
    return;
 }
 
 void IPPLInitializer::output(integer axis, real* pos, real* vel){ // 0=x, 1=y, 2=z
    long i, j, k, index;
-      
+
    index = 0;
    for (i=0; i<ngx; ++i){
        for (j=0; j<ngy; ++j){
@@ -415,15 +411,15 @@ void IPPLInitializer::output(integer axis, real* pos, real* vel){ // 0=x, 1=y, 2
            }
         }
     }
-      
+
    return;
 }
 
 
 //template <class T, unsigned int Dim>
-void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos, 
+void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
             ParticleAttrib< Vektor<T, 3> > &vel, FieldLayout_t *layout, Mesh_t *mesh,
-            InputParser& par, const char *tfName, MPI_Comm comm) 
+            InputParser& par, const char *tfName, MPI_Comm comm)
 {
     integer i;
     real d_z, ddot, f_NL;
@@ -496,7 +492,7 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
         test_reality();
 #endif
 
-        if (f_NL == 0.0){ // Solve for the force immediately 
+        if (f_NL == 0.0){ // Solve for the force immediately
             OnClock("Poisson solve");
             gravity_force(i);  // Calculate i-th component of the force
             OffClock("Poisson solve");
@@ -509,7 +505,7 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
             non_gaussian(i);  // Create non-gaussian force
             OffClock("Non-Gaussianity");
         }
-   
+
         OnClock("Particle move");
         set_particles(DataBase.z_in, d_z, ddot, i); // Zeldovich move
         OffClock("Particle move");
@@ -557,17 +553,19 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
             }
             apply_periodic(tpos);
         }
-	
+
         //FIXME: store particles to IPPL container + NEUTRINOS
         //FIXME: use pos_i, vel_i
 
-	for(size_t j=0; j<My_Ng; ++j){
-	    pos[j](i) = tpos[j];
-	    vel[j](i) = tvel[j];
-	}
-	free(tpos);
-	free(tvel);
+        for(size_t j=0; j < static_cast<size_t>(My_Ng); ++j){
+            pos[j](i) = tpos[j];
+            vel[j](i) = tvel[j];
+        }
+
+        free(tpos);
+        free(tvel);
     }
+
     //FIXME
     // Add thermal velocity to neutrino particles:
     //if (DataBase.Omega_nu > 0.0) thermal_vel(vel_x, vel_y, vel_z);
@@ -578,7 +576,7 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
 
     MPI_Barrier(comm);
     if (MyPE == MasterPE) PrintClockSummary(stdout);
-    Parallel.FinalMPI(&t2);	
+    Parallel.FinalMPI(&t2);
 
 }
 
