@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -32,34 +32,34 @@ template <class T, unsigned Dim> class LField;
    floating-point precision type of the Field (float or double).
 */
 
-/** 
-    Tag classes for CC type of Fourier transforms 
+/**
+    Tag classes for CC type of Fourier transforms
 */
 class CCTransform {};
-/** 
-    Tag classes for RC type of Fourier transforms 
+/**
+    Tag classes for RC type of Fourier transforms
 */
 class RCTransform {};
-/** 
-    Tag classes for sine types of Fourier transforms 
+/**
+    Tag classes for sine types of Fourier transforms
 */
 class SineTransform {};
 
-/** 
+/**
     Non-specialized FFT class.  We specialize based on Transform tag class
 */
 template <class Transform, unsigned Dim, class T>
 class FFT : public FFTBase<Dim,T> {};
 
 
-/** 
+/**
     complex-to-complex FFT class
 */
 template <unsigned Dim, class T>
 class FFT<CCTransform,Dim,T> : public FFTBase<Dim,T> {
 
-public: 
-  
+public:
+
   // typedefs
   typedef FieldLayout<Dim> Layout_t;
 #ifdef IPPL_HAS_TEMPLATED_COMPLEX
@@ -70,7 +70,7 @@ public:
   typedef BareField<Complex_t,Dim> ComplexField_t;
   typedef LField<Complex_t,Dim> ComplexLField_t;
   typedef typename FFTBase<Dim,T>::Domain_t Domain_t;
-  
+
   /** Create a new FFT object with the given domain for the input Field.
       Specify which dimensions to transform along.
       Optional argument compressTemps indicates whether or not to compress
@@ -78,22 +78,22 @@ public:
   */
   FFT(const Domain_t& cdomain, const bool transformTheseDims[Dim],
       const bool& compressTemps=false);
-  
-  /** 
+
+  /**
       Create a new FFT object of type CCTransform, with a
       given domain. Default case of transforming along all dimensions.
       Note this was formerly in the .cpp file, but the IBM linker
-      could not find it!    
+      could not find it!
   */
   FFT(const Domain_t& cdomain, const bool& compressTemps=false)
-    : FFTBase<Dim,T>(FFT<CCTransform,Dim,T>::ccFFT, cdomain,compressTemps) { 
-    
+    : FFTBase<Dim,T>(FFT<CCTransform,Dim,T>::ccFFT, cdomain,compressTemps) {
+
     // construct array of axis lengths
     int lengths[Dim];
     unsigned d;
     for (d=0; d<Dim; ++d)
       lengths[d] = cdomain[d].length();
-        
+
     // construct array of transform types for FFT Engine, compute normalization
     int transformTypes[Dim];
     T& normFact = this->getNormFact();
@@ -102,14 +102,14 @@ public:
       transformTypes[d] = FFTBase<Dim,T>::ccFFT;  // all transforms are complex-to-complex
       normFact /= lengths[d];
     }
-        
+
     // set up FFT Engine
     this->getEngine().setup(Dim, transformTypes, lengths);
     // set up the temporary fields
     setup();
   }
-  
-  
+
+
   // Destructor
   ~FFT(void);
 
@@ -122,23 +122,23 @@ public:
   */
   void transform(int direction, ComplexField_t& f, ComplexField_t& g,
 		 const bool& constInput=false);
-  /** 
+  /**
       invoke using string for direction name
   */
   void transform(const char* directionName, ComplexField_t& f,
 		 ComplexField_t& g, const bool& constInput=false);
 
   /** overloaded versions which perform the FFT "in place"
-   */ 
+   */
   void transform(int direction, ComplexField_t& f);
   void transform(const char* directionName, ComplexField_t& f) {
     // invoke in-place transform function using direction name string
     int direction = this->getDirection(directionName);
-    
+
     // Check domain of incoming Field
     const Layout_t& in_layout = f.getLayout();
     const Domain_t& in_dom = in_layout.getDomain();
-    PAssert(checkDomain(this->getDomain(),in_dom));
+    PAssert(this->checkDomain(this->getDomain(),in_dom));
 
     // Common loop iterate and other vars:
     unsigned d;
@@ -149,14 +149,14 @@ public:
     ComplexField_t* temp = &f;
     // Local work array passed to FFT:
     Complex_t* localdata;
-    
+
     // Loop over the dimensions be transformed:
     begdim = (direction == +1) ? 0 : (nTransformDims-1);
     enddim = (direction == +1) ? nTransformDims : -1;
     for (idim = begdim; idim != enddim; idim += direction) {
       TAU_PROFILE_START(timer_swap);
       // Now do the serial transforms along this dimension:
-      
+
       bool skipTranspose = false;
       // if this is the first transform dimension, we might be able
       // to skip the transpose into the first temporary Field
@@ -170,7 +170,7 @@ public:
 			  (in_layout.getDistribution(0) == SERIAL) &&
 			  (f.getGC() == FFT<CCTransform,Dim,T>::nullGC) );
       }
-      
+
       // if this is the last transform dimension, we might be able
       // to skip the last temporary and transpose right into f
       if (idim == enddim-direction) {
@@ -183,12 +183,12 @@ public:
 			  (in_layout.getDistribution(0) == SERIAL) &&
 			  (f.getGC() == FFT<CCTransform,Dim,T>::nullGC) );
       }
-      
+
       if (!skipTranspose) {
 	// transpose and permute to Field with transform dim first
-	(*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
+	(*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
 	  (*temp)[temp->getLayout().getDomain()];
-	
+
 	// Compress out previous iterate's storage:
 	if (this->compressTemps() && temp != &f) *temp = 0;
 	temp = tempFields_m[idim];  // Field* management aid
@@ -196,16 +196,16 @@ public:
       else if (idim == enddim-direction && temp != &f) {
 	// last transform and we can skip the last temporary field
 	// so do the transpose here using f instead
-	
+
 	// transpose and permute to Field with transform dim first
 	f[in_dom] = (*temp)[temp->getLayout().getDomain()];
-	
+
 	// Compress out previous iterate's storage:
 	if (this->compressTemps()) *temp = 0;
 	temp = &f;  // Field* management aid
       }
       TAU_PROFILE_STOP(timer_swap);
-      
+
       TAU_PROFILE_START(timer_fft);
       // Loop over all the Vnodes, working on the LField in each.
       typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
@@ -229,8 +229,8 @@ public:
 	} // loop over 1D strips
       } // loop over all the LFields
       TAU_PROFILE_STOP(timer_fft);
-      
-    } // loop over all transformed dimensions 
+
+    } // loop over all transformed dimensions
 
     // skip final assignment and compress if we used f as final temporary
     if (temp != &f) {
@@ -246,31 +246,31 @@ public:
       f *= Complex_t(this->getNormFact(), 0.0);
     return;
   }
-private: 
-  
+private:
+
   /**
      setup performs all the initializations necessary after the transform
      directions have been specified.
   */
   void setup(void);
 
-  /** 
+  /**
       How the temporary field's are laid out; these are computed from the
       input Field's domain. This will be allocated as an array of FieldLayouts
       with nTransformDims elements. Each is SERIAL along the zeroth dimension
       and the axes are permuted so that the transform direction is first
-  */      
+  */
   Layout_t** tempLayouts_m;
 
   /** The array of temporary fields, one for each transform direction
       These use the corresponding tempLayouts.
   */
   ComplexField_t** tempFields_m;
-  
+
 };
 
 
-/** 
+/**
     invoke two-field transform function using direction name string
 */
 template <unsigned Dim, class T>
@@ -287,14 +287,14 @@ FFT<CCTransform,Dim,T>::transform(
 }
 
 
-/** 
+/**
     1D complex-to-complex FFT class
 */
 template <class T>
 class FFT<CCTransform,1U,T> : public FFTBase<1U,T> {
-  
-public: 
-  
+
+public:
+
   // typedefs
   typedef FieldLayout<1U> Layout_t;
 #ifdef IPPL_HAS_TEMPLATED_COMPLEX
@@ -319,13 +319,13 @@ public:
       Transform along all dimensions.
       Optional argument compressTemps indicates whether or not to compress
       temporary Fields in between uses.
-  
+
   */
   FFT(const Domain_t& cdomain, const bool& compressTemps=false);
 
   // Destructor
   ~FFT(void);
-  
+
   /** Do the FFT: specify +1 or -1 to indicate forward or inverse
       transform, or specify the user-defined name string for the direction.
       User provides separate input and output fields
@@ -335,42 +335,42 @@ public:
   */
   void transform(int direction, ComplexField_t& f, ComplexField_t& g,
 		 const bool& constInput=false);
-  /** 
+  /**
       invoke using string for direction name
   */
   void transform(const char* directionName, ComplexField_t& f,
 		 ComplexField_t& g, const bool& constInput=false);
-  
-  /** 
+
+  /**
       overloaded versions which perform the FFT "in place"
   */
   void transform(int direction, ComplexField_t& f);
   void transform(const char* directionName, ComplexField_t& f);
 
-private: 
+private:
 
   /**
      setup performs all the initializations necessary after the transform
      directions have been specified.
   */
   void setup(void);
-  
-  /** 
+
+  /**
       The temporary field layout
   */
   Layout_t* tempLayouts_m;
 
-  /** 
+  /**
       The temporary field
   */
   ComplexField_t* tempFields_m;
-  
+
 };
 
 
 // inline function definitions
 
-/** 
+/**
     invoke two-field transform function using direction name string
 */
 template <class T>
@@ -386,7 +386,7 @@ FFT<CCTransform,1U,T>::transform(
   return;
 }
 
-/** 
+/**
     invoke in-place transform function using direction name string
 */
 template <class T>
@@ -403,14 +403,14 @@ FFT<CCTransform,1U,T>::transform(
 
 
 
-/** 
+/**
     real-to-complex FFT class
 */
 template <unsigned Dim, class T>
 class FFT<RCTransform,Dim,T> : public FFTBase<Dim,T> {
-  
-public: 
-  
+
+public:
+
   // typedefs
   typedef FieldLayout<Dim> Layout_t;
   typedef BareField<T,Dim> RealField_t;
@@ -434,7 +434,7 @@ public:
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool transformTheseDims[Dim], const bool& compressTemps=false);
 
-  /** 
+  /**
       Same as above, but transform all dims:
   */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
@@ -462,23 +462,23 @@ public:
 		 const bool& constInput=false);
   void transform(const char* directionName, ComplexField_t& f,
 		 RealField_t& g, const bool& constInput=false);
-  
-private: 
-  
+
+private:
+
   /**
      setup performs all the initializations necessary after the transform
      directions have been specified.
   */
   void setup(void);
-  
+
   /** How the temporary fields are laid out; these are computed from the
       input Field's domain. This will be allocated as an array of FieldLayouts
       with nTransformDims elements. Each is SERIAL along the zeroth dimension
       and the axes are permuted so that the transform direction is first
   */
   Layout_t** tempLayouts_m;
-  
-  /** 
+
+  /**
       extra layout for the one real Field needed
   */
   Layout_t* tempRLayout_m;
@@ -488,18 +488,18 @@ private:
   */
   ComplexField_t** tempFields_m;
 
-   /** 
+   /**
        We need one real internal Field in this case.
    */
   RealField_t* tempRField_m;
 
-   /** 
+   /**
        domain of the resulting complex fields
        const Domain_t& complexDomain_m;
    */
   Domain_t complexDomain_m;
 
-  /** 
+  /**
       number of axes to make serial
   */
   int serialAxes_m;
@@ -507,7 +507,7 @@ private:
 
    // Inline function definitions
 
-   /** 
+   /**
        invoke real-to-complex transform using string for transform direction
    */
 template <unsigned Dim, class T>
@@ -523,9 +523,9 @@ FFT<RCTransform,Dim,T>::transform(
   return;
 }
 
-/** 
+/**
     invoke complex-to-real transform using string for transform direction
-*/   
+*/
 template <unsigned Dim, class T>
 inline void
 FFT<RCTransform,Dim,T>::transform(
@@ -540,14 +540,14 @@ FFT<RCTransform,Dim,T>::transform(
 }
 
 
-/** 
+/**
     1D real-to-complex FFT class
-*/   
+*/
 template <class T>
 class FFT<RCTransform,1U,T> : public FFTBase<1U,T> {
-  
-public: 
-  
+
+public:
+
   // typedefs
   typedef FieldLayout<1U> Layout_t;
   typedef BareField<T,1U> RealField_t;
@@ -560,10 +560,10 @@ public:
   typedef BareField<Complex_t,1U> ComplexField_t;
   typedef LField<Complex_t,1U> ComplexLField_t;
   typedef typename FFTBase<1U,T>::Domain_t Domain_t;
-  
+
   // Constructors:
-  
-  /** 
+
+  /**
       Create a new FFT object with the given domains for input/output Fields
       Specify which dimensions to transform along.
       Optional argument compress indicates whether or not to compress
@@ -571,18 +571,18 @@ public:
   */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool transformTheseDims[1U], const bool& compressTemps=false);
-  /** 
+  /**
       Same as above, but transform all dims:
-  */   
+  */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool& compressTemps=false);
 
-  /** 
+  /**
       Destructor
   */
   ~FFT(void);
-  
-  /** 
+
+  /**
       real-to-complex FFT: specify +1 or -1 to indicate forward or inverse
       transform, or specify the user-defined name string for the direction.
       Supply a second BareField to store the output.
@@ -595,7 +595,7 @@ public:
   void transform(const char* directionName, RealField_t& f,
 		 ComplexField_t& g, const bool& constInput=false);
 
-  /** 
+  /**
       complex-to-real FFT
       Same as above, but with input and output field types reversed.
   */
@@ -603,31 +603,31 @@ public:
 		 const bool& constInput=false);
   void transform(const char* directionName, ComplexField_t& f,
 		 RealField_t& g, const bool& constInput=false);
-  
-private: 
-  
+
+private:
+
   /**
      setup performs all the initializations necessary after the transform
      directions have been specified.
   */
   void setup(void);
-   
-  /** 
+
+  /**
       The temporary field layout
   */
   Layout_t* tempLayouts_m;
 
-   /** 
+   /**
        The temporary field
    */
   ComplexField_t* tempFields_m;
 
-   /** 
+   /**
        Real field layout
    */
   Layout_t* tempRLayout_m;
 
-   /** 
+   /**
        We need one real internal Field in this case.
        domain of the resulting complex fields
    */
@@ -635,9 +635,9 @@ private:
   Domain_t complexDomain_m;
 };
 
-/** 
+/**
     invoke real-to-complex transform using string for transform direction
-*/   
+*/
 template <class T>
    inline void
 FFT<RCTransform,1U,T>::transform(
@@ -651,7 +651,7 @@ FFT<RCTransform,1U,T>::transform(
   return;
 }
 
-/** 
+/**
     invoke complex-to-real transform using string for transform direction
 */
 template <class T>
@@ -667,14 +667,14 @@ FFT<RCTransform,1U,T>::transform(
   return;
 }
 
-   /** 
+   /**
        sine transform class
    */
 template <unsigned Dim, class T>
 class FFT<SineTransform,Dim,T> : public FFTBase<Dim,T> {
-  
-public: 
-  
+
+public:
+
   // typedefs
   typedef FieldLayout<Dim> Layout_t;
   typedef BareField<T,Dim> RealField_t;
@@ -687,7 +687,7 @@ public:
   typedef BareField<Complex_t,Dim> ComplexField_t;
   typedef LField<Complex_t,Dim> ComplexLField_t;
   typedef typename FFTBase<Dim,T>::Domain_t Domain_t;
-  
+
   /** Constructor for doing sine transform(s) followed by RC FFT
       Create a new FFT object with the given domains for input/output Fields
       Specify which dimensions to transform along.
@@ -698,12 +698,12 @@ public:
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool transformTheseDims[Dim],
       const bool sineTransformDims[Dim], const bool& compressTemps=false);
-   /** 
+   /**
        Same as above, but transform all dims:
-   */   
+   */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool sineTransformDims[Dim], const bool& compressTemps=false);
-  /** 
+  /**
        Separate constructors for doing only sine transforms
        Create a new FFT object with the given domain for input/output Field
        Specify which dimensions to transform along.
@@ -712,14 +712,14 @@ public:
    */
   FFT(const Domain_t& rdomain, const bool sineTransformDims[Dim],
       const bool& compressTemps=false);
-   /** 
+   /**
        Same as above, but transform all dims:
    */
   FFT(const Domain_t& rdomain, const bool& compressTemps=false);
-  
+
   ~FFT(void);
 
-  /** 
+  /**
       These transforms are for combinations of sine transforms and RC FFTs
 
       Do the FFT: specify +1 or -1 to indicate forward or inverse
@@ -734,7 +734,7 @@ public:
   void transform(const char* directionName, RealField_t& f,
 		 ComplexField_t& g, const bool& constInput=false);
 
-  /** 
+  /**
       complex-to-real FFT, followed by sine transform(s)
       Same as above, but with input and output field types reversed.
   */
@@ -743,7 +743,7 @@ public:
   void transform(const char* directionName, ComplexField_t& f,
 		 RealField_t& g, const bool& constInput=false);
 
-  /** 
+  /**
       These transforms are for doing sine transforms only
       sine transform: specify +1 or -1 to indicate forward or inverse
       transform, or specify the user-defined name string for the direction.
@@ -756,64 +756,64 @@ public:
 		 const bool& constInput=false);
   void transform(const char* directionName, RealField_t& f,
 		 RealField_t& g, const bool& constInput=false);
-  
-   /** 
+
+   /**
        In-place version of real-to-real transform
    */
   void transform(int direction, RealField_t& f);
   void transform(const char* directionName, RealField_t& f);
-  
-private: 
-  
+
+private:
+
   /**
      setup performs all the initializations necessary after the transform
      directions have been specified.
   */
   void setup(void);
-  
-  
-  
-  /** 
+
+
+
+  /**
       which dimensions are sine transformed
-   */	
-  bool sineTransformDims_m[Dim]; 
-  
-/** 
+   */
+  bool sineTransformDims_m[Dim];
+
+/**
     number of sine transforms to perform
 */
-  unsigned numSineTransforms_m;  
-  
-  /** 
+  unsigned numSineTransforms_m;
+
+  /**
       layouts for temporary Fields: SERIAL along the zeroth dimension, with
       the axes are permuted so that the transform direction is first
 
       layouts for the temporary complex Fields
-  */ 
-   
+  */
+
   Layout_t** tempLayouts_m;
 
-   /** 
+   /**
        layouts for the temporary real Fields
-   */       
+   */
   Layout_t** tempRLayouts_m;
 
   /** The array of temporary complex Fields
       These use the corresponding tempLayouts.
   */
   ComplexField_t** tempFields_m;
-  
+
   /** The array of temporary real Fields
       These use the corresponding tempRLayouts.
   */
   RealField_t** tempRFields_m;
 
-  /** 
+  /**
       domain of the resulting complex Field for real-to-complex transform
    */
-  const Domain_t* complexDomain_m;  
+  const Domain_t* complexDomain_m;
 };
 
-/** 
+/**
     invoke real-to-complex transform using string for transform direction
 */
 template <unsigned Dim, class T>
@@ -829,9 +829,9 @@ FFT<SineTransform,Dim,T>::transform(
   return;
 }
 
-/** 
+/**
     invoke complex-to-real transform using string for transform direction
-*/   
+*/
 template <unsigned Dim, class T>
 inline void
 FFT<SineTransform,Dim,T>::transform(
@@ -845,9 +845,9 @@ FFT<SineTransform,Dim,T>::transform(
    return;
 }
 
-/** 
+/**
     invoke real-to-real transform using string for transform direction
-*/    
+*/
 template <unsigned Dim, class T>
 inline void
 FFT<SineTransform,Dim,T>::transform(
@@ -861,7 +861,7 @@ FFT<SineTransform,Dim,T>::transform(
   return;
 }
 
-/** 
+/**
     invoke in-place real-to-real transform using string for transform direction
 */
 template <unsigned Dim, class T>
@@ -876,20 +876,20 @@ FFT<SineTransform,Dim,T>::transform(
 }
 
 
-/** 
+/**
     1D sine transform class
-*/  
+*/
  template <class T>
  class FFT<SineTransform,1U,T> : public FFTBase<1U,T> {
-   
- public: 
-   
+
+ public:
+
    typedef FieldLayout<1U> Layout_t;
    typedef BareField<T,1U> RealField_t;
    typedef LField<T,1U> RealLField_t;
    typedef typename FFTBase<1U,T>::Domain_t Domain_t;
-   
-   /** 
+
+   /**
        Constructors for doing only sine transforms
        Create a new FFT object with the given domain for input/output Field
        specify which dimensions to transform along.
@@ -898,15 +898,15 @@ FFT<SineTransform,Dim,T>::transform(
    */
    FFT(const Domain_t& rdomain, const bool sineTransformDims[1U],
        const bool& compressTemps=false);
-   /** 
+   /**
        Same as above, but transform all dims:
-   */   
+   */
    FFT(const Domain_t& rdomain, const bool& compressTemps=false);
 
-   
+
    ~FFT(void);
 
-   /** 
+   /**
        sine transform: specify +1 or -1 to indicate forward or inverse
        transform, or specify the user-defined name string for the direction.
        Supply a second BareField to store the output.
@@ -918,14 +918,14 @@ FFT<SineTransform,Dim,T>::transform(
 		  const bool& constInput=false);
    void transform(const char* directionName, RealField_t& f,
 		  RealField_t& g, const bool& constInput=false);
-   
-   /** 
+
+   /**
        In-place version of real-to-real transform
    */
    void transform(int direction, RealField_t& f);
    void transform(const char* directionName, RealField_t& f);
-   
-   private: 
+
+   private:
 
    /**
       setup performs all the initializations necessary after the transform
@@ -933,19 +933,19 @@ FFT<SineTransform,Dim,T>::transform(
    */
    void setup(void);
 
-   /** 
+   /**
        The temporary real Field layout
    */
    Layout_t* tempRLayouts_m;
 
-   /** 
+   /**
        The temporary real Field
    */
    RealField_t* tempRFields_m;
 
  };
 
-/** 
+/**
     invoke real-to-real transform using string for transform direction
 */
 template <class T>
@@ -961,7 +961,7 @@ FFT<SineTransform,1U,T>::transform(
   return;
 }
 
-/** 
+/**
     invoke in-place real-to-real transform using string for transform direction
 */
 template <class T>
@@ -980,7 +980,7 @@ FFT<SineTransform,1U,T>::transform(
 /***************************************************************************
  * $RCSfile: FFT.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:25 $
- * IPPL_VERSION_ID: $Id: FFT.h,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: FFT.h,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $
  ***************************************************************************/
 
 

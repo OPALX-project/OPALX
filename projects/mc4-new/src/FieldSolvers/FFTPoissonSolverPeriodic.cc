@@ -31,7 +31,7 @@ FFTPoissonSolverPeriodic<T,Dim>::FFTPoissonSolverPeriodic(ChargedParticles<T,Dim
 }
 
 template <class T, unsigned int Dim>
-void FFTPoissonSolverPeriodic<T,Dim>::doInit() 
+void FFTPoissonSolverPeriodic<T,Dim>::doInit()
 {
     Inform msg ("FFT doInit");
 
@@ -49,12 +49,12 @@ void FFTPoissonSolverPeriodic<T,Dim>::doInit()
     msg << "GDomain " << gDomain_m << " GDomainL " << gDomainL_m << endl;
 
 
-    for (int i=0; i < 2*Dim; ++i) {
+    for (unsigned int i=0; i < 2*Dim; ++i) {
         bc_m[i] = new ParallelPeriodicFace<T,Dim,Mesh_t,Center_t>(i);
         zerobc_m[i] = new ZeroFace<T,Dim,Mesh_t,Center_t>(i);
     }
 
-    for(int d=0; d<Dim; d++) {
+    for(unsigned int d=0; d<Dim; d++) {
         dcomp_m[d]=layout_m->getRequestedDistribution(d);
         nr_m[d] = gDomain_m[d].length();
     }
@@ -110,7 +110,7 @@ FFTPoissonSolverPeriodic<T,Dim>::~FFTPoissonSolverPeriodic()
 
 //FIXME: There is something going wrong when having ng_comp != np
 template <class T, unsigned int Dim>
-void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim> *univ, string fn) 
+void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim> *univ, string fn)
 {
     Inform m("calcPwrSpecAndSave ");
 
@@ -218,7 +218,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim>
 
     fdi << "# " ;
     for (int i=0; i < kmax_m; i++)
-        fdi << "Nk[" << i << "]= " << Nk_m[i] << " "; 
+        fdi << "Nk[" << i << "]= " << Nk_m[i] << " ";
     fdi << " sum Nk= " << sumNk << endl;
 
     scale = std::pow((T)(simData_m.rL/simData_m.ng_comp),(T)3.0);
@@ -255,7 +255,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::saveField(string fn, CxField_t &f, int n )
             for (int i=ibeg;i<iend; i++) {
                 loop[0]=Index(i,i);
                 for (int j=jbeg;j<jend; j++) {
-                    loop[1]=Index(j,j);	
+                    loop[1]=Index(j,j);
                     for (int k=kbeg;k<kend; k++) {
                         loop[2]=Index(k,k);
                         oimag << i << " " << j << " " << k << "  " << real(f.localElement(loop)) << endl;
@@ -263,7 +263,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::saveField(string fn, CxField_t &f, int n )
                 }
             }
             oimag.close();
-        } 
+        }
     }
 #endif
 }
@@ -291,7 +291,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::saveField(string fn, RxField_t &f, int n )
             for (int i=ibeg;i<iend; i++) {
                 loop[0]=Index(i,i);
                 for (int j=jbeg;j<jend; j++) {
-                    loop[1]=Index(j,j);	
+                    loop[1]=Index(j,j);
                     for (int k=kbeg;k<kend; k++) {
                         loop[2]=Index(k,k);
                         oimag << i << " " << j << " " << k << "  " << f.localElement(loop) << endl;
@@ -299,7 +299,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::saveField(string fn, RxField_t &f, int n )
                 }
             }
             oimag.close();
-        } 
+        }
     }
 #endif
 }
@@ -355,7 +355,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
     // particle positions.  We can do that because the particles do not
     // change their position between the scatter and gather phases.
 
-    IpplTimings::startTimer(TSolver_m); 
+    IpplTimings::startTimer(TSolver_m);
 
     univ->F = Vector_t(0.0);
     gf_m    = Vector_t(0.0);
@@ -375,7 +375,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
     const T tpinx = 2.0*pi/(1.0*gDomain_m[0].max()+1);
     const T tpiny = 2.0*pi/(1.0*gDomain_m[1].max()+1);
     const T tpinz = 2.0*pi/(1.0*gDomain_m[2].max()+1);
-      
+
     for (int i=lDomain_m[0].min(); i<=lDomain_m[0].max(); ++i) {
         elem[0]=Index(i,i);
         for (int j=lDomain_m[1].min(); j<=lDomain_m[1].max(); ++j) {
@@ -389,10 +389,10 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
             }
         }
     }
-   
+
     fft_m->transform("inverse", rho_m);
     // rho is now phi, the scalar potential
-    
+
     // use rhocic_m with periodic boundary conditions (bc_m)
     rhocic_m.initialize(*meshI_m, *layout_m, GuardCellSizes<3>(2), bc_m);
     rhocic_m = 0.0;
@@ -405,7 +405,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
     rhocic_m.initialize(*meshI_m, *layout_m, GuardCellSizes<3>(2), zerobc_m);
     rhocic_m = 0.0;
 
-    IpplTimings::stopTimer(TSolver_m); 
+    IpplTimings::stopTimer(TSolver_m);
 }
 
 /***************************************************************************

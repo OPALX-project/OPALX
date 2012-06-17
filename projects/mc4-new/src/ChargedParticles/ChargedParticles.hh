@@ -46,7 +46,7 @@ private:
 
 public:
 
-    typedef IntCIC IntrplCIC_t; 
+    typedef IntCIC IntrplCIC_t;
 
     //    typedef typename ParticleSpatialLayout<T,Dim>::ParticlePos_t Ppos_t;
     // typedef typename ParticleSpatialLayout<T,Dim>::ParticleIndex_t PID_t;
@@ -95,22 +95,22 @@ public:
     DataSink *itsDataSink_m;
 
     //constructor to create univ0
-    ChargedParticles(Layout_t *playout, SimData<T,Dim> simData) : 
+    ChargedParticles(Layout_t *playout, SimData<T,Dim> simData) :
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
         simData_m(simData)
     {
         SpeciesIdx = 0;
 
         // register the particle attributes
-        addAttribute(M);
-        addAttribute(V);
-        addAttribute(F); 
+        this->addAttribute(M);
+        this->addAttribute(V);
+        this->addAttribute(F);
 
-        setBCAllPeriodic();
+        this->setBCAllPeriodic();
 
         // random number check
         IpplRandom.SetSeed(simData_m.iseed);
-        T dummy = IpplRandom();
+        IpplRandom();
 
         fieldNotInitialized_m = true;
     }
@@ -120,79 +120,81 @@ public:
     ChargedParticles(Layout_t *playout, SimData<T,Dim> simData, ParticleAttrib<Vector_t> &r ,
             ParticleAttrib<Vector_t>  &v,
             ParticleAttrib<T>    &m, size_t npLocal,
-		     Vector_t boxSize, size_t chunksize, int iterations, size_t rest) : 
+		     Vector_t boxSize, size_t chunksize, int iterations, size_t rest) :
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
         simData_m(simData)
     {
         SpeciesIdx = 0;
-        
+
         Inform msg ("Create particles ");
 
         // register the particle attributes
-        addAttribute(M);
-        addAttribute(V);
-        addAttribute(F); 
+        this->addAttribute(M);
+        this->addAttribute(V);
+        this->addAttribute(F);
 
-        setBoxSize(boxSize);
+        this->setBoxSize(boxSize);
 
-        setBCAllPeriodic();
+        this->setBCAllPeriodic();
         // random number check
         IpplRandom.SetSeed(simData_m.iseed);
-        T dummy = IpplRandom();
+        IpplRandom();
 
         fieldNotInitialized_m = true;
-	
-	bool iCreate = (npLocal > 0);
 
-	if (chunksize > 0) {    
+        bool iCreate = (npLocal > 0);
+
+        if (chunksize > 0) {
             for (int i=0; i<iterations;i++) {
                 if (iCreate) {
                     size_t offset = this->getLocalNum();
-                    this->create(chunksize); 
+                    this->create(chunksize);
                     for (size_t k = 0; k < chunksize; k++) {
-		      if (isnan(r[k](0)) ||  isnan(r[k](1)) || isnan(r[k](2))) {
-			; // skip 
-		      }
-		      else{ 
-                        this->R[offset+k] = r[k];
-                        this->V[offset+k] = v[k];
-                        this->M[offset+k] = m[k];
-		      }
+                        if (std::isnan(r[k](0)) ||  std::isnan(r[k](1)) ||
+                            std::isnan(r[k](2))) {
+                            ; // skip
+                        } else {
+                            this->R[offset+k] = r[k];
+                            this->V[offset+k] = v[k];
+                            this->M[offset+k] = m[k];
+                        }
                     }
                     r.destroy(chunksize,0,true);
                     v.destroy(chunksize,0,true);
                     m.destroy(chunksize,0,true);
-		    
+
                 }
                 if (i==0)
                     rescaleAll();
                 else
                     this->update();
-		
-                msg << "Step " << i << " np= " << scientific << (double) this->getTotalNum() << endl;
+
+                msg << "Step " << i << " np= " << scientific
+                    << (double) this->getTotalNum() << endl;
             }
+
             if (iCreate) {
                 size_t offset = this->getLocalNum();
-		rest  = r.size();
-		msg << "Last Step rest= " << rest << endl;
-		if (rest > 0) {
-		  this->create(rest); 
-		  for (size_t k = 0; k < rest; k++) {
-                    this->R[offset+k] = r[k];
-                    this->V[offset+k] = v[k];
-                    this->M[offset+k] = m[k];
-		  }
-		  r.destroy(rest,0,true);
-		  v.destroy(rest,0,true);
-		  m.destroy(rest,0,true);
-		}
+                rest  = r.size();
+                msg << "Last Step rest= " << rest << endl;
+                if (rest > 0) {
+                    this->create(rest);
+                    for (size_t k = 0; k < rest; k++) {
+                        this->R[offset+k] = r[k];
+                        this->V[offset+k] = v[k];
+                        this->M[offset+k] = m[k];
+                    }
+                    r.destroy(rest,0,true);
+                    v.destroy(rest,0,true);
+                    m.destroy(rest,0,true);
+                }
             }
 
             if (this->getTotalNum() == 0)
-	      rescaleAll();
+                rescaleAll();
             else
-	      this->update();
-	    
+                this->update();
+
             msg << "Last Step (rest) done np= " << this->getTotalNum() << endl;
         }
         else {
@@ -207,42 +209,42 @@ public:
             v.destroy(npLocal,0,true);
             m.destroy(npLocal,0,true);
         }
-	itsDataSink_m = NULL; 
+        itsDataSink_m = NULL;
     }
-    
-    ChargedParticles(Layout_t *playout, SimData<T,Dim> simData, Vector_t boxSize) : 
+
+    ChargedParticles(Layout_t *playout, SimData<T,Dim> simData, Vector_t boxSize) :
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
         simData_m(simData)
     {
         SpeciesIdx = 0;
 
         // register the particle attributes
-        addAttribute(M);
-        addAttribute(V);
-        addAttribute(F); 
+        this->addAttribute(M);
+        this->addAttribute(V);
+        this->addAttribute(F);
 
-        setBoxSize(boxSize);
+        this->setBoxSize(boxSize);
 
-        setBCAllPeriodic();
+        this->setBCAllPeriodic();
         // random number check
         IpplRandom.SetSeed(simData_m.iseed);
-        T dummy = IpplRandom();
+        IpplRandom();
 
         fieldNotInitialized_m = true;
 
-        itsDataSink_m = NULL; 
+        itsDataSink_m = NULL;
     }
 
 
-    ~ChargedParticles() {  
+    ~ChargedParticles() {
 
 	if (itsDataSink_m)
 	    delete itsDataSink_m;
-    } 
+    }
 
 
     size_t getNeighborInformation(double bb) {
-	
+
         return 0;
 
     }
@@ -254,7 +256,7 @@ public:
     }
 
     /*
-     *  scatter() 
+     *  scatter()
      *
      *
      *  Created by Andreas Adelmann on 30.04.08.
@@ -268,31 +270,31 @@ public:
 
     void addSpecies(ParticleAttrib<Vector_t> &r ,
 		  ParticleAttrib<Vector_t>  &v,
-		  ParticleAttrib<T>    &m) 
+		  ParticleAttrib<T>    &m)
     {
-       
+
         //assume we cannot add particles to previous species
         SpeciesIdx++;
         SpeciesIDs.insert( pair<unsigned int, unsigned int>(SpeciesIdx, this->getTotalNum()) );
         this->add(r, v, m);
-	
+
     }
 
     void add(ParticleAttrib<Vector_t> &r ,
 		  ParticleAttrib<Vector_t>  &v,
-		  ParticleAttrib<T>    &m) 
+		  ParticleAttrib<T>    &m)
     {
-        	
+
         Inform msg ("add ");
         size_t curSize = this->getLocalNum();
-        this->create(r.size()); 
+        this->create(r.size());
         msg << "adding " << r.size() << " to local " << curSize << endl;
         for(int i=0; i<r.size(); i++) {
             this->R[curSize+i] = r[i];
             this->V[curSize+i] = v[i];
             this->M[curSize+i] = m[i];
         }
-        rescaleAll(); 
+        rescaleAll();
         r.destroy(r.size(),0,true);
         v.destroy(v.size(),0,true);
         m.destroy(m.size(),0,true);
@@ -301,7 +303,7 @@ public:
     void tStep(DataSink *ds) {
 
         Inform msg ("tStep ");
-        Inform msg2all ("tStep ",INFORM_ALL_NODES); 
+        Inform msg2all ("tStep ",INFORM_ALL_NODES);
 
         T omegab   = simData_m.deut / simData_m.hubble / simData_m.hubble;
         T omegatot = simData_m.omegadm + omegab;
@@ -312,7 +314,7 @@ public:
 
         T ain  = 1.0 /(1+simData_m.zin);
         T afin = 1.0 /(1+simData_m.zfin);
-        T apr  = 1.0 /(1+simData_m.zpr);
+        //T apr  = 1.0 /(1+simData_m.zpr);
         T ainv = 1.0 /(simData_m.alpha);
         T pp   = std::pow(ain ,simData_m.alpha);
         T pfin = std::pow(afin,simData_m.alpha);
@@ -323,18 +325,18 @@ public:
 
         if (simData_m.irun==0) {
             //----This is INTEG----------------------------------------
-            T ppr  = std::pow(apr,simData_m.alpha);
+            //T ppr  = std::pow(apr,simData_m.alpha);
 
             msg << "Time: a(t) = "<< std::pow(pp,ainv) << " z = " << 1.0/std::pow(pp,ainv)-1.0 << endl;
 
             T tau = (pfin-pp)/(simData_m.nsteps); //eps in integ - timestep
 
-            //2nd order integrator: 
+            //2nd order integrator:
             if (simData_m.norder==2) {
                 //norder locked to 2 for now, so this is not necessary, but..
                 T tau1 = tau;
                 T tau2 = 0.5*tau;
-		
+
                 msg << "Timesteping 2'd order  simData_m.nsteps= " << simData_m.nsteps << endl;
                 for (int i = 0; i < simData_m.nsteps; i++) {
                     map1(tau2, omegatot, simData_m.alpha, pp);
@@ -342,18 +344,18 @@ public:
                     map2(tau1, omegatot, simData_m.alpha, pp);
                     pp=pp+tau2; //second time update
                     map1(tau2, omegatot, simData_m.alpha, pp);
-		
+
                     //Print positions and velocities, if required.
-                    if (((i+1) % simData_m.iprint)==0) { 
-                        //dump to text file if on one core with few particle 
+                    if (((i+1) % simData_m.iprint)==0) {
+                        //dump to text file if on one core with few particle
                         if ((this->getTotalNum() < 260000) && (Ippl::getNodes()==1)) {
                             string fn1("mc4-out/step-");
                             ostringstream oss;
                             oss << fn1 << i+1;
-			    
+
                             msg << "Time: a(t) = "<<std::pow(pp,ainv) << " z = " << 1.0/std::pow(pp,ainv)-1.0
                                 << "\tdumping particle to file " << oss.str() << endl;
-                            dumpParticles(string(oss.str()));      
+                            dumpParticles(string(oss.str()));
                         }
                         if (ds) ds->writePhaseSpace(std::pow(pp, ainv), 1.0/std::pow(pp,ainv)-1.0, i);
                     } // end if iprint.
@@ -372,20 +374,20 @@ public:
                 ifstream ifstr;
                 ifstr.open(string("zprnt").c_str(),ios::in);
                 ifstr.precision(8);
-                for (int i=0; i<simData_m.irun; i++ ) 
+                for (int i=0; i<simData_m.irun; i++ )
                     ifstr >> zprnt[i];
                 ifstr.close();
-            } //end zprnt file read 
+            } //end zprnt file read
 
             // Work out print intervals.
             T prange = pfin - pp;
             pprnt[0]=pp;
             pprnt[simData_m.irun+1]=pfin;
-            for (int i=0; i<simData_m.irun; i++) 
+            for (int i=0; i<simData_m.irun; i++)
                 pprnt[i+1]=std::pow((T)(1.0+zprnt[i]),(T)(-ainv));
 
             int nsum = 0;
-            T ptime = pp;
+            //T ptime = pp;
             for (int i=1; i<simData_m.irun+1; i++) { //<---F90 indices corrected here.
                 T delp = pprnt[i]-pprnt[i-1];
                 int nsloc = nint((delp/prange)*simData_m.nsteps);
@@ -410,7 +412,7 @@ public:
             } //end for i
             //----End INTEGZ------------------------------------------
         } //end else (i.e. irun!=0)
-    } //end tStep 
+    } //end tStep
 
 
     void genLocalUniformICiter(T scale) {
@@ -430,7 +432,7 @@ public:
 
         IpplRandom.SetSeed(simData_m.iseed);
 
-        T tmp = IpplRandom();
+        IpplRandom();
 
         msg << "start loop creating " << numParticles << " particles" << endl;
         for(count=0; count < numParticles; count++) {
@@ -488,7 +490,7 @@ public:
     inline void     setBoxSize(Vector_t bs) { boxSize_m = bs;}
     inline Vector_t getBoxSize() { return boxSize_m;}
 
-    void rescaleAll() {  
+    void rescaleAll() {
 
         Inform msg ("rescaleAll ");
 
@@ -502,8 +504,8 @@ public:
         Vector_t len;
         len = rmax_m - rmin_m;
 
-        NDIndex<Dim> domain = getFieldLayout().getDomain(); 
-        for(int i=0; i<Dim; i++) {
+        NDIndex<Dim> domain = getFieldLayout().getDomain();
+        for(unsigned int i=0; i<Dim; i++) {
             nr_m[i] = domain[i].length();
             hr_m[i] = (len[i] / (nr_m[i]-1));
         }
@@ -524,10 +526,10 @@ public:
     }
 
     inline void setBCAllPeriodic() {
-        for (int i=0; i < 2*Dim; ++i) {
+        for (unsigned int i=0; i < 2*Dim; ++i) {
             bc_m[i] = new ParallelPeriodicFace<T,Dim,Mesh_t,Center_t>(i);
             this->getBConds()[i] = ParticlePeriodicBCond;
-        } 
+        }
     }
 
     void readInputDistribution(string fn) {
@@ -570,7 +572,7 @@ public:
                 ifstr->close();
             }
         }
-        rescaleAll();
+        this->rescaleAll();
         msg2all << "Particles created: " << this->getLocalNum() << endl;
     }
 
@@ -596,27 +598,27 @@ public:
             if (this->singleInitNode()) {
                 of.open(fn.str().c_str(),ios::out);
                 for (size_t ii = 0 ; ii < this->getLocalNum(); ++ii) {
-                    for (int jj = 0 ; jj < Dim ; ++jj) {
+                    for (unsigned int jj = 0 ; jj < Dim ; ++jj) {
                         of << setw(pwi) << this->R[ii](jj)*grid2box << ' ';
                         of << setw(pwi) << this->V[ii](jj) << ' ';
                     }
                     of << endl;
                 }
-                of.close(); 
+                of.close();
 
                 for (toSave=1; toSave <= Ippl::getNodes()-1; toSave++) {
                     // notify toSave that he can save
                     Message *msg = new Message();
                     msg->put(toSave);
-                    bool res = Ippl::Comm->send(msg, toSave, tag1); 
-                    if (! res) 
+                    bool res = Ippl::Comm->send(msg, toSave, tag1);
+                    if (! res)
                         ERRORMSG("Ippl::Comm->send(smsg, 0, tag1) failed " << endl;);
                     // wail til toSave reports done with save
                     Message* doneMsg;
                     doneMsg = Ippl::Comm->receive_block(toSave,tag2);
                     doneMsg->get(&ok);
                     delete doneMsg;
-                    if (ok != toSave) {
+                    if (ok != static_cast<unsigned int>(toSave)) {
                         ERRORMSG("Node0 got wrong msg from node " << toSave);
                         ERRORMSG("received ID = " << ok  << endl);
                     }
@@ -630,10 +632,10 @@ public:
                 readyToSaveMesg = Ippl::Comm->receive_block(z, tag1);
                 readyToSaveMesg->get(&ok);
                 delete readyToSaveMesg;
-                if (ok == Ippl::myNode()) {
+                if (ok == static_cast<unsigned int>(Ippl::myNode())) {
                     of.open(fn.str().c_str(),ios::app);
                     for (size_t ii = 0 ; ii < this->getLocalNum(); ++ii) {
-                        for (int jj = 0 ; jj < Dim ; ++jj) {
+                        for (unsigned int jj = 0 ; jj < Dim ; ++jj) {
                             of << setw(pwi) << this->R[ii](jj)*grid2box << ' ';
                             of << setw(pwi) << this->V[ii](jj) << ' ';
                         }
@@ -644,14 +646,14 @@ public:
                     Message *msg = new Message();
                     msg->put(ok);
                     bool res = Ippl::Comm->send(msg, 0, tag2);
-                    if (! res) 
+                    if (! res)
                         ERRORMSG("Ippl::Comm->send(smsg, 0, tag2) failed " << endl;);
                 }
                 else {
                     ERRORMSG("Node" << Ippl::myNode() << "received ID = " << ok  << endl);
                 }
             }
-            Ippl::Comm->barrier(); 
+            Ippl::Comm->barrier();
         }
     }
 
@@ -659,7 +661,7 @@ public:
     inline void writeDiagnostics() {
 
 
-    } 
+    }
 
     inline void map2(T tau, T omegatot, T alpha, T pp) {
         /// adot in units of H_0^-1
@@ -674,7 +676,7 @@ public:
             INFOMSG("adot= " << adot << " phiscale= " << phiscale << " fscale= " << fscale << " tau= " << tau << endl);
             assign(V, V + fscale*tau*F);
         }
-    }  
+    }
 
     inline void map1(T tau, T omegatot, T alpha, T pp) {
         Inform msg("map1: ");
@@ -713,21 +715,21 @@ public:
 
             std::sort(r.begin(), r.end());
 
-            if(r[N-1] > d_max) 
+            if(r[N-1] > d_max)
                 d_max = r[N-1];
 
             // bin the data
             // not accounting for pairing with itself
             int k = 1;
             for(k; k<N; k++) {
-                if(r[k] >= r_min) 
+                if(r[k] >= r_min)
                     break;
             }
 
             rr = r_min;
             for(int j=0; j<Nbins-2; j++) {
                 for(k; k<N; k++) {
-                    if(r[k] > rr*pow(10,dr)) 
+                    if(r[k] > rr*pow(10,dr))
                         break;
                     count[j]++;
                     r_weight[j] += r[k];
@@ -737,7 +739,7 @@ public:
 
             //FIXME: point of synchronization
             //reduce r_weight,count (sum all)
-        
+
         }
 
         cout << "largest distance between two objects :" << d_max << endl;
@@ -752,7 +754,7 @@ public:
                 r_weight[j] = (r_min*pow(pow(10,dr),j) + r_min*pow(pow(10,dr),j+1))/2.0;
             count[j] /= 2;
         }
-        
+
         rr = r_min;
         for(int i=0; i<Nbins-2; i++) {
             dV = 4.0*mypi/3.0 * (pow(rr*(pow(10,dr)),3.0)-pow(rr,3.0));
@@ -846,7 +848,7 @@ public:
         for (int i=0; i < numParticles; i++)
             vtkout << this->R[i](0) << "\t" << this->R[i](1) << "\t" << this->R[i](2) << endl;
         vtkout << endl;
-        
+
         vtkout << "CELLS " << numParticles << " " << 2*numParticles << endl;
         for (int i=0; i < numParticles; i++)
             vtkout << "1 " << i << endl;
@@ -864,7 +866,7 @@ public:
             vtkout << M[i] << endl;
         vtkout << endl;
 
-        vtkout << "VECTORS V float" << endl;  
+        vtkout << "VECTORS V float" << endl;
         for (int i=0; i < numParticles; i++)
             vtkout << V[i](0) << "\t" << V[i](1) << "\t" << V[i](2) << endl;
 
@@ -917,7 +919,7 @@ public:
         }
 
         out.close();
-        
+
         std::stringstream fname1;
         fname1 << "vtkdata/step_";
         fname1 << setw(4) << setfill('0') << timestep;
@@ -948,7 +950,7 @@ public:
         }
 
         out.close();
-        
+
         std::stringstream fname2;
         fname2 << "vtkdata/step_";
         fname2 << setw(4) << setfill('0') << timestep;
@@ -982,7 +984,7 @@ public:
     }
 
 
-    void print(ostream &os) 
+    void print(ostream &os)
     {
         os << " ------ Conditions @ t= " << getTime() << " ------ " << endl;
         os << " N= " << this->getTotalNum() << " Grid= " << getGridSize() << endl;
@@ -999,5 +1001,5 @@ inline ostream &operator<<(ostream &os, ChargedParticles<double,3> &data)
 	return os;
 }
 
-#endif 
+#endif
 
