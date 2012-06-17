@@ -2721,18 +2721,37 @@ void ParallelTTracker::push(double h) {
     itsBunch->setT(itsBunch->getT() + h);
 }
 
-void ParallelTTracker::kick(double h) {
+void ParallelTTracker::kick(double h, bool avoidGammaCalc) {
     double const q = itsReference.getQ();
     double const M = itsReference.getM();
     double const h12Halfqc_M = 0.5 * h * q * Physics::c / M;
     double const h12Halfqcc_M = h12Halfqc_M * Physics::c;
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         itsBunch->P[i] += h12Halfqc_M * itsBunch->Ef[i];
-        double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
-        Vector_t const r = h12Halfqcc_M * itsBunch->Bf[i] / gamma;
-        Vector_t const w = itsBunch->P[i] + cross(itsBunch->P[i], r);
-        Vector_t const s = 2.0 / (1.0 + dot(r, r)) * r;
-        itsBunch->P[i] += cross(w, s);
+    }
+    if(avoidGammaCalc) {
+        // Only calculate gamma if B-field nonzero...of course this check itself
+        // gives some overhead, thus the caller can use the flag avoidGammaCalc
+        Vector_t const zero = Vector_t(0.0);
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+            if(itsBunch->Bf[i] != zero) {
+                double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
+                Vector_t const r = h12Halfqcc_M * itsBunch->Bf[i] / gamma;
+                Vector_t const w = itsBunch->P[i] + cross(itsBunch->P[i], r);
+                Vector_t const s = 2.0 / (1.0 + dot(r, r)) * r;
+                itsBunch->P[i] += cross(w, s);
+            }
+        }
+    } else {
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+            double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
+            Vector_t const r = h12Halfqcc_M * itsBunch->Bf[i] / gamma;
+            Vector_t const w = itsBunch->P[i] + cross(itsBunch->P[i], r);
+            Vector_t const s = 2.0 / (1.0 + dot(r, r)) * r;
+            itsBunch->P[i] += cross(w, s);
+        }
+    }
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         itsBunch->P[i] += h12Halfqc_M * itsBunch->Ef[i];
     }
 }
@@ -2776,7 +2795,7 @@ void ParallelTTracker::borisExternalFields(double h) {
     IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-EvalExternal"));
 
     IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Kick"));
-    kick(h);
+    kick(h, true);
 
     // Update momentum of reference particle
     if(bends_m == 0) {

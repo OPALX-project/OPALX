@@ -394,7 +394,7 @@ private:
     void Tracker_Default();
     void Tracker_AMTS();
     void push(double h);
-    void kick(double h);
+    void kick(double h, bool avoidGammaCalc = false);
     void computeExternalFields_AMTS();
     void borisExternalFields(double h);
     double calcG(); // Time step chooser for adaptive variant
