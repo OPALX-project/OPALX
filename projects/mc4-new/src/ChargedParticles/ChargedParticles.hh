@@ -23,7 +23,7 @@ template <class T, unsigned int Dim> class FieldSolver;
 #include <cmath>
 #include <algorithm>
 
-static IpplTimings::TimerRef TIUpdate_m = IpplTimings::getTimer("Initial Update");
+//static IpplTimings::TimerRef TIUpdate_m = IpplTimings::getTimer("Initial Update");
 
 template <class T, unsigned int Dim>
 class ChargedParticles : public ParticleBase< ParticleCashedLayout<T,Dim> > {
@@ -454,9 +454,9 @@ public:
 
         }
         msg << "after loop" << endl;
-	IpplTimings::startTimer(TIUpdate_m);
+	//IpplTimings::startTimer(TIUpdate_m);
         this->update();
-	IpplTimings::stopTimer(TIUpdate_m);
+	//IpplTimings::stopTimer(TIUpdate_m);
         msg << "Particles " << this->getTotalNum() << " created" << endl;
     }
 
