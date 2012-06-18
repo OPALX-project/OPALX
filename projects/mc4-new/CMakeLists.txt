@@ -15,9 +15,9 @@ ENDIF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 MESSAGE (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
 
 # Select flags.
-SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Wno-deprecated -fpermissive -O2 -g")
-SET (CMAKE_CXX_FLAGS_RELEASE "-Wno-deprecated -fpermissive -O2")
-SET (CMAKE_CXX_FLAGS_DEBUG  "-Wno-deprecated -fpermissive -O0 -g")
+SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Wno-deprecated -O2 -g")
+SET (CMAKE_CXX_FLAGS_RELEASE "-Wno-deprecated -O2")
+SET (CMAKE_CXX_FLAGS_DEBUG  "-Wno-deprecated -O0 -g")
 
 
 # Resolve all library dependencies
