@@ -1,23 +1,3 @@
-// ------------------------------------------------------------------------
-// $RCSfile: DataSink.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: DataSink
-//
-// ------------------------------------------------------------------------
-//
-// Revision History:
-// $Date: 2004/06/02 19:38:54 $
-// $Author: adelmann $
-// $Log: DataSink.cpp,v $
-// Revision 1.3  2004/06/02 19:38:54  adelmann
-//
-// ------------------------------------------------------------------------
-
 #include <iomanip>
 #include <string>
 #include <hdf5.h>
@@ -29,7 +9,7 @@
 
 // backward compatibility with 1.99.5
 #if defined(H5_O_FLUSHSTEP)
- #define H5_FLUSH_STEP H5_O_FLUSHSTEP
+#define H5_FLUSH_STEP H5_O_FLUSHSTEP
 #endif
 
 DataSink::DataSink(std::string fn, ChargedParticles<TT,3> *univ)
@@ -105,7 +85,7 @@ DataSink::DataSink(std::string fn, ChargedParticles<TT,3> *univ, int restartStep
 DataSink::~DataSink()
 {
     if (H5file_m)
-	H5CloseFile(H5file_m);
+        H5CloseFile(H5file_m);
     Ippl::Comm->barrier();
 }
 
@@ -286,7 +266,7 @@ void DataSink::readPhaseSpace()
 #endif
     for (unsigned long int n=0; n < N; ++n) {
         univ_m->R[n](0)=farray[n];
-	univ_m->M[n]=1.0;
+        univ_m->M[n]=1.0;
     }
 
 #ifdef IPPL_USE_SINGLE_PRECISION
@@ -336,10 +316,4 @@ void DataSink::readPhaseSpace()
 
     return;
 }
-
-
-/***************************************************************************
- * $RCSfile: DataSink.cpp,v $   $Author: adelmann $
- * $Revision: 1.3 $   $Date: 2004/06/02 19:38:54 $
- ***************************************************************************/
 

@@ -114,18 +114,18 @@ void findHalo(ChargedParticles<TT,3> *univ, SimData<T,DimA> simData)
     haloFinder.setParameters(string(hOutFile), rL, deadSize, np, pmin, bb);
 
     /**
-	haloFinder.setParticles(univ);
+      haloFinder.setParticles(univ);
 
-	At this point the particles which are
-	alive status==-1 are in the particle container i.e.
-	in univ. This should works with np=1
+      At this point the particles which are
+      alive status==-1 are in the particle container i.e.
+      in univ. This should works with np=1
 
-	ToDO: What is left is a gather of the particles from
-	neighbor pe's, and add them to the particle container
-	WITHOUT doing and UPDATE
-	and do a propper haloFinder.setParticles.
+ToDO: What is left is a gather of the particles from
+neighbor pe's, and add them to the particle container
+WITHOUT doing and UPDATE
+and do a propper haloFinder.setParticles.
 
-    */
+*/
     // set interact radius to 5Mpc
     double radius = 5.0/simData.rL*simData.ng_comp;
     univ->getLayout().setInteractionRadius(radius);
@@ -138,9 +138,9 @@ void findHalo(ChargedParticles<TT,3> *univ, SimData<T,DimA> simData)
     haloFinder.collectHalos();
 
     /** Merge the halos so that only one copy of each is written
-	Parallel halo finder must consult with each of the 26 possible neighbor
-	halo finders to see who will report a particular halo
-    */
+      Parallel halo finder must consult with each of the 26 possible neighbor
+      halo finders to see who will report a particular halo
+      */
     haloFinder.mergeHalos();
 
     // Write halo results on each processor
@@ -157,12 +157,12 @@ int main(int argc, char *argv[]) {
     string mySpace("            ");
 
     /*    hmsg << mySpace << "  .___  ___.  ______  _  _    "<< endl;
-    hmsg << mySpace << "  |   \/   |  /      || || |   "<< endl;
-    hmsg << mySpace << "  |  \  /  | |  ,----'| || |_  "<< endl;
-    hmsg << mySpace << "  |  |\/|  | |  |     |__   _| "<< endl;
-    hmsg << mySpace << "  |  |  |  | |  `----.   | |   "<< endl;
-    hmsg << mySpace << "  |__|  |__|  \______|   |_|   "<< endl;
-    */
+          hmsg << mySpace << "  |   \/   |  /      || || |   "<< endl;
+          hmsg << mySpace << "  |  \  /  | |  ,----'| || |_  "<< endl;
+          hmsg << mySpace << "  |  |\/|  | |  |     |__   _| "<< endl;
+          hmsg << mySpace << "  |  |  |  | |  `----.   | |   "<< endl;
+          hmsg << mySpace << "  |__|  |__|  \______|   |_|   "<< endl;
+          */
     hmsg << "This is MC 4 Version " << PACKAGE_VERSION << endl;
     hmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) to " << PACKAGE_BUGREPORT << endl;
 
@@ -197,8 +197,8 @@ int main(int argc, char *argv[]) {
     }
 
     /**
-       univ is used in the calculation
-    */
+      univ is used in the calculation
+      */
     ChargedParticles<T,DimA>* univ = NULL;
 
     /// here we read in all data from the input
@@ -220,12 +220,12 @@ int main(int argc, char *argv[]) {
 
     e_dim_tag decomp[DimA];
     for (unsigned int d=0; d < DimA; ++d)
-       	decomp[d] = PARALLEL;
+        decomp[d] = PARALLEL;
 
     if(decomp[0] == PARALLEL && decomp[1] == PARALLEL && decomp[2] == PARALLEL)
-	msg << "Using 3D domain decomposition" << endl;
+        msg << "Using 3D domain decomposition" << endl;
     else
-	msg << "Using 1D or 2D  domain decomposition" << endl;
+        msg << "Using 1D or 2D  domain decomposition" << endl;
 
     // create mesh and layout objects for this problem domain
     Mesh_t *meshI, *meshF;
@@ -238,11 +238,11 @@ int main(int argc, char *argv[]) {
     Layout_t * PLF = new Layout_t(*FLF, *meshF);
 
     /**
-       simData.jinit == 0 (generate)
-       simData.jinit == 1 ASCII (fort.66)
-       simData.jinit == 3 H5Part
-       simData.jinit == 4 Uniform
-    */
+      simData.jinit == 0 (generate)
+      simData.jinit == 1 ASCII (fort.66)
+      simData.jinit == 3 H5Part
+      simData.jinit == 4 Uniform
+      */
 
     IpplTimings::startTimer(TCDist);
     IpplMemoryUsage::sample(initiMemWatch,"");
@@ -274,37 +274,37 @@ int main(int argc, char *argv[]) {
 
         Npart = (np*np*np)/NumProcs;
 
-	pos.create(Npart);
-	vel.create(Npart);
-	mass.create(Npart);
-	initializer::IPPLInitializer init;
-	initializer::InputParser par("init.in");
-	init.init_particles(pos, vel, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
-	mass = 1.0;
+        pos.create(Npart);
+        vel.create(Npart);
+        mass.create(Npart);
+        initializer::IPPLInitializer init;
+        initializer::InputParser par("init.in");
+        init.init_particles(pos, vel, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
+        mass = 1.0;
 
-	size_t rest = 0;
-	int iterations = 0;
-	int tag = IPPL_APP_TAG1;
-	int parent = 0;
+        size_t rest = 0;
+        int iterations = 0;
+        int tag = IPPL_APP_TAG1;
+        int parent = 0;
 
-	if( rank == parent && Npart != 0 ) {
-	    rest = Npart % chunksize;
-	    iterations = (Npart - rest) / chunksize;
+        if( rank == parent && Npart != 0 ) {
+            rest = Npart % chunksize;
+            iterations = (Npart - rest) / chunksize;
 
-	    Message *mess1 = new Message();
-	    putMessage( *mess1, rest );
-	    putMessage( *mess1, iterations );
-	    Ippl::Comm->broadcast_all(mess1, tag);
-	}
+            Message *mess1 = new Message();
+            putMessage( *mess1, rest );
+            putMessage( *mess1, iterations );
+            Ippl::Comm->broadcast_all(mess1, tag);
+        }
 
-	Message *mess = Ippl::Comm->receive_block(parent, tag);
-	PAssert(mess);
-	getMessage( *mess, rest );
-	getMessage( *mess, iterations );
-	if (mess)
-	  delete mess;
+        Message *mess = Ippl::Comm->receive_block(parent, tag);
+        PAssert(mess);
+        getMessage( *mess, rest );
+        getMessage( *mess, iterations );
+        if (mess)
+            delete mess;
 
-	msg << "about to copy ics over to univ junksize= " << chunksize << " iterations " << iterations << " rest " << rest << endl;
+        msg << "about to copy ics over to univ junksize= " << chunksize << " iterations " << iterations << " rest " << rest << endl;
         //pos, vel and mass particle attributes are destroyed in copy constructor
         univ = new ChargedParticles<T,DimA>(PLF, simData, pos, vel, mass, Npart, Vector_t(simData.ng_comp), chunksize, iterations, rest);
         msg << "done coping ics to univ" << endl;
@@ -330,25 +330,25 @@ int main(int argc, char *argv[]) {
 
         // create an empty ChargedParticles object and set the BC's
         univ = univ0;
-            //new ChargedParticles<T,DimA>(PLF,simData,
-                //univ0->R,
-                //univ0->V,
-                //univ0->M,
-                //univ0->getLocalNum(),
-                //Vector_t(simData.ng_comp),
-                //chunksize);
+        //new ChargedParticles<T,DimA>(PLF,simData,
+        //univ0->R,
+        //univ0->V,
+        //univ0->M,
+        //univ0->getLocalNum(),
+        //Vector_t(simData.ng_comp),
+        //chunksize);
     }
 
     IpplTimings::stopTimer(TCDist);
     IpplMemoryUsage::sample(initfMemWatch,"");
 
     /*
-      FIXME: At the moment deleting univ0 causes a core dump, no idea why
-      delete univ0;
-      delete FLI;
-      delete meshI;
-      delete PLI;
-    */
+FIXME: At the moment deleting univ0 causes a core dump, no idea why
+delete univ0;
+delete FLI;
+delete meshI;
+delete PLI;
+*/
 
     T ain  = 1.0 /(1+simData.zin);
     T ainv = 1.0 /(simData.alpha);
@@ -374,15 +374,15 @@ int main(int argc, char *argv[]) {
     reduce(localNp, localNp, OpAddAssign());
     msg << "Sanity check: total Np= " << localNp << endl;
 
-/**
-	Initial dump
-    */
+    /**
+      Initial dump
+      */
     if ((simData.np < 128) && (Ippl::getNodes()==1))
-	univ->dumpParticles(string("mc4-out/step-univ"));
+        univ->dumpParticles(string("mc4-out/step-univ"));
 
     /**
-	Initial P(k)
-    */
+      Initial P(k)
+      */
     IpplTimings::startTimer(TPwrSpec);
     msg << "Calculate power spectra of initial step "  << endl;
     univ->fs_m->calcPwrSpecAndSave(univ,string("mc4-1D-initial.spec"));
@@ -396,7 +396,7 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(TStep);
 
     //if (Ippl::getNodes()==1)
-	//findHalo(univ,simData);
+    //findHalo(univ,simData);
 
     IpplTimings::startTimer(TPwrSpec);
     msg << "Calculate power spectra of last step "  << endl;
@@ -421,10 +421,10 @@ int main(int argc, char *argv[]) {
     //    univ->dumpCosmo(10);
 
     if(univ)
-	delete univ;
+        delete univ;
 
     if (itsDataSink)
-	delete itsDataSink;
+        delete itsDataSink;
 
     Ippl::Comm->barrier();
     return 0;

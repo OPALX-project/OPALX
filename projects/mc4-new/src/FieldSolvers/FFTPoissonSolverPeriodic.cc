@@ -1,8 +1,3 @@
-// -*- C++ -*-
-/***************************************************************************
- * FFTPoissonSolverPeriodic.cc
- ***************************************************************************/
-
 #include <iostream>
 #include "../SimData.hh"
 #include "FFTPoissonSolverPeriodic.hh"
@@ -27,7 +22,7 @@ FFTPoissonSolverPeriodic<T,Dim>::FFTPoissonSolverPeriodic(ChargedParticles<T,Dim
     mesh_m(&(univ->getMesh())),
     simData_m(simData)
 {
-  doInit();
+    doInit();
 }
 
 template <class T, unsigned int Dim>
@@ -43,8 +38,8 @@ void FFTPoissonSolverPeriodic<T,Dim>::doInit()
 
 
     gDomainL_m = NDIndex<Dim>(Index(gDomain_m[0].length()+1),
-			      Index(gDomain_m[1].length()+1),
-			      Index(gDomain_m[2].length()+1));
+            Index(gDomain_m[1].length()+1),
+            Index(gDomain_m[2].length()+1));
 
     msg << "GDomain " << gDomain_m << " GDomainL " << gDomainL_m << endl;
 
@@ -120,13 +115,13 @@ void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim>
     //FIXME: handle different mass species!
     //reset mass for light particles
     //for(size_t i=-1; i<univ->getTotalNum(); i++) {
-        //if(i%2 == 0)
-            //univ->M[i] = 0.0;
+    //if(i%2 == 0)
+    //univ->M[i] = 0.0;
     //}
     //reset mass for heavy particles
     //for(size_t i=0; i<univ->getTotalNum(); i++) {
-        //if(i%2 != 0)
-            //univ->M[i] = 0.0;
+    //if(i%2 != 0)
+    //univ->M[i] = 0.0;
     //}
 
     CICforward(univ);
@@ -194,7 +189,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim>
        and/or reducing the size of MPICH_MAX_SHORT_MSG_SIZE (cur value is 50000).
        aborting job:
        out of unexpected buffer space
-    */
+       */
 
     INFOMSG("Loops done" << endl);
     reduce( &(Nk_m[0]), &(Nk_m[0]) + kmax_m , &(Nk_m[0]) ,OpAddAssign());
@@ -408,7 +403,3 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
     IpplTimings::stopTimer(TSolver_m);
 }
 
-/***************************************************************************
- * $RCSfile: FFTPoissonSolverPeriodic.cc,v $   $Author: adelmann $
- * $Revision: 1.3 $   $Date: 2001/08/16 09:36:09 $
- ***************************************************************************/

@@ -1,0 +1,231 @@
+PE_HOSTFILE:
+felsim02.psi.ch 8 all.q@felsim02.psi.ch <NULL>
+felsim08.psi.ch 8 all.q@felsim08.psi.ch <NULL>
+felsim16.psi.ch 8 all.q@felsim16.psi.ch <NULL>
+felsim14.psi.ch 8 all.q@felsim14.psi.ch <NULL>
+MACHINE_FILE:
+felsim02.psi.ch slots=8
+felsim08.psi.ch slots=8
+felsim16.psi.ch slots=8
+felsim14.psi.ch slots=8
+SLOTS=32
+Running /opt/mpi/openmpi-1.2.6-intel-10.0/bin/mpirun -machinefile /tmp/5110.1.all.q/machinefile -np 32  --mca ras localhost --mca pls rsh  /home2/adelmann/svnwork/ippl/projects/mc4/mc4 indat fort.66 --commlib mpi  
+
+Ippl> CommMPI: Started job 2 on host `felsim02'.
+Ippl> CommMPI: Started job 6 on host `felsim02'.
+Ippl> CommMPI: Started job 27 on host `felsim14'.
+Ippl> CommMPI: Started job 10 on host `felsim08'.
+Ippl> CommMPI: Started job 30 on host `felsim14'.
+Ippl> CommMPI: Started job 11 on host `felsim08'.
+Ippl> CommMPI: Started job 21 on host `felsim16'.
+Ippl> CommMPI: Started job 8 on host `felsim08'.
+Ippl> CommMPI: Started job 16 on host `felsim16'.
+Ippl> CommMPI: Started job 9 on host `felsim08'.
+Ippl> CommMPI: Started job 17 on host `felsim16'.
+Ippl> CommMPI: Started job 12 on host `felsim08'.
+Ippl> CommMPI: Started job 18 on host `felsim16'.
+Ippl> CommMPI: Started job 13 on host `felsim08'.
+Ippl> CommMPI: Started job 19 on host `felsim16'.
+Ippl> CommMPI: Started job 14 on host `felsim08'.
+Ippl> CommMPI: Started job 20 on host `felsim16'.
+Ippl> CommMPI: Started job 15 on host `felsim08'.
+Ippl> CommMPI: Started job 22 on host `felsim16'.
+Ippl> CommMPI: Started job 23 on host `felsim16'.
+Ippl> CommMPI: Started job 24 on host `felsim14'.
+Ippl> CommMPI: Started job 25 on host `felsim14'.
+Ippl> CommMPI: Started job 26 on host `felsim14'.
+Ippl> CommMPI: Started job 28 on host `felsim14'.
+Ippl> CommMPI: Started job 29 on host `felsim14'.
+Ippl> CommMPI: Started job 31 on host `felsim14'.
+Ippl> CommMPI: Parent process waiting for children ...
+Ippl> CommMPI: Child 1 ready.
+Ippl> CommMPI: Child 2 ready.
+Ippl> CommMPI: Child 3 ready.
+Ippl> CommMPI: Child 4 ready.
+Ippl> CommMPI: Child 5 ready.
+Ippl> CommMPI: Child 6 ready.
+Ippl> CommMPI: Child 7 ready.
+Ippl> CommMPI: Child 8 ready.
+Ippl> CommMPI: Child 16 ready.
+Ippl> CommMPI: Child 13 ready.
+Ippl> CommMPI: Started job 1 on host `felsim02'.
+Ippl> CommMPI: Started job 3 on host `felsim02'.
+Ippl> CommMPI: Started job 4 on host `felsim02'.
+Ippl> CommMPI: Started job 5 on host `felsim02'.
+Ippl> CommMPI: Started job 7 on host `felsim02'.
+Ippl> CommMPI: Child 10 ready.
+Ippl> CommMPI: Child 9 ready.
+Ippl> CommMPI: Child 11 ready.
+Ippl> CommMPI: Child 12 ready.
+Ippl> CommMPI: Child 14 ready.
+Ippl> CommMPI: Child 15 ready.
+Ippl> CommMPI: Child 20 ready.
+Ippl> CommMPI: Child 21 ready.
+Ippl> CommMPI: Child 23 ready.
+Ippl> CommMPI: Child 25 ready.
+Ippl> CommMPI: Child 17 ready.
+Ippl> CommMPI: Child 18 ready.
+Ippl> CommMPI: Child 19 ready.
+Ippl> CommMPI: Child 22 ready.
+Ippl> CommMPI: Child 24 ready.
+Ippl> CommMPI: Child 27 ready.
+Ippl> CommMPI: Child 30 ready.
+Ippl> CommMPI: Child 26 ready.
+Ippl> CommMPI: Child 28 ready.
+Ippl> CommMPI: Child 31 ready.
+Ippl> CommMPI: Child 29 ready.
+Ippl> CommMPI: Initialization complete.
+mc4 {0}>   .___  ___.  ______  _  _    
+mc4 {0}>   |   /   |  /      || || |   
+mc4 {0}>   |    /  | |  ,----'| || |_  
+mc4 {0}>   |  |/|  | |  |     |__   _| 
+mc4 {0}>   |  |  |  | |  `----.   | |   
+mc4 {0}>   |__|  |__|  ______|   |_|   
+mc4 {0}> This is MC 4 Version 1.0.0 SVN version 8166:8167M
+mc4 {0}> Please send cookies, goodies or other motivations (wine and beer ... ) to andreas.adelmann@psi.ch
+mc4 {0}> Simulation  input data: 
+mc4 {0}> H        	0.7
+mc4 {0}> SKIP     	1
+mc4 {0}> JINIT    	1
+mc4 {0}> ICBC     	0
+mc4 {0}> NORM     	1
+mc4 {0}> TRANS    	1
+mc4 {0}> INITP    	1
+mc4 {0}> NORDER   	2
+mc4 {0}> FRM      	2
+mc4 {0}> PBCHOICE 	1
+mc4 {0}> ENTEST   	1
+mc4 {0}> NG_COMP  	32
+mc4 {0}> NG2D     	32
+mc4 {0}> NS       	1
+mc4 {0}> ISEED    	7828967
+mc4 {0}> ALPHA    	1
+mc4 {0}> ZIN      	50
+mc4 {0}> ZFIN     	0
+mc4 {0}> ZPR      	50
+mc4 {0}> NP       	32
+mc4 {0}> NSTEPS   	10
+mc4 {0}> IPRINT   	1
+mc4 {0}> IRUN     	0
+mc4 {0}> H        	0.7
+mc4 {0}> OMEGADM  	0.259
+mc4 {0}> DEUT     	0.02
+mc4 {0}> HPHYS    	32
+mc4 {0}> SIGMA8   	0.84
+mc4 {0}> QQ       	1.8e-05
+mc4 {0}> NXINT    	5001
+mc4 {0}> NXDINT   	5001
+mc4 {0}> 
+univ field solver constructed{0}> resident_set= 398.572 [MBytes] vm_usage= 13736.5 MBytes]  #particles= 0
+readInputDistribution {28}> Particles created: 0
+readInputDistribution {19}> Particles created: 0
+readInputDistribution {30}> Particles created: 0
+readInputDistribution {9}> Particles created: 0
+readInputDistribution {1}> Particles created: 0
+readInputDistribution {22}> Particles created: 0
+readInputDistribution {31}> Particles created: 0
+readInputDistribution {13}> Particles created: 0
+readInputDistribution {2}> Particles created: 0
+readInputDistribution {23}> Particles created: 0
+readInputDistribution {14}> Particles created: 0
+readInputDistribution {3}> Particles created: 0
+readInputDistribution {15}> Particles created: 0
+readInputDistribution {4}> Particles created: 0
+readInputDistribution {5}> Particles created: 0
+readInputDistribution {6}> Particles created: 0
+readInputDistribution {7}> Particles created: 0
+readInputDistribution {0}> Particles created: 32768
+readInputDistribution {16}> Particles created: 0
+readInputDistribution {24}> Particles created: 0
+readInputDistribution {8}> Particles created: 0
+readInputDistribution {17}> Particles created: 0
+readInputDistribution {25}> Particles created: 0
+readInputDistribution {10}> Particles created: 0
+readInputDistribution {18}> Particles created: 0
+readInputDistribution {26}> Particles created: 0
+readInputDistribution {11}> Particles created: 0
+readInputDistribution {20}> Particles created: 0
+readInputDistribution {27}> Particles created: 0
+readInputDistribution {12}> Particles created: 0
+readInputDistribution {21}> Particles created: 0
+readInputDistribution {29}> Particles created: 0
+rescaleAll {0}> rmax and rmin (is boxsixe) ( 32 , 32 , 32 )( 0 , 0 , 0 ) nr_m= ( 32 , 32 , 32 ) hr_m= ( 1.03226 , 1.03226 , 1.03226 )
+univ dist gen done{0}> resident_set= 536.308 [MBytes] vm_usage= 13867.6 MBytes]  #particles= 32768
+univ 0 clean up done{0}> resident_set= 536.352 [MBytes] vm_usage= 13867.6 MBytes]  #particles= 32768
+FFT doInit{0}> GDomain {[0:31:1],[0:31:1],[0:31:1]} GDomainL {[0:32:1],[0:32:1],[0:32:1]}
+mc4 {0}> field solver ready 
+univ solver attached {0}> resident_set= 572.476 [MBytes] vm_usage= 13900.2 MBytes]  #particles= 32768
+tStep {0}> Begin timestepping simData_m.irun= 0
+tStep {0}> Time: a(t) = 0.0196078 z = 50
+writePhaseSpace {0}>  number 0
+tStep {0}> Timesteping 2'd order  simData_m.nsteps= 10
+Ippl{0}> rhocic_m= 34240.8 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 2.09094 phiscale= 6.55313 fscale= 3.13405 tau= 0.0980392
+writePhaseSpace {0}>  number 1
+Ippl{0}> rhocic_m= 34399.4 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 1.34846 phiscale= 2.69835 fscale= 2.00106 tau= 0.0980392
+writePhaseSpace {0}>  number 2
+Ippl{0}> rhocic_m= 34401.2 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 1.08706 phiscale= 1.69896 fscale= 1.56289 tau= 0.0980392
+writePhaseSpace {0}>  number 3
+Ippl{0}> rhocic_m= 34330.6 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 0.958464 phiscale= 1.23978 fscale= 1.29351 tau= 0.0980392
+writePhaseSpace {0}>  number 4
+Ippl{0}> rhocic_m= 34249.5 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 0.894052 phiscale= 0.975998 fscale= 1.09166 tau= 0.0980392
+writePhaseSpace {0}>  number 5
+Ippl{0}> rhocic_m= 34203.8 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 0.869005 phiscale= 0.80477 fscale= 0.926082 tau= 0.0980392
+writePhaseSpace {0}>  number 6
+Ippl{0}> rhocic_m= 34319.8 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 0.870944 phiscale= 0.684655 fscale= 0.786107 tau= 0.0980392
+writePhaseSpace {0}>  number 7
+Ippl{0}> rhocic_m= 34413.8 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 0.892288 phiscale= 0.595739 fscale= 0.667653 tau= 0.0980392
+writePhaseSpace {0}>  number 8
+Ippl{0}> rhocic_m= 34384 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 0.927846 phiscale= 0.527263 fscale= 0.568266 tau= 0.0980392
+writePhaseSpace {0}>  number 9
+Ippl{0}> rhocic_m= 34351.7 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> adot= 0.973905 phiscale= 0.472906 fscale= 0.485577 tau= 0.0980392
+writePhaseSpace {0}>  number 10
+mc4 {0}> Calculate power spectra of last step 
+Ippl{0}> rhocic_m= 34320.8 sum(M)= 32768 rho_m= (32768,0)
+Ippl{0}> Sum psp=real( ... 17.7592 kmax= 29
+mc4 {0}> Calculate power spectra of last step DONE 
+mc4 {0}> Total Mass = 1.18871e+11
+mc4 {0}> All nodes done dude ...
+Timings{0}> -----------------------------------------------------------------
+Timings{0}>      Timing results for 32 nodes:
+Timings{0}> -----------------------------------------------------------------
+Timings{0}> Create Distribution . Wall tot =   0.398971, CPU tot =       0.35
+Timings{0}> 
+Timings{0}> Step Total .......... Wall max =    6.92309, CPU max =       5.66
+Timings{0}>                       Wall avg =    6.91772, CPU avg =    2.88719
+Timings{0}>                       Wall min =    6.91623, CPU min =       1.54
+Timings{0}> 
+Timings{0}> PowerSpectra ........ Wall max =   0.023671, CPU max =       0.02
+Timings{0}>                       Wall avg =  0.0194168, CPU avg =    0.01875
+Timings{0}>                       Wall min =   0.013886, CPU min =       0.01
+Timings{0}> 
+Timings{0}> Wall ................ Wall max =    7.36735, CPU max =       6.03
+Timings{0}>                       Wall avg =    7.36425, CPU avg =     3.2475
+Timings{0}>                       Wall min =      7.364, CPU min =        1.9
+Timings{0}> 
+Timings{0}> H5PartTimer ......... Wall max =     6.5485, CPU max =       5.26
+Timings{0}>                       Wall avg =    6.52622, CPU avg =    2.50563
+Timings{0}>                       Wall min =    6.51373, CPU min =       1.14
+Timings{0}> 
+Timings{0}> StatTimer ........... Wall max =          0, CPU max =          0
+Timings{0}>                       Wall avg =          0, CPU avg =          0
+Timings{0}>                       Wall min =          0, CPU min =          0
+Timings{0}> 
+Timings{0}> Scatter ............. Wall max =   0.075187, CPU max =       0.12
+Timings{0}>                       Wall avg =  0.0705868, CPU avg =     0.0725
+Timings{0}>                       Wall min =   0.057115, CPU min =       0.04
+Timings{0}> 
+Timings{0}> Solver .............. Wall max =   0.334675, CPU max =       0.37
+Timings{0}>                       Wall avg =   0.331426, CPU avg =   0.321563
+Timings{0}>                       Wall min =   0.327812, CPU min =       0.29
+Timings{0}> 
+Timings{0}> -----------------------------------------------------------------

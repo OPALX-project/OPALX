@@ -10,16 +10,16 @@
 //////////////////////////////////////////////////////////////
 
 template <class T, unsigned int Dim>
-class P2PPoissonSolver : public FieldSolver<T,Dim> 
+class P2PPoissonSolver : public FieldSolver<T,Dim>
 {
-  public:
+public:
 
-  T eps_m;
+    T eps_m;
     // constructor and destructor
-  P2PPoissonSolver(T e);
-  virtual ~P2PPoissonSolver();
-    
-  virtual void computeElectricField(ChargedParticles<T,Dim> *beam, Vektor<T,Dim> hr); 
+    P2PPoissonSolver(T e);
+    virtual ~P2PPoissonSolver();
+
+    virtual void computeElectricField(ChargedParticles<T,Dim> *beam, Vektor<T,Dim> hr);
 };
 
 // needed if we're not using implicit inclusion

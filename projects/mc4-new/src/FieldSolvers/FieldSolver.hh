@@ -10,9 +10,9 @@
 template<class T, unsigned int Dim> class ChargedParticles;
 
 template <class T, unsigned int Dim>
-class FieldSolver 
+class FieldSolver
 {
-  
+
 public:
     // some useful typedefs
     typedef typename ChargedParticles<T,Dim>::VField_t VField_t;
@@ -36,7 +36,3 @@ public:
 
 #endif
 
-/***************************************************************************
- * $RCSfile: FieldSolver.hh,v $   $Author: candel $
- * $Revision: 1.2 $   $Date: 2001/08/08 21:12:10 $
- ***************************************************************************/
