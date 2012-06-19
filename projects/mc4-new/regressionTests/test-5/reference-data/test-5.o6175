@@ -1,0 +1,154 @@
+PE_HOSTFILE:
+felsim06.psi.ch 8 all.q@felsim06.psi.ch <NULL>
+MACHINE_FILE:
+felsim06.psi.ch slots=8
+SLOTS=8
+Running /opt/mpi/openmpi-1.2.6-intel-10.0/bin/mpirun -machinefile /tmp/6175.1.all.q/machinefile -np 8  --mca ras localhost --mca pls rsh  /home2/adelmann/svnwork/ippl/projects/mc4/mc4 test-5 cmb.tf test-5 --commlib mpi --info 0 --warn 0 | tee test-5.out 
+
+Ippl> CommMPI: Parent process waiting for children ...
+Ippl> CommMPI: Child 1 ready.
+Ippl> CommMPI: Child 6 ready.
+Ippl> CommMPI: Child 7 ready.
+Ippl> CommMPI: Child 2 ready.
+Ippl> CommMPI: Child 3 ready.
+Ippl> CommMPI: Child 4 ready.
+Ippl> CommMPI: Child 5 ready.
+Ippl> CommMPI: Initialization complete.
+mc4 {0}>   .___  ___.  ______  _  _    
+mc4 {0}>   |   /   |  /      || || |   
+mc4 {0}>   |    /  | |  ,----'| || |_  
+mc4 {0}>   |  |/|  | |  |     |__   _| 
+mc4 {0}>   |  |  |  | |  `----.   | |   
+mc4 {0}>   |__|  |__|  ______|   |_|   
+mc4 {0}> This is MC 4 Version 1.0.0 SVN version 8749M
+mc4 {0}> Please send cookies, goodies or other motivations (wine and beer ... ) to andreas.adelmann@psi.ch
+Ippl> CommMPI: Started job 1 on host `felsim06'.
+Ippl> CommMPI: Started job 2 on host `felsim06'.
+Ippl> CommMPI: Started job 3 on host `felsim06'.
+Ippl> CommMPI: Started job 4 on host `felsim06'.
+Ippl> CommMPI: Started job 5 on host `felsim06'.
+Ippl> CommMPI: Started job 6 on host `felsim06'.
+Ippl> CommMPI: Started job 7 on host `felsim06'.
+mc4 {0}> Simulation  input data: 
+mc4 {0}> H        	0.7
+mc4 {0}> SKIP     	1
+mc4 {0}> JINIT    	0
+mc4 {0}> ICBC     	0
+mc4 {0}> NORM     	1
+mc4 {0}> TRANS    	0
+mc4 {0}> INITP    	2
+mc4 {0}> NORDER   	2
+mc4 {0}> FRM      	1
+mc4 {0}> PBCHOICE 	1
+mc4 {0}> ENTEST   	1
+mc4 {0}> NG_COMP  	256
+mc4 {0}> NG2D     	256
+mc4 {0}> NS       	1
+mc4 {0}> ISEED    	9854373
+mc4 {0}> ALPHA    	1
+mc4 {0}> ZIN      	100
+mc4 {0}> ZFIN     	0
+mc4 {0}> ZPR      	0
+mc4 {0}> NP       	256
+mc4 {0}> NSTEPS   	10
+mc4 {0}> IPRINT   	1
+mc4 {0}> IRUN     	0
+mc4 {0}> H        	0.7
+mc4 {0}> OMEGADM  	0.21
+mc4 {0}> DEUT     	0.02
+mc4 {0}> HPHYS    	512
+mc4 {0}> SIGMA8   	0.8
+mc4 {0}> QQ       	1.8e-05
+mc4 {0}> NXINT    	5001
+mc4 {0}> NXDINT   	5001
+mc4 {0}> 
+Done loading parameters.
+
+Initializer will use 8 processors.
+256^3 grid
+
+Initializer will use 8 processors.
+256^3 grid
+Decomposing into slabs...............done
+
+sigma_8 = 0.800001, target was 0.800000
+redshift: 100.000000; growth factor = 0.013257; derivative = 6.739381
+
+
+FFT DONE!
+
+FFT DONE!
+
+FFT DONE!
+
+
+====================================================================
+Initializer: code performance summary 
+             code beginning : Wed Jul 29 20:32:03 2009
+             code ending    : Wed Jul 29 20:32:08 2009
+             total run time : 4.77 seconds 
+====================================================================
+
+Routine            # of calls       Time [s]       Percent of total 
+--------------------------------------------------------------------
+Initialization       1              0.01               0.2096   
+Creating Pk(x,y,z)   1              0.23               4.822    
+Creating rho(x,y,z)  3              0.45               9.434    
+Poisson solve        3              2.9                60.8     
+Particle move        3              0.18               3.774    
+Output               3              0.64               13.42    
+====================================================================
+
+rescaleAll {0}> rmax and rmin (is boxsixe) ( 256 , 256 , 256 )( 0 , 0 , 0 ) nr_m= ( 256 , 256 , 256 ) hr_m= ( 1.00392 , 1.00392 , 1.00392 )
+writePhaseSpace {0}>  number 0
+univ 0 clean up done{0}> resident_set= 2557.28 [MBytes] vm_usage= 5963.5 MBytes]  #particles= 16777216
+FFT doInit{0}> GDomain {[0:255:1],[0:255:1],[0:255:1]} GDomainL {[0:256:1],[0:256:1],[0:256:1]}
+mc4 {0}> field solver ready 
+univ solver attached {0}> resident_set= 2835.13 [MBytes] vm_usage= 6240.23 MBytes]  #particles= 16777216
+mc4 {0}> Calculate power spectra of initial step 
+tStep {0}> Begin timestepping simData_m.irun= 0
+tStep {0}> Time: a(t) = 0.00990099 z = 100
+tStep {0}> Timesteping 2'd order  simData_m.nsteps= 10
+writePhaseSpace {0}>  number 1
+writePhaseSpace {0}>  number 2
+writePhaseSpace {0}>  number 3
+writePhaseSpace {0}>  number 4
+writePhaseSpace {0}>  number 5
+writePhaseSpace {0}>  number 6
+writePhaseSpace {0}>  number 7
+writePhaseSpace {0}>  number 8
+writePhaseSpace {0}>  number 9
+writePhaseSpace {0}>  number 10
+mc4 {0}> Calculate power spectra of last step 
+mc4 {0}> Total Mass = 7.95551e+11
+mc4 {0}> All nodes done dude ...
+Timings{0}> -----------------------------------------------------------------
+Timings{0}>      Timing results for 8 nodes:
+Timings{0}> -----------------------------------------------------------------
+Timings{0}> Wall ................ Wall tot =    212.696, CPU tot =     125.73
+Timings{0}> 
+Timings{0}> Create Distribution . Wall max =    10.8693, CPU max =      10.81
+Timings{0}>                       Wall avg =    10.8589, CPU avg =    10.7937
+Timings{0}>                       Wall min =    10.8448, CPU min =      10.71
+Timings{0}> 
+Timings{0}> Step Total .......... Wall max =    181.452, CPU max =     103.19
+Timings{0}>                       Wall avg =    181.439, CPU avg =    101.716
+Timings{0}>                       Wall min =    181.408, CPU min =     100.36
+Timings{0}> 
+Timings{0}> PowerSpectra ........ Wall max =    10.4611, CPU max =       10.4
+Timings{0}>                       Wall avg =     10.398, CPU avg =    10.3712
+Timings{0}>                       Wall min =    10.3812, CPU min =      10.33
+Timings{0}> 
+Timings{0}> H5PartTimer ......... Wall max =    94.9894, CPU max =        8.3
+Timings{0}>                       Wall avg =    94.9695, CPU avg =    6.99375
+Timings{0}>                       Wall min =    94.9508, CPU min =       5.76
+Timings{0}> 
+Timings{0}> Scatter ............. Wall max =    14.0057, CPU max =      14.04
+Timings{0}>                       Wall avg =    13.8398, CPU avg =     13.825
+Timings{0}>                       Wall min =    13.7006, CPU min =      13.67
+Timings{0}> 
+Timings{0}> Solver .............. Wall max =    86.5463, CPU max =      86.43
+Timings{0}>                       Wall avg =    86.1594, CPU avg =    85.9925
+Timings{0}>                       Wall min =    85.3882, CPU min =      85.23
+Timings{0}> 
+Timings{0}> -----------------------------------------------------------------

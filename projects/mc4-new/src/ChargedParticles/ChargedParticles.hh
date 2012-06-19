@@ -27,22 +27,22 @@ template <class T, unsigned int Dim> class FieldSolver;
 
 template <class T, unsigned int Dim>
 class ChargedParticles : public ParticleBase< ParticleCashedLayout<T,Dim> > {
-//class ChargedParticles : public ParticleBase< ParticleSpatialLayout<T,Dim> > {
+    //class ChargedParticles : public ParticleBase< ParticleSpatialLayout<T,Dim> > {
 
 private:
 
 #ifdef IPPL_XT3
-  size_t fragments_i;
-  unsigned long total_free_i, largest_free_i, total_used_i;
+    size_t fragments_i;
+    unsigned long total_free_i, largest_free_i, total_used_i;
 
-  size_t fragments_f;
-  unsigned long total_free_f, largest_free_f, total_used_f;
+    size_t fragments_f;
+    unsigned long total_free_f, largest_free_f, total_used_f;
 #endif
 
-  ///mapping from species ID's to start index in particle container
-  std::map<unsigned int, unsigned int> SpeciesIDs;
-  ///current species index
-  unsigned int SpeciesIdx;
+    ///mapping from species ID's to start index in particle container
+    std::map<unsigned int, unsigned int> SpeciesIDs;
+    ///current species index
+    unsigned int SpeciesIdx;
 
 public:
 
@@ -120,7 +120,7 @@ public:
     ChargedParticles(Layout_t *playout, SimData<T,Dim> simData, ParticleAttrib<Vector_t> &r ,
             ParticleAttrib<Vector_t>  &v,
             ParticleAttrib<T>    &m, size_t npLocal,
-		     Vector_t boxSize, size_t chunksize, int iterations, size_t rest) :
+            Vector_t boxSize, size_t chunksize, int iterations, size_t rest) :
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
         simData_m(simData)
     {
@@ -151,7 +151,7 @@ public:
                     this->create(chunksize);
                     for (size_t k = 0; k < chunksize; k++) {
                         if (std::isnan(r[k](0)) ||  std::isnan(r[k](1)) ||
-                            std::isnan(r[k](2))) {
+                                std::isnan(r[k](2))) {
                             ; // skip
                         } else {
                             this->R[offset+k] = r[k];
@@ -238,8 +238,8 @@ public:
 
     ~ChargedParticles() {
 
-	if (itsDataSink_m)
-	    delete itsDataSink_m;
+        if (itsDataSink_m)
+            delete itsDataSink_m;
     }
 
 
@@ -269,8 +269,8 @@ public:
 
 
     void addSpecies(ParticleAttrib<Vector_t> &r ,
-		  ParticleAttrib<Vector_t>  &v,
-		  ParticleAttrib<T>    &m)
+            ParticleAttrib<Vector_t>  &v,
+            ParticleAttrib<T>    &m)
     {
 
         //assume we cannot add particles to previous species
@@ -281,8 +281,8 @@ public:
     }
 
     void add(ParticleAttrib<Vector_t> &r ,
-		  ParticleAttrib<Vector_t>  &v,
-		  ParticleAttrib<T>    &m)
+            ParticleAttrib<Vector_t>  &v,
+            ParticleAttrib<T>    &m)
     {
 
         Inform msg ("add ");
@@ -454,9 +454,9 @@ public:
 
         }
         msg << "after loop" << endl;
-	//IpplTimings::startTimer(TIUpdate_m);
+        //IpplTimings::startTimer(TIUpdate_m);
         this->update();
-	//IpplTimings::stopTimer(TIUpdate_m);
+        //IpplTimings::stopTimer(TIUpdate_m);
         msg << "Particles " << this->getTotalNum() << " created" << endl;
     }
 
@@ -861,7 +861,7 @@ public:
 
         vtkout << "POINT_DATA " << numParticles << endl;
         vtkout << "SCALARS mass float 1" << endl
-               << "LOOKUP_TABLE default" << endl;
+            << "LOOKUP_TABLE default" << endl;
         for (int i=0; i < numParticles; i++)
             vtkout << M[i] << endl;
         vtkout << endl;
@@ -875,15 +875,15 @@ public:
     }
 
     /**
-    Data Format [http://t8web.lanl.gov/people/heitmann/arxiv/data.html]
-    There are two files in the archives: particles_name, which has the following content:
+      Data Format [http://t8web.lanl.gov/people/heitmann/arxiv/data.html]
+      There are two files in the archives: particles_name, which has the following content:
 
-        x[Mpc], v_x[km/s], y[Mpc], v_y[km/s], z[Mpc], v_z[km/s], particle mass[M_sol], particle tag
+      x[Mpc], v_x[km/s], y[Mpc], v_y[km/s], z[Mpc], v_z[km/s], particle mass[M_sol], particle tag
 
-    This file is written in single precision and binary format. The files were written in
-    "direct access format", i.e., no extra 4 byte from FORTRAN. The byteorder is little-endian,
-    which will be fine on Intels and Alphas.
-    */
+      This file is written in single precision and binary format. The files were written in
+      "direct access format", i.e., no extra 4 byte from FORTRAN. The byteorder is little-endian,
+      which will be fine on Intels and Alphas.
+      */
     void dumpCosmo(unsigned int timestep) {
 
         ofstream out;
@@ -997,8 +997,8 @@ public:
 
 inline ostream &operator<<(ostream &os, ChargedParticles<double,3> &data)
 {
-	data.print(os);
-	return os;
+    data.print(os);
+    return os;
 }
 
 #endif

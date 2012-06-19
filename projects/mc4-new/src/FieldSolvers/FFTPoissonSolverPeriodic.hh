@@ -1,16 +1,3 @@
-// -*- C++ -*-
-
-/***************************************************************************
- * FFTPoissonSolverPeriodic.hh
- *
- * Periodic BC in x,y and z.
- ***************************************************************************/
-
-////////////////////////////////////////////////////////////////////////////
-// This class contains methods for solving Poisson's equation for the
-// space charge portion of the calculation.
-////////////////////////////////////////////////////////////////////////////
-
 #ifndef FFT_POISSON_SOLVER_PERIODIC_H_
 #define FFT_POISSON_SOLVER_PERIODIC_H_
 
@@ -59,7 +46,7 @@ private:
     /// fortrans nint function
     inline T nint(T x)
     {
-	return ceil(x + 0.5) - (fmod(x*0.5 + 0.25, 1.0) != 0);
+        return ceil(x + 0.5) - (fmod(x*0.5 + 0.25, 1.0) != 0);
     }
 
     FFT_t *fft_m;
@@ -116,7 +103,3 @@ private:
 
 #endif
 
-/***************************************************************************
- * $RCSfile: FFTPoissonSolverPeriodic.hh,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2001/08/08 11:21:48 $
- ***************************************************************************/

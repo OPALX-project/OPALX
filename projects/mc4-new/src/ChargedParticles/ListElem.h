@@ -37,41 +37,41 @@ class ListElem;
 typedef list<ListElem>::const_iterator liIt;
 
 struct ListElem {
-  double s;
-  double t;
-  unsigned int m,n;
-  double den;
-  
-  ListElem(double sval, double tval, unsigned int mval, unsigned int nval, double denval) :
-    s(sval),
-    t(tval),
-    m(mval),
-    n(nval),
-    den(denval)
-  {}
-  
-  ~ListElem() 
-  {}
-  
-  bool operator< (const ListElem& elem) const {
-    return ( ( m < elem.m ) && ( n <= elem.n ) );
-  }
-  
+    double s;
+    double t;
+    unsigned int m,n;
+    double den;
+
+    ListElem(double sval, double tval, unsigned int mval, unsigned int nval, double denval) :
+        s(sval),
+        t(tval),
+        m(mval),
+        n(nval),
+        den(denval)
+    {}
+
+    ~ListElem()
+    {}
+
+    bool operator< (const ListElem& elem) const {
+        return ( ( m < elem.m ) && ( n <= elem.n ) );
+    }
+
 };
 
 template<class ListElem>
 ofstream& operator<<(ofstream& os, const list<ListElem> &l)
 {
-  unsigned int mmax=0;
-  unsigned int nmax=0;
-  for(liIt it=l.begin();it!=l.end();++it)  {
-    if (it->m > mmax) mmax=it->m;
-    if (it->n > nmax) nmax=it->n;
-  }
-
-  for(liIt it=l.begin();it!=l.end();++it) 
-    if ((it->m < mmax)&&(it->n < nmax)) {
-      os << it->s << " " << it->t << " " << it->m << " " << it->n << " " << it->den << endl;
+    unsigned int mmax=0;
+    unsigned int nmax=0;
+    for(liIt it=l.begin();it!=l.end();++it)  {
+        if (it->m > mmax) mmax=it->m;
+        if (it->n > nmax) nmax=it->n;
     }
-  return os;
+
+    for(liIt it=l.begin();it!=l.end();++it)
+        if ((it->m < mmax)&&(it->n < nmax)) {
+            os << it->s << " " << it->t << " " << it->m << " " << it->n << " " << it->den << endl;
+        }
+    return os;
 }

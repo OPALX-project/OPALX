@@ -1,30 +1,10 @@
-// ------------------------------------------------------------------------
-// $RCSfile: DataSink.hh,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: DataSink
-//
-// ------------------------------------------------------------------------
-//
-// Revision History:
-// $Date: 2003/01/23 13:29:44 $
-// $Author: adelmann $
-// $Log: DataSink.hh,v $
-// Revision 1.1.1.1  2003/01/23 13:29:44  adelmann
-//
-// ------------------------------------------------------------------------
-
 #ifndef DataSink_H_
 #define DataSink_H_
 
 #ifdef IPPL_USE_SINGLE_PRECISION
- #define TT float
+#define TT float
 #else
- #define TT double
+#define TT double
 #endif
 
 #include <fstream>
@@ -40,21 +20,6 @@ template<class T, unsigned int Dim> class ChargedParticles;
 #include "H5hut.h"
 
 
-
-/** \brief Class: DataSink
- *
- * This class acts as an observer during the calculation. It generates diagnostic
- * output of the accelerated beam such as statistical beam descriptors of particle
- * positions, momenta, beam phase space (emittance) etc. These are written to file
- * at periodic time steps during the calculation.
- *
- * This class also writes the full beam phase space to an H5 file at periodic time
- * steps in the calculation (this period is different from that of the statistical
- * numbers).
- *
- * Class also writes processor load balancing data to file to track parallel
- * calculation efficiency.
- */
 
 class DataSink
 {
@@ -123,15 +88,10 @@ private:
 
     /// Timer to track particle data/H5 file write time.
     IpplTimings::TimerRef H5PartTimer_m;
-    
+
     ChargedParticles<TT,3> *univ_m;
 
 };
 
 #endif // DataSink_H_
-
-/***************************************************************************
- * $RCSfile: DataSink.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 13:29:44 $
- ***************************************************************************/
 
