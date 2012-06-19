@@ -396,7 +396,7 @@ private:
     void push(double h);
     void kick(double h, bool avoidGammaCalc = false);
     void computeExternalFields_AMTS();
-    void borisExternalFields(double h);
+    void borisExternalFields(double h, bool isFirstSubstep, bool isLastSubstep);
     double calcG(); // Time step chooser for adaptive variant
     Vector_t calcMeanR() const;
     Vector_t calcMeanP() const;

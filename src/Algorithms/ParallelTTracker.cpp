@@ -2655,7 +2655,9 @@ void ParallelTTracker::Tracker_AMTS() {
         IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Kick"));
 
         for(int n = 0; n < numSubsteps; ++n) {
-            borisExternalFields(dt_inner);
+            bool const isFirstSubstep = (n == 0);
+            bool const isLastSubstep = (n == numSubsteps - 1);
+            borisExternalFields(dt_inner, isFirstSubstep, isLastSubstep);
             ++totalInnerSteps;
         }
 
@@ -2782,10 +2784,14 @@ void ParallelTTracker::computeExternalFields_AMTS() {
     reduce(bends_m, bends_m, OpAddAssign());
 }
 
-void ParallelTTracker::borisExternalFields(double h) {
+void ParallelTTracker::borisExternalFields(double h, bool isFirstSubstep, bool isLastSubstep) {
 
     IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Push"));
-    push(0.5 * h);
+    if(isFirstSubstep) {
+        push(0.5 * h);
+    }
+    // Optimization: If this is not the first substep, our first half push was done in the last
+    // substep.
     IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Push"));
 
     IpplTimings::startTimer(IpplTimings::getTimer("AMTS-EvalExternal"));
@@ -2808,7 +2814,12 @@ void ParallelTTracker::borisExternalFields(double h) {
     IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Kick"));
 
     IpplTimings::startTimer(IpplTimings::getTimer("AMTS-Push"));
-    push(0.5 * h);
+    if(isLastSubstep) {
+        push(0.5 * h);
+    } else {
+        // Optimization: We include the first half push of the following substep here
+        push(h);
+    }
     IpplTimings::stopTimer(IpplTimings::getTimer("AMTS-Push"));
 
 }
