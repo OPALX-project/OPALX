@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
 
     IpplMemoryUsage::sample(mainMemWatch,"");
     IpplTimings::startTimer(TWall);
-    size_t chunksize = 0;
+    size_t chunksize = 1;
 
     //handle chunking
     if(argc > 4) {
@@ -247,6 +247,7 @@ int main(int argc, char *argv[]) {
     IpplTimings::startTimer(TCDist);
     IpplMemoryUsage::sample(initiMemWatch,"");
 
+
     if ((simData.jinit == 1) || (simData.jinit == 3)) {
         univ = new ChargedParticles<T,DimA>(PLF,simData,Vector_t(1.0*simData.ng_comp));
         univ->readInputDistribution(string(argv[2]));
@@ -279,7 +280,9 @@ int main(int argc, char *argv[]) {
         mass.create(Npart);
         initializer::IPPLInitializer init;
         initializer::InputParser par("init.in");
+
         init.init_particles(pos, vel, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
+
         mass = 1.0;
 
         size_t rest = 0;
