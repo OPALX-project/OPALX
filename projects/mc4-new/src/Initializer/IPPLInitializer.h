@@ -2,18 +2,22 @@
 #define IPPLInitializer_Header_Included
 
 #include "Initializer.h"
+
 #include "Ippl.h"
 #include "FFT/FFT.h"
+
 #include <ChargedParticles/ChargedParticles.hh>
 
 #ifdef IPPL_USE_SINGLE_PRECISION
- #define T float
+    #define T float
 #else
- #define T double
+    #define T double
 #endif
 #define Dim 3
 
+#ifdef USENAMESPACE
 namespace initializer {
+#endif
 
 class IPPLInitializer : protected Initializer {
 
@@ -25,24 +29,23 @@ public:
     typedef typename ChargedParticles<T,Dim>::Vector_t      Vector_t;
     typedef typename ChargedParticles<T,Dim>::IntrplCIC_t   IntrplCIC_t;
 
-    typedef Field<dcomplex, Ndim, Mesh_t, Center_t>       CxField_t;
-    typedef FFT<CCTransform, Ndim, T>                FFT_t;
+    typedef Field<dcomplex, Ndim, Mesh_t, Center_t>         CxField_t;
+    typedef FFT<CCTransform, Ndim, T>                       FFT_t;
 
-    
+
     CxField_t rho_m;
     Mesh_t *mesh;
     FieldLayout_t *flayout;
     FFT_t *fft_m;
 
-    //void init_particles_ippl(ParticleAttrib< Vektor<double, 3> > &pos, 
-    //template <class T, unsigned Dim> 
-    void init_particles(ParticleAttrib< Vektor<T, Dim> > &pos, 
-                        ParticleAttrib< Vektor<T, Dim> > &vel, 
-                        FieldLayout_t *layout, 
+    void init_particles(ParticleAttrib< Vektor<T, Dim> > &pos,
+                        ParticleAttrib< Vektor<T, Dim> > &vel,
+                        FieldLayout_t *layout,
                         Mesh_t *mesh,
-                        InputParser& bdata, 
-                        const char *tfName, 
+                        InputParser& bdata,
+                        const char *tfName,
                         MPI_Comm comm);
+
 
 protected:
 
@@ -53,8 +56,10 @@ protected:
     void non_gaussian(integer axis);
     void set_particles(real z_in, real d_z, real ddot, integer axis);
     void output(integer axis, real* pos, real* vel);
-
 };
 
+#ifdef USENAMESPACE
 }
+#endif
+
 #endif

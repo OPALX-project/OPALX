@@ -1,8 +1,9 @@
-#include "IPPLInitializer.h"
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
 #include <cmath>
+
+#include "IPPLInitializer.h"
 
 #ifdef USENAMESPACE
 namespace initializer {
@@ -130,6 +131,7 @@ void IPPLInitializer::test_reality() {
     return;
 }
 
+
 void IPPLInitializer::gravity_force(integer axis) { // 0=x, 1=y, 2=z
     long i, j, k, k_i, k_j, k_k;
     const real tpi=2.0*pi;
@@ -199,6 +201,7 @@ void IPPLInitializer::gravity_force(integer axis) { // 0=x, 1=y, 2=z
         }
     }
 }
+
 
 void IPPLInitializer::gravity_potential() {
     long i, j, k, k_i, k_j, k_k;

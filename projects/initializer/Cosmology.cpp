@@ -6,22 +6,22 @@
 
          GetParameters(DataBase)
       which gets cosmology parameters from the
-      DataBase (defined in DataBase.h), and stores them 
-      with this class as well. 
+      DataBase (defined in DataBase.h), and stores them
+      with this class as well.
 
          Sigma_r(R, AA)
-      which returns mass variance on a scale R, of the 
+      which returns mass variance on a scale R, of the
       linear density field with normalization AA.
 
          TransferFunction(k)
-      which returns transfer function for the mode k in 
+      which returns transfer function for the mode k in
       Fourier space.
 
          GrowthFactor(z)
       which returns the linear growth factor at redshift z.
 
          GrowthDeriv(z)
-      which returns the derivative of the linear growth factor 
+      which returns the derivative of the linear growth factor
       at redshift z.
 
                         Zarija Lukic, February 2009
@@ -46,11 +46,13 @@ namespace initializer {
 
 void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
    std::ifstream inputFile;
-   integer i, ln;
+   integer ln;
    real tmp, tfcdm, tfbar, norm;
    real akh1, akh2, alpha;
-   real file_kmax = M_PI/DataBase.box_size * DataBase.ngrid;
-      
+
+   // check adafixme below
+   //   real file_kmax = M_PI/DataBase.box_size * DataBase.ngrid;
+
    Omega_m = DataBase.Omega_m;
    Omega_bar = DataBase.Omega_bar;
    Omega_nu = DataBase.Omega_nu;
@@ -60,10 +62,10 @@ void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
    w_de = DataBase.w_de;
    N_nu = DataBase.N_nu;
    z_in = DataBase.z_in;
-      
+
    cobe_temp=2.728;  // COBE/FIRAS CMB temperature in K
    tt=cobe_temp/2.7 * cobe_temp/2.7;
-      
+
    if (TFFlag == 0) { // CMBFast transfer function
       //inputFile.open("cmb.tf", std::ios::in);
       inputFile.open(tfName, std::ios::in);
@@ -81,24 +83,24 @@ void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
       table_kk = (real *)malloc(table_size*sizeof(real));
       table_tf = (real *)malloc(table_size*sizeof(real));
       inputFile.close();
-      
+
       //inputFile.open("cmb.tf", std::ios::in);
       inputFile.open(tfName, std::ios::in);
       //inputFile.seekg(0, std::ios::beg);
       inputFile >> table_kk[0] >> tfcdm >> tfbar >> tmp >> tmp;
-      table_tf[0] = tfbar*Omega_bar/Omega_m + 
+      table_tf[0] = tfbar*Omega_bar/Omega_m +
             tfcdm*(Omega_m-Omega_bar)/Omega_m;
       norm = table_tf[0];
-      for (i=1; i<table_size; ++i){
+      for (unsigned long i=1; i<table_size; ++i){
          inputFile >> table_kk[i] >> tfcdm >> tfbar >> tmp >> tmp;
-         table_tf[i] = tfbar*Omega_bar/Omega_m + 
+         table_tf[i] = tfbar*Omega_bar/Omega_m +
                tfcdm*(Omega_m-Omega_bar)/Omega_m;
          table_tf[i] = table_tf[i]/norm; // Normalization
                         //std::cout << table_kk[0] << " " << table_tf[0] << std::endl;
       }
       last_k = table_kk[table_size-1];
 
-      /* 
+      /*
 
       Brrrrrr adafixme: need to comment this out because of abort
 
@@ -149,7 +151,7 @@ void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
       f_cb = 1.0-f_nu;
       p_c  = (5.0-sqrt(1.0+24.0*f_c))/4.0;
       p_cb = (5.0-sqrt(1.0+24.0*f_cb))/4.0;
-      
+
       omhh = Omega_m*h*h;
       obhh = Omega_bar*h*h;
       z_equality = 2.50e4*omhh*pow(tt,-2.0);
@@ -157,19 +159,19 @@ void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
       z_drag = 1.0 + z_drag*pow(obhh,0.238*pow(omhh,0.223));
       z_drag = 1291.0 * pow(omhh,0.251)/(1.0 + 0.659*pow(omhh,0.828)) * z_drag;
       y_d = (1.0+z_equality)/(1.+z_drag);
-      
+
       alpha_nu= (f_c/f_cb) * (5.0-2.0*(p_c+p_cb))/(5.0-4.0*p_cb);
       alpha_nu= alpha_nu*(1.0-0.553*f_nub+0.126*pow(f_nub,3.0));
       alpha_nu= alpha_nu/(1.0-0.193*sqrt(f_nu*N_nu)+0.169*f_nu*pow(N_nu,0.2));
       alpha_nu= alpha_nu*pow(1.0+y_d,p_cb-p_c);
       alpha_nu= alpha_nu*(1.0+(p_c-p_cb)/2.*(1.+1./(3.-4.*p_c)/(7.-4.*p_cb))/(1.+y_d));
-      
+
       k_equality = 0.0746*omhh/tt;
       R_drag = 31.5*obhh*pow(tt,-2.)*1000.0/(1.0 + z_drag);
       R_equality = 31.5*obhh*pow(tt,-2.)*1000.0/(1.0 + z_equality);
       sound_horizon = 2./3./k_equality*sqrt(6./R_equality)*
                       log(( sqrt(1.+R_drag)+sqrt(R_drag+R_equality) )/(1.+sqrt(R_equality)));
-      
+
       beta_c=1./(1.-0.949*f_nub);
       tan_f = &CosmoClass::eisenstein_hu;
       last_k = 10.0;
@@ -178,7 +180,7 @@ void CosmoClass::SetParameters(GlobalStuff& DataBase, const char *tfName){
       printf("Cosmology::SetParameters: TFFlag has to be 0, 1, 2, 3 or 4!\n");
       abort();
    }
-      
+
    //neutrino stuff below
 
    /**
@@ -231,13 +233,13 @@ real CosmoClass::eisenstein_hu(real k){
    t_f = t_f/(t_f + q_eff*q_eff*(14.4 + 325./(1.+60.5*pow(q_eff,1.11))));
    q_nu = 3.92*q*sqrt(N_nu)/f_nu;
    t_f = t_f*(1.+(1.2*pow(f_nu, 0.64)*pow(N_nu, 0.3+0.6*f_nu))/
-              (pow(q_nu,-1.6)+pow(q_nu,0.8)));   
+              (pow(q_nu,-1.6)+pow(q_nu,0.8)));
    return(t_f);
 }
 
 real CosmoClass::klypin_holtzmann(real k){
    real qkh, t_f;
-      
+
    if (k == 0.0) return(0.0);
    qkh = k*tt/kh_tmp;
       /* NOTE: the following line has 0/0 for k=0.
@@ -249,7 +251,7 @@ real CosmoClass::klypin_holtzmann(real k){
 
 real CosmoClass::hu_sugiyama(real k){
    real qkh, t_f;
-      
+
    if (k == 0.0) return(0.0);
    qkh = k*tt/kh_tmp;
       /* NOTE: the following line has 0/0 for k=0.
@@ -261,7 +263,7 @@ real CosmoClass::hu_sugiyama(real k){
 
 real CosmoClass::peacock_dodds(real k){
    real qkh, t_f;
-      
+
    if (k == 0.0) return(0.0);
    qkh = k/kh_tmp;
       /* NOTE: the following line has 0/0 for k=0.
@@ -273,7 +275,7 @@ real CosmoClass::peacock_dodds(real k){
 
 real CosmoClass::bbks(real k){
    real qkh, t_f;
-      
+
    if (k == 0.0) return(0.0);
    qkh = k/kh_tmp;
       /* NOTE: the following line has 0/0 for k=0.
@@ -291,7 +293,7 @@ real CosmoClass::TransferFunction(real k){
 
 real CosmoClass::sigma2(real k){
    real prim_ps, w_f, t_f, s2;
-      
+
    prim_ps = Pk_norm*pow(k, n_s);
    w_f = 3.0*(sin(k*R_M) - k*R_M*cos(k*R_M))/pow(k*R_M, 3.0);
    t_f = TransferFunction(k);
@@ -302,10 +304,10 @@ real CosmoClass::sigma2(real k){
 real CosmoClass::Sigma_r(real R, real AA){
    real sigma;
    const real k_min=0.0, k_max=last_k;
-      
+
    R_M = R;
    Pk_norm = AA;
-      
+
    sigma = 1.0/(2.0*pi*pi) * integrate(&CosmoClass::sigma2, k_min, k_max);
    sigma = sqrt(sigma);
    return(sigma);
@@ -318,14 +320,14 @@ real CosmoClass::Sigma_r(real R, real AA){
 //Generates a table of velocities (varray) and the
 //probability that the velocity is lass than this
 //velocity (neut_c)
-void CosmoClass::genFDDist() 
+void CosmoClass::genFDDist()
 {
    float neut_pmax=3.0E5;
     neut_c[0] = 0.0;
     neut_p[0] = 0.0;
     real norm = integrate(&CosmoClass::FD, 0, neut_pmax);
 
-    for(int j=1; j < neut_nmax; j++) {
+    for(unsigned int j=1; j < neut_nmax; j++) {
         neut_p[j] = (j)*neut_pmax/(1.0*neut_nmax-1);
         neut_c[j] = integrate(&CosmoClass::FD, 0, neut_p[j]) / norm;
     }
@@ -333,13 +335,13 @@ void CosmoClass::genFDDist()
     return;
 }
 
-real CosmoClass::FD(real vv) 
+real CosmoClass::FD(real vv)
 {
     return vv*vv/(exp(vv/neut_vv0)+1.0);
 }
 
 
-real CosmoClass::Maxwell(real vv) 
+real CosmoClass::Maxwell(real vv)
 {
     real T = 1.95; //[K]
     real k = 8.617343e-5; //[eV/K]
@@ -350,12 +352,11 @@ real CosmoClass::Maxwell(real vv)
 }
 
 
-void CosmoClass::FDVelocity(real &x, real &y, real &z) 
+void CosmoClass::FDVelocity(real &x, real &y, real &z)
 {
-    real aran, bran, cran, pp, mu, phi;
+    real aran, bran, pp, mu, phi;
     aran = genrand_real();
     bran = genrand_real();
-    cran = genrand_real();
 
     pp = interpolate(neut_c, neut_p, neut_nmax, aran);
     mu = 2.0*(aran-0.5);
@@ -373,33 +374,32 @@ void CosmoClass::FDVelocity(real &x, real &y, real &z)
 
 void CosmoClass::GrowthFactor(real z, real *gf, real *g_dot){
    real x1, x2, dplus, ddot;
-   const float redshift=200.0;
    real *ystart;
-   
+
    x1 = 1.0/(1.0+100000.0);
    x2 = 1.0/(1.0+z);
    ystart = (real *)malloc(2*sizeof(real));
    ystart[0] = x1;
    ystart[1] = 0.0;
-      
+
    odesolve(ystart, 2, x1, x2, 1.0e-6, 1.0e-6, &CosmoClass::growths, false);
-      //printf("Dplus = %f;  Ddot = %f \n", ystart[0], ystart[1]);	
-      
+      //printf("Dplus = %f;  Ddot = %f \n", ystart[0], ystart[1]);
+
    dplus = ystart[0];
    ddot  = ystart[1];
    x1 = 1.0/(1.0+100000.0);
    x2 = 1.0;
    ystart[0] = x1;
    ystart[1] = 0.0;
-      
-   odesolve(ystart, 2, x1, x2, 1.0e-6, 1.0e-6, &CosmoClass::growths, false);	
+
+   odesolve(ystart, 2, x1, x2, 1.0e-6, 1.0e-6, &CosmoClass::growths, false);
       //printf("Dplus = %f;  Ddot = %f \n", ystart[0], ystart[1]);
-      
+
    *gf    = dplus/ystart[0];
    *g_dot = ddot/ystart[0];
       //printf("\nGrowth factor = %f;  Derivative = %f \n", dplus/ystart[0], ddot/ystart[0]);
    free(ystart);
-   
+
    return;
 }
 
@@ -416,12 +416,12 @@ void CosmoClass::growths(real a, real y[], real dydx[]){
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 void CosmoClass::odesolve(real ystart[], int nvar, real x1, real x2, real eps, real h1,
                           void (CosmoClass::*derivs)(real, real [], real []), bool print_stat)
-{	
+{
    int i, nstp, nok, nbad, feval;
    real x,hnext,hdid,h;
    real *yscal,*y,*dydx;
    const real hmin=0.0;
-      
+
    feval = 0;
    yscal= (real *)malloc(nvar*sizeof(real));
    y= (real *)malloc(nvar*sizeof(real));
@@ -430,7 +430,7 @@ void CosmoClass::odesolve(real ystart[], int nvar, real x1, real x2, real eps, r
    h=SIGN(h1,x2-x1);
    nok = nbad = 0;
    for (i=0; i<nvar; ++i) {y[i]=ystart[i];}
-      
+
    for (nstp=0; nstp<MAXSTP; ++nstp) {
       (this->*derivs)(x, y, dydx);
       ++feval;
@@ -450,7 +450,7 @@ void CosmoClass::odesolve(real ystart[], int nvar, real x1, real x2, real eps, r
             printf(" successful steps: %d\n", nok);
             printf(" bad steps: %d\n", nbad);
             printf(" function evaluations: %d\n", feval);
-         }				
+         }
          return;
       }
       if (fabs(hnext) <= hmin) {
@@ -473,17 +473,17 @@ void CosmoClass::odesolve(real ystart[], int nvar, real x1, real x2, real eps, r
 static real maxarg1,maxarg2, minarg1, minarg2;
 #define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ? (maxarg1) : (maxarg2))
 #define FMIN(a,b) (minarg1=(a),minarg2=(b),(minarg1) < (minarg2) ? (minarg1) : (minarg2))
-void CosmoClass::rkqs(real y[], real dydx[], int n, real *x, real htry, real eps, 
-                      real yscal[], real *hdid, real *hnext, int *feval, 
+void CosmoClass::rkqs(real y[], real dydx[], int n, real *x, real htry, real eps,
+                      real yscal[], real *hdid, real *hnext, int *feval,
                       void (CosmoClass::*derivs)(real, real [], real []))
 {
    int i;
    real errmax,h,htemp,xnew,*yerr,*ytemp;
-      
+
    yerr= (real *)malloc(n*sizeof(real));
    ytemp= (real *)malloc(n*sizeof(real));
    h=htry;
-      
+
    for (;;) {
       rkck(y,dydx,n,*x,h,ytemp,yerr,derivs);
       *feval += 5;
@@ -513,10 +513,10 @@ void CosmoClass::rkqs(real y[], real dydx[], int n, real *x, real htry, real eps
 #undef FMAX
 #undef FMIN
 
-/* Cash-Karp Runge-Kutta Step, based on the 
-work of Fehlberg, who ﬁgured out that six function evaluations could 
-be used to determine two Runge-Kutta steps, one fourth-order and one 
-ﬁfth-order. The diﬀerence between these estimates can be used as a 
+/* Cash-Karp Runge-Kutta Step, based on the
+work of Fehlberg, who ﬁgured out that six function evaluations could
+be used to determine two Runge-Kutta steps, one fourth-order and one
+ﬁfth-order. The diﬀerence between these estimates can be used as a
 truncation error for adjusting the stepsize. */
 void CosmoClass::rkck(real y[], real dydx[], int n, real x, real h, real yout[],
                       real yerr[], void (CosmoClass::*derivs)(real, real [], real []))
@@ -532,14 +532,14 @@ void CosmoClass::rkck(real y[], real dydx[], int n, real x, real h, real yout[],
    real dc1=c1-2825.0/27648.0,dc3=c3-18575.0/48384.0,
    dc4=c4-13525.0/55296.0,dc6=c6-0.25;
    real *ak2,*ak3,*ak4,*ak5,*ak6,*ytemp;
-      
+
    ak2= (real *)malloc(n*sizeof(real));
    ak3= (real *)malloc(n*sizeof(real));
    ak4= (real *)malloc(n*sizeof(real));
    ak5= (real *)malloc(n*sizeof(real));
    ak6= (real *)malloc(n*sizeof(real));
    ytemp= (real *)malloc(n*sizeof(real));
-      
+
    for (i=0; i<n; ++i)
       ytemp[i]=y[i]+b21*h*dydx[i];
    (this->*derivs)(x+a2*h,ytemp,ak2);
@@ -559,7 +559,7 @@ void CosmoClass::rkck(real y[], real dydx[], int n, real x, real h, real yout[],
       yout[i]=y[i]+h*(c1*dydx[i]+c3*ak3[i]+c4*ak4[i]+c6*ak6[i]);
    for (i=0; i<n; ++i)
       yerr[i]=h*(dc1*dydx[i]+dc3*ak3[i]+dc4*ak4[i]+dc5*ak5[i]+dc6*ak6[i]);
-   
+
    free(ytemp);
    free(ak6);
    free(ak5);
@@ -569,28 +569,28 @@ void CosmoClass::rkck(real y[], real dydx[], int n, real x, real h, real yout[],
 }
 
 
-/* Numerical integration routines from Numerical Recipes 
+/* Numerical integration routines from Numerical Recipes
    calling:
       x = integrate(&CosmoClass::func, a, b)
 
    where
-      func -- is the (real) function whose integral is calculated, 
+      func -- is the (real) function whose integral is calculated,
                                  and has to be member of the CosmoClass
       a    -- is the (real) lower boundary for integration
       b    -- is the (real) upper boundary for integration
 */
 
 #define FUNC(x) ((this->*func)(x))
-real CosmoClass::midpoint(real (CosmoClass::*func)(real), 
+real CosmoClass::midpoint(real (CosmoClass::*func)(real),
                           real a, real b, integer n)
 {
    real x,tnm,sum,del,ddel;
    static real s;
    integer it,j;
-      
+
    if (n == 1) {
       return (s=(b-a)*FUNC(0.5*(a+b)));
-   } 
+   }
    else {
       it = 1;
       for(j=1; j<n-1; ++j) it *= 3;
@@ -623,7 +623,7 @@ real CosmoClass::integrate(real (CosmoClass::*func)(real), real a, real b){
    for (j=1; j<=JMAX; ++j) {
       sol=midpoint(func, a, b, j);
       if (j > JMIN){
-         if (fabs(sol-old) < EPS*fabs(old) || 
+         if (fabs(sol-old) < EPS*fabs(old) ||
                (sol==0.0 && old==0.0)) return(sol);
       }
       old = sol;
@@ -659,7 +659,7 @@ real CosmoClass::interpolate(real xx[], real yy[], unsigned long n, real x){
    return(y);
 }
 
-/* Routines for locating a value in an ordered table 
+/* Routines for locating a value in an ordered table
                         from Numerical Recipes */
 
 void CosmoClass::locate(real xx[], unsigned long n, real x, unsigned long *j){
@@ -692,10 +692,10 @@ void CosmoClass::hunt(real xx[], unsigned long n, real x, unsigned long *jlo){
       jhi=n+1;
    } else {
       inc=1;
-      if (x >= xx[*jlo] == ascnd) {
+      if ((x >= xx[*jlo]) == ascnd) {
          if (*jlo == n) return;
          jhi=(*jlo)+1;
-         while (x >= xx[jhi] == ascnd) {
+         while ((x >= xx[jhi]) == ascnd) {
             *jlo=jhi;
             inc += inc;
             jhi=(*jlo)+inc;
@@ -710,7 +710,7 @@ void CosmoClass::hunt(real xx[], unsigned long n, real x, unsigned long *jlo){
             return;
          }
          jhi=(*jlo)--;
-         while (x < xx[*jlo] == ascnd) {
+         while ((x < xx[*jlo]) == ascnd) {
             jhi=(*jlo);
             inc <<= 1;
             if (inc >= jhi) {
@@ -723,7 +723,7 @@ void CosmoClass::hunt(real xx[], unsigned long n, real x, unsigned long *jlo){
    }
    while (jhi-(*jlo) != 1) {
       jm=(jhi+(*jlo)) >> 1;
-      if (x >= xx[jm] == ascnd)
+      if ((x >= xx[jm]) == ascnd)
          *jlo=jm;
       else
          jhi=jm;

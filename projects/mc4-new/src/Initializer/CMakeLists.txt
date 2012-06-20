@@ -1,13 +1,5 @@
 set (_SRCS
-    Cosmology.cpp
-    DataBase.cpp
     IPPLInitializer.cpp
-    Initializer.cpp
-    InputParser.cpp
-    MT_Random.cpp
-    Output.cpp
-    Parallelization.cpp
-    PerfMon.c
 )
 
 include_directories (

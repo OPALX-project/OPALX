@@ -68,10 +68,12 @@ include_directories (
     ${HDF5_INCLUDE_DIR}
     ${GSL_INCLUDE_DIR}
     ${IPPL_INCLUDE_DIRS}
+    $ENV{IPPL_ROOT}/projects/initializer
 )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
+    $ENV{INITIALIZER_LIB_DIR}
 )
 
 set (MC4_LIBS
@@ -81,6 +83,7 @@ set (MC4_LIBS
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${IPPL_LIBRARY}
+    MC4Initializer
     z
 )
 
