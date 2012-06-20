@@ -619,8 +619,6 @@ projects/initializer/Cosmology.cpp -text
 projects/initializer/Cosmology.h -text
 projects/initializer/DataBase.cpp -text
 projects/initializer/DataBase.h -text
-projects/initializer/IPPLInitializer.cpp -text
-projects/initializer/IPPLInitializer.h -text
 projects/initializer/Initializer.cpp -text
 projects/initializer/Initializer.h -text
 projects/initializer/InputParser.cpp -text
