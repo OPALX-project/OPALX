@@ -157,7 +157,7 @@ public:
 
         bool iCreate = (npLocal > 0);
 
-        if (chunksize > 0) {
+        if (chunksize > 1) {
             for (int i=0; i<iterations;i++) {
                 if (iCreate) {
                     size_t offset = this->getLocalNum();
