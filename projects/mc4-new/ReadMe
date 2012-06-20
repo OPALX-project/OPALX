@@ -1,12 +1,16 @@
+mc4:
 
 rm -rf CMakeCache.txt; CXX=mpicxx cmake ~/svnwork/ippl/projects/mc4-new/
+
+initializer:
+
+rm -rf CMakeCache.txt; CXX=mpicxx cmake ~/svnwork/ippl/projects/initalizer
+
+
 
 Does not compile:
 
  - FFTPoissonSolver line 400 does not compile.
-
- - IPPLInitializer.cpp
-        Do we need to oompile this ?
 
 
 Do not understand this:
