@@ -29,6 +29,9 @@ And for lesser output try:
 mpirun -np 1 mc4 indat fort.66 --info 0 --commlib mpi
 
  ***************************************************************************/
+
+#define noCASHEDLAYOUT 1
+
 #include <ctime>
 #include <iostream>
 #include <sstream>
@@ -156,13 +159,13 @@ int main(int argc, char *argv[]) {
     Inform hmsg("");
     string mySpace("            ");
 
-    /*    hmsg << mySpace << "  .___  ___.  ______  _  _    "<< endl;
-          hmsg << mySpace << "  |   \/   |  /      || || |   "<< endl;
-          hmsg << mySpace << "  |  \  /  | |  ,----'| || |_  "<< endl;
-          hmsg << mySpace << "  |  |\/|  | |  |     |__   _| "<< endl;
-          hmsg << mySpace << "  |  |  |  | |  `----.   | |   "<< endl;
-          hmsg << mySpace << "  |__|  |__|  \______|   |_|   "<< endl;
-          */
+    //    hmsg << mySpace << "  .___  ___.  ______  _  _    "<< endl;
+    // hmsg << mySpace << "  |   \/   |  /      || || |   "<< endl;
+    // hmsg << mySpace << "  |  \  /  | |  ,----'| || |_  "<< endl;
+    //hmsg << mySpace << "  |  |\/|  | |  |     |__   _| "<< endl;
+    //hmsg << mySpace << "  |  |  |  | |  `----.   | |   "<< endl;
+    //hmsg << mySpace << "  |__|  |__|  \______|   |_|   "<< endl;
+    
     hmsg << "This is MC 4 Version " << PACKAGE_VERSION << endl;
     hmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) to " << PACKAGE_BUGREPORT << endl;
 

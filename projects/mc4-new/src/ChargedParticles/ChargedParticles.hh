@@ -26,18 +26,14 @@ template <class T, unsigned int Dim> class FieldSolver;
 //static IpplTimings::TimerRef TIUpdate_m = IpplTimings::getTimer("Initial Update");
 
 template <class T, unsigned int Dim>
+
+#ifdef CASHEDLAYOUT
 class ChargedParticles : public ParticleBase< ParticleCashedLayout<T,Dim> > {
-    //class ChargedParticles : public ParticleBase< ParticleSpatialLayout<T,Dim> > {
+#else
+class ChargedParticles : public ParticleBase< ParticleSpatialLayout<T,Dim> > {
+#endif
 
 private:
-
-#ifdef IPPL_XT3
-    size_t fragments_i;
-    unsigned long total_free_i, largest_free_i, total_used_i;
-
-    size_t fragments_f;
-    unsigned long total_free_f, largest_free_f, total_used_f;
-#endif
 
     ///mapping from species ID's to start index in particle container
     std::map<unsigned int, unsigned int> SpeciesIDs;
@@ -52,13 +48,21 @@ public:
     // typedef typename ParticleSpatialLayout<T,Dim>::ParticleIndex_t PID_t;
 
     typedef UniformCartesian<Dim,T> Mesh_t;
+
+#ifdef CASHEDLAYOUT
     typedef typename ParticleCashedLayout<T,Dim>::SingleParticlePos_t Vector_t;
-    //typedef typename ParticleSpatialLayout<T,Dim>::SingleParticlePos_t Vector_t;
+#else
+    typedef typename ParticleSpatialLayout<T,Dim>::SingleParticlePos_t Vector_t;
+#endif
 
     //switching to layout handling cashed particles around domain
     //needed for parallel halo finder
+
+#ifdef CASHEDLAYOUT
     typedef ParticleCashedLayout<T, Dim, Mesh_t>      Layout_t;
-    //typedef ParticleSpatialLayout<T, Dim, Mesh_t>      Layout_t;
+#else
+    typedef ParticleSpatialLayout<T, Dim, Mesh_t>      Layout_t;
+#endif
 
     typedef Vert                                       Center_t;
 
@@ -96,7 +100,12 @@ public:
 
     //constructor to create univ0
     ChargedParticles(Layout_t *playout, SimData<T,Dim> simData) :
+
+#ifdef CASHEDLAYOUT
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
+#else
+        ParticleBase< ParticleSpatialLayout<T,Dim> >(playout),
+#endif
         simData_m(simData)
     {
         SpeciesIdx = 0;
@@ -121,7 +130,11 @@ public:
             ParticleAttrib<Vector_t>  &v,
             ParticleAttrib<T>    &m, size_t npLocal,
             Vector_t boxSize, size_t chunksize, int iterations, size_t rest) :
+#ifdef CASHEDLAYOUT
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
+#else
+        ParticleBase< ParticleSpatialLayout<T,Dim> >(playout),
+#endif
         simData_m(simData)
     {
         SpeciesIdx = 0;
@@ -213,7 +226,11 @@ public:
     }
 
     ChargedParticles(Layout_t *playout, SimData<T,Dim> simData, Vector_t boxSize) :
+#ifdef CASHEDLAYOUT
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
+#else
+        ParticleBase< ParticleSpatialLayout<T,Dim> >(playout),
+#endif
         simData_m(simData)
     {
         SpeciesIdx = 0;
