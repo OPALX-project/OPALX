@@ -279,7 +279,7 @@ private:
 
     double dtTrack_m;
 
-    int surfaceEmissionStop_m;
+    double surfaceEmissionStop_m;
 
     // This variable controls the minimal number of steps of emission (using bins)
     // before we can merge the bins

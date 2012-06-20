@@ -1655,7 +1655,7 @@ void ParallelTTracker::bgf_main_collision_test() {
             itsBunch->boundp();
             numParticlesInSimulation_m = itsBunch->getTotalNum();
         } else
-            msg << "* No field emission dT = " << itsBunch->getT() << endl;
+	  msg << "* No field emission dT = " << itsBunch->getT() << endl;
 
     } else {// the case without secondary emission, i.e., secondaryFlg==0
         for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
@@ -2234,10 +2234,10 @@ void ParallelTTracker::setOptionalVariables() {
         minStepforReBin_m = static_cast<int>(br->getReal());
     msg << "MINSTEPFORREBIN " << minStepforReBin_m << endl;
 
-    surfaceEmissionStop_m  = 1000;
+    surfaceEmissionStop_m  = 1000.0;
     RealVariable *cr = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("SURFACEEMISSIONSTOP"));
     if(cr)
-        surfaceEmissionStop_m = static_cast<int>(cr->getReal());
+        surfaceEmissionStop_m = static_cast<double>(cr->getReal());
     msg << "SURFACEEMISSIONSTOP after " << surfaceEmissionStop_m << " seconds" <<  endl;
 
     repartFreq_m = 1000;
