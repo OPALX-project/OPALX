@@ -2825,16 +2825,28 @@ void ParallelTTracker::borisExternalFields(double h, bool isFirstSubstep, bool i
 }
 
 double ParallelTTracker::calcG() {
-	if(!itsBunch->hasFieldSolver()) {
-		return 1.0;
-	}
-    Vector_t p = itsBunch->get_pmean();
-    double const invGamma = 1.0 / sqrt(1.0 + dot(p, p));
-    Vector_t v = p * Physics::c * invGamma;
-    auto tmp = itsBunch->Ef + cross(v, itsBunch->Bf);
-    double const maxAcceleration = sqrt(max(dot(tmp, tmp))) * invGamma;
-    double const exponent = 1.0; // exponent == 0.0 means constant steps
-    return std::pow(maxAcceleration, -0.5 * exponent);
+    if(!itsBunch->hasFieldSolver()) {
+        return 1.0;
+    }
+    double maxAcc = 0.0;
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        // Assuming m = 1 and q = 1 (constants can be taken out of g)
+        Vector_t const P = itsBunch->P[i];
+        double const invGamma = 1.0 / sqrt(1.0 + dot(P, P));
+        // dpdt is the force acting on the particle, derivative of the relativistic momentum
+        Vector_t const dpdt = itsBunch->Ef[i] + cross(P * Physics::c * invGamma, itsBunch->Bf[i]);
+        // Calculate acceleration as the second derivative of the position, i.e. derivative of
+        // velocity
+        Vector_t const acc = invGamma * (dpdt - P * dot(P, dpdt) * invGamma * invGamma);
+        double const accSquared = dot(acc, acc);
+        if(accSquared > maxAcc) {
+            maxAcc = accSquared;
+        }
+    }
+    reduce(maxAcc, maxAcc, OpMaxAssign());
+    maxAcc = sqrt(maxAcc);
+    double const exponent = 1.0;
+    return std::pow(maxAcc, -0.5 * exponent);
 }
 
 Vector_t ParallelTTracker::calcMeanR() const {
