@@ -47,8 +47,8 @@ mpirun -np 1 mc4 indat fort.66 --info 0 --commlib mpi
 */
 
 #include "Initializer/IPPLInitializer.h"
-#include "Initializer/Cosmology.h"
-#include "Initializer/InputParser.h"
+#include "Cosmology.h"
+#include "InputParser.h"
 
 #ifdef MC4HALOFINDER
 
