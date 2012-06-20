@@ -281,7 +281,9 @@ int main(int argc, char *argv[]) {
         pos.create(Npart);
         vel.create(Npart);
         mass.create(Npart);
+    
         initializer::IPPLInitializer init;
+        
         initializer::InputParser par("init.in");
 
         init.init_particles(pos, vel, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
@@ -348,23 +350,23 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(TCDist);
     IpplMemoryUsage::sample(initfMemWatch,"");
 
-    /*
-FIXME: At the moment deleting univ0 causes a core dump, no idea why
-delete univ0;
-delete FLI;
-delete meshI;
-delete PLI;
+/*
+ FIXME: At the moment deleting univ0 causes a core dump, no idea why
+ delete univ0;
+ delete FLI;
+ delete meshI;
+ delete PLI;
 */
 
     T ain  = 1.0 /(1+simData.zin);
     T ainv = 1.0 /(simData.alpha);
     T pp   = pow(ain,simData.alpha);
-
+    
     //     DataSink *itsDataSink = NULL;
     DataSink *itsDataSink = new DataSink("universe.h5", univ);
     if (simData.iprint < 99)
         itsDataSink->writePhaseSpace(pow(pp, ainv), 1.0/pow(pp,ainv)-1.0, 0);
-
+    
     univ->setTime(0.0);
     univ->set_FieldSolver(new FFTPoissonSolverPeriodic<T,DimA>(univ,simData));
     msg << "field solver ready " << endl;
@@ -372,7 +374,7 @@ delete PLI;
 
     T omegab   = simData.deut / simData.hubble / simData.hubble;
     T omegatot = simData.omegadm + omegab;
-
+    
     /// Convert to `symplectic velocities' at a=a_in
     univ->V *= Vector_t(ain*ain,ain*ain,ain*ain);
 
