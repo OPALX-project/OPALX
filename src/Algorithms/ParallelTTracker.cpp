@@ -24,6 +24,7 @@
 #include <sstream>
 #include <string>
 #include <limits>
+#include <cmath>
 
 #include "Algorithms/ParallelTTracker.h"
 #include "Algorithms/PartPusher.h"
@@ -2642,7 +2643,7 @@ void ParallelTTracker::Tracker_AMTS() {
             tNextStatDump += statDumpInterval;
         }
         msg << "AMTS: dt_outer = " << dt_outer;
-        double numSubsteps = std::max(std::round(dt_outer / dt_inner_target), 1.0);
+        double numSubsteps = std::max(round(dt_outer / dt_inner_target), 1.0);
         msg << " numSubsteps = " << numSubsteps;
         double dt_inner = dt_outer / numSubsteps;
         msg << " dt_inner = " << dt_inner << endl;
