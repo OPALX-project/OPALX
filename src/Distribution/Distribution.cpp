@@ -2838,7 +2838,7 @@ void Distribution::doRestart_cycl(PartBunch &beam, size_t Np, int restartStep, c
 
         // force the initial time to zero
         beam.setT(0.0);
-
+	beam.setLocalTrackStep((long long) 0 );
         rc = H5PartReadDataFloat64(H5file, "x", farray);
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
