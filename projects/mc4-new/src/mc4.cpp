@@ -222,8 +222,10 @@ int main(int argc, char *argv[]) {
     NDIndex<DimA> domainF(A,B,C); //Force solver domain
 
     e_dim_tag decomp[DimA];
-    for (unsigned int d=0; d < DimA; ++d)
-        decomp[d] = PARALLEL;
+    for (unsigned int d=0; d < DimA-1; ++d)
+      decomp[d] = PARALLEL;
+
+    decomp[DimA-1] = SERIAL;
 
     if(decomp[0] == PARALLEL && decomp[1] == PARALLEL && decomp[2] == PARALLEL)
         msg << "Using 3D domain decomposition" << endl;
