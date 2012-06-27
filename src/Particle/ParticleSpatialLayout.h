@@ -359,7 +359,7 @@ protected:
         typename RegionLayout<T,Dim,Mesh>::iterator_iv localV, localEnd = RLayout.end_iv();
 
         // iterators used to search remote domains
-        typename RegionLayout<T,Dim,Mesh>::iterator_dv remoteV, remoteEnd = RLayout.end_rdv();
+        typename RegionLayout<T,Dim,Mesh>::iterator_dv remoteV; //  remoteEnd = RLayout.end_rdv();
 
         // JCC: This "nudge factor" stuff was added when we were experiencing
         // problems with particles getting lost in between PRegions on
@@ -701,7 +701,7 @@ protected:
         typename RegionLayout<T,Dim,Mesh>::iterator_iv localV, localEnd = RLayout.end_iv();
 
         // iterators used to search remote domains
-        typename RegionLayout<T,Dim,Mesh>::iterator_dv remoteV, remoteEnd = RLayout.end_rdv();
+        typename RegionLayout<T,Dim,Mesh>::iterator_dv remoteV; // remoteEnd = RLayout.end_rdv();
 
 
         // An NDRegion object used to store a particle position.
@@ -848,7 +848,7 @@ protected:
         typename RegionLayout<T,Dim,Mesh>::iterator_iv localV, localEnd = RLayout.end_iv();
 
         // iterators used to search remote domains
-        typename RegionLayout<T,Dim,Mesh>::iterator_dv remoteV, remoteEnd = RLayout.end_rdv();
+        typename RegionLayout<T,Dim,Mesh>::iterator_dv remoteV; // remoteEnd = RLayout.end_rdv();
 
         // JCC: This "nudge factor" stuff was added when we were experiencing
         // problems with particles getting lost in between PRegions on
