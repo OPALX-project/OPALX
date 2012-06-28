@@ -273,7 +273,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         h5_size_t len_name = 20;
         h5_int64_t ftype;
 
-        h5_file_t *file = H5OpenFile(Filename.c_str(), H5_O_RDONLY, MPI_COMM_WORLD);
+        h5_file_t *file = H5OpenFile(Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
         if(file) {
             h5err = H5SetStep(file, 0);
             if(h5err != H5_SUCCESS)

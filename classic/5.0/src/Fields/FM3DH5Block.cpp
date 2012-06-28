@@ -23,7 +23,7 @@ FM3DH5Block::FM3DH5Block(string aFilename):
     h5_int64_t ftype;
 
     Type = T3DDynamicH5Block;
-    h5_file_t *file = H5OpenFile(aFilename.c_str(), H5_O_RDONLY, MPI_COMM_WORLD);
+    h5_file_t *file = H5OpenFile(aFilename.c_str(), H5_O_RDONLY, Ippl::getComm());
 
 
     if(file) {
@@ -80,7 +80,7 @@ FM3DH5Block::~FM3DH5Block() {
 void FM3DH5Block::readMap() {
     if(FieldstrengthEz_m.empty()) {
         Inform msg("FM3DH5 ");
-        h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, MPI_COMM_WORLD);
+        h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
 
         if(file) {
             h5_int64_t h5err;
@@ -162,12 +162,12 @@ void FM3DH5Block::readMap() {
             for(int i = 0; i < Nnodes; ++ i) {
                 int N_read_start = Nz_read_start[i] * num_gridpx_m * num_gridpy_m;
                 int N_read_length = Nz_read_length[i] * num_gridpx_m * num_gridpy_m;
-                MPI_Bcast(&(FieldstrengthEx_m[N_read_start]), N_read_length, MPI_DOUBLE, i, MPI_COMM_WORLD);
-                MPI_Bcast(&(FieldstrengthEy_m[N_read_start]), N_read_length, MPI_DOUBLE, i, MPI_COMM_WORLD);
-                MPI_Bcast(&(FieldstrengthEz_m[N_read_start]), N_read_length, MPI_DOUBLE, i, MPI_COMM_WORLD);
-                MPI_Bcast(&(FieldstrengthHx_m[N_read_start]), N_read_length, MPI_DOUBLE, i, MPI_COMM_WORLD);
-                MPI_Bcast(&(FieldstrengthHy_m[N_read_start]), N_read_length, MPI_DOUBLE, i, MPI_COMM_WORLD);
-                MPI_Bcast(&(FieldstrengthHz_m[N_read_start]), N_read_length, MPI_DOUBLE, i, MPI_COMM_WORLD);
+                MPI_Bcast(&(FieldstrengthEx_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
+                MPI_Bcast(&(FieldstrengthEy_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
+                MPI_Bcast(&(FieldstrengthEz_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
+                MPI_Bcast(&(FieldstrengthHx_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
+                MPI_Bcast(&(FieldstrengthHy_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
+                MPI_Bcast(&(FieldstrengthHz_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
             }
 
             h5err = H5CloseFile(file);

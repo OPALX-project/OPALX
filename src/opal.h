@@ -6,7 +6,6 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "OpalConfigure/Configure.h"
-#include "FixedAlgebra/FTps.h"
 #include "OpalParser/OpalParser.h"
 #include "Parser/FileStream.h"
 #include "Parser/TerminalStream.h"

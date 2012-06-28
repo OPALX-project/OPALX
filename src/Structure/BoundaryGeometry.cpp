@@ -39,7 +39,7 @@ BoundaryGeometry::BoundaryGeometry() :
 
     itsAttr[TOPO] = Attributes::makeString
         ("TOPO",
-         "BOX, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written ", 
+         "BOX, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written ",
          "ELLIPTIC");
 
     itsAttr[LENGHT] = Attributes::makeReal
@@ -184,7 +184,7 @@ BoundaryGeometry* BoundaryGeometry::find (const string& name) {
         OpalData::getInstance ()->find (name));
 
     if (geom == 0)
-        throw OpalException ("BoundaryGeometry::find()", "Geometry \"" 
+        throw OpalException ("BoundaryGeometry::find()", "Geometry \""
                              + name + "\" not found.");
     return geom;
 }
@@ -575,7 +575,7 @@ void BoundaryGeometry::initialize () {
     if (rc != H5_SUCCESS)
         ERRORMSG ("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     H5SetVerbosityLevel (1);
-    h5_file_t* f = H5OpenFile (h5FileName_m.c_str (), H5_O_RDONLY, MPI_COMM_WORLD);
+    h5_file_t* f = H5OpenFile (h5FileName_m.c_str (), H5_O_RDONLY, Ippl::getComm());
     h5t_mesh_t* m = NULL;
     H5FedOpenTriangleMesh (f, "0", &m);
     H5FedSetLevel (m, 0);

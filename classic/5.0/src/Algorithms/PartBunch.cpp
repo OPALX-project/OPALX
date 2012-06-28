@@ -940,7 +940,7 @@ void PartBunch::computeSelfFields() {
         //ostringstream oss;
         //MPI_File file;
         //MPI_Status status;
-        //MPI_File_open(MPI_COMM_WORLD, "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
+        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
 
         ofstream fstr2;
         fstr2.precision(9);
@@ -981,7 +981,7 @@ void PartBunch::computeSelfFields() {
         //MPI_File file;
         //MPI_Status status;
         //MPI_Info fileinfo;
-        //MPI_File_open(MPI_COMM_WORLD, "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
+        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
 
 
         ofstream fstr;

@@ -6,7 +6,10 @@ Inform *gmsg;
 
 int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm) {
 
+    MPI_Barrier(comm);
+
     int narg = 5, remove = 1;
+
     if(!ippl)
         ippl = new Ippl(narg, arg, remove, comm);
     //Ippl *aippl = new Ippl(narg, arg, remove, comm);
