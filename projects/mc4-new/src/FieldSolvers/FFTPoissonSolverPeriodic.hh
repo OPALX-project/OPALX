@@ -91,9 +91,10 @@ private:
     int kmax_m;
 
     /// 1D power spectra
-    T *spectra1D_m;
+    std::unique_ptr<T[]> spectra1D_m;;
+
     /// Nk power spectra
-    int *Nk_m;
+    std::unique_ptr<int[]> Nk_m; 
 
 };
 

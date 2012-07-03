@@ -226,7 +226,8 @@ int main(int argc, char *argv[]) {
     for (unsigned int d=0; d < DimA; ++d)
       decomp[d] = PARALLEL;
 
-    //    decomp[DimA-1] = SERIAL;
+    
+    // Switch to 2D domain decomposition    decomp[DimA-1] = SERIAL;
 
     if(decomp[0] == PARALLEL && decomp[1] == PARALLEL && decomp[2] == PARALLEL)
         msg << "Using 3D domain decomposition" << endl;
@@ -244,10 +245,10 @@ int main(int argc, char *argv[]) {
     Layout_t * PLF = new Layout_t(*FLF, *meshF);
 
     /**
-      simData.jinit == 0 (generate)
-      simData.jinit == 1 ASCII (fort.66)
+      simData.jinit == 0 (generate using the initializer)
+      simData.jinit == 1 ASCII (fort.66), needed in the regression test-1
       simData.jinit == 3 H5Part
-      simData.jinit == 4 Uniform
+      simData.jinit == 4 Uniform, to test
       */
 
     IpplTimings::startTimer(TCDist);
@@ -427,9 +428,6 @@ int main(int argc, char *argv[]) {
     IpplTimings::print(string("timing.dat"));
     IpplMemoryUsage::print();
     IpplMemoryUsage::print(string("memory.dat"));
-
-    //if(Ippl::getNodes() == 1)
-    //    univ->dumpCosmo(10);
 
     if(univ)
         delete univ;

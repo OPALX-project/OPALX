@@ -71,10 +71,11 @@ void FFTPoissonSolverPeriodic<T,Dim>::doInit()
     gf_m.initialize(*meshI_m, *FLI_m, GuardCellSizes<3>(2));
     rhocic_m.initialize(*meshI_m,*FLI_m,GuardCellSizes<3>(2));
 
-    // power spectra calc
+    // for power spectra calc
     kmax_m = nint(sqrt(3*(simData_m.ng_comp*simData_m.ng_comp/4))) + 1 ;
-    spectra1D_m = (T *) malloc (kmax_m*sizeof(T));
-    Nk_m = (int *) malloc (kmax_m*sizeof(int));
+
+    spectra1D_m = std::unique_ptr<T[]>(new T[kmax_m]);      
+    Nk_m        = std::unique_ptr<int[]>(new int[kmax_m]);  
 
 }
 
@@ -96,11 +97,6 @@ FFTPoissonSolverPeriodic<T,Dim>::~FFTPoissonSolverPeriodic()
     if (meshI_m)
         delete meshI_m;
 
-    if(spectra1D_m)
-        delete spectra1D_m;
-
-    if(Nk_m)
-        delete Nk_m;
 }
 
 //FIXME: There is something going wrong when having ng_comp != np
@@ -110,17 +106,20 @@ void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim>
     unsigned int kk;
     const unsigned int ng_m = simData_m.ng_comp;
 
-    //FIXME: handle different mass species!
-    //reset mass for light particles
-    //for(size_t i=-1; i<univ->getTotalNum(); i++) {
-    //if(i%2 == 0)
-    //univ->M[i] = 0.0;
-    //}
-    //reset mass for heavy particles
-    //for(size_t i=0; i<univ->getTotalNum(); i++) {
-    //if(i%2 != 0)
-    //univ->M[i] = 0.0;
-    //}
+    /*
+      FIXME: handle different mass species!
+
+      // reset mass for light particles
+      for(size_t i=-1; i<univ->getTotalNum(); i++) {
+       if(i%2 == 0)
+        univ->M[i] = 0.0;
+      }
+      //reset mass for heavy particles
+      for(size_t i=0; i<univ->getTotalNum(); i++) {
+       if(i%2 != 0)
+        univ->M[i] = 0.0;
+      }
+    */
 
     CICforward(univ);
 
@@ -184,7 +183,7 @@ void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim>
        and/or reducing the size of MPICH_MAX_SHORT_MSG_SIZE (cur value is 50000).
        aborting job:
        out of unexpected buffer space
-       */
+    */
 
     reduce( &(Nk_m[0]), &(Nk_m[0]) + kmax_m , &(Nk_m[0]) ,OpAddAssign());
     reduce( &(spectra1D_m[0]), &(spectra1D_m[0]) + kmax_m, &(spectra1D_m[0]) ,OpAddAssign());
