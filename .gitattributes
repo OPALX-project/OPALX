@@ -644,6 +644,10 @@ projects/mc4-new/CMakeModules/FindGSL.cmake -text
 projects/mc4-new/CMakeModules/FindH5Hut.cmake -text
 projects/mc4-new/CMakeModules/FindHDF5.cmake -text
 projects/mc4-new/ReadMe -text
+projects/mc4-new/doc/Doxyfile -text
+projects/mc4-new/doc/doxyfooter -text
+projects/mc4-new/doc/doxyheader -text
+projects/mc4-new/doc/mc4.dox -text
 projects/mc4-new/regressionTests/Katrin-Test-512/cmb.tf -text
 projects/mc4-new/regressionTests/Katrin-Test-512/init.in -text
 projects/mc4-new/regressionTests/Katrin-Test-512/reference-data/indat.o6561 -text
