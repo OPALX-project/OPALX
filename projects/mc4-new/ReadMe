@@ -1,10 +1,25 @@
 MC4 ReadMe
 ----------
+Assume you are checking out IPPL in $HOME/svnwork/ippl
 
-Before installing mc4, make sure you have he following environment variables set:
+
+Build the Initializer
+---------------------
+The Initializer is in the IPPL projects directory.
+Before building the Initializer and later installing mc4, 
+make sure you have he following environment variables set:
 
 export IPPL_ROOT=$HOME/svnwork/ippl
 export IPPL_PREFIX=$HOME/build/ippl
+export INITIALIZER_LIB_DIR=$IPPL_ROOT/projects/initializer/build
+
+mkdir -p $INITIALIZER_LIB_DIR; cd $INITIALIZER_LIB_DIR
+
+rm -rf CMakeCache.txt; CXX=mpicxx cmake ~/svnwork/ippl/projects/initalizer
+
+
+Build MC4
+---------
 export H5hut=$HOME/extlib/H5hut-1.99.7
 
 The go to the mc4 project directory:
@@ -15,20 +30,12 @@ rm -rf CMakeCache.txt; CXX=mpicxx cmake $IPPL_ROOT/projects/mc4-new/
 
 export MC4_EXE_PATH=$IPPL_ROOT/projects/mc4-new/build/src
 
-Note, that mpicxx is perfectly valid for MACOS-X and Linux but maybe different in Cray
-and IBM systems.
-
-
-
-Initializer
------------
-export INITIALIZER_LIB_DIR=$HOME/svnwork/ippl/projects/initializer/build
-rm -rf CMakeCache.txt; CXX=mpicxx cmake ~/svnwork/ippl/projects/initalizer
+Note, that mpicxx (and later mpirun) is perfectly valid for MACOS-X and 
+Linux but maybe different on Cray, IBM and other HPC systems.
 
 
 MC2-MC4 Tests
 -------------
-
 
 test-1
 ======
