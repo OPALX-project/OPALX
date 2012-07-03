@@ -123,27 +123,26 @@ void DataSink::writePhaseSpace(TT time, TT z, int step) {
     size_t nLoc                   = univ_m->getLocalNum();
 
 #ifdef IPPL_USE_SINGLE_PRECISION
-    void *varray = malloc(nLoc*sizeof(float));
-    float *farray = (float*)varray;
-    void *lvarray = malloc(nLoc*sizeof(double));
-    h5_int64_t *larray = (h5_int64_t *)lvarray;
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(float)]);
+    float *farray = reinterpret_cast<float *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 #else
-    void *varray = malloc(nLoc*sizeof(double));
-    double *farray = (double*)varray;
-    h5_int64_t *larray = (h5_int64_t *)varray;
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 #endif
 
-
     ///Get the particle decomposition from all the compute nodes.
-    size_t *locN = (size_t *) malloc(Ippl::getNodes()*sizeof(size_t));
-    size_t  *globN = (size_t*) malloc(Ippl::getNodes()*sizeof(size_t));
+    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
+    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
+
 
     for(int i=0; i<Ippl::getNodes(); i++) {
         globN[i] = locN[i]=0;
     }
 
     locN[Ippl::myNode()] = nLoc;
-    reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
+    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
 
     /// Set current record/time step.
     H5SetStep(H5file_m, H5call_m);
@@ -153,7 +152,7 @@ void DataSink::writePhaseSpace(TT time, TT z, int step) {
     H5WriteStepAttribFloat64(H5file_m,"TIME", &time,1);
 
     /// Write number of compute nodes.
-    H5WriteStepAttribInt64(H5file_m,"nloc", (h5_int64_t *)globN, Ippl::getNodes());
+    H5WriteStepAttribInt64(H5file_m,"nloc", (h5_int64_t *)globN.get(), Ippl::getNodes());
 
     /// Write univ phase space.
     for(size_t i=0; i<nLoc; i++)
@@ -214,13 +213,6 @@ void DataSink::writePhaseSpace(TT time, TT z, int step) {
     /// Step record/time step index.
     H5call_m++;
 
-    if(varray)
-        free(varray);
-#ifdef IPPL_USE_SINGLE_PRECISION
-    if(lvarray)
-        free(lvarray);
-#endif
-
     /// Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
 }
@@ -250,11 +242,11 @@ void DataSink::readPhaseSpace()
     //H5PartReadStepAttrib(H5file,"TIME",&actualT);
 
 #ifdef IPPL_USE_SINGLE_PRECISION
-    void *varray = malloc(N*sizeof(float));
-    float *farray = (float*)varray;
+    std::unique_ptr<char[]> varray(new char[(N)*sizeof(float)]);
+    float *farray = reinterpret_cast<float *>(varray.get());
 #else
-    void *varray = malloc(N*sizeof(double));
-    double *farray = (double*)varray;
+    std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
 #endif
 
     univ_m->create(N);
@@ -308,9 +300,6 @@ void DataSink::readPhaseSpace()
 #endif
     for (unsigned long int n=0; n < N; ++n)
         univ_m->V[n](2)=farray[n];
-
-    if(farray)
-        free(farray);
 
     H5CloseFile(H5file_m);
 
