@@ -1,5 +1,5 @@
 set log
-set title 'Comparison mc4 & mc2'
+set title 'test-1'
 plot 'mc4-1D.spec' w linesp t 'mc4' ls 4
 repl 'fort.33' w l t 'mc2' ls 2
 pause -1
