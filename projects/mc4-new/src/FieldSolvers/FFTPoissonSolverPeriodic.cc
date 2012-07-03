@@ -55,7 +55,6 @@ void FFTPoissonSolverPeriodic<T,Dim>::doInit()
     }
 
     // create additional objects for the use in the FFT's
-    green_m.initialize(*mesh_m, *layout_m,GuardCellSizes<3>(1));
     rho_m.initialize(*mesh_m, *layout_m, GuardCellSizes<3>(1));
 
     // create the FFT object
@@ -76,8 +75,6 @@ void FFTPoissonSolverPeriodic<T,Dim>::doInit()
     kmax_m = nint(sqrt(3*(simData_m.ng_comp*simData_m.ng_comp/4))) + 1 ;
     spectra1D_m = (T *) malloc (kmax_m*sizeof(T));
     Nk_m = (int *) malloc (kmax_m*sizeof(int));
-
-    greensFunction();
 
 }
 
@@ -110,8 +107,6 @@ FFTPoissonSolverPeriodic<T,Dim>::~FFTPoissonSolverPeriodic()
 template <class T, unsigned int Dim>
 void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim> *univ, string fn)
 {
-    Inform m("calcPwrSpecAndSave ");
-
     unsigned int kk;
     const unsigned int ng_m = simData_m.ng_comp;
 
@@ -135,36 +130,17 @@ void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim>
     fft_m->transform("forward", rho_m);
 
     //FIXME: DO DECONVOLUTION ANTI-CIC FIX?
-    /*
-     This seams to be broken in the new IPPL lib 
-     rho_m = real(rho_m*conj(rho_m));
-    */
 
-    rhocic_m = 0.0;
-    NDIndex<Dim> loop;
-    for (int i=lDomain_m[0].first(); i<=lDomain_m[0].last(); i++) {
-        loop[0]=Index(i,i);
-        for (int j=lDomain_m[1].first(); j<=lDomain_m[1].last(); j++) {
-            loop[1]=Index(j,j);
-            for (int k=lDomain_m[2].first(); k<=lDomain_m[2].last(); k++) {
-                loop[2]=Index(k,k);                
-                const dcomplex d = rho_m.localElement(loop);
-                const dcomplex dc = conj(d);
-                const T res = real(d*dc);
-                rhocic_m[loop] = res;
-            }
-        }
-    }
+    rhocic_m = real(rho_m*conj(rho_m));
 
     for (int i=0;i<kmax_m;i++) {
         Nk_m[i]=0;
         spectra1D_m[i] = 0.0;
     }
 
-    m << "Sum psp=real( ... " << sum(rhocic_m) << " kmax= " << kmax_m << endl;
-
     // This computes the 1-D power spectrum of a 3-D field (rho_m)
     // by binning values
+    NDIndex<Dim> loop;
     for (int i=lDomain_m[0].first(); i<=lDomain_m[0].last(); i++) {
         loop[0]=Index(i,i);
         for (int j=lDomain_m[1].first(); j<=lDomain_m[1].last(); j++) {
@@ -210,7 +186,6 @@ void FFTPoissonSolverPeriodic<T,Dim>::calcPwrSpecAndSave(ChargedParticles<T,Dim>
        out of unexpected buffer space
        */
 
-    INFOMSG("Loops done" << endl);
     reduce( &(Nk_m[0]), &(Nk_m[0]) + kmax_m , &(Nk_m[0]) ,OpAddAssign());
     reduce( &(spectra1D_m[0]), &(spectra1D_m[0]) + kmax_m, &(spectra1D_m[0]) ,OpAddAssign());
 
@@ -356,47 +331,6 @@ void FFTPoissonSolverPeriodic<T,Dim>::CICforward(ChargedParticles<T,Dim> *univ)
     INFOMSG("rhocic_m= " << sum(rhocic_m) << " sum(M)= " << sum(univ->M) << " rho_m= " << sum(rho_m) << endl;);
 }
 
-///////////////////////////////////////////////////////////////////////////                                                                         
-// calculate the FFT of the Green's function for the given field                                                                                    
-template<class T, unsigned int Dim>
-void FFTPoissonSolverPeriodic<T,Dim>::greensFunction()
-{
-    /*                                                                                                                                              
-       Create Greens function for periodic 1/r potential                                                                                            
-    */
-    NDIndex<3> elem;
-    T pi = acos(-1.0);
-    T tpinx = 2.0*pi/(1.0*gDomain_m[0].max()+1);
-    T tpiny = 2.0*pi/(1.0*gDomain_m[1].max()+1);
-    T tpinz = 2.0*pi/(1.0*gDomain_m[2].max()+1);
-
-    green_m = dcomplex(0.0);
-
-    for (int i=lDomain_m[0].min(); i<=lDomain_m[0].max(); ++i) {
-        elem[0]=Index(i,i);
-        for (int j=lDomain_m[1].min(); j<=lDomain_m[1].max(); ++j) {
-            elem[1]=Index(j,j);
-            for (int k=lDomain_m[2].min(); k<=lDomain_m[2].max(); ++k) {
-                elem[2]=Index(k,k);
-                // modification to Greens function.                                                                                                 
-                //if (i+j+k!= 3.0) {                                                                                                                
-                if (i+j+k != 0.0) {
-                    T val = 0.5 / (cos(i*tpinx)+cos(j*tpiny)+cos(k*tpinz)-3.0);
-                    green_m.localElement(elem) = dcomplex(val);
-                }
-            }
-        }
-    }
-
-    //  saveField(string("green_k_real.txt"), green_m, simData_m.np);                                                                           
-
-    // Note: mc2 does some transposion here but this is probable because of                                                                     
-    //       the used fft !?                                                                                                                    
-
-}
-
-
-
 ////////////////////////////////////////////////////////////////////////////
 // given a charge-density field rho and a set of mesh spacings hr,
 // compute the electric field and put in eg by solving the Poisson's equation
@@ -427,10 +361,8 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
 
     INFOMSG("NEW fft rho_m= " << sum(rho_m) << endl);
 
-    rho_m *= green_m;
-
     // Create Greens function for periodic 1/r potential
-    /*
+    
     NDIndex<3> elem;
     const T pi = acos(-1.0);
     const T tpinx = 2.0*pi/(1.0*gDomain_m[0].max()+1);
@@ -450,19 +382,15 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
             }
         }
     }
-    */
-    INFOMSG("NEW rho_m*G= " << sum(rho_m) << endl);
+    
     fft_m->transform("inverse", rho_m);
     // rho is now phi, the scalar potential
-    INFOMSG("NEW fft^-1 rho_m*G= " << sum(rho_m) << endl);
 
     // use rhocic_m with periodic boundary conditions (bc_m)
     rhocic_m.initialize(*meshI_m, *layout_m, GuardCellSizes<3>(2), bc_m);
-    rhocic_m = 0.0;
 
     rhocic_m = real(rho_m);
 
-    NDIndex<3> elem;
     for (int i=lDomain_m[0].min(); i<=lDomain_m[0].max(); ++i) {
         elem[0]=Index(i,i);
         for (int j=lDomain_m[1].min(); j<=lDomain_m[1].max(); ++j) {
@@ -474,13 +402,11 @@ void FFTPoissonSolverPeriodic<T,Dim>::computeForceField(ChargedParticles<T,Dim> 
         }
     }
 
-    INFOMSG("NEW real rho_m= " << sum(rhocic_m) << endl);
     gf_m = -Grad(rhocic_m,gf_m);
     univ->F.gather(gf_m, univ->R, IntCIC() );
 
     // restore zero face boundary conditions on rhocic_m
-    //rhocic_m.initialize(*meshI_m, *layout_m, GuardCellSizes<3>(2), zerobc_m);
-    //rhocic_m = 0.0;
+    rhocic_m.initialize(*meshI_m, *layout_m, GuardCellSizes<3>(2), zerobc_m);
 
     IpplTimings::stopTimer(TSolver_m);
 }

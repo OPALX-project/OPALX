@@ -38,8 +38,6 @@ public:
     virtual void calcPwrSpecAndSave(ChargedParticles<T,Dim> *univ, string fn) ;
 
 private:
-    void greensFunction();
-
     void saveField(string fn, CxField_t &f, int n );
     void saveField(string fn, RxField_t &f, int n );
     void doInit();
@@ -82,7 +80,6 @@ private:
 
     /// Fourier transformed density field
     CxField_t rho_m;
-    CxField_t green_m;
 
     /// real part of rho_m in bigger box (len+1)
     RxField_t rhocic_m;

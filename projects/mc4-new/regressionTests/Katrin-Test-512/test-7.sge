@@ -1,23 +1,16 @@
 #!/bin/bash
 #$ -cwd
 #$ -j y
-#$ -pe mpi 32
-#$ -N test-7
-#$ -v MPIHOME=/opt/mpi/openmpi-1.2.6-intel-10.0,LD_LIBRARY_PATH=/opt/intel-mkl/mkl-10.0/lib/em64t:/opt/mpi/openmpi-1.2.6-intel-10.0/lib:/opt/intel/intel-10.0/fce-10.0/lib:/opt/intel/intel-10.0/cce-10.0/lib
+#$ -pe orte 8
+#$ -N mc4
+#$ -v LD_LIBRARY_PATH,MC4_EXE_PATH,OPENMPI
 
 MACHINE_FILE=$TMPDIR/machinefile
-awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
-cp $MACHINE_FILE machinefile.last
+awk '/^felsim/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE
+cp $MACHINE_FILE .machinefile.last
 
-echo "PE_HOSTFILE:"
-cat  $PE_HOSTFILE
-echo "MACHINE_FILE:"
-cat $MACHINE_FILE
-echo "SLOTS=$NSLOTS"
-#
-
-INITI="$HOME/svnwork/ippl/projects/mc4/mc4 test-7 cmb.tf indat --commlib mpi --info 0 --warn 0 "
-CMD="$MPIHOME/bin/mpirun -machinefile $MACHINE_FILE -np $NSLOTS  --mca ras localhost --mca pls rsh  $INITI "
+MC4="$MC4_EXE_PATH/mc4 test7 cmb.tf init.in --info 0 --warn 0 "
+CMD="$OPENMPI/bin/mpirun -x LD_LIBRARY_PATH -machinefile $MACHINE_FILE -np $NSLOTS  $MC4 "
 echo "Running $CMD"
-echo 
+echo
 $CMD
