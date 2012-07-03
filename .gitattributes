@@ -657,6 +657,7 @@ projects/mc4-new/regressionTests/Katrin-Test-512/test-7.gpl -text
 projects/mc4-new/regressionTests/Katrin-Test-512/test-7.sge -text
 projects/mc4-new/regressionTests/test-1/fort.33 -text
 projects/mc4-new/regressionTests/test-1/fort.66 -text
+projects/mc4-new/regressionTests/test-1/mc2-mc4.ps -text
 projects/mc4-new/regressionTests/test-1/reference-data/mc4-1D-initial.spec -text
 projects/mc4-new/regressionTests/test-1/reference-data/mc4-1D.spec -text
 projects/mc4-new/regressionTests/test-1/reference-data/mc4-test1.o5110 -text
