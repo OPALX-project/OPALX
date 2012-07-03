@@ -114,7 +114,7 @@ void DataSink::writeH5FileAttributes() {
 }
 
 void DataSink::writePhaseSpace(TT time, TT z, int step) {
-    Inform msg("writePhaseSpace ");
+    Inform msg("dumpUniverse ");
     msg << " number " << H5call_m << endl;
     /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
