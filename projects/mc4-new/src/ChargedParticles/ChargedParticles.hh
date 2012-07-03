@@ -9,7 +9,7 @@ template <class T, unsigned int Dim> class FieldSolver;
 #include "FieldSolvers/FieldSolver.hh"
 #include "Parser/FileStream.h"
 #include "SimData.hh"
-#include "PwrSpec/PwrSpec.hh"
+
 #include "DataSink/DataSink.h"
 
 #include <iostream>

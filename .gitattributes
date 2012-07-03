@@ -724,9 +724,6 @@ projects/mc4-new/src/Parser/Token.cpp -text
 projects/mc4-new/src/Parser/Token.h -text
 projects/mc4-new/src/Parser/TokenStream.cpp -text
 projects/mc4-new/src/Parser/TokenStream.h -text
-projects/mc4-new/src/PwrSpec/CMakeLists.txt -text
-projects/mc4-new/src/PwrSpec/PwrSpec.cc -text
-projects/mc4-new/src/PwrSpec/PwrSpec.hh -text
 projects/mc4-new/src/SimData.hh -text
 projects/mc4-new/src/Utilities/ArithmeticError.cpp -text
 projects/mc4-new/src/Utilities/ArithmeticError.h -text
