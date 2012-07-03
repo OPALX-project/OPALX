@@ -191,6 +191,7 @@ int main(int argc, char *argv[]) {
 
     IpplMemoryUsage::sample(mainMemWatch,"");
     IpplTimings::startTimer(TWall);
+
     size_t chunksize = 1;
 
     //handle chunking
