@@ -1,5 +1,7 @@
 set log
 set title 'test-1'
+set ylabel 'P(k) (Mpc/h)^3'
+set xlabel 'k (h/Mpc)'
 plot 'mc4-1D.spec' w linesp t 'mc4' ls 4
 repl 'fort.33' w l t 'mc2' ls 2
 pause -1
