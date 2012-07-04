@@ -399,7 +399,7 @@ void IPPLInitializer::set_particles(real z_in, real d_z, real ddot, integer axis
    return;
 }
 
-void IPPLInitializer::output(integer axis, real* pos, real* vel){ // 0=x, 1=y, 2=z
+void IPPLInitializer::output(integer axis, std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel){ // 0=x, 1=y, 2=z
    long i, j, k, index;
 
    index = 0;
@@ -421,8 +421,8 @@ void IPPLInitializer::output(integer axis, real* pos, real* vel){ // 0=x, 1=y, 2
 
 //template <class T, unsigned int Dim>
 void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
-            ParticleAttrib< Vektor<T, 3> > &vel, FieldLayout_t *layout, Mesh_t *mesh,
-            InputParser& par, const char *tfName, MPI_Comm comm)
+				     ParticleAttrib< Vektor<T, 3> > &vel, FieldLayout_t *layout, Mesh_t *mesh,
+				     InputParser& par, const char *tfName, MPI_Comm comm)
 {
     integer i;
     real d_z, ddot, f_NL;
@@ -463,7 +463,7 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
     My_Ng = ngx*ngy*ngz;
 
     // Allocate arrays:
-    Pk   = (real *)malloc(My_Ng*sizeof(T));
+    Pk = std::unique_ptr<real[]>(new real[My_Ng]);
 
     // create the FFT object
     bool compressTemps = true;
@@ -513,8 +513,9 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
         set_particles(DataBase.z_in, d_z, ddot, i); // Zeldovich move
         OffClock("Particle move");
 
-        real *tpos = (real*)malloc(My_Ng*sizeof(T));
-        real *tvel = (real*)malloc(My_Ng*sizeof(T));
+	std::unique_ptr<real[]> tvel = std::unique_ptr<real[]>(new real[My_Ng]); 
+	std::unique_ptr<real[]> tpos = std::unique_ptr<real[]>(new real[My_Ng]); 
+
 
         if (i == 0) {
             OnClock("Output");
@@ -522,8 +523,8 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
             OffClock("Output");
             if (DataBase.Omega_nu > 0.0){
                 OnClock("Neutrinos");
-                buf_pos = (real *)malloc(ngy*ngz*sizeof(real));
-                buf_vel = (real *)malloc(ngy*ngz*sizeof(real));
+		buf_pos = std::unique_ptr<real[]>(new real[ngy*ngz]);
+		buf_vel = std::unique_ptr<real[]>(new real[ngy*ngz]); 
                 exchange_buffers(tpos, tvel);
                 inject_neutrinos(tpos, tvel, i);
                 OffClock("Neutrinos");
@@ -550,8 +551,6 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
                 OnClock("Neutrinos");
                 exchange_buffers(tpos, tvel);
                 inject_neutrinos(tpos, tvel, i);
-                free(buf_pos);
-                free(buf_vel);
                 OffClock("Neutrinos");
             }
             apply_periodic(tpos);
@@ -561,21 +560,15 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
         //FIXME: use pos_i, vel_i
 
         for(size_t j=0; j < static_cast<size_t>(My_Ng); ++j){
-            pos[j](i) = tpos[j];
+	    pos[j](i) = tpos[j];
             vel[j](i) = tvel[j];
         }
-
-        free(tpos);
-        free(tvel);
     }
 
     //FIXME
     // Add thermal velocity to neutrino particles:
     //if (DataBase.Omega_nu > 0.0) thermal_vel(vel_x, vel_y, vel_z);
 
-
-    // Clean all the allocations:
-    free(Pk);
 
     MPI_Barrier(comm);
     if (MyPE == MasterPE) PrintClockSummary(stdout);

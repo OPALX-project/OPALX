@@ -55,7 +55,7 @@ protected:
     void gravity_potential();
     void non_gaussian(integer axis);
     void set_particles(real z_in, real d_z, real ddot, integer axis);
-    void output(integer axis, real* pos, real* vel);
+    void output(integer axis, std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel);
 };
 
 #ifdef USENAMESPACE
