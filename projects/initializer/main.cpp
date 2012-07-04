@@ -34,11 +34,13 @@ int main(int argc, char * const argv[]) {
    
    StartMonitor();
    InputParser par(indatName);
+
+   std::unique_ptr<real[]> pos_x, pos_y, pos_z, vel_x, vel_y, vel_z;
+   std::unique_ptr<integer[]> ID;
    
-   real *pos_x, *pos_y, *pos_z, *vel_x, *vel_y, *vel_z;
    long Npart, i;
    int NumProcs, MyPE;
-   integer *ID;
+   
    Output out;
    //Initializer init;
    
@@ -59,17 +61,17 @@ int main(int argc, char * const argv[]) {
       Npart = (2*neut_pairs+1)*Npart;
    }
    
-   pos_x = (real *)malloc(Npart*sizeof(real));
-   pos_y = (real *)malloc(Npart*sizeof(real));
-   pos_z = (real *)malloc(Npart*sizeof(real));
-   vel_x = (real *)malloc(Npart*sizeof(real));
-   vel_y = (real *)malloc(Npart*sizeof(real));
-   vel_z = (real *)malloc(Npart*sizeof(real));
+   pos_x = std::unique_ptr<real[]>(new real[Npart]);
+   pos_y = std::unique_ptr<real[]>(new real[Npart]);
+   pos_z = std::unique_ptr<real[]>(new real[Npart]);
+   vel_x = std::unique_ptr<real[]>(new real[Npart]);
+   vel_y = std::unique_ptr<real[]>(new real[Npart]);
+   vel_z = std::unique_ptr<real[]>(new real[Npart]);
    
    init.init_particles(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, 
                        par, tfName.c_str());
    
-   ID = (integer *)malloc(Npart*sizeof(integer)); 	 
+   ID = std::unique_ptr<integer[]>(new integer[Npart]); 
    for(i=0; i<Npart; i++) { 	 
       ID[i] = Npart*MyPE + i; 	 
    }
@@ -120,14 +122,6 @@ int main(int argc, char * const argv[]) {
 	}
    if (MyPE == 0) {std::cout << "done" << std::endl << std::flush;}
    OffClock("Output");
-   
-   free(pos_x);
-   free(pos_y);
-   free(pos_z);
-   free(vel_x);
-   free(vel_y);
-   free(vel_z);
-   free(ID);
    
    MPI_Barrier(MPI_COMM_WORLD);
    if (MyPE == 0) PrintClockSummary(stdout);

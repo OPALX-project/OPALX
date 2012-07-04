@@ -11,6 +11,7 @@
 
 #include <string>
 #include "InputParser.h"
+#include <memory>
 
 #ifdef USENAMESPACE
 namespace initializer {
@@ -20,27 +21,32 @@ using namespace std;
 class Output {
 
 public:   
-   void grid2phys(real *pos_x, real *pos_y, real *pos_z, 	 
-                  real *vel_x, real *vel_y, real *vel_z, 	 
+   void grid2phys(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z, 	 
+                  std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z, 	 
                   int Npart, int np, float rL);
-   void write_hcosmo_ascii(real *pos_x, real *pos_y, real *pos_z,
-                           real *vel_x, real *vel_y, real *vel_z,
+
+   void write_hcosmo_ascii(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+                           std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z,
                            int Npart, string outBase);
-   void write_hcosmo_serial(real *pos_x, real *pos_y, real *pos_z, 	 
-                            real *vel_x, real *vel_y, real *vel_z, 	 
-                            integer *id, int Npart, string outBase);
-   void write_hcosmo_parallel(real *pos_x, real *pos_y, real *pos_z, 	 
-                              real *vel_x, real *vel_y, real *vel_z, 	 
-                              integer *id, int Npart, string outBase);
+
+   void write_hcosmo_serial(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z, 	 
+                            std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z, 	 
+                            std::unique_ptr<integer[]> &id, int Npart, string outBase);
+
+   void write_hcosmo_parallel(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z, 	 
+                              std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z, 	 
+                              std::unique_ptr<integer[]> &id, int Npart, string outBase);
 #ifdef H5PART
-   void write_hcosmo_h5(real *pos_x, real *pos_y, real *pos_z,
-                        real *vel_x, real *vel_y, real *vel_z,
-                        integer *id, int Npart, string outBase, 
+
+   void write_hcosmo_h5(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+                        std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z,
+                        std::unique_ptr<integer[]> &id, int Npart, string outBase, 
                         h5part_int64_t ng, h5part_int64_t ng2d, h5part_int64_t np, 
                         h5part_int64_t rL, string indatName);
 #endif
-   void write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_z,
-                     real *vel_x, real *vel_y, real *vel_z, integer *id, 
+
+   void write_gadget(InputParser& par, std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+                     std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z, std::unique_ptr<integer[]> &id, 
                      int Npart, string outBase);
 
 private:
