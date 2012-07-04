@@ -32,8 +32,8 @@ namespace initializer {
 #endif
 using namespace std;
 
-void Output::grid2phys(real *pos_x, real *pos_y, real *pos_z,
-               real *vel_x, real *vel_y, real *vel_z,
+void Output::grid2phys(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+               std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z,
                int Npart, int np, float rL) {
    long i;
 
@@ -53,9 +53,9 @@ void Output::grid2phys(real *pos_x, real *pos_y, real *pos_z,
 }
 
 
-void Output::write_hcosmo_serial(real *pos_x, real *pos_y, real *pos_z,
-                  real *vel_x, real *vel_y, real *vel_z,
-                  integer *id, int Npart, string outBase) {
+void Output::write_hcosmo_serial(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+				 std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z,
+				 std::unique_ptr<integer[]> &id, int Npart, string outBase) {
    FILE *outFile = NULL;
    ostringstream outName;
    long i;
@@ -78,15 +78,18 @@ void Output::write_hcosmo_serial(real *pos_x, real *pos_y, real *pos_z,
          fwrite(&vel_z[i], sizeof(real), 1, outFile);
          fwrite(&id[i], sizeof(integer), 1, outFile);
       }
+
+      
+
       for (proc=0; proc<NumPEs; ++proc){  // Get data from other processors:
          if (proc == MasterPE) continue;
-         MPI_Recv(pos_x, Npart, MY_MPI_REAL, proc, 101, MPI_COMM_WORLD, &status);
-         MPI_Recv(pos_y, Npart, MY_MPI_REAL, proc, 102, MPI_COMM_WORLD, &status);
-         MPI_Recv(pos_z, Npart, MY_MPI_REAL, proc, 103, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_x, Npart, MY_MPI_REAL, proc, 104, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_y, Npart, MY_MPI_REAL, proc, 105, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_z, Npart, MY_MPI_REAL, proc, 106, MPI_COMM_WORLD, &status);
-         MPI_Recv(id, Npart, MY_MPI_INTEGER, proc, 107, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_x.get()), Npart, MY_MPI_REAL, proc, 101, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_y.get()), Npart, MY_MPI_REAL, proc, 102, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_z.get()), Npart, MY_MPI_REAL, proc, 103, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_x.get()), Npart, MY_MPI_REAL, proc, 104, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_y.get()), Npart, MY_MPI_REAL, proc, 105, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_z.get()), Npart, MY_MPI_REAL, proc, 106, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(id.get()), Npart, MY_MPI_INTEGER, proc, 107, MPI_COMM_WORLD, &status);
          for (i=0; i<Npart; ++i) {
             fwrite(&pos_x[i], sizeof(real), 1, outFile);
             fwrite(&vel_x[i], sizeof(real), 1, outFile);
@@ -100,22 +103,22 @@ void Output::write_hcosmo_serial(real *pos_x, real *pos_y, real *pos_z,
       fclose(outFile);
    }
    else {  // Send data to master processor:
-      MPI_Send(pos_x, Npart, MY_MPI_REAL, MasterPE, 101, MPI_COMM_WORLD);
-      MPI_Send(pos_y, Npart, MY_MPI_REAL, MasterPE, 102, MPI_COMM_WORLD);
-      MPI_Send(pos_z, Npart, MY_MPI_REAL, MasterPE, 103, MPI_COMM_WORLD);
-      MPI_Send(vel_x, Npart, MY_MPI_REAL, MasterPE, 104, MPI_COMM_WORLD);
-      MPI_Send(vel_y, Npart, MY_MPI_REAL, MasterPE, 105, MPI_COMM_WORLD);
-      MPI_Send(vel_z, Npart, MY_MPI_REAL, MasterPE, 106, MPI_COMM_WORLD);
-      MPI_Send(id, Npart, MY_MPI_INTEGER, MasterPE, 107, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(pos_x.get()), Npart, MY_MPI_REAL, MasterPE, 101, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(pos_y.get()), Npart, MY_MPI_REAL, MasterPE, 102, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(pos_z.get()), Npart, MY_MPI_REAL, MasterPE, 103, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_x.get()), Npart, MY_MPI_REAL, MasterPE, 104, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_y.get()), Npart, MY_MPI_REAL, MasterPE, 105, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_z.get()), Npart, MY_MPI_REAL, MasterPE, 106, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(id.get()), Npart, MY_MPI_INTEGER, MasterPE, 107, MPI_COMM_WORLD);
    }
 
    return;
 }
 
 
-void Output::write_hcosmo_parallel(real *pos_x, real *pos_y, real *pos_z,
-                                   real *vel_x, real *vel_y, real *vel_z,
-                                   integer *id, int Npart, string outBase) {
+void Output::write_hcosmo_parallel(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+                                   std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z,
+                                   std::unique_ptr<integer[]> &id, int Npart, string outBase) {
    FILE *outFile;
    ostringstream outName;
    long i;
@@ -141,9 +144,9 @@ void Output::write_hcosmo_parallel(real *pos_x, real *pos_y, real *pos_z,
 
 
 #ifdef H5PART
-void Output::write_hcosmo_h5(real *pos_x, real *pos_y, real *pos_z,
-                     real *vel_x, real *vel_y, real *vel_z,
-                     integer *id, int Npart, string outBase,
+void Output::write_hcosmo_h5(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+                     std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z,
+                     std::unique_ptr<integer[]> &id, int Npart, string outBase,
                      h5part_int64_t ng, h5part_int64_t ng2d, h5part_int64_t np,
                      h5part_int64_t rL, string indatName) {
    long i;
@@ -227,8 +230,8 @@ void Output::write_hcosmo_h5(real *pos_x, real *pos_y, real *pos_z,
 #endif
 
 
-void Output::write_hcosmo_ascii(real *pos_x, real *pos_y, real *pos_z,
-                       real *vel_x, real *vel_y, real *vel_z,
+void Output::write_hcosmo_ascii(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+                       std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z,
                        int Npart, string outBase) {
    long i;
    int MyPE, NumPEs, MasterPE, proc;
@@ -247,19 +250,19 @@ void Output::write_hcosmo_ascii(real *pos_x, real *pos_y, real *pos_z,
       for (i=0; i<Npart; ++i) {
          of  << pos_x[i] << ' ';
          of <<  vel_x[i] << ' ';
-         of <<  pos_y[i] << ' ';
+         of <<  pos_y[i] << ' ';  
          of <<  vel_y[i] << ' ';
          of <<  pos_z[i] << ' ';
          of <<  vel_z[i] << endl;
       }
       for (proc=0; proc<NumPEs; ++proc){  // Get data from other processors:
          if (proc == MasterPE) continue;
-         MPI_Recv(pos_x, Npart, MY_MPI_REAL, proc, 101, MPI_COMM_WORLD, &status);
-         MPI_Recv(pos_y, Npart, MY_MPI_REAL, proc, 102, MPI_COMM_WORLD, &status);
-         MPI_Recv(pos_z, Npart, MY_MPI_REAL, proc, 103, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_x, Npart, MY_MPI_REAL, proc, 104, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_y, Npart, MY_MPI_REAL, proc, 105, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_z, Npart, MY_MPI_REAL, proc, 106, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_x.get()), Npart, MY_MPI_REAL, proc, 101, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_y.get()), Npart, MY_MPI_REAL, proc, 102, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_z.get()), Npart, MY_MPI_REAL, proc, 103, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_x.get()), Npart, MY_MPI_REAL, proc, 104, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_y.get()), Npart, MY_MPI_REAL, proc, 105, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_z.get()), Npart, MY_MPI_REAL, proc, 106, MPI_COMM_WORLD, &status);
          for (i=0; i<Npart; ++i) {
             of  << pos_x[i] << ' ';
             of <<  vel_x[i] << ' ';
@@ -272,20 +275,20 @@ void Output::write_hcosmo_ascii(real *pos_x, real *pos_y, real *pos_z,
       of.close();
    }
    else {  // Send data to master processor:
-      MPI_Send(pos_x, Npart, MY_MPI_REAL, MasterPE, 101, MPI_COMM_WORLD);
-      MPI_Send(pos_y, Npart, MY_MPI_REAL, MasterPE, 102, MPI_COMM_WORLD);
-      MPI_Send(pos_z, Npart, MY_MPI_REAL, MasterPE, 103, MPI_COMM_WORLD);
-      MPI_Send(vel_x, Npart, MY_MPI_REAL, MasterPE, 104, MPI_COMM_WORLD);
-      MPI_Send(vel_y, Npart, MY_MPI_REAL, MasterPE, 105, MPI_COMM_WORLD);
-      MPI_Send(vel_z, Npart, MY_MPI_REAL, MasterPE, 106, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(pos_x.get()), Npart, MY_MPI_REAL, MasterPE, 101, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(pos_y.get()), Npart, MY_MPI_REAL, MasterPE, 102, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(pos_z.get()), Npart, MY_MPI_REAL, MasterPE, 103, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_x.get()), Npart, MY_MPI_REAL, MasterPE, 104, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_y.get()), Npart, MY_MPI_REAL, MasterPE, 105, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_z.get()), Npart, MY_MPI_REAL, MasterPE, 106, MPI_COMM_WORLD);
    }
 
    return;
 }
 
 
-void Output::write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_z,
-                           real *vel_x, real *vel_y, real *vel_z, integer *id,
+void Output::write_gadget(InputParser& par, std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+                           std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z, std::unique_ptr<integer[]> &id,
                            int Npart, string outBase) {
    FILE *outFile = NULL;
    ostringstream outName;
@@ -355,9 +358,9 @@ void Output::write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_
       }
       for (proc=0; proc<NumPEs; ++proc){  // Get data from other processors:
          if (proc == MasterPE) continue;
-         MPI_Recv(pos_x, Npart, MY_MPI_REAL, proc, 101, MPI_COMM_WORLD, &status);
-         MPI_Recv(pos_y, Npart, MY_MPI_REAL, proc, 102, MPI_COMM_WORLD, &status);
-         MPI_Recv(pos_z, Npart, MY_MPI_REAL, proc, 103, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_x.get()), Npart, MY_MPI_REAL, proc, 101, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_y.get()), Npart, MY_MPI_REAL, proc, 102, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(pos_z.get()), Npart, MY_MPI_REAL, proc, 103, MPI_COMM_WORLD, &status);
          for (i=0; i<Npart; ++i) {
             x = (float)pos_x[i];  // In Mpc/h
             y = (float)pos_y[i];
@@ -368,11 +371,11 @@ void Output::write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_
          }
       }
       SKIP
-   }
+	} 
    else {  // Send data to master processor:
-      MPI_Send(pos_x, Npart, MY_MPI_REAL, MasterPE, 101, MPI_COMM_WORLD);
-      MPI_Send(pos_y, Npart, MY_MPI_REAL, MasterPE, 102, MPI_COMM_WORLD);
-      MPI_Send(pos_z, Npart, MY_MPI_REAL, MasterPE, 103, MPI_COMM_WORLD);
+     MPI_Send(reinterpret_cast<void*>(pos_x.get()), Npart, MY_MPI_REAL, MasterPE, 101, MPI_COMM_WORLD);
+     MPI_Send(reinterpret_cast<void*>(pos_y.get()), Npart, MY_MPI_REAL, MasterPE, 102, MPI_COMM_WORLD);
+     MPI_Send(reinterpret_cast<void*>(pos_z.get()), Npart, MY_MPI_REAL, MasterPE, 103, MPI_COMM_WORLD);
    }
    if (MyPE == MasterPE){
       blksize = np*np*np*3*sizeof(float);
@@ -387,9 +390,9 @@ void Output::write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_
       }
       for (proc=0; proc<NumPEs; ++proc){  // Get data from other processors:
          if (proc == MasterPE) continue;
-         MPI_Recv(vel_x, Npart, MY_MPI_REAL, proc, 104, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_y, Npart, MY_MPI_REAL, proc, 105, MPI_COMM_WORLD, &status);
-         MPI_Recv(vel_z, Npart, MY_MPI_REAL, proc, 106, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_x.get()), Npart, MY_MPI_REAL, proc, 104, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_y.get()), Npart, MY_MPI_REAL, proc, 105, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(vel_z.get()), Npart, MY_MPI_REAL, proc, 106, MPI_COMM_WORLD, &status);
          for (i=0; i<Npart; ++i) {
             vx = (float)vel_x[i];    // In km/s
             vy = (float)vel_y[i];
@@ -402,9 +405,9 @@ void Output::write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_
       SKIP
    }
    else {  // Send data to master processor:
-      MPI_Send(vel_x, Npart, MY_MPI_REAL, MasterPE, 104, MPI_COMM_WORLD);
-      MPI_Send(vel_y, Npart, MY_MPI_REAL, MasterPE, 105, MPI_COMM_WORLD);
-      MPI_Send(vel_z, Npart, MY_MPI_REAL, MasterPE, 106, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_x.get()), Npart, MY_MPI_REAL, MasterPE, 104, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_y.get()), Npart, MY_MPI_REAL, MasterPE, 105, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(vel_z.get()), Npart, MY_MPI_REAL, MasterPE, 106, MPI_COMM_WORLD);
    }
    if (MyPE == MasterPE){
       blksize = np*np*np*sizeof(int);
@@ -415,7 +418,7 @@ void Output::write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_
       }
       for (proc=0; proc<NumPEs; ++proc){  // Get data from other processors:
          if (proc == MasterPE) continue;
-         MPI_Recv(id, Npart, MY_MPI_INTEGER, proc, 107, MPI_COMM_WORLD, &status);
+         MPI_Recv(reinterpret_cast<void*>(id.get()), Npart, MY_MPI_INTEGER, proc, 107, MPI_COMM_WORLD, &status);
          for (i=0; i<Npart; ++i) {
             gID = (int)id[i];
             fwrite(&gID, sizeof(int), 1, outFile);
@@ -425,7 +428,7 @@ void Output::write_gadget(InputParser& par, real *pos_x, real *pos_y, real *pos_
       fclose(outFile);
    }
    else {  // Send data to master processor:
-      MPI_Send(id, Npart, MY_MPI_INTEGER, MasterPE, 107, MPI_COMM_WORLD);
+      MPI_Send(reinterpret_cast<void*>(id.get()), Npart, MY_MPI_INTEGER, MasterPE, 107, MPI_COMM_WORLD);
    }
 
    return;

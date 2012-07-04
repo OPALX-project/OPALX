@@ -11,8 +11,12 @@
 #include "distribution.h"
 #include "InputParser.h"
 
+#include <memory>
+#include <climits>
+
 #ifdef USENAMESPACE
 namespace initializer {
+  using namespace std;
 #endif
 
 #ifndef NOFFTW
@@ -35,21 +39,25 @@ public:
     //~Initializer() {
         ////FIXME: 
     //}
-    
-    void init_particles(real* pos_x, real* pos_y, real* pos_z, 
-                    real* vel_x, real* vel_y, real* vel_z, 
-		            InputParser& par, const char *tfName);
+
+    void init_particles(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z, 
+			std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z, 
+			InputParser& par, const char *tfName);
 
 //FIXME: later distinguish between private and protected
+
 protected:
 
     ParallelTools Parallel;
     GlobalStuff DataBase;
     CosmoClass Cosmology;
 
-    real *Pk;
+    std::unique_ptr<real[]> Pk;
+
     my_fftw_complex *rho;
-    real *buf_pos, *buf_vel; // buffers for neutrino calculation
+
+    std::unique_ptr<real[]> buf_pos;
+    std::unique_ptr<real[]> buf_vel;
 
     long My_Ng;  // lenght of the above arrays = number of my grid points
 
@@ -76,11 +84,11 @@ protected:
     void gravity_potential();
     void non_gaussian(integer axis);
     void set_particles(real z_in, real d_z, real ddot, integer axis);
-    void output(integer axis, real* pos, real* vel);
-    void exchange_buffers(real *pos, real *vel);
-    void inject_neutrinos(real *pos, real *vel, integer axis);
-    void thermal_vel(real *vx, real *vy, real *vz);
-    void apply_periodic(real *pos);
+    void output(integer axis, std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel);
+    void exchange_buffers(std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel);
+    void inject_neutrinos(std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel, integer axis);
+    void thermal_vel(std::unique_ptr<real[]> &vx, std::unique_ptr<real[]> &vy, std::unique_ptr<real[]> &vz);
+    void apply_periodic(std::unique_ptr<real[]> &pos);
 
 };
 

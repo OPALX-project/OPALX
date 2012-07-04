@@ -576,7 +576,7 @@ void Initializer::set_particles(real z_in, real d_z, real ddot, integer axis){ /
 }
 
 
-void Initializer::output(integer axis, real* pos, real* vel){ // 0=x, 1=y, 2=z
+void Initializer::output(integer axis, std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel){ // 0=x, 1=y, 2=z
    //const integer ngrid=DataBase.ngrid;
    long i;
    //const char *fname;
@@ -659,7 +659,7 @@ void Initializer::output(integer axis, real* pos, real* vel){ // 0=x, 1=y, 2=z
 }
 
 
-void Initializer::exchange_buffers(real *pos, real *vel){
+void Initializer::exchange_buffers(std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel){
    long j, k, index;
    int recv_proc, send_proc;
    MPI_Status status;
@@ -680,16 +680,16 @@ void Initializer::exchange_buffers(real *pos, real *vel){
       if(MyPE == 0) send_proc = NumPEs-1;
       if(MyPE == NumPEs-1) recv_proc = 0;
 
-      MPI_Sendrecv_replace(buf_pos, ngy*ngz, MY_MPI_REAL, send_proc, 0,
+      MPI_Sendrecv_replace(reinterpret_cast<void*>(buf_pos.get()), ngy*ngz, MY_MPI_REAL, send_proc, 0,
                            recv_proc, 0, Parallel.GetMpiComm(), &status);
-      MPI_Sendrecv_replace(buf_vel, ngy*ngz, MY_MPI_REAL, send_proc, 0,
+      MPI_Sendrecv_replace(reinterpret_cast<void*>(buf_vel.get()), ngy*ngz, MY_MPI_REAL, send_proc, 0,
                            recv_proc, 0, Parallel.GetMpiComm(), &status);
    }
    return;
 }
 
 
-void Initializer::inject_neutrinos(real *pos, real *vel, integer axis){
+void Initializer::inject_neutrinos(std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel, integer axis){
    const integer ngrid=DataBase.ngrid;
    long i, j, k, index, iplus, jplus, kplus;
    int nu_pairs, nn;
@@ -822,7 +822,7 @@ void Initializer::inject_neutrinos(real *pos, real *vel, integer axis){
 }
 
 
-void Initializer::thermal_vel(real *vx, real *vy, real *vz){
+  void Initializer::thermal_vel(std::unique_ptr<real[]> &vx, std::unique_ptr<real[]>  &vy, std::unique_ptr<real[]>  &vz) {
    long i;
    int nu_pairs;
    real tx, ty, tz;
@@ -842,7 +842,7 @@ void Initializer::thermal_vel(real *vx, real *vy, real *vz){
 }
 
 
-void Initializer::apply_periodic(real *pos){
+void Initializer::apply_periodic(std::unique_ptr<real[]> &pos){
    const integer ngrid=DataBase.ngrid;
    long i, np;
 
@@ -858,9 +858,9 @@ void Initializer::apply_periodic(real *pos){
 }
 
 
-void Initializer::init_particles(real* pos_x, real* pos_y, real* pos_z,
-		    real* vel_x, real* vel_y, real* vel_z,
-		    InputParser& par, const char *tfName) {
+void Initializer::init_particles(std::unique_ptr<real[]> &pos_x, std::unique_ptr<real[]> &pos_y, std::unique_ptr<real[]> &pos_z,
+				 std::unique_ptr<real[]> &vel_x, std::unique_ptr<real[]> &vel_y, std::unique_ptr<real[]> &vel_z, 
+				 InputParser& par, const char *tfName) {
    integer i;
    real d_z, ddot, f_NL;
    double t1, t2;
@@ -893,7 +893,8 @@ void Initializer::init_particles(real* pos_x, real* pos_y, real* pos_z,
    My_Ng = ngx*ngy*ngz;
 
    // Allocate arays:
-   Pk   = (real *)malloc(My_Ng*sizeof(real));
+   Pk = std::unique_ptr<real[]>(new real[My_Ng]);
+
    rho  = (my_fftw_complex *)malloc(My_Ng*sizeof(my_fftw_complex));
 
    // Initialize FFTW:
@@ -977,8 +978,8 @@ void Initializer::init_particles(real* pos_x, real* pos_y, real* pos_z,
          OffClock("Output");
          if (DataBase.Omega_nu > 0.0){
             OnClock("Neutrinos");
-            buf_pos = (real *)malloc(ngy*ngz*sizeof(real));
-            buf_vel = (real *)malloc(ngy*ngz*sizeof(real));
+            buf_pos = std::unique_ptr<real[]>(new real[ngy*ngz]);
+            buf_vel = std::unique_ptr<real[]>(new real[ngy*ngz]); 
             exchange_buffers(pos_x, vel_x);
             inject_neutrinos(pos_x, vel_x, i);
             OffClock("Neutrinos");
@@ -1005,8 +1006,6 @@ void Initializer::init_particles(real* pos_x, real* pos_y, real* pos_z,
             OnClock("Neutrinos");
             exchange_buffers(pos_z, vel_z);
             inject_neutrinos(pos_z, vel_z, i);
-            free(buf_pos);
-            free(buf_vel);
             OffClock("Neutrinos");
          }
          apply_periodic(pos_z);
@@ -1016,7 +1015,6 @@ void Initializer::init_particles(real* pos_x, real* pos_y, real* pos_z,
    if (DataBase.Omega_nu > 0.0) thermal_vel(vel_x, vel_y, vel_z);
 
    // Clean all allocations:
-   free(Pk);
    free(rho);
 #ifdef FFTW2
    fftwnd_mpi_destroy_plan(plan);

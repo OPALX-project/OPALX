@@ -43,7 +43,7 @@
 PROGS = init
 CPP = mpicxx
 CC = mpicc
-CPPFLAGS = -O3 -funroll-loops -DNOFFTW -DUSENAMESPACE
+CPPFLAGS = -O3 -std=c++0x -funroll-loops -DNOFFTW -DUSENAMESPACE
 CFLAGS = -O3 -funroll-loops -std=c99
 
 
