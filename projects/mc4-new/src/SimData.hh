@@ -12,7 +12,6 @@ class SimData
 public:
 
     SimData(int argc, char *argv[]) {
-        Inform msg("SimData ");
 
         FileStream::setEcho(false);
         FileStream *is;
@@ -162,11 +161,12 @@ inline std::ostream &operator<<(std::ostream &os, const SimData<double,3> &data)
     return os;
 }
 
+/*
 inline std::ostream &operator<<(std::ostream &os, const SimData<float,3> &data)
 {
     data.print(os);
     return os;
 }
-
+*/
 #endif
 

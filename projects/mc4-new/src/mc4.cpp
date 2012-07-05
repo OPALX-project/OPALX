@@ -192,14 +192,6 @@ int main(int argc, char *argv[]) {
     IpplMemoryUsage::sample(mainMemWatch,"");
     IpplTimings::startTimer(TWall);
 
-    size_t chunksize = 1;
-
-    //handle chunking
-    if(argc > 4) {
-        chunksize = atoi(argv[4]);
-        msg << "Chunking enabled with size = " << chunksize << endl;
-    }
-
     /**
       univ is used in the calculation
       */
@@ -247,7 +239,7 @@ int main(int argc, char *argv[]) {
     /**
       simData.jinit == 0 (generate using the initializer)
       simData.jinit == 1 ASCII (fort.66), needed in the regression test-1
-      simData.jinit == 3 H5Part
+      simData.jinit == 3 H5hut (read in distribution from h5 file)
       simData.jinit == 4 Uniform, to test
       */
 
@@ -264,15 +256,17 @@ int main(int argc, char *argv[]) {
         string indatName = argv[1];
         string tfName = argv[2];
 
-        initializer::InputParser bdata("init.in");
+	/* 
+	   this is for the initializer. at some point we have to 
+	   unify the inputfiles
+	*/
+        initializer::InputParser bdata(argv[3]);
 
         size_t Npart;
-        int NumProcs, rank;
+        int NumProcs;
 
         NumProcs = Ippl::Comm->getNodes();
-        rank = Ippl::Comm->myNode();
 
-        //DETERMINE HOWMANY PROCS TO USE
         int np = 0;
         bdata.getByName("np", np);
 
@@ -285,40 +279,17 @@ int main(int argc, char *argv[]) {
         pos.create(Npart);
         vel.create(Npart);
         mass.create(Npart);
+        mass = 1.0;
     
         initializer::IPPLInitializer init;
         
-        initializer::InputParser par("init.in");
+        initializer::InputParser par(argv[3]);
 
         init.init_particles(pos, vel, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
 
-        mass = 1.0;
-
-        size_t rest = 0;
-        int iterations = 0;
-        int tag = IPPL_APP_TAG1;
-        int parent = 0;
-
-        if( rank == parent && Npart != 0 ) {
-            rest = Npart % chunksize;
-            iterations = (Npart - rest) / chunksize;
-
-            Message *mess1 = new Message();
-            putMessage( *mess1, rest );
-            putMessage( *mess1, iterations );
-            Ippl::Comm->broadcast_all(mess1, tag);
-        }
-
-        Message *mess = Ippl::Comm->receive_block(parent, tag);
-        PAssert(mess);
-        getMessage( *mess, rest );
-        getMessage( *mess, iterations );
-        if (mess)
-            delete mess;
-
-        msg << "about to copy ics over to univ junksize= " << chunksize << " iterations " << iterations << " rest " << rest << endl;
+        msg << "about to copy IC's over to univ junksize= " << endl;
         //pos, vel and mass particle attributes are destroyed in copy constructor
-        univ = new ChargedParticles<T,DimA>(PLF, simData, pos, vel, mass, Npart, Vector_t(simData.ng_comp), chunksize, iterations, rest);
+        univ = new ChargedParticles<T,DimA>(PLF, simData, pos, vel, mass, Npart, Vector_t(simData.ng_comp));
         msg << "done coping ics to univ" << endl;
 
         //XXX; make sure R is scaled from [0, ng_comp]
@@ -342,13 +313,6 @@ int main(int argc, char *argv[]) {
 
         // create an empty ChargedParticles object and set the BC's
         univ = univ0;
-        //new ChargedParticles<T,DimA>(PLF,simData,
-        //univ0->R,
-        //univ0->V,
-        //univ0->M,
-        //univ0->getLocalNum(),
-        //Vector_t(simData.ng_comp),
-        //chunksize);
     }
 
     IpplTimings::stopTimer(TCDist);
@@ -366,10 +330,9 @@ int main(int argc, char *argv[]) {
     T ainv = 1.0 /(simData.alpha);
     T pp   = pow(ain,simData.alpha);
     
-    //     DataSink *itsDataSink = NULL;
     DataSink *itsDataSink = new DataSink("universe.h5", univ);
     if (simData.iprint < 99)
-        itsDataSink->writePhaseSpace(pow(pp, ainv), 1.0/pow(pp,ainv)-1.0, 0);
+      itsDataSink->writePhaseSpace(pow(pp, ainv), 1.0/pow(pp,ainv)-1.0, 0);
     
     univ->setTime(0.0);
     univ->set_FieldSolver(new FFTPoissonSolverPeriodic<T,DimA>(univ,simData));
@@ -387,14 +350,15 @@ int main(int argc, char *argv[]) {
     msg << "Sanity check: total Np= " << localNp << endl;
 
     /**
-      Initial dump
+      Initial dump if modest problem size and only one core.
+      This is for tests only, maybe need to go away in the future
       */
     if ((simData.np < 128) && (Ippl::getNodes()==1))
-        univ->dumpParticles(string("mc4-out/step-univ"));
+      univ->dumpParticles(string("mc4-out/step-univ"));
 
     /**
       Initial P(k)
-      */
+    */
     IpplTimings::startTimer(TPwrSpec);
     msg << "Calculate power spectra of initial step "  << endl;
     univ->fs_m->calcPwrSpecAndSave(univ,string("mc4-1D-initial.spec"));
@@ -407,14 +371,27 @@ int main(int argc, char *argv[]) {
     univ->tStep(itsDataSink);
     IpplTimings::stopTimer(TStep);
 
-    //if (Ippl::getNodes()==1)
-    //findHalo(univ,simData);
+    
+    /*
+      The halofinder is not yet fully parallelized and integrated
+
+      if (Ippl::getNodes()==1)
+        findHalo(univ,simData); 
+     */
+
+
 
     IpplTimings::startTimer(TPwrSpec);
     msg << "Calculate power spectra of last step "  << endl;
     univ->fs_m->calcPwrSpecAndSave(univ,string("mc4-1D.spec"));
-    //if (Ippl::getNodes()==1)
-    //univ->calcAndDumpCorrelation(63);
+
+    /*
+      The routine calcAndDumpCorrelation() is not yet fully parallelized and integrated
+
+    if (Ippl::getNodes()==1)
+      univ->calcAndDumpCorrelation(63);
+    */
+
     IpplTimings::stopTimer(TPwrSpec);
 
     T pmass = 2.77536627e11*std::pow(simData.rL,(T)3.0)*(omegatot)/simData.hubble/univ->getTotalNum();
@@ -437,6 +414,5 @@ int main(int argc, char *argv[]) {
 
     Ippl::Comm->barrier();
     return 0;
-
 }
 

@@ -128,8 +128,7 @@ public:
     //constructor to create univ
     ChargedParticles(Layout_t *playout, SimData<T,Dim> simData, ParticleAttrib<Vector_t> &r ,
             ParticleAttrib<Vector_t>  &v,
-            ParticleAttrib<T>    &m, size_t npLocal,
-            Vector_t boxSize, size_t chunksize, int iterations, size_t rest) :
+		     ParticleAttrib<T>    &m, size_t npLocal, Vector_t boxSize) :
 #ifdef CASHEDLAYOUT
         ParticleBase< ParticleCashedLayout<T,Dim> >(playout),
 #else
@@ -155,73 +154,16 @@ public:
 
         fieldNotInitialized_m = true;
 
-        bool iCreate = (npLocal > 0);
+	this->create(npLocal);
+	this->R = r;
+	this->V = v;
+	this->M = m;
+	this->update();
 
-        if (chunksize > 1) {
-            for (int i=0; i<iterations;i++) {
-                if (iCreate) {
-                    size_t offset = this->getLocalNum();
-                    this->create(chunksize);
-                    for (size_t k = 0; k < chunksize; k++) {
-                        if (std::isnan(r[k](0)) ||  std::isnan(r[k](1)) ||
-                                std::isnan(r[k](2))) {
-                            ; // skip
-                        } else {
-                            this->R[offset+k] = r[k];
-                            this->V[offset+k] = v[k];
-                            this->M[offset+k] = m[k];
-                        }
-                    }
-                    r.destroy(chunksize,0,true);
-                    v.destroy(chunksize,0,true);
-                    m.destroy(chunksize,0,true);
+	r.destroy(npLocal,0,true);
+	v.destroy(npLocal,0,true);
+	m.destroy(npLocal,0,true);
 
-                }
-                if (i==0)
-                    rescaleAll();
-                else
-                    this->update();
-
-                msg << "Step " << i << " np= " << scientific
-                    << (double) this->getTotalNum() << endl;
-            }
-
-            if (iCreate) {
-                size_t offset = this->getLocalNum();
-                rest  = r.size();
-                msg << "Last Step rest= " << rest << endl;
-                if (rest > 0) {
-                    this->create(rest);
-                    for (size_t k = 0; k < rest; k++) {
-                        this->R[offset+k] = r[k];
-                        this->V[offset+k] = v[k];
-                        this->M[offset+k] = m[k];
-                    }
-                    r.destroy(rest,0,true);
-                    v.destroy(rest,0,true);
-                    m.destroy(rest,0,true);
-                }
-            }
-
-            if (this->getTotalNum() == 0)
-                rescaleAll();
-            else
-                this->update();
-
-            msg << "Last Step (rest) done np= " << this->getTotalNum() << endl;
-        }
-        else {
-            if (iCreate) {
-                this->create(npLocal);
-                this->R = r;
-                this->V = v;
-                this->M = m;
-            }
-            rescaleAll();
-            r.destroy(npLocal,0,true);
-            v.destroy(npLocal,0,true);
-            m.destroy(npLocal,0,true);
-        }
         itsDataSink_m = NULL;
     }
 
@@ -816,12 +758,12 @@ public:
 
         size_t N = this->getTotalNum();
         //FIXME: this should be 2*N or 4*N (if sample is large, maybe =N)
-        int Nran=2*N;
-        vector<double> x(N), y(N), z(N);
-        vector<double> r_weight(Nbins-1), ran_corr(Nbins-1);
-        vector<double> r_corr(Nbins-1), hh_corr(Nbins-1);
+        size_t Nran=2*N;
+        vector<T> x(N), y(N), z(N);
+        vector<T> r_weight(Nbins-1), ran_corr(Nbins-1);
+        vector<T> r_corr(Nbins-1), hh_corr(Nbins-1);
 
-        for(int i=0; i<N; i++) {
+        for(size_t i=0; i<N; i++) {
             x[i] = this->R[i](0)*simData_m.rL/simData_m.ng_comp;
             y[i] = this->R[i](1)*simData_m.rL/simData_m.ng_comp;
             z[i] = this->R[i](2)*simData_m.rL/simData_m.ng_comp;
