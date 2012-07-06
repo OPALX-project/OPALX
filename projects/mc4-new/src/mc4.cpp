@@ -50,6 +50,8 @@ mpirun -np 1 mc4 indat fort.66 --info 0 --commlib mpi
 #include "Cosmology.h"
 #include "InputParser.h"
 
+#include "TypesAndDefs.h"
+
 #ifdef MC4HALOFINDER
 
 /**
@@ -262,7 +264,7 @@ int main(int argc, char *argv[]) {
 	*/
         initializer::InputParser bdata(argv[3]);
 
-        size_t Npart;
+        size_t Npart = 0;
         int NumProcs;
 
         NumProcs = Ippl::Comm->getNodes();
@@ -270,17 +272,28 @@ int main(int argc, char *argv[]) {
         int np = 0;
         bdata.getByName("np", np);
 
+	double omega_nu = 0.0;
+	// bdata.getByName("Omega_nu", omega_nu); does not work
+
+	int nu_pairs = 0;
+        bdata.getByName("nu_pairs", nu_pairs);
+
         ParticleAttrib<Vector_t> pos;
         ParticleAttrib<Vector_t> vel;
         ParticleAttrib<T> mass;
 
-        Npart = (np*np*np)/NumProcs;
+	if (omega_nu > 0.0) {
+	  msg << "Creating << " << nu_pairs << " neutrinos" << endl;
+	  Npart = (nu_pairs*2 + 1)*(np*np*np)/NumProcs;
+	}
+	else
+	  Npart = (np*np*np)/NumProcs;
 
         pos.create(Npart);
         vel.create(Npart);
         mass.create(Npart);
         mass = 1.0;
-    
+	
         initializer::IPPLInitializer init;
         
         initializer::InputParser par(argv[3]);
