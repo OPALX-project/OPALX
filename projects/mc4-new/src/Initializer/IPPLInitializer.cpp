@@ -421,8 +421,12 @@ void IPPLInitializer::output(integer axis, std::unique_ptr<real[]> &pos, std::un
 
 //template <class T, unsigned int Dim>
 void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
-				     ParticleAttrib< Vektor<T, 3> > &vel, FieldLayout_t *layout, Mesh_t *mesh,
-				     InputParser& par, const char *tfName, MPI_Comm comm)
+				     ParticleAttrib< Vektor<T, 3> > &vel, 
+				     FieldLayout_t *layout, 
+				     Mesh_t *mesh,
+				     InputParser& par, 
+				     const char *tfName, 
+				     MPI_Comm comm)
 {
     integer i;
     real d_z, ddot, f_NL;
@@ -486,96 +490,89 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
 
 
     f_NL=DataBase.f_NL;
+
     for (i=0; i<Ndim; ++i){
-        OnClock("Creating rho(x,y,z)");
-        indens();          // Set density in k-space:
-        OffClock("Creating rho(x,y,z)");
+      OnClock("Creating rho(x,y,z)");
+      indens();          // Set density in k-space:
+      OffClock("Creating rho(x,y,z)");
 #ifdef TESTREALITY
-        // Check if density field is real:
-        test_reality();
+      // Check if density field is real:
+      test_reality();
 #endif
+      if (f_NL == 0.0){ // Solve for the force immediately
+	OnClock("Poisson solve");
+	gravity_force(i);  // Calculate i-th component of the force
+	OffClock("Poisson solve");
+      }
+      else { // Solve for Phi, apply f_NL, apply T(k), solve for the force
+	OnClock("Poisson solve");
+	gravity_potential();  // Calculate gravitational potential
+	OffClock("Poisson solve");
+	OnClock("Non-Gaussianity");
+	non_gaussian(i);  // Create non-gaussian force
+	OffClock("Non-Gaussianity");
+      }
+      
+      OnClock("Particle move");
+      set_particles(DataBase.z_in, d_z, ddot, i); // Zeldovich move
+      OffClock("Particle move");
+      
+      /*
+	At this point the particles are
+	all in the structure of the initializer.
 
-        if (f_NL == 0.0){ // Solve for the force immediately
-            OnClock("Poisson solve");
-            gravity_force(i);  // Calculate i-th component of the force
-            OffClock("Poisson solve");
-        }
-        else { // Solve for Phi, apply f_NL, apply T(k), solve for the force
-            OnClock("Poisson solve");
-            gravity_potential();  // Calculate gravitational potential
-            OffClock("Poisson solve");
-            OnClock("Non-Gaussianity");
-            non_gaussian(i);  // Create non-gaussian force
-            OffClock("Non-Gaussianity");
-        }
+	Next we allocate (one againg memory) to copy
+	them from initializer to IPPLInitializer (tvel, tpos).
+	This is done in the output(i,tpos,tvel) call.
 
-        OnClock("Particle move");
-        set_particles(DataBase.z_in, d_z, ddot, i); // Zeldovich move
-        OffClock("Particle move");
+	In case of neutrinos we allocate buf_pos and buf_vel.
+       */
 
-	std::unique_ptr<real[]> tvel = std::unique_ptr<real[]>(new real[My_Ng]); 
-	std::unique_ptr<real[]> tpos = std::unique_ptr<real[]>(new real[My_Ng]); 
+      std::unique_ptr<real[]> tvel = std::unique_ptr<real[]>(new real[My_Ng]); 
+      std::unique_ptr<real[]> tpos = std::unique_ptr<real[]>(new real[My_Ng]); 
+      
+      if ((i == 0 ) && (DataBase.Omega_nu > 0.0)) {
+	  buf_pos = std::unique_ptr<real[]>(new real[ngy*ngz]);
+	  buf_vel = std::unique_ptr<real[]>(new real[ngy*ngz]); 
+      }
 
 
-        if (i == 0) {
-            OnClock("Output");
-	    output(i, tpos, tvel);
-            OffClock("Output");
-            if (DataBase.Omega_nu > 0.0){
-                OnClock("Neutrinos");
-		buf_pos = std::unique_ptr<real[]>(new real[ngy*ngz]);
-		buf_vel = std::unique_ptr<real[]>(new real[ngy*ngz]); 
-                exchange_buffers(tpos, tvel);
-                inject_neutrinos(tpos, tvel, i);
-                OffClock("Neutrinos");
-            }
-            apply_periodic(tpos);
-        }   // Put particle data
-        else if (i == 1) {
-            OnClock("Output");
-            output(i, tpos, tvel);
-            OffClock("Output");
-            if (DataBase.Omega_nu > 0.0){
-                OnClock("Neutrinos");
-                exchange_buffers(tpos, tvel);
-                inject_neutrinos(tpos, tvel, i);
-                OffClock("Neutrinos");
-            }
-            apply_periodic(tpos);
-        }
-        else {
-            OnClock("Output");
-            output(i, tpos, tvel);
-            OffClock("Output");
-            if (DataBase.Omega_nu > 0.0){
-                OnClock("Neutrinos");
-                exchange_buffers(tpos, tvel);
-                inject_neutrinos(tpos, tvel, i);
-                OffClock("Neutrinos");
-            }
-            apply_periodic(tpos);
-        }
+      /*
+	Copy data from Initializer to tpos, tvel
+       */
+      OnClock("Output");
+      output(i, tpos, tvel);
+      OffClock("Output");
 
-        //FIXME: store particles to IPPL container + NEUTRINOS
-        //FIXME: use pos_i, vel_i
 
-        for(size_t j=0; j < static_cast<size_t>(My_Ng); ++j){
-	    pos[j](i) = tpos[j];
-            vel[j](i) = tvel[j];
-        }
+      if (DataBase.Omega_nu > 0.0){
+	OnClock("Neutrinos");
+	exchange_buffers(tpos, tvel);
+	inject_neutrinos(tpos, tvel, i);
+	OffClock("Neutrinos");
+      }
+
+      apply_periodic(tpos);
+      
+      //FIXME: store particles to IPPL container + NEUTRINOS
+      //FIXME: use pos_i, vel_i
+      
+      for(size_t j=0; j < static_cast<size_t>(My_Ng); ++j){
+	pos[j](i) = tpos[j];
+	vel[j](i) = tvel[j];
+      }
     }
-
+    
     //FIXME
     // Add thermal velocity to neutrino particles:
-    //if (DataBase.Omega_nu > 0.0) thermal_vel(vel_x, vel_y, vel_z);
-
+    // if (DataBase.Omega_nu > 0.0)  thermal_vel(vel_x, vel_y, vel_z);
+    
 
     MPI_Barrier(comm);
-    if (MyPE == MasterPE) PrintClockSummary(stdout);
+    if (MyPE == MasterPE) 
+      PrintClockSummary(stdout);
     Parallel.FinalMPI(&t2);
-
 }
-
 #ifdef USENAMESPACE
 }
 #endif
