@@ -460,11 +460,7 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
     nz1 = localidx[2].first();
     nz2 = localidx[2].last();
 
-    ngx = localidx[0].length();
-    ngy = localidx[1].length();
-    ngz = localidx[2].length();
-
-    My_Ng = ngx*ngy*ngz;
+    My_Ng = pos.size();
 
     // Allocate arrays:
     Pk = std::unique_ptr<real[]>(new real[My_Ng]);
@@ -532,8 +528,10 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
       std::unique_ptr<real[]> tpos = std::unique_ptr<real[]>(new real[My_Ng]); 
       
       if ((i == 0 ) && (DataBase.Omega_nu > 0.0)) {
-	  buf_pos = std::unique_ptr<real[]>(new real[ngy*ngz]);
-	  buf_vel = std::unique_ptr<real[]>(new real[ngy*ngz]); 
+	// the variables are stored in the Initializer class !! 
+	msg << "Neutrinos enabled, allocate storrage in Intializer class" << endl;
+	buf_pos = std::unique_ptr<real[]>(new real[ngy*ngz]);
+	buf_vel = std::unique_ptr<real[]>(new real[ngy*ngz]); 
       }
 
 
@@ -547,8 +545,11 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
 
       if (DataBase.Omega_nu > 0.0){
 	OnClock("Neutrinos");
+	msg << "exchange buffers" << endl;
 	exchange_buffers(tpos, tvel);
+	msg << "exchange buffers doen, inject nu" << endl;
 	inject_neutrinos(tpos, tvel, i);
+	msg << "Inject nu done" << endl;
 	OffClock("Neutrinos");
       }
 
