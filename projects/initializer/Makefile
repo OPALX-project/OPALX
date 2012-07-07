@@ -86,11 +86,12 @@ C_OBJ = $(C_SOURCES:.c=.o)
 
 
 default: $(C_SOURCES) $(CPP_SOURCES) $(PROGS)
-	rm -rf *.o
 
 tarball:
 	tar -zcf source.tar.gz $(C_SOURCES) $(CPP_SOURCES) \
                                $(INCLUDE) README Makefile input.par cmb.tf
+lib:	
+	ar -r libMC4Initializer.a PerfMon.o distribution.o Cosmology.o MT_Random.o DataBase.o InputParser.o Parallelization.o Output.o Initializer.o
 
 clean:
 	rm -rf *.o $(PROGS)
