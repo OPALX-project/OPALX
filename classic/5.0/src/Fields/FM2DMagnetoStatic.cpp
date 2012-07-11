@@ -114,13 +114,13 @@ void FM2DMagnetoStatic::readMap() {
         }
         in.close();
 
-		// find maximum field
-		for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
-			if(fabs(FieldstrengthBz_m[i]) > Bzmax) {
-				Bzmax = fabs(FieldstrengthBz_m[i]);
-			}
+        // find maximum field
+        for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
+            if(fabs(FieldstrengthBz_m[i]) > Bzmax) {
+                Bzmax = fabs(FieldstrengthBz_m[i]);
+            }
         }
-		
+
         // normalize field
         for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
             FieldstrengthBz_m[i] /= Bzmax;
@@ -179,7 +179,7 @@ bool FM2DMagnetoStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_
     return false;
 }
 
-bool FM2DMagnetoStatic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM2DMagnetoStatic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
 
     double BfieldR, BfieldZ;
 
@@ -202,71 +202,71 @@ bool FM2DMagnetoStatic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, V
     if(dir == DZ) {
         if(indexz > 0) {
             if(indexz < num_gridpz_m - 1) {
-                BfieldR = (1.0 - leverr) * ((FieldstrengthBr_m[index1-1] - 2. * FieldstrengthBr_m[index1] + FieldstrengthBr_m[index1+1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                            + (FieldstrengthBr_m[index1+1] - FieldstrengthBr_m[index1-1]) / (2.*hz_m))
-                          + leverr         * ((FieldstrengthBr_m[index2-1] - 2. * FieldstrengthBr_m[index2] + FieldstrengthBr_m[index2+1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                              + (FieldstrengthBr_m[index2+1] - FieldstrengthBr_m[index2-1]) / (2.*hz_m));
+                BfieldR = (1.0 - leverr) * ((FieldstrengthBr_m[index1 - 1] - 2. * FieldstrengthBr_m[index1] + FieldstrengthBr_m[index1 + 1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                            + (FieldstrengthBr_m[index1 + 1] - FieldstrengthBr_m[index1 - 1]) / (2.*hz_m))
+                          + leverr         * ((FieldstrengthBr_m[index2 - 1] - 2. * FieldstrengthBr_m[index2] + FieldstrengthBr_m[index2 + 1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                              + (FieldstrengthBr_m[index2 + 1] - FieldstrengthBr_m[index2 - 1]) / (2.*hz_m));
 
-                BfieldZ = (1.0 - leverr) * ((FieldstrengthBz_m[index1-1] - 2. * FieldstrengthBz_m[index1] + FieldstrengthBz_m[index1+1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                            + (FieldstrengthBz_m[index1+1] - FieldstrengthBz_m[index1-1]) / (2.*hz_m))
-                          + leverr         * ((FieldstrengthBz_m[index2-1] - 2. * FieldstrengthBz_m[index2] + FieldstrengthBz_m[index2+1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                              + (FieldstrengthBz_m[index2+1] - FieldstrengthBz_m[index2-1]) / (2.*hz_m));
+                BfieldZ = (1.0 - leverr) * ((FieldstrengthBz_m[index1 - 1] - 2. * FieldstrengthBz_m[index1] + FieldstrengthBz_m[index1 + 1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                            + (FieldstrengthBz_m[index1 + 1] - FieldstrengthBz_m[index1 - 1]) / (2.*hz_m))
+                          + leverr         * ((FieldstrengthBz_m[index2 - 1] - 2. * FieldstrengthBz_m[index2] + FieldstrengthBz_m[index2 + 1]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                              + (FieldstrengthBz_m[index2 + 1] - FieldstrengthBz_m[index2 - 1]) / (2.*hz_m));
             } else {
-                BfieldR = (1.0 - leverr) * ((FieldstrengthBr_m[index1] - 2. * FieldstrengthBr_m[index1-1] + FieldstrengthBr_m[index1-2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                            - (3. * FieldstrengthBr_m[index1] - 4. * FieldstrengthBr_m[index1-1] + FieldstrengthBr_m[index1-2]) / (2.*hz_m))
-                          + leverr         * ((FieldstrengthBr_m[index2] - 2. * FieldstrengthBr_m[index2-1] + FieldstrengthBr_m[index2-2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                              - (3. * FieldstrengthBr_m[index2]  - 4. * FieldstrengthBr_m[index1-1] + FieldstrengthBr_m[index2-2]) / (2.*hz_m));
+                BfieldR = (1.0 - leverr) * ((FieldstrengthBr_m[index1] - 2. * FieldstrengthBr_m[index1 - 1] + FieldstrengthBr_m[index1 - 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                            - (3. * FieldstrengthBr_m[index1] - 4. * FieldstrengthBr_m[index1 - 1] + FieldstrengthBr_m[index1 - 2]) / (2.*hz_m))
+                          + leverr         * ((FieldstrengthBr_m[index2] - 2. * FieldstrengthBr_m[index2 - 1] + FieldstrengthBr_m[index2 - 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                              - (3. * FieldstrengthBr_m[index2]  - 4. * FieldstrengthBr_m[index1 - 1] + FieldstrengthBr_m[index2 - 2]) / (2.*hz_m));
 
-                BfieldZ = (1.0 - leverr) * ((FieldstrengthBz_m[index1] - 2. * FieldstrengthBz_m[index1-1] + FieldstrengthBz_m[index1-2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                            - (3. * FieldstrengthBz_m[index1]  - 4. * FieldstrengthBr_m[index1-1] + FieldstrengthBz_m[index1-2]) / (2.*hz_m))
-                          + leverr         * ((FieldstrengthBz_m[index2] - 2. * FieldstrengthBz_m[index2-1] + FieldstrengthBz_m[index2-2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                              - (3. * FieldstrengthBz_m[index2]  - 4. * FieldstrengthBr_m[index1-1] + FieldstrengthBz_m[index2-2]) / (2.*hz_m));
+                BfieldZ = (1.0 - leverr) * ((FieldstrengthBz_m[index1] - 2. * FieldstrengthBz_m[index1 - 1] + FieldstrengthBz_m[index1 - 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                            - (3. * FieldstrengthBz_m[index1]  - 4. * FieldstrengthBr_m[index1 - 1] + FieldstrengthBz_m[index1 - 2]) / (2.*hz_m))
+                          + leverr         * ((FieldstrengthBz_m[index2] - 2. * FieldstrengthBz_m[index2 - 1] + FieldstrengthBz_m[index2 - 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                              - (3. * FieldstrengthBz_m[index2]  - 4. * FieldstrengthBr_m[index1 - 1] + FieldstrengthBz_m[index2 - 2]) / (2.*hz_m));
             }
         } else {
-            BfieldR = (1.0 - leverr) * ((FieldstrengthBr_m[index1] - 2. * FieldstrengthBr_m[index1+1] + FieldstrengthBr_m[index1+2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                        - (3. * FieldstrengthBr_m[index1] - 4. * FieldstrengthBr_m[index1+1] + FieldstrengthBr_m[index1+2]) / (2.*hz_m))
-                      + leverr         * ((FieldstrengthBr_m[index2] - 2. * FieldstrengthBr_m[index2+1] + FieldstrengthBr_m[index2+2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                          - (3. * FieldstrengthBr_m[index2]  - 4. * FieldstrengthBr_m[index1+1] + FieldstrengthBr_m[index2+2]) / (2.*hz_m));
+            BfieldR = (1.0 - leverr) * ((FieldstrengthBr_m[index1] - 2. * FieldstrengthBr_m[index1 + 1] + FieldstrengthBr_m[index1 + 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                        - (3. * FieldstrengthBr_m[index1] - 4. * FieldstrengthBr_m[index1 + 1] + FieldstrengthBr_m[index1 + 2]) / (2.*hz_m))
+                      + leverr         * ((FieldstrengthBr_m[index2] - 2. * FieldstrengthBr_m[index2 + 1] + FieldstrengthBr_m[index2 + 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                          - (3. * FieldstrengthBr_m[index2]  - 4. * FieldstrengthBr_m[index1 + 1] + FieldstrengthBr_m[index2 + 2]) / (2.*hz_m));
 
-            BfieldZ = (1.0 - leverr) * ((FieldstrengthBz_m[index1] - 2. * FieldstrengthBz_m[index1+1] + FieldstrengthBz_m[index1+2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                        - (3. * FieldstrengthBz_m[index1]  - 4. * FieldstrengthBr_m[index1+1] + FieldstrengthBz_m[index1+2]) / (2.*hz_m))
-                      + leverr         * ((FieldstrengthBz_m[index2] - 2. * FieldstrengthBz_m[index2+1] + FieldstrengthBz_m[index2+2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
-                                          - (3. * FieldstrengthBz_m[index2]  - 4. * FieldstrengthBr_m[index1+1] + FieldstrengthBz_m[index2+2]) / (2.*hz_m));
+            BfieldZ = (1.0 - leverr) * ((FieldstrengthBz_m[index1] - 2. * FieldstrengthBz_m[index1 + 1] + FieldstrengthBz_m[index1 + 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                        - (3. * FieldstrengthBz_m[index1]  - 4. * FieldstrengthBr_m[index1 + 1] + FieldstrengthBz_m[index1 + 2]) / (2.*hz_m))
+                      + leverr         * ((FieldstrengthBz_m[index2] - 2. * FieldstrengthBz_m[index2 + 1] + FieldstrengthBz_m[index2 + 2]) * (R(2) - indexz * hz_m) / (hz_m * hz_m)
+                                          - (3. * FieldstrengthBz_m[index2]  - 4. * FieldstrengthBr_m[index1 + 1] + FieldstrengthBz_m[index2 + 2]) / (2.*hz_m));
         }
     } else {
         if(indexr > 0) {
             const int index_1 = index1 - num_gridpz_m;
             if(indexr < num_gridpr_m - 1) {
-                BfieldR = (1.0 - leverz) * ((FieldstrengthBr_m[index_1+1] - 2. * FieldstrengthBr_m[index1+1] + FieldstrengthBr_m[index2+1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
-                                            + (FieldstrengthBr_m[index2+1] - FieldstrengthBr_m[index_1+1]) / (2.*hr_m))
+                BfieldR = (1.0 - leverz) * ((FieldstrengthBr_m[index_1 + 1] - 2. * FieldstrengthBr_m[index1 + 1] + FieldstrengthBr_m[index2 + 1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
+                                            + (FieldstrengthBr_m[index2 + 1] - FieldstrengthBr_m[index_1 + 1]) / (2.*hr_m))
                           + leverz         * ((FieldstrengthBr_m[index_1] - 2. * FieldstrengthBr_m[index1] + FieldstrengthBr_m[index2]) * (RR - indexr * hr_m) / (hr_m * hr_m)
                                               + (FieldstrengthBr_m[index2] - FieldstrengthBr_m[index_1]) / (2.*hr_m));
 
-                BfieldZ = (1.0 - leverz) * ((FieldstrengthBz_m[index_1+1] - 2. * FieldstrengthBz_m[index1+1] + FieldstrengthBz_m[index2+1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
-                                            + (FieldstrengthBz_m[index2+1] - FieldstrengthBz_m[index_1+1]) / (2.*hr_m))
+                BfieldZ = (1.0 - leverz) * ((FieldstrengthBz_m[index_1 + 1] - 2. * FieldstrengthBz_m[index1 + 1] + FieldstrengthBz_m[index2 + 1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
+                                            + (FieldstrengthBz_m[index2 + 1] - FieldstrengthBz_m[index_1 + 1]) / (2.*hr_m))
                           + leverz         * ((FieldstrengthBz_m[index_1] - 2. * FieldstrengthBz_m[index1] + FieldstrengthBz_m[index2]) * (RR - indexr * hr_m) / (hr_m * hr_m)
                                               + (FieldstrengthBz_m[index2] - FieldstrengthBz_m[index_1]) / (2.*hr_m));
             } else {
                 const int index_2 = index_1 - num_gridpz_m;
-                BfieldR = (1.0 - leverz) * ((FieldstrengthBr_m[index1+1] - 2. * FieldstrengthBr_m[index_1+1] + FieldstrengthBr_m[index_2+1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
-                                            - (3. * FieldstrengthBr_m[index1+1] - 4. * FieldstrengthBr_m[index_1+1] + FieldstrengthBr_m[index_2+1]) / (2.*hr_m))
+                BfieldR = (1.0 - leverz) * ((FieldstrengthBr_m[index1 + 1] - 2. * FieldstrengthBr_m[index_1 + 1] + FieldstrengthBr_m[index_2 + 1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
+                                            - (3. * FieldstrengthBr_m[index1 + 1] - 4. * FieldstrengthBr_m[index_1 + 1] + FieldstrengthBr_m[index_2 + 1]) / (2.*hr_m))
                           + leverz         * ((FieldstrengthBr_m[index1] - 2. * FieldstrengthBr_m[index_1] + FieldstrengthBr_m[index_2]) * (RR - indexr * hr_m) / (hr_m * hr_m)
                                               - (3. * FieldstrengthBr_m[index1]  - 4. * FieldstrengthBr_m[index_1] + FieldstrengthBr_m[index_2]) / (2.*hr_m));
 
-                BfieldZ = (1.0 - leverz) * ((FieldstrengthBz_m[index1+1] - 2. * FieldstrengthBz_m[index_1+1] + FieldstrengthBz_m[index_2+1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
-                                            - (3. * FieldstrengthBz_m[index1+1]  - 4. * FieldstrengthBr_m[index_1+1] + FieldstrengthBz_m[index_2+1]) / (2.*hr_m))
+                BfieldZ = (1.0 - leverz) * ((FieldstrengthBz_m[index1 + 1] - 2. * FieldstrengthBz_m[index_1 + 1] + FieldstrengthBz_m[index_2 + 1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
+                                            - (3. * FieldstrengthBz_m[index1 + 1]  - 4. * FieldstrengthBr_m[index_1 + 1] + FieldstrengthBz_m[index_2 + 1]) / (2.*hr_m))
                           + leverz         * ((FieldstrengthBz_m[index1] - 2. * FieldstrengthBz_m[index_1] + FieldstrengthBz_m[index_2]) * (RR - indexr * hr_m) / (hr_m * hr_m)
                                               - (3. * FieldstrengthBz_m[index1]  - 4. * FieldstrengthBr_m[index_1] + FieldstrengthBz_m[index_2]) / (2.*hr_m));
             }
         } else {
             const int index3 = index2 + num_gridpz_m;
-            BfieldR = (1.0 - leverz) * ((FieldstrengthBr_m[index1+1] - 2. * FieldstrengthBr_m[index2+1] + FieldstrengthBr_m[index3+1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
-                                        - (3. * FieldstrengthBr_m[index1+1] - 4. * FieldstrengthBr_m[index2+1] + FieldstrengthBr_m[index3+1]) / (2.*hr_m))
+            BfieldR = (1.0 - leverz) * ((FieldstrengthBr_m[index1 + 1] - 2. * FieldstrengthBr_m[index2 + 1] + FieldstrengthBr_m[index3 + 1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
+                                        - (3. * FieldstrengthBr_m[index1 + 1] - 4. * FieldstrengthBr_m[index2 + 1] + FieldstrengthBr_m[index3 + 1]) / (2.*hr_m))
                       + leverz         * ((FieldstrengthBr_m[index1] - 2. * FieldstrengthBr_m[index2] + FieldstrengthBr_m[index3]) * (RR - indexr * hr_m) / (hr_m * hr_m)
                                           - (3. * FieldstrengthBr_m[index1]  - 4. * FieldstrengthBr_m[index2] + FieldstrengthBr_m[index3]) / (2.*hr_m));
 
-            BfieldZ = (1.0 - leverz) * ((FieldstrengthBz_m[index1+1] - 2. * FieldstrengthBz_m[index2+1] + FieldstrengthBz_m[index3+1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
-                                        - (3. * FieldstrengthBz_m[index1+1]  - 4. * FieldstrengthBr_m[index2+1] + FieldstrengthBz_m[index3+1]) / (2.*hr_m))
+            BfieldZ = (1.0 - leverz) * ((FieldstrengthBz_m[index1 + 1] - 2. * FieldstrengthBz_m[index2 + 1] + FieldstrengthBz_m[index3 + 1]) * (RR - indexr * hr_m) / (hr_m * hr_m)
+                                        - (3. * FieldstrengthBz_m[index1 + 1]  - 4. * FieldstrengthBr_m[index2 + 1] + FieldstrengthBz_m[index3 + 1]) / (2.*hr_m))
                       + leverz         * ((FieldstrengthBz_m[index1] - 2. * FieldstrengthBz_m[index2] + FieldstrengthBz_m[index3]) * (RR - indexr * hr_m) / (hr_m * hr_m)
                                           - (3. * FieldstrengthBz_m[index1]  - 4. * FieldstrengthBr_m[index2] + FieldstrengthBz_m[index3]) / (2.*hr_m));
         }

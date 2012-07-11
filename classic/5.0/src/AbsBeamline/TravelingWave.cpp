@@ -172,7 +172,7 @@ void TravelingWave::addKR(int i, double t, Vector_t &K) {
 
         wtf = frequency_m * t + phase_m;
         CoreFieldmap_m->getFieldstrength(tmpA0, tmpE, tmpB);
-        CoreFieldmap_m->getFieldstrength_fdiff(tmpA0, tmpE_diff, tmpB_diff, zdir);
+        CoreFieldmap_m->getFieldDerivative(tmpA0, tmpE_diff, tmpB_diff, zdir);
         k = scale_m * (tmpE_diff(2) * cos(wtf) - b * frequency_m * tmpE(2) * sin(wtf) / Physics::c);
 
     } else if(tmpA0(2) < startExitField_m) {
@@ -188,7 +188,7 @@ void TravelingWave::addKR(int i, double t, Vector_t &K) {
         tmpB_diff = 0.0;
 
         CoreFieldmap_m->getFieldstrength(tmpA0, tmpE, tmpB);
-        CoreFieldmap_m->getFieldstrength_fdiff(tmpA0, tmpE_diff, tmpB_diff, zdir);
+        CoreFieldmap_m->getFieldDerivative(tmpA0, tmpE_diff, tmpB_diff, zdir);
         k = scaleCore_m * (tmpE_diff(2) * cos(wtf) - b * frequency_m * tmpE(2) * sin(wtf) / Physics::c);
 
         wtf = frequency_m * t + phaseCore2_m;
@@ -201,7 +201,7 @@ void TravelingWave::addKR(int i, double t, Vector_t &K) {
         tmpB_diff = 0.0;
 
         CoreFieldmap_m->getFieldstrength(tmpA0, tmpE, tmpB);
-        CoreFieldmap_m->getFieldstrength_fdiff(tmpA0, tmpE_diff, tmpB_diff, zdir);
+        CoreFieldmap_m->getFieldDerivative(tmpA0, tmpE_diff, tmpB_diff, zdir);
         k += scaleCore_m * (tmpE_diff(2) * cos(wtf) - b * frequency_m * tmpE(2) * sin(wtf) / Physics::c);
 
     } else {
@@ -214,7 +214,7 @@ void TravelingWave::addKR(int i, double t, Vector_t &K) {
         tmpB_diff = 0.0;
 
         CoreFieldmap_m->getFieldstrength(tmpA0, tmpE, tmpB);
-        CoreFieldmap_m->getFieldstrength_fdiff(tmpA0, tmpE_diff, tmpB_diff, zdir);
+        CoreFieldmap_m->getFieldDerivative(tmpA0, tmpE_diff, tmpB_diff, zdir);
         k = scale_m * (tmpE_diff(2) * cos(wtf) - b * frequency_m * tmpE(2) * sin(wtf) / Physics::c);
 
     }
@@ -523,18 +523,18 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
         E.resize(N3, E0);
         E2.resize(N3, E0);
         for(int i = 1; i < N1; ++ i) {
-            E[i] = E0 + (F[i].first + F[i-1].first) / 2. * scale_m / mass;
+            E[i] = E0 + (F[i].first + F[i - 1].first) / 2. * scale_m / mass;
             E2[i] = E[i];
         }
         for(int i = N1; i < N3 - N1 + 1; ++ i) {
             int I = (i - N1) % N2 + N1;
-            double Z = (F[I].first + F[I-1].first) / 2. + floor((i - N1) / N2) * Dz;
+            double Z = (F[I].first + F[I - 1].first) / 2. + floor((i - N1) / N2) * Dz;
             E[i] = E0 + Z * scaleCore_m / mass;
             E2[i] = E[i];
         }
         for(int i = N3 - N1 + 1; i < N3; ++ i) {
             int I = i - N3 - 1 + 2 * N1 + N2;
-            double Z = (F[I].first + F[I-1].first) / 2. + ((NumCells_m - 1) * Mode_m - 1) * Dz;
+            double Z = (F[I].first + F[I - 1].first) / 2. + ((NumCells_m - 1) * Mode_m - 1) * Dz;
             E[i] = E0 + Z * scale_m / mass;
             E2[i] = E[i];
         }
@@ -542,23 +542,23 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
         for(int iter = 0; iter < 10; ++ iter) {
             A = B = 0.0;
             for(int i = 1; i < N1; ++ i) {
-                t[i] = t[i-1] + getdT(i, i, E, F, mass);
-                t2[i] = t2[i-1] + getdT(i, i, E2, F, mass);
+                t[i] = t[i - 1] + getdT(i, i, E, F, mass);
+                t2[i] = t2[i - 1] + getdT(i, i, E2, F, mass);
                 A += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdA(i, i, t, 0.0, F);
                 B += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdB(i, i, t, 0.0, F);
             }
             for(int i = N1; i < N3 - N1 + 1; ++ i) {
                 int I = (i - N1) % N2 + N1;
                 int J = (i - N1 + N4) % N2 + N1;
-                t[i] = t[i-1] + getdT(i, I, E, F, mass);
-                t2[i] = t2[i-1] + getdT(i, I, E2, F, mass);
+                t[i] = t[i - 1] + getdT(i, I, E, F, mass);
+                t2[i] = t2[i - 1] + getdT(i, I, E2, F, mass);
                 A += scaleCore_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * (getdA(i, I, t, phaseC1, F) + getdA(i, J, t, phaseC2, F));
                 B += scaleCore_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * (getdB(i, I, t, phaseC1, F) + getdB(i, J, t, phaseC2, F));
             }
             for(int i = N3 - N1 + 1; i < N3; ++ i) {
                 int I = i - N3 - 1 + 2 * N1 + N2;
-                t[i] = t[i-1] + getdT(i, I, E, F, mass);
-                t2[i] = t2[i-1] + getdT(i, I, E2, F, mass);
+                t[i] = t[i - 1] + getdT(i, I, E, F, mass);
+                t2[i] = t2[i - 1] + getdT(i, I, E2, F, mass);
                 A += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdA(i, I, t, phaseE, F);
                 B += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdB(i, I, t, phaseE, F);
             }
@@ -572,21 +572,21 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
                 tmp_phi += Physics::pi;
             }
 
-            if(fabs(phi - tmp_phi) < frequency_m * (t[N3-1] - t[0]) / N3) {
+            if(fabs(phi - tmp_phi) < frequency_m * (t[N3 - 1] - t[0]) / N3) {
                 for(int i = 1; i < N1; ++ i) {
-                    E[i] = E[i-1] + q * scale_m * getdE(i, i, t, phi, F);
+                    E[i] = E[i - 1] + q * scale_m * getdE(i, i, t, phi, F);
                 }
                 for(int i = N1; i < N3 - N1 + 1; ++ i) {
                     int I = (i - N1) % N2 + N1;
                     int J = (i - N1 + N4) % N2 + N1;
-                    E[i] = E[i-1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1, F) + getdE(i, J, t, phi + phaseC2, F));
+                    E[i] = E[i - 1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1, F) + getdE(i, J, t, phi + phaseC2, F));
                 }
                 for(int i = N3 - N1 + 1; i < N3; ++ i) {
                     int I = i - N3 - 1 + 2 * N1 + N2;
-                    E[i] = E[i-1] + q * scale_m * getdE(i, I, t, phi + phaseE, F);
+                    E[i] = E[i - 1] + q * scale_m * getdE(i, I, t, phi + phaseE, F);
                 }
                 msg << "estimated phi= " << tmp_phi << " rad, "
-                    << "Ekin= " << E[N3-1] << " MeV" << endl;
+                    << "Ekin= " << E[N3 - 1] << " MeV" << endl;
                 //                 stringstream fn;
                 //                 fn << getName() << ".dat";
                 //                 ofstream ckrtest(fn.str().c_str());
@@ -628,31 +628,31 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 
 
             for(int i = 1; i < N1; ++ i) {
-                E[i] = E[i-1] + q * scale_m * getdE(i, i, t, phi, F);
-                E2[i] = E2[i-1] + q * scale_m * getdE(i, i, t, phi + dphi, F); // should I use here t or t2?
-                t[i] = t[i-1] + getdT(i, i, E, F, mass);
-                t2[i] = t2[i-1] + getdT(i, i, E2, F, mass);
-                E[i] = E[i-1] + q * scale_m * getdE(i, i, t, phi, F);
-                E2[i] = E2[i-1] + q * scale_m * getdE(i, i, t2, phi + dphi, F);
+                E[i] = E[i - 1] + q * scale_m * getdE(i, i, t, phi, F);
+                E2[i] = E2[i - 1] + q * scale_m * getdE(i, i, t, phi + dphi, F); // should I use here t or t2?
+                t[i] = t[i - 1] + getdT(i, i, E, F, mass);
+                t2[i] = t2[i - 1] + getdT(i, i, E2, F, mass);
+                E[i] = E[i - 1] + q * scale_m * getdE(i, i, t, phi, F);
+                E2[i] = E2[i - 1] + q * scale_m * getdE(i, i, t2, phi + dphi, F);
             }
             for(int i = N1; i < N3 - N1 + 1; ++ i) {
                 int I = (i - N1) % N2 + N1;
                 int J = (i - N1 + N4) % N2 + N1;
-                E[i] = E[i-1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1, F) + getdE(i, J, t, phi + phaseC2, F));
-                E2[i] = E2[i-1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1 + dphi, F) + getdE(i, J, t, phi + phaseC2 + dphi, F)); //concerning t: see above
-                t[i] = t[i-1] + getdT(i, I, E, F, mass);
-                t2[i] = t2[i-1] + getdT(i, I, E2, F, mass);
-                E[i] = E[i-1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1, F) + getdE(i, J, t, phi + phaseC2, F));
-                E2[i] = E2[i-1] + q * scaleCore_m * (getdE(i, I, t2, phi + phaseC1 + dphi, F) + getdE(i, J, t2, phi + phaseC2 + dphi, F));
+                E[i] = E[i - 1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1, F) + getdE(i, J, t, phi + phaseC2, F));
+                E2[i] = E2[i - 1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1 + dphi, F) + getdE(i, J, t, phi + phaseC2 + dphi, F)); //concerning t: see above
+                t[i] = t[i - 1] + getdT(i, I, E, F, mass);
+                t2[i] = t2[i - 1] + getdT(i, I, E2, F, mass);
+                E[i] = E[i - 1] + q * scaleCore_m * (getdE(i, I, t, phi + phaseC1, F) + getdE(i, J, t, phi + phaseC2, F));
+                E2[i] = E2[i - 1] + q * scaleCore_m * (getdE(i, I, t2, phi + phaseC1 + dphi, F) + getdE(i, J, t2, phi + phaseC2 + dphi, F));
             }
             for(int i = N3 - N1 + 1; i < N3; ++ i) {
                 int I = i - N3 - 1 + 2 * N1 + N2;
-                E[i] = E[i-1] + q * scale_m * getdE(i, I, t, phi + phaseE, F);
-                E2[i] = E2[i-1] + q * scale_m * getdE(i, I, t, phi + phaseE + dphi, F); //concerning t: see above
-                t[i] = t[i-1] + getdT(i, I, E, F, mass);
-                t2[i] = t2[i-1] + getdT(i, I, E2, F, mass);
-                E[i] = E[i-1] + q * scale_m * getdE(i, I, t, phi + phaseE, F);
-                E2[i] = E2[i-1] + q * scale_m * getdE(i, I, t2, phi + phaseE + dphi, F);
+                E[i] = E[i - 1] + q * scale_m * getdE(i, I, t, phi + phaseE, F);
+                E2[i] = E2[i - 1] + q * scale_m * getdE(i, I, t, phi + phaseE + dphi, F); //concerning t: see above
+                t[i] = t[i - 1] + getdT(i, I, E, F, mass);
+                t2[i] = t2[i - 1] + getdT(i, I, E2, F, mass);
+                E[i] = E[i - 1] + q * scale_m * getdE(i, I, t, phi + phaseE, F);
+                E2[i] = E2[i - 1] + q * scale_m * getdE(i, I, t2, phi + phaseE + dphi, F);
             }
             //             msg << ", Ekin= " << E[N3-1] << " MeV" << endl;
         }

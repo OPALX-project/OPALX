@@ -71,7 +71,7 @@ Solenoid::Solenoid(const string &name):
 
 
 Solenoid::~Solenoid() {
-  //    Fieldmap::deleteFieldmap(filename_m);
+    //    Fieldmap::deleteFieldmap(filename_m);
 }
 
 
@@ -133,7 +133,7 @@ void Solenoid::addKT(int i, double t, Vector_t &K) {
     myFieldmap_m->getFieldstrength(tmpA, tmpE, tmpB);
 
     // get derivation of B in z-direction
-    myFieldmap_m->getFieldstrength_fdiff(tmpA, tmpE_diff, tmpB_diff, zdir);
+    myFieldmap_m->getFieldDerivative(tmpA, tmpE_diff, tmpB_diff, zdir);
 
     double bz = scale_m * tmpB(2);
     double g = RefPartBunch_m->getGamma(i);

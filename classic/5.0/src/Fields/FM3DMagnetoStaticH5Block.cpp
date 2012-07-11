@@ -12,7 +12,7 @@ using namespace std;
 using Physics::mu_0;
 
 FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
-    Fieldmap(aFilename){
+    Fieldmap(aFilename) {
     Inform msg("FM3DMagnetoStaticH5Block ");
     h5_err_t h5err;
     h5_size_t grid_rank;
@@ -274,7 +274,7 @@ bool FM3DMagnetoStaticH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, 
 
 }
 
-bool FM3DMagnetoStaticH5Block::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM3DMagnetoStaticH5Block::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

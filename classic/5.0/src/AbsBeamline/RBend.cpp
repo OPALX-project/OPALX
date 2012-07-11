@@ -179,7 +179,7 @@ void RBend::addKR(int i, double t, Vector_t &K) {
 
     DiffDirection zdir(DZ);
     myFieldmap->getFieldstrength(tmpA, tmpE, tmpB);
-    myFieldmap->getFieldstrength_fdiff(tmpA, tmpE_diff, tmpB_diff, zdir);
+    myFieldmap->getFieldDerivative(tmpA, tmpE_diff, tmpB_diff, zdir);
 
     double g = RefPartBunch_m->getGamma(i);
 
@@ -580,7 +580,7 @@ double RBend::calculateRefTrajectory(const double zBegin) {
     bool EntryFringe_passed = false;
     double PathLengthEntryFringe = 0.0;  // in S coordinates. This value is different from zBegin due to the curvature!
 
-    if(map_m != NULL) delete map_m;
+    if(map_m != NULL) delete [] map_m;
 
     map_step_size_m = betagamma / gamma * Physics::c * dt;
     map_size_m = static_cast<int>(floor(length_m / 2. * Physics::pi / map_step_size_m));

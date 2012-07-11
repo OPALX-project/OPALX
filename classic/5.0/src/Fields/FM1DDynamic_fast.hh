@@ -1,22 +1,27 @@
 #ifndef CLASSIC_FIELDMAP1DDYNAMICFAST_HH
 #define CLASSIC_FIELDMAP1DDYNAMICFAST_HH
 
+#include "Fields/Fieldmap.hh"
+
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
-#include "Fields/Fieldmap.hh"
 
 class FM1DDynamic_fast: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
-    virtual bool getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
-    virtual void getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const;
-    virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
+    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E,
+                                    Vector_t &B, const DiffDirection &dir) const;
+    virtual void getFieldDimensions(double &zBegin, double &zEnd,
+                                    double &rBegin, double &rEnd) const;
+    virtual void getFieldDimensions(double &xIni, double &xFinal,
+                                    double &yIni, double &yFinal,
+                                    double &zIni, double &zFinal) const;
     virtual void swap();
     virtual void getInfo(Inform *);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
-    virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
+    virtual void getOnaxisEz(std::vector<std::pair<double, double>> &eZ);
 
 private:
     FM1DDynamic_fast(std::string aFilename);
@@ -25,22 +30,49 @@ private:
     virtual void readMap();
     virtual void freeMap();
 
-    double* onAxisField_m;
-    gsl_spline *onAxisInterpolants_m[4];
-    gsl_interp_accel *onAxisAccel_m[4];
+    bool checkFileData(std::ifstream &fieldFile, bool parsingPassed);
+    void computeFieldDerivatives(int accuracy, std::vector<double> fourierCoefs,
+                                 double onAxisFieldP[], double onAxisFieldPP[],
+                                 double onAxisFieldPPP[]);
+    void computeFieldOffAxis(const Vector_t &R, Vector_t &E, Vector_t &B,
+                             std::vector<double> fieldComponents) const;
+    void computeFieldOnAxis(double z, std::vector<double> &fieldComponents) const;
+    std::vector<double> computeFourierCoefficients(int accuracy,
+                                                   double fieldData[]);
+    void computeInterpolationVectors(double onAxisFieldP[],
+                                     double onAxisFieldPP[],
+                                     double onAxisFieldPPP[]);
+    void convertHeaderData();
+    void normalizeField(double maxEz, std::vector<double> &fourierCoefs);
+    double readFileData(std::ifstream &fieldFile, double fieldData[]);
+    double readFileData(std::ifstream &fieldFile,
+                        std::vector<std::pair<double, double>> &eZ);
+    bool readFileHeader(std::ifstream &fieldFile);
+    void scaleField(double maxEz, std::vector<std::pair<double, double>> &eZ);
+    int stripFileHeader(std::ifstream &fieldFile);
 
-    double hz_m;
+    double frequency_m;                     /// Field angular frequency (Hz).
+    double twoPiOverLambdaSq_m;             /// 2 Pi divided by the field RF wavelength squared.
 
-    double frequency_m;
-    double xlrep_m;
+    double rBegin_m;                        /// Minimum radius of field.
+    double rEnd_m;                          /// Maximum radius of field.
+    double zBegin_m;                        /// Longitudinal start of field.
+    double zEnd_m;                          /// Longitudinal end of field.
+    double length_m;                        /// Field length.
+    int numberOfGridPoints_m;               /// Number of grid points in field input file.
+    double deltaZ_m;                        /// Field grid point spacing.
 
-    double rbegin_m;
-    double rend_m;
-    double zbegin_m;
-    double zend_m;
-    double length_m;
+    double* onAxisField_m;                      /// On axis field data.
+    gsl_spline *onAxisFieldInterpolants_m;      /// On axis field interpolation structure.
+    gsl_spline *onAxisFieldPInterpolants_m;     /// On axis field first derivative interpolation structure.
+    gsl_spline *onAxisFieldPPInterpolants_m;    /// On axis field second derivative interpolation structure.
+    gsl_spline *onAxisFieldPPPInterpolants_m;   /// On axis field third derivative interpolation structure.
 
-    int num_gridpz_m;
+    /// Corresponding interpolation evaluation accelerators.
+    gsl_interp_accel *onAxisFieldAccel_m;
+    gsl_interp_accel *onAxisFieldPAccel_m;
+    gsl_interp_accel *onAxisFieldPPAccel_m;
+    gsl_interp_accel *onAxisFieldPPPAccel_m;
 
     friend class Fieldmap;
 };

@@ -12,7 +12,7 @@ using Physics::c;
 using Physics::two_pi;
 
 Astra1DDynamic_fast::Astra1DDynamic_fast(string aFilename):
-    Fieldmap(aFilename){
+    Fieldmap(aFilename) {
     Inform msg("*1DD ");
     ifstream file;
     int tmpInt;
@@ -97,7 +97,7 @@ void Astra1DDynamic_fast::readMap() {
         double coskzl, sinkzl;
         double *higherDerivatives[3];
         double *zvals;
-        double *RealValues = new double[2*num_gridpz_m];
+        double *RealValues = new double[2 * num_gridpz_m];
         onAxisField_m = new double[num_gridpz_m];
         zvals_m = new double[num_gridpz_m];
 
@@ -157,7 +157,7 @@ void Astra1DDynamic_fast::readMap() {
         RealValues[ii ++] = onAxisField_m[num_gridpz_m - 1];
         // prepend mirror sampling points such that field values are periodic for sure
         // ii == 2*num_gridpz_m at the moment
-        -- ii; 
+        -- ii;
         for(int i = 0; i < num_gridpz_m; ++ i, -- ii) {
             RealValues[i] = RealValues[ii];
         }
@@ -165,7 +165,7 @@ void Astra1DDynamic_fast::readMap() {
         gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
 
         // normalize to Ez_max = 1 MV/m
-        RealValues[0] /=  (2 * num_gridpz_m);
+        RealValues[0] /= (2 * num_gridpz_m);
         for(int i = 1; i < 2 * accuracy - 1; i++) {
             RealValues[i] /= num_gridpz_m;
         }
@@ -181,12 +181,12 @@ void Astra1DDynamic_fast::readMap() {
                 interior_derivative = base;
                 coskzl = cos(kz * l);
                 sinkzl = sin(kz * l);
-                
-                higherDerivatives[0][i] += interior_derivative * (-RealValues[n] * sinkzl - RealValues[n+1] * coskzl);
+
+                higherDerivatives[0][i] += interior_derivative * (-RealValues[n] * sinkzl - RealValues[n + 1] * coskzl);
                 interior_derivative *= base;
-                higherDerivatives[1][i] += interior_derivative * (-RealValues[n] * coskzl + RealValues[n+1] * sinkzl);
+                higherDerivatives[1][i] += interior_derivative * (-RealValues[n] * coskzl + RealValues[n + 1] * sinkzl);
                 interior_derivative *= base;
-                higherDerivatives[2][i] += interior_derivative * (RealValues[n] * sinkzl + RealValues[n+1] * coskzl);
+                higherDerivatives[2][i] += interior_derivative * (RealValues[n] * sinkzl + RealValues[n + 1] * coskzl);
             }
         }
 
@@ -194,7 +194,7 @@ void Astra1DDynamic_fast::readMap() {
         gsl_fft_real_wavetable_free(real);
 
         for(int i = 1; i < 4; ++i) {
-            gsl_spline_init(onAxisInterpolants_m[i], zvals, higherDerivatives[i-1], num_gridpz_m);
+            gsl_spline_init(onAxisInterpolants_m[i], zvals, higherDerivatives[i - 1], num_gridpz_m);
         }
 
         delete[] RealValues;
@@ -203,7 +203,7 @@ void Astra1DDynamic_fast::readMap() {
         delete[] higherDerivatives[2];
         delete[] zvals;
 
-        INFOMSG( typeset_msg("read in fieldmap '" + Filename_m + "'", "info") << endl);
+        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m + "'", "info") << endl);
     }
 }
 
@@ -246,7 +246,7 @@ bool Astra1DDynamic_fast::getFieldstrength(const Vector_t &R, Vector_t &E, Vecto
     return false;
 }
 
-bool Astra1DDynamic_fast::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool Astra1DDynamic_fast::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     double ezp = gsl_spline_eval(onAxisInterpolants_m[1], R(2), onAxisAccel_m[1]);
 
     E(2) +=  ezp;
@@ -277,7 +277,7 @@ void Astra1DDynamic_fast::setFrequency(double freq) {
 
 void Astra1DDynamic_fast::getOnaxisEz(vector<pair<double, double> > & F) {
     F.resize(num_gridpz_m);
-    if (onAxisField_m == NULL) {
+    if(onAxisField_m == NULL) {
         double Ez_max = 0.0;
         double tmpDouble;
         int tmpInt;
@@ -288,7 +288,7 @@ void Astra1DDynamic_fast::getOnaxisEz(vector<pair<double, double> > & F) {
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double>(in, tmpDouble);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-    
+
         for(int i = 0; i < num_gridpz_m; ++ i) {
             F[i].first = hz_m * i;
             interpreteLine<double>(in, F[i].second);

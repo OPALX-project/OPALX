@@ -94,23 +94,23 @@ RFCavity::RFCavity(const RFCavity &right):
     setElType(isRF);
 
     std::vector<string>::const_iterator fname_it;
-    for (fname_it = right.multiFilenames_m.begin(); fname_it != right.multiFilenames_m.end(); ++ fname_it) {
+    for(fname_it = right.multiFilenames_m.begin(); fname_it != right.multiFilenames_m.end(); ++ fname_it) {
         multiFilenames_m.push_back(*fname_it);
     }
-    std::vector<Fieldmap*>::const_iterator fmap_it;
-    for (fmap_it = right.multiFieldmaps_m.begin(); fmap_it != right.multiFieldmaps_m.end(); ++ fmap_it) {
+    std::vector<Fieldmap *>::const_iterator fmap_it;
+    for(fmap_it = right.multiFieldmaps_m.begin(); fmap_it != right.multiFieldmaps_m.end(); ++ fmap_it) {
         multiFieldmaps_m.push_back(*fmap_it);
     }
     std::vector<double>::const_iterator scale_it;
-    for (scale_it = right.multiScales_m.begin(); scale_it != right.multiScales_m.end(); ++ scale_it) {
+    for(scale_it = right.multiScales_m.begin(); scale_it != right.multiScales_m.end(); ++ scale_it) {
         multiScales_m.push_back(*scale_it);
     }
     std::vector<double>::const_iterator phase_it;
-    for (phase_it = right.multiPhases_m.begin(); phase_it != right.multiPhases_m.end(); ++ phase_it) {
+    for(phase_it = right.multiPhases_m.begin(); phase_it != right.multiPhases_m.end(); ++ phase_it) {
         multiPhases_m.push_back(*phase_it);
     }
     std::vector<double>::const_iterator freq_it;
-    for (freq_it = right.multiFrequencies_m.begin(); freq_it != right.multiFrequencies_m.end(); ++ freq_it) {
+    for(freq_it = right.multiFrequencies_m.begin(); freq_it != right.multiFrequencies_m.end(); ++ freq_it) {
         multiFrequencies_m.push_back(*freq_it);
     }
 }
@@ -139,9 +139,9 @@ RFCavity::RFCavity(const string &name):
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-//     RNormal_m(std::nullptr_t(NULL)),
-//     VrNormal_m(std::nullptr_t(NULL)),
-//     DvDr_m(std::nullptr_t(NULL)),
+    //     RNormal_m(std::nullptr_t(NULL)),
+    //     VrNormal_m(std::nullptr_t(NULL)),
+    //     DvDr_m(std::nullptr_t(NULL)),
     num_points_m(0) {
     setElType(isRF);
 }
@@ -151,9 +151,9 @@ RFCavity::~RFCavity() {
     // FIXME: in deleteFielmak, a map find makes problems
     //       Fieldmap::deleteFieldmap(filename_m);
     //~ if(RNormal_m) {
-        //~ delete[] RNormal_m;
-        //~ delete[] VrNormal_m;
-        //~ delete[] DvDr_m;
+    //~ delete[] RNormal_m;
+    //~ delete[] VrNormal_m;
+    //~ delete[] DvDr_m;
     //~ }
 }
 
@@ -163,7 +163,7 @@ void RFCavity::accept(BeamlineVisitor &visitor) const {
 }
 
 void RFCavity::dropFieldmaps() {
-    std::vector<Fieldmap*>::iterator fmap_it;
+    std::vector<Fieldmap *>::iterator fmap_it;
     for(fmap_it = multiFieldmaps_m.begin(); fmap_it != multiFieldmaps_m.end(); ++ fmap_it) {
         *fmap_it = NULL;
     }
@@ -181,7 +181,7 @@ void RFCavity::setFieldMapFN(string fn) {
 
 string RFCavity::getFieldMapFN() const {
     string filename("No_fieldmap");
-    if (numFieldmaps() > 0) {
+    if(numFieldmaps() > 0) {
         filename = multiFilenames_m[0];
     }
     return filename;
@@ -212,12 +212,12 @@ void RFCavity::setPhasem(double phase) {
 }
 
 void RFCavity::updatePhasem(double phase) {
-    if (multiPhases_m.size() == 0) {
+    if(multiPhases_m.size() == 0) {
         multiPhases_m.push_back(phase);
     } else {
         double diff = phase - multiPhases_m[0];
         multiPhases_m[0] = phase;
-        for (size_t i = 1; i < numFieldmaps(); ++ i) {
+        for(size_t i = 1; i < numFieldmaps(); ++ i) {
             multiPhases_m[i] += diff;
         }
     }
@@ -268,8 +268,8 @@ void RFCavity::addKR(int i, double t, Vector_t &K) {
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
     double k = -Physics::q_e / (2.0 * RefPartBunch_m->getGamma(i) * Physics::EMASS);
 
-    for (size_t j = 0; j < numFieldmaps(); ++ j) {
-        Fieldmap * fieldmap = multiFieldmaps_m[j];
+    for(size_t j = 0; j < numFieldmaps(); ++ j) {
+        Fieldmap *fieldmap = multiFieldmaps_m[j];
         double frequency = multiFrequencies_m[j];
         double scale = multiScales_m[j];
         double phase = multiPhases_m[j];
@@ -279,7 +279,7 @@ void RFCavity::addKR(int i, double t, Vector_t &K) {
         double Ez = tmpE(2);
 
         tmpE = Vector_t(0.0);
-        fieldmap->getFieldstrength_fdiff(tmpR, tmpE, tmpB, DZ);
+        fieldmap->getFieldDerivative(tmpR, tmpE, tmpB, DZ);
 
         double wtf = frequency * t + phase;
         double kj = k * scale * (tmpE(2) * cos(wtf) - RefPartBunch_m->getBeta(i) * frequency * Ez * sin(wtf) / Physics::c);
@@ -302,8 +302,8 @@ void RFCavity::addKT(int i, double t, Vector_t &K) {
     bool cxy = false; // default
     double kx = 0.0, ky = 0.0;
     if(cxy) {
-        for (size_t j = 0; j < numFieldmaps(); ++ j) {
-            Fieldmap * fieldmap = multiFieldmaps_m[j];
+        for(size_t j = 0; j < numFieldmaps(); ++ j) {
+            Fieldmap *fieldmap = multiFieldmaps_m[j];
             double scale = multiScales_m[j];
             double frequency = multiFrequencies_m[j];
             double phase = multiPhases_m[j];
@@ -352,8 +352,8 @@ bool RFCavity::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
     bool out_of_bounds = true;
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
 
-    for (size_t j = 0; j < numFieldmaps(); ++ j) {
-        Fieldmap * fieldmap = multiFieldmaps_m[j];
+    for(size_t j = 0; j < numFieldmaps(); ++ j) {
+        Fieldmap *fieldmap = multiFieldmaps_m[j];
         Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
         const std::pair<double, double> & start_end = multi_start_end_field_m[j];
 
@@ -361,7 +361,7 @@ bool RFCavity::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
            tmpR(2) < start_end.second &&
            !fieldmap->getFieldstrength(tmpR, tmpE, tmpB)) {
             const double phase = multiFrequencies_m[j] * t + multiPhases_m[j];
-            const double & scale = multiScales_m[j];
+            const double &scale = multiScales_m[j];
             E += scale * cos(phase) * tmpE;
             B -= scale * sin(phase) * tmpB;
             out_of_bounds = false;
@@ -374,8 +374,8 @@ bool RFCavity::apply(const Vector_t &R, const Vector_t &centroid, const double &
     bool out_of_bounds = true;
     const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - startField_m - ds_m);
 
-    for (size_t i = 0; i < numFieldmaps(); ++ i) {
-        Fieldmap * fieldmap = multiFieldmaps_m[i];
+    for(size_t i = 0; i < numFieldmaps(); ++ i) {
+        Fieldmap *fieldmap = multiFieldmaps_m[i];
         Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
         const std::pair<double, double> & start_end = multi_start_end_field_m[i];
 
@@ -383,7 +383,7 @@ bool RFCavity::apply(const Vector_t &R, const Vector_t &centroid, const double &
            tmpR(2) < start_end.second &&
            !fieldmap->getFieldstrength(tmpR, tmpE, tmpB)) {
             const double phase = multiFrequencies_m[i] * t + multiPhases_m[i];
-            const double & scale = multiScales_m[i];
+            const double &scale = multiScales_m[i];
             E += scale * cos(phase) * tmpE;
             B -= scale * sin(phase) * tmpB;
             out_of_bounds = false;
@@ -399,53 +399,53 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
     stringstream errormsg;
     RefPartBunch_m = bunch;
 
-    for (size_t i = 0; i < numFieldmaps(); ++ i) {
+    for(size_t i = 0; i < numFieldmaps(); ++ i) {
         string fname = multiFilenames_m[i];
-        Fieldmap * fmap = Fieldmap::getFieldmap(fname, fast_m);
-        if (fmap != NULL) {
+        Fieldmap *fmap = Fieldmap::getFieldmap(fname, fast_m);
+        if(fmap != NULL) {
             multiFieldmaps_m.push_back(fmap);
         } else {
-            for (size_t j = i; j < numFieldmaps() - 1; ++ j) {
+            for(size_t j = i; j < numFieldmaps() - 1; ++ j) {
                 multiFieldmaps_m[j] = multiFieldmaps_m[j + 1];
             }
             multiFieldmaps_m.pop_back();
             -- i;
         }
     }
-    if (multiScales_m.size() > 0) {
-        while (multiScales_m.size() < numFieldmaps()) {
+    if(multiScales_m.size() > 0) {
+        while(multiScales_m.size() < numFieldmaps()) {
             multiScales_m.push_back(multiScales_m[0]);
         }
     } else {
-        while (multiScales_m.size() < numFieldmaps()) {
+        while(multiScales_m.size() < numFieldmaps()) {
             multiScales_m.push_back(1.0);
         }
     }
-    if (multiFrequencies_m.size() > 0) {
-        while (multiFrequencies_m.size() < numFieldmaps()) {
+    if(multiFrequencies_m.size() > 0) {
+        while(multiFrequencies_m.size() < numFieldmaps()) {
             multiFrequencies_m.push_back(multiFrequencies_m[0]);
         }
     } else {
-        while (multiFrequencies_m.size() < numFieldmaps()) {
+        while(multiFrequencies_m.size() < numFieldmaps()) {
             multiFrequencies_m.push_back(0.0);
         }
     }
-    if (multiPhases_m.size() > 0) {
-        while (multiPhases_m.size() < numFieldmaps()) {
+    if(multiPhases_m.size() > 0) {
+        while(multiPhases_m.size() < numFieldmaps()) {
             multiPhases_m.push_back(multiPhases_m[0]);
         }
     } else {
-        while (multiPhases_m.size() < multiFilenames_m.size()) {
+        while(multiPhases_m.size() < multiFilenames_m.size()) {
             multiPhases_m.push_back(0.0);
         }
     }
 
-    if (numFieldmaps() > 0) {
+    if(numFieldmaps() > 0) {
         double overall_zBegin = 999999999.99, overall_zEnd = -999999999.99;
-        for (size_t i = 0; i < numFieldmaps(); ++ i) {
-            Fieldmap * fmap = multiFieldmaps_m[i];
-            double & frequency = multiFrequencies_m[i];
-            const string & filename = multiFilenames_m[i];
+        for(size_t i = 0; i < numFieldmaps(); ++ i) {
+            Fieldmap *fmap = multiFieldmaps_m[i];
+            double &frequency = multiFrequencies_m[i];
+            const string &filename = multiFilenames_m[i];
 
             fmap->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
             if(zEnd > zBegin) {
@@ -470,7 +470,7 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
                 overall_zBegin = std::min(overall_zBegin, zBegin);
                 overall_zEnd = std::max(overall_zEnd, zEnd);
             } else {
-                for (size_t j = i; j < numFieldmaps() - 1; ++ j) {
+                for(size_t j = i; j < numFieldmaps() - 1; ++ j) {
                     multiFilenames_m[j] = multiFilenames_m[j + 1];
                     multiFieldmaps_m[j] = multiFieldmaps_m[j + 1];
                     multiScales_m[j] = multiScales_m[j + 1];
@@ -488,13 +488,13 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
         }
         zBegin = overall_zBegin;
         zEnd = overall_zEnd;
-        for (size_t i = 0; i < numFieldmaps(); ++ i) {
+        for(size_t i = 0; i < numFieldmaps(); ++ i) {
             multi_start_end_field_m[i].first -= zBegin;
             multi_start_end_field_m[i].second -= zBegin;
         }
     }
 
-    if (zEnd > zBegin) {
+    if(zEnd > zBegin) {
         ElementEdge_m = startField;
         startField_m = startField = ElementEdge_m + zBegin;
         endField_m = endField = ElementEdge_m + zEnd;
@@ -517,8 +517,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
         ERRORMSG(" Cannot open file " << filename_m << ", please check if it really exists." << endl);
         exit(1);
     }
-    *gmsg<<"* Read cavity voltage profile data"<<endl
-         <<"    (data format: s/L, v, dV/dr)" << endl;
+    *gmsg << "* Read cavity voltage profile data" << endl
+          << "    (data format: s/L, v, dV/dr)" << endl;
 
     in >> num_points_m;
 
@@ -557,7 +557,7 @@ bool RFCavity::bends() const {
 
 void RFCavity::goOnline() {
     std::vector<string>::iterator fmap_it;
-    for (fmap_it = multiFilenames_m.begin(); fmap_it != multiFilenames_m.end(); ++ fmap_it) {
+    for(fmap_it = multiFilenames_m.begin(); fmap_it != multiFilenames_m.end(); ++ fmap_it) {
         Fieldmap::readMap(*fmap_it);
     }
     online_m = true;
@@ -565,7 +565,7 @@ void RFCavity::goOnline() {
 
 void RFCavity::goOffline() {
     std::vector<string>::iterator fmap_it;
-    for (fmap_it = multiFilenames_m.begin(); fmap_it != multiFilenames_m.end(); ++ fmap_it) {
+    for(fmap_it = multiFilenames_m.begin(); fmap_it != multiFilenames_m.end(); ++ fmap_it) {
         Fieldmap::freeMap(*fmap_it);
     }
     online_m = false;
@@ -705,11 +705,11 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
     double px = pr * cosAngle_m - ptheta * sinAngle_m ; // x
     double py = pr * sinAngle_m + ptheta * cosAngle_m; // y
 
-    double rotate = -derivate*(scale_m*1.0e6)/((rmax_m-rmin_m)/1000.0) * sin(nphase) / (frequency_m*two_pi) / (betgam*restMass/c/chargenumber); // radian
+    double rotate = -derivate * (scale_m * 1.0e6) / ((rmax_m - rmin_m) / 1000.0) * sin(nphase) / (frequency_m * two_pi) / (betgam * restMass / c / chargenumber); // radian
 
     /// B field effects
-    momentum[0] =  cos(rotate)*px + sin(rotate)*py;
-    momentum[1] = -sin(rotate)*px + cos(rotate)*py;
+    momentum[0] =  cos(rotate) * px + sin(rotate) * py;
+    momentum[1] = -sin(rotate) * px + cos(rotate) * py;
 
     if(PID == 0) {
         Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
@@ -804,15 +804,15 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     std::vector< std::pair< double, double > > G;
     std::vector< double > begin(numFieldmaps());
     std::vector< double > end(numFieldmaps());
-    std::vector<gsl_spline*> onAxisInterpolants(numFieldmaps());
-    std::vector<gsl_interp_accel*> onAxisAccel(numFieldmaps());
+    std::vector<gsl_spline *> onAxisInterpolants(numFieldmaps());
+    std::vector<gsl_interp_accel *> onAxisAccel(numFieldmaps());
 
     unsigned int N;
     double A, B;
     double phi = 0.0, tmp_phi, dphi = 0.5 * Physics::pi / 180.;
     double min_dz = 1.0, max_length = 0.0, min_begin = 99999999.99;
     double max_frequency = 0.0;
-    for (size_t i = 0; i < numFieldmaps(); ++ i) {
+    for(size_t i = 0; i < numFieldmaps(); ++ i) {
         multiFieldmaps_m[i]->getOnaxisEz(G);
         begin[i] = (G.front()).first;
         end[i] = (G.back()).first;
@@ -820,7 +820,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
         std::unique_ptr<double[]> zvals(new double[G.size()]);
         std::unique_ptr<double[]> onAxisField(new double[G.size()]);
 
-        for (size_t j = 0; j < G.size(); ++ j) {
+        for(size_t j = 0; j < G.size(); ++ j) {
             zvals[j] = G[j].first;
             onAxisField[j] = G[j].second;
         }
@@ -841,11 +841,11 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     N = (int)floor(max_length / min_dz + 1);
     min_dz = max_length / N;
 
-    for (size_t i = 0; i < numFieldmaps(); ++ i) {
+    for(size_t i = 0; i < numFieldmaps(); ++ i) {
         F[i].resize(N);
         double z = min_begin;
-        for (size_t j = 0; j < N; ++ j, z += min_dz) {
-            if (z >= begin[i] && z <= end[i]) {
+        for(size_t j = 0; j < N; ++ j, z += min_dz) {
+            if(z >= begin[i] && z <= end[i]) {
                 F[i][j] = gsl_spline_eval(onAxisInterpolants[i], z, onAxisAccel[i]);
             } else {
                 F[i][j] = 0.0;
@@ -867,18 +867,18 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
 
         double z = min_begin + min_dz;
         for(unsigned int i = 1; i < N; ++ i, z += min_dz) {
-            E[i] = E[i-1] + min_dz * scale_m / mass;
+            E[i] = E[i - 1] + min_dz * scale_m / mass;
             E2[i] = E[i];
         }
 
         for(int iter = 0; iter < 10; ++ iter) {
             A = B = 0.0;
             for(unsigned int i = 1; i < N; ++ i) {
-                t[i] = t[i-1] + getdT(i, E, min_dz, mass);
-                t2[i] = t2[i-1] + getdT(i, E2, min_dz, mass);
-                for (size_t j = 0; j < numFieldmaps(); ++ j) {
-                    const double & frequency = multiFrequencies_m[j];
-                    const double & scale = multiScales_m[j];
+                t[i] = t[i - 1] + getdT(i, E, min_dz, mass);
+                t2[i] = t2[i - 1] + getdT(i, E2, min_dz, mass);
+                for(size_t j = 0; j < numFieldmaps(); ++ j) {
+                    const double &frequency = multiFrequencies_m[j];
+                    const double &scale = multiScales_m[j];
                     const double Dphi = multiPhases_m[j] - multiPhases_m[0];
                     A += scale * (1. + frequency * (t2[i] - t[i]) / dphi) * getdA(i, t, min_dz, Dphi, frequency, F[j]);
                     B += scale * (1. + frequency * (t2[i] - t[i]) / dphi) * getdB(i, t, min_dz, Dphi, frequency, F[j]);
@@ -894,41 +894,41 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
                 tmp_phi += Physics::pi;
             }
 
-            if(fabs(phi - tmp_phi) < max_frequency * (t[N-1] - t[0]) / (10 * N)) {
+            if(fabs(phi - tmp_phi) < max_frequency * (t[N - 1] - t[0]) / (10 * N)) {
                 for(unsigned int i = 1; i < N; ++ i) {
-                    E[i] = E[i-1];
-                    for (size_t j = 0; j < numFieldmaps(); ++ j) {
-                        const double & frequency = multiFrequencies_m[j];
-                        const double & scale = multiScales_m[j];
+                    E[i] = E[i - 1];
+                    for(size_t j = 0; j < numFieldmaps(); ++ j) {
+                        const double &frequency = multiFrequencies_m[j];
+                        const double &scale = multiScales_m[j];
                         const double Dphi = multiPhases_m[j] - multiPhases_m[0];
                         E[i] += q * scale * getdE(i, t, min_dz, phi + Dphi, frequency, F[j]) ;
                     }
                 }
                 msg << "estimated phi= " << tmp_phi << " rad, "
-                    << "Ekin= " << E[N-1] << " MeV" << endl;
+                    << "Ekin= " << E[N - 1] << " MeV" << endl;
                 return tmp_phi;
             }
             phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
 
 
             for(unsigned int i = 1; i < N; ++ i) {
-                E[i] = E[i-1];
-                E2[i] = E2[i-1];
-                for (size_t j = 0; j < numFieldmaps(); ++ j) {
-                    const double & frequency = multiFrequencies_m[j];
-                    const double & scale = multiScales_m[j];
+                E[i] = E[i - 1];
+                E2[i] = E2[i - 1];
+                for(size_t j = 0; j < numFieldmaps(); ++ j) {
+                    const double &frequency = multiFrequencies_m[j];
+                    const double &scale = multiScales_m[j];
                     const double Dphi = multiPhases_m[j] - multiPhases_m[0];
                     E[i] += q * scale * getdE(i, t, min_dz, phi + Dphi, frequency, F[j]) ;
                     E2[i] += q * scale * getdE(i, t2, min_dz, phi + dphi + Dphi, frequency, F[j]);
                 }
-                t[i] = t[i-1] + getdT(i, E, min_dz, mass);
-                t2[i] = t2[i-1] + getdT(i, E2, min_dz, mass);
+                t[i] = t[i - 1] + getdT(i, E, min_dz, mass);
+                t2[i] = t2[i - 1] + getdT(i, E2, min_dz, mass);
 
-                E[i] = E[i-1];
-                E2[i] = E2[i-1];
-                for (size_t j = 0; j < numFieldmaps(); ++ j) {
-                    const double & frequency = multiFrequencies_m[j];
-                    const double & scale = multiScales_m[j];
+                E[i] = E[i - 1];
+                E2[i] = E2[i - 1];
+                for(size_t j = 0; j < numFieldmaps(); ++ j) {
+                    const double &frequency = multiFrequencies_m[j];
+                    const double &scale = multiScales_m[j];
                     const double Dphi = multiPhases_m[j] - multiPhases_m[0];
                     E[i] += q * scale * getdE(i, t, min_dz, phi + Dphi, frequency, F[j]) ;
                     E2[i] += q * scale * getdE(i, t2, min_dz, phi + dphi + Dphi, frequency, F[j]);
@@ -937,19 +937,19 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
 
             double totalEz0 = 0.0, cosine_part = 0.0, sine_part = 0.0;
             double p0 = sqrt((E0 / mass + 1) * (E0 / mass + 1) - 1);
-            for (size_t j = 0; j < numFieldmaps(); ++ j) {
-                const double & frequency = multiFrequencies_m[j];
-                const double & scale = multiScales_m[j];
+            for(size_t j = 0; j < numFieldmaps(); ++ j) {
+                const double &frequency = multiFrequencies_m[j];
+                const double &scale = multiScales_m[j];
                 const double Dphi = multiPhases_m[j] - multiPhases_m[0];
                 cosine_part += scale * cos(frequency * t0 + Dphi) * F[j][0];
                 sine_part += scale * sin(frequency * t0 + Dphi) * F[j][0];
             }
             totalEz0 = cos(phi) * cosine_part - sin(phi) * sine_part;
 
-            if (p0 + q * totalEz0 * (t[1] - t[0]) * Physics::c / mass < 0) {
+            if(p0 + q * totalEz0 * (t[1] - t[0]) * Physics::c / mass < 0) {
                 // make totalEz0 = 0
                 tmp_phi = atan(cosine_part / sine_part);
-                if (abs(tmp_phi - phi) > Physics::pi) {
+                if(abs(tmp_phi - phi) > Physics::pi) {
                     phi = tmp_phi + Physics::pi;
                 } else {
                     phi = tmp_phi;
@@ -973,7 +973,7 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
     double cdt = Physics::c * dt;
     vector<pair<double, double> > F;
     vector<size_t> length_fieldmaps(numFieldmaps());
-    for (size_t i = 0; i < numFieldmaps(); ++ i) {
+    for(size_t i = 0; i < numFieldmaps(); ++ i) {
         vector<pair<double, double> > G;
         multiFieldmaps_m[i]->getOnaxisEz(G);
         length_fieldmaps[i] = G.size();
@@ -989,10 +989,10 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
     double zbegin = zvals[0];
     double zend = zvals[F.size() - 1];
     std::vector<std::pair<double, double> > begin_end(numFieldmaps());
-    std::vector<gsl_spline*> onAxisInterpolants(numFieldmaps());
-    std::vector<gsl_interp_accel*> onAxisAccel(numFieldmaps());
+    std::vector<gsl_spline *> onAxisInterpolants(numFieldmaps());
+    std::vector<gsl_interp_accel *> onAxisAccel(numFieldmaps());
     size_t start = 0;
-    for (size_t i = 0; i < numFieldmaps(); ++ i) {
+    for(size_t i = 0; i < numFieldmaps(); ++ i) {
         begin_end[i].first = zvals[start];
         onAxisInterpolants[i] = gsl_spline_alloc(gsl_interp_cspline, length_fieldmaps[i]);
         onAxisAccel[i] = gsl_interp_accel_alloc();
@@ -1011,8 +1011,8 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
     double dz = 0.5 * p / sqrt(1.0 + p * p) * cdt;
     while(z + dz < zend && z + dz > zbegin) {
         z += dz;
-        for (size_t i = 0; i < numFieldmaps(); ++ i) {
-            if (z >= begin_end[i].first && z <= begin_end[i].second) {
+        for(size_t i = 0; i < numFieldmaps(); ++ i) {
+            if(z >= begin_end[i].first && z <= begin_end[i].second) {
                 double phase = multiFrequencies_m[i] * t + multiPhases_m[i];
                 double scale = multiScales_m[i];
                 double ez = scale * gsl_spline_eval(onAxisInterpolants[i], z, onAxisAccel[i]);
@@ -1024,7 +1024,7 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
         t += dt;
     }
 
-    for (size_t i = 0; i < numFieldmaps(); ++ i) {
+    for(size_t i = 0; i < numFieldmaps(); ++ i) {
         gsl_spline_free(onAxisInterpolants[i]);
         gsl_interp_accel_free(onAxisAccel[i]);
     }

@@ -136,13 +136,13 @@ void FM2DDynamic::readMap() {
         }
 
         in.close();
-		
-		
-		// find maximum field
-		for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
-			if(fabs(FieldstrengthEz_m[i]) > Ezmax) {
-				Ezmax = fabs(FieldstrengthEz_m[i]);
-			}
+
+
+        // find maximum field
+        for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
+            if(fabs(FieldstrengthEz_m[i]) > Ezmax) {
+                Ezmax = fabs(FieldstrengthEz_m[i]);
+            }
         }
 
         for(int i = 0; i < num_gridpr_m * num_gridpz_m; i++) {
@@ -213,7 +213,7 @@ bool FM2DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     return false;
 }
 
-bool FM2DDynamic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM2DDynamic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

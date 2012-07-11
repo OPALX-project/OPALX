@@ -180,7 +180,7 @@ bool FM2DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_
     return false;
 }
 
-bool FM2DElectroStatic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM2DElectroStatic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

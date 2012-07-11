@@ -12,7 +12,7 @@ using namespace std;
 using Physics::mu_0;
 
 FM3DH5Block_nonescale::FM3DH5Block_nonescale(string aFilename):
-    Fieldmap(aFilename){
+    Fieldmap(aFilename) {
     Inform msg("FM3DH5 ");
     h5_err_t h5err;
     h5_size_t grid_rank;
@@ -277,7 +277,7 @@ bool FM3DH5Block_nonescale::getFieldstrength(const Vector_t &R, Vector_t &E, Vec
     return false;
 }
 
-bool FM3DH5Block_nonescale::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM3DH5Block_nonescale::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

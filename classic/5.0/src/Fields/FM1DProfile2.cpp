@@ -329,7 +329,7 @@ bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vecto
 
 }
 
-bool FM1DProfile2::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM1DProfile2::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

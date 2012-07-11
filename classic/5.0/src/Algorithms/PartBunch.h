@@ -107,8 +107,8 @@ public:
     bool addDistributions(std::vector<Distribution *> distributions, size_t numberOfParticles);
 
 
-     void setGridIsFixed();
-     bool isGridFixed();
+    void setGridIsFixed();
+    bool isGridFixed();
 
     /*
 
@@ -161,7 +161,7 @@ public:
     void calcGammas_cycl();
 
     /** \brief Get gamma of one bin */
-     double getBinGamma(int bin);
+    double getBinGamma(int bin);
 
     /** \brief Set the charge of one bin to the value of q and all other to zero */
     void setBinCharge(int bin, double q);
@@ -173,7 +173,7 @@ public:
     double getMaxdEBins();
 
     /** \brief calculates back the max/min of the efield on the grid */
-     std::pair<Vector_t, Vector_t> getEExtrema();
+    std::pair<Vector_t, Vector_t> getEExtrema();
 
     /*
 
@@ -181,11 +181,11 @@ public:
 
     */
 
-     const Mesh_t &getMesh() const;
+    const Mesh_t &getMesh() const;
 
-     Mesh_t &getMesh();
+    Mesh_t &getMesh();
 
-     FieldLayout_t &getFieldLayout();
+    FieldLayout_t &getFieldLayout();
 
     void setBCAllOpen();
 
@@ -294,6 +294,12 @@ public:
      */
     double get_sPos();
 
+    /// Get average z position from local "lab frame" coordinates, X.
+    double getZPos();
+
+    /// Get bounds of local "lab frame" coordinates, X.
+    void getXBounds(Vector_t &xMin, Vector_t &xMax);
+
     double   get_phase() const;
     double   get_gamma() const;
 
@@ -374,7 +380,7 @@ public:
 
     /// step in a TRACK command
     inline void setLocalTrackStep(long long n) {localTrackStep_m = n;}
-    inline void incTrackSteps() {globalTrackStep_m++;localTrackStep_m++;}
+    inline void incTrackSteps() {globalTrackStep_m++; localTrackStep_m++;}
     inline long long getLocalTrackStep() const {return localTrackStep_m;}
 
     inline void setNumBunch(int n);
@@ -566,7 +572,7 @@ private:
 
     bool interpolationCacheSet_m;
 
-    ParticleAttrib<CacheDataCIC<double,3U> > interpolationCache_m;
+    ParticleAttrib<CacheDataCIC<double, 3U> > interpolationCache_m;
 
     /// counter to store the distributin dump
     int distDump_m;
@@ -588,7 +594,7 @@ private:
     ParticleAttrib<short> stash_ptype_m;
     bool bunchStashed_m;
 
-    PartBunch& operator=(const PartBunch&) = delete;
+    PartBunch &operator=(const PartBunch &) = delete;
 
     ///
     int fieldDBGStep_m;
@@ -830,17 +836,17 @@ std::pair<Vector_t, Vector_t> PartBunch::getEExtrema() {
 }
 
 inline
-const Mesh_t & PartBunch::getMesh() const {
+const Mesh_t &PartBunch::getMesh() const {
     return getLayout().getLayout().getMesh();
 }
 
 inline
-Mesh_t & PartBunch::getMesh() {
+Mesh_t &PartBunch::getMesh() {
     return getLayout().getLayout().getMesh();
 }
 
 inline
-FieldLayout_t & PartBunch::getFieldLayout() {
+FieldLayout_t &PartBunch::getFieldLayout() {
     return dynamic_cast<FieldLayout_t &>(getLayout().getLayout().getFieldLayout());
 }
 
@@ -948,7 +954,7 @@ double PartBunch::getT() const {
 inline
 void PartBunch::resetInterpolationCache(bool clearCache) {
     interpolationCacheSet_m = false;
-    if (clearCache) {
+    if(clearCache) {
         interpolationCache_m.destroy(interpolationCache_m.size(), 0, true);
     }
 }

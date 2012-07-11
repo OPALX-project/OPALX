@@ -186,9 +186,9 @@ void FM3DH5Block::readMap() {
             ii = index_x + index_y * num_gridpx_m;
             for(int i = 0; i < num_gridpz_m; i++) {
                 double E = fabs((1. - lever_x) * (1. - lever_y) * FieldstrengthEz_m[ii] +
-                                lever_x * (1. - lever_y) * FieldstrengthEz_m[ii+1] +
-                                (1. - lever_x) * lever_y * FieldstrengthEz_m[ii+num_gridpx_m] +
-                                lever_x * lever_y * FieldstrengthEz_m[ii+num_gridpx_m+1]);
+                                lever_x * (1. - lever_y) * FieldstrengthEz_m[ii + 1] +
+                                (1. - lever_x) * lever_y * FieldstrengthEz_m[ii + num_gridpx_m] +
+                                lever_x * lever_y * FieldstrengthEz_m[ii + num_gridpx_m + 1]);
 
                 if(E > Ezmax) {
                     Ezmax = E;
@@ -318,7 +318,7 @@ bool FM3DH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     return false;
 }
 
-bool FM3DH5Block::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM3DH5Block::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

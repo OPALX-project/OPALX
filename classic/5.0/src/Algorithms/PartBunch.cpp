@@ -697,13 +697,13 @@ void PartBunch::computeSelfFields(int binNumber) {
     if(fs_m->hasValidSolver()) {
         /// Scatter charge onto space charge grid.
         this->Q *= this->dt;
-        if (!interpolationCacheSet_m) {
-            if (interpolationCache_m.size() < getLocalNum()) {
+        if(!interpolationCacheSet_m) {
+            if(interpolationCache_m.size() < getLocalNum()) {
                 interpolationCache_m.create(getLocalNum() - interpolationCache_m.size());
             } else {
                 interpolationCache_m.destroy(interpolationCache_m.size() - getLocalNum(),
-                                           getLocalNum(),
-                                           true);
+                                             getLocalNum(),
+                                             true);
             }
             interpolationCacheSet_m = true;
 
@@ -2432,20 +2432,20 @@ void PartBunch::boundp_destroy() {
 
     const int checkfactor = Options::remotePartDel;
     // check the bunch if its full size is larger than checkfactor times of its rms size
-    if (checkfactor != -1) {
-      if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
-        for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-            // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
-            if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
-                // put particle onto deletion list
-                destroy(1, ii);
-                //update bin parameter
-                if(weHaveBins()) countLost[Bin[ii]] += 1 ;
+    if(checkfactor != -1) {
+        if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
+            for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+                // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
+                if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
+                    // put particle onto deletion list
+                    destroy(1, ii);
+                    //update bin parameter
+                    if(weHaveBins()) countLost[Bin[ii]] += 1 ;
 
-                gmsgAll << "REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii] << ", beam rms = " << rrms_m << endl;
+                    gmsgAll << "REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii] << ", beam rms = " << rrms_m << endl;
+                }
             }
         }
-      }
     }
     for(int i = 0; i < dimIdx; i++) {
         rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
@@ -2714,7 +2714,7 @@ void PartBunch::pop() {
     if(!bunchStashed_m) return;
 
     size_t Nloc = getLocalNum();
-    if (getTotalNum() > 0) {
+    if(getTotalNum() > 0) {
         destroy(Nloc, 0);
     }
     update();
@@ -2747,4 +2747,35 @@ void PartBunch::pop() {
     bunchStashed_m = false;
 
     update();
+}
+
+double PartBunch::getZPos() {
+
+    if(sum(PType != 0)) {
+        size_t numberOfPrimaryParticles = 0;
+        double zAverage = 0.0;
+        if(getLocalNum() != 0) {
+            for(size_t partIndex = 0; partIndex < getLocalNum(); partIndex++) {
+                if(PType[partIndex] == 0) {
+                    zAverage += X[partIndex](2);
+                    numberOfPrimaryParticles++;
+                }
+            }
+            if(numberOfPrimaryParticles != 0)
+                zAverage /= numberOfPrimaryParticles;
+        }
+        reduce(zAverage, zAverage, OpAddAssign());
+        zAverage /= Ippl::getNodes();
+
+        return zAverage;
+    } else {
+        if(getTotalNum() > 0)
+            return sum(X(2)) / getTotalNum();
+        else
+            return 0.0;
+    }
+}
+
+void PartBunch::getXBounds(Vector_t &xMin, Vector_t &xMax) {
+    bounds(X, xMin, xMax);
 }

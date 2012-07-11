@@ -29,13 +29,13 @@ FM3DDynamic::FM3DDynamic(string aFilename):
         if(tmpString == "XYZ") {
             swap_m = false;
             parsing_passed = parsing_passed &&
-                interpreteLine<double>(file, frequency_m);
+                             interpreteLine<double>(file, frequency_m);
             parsing_passed = parsing_passed &&
-                interpreteLine<double, double, int>(file, xbegin_m, xend_m, num_gridpx_m);
+                             interpreteLine<double, double, int>(file, xbegin_m, xend_m, num_gridpx_m);
             parsing_passed = parsing_passed &&
-                interpreteLine<double, double, int>(file, ybegin_m, yend_m, num_gridpy_m);
+                             interpreteLine<double, double, int>(file, ybegin_m, yend_m, num_gridpy_m);
             parsing_passed = parsing_passed &&
-                interpreteLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+                             interpreteLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
         } else {
             cerr << "at the moment only the XYZ orientation is supported!\n"
                  << "unknown orientation of 3D dynamic fieldmap" << endl;
@@ -43,33 +43,33 @@ FM3DDynamic::FM3DDynamic(string aFilename):
         }
         for(long i = 0; (i < (num_gridpz_m + 1) * (num_gridpx_m + 1) * (num_gridpy_m + 1)) && parsing_passed; ++ i) {
             parsing_passed = parsing_passed &&
-                interpreteLine<double>(file,
-                                       tmpDouble,
-                                       tmpDouble,
-                                       tmpDouble,
-                                       tmpDouble,
-                                       tmpDouble,
-                                       tmpDouble);
+                             interpreteLine<double>(file,
+                                                    tmpDouble,
+                                                    tmpDouble,
+                                                    tmpDouble,
+                                                    tmpDouble,
+                                                    tmpDouble,
+                                                    tmpDouble);
         }
-        
+
         parsing_passed = parsing_passed &&
-            interpreteEOF(file);
-        
+                         interpreteEOF(file);
+
         file.close();
-        
+
         if(!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
         } else {
             frequency_m *= Physics::two_pi * 1e6;
-            
+
             xbegin_m /= 100.0;
             xend_m /= 100.0;
             ybegin_m /= 100.0;
             yend_m /= 100.0;
             zbegin_m /= 100.0;
             zend_m /= 100.0;
-            
+
             hx_m = (xend_m - xbegin_m) / num_gridpx_m;
             hy_m = (yend_m - ybegin_m) / num_gridpy_m;
             hz_m = (zend_m - zbegin_m) / num_gridpz_m;
@@ -77,7 +77,7 @@ FM3DDynamic::FM3DDynamic(string aFilename):
             num_gridpx_m++;
             num_gridpy_m++;
             num_gridpz_m++;
-            
+
         }
     } else {
         noFieldmapWarning();
@@ -273,7 +273,7 @@ bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     return false;
 }
 
-bool FM3DDynamic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM3DDynamic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 
@@ -288,7 +288,7 @@ void FM3DDynamic::getFieldDimensions(double &xIni, double &xFinal, double &yIni,
 void FM3DDynamic::swap() {}
 
 void FM3DDynamic::getInfo(Inform *msg) {
-    (*msg) << Filename_m << " (3D dynamic) " 
+    (*msg) << Filename_m << " (3D dynamic) "
            << " xini= " << xbegin_m << " xfinal= " << xend_m
            << " yini= " << ybegin_m << " yfinal= " << yend_m
            << " zini= " << zbegin_m << " zfinal= " << zend_m << " (m) " << endl;

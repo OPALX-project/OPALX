@@ -86,7 +86,7 @@ void Astra1DDynamic::readMap() {
         double Ez_max = 0.0;
         double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
 
-        double *RealValues = new double[2*num_gridpz_m];
+        double *RealValues = new double[2 * num_gridpz_m];
         double *zvals = new double[num_gridpz_m];
 
         gsl_spline *Ez_interpolant = gsl_spline_alloc(gsl_interp_cspline, num_gridpz_m);
@@ -95,7 +95,7 @@ void Astra1DDynamic::readMap() {
         gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
         gsl_fft_real_workspace *work = gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
 
-        FourCoefs_m = new double[2*accuracy_m - 1];
+        FourCoefs_m = new double[2 * accuracy_m - 1];
 
         // read in and parse field map
         in.open(Filename_m.c_str());
@@ -150,7 +150,7 @@ void Astra1DDynamic::readMap() {
         delete[] zvals;
         delete[] RealValues;
 
-        INFOMSG( typeset_msg("read in fieldmap '" + Filename_m + "'", "info") << endl);
+        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m + "'", "info") << endl);
     }
 }
 
@@ -184,13 +184,13 @@ bool Astra1DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &
         somefactor = 1.0;
         coskzl = cos(kz * l);
         sinkzl = sin(kz * l);
-        ez    += (FourCoefs_m[n] * coskzl - FourCoefs_m[n+1] * sinkzl);
+        ez    += (FourCoefs_m[n] * coskzl - FourCoefs_m[n + 1] * sinkzl);
         somefactor *= somefactor_base;
-        ezp   += somefactor * (-FourCoefs_m[n] * sinkzl - FourCoefs_m[n+1] * coskzl);
+        ezp   += somefactor * (-FourCoefs_m[n] * sinkzl - FourCoefs_m[n + 1] * coskzl);
         somefactor *= somefactor_base;
-        ezpp  += somefactor * (-FourCoefs_m[n] * coskzl + FourCoefs_m[n+1] * sinkzl);
+        ezpp  += somefactor * (-FourCoefs_m[n] * coskzl + FourCoefs_m[n + 1] * sinkzl);
         somefactor *= somefactor_base;
-        ezppp += somefactor * (FourCoefs_m[n] * sinkzl + FourCoefs_m[n+1] * coskzl);
+        ezppp += somefactor * (FourCoefs_m[n] * sinkzl + FourCoefs_m[n + 1] * coskzl);
     }
     // expand the field off-axis
     const double f  = -(ezpp  + ez *  xlrep_m * xlrep_m) / 16.;
@@ -208,13 +208,13 @@ bool Astra1DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &
     return false;
 }
 
-bool Astra1DDynamic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool Astra1DDynamic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     const double kz = two_pi * R(2) / length_m + Physics::pi;
     double ezp = 0.0;
 
     int n = 1;
     for(int l = 1; l < accuracy_m; l++, n += 2)
-        ezp += two_pi / length_m * l * (-FourCoefs_m[n] * sin(kz * l) - FourCoefs_m[n+1] * cos(kz * l));
+        ezp += two_pi / length_m * l * (-FourCoefs_m[n] * sin(kz * l) - FourCoefs_m[n + 1] * cos(kz * l));
 
     E(2) +=  ezp;
 
@@ -253,7 +253,7 @@ void Astra1DDynamic::getOnaxisEz(vector<pair<double, double> > & F) {
     ifstream in(Filename_m.c_str());
     interpreteLine<string, int>(in, tmpString, tmpInt);
     interpreteLine<double>(in, tmpDouble);
-    
+
     for(int i = 0; i < num_gridpz_m; ++ i) {
         interpreteLine<double, double>(in, F[i].first, F[i].second);
         if(fabs(F[i].second) > Ez_max) {

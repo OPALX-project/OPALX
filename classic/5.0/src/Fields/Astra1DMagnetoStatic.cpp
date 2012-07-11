@@ -78,7 +78,7 @@ void Astra1DMagnetoStatic::readMap() {
         double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
         double tmpDouble = zbegin_m - dz;
 
-        double *RealValues = new double[2*num_gridpz_m];
+        double *RealValues = new double[2 * num_gridpz_m];
         double *zvals = new double[num_gridpz_m];
 
         gsl_spline *Bz_interpolant = gsl_spline_alloc(gsl_interp_cspline, num_gridpz_m);
@@ -87,7 +87,7 @@ void Astra1DMagnetoStatic::readMap() {
         gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
         gsl_fft_real_workspace *work = gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
 
-        FourCoefs_m = new double[2*accuracy_m - 1];
+        FourCoefs_m = new double[2 * accuracy_m - 1];
 
         // read in and parse field map
         in.open(Filename_m.c_str());
@@ -173,13 +173,13 @@ bool Astra1DMagnetoStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vect
         somefactor = 1.0;
         coskzl = cos(kz * l);
         sinkzl = sin(kz * l);
-        ez    += (FourCoefs_m[n] * coskzl - FourCoefs_m[n+1] * sinkzl);
+        ez    += (FourCoefs_m[n] * coskzl - FourCoefs_m[n + 1] * sinkzl);
         somefactor *= somefactor_base;
-        ezp   += somefactor * (-FourCoefs_m[n] * sinkzl - FourCoefs_m[n+1] * coskzl);
+        ezp   += somefactor * (-FourCoefs_m[n] * sinkzl - FourCoefs_m[n + 1] * coskzl);
         somefactor *= somefactor_base;
-        ezpp  += somefactor * (-FourCoefs_m[n] * coskzl + FourCoefs_m[n+1] * sinkzl);
+        ezpp  += somefactor * (-FourCoefs_m[n] * coskzl + FourCoefs_m[n + 1] * sinkzl);
         somefactor *= somefactor_base;
-        ezppp += somefactor * (FourCoefs_m[n] * sinkzl + FourCoefs_m[n+1] * coskzl);
+        ezppp += somefactor * (FourCoefs_m[n] * sinkzl + FourCoefs_m[n + 1] * coskzl);
     }
     // expand the field off-axis
     const double BfieldR = -ezp / 2. + ezppp / 16. * RR2;
@@ -191,7 +191,7 @@ bool Astra1DMagnetoStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vect
     return false;
 }
 
-bool Astra1DMagnetoStatic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool Astra1DMagnetoStatic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

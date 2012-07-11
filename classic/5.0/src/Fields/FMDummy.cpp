@@ -37,7 +37,7 @@ bool FMDummy::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) cons
     return false;
 }
 
-bool FMDummy::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FMDummy::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

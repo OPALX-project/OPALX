@@ -18,7 +18,7 @@ public:
     /// given the position, X.
     virtual bool getFieldstrength(const Vector_t &X, Vector_t &strength, Vector_t &info) const;
 
-    virtual bool getFieldstrength_fdiff(const Vector_t &X, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
+    virtual bool getFieldDerivative(const Vector_t &X, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
 
     /// Get field dimensions.
     virtual void getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const;

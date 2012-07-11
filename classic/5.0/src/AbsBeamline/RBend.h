@@ -206,6 +206,7 @@ private:
 
     double design_energy_m;
     double angle_m; // Bend angle of central trajectory particle (radians).
+
     double *map_m;
     int map_size_m;
     double map_step_size_m;

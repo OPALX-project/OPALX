@@ -12,7 +12,7 @@ using Physics::c;
 using Physics::two_pi;
 
 Astra1DElectroStatic_fast::Astra1DElectroStatic_fast(string aFilename):
-    Fieldmap(aFilename){
+    Fieldmap(aFilename) {
     ifstream file;
     int tmpInt;
     int skippedValues = 0;
@@ -90,7 +90,7 @@ void Astra1DElectroStatic_fast::readMap() {
         double *higherDerivatives[3];
         double *zvals[2];
 
-        double *RealValues = new double[2*num_gridpz_m];
+        double *RealValues = new double[2 * num_gridpz_m];
         onAxisField_m = new double[num_gridpz_m];
         zvals[0] = new double[num_gridpz_m];
 
@@ -147,7 +147,7 @@ void Astra1DElectroStatic_fast::readMap() {
         RealValues[ii ++] = onAxisField_m[num_gridpz_m - 1];
         // prepend mirror sampling points such that field values are periodic for sure
         // ii == 2*num_gridpz_m at the moment
-        -- ii; 
+        -- ii;
         for(int i = 0; i < num_gridpz_m; ++ i, -- ii) {
             RealValues[i] = RealValues[ii];
         }
@@ -171,12 +171,12 @@ void Astra1DElectroStatic_fast::readMap() {
                 interior_derivative = base;
                 coskzl = cos(kz * l);
                 sinkzl = sin(kz * l);
-                
-                higherDerivatives[0][i] += interior_derivative * (-RealValues[n] * sinkzl - RealValues[n+1] * coskzl);
+
+                higherDerivatives[0][i] += interior_derivative * (-RealValues[n] * sinkzl - RealValues[n + 1] * coskzl);
                 interior_derivative *= base;
-                higherDerivatives[1][i] += interior_derivative * (-RealValues[n] * coskzl + RealValues[n+1] * sinkzl);
+                higherDerivatives[1][i] += interior_derivative * (-RealValues[n] * coskzl + RealValues[n + 1] * sinkzl);
                 interior_derivative *= base;
-                higherDerivatives[2][i] += interior_derivative * (RealValues[n] * sinkzl + RealValues[n+1] * coskzl);
+                higherDerivatives[2][i] += interior_derivative * (RealValues[n] * sinkzl + RealValues[n + 1] * coskzl);
             }
         }
 
@@ -184,7 +184,7 @@ void Astra1DElectroStatic_fast::readMap() {
         gsl_fft_real_wavetable_free(real);
 
         for(int i = 1; i < 4; ++i) {
-            gsl_spline_init(onAxisInterpolants_m[i], zvals[1], higherDerivatives[i-1], num_gridpz_m);
+            gsl_spline_init(onAxisInterpolants_m[i], zvals[1], higherDerivatives[i - 1], num_gridpz_m);
         }
 
         delete[] RealValues;
@@ -229,7 +229,7 @@ bool Astra1DElectroStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
     return false;
 }
 
-bool Astra1DElectroStatic_fast::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool Astra1DElectroStatic_fast::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 

@@ -9,7 +9,7 @@ class FM2DMagnetoStatic_cspline: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
-    virtual bool getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
+    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
     virtual void swap();

@@ -4,186 +4,119 @@
 #include "Fields/FM1DElectroStatic.hh"
 #include "Fields/Fieldmap.icc"
 #include "Physics/Physics.h"
+
 #include "gsl/gsl_fft_real.h"
 
-using namespace std;
-using Physics::two_pi;
-
 FM1DElectroStatic::FM1DElectroStatic(string aFilename):
-    Fieldmap(aFilename),
-    FourCoefs_m(NULL) {
-    ifstream file;
-    int tmpInt;
-    string tmpString;
-    double tmpDouble;
+    Fieldmap(aFilename) {
 
     Type = T1DElectroStatic;
 
-    // open field map, parse it and disable element on error
-    file.open(Filename_m.c_str());
-    if(file.good()) {
-        bool parsing_passed = interpreteLine<string, int>(file, tmpString, accuracy_m);
-        parsing_passed = parsing_passed &&
-                         interpreteLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
-        parsing_passed = parsing_passed &&
-                         interpreteLine<double, double, int>(file, rbegin_m, rend_m, tmpInt);
-        for(int i = 0; (i <= num_gridpz_m) && parsing_passed; ++ i) {
-            parsing_passed = parsing_passed &&
-                             interpreteLine<double>(file, tmpDouble);
-        }
+    std::ifstream fieldFile(Filename_m.c_str());
+    if(fieldFile.good()) {
 
-        parsing_passed = parsing_passed &&
-                         interpreteEOF(file);
+        bool parsingPassed = readFileHeader(fieldFile);
+        parsingPassed = checkFileData(fieldFile, parsingPassed);
+        fieldFile.close();
 
-        file.close();
-        lines_read_m = 0;
-
-        if(!parsing_passed) {
+        if(!parsingPassed) {
             disableFieldmapWarning();
-            zend_m = zbegin_m - 1e-3;
-        } else {
-            // conversion cm to m
-            rbegin_m /= 100.;
-            rend_m /= 100.;
-            zbegin_m /= 100.;
-            zend_m /= 100.;
+            zEnd_m = zBegin_m - 1.0e-3;
+        } else
+            convertHeaderData();
 
-            // num spacings -> num grid points
-            num_gridpz_m++;
-        }
-        length_m = 2.0 * num_gridpz_m * (zend_m - zbegin_m) / (num_gridpz_m - 1);
+        length_m = 2.0 * numberOfGridPoints_m * (zEnd_m - zBegin_m)
+                   / (numberOfGridPoints_m - 1);
     } else {
         noFieldmapWarning();
-        zbegin_m = 0.0;
-        zend_m = -1e-3;
+        zBegin_m = 0.0;
+        zEnd_m = -1.0e-3;
     }
 }
 
 FM1DElectroStatic::~FM1DElectroStatic() {
-    if(FourCoefs_m != NULL) {
-        delete[] FourCoefs_m;
-    }
 }
 
 void FM1DElectroStatic::readMap() {
-    if(FourCoefs_m == NULL) {
-        // declare variables and allocate memory
-        ifstream in;
 
-        string tmpString;
+    if(fourierCoefs_m.empty()) {
 
-        int tmpInt;
+        ifstream fieldFile(Filename_m.c_str());
+        stripFileHeader(fieldFile);
 
-        double tmpDouble;
-        double Ez_max = 0.0;
+        double *fieldData = new double[2 * numberOfGridPoints_m - 1];
+        double maxBz = readFileData(fieldFile, fieldData);
+        fieldFile.close();
+        computeFourierCoefficients(maxBz, fieldData);
+        delete [] fieldData;
 
-        double *RealValues = new double[2*num_gridpz_m];
-
-        gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
-        gsl_fft_real_workspace *work = gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
-
-        FourCoefs_m = new double[2*accuracy_m - 1];
-
-        // read in field map and parse it
-        in.open(Filename_m.c_str());
-        interpreteLine<string, int>(in, tmpString, accuracy_m);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-
-        for(int i = 0; i < num_gridpz_m; ++ i) {
-            interpreteLine<double>(in, RealValues[num_gridpz_m + i]);
-            if(fabs(RealValues[num_gridpz_m + i]) > Ez_max) {
-                Ez_max = fabs(RealValues[num_gridpz_m + i]);
-            }
-            // mirror the field map to make sure that it is periodic
-            RealValues[num_gridpz_m - 1 - i] = RealValues[num_gridpz_m + i];
-        }
-        in.close();
-
-        // apply FFT
-        gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
-
-        // normalize the fourier coeficients such that [E] = V/m after interpolation
-        // the 1.e6 stems from conversion MV/m to V/m
-        FourCoefs_m[0] = 1.e6 * RealValues[0] / (2.*num_gridpz_m * Ez_max);
-        for(int i = 1; i < 2 * accuracy_m - 1; i++) {
-            FourCoefs_m[i] = 1.e6 * RealValues[i] / (num_gridpz_m * Ez_max);
-        }
-
-        gsl_fft_real_workspace_free(work);
-        gsl_fft_real_wavetable_free(real);
-
-        delete[] RealValues;
-
-        INFOMSG( typeset_msg("read in fieldmap '" + Filename_m + "'", "info") << endl);
+        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
+                << endl);
     }
 }
 
 void FM1DElectroStatic::freeMap() {
-    if(FourCoefs_m != NULL) {
 
-        delete[] FourCoefs_m;
+    if(!fourierCoefs_m.empty()) {
+        fourierCoefs_m.clear();
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
-
+        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info")
+                << endl);
     }
 }
 
-bool FM1DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
-    // do fourier interpolation for on-axis value
-    const double RR2 = R(0) * R(0) + R(1) * R(1);
+bool FM1DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E,
+        Vector_t &B) const {
 
-    const double kz = two_pi * R(2) / length_m + Physics::pi;
+    std::vector<double> fieldComponents;
+    computeFieldOnAxis(R(2), fieldComponents);
+    computeFieldOffAxis(R, E, B, fieldComponents);
 
-    double ez = FourCoefs_m[0];
-    double ezp = 0.0;
-    double ezpp = 0.0;
-    double ezppp = 0.0;
-    double somefactor_base, somefactor;
-    double coskzl;
-    double sinkzl;
+    return false;
+}
 
-    int n = 1;
-    for(int l = 1; l < accuracy_m ; l++, n += 2) {
-        somefactor_base =  two_pi / length_m * l;
-        somefactor = 1.0;
-        coskzl = cos(kz * l);
-        sinkzl = sin(kz * l);
-        ez    += (FourCoefs_m[n] * coskzl - FourCoefs_m[n+1] * sinkzl);
-        somefactor *= somefactor_base;
-        ezp   += somefactor * (-FourCoefs_m[n] * sinkzl - FourCoefs_m[n+1] * coskzl);
-        somefactor *= somefactor_base;
-        ezpp  += somefactor * (-FourCoefs_m[n] * coskzl + FourCoefs_m[n+1] * sinkzl);
-        somefactor *= somefactor_base;
-        ezppp += somefactor * (FourCoefs_m[n] * sinkzl + FourCoefs_m[n+1] * coskzl);
+bool FM1DElectroStatic::getFieldDerivative(const Vector_t &R,
+        Vector_t &E,
+        Vector_t &B,
+        const DiffDirection &dir) const {
+
+    double kz = Physics::two_pi * R(2) / length_m + Physics::pi;
+    double eZPrime = 0.0;
+
+    int coefIndex = 1;
+    for(int n = 1; n < accuracy_m; n++) {
+
+        eZPrime += n * Physics::two_pi / length_m
+                   * (-fourierCoefs_m.at(coefIndex) * sin(kz * n)
+                      - fourierCoefs_m.at(coefIndex + 1) * cos(kz * n));
+        coefIndex += 2;
+
     }
 
-    // expand to off-axis
-    const double EfieldR = -ezp / 2. + ezppp / 16. * RR2;
+    E(2) +=  eZPrime;
 
-    E(0) += EfieldR * R(0);
-    E(1) += EfieldR * R(1);
-    E(2) += ez - ezpp * RR2 / 4.;
     return false;
 }
 
-bool FM1DElectroStatic::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
-    return false;
+void FM1DElectroStatic::getFieldDimensions(double &zBegin, double &zEnd,
+        double &rBegin, double &rEnd) const {
+    zBegin = zBegin_m;
+    zEnd = zEnd_m;
+    rBegin = rBegin_m;
+    rEnd = rEnd_m;
 }
-
-void FM1DElectroStatic::getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const {
-    zBegin = zbegin_m;
-    zEnd = zend_m;
-    rBegin = rbegin_m;
-    rEnd = rend_m;
-}
-void FM1DElectroStatic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+void FM1DElectroStatic::getFieldDimensions(double &xIni, double &xFinal,
+        double &yIni, double &yFinal,
+        double &zIni, double &zFinal) const {}
 
 void FM1DElectroStatic::swap()
 { }
 
 void FM1DElectroStatic::getInfo(Inform *msg) {
-    (*msg) << Filename_m << " (1D magnetostatic); zini= " << zbegin_m << " m; zfinal= " << zend_m << " m;" << endl;
+    (*msg) << Filename_m
+           << " (1D electrostatic); zini= "
+           << zBegin_m << " m; zfinal= "
+           << zEnd_m << " m;" << endl;
 }
 
 double FM1DElectroStatic::getFrequency() const {
@@ -192,3 +125,158 @@ double FM1DElectroStatic::getFrequency() const {
 
 void FM1DElectroStatic::setFrequency(double freq)
 { }
+
+bool FM1DElectroStatic::checkFileData(std::ifstream &fieldFile,
+                                      bool parsingPassed) {
+
+    double tempDouble;
+    for(int dataIndex = 0; dataIndex <= numberOfGridPoints_m; dataIndex++)
+        parsingPassed = parsingPassed
+                        && interpreteLine<double>(fieldFile, tempDouble);
+
+    return parsingPassed && interpreteEOF(fieldFile);
+
+}
+
+void FM1DElectroStatic::computeFieldOffAxis(const Vector_t &R,
+        Vector_t &E,
+        Vector_t &B,
+        std::vector<double> fieldComponents) const {
+
+    double radiusSq = pow(R(0), 2.0) + pow(R(1), 2.0);
+    double transverseEFactor = -fieldComponents.at(1) / 2.0
+                               + radiusSq * fieldComponents.at(3) / 16.0;
+
+    E(0) += R(0) * transverseEFactor;
+    E(1) += R(1) * transverseEFactor;
+    E(2) += fieldComponents.at(0) - fieldComponents.at(2) * radiusSq / 4.0;
+
+}
+
+void FM1DElectroStatic::computeFieldOnAxis(double z,
+        std::vector<double> &fieldComponents) const {
+
+    double kz = Physics::two_pi * z / length_m + Physics::pi;
+    fieldComponents.push_back(fourierCoefs_m.at(0));
+    fieldComponents.push_back(0.0);
+    fieldComponents.push_back(0.0);
+    fieldComponents.push_back(0.0);
+
+    int coefIndex = 1;
+    for(int n = 1; n < accuracy_m; n++) {
+
+        double kn = n * Physics::two_pi / length_m;
+        double coskzn = cos(kz * n);
+        double sinkzn = sin(kz * n);
+
+        fieldComponents.at(0) += fourierCoefs_m.at(coefIndex) * coskzn
+                                 - fourierCoefs_m.at(coefIndex + 1) * sinkzn;
+
+        fieldComponents.at(1) += kn * (-fourierCoefs_m.at(coefIndex) * sinkzn
+                                       - fourierCoefs_m.at(coefIndex + 1) * coskzn);
+
+        double derivCoeff = pow(kn, 2.0);
+        fieldComponents.at(2) += derivCoeff * (-fourierCoefs_m.at(coefIndex) * coskzn
+                                               + fourierCoefs_m.at(coefIndex + 1) * sinkzn);
+        derivCoeff *= kn;
+        fieldComponents.at(3) += derivCoeff * (fourierCoefs_m.at(coefIndex) * sinkzn
+                                               + fourierCoefs_m.at(coefIndex + 1) * coskzn);
+
+        coefIndex += 2;
+    }
+}
+
+void FM1DElectroStatic::computeFourierCoefficients(double maxBz,
+        double fieldData[]) {
+
+    gsl_fft_real_wavetable *waveTable = gsl_fft_real_wavetable_alloc(2
+                                        * numberOfGridPoints_m - 1);
+    gsl_fft_real_workspace *workSpace = gsl_fft_real_workspace_alloc(2
+                                        * numberOfGridPoints_m - 1);
+    gsl_fft_real_transform(fieldData, 1, 2 * numberOfGridPoints_m - 1,
+                           waveTable, workSpace);
+
+    /*
+     * Normalize the Fourier coefficients such that the max field
+     * value is 1 V/m.
+     */
+    fourierCoefs_m.push_back(1.0e6 * fieldData[0]
+                             / (2.0 * (2 * numberOfGridPoints_m - 1) * maxBz));
+    for(int coefIndex = 1; coefIndex < 2 * accuracy_m - 1; coefIndex++)
+        fourierCoefs_m.push_back(1.0e6 * fieldData[coefIndex] * 2.0
+                                 / ((2 * numberOfGridPoints_m - 1) * maxBz));
+
+    gsl_fft_real_workspace_free(workSpace);
+    gsl_fft_real_wavetable_free(waveTable);
+
+}
+
+void FM1DElectroStatic::convertHeaderData() {
+
+    // Convert to m.
+    rBegin_m /= 100.0;
+    rEnd_m /= 100.0;
+    zBegin_m /= 100.0;
+    zEnd_m /= 100.0;
+
+    // Convert number of grid spacings to number of grid points.
+    numberOfGridPoints_m++;
+}
+
+double FM1DElectroStatic::readFileData(std::ifstream &fieldFile,
+                                       double fieldData[]) {
+
+    double maxEz = 0.0;
+    for(int dataIndex = 0; dataIndex < numberOfGridPoints_m; dataIndex++) {
+        interpreteLine<double>(fieldFile,
+                               fieldData[numberOfGridPoints_m - 1 + dataIndex]);
+        if(std::abs(fieldData[numberOfGridPoints_m + dataIndex]) > maxEz)
+            maxEz = std::abs(fieldData[numberOfGridPoints_m + dataIndex]);
+
+        /*
+         * Mirror the field map about minimum z value to ensure that
+         * it is periodic.
+         */
+        if(dataIndex != 0)
+            fieldData[numberOfGridPoints_m - 1 - dataIndex]
+            = fieldData[numberOfGridPoints_m + dataIndex];
+    }
+
+    return maxEz;
+}
+
+bool FM1DElectroStatic::readFileHeader(std::ifstream &fieldFile) {
+
+    std::string tempString;
+    int tempInt;
+
+    bool parsingPassed = interpreteLine<string, int>(fieldFile,
+                         tempString, accuracy_m);
+    parsingPassed = parsingPassed &&
+                    interpreteLine<double, double, int>(fieldFile,
+                            zBegin_m,
+                            zEnd_m,
+                            numberOfGridPoints_m);
+    parsingPassed = parsingPassed &&
+                    interpreteLine<double, double, int>(fieldFile, rBegin_m,
+                            rEnd_m, tempInt);
+
+    if(accuracy_m > numberOfGridPoints_m)
+        accuracy_m = numberOfGridPoints_m;
+
+    return parsingPassed;
+}
+
+void FM1DElectroStatic::stripFileHeader(std::ifstream &fieldFile) {
+
+    std::string tempString;
+    int tempInt;
+    double tempDouble;
+
+    interpreteLine<string, int>(fieldFile, tempString, tempInt);
+    interpreteLine<double, double, int>(fieldFile, tempDouble,
+                                        tempDouble, tempInt);
+    interpreteLine<double, double, int>(fieldFile, tempDouble,
+                                        tempDouble, tempInt);
+
+}

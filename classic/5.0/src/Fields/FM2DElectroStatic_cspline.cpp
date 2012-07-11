@@ -157,7 +157,7 @@ void FM2DElectroStatic_cspline::readMap() {
         }
         rvals_m = new double[num_gridpr_m + 3];
         for(int j = -3; j < num_gridpr_m; ++ j) {
-            rvals_m[j+3] = (rend_m - rbegin_m) * j / (num_gridpr_m - 1);
+            rvals_m[j + 3] = (rend_m - rbegin_m) * j / (num_gridpr_m - 1);
         }
 
         // allocate array of splines and accelerators
@@ -225,14 +225,14 @@ bool FM2DElectroStatic_cspline::getFieldstrength(const Vector_t &R, Vector_t &E,
 
     // do 1D cubic spline interpolation along z direction for R = j * dr
     for(int j = 0; j < num_gridpr_m; ++ j) {
-        Ez_values_m[j+3] = gsl_spline_eval(Ez_interpolants_m[j], R(2), Ez_accel_m[j]);
-        Er_values_m[j+3] = gsl_spline_eval(Er_interpolants_m[j], R(2), Er_accel_m[j]);
+        Ez_values_m[j + 3] = gsl_spline_eval(Ez_interpolants_m[j], R(2), Ez_accel_m[j]);
+        Er_values_m[j + 3] = gsl_spline_eval(Er_interpolants_m[j], R(2), Er_accel_m[j]);
     }
     // field should be rotational symmetric therefore extend the field accordingly
     // is 4 enough? don't know...
     for(int j = 1; j < 4; ++ j) {
-        Ez_values_m[3-j] = Ez_values_m[3+j];
-        Er_values_m[3-j] = -Er_values_m[3+j];
+        Ez_values_m[3 - j] = Ez_values_m[3 + j];
+        Er_values_m[3 - j] = -Er_values_m[3 + j];
     }
 
     // allocate spline and accelerators for the spline in the 2nd dimension and initialize them
@@ -263,7 +263,7 @@ bool FM2DElectroStatic_cspline::getFieldstrength(const Vector_t &R, Vector_t &E,
     return false;
 }
 
-bool FM2DElectroStatic_cspline::getFieldstrength_fdiff(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM2DElectroStatic_cspline::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 
