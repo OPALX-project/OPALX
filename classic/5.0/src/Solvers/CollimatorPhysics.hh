@@ -58,6 +58,10 @@ private:
     std::string collshape_m;
     int Z_m;
     double A_m;
+    double A2_c;
+    double A3_c;
+    double A4_c;
+    double A5_c;
     double rho_m;
     double X0_m;
     double I_m;

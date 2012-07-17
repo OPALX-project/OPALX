@@ -48,6 +48,10 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     material_m(material),
     Z_m(0),
     A_m(0.0),
+    A2_c(0.0),
+    A3_c(0.0),
+    A4_c(0.0),
+    A5_c(0.0),
     rho_m(0.0),
     X0_m(0.0),
     I_m(0.0),
@@ -451,6 +455,11 @@ void  CollimatorPhysics::Material() {
         X0_m = 12.86 / rho_m / 100;
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
+        
+       A2_c = 4.194;
+       A3_c = 4.649E3;
+       A4_c = 8.113E1;
+       A5_c = 2.42E-2;
     }
 
     if(material_m == "Be") {
@@ -461,6 +470,12 @@ void  CollimatorPhysics::Material() {
         X0_m = 65.19 / rho_m / 100;
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
+	
+	A2_c = 2.590;
+        A3_c = 9.660E2;
+        A4_c = 1.538E2;
+        A5_c =3.475E-2;
+    
     }
 
     if(material_m == "Graphite") {
@@ -470,7 +485,13 @@ void  CollimatorPhysics::Material() {
 
         X0_m = 42.70 / rho_m / 100;
         I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        n_m = rho_m / A_m * Avo;       
+	
+	A2_c = 2.601;
+        A3_c = 1.701E3;
+        A4_c = 1.279E3;
+        A5_c = 1.638E-2;
+	
     }
 
     if(material_m == "Mo") {
@@ -481,6 +502,11 @@ void  CollimatorPhysics::Material() {
         X0_m = 9.8 / rho_m / 100;
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
+	
+	A2_c = 7.248;
+        A3_c = 9.545E3;
+        A4_c = 4.802E2;
+        A5_c = 5.376E-3;
     }
 
 }
@@ -489,6 +515,7 @@ void  CollimatorPhysics::Material() {
 /// Energy straggling: For relatively thick absorbers such that the number of collisions is large,
 /// the energy loss distribution is shown to be Gaussian in form.
 // -------------------------------------------------------------------------
+
 void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
 
     Material();
@@ -498,18 +525,40 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
     double beta2 = beta * beta;
 
     double deltas = deltat * beta * Physics::c;
-    double deltasrho = deltas * 100 * rho_m;
-
+    double deltasrho = deltas * 100 * rho_m; 
     double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
-    double Tmax = 2.0 * m_e * 1e9 * beta2 * gamma2 / (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p));
-    double dEdx = -K * z_p * z_p * Z_m / (A_m * beta2) * (1.0 / 2.0 * log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2);
-    double delta_Eave = deltasrho * dEdx;
-    double sigma_E = sqrt(K * m_e * rho_m * Z_m / A_m * deltas * 1e5);
-    double delta_E = rGen_m->gauss(delta_Eave, sigma_E);
-    Eng = Eng + delta_E / 1e3;
-    if(Eng < 1e-8 || dEdx > 0)  pdead = true;
+    double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m))* deltas * 1E5;
+    if (Eng > 0.00001&& Eng < 0.0006) //GeV
+    { 
+	double Ts = (Eng*1E6)/1.0073; // the 1.0073 comes from the proton mass divided by the atomic mass number. T is in KeV
+	double epsilon_low = A2_c*pow(Ts,0.45);		
+	double epsilon_high = (A3_c/Ts)*log(1+(A4_c/Ts)+(A5_c*Ts));
+	double epsilon = (epsilon_low*epsilon_high)/(epsilon_low + epsilon_high);
+	double stopping_power = - epsilon /(1E21*(A_m/Avo)); // Stopping_power is in MeV
+	INFOMSG("stopping power: " << stopping_power << " MeV" <<endl);
+	double delta_Eave = (deltasrho * stopping_power);
+	double delta_E1 = rGen_m->gauss(delta_Eave, sigma_E);
+	double delta_E = delta_E1/1000.; // Delta_E is in GeV
+	double Eng = Eng + delta_E;
+    }
+    
+    if (Eng >= 0.0006)
+    {
+	double Tmax = 2.0 * m_e * 1e9 * beta2 * gamma2 / (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p));
+	double dEdx = -K * z_p * z_p * Z_m / (A_m * beta2) * (1.0 / 2.0 * log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2);
+	INFOMSG("stopping power_BB: " << dEdx << " MeV");
+	double delta_Eave = deltasrho * dEdx;
+	double delta_E = rGen_m->gauss(delta_Eave, sigma_E);
+    Eng = Eng+delta_E / 1E3;
+    }	
+    else
+      INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
+	 pdead = true;
 
 }
+
+
+
 ///From beam coordinate to lab coordinate
 // --------------------------------------------------------------------------
 void  CollimatorPhysics::Rot(Vector_t &P, Vector_t Prot, double normP) {
