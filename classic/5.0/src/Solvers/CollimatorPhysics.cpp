@@ -539,7 +539,7 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
 	double delta_Eave = (deltasrho * stopping_power);
 	double delta_E1 = rGen_m->gauss(delta_Eave, sigma_E);
 	double delta_E = delta_E1/1000.; // Delta_E is in GeV
-	double Eng = Eng + delta_E;
+	Eng = Eng + delta_E;
     }
     
     if (Eng >= 0.0006)
@@ -549,11 +549,11 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
 	INFOMSG("stopping power_BB: " << dEdx << " MeV");
 	double delta_Eave = deltasrho * dEdx;
 	double delta_E = rGen_m->gauss(delta_Eave, sigma_E);
-    Eng = Eng+delta_E / 1E3;
+	Eng = Eng+delta_E / 1E3;
     }	
     else
       INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
-	 pdead = true;
+    pdead = true;
 
 }
 
