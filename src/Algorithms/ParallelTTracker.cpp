@@ -877,16 +877,16 @@ void ParallelTTracker::updateAllRFElements(double phiShift) {
             freq = static_cast<TravelingWave *>((*fit).getElement())->getFrequencym();
             phi = static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
             msg << (*fit).getElement()->getName()
-                  << ": phi_orig= phi_nom + phi_maxE= " << phi *RADDEG << " degree, "
-                  << "global phase shift= " << -phiShift *freq *RADDEG << " degree\n";
+		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (phi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
+		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree)\n";
             phi -= (phiShift * freq);
             static_cast<TravelingWave *>((*fit).getElement())->updatePhasem(phi);
         } else {
             freq = static_cast<RFCavity *>((*fit).getElement())->getFrequencym();
             phi = static_cast<RFCavity *>((*fit).getElement())->getPhasem();
             msg << (*fit).getElement()->getName()
-                  << ": phi_orig= phi_nom + phi_maxE= " << phi *RADDEG << " degree, "
-                  << "global phase shift= " << -phiShift *freq *RADDEG << " degree\n";
+		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (phi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
+		<< "global phase shift= " << -phiShift *freq *RADDEG << " degree\n";
             phi -= (phiShift * freq);
             static_cast<RFCavity *>((*fit).getElement())->updatePhasem(phi);
         }
