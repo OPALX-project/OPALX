@@ -270,7 +270,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         h5_size_t grid_dims[3];
         h5_size_t field_dims;
         char name[20];
-        h5_size_t len_name = 20;
+        h5_size_t len_name = sizeof (name);
         h5_int64_t ftype;
 
         h5_file_t *file = H5OpenFile(Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
@@ -279,25 +279,25 @@ MapType Fieldmap::readHeader(std::string Filename) {
             if(h5err != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
             h5_int64_t num_fields = H5BlockGetNumFields(file);
+	    MapType maptype = UNKNOWN;
             for(h5_ssize_t i = 0; i < num_fields; ++ i) {
-                /*
-                  Work around API changes in H5Block
-                */
                 h5err = H5BlockGetFieldInfo(file, (h5_size_t)i, name, len_name, &grid_rank, grid_dims, &field_dims, &ftype);
                 if(h5err != H5_SUCCESS)
                     ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                if(strcmp(name, "Bfield") == 0) {// using dataset name "Bfield" and "Hfield" to distinguish the type
-
-                    return T3DMagnetoStaticH5Block;
+		// using field name "Bfield" and "Hfield" to distinguish the type
+                if(strcmp(name, "Bfield") == 0) {
+                    maptype = T3DMagnetoStaticH5Block;
+		    break;
                 } else if(strcmp(name, "Hfield") == 0) {
-                    return T3DDynamicH5Block;
+                    maptype = T3DDynamicH5Block;
+		    break;
                 }
             }
             h5err = H5CloseFile(file);
             if(h5err != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            //return T3DDynamicH5Block;
-
+	    if (maptype != UNKNOWN)
+		    return maptype;
         }
     }
     if(strcmp(magicnumber, "Astr") == 0) {
