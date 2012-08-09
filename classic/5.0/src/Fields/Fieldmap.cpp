@@ -279,25 +279,25 @@ MapType Fieldmap::readHeader(std::string Filename) {
             if(h5err != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
             h5_int64_t num_fields = H5BlockGetNumFields(file);
-	    MapType maptype = UNKNOWN;
+            MapType maptype = UNKNOWN;
             for(h5_ssize_t i = 0; i < num_fields; ++ i) {
                 h5err = H5BlockGetFieldInfo(file, (h5_size_t)i, name, len_name, &grid_rank, grid_dims, &field_dims, &ftype);
                 if(h5err != H5_SUCCESS)
                     ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-		// using field name "Bfield" and "Hfield" to distinguish the type
+                // using field name "Bfield" and "Hfield" to distinguish the type
                 if(strcmp(name, "Bfield") == 0) {
                     maptype = T3DMagnetoStaticH5Block;
-		    break;
+                    break;
                 } else if(strcmp(name, "Hfield") == 0) {
                     maptype = T3DDynamicH5Block;
-		    break;
+                    break;
                 }
             }
             h5err = H5CloseFile(file);
             if(h5err != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-	    if (maptype != UNKNOWN)
-		    return maptype;
+            if (maptype != UNKNOWN)
+                    return maptype;
         }
     }
     if(strcmp(magicnumber, "Astr") == 0) {
