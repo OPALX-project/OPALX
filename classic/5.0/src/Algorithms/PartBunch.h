@@ -323,7 +323,7 @@ public:
     double get_DDy() const;
 
 
-
+    void set_meanEnergy(double e );   // need this in Autophase   
 
     void set_meshEnlargement(double dh);
     double get_meshEnlargement() const;
@@ -1007,6 +1007,12 @@ double   PartBunch::get_phase() const {
 inline
 double   PartBunch::get_gamma() const {
     return 1.0;
+}
+
+
+inline
+void PartBunch::set_meanEnergy(double e ) {
+    eKin_m = e;
 }
 
 inline
