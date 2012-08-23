@@ -142,6 +142,10 @@ namespace Options {
     /// during each time step. If false then the time step during emission is set so that one
     /// energy bin of the beam is emitted during each time step.
     extern bool fineEmission;
+
+    /// If true HDF5 files are written
+    extern bool writeHDF5;
+
 }
 
 #endif // OPAL_Options_HH
