@@ -73,6 +73,7 @@ public:
 
     void setOPALt();
 
+    bool doHDF5();
 
     /** \brief Write the particle distribution data into a independent H5 file
      *   for bunch injection in multi-bunch simulation in cyclotrom
@@ -323,6 +324,9 @@ private:
     std::vector< double > stash_sposTail;
     std::vector< size_t > stash_nLoc;
     std::vector< size_t > stash_nTot;
+
+    /// flag to discable all HDF5 output
+    bool doHDF5_m;
 
     struct file_size_name {
         off_t file_size_m;

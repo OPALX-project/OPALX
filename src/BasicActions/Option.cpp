@@ -47,7 +47,7 @@ namespace Options {
     bool csrDump = false;
     bool efDump = false;
     bool ppdebug = false;
-    bool writeHDF5 = true;
+    bool enableHDF5 = true;
 
     // The global random generator.
     Random rangen;
@@ -149,7 +149,7 @@ namespace {
         SCHOTTKYCORR,
         SCHOTTKYRENO,
         FINEEMISSION,
-        WRITEHDF5,
+        ENABLEHDF5,
         SIZE
     };
 }
@@ -239,8 +239,8 @@ Option::Option():
     itsAttr[NLHS] = Attributes::makeReal
                           ("NLHS", "Number of stored old solutions for extrapolating the new starting vector. Default value is 1 and just the last solution is used.");
 
-    itsAttr[WRITEHDF5] = Attributes::makeBool
-                      ("WRITEHDF5", "If true, HDF5 files are written", writeHDF5);
+    itsAttr[ENABLEHDF5] = Attributes::makeBool
+                      ("ENABLEDF5", "If true, HDF5 actions are enabled", enableHDF5);
 
     FileStream::setEcho(echo);
     rangen.init55(seed);
@@ -282,7 +282,7 @@ Option::Option(const string &name, Option *parent):
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
     Attributes::setReal(itsAttr[RECYCLEBLOCKS], recycleBlocks);
     Attributes::setReal(itsAttr[NLHS], nLHS);
-    Attributes::setBool(itsAttr[WRITEHDF5], writeHDF5);
+    Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
 }
 
 
@@ -310,7 +310,7 @@ void Option::execute() {
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
     efDump = Attributes::getBool(itsAttr[EFDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
-    writeHDF5 = Attributes::getBool(itsAttr[WRITEHDF5]);
+    enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
 
     if(itsAttr[SEED]) {
         seed = int(Attributes::getReal(itsAttr[SEED]));

@@ -1,10 +1,14 @@
 //#include "Ippl.h"
 #include "Algorithms/PBunchDefs.h"
 #include <Structure/LossDataSink.h>
+#include "Utilities/Options.h"
 
+using namespace Options;
 
 void LossDataSink::openH5(std::string element) {
-
+	
+	if (!Options::enableHDF5) return;
+	
     if((!hdf5FileIsOpen_m) && doHdf5Save_m) {
         // open h5 file
         fn_m = element + std::string(".h5");
@@ -28,6 +32,9 @@ void LossDataSink::openH5(std::string element) {
 }
 
 void LossDataSink::writeH5FileAttributes() {
+	
+	if (!Options::enableHDF5) return;
+	
     h5_int64_t rc;
     // Write file attributes to describe phase space to H5 file.
     std::stringstream OPAL_version;

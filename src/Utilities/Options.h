@@ -144,7 +144,7 @@ namespace Options {
     extern bool fineEmission;
 
     /// If true HDF5 files are written
-    extern bool writeHDF5;
+    extern bool enableHDF5;
 
 }
 
