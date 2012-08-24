@@ -108,6 +108,9 @@ void LossDataSink::save(std::string element) {
     element_m = element;
 
     if(hdf5FileIsOpen_m) {
+		
+		if (!Options::enableHDF5) return;
+		
         size_t nLoc = x_m.size();
 
         //~ void *varray = malloc(nLoc * sizeof(double));
@@ -189,7 +192,7 @@ void LossDataSink::save(std::string element) {
         //~ if(varray)
             //~ free(varray);
     } else {
-      append();
+        append();
         int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
         if(Ippl::Comm->myNode() == 0) {
             const unsigned partCount = x_m.size();
