@@ -23,6 +23,9 @@
 #include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Utilities/Options.h"
+
+using namespace Options;
 
 #include "H5hut.h"
 
@@ -156,7 +159,10 @@ void Monitor::goOnline() {
 }
 
 void Monitor::goOffline() {
-    reduce(online_m, online_m, OpOr());
+
+    if (!Options::enableHDF5) return;
+	
+	reduce(online_m, online_m, OpOr());
 
     if(online_m) {
         online_m = false;
