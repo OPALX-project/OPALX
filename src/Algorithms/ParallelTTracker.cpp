@@ -669,142 +669,32 @@ void ParallelTTracker::checkCavity(double s, Component *& comp, double & cavity_
     }
 }
 
-void ParallelTTracker::doOneStep(BorisPusher & pusher) {
-    bool global_EOL = true;  //check if any particle hasn't reached the end of the field from the last element
-    unsigned long bends = 0;
 
-    double recpgamma;
+void ParallelTTracker::doOneStep(BorisPusher & pusher) {
+			
+    bends_m = 0;
+
     double t = itsBunch->getT();
 
-    const Vector_t vscaleFactor = Vector_t(scaleFactor_m);
-
-    Vector_t externalE, externalB;
-
-    Vector_t rmin, rmax;
-
+    // increase margin from 3.*c*dt to 10.*c*dt to prevent that fieldmaps are accessed
+    // before they are allocated when increasing the timestep in the gun.
+    switchElements(10.0);
+    
     itsOpalBeamline_m.resetStatus();
+	
+    timeIntegration1(pusher);
 
-    //reset E and B to Vector_t(0.0) for every step
-
+    itsBunch->calcBeamParameters();
+	
+    // reset E and B to Vector_t(0.0) for every step
     itsBunch->Ef = Vector_t(0.0);
     itsBunch->Bf = Vector_t(0.0);
 
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-        //scale each particle with c*dt
-        itsBunch->R[i] /= vscaleFactor;
-
-        pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
-
-        // update local coordinate system of particle
-        itsBunch->X[i] /= vscaleFactor;
-        pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i],
-                                                itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->dt[0]);
-        itsBunch->X[i] *= vscaleFactor;
-    }
-    //    itsBunch->calcBeamParameters();
-
-    // push the reference particle by a half step
-    recpgamma = 1.0 / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
-    RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor_m;
-
-    //
-    // get external fields for all particles
-    //
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-        //FIXME: rethink scaling!
-        itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c
-                                   * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
-
-        long ls = itsBunch->LastSection[i];
-        itsOpalBeamline_m.getSectionIndexAt(itsBunch->R[i], ls);
-        if(ls != itsBunch->LastSection[i]) {
-            if(!itsOpalBeamline_m.section_is_glued_to(itsBunch->LastSection[i], ls)) {
-                itsBunch->ResetLocalCoordinateSystem(i, itsOpalBeamline_m.getOrientation(ls),
-                                                     itsOpalBeamline_m.getSectionStart(ls));
-            }
-            itsBunch->LastSection[i] = ls;
-        }
-        const unsigned long rtv = itsOpalBeamline_m.getFieldAt(i, itsBunch->R[i], ls,
-                                  t + itsBunch->dt[i] / 2., externalE, externalB);
-        global_EOL = global_EOL && (rtv & BEAMLINE_EOL);
-
-        bends = bends || (rtv & BEAMLINE_BEND);
-
-        // skip rest of the particle push if the
-        // particle is out of bounds i.e. does not see
-        // a E or B field
-        if(rtv & BEAMLINE_OOB)
-            itsBunch->Bin[i] = -1;
-
-        itsBunch->Ef[i] += externalE;
-        itsBunch->Bf[i] += externalB;
-
-        itsBunch->R[i] /= Vector_t(Physics::c * itsBunch->dt[i], Physics::c
-                                   * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
-    }
-
-    kickParticlesAutophase(pusher);
-
-    if(bends == 0) {
-        updateReferenceParticleAutophase();
-    } else {
-        /*
-           at least one of the elements bends the beam; until all
-           particles have left the bending elements we track the
-           reference particle as if it were a regular particle; from
-           the moment when the reference particle has reached the
-           bending field until it leaves it again we rotate the bunch
-           about the position of the reference particle such that the
-           momentum of the reference particle points in z direction
-         */
-        RefPartP_suv_m = itsBunch->P[0];
-        RefPartR_suv_m = itsBunch->R[0];
-        recpgamma = 1. / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
-        updateSpaceOrientation(false);
-
-        // First update the momentum of the reference particle in zxy coordinate system, then update its position
-        RefPartP_zxy_m = dot(space_orientation_m, RefPartP_suv_m);
-        RefPartR_zxy_m += RefPartP_zxy_m * recpgamma * scaleFactor_m / 2.;
-
-        RefPartP_suv_m = Vector_t(0.0, 0.0, sqrt(dot(RefPartP_suv_m, RefPartP_suv_m)));
-        RefPartR_suv_m += RefPartP_suv_m * recpgamma / 2.;
-        RefPartR_suv_m *= vscaleFactor;
-    }
-
-    itsBunch->RefPart_R = RefPartR_zxy_m;
-    itsBunch->RefPart_P = RefPartP_zxy_m;
-
-    // calculate the dimensions of the bunch and add a small margin to them;
-    // then decide which elements have to be triggered
-    // when an element is triggered memory is allocated and the field map is read in
-    rmin = rmax = itsBunch->R[0];
-
-    // trigger the elements
-    double margin = 3. * RefPartP_suv_m(2) * recpgamma;
-    margin = 0.01 > margin ? 0.01 : margin;
-    itsOpalBeamline_m.switchElements((rmin(2) - margin)*scaleFactor_m, (rmax(2) + margin)*scaleFactor_m, true);
-
-    // start particle loop part 2
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-        /** \f[ \vec{x}_{n+1} = \vec{x}_{n+1/2} + \frac{1}{2}\vec{v}_{n+1/2}\quad (= \vec{x}_{n+1/2} +
-            \frac{\Delta t}{2} \frac{\vec{\beta}_{n+1/2}\gamma_{n+1/2}}{\gamma_{n+1/2}}) \f]
-            * \code
-            * R[i] += 0.5 * P[i] * recpgamma;
-            * \endcode
-            */
-        pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
-        //and scale back to dimensions
-        itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i],
-                                   Physics::c * itsBunch->dt[i]);
-        // update local coordinate system
-        itsBunch->X[i] /= vscaleFactor;
-        pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i],
-                                                itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->dt[0]);
-        itsBunch->X[i] *= vscaleFactor;
-    }
-
-    t += itsBunch->dt[0]; //t after a full global timestep with dT "synchronization point" for simulation time
-
+    computeExternalFields();
+	
+    timeIntegration2(pusher);
+	
+    t += itsBunch->getdT();
     itsBunch->setT(t);
 }
 
@@ -954,6 +844,11 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
         itsBunch->PType[0] = 0;
         itsBunch->LastSection[0] = 0;
 
+		RefPartP_suv_m = iniP;
+		RefPartR_suv_m = iniR;
+		updateSpaceOrientation(false);
+		RefPartP_suv_m = itsBunch->P[0];
+		
         executeAutoPhase(Options::autoPhase, zStop);
         itsBunch->destroy(1, 0);
 
@@ -995,6 +890,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
 
 void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
     Inform msg("Autophasing ");
+	//Inform m2a("Autophasing ", INFORM_ALL_NODES);
 
     const double RADDEG = 180.0 / Physics::pi;
 
@@ -1002,16 +898,20 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
 
     size_t maxStepsSave = localTrackSteps_m;
     size_t step = 0;
-    int dtfraction = 2;
-    itsBunch->dt = itsBunch->getdT() / dtfraction;         // need to fix this and make the factor 2 selectable
-
-    double scaleFactorSave = scaleFactor_m;
-    scaleFactor_m = itsBunch->dt[0] * Physics::c;
-
+    
     double tSave = itsBunch->getT();
-
-
-    Vector_t vscaleFactor = Vector_t(scaleFactor_m);
+    double dTSave = itsBunch->getdT();
+    double scaleFactorSave = scaleFactor_m;
+   
+    int dtfraction = 2;
+    double newDt = itsBunch->getdT() / dtfraction;
+    itsBunch->setdT(newDt);
+    itsBunch->dt = newDt;
+    
+     
+    scaleFactor_m = itsBunch->dt[0] * Physics::c;
+    vscaleFactor_m = Vector_t(scaleFactor_m);
+    
 
     BorisPusher pusher(itsReference);
 
@@ -1049,14 +949,21 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
 
     double cavity_start = 0.0;
     Component *cavity = NULL;
-
+	
+	int tag = 909;
+	int Parent = 0;
+	
     for(; step < localTrackSteps_m * dtfraction; ++step) {
+		
+		if (itsBunch->getLocalNum() != 0) {
+			// let's do a drifting step to probe if the particle will reach element in next step
+			Vector_t R_drift = itsBunch->R[0] + itsBunch->P[0] / sqrt(1.0 + dot(itsBunch->P[0],
+							   itsBunch->P[0])) * vscaleFactor_m;
 
-        // let's do a drifting step to probe if the particle will reach element in next step
-        Vector_t R_drift = itsBunch->R[0] + itsBunch->P[0] / sqrt(1.0 + dot(itsBunch->P[0],
-                           itsBunch->P[0])) * vscaleFactor;
-
-        checkCavity(R_drift[2], cavity, cavity_start);
+			checkCavity(R_drift[2], cavity, cavity_start);
+		}
+		else 
+			cavity = NULL;
 
         if(cavity != NULL) {
             double orig_phi = 0.0;
@@ -1219,20 +1126,34 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
         }
 
         doOneStep(pusher);
-        //checkCavity(itsBunch->R[0](2), cavity, cavity_start);
-        double sposRef = itsBunch->R[0](2);
 
-        if(sposRef > zStop)
-            localTrackSteps_m = floor(step / dtfraction);
+		double sposRef	= 0.0;
+		
+		if(!(step % 5000))	{
+			if (itsBunch->getLocalNum() != 0) {	
+				sposRef	= itsBunch->R[0](2);
+				Message *mess = new Message();	
+				putMessage(*mess, sposRef);
+				Ippl::Comm->broadcast_all(mess, tag);
+		}	else {
+				Message *mess = Ippl::Comm->receive_block(Parent, tag);
+				getMessage(*mess, &sposRef);
+		}	
+		
+			if(sposRef > zStop)
+				localTrackSteps_m = floor(step / dtfraction);	
 
-        if(!(step % 1000)) {
-            INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch->getT() << " [s], "
-                    << "E= " << getEnergyMeV(itsBunch->P[0]) << " [MeV] " << endl);
-        }
+		
+			INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch->getT() << " [s], "
+							  << "E= " << itsBunch->get_meanEnergy() << " [MeV] " << endl);
+		}
     }
-    localTrackSteps_m = maxStepsSave;
+ 
+	localTrackSteps_m = maxStepsSave;
     scaleFactor_m = scaleFactorSave;
     itsBunch->setT(tSave);
+    itsBunch->setdT(dTSave);
+    
 }
 
 double ParallelTTracker::APtrack(Component *cavity, double cavity_start_pos, const double &phi) const {
@@ -1459,9 +1380,8 @@ void ParallelTTracker::doAutoPhasing() {
             int Parent = 0;
 
             itsBunch->stash();
-
+			double zStop = itsOpalBeamline_m.calcBeamlineLenght();
             if(Ippl::myNode() == 0) {
-                double zStop = itsOpalBeamline_m.calcBeamlineLenght();
                 itsBunch->create(1);
                 itsBunch->R[0] = Vector_t(0.0);
                 Vector_t stashedP = itsBunch->getStashIniP();
@@ -1470,7 +1390,7 @@ void ParallelTTracker::doAutoPhasing() {
                 itsBunch->Q[0] = itsBunch->getChargePerParticle();
                 itsBunch->PType[0] = 0;
                 itsBunch->LastSection[0] = 0;
-
+				itsBunch->update();
                 executeAutoPhase(Options::autoPhase, zStop);
 
                 // now send all max phases and names of the cavities to
@@ -1487,6 +1407,8 @@ void ParallelTTracker::doAutoPhasing() {
                 itsBunch->destroy(1, 0);
             } else {
                 // receive max phases and names and update the structure
+				itsBunch->update();
+				executeAutoPhase(Options::autoPhase, zStop);
                 int nData = 0;
                 Message *mess = Ippl::Comm->receive_block(Parent, tag);
                 getMessage(*mess, nData);
@@ -1501,11 +1423,9 @@ void ParallelTTracker::doAutoPhasing() {
             }
             itsBunch->update();
             itsBunch->pop();
-
             itsDataSink_m->storeCavityInformation();
         }
     }
-
     updateAllRFElements(OpalData::getInstance()->getGlobalPhaseShift());
     INFOMSG("finished autophasing" << endl);
 }
@@ -2097,8 +2017,8 @@ void ParallelTTracker::handleBends() {
            First update the momentum of the reference particle in zxy
            coordinate system, then update its position
          */
-
-        updateSpaceOrientation(false);
+		
+		updateSpaceOrientation(false);
         double recpgamma = 1. / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
 
         RefPartP_zxy_m = dot(space_orientation_m, RefPartP_suv_m);
