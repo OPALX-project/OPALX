@@ -1175,6 +1175,7 @@ projects/progsch/initializer/input.par -text
 projects/progsch/initializer/main.cpp -text
 projects/progsch/mc4.cpp -text
 projects/progsch/saved_svn_version.txt -text
+projects/sph/sph_franz_IPPL.cpp -text
 src/AppTypes/AntiSymTenzor.h -text
 src/AppTypes/AppTypeTraits.h -text
 src/AppTypes/CMakeLists.txt -text
