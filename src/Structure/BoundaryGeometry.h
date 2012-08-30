@@ -29,10 +29,12 @@ class ElementBase;
 #include "Distribution/ranlib.h"
 #include "Structure/SecondaryEmissionPhysics.h"
 
+extern Inform* gmsg;
+
 namespace BGphysics {
     enum TPHYACTION {
         Nop = 0x01,                 // tringle is transparent to particle like beam window
-        Absorption = 0x02,          // triangle has no field emission and secondary emission
+        Absorption = 0x02,          // triangle has no field and secondary emission
         FNEmission = 0x04,          // triangle has field emission
         SecondaryEmission = 0x08    // trangle has secondary emission
     };
@@ -44,30 +46,81 @@ public:
     BoundaryGeometry();
     virtual ~BoundaryGeometry();
 
-    virtual bool canReplaceBy (Object* object);
+    virtual bool canReplaceBy (
+        Object* object);
 
-    virtual BoundaryGeometry* clone (const std::string& name);
+    virtual BoundaryGeometry* clone (
+        const std::string& name);
 
     // Check the GEOMETRY data.
     virtual void execute ();
 
     // Find named GEOMETRY.
-    static BoundaryGeometry* find (const std::string& name);
+    static BoundaryGeometry* find (
+        const std::string& name);
 
     // Update the GEOMETRY data.
     virtual void update ();
 
-    void updateElement (ElementBase* element);
+    void updateElement (
+        ElementBase* element);
 
     void initialize ();
+
     void createParticlesOnSurface (
         size_t n, double darkinward,
         OpalBeamline& itsOpalBeamline,
         PartBunch& itsBunch);
+
     void createPriPart (
         size_t n, double darkinward,
         OpalBeamline& itsOpalBeamline,
         PartBunch* itsBunch);
+
+    int PartInside (
+        const Vector_t r,
+        const Vector_t v,
+        const double dt,
+        int Parttype,
+        const double Qloss,
+        Vector_t& intecoords,
+        int& triId, double& Energy);
+
+    // non secondary emission version.
+    int doBGphysics (
+        const Vector_t& intecoords,
+        const int& triId);
+
+    // call Furman-Pivi's model
+    int doBGphysics (
+        const Vector_t& intecoords,
+        const int& triId,
+        const double& incEnergy,
+        const double& incQ,
+        const Vector_t& incMomentum,
+        PartBunch* itsBunch,
+        double& seyNum);
+
+    // call Vaughan's model
+    int doBGphysics (
+        const Vector_t& intecoords,
+        const int& triId,
+        const double& incEnergy,
+        const double& incQ,
+        const Vector_t& incMomentum,
+        PartBunch* itsBunch,
+        double& seyNum,
+        const int& para_null);
+    
+    size_t doFNemission (
+        OpalBeamline& itsOpalBeamline,
+        PartBunch* itsBunch,
+        const double t);
+    
+    Inform& printInfo (
+        Inform& os) const;
+
+    void writeGeomToVtk (string fn);
 
     inline string getFilename () const {
         return (string) Attributes::getString (itsAttr[FGEOM]);
@@ -83,14 +136,6 @@ public:
 
     inline std::vector<string> getDistributionArray () {
         return Attributes::getStringArray (itsAttr[DISTRS]);
-    }
-
-    inline double getZshift () {
-        return (double)(Attributes::getReal (itsAttr[ZSHIFT]));
-    }
-
-    inline double getXYZScale () {
-        return (double)(Attributes::getReal (itsAttr[XYZSCALE]));
     }
 
     inline size_t getN () {
@@ -111,20 +156,8 @@ public:
         return partsp_m.clear ();
     }
 
-    bool isInside (Vector_t x);
-    std::vector<Vector_t>  GridIntersection (Vector_t x0, Vector_t x1);
-    Inform& printInfo (Inform& os) const;
-
     inline double getA() {
         return (double)Attributes::getReal(itsAttr[A]);
-    }
-
-    inline double getB() {
-        return (double)Attributes::getReal(itsAttr[B]);
-    }
-
-    inline double getC() {
-        return (double)Attributes::getReal(itsAttr[C]);
     }
 
     inline double getS() {
@@ -142,30 +175,6 @@ public:
     inline double getL2() {
         return (double)Attributes::getReal(itsAttr[L2]);
     }
-
-    void makeBoundaryIndexSet ();
-
-    int PartInside (const Vector_t r, const Vector_t v, const double dt,
-                    int Parttype, const double Qloss, Vector_t& intecoords,
-                    int& triId, double& Energy);
-
-    // non secondary emission version.
-    int doBGphysics (const Vector_t& intecoords, const int& triId);
-
-    // call Furman-Pivi's model
-    int doBGphysics (const Vector_t& intecoords, const int& triId,
-                     const double& incEnergy, const double& incQ,
-                     const Vector_t& incMomentum, PartBunch* itsBunch,
-                     double& seyNum);
-
-    // call Vaughan's model
-    int doBGphysics (const Vector_t& intecoords, const int& triId,
-                     const double& incEnergy, const double& incQ,
-                     const Vector_t& incMomentum, PartBunch* itsBunch,
-                     double& seyNum,
-                     const int& para_null); //
-
-
 
     inline void setNEmissionMode (bool nEmissionMode) {
         nEmissionMode_m = nEmissionMode;
@@ -257,88 +266,6 @@ public:
         ppVw_m = ppVw;
     }
 
-    size_t doFNemission (OpalBeamline& itsOpalBeamline, PartBunch* itsBunch, const double t);
-
-    bool nEmissionMode_m;
-    double eInitThreshold_m;
-
-    // energy related to sey_0 in Vaughan's model
-    double vSeyZero_m;
-
-    // sey_0 in Vaughan's model
-    double vEzero_m;
-
-     // sey max in Vaughan's model
-    double vSeyMax_m;
-
-    // Emax in Vaughan's model
-    double vEmax_m;
-
-    // fitting parameter denotes the roughness of surface
-    // for impact energy in Vaughan's model
-    double vKenergy_m;
-
-    // fitting parameter denotes the roughness of surface
-    // for impact angle in Vaughan's model
-    double vKtheta_m;
-
-    // return thermal velocity of Maxwellian distribution
-    // of secondaries in Vaughan's model
-    double vVThermal_m;
-
-    // denotes the velocity scalar for Parallel plate benchmark.
-    double ppVw_m;
-
-    // stores the user defined material type for secondary emission model.
-    int seBoundaryMatType_m;
-
-    // stores the user defined work function Fowler-Nordheim model.
-    double workFunction_m;
-
-    // stores the user defined field factor for Fowler-Nordheim model.
-    double fieldEnhancement_m;
-
-    // stores the user defined maximum emitted number per triangle for
-    // Fowler-model.
-    size_t maxFNemission_m;
-
-    // stores the user defined lower threshold electric field for
-    // Fowler-Nordheim model.
-    double fieldFNthreshold_m;
-
-    /**
-       @param parameterFNA_m stores the user defined parameter A for
-       Fowler-Nordheim model.Default value:\f$1.54\times 10^{-6}\f$.
-    */
-    double parameterFNA_m;
-
-    /**
-       @param parameterFNB_m stores the user defined parameter B 
-       Fowler-Nordheim model. Default value:\f$6.83\times 10^9\f$.
-    */
-    double parameterFNB_m;
-
-    /**
-       @param parameterFNY_m stores the user defined parameter for
-       Fowler-Nordheim parameter y.
-       Default value:\f$3.795\times 10^{-5}\f$.
-    */
-    double parameterFNY_m;
-
-    /**
-       @param parameterFNVYZe_m stores the user defined parameter for zero
-       order fit constant for v(y) of Fowler-Nordheim model.
-       Default value:\f$0.9632\f$.
-    */
-    double parameterFNVYZe_m;
-    
-    /**
-       @param parameterFNVYSe_m stores the user defined parameter for second
-       order fit constant for v(y) of Fowler-Nordheim model.
-       Default value:\f$1.065\f$.
-    */
-    double parameterFNVYSe_m;
-
     /**
        Return number of boundary faces.
     */
@@ -347,17 +274,30 @@ public:
     }
 
     /**
-     @param allbfaces_m stores the IDs of triangle vertex, which can be used
-     to reference the  coordinates of vertex
+       Return the hr_m.
     */
-    int* allbfaces_m;
-
+    inline Vector_t gethr () {
+        return hr_m;
+    }
     /**
-       @param numpoints_global_m stores the number of geometry points to be used
-       to represent the geometry
-       caution: not only the surface points are included
+       Return the nr_m.
+     */
+    inline Vektor<int, 3> getnr () {
+        return nr_m;
+    }
+ 
+    /**
+       Return the mincoords_m.
+     */
+    inline Vector_t getmincoords () {
+        return mincoords_m;
+    }
+    /**
+       Return the maxcoords_m.
     */
-    int numpoints_global_m;
+    inline Vector_t getmaxcoords () {
+        return maxcoords_m;
+    }
 
     /**
        @param  Tribarycent_m store the coordinates of barycentric points of
@@ -365,13 +305,7 @@ public:
     */
     Vector_t* Tribarycent_m;
 
-    /**
-       @param  TriNormal_m store the oriented normal vector of triangles, The Id
-       number is the same with triangle Id.
-    */
-    std::vector<Vector_t>    TriNormal_m;
-
-    /**
+    /**1
        @param TriPrPartloss_m store the number of primary particles hitting the
        Id th triangle. The Id number is the same with triangle Id(not vertex ID).
     */
@@ -391,89 +325,25 @@ public:
     double* TriFEPartloss_m;
 
     /**
-       @param TriPrPartlossZ_m is a counter of lost primary particle number in
-       each Z intervals.
-    */
-    double* TriPrPartlossZ_m;
-
-    /**
-       @param TriSePartlossZ_m is a counter of lost secondary particle number in
-       each Z intervals.
-    */
-    double* TriSePartlossZ_m;
-
-    /**
-       @param TriFEPartlossZ_m is a counter of lost field emission and dark
-       current particle number in each Z intervals.
-    */
-    double* TriFEPartlossZ_m;    //counter along Z for histogram
-
-    /**
-       @param geo3Dcoords_m store the geometry coordinates in a STL Vector
-       The ID of geo3Dcoords_m is equal to points' ID, and can be referenced by
-       triangle to get vertex coordinates
-    */
-    std::vector<Vector_t> geo3Dcoords_m;
-
-    /**
-       @param Triarea_m store area of triangles in a STL Vector
-       The ID of Triarea_m is equal to triangles' ID, and can be referenced by
-       triangle to get its area
-    */
-    std::vector<double> Triarea_m;
-
-    /**
        @param TriBGphysicstag_m store the tags of each boundary triangle for
        proper physics action.
     */
     std::vector<short> TriBGphysicstag_m;
 
-    std::string h5FileName_m;
-
-    /**
-       Used to determine whether a particle hits boundary.
-       @param x stands for the coordinates of the testing particle
-
-       Not sufficient for particle hitting the triangle area.
-    */
-    bool isInGeometry (Vector_t x) {
-        return boundary_ids_m.find (f (x)) != boundary_ids_m.end ();
-    }
-
-    /**
-       Return the hr_m.
-    */
-    Vector_t gethr () {
-        return hr_m;
-    }
-    /**
-       Return the nr_m.
-     */
-    Vektor<int, 3> getnr () {
-        return nr_m;
-    }
-
-    /**
-       Return the mincoords_m.
-     */
-    Vector_t getmincoords () {
-        return mincoords_m;
-    }
-    /**
-       Return the maxcoords_m.
-    */
-    Vector_t getmaxcoords () {
-        return maxcoords_m;
-    }
-
-    void writeGeomToVtk (string fn);
-
-
 private:
+    std::string h5FileName_m;   // H5hut filename
+
+    int* allbfaces_m;           // boundary faces given by point n-tuples
+    int numpoints_global_m;     // number of boundary points (vertices)
+    int numbfaces_global_m;     // number of boundary triangles
+
     double triangle_max_m;
     double triangle_min_m;
-    int numbfaces_global_m;             // number of boundary triangles
-    double xyzscale_m;                  //  scale of x,y and z coordinates
+
+    std::vector <Vector_t>  TriNormal_m; // oriented normal vector of triangles
+    std::vector<Vector_t> geo3Dcoords_m; // geometry point coordinates 
+    std::vector<double> Triarea_m;       // area of triangles
+
 
     std::set<size_t> boundary_ids_m;    // boundary triangle IDs
     Vector_t len_m;                     // length of geometry in 3D Cartesian coordinates.
@@ -486,7 +356,7 @@ private:
 
     std::map< size_t, std::vector<size_t> >
             CubicLookupTable_m;         // Maps boundary box ID to included triangles
-    std::set<size_t> isOriented_m;      //  IDs of oriented triangles.
+    std::set<size_t> isOriented_m;      // IDs of oriented triangles.
     std::map< size_t, std::vector<size_t> >
             triangleLookupTable_m;      // map vertex ID to triangles with this vertex
     std::vector<size_t> NaliT_m;        // IDs of to be oriented triangles
@@ -494,14 +364,39 @@ private:
     Vector_t out_m;                     // a point outside the domain
 
 
+    SecondaryEmissionPhysics sec_phys_m;
+
+    bool nEmissionMode_m;
+    double eInitThreshold_m;
+
+    // Vaughan's model
+    double vSeyZero_m;          // energy related to sey_
+    double vEzero_m;            // sey_0
+    double vSeyMax_m;           // sey max
+    double vEmax_m;             // Emax
+    double vKenergy_m;          // roughness of surface for impact energy
+    double vKtheta_m;           // roughness of surface for impact angle
+    double vVThermal_m;         // thermal velocity of Maxwellian distribution of secondaries
+
+    double ppVw_m;              // velocity scalar for Parallel plate benchmark.
+    int seBoundaryMatType_m;    // user defined material type for secondary emission model.
+
+    // Fowler-Nordheim model
+    double workFunction_m;      // work function
+    double fieldEnhancement_m;  // field factor
+    size_t maxFNemission_m;     // maximum emitted number per triangle
+    double fieldFNthreshold_m;  // lower threshold electric field
+    double parameterFNA_m;      // parameter A. Default: \f$1.54\times 10^{-6}\f$.
+    double parameterFNB_m;      // parameter B. Default: \f$6.83\times 10^9\f$.
+    double parameterFNY_m;      // parameter Y. Default:\f$3.795\times 10^{-5}\f$.
+    double parameterFNVYZe_m;   // zero order fit constant for v(y). Default:\f$0.9632\f$.
+    double parameterFNVYSe_m;   // second order fit constant for v(y). Default:\f$1.065\f$.
+
     IpplTimings::TimerRef TPInside_m;   // timers for profiling
     IpplTimings::TimerRef TPreProc_m;
     IpplTimings::TimerRef TRayTrace_m;
     IpplTimings::TimerRef Tinward_m;
 
-    SecondaryEmissionPhysics sec_phys_m;
-
-    // Not implemented.
     BoundaryGeometry(const BoundaryGeometry&);
     void operator= (const BoundaryGeometry&);
 
@@ -510,6 +405,18 @@ private:
 
     inline Vector_t getVertexCoord (int face_id, int vertex_id) {
         return geo3Dcoords_m[allbfaces_m[4 * face_id + vertex_id]];
+    }
+
+    inline size_t triangleCorner (size_t idx, size_t corner) const {
+        return allbfaces_m[4 * idx + corner];
+    }
+
+    /*
+       Used to determine whether a particle given by it's coordinates hits the boundary.
+       Not sufficient for particle hitting the triangle area. (???)
+    */
+    inline bool isInGeometry (Vector_t x) {
+        return boundary_ids_m.find (map_point2id (x)) != boundary_ids_m.end ();
     }
 
     /*
@@ -545,10 +452,6 @@ private:
         }
         PAssert (ret1.size () != 0);
         return ret1;
-    }
-
-    inline size_t triangleCorner (size_t idx, size_t corner) const {
-        return allbfaces_m[4 * idx + corner];
     }
 
     void orientTriangle (size_t idx, size_t caller) {
@@ -600,6 +503,50 @@ private:
             }
         }
     }
+
+    /*
+       Determine if a point x is outside, inside or just on the boundary.
+       Return true if point is inside boundary otherwise false.
+
+       The basic idea is if a line segment starting from the test point has
+       odd intersects with a closed boundary, then the test point is inside
+       the geometry;
+       if the intersects have even number, then the test points
+       is outside the geometry;
+       if the test point is amoung the intersects, then the test point is just
+       on the boundary. Makesure the end point of the line
+       segment is outside the geometry boundary.
+    */
+    bool isInside (Vector_t x) {
+        Vector_t x0 = x;
+        Vector_t x1;
+        x1[0] = x0[0];
+        //x1[1] = x0[1];
+        RANLIB_class* rGen = new RANLIB_class (265314159, 4);
+        x1[1] = maxcoords_m[1] * (1.1 + rGen->uniform (0.0, 1.0));
+        x1[2] = maxcoords_m[2] * (1.1 + rGen->uniform (0.0, 1.0));
+        //x1[2] = x0[2];
+        delete rGen;
+	
+        /*
+          Random number could avoid some specific situation,
+          like line parallel to boundary......
+          x1 could be any point outside the boundary ;
+        */
+        IpplTimings::startTimer (Tinward_m);
+        std::vector<Vector_t> IntesecNum = PartBoundaryInteNum (x0, x1);
+        IpplTimings::stopTimer (Tinward_m);
+        if (IntesecNum[0] == x0) {
+            return true; // x0 is just on the boundary;
+        } else {
+            if (((IntesecNum.size () % 2) == 0) || (*IntesecNum.begin () == x1)) {
+                return false; // x0 is  outside the boundary;
+            } else
+                return true;  // x0 is inside the boundary;
+        }
+    }
+
+
     /*
       Recursively get inward triangle normal of all surface triangles.
 
@@ -610,10 +557,9 @@ private:
       triangles. The inward normal is stored in TriNormal_m.
     */
     void makeTriNormal () {
-        Vector_t t0, t1, t2;
-        t0 = geo3Dcoords_m[allbfaces_m[1]];
-        t1 = geo3Dcoords_m[allbfaces_m[2]];
-        t2 = geo3Dcoords_m[allbfaces_m[3]];
+        Vector_t t0 = geo3Dcoords_m[allbfaces_m[1]];
+        Vector_t t1 = geo3Dcoords_m[allbfaces_m[2]];
+        Vector_t t2 = geo3Dcoords_m[allbfaces_m[3]];
         Vector_t u = t1 - t0;
         Vector_t v = t2 - t0;
         Vector_t n;
@@ -686,50 +632,19 @@ private:
             }
             TriNormal_m.push_back (n);
         }
+        *gmsg << "*  Triangle Normal built done." << endl;
     }
+
+    void computeGeometryInterval (
+        void);
+
+    void makeBoundaryIndexSet (
+        void);
 
     Vector_t LineInsTri(
-            Vector_t x0,
-            Vector_t x1,
-            size_t i
-        ) {
-        Vector_t lseg = x1 - x0;
-        Vector_t t0 = geo3Dcoords_m[allbfaces_m[4*i+1]];
-        Vector_t t1 = geo3Dcoords_m[allbfaces_m[4*i+2]];
-        Vector_t t2 = geo3Dcoords_m[allbfaces_m[4*i+3]];
-        Vector_t u = t1 - t0;
-        Vector_t v = t2 - t0;
-        Vector_t lt = t0 - x0;
-        Vector_t n;
-        n[0] = u[1] * v[2] - v[1] * u[2];
-        n[1] = u[2] * v[0] - v[2] * u[0];
-        n[2] = u[0] * v[1] - v[0] * u[1];
-
-        if (fabs (dot (n, lseg)) < 1.0e-10) {
-            return x1;              // Triangle parallel to line segment
-        } else {
-            double rI = dot(n, lt) / dot(n, lseg);
-            Vector_t ItSec = x0 + rI * lseg;
-            Vector_t w = ItSec - t0;
-            if((rI < 0) || (rI > 1)) {
-                return x1;          // Intesect is on the extended line
-            } else {
-                double tmp1 = dot (u, v);
-                double tmp2 = dot (w, v);
-                double tmp3 = dot (u, w);
-                double tmp4 = dot (u, u);
-                double tmp5 = dot (v, v);
-                double tmp6 = tmp1 * tmp1 - tmp4 * tmp5;
-                double sI = (tmp1 * tmp2 - tmp5 * tmp3) / tmp6;
-                double tI = (tmp1 * tmp3 - tmp4 * tmp2) / tmp6;
-                if((sI >= 0) && (tI >= 0) && ((sI + tI) <= 1)) {
-                    return ItSec;
-                } else {
-                    return x1;      // Intesect is on the extended plane
-                }
-            }
-        }
-    }
+        Vector_t x0,
+        Vector_t x1,
+        size_t i);
 
     /*
       Calculate the number of intersects between a line segment and the
@@ -754,46 +669,28 @@ private:
     }
 
     /*
-      Calculate the maximum dimention of triangles. This value will be used to
-      define the cubic box size
-    */
-    void getMaxDimenssion () {
-        triangle_max_m = 0.0;
-        triangle_min_m = 0.01;
-        for (int i = 0; i < numbfaces_global_m; i++) {
-            Vector_t x1 = geo3Dcoords_m[allbfaces_m[4 * i + 1]];
-            Vector_t x2 = geo3Dcoords_m[allbfaces_m[4 * i + 2]];
-            Vector_t x3 = geo3Dcoords_m[allbfaces_m[4 * i + 3]];
-            double max = sqrt (
-                    SQR (x1[0] - x2[0]) + SQR (x1[1] - x2[1]) + SQR (x1[2] - x2[2]));
-            double length_edge2 = sqrt (
-                    SQR (x3[0] - x2[0]) + SQR (x3[1] - x2[1]) + SQR (x3[2] - x2[2]));
-            double length_edge3 = sqrt (
-                    SQR (x3[0] - x1[0]) + SQR (x3[1] - x1[1]) + SQR (x3[2] - x1[2]));
-            if (length_edge2 > max) max = length_edge2;
-            if (length_edge3 > max) max = length_edge3;
-
-            if (triangle_max_m < max) triangle_max_m = max;
-            if (triangle_min_m > max) triangle_min_m = max;
-        }
-    }
-
-    /*
       Map a 3D coordinate given in x to a cubic box with a unique Id
+      We know:
+      * hr_m:  mesh size
+      * nr_m:  number of mesh points
     */
-    int f (Vector_t x) {
-        /**
-           We know: lenght of the structure len_m
-           Mesh size: hr_m
-           Number of mesh points nr_m
-         */
-        size_t ret = 0;
-        size_t id_tx, id_ty, id_tz;
-        id_tx = floor ((x[0] - mincoords_m[0]) / hr_m[0]);
-        id_ty = floor ((x[1] - mincoords_m[1]) / hr_m[1]);
-        id_tz = floor ((x[2] - mincoords_m[2]) / hr_m[2]);
-        ret = 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
-        return ret;
+    int map_point2id (Vector_t x) {
+        int id_tx = floor ((x[0] - mincoords_m[0]) / hr_m[0]);
+        int id_ty = floor ((x[1] - mincoords_m[1]) / hr_m[1]);
+        int id_tz = floor ((x[2] - mincoords_m[2]) / hr_m[2]);
+
+        if (id_tx == -1) id_tx = 0;
+        if (id_ty == -1) id_ty = 0;
+        if (id_tz == -1) id_tz = 0;
+
+        if (id_tx < 0 || id_ty < 0 || id_tz < 0) {
+            *gmsg << "x = (" << x[0] << ", " << x[1] << ", " << x[2] << ")" << endl;
+            *gmsg << "id_tx = " << id_tx << endl;
+            *gmsg << "id_ty = " << id_ty << endl;
+            *gmsg << "id_tz = " << id_tz << endl;
+            return 0;
+        }
+        return 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
     }
 
     /*
@@ -890,48 +787,29 @@ private:
        smallest bounding box is used to make sure that all part of a triangle
        is known by boundary bounding box.
     */
-    std::vector<Vector_t> SetMinMaxBound (size_t id) {
-        Vector_t min = geo3Dcoords_m[allbfaces_m[4 * id + 1]];
+    std::vector<Vector_t> getMinBBoxOfTriangle (size_t id) {
+        Vector_t min = getVertexCoord (id, 1);
         Vector_t max = min;
         for (int i = 2; i <= 3; i++) {
-            if (geo3Dcoords_m[allbfaces_m[4 * id + i]](0) < min[0])
-                min[0] = geo3Dcoords_m[allbfaces_m[4 * id + i]](0);
-            if (geo3Dcoords_m[allbfaces_m[4 * id + i]](1) < min[1])
-                min[1] = geo3Dcoords_m[allbfaces_m[4 * id + i]](1);
-            if (geo3Dcoords_m[allbfaces_m[4 * id + i]](2) < min[2])
-                min[2] = geo3Dcoords_m[allbfaces_m[4 * id + i]](2);
-            if (geo3Dcoords_m[allbfaces_m[4 * id + i]](0) > max[0])
-                max[0] = geo3Dcoords_m[allbfaces_m[4 * id + i]](0);
-            if (geo3Dcoords_m[allbfaces_m[4 * id + i]](1) > max[1])
-                max[1] = geo3Dcoords_m[allbfaces_m[4 * id + i]](1);
-            if (geo3Dcoords_m[allbfaces_m[4 * id + i]](2) > max[2])
-                max[2] = geo3Dcoords_m[allbfaces_m[4 * id + i]](2);
+            Vector_t P = getVertexCoord (id, i);
+            if (P(0) < min[0]) min[0] = P(0);
+            if (P(1) < min[1]) min[1] = P(1);
+            if (P(2) < min[2]) min[2] = P(2);
+            if (P(0) > max[0]) max[0] = P(0);
+            if (P(1) > max[1]) max[1] = P(1);
+            if (P(2) > max[2]) max[2] = P(2);
         }
-        /*
-          add some margins to make sure that boundary bounding box has both
-          positive and negtive margins w.r.t boundary. Just make sure that the
-          size of bounding box for triangle is smaller than the boundary bounding
-          box.
-        */
-        Vector_t temp = 1.0 * hr_m;
         std::vector<Vector_t> ret;
-        Vector_t min_ext = min - temp;
-        Vector_t max_ext = max + temp;
         ret.push_back (min);
         ret.push_back (max);
-        ret.push_back (min_ext);
-        ret.push_back (max_ext);
         PAssert (ret.size () != 0);
         return ret;
     }
 
     // Calculate the area of triangle given by id.
-    double TriangleArea (int id) {
-        Vector_t AB = geo3Dcoords_m[allbfaces_m[4 * id + 2]]
-                - geo3Dcoords_m[allbfaces_m[4 * id + 1]];
-        Vector_t AC = geo3Dcoords_m[allbfaces_m[4 * id + 3]]
-                - geo3Dcoords_m[allbfaces_m[4 * id + 1]];
-
+    inline double TriangleArea (int id) {
+        Vector_t AB = getVertexCoord (id, 2) - getVertexCoord (id, 1);
+        Vector_t AC = getVertexCoord (id, 2) - getVertexCoord (id, 1);
         return(0.5 * sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
     }
 
@@ -947,6 +825,22 @@ private:
                 | BGphysics::FNEmission
                 | BGphysics::SecondaryEmission);
         }
+    }
+
+    inline double getZshift () {
+        return (double)(Attributes::getReal (itsAttr[ZSHIFT]));
+    }
+
+    inline double getXYZScale () {
+        return (double)(Attributes::getReal (itsAttr[XYZSCALE]));
+    }
+
+    inline double getB() {
+        return (double)Attributes::getReal(itsAttr[B]);
+    }
+
+    inline double getC() {
+        return (double)Attributes::getReal(itsAttr[C]);
     }
 
     enum {
@@ -970,7 +864,10 @@ private:
 inline Inform &operator<< (Inform& os, const BoundaryGeometry& b) {
     return b.printInfo (os);
 }
-
-
 #endif
 // vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
