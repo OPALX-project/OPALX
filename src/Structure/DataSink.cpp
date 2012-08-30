@@ -2231,6 +2231,9 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
     Vector_t Geo_mincoords = bg.getmincoords();
     double t = beam.getT();
     double t_step = t * 1.0e9;
+    double* prPartLossZ = new double[bg.getnr() (2)];
+    double* sePartLossZ = new double[bg.getnr() (2)];
+    double* fePartLossZ = new double[bg.getnr() (2)];
     fidtr << "# Time/ns" << std::setw(18) << "Triangle_ID" << std::setw(18)
           << "Xcoordinates/m" << std::setw(18)
           << "Ycoordinates/m" << std::setw(18)
@@ -2239,15 +2242,15 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
           << "numFEParticles/C" << std::setw(18)
           << "numSeParticles/C" << std::setw(18) << endl ;
     for(int i = 0; i < Geo_nr(2) ; i++) {
-        bg.TriPrPartlossZ_m[i] = 0;
-        bg.TriSePartlossZ_m[i] = 0;
-        bg.TriFEPartlossZ_m[i] = 0;
+        prPartLossZ[i] = 0;
+        sePartLossZ[i] = 0;
+        fePartLossZ[i] = 0;
         for(int j = 0; j < bg.getNumBFaces(); j++) {
             if(((Geo_mincoords[2] + Geo_hr(2)*i) < bg.Tribarycent_m[j](2))
                && (bg.Tribarycent_m[j](2) < (Geo_hr(2)*i + Geo_hr(2) + Geo_mincoords[2]))) {
-                bg.TriPrPartlossZ_m[i] += bg.TriPrPartloss_m[j];
-                bg.TriSePartlossZ_m[i] += bg.TriSePartloss_m[j];
-                bg.TriFEPartlossZ_m[i] += bg.TriFEPartloss_m[j];
+                prPartLossZ[i] += bg.TriPrPartloss_m[j];
+                sePartLossZ[i] += bg.TriSePartloss_m[j];
+                fePartLossZ[i] += bg.TriFEPartloss_m[j];
             }
 
         }
@@ -2269,9 +2272,9 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
 
 
     for(int i = 0; i < Geo_nr(2) ; i++) {
-        double primaryPLoss = -bg.TriPrPartlossZ_m[i];
-        double secondaryPLoss = -bg.TriSePartlossZ_m[i];
-        double fieldemissionPLoss = -bg.TriFEPartlossZ_m[i];
+        double primaryPLoss = -prPartLossZ[i];
+        double secondaryPLoss = -sePartLossZ[i];
+        double fieldemissionPLoss = -fePartLossZ[i];
         reduce(primaryPLoss, primaryPLoss, OpAddAssign());
         reduce(secondaryPLoss, secondaryPLoss, OpAddAssign());
         reduce(fieldemissionPLoss, fieldemissionPLoss, OpAddAssign());
@@ -2506,32 +2509,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
 
 void DataSink::writeGeomToVtk(BoundaryGeometry &bg, string fn) {
     if(Ippl::myNode() == 0) {
-        std::ofstream of;
-        of.open(fn.c_str());
-        assert(of.is_open());
-        of.precision(6);
-        of << "# vtk DataFile Version 2.0" << endl;
-        of << "generated using DataSink::writeGeoToVtk" << endl;
-        of << "ASCII" << endl << endl;
-        of << "DATASET UNSTRUCTURED_GRID" << endl;
-        of << "POINTS " << bg.numpoints_global_m << " float" << endl;
-        for(int i = 0; i < bg.numpoints_global_m ; i ++)
-            of << bg.geo3Dcoords_m[i](0) << " " << bg.geo3Dcoords_m[i](1) << " " << bg.geo3Dcoords_m[i](2) << endl;
-        of << endl;
-
-        of << "CELLS " << bg.getNumBFaces() << " " << 4 * bg.getNumBFaces() << endl;
-        for(int i = 0; i < bg.getNumBFaces(); i ++)
-            of << "3 " << bg.allbfaces_m[4 * i + 1] << " " << bg.allbfaces_m[4 * i + 2] << " " << bg.allbfaces_m[4 * i + 3] << endl;
-        of << "CELL_TYPES " << bg.getNumBFaces() << endl;
-        for(int i = 0; i < bg.getNumBFaces(); i ++)
-            of << "5" << endl;
-        of << "CELL_DATA " << bg.getNumBFaces() << endl;
-        of << "SCALARS " << "cell_attribute_data" << " float " << "1" << endl;
-        of << "LOOKUP_TABLE " << "default" << endl ;
-        for(int i = 0; i < bg.getNumBFaces(); i ++)
-            of << (float)(i) << endl;
-        of << endl;
-
+        bg.writeGeomToVtk (fn);
     }
 }
 
