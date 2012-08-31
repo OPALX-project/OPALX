@@ -883,13 +883,13 @@ int BoundaryGeometry::PartInside (
     /* Test all the 27 cubic boxes to find if the line segment has
        intersection with the triangles in those cubic boxes. */
     for (int k = 0; k < 27; k++) {
-        std::map< size_t, std::vector<size_t> >::iterator It;
+        std::map< size_t, std::set<size_t> >::iterator It;
         It = CubicLookupTable_m.find (idc[k]);
         if (It == CubicLookupTable_m.end ())
             continue; // not a boundary box
 
         // for each triangle in this boundary box
-        std::vector<size_t> ::iterator faceIt;
+        std::set<size_t> ::iterator faceIt;
         for (faceIt = (*It).second.begin ();
              faceIt != (*It).second.end ();
              faceIt++) {
@@ -1185,35 +1185,49 @@ void BoundaryGeometry::makeBoundaryIndexSet () {
         */
         min -= hr_m;
         max += hr_m;
-        coords.push_back (Vector_t (min[0], min[1], min[2]));
-        coords.push_back (Vector_t (min[0], min[1], max[2]));
-        coords.push_back (Vector_t (min[0], max[1], max[2]));
-        coords.push_back (Vector_t (min[0], max[1], min[2]));
-        coords.push_back (Vector_t (max[0], min[1], min[2]));
-        coords.push_back (Vector_t (max[0], min[1], max[2]));
-        coords.push_back (Vector_t (max[0], max[1], max[2]));
-        coords.push_back (Vector_t (max[0], max[1], min[2]));
+        Vector_t P = Vector_t (min[0], min[1], min[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (min[0], min[1], min[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (min[0], min[1], max[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (min[0], max[1], max[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (min[0], max[1], min[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (max[0], min[1], min[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (max[0], min[1], max[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (max[0], max[1], max[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
+        P = Vector_t (max[0], max[1], min[2]);
+        if (is_in_bbox (P, mincoords_m, maxcoords_m)) coords.push_back (P);
 
         std::vector<Vector_t>::iterator point;
         for (point = coords.begin (); point != coords.end (); point++) {
+            /*
             if (!is_in_bbox (*point, mincoords_m, maxcoords_m))
                 continue;
+            */
             int id = map_point2id (*point);
             assert (id > 0);
             // insert ID to std::set! If ID is alread in the set, this is a NOP.
             boundary_ids_m.insert (id);
             
-            std::map< size_t, std::vector<size_t> >::iterator It;
+            std::map< size_t, std::set<size_t> >::iterator It;
             It =  CubicLookupTable_m.find (id);
             if (It == CubicLookupTable_m.end ()) {
-                std::vector<size_t> tmp;
-                tmp.push_back (i);
-                CubicLookupTable_m.insert (std::pair <size_t, std::vector<size_t> > (id, tmp));
+                std::set<size_t> tmp;
+                tmp.insert (i);
+                CubicLookupTable_m.insert (std::pair <size_t, std::set<size_t> > (id, tmp));
             } else
-                (*It).second.push_back (i);
+                (*It).second.insert (i);
         }
     }
-    write_bbox_mesh (boundary_ids_m, hr_m, nr_m, mincoords_m);
+    if(Ippl::myNode() == 0) {
+        write_bbox_mesh (boundary_ids_m, hr_m, nr_m, mincoords_m);
+    }
     *gmsg << "*  Boundary index set built done." << endl;
 }
 

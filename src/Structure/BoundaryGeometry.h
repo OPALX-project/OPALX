@@ -340,7 +340,7 @@ private:
     double triangle_max_m;
     double triangle_min_m;
 
-    std::vector <Vector_t>  TriNormal_m; // oriented normal vector of triangles
+    std::vector<Vector_t> TriNormal_m;   // oriented normal vector of triangles
     std::vector<Vector_t> geo3Dcoords_m; // geometry point coordinates 
     std::vector<double> Triarea_m;       // area of triangles
 
@@ -354,7 +354,7 @@ private:
     std::vector<Vector_t> partsp_m;     // particle momenta
     std::vector<Vector_t> partsr_m;     // particle positions
 
-    std::map< size_t, std::vector<size_t> >
+    std::map< size_t, std::set<size_t> >
             CubicLookupTable_m;         // Maps boundary box ID to included triangles
     std::set<size_t> isOriented_m;      // IDs of oriented triangles.
     std::map< size_t, std::vector<size_t> >
@@ -684,10 +684,6 @@ private:
         if (id_tz == -1) id_tz = 0;
 
         if (id_tx < 0 || id_ty < 0 || id_tz < 0) {
-            *gmsg << "x = (" << x[0] << ", " << x[1] << ", " << x[2] << ")" << endl;
-            *gmsg << "id_tx = " << id_tx << endl;
-            *gmsg << "id_ty = " << id_ty << endl;
-            *gmsg << "id_tz = " << id_tz << endl;
             return 0;
         }
         return 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
