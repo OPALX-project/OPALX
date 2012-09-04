@@ -805,7 +805,7 @@ private:
     // Calculate the area of triangle given by id.
     inline double TriangleArea (int id) {
         Vector_t AB = getVertexCoord (id, 2) - getVertexCoord (id, 1);
-        Vector_t AC = getVertexCoord (id, 2) - getVertexCoord (id, 1);
+        Vector_t AC = getVertexCoord (id, 3) - getVertexCoord (id, 1);
         return(0.5 * sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
     }
 
