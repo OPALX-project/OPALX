@@ -390,6 +390,12 @@ BoundaryGeometry *OpalData::getGlobalGeometry() {
     return p->bg_m;
 }
 
+bool OpalData::hasGlobalGeometry() {
+    return p->bg_m != 0;
+}
+
+
+
 void OpalData::apply(const ObjectFunction &fun) {
     for(ObjectDir::iterator i = p->mainDirectory.begin();
         i != p->mainDirectory.end(); ++i) {

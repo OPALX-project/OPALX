@@ -2490,7 +2490,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
         if(!nEmissionMode) {
 
             if(step == 0) {
-                fid << "#Time/ns"  << std::setw(18) << "tot_impac" << std::setw(18) << "tot_sey" << std::setw(18)
+                fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
                     << "TotalCharge" << std::setw(18) << "PartNum" << " numberOfFieldEmittedParticles " << endl ;
             }
             fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18) << charge
@@ -2498,7 +2498,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
         } else {
 
             if(step == 0) {
-                fid << "#Time/ns"  << std::setw(18) << "tot_impac" << std::setw(18) << "tot_sey" << std::setw(18)
+                fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
                     << "ParticleNumber" << " numberOfFieldEmittedParticles " << endl;
             }
             fid << t << std::setw(18) << impact << std::setw(18) << sey_num

@@ -626,7 +626,10 @@ void PartBunch::calcGammas() {
         }
         s += pInBin;
     }
-    if(s != getTotalNum())
+
+    
+    
+    if(s != getTotalNum() && !OpalData::getInstance()->hasGlobalGeometry())
         ERRORMSG("sum(Bins)= " << s << " != sum(R)= " << getTotalNum() << endl;);
 
     if(emittedBins >= 2) {
@@ -930,8 +933,6 @@ void PartBunch::computeSelfFields() {
         rho_m *= getCouplingConstant();
 
         //write out rho
-
-
 
 
         // #define DBG_SCALARFIELD

@@ -204,10 +204,6 @@ public:
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline &);
 
-    // For benchmark
-    size_t Nimpact_m;// benchmark
-    double SeyNum_m;// benchmark
-
     /// set Multipacting flag
     inline void setMpacflg(bool mpacflg) {
 
@@ -332,6 +328,9 @@ private:
     // 3 --- AMTS (Adaptive Boris-Buneman with multiple time stepping)
     int timeIntegrator_m;
 
+    
+    size_t Nimpact_m; 
+    double SeyNum_m;
     /********************** END VARIABLES ***********************************/
 
     int LastVisited;

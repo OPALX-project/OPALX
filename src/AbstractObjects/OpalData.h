@@ -213,6 +213,9 @@ public:
     ///
     BoundaryGeometry *getGlobalGeometry();
 
+    
+    bool hasGlobalGeometry();
+    
     void setMaxPhase(std::string elName, double phi);
 
     std::vector<MaxPhasesT>::iterator getFirstMaxPhases();
