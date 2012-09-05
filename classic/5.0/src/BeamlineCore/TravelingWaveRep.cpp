@@ -18,7 +18,6 @@
 //
 // ------------------------------------------------------------------------
 
-// #include <initializer_list>
 #include "BeamlineCore/TravelingWaveRep.h"
 #include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
