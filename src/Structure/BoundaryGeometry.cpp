@@ -90,6 +90,9 @@ BoundaryGeometry::BoundaryGeometry() :
          "Shift in z direction",
          0.0);
 
+    itsAttr[APERTURE]  = Attributes::makeRealArray
+        ("APERTURE", "The element aperture");
+
     BoundaryGeometry* defGeometry = clone ("UNNAMED_GEOMETRY");
     defGeometry->builtin = true;
 
@@ -508,6 +511,14 @@ void BoundaryGeometry::initialize () {
     *gmsg << "* Iniitializing Boundary Geometry ... ..." << endl;
     IpplTimings::startTimer (TPreProc_m);
 
+    apert_m = Attributes::getRealArray(itsAttr[APERTURE]);
+ 
+    if (hasApperture()) {
+        *gmsg << "*  Found additional aperture." << endl;
+        for (unsigned int i=0; i<apert_m.size(); i=i+3)
+            *gmsg << "*  zmin= " << apert_m[i] << " zmax= " << apert_m[i+1] << " r= " << apert_m[i+2] << endl;
+    }
+
     double xyzscale = getXYZScale ();
     *gmsg << "* Scale all points of the geometry by " << xyzscale << endl;
 
@@ -587,6 +598,7 @@ void BoundaryGeometry::initialize () {
     setBGphysicstag ();
     *gmsg << *this << endl;
     IpplTimings::stopTimer (TPreProc_m);
+
 }
 
 /**

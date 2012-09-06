@@ -2235,12 +2235,12 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
     double* sePartLossZ = new double[bg.getnr() (2)];
     double* fePartLossZ = new double[bg.getnr() (2)];
     fidtr << "# Time/ns" << std::setw(18) << "Triangle_ID" << std::setw(18)
-          << "Xcoordinates/m" << std::setw(18)
-          << "Ycoordinates/m" << std::setw(18)
-          << "Zcoordinates/m" << std::setw(18)
-          << "numPrParticles/C" << std::setw(18)
-          << "numFEParticles/C" << std::setw(18)
-          << "numSeParticles/C" << std::setw(18) << endl ;
+          << "Xcoordinates (m)" << std::setw(18)
+          << "Ycoordinates (m)" << std::setw(18)
+          << "Zcoordinates (m)" << std::setw(18)
+          << "Primary part. charge (C)" << std::setw(40)
+          << "Field emit. part. charge (C)" << std::setw(40)
+          << "Secondary emit. part. charge (C)" << std::setw(40) << endl ;
     for(int i = 0; i < Geo_nr(2) ; i++) {
         prPartLossZ[i] = 0;
         sePartLossZ[i] = 0;
@@ -2259,16 +2259,16 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
         fidtr << t_step << std::setw(18) << j << std::setw(18)// fixme: maybe gether particle loss data, i.e., do a reduce() for each triangle in each node befor write to file.
               << bg.Tribarycent_m[j](0) << std::setw(18)
               << bg.Tribarycent_m[j](1) << std::setw(18)
-              << bg.Tribarycent_m[j](2) <<  std::setw(18)
-              << -bg.TriPrPartloss_m[j] << std::setw(18)
-              << -bg.TriFEPartloss_m[j] <<  std::setw(18)
+              << bg.Tribarycent_m[j](2) <<  std::setw(40)
+              << -bg.TriPrPartloss_m[j] << std::setw(40)
+              << -bg.TriFEPartloss_m[j] <<  std::setw(40)
               << -bg.TriSePartloss_m[j] << endl;
     }
     fid << "# Delta_Z/m" << std::setw(18)
-        << "Zcoordinates/m" << std::setw(18)
-        << "numPrParticles/C" << std::setw(18)
-        << "numFEParticles/C" << std::setw(18)
-        << "numSeParticles/C" << std::setw(18) << "t" << endl ;
+        << "Zcoordinates (m)" << std::setw(18)
+        << "Primary part. charge (C)" << std::setw(40)
+        << "Field emit. part. charge (C)" << std::setw(40)
+        << "Secondary emit. part. charge (C)" << std::setw(40) << "t" << endl ;
 
 
     for(int i = 0; i < Geo_nr(2) ; i++) {
@@ -2280,9 +2280,9 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
         reduce(fieldemissionPLoss, fieldemissionPLoss, OpAddAssign());
         fid << Geo_hr(2) << std::setw(18)
             << Geo_mincoords[2] + Geo_hr(2)*i << std::setw(18)
-            << primaryPLoss << std::setw(18)
-            << fieldemissionPLoss << std::setw(18)
-            << secondaryPLoss << std::setw(18) << t << endl;
+            << primaryPLoss << std::setw(40)
+            << fieldemissionPLoss << std::setw(40)
+            << secondaryPLoss << std::setw(40) << t << endl;
     }
     lossWrCounter_m++;
 }

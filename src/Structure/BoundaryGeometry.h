@@ -330,6 +330,19 @@ public:
     */
     std::vector<short> TriBGphysicstag_m;
 
+    inline bool isOutsideApperture(Vector_t x) {
+        if (hasApperture()) {
+            for (unsigned int i=0; i<apert_m.size(); i=i+3) {
+                if ((apert_m[i] <= x(2)) && (x(2) < apert_m[i+1])) {
+                    // yes we are inside the interval
+                    const double r = apert_m[i+2] * apert_m[i+2];
+                    return ((x(0)*x(1)) > r);
+                }
+            }
+        }
+        return false;
+    }
+    
 private:
     std::string h5FileName_m;   // H5hut filename
 
@@ -363,6 +376,13 @@ private:
     std::vector<size_t> alignedT_m;     // IDs of oriented triangles
     Vector_t out_m;                     // a point outside the domain
 
+
+    /* 
+       An additional structure to hold apperture information
+       to prevent that particles go past the geometry. The user
+       can specify n trippel with the form: (zmin, zmax, r)
+    */
+    std::vector<double> apert_m;
 
     SecondaryEmissionPhysics sec_phys_m;
 
@@ -402,7 +422,11 @@ private:
 
     // Clone constructor.
     BoundaryGeometry(const std::string& name, BoundaryGeometry* parent);
-
+ 
+    inline bool hasApperture() {
+        return (apert_m.size() != 0);
+    }
+    
     inline Vector_t getVertexCoord (int face_id, int vertex_id) {
         return geo3Dcoords_m[allbfaces_m[4 * face_id + vertex_id]];
     }
@@ -414,6 +438,9 @@ private:
     /*
        Used to determine whether a particle given by it's coordinates hits the boundary.
        Not sufficient for particle hitting the triangle area. (???)
+     
+       With the second test we try to catch particles outside of the structure, this is 
+       a temporary fix
     */
     inline bool isInGeometry (Vector_t x) {
         return boundary_ids_m.find (map_point2id (x)) != boundary_ids_m.end ();
@@ -853,6 +880,7 @@ private:
         DISTRS,   // Add distribution array to generate physics model on the surface
         ZSHIFT,   // Shift in z direction
         XYZSCALE,  // Multiplicative scaling factor for coordinates
+        APERTURE,    // in addition to the geometry 
         SIZE
     };
 };
