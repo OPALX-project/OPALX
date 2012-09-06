@@ -1597,7 +1597,7 @@ void ParallelTTracker::bgf_main_collision_test() {
                 if(res >= 0) {
                     itsBunch->Bin[i] = -1;
                     Nimpact_m++;
-                }
+                } 
             } else {// Particles which collide the boundary in collision test after kick will not do main collision test and directly call doBGphysics function.
                 int triId = itsBunch->TriID[i];
                 
@@ -1605,26 +1605,33 @@ void ParallelTTracker::bgf_main_collision_test() {
                 int res = bgf_m->doBGphysics(intecoords, triId);
                 
                 if(res >= 0) {
-                    itsBunch->Bin[i] = -1;
-                    Nimpact_m++;
-                }
+		    itsBunch->Bin[i] = -1;
+		    Nimpact_m++;
+                } 
             }
         }
        
         /*========================
-         Now we do fieldemission
-         =========================== */
+	  Now we do fieldemission
+	  =========================== */
         if(itsBunch->getT() < surfaceEmissionStop_m)
-            numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
+	  numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
         else
-            msg << "* No field emission dT = " << itsBunch->getT() << endl;
+	  msg << "* No field emission dT = " << itsBunch->getT() << endl;
         /*  if (itsBunch->getTotalNum()!= 0) {
-         itsBunch->boundp();
-         msg<<"After boundp"<<endl;
-         }
-         numParticlesInSimulation_m = itsBunch->getTotalNum();
-         */
+	    itsBunch->boundp();
+	    msg<<"After boundp"<<endl;
+	    }
+	    numParticlesInSimulation_m = itsBunch->getTotalNum();
+	*/
     }
+    
+    for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
+      if (bgf_m->isOutsideApperture(itsBunch->R[i])) {
+	itsBunch->Bin[i] = -1;
+      }
+    }
+    
     itsBunch->boundp();
     
     numParticlesInSimulation_m = itsBunch->getTotalNum();
