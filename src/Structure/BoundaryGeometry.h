@@ -336,7 +336,7 @@ public:
                 if ((apert_m[i] <= x(2)) && (x(2) < apert_m[i+1])) {
                     // yes we are inside the interval
                     const double r = apert_m[i+2] * apert_m[i+2];
-                    return ((x(0)*x(1)) > r);
+                    return ((x(0)*x(0)) + (x(1)*x(1))) > r;
                 }
             }
         }
