@@ -554,7 +554,7 @@ void TrackRun::execute() {
         if(OPAL->hasBunchAllocated() && Options::scan)
             ds->reset();
 
-        ds->setOPALcycl();
+        //        ds->setOPALcycl();
 
         *gmsg << *dist << endl;
         *gmsg << *beam << endl;
