@@ -36,9 +36,10 @@ public:
         YSTART,           // Start of y coordinate
         YEND,             // End of y coordinate
         WIDTH,            // Width of the probe
-	OPCHARGE,           // Charge number of the outcome particle
-	OPMASS,             // Mass of the outcome particle
-	STOP,
+        OPCHARGE,           // Charge number of the outcome particle
+        OPMASS,             // Mass of the outcome particle
+        OPYIELD,
+        STOP,
         SIZE
     };
 

@@ -76,6 +76,9 @@ public:
     void setOPMass(double mass);
     virtual double getOPMass() const;
 
+    void setOPYield(double yield);
+    virtual double getOPYield() const;
+
     void setWidth(double width);
     virtual double getWidth() const;
 
@@ -98,6 +101,7 @@ private:
     double width_m;
     double opcharge_m;
     double opmass_m;
+    double opyield_m;
     Point  geom_m[5];
     bool   stop_m;
     std::vector<int> idrec_m;

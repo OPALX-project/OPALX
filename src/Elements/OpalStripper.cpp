@@ -44,6 +44,8 @@ OpalStripper::OpalStripper():
                      ("OPCHARGE", "Charge number of the outcome particle");
     itsAttr[OPMASS] = Attributes::makeReal
                      ("OPMASS", "Mass of the outcome particle [GeV/c^2]");
+    itsAttr[OPYIELD] = Attributes::makeReal
+                     ("OPYIELD", "Yield (Particle number of the outcome particle) per income particle");
     itsAttr[STOP] = Attributes::makeBool
       ("STOP", "Option Whether stop tracking at the stripper. Default: true", true);
 
@@ -54,6 +56,7 @@ OpalStripper::OpalStripper():
     registerRealAttribute("WIDTH");
     registerRealAttribute("OPCHARGE");
     registerRealAttribute("OPMASS");
+    registerRealAttribute("OPYIELD");
 
     setElement((new StripperRep("STRIPPER"))->makeAlignWrapper());
 }
@@ -90,6 +93,7 @@ void OpalStripper::update() {
     double width = Attributes::getReal(itsAttr[WIDTH]);
     double opcharge = Attributes::getReal(itsAttr[OPCHARGE]);
     double opmass = Attributes::getReal(itsAttr[OPMASS]);
+    double opyield = Attributes::getReal(itsAttr[OPYIELD]);
     bool   stop = Attributes::getBool(itsAttr[STOP]);
 
     strp->setElementLength(length);
@@ -100,6 +104,7 @@ void OpalStripper::update() {
     strp->setWidth(width);
     strp->setOPCharge(opcharge);
     strp->setOPMass(opmass);
+    strp->setOPYield(opyield);
     strp->setStop(stop);
 
     // Transmit "unknown" attributes.

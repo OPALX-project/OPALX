@@ -49,6 +49,7 @@ Stripper::Stripper():
     width_m(0.0),
     opcharge_m(0.0),
     opmass_m(0.0),
+    opyield_m(1.0),
     stop_m(true),
     step_m(0) {
     A_m = yend_m - ystart_m;
@@ -69,6 +70,7 @@ Stripper::Stripper(const Stripper &right):
     width_m(right.width_m),
     opcharge_m(right.opcharge_m),
     opmass_m(right.opmass_m),
+    opyield_m(right.opyield_m),
     stop_m(right.stop_m),
     step_m(right.step_m) {
     A_m = yend_m - ystart_m;
@@ -89,6 +91,7 @@ Stripper::Stripper(const string &name):
     width_m(0.0),
     opcharge_m(0.0),
     opmass_m(0.0),
+    opyield_m(1.0),
     stop_m(true),
     step_m(0){
     A_m = yend_m - ystart_m;
@@ -206,8 +209,12 @@ void  Stripper::setOPMass(double mass) {
     opmass_m = mass;
 }
 
-void  Stripper::setStop(bool flag) {
-    stop_m = flag;
+void  Stripper::setOPYield(double yield) {
+    opyield_m = yield;
+}
+
+void  Stripper::setStop(bool stopflag) {
+    stop_m = stopflag;
 
 }
 
@@ -236,6 +243,10 @@ double  Stripper::getOPCharge() const {
 
 double  Stripper::getOPMass() const {
     return opmass_m;
+}
+
+double  Stripper::getOPYield() const {
+    return opyield_m;
 }
 
 bool  Stripper::getStop () const {
@@ -325,28 +336,34 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                         bunch.Bin[i] = -1;
                         flagNeedUpdate = true;
                     }else{
-                        bunch.M[i] = opmass_m;
-                        bunch.Q[i] = opcharge_m * q_e;
-                        bunch.PType[i] = 1;
-                        
-                        //create a new particle
-                        bunch.create(1);
-                        bunch.R[tempnum+count] = bunch.R[i];
-                        bunch.P[tempnum+count] = bunch.P[i];
-                        bunch.Q[tempnum+count] = bunch.Q[i];
-                        bunch.M[tempnum+count] = bunch.M[i];
-                        
-                        // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid repetitive stripping.
-                        bunch.PType[tempnum+count] = 1;
-                        
-                        if(bunch.weHaveBins())
-                            bunch.Bin[bunch.getLocalNum()-1] = bunch.Bin[i];
+
+                        flagNeedUpdate = true;
                         // change charge and mass of PartData when the reference particle hits the stripper.
                         if(bunch.ID[i] == 0)
                           flagresetMQ = true;
                         
-                        count++;
-                        flagNeedUpdate = true;
+                        // change the mass and charge
+                        bunch.M[i] = opmass_m;
+                        bunch.Q[i] = opcharge_m * q_e;
+                        bunch.PType[i] = 1;
+
+                        int j = 1;
+                        //create new particles
+                        while (j < opyield_m){
+                          bunch.create(1);
+                          bunch.R[tempnum+count] = bunch.R[i];
+                          bunch.P[tempnum+count] = bunch.P[i];
+                          bunch.Q[tempnum+count] = bunch.Q[i];
+                          bunch.M[tempnum+count] = bunch.M[i];
+                          // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid repetitive stripping.
+                          bunch.PType[tempnum+count] = 1;
+                          count++;
+                          j++;
+                        }
+
+                        if(bunch.weHaveBins())
+                            bunch.Bin[bunch.getLocalNum()-1] = bunch.Bin[i];
+
                     }
                 }
             }
