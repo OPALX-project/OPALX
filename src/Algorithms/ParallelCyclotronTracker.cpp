@@ -782,10 +782,6 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], string Ele
     }
     FieldDimensions.insert(sindex, localpair);
 
-    // FixMe: so why not free up the memory?
-    // free memory
-    //  if(localpair)
-    //    free(localpair);
 }
 
 /**
@@ -1395,7 +1391,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
         if(itsBunch->ID[ii] == 0) {
-            // FixMe: FinalMomentum2  = dot(itsBunch->P[ii],itsBunch->P[ii]);
+
             double FinalMomentum2  = pow(itsBunch->P[ii](0), 2.0) +
                                      pow(itsBunch->P[ii](1), 2.0) +
                                      pow(itsBunch->P[ii](2), 2.0);
@@ -1628,8 +1624,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         bool res = Ippl::Comm->send(smsg, 0, tag);
                         if(!res)
                             ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
-                        // FixMe: why it block at here if I delete smsg? delete smsg;
-
                     }
 
                 IpplTimings::stopTimer(DumpTimer_m);
@@ -1771,39 +1765,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         IpplTimings::stopTimer(TransformTimer_m);
 
-                        // FixMe: check this
-                        //   IpplTimings::startTimer(BinRepartTimer_m);
-
-                        // todo: overuse binaryRepart() can cause buffer overflow during large scale job.
-                        // as a temporal solution, reduce its using frequency can solve such kind of problem.
-                        //   if( (step_m+1)%Options::repartFreq == 0 )
-                        //    {
-                        //        NDIndex<3> ldom = itsBunch->getFieldLayout().getLocalNDIndex();
-                        //        double hx, hy, hz;
-                        //        int IndexMaxX,IndexMaxY,IndexMaxZ;
-                        //        int IndexMinX,IndexMinY,IndexMinZ;
-                        //        hx = itsBunch->get_hr()(0);
-                        //        hy = itsBunch->get_hr()(1);
-                        //        hz = itsBunch->get_hr()(2);
-                        //        IndexMaxX =  ldom[0].max();
-                        //        IndexMinX =  ldom[0].min();
-                        //        IndexMaxY =  ldom[1].max();
-                        //        IndexMinY =  ldom[1].min();
-                        //        IndexMaxZ =  ldom[2].max();
-                        //        IndexMinZ =  ldom[2].min();
-                        //        *gmsg<<"hx = "<<hx<<", hy = "<<hy<<", hz = "<<hz<<endl;
-                        //        Ippl::Comm->barrier();
-                        //        *gmsgAll <<"min/max X:"<< IndexMinX<<"--"<<IndexMaxX
-                        //                 << ",Y: "<< IndexMinY<<"--"<<IndexMaxY
-                        //                 << ", Z: "<< IndexMinZ<<"--"<<IndexMaxZ<<endl ;
-                        //        Ippl::Comm->barrier();
-                        //        *gmsgAll <<"After boundp, particle  "<<itsBunch->getLocalNum()<<endl ;
-                        //        Ippl::Comm->barrier();
-                        //    }
-                        //           IpplTimings::stopTimer(BinRepartTimer_m);
-                        //           Ippl::Comm->barrier();
-
-
                         // calcualte gamma for each energy bin
                         itsBunch->calcGammas_cycl();
 
@@ -1897,40 +1858,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                             itsBunch->boundp();
 
                         IpplTimings::stopTimer(TransformTimer_m);
-
-                        // FixMe:
-                        //    IpplTimings::startTimer(BinRepartTimer_m);
-
-                        // todo: overuse binaryRepart() can cause baffer overflow during large scale job.
-                        // as a temporal solution, reduce its using frequency can solve such kind of problem.
-
-                        //  if( (step_m+1)%Options::repartFreq == 0 )
-                        //    {
-                        //        NDIndex<3> ldom = itsBunch->getFieldLayout().getLocalNDIndex();
-                        //        double hx, hy, hz;
-                        //        int IndexMaxX,IndexMaxY,IndexMaxZ;
-                        //        int IndexMinX,IndexMinY,IndexMinZ;
-                        //        hy = itsBunch->get_hr()(1);
-                        //        hz = itsBunch->get_hr()(2);
-                        //        IndexMaxX =  ldom[0].max();
-                        //        IndexMinX =  ldom[0].min();
-                        //        IndexMaxY =  ldom[1].max();
-                        //        IndexMinY =  ldom[1].min();
-                        //        IndexMaxZ =  ldom[2].max();
-                        //        IndexMinZ =  ldom[2].min();
-                        //        *gmsg<<"hx = "<<hx<<", hy = "<<hy<<", hz = "<<hz<<endl;
-                        //        Ippl::Comm->barrier();
-                        //        *gmsgAll<<"min/max X:"<< IndexMinX<<"--"<<IndexMaxX<<", Y: "
-                        //                << IndexMinY<<"--"<<IndexMaxY<<", Z: "<< IndexMinZ<<"--"<<IndexMaxZ<<endl ;
-                        //        Ippl::Comm->barrier();
-                        //        *gmsgAll <<"After boundp, particle  "<<itsBunch->getLocalNum()<<endl ;
-                        //        Ippl::Comm->barrier();
-                        //        *gmsg << "***---------------------------- DO REPART   ----------------------*** "<<endl;
-                        //        itsBunch->do_binaryRepart();
-                        //        *gmsg << "***---------------------------- REPART DONE ----------------------*** "<<endl;
-                        //    }
-                        //        IpplTimings::stopTimer(BinRepartTimer_m);
-                        //           Ippl::Comm->barrier();
 
                         repartition();
                         itsBunch->computeSelfFields_cycl(temp_meangamma);
@@ -2159,41 +2086,42 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 TturnNumber.push_back(turnnumber_m);
             }
         } else if(initialTotalNum_m == 1) {
-            // initialTotalNum_m == 1 trigger single particle mode
-	  IpplTimings::startTimer(IntegrationTimer_m);
-	    int i = 0;
-            flagNoDeletion = true;
+          // initialTotalNum_m == 1 trigger single particle mode
+
+          IpplTimings::startTimer(IntegrationTimer_m);
+          flagNoDeletion = true;
+
+          // track for one step
+          for( unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
 
             if((step_m % SinglePartDumpFreq == 0)) {
-	      for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-		  outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
-		  outfTrackOrbit_m << " " << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " " <<itsBunch->R[i](1)
-		       << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2)<< endl;
-	      }
-	    }
-
+              outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
+              outfTrackOrbit_m << " " << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " " <<itsBunch->R[i](1)
+                               << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2)<< endl;
+            }
+      
             // change phase space parameters from local frame of bunch (dr,dtheta,dz) to global Cartesian frame (X,Y,Z)
             for(int j = 0; j < 3; j++) {
-                variable_m[j] = itsBunch->R[i](j);  //[x,y,z]  units: [mm]
-                variable_m[j+3] = itsBunch->P[i](j);  //[px,py,pz]  units: dimensionless
-                rold_m[j] = variable_m[j]; // used for gap cross checking
-                pold_m[j] = variable_m[j+3]; // used for gap cross
+              variable_m[j] = itsBunch->R[i](j);  //[x,y,z]  units: [mm]
+              variable_m[j+3] = itsBunch->P[i](j);  //[px,py,pz]  units: dimensionless
+              rold_m[j] = variable_m[j]; // used for gap cross checking
+              pold_m[j] = variable_m[j+3]; // used for gap cross
             }
 
             double temp_meanTheta = calculateAngle2(variable_m[0], variable_m[1]);//[ -pi ~ pi ]
 
             if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
-                ++turnnumber_m;
-                dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber_m << endl;
+              ++turnnumber_m;
+              dumpEachTurn = true;
+              *gmsg << "Turn " << turnnumber_m << endl;
 
-                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
-                outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
-                                    << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                                    << " " << temp_meanTheta / pi * 180
-                                    << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
-                                    << " " << variable_m[2]
-                                    << " " << variable_m[5] << endl;
+              outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
+                                  << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
+                                  << " " << temp_meanTheta / pi * 180
+                                  << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
+                                  << " " << variable_m[2]
+                                  << " " << variable_m[5] << endl;
             }
 
             //define 3 special azimuthal angles where dump particle's six parameters  at each turn into 3 ASCII files.
@@ -2202,33 +2130,33 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             const double azimuth_angle2 = 45.0 / 180.0 * pi;
 
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
-                outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
-                             << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                             << " " << temp_meanTheta / pi * 180
-                             << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
-                             << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+              outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
+                           << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
+                           << " " << temp_meanTheta / pi * 180
+                           << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
+                           << " " << variable_m[2]
+                           << " " << variable_m[5] << endl;
             }
 
             if((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
-                outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
-                             << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                             << " " << temp_meanTheta / pi * 180
-                             << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
-                             << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+              outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
+                           << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
+                           << " " << temp_meanTheta / pi * 180
+                           << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
+                           << " " << variable_m[2]
+                           << " " << variable_m[5] << endl;
             }
 
             if((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
-                outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
-                             << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                             << " " << temp_meanTheta / pi * 180
-                             << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
-                             << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+              outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
+                           << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
+                           << " " << temp_meanTheta / pi * 180
+                           << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
+                           << " " << variable_m[2]
+                           << " " << variable_m[5] << endl;
             }
 
             oldReferenceTheta = temp_meanTheta;
@@ -2238,8 +2166,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             flagNoDeletion = rk4(variable_m, t, dt, i);
 
             if(!flagNoDeletion) {
-                *gmsg << "particle" << "is lost at " << step_m << "st step!" << endl;
-                throw OpalException("ParallelCyclotronTracker", "the particle is out of the region of interest.");
+              *gmsg << "particle" << "is lost at " << step_m << "th step!" << endl;
+              throw OpalException("ParallelCyclotronTracker", "the particle is out of the region of interest.");
             }
 
             for(int j = 0; j < 3; j++) itsBunch->R[i](j) = variable_m[j] ; //[x,y,z]  units: [mm]
@@ -2248,62 +2176,62 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             //If gap crossing happens, do momenta kicking
 
             for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-                bool tag_crossing = false;
-                double DistOld = 0.0; //mm
-                RFCavity * rfcav;
-                if(((*sindex)->first) == "CAVITY") {
-                    // here check gap cross in the list, if do , set tag_crossing to TRUE
-                    for(int j = 0; j < 3; j++)
-                        rnew_m[j] = variable_m[j];
-                    rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
-                    tag_crossing = checkGapCross(rold_m, rnew_m, rfcav, DistOld);
+              bool tag_crossing = false;
+              double DistOld = 0.0; //mm
+              RFCavity * rfcav;
+              if(((*sindex)->first) == "CAVITY") {
+                // here check gap cross in the list, if do , set tag_crossing to TRUE
+                for(int j = 0; j < 3; j++)
+                  rnew_m[j] = variable_m[j];
+                rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
+                tag_crossing = checkGapCross(rold_m, rnew_m, rfcav, DistOld);
+              }
+              if(tag_crossing) {
+                double oldMomentum2  = dot(pold_m, pold_m);
+                double oldBetgam = sqrt(oldMomentum2);
+                double oldGamma = sqrt(1.0 + oldMomentum2);
+                double oldBeta = oldBetgam / oldGamma;
+                double dt1 = DistOld / (c * oldBeta * 1.0e-6); // ns
+                double dt2 = dt - dt1;
+
+                // retrack particle from the old postion to cavity gap point
+                // restore the old coordinates and momenta
+                for(int j = 0; j < 3; j++) {
+                  variable_m[j] = rold_m[j];
+                  variable_m[j+3] = pold_m[j];
                 }
-                if(tag_crossing) {
-                    double oldMomentum2  = dot(pold_m, pold_m);
-                    double oldBetgam = sqrt(oldMomentum2);
-                    double oldGamma = sqrt(1.0 + oldMomentum2);
-                    double oldBeta = oldBetgam / oldGamma;
-                    double dt1 = DistOld / (c * oldBeta * 1.0e-6); // ns
-                    double dt2 = dt - dt1;
 
-                    // retrack particle from the old postion to cavity gap point
-                    // restore the old coordinates and momenta
-                    for(int j = 0; j < 3; j++) {
-                        variable_m[j] = rold_m[j];
-                        variable_m[j+3] = pold_m[j];
-                    }
+                if(dt / dt1 < 1.0e9) rk4(variable_m, t, dt1, i);
 
-                    if(dt / dt1 < 1.0e9) rk4(variable_m, t, dt1, i);
+                for(int j = 0; j < 3; j++) {
+                  itsBunch->R[i](j) = variable_m[j] ;  //[x,y,z]  units: [mm]
+                  itsBunch->P[i](j) = variable_m[j+3] ;  //[px,py,pz]  units: [] beta*gama
+                }
 
-                    for(int j = 0; j < 3; j++) {
-                        itsBunch->R[i](j) = variable_m[j] ;  //[x,y,z]  units: [mm]
-                        itsBunch->P[i](j) = variable_m[j+3] ;  //[px,py,pz]  units: [] beta*gama
-                    }
+                //momentum kick
+                RFkick(rfcav, t, dt1, i);
 
-                    //momentum kick
-                    RFkick(rfcav, t, dt1, i);
+                // retrack particle  from cavity gap point for the left time to finish the entire timestep
+                for(int j = 0; j < 3; j++) {
+                  variable_m[j] = itsBunch->R[i](j);  //[x,y,z]  units: [mm]
+                  variable_m[j+3] = itsBunch->P[i](j);  //[px,py,pz]  units: []
+                }
 
-                    // retrack particle  from cavity gap point for the left time to finish the entire timestep
-                    for(int j = 0; j < 3; j++) {
-                        variable_m[j] = itsBunch->R[i](j);  //[x,y,z]  units: [mm]
-                        variable_m[j+3] = itsBunch->P[i](j);  //[px,py,pz]  units: []
-                    }
+                if(dt / dt2 < 1.0e9) rk4(variable_m, t, dt2, i);
 
-                    if(dt / dt2 < 1.0e9) rk4(variable_m, t, dt2, i);
-
-                    for(int j = 0; j < 3; j++) {
-                        itsBunch->R[i](j) = variable_m[j] ;  //[x,y,z]  units: [mm]
-                        itsBunch->P[i](j) = variable_m[j+3] ;  //[px,py,pz]  units: [], beta*gama
-                    }
-                }// end if: gap-crossing monentum kicking at certain cavity
+                for(int j = 0; j < 3; j++) {
+                  itsBunch->R[i](j) = variable_m[j] ;  //[x,y,z]  units: [mm]
+                  itsBunch->P[i](j) = variable_m[j+3] ;  //[px,py,pz]  units: [], beta*gama
+                }
+              }// end if: gap-crossing monentum kicking at certain cavity
             }//end for: finish checking for all cavities
-
-            // apply the plugin elements: probe, collimator, stripper, septum
-            applyPluginElements(dt);
-            // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
-            deleteParticle(); 
-
-            IpplTimings::stopTimer(IntegrationTimer_m);
+          }
+          // apply the plugin elements: probe, collimator, stripper, septum
+          applyPluginElements(dt);
+          // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+          deleteParticle(); 
+          
+          IpplTimings::stopTimer(IntegrationTimer_m);
         }//end if: finish one step tracking either for initialTotalNum_m==2 || initialTotalNum_m==2 || initialTotalNum_m==1 mode
 
         // update bunch and some parameters and output some info. after one time step.
@@ -2320,12 +2248,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         itsBunch->setLPath(PathLength_m);
         // Here is global frame, don't do itsBunch->boundp();
 
-        // FixMe:
-        // dump phase space distribution of bunch
-        // if ((((step_m+1) % Options::psDumpFreq == 0 ) && initialTotalNum_m > 2) || (dumpEachTurn && initialTotalNum_m > 2) )
-        // if(step_m>(1185*(Options::rDump))) {
-        //  itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
-        //}
         if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
            || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
             IpplTimings::startTimer(DumpTimer_m);
@@ -2772,7 +2694,7 @@ bool ParallelCyclotronTracker::readOneBunch(const size_t BinID) {
 }
 
 bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
-    //todo
+   
     static bool restartflag = true;
 
     if(restartflag) {
@@ -3184,7 +3106,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 	IpplTimings::startTimer(IpplTimings::getTimer("MTS-Dump"));
     for(size_t ii = 0; ii < itsBunch->getLocalNum(); ++ii) {
         if(itsBunch->ID[ii] == 0) {
-            // FixMe: FinalMomentum2  = dot(itsBunch->P[ii],itsBunch->P[ii]);
             double FinalMomentum2  = pow(itsBunch->P[ii](0), 2.0) +
                                      pow(itsBunch->P[ii](1), 2.0) +
                                      pow(itsBunch->P[ii](2), 2.0);
