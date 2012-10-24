@@ -336,6 +336,7 @@ void RFCavity::addKT(int i, double t, Vector_t &K) {
 bool RFCavity::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
+
     if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
 
     E[0] = Ev(0);
@@ -351,21 +352,31 @@ bool RFCavity::apply(const size_t &i, const double &t, double E[], double B[]) {
 bool RFCavity::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     bool out_of_bounds = true;
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
+    
+    if (tmpR(2) >= 0.0) {
+        // inside the cavity
+        for(size_t j = 0; j < numFieldmaps(); ++ j) {
+            Fieldmap *fieldmap = multiFieldmaps_m[j];
+            Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+            const std::pair<double, double> & start_end = multi_start_end_field_m[j];
 
-    for(size_t j = 0; j < numFieldmaps(); ++ j) {
-        Fieldmap *fieldmap = multiFieldmaps_m[j];
-        Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-        const std::pair<double, double> & start_end = multi_start_end_field_m[j];
-
-        if(tmpR(2) > start_end.first &&
-           tmpR(2) < start_end.second &&
-           !fieldmap->getFieldstrength(tmpR, tmpE, tmpB)) {
-            const double phase = multiFrequencies_m[j] * t + multiPhases_m[j];
-            const double &scale = multiScales_m[j];
-            E += scale * cos(phase) * tmpE;
-            B -= scale * sin(phase) * tmpB;
-            out_of_bounds = false;
+            if(tmpR(2) > start_end.first &&
+               tmpR(2) < start_end.second &&
+               !fieldmap->getFieldstrength(tmpR, tmpE, tmpB)) {
+                const double phase = multiFrequencies_m[j] * t + multiPhases_m[j];
+                const double &scale = multiScales_m[j];
+                E += scale * cos(phase) * tmpE;
+                B -= scale * sin(phase) * tmpB;
+                out_of_bounds = false;
+            }
         }
+    }
+    else {
+        /* 
+           some of the bunch is still outside of the cavity
+           so let them drift in
+        */
+        out_of_bounds = false;
     }
     return out_of_bounds;
 }
