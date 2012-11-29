@@ -10,6 +10,7 @@
 #include "Utilities/Options.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/BoundaryGeometry.h"
+#include "Utilities/Timer.h"
 
 #include "H5hut.h"
 
@@ -2065,8 +2066,13 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 }
 
 void DataSink::writeSDDSHeader(ofstream &outputFile) {
+    OPALTimer::Timer simtimer;
+
+    string dateStr(simtimer.date());
+    string timeStr(simtimer.time());
+
     outputFile << "SDDS1" << endl;
-    outputFile << "&description text=\"Statistics data " << OpalData::getInstance()->getInputFn() << "\" " << endl;
+    outputFile << "&description text=\"Statistics data " << OpalData::getInstance()->getInputFn() << " " << dateStr << " " << timeStr << "\" " << endl;
     outputFile << ", contents=\"stat parameters\" &end" << endl;
 
     outputFile << "&parameter name=processors, type=long, ";
