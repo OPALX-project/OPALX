@@ -169,7 +169,7 @@ Option::Option():
     itsAttr[WARN] = Attributes::makeBool
                     ("WARN", "If true, print warning messages", warn);
     itsAttr[SEED] = Attributes::makeReal
-                    ("SEED", "The seed for the random generator");
+                    ("SEED", "The seed for the random generator, -1 will use time(0) as seed ");
     itsAttr[TELL] = Attributes::makeBool
                     ("TELL", "If true, print the current settings", false);
     itsAttr[PSDUMPFREQ] = Attributes::makeReal
