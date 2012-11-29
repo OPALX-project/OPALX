@@ -34,6 +34,9 @@ public:
     enum {
         K1 = COMMON,  // The normal quadrupole coefficient.
         K1S,          // The skew quadrupole coefficient.
+	DX,             // Misalignment: translation in x direction
+        DY,             // Misalignment: translation in y direction
+        DZ,             // Misalignment: translation in z direction
         SIZE
     };
 
