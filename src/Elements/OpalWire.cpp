@@ -40,11 +40,11 @@ OpalWire::OpalWire():
                      ("OUTFN", "Wire output filename");
 
     itsAttr[DX] = Attributes::makeReal
-                  ("DX", "Misalignment in x direction");
+      ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
-                  ("DY", "Misalignment in y direction");
+      ("DY", "Misalignment in y direction",0.0);
     itsAttr[DZ] = Attributes::makeReal
-                  ("DZ", "Misalignment in z direction");
+      ("DZ", "Misalignment in z direction",0.0);
 
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
