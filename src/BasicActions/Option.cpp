@@ -21,7 +21,7 @@
 #include "Parser/FileStream.h"
 #include "Utilities/Options.h"
 #include "Utilities/Random.h"
-
+#include <ctime>
 #include <iostream>
 
 using namespace Options;
@@ -314,7 +314,10 @@ void Option::execute() {
 
     if(itsAttr[SEED]) {
         seed = int(Attributes::getReal(itsAttr[SEED]));
-        rangen.init55(seed);
+	if (seed == -1)
+	  rangen.init55(time(0));
+	else
+	  rangen.init55(seed);
     }
 
     if(itsAttr[PSDUMPFREQ]) {
