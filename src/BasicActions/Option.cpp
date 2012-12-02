@@ -240,7 +240,7 @@ Option::Option():
                           ("NLHS", "Number of stored old solutions for extrapolating the new starting vector. Default value is 1 and just the last solution is used.");
 
     itsAttr[ENABLEHDF5] = Attributes::makeBool
-                      ("ENABLEDF5", "If true, HDF5 actions are enabled", true);
+                      ("ENABLEHDF5", "If true, HDF5 actions are enabled", true);
 
     FileStream::setEcho(echo);
     rangen.init55(seed);
