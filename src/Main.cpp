@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     string dateStr(simtimer.date());
     string timeStr(simtimer.time());
 
-    H5SetVerbosityLevel(0);
+    H5SetVerbosityLevel(0); //65535);
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
