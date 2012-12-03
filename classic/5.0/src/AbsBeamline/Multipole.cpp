@@ -146,7 +146,7 @@ void Multipole::addKT(int i, double t, Vector_t &K) {
 
 bool Multipole::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
+    Vector_t Rt(RefPartBunch_m->getX(i)-dx_m, RefPartBunch_m->getY(i)-dy_m, RefPartBunch_m->getZ(i)-ds_m);
     if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
 
     E[0] = Ev(0);
@@ -160,8 +160,8 @@ bool Multipole::apply(const size_t &i, const double &t, double E[], double B[]) 
 }
 
 bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    Vector_t temp(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
-
+    Vector_t temp(RefPartBunch_m->getX(i)-dx_m, RefPartBunch_m->getY(i)-dy_m, RefPartBunch_m->getZ(i)-ds_m);
+    
     const Vector_t &R(temp);
     //const Vector_t &R = RefPartBunch_m->R[i];
 
@@ -238,7 +238,10 @@ bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
     return false;
 }
 
-bool Multipole::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
+bool Multipole::apply(const Vector_t &R0, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
+
+    const Vector_t R = R0 - Vector_t(dx_m,dy_m,ds_m);
+
     if(R(2) > startField_m && R(2) <= endField_m) {
         if(max_NormalComponent_m > 0) {
             B(0) += NormalComponents[0] * R(1);
