@@ -51,7 +51,7 @@ OpalCyclotron::OpalCyclotron():
                       ("ESCALE", "Scale factor for the RF field(s)");
     
     itsAttr[SUPERPOSE] = Attributes::makeBool
- 	                 ("SUPERPOSE", "Option Whether all of the electric field maps are superposed, only used when TYPE = BANDRF", true);
+ 	                 ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF", false);
 
     itsAttr[RFMAPFN] = Attributes::makeStringArray
                        ("RFMAPFN", "Filename for the RF fieldmap(s)");
@@ -197,6 +197,8 @@ void OpalCyclotron::update() {
     cycl->setEScale(scale_str);
     cycl->setRfFieldMapFN(fm_str);
     cycl->setRfFrequ(rff_str);
+    cycl->setSuperpose(superpose);
+
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(cycl);
 }

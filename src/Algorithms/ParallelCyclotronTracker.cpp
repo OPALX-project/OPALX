@@ -297,6 +297,9 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     double h = elptr->getCyclHarm();
     *gmsg << "* Harmonic number h= " << h << " " << endl;
 
+    if (elptr->getSuperpose())
+        *gmsg << "* Fields are superimposed " << endl;
+
     /**
      * To ease the initialise() function, set a integral parameter fieldflag internally.
      * Its value is  by the option "TYPE" of the element  "CYCLOTRON"
