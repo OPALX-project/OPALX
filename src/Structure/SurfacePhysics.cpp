@@ -127,11 +127,13 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element, const doubl
     itsElement_m = &element;
     material_m = Attributes::getString(itsAttr[MATERIAL]);
 
-    if(Attributes::getString(itsAttr[TYPE]) == "Collimator") {
+    if(Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR") {
+        Inform m("sph ");
         handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, major, minor, material_m);
+        m << *this << endl;
     } else {
         handler_m = 0;
-        INFOMSG("no surface physics handler attached" << endl);
+        INFOMSG("no surface physics handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
     }
 
 }
@@ -143,7 +145,7 @@ void SurfacePhysics::updateElement(ElementBase *element) {
 void SurfacePhysics::print(std::ostream &os) const {
     os << "* ************* S U R F A C E P H Y S I C S **************************************** " << std::endl;
     os << "* SURFACEPHYSICS " << getOpalName() << '\n'
-       << "* MATERIAL       " << Attributes::getReal(itsAttr[MATERIAL]) << '\n'
+       << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n'
        << "* RADIUS         " << Attributes::getReal(itsAttr[RADIUS]) << '\n'
        << "* SIGMA          " << Attributes::getReal(itsAttr[SIGMA]) << '\n'
        << "* TAU            " << Attributes::getReal(itsAttr[TAU]) << '\n';
