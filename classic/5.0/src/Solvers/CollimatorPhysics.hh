@@ -9,9 +9,8 @@
 // $Author: Bi, Yang $
 //-------------------------------------------------------------------------
 #include <vector>
-
+#include "Ippl.h"
 #include "Solvers/SurfacePhysicsHandler.hh"
-//#include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Vektor.h"
 #include "AbsBeamline/Component.h"
 
@@ -19,6 +18,22 @@ class RANLIB_class;
 class ElementBase;
 class PartBunch;
 class LossDataSink;
+
+typedef struct {
+    int label;
+
+    unsigned localID;
+    Vector_t Rincol;
+    Vector_t Pincol;
+    long IDincol;
+    int Binincol;
+    double DTincol;
+    double Qincol;
+    long LastSecincol;
+    Vector_t Bfincol;
+    Vector_t Efincol;    
+} PART;
+
 
 class CollimatorPhysics: public SurfacePhysicsHandler {
 public:
@@ -37,7 +52,9 @@ public:
     void  Rot(Vector_t &P, Vector_t Prot, double normP);
     double Rot(double &p1, double &p2, double &scatang);
 
+
 private:
+
     RANLIB_class *rGen_m;
     double a_m;
     double b_m;
@@ -67,26 +84,36 @@ private:
     double I_m;
     double n_m;
 
+    unsigned matToBunchStat_m;
+    unsigned bunchToMatStat_m;
+    unsigned stoppedPartStat_m;
+    unsigned redifusedStat_m;
+
+public:
+    double dT_m;
+    int N_m;
+
+private:
     bool incoll_m;
     Point  geom_m[5];
 
-    int index_m;
-    std::vector<unsigned> label_m;
-    std::vector<Vector_t> Rincol_m;
-    std::vector<Vector_t> Pincol_m;
-    std::vector<long> IDincol_m;
-    std::vector<int> Binincol_m;
-    std::vector<double> DTincol_m;
-    std::vector<double> Qincol_m;
-    std::vector<long> LastSecincol_m;
-    std::vector<Vector_t> Bfincol_m;
-    std::vector<Vector_t> Efincol_m;
-    std::vector<double> time_m;
-    std::vector<int> steps_m;
+
+    std::vector<PART> locParts_m;
   
     void setCColimatorGeom();
     int  checkPoint( const double & x, const double & y );
     LossDataSink *lossDs_m;
+
+    bool checkInColl(Vector_t R,double scalefactor);
+
+    void copyFromBunch(PartBunch &bunch);
+
+    void addToBunch(PartBunch &bunch, unsigned i);
+
+    void deleteParticleFromLocalVector();
+
+public:
+    void print(Inform& os);
 };
 
 #endif //COLLIMATORPHYSICS_HH

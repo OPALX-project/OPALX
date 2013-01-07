@@ -215,13 +215,13 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
             //      if ( (abs(R(0) >= getXsize()) || (abs(R(1) >= getYsize()))))
             if(R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize())
                 pdead = true;
-        } else {
+        } else {            
             // case of an elliptic collimator
+            const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
+            const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));                                 
+            pdead = (trm1 + trm2) > 1.0;
         }
-
-
-
-
+        
         if(pdead) {
             double frac = (R(2) - position_m) / P(2) * recpgamma;
             PosX_m.push_back(R(0));

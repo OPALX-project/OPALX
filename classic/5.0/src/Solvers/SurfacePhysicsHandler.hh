@@ -5,6 +5,7 @@
 
 class ElementBase;
 class PartBunch;
+class Inform;
 
 class SurfacePhysicsHandler {
 public:
@@ -12,7 +13,7 @@ public:
     virtual ~SurfacePhysicsHandler() { };
     virtual void apply(PartBunch &bunch) = 0;
     virtual const std::string getType() const = 0;
-
+    virtual void print(Inform& os) = 0;
     void updateElement(ElementBase *newref);
 
 protected:
@@ -20,6 +21,7 @@ protected:
 
 private:
     const std::string name_m;
+
 };
 
 inline SurfacePhysicsHandler::SurfacePhysicsHandler(std::string name, ElementBase *elref):
