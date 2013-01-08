@@ -331,6 +331,11 @@ private:
     
     size_t Nimpact_m; 
     double SeyNum_m;
+
+
+    SurfacePhysicsHandler *sphys_m;
+
+
     /********************** END VARIABLES ***********************************/
 
     int LastVisited;

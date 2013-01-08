@@ -115,7 +115,8 @@ timeFieldEvaluation_m(IpplTimings::getTimer("Fieldeval")),
 BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
 WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
 Nimpact_m(0),
-SeyNum_m(0.0) {
+SeyNum_m(0.0),
+sphys_m(NULL){
 }
 
 
@@ -189,6 +190,7 @@ ParallelTTracker::~ParallelTTracker() {
 #ifdef DBG_SYM
     of_m.close();
 #endif
+
 }
 
 void ParallelTTracker::applySchottkyCorrection(PartBunch &itsBunch, int ne, double t, double rescale_coeff) {
@@ -547,7 +549,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
         
         totalParticles_f = totalParticles_i - ne;
         if(ne > 0)
-            msg << "* Deleted " << ne << " particles, remaining " << totalParticles_f << " particles" << endl; //benchmark output
+            msg << "* Deleted in Shotky " << ne << " particles, remaining " << totalParticles_f << " particles" << endl; //benchmark output
         
         kickParticles(pusher);
         
@@ -1954,16 +1956,6 @@ void ParallelTTracker::computeExternalFields() {
         
     }
     
-    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
-    if(globPartOutOfBounds) {
-        size_t ne = itsBunch->boundp_destroyT();
-        if(ne > 0) {
-            msg << "* Deleted " << ne << " particles, "
-            << "remaining " << numParticlesInSimulation_m << " particles" << endl;
-            numParticlesInSimulation_m  = itsBunch->getTotalNum();
-        }
-    }
-    
     IpplTimings::stopTimer(timeFieldEvaluation_m);
     
     reduce(hasWake, hasWake, OpAddAssign());
@@ -1999,16 +1991,30 @@ void ParallelTTracker::computeExternalFields() {
             surfaceStatus_m = true;
         }
         reduce(sphysSection, sphysSection, OpMaxAssign());
-        SurfacePhysicsHandler *sphys = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
+        if (sphys_m==NULL)
+            sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
         
-        if(sphys == NULL) {
+        if(sphys_m == NULL) {
             INFOMSG("no surface physics attached" << endl);
         } else {
-            sphys->apply(*itsBunch);
+            sphys_m->apply(*itsBunch);
+            sphys_m->print(msg);
         }
     } else if(surfaceStatus_m) {
         msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
         surfaceStatus_m = false;
+        if (sphys_m)
+            delete sphys_m;
+    }
+
+    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
+    if(globPartOutOfBounds) {
+        size_t ne = itsBunch->boundp_destroyT();
+        if(ne > 0) {
+            msg << "* Deleted " << ne << " particles, "
+                << "remaining " << numParticlesInSimulation_m << " particles" << endl;
+            numParticlesInSimulation_m  = itsBunch->getTotalNum();
+        }
     }
 }
 
