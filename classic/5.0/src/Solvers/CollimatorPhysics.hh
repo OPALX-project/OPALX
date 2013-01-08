@@ -108,7 +108,7 @@ private:
 
     void copyFromBunch(PartBunch &bunch);
 
-    void addToBunch(PartBunch &bunch, unsigned i);
+    void addBackToBunch(PartBunch &bunch, unsigned i);
 
     void deleteParticleFromLocalVector();
 

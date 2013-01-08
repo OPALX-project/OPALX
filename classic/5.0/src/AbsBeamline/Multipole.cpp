@@ -146,7 +146,10 @@ void Multipole::addKT(int i, double t, Vector_t &K) {
 
 bool Multipole::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    Vector_t Rt(RefPartBunch_m->getX(i)-dx_m, RefPartBunch_m->getY(i)-dy_m, RefPartBunch_m->getZ(i)-ds_m);
+
+    const Vector_t Rt(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
+    // before misalignment    Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
+
     if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
 
     E[0] = Ev(0);
@@ -160,8 +163,10 @@ bool Multipole::apply(const size_t &i, const double &t, double E[], double B[]) 
 }
 
 bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    Vector_t temp(RefPartBunch_m->getX(i)-dx_m, RefPartBunch_m->getY(i)-dy_m, RefPartBunch_m->getZ(i)-ds_m);
     
+    const Vector_t temp(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
+    // before misalignment Vector_t temp(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
+
     const Vector_t &R(temp);
     //const Vector_t &R = RefPartBunch_m->R[i];
 
@@ -242,23 +247,26 @@ bool Multipole::apply(const Vector_t &R0, const Vector_t &centroid, const double
 
     const Vector_t R = R0 - Vector_t(dx_m,dy_m,ds_m);
 
-    if(R(2) > startField_m && R(2) <= endField_m) {
+   
+   const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - startField_m - ds_m);
+
+    if(tmpR(2) > startField_m && tmpR(2) <= endField_m) {
         if(max_NormalComponent_m > 0) {
-            B(0) += NormalComponents[0] * R(1);
-            B(1) += NormalComponents[0] * R(0);
+            B(0) += NormalComponents[0] * tmpR(1);
+            B(1) += NormalComponents[0] * tmpR(0);
 
             if(max_NormalComponent_m > 1) {
-                const double R02 = R(0) * R(0);
-                const double R12 = R(1) * R(1);
-                B(0) += NormalComponents[1] * R(0) * R(1);
+                const double R02 = tmpR(0) * tmpR(0);
+                const double R12 = tmpR(1) * tmpR(1);
+                B(0) += NormalComponents[1] * tmpR(0) * tmpR(1);
                 B(1) += NormalComponents[1] * (R02 - R12) / 2.;
 
                 if(max_NormalComponent_m > 2) {
-                    B(0) += NormalComponents[2] * (3. * R02 * R(1) - R12 * R(1)) / 6.;
-                    B(1) += NormalComponents[2] * (R02 * R(0) - 3. * R(0) * R12) / 6.;
+                    B(0) += NormalComponents[2] * (3. * R02 * tmpR(1) - R12 * tmpR(1)) / 6.;
+                    B(1) += NormalComponents[2] * (R02 * tmpR(0) - 3. * tmpR(0) * R12) / 6.;
 
                     if(max_NormalComponent_m > 3) {
-                        B(0) += NormalComponents[3] * (R02 * R(0) * R(1) - R(0) * R12) / 6.;
+                        B(0) += NormalComponents[3] * (R02 * tmpR(0) * tmpR(1) - tmpR(0) * R12) / 6.;
                         B(1) += NormalComponents[3] * (R02 * R02 - 6. * R02 * R12 + R12 * R12) / 24.;
 
                         if(max_NormalComponent_m > 4) {
@@ -272,23 +280,23 @@ bool Multipole::apply(const Vector_t &R0, const Vector_t &centroid, const double
         }
 
         if(max_SkewComponent_m > 0) {
-            B(0) += -SkewComponents[0] * R(0);
-            B(1) += SkewComponents[0] * R(1);
+            B(0) += -SkewComponents[0] * tmpR(0);
+            B(1) += SkewComponents[0] * tmpR(1);
 
             if(max_SkewComponent_m > 1) {
-                const double R02 = R(0) * R(0);
-                const double R12 = R(1) * R(1);
+                const double R02 = tmpR(0) * tmpR(0);
+                const double R12 = tmpR(1) * tmpR(1);
 
                 B(0) += -SkewComponents[1] * (R02 - R12) / 2.;
-                B(1) += SkewComponents[1] * R(0) * R(1);
+                B(1) += SkewComponents[1] * tmpR(0) * tmpR(1);
 
                 if(max_SkewComponent_m > 2) {
-                    B(0) += -SkewComponents[2] * (R02 * R(0) - 3. * R(0) * R12) / 6.;
-                    B(1) += -SkewComponents[2] * (3. * R02 * R(1) - R12 * R(1)) / 6.;
+                    B(0) += -SkewComponents[2] * (R02 * tmpR(0) - 3. * tmpR(0) * R12) / 6.;
+                    B(1) += -SkewComponents[2] * (3. * R02 * tmpR(1) - R12 * tmpR(1)) / 6.;
 
                     if(max_SkewComponent_m > 3) {
                         B(0) += -SkewComponents[3] * (R02 * R02 - 6. * R02 * R12 + R12 * R12) / 24.;
-                        B(1) += SkewComponents[3] * (R02 * R(0) * R(1) - R(0) * R12 * R(1)) / 6.;
+                        B(1) += SkewComponents[3] * (R02 * tmpR(0) * tmpR(1) - tmpR(0) * R12 * tmpR(1)) / 6.;
 
                         if(max_SkewComponent_m > 4) {
                             Inform msg("Multipole ");

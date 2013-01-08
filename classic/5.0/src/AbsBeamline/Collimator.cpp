@@ -226,7 +226,7 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
             double frac = (R(2) - position_m) / P(2) * recpgamma;
             PosX_m.push_back(R(0));
             PosY_m.push_back(R(1));
-            PosZ_m.push_back(z);
+            PosZ_m.push_back(R(2));
             MomentumX_m.push_back(P(0));
             MomentumY_m.push_back(P(1));
             MomentumZ_m.push_back(P(2));
