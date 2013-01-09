@@ -156,6 +156,61 @@ void Collimator::accept(BeamlineVisitor &visitor) const {
     visitor.visitCollimator(*this);
 }
 
+
+inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
+  /**
+     check if we are in the longitudinal
+     range of the collimator
+  */
+  const double z = R(2) + P(2) * recpgamma;
+  
+  if((z > position_m) && (z <= position_m + getElementLength())) {
+    if(isAPepperPot_m) {
+      
+    /**
+       ------------
+       |(0)|  |(0)|
+       ----   -----
+       |    a)    |
+       |          |
+       ----   -----
+       |(0)|  |(0)|
+       yL------------
+       xL
+       |---| d
+       |--| pitch
+       Observation: the area in a) is much larger than the
+       area(s) (0). In a) particles are lost in (0)
+       particles they are not lost.
+       
+    */
+      const double h  =   pitch_m;
+      const double xL = - 0.5 * h * (nHolesX_m - 1);
+      const double yL = - 0.5 * h * (nHolesY_m - 1);
+      bool alive = false;
+    
+      for(unsigned int m = 0; (m < nHolesX_m && (!alive)); m++) {
+	for(unsigned int n = 0; (n < nHolesY_m && (!alive)); n++) {
+	  double x_m = xL  + (m * h);
+	  double y_m = yL  + (n * h);
+	  /** are we in a) ? */
+	  double rr = std::pow((R(0) - x_m) / rHole_m, 2) + std::pow((R(1) - y_m) / rHole_m, 2);
+	  alive = (rr < 1.0);
+	}
+      }
+      return !alive;
+    } else if(isASlit_m) {
+      return (R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize());
+    } else {            
+      // case of an elliptic collimator
+      const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
+      const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));                                 
+      return (trm1 + trm2) > 1.0;
+    }
+  }
+  return false;
+}
+
 bool Collimator::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return apply(i, t, Ev, Bv);
@@ -166,74 +221,20 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
     const Vector_t &P = RefPartBunch_m->P[i];
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
 
-    /**
-    check if we are in the longitudinal
-    range of the collimator
-    */
-
-    const double z = R(2) + P(2) * recpgamma;
-
-    // particle is not dead
     bool pdead = false;
+    pdead = isInColl(R,P,recpgamma);
 
-    if((z > position_m) && (z <= position_m + getElementLength())) {
-        if(isAPepperPot_m) {
-
-            /**
-               ------------
-               |(0)|  |(0)|
-               ----   -----
-               |    a)    |
-               |          |
-               ----   -----
-               |(0)|  |(0)|
-               yL------------
-               xL
-               |---| d
-               |--| pitch
-               Observation: the area in a) is much larger than the
-               area(s) (0). In a) particles are lost in (0)
-               particles they are not lost.
-
-            */
-            const double h  =   pitch_m;
-            const double xL = - 0.5 * h * (nHolesX_m - 1);
-            const double yL = - 0.5 * h * (nHolesY_m - 1);
-            bool alive = false;
-
-            for(unsigned int m = 0; (m < nHolesX_m && (!alive)); m++) {
-                for(unsigned int n = 0; (n < nHolesY_m && (!alive)); n++) {
-                    double x_m = xL  + (m * h);
-                    double y_m = yL  + (n * h);
-                    /** are we in a) ? */
-                    double rr = std::pow((R(0) - x_m) / rHole_m, 2) + std::pow((R(1) - y_m) / rHole_m, 2);
-                    alive = (rr < 1.0);
-                }
-            }
-            pdead = !alive;
-        } else if(isASlit_m) {
-            //      if ( (abs(R(0) >= getXsize()) || (abs(R(1) >= getYsize()))))
-            if(R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize())
-                pdead = true;
-        } else {            
-            // case of an elliptic collimator
-            const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
-            const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));                                 
-            pdead = (trm1 + trm2) > 1.0;
-        }
-        
-        if(pdead) {
-            double frac = (R(2) - position_m) / P(2) * recpgamma;
-            PosX_m.push_back(R(0));
-            PosY_m.push_back(R(1));
-            PosZ_m.push_back(R(2));
-            MomentumX_m.push_back(P(0));
-            MomentumY_m.push_back(P(1));
-            MomentumZ_m.push_back(P(2));
-            time_m.push_back(t + frac * RefPartBunch_m->getdT());
-            id_m.push_back(i);
-        }
-    }
+    if(pdead) {
+      double frac = (R(2) - position_m) / P(2) * recpgamma;
+      PosX_m.push_back(R(0));
+      PosY_m.push_back(R(1));
+      PosZ_m.push_back(R(2));
+      MomentumX_m.push_back(P(0));
+      MomentumY_m.push_back(P(1));
+      MomentumZ_m.push_back(P(2));
+      time_m.push_back(t + frac * RefPartBunch_m->getdT());
+      id_m.push_back(i);
+    }    
     return pdead;
 }
 

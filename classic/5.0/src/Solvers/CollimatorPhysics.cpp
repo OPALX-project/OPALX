@@ -67,7 +67,6 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     lossDs_m->openH5(FN_m);
     if(dynamic_cast<Collimator *>(element_ref_m)) {
         Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
-        coll->getDimensions(Begin_m, End_m);
         FN_m = coll->getName();
         collshape_m = coll->getCollimatorShape();
         xp_m = coll->getXpos();
@@ -80,7 +79,7 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
         zend_m = coll->getZEnd();
         width_m = coll->getWidth();
         setCColimatorGeom();
-
+    
     } else if(dynamic_cast<Drift *>(element_ref_m)) {
         Drift *drf = dynamic_cast<Drift *>(element_ref_m);
         drf->getDimensions(Begin_m, End_m);
@@ -142,9 +141,12 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         dT_m = dT_m / 10;
     N_m = bunch.getdT() / dT_m;
    
-    /* The stepsize in Collimator is 1/n of main tracking timestep, 
-       loop over another n steps.
+
+    /*
+      Because this is not propper set in the Component class when calling in the Constructor
     */
+    Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
+    coll->getDimensions(Begin_m, End_m);
 
     for(int ii = 0; ii < N_m; ++ii) {
         for(unsigned int i = 0; i < locParts_m.size(); ++i) {
@@ -155,11 +157,13 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
                 double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
 
-                incoll_m = checkInColl(R,cdt);
-
-                if(incoll_m) {
-                    incoll_m = false;
-
+		if(collshape_m == "CCollimator") 
+		  incoll_m = checkInColl(R,cdt);  
+	       	else	  
+		  incoll_m = coll->isInColl(R,P,cdt/sqrt(1.0  + dot(P, P)));
+                
+		if(incoll_m) {
+                   
                     EnergyLoss(Eng, pdead, dT_m);
 
                     if(!pdead) {
@@ -473,22 +477,12 @@ int CollimatorPhysics::checkPoint(const double &x, const double &y) {
 
 bool  CollimatorPhysics::checkInColl(Vector_t R,double cdt)
 {            
-    if(collshape_m == "CCollimator") {
-        if(R(2) < zend_m && R(2) > zstart_m ) {
-            return (checkPoint(R(0), R(1)) == 1 );
-        }
-        else
-            return false;
-    }
-    else if(collshape_m == "ECollimator") {
-        // case of an elliptic collimator
-        const double trm1 = ((R(0)*R(0))/(a_m*a_m));
-        const double trm2 = ((R(1)*R(1))/(b_m*b_m));                                 
-        return (trm1 + trm2) > 1.0;
-    }
-    else {
-        return false;
-    }
+  // this is for CCollimator FixMe: need to go to Collimator class 
+  if(R(2) < zend_m && R(2) > zstart_m ) 
+    return (checkPoint(R(0), R(1)) == 1 );
+  else
+    return false;
+   
 }
 
 void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
@@ -546,8 +540,8 @@ void CollimatorPhysics::print(Inform &msg){
     msg << std::scientific;
     msg << "\n--- CollimatorPhysics -------------------------------------------------\n" << endl;
     //    msg << "Type " << collshape_m 
-    //     << " elementEdge= " << std::setw(8) << std::setprecision(3) << Begin_m 
-    //    << " (m) elementEnd= " << std::setw(8) << std::setprecision(3) << End_m << endl;
+    msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
+	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << End_m << endl;
     
     // msg << "Material " << material_m
     //   << " a= " << a_m << " (m) b= " << b_m << " (m)" << endl;
@@ -580,80 +574,6 @@ void CollimatorPhysics::deleteParticleFromLocalVector() {
     for (; inv != locParts_m.end(); inv++) {
         if ((*inv).label == -1)
             break;
-    } 
-   
+    }    
     locParts_m.erase(inv,locParts_m.end());   
 }
-
-  /* 
-       Check if the partilce in Bunch enters the Collimator, if it does, tracking one step in Collimator.
-   
-    
-    Vector_t rmin, rmax;
-    bunch.get_bounds(rmin, rmax);
-    Vector_t rrms = bunch.get_rrms();
-    Vector_t rmean = bunch.get_rmean();
-
-    if(rmax(2)*cdt > Begin_m && rmin(2)*cdt < End_m) {
-
-        for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
-            bool pdead = false;
-            Vector_t R = bunch.R[i];
-            Vector_t P = bunch.P[i];
-
-            incoll_m = checkInColl(R,cdt);
-
-            if(incoll_m) {
-
-                //particle enters the collimator
-                
-                incoll_m = false;
-                // tmploss = Vector_t(P(0), P(1), flagcoll);
-
-                lossDs_m->addParticle(R * cdt, P, bunch.ID[i]);
-
-                double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
-
-                EnergyLoss(Eng, pdead, dT_m);
-
-                if(!pdead) {
-                    double ptot = sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
-
-                    P(0) = P(0) * ptot / sqrt(dot(P, P));
-                    P(1) = P(1) * ptot / sqrt(dot(P, P));
-                    P(2) = P(2) * ptot / sqrt(dot(P, P));
-
-                    CoulombScat(R, P, dT_m, cdt);
-
-                    //record the ID and R,P Bin ...  in partColArray
-                    DTincol_m.push_back(bunch.dt[i]);
-                    IDincol_m.push_back(bunch.ID[i]);
-                    Binincol_m.push_back(bunch.Bin[i]);
-                    Rincol_m.push_back(R);
-                    Pincol_m.push_back(P);
-                    Qincol_m.push_back(bunch.Q[i]);
-                    LastSecincol_m.push_back(bunch.LastSection[i]);
-                    Bfincol_m.push_back(bunch.Bf[i]);
-                    Efincol_m.push_back(bunch.Ef[i]);
-
-                    label_m.push_back(0);
-
-                } else {
-                    // dead
-                    long temp1 = bunch.ID[i];
-                    temp1 = -temp1;
-                    // tmploss = Vector_t(P(0), P(1), flagcoll);
-                    //   lossDs_m->addParticle(R*cdt,tmploss,temp1);
-
-                }
-                bunch.Bin[i] = -1;
-            }
-            if(collshape_m != "CCollimator") {
-                if(std::fabs(R(2) - rmean(2)) > 7 * rrms(2) && rrms(2) > 0)   
-                    bunch.Bin[i] = -1;
-            }
-        }
-    }
-
-    index_m = IDincol_m.size();    // index_m the number of particle in partColArray.
- */
