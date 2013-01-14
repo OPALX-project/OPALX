@@ -25,6 +25,7 @@
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
@@ -166,6 +167,9 @@ void ThinTracker::visitCollimator(const Collimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
 
+void ThinTracker::visitDegrader(const Degrader &deg) {
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void ThinTracker::visitParallelPlate(const ParallelPlate &pplate) {
     //do nothing 

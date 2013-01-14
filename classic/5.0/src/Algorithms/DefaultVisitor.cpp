@@ -27,6 +27,7 @@
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
@@ -95,11 +96,6 @@ void DefaultVisitor::visitCyclotron(const Cyclotron &cyc) {
     applyDefault(cyc);
 }
 
-
-
-
-
-
 void DefaultVisitor::visitComponent(const Component &comp) {
     applyDefault(comp);
 }
@@ -109,11 +105,13 @@ void DefaultVisitor::visitCorrector(const Corrector &corr) {
     applyDefault(corr);
 }
 
+void DefaultVisitor::visitDegrader(const Degrader &deg) {
+    applyDefault(deg);
+}
 
 void DefaultVisitor::visitDiagnostic(const Diagnostic &diag) {
     applyDefault(diag);
 }
-
 
 void DefaultVisitor::visitDrift(const Drift &drf) {
     applyDefault(drf);

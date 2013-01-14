@@ -29,12 +29,12 @@
 #include "Fields/BMultipoleField.h"
 #include "FixedAlgebra/FTps.h"
 #include "Physics/Physics.h"
-
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Monitor.h"
@@ -95,6 +95,9 @@ void OrbitTracker::visitCollimator(const Collimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
 
+void OrbitTracker::visitDegrader(const Degrader &deg) {
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void OrbitTracker::visitParallelPlate(const ParallelPlate &pplate) {
     //do nothing in obittracker.

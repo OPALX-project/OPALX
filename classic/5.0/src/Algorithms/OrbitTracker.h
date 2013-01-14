@@ -70,6 +70,9 @@ public:
     /// Apply the algorithm to a corrector.
     virtual void visitCorrector(const Corrector &);
 
+    /// Apply the algorithm to a drift.
+    virtual void visitDegrader(const Degrader &);
+
     /// Apply the algorithm to a diagnostic.
     virtual void visitDiagnostic(const Diagnostic &);
 

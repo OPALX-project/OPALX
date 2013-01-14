@@ -65,6 +65,9 @@ public:
     virtual void visitDiagnostic(const Diagnostic &) = 0;
 
     /// Apply the algorithm to a drift.
+    virtual void visitDegrader(const Degrader &) = 0;
+
+    /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &) = 0;
 
     /// Apply the algorithm to a Lambertson.

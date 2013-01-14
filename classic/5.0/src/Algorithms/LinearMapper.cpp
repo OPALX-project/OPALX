@@ -24,6 +24,7 @@
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Monitor.h"
@@ -121,6 +122,9 @@ void LinearMapper::visitCorrector(const Corrector &corr) {
     if(length) applyDrift(length / 2.0);
 }
 
+void LinearMapper::visitDegrader(const Degrader &deg) {
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void LinearMapper::visitDiagnostic(const Diagnostic &diag) {
     applyDrift(flip_s * diag.getElementLength());

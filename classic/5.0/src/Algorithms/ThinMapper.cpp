@@ -24,6 +24,7 @@
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
@@ -71,6 +72,10 @@ void ThinMapper::visitBeamBeam(const BeamBeam &bb) {
     // *** MISSING *** Map algorithm on BeamBeam
 }
 
+
+void ThinMapper::visitDegrader(const Degrader &deg) {
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void ThinMapper::visitCollimator(const Collimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
