@@ -220,60 +220,67 @@ void Monitor::goOffline() {
         std::unique_ptr<char> varray(new char[nLoc * sizeof(double)]);
         double *fvalues = reinterpret_cast<double*>(varray.get());
         h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
+	
 
-        for(i = 0; i < nLoc; ++i) {
+	/*
+	  FixMe: if I write with nLoc==0 -> rc == -2	  
+	 */
+
+
+	if (nLoc > 0) {
+	  for(i = 0; i < nLoc; ++i) {
             fvalues[i] = PosX_m.front();
             PosX_m.pop_front();
-        }
-        rc = H5PartWriteDataFloat64(H5file, "x", fvalues);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(i = 0; i < nLoc; ++i) {
+	  }
+	  rc = H5PartWriteDataFloat64(H5file, "x", fvalues);
+	  if(rc != H5_SUCCESS)
+	    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << " nloc= " << nLoc << " fn= " << filename_m << endl);
+	  for(i = 0; i < nLoc; ++i) {
             fvalues[i] = PosY_m.front();
             PosY_m.pop_front();
-        }
-        rc = H5PartWriteDataFloat64(H5file, "y", fvalues);
-        if(rc != H5_SUCCESS)
+	  }
+	  rc = H5PartWriteDataFloat64(H5file, "y", fvalues);
+	  if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(i = 0; i < nLoc; ++i) {
+	  for(i = 0; i < nLoc; ++i) {
             fvalues[i] = MomentumX_m.front();
             MomentumX_m.pop_front();
-        }
-        rc = H5PartWriteDataFloat64(H5file, "px", fvalues);
-        if(rc != H5_SUCCESS)
+	  }
+	  rc = H5PartWriteDataFloat64(H5file, "px", fvalues);
+	  if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(i = 0; i < nLoc; ++i) {
+	  for(i = 0; i < nLoc; ++i) {
             fvalues[i] = MomentumY_m.front();
             MomentumY_m.pop_front();
-        }
-        rc = H5PartWriteDataFloat64(H5file, "py", fvalues);
-        if(rc != H5_SUCCESS)
+	  }
+	  rc = H5PartWriteDataFloat64(H5file, "py", fvalues);
+	  if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(i = 0; i < nLoc; ++i) {
+	  for(i = 0; i < nLoc; ++i) {
             fvalues[i] = MomentumZ_m.front();
             MomentumZ_m.pop_front();
-        }
-        rc = H5PartWriteDataFloat64(H5file, "pz", fvalues);
-        if(rc != H5_SUCCESS)
+	  }
+	  rc = H5PartWriteDataFloat64(H5file, "pz", fvalues);
+	  if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(i = 0; i < nLoc; ++i) {
+	  for(i = 0; i < nLoc; ++i) {
             fvalues[i] = time_m.front();
             time_m.pop_front();
-        }
-        rc = H5PartWriteDataFloat64(H5file, "time", fvalues);
-        if(rc != H5_SUCCESS)
+	  }
+	  rc = H5PartWriteDataFloat64(H5file, "time", fvalues);
+	  if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(i = 0; i < nLoc; ++i) {
+	  for(i = 0; i < nLoc; ++i) {
             ids[i] = id_m.front();
             id_m.pop_front();
-        }
-        rc = H5PartWriteDataInt64(H5file, "id", ids);
-        if(rc != H5_SUCCESS)
+	  }
+	  rc = H5PartWriteDataInt64(H5file, "id", ids);
+	  if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
+	}
         rc = H5CloseFile(H5file);
         if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+	  ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     }
 }
 
