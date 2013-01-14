@@ -22,6 +22,7 @@
 
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
@@ -113,6 +114,9 @@ void ThickMapper::visitCorrector(const Corrector &corr) {
     if(length != 0.0) applyDrift(length / 2.0);
 }
 
+void ThickMapper::visitDegrader(const Degrader &deg) {
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void ThickMapper::visitDiagnostic(const Diagnostic &diag) {
     // The diagnostic has no effect on the map.

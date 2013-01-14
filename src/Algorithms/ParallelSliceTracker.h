@@ -64,6 +64,7 @@ public:
     virtual void visitBeamBeam(const BeamBeam &);
     virtual void visitCollimator(const Collimator &);
     virtual void visitCorrector(const Corrector &);
+    virtual void visitDegrader(const Degrader &);
     virtual void visitDiagnostic(const Diagnostic &);
     virtual void visitDrift(const Drift &);
     virtual void visitLambertson(const Lambertson &);
@@ -174,6 +175,9 @@ inline void ParallelSliceTracker::visitCorrector(const Corrector &corr) {
     itsOpalBeamline_m->visit(corr, *this, itsBunch_m);
 }
 
+inline void ParallelSliceTracker::visitDegrader(const Degrader &deg) {
+    itsOpalBeamline_m->visit(deg, *this, itsBunch_m);
+}
 
 inline void ParallelSliceTracker::visitDiagnostic(const Diagnostic &diag) {
     itsOpalBeamline_m->visit(diag, *this, itsBunch_m);

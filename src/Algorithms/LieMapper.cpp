@@ -22,6 +22,7 @@
 
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
@@ -140,6 +141,11 @@ void LieMapper::visitCorrector(const Corrector &corr) {
     itsMap = itsMap.catenate(theMap);
 }
 
+
+void LieMapper::visitDegrader(const Degrader &deg) {
+    // The diagnostic has no effect on the map.
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void LieMapper::visitDiagnostic(const Diagnostic &diag) {
     // The diagnostic has no effect on the map.

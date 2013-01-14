@@ -104,6 +104,9 @@ public:
     /// Apply the algorithm to a Corrector.
     virtual void visitCorrector(const Corrector &);
 
+    /// Apply the algorithm to a Degrader.
+    virtual void visitDegrader(const Degrader &);
+
     /// Apply the algorithm to a Diagnostic.
     virtual void visitDiagnostic(const Diagnostic &);
 

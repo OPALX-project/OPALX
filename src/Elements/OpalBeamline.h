@@ -10,6 +10,7 @@
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Corrector.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"

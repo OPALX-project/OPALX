@@ -25,6 +25,7 @@
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
@@ -135,6 +136,9 @@ void ThickTracker::visitCorrector(const Corrector &corr) {
     if(length != 0.0) applyDrift(length / 2.0);
 }
 
+void ThickTracker::visitDegrader(const Degrader &deg) {
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void ThickTracker::visitDiagnostic(const Diagnostic &diag) {
     // The diagnostic has no effect on particle tracking.

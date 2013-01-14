@@ -91,6 +91,7 @@
 #include "Elements/OpalCyclotron.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalECollimator.h"
+#include "Elements/OpalDegrader.h"
 #include "Elements/OpalHKicker.h"
 #include "Elements/OpalHMonitor.h"
 #include "Elements/OpalInstrument.h"
@@ -205,6 +206,7 @@ namespace Configure {
         OPAL->create(new OpalCyclotron());
         OPAL->create(new OpalDrift());
         OPAL->create(new OpalECollimator());
+        OPAL->create(new OpalDegrader());
         OPAL->create(new OpalHKicker());
         OPAL->create(new OpalHMonitor());
         OPAL->create(new OpalInstrument());

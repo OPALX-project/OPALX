@@ -127,7 +127,7 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element, const doubl
     itsElement_m = &element;
     material_m = Attributes::getString(itsAttr[MATERIAL]);
 
-    if(Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR") {
+    if(Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "DEGRADER") {
         Inform m("sph ");
         handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, major, minor, material_m);
         m << *this << endl;

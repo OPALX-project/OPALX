@@ -25,6 +25,7 @@
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
@@ -403,6 +404,18 @@ void ParallelCyclotronTracker::visitCorrector(const Corrector &corr) {
     *gmsg << "In Corrector; L= " << corr.getElementLength() << endl;
     myElements.push_back(dynamic_cast<Corrector *>(corr.clone()));
 }
+
+/**
+ *
+ *
+ * @param degrader
+ */
+void ParallelCyclotronTracker::visitDegrader(const Degrader &deg) {
+    *gmsg << "In Degrader; L= " << deg.getElementLength() << endl;
+    myElements.push_back(dynamic_cast<Degrader *>(deg.clone()));
+
+}
+
 
 /**
  *

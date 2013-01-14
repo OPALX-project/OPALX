@@ -23,6 +23,7 @@
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
@@ -146,6 +147,9 @@ void TransportMapper::visitCorrector(const Corrector &corr) {
     if(length) applyDrift(length / 2.0);
 }
 
+void TransportMapper::visitDegrader(const Degrader &deg) {
+    applyDrift(flip_s * deg.getElementLength());
+}
 
 void TransportMapper::visitDiagnostic(const Diagnostic &diag) {
     applyDrift(flip_s * diag.getElementLength());

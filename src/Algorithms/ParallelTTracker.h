@@ -31,6 +31,7 @@ class AlignWrapper;
 class BeamBeam;
 class Collimator;
 class Corrector;
+class Degrader;
 class Diagnostic;
 class Drift;
 class ElementBase;
@@ -133,8 +134,12 @@ public:
     /// Apply the algorithm to a collimator.
     virtual void visitCollimator(const Collimator &);
 
+
     /// Apply the algorithm to a Corrector.
     virtual void visitCorrector(const Corrector &);
+
+    /// Apply the algorithm to a Degrader.
+    virtual void visitDegrader(const Degrader &);
 
     /// Apply the algorithm to a Diagnostic.
     virtual void visitDiagnostic(const Diagnostic &);
@@ -431,6 +436,11 @@ inline void ParallelTTracker::visitCollimator(const Collimator &coll) {
 
 inline void ParallelTTracker::visitCorrector(const Corrector &corr) {
     itsOpalBeamline_m.visit(corr, *this, itsBunch);
+}
+
+
+inline void ParallelTTracker::visitDegrader(const Degrader &deg) {
+    itsOpalBeamline_m.visit(deg, *this, itsBunch);
 }
 
 

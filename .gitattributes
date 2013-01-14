@@ -703,6 +703,8 @@ src/Elements/OpalCyclotron.cpp -text
 src/Elements/OpalCyclotron.h -text
 src/Elements/OpalCyclotronValley.cpp -text
 src/Elements/OpalCyclotronValley.h -text
+src/Elements/OpalDegrader.cpp -text
+src/Elements/OpalDegrader.h -text
 src/Elements/OpalDrift.cpp -text
 src/Elements/OpalDrift.h -text
 src/Elements/OpalECollimator.cpp -text
