@@ -3,6 +3,7 @@ set (_SRCS
   CollimatorRep.cpp
   CorrectorRep.cpp
   CyclotronRep.cpp
+  DegraderRep.cpp
   DriftRep.cpp
   MarkerRep.cpp
   MonitorRep.cpp

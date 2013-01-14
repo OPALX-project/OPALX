@@ -24,6 +24,8 @@ classic/5.0/src/AbsBeamline/Cyclotron.cpp -text
 classic/5.0/src/AbsBeamline/Cyclotron.h -text
 classic/5.0/src/AbsBeamline/CyclotronValley.cpp -text
 classic/5.0/src/AbsBeamline/CyclotronValley.h -text
+classic/5.0/src/AbsBeamline/Degrader.cpp -text
+classic/5.0/src/AbsBeamline/Degrader.h -text
 classic/5.0/src/AbsBeamline/Diagnostic.cpp -text
 classic/5.0/src/AbsBeamline/Diagnostic.h -text
 classic/5.0/src/AbsBeamline/Drift.cpp -text
@@ -154,6 +156,8 @@ classic/5.0/src/BeamlineCore/CyclotronRep.cpp -text
 classic/5.0/src/BeamlineCore/CyclotronRep.h -text
 classic/5.0/src/BeamlineCore/CyclotronValleyRep.cpp -text
 classic/5.0/src/BeamlineCore/CyclotronValleyRep.h -text
+classic/5.0/src/BeamlineCore/DegraderRep.cpp -text
+classic/5.0/src/BeamlineCore/DegraderRep.h -text
 classic/5.0/src/BeamlineCore/DriftRep.cpp -text
 classic/5.0/src/BeamlineCore/DriftRep.h -text
 classic/5.0/src/BeamlineCore/MarkerRep.cpp -text

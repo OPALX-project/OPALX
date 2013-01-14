@@ -7,6 +7,7 @@ set (_SRCS
   Component.cpp
   Corrector.cpp
   Cyclotron.cpp
+  Degrader.cpp
   Diagnostic.cpp
   Drift.cpp
   ElementBase.cpp

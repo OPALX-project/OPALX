@@ -10,6 +10,7 @@
 #include "Physics/Physics.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/RBend.h"
@@ -65,6 +66,7 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     bool doH5 = false;
     lossDs_m = new LossDataSink(1000000, doH5);
     lossDs_m->openH5(FN_m);
+
     if(dynamic_cast<Collimator *>(element_ref_m)) {
         Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
         FN_m = coll->getName();
@@ -78,8 +80,7 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
         yend_m = coll->getYEnd();
         zend_m = coll->getZEnd();
         width_m = coll->getWidth();
-        setCColimatorGeom();
-    
+        setCColimatorGeom();    
     } else if(dynamic_cast<Drift *>(element_ref_m)) {
         Drift *drf = dynamic_cast<Drift *>(element_ref_m);
         drf->getDimensions(Begin_m, End_m);
@@ -98,6 +99,12 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
         Multipole *quad = dynamic_cast<Multipole *>(element_ref_m);
         quad->getDimensions(Begin_m, End_m);
         FN_m = quad->getName();
+    } else if(dynamic_cast<Degrader *>(element_ref_m)) {
+        Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
+        FN_m = deg->getName();
+        collshape_m = deg->getDegraderShape();
+        xp_m = deg->getXpos();
+        yp_m = deg->getYpos();
     }
 }
 
@@ -109,6 +116,9 @@ CollimatorPhysics::~CollimatorPhysics() {
 }
 
 void CollimatorPhysics::apply(PartBunch &bunch) {
+
+    Inform m("CollimatorPhysics::apply ");
+
     /*
       Particles that have entered material are flagged as Bin[i] == -1.
       Fixme: should use PType
@@ -135,19 +145,27 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         cdt = Physics::c * bunch.getdT();
     }
 
+    m << "i am a " << collshape_m << endl;
+
     /// the deltat in collimator is 1/n of the main tracking timestep.
     
     while(dT_m > 1.01e-12)
         dT_m = dT_m / 10;
     N_m = bunch.getdT() / dT_m;
    
-
     /*
       Because this is not propper set in the Component class when calling in the Constructor
     */
-    Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
-    coll->getDimensions(Begin_m, End_m);
-
+    Degrader *deg = NULL;
+    Collimator *coll = NULL;
+    if(collshape_m == "DEGRADER") {
+        deg = dynamic_cast<Degrader *>(element_ref_m);
+        deg->getDimensions(Begin_m, End_m);
+    }
+    else {
+        coll = dynamic_cast<Collimator *>(element_ref_m);
+        coll->getDimensions(Begin_m, End_m);
+    }
     for(int ii = 0; ii < N_m; ++ii) {
         for(unsigned int i = 0; i < locParts_m.size(); ++i) {
             if(locParts_m[i].label != -1) {

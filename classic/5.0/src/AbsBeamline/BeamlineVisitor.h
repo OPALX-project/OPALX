@@ -39,6 +39,7 @@ class CyclotronWrapper;
 class BeamBeam;
 class Collimator;
 class Corrector;
+class Degrader;
 class Diagnostic;
 class Drift;
 class Lambertson;
@@ -106,6 +107,9 @@ public:
 
     /// Apply the algorithm to a closed orbit corrector.
     virtual void visitCorrector(const Corrector &) = 0;
+
+    /// Apply the algorithm to a diagnostic.
+    virtual void visitDegrader(const Degrader &) = 0;
 
     /// Apply the algorithm to a diagnostic.
     virtual void visitDiagnostic(const Diagnostic &) = 0;
