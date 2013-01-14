@@ -39,17 +39,7 @@ namespace {
             &DegraderRep::getElementLength,
             &DegraderRep::setElementLength
         },
-        {
-            "XSIZE",
-            &DegraderRep::getXsize,
-            &DegraderRep::setXsize
-        },
-        {
-            "YSIZE",
-            &DegraderRep::getYsize,
-            &DegraderRep::setYsize
-        },
-        { 0, 0, 0 }
+	{ 0 }
     };
 }
 
@@ -122,27 +112,3 @@ ElementImage *DegraderRep::getImage() const {
 
     return image;
 }
-
-
-/*
-double DegraderRep::getXsize() const
-{
-  return xSize;
-}
-
-double DegraderRep::getYsize() const
-{
-  return ySize;
-}
-
-void DegraderRep::setXsize(double size)
-{
-  INFOMSG("void DegraderRep::setXsize(double size) " << xSize << endl;);
-  xSize = size;
-}
-
-void DegraderRep::setYsize(double size)
-{
-  ySize = size;
-}
-*/

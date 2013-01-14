@@ -38,7 +38,6 @@ Degrader::Degrader():
     Component(),
     H5file_m(NULL),
     filename_m(""),
-    plane_m(OFF),
     position_m(0.0),
     PosX_m(0),
     PosY_m(0),
@@ -48,33 +47,13 @@ Degrader::Degrader():
     MomentumZ_m(0),
     time_m(0),
     id_m(0),
-    informed_m(false),
-    a_m(0.0),
-    b_m(0.0),
-    x0_m(0.0),
-    y0_m(0.0),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    width_m(0.0),
-    isAPepperPot_m(false),
-    isASlit_m(false),
-    isARColl_m(false),
-    isACColl_m(false),
-    isAWire_m(false),
-    rHole_m(0.0),
-    nHolesX_m(0),
-    nHolesY_m(0),
-    pitch_m(0.0)
+    informed_m(false)
 {}
-
 
 Degrader::Degrader(const Degrader &right):
     Component(right),
     H5file_m(NULL),
     filename_m(right.filename_m),
-    plane_m(right.plane_m),
     position_m(right.position_m),
     PosX_m(right.PosX_m),
     PosY_m(right.PosY_m),
@@ -85,36 +64,14 @@ Degrader::Degrader(const Degrader &right):
     time_m(right.time_m),
     id_m(right.id_m),
     informed_m(right.informed_m),
-    a_m(right.a_m),
-    b_m(right.b_m),
-    x0_m(right.x0_m),
-    y0_m(right.y0_m),
-    xstart_m(right.xstart_m),
-    xend_m(right.xend_m),
-    ystart_m(right.ystart_m),
-    yend_m(right.yend_m),
     zstart_m(right.zstart_m),
-    zend_m(right.zend_m),
-    width_m(right.width_m),
-    isAPepperPot_m(right.isAPepperPot_m),
-    isASlit_m(right.isASlit_m),
-    isARColl_m(right.isARColl_m),
-    isACColl_m(right.isACColl_m),
-    isAWire_m(right.isAWire_m),
-    rHole_m(right.rHole_m),
-    nHolesX_m(right.nHolesX_m),
-    nHolesY_m(right.nHolesY_m),
-    pitch_m(right.pitch_m)
-{
-
-}
-
+    zend_m(right.zend_m)
+{}
 
 Degrader::Degrader(const string &name):
     Component(name),
     H5file_m(NULL),
     filename_m(""),
-    plane_m(OFF),
     position_m(0.0),
     PosX_m(0),
     PosY_m(0),
@@ -125,26 +82,8 @@ Degrader::Degrader(const string &name):
     time_m(0),
     id_m(0),
     informed_m(false),
-    a_m(0.0),
-    b_m(0.0),
-    x0_m(0.0),
-    y0_m(0.0),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
     zstart_m(0.0),
-    zend_m(0.0),
-    width_m(0.0),
-    isAPepperPot_m(false),
-    isASlit_m(false),
-    isARColl_m(false),
-    isACColl_m(false),
-    isAWire_m(false),
-    rHole_m(0.0),
-    nHolesX_m(0),
-    nHolesY_m(0),
-    pitch_m(0.0)
+    zend_m(0.0)
 {}
 
 
@@ -251,7 +190,7 @@ void Degrader::finalise()
 }
 
 void Degrader::goOnline() {
-    Inform msg("DEGRADER ");
+ Inform msg("Degrader::goOnline ");
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
@@ -266,8 +205,6 @@ void Degrader::goOnline() {
         }
         return;
     }
-
-    msg << "DEGRADER a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
 
     PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
     PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
@@ -450,84 +387,6 @@ string Degrader::getOutputFN() {
     return  filename_m;
 }
 
-void Degrader::setXsize(double a) {
-    a_m = a;
-}
-
-void Degrader::setYsize(double b) {
-    b_m = b;
-}
-
-void Degrader::setXpos(double x0) {
-    x0_m = x0;
-}
-
-void Degrader::setYpos(double y0) {
-    y0_m = y0;
-}
-
-
-double Degrader::getXsize(double a) {
-    return a_m;
-}
-
-double Degrader::getYsize(double b) {
-    return b_m;
-}
-
-double Degrader::getXpos() {
-    return x0_m;
-}
-
-double Degrader::getYpos() {
-    return y0_m;
-
-    // --------Cyclotron collimator
-}
-void Degrader::setXStart(double xstart) {
-    xstart_m = xstart;
-}
-
-void Degrader::setXEnd(double xend) {
-    xend_m = xend;
-}
-
-void Degrader::setYStart(double ystart) {
-    ystart_m = ystart;
-}
-
-void Degrader::setYEnd(double yend) {
-    yend_m = yend;
-}
-
-void Degrader::setZStart(double zstart) {
-    zstart_m = zstart;
-}
-
-void Degrader::setZEnd(double zend) {
-    zend_m = zend;
-}
-
-void Degrader::setWidth(double width) {
-    width_m = width;
-}
-
-double Degrader::getXStart() {
-    return xstart_m;
-}
-
-double Degrader::getXEnd() {
-    return xend_m;
-}
-
-double Degrader::getYStart() {
-    return ystart_m;
-}
-
-double Degrader::getYEnd() {
-    return yend_m;
-}
-
 double Degrader::getZStart() {
     return zstart_m;
 }
@@ -536,42 +395,6 @@ double Degrader::getZEnd() {
     return zend_m;
 }
 
-double Degrader::getWidth() {
-    return width_m;
-}
-
-//-------------------------------
-
-void Degrader::setRHole(double r) {
-    rHole_m = r;
-}
-void Degrader::setNHoles(unsigned int nx, unsigned int ny) {
-    nHolesX_m = nx;
-    nHolesY_m = ny;
-}
-void Degrader::setPitch(double p) {
-    pitch_m = p;
-}
-
-
-void Degrader::setPepperPot() {
-    isAPepperPot_m = true;
-}
-void Degrader::setSlit() {
-    isASlit_m = true;
-}
-
-void Degrader::setRColl() {
-    isARColl_m = true;
-}
-
-void Degrader::setCColl() {
-    isACColl_m = true;
-}
-
-void Degrader::setWire() {
-    isAWire_m = true;
-}
 void Degrader::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = position_m;
     zEnd = position_m + getElementLength();
@@ -587,4 +410,3 @@ string Degrader::getDegraderShape() {
     return "DEGRADER";
 
 }
-

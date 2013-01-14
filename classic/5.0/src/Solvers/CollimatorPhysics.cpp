@@ -103,8 +103,8 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
         Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
         FN_m = deg->getName();
         collshape_m = deg->getDegraderShape();
-        xp_m = deg->getXpos();
-        yp_m = deg->getYpos();
+	//        xp_m = deg->getXpos();
+	// yp_m = deg->getYpos();
     }
 }
 

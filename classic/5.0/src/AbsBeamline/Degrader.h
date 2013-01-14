@@ -63,12 +63,6 @@ public:
     /// Apply visitor to Degrader.
     virtual void accept(BeamlineVisitor &) const;
 
-    /// Return the horizontal half-aperture.
-    virtual double getXsize() const {return a_m;}
-
-    /// Return the vertical half-aperture.
-    virtual double getYsize() const {return b_m;}
-
     virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
 
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
@@ -94,57 +88,16 @@ public:
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     string  getDegraderShape(); // AAA
+ 
     void setOutputFN(string fn);
     string getOutputFN();
-
-    void setXsize(double a) ;
-
-    void setYsize(double b) ;
-
-    void setXpos(double x0) ;
-
-    void setYpos(double y0) ;
-
-    double getXsize(double a) ;
-
-    double getYsize(double b) ;
-
-    double getXpos() ;
-
-    double getYpos() ;
-
-    // --------Cyclotron collimator
-
-    void setXStart(double xstart) ;
-    void setYStart(double ystart) ;
-    void setZStart(double zstart) ;
-    void setXEnd(double xend) ;
-    void setYEnd(double yend) ;
-    void setZEnd(double zend) ;
-    void setWidth(double width) ;
-
-    double getXStart() ;
-    double getYStart() ;
-    double getZStart() ;
-    double getXEnd() ;
-    double getYEnd() ;
-    double getZEnd() ;
-    double getWidth() ;
-
-    //-----------------
-
-    void setRHole(double r) ;
-
-    void setNHoles(unsigned int nx, unsigned int ny) ;
-
-    void setPitch(double p) ;
-
-    void setPepperPot() ;
-    void setSlit() ;
-    void setRColl() ;
-    void setCColl() ;
-    void setWire() ;
-
+   
+    void setZStart(double zstart) ; 
+    void setZEnd(double zend) ; 
+   
+    double getZStart() ; 
+    double getZEnd() ; 
+   
     virtual bool isInMaterial(double z);
 
 private:
@@ -153,7 +106,7 @@ private:
     void operator=(const Degrader &);
     h5_file_t *H5file_m;
     string filename_m;               /**< The name of the outputfile*/
-    Plane plane_m;
+
     double position_m;
     std::vector<double> PosX_m;
     std::vector<double> PosY_m;
@@ -164,32 +117,10 @@ private:
     std::vector<double> time_m;
     std::vector<int> id_m;
     bool informed_m;
-    double a_m;
-    double b_m;
-    double x0_m;
-    double y0_m;
-
-    //parameters for Degrader
-    double xstart_m;
-    double xend_m;
-    double ystart_m;
-    double yend_m;
+    
     double zstart_m;
     double zend_m;
-    double width_m;
-
-
-    /** This defines a pepperpot */
-    bool isAPepperPot_m;
-    bool isASlit_m;
-    bool isARColl_m;
-    bool isACColl_m;
-    bool isAWire_m;
-    double rHole_m;
-    unsigned int nHolesX_m;
-    unsigned int nHolesY_m;
-    double pitch_m;
-
+   
     LossDataSink *lossDs_m;
 };
 

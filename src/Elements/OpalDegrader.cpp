@@ -75,12 +75,9 @@ void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag f
 
     const DegraderRep *deg =
         dynamic_cast<const DegraderRep *>(base.removeWrappers());
-    attributeRegistry["XSIZE"]->setReal(deg->getXsize());
-    attributeRegistry["YSIZE"]->setReal(deg->getYsize());
+
     double dx, dy, dz;
     deg->getMisalignment(dx, dy, dz);
-    attributeRegistry["DX"]->setReal(dx);
-    attributeRegistry["DY"]->setReal(dy);
     attributeRegistry["DZ"]->setReal(dz);
 }
 
@@ -95,8 +92,6 @@ void OpalDegrader::update() {
         dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
-    deg->setXsize(Attributes::getReal(itsAttr[XSIZE]));
-    deg->setYsize(Attributes::getReal(itsAttr[YSIZE]));
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     deg->setMisalignment(dx, dy, dz);
     std::vector<double> apert = getApert();
