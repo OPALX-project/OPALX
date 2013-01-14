@@ -157,21 +157,12 @@ void Degrader::accept(BeamlineVisitor &visitor) const {
 }
 
 
-inline bool Degrader::isInColl(Vector_t R, Vector_t P, double recpgamma) {
-    Inform m ("Degrader::isInColl ");
+inline bool Degrader::isInMaterial(double z ) {
  /**
-     check if we are in the longitudinal
-     range of the collimator
+     check if the particle is in the degarder material
+   
   */
-  const double z = R(2) + P(2) * recpgamma;
-  
-  if((z > position_m) && (z <= position_m + getElementLength())) {
-      const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
-      const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));                                 
-      return (trm1 + trm2) > 1.0;
-      m << R << endl;
-  }
-  return false;
+  return ((z > position_m) && (z <= position_m + getElementLength()));
 }
 
 bool Degrader::apply(const size_t &i, const double &t, double E[], double B[]) {
@@ -186,7 +177,7 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
 
     bool pdead = false;
-    pdead = isInColl(R,P,recpgamma);
+    pdead = isInMaterial(R(2));
 
     if(pdead) {
       RefPartBunch_m->Bin[i] = -1;
@@ -200,7 +191,7 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
       time_m.push_back(t + frac * RefPartBunch_m->getdT());
       id_m.push_back(i);
     }    
-    return pdead;
+    return false;
 }
 
 bool Degrader::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {

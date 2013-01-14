@@ -117,8 +117,6 @@ CollimatorPhysics::~CollimatorPhysics() {
 
 void CollimatorPhysics::apply(PartBunch &bunch) {
 
-    Inform m("CollimatorPhysics::apply ");
-
     /*
       Particles that have entered material are flagged as Bin[i] == -1.
       Fixme: should use PType
@@ -144,9 +142,6 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     } else {
         cdt = Physics::c * bunch.getdT();
     }
-
-    m << "i am a " << collshape_m << endl;
-
     /// the deltat in collimator is 1/n of the main tracking timestep.
     
     while(dT_m > 1.01e-12)
@@ -158,6 +153,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     */
     Degrader *deg = NULL;
     Collimator *coll = NULL;
+    
     if(collshape_m == "DEGRADER") {
         deg = dynamic_cast<Degrader *>(element_ref_m);
         deg->getDimensions(Begin_m, End_m);
@@ -177,9 +173,12 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
 		if(collshape_m == "CCollimator") 
 		  incoll_m = checkInColl(R,cdt);  
-	       	else	  
+	       	else if (collshape_m == "COLLIMATOR")
 		  incoll_m = coll->isInColl(R,P,cdt/sqrt(1.0  + dot(P, P)));
-                
+                else if (collshape_m == "DEGRADER") {
+      		  incoll_m = deg->isInMaterial(R(2));
+		}
+	
 		if(incoll_m) {
                    
                     EnergyLoss(Eng, pdead, dT_m);
@@ -556,7 +555,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 void CollimatorPhysics::print(Inform &msg){
     Inform::FmtFlags_t ff = msg.flags();
     msg << std::scientific;
-    msg << "\n--- CollimatorPhysics -------------------------------------------------\n" << endl;
+    msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " ------------------------------------------\n" << endl;
     //    msg << "Type " << collshape_m 
     msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
 	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << End_m << endl;

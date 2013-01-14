@@ -145,8 +145,7 @@ public:
     void setCColl() ;
     void setWire() ;
 
-
-    virtual bool isInColl(Vector_t R, Vector_t P, double recpgamma);
+    virtual bool isInMaterial(double z);
 
 private:
 
