@@ -30,9 +30,11 @@ OpalDegrader::OpalDegrader():
                 "The \"DEGRADER\" element defines a degrader."),
     sphys_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
-                     ("XSIZE", "Horizontal half-aperture in m");
+                     ("XSIZE", "not used");
     itsAttr[YSIZE] = Attributes::makeReal
-                     ("YSIZE", "Vertical half-aperture in m");
+                     ("YSIZE", "not used");
+    itsAttr[ZSIZE] = Attributes::makeReal
+                     ("YSIZE", "Thickness of the Degrader");
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "Monitor output filename");
     itsAttr[DX] = Attributes::makeReal
@@ -45,6 +47,8 @@ OpalDegrader::OpalDegrader():
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
+    registerRealAttribute("ZSIZE");
+
     registerRealAttribute("DX");
     registerRealAttribute("DY");
     registerRealAttribute("DZ");
@@ -87,6 +91,7 @@ void OpalDegrader::update() {
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
     double dz = Attributes::getReal(itsAttr[DZ]);
+    double thick = Attributes::getReal(itsAttr[ZSIZE]);
 
     DegraderRep *deg =
         dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
