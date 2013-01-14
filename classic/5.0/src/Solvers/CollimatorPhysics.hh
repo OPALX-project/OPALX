@@ -114,6 +114,8 @@ private:
 
 public:
     void print(Inform& os);
+
+    bool stillActive() { return bunchToMatStat_m != 0;}
 };
 
 #endif //COLLIMATORPHYSICS_HH

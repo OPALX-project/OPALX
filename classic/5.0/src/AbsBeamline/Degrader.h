@@ -69,8 +69,6 @@ public:
 
     virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep); // AAA
-
     virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
 
     virtual void initialise(PartBunch *bunch, const double &scaleFactor);

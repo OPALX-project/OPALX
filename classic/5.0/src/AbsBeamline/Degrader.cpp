@@ -138,31 +138,6 @@ bool Degrader::apply(const Vector_t &R, const Vector_t &centroid, const double &
 }
 
 
-// rectangle collimators in cyclotron cyclindral coordiantes
-// without surfacephysics, the particle hitting collimator is deleted directly
-bool Degrader::checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
-
-    bool flagNeedUpdate = false;
-    Vector_t rmin, rmax;
-
-    bunch.get_bounds(rmin, rmax);
-    
-    if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        flagNeedUpdate = true;  
-        
-        for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
-            if(bunch.PType[i] == 0 && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
-                lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
-                bunch.Bin[i] = -1;                    
-            }
-        }
-    }
-  reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-  if(flagNeedUpdate) lossDs_m->save(getName());
-  return flagNeedUpdate;
-}
-
-
 void Degrader::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
     RefPartBunch_m = bunch;
     position_m = startField;
