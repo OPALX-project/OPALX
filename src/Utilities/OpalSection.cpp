@@ -120,6 +120,9 @@ void OpalSection::print(Inform &msg) const {
               << "beta = "  << orientation_m(1) << " ";
         if(boundarygeometry_m)
             mymsg  << " has boundary geometry ";
+
+        if (hasSurfacePhysics())
+            mymsg  << " has surface physics ";
         msg << mymsg.str() << closure.substr(mymsg.str().length());
 
     }
