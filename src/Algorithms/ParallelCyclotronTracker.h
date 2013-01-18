@@ -34,6 +34,13 @@ class SurfacePhysicsHandler;
 // ------------------------------------------------------------------------
 enum CyclOperationModeT {SINGLEP, MULTIP, TUNECALC};
 
+struct CavityCrossData {
+    RFCavity * cavity;
+    double sinAzimuth;
+    double cosAzimuth;
+    double perpenDistance;
+};
+
 class ParallelCyclotronTracker: public Tracker {
 
 public:
