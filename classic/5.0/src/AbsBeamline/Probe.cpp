@@ -94,18 +94,18 @@ void Probe::accept(BeamlineVisitor &visitor) const {
 }
 
 bool Probe::apply(const size_t &i, const double &t, double E[], double B[]) {
-    *gmsg << "septum1" << endl;
+    *gmsg << "Probe1" << endl;
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return apply(i, t, Ev, Bv);
 }
 
 bool Probe::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    *gmsg << "septum2" << endl;
+    *gmsg << "Probe2" << endl;
     return false;
 }
 
 bool Probe::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    *gmsg << "septum3" << endl;
+    *gmsg << "Probe3" << endl;
     return false;
 }
 

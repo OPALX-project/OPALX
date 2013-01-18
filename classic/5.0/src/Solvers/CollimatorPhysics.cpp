@@ -103,8 +103,7 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
         Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
         FN_m = deg->getName();
         collshape_m = deg->getDegraderShape();
-	//        xp_m = deg->getXpos();
-	// yp_m = deg->getYpos();
+	width_m = deg->getZSize();
     }
 }
 
@@ -157,6 +156,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     if(collshape_m == "DEGRADER") {
         deg = dynamic_cast<Degrader *>(element_ref_m);
         deg->getDimensions(Begin_m, End_m);
+        End_m = Begin_m + width_m;
     }
     else {
         coll = dynamic_cast<Collimator *>(element_ref_m);
@@ -172,7 +172,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
                 double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
 
 		if(collshape_m == "CCollimator") 
-		  incoll_m = checkInColl(R,cdt);  
+                  incoll_m = checkInColl(R,cdt);    // fixme this needs to go to the Collimator
 	       	else if (collshape_m == "COLLIMATOR")
 		  incoll_m = coll->isInColl(R,P,cdt/sqrt(1.0  + dot(P, P)));
                 else if (collshape_m == "DEGRADER") {
@@ -555,20 +555,26 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 void CollimatorPhysics::print(Inform &msg){
     Inform::FmtFlags_t ff = msg.flags();
     msg << std::scientific;
-    msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " ------------------------------------------\n" << endl;
-    //    msg << "Type " << collshape_m 
-    msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
-	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << End_m << endl;
+
+    /*
+    if(dynamic_cast<Degrader *>(element_ref_m)) {
+        Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
+        width_m = deg->getZStart();
+    }
+    */
+    // msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " ------------------------------------------\n" << endl;
+    //    msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
+    //	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << Begin_m + width_m << endl;
     
     // msg << "Material " << material_m
     //   << " a= " << a_m << " (m) b= " << b_m << " (m)" << endl;
     //msg << "dTm= " << std::setw(8) << std::setprecision(3) << dT_m << " sub-timesteps " << N_m << endl;
     
-    msg << "Statistics: Particles in Material nm= " << locParts_m.size() 
-        << " BunchToMaterial= " << bunchToMatStat_m << " Redifused= " << redifusedStat_m 
-        << " Stopped particles= " << stoppedPartStat_m << endl;
+    msg << "Coll/Deg statistics: total particles in material " << locParts_m.size() 
+        << " new hits " << bunchToMatStat_m << " redifused " << redifusedStat_m 
+        << " stopped " << stoppedPartStat_m << endl;
     
-    msg << "\n--- CollimatorPhysics -------------------------------------------------\n" << endl;
+    // msg << "\n--- CollimatorPhysics -------------------------------------------------\n" << endl;
     msg.flags(ff);
 }
 

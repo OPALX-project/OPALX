@@ -89,13 +89,16 @@ public:
  
     void setOutputFN(string fn);
     string getOutputFN();
+
+    void setZSize( double z) ;
    
     void setZStart(double zstart) ; 
     void setZEnd(double zend) ; 
    
     double getZStart() ; 
     double getZEnd() ; 
-   
+    double getZSize();
+
     virtual bool isInMaterial(double z);
 
 private:
@@ -106,6 +109,8 @@ private:
     string filename_m;               /**< The name of the outputfile*/
 
     double position_m;
+    double deg_width_m;
+
     std::vector<double> PosX_m;
     std::vector<double> PosY_m;
     std::vector<double> PosZ_m;
@@ -118,7 +123,7 @@ private:
     
     double zstart_m;
     double zend_m;
-   
+
     LossDataSink *lossDs_m;
 };
 

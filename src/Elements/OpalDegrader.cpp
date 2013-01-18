@@ -30,28 +30,27 @@ OpalDegrader::OpalDegrader():
                 "The \"DEGRADER\" element defines a degrader."),
     sphys_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
-                     ("XSIZE", "not used");
+        ("XSIZE", "not used",0.0);
     itsAttr[YSIZE] = Attributes::makeReal
-                     ("YSIZE", "not used");
+        ("YSIZE", "not used",0.0);
     itsAttr[ZSIZE] = Attributes::makeReal
-                     ("YSIZE", "Thickness of the Degrader");
+        ("ZSIZE", "Thickness of the Degrader");
     itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "Monitor output filename");
+        ("OUTFN", "Degrader output filename");
     itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
+        ("DX", "not used",0.0);
     itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
+        ("DY", "not used",0.0);
     itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
+        ("DZ", "Misalignment in z direction",0.0);
 
     registerStringAttribute("OUTFN");
-    registerRealAttribute("XSIZE");
-    registerRealAttribute("YSIZE");
     registerRealAttribute("ZSIZE");
 
     registerRealAttribute("DX");
     registerRealAttribute("DY");
     registerRealAttribute("DZ");
+
     setElement((new DegraderRep("DEGRADER"))->makeAlignWrapper());
 }
 
@@ -83,22 +82,24 @@ void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag f
     double dx, dy, dz;
     deg->getMisalignment(dx, dy, dz);
     attributeRegistry["DZ"]->setReal(dz);
+    attributeRegistry["ZSIZE"]->setReal(Attributes::getReal(itsAttr[ZSIZE]));
 }
 
 
 void OpalDegrader::update() {
 
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
+    double    dz = Attributes::getReal(itsAttr[DZ]);
     double thick = Attributes::getReal(itsAttr[ZSIZE]);
 
     DegraderRep *deg =
         dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
+    deg->setZSize(thick);
+
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    deg->setMisalignment(dx, dy, dz);
+    deg->setMisalignment(0.0, 0.0, dz);
+
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
     if(apert.size() > 0) {

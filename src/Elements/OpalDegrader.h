@@ -32,8 +32,9 @@ public:
 
     /// The attributes of class OpalDegrader.
     enum {
-        XSIZE = COMMON,  // The horizontal half-size.
-        YSIZE,           // The vertical half-size.
+        XSIZE = COMMON,  // not used
+        YSIZE,           // not used 
+        ZSIZE,           // the thickness of the degrader
         OUTFN,
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction

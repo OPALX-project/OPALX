@@ -39,6 +39,7 @@ Degrader::Degrader():
     H5file_m(NULL),
     filename_m(""),
     position_m(0.0),
+    deg_width_m(0.0),
     PosX_m(0),
     PosY_m(0),
     PosZ_m(0),
@@ -55,6 +56,7 @@ Degrader::Degrader(const Degrader &right):
     H5file_m(NULL),
     filename_m(right.filename_m),
     position_m(right.position_m),
+    deg_width_m(right.deg_width_m),
     PosX_m(right.PosX_m),
     PosY_m(right.PosY_m),
     PosZ_m(right.PosZ_m),
@@ -73,6 +75,7 @@ Degrader::Degrader(const string &name):
     H5file_m(NULL),
     filename_m(""),
     position_m(0.0),
+    deg_width_m(0.0),
     PosX_m(0),
     PosY_m(0),
     PosZ_m(0),
@@ -101,7 +104,7 @@ inline bool Degrader::isInMaterial(double z ) {
      check if the particle is in the degarder material
    
   */
-  return ((z > position_m) && (z <= position_m + getElementLength()));
+    return ((z > position_m) && (z <= position_m + getZSize())); //getElementLength()));
 }
 
 bool Degrader::apply(const size_t &i, const double &t, double E[], double B[]) {
@@ -166,7 +169,7 @@ void Degrader::finalise()
 
 void Degrader::goOnline() {
  Inform msg("Degrader::goOnline ");
-    if(RefPartBunch_m == NULL) {
+   if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             msg << errormsg << "\n"
@@ -384,4 +387,12 @@ const string &Degrader::getType() const {
 string Degrader::getDegraderShape() {
     return "DEGRADER";
 
+}
+
+void Degrader::setZSize(double z) {
+    deg_width_m = z;
+}
+
+double Degrader::getZSize() {
+    return deg_width_m;
 }
