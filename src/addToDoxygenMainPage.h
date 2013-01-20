@@ -5,7 +5,7 @@ OPAL is a parallel tool for charged-particle optics in particle accelerators and
 <P>
 
 <P>
-Developed by Andreas Adelmann, Achim Gsell Christof Kraus, Yves Ineichen (PSI), 
+Developed by Andreas Adelmann, Achim Gsell Christof Kraus (PSI) \\ Yves Ineichen (IBM), 
 Steve Russell (LANL),\\ Yuanjie Bi, Chuan Wang, Jianjun Yang (CIAE), \\  Hao Zha (Thinghua University) \\ 
 Suzanne Sheehy, Chris Rogers (RAL) and \\ Christopher Mayes (Cornell)
 
