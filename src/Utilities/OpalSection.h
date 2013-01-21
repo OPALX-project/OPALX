@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "Solvers/SurfacePhysicsHandler.hh"
 #include "AbsBeamline/Component.h"
 
 class WakeFunction;
@@ -53,7 +54,6 @@ public:
     static bool SortAsc(const OpalSection &sle1, const OpalSection &sle2) {
         return (sle1.start_m < sle2.start_m);
     }
-
 
 private:
     CompVec elements_m;

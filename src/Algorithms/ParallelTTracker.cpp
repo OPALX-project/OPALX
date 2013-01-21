@@ -1991,7 +1991,7 @@ void ParallelTTracker::computeExternalFields() {
             surfaceStatus_m = true;
         }
         reduce(sphysSection, sphysSection, OpMaxAssign());
-        if (sphys_m==NULL)
+        if (sphys_m == NULL)
             sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
         
         if(sphys_m == NULL) {
@@ -2003,8 +2003,10 @@ void ParallelTTracker::computeExternalFields() {
     } else if(surfaceStatus_m) {
         msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
         surfaceStatus_m = false;
-        if (sphys_m)
+        if (sphys_m) {
             delete sphys_m;
+	    sphys_m = NULL;
+	}
     }
 
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);

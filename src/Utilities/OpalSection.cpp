@@ -43,17 +43,15 @@ OpalSection::OpalSection(CompVec &elements, const double &start, const double &e
                 *gmsg << "more than one surface physics handler in one section! dismiss all." << endl;
                 sphys_handler_m = NULL;
             } else {
-                sphys_handler_m = (*clit)->getSurfacePhysics();
+	      sphys_handler_m = (*clit)->getSurfacePhysics();
             }
             has_surface_physics_m = true;
         }
 
         if((*clit)->hasBoundaryGeometry()) {
-
             /**
                we maybe want to have a boundary geometry handler
             */
-
             boundarygeometry_m = (*clit)->getBoundaryGeometry();
             has_boundarygeometry_m = true;
         }
