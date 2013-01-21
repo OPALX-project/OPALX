@@ -329,8 +329,8 @@ void Collimator::goOnline() {
 }
 
 void Collimator::goOffline() {
-    lossDs_m->save()
-    online_m = false;
+  lossDs_m->save();
+  online_m = false;
 }
 
 bool Collimator::bends() const {
