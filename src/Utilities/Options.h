@@ -146,6 +146,7 @@ namespace Options {
     /// If true HDF5 files are written
     extern bool enableHDF5;
 
+    extern bool asciidump;
 }
 
 #endif // OPAL_Options_HH

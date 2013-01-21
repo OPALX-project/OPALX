@@ -97,6 +97,8 @@ void Septum::initialise(PartBunch *bunch, double &startField, double &endField, 
     position_m = startField;
     startField -= 0.005;
     endField = position_m + 0.005;
+
+
 }
 
 void Septum::initialise(PartBunch *bunch, const double &scaleFactor) {
@@ -192,8 +194,6 @@ bool  Septum::checkSeptum(PartBunch &bunch) {
 
         }
     }
-
-    bunch.lossDs_m->save(getName());
     return flag;
 }
 

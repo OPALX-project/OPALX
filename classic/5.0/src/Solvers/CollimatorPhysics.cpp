@@ -64,8 +64,7 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     rGen_m = new RANLIB_class(115314159, 4);
     // initialize DataSink with H5Part output enabled
     bool doH5 = false;
-    lossDs_m = new LossDataSink(1000000, doH5);
-    lossDs_m->openH5(FN_m);
+    lossDs_m = new LossDataSink(FN_m, doH5);
 
     if(dynamic_cast<Collimator *>(element_ref_m)) {
         Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
@@ -221,8 +220,6 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         }
     }
  
-    lossDs_m->save(FN_m);
-
     /* 
        add new (lost particles) to local data structure
     */

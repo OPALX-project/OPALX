@@ -284,7 +284,6 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
   
   if (flagNeedUpdate) {
       lossDs_m->addParticle(RefPartBunch_m->R[id], RefPartBunch_m->P[id],id);
-      lossDs_m->save(getName());
       RefPartBunch_m->Bin[id] = -1;
   }
   return flagNeedUpdate;
@@ -478,9 +477,8 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
 
 void Cyclotron::finalise() {
     online_m = false;
+    lossDs_m->save();
     *gmsg << "Finalize cyclotron" << endl;
-    if(lossDs_m)
-        delete lossDs_m;
 }
 
 bool Cyclotron::bends() const {
@@ -866,10 +864,8 @@ void Cyclotron::initialise(PartBunch *bunch, double &startField, double &endFiel
 
 void Cyclotron::initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor) {
     RefPartBunch_m = bunch;
-
-    bool doH5 = false;
-    lossDs_m = new LossDataSink(bunch->getTotalNum(), doH5);
-
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    
     //    PSIBF, AVFEQBF, ANSYSBF, FFAGBF
     // for your own format field, you should add your own getFieldFromFile() function by yourself.
 

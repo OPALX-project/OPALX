@@ -25,11 +25,8 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-
-//#include "H5hut.h"
 #include <vector>
 
-typedef struct h5_file h5_file_t;
 class LossDataSink;
 
 // Class Degrader
@@ -105,7 +102,7 @@ private:
 
     // Not implemented.
     void operator=(const Degrader &);
-    h5_file_t *H5file_m;
+
     string filename_m;               /**< The name of the outputfile*/
 
     double position_m;
@@ -124,7 +121,7 @@ private:
     double zstart_m;
     double zend_m;
 
-    LossDataSink *lossDs_m;
+    std::unique_ptr<LossDataSink> lossDs_m;
 };
 
 #endif // CLASSIC_Degrader_HH

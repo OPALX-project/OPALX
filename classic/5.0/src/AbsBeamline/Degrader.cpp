@@ -24,7 +24,6 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
-#include "H5hut.h"
 #include <memory>
 
 extern Inform *gmsg;
@@ -36,7 +35,6 @@ using namespace std;
 
 Degrader::Degrader():
     Component(),
-    H5file_m(NULL),
     filename_m(""),
     position_m(0.0),
     deg_width_m(0.0),
@@ -53,7 +51,6 @@ Degrader::Degrader():
 
 Degrader::Degrader(const Degrader &right):
     Component(right),
-    H5file_m(NULL),
     filename_m(right.filename_m),
     position_m(right.position_m),
     deg_width_m(right.deg_width_m),
@@ -72,7 +69,6 @@ Degrader::Degrader(const Degrader &right):
 
 Degrader::Degrader(const string &name):
     Component(name),
-    H5file_m(NULL),
     filename_m(""),
     position_m(0.0),
     deg_width_m(0.0),
@@ -145,26 +141,25 @@ void Degrader::initialise(PartBunch *bunch, double &startField, double &endField
     RefPartBunch_m = bunch;
     position_m = startField;
     endField = position_m + getElementLength();
-    // initialize DataSink with H5Part output enabled
-    bool doH5 = false;
-    lossDs_m = new LossDataSink(bunch->getTotalNum(), doH5);
-    lossDs_m->openH5(getName());
+
+    if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
 void Degrader::initialise(PartBunch *bunch, const double &scaleFactor) {
     RefPartBunch_m = bunch;
-    // initialize DataSink with H5Part output enabled
-    bool doH5 = false;
-    lossDs_m = new LossDataSink(bunch->getTotalNum(), doH5);
-    lossDs_m->openH5(getName());
+    if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
 
 void Degrader::finalise()
 {
   *gmsg << "Finalize probe" << endl;
-  if(lossDs_m)
-    delete lossDs_m;
 }
 
 void Degrader::goOnline() {
@@ -183,7 +178,6 @@ void Degrader::goOnline() {
         }
         return;
     }
-
     PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
     PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
     PosZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
@@ -197,160 +191,8 @@ void Degrader::goOnline() {
 
 void Degrader::goOffline() {
     Inform msg("Degrader::goOffline ");
-    h5_int64_t rc;
-    reduce(online_m, online_m, OpOr());
-
-    if(online_m) {
-        online_m = false;
-        if(filename_m == "") return;
-
-        /**
-           Check how much particles we have lost
-        */
-        int localLost = PosX_m.size();
-        int globLost = 0;
-        reduce(localLost, globLost, OpAddAssign());
-
-        /**
-           Check if we have to append of
-           if we write a new file
-        */
-        if(globLost != 0) {
-            ifstream inp;
-            inp.open(filename_m.c_str(), ifstream::in);
-            inp.close();
-            if(inp.fail()) {
-#ifdef PARALLEL_IO
-                H5file_m = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, Ippl::getComm());
-#else
-                H5file_m = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, 0);
-#endif
-                rc = H5SetStep(H5file_m, 0);
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                msg << "Lost " << globLost << " partices at collimator/pepperpot " << getName() << " write step 0" << endl;
-                rc = H5WriteFileAttribString(H5file_m, "timeUnit", "s");
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                rc = H5WriteFileAttribString(H5file_m, "xUnit", "m");
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                rc = H5WriteFileAttribString(H5file_m, "yUnit", "m");
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                rc = H5WriteFileAttribString(H5file_m, "zUnit", "m");
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                rc = H5WriteFileAttribString(H5file_m, "pxUnit", "#beta#gamma");
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                rc = H5WriteFileAttribString(H5file_m, "pyUnit", "#beta#gamma");
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                rc = H5WriteFileAttribString(H5file_m, "pzUnit", "#beta#gamma");
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            } else {
-#ifdef PARALLEL_IO
-                H5file_m = H5OpenFile(filename_m.c_str(), H5_O_APPEND, Ippl::getComm());
-#else
-                H5file_m = H5OpenFile(filename_m.c_str(), H5P_O_APPEND, 0);
-#endif
-                int numStepsInFile = H5GetNumSteps(H5file_m);
-                rc = H5SetStep(H5file_m, numStepsInFile);
-                if(rc != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                msg << "Lost " << globLost << " partices at collimator/slit/pepperpot " << getName() << " append  step " << numStepsInFile << endl;
-            }
-        } else {
-            msg << "collimator/pepperpot not used " << getName() << endl;
-            return;
-        }
-
-        if(PosX_m.size() == 0) {
-            rc = H5PartSetNumParticles(H5file_m, 0);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        } else {
-            rc = H5PartSetNumParticles(H5file_m, PosX_m.size());
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            std::unique_ptr<char[]> varray(new char[PosX_m.size() * sizeof(double)]);
-            double *fvalues = reinterpret_cast<double*>(varray.get());
-            h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
-
-            int i = 0;
-            vector<double>::iterator it;
-
-            for(it = PosX_m.begin(); it != PosX_m.end(); ++it)
-                fvalues[i++] = *it;
-            rc = H5PartWriteDataFloat64(H5file_m, "x", fvalues);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            i = 0;
-            for(it = PosY_m.begin(); it != PosY_m.end(); ++it)
-                fvalues[i++] = *it;
-            rc = H5PartWriteDataFloat64(H5file_m, "y", fvalues);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            i = 0;
-            for(it = PosZ_m.begin(); it != PosZ_m.end(); ++it)
-                fvalues[i++] = *it;
-            rc = H5PartWriteDataFloat64(H5file_m, "z", fvalues);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            i = 0;
-            for(it = MomentumX_m.begin(); it != MomentumX_m.end(); ++it)
-                fvalues[i++] = *it;
-            rc = H5PartWriteDataFloat64(H5file_m, "px", fvalues);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            i = 0;
-            for(it = MomentumY_m.begin(); it != MomentumY_m.end(); ++it)
-                fvalues[i++] = *it;
-            rc = H5PartWriteDataFloat64(H5file_m, "py", fvalues);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            i = 0;
-            for(it = MomentumZ_m.begin(); it != MomentumZ_m.end(); ++it)
-                fvalues[i++] = *it;
-            rc = H5PartWriteDataFloat64(H5file_m, "pz", fvalues);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            i = 0;
-            for(it = time_m.begin(); it != time_m.end(); ++it)
-                fvalues[i++] = *it;
-            rc = H5PartWriteDataFloat64(H5file_m, "time", fvalues);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            i = 0;
-            for(vector<int>::iterator int_it = id_m.begin(); int_it != id_m.end(); ++int_it)
-                ids[i++] = *int_it;
-            rc = H5PartWriteDataInt64(H5file_m, "id", ids);
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        }
-        rc = H5CloseFile(H5file_m);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        PosX_m.clear();
-        PosY_m.clear();
-        PosZ_m.clear();
-        MomentumX_m.clear();
-        MomentumY_m.clear();
-        MomentumZ_m.clear();
-        time_m.clear();
-        id_m.clear();
-    }
+    online_m = false;
+    lossDs_m->save();
 }
 
 bool Degrader::bends() const {
@@ -362,7 +204,10 @@ void Degrader::setOutputFN(string fn) {
 }
 
 string Degrader::getOutputFN() {
-    return  filename_m;
+    if (filename_m == std::string(""))
+        return getName();
+    else 
+        return filename_m.substr(0, filename_m.rfind("."));
 }
 
 double Degrader::getZStart() {

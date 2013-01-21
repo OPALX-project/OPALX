@@ -116,16 +116,14 @@ void Probe::initialise(PartBunch *bunch, double &startField, double &endField, c
 }
 
 void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
-    // initialize DataSink with H5Part output enabled
-    bool doH5 = false;
-    lossDs_m = new LossDataSink(bunch->getTotalNum(), doH5);
-    //    lossDs_m->openH5(getName());
+    if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
 void Probe::finalise() {
     *gmsg << "Finalize probe" << endl;
-    if(lossDs_m)
-        delete lossDs_m;
 }
 
 bool Probe::bends() const {
@@ -137,6 +135,7 @@ void Probe::goOnline() {
 
 void Probe::goOffline() {
     online_m = false;
+    lossDs_m->save();
 }
 
 void  Probe::setXstart(double xstart) {
@@ -280,14 +279,13 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	    probepoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
 	    probepoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
 	    probepoint(2) = bunch.R[i](2);
-	    lossDs_m->addParticle_time(probepoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
+	    lossDs_m->addParticle(probepoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
 	    flagprobed = true;
 	  }
 	}
     }
 
     reduce(&flagprobed, &flagprobed + 1, &flagprobed, OpBitwiseOrAssign());
-    if(flagprobed) lossDs_m->save_time(getName());
     return flagprobed;
 }
 

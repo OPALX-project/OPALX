@@ -26,10 +26,8 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 
-//#include "H5hut.h"
 #include <vector>
 
-typedef struct h5_file h5_file_t;
 class LossDataSink;
 
 // Class Collimator
@@ -152,7 +150,7 @@ private:
 
     // Not implemented.
     void operator=(const Collimator &);
-    h5_file_t *H5file_m;
+
     string filename_m;               /**< The name of the outputfile*/
     Plane plane_m;
     double position_m;
@@ -194,7 +192,8 @@ private:
     Point  geom_m[5];
     void setGeom();
     int  checkPoint( const double & x, const double & y );
-    LossDataSink *lossDs_m;
+
+    std::unique_ptr<LossDataSink> lossDs_m;
 };
 
 #endif // CLASSIC_Collimator_HH

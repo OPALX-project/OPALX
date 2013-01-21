@@ -141,9 +141,7 @@ PartBunch::PartBunch(const PartData *ref):
     partPerNode_m = std::unique_ptr<double[]>(new double[Ippl::getNodes()]);
     globalPartPerNode_m = std::unique_ptr<double[]>(new double[Ippl::getNodes()]);
 
-    // initialize DataSink with H5Part output enabled
-    bool doH5 = true;
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(1000000, doH5));
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
 
     pmsg_m.release();
     f_stream.release();
@@ -276,14 +274,6 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
 }
 
 PartBunch::~PartBunch() {
-    //if(bingamma_m) delete bingamma_m;
-    //if(binemitted_m) delete binemitted_m;
-    //if(lineDensity_m) delete lineDensity_m;
-    //if(partPerNode_m) delete[] partPerNode_m;
-    //if(globalPartPerNode_m) delete[] globalPartPerNode_m;
-    //if(lossDs_m) delete lossDs_m;
-    //if(pmsg_m) delete pmsg_m;
-    //if(f_stream) delete f_stream;
 
 }
 

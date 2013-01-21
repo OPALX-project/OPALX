@@ -2,71 +2,40 @@
 #define OPAL_LOSSOUTPUT_H_
 
 //////////////////////////////////////////////////////////////
-//#include "Ippl.h"
 #include "Utility/IpplInfo.h"
+#include "Utilities/Options.h"
+#include "AbstractObjects/OpalData.h"
+
 #include <string>
-//#include <iosfwd>
 #include <fstream>
 #include <vector>
-//#include <iostream>
-#include "AbstractObjects/OpalData.h"
 
 #include <hdf5.h>
 #include "H5hut.h"
 
 #include "config.h"
 
-#define MAXLOSS 1000000
+/*
+  - In the destructor we do ALL the file handling
+  - h5hut_mode_m defines h5hut or ASCII
+ */
 
-//////////////////////////////////////////////////////////////
-// specialization of LossDataSink to PPartBunch objects
 class LossDataSink {
-public:
+ public:
+    LossDataSink();
 
-    LossDataSink(size_t np, bool hdf5Save = false):
-        element_m("NULL"),
-        doHdf5Save_m(hdf5Save) {
-        if(!doHdf5Save_m) {
-            fn_m = OpalData::getInstance()->getInputBasename() + std::string(".loss");
-	    os_m.precision(8);
-	    os_m.setf(std::ios::scientific, std::ios::floatfield);
-        if(OpalData::getInstance()->inRestartRun()) 
-            append();
-        else
-            open();
-        writeHeader(np);
-	    close();
-        }
-        hdf5FileIsOpen_m = false;
-        H5call_m = 0;
-    }
+    LossDataSink(std::string elem, bool hdf5Save);
 
-    LossDataSink():
-        element_m("NULL") {
-        if(!doHdf5Save_m) {
-            fn_m = OpalData::getInstance()->getInputBasename() + std::string(".loss");
-	    os_m.precision(8);
-	    os_m.setf(std::ios::scientific, std::ios::floatfield);
-            append();
-        }
-        hdf5FileIsOpen_m = false;
-        H5call_m = 0;
-    }
+    LossDataSink(const LossDataSink &rsh);
+    ~LossDataSink();
 
-    ~LossDataSink() {
-        save(element_m);
-        if(!doHdf5Save_m) {
-            close();
-        } else {
-            if(hdf5FileIsOpen_m) {
-                H5CloseFile(H5file_m);
-                Ippl::Comm->barrier();
-            }
-        }
+    bool inH5Mode() { return h5hut_mode_m;}
 
-    }
+    void save();
 
-    bool inH5Mode() { return doHdf5Save_m;}
+    void addParticle(const Vector_t x, const Vector_t p, const size_t id);
+    
+    void addParticle(const Vector_t x, const Vector_t p, const size_t  id, const double time, const size_t turn); 
 
 private:
 
@@ -81,38 +50,43 @@ private:
             os_m.open(fn_m.c_str(), std::ios::app);
         }
     }
-
+    
     void close() {
         if(Ippl::myNode() == 0)
             os_m.close();
     }
-
-    void writeHeader(size_t np) {
+    
+    void writeHeaderASCII() {
         if(Ippl::myNode() == 0) {
-            os_m << "# Element x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id,  turn,  time (ns) " << std::endl;
+            if (time_m.size() != 0)
+                os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id,  turn,  time (ns) " << std::endl;
+            else
+                os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id " << std::endl;
         }
     }
 
-    void writeH5FileAttributes();
+    bool hasNoParticlesToDump() {
+        return x_m.size() == 0;
+    }
 
-public:
+    void writeHeaderH5();
 
-    void addParticle(const Vector_t x, const Vector_t p, const size_t id);
-    void addParticle_time(const Vector_t x, const Vector_t p, const size_t  id, const double time, const size_t turn); 
-    void openH5(std::string fn);
-    void save(std::string element) ;
-    void save_time(std::string element) ;
+    void openH5();
+
+    void saveH5();
+    void saveASCII();
 
 private:
+
     // filename without extension
     std::string fn_m;
 
     // used to write out the data
     std::ofstream os_m;
-
+    
     std::string element_m;
 
-    bool doHdf5Save_m;
+    bool h5hut_mode_m;
 
     bool hdf5FileIsOpen_m;
 
@@ -129,6 +103,7 @@ private:
     std::vector<double> px_m;
     std::vector<double> py_m;
     std::vector<double> pz_m;
+    
     std::vector<size_t> turn_m;
     std::vector<double> time_m;
 };

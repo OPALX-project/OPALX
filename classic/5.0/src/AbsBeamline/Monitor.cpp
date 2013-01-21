@@ -17,17 +17,17 @@
 // $Author: fci $
 //
 // ------------------------------------------------------------------------
-
 #include "Physics/Physics.h"
-#include "AbsBeamline/Monitor.h"
 #include "Algorithms/PartBunch.h"
-#include "Fields/Fieldmap.hh"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Fields/Fieldmap.hh"
+#include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
+#include "AbsBeamline/Monitor.h"
+
+#include <memory>
 
 using namespace Options;
-
-#include "H5hut.h"
 
 #include <fstream>
 #include <memory>
@@ -42,13 +42,6 @@ Monitor::Monitor():
     filename_m(""),
     plane_m(OFF),
     position_m(0.0),
-    PosX_m(0),
-    PosY_m(0),
-    MomentumX_m(0),
-    MomentumY_m(0),
-    MomentumZ_m(0),
-    time_m(0),
-    id_m(0),
     informed_m(false)
 {}
 
@@ -58,13 +51,6 @@ Monitor::Monitor(const Monitor &right):
     filename_m(right.filename_m),
     plane_m(right.plane_m),
     position_m(right.position_m),
-    PosX_m(right.PosX_m),
-    PosY_m(right.PosY_m),
-    MomentumX_m(right.MomentumX_m),
-    MomentumY_m(right.MomentumY_m),
-    MomentumZ_m(right.MomentumZ_m),
-    time_m(right.time_m),
-    id_m(right.id_m),
     informed_m(right.informed_m)
 {}
 
@@ -74,13 +60,6 @@ Monitor::Monitor(const string &name):
     filename_m(""),
     plane_m(OFF),
     position_m(0.0),
-    PosX_m(0),
-    PosY_m(0),
-    MomentumX_m(0),
-    MomentumY_m(0),
-    MomentumZ_m(0),
-    time_m(0),
-    id_m(0),
     informed_m(false)
 {}
 
@@ -104,13 +83,9 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) 
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
     if(online_m && R(2) < position_m && R(2) + P(2) * recpgamma > position_m) {
         double frac = (position_m - R(2)) / (P(2) * recpgamma);
-        PosX_m.push_back(R(0) + frac * P(0) * recpgamma);
-        PosY_m.push_back(R(1) + frac * P(1) * recpgamma);
-        MomentumX_m.push_back(P(0));
-        MomentumY_m.push_back(P(1));
-        MomentumZ_m.push_back(P(2));
-        time_m.push_back(t + frac * RefPartBunch_m->getdT());
-        id_m.push_back(i);
+
+        lossDs_m->addParticle(Vector_t(R(0) + frac * P(0) * recpgamma, R(1) + frac * P(1) * recpgamma, position_m),
+                                   P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);        
     }
 
     return false;
@@ -125,6 +100,11 @@ void Monitor::initialise(PartBunch *bunch, double &startField, double &endField,
     position_m = startField;
     startField -= 0.005;
     endField = position_m + 0.005;
+    if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+
 }
 
 void Monitor::finalise() {
@@ -159,7 +139,38 @@ void Monitor::goOnline() {
 }
 
 void Monitor::goOffline() {
+    lossDs_m->save();
+}
 
+bool Monitor::bends() const {
+    return false;
+}
+
+void Monitor::setOutputFN(string fn) {
+    filename_m = fn;
+}
+
+void Monitor::getDimensions(double &zBegin, double &zEnd) const {
+    zBegin = position_m - 0.005;
+    zEnd = position_m + 0.005;
+}
+
+
+const string &Monitor::getType() const {
+    static const string type("Monitor");
+    return type;
+}
+
+void Monitor::moveBy(const double &dz) {
+    position_m += dz;
+}
+
+map<string, unsigned int> Monitor::h5pfiles_s = map<string, unsigned int>();
+
+
+
+
+    /*
     if (!Options::enableHDF5) return;
 	
 	reduce(online_m, online_m, OpOr());
@@ -221,10 +232,8 @@ void Monitor::goOffline() {
         double *fvalues = reinterpret_cast<double*>(varray.get());
         h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
 	
-
-	/*
 	  FixMe: if I write with nLoc==0 -> rc == -2	  
-	 */
+
 
 
 	if (nLoc > 0) {
@@ -282,29 +291,4 @@ void Monitor::goOffline() {
         if(rc != H5_SUCCESS)
 	  ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     }
-}
-
-bool Monitor::bends() const {
-    return false;
-}
-
-void Monitor::setOutputFN(string fn) {
-    filename_m = fn;
-}
-
-void Monitor::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = position_m - 0.005;
-    zEnd = position_m + 0.005;
-}
-
-
-const string &Monitor::getType() const {
-    static const string type("Monitor");
-    return type;
-}
-
-void Monitor::moveBy(const double &dz) {
-    position_m += dz;
-}
-
-map<string, unsigned int> Monitor::h5pfiles_s = map<string, unsigned int>();
+    */

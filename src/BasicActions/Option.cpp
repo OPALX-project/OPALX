@@ -48,6 +48,7 @@ namespace Options {
     bool efDump = false;
     bool ppdebug = false;
     bool enableHDF5 = true;
+    bool asciidump = false;
 
     // The global random generator.
     Random rangen;
@@ -150,6 +151,7 @@ namespace {
         SCHOTTKYRENO,
         FINEEMISSION,
         ENABLEHDF5,
+        ASCIIDUMP,
         SIZE
     };
 }
@@ -242,6 +244,9 @@ Option::Option():
     itsAttr[ENABLEHDF5] = Attributes::makeBool
                       ("ENABLEHDF5", "If true, HDF5 actions are enabled", true);
 
+    itsAttr[ASCIIDUMP] = Attributes::makeBool
+        ("ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", false);
+
     FileStream::setEcho(echo);
     rangen.init55(seed);
 }
@@ -283,6 +288,7 @@ Option::Option(const string &name, Option *parent):
     Attributes::setReal(itsAttr[RECYCLEBLOCKS], recycleBlocks);
     Attributes::setReal(itsAttr[NLHS], nLHS);
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
+    Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
 }
 
 
@@ -312,6 +318,10 @@ void Option::execute() {
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
 
+    if(itsAttr[ASCIIDUMP]) {
+        asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
+    }
+
     if(itsAttr[SEED]) {
         seed = int(Attributes::getReal(itsAttr[SEED]));
 	if (seed == -1)
@@ -323,6 +333,7 @@ void Option::execute() {
     if(itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
     }
+
     if(itsAttr[RDUMP]) {
         rDump = double(Attributes::getReal(itsAttr[RDUMP]));
     }

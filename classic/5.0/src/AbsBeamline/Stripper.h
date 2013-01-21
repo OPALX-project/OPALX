@@ -110,7 +110,9 @@ private:
     double A_m, B_m,R_m, C_m;
     void setGeom(const double dist);
     int  checkPoint( const double & x, const double & y );
-    LossDataSink *lossDs_m;
+
+    std::unique_ptr<LossDataSink> lossDs_m;
+
     // Not implemented.
     void operator=(const Stripper &);
 };

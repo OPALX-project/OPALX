@@ -252,7 +252,7 @@ private:
     std::vector<std::string> RFfilename_m;
 
     // handling for store the particle out of region 
-    LossDataSink *lossDs_m;
+    std::unique_ptr<LossDataSink> lossDs_m;
 
     void   getdiffs();
 

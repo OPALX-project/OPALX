@@ -155,20 +155,21 @@ bool Stripper::apply(const Vector_t &R, const Vector_t &centroid, const double &
 }
 
 void Stripper::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-
+    if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else 
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
 void Stripper::initialise(PartBunch *bunch, const double &scaleFactor) {
-    // initialize DataSink with H5Part output enabled
-    bool doH5 = false;
-    lossDs_m = new LossDataSink(bunch->getTotalNum(), doH5);
-    //lossDs_m->openH5(getName());
+    if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else 
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
 void Stripper::finalise() {
     *gmsg << "Finalize probe" << endl;
-    if(lossDs_m)
-        delete lossDs_m;
 }
 
 bool Stripper::bends() const {
@@ -180,6 +181,7 @@ void Stripper::goOnline() {
 
 void Stripper::goOffline() {
     online_m = false;
+    lossDs_m->save();
 }
 
 void  Stripper::setXstart(double xstart) {
@@ -330,7 +332,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                     strippoint(0) = (B_m*B_m*bunch.R[i](0) - A_m*B_m*bunch.R[i](1)-A_m*C_m)/(R_m*R_m);
                     strippoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
                     strippoint(2) = bunch.R[i](2);
-                    lossDs_m->addParticle_time(strippoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
+                    lossDs_m->addParticle(strippoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
                     
                     if (stop_m) {
                         bunch.Bin[i] = -1;
@@ -379,7 +381,6 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
         }
     }
 
-    if(flagNeedUpdate) lossDs_m->save_time(getName());
     return flagNeedUpdate;
 }
 

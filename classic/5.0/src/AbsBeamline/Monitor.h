@@ -24,13 +24,11 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-//#include "Algorithms/PBunchDefs.h"
-
-//#include "H5hut.h"
 
 #include <list>
-typedef struct h5_file h5_file_t;
+
 class PartBunch;
+class LossDataSink;
 
 // Class Monitor
 // ------------------------------------------------------------------------
@@ -103,17 +101,13 @@ private:
     std::string filename_m;               /**< The name of the outputfile*/
     Plane plane_m;
     double position_m;
-    std::list<double> PosX_m;
-    std::list<double> PosY_m;
-    std::list<double> MomentumX_m;
-    std::list<double> MomentumY_m;
-    std::list<double> MomentumZ_m;
-    std::list<double> time_m;
-    std::list<int> id_m;
+
     bool informed_m;
     unsigned int step_m;
 
     static std::map<std::string, unsigned int> h5pfiles_s;
+
+    std::unique_ptr<LossDataSink> lossDs_m;
 };
 
 #endif // CLASSIC_Monitor_HH
