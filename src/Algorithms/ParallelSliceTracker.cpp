@@ -279,7 +279,7 @@ void ParallelSliceTracker::dumpStats(long long step) {
 
 void ParallelSliceTracker::switchElements(double scaleMargin) {
 
-        double margin = 1e-7;
+  double margin = 1.0;
 
         itsOpalBeamline_m->resetStatus();
         currentSimulationTime_m = itsBunch_m->getT();
