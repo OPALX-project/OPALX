@@ -1507,7 +1507,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     vector<double> Ttime, Tdeltr, Tdeltz;
     vector<int> TturnNumber;
     turnnumber_m = 1;
-    int lastTurn = 1;
 
     bool flagNoDeletion = false;
 
@@ -2078,16 +2077,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 OldTheta = calculateAngle(variable_m[0], variable_m[1]);
                 r_tuning[i] = variable_m[0] * cos(OldTheta) + variable_m[1] * sin(OldTheta);
                 z_tuning[i] = variable_m[2];
-                turnnumber_m = lastTurn;
 
                 // integrate for one step in the lab Cartesian frame (absulate value ).
-
                 rk4(variable_m, t, dt, i);
 
-                double NewTheta = 0.0;
-
-                NewTheta = calculateAngle(variable_m[0], variable_m[1]);
-                if((i == 0) && (NewTheta < OldTheta)) lastTurn++;
+		if( (i == 0) && (step_m > 10) && ((step_m%stepsPerTurn) == 0))   ++turnnumber_m;
 
                 for(int j = 0; j < 3; j++) itsBunch->R[i](j) = variable_m[j] ; //[x,y,z]  units: [mm]
                 for(int j = 0; j < 3; j++) itsBunch->P[i](j) = variable_m[j+3] ; //[px,py,pz]  units: dimensionless, beta*gama
@@ -2281,10 +2275,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             // define longitudinal direction of the bunch
             // x:[0] transverse horizontal, y:[1] longitudinal, z:[2] transverse vertical
-            double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-
-            double temp_cosPhi = cos(phi);
-            double temp_sinPhi = sin(phi);
 
             beamline_list::iterator DumpSindex = FieldDimensions.begin();
             (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), t, extE_m, extB_m);
@@ -2305,50 +2295,22 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                       << step_m + 1 << " T= " << t << " [nS]" << endl;
                 //----------------------------dump in local frame-------------------------------------//
             } else {
-                itsBunch->R -= meanR;
-                itsBunch->P -= meanP;
 
-                for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+                globalToLocal(itsBunch->R, phi, meanR);
+                globalToLocal(itsBunch->P, phi, meanP);
 
-                    double temp_RHorizontal     =   itsBunch->R[ii](0) * temp_cosPhi  + itsBunch->R[ii](1) * temp_sinPhi;
-                    double temp_RLongitudinal   =  -itsBunch->R[ii](0) * temp_sinPhi  + itsBunch->R[ii](1) * temp_cosPhi;
-
-                    itsBunch->R[ii](0) = temp_RHorizontal;
-                    itsBunch->R[ii](1) = temp_RLongitudinal;
-
-                    double temp_PHorizontal     =   itsBunch->P[ii](0) * temp_cosPhi  + itsBunch->P[ii](1) * temp_sinPhi;
-                    double temp_PLongitudinal   =  -itsBunch->P[ii](0) * temp_sinPhi  + itsBunch->P[ii](1) * temp_cosPhi;
-
-                    itsBunch->P[ii](0) = temp_PHorizontal;
-                    itsBunch->P[ii](1) = temp_PLongitudinal;
-                }
-
+                // dump in local frame
                 itsBunch->R /= Vector_t(1000.0); // mm --> m
                 lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
                 itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
 
-
-                for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-
-                    double temp_Rx   =  -itsBunch->R[ii](1) * temp_sinPhi  + itsBunch->R[ii](0) * temp_cosPhi;
-                    double temp_Ry   =   itsBunch->R[ii](1) * temp_cosPhi  + itsBunch->R[ii](0) * temp_sinPhi;
-
-                    itsBunch->R[ii](0) = temp_Rx;
-                    itsBunch->R[ii](1) = temp_Ry;
-
-                    double temp_Px   =  -itsBunch->P[ii](1) * temp_sinPhi  + itsBunch->P[ii](0) * temp_cosPhi;
-                    double temp_Py   =   itsBunch->P[ii](1) * temp_cosPhi  + itsBunch->P[ii](0) * temp_sinPhi;
-
-                    itsBunch->P[ii](0) = temp_Px;
-                    itsBunch->P[ii](1) = temp_Py;
-
-                }
-
-                itsBunch->R += meanR;
-                itsBunch->P += meanP;
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-                      << step_m + 1 << " T= " << t << " [nS]" << endl;
+                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns], phi= " << phi/pi*180.0 <<" [deg]" <<endl;
+
+                localToGlobal(itsBunch->R, phi, meanR);
+                localToGlobal(itsBunch->P, phi, meanP);
             }
             IpplTimings::stopTimer(DumpTimer_m);
         }
@@ -3176,9 +3138,7 @@ void ParallelCyclotronTracker::repartition() {
 }
 
 void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, double phi, Vector_t const translationToGlobal) {
-    if(translationToGlobal != 0) {
-        particleVectors -= translationToGlobal;
-    }
+    particleVectors -= translationToGlobal;
     Tenzor<double, 3> const rotation( cos(phi), sin(phi), 0,
                                      -sin(phi), cos(phi), 0,
                                              0,        0, 1); // clockwise rotation
@@ -3194,14 +3154,17 @@ void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particle
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         particleVectors[i] = dot(rotation, particleVectors[i]);
     }
-    if(translationToGlobal != 0) {
-        particleVectors += translationToGlobal;
-    }
+    particleVectors += translationToGlobal;
 }
 
 void ParallelCyclotronTracker::push(double h) {
     IpplTimings::startTimer(IntegrationTimer_m);
-
+    struct CavityCrossData {
+        RFCavity * cavity;
+        double sinAzimuth;
+        double cosAzimuth;
+        double perpenDistance;
+    };
     std::list<CavityCrossData> cavCrossDatas;
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
         if(((*sindex)->first) == "CAVITY") {
