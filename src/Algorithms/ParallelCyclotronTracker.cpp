@@ -3159,12 +3159,7 @@ void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particle
 
 void ParallelCyclotronTracker::push(double h) {
     IpplTimings::startTimer(IntegrationTimer_m);
-    struct CavityCrossData {
-        RFCavity * cavity;
-        double sinAzimuth;
-        double cosAzimuth;
-        double perpenDistance;
-    };
+
     std::list<CavityCrossData> cavCrossDatas;
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
         if(((*sindex)->first) == "CAVITY") {
