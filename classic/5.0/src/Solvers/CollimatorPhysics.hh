@@ -97,6 +97,7 @@ private:
     bool incoll_m;
     Point  geom_m[5];
 
+    double time_m;
 
     std::vector<PART> locParts_m;
   

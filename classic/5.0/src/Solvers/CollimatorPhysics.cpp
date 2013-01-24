@@ -60,7 +60,8 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     I_m(0.0),
     n_m(0.0),
     N_m(0),
-    incoll_m(false) {
+    incoll_m(false),
+    time_m(0.0) {
     rGen_m = new RANLIB_class(115314159, 4);
     // initialize DataSink with H5Part output enabled
     bool doH5 = false;
@@ -145,6 +146,8 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     while(dT_m > 1.01e-12)
         dT_m = dT_m / 10;
     N_m = bunch.getdT() / dT_m;
+
+    time_m = bunch.getT();
    
     /*
       Because this is not propper set in the Component class when calling in the Constructor
@@ -161,6 +164,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         coll = dynamic_cast<Collimator *>(element_ref_m);
         coll->getDimensions(Begin_m, End_m);
     }
+
     for(int ii = 0; ii < N_m; ++ii) {
         for(unsigned int i = 0; i < locParts_m.size(); ++i) {
             if(locParts_m[i].label != -1) {
@@ -172,12 +176,12 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
 		if(collshape_m == "CCollimator") 
                   incoll_m = checkInColl(R,cdt);    // fixme this needs to go to the Collimator
-	       	else if (collshape_m == "COLLIMATOR")
-		  incoll_m = coll->isInColl(R,P,cdt/sqrt(1.0  + dot(P, P)));
                 else if (collshape_m == "DEGRADER") {
       		  incoll_m = deg->isInMaterial(R(2));
 		}
-	
+		else
+		  incoll_m = coll->isInColl(R,P,cdt/sqrt(1.0  + dot(P, P)));
+
 		if(incoll_m) {
                    
                     EnergyLoss(Eng, pdead, dT_m);
@@ -567,7 +571,7 @@ void CollimatorPhysics::print(Inform &msg){
     //   << " a= " << a_m << " (m) b= " << b_m << " (m)" << endl;
     //msg << "dTm= " << std::setw(8) << std::setprecision(3) << dT_m << " sub-timesteps " << N_m << endl;
     
-    msg << "Coll/Deg statistics: total particles in material " << locParts_m.size() 
+    msg << "Coll/Deg statistics:  t= " << time_m << " (s) total particles in material " << locParts_m.size() 
         << " new hits " << bunchToMatStat_m << " redifused " << redifusedStat_m 
         << " stopped " << stoppedPartStat_m << endl;
     
