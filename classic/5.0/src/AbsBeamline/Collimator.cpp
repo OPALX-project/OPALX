@@ -196,12 +196,16 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
       }
       return !alive;
     } else if(isASlit_m) {
-      return (R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize());
+        return (R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize());
+    } else if (isARColl_m) {
+        return (R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize());
+    } else if(isAWire_m) {
+        ERRORMSG("Not yet implemented");
     } else {            
-      // case of an elliptic collimator
-      const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
-      const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));                                 
-      return (trm1 + trm2) > 1.0;
+        // case of an elliptic collimator
+        const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
+        const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));                                 
+        return (trm1 + trm2) > 1.0;
     }
   }
   return false;
