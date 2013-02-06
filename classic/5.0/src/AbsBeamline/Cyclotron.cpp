@@ -1004,9 +1004,9 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
     *gmsg << "* rescaling of the fields with factor: " << BP.Bfact << endl;
 
     int count = 0;
-    if(Ippl::getNodes() == 1) {
+    if((Ippl::getNodes()) == 1 && Options::info) {
         fstream fp;
-        fp.open("gnu.out", ios::out);
+        fp.open("data/gnu.out", ios::out);
 
         for(int r = 0; r < Bfield.nrad; r++) {
             for(int k = 0; k < Bfield.ntet; k++) {
@@ -1090,24 +1090,24 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
     *gmsg << "* rescaling of the fields with factor: " << BP.Bfact << endl;
 
     fstream fp;
-    if(Ippl::getNodes() == 1)
-        fp.open("gnu.out", ios::out);
-
+    if((Ippl::getNodes()) == 1 && Options::info) 
+      fp.open("data/gnu.out", ios::out);
+	
     double tmp;
     int count = 0;
 
     for(int r = 0; r < Bfield.nrad; r++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &tmp));   // over read
-        for(int k = 0; k < Bfield.ntetS; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.bfld[idx(r, k)])));
-            Bfield.bfld[idx(r, k)] *= BP.Bfact;
-            if(Ippl::getNodes() == 1)
-                fp << BP.rmin + (r * BP.delr) << " \t " << k*(BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(r, k)] << " idx= " << idx(r, k)  << endl;
-            count++;
-        }
+      CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &tmp));   // over read
+      for(int k = 0; k < Bfield.ntetS; k++) {
+	CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.bfld[idx(r, k)])));
+	Bfield.bfld[idx(r, k)] *= BP.Bfact;
+	if((Ippl::getNodes()) == 1 && Options::info)
+	  fp << BP.rmin + (r * BP.delr) << " \t " << k*(BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(r, k)] << " idx= " << idx(r, k)  << endl;
+	count++;
+      }
     }
-    if(Ippl::getNodes() == 1)
-        fp.close();
+    if((Ippl::getNodes()) == 1 && Options::info)
+      fp.close();
     fclose(f);
     *gmsg << "* Field Map read successfully nelem= " << count << endl << endl;
 }
@@ -1169,33 +1169,33 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
         }
     }
 
-    if(Ippl::getNodes() == 1) {
-        fstream fp1, fp2;
-        fp1.open("gnu.out", ios::out);
-        fp2.open("eb.out", ios::out);
-        for(int i = 0; i < Bfield.nrad; i++) {
-            for(int k = 0; k < Bfield.ntet; k++) {
-                fp1 << BP.rmin + (i * BP.delr) << " \t " << k*(BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(i, k)] << endl;
-
-                Vector_t tmpR = Vector_t (BP.rmin + (i * BP.delr), 0.0, k * (BP.tetmin + BP.dtet));
-                Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                tmpR /= 1000.0; // -> mm to m
-                vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
-                vector<double>::const_iterator rffi    = rffrequ_m.begin();
-                vector<double>::const_iterator rfphii  = rfphi_m.begin();
-                vector<double>::const_iterator escali  = escale_m.begin();
-                for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali) {
-                    Vector_t E(0.0, 0.0, 0.0), B(0.0, 0.0, 0.0);
-                    if(!(*fi)->getFieldstrength(tmpR, tmpE, tmpB)) {
-                        tmpE += E;
-                        tmpB -= B;
-                    }
-                }
-                fp2 << tmpR  <<  " \t E= " << tmpE << "\t B= " << tmpB << endl;
-            }
-        }
-        fp1.close();
-        fp2.close();
+    if((Ippl::getNodes()) == 1 && Options::info) {
+      fstream fp1, fp2;
+      fp1.open("data/gnu.out", ios::out);
+      fp2.open("data/eb.out", ios::out);
+      for(int i = 0; i < Bfield.nrad; i++) {
+	for(int k = 0; k < Bfield.ntet; k++) {
+	  fp1 << BP.rmin + (i * BP.delr) << " \t " << k*(BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(i, k)] << endl;
+	  
+	  Vector_t tmpR = Vector_t (BP.rmin + (i * BP.delr), 0.0, k * (BP.tetmin + BP.dtet));
+	  Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+	  tmpR /= 1000.0; // -> mm to m
+	  vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
+	  vector<double>::const_iterator rffi    = rffrequ_m.begin();
+	  vector<double>::const_iterator rfphii  = rfphi_m.begin();
+	  vector<double>::const_iterator escali  = escale_m.begin();
+	  for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali) {
+	    Vector_t E(0.0, 0.0, 0.0), B(0.0, 0.0, 0.0);
+	    if(!(*fi)->getFieldstrength(tmpR, tmpE, tmpB)) {
+	      tmpE += E;
+	      tmpB -= B;
+	    }
+	  }
+	  fp2 << tmpR  <<  " \t E= " << tmpE << "\t B= " << tmpB << endl;
+	}
+      }
+      fp1.close();
+      fp2.close();
     }
 
     fclose(f);
