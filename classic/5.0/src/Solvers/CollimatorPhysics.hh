@@ -46,7 +46,7 @@ public:
     ~CollimatorPhysics();
     void Material();
     void EnergyLoss(double &Eng, bool &pdead);
-    void CoulombScat(Vector_t &R, Vector_t &P, double &deltat, double scalefactor);
+    void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
     void CoulombScat();
     void EnergyLoss(double &Eng, bool &pdead, double &deltat);
     void  Rot(Vector_t &P, Vector_t Prot, double normP);
@@ -105,7 +105,7 @@ private:
     int  checkPoint( const double & x, const double & y );
     LossDataSink *lossDs_m;
 
-    bool checkInColl(Vector_t R,double scalefactor);
+    bool checkInColl(Vector_t R);
 
     void copyFromBunch(PartBunch &bunch);
 

@@ -1991,7 +1991,7 @@ void ParallelTTracker::computeExternalFields() {
             surfaceStatus_m = true;
         }
         reduce(sphysSection, sphysSection, OpMaxAssign());
-        if (sphys_m == NULL)
+      //  if (sphys_m==NULL)
             sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
         
         if(sphys_m == NULL) {
