@@ -94,18 +94,15 @@ void Probe::accept(BeamlineVisitor &visitor) const {
 }
 
 bool Probe::apply(const size_t &i, const double &t, double E[], double B[]) {
-    *gmsg << "Probe1" << endl;
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return apply(i, t, Ev, Bv);
 }
 
 bool Probe::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    *gmsg << "Probe2" << endl;
     return false;
 }
 
 bool Probe::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    *gmsg << "Probe3" << endl;
     return false;
 }
 
@@ -116,6 +113,7 @@ void Probe::initialise(PartBunch *bunch, double &startField, double &endField, c
 }
 
 void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
+    INFOMSG("Initialize probe" << endl);
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
@@ -123,7 +121,8 @@ void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
 }
 
 void Probe::finalise() {
-    *gmsg << "Finalize probe" << endl;
+    lossDs_m->save();
+    INFOMSG("Finalize probe" << endl);
 }
 
 bool Probe::bends() const {
