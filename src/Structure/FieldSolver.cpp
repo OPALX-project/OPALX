@@ -87,7 +87,7 @@ FieldSolver::FieldSolver():
     //FFT ONLY:
     itsAttr[BCFFTX] = Attributes::makeString("BCFFTX", "Boundary conditions in x: open, dirichlet (box) ");
     itsAttr[BCFFTY] = Attributes::makeString("BCFFTY", "Boundary conditions in y: open, dirichlet (box) ");
-    itsAttr[BCFFTT] = Attributes::makeString("BCFFTT", "Boundary conditions in z(t): open, parallel");
+    itsAttr[BCFFTT] = Attributes::makeString("BCFFTT", "Boundary conditions in z(t): open, periodoc");
 
     itsAttr[GREENSF]  = Attributes::makeString("GREENSF", "Which Greensfunction to be used [STANDARD | INTEGRATED]", "INTEGRATED");
     itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
@@ -195,14 +195,13 @@ void FieldSolver::initCartesianFields() {
 
 void FieldSolver::initSolver(PartBunch &b) {
     itsBunch_m = &b;
+     string bcx = Attributes::getString(itsAttr[BCFFTX]);
+     string bcy = Attributes::getString(itsAttr[BCFFTY]);
+     string bcz = Attributes::getString(itsAttr[BCFFTT]);
 
-    if(Attributes::getString(itsAttr[FSTYPE]) == "FFT" || Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
+     if(Attributes::getString(itsAttr[FSTYPE]) == "FFT" || Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
 
-        string bcx = Attributes::getString(itsAttr[BCFFTX]);
-        string bcy = Attributes::getString(itsAttr[BCFFTY]);
-        string bcz = Attributes::getString(itsAttr[BCFFTT]);
-
-        bool sinTrafo = ((bcx == string("DIRICHLET")) && (bcy == string("DIRICHLET")) && (bcz == string("DIRICHLET")));
+	bool sinTrafo = ((bcx == string("DIRICHLET")) && (bcy == string("DIRICHLET")) && (bcz == string("DIRICHLET")));
         if(sinTrafo) {
             std::cout << "FFTBOX ACTIVE" << std::endl;
             //we go over all geometries and add the Geometry Elements to the geometry list
@@ -224,13 +223,10 @@ void FieldSolver::initSolver(PartBunch &b) {
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
             fsType_m = "FFTBOX";
         } else {
-            solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]));
+            solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
             fsType_m = "FFT";
         }
-
-
-
 
     } else if(Attributes::getString(itsAttr[FSTYPE]) == "MG") {
 #ifdef HAVE_ML_SOLVER
@@ -255,7 +251,7 @@ void FieldSolver::initSolver(PartBunch &b) {
 #else
         INFOMSG("MG Solver not enabled! Please recompile OPAL with --with-ml-solver" << endl);
         INFOMSG("switching to FFT solver..." << endl);
-        solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]));
+        solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
         fsType_m = "FFT";
 #endif
     } else if(Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
@@ -274,9 +270,14 @@ bool FieldSolver::hasValidSolver() {
 }
 
 Inform &FieldSolver::printInfo(Inform &os) const {
+  std::string fsType;
+  if (Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC"))
+	fsType = Attributes::getString(itsAttr[FSTYPE])+"-zPeriodic";
+      else
+	fsType = Attributes::getString(itsAttr[FSTYPE]);
     os << "* ************* F I E L D S O L V E R ********************************************** " << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
-       << "* TYPE         " << Attributes::getString(itsAttr[FSTYPE]) << '\n'
+       << "* TYPE         " << fsType << '\n'
        << "* N-PROCESSORS " << Ippl::getNodes() << '\n'
        << "* MX           " << Attributes::getReal(itsAttr[MX])   << '\n'
        << "* MY           " << Attributes::getReal(itsAttr[MY])   << '\n'

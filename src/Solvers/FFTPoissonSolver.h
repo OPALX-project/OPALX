@@ -40,7 +40,7 @@ public:
     // constructor and destructor
     FFTPoissonSolver(PartBunch &bunch, std::string greensFuntion);
 
-    FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction);
+    FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction, std::string bcz);
 
     ~FFTPoissonSolver();
 
@@ -132,6 +132,8 @@ private:
     PartBunch *itsBunch_m;
 
     std::string greensFunction_m;
+
+    std::string bcz_m;
 
     IpplTimings::TimerRef GreensFunctionTimer_m;
 

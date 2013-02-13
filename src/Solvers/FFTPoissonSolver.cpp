@@ -46,7 +46,7 @@ struct SpecializedGreensFunction<3> {
 // constructor
 
 
-FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction):
+FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction, std::string bcz):
     mesh_m(mesh),
     layout_m(fl),
     mesh2_m(nullptr),
@@ -57,6 +57,9 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     layout4_m(nullptr),
     greensFunction_m(greensFunction) {
     int i;
+    
+    bcz_m = (bcz==std::string("periodoc"));   // for DC beams, the z direction has periodic boundary conditions
+	
     domain_m = layout_m->getDomain();
 
     // For efficiency in the FFT's, we can use a parallel decomposition
@@ -188,9 +191,6 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
         nr_m[i] = domain_m[i].length();
         domain2_m[i] = Index(2 * nr_m[i] + 1);
     }
-
-
-
     // create double sized mesh and layout objects for the use in the FFT's
     mesh2_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
     layout2_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_m, decomp));
