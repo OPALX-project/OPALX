@@ -189,11 +189,13 @@ public:
 
     void setBCAllOpen();
 
+    void setBCForDCBeam();
+
     void boundp();
-    void boundpNoRep();
 
     /** delete particles which are too far away from the center of beam*/
     void boundp_destroy();
+
     /** This is only temporary in order to get the collimator and pepperpot workinh */
     size_t boundp_destroyT();
 
@@ -638,6 +640,10 @@ private:
     std::unique_ptr<double[]> globalPartPerNode_m;
 
     Distribution *dist_m;
+
+ // flag to tell if we are a DC-beam
+    bool dcBeam_m;
+
 
 };
 

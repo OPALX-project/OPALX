@@ -88,7 +88,7 @@ PartBunch::PartBunch(const PartData *ref):
     Dy_m(0.0),
     DDx_m(0.0),
     DDy_m(0.0),
-    hr_m(.0),
+    hr_m(-1.0),
     nr_m(0),
     fs_m(nullptr),
     couplingConstant_m(0.0),
@@ -112,7 +112,8 @@ PartBunch::PartBunch(const PartData *ref):
     SteptoLastInj_m(0),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
-    dist_m(nullptr) {
+    dist_m(nullptr),
+    dcBeam_m(false) {
     addAttribute(X);
     addAttribute(P);
     addAttribute(Q);
@@ -208,7 +209,8 @@ PartBunch::PartBunch(const PartBunch &rhs):
     SteptoLastInj_m(rhs.SteptoLastInj_m),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
-    dist_m(nullptr) {
+    dist_m(nullptr),
+    dcBeam_m(rhs.dcBeam_m) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
 }
 
@@ -245,7 +247,7 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     Dy_m(0.0),
     DDx_m(0.0),
     DDy_m(0.0),
-    hr_m(.0),
+    hr_m(-1.0),
     nr_m(0),
     fs_m(nullptr),
     couplingConstant_m(0.0),
@@ -269,7 +271,8 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     SteptoLastInj_m(0),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
-    dist_m(nullptr) {
+    dist_m(nullptr),
+    dcBeam_m(false) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):" << endl);
 }
 
@@ -1183,7 +1186,25 @@ void PartBunch::setBCAllOpen() {
         vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
         getBConds()[i] = ParticleNoBCond;
     }
+    dcBeam_m=false;
 }
+
+void PartBunch::setBCForDCBeam() {
+    for(int i = 0; i < 2 * 3; ++i) {
+        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+        getBConds()[i] = ParticleNoBCond;
+    }
+    
+    // z-direction
+    bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
+    this->getBConds()[4] = ParticlePeriodicBCond;
+    bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
+    this->getBConds()[5] = ParticlePeriodicBCond;
+    dcBeam_m=true;
+    INFOMSG("BC set for DC-Beam" << endl);
+}
+
 
 void PartBunch::boundp() {
     /*
@@ -1227,43 +1248,6 @@ void PartBunch::boundp() {
 
     R.resetDirtyFlag();
 
-    IpplTimings::stopTimer(boundpTimer_m);
-}
-
-void PartBunch::boundpNoRep() {
-    /*
-      Assume rmin_m < 0.0
-     */
-    Vector_t len;
-    const int dimIdx = 3;
-    IpplTimings::startTimer(boundpTimer_m);
-
-    NDIndex<3> domain = getFieldLayout().getDomain();
-    for(int i = 0; i < Dim; i++)
-        nr_m[i] = domain[i].length();
-
-    get_bounds(rmin_m, rmax_m);
-    len = rmax_m - rmin_m;
-
-    for(int i = 0; i < dimIdx; i++) {
-        rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
-        rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
-        hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-    }
-
-    // rescale mesh
-    getMesh().set_meshSpacing(&(hr_m[0]));
-    getMesh().set_origin(rmin_m);
-
-    rho_m.initialize(getMesh(),
-                     getFieldLayout(),
-                     GuardCellSizes<Dim>(1),
-                     bc_m);
-    eg_m.initialize(getMesh(),
-                    getFieldLayout(),
-                    GuardCellSizes<Dim>(1),
-                    vbc_m);
-    update();
     IpplTimings::stopTimer(boundpTimer_m);
 }
 
