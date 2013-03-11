@@ -7,6 +7,7 @@ set (_SRCS
   Timer.cpp
   TpsWerrf.cpp
   Truncate.cpp
+  OpalRingSection.cpp
   OpalSection.cpp
   OpalField.cpp
   )

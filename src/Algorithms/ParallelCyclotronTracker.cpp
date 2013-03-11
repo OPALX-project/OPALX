@@ -38,11 +38,13 @@
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
+#include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
+#include "Elements/OpalRing.h"
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
@@ -102,7 +104,8 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
-    initialTotalNum_m(0) {
+    initialTotalNum_m(0),
+    opalRing_m(NULL) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -131,7 +134,8 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch.getLocalNum()),
-    initialTotalNum_m(bunch.getTotalNum()) {
+    initialTotalNum_m(bunch.getTotalNum()),
+    opalRing_m(NULL) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsBunch = &bunch;
     itsDataSink = &ds;
@@ -218,7 +222,54 @@ void ParallelCyclotronTracker::closeFiles() {
     outfThetaEachTurn_m.close();
 }
 
+/** 
+ *
+ * @param ring
+ */
+void ParallelCyclotronTracker::visitOpalRing(const OpalRing &ring) {
+    *gmsg << "Adding OpalRing" << endl;
+    if (opalRing_m != NULL) {
+        delete opalRing_m;
+    }
+    opalRing_m = dynamic_cast<OpalRing*>(ring.clone());
+    myElements.push_back(opalRing_m);
+    opalRing_m->initialise(itsBunch);
 
+    referenceR = opalRing_m->getBeamRInit();
+    referencePr = opalRing_m->getBeamPRInit();
+    referenceTheta = opalRing_m->getBeamPhiInit();
+    if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+        throw OpalException("Error in ParallelCyclotronTracker::visitOpalRing",
+                            "PHIINIT is out of [-180, 180)!");
+    }
+    referencePz = 0.0;
+    referencePtot =  itsReference.getGamma() * itsReference.getBeta();
+    referencePt = sqrt(referencePtot * referencePtot
+                     - referencePr * referencePr);
+    if(referencePtot < 0.0)
+        referencePt *= -1.0;
+    sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
+    cosRefTheta_m = cos(referenceTheta / 180.0 * pi);
+
+    double BcParameter[8];
+    for(int i = 0; i < 8; i++) BcParameter[i] = 0.0;
+    buildupFieldList(BcParameter, "OPALRING", opalRing_m);
+
+    // Finally print some diagnostic
+    *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
+    *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
+    *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
+    *gmsg << "* Total reference momentum   = " << referencePtot * 1000.0
+          << " [MCU]" << endl;
+    *gmsg << "* Reference azimuthal momentum  = " << referencePt * 1000.0
+          << " [MCU]" << endl;
+    *gmsg << "* Reference radial momentum     = " << referencePr * 1000.0
+          << " [MCU]" << endl;
+    *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry "
+          << endl;
+    *gmsg << "* Harmonic number h= " << opalRing_m->getHarmonicNumber() << " "
+          << endl;
+}
 
 /**
  *
@@ -469,6 +520,7 @@ void ParallelCyclotronTracker::visitMonitor(const Monitor &corr) {
     //   applyDrift(flip_s * corr.getElementLength());
 }
 
+
 /**
  *
  *
@@ -485,7 +537,6 @@ void ParallelCyclotronTracker::visitMultipole(const Multipole &mult) {
  * @param prob
  */
 void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
-
     *gmsg << "* -----------  Probe -------------------------------" << endl;
     Probe *elptr = dynamic_cast<Probe *>(prob.clone());
     myElements.push_back(elptr);
@@ -531,6 +582,15 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
 void ParallelCyclotronTracker::visitRBend(const RBend &bend) {
     *gmsg << "In RBend; L= " << bend.getElementLength() << " however the element is missing " << endl;
     myElements.push_back(dynamic_cast<RBend *>(bend.clone()));
+}
+
+void ParallelCyclotronTracker::visitSBend3D(const SBend3D &bend) {
+    *gmsg << "Adding SBend3D" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(bend);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitSBend3D",
+                      "Need to define a RINGDEFINITION to use SBend3D element");
 }
 
 /**
@@ -791,7 +851,7 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], string Ele
     (localpair->second).second = elptr;
 
     // always put cyclotron as the first element in the list.
-    if(ElementType == "CYCLOTRON") {
+    if(ElementType == "OPALRING") {
         sindex = FieldDimensions.begin();
     } else {
         sindex = FieldDimensions.end();
@@ -831,7 +891,6 @@ void ParallelCyclotronTracker::execute() {
 
     step_m = 0;
     restartStep0_m = 0;
-
     // record how many bunches has already been injected. ONLY FOR MPM
     BunchCount_m = itsBunch->getNumBunch();
 
@@ -839,6 +898,8 @@ void ParallelCyclotronTracker::execute() {
     BinCount_m = BunchCount_m;
 
     itsBeamline->accept(*this);
+    if (opalRing_m != NULL)
+        opalRing_m->lockRing();
 
     // display the selected elements
     *gmsg << "-----------------------------" << endl;
@@ -898,13 +959,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
     // time steps interval between bunches for multi-bunch simulation.
     const int stepsPerTurn = itsBunch->getStepsPerTurn();
 
-    beamline_list::iterator sindex = FieldDimensions.begin();
-    Cyclotron *elptr = dynamic_cast<Cyclotron *>(((*sindex)->second).second);
-    if (elptr == NULL)
-        throw OpalException("ParallelCyclotronTracker::Tracker_LF()",
-                            "The first item in the FieldDimensions list does not seem to be a cyclotron element");
-
-    const double harm = elptr-> getCyclHarm();
+    const double harm = getHarmonicNumber();
 
     // load time
     const double dt = itsBunch->getdT() * 1.0e9 * harm; //[s]-->[ns]
@@ -1444,12 +1499,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     // decide how many energy bins. ONLY FOR MPM
     BinCount_m = BunchCount_m;
 
-    beamline_list::iterator sindex = FieldDimensions.begin();
-    Cyclotron *elptr = dynamic_cast<Cyclotron *>(((*sindex)->second).second);
-    if (elptr == NULL)
-        throw OpalException("ParallelCyclotronTracker::Tracker_LF()",
-                            "The first item in the FieldDimensions list does not seem to be a cyclotron element");
-    const double harm = elptr-> getCyclHarm();
+    const double harm = getHarmonicNumber();
 
     // load time
     double t  = itsBunch->getT() * 1.0e9;
@@ -1548,7 +1598,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
         if(initialTotalNum_m > 2) {
-
             // single particle dumping
             if(step_m % SinglePartDumpFreq == 0) { // dump
                 IpplTimings::startTimer(DumpTimer_m);
@@ -1645,7 +1694,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             }
             //end dump
             Ippl::Comm->barrier();
-
             // bunch injection
             if(numBunch_m > 1) {
                 if((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
@@ -2041,7 +2089,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             bool flagNeedUpdate = deleteParticle(); 
             if(itsBunch->weHaveBins() && flagNeedUpdate)
               itsBunch->resetPartBinID2(eta_m);
-            
 	    // recalculate bingamma and reset the BinID for each particles according to its current gamma
 	    if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
 	      itsBunch->resetPartBinID2(eta_m);
@@ -2287,12 +2334,13 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             // in order to sychronize the dump step for multi-bunch and single
             // bunch for compare with each other during post-process phase.
             if(!(Options::psDumpLocalFrame)) {
-
+                /* ROGERS: BUG - THIS IO ROUTINE CAUSES FACTOR 100 SLOW DOWN IN PROCESSING TIME!!!
                 itsBunch->R /= Vector_t(1000.0); // mm --> m
                 lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
                       << step_m + 1 << " T= " << t << " [nS]" << endl;
+                */
                 //----------------------------dump in local frame-------------------------------------//
             } else {
 
@@ -2316,7 +2364,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         }
         if(!(step_m + 1 % 1000))
             *gmsg << "Step " << step_m + 1 << endl;
-
     }// end for: the integration is DONE after maxSteps_m steps!
 
     // some post-integration works
@@ -2709,18 +2756,23 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
     return true;
 }
 
+double ParallelCyclotronTracker::getHarmonicNumber() const {
+    if (opalRing_m != NULL)
+        return opalRing_m->getHarmonicNumber();
+    Cyclotron* elcycl = dynamic_cast<Cyclotron*>(((*FieldDimensions.begin())->second).second);
+    if (elcycl != NULL)
+        return elcycl->getCyclHarm();
+    throw OpalException("ParallelCyclotronTracker::Tracker_MTS()",
+             std::string("The first item in the FieldDimensions list does not ")
+            +std::string("seem to be an OpalRing or a Cyclotron element"));
+}
+
 void ParallelCyclotronTracker::Tracker_MTS() {
 	IpplTimings::startTimer(IpplTimings::getTimer("MTS"));
 	IpplTimings::startTimer(IpplTimings::getTimer("MTS-Various"));
     Inform *gmsgAll;
     gmsgAll = new Inform("CycTracker MTS", INFORM_ALL_NODES);
-    beamline_list::iterator sindex = FieldDimensions.begin();
-    Cyclotron *elptr = dynamic_cast<Cyclotron *>(((*sindex)->second).second);
-    if (elptr == NULL)
-        throw OpalException("ParallelCyclotronTracker::Tracker_LF()",
-                            "The first item in the FieldDimensions list does not seem to be a cyclotron element");
-
-    const double harm = elptr->getCyclHarm();
+    const double harm = getHarmonicNumber();
     const double dt = itsBunch->getdT() * harm;
     if(numBunch_m > 1) {
         *gmsg << "Time interval between neighbour bunches is set to " << itsBunch->getStepsPerTurn() * dt * 1.0e9 << "[ns]" << endl;

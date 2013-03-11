@@ -5,6 +5,7 @@
 #include "Utility/IpplInfo.h"
 #include "Utilities/Options.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/Vektor.h"
 
 #include <string>
 #include <fstream>
@@ -19,7 +20,6 @@
   - In the destructor we do ALL the file handling
   - h5hut_mode_m defines h5hut or ASCII
  */
-
 class LossDataSink {
  public:
     LossDataSink();

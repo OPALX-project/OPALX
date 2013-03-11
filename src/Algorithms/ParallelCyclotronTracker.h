@@ -29,6 +29,8 @@ class BMultipoleField;
 class PartBunch;
 class PlanarArcGeometry;
 class SurfacePhysicsHandler;
+class OpalRing;
+class SBend3D;
 
 // Class ParallelCyclotronTracker
 // ------------------------------------------------------------------------
@@ -67,6 +69,9 @@ public:
                                       const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, int timeIntegrator);
 
     virtual ~ParallelCyclotronTracker();
+
+    /// Apply the algorithm to an OpalRing
+    virtual void visitOpalRing(const OpalRing &ring);
 
     /// Apply the algorithm to a Cyclotorn
     virtual void visitCyclotron(const Cyclotron &cycl);
@@ -115,6 +120,9 @@ public:
 
     /// Apply the algorithm to a SBend.
     virtual void visitSBend(const SBend &);
+
+    /// Apply the algorithm to a SBend3D.
+    virtual void visitSBend3D(const SBend3D &);
 
     /// Apply the algorithm to a Separator.
     virtual void visitSeparator(const Separator &);
@@ -362,6 +370,13 @@ private:
     void initDistInGlobalFrame();
 
     void checkNumPart(std::string s);
+
+    // we store a pointer explicitly to the OpalRing
+    OpalRing* opalRing_m;
+
+    // If OpalRing is defined take the harmonic number from OpalRing; else use
+    // cyclotron
+    double getHarmonicNumber() const;
 
 };
 

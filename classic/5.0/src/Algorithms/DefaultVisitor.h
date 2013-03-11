@@ -51,7 +51,6 @@ public:
     /// Apply the algorithm to the top-level beamline.
     virtual void execute();
 
-
     /// Apply the algorithm to a beam-beam.
     virtual void visitBeamBeam(const BeamBeam &);
 
@@ -63,6 +62,9 @@ public:
 
     /// Apply the algorithm to an cyclotron
     virtual void visitCyclotron(const Cyclotron &);
+
+    /// Apply the algorithm to an opal ring..
+    virtual void visitOpalRing(const OpalRing &);
 
     /// Apply the algorithm to a corrector.
     virtual void visitCorrector(const Corrector &);
@@ -108,6 +110,9 @@ public:
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
+
+    /// Apply the algorithm to a sector bend.
+    virtual void visitSBend3D(const SBend3D &);
 
     /// Apply the algorithm to a separator.
     virtual void visitSeparator(const Separator &);

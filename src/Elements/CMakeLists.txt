@@ -25,7 +25,10 @@ set (_SRCS
   OpalQuadrupole.cpp
   OpalRBend.cpp
   OpalRCollimator.cpp
+  OpalRingDefinition.cpp
+  OpalRing.cpp
   OpalSBend.cpp
+  OpalSBend3D.cpp
   OpalSeparator.cpp
   OpalSeptum.cpp
   OpalSextupole.cpp

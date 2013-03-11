@@ -270,7 +270,7 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
 
   if (zpos > maxz_m || zpos < minz_m || rpos > maxr_m || rpos < minr_m){
       flagNeedUpdate = true;
-      Inform gmsgALL("OPAL ", INFORM_ALL_NODES);    
+      Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
       gmsgALL<<getName() << ": particle "<< id <<" out of the global aperture of cyclotron!"<< endl;
 
   } else{

@@ -14,7 +14,7 @@ typedef std::vector<Component *> CompVec;
 
 class OpalSection {
 public:
-    OpalSection(CompVec &, const double &, const double &);
+    OpalSection(const CompVec &, const double &, const double &);
     ~OpalSection();
 
     double getStart(const double &, const double &) const;

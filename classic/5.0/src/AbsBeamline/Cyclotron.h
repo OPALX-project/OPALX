@@ -106,7 +106,6 @@ struct BPositions {
 //  This class defines the abstract interface for a Cyclotron.
 
 class Cyclotron: public Component {
-
 public:
 
     /// Constructor with given name.

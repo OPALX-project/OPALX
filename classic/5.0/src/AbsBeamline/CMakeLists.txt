@@ -24,6 +24,7 @@ set (_SRCS
   TravelingWave.cpp
   RFQuadrupole.cpp
   SBend.cpp
+  SBend3D.cpp
   Separator.cpp
   Septum.cpp
   Solenoid.cpp

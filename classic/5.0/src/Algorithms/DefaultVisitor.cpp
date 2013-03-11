@@ -40,6 +40,7 @@
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
+#include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
@@ -58,6 +59,8 @@
 #include "ComponentWrappers/RBendWrapper.h"
 #include "ComponentWrappers/SBendWrapper.h"
 #include "ComponentWrappers/CyclotronWrapper.h"
+
+#include "Elements/OpalRing.h"
 
 // Class DefaultVisitor
 // ------------------------------------------------------------------------
@@ -138,6 +141,11 @@ void DefaultVisitor::visitMultipole(const Multipole &mult) {
 }
 
 
+void DefaultVisitor::visitOpalRing(const OpalRing &ring) {
+   applyDefault(ring);
+}
+
+
 void DefaultVisitor::visitPatch(const Patch &patch) {
     applyDefault(patch);
 }
@@ -167,6 +175,11 @@ void DefaultVisitor::visitRFQuadrupole(const RFQuadrupole &quad) {
 
 
 void DefaultVisitor::visitSBend(const SBend &bend) {
+    applyDefault(bend);
+}
+
+
+void DefaultVisitor::visitSBend3D(const SBend3D &bend) {
     applyDefault(bend);
 }
 

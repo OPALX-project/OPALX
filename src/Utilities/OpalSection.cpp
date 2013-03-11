@@ -7,7 +7,7 @@
 
 extern Inform *gmsg;
 
-OpalSection::OpalSection(CompVec &elements, const double &start, const double &end):
+OpalSection::OpalSection(const CompVec &elements, const double &start, const double &end):
     elements_m(elements.begin(), elements.end()),
     start_m(start),
     end_m(end),
@@ -122,7 +122,6 @@ void OpalSection::print(Inform &msg) const {
         if (hasSurfacePhysics())
             mymsg  << " has surface physics ";
         msg << mymsg.str() << closure.substr(mymsg.str().length());
-
     }
     for(CompVec::const_iterator clit = elements_m.begin(); clit != elements_m.end(); ++ clit) {
         msg << (*clit)->getName() << '\n';

@@ -172,7 +172,7 @@ unsigned long OpalBeamline::getFieldAt(const unsigned int &index, const Vector_t
     OpalSection &section = getSection(sindex);
     setStatus(sindex, true);
     if(pos(2) < section.getStart(pos(0), pos(1)) || pos(2) > section.getEnd(pos(0), pos(1))) return 0x00;
-        
+
     const CompVec &elements = section.getElements();
     for(CompVec::const_iterator elit = elements.begin(); elit != elements.end(); ++ elit) {
         if((*elit)->apply(index, t, E, B)) {

@@ -107,6 +107,7 @@
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalRCollimator.h"
 #include "Elements/OpalSBend.h"
+#include "Elements/OpalSBend3D.h"
 #include "Elements/OpalSeparator.h"
 #include "Elements/OpalSeptum.h"
 #include "Elements/OpalSextupole.h"
@@ -121,6 +122,7 @@
 #include "Elements/OpalParallelPlate.h"
 #include "Elements/OpalCyclotronValley.h"
 #include "Elements/OpalStripper.h"
+#include "Elements/OpalRingDefinition.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -222,6 +224,7 @@ namespace Configure {
         OPAL->create(new OpalRBend());
         OPAL->create(new OpalRCollimator());
         OPAL->create(new OpalSBend());
+        OPAL->create(new OpalSBend3D());
         OPAL->create(new OpalSeparator());
         OPAL->create(new OpalSeptum());
         OPAL->create(new OpalSextupole());
@@ -238,6 +241,7 @@ namespace Configure {
         OPAL->create(new OpalStripper());
         OPAL->create(new Line());
         OPAL->create(new Sequence());
+        OPAL->create(new OpalRingDefinition());
     }
 
 

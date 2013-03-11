@@ -53,6 +53,7 @@ class RFCavity;
 class TravelingWave;
 class RFQuadrupole;
 class SBend;
+class SBend3D;
 class Cyclotron;
 class Separator;
 class Septum;
@@ -60,6 +61,7 @@ class Solenoid;
 class ParallelPlate;
 class CyclotronValley;
 class Stripper;
+class OpalRing;
 // Integrators.
 class Integrator;
 class MapIntegrator;
@@ -117,6 +119,9 @@ public:
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &) = 0;
 
+    /// Apply the algorithm to an OpalRing
+    virtual void visitOpalRing(const OpalRing &) = 0;
+
     /// Apply the algorithm to a cyclotron.
     virtual void visitCyclotron(const Cyclotron &) = 0;
 
@@ -152,6 +157,9 @@ public:
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &) = 0;
+
+    /// Apply the algorithm to a Sector Bend with 3D field map.
+    virtual void visitSBend3D(const SBend3D &) = 0;
 
     /// Apply the algorithm to an electrostatic separator.
     virtual void visitSeparator(const Separator &) = 0;
