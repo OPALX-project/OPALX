@@ -788,7 +788,7 @@ void ParallelTTracker::updateAllRFElements(double phiShift) {
         }
     }
     msg << "-------------------------------------------------------------------------------------\n"
-    << endl;
+	<< endl;
 }
 
 
@@ -839,56 +839,62 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
     double zStop = itsOpalBeamline_m.calcBeamlineLenght();
     
     msg << "Preparation done zstop= " << zStop << endl;
-    
-    
+   
+    if(Ippl::myNode() == 0) 
+      itsBunch->create(1);
+    itsBunch->update();
+
     if(Ippl::myNode() == 0) {
-        itsBunch->create(1);
-        itsBunch->R[0] = iniR;
-        itsBunch->P[0] = iniP;
-        itsBunch->Bin[0] = 0;
-        itsBunch->Q[0] = itsBunch->getChargePerParticle();
-        itsBunch->PType[0] = 0;
-        itsBunch->LastSection[0] = 0;
+      itsBunch->R[0] = iniR;
+      itsBunch->P[0] = iniP;
+      itsBunch->Bin[0] = 0;
+      itsBunch->Q[0] = itsBunch->getChargePerParticle();
+      itsBunch->PType[0] = 0;
+      itsBunch->LastSection[0] = 0;
         
-		RefPartP_suv_m = iniP;
-		RefPartR_suv_m = iniR;
-		updateSpaceOrientation(false);
-		RefPartP_suv_m = itsBunch->P[0];
-		
-        executeAutoPhase(Options::autoPhase, zStop);
-        itsBunch->destroy(1, 0);
+      RefPartP_suv_m = iniP;
+      RefPartR_suv_m = iniR;
+      msg << "AP start " << zStop << endl;
+      //      updateSpaceOrientation(false);   problem with np>1, do we need this?
+      RefPartP_suv_m = itsBunch->P[0];
+
+      executeAutoPhase(Options::autoPhase, zStop);
+      msg << "AP done " << zStop << endl;
         
-        // need to rebuild for updateAllRFElements
-        cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
-        travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
-        cavities_m.merge(travelingwaves, OpalField::SortAsc);
-        
-        
-        // now send all max phases and names of the cavities to
-        // all the other nodes for updating.
-        Message *mess = new Message();
-        putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
-        
-        for(vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
-            putMessage(*mess, (*it).first);
-            putMessage(*mess, (*it).second);
-        }
-        Ippl::Comm->broadcast_all(mess, tag);
+      // need to rebuild for updateAllRFElements
+      cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
+      travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
+      cavities_m.merge(travelingwaves, OpalField::SortAsc);
+      
+      // now send all max phases and names of the cavities to
+      // all the other nodes for updating.
+      Message *mess = new Message();
+      putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
+      
+      for(vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
+	putMessage(*mess, (*it).first);
+	putMessage(*mess, (*it).second);
+      }
+      Ippl::Comm->broadcast_all(mess, tag);
     } else {
-        // receive max phases and names and update the structures
-        int nData = 0;
-        Message *mess = Ippl::Comm->receive_block(Parent, tag);
-        getMessage(*mess, nData);
-        for(int i = 0; i < nData; i++) {
-            string elName;
-            double maxPhi;
-            getMessage(*mess, elName);
-            getMessage(*mess, maxPhi);
-            updateRFElement(elName, maxPhi);
-            OpalData::getInstance()->setMaxPhase(elName, maxPhi);
-        }
+      // receive max phases and names and update the structures
+      int nData = 0;
+      Message *mess = Ippl::Comm->receive_block(Parent, tag);
+      getMessage(*mess, nData);
+      for(int i = 0; i < nData; i++) {
+	string elName;
+	double maxPhi;
+	getMessage(*mess, elName);
+	getMessage(*mess, maxPhi);
+	updateRFElement(elName, maxPhi);
+	OpalData::getInstance()->setMaxPhase(elName, maxPhi);
+      }
     }
     
+    if(Ippl::myNode() == 0) 
+      itsBunch->destroy(1, 0);
+    itsBunch->update();    
+   
     OpalData::getInstance()->setGlobalPhaseShift(gPhaseSave);
     return cavities_m;
 }
@@ -896,7 +902,6 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
 
 void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
     Inform msg("Autophasing ");
-	//Inform m2a("Autophasing ", INFORM_ALL_NODES);
     
     const double RADDEG = 180.0 / Physics::pi;
     
@@ -956,8 +961,8 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
     double cavity_start = 0.0;
     Component *cavity = NULL;
 	
-	int tag = 909;
-	int Parent = 0;
+    int tag = 909;
+    int Parent = 0;
 	
     for(; step < localTrackSteps_m * dtfraction; ++step) {
 		
@@ -1133,33 +1138,32 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
         
         doOneStep(pusher);
         
-		double sposRef	= 0.0;
+	double sposRef	= 0.0;
 		
-		if(!(step % 5000))	{
-			if (itsBunch->getLocalNum() != 0) {
-				sposRef	= itsBunch->R[0](2);
-				Message *mess = new Message();
-				putMessage(*mess, sposRef);
-				Ippl::Comm->broadcast_all(mess, tag);
-            }	else {
-				Message *mess = Ippl::Comm->receive_block(Parent, tag);
-				getMessage(*mess, &sposRef);
-            }
+	if(!(step % 5000))	{
+	  if (itsBunch->getLocalNum() != 0) {
+	    sposRef	= itsBunch->R[0](2);
+	    Message *mess = new Message();
+	    putMessage(*mess, sposRef);
+	    Ippl::Comm->broadcast_all(mess, tag);
+	  }	else {
+	    Message *mess = Ippl::Comm->receive_block(Parent, tag);
+	    getMessage(*mess, &sposRef);
+	  }
+
+	  if(sposRef > zStop)
+	    localTrackSteps_m = floor(step / dtfraction);
             
-			if(sposRef > zStop)
-				localTrackSteps_m = floor(step / dtfraction);
             
-            
-			INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch->getT() << " [s], "
-                    << "E= " << itsBunch->get_meanEnergy() << " [MeV] " << endl);
-		}
+	  INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch->getT() << " [s], "
+		  << "E= " << itsBunch->get_meanEnergy() << " [MeV] " << endl);
+	}
     }
     
-	localTrackSteps_m = maxStepsSave;
+    localTrackSteps_m = maxStepsSave;
     scaleFactor_m = scaleFactorSave;
     itsBunch->setT(tSave);
-    itsBunch->setdT(dTSave);
-    
+    itsBunch->setdT(dTSave);    
 }
 
 double ParallelTTracker::APtrack(Component *cavity, double cavity_start_pos, const double &phi) const {

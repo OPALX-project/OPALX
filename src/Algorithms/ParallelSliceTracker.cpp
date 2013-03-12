@@ -78,24 +78,36 @@ void ParallelSliceTracker::updateRFElement(string elName, double maxPhi) {
  * global phase shift in units of seconds.
  */
 void ParallelSliceTracker::updateAllRFElements() {
+  Inform msg("ParallelSliceTracker ");
 
     FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
     FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
     cl.merge(twl, OpalField::SortAsc);
 
-    double phi;
+    const double RADDEG = 1.0 / Physics::pi * 180.0;
+    const double phiShift = OpalData::getInstance()->getGlobalPhaseShift();
+
+    msg << "\n-------------------------------------------------------------------------------------\n";
 
     for (FieldList::iterator it = cl.begin(); it != cl.end(); ++it) {
         if ((*it).getElement()->getType() == "TravelingWave") {
-            phi = static_cast<TravelingWave *>((*it).getElement())->getPhasem();
-            phi = getCavityPhase(cavities_m, (*it).getElement()->getName());
-            static_cast<TravelingWave *>((*it).getElement())->setPhasem(phi);
+            const double apphi = getCavityPhase(cavities_m, (*it).getElement()->getName());
+            static_cast<TravelingWave *>((*it).getElement())->updatePhasem(apphi);
+	    const double freq = static_cast<TravelingWave *>((*it).getElement())->getFrequencym();
+	    msg << (*it).getElement()->getName()
+		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
+		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree)\n";
         } else {
-            phi = static_cast<RFCavity *>((*it).getElement())->getPhasem();
-            phi = getCavityPhase(cavities_m, (*it).getElement()->getName());
-            static_cast<RFCavity *>((*it).getElement())->setPhasem(phi);
+            const double apphi = getCavityPhase(cavities_m, (*it).getElement()->getName());
+            static_cast<RFCavity *>((*it).getElement())->updatePhasem(apphi);
+	    const double freq = static_cast<TravelingWave *>((*it).getElement())->getFrequencym();
+	    msg << (*it).getElement()->getName()
+		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
+		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree)\n";
         }
     }
+    msg << "-------------------------------------------------------------------------------------\n"
+	<< endl;
 }
 
 
@@ -194,7 +206,9 @@ void ParallelSliceTracker::doAutoPhasing() {
     if (Options::autoPhase > 0 && !OpalData::getInstance()->hasBunchAllocated()) {
 
         cavities_m = mySlApTracker_m->executeAutoPhaseForSliceTracker();
+
         updateAllRFElements();
+
     } else if (Options::autoPhase > 0 && OpalData::getInstance()->hasBunchAllocated()) {
 
         for (std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
