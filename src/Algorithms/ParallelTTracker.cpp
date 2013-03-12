@@ -684,6 +684,7 @@ void ParallelTTracker::doOneStep(BorisPusher & pusher) {
     
     // increase margin from 3.*c*dt to 10.*c*dt to prevent that fieldmaps are accessed
     // before they are allocated when increasing the timestep in the gun.
+    
     switchElements(10.0);
     
     itsOpalBeamline_m.resetStatus();
@@ -854,13 +855,13 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
         
       RefPartP_suv_m = iniP;
       RefPartR_suv_m = iniR;
-      msg << "AP start " << zStop << endl;
-      //      updateSpaceOrientation(false);   problem with np>1, do we need this?
-      RefPartP_suv_m = itsBunch->P[0];
 
-      executeAutoPhase(Options::autoPhase, zStop);
-      msg << "AP done " << zStop << endl;
-        
+
+    }
+    updateSpaceOrientation(false);
+    executeAutoPhase(Options::autoPhase, zStop);
+    if(Ippl::myNode() == 0) {
+      RefPartP_suv_m = itsBunch->P[0];
       // need to rebuild for updateAllRFElements
       cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
       travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
@@ -1131,13 +1132,15 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
             msg << cavity->getName() << "_phi= "  << Phimax << " rad / "
             << Phimax *RADDEG <<  " deg, AstraPhi= " << PhiAstra << " deg,\n"
             << "E= " << Emax << " (MeV), " << "phi_nom= " << orig_phi *RADDEG << endl;
+
+
             
             OpalData::getInstance()->setMaxPhase(cavity->getName(), Phimax);
-            //cavities_m.erase(res.first);
+
         }
         
         doOneStep(pusher);
-        
+
 	double sposRef	= 0.0;
 		
 	if(!(step % 5000))	{
