@@ -156,7 +156,6 @@ void Line::parse(Statement &stat) {
         }
 
         // Do the required instantiations.
-        std::cerr << "NAME " << i->getElement()->getName() << std::endl;
         ElementBase *base = i->getElement();
         i->setElement(base->copyStructure());
         Element *elem = Element::find(base->getName());

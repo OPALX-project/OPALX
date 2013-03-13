@@ -53,7 +53,6 @@ OpalRing::OpalRing(std::string ring)
           symmetry_m(0), cyclHarm_m(0), rfFreq_m(0), current_section_m(0) {
     setRefPartBunch(NULL);
     constBField_m.setB(1.);
-    //setupSectionHardCoded();
 }
 
 void OpalRing::accept(BeamlineVisitor& visitor) const {
@@ -79,7 +78,6 @@ OpalRing::OpalRing(const OpalRing& ring)
     if (ring.lossDS_m != NULL)
         throw OpalException("OpalRing::OpalRing(const OpalRing&)",
                  "Can't copy construct LossDataSink so copy constructor fails");
-    //setupSectionHardCoded();
 }
 
 OpalRing::~OpalRing() {
