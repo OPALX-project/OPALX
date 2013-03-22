@@ -304,7 +304,7 @@ void PartBunch::makHistograms()  {
             while(notReceived > 0) {
                 int node = COMM_ANY_NODE;
                 std::unique_ptr<Message> rmsg(Ippl::Comm->receive_block(node, tag));
-                if(!rmsg)
+                if(!bool(rmsg))
                     ERRORMSG("Could not receive from client nodes in makHistograms." << endl);
                 for(unsigned int i = 0; i < bins; i++) {
                     rmsg->get(&recVal);
@@ -487,7 +487,7 @@ void PartBunch::calcLineDensity() {
     double hz = getMesh().get_meshSpacing(2); // * Physics::c * getdT();
     //   FieldLayout_t *FL  = new FieldLayout_t(getMesh(), decomp);
 
-    if(!lineDensity_m) {
+    if(!bool(lineDensity_m)) {
         if(nBinsLineDensity_m == 0)
             nBinsLineDensity_m = nr_m[2];
         lineDensity_m = std::unique_ptr<double[]>(new double[nBinsLineDensity_m]);
@@ -529,7 +529,7 @@ void PartBunch::calcLineDensity() {
         while(notReceived > 0) {
             int node = COMM_ANY_NODE;
             std::unique_ptr<Message> rmsg(Ippl::Comm->receive_block(node, tag));
-            if(!rmsg) {
+            if(!bool(rmsg)) {
                 ERRORMSG("Could not receive from client nodes in main." << endl);
             }
             notReceived--;
@@ -583,7 +583,7 @@ void PartBunch::fillArray(double *lineDensity, const list<ListElem> &l) {
 }
 
 void PartBunch::getLineDensity(vector<double> &lineDensity) {
-    if(lineDensity_m) {
+    if(bool(lineDensity_m)) {
         if(lineDensity.size() != nBinsLineDensity_m)
             lineDensity.resize(nBinsLineDensity_m, 0.0);
         for(unsigned int i  = 0; i < nBinsLineDensity_m; ++i)

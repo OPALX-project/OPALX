@@ -60,6 +60,12 @@ class Interpolator3dGridTo1d : public VectorMap {
   /** Deletes F data and removes *this from ThreeDGrid smart pointer thing. */
   inline virtual ~Interpolator3dGridTo1d();
 
+  /** Call function at a particular point in the mesh */
+  inline virtual void function
+                            (const Mesh::Iterator& point, double* value) const {
+     VectorMap::function(point, value);
+  }
+
   /** Get the interpolated function data */
   virtual void function(const double Point[3], double Value[1]) const = 0;
 

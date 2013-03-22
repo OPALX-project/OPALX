@@ -93,6 +93,12 @@ class Interpolator3dGridTo3d : public VectorMap {
    */
   void function(const double Point[3], double Value[3]) const;
 
+  /** Call function at a particular point in the mesh */
+  inline virtual void function
+                            (const Mesh::Iterator& point, double* value) const {
+     VectorMap::function(point, value);
+  }
+ 
   /** Do not use (just raises exception) - der
    */
   void functionPrime(const double Point[3], double Value[3], int axis) const;
@@ -112,6 +118,7 @@ class Interpolator3dGridTo3d : public VectorMap {
   /** Dimension of output values */
   inline unsigned int getValueDimension()  const;
 
+  using VectorMap::getMesh;
   /** Return a pointer to the mesh*/
   inline ThreeDGrid* getMesh();
 

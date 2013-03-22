@@ -230,7 +230,7 @@ class OpalRing : public Component {
     void setHarmonicNumber(double cyclHarm) {cyclHarm_m = cyclHarm;}
 
     /** Get the harmonic number for RF (number of bunches in the ring) */
-    const double getHarmonicNumber() {return cyclHarm_m;}
+    double getHarmonicNumber() {return cyclHarm_m;}
     // note this is not a const method to follow parent
 
     /** Set the nominal RF frequency */
