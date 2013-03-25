@@ -96,14 +96,14 @@ void ParallelSliceTracker::updateAllRFElements() {
 	    const double freq = static_cast<TravelingWave *>((*it).getElement())->getFrequencym();
 	    msg << (*it).getElement()->getName()
 		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
-		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree)\n";
+		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree) \n";
         } else {
             const double apphi = getCavityPhase(cavities_m, (*it).getElement()->getName());
             static_cast<RFCavity *>((*it).getElement())->updatePhasem(apphi);
-	    const double freq = static_cast<TravelingWave *>((*it).getElement())->getFrequencym();
+	    const double freq = static_cast<RFCavity *>((*it).getElement())->getFrequencym();
 	    msg << (*it).getElement()->getName()
 		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
-		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree)\n";
+		<< "(global phase shift= " << -phiShift *freq *RADDEG << "(degree) \n";
         }
     }
     msg << "-------------------------------------------------------------------------------------\n"
