@@ -89,6 +89,13 @@ private:
     unsigned stoppedPartStat_m;
     unsigned redifusedStat_m;
 
+    // some statistics
+
+    double Eavg_m;
+    double Emax_m;
+    double Emin_m;
+
+
 public:
     double dT_m;
     int N_m;
