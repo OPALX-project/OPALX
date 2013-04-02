@@ -2005,7 +2005,8 @@ void ParallelTTracker::computeExternalFields() {
             INFOMSG("no surface physics attached" << endl);
         } else {
             sphys_m->apply(*itsBunch);
-            sphys_m->print(msg);
+            if (itsBunch->getTotalNum()>10)
+                sphys_m->print(msg);
         }
     } else if(surfaceStatus_m) {
         msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
@@ -2016,7 +2017,7 @@ void ParallelTTracker::computeExternalFields() {
 	}
     }
 
-    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0);
+    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 10);
     if(globPartOutOfBounds) {
         size_t ne = itsBunch->boundp_destroyT();
         if(ne > 0) {
@@ -2025,6 +2026,7 @@ void ParallelTTracker::computeExternalFields() {
             numParticlesInSimulation_m  = itsBunch->getTotalNum();
         }
     }
+    itsBunch->update();
 }
 
 void ParallelTTracker::handleBends() {
