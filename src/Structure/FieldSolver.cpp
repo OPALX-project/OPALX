@@ -235,7 +235,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         std::string tmp = "";
         //split and add all to list
         std::vector<BoundaryGeometry *> geometries;
-        for(int i = 0; i <= geoms.length(); i++) {
+        for(unsigned int i = 0; i <= geoms.length(); i++) {
             if(geoms[i] == ',' || i == geoms.length()) {
                 BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
                 if(geom != 0) {

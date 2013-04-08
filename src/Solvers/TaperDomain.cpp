@@ -77,21 +77,21 @@ void TaperDomain::Compute(Vector_t hr) {
             for(x = 0; x < nr[0]; x++) {
                 pos = (x - (nr[0] - 1) / 2) * hr[0];
                 yd = std::abs(sqrt(rb2 - pos * pos));
-                IntersectYDir.insert(pair<int, double>(x, yd));
-                IntersectYDir.insert(pair<int, double>(x, -yd));
+                IntersectYDir.insert(std::pair<int, double>(x, yd));
+                IntersectYDir.insert(std::pair<int, double>(x, -yd));
                 yd = std::abs(sqrt(rs2 - pos * pos));
-                Intersectydir.insert(pair<int, double>(x, yd));
-                Intersectydir.insert(pair<int, double>(x, -yd));
+                Intersectydir.insert(std::pair<int, double>(x, yd));
+                Intersectydir.insert(std::pair<int, double>(x, -yd));
             }
 
             for(y = 0; y < nr[1]; y++) {
                 pos = (y - (nr[1] - 1) / 2) * hr[1];
                 xd = std::abs(sqrt(rb2 - pos * pos));
-                IntersectXDir.insert(pair<int, double>(y, xd));
-                IntersectXDir.insert(pair<int, double>(y, -xd));
+                IntersectXDir.insert(std::pair<int, double>(y, xd));
+                IntersectXDir.insert(std::pair<int, double>(y, -xd));
                 xd = std::abs(sqrt(rs2 - pos * pos));
-                Intersectxdir.insert(pair<int, double>(y, xd));
-                Intersectxdir.insert(pair<int, double>(y, -xd));
+                Intersectxdir.insert(std::pair<int, double>(y, xd));
+                Intersectxdir.insert(std::pair<int, double>(y, -xd));
             }
     }
 }

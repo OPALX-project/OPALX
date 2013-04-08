@@ -1,5 +1,6 @@
 #ifdef HAVE_ML_SOLVER
 #include <map>
+#include <string>
 #include <cmath>
 #include <iostream>
 #include <assert.h>
@@ -9,7 +10,6 @@
 #include "BoxCornerDomain.h"
 
 extern Inform *gmsg;
-
 
 BoxCornerDomain::BoxCornerDomain(Vector_t nr, Vector_t hr) {
     setNr(nr);
@@ -36,12 +36,12 @@ BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double Lenght, do
 
     if(Ippl::getNodes() == 1) {
       *gmsg << " Write BoxCorner data to file boxcorner.dat" << endl;
-      string file("boxcorner.dat");
+      std::string file("boxcorner.dat");
       os_m.open(file.c_str());
       if(os_m.bad()) {
 	*gmsg << "Unable to open output file " <<  file << endl;
       }
-      os_m << "# ...." << endl;
+      //os_m << "# ...." << endl;
     }
 }
 
@@ -72,7 +72,7 @@ void BoxCornerDomain::Compute(Vector_t hr) {
     double bH= getB(getMaxZ());
 
     actBMin_m = -B_m;
-    actBMax_m = max(bL,bH);
+    actBMax_m = std::max(bL,bH);
 
     INFOMSG(" BoxCorner L= " << Lenght_m << " L1= " << L1_m << " L2= " << L2_m << " A= " << A_m << " B= " << B_m << " C= " << C_m
 	    << " bL= " << bL << " bH= " << bH <<  " actBMin= " << actBMin_m << " actBMax=max(bL,bH)= " << actBMax_m << endl);

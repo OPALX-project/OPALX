@@ -1,10 +1,10 @@
 #ifndef BOXCORNER_DOMAIN_H
-#define BOSCORNER_DOMAIN_H
+#define BOXCORNER_DOMAIN_H
 #ifdef HAVE_ML_SOLVER
 
 //#include <vector>
 #include <map>
-#include <multimap>
+//#include <multimap>
 #include <string>
 #include <cmath>
 #include <iostream>  // Neeeded for stream I/O

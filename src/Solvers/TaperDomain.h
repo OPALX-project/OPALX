@@ -39,7 +39,7 @@ public:
     /// returns index of neighbours at 3D index
     void getNeighbours(int idx, double &W, double &E, double &S, double &N, double &F, double &B);
     /// returns type of boundary condition
-    string getType() {return "Taper";}
+    std::string getType() {return "Taper";}
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
 

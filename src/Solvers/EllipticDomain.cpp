@@ -92,15 +92,15 @@ void EllipticDomain::Compute(Vector_t hr) {
             for(x = 0; x < nr[0]; x++) {
                 pos = x * hr[0] - mx;
                 yd = std::abs(sqrt(sminsq - sminsq * pos * pos / smajsq)); // + 0.5*nr[1]*hr[1]);
-                IntersectYDir.insert(pair<int, double>(x, yd));
-                IntersectYDir.insert(pair<int, double>(x, -yd));
+                IntersectYDir.insert(std::pair<int, double>(x, yd));
+                IntersectYDir.insert(std::pair<int, double>(x, -yd));
             }
 
             for(y = 0; y < nr[1]; y++) {
                 pos = y * hr[1] - my;
                 xd = std::abs(sqrt(smajsq - smajsq * pos * pos / sminsq)); // + 0.5*nr[0]*hr[0]);
-                IntersectXDir.insert(pair<int, double>(y, xd));
-                IntersectXDir.insert(pair<int, double>(y, -xd));
+                IntersectXDir.insert(std::pair<int, double>(y, xd));
+                IntersectXDir.insert(std::pair<int, double>(y, -xd));
             }
     }
 }

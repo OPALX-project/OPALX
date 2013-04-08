@@ -9,9 +9,7 @@
 #define MG_POISSON_SOLVER_H_
 
 //////////////////////////////////////////////////////////////
-class MGPoissonSolver;
-class BoundaryGeometry;
-#include "Algorithms/PartBunch.h"
+#include "Structure/BoundaryGeometry.h"
 #include "PoissonSolver.h"
 #include "IrregularDomain.h"
 #include "EllipticDomain.h"
@@ -81,10 +79,13 @@ enum {
  * \warning This solver is in an EXPERIMENTAL STAGE. For reliable simulations use the FFTPoissonSolver
  *
  */
+class PartBunch;
+class BoundaryGeometry;
+
 class MGPoissonSolver : public PoissonSolver {
 
 public:
-    MGPoissonSolver(PartBunch &beam, Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
+    MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
     MGPoissonSolver(PartBunch &bunch);
     ~MGPoissonSolver();
 
@@ -186,6 +187,9 @@ private:
     /// parameter list for the iterative solver (Belos)
     Teuchos::ParameterList belosList;
 
+    /// PartBunch object
+    PartBunch *itsBunch_m;
+
     // mesh and layout objects for rho_m
     Mesh_t *mesh_m;
     FieldLayout_t *layout_m;
@@ -199,9 +203,6 @@ private:
     Vektor<int, 3> nr_m;
     /// global number of mesh points in each direction
     Vektor<int, 3> orig_nr_m;
-
-    /// PartBunch object
-    PartBunch *itsBunch_m;
 
     // timers
     IpplTimings::TimerRef FunctionTimer1_m;

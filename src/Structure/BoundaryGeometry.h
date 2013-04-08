@@ -160,6 +160,14 @@ public:
         return (double)Attributes::getReal(itsAttr[A]);
     }
 
+    inline double getB() {
+        return (double)Attributes::getReal(itsAttr[B]);
+    }
+
+    inline double getC() {
+        return (double)Attributes::getReal(itsAttr[C]);
+    }
+
     inline double getS() {
         return (double)Attributes::getReal(itsAttr[S]);
     }
@@ -342,7 +350,8 @@ public:
         }
         return false;
     }
-    
+ 
+   
 private:
     std::string h5FileName_m;   // H5hut filename
 
@@ -856,14 +865,6 @@ private:
 
     inline double getXYZScale () {
         return (double)(Attributes::getReal (itsAttr[XYZSCALE]));
-    }
-
-    inline double getB() {
-        return (double)Attributes::getReal(itsAttr[B]);
-    }
-
-    inline double getC() {
-        return (double)Attributes::getReal(itsAttr[C]);
     }
 
     enum {

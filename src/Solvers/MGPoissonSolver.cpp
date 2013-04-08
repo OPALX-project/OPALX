@@ -1,5 +1,6 @@
 #ifdef HAVE_ML_SOLVER
 #define DBG_STENCIL
+#include "Algorithms/PartBunch.h"
 #include "MGPoissonSolver.h"
 #include "Physics/Physics.h"
 #include "Attributes/Attributes.h"
@@ -14,13 +15,20 @@
 
 using Physics::c;
 
-MGPoissonSolver::MGPoissonSolver(PartBunch &beam, Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode):
-    itsBunch_m(&beam), layout_m(fl), mesh_m(mesh), LHS(0), geometries_m(geometries), tol_m(tol), maxiters_m(maxiters), Comm(Ippl::getComm()) {
+MGPoissonSolver::MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode):
+    itsBunch_m(&beam),
+    mesh_m(mesh), 
+    layout_m(fl), 
+    LHS(0), 
+    geometries_m(geometries), 
+    tol_m(tol), 
+    maxiters_m(maxiters), 
+    Comm(Ippl::getComm()) {
     domain_m = layout_m->getDomain();
-    e_dim_tag decomp[3];
+//    e_dim_tag decomp[3]; //set but not used FIXME
 
     for(int i = 0; i < 3; i++) {
-        decomp[i] = layout_m->getRequestedDistribution(i);
+  //      decomp[i] = layout_m->getRequestedDistribution(i); //set but not used FIXME
         hr_m[i] = mesh_m->get_meshSpacing(i);
         orig_nr_m[i] = domain_m[i].length();
     }
@@ -501,6 +509,7 @@ Inform &MGPoissonSolver::print(Inform &os) const {
     os << "* *************** M G P o i s s o n S o l v e r ************************************ " << endl;
     os << "* h " << hr_m << '\n';
     os << "* ********************************************************************************** " << endl;
+    return os;	
 }
 
 #endif /* HAVE_ML_SOLVER */

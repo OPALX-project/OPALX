@@ -3,6 +3,8 @@
 #ifdef HAVE_ML_SOLVER
 
 #include <vector>
+#include <string>
+using namespace std;
 #include "IrregularDomain.h"
 
 class RectangularDomain : public IrregularDomain {
