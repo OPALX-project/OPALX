@@ -333,6 +333,7 @@ public:
     void get_PBounds(Vector_t &min, Vector_t &max) const;
 
     void calcBeamParameters();
+    void calcBeamParametersLight();   // used in autophase and avoides communication
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
     void calcBeamParameters_cycl();
 

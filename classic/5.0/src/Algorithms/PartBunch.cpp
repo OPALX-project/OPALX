@@ -1549,6 +1549,23 @@ void PartBunch::calcBeamParameters() {
     IpplTimings::stopTimer(statParamTimer_m);
 }
 
+void PartBunch::calcBeamParametersLight() {
+    // for Autophase, avoids communication
+
+    const double m0 = getM() * 1.E-6;
+
+    const size_t locNp = this->getLocalNum();
+
+    // Find unnormalized emittance.
+    double gamma = 0.0;
+    for(size_t i = 0; i < locNp; i++)
+        gamma += sqrt(1.0 + dot(P[i], P[i]));
+
+    eKin_m = (gamma - 1.0) * m0;
+
+    IpplTimings::stopTimer(statParamTimer_m);
+}
+
 void PartBunch::calcBeamParametersInitial() {
     using Physics::c;
 

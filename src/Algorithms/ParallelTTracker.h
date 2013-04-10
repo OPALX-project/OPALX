@@ -539,6 +539,7 @@ inline void ParallelTTracker::kickParticlesAutophase(const BorisPusher &pusher) 
     int localNum = itsBunch->getLocalNum();
     for(int i = 0; i < localNum; ++i)
         pusher.kick(itsBunch->R[i], itsBunch->P[i], itsBunch->Ef[i], itsBunch->Bf[i], itsBunch->dt[i]);
+    itsBunch->calcBeamParametersLight();
 }
 
 // BoundaryGeometry version of kickParticles function
