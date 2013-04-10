@@ -186,9 +186,15 @@ ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
              Please use the OpenMPI or MPICH IF you are having problems.")
 ENDIF ("${COMPILER_NAME}" STREQUAL "mpicxx")
 
-SET (CMAKE_CXX_FLAGS
-  "-Wall -Werror -Wno-reorder -std=c++11 $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
+IF (${GCC_VERSION} VERSION_LESS "4.7.0")
+	SET (CMAKE_CXX_FLAGS
+  		"-Wall -Werror -Wno-reorder -std=c++Ox $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
+ELSEIF (${GCC_VERSION} VERSION_GREATER "4.7")
+	SET (CMAKE_CXX_FLAGS
+  		"-Wall -Werror -Wno-reorder -std=c++11 $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
 #Make sure the members appear in the initializer list in the same order as they appear in the class or turn -Wno-reorder
+
+ENDIF (${GCC_VERSION} VERSION_LESS "4.7.0")
 MESSAGE (STATUS "Compiling with ${CMAKE_CXX_FLAGS}")
 
 
