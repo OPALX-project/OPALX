@@ -87,6 +87,9 @@ Degrader::Degrader(const string &name):
 
 
 Degrader::~Degrader() {
+
+  if(online_m)
+    goOffline();
 }
 
 
@@ -159,7 +162,7 @@ void Degrader::initialise(PartBunch *bunch, const double &scaleFactor) {
 
 void Degrader::finalise()
 {
-  *gmsg << "Finalize probe" << endl;
+  *gmsg << "Finalize Degrader" << endl;
 }
 
 void Degrader::goOnline() {
@@ -193,6 +196,7 @@ void Degrader::goOffline() {
     Inform msg("Degrader::goOffline ");
     online_m = false;
     lossDs_m->save();
+    msg << " done..." << endl;
 }
 
 bool Degrader::bends() const {
