@@ -406,6 +406,40 @@ void Distribution::writeToFile() {
 }
 
 /**
+ * Change z and y coordinate
+ * 
+ * @param
+ * @param
+ * @param
+ */
+void Distribution::writeToFileCycl(PartBunch &beam, size_t Np) {
+
+    if(Ippl::getNodes() == 1) {
+        if(os_m.is_open()) {
+            ;
+        } else {
+            *gmsg << " Write distribution to file ... " << endl;
+            std::string file("data/dist-yzchanged.dat");
+            os_m.open(file.c_str());
+            if(os_m.bad()) {
+                *gmsg << "Unable to open output file " <<  file << endl;
+            }
+            os_m << "# x (m) pz (bega) z pz y py (y is vertical)  " << endl;
+
+	    for(size_t i = 0; i <  Np; i++) {
+	      os_m << beam.R[i](0) << "  "
+		   << beam.P[i](0) << "  "
+		   << beam.R[i](2) << "  "
+		   << beam.P[i](2) << "  "
+		   << beam.R[i](1) << "  "
+		   << beam.P[i](1) << std::endl;
+	    }
+            os_m.close();
+        }
+    }
+}
+
+/**
  * This is the main entrypoint, called from PartBunch::setDistribution
  * The envelope trackes is doing it differently by calling createSliceBunch
  * @param beam
@@ -701,7 +735,7 @@ void Distribution::setup(PartBunch &beam, size_t Np, bool scan) {
                 alpha_m[j] = -corr_m[j] * sqrt(beta_m[j] * abs(gamma_m[j]));
             }
             createBinom(emit_m, alpha_m, beta_m, gamma_m, binc_m, beam, Np, isBinned);
-        }
+	}
         break;
 
         case GAUSS: {
@@ -1351,7 +1385,7 @@ void Distribution::createSlicedBunch(int sl, double charge, double gamma, double
     double beamEnergy = 0.0;
     //int sl = (int) Attributes::getReal(itsAttr[NBIN]);
     *gmsg << "About to create a sliced bunch with " << sl << " slices" << endl;
-    *gmsg << "mass = " << mass << " gamma = " << gamma << endl;
+
     IpplTimings::startTimer(p->distrCreate_m);
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION]);
@@ -1414,7 +1448,6 @@ void Distribution::createSlicedBunch(int sl, double charge, double gamma, double
     }
 
     center = -1 * beamWidth / 2.0;
-    *gmsg << "x = " << sigx_m[0] << " y = " << sigx_m[1] << endl;
     double frac = 0.9;
 
     // execute initialization command
@@ -2069,8 +2102,10 @@ void Distribution::create(PartBunch &beam, size_t Np) {
             gamma[j] = sigPX[j] * sigPX[j] / emit[j];
             alpha[j] = -corr[j] * sqrt(beta[j] * abs(gamma[j]));
         }
-        msg << "About to create Binomial distribution -1 " << endl;
+        msg << "About to create Binomial distribution " << endl;
         createBinom(emit, alpha, beta, gamma, bincoef, beam, Np, isBinned);
+	writeToFileCycl(beam, Np);
+
     } else if(disttype == "GAUSS") {
         double corr[7];
         corr[0] = Attributes::getReal(itsAttr[CORRX]);

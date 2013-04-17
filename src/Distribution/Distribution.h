@@ -185,7 +185,7 @@ private:
     }
 
     void writeToFile();
-
+    void writeToFileCycl(PartBunch &beam, size_t Np);
 
 
     // Not implemented.
