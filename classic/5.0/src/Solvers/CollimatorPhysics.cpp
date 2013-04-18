@@ -197,7 +197,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
                           particle is rediffused from the material into vacuum.
                         */
 
-                        CoulombScat(R, P, dT_m);
+			CoulombScat(R, P, dT_m);
 
                         locParts_m[i].Rincol = R;
                         locParts_m[i].Pincol = P;
@@ -343,7 +343,7 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
     double deltas = deltat * beta * Physics::c;
     double deltasrho = deltas * 100 * rho_m; 
     double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
-    double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m))* deltas * 1E5;
+    double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m)* deltas * 1E5);
     
     
      
