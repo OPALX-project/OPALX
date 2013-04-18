@@ -424,8 +424,8 @@ void Distribution::writeToFileCycl(PartBunch &beam, size_t Np) {
             if(os_m.bad()) {
                 *gmsg << "Unable to open output file " <<  file << endl;
             }
-            os_m << "# x (m) pz (bega) z pz y py (y is vertical)  " << endl;
-
+#            os_m << "# x (m) pz (bega) z pz y py (y is vertical)  " << endl;
+	    os_m << Np << endl;
 	    for(size_t i = 0; i <  Np; i++) {
 	      os_m << beam.R[i](0) << "  "
 		   << beam.P[i](0) << "  "
