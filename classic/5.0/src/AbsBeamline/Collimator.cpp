@@ -145,6 +145,8 @@ Collimator::Collimator(const string &name):
 
 
 Collimator::~Collimator() {
+  if(online_m)
+    goOffline();
 }
 
 
