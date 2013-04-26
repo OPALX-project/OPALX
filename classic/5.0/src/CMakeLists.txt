@@ -2,15 +2,15 @@ cmake_minimum_required (VERSION 2.6)
 
 project (CLASSIC)
 set (CLASSIC_VERSION_MAJOR 5)
-set (CLASSIC_VERSION_MINOR 1.3)
+set (CLASSIC_VERSION_MINOR 1.4)
 
 set (PACKAGE \"classic\")
 set (PACKAGE_BUGREPORT \"andreas.adelmann@psi.ch\")
 set (PACKAGE_NAME \"classic\")
-set (PACKAGE_STRING \"classic\ 5.1.3\")
+set (PACKAGE_STRING \"classic\ 5.1.4\")
 set (PACKAGE_TARNAME \"classic\")
-set (PACKAGE_VERSION \"5.1.3\")
-set (VERSION \"5.1.3\")
+set (PACKAGE_VERSION \"5.1.4\")
+set (VERSION \"5.1.4\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
