@@ -468,9 +468,7 @@ void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
             bg.clearCooridinateArray();
             bg.clearMomentaArray();
             beam->boundp();
-
         }
-
         *gmsg << *beam << endl;
 
     } else {// Normal procedure to create primary particles

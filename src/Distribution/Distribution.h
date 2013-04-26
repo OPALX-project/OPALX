@@ -92,7 +92,6 @@ public:
     virtual void execute();
     virtual void update();
 
-    void Create(size_t &numberOfParticles, double massIneV);
     void CreateBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
     void CreateOpalCycl(PartBunch &beam,
                         size_t numberOfParticles,
@@ -193,6 +192,7 @@ private:
     void ApplyEmissModelAstra(double &px, double &py, double &pz);
     void ApplyEmissModelNone(double &pz);
     void ApplyEmissModelNonEquil(double eZ, double &px, double &py, double &pz);
+    void Create(size_t &numberOfParticles, double massIneV);
     void CalcPartPerDist(size_t numberOfParticles);
     void CheckEmissionParameters();
     void CheckIfEmitted();
