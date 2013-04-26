@@ -373,13 +373,6 @@ private:
 
     // Some legacy members that need to be cleaned up.
 
-    /*
-     * Distribution parameters.
-     */
-    double distributionOffset_m[2];
-    double avrgpt_m;
-    double avrgt_m;
-
     /// time binned distribution with thermal energy
     double tRise_m;
     double tFall_m;
