@@ -303,9 +303,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     tFall_m(parent->tFall_m),
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
-    cutoff_m(parent->cutoff_m),
-    ekin_m(parent->ekin_m) {
-
+    cutoff_m(parent->cutoff_m) {
 }
 
 Distribution::~Distribution() {
@@ -354,7 +352,7 @@ void Distribution::WriteToFile() {
             if(os_m.bad()) {
                 *gmsg << "Unable to open output file " <<  file << endl;
             }
-            os_m << "# x y ti px py pz Ekin= " << ekin_m << " [eV] " << std::endl;
+            os_m << "# x y ti px py pz "  << std::endl;
             os_m.close();
         }
     }

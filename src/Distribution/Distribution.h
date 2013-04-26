@@ -380,12 +380,6 @@ private:
     double sigmaFall_m;
     double cutoff_m;
 
-    /*
-     * Particle emission parameters.
-     */
-    double ekin_m;                  /// Thermal to add to distribution in
-                                    /// Astra mode.
-
 };
 
 inline Inform &operator<<(Inform &os, const Distribution &d) {
