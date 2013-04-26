@@ -212,8 +212,7 @@ Distribution::Distribution():
     paraFNVYZe_m(0.0),
     secondaryFlag_m(0),
     ppVw_m(0.0),
-    vVThermal_m(0.0),
-    rGen_m(NULL) {
+    vVThermal_m(0.0) {
 
     SetAttributes();
 
@@ -305,7 +304,6 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
     cutoff_m(parent->cutoff_m),
-    rGen_m(NULL),
     ekin_m(parent->ekin_m) {
 
 }
@@ -333,11 +331,6 @@ Distribution::~Distribution() {
     if(laserProfile_m) {
         delete laserProfile_m;
         laserProfile_m = NULL;
-    }
-
-    if (rGen_m) {
-        delete rGen_m;
-        rGen_m = NULL;
     }
 
 }

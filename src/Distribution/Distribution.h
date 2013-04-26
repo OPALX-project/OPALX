@@ -381,11 +381,6 @@ private:
     double cutoff_m;
 
     /*
-     * Random number generators.
-     */
-    RANLIB_class *rGen_m;
-
-    /*
      * Particle emission parameters.
      */
     double ekin_m;                  /// Thermal to add to distribution in
