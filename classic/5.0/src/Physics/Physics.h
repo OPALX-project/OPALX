@@ -55,8 +55,10 @@ namespace Physics {
     extern const double h_bar;
 
     /// The Avogadro's number
-    extern  const double Avo;
+    extern const double Avo;
 
+    /// Boltzman's constant in eV/K.
+    extern const double kB;
 
     /// The elementary charge in As
     extern const double q_e;

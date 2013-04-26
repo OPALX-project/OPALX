@@ -320,7 +320,7 @@ void FM1DDynamic::stripFileHeader(std::ifstream &fieldFile) {
     int tempInt;
     double tempDouble;
 
-    interpreteLine<string, int>(fieldFile, tempString, tempInt);
+    interpreteLine<std::string, int>(fieldFile, tempString, tempInt);
     interpreteLine<double, double, int>(fieldFile, tempDouble, tempDouble,
                                         tempInt);
     interpreteLine<double>(fieldFile, tempDouble);

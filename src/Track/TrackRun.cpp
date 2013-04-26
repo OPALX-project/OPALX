@@ -121,52 +121,10 @@ TrackRun *TrackRun::clone(const string &name) {
 }
 
 
-ParallelTTracker *TrackRun::setupForAutophase() {
-
-    Inform m("setupForAutophase() ");
-
-    Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-
-    DataSink *ds = NULL;
-
-
-    fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
-
-    fs->initCartesianFields();
-
-    Track::block->bunch->setSolver(fs);
-
-    dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
-
-    double charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
-
-    charge /= beam->getNumberOfParticles();
-
-    Track::block->bunch->setdT(Track::block->dT);
-
-    Track::block->bunch->resetIfScan();
-
-    Track::block->bunch->LastSection = 1;
-
-    Track::block->bunch->setCharge(charge);
-
-    Track::block->bunch->setChargeZeroPart(charge);// just set bunch->qi_m=charge, don't set bunch->Q[] as we have not initialized any particle yet.
-
-    double coefE = 1.0 / (4 * pi * epsilon_0);
-    Track::block->bunch->setCouplingConstant(coefE);
-
-    return new ParallelTTracker(*Track::block->use->fetchLine(),
-                                dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                Track::block->reference, false, false, Track::block->localTimeSteps,
-                                Track::block->zstop, Track::block->timeIntegrator);
-}
-
-
-
 void TrackRun::execute() {
 
     // Get algorithm to use.
-    string method = Attributes::getString(itsAttr[METHOD]);
+    std::string method = Attributes::getString(itsAttr[METHOD]);
     bool mpacflg = Attributes::getBool(itsAttr[MULTIPACTING]);
     if(method == "THIN") {
         //std::cerr << "  method == \"THIN\"" << std::endl;
@@ -201,12 +159,7 @@ void TrackRun::execute() {
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
         fs->initCartesianFields();
 
-        double cen, Bz0;
         double charge = 0.0;
-        double charge2 = 0;
-        double I = beam->getCurrent();
-        double mass = beam->getMass(); //in MeV
-        double gam = beam->getGamma();
 
         std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTIONS]);
         if(distr_str.size() > 0) {
@@ -221,25 +174,16 @@ void TrackRun::execute() {
 
         if(!OPAL->hasSLBunchAllocated()) {
             if(!OPAL->inRestartRun()) {
-                charge2  = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
-                I = beam->getCurrent();
-                mass = beam->getMass(); //in MeV
-                gam = beam->getGamma();
 
-                // magnetic field in the beginning, default is 0
-                Bz0 = 0;
+                dist->CreateOpalE(beam, distrs_m, Track::block->slbunch, 0.0, 0.0);
+                OPAL->setGlobalPhaseShift(0.5 * dist->GetTEmission());
 
-                // longitudinal center of the bunch;
-                cen = 0;
-
-                OPAL->setGlobalPhaseShift(0.5 * dist->getTEmission());
-                dist->createSlicedBunch(beam->getNumberOfSlices(), charge2, gam, mass, I, cen, Bz0, Track::block->slbunch);
             } else {
                 /***
                     reload slice distribution
                 */
 
-                dist->doRestartEnvelope(*Track::block->slbunch, beam->getNumberOfParticles(), OPAL->getRestartStep());
+                dist->DoRestartOpalE(*Track::block->slbunch, beam->getNumberOfParticles(), OPAL->getRestartStep());
             }
         } else {
             charge = 1.0;
@@ -307,104 +251,12 @@ void TrackRun::execute() {
             *gmsg << "  Selected Tracking Method is NOT implemented, good luck ..." << endl;
 
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
-
         fs->initCartesianFields();
-
         Track::block->bunch->setSolver(fs);
-
         Track::block->bunch->setBCAllOpen();
-        if(!mpacflg) {
 
-            /// If multipacting flag is not set, do normal initialization of primary particles from attached distribution.
-
-            /*
-             * If a list of distributions is declared then that will take precedence
-             * over a single distribution declaration.
-             *
-             * Fill up the vector distrs_m with all distributions from "DISTRIBUTIONS".
-            */
-            std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTIONS]);
-            if(distr_str.size() > 0) {
-
-                /*
-                 * Use first distribution in list as basis for full distribution if a list of distributions
-                 * is given. Subsequent distributions will be added to it. All distributions must be of the
-                 * same type. Those that are different in type from the first will not be used. Conflicting
-                 * parameters will default to those specified in the first distribution on the list.
-                 */
-                *gmsg << endl
-                      << "---------------------------------" << endl
-                      << "Found more than one distribution:" << endl << endl;
-                for(std::vector<std::string>::const_iterator dit = distr_str.begin(); dit != distr_str.end(); ++ dit) {
-
-                    if(dit == distr_str.begin()) {
-                        dist = Distribution::find(*dit);
-                        *gmsg << "Main Distribution" << endl
-                              << "-----------------" << endl
-                              << *dit << endl << endl
-                              << "Secondary Distribution(s)" << endl
-                              << "-------------------------" << endl;
-                    } else {
-                        Distribution *d = Distribution::find(*dit);
-                        *gmsg << *dit << endl;
-                        distrs_m.push_back(d);
-                    }
-                }
-                *gmsg << endl
-                      << "---------------------------------" << endl << endl;
-            } else
-                dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
-
-        }
-        double charge;
-
-        charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
-
-        if(!OPAL->hasBunchAllocated()) {
-            if(!OPAL->inRestartRun()) {
-                if(!mpacflg) {
-
-                    /*
-                     * Here we set up the distribution. Most of the work is done elsewhere.
-                     */
-                    // inside we do the setup
-                    Track::block->bunch->setDistribution(dist, beam->getNumberOfParticles(), Options::scan);
-
-
-                    if(distrs_m.size() > 0)
-                        if(!(Track::block->bunch->addDistributions(distrs_m, beam->getNumberOfParticles())))
-                            *gmsg << "Adding of distribution list failed. Only the first distribution in the list will be used." << endl;
-
-                    charge /= beam->getNumberOfParticles();
-
-                    /*
-                      Sanity check to make sure no particle is at z<0.
-                    */
-                    Vector_t rmin, rmax;
-                    Track::block->bunch->get_bounds(rmin, rmax);
-                    if(rmin(2) < 0.0) {
-                        Track::block->bunch->R(2) += std::abs(rmin(2));
-                        Track::block->bunch->boundp();
-                    }
-                    OPAL->setGlobalPhaseShift(0.5 * dist->getTEmission());
-
-                } else {
-                    charge /= beam->getNumberOfParticles();
-                }
-            } else {
-                dist->doRestart(*Track::block->bunch, beam->getNumberOfParticles(), OPAL->getRestartStep());
-                charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency() / beam->getNumberOfParticles(); // this is the macro particle charge
-            }
-        } else if(OPAL->hasBunchAllocated() && Options::scan) {
-            Track::block->bunch->setDistribution(dist, beam->getNumberOfParticles(), Options::scan); // inside we do the setup
-            OPAL->setGlobalPhaseShift(0.5 * dist->getTEmission());
-            Track::block->bunch->resetIfScan();
-            Track::block->bunch->LastSection = 1;
-            charge /= beam->getNumberOfParticles();
-        } else
-            charge /= beam->getNumberOfParticles();
+        double charge = SetDistributionParallelT(beam);
 
         Track::block->bunch->setdT(Track::block->dT);
         Track::block->bunch->dtScInit_m = Track::block->dtScInit;
@@ -494,7 +346,7 @@ void TrackRun::execute() {
 
             macrocharge = beam->getCharge() * q_e;
             macromass = beam->getMass();
-            dist->create(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
+            dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
 
         } else {
 
@@ -509,10 +361,10 @@ void TrackRun::execute() {
                 if(!OPAL->inRestartRun()) {
                     macrocharge /= beam->getNumberOfParticles();
                     macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-                    dist->create(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
+                    dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
 
                 } else {
-                    dist->doRestart_cycl(*Track::block->bunch, beam->getNumberOfParticles(),
+                    dist->DoRestartOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(),
                                          OPAL->getRestartStep(), specifiedNumBunch);
                     macrocharge /= beam->getNumberOfParticles();
                     macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
@@ -520,7 +372,7 @@ void TrackRun::execute() {
             } else if(OPAL->hasBunchAllocated() && Options::scan) {
                 macrocharge /= beam->getNumberOfParticles();
                 macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-                dist->create(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
+                dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
             }
         }
         Track::block->bunch->setMass(macromass); // set the Mass per macro-particle, [GeV/c^2]
@@ -636,14 +488,14 @@ void TrackRun::execute() {
                 }
             } else {
                 //////
-                if((Attributes::getString(itsAttr[MBMODE])) == string("FORCE")) {
+                if((Attributes::getString(itsAttr[MBMODE])) == std::string("FORCE")) {
                     itsTracker->setMultiBunchMode(1);
                     *gmsg << "FORCE mode: The multi bunches will be injected consecutively after each revolution, until get \"TURNS\" bunches." << endl;
 
 
                 }
                 //////
-                else if((Attributes::getString(itsAttr[MBMODE])) == string("AUTO")) {
+                else if((Attributes::getString(itsAttr[MBMODE])) == std::string("AUTO")) {
 
 
                     itsTracker->setMultiBunchMode(2);
@@ -708,3 +560,138 @@ void TrackRun::execute() {
     delete itsTracker;
 
 }
+
+double TrackRun::SetDistributionParallelT(Beam *beam) {
+
+    // If multipacting flag is not set, get distribution(s).
+    if (!Attributes::getBool(itsAttr[MULTIPACTING])) {
+        /*
+         * Distribution(s) can be set via a single distribution or a list
+         * (array) of distributions. If an array is defined the first in the
+         * list is treated as the primary distribution. All others are added to
+         * it to create the full distribution.
+         */
+        std::vector<std::string> distributionArray
+            = Attributes::getStringArray(itsAttr[DISTRIBUTIONS]);
+
+        if (distributionArray.size() > 0) {
+            *gmsg << endl
+                  << "---------------------------------" << endl
+                  << "Found more than one distribution:" << endl << endl;
+
+            for (std::vector<std::string>::const_iterator distIterator
+                 = distributionArray.begin();
+                 distIterator != distributionArray.end(); ++distIterator) {
+
+                if (distIterator == distributionArray.begin()) {
+                    dist = Distribution::find(*distIterator);
+                    *gmsg << "Main Distribution" << endl
+                          << "-----------------" << endl
+                          << *distIterator << endl << endl
+                          << "Secondary Distribution(s)" << endl
+                          << "-------------------------" << endl;
+                } else {
+                    Distribution *distribution = Distribution::find(*distIterator);
+                    *gmsg << *distIterator << endl;
+                    distrs_m.push_back(distribution);
+                }
+            }
+            *gmsg << endl
+                  << "---------------------------------" << endl << endl;
+        } else
+            dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
+    }
+
+
+    /*
+     * Initialize distributions.
+     */
+    size_t numberOfParticles = beam->getNumberOfParticles();
+    if (!OPAL->hasBunchAllocated()) {
+        if (!OPAL->inRestartRun()) {
+            if (!Attributes::getBool(itsAttr[MULTIPACTING])) {
+                /*
+                 * Here we are not doing a restart or doing a mulitpactor run
+                 * and we do not have a bunch already allocated.
+                 */
+                Track::block->bunch->setDistribution(dist,
+                                                     distrs_m,
+                                                     numberOfParticles,
+                                                     Options::scan);
+
+                /*
+                 * If this is an injected beam (rather than an emitted beam), we
+                 * make sure it doesn't have any particles at z < 0.
+                 */
+                Vector_t rMin;
+                Vector_t rMax;
+                Track::block->bunch->get_bounds(rMin, rMax);
+
+                OPAL->setGlobalPhaseShift(0.5 * dist->GetTEmission());
+            }
+        } else {
+            /*
+             * Read in beam from restart file.
+             */
+            dist->DoRestartOpalT(*Track::block->bunch, numberOfParticles, OPAL->getRestartStep());
+        }
+    } else if (OPAL->hasBunchAllocated() && Options::scan) {
+        /*
+         * We are in scan mode and have already allocated a bunch. So, we need to
+         * do a couple more things.
+         */
+        Track::block->bunch->setDistribution(dist,
+                                             distrs_m,
+                                             numberOfParticles,
+                                             Options::scan);
+        Track::block->bunch->resetIfScan();
+        Track::block->bunch->LastSection = 1;
+
+        OPAL->setGlobalPhaseShift(0.5 * dist->GetTEmission());
+    }
+
+    // Return charge per macroparticle.
+    return beam->getCharge() * beam->getCurrent() / beam->getFrequency() / numberOfParticles;
+
+}
+
+ParallelTTracker *TrackRun::setupForAutophase() {
+
+    Inform m("setupForAutophase() ");
+
+    Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+
+    DataSink *ds = NULL;
+
+
+    fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
+
+    fs->initCartesianFields();
+
+    Track::block->bunch->setSolver(fs);
+
+    dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
+
+    double charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
+
+    charge /= beam->getNumberOfParticles();
+
+    Track::block->bunch->setdT(Track::block->dT);
+
+    Track::block->bunch->resetIfScan();
+
+    Track::block->bunch->LastSection = 1;
+
+    Track::block->bunch->setCharge(charge);
+
+    Track::block->bunch->setChargeZeroPart(charge);// just set bunch->qi_m=charge, don't set bunch->Q[] as we have not initialized any particle yet.
+
+    double coefE = 1.0 / (4 * pi * epsilon_0);
+    Track::block->bunch->setCouplingConstant(coefE);
+
+    return new ParallelTTracker(*Track::block->use->fetchLine(),
+                                dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
+                                Track::block->reference, false, false, Track::block->localTimeSteps,
+                                Track::block->zstop, Track::block->timeIntegrator);
+}
+

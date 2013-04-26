@@ -212,6 +212,7 @@ PartBunch::PartBunch(const PartBunch &rhs):
     dist_m(nullptr),
     dcBeam_m(rhs.dcBeam_m) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
+    std::exit(0);
 }
 
 
@@ -337,7 +338,7 @@ void PartBunch::makHistograms()  {
 /// \brief Need Ek for the Schottky effect calculation (eV)
 double PartBunch::getEkin() const {
     if(dist_m)
-        return dist_m->getEkin();
+        return dist_m->GetEkin();
     else
         return 0.0;
 }
@@ -345,14 +346,14 @@ double PartBunch::getEkin() const {
 /// \brief Need the work function for the Schottky effect calculation (eV)
 double PartBunch::getWorkFunctionRf() const {
     if(dist_m)
-        return dist_m->getWorkFunctionRf();
+        return dist_m->GetWorkFunctionRf();
     else
         return 0.0;
 }
 /// \brief Need the laser energy for the Schottky effect calculation (eV)
 double PartBunch::getLaserEnergy() const {
     if(dist_m)
-        return dist_m->getLaserEnergy();
+        return dist_m->GetLaserEnergy();
     else
         return 0.0;
 }
@@ -369,31 +370,22 @@ void PartBunch::cleanUpParticles() {
 
     destroy(getLocalNum(), 0, true);
 
-    if(Options::cZero)
-        dist_m->setup(*this, np / 2, scan);
-    else
-        dist_m->setup(*this, np, scan);
+    dist_m->CreateOpalT(*this, np, scan);
 
     update();
 }
 
-
-
-void PartBunch::setDistribution(Distribution *d, size_t np, bool scan) {
-    Inform m("setDistribution ");
+void PartBunch::setDistribution(Distribution *d,
+                                std::vector<Distribution *> addedDistributions,
+                                size_t &np,
+                                bool scan) {
+    Inform m("setDistribution " );
     dist_m = d;
-    if(Options::cZero)
-        dist_m->setup(*this, np / 2, scan);
-    else
-        dist_m->setup(*this, np, scan);
-}
-
-bool PartBunch::addDistributions(std::vector<Distribution *> distributions, size_t numberOfParticles) {
-    Inform message("setDistribution ");
-    if(Options::cZero)
-        return dist_m->addDistributions(*this, distributions, numberOfParticles / 2);
-    else
-        return dist_m->addDistributions(*this, distributions, numberOfParticles);
+    dist_m->CreateOpalT(*this, addedDistributions, np, scan);
+//    if (Options::cZero)
+//        dist_m->Create(*this, addedDistributions, np / 2, scan);
+//    else
+//        dist_m->Create(*this, addedDistributions, np, scan);
 }
 
 void PartBunch::resetIfScan()
@@ -596,7 +588,8 @@ void PartBunch::updateBinStructure()
 
 void PartBunch::calcGammas() {
 
-    const int emittedBins = pbin_m->getNBins();
+    const int emittedBins = dist_m->GetNumberOfEnergyBins();
+
     size_t s = 0;
 
     for(int i = 0; i < emittedBins; i++)
@@ -729,7 +722,9 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// equation (without coefficient: -1/(eps)).
         IpplTimings::startTimer(compPotenTimer_m);
         imagePotential = rho_m;
+
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
+
         IpplTimings::stopTimer(compPotenTimer_m);
 
         /// Scale mesh back (to same units as particle locations.)
@@ -767,6 +762,7 @@ void PartBunch::computeSelfFields(int binNumber) {
         Bf(1) = Bf(1) + betaC * Eftmp(0);
 
         Ef += Eftmp;
+
 
         /// Now compute field due to image charge. This is done separately as the image charge
         /// is moving to -infinity (instead of +infinity) so the Lorentz transform is different.
@@ -1245,7 +1241,6 @@ void PartBunch::boundp() {
         }
     }
     update();
-
     R.resetDirtyFlag();
 
     IpplTimings::stopTimer(boundpTimer_m);
@@ -1683,490 +1678,21 @@ void PartBunch::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
 
 double PartBunch::getTBin() {
     if(dist_m)
-        return dist_m->getTBin();
+        return dist_m->GetEnergyBinDeltaT();
     else
         return 0.0;
 }
 
-double PartBunch::getTSBin() {
-    return dist_m->getTBin() / static_cast<double>(pbin_m->getSBins());
+double PartBunch::GetEmissionDeltaT() {
+    return dist_m->GetEmissionDeltaT();
 }
 
-size_t PartBunch::emitParticlesNEW() {
+size_t PartBunch::EmitParticles(double eZ) {
 
-    /// Start with the first processor.
-    int pc = 0;
+    return dist_m->EmitParticles(*this, eZ);
 
-    /// Get total number of bins in the histogram that defines the longitudinal shape of the
-    /// beam bunch.
-    int binNumber = pbin_m->getSBinToEmit();
-
-    /// Find the current energy bin number.
-    int energyBinNumber = static_cast<int>(floor(static_cast<double>(binNumber) / static_cast<double>(pbin_m->getSBins())));
-
-    /// Find the which sample bin within the current energy bin that we are on.
-    int sampleBinNumber = static_cast<int>(fmod(static_cast<double>(binNumber), static_cast<double>(pbin_m->getSBins())));
-
-    /// Keep emitting until we are done with all of the sampling bins.
-    if(binNumber != -1) {
-
-        /// Get number of particles that have been emitted and are on this processor.
-        size_t numberOfEmittedParticles = this->getLocalNum();
-        size_t oldNumberOfEmittedParticles = numberOfEmittedParticles;
-
-        /// Loop over particles in bin.
-        for(size_t particleNumber = 0; particleNumber < pbin_m->getLocalSBinCount(binNumber); particleNumber++) {
-
-            /// Sample distribution
-            const pair<Vector_t, Vector_t> s = dist_m->sampleNEW(getdT(), binNumber);
-
-            //            *gmsg << "Particle number: " << particleNumber << " s: " << s.first << " " << s.second << endl;
-
-            Vector_t x1 = s.first;
-            Vector_t p1 = s.second;
-
-            Vector_t p2;
-            Vector_t x2;
-
-            if(Options::cZero) {
-                p2 = Vector_t(-p1[0], -p1[1], p1[2]);
-                x2 = Vector_t(-x1[0], -x1[1], x1[2]);
-            }
-
-            /**
-               for debug purposes
-
-             */
-
-            if(Ippl::getNodes() == 1) {
-                std::ofstream os;
-                std::ostringstream istr;
-                istr << binNumber;
-
-                string fn = string("distribution/dist-bin-") + string(istr.str()) + string(".dat");
-
-                os.open(fn.c_str(), fstream::app);
-                if(os.bad()) {
-                    *gmsg << "Unable to open output file " <<  fn << endl;
-                }
-                //FIXME: this currently only works when getdT == tEmission/NBin
-                os << x1[0] << "\t" << x1[1] << "\t" << x1[2] + binNumber *getdT() << "\t" << p1[0] << "\t" << p1[1] << "\t" << p1[2] << endl;
-                if(Options::cZero)
-                    os << x2[0] << "\t" << x2[1] << "\t" << x2[2] + binNumber *getdT() << "\t" << p2[0] << "\t" << p2[1] << "\t" << p2[2] << endl;
-                os.close();
-                distDump_m++;
-
-            }
-
-            if(itIsMyTurn(&pc)) {
-
-                // dt denotes time the particle still has to be tracked to reach the end of the bin
-                if(Options::cZero)
-                    create(2);
-                else
-                    create(1);
-
-                this->dt[numberOfEmittedParticles] =  getdT() - x1(2);
-
-                //                *gmsg << "dt: " << this->dt[numberOfEmittedParticles] << endl;
-
-                double oneOverCDt = 1.0 / (Physics::c * this->dt[numberOfEmittedParticles]);
-
-                double particleGamma = sqrt(1.0 + pow(p1(0), 2.0) + pow(p1(1), 2.0) + pow(p1(2), 2.0));
-
-                this->R[numberOfEmittedParticles] = Vector_t(oneOverCDt * (x1(0) + p1(0) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                    oneOverCDt * (x1(1) + p1(1) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                    oneOverCDt * (0.0 + p1(2) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)));
-                //                *gmsg << "Particles: " << numberOfEmittedParticles << " " << this->R[numberOfEmittedParticles] << endl;
-
-                /// Fill in the rest of the particle properties.
-                this->P[numberOfEmittedParticles] = p1;
-                this->Bin[numberOfEmittedParticles] = energyBinNumber;
-                this->Q[numberOfEmittedParticles] = getChargePerParticle();
-                this->LastSection[numberOfEmittedParticles] = -1;
-                this->Ef[numberOfEmittedParticles] = Vector_t(0.0); /// Initialize fields to zero.
-                this->Bf[numberOfEmittedParticles] = Vector_t(0.0);
-                this->PType[numberOfEmittedParticles] = 0;
-                this->TriID[numberOfEmittedParticles] = 0;
-                if(Ippl::getNodes() == 1)
-                    *pmsg_m << this->R[numberOfEmittedParticles](0) / oneOverCDt << "\t "
-                            << this->R[numberOfEmittedParticles](1) / oneOverCDt << "\t "
-                            << this->R[numberOfEmittedParticles](2) / oneOverCDt << "\t "
-                            << this->P[numberOfEmittedParticles](0) << "\t "
-                            << this->P[numberOfEmittedParticles](1) << "\t "
-                            << this->P[numberOfEmittedParticles](2) << "\t "
-                            << this->dt[numberOfEmittedParticles] << "\t "
-                            << x1[2] + binNumber *getdT() << endl;
-                numberOfEmittedParticles++;                        /// Iterate number of particles that have been emitted.
-                binemitted_m[energyBinNumber]++;                   /// Iterate number of particles in this bin that have been emitted.
-
-
-                if(Options::cZero) {
-                    this->dt[numberOfEmittedParticles] =  getdT() - x2(2);
-
-                    oneOverCDt = 1.0 / (Physics::c * this->dt[numberOfEmittedParticles]);
-
-                    this->R[numberOfEmittedParticles] = Vector_t(oneOverCDt * (x2(0) + p2(0) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                        oneOverCDt * (x2(1) + p2(1) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                        oneOverCDt * (0.0 + p2(2) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)));
-                    /// Fill in the rest of the particle properties.
-                    this->P[numberOfEmittedParticles] = p2;
-                    this->Bin[numberOfEmittedParticles] = energyBinNumber;
-                    this->Q[numberOfEmittedParticles] = getChargePerParticle();
-                    this->LastSection[numberOfEmittedParticles] = -1;
-                    this->Ef[numberOfEmittedParticles] = Vector_t(0.0); /// Initialize fields to zero.
-                    this->Bf[numberOfEmittedParticles] = Vector_t(0.0);
-                    this->PType[numberOfEmittedParticles] = 0;
-                    this->TriID[numberOfEmittedParticles] = 0;
-                    if(Ippl::getNodes() == 1)
-                        *pmsg_m << this->R[numberOfEmittedParticles](0) / oneOverCDt << "\t "
-                                << this->R[numberOfEmittedParticles](1) / oneOverCDt << "\t "
-                                << this->R[numberOfEmittedParticles](2) / oneOverCDt << "\t "
-                                << this->P[numberOfEmittedParticles](0) << "\t "
-                                << this->P[numberOfEmittedParticles](1) << "\t "
-                                << this->P[numberOfEmittedParticles](2) << "\t "
-                                << this->dt[numberOfEmittedParticles]
-                                << "\t " << x1[2] + binNumber *getdT() << endl;
-                    numberOfEmittedParticles++;                        /// Iterate number of particles that have been emitted.
-                    binemitted_m[energyBinNumber]++;                   /// Iterate number of particles in this bin that have been emitted.
-                }
-
-            }
-        }
-
-        if(sampleBinNumber == pbin_m->getSBins() - 1) {
-            pbin_m->setBinEmitted(energyBinNumber);
-            *gmsg << "* Bin number: " << pbin_m->getBinToEmit() << " has emitted all particles (new emmit)." << endl;
-        }
-
-        /// Return number of particles emitted.
-        return numberOfEmittedParticles - oldNumberOfEmittedParticles;
-
-    } else
-        return 0;
 }
 
-size_t PartBunch::emitParticles() {
-    /// Get number of particles that have been emitted and are on this processor.
-    int binNumber = pbin_m->getBinToEmit();
-    int pc = 0;
-    if(binNumber != -1) {
-        size_t numberOfEmittedParticles = this->getLocalNum();
-        size_t oldNumberOfEmittedParticles = numberOfEmittedParticles;
-
-        /// Loop over particles in bin.
-        for(size_t particleNumber = 0; particleNumber < pbin_m->getLocalBinCount(binNumber); particleNumber++) {
-            // sample distribution
-            const pair<Vector_t, Vector_t> s = dist_m->sample(getdT(), binNumber);
-
-            Vector_t x1 = s.first;
-            Vector_t p1 = s.second;
-
-            Vector_t p2;
-            Vector_t x2;
-
-            if(Options::cZero) {
-                p2 = Vector_t(-p1[0], -p1[1], p1[2]);
-                x2 = Vector_t(-x1[0], -x1[1], x1[2]);
-            }
-
-            /**
-               for debug purposes
-
-             */
-
-            if(Ippl::getNodes() == 1) {
-                std::ofstream os;
-                std::ostringstream istr;
-                istr << binNumber;
-
-                string fn = string("distribution/dist-bin-") + string(istr.str()) + string(".dat");
-
-                os.open(fn.c_str(), fstream::app);
-                if(os.bad()) {
-                    *gmsg << "Unable to open output file " <<  fn << endl;
-                }
-                //FIXME: this currently only works when getdT == tEmission/NBin
-                os << x1[0] << "\t" << x1[1] << "\t" << x1[2] + binNumber *getdT() << "\t" << p1[0] << "\t" << p1[1] << "\t" << p1[2] << endl;
-                if(Options::cZero)
-                    os << x2[0] << "\t" << x2[1] << "\t" << x2[2] + binNumber *getdT() << "\t" << p2[0] << "\t" << p2[1] << "\t" << p2[2] << endl;
-                os.close();
-                distDump_m++;
-
-            }
-
-            if(itIsMyTurn(&pc)) {
-
-                // dt denotes time the particle still has to be tracked to reach the end of the bin
-                if(Options::cZero)
-                    create(2);
-                else
-                    create(1);
-
-                this->dt[numberOfEmittedParticles] =  getdT() - x1(2);
-
-                double oneOverCDt = 1.0 / (Physics::c * this->dt[numberOfEmittedParticles]);
-
-                double particleGamma = sqrt(1.0 + pow(p1(0), 2.0) + pow(p1(1), 2.0) + pow(p1(2), 2.0));
-
-                this->R[numberOfEmittedParticles] = Vector_t(oneOverCDt * (x1(0) + p1(0) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                    oneOverCDt * (x1(1) + p1(1) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                    oneOverCDt * (0.0 + p1(2) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)));
-                /// Fill in the rest of the particle properties.
-                this->P[numberOfEmittedParticles] = p1;
-                this->Bin[numberOfEmittedParticles] = binNumber;
-                this->Q[numberOfEmittedParticles] = getChargePerParticle();
-                this->LastSection[numberOfEmittedParticles] = -1;
-                this->Ef[numberOfEmittedParticles] = Vector_t(0.0); /// Initialize fields to zero.
-                this->Bf[numberOfEmittedParticles] = Vector_t(0.0);
-                this->PType[numberOfEmittedParticles] = 0;
-                this->TriID[numberOfEmittedParticles] = 0;
-                numberOfEmittedParticles++;                        /// Iterate number of particles that have been emitted.
-                binemitted_m[binNumber]++;                         /// Iterate number of particles in this bin that have been emitted.
-
-
-                if(Options::cZero) {
-                    this->dt[numberOfEmittedParticles] =  getdT() - x2(2);
-
-                    oneOverCDt = 1.0 / (Physics::c * this->dt[numberOfEmittedParticles]);
-
-                    this->R[numberOfEmittedParticles] = Vector_t(oneOverCDt * (x2(0) + p2(0) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                        oneOverCDt * (x2(1) + p2(1) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                        oneOverCDt * (0.0 + p2(2) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)));
-                    /// Fill in the rest of the particle properties.
-                    this->P[numberOfEmittedParticles] = p2;
-                    this->Bin[numberOfEmittedParticles] = binNumber;
-                    this->Q[numberOfEmittedParticles] = getChargePerParticle();
-                    this->LastSection[numberOfEmittedParticles] = -1;
-                    this->Ef[numberOfEmittedParticles] = Vector_t(0.0); /// Initialize fields to zero.
-                    this->Bf[numberOfEmittedParticles] = Vector_t(0.0);
-                    this->PType[numberOfEmittedParticles] = 0;
-                    this->TriID[numberOfEmittedParticles] = 0;
-                    numberOfEmittedParticles++;                        /// Iterate number of particles that have been emitted.
-                    binemitted_m[binNumber]++;                         /// Iterate number of particles in this bin that have been emitted.
-                }
-            }
-        }
-
-        pbin_m->setBinEmitted(binNumber);
-
-        *gmsg << "* Bin number: " << binNumber << " has emitted all " << numberOfEmittedParticles - oldNumberOfEmittedParticles << " particles." << endl;
-
-        /// Return number of particles emitted.
-        return numberOfEmittedParticles - oldNumberOfEmittedParticles;
-    } else
-        return 0;
-}
-
-
-size_t PartBunch::emitParticlesOLD(int binNumber) {
-
-    /// Get number of particles that have been emitted and are on this processor.
-    size_t numberOfEmittedParticles = this->getLocalNum();
-    size_t oldNumberOfEmittedParticles = numberOfEmittedParticles;
-
-    /// Check if bin has already been emitted. Make sure it is a legal bin number.
-    if(!pbin_m->getBinEmitted(binNumber) && binNumber < pbin_m->getNBins()) {
-
-        /// Loop over particles in bin.
-        for(size_t particleNumber = 0; particleNumber < pbin_m->getNp(); particleNumber++) {
-
-            /// Get particles.
-            vector<double> particleCoordinates;
-            if(pbin_m->getPart(particleNumber, binNumber, particleCoordinates)) {
-                if(!pbin_m->isEmitted(particleNumber, binNumber)) {
-
-                    /// If particle has not been emitted proceed.
-
-                    /// Use bin gamma until particle is emitted.
-                    double particleSVelocity = Physics::c * sqrt(1.0 - 1.0 / pow(pbin_m->getGamma(), 2.0));
-                    double sDrift = particleSVelocity * getdT() / 2.0;
-
-                    if(particleCoordinates.at(2) + sDrift >= 0.0) {
-                        /// Particle is emitted. Update position and change time step appropriately.
-
-                        create(1); /// Emit particle into PartBunch.
-
-                        /** Find the time when the particle was emitted. This will either be in the future (particle emitted in step 1 of the full
-                            integration step) or in the past (particle emitted in step 3 of the full integration step). So, if we define
-                            \f[
-                            t_{emit} = \frac{z_{particle}}{v_{particle}}
-                            \f]
-                            then we change the time step for the particle to
-                            \f[
-                            \Delta t_{particle} = \Delta t_{simulation} + t_{emit}
-                            \f]
-                            This time step will be changed back to its original value after the first step after emission.
-
-                            This call is made after the first half step in the general integration step for PartBunch in the beam tracker.
-                            So, we end by advancing the particles one half of their new, temporary time step.
-
-                            Also note that at this point in the general integration algorithm the positions should be divided by /f$c /Delta t/f$.
-                         */
-
-                        this->dt[numberOfEmittedParticles] = particleCoordinates.at(2) / particleSVelocity + getdT();
-
-                        double oneOverCDt = 1.0 / (Physics::c * this->dt[numberOfEmittedParticles]);
-
-                        double particleGamma = sqrt(1.0 + pow(particleCoordinates.at(3), 2.0)
-                                                    + pow(particleCoordinates.at(4), 2.0)
-                                                    + pow(particleCoordinates.at(5), 2.0));
-                        this->R[numberOfEmittedParticles] = Vector_t(oneOverCDt * (particleCoordinates.at(0)
-                                                            + particleCoordinates.at(3) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                            oneOverCDt * (particleCoordinates.at(1)
-                                                                    + particleCoordinates.at(4) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)),
-                                                            oneOverCDt * (particleCoordinates.at(5) * this->dt[numberOfEmittedParticles] * Physics::c / (2.0 * particleGamma)));
-
-                        /// Fill in the rest of the particle properties.
-                        this->P[numberOfEmittedParticles] = Vector_t(particleCoordinates.at(3),
-                                                            particleCoordinates.at(4),
-                                                            particleCoordinates.at(5));
-                        this->Bin[numberOfEmittedParticles] = binNumber;
-                        this->Q[numberOfEmittedParticles] = getChargePerParticle();
-                        this->LastSection[numberOfEmittedParticles] = -1;
-                        this->Ef[numberOfEmittedParticles] = Vector_t(0.0); /// Initialize fields to zero.
-                        this->Bf[numberOfEmittedParticles] = Vector_t(0.0);
-                        this->PType[numberOfEmittedParticles] = 0;
-                        this->TriID[numberOfEmittedParticles] = 0;
-                        pbin_m->setEmitted(particleNumber, binNumber);     /// Set particle as emitted.
-                        numberOfEmittedParticles++;                        /// Iterate number of particles that have been emitted.
-                        binemitted_m[binNumber]++;                         /// Iterate number of particles in this bin that have been emitted.
-                    } else {
-                        /// Particle not emitted. Drift with initial parameters.
-                        pbin_m->updatePartPos(particleNumber, binNumber, particleCoordinates.at(2) + 2.0 * sDrift);
-                    }
-                }
-            }
-        }
-    }
-
-    /// Check if all particles in bin have been emitted. Set bin to emitted if so.
-    if(binemitted_m[binNumber] == pbin_m->getGlobalBinCount(binNumber)) {
-        pbin_m->setBinEmitted(binNumber);
-        *gmsg << "* Bin number: " << binNumber << " has emitted all particles." << endl;
-    }
-
-    /// Set this as the last bin to have emitted.
-    if((numberOfEmittedParticles - oldNumberOfEmittedParticles) != 0) {
-        pbin_m->setActualemittedBin(binNumber);
-    }
-
-    /// Set last emitted bin as the same for all processors.
-    int lastEmittedBin = pbin_m->getLastemittedBin();
-    reduce(lastEmittedBin, lastEmittedBin, OpMaxAssign());
-    pbin_m->setActualemittedBin(lastEmittedBin);
-
-    /// Return number of particles emitted.
-    return numberOfEmittedParticles - oldNumberOfEmittedParticles;
-}
-
-/** When a particle crosses
-    where they become part
-    of the simulation in that theyat which point they areonly after they crosssimulation space (i.e. inside the beam line  that would step over the cathode (z=0) in the first half step of the integration scheme.
-    This particles are added to the bunch and reset their timestep to the remaining distance they would cover until after the second half step diveded by two.
-    The timestep for these particles will be shorter in this step than the full timestep of the simulation.
-    The timestep of emitted particles is reset to the simluation timestep after the full timestep has been applied.
-    \f[
-    \Delta t = \frac{P_z}{\beta c} + \frac{\Delta t_{full-timestep}}{2}
-    \f]
-    The particles that do not step over the cathode update their z position.
- */
-// size_t PartBunch::emitParticles(int bin) {
-//   /**
-//      We copy all particles in the given
-//      bin from pbin_m to the particle
-//      container.
-//   */
-//   size_t nloc = this->getLocalNum();
-//   size_t oldtot = nloc;
-
-//   if(!pbin_m->getBinEmitted(bin) && bin < pbin_m->getNBins()) {
-
-//     //*gmsg << "* ************** E M I T *********************************************************** " << endl;
-//     //*gmsg << "* BIN= " << bin << " out of " << pbin_m->getNBins() << endl;
-//     //  *gmsg << "* rmin_i= " << rmin_m << " rmax_i= " << rmax_m << " h_i= " << hr_m << endl;
-
-//     double bingamma = 0.0;
-//     int nonemittedp = 0;
-//     //FIXME: DONT DO EVERY EMIT CALL!
-//     for (size_t i=0; i<pbin_m->getNp(); i++) {
-//       vector<double> p;
-//       if (pbin_m->getPart(i,bin,p)) {
-//         //         if( !pbin_m->isEmitted(i,bin) ) {
-//         bingamma += sqrt(1.0 + p[3]*p[3] + p[4]*p[4] + p[5]*p[5]);
-//         //           ++nonemittedp;
-//         //         }
-//       }
-//     }
-//     //     bingamma /= nonemittedp;
-//     bingamma /= pbin_m->getBinCont(bin);
-//     const double binbetac = sqrt(1.0 - (1.0/(bingamma*bingamma))) * Physics::c;
-//     const double tempz = getdT()/2.0 * binbetac;
-//     const double recpcdt = 1.0 / (Physics::c * getdT());
-
-//     for (size_t i=0; i<pbin_m->getNp(); i++) {
-//       vector<double> p;
-//       if (pbin_m->getPart(i,bin,p)) {
-//         if( !pbin_m->isEmitted(i,bin) ) {
-//    const double recpgamma = 1.0 / sqrt(1.0 + p[3]*p[3] + p[4]*p[4] + p[5]*p[5]);
-//    double betaTemp = p[5] * recpgamma;
-//    double vTemp = betaTemp * Physics::c;
-//    double zTemp = vTemp * getdT() / 2.0;
-//           if(p[2] + tempz > 0.0) {
-//             create(1);
-//             /** calculate the time when the particle is emitted, \f$t_{emit}\f$, and subtract this from \f$dT\f$ to get the proper \f$dt\f$ for the particle.
-//                 Set then the particle back to the surface of the cathode and push it from there to the right position with its own \f$dt\f$.
-//                 \f[
-//                 t_{emit} = -\frac{z}{\beta c} \; (z<0)\newline
-//                 dt = dT - t_{emit} = dT + \frac{z}{\beta c} \newline
-//                 z' = \frac{dt}{2} \beta c
-//                 \f]
-//                 The position should be dimensionless at this stage of the algorithm therefore we devide by c*dt.
-//             */
-
-//      this->dt[nloc] = p[2]/(binbetac) + getdT();
-//      //            this->R[nloc] = Vector_t(p[0]*recpcdt, p[1]*recpcdt, 0.25 * p[5] * recpgamma * (p[2]/tempz + 2.0));
-//             this->R[nloc] = Vector_t(p[0]*recpcdt, p[1]*recpcdt, 0.25 * p[5] * recpgamma * (p[2]/zTemp + 2.0));
-
-//             this->P[nloc] = Vector_t(0.0,0.0,p[5]);
-//             this->Bin[nloc]=bin;
-//             this->Q[nloc] = getChargePerParticle();
-//             this->LastSection[nloc]=0;
-//             this->Ef[nloc] = Vector_t(0.0);
-//             this->Bf[nloc] = Vector_t(0.0);
-
-
-//             //             cerr << this->R[nloc](0)/recpcdt << "\t"
-//             //                  << this->R[nloc](1)/recpcdt << "\t"
-//             //                  << this->R[nloc](2)/recpcdt << endl;
-
-//             pbin_m->setEmitted(i,bin);
-//             nloc++;
-//             binemitted_m[bin]++;
-//           } else {
-//             //update z position of particle 'i' in bin 'bin'
-//             pbin_m->updatePartPos(i, bin, p[2] + 2. * tempz);
-//           }
-//         }
-//       }
-//     }
-
-//     if(binemitted_m[bin] == pbin_m->getBinCont(bin)) {
-//       pbin_m->setBinEmitted(bin);
-//       *gmsg << "* Bin " << bin << " has emitted all particles" << endl;
-//     }
-//     /*
-//        Because only node 0 is doing that we can not
-//        do an boundp here!
-//        boundp();
-//     */
-
-//     if ((nloc-oldtot) != 0) {
-//       pbin_m->setActualemittedBin(bin);
-//     }
-//   }
-//   return (nloc-oldtot);
-// }
 
 double PartBunch::calcTimeDelay(const double &jifactor) {
     double gamma = pbin_m->getGamma();
@@ -2363,9 +1889,9 @@ size_t PartBunch::boundp_destroyT() {
     size_t ne = 0;
     boundp();
 
-    if(weHaveBins()) {
-        tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[pbin_m->getNBins()]);
-        for(int i = 0; i < pbin_m->getNBins(); i++) {
+    if(WeHaveEnergyBins()) {
+        tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[GetNumberOfEnergyBins()]);
+        for(int i = 0; i < GetNumberOfEnergyBins(); i++) {
             tmpbinemitted[i] = 0;
         }
         for(unsigned int i = 0; i < this->getLocalNum(); i++) {
@@ -2387,8 +1913,8 @@ size_t PartBunch::boundp_destroyT() {
     boundp();
     calcBeamParameters();
 
-    if(weHaveBins()) {
-        const int lastBin = pbin_m->getLastemittedBin() + 1;
+    if(WeHaveEnergyBins()) {
+        const int lastBin = dist_m->GetLastEmittedEnergyBin() + 1;
         for(int i = 0; i < lastBin; i++) {
             binemitted_m[i] = tmpbinemitted[i];
         }
@@ -2770,4 +2296,102 @@ double PartBunch::getZPos() {
 
 void PartBunch::getXBounds(Vector_t &xMin, Vector_t &xMax) {
     bounds(X, xMin, xMax);
+}
+
+void PartBunch::iterateEmittedBin(int binNumber) {
+    binemitted_m[binNumber]++;
+}
+
+bool PartBunch::doEmission() {
+    if (dist_m != NULL)
+        return dist_m->GetIfDistEmitting();
+    else
+        return false;
+}
+
+bool PartBunch::GetIfBeamEmitting() {
+
+    if (dist_m != NULL) {
+        size_t isBeamEmitted = dist_m->GetIfDistEmitting();
+        reduce(isBeamEmitted, isBeamEmitted, OpAddAssign());
+        if (isBeamEmitted > 0)
+            return true;
+        else
+            return false;
+    } else
+        return false;
+
+}
+
+int PartBunch::GetLastEmittedEnergyBin() {
+    /*
+     * Get maximum last emitted energy bin.
+     */
+    int lastEmittedBin = dist_m->GetLastEmittedEnergyBin();
+    std::vector<int> emittedBins;
+    for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
+        if (nodeIndex == Ippl::myNode())
+            emittedBins.push_back(lastEmittedBin);
+        else
+            emittedBins.push_back(0);
+
+        reduce(emittedBins.at(nodeIndex), emittedBins.at(nodeIndex), OpAddAssign());
+    }
+
+    int maxEmittedBin = 0;
+    std::vector<int>::iterator binIt;
+    for (binIt = emittedBins.begin(); binIt != emittedBins.end(); binIt++) {
+        if (binIt == emittedBins.begin())
+            maxEmittedBin = *binIt;
+        else if (maxEmittedBin < *binIt)
+            maxEmittedBin = *binIt;
+    }
+
+    return maxEmittedBin;
+}
+
+size_t PartBunch::GetNumberOfEmissionSteps() {
+    return dist_m->GetNumberOfEmissionSteps();
+}
+
+bool PartBunch::weHaveBins() const {
+    if(pbin_m != NULL)
+        return pbin_m->weHaveBins();
+    else
+        return false;
+}
+
+int PartBunch::GetNumberOfEnergyBins() {
+    return dist_m->GetNumberOfEnergyBins();
+}
+
+void PartBunch::Rebin() {
+
+    size_t isBeamEmitting = dist_m->GetIfDistEmitting();
+    reduce(isBeamEmitting, isBeamEmitting, OpAddAssign());
+    if (isBeamEmitting > 0) {
+        *gmsg << "*****************************************************" << endl
+              << "Warning: attempted to rebin, but not all distribution" << endl
+              << "particles have been emitted. Rebin failed." << endl
+              << "*****************************************************" << endl;
+    } else {
+        if (dist_m->Rebin())
+            this->Bin = 0;
+    }
+
+}
+
+void PartBunch::SetEnergyBins(int numberOfEnergyBins) {
+    bingamma_m = std::unique_ptr<double[]>(new double[numberOfEnergyBins]);
+    binemitted_m = std::unique_ptr<size_t[]>(new size_t[numberOfEnergyBins]);
+    for(int i = 0; i < numberOfEnergyBins; i++)
+        binemitted_m[i] = 0;
+}
+
+bool PartBunch::WeHaveEnergyBins() {
+
+    if (dist_m != NULL)
+        return dist_m->GetNumberOfEnergyBins() > 0;
+    else
+        return false;
 }

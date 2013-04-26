@@ -20,6 +20,7 @@
 
 #include "AbstractObjects/Action.h"
 
+class Beam;
 class OpalData;
 class DataSink;
 class Distribution;
@@ -55,6 +56,7 @@ private:
     // Clone constructor.
     TrackRun(const string &name, TrackRun *parent);
 
+    double SetDistributionParallelT(Beam *beam);
     ParallelTTracker *setupForAutophase();
 
     // Pointer to tracking algorithm.

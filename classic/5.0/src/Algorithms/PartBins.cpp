@@ -131,16 +131,16 @@ void PartBins::resetPartInBin_cyc(size_t newPartNum[], int maxbinIndex) {
 
 
 PartBins::~PartBins() {
+
     if(nBin_m) {
-        delete nBin_m;
-        delete xbinmax_m;
-        delete xbinmin_m;
-        delete binsEmitted_m;
+        delete [] nBin_m;
+        delete [] xbinmax_m;
+        delete [] xbinmin_m;
+        delete [] binsEmitted_m;
     }
     tmppart_m.clear();
     isEmitted_m.clear();
-    if(h_m)
-        delete h_m;
+
 }
 
 

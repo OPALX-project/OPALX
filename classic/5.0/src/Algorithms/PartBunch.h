@@ -62,6 +62,14 @@ public:
     PartBunch(const PartBunch &);
     ~PartBunch();
 
+    bool GetIfBeamEmitting();
+    int GetLastEmittedEnergyBin();
+    size_t GetNumberOfEmissionSteps();
+    int GetNumberOfEnergyBins();
+    void Rebin();
+    void SetEnergyBins(int numberOfEnergyBins);
+    bool WeHaveEnergyBins();
+
     // helpers to store and restore a PartBunch
     void stash();
     void pop();
@@ -103,8 +111,10 @@ public:
     void fillArray(double *lineDensity, const std::list<ListElem> &l);
     void getLineDensity(std::vector<double> &lineDensity);
 
-    void setDistribution(Distribution *d, size_t np, bool scan);
-    bool addDistributions(std::vector<Distribution *> distributions, size_t numberOfParticles);
+    void setDistribution(Distribution *d,
+                         std::vector<Distribution *> addedDistributions,
+                         size_t &np,
+                         bool scan);
 
 
     void setGridIsFixed();
@@ -133,9 +143,7 @@ public:
         i.e. copy the particles from the bin structure into the
         particle container
     */
-    size_t emitParticlesNEW();
-    size_t emitParticles();
-    size_t emitParticlesOLD(int bin);
+    size_t EmitParticles(double eZ);
 
     double calcTimeDelay(const double &jifactor);
     void moveBunchToCathode(double &t);
@@ -417,7 +425,9 @@ public:
     const PartData *getReference() const;
 
     double getTBin();
-    double getTSBin();
+    double GetEmissionDeltaT();
+
+    void iterateEmittedBin(int binNumber);
 
 
     // Particle container attributes
@@ -758,19 +768,6 @@ void   PartBunch::setTEmission(double t) {
 inline
 double PartBunch::getTEmission() {
     return tEmission_m;
-}
-
-inline
-bool PartBunch::doEmission() {
-    return (tEmission_m > 0.0);
-}
-
-inline
-bool PartBunch::weHaveBins() const {
-    if(pbin_m != NULL)
-        return pbin_m->weHaveBins();
-    else
-        return false;
 }
 
 inline

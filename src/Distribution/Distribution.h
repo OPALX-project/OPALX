@@ -19,302 +19,384 @@
 // ------------------------------------------------------------------------
 #include <iosfwd>
 #include <fstream>
+#include <forward_list>
 #include <string>
 #include <map>
-
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_histogram.h>
-#include <gsl/gsl_qrng.h>
-
-#include "H5hut.h"
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "ranlib.h"
 #include "Algorithms/Vektor.h"
 
-#define RANLIBX
-#define sqr(x) x*x
+#include "Ippl.h"
 
+#include "H5hut.h"
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_histogram.h>
+#include <gsl/gsl_qrng.h>
+
+#define RANLIBX
+
+class Beam;
 class PartBunch;
 class PartBins;
 class EnvelopeBunch;
 class BoundaryGeometry;
 class LaserProfile;
 
-enum DistrTypeT {NODIST,
-                 GAUSS,
-                 FROMFILE,
-                 GUNGAUSSFLATTOPTH,
-                 BINOMIAL,
-                 SURFACEEMISSION,
-                 SURFACERANDCREATE,
-                 ASTRAFLATTOPTH
-                };
+namespace DistrTypeT
+{
+    enum DistrTypeT {NODIST,
+                    FROMFILE,
+                    GAUSS,
+                    BINOMIAL,
+                    FLATTOP,
+                    SURFACEEMISSION,
+                    SURFACERANDCREATE,
+                    GUNGAUSSFLATTOPTH,
+                    ASTRAFLATTOPTH
+                    };
+}
 
-// Class Distribution
-// ------------------------------------------------------------------------
-/// The Distribution definition.
-//
-//  A Distribution definition is used by most physics commands to define the
-//  beam distribution. This includes particle charge, reference momentum, beam size,
-//  beam momentum spread etc.
+namespace EmissionModelT
+{
+    enum EmissionModelT {NONE,
+                         ASTRA,
+                         NONEQUIL
+                        };
+}
+
+namespace InputMomentumUnitsT
+{
+    enum InputMomentumUnitsT {NONE,
+                              EV
+                              };
+}
+
+/*
+ * Class Distribution
+ *
+ * Defines the initial beam that is injected or emitted into the simulation.
+ */
 
 class Distribution: public Definition {
 
-    //===============
-    // Class methods.
-    //===============
 public:
 
-    /// Exemplar constructor.
     Distribution();
-
     virtual ~Distribution();
 
-    /// Test if replacement is allowed.
-    //  Can replace only by another Distribution.
     virtual bool canReplaceBy(Object *object);
-
-    /// Make clone.
     virtual Distribution *clone(const std::string &name);
-
-    /// Check the Distribution data.
     virtual void execute();
-
-    /// Find named Distribution.
-    static Distribution *find(const std::string &name);
-
-    /// Return the embedded CLASSIC PartData.
-    const PartData &getReference() const;
-
-    /// Update the Distribution data.
     virtual void update();
 
-    /// configure rng generator such that calls to sample
-    /// gives the random values
-    void setup(PartBunch &beam, size_t Np, bool scan);
+    void Create(size_t &numberOfParticles, double massIneV);
+    void CreateBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
+    void CreateOpalCycl(PartBunch &beam,
+                        size_t numberOfParticles,
+                        bool scan);
+    void CreateOpalE(Beam *beam,
+                     std::vector<Distribution *> addedDistributions,
+                     EnvelopeBunch *envelopeBunch,
+                     double distCenter,
+                     double Bz0);
+    void CreateOpalT(PartBunch &beam,
+                     std::vector<Distribution *> addedDistributions,
+                     size_t &numberOfParticles,
+                     bool scan);
+    void CreateOpalT(PartBunch &beam, size_t &numberOfParticles, bool scan);
+    void CreatePriPart(PartBunch *beam, BoundaryGeometry &bg);
+    void DoRestartOpalT(PartBunch &p, size_t Np, int restartStep);
+    void DoRestartOpalCycl(PartBunch &p, size_t Np, int restartStep,
+                        const int specifiedNumBunch);
+    void DoRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep);
+    size_t EmitParticles(PartBunch &beam, double eZ);
+    static Distribution *find(const std::string &name);
 
-    /**
-     * Add a list of distributions. This takes a list
-     * of distributions and adds them together. Currently
-     * this only works for the GUNGAUSSFLATTOPTH distribution.
-     * Also, the transverse properties of the beam are defined only
-     * by the first distribution in the list. For subsequent
-     * distributions, only the longitudinal properties are used.
-     */
-    bool addDistributions(PartBunch &beam, std::vector<Distribution *> distributions, size_t numberOfParticles);
+    void EraseXDist();
+    void EraseBGxDist();
+    void EraseYDist();
+    void EraseBGyDist();
+    void EraseTOrZDist();
+    void EraseBGzDist();
+    bool GetIfDistEmitting();
+    int GetLastEmittedEnergyBin();
+    double GetMaxTOrZ();
+    double GetMinTOrZ();
+    size_t GetNumberOfEmissionSteps();
+    int GetNumberOfEnergyBins();
+    double GetEmissionDeltaT();
+    double GetEnergyBinDeltaT();
+    double GetWeight();
+    std::vector<double>& GetXDist();
+    std::vector<double>& GetBGxDist();
+    std::vector<double>& GetYDist();
+    std::vector<double>& GetBGyDist();
+    std::vector<double>& GetTOrZDist();
+    std::vector<double>& GetBGzDist();
 
-    /// gets back (x,p)
-    std::pair<Vector_t, Vector_t> sample(double dt, int binNumber);
+    /// Return the embedded CLASSIC PartData.
+    const PartData &GetReference() const;
+    double GetTEmission();
 
-    /// gets back (x,p)
-    std::pair<Vector_t, Vector_t> sampleNEW(double dt, int binNumber);
+    double GetEkin() const;
+    double GetLaserEnergy() const;
+    double GetWorkFunctionRf() const;
 
-    void create(PartBunch &p, size_t Np);
-    void create(PartBunch &p, size_t Np, bool scan);
+    size_t GetNumberOfDarkCurrentParticles();
+    double GetDarkCurrentParticlesInwardMargin();
+    double GetEInitThreshold();
+    double GetWorkFunction();
+    double GetFieldEnhancement();
+    size_t GetMaxFNemissionPartPerTri();
+    double GetFieldFNThreshold();
+    double GetFNParameterA();
+    double GetFNParameterB();
+    double GetFNParameterY();
+    double GetFNParameterVYZero();
+    double GetFNParameterVYSecond();
+    int    GetSecondaryEmissionFlag();
+    bool   GetEmissionMode() ;
 
-    void create(PartBunch &p, BoundaryGeometry &bg);
+    std::string GetTypeofDistribution();
 
-    void createPriPart(PartBunch *beam, BoundaryGeometry &bg);
-
-    void createSlicedBunch(int sl, double charge, double gamma, double mass, double current, double center, double Bz0, EnvelopeBunch *p);
-
-    void doRestart(PartBunch &p, size_t Np, int restartStep);
-
-    void doRestart_cycl(PartBunch &p, size_t Np, int restartStep, const int specifiedNumBunch);
-
-    void doRestartEnvelope(EnvelopeBunch &p, size_t Np, int restartStep);
+    double GetvSeyZero();//return sey_0 in Vaughan's model
+    double GetvEZero();//return the energy related to sey_0 in Vaughan's model
+    double GetvSeyMax();//return sey max in Vaughan's model
+    double GetvEmax();//return Emax in Vaughan's model
+    double GetvKenergy();//return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
+    double GetvKtheta();//return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
+    double GetvVThermal();//return thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
+    double GetVw();//return velocity scalar for parallel plate benchmark;
+    int GetSurfMaterial();//material type for Furman-Pivi's model 0 for copper, 1 for stainless steel
 
     Inform &printInfo(Inform &os) const;
 
-    double getTBin() { return tBin_m; }
-    double getTEmission();
+    bool Rebin();
+    void SetDistToEmitted(bool emitted);
+    void SetDistType();
+    void ShiftBeam(double &maxTOrZ, double &minTOrZ);
 
-    double getEkin() const;
-    double getLaserEnergy() const;
-    double getWorkFunctionRf() const;
-
-    size_t getNumberOfDarkCurrentParticles();
-    double getDarkCurrentParticlesInwardMargin();
-    double getEInitThreshold();
-
-    double getWorkFunction();
-    double getFieldEnhancement();
-    size_t getMaxFNemissionPartPerTri();
-    double getFieldFNThreshold();
-    double getFNParameterA();
-    double getFNParameterB();
-    double getFNParameterY();
-    double getFNParameterVYZero();
-    double getFNParameterVYSecond();
-    int    getSecondaryEmissionFlag();
-    bool   getEmissionMode() ;
-    std::string getTypeofDistribution();
-
-    double getvSeyZero();//return sey_0 in Vaughan's model
-    double getvEZero();//return the energy related to sey_0 in Vaughan's model
-    double getvSeyMax();//return sey max in Vaughan's model
-    double getvEmax();//return Emax in Vaughan's model
-    double getvKenergy();//return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
-    double getvKtheta();//return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
-    double getvVThermal();//return thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
-    double getVw();//return velocity scalar for parallel plate benchmark;
-    int getSurfMaterial();//material type for Furman-Pivi's model 0 for copper, 1 for stainless steel
 
 private:
-    void sampleGauss(PartBunch &beam, size_t Np);
 
-    void createTimeBins(const int Np);
-
-    void createBinom(Vector_t emit, Vector_t alpha, Vector_t beta, Vector_t gamma,
-                     Vector_t bincoef, PartBunch &beam, size_t particles,
-                     bool isBinned);
-
-    void binnDistribution(PartBunch &beam, size_t Np, std::string distType);
-
-    void binnDistributionFromFile(PartBunch &beam, const std::string fn);
-
-    double eVtoBetaGamma(const double &valueIneV, const double &mass) {
-        double tmp = 1. + valueIneV / mass;
-        return sqrt(tmp * tmp - 1.);
-    }
-
-    double betaGammatoeV(const double &valueInbega, const double &mass) {
-        return (sqrt(valueInbega * valueInbega + 1.) - 1.) * mass ;
-    }
-
-    void writeToFile();
-    void writeToFileCycl(PartBunch &beam, size_t Np);
-
+    Distribution(const std::string &name, Distribution *parent);
 
     // Not implemented.
     Distribution(const Distribution &);
     void operator=(const Distribution &);
 
-    // Clone constructor.
-    Distribution(const std::string &name, Distribution *parent);
+    void AddDistributions();
+    void ApplyEmissionModel(double eZ, double &px, double &py, double &pz);
+    void ApplyEmissModelAstra(double &px, double &py, double &pz);
+    void ApplyEmissModelNone(double &pz);
+    void ApplyEmissModelNonEquil(double eZ, double &px, double &py, double &pz);
+    void CalcPartPerDist(size_t numberOfParticles);
+    void CheckEmissionParameters();
+    void CheckIfEmitted();
+    void CheckParticleNumber(size_t &numberOfParticles);
+    void ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits);
+    double ConvertBetaGammaToeV(double valueInbega, double mass);
+    double ConverteVToBetaGamma(double valueIneV, double massIneV);
+    double ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
+    void CreateDistributionBinomial(size_t numberOfParticles, double massIneV);
+    void CreateDistributionFlattop(size_t numberOfParticles, double massIneV);
+    void CreateDistributionFromFile(size_t numberOfParticles, double massIneV);
+    void CreateDistributionGauss(size_t numberOfParticles, double massIneV);
+    void DestroyBeam(PartBunch &beam);
+    void FillEBinHistogram();
+    void FillParticleBins();
+    size_t FindEBin(double tOrZ);
+    void GenerateAstraFlattopT(size_t numberOfParticles);
+    void GenerateBinomial(size_t numberOfParticles);
+    void GenerateFlattopLaserProfile(size_t numberOfParticles);
+    void GenerateFlattopT(size_t numberOfParticles);
+    void GenerateFlattopZ(size_t numberOfParticles);
+    void GenerateGaussZ(size_t numberOfParticles);
+    void GenerateLongFlattopT(size_t numberOfParticles);
+    void GenerateTransverseGauss(size_t numberOfParticles);
+    void InitializeBeam(PartBunch &beam);
+    void InjectBeam(PartBunch &beam);
+    void PrintDist(Inform &os, size_t numberOfParticles) const;
+    void PrintDistBinomial(Inform &os) const;
+    void PrintDistFlattop(Inform &os) const;
+    void PrintDistFromFile(Inform &os) const;
+    void PrintDistGauss(Inform &os) const;
+    void PrintDistSurfEmission(Inform &os) const;
+    void PrintDistSurfAndCreate(Inform &os) const;
+    void PrintEmissionModel(Inform &os) const;
+    void PrintEmissionModelAstra(Inform &os) const;
+    void PrintEmissionModelNone(Inform &os) const;
+    void PrintEmissionModelNonEquil(Inform &os) const;
+    void PrintEnergyBins(Inform &os) const;
+    void ReflectDistribution(size_t &numberOfParticles);
+    void ScaleDistCoordinates();
+    void SetAttributes();
+    void SetDistParametersBinomial(double massIneV);
+    void SetDistParametersFlattop(double massIneV);
+    void SetDistParametersGauss(double massIneV);
+    void SetEmissionTime(double &maxT, double &minT);
+    void SetFieldEmissionParameters();
+    void SetupEmissionModel(PartBunch &beam);
+    void SetupEmissionModelAstra(PartBunch &beam);
+    void SetupEmissionModelNone(PartBunch &beam);
+    void SetupEmissionModelNonEquil();
+    void SetupEnergyBins(double maxTOrZ, double minTOrZ);
+    void SetupParticleBins(double massIneV);
+    void ShiftDistCoordinates(double massIneV);
+    void WriteOutFileHeader();
+    void WriteOutFileEmission();
+    void WriteOutFileInjection();
+    void WriteToFile();
 
-    //===============
-    // Class members.
-    //===============
-private:
+    std::string distT_m;                 /// Distribution type. Declared as string
+    DistrTypeT::DistrTypeT distrTypeT_m; /// and list type for switch statements.
+    std::ofstream os_m;                  /// Output file to write distribution.
+    void writeToFileCycl(PartBunch &beam, size_t Np);
 
-    // The particle reference data.
-    PartData reference;
+    bool emitting_m;                     /// Distribution is an emitted, and is currently
+                                         /// emitting, rather than an injected, beam.
 
-    // The structure for particle binning
-    PartBins *pbin_m;
+    bool scan_m;                         /// If we are doing a scan, we need to
+                                         /// destroy existing particles before
+                                         /// each run.
 
-    // If we scan we already have a particles and to not have to create them anymore
-    bool scan_m;
+    PartData particleRefData_m;          /// Reference data for particle type (charge,
+                                         /// mass etc.)
+
+    /// Vector of distributions to be added to this distribution.
+    std::vector<Distribution *> addedDistributions_m;
+    std::vector<size_t> particlesPerDist_m;
+
+    /// Emission Model.
+    EmissionModelT::EmissionModelT emissionModel_m;
+
+    /// Emission parameters.
+    double tEmission_m;
+    double tBin_m;
+    double currentEmissionTime_m;
+    int currentEnergyBin_m;
+    int currentSampleBin_m;
+    int numberOfEnergyBins_m;       /// Number of energy bins the distribution
+                                    /// is broken into. Used for an emitted beam.
+    int numberOfSampleBins_m;       /// Number of samples to use per energy bin
+                                    /// when emitting beam.
+    PartBins *energyBins_m;         /// Distribution energy bins.
+    gsl_histogram *energyBinHist_m; /// GSL histogram used to define energy bin
+                                    /// structure.
+
+    RANLIB_class *randGenEmit_m;    /// Random number generator for thermal emission
+                                    /// models.
+
+    // ASTRA and NONE photo emission model.
+    double pTotThermal_m;           /// Total thermal momentum.
+
+    // NONEQUIL photo emission model.
+    double cathodeWorkFunc_m;       /// Cathode material work function (eV).
+    double laserEnergy_m;           /// Laser photon energy (eV).
+    double cathodeFermiEnergy_m;    /// Cathode material Fermi energy (eV).
+    double cathodeTemp_m;           /// Cathode temperature (K).
+    double emitEnergyUpperLimit_m;  /// Upper limit on emission energy distribution (eV).
 
 
-    //`setup() fills the following variables
+    // Beam coordinate containers.
+    std::vector<double> xDist_m;
+    std::vector<double> pxDist_m;
+    std::vector<double> yDist_m;
+    std::vector<double> pyDist_m;
+    std::vector<double> tOrZDist_m;
+    std::vector<double> pzDist_m;
 
-    std::string distT_m;
-    DistrTypeT distrTypeT_m;   // will replace distT_m
+    // Initial coordinates for file write.
+    std::vector<double> xWrite_m;
+    std::vector<double> pxWrite_m;
+    std::vector<double> yWrite_m;
+    std::vector<double> pyWrite_m;
+    std::vector<double> tOrZWrite_m;
+    std::vector<double> pzWrite_m;
+    std::vector<size_t> binWrite_m;
 
-    double corr_m[7];
+    //Distribution parameters.
+    InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits_m;
+    double sigmaTRise_m;
+    double sigmaTFall_m;
+    double tPulseLengthFWHM_m;
+    Vector_t sigmaR_m;
+    Vector_t sigmaP_m;
+    Vector_t cutoffR_m;
+    Vector_t cutoffP_m;
+    Vector_t mBinomial_m;
+    std::vector<double> distCorr_m;
 
-    Vector_t sigx_m;
-    Vector_t sigp_m;
+    // Laser profile.
+    std::string laserProfileFileName_m;
+    std::string laserImageName_m;
+    double laserIntensityCut_m;
+    LaserProfile *laserProfile_m;
 
-    Vector_t binc_m;
+    /*
+     * Dark current calculation parameters.
+     */
+    size_t darkCurrentParts_m;      /// Number of dark current particles.
+    double darkInwardMargin_m;      /// Dark current particle initialization position.
+                                    /// Inward along the triangle normal, positive.
+                                    /// Inside the geometry.
+    double eInitThreshold_m;        /// Field threshold (MV/m) beyond which particles
+                                    /// will be initialized.
+    double workFunction_m;          /// Work function of surface material (eV).
+    double fieldEnhancement_m;      /// Field enhancement factor beta for Fowler-
+                                    /// Nordheim emission.
+    double fieldThrFN_m;            /// Field threshold for Fowler-Nordheim
+                                    /// emission (MV/m).
+    size_t maxFN_m;                 /// Max. number of electrons emitted from a
+                                    /// single triangle for Fowler-Nordheim emission.
+    double paraFNA_m;               /// Empirical constant A in Fowler-Nordheim
+                                    /// emission model.
+    double paraFNB_m;               /// Empirical constant B in Fowler-Nordheim
+                                    /// emission model.
+    double paraFNY_m;               /// Constant for image charge effect parameter y(E)
+                                    /// in Fowler-Nordheim emission model.
+    double paraFNVYSe_m;            /// Second order constant for v(y) function in
+                                    /// Fowler-Nordheim emission model.
+    double paraFNVYZe_m;            /// Zero order constant for v(y) function in
+                                    /// Fowler-Nordheim emission model.
+    int    secondaryFlag_m;         /// Select the secondary model type:
+                                    ///     0           ==> no secondary emission.
+                                    ///     1           ==> Furman-Pivi
+                                    ///     2 or larger ==> Vaughan's model
+    double ppVw_m;                  /// Velocity scalar for parallel plate benchmark.
+    double vVThermal_m;             /// Thermal velocity of Maxwellian distribution
+                                    /// of secondaries in Vaughan's model.
 
-    Vector_t emit_m;
-    Vector_t alpha_m;
-    Vector_t beta_m;
-    Vector_t gamma_m;
 
-    double gauss_offset_m[2];
+    // Some legacy members that need to be cleaned up.
 
+    /*
+     * Distribution parameters.
+     */
+    double distributionOffset_m[2];
     double avrgpt_m;
     double avrgt_m;
 
-    int nBins_m; // Number of energy bins the distribution is broken up into.
-    int sBins_m; // Number of samples used to create the time histogram of each energy bin.
-    gsl_rng *rn_m;
-    gsl_qrng *R_m;
-
-    /// this is for the transverse dimension
-    gsl_qrng *qrng_m;
-
-    RANLIB_class *rGen_m;
-
     /// time binned distribution with thermal energy
-    double transvCutOff_m;
-    double tEmission_m;
-    double tPulseLengthFWHM_m;
     double tRise_m;
     double tFall_m;
     double sigmaRise_m;
     double sigmaFall_m;
     double cutoff_m;
-    double tBin_m;
 
-    gsl_histogram *h_m;
-    double *distributionTable_m;
+    /*
+     * Random number generators.
+     */
+    RANLIB_class *rGen_m;
 
-    bool   astraMode_m;
-    double workf_m;          // eV
-    double siglaser_m;      // m
-    double elaser_m;        // eV
-    double fe_m;            // Fermi energy eV
-    double ag_m;            // Acceleration gradient eV/m
-    double ekin_m;          // eV
-    double phimax_m;        // rad
-    double schottky_m;;      // eV
-    double ptot_m;          // beta gamma
-
-    std::ofstream os_m;
-
-    /**
-       Data for Laser Profile read in
-    */
-    std::string laserProfileFn_m;
-    std::string laserImage_m;
-    double intensityCut_m;
-
-    LaserProfile *lp_m;
-
-
-    /**
-       Data for Dark Current calculations
-    */
-    size_t darkCurrentParts_m;
-    /**
-       Data for Dark Current initialized positions. A little bit inward along the triangle normal, positive: inside the geometry.
-    */
-    double darkInwardMargin_m;
-
-    double eInitThreshold_m;
-
-    double workFunction_m;
-
-    double fieldEnhancement_m;
-
-    double fieldThrFN_m;
-
-    size_t maxFN_m;
-
-    double paraFNA_m;
-
-    double paraFNB_m;
-
-    double paraFNY_m;
-
-    double paraFNVYSe_m;
-
-    double paraFNVYZe_m;
-
-    int    secondaryFlag_m;
-
-    double ppVw_m;
-
-    double vVThermal_m;
-
-
+    /*
+     * Particle emission parameters.
+     */
+    double ekin_m;                  /// Thermal to add to distribution in
+                                    /// Astra mode.
 
 };
 

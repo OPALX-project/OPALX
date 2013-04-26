@@ -43,6 +43,7 @@ namespace Physics {
     const double epsilon_0  = 8.854187817e-12;
     const double h_bar      = 6.5821220e-25;
     const double Avo        = 6.022e23;
+    const double kB         = 8.6173324e-5;
 
     // electromagnetic constants:
     const double q_e        = 1.60217733e-19;
