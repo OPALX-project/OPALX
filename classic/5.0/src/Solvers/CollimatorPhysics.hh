@@ -49,8 +49,9 @@ public:
     void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
     void CoulombScat();
     void EnergyLoss(double &Eng, bool &pdead, double &deltat);
-    void  Rot(Vector_t &P, Vector_t Prot, double normP);
-    double Rot(double &p1, double &p2, double &scatang);
+    // void  Rot(Vector_t &P, Vector_t Prot, double normP);
+    // double Rot(double &p1, double &p2, double &scatang);
+    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P, double thetacou, double deltas, int coord);
 
 
 private:
