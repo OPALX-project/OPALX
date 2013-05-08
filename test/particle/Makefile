@@ -7,7 +7,7 @@ TESTSFAIL = spatial
 
 SELF_CHECK = $(TESTS)
 
-include $(IPPL_ROOT)/lib/Makefile.def
+include $(IPPL_ROOT)/test/Makefile.def
 
 all: $(TESTS)
 
