@@ -1485,6 +1485,7 @@ src/Index/inst/SOffset_1D.cpp -text
 src/Index/inst/SOffset_2D.cpp -text
 src/Index/inst/SOffset_3D.cpp -text
 src/Ippl.h -text
+src/IpplVersions.h -text
 src/IpplVersions.h.in -text
 src/Meshes/.cvsignore -text
 src/Meshes/CMakeLists.txt -text
@@ -1746,6 +1747,7 @@ src/Utility/bstring.h -text
 src/Utility/my_auto_ptr.h -text
 src/Utility/vmap.cpp -text
 src/Utility/vmap.h -text
+src/config.h -text
 src/config.h.in -text
 test/6dtrack/.job -text
 test/6dtrack/CMakeLists.txt -text
