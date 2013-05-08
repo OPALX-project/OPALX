@@ -4,7 +4,7 @@
 // Class category:
 // ------------------------------------------------------------------------
 // $Date: 2009/07/20 09:32:31 $
-// $Author: Bi, Yang $
+// $Author: Bi, Yang Stachel, Adelmann$
 //-------------------------------------------------------------------------
 #include "Solvers/CollimatorPhysics.hh"
 #include "Physics/Physics.h"
@@ -62,7 +62,9 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, c
     N_m(0),
     incoll_m(false),
     time_m(0.0) {
-    rGen_m = new RANLIB_class(115314159, 4);
+    gsl_rng_env_setup();
+    rGen_m = gsl_rng_alloc(gsl_rng_default);
+
     // initialize DataSink with H5Part output enabled
     bool doH5 = false;
     lossDs_m = new LossDataSink(FN_m, doH5);
@@ -112,6 +114,9 @@ CollimatorPhysics::~CollimatorPhysics() {
     locParts_m.clear();
     if(lossDs_m)
         delete lossDs_m;
+
+    if (rGen_m)
+        gsl_rng_free(rGen_m);
 }
 
 void CollimatorPhysics::apply(PartBunch &bunch) {
@@ -355,7 +360,7 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
         dEdx = - epsilon /(1E21*(A_m/Avo)); // Stopping_power is in MeV
         // INFOMSG("stopping power: " << dEdx << " MeV" << endl);
         double delta_Eave = deltasrho * dEdx;
-        double delta_E = rGen_m->gauss(delta_Eave, sigma_E);
+        double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m,sigma_E);
         Eng = Eng + delta_E / 1E3;
     }
     
@@ -367,7 +372,7 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
 
 	       // INFOMSG("stopping power_BB: " << dEdx << " MeV" << endl);
         double delta_Eave = deltasrho * dEdx;
-        double delta_E = rGen_m->gauss(delta_Eave, sigma_E);
+        double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m,sigma_E);
         Eng = Eng+delta_E / 1E3;
     }	
 
@@ -377,31 +382,33 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
 
 
 }
+// Implement the rotation in 2 dimensions here
+// For details: see J. Beringer et al. (Particle Data Group), Phys. Rev. D 86, 010001 (2012), "Passage of particles through matter"
+void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, double xplane, double normP, double thetacou, double deltas, int coord) {
+    double Psixz;
+    double pxz;
+// Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
+    if (px>=0 && pz>=0) Psixz = atan(px/pz);
+    else if (px>0 && pz<0) 
+	Psixz = atan(px/pz) + Physics::pi;
+    else if (px<0 && pz>0) 
+	Psixz = atan(px/pz) + 2*Physics::pi;
+    else  
+	Psixz = atan(px/pz) + Physics::pi;
 
-
-
-///From beam coordinate to lab coordinate
-// --------------------------------------------------------------------------
-void  CollimatorPhysics::Rot(Vector_t &P, Vector_t Prot, double normP) {
-    Vector_t A0, A1, A2;
-    if(fabs(P(0)) < 1e-8) {
-        A0 = Vector_t(1.0, 0.0, 0.0);
-        A1 = Vector_t(0.0, P(2), -P(1));
-        A2 = Vector_t(0.0, P(1), P(2));
-    } else {
-        A0 = Vector_t(-(P(1) * P(1) + P(2) * P(2)) / P(0), P(1), P(2));
-        A1 = Vector_t(0.0, P(2), -P(1));
-        A2 = Vector_t(P(0), P(1), P(2));
-    }
-    A0 /= sqrt(dot(A0, A0));
-    A1 /= sqrt(dot(A1, A1));
-    A2 /= sqrt(dot(A2, A2));
-
-    P(0) = A0(0) * Prot(0) + A1(0) * Prot(1) + A2(0) * Prot(2);
-    P(1) = A0(1) * Prot(0) + A1(1) * Prot(1) + A2(1) * Prot(2);
-    P(2) = A0(2) * Prot(0) + A1(2) * Prot(1) + A2(2) * Prot(2);
-
-    P = P * normP;
+// Apply the rotation about the random angle thetacou & change from beam coordinate system to the lab coordinate system using Psixz (2 dimensions)   
+    pxz = sqrt(px*px + pz*pz);
+    if(coord==1) {
+    	x = x + deltas * px/normP + xplane*cos(Psixz);
+    	z = z - xplane * sin(Psixz);
+    	}
+    if(coord==2) {
+	x = x + deltas * px/normP + xplane*cos(Psixz);
+	z = z - xplane * sin(Psixz) + deltas * pz / normP;
+	}
+    px = pxz*cos(Psixz)*sin(thetacou) + pxz*sin(Psixz)*cos(thetacou);
+    pz = -pxz*sin(Psixz)*sin(thetacou) + pxz*cos(Psixz)*cos(thetacou);
+     
 }
 
 void  CollimatorPhysics::CoulombScat()
@@ -418,55 +425,69 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
     double gamma = (Eng + m_p) / m_p;
     double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
     double normP = sqrt(dot(P, P));
-
     double deltas = deltat * beta * Physics::c;
-
     double theta0 = 13.6e6 / (beta * sqrt(dot(P, P)) * m_p * 1e9) * z_p * sqrt(deltas / X0_m) * (1.0 + 0.038 * log(deltas / X0_m));
 
-    double z1 = rGen_m->gauss(0.0, 1.0);
-    double z2 = rGen_m->gauss(0.0, 1.0);
+// x-direction: See Physical Review, "Multiple Scattering"
+    double z1 = gsl_ran_gaussian(rGen_m,1.0);
+    double z2 = gsl_ran_gaussian(rGen_m,1.0);
     double thetacou = z2 * theta0;
    
     while(fabs(thetacou) > 3.5 * theta0) {
-        z1 = rGen_m->gauss(0.0, 1.0);
-        z2 = rGen_m->gauss(0.0, 1.0);
+        z1 = gsl_ran_gaussian(rGen_m,1.0);
+        z2 = gsl_ran_gaussian(rGen_m,1.0);
         thetacou = z2 * theta0;
     }
-    double poscou = z1 * deltas * theta0 / sqrt(12.0) + z2 * deltas * theta0 / 2.0;
-
-    double z3 = rGen_m->uniform(0.0, 1.0);
-    double phicou = z3 * 2 * pi;
-
-    Vector_t Pcou(sin(thetacou)*cos(phicou), sin(thetacou)*sin(phicou), cos(thetacou));
-    Vector_t Pcoutmp(cos(phicou), sin(phicou), 0.0);
-
-    Vector_t tmpP = P;
-
-    Rot(P, Pcou, normP);
-
-    Rot(tmpP, Pcoutmp, normP);
-
-    //    R = R + P * Physics::c / gamma * deltat + tmpP / beta / gamma * poscou;
+    double xplane = z1 * deltas * theta0 / sqrt(12.0) + z2 * deltas * theta0 / 2.0;
+    int coord = 1; // Apply change in coordinates for multiple scattering but not for Rutherford scattering (take the deltas step only once each turn)
+    Rot(P(0),P(2),R(0),R(2), xplane, normP, thetacou, deltas, coord);
 
 
-    R = R + P * Physics::c * deltat /  sqrt(1.0  + dot(P, P)) + tmpP / beta / gamma * poscou / (Physics::c * deltat); // old
-
-
-
+// Rutherford-scattering in x-direction
     if(collshape_m == "CCollimator") 
         R = R * 1000.0;
 
-    double P2 = rGen_m->uniform(0.0, 1.0);
+    double P2 = gsl_rng_uniform(rGen_m);
     if(P2 < 0.0047) {
-        double P3 = rGen_m->uniform(0.0, 1.0);
+        double P3 = gsl_rng_uniform(rGen_m);
         double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
-        double P4 = rGen_m->uniform(0.0, 1.0);
+        double P4 = gsl_rng_uniform(rGen_m);
         if(P4 > 0.5) 
             thetaru = -thetaru;
-        double phiru = z3 * 2 * pi;
-        Vector_t Pru(sin(thetaru)*cos(phiru), sin(thetaru)*sin(phiru), cos(thetaru));
-        Rot(P, Pru, normP);
+	coord = 0; // no change in coordinates but one in momenta-direction
+	Rot(P(0),P(2),R(0),R(2), xplane, normP, thetaru, deltas, coord);
     }
+
+// y-direction: See Physical Review, "Multiple Scattering"
+    z1 = gsl_ran_gaussian(rGen_m,1.0);
+    z2 = gsl_ran_gaussian(rGen_m,1.0);
+    thetacou = z2 * theta0;
+   
+    while(fabs(thetacou) > 3.5 * theta0) {
+        z1 = gsl_ran_gaussian(rGen_m,1.0);
+        z2 = gsl_ran_gaussian(rGen_m,1.0);
+        thetacou = z2 * theta0;
+    }
+    double yplane = z1 * deltas * theta0 / sqrt(12.0) + z2 * deltas * theta0 / 2.0;
+    coord = 2; // Apply change in coordinates for multiple scattering but not for Rutherford scattering (take the deltas step only once each turn)
+    Rot(P(1),P(2),R(1),R(2), yplane, normP, thetacou, deltas, coord);
+
+
+// Rutherford-scattering in x-direction
+    if(collshape_m == "CCollimator") 
+        R = R * 1000.0;
+
+    P2 = gsl_rng_uniform(rGen_m);
+    if(P2 < 0.0047) {
+        double P3 = gsl_rng_uniform(rGen_m);
+        double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
+        double P4 = gsl_rng_uniform(rGen_m);
+        if(P4 > 0.5) 
+            thetaru = -thetaru;
+	coord = 0; // no change in coordinates but one in momenta-direction
+	Rot(P(1),P(2),R(1),R(2), yplane, normP, thetaru, deltas, coord);
+    }
+
 }
 
 void CollimatorPhysics::setCColimatorGeom() {
