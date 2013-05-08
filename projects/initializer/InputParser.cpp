@@ -42,7 +42,7 @@ void InputParser::parseFile()
 {
     std::ifstream fin;
     std::string line = "";
-
+    
     fin.open(filename_m.c_str());
     while(std::getline(fin, line)) {
         if(line.find("//") == 0 || line.empty()) 

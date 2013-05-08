@@ -49,7 +49,6 @@ mpirun -np 1 mc4 indat fort.66 --info 0 --commlib mpi
 #include "Initializer/IPPLInitializer.h"
 #include "Cosmology.h"
 #include "InputParser.h"
-
 #include "TypesAndDefs.h"
 
 #ifdef MC4HALOFINDER
@@ -249,6 +248,11 @@ int main(int argc, char *argv[]) {
     IpplMemoryUsage::sample(initiMemWatch,"");
 
 
+    initializer::real omega_nu = 0.0;
+    initializer::integer np = 0;
+    initializer::integer nu_pairs = 0;
+    
+
     if ((simData.jinit == 1) || (simData.jinit == 3)) {
         univ = new ChargedParticles<T,DimA>(PLF,simData,Vector_t(1.0*simData.ng_comp));
         univ->readInputDistribution(string(argv[2]));
@@ -262,6 +266,8 @@ int main(int argc, char *argv[]) {
 	   this is for the initializer. at some point we have to 
 	   unify the inputfiles
 	*/
+
+        //initializer::InputParser bdata(std::string(argv[3]));
         initializer::InputParser bdata(argv[3]);
 
         size_t Npart = 0;
@@ -269,44 +275,42 @@ int main(int argc, char *argv[]) {
 
         NumProcs = Ippl::Comm->getNodes();
 
-        int np = 0;
-        bdata.getByName("np", np);
-
-	double omega_nu = 0.0;
-	// bdata.getByName("Omega_nu", omega_nu); does not work
-
-	int nu_pairs = 0;
+        bdata.getByName(std::string("np"), np);
+	bdata.getByName("Omega_nu", omega_nu);
         bdata.getByName("nu_pairs", nu_pairs);
 
         ParticleAttrib<Vector_t> pos;
         ParticleAttrib<Vector_t> vel;
         ParticleAttrib<T> mass;
+        size_t nBarions = (np*np*np)/NumProcs;
 
 	if (omega_nu > 0.0) {
-	  msg << "Creating << " << nu_pairs << " neutrinos" << endl;
-	  Npart = (nu_pairs*2 + 1)*(np*np*np)/NumProcs;
+            Npart = (nu_pairs*2 + 1)*nBarions;
+            msg << "Creating << " << nu_pairs << " neutrino paris for each of the " << nBarions << " barions. aomega_nu= " << omega_nu << endl;
 	}
-	else
-	  Npart = (np*np*np)/NumProcs;
+	else {
+            Npart = nBarions;
+            msg << "Creating <<  " << nBarions << " barions." << endl;
+        }
 
         pos.create(Npart);
         vel.create(Npart);
         mass.create(Npart);
-        mass = 1.0;
 	
         initializer::IPPLInitializer init;
-        
         initializer::InputParser par(argv[3]);
 
-        init.init_particles(pos, vel, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
+        init.init_particles(pos, vel, mass, nBarions, FLI, meshI, par, tfName.c_str(), MPI_COMM_WORLD);
 
-        msg << "about to copy IC's over to univ junksize= " << endl;
+        msg << "about to copy IC's over to univ" << endl;
         //pos, vel and mass particle attributes are destroyed in copy constructor
         univ = new ChargedParticles<T,DimA>(PLF, simData, pos, vel, mass, Npart, Vector_t(simData.ng_comp));
         msg << "done coping ics to univ" << endl;
 
         //XXX; make sure R is scaled from [0, ng_comp]
         univ->R *= Vector_t((double)simData.ng_comp/simData.np);
+
+        //        univ->R *= Vector_t((double)simData.rL/simData.ng_comp);
 
         //if (simData.doNeutrinos)
         //injectNeutrinos(bdata,simData,usedNumProcs,tfName,gridgencomm,univ);
@@ -342,11 +346,34 @@ int main(int argc, char *argv[]) {
     T ain  = 1.0 /(1+simData.zin);
     T ainv = 1.0 /(simData.alpha);
     T pp   = pow(ain,simData.alpha);
-    
+   
     DataSink *itsDataSink = new DataSink("universe.h5", univ);
-    if (simData.iprint < 99)
-      itsDataSink->writePhaseSpace(pow(pp, ainv), 1.0/pow(pp,ainv)-1.0, 0);
-    
+    if (simData.iprint < 99) {
+        itsDataSink->writePhaseSpace(pow(pp, ainv), 1.0/pow(pp,ainv)-1.0, 0);
+    }
+
+    DataSink *itsDataSinkNu = NULL;
+    if (omega_nu > 0.0) {
+        size_t nNeut = np*np*np*2*nu_pairs;
+        itsDataSinkNu = new DataSink("universeNu.h5", univ);
+        itsDataSinkNu->writePhaseSpaceNeutrinos(pow(pp, ainv), 1.0/pow(pp,ainv)-1.0, 0, nNeut);
+    }
+
+    /*
+      In case of neutrinos, we exit 
+      because we do not 
+      propperly integrate the 
+      neutrinos. This because of the 
+      uncertnties in the initial 
+      conditions
+     */
+
+    if (omega_nu > 0.0) {
+        delete itsDataSink;
+        delete itsDataSinkNu;
+        return 1;
+    }
+
     univ->setTime(0.0);
     univ->set_FieldSolver(new FFTPoissonSolverPeriodic<T,DimA>(univ,simData));
     msg << "field solver ready " << endl;
@@ -372,6 +399,7 @@ int main(int argc, char *argv[]) {
     /**
       Initial P(k)
     */
+    
     IpplTimings::startTimer(TPwrSpec);
     msg << "Calculate power spectra of initial step "  << endl;
     univ->fs_m->calcPwrSpecAndSave(univ,string("mc4-1D-initial.spec"));

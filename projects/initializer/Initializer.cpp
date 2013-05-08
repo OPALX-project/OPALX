@@ -841,18 +841,21 @@ void Initializer::inject_neutrinos(std::unique_ptr<real[]> &pos, std::unique_ptr
    return;
 }
 
-
 void Initializer::apply_periodic(std::unique_ptr<real[]> &pos){
    const integer ngrid=DataBase.ngrid;
-   long i, np;
+   size_t i, np;
 
-   np = My_Ng;
+   np = ngrid*ngrid*ngrid;
    if (DataBase.Omega_nu > 0.0) {
-      np = (2*DataBase.nu_pairs+1)*My_Ng;
+       np = (2*DataBase.nu_pairs+1)*np;
    }
+
    for (i=0; i<np; ++i){
-      if (pos[i] < 0.0) {pos[i] += (real)ngrid;}
-      else if (pos[i] >= ngrid) {pos[i] -= (real)ngrid;}
+      if (pos[i] < 0.0) {
+          pos[i] += (real)ngrid;
+      }
+      else if (pos[i] >= ngrid) 
+          {pos[i] -= (real)ngrid;}
    }
    return;
 }
@@ -890,6 +893,7 @@ void Initializer::init_particles(std::unique_ptr<real[]> &pos_x, std::unique_ptr
       Parallel.AbortMPI("Main: Domain incorrectly decomposed");
    if (DataBase.dim==1 && (ngz != ngy || ngz != DataBase.ngrid))
       Parallel.AbortMPI("Main: Domain incorrectly decomposed");
+
    My_Ng = ngx*ngy*ngz;
 
    // Allocate arays:

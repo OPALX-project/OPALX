@@ -60,6 +60,11 @@ public:
      */
     void writePhaseSpace(TT time, TT z, int step);
 
+    /** \brief Dumps Phase Space to H5 file.
+     *
+     *  \param univ The universe to be dumped.
+     */
+    void writePhaseSpaceNeutrinos(TT time, TT z, int step, size_t nNeutr);
 
     /** \brief Read Phase Space from H5 file.
      *

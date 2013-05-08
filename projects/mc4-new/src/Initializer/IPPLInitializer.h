@@ -40,6 +40,8 @@ public:
 
     void init_particles(ParticleAttrib< Vektor<T, Dim> > &pos,
                         ParticleAttrib< Vektor<T, Dim> > &vel,
+                        ParticleAttrib<T > &mass,
+                        size_t nBarion,
                         FieldLayout_t *layout,
                         Mesh_t *mesh,
                         InputParser& bdata,
@@ -56,6 +58,7 @@ protected:
     void non_gaussian(integer axis);
     void set_particles(real z_in, real d_z, real ddot, integer axis);
     void output(integer axis, std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel);
+    void output(integer axis, ParticleAttrib< Vektor<T, 3> > &pos, ParticleAttrib< Vektor<T, 3> > &vel,ParticleAttrib< T > &mass);
 };
 
 #ifdef USENAMESPACE
