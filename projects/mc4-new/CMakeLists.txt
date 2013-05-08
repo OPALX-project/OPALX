@@ -142,7 +142,7 @@ ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
 ENDIF ("${COMPILER_NAME}" STREQUAL "mpicxx")
 
 SET (CMAKE_CXX_FLAGS
-    "-Wall -Werror -Wparentheses -std=c++0x -DUSENAMESPACE ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
+    "-Wall -Wparentheses -std=c++0x -DUSENAMESPACE ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
 
 #SET (CMAKE_CXX_FLAGS
 #  "-Wall -Werror -std=c++0x ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")

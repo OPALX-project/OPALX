@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <cmath>
+#include <assert.h>
 
 #include "IPPLInitializer.h"
 
@@ -399,10 +400,16 @@ void IPPLInitializer::set_particles(real z_in, real d_z, real ddot, integer axis
    return;
 }
 
+    /*
+      Copy from rho to pos and vel
+      Index runs from 0 to nBarions
+    */
+
 void IPPLInitializer::output(integer axis, std::unique_ptr<real[]> &pos, std::unique_ptr<real[]> &vel){ // 0=x, 1=y, 2=z
    long i, j, k, index;
-
+   Inform m("output ");
    index = 0;
+   
    for (i=0; i<ngx; ++i){
        for (j=0; j<ngy; ++j){
            for (k=0; k<ngz; ++k){
@@ -414,19 +421,44 @@ void IPPLInitializer::output(integer axis, std::unique_ptr<real[]> &pos, std::un
            }
         }
     }
+   assert (index==(ngx*ngy*ngz));
 
    return;
+}
+    
+void IPPLInitializer::output(integer axis, 
+                             ParticleAttrib< Vektor<T, 3> > &pos,
+                             ParticleAttrib< Vektor<T, 3> > &vel, 
+                             ParticleAttrib< T >           &mass) { 
+    long i, j, k, index;
+    index = 0;
+    for (i=0; i<ngx; ++i){
+        for (j=0; j<ngy; ++j){
+            for (k=0; k<ngz; ++k){
+                NDIndex<3> l(Index(nx1+i, nx1+i), Index(ny1+j, ny1+j), Index(nz1+k, nz1+k));
+                dcomplex val = rho_m.localElement(l);
+                pos[index](axis) = (T)std::real(val);
+                vel[index](axis) = (T)std::imag(val);
+                
+                mass[index] = 1.0;
+                index++;
+            }
+        }
+    }
+    return;
 }
 
 
 //template <class T, unsigned int Dim>
 void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
-				     ParticleAttrib< Vektor<T, 3> > &vel, 
-				     FieldLayout_t *layout, 
-				     Mesh_t *mesh,
-				     InputParser& par, 
-				     const char *tfName, 
-				     MPI_Comm comm)
+                                     ParticleAttrib< Vektor<T, 3> > &vel, 
+                                     ParticleAttrib< T >           &mass, 
+                                     size_t nBarions,
+                                     FieldLayout_t *layout, 
+                                     Mesh_t *mesh,
+                                     InputParser& par, 
+                                     const char *tfName, 
+                                     MPI_Comm comm)
 {
     integer i;
     real d_z, ddot, f_NL;
@@ -459,6 +491,10 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
     ny2 = localidx[1].last();
     nz1 = localidx[2].first();
     nz2 = localidx[2].last();
+
+    ngx = localidx[0].length();
+    ngy = localidx[1].length();
+    ngz = localidx[2].length();
 
     My_Ng = pos.size();
 
@@ -524,43 +560,50 @@ void IPPLInitializer::init_particles(ParticleAttrib< Vektor<T, 3> > &pos,
 	In case of neutrinos we allocate buf_pos and buf_vel.
        */
 
-      std::unique_ptr<real[]> tvel = std::unique_ptr<real[]>(new real[My_Ng]); 
-      std::unique_ptr<real[]> tpos = std::unique_ptr<real[]>(new real[My_Ng]); 
+      /*
+        Here we store all particles from initializer
+        [0 ... nBarions, nBarions+1 ...  nBarions+ (nBarions*2*nu_paris)]
+       */
+      std::unique_ptr<real[]> tvel = std::unique_ptr<real[]>(new real[mass.size()]); 
+      std::unique_ptr<real[]> tpos = std::unique_ptr<real[]>(new real[mass.size()]); 
       
       if ((i == 0 ) && (DataBase.Omega_nu > 0.0)) {
-	// the variables are stored in the Initializer class !! 
-	msg << "Neutrinos enabled, allocate storrage in Intializer class" << endl;
-	buf_pos = std::unique_ptr<real[]>(new real[ngy*ngz]);
-	buf_vel = std::unique_ptr<real[]>(new real[ngy*ngz]); 
+          /* a) the variables are stored in the Initializer (base) class
+             b) in exchange_buffers, tpos & tvel will be stored in buf_pos and buf_vel
+             b) needed for inject_neutrinos)
+          */
+          //          int nu_pairs = DataBase.nu_pairs;
+          buf_pos = std::unique_ptr<real[]>(new real[mass.size()]);
+          buf_vel = std::unique_ptr<real[]>(new real[mass.size()]);
       }
 
-
       /*
-	Copy data from Initializer to tpos, tvel
+	Copy data from Initializer (rho) to tpos, tvel
        */
       OnClock("Output");
-      output(i, tpos, tvel);
+      //      output(i,pos,vel,mass);        // copy directly to the IPPL structure
+      output(i, tpos, tvel);                 // copy from rho_m to tpos & tvel
       OffClock("Output");
 
+      msg << "Barions created in direction " << i << endl;
 
       if (DataBase.Omega_nu > 0.0){
-	OnClock("Neutrinos");
-	msg << "exchange buffers" << endl;
-	exchange_buffers(tpos, tvel);
-	msg << "exchange buffers doen, inject nu" << endl;
-	inject_neutrinos(tpos, tvel, i);
-	msg << "Inject nu done" << endl;
-	OffClock("Neutrinos");
+          OnClock("Neutrinos");
+          exchange_buffers(tpos, tvel);       // cp tpos, tvel to buf_pos, buf_vel (for inject_neutrinos)
+          inject_neutrinos(tpos, tvel, i);
+          msg << "    inject neutrinos done ... " << endl;
+          OffClock("Neutrinos");
       }
 
       apply_periodic(tpos);
       
-      //FIXME: store particles to IPPL container + NEUTRINOS
-      //FIXME: use pos_i, vel_i
-      
-      for(size_t j=0; j < static_cast<size_t>(My_Ng); ++j){
+      for(size_t j=0; j < static_cast<size_t>(mass.size()); ++j){
 	pos[j](i) = tpos[j];
 	vel[j](i) = tvel[j];
+        if (j<nBarions)
+            mass[j] =  1.;
+        else
+            mass[j] = -1.;
       }
     }
     

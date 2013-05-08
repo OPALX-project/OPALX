@@ -1,8 +1,8 @@
 // Run:
-np=512
+np=256
 box_size=64.0   // In Mpc/h
 seed=9854373
-z_in=50.0
+z_in=211.0
 
 // Cosmology:
 hubble=0.7

@@ -8,15 +8,15 @@
 1           // frm, output format, 1=> ascii, 2=> binary, 3=> ascii, 2d density
 1           // pbchoice, 1=>box units, 2=> physical units
 1           // entest, 0=>Layzer-Irvine test, else not
-256         // ng: number of grid points per dimension for computation
-256         // ng: 2D histo
+32         // ng: number of grid points per dimension for computation
+32         // ng: 2D histo
 1.0         // ns: index of the primordial power spectrum
 9854373     // iseed: seed for random number generation
 1.0         // alpha, power of scale factor in timestepping
 100.0        // zin
 0.0         // zfin
 0.0        // zpr, redshift after which printing begins
-256         // np, number of particles per dimension
+32         // np, number of particles per dimension
 10          // nsteps, number of time-steps
 1           // iprint, output interval
 0           // irun, 0=>free-run (I/O at iprint), else prints given at zprnt(irun)
