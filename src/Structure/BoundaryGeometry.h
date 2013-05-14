@@ -29,6 +29,8 @@ class ElementBase;
 #include "Distribution/ranlib.h"
 #include "Structure/SecondaryEmissionPhysics.h"
 
+#include <gsl/gsl_rng.h>
+
 extern Inform* gmsg;
 
 namespace BGphysics {
@@ -421,6 +423,8 @@ private:
     double parameterFNVYZe_m;   // zero order fit constant for v(y). Default:\f$0.9632\f$.
     double parameterFNVYSe_m;   // second order fit constant for v(y). Default:\f$1.065\f$.
 
+    gsl_rng *randGen_m;         // 
+  
     IpplTimings::TimerRef TPInside_m;   // timers for profiling
     IpplTimings::TimerRef TPreProc_m;
     IpplTimings::TimerRef TRayTrace_m;
@@ -540,8 +544,10 @@ private:
         }
     }
 
-    /*
-       Determine if a point x is outside, inside or just on the boundary.
+
+    inline bool isInside (Vector_t x) {
+        /*
+          DetBermine if a point x is outside, inside or just on the boundary.
        Return true if point is inside boundary otherwise false.
 
        The basic idea is if a line segment starting from the test point has
@@ -553,17 +559,13 @@ private:
        on the boundary. Makesure the end point of the line
        segment is outside the geometry boundary.
     */
-    bool isInside (Vector_t x) {
+
         Vector_t x0 = x;
         Vector_t x1;
         x1[0] = x0[0];
-        //x1[1] = x0[1];
-        RANLIB_class* rGen = new RANLIB_class (265314159, 4);
-        x1[1] = maxcoords_m[1] * (1.1 + rGen->uniform (0.0, 1.0));
-        x1[2] = maxcoords_m[2] * (1.1 + rGen->uniform (0.0, 1.0));
-        //x1[2] = x0[2];
-        delete rGen;
-	
+        x1[1] = maxcoords_m[1] * (1.1 + gsl_rng_uniform(randGen_m));
+        x1[2] = maxcoords_m[2] * (1.1 + gsl_rng_uniform(randGen_m));
+
         /*
           Random number could avoid some specific situation,
           like line parallel to boundary......
@@ -581,7 +583,6 @@ private:
                 return true;  // x0 is inside the boundary;
         }
     }
-
 
     /*
       Recursively get inward triangle normal of all surface triangles.

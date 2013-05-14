@@ -1,6 +1,5 @@
 set (_SRCS
   Distribution.cpp
-  ranlib.cc
   halton1d_sequence.cpp
   LaserProfile.cpp
   )

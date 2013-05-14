@@ -109,6 +109,9 @@ BoundaryGeometry::BoundaryGeometry() :
     }
     if (!h5FileName_m.empty ())
         initialize ();
+
+    gsl_rng_env_setup();
+    randGen_m = gsl_rng_alloc(gsl_rng_default);    
 }
 
 BoundaryGeometry::BoundaryGeometry(
@@ -129,6 +132,8 @@ BoundaryGeometry::BoundaryGeometry(
     TRayTrace_m = IpplTimings::getTimer ("Ray tracing");
     Tinward_m = IpplTimings::getTimer ("Check inward");
 
+    gsl_rng_env_setup();
+    randGen_m = gsl_rng_alloc(gsl_rng_default);    
 }
 
 BoundaryGeometry::~BoundaryGeometry() {
@@ -144,6 +149,10 @@ BoundaryGeometry::~BoundaryGeometry() {
        if (TriSePartloss_m)
        delete TriSePartloss_m;
      */
+
+    gsl_rng_free(randGen_m);
+
+
 }
 
 bool BoundaryGeometry::canReplaceBy (Object* object) {

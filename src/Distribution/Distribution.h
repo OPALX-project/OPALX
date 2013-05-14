@@ -25,7 +25,7 @@
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-#include "ranlib.h"
+
 #include "Algorithms/Vektor.h"
 
 #include "Ippl.h"
@@ -35,8 +35,6 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_qrng.h>
-
-#define RANLIBX
 
 class Beam;
 class PartBunch;
@@ -215,6 +213,7 @@ private:
     void GenerateFlattopT(size_t numberOfParticles);
     void GenerateFlattopZ(size_t numberOfParticles);
     void GenerateGaussZ(size_t numberOfParticles);
+    void GenerateGaussZChol(size_t numberOfParticles);
     void GenerateLongFlattopT(size_t numberOfParticles);
     void GenerateTransverseGauss(size_t numberOfParticles);
     void InitializeBeam(PartBunch &beam);
@@ -287,7 +286,7 @@ private:
     gsl_histogram *energyBinHist_m; /// GSL histogram used to define energy bin
                                     /// structure.
 
-    RANLIB_class *randGenEmit_m;    /// Random number generator for thermal emission
+    gsl_rng *randGenEmit_m;         /// Random number generator for thermal emission
                                     /// models.
 
     // ASTRA and NONE photo emission model.

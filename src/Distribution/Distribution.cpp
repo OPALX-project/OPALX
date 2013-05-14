@@ -35,8 +35,12 @@
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_sf_erf.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_blas.h>
 
 extern Inform *gmsg;
+
+#define DISTDBG	
 
 //
 // Class Distribution
@@ -97,6 +101,7 @@ namespace AttributesT
                       CUTOFFPZ,
                       FTOSCAMPLITUDE,
                       FTOSCPERIODS,
+                      R,                          // the correlation matrix (a la transport)
                       CORRX,
                       CORRY,
                       CORRZ,
@@ -1298,8 +1303,8 @@ void Distribution::ApplyEmissionModel(double eZ, double &px, double &py, double 
 
 void Distribution::ApplyEmissModelAstra(double &px, double &py, double &pz) {
 
-    double phi = 2.0 * acos(sqrt(randGenEmit_m->uniform(0.0, 1.0)));
-    double theta = 2.0 * Physics::pi * randGenEmit_m->uniform(0.0, 1.0);
+    double phi = 2.0 * acos(sqrt(gsl_rng_uniform(randGenEmit_m)));
+    double theta = 2.0 * Physics::pi * gsl_rng_uniform(randGenEmit_m);
 
     px = pTotThermal_m * sin(phi) * cos(theta);
     py = pTotThermal_m * sin(phi) * sin(theta);
@@ -1325,8 +1330,8 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
     double energy = 0.0;
     bool allow = false;
     while (!allow) {
-        energy = randGenEmit_m->uniform(lowEnergyLimit, emitEnergyUpperLimit_m);
-        double randFuncValue = randGenEmit_m->uniform(0.0, 1.0);
+        energy = lowEnergyLimit + (gsl_rng_uniform(randGenEmit_m)*emitEnergyUpperLimit_m);
+        double randFuncValue = gsl_rng_uniform(randGenEmit_m);
         double funcValue = (1.0
                             - 1.0
                             / (1.0
@@ -1346,9 +1351,9 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
 
     double thetaInMax = acos(sqrt((cathodeFermiEnergy_m + phiEffective)
                                   / (energy + laserEnergy_m)));
-    double thetaIn = randGenEmit_m->uniform(0.0, thetaInMax);
+    double thetaIn = gsl_rng_uniform(randGenEmit_m)*thetaInMax;
     double sinThetaOut = sin(thetaIn) * sqrt(energyInternal / energyExternal);
-    double phi = Physics::two_pi * randGenEmit_m->uniform(0.0, 1.0);
+    double phi = Physics::two_pi * gsl_rng_uniform(randGenEmit_m);
 
     // Compute emission momenta.
     double betaGammaExternal
@@ -1602,9 +1607,10 @@ void Distribution::CreateDistributionGauss(size_t numberOfParticles, double mass
     if (emitting_m) {
         GenerateTransverseGauss(numberOfParticles);
         GenerateLongFlattopT(numberOfParticles);
-    } else
-        GenerateGaussZ(numberOfParticles);
-
+    } else {
+        //        GenerateGaussZ(numberOfParticles);
+        GenerateGaussZChol(numberOfParticles);
+    }
 }
 
 void  Distribution::CreateBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg) {
@@ -2496,9 +2502,10 @@ void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
 
 void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
-    RANLIB_class *randGenStandard = new RANLIB_class(265314159, 4);
     gsl_rng_env_setup();
+    gsl_rng  *randGenStandard = gsl_rng_alloc(gsl_rng_default);  
     gsl_qrng *quasiRandGen2D = NULL;
+
     if(Options::rngtype != std::string("RANDOM")) {
         INFOMSG("RNGTYPE= " << Options::rngtype << endl);
         if(Options::rngtype == std::string("HALTON")) {
@@ -2530,8 +2537,8 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
                 x = -1.0 + 2.0 * randNums[0];
                 y = -1.0 + 2.0 * randNums[1];
             } else {
-                x = randGenStandard->uniform(-1.0, 1.0);
-                y = randGenStandard->uniform(-1.0, 1.0);
+                x = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
+                y = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
             }
 
             allow = (pow(x, 2.0) + pow(y, 2.0) <= 1.0);
@@ -2553,7 +2560,8 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
         }
 
     }
-    delete randGenStandard;
+    if (randGenStandard)
+        delete randGenStandard;
 
     if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
@@ -2567,8 +2575,8 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
 void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
 
-    RANLIB_class *randGenStandard = new RANLIB_class(265314159, 4);
     gsl_rng_env_setup();
+    gsl_rng *randGenStandard = gsl_rng_alloc(gsl_rng_default);  
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2608,8 +2616,8 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
                 x = -1.0 + 2.0 * randNums[0];
                 y = -1.0 + 2.0 * randNums[1];
             } else {
-                x = randGenStandard->uniform(-1.0, 1.0);
-                y = randGenStandard->uniform(-1.0, 1.0);
+                x = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
+                y = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
             }
 
             allow = (pow(x, 2.0) + pow(y, 2.0) <= 1.0);
@@ -2621,7 +2629,7 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
         if (quasiRandGen1D != NULL)
             gsl_qrng_get(quasiRandGen1D, &z);
         else
-            z = randGenStandard->uniform(0.0, 1.0);
+            z = gsl_rng_uniform(randGenStandard);
 
         z = (z - 0.5) * sigmaR_m[2];
 
@@ -2639,8 +2647,8 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
             pzDist_m.push_back(pz);
         }
     }
-
-    delete randGenStandard;
+    if (randGenStandard)
+        delete randGenStandard;
 
     if (quasiRandGen1D != NULL)
         gsl_qrng_free(quasiRandGen1D);
@@ -2652,7 +2660,8 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
 void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 
     // Generate coordinates.
-    RANLIB_class *randGen = new RANLIB_class((Ippl::myNode() + 1) * 265314159, 4);
+    gsl_rng_env_setup();
+    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
 
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
@@ -2669,15 +2678,16 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         double random3 = 0.0;
         double random4 = 0.0;
         bool allow = false;
+
         while (!allow) {
-            random1 = randGen->gauss(0.0, 1.0);
-            random2 = randGen->gauss(0.0, 1.0);
+            random1 = gsl_ran_gaussian(randGen,1.0);
+            random2 = gsl_ran_gaussian(randGen,1.0);
             x = random1 * sigmaR_m[0];
             px = sigmaP_m[0] * (random1* distCorr_m.at(0)
                                 + random2 * sqrt(1.0 - pow(distCorr_m.at(0), 2.0)));
 
-            random3 = randGen->gauss(0.0, 1.0);
-            random4 = randGen->gauss(0.0, 1.0);
+            random3 = gsl_ran_gaussian(randGen,1.0);
+            random4 = gsl_ran_gaussian(randGen,1.0);
             y = random3 * sigmaR_m[1];
             py = sigmaP_m[1] * (random3 * distCorr_m.at(1)
                                 + random4 * sqrt(1.0 - pow(distCorr_m.at(1), 2.0)));
@@ -2712,8 +2722,8 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         double random6 = 0.0;
         allow = false;
         while (!allow) {
-            random5 = randGen->gauss(0.0, 1.0);
-            random6 = randGen->gauss(0.0, 1.0);
+            random5 = gsl_ran_gaussian(randGen,1.0);
+            random6 = gsl_ran_gaussian(randGen,1.0);
 
             double tempa = 1.0 - pow(distCorr_m.at(0), 2.0);
             double l32 = ((distCorr_m.at(6) - distCorr_m.at(0) * distCorr_m.at(5))
@@ -2765,8 +2775,140 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             pzDist_m.push_back(pz);
         }
     }
+    if (randGen)
+        delete randGen;
+}
 
-    delete randGen;
+void Distribution::GenerateGaussZChol(size_t numberOfParticles) { 
+
+    // Generate coordinates. AAA
+    gsl_rng_env_setup();
+    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
+
+    gsl_matrix * m  = gsl_matrix_alloc (6, 6);
+    gsl_vector * rx = gsl_vector_alloc(6);
+    gsl_vector * ry = gsl_vector_alloc(6);
+        
+    int i,j;
+    
+    for (i = 0; i < 6; i++) {
+        for (j = 0; j < 6; j++) {
+	    if (i==j)
+                gsl_matrix_set (m, i, j, 1.0);
+	    else
+                gsl_matrix_set (m, i, j, 0.0);
+        }
+    }
+
+    gsl_matrix_set (m,0,1, distCorr_m.at(0));
+    gsl_matrix_set (m,1,0, distCorr_m.at(0));
+    gsl_matrix_set (m,2,3, distCorr_m.at(1));
+    gsl_matrix_set (m,3,2, distCorr_m.at(1));
+    gsl_matrix_set (m,4,5, distCorr_m.at(2));
+    gsl_matrix_set (m,5,4, distCorr_m.at(2));
+
+    gsl_matrix_set (m,5,0, distCorr_m.at(3));
+    gsl_matrix_set (m,0,5, distCorr_m.at(3));
+    gsl_matrix_set (m,5,1, distCorr_m.at(4));
+    gsl_matrix_set (m,1,5, distCorr_m.at(4));
+			
+    gsl_matrix_set (m,4,0, distCorr_m.at(5));
+    gsl_matrix_set (m,0,4, distCorr_m.at(5));
+    gsl_matrix_set (m,4,1, distCorr_m.at(6));
+    gsl_matrix_set (m,1,4, distCorr_m.at(6));
+
+#ifdef DISTDBG
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 6; j++) {
+            if (j==0)
+                *gmsg << "r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+                      << std::setprecision(3) << gsl_matrix_get (m, i, j);
+            else
+                *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
+        }
+    *gmsg << endl;
+    }
+#endif
+
+    int errcode = gsl_linalg_cholesky_decomp(m);
+
+    if (errcode == GSL_EDOM) {
+        INFOMSG("gsl_linalg_cholesky_decomp faliled" << endl);
+    }
+    else {
+        INFOMSG("gsl_linalg_cholesky_decomp ok" << endl);
+        
+        // so make the lower part zero.
+        for (int i = 0; i < 6; i++) {
+	    for (int j = 0; j < i ; j++) {
+                gsl_matrix_set (m, i, j, 0.0);
+	    }
+        }
+        
+        gsl_matrix_transpose(m);
+#ifdef DISTDBG	
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 6; j++) {
+                if (j==0)
+                    *gmsg << "r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+                          << std::setprecision(3) << gsl_matrix_get (m, i, j);
+                else
+                    *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
+            }
+            *gmsg << endl;
+        }
+#endif
+    }
+
+    int saveProcessor = -1;
+    for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
+
+        double rval = 0.0;
+
+        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaR_m[0]))) > sigmaR_m[0]*cutoffR_m[0])
+            ;
+        gsl_vector_set(rx,0,rval);       
+
+        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaP_m[0]))) > sigmaP_m[0]*cutoffP_m[0])
+            ;
+        gsl_vector_set(rx,1,rval);       
+
+        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaR_m[1]))) > sigmaR_m[1]*cutoffR_m[1])
+            ;
+        gsl_vector_set(rx,2,rval);       
+
+        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaP_m[1]))) > sigmaP_m[1]*cutoffP_m[1])
+            ;
+        gsl_vector_set(rx,3,rval);       
+
+        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaR_m[2]))) > sigmaR_m[2]*cutoffR_m[2])
+            ;
+        gsl_vector_set(rx,4,rval);       
+
+        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaP_m[2]))) > sigmaP_m[2]*cutoffP_m[2])
+            ;
+        gsl_vector_set(rx,5,rval);       
+
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= Ippl::getNodes())
+            saveProcessor = 0;
+
+        if (Ippl::myNode() == saveProcessor) {
+            if (gsl_blas_dgemv(CblasNoTrans,1.0,m,rx,0.0,ry)) {
+                INFOMSG("oops... something wrong with GSL matvec\n");
+                exit(1);
+	    }
+            xDist_m.push_back(gsl_vector_get(ry, 0));
+            pxDist_m.push_back(gsl_vector_get(ry, 1));
+            yDist_m.push_back(gsl_vector_get(ry, 2));
+            pyDist_m.push_back(gsl_vector_get(ry, 3));
+            tOrZDist_m.push_back(gsl_vector_get(ry, 4));
+            pzDist_m.push_back(gsl_vector_get(ry, 4));
+        }
+    }
+    if (randGen)
+        delete randGen;
 }
 
 void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
@@ -2835,7 +2977,8 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
     if (numModulationPeriods != 0.0)
         modulationPeriod = flattopTime / numModulationPeriods;
 
-    RANLIB_class *randGen = new RANLIB_class((Ippl::myNode() + 1) * 265314159, 4);
+    gsl_rng_env_setup();
+    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2866,7 +3009,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
             if (quasiRandGen1D != NULL)
                 gsl_qrng_get(quasiRandGen1D, &t);
             else
-                t = randGen->uniform(0.0, 1.0);
+                t = gsl_rng_uniform(randGen);
 
             t = flattopTime * t + sigmaTFall_m * cutoffR_m[2];
 
@@ -2881,8 +3024,8 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
                     t = randNums[0] * flattopTime;
                     funcAmp = randNums[1];
                 } else {
-                    t = randGen->uniform(0, flattopTime);
-                    funcAmp = randGen->uniform(0.0, 1.0);
+                    t = gsl_rng_uniform(randGen)*flattopTime;
+                    funcAmp = gsl_rng_uniform(randGen);
                 }
 
                 double funcValue = (1.0 + modulationAmp
@@ -2930,9 +3073,11 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
             pzDist_m.push_back(pz);
         }
     }
+    
     gsl_rng_free(randGenGSL);
 
-    delete randGen;
+    if (randGen)
+        gsl_rng_free(randGen);
 
     if (quasiRandGen1D != NULL)
         gsl_qrng_free(quasiRandGen1D);
@@ -2944,7 +3089,8 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
 void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
 
     // Generate coordinates.
-    RANLIB_class *randGen = new RANLIB_class((Ippl::myNode() + 1) * 265314159, 4);
+    gsl_rng_env_setup();
+    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
 
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
@@ -2960,14 +3106,16 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
         double random4 = 0.0;
         bool allow = false;
         while (!allow) {
-            random1 = randGen->gauss(0.0, 1.0);
-            random2 = randGen->gauss(0.0, 1.0);
+
+            
+            random1 = gsl_ran_gaussian (randGen,1.0);
+            random2 = gsl_ran_gaussian (randGen,1.0);
             x = random1 * sigmaR_m[0];
             px = sigmaP_m[0] * (random1* distCorr_m.at(0)
                                 + random2 * sqrt(1.0 - pow(distCorr_m.at(0), 2.0)));
 
-            random3 = randGen->gauss(0.0, 1.0);
-            random4 = randGen->gauss(0.0, 1.0);
+            random3 = gsl_ran_gaussian (randGen,1.0);
+            random4 = gsl_ran_gaussian (randGen,1.0);
             y = random3 * sigmaR_m[1];
             py = sigmaP_m[1] * (random3 * distCorr_m.at(1)
                                 + random4 * sqrt(1.0 - pow(distCorr_m.at(1), 2.0)));
@@ -3010,8 +3158,8 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             pyDist_m.push_back(py);
         }
     }
-
-    delete randGen;
+    if (randGen)
+        delete randGen;
 }
 
 void Distribution::InitializeBeam(PartBunch &beam) {
@@ -3678,20 +3826,20 @@ void Distribution::SetAttributes() {
                                          "0.0 ... infinity.", 1.0);
 
     itsAttr[AttributesT::CUTOFFX] = Attributes::makeReal("CUTOFFX", "Distribution cutoff x "
-                                                                    "direction in units of sigma.", 0.0);
+                                                                    "direction in units of sigma.", 3.0);
     itsAttr[AttributesT::CUTOFFY] = Attributes::makeReal("CUTOFFY", "Distribution cutoff r "
-                                                                    "direction in units of sigma.", 0.0);
+                                                                    "direction in units of sigma.", 3.0);
     itsAttr[AttributesT::CUTOFFR] = Attributes::makeReal("CUTOFFR", "Distribution cutoff radial "
-                                                                    "direction in units of sigma.", 0.0);
+                                                                    "direction in units of sigma.", 3.0);
     itsAttr[AttributesT::CUTOFFLONG]
             = Attributes::makeReal("CUTOFFLONG", "Distribution cutoff z or t direction in "
                                                  "units of sigma.", 3.0);
-    itsAttr[AttributesT::CUTOFFPX] = Attributes::makeReal("TCUTOFFPX", "Distribution cutoff px "
-                                                                       "dimension in units of sigma.", 0.0);
-    itsAttr[AttributesT::CUTOFFPY] = Attributes::makeReal("TCUTOFFPY", "Distribution cutoff py "
-                                                                       "dimension in units of sigma.", 0.0);
-    itsAttr[AttributesT::CUTOFFPZ] = Attributes::makeReal("TCUTOFFPZ", "Distribution cutoff pz "
-                                                                       "dimension in units of sigma.", 0.0);
+    itsAttr[AttributesT::CUTOFFPX] = Attributes::makeReal("CUTOFFPX", "Distribution cutoff px "
+                                                                       "dimension in units of sigma.", 3.0);
+    itsAttr[AttributesT::CUTOFFPY] = Attributes::makeReal("CUTOFFPY", "Distribution cutoff py "
+                                                                       "dimension in units of sigma.", 3.0);
+    itsAttr[AttributesT::CUTOFFPZ] = Attributes::makeReal("CUTOFFPZ", "Distribution cutoff pz "
+                                                                       "dimension in units of sigma.", 3.0);
 
     itsAttr[AttributesT::FTOSCAMPLITUDE]
             = Attributes::makeReal("FTOSCAMPLITUDE", "Amplitude of oscillations superimposed "
@@ -3702,7 +3850,6 @@ void Distribution::SetAttributes() {
             = Attributes::makeReal("FTOSCPERIODS", "Number of oscillations superimposed on "
                                                    "flat top portion of emitted GAUSS "
                                                    "distribution", 0.0);
-
 
     /*
      * TODO: Find out what these correlations really mean and write
@@ -3735,6 +3882,8 @@ void Distribution::SetAttributes() {
             = Attributes::makeReal("R62", "xp/pz correlation, (R62 in transport "
                                           "notation).", 0.0);
 
+    itsAttr[AttributesT::R]
+        = Attributes::makeRealArray("R", "r correlation");
 
     // Parameters for using laser profile to generate a distribution.
     itsAttr[AttributesT::LASERPROFFN]
@@ -3746,7 +3895,6 @@ void Distribution::SetAttributes() {
             = Attributes::makeReal("INTENSITYCUT", "For background subtraction of laser "
                                                    "image profile, in % of max intensity.",
                                                    0.0);
-
 
     // Dark current and field emission model parameters.
     itsAttr[AttributesT::NPDARKCUR]
@@ -4199,21 +4347,41 @@ void Distribution::SetDistParametersGauss(double massIneV) {
     cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
+    
+    std::vector<double> cr = Attributes::getRealArray(itsAttr[AttributesT::R]);
+    
+    if(cr.size()>0) {
+        if(cr.size() == 15) {
+            *gmsg << "* Use r to specify correlations" << endl;
+            distCorr_m.push_back(cr.at(0));   // corr x,px
+            distCorr_m.push_back(cr.at(6));   // corr y,py
+            distCorr_m.push_back(cr.at(14));  // corr z,pz
+            distCorr_m.push_back(cr.at(4));   // corr R16
+            distCorr_m.push_back(cr.at(8));   // corr R26
+            distCorr_m.push_back(cr.at(11));  // corr R36
+            distCorr_m.push_back(cr.at(13));  // corr R46
 
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
-
-    // CORRZ overrides CORRT.
-    if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-        distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
-
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));
-
-
+    }
+        else {
+            *gmsg << "* Inconsitent set of correlations specified, check manual" << endl;
+            exit(1);
+        }
+    }
+    else {
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
+        
+        // CORRZ overrides CORRT.
+        if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
+            distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
+        
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));    
+    }
+    
     if (emitting_m) {
 
         sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
@@ -4308,8 +4476,8 @@ void Distribution::SetupEmissionModelAstra(PartBunch &beam) {
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
 
-    randGenEmit_m = new RANLIB_class((Ippl::myNode() + 1) * 265314159, 4);
-
+    gsl_rng_env_setup();
+    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);  
 }
 
 void Distribution::SetupEmissionModelNone(PartBunch &beam) {
@@ -4333,8 +4501,8 @@ void Distribution::SetupEmissionModelNonEquil() {
     emitEnergyUpperLimit_m = cathodeFermiEnergy_m
                              + Physics::kB * cathodeTemp_m * log(1.0e9 - 1.0);
 
-    randGenEmit_m = new RANLIB_class((Ippl::myNode() + 1) * 265314159, 4);
-
+    gsl_rng_env_setup();
+    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);  
 }
 
 void Distribution::SetupEnergyBins(double maxTOrZ, double minTOrZ) {
