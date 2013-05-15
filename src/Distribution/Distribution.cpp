@@ -2281,15 +2281,15 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
      
      \f[
      
-     \eps_x = \sigma_x \sigma_{p_x} \cos{ \asin{\sigma_{12} } }
+     \epsilon_x = \sigma_x \sigma_{p_x} \cos{( \arcsin{(\sigma_{12}) }) }
 
      \f]
 
      \f[
      
-     \beta_x = \frac{\sigma_x^2}{\eps_x}
-     \gamma_x = \frac{\sigma_{p_x}^2}{\eps_x}
-     
+     \beta_x = \frac{\sigma_x^2}{\epsilon_x}
+     \gamma_x = \frac{\sigma_{p_x}^2}{\epsilon_x}
+     \alpha_x = -\sigma{1,2} \sqrt{(\beta_x \gamma_x)}
      \f]
 
      */
@@ -2312,9 +2312,6 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
         alpha.push_back(-distCorr_m.at(index)
                         * sqrt(beta.at(index) * gamma.at(index)));
     }
-
-    // Create distribution.
-    INFOMSG("BINCOEF= " << mBinomial_m << endl);
 
     Vector_t M = Vector_t(0.0);
     Vector_t PM = Vector_t(0.0);
