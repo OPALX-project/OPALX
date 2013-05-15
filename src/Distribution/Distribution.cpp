@@ -2277,7 +2277,7 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
 void Distribution::GenerateBinomial(size_t numberOfParticles) {
     /**
 
-     * \brief According to W. Johos report
+     * \brief According to W. Johos SIN report TM-11-14
      
      \f[
      
@@ -2285,12 +2285,12 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
 
      \f]
 
-     \f[
+     \f{eqnarray*}{
      
-     \beta_x = \frac{\sigma_x^2}{\epsilon_x}
-     \gamma_x = \frac{\sigma_{p_x}^2}{\epsilon_x}
-     \alpha_x = -\sigma{1,2} \sqrt{(\beta_x \gamma_x)}
-     \f]
+     \beta_x &=& \frac{\sigma_x^2}{\epsilon_x} \\
+     \gamma_x &=& \frac{\sigma_{p_x}^2}{\epsilon_x} \\
+     \alpha_x &=& -\sigma_{1,2} \sqrt{(\beta_x \gamma_x)} \\
+     \f}
 
      */
 
