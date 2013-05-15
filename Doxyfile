@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 PROJECT_NAME           = "OPAL (Object Oriented Parallel Accelerator Library)" 
-PROJECT_NUMBER         = "1.1.9"
+PROJECT_NUMBER         = "1.2.0"
 OUTPUT_DIRECTORY       = ./doc
 CREATE_SUBDIRS         = YES
 OUTPUT_LANGUAGE        = English
@@ -142,7 +142,7 @@ EXTRA_PACKAGES         = amsfonts, amssymb
 LATEX_HEADER           = 
 PDF_HYPERLINKS         = YES
 USE_PDFLATEX           = NO
-LATEX_BATCHMODE        = NO
+LATEX_BATCHMODE        = YES
 LATEX_HIDE_INDICES     = NO
 #---------------------------------------------------------------------------
 # configuration options related to the RTF output
