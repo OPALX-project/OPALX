@@ -2275,23 +2275,23 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
 }
 
 void Distribution::GenerateBinomial(size_t numberOfParticles) {
-    /**
 
-     * \brief According to W. Johos SIN report TM-11-14
-     
-     \f[
-     
-     \epsilon_x = \sigma_x \sigma_{p_x} \cos{( \arcsin{(\sigma_{12}) }) }
-
-     \f]
-
-     \f{eqnarray*}{
-     
-     \beta_x &=& \frac{\sigma_x^2}{\epsilon_x} \\
-     \gamma_x &=& \frac{\sigma_{p_x}^2}{\epsilon_x} \\
-     \alpha_x &=& -\sigma_{1,2} \sqrt{(\beta_x \gamma_x)} \\
-     \f}
-
+    /*!
+     *
+     * \brief Following W. Johos for his report  <a href="http://gfa.web.psi.ch/publications/presentations/WernerJoho/TM-11-14.pdf"> TM-11-14 </a> 
+     *
+     * For the \f$x,p_x\f$ phase space we have:
+     * \f[
+     *  \epsilon_x = \sigma_x \sigma_{p_x} \cos{( \arcsin{(\sigma_{12}) }) }
+     *  \f]
+     *
+     * \f{eqnarray*}{     
+     * \beta_x &=& \frac{\sigma_x^2}{\epsilon_x} \\
+     * \gamma_x &=& \frac{\sigma_{p_x}^2}{\epsilon_x} \\
+     * \alpha_x &=& -\sigma_{12} \sqrt{(\beta_x \gamma_x)} \\
+     * \f}
+     *
+     * This holds similar for the other dimensions.
      */
 
 
