@@ -559,8 +559,6 @@ void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep) {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     int N = (int)H5PartGetNumParticles(H5file);
 
-    //    h5_int64_t totalSteps = H5GetNumSteps(H5file);
-
     int numberOfParticlesPerNode = (int) floor((double) N / Ippl::getNodes());
     long long starti = Ippl::myNode() * numberOfParticlesPerNode;
     long long endi = starti + numberOfParticlesPerNode - 1;
@@ -914,7 +912,6 @@ void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartSte
         *gmsg << "Restart from a specified file:" << fn << endl;
 
     } else {
-        //        beam.setTEmission(Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::TEMISSION]));
         fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
     }
 
@@ -1203,26 +1200,6 @@ Inform &Distribution::printInfo(Inform &os) const {
     return os;
 }
 
-
-
-
-
-
-
-/*
-  double Distribution::getET() const
-  {
-  return Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::ET]);
-  }
-
-  void Distribution::setET(double value)
-  {
-  Attributes::setReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::ET], value);
-  }
-
-*/
-
-
 const PartData &Distribution::GetReference() const {
     // Cast away const, to allow logically constant Distribution to update.
     const_cast<Distribution *>(this)->update();
@@ -1230,10 +1207,10 @@ const PartData &Distribution::GetReference() const {
 }
 
 void Distribution::AddDistributions() {
-
     /*
      * Move particle coordinates from added distributions to main distribution.
      */
+
     std::vector<Distribution *>::iterator addedDistIt;
     for (addedDistIt = addedDistributions_m.begin();
          addedDistIt != addedDistributions_m.end(); addedDistIt++) {
@@ -1492,7 +1469,6 @@ void Distribution::CreateDistributionBinomial(size_t numberOfParticles, double m
 
     SetDistParametersBinomial(massIneV);
     GenerateBinomial(numberOfParticles);
-
 }
 
 void Distribution::CreateDistributionFlattop(size_t numberOfParticles, double massIneV) {
@@ -1506,7 +1482,6 @@ void Distribution::CreateDistributionFlattop(size_t numberOfParticles, double ma
             GenerateFlattopLaserProfile(numberOfParticles);
     } else
         GenerateFlattopZ(numberOfParticles);
-
 }
 
 void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double massIneV) {
@@ -1597,7 +1572,6 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
     }
     if (Ippl::myNode() == 0)
         inputFile.close();
-
 }
 
 void Distribution::CreateDistributionGauss(size_t numberOfParticles, double massIneV) {
@@ -1642,20 +1616,16 @@ void  Distribution::CreateBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg
                     beam.Bf[lowMark + count] = Vector_t(0.0);
                     beam.dt[lowMark + count] = beam.getdT();
                     count ++;
-
                 }
             }
             pc++;
             if(pc == Ippl::getNodes())
                 pc = 0;
-
         }
-
     }
     bg.clearCooridinateArray();
     beam.boundp();
     *gmsg << &beam << endl;
-
 }
 
 void Distribution::CreateOpalCycl(PartBunch &beam,
@@ -2181,7 +2151,6 @@ void Distribution::FillParticleBins() {
     }
 
     energyBins_m->sortArray();
-
 }
 
 size_t Distribution::FindEBin(double tOrZ) {
@@ -2191,7 +2160,6 @@ size_t Distribution::FindEBin(double tOrZ) {
     } else if (tOrZ >= gsl_histogram_max(energyBinHist_m)) {
         return numberOfEnergyBins_m - 1;
     } else {
-
         gsl_histogram *energyBinHist = gsl_histogram_alloc(numberOfEnergyBins_m);
         gsl_histogram_set_ranges_uniform(energyBinHist,
                 gsl_histogram_min(energyBinHist_m),
@@ -2307,6 +2275,25 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
 }
 
 void Distribution::GenerateBinomial(size_t numberOfParticles) {
+    /**
+
+     * \brief According to W. Johos report
+     
+     \f[
+     
+     \eps_x = \sigma_x \sigma_{p_x} \cos{ \asin{\sigma_{12} } }
+
+     \f]
+
+     \f[
+     
+     \beta_x = \frac{\sigma_x^2}{\eps_x}
+     \gamma_x = \frac{\sigma_{p_x}^2}{\eps_x}
+     
+     \f]
+
+     */
+
 
     // Calculate emittance and Twiss parameters.
     std::vector<double> emittance;
