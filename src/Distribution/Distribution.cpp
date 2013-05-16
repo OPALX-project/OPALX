@@ -1467,7 +1467,7 @@ double Distribution::ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double mas
 
 void Distribution::CreateDistributionBinomial(size_t numberOfParticles, double massIneV) {
 
-    SetDistParametersBinomial(massIneV);
+    SetDistParametersBinomial(massIneV);    
     GenerateBinomial(numberOfParticles);
 }
 
@@ -2323,8 +2323,8 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
     Vector_t PL = Vector_t(0.0);
 
     for(unsigned int index = 0; index < 3; index++) {
-        gamma.at(index) *= 4.0;
-        beta.at(index)  *= 4.0;
+        gamma.at(index) *= cutoffR_m[index];
+        beta.at(index)  *= cutoffP_m[index];
         M[index]      =  sqrt(emittance.at(index) * beta.at(index));
         PM[index]     =  sqrt(emittance.at(index) * gamma.at(index));
         COSCHI[index] =  sqrt(1.0 / (1.0 + pow(alpha.at(index), 2.0)));
@@ -3680,7 +3680,6 @@ void Distribution::ReflectDistribution(size_t &numberOfParticles) {
 void Distribution::ScaleDistCoordinates() {
 
     for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
-
         xDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::XMULT]);
         pxDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::PXMULT]);
         yDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::YMULT]);
@@ -3692,7 +3691,6 @@ void Distribution::ScaleDistCoordinates() {
             tOrZDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::ZMULT]);
 
         pzDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::PZMULT]);
-
     }
 }
 
@@ -4186,6 +4184,14 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
                            std::abs(Attributes::getReal(itsAttr[AttributesT::MY])),
                            std::abs(Attributes::getReal(itsAttr[AttributesT::MT])));
 
+    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
+                         Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
+                         Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
+    
+    cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
+                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
+                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
+    
     if (mBinomial_m[2] == 0.0
         || Attributes::getReal(itsAttr[AttributesT::MZ]) != 0.0)
         mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::MZ]));
@@ -4195,7 +4201,6 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
         mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::MT]));
         distCorr_m.at(2) = std::abs(Attributes::getReal(itsAttr[AttributesT::CORRT]));
     }
-
 }
 
 void Distribution::SetDistParametersFlattop(double massIneV) {
@@ -4644,14 +4649,12 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
     }
 
     for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
-
         xDist_m.at(particleIndex) += deltaX;
         pxDist_m.at(particleIndex) += deltaPx;
         yDist_m.at(particleIndex) += deltaY;
         pyDist_m.at(particleIndex) += deltaPy;
         tOrZDist_m.at(particleIndex) += deltaTOrZ;
         pzDist_m.at(particleIndex) += deltaPz;
-
     }
 }
 
