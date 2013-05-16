@@ -40,7 +40,7 @@
 
 extern Inform *gmsg;
 
-#define DISTDBG	
+#define noDISTDBG	
 
 //
 // Class Distribution
@@ -1582,7 +1582,7 @@ void Distribution::CreateDistributionGauss(size_t numberOfParticles, double mass
         GenerateTransverseGauss(numberOfParticles);
         GenerateLongFlattopT(numberOfParticles);
     } else {
-        //        GenerateGaussZ(numberOfParticles);
+        //GenerateGaussZ(numberOfParticles);
         GenerateGaussZChol(numberOfParticles);
     }
 }
@@ -2765,7 +2765,6 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 
 void Distribution::GenerateGaussZChol(size_t numberOfParticles) { 
 
-    // Generate coordinates. AAA
     gsl_rng_env_setup();
     gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
 
@@ -2818,18 +2817,15 @@ void Distribution::GenerateGaussZChol(size_t numberOfParticles) {
 
     if (errcode == GSL_EDOM) {
         INFOMSG("gsl_linalg_cholesky_decomp faliled" << endl);
+        exit(1);
     }
-    else {
-        INFOMSG("gsl_linalg_cholesky_decomp ok" << endl);
-        
-        // so make the lower part zero.
-        for (int i = 0; i < 6; i++) {
-	    for (int j = 0; j < i ; j++) {
-                gsl_matrix_set (m, i, j, 0.0);
-	    }
+    // so make the lower part zero.
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < i ; j++) {
+            gsl_matrix_set (m, i, j, 0.0);
         }
-        
-        gsl_matrix_transpose(m);
+    }        
+    gsl_matrix_transpose(m);
 #ifdef DISTDBG	
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 6; j++) {
@@ -2843,33 +2839,33 @@ void Distribution::GenerateGaussZChol(size_t numberOfParticles) {
         }
 #endif
     }
-
+    
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double rval = 0.0;
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaR_m[0]))) > sigmaR_m[0]*cutoffR_m[0])
+        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[0])
             ;
         gsl_vector_set(rx,0,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaP_m[0]))) > sigmaP_m[0]*cutoffP_m[0])
+        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[0])
             ;
         gsl_vector_set(rx,1,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaR_m[1]))) > sigmaR_m[1]*cutoffR_m[1])
+        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[1])
             ;
         gsl_vector_set(rx,2,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaP_m[1]))) > sigmaP_m[1]*cutoffP_m[1])
+        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[1])
             ;
         gsl_vector_set(rx,3,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaR_m[2]))) > sigmaR_m[2]*cutoffR_m[2])
+        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[2])
             ;
         gsl_vector_set(rx,4,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,sigmaP_m[2]))) > sigmaP_m[2]*cutoffP_m[2])
+        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[2])
             ;
         gsl_vector_set(rx,5,rval);       
 
@@ -2883,12 +2879,12 @@ void Distribution::GenerateGaussZChol(size_t numberOfParticles) {
                 INFOMSG("oops... something wrong with GSL matvec\n");
                 exit(1);
 	    }
-            xDist_m.push_back(gsl_vector_get(ry, 0));
-            pxDist_m.push_back(gsl_vector_get(ry, 1));
-            yDist_m.push_back(gsl_vector_get(ry, 2));
-            pyDist_m.push_back(gsl_vector_get(ry, 3));
-            tOrZDist_m.push_back(gsl_vector_get(ry, 4));
-            pzDist_m.push_back(gsl_vector_get(ry, 4));
+            xDist_m.push_back(sigmaR_m[0]*gsl_vector_get(ry, 0));
+            pxDist_m.push_back(sigmaP_m[0]*gsl_vector_get(ry, 1));
+            yDist_m.push_back(sigmaR_m[1]*gsl_vector_get(ry, 2));
+            pyDist_m.push_back(sigmaP_m[1]*gsl_vector_get(ry, 3));
+            tOrZDist_m.push_back(sigmaR_m[2]*gsl_vector_get(ry, 4));
+            pzDist_m.push_back(sigmaP_m[2]*gsl_vector_get(ry, 5));
         }
     }
     if (randGen)
