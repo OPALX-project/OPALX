@@ -679,8 +679,6 @@ src/Distribution/LaserProfile.cpp -text
 src/Distribution/LaserProfile.h -text
 src/Distribution/halton1d_sequence.cpp -text
 src/Distribution/halton1d_sequence.hh -text
-src/Distribution/ranlib.cc -text
-src/Distribution/ranlib.h -text
 src/Editor/CMakeLists.txt -text
 src/Editor/Edit.cpp -text
 src/Editor/Edit.h -text

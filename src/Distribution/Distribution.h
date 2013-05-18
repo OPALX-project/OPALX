@@ -213,7 +213,6 @@ private:
     void GenerateFlattopT(size_t numberOfParticles);
     void GenerateFlattopZ(size_t numberOfParticles);
     void GenerateGaussZ(size_t numberOfParticles);
-    void GenerateGaussZChol(size_t numberOfParticles);
     void GenerateLongFlattopT(size_t numberOfParticles);
     void GenerateTransverseGauss(size_t numberOfParticles);
     void InitializeBeam(PartBunch &beam);

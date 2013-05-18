@@ -40,7 +40,7 @@
 
 extern Inform *gmsg;
 
-#define noDISTDBG	
+#define DISTDBG	
 
 //
 // Class Distribution
@@ -1582,8 +1582,7 @@ void Distribution::CreateDistributionGauss(size_t numberOfParticles, double mass
         GenerateTransverseGauss(numberOfParticles);
         GenerateLongFlattopT(numberOfParticles);
     } else {
-        //GenerateGaussZ(numberOfParticles);
-        GenerateGaussZChol(numberOfParticles);
+        GenerateGaussZ(numberOfParticles);
     }
 }
 
@@ -2641,129 +2640,7 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
         gsl_qrng_free(quasiRandGen2D);
 }
 
-void Distribution::GenerateGaussZ(size_t numberOfParticles) {
-
-    // Generate coordinates.
-    gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
-
-    int saveProcessor = -1;
-    for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
-
-        double x = 0.0;
-        double px = 0.0;
-        double y = 0.0;
-        double py = 0.0;
-        double z = 0.0;
-        double pz = 0.0;
-
-        double random1 = 0.0;
-        double random2 = 0.0;
-        double random3 = 0.0;
-        double random4 = 0.0;
-        bool allow = false;
-
-        while (!allow) {
-            random1 = gsl_ran_gaussian(randGen,1.0);
-            random2 = gsl_ran_gaussian(randGen,1.0);
-            x = random1 * sigmaR_m[0];
-            px = sigmaP_m[0] * (random1* distCorr_m.at(0)
-                                + random2 * sqrt(1.0 - pow(distCorr_m.at(0), 2.0)));
-
-            random3 = gsl_ran_gaussian(randGen,1.0);
-            random4 = gsl_ran_gaussian(randGen,1.0);
-            y = random3 * sigmaR_m[1];
-            py = sigmaP_m[1] * (random3 * distCorr_m.at(1)
-                                + random4 * sqrt(1.0 - pow(distCorr_m.at(1), 2.0)));
-
-            bool xAndYOk = false;
-            if (cutoffR_m[0] <= 0.0 && cutoffR_m[1] <= 0.0)
-                xAndYOk = true;
-            else if (cutoffR_m[0] <= 0.0)
-                xAndYOk = (std::abs(y) <= sigmaR_m[1] * cutoffR_m[1]);
-            else if (cutoffR_m[1] <= 0.0)
-                xAndYOk = (std::abs(x) <= sigmaR_m[1] * cutoffR_m[0]);
-            else
-                xAndYOk = (pow(x, 2.0) + pow(y, 2.0) <= sigmaR_m[0] * cutoffR_m[0]
-                                                      * sigmaR_m[1] * cutoffR_m[1]);
-
-            bool pxAndPyOk = false;
-            if (cutoffP_m[0] <= 0.0 && cutoffP_m[1] <= 0.0)
-                pxAndPyOk = true;
-            else if (cutoffP_m[0] <= 0.0)
-                pxAndPyOk = (std::abs(py) <= sigmaP_m[1] * cutoffP_m[1]);
-            else if (cutoffP_m[1] <= 0.0)
-                pxAndPyOk = (std::abs(px) <= sigmaP_m[1] * cutoffP_m[0]);
-            else
-                pxAndPyOk = (pow(px, 2.0) + pow(py, 2.0) <= sigmaP_m[0] * cutoffP_m[0]
-                                                          * sigmaP_m[1] * cutoffP_m[1]);
-
-            allow = (xAndYOk && pxAndPyOk);
-
-        }
-
-        double random5 = 0.0;
-        double random6 = 0.0;
-        allow = false;
-        while (!allow) {
-            random5 = gsl_ran_gaussian(randGen,1.0);
-            random6 = gsl_ran_gaussian(randGen,1.0);
-
-            double tempa = 1.0 - pow(distCorr_m.at(0), 2.0);
-            double l32 = ((distCorr_m.at(6) - distCorr_m.at(0) * distCorr_m.at(5))
-                          / sqrt(std::abs(tempa))) * tempa / std::abs(tempa);
-            double tempb = 1.0 - pow(distCorr_m.at(5), 2.0) - pow(l32, 2.0);
-            double l33 = sqrt(std::abs(tempb)) * tempb / std::abs(tempb);
-            z = random1 * distCorr_m.at(5) + random2 * l32 + random5 * l33;
-
-            double l42 = ((distCorr_m.at(4) - distCorr_m.at(0) * distCorr_m.at(3))
-                          / sqrt(std::abs(tempa))) * tempa / std::abs(tempa);
-            double l43 = (distCorr_m.at(2) - distCorr_m.at(5) * distCorr_m.at(3)
-                          - l42 * l32) / l33;
-            double tempc = 1.0 - pow(distCorr_m.at(3), 2.0)
-                           - pow(l42, 2.0) - pow(l43, 2.0);
-            double l44 = sqrt(std::abs(tempc)) * tempc / std::abs(tempc);
-            pz = random1 * distCorr_m.at(3) + random2 * l42
-                 + random5 * l43 + random6 * l44;
-
-            z *= sigmaR_m[2];
-            pz *= sigmaP_m[2];
-
-            bool zOk = false;
-            if (cutoffR_m[2] <= 0.0)
-                zOk = true;
-            else if (std::abs(z) <= sigmaR_m[2] * cutoffR_m[2])
-                zOk = true;
-
-            bool pzOk = false;
-            if (cutoffP_m[2] <= 0.0)
-                pzOk = true;
-            else if (std::abs(pz) <= sigmaP_m[2] * cutoffP_m[2])
-                pzOk = true;
-
-            allow = (zOk && pzOk);
-
-        }
-
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-            tOrZDist_m.push_back(z);
-            pzDist_m.push_back(pz);
-        }
-    }
-    if (randGen)
-        delete randGen;
-}
-
-void Distribution::GenerateGaussZChol(size_t numberOfParticles) { 
+void Distribution::GenerateGaussZ(size_t numberOfParticles) { 
 
     gsl_rng_env_setup();
     gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
@@ -2838,7 +2715,6 @@ void Distribution::GenerateGaussZChol(size_t numberOfParticles) {
             *gmsg << endl;
         }
 #endif
-    }
     
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
