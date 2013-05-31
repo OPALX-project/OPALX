@@ -1,0 +1,52 @@
+set (_SRCS
+  AttCell.cpp
+  OpalBeamBeam.cpp
+  OpalBeamBeam3D.cpp
+  OpalBend.cpp
+  OpalCavity.cpp
+  OpalTravelingWave.cpp
+  OpalCCollimator.cpp
+  OpalCyclotron.cpp
+  OpalDrift.cpp
+  OpalECollimator.cpp
+  OpalDegrader.cpp
+  OpalElement.cpp
+  OpalHKicker.cpp
+  OpalHMonitor.cpp
+  OpalInstrument.cpp
+  OpalKicker.cpp
+  OpalMarker.cpp
+  OpalMonitor.cpp
+  OpalMultipole.cpp
+  OpalOctupole.cpp
+  OpalPatch.cpp
+  OpalProbe.cpp
+  OpalPepperPot.cpp
+  OpalQuadrupole.cpp
+  OpalRBend.cpp
+  OpalRCollimator.cpp
+  OpalRingDefinition.cpp
+  OpalRing.cpp
+  OpalSBend.cpp
+  OpalSBend3D.cpp
+  OpalSeparator.cpp
+  OpalSeptum.cpp
+  OpalSextupole.cpp
+  OpalSlit.cpp
+  OpalSolenoid.cpp
+  OpalSRot.cpp
+  OpalVKicker.cpp
+  OpalVMonitor.cpp
+  OpalWire.cpp
+  OpalYRot.cpp
+  OpalBeamline.cpp
+  OpalParallelPlate.cpp
+  OpalCyclotronValley.cpp
+  OpalStripper.cpp
+  )
+
+include_directories (
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+add_sources(${_SRCS})
