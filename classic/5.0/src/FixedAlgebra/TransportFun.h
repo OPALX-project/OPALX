@@ -173,7 +173,7 @@ public:
 
     /// Taylor series.
     //  Expand Taylor series with coefficiens [b]series[/b] and order one.
-    TransportFun taylor(const T series[2]) const;
+    TransportFun taylor(const T series[3]) const;
 
     /// Read TransportFun on the stream [b]is[/b].
     std::istream &get(std::istream &is);
