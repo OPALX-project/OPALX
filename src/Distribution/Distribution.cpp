@@ -217,7 +217,8 @@ Distribution::Distribution():
     paraFNVYZe_m(0.0),
     secondaryFlag_m(0),
     ppVw_m(0.0),
-    vVThermal_m(0.0) {
+    vVThermal_m(0.0),
+    avrgpz_m(0.0) {
 
     SetAttributes();
 
@@ -308,7 +309,8 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     tFall_m(parent->tFall_m),
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
-    cutoff_m(parent->cutoff_m) {
+    cutoff_m(parent->cutoff_m),
+    avrgpz_m(parent->avrgpz_m){
 }
 
 Distribution::~Distribution() {
@@ -1767,6 +1769,8 @@ void Distribution::CreateOpalT(PartBunch &beam,
                                std::vector<Distribution *> addedDistributions,
                                size_t &numberOfParticles,
                                bool scan) {
+    // This is PC from BEAM
+    avrgpz_m = beam.getP()/beam.getM();
 
     addedDistributions_m = addedDistributions;
     CreateOpalT(beam, numberOfParticles, scan);
@@ -1775,6 +1779,9 @@ void Distribution::CreateOpalT(PartBunch &beam,
 void Distribution::CreateOpalT(PartBunch &beam,
                                size_t &numberOfParticles,
                                bool scan) {
+
+    // This is PC from BEAM
+    avrgpz_m = beam.getP()/beam.getM();
 
     /*
      * If in scan mode, destroy existing beam so we
@@ -2760,7 +2767,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             yDist_m.push_back(sigmaR_m[1]*gsl_vector_get(ry, 2));
             pyDist_m.push_back(sigmaP_m[1]*gsl_vector_get(ry, 3));
             tOrZDist_m.push_back(sigmaR_m[2]*gsl_vector_get(ry, 4));
-            pzDist_m.push_back(sigmaP_m[2]*gsl_vector_get(ry, 5));
+            pzDist_m.push_back(avrgpz_m*(1.0+(sigmaP_m[2]*gsl_vector_get(ry, 5))));
         }
     }
     if (randGen)
@@ -3371,6 +3378,8 @@ void Distribution::PrintDistGauss(Inform &os) const {
         os << "SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
         os << "SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
         os << "SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+        os << "AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
+
         os << "CORRX    = " << distCorr_m.at(0) << endl;
         os << "CORRY    = " << distCorr_m.at(1) << endl;
         os << "CORRZ    = " << distCorr_m.at(2) << endl;

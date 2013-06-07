@@ -316,6 +316,11 @@ private:
     std::vector<double> pzWrite_m;
     std::vector<size_t> binWrite_m;
 
+    // for compatibility reasons
+    double avrgpz_m; 
+
+
+
     //Distribution parameters.
     InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits_m;
     double sigmaTRise_m;
