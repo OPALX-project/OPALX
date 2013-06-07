@@ -1,0 +1,27 @@
+set (_SRCS
+  AbstractMapper.cpp
+  AbstractTracker.cpp
+  DefaultVisitor.cpp
+  Flagger.cpp
+  IdealMapper.cpp
+  LinearMapper.cpp
+  MapIntegrator.cpp
+  Mapper.cpp
+  OrbitTracker.cpp
+  PartBunch.cpp
+  PartBins.cpp
+  PartBinsCyc.cpp
+  PartData.cpp
+  Particle.cpp
+  Surveyor.cpp
+  ThinMapper.cpp
+  ThinTracker.cpp
+  TrackIntegrator.cpp
+  Tracker.cpp
+  )
+
+include_directories (
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
+add_cl_sources(${_SRCS})

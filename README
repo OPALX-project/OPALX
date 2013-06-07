@@ -1,0 +1,97 @@
+OPAL (Object Oriented Parallel Accelerator Library) 
+
+V 1.1.2 17.9.2008
+
+
+
+A fusion of MAD9, CLASSIC (V3.3.1 -> 5.0) MAD9p  with the help of IPPL V 1.0 .
+
+Effort started 5/12/2006 by Andreas Adelmann (PSI)
+
+Goto http://amas.web.psi.ch for more information and the documentation.
+
+
+N E W S
+=======
+
+
+New in 1.1.2:
+
+- much faster now
+- Bend
+- Gun, SW TW structures fully benchmarked against IMPACT-T
+- Cyclotron model ready for: Ring and Injector 2 with neighbouring bunches
+
+- Experimental (only for geeks): 
+	=> iterative solver (needs special configure options)
+        => wake fields
+	=> envelope mode (SW,Solenoids) ok w.r.t. BET         
+
+- Many more regression tests
+
+Plans for 1.1.3
+
+- CSR 
+- Transision from experimental to production
+
+
+New in 1.1.5
+------------
+
+Sort range wake fields and SBend with field gradient.
+
+Thermal emittance most probable close to the ASTRA model.
+
+Iteative solver with simple geometry (not ready for XT3/4 at CSCS due to some 
+library installation problem).
+
+
+I N S T A L L A T I O N
+=======================
+
+Please check out chapter 2 in the manual for details.
+On very often used systems  the configure commands are given below
+however you have to make sure the individual location of include and 
+libraries are set right.
+
+
+FELSIM (PSI)
+------------
+
+OPAL/src
+
+./configure             --with-blas=mkl --with-lapack=mkl --enable-ml-solver  \
+                        --with-classic-includedir=$HOME/svnwork/OPAL/classic/5.0/src --with-classic-libdir=$HOME/svnwork/OPAL/classic/5.0/src \
+                        --with-doom-includedir=$HOME/svnwork/OPAL/doom/ --with-doom-libdir=$HOME/svnwork/OPAL/doom/ \
+                        --with-ippl-includedir=/home2/ineichen/felsim/ippl/src --with-ippl-libdir=/home2/ineichen/felsim/ippl/lib/LINUX \
+                        --with-h5part-includedir=$HOME/svnwork/H5Part/src --with-h5part-libdir=$HOME/svnwork/H5Part/src \
+                        --with-hdf5-includedir=$HDF5HOME/include --with-hdf5-libdir=$HDF5HOME/lib \
+                        --with-trilinos-includedir=/opt/trilinos/trilinos-8.0.7/include --with-trilinos-libdir=/opt/trilinos/trilinos-8.0.7/lib \
+                        --with-libdir="-L/opt/parmetis/parmetis-3.1 -L/opt/intel-mkl/mkl-10.0/lib/em64t -L/opt/intel/intel-10.0/fce-10.0/lib" \
+                        --with-libs="-lz -lm -lfftw3 /home2/ineichen/felsim_build/SuperLU_DIST_2.2/lib/libsuperlu_dist_2.0.a -lifcore -lparmetis -lmetis" \
+                        CXX=mpicxx --no-create --no-recursion
+
+OPAL/classic/5.0/src
+
+./configure 		--with-ippl-includedir=/home2/ineichen/felsim/ippl/src \
+			--with-h5part-includedir=/home2/adelmann/svnwork/H5Part/src \ 
+			--with-h5part-libdir=/home2/adelmann/svnwork/H5Part/src \
+			--with-hdf5-includedir=/opt/hdf5/hdf5-1.6.7/include \
+			--with-hdf5-ibdir=/opt/hdf5/hdf5-1.6.7/lib \
+			CXX=mpicxx --no-create --no-recursion
+
+OPAL/doom
+
+./configure  CC=mpicc --no-create --no-recursion
+
+
+HORIZON (XT3 @ CSCS)
+
+
+
+
+
+
+
+
+Andreas Adelmann
