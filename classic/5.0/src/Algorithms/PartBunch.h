@@ -424,6 +424,11 @@ public:
     virtual void actT();
     const PartData *getReference() const;
 
+    /// holds the courant Shnider parameters
+    Vector_t get_csBeta();
+    Vector_t get_csAlpha();
+
+
     double getTBin();
     double GetEmissionDeltaT();
 
@@ -446,7 +451,6 @@ public:
 
     ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
-
 
     Vector_t RefPart_R;
     Vector_t RefPart_P;
@@ -485,6 +489,10 @@ public:
     // For AMTS integrator in OPAL-T
     double dtScInit_m, deltaTau_m;
 
+    /// for the Courant Shnider parameters
+    Vector_t csBeta_m;
+    Vector_t csAlpha_m;
+
 protected:
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
@@ -518,12 +526,14 @@ private:
 
     /// holds the centroid of the beam
     double centroid_m[2 * Dim];
+    double centroidCS_m[2 * Dim];
 
     /// resize mesh to geometry specified
     void resizeMesh();
 
     /// 6x6 matrix of the moments of the beam
     FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
+    FMatrix<double, 2 * Dim, 2 * Dim> momentsCS_m;
 
     /// holds the timestep in seconds
     double dt_m;
@@ -1244,6 +1254,18 @@ inline
 double PartBunch::getBeta(int i) {
     return 0;
 }
+
+inline
+Vector_t PartBunch::get_csBeta() {
+    return csBeta_m;
+}
+
+inline
+Vector_t PartBunch::get_csAlpha() {
+    return csAlpha_m;
+}
+
+
 
 inline
 void PartBunch::actT() {};

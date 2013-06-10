@@ -1379,16 +1379,26 @@ void PartBunch::gatherLoadBalanceStatistics() {
 void PartBunch::calcMoments() {
 
     double part[2 * Dim];
+    double partCS[2 * Dim];
+
     double loc_centroid[2 * Dim];
     double loc_moment[2 * Dim][2 * Dim];
     double moments[2 * Dim][2 * Dim];
 
+    double loc_centroidCS[2 * Dim];
+    double loc_momentCS[2 * Dim][2 * Dim];
+    //    double momentsCS[2 * Dim][2 * Dim];
+
     for(int i = 0; i < 2 * Dim; ++i) {
         loc_centroid[i] = 0.0;
+        loc_centroidCS[i] = 0.0;
         for(int j = 0; j <= i; ++j) {
             loc_moment[i][j] = 0.0;
+            loc_momentCS[i][j] = 0.0;
         }
     }
+
+    double bega = getP()/getM();
 
     for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
         part[1] = this->P[k](0);
@@ -1398,10 +1408,19 @@ void PartBunch::calcMoments() {
         part[2] = this->R[k](1);
         part[4] = this->R[k](2);
 
+        partCS[1] = this->P[k](0)/bega;
+        partCS[3] = this->P[k](1)/bega;
+        partCS[5] = this->P[k](2)/bega;
+        partCS[0] = this->R[k](0);
+        partCS[2] = this->R[k](1);
+        partCS[4] = this->R[k](2);
+
         for(int i = 0; i < 2 * Dim; ++i) {
-            loc_centroid[i] += part[i];
+            loc_centroid[i]   += part[i];
+            loc_centroidCS[i] += partCS[i];
             for(int j = 0; j <= i; ++j) {
-                loc_moment[i][j] += part[i] * part[j];
+                loc_moment[i][j]   += part[i] * part[j];
+                loc_momentCS[i][j] += partCS[i] * partCS[j];
             }
         }
     }
@@ -1409,6 +1428,7 @@ void PartBunch::calcMoments() {
     for(int i = 0; i < 2 * Dim; ++i) {
         for(int j = 0; j < i; ++j) {
             loc_moment[j][i] = loc_moment[i][j];
+            loc_momentCS[j][i] = loc_momentCS[i][j];
         }
     }
 
@@ -1422,6 +1442,9 @@ void PartBunch::calcMoments() {
         for(int j = 0; j <= i; ++j) {
             moments_m(i, j) = moments[i][j];
             moments_m(j, i) = moments_m(i, j);
+
+            momentsCS_m(i, j) = loc_momentCS[i][j];
+            momentsCS_m(j, i) = momentsCS_m(i, j);
         }
     }
 }
@@ -1476,8 +1499,8 @@ void PartBunch::calcBeamParameters() {
 
     const size_t locNp = this->getLocalNum();
     const double N =  static_cast<double>(this->getTotalNum());
-
     const double zero = 0.0;
+
     if(N == 0) {
         for(unsigned int i = 0 ; i < Dim; i++) {
             rmean_m(i) = 0.0;

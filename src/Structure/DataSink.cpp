@@ -1877,11 +1877,11 @@ void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead,
                     << beam.get_maxExtend()(2) << setw(pwi) << "\t"                           // 20
 
                     // Write out Courant Snyder parameters.
-                    << 0.0  << setw(pwi) << "\t"                                              // 21
-                    << 0.0  << setw(pwi) << "\t"                                              // 22
+                    << beam.get_csBeta()(0) << setw(pwi) << "\t" // 21
+                    << beam.get_csBeta()(1) << setw(pwi) << "\t" // 22
 
-                    << 0.0 << setw(pwi) << "\t"                                               // 23
-                    << 0.0 << setw(pwi) << "\t"                                               // 24
+                    << beam.get_csAlpha()(0) << setw(pwi) << "\t" // 23
+                    << beam.get_csAlpha()(1) << setw(pwi) << "\t" // 24
 
                     // Write out dispersion.
                     << beam.get_Dx() << setw(pwi) << "\t"                                               // 25
@@ -1915,7 +1915,7 @@ void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead,
                     << FDext[5](1) << setw(pwi) << "\t"                                         // 45 E-tail y
                     << FDext[5](2) << setw(pwi) << "\t"                                         // 46 E-tail z
 
-                    << beam.getdE() << setw(pwi) << "\t";                                        // 47 dE energy spread
+                    << beam.getdE() << setw(pwi) << "\t";                                       // 47 dE energy spread
 
         if(Ippl::getNodes() == 1) {
             os_statData << beam.R[0](0) << setw(pwi) << "\t";                                    // 48 R0_x
