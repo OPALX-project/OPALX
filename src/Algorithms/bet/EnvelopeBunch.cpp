@@ -583,7 +583,6 @@ void EnvelopeBunch::createBunch() {
 //XXX: every processor fills its slices in bins (every proc holds all bins,
 //some empty)
 void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double emission_time_s, double frac) {
-    Inform msg("setBinnedLShape");
     unsigned int n2 = numSlices_m / 2;
     double sqr2 = sqrt(2.0), v;
     double bunch_width = 0.0;
@@ -592,7 +591,7 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
         case bsRect:
 
             bunch_width = Physics::c * emission_time_s * s[0]->p[SLI_beta];
-            std::cout << "bunch_width = " << bunch_width << std::endl;
+	    //            std::cout << "bunch_width = " << bunch_width << " SLI_beta= " << s[0]->p[SLI_beta] << std::endl;
             for(int i = 0; i < numMySlices_m; i++) {
                 s[i]->p[SLI_z] = -(((numSlices_m - 1) - (mySliceStartOffset_m + i)) * bunch_width) / numSlices_m;
             }
@@ -646,15 +645,16 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
     }
 
     ////XXX: debug output
-    //for(int i = 0; i < bins_m.size(); i++) {
-    //if(bins_m[i].size() > 0) {
-    //cout << Ippl::Comm->myNode() << ": Bin " << i << ": ";
-    //for(int j = 0; j < bins_m[i].size(); j++)
-    //cout << " " << mySliceStartOffset_m + bins_m[i][j] << "(" << s[j]->p[SLI_z] << ")";
-    //cout << endl;
-    //}
-    //}
-
+    /*
+    for(unsigned int i = 0; i < bins_m.size(); i++) {
+      if(bins_m[i].size() > 0) {
+	std::cout << Ippl::Comm->myNode() << ": Bin " << i << ": ";
+	for(unsigned int j = 0; j < bins_m[i].size(); j++)
+	  std::cout << " " << mySliceStartOffset_m + bins_m[i][j] << "(" << s[j]->p[SLI_z] << ")";
+	std::cout << std::endl;
+      }
+    }
+    */
     //find first bin containing slices
     firstBinWithValue_m = 0;
     for(; firstBinWithValue_m < nebin_m; firstBinWithValue_m++)
@@ -664,18 +664,19 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
 }
 
 void EnvelopeBunch::setTShape(double enx, double eny, double rx, double ry, double b0) {
+  /*
     Inform msg("setTshape");
     msg << "set SLI_x to " << rx / 2.0 << endl;
     msg << "set SLI_y to " << ry / 2.0 << endl;
-
+  */
     // set emittances
     emtnx0 = enx;
     emtny0 = eny;
     //FIXME: is rx here correct?
     emtbx0 = Physics::q_e * rx * rx * Bz0 / (8.0 * Physics::EMASS * Physics::c);
     emtby0 = Physics::q_e * ry * ry * Bz0 / (8.0 * Physics::EMASS * Physics::c);
-    msg << "set emtbx0 to " << emtbx0 << endl;
-    msg << "set emtby0 to " << emtby0 << endl;
+    //msg << "set emtbx0 to " << emtbx0 << endl;
+    //msg << "set emtby0 to " << emtby0 << endl;
 
     //XXX: rx = 2*rms_x
     for(int i = 0; i < numMySlices_m; i++) {
@@ -1379,9 +1380,9 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
 void EnvelopeBunch::initialize(int num_slices, double Q, double energy, double width, double emission_time, double frac, double current, double bunch_center, double bX, double bY, double mX, double mY, double Bz0, int nbin) {
 
 #ifdef USE_HOMDYN_SC_MODEL
-    *gmsg << "Using HOMDYN space-charge model" << endl;
+    *gmsg << "* Using HOMDYN space-charge model" << endl;
 #else
-    *gmsg << "Using BET space-charge model" << endl;
+    *gmsg << "* Using BET space-charge model" << endl;
 #endif
     distributeSlices(num_slices);
     createBunch();
@@ -1401,9 +1402,6 @@ void EnvelopeBunch::initialize(int num_slices, double Q, double energy, double w
 
     this->setBinnedLShape(bsRect, bunch_center, emission_time, frac);
     this->setTShape(mX, mY, bX, bY, Bz0);
-
-    *gmsg << "tBin = " << emission_time_step_ << " tEmission = " << emission_time << endl;
-    *gmsg << "Q = " << Q << " NSlices =" << num_slices << " Thermal Energy = " << energy << endl << endl;
 
     //FIXME:
     // 12: on-axis, radial, default track all

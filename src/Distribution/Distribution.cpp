@@ -1158,10 +1158,10 @@ Inform &Distribution::printInfo(Inform &os) const {
     os << "********************** DISTRIBUTION **********************" << endl;
     os << endl;
     if (OpalData::getInstance()->inRestartRun()) {
-        os << "In restart. Distribution read in from .h5 file." << endl;
+        os << "* In restart. Distribution read in from .h5 file." << endl;
     } else {
         if (addedDistributions_m.size() > 0)
-            os << "Main Distribution" << endl
+            os << "* Main Distribution" << endl
             << "-----------------" << endl;
 
         if (particlesPerDist_m.empty())
@@ -1172,32 +1172,33 @@ Inform &Distribution::printInfo(Inform &os) const {
         size_t distCount = 1;
         for (unsigned distIndex = 0; distIndex < addedDistributions_m.size(); distIndex++) {
             os << endl;
-            os << "Added Distribution #" << distCount << endl;
-            os << "----------------------" << endl;
+            os << "* Added Distribution #" << distCount << endl;
+            os << "* ----------------------" << endl;
             addedDistributions_m.at(distIndex)->PrintDist(os, particlesPerDist_m.at(distCount));
             distCount++;
         }
 
         os << endl;
         if (numberOfEnergyBins_m > 0) {
-            os << "Number of energy bins    = " << numberOfEnergyBins_m << endl;
+            os << "* Number of energy bins    = " << numberOfEnergyBins_m << endl;
 
-            if (numberOfEnergyBins_m > 1)
-                PrintEnergyBins(os);
+	    //            if (numberOfEnergyBins_m > 1)
+            //    PrintEnergyBins(os);
         }
 
         if (emitting_m) {
-            os << "Distribution is emitted. " << endl;
-            os << "Emission time            = " << tEmission_m << " [sec]" << endl;
-            os << "Bin delta t              = " << tBin_m << " [sec]" << endl;
+            os << "* Distribution is emitted. " << endl;
+            os << "* Emission time            = " << tEmission_m << " [sec]" << endl;
+	    os << "* Time per bin             = " << tEmission_m/numberOfEnergyBins_m << " [sec]" << endl;
+            os << "* Bin delta t              = " << tBin_m << " [sec]" << endl;
             os << endl;
             PrintEmissionModel(os);
             os << endl;
         } else
-            os << "Distribution is injected." << endl;
+            os << "* Distribution is injected." << endl;
     }
     os << endl;
-    os << "**********************************************************" << endl;
+    os << "* *********************************************************" << endl;
 
     return os;
 }
@@ -1701,10 +1702,6 @@ void Distribution::CreateOpalE(Beam *beam,
                                double distCenter,
                                double Bz0) {
 
-    *gmsg << "Creating a sliced bunch with " << beam->getNumberOfSlices() << " slices." << endl
-          << "Mass  = " << beam->getMass() << endl
-          << "Gamma = " << beam->getGamma() << endl;
-
     IpplTimings::startTimer(envelopeBunch->distrCreate_m);
 
     double beamEnergy = beam->getMass() * (beam->getGamma() - 1.0) * 1.0e9;
@@ -1717,6 +1714,9 @@ void Distribution::CreateOpalE(Beam *beam,
     ChooseInputMomentumUnits(InputMomentumUnitsT::NONE);
 
     SetDistType();
+    
+    // Check if this is to be an emitted beam.
+    CheckIfEmitted();
 
     switch (distrTypeT_m) {
 
@@ -1728,6 +1728,7 @@ void Distribution::CreateOpalE(Beam *beam,
         SetDistParametersGauss(beam->getMass());
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
+      INFOMSG("GUNGAUSSFLATTOPTH"<<endl)
         SetDistParametersFlattop(beam->getMass());
         beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
         break;
@@ -1743,9 +1744,6 @@ void Distribution::CreateOpalE(Beam *beam,
                   * (sigmaTRise_m + sigmaTFall_m);
     double beamWidth = tEmission_m * Physics::c * sqrt(1.0 - (1.0 / pow(beam->getGamma(), 2)));
     double beamCenter = -1.0 * beamWidth / 2.0;
-
-    *gmsg << "x     = " << sigmaR_m[0] << endl
-          << "y     = " << sigmaR_m[1] << endl;
 
     envelopeBunch->initialize(beam->getNumberOfSlices(),
                               beam->getCharge(),
@@ -3239,30 +3237,30 @@ void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
 
 void Distribution::PrintDistBinomial(Inform &os) const {
 
-    os << "Distribution type: BINOMIAL" << endl;
+    os << "* Distribution type: BINOMIAL" << endl;
     os << endl;
-    os << "SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
-    os << "SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
+    os << "* SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
+    os << "* SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
     if (emitting_m)
-        os << "SIGMAT   = " << sigmaR_m[2] << " [sec]" << endl;
+        os << "* SIGMAT   = " << sigmaR_m[2] << " [sec]" << endl;
     else
-        os << "SIGMAZ   = " << sigmaR_m[2] << " [m]" << endl;
-    os << "SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
-    os << "SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
-    os << "SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
-    os << "MX       = " << mBinomial_m[0] << endl;
-    os << "MY       = " << mBinomial_m[1] << endl;
+        os << "* SIGMAZ   = " << sigmaR_m[2] << " [m]" << endl;
+    os << "* SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+    os << "* MX       = " << mBinomial_m[0] << endl;
+    os << "* MY       = " << mBinomial_m[1] << endl;
     if (emitting_m)
-        os << "MT       = " << mBinomial_m[2] << endl;
+        os << "* MT       = " << mBinomial_m[2] << endl;
     else
-        os << "MZ       = " << mBinomial_m[2] << endl;
-    os << "CORRX    = " << distCorr_m.at(0) << endl;
-    os << "CORRY    = " << distCorr_m.at(1) << endl;
-    os << "CORRZ    = " << distCorr_m.at(2) << endl;
-    os << "R61      = " << distCorr_m.at(3) << endl;
-    os << "R62      = " << distCorr_m.at(4) << endl;
-    os << "R51      = " << distCorr_m.at(5) << endl;
-    os << "R52      = " << distCorr_m.at(6) << endl;
+        os << "* MZ       = " << mBinomial_m[2] << endl;
+    os << "* CORRX    = " << distCorr_m.at(0) << endl;
+    os << "* CORRY    = " << distCorr_m.at(1) << endl;
+    os << "* CORRZ    = " << distCorr_m.at(2) << endl;
+    os << "* R61      = " << distCorr_m.at(3) << endl;
+    os << "* R62      = " << distCorr_m.at(4) << endl;
+    os << "* R51      = " << distCorr_m.at(5) << endl;
+    os << "* R52      = " << distCorr_m.at(6) << endl;
 }
 
 void Distribution::PrintDistFlattop(Inform &os) const {
@@ -3270,15 +3268,15 @@ void Distribution::PrintDistFlattop(Inform &os) const {
     switch (distrTypeT_m) {
 
     case DistrTypeT::ASTRAFLATTOPTH:
-        os << "Distribution type: ASTRAFLATTOPTH" << endl;
+        os << "* Distribution type: ASTRAFLATTOPTH" << endl;
         break;
 
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        os << "Distribution type: GUNGAUSSFLATTOPTH" << endl;
+        os << "* Distribution type: GUNGAUSSFLATTOPTH" << endl;
         break;
 
     default:
-        os << "Distribution type: FLATTOP" << endl;
+        os << "* Distribution type: FLATTOP" << endl;
         break;
 
     }
@@ -3286,7 +3284,7 @@ void Distribution::PrintDistFlattop(Inform &os) const {
 
     if (laserProfile_m != NULL) {
 
-        os << "Transverse profile determined by laser image: " << endl
+        os << "* Transverse profile determined by laser image: " << endl
            << endl
            << "* Laser profile: " << laserProfileFileName_m << endl
            << "* Laser image:   " << laserImageName_m << endl
@@ -3294,8 +3292,8 @@ void Distribution::PrintDistFlattop(Inform &os) const {
 
     } else {
 
-        os << "SIGMAX                        = " << sigmaR_m[0] << " [m]" << endl;
-        os << "SIGMAY                        = " << sigmaR_m[1] << " [m]" << endl;
+        os << "* SIGMAX                        = " << sigmaR_m[0] << " [m]" << endl;
+        os << "* SIGMAY                        = " << sigmaR_m[1] << " [m]" << endl;
 
     }
 
@@ -3303,176 +3301,176 @@ void Distribution::PrintDistFlattop(Inform &os) const {
 
         if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH) {
 
-            os << "Time Rise                     = " << tRise_m
+            os << "* Time Rise                     = " << tRise_m
                     << " [sec]" << endl;
-            os << "TPULSEFWHM                    = " << tPulseLengthFWHM_m
+            os << "* TPULSEFWHM                    = " << tPulseLengthFWHM_m
                     << " [sec]" << endl;
 
         } else {
-            os << "Sigma Time Rise               = " << sigmaTRise_m
+            os << "* Sigma Time Rise               = " << sigmaTRise_m
                     << " [sec]" << endl;
-            os << "TPULSEFWHM                    = " << tPulseLengthFWHM_m
+            os << "* TPULSEFWHM                    = " << tPulseLengthFWHM_m
                     << " [sec]" << endl;
-            os << "Sigma Time Fall               = " << sigmaTFall_m
+            os << "* Sigma Time Fall               = " << sigmaTFall_m
                     << " [sec]" << endl;
-            os << "Longitudinal cutoff           = " << cutoffR_m[2]
+            os << "* Longitudinal cutoff           = " << cutoffR_m[2]
                                                                   << " [units of Sigma Time]" << endl;
-            os << "Flat top modulation amplitude = "
+            os << "* Flat top modulation amplitude = "
                     << Attributes::getReal(itsAttr[AttributesT::FTOSCAMPLITUDE])
             << " [Percent of distribution amplitude]" << endl;
-            os << "Flat top modulation periods   = "
+            os << "* Flat top modulation periods   = "
                     << std::abs(Attributes::getReal(itsAttr[AttributesT::FTOSCPERIODS]))
             << endl;
         }
 
     } else
-        os << "SIGMAZ                        = " << sigmaR_m[2]
+        os << "* SIGMAZ                        = " << sigmaR_m[2]
            << " [m]" << endl;
 }
 
 void Distribution::PrintDistFromFile(Inform &os) const {
-    os << "Distribution type: FROMFILE" << endl;
+    os << "* Distribution type: FROMFILE" << endl;
     os << endl;
-    os << "Input file:        "
+    os << "* Input file:        "
        << Attributes::getString(itsAttr[AttributesT::FNAME]) << endl;
 }
 
 void Distribution::PrintDistGauss(Inform &os) const {
-    os << "Distribution type: GAUSS" << endl;
+    os << "* Distribution type: GAUSS" << endl;
     os << endl;
     if (emitting_m) {
-        os << "Sigma Time Rise               = " << sigmaTRise_m
+        os << "* Sigma Time Rise               = " << sigmaTRise_m
            << " [sec]" << endl;
-        os << "TPULSEFWHM                    = " << tPulseLengthFWHM_m
+        os << "* TPULSEFWHM                    = " << tPulseLengthFWHM_m
            << " [sec]" << endl;
-        os << "Sigma Time Fall               = " << sigmaTFall_m
+        os << "* Sigma Time Fall               = " << sigmaTFall_m
            << " [sec]" << endl;
-        os << "Longitudinal cutoff           = " << cutoffR_m[2]
+        os << "* Longitudinal cutoff           = " << cutoffR_m[2]
            << " [units of Sigma Time]" << endl;
-        os << "Flat top modulation amplitude = "
+        os << "* Flat top modulation amplitude = "
            << Attributes::getReal(itsAttr[AttributesT::FTOSCAMPLITUDE])
            << " [Percent of distribution amplitude]" << endl;
-        os << "Flat top modulation periods   = "
+        os << "* Flat top modulation periods   = "
            << std::abs(Attributes::getReal(itsAttr[AttributesT::FTOSCPERIODS]))
            << endl;
-        os << "SIGMAX                        = " << sigmaR_m[0] << " [m]" << endl;
-        os << "SIGMAY                        = " << sigmaR_m[1] << " [m]" << endl;
-        os << "SIGMAPX                       = " << sigmaP_m[0]
+        os << "* SIGMAX                        = " << sigmaR_m[0] << " [m]" << endl;
+        os << "* SIGMAY                        = " << sigmaR_m[1] << " [m]" << endl;
+        os << "* SIGMAPX                       = " << sigmaP_m[0]
            << " [Beta Gamma]" << endl;
-        os << "SIGMAPY                       = " << sigmaP_m[1]
+        os << "* SIGMAPY                       = " << sigmaP_m[1]
            << " [Beta Gamma]" << endl;
-        os << "CORRX                         = " << distCorr_m.at(0) << endl;
-        os << "CORRY                         = " << distCorr_m.at(1) << endl;
-        os << "CUTOFFX                       = " << cutoffR_m[0]
+        os << "* CORRX                         = " << distCorr_m.at(0) << endl;
+        os << "* CORRY                         = " << distCorr_m.at(1) << endl;
+        os << "* CUTOFFX                       = " << cutoffR_m[0]
            << " [units of SIGMAX]" << endl;
-        os << "CUTOFFY                       = " << cutoffR_m[1]
+        os << "* CUTOFFY                       = " << cutoffR_m[1]
            << " [units of SIGMAY]" << endl;
-        os << "CUTOFFPX                      = " << cutoffP_m[0]
+        os << "* CUTOFFPX                      = " << cutoffP_m[0]
            << " [units of SIGMAPX]" << endl;
-        os << "CUTOFFPY                      = " << cutoffP_m[1]
+        os << "* CUTOFFPY                      = " << cutoffP_m[1]
            << " [units of SIGMAPY]" << endl;
     } else {
-        os << "SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
-        os << "SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
-        os << "SIGMAZ   = " << sigmaR_m[2] << " [m]" << endl;
-        os << "SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
-        os << "SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
-        os << "SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
-        os << "AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
+        os << "* SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
+        os << "* SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
+        os << "* SIGMAZ   = " << sigmaR_m[2] << " [m]" << endl;
+        os << "* SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
+        os << "* SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
+        os << "* SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+        os << "* AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
 
-        os << "CORRX    = " << distCorr_m.at(0) << endl;
-        os << "CORRY    = " << distCorr_m.at(1) << endl;
-        os << "CORRZ    = " << distCorr_m.at(2) << endl;
-        os << "R61      = " << distCorr_m.at(3) << endl;
-        os << "R62      = " << distCorr_m.at(4) << endl;
-        os << "R51      = " << distCorr_m.at(5) << endl;
-        os << "R52      = " << distCorr_m.at(6) << endl;
-        os << "CUTOFFX  = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
-        os << "CUTOFFY  = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
-        os << "CUTOFFZ  = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
-        os << "CUTOFFPX = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
-        os << "CUTOFFPY = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
-        os << "CUTOFFPZ = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
+        os << "* CORRX    = " << distCorr_m.at(0) << endl;
+        os << "* CORRY    = " << distCorr_m.at(1) << endl;
+        os << "* CORRZ    = " << distCorr_m.at(2) << endl;
+        os << "* R61      = " << distCorr_m.at(3) << endl;
+        os << "* R62      = " << distCorr_m.at(4) << endl;
+        os << "* R51      = " << distCorr_m.at(5) << endl;
+        os << "* R52      = " << distCorr_m.at(6) << endl;
+        os << "* CUTOFFX  = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
+        os << "* CUTOFFY  = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
+        os << "* CUTOFFZ  = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
+        os << "* CUTOFFPX = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
+        os << "* CUTOFFPY = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
+        os << "* CUTOFFPZ = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
     }
 }
 
 void Distribution::PrintDistSurfEmission(Inform &os) const {
 
-    os << "Distribution type: SURFACEEMISION" << endl;
+    os << "* Distribution type: SURFACEEMISION" << endl;
     os << endl;
-    os << "* Number of electrons for surface emission  "
+    os << "* * Number of electrons for surface emission  "
        << Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]) << endl;
-    os << "* Initialized electrons inward margin for surface emission  "
+    os << "* * Initialized electrons inward margin for surface emission  "
        << Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]) << endl;
-    os << "* E field threshold (MV), only in position r with E(r)>EINITHR that "
+    os << "* * E field threshold (MV), only in position r with E(r)>EINITHR that "
        << "particles will be initialized   "
        << Attributes::getReal(itsAttr[AttributesT::EINITHR]) << endl;
-    os << "* Field enhancement for surface emission  "
+    os << "* * Field enhancement for surface emission  "
        << Attributes::getReal(itsAttr[AttributesT::FNBETA]) << endl;
-    os << "* Maximum number of electrons emitted from a single triangle for "
+    os << "* * Maximum number of electrons emitted from a single triangle for "
        << "Fowler-Nordheim emission  "
        << Attributes::getReal(itsAttr[AttributesT::FNMAXEMI]) << endl;
-    os << "* Field Threshold for Fowler-Nordheim emission (MV/m)  "
+    os << "* * Field Threshold for Fowler-Nordheim emission (MV/m)  "
        <<  Attributes::getReal(itsAttr[AttributesT::FNFIELDTHR]) << endl;
-    os << "* Empirical constant A for Fowler-Nordheim emission model  "
+    os << "* * Empirical constant A for Fowler-Nordheim emission model  "
        <<  Attributes::getReal(itsAttr[AttributesT::FNA]) << endl;
-    os << "* Empirical constant B for Fowler-Nordheim emission model  "
+    os << "* * Empirical constant B for Fowler-Nordheim emission model  "
        <<  Attributes::getReal(itsAttr[AttributesT::FNB]) << endl;
-    os << "* Constant for image charge effect parameter y(E) in Fowler-Nordheim "
+    os << "* * Constant for image charge effect parameter y(E) in Fowler-Nordheim "
        << "emission model  "
        <<  Attributes::getReal(itsAttr[AttributesT::FNY]) << endl;
-    os << "* Zero order constant for image charge effect parameter v(y) in "
+    os << "* * Zero order constant for image charge effect parameter v(y) in "
        << "Fowler-Nordheim emission model  "
        <<  Attributes::getReal(itsAttr[AttributesT::FNVYZERO]) << endl;
-    os << "* Second order constant for image charge effect parameter v(y) in "
+    os << "* * Second order constant for image charge effect parameter v(y) in "
        << "Fowler-Nordheim emission model  "
        <<  Attributes::getReal(itsAttr[AttributesT::FNVYSECOND]) << endl;
-    os << "* Select secondary model type(0:no secondary emission; 1:Furman-Pivi; "
+    os << "* * Select secondary model type(0:no secondary emission; 1:Furman-Pivi; "
        << "2 or larger: Vaughan's model  "
        <<  Attributes::getReal(itsAttr[AttributesT::SECONDARYFLAG]) << endl;
-    os << "* Secondary emission mode type(true: emit n true secondaries; false: "
+    os << "* * Secondary emission mode type(true: emit n true secondaries; false: "
        << "emit one particle with n times charge  "
        << Attributes::getBool(itsAttr[AttributesT::NEMISSIONMODE]) << endl;
-    os << "* Sey_0 in Vaughan's model "
+    os << "* * Sey_0 in Vaughan's model "
        <<  Attributes::getReal(itsAttr[AttributesT::VSEYZERO]) << endl;
-    os << "* Energy related to sey_0 in Vaughan's model in eV  "
+    os << "* * Energy related to sey_0 in Vaughan's model in eV  "
        <<  Attributes::getReal(itsAttr[AttributesT::VEZERO]) << endl;
-    os << "* Sey max in Vaughan's model  "
+    os << "* * Sey max in Vaughan's model  "
        <<  Attributes::getReal(itsAttr[AttributesT::VSEYMAX]) << endl;
-    os << "* Emax in Vaughan's model in eV  "
+    os << "* * Emax in Vaughan's model in eV  "
        <<  Attributes::getReal(itsAttr[AttributesT::VEMAX]) << endl;
-    os << "* Fitting parameter denotes the roughness of surface for impact "
+    os << "* * Fitting parameter denotes the roughness of surface for impact "
        << "energy in Vaughan's model  "
        <<  Attributes::getReal(itsAttr[AttributesT::VKENERGY]) << endl;
-    os << "* Fitting parameter denotes the roughness of surface for impact angle "
+    os << "* * Fitting parameter denotes the roughness of surface for impact angle "
        << "in Vaughan's model  "
        <<  Attributes::getReal(itsAttr[AttributesT::VKTHETA]) << endl;
-    os << "* Thermal velocity of Maxwellian distribution of secondaries in "
+    os << "* * Thermal velocity of Maxwellian distribution of secondaries in "
        << "Vaughan's model  "
        <<  Attributes::getReal(itsAttr[AttributesT::VVTHERMAL]) << endl;
-    os << "* VW denote the velocity scalar for Parallel plate benchmark  "
+    os << "* * VW denote the velocity scalar for Parallel plate benchmark  "
        <<  Attributes::getReal(itsAttr[AttributesT::VW]) << endl;
-    os << "* Material type number of the cavity surface for Furman-Pivi's model, "
+    os << "* * Material type number of the cavity surface for Furman-Pivi's model, "
        << "0 for copper, 1 for stainless steel  "
        <<  Attributes::getReal(itsAttr[AttributesT::SURFMATERIAL]) << endl;
 }
 
 void Distribution::PrintDistSurfAndCreate(Inform &os) const {
 
-    os << "Distribution type: SURFACERANDCREATE" << endl;
+    os << "* Distribution type: SURFACERANDCREATE" << endl;
     os << endl;
-    os << "* Number of electrons initialized on the surface as primaries  "
+    os << "* * Number of electrons initialized on the surface as primaries  "
        << Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]) << endl;
-    os << "* Initialized electrons inward margin for surface emission  "
+    os << "* * Initialized electrons inward margin for surface emission  "
        << Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]) << endl;
-    os << "* E field threshold (MV), only in position r with E(r)>EINITHR that "
+    os << "* * E field threshold (MV), only in position r with E(r)>EINITHR that "
        << "particles will be initialized   "
        << Attributes::getReal(itsAttr[AttributesT::EINITHR]) << endl;
 }
 
 void Distribution::PrintEmissionModel(Inform &os) const {
 
-    os << "----------------THERMAL EMITTANCE MODEL----------------" << endl;
+    os << "* ----------------THERMAL EMITTANCE MODEL----------------" << endl;
 
     switch (emissionModel_m) {
 
@@ -3489,30 +3487,30 @@ void Distribution::PrintEmissionModel(Inform &os) const {
         break;
     }
 
-    os << "-------------------------------------------------------" << endl;
+    os << "* -------------------------------------------------------" << endl;
 
 }
 
 void Distribution::PrintEmissionModelAstra(Inform &os) const {
-    os << " THERMAL EMITTANCE in ASTRA MODE" << endl;
-    os << " Kinetic energy (thermal emittance) = "
+    os << "*  THERMAL EMITTANCE in ASTRA MODE" << endl;
+    os << "*  Kinetic energy (thermal emittance) = "
        << std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]))
        << " [eV]  " << endl;
 }
 
 void Distribution::PrintEmissionModelNone(Inform &os) const {
-    os << " THERMAL EMITTANCE in NONE MODE" << endl;
-    os << " Kinetic energy added to longitudinal momentum = "
+    os << "*  THERMAL EMITTANCE in NONE MODE" << endl;
+    os << "*  Kinetic energy added to longitudinal momentum = "
        << std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]))
        << " [eV]  " << endl;
 }
 
 void Distribution::PrintEmissionModelNonEquil(Inform &os) const {
-    os << " THERMAL EMITTANCE in NONEQUIL MODE" << endl;
-    os << " Cathode work function     = " << cathodeWorkFunc_m << " [eV]  " << endl;
-    os << " Cathode Fermi energy      = " << cathodeFermiEnergy_m << " [eV]  " << endl;
-    os << " Cathode temperature       = " << cathodeTemp_m << " [K]  " << endl;
-    os << " Photocathode laser energy = " << laserEnergy_m << " [eV]  " << endl;
+    os << "*  THERMAL EMITTANCE in NONEQUIL MODE" << endl;
+    os << "*  Cathode work function     = " << cathodeWorkFunc_m << " [eV]  " << endl;
+    os << "*  Cathode Fermi energy      = " << cathodeFermiEnergy_m << " [eV]  " << endl;
+    os << "*  Cathode temperature       = " << cathodeTemp_m << " [K]  " << endl;
+    os << "*  Photocathode laser energy = " << laserEnergy_m << " [eV]  " << endl;
 }
 
 void Distribution::PrintEnergyBins(Inform &os) const {
@@ -3524,7 +3522,7 @@ void Distribution::PrintEnergyBins(Inform &os) const {
             sum += gsl_histogram_get(energyBinHist_m,
                                      binIndex * numberOfSampleBins_m + sampleIndex);
 
-        os << "Energy Bin # " << numberOfEnergyBins_m - binIndex
+        os << "* Energy Bin # " << numberOfEnergyBins_m - binIndex
            << " contains " << sum << " particles" << endl;
     }
     os << endl;
@@ -3981,6 +3979,7 @@ void Distribution::SetEmissionTime(double &maxT, double &minT) {
         case DistrTypeT::GUNGAUSSFLATTOPTH:
             tEmission_m = tPulseLengthFWHM_m + (cutoffR_m[2] - sqrt(2.0 * log(2.0)))
             * (sigmaTRise_m + sigmaTFall_m);
+	    INFOMSG("tEm= " << tEmission_m << endl);
             break;
 
         default:
@@ -4121,7 +4120,7 @@ void Distribution::SetDistParametersFlattop(double massIneV) {
 
 
      if (emitting_m) {
-
+       INFOMSG("emitting"<<endl);
          sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
                              std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
                              0.0);
