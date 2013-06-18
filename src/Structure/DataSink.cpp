@@ -49,7 +49,7 @@ DataSink::DataSink() :
 
     fn += string(".h5");
     
-	doHDF5_m = Options::enableHDF5;
+    doHDF5_m = Options::enableHDF5;
 	
     if (doHDF5_m) {
         /// Open H5 file. Check that it opens correctly.
@@ -75,9 +75,9 @@ DataSink::DataSink() :
 DataSink::DataSink(int restartStep) :
     lossWrCounter_m(0)
 {		
-		
+    doHDF5_m = Options::enableHDF5;
     if (!doHDF5_m) {	
-		ERRORMSG ("Can not restart when HDF5 is disabled" << endl);
+      ERRORMSG ("Can not restart when HDF5 is disabled" << endl);
 		exit(1);
 	}
 		

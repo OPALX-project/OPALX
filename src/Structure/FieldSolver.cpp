@@ -193,6 +193,10 @@ void FieldSolver::initCartesianFields() {
     // OpalData::getInstance()->setLayout(PL_m);
 }
 
+bool FieldSolver::hasPeriodicZ() { 
+  return Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC");
+}
+
 void FieldSolver::initSolver(PartBunch &b) {
     itsBunch_m = &b;
      string bcx = Attributes::getString(itsAttr[BCFFTX]);
@@ -223,7 +227,7 @@ void FieldSolver::initSolver(PartBunch &b) {
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
             fsType_m = "FFTBOX";
         } else {
-            solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
+            solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
             fsType_m = "FFT";
         }

@@ -254,7 +254,11 @@ void TrackRun::execute() {
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
         fs->initCartesianFields();
         Track::block->bunch->setSolver(fs);
-        Track::block->bunch->setBCAllOpen();
+	if (fs->hasPeriodicZ())
+	  Track::block->bunch->setBCForDCBeam();
+	else
+	  Track::block->bunch->setBCAllOpen();
+
 
         double charge = SetDistributionParallelT(beam);
 
@@ -331,7 +335,12 @@ void TrackRun::execute() {
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
         fs->initCartesianFields();
         Track::block->bunch->setSolver(fs);
-        Track::block->bunch->setBCAllOpen();
+
+	if (fs->hasPeriodicZ())
+	  Track::block->bunch->setBCForDCBeam();
+	else
+	  Track::block->bunch->setBCAllOpen();
+
         Track::block->bunch->PType = 0;
 
         dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));

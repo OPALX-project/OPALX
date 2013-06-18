@@ -85,6 +85,8 @@ public:
     Inform &printInfo(Inform &os) const;
     unsigned int getInteractionRadius() {return (unsigned int) rpp_m; }
 
+    bool hasPeriodicZ();
+
     /// the actual solver, should be a base object
     PoissonSolver *solver_m;
 

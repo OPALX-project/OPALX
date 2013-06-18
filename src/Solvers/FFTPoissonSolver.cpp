@@ -58,7 +58,7 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     greensFunction_m(greensFunction) {
     int i;
     
-    bcz_m = (bcz==std::string("periodoc"));   // for DC beams, the z direction has periodic boundary conditions
+    bcz_m = (bcz==std::string("PERIODIC"));   // for DC beams, the z direction has periodic boundary conditions
 	
     domain_m = layout_m->getDomain();
 
@@ -71,22 +71,55 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
         decomp2[d] = layout_m->getRequestedDistribution(d);
     }
 
-    // The FFT's require double-sized field sizes in order to (more closely
-    // do not understand this ...)
-    // simulate an isolated system.  The FFT of the charge density field, rho,
-    // would otherwise mimic periodic boundary conditions, i.e. as if there were
-    // several beams set a periodic distance apart.  The double-sized fields
-    // alleviate this problem.
-    for(i = 0; i < 3; i++) {
+    if (bcz_m) {
+      // The FFT's require double-sized field sizes in order to
+      // simulate an isolated system.  The FFT of the charge density field, rho,
+      // would otherwise mimic periodic boundary conditions, i.e. as if there were
+      // several beams set a periodic distance apart.  The double-sized fields in x and
+      // alleviate this problem, in z we have periodic BC's
+      for(i = 0; i < 2; i++) {
         hr_m[i] = mesh_m->get_meshSpacing(i);
         nr_m[i] = domain_m[i].length();
         domain2_m[i] = Index(2 * nr_m[i] + 1);
+      }
+
+      hr_m[2] = mesh_m->get_meshSpacing(2);
+      nr_m[2] = domain_m[2].length();
+      domain2_m[2] = Index(2 * nr_m[2] + 1);
+
+      for(i = 0; i < 2 * 3; ++i) {
+        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+      }    
+      // z-direction
+      bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
+      bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
+      vbc_m[4] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(4);
+      vbc_m[5] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(5);
+    } 
+    else {
+      // The FFT's require double-sized field sizes in order to
+      // simulate an isolated system.  The FFT of the charge density field, rho,
+      // would otherwise mimic periodic boundary conditions, i.e. as if there were
+      // several beams set a periodic distance apart.  The double-sized fields
+      // alleviate this problem.
+      for(i = 0; i < 3; i++) {
+        hr_m[i] = mesh_m->get_meshSpacing(i);
+        nr_m[i] = domain_m[i].length();
+        domain2_m[i] = Index(2 * nr_m[i] + 1);
+      }
+
+      for(i = 0; i < 2 * 3; ++i) {
+        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+      }    
     }
 
     // create double sized mesh and layout objects for the use in the FFT's
     mesh2_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
     layout2_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_m, decomp));
     rho2_m.initialize(*mesh2_m, *layout2_m);
+
 
     NDIndex<3> tmpdomain;
     // Create the domain for the transformed (complex) fields.  Do this by
@@ -102,6 +135,7 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     // complex transformed fields
     mesh3_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
     layout3_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_m, decomp2));
+ 
     rho2tr_m.initialize(*mesh3_m, *layout3_m);
     imgrho2tr_m.initialize(*mesh3_m, *layout3_m);
     grntr_m.initialize(*mesh3_m, *layout3_m);
@@ -170,6 +204,10 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
     greensFunction_m(greensFunction) {
     int i;
     domain_m = layout_m->getDomain();
+
+    INFOMSG("FFTPoissonSolver(PartBunch &beam ..." << endl;);
+
+
 
     // For efficiency in the FFT's, we can use a parallel decomposition
     // which can be serial in the first dimension.

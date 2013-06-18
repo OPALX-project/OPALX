@@ -129,11 +129,15 @@ private:
     Vector_t hr_m;
     Vektor<int, 3> nr_m;
 
+    /// for defining the boundary conditions
+    BConds<double, 3, Mesh_t, Center_t> bc_m;
+    BConds<Vector_t, 3, Mesh_t, Center_t> vbc_m;
+
     PartBunch *itsBunch_m;
 
     std::string greensFunction_m;
 
-    std::string bcz_m;
+    bool bcz_m;
 
     IpplTimings::TimerRef GreensFunctionTimer_m;
 
