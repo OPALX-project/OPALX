@@ -752,7 +752,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
 
         // force the initial time to zero
         beam.setT(0.0);
-    beam.setLocalTrackStep((long long) 0 );
+	beam.setLocalTrackStep((long long) 0 );
         rc = H5PartReadDataFloat64(H5file, "x", farray);
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -864,9 +864,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         if(specifiedNumBunch > 1) {
             // the allowed maximal bin number is set to 1000
             beam.setPBins(new PartBinsCyc(1000, numBunch));
-
         }
-
     }
 
     Ippl::Comm->barrier();
