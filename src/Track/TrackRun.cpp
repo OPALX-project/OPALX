@@ -137,7 +137,7 @@ void TrackRun::execute() {
                                       *Track::block->bunch, Track::block->reference,
                                       false, false);
     } else if(method == "PARALLEL-SLICE") {
-
+        OpalData::getInstance()->setInOPALEnvMode();
         if(!OPAL->hasSLBunchAllocated()) {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "  Selected Tracking Method == PARALLEL-SLICE, NEW TRACK" << endl;
@@ -225,7 +225,7 @@ void TrackRun::execute() {
                                               Track::block->zstop,
                                               *mySlApTracker);
     } else if(method == "PARALLEL-T") {
-
+        OpalData::getInstance()->setInOPALTMode();
         bool isFollowupTrack = (OPAL->hasBunchAllocated() && !Options::scan);
 
         if(!OPAL->hasBunchAllocated() && !Options::scan) {
@@ -329,7 +329,7 @@ void TrackRun::execute() {
         *gmsg << "  method == \"PARALLEL-Z\"" << endl;
 
     } else if(method == "CYCLOTRON-T") {
-
+        OpalData::getInstance()->setInOPALCyclMode();
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));

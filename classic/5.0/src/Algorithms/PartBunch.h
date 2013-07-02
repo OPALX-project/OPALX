@@ -431,9 +431,9 @@ public:
 
     double getTBin();
     double GetEmissionDeltaT();
+    bool isDcBeam();
 
     void iterateEmittedBin(int binNumber);
-
 
     // Particle container attributes
     ParticleAttrib< Vector_t > X;      // local 'lab frame' coordinates;
@@ -555,16 +555,22 @@ private:
     Vector_t rrms_m;
     /// rms momenta
     Vector_t prms_m;
+    Vector_t prmsCS_m;
     /// mean position (m)
     Vector_t rmean_m;
     /// mean momenta
     Vector_t pmean_m;
+    Vector_t pmeanCS_m;
+
     /// rms emittance (not normalized)
     Vector_t eps_m;
+    Vector_t epsCS_m;
+
     /// rms normalized emittance
     Vector_t eps_norm_m;
     /// rms correlation
     Vector_t rprms_m;
+    Vector_t rprmsCS_m;
 
     /// dispersion x & y
     double Dx_m;
@@ -667,6 +673,9 @@ private:
 
 
 };
+
+inline 
+bool PartBunch::isDcBeam() { return dcBeam_m;}
 
 inline
 Vector_t PartBunch::getStashIniP() const {

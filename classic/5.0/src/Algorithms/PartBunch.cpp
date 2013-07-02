@@ -296,7 +296,7 @@ void PartBunch::makHistograms()  {
         for(size_t n = 0; n < getLocalNum(); n++)
             gsl_histogram_increment(h, R[n](2) - minz);
 
-        // now we need to reduce AAAA
+        // now we need to reduce
 
         if(Ippl::myNode() == 0) {
             // wait for msg from all processors (EXEPT NODE 0)
@@ -927,8 +927,8 @@ void PartBunch::computeSelfFields() {
         // #define DBG_SCALARFIELD
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
+        ostringstream oss;
+	//        MPI_File file;
         //MPI_Status status;
         //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
 
@@ -940,7 +940,7 @@ void PartBunch::computeSelfFields() {
 
         string SfileName = OpalData::getInstance()->getInputBasename();
 
-        string rho_fn = string("fields/") + SfileName + string("-rho_scalar-") + string(istr.str());
+        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
         fstr2.open(rho_fn.c_str(), ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
@@ -977,7 +977,7 @@ void PartBunch::computeSelfFields() {
         ofstream fstr;
         fstr.precision(9);
 
-        string e_field = string("fields/") + SfileName + string("-e_field-") + string(istr.str());
+        string e_field = string("data/") + SfileName + string("-e_field-") + string(istr.str());
         fstr.open(e_field.c_str(), ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
@@ -1183,6 +1183,7 @@ void PartBunch::setBCAllOpen() {
         getBConds()[i] = ParticleNoBCond;
     }
     dcBeam_m=false;
+    INFOMSG("BC set for normal Beam" << endl);
 }
 
 void PartBunch::setBCForDCBeam() {
@@ -1216,29 +1217,51 @@ void PartBunch::boundp() {
     if(!isGridFixed()) {
         const int dimIdx = 3;
 
-        NDIndex<3> domain = getFieldLayout().getDomain();
-        for(int i = 0; i < Dim; i++)
-            nr_m[i] = domain[i].length();
-        get_bounds(rmin_m, rmax_m);
-        Vector_t len = rmax_m - rmin_m;
-        for(int i = 0; i < dimIdx; i++) {
-            rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
-            rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
-            hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-        }
-        if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
-            // rescale mesh
-            getMesh().set_meshSpacing(&(hr_m[0]));
-            getMesh().set_origin(rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0));
-            rho_m.initialize(getMesh(),
-                             getFieldLayout(),
-                             GuardCellSizes<Dim>(1),
-                             bc_m);
-            eg_m.initialize(getMesh(),
-                            getFieldLayout(),
-                            GuardCellSizes<Dim>(1),
-                            vbc_m);
-        }
+	/** 
+	   In case of dcBeam_m && hr_m < 0
+	   this is the first call to boundp and we 
+	   have to set hr completely i.e. x,y and z.
+
+	 */
+
+	const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;	
+	double hzSave;
+
+	NDIndex<3> domain = getFieldLayout().getDomain();
+	for(int i = 0; i < Dim; i++)
+	  nr_m[i] = domain[i].length();
+	get_bounds(rmin_m, rmax_m);
+	Vector_t len = rmax_m - rmin_m;
+	
+	if (!fullUpdate) {
+	  hzSave = hr_m[2];
+	}
+	else {
+	  for(int i = 0; i < dimIdx; i++) {
+	    rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
+	    rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
+	    hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+	  }
+	  //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+	}
+
+	if (!fullUpdate) {
+	  hr_m[2] = hzSave;
+	  //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+	}
+
+	if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
+	  getMesh().set_meshSpacing(&(hr_m[0]));
+	  getMesh().set_origin(rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0));
+	  rho_m.initialize(getMesh(),
+			   getFieldLayout(),
+			   GuardCellSizes<Dim>(1),
+			   bc_m);
+	  eg_m.initialize(getMesh(),
+			  getFieldLayout(),
+			  GuardCellSizes<Dim>(1),
+			  vbc_m);
+	}	
     }
     update();
     R.resetDirtyFlag();
@@ -1493,6 +1516,8 @@ void PartBunch::calcBeamParameters() {
     using Physics::c;
 
     Vector_t eps2, fac, rsqsum, psqsum, rpsum;
+    Vector_t eps2CS, rsqsumCS, psqsumCS, rpsumCS;
+
     const double m0 = getM() * 1.E-6;
 
     IpplTimings::startTimer(statParamTimer_m);
@@ -1505,8 +1530,10 @@ void PartBunch::calcBeamParameters() {
         for(unsigned int i = 0 ; i < Dim; i++) {
             rmean_m(i) = 0.0;
             pmean_m(i) = 0.0;
+            pmeanCS_m(i) = 0.0;
             rrms_m(i) = 0.0;
             prms_m(i) = 0.0;
+            prmsCS_m(i) = 0.0;
             eps_norm_m(i)  = 0.0;
         }
         rprms_m = 0.0;
@@ -1527,8 +1554,21 @@ void PartBunch::calcBeamParameters() {
             psqsum(i) = 0;
         rpsum(i) = moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
     }
+
+    for(unsigned int i = 0 ; i < Dim; i++) {
+        pmeanCS_m(i) = centroidCS_m[(2 * i) + 1] / N;
+        rsqsumCS(i) = momentsCS_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
+        psqsumCS(i) = momentsCS_m((2 * i) + 1, (2 * i) + 1) - N * pmeanCS_m(i) * pmeanCS_m(i);
+        if(psqsumCS(i) < 0)
+            psqsumCS(i) = 0;
+        rpsumCS(i) = momentsCS_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmeanCS_m(i);
+    }
+
     eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
     rpsum /= N;
+
+    eps2CS = (rsqsumCS * psqsumCS - rpsumCS * rpsumCS) / (N * N);
+    rpsumCS /= N;
 
     for(unsigned int i = 0 ; i < Dim; i++) {
         rrms_m(i) = sqrt(rsqsum(i) / N);
@@ -1538,6 +1578,17 @@ void PartBunch::calcBeamParameters() {
         fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
     }
     rprms_m = rpsum * fac;
+
+    for(unsigned int i = 0 ; i < Dim; i++) {
+        prmsCS_m(i) = sqrt(psqsumCS(i) / N);
+        epsCS_m(i)  = sqrt(max(eps2CS(i), zero));
+        double tmp = rrms_m(i) * prmsCS_m(i);
+        fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
+    }
+    rprmsCS_m = rpsumCS * fac;
+
+    csBeta_m  = rrms_m*rrms_m / eps_m;
+    csAlpha_m = prmsCS_m*prmsCS_m / eps_m;
 
 
     Dx_m = moments_m(0, 5) / N;
@@ -1887,7 +1938,8 @@ void PartBunch::calcBeamParameters_cycl() {
     // sum energy of all nodes
     reduce(eKin_m, eKin_m, OpAddAssign());
     eKin_m /= TotalNp;
-
+    
+    INFOMSG("eKin_m= " << eKin_m << endl);
     double meanLocalBetaGamma = sqrt(pow(1 + localeKin / (getM() * 1.0e-6), 2.0) - 1);
 
     double betagamma = meanLocalBetaGamma * locNp;
