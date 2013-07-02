@@ -133,8 +133,19 @@ public:
      *  \param sposRef Longitudinal position of the reference particle.
      *  \param sposTail Longitudinal position of the tail particles.
      */
+    void doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E);
+
+    /** \brief for OPAL-t
+	
+     */
     void writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
 
+    /** \brief for OPAL-cycl
+	
+     */
+    void writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E);
+
+    
     /** \brief Write SDDS header.
      *
      * Writes the appropriate SDDS format header information to beam statistics file so the SDDS tools can be used
@@ -172,9 +183,10 @@ public:
      *  - FDext[3] = E at reference particle location (in x, y and z).
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
+     *  \param E average energy (MeB)
      *  \return Returns the number of the time step just written.
      */
-    int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[]);
+    int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double E);
 
     /** \brief Dumps Phase Space for Envelope trakcer to H5 file.
      *

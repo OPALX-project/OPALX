@@ -1431,30 +1431,29 @@ void ParallelCyclotronTracker::Tracker_LF() {
             // in order to sychronize the dump step for multi-bunch and single bunch for compare
             // with each other during post-process phase.
             if(!(Options::psDumpLocalFrame)) {
+   	        double E = itsBunch->get_meanEnergy(); 
                 itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-
-                //  itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
+                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E);
+                itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E= " << itsBunch->get_meanEnergy()  << endl;
 
                 //----------------------------dump in local frame-------------------------------------//
             } else {
-                Vector_t const meanP = calcMeanP();
-                double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-                globalToLocal(itsBunch->R, phi, meanR);
-                globalToLocal(itsBunch->P, phi, meanP);
-                itsBunch->R /= Vector_t(1000.0); // mm --> m
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0);
-                itsBunch->R *= Vector_t(1000.0); // m --> mm
-                localToGlobal(itsBunch->R, phi, meanR);
-                localToGlobal(itsBunch->P, phi, meanP);
-                *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
-
+	      Vector_t const meanP = calcMeanP();
+	      double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+	      double E = itsBunch->get_meanEnergy();
+	      globalToLocal(itsBunch->R, phi, meanR);
+	      globalToLocal(itsBunch->P, phi, meanP);
+	      itsBunch->R /= Vector_t(1000.0); // mm --> m
+	      lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E);
+	      itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+	      itsBunch->R *= Vector_t(1000.0); // m --> mm
+	      localToGlobal(itsBunch->R, phi, meanR);
+	      localToGlobal(itsBunch->P, phi, meanP);
+	      *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
+		    << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E= " << E  << " phi= " << phi/pi*180.0 << endl;
             }
             IpplTimings::stopTimer(DumpTimer_m);
         }
@@ -1532,7 +1531,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     if(initialTotalNum_m == 1)
         openFiles(OpalData::getInstance()->getInputBasename());
 
-    initDistInGlobalFrame();
+    initDistInGlobalFrame(); // AAA
 
     //  read in some control parameters
     const int SinglePartDumpFreq = Options::sptDumpFreq;
@@ -2345,13 +2344,14 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             } else {
 
                 double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+		double E = itsBunch->get_meanEnergy();
                 globalToLocal(itsBunch->R, phi, meanR);
                 globalToLocal(itsBunch->P, phi, meanP);
 
                 // dump in local frame
                 itsBunch->R /= Vector_t(1000.0); // mm --> m
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0);
+                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E);
+                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
 
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
@@ -3108,21 +3108,21 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             // in order to sychronize the dump step for multi-bunch and single bunch for compare
             // with each other during post-process phase.
             if(!(Options::psDumpLocalFrame)) {
-
+    	        double E = itsBunch->get_meanEnergy();
                 // dump in global frame
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
+                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m,E);
                 //  itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
                 // TODO: why no stat data in global frame?
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
                       << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
 
             } else {
+            	double E = itsBunch->get_meanEnergy();
                 globalToLocal(itsBunch->R, phi, meanR);
                 globalToLocal(itsBunch->P, phi, meanP);
-
                 // dump in local frame
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0);
+                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E);
+                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
                       << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
 
@@ -3428,13 +3428,6 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             }
         }
 
-        // Initial dump (if requested in local frame)
-        if(Options::psDumpLocalFrame) {
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-            itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0);
-            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T= 0 [ns]" << endl;
-        }
-
         // Initialize global R
         itsBunch->R *= Vector_t(1000.0); // m --> mm
         Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, 0.0); // [referenceR] == mm
@@ -3445,20 +3438,34 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch->P[i](0) += referencePr;
             itsBunch->P[i](1) += referencePt;
         }
-        localToGlobal(itsBunch->P, initialReferenceTheta);
+
 
         // Initialize the bin number of the first bunch to 0
         for(size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch->Bin[i] = 0;
         }
 
+
         // Initial dump (if requested in global frame)
         if(!(Options::psDumpLocalFrame)) {
+            double E = itsBunch->get_meanEnergy();
             itsBunch->R *= Vector_t(0.001); // mm --> m
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
+	    itsBunch->calcBeamParameters_cycl();
+            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E);
             itsBunch->R *= Vector_t(1000.0); // m --> mm
             *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step 0 T= 0 [ns]" << endl;
+        } else {
+            // Initial dump (if requested in local frame)
+      	    itsBunch->R *= Vector_t(0.001); // mm --> m
+  	    itsBunch->calcBeamParameters_cycl();
+  	    double E = itsBunch->get_meanEnergy();
+	    lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E);
+            itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0, E);
+            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T= 0 [ns]" << endl;
+	    itsBunch->R *= Vector_t(1000.0); // m --> mm
         }
+
+        localToGlobal(itsBunch->P, initialReferenceTheta);
 
         // Backup initial distribution if multi bunch mode
         if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == 1)) {
@@ -3469,6 +3476,8 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
                 initialP_m[i] = itsBunch->P[i];
             }
         }
+
+
 
     } else {
 
