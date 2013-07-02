@@ -352,7 +352,6 @@ void TrackRun::execute() {
         const int specifiedNumBunch = int(std::abs(Round(Attributes::getReal(itsAttr[TURNS]))));
 
         if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
-
             macrocharge = beam->getCharge() * q_e;
             macromass = beam->getMass();
             dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
@@ -414,8 +413,6 @@ void TrackRun::execute() {
 
         if(OPAL->hasBunchAllocated() && Options::scan)
             ds->reset();
-
-        //        ds->setOPALcycl();
 
         *gmsg << *dist << endl;
         *gmsg << *beam << endl;
