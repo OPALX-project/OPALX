@@ -136,12 +136,21 @@ struct OpalDataImpl {
 
     // the accumulated (over all TRACKs) number of steps
     unsigned long long maxTrackSteps;
+
+    bool isInOPALCyclMode_m;
+    bool isInOPALTMode_m;
+    bool isInOPALEnvMode_m;
+
 };
 
 
 OpalDataImpl::OpalDataImpl():
     mainDirectory(), referenceMomentum(0), modified(false), itsTitle(),
-    restart_dump_freq_m(1), last_step_m(0) {
+    restart_dump_freq_m(1), last_step_m(0),
+    isInOPALCyclMode_m(false),
+    isInOPALTMode_m(false),
+    isInOPALEnvMode_m(false)
+{
     bunch_m = 0;
     slbunch_m = 0;
     dataSink_m = 0;
@@ -205,7 +214,6 @@ void OpalData::incMaxTrackSteps(unsigned long long s) {
 }
 
 
-
 OpalData::OpalData() {
     p = new OpalDataImpl();
     p->isRestart = false;
@@ -216,6 +224,9 @@ OpalData::OpalData() {
     p->gPhaseShift_m = 0.0;
     p->maxPhases_m.clear();
     p->maxTrackSteps = 0;
+    p->isInOPALCyclMode_m = false;
+    p->isInOPALTMode_m = false;
+    p->isInOPALEnvMode_m = false;
 }
 
 OpalData::~OpalData() {
@@ -232,9 +243,33 @@ void OpalData::reset() {
     p->hasSLBunchAllocated_m = false;
     p->gPhaseShift_m = 0.0;
     p->maxPhases_m.clear();
+    p->isInOPALCyclMode_m = false;
+    p->isInOPALTMode_m = false;
+    p->isInOPALEnvMode_m = false;
 }
 
+bool OpalData::isInOPALCyclMode() {
+  return p->isInOPALCyclMode_m;
+}
 
+bool OpalData::isInOPALTMode() {
+  return  p->isInOPALTMode_m;
+}
+bool OpalData::isInOPALEnvMode() {
+  return p->isInOPALEnvMode_m;
+}
+
+void OpalData::setInOPALCyclMode() {
+  p->isInOPALCyclMode_m = true;
+}
+
+void OpalData::setInOPALTMode() {
+  p->isInOPALTMode_m = true;
+}
+
+void OpalData::setInOPALEnvMode() {
+  p->isInOPALEnvMode_m = true;
+}
 
 bool OpalData::inRestartRun() {
     return p->isRestart;

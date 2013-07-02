@@ -136,6 +136,14 @@ public:
 
     std::vector<std::string> getAllNames();
 
+    bool isInOPALCyclMode();
+    bool isInOPALTMode();
+    bool isInOPALEnvMode();
+
+    void setInOPALCyclMode();
+    void setInOPALTMode();
+    void setInOPALEnvMode();
+
     /// true if we do a restart run
     bool inRestartRun();
 
