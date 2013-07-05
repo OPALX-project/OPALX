@@ -446,12 +446,19 @@ void TrackRun::execute() {
 
         itsTracker->setNumBunch(specifiedNumBunch);
 
+	if(OPAL->inRestartRun()) {
+	  itsTracker->setPr(dist->GetPr());
+	  itsTracker->setR(dist->GetR());
+	  itsTracker->setTheta(dist->GetTheta());
+	  itsTracker->setBeGa(dist->GetBeGa());
+	}
+
+
         if(specifiedNumBunch > 1) {
 
             // only for regular  run of multi bunches, instantiate the  PartBins class
             // note that for restart run of multi bunches, PartBins class is instantiated in function doRestart_cycl()
             if(!OPAL->inRestartRun()) {
-
 
                 // already exist bins number initially
                 const int BinCount = 1;

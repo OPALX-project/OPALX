@@ -282,29 +282,37 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(elptr);
-
-    double ri = elptr->getRinit();
-    *gmsg << "* RINIT= " << ri << " [mm]" << endl;
-    referenceR = ri;
-
-    double pri = elptr->getPRinit();
-    //msg << "PRINIT= " << pri << " [CU]" << endl;
-    referencePr = pri;
-
-    double phii = elptr->getPHIinit();
-    *gmsg << "* PHIINIT= " << phii << " [deg]" << endl;
-    referenceTheta = phii;
-    if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
-        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
-    }
-
     referencePz = 0.0;
-    referencePtot =  itsReference.getGamma() * itsReference.getBeta();
+    
+    if(!OpalData::getInstance()->inRestartRun()) {
+      // get values from cyclotron command
+      referenceR     = elptr->getRinit();
+      referencePr    = elptr->getPRinit();
+      referenceTheta = elptr->getPHIinit();
+      //msg << "PRINIT= " << pri << " [CU]" << endl;
+      
+      if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
+      }
+      referencePtot =  itsReference.getGamma() * itsReference.getBeta();
+    } 
+    else {
+      // in case of a restart the values from the h5 file are already within this class
+      if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
+      }
+      referencePtot =  bega;
+    }
+    
     referencePt = sqrt(referencePtot * referencePtot - referencePr * referencePr);
     if(referencePtot < 0.0) referencePt *= -1.0;
 
-    sinRefTheta_m = sin(phii / 180.0 * pi);
-    cosRefTheta_m = cos(phii / 180.0 * pi);
+    sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
+    cosRefTheta_m = cos(referenceTheta / 180.0 * pi);      
+
+    *gmsg << "* RINIT= " << referenceR  << " [mm]" << endl;
+
+    *gmsg << "* PHIINIT= " << referenceTheta << " [deg]" << endl;
 
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
 

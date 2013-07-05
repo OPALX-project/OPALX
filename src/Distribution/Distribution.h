@@ -176,6 +176,11 @@ public:
     void SetDistType();
     void ShiftBeam(double &maxTOrZ, double &minTOrZ);
 
+    // in case if OPAL-cycl in restart mode
+    double GetPr() {return referencePr_m;}
+    double GetR() {return referenceR_m;}
+    double GetTheta() {return referenceTheta_m;}
+    double GetBeGa() {return bega_m;}
 
 private:
 
@@ -382,6 +387,12 @@ private:
     double sigmaRise_m;
     double sigmaFall_m;
     double cutoff_m;
+
+    double referencePr_m;
+    double referenceR_m;
+    double referenceTheta_m;
+    double bega_m;
+
 
 };
 

@@ -165,6 +165,11 @@ public:
     /// set the control parameter for "AUTO" sub-mode
     inline void  setParaAutoMode(const double para) {CoeffDBunches_m = para; }
   
+    inline void setPr(double x) {referencePr = x;}
+    inline void setR(double x) {referenceR = x;}
+    inline void setTheta(double x) {referenceTheta = x;}
+    inline void setBeGa(double x) {bega = x;}
+    
 private:
 
     // Not implemented.
@@ -188,7 +193,7 @@ private:
 
     /// The scale factor for dimensionless variables
     double scaleFactor_m;
-
+    double bega;
     double referenceR;
     double referenceTheta;
     double referenceZ;
