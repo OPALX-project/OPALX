@@ -741,8 +741,36 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
+    rc = H5ReadStepAttribFloat64(H5file, "REFPR",&referencePr_m);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5ReadStepAttribFloat64(H5file, "REFR",&referenceR_m);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5ReadStepAttribFloat64(H5file, "REFTHETA",&referenceTheta_m);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    double meanE;
+    rc = H5ReadStepAttribFloat64(H5file, "ENERGY", &meanE);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    *gmsg << "Restart Energy " << meanE << endl;
+
+    double ga = 1 + meanE/beam.getM()*1E3;
+    double be = sqrt(1.0-(1.0/(ga*ga)));
+
+    bega_m = be*ga;
+
+    *gmsg << "Restart Energy " << meanE << " ga= " << ga << " be= " << be << endl;
+
     std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
+
     double *farray = reinterpret_cast<double *>(varray.get());
+
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
     beam.create(localN);
