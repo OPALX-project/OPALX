@@ -92,6 +92,25 @@ void Multipole::setSkewComponent(int n, double v) {
         max_SkewComponent_m = n - 1;
 }
 
+double Multipole::EngeFact(double z) {
+
+    const double lFringe = std::abs(endField_m-startField_m)*0.05;   // 5% fringe field
+    
+    if(z < startField_m+lFringe) {
+
+        // entrance fringe field
+        return 1.0;
+    }
+    else if (z > endField_m-lFringe) {
+
+        // exit fringe field
+        return 1.0;
+    }
+    else
+        return 1.0; // body of magnet 
+}
+
+
 //ff
 // radial focussing term
 void Multipole::addKR(int i, double t, Vector_t &K) {
@@ -171,6 +190,7 @@ bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
     //const Vector_t &R = RefPartBunch_m->R[i];
 
     Vector_t FieldFactor(1.0, 0.0, 0.0);
+
     if(myFieldmap_m) {
         if(myFieldmap_m->getType() == T3DMagnetoStatic) {
             return false;
@@ -181,6 +201,9 @@ bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
     }
 
     if(R(2) > startField_m && R(2) <= endField_m) {
+
+        FieldFactor(0) = EngeFact(R(2));
+        
         if(max_NormalComponent_m > 0) {
             B(0) += NormalComponents[0] * (FieldFactor(0) * R(1) - FieldFactor(2) * R(1) * R(1) * R(1) / 6.);
             B(1) += NormalComponents[0] * (FieldFactor(0) * R(0) - FieldFactor(2) * R(0) * R(0) / 2.);
