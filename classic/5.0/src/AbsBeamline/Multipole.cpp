@@ -92,22 +92,33 @@ void Multipole::setSkewComponent(int n, double v) {
         max_SkewComponent_m = n - 1;
 }
 
+double Multipole::EngeFunc(double z) {
+  const double a1 = 0.296417; 
+  const double a2 = 4.533; 
+  const double a3 = -2.27; 
+  const double a4 = 1.06; 
+  const double a5 = -0.03; 
+  const double a6 = 0.02;					\
+  const double DD = 0.8;
+  const double y = z - 1.0; 
+  return 1.0/(1 + std::exp(a1 + a2*(y/DD) + a3*std::pow(y/DD,2) + a4*std::pow(y/DD,3) + a5*std::pow(y/DD,4) + a6*std::pow(y/DD,5)));    
+}
+
 double Multipole::EngeFact(double z) {
+  // Normalize 
+  const double lFringe = std::abs(endField_m-startField_m);
+  const double zn = (z - startField_m) / lFringe;
 
-    const double lFringe = std::abs(endField_m-startField_m)*0.05;   // 5% fringe field
-    
-    if(z < startField_m+lFringe) {
-
-        // entrance fringe field
-        return 1.0;
-    }
-    else if (z > endField_m-lFringe) {
-
-        // exit fringe field
-        return 1.0;
-    }
-    else
-        return 1.0; // body of magnet 
+  if(zn <= 3/7) {
+    // entrance fringe field
+    return 1.0 - EngeFunc(zn*7) ;
+  }
+  else if ((zn > 3/7) && (zn <= 4/7)) {
+    // body
+    return 1.0;
+  }
+  else
+    return EngeFunc((zn*7)-5) ;
 }
 
 
