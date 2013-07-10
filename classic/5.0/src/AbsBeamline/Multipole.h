@@ -109,6 +109,8 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
+    double EngeFact(double z);
+
 private:
 
     // Not implemented.
