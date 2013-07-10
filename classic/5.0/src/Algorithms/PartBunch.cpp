@@ -1402,26 +1402,17 @@ void PartBunch::gatherLoadBalanceStatistics() {
 void PartBunch::calcMoments() {
 
     double part[2 * Dim];
-    double partCS[2 * Dim];
 
     double loc_centroid[2 * Dim];
     double loc_moment[2 * Dim][2 * Dim];
     double moments[2 * Dim][2 * Dim];
 
-    double loc_centroidCS[2 * Dim];
-    double loc_momentCS[2 * Dim][2 * Dim];
-    //    double momentsCS[2 * Dim][2 * Dim];
-
     for(int i = 0; i < 2 * Dim; ++i) {
         loc_centroid[i] = 0.0;
-        loc_centroidCS[i] = 0.0;
         for(int j = 0; j <= i; ++j) {
             loc_moment[i][j] = 0.0;
-            loc_momentCS[i][j] = 0.0;
         }
     }
-
-    double bega = getP()/getM();
 
     for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
         part[1] = this->P[k](0);
@@ -1431,19 +1422,10 @@ void PartBunch::calcMoments() {
         part[2] = this->R[k](1);
         part[4] = this->R[k](2);
 
-        partCS[1] = this->P[k](0)/bega;
-        partCS[3] = this->P[k](1)/bega;
-        partCS[5] = this->P[k](2)/bega;
-        partCS[0] = this->R[k](0);
-        partCS[2] = this->R[k](1);
-        partCS[4] = this->R[k](2);
-
         for(int i = 0; i < 2 * Dim; ++i) {
             loc_centroid[i]   += part[i];
-            loc_centroidCS[i] += partCS[i];
             for(int j = 0; j <= i; ++j) {
                 loc_moment[i][j]   += part[i] * part[j];
-                loc_momentCS[i][j] += partCS[i] * partCS[j];
             }
         }
     }
@@ -1451,7 +1433,6 @@ void PartBunch::calcMoments() {
     for(int i = 0; i < 2 * Dim; ++i) {
         for(int j = 0; j < i; ++j) {
             loc_moment[j][i] = loc_moment[i][j];
-            loc_momentCS[j][i] = loc_momentCS[i][j];
         }
     }
 
@@ -1465,9 +1446,6 @@ void PartBunch::calcMoments() {
         for(int j = 0; j <= i; ++j) {
             moments_m(i, j) = moments[i][j];
             moments_m(j, i) = moments_m(i, j);
-
-            momentsCS_m(i, j) = loc_momentCS[i][j];
-            momentsCS_m(j, i) = momentsCS_m(i, j);
         }
     }
 }
@@ -1516,7 +1494,6 @@ void PartBunch::calcBeamParameters() {
     using Physics::c;
 
     Vector_t eps2, fac, rsqsum, psqsum, rpsum;
-    Vector_t eps2CS, rsqsumCS, psqsumCS, rpsumCS;
 
     const double m0 = getM() * 1.E-6;
 
@@ -1524,16 +1501,14 @@ void PartBunch::calcBeamParameters() {
 
     const size_t locNp = this->getLocalNum();
     const double N =  static_cast<double>(this->getTotalNum());
-    const double zero = 0.0;
+    //    const double zero = 0.0;
 
     if(N == 0) {
         for(unsigned int i = 0 ; i < Dim; i++) {
             rmean_m(i) = 0.0;
             pmean_m(i) = 0.0;
-            pmeanCS_m(i) = 0.0;
             rrms_m(i) = 0.0;
             prms_m(i) = 0.0;
-            prmsCS_m(i) = 0.0;
             eps_norm_m(i)  = 0.0;
         }
         rprms_m = 0.0;
@@ -1550,46 +1525,40 @@ void PartBunch::calcBeamParameters() {
         pmean_m(i) = centroid_m[(2 * i) + 1] / N;
         rsqsum(i) = moments_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
         psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - N * pmean_m(i) * pmean_m(i);
-        if(psqsum(i) < 0)
-            psqsum(i) = 0;
+//        if(psqsum(i) < 0)
+//    psqsum(i) = 0;
         rpsum(i) = moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
     }
 
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        pmeanCS_m(i) = centroidCS_m[(2 * i) + 1] / N;
-        rsqsumCS(i) = momentsCS_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
-        psqsumCS(i) = momentsCS_m((2 * i) + 1, (2 * i) + 1) - N * pmeanCS_m(i) * pmeanCS_m(i);
-        if(psqsumCS(i) < 0)
-            psqsumCS(i) = 0;
-        rpsumCS(i) = momentsCS_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmeanCS_m(i);
+
+    Vector_t x2(0.0);
+    Vector_t p2(0.0);
+    Vector_t xp(0.0);
+    
+
+    for (size_t i=0; i<N; i++) {      
+      x2 += R[i]*R[i];
+      p2 += P[i]*P[i];
+      xp += R[i]*P[i];
     }
+    
+    x2 /= N;		   
+    p2 /= N;		   
+    xp /= N;
 
-    eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
+    eps2 = (x2 * p2 - (xp*xp));
+
+    //    eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
     rpsum /= N;
-
-    eps2CS = (rsqsumCS * psqsumCS - rpsumCS * rpsumCS) / (N * N);
-    rpsumCS /= N;
 
     for(unsigned int i = 0 ; i < Dim; i++) {
         rrms_m(i) = sqrt(rsqsum(i) / N);
         prms_m(i) = sqrt(psqsum(i) / N);
-        eps_norm_m(i)  = sqrt(max(eps2(i), zero));
-        double tmp = rrms_m(i) * prms_m(i);
-        fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
+        eps_norm_m(i)  = std::sqrt(eps2(i));                 //sqrt(max(eps2(i), zero));
+	//        double tmp = rrms_m(i) * prms_m(i);
+	// fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
     }
-    rprms_m = rpsum * fac;
-
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        prmsCS_m(i) = sqrt(psqsumCS(i) / N);
-        epsCS_m(i)  = sqrt(max(eps2CS(i), zero));
-        double tmp = rrms_m(i) * prmsCS_m(i);
-        fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
-    }
-    rprmsCS_m = rpsumCS * fac;
-
-    csBeta_m  = rrms_m*rrms_m / eps_m;
-    csAlpha_m = prmsCS_m*prmsCS_m / eps_m;
-
+    rprms_m = rpsum; // * fac;
 
     Dx_m = moments_m(0, 5) / N;
     DDx_m = moments_m(1, 5) / N;

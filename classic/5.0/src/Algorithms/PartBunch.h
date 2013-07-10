@@ -321,6 +321,7 @@ public:
     Vector_t get_rrms() const;
     Vector_t get_rmean() const;
     Vector_t get_prms() const;
+    Vector_t get_rprrms() const;
     Vector_t get_pmean() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
@@ -526,14 +527,12 @@ private:
 
     /// holds the centroid of the beam
     double centroid_m[2 * Dim];
-    double centroidCS_m[2 * Dim];
 
     /// resize mesh to geometry specified
     void resizeMesh();
 
     /// 6x6 matrix of the moments of the beam
     FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
-    FMatrix<double, 2 * Dim, 2 * Dim> momentsCS_m;
 
     /// holds the timestep in seconds
     double dt_m;
@@ -555,22 +554,18 @@ private:
     Vector_t rrms_m;
     /// rms momenta
     Vector_t prms_m;
-    Vector_t prmsCS_m;
     /// mean position (m)
     Vector_t rmean_m;
     /// mean momenta
     Vector_t pmean_m;
-    Vector_t pmeanCS_m;
 
     /// rms emittance (not normalized)
     Vector_t eps_m;
-    Vector_t epsCS_m;
 
     /// rms normalized emittance
     Vector_t eps_norm_m;
     /// rms correlation
     Vector_t rprms_m;
-    Vector_t rprmsCS_m;
 
     /// dispersion x & y
     double Dx_m;
@@ -1058,6 +1053,11 @@ Vector_t PartBunch::get_centroid() const {
 inline
 Vector_t PartBunch::get_rrms() const {
     return rrms_m;
+}
+
+inline
+Vector_t PartBunch::get_rprrms() const {
+    return rprms_m;
 }
 
 inline
