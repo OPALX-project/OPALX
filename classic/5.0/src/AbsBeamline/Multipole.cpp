@@ -109,16 +109,16 @@ double Multipole::EngeFact(double z) {
   const double lFringe = std::abs(endField_m-startField_m);
   const double zn = (z - startField_m) / lFringe;
 
-  if(zn <= 3/7) {
+  if(zn <= 3/10) {
     // entrance fringe field
-    return 1.0 - EngeFunc(zn*7) ;
+    return 1.0 - EngeFunc(zn*10) ;
   }
-  else if ((zn > 3/7) && (zn <= 4/7)) {
+  else if ((zn > 3/10) && (zn <= 7/10)) {
     // body
     return 1.0;
   }
   else
-    return EngeFunc((zn*7)-5) ;
+    return EngeFunc((zn*10)-7) ;
 }
 
 
