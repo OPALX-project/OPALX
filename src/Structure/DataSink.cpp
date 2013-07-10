@@ -1903,11 +1903,12 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
                     << beam.get_maxExtend()(2) << setw(pwi) << "\t"                           // 20
 
                     // Write out Courant Snyder parameters.
-                    << beam.get_csBeta()(0) << setw(pwi) << "\t" // 21
-                    << beam.get_csBeta()(1) << setw(pwi) << "\t" // 22
+                    << beam.get_rprrms()(0) << setw(pwi) << "\t" // 21
+                    << beam.get_rprrms()(1) << setw(pwi) << "\t" // 22
+                    << beam.get_rprrms()(2) << setw(pwi) << "\t" // 23
 
-                    << beam.get_csAlpha()(0) << setw(pwi) << "\t" // 23
-                    << beam.get_csAlpha()(1) << setw(pwi) << "\t" // 24
+                    << 0.0 << setw(pwi) << "\t" // 23
+                    << 0.0 << setw(pwi) << "\t" // 24
 
                     // Write out dispersion.
                     << beam.get_Dx() << setw(pwi) << "\t"                                               // 25
@@ -2155,15 +2156,15 @@ void DataSink::writeSDDSHeader(ofstream &outputFile) {
     outputFile << "&column name=max_s, type=double, units=m , ";
     outputFile << "description=\"20 Max Beamsize in s  \" &end" << endl;
 
-    outputFile << "&column name=beta_x, type=double, units=m , ";
-    outputFile << "description=\"21 Beta function in x  \" &end" << endl;
-    outputFile << "&column name=beta_y, type=double, units=m , ";
-    outputFile << "description=\"22 Beta function in y  \" &end" << endl;
+    outputFile << "&column name=xpx, type=double, units=1 , ";
+    outputFile << "description=\"21 Correlation xpx  \" &end" << endl;
+    outputFile << "&column name=ypy, type=double, units=1 , ";
+    outputFile << "description=\"22 Correlation ypyy  \" &end" << endl;
 
-    outputFile << "&column name=alpha_x, type=double, units=1 , ";
-    outputFile << "description=\"23 Alpha function in x  \" &end" << endl;
-    outputFile << "&column name=alpha_y, type=double, units=1 , ";
-    outputFile << "description=\"24 Alpha function in y  \" &end" << endl;
+    outputFile << "&column name=zpz, type=double, units=1 , ";
+    outputFile << "description=\"23 Correlation zpz  \" &end" << endl;
+    outputFile << "&column name=notused2, type=double, units=1 , ";
+    outputFile << "description=\"24 notused2 in y  \" &end" << endl;
 
     outputFile << "&column name=Dx, type=double, units=m , ";
     outputFile << "description=\"25 Dispersion in x  \" &end" << endl;
