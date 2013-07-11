@@ -99,7 +99,7 @@ double Multipole::EngeFunc(double z) {
   const double a4 = 1.06; 
   const double a5 = -0.03; 
   const double a6 = 0.02;					\
-  const double DD = 0.8;
+  const double DD = 0.99;
 
   const double y = z - 1.0; 
   return 1.0/(1 + std::exp(a1 + a2*(y/DD) + a3*std::pow(y/DD,2) + a4*std::pow(y/DD,3) + a5*std::pow(y/DD,4) + a6*std::pow(y/DD,5)));    
@@ -112,16 +112,11 @@ double Multipole::EngeFact(double z) {
 
   const double scale = 1.0; // 1.4289638937448055; // to make integrated field strenght like the hard edge approximation
 
-  if(zn <= 3/10) {
-    // entrance fringe field
-    return scale - scale*EngeFunc(zn*10) ;
-  }
-  else if ((zn > 3/10) && (zn <= 7/10)) {
-    // body
-    return scale;
+  if(zn > 0.5) {
+    return scale*EngeFunc((zn-0.5)*10 - 3.) ;
   }
   else
-    return scale*EngeFunc((zn*10)-7) ;
+    return scale*EngeFunc((0.5-zn)*10 - 3.) ;
 }
 
 
