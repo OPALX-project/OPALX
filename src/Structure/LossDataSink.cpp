@@ -199,7 +199,7 @@ void LossDataSink::saveH5() {
     reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
     
     /// Set current record/time step.
-    rc = H5SetStep(H5file_m, H5call_m);
+    rc = H5SetStep(H5file_m, 0);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     rc = H5PartSetNumParticles(H5file_m, nLoc);
