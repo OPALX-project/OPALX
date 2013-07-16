@@ -100,6 +100,10 @@ private:
     double Emax_m;
     double Emin_m;
 
+    double Kmax_m;
+    double Kmin_m;
+
+    double Emean_m;
 
 public:
     double dT_m;
