@@ -126,7 +126,7 @@ public:
   char fill(char c) { return FormatBuf.fill(c); }
   int precision() const { return FormatBuf.precision(); }
   int precision(int p) { return FormatBuf.precision(p); }
-
+  void flush() { MsgDest->flush();}
 private:
   // name of this object; put at the start of each message.
   char *Name;
