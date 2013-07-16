@@ -2086,19 +2086,21 @@ void ParallelTTracker::computeExternalFields() {
 	    sphys_m = NULL;
 	}
     }
-
+    size_t ne = 0;
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 10);
     if(globPartOutOfBounds) {
-        size_t ne = itsBunch->boundp_destroyT();
-        if(ne > 0) {
-            msg << "* Deleted " << ne << " particles, "
-                << "remaining " << numParticlesInSimulation_m << " particles" << endl;
-            numParticlesInSimulation_m  = itsBunch->getTotalNum();
-        }
+      ne = itsBunch->boundp_destroyT();
+      numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
 
     if (itsBunch->getTotalNum() > 10)
         itsBunch->update();
+
+    if(ne > 0)
+       msg << "* Deleted " << ne << " particles, "
+	   << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
+
+
 
 }
 
