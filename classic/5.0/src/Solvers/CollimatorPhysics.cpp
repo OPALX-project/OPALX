@@ -175,7 +175,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         coll->getDimensions(Begin_m, End_m);
     }
 
-    if (bunch.getLocalNum() > 20) {
+    if (bunch.getTotalNum() > 50) {
 
       for(int ii = 0; ii < N_m; ++ii) {
         for(unsigned int i = 0; i < locParts_m.size(); ++i) {
@@ -259,10 +259,11 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     else {
 
       /* 
-	 More than N-20 particles are in the degrader  
+	 More than N-50 particles are in the degrader  
       */
-      
-      m << "Soley integrate in the degrader" << endl;
+      m << "------------------------------------------"  << endl;
+      m << "All particles are in the material ....    " << endl;
+      m << "------------------------------------------"  << endl;
 
       /* 
 	 first mark all 
@@ -275,8 +276,6 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       */
 
       while (bunch.getLocalNum() < 40) {
-	m << "Integrating in degrader T= " << bunch.getT() << "\r";
-	m.flush();
 	for(int ii = 0; ii < N_m; ++ii) {
 	  for(unsigned int i = 0; i < locParts_m.size(); ++i) {
 	    if(locParts_m[i].label != -1) {
@@ -334,7 +333,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 		  //                        m << "2 Out of mat but still in the loop" << endl;                                                                                                                                                                  
 		  //locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) ;                                                                                                                                              
 		  locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * Physics::c * P / sqrt( 1+ dot(P, P)) ;
-		  
+ 		  
 		  if (ii == N_m-1) {
 		    addBackToBunch(bunch, i);
 		    redifusedStat_m++;
@@ -398,6 +397,22 @@ void  CollimatorPhysics::Material() {
         Z_m = 6;
         A_m = 12.0107;
         rho_m = 2.210;
+
+        X0_m = 42.70 / rho_m / 100;
+        I_m = 10 * Z_m;
+        n_m = rho_m / A_m * Avo;       
+	
+	A2_c = 2.601;
+        A3_c = 1.701E3;
+        A4_c = 1.279E3;
+        A5_c = 1.638E-2;
+	
+    }
+
+    if(material_m == "GraphiteR6710") {
+        Z_m = 6;
+        A_m = 12.0107;
+        rho_m = 1.88;
 
         X0_m = 42.70 / rho_m / 100;
         I_m = 10 * Z_m;
@@ -707,10 +722,6 @@ void CollimatorPhysics::print(Inform &msg){
         width_m = deg->getZStart();
     }
     */
-    // msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " ------------------------------------------\n" << endl;
-    //    msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
-    //	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << Begin_m + width_m << endl;
-    
     // msg << "Material " << material_m
     //   << " a= " << a_m << " (m) b= " << b_m << " (m)" << endl;
     //msg << "dTm= " << std::setw(8) << std::setprecision(3) << dT_m << " sub-timesteps " << N_m << endl;
@@ -719,6 +730,9 @@ void CollimatorPhysics::print(Inform &msg){
         << " new hits " << bunchToMatStat_m << " redifused " << redifusedStat_m 
         << " stopped " << stoppedPartStat_m 
         << " Eavg= " << Eavg_m*1E3 << " (MeV)" << endl;
+    //    msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " ------------------------------------------\n" << endl;
+    // msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
+    //	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << Begin_m + width_m << endl;
     }
     // msg << "\n--- CollimatorPhysics -------------------------------------------------\n" << endl;
     msg.flags(ff);
