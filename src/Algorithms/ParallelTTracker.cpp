@@ -2068,8 +2068,19 @@ void ParallelTTracker::computeExternalFields() {
             surfaceStatus_m = true;
         }
         reduce(sphysSection, sphysSection, OpMaxAssign());
-      //  if (sphys_m==NULL)
-            sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
+	if (sphys_m==NULL)
+	  sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
+	else {
+	  /*
+	   In case we have an other
+	     handler, delete the first one and use the new one
+	  */
+	  SurfacePhysicsHandler *sphysNew = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
+	  if (sphysNew != sphys_m && sphysNew != NULL) {
+	    //delete sphys_m; FixMe: should do this right!!!
+	    sphys_m = sphysNew;
+	  }
+	}
 
         if(sphys_m == NULL) {
             INFOMSG("no surface physics attached" << endl);
@@ -2081,10 +2092,12 @@ void ParallelTTracker::computeExternalFields() {
     } else if(surfaceStatus_m) {
         msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
         surfaceStatus_m = false;
-        if (sphys_m) {
+	/*       
+ if (sphys_m) {
             delete sphys_m;
 	    sphys_m = NULL;
 	}
+	*/
     }
     size_t ne = 0;
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 10);
