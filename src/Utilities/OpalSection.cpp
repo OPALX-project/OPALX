@@ -47,6 +47,8 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
             }
             has_surface_physics_m = true;
         }
+	else
+	  has_surface_physics_m = false;
 
         if((*clit)->hasBoundaryGeometry()) {
             /**
