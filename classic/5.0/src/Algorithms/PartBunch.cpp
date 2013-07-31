@@ -1407,10 +1407,11 @@ void PartBunch::calcMoments() {
     double loc_moment[2 * Dim][2 * Dim];
     double moments[2 * Dim][2 * Dim];
 
-    for(int i = 0; i < 2 * Dim; ++i) {
+    for(int i = 0; i < 2 * Dim; i++) {
         loc_centroid[i] = 0.0;
-        for(int j = 0; j <= i; ++j) {
+        for(int j = 0; j <= i; j++) {
             loc_moment[i][j] = 0.0;
+            loc_moment[j][i] = loc_moment[i][j];
         }
     }
 
@@ -1422,16 +1423,16 @@ void PartBunch::calcMoments() {
         part[2] = this->R[k](1);
         part[4] = this->R[k](2);
 
-        for(int i = 0; i < 2 * Dim; ++i) {
+        for(int i = 0; i < 2 * Dim; i++) {
             loc_centroid[i]   += part[i];
-            for(int j = 0; j <= i; ++j) {
+            for(int j = 0; j <= i; j++) {
                 loc_moment[i][j]   += part[i] * part[j];
             }
         }
     }
 
-    for(int i = 0; i < 2 * Dim; ++i) {
-        for(int j = 0; j < i; ++j) {
+    for(int i = 0; i < 2 * Dim; i++) {
+        for(int j = 0; j < i; j++) {
             loc_moment[j][i] = loc_moment[i][j];
         }
     }
@@ -1442,8 +1443,8 @@ void PartBunch::calcMoments() {
     reduce(&(loc_centroid[0]), &(loc_centroid[0]) + 2 * Dim,
            &(centroid_m[0]), OpAddAssign());
 
-    for(int i = 0; i < 2 * Dim; ++i) {
-        for(int j = 0; j <= i; ++j) {
+    for(int i = 0; i < 2 * Dim; i++) {
+        for(int j = 0; j <= i; j++) {
             moments_m(i, j) = moments[i][j];
             moments_m(j, i) = moments_m(i, j);
         }
@@ -1458,6 +1459,7 @@ void PartBunch::calcMomentsInitial() {
         centroid_m[i] = 0.0;
         for(int j = 0; j <= i; ++j) {
             moments_m(i, j) = 0.0;
+            moments_m(j, i) = moments_m(i, j);
         }
     }
 
@@ -1501,7 +1503,7 @@ void PartBunch::calcBeamParameters() {
 
     const size_t locNp = this->getLocalNum();
     const double N =  static_cast<double>(this->getTotalNum());
-    //    const double zero = 0.0;
+    const double zero = 0.0;
 
     if(N == 0) {
         for(unsigned int i = 0 ; i < Dim; i++) {
@@ -1525,40 +1527,25 @@ void PartBunch::calcBeamParameters() {
         pmean_m(i) = centroid_m[(2 * i) + 1] / N;
         rsqsum(i) = moments_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
         psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - N * pmean_m(i) * pmean_m(i);
-//        if(psqsum(i) < 0)
-//    psqsum(i) = 0;
+        if(psqsum(i) < 0)
+            psqsum(i) = 0;
         rpsum(i) = moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
     }
 
+    eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
 
-    Vector_t x2(0.0);
-    Vector_t p2(0.0);
-    Vector_t xp(0.0);
-    
 
-    for (size_t i=0; i<N; i++) {      
-      x2 += R[i]*R[i];
-      p2 += P[i]*P[i];
-      xp += R[i]*P[i];
-    }
-    
-    x2 /= N;		   
-    p2 /= N;		   
-    xp /= N;
-
-    eps2 = (x2 * p2 - (xp*xp));
-
-    //    eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
     rpsum /= N;
 
     for(unsigned int i = 0 ; i < Dim; i++) {
         rrms_m(i) = sqrt(rsqsum(i) / N);
         prms_m(i) = sqrt(psqsum(i) / N);
-        eps_norm_m(i)  = std::sqrt(eps2(i));                 //sqrt(max(eps2(i), zero));
-	//        double tmp = rrms_m(i) * prms_m(i);
-	// fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
+        eps_norm_m(i)  =  std::sqrt(std::max(eps2(i), zero));
+        double tmp = rrms_m(i) * prms_m(i);
+        fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
     }
-    rprms_m = rpsum; // * fac;
+
+    rprms_m = rpsum * fac;
 
     Dx_m = moments_m(0, 5) / N;
     DDx_m = moments_m(1, 5) / N;
@@ -1908,7 +1895,6 @@ void PartBunch::calcBeamParameters_cycl() {
     reduce(eKin_m, eKin_m, OpAddAssign());
     eKin_m /= TotalNp;
     
-    INFOMSG("eKin_m= " << eKin_m << endl);
     double meanLocalBetaGamma = sqrt(pow(1 + localeKin / (getM() * 1.0e-6), 2.0) - 1);
 
     double betagamma = meanLocalBetaGamma * locNp;
