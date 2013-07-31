@@ -70,6 +70,10 @@ inline void BorisPusher::kick(const Vector_t &R, Vector_t &P, const Vector_t &Ef
 	Vector_t const s = 2.0 / (1.0 + dot(t, t)) * t;
 	P += cross(w, s);
 
+	/* a poor Leap-Frog
+	   P += 1.0 * dt * charge * c * c / (gamma * mass) * cross(P,Bf);
+	*/
+
 	// Half step E
 	P += 0.5 * dt * charge * c / mass * Ef;
 
