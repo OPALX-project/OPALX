@@ -43,12 +43,11 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
                 *gmsg << "more than one surface physics handler in one section! dismiss all." << endl;
                 sphys_handler_m = NULL;
             } else {
-	      sphys_handler_m = (*clit)->getSurfacePhysics();
+                sphys_handler_m = (*clit)->getSurfacePhysics();
             }
             has_surface_physics_m = true;
-        }
-	else
-	  has_surface_physics_m = false;
+        } else
+            has_surface_physics_m = false;
 
         if((*clit)->hasBoundaryGeometry()) {
             /**
@@ -121,7 +120,7 @@ void OpalSection::print(Inform &msg) const {
         if(boundarygeometry_m)
             mymsg  << " has boundary geometry ";
 
-        if (hasSurfacePhysics())
+        if(hasSurfacePhysics())
             mymsg  << " has surface physics ";
         msg << mymsg.str() << closure.substr(mymsg.str().length());
     }
@@ -135,7 +134,7 @@ void OpalSection::updateGetStartCache() {
         // Setting the factors to zero will cause start_m to be returned
         getStartCache_m.u_factor = 0.0;
         getStartCache_m.v_factor = 0.0;
-    } else {
+    } else if(!doesBend()) {
         double const cosa = cos(orientation_m(0));
         double const tana = tan(orientation_m(0));
         double const tanb = tan(orientation_m(1));
@@ -151,7 +150,7 @@ void OpalSection::updateGetEndCache() {
         // Setting the factors to zero will cause end_m to be returned
         getEndCache_m.u_factor = 0.0;
         getEndCache_m.v_factor = 0.0;
-    } else {
+    } else if(!doesBend()) {
         double const cosa = cos(orientation_m(0) - exit_face_angle_m);
         double const tana = tan(orientation_m(0) - exit_face_angle_m);
         double const tanb = tan(orientation_m(1));

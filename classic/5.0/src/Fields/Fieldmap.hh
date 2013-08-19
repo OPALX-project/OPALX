@@ -74,11 +74,19 @@ public:
     virtual void getInfo(Inform *msg) = 0;
     virtual double getFrequency() const = 0;
     virtual void setFrequency(double freq) = 0;
-    virtual void setExitFaceSlope(const double &);
     virtual void setEdgeConstants(const double &bendAngle, const double &entranceAngle, const double &exitAngle);
-    virtual void setFieldGap(const double &);
     virtual void setFieldLength(const double &);
-    virtual bool adjustFringeFields();
+
+    virtual void Get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
+                                         std::vector<double> &engeCoeffsExit);
+    virtual void Get1DProfile1EntranceParam(double &entranceParameter1,
+                                           double &entranceParameter2,
+                                           double &entranceParameter3);
+    virtual void Get1DProfile1ExitParam(double &exitParameter1,
+                                       double &exitParameter2,
+                                       double &exitParameter3);
+    virtual double GetFieldGap();
+    virtual void SetFieldGap(double gap);
 
     MapType getType() { return Type;}
 

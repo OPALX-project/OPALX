@@ -22,10 +22,10 @@
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
+#include "Fields/FM1DProfile1.hh"
+#include "Fields/FM1DProfile2.hh"
 #include <iostream>
 #include <fstream>
-
-extern Inform *gmsg;
 
 // Class RBend
 // ------------------------------------------------------------------------
@@ -34,139 +34,191 @@ int RBend::RBend_counter_m = 0;
 
 RBend::RBend():
     Component(),
-    length_m(0.0),
-    gap_m(0.0),
-    reinitialize_m(false),
-    filename_m(""),
+    pusher_m(),
+    fileName_m(""),
     fieldmap_m(NULL),
-    amplitude_m(0.0),
-    field_orientation_m(1.0, 0.0),
+    fast_m(false),
+    angle_m(0.0),
+    aperture_m(0.0),
+    designEnergy_m(0.0),
+    designRadius_m(0.0),
+    fieldAmplitude_m(0.0),
+    entranceAngle_m(0.0),
+    exitAngle_m(0.0),
+    gradient_m(0.0),
+    elementEdge_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
-    fast_m(false),
-    sin_face_alpha_m(0.0),
-    cos_face_alpha_m(1.0),
-    tan_face_alpha_m(0.0),
-    sin_face_beta_m(0.0),
-    cos_face_beta_m(1.0),
-    tan_face_beta_m(0.0),
-    design_energy_m(0.0),
-    angle_m(0.0),
-    map_m(NULL),
-    map_size_m(0),
-    map_step_size_m(0.0),
-    pusher_m(),
-    startElement_m(0.0),
-    R_m(0.0),
-    effectiveLength_m(0.0),
-    effectiveCenter_m(0.0) {
+    reinitialize_m(false),
+    recalcRefTraj_m(false),
+    length_m(0.0),
+    gap_m(0.0),
+    refTrajMapSize_m(0),
+    refTrajMapStepSize_m(0.0),
+    entranceParameter1_m(0.0),
+    entranceParameter2_m(0.0),
+    entranceParameter3_m(0.0),
+    exitParameter1_m(0.0),
+    exitParameter2_m(0.0),
+    exitParameter3_m(0.0),
+    xOriginEngeEntry_m(0.0),
+    zOriginEngeEntry_m(0.0),
+    deltaBeginEntry_m(0.0),
+    deltaEndEntry_m(0.0),
+    polyOrderEntry_m(0),
+    xExit_m(0.0),
+    zExit_m(0.0),
+    xOriginEngeExit_m(0.0),
+    zOriginEngeExit_m(0.0),
+    deltaBeginExit_m(0.0),
+    deltaEndExit_m(0.0),
+    polyOrderExit_m(0),
+    cosEntranceAngle_m(1.0),
+    sinEntranceAngle_m(0.0),
+    exitEdgeAngle_m(0.0),
+    cosExitAngle_m(1.0),
+    sinExitAngle_m(0.0) {
+
     setElType(isDipole);
+
 }
 
 
 RBend::RBend(const RBend &right):
     Component(right),
-    length_m(right.length_m),
-    gap_m(right.gap_m),
-    reinitialize_m(right.reinitialize_m),
-    filename_m(right.filename_m),
+    pusher_m(right.pusher_m),
+    fileName_m(right.fileName_m),
     fieldmap_m(right.fieldmap_m),
-    amplitude_m(right.amplitude_m),
-    field_orientation_m(right.field_orientation_m),
+    fast_m(right.fast_m),
+    angle_m(right.angle_m),
+    aperture_m(right.aperture_m),
+    designEnergy_m(right.designEnergy_m),
+    designRadius_m(right.designRadius_m),
+    fieldAmplitude_m(right.fieldAmplitude_m),
+    entranceAngle_m(right.entranceAngle_m),
+    exitAngle_m(right.exitAngle_m),
+    gradient_m(right.gradient_m),
+    elementEdge_m(right.elementEdge_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
-    fast_m(right.fast_m),
-    sin_face_alpha_m(right.sin_face_alpha_m),
-    cos_face_alpha_m(right.cos_face_alpha_m),
-    tan_face_alpha_m(right.tan_face_alpha_m),
-    sin_face_beta_m(right.sin_face_beta_m),
-    cos_face_beta_m(right.cos_face_beta_m),
-    tan_face_beta_m(right.tan_face_beta_m),
-    design_energy_m(right.design_energy_m),
-    angle_m(right.angle_m),
-    map_size_m(right.map_size_m),
-    map_step_size_m(right.map_step_size_m),
-    pusher_m(right.pusher_m),
-    startElement_m(right.startElement_m),
-    R_m(right.R_m),
-    effectiveLength_m(right.effectiveLength_m),
-    effectiveCenter_m(right.effectiveCenter_m) {
-    setElType(isDipole);
-    if(map_size_m > 0) {
-        map_m = new double[map_size_m + 1];
-        for(int i = 0; i < map_size_m + 1; ++i)
-            map_m[i] = right.map_m[i];
-    } else {
-        map_m = NULL;
-    }
-}
+    reinitialize_m(right.reinitialize_m),
+    recalcRefTraj_m(right.recalcRefTraj_m),
+    length_m(right.length_m),
+    gap_m(right.gap_m),
+    refTrajMapX_m(right.refTrajMapX_m),
+    refTrajMapY_m(right.refTrajMapY_m),
+    refTrajMapZ_m(right.refTrajMapZ_m),
+    refTrajMapSize_m(right.refTrajMapSize_m),
+    refTrajMapStepSize_m(right.refTrajMapStepSize_m),
+    entranceParameter1_m(right.entranceParameter1_m),
+    entranceParameter2_m(right.entranceParameter2_m),
+    entranceParameter3_m(right.entranceParameter3_m),
+    exitParameter1_m(right.exitParameter1_m),
+    exitParameter2_m(right.exitParameter2_m),
+    exitParameter3_m(right.exitParameter3_m),
+    xOriginEngeEntry_m(right.xOriginEngeEntry_m),
+    zOriginEngeEntry_m(right.zOriginEngeEntry_m),
+    deltaBeginEntry_m(right.deltaBeginEntry_m),
+    deltaEndEntry_m(right.deltaEndEntry_m),
+    polyOrderEntry_m(right.polyOrderEntry_m),
+    xExit_m(right.xExit_m),
+    zExit_m(right.zExit_m),
+    xOriginEngeExit_m(right.xOriginEngeExit_m),
+    zOriginEngeExit_m(right.zOriginEngeExit_m),
+    deltaBeginExit_m(right.deltaBeginExit_m),
+    deltaEndExit_m(right.deltaEndExit_m),
+    polyOrderExit_m(right.polyOrderExit_m),
+    cosEntranceAngle_m(right.cosEntranceAngle_m),
+    sinEntranceAngle_m(right.sinEntranceAngle_m),
+    exitEdgeAngle_m(right.exitEdgeAngle_m),
+    cosExitAngle_m(right.cosExitAngle_m),
+    sinExitAngle_m(right.sinExitAngle_m) {
 
+    setElType(isDipole);
+
+}
 
 RBend::RBend(const std::string &name):
     Component(name),
-    length_m(0.0),
-    gap_m(0.0),
-    reinitialize_m(false),
-    filename_m(""),
+    pusher_m(),
+    fileName_m(""),
     fieldmap_m(NULL),
-    amplitude_m(0.0),
-    field_orientation_m(1.0, 0.0),
+    fast_m(false),
+    angle_m(0.0),
+    aperture_m(0.0),
+    designEnergy_m(0.0),
+    designRadius_m(0.0),
+    fieldAmplitude_m(0.0),
+    entranceAngle_m(0.0),
+    exitAngle_m(0.0),
+    gradient_m(0.0),
+    elementEdge_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
-    fast_m(false),
-    sin_face_alpha_m(0.0),
-    cos_face_alpha_m(1.0),
-    tan_face_alpha_m(0.0),
-    sin_face_beta_m(0.0),
-    cos_face_beta_m(1.0),
-    tan_face_beta_m(0.0),
-    design_energy_m(0.0),
-    angle_m(0.0),
-    map_m(NULL),
-    map_size_m(0),
-    map_step_size_m(0.0),
-    pusher_m(),
-    startElement_m(0.0),
-    R_m(0.0),
-    effectiveLength_m(0.0),
-    effectiveCenter_m(0.0) {
-    setElType(isDipole);
-}
+    reinitialize_m(false),
+    recalcRefTraj_m(false),
+    length_m(0.0),
+    gap_m(0.0),
+    refTrajMapSize_m(0),
+    refTrajMapStepSize_m(0.0),
+    entranceParameter1_m(0.0),
+    entranceParameter2_m(0.0),
+    entranceParameter3_m(0.0),
+    exitParameter1_m(0.0),
+    exitParameter2_m(0.0),
+    exitParameter3_m(0.0),
+    xOriginEngeEntry_m(0.0),
+    zOriginEngeEntry_m(0.0),
+    deltaBeginEntry_m(0.0),
+    deltaEndEntry_m(0.0),
+    polyOrderEntry_m(0),
+    xExit_m(0.0),
+    zExit_m(0.0),
+    xOriginEngeExit_m(0.0),
+    zOriginEngeExit_m(0.0),
+    deltaBeginExit_m(0.0),
+    deltaEndExit_m(0.0),
+    polyOrderExit_m(0),
+    cosEntranceAngle_m(1.0),
+    sinEntranceAngle_m(0.0),
+    exitEdgeAngle_m(0.0),
+    cosExitAngle_m(1.0),
+    sinExitAngle_m(0.0) {
 
+    setElType(isDipole);
+
+}
 
 RBend::~RBend() {
-    if(map_m)
-        delete[] map_m;
 }
-
 
 void RBend::accept(BeamlineVisitor &visitor) const {
     visitor.visitRBend(*this);
 }
 
-
+/*
+ * OPAL-MAP methods
+ * ================
+ */
 double RBend::getNormalComponent(int n) const {
     return getField().getNormalComponent(n);
 }
-
 
 double RBend::getSkewComponent(int n) const {
     return getField().getSkewComponent(n);
 }
 
-
 void RBend::setNormalComponent(int n, double v) {
     getField().setNormalComponent(n, v);
 }
-
 
 void RBend::setSkewComponent(int n, double v) {
     getField().setSkewComponent(n, v);
 }
 
-//Implemented BET functions for dipole
-//ff
-//transverse kick
+/*
+ * BET methods.
+ */
 void RBend::addKR(int i, double t, Vector_t &K) {
     Inform msg("RBend::addK()");
 
@@ -178,14 +230,14 @@ void RBend::addKR(int i, double t, Vector_t &K) {
     const Vector_t tmpA(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
 
     DiffDirection zdir(DZ);
-    myFieldmap->getFieldstrength(tmpA, tmpE, tmpB);
-    myFieldmap->getFieldDerivative(tmpA, tmpE_diff, tmpB_diff, zdir);
+    fieldmap_m->getFieldstrength(tmpA, tmpE, tmpB);
+    fieldmap_m->getFieldDerivative(tmpA, tmpE_diff, tmpB_diff, zdir);
 
     double g = RefPartBunch_m->getGamma(i);
 
-    if(fabs(scale_m * tmpB_diff(2)) > 0.1) {
+    if(fabs(fieldAmplitude_m * tmpB_diff(2)) > 0.1) {
         double cf = Physics::q_e * tmpB(2) / (g * Physics::EMASS);
-        K += Vector_t(-pow(cf * scale_m * tmpB(0), 2) / 3.0, -pow(cf * scale_m * tmpB(1), 2) / 3.0, 0.0);
+        K += Vector_t(-pow(cf * fieldAmplitude_m * tmpB(0), 2) / 3.0, -pow(cf * fieldAmplitude_m * tmpB(1), 2) / 3.0, 0.0);
     }
 }
 
@@ -196,20 +248,33 @@ void RBend::addKT(int i, double t, Vector_t &K) {
     Vector_t tmpB(0.0, 0.0, 0.0);
     double pz = RefPartBunch_m->getZ(i) - startField_m - ds_m;
     const Vector_t tmpA(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
-    myFieldmap->getFieldstrength(tmpA, tmpE, tmpB);
+    fieldmap_m->getFieldstrength(tmpA, tmpE, tmpB);
 
     double b = RefPartBunch_m->getBeta(i);
     double g = 1 / sqrt(1 - b * b);
 
-    double cf = -Physics::q_e * Physics::c * b * tmpB(2) * scale_m / (g * Physics::EMASS);
+    double cf = -Physics::q_e * Physics::c * b * tmpB(2) * fieldAmplitude_m / (g * Physics::EMASS);
     Vector_t temp(cf * tmpB(1), cf * tmpB(0), 0.0);
 
     //FIXME: K += ??
 }
 
+
+/*
+ * OPAL-T Methods.
+ * ===============
+ */
+
+/*
+ *  This function merely repackages the field arrays as type Vector_t and calls
+ *  the equivalent method but with the Vector_t data types.
+ */
 bool RBend::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    if(apply(i, t, Ev, Bv)) return true;
+
+    Vector_t Ev(0.0, 0.0, 0.0);
+    Vector_t Bv(0.0, 0.0, 0.0);
+    if(apply(RefPartBunch_m->R[i], RefPartBunch_m->get_rmean(), t, Ev, Bv))
+        return true;
 
     E[0] = Ev(0);
     E[1] = Ev(1);
@@ -223,486 +288,1317 @@ bool RBend::apply(const size_t &i, const double &t, double E[], double B[]) {
 
 bool RBend::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
 
-    // If this is the first call, the bend angle is specified in the input
-    // file and the design energy of the bend is different from the average
-    // energy of the beam, we reinitialize the bend.
-    if(reinitialize_m) {
-        if(design_energy_m != RefPartBunch_m->get_meanEnergy() * 1.0e6) {
-            design_energy_m = RefPartBunch_m->get_meanEnergy() * 1.0e6;
+    if(designRadius_m > 0.0) {
 
-            setBendStrength();
-
-            double zBegin = 0.0;
-            double zEnd = 0.0;
-            double rBegin = 0.0;
-            double rEnd = 0.0;
-            fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-            calculateRefTrajectory(zBegin);
-
-            Inform msg("RBend ");
-            msg << "Bend design energy changed to: " << design_energy_m * 1.0e-6 << " MeV" << endl;
-            msg << "Field amplitude:               " << amplitude_m << " T" << endl;
+        // Check if we need to reinitialize the bend field amplitude.
+        if(reinitialize_m) {
+            reinitialize_m = Reinitialize();
+            recalcRefTraj_m = false;
         }
 
-        reinitialize_m = false;
+        /*
+         * Always recalculate the reference trajectory on first call even
+         * if we do not reinitialize the bend. The reference trajectory
+         * has to be calculated at the same energy as the actual beam or
+         * we do not get accurate values for the magnetic field in the output
+         * file.
+         */
+        if(recalcRefTraj_m) {
+            double angleX = 0.0;
+            double angleY = 0.0;
+            CalculateRefTrajectory(angleX, angleY);
+            recalcRefTraj_m = false;
+        }
+
+        // Shift position to magnet frame.
+        Vector_t X = RefPartBunch_m->X[i];
+        X(2) += startField_m - elementEdge_m;
+
+        /*
+         * Add in transverse bend displacements. (ds is already
+         * accounted for.)
+         */
+        X(0) -= dx_m;
+        X(1) -= dy_m;
+
+        // Get field from field map.
+        Vector_t eField(0.0, 0.0, 0.0);
+        Vector_t bField(0.0, 0.0, 0.0);
+        CalculateMapField(X, eField, bField);
+        bField *= fieldAmplitude_m;
+
+        B(0) += bField(0);
+        B(1) += bField(1);
+        B(2) += bField(2);
+
     }
-
-    const Vector_t &X = RefPartBunch_m->X[i];
-    Vector_t strength(0.0), info(0.0);
-
-    fieldmap_m->getFieldstrength(X, strength, info);
-
-    if(info(0) > 0.99) {
-
-        B(1) += amplitude_m * (strength(0) - strength(2) / 2. * X(1) * X(1));
-        if(info(1) > 0.99) {
-            B(2) += amplitude_m * strength(1) * X(1);
-        } else {
-            B(2) -= amplitude_m * strength(1) * X(1);
-        }
-    } else if(fabs(info(0)) < 0.01)
-        B(1) += amplitude_m;
 
     return false;
 }
 
-bool RBend::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
+bool RBend::apply(const Vector_t &R,
+                  const Vector_t &centroid,
+                  const double &t,
+                  Vector_t &E,
+                  Vector_t &B) {
 
-    int index = (int)floor((R(2) - startField_m) / map_step_size_m);
-    if(index > 0 && index + 1 < map_size_m) {
+    if(designRadius_m > 0.0) {
 
-        // Find indices for z position in pre-computed central trajectory map.
-        double lever = (R(2) - startField_m) / map_step_size_m - index;
-        double z = (1. - lever) * map_m[index] + lever * map_m[index + 1];
+        int index = static_cast<int>
+                    (std::floor((R(2) - startField_m) / refTrajMapStepSize_m));
 
-        // Rotate x and y to the the bend's local coordinate system.
-        //
-        // 1) Rotate about the z axis by angle negative Orientation_m(2).
-        // 2) Rotate about the y axis by angle negative Orientation_m(0).
-        // 3) Rotate about the x axis by angle Orientation_m(1).
+        if(index > 0 && index + 1 < refTrajMapSize_m) {
 
-        const double sina = sin(Orientation_m(0));
-        const double cosa = cos(Orientation_m(0));
-        const double sinb = sin(Orientation_m(1));
-        const double cosb = cos(Orientation_m(1));
-        const double sinc = sin(Orientation_m(2));
-        const double cosc = cos(Orientation_m(2));
+            // Find indices for position in pre-computed central trajectory map.
+            double lever = (R(2) - startField_m) / refTrajMapStepSize_m - index;
+            double x = (1.0 - lever) * refTrajMapX_m.at(index)
+                       + lever * refTrajMapX_m.at(index + 1);
+            double y = (1.0 - lever) * refTrajMapY_m.at(index)
+                       + lever * refTrajMapY_m.at(index + 1);
+            double z = (1.0 - lever) * refTrajMapZ_m.at(index)
+                       + lever * refTrajMapZ_m.at(index + 1);
 
-        Vector_t X(0.0);
-        X(0) = (cosa * cosc) * R(0) + (cosa * sinc) * R(1) - sina *        R(2);
-        X(1) = (-cosb * sinc - sina * sinb * cosc) * R(0) + (cosb * cosc - sina * sinb * sinc) * R(1) - cosa * sinb * R(2);
-        X(2) = z;
+            // Adjust position relative to pre-computed central trajectory map.
+            Vector_t X(0.0, 0.0, 0.0);
+            X(0) = R(0) + x;
+            X(1) = R(1) + y;
+            X(2) = z;
 
-        Vector_t strength(0.0), info(0.0);
+            Vector_t tempE(0.0, 0.0, 0.0);
+            Vector_t tempB(0.0, 0.0, 0.0);
+            Vector_t XInBendFrame = RotateToBendFrame(X);
 
-        fieldmap_m->getFieldstrength(X, strength, info);
-        Vector_t tempB(0.0);
+            /*
+             * Add in transverse bend displacements. (ds is already
+             * accounted for.)
+             */
+            XInBendFrame(0) -= dx_m;
+            XInBendFrame(1) -= dy_m;
 
-        if(info(0) > 0.99) {
+            CalculateMapField(XInBendFrame, tempE, tempB);
+            tempB = fieldAmplitude_m * RotateOutOfBendFrame(tempB);
 
-            tempB(1) = amplitude_m * (strength(0) - strength(2) / 2. * X(1) * X(1));
-            if(info(1) > 0.99) {
-                tempB(2) = amplitude_m * strength(1) * X(1);
-            } else {
-                tempB(2) = -amplitude_m * strength(1) * X(1);
-            }
-        } else if(fabs(info(0)) < 0.01)
-            tempB(1) = amplitude_m;
+            B(0) += tempB(0);
+            B(1) += tempB(1);
+            B(2) += tempB(2);
 
-        // Rotate field out of the bend's local coordinate system and back to lab frame.
-        //
-        // 1) Rotate about the x axis by angle Orientation_m(1).
-        // 2) Rotate about the y axis by angle Orientation_m(0).
-        // 3) Rotate about the z axis by angle negative Orientation_(2).
-
-        B(0) +=  cosa * cosc * tempB(0) + (-sina * sinb * cosc - cosb * sinc) * tempB(1) + (sina * cosb * cosc - sinb * sinc) * tempB(2);
-        B(1) +=  cosa * sinc * tempB(0) + (-sina * sinb * sinc + cosb * cosc) * tempB(1) + (sina * cosb * sinc + sinb * cosc) * tempB(2);
-        B(2) += -sina *        tempB(0) + (-cosa * sinb) * tempB(1) + (cosa * cosb) * tempB(2);
+        }
     }
+
     return false;
-}
 
-void RBend::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-
-    Inform msg("RBend ");
-
-    double zBegin = 0.0;
-    double zEnd = 0.0;
-    double rBegin = 0.0;
-    double rEnd = 0.0;
-
-    startElement_m = startField;
-
-    RefPartBunch_m = bunch;
-    pusher_m.initialise(bunch->getReference());
-
-    fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
-    fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-
-    if((fieldmap_m != NULL) && (zEnd > zBegin)) {
-
-        // Read in field map.
-        msg << getName() << " using file ";
-        fieldmap_m->getInfo(&msg);
-        Fieldmap::readMap(filename_m);
-
-        // Check that the design energy is greater than zero.
-        if(design_energy_m <= 0.0) {
-            msg << "The bend must have a design enregy greater than zero set in the input file." << endl;
-            return;
-        }
-
-        // If using default field map, set length and gap.
-        if(filename_m == "1DPROFILE1-DEFAULT") {
-            if(gap_m <= 0.0 || length_m <= 0.0) {
-                msg << "If using \"1DPROFILE1-DEFAULT\" field map you must set GAP (full magnet gap) and L (length) in the OPAL input file." << endl;
-                return;
-            } else {
-                fieldmap_m->setFieldGap(gap_m);
-                fieldmap_m->setFieldLength(length_m);
-                fieldmap_m->adjustFringeFields();
-                msg << "Adjusted fringe field parameters." << endl;
-                fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-                fieldmap_m->getInfo(&msg);
-                startElement_m = startField;
-            }
-        }
-        fieldmap_m->setEdgeConstants(0.0, 0.0, 0.0);
-
-        length_m = zEnd - zBegin;
-        if(length_m < 0.0) {
-            // There is probably something wrong with the fieldmap.
-            return;
-        }
-
-        // If the bend angle is specified, find proper field strength. If only
-        // the field strength is given, just calculate the bend angle. This also
-        // sets the bend exit angle appropriately.
-        if(angle_m != 0.0) {
-            if(angle_m < 0.0) {
-                angle_m *= -1.0;
-                Orientation_m(2) += Physics::pi;
-            }
-            setBendStrength();
-            reinitialize_m = true;
-        } else {
-            angle_m = calculateBendAngle(length_m);
-            reinitialize_m = false;
-        }
-
-        // Calculate the reference particle trajectory map.
-        double bendAngle = calculateRefTrajectory(zBegin);
-
-        startField = startField_m;
-        endField = endField_m;
-
-        msg << "Start:            " << startField_m << " m (in floor coordinates)" << endl;
-        msg << "End:              " << endField_m << " m (in floor coordinates)" << endl;
-        msg << "Bend angle:       " << bendAngle * 180.0 / Physics::pi << " degrees" << endl;
-        msg << "Field amplitude:  " << amplitude_m << " T" << endl;
-        msg << "Bend radius:      " << R_m << " m" << endl;
-        msg << "Effective length: " << effectiveLength_m << " m (in s coordinates)" << endl;
-        msg << "Effective center: " << effectiveCenter_m << " m (in s coordinates with respect to bend field map start position)" << endl;
-
-    } else {
-        endField = startField - 1e-3;
-    }
-}
-
-void RBend::finalise() {
-    online_m = false;
 }
 
 bool RBend::bends() const {
     return true;
 }
 
-void RBend::setBendAngle(const double &angle) {
-    angle_m = angle * Physics::pi / 180.0;
+void RBend::finalise() {
+    online_m = false;
 }
 
-void RBend::setAmplitudem(double vPeak) {
-    amplitude_m = vPeak;
+void RBend::getDimensions(double &sBegin, double &sEnd) const {
+    sBegin = startField_m;
+    sEnd = endField_m;
 }
-
-void RBend::setFullGap(const double &gap) {
-    gap_m = gap;
-}
-
-void RBend::setLength(const double &length) {
-    length_m = length;
-}
-
-void RBend::setFieldMapFN(std::string fmapfn) {
-    filename_m = fmapfn;
-}
-
-std::string RBend::getFieldMapFN() const {
-    return filename_m;
-}
-
-void RBend::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = startField_m;
-    zEnd = endField_m;
-}
-
-double RBend::getEffectiveLength() const {
-    return effectiveLength_m;
-}
-
-double RBend::getEffectiveCenter() const {
-    return effectiveCenter_m;
-}
-
-double RBend::getBendAngle() const {
-    return angle_m;
-}
-
-double RBend::getStartElement() const {
-    return startElement_m;
-}
-
-double RBend::getR() const {
-    return R_m;
-}
-
 
 const std::string &RBend::getType() const {
     static const std::string type("RBend");
     return type;
 }
 
-void RBend::setBendStrength() {
-    // This routine uses an iterative procedure to set the bend strength
-    // so that the bend angle is the one we want.
-    //
-    // This is a primitive approach in that it is not very efficient. But it
-    // is stable and is only called a few times during a simulation.
+void RBend::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
 
-    // Estimate bend field magnitude.
-    const double mass = RefPartBunch_m->getM();
-    const double gamma = design_energy_m / mass + 1.0;
-    const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
-    const double charge = RefPartBunch_m->getQ();
+    Inform msg("RBend ");
 
-    calculateEffectiveLength();
-    amplitude_m = (charge / fabs(charge)) * betaGamma * mass / (Physics::c * (effectiveLength_m * cos_face_alpha_m) / sin(angle_m));
+    if(InitializeFieldMap(msg)) {
 
-    // Find initial angle.
-    double zBegin = 0.0;
-    double zEnd = 0.0;
-    double rBegin = 0.0;
-    double rEnd = 0.0;
-    fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-    double actualBendAngle = calculateBendAngle(zEnd - zBegin);
+        SetupPusher(bunch);
+        ReadFieldMap(msg);
+        SetupBendGeometry(msg, startField, endField);
+        double bendAngleX = 0.0;
+        double bendAngleY = 0.0;
+        CalculateRefTrajectory(bendAngleX, bendAngleY);
+        recalcRefTraj_m = true;
+        Print(msg, bendAngleX, bendAngleY);
 
-    // Adjust field amplitude to get desired bend angle.
-    int iterations = 1;
-    double fieldAdjustment = amplitude_m / 10.0;
+        // Pass start and end of field to calling function.
+        startField = startField_m;
+        endField = endField_m;
 
-    if(fabs(actualBendAngle) > fabs(angle_m))
-        fieldAdjustment *= -1.0;
-
-    bool lastGreater = true;
-    if(fabs(actualBendAngle) < fabs(angle_m))
-        lastGreater = false;
-
-    while(fabs(actualBendAngle - angle_m) > 1.0e-8 && iterations <= 1000) {
-
-        actualBendAngle = calculateBendAngle(zEnd - zBegin);
-        iterations++;
-
-        if((!lastGreater && fabs(actualBendAngle) > fabs(angle_m)) || (lastGreater && fabs(actualBendAngle) < fabs(angle_m)))
-            fieldAdjustment /= -10.0;
-
-        if(fabs(actualBendAngle) > fabs(angle_m)) lastGreater = true;
-        else lastGreater = false;
-
-        amplitude_m += fieldAdjustment;
+    } else {
+        msg << " There is something wrong with your field map \""
+            << fileName_m
+            << "\"";
+        endField = startField - 1.0e-3;
     }
 }
 
-double RBend::calculateBendAngle(double bendLength) {
-    // This routine calculates the bend angle using an iterative process.
+double RBend::GetBendAngle() const {
+    return angle_m;
+}
 
-    // Calculate angle.
+double RBend::GetBendRadius() const {
+    return designRadius_m;
+}
+
+double RBend::GetEffectiveCenter() const {
+    return elementEdge_m + designRadius_m * angle_m / 2.0;
+}
+
+double RBend::GetEffectiveLength() const {
+    return designRadius_m * angle_m;
+}
+
+std::string RBend::GetFieldMapFN() const {
+    return fileName_m;
+}
+
+double RBend::GetStartElement() const {
+    return elementEdge_m;
+}
+
+void RBend::SetAperture(double aperture) {
+    aperture_m = std::abs(aperture);
+}
+
+void RBend::SetBendAngle(double angle) {
+    angle_m = angle;
+}
+
+void RBend::SetBeta(double beta) {
+    Orientation_m(1) = beta;
+}
+
+void RBend::SetDesignEnergy(double energy) {
+    designEnergy_m = std::abs(energy);
+}
+
+void RBend::SetEntranceAngle(double entranceAngle) {
+    entranceAngle_m = entranceAngle;
+}
+
+void RBend::SetFieldAmplitude(double fieldAmplitude) {
+    fieldAmplitude_m = fieldAmplitude;
+}
+
+void RBend::SetFieldMapFN(std::string fileName) {
+    fileName_m = fileName;
+}
+
+void RBend::SetFullGap(double gap) {
+    gap_m = gap;
+}
+
+void RBend::SetK1(double k1) {
+    gradient_m = k1;
+}
+
+void RBend::SetLength(double length) {
+    length_m = length;
+}
+
+void RBend::SetRotationAboutZ(double rotation) {
+    Orientation_m(2) = rotation;
+}
+
+void RBend::SetRotationAboutZ(double k0, double k0s) {
+
+    Orientation_m(2) = atan2(k0s, k0);
+    fieldAmplitude_m = sqrt(pow(k0, 2.0) + pow(k0s, 2.0));
+
+}
+
+void RBend::AdjustFringeFields(double ratio) {
+
+    double delta = std::abs(entranceParameter1_m - entranceParameter2_m);
+    entranceParameter1_m = entranceParameter2_m - delta * ratio;
+
+    delta = std::abs(entranceParameter2_m - entranceParameter3_m);
+    entranceParameter3_m = entranceParameter2_m + delta * ratio;
+
+    delta = std::abs(exitParameter1_m - exitParameter2_m);
+    exitParameter1_m = exitParameter2_m - delta * ratio;
+
+    delta = std::abs(exitParameter2_m - exitParameter3_m);
+    exitParameter3_m = exitParameter2_m + delta * ratio;
+
+}
+
+double RBend::CalculateBendAngle() {
+
     const double mass = RefPartBunch_m->getM();
-    const double gamma = design_energy_m / mass + 1.0;
+    const double gamma = designEnergy_m / mass + 1.0;
     const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
+    const double beta = betaGamma / gamma;
     const double deltaT = RefPartBunch_m->getdT();
 
     // Integrate through field for initial angle.
-    Vector_t X(0.0, 0.0, 0.0);
-    Vector_t P(-betaGamma * sin_face_alpha_m, 0.0, betaGamma * cos_face_alpha_m);
-    Vector_t strength(0.0, 0.0, 0.0);
-    Vector_t bField(0.0, 0.0, 0.0);
+    Vector_t X(0.0, 0.0, startField_m - elementEdge_m);
+    Vector_t P(0.0, 0.0, betaGamma);
+    double deltaS = 0.0;
+    double bendLength = endField_m - startField_m;
+
+    while(deltaS < bendLength) {
+
+        X /= Vector_t(Physics::c * deltaT);
+        pusher_m.push(X, P, deltaT);
+        X *= Vector_t(Physics::c * deltaT);
+
+        Vector_t eField(0.0, 0.0, 0.0);
+        Vector_t bField(0.0, 0.0, 0.0);
+        CalculateMapField(X, eField, bField);
+        bField = fieldAmplitude_m * bField;
+
+        X /= Vector_t(Physics::c * deltaT);
+        pusher_m.kick(X, P, eField, bField, deltaT);
+
+        pusher_m.push(X, P, deltaT);
+        X *= Vector_t(Physics::c * deltaT);
+
+        deltaS += deltaT * beta * Physics::c;
+
+    }
+
+    double angle =  -atan2(P(0), P(2));
+
+    return angle;
+
+}
+
+void RBend::CalcCentralField(Vector_t R,
+                             double deltaX,
+                             double angle,
+                             Vector_t &B) {
+
+    B(0) = -gradient_m * R(1) * cos(angle) / designRadius_m;
+    B(1) = 1.0 - gradient_m * deltaX / designRadius_m;
+    B(2) = -gradient_m * R(1) * sin(angle) / designRadius_m;
+
+}
+
+void RBend::CalcEngeFunction(double zNormalized,
+                             std::vector<double> engeCoeff,
+                             int polyOrder,
+                             double &engeFunc,
+                             double &engeFuncDeriv,
+                             double &engeFuncSecDeriv) {
+
+    double expSum = 0.0;
+    double expSumDeriv = 0.0;
+    double expSumSecDeriv = 0.0;
+
+    if(polyOrder >= 2) {
+
+        expSum = engeCoeff.at(0)
+                 + engeCoeff.at(1) * zNormalized;
+        expSumDeriv = engeCoeff.at(1);
+
+        for(int index = 2; index <= polyOrder; index++) {
+            expSum += engeCoeff.at(index) * pow(zNormalized, index);
+            expSumDeriv += index * engeCoeff.at(index)
+                           * pow(zNormalized, index - 1);
+            expSumSecDeriv += index * (index - 1) * engeCoeff.at(index)
+                              * pow(zNormalized, index - 2);
+        }
+
+    } else if(polyOrder == 1) {
+
+        expSum = engeCoeff.at(0)
+                 + engeCoeff.at(1) * zNormalized;
+        expSumDeriv = engeCoeff.at(1);
+
+    } else
+        expSum = engeCoeff.at(0);
+
+    expSumDeriv /= gap_m;
+    expSumSecDeriv /= pow(gap_m, 2.0);
+
+    double engeExp = exp(expSum);
+    double engeExpDeriv = expSumDeriv * engeExp;
+    double engeExpSecDeriv = (expSumSecDeriv + pow(expSumDeriv, 2.0)) * engeExp;
+
+    engeFunc = 1.0 / (1.0 + engeExp);
+    if(engeFunc > 1.0e-30) {
+        engeFuncDeriv = -engeExpDeriv * pow(engeFunc, 2.0);
+        engeFuncSecDeriv = -engeExpSecDeriv * pow(engeFunc, 2.0)
+                           + 2.0 * pow(engeExpDeriv, 2.0) * pow(engeFunc, 3.0);
+    } else {
+        engeFunc = 0.0;
+        engeFuncDeriv = 0.0;
+        engeFuncSecDeriv = 0.0;
+    }
+
+}
+
+void RBend::CalcEntranceFringeField(Vector_t REntrance,
+                                    double deltaX,
+                                    Vector_t &B) {
+
+    double zNormalized = -REntrance(2) / gap_m;
+    double engeFunc = 0.0;
+    double engeFuncDeriv = 0.0;
+    double engeFuncSecDeriv = 0.0;
+
+    CalcEngeFunction(zNormalized,
+                     engeCoeffsEntry_m,
+                     polyOrderEntry_m,
+                     engeFunc,
+                     engeFuncDeriv,
+                     engeFuncSecDeriv);
+
+    double bXEntrance = -(engeFunc - (engeFuncSecDeriv / 2.0) * pow(REntrance(1), 2.0))
+                        * gradient_m * REntrance(1) / designRadius_m;
+    double bYEntrance = engeFunc - (engeFuncSecDeriv / 2.0) * pow(REntrance(1), 2.0)
+                        * (1.0 - gradient_m * deltaX / designRadius_m);
+    double bZEntrance = -engeFuncDeriv * REntrance(1);
+
+    B(0) = bXEntrance * cosEntranceAngle_m - bZEntrance * sinEntranceAngle_m;
+    B(1) = bYEntrance;
+    B(2) = bXEntrance * sinEntranceAngle_m + bZEntrance * cosEntranceAngle_m;
+
+}
+
+void RBend::CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B) {
+
+    double zNormalized = RExit(2) / gap_m;
+    double engeFunc = 0.0;
+    double engeFuncDeriv = 0.0;
+    double engeFuncSecDeriv = 0.0;
+    CalcEngeFunction(zNormalized,
+                     engeCoeffsExit_m,
+                     polyOrderExit_m,
+                     engeFunc,
+                     engeFuncDeriv,
+                     engeFuncSecDeriv);
+
+    double bXExit = -(engeFunc - (engeFuncSecDeriv / 2.0) * pow(RExit(1), 2.0))
+                    * gradient_m * RExit(1) / designRadius_m;
+    double bYExit = engeFunc - (engeFuncSecDeriv / 2.0) * pow(RExit(1), 2.0)
+                    * (1.0 - gradient_m * deltaX / designRadius_m);
+    double bZExit = engeFuncDeriv * RExit(1);
+
+    B(0) = bXExit * cosExitAngle_m - bZExit * sinExitAngle_m;
+    B(1) = bYExit;
+    B(2) = bXExit * sinExitAngle_m + bZExit * cosExitAngle_m;
+
+}
+
+void RBend::CalculateMapField(Vector_t R, Vector_t &E, Vector_t &B) {
+
+    E = Vector_t(0.0);
+    B = Vector_t(0.0);
+
+    //    Vector_t REntrance(0.0, 0.0, 0.0);
+    //    Vector_t RExit(0.0, 0.0, 0.0);
+    //    if (IsPositionInEntranceField(R, REntrance)) {
+    //        CalcEntranceFringeField(REntrance, 0.0, B);
+    //    } else if (IsPositionInExitField(R, RExit)) {
+    //        CalcExitFringeField(RExit, 0.0, B);
+    //    } else {
+    //        CalcCentralField(R, 0.0, 0.0, B);
+    //    }
+
+    double deltaXEntrance = 0.0;
+    double deltaXExit = 0.0;
+    bool inEntranceRegion = InMagnetEntranceRegion(R, deltaXEntrance);
+    bool inExitRegion = InMagnetExitRegion(R, deltaXExit);
+
+    if(!inEntranceRegion && !inExitRegion) {
+
+        double deltaX = 0.0;
+        double angle = 0.0;
+        if(InMagnetCentralRegion(R, deltaX, angle)) {
+            Vector_t REntrance(0.0, 0.0, 0.0);
+            Vector_t RExit(0.0, 0.0, 0.0);
+            if(IsPositionInEntranceField(R, REntrance))
+                CalcEntranceFringeField(REntrance, deltaX, B);
+            else if(IsPositionInExitField(R, RExit))
+                CalcExitFringeField(RExit, deltaX, B);
+            else
+                CalcCentralField(R, deltaX, angle, B);
+
+        }
+
+    } else if(inEntranceRegion && !inExitRegion) {
+
+        Vector_t REntrance(0.0, 0.0, 0.0);
+        if(IsPositionInEntranceField(R, REntrance)) {
+            CalcEntranceFringeField(REntrance, deltaXEntrance, B);
+        } else if(REntrance(2) > 0.0)
+            CalcCentralField(R, deltaXEntrance, 0.0, B);
+
+    } else if(!inEntranceRegion && inExitRegion) {
+
+        Vector_t RExit(0.0, 0.0, 0.0);
+        if(IsPositionInExitField(R, RExit)) {
+            CalcExitFringeField(RExit, deltaXExit, B);
+        } else if(RExit(2) < 0.0)
+            CalcCentralField(R, deltaXExit, angle_m, B);
+
+    } else if(inEntranceRegion && inExitRegion) {
+
+        /*
+         * This is an unusual condition and should only happen with
+         * a sector magnet that bends more than 180 degrees. Here, we
+         * have the possibility that the particle sees both the
+         * entrance and exit fringe fields.
+         */
+        Vector_t BEntrance(0.0, 0.0, 0.0);
+        Vector_t REntrance(0.0, 0.0, 0.0);
+        if(IsPositionInEntranceField(R, REntrance))
+            CalcEntranceFringeField(REntrance, deltaXEntrance, BEntrance);
+
+        Vector_t BExit(0.0, 0.0, 0.0);
+        Vector_t RExit(0.0, 0.0, 0.0);
+        if(IsPositionInExitField(R, RExit))
+            CalcExitFringeField(RExit, deltaXExit, BExit);
+
+        B(0) = BEntrance(0) + BExit(0);
+        B(1) = BEntrance(1) + BExit(1);
+        B(2) = BEntrance(2) + BExit(2);
+
+    }
+}
+
+void RBend::CalculateRefTrajectory(double &angleX, double &angleY) {
+
+    const double mass = RefPartBunch_m->getM();
+    const double gamma = designEnergy_m / mass + 1.;
+    const double betaGamma = sqrt(gamma * gamma - 1.);
+    const double dt = RefPartBunch_m->getdT();
+
+    Vector_t X(0.0, 0.0, startField_m - elementEdge_m);
+    Vector_t P(0.0, 0.0, betaGamma);
+
+    if(!refTrajMapX_m.empty())
+        refTrajMapX_m.clear();
+    if(!refTrajMapY_m.empty())
+        refTrajMapY_m.clear();
+    if(!refTrajMapZ_m.empty())
+        refTrajMapZ_m.clear();
+
+    refTrajMapX_m.push_back(X(0));
+    refTrajMapY_m.push_back(X(1));
+    refTrajMapZ_m.push_back(X(2));
+
+    refTrajMapStepSize_m = betaGamma / gamma * Physics::c * dt;
+    double deltaS = 0.0;
+    double bendLength = endField_m - startField_m;
+
+    while(deltaS < bendLength) {
+
+        X /= Vector_t(Physics::c * dt);
+        pusher_m.push(X, P, dt);
+        X *= Vector_t(Physics::c * dt);
+
+        Vector_t eField(0.0, 0.0, 0.0);
+        Vector_t bField(0.0, 0.0, 0.0);
+        Vector_t XInBendFrame = RotateToBendFrame(X);
+
+        /*
+         * Add in transverse bend displacements. (ds is already
+         * accounted for.)
+         */
+        XInBendFrame(0) -= dx_m;
+        XInBendFrame(1) -= dy_m;
+
+        CalculateMapField(XInBendFrame, eField, bField);
+        bField = fieldAmplitude_m * RotateOutOfBendFrame(bField);
+
+        X /= Vector_t(Physics::c * dt);
+        pusher_m.kick(X, P, eField, bField, dt);
+
+        pusher_m.push(X, P, dt);
+        X *= Vector_t(Physics::c * dt);
+
+        refTrajMapX_m.push_back(X(0));
+        refTrajMapY_m.push_back(X(1));
+        refTrajMapZ_m.push_back(X(2));
+
+        deltaS += refTrajMapStepSize_m;
+
+    }
+
+    refTrajMapSize_m = refTrajMapX_m.size();
+
+    if(Orientation_m(2) == Physics::pi / 2.0
+       || Orientation_m(2) == 3.0 * Physics::pi / 2.0)
+        angleX = 0.0;
+    else
+        angleX = -atan2(P(0), P(2));
+
+    if(Orientation_m(2) == 0.0
+       || Orientation_m(2) == Physics::pi)
+        angleY = 0.0;
+    else
+        angleY = atan2(P(1), P(2));
+
+}
+
+double RBend::EstimateFieldAdjustmentStep(double actualBendAngle,
+        double mass,
+        double betaGamma) {
+
+    double amplitude1 = fieldAmplitude_m;
+    double bendAngle1 = actualBendAngle;
+
+    // Estimate field adjustment step.
+    double effectiveLength = angle_m * designRadius_m;
+    double fieldStep = (angle_m - bendAngle1) * betaGamma * mass / (2.0 * effectiveLength * Physics::c);
+    if(pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2.0) < 1.0)
+        fieldStep = (angle_m - bendAngle1) * betaGamma * mass / (2.0 * effectiveLength * Physics::c)
+                    * std::sqrt(1.0 - pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2.0));
+
+    fieldStep *= amplitude1 / std::abs(amplitude1);
+
+    return fieldStep;
+
+}
+
+void RBend::FindBendEffectiveLength(double startField, double endField) {
+
+    /*
+     * Use an iterative procedure to set the width of the
+     * default field map for the defined field amplitude
+     * and bend angle.
+     */
+    SetEngeOriginDelta(0.0);
+    SetFieldCalcParam(false);
+    SetFieldBoundaries(startField, endField);
+
+    double actualBendAngle = CalculateBendAngle();
+    double error = std::abs(actualBendAngle - angle_m);
+    if(error > 1.0e-6) {
+
+        double deltaStep = 0.0;
+        if(std::abs(actualBendAngle) < std::abs(angle_m))
+            deltaStep = -gap_m / 2.0;
+        else
+            deltaStep = gap_m / 2.0;
+
+        double delta1 = 0.0;
+        double bendAngle1 = actualBendAngle;
+
+        double delta2 = deltaStep;
+        SetEngeOriginDelta(delta2);
+        SetFieldCalcParam(false);
+        SetFieldBoundaries(startField, endField);
+        double bendAngle2 = CalculateBendAngle();
+
+        if(std::abs(bendAngle1) > std::abs(angle_m)) {
+            while(std::abs(bendAngle2) > std::abs(angle_m)) {
+                delta2 += deltaStep;
+                SetEngeOriginDelta(delta2);
+                SetFieldCalcParam(false);
+                SetFieldBoundaries(startField, endField);
+                bendAngle2 = CalculateBendAngle();
+            }
+        } else {
+            while(std::abs(bendAngle2) < std::abs(angle_m)) {
+                delta2 += deltaStep;
+                SetEngeOriginDelta(delta2);
+                SetFieldCalcParam(false);
+                SetFieldBoundaries(startField, endField);
+                bendAngle2 = CalculateBendAngle();
+            }
+        }
+
+        // Now we should have the proper field map width bracketed.
+        unsigned int iterations = 1;
+        double delta = 0.0;
+        error = std::abs(actualBendAngle - angle_m);
+        while(error > 1.0e-6 && iterations < 100) {
+
+            delta = (delta1 + delta2) / 2.0;
+            SetEngeOriginDelta(delta);
+            SetFieldCalcParam(false);
+            SetFieldBoundaries(startField, endField);
+            double newBendAngle = CalculateBendAngle();
+
+            error = std::abs(newBendAngle - angle_m);
+
+            if(error > 1.0e-6) {
+
+                if(bendAngle1 - angle_m < 0.0) {
+
+                    if(newBendAngle - angle_m < 0.0) {
+                        bendAngle1 = newBendAngle;
+                        delta1 = delta;
+                    } else {
+                        bendAngle2 = newBendAngle;
+                        delta2 = delta;
+                    }
+
+                } else {
+
+                    if(newBendAngle - angle_m < 0.0) {
+                        bendAngle2 = newBendAngle;
+                        delta2 = delta;
+                    } else {
+                        bendAngle1 = newBendAngle;
+                        delta1 = delta;
+                    }
+                }
+            }
+            iterations++;
+        }
+    }
+}
+
+bool RBend::FindBendLength(Inform &msg,
+                           double &bendLength,
+                           bool &bendLengthFromMap) {
+
+    /*
+     * Find bend length. If this was not set by the user using the
+     * L (length) attribute, infer it from the field map.
+     */
+    bendLength = length_m;
+    if(bendLength > 0.0) {
+        bendLengthFromMap = false;
+        return true;
+    } else {
+
+        if(bendLength == 0.0)
+            bendLength = exitParameter2_m - entranceParameter2_m;
+
+
+        if(bendLength <= 0.0) {
+            msg << "Magnet length inferred from field map is less than or equal"
+                " to zero. Check your bend magnet input."
+                << endl;
+            return false;
+        } else
+            return true;
+
+    }
+}
+
+void RBend::FindBendStrength(double mass,
+                             double gamma,
+                             double betaGamma,
+                             double charge) {
+
+    /*
+     * Use an iterative procedure to set the magnet field amplitude
+     * for the defined bend angle.
+     */
+    double actualBendAngle = CalculateBendAngle();
+    double fieldStep = EstimateFieldAdjustmentStep(actualBendAngle,
+                       mass,
+                       betaGamma);
+    double amplitude1 = fieldAmplitude_m;
+    double bendAngle1 = actualBendAngle;
+
+    double amplitude2 = fieldAmplitude_m + fieldStep;
+    fieldAmplitude_m = amplitude2;
+    double bendAngle2 = CalculateBendAngle();
+
+    if(std::abs(bendAngle1) > std::abs(angle_m)) {
+        while(std::abs(bendAngle2) > std::abs(angle_m)) {
+            amplitude2 += fieldStep;
+            fieldAmplitude_m = amplitude2;
+            bendAngle2 = CalculateBendAngle();
+        }
+    } else {
+        while(std::abs(bendAngle2) < std::abs(angle_m)) {
+            amplitude2 += fieldStep;
+            fieldAmplitude_m = amplitude2;
+            bendAngle2 = CalculateBendAngle();
+        }
+    }
+
+    // Now we should have the proper field amplitude bracketed.
+    unsigned int iterations = 1;
+    double error = std::abs(actualBendAngle - angle_m);
+    while(error > 1.0e-6 && iterations < 100) {
+
+        fieldAmplitude_m = (amplitude1 + amplitude2) / 2.0;
+        double newBendAngle = CalculateBendAngle();
+
+        error = std::abs(newBendAngle - angle_m);
+
+        if(error > 1.0e-6) {
+
+            if(bendAngle1 - angle_m < 0.0) {
+
+                if(newBendAngle - angle_m < 0.0) {
+                    bendAngle1 = newBendAngle;
+                    amplitude1 = fieldAmplitude_m;
+                } else {
+                    bendAngle2 = newBendAngle;
+                    amplitude2 = fieldAmplitude_m;
+                }
+
+            } else {
+
+                if(newBendAngle - angle_m < 0.0) {
+                    bendAngle2 = newBendAngle;
+                    amplitude2 = fieldAmplitude_m;
+                } else {
+                    bendAngle1 = newBendAngle;
+                    amplitude1 = fieldAmplitude_m;
+                }
+            }
+        }
+        iterations++;
+    }
+}
+
+bool RBend::FindIdealBendParameters(double bendLength) {
+
+    double refMass = RefPartBunch_m->getM();
+    double refGamma = designEnergy_m / refMass + 1.0;
+    double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
+    double refCharge = RefPartBunch_m->getQ();
+
+    if(angle_m != 0.0) {
+
+        if(angle_m < 0.0) {
+            // Negative angle is a positive bend rotated 180 degrees.
+            angle_m = std::abs(angle_m);
+            gradient_m *= -1.0;
+            Orientation_m(2) += Physics::pi;
+        }
+        designRadius_m = bendLength
+                         / (sin(angle_m - entranceAngle_m) + sin(entranceAngle_m));
+        fieldAmplitude_m = (refCharge / std::abs(refCharge))
+                           * refBetaGamma * refMass
+                           / (Physics::c * designRadius_m);
+        exitAngle_m = angle_m - entranceAngle_m;
+
+        return true;
+
+    } else {
+
+        // Negative angle is a positive bend rotated 180 degrees.
+        if((refCharge > 0.0 && fieldAmplitude_m < 0.0)
+           || (refCharge < 0.0 && fieldAmplitude_m > 0.0)) {
+            gradient_m *= -1.0;
+            Orientation_m(2) += Physics::pi;
+        }
+
+        fieldAmplitude_m = std::abs(fieldAmplitude_m);
+        designRadius_m = std::abs(refBetaGamma * refMass / (Physics::c * fieldAmplitude_m));
+        double angle = asin(bendLength / designRadius_m - sin(entranceAngle_m));
+        angle_m = angle + entranceAngle_m;
+        exitAngle_m = angle_m - entranceAngle_m;
+
+        return false;
+
+    }
+}
+
+void RBend::FindReferenceExitOrigin(double &x, double &z) {
+
+    /*
+      * Find x,z coordinates of reference trajectory as it passes exit edge
+      * of the bend magnet. This assumes an entrance position of (x,z) = (0,0).
+      */
+    if(angle_m <= Physics::pi / 2.0) {
+        x = - designRadius_m * (1.0 - std::cos(angle_m));
+        z = designRadius_m * std::sin(angle_m);
+    } else if(angle_m <= Physics::pi) {
+        x = -designRadius_m * (1.0 + std::sin(angle_m - Physics::pi / 2.0));
+        z = designRadius_m * std::cos(angle_m - Physics::pi / 2.0);
+    } else if(angle_m <= 3.0 * Physics::pi / 2.0) {
+        x = -designRadius_m * (2.0 - std::cos(angle_m - Physics::pi));
+        z = -designRadius_m * std::sin(angle_m - Physics::pi);
+    } else {
+        x = -designRadius_m * (1.0 - std::cos(angle_m - 3.0 * Physics::pi / 2.0));
+        z = -designRadius_m * std::sin(angle_m - 3.0 * Physics::pi / 2.0);
+    }
+}
+
+bool RBend::InitializeFieldMap(Inform &msg) {
+
+    fieldmap_m = Fieldmap::getFieldmap(fileName_m, fast_m);
+
+    if(fieldmap_m != NULL) {
+        if(fileName_m != "1DPROFILE1-DEFAULT")
+            return true;
+        else
+            return SetupDefaultFieldMap(msg);
+
+    } else
+        return false;
+
+}
+
+bool RBend::InMagnetCentralRegion(Vector_t R, double &deltaX, double &angle) {
+
+    deltaX = sqrt(pow(R(2), 2.0) + pow(R(0) + designRadius_m, 2.0)) - designRadius_m;
+    if(std::abs(deltaX) <= aperture_m / 2.0) {
+
+        angle = atan2(R(2), R(0) + designRadius_m);
+        return true;
+
+    } else
+        return false;
+
+}
+
+bool RBend::InMagnetEntranceRegion(Vector_t R, double &deltaX) {
+
+    if(std::abs(R(0) <= aperture_m / 2.0)) {
+
+        Vector_t RTransformed(0.0, R(1), 0.0);
+        RTransformed(0) = (R(0) - xOriginEngeEntry_m) * cosEntranceAngle_m
+                          + (R(2) - zOriginEngeEntry_m) * sinEntranceAngle_m;
+        RTransformed(2) = -(R(0) - xOriginEngeEntry_m) * sinEntranceAngle_m
+                          + (R(2) - zOriginEngeEntry_m) * cosEntranceAngle_m;
+
+        if(RTransformed(2) <= 0.0) {
+            deltaX = R(0);
+            return true;
+        } else
+            return false;
+
+    } else
+        return false;
+
+}
+
+bool RBend::InMagnetExitRegion(Vector_t R, double &deltaX) {
+
+    Vector_t RTransformed(0.0, R(1), 0.0);
+    RTransformed(0) = (R(0) - xExit_m) * cosExitAngle_m
+                      + (R(2) - zExit_m) * sinExitAngle_m;
+    RTransformed(2) = -(R(0) - xExit_m) * sinExitAngle_m
+                      + (R(2) - zExit_m) * cosExitAngle_m;
+
+    if(RTransformed(2) >= 0.0) {
+
+        deltaX = (R(0) - xExit_m) * cos(angle_m)
+                 + (R(2) - zExit_m) * sin(angle_m);
+        if(std::abs(deltaX) <= aperture_m / 2.0)
+            return true;
+        else
+            return false;
+
+    } else
+        return false;
+}
+
+bool RBend::IsPositionInEntranceField(Vector_t R, Vector_t &REntrance) {
+
+    REntrance(1) = R(1);
+
+    REntrance(0) = (R(0) - xOriginEngeEntry_m) * cosEntranceAngle_m
+                   + (R(2) - zOriginEngeEntry_m) * sinEntranceAngle_m;
+    REntrance(2) = -(R(0) - xOriginEngeEntry_m) * sinEntranceAngle_m
+                   + (R(2) - zOriginEngeEntry_m) * cosEntranceAngle_m;
+
+    if(REntrance(2) >= -deltaBeginEntry_m && REntrance(2) <= deltaEndEntry_m)
+        return true;
+    else
+        return false;
+}
+
+bool RBend::IsPositionInExitField(Vector_t R, Vector_t &RExit) {
+
+    RExit(1) = R(1);
+
+    RExit(0) = (R(0) - xOriginEngeExit_m) * cosExitAngle_m
+               + (R(2) - zOriginEngeExit_m) * sinExitAngle_m;
+    RExit(2) = -(R(0) - xOriginEngeExit_m) * sinExitAngle_m
+               + (R(2) - zOriginEngeExit_m) * cosExitAngle_m;
+
+    if(RExit(2) >= -deltaBeginExit_m && RExit(2) <= deltaEndExit_m)
+        return true;
+    else
+        return false;
+
+}
+
+void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
+
+    msg << endl
+        << "Start of field map:      "
+        << startField_m
+        << " m (in s coordinates)"
+        << endl;
+    msg << "End of field map:        "
+        << endField_m
+        << " m (in s coordinates)"
+        << endl;
+    msg << "Entrance edge of magnet: "
+        << elementEdge_m
+        << " m (in s coordinates)"
+        << endl;
+    msg << endl
+        << "Bend Magnet Properties"
+        << endl
+        << "======================"
+        << endl << endl;
+    msg << "Bend angle magnitude:    "
+        << angle_m
+        << " rad ("
+        << angle_m * 180.0 / Physics::pi
+        << " degrees)"
+        << endl;
+    msg << "Entrance edge angle:     "
+        << entranceAngle_m
+        << " rad ("
+        << entranceAngle_m * 180.0 / Physics::pi
+        << " degrees)"
+        << endl;
+    msg << "Exit edge angle:         "
+        << exitAngle_m
+        << " rad ("
+        << exitAngle_m * 180.0 / Physics::pi
+        << " degrees)"
+        << endl;
+    msg << "Field amplitude:         "
+        << fieldAmplitude_m
+        << " T"
+        << endl;
+    msg << "Field index (gradient):  "
+        << gradient_m
+        << " m^-1"
+        << endl;
+    msg << "Bend design radius:      "
+        << designRadius_m
+        << " m"
+        << endl;
+    msg << "Rotation about x axis:   "
+        << Orientation_m(1)
+        << " rad ("
+        << Orientation_m(1) * 180.0 / Physics::pi
+        << " degrees)"
+        << endl;
+    msg << "Rotation about y axis:   "
+        << Orientation_m(0)
+        << " rad ("
+        << Orientation_m(0) * 180.0 / Physics::pi
+        << " degrees)"
+        << endl;
+    msg << "Rotation about z axis:   "
+        << Orientation_m(2)
+        << " rad ("
+        << Orientation_m(2) * 180.0 / Physics::pi
+        << " degrees)"
+        << endl;
+    msg << endl
+        << "Reference Trajectory Properties"
+        << endl
+        << "==============================="
+        << endl << endl;
+    msg << "Reference particle is bent: "
+        << bendAngleX
+        << " rad ("
+        << bendAngleX * 180.0 / Physics::pi
+        << " degrees) in x plane"
+        << endl;
+    msg << "Reference particle is bent: "
+        << bendAngleY
+        << " rad ("
+        << bendAngleY * 180.0 / Physics::pi
+        << " degrees) in y plane"
+        << endl << endl;
+
+}
+
+void RBend::ReadFieldMap(Inform &msg) {
+
+    msg << getName() << " using file ";
+    fieldmap_m->getInfo(&msg);
+    Fieldmap::readMap(fileName_m);
+    fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
+                                           entranceParameter2_m,
+                                           entranceParameter3_m);
+    fieldmap_m->Get1DProfile1ExitParam(exitParameter1_m,
+                                       exitParameter2_m,
+                                       exitParameter3_m);
+    SetGapFromFieldMap();
+    fieldmap_m->Get1DProfile1EngeCoeffs(engeCoeffsEntry_m,
+                                        engeCoeffsExit_m);
+    polyOrderEntry_m = engeCoeffsEntry_m.size() - 1;
+    polyOrderExit_m = engeCoeffsExit_m.size() - 1;
+
+}
+
+bool RBend::Reinitialize() {
+
+    if(designEnergy_m != RefPartBunch_m->get_meanEnergy() * 1.0e6) {
+
+        designEnergy_m = RefPartBunch_m->get_meanEnergy() * 1.0e6;
+        SetBendStrength();
+        double bendAngleX = 0.0;
+        double bendAngleY = 0.0;
+        CalculateRefTrajectory(bendAngleX, bendAngleY);
+
+        Inform msg("SBend ");
+        msg << "Bend design energy changed to: "
+            << designEnergy_m * 1.0e-6
+            << " MeV"
+            << endl;
+        Print(msg, bendAngleX, bendAngleY);
+
+    }
+
+    return false;
+}
+
+Vector_t RBend::RotateOutOfBendFrame(Vector_t X) {
+
+    /*
+     * Rotate vector out of the bend's local coordinate system back to
+     * the lab frame.
+     *
+     * 1) Rotate about the x axis by angle negative Orientation_m(1).
+     * 2) Rotate about the y axis by angle Orientation_m(0).
+     * 3) Rotate about the z axis by angle Orientation_m(3).
+     */
+
+    double sina = sin(Orientation_m(0));
+    double cosa = cos(Orientation_m(0));
+    double sinb = sin(Orientation_m(1));
+    double cosb = cos(Orientation_m(1));
+    double sinc = sin(Orientation_m(2));
+    double cosc = cos(Orientation_m(2));
+
     Vector_t temp(0.0, 0.0, 0.0);
 
-    while(P(2) > 0.0 && X(2) < bendLength) {
+    temp(0) = (cosa * cosc) *                       X(0)
+              + (-sina * sinb * cosc - cosb * sinc) * X(1)
+              + (sina * cosb * cosc - sinb * sinc)  * X(2);
+    temp(1) = (cosa * sinc) *                       X(0)
+              + (-sina * sinb * sinc + cosb * cosc) * X(1)
+              + (sina * cosb * sinc + sinb * cosc)  * X(2);
+    temp(2) =   -sina *                               X(0)
+                + (-cosa * sinb) *                      X(1)
+                + (cosa * cosb) *                       X(2);
 
-        strength = Vector_t(0.0);
-        X /= Vector_t(Physics::c * deltaT);
-        pusher_m.push(X, P, deltaT);
-        X *= Vector_t(Physics::c * deltaT);
+    return temp;
 
-        fieldmap_m->getFieldstrength(X, strength, temp);
-        bField(1) = amplitude_m * strength(0);
-        temp = Vector_t(0.0);
-
-        X /= Vector_t(Physics::c * deltaT);
-        pusher_m.kick(X, P, temp, bField, deltaT);
-
-        pusher_m.push(X, P, deltaT);
-        X *= Vector_t(Physics::c * deltaT);
-
-    }
-
-    double angle =  -atan2(P(0), P(2)) - Orientation_m(0);
-
-    return angle;
 }
 
-double RBend::calculateRefTrajectory(const double zBegin) {
+Vector_t RBend::RotateToBendFrame(Vector_t X) {
 
-    // Calculate the reference trajectory map.
-    const double mass = RefPartBunch_m->getM();
-    const double gamma = design_energy_m / mass + 1.;
-    const double betagamma = sqrt(gamma * gamma - 1.);
-    const double dt = RefPartBunch_m->getdT();
-    int j = 0;
+    /*
+     * Rotate vector to the bend's local coordinate system.
+     *
+     * 1) Rotate about the z axis by angle negative Orientation_m(2).
+     * 2) Rotate about the y axis by angle negative Orientation_m(0).
+     * 3) Rotate about the x axis by angle Orientation_m(1).
+     */
 
-    Vector_t tmp(0.0);
-    Vector_t Bfield(0.0);
-    Vector_t strength(0.0);
-    Vector_t X(0.0);
-    Vector_t P(-betagamma * sin_face_alpha_m, 0.0, betagamma * cos_face_alpha_m); // TODO: make it 3D
+    double sina = sin(Orientation_m(0));
+    double cosa = cos(Orientation_m(0));
+    double sinb = sin(Orientation_m(1));
+    double cosb = cos(Orientation_m(1));
+    double sinc = sin(Orientation_m(2));
+    double cosc = cos(Orientation_m(2));
 
-    bool EntryFringe_passed = false;
-    double PathLengthEntryFringe = 0.0;  // in S coordinates. This value is different from zBegin due to the curvature!
+    Vector_t temp(0.0, 0.0, 0.0);
 
-    if(map_m != NULL) delete [] map_m;
+    temp(0) = (cosa * cosc) * X(0)
+              + (cosa * sinc) * X(1)
+              -  sina *         X(2);
+    temp(1) = (-cosb * sinc - sina * sinb * cosc) * X(0)
+              + (cosb * cosc - sina * sinb * sinc)  * X(1)
+              -  cosa * sinb *                        X(2);
+    temp(2) = (-sinb * sinc + sina * cosb * cosc) * X(0)
+              + (sinb * cosc + sina * cosb * sinc)  * X(1)
+              + cosa * cosb *                         X(2);
 
-    map_step_size_m = betagamma / gamma * Physics::c * dt;
-    map_size_m = static_cast<int>(floor(length_m / 2. * Physics::pi / map_step_size_m));
-    map_m = new double[map_size_m + 1];
-    map_m[0] = 0.0;
-
-    while(map_m[j] < length_m && j < map_size_m) {
-        strength = Vector_t(0.0);
-        X /= Vector_t(Physics::c * dt);
-        pusher_m.push(X, P, dt);
-        X *= Vector_t(Physics::c * dt);
-
-        fieldmap_m->getFieldstrength(X, strength, tmp);
-        if(X(2) >= fabs(zBegin) && !EntryFringe_passed) {
-
-            // This is the point where we pass ELEMEDGE
-            // not the end of the entry fringe field as the
-            // name suggests.
-
-            EntryFringe_passed = true;
-            PathLengthEntryFringe = j * map_step_size_m;
-        }
-        Bfield(1) = amplitude_m * strength(0);
-        tmp = Vector_t(0.0);
-        X /= Vector_t(Physics::c * dt);
-        pusher_m.kick(X, P, tmp, Bfield, dt);
-        pusher_m.push(X, P, dt);
-        X *= Vector_t(Physics::c * dt);
-
-        map_m[++j] = X(2);
-
-    }
-
-    map_size_m = j;
-    double angle = -atan2(P(0), P(2)) - Orientation_m(0);
-
-    startField_m = startElement_m - PathLengthEntryFringe;
-    endField_m = startField_m + map_step_size_m * j;
-
-    // Set "ideal" bend radius and effective length.
-    R_m = fabs(betagamma * mass / (Physics::c * amplitude_m));
-    effectiveLength_m = R_m * std::abs(angle);
-    calculateEffectiveCenter();
-
-    return angle;
+    return temp;
 }
 
-void RBend::calculateEffectiveLength() {
-
-    double zBegin = 0.0;
-    double zEnd = 0.0;
-    double rBegin = 0.0;
-    double rEnd = 0.0;
-    fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-
-    // Uses Simpson's rule to integrate field. Make step size about 1 mm.
-
-    // This must be odd.
-    unsigned int numberOfIntSteps = 2 * static_cast<unsigned int>(floor((zEnd - zBegin) * 1000.0 / 2.0)) + 1;
-
-    double deltaZ = (zEnd - zBegin) / numberOfIntSteps;
-    effectiveLength_m = 0.0;
-
-    for(unsigned int integralIndex = 1; integralIndex <= (numberOfIntSteps - 1) / 2; integralIndex++) {
-
-        Vector_t strength(0.0);
-        Vector_t info(0.0);
-        Vector_t X(0.0);
-        X(2) = (2 * integralIndex - 1) * deltaZ;
-        fieldmap_m->getFieldstrength(X, strength, info);
-        double field1 = strength(0);
-
-        X(2) = 2 * integralIndex * deltaZ;
-        fieldmap_m->getFieldstrength(X, strength, info);
-        double field2 = strength(0);
-
-        X(2) = (2 * integralIndex + 1) * deltaZ;
-        fieldmap_m->getFieldstrength(X, strength, info);
-        double field3 = strength(0);
-
-        effectiveLength_m += deltaZ * (field1 + 4.0 * field2 + field3) / 3.0;
-    }
-}
-
-void RBend::calculateEffectiveCenter() {
-
-    double zBegin = 0.0;
-    double zEnd = 0.0;
-    double rBegin = 0.0;
-    double rEnd = 0.0;
-    fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
-
-    // Initial guess for effective center.
-    double effectiveCenter = fabs(R_m * angle_m / 2.0) - zBegin;
+void RBend::SetBendEffectiveLength(double startField, double endField) {
 
     // Find initial angle.
-    double actualBendAngle = calculateBendAngle(effectiveCenter);
+    double actualBendAngle = CalculateBendAngle();
 
-    // Adjust effective center to get a bend angle 0.5 times the full bend angle.
-    int iterations = 1;
-    double lengthAdjustment = effectiveCenter / 10.0;
+    // Adjust field map to match bend angle.
+    double error = std::abs(actualBendAngle - angle_m);
+    if(error > 1.0 - 6)
+        FindBendEffectiveLength(startField, endField);
 
-    if(fabs(actualBendAngle) > fabs(angle_m / 2.0))
-        lengthAdjustment *= -1.0;
+}
 
-    bool lastGreater = true;
-    if(fabs(actualBendAngle) < fabs(angle_m / 2.0))
-        lastGreater = false;
+void RBend::SetBendStrength() {
 
-    while(fabs(actualBendAngle - angle_m / 2.0) > 1.0e-8 && iterations <= 100) {
+    // Estimate bend field magnitude.
+    double mass = RefPartBunch_m->getM();
+    double gamma = designEnergy_m / mass + 1.0;
+    double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
+    double charge = RefPartBunch_m->getQ();
 
-        actualBendAngle = calculateBendAngle(effectiveCenter);
-        iterations++;
+    fieldAmplitude_m = (charge / std::abs(charge)) * betaGamma * mass
+                       / (Physics::c * designRadius_m);
 
-        if((!lastGreater && fabs(actualBendAngle) > fabs(angle_m / 2.0)) || (lastGreater && fabs(actualBendAngle) < fabs(angle_m / 2.0)))
-            lengthAdjustment /= -10.0;
+    // Find initial angle.
+    double actualBendAngle = CalculateBendAngle();
 
-        if(fabs(actualBendAngle) > fabs(angle_m / 2.0)) lastGreater = true;
-        else lastGreater = false;
+    // Search for angle if initial guess is not good enough.
+    double error = std::abs(actualBendAngle - angle_m);
+    if(error > 1.0e-6)
+        FindBendStrength(mass, gamma, betaGamma, charge);
 
-        effectiveCenter += lengthAdjustment;
+}
+
+void RBend::SetEngeOriginDelta(double delta) {
+    /*
+     * This function is used to shift the perpendicular distance of the
+     * entrance and exit Enge function origins with respect to the entrance
+     * and exit points in the magnet. A positive delta shifts them towards
+     * the center of the magnet.
+     */
+    entranceParameter1_m = delta - std::abs(entranceParameter1_m
+                                            - entranceParameter2_m);
+    entranceParameter3_m = delta + std::abs(entranceParameter2_m
+                                            - entranceParameter3_m);
+    entranceParameter2_m = delta;
+
+    exitParameter1_m = -delta - std::abs(exitParameter1_m - exitParameter2_m);
+    exitParameter3_m = -delta + std::abs(exitParameter2_m - exitParameter3_m);
+    exitParameter2_m = -delta;
+}
+
+void RBend::SetFieldCalcParam(bool lengthFromMap) {
+
+    cosEntranceAngle_m = cos(entranceAngle_m);
+    sinEntranceAngle_m = sin(entranceAngle_m);
+
+    deltaBeginEntry_m = std::abs(entranceParameter1_m - entranceParameter2_m);
+    deltaEndEntry_m = std::abs(entranceParameter2_m - entranceParameter3_m);
+
+    exitEdgeAngle_m = angle_m - exitAngle_m;
+    cosExitAngle_m = cos(exitEdgeAngle_m);
+    sinExitAngle_m = sin(exitEdgeAngle_m);
+
+    deltaBeginExit_m = std::abs(exitParameter1_m - exitParameter2_m);
+    deltaEndExit_m = std::abs(exitParameter2_m - exitParameter3_m);
+
+    if(lengthFromMap) {
+        /*
+         * The magnet chord length is taken from this field map. In this case,
+         * we assume that the origin points for the entrance and exit Enge
+         * functions correspond to the physical edges of the bend magnet. These
+         * are the points where the ideal reference particle trajectory intercepts
+         * the entrance and exit edges.
+         */
+        xOriginEngeEntry_m = 0.0;
+        zOriginEngeEntry_m = 0.0;
+        xOriginEngeExit_m = xExit_m;
+        zOriginEngeExit_m = zExit_m;
+
+    } else {
+        /*
+         * In this case, the chord length of the magnet is set in the input file
+         * and is not taken from the field map file. This allows us to set the
+         * origin points for the entrance and exit Enge functions some perpendicular
+         * distance away from the physical edges of the magnet.
+         */
+        xOriginEngeEntry_m = -entranceParameter2_m * sinEntranceAngle_m;
+        zOriginEngeEntry_m = entranceParameter2_m * cosEntranceAngle_m;
+
+        xOriginEngeExit_m = xExit_m - exitParameter2_m * sinExitAngle_m;
+        zOriginEngeExit_m = zExit_m + exitParameter2_m * cosExitAngle_m;
 
     }
-    effectiveCenter_m = effectiveCenter - R_m * sin(angle_m / 2.0) + R_m * angle_m / 2.0;
+}
+
+void RBend::SetGapFromFieldMap() {
+
+    if(gap_m <= 0.0)
+        gap_m = fieldmap_m->GetFieldGap();
+    else if(gap_m != fieldmap_m->GetFieldGap())
+        AdjustFringeFields(gap_m / fieldmap_m->GetFieldGap());
+
+}
+
+bool RBend::SetupBendGeometry(Inform &msg, double &startField, double &endField) {
+
+    double bendLength = 0.0;
+    bool bendLengthFromMap = false;
+    if(!FindBendLength(msg, bendLength, bendLengthFromMap))
+        return false;
+
+    if(TreatAsDrift(msg)) {
+        startField_m = startField;
+        endField_m = startField + bendLength;
+        return true;
+    }
+
+    reinitialize_m = FindIdealBendParameters(bendLength);
+
+    FindReferenceExitOrigin(xExit_m, zExit_m);
+
+    /*
+     * Set field map geometry.
+     */
+    if(aperture_m <= 0.0)
+        aperture_m = designRadius_m / 2.0;
+    SetFieldCalcParam(bendLengthFromMap);
+
+    /*
+     * If we are using the default field map, then the origins for the
+     * Enge functions will be shifted so that we get the desired bend
+     * angle for the given bend strength. (We match the effective length
+     * of our field map to the ideal bend length.)
+     *
+     * If we are not using the default field map, we assume it cannot
+     * change so we either leave everything alone (if the user defines
+     * the bend strength) or we adjust the bend field to get the right
+     * angle.
+     */
+    elementEdge_m = startField + ds_m;
+    SetFieldBoundaries(startField, endField);
+
+    if(fileName_m != "1DPROFILE1-DEFAULT") {
+        if(reinitialize_m)
+            SetBendStrength();
+    } else {
+        SetBendEffectiveLength(startField, endField);
+    }
+
+    startField = startField_m;
+    endField = endField_m;
+    return true;
+
+}
+
+bool RBend::SetupDefaultFieldMap(Inform &msg) {
+
+    if(gap_m <= 0.0 || length_m <= 0.0) {
+        msg << "If using \"1DPROFILE1-DEFAULT\" field map you must set the "
+            "bend attributes GAP and L in the OPAL input file."
+            << endl;
+        return false;
+    } else {
+        fieldmap_m->SetFieldGap(gap_m);
+        fieldmap_m->getInfo(&msg);
+        return true;
+    }
+
+}
+
+void RBend::SetFieldBoundaries(double startField, double endField) {
+
+    startField_m = startField - deltaBeginEntry_m / cos(entranceAngle_m) + ds_m;
+    endField_m = startField + angle_m * designRadius_m
+                 + deltaEndExit_m / cos(exitAngle_m)
+                 + ds_m;
+
+}
+
+void RBend::SetupPusher(PartBunch *bunch) {
+
+    RefPartBunch_m = bunch;
+    pusher_m.initialise(bunch->getReference());
+
+}
+
+bool RBend::TreatAsDrift(Inform &msg) {
+    if(designEnergy_m <= 0.0) {
+        msg << "Warning: bend design energy is zero. Treating as drift."
+            << endl;
+        designRadius_m = 0.0;
+        return true;
+    } else
+        return false;
 }

@@ -27,8 +27,6 @@
 #include "Structure/SurfacePhysics.h"
 #include <cmath>
 
-extern Inform *gmsg;
-
 // Class OpalSBend
 // ------------------------------------------------------------------------
 
@@ -153,47 +151,58 @@ void OpalSBend::update() {
 
     // Set field amplitude or bend angle and the magnet rotation about the z axis.
     if(itsAttr[ANGLE])
-        bend->setBendAngle(Attributes::getReal(itsAttr[ANGLE]));
+        bend->SetBendAngle(Attributes::getReal(itsAttr[ANGLE]));
     else
-        bend->setAmplitudem(sqrt(k0 * k0 + k0s * k0s));
+        bend->SetFieldAmplitude(sqrt(k0 * k0 + k0s * k0s));
+
+    if(itsAttr[GREATERTHANPI])
+        bend->SetAngleGreaterThanPiFlag(Attributes::getBool(itsAttr[GREATERTHANPI]));
+    else
+        bend->SetAngleGreaterThanPiFlag(false);
 
     if(itsAttr[ROTATION])
-        bend->setLongitudinalRotation(Attributes::getReal(itsAttr[ROTATION]));
+        bend->SetRotationAboutZ(Attributes::getReal(itsAttr[ROTATION]));
     else if(itsAttr[K0] || itsAttr[K0S])
-        bend->setLongitudinalRotation(k0, k0s);
+        bend->SetRotationAboutZ(k0, k0s);
     else
-        bend->setLongitudinalRotation(0.0);
+        bend->SetRotationAboutZ(0.0);
 
     if(itsAttr[FMAPFN])
-        bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
+        bend->SetFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     else if(bend->getName() != "SBEND")
         ERRORMSG(bend->getName() << ": No filename for a field map given" << endl);
 
     if(itsAttr[E1])
-        bend->setAlpha(Attributes::getReal(itsAttr[E1]));
+        bend->SetEntranceAngle(Attributes::getReal(itsAttr[E1]));
     else if(itsAttr[ALPHA])
-        bend->setAlpha(Attributes::getReal(itsAttr[ALPHA]));
+        bend->SetEntranceAngle(Attributes::getReal(itsAttr[ALPHA]));
     else
-        bend->setAlpha(0.0);
+        bend->SetEntranceAngle(0.0);
 
     if(itsAttr[BETA])
-        bend->setBeta(Attributes::getReal(itsAttr[BETA]));
+        bend->SetBeta(Attributes::getReal(itsAttr[BETA]));
     else
-        bend->setBeta(0.0);
+        bend->SetBeta(0.0);
 
+    // Convert from MeV to eV.
     if(itsAttr[DESIGNENERGY]) {
-        bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * 1e6); // convert from MeV to eV
+        bend->SetDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * 1e6);
     }
 
     if(itsAttr[GAP])
-        bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+        bend->SetFullGap(Attributes::getReal(itsAttr[GAP]));
     else
-        bend->setFullGap(0.0);
+        bend->SetFullGap(0.0);
+
+    if(itsAttr[APERTURE])
+        bend->SetAperture(Attributes::getReal(itsAttr[APERTURE]));
+    else
+        bend->SetAperture(0.0);
 
     if(itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
+        bend->SetLength(Attributes::getReal(itsAttr[LENGTH]));
     else
-        bend->setLength(0.0);
+        bend->SetLength(0.0);
 
     if(itsAttr[E2])
         bend->setExitAngle(Attributes::getReal(itsAttr[E2]));
@@ -210,9 +219,9 @@ void OpalSBend::update() {
     }
 
     if(itsAttr[K1])
-        bend->setK1(Attributes::getReal(itsAttr[K1]));
+        bend->SetK1(Attributes::getReal(itsAttr[K1]));
     else
-        bend->setK1(0.0);
+        bend->SetK1(0.0);
     //  if (itsAttr[L])
     //   bend->setL(Attributes::getReal(itsAttr[L]));
     //  else

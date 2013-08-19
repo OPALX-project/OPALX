@@ -36,23 +36,25 @@ class Fieldmap;
  *
  * Interface for sector bend magnet.
  *
- * A sector bend magnet has a curved geometry. A sector magnet with zero degree edge angles is
- * simply a section of a circle when projected onto the y axis.
+ * A sector bend magnet has a curved geometry. A sector magnet with zero degree
+ * edge angles is simply a section of a circle when projected onto the y axis.
  *
- * The standard sector magnet, for purposes of definitions, has a field in the y direction.
- * This produces a bend in the horizontal (x) plane. Bends in other planes can be accomplished
- * by rotating the magnet about the axes.
+ * The standard sector magnet, for purposes of definitions, has a field in the y
+ * direction. This produces a bend in the horizontal (x) plane. Bends in other
+ * planes can be accomplished by rotating the magnet about the axes.
  *
- * A positive bend angle is defined as one that bends a beam to the right when looking down
- * (in the negative y direction) so that the beam is bent in the negative x direction.
+ * A positive bend angle is defined as one that bends a beam to the right when
+ * looking down (in the negative y direction) so that the beam is bent in the
+ * negative x direction. (This definition of a positive bend is the same whether
+ * the charge is positive or negative.)
  *
- * A zero degree entrance edge angle is parallel to the x direction in an x/y/s coordinate system.
- * A positive entrance edge angle is defined as one that rotates the positive edge (in x) of the angle
- * toward the positive s axis.
+ * A zero degree entrance edge angle is parallel to the x direction in an x/y/s
+ * coordinate system. A positive entrance edge angle is defined as one that
+ * rotates the positive edge (in x) of the angle toward the positive s axis.
  *
- * A zero degree exit edge angle is parallel to the x direction in an x/y/s coordinate system. A
- * positive exit edge angle is defined as one that rotates the positive edge (in x) of the angle toward
- * the negative s axis.
+ * A zero degree exit edge angle is parallel to the x direction in an x/y/s
+ * coordinate system. A positive exit edge angle is defined as one that rotates
+ * the positive edge (in x) of the angle toward the negative s axis.
  *
  * ------------------------------------------------------------------------
  *
@@ -157,9 +159,6 @@ public:
     //  Slices and stepsize used to determine integration step.
     virtual double getStepsize() const = 0;
 
-    void setFaceAngleEntry(double angle);
-    void setFaceAngleExit(double angle);
-
 
     /*
      * Methods for OPAL-T.
@@ -167,45 +166,47 @@ public:
      */
 
     /// Apply field to particles with coordinates in magnet frame.
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const size_t &i,
+                       const double &t,
+                       double E[],
+                       double B[]);
+    virtual bool apply(const size_t &i,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
     /// Apply field to particles in beam frame.
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
-
-    /// Setup bend.
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
-
-    virtual void finalise();
+    virtual bool apply(const Vector_t &R,
+                       const Vector_t &centroid,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
     /// Indicates that element bends the beam.
     virtual bool bends() const;
 
-    /// Get field map file name.
-    std::string getFieldMapFN() const;
-
-    /// Get element type.
+    virtual void finalise();
+    virtual void getDimensions(double &sBegin, double &sEnd) const;
     virtual const std::string &getType() const;
+    virtual void initialise(PartBunch *bunch,
+                            double &startField,
+                            double &endField,
+                            const double &scaleFactor);
 
-    /// Get bend dimensions. Includes fringe fields.
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
-
-    double getBendAngle() const;
-    double getEffectiveLength() const;
-    double getEffectiveCenter() const;
-    double getR() const;
-    double getStartElement() const;
-
-    void setAmplitudem(double vPeak);
-    void setBendAngle(const double &);
-
-    void setAlpha(const double &alpha);
-    void setExitAngle(const double &exitAngle);
-    void setBeta(const double &beta);
-    void setDesignEnergy(const double &energy);
-
-    /// Set quadrupole field component.
-    void setK1(const double &k1);
+    double GetBendAngle() const;
+    double GetBendRadius() const;
+    double GetEffectiveCenter() const;
+    double GetEffectiveLength() const;
+    std::string GetFieldMapFN() const;
+    double GetStartElement() const;
+    void SetAngleGreaterThanPiFlag(bool angleGreaterThanPi);
+    void SetAperture(double aperture);
+    void SetBendAngle(double angle);
+    void SetBeta(double beta);
+    void SetDesignEnergy(double energy);
+    void SetEntranceAngle(double entranceAngle);
+    void setExitAngle(double exitAngle);
+    void SetFieldAmplitude(double fieldAmplitude);
 
     /*
      * Set the name of the field map.
@@ -213,31 +214,101 @@ public:
      * For now this means a file that contains Enge function coefficients
      * that describe the fringe fields at the entrance and exit.
      */
-    void setFieldMapFN(std::string fmapfn);
+    void SetFieldMapFN(std::string fileName);
+    void SetFullGap(double gap);
 
-    void setFullGap(const double &);
-    void setLength(const double &);
+    /// Set quadrupole field component.
+    void SetK1(double k1);
+    void SetLength(double length);
 
     /// Set rotation about z axis in bend frame.
-    void setLongitudinalRotation(const double &);
-    void setLongitudinalRotation(const double &, const double &);
+    void SetRotationAboutZ(double rotation);
+    void SetRotationAboutZ(double k0, double k0s);
 
 private:
 
     // Not implemented.
     void operator=(const SBend &);
 
-    BorisPusher pusher_m;
-    Vektor<double, 2> field_orientation_m;
+    void AdjustFringeFields(double ratio);
+    double CalculateBendAngle();
+    void CalcCentralField(Vector_t R,
+                          double deltaX,
+                          double angle,
+                          Vector_t &B);
+    void CalcDistFromRefOrbitCentralField(Vector_t R,
+                                          double &deltaX,
+                                          double &angle);
+    void CalcEngeFunction(double zNormalized,
+                          std::vector<double> engeCoeff,
+                          int polyOrder,
+                          double &engeFunc,
+                          double &engeFuncDeriv,
+                          double &engeFuncSecDeriv);
+    void CalcEntranceFringeField(Vector_t REntrance,
+                                 double deltaX,
+                                 Vector_t &B);
+    void CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B);
+    void CalculateMapField(Vector_t R, Vector_t &E, Vector_t &B);
+    void CalculateRefTrajectory(double &angleX, double &angleY);
+    double EstimateFieldAdjustmentStep(double actualBendAngle,
+                                       double mass,
+                                       double betaGamma);
+    void FindBendEffectiveLength(double startField, double endField);
+    void FindBendStrength(double mass,
+                          double gamma,
+                          double betaGamma,
+                          double charge);
+    bool FindChordLength(Inform &msg,
+                         double &chordLength,
+                         bool &chordLengthFromMap);
+    bool FindIdealBendParameters(double chordLength);
+    void FindReferenceExitOrigin(double &x, double &z);
+    bool InitializeFieldMap(Inform &msg);
+    bool InMagnetCentralRegion(Vector_t R, double &deltaX, double &angle);
+    bool InMagnetEntranceRegion(Vector_t R, double &deltaX);
+    bool InMagnetExitRegion(Vector_t R, double &deltaX);
+    bool IsPositionInEntranceField(Vector_t R, Vector_t &REntrance);
+    bool IsPositionInExitField(Vector_t R, Vector_t &RExit);
+    void Print(Inform &msg, double bendAngleX, double bendAngle);
+    void ReadFieldMap(Inform &msg);
+    bool Reinitialize();
+    Vector_t RotateOutOfBendFrame(Vector_t X);
+    Vector_t RotateToBendFrame(Vector_t X);
+    void SetBendEffectiveLength(double startField, double endField);
+    void SetBendStrength();
+    void SetEngeOriginDelta(double delta);
+    void SetFieldCalcParam(bool chordLengthFromMap);
+    void SetGapFromFieldMap();
+    bool SetupBendGeometry(Inform &msg, double &startField, double &endField);
+    bool SetupDefaultFieldMap(Inform &msg);
+    void SetFieldBoundaries(double startField, double endField);
+    void SetupPusher(PartBunch *bunch);
+    bool TreatAsDrift(Inform &msg);
 
-    /// Name of field map that defines magnet.
-    std::string filename_m;
-
-    /// Magnet field map.
-    Fieldmap *fieldmap_m;
-
-    /// Flag to turn on fast field calculation. (Not currently used.)
-    bool fast_m;
+    BorisPusher pusher_m;       /// Pusher used to integrate reference particle
+    /// through the bend.
+    std::string fileName_m;     /// Name of field map that defines magnet.
+    Fieldmap *fieldmap_m;       /// Magnet field map.
+    bool fast_m;                /// Flag to turn on fast field calculation.
+    /// (Not currently used.)
+    double angle_m;             /// Bend angle for reference particle with bend
+    /// design energy (radians).
+    double aperture_m;          /// Aperture of magnet in non-bend (horizontal)
+    /// plane.
+    double designEnergy_m;      /// Bend design energy (eV).
+    double designRadius_m;      /// Bend design radius (m).
+    double fieldAmplitude_m;    /// Amplitude of magnet field (T).
+    bool angleGreaterThanPi_m;  /// Set to true if bend angle is greater than
+    /// 180 degrees.
+    double entranceAngle_m;     /// Angle between incoming reference trajectory
+    /// and the entrance face of the magnet (radians).
+    double exitAngle_m;         /// Angle between outgoing reference trajectory
+    /// and the exit face of the magnet (radians).
+    double gradient_m;          /// Quadrupole component of field.
+    double elementEdge_m;       /// Physical start of magnet in s coordinates (m).
+    double startField_m;        /// Start of magnet field map in s coordinates (m).
+    double endField_m;          /// End of magnet field map in s coordinates (m).
 
     /*
      * Flag to reinitialize the bend the first time the magnet
@@ -247,72 +318,83 @@ private:
      */
     bool reinitialize_m;
 
-    /// Start of magnet field map.
-    double startField_m;
-
-    /// End of magnet field map.
-    double endField_m;
+    bool recalcRefTraj_m;       /// Re-calculate reference trajectory.
 
     /*
-     * The magnet length and gap are used to define the magnet field
-     * when the default, internal field map is used. Otherwise these
-     * are effectively defined by the field map file.
+     * These two parameters are used to set up the bend geometry.
+     *
+     * When using the default, internal field map, the gap of the
+     * magnet must be set in the input file.
+     *
+     * The magnet length is used initially to define the chord length of
+     * the reference particle arc length. It is used at the start to
+     * define the magnet's geometry. This parameter must be set in the
+     * input file when using the default, internal field map. Otherwise
+     * defining it is optional.
      */
     double length_m;
     double gap_m;
 
-    double ElementEdge_m;
-    double startElement_m;
-
-    /// Amplitude of magnet field (Tesla).
-    double amplitude_m;
-
-    /// Quadrupole component of field.
-    double gradient_m;
-
-    /// Bend angle for reference particle with bend design energy.
-    double angle_m;
-    double design_energy_m;
-
-    /*
-     * Edge angle parameters. We also store trig functions of these parameters
-     * as they are used repeatedly.
-     */
-    double alpha_m; // Angle between incoming beam and the entrance face of the magnet.
-    double exitAngle_m; // Angle between the outgoing, reference trajectory and exit face of the magnet.
-
-    double sin_face_alpha_m; // alpha is the angle between the projection of the normal of the face onto the
-    double cos_face_alpha_m; // s-u plane
-    double tan_face_alpha_m;
-
-    double sin_face_beta_m; // beta is defined as arctan(|n_parallel|/|n_perpendicular|) where n_parallel is the component
-    double cos_face_beta_m; // of the normal of the face which is parallel to the s-u plane and n_perpendicular is
-    double tan_face_beta_m; // perpendicular to it
-
     /// Map of reference particle trajectory.
-    double *map_m;
-    int map_size_m;
-    double map_step_size_m;
+    std::vector<double> refTrajMapX_m;
+    std::vector<double> refTrajMapY_m;
+    std::vector<double> refTrajMapZ_m;
+    int refTrajMapSize_m;
+    double refTrajMapStepSize_m;
 
     /*
-     * Parameters that define an effective, hard edge bend that
-     * is the approximate equivalent to the actual bend. Radius.
-     * Effective length and effective center in s coordinates.
-     * Effective start in floor coordinates.
+     * Enge function field map members.
      */
-    double R_m;
-    double effectiveLength_m;
-    double effectiveCenter_m;
-    double effectiveStart_m;
 
-    double calculateBendAngle(double bendLength, bool modifyField);
-    void calculateDistFromRef(Vector_t X, double &deltaX, double &angle);
-    void calculateEffectiveLength();
-    void calculateEffectiveCenter();
-    void calculateMapField(Vector_t X, double &bX, double &bY, double &bZ);
-    double calculateRefTrajectory(const double zBegin);
-    bool reinitialize();
-    void setBendStrength();
+    /*
+     * Entrance and exit position parameters. Ultimately they are used to
+     * determine the origins of the entrance and exit edge Enge functions and
+     * the extent of the field map. However, how they are used to do this
+     * depends on how the bend using the map is setup in the OPAL input file.
+     * So, we use generic terms to start.
+     */
+    double entranceParameter1_m;
+    double entranceParameter2_m;
+    double entranceParameter3_m;
+    double exitParameter1_m;
+    double exitParameter2_m;
+    double exitParameter3_m;
+
+    /// Enge coefficients for map entry and exit regions.
+    std::vector<double> engeCoeffsEntry_m;
+    std::vector<double> engeCoeffsExit_m;
+
+    /*
+     * All coordinates are with respect to (x, z) = (0, 0). It is
+     * assumed the ideal reference trajectory passes through this point.
+     */
+    double xOriginEngeEntry_m;      /// x coordinate of entry Enge function origin.
+    double zOriginEngeEntry_m;      /// z coordinate of entry Enge function origin.
+    double deltaBeginEntry_m;       /// Perpendicular distance from entrance Enge
+    /// function origin where Enge function starts.
+    double deltaEndEntry_m;         /// Perpendicular distance from entrance Enge
+    /// function origin that Enge function ends.
+    int polyOrderEntry_m;           /// Enge function order for entry region.
+
+    /*
+     * The ideal reference trajectory passes through (xExit_m, zExit_m).
+     */
+    double xExit_m;
+    double zExit_m;
+
+    double xOriginEngeExit_m;       /// x coordinate of exit Enge function origin.
+    double zOriginEngeExit_m;       /// z coordinate of exit Enge function origin.
+    double deltaBeginExit_m;        /// Perpendicular distance from exit Enge
+    /// function origin that Enge function starts.
+    double deltaEndExit_m;          /// Perpendicular distance from exit Enge
+    /// function origin that Enge function ends.
+    int polyOrderExit_m;            /// Enge function order for entry region.
+
+    double cosEntranceAngle_m;
+    double sinEntranceAngle_m;
+    double exitEdgeAngle_m;         /// Exit edge angle (radians.
+    double cosExitAngle_m;
+    double sinExitAngle_m;
 
 };
 

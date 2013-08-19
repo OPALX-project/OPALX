@@ -84,8 +84,8 @@ OpalSection &OpalBeamline::getSectionAt(const Vector_t &pos, long &initial_guess
         while(pos(2) > sections_m[initial_guess].getEnd(pos(0), pos(1))) ++initial_guess;
         while(pos(2) < sections_m[initial_guess].getStart(pos(0), pos(1))) --initial_guess;
 
-        if (pos(2) >= sections_m[initial_guess].getStart(pos(0), pos(1)) &&
-            pos(2) <= sections_m[initial_guess].getEnd(pos(0), pos(1))) return sections_m[initial_guess];
+        if(pos(2) >= sections_m[initial_guess].getStart(pos(0), pos(1)) &&
+           pos(2) <= sections_m[initial_guess].getEnd(pos(0), pos(1))) return sections_m[initial_guess];
 
         return dummy_section_m;
     }
@@ -192,17 +192,17 @@ unsigned long OpalBeamline::getFieldAt(const unsigned int &index, const Vector_t
         // Tenzor<double, 3> rota(cos(ori(0)), 0, sin(ori(0)), 0, 1, 0, -sin(ori(0)), 0, cos(ori(0)));
         // Tenzor<double, 3> rotb(1, 0, 0, 0, cos(ori(1)), sin(ori(1)), 0, -sin(ori(1)), cos(ori(1)));
         // Tenzor<double, 3> rotc(cos(ori(2)), -sin(ori(2)), 0, sin(ori(2)), cos(ori(2)), 0, 0, 0, 1);
-        
+
         // Tenzor<double, 3> orientation = dot(rotc, dot(rota, rotb));
         // E = dot(orientation, E);
         // B = dot(orientation, B);
 
         const  double sina = sin(ori(0)),
-            cosa = cos(ori(0)),
-            sinb = sin(ori(1)),
-            cosb = cos(ori(1)),
-            sinc = sin(ori(2)),
-            cosc = cos(ori(2));
+                      cosa = cos(ori(0)),
+                      sinb = sin(ori(1)),
+                      cosb = cos(ori(1)),
+                      sinc = sin(ori(2)),
+                      cosc = cos(ori(2));
 
         Vector_t temp = E;
 
@@ -241,6 +241,7 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &cent
     if(!(initial_guess & BEAMLINE_EOL || initial_guess < 0)) {
         unsigned int ini_guess = initial_guess;
         setStatus(ini_guess, true);
+
         if(pos(2) >= section.getStart(pos(0), pos(1)) && pos(2) <= section.getEnd(pos(0), pos(1))) {
             const CompVec &elements = section.getElements();
             for(CompVec::const_iterator elit = elements.begin(); elit != elements.end(); ++ elit) {

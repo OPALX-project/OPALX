@@ -270,7 +270,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         h5_size_t grid_dims[3];
         h5_size_t field_dims;
         char name[20];
-        h5_size_t len_name = sizeof (name);
+        h5_size_t len_name = sizeof(name);
         h5_int64_t ftype;
 
         h5_file_t *file = H5OpenFile(Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
@@ -296,8 +296,8 @@ MapType Fieldmap::readHeader(std::string Filename) {
             h5err = H5CloseFile(file);
             if(h5err != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            if (maptype != UNKNOWN)
-                    return maptype;
+            if(maptype != UNKNOWN)
+                return maptype;
         }
     }
     if(strcmp(magicnumber, "Astr") == 0) {
@@ -336,20 +336,11 @@ void Fieldmap::freeMap(std::string Filename) {
     }
 }
 
-void Fieldmap::setExitFaceSlope(const double &)
-{ }
-
 void Fieldmap::setEdgeConstants(const double &bendAngle, const double &entranceAngle, const double &exitAngle)
-{};
-
-void Fieldmap::setFieldGap(const double &)
 {};
 
 void Fieldmap::setFieldLength(const double &)
 {};
-
-bool Fieldmap::adjustFringeFields()
-{ return false; };
 
 void Fieldmap::getLine(ifstream &in, int &lines_read, std::string &buffer) {
     size_t firstof = 0;
@@ -546,9 +537,33 @@ std::string Fieldmap::typeset_msg(const std::string &msg, const std::string &tit
     return return_string;
 }
 
-void Fieldmap::getOnaxisEz(vector<pair<double, double> > & onaxis)
+void Fieldmap::getOnaxisEz(vector<pair<double, double> > &onaxis)
 { }
 
+void Fieldmap::Get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
+                                       std::vector<double> &engeCoeffsExit) {
+
+}
+
+void Fieldmap::Get1DProfile1EntranceParam(double &entranceParameter1,
+        double &entranceParameter2,
+        double &entranceParameter3) {
+
+}
+
+void Fieldmap::Get1DProfile1ExitParam(double &exitParameter1,
+                                      double &exitParameter2,
+                                      double &exitParameter3) {
+
+}
+
+double Fieldmap::GetFieldGap() {
+    return 0.0;
+}
+
+void Fieldmap::SetFieldGap(double gap) {
+
+}
 
 REGISTER_PARSE_TYPE(int);
 REGISTER_PARSE_TYPE(double);

@@ -66,7 +66,9 @@ OpalBend::OpalBend(const char *name, const char *help):
     itsAttr[FMAPFN] = Attributes::makeString
                       ("FMAPFN", "Filename for the fieldmap");
     itsAttr[GAP] = Attributes::makeReal
-                   ("GAP", "Full gap height of the magnet (m)");
+                   ("GAP", "Full gap height of the magnet (m)", 0.0);
+    itsAttr[APERTURE] = Attributes::makeReal
+                        ("APERTURE", "Non-bend plane magnet aperture (m)", 0.0);
     itsAttr[ROTATION] = Attributes::makeReal
                         ("ROTATION", "Magnet rotation about z axis in degrees");
     itsAttr[ALPHA] = Attributes::makeReal
@@ -77,6 +79,10 @@ OpalBend::OpalBend(const char *name, const char *help):
                          ("EXITANGLE", "Angle between the entry and exit face (SBEND only)");
     itsAttr[DESIGNENERGY] = Attributes::makeReal
                             ("DESIGNENERGY", "the mean energy of the particles");
+    itsAttr[GREATERTHANPI] = Attributes::makeBool
+                             ("GREATERTHANPI",
+                              "Set to true if bend angle is greater than 180 degrees",
+                              false);
 
     registerRealAttribute("ANGLE");
     registerRealAttribute("K0L");
@@ -97,6 +103,7 @@ OpalBend::OpalBend(const char *name, const char *help):
     registerRealAttribute("STEPSIZE");
     registerStringAttribute("FMAPFN");
     registerRealAttribute("GAP");
+    registerRealAttribute("APERTURE");
     registerRealAttribute("ROTATION");
     registerRealAttribute("ALPHA");
     registerRealAttribute("BETA");
