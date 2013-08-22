@@ -43,8 +43,6 @@ OpalWire::OpalWire():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
 
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
@@ -53,7 +51,6 @@ OpalWire::OpalWire():
     registerRealAttribute("YPOS");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
 
     setElement((new CollimatorRep("WIRE"))->makeAlignWrapper());
 }
@@ -89,7 +86,6 @@ void OpalWire::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag)
     coll->getMisalignment(dx, dy, dz);
     attributeRegistry["DX"]->setReal(dx);
     attributeRegistry["DY"]->setReal(dy);
-    attributeRegistry["DZ"]->setReal(dz);
 
     //  attributeRegistry["XPOS"]->setReal(coll->getXpos());
     // attributeRegistry["YPOS"]->setReal(coll->getYpos());
@@ -99,7 +95,6 @@ void OpalWire::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag)
 void OpalWire::update() {
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
     CollimatorRep *coll =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
@@ -110,7 +105,7 @@ void OpalWire::update() {
     coll->setXpos(Attributes::getReal(itsAttr[XPOS]));
     coll->setYpos(Attributes::getReal(itsAttr[YPOS]));
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    coll->setMisalignment(dx, dy, dz);
+    coll->setMisalignment(dx, dy, 0.0);
     coll->setWire();
 
 

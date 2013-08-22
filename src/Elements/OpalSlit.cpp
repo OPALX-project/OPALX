@@ -39,8 +39,6 @@ OpalSlit::OpalSlit():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
 
 
     registerStringAttribute("OUTFN");
@@ -48,7 +46,6 @@ OpalSlit::OpalSlit():
     registerRealAttribute("YSIZE");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
 
     setElement((new CollimatorRep("SLIT"))->makeAlignWrapper());
 }
@@ -84,7 +81,6 @@ void OpalSlit::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag)
     coll->getMisalignment(dx, dy, dz);
     attributeRegistry["DX"]->setReal(dx);
     attributeRegistry["DY"]->setReal(dy);
-    attributeRegistry["DZ"]->setReal(dz);
 }
 
 
@@ -100,7 +96,6 @@ void OpalSlit::update() {
 
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
@@ -119,7 +114,7 @@ void OpalSlit::update() {
         coll->setSurfacePhysics(sphys_m->handler_m);
     }
 
-    coll->setMisalignment(dx, dy, dz);
+    coll->setMisalignment(dx, dy, 0.0);
 
 
     // Transmit "unknown" attributes.

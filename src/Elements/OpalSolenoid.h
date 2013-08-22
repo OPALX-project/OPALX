@@ -36,7 +36,6 @@ public:
         FAST,           // Faster but less accurate
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
-        DZ,             // Misalignment: translation in z direction
         SIZE
     };
 

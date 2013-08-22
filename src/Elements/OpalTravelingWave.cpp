@@ -61,9 +61,6 @@ OpalTravelingWave::OpalTravelingWave():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
-
 
     registerRealAttribute("VOLT");
     registerRealAttribute("FREQ");
@@ -73,7 +70,6 @@ OpalTravelingWave::OpalTravelingWave():
     registerRealAttribute("NUMCELLS");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
 
     setElement((new TravelingWaveRep("TRAVELINGWAVE"))->makeAlignWrapper());
 }
@@ -112,7 +108,6 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
         rfc->getMisalignment(dx, dy, dz);
         attributeRegistry["DX"]->setReal(dx);
         attributeRegistry["DY"]->setReal(dy);
-        attributeRegistry["DZ"]->setReal(dz);
     }
 }
 
@@ -133,9 +128,8 @@ void OpalTravelingWave::update() {
     string type = Attributes::getString(itsAttr[TYPE]);
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
-    rfc->setMisalignment(dx, dy, dz);
+    rfc->setMisalignment(dx, dy, 0.0);
 
     rfc->setElementLength(length);
     rfc->setAmplitude(1.0e6 * vPeak);

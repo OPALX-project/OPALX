@@ -51,12 +51,9 @@ OpalQuadrupole::OpalQuadrupole():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
 
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
 
     setElement((new MultipoleRep("QUADRUPOLE"))->makeWrappers());
 }
@@ -134,7 +131,6 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     mult->getMisalignment(dx, dy, dz);
     attributeRegistry["DX"]->setReal(dx);
     attributeRegistry["DY"]->setReal(dy);
-    attributeRegistry["DZ"]->setReal(dz);
 }
 
 
@@ -151,10 +147,11 @@ void OpalQuadrupole::update() {
     quad->setNormalComponent(2, Attributes::getReal(itsAttr[K1]));
     quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]));
 
+    std::cout << "factor " << factor << std::endl;
+
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
-    quad->setMisalignment(dx, dy, dz);
+    quad->setMisalignment(dx, dy, 0.0);
 
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;

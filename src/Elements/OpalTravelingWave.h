@@ -47,7 +47,6 @@ public:
         NUMCELLS,       // Number of cells in a TW structure
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
-        DZ,             // Misalignment: translation in z direction
         SIZE
     };
 

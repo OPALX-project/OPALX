@@ -77,8 +77,6 @@ OpalCavity::OpalCavity():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
 
     registerRealAttribute("VOLT");
     registerRealAttribute("FREQ");
@@ -94,7 +92,6 @@ OpalCavity::OpalCavity():
     registerRealAttribute("PHI0");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
 
     setElement((new RFCavityRep("RFCAVITY"))->makeAlignWrapper());
 }
@@ -134,7 +131,6 @@ void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
         rfc->getMisalignment(dx, dy, dz);
         attributeRegistry["DX"]->setReal(dx);
         attributeRegistry["DY"]->setReal(dy);
-        attributeRegistry["DZ"]->setReal(dz);
     }
 }
 
@@ -163,7 +159,6 @@ void OpalCavity::update() {
     double phi0 = Attributes::getReal(itsAttr[PHI0]);
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
@@ -178,7 +173,7 @@ void OpalCavity::update() {
         }
     }
 
-    rfc->setMisalignment(dx, dy, dz);
+    rfc->setMisalignment(dx, dy, 0.0);
 
     rfc->setElementLength(length);
 

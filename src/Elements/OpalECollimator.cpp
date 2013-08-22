@@ -39,15 +39,13 @@ OpalECollimator::OpalECollimator():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
+
 
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
     setElement((new CollimatorRep("ECOLLIMATOR"))->makeAlignWrapper());
 }
 
@@ -81,7 +79,6 @@ void OpalECollimator::fillRegisteredAttributes(const ElementBase &base, ValueFla
     coll->getMisalignment(dx, dy, dz);
     attributeRegistry["DX"]->setReal(dx);
     attributeRegistry["DY"]->setReal(dy);
-    attributeRegistry["DZ"]->setReal(dz);
 }
 
 
@@ -89,7 +86,6 @@ void OpalECollimator::update() {
 
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
     CollimatorRep *coll =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
@@ -98,7 +94,7 @@ void OpalECollimator::update() {
     coll->setXsize(Attributes::getReal(itsAttr[XSIZE]));
     coll->setYsize(Attributes::getReal(itsAttr[YSIZE]));
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    coll->setMisalignment(dx, dy, dz);
+    coll->setMisalignment(dx, dy, 0.0);
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
     if(apert.size() > 0) {

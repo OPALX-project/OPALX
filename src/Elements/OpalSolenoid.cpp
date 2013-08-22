@@ -42,14 +42,10 @@ OpalSolenoid::OpalSolenoid():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
 
     registerStringAttribute("FMAPFN");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
-
 
     setElement((new SolenoidRep("SOLENOID"))->makeAlignWrapper());
 }
@@ -84,7 +80,6 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
         sol->getMisalignment(dx, dy, dz);
         attributeRegistry["DX"]->setReal(dx);
         attributeRegistry["DY"]->setReal(dy);
-        attributeRegistry["DZ"]->setReal(dz);
     }
 }
 
@@ -97,9 +92,8 @@ void OpalSolenoid::update() {
     bool fast = Attributes::getBool(itsAttr[FAST]);
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
-    sol->setMisalignment(dx, dy, dz);
+    sol->setMisalignment(dx, dy, 0.0);
 
     sol->setElementLength(length);
     sol->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));

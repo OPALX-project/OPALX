@@ -41,15 +41,12 @@ OpalDegrader::OpalDegrader():
         ("DX", "not used",0.0);
     itsAttr[DY] = Attributes::makeReal
         ("DY", "not used",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-        ("DZ", "Misalignment in z direction",0.0);
 
     registerStringAttribute("OUTFN");
     registerRealAttribute("ZSIZE");
 
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
 
     setElement((new DegraderRep("DEGRADER"))->makeAlignWrapper());
 }

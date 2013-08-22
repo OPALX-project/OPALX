@@ -48,8 +48,6 @@ OpalPepperPot::OpalPepperPot():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
 
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
@@ -60,7 +58,6 @@ OpalPepperPot::OpalPepperPot():
     registerRealAttribute("NHOLY");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
 
     setElement((new CollimatorRep("PEPPERPOT"))->makeAlignWrapper());
 }
@@ -96,7 +93,6 @@ void OpalPepperPot::fillRegisteredAttributes(const ElementBase &base, ValueFlag 
     ppo->getMisalignment(dx, dy, dz);
     attributeRegistry["DX"]->setReal(dx);
     attributeRegistry["DY"]->setReal(dy);
-    attributeRegistry["DZ"]->setReal(dz);
 }
 
 void OpalPepperPot::update() {
@@ -114,9 +110,8 @@ void OpalPepperPot::update() {
 
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
-    ppo->setMisalignment(dx, dy, dz);
+    ppo->setMisalignment(dx, dy, 0.0);
 
     ppo->setPepperPot();
 

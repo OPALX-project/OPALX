@@ -47,8 +47,6 @@ OpalParallelPlate::OpalParallelPlate():
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
-    itsAttr[DZ] = Attributes::makeReal
-      ("DZ", "Misalignment in z direction",0.0);
 
 
     registerRealAttribute("VOLT");
@@ -59,7 +57,6 @@ OpalParallelPlate::OpalParallelPlate():
 
     registerRealAttribute("DX");
     registerRealAttribute("DY");
-    registerRealAttribute("DZ");
     setElement((new ParallelPlateRep("ParallelPlate"))->makeAlignWrapper());
 }
 
@@ -94,7 +91,6 @@ void OpalParallelPlate::fillRegisteredAttributes(const ElementBase &base, ValueF
         pplate->getMisalignment(dx, dy, dz);
         attributeRegistry["DX"]->setReal(dx);
         attributeRegistry["DY"]->setReal(dy);
-        attributeRegistry["DZ"]->setReal(dz);
     }
 }
 
@@ -111,7 +107,6 @@ void OpalParallelPlate::update() {
     double length = Attributes::getReal(itsAttr[PLENGTH]);
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
-    double dz = Attributes::getReal(itsAttr[DZ]);
 
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
         obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));
@@ -122,7 +117,7 @@ void OpalParallelPlate::update() {
         }
     }
 
-    pplate->setMisalignment(dx, dy, dz);
+    pplate->setMisalignment(dx, dy, 0.0);
     pplate->setAmplitude(1.0e6 * vPeak);
     pplate->setFrequency(freq);
     pplate->setPhase(phase);
