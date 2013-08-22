@@ -81,20 +81,11 @@ ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
 
 IF (ENABLE_ML_SOLVER)
     # Get Trilinos as one entity
- #   FIND_PACKAGE(Trilinos PATHS $ENV{TRILINOS_INCLUDE_DIR})
-    FIND_PACKAGE(Trilinos REQUIRED HINTS $ENV{TRILINOS_INCLUDE_DIR})
+    FIND_PACKAGE(Trilinos REQUIRED HINTS $ENV{TRILINOS})
 
-    SET (Trilinos_INCLUDE_DIRS "$ENV{TRILINOS_INCLUDE_DIR}"
-    )	
-    SET (Trilinos_LIBRARY_DIRS "$ENV{TRILINOS_LIBRARY_DIR}"
+    SET (Trilinos_LIBRARIES "${Trilinos_LIBRARIES} -lgfortran"
     )
-    SET (Trilinos_LIBRARIES "-lbelosepetra -lbelos -lml -lgaleri -lamesos -lifpack -lepetraext -lepetra -lteuchos -ltriutils -laztecoo -lisorropia -lzoltan $ENV{PARMETIS_LIB_DIR}/libparmetis.a $ENV{METIS_LIB_DIR}/libmetis.a  $ENV{BLAS_LIB_DIR}/libblas.a $ENV{LAPACK_LIB_DIR}/liblapacke.a $ENV{LAPACK_LIB_DIR}/liblapack.a -lgfortran "
-    )
-#    SET (Trilinos_TPL_LIBRARY_DIRS "$ENV{TRILINOS_TPL_LIBRARY_DIRS}"
-#    )	
-#    SET (Trilinos_TPL_LIBRARIES "$ENV{PARMETIS_PREFIX}/lib/libparmetis.a $ENV{METIS_PREFIX}/lib/libmetis.a  $ENV{BLAS_PREFIX}/lib/blas.a $ENV{LAPACK_PREFIX}/lib/lapacke.a $ENV{LAPACK_PREFIX}/lib/lapack.a -lgfortran"
-#    ) 
-  
+	
     IF (NOT Trilinos_FOUND)
         MESSAGE (FATAL_ERROR "Could not find Trilinos!")
     ENDIF (NOT Trilinos_FOUND)
