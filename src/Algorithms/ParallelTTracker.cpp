@@ -176,20 +176,10 @@ SeyNum_m(0.0) {
 
     //    itsBeamline = dynamic_cast<Beamline*>(beamline.clone());
 
-#ifdef DBG_SYM
-    string fn = OpalData::getInstance()->getInputBasename() + string(".fields");
-    of_m.open(fn.c_str(), ios::out);
-    of_m.precision(9);
-    of_m << "# spos Ex Ey Ez Bz By Bz at: (h,h),(h,-h),(-h,h)(-h,-h) h=0.001" << endl;
-#endif
-
 }
 
 
 ParallelTTracker::~ParallelTTracker() {
-#ifdef DBG_SYM
-    of_m.close();
-#endif
 
 }
 

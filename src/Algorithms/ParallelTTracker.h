@@ -227,9 +227,7 @@ private:
     void checkCavity(double s, Component *& comp, double & cavity_start_pos);
 
     void doOneStep(BorisPusher & pusher);
-#ifdef DBG_SYM
-    ofstream of_m;
-#endif
+
     inline double getEnergyMeV(Vector_t p) {
         return (sqrt(dot(p, p) + 1.0) - 1.0) * itsBunch->getM() * 1e-6;
     }
