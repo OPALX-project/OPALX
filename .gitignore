@@ -1,3 +1,6 @@
+/CMakeCache.txt
+/Makefile
+/build
 classic/5.0/src/AbsBeamline/CMakeFiles
 classic/5.0/src/AbsBeamline/Makefile
 classic/5.0/src/AbsBeamline/cmake_install.cmake
@@ -53,6 +56,7 @@ classic/5.0/src/Utilities/Makefile
 classic/5.0/src/Utilities/cmake_install.cmake
 classic/5.0/src/cmake_install.cmake
 classic/5.0/src/config.h
+/cmake_install.cmake
 src/AbstractObjects/CMakeFiles
 src/AbstractObjects/Makefile
 src/AbstractObjects/cmake_install.cmake
@@ -71,6 +75,7 @@ src/Attributes/cmake_install.cmake
 src/BasicActions/CMakeFiles
 src/BasicActions/Makefile
 src/BasicActions/cmake_install.cmake
+src/CMakeFiles
 src/Distribution/CMakeFiles
 src/Distribution/Makefile
 src/Distribution/cmake_install.cmake
@@ -89,6 +94,7 @@ src/Expressions/cmake_install.cmake
 src/Lines/CMakeFiles
 src/Lines/Makefile
 src/Lines/cmake_install.cmake
+src/Makefile
 src/Match/CMakeFiles
 src/Match/Makefile
 src/Match/cmake_install.cmake
@@ -116,3 +122,6 @@ src/Utilities/cmake_install.cmake
 src/ValueDefinitions/CMakeFiles
 src/ValueDefinitions/Makefile
 src/ValueDefinitions/cmake_install.cmake
+src/cmake_install.cmake
+src/config.h
+src/opal

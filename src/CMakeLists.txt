@@ -101,7 +101,6 @@ link_directories (
 set (OPAL_LIBS
     m
     ${GSL_LIBRARY}
-    ${H5Hut_LIBRARY_C}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${IPPL_LIBRARY}
@@ -109,7 +108,7 @@ set (OPAL_LIBS
 )
 
 add_executable( opal ${OPAL_SRCS} Main.cpp )
-target_link_libraries( opal CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES})
+target_link_libraries( opal CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran)
 
 if (BUILD_LIBOPAL)
     add_library( OPAL ${OPAL_SRCS} opal.cpp )
