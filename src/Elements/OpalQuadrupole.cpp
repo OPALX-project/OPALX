@@ -147,8 +147,6 @@ void OpalQuadrupole::update() {
     quad->setNormalComponent(2, Attributes::getReal(itsAttr[K1]));
     quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]));
 
-    std::cout << "factor " << factor << std::endl;
-
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
     quad->setMisalignment(dx, dy, 0.0);
