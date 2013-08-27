@@ -103,6 +103,12 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     attributeRegistry["SLICES"]->setReal(bend->getSlices());
     attributeRegistry["STEPSIZE"]->setReal(bend->getStepsize());
     //attributeRegistry["FMAPFN"]->setString(bend->getFieldMapFN());
+
+
+    double dx, dy, dz;
+    bend->getMisalignment(dx, dy, dz);
+    attributeRegistry["DX"]->setReal(dx);
+    attributeRegistry["DY"]->setReal(dy);
 }
 
 
@@ -242,6 +248,10 @@ void OpalSBend::update() {
         sphys_m->initSurfacePhysicsHandler(*bend, apert_major, apert_minor);
         bend->setSurfacePhysics(sphys_m->handler_m);
     }
+
+    double dx = Attributes::getReal(itsAttr[DX]);
+    double dy = Attributes::getReal(itsAttr[DY]);
+    bend->setMisalignment(dx, dy, 0.0);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(bend);

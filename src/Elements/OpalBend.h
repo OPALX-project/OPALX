@@ -52,6 +52,8 @@ public:
         EXITANGLE,        // the relative angle between the entry and the exit face
         GREATERTHANPI,    // Boolean flag set to true if bend angle is greater
         // than 180 degrees.
+	DX,             // Misalignment: translation in x direction
+        DY,             // Misalignment: translation in y direction
         SIZE              // Total number of attributes.
     };
 

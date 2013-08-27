@@ -83,6 +83,10 @@ OpalBend::OpalBend(const char *name, const char *help):
                              ("GREATERTHANPI",
                               "Set to true if bend angle is greater than 180 degrees",
                               false);
+    itsAttr[DX] = Attributes::makeReal
+      ("DX", "Misalignment in x direction",0.0);
+    itsAttr[DY] = Attributes::makeReal
+      ("DY", "Misalignment in y direction",0.0);
 
     registerRealAttribute("ANGLE");
     registerRealAttribute("K0L");
@@ -109,6 +113,8 @@ OpalBend::OpalBend(const char *name, const char *help):
     registerRealAttribute("BETA");
     registerRealAttribute("EXITANGLE");
     registerRealAttribute("DESIGNENERGY");
+    registerRealAttribute("DX");
+    registerRealAttribute("DY");
 }
 
 
