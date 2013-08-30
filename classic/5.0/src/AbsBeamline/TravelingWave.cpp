@@ -160,7 +160,7 @@ void TravelingWave::addKR(int i, double t, Vector_t &K) {
 
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
     Vector_t tmpE_diff(0.0, 0.0, 0.0), tmpB_diff(0.0, 0.0, 0.0);
-    Vector_t tmpA0(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, RefPartBunch_m->getZ(i) - startField_m - ds_m);
+    Vector_t tmpA0(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, RefPartBunch_m->getZ(i) - startField_m);
 
     double g = RefPartBunch_m->getGamma(i);
     double b = RefPartBunch_m->getBeta(i);
@@ -290,7 +290,7 @@ bool TravelingWave::apply(const size_t &i, const double &t, double E[], double B
 bool TravelingWave::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     double tmpcos, tmpsin;
 
-    Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
+    Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m);
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
     bool out_of_bounds = false;
 
@@ -338,7 +338,7 @@ bool TravelingWave::apply(const size_t &i, const double &t, Vector_t &E, Vector_
 
 bool TravelingWave::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
     double tmpcos, tmpsin;
-    Vector_t tmpR(R(0) - dx_m, R(1) - dy_m , R(2) - startField_m - ds_m);
+    Vector_t tmpR(R(0) - dx_m, R(1) - dy_m , R(2) - startField_m);
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
     bool out_of_bounds = false;
 
@@ -426,8 +426,8 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
                msg << "new phase = " << phase_m << " (rad) " << endl;
             */
 
-            if(dx_m > 1e-10 || dy_m > 1e-10 || ds_m > 1e-10)
-                msg << "misaligned by dx = " << dx_m << ", dy = " << dy_m << ", dz = " << ds_m << endl;
+            if(dx_m > 1e-10 || dy_m > 1e-10)
+                msg << "misaligned by dx = " << dx_m << ", dy = " << dy_m << endl;
 
             if(hasAttribute("MODE")) {
                 Mode_m = getAttribute("MODE");
