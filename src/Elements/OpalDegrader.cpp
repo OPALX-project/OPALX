@@ -78,14 +78,12 @@ void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag f
 
     double dx, dy, dz;
     deg->getMisalignment(dx, dy, dz);
-    attributeRegistry["DZ"]->setReal(dz);
     attributeRegistry["ZSIZE"]->setReal(Attributes::getReal(itsAttr[ZSIZE]));
 }
 
 
 void OpalDegrader::update() {
 
-    double    dz = Attributes::getReal(itsAttr[DZ]);
     double thick = Attributes::getReal(itsAttr[ZSIZE]);
 
     DegraderRep *deg =
@@ -95,7 +93,7 @@ void OpalDegrader::update() {
     deg->setZSize(thick);
 
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    deg->setMisalignment(0.0, 0.0, dz);
+    deg->setMisalignment(0.0, 0.0, 0.0);
 
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
