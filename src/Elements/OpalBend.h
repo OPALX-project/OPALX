@@ -44,7 +44,7 @@ public:
         SLICES, STEPSIZE, // Parameters used to determine slicing.
         FMAPFN,           // File name containing on-axis field.
         GAP,              // Full gap of magnet.
-        APERTURE,         // Horizontal (non-bend plane) magnet aperture.
+        HAPERT,           // Horizontal aperture of magnet.
         ROTATION,         // Magnet rotation about z axis.
         ALPHA,            // The edge angle 1
         BETA,             // The edge angle 2
@@ -52,7 +52,7 @@ public:
         EXITANGLE,        // the relative angle between the entry and the exit face
         GREATERTHANPI,    // Boolean flag set to true if bend angle is greater
         // than 180 degrees.
-	DX,             // Misalignment: translation in x direction
+        DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
         SIZE              // Total number of attributes.
     };

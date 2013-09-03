@@ -43,6 +43,8 @@ RBend::RBend():
     designEnergy_m(0.0),
     designRadius_m(0.0),
     fieldAmplitude_m(0.0),
+    bX_m(0.0),
+    bY_m(0.0),
     entranceAngle_m(0.0),
     exitAngle_m(0.0),
     gradient_m(0.0),
@@ -95,6 +97,8 @@ RBend::RBend(const RBend &right):
     designEnergy_m(right.designEnergy_m),
     designRadius_m(right.designRadius_m),
     fieldAmplitude_m(right.fieldAmplitude_m),
+    bX_m(right.bX_m),
+    bY_m(right.bY_m),
     entranceAngle_m(right.entranceAngle_m),
     exitAngle_m(right.exitAngle_m),
     gradient_m(right.gradient_m),
@@ -149,6 +153,8 @@ RBend::RBend(const std::string &name):
     designEnergy_m(0.0),
     designRadius_m(0.0),
     fieldAmplitude_m(0.0),
+    bX_m(0.0),
+    bY_m(0.0),
     entranceAngle_m(0.0),
     exitAngle_m(0.0),
     gradient_m(0.0),
@@ -478,8 +484,9 @@ void RBend::SetEntranceAngle(double entranceAngle) {
     entranceAngle_m = entranceAngle;
 }
 
-void RBend::SetFieldAmplitude(double fieldAmplitude) {
-    fieldAmplitude_m = fieldAmplitude;
+void RBend::SetFieldAmplitude(double k0, double k0s) {
+    bY_m = k0;
+    bX_m = k0s;
 }
 
 void RBend::SetFieldMapFN(std::string fileName) {
@@ -500,13 +507,6 @@ void RBend::SetLength(double length) {
 
 void RBend::SetRotationAboutZ(double rotation) {
     Orientation_m(2) = rotation;
-}
-
-void RBend::SetRotationAboutZ(double k0, double k0s) {
-
-    Orientation_m(2) = atan2(k0s, k0);
-    fieldAmplitude_m = sqrt(pow(k0, 2.0) + pow(k0s, 2.0));
-
 }
 
 void RBend::AdjustFringeFields(double ratio) {
@@ -1070,16 +1070,16 @@ bool RBend::FindIdealBendParameters(double bendLength) {
 
         return true;
 
-    } else {
+    } else if(bX_m == 0.0) {
 
         // Negative angle is a positive bend rotated 180 degrees.
-        if((refCharge > 0.0 && fieldAmplitude_m < 0.0)
-           || (refCharge < 0.0 && fieldAmplitude_m > 0.0)) {
+        if((refCharge > 0.0 && bY_m < 0.0)
+           || (refCharge < 0.0 && bY_m > 0.0)) {
             gradient_m *= -1.0;
             Orientation_m(2) += Physics::pi;
         }
 
-        fieldAmplitude_m = std::abs(fieldAmplitude_m);
+        fieldAmplitude_m = refCharge * std::abs(bY_m / refCharge);
         designRadius_m = std::abs(refBetaGamma * refMass / (Physics::c * fieldAmplitude_m));
         double angle = asin(bendLength / designRadius_m - sin(entranceAngle_m));
         angle_m = angle + entranceAngle_m;
@@ -1087,6 +1087,23 @@ bool RBend::FindIdealBendParameters(double bendLength) {
 
         return false;
 
+    } else {
+
+        Orientation_m(2) += atan2(bX_m, bY_m);
+        if(refCharge < 0.0) {
+            gradient_m *= -1.0;
+            Orientation_m(2) -= Physics::pi;
+        }
+
+        fieldAmplitude_m = refCharge
+                           * std::abs(sqrt(pow(bY_m, 2.0) + pow(bX_m, 2.0))
+                                      / refCharge);
+        designRadius_m = std::abs(refBetaGamma * refMass / (Physics::c * fieldAmplitude_m));
+        double angle = asin(bendLength / designRadius_m - sin(entranceAngle_m));
+        angle_m = angle + entranceAngle_m;
+        exitAngle_m = angle_m - entranceAngle_m;
+
+        return false;
     }
 }
 
@@ -1228,9 +1245,9 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << " m (in s coordinates)"
         << endl;
     msg << endl
-        << "Bend Magnet Properties"
+        << "Ideal (Hard Edge) Bend Magnet Properties"
         << endl
-        << "======================"
+        << "========================================"
         << endl << endl;
     msg << "Bend angle magnitude:    "
         << angle_m
@@ -1262,6 +1279,10 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << designRadius_m
         << " m"
         << endl;
+    msg << "Bend design energy:      "
+        << designEnergy_m
+        << " eV"
+        << endl;
     msg << "Rotation about x axis:   "
         << Orientation_m(1)
         << " rad ("
@@ -1281,9 +1302,9 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << " degrees)"
         << endl;
     msg << endl
-        << "Reference Trajectory Properties"
+        << "Reference Trajectory Properties Through Bend Magnet with Fringe Fields"
         << endl
-        << "==============================="
+        << "======================================================================"
         << endl << endl;
     msg << "Reference particle is bent: "
         << bendAngleX
@@ -1599,6 +1620,15 @@ bool RBend::TreatAsDrift(Inform &msg) {
             << endl;
         designRadius_m = 0.0;
         return true;
+
+    } else if(angle_m == 0.0 &&
+              pow(bX_m, 2.0) + pow(bY_m, 2.0) == 0.0) {
+
+        msg << "Warning bend angle/strength is zero. Treating as drift."
+            << endl;
+        designRadius_m = 0.0;
+        return true;
+
     } else
         return false;
 }

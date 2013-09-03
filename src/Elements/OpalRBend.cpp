@@ -150,23 +150,26 @@ void OpalRBend::update() {
     field.setSkewComponent(4, factor * Attributes::getReal(itsAttr[K3S]) / 6.0);
     bend->setField(field);
 
-    // Set field amplitude or bend angle and the magnet rotation about the z axis.
+    // Set field amplitude or bend angle.
     if(itsAttr[ANGLE])
         bend->SetBendAngle(Attributes::getReal(itsAttr[ANGLE]));
     else
-        bend->SetFieldAmplitude(sqrt(k0 * k0 + k0s * k0s));
+        bend->SetFieldAmplitude(k0, k0s);
 
     if(itsAttr[ROTATION])
         bend->SetRotationAboutZ(Attributes::getReal(itsAttr[ROTATION]));
-    else if(itsAttr[K0] || itsAttr[K0S])
-        bend->SetRotationAboutZ(k0, k0s);
     else
         bend->SetRotationAboutZ(0.0);
 
     if(itsAttr[FMAPFN])
         bend->SetFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
-    else if(bend->getName() != "RBEND")
-        ERRORMSG(bend->getName() << ": No filename for a field map given" << endl);
+    else if(bend->getName() != "RBEND") {
+        ERRORMSG(bend->getName() << ": No filename for a field map given. "
+                 "Will assume the default map "
+                 "\"1DPROFILE1-DEFAULT\"."
+                 << endl);
+        bend->SetFieldMapFN("1DPROFILE1-DEFAULT");
+    }
 
     if(itsAttr[E1])
         bend->SetEntranceAngle(Attributes::getReal(itsAttr[E1]));
@@ -180,9 +183,9 @@ void OpalRBend::update() {
     else
         bend->SetBeta(0.0);
 
-    // Convert from MeV to eV.
+    // Energy in eV.
     if(itsAttr[DESIGNENERGY]) {
-        bend->SetDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * 1e6);
+        bend->SetDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]));
     }
 
     if(itsAttr[GAP])
@@ -190,8 +193,8 @@ void OpalRBend::update() {
     else
         bend->SetFullGap(0.0);
 
-    if(itsAttr[APERTURE])
-        bend->SetAperture(Attributes::getReal(itsAttr[APERTURE]));
+    if(itsAttr[HAPERT])
+        bend->SetAperture(Attributes::getReal(itsAttr[HAPERT]));
     else
         bend->SetAperture(0.0);
 
@@ -210,6 +213,10 @@ void OpalRBend::update() {
         bend->SetK1(Attributes::getReal(itsAttr[K1]));
     else
         bend->SetK1(0.0);
+
+    bend->setMisalignment(Attributes::getReal(itsAttr[DX]),
+                          Attributes::getReal(itsAttr[DY]),
+                          0.0);
 
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;

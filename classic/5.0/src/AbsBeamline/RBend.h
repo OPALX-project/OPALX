@@ -215,7 +215,7 @@ public:
     void SetBeta(double beta);
     void SetDesignEnergy(double energy);
     void SetEntranceAngle(double entranceAngle);
-    void SetFieldAmplitude(double fieldAmplitude);
+    void SetFieldAmplitude(double k0, double k0s);
 
     /*
      * Set the name of the field map.
@@ -232,7 +232,6 @@ public:
 
     /// Set rotation about z axis in bend frame.
     void SetRotationAboutZ(double rotation);
-    void SetRotationAboutZ(double k0, double k0s);
 
 private:
 
@@ -303,11 +302,12 @@ private:
     /// (Not currently used.)
     double angle_m;             /// Bend angle for reference particle with bend
     /// design energy (radians).
-    double aperture_m;          /// Aperture of magnet in non-bend (horizontal)
-    /// plane.
+    double aperture_m;          /// Aperture of magnet in non-bend plane.
     double designEnergy_m;      /// Bend design energy (eV).
     double designRadius_m;      /// Bend design radius (m).
     double fieldAmplitude_m;    /// Amplitude of magnet field (T).
+    double bX_m;                /// Amplitude of Bx field (T).
+    double bY_m;                /// Amplitude of By field (T).
     double entranceAngle_m;     /// Angle between incoming reference trajectory
     /// and the entrance face of the magnet (radians).
     double exitAngle_m;         /// Angle between outgoing reference trajectory
