@@ -5,11 +5,6 @@
 #include "Fields/Fieldmap.icc"
 #include "Physics/Physics.h"
 
-using namespace std;
-using Physics::mu_0;
-using Physics::c;
-using Physics::two_pi;
-
 FM1DProfile1::FM1DProfile1(std::string aFilename):
     Fieldmap(aFilename),
     entranceParameter1_m(0.0),
@@ -55,7 +50,7 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
 
     } else {
 
-        ifstream inputFile(Filename_m.c_str());
+        std::ifstream inputFile(Filename_m.c_str());
 
         if(inputFile.good()) {
 
@@ -63,40 +58,41 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
             std::string tempString = "";
             double tempDouble = 0.0;
 
-            bool parsing_passed = interpreteLine<std::string, int, int, double>
-                                  (inputFile,
-                                   tempString,
-                                   polyOrderEntry_m,
-                                   polyOrderExit_m,
-                                   gapHeight_m);
+            bool parsingPassed = interpreteLine<std::string, int, int, double>
+                                 (inputFile,
+                                  tempString,
+                                  polyOrderEntry_m,
+                                  polyOrderExit_m,
+                                  gapHeight_m);
 
-            parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, double, int>
-                             (inputFile,
-                              entranceParameter1_m,
-                              entranceParameter2_m,
-                              entranceParameter3_m,
-                              tempInt);
+            parsingPassed = parsingPassed &&
+                            interpreteLine<double, double, double, int>
+                            (inputFile,
+                             entranceParameter1_m,
+                             entranceParameter2_m,
+                             entranceParameter3_m,
+                             tempInt,
+                             false);
 
-            parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, double, int>
-                             (inputFile,
-                              exitParameter1_m,
-                              exitParameter2_m,
-                              exitParameter3_m,
-                              tempInt);
+            parsingPassed = parsingPassed &&
+                            interpreteLine<double, double, double, int>
+                            (inputFile,
+                             exitParameter1_m,
+                             exitParameter2_m,
+                             exitParameter3_m,
+                             tempInt);
 
             for(int index = 0;
-                (index < polyOrderEntry_m + polyOrderExit_m + 2) && parsing_passed;
+                (index < polyOrderEntry_m + polyOrderExit_m + 2) && parsingPassed;
                 index++)
-                parsing_passed = parsing_passed &&
-                                 interpreteLine<double>(inputFile, tempDouble);
+                parsingPassed = parsingPassed &&
+                                interpreteLine<double>(inputFile, tempDouble);
 
-            parsing_passed = parsing_passed && interpreteEOF(inputFile);
+            parsingPassed = parsingPassed && interpreteEOF(inputFile);
 
             inputFile.close();
 
-            if(!parsing_passed) {
+            if(!parsingPassed) {
 
                 disableFieldmapWarning();
                 sBegin_m = 0.0;
@@ -197,6 +193,7 @@ void FM1DProfile1::readMap() {
         msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
             << "\n"
             << endl;
+
     }
 
 }
