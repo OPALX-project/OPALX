@@ -96,12 +96,12 @@ void FM3DH5Block::readMap() {
             int start = 0;
             // int rbuf_size;
 
-            long ii;
-            int index_x;
-            int index_y;
-            double lever_x;
-            double lever_y;
-            double Ezmax = 1.0 ;
+            // long ii;
+            // int index_x;
+            // int index_y;
+            //double lever_x;
+            //double lever_y;
+            //double Ezmax = 1.0 ;
 
             h5_int64_t last_step = H5GetNumSteps(file) - 1;
             h5err = H5SetStep(file, last_step);
@@ -177,35 +177,33 @@ void FM3DH5Block::readMap() {
             delete[] Nz_read_start;
             delete[] Nz_read_length;
 
-            index_x = static_cast<int>(floor(-xbegin_m / hx_m));
-            index_y = static_cast<int>(floor(-ybegin_m / hy_m));
-            lever_x = -xbegin_m / hx_m - index_x;
-            lever_y = -ybegin_m / hy_m - index_y;
+            // index_x = static_cast<int>(floor(-xbegin_m / hx_m));
+            // index_y = static_cast<int>(floor(-ybegin_m / hy_m));
+            // lever_x = -xbegin_m / hx_m - index_x;
+            // lever_y = -ybegin_m / hy_m - index_y;
 
 
-            ii = index_x + index_y * num_gridpx_m;
-            for(int i = 0; i < num_gridpz_m; i++) {
-                double E = fabs((1. - lever_x) * (1. - lever_y) * FieldstrengthEz_m[ii] +
-                                lever_x * (1. - lever_y) * FieldstrengthEz_m[ii + 1] +
-                                (1. - lever_x) * lever_y * FieldstrengthEz_m[ii + num_gridpx_m] +
-                                lever_x * lever_y * FieldstrengthEz_m[ii + num_gridpx_m + 1]);
+            // ii = index_x + index_y * num_gridpx_m;
+            // for(int i = 0; i < num_gridpz_m; i++) {
+            //     double E = fabs((1. - lever_x) * (1. - lever_y) * FieldstrengthEz_m[ii] +
+            //                     lever_x * (1. - lever_y) * FieldstrengthEz_m[ii + 1] +
+            //                     (1. - lever_x) * lever_y * FieldstrengthEz_m[ii + num_gridpx_m] +
+            //                     lever_x * lever_y * FieldstrengthEz_m[ii + num_gridpx_m + 1]);
 
-                if(E > Ezmax) {
-                    Ezmax = E;
-                }
-                ii += num_gridpx_m * num_gridpy_m;
-            }
-            INFOMSG("Ezmax " << Ezmax << endl;);
-
-            for(long i = 0; i < num_gridpx_m * num_gridpy_m * num_gridpz_m; i++) {
-                FieldstrengthEz_m[i] *= 1.0e6 / Ezmax;
-                FieldstrengthEx_m[i] *= 1.0e6 / Ezmax;
-                FieldstrengthEy_m[i] *= 1.0e6 / Ezmax;
-                FieldstrengthHx_m[i] *= 1.0e6 * mu_0 / Ezmax;
-                FieldstrengthHy_m[i] *= 1.0e6 * mu_0 / Ezmax;
-                FieldstrengthHz_m[i] *= 1.0e6 * mu_0 / Ezmax;
-            }
-
+            //     if(E > Ezmax) {
+            //         Ezmax = E;
+            //     }
+            //     ii += num_gridpx_m * num_gridpy_m;
+            // }
+            // INFOMSG("Ezmax " << Ezmax << endl;);
+            // for(long i = 0; i < num_gridpx_m * num_gridpy_m * num_gridpz_m; i++) {
+            //     FieldstrengthEz_m[i] *= 1.0e6 / Ezmax;
+            //     FieldstrengthEx_m[i] *= 1.0e6 / Ezmax;
+            //     FieldstrengthEy_m[i] *= 1.0e6 / Ezmax;
+            //     FieldstrengthHx_m[i] *= 1.0e6 * mu_0 / Ezmax;
+            //     FieldstrengthHy_m[i] *= 1.0e6 * mu_0 / Ezmax;
+            //     FieldstrengthHz_m[i] *= 1.0e6 * mu_0 / Ezmax;
+            // }
             msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                 << endl;
 
@@ -231,6 +229,7 @@ void FM3DH5Block::freeMap() {
 }
 
 bool FM3DH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
+  //  Inform msg("FM3DH5 ");
     const int index_x = static_cast<int>(floor((R(0) - xbegin_m) / hx_m));
     const double lever_x = (R(0) - xbegin_m) / hx_m - index_x;
 
@@ -257,8 +256,10 @@ bool FM3DH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     if(index_y + 2 > num_gridpy_m) {
         return false;
     }
-
+    
     const long index1 = index_x + (index_y + index_z * num_gridpy_m) * num_gridpx_m;
+    
+
 
     E(0) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthEx_m[index1]
             + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthEx_m[index1 + 1]
@@ -268,6 +269,7 @@ bool FM3DH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
             + lever_x           * (1.0 - lever_y) * lever_z         * FieldstrengthEx_m[index1 + num_gridpx_m * num_gridpy_m + 1]
             + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthEx_m[index1 + num_gridpx_m * num_gridpy_m + num_gridpx_m]
             + lever_x           * lever_y         * lever_z         * FieldstrengthEx_m[index1 + num_gridpx_m * num_gridpy_m + num_gridpx_m + 1];
+    // msg<<R(0)<<", "<<R(1)<<", "<<R(2)<<", "<<index1<<", "<<index_x<<", "<<index_y<<", "<<index_z<<", "<<FieldstrengthEx_m[index1]<<", "<<FieldstrengthEy_m[index1]<<", "<<FieldstrengthEz_m[index1]<< endl;
 
     E(1) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthEy_m[index1]
             + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthEy_m[index1 + 1]
@@ -343,8 +345,8 @@ void FM3DH5Block::getInfo(Inform *msg) {
     (*msg) << Filename_m << " (3D dynamic) "
            << " xini= " << xbegin_m << " xfinal= " << xend_m
            << " yini= " << ybegin_m << " yfinal= " << yend_m
-           << " zini= " << zbegin_m << " zfinal= " << zend_m << " (m) " << endl;
-    (*msg) << " hx= " << hx_m << endl;
+           << " zini= " << zbegin_m << " zfinal= " << zend_m << " [mm] " << endl;
+    (*msg) << " hx= " << hx_m <<" hy= " << hy_m <<" hz= " << hz_m << " [mm] " <<endl;
 }
 
 double FM3DH5Block::getFrequency() const {

@@ -174,28 +174,20 @@ void ParallelCyclotronTracker::openFiles(string SfileName) {
 
     outfTheta0_m.precision(8);
     outfTheta0_m.setf(ios::scientific, ios::floatfield);
-
     outfTheta0_m.open(SfileName2.c_str());
-    outfTheta0_m << "#  r [mm]          p_r[rad]       theta [mm]          p_theta[rad]        z [mm]          p_z[rad]"
-                 << endl;
+    outfTheta0_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma" << endl;
 
     SfileName2 = SfileName + string("-Angle1.dat");
-
     outfTheta1_m.precision(8);
     outfTheta1_m.setf(ios::scientific, ios::floatfield);
-
     outfTheta1_m.open(SfileName2.c_str());
-    outfTheta1_m << "#  r [mm]          p_r[rad]       theta [mm]          p_theta[rad]        z [mm]          p_z[rad]"
-                 << endl;
+    outfTheta1_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << endl;
 
     SfileName2 = SfileName + string("-Angle2.dat");
-
     outfTheta2_m.precision(8);
     outfTheta2_m.setf(ios::scientific, ios::floatfield);
-
     outfTheta2_m.open(SfileName2.c_str());
-    outfTheta2_m << "#  r [mm]          p_r[rad]       theta [mm]          p_theta[rad]        z [mm]          p_z[rad]"
-                 << endl;
+    outfTheta2_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << endl;
 
     // for single Particle Mode, output after each turn, to define matched initial phase ellipse.
 
@@ -205,8 +197,7 @@ void ParallelCyclotronTracker::openFiles(string SfileName) {
     outfThetaEachTurn_m.setf(ios::scientific, ios::floatfield);
 
     outfThetaEachTurn_m.open(SfileName2.c_str());
-    outfThetaEachTurn_m << "# r [mm]          p_r[rad]       theta [mm]          p_theta[rad]        z [mm]          p_z[rad]" << endl;
-
+    outfTheta2_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << endl;
 }
 
 /**
@@ -3418,7 +3409,8 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
             outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getLocalTrackStep() << endl;
         } else {
             outfTrackOrbit_m.open(f.c_str());
-            outfTrackOrbit_m << "# ID   x [mm]          px [rad]       y [mm]          py [rad]        z [mm]          pz [rad]" << endl;
+            outfTrackOrbit_m << "# The six-dimensional phase space data in the global Cartesian coordinates" << endl;
+            outfTrackOrbit_m << "# Part. ID    x [mm]       beta_x*gamma       y [mm]      beta_y*gamma        z [mm]      beta_z*gamma" << endl;
         }
     }
 }
