@@ -65,8 +65,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag) {
     if(wrap) {
         double dx, dy, ds, dphi, dtheta, dpsi;
         wrap->offset().getAll(dx, dy, ds, dtheta, dphi, dpsi);
-        attributeRegistry["DELTAX"]->setReal(dx);
-        attributeRegistry["DELTAY"]->setReal(dy);
+        attributeRegistry["DX"]->setReal(dx);
+        attributeRegistry["DY"]->setReal(dy);
         attributeRegistry["DELTAS"]->setReal(ds);
         attributeRegistry["DTHETA"]->setReal(dtheta);
         attributeRegistry["DPHI"]->setReal(dphi);
