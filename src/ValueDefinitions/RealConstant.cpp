@@ -39,8 +39,8 @@ RealConstant::RealConstant():
     OpalData *OPAL = OpalData::getInstance();
     OPAL->create(new RealConstant("PI",     this, Physics::pi));
     OPAL->create(new RealConstant("TWOPI",  this, Physics::two_pi));
-    OPAL->create(new RealConstant("RADDEG", this, Physics::pi / 180.0));
-    OPAL->create(new RealConstant("DEGRAD", this, 180.0 / Physics::pi));
+    OPAL->create(new RealConstant("RADDEG", this, 180.0 / Physics::pi / 180.0));
+    OPAL->create(new RealConstant("DEGRAD", this, Physics::pi / 180.0));
     OPAL->create(new RealConstant("E",      this, Physics::e));
 
     OPAL->create(new RealConstant("EMASS",  this, Physics::m_e));
