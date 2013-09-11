@@ -356,18 +356,17 @@ void OpalRing::test_f() {
         pos[0] = (sec->getStartPosition()(0)+sec->getEndPosition()(0))/2.;
         pos[1] = (sec->getStartPosition()(1)+sec->getEndPosition()(1))/2.;
         pos[2] = (sec->getStartPosition()(2)+sec->getEndPosition()(2))/2.;
-        bool oob_loc = sec->getComponent()->apply(Vector_t(2350., 0., 0.), (0., 0., 0.), 0., e_loc, b_loc);
+        bool oob_loc = sec->getComponent()->apply(Vector_t(2350., 0., 0.), Vector_t(0., 0., 0.), 0., e_loc, b_loc);
         bool oob_glob = apply(pos, pos, 0., e_glob, b_glob);
         fout << "Local " << oob_loc << " " << e_loc << " " << b_loc << std::endl;
         fout << "Global " << oob_glob << " " << e_glob << " " << b_glob << std::endl;
     }
-    double pi = 3.14159265359, r=2350.;
+    double pi = 3.14159265359;
     for (double phi = -pi/8.; phi < 17.*pi/8.; phi += pi/16.)
       for (double r = 2350.; r < 2351.; r += 50.)
         for (double y = 50.; y < 51.; y += 50.) {
             Vector_t pos(r*cos(phi), r*sin(phi), y);
             Vector_t b, e;
-            bool oob_glob = apply(pos, pos, 0., e, b);
             fout << "Position, field " << pos << " " << b << " " << sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]) << std::endl;
         }
     fout << "TestOpalRing " << testpass << std::endl;

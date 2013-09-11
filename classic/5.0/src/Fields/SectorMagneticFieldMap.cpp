@@ -428,11 +428,9 @@ double dot_prod(Vector_t vec_1, Vector_t vec_2) {
 void SectorMagneticFieldMap::test_f() {
     std::ofstream fout("TestSectorMagneticFieldMap.dat");
     std::string testpass = "pass";
-    double pi = 3.141592653589793;
     Vector_t r_c;
     Vector_t b;
     Vector_t e;
-    double radius = 2350.;
     ThreeDGrid* grid = interpolator_m->getMesh();
     for (double phiTol = 1.e-2; phiTol < 1.1e-1; phiTol *= 10.) {
         double dphi = grid->maxZ() - grid->minZ();
@@ -451,7 +449,6 @@ void SectorMagneticFieldMap::test_f() {
             r_p[0] = 2350.;
             r_p[1] = 50.;
             r_p[2] = phi;
-            double R_temp[3] = {r_p[0], r_p[1], r_p[2]};
             double minZ = grid->minZ()-phiOffset_m;
             double maxZ = grid->maxZ()-phiOffset_m;
             bool oob_p = getFieldstrengthPolar(r_p, e_p, b_p);
@@ -471,7 +468,6 @@ void SectorMagneticFieldMap::test_f() {
             r_p[0] = r;
             r_p[1] = y;
             r_p[2] = phi;
-            double R_temp[3] = {r_p[0], r_p[1], r_p[2]};
             bool oob_p = getFieldstrengthPolar(r_p, e_p, b_p);
 
             r_c[0] = r*sin(phi);
@@ -482,7 +478,7 @@ void SectorMagneticFieldMap::test_f() {
             bool oob = phi > -0.7853*0.1 && phi < 0.7853*1.1 &&
                        r > 2100 && r < 2600 &&
                        y > -115 && r < 115; 
-            my_test = oob_p == oob_c == oob;
+            my_test = ((oob_p == oob_c) == oob);
             // magnitude should be same but direction different due to differing
             // coordinate systems
             my_test = abs(dot_prod(e_c, e_c) - dot_prod(e_p, e_p)) < 1e-9;
