@@ -185,6 +185,11 @@ class SectorMagneticFieldMap : public SectorField {
     /** Set phi offset */
     void setPhiOffset(double dphi) {phiOffset_m = dphi;}
 
+    /** Get change in azimuthal angle between entrance and exit */
+    double getDeltaPhi() const;
+
+    void test_f();
+
     friend class FieldMap;
 
   private:
@@ -210,6 +215,7 @@ class SectorMagneticFieldMap : public SectorField {
 
     class IO;
 };
+
 
 /** \class SectorMagneticFieldMap::IO handles reading sector field maps
  *

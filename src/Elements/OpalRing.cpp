@@ -168,7 +168,7 @@ OpalRingSection* OpalRing::getSectionAt(const Vector_t& r) {
     size_t sec_list_size = section_list_m.size();
     while (n_iterations < 2*sec_list_size) {
         // std::cerr << "getSectionAt "
-        //           << current_section_m-section_list_m.begin() << std::endl;
+        //          << current_section_m-section_list_m.begin() << std::endl;
         if ((*current_section_m)->isOnOrPastStartPlane(r)) {
             if ((*current_section_m)->isPastEndPlane(r)) {
                 ++current_section_m;
@@ -243,11 +243,15 @@ void OpalRing::appendElement(const Component &element) {
     // horizontal plane. So we need to rotate the translation into midplane
     Vector3D elementTranslation = Rotation3D::XRotation(-Physics::pi/2.)
                                                              *delta.getVector();
-    // std::cerr << "DX (local) " << elementTranslation(0) << " " << elementTranslation(1) << " " << elementTranslation(2) << std::endl;
+    /*double r = 2350., pi=3.14159265359;
+    double theta = pi/4.;
+    std::cerr << "DX (local, no rot) " << delta.getVector()(0) << " " << delta.getVector()(1) << " " << delta.getVector()(2) << std::endl;
+    std::cerr << "DX (local) " << elementTranslation(0) << " " << elementTranslation(1) << " " << elementTranslation(2) << std::endl;
+    std::cerr << "DX (test local) " << -2.*r*sin(theta/2.)*sin(theta/2.) << " " << 2.*r*sin(theta/2.)*cos(theta/2.) << " " << 0. << std::endl;*/
     // rotation to element start
     double dphi = atan2(-start_norm(0), start_norm(1));
     Rotation3D elementStart = Rotation3D::ZRotation(dphi);
-    // std::cerr << "DPHI " << dphi << " [rad] " << dphi/Physics::pi*180. << " [deg] " << std::endl;
+    // std::cerr << "DPHI to start " << dphi << " [rad] " << dphi/Physics::pi*180. << " [deg] " << std::endl;
     // translation from start to end in global coordinates
     Vector3D globalTrans = elementStart*elementTranslation;
     // std::cerr << "DX (global) " << globalTrans(0) << " " << globalTrans(1) << " " << globalTrans(2) << std::endl;
@@ -257,9 +261,9 @@ void OpalRing::appendElement(const Component &element) {
     // rotation from start to end in global coordinates
     Rotation3D elementRotation = getRotationStartToEnd(delta);
     section->setEndNormal(elementRotation*start_norm);
-
+    // dphi = atan2(-section->getEndNormal()(0), section->getEndNormal()(1));
     section->setComponentPosition(Vector3D(0., 0., 0.));
-    section->setComponentOrientation(Vector3D(0., 0., -Physics::pi/2.+dphi));
+    section->setComponentOrientation(Vector3D(0., 0., -2.*Physics::pi/8.+dphi));
 
     section_list_m.push_back(section);
 
@@ -271,7 +275,7 @@ void OpalRing::appendElement(const Component &element) {
         << section->getStartPosition()(2) << ") normal ("
         << section->getStartNormal()(0) << ", "
         << section->getStartNormal()(1) << ", "
-        << section->getStartNormal()(2) << ")" << endl;
+        << section->getStartNormal()(2) << "), dphi " << dphi << endl;
     msg << "  End position ("
         << section->getEndPosition()(0) << ", "
         << section->getEndPosition()(1) << ", "
@@ -325,5 +329,48 @@ void OpalRing::lockRing() {
     }
     isLocked_m = true;
     getSectionAt(Vector_t(2349 , -0.000232433 , 2.87833e-12));
+    // test_f();  // poor man's unit tests
+}
+
+Vector_t convert(Vector3D vec_3d) {
+    return Vector_t(vec_3d(0), vec_3d(1), vec_3d(2));
+}
+
+Vector3D convert(Vector_t vec_t) {
+    return Vector3D(vec_t[0], vec_t[0], vec_t[0]);
+}
+
+void OpalRing::test_f() {
+    std::ofstream fout("TestOpalRing.dat");
+    std::string testpass = "pass";
+    for (size_t i = 0; i < section_list_m.size(); ++i) {
+        OpalRingSection* sec = section_list_m[i];
+        Vector3D start = sec->getStartPosition();
+        Vector3D end = sec->getEndPosition();
+        bool my_test = getSectionAt(convert(start)) == sec;
+        my_test = getSectionAt(convert(end)) == sec;
+        my_test = getSectionAt(convert(start+end)/2.) == sec;
+        if (!my_test)
+            testpass = "fail";
+        Vector_t pos, e_loc, b_loc, e_glob, b_glob;
+        pos[0] = (sec->getStartPosition()(0)+sec->getEndPosition()(0))/2.;
+        pos[1] = (sec->getStartPosition()(1)+sec->getEndPosition()(1))/2.;
+        pos[2] = (sec->getStartPosition()(2)+sec->getEndPosition()(2))/2.;
+        bool oob_loc = sec->getComponent()->apply(Vector_t(2350., 0., 0.), (0., 0., 0.), 0., e_loc, b_loc);
+        bool oob_glob = apply(pos, pos, 0., e_glob, b_glob);
+        fout << "Local " << oob_loc << " " << e_loc << " " << b_loc << std::endl;
+        fout << "Global " << oob_glob << " " << e_glob << " " << b_glob << std::endl;
+    }
+    double pi = 3.14159265359, r=2350.;
+    for (double phi = -pi/8.; phi < 17.*pi/8.; phi += pi/16.)
+      for (double r = 2350.; r < 2351.; r += 50.)
+        for (double y = 50.; y < 51.; y += 50.) {
+            Vector_t pos(r*cos(phi), r*sin(phi), y);
+            Vector_t b, e;
+            bool oob_glob = apply(pos, pos, 0., e, b);
+            fout << "Position, field " << pos << " " << b << " " << sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]) << std::endl;
+        }
+    fout << "TestOpalRing " << testpass << std::endl;
+    std::cerr << "TestOpalRing " << testpass << std::endl;
 }
 

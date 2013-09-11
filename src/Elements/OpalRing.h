@@ -301,6 +301,8 @@ class OpalRing : public Component {
      */
     void lockRing();
 
+    void test_f();
+
   private:
     /** Get the section at position pos */
     OpalRingSection* getSectionAt(const Vector_t& pos);

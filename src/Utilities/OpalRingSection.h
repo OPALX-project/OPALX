@@ -149,12 +149,14 @@ public:
 private:
     inline Vector_t convert(const Vector3D& vec) const;
     inline Vector3D convert(const Vector_t& vec) const;
-
+    inline void rotate(Vector_t& vector) const;
+    inline void rotate_back(Vector_t& vector) const;
 
     Component* component_m;
 
     Vector_t componentPosition_m;
     Vector_t componentOrientation_m;
+    Rotation3D componentOrientation3D_m;
 
     Vector_t startPosition_m;
     Vector_t startOrientation_m;
@@ -184,6 +186,40 @@ typedef std::vector<OpalRingSection*> RingSectionList;
 inline void OpalRingSection::setComponentOrientation(Vector3D orientation) {
     componentOrientation_m = convert(orientation);
     updateComponentOrientation();
+}
+
+inline void OpalRingSection::rotate(Vector_t& vector) const {
+    const Vector_t temp(vector);
+    vector(0) = +cos2_m * temp(0) + sin2_m * temp(1);
+    vector(1) = -sin2_m * temp(0) + cos2_m * temp(1);
+/* Out-of-plane rotations are commented for now
+    vector(0) = (c0 * c2) * temp(0) +
+                (-s0 * s1 * c2 + c1 * s2) * temp(1) +
+                (-s0 * c1 * c2 - s1 * s2) * temp(2);
+    vector(1) = (-c0 * s2) * temp(0) +
+                (s0 * s1 * s2 + c1 * c2) * temp(1) +
+                (s0 * c1 * s2 - s1 * c2) * temp(2);
+    vector(2) = (s0) * temp(0) +
+                (c0 * s1) * temp(1) +
+                (c0 * c1) * temp(2);
+*/
+}
+
+inline void OpalRingSection::rotate_back(Vector_t& vector) const {
+    const Vector_t temp(vector);
+    vector(0) = +cos2_m * temp(0) - sin2_m * temp(1);
+    vector(1) = +sin2_m * temp(0) + cos2_m * temp(1);
+/* Out-of-plane rotations are commented for now
+    vector(0) = (c0 * c2) * temp(0) +
+                (-s0 * s1 * c2 + c1 * s2) * temp(1) +
+                (-s0 * c1 * c2 - s1 * s2) * temp(2);
+    vector(1) = (-c0 * s2) * temp(0) +
+                (s0 * s1 * s2 + c1 * c2) * temp(1) +
+                (s0 * c1 * s2 - s1 * c2) * temp(2);
+    vector(2) = (s0) * temp(0) +
+                (c0 * s1) * temp(1) +
+                (c0 * c1) * temp(2);
+*/
 }
 
 #endif //OPAL_RING_SECTION_H

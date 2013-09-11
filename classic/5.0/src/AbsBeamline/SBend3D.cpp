@@ -120,8 +120,7 @@ void SBend3D::setFieldMapFileName(std::string name) {
                                   (name, "Dipole", lengthUnits_m, fieldUnits_m);
         double r_curv = (map_m->getPolarBoundingBoxMax()[0]+
                          map_m->getPolarBoundingBoxMin()[0])/2.;
-        double delta_phi = (map_m->getPolarBoundingBoxMax()[2]-
-                            map_m->getPolarBoundingBoxMin()[2]);
+        double delta_phi = map_m->getDeltaPhi();
         planarArcGeometry_m.setElementLength(r_curv*delta_phi);
         planarArcGeometry_m.setCurvature(1./r_curv);
         // std::cerr << "RCURV " << r_curv << " DPHI " << delta_phi << " DELTA X: "
