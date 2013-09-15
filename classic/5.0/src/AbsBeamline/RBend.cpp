@@ -1245,9 +1245,9 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << " m (in s coordinates)"
         << endl;
     msg << endl
-        << "Ideal (Hard Edge) Bend Magnet Properties"
+        << "Reference Trajectory Properties"
         << endl
-        << "========================================"
+        << "==============================="
         << endl << endl;
     msg << "Bend angle magnitude:    "
         << angle_m
@@ -1267,14 +1267,6 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << exitAngle_m * 180.0 / Physics::pi
         << " degrees)"
         << endl;
-    msg << "Field amplitude:         "
-        << fieldAmplitude_m
-        << " T"
-        << endl;
-    msg << "Field index (gradient):  "
-        << gradient_m
-        << " m^-1"
-        << endl;
     msg << "Bend design radius:      "
         << designRadius_m
         << " m"
@@ -1282,6 +1274,19 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << "Bend design energy:      "
         << designEnergy_m
         << " eV"
+        << endl;
+    msg << endl
+        << "Bend Field and Rotation Properties"
+        << endl
+        << "=================================="
+        << endl << endl;
+    msg << "Field amplitude:         "
+        << fieldAmplitude_m
+        << " T"
+        << endl;
+    msg << "Field index (gradient):  "
+        << gradient_m
+        << " m^-1"
         << endl;
     msg << "Rotation about x axis:   "
         << Orientation_m(1)
