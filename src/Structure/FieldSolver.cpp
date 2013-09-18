@@ -74,7 +74,7 @@ FieldSolver::FieldSolver():
     Definition(SIZE, "FIELDSOLVER",
                "The \"FIELDSOLVER\" statement defines data for a the field solver ") {
 
-    itsAttr[FSTYPE] = Attributes::makeString("FSTYPE", "Name of the attached field solver: FFT, FFTPERIODIC, MG, P3M, and NONE ");
+    itsAttr[FSTYPE] = Attributes::makeString("FSTYPE", "Name of the attached field solver: FFT, FFTPERIODIC, MG, AMR, and NONE ");
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
