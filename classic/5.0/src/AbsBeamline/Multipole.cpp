@@ -211,7 +211,7 @@ bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
 
     if(R(2) > startField_m && R(2) <= endField_m) {
 
-      FieldFactor(0) = 1.0; // EngeFact(R(2));
+      FieldFactor(0) = 1.0; //EngeFact(R(2));
         
         if(max_NormalComponent_m > 0) {
             B(0) += NormalComponents[0] * (FieldFactor(0) * R(1) - FieldFactor(2) * R(1) * R(1) * R(1) / 6.);
@@ -243,8 +243,8 @@ bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
         }
 
         if(max_SkewComponent_m > 0) {
-            B(0) += -SkewComponents[0] * R(0);
-            B(1) += SkewComponents[0] * R(1);
+	  B(0) += -SkewComponents[0] * R(0);
+	  B(1) += SkewComponents[0] * R(1);
 
             if(max_SkewComponent_m > 1) {
                 const double R02 = R(0) * R(0);
@@ -277,9 +277,8 @@ bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
 
 bool Multipole::apply(const Vector_t &R0, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
 
-    const Vector_t R = R0 - Vector_t(dx_m,dy_m,ds_m);
+   const Vector_t R = R0 - Vector_t(dx_m,dy_m,ds_m);
 
-   
    const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - ds_m);
 
     if(tmpR(2) > startField_m && tmpR(2) <= endField_m) {
@@ -309,9 +308,11 @@ bool Multipole::apply(const Vector_t &R0, const Vector_t &centroid, const double
                     }
                 }
             }
+
         }
 
         if(max_SkewComponent_m > 0) {
+
             B(0) += -SkewComponents[0] * tmpR(0);
             B(1) += SkewComponents[0] * tmpR(1);
 
@@ -340,7 +341,6 @@ bool Multipole::apply(const Vector_t &R0, const Vector_t &centroid, const double
             }
         }
     }
-
     return false;
 }
 void Multipole::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
