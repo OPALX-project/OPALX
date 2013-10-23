@@ -107,11 +107,12 @@ BoundaryGeometry::BoundaryGeometry() :
     } catch (...) {
         delete defGeometry;
     }
+    gsl_rng_env_setup();
+    randGen_m = gsl_rng_alloc(gsl_rng_default);    
+
     if (!h5FileName_m.empty ())
         initialize ();
 
-    gsl_rng_env_setup();
-    randGen_m = gsl_rng_alloc(gsl_rng_default);    
 }
 
 BoundaryGeometry::BoundaryGeometry(
@@ -124,6 +125,9 @@ BoundaryGeometry::BoundaryGeometry(
     TriSePartloss_m (NULL),
     TriFEPartloss_m (NULL),
     allbfaces_m (NULL) {
+    gsl_rng_env_setup();
+    randGen_m = gsl_rng_alloc(gsl_rng_default);    
+
     h5FileName_m = Attributes::getString (itsAttr[FGEOM]);
     if (!h5FileName_m.empty ())
         initialize ();
@@ -132,9 +136,7 @@ BoundaryGeometry::BoundaryGeometry(
     TRayTrace_m = IpplTimings::getTimer ("Ray tracing");
     Tinward_m = IpplTimings::getTimer ("Check inward");
 
-    gsl_rng_env_setup();
-    randGen_m = gsl_rng_alloc(gsl_rng_default);    
-}
+ }
 
 BoundaryGeometry::~BoundaryGeometry() {
     /*
