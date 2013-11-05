@@ -342,7 +342,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
       flagsuperposed="yes";
     else
       flagsuperposed="no";
-    *gmsg << "* Electric field map are superpoesed ?  " << flagsuperposed << " " << endl;
+    *gmsg << "* Electric field map are superposed ?  " << flagsuperposed << " " << endl;
 
 
     double h = elptr->getCyclHarm();
@@ -380,7 +380,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     elptr->initialise(itsBunch, fieldflag, 1.0);
 
     double BcParameter[8];
-    for(int i = 0; i < 8; i++) BcParameter[i] = 0.0;
+    for(int i = 0; i < 8; i++) 
+      BcParameter[i] = 0.0;
     string ElementType = "CYCLOTRON";
     BcParameter[0] = elptr->getRmin();
     BcParameter[1] = elptr->getRmax();
