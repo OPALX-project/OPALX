@@ -2,125 +2,18 @@
 #
 # The IPPL Framework
 # 
-# Visit http://people.web.psi.ch/adelmann/ for more details
+# Visit http://amas.web.psi.ch for more details.
 #
 ###########################################################################
 
 This is the main directory for version 1.0 of the IPPL FrameWork.
 The FrameWork makes heavy use of template, so, although it is
-necessary to first form libippl.a with the Makefile produced by the
-configuration script, template instantiations are made mostly during
-the building of your actual application. We are currently working on
-mechanisms to automate this process or "pre-instantiate" your needed
-template code. Examples will be provided in forthcomming versions.
+necessary to first form libippl.a.
 
-The IPPL library is compiled by generating a master Makefile using
-the configure script.  To execute this script, type "conf" in the
-ippl directory followed by the architecture you wish to compile on
-and any options you prefer.  The options include the communications
-library (if any) you wish to use, optimization level, utilization of
-netCDF, and inclusion of a graphics library.  Typing "conf" with no
-options will print out a listing of the available options.  This
-script uses perl, and has been developed mostly on SGI platform
-utilizing the KCC compiler from Kuck and Associates. The FrameWork now
-runs with other compilers and a full list of compatible compilers and
-platforms will be available shortly.
+The IPPL library is compiled using cmake, details can be found at
 
 In order to compile the FrameWork, you need to set two environment
-variables: IPPL_ROOT and IPPL_ARCH. IPPL_ROOT should be the full
-path name of where the ippl directory resides, such as
-
-setenv IPPL_ROOT /users/smith/develop/ippl
-
-likewise, the IPPL_ARCH variable should be set to the architecture
-for which you are compiling the FrameWork, such as
-
-setenv IPPL_ARCH SGI64  ( IRIX 6.2 systems)
-
-the architecture names are provided by running conf with no variables.
-The configure script will execute "makedepend", which determines the
-include file dependencies of all the source files and writes them into
-the Makefile.  The Makefile is created in a subdirectory inside the
-/lib directory that is named after the architecture you have chosen to
-compile for (e.g., /lib/SGI64).  If the Makefile produced by conf fails,
-you may have to edit the settings of the macros in conf, such as the
-library paths, to suite your specific site.
-
-Once conf is finished, go down to the subdirectory named after your
-architecture (such as /lib/SGI64) and type make, the Makefile there
-will compile the IPPL library and produces a libippl.a to be linked
-in with all your applications. An example Makefile.app is also placed
-in the directory in which you wish to build ippl applications - it is
-meant as a guide to show how all the necessary libraries are included.
-Remember to define the IPPL_ARCH and IPPL_ROOT variables when you
-use these Makefiles, they depend upon these environment variable being
-set each time you log on.
-
-
-Changes (Andrea Adelmann, Julian Cummings Oct/Sept. 2002):
-
-
-New conf switch GCC (for gcc v3.2 and up). Note the GPLUSPLUS is for compiler 
-gcc version smaller 3.0 like the stable 2.95.3.
-
-New version string: v0-35-2002
-
-Source code changes:
-
-- SubParticleAssign.cpp
-
- typedef typename RHS::Wrapped Wrapped;
-
- // Get the object wrapped in the PETE expression object
- // RHS::Wrapped& bb = b.PETE_unwrap();
- Wrapped& bb = b.PETE_unwrap();
-
-
-- Message.cpp
- 
-  m.putmsg((void*) (&*beg), sizeof(T2), d);
-  //m.putmsg((void*) beg, sizeof(T2), d);
-
-
-- ParticleAttrib.h
-	
-  // curr = myList->end();	
-  curr = &*myList->end();
-
-  //  ParticleAttribIterator(ParticleList_t& pa)
-  //    : myList(&pa), curr(pa.begin()) { }
-  ParticleAttribIterator(ParticleList_t& pa)
-    : myList(&pa), curr(&(*pa.begin())) { }
-
-
-
-- ParticleBase.h
-  add using std::sort;
-
-
-- BrickExpression.h needs #include "Field/AssignTags.h"
-
-- In case of the gcc 3.2 I still use the old strstream.h file.
-  The sstream seams to have a bug or the strstream based implementation is 
-  the source for the problem. The problem is  that after the first output 
-  no more output is seen on the console.
-
-
-- test(s)
-
-  Change some includes from old to new style.
-  Comment out missing tests:
-	binary
-	binarywhere
-	
-  Tests that fail: particles/spatial.cpp	
-
-- remove ifdefs for PGC 
-
-Have fun!
-
-  - ippl folk
-
+variables: IPPL_ROOT.
 
 Please report bugs to andreas.adelmann@psi.ch
 

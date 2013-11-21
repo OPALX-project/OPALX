@@ -33,6 +33,8 @@ Build:
 #include <iostream>
 #include <set>
 
+using namespace std;
+
 // dimension of our positions
 const unsigned Dim = 3;
 
@@ -248,8 +250,8 @@ public:
             delete FLI_m;
     }
     
-    //  void calcPwrSpecAndSave(CxField_t *f, string fn) {
-    void calcPwrSpecAndSave(ChargedParticles *p, string fn) {
+    //  void calcPwrSpecAndSave(CxField_t *f, std::string fn) {
+    void calcPwrSpecAndSave(ChargedParticles *p, std::string fn) {
         Inform m("calcPwrSpecAndSave ");
 
         rho_m = p->EFDMag_m;
@@ -434,7 +436,7 @@ int main(int argc, char *argv[]){
     P->initFields();
     msg << "P->initField() done " << endl;
 
-    pwrSpec->calcPwrSpecAndSave(P, string("pwrSpec.dat"));
+    pwrSpec->calcPwrSpecAndSave(P, std::string("pwrSpec.dat"));
     msg << "calcPwrSpecAndSave  done " << endl;
 
     
