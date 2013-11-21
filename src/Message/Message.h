@@ -100,14 +100,9 @@ DEFINE_ALL_BUILTIN_TRAIT_CLASS(long long)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(float)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(double)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(dcomplex)
-#if ( defined(IPPL_HAS_TEMPLATED_COMPLEX) && \
-      !defined(IPPL_USE_SINGLE_PRECISION) )
+#if ( !defined(IPPL_USE_SINGLE_PRECISION) )
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(fComplex)
 #endif
-
-// ada change fcomplex to fComples cmee name clash
-
-
 
 /////////////////////////////////////////////////////////////////////
 // a class to put single items into a Message, which can be specialized

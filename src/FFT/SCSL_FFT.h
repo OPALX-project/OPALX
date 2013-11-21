@@ -176,11 +176,7 @@ class SCSL {
 public:
 
   // definition of complex type
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
   typedef complex<T> Complex_t;
-#else
-  typedef complex Complex_t;
-#endif
 
   // Trivial constructor.  Do the real work in setup function.
   SCSL(void) {}
