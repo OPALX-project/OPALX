@@ -1,9 +1,0 @@
-0.1    10          1            3           0.0        1.4      1   1   1
-
-meshsize iterations  iter_relax   r_parallel  o_square   s_square a   b   l 
-
-
-Erklaerung:
-------------
-
-a,b and l defines the cylinder
