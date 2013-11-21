@@ -1,7 +1,0 @@
-Submit this job with the following command:
-
- 255 Nodes
- 4075 number of processors
- testExt title of the run
-
-% ./runit 255 4075 testExt

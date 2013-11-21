@@ -1,1 +1,0 @@
-f90 $MPI_COMPILE_FLAGS $MPI_LD_FLAGS -O3 -vms -assume buffered_io -fixed -fast -T 440000000 -D 460000000 -distribute 32 -hpf -hpf_target smpi -o inexe *.f90

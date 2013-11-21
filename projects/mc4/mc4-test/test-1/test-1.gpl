@@ -1,8 +1,0 @@
-set log
-set title 'mc4 and mc2'
-plot 'fort.33' w linesp
-repl 'mc4-1D.spec' w l
-pause -1
-set term post col
-set out "mc2-mc4.ps"
-repl

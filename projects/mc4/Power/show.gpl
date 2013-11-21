@@ -1,5 +1,0 @@
-set log
-plot 'fort.33' w linesp
-repl  'fort.33.P1' w linesp
-repl 'fort.33-mc2-32x32-10Steps' w l
-pause -1

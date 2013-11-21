@@ -1,8 +1,0 @@
-#!/bin/tcsh
-#BSUB -o 512.test
-#BSUB -e 512.err
-#BSUB -q smallq
-#BSUB -n 4
-#BSUB -W 2:00
-setenv LIBELAN_ALLOC_SIZE 2550000000
-prun  inexe
