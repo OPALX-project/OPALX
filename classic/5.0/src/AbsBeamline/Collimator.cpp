@@ -278,6 +278,7 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    goOnline();
 }
 
 void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
@@ -286,10 +287,13 @@ void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    goOnline();
 }
 
 void Collimator::finalise()
 {
+  if(online_m)
+    goOffline();
   *gmsg << "Finalize probe" << endl;
 }
 
@@ -335,7 +339,8 @@ void Collimator::goOnline() {
 }
 
 void Collimator::goOffline() {
-  lossDs_m->save();
+  if (online_m)
+    lossDs_m->save();
   online_m = false;
 }
 
