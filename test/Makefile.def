@@ -32,7 +32,7 @@ COPT                 =   -g $(USER_COPT)
 USER_F77OPT          = 
 F77OPT               =   $(USER_F77OPT) 
 
-CXXFLAGS             =  -fpermissive -Wno-deprecated -ftemplate-depth-80 -funroll-loops -fstrict-aliasing $(CXXOPT) $(CXXINCLUDES) $(CXXDEFINES) 
+CXXFLAGS             =   -fpermissive -Wparentheses -std=c++0x -DUSENAMESPACE -Wno-deprecated -g -funroll-loops $(CXXOPT) $(CXXINCLUDES) $(CXXDEFINES) 
 
 USER_CXXFLAGSLIB     = 
 USER_CXXFLAGSAPP     = 
@@ -58,7 +58,7 @@ LDFLAGS              =  $(CXXFLAGSAPP) $(USER_LDFLAGS)
 
 LINKER      = $(CXX) -v
 USER_LFLAGS = 
-LFLAGS      = -L$(IPPL_ROOT)/lib/ $(USER_LFLAGS) 
+LFLAGS      = -L$(IPPL_PREFIX)/lib/ $(USER_LFLAGS) 
 USER_LIBS   = 
 LIBS        = -lippl -lm -lstdc++ $(USER_LIBS) 
 

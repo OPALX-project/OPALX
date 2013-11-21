@@ -1,12 +1,6 @@
 * text=auto !eol
 /CMakeLists.txt -text
 /Doxyfile -text
-ENV/Generic-Linux.bash -text
-ENV/Jacquard-Linux.bash -text
-ENV/Maxwell-Linux.bash -text
-ENV/Slsbd7-Linux.bash -text
-ENV/XT3-Cray.bash -text
-ENV/merlin3-Linux.bash -text
 /INSTALL -text
 /LICENSE -text
 /README -text
