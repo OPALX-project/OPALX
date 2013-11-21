@@ -1,9 +1,0 @@
-
-# arguments: $1 = #cores
-#            $2 = step to compare
-
-rm -rf step-10.dat
-ln -s ../mc4-test/run32x32/mc4-out/step-$2-P$1.dat step-10.dat 
-./pow
-gnuplot show-P$1.gpl
-mv fort.33 fort.33.P$1

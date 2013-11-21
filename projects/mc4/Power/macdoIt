@@ -1,5 +1,0 @@
-rm -rf step-10.dat
-ln -s step-10-P$1.dat step-10.dat 
-./pow
-gnuplot show.gpl
-mv fort.33 fort.33-mac.P$1

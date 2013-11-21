@@ -1,8 +1,0 @@
-set log
-set title 'One Processor'
-plot 'fort.33' w linesp
-repl 'fort.33-mc2-32x32-10Steps' w l
-pause -1
-set term post col
-set out "mc2-32x32-10Steps-mc4-1P.ps"
-repl
