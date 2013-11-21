@@ -270,7 +270,6 @@ doc/tex/ippl_particles.tex -text
 doc/tex/ippl_setup.tex -text
 doc/tex/ippl_user_guide.tex -text
 doc/tex/pdfdraftcopy.sty -text
-examples/PNC/PIC3d.cpp -text
 src/AppTypes/AntiSymTenzor.h -text
 src/AppTypes/AppTypeTraits.h -text
 src/AppTypes/CMakeLists.txt -text
