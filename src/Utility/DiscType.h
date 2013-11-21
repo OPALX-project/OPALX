@@ -132,13 +132,8 @@ DEFINE_DISCTYPE_SCALAR(unsigned short,  "s")
 DEFINE_DISCTYPE_SCALAR(unsigned int,    "i")
 DEFINE_DISCTYPE_SCALAR(unsigned long,   "l")
 
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
 DEFINE_DISCTYPE_SCALAR(std::complex<float>,  "y")
 DEFINE_DISCTYPE_SCALAR(std::complex<double>, "z")
-#else
-DEFINE_DISCTYPE_SCALAR(complex, "z")
-#endif
-
 
 ////////////////////////////////////////////////////////////////////////////
 // specializations for Vektor, Tenzor, SymTenzor, AntiSymTenzor

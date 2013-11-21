@@ -62,11 +62,7 @@ public:
 
   // typedefs
   typedef FieldLayout<Dim> Layout_t;
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
   typedef std::complex<T> Complex_t;
-#else
-  typedef complex Complex_t;
-#endif
   typedef BareField<Complex_t,Dim> ComplexField_t;
   typedef LField<Complex_t,Dim> ComplexLField_t;
   typedef typename FFTBase<Dim,T>::Domain_t Domain_t;
@@ -297,11 +293,7 @@ public:
 
   // typedefs
   typedef FieldLayout<1U> Layout_t;
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
   typedef std::complex<T> Complex_t;
-#else
-  typedef complex Complex_t;
-#endif
   typedef BareField<Complex_t,1U> ComplexField_t;
   typedef LField<Complex_t,1U> ComplexLField_t;
   typedef typename FFTBase<1U,T>::Domain_t Domain_t;
@@ -415,11 +407,7 @@ public:
   typedef FieldLayout<Dim> Layout_t;
   typedef BareField<T,Dim> RealField_t;
   typedef LField<T,Dim> RealLField_t;
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
   typedef std::complex<T> Complex_t;
-#else
-  typedef complex Complex_t;
-#endif
   typedef BareField<Complex_t,Dim> ComplexField_t;
   typedef LField<Complex_t,Dim> ComplexLField_t;
   typedef typename FFTBase<Dim, T>::Domain_t Domain_t;
@@ -552,11 +540,7 @@ public:
   typedef FieldLayout<1U> Layout_t;
   typedef BareField<T,1U> RealField_t;
   typedef LField<T,1U> RealLField_t;
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
   typedef std::complex<T> Complex_t;
-#else
-  typedef complex Complex_t;
-#endif
   typedef BareField<Complex_t,1U> ComplexField_t;
   typedef LField<Complex_t,1U> ComplexLField_t;
   typedef typename FFTBase<1U,T>::Domain_t Domain_t;
@@ -679,11 +663,7 @@ public:
   typedef FieldLayout<Dim> Layout_t;
   typedef BareField<T,Dim> RealField_t;
   typedef LField<T,Dim> RealLField_t;
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
   typedef std::complex<T> Complex_t;
-#else
-  typedef complex Complex_t;
-#endif
   typedef BareField<Complex_t,Dim> ComplexField_t;
   typedef LField<Complex_t,Dim> ComplexLField_t;
   typedef typename FFTBase<Dim,T>::Domain_t Domain_t;
