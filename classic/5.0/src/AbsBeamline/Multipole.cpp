@@ -211,8 +211,8 @@ bool Multipole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
 
     if(R(2) > startField_m && R(2) <= endField_m) {
 
-      FieldFactor(0) = 1.0; //EngeFact(R(2));
-        
+      FieldFactor(0) = 1.0; // FixMe: need to define a way to incooperate fringe fields EngeFact(R(2));
+
         if(max_NormalComponent_m > 0) {
             B(0) += NormalComponents[0] * (FieldFactor(0) * R(1) - FieldFactor(2) * R(1) * R(1) * R(1) / 6.);
             B(1) += NormalComponents[0] * (FieldFactor(0) * R(0) - FieldFactor(2) * R(0) * R(0) / 2.);
