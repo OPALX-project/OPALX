@@ -273,8 +273,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(elptr);
-    referencePz = 0.0;
-    
+     
     if(!OpalData::getInstance()->inRestartRun()) {
       // get values from cyclotron command
       referenceR     = elptr->getRinit();
@@ -294,47 +293,71 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
       }
       referencePtot =  bega;
     }
+
+    // TEMP for testing if we can inject a bunch vertically for inflector -DW
+    // This will probably not work for long bunches, also I don't know what happens for a restart
+    Vector_t pmean = itsBunch->get_pmean();
+    referencePz = pmean[2];
+    //referencePr = sqrt(pmean[0] * pmean[0] + pmean[1] * pmean[1]);
+    float insqrt = referencePtot * referencePtot - referencePr * referencePr - referencePz * referencePz;
+    if(insqrt < 0) {
+      if(insqrt > -1.0e-10) {
+	referencePt = 0.0;
+      } 
+      else {
+	throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "Pt imaginary!");
+      }
+    }
+    else {
+      referencePt = sqrt(referencePtot * referencePtot - referencePr * referencePr - referencePz * referencePz);
+    }
+    // End TEMP
     
-    referencePt = sqrt(referencePtot * referencePtot - referencePr * referencePr);
+    // Old Pz and Pt
+    //referencePz = 0.0;
+    //referencePt = sqrt(referencePtot * referencePtot - referencePr * referencePr);
+
     if(referencePtot < 0.0) referencePt *= -1.0;
 
     sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
     cosRefTheta_m = cos(referenceTheta / 180.0 * pi);      
 
-    *gmsg << "* RINIT= " << referenceR  << " [mm]" << endl;
+    *gmsg << "* RINIT = " << referenceR  << " [mm]" << endl;
 
-    *gmsg << "* PHIINIT= " << referenceTheta << " [deg]" << endl;
+    *gmsg << "* PHIINIT = " << referenceTheta << " [deg]" << endl;
 
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
 
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
 
-    *gmsg << "* Total reference momentum   = " << referencePtot * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Total reference momentum = " << referencePtot * 1000.0 << " [MCU]" << endl;
 
-    *gmsg << "* Reference azimuthal momentum  = " << referencePt * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Reference azimuthal momentum = " << referencePt * 1000.0 << " [MCU]" << endl;
 
-    *gmsg << "* Reference radial momentum     = " << referencePr * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Reference radial momentum = " << referencePr * 1000.0 << " [MCU]" << endl;
+
+    *gmsg << "* Reference axial momentum = " << referencePz * 1000.0 << " [MCU]" << endl;
 
     double sym = elptr->getSymmetry();
-    *gmsg << "* " << sym << " fold field symmerty " << endl;
+    *gmsg << "* " << sym << "-fold field symmerty " << endl;
 
     // ckr: this just returned the default value as defined in Component.h
     // double rff = elptr->getRfFrequ();
     // *gmsg << "* Rf frequency= " << rff << " [MHz]" << endl;
 
     string fmfn = elptr->getFieldMapFN();
-    *gmsg << "* Field map file name= " << fmfn << " " << endl;
+    *gmsg << "* Field map file name = " << fmfn << " " << endl;
 
     string type = elptr->getType();
-    *gmsg << "* Type of cyclotron= " << type << " " << endl;
+    *gmsg << "* Type of cyclotron = " << type << " " << endl;
     
     double rmin = elptr->getMinR();
     double rmax = elptr->getMaxR();
-    *gmsg << "* Radial aperture= " << rmin << " ... " << rmax<<" [mm] "<< endl;
+    *gmsg << "* Radial aperture = " << rmin << " ... " << rmax<<" [mm] "<< endl;
 
     double zmin = elptr->getMinZ();
     double zmax = elptr->getMaxZ();
-    *gmsg << "* Vertical aperture= " << zmin << " ... " << zmax<<" [mm]"<< endl;
+    *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [mm]"<< endl;
 
     bool Sflag = elptr->getSuperpose();
     string flagsuperposed;
@@ -342,14 +365,14 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
       flagsuperposed="yes";
     else
       flagsuperposed="no";
-    *gmsg << "* Electric field map are superposed ?  " << flagsuperposed << " " << endl;
+    *gmsg << "* Electric field maps are superposed? " << flagsuperposed << " " << endl;
 
 
     double h = elptr->getCyclHarm();
-    *gmsg << "* Harmonic number h= " << h << " " << endl;
+    *gmsg << "* Harmonic number h = " << h << " " << endl;
 
     if (elptr->getSuperpose())
-        *gmsg << "* Fields are superimposed " << endl;
+        *gmsg << "* Fields are superposed " << endl;
 
     /**
      * To ease the initialise() function, set a integral parameter fieldflag internally.
@@ -891,7 +914,7 @@ void ParallelCyclotronTracker::execute() {
 
     step_m = 0;
     restartStep0_m = 0;
-    // record how many bunches has already been injected. ONLY FOR MPM
+    // record how many bunches have already been injected. ONLY FOR MPM
     BunchCount_m = itsBunch->getNumBunch();
 
     // For the time being, we set bin number equal to bunch number. FixMe: not used
@@ -1050,7 +1073,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             throw OpalException("Error in ParallelCyclotronTracker::execute", "SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
     }
 
-    // apply the plugin elements: probe, colilmator, stripper, septum
+    // apply the plugin elements: probe, collimator, stripper, septum
     // make sure that we apply elements even on first step
     applyPluginElements(dt);
 
@@ -1105,7 +1128,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                         flagTransition = true;
 
                         *gmsg << "*** Save beam distribution at turn #" << turnnumber_m << " ***" << endl;
-                        *gmsg << "*** After one revolution, Multi-Bunch Mode will be invorked ***" << endl;
+                        *gmsg << "*** After one revolution, Multi-Bunch Mode will be invoked ***" << endl;
 
                     }
 
@@ -1493,10 +1516,13 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     Inform *gmsgAll;
     gmsgAll = new  Inform("CycTracker RK4", INFORM_ALL_NODES);
+
     // time steps interval between bunches for multi-bunch simulation.
     const int stepsPerTurn = itsBunch->getStepsPerTurn();
-    // record how many bunches has already been injected. ONLY FOR MPM
+ 
+    // record how many bunches have already been injected. ONLY FOR MPM
     BunchCount_m = itsBunch->getNumBunch();
+
     // decide how many energy bins. ONLY FOR MPM
     BinCount_m = BunchCount_m;
 
@@ -1590,7 +1616,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     }
 
 
-    // apply the plugin elements: probe, colilmator, stripper, septum
+    // apply the plugin elements: probe, collimator, stripper, septum
     // make sure that we apply elements even on first step
     applyPluginElements(dt);
 
@@ -2143,7 +2169,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 Tdeltr.push_back(r_tuning[1]  - r_tuning[0]);
                 TturnNumber.push_back(turnnumber_m);
             }
-        } else if(initialTotalNum_m == 1) {
+        } 
+        else if(initialTotalNum_m == 1) {
           // initialTotalNum_m == 1 trigger single particle mode
 
           IpplTimings::startTimer(IntegrationTimer_m);
@@ -2219,8 +2246,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             oldReferenceTheta = temp_meanTheta;
 
-            // integrate for one step in the lab Cartesian frame (absulate value ).
-
+            // integrate for one step in the lab Cartesian frame (absolute value).
             flagNoDeletion = rk4(variable_m, t, dt, i);
 
             if(!flagNoDeletion) {
@@ -3434,6 +3460,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Initialize global R
         itsBunch->R *= Vector_t(1000.0); // m --> mm
         Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, 0.0); // [referenceR] == mm
+
         localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
 
         // Initialize global P
@@ -3442,12 +3469,10 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch->P[i](1) += referencePt;
         }
 
-
         // Initialize the bin number of the first bunch to 0
         for(size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch->Bin[i] = 0;
         }
-
 
         // Initial dump (if requested in global frame)
         if(!(Options::psDumpLocalFrame)) {
