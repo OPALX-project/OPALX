@@ -950,11 +950,7 @@ int BoundaryGeometry::PartInside (
                         if (TriPrPartloss_m[*faceIt] > 0 ||
                             TriSePartloss_m[*faceIt] > 0 ||
                             TriFEPartloss_m[*faceIt] > 0) {
-                            std::cout << "* Loss Data" << *faceIt << " : "
-                                      << TriPrPartloss_m[*faceIt] << " "
-                                      << TriSePartloss_m[*faceIt] << " "
-                                      << TriFEPartloss_m[*faceIt]
-                                      << " qloss: " << Qloss << std::endl;
+                            ;
                         }
                         break;
                     }
