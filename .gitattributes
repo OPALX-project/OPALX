@@ -502,9 +502,6 @@ classic/5.0/src/Utilities/SizeError.cpp -text
 classic/5.0/src/Utilities/SizeError.h -text
 classic/5.0/src/Utilities/SwitcherError.cpp -text
 classic/5.0/src/Utilities/SwitcherError.h -text
-classic/5.0/src/Utilities/User0.cpp -text
-classic/5.0/src/Utilities/User1.cpp -text
-classic/5.0/src/Utilities/User2.cpp -text
 classic/5.0/src/autogen-gele.sh -text
 classic/5.0/src/autogen-palu.sh -text
 classic/5.0/src/autogen-regression.sh -text
