@@ -65,10 +65,6 @@
 #endif
 #include <vector>
 
-extern double User0();
-extern double User1(double);
-extern double User2(double, double);
-
 using std::cerr;
 using std::endl;
 
@@ -171,7 +167,6 @@ namespace Expressions {
     static const TFunction0<double> table0[] = {
         {"RANF",    -2, ranf   },
         {"GAUSS",   -2, gauss  },
-        {"USER0",   -2, User0  },
         {"SI",      -2, SFunction::arcIn  },
         {"SC",      -2, SFunction::arcCtr },
         {"SO",      -2, SFunction::arcOut },
@@ -198,7 +193,6 @@ namespace Expressions {
         { "ACOS",   -1, std::acos     },
         { "ATAN",   -1, std::atan     },
         { "TGAUSS", -2, Tgauss   },
-        { "USER1",  -2, User1    },
         { 0,        -1, 0        }
     };
 
@@ -226,7 +220,6 @@ namespace Expressions {
         { "MIN",    -1, Min    },
         { "MOD",    -1, Mod    },
         { "POW",    -2, pow    },
-        { "USER2",  -2, User2  },
         { 0,        -1, 0      }
     };
 
