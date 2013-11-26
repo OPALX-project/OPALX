@@ -178,9 +178,11 @@ void ParallelCyclotronTracker::initializeBoundaryGeometry() {
     else
       break;
   }
-  itsDataSink->writeGeomToVtk(*bgf_m, string("data/testGeometry-00000.vtk"));
-  OpalData::getInstance()->setGlobalGeometry(bgf_m);
-  *gmsg << "* Boundary geometry initialized " << endl;
+  if (bgf_m) {
+    itsDataSink->writeGeomToVtk(*bgf_m, string("data/testGeometry-00000.vtk"));
+    OpalData::getInstance()->setGlobalGeometry(bgf_m);
+    *gmsg << "* Boundary geometry initialized " << endl;
+  }
 }
 /**
  *
