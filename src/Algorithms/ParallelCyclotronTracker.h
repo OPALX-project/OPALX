@@ -169,6 +169,9 @@ public:
     inline void setR(double x) {referenceR = x;}
     inline void setTheta(double x) {referenceTheta = x;}
     inline void setBeGa(double x) {bega = x;}
+
+    void bgf_main_collision_test();
+    void initializeBoundaryGeometry();
     
 private:
 
@@ -185,6 +188,8 @@ private:
     PartBunch *itsBunch;
 
     DataSink *itsDataSink;
+
+    BoundaryGeometry *bgf_m;
 
     SurfacePhysicsHandler *sphys;
 

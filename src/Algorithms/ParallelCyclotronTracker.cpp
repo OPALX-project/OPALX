@@ -44,6 +44,8 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
+
+#include "Elements/OpalBeamline.h"
 #include "Elements/OpalRing.h"
 
 #include "BeamlineGeometry/Euclid3D.h"
@@ -61,11 +63,11 @@
 #include "Utilities/NumToStr.h"
 #include "Utilities/OpalException.h"
 
+#include "Structure/BoundaryGeometry.h"
 
 #include "Ctunes.h"
 #include "Ctunes.cc"
 #include <cassert>
-
 
 #include <hdf5.h>
 #include "H5hut.h"
@@ -162,6 +164,55 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
     }
     delete itsBeamline;
 }
+
+/**
+ * AAA
+ *
+ * @param none
+ */
+void ParallelCyclotronTracker::initializeBoundaryGeometry() {
+  for(list<Component *>::iterator compindex = myElements.begin(); compindex != myElements.end(); compindex++) {
+    bgf_m = dynamic_cast<ElementBase *>(*compindex)->getBoundaryGeometry();
+    if(!bgf_m) 
+      continue;
+    else
+      break;
+  }
+  itsDataSink->writeGeomToVtk(*bgf_m, string("data/testGeometry-00000.vtk"));
+  OpalData::getInstance()->setGlobalGeometry(bgf_m);
+  *gmsg << "* Boundary geometry initialized " << endl;
+}
+/**
+ *
+ *
+ * @param fn Base file name
+ */
+void ParallelCyclotronTracker::bgf_main_collision_test() {
+  if(!bgf_m) return;
+
+  Inform msg("bgf_main_collision_test ");
+  
+  /**                                                                                                                                                                                                                                                       
+     Here we check if a particles is                                                                                                                                                                                                                          
+     outside the domain, flag it for                                                                                                                                                                                                                          
+     deletion
+  */
+  Vector_t intecoords = bgf_m->getmaxcoords() + bgf_m->gethr();
+  double dtime = 0.5 * itsBunch->getdT(); 
+  double Energy = 0.0;
+  int triId = 0;     
+  size_t Nimpact = 0;
+  for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
+    int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy);
+    if(res >= 0) { 
+      itsBunch->Bin[i] = -1;
+      Nimpact++;
+    }               
+  }
+  if (Nimpact>0)
+    msg << "Nimpact= " << Nimpact << endl;
+}
+
 
 /**
  *
@@ -930,6 +981,9 @@ void ParallelCyclotronTracker::execute() {
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++)
         *gmsg << ((*sindex)->first) << endl;
     *gmsg << "-----------------------------" << endl;
+
+
+    initializeBoundaryGeometry();
 
     // external field arrays for dumping
     for(int k = 0; k < 2; k++)
@@ -2112,6 +2166,10 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             // apply the plugin elements: probe, collimator, stripper, septum
             applyPluginElements(dt);
+
+	    // check if we loose particles at the boundary
+	    bgf_main_collision_test();
+
             // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
             bool flagNeedUpdate = deleteParticle(); 
             if(itsBunch->weHaveBins() && flagNeedUpdate)
@@ -2313,6 +2371,10 @@ void ParallelCyclotronTracker::Tracker_RK4() {
           // apply the plugin elements: probe, collimator, stripper, septum
           applyPluginElements(dt);
           // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+
+	  // check if we loose particles at the boundary
+	  bgf_main_collision_test();
+
           deleteParticle(); 
           
           IpplTimings::stopTimer(IntegrationTimer_m);
