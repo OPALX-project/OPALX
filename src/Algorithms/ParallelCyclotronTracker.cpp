@@ -210,8 +210,6 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
       Nimpact++;
     }               
   }
-  if (Nimpact>0)
-    msg << "Nimpact= " << Nimpact << endl;
 }
 
 
@@ -2424,13 +2422,14 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             // in order to sychronize the dump step for multi-bunch and single
             // bunch for compare with each other during post-process phase.
             if(!(Options::psDumpLocalFrame)) {
-                /* ROGERS: BUG - THIS IO ROUTINE CAUSES FACTOR 100 SLOW DOWN IN PROCESSING TIME!!!
+	      /* Fixme: ROGERS: BUG - THIS IO ROUTINE CAUSES FACTOR 100 SLOW DOWN IN PROCESSING TIME!!! */
+		double E = itsBunch->get_meanEnergy();
                 itsBunch->R /= Vector_t(1000.0); // mm --> m
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
+                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
                       << step_m + 1 << " T= " << t << " [nS]" << endl;
-                */
                 //----------------------------dump in local frame-------------------------------------//
             } else {
 
