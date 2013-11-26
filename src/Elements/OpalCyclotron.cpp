@@ -81,7 +81,7 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[MAXR] = Attributes::makeReal
                    ("MAXR","Maximal radial extent of the machine [mm]", 10000.0);
     itsAttr[GEOMETRY] = Attributes::makeString
-                        ("GEOMETRY", "BoundaryGeometry for Cavities");
+                        ("GEOMETRY", "Boundary Geometry for the Cyclotron");
     
     registerStringAttribute("FMAPFN");
     registerStringAttribute("GEOMETRY");
