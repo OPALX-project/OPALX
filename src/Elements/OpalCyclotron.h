@@ -32,6 +32,7 @@ public:
     /// The attributes of class OpalCyclotron.
     enum {
         TYPE,
+        GEOMETRY,       // geometry of boundary
         CYHARMON,         // The harmonic number of the cyclotron
         SYMMETRY,         // The symetry of the field
         RINIT,             // The initial radius [m]
@@ -79,6 +80,9 @@ private:
 
     // Clone constructor.
     OpalCyclotron(const string &name, OpalCyclotron *parent);
+
+    BoundaryGeometry *obgeo_m;
+
 };
 
 #endif // OPAL_OpalCyclotron_HH

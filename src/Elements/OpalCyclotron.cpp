@@ -20,6 +20,7 @@
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CyclotronRep.h"
+#include "Structure/BoundaryGeometry.h"
 #include "Physics/Physics.h"
 
 
@@ -28,7 +29,8 @@
 
 OpalCyclotron::OpalCyclotron():
     OpalElement(SIZE, "CYCLOTRON",
-                "The \"CYCLOTRON\" defines an cyclotron") {
+                "The \"CYCLOTRON\" defines an cyclotron"),
+    obgeo_m(NULL)  {
     itsAttr[CYHARMON] = Attributes::makeReal
                         ("CYHARMON", "the harmonic number of the cyclotron");
     itsAttr[SYMMETRY] = Attributes::makeReal
@@ -78,8 +80,11 @@ OpalCyclotron::OpalCyclotron():
                     ("MINR","Minimal radial extent of the machine [mm]", 0.0);
     itsAttr[MAXR] = Attributes::makeReal
                    ("MAXR","Maximal radial extent of the machine [mm]", 10000.0);
+    itsAttr[GEOMETRY] = Attributes::makeString
+                        ("GEOMETRY", "BoundaryGeometry for Cavities");
     
     registerStringAttribute("FMAPFN");
+    registerStringAttribute("GEOMETRY");
     registerStringAttribute("RFMAPFN");
     registerStringAttribute("TYPE");
     registerRealAttribute("CYHARMON");
@@ -103,9 +108,9 @@ OpalCyclotron::OpalCyclotron():
     setElement((new CyclotronRep("CYCLOTRON"))->makeAlignWrapper());
 }
 
-
 OpalCyclotron::OpalCyclotron(const string &name, OpalCyclotron *parent):
-    OpalElement(name, parent) {
+    OpalElement(name, parent),
+    obgeo_m(NULL) {
     setElement((new CyclotronRep(name))->makeAlignWrapper());
 }
 
@@ -198,6 +203,13 @@ void OpalCyclotron::update() {
     cycl->setRfFieldMapFN(fm_str);
     cycl->setRfFrequ(rff_str);
     cycl->setSuperpose(superpose);
+
+    if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
+      obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));
+      if(obgeo_m) {
+	cycl->setBoundaryGeometry(obgeo_m);
+      }
+    }
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(cycl);
