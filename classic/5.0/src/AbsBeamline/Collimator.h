@@ -93,6 +93,8 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
+    void print();
+
     string  getCollimatorShape();
     void setOutputFN(string fn);
     string getOutputFN();
@@ -144,7 +146,6 @@ public:
     void setRColl() ;
     void setCColl() ;
     void setWire() ;
-
 
     virtual bool isInColl(Vector_t R, Vector_t P, double recpgamma);
 

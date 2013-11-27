@@ -353,6 +353,37 @@ void Collimator::goOnline() {
     online_m = true;
 }
 
+void Collimator::print() {
+    if(RefPartBunch_m == NULL) {
+        if(!informed_m) {
+            string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
+            *gmsg << errormsg << "\n"
+                << endl;
+            if(Ippl::myNode() == 0) {
+                ofstream omsg("errormsg.txt", ios_base::app);
+                omsg << errormsg << endl;
+                omsg.close();
+            }
+            informed_m = true;
+        }
+        return;
+    }
+
+    if(isAPepperPot_m)
+        *gmsg << "Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+    else if(isASlit_m)
+        *gmsg << "Slit x= " << getXsize() << " Slit y= " << getYsize() << " start= " << position_m << " fn= " << filename_m << endl;
+    else if(isARColl_m)
+        *gmsg << "RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+    else if(isACColl_m)
+        *gmsg << "CCollimator angstart= " << xstart_m << " angend " << ystart_m << " rstart " << xend_m << " rend " << yend_m << endl;
+    else if(isAWire_m)
+        *gmsg << "Wire x= " << x0_m << " y= " << y0_m << endl;
+    else
+        *gmsg << "ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+
+}
+
 void Collimator::goOffline() {
   if (online_m)
     lossDs_m->save();
