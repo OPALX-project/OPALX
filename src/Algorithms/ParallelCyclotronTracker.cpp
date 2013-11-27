@@ -102,7 +102,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
         const PartData &reference,
         bool revBeam, bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
-    sphys(NULL),
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
@@ -130,7 +129,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    bool revBeam, bool revTrack,
                                                    int maxSTEPS, int timeIntegrator):
     Tracker(beamline, reference, revBeam, revTrack),
-    sphys(NULL),
     maxSteps_m(maxSTEPS),
     timeIntegrator_m(timeIntegrator),
     eta_m(0.01),
@@ -485,25 +483,25 @@ void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
     myElements.push_back(elptr);
 
     double xstart = elptr->getXStart();
-    *gmsg << "Xstart= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart= " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXEnd();
-    *gmsg << "Xend= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend= " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYStart();
-    *gmsg << "Ystart= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart= " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYEnd();
-    *gmsg << "Yend= " <<yend << " [mm]" << endl;
+    *gmsg << "* Yend= " <<yend << " [mm]" << endl;
 
     double zstart = elptr->getZStart();
-    *gmsg << "Zstart= " << zstart << " [mm]" << endl;
+    *gmsg << "* Zstart= " << zstart << " [mm]" << endl;
 
     double zend = elptr->getZEnd();
-    *gmsg << "Zend= " <<zend << " [mm]" << endl;
+    *gmsg << "* Zend= " <<zend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "Width= " << width << " [mm]" << endl;
+    *gmsg << "* Width= " << width << " [mm]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
 
@@ -3439,16 +3437,11 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         *gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
       }
     }
-    
+
     if(((*sindex)->first) == "CCOLLIMATOR") {
       Collimator * collim;
-        collim = static_cast<Collimator *>(((*sindex)->second).second);
-        if(collim->hasSurfacePhysics()) {
-          sphys = collim->getSurfacePhysics();
-            sphys->apply(*itsBunch);
-        } else {
-            collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
-        }   
+      collim = static_cast<Collimator *>(((*sindex)->second).second);
+      collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
     }
   }
 }

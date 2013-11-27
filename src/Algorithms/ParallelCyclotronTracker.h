@@ -21,14 +21,11 @@
 #include "Algorithms/Tracker.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Options.h"
-#include "Structure/SurfacePhysics.h"
-#include "Solvers/SurfacePhysicsHandler.hh"
 #include <vector>
 
 class BMultipoleField;
 class PartBunch;
 class PlanarArcGeometry;
-class SurfacePhysicsHandler;
 class OpalRing;
 class SBend3D;
 
@@ -190,8 +187,6 @@ private:
     DataSink *itsDataSink;
 
     BoundaryGeometry *bgf_m;
-
-    SurfacePhysicsHandler *sphys;
 
     /// The maximal number of steps the system is integrated
     int maxSteps_m;
