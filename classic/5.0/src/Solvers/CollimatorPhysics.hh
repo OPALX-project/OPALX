@@ -118,10 +118,8 @@ private:
     std::vector<PART> locParts_m;
   
     void setCColimatorGeom();
-    int  checkPoint( const double & x, const double & y );
-    LossDataSink *lossDs_m;
 
-    bool checkInColl(Vector_t R);
+    LossDataSink *lossDs_m;
 
     void copyFromBunch(PartBunch &bunch);
 

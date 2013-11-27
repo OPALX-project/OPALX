@@ -150,7 +150,6 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     
     /// the deltat in collimator is 1/n of the main tracking timestep.
 
-
     dT_m = bunch.getdT();
 
     /*    
@@ -182,7 +181,9 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     }
 
     if (bunch.getTotalNum() > 50) {
-
+      Vector_t rmin, rmax;
+      bunch.get_bounds(rmin, rmax); 
+      
       for(int ii = 0; ii < N_m; ++ii) {
         for(unsigned int i = 0; i < locParts_m.size(); ++i) {
 	  if(locParts_m[i].label != -1) {
@@ -192,7 +193,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	    double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
 	    
 	    if(collshape_m == "CCollimator") 
-	      incoll_m = checkInColl(R);    // fixme this needs to go to the Collimator
+	      incoll_m = coll->checkCollimator(R,rmin,rmax);
 	    else if (collshape_m == "DEGRADER") {
 	      incoll_m = deg->isInMaterial(R(2));
 	    }
@@ -291,7 +292,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	      double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
 
 	      if(collshape_m == "CCollimator")
-		incoll_m = checkInColl(R);    // fixme this needs to go to the Collimator                                                                                                                                                                    
+		incoll_m = coll->isInColl(R,P,Physics::c * bunch.getdT()/sqrt(1.0  + dot(P, P))); // incoll_m = checkInColl(R);
 	      else if (collshape_m == "DEGRADER") {
 		incoll_m = deg->isInMaterial(R(2));
 	      }
@@ -640,32 +641,6 @@ void CollimatorPhysics::setCColimatorGeom() {
     }
 }
 
-
-int CollimatorPhysics::checkPoint(const double &x, const double &y) {
-    int    cn = 0;
-
-    for(int i = 0; i < 4; i++) {
-        if(((geom_m[i].y <= y) && (geom_m[i+1].y > y))
-           || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
-
-            float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
-            if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
-                ++cn;
-        }
-    }
-    return (cn & 1);  // 0 if even (out), and 1 if odd (in)
-}
-
-bool  CollimatorPhysics::checkInColl(Vector_t R)
-{            
-  // this is for CCollimator FixMe: need to go to Collimator class 
-  if(R(2) < zend_m && R(2) > zstart_m ) 
-    return (checkPoint(R(0), R(1)) == 1 );
-  else
-    return false;
-   
-}
-
 void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
 
     bunch.createWithID(locParts_m[i].IDincol);
@@ -717,29 +692,30 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 }
 
 void CollimatorPhysics::print(Inform &msg){
+  if(locParts_m.size()) {
     Inform::FmtFlags_t ff = msg.flags();
     msg << std::scientific;
 
     /*
-    if(dynamic_cast<Degrader *>(element_ref_m)) {
-        Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
-        width_m = deg->getZStart();
+      if(dynamic_cast<Degrader *>(element_ref_m)) {
+      Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
+      width_m = deg->getZStart();
     }
     */
-    // msg << "Material " << material_m
-    //   << " a= " << a_m << " (m) b= " << b_m << " (m)" << endl;
-    //msg << "dTm= " << std::setw(8) << std::setprecision(3) << dT_m << " sub-timesteps " << N_m << endl;
-    if (locParts_m.size() > 0) {
-      msg << "Coll/Deg statistics:  t= " << time_m << " (s) total particles in material " << locParts_m.size() << " rho " << rho_m  
+    msg << "Material " << material_m
+	<< " a= " << a_m << " (m) b= " << b_m << " (m)" << endl;
+    msg << "dTm= " << std::setw(8) << std::setprecision(3) << dT_m << " sub-timesteps " << N_m << endl;
+    msg << "Coll/Deg statistics:  t= " << time_m << " (s) total particles in material " << locParts_m.size() 
+	<< " rho " << rho_m  
         << " new hits " << bunchToMatStat_m << " redifused " << redifusedStat_m 
         << " stopped " << stoppedPartStat_m 
         << " Eavg= " << Eavg_m*1E3 << " (MeV)" << endl;
-    //    msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " ------------------------------------------\n" << endl;
-    // msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
-    //	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << Begin_m + width_m << endl;
-    }
-    // msg << "\n--- CollimatorPhysics -------------------------------------------------\n" << endl;
+    msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " -------------------------------\n" << endl;
+    msg << "StartElement= " << std::setw(8) << std::setprecision(3) << Begin_m  
+	<< " (m) EndElement= " << std::setw(8) << std::setprecision(3) << Begin_m + width_m << endl;
+    msg << "\n--- CollimatorPhysics -------------------------------------------------\n" << endl;
     msg.flags(ff);
+  }
 }
 
 bool myCompF(PART x, PART y) {
