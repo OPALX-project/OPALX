@@ -1285,8 +1285,6 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
 void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
 
     // read 3D E&B field data file
-    Inform msg("RF Field: ");
-
     vector<string>::const_iterator fm    = RFfilename_m.begin();
     // loop over all field maps and superpose fields
     vector<double>::const_iterator rffi    = rffrequ_m.begin();
@@ -1295,7 +1293,6 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
     int fcount = 0;
 
     for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali, ++fcount) {
-        msg << "Load field map " << fcount << " - " << *fm << endl;
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);
         if(f == NULL) {
             ERRORMSG("* Error in Cyclotron::getFieldFromFile_BandRF()!" << endl);
@@ -1303,7 +1300,8 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
             exit(1);
         }
         f->readMap();
-        f->getInfo(&msg);
+	//	if (IPPL::Comm->getOutputLevel() != 0)
+	//  f->getInfo(gmsg);
         RFfields_m.push_back(f);
     }
     // read CARBON type B field
