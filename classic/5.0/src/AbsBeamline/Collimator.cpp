@@ -222,7 +222,6 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
     const Vector_t &R = RefPartBunch_m->R[i] - Vector_t(dx_m, dy_m, ds_m); // including the missaligment
     const Vector_t &P = RefPartBunch_m->P[i];
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
-
     bool pdead = false;
     pdead = isInColl(R,P,recpgamma);
 
@@ -235,6 +234,23 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
 
 bool Collimator::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
     return false;
+}
+
+bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
+
+  double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
+  double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
+  double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+  bool isDead = false;
+  if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
+    if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+      if(r(2) < zend_m && r(2) > zstart_m ) {
+	int pflag = checkPoint(r(0), r(1));
+	isDead = (pflag != 0);
+      }
+    }
+  }
+  return isDead;
 }
 
 
@@ -298,11 +314,10 @@ void Collimator::finalise()
 }
 
 void Collimator::goOnline() {
-    Inform msg("Collimator ");
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
-            msg << errormsg << "\n"
+            *gmsg << errormsg << "\n"
                 << endl;
             if(Ippl::myNode() == 0) {
                 ofstream omsg("errormsg.txt", ios_base::app);
@@ -315,17 +330,17 @@ void Collimator::goOnline() {
     }
 
     if(isAPepperPot_m)
-        msg << "Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isASlit_m)
-        msg << "Slit x= " << getXsize() << " Slit y= " << getYsize() << " start= " << position_m << " fn= " << filename_m << endl;
+        *gmsg << "Slit x= " << getXsize() << " Slit y= " << getYsize() << " start= " << position_m << " fn= " << filename_m << endl;
     else if(isARColl_m)
-        msg << "RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isACColl_m)
-        msg << "CCollimator angstart= " << xstart_m << " angend " << ystart_m << " rstart " << xend_m << " rend " << yend_m << endl;
+        *gmsg << "CCollimator angstart= " << xstart_m << " angend " << ystart_m << " rstart " << xend_m << " rend " << yend_m << endl;
     else if(isAWire_m)
-        msg << "Wire x= " << x0_m << " y= " << y0_m << endl;
+        *gmsg << "Wire x= " << x0_m << " y= " << y0_m << endl;
     else
-        msg << "ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
 
     PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
     PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
