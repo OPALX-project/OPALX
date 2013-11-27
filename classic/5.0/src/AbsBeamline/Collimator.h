@@ -149,6 +149,7 @@ public:
 
     virtual bool isInColl(Vector_t R, Vector_t P, double recpgamma);
 
+    int  checkPoint(const double & x, const double & y );
 private:
 
     // Not implemented.
@@ -194,9 +195,13 @@ private:
 
     Point  geom_m[5];
     void setGeom();
-    int  checkPoint( const double & x, const double & y );
+
 
     std::unique_ptr<LossDataSink> lossDs_m;
+
+    SurfacePhysicsHandler *sphys_m;
+
+
 };
 
 #endif // CLASSIC_Collimator_HH

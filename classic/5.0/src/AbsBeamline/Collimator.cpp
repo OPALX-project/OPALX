@@ -24,6 +24,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
+#include "Solvers/SurfacePhysicsHandler.hh"  
 #include <memory>
 
 extern Inform *gmsg;
@@ -64,7 +65,8 @@ Collimator::Collimator():
     rHole_m(0.0),
     nHolesX_m(0),
     nHolesY_m(0),
-    pitch_m(0.0)
+    pitch_m(0.0),
+    sphys_m(NULL)
 {}
 
 
@@ -101,7 +103,8 @@ Collimator::Collimator(const Collimator &right):
     rHole_m(right.rHole_m),
     nHolesX_m(right.nHolesX_m),
     nHolesY_m(right.nHolesY_m),
-    pitch_m(right.pitch_m)
+    pitch_m(right.pitch_m),
+    sphys_m(NULL)
 {
   setGeom();
 }
@@ -140,7 +143,8 @@ Collimator::Collimator(const string &name):
     rHole_m(0.0),
     nHolesX_m(0),
     nHolesY_m(0),
-    pitch_m(0.0)
+    pitch_m(0.0),
+    sphys_m(NULL)
 {}
 
 
@@ -267,23 +271,28 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
 
     if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-            size_t tempnum = bunch.getLocalNum();
-            int pflag = 0;
-            for(unsigned int i = 0; i < tempnum; ++i) {
-              if(bunch.PType[i] == 0 && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
-                    pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-                    if(pflag != 0) {
-                        lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
-                        bunch.Bin[i] = -1;
-                        flagNeedUpdate = true;
-                    }
-                }
-            }
-        }
+      if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+	size_t tempnum = bunch.getLocalNum();
+	int pflag = 0;
+	for(unsigned int i = 0; i < tempnum; ++i) {
+	  if(bunch.PType[i] == 0 && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
+	    pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
+	    if(pflag != 0) {
+	      if (!sphys_m)
+		lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
+	      bunch.Bin[i] = -1;
+	      flagNeedUpdate = true;
+	    }
+	  }
+	}
+      }
     }
-  reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-  return flagNeedUpdate;
+    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+    if (flagNeedUpdate && sphys_m) {
+      sphys_m->apply(bunch);
+      // sphys_m->print(*gmsg);
+    }
+    return flagNeedUpdate;
 }
 
 void Collimator::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
@@ -294,6 +303,12 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+
+    sphys_m = getSurfacePhysics();     
+    if(sphys_m) {
+      *gmsg << "* Surface physics attached  " << endl;
+      sphys_m->print(*gmsg);
+    }
     goOnline();
 }
 
@@ -303,6 +318,13 @@ void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+
+    sphys_m = getSurfacePhysics();
+     
+    if(sphys_m) {
+      *gmsg << "Surface physics attached  " << endl;
+      sphys_m->print(*gmsg);
+    }
     goOnline();
 }
 
@@ -317,8 +339,7 @@ void Collimator::goOnline() {
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
-            *gmsg << errormsg << "\n"
-                << endl;
+            ERRORMSG(errormsg << endl);
             if(Ippl::myNode() == 0) {
                 ofstream omsg("errormsg.txt", ios_base::app);
                 omsg << errormsg << endl;
@@ -330,17 +351,17 @@ void Collimator::goOnline() {
     }
 
     if(isAPepperPot_m)
-        *gmsg << "Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "* Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isASlit_m)
-        *gmsg << "Slit x= " << getXsize() << " Slit y= " << getYsize() << " start= " << position_m << " fn= " << filename_m << endl;
+        *gmsg << "* Slit x= " << getXsize() << " Slit y= " << getYsize() << " start= " << position_m << " fn= " << filename_m << endl;
     else if(isARColl_m)
-        *gmsg << "RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "* RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isACColl_m)
-        *gmsg << "CCollimator angstart= " << xstart_m << " angend " << ystart_m << " rstart " << xend_m << " rend " << yend_m << endl;
+        *gmsg << "* CCollimator angle start " << xstart_m << " (Deg) angle end " << ystart_m << " (Deg) R start " << xend_m << " (mm) R rend " << yend_m << " (mm)" << endl;
     else if(isAWire_m)
-        *gmsg << "Wire x= " << x0_m << " y= " << y0_m << endl;
+        *gmsg << "* Wire x= " << x0_m << " y= " << y0_m << endl;
     else
-        *gmsg << "ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
 
     PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
     PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));

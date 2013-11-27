@@ -193,7 +193,9 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	    double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
 	    
 	    if(collshape_m == "CCollimator") 
-	      incoll_m = coll->checkCollimator(R,rmin,rmax);
+	      incoll_m = coll->checkPoint(R(0),R(1));
+	    //	      incoll_m = coll->checkCollimator(R,rmin,rmax);
+
 	    else if (collshape_m == "DEGRADER") {
 	      incoll_m = deg->isInMaterial(R(2));
 	    }
@@ -292,7 +294,9 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	      double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
 
 	      if(collshape_m == "CCollimator")
-		incoll_m = coll->isInColl(R,P,Physics::c * bunch.getdT()/sqrt(1.0  + dot(P, P))); // incoll_m = checkInColl(R);
+		incoll_m = coll->checkPoint(R(0),R(1));
+	      //		incoll_m = coll->isInColl(R,P,Physics::c * bunch.getdT()/sqrt(1.0  + dot(P, P))); // incoll_m = checkInColl(R);
+
 	      else if (collshape_m == "DEGRADER") {
 		incoll_m = deg->isInMaterial(R(2));
 	      }
@@ -590,7 +594,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
     Rot(P(1),P(2),R(1),R(2), yplane, normP, thetacou, deltas, coord);
 
 
-// Rutherford-scattering in x-direction
+    // Rutherford-scattering in x-direction
     if(collshape_m == "CCollimator") 
         R = R * 1000.0;
 
@@ -640,6 +644,46 @@ void CollimatorPhysics::setCColimatorGeom() {
       zend_m = tempz;
     }
 }
+
+  
+/**
+   Descr          Need to be elliminated
+   @param[in]     _x coordinate of point (m)
+   @param[in]     _y coordinate of point (m)
+   @return        0 if particle is out, 1 if in
+
+
+int CollimatorPhysics::checkPoint(const double &x, const double &y) {
+    int    cn = 0;
+
+    for(int i = 0; i < 4; i++) {
+        if(((geom_m[i].y <= y) && (geom_m[i+1].y > y))
+           || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
+
+            float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
+            if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
+                ++cn;
+        }
+    }
+    return (cn & 1);
+}
+*/
+
+/**
+   Descr          Need to be elliminated CColimator
+   @param[in]     _R 3 vector of coordinates (m)
+   @return        true if particle is in collimator
+
+bool  CollimatorPhysics::checkInColl(Vector_t R)
+{            
+
+  if(R(2) < zend_m && R(2) > zstart_m ) 
+    return (checkPoint(R(0), R(1)) == 1 );
+  else
+    return false;
+   
+}
+*/
 
 void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
 
