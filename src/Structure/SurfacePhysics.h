@@ -58,7 +58,7 @@ public:
 
     void print(std::ostream &os) const;
 
-    void initSurfacePhysicsHandler(ElementBase &element, const double &major, const double &minor);
+    void initSurfacePhysicsHandler(ElementBase &element);
 
     void updateElement(ElementBase *element);
 

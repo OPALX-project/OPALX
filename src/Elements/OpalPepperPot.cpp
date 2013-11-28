@@ -114,7 +114,7 @@ void OpalPepperPot::update() {
     ppo->setMisalignment(dx, dy, 0.0);
 
     ppo->setPepperPot();
-
+    /*
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
     if(apert.size() > 0) {
@@ -125,10 +125,10 @@ void OpalPepperPot::update() {
             apert_minor = apert[0];
         }
     }
-
+    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*ppo, apert_major, apert_minor);
+        sphys_m->initSurfacePhysicsHandler(*ppo);
         ppo->setSurfacePhysics(sphys_m->handler_m);
     }
 

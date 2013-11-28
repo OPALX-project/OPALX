@@ -147,33 +147,33 @@ void LossDataSink::save() {
     if (h5hut_mode_m) {
         if (!Options::enableHDF5) return;
         fn_m = element_m + std::string(".h5");
-           INFOMSG("Save " << fn_m << endl);
-           openH5();
-           writeHeaderH5();
-           saveH5();
-           H5CloseFile(H5file_m);
-           Ippl::Comm->barrier();
-       }
-       else {
-           fn_m = element_m + std::string(".loss");
-           INFOMSG("Save " << fn_m << endl);
-           if(OpalData::getInstance()->inRestartRun()) 
-               append();
-           else
-               open();
-           writeHeaderASCII();
-           saveASCII();
-           close();
-       }
-       x_m.clear();
-       y_m.clear();
-       z_m.clear();
-       px_m.clear();
-       py_m.clear();
-       pz_m.clear();
-       id_m.clear();
-       turn_m.clear();
-       time_m.clear();        
+	INFOMSG("Save " << fn_m << endl);
+	openH5();
+	writeHeaderH5();
+	saveH5();
+	H5CloseFile(H5file_m);
+	Ippl::Comm->barrier();
+    }
+    else {
+      fn_m = element_m + std::string(".loss");
+      INFOMSG("Save " << fn_m << endl);
+      if(OpalData::getInstance()->inRestartRun()) 
+	append();
+      else
+	open();
+      writeHeaderASCII();
+      saveASCII();
+      close();
+    }
+    x_m.clear();
+    y_m.clear();
+    z_m.clear();
+    px_m.clear();
+    py_m.clear();
+    pz_m.clear();
+    id_m.clear();
+    turn_m.clear();
+    time_m.clear();        
 }
 
 

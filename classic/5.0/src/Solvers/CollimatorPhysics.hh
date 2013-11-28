@@ -22,7 +22,6 @@ class LossDataSink;
 
 typedef struct {
     int label;
-
     unsigned localID;
     Vector_t Rincol;
     Vector_t Pincol;
@@ -38,7 +37,7 @@ typedef struct {
 
 class CollimatorPhysics: public SurfacePhysicsHandler {
 public:
-    CollimatorPhysics(const std::string &name, ElementBase *element, const double &major, const double &minor, std::string &mat);
+    CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
 
     void apply(PartBunch &bunch);
 
@@ -61,20 +60,6 @@ private:
 
     gsl_rng *rGen_m;
        
-    double a_m;
-    double b_m;
-    double xp_m;
-    double yp_m;
-    double xstart_m;
-    double xend_m;
-    double ystart_m;
-    double yend_m;
-    double zstart_m;
-    double zend_m;
-    double width_m;
-
-    double Begin_m;
-    double End_m;
     std::string material_m;
     std::string FN_m;
     std::string collshape_m;
@@ -111,15 +96,12 @@ public:
 
 private:
     bool incoll_m;
-    Point  geom_m[5];
 
     double time_m;
 
     std::vector<PART> locParts_m;
   
-    void setCColimatorGeom();
-
-    LossDataSink *lossDs_m;
+    std::unique_ptr<LossDataSink> lossDs_m;
 
     void copyFromBunch(PartBunch &bunch);
 

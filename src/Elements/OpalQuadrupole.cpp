@@ -151,6 +151,7 @@ void OpalQuadrupole::update() {
     double dy = Attributes::getReal(itsAttr[DY]);
     quad->setMisalignment(dx, dy, 0.0);
 
+    /*
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
     if(apert.size() > 0) {
@@ -161,10 +162,10 @@ void OpalQuadrupole::update() {
             apert_minor = apert[0];
         }
     }
-
+    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*quad, apert_major, apert_minor);
+        sphys_m->initSurfacePhysicsHandler(*quad);
         quad->setSurfacePhysics(sphys_m->handler_m);
     }
 

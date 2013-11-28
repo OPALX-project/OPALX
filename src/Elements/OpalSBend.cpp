@@ -240,6 +240,7 @@ void OpalSBend::update() {
     //   bend->setL(Attributes::getReal(itsAttr[L]));
     //  else
     //    bend->setL(0.0);
+    /*
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
     if(apert.size() > 0) {
@@ -250,10 +251,10 @@ void OpalSBend::update() {
             apert_minor = apert[0];
         }
     }
-
+    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*bend, apert_major, apert_minor);
+        sphys_m->initSurfacePhysicsHandler(*bend);
         bend->setSurfacePhysics(sphys_m->handler_m);
     }
 

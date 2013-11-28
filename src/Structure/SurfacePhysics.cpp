@@ -119,7 +119,7 @@ void SurfacePhysics::update() {
 }
 
 
-void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element, const double &major, const double &minor) {
+void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
     *gmsg << "* ************* S U R F A C E P H Y S I C S **************************************** " << endl;
     *gmsg << "* SurfacePhysics::initSurfacePhysicsHandler " << endl;
     *gmsg << "* ********************************************************************************** " << endl;
@@ -128,7 +128,7 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element, const doubl
     material_m = Attributes::getString(itsAttr[MATERIAL]);
 
     if(Attributes::getString(itsAttr[TYPE]) == "CCOLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "DEGRADER") {
-        handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, major, minor, material_m);
+        handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m);
         *gmsg << *this << endl;
     } else {
         handler_m = 0;

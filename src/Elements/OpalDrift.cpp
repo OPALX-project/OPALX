@@ -84,6 +84,7 @@ void OpalDrift::update() {
         owk_m->initWakefunction(*drf);
         drf->setWake(owk_m->wf_m);
     }
+    /*
     std::vector<double> apert = getApert();
     double apert_major = -1., apert_minor = -1.;
     if(apert.size() > 0) {
@@ -94,10 +95,10 @@ void OpalDrift::update() {
             apert_minor = apert[0];
         }
     }
-
+    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*drf, apert_major, apert_minor);
+        sphys_m->initSurfacePhysicsHandler(*drf);
         drf->setSurfacePhysics(sphys_m->handler_m);
     }
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {

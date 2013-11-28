@@ -66,7 +66,8 @@ Collimator::Collimator():
     nHolesX_m(0),
     nHolesY_m(0),
     pitch_m(0.0),
-    sphys_m(NULL)
+    sphys_m(NULL),
+    lossDs_m(nullptr)
 {}
 
 
@@ -104,7 +105,8 @@ Collimator::Collimator(const Collimator &right):
     nHolesX_m(right.nHolesX_m),
     nHolesY_m(right.nHolesY_m),
     pitch_m(right.pitch_m),
-    sphys_m(NULL)
+    sphys_m(NULL),
+    lossDs_m(nullptr)
 {
   setGeom();
 }
@@ -144,7 +146,8 @@ Collimator::Collimator(const string &name):
     nHolesX_m(0),
     nHolesY_m(0),
     pitch_m(0.0),
-    sphys_m(NULL)
+    sphys_m(NULL),
+    lossDs_m(nullptr)
 {}
 
 
@@ -290,7 +293,6 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && sphys_m) {
       sphys_m->apply(bunch);
-      // sphys_m->print(*gmsg);
     }
     return flagNeedUpdate;
 }
@@ -299,12 +301,16 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
     RefPartBunch_m = bunch;
     position_m = startField;
     endField = position_m + getElementLength();
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 
     sphys_m = getSurfacePhysics();     
+    
+    if (!sphys_m) {
+      if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+      else
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    }
+    
     if(sphys_m) {
       *gmsg << "* Surface physics attached  " << endl;
       sphys_m->print(*gmsg);
@@ -314,13 +320,16 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
 
 void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
     RefPartBunch_m = bunch;
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 
     sphys_m = getSurfacePhysics();
-     
+
+    if (!sphys_m) {
+      if (filename_m == std::string(""))
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+      else
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    }
+    
     if(sphys_m) {
       *gmsg << "Surface physics attached  " << endl;
       sphys_m->print(*gmsg);
@@ -406,7 +415,7 @@ void Collimator::print() {
 }
 
 void Collimator::goOffline() {
-  if (online_m)
+  if (online_m && lossDs_m)
     lossDs_m->save();
   online_m = false;
 }
