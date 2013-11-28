@@ -3476,7 +3476,7 @@ bool ParallelCyclotronTracker::deleteParticle(){
       localToGlobal(itsBunch->R, phi, meanR);
 
       reduce(lostParticleNum, lostParticleNum, OpAddAssign());
-      *gmsg << "Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, or out of cyclotron aperture" << endl;
+      INFOMSG("Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, or out of cyclotron aperture" << endl);
   }
   return flagNeedUpdate;
 }
