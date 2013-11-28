@@ -311,10 +311,6 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
     
-    if(sphys_m) {
-      *gmsg << "* Surface physics attached  " << endl;
-      sphys_m->print(*gmsg);
-    }
     goOnline();
 }
 
@@ -330,10 +326,6 @@ void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
     
-    if(sphys_m) {
-      *gmsg << "Surface physics attached  " << endl;
-      sphys_m->print(*gmsg);
-    }
     goOnline();
 }
 
