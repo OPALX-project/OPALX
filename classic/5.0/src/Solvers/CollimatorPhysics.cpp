@@ -82,8 +82,6 @@ CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, s
 }
 
 CollimatorPhysics::~CollimatorPhysics() {
-  Inform msg("CollimatorPhysics ");
-  print(msg);
   locParts_m.clear();
   lossDs_m->save();
   if (rGen_m)
