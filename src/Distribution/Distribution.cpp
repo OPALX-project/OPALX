@@ -158,7 +158,6 @@ namespace LegacyAttributesT
     CUTOFF,
     Z,
     T,
-    PZ,
     PT,
     ALPHAX,
     ALPHAY,
@@ -3903,9 +3902,6 @@ void Distribution::SetAttributes() {
     itsAttr[AttributesT::SIZE + LegacyAttributesT::T]
             = Attributes::makeReal("T", "Average longitudinal position of distribution "
                                         "in t coordinates (s).", 0.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::PZ]
-            = Attributes::makeReal("PZ", "Average longitudinal momentum, beta_z x gamma, "
-                                         "of distribution.", -99.0);
     itsAttr[AttributesT::SIZE + LegacyAttributesT::PT]
             = Attributes::makeReal("PT", "Average longitudinal momentum of distribution.",
                                          0.0);
@@ -4427,13 +4423,10 @@ void Distribution::SetupParticleBins(double massIneV) {
         double dEBins = Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::DEBIN]);
         energyBins_m->setRebinEnergy(dEBins);
 
-        double pz = Attributes::getReal(itsAttr[AttributesT::SIZE
-                                                + LegacyAttributesT::PT]);
+	if (Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT])!=0.0)
+	  WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC or use OFFSETPZ" << endl);
 
-        /*
-         * OFFSETPZ overrides PT if it is nonzero. We start with PT for legacy
-         * compatiblity reasons.
-         */
+        double pz = 0.0;
         if (Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]) != 0.0)
             pz = Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]);
 
@@ -4532,12 +4525,11 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
     double deltaPx = Attributes::getReal(itsAttr[AttributesT::OFFSETPX]);
     double deltaPy = Attributes::getReal(itsAttr[AttributesT::OFFSETPY]);
 
-    double deltaPz = Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT]);
+    if (Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT])!=0.0)
+      WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
+    //    double deltaPz = Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT]);
 
-    /*
-     * OFFSETPZ overrides PT if it is nonzero. We initially use PT for
-     * legacy compatibility.
-     */
+    double deltaPz=0.0;
     if (Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]) != 0.0)
         deltaPz = Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]);
 
