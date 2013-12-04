@@ -3665,7 +3665,7 @@ void Distribution::SetAttributes() {
 
     itsAttr[AttributesT::PXMULT] = Attributes::makeReal("PXMULT", "Multiplier for px dimension.", 1.0);
     itsAttr[AttributesT::PYMULT] = Attributes::makeReal("PYMULT", "Multiplier for py dimension.", 1.0);
-    itsAttr[AttributesT::PZMULT] = Attributes::makeReal("PZMULT", "Multiplier for px dimension.", 1.0);
+    itsAttr[AttributesT::PZMULT] = Attributes::makeReal("PZMULT", "Multiplier for pz dimension.", 1.0);
 
     itsAttr[AttributesT::OFFSETX]
             = Attributes::makeReal("OFFSETX", "Average x offset of distribution.", 0.0);
