@@ -386,8 +386,8 @@ void TrackRun::execute() {
         Track::block->bunch->setMass(macromass); // set the Mass per macro-particle, [GeV/c^2]
         Track::block->bunch->setCharge(macrocharge);  // set the charge per macro-particle, [C]
 
-        *gmsg << "Mass of simulation particle= " << macromass << " GeV/c^2" << endl;
-        *gmsg << "Charge of simulation particle= " << macrocharge << " [C]" << endl;
+        *gmsg << "* Mass of simulation particle= " << macromass << " GeV/c^2" << endl;
+        *gmsg << "* Charge of simulation particle= " << macrocharge << " [C]" << endl;
 
 
         Track::block->bunch->setdT(1.0 / (Track::block->stepsPerTurn * beam->getFrequency() * 1.0e6));
@@ -454,9 +454,7 @@ void TrackRun::execute() {
         *gmsg << *dist << endl;
         *gmsg << *beam << endl;
         *gmsg << *fs   << endl;
-        *gmsg << *Track::block->bunch  << endl;
-
-
+	//       *gmsg << *Track::block->bunch  << endl;
 
         if(specifiedNumBunch > 1) {
 

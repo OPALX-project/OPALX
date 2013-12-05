@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
 
-    gmsg = new  Inform("OPAL ");
+    gmsg = new  Inform("OPAL");
     Inform hmsg("");
     string mySpace("            ");
 
@@ -217,9 +217,9 @@ int main(int argc, char *argv[]) {
             }
 
             if(is) {
-                *gmsg << "Reading input stream \"" << argv[arg] << "\"." << endl;
+                *gmsg << "* Reading input stream \"" << argv[arg] << "\"." << endl;
                 parser.run(is);
-                *gmsg << "End of input stream \"" << argv[arg] << "\"." << endl;
+                *gmsg << "* End of input stream \"" << argv[arg] << "\"." << endl;
             }
         }
 

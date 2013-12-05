@@ -41,7 +41,8 @@
 
 extern Inform *gmsg;
 
-#define DISTDBG	
+#define DISTDBG1	
+#define noDISTDBG2
 
 //
 // Class Distribution
@@ -409,7 +410,7 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
         break;
     }
 
-    // AAA Scale and shift coordinates according to distribution input.
+    // Scale and shift coordinates according to distribution input.
     ScaleDistCoordinates();
     ShiftDistCoordinates(massIneV);
 }
@@ -1664,6 +1665,12 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      * When scan mode is true, we need to destroy particles except
      * for the first pass.
      */
+
+    /* 
+       Fixme: 
+       
+       avrgpz_m = beam.getP()/beam.getM();
+    */
     size_t numberOfPartToCreate = numberOfParticles;
     if (beam.getTotalNum() != 0) {
         scan_m = scan;
@@ -2707,11 +2714,11 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_matrix_set (m,4,1, distCorr_m.at(6));
     gsl_matrix_set (m,1,4, distCorr_m.at(6));
 
-#ifdef DISTDBG
+#ifdef DISTDBG1
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
             if (j==0)
-                *gmsg << "r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+                *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
                       << std::setprecision(3) << gsl_matrix_get (m, i, j);
             else
                 *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
@@ -2733,7 +2740,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         }
     }        
     gsl_matrix_transpose(m);
-#ifdef DISTDBG	
+#ifdef DISTDBG2	
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 6; j++) {
                 if (j==0)

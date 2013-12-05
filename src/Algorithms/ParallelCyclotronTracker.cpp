@@ -877,7 +877,7 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     *gmsg << "Charge of outcome particle = +e * " << opcharge << endl;
 
     double opmass = elptr->getOPMass();
-    *gmsg << "Mass of the outcome particle = " << opmass << " [GeV/c^2]" << endl;
+    *gmsg << "* Mass of the outcome particle = " << opmass << " [GeV/c^2]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
 
@@ -973,12 +973,11 @@ void ParallelCyclotronTracker::execute() {
         opalRing_m->lockRing();
 
     // display the selected elements
-    *gmsg << "-----------------------------" << endl;
-    *gmsg << "The selected Beam line elements are :" << endl;
+    *gmsg << "* -----------------------------" << endl;
+    *gmsg << "* The selected Beam line elements are :" << endl;
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++)
-        *gmsg << ((*sindex)->first) << endl;
-    *gmsg << "-----------------------------" << endl;
-
+      *gmsg << "* -> " <<  ((*sindex)->first) << endl;
+    *gmsg << "* -----------------------------" << endl;
 
     initializeBoundaryGeometry();
 
@@ -1002,12 +1001,12 @@ void ParallelCyclotronTracker::execute() {
         exit(1);
     }
 
-    *gmsg << "-----------------------------" << endl;
-    *gmsg << "Finalize i.e. write data and close files :" << endl;
+    *gmsg << "* -----------------------------" << endl;
+    *gmsg << "* Finalizing i.e. write data and close files :" << endl;
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++) {
         (((*sindex)->second).second)->finalise();
     }
-    *gmsg << "-----------------------------" << endl;
+    *gmsg << "* -----------------------------" << endl;
 }
 
 /**
@@ -1024,9 +1023,6 @@ void ParallelCyclotronTracker::execute() {
  *
  */
 void ParallelCyclotronTracker::Tracker_LF() {
-
-    Inform *gmsgAll;
-    gmsgAll = new  Inform("CycTracker LF", INFORM_ALL_NODES);
 
     BorisPusher pusher;
 
@@ -1083,8 +1079,8 @@ void ParallelCyclotronTracker::Tracker_LF() {
     // prepare for dump after each turn
     double oldReferenceTheta = initialReferenceTheta;
 
-    *gmsg << "single particle trajectory dump frequency is set to " << SinglePartDumpFreq << endl;
-    *gmsg << "particles repartition frequency is set to " << Options::repartFreq << endl;
+    *gmsg << "* Single particle trajectory dump frequency is set to " << SinglePartDumpFreq << endl;
+    *gmsg << "* Repartition frequency is set to " << Options::repartFreq << endl;
     if(numBunch_m > 1)
         *gmsg << "particles energy bin ID reset frequency is set to " << resetBinFreq << endl;
 
@@ -1131,7 +1127,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
     // *****************II***************
     // main integration loop
     // *****************II***************
-    *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
+    *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
         if(step_m % SinglePartDumpFreq == 0) {
@@ -1492,7 +1488,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             //------------  and calculate the external field at the mass of bunch-----------------------//
 
             Vector_t const meanR = calcMeanR();
-            *gmsg << "meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
+            *gmsg << "* meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
 
             beamline_list::iterator DumpSindex = FieldDimensions.begin();
             (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
@@ -1542,9 +1538,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
                                      pow(itsBunch->P[ii](1), 2.0) +
                                      pow(itsBunch->P[ii](2), 2.0);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
-            *gmsgAll << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
-            *gmsgAll << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
-            *gmsgAll << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
+            *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
+            *gmsg << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
+            *gmsg << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
         }
     }
 
@@ -1556,17 +1552,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
         closeFiles();
 
     *gmsg << *itsBunch << endl;
-
-    // free memory
-    if(gmsgAll)
-        free(gmsgAll);
-
 }
 
 void ParallelCyclotronTracker::Tracker_RK4() {
-
-    Inform *gmsgAll;
-    gmsgAll = new  Inform("CycTracker RK4", INFORM_ALL_NODES);
 
     // time steps interval between bunches for multi-bunch simulation.
     const int stepsPerTurn = itsBunch->getStepsPerTurn();
@@ -1672,7 +1660,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     applyPluginElements(dt);
 
     // main integration loop
-    *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
+    *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
         bool dumpEachTurn = false;
         if(initialTotalNum_m > 2) {
@@ -2463,9 +2451,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         if(itsBunch->ID[ii] == 0) {
             double FinalMomentum2 = pow(itsBunch->P[ii](0), 2.0) + pow(itsBunch->P[ii](1), 2.0) + pow(itsBunch->P[ii](2), 2.0);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
-            *gmsgAll << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
-            *gmsgAll << "* Total phase space dump number(includes the initial distribution) = " << lastDumpedStep_m + 1 << endl;
-            *gmsgAll << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
+            *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
+            *gmsg << "* Total phase space dump number(includes the initial distribution) = " << lastDumpedStep_m + 1 << endl;
+            *gmsg << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
         }
     }
 
@@ -2492,9 +2480,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     *gmsg << *itsBunch << endl;
 
-    // free memory
-    if(gmsgAll)
-        free(gmsgAll);
 }
 
 
@@ -2858,8 +2843,7 @@ double ParallelCyclotronTracker::getHarmonicNumber() const {
 void ParallelCyclotronTracker::Tracker_MTS() {
 	IpplTimings::startTimer(IpplTimings::getTimer("MTS"));
 	IpplTimings::startTimer(IpplTimings::getTimer("MTS-Various"));
-    Inform *gmsgAll;
-    gmsgAll = new Inform("CycTracker MTS", INFORM_ALL_NODES);
+
     const double harm = getHarmonicNumber();
     const double dt = itsBunch->getdT() * harm;
     if(numBunch_m > 1) {
@@ -2892,8 +2876,8 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     RLastTurn_m *= 0.001;
     RThisTurn_m *= 0.001;
     double const initialReferenceTheta = referenceTheta / 180.0 * pi;
-    *gmsg << "single particle trajectory dump frequency is set to " << Options::sptDumpFreq << endl;
-    *gmsg << "particles repartition frequency is set to " << Options::repartFreq << endl;
+    *gmsg << "* Single particle trajectory dump frequency is set to " << Options::sptDumpFreq << endl;
+    *gmsg << "* Repartition frequency is set to " << Options::repartFreq << endl;
     if(numBunch_m > 1) {
         *gmsg << "particles energy bin ID reset frequency is set to " << Options::rebinFreq << endl;
     }
@@ -2937,7 +2921,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     bool flagTransition = false; // flag to determine when to transit from single-bunch to multi-bunches mode
     int stepsNextCheck = step_m + itsBunch->getStepsPerTurn(); // step point determining the next time point of check for transition
     const double deltaTheta = pi / itsBunch->getStepsPerTurn();
-    *gmsg << "---------------------------- Start tracking ----------------------------" << endl;
+    *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Various"));
     IpplTimings::startTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
     if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
@@ -3228,9 +3212,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                                      pow(itsBunch->P[ii](1), 2.0) +
                                      pow(itsBunch->P[ii](2), 2.0);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
-            *gmsgAll << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
-            *gmsgAll << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
-            *gmsgAll << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
+            *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
+            *gmsg << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
+            *gmsg << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
         }
     }
     Ippl::Comm->barrier();
@@ -3240,8 +3224,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     if(initialTotalNum_m == 1) closeFiles();
     *gmsg << *itsBunch << endl;
 
-    // free memory
-    if(gmsgAll) free(gmsgAll);
+
     IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Various"));
     IpplTimings::stopTimer(IpplTimings::getTimer("MTS"));
 }
