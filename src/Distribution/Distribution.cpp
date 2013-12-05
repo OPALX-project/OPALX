@@ -16,6 +16,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <numeric>
 
 #include "Distribution/Distribution.h"
 #include "AbstractObjects/Expressions.h"
@@ -408,7 +409,7 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
         break;
     }
 
-    // Scale and shift coordinates according to distribution input.
+    // AAA Scale and shift coordinates according to distribution input.
     ScaleDistCoordinates();
     ShiftDistCoordinates(massIneV);
 }
@@ -1678,7 +1679,7 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
         DestroyBeam(beam);
 
     // Setup particle bin structure.
-    SetupParticleBins(beam.getM());
+    SetupParticleBins(beam.getM(),beam);
 
     /*
      * Set what units to use for input momentum units. Default is
@@ -1794,7 +1795,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
                                bool scan) {
     // This is PC from BEAM
     avrgpz_m = beam.getP()/beam.getM();
-
     addedDistributions_m = addedDistributions;
     CreateOpalT(beam, numberOfParticles, scan);
 }
@@ -1861,7 +1861,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
     size_t distCount = 1;
     for (addedDistIt = addedDistributions_m.begin();
          addedDistIt != addedDistributions_m.end(); addedDistIt++) {
-        (*addedDistIt)->Create(particlesPerDist_m.at(distCount), beam.getM());
+      (*addedDistIt)->Create(particlesPerDist_m.at(distCount), beam.getM());
         distCount++;
     }
 
@@ -2475,7 +2475,7 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
             yDist_m.push_back(x[1]);
             pyDist_m.push_back(p[1]);
             tOrZDist_m.push_back(x[2]);
-            pzDist_m.push_back(p[2]);
+            pzDist_m.push_back(avrgpz_m *(1+p[2]));
         }
 
     }
@@ -2792,6 +2792,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             tOrZDist_m.push_back(sigmaR_m[2]*gsl_vector_get(ry, 4));
             pzDist_m.push_back(avrgpz_m*(1.0+(sigmaP_m[2]*gsl_vector_get(ry, 5))));
         }
+	
     }
     if (randGen)
         delete randGen;
@@ -4209,14 +4210,14 @@ void Distribution::SetDistParametersGauss(double massIneV) {
      * Set distribution parameters. Do all the necessary checks depending
      * on the input attributes.
      */
+
     cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
                           Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
                           Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
 
     sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
                         std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIZE
-                                                             + LegacyAttributesT::SIGMAPT])));
+			std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ])));
 
     // SIGMAPZ overrides SIGMAPT. We initially use SIGMAPT for legacy compatibility.
     if (Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]) != 0.0)
@@ -4407,7 +4408,7 @@ void Distribution::SetupEnergyBins(double maxTOrZ, double minTOrZ) {
 
 }
 
-void Distribution::SetupParticleBins(double massIneV) {
+void Distribution::SetupParticleBins(double massIneV, PartBunch &beam) {
 
     numberOfEnergyBins_m
         = static_cast<int>(std::abs(Attributes::getReal(itsAttr[AttributesT::NBIN])));
@@ -4426,26 +4427,11 @@ void Distribution::SetupParticleBins(double massIneV) {
 	if (Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT])!=0.0)
 	  WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC or use OFFSETPZ" << endl);
 
-        double pz = 0.0;
-        if (Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]) != 0.0)
-            pz = Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]);
-
+	// we get gamma from PC of the beam
         double gamma = 0.0;
-        switch (inputMoUnits_m) {
-
-        case InputMomentumUnitsT::NONE:
-            gamma = sqrt(pow(pz, 2.0) + 1.0);
-            break;
-
-        case InputMomentumUnitsT::EV:
-            gamma = 1.0 + pz / massIneV;
-            break;
-
-        default:
-            break;
-        }
-
-        energyBins_m->setGamma(gamma);
+	const double pz    = beam.getP()/beam.getM();
+	gamma = sqrt(pow(pz, 2.0) + 1.0);
+	energyBins_m->setGamma(gamma);
 
     } else {
         energyBins_m = NULL;
@@ -4524,26 +4510,20 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
 
     double deltaPx = Attributes::getReal(itsAttr[AttributesT::OFFSETPX]);
     double deltaPy = Attributes::getReal(itsAttr[AttributesT::OFFSETPY]);
+    double deltaPz = Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]);
 
     if (Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT])!=0.0)
       WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
-    //    double deltaPz = Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT]);
-
-    double deltaPz=0.0;
-    if (Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]) != 0.0)
-        deltaPz = Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]);
-
+    
     // Check input momentum units.
     switch (inputMoUnits_m) {
-
     case InputMomentumUnitsT::EV:
-        deltaPx = ConverteVToBetaGamma(deltaPx, massIneV);
-        deltaPy = ConverteVToBetaGamma(deltaPy, massIneV);
-        deltaPz = ConverteVToBetaGamma(deltaPz, massIneV);
-        break;
-
+      deltaPx = ConverteVToBetaGamma(deltaPx, massIneV);
+      deltaPy = ConverteVToBetaGamma(deltaPy, massIneV);
+      deltaPz = ConverteVToBetaGamma(deltaPz, massIneV);
+      break;
     default:
-        break;
+      break;
     }
 
     for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {

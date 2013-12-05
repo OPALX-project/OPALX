@@ -247,7 +247,7 @@ private:
     void SetupEmissionModelNone(PartBunch &beam);
     void SetupEmissionModelNonEquil();
     void SetupEnergyBins(double maxTOrZ, double minTOrZ);
-    void SetupParticleBins(double massIneV);
+    void SetupParticleBins(double massIneV, PartBunch &beam);
     void ShiftDistCoordinates(double massIneV);
     void WriteOutFileHeader();
     void WriteOutFileEmission();
