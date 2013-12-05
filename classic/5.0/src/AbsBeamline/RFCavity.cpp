@@ -528,8 +528,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
         ERRORMSG(" Cannot open file " << filename_m << ", please check if it really exists." << endl);
         exit(1);
     }
-    *gmsg << "* Read cavity voltage profile data" << endl
-          << "    (data format: s/L, v, dV/dr)" << endl;
+    *gmsg << "* Read cavity voltage profile data" << endl;
+      // << "    (data format: s/L, v, dV/dr)" << endl;
 
     in >> num_points_m;
 
@@ -723,10 +723,9 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
     momentum[1] = -sin(rotate) * px + cos(rotate) * py;
 
     if(PID == 0) {
-        Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-        gmsgALL << "* Cavity Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
-                << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
-                << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
+        *gmsg << "* Cavity Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
+	      << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
+	      << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
     }
 
 }

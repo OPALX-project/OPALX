@@ -333,7 +333,7 @@ void Collimator::finalise()
 {
   if(online_m)
     goOffline();
-  *gmsg << "Finalize probe" << endl;
+  *gmsg << "* Finalize probe" << endl;
 }
 
 void Collimator::goOnline() {

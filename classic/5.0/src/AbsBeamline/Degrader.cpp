@@ -162,7 +162,7 @@ void Degrader::initialise(PartBunch *bunch, const double &scaleFactor) {
 
 void Degrader::finalise()
 {
-  *gmsg << "Finalize Degrader" << endl;
+  *gmsg << "* Finalize Degrader" << endl;
 }
 
 void Degrader::goOnline() {

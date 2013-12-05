@@ -478,7 +478,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
 void Cyclotron::finalise() {
     online_m = false;
     lossDs_m->save();
-    *gmsg << "Finalize cyclotron" << endl;
+    *gmsg << "* Finalize cyclotron" << endl;
 }
 
 bool Cyclotron::bends() const {

@@ -139,18 +139,15 @@ void Stripper::accept(BeamlineVisitor &visitor) const {
 }
 
 bool Stripper::apply(const size_t &i, const double &t, double E[], double B[]) {
-    *gmsg << "stripper1" << endl;
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
     return false;
 }
 
 bool Stripper::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    *gmsg << "stripper2" << endl;
     return false;
 }
 
 bool Stripper::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    *gmsg << "stripper3" << endl;
     return false;
 }
 
@@ -169,7 +166,7 @@ void Stripper::initialise(PartBunch *bunch, const double &scaleFactor) {
 }
 
 void Stripper::finalise() {
-    *gmsg << "Finalize probe" << endl;
+    *gmsg << "* Finalize probe" << endl;
 }
 
 bool Stripper::bends() const {

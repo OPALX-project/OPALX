@@ -113,7 +113,7 @@ void Probe::initialise(PartBunch *bunch, double &startField, double &endField, c
 }
 
 void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
-    INFOMSG("Initialize probe" << endl);
+    *gmsg << "* Initialize probe" << endl;
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
@@ -122,7 +122,7 @@ void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
 
 void Probe::finalise() {
     lossDs_m->save();
-    INFOMSG("Finalize probe" << endl);
+    *gmsg << "* Finalize probe" << endl;
 }
 
 bool Probe::bends() const {
