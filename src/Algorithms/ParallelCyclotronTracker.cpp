@@ -1488,7 +1488,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             //------------  and calculate the external field at the mass of bunch-----------------------//
 
             Vector_t const meanR = calcMeanR();
-            *gmsg << "* meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
+	    //            *gmsg << "* meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
 
             beamline_list::iterator DumpSindex = FieldDimensions.begin();
             (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
@@ -3167,7 +3167,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             // define longitudinal direction of the bunch
             double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
-            *gmsg << "meanR=( " << meanR(0) * 1000.0 << " " << meanR(1) * 1000.0 << " " << meanR(2) * 1000.0 << " ) [mm] " << endl;
+	    //            *gmsg << "meanR=( " << meanR(0) * 1000.0 << " " << meanR(1) * 1000.0 << " " << meanR(2) * 1000.0 << " ) [mm] " << endl;
 			extE_m = Vector_t(0.0, 0.0, 0.0);
             extB_m = Vector_t(0.0, 0.0, 0.0);
             beamline_list::iterator DumpSindex = FieldDimensions.begin();
