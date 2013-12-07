@@ -78,8 +78,8 @@ DataSink::DataSink(int restartStep) :
     doHDF5_m = Options::enableHDF5;
     if (!doHDF5_m) {	
       ERRORMSG ("Can not restart when HDF5 is disabled" << endl);
-		exit(1);
-	}
+      exit(1);
+    }
 		
     /// Constructor steps:
     h5_int64_t rc;
@@ -101,22 +101,22 @@ DataSink::DataSink(int restartStep) :
     ofstream lBalFile(lBalFileName_m.c_str(), ios::in);
 
     if(statFile.is_open()) {
-        // File exists so we append data to end.
-        firstWriteToStat_m = false;
-        statFile.close();
-        *gmsg << "Appending statistical data to existing data file: " << statFileName_m << endl;
+      // File exists so we append data to end.
+      firstWriteToStat_m = false;
+      statFile.close();
+      *gmsg << "Appending statistical data to existing data file: " << statFileName_m << endl;
     } else {
-        statFile.clear();
-        *gmsg << "Creating new file for statistical data: " << statFileName_m << endl;
+      statFile.clear();
+      *gmsg << "Creating new file for statistical data: " << statFileName_m << endl;
     }
 
     if(lBalFile.is_open()) {
-        // File exists so we append data to end.
-        lBalFile.close();
-        *gmsg << "Appending load balance data to existing data file: " << lBalFileName_m << endl;
+      // File exists so we append data to end.
+      lBalFile.close();
+      *gmsg << "Appending load balance data to existing data file: " << lBalFileName_m << endl;
     } else {
-        lBalFile.clear();
-        *gmsg << "Creating new file for load balance data: " << lBalFileName_m << endl;
+      lBalFile.clear();
+      *gmsg << "Creating new file for load balance data: " << lBalFileName_m << endl;
     }
 
     // Define file name.
@@ -137,29 +137,11 @@ DataSink::DataSink(int restartStep) :
 
     int numStepsInFile = H5GetNumSteps(H5file_m);
 
-
     *gmsg << "numStepsInFile " << numStepsInFile << endl;
-
-
+    
     if(restartStep == -1) {
-        restartStep = numStepsInFile;
+      restartStep = numStepsInFile;
     }
-
-    /*
-
-    This does not make sense and prevents the restart from working
-
-    if(numStepsInFile < restartStep || numStepsInFile > restartStep) {
-        ERRORMSG("Must use last step in H5 restart file for restart" << endl
-                 << "To solve this problem: 1) Use last step in H5 restart file" << endl
-                 << "                       2) Use a value of -1 for restart step" << endl
-                 << "                       3) Write new data to new H5 file" << endl
-                 << endl << "Exiting!" << endl);
-        exit(0);
-    }
-    */
-
-
 
     // Use same dump frequency.
     h5_int64_t dumpfreq = 0;
@@ -185,7 +167,7 @@ DataSink::~DataSink() {
 
 void DataSink::writeH5FileAttributes() {
  
-	if (!doHDF5_m) return;
+    if (!doHDF5_m) return;
 	
 	h5_int64_t rc;
     /// Function steps:
@@ -1837,7 +1819,6 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     /// Calculate beam statistics and gather load balance statistics.
     beam.calcBeamParameters();
     beam.gatherLoadBalanceStatistics();
-    // AAA
     
     double  pathLength = 0.0;
     if (OpalData::getInstance()->isInOPALCyclMode())
@@ -2691,7 +2672,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
 
 bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const size_t BinID) {
 
-	if (!doHDF5_m) return false;
+    if (!doHDF5_m) return false;
 	
     h5_int64_t rc;
     /// Define file names.
@@ -2828,7 +2809,7 @@ bool DataSink::doHDF5() {
  */
 bool DataSink::isOPALt() {
 
-	if (!doHDF5_m) return false;
+    if (!doHDF5_m) return false;
 
     char opalFlavour[128];
     h5_int64_t rc = H5ReadStepAttribString(H5file_m, "OPAL_flavour", opalFlavour);
