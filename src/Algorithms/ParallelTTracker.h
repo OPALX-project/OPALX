@@ -113,7 +113,7 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelTTracker(const Beamline &bl, const PartData &data,
-                              bool revBeam, bool revTrack);
+                              bool revBeam, bool revTrack, size_t N);
 
     /// Constructor.
     //  The beam line to be tracked is "bl".
@@ -122,7 +122,7 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
-                              const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator);
+                              const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator, size_t N);
 
     virtual ~ParallelTTracker();
 
@@ -279,6 +279,9 @@ private:
     double dtTrack_m;
 
     double surfaceEmissionStop_m;
+
+
+    size_t specifiedNPart_m;
 
     // This variable controls the minimal number of steps of emission (using bins)
     // before we can merge the bins

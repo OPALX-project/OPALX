@@ -322,7 +322,8 @@ void TrackRun::execute() {
         itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                           dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                           Track::block->reference, false, false, Track::block->localTimeSteps,
-                                          Track::block->zstop, Track::block->timeIntegrator);
+                                          Track::block->zstop, Track::block->timeIntegrator,
+					  beam->getNumberOfParticles());
         itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
 
     } else if(method == "PARALLEL-Z") {
@@ -362,7 +363,7 @@ void TrackRun::execute() {
                    getFrequency() gets RF frequency [MHz], NOT isochronous  revolution frequency of particle!
                    getCurrent() gets beamcurrent [A]
 
-                */
+	    */
             macrocharge = beam->getCurrent() / (beam->getFrequency() * 1.0e6); // [MHz]-->[Hz]
 
             if(!OPAL->hasBunchAllocated()) {
@@ -372,8 +373,8 @@ void TrackRun::execute() {
                     dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
 
                 } else {
-                    dist->DoRestartOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(),
-                                         OPAL->getRestartStep(), specifiedNumBunch);
+		    dist->DoRestartOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(),
+					    OPAL->getRestartStep(), specifiedNumBunch);
                     macrocharge /= beam->getNumberOfParticles();
                     macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
                 }
@@ -703,10 +704,11 @@ ParallelTTracker *TrackRun::setupForAutophase() {
 
     double coefE = 1.0 / (4 * pi * epsilon_0);
     Track::block->bunch->setCouplingConstant(coefE);
-
+    size_t N = 1;
     return new ParallelTTracker(*Track::block->use->fetchLine(),
                                 dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                 Track::block->reference, false, false, Track::block->localTimeSteps,
-                                Track::block->zstop, Track::block->timeIntegrator);
+                                Track::block->zstop, Track::block->timeIntegrator,
+				N);
 }
 

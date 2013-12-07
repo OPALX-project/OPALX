@@ -72,10 +72,12 @@ using namespace OPALTimer;
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    const PartData &reference,
                                    bool revBeam,
-                                   bool revTrack):
+                                   bool revTrack,
+				   size_t N):
 Tracker(beamline, reference, revBeam, revTrack),
 itsBunch(NULL),
 itsDataSink_m(NULL),
+specifiedNPart_m(N),
 bgf_m(NULL),
 itsOpalBeamline_m(),
 lineDensity_m(),
@@ -128,9 +130,11 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    bool revTrack,
                                    int maxSTEPS,
                                    double zstop,
-                                   int timeIntegrator):
+                                   int timeIntegrator,
+				   size_t N):
 Tracker(beamline, reference, revBeam, revTrack),
 itsBunch(&bunch),
+specifiedNPart_m(N),
 itsDataSink_m(&ds),
 bgf_m(NULL),
 itsOpalBeamline_m(),
@@ -1932,6 +1936,10 @@ void ParallelTTracker::emitParticles(long long step) {
     if(step > minStepforReBin_m) {
         itsBunch->Rebin();
         itsBunch->resetInterpolationCache(true);
+	//	if (itsBunch->getTotalNum() < specifiedNPart_m) {
+	//  WARNMSG("Rebinning, but less particles emitted than specifyed. Either increase MINSTEPFORREBIN or you have particle losses!"<< endl);
+	//}
+
     }
 
 }
