@@ -673,6 +673,7 @@ void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep) {
 }
 
 void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep, const int specifiedNumBunch) {
+
     h5_int64_t rc;
     IpplTimings::startTimer(beam.distrReload_m);
     *gmsg << "---------------- Start reading hdf5 file----------------" << endl;
@@ -759,14 +760,21 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    *gmsg << "Restart Energy " << meanE << endl;
+    double pathLength;;
+    rc = H5ReadStepAttribFloat64(H5file, "SPOS", &pathLength);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    beam.setLPath(pathLength);
+
+    *gmsg << "* Restart Energy " << meanE << "(MeV) Path lenght " << pathLength << " (m)" <<  endl;
 
     double ga = 1 + meanE/beam.getM()*1E3;
     double be = sqrt(1.0-(1.0/(ga*ga)));
 
     bega_m = be*ga;
 
-    *gmsg << "Restart Energy " << meanE << " ga= " << ga << " be= " << be << endl;
+    *gmsg << "* Restart Energy " << meanE << " ga= " << ga << " be= " << be << endl;
 
     std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
 
