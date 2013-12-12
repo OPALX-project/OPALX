@@ -113,3 +113,6 @@ target_link_libraries( opal CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilino
 if (BUILD_LIBOPAL)
     add_library( OPAL ${OPAL_SRCS} opal.cpp )
 endif (BUILD_LIBOPAL)
+install (TARGETS opal 
+            RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+
