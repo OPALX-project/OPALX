@@ -80,7 +80,6 @@ DataSink::DataSink(int restartStep) :
       ERRORMSG ("Can not restart when HDF5 is disabled" << endl);
       exit(1);
     }
-		
     /// Constructor steps:
     h5_int64_t rc;
     /// Get timers from IPPL.
@@ -451,23 +450,18 @@ void DataSink::writeH5FileAttributes() {
 
 void DataSink::retriveCavityInformation(string fn) {
 	
-	if (!doHDF5_m) {	
-		ERRORMSG ("Can not restart when HDF5 is disabled" << endl);
-		exit(1);
-	}
-	
-	h5_int64_t rc;
-    h5_int64_t nAutoPhaseCavities = 0;
-    rc = H5ReadFileAttribInt64(H5file_m, "nAutoPhaseCavities", &nAutoPhaseCavities);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(long i = 1; i <= nAutoPhaseCavities; i++) {
-        stringstream is;
-        is << i;
-        string elName = string("Cav-") + is.str() + string("-name");
-        string elVal  = string("Cav-") + is.str() + string("-value");
-        char name[128];
-        h5_float64_t phi = 0;
+  h5_int64_t rc;
+  h5_int64_t nAutoPhaseCavities = 0;
+  rc = H5ReadFileAttribInt64(H5file_m, "nAutoPhaseCavities", &nAutoPhaseCavities);
+  if(rc != H5_SUCCESS)
+    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+  for(long i = 1; i <= nAutoPhaseCavities; i++) {
+    stringstream is;
+    is << i;
+    string elName = string("Cav-") + is.str() + string("-name");
+    string elVal  = string("Cav-") + is.str() + string("-value");
+    char name[128];
+    h5_float64_t phi = 0;
 
         rc = H5ReadFileAttribString(H5file_m, elName.c_str(), name);
         if(rc != H5_SUCCESS)
