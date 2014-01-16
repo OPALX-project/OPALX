@@ -102,11 +102,11 @@ bool SBend3D::bends() const {
     return true;
 }
 
-Geometry& SBend3D::getGeometry() {
+BGeometryBase& SBend3D::getGeometry() {
     return planarArcGeometry_m;
 }
 
-const Geometry& SBend3D::getGeometry() const {
+const BGeometryBase& SBend3D::getGeometry() const {
     return planarArcGeometry_m;
 }
 

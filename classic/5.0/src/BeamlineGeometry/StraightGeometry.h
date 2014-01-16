@@ -31,7 +31,7 @@
 //  transformations are correspondingly only simple translations along
 //  the z-axis.
 
-class StraightGeometry : public Geometry {
+class StraightGeometry : public BGeometryBase {
 public:
 
     /// Constructor.

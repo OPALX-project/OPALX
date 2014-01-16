@@ -144,12 +144,12 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual Geometry &getGeometry() = 0;
+    virtual BGeometryBase  &getGeometry() = 0;
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const Geometry &getGeometry() const = 0;
+    virtual const BGeometryBase  &getGeometry() const = 0;
 
     /// Get arc length.
     //  Return the entire arc length measured along the design orbit

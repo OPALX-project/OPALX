@@ -38,7 +38,7 @@
 //  within the geometry (i.e. from s1 to s2, where s1 and/or s2 are not
 //  the entrance or exit planes) do not contain the s-rotations.
 
-class SRotatedGeometry : public Geometry {
+class SRotatedGeometry : public BGeometryBase {
 public:
 
     /// Balance mode.
@@ -58,13 +58,13 @@ public:
     /// Constructor.
     //  Use the wrapped geometry [b]geom[/b],
     //  and the two angles [b]srotIn[/b] and [b]srotOut[/b].
-    SRotatedGeometry(const Geometry &geom, double srotIn, double srotOut);
+    SRotatedGeometry(const BGeometryBase &geom, double srotIn, double srotOut);
 
     /// Constructor.
     //  Use the wrapped geometry [b]geom[/b],
     //  the entrance rotation [b]srotIn[/b],
     //  and the balanc mode [b]mode[/b].
-    SRotatedGeometry(const Geometry &geom, double srotIn, BalanceMode mode = tilt);
+    SRotatedGeometry(const BGeometryBase &geom, double srotIn, BalanceMode mode = tilt);
 
     SRotatedGeometry(const SRotatedGeometry &);
     virtual ~SRotatedGeometry();
@@ -162,7 +162,7 @@ private:
 
     double srotIn;
     double srotOut;
-    const Geometry &geom;
+    const BGeometryBase &geom;
 };
 
 #endif // CLASSIC_SRotatedGeometry_HH

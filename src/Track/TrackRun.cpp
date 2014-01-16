@@ -44,6 +44,13 @@
 #include "Structure/DataSink.h"
 #include "Distribution/Distribution.h"
 
+#ifdef HAVE_AMR_SOLVER
+#define DIM 3
+#include <Amr.H>
+#include <ParallelDescriptor.H>
+#include "Solvers/amr/BoundaryDomain.h"
+#endif
+
 #include <fstream>
 #include <iomanip>
 
@@ -285,6 +292,161 @@ void TrackRun::execute() {
         } else {
             Track::block->bunch->calcBeamParametersInitial();// we have not initialized any particle yet.
         }
+#ifdef HAVE_AMR_SOLVER
+	Amr* amrptr;
+//	if (fs->isAMRSolver()) {
+	  *gmsg << "A M R Initialization " << endl;
+	  *gmsg << *Track::block->bunch  << endl;
+	  *gmsg << *fs   << endl;
+
+	  FieldLayout<3>::iterator_iv locDomBegin = Track::block->bunch->getFieldLayout().begin_iv();
+	  FieldLayout<3>::iterator_iv locDomEnd = Track::block->bunch->getFieldLayout().end_iv();
+	  FieldLayout<3>::iterator_dv globDomBegin = Track::block->bunch->getFieldLayout().begin_rdv();
+	  FieldLayout<3>::iterator_dv globDomEnd = Track::block->bunch->getFieldLayout().end_rdv();
+	  
+	  NDIndex<3> ipplDom = Track::block->bunch->getFieldLayout().getDomain();
+	
+	  BoxArray lev0_grids(Ippl::getNodes());
+	
+	  Array<int> procMap;
+	  procMap.resize(lev0_grids.size()+1); // +1 is a historical thing, do not ask	
+
+	  // first iterate over the local owned domain(s)
+	  for(FieldLayout<3>::const_iterator_iv v_i = locDomBegin ; v_i != locDomEnd; ++v_i) {
+	    std::ostringstream stream;
+	    stream << *((*v_i).second);	 
+
+	    std::pair<Box,unsigned int> res = getBlGrids(stream.str());
+	    lev0_grids.set(res.second,res.first);
+	    procMap[res.second] = Ippl::myNode();
+	  }
+
+	  // then iterate over the non-local domain(s)
+	  for(FieldLayout<3>::iterator_dv v_i = globDomBegin ; v_i != globDomEnd; ++v_i) {
+	    std::ostringstream stream;
+	    stream << *((*v_i).second);
+	    
+	    std::pair<Box,unsigned int> res = getBlGrids(stream.str());
+	    lev0_grids.set(res.second,res.first);
+	    procMap[res.second] = res.second;
+	  }
+	  procMap[lev0_grids.size()] = Ippl::myNode();
+	  
+	  // This init call will cache the distribution map as determined by procMap
+	  // so that all data will end up on the right processor
+	  RealBox rb;
+	  Array<Real> prob_lo(3);
+	  Array<Real> prob_hi(3);
+
+	  Vector_t rmin;
+	  Vector_t rmax;
+	  Track::block->bunch->get_bounds(rmin, rmax);
+
+          // Set up a problem size with dx = dy = dz and large enough
+          //  to hold the geometric boundary.
+	  prob_lo.set(0,-0.025);
+	  prob_lo.set(1,-0.025);
+	  prob_lo.set(2,-0.050);
+	  prob_hi.set(0, 0.025);
+	  prob_hi.set(1, 0.025);
+	  prob_hi.set(2, 0.050);
+
+	  rb.setLo(prob_lo);
+	  rb.setHi(prob_hi);
+	  
+	  int coord_sys = 0;
+
+	  Array<int> ncell(3);
+	  ncell[0] = ipplDom[0].length();
+	  ncell[1] = ipplDom[1].length();
+	  ncell[2] = ipplDom[2].length();
+
+          std::vector<int   > nr(3);
+          std::vector<double> hr(3);
+          std::vector<double> prob_lo_in(3);
+          for (int i = 0; i < 3; i++)
+          {
+             nr[i] = ncell[i];
+             hr[i] = (prob_hi[i] - prob_lo[i]) / ncell[i];
+             prob_lo_in[i] = prob_lo[i];
+          }
+	 
+	  std::cout << "#TK ncell" << ncell[0] << " " << ncell[1] << " " << ncell[2] << std::endl; 
+  
+          // We set this to -1 so that we can now control max_lev from the inputs file
+	  int maxLevel = -1;
+
+	  amrptr = new Amr(&rb,maxLevel,ncell,coord_sys);
+
+	  Real strt_time = 0.0; 
+	  Real stop_time = 1.0;
+
+	  // This init call will cache the distribution map as determined by procMap                                                                                            // so that all data will end up on the right processor
+	  amrptr->InitializeInit(strt_time, stop_time, &lev0_grids, &procMap);
+
+          BoundaryDomain* bd = new BoundaryDomain(nr,hr);
+	  amrptr->setBoundaryGeometry(bd->GetIntersectLoX(), bd->GetIntersectHiX(),
+                                      bd->GetIntersectLoY(), bd->GetIntersectHiY());
+
+          std::vector<double> x(3);
+	  std::vector<double> attr(11);
+
+	  for (size_t i=0; i<Track::block->bunch->getLocalNum(); i++) 
+          {
+            // X, Y, Z are stored separately from the other attributes
+	    for (unsigned int k=0; k<3; k++)
+	        x[k] = Track::block->bunch->R[i](k);
+
+	    //  This allocates 11 spots -- 1 for Q, 3 for v, 3 for E, 3 for B, 1 for ID.
+	    //  IMPORTANT: THIS ORDERING IS ASSUMED WHEN WE FILL E AT THE PARTICLE LOCATION
+	    //             IN THE MOVEKICK CALL -- if Evec no longer starts at component 4
+	    //             then you must change "start_comp_for_e" in Accel_advance.cpp
+	    /*
+	      Q      : 0
+	      Vvec   : 1, 2, 3 the velocity 
+	      Evec   : 4, 5, 6 the electric field at the particle location
+	      Bvec   : 7, 8, 9 the electric field at the particle location
+	      id+1   : 10 (we add 1 to make the particle ID > 0)
+	    */
+	
+	    // This is the charge
+            attr[0] = Track::block->bunch->Q[i];
+
+	    // These are the velocity components
+	    double gamma=sqrt(1+ dot(Track::block->bunch->P[i],Track::block->bunch->P[i]));
+	    for (unsigned int k=0; k<DIM; k++)
+	        attr[k+1] = Track::block->bunch->P[i](k) * Physics::c /gamma;
+
+	    // These are E and B
+	    for (unsigned int k=4; k<10; k++) 
+	      attr[k]= 0.0;	
+
+            //
+            // The Particle stuff in AMR requires ids > 0 
+            //   (because we flip the sign to make them invalid)
+            // So we just make id->id+1 here.
+	    int particle_id = Track::block->bunch->ID[i] + 1;
+	    attr[3*DIM + 1] = particle_id;
+
+	    amrptr->addOneParticle(particle_id, Ippl::myNode(), x, attr);
+	  }
+
+          // It is essential that we call this routine since the particles
+          //    may not currently be defined on the same processor as the grid
+          //    that will hold them in the AMR world.
+          amrptr->RedistributeParticles();
+
+	  // This part of the call must come after we add the particles
+	  // since this one calls post_init which does the field solve. 
+	  amrptr->FinalizeInit(strt_time, stop_time);
+
+	  amrptr->writePlotFile();
+	
+	  *gmsg << "A M R Initialization DONE" << endl;
+	
+	// }
+//      }
+#endif
 
         if(!OPAL->inRestartRun()) {
             if(!OPAL->hasDataSinkAllocated() && !Options::scan) {
@@ -318,12 +480,19 @@ void TrackRun::execute() {
 
         *gmsg << "Phase space dump frequency " << Options::psDumpFreq << " and "
               << "statistics dump frequency " << Options::statDumpFreq << " w.r.t. the time step." << endl;
-
+#ifdef HAVE_AMR_SOLVER
+        itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
+                                          dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
+                                          Track::block->reference, false, false, Track::block->localTimeSteps,
+                                          Track::block->zstop, Track::block->timeIntegrator,
+					  beam->getNumberOfParticles(),amrptr);
+#else
         itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                           dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                           Track::block->reference, false, false, Track::block->localTimeSteps,
                                           Track::block->zstop, Track::block->timeIntegrator,
 					  beam->getNumberOfParticles());
+#endif
         itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
 
     } else if(method == "PARALLEL-Z") {
@@ -705,10 +874,75 @@ ParallelTTracker *TrackRun::setupForAutophase() {
     double coefE = 1.0 / (4 * pi * epsilon_0);
     Track::block->bunch->setCouplingConstant(coefE);
     size_t N = 1;
+#ifdef HAVE_AMR_SOLVER
+    Amr* null_amrptr = 0;
+    return new ParallelTTracker(*Track::block->use->fetchLine(),
+                                dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
+                                Track::block->reference, false, false, Track::block->localTimeSteps,
+                                Track::block->zstop, Track::block->timeIntegrator,
+				N,null_amrptr);
+#else
     return new ParallelTTracker(*Track::block->use->fetchLine(),
                                 dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                 Track::block->reference, false, false, Track::block->localTimeSteps,
                                 Track::block->zstop, Track::block->timeIntegrator,
 				N);
+#endif
 }
+
+#ifdef HAVE_AMR_SOLVER
+std::vector<std::string> TrackRun::filterString(std::string str) {
+  /*
+    pid tokens[0]
+    il == tokens[2], ih == tokens[3]
+    jl == tokens[5], jh == tokens[6]
+    kl == tokens[9], kh == tokens[9]
+   */
+
+  // charakters to remove from the string
+  char chars[] = "Node=;vn_mDmain{[][][]}:,";
+ 	
+  for (unsigned int i = 0; i < strlen(chars); ++i) 
+    std::replace(str.begin(), str.end(), chars[i], ' ');
+
+  std::vector<std::string> tokens;
+  
+  // filter spaces
+  std::istringstream iss(str);
+  copy(std::istream_iterator<std::string>(iss),
+       std::istream_iterator<std::string>(),
+       std::back_inserter<std::vector<std::string> >(tokens));
+  return tokens;
+}
+
+std::pair<Box,unsigned int> TrackRun::getBlGrids(std::string str){
+
+  std::vector<std::string> tokens = filterString(str);
+
+  unsigned int theGrid; 
+  std::istringstream (tokens[0]) >> theGrid;
+
+  int ilo,ihi,jlo,jhi,klo,khi;
+
+  std::istringstream (tokens[2]) >> ilo;
+  std::istringstream (tokens[5]) >> jlo;
+  std::istringstream (tokens[8]) >> klo;
+  std::istringstream (tokens[3]) >> ihi;
+  std::istringstream (tokens[6]) >> jhi;
+  std::istringstream (tokens[9]) >> khi;
+
+  Inform m2a("AMR ",INFORM_ALL_NODES);
+  /*
+  m2a << "Grid " << tokens[0]
+      << " i (" << tokens[2] << " ... " << tokens[3] << ")" 
+      << " j (" << tokens[5] << " ... " << tokens[6] << ")" 
+      << " k (" << tokens[8] << " ... " << tokens[9] << ")" << " myNode " << Ippl::myNode() << endl;
+  */
+  IntVect loEnd(ilo,jlo,klo);
+  IntVect hiEnd(ihi,jhi,khi);
+  Box bx(loEnd,hiEnd);
+
+  return std::pair<Box,unsigned int>(bx,theGrid);
+}
+#endif
 

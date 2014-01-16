@@ -29,7 +29,7 @@ class Euclid3D;
 // ------------------------------------------------------------------------
 /// Geometry representing an identity transform.
 
-class NullGeometry: public Geometry {
+class NullGeometry: public BGeometryBase {
 public:
 
     NullGeometry();

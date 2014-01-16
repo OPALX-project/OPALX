@@ -87,6 +87,8 @@ public:
 
     bool hasPeriodicZ();
 
+    bool isAMRSolver();
+
     /// the actual solver, should be a base object
     PoissonSolver *solver_m;
 

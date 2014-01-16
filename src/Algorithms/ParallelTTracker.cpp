@@ -121,7 +121,6 @@ SeyNum_m(0.0),
 sphys_m(NULL){
 }
 
-
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    PartBunch &bunch,
                                    DataSink &ds,
@@ -182,6 +181,66 @@ SeyNum_m(0.0) {
 
 }
 
+#ifdef HAVE_AMR_SOLVER
+ParallelTTracker::ParallelTTracker(const Beamline &beamline,
+                                   PartBunch &bunch,
+                                   DataSink &ds,
+                                   const PartData &reference,
+                                   bool revBeam,
+                                   bool revTrack,
+                                   int maxSTEPS,
+                                   double zstop,
+                                   int timeIntegrator,
+				   size_t N,
+				   Amr* amrptr_in):
+Tracker(beamline, reference, revBeam, revTrack),
+itsBunch(&bunch),
+specifiedNPart_m(N),
+itsDataSink_m(&ds),
+bgf_m(NULL),
+itsOpalBeamline_m(),
+lineDensity_m(),
+RefPartR_zxy_m(0.0),
+RefPartP_zxy_m(0.0),
+RefPartR_suv_m(0.0),
+RefPartP_suv_m(0.0),
+globalEOL_m(false),
+wakeStatus_m(false),
+surfaceStatus_m(false),
+secondaryFlg_m(false),
+mpacflg_m(true),
+nEmissionMode_m(false),
+zStop_m(zstop),
+scaleFactor_m(itsBunch->getdT() * Physics::c),
+vscaleFactor_m(scaleFactor_m),
+recpGamma_m(1.0),
+rescale_coeff_m(1.0),
+dtTrack_m(0.0),
+surfaceEmissionStop_m(-1),
+minStepforReBin_m(-1),
+minBinEmitted_m(std::numeric_limits<size_t>::max()),
+repartFreq_m(-1),
+lastVisited_m(-1),
+numRefs_m(-1),
+gunSubTimeSteps_m(-1),
+emissionSteps_m(numeric_limits<unsigned int>::max()),
+localTrackSteps_m(maxSTEPS),
+maxNparts_m(0),
+numberOfFieldEmittedParticles_m(numeric_limits<size_t>::max()),
+bends_m(0),
+numParticlesInSimulation_m(0),
+space_orientation_m(0.0),
+timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
+timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
+timeFieldEvaluation_m(IpplTimings::getTimer("Fieldeval")),
+BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
+WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
+timeIntegrator_m(timeIntegrator),
+Nimpact_m(0),
+SeyNum_m(0.0),
+amrptr(amrptr_in){
+}
+#endif
 
 ParallelTTracker::~ParallelTTracker() {
 
@@ -1255,6 +1314,206 @@ double ParallelTTracker::APtrack(Component *cavity, double cavity_start_pos, con
     double finalKineticEnergy = (finalGamma - 1.0) * itsBunch->getM() * 1e-6;
     return finalKineticEnergy;
 }
+
+#ifdef HAVE_AMR_SOLVER	
+void ParallelTTracker::Tracker_AMR() 
+{
+    Inform msg("ParallelTTracker ");
+    const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
+    BorisPusher pusher(itsReference);
+    secondaryFlg_m = false;
+    dtTrack_m = itsBunch->getdT();
+
+    // upper limit of particle number when we do field emission and secondary emission
+    // simulation. Could be reset to another value in input file with MAXPARTSNUM.
+    maxNparts_m = 100000000;
+    nEmissionMode_m = true;
+
+    prepareSections();
+
+    // do autophasing before tracking without a global phase shift!
+    doAutoPhasing();
+
+    numParticlesInSimulation_m = itsBunch->getTotalNum();
+
+    OPALTimer::Timer myt1;
+
+    setTime();
+
+    double t = itsBunch->getT();
+
+    unsigned long long step = itsBunch->getLocalTrackStep();
+
+    msg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m << " [m]" << endl;
+
+    gunSubTimeSteps_m = 10;
+    prepareEmission();
+
+    doSchottyRenormalization();
+
+    msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
+    << "max integration steps " << localTrackSteps_m << ", next step= " << step << endl;
+    msg << "Using default (Boris-Buneman) integrator" << endl;
+
+    // itsBeamline_m.accept(*this);
+    // itsOpalBeamline_m.prepareSections();
+    itsOpalBeamline_m.print(msg);
+
+    setupSUV();
+
+    // increase margin from 3.*c*dt to 10.*c*dt to prevent that fieldmaps are accessed
+    // before they are allocated when increasing the timestep in the gun.
+    switchElements(10.0);
+
+    initializeBoundaryGeometry();
+
+    setOptionalVariables();
+
+    // there is no point to do repartitioning with one node
+    if(Ippl::getNodes() == 1)
+        repartFreq_m = 1000000;
+
+    wakeStatus_m = false;
+    surfaceStatus_m = false;
+
+    // reset E and B to Vector_t(0.0) for every step
+    itsBunch->Ef = Vector_t(0.0);
+    itsBunch->Bf = Vector_t(0.0);
+
+    for(; step < localTrackSteps_m; ++step) 
+    {
+        bends_m = 0;
+        numberOfFieldEmittedParticles_m = 0;
+
+        itsOpalBeamline_m.resetStatus();
+
+        // we dump later, after one step.
+        // dumpStats(step, true, true);
+
+        Real stop_time = -1.;
+
+        std::cout << "                " << std::endl;
+        std::cout << " ************** " << std::endl;
+        std::cout << " DOING STEP ... " << step << std::endl;
+        std::cout << " ************** " << std::endl;
+        std::cout << "                " << std::endl;
+
+        Real dt_from_amr = amrptr->coarseTimeStepDt(stop_time);
+
+        std::cout << "                " << std::endl;
+        std::cout << " ************** " << std::endl;
+        std::cout << " COMPLETED STEP ... " << step << " WITH DT = " << dt_from_amr << std::endl;
+        std::cout << " ************** " << std::endl;
+        std::cout << "                " << std::endl;
+
+        t += dt_from_amr;
+        itsBunch->setT(t);
+
+        bool const psDump = step % Options::psDumpFreq == 0;
+        bool const statDump = step % Options::statDumpFreq == 0;
+        dumpStats(step, psDump, statDump);
+
+        if(hasEndOfLineReached()) break;
+
+        double margin = 0.1;
+        switchElements(margin);
+
+        itsBunch->incTrackSteps();
+
+        // These routines return the particle data for all of the particles and on all of the processes
+
+        Array<int> particle_ids;
+        amrptr->GetParticleIDs(particle_ids);
+
+        Array<int> particle_cpu;
+        amrptr->GetParticleCPU(particle_cpu);
+
+        Array<Real> locs;
+        amrptr->GetParticleLocations(locs);
+
+        // Here we assume that we have stored, Q, V, ... in the particle data in TrackRun.cpp
+        int start_comp = 1;
+        int   num_comp = 3;
+	Array<Real> Qs;
+        Array<Real> vels;
+        Array<Real> Evec;
+
+        amrptr->GetParticleData(Qs,0,1);
+        amrptr->GetParticleData(vels,start_comp,num_comp);
+    	//amrptr->GetParticleData(vels,start_comp,6);
+        amrptr->GetParticleData(Evec,4,num_comp);
+
+        std::cout << "SIZE OF PARTICLE IDs "  << particle_ids.size() << std::endl;
+        std::cout << "SIZE OF PARTICLE CPU "  << particle_cpu.size() << std::endl;
+        std::cout << "SIZE OF PARTICLE LOCS " << locs.size() << std::endl;
+        std::cout << "SIZE OF PARTICLE VELS " << vels.size() << std::endl;
+        std::cout << "SIZE OF PARTICLE EFIELD " << Evec.size() << std::endl;
+
+
+        int num_particles_total = particle_ids.size();
+
+	double gamma=itsReference.getGamma();
+	std:: cout << " GAMMA" << gamma << std::endl;
+
+        Vector_t rmin;
+        Vector_t rmax;
+        itsBunch->get_bounds(rmin, rmax);
+
+        FVector<double,6> six_vect;
+
+	for (int i = 0; i < num_particles_total; i++)
+        {
+             if (i < 3 ) std::cout << "PARTICLE ID " << particle_ids[i] << "\n"
+				    << Qs[i] << "\n"	
+                                    << "  " << locs[3*i  ] << " " << vels[3*i  ] << "\n"
+		 		    << "  " << locs[3*i+1] << " " << vels[3*i+1] << "\n"
+		 		    << "  " << locs[3*i+2] << " " << vels[3*i+2] << "\n"
+#if 0
+		 		    << "  " << locs[3*i]   << " " << vels[3*i+3] << "\n"
+		 		    << "  " << locs[3*i+1] << " " << vels[3*i+4] << "\n"
+		 		    << "  " << locs[3*i+2] << " " << vels[3*i+5] << "\n"
+#endif
+                                    << "  " << locs[3*i  ] << " " << Evec[3*i  ] << "\n"
+		 		    << "  " << locs[3*i+1] << " " << Evec[3*i+1] << "\n"
+		 		    << "  " << locs[3*i+2] << " " << Evec[3*i+2] << "\n"
+		 		    << std::endl;
+             if (particle_cpu[i] == Ippl::myNode())
+             {
+                 six_vect[0] = locs[3*i  ];
+                 six_vect[1] = vels[3*i  ] * gamma / Physics::c;
+                 six_vect[2] = locs[3*i+1];
+                 six_vect[3] = vels[3*i+1] * gamma / Physics::c;
+                 six_vect[4] = locs[3*i+2];
+                 six_vect[5] = vels[3*i+2] * gamma / Physics::c;
+
+                 // We subtract one from the particle_id because we added one to it when we 
+                 //    passed the particle into the AMR stuff.
+                 // std::cout << "ON NODE ID " << Ippl::myNode() << " ADDING PARTICLE " 
+                 //          << particle_ids[i] << " WITH X,Y,Z " 
+                 //          << locs[3*i] << " " << locs[3*i+1] << " " << locs[3*i+2] << std::endl;
+                 itsBunch->set_part(six_vect, particle_ids[i]-1);
+		 for (int k=0; k<3; k++)
+			itsBunch->Ef[particle_ids[i]-1](k) = Evec[3*i+k];
+             }
+	}
+    }
+
+    Vector_t rmin;
+    Vector_t rmax;
+    itsBunch->get_bounds(rmin, rmax);
+
+    if(numParticlesInSimulation_m > minBinEmitted_m) {
+        itsBunch->boundp();
+        numParticlesInSimulation_m = itsBunch->getTotalNum();
+    }
+
+    writePhaseSpace((step + 1), itsBunch->get_sPos(), true, true);
+    msg << "Dump phase space of last step" << endl;
+    OPALTimer::Timer myt3;
+    itsOpalBeamline_m.switchElementsOff();
+    msg << "done executing ParallelTTracker at " << myt3.time() << endl;
+}
+#endif
 
 void ParallelTTracker::Tracker_Default() {
     Inform msg("ParallelTTracker ");
@@ -2573,11 +2832,15 @@ void ParallelTTracker::initializeBoundaryGeometry() {
 }
 
 void ParallelTTracker::execute() {
+#ifdef HAVE_AMR_SOLVER	
+        Tracker_AMR();
+#else
     if(timeIntegrator_m == 3) { // AMTS
         Tracker_AMTS();
     } else {
         Tracker_Default();
     }
+#endif
 }
 
 void ParallelTTracker::Tracker_AMTS() {

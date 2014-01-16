@@ -1,105 +1,49 @@
 #ifdef HAVE_ML_SOLVER
+#include <map>
+#include <cmath>
+#include <iostream>
+#include <assert.h>
 
 #include "ArbitraryDomain.h"
-#include <iostream>
+
 
 //IFF: simplified case where we have intersect = 2
 //IFF: every node counts own number of gridpoints and then sum to global procs before MyPID (including ghost layers in z direction).
 //IFF: triangles intersecting in z dir? (cathode?) -> boundary condition there? neumann? then we should take a normal and stuff!?
 
-ArbitraryDomain::ArbitraryDomain(string fname, Vector_t nr_, Vector_t hr_, NDIndex<3> locidx) {
-
-    filename = fname;
-    setNr(nr_);
-    setHr(hr_);
+ArbitraryDomain::ArbitraryDomain(BoundaryGeometry * bgeom, Vector_t Geo_mincoords, Vector_t Geo_maxcoords, Vector_t nr, Vector_t hr, NDIndex<3> locidx, std::string interpl) {
+    bgeom_m=bgeom;
+    Geo_mincoords_m = bgeom->getmincoords();
+    Geo_maxcoords_m = bgeom->getmaxcoords();
+    setNr(nr);
+    setHr(hr);
     localidx = locidx;
     startIdx = 0;
 
-    LoadFile();
+    std::cout << "Arbitrary domain TK localidx:" << localidx << std::endl; 
+    std::cout << Geo_mincoords_m << std::endl;
+    std::cout << Geo_maxcoords_m << std::endl;
+    std::cout << "bgeom-maxcoords" << bgeom->getmaxcoords() << std::endl;	
+    std::cout << "hr_m" << hr << std::endl;	
 
-    cout << "file loaded" << endl;
-
-    //TODO: FIT GEOMETRY ON GRID! --> ENLARGE GRID!!
+    if(interpl == "constant")
+        interpolationMethod = CONSTANT;
+    else if(interpl == "linear")
+        interpolationMethod = LINEAR;
+    else if(interpl == "quadratic")
+        interpolationMethod = QUADRATIC;
 
 }
 
-//IFF: this method should work correctly since it was checked in render_triangle.cpp
-void ArbitraryDomain::LoadFile() {
-
-    //FOR ANALYTICAL TEST:
-    double xshift = 0.5;
-    double yshift = 0.5;
-    /////////////////////
-
-    h5_err_t rc;
-
-    h5_file *f = H5OpenFile(filename.c_str(), 0);
-    if(f == NULL)
-        ERRORMSG("can't open file: "  << filename << endl);
-
-    h5_size_t num_meshes = H5FedGetNumMeshes(f, TRIANGLE_MESH);
-    if(num_meshes != 1)
-        ERRORMSG("can't handle more or less than one mesh!!" << endl);
-
-    h5_id_t mesh_id = 0;
-    rc = H5FedOpenMesh(f, mesh_id, TRIANGLE_MESH);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    h5_id_t level_id;
-    h5_size_t num_levels = H5FedGetNumLevels(f);
-    //if(num_levels != 1)
-    //  *gmsg << "cannot handle more refinement levels!!" << endl;
-
-    for(level_id = 0; level_id < num_levels; level_id++) {
-
-        rc = H5FedSetLevel(f, level_id);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        h5_id_t id, local_id, parent_id;
-        h5_size_t real_num = 0;
-        vertex_t tmp;
-
-        h5_id_t level_id = H5FedGetLevel(f);
-        h5_size_t num = H5FedGetNumVertices(f);
-        rc = H5FedStartTraverseVertices(f);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        //forall vertices
-        while((real_num < num) && ((local_id = H5FedTraverseVertices(f, &id, tmp.P)) >= 0)) {
-            //FOR ANALYTICAL TEST:
-            tmp.P[0] += xshift;
-            tmp.P[1] += yshift;
-            /////////////////////
-            vertices[id] = tmp;
-            real_num++;
-        }
-
-        num = H5FedGetNumTriangles(f);
-        rc = H5FedStartTraverseTriangles(f);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        entity_t triangle;
-        h5_id_t vids[3];
-        real_num = 0;
-
-        //for all triangles
-        while((real_num < num) && ((local_id = H5FedTraverseTriangles(f, &id, &parent_id, vids)) >= 0)) {
-            triangle.global_id = id;
-            triangle.parent_id = parent_id;
-            triangle.vertexIDs[0] = vids[0];
-            triangle.vertexIDs[1] = vids[1];
-            triangle.vertexIDs[2] = vids[2];
-            entities[id] = triangle;
-            real_num++;
-        }
-
-    }
-
+ArbitraryDomain::~ArbitraryDomain() {
+    //nothing so far
 }
 
 void ArbitraryDomain::Compute(Vector_t hr) {
 
     setHr(hr);
+
+    hasGeometryChanged_m = true;
 
     //h5_float64_t edge1, edge2, t, q, p, P0;
     double edge1[3], edge2[3], t[3], q[3], p[3], P0[3];
@@ -107,48 +51,45 @@ void ArbitraryDomain::Compute(Vector_t hr) {
     double dir[3], origin[3];
     int zGhostOffsetLeft = (localidx[2].first() == 0) ? 0 : 1;
     int zGhostOffsetRight = (localidx[2].last() == nr[2] - 1) ? 0 : 1;
-    multimap< pair<int, int>, double >::iterator it;
-    pair< multimap< pair<int, int>, double>::iterator, multimap< pair<int, int>, double>::iterator > ret;
+    std::multimap< std::pair<int, int>, double >::iterator it;
+    std::pair< std::multimap< std::pair<int, int>, double>::iterator, std::multimap< std::pair<int, int>, double>::iterator > ret;
     bool hit;
 
-    std::map<h5_id_t, entity_t>::iterator triangleitr;
+
     //forall triangles
-    for(triangleitr = entities.begin(); triangleitr != entities.end(); triangleitr++) {
+    int numbfaces = bgeom_m->getNumBFaces();
+    for (int i = 0; i < numbfaces ; i++) {
 
+        Vector_t x1 = bgeom_m->getVertexCoord(i, 1); //geo3Dcoords_m[allbfaces_m[4 * face_id + vertex_id]]
+        Vector_t x2 = bgeom_m->getVertexCoord(i, 2); //geo3Dcoords_m[allbfaces_m[4 * face_id + vertex_id]]
+        Vector_t x3 = bgeom_m->getVertexCoord(i, 3); //geo3Dcoords_m[allbfaces_m[4 * face_id + vertex_id]]
 
-        //P0 = vertices[triangleitr->second.vertexIDs[0]];
-        //edge1 = vertices[triangleitr->second.vertexIDs[1]];
-        //edge2 = vertices[triangleitr->second.vertexIDs[2]];
+	P0[0] = x2[0];
+        P0[1] = x2[1];
+        P0[2] = x2[2];
 
-        vertex_t tmp;
-        tmp = vertices[triangleitr->second.vertexIDs[0]];
-        P0[0] = tmp.P[0];
-        P0[1] = tmp.P[1];
-        P0[2] = tmp.P[2];
+        edge1[0] = x1[0] - x2[0];
+        edge1[1] = x1[1] - x2[1];
+        edge1[2] = x1[2] - x2[2];
 
-        tmp = vertices[triangleitr->second.vertexIDs[1]];
-        edge1[0] = tmp.P[0] - P0[0];
-        edge1[1] = tmp.P[1] - P0[1];
-        edge1[2] = tmp.P[2] - P0[2];
-
-        tmp = vertices[triangleitr->second.vertexIDs[2]];
-        edge2[0] = tmp.P[0] - P0[0];
-        edge2[1] = tmp.P[1] - P0[1];
-        edge2[2] = tmp.P[2] - P0[2];
+        edge2[0] = x3[0] - x2[0];
+        edge2[1] = x3[1] - x2[1];
+        edge2[2] = x3[2] - x2[2];
 
         //IFF: use normed dir -> t = intersection (?)
         //x dir rays = forall points in origin y,z with dir (1,0,0) (Y,Z -> COORD)
         dir[0] = 1;
         dir[1] = 0;
         dir[2] = 0;
-        origin[0] = 0;
-        origin[1] = 0;
-        origin[2] = 0;
+        origin[0] = 0; //Geo_mincoords_m(0); //0;
+        origin[1] = 0; //Geo_mincoords_m(1); //0;
+	origin[2] = getMinZ(); //0;
         for(int y = 0; y < nr[1]; y++) {
+            origin[1] = (y - (nr[1]-1)/2.0)*hr[1];
             //ONE LAYER MORE = GHOST LAYER
             for(int z = localidx[2].first() - zGhostOffsetLeft; z <= localidx[2].last() + zGhostOffsetRight; z++) {
 
-                origin[2] = z * hr[2];
+                origin[2] = getMinZ()+z * hr[2];
 
                 crossProduct(dir, edge2, p);
                 det = dotProduct(edge1, p);
@@ -184,21 +125,21 @@ void ArbitraryDomain::Compute(Vector_t hr) {
                     IntersectXDir.insert(std::pair< std::pair<int, int>, double >(tmp, tt));
 
             }
-            origin[1] += hr[1];
         }
 
         //y dir rays = forall points in origin x,z with dir (0,1,0) (X,Z -> COORD)
         dir[0] = 0;
         dir[1] = 1;
         dir[2] = 0;
-        origin[0] = 0;
-        origin[1] = 0;
-        origin[2] = 0;
+	origin[0] = 0;//Geo_mincoords_m(0); //0;
+        origin[1] = 0;//Geo_mincoords_m(1); //0;
+        origin[2] = getMinZ(); //0;
         for(int x = 0; x < nr[0]; x++) {
+            origin[0] = (x - (nr[0]-1)/2.0)*hr[0];
             //ONE LAYER MORE = GHOST LAYER
-            for(int z = localidx[2].first() - zGhostOffsetLeft; z <= localidx[2].first() + zGhostOffsetRight; z++) {
+            for(int z = localidx[2].first() - zGhostOffsetLeft; z <= localidx[2].last() + zGhostOffsetRight; z++) {
 
-                origin[2] = z * hr[2];
+                origin[2] = getMinZ() + z * hr[2];
 
                 crossProduct(dir, edge2, p);
                 det = dotProduct(edge1, p);
@@ -233,20 +174,19 @@ void ArbitraryDomain::Compute(Vector_t hr) {
                     IntersectYDir.insert(std::pair< std::pair<int, int>, double >(tmp, tt));
 
             }
-            origin[0] += hr[0];
         }
 
         //z dir rays = forall points in origin x,y with dir (0,0,1) (X,Y -> COORD)
         dir[0] = 0;
         dir[1] = 0;
         dir[2] = 1;
-        origin[0] = 0;
-        origin[1] = 0;
-        origin[2] = 0;
+        origin[0] = 0; //Geo_mincoords_m(0); //0;
+        origin[1] = 0; //Geo_mincoords_m(1); //0;
+        origin[2] = getMinZ(); //0;
         for(int x = 0; x < nr[0]; x++) {
+            origin[0] = (x - (nr[0]-1)/2.0)*hr[0];
             for(int y = 0; y < nr[1]; y++) {
-
-                origin[1] = y * hr[1];
+            	origin[1] = (y - (nr[1]-1)/2.0)*hr[1];
 
                 crossProduct(dir, edge2, p);
                 det = dotProduct(edge1, p);
@@ -279,16 +219,13 @@ void ArbitraryDomain::Compute(Vector_t hr) {
                     hit = hit || (fabs(it->second - tt) < 1e-15);
                 if(!hit)
                     IntersectZDir.insert(std::pair< std::pair<int, int>, double >(tmp, tt));
-
             }
-            origin[0] += hr[0];
         }
 
     }
-
-    cout << "number of intersections in x-dir: " << IntersectXDir.size() << endl;
-    cout << "number of intersections in y-dir: " << IntersectYDir.size() << endl;
-    cout << "number of intersections in z-dir: " << IntersectZDir.size() << endl;
+    std::cout << "number of intersections in x-dir: " << IntersectXDir.size() << std::endl;
+    std::cout << "number of intersections in y-dir: " << IntersectYDir.size() << std::endl;
+    std::cout << "number of intersections in z-dir: " << IntersectZDir.size() << std::endl;
 
     //number of ghost nodes to the left
     int numGhostNodesLeft = 0;
@@ -303,7 +240,7 @@ void ArbitraryDomain::Compute(Vector_t hr) {
         }
     }
 
-    cout << "ghost nodes left: " << numGhostNodesLeft << endl;
+    std::cout << "ghost nodes left: " << numGhostNodesLeft << std::endl;
 
     //xy points in z plane
     int numxy = 0;
@@ -325,27 +262,27 @@ void ArbitraryDomain::Compute(Vector_t hr) {
 
     }
 
-    cout << "number of gridpoints: " << numtotal << endl;
+    std::cout << "number of gridpoints: " << numtotal << std::endl;
 
     startIdx = 0;
     MPI_Scan(&numtotal, &startIdx, 1, MPI_INTEGER, MPI_SUM, Ippl::getComm());
     startIdx -= numtotal;
 
-    cout << "start idx: " << startIdx << endl;
+    std::cout << "start idx: " << startIdx << std::endl;
 
     //build up index and coord map
     IdxMap.clear();
     CoordMap.clear();
     register int idx = startIdx - numGhostNodesLeft;
 
+	std::cout << idx << std::endl; 
     for(int x = 0; x < nr[0]; x++) {
         for(int y = 0; y < nr[1]; y++) {
             for(int z = localidx[2].first() - zGhostOffsetLeft; z <= localidx[2].last() + zGhostOffsetRight; z++) {
 
                 if(isInside(x, y, z)) {
                     IdxMap[toCoordIdx(x, y, z)] = idx;
-                    CoordMap[idx] = toCoordIdx(x, y, z);
-                    idx++;
+                    CoordMap[idx++] = toCoordIdx(x, y, z);
                 }
 
             }
@@ -387,12 +324,14 @@ inline void ArbitraryDomain::getCoord(int idx, int &x, int &y, int &z) {
 inline bool ArbitraryDomain::isInside(int x, int y, int z) {
 
     bool ret = false;
-    double cx = x * hr[0];
-    double cy = y * hr[1];
-    double cz = z * hr[2];
+    //double cx = x * hr[0];
+    //double cy = y * hr[1];
+    double cx = (x - (nr[0]-1)/2)*hr[0];
+    double cy = (y - (nr[1]-1)/2)*hr[1];
+ //   double cz = z * hr[2];
     double val1 = 0;
     double val2 = 0;
-    multimap < std::pair<int, int>, double >::iterator itr;
+    std::multimap < std::pair<int, int>, double >::iterator itr;
 
     //check if x is inside with y,z coords
     std::pair<int, int> coordyz(y, z);
@@ -403,7 +342,7 @@ inline bool ArbitraryDomain::isInside(int x, int y, int z) {
     else {
         val1 = itr->second;
         val2 = (++itr)->second;
-        ret = (cx <= max(val1, val2)) && (cx >= min(val1, val2));
+        ret = (cx <= std::max(val1, val2)) && (cx >= std::min(val1, val2));
     }
 
     //check if y is inside with x,z coords
@@ -415,11 +354,11 @@ inline bool ArbitraryDomain::isInside(int x, int y, int z) {
     else {
         val1 = itr->second;
         val2 = (++itr)->second;
-        ret = ret && (cy <= max(val1, val2)) && (cy >= min(val1, val2));
+        ret = ret && (cy <= std::max(val1, val2)) && (cy >= std::min(val1, val2));
     }
 
     //check if z is inside with x,y coords
-    /*
+/*
     std::pair<int,int> coordxy(x,y);
     itr = IntersectZDir.find(coordxy);
     count = IntersectZDir.count(coordxy);
@@ -428,11 +367,11 @@ inline bool ArbitraryDomain::isInside(int x, int y, int z) {
     else {
       val1 = itr->second;
       val2 = (++itr)->second;
-      ret = ret && (cz <= max(val1, val2)) && (cz >= min(val1, val2));
-    }*/
+      ret = ret && (cz <= std::max(val1, val2)) && (cz >= std::min(val1, val2));
+    }
 
-    //ret = ret && (cz >= 0 && cz <= nr[2]);
-
+    ret = ret && (cz >= 0 && cz <= nr[2]);
+*/
     return ret;
 
 }
@@ -445,16 +384,219 @@ int ArbitraryDomain::getNumXY(int z) {
 
 void ArbitraryDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
+   // determine which interpolation method we use for points near the boundary
+    switch(interpolationMethod) {
+
+    case CONSTANT:
+        ConstantInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
+        break;
+
+    case LINEAR:
+        LinearInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
+        break;
+
+    case QUADRATIC:
+	std::cout << "TK implement this later" <<std::endl;
+    //    QuadraticInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
+        break;
+    }
+
+    // stencil center value has to be positive!
+    assert(C > 0);
+}
+
+void ArbitraryDomain::ConstantInterpolation(int x, int y, int z, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) {
+
+    scaleFactor = 1.0;
+
+    W = -1/(hr[0]*hr[0]);
+    E = -1/(hr[0]*hr[0]);
+    N = -1/(hr[1]*hr[1]);
+    S = -1/(hr[1]*hr[1]);
+    F = -1/(hr[2]*hr[2]);
+    B = -1/(hr[2]*hr[2]);
+    C = 2/(hr[0]*hr[0]) + 2/(hr[1]*hr[1]) + 2/(hr[2]*hr[2]);
+
+    // we are a right boundary point
+    if(!isInside(x+1,y,z)) {
+        E = 0.0;
+    }
+
+    // we are a left boundary point
+    if(!isInside(x-1,y,z)) {
+        W = 0.0;
+    }
+
+    // we are a upper boundary point
+    if(!isInside(x,y+1,z)) {
+        N = 0.0;
+    }
+
+    // we are a lower boundary point
+    if(!isInside(x,y-1,z)) {
+        S = 0.0;
+    }
+
+    if(z == 0 || z == nr[2] - 1) {
+        // case where we are on the Robin BC in Z-direction
+        // where we distinguish two cases
+        // IFF: this values should not matter because they
+        // never make it into the discretization matrix
+        if(z == 0)
+            F = 0.0;
+        else
+            B = 0.0;
+
+        // add contribution of Robin discretization to center point
+        // d the distance between the center of the bunch and the boundary
+        //double cx = (x-(nr[0]-1)/2)*hr[0];
+        //double cy = (y-(nr[1]-1)/2)*hr[1];
+        //double cz = hr[2]*(nr[2]-1);
+        //double d = sqrt(cx*cx+cy*cy+cz*cz);
+        double d = hr[2] * (nr[2] - 1) / 2;
+        C += 2 / (d * hr[2]);
+        //C += 2/((hr[2]*(nr[2]-1)/2.0) * hr[2]);
+
+        // scale all stencil-points in z-plane with 0.5 (Robin discretization)
+        W /= 2.0;
+        E /= 2.0;
+        N /= 2.0;
+        S /= 2.0;
+        C /= 2.0;
+        scaleFactor *= 0.5;
+    }
+
+}
+/*
+void ArbitraryDomain::LinearInterpolation(int x, int y, int z, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) 
+{
+
+    scaleFactor = 1.0;
+
+    double dx=-1, dy=-1;
+
+    double cx = (x - (nr[0]-1)/2)*hr[0];
+    double cy = (y - (nr[1]-1)/2)*hr[1];
+
+    std::multimap< std::pair<int, int>, double >::iterator it;
+    std::pair< std::multimap< std::pair<int, int>, double>::iterator, std::multimap< std::pair<int, int>, double>::iterator > ret;
+
+    std::pair<int, int> coordyz(y, z);
+    ret = IntersectXDir.equal_range(coordyz);
+    for(it = ret.first; it != ret.second; ++it) {
+        if(fabs(it->second - cx) < hr[0]) {
+            dx = it->second;
+            break;
+        }
+    }
+
+    std::pair<int, int> coordxz(x, z);
+    ret = IntersectYDir.equal_range(coordxz);
+    for(it = ret.first; it != ret.second; ++it) {
+        if(fabs(it->second - cy) < hr[1]) {
+            dy = it->second;
+            break;
+        }
+    }
+
+
+    double dw=hr[0];
+    double de=hr[0];
+    double dn=hr[1];
+    double ds=hr[1];
+    C = 0.0;
+
+    // we are a right boundary point
+    if(dx >= 0 && dx > cx)
+    {	
+        C += 1/((dx-cx)*de);
+        E = 0.0;
+    } else {
+        C += 1/(de*de);
+        E = -1/(de*de);
+    }
+
+    // we are a left boundary point
+    if(dx <= 0 && dx < cx)
+    {
+        C += 1/((cx-dx)*dw);
+        W = 0.0;
+    } else {
+        C += 1/(dw*dw);
+        W = -1/(dw*dw);
+    }
+
+    // we are a upper boundary point
+    if(dy >= 0 && dy > cy)
+    {
+        C += 1/((dy-cy)*dn);
+        N = 0.0;
+    } else {
+        C += 1/(dn*dn);
+        N = -1/(dn*dn);
+    }
+
+    // we are a lower boundary point
+    if(dy <= 0 && dy < cy)
+    {
+        C += 1/((cy-dy)*ds);
+        S = 0.0;
+    } else {
+        C += 1/(ds*ds);
+        S = -1/(ds*ds);
+    }
+
+    F = -1/(hr[2]*hr[2]); 
+    B = -1/(hr[2]*hr[2]);
+
+    //XXX: In stand-alone only Dirichlet for validation purposes
+    if(z == 0 || z == nr[2]-1) {
+
+        // Dirichlet
+        C += 2/hr[2]*1/hr[2];
+
+        //C += 1/hr[2]*1/hr[2];
+
+        // case where we are on the Neumann BC in Z-direction
+        // where we distinguish two cases  
+        if(z == 0)
+            F = 0.0;
+        else 
+            B = 0.0;
+
+        //for test no neumann 
+        //C += 2/((hr[2]*nr[2]/2.0) * hr[2]);
+        
+        //  double d = hr[2]*(nr[2])/2;
+        //   C += 2/(d * hr[2]);
+
+
+        //neumann stuff
+        // W /= 2.0;
+        // E /= 2.0;
+        // N /= 2.0;
+        // S /= 2.0;
+        //C /= 2.0;
+
+       // scaleFactor *= 0.5;
+       // 
+
+    } else 
+        C += 2*1/hr[2]*1/hr[2];
+}
+*/
+void ArbitraryDomain::LinearInterpolation(int x, int y, int z, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) {
+
     double cx = x * hr[0];
     double cy = y * hr[1];
-    double cz = z * hr[2];
+    //double cz = z * hr[2]; 
 
-    multimap< pair<int, int>, double >::iterator it;
-    pair< multimap< pair<int, int>, double>::iterator, multimap< pair<int, int>, double>::iterator > ret;
+    std::multimap< std::pair<int, int>, double >::iterator it;
+    std::pair< std::multimap< std::pair<int, int>, double>::iterator, std::multimap< std::pair<int, int>, double>::iterator > ret;
 
     //since every vector here is only an array[2] we
     //can catch all cases manually
-    double dx = -1.0, dy = -1.0, dz = -1.0;
+    double dx = -1.0, dy = -1.0;//, dz = -1.0; 
     double dw = hr[0];
     double de = hr[0];
     double dn = hr[1];
@@ -481,16 +623,16 @@ void ArbitraryDomain::getBoundaryStencil(int x, int y, int z, double &W, double 
         }
     }
 
-    /*
+/*
     std::pair<int, int> coordxy(x,y);
     ret = IntersectZDir.equal_range(coordxy);
     for(it=ret.first; it!=ret.second; ++it) {
-      if(abs(it->second - z) < hr[2]) {
+      if(abs(it->second - cz) < hr[2]) {
         dz = it->second;
         break;
       }
     }
-    */
+*/   
 
     //we are a right boundary point
     //if(!isInside(x+1,y,z))
@@ -513,14 +655,16 @@ void ArbitraryDomain::getBoundaryStencil(int x, int y, int z, double &W, double 
         ds = cy - dy;
 
     //we are a lower boundary point
-    /*
-    if(!isInside(x,y,z+1))
-      df = dz;
+/*
+    //if(!isInside(x,y,z+1))
+    if(dz >= 0 && dz > cz)
+        df = dz - cz;
 
     //we are a lower boundary point
-    if(!isInside(x,y,z-1))
-      db = dz;
-    */
+    //if(!isInside(x,y,z-1))
+    if(dy >= 0 && dy <= cy)
+        db = cz - dz;
+ */
 
     //for regular gridpoints no problem with symmetry, just boundary
 
@@ -553,11 +697,11 @@ void ArbitraryDomain::getBoundaryStencil(int x, int y, int z, double &W, double 
     //0.5* comes from discretiztaion
     //scaleFactor = 0.5*(dw+de)*(dn+ds)*(df+db);
     scaleFactor = 0.5;
-    if(dw + de != 0)
+    if((dw + de) != 0)
         scaleFactor *= (dw + de);
-    if(dn + ds != 0)
+    if((dn + ds) != 0)
         scaleFactor *= (dn + ds);
-    if(df + db != 0)
+    if((df + db) != 0)
         scaleFactor *= (df + db);
 
     //catch the case where a point lies on the boundary
@@ -584,35 +728,33 @@ void ArbitraryDomain::getBoundaryStencil(int x, int y, int z, double &W, double 
     if(dn != 0 || ds != 0)
         C += (df + db) * (dw + de) * (dn + ds) / m2;
 
-    //if(C <= 0)
-    //  cout << "!!!!!!!!!! C is <= 0: " << C <<  endl;
+    if(C <= 0)
+      std::cout << "!!!!!!!!!! C is <= 0: " << C <<  std::endl;
 
-    //handle Neumann case
+        // handle boundary condition in z direction
     if(z == 0 || z == nr[2] - 1) {
+	F = -1 / (hr[2] * hr[2]);
+	B = -1 / (hr[2] * hr[2]);
+	C += 2 / (hr[2] * hr[2]);
 
-        if(z == 0) {
+        // case where we are on the NEUMAN BC in Z-direction
+        // where we distinguish two cases
+        if(z == 0)
             F = 0.0;
-            B = -hr[2];
-            C = 2 * hr[2];
-        } else {
+        else
             B = 0.0;
-            F = -hr[2];
-            C = 2 * hr[2];
-        }
 
-        //neumann stuff
-        W = W / 2.0;
-        E = E / 2.0;
-        N = N / 2.0;
-        S = S / 2.0;
+        W /= 2.0;
+        E /= 2.0;
+        N /= 2.0;
+        S /= 2.0;
         C /= 2.0;
-
-        scaleFactor /= 2.0;
+        scaleFactor *= 0.5;
 
         //if(C <= 0)
         //  cout << "!!!!!!!!!! C is <= 0" << endl;
     }
-
+	
 }
 
 /*
@@ -782,8 +924,8 @@ void EllipticDomain::getBoundaryStencil(int x, int y, int z, double& W, double& 
 
 void ArbitraryDomain::getBoundaryStencil(int idx, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
-    //IFF: reverse map search?
-    //double mem or O(n) search in map to get x,y,z from idx
+    //IFF: reverse map seah5errh?
+    //double mem or O(n) seah5errh in map to get x,y,z from idx
 
     int x = 0, y = 0, z = 0;
 
@@ -792,7 +934,7 @@ void ArbitraryDomain::getBoundaryStencil(int idx, double &W, double &E, double &
 
 }
 
-void ArbitraryDomain::getNeighbours(int idx, double &W, double &E, double &S, double &N, double &F, double &B) {
+void ArbitraryDomain::getNeighbours(int idx, int &W, int &E, int &S, int &N, int &F, int &B) {
 
     int x = 0, y = 0, z = 0;
 
@@ -803,7 +945,7 @@ void ArbitraryDomain::getNeighbours(int idx, double &W, double &E, double &S, do
 
 //IFF:should be ok
 //getIdx returns -1 when not inside domain
-void ArbitraryDomain::getNeighbours(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B) {
+void ArbitraryDomain::getNeighbours(int x, int y, int z, int &W, int &E, int &S, int &N, int &F, int &B) {
 
     if(x > 0)
         W = getIdx(x - 1, y, z);

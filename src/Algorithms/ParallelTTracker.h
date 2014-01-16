@@ -24,6 +24,9 @@
 #include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
+#ifdef HAVE_AMR_SOLVER
+#include <Amr.H>
+#endif
 
 class BMultipoleField;
 class PartBunch;
@@ -124,6 +127,13 @@ public:
     explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
                               const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator, size_t N);
 
+    /// Constructor
+    //  Amr pointer is taken
+#ifdef HAVE_AMR_SOLVER 
+    explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
+                              const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator, size_t N, Amr* amrptr_in);
+#endif
+
     virtual ~ParallelTTracker();
 
     virtual void visitAlignWrapper(const AlignWrapper &);
@@ -223,6 +233,9 @@ private:
     ParallelTTracker();
     ParallelTTracker(const ParallelTTracker &);
     void operator=(const ParallelTTracker &);
+#ifdef HAVE_AMR_SOLVER
+    Amr* amrptr;
+#endif
 
     void checkCavity(double s, Component *& comp, double & cavity_start_pos);
 
@@ -402,6 +415,9 @@ private:
     void initializeBoundaryGeometry();
     void doBinaryRepartition();
     void Tracker_Default();
+#ifdef HAVE_AMR_SOLVER
+    void Tracker_AMR();
+#endif
     void Tracker_AMTS();
     void push(double h);
     void kick(double h, bool avoidGammaCalc = false);

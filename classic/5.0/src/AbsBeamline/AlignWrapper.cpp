@@ -82,12 +82,12 @@ void AlignWrapper::setElement(ElementBase *elem) {
 }
 
 
-Geometry &AlignWrapper::getGeometry() {
+BGeometryBase &AlignWrapper::getGeometry() {
     return itsElement->getGeometry();
 }
 
 
-const Geometry &AlignWrapper::getGeometry() const {
+const BGeometryBase &AlignWrapper::getGeometry() const {
     return itsElement->getGeometry();
 }
 

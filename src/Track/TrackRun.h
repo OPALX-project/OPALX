@@ -19,6 +19,19 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Action.h"
+#ifdef HAVE_AMR_SOLVER
+	#include <Amr.H>
+	#include <ParallelDescriptor.H>
+	#include <fstream>
+	#include <iomanip>
+	#include <iostream>
+	#include <string>
+	#include <sstream>
+	#include <algorithm>
+	#include <iterator>
+	#include <utility>
+#endif
+
 
 class Beam;
 class OpalData;
@@ -71,7 +84,10 @@ private:
     DataSink *ds;
 
     OpalData *OPAL;
-
+#ifdef HAVE_AMR_SOLVER
+    std::vector<std::string>  filterString(std::string str);
+    std::pair<Box,unsigned int> getBlGrids(std::string str);
+#endif
 };
 
 #endif // OPAL_TrackRun_HH

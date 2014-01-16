@@ -818,11 +818,13 @@ void PartBunch::computeSelfFields(int binNumber) {
 }
 
 void PartBunch::resizeMesh() {
+    double scaleFactor = 1.0; 
+    //scaleFactor = (Physics::c * dt_m); 
     //get x, y range and scale to unit-less
-    double xmin = fs_m->solver_m->getXRangeMin() / (Physics::c * dt_m);
-    double xmax = fs_m->solver_m->getXRangeMax() / (Physics::c * dt_m);
-    double ymin = fs_m->solver_m->getYRangeMin() / (Physics::c * dt_m);
-    double ymax = fs_m->solver_m->getYRangeMax() / (Physics::c * dt_m);
+    double xmin = fs_m->solver_m->getXRangeMin() * scaleFactor ;
+    double xmax = fs_m->solver_m->getXRangeMax() * scaleFactor;
+    double ymin = fs_m->solver_m->getYRangeMin() * scaleFactor;
+    double ymax = fs_m->solver_m->getYRangeMax() * scaleFactor;
 
 
     // Check if the new domain is larger than bunch max, mins
@@ -848,8 +850,8 @@ void PartBunch::resizeMesh() {
         get_bounds(rmin_m, rmax_m);
     }
 
-    hr_m[0] = (xmax - xmin) / (nr_m[0] - 1);
-    hr_m[1] = (ymax - ymin) / (nr_m[1] - 1);
+    hr_m[0] = (xmax - xmin) / (nr_m[0]-1);
+    hr_m[1] = (ymax - ymin) / (nr_m[1]-1);
     //hr_m[2] = (rmax_m[2] - rmin_m[2]) / (nr_m[2] - 1);
 
     // we cannot increase the number of mesh points
@@ -884,6 +886,7 @@ void PartBunch::computeSelfFields() {
 
         if(fs_m->getFieldSolverType() == "MG") // || fs_m->getFieldSolverType() == "FFTBOX") {
             resizeMesh();
+	std::cout << "after resizeMesh" << hr_m << std::endl;
 
         //scatter charges onto grid
         this->Q *= this->dt;
@@ -906,6 +909,30 @@ void PartBunch::computeSelfFields() {
         //divide charge by a 'grid-cube' volume to get [C/m^3]
         rho_m *= tmp2;
 
+        #define DBG_SCALARFIELD
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+        ofstream fstr1;
+        fstr1.precision(9);
+
+        std::ostringstream istr;
+        istr << fieldDBGStep_m;
+
+        string SfileName = OpalData::getInstance()->getInputBasename();
+
+        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
+        fstr1.open(rho_fn.c_str(), ios::out);
+        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
+        for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
+            for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
+                for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                }
+            }
+        }
+        fstr1.close();
+        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
         // charge density is in rho_m
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
 
@@ -924,37 +951,25 @@ void PartBunch::computeSelfFields() {
         //write out rho
 
 
-        // #define DBG_SCALARFIELD
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
         ostringstream oss;
-	//        MPI_File file;
-        //MPI_Status status;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
 
         ofstream fstr2;
         fstr2.precision(9);
 
-        std::ostringstream istr;
-        istr << fieldDBGStep_m;
-
-        string SfileName = OpalData::getInstance()->getInputBasename();
-
-        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
-        fstr2.open(rho_fn.c_str(), ios::out);
+        string phi_fn = string("data/") + SfileName + string("-phi_scalar-") + string(istr.str());
+        fstr2.open(phi_fn.c_str(), ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
             for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
                 for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
                     fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
-                    //oss << x+1 << " " << y+1 << " " << z+1 << " " <<  rho_m[x][y][z].get() << endl;
                 }
             }
         }
         fstr2.close();
 
-        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-        //MPI_File_close(&file);
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
 
@@ -972,8 +987,6 @@ void PartBunch::computeSelfFields() {
         //MPI_Status status;
         //MPI_Info fileinfo;
         //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-
-
         ofstream fstr;
         fstr.precision(9);
 

@@ -25,13 +25,13 @@
 // Class SRotatedGeometry.
 // ------------------------------------------------------------------------
 
-SRotatedGeometry::SRotatedGeometry(const Geometry &g,
+SRotatedGeometry::SRotatedGeometry(const BGeometryBase &g,
                                    double sin, double sout):
     srotIn(sin), srotOut(sout), geom(g)
 {}
 
 
-SRotatedGeometry::SRotatedGeometry(const Geometry &g,
+SRotatedGeometry::SRotatedGeometry(const BGeometryBase &g,
                                    double srot, BalanceMode mode):
     srotIn(srot), srotOut(0), geom(g) {
     balanceSrots(mode);

@@ -37,8 +37,8 @@ BoundaryGeometry::BoundaryGeometry() :
          "BOX, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written ",
          "ELLIPTIC");
 
-    itsAttr[LENGHT] = Attributes::makeReal
-        ("LENGHT",
+    itsAttr[LENGTH] = Attributes::makeReal
+        ("LENGTH",
          "Specifies the length of a tube shaped elliptic beam pipe [m]",
          1.0);
 
@@ -159,7 +159,7 @@ BoundaryGeometry::~BoundaryGeometry() {
 
 bool BoundaryGeometry::canReplaceBy (Object* object) {
     // Can replace only by another GEOMETRY.
-    return dynamic_cast<Geometry*>(object) != 0;
+    return dynamic_cast<BGeometryBase*>(object) != 0;
 }
 
 BoundaryGeometry* BoundaryGeometry::clone (const string& name) {
@@ -1014,7 +1014,7 @@ Inform& BoundaryGeometry::printInfo (Inform& os) const {
     os << "* GEOMETRY                   " << getOpalName () << '\n'
        << "* FGEOM                      " << Attributes::getString (itsAttr[FGEOM]) << '\n'
        << "* TOPO                       " << Attributes::getString (itsAttr[TOPO]) << '\n'
-       << "* LENGHT                     " << Attributes::getReal (itsAttr[LENGHT]) << '\n'
+       << "* LENGTH                     " << Attributes::getReal (itsAttr[LENGTH]) << '\n'
        << "* S                          " << Attributes::getReal (itsAttr[S]) << '\n'
        << "* A                          " << Attributes::getReal (itsAttr[A]) << '\n'
        << "* B                          " << Attributes::getReal (itsAttr[B]) << '\n';

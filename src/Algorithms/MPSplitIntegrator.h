@@ -81,12 +81,12 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual Geometry &getGeometry();
+    virtual BGeometryBase &getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const Geometry &getGeometry() const;
+    virtual const BGeometryBase &getGeometry() const;
 
     /// Get element type string.
     virtual const string &getType() const;

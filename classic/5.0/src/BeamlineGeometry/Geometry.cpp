@@ -1,16 +1,16 @@
 // ------------------------------------------------------------------------
-// $RCSfile: Geometry.cpp,v $
+// $RCSfile: BGeometryBase.cpp,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1 $
 // ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
-// Class: Geometry
+// Class: BGeometryBase
 //    Pure virtual base class for all Beamline Geometries
 //
 // ------------------------------------------------------------------------
-// Class category: BeamlineGeometry
+// Class category: BeamlineBGeometryBase
 // ------------------------------------------------------------------------
 //
 // $Date: 2000/03/27 09:32:34 $
@@ -22,57 +22,57 @@
 #include "BeamlineGeometry/Euclid3D.h"
 
 
-// Class Geometry.
+// Class BGeometryBase.
 // ------------------------------------------------------------------------
 
-Geometry::~Geometry()
+BGeometryBase::~BGeometryBase()
 {}
 
 
-void Geometry::setElementLength(double)
+void BGeometryBase::setElementLength(double)
 {}
 
 
-double Geometry::getOrigin() const {
+double BGeometryBase::getOrigin() const {
     return getArcLength() / 2.0;
 }
 
 
-double Geometry::getEntrance() const {
+double BGeometryBase::getEntrance() const {
     return - getOrigin();
 }
 
 
-double Geometry::getExit() const {
+double BGeometryBase::getExit() const {
     return getArcLength() - getOrigin();
 }
 
 
-Euclid3D Geometry::getTotalTransform() const {
+Euclid3D BGeometryBase::getTotalTransform() const {
     return getTransform(getExit(), getEntrance());
 }
 
 
-Euclid3D Geometry::getTransform(double s) const {
+Euclid3D BGeometryBase::getTransform(double s) const {
     return getTransform(0.0, s);
 }
 
 
-Euclid3D Geometry::getEntranceFrame() const {
+Euclid3D BGeometryBase::getEntranceFrame() const {
     return getTransform(0.0, getEntrance());
 }
 
 
-Euclid3D Geometry::getExitFrame() const {
+Euclid3D BGeometryBase::getExitFrame() const {
     return getTransform(0.0, getExit());
 }
 
 
-Euclid3D Geometry::getEntrancePatch() const {
+Euclid3D BGeometryBase::getEntrancePatch() const {
     return Euclid3D::identity();
 }
 
 
-Euclid3D Geometry::getExitPatch() const {
+Euclid3D BGeometryBase::getExitPatch() const {
     return Euclid3D::identity();
 }

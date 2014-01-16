@@ -54,12 +54,12 @@ MPSplitIntegrator *MPSplitIntegrator::clone() const {
 }
 
 
-Geometry &MPSplitIntegrator::getGeometry() {
+BGeometryBase &MPSplitIntegrator::getGeometry() {
     return itsElement->getGeometry();
 }
 
 
-const Geometry &MPSplitIntegrator::getGeometry() const {
+const BGeometryBase &MPSplitIntegrator::getGeometry() const {
     return itsElement->getGeometry();
 }
 

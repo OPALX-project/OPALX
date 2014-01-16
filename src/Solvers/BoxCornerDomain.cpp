@@ -16,11 +16,11 @@ BoxCornerDomain::BoxCornerDomain(Vector_t nr, Vector_t hr) {
     setHr(hr);
 }
 
-BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double Lenght, double L1, double L2, Vector_t nr, Vector_t hr, std::string interpl) {
+BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double Length, double L1, double L2, Vector_t nr, Vector_t hr, std::string interpl) {
     A_m = A;
     B_m = B;
     C_m = C;
-    Lenght_m = Lenght;
+    Length_m = Length;
     L1_m = L1;
     L2_m = L2;
 
@@ -74,7 +74,7 @@ void BoxCornerDomain::Compute(Vector_t hr) {
     actBMin_m = -B_m;
     actBMax_m = std::max(bL,bH);
 
-    INFOMSG(" BoxCorner L= " << Lenght_m << " L1= " << L1_m << " L2= " << L2_m << " A= " << A_m << " B= " << B_m << " C= " << C_m
+    INFOMSG(" BoxCorner L= " << Length_m << " L1= " << L1_m << " L2= " << L2_m << " A= " << A_m << " B= " << B_m << " C= " << C_m
 	    << " bL= " << bL << " bH= " << bH <<  " actBMin= " << actBMin_m << " actBMax=max(bL,bH)= " << actBMax_m << endl);
 
     //reset number of points inside domain

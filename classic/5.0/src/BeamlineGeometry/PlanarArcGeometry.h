@@ -53,7 +53,7 @@
 //  [/ul]
 //  [/ul]
 
-class PlanarArcGeometry : public Geometry {
+class PlanarArcGeometry : public BGeometryBase {
 public:
 
     /// Constructor.

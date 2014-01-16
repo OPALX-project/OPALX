@@ -25,13 +25,13 @@
 // Class OffsetGeometry.
 // ------------------------------------------------------------------------
 
-OffsetGeometry::OffsetGeometry(const Geometry &g, const Geometry &l,
+OffsetGeometry::OffsetGeometry(const BGeometryBase &g, const BGeometryBase &l,
                                const Euclid3D &t):
     global(g), local(l), g2l(t)
 {}
 
 
-OffsetGeometry::OffsetGeometry(const Geometry &g, const Euclid3D &t):
+OffsetGeometry::OffsetGeometry(const BGeometryBase &g, const Euclid3D &t):
     global(g), local(g), g2l(t)
 {}
 

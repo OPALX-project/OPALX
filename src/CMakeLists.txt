@@ -35,6 +35,12 @@ IF(ENABLE_ML_SOLVER)
     )
 ENDIF(ENABLE_ML_SOLVER)
 
+IF(ENABLE_AMR_SOLVER)
+    set (CMAKE_CXX_FLAGS
+        "-DHAVE_AMR_SOLVER ${CMAKE_CXX_FLAGS}"
+    )
+ENDIF(ENABLE_AMR_SOLVER)
+
 #MESSAGE ("Compile OPAL with: ${CMAKE_CXX_FLAGS}")
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -70,13 +76,14 @@ add_subdirectory (OpalParser)
 add_subdirectory (Match)
 add_subdirectory (PhysicsActions)
 add_subdirectory (Solvers)
+add_subdirectory (Solvers/amr)
 add_subdirectory (Structure)
 add_subdirectory (Tables)
 add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
-include_directories (
+include_directories (Solvers/amr
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
@@ -86,6 +93,7 @@ include_directories (
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_INCLUDE_DIRS}
+    ${CCSE_INCLUDE_DIRS}
 )
 
 link_directories (
@@ -94,6 +102,7 @@ link_directories (
     ${DOOM_SOURCE_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
+    ${CCSE_LIBRARY_DIR}
 )
 #   "/opt/parmetis/parmetis-3.1"
 #   "/opt/intel-mkl/mkl-10.0/lib/em64t"
@@ -108,7 +117,7 @@ set (OPAL_LIBS
 )
 
 add_executable( opal ${OPAL_SRCS} Main.cpp )
-target_link_libraries( opal CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran)
+target_link_libraries( opal CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran)
 
 if (BUILD_LIBOPAL)
     add_library( OPAL ${OPAL_SRCS} opal.cpp )

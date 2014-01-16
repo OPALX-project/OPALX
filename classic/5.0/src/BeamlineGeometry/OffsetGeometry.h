@@ -39,19 +39,19 @@
 //  an alignment error, the local and global geometries can both refer to
 //  the same geometry.
 
-class OffsetGeometry : public Geometry {
+class OffsetGeometry : public BGeometryBase {
 public:
 
     /// Constructor.
     //  Assign the [b]global[/b] and [b]local[/b] geometries,
     //  and the displacement [b]euclid[/b] between their origins.
     OffsetGeometry
-    (const Geometry &global, const Geometry &local, const Euclid3D &euclid);
+    (const BGeometryBase &global, const BGeometryBase &local, const Euclid3D &euclid);
 
     /// Constructor.
     //  Both global and local geometries are set to [b]geom[/b],
     //  and the displacement is [b]euclid[/b].
-    OffsetGeometry(const Geometry &geom, const Euclid3D &euclid);
+    OffsetGeometry(const BGeometryBase &geom, const Euclid3D &euclid);
 
     OffsetGeometry(const OffsetGeometry &);
     virtual ~OffsetGeometry();
@@ -138,8 +138,8 @@ public:
 
 private:
 
-    const Geometry &global;
-    const Geometry &local;
+    const BGeometryBase &global;
+    const BGeometryBase &local;
     Euclid3D g2l;
 };
 

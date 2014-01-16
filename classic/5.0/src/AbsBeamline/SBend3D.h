@@ -118,10 +118,10 @@ class SBend3D : public Component {
     void getDimensions(double &zBegin, double &zEnd) const {}
 
     /** Return the cell geometry */
-    Geometry& getGeometry();
+    BGeometryBase& getGeometry();
 
     /** Return the cell geometry */
-    const Geometry& getGeometry() const;
+    const BGeometryBase& getGeometry() const;
 
     /** Return a dummy (0.) field value (what is this for?) */
     EMField &getField();

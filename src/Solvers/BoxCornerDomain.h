@@ -36,7 +36,7 @@
    |                            | / 
 --------------------------------+/ (-A_m,-B_m)
 
-            Lenght_m
+            Length_m
 
 Test in which of the 3 parts of the geometry we are in.
 
@@ -52,7 +52,7 @@ class BoxCornerDomain : public IrregularDomain {
 public:
 
     BoxCornerDomain(Vector_t nr, Vector_t hr);
-    BoxCornerDomain(double A, double B, double C, double Lenght, double L1, double L2, Vector_t nr, Vector_t hr,
+    BoxCornerDomain(double A, double B, double C, double Length, double L1, double L2, Vector_t nr, Vector_t hr,
                     std::string interpl);
     ~BoxCornerDomain();
 
@@ -148,7 +148,7 @@ private:
     double C_m;
 
     /// lenght of the structure
-    double Lenght_m;
+    double Length_m;
 
     /// lenght of the first part of the structure
     double L1_m;

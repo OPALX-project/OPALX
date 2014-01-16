@@ -32,6 +32,10 @@
 #include "Utilities/ParseError.h"
 #include "Utilities/Timer.h"
 
+#ifdef HAVE_AMR_SOLVER
+#include <ParallelDescriptor.H>
+#endif
+
 #include <iostream>
 #include <vector>
 
@@ -78,6 +82,12 @@ Ippl *ippl;
 //: The OPAL main program.
 int main(int argc, char *argv[]) {
     ippl = new Ippl(argc, argv);
+
+#ifdef HAVE_AMR_SOLVER
+    std::cout << "Initializing BoxLib with inputs file " << argv[1] << std::endl;
+    BoxLib::Initialize(argc, argv, true, Ippl::getComm());
+    std::cout << "Done initializing BoxLib with inputs file " << argv[1] << std::endl;
+#endif
 
     OPALTimer::Timer simtimer;
 

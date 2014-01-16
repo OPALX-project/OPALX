@@ -29,7 +29,7 @@ class Beamline;
 // ------------------------------------------------------------------------
 /// Implements the composite geometry of a beam line.
 
-class BeamlineGeometry: public Geometry {
+class BeamlineGeometry: public BGeometryBase {
 
 public:
 

@@ -10,8 +10,10 @@
 
 //////////////////////////////////////////////////////////////
 #include "Structure/BoundaryGeometry.h"
+#include "Elements/OpalBeamline.h"
 #include "PoissonSolver.h"
 #include "IrregularDomain.h"
+#include "ArbitraryDomain.h"
 #include "EllipticDomain.h"
 #include "BoxCornerDomain.h"
 #include "RectangularDomain.h"
@@ -107,8 +109,11 @@ public:
     double getYRangeMin() { return bp->getYRangeMin(); }
     double getYRangeMax() { return bp->getYRangeMax(); }
 
+
     /// useful load balance information
     void printLoadBalanceStats();
+
+    void extrapolateLHS();
 
     Inform &print(Inform &os) const;
 
@@ -118,10 +123,10 @@ private:
     //solver!
     /// holding the currently active geometry
     BoundaryGeometry *currentGeometry;
+
     /// container for multiple geometries
     std::vector<BoundaryGeometry *> geometries_m;
-
-
+	
     /// flag notifying us that the geometry (discretization) has changed
     bool hasGeometryChanged_m;
     /// flag is set when OPAL changed decomposition of mesh
@@ -204,6 +209,9 @@ private:
     /// global number of mesh points in each direction
     Vektor<int, 3> orig_nr_m;
 
+    /// idx for arbitrary domain 
+    NDIndex<3> localidx_m;
+
     // timers
     IpplTimings::TimerRef FunctionTimer1_m;
     IpplTimings::TimerRef FunctionTimer2_m;
@@ -246,7 +254,7 @@ protected:
             belosList.set("Verbosity", Belos::Errors + Belos::Warnings + Belos::TimingDetails + Belos::FinalSummary + Belos::StatusTestDetails);
             belosList.set("Output Frequency", 1);
         } else
-            belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
+            belosList.set("Verbosity", Belos::Errors);
     }
 
     /// Setup the parameters for the SAAMG preconditioner.
@@ -274,18 +282,18 @@ protected:
         // kernels, but it is the only sparse LU factorization algorithm known to be
         // asymptotically optimal, in the sense that it takes time proportional to the
         // number of floating-point operations.
-      //  MLList_m.set("coarse: type", "Amesos-KLU");
+        MLList_m.set("coarse: type", "Amesos-KLU");
 
         //FIXME: CHEBY COARSE LEVEL SOLVER
         // SEE PAPER FOR EVALUATION KLU vs. Chebyshev
-        MLList_m.set("coarse: sweeps", 20);
-        MLList_m.set("coarse: type", "Chebyshev");
+//        MLList_m.set("coarse: sweeps", 20);
+//        MLList_m.set("coarse: type", "Chebyshev");
 
         // turn on all output
         if(verbose_m)
             MLList_m.set("ML output", 101);
         else
-            MLList_m.set("ML output", 0);
+            MLList_m.set("ML output", -1);
 
         // try to optimize mem for xt3
         //MLList_m.set("low memory usage", true);

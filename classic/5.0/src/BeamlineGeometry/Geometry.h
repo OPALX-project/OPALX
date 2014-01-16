@@ -1,18 +1,18 @@
-#ifndef CLASSIC_Geometry_HH
-#define CLASSIC_Geometry_HH
+#ifndef CLASSIC_BGeometryBase_HH
+#define CLASSIC_BGeometryBase_HH
 
 // ------------------------------------------------------------------------
-// $RCSfile: Geometry.h,v $
+// $RCSfile: BGeometryBase.h,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1 $
 // ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
-// Class: Geometry
+// Class: BGeometryBase
 //
 // ------------------------------------------------------------------------
-// Class category: BeamlineGeometry
+// Class category: BeamlineBGeometryBase
 // ------------------------------------------------------------------------
 //
 // $Date: 2000/03/27 09:32:34 $
@@ -24,29 +24,29 @@
 class Euclid3D;
 
 
-// Class Geometry
+// Class BGeometryBase
 // ------------------------------------------------------------------------
 /// Abstract base class for accelerator geometry classes.
-//  A Geometry can be considered a 3-dimensional space line parameterised by
+//  A BGeometryBase can be considered a 3-dimensional space line parameterised by
 //  the distance along the line (arc length) s. All Geometries have an exit
-//  and entrance plane and an origin. At any position s, a Geometry can define
+//  and entrance plane and an origin. At any position s, a BGeometryBase can define
 //  a unique 3-d rectilinear coordinate frame whose origin is on the geometry
 //  at s, and whose local z-axis is tangential to the geometry at s. The
 //  orientation of the local x- and y-axes are arbitrarilly specified by
-//  the Geometry. A special frame, referred to as the Geometry Local Frame
+//  the BGeometryBase. A special frame, referred to as the BGeometryBase Local Frame
 //  (or Local Frame when it is unambiguous) is specified at s = origin. The
 //  Local Frame is is used to define that frame about which translations and
-//  rotations can be applied to the Geometry. The entrance and exit planes
+//  rotations can be applied to the BGeometryBase. The entrance and exit planes
 //  are defined as those x-y planes (z=0, s=constant) in the frames defined
 //  at s=entrance and s=exit.
 
-class Geometry {
+class BGeometryBase {
 public:
 
-    Geometry();
-    Geometry(const Geometry &right);
-    virtual ~Geometry();
-    const Geometry &operator=(const Geometry &right);
+    BGeometryBase();
+    BGeometryBase(const BGeometryBase &right);
+    virtual ~BGeometryBase();
+    const BGeometryBase &operator=(const BGeometryBase &right);
 
     /// Get arc length.
     //  Return the length of the geometry, measured along the design arc.
@@ -126,13 +126,13 @@ public:
 };
 
 // inlined (trivial) member functions
-inline Geometry::Geometry()
+inline BGeometryBase::BGeometryBase()
 { }
 
-inline Geometry::Geometry(const Geometry &)
+inline BGeometryBase::BGeometryBase(const BGeometryBase &)
 { }
 
-inline const Geometry &Geometry::operator=(const Geometry &)
+inline const BGeometryBase &BGeometryBase::operator=(const BGeometryBase &)
 { return *this; }
 
-#endif // CLASSIC_Geometry_HH
+#endif // CLASSIC_BGeometryBase_HH

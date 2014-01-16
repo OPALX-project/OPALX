@@ -197,6 +197,11 @@ bool FieldSolver::hasPeriodicZ() {
   return Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC");
 }
 
+bool FieldSolver::isAMRSolver() { 
+  return Attributes::getString(itsAttr[FSTYPE])==std::string("AMR");
+}
+
+
 void FieldSolver::initSolver(PartBunch &b) {
     itsBunch_m = &b;
      string bcx = Attributes::getString(itsAttr[BCFFTX]);

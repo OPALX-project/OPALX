@@ -173,8 +173,8 @@ public:
         return (double)Attributes::getReal(itsAttr[S]);
     }
 
-    inline double getLenght() {
-        return (double)Attributes::getReal(itsAttr[LENGHT]);
+    inline double getLength() {
+        return (double)Attributes::getReal(itsAttr[LENGTH]);
     }
 
     inline double getL1() {
@@ -869,7 +869,7 @@ private:
 
     enum {
         FGEOM,    // file holding the geometry
-        LENGHT,   // length of elliptic tube or boxcorner
+        LENGTH,   // length of elliptic tube or boxcorner
         S,        // start of the geometry
         L1,       // in case of BOXCORNER first part of geometry with hight B
         L2,       // in case of BOXCORNER second part of geometry with hight B-C
