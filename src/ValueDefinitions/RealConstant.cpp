@@ -53,6 +53,8 @@ RealConstant::RealConstant():
     OPAL->create(new RealConstant("XEMASS", this, Physics::m_xe));
 
     OPAL->create(new RealConstant("CLIGHT", this, Physics::c));
+
+    OPAL->create(new RealConstant("OPALVERSION", this, 120));
 }
 
 
