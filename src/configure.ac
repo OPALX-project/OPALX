@@ -513,7 +513,7 @@ AC_LANG_PUSH([C++])
 		
         # only enable ML solver if all checks are ok
         if test x$HAVE_MLS_ = xtrue ; then
-            CPPFLAGS="$CPPFLAGS -DnoHAVE_ML_SOLVER"
+            CPPFLAGS="$CPPFLAGS -DnoHAVE_SAAMG_SOLVER"
             LIBS="$LIBS $MLLIB $GALERILIB $AMESOSLIB $IFPACKLIB $EPETRAEXTLIB $EPETRALIB $TEUCHOSLIB -l$BLASLIB -l$LAPACKLIB -lguide -lpthread $TRIUTILSLIB $AZTECOOLIB -lm $ADDLIBS"
         else
             AC_MSG_ERROR([Cannot enable ML solver due to missing dependencies!])

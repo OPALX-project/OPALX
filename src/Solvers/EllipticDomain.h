@@ -1,6 +1,6 @@
 #ifndef ELLIPTICAL_DOMAIN_H
 #define ELLIPTICAL_DOMAIN_H
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #include <vector>
 #include <map>
@@ -106,5 +106,5 @@ private:
 
 };
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER
 #endif //#ifdef ELLIPTICAL_DOMAIN_H

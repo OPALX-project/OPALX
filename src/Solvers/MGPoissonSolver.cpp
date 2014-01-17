@@ -1,4 +1,4 @@
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 #define DBG_STENCIL
 #include "Algorithms/PartBunch.h"
 #include "MGPoissonSolver.h"
@@ -525,4 +525,4 @@ Inform &MGPoissonSolver::print(Inform &os) const {
     return os;	
 }
 
-#endif /* HAVE_ML_SOLVER */
+#endif /* HAVE_SAAMG_SOLVER */

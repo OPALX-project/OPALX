@@ -1,4 +1,4 @@
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #include "RectangularDomain.h"
 
@@ -746,4 +746,4 @@ inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DLongitudinalNeumann(Vector_t 
 }
 */
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER

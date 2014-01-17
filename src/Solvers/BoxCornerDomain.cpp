@@ -1,4 +1,4 @@
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 #include <map>
 #include <string>
 #include <cmath>
@@ -589,4 +589,4 @@ void BoxCornerDomain::QuadraticInterpolation(int x, int y, int z, double &W, dou
 }
 
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER

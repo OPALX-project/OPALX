@@ -1,4 +1,4 @@
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #include "TaperDomain.h"
 
@@ -492,4 +492,4 @@ void TaperDomain::getNeighbours(int x, int y, int z, double &W, double &E, doubl
         B = -1;
 }
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER

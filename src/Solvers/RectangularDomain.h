@@ -1,6 +1,6 @@
 #ifndef RECTANGULAR_DOMAIN_H
 #define RECTANGULAR_DOMAIN_H
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #include <vector>
 #include <string>
@@ -77,5 +77,5 @@ private:
 
 };
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER
 #endif //#ifdef RECTANGULAR_DOMAIN_H

@@ -38,7 +38,7 @@ FIND_PACKAGE (MPI REQUIRED)
 # Handle options
 OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
 
-OPTION (ENABLE_ML_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
+OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
@@ -140,7 +140,7 @@ IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     )
 ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
 
-IF (ENABLE_ML_SOLVER)
+IF (ENABLE_SAAMG_SOLVER)
     # Get Trilinos as one entity
     FIND_PACKAGE(Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
 
@@ -168,7 +168,7 @@ IF (ENABLE_ML_SOLVER)
     #SET(CMAKE_CXX_FLAGS  "${Trilinos_CXX_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
     #SET(CMAKE_C_FLAGS  "${Trilinos_C_COMPILER_FLAGS} ${CMAKE_C_FLAGS}")
     #SET(CMAKE_Fortran_FLAGS  "${Trilinos_Fortran_COMPILER_FLAGS} ${CMAKE_Fortran_FLAGS}")
-ENDIF (ENABLE_ML_SOLVER)
+ENDIF (ENABLE_SAAMG_SOLVER)
 
 MESSAGE (STATUS "Using C++ compiler: ${CMAKE_CXX_COMPILER}")
 

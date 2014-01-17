@@ -1,6 +1,6 @@
 #ifndef TAPER_DOMAIN_H
 #define TAPER_DOMAIN_H
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #include <vector>
 #include "IrregularDomain.h"
@@ -141,5 +141,5 @@ private:
 
 };
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER
 #endif //#ifdef ELLIPTICAL_DOMAIN_H

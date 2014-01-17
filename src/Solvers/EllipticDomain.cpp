@@ -1,4 +1,4 @@
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 #include <map>
 #include <cmath>
 #include <iostream>
@@ -559,4 +559,4 @@ void EllipticDomain::QuadraticInterpolation(int x, int y, int z, double &W, doub
 }
 
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER

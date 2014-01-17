@@ -3,7 +3,7 @@
 // space charge portion of the calculation.
 ////////////////////////////////////////////////////////////////////////////
 
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #ifndef MG_POISSON_SOLVER_H_
 #define MG_POISSON_SOLVER_H_
@@ -338,4 +338,4 @@ int main(int argc, char *argv[]) {
 
 #endif /* #ifndef MG_POISSON_SOLVER_H_ */
 
-#endif /* #ifdef HAVE_ML_SOLVER */
+#endif /* #ifdef HAVE_SAAMG_SOLVER */

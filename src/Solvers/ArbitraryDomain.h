@@ -4,7 +4,7 @@
 
 #ifndef ARBITRARY_DOMAIN
 #define ARBITRARY_DOMAIN
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #include "IrregularDomain.h"
 #include <mpi.h>
@@ -106,5 +106,5 @@ private:
 
 };
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER
 #endif //#ifdef ARBITRARY_DOMAIN

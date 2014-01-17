@@ -19,7 +19,7 @@
 #include "Structure/FieldSolver.h"
 #include "Solvers/FFTPoissonSolver.h"
 #include "Solvers/FFTBoxPoissonSolver.h"
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 #include "Solvers/MGPoissonSolver.h"
 #endif
 #include "AbstractObjects/Expressions.h"
@@ -238,7 +238,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         }
 
     } else if(Attributes::getString(itsAttr[FSTYPE]) == "MG") {
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
         //we go over all geometries and add the Geometry Elements to the geometry list
         std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
         std::string tmp = "";

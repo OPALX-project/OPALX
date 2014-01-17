@@ -1,6 +1,6 @@
 #ifndef IRREGULAR_DOMAIN_H
 #define IRREGULAR_DOMAIN_H
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 #include <vector>
 #include <string>
@@ -107,5 +107,5 @@ protected:
     double zMax_m;
 };
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER
 #endif //#ifndef IRREGULAR_DOMAIN_H

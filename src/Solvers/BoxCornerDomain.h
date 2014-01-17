@@ -1,6 +1,6 @@
 #ifndef BOXCORNER_DOMAIN_H
 #define BOXCORNER_DOMAIN_H
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 
 //#include <vector>
 #include <map>
@@ -221,5 +221,5 @@ private:
 
 };
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER
 #endif //#ifdef BOXCORNER_DOMAIN_H

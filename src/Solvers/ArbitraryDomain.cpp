@@ -1,4 +1,4 @@
-#ifdef HAVE_ML_SOLVER
+#ifdef HAVE_SAAMG_SOLVER
 #include <map>
 #include <cmath>
 #include <iostream>
@@ -984,4 +984,4 @@ inline void ArbitraryDomain::crossProduct(double A[], double B[], double C[]) {
     C[2] = A[0] * B[1] - A[1] * B[0];
 }
 
-#endif //#ifdef HAVE_ML_SOLVER
+#endif //#ifdef HAVE_SAAMG_SOLVER
