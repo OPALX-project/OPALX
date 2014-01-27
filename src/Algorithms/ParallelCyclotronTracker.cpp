@@ -325,8 +325,10 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     if(!OpalData::getInstance()->inRestartRun()) {
       // get values from cyclotron command
       referenceR     = elptr->getRinit();
-      referencePr    = elptr->getPRinit();
       referenceTheta = elptr->getPHIinit();
+      referenceZ     = elptr->getZinit();
+      referencePr    = elptr->getPRinit();
+      referencePz    = elptr->getPZinit();
       //msg << "PRINIT= " << pri << " [CU]" << endl;
       
       if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
@@ -344,8 +346,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     // TEMP for testing if we can inject a bunch vertically for inflector -DW
     // This will probably not work for long bunches, also I don't know what happens for a restart
-    Vector_t pmean = itsBunch->get_pmean();
-    referencePz = pmean[2];
+    //Vector_t pmean = itsBunch->get_pmean();
+    //referencePz = pmean[2];
     //referencePr = sqrt(pmean[0] * pmean[0] + pmean[1] * pmean[1]);
     float insqrt = referencePtot * referencePtot - referencePr * referencePr - referencePz * referencePz;
     if(insqrt < 0) {
@@ -368,23 +370,33 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     if(referencePtot < 0.0) referencePt *= -1.0;
 
     sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
-    cosRefTheta_m = cos(referenceTheta / 180.0 * pi);      
+    cosRefTheta_m = cos(referenceTheta / 180.0 * pi);   
+   
+    *gmsg << "" << endl;
+
+    *gmsg << "*** Bunch global starting position: ***" << endl;
 
     *gmsg << "* RINIT = " << referenceR  << " [mm]" << endl;
 
     *gmsg << "* PHIINIT = " << referenceTheta << " [deg]" << endl;
 
+    *gmsg << "* ZINIT = " << referenceZ << " [mm]" << endl;
+
+    *gmsg << "" << endl;
+
+    *gmsg << "*** Bunch global starting momenta: ***" << endl;
+
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
 
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
 
-    *gmsg << "* Total reference momentum = " << referencePtot * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Total reference momentum (beta * gamma) = " << referencePtot * 1000.0 << " [MCU]" << endl;
 
-    *gmsg << "* Reference azimuthal momentum = " << referencePt * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt * 1000.0 << " [MCU]" << endl;
 
-    *gmsg << "* Reference radial momentum = " << referencePr * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Reference radial momentum (Pr) = " << referencePr * 1000.0 << " [MCU]" << endl;
 
-    *gmsg << "* Reference axial momentum = " << referencePz * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Reference axial momentum (Pz) = " << referencePz * 1000.0 << " [MCU]" << endl;
 
     double sym = elptr->getSymmetry();
     *gmsg << "* " << sym << "-fold field symmerty " << endl;
@@ -2412,6 +2424,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 		double E = itsBunch->get_meanEnergy();
                 itsBunch->R /= Vector_t(1000.0); // mm --> m
                 itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+              
                 lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
@@ -3497,7 +3510,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         // Initialize global R
         itsBunch->R *= Vector_t(1000.0); // m --> mm
-        Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, 0.0); // [referenceR] == mm
+        Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, referenceZ); // [referenceR] == mm
 
         localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
 
@@ -3505,6 +3518,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         for(size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch->P[i](0) += referencePr;
             itsBunch->P[i](1) += referencePt;
+            itsBunch->P[i](2) += referencePz;
         }
 
         // Initialize the bin number of the first bunch to 0
@@ -3517,17 +3531,18 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             double E = itsBunch->get_meanEnergy();
             itsBunch->R *= Vector_t(0.001); // mm --> m
 	    itsBunch->calcBeamParameters_cycl();
+
             lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
             itsBunch->R *= Vector_t(1000.0); // m --> mm
-            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step 0 T= 0 [ns]" << endl;
+            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step 0 T = 0 [ns]" << endl;
+        // Initial dump (if requested in local frame)
         } else {
-            // Initial dump (if requested in local frame)
       	    itsBunch->R *= Vector_t(0.001); // mm --> m
   	    itsBunch->calcBeamParameters_cycl();
   	    double E = itsBunch->get_meanEnergy();
 	    lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
             itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0, E);
-            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T= 0 [ns]" << endl;
+            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T = 0 [ns]" << endl;
 	    itsBunch->R *= Vector_t(1000.0); // m --> mm
         }
 
@@ -3559,13 +3574,14 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
           // Initialize global R
           itsBunch->R *= Vector_t(1000.0); // m --> mm
-          Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, 0.0); // [referenceR] == mm
+          Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, referenceZ); // [referenceR] == mm
           localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
           
           // Initialize global P
           for(size_t i = 0; i < initialLocalNum_m; ++i) {
               itsBunch->P[i](0) += referencePr;
               itsBunch->P[i](1) += referencePt;
+              itsBunch->P[i](2) += referencePz;
           }
           localToGlobal(itsBunch->P, initialReferenceTheta);
 

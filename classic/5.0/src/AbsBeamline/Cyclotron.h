@@ -155,6 +155,12 @@ public:
     void   setPHIinit(double phiinit);
     virtual double getPHIinit() const;
 
+    void   setZinit(double zinit);
+    virtual double getZinit() const;
+    
+    void   setPZinit(double zinit);
+    virtual double getPZinit() const;
+
     void   setBScale(double bs);
     virtual double getBScale() const;
 
@@ -217,6 +223,8 @@ private:
     double rinit_m;
     double prinit_m;
     double phiinit_m;
+    double zinit_m;
+    double pzinit_m;
 
     std::string type_m; /* what type of field we use */
     double harm_m;

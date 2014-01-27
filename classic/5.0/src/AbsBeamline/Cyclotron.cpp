@@ -55,6 +55,8 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     rinit_m(right.rinit_m),
     prinit_m(right.prinit_m),
     phiinit_m(right.phiinit_m),
+    zinit_m(right.zinit_m),
+    pzinit_m(right.pzinit_m),
     type_m(right.type_m),
     harm_m(right.harm_m),
     bscale_m(right.bscale_m),
@@ -92,7 +94,6 @@ double Cyclotron::getRinit() const {
     return rinit_m;
 }
 
-
 void Cyclotron::setPRinit(double prinit) {
     prinit_m = prinit;
 }
@@ -107,6 +108,22 @@ void Cyclotron::setPHIinit(double phiinit) {
 
 double Cyclotron::getPHIinit() const {
     return phiinit_m;
+}
+
+void Cyclotron::setZinit(double zinit){
+    zinit_m = zinit;
+}
+
+double Cyclotron::getZinit() const {
+    return zinit_m;
+}
+
+void Cyclotron::setPZinit(double pzinit){
+    pzinit_m = pzinit;
+}
+
+double Cyclotron::getPZinit() const {
+    return pzinit_m;
 }
 
 void Cyclotron::setFieldMapFN(string f) {
@@ -352,7 +369,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
 
     } else {
         /*
-          With t his we have B-field AND this is far more
+          With this we have B-field AND this is far more
           intuitive for me ....
         */
         r1t1 = idx(ir, it);
@@ -748,8 +765,8 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
     BP.Bfact = scaleFactor;
 
     if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
-        ERRORMSG("Error in Cyclotron::getFieldFromFile()!" << endl);
-        ERRORMSG(" Cannot open file, please check if it really exists." << endl);
+        ERRORMSG("* Error in Cyclotron::getFieldFromFile()!" << endl);
+        ERRORMSG("* Cannot open file, please check if it really exists." << endl);
         exit(1);
     }
 
@@ -813,8 +830,8 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
     Bfield.dbtt.resize(Bfield.ntot);
     Bfield.dbttt.resize(Bfield.ntot);
 
-    *gmsg << "* read -in loop one block per radius" << endl;
-    *gmsg << "* rescaling of the fields with factor: " << BP.Bfact << endl;
+    *gmsg << "* Read-in loop one block per radius" << endl;
+    *gmsg << "* Rescaling of the fields with factor: " << BP.Bfact << endl;
     for(int i = 0; i < Bfield.nrad; i++) {
 
         if(i > 0) {
@@ -885,12 +902,12 @@ void Cyclotron::initialise(PartBunch *bunch, const int &fieldflag, const double 
         getFieldFromFile_CYCIAE(scaleFactor);
 
     } else if(fieldflag == 4) {
-        *gmsg << "* Read AVFEQ data (Riken) use bfield scale factor bs= " << getBScale() << endl;
+        *gmsg << "* Read AVFEQ data (Riken) use bfield scale factor bs = " << getBScale() << endl;
         myBFieldType_m = AVFEQBF;
         getFieldFromFile_AVFEQ(scaleFactor);
 
     } else if(fieldflag == 5) {
-        *gmsg << "Read FFAG data MSU/FNAL " << getBScale() << endl;
+        *gmsg << "* Read FFAG data MSU/FNAL " << getBScale() << endl;
         myBFieldType_m = FFAGBF;
         getFieldFromFile_FFAG(scaleFactor);
 
@@ -900,7 +917,7 @@ void Cyclotron::initialise(PartBunch *bunch, const int &fieldflag, const double 
         getFieldFromFile_BandRF(scaleFactor);
 
     } else
-        ERRORMSG("The field reading function of this TYPE of CYCLOTRON has not implemented yet.!" << endl);
+        ERRORMSG("* The field reading function of this TYPE of CYCLOTRON has not implemented yet!" << endl);
 
     // calculate the radii of initial grid.
     initR(BP.rmin, BP.delr, Bfield.nrad);
@@ -1001,7 +1018,7 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
     Bfield.dbtt.resize(Bfield.ntot);
     Bfield.dbttt.resize(Bfield.ntot);
 
-    *gmsg << "* rescaling of the fields with factor: " << BP.Bfact << endl;
+    *gmsg << "* Rescaling of the fields with factor: " << BP.Bfact << endl;
 
     int count = 0;
     if((Ippl::getNodes()) == 1 && Options::info) {
@@ -1043,8 +1060,8 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
     BP.Bfact = scaleFactor / 1000.;
 
     if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
-        ERRORMSG("Error in Cyclotron::getFieldFromFile_AVFEQ()!" << endl);
-        ERRORMSG(" Cannot open file, please check if it really exists." << endl);
+        ERRORMSG("* Error in Cyclotron::getFieldFromFile_AVFEQ()!" << endl);
+        ERRORMSG("* Cannot open file, please check if it really exists." << endl);
         exit(1);
     }
 
@@ -1125,7 +1142,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
 
     if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
         ERRORMSG("* Error in Cyclotron::getFieldFromFile_Carbon()!" << endl);
-        ERRORMSG(" Cannot open file, please check if it really exists." << endl);
+        ERRORMSG("* Cannot open file, please check if it really exists." << endl);
         exit(1);
     }
 
@@ -1136,12 +1153,12 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
-    *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg.]" << endl;
+    *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg]" << endl;
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.dtet));
     //if the value is nagtive, the actual value is its reciprocal.
     if(BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
-    *gmsg << "* Stepsize in azimuth direction: " << BP.dtet << " [deg.]" << endl;
+    *gmsg << "* Stepsize in azimuth direction: " << BP.dtet << " [deg]" << endl;
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.ntet));
     *gmsg << "* Index in azimuthal direction: " << Bfield.ntet << endl;

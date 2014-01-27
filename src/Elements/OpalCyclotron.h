@@ -32,27 +32,29 @@ public:
     /// The attributes of class OpalCyclotron.
     enum {
         TYPE,
-        GEOMETRY,       // geometry of boundary
-        CYHARMON,         // The harmonic number of the cyclotron
-        SYMMETRY,         // The symetry of the field
-        RINIT,             // The initial radius [m]
-        PRINIT,             // The initial radial momenta [pr/p0] []
-        PHIINIT,               // The initial phase [deg]
-        RFFREQ,                // First hamonic of the RF system
-        FMAPFN,                // The filename of the fieldmap
-        RFMAPFN,                // The filename of the fieldmap
-        BSCALE,                // A scalar to scale the B-field
-        ESCALE,                // A scalar to scale the RF field
-        TCR1,    //trim coil r1 (mm)
-        TCR2,    //trim coil r2 (mm)
-        MBTC,    //max bfield of trim coil (kG)
-        SLPTC,    //slope of the rising edge
-	RFPHI,   // the initial phase of RF field 
+        GEOMETRY,  // geometry of boundary
+        CYHARMON,  // The harmonic number of the cyclotron
+        SYMMETRY,  // The symetry of the field
+        RINIT,     // The initial radius [m]
+        PRINIT,    // The initial radial momentum [pr/p0] []
+        PHIINIT,   // The initial phase [deg]
+        ZINIT,     // The initial z coordinate [m]
+        PZINIT,    // The initial vertical momentum [pz/p0] []
+        RFFREQ,    // First hamonic of the RF system
+        FMAPFN,    // The filename of the fieldmap
+        RFMAPFN,   // The filename of the fieldmap
+        BSCALE,    // A scalar to scale the B-field
+        ESCALE,    // A scalar to scale the RF field
+        TCR1,      //trim coil r1 (mm)
+        TCR2,      //trim coil r2 (mm)
+        MBTC,      //max bfield of trim coil (kG)
+        SLPTC,     //slope of the rising edge
+	RFPHI,     // the initial phase of RF field 
 	SUPERPOSE, // whether the electric field map are superposed or not 
-	MINZ, // minimal vertical extend of the machine
-	MAXZ, // maximal vertical extend of the machine
-	MINR, // minimal radial extend of the machine
-	MAXR, // maximal radial extend of the machine
+	MINZ,      // minimal vertical extend of the machine
+	MAXZ,      // maximal vertical extend of the machine
+	MINR,      // minimal radial extend of the machine
+	MAXR,      // maximal radial extend of the machine
         SIZE
     };
 

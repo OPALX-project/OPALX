@@ -927,7 +927,8 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy, double refPr, double refR, double refTheta) {
     
   if (!doHDF5_m) return -1;
-	
+  //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW 
+
   h5_int64_t rc;
   IpplTimings::startTimer(H5PartTimer_m);
 
@@ -1123,7 +1124,6 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
 
     /* 
        Attributes originally not in OPAL-cycl
-
     */
 
     double sposHead = 0.0; 
@@ -1141,9 +1141,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
 
     /* 
        Done attributes originally not in OPAL-cycl 
-
     */
-
 
     setOPALcycl();
 
@@ -1208,7 +1206,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     // Need this because rc = H5root does not yet work with
-    // a vaiable number of data
+    // avaiable number of data
     if(Options::ebDump) {
 
         for(size_t i = 0; i < nLoc; i++)
