@@ -1492,11 +1492,17 @@ void Distribution::ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
 }
 
 double Distribution::ConvertBetaGammaToeV(double valueInBetaGamma, double massIneV) {
-    return (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
+    if (valueInBetaGamma < 0)
+        return -1.0 * (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
+    else
+        return (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
 }
 
 double Distribution::ConverteVToBetaGamma(double valueIneV, double massIneV) {
-    return sqrt(pow(valueIneV / massIneV + 1.0, 2.0) - 1.0);
+    if (valueIneV < 0)
+        return -1.0 * sqrt( pow( -1.0 * valueIneV / massIneV + 1.0, 2.0) - 1.0);
+    else
+        return sqrt( pow( valueIneV / massIneV + 1.0, 2.0) - 1.0);
 }
 
 double Distribution::ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV) {
@@ -1554,6 +1560,7 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
      * data to each processor in turn.
      */
     int saveProcessor = -1;
+
     for (size_t particleIndex = 0; particleIndex < numberOfParticlesRead; particleIndex++) {
 
         // Read particle.
@@ -1708,6 +1715,7 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      *
      * For now we just cut the number of generated particles in half.
      */
+
     if (Options::cZero)
         numberOfPartToCreate /= 2;
 
