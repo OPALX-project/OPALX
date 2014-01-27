@@ -33,53 +33,73 @@ OpalCyclotron::OpalCyclotron():
     obgeo_m(NULL)  {
     itsAttr[CYHARMON] = Attributes::makeReal
                         ("CYHARMON", "the harmonic number of the cyclotron");
+
     itsAttr[SYMMETRY] = Attributes::makeReal
                         ("SYMMETRY", "defines how the field is stored");
-    itsAttr[RINIT] = Attributes::makeReal
-                     ("RINIT", "Initial radius of the reference particle [m]");
-    itsAttr[PRINIT] = Attributes::makeReal
-                      ("PRINIT", "Initial radial momentum of the reference particle, pr=beta_r*gamma");
-    itsAttr[PHIINIT] = Attributes::makeReal
-                       ("PHIINIT", "Initial azimuth of the reference particle [deg]");
-    itsAttr[FMAPFN] = Attributes::makeString
-                      ("FMAPFN", "Filename for the B fieldmap");
-    itsAttr[BSCALE] = Attributes::makeReal
-                      ("BSCALE", "Scale factor for the B-field", 1.0);
 
-    itsAttr[RFFREQ] = Attributes::makeRealArray
-                      ("RFFREQ", "RF Frequency(ies) [MHz]");
+    itsAttr[RINIT]    = Attributes::makeReal
+                        ("RINIT", "Initial radius of the reference particle [m]");
 
-    itsAttr[ESCALE] = Attributes::makeRealArray
-                      ("ESCALE", "Scale factor for the RF field(s)");
-    
-    itsAttr[SUPERPOSE] = Attributes::makeBool
- 	                 ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF", false);
+    itsAttr[PRINIT]   = Attributes::makeReal
+                        ("PRINIT", "Initial radial momentum of the reference particle, pr = beta_r * gamma");
 
-    itsAttr[RFMAPFN] = Attributes::makeStringArray
-                       ("RFMAPFN", "Filename for the RF fieldmap(s)");
+    itsAttr[PHIINIT]  = Attributes::makeReal
+                        ("PHIINIT", "Initial azimuth of the reference particle [deg]");
 
-    itsAttr[RFPHI] = Attributes::makeRealArray
-                     ("RFPHI", "Initial phase(s) of the electric field map(s) [deg]");
+    itsAttr[ZINIT]    = Attributes::makeReal
+                        ("ZINIT", "Initial z-coordinate of the reference particle [m]. Default = 0 m", 0.0);
 
-    itsAttr[TYPE] = Attributes::makeString
-                    ("TYPE", "Used to identify special cyclotron types");    
-    itsAttr[TCR1] = Attributes::makeReal
-                    ("TCR1", "trim coil r1 [mm]");
-    itsAttr[TCR2] = Attributes::makeReal
-                    ("TCR2", "trim coil r2 [mm]");
-    itsAttr[MBTC] = Attributes::makeReal
-                    ("MBTC", "max bfield of trim coil [kG]");
-    itsAttr[SLPTC] = Attributes::makeReal
-                    ("SLPTC", "slope of the rising edge");
+    itsAttr[PZINIT]   = Attributes::makeReal
+                        ("PZINIT", "Initial vertical momentum of the reference particle pz = beta_z * gamma. Default = 0", 0.0);
 
-    itsAttr[MINZ] = Attributes::makeReal
-                    ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
-    itsAttr[MAXZ] = Attributes::makeReal
-                    ("MAXZ","Maximal vertical extent of the machine [mm]",10000.0);
-    itsAttr[MINR] = Attributes::makeReal
-                    ("MINR","Minimal radial extent of the machine [mm]", 0.0);
-    itsAttr[MAXR] = Attributes::makeReal
-                   ("MAXR","Maximal radial extent of the machine [mm]", 10000.0);
+    itsAttr[FMAPFN]   = Attributes::makeString
+                        ("FMAPFN", "Filename for the B fieldmap");
+
+    itsAttr[BSCALE]   = Attributes::makeReal
+                        ("BSCALE", "Scale factor for the B-field", 1.0);
+
+    itsAttr[RFFREQ]   = Attributes::makeRealArray
+                        ("RFFREQ", "RF Frequency(ies) [MHz]");
+
+    itsAttr[ESCALE]   = Attributes::makeRealArray
+                        ("ESCALE", "Scale factor for the RF field(s)");
+
+    itsAttr[SUPERPOSE]= Attributes::makeBool
+ 	                ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF", false);
+
+    itsAttr[RFMAPFN]  = Attributes::makeStringArray
+                        ("RFMAPFN", "Filename for the RF fieldmap(s)");
+
+    itsAttr[RFPHI]    = Attributes::makeRealArray
+                        ("RFPHI", "Initial phase(s) of the electric field map(s) [deg]");
+
+    itsAttr[TYPE]     = Attributes::makeString
+                        ("TYPE", "Used to identify special cyclotron types");    
+
+    itsAttr[TCR1]     = Attributes::makeReal
+                        ("TCR1", "trim coil r1 [mm]");
+
+    itsAttr[TCR2]     = Attributes::makeReal
+                        ("TCR2", "trim coil r2 [mm]");
+
+    itsAttr[MBTC]     = Attributes::makeReal
+                        ("MBTC", "max bfield of trim coil [kG]");
+
+    itsAttr[SLPTC]    = Attributes::makeReal
+                        ("SLPTC", "slope of the rising edge");
+
+    itsAttr[MINZ]     = Attributes::makeReal
+                        ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
+
+    itsAttr[MAXZ]     = Attributes::makeReal
+                        ("MAXZ","Maximal vertical extent of the machine [mm]",10000.0);
+
+    itsAttr[MINR]     = Attributes::makeReal
+                        ("MINR","Minimal radial extent of the machine [mm]", 0.0);
+
+    itsAttr[MAXR]     = Attributes::makeReal
+                        ("MAXR","Maximal radial extent of the machine [mm]", 10000.0);
+
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "Boundary Geometry for the Cyclotron");
     
@@ -91,6 +111,8 @@ OpalCyclotron::OpalCyclotron():
     registerRealAttribute("RINIT");
     registerRealAttribute("PRINIT");
     registerRealAttribute("PHIINIT");
+    registerRealAttribute("ZINIT");
+    registerRealAttribute("PZINIT");
     registerRealAttribute("SYMMETRY");
     registerRealAttribute("RFFREQ");
     registerRealAttribute("BSCALE");
@@ -144,6 +166,8 @@ void OpalCyclotron::update() {
     double rinit = Attributes::getReal(itsAttr[RINIT]);
     double prinit = Attributes::getReal(itsAttr[PRINIT]);
     double phiinit = Attributes::getReal(itsAttr[PHIINIT]);
+    double zinit = Attributes::getReal(itsAttr[ZINIT]);
+    double pzinit = Attributes::getReal(itsAttr[PZINIT]);
     double bscale = Attributes::getReal(itsAttr[BSCALE]);
 
     double tcr1 = Attributes::getReal(itsAttr[TCR1]);
@@ -163,6 +187,9 @@ void OpalCyclotron::update() {
     cycl->setRinit(rinit);
     cycl->setPRinit(prinit);
     cycl->setPHIinit(phiinit);
+    cycl->setZinit(zinit);
+    cycl->setPZinit(pzinit);    
+
     cycl->setBScale(bscale);
 
     cycl->setType(type);
