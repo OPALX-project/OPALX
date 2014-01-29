@@ -886,7 +886,7 @@ void PartBunch::computeSelfFields() {
 
         if(fs_m->getFieldSolverType() == "MG") // || fs_m->getFieldSolverType() == "FFTBOX") {
             resizeMesh();
-	std::cout << "after resizeMesh" << hr_m << std::endl;
+	INFOMSG("after resizeMesh" << hr_m << std::endl);
 
         //scatter charges onto grid
         this->Q *= this->dt;
