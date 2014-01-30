@@ -1024,6 +1024,7 @@ Inform& BoundaryGeometry::printInfo (Inform& os) const {
            << "* L1                         " << Attributes::getReal (itsAttr[L2]) << '\n';
     }
     os << "* Total triangle num         " << numbfaces_global_m << '\n'
+       << "* Oriented triangle num      " << isOriented_m.size () << '\n'
        << "* Total points num           " << numpoints_global_m << '\n'
        << "* Triangle side(m)   Max=    " << triangle_max_m << '\n'
        << "*                    Min=    " << triangle_min_m << '\n'
