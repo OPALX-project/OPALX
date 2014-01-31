@@ -279,7 +279,7 @@ public:
        Return number of boundary faces.
     */
     inline int getNumBFaces () {
-            return numbfaces_global_m;
+            return num_triangles_m;
     }
 
     /**
@@ -354,14 +354,14 @@ public:
  
    
 private:
-    std::string h5FileName_m;   // H5hut filename
+    std::string h5FileName_m;           // H5hut filename
 
-    int* allbfaces_m;           // boundary faces given by point n-tuples
-    int numpoints_global_m;     // number of boundary points (vertices)
-    int numbfaces_global_m;     // number of boundary triangles
+    int* allbfaces_m;                   // boundary faces given by point n-tuples
+    int num_points_m;                   // number of boundary points (vertices)
+    int num_triangles_m;                // number of boundary triangles
 
-    double triangle_max_m;
-    double triangle_min_m;
+    double longest_side_max_m;          // maximum of all triangle longest sides 
+    double longest_side_min_m;          // minimum of all triangle longest sides 
 
     std::vector<Vector_t> TriNormal_m;   // oriented normal vector of triangles
     std::vector<Vector_t> geo3Dcoords_m; // geometry point coordinates 
@@ -384,7 +384,7 @@ private:
             triangleLookupTable_m;      // map vertex ID to triangles with this vertex
     std::vector<size_t> NaliT_m;        // IDs of to be oriented triangles
     std::vector<size_t> alignedT_m;     // IDs of oriented triangles
-    Vector_t out_m;                     // a point outside the domain
+    Vector_t outside_point_m;           // a point outside the domain
 
 
     /* 
@@ -439,433 +439,18 @@ private:
         return (apert_m.size() != 0);
     }
     
-    inline Vector_t getVertexCoord (int face_id, int vertex_id) {
-        return geo3Dcoords_m[allbfaces_m[4 * face_id + vertex_id]];
+    inline Vector_t getPoint (int triangle_id, int vertex_id) {
+        return geo3Dcoords_m[allbfaces_m[4 * triangle_id + vertex_id]];
     }
 
-    inline size_t triangleCorner (size_t idx, size_t corner) const {
-        return allbfaces_m[4 * idx + corner];
-    }
-
-    /*
-       Used to determine whether a particle given by it's coordinates hits the boundary.
-       Not sufficient for particle hitting the triangle area. (???)
-     
-       With the second test we try to catch particles outside of the structure, this is 
-       a temporary fix
-    */
-    inline bool isInGeometry (Vector_t x) {
-        return boundary_ids_m.find (map_point2id (x)) != boundary_ids_m.end ();
+    inline size_t getPointID (size_t triangle_id, size_t vertex_id) const {
+        return allbfaces_m[4 * triangle_id + vertex_id];
     }
 
     /*
-      Recursively get inward normal of triangle with id=idx by switching the order
-      of vertex w.r.t the vertex order of triangle with id = caller.
+      Map point to unique voxel ID.
     */
-    void orientAllTriangles (size_t caller, size_t idx) {
-        orientTriangle (idx, caller);
-        isOriented_m.insert (idx);
-        std::vector<size_t> neighbours = findNeighbours (idx);
-        for (unsigned int i = 0; i < neighbours.size (); i++) {
-            if (isOriented_m.find (neighbours[i]) == isOriented_m.end ())
-                orientAllTriangles (idx, neighbours[i]);
-        }
-    }
-
-    std::vector<size_t> findNeighbours (size_t idx) {
-        std::vector<size_t> ret, ret1;
-        std::set<size_t>temp;
-        std::vector<size_t>::iterator retIt;
-        std::map< size_t, std::vector<size_t> >::iterator it;
-        for (int i = 1; i <= 3; i++) {
-            it = triangleLookupTable_m.find (triangleCorner (idx, i));
-            ret.insert (ret.end (), (*it).second.begin (), (*it).second.end ());
-        }
-        for (retIt = ret.begin (); retIt != ret.end (); retIt++) {
-            if (*retIt != idx) {
-                if (temp.find (*retIt) == temp.end ()) {
-                    temp.insert (*retIt);
-                } else
-                    ret1.push_back (*retIt);
-            }
-        }
-        PAssert (ret1.size () != 0);
-        return ret1;
-    }
-
-    void orientTriangle (size_t idx, size_t caller) {
-        std::vector<size_t> id, ic;
-        for (int i = 1; i <= 3; i++) {
-            for (int j = 1; j <= 3; j++) {
-                if (triangleCorner (idx, j) == triangleCorner (caller, i)) {
-                    id.push_back (j);
-                    ic.push_back (i);
-                }
-            }
-        }
-        if ((ic[1] - ic[0]) == 1) {
-            int idtmp = id[1] - id[0];
-            if (idtmp == 1) {
-                alignedT_m.push_back (idx);
-                allbfaces_m[4 * idx + id[0]] = allbfaces_m[4 * caller + ic[1]];
-                allbfaces_m[4 * idx + id[1]] = allbfaces_m[4 * caller + ic[0]];
-            }
-            if (idtmp == - 1) {
-                NaliT_m.push_back (idx);
-            }
-            if (idtmp == 2) {
-                NaliT_m.push_back (idx);
-            }
-            if (idtmp == - 2) {
-                alignedT_m.push_back (idx);
-                allbfaces_m[4 * idx + id[0]] = allbfaces_m[4 * caller + ic[1]];
-                allbfaces_m[4 * idx + id[1]] = allbfaces_m[4 * caller + ic[0]];
-            }
-        }
-        if ((ic[1] - ic[0]) == 2) {
-            int idtmp = id[1] - id[0];
-            if (idtmp == - 1) {
-                alignedT_m.push_back (idx);
-                allbfaces_m[4 * idx + id[0]] = allbfaces_m[4 * caller + ic[1]];
-                allbfaces_m[4 * idx + id[1]] = allbfaces_m[4 * caller + ic[0]];
-            }
-            if (idtmp == 1) {
-                NaliT_m.push_back (idx);
-            }
-            if (idtmp == - 2) {
-                NaliT_m.push_back (idx);
-            }
-            if (idtmp == 2) {
-                alignedT_m.push_back (idx);
-                allbfaces_m[4 * idx + id[0]] = allbfaces_m[4 * caller + ic[1]];
-                allbfaces_m[4 * idx + id[1]] = allbfaces_m[4 * caller + ic[0]];
-            }
-        }
-    }
-
-
-    inline bool isInside (Vector_t x) {
-        /*
-          DetBermine if a point x is outside, inside or just on the boundary.
-       Return true if point is inside boundary otherwise false.
-
-       The basic idea is if a line segment starting from the test point has
-       odd intersects with a closed boundary, then the test point is inside
-       the geometry;
-       if the intersects have even number, then the test points
-       is outside the geometry;
-       if the test point is amoung the intersects, then the test point is just
-       on the boundary. Makesure the end point of the line
-       segment is outside the geometry boundary.
-    */
-
-        Vector_t x0 = x;
-        Vector_t x1;
-        x1[0] = x0[0];
-        x1[1] = maxcoords_m[1] * (1.1 + gsl_rng_uniform(randGen_m));
-        x1[2] = maxcoords_m[2] * (1.1 + gsl_rng_uniform(randGen_m));
-
-        /*
-          Random number could avoid some specific situation,
-          like line parallel to boundary......
-          x1 could be any point outside the boundary ;
-        */
-        IpplTimings::startTimer (Tinward_m);
-        std::vector<Vector_t> IntesecNum = PartBoundaryInteNum (x0, x1);
-        IpplTimings::stopTimer (Tinward_m);
-        if (IntesecNum[0] == x0) {
-            return true; // x0 is just on the boundary;
-        } else {
-            if (((IntesecNum.size () % 2) == 0) || (*IntesecNum.begin () == x1)) {
-                return false; // x0 is  outside the boundary;
-            } else
-                return true;  // x0 is inside the boundary;
-        }
-    }
-
-    /*
-      Recursively get inward triangle normal of all surface triangles.
-
-      The basic idea is as follow: get the first triangle's inward normal by
-      determine a nearby point is inside or outside boundary geometry (using
-      ray-triangle intersection and even/odd intersection number).
-      Then use a recursion method to switch the vertex order of adjacent
-      triangles. The inward normal is stored in TriNormal_m.
-    */
-    void makeTriNormal () {
-        Vector_t t0 = geo3Dcoords_m[allbfaces_m[1]];
-        Vector_t t1 = geo3Dcoords_m[allbfaces_m[2]];
-        Vector_t t2 = geo3Dcoords_m[allbfaces_m[3]];
-        Vector_t u = t1 - t0;
-        Vector_t v = t2 - t0;
-        Vector_t n;
-        n[0] = u[1] * v[2] - v[1] * u[2];
-        n[1] = u[2] * v[0] - v[2] * u[0];
-        n[2] = u[0] * v[1] - v[0] * u[1];
-        double nomtmp = sqrt (n (0) * n (0) + n (1) * n (1) + n (2) * n (2));
-        n = n / nomtmp;
-        TriNormal_m.push_back (n);
-
-        Vector_t mytemp;
-        mytemp[0] = t0[0] + TriNormal_m[0](0) * 0.1 * triangle_min_m;
-        mytemp[1] = t0[1] + TriNormal_m[0](1) * 0.1 * triangle_min_m;
-        mytemp[2] = t0[2] + TriNormal_m[0](2) * 0.1 * triangle_min_m;
-        if (!isInside (mytemp)) {
-            if (dot (mytemp - t0, TriNormal_m[0]) < 0) {
-                // TriNormal_m[i]=TriNormal_m[i];
-            } else {
-                TriNormal_m[0] = - TriNormal_m[0];
-                int temp = allbfaces_m[2];
-                allbfaces_m[2] = allbfaces_m[3];
-                allbfaces_m[3] = temp;
-            }
-        } else {
-            if (dot (mytemp - t0, TriNormal_m[0]) < 0) {
-                TriNormal_m[0] = - TriNormal_m[0];
-                int temp = allbfaces_m[2];
-                allbfaces_m[2] = allbfaces_m[3];
-                allbfaces_m[3] = temp;
-            } else {
-                TriNormal_m[0] = TriNormal_m[0];
-            }
-        }
-
-        // for all triangles find adjacent triangles to each vertex
-        for (int i = 0; i < numbfaces_global_m; i++) {
-            for (int j = 1; j <= 3; j++) {
-                std::map< size_t, std::vector<size_t> >::iterator it;
-                it = triangleLookupTable_m.find (allbfaces_m[4 * i + j]);
-                if (it == triangleLookupTable_m.end ()) {
-                    std::vector <size_t> tmp;
-                    tmp.push_back (i);
-                    triangleLookupTable_m.insert (
-                            std::pair<size_t, std::vector<size_t> > (
-                                    allbfaces_m[4 * i + j], tmp));
-                } else
-                    (*it).second.push_back (i);
-            }
-        }
-        isOriented_m.insert (0);
-        std::vector<size_t> neighbours = findNeighbours (0);
-
-        for (unsigned int i = 0; i < neighbours.size (); i++) {
-            if (isOriented_m.find (neighbours[i]) == isOriented_m.end ())
-                orientAllTriangles (0, neighbours[i]);
-        }
-        for (int i = 1; i < numbfaces_global_m; i++) {
-            Vector_t t0 = geo3Dcoords_m[allbfaces_m[4 * i + 1]];
-            Vector_t t1 = geo3Dcoords_m[allbfaces_m[4 * i + 2]];
-            Vector_t t2 = geo3Dcoords_m[allbfaces_m[4 * i + 3]];
-            Vector_t u = t1 - t0;
-            Vector_t v = t2 - t0;
-            Vector_t n;
-            n[0] = u[1] * v[2] - v[1] * u[2];
-            n[1] = u[2] * v[0] - v[2] * u[0];
-            n[2] = u[0] * v[1] - v[0] * u[1];
-            double nomtmp = sqrt (n (0) * n (0) + n (1) * n (1) + n (2) * n (2));
-            if (nomtmp != 0) {
-                n = n / nomtmp;
-            }
-            TriNormal_m.push_back (n);
-        }
-        *gmsg << "*  Triangle Normal built done." << endl;
-    }
-
-    void computeGeometryInterval (
-        void);
-
-    void makeBoundaryIndexSet (
-        void);
-
-    Vector_t LineInsTri(
-        Vector_t x0,
-        Vector_t x1,
-        size_t i);
-
-    /*
-      Calculate the number of intersects between a line segment and the
-      geometry boundary, make sure x1 is outside the geometry.
-    */
-    std::vector<Vector_t>  PartBoundaryInteNum (Vector_t x0, Vector_t x1) {
-        std::vector<Vector_t> Isp;
-        for (int i = 0; i < numbfaces_global_m; i++) {
-            Vector_t tmp =  LineInsTri(x0, x1, i);
-            if (tmp != x1) {
-                Isp.push_back (tmp);
-            }
-        }
-        if (Isp.size () == 0)
-            Isp.push_back (x1);
-
-        return Isp;
-    }
-
-    inline double SQR (double x) {
-	    return x * x;
-    }
-
-    /*
-      Map a 3D coordinate given in x to a cubic box with a unique Id
-      We know:
-      * hr_m:  mesh size
-      * nr_m:  number of mesh points
-    */
-    int map_point2id (Vector_t x) {
-        int id_tx = floor ((x[0] - mincoords_m[0]) / hr_m[0]);
-        int id_ty = floor ((x[1] - mincoords_m[1]) / hr_m[1]);
-        int id_tz = floor ((x[2] - mincoords_m[2]) / hr_m[2]);
-
-        if (id_tx == -1) id_tx = 0;
-        if (id_ty == -1) id_ty = 0;
-        if (id_tz == -1) id_tz = 0;
-
-        if (id_tx < 0 || id_ty < 0 || id_tz < 0) {
-            return 0;
-        }
-        return 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
-    }
-
-    /*
-      Find a intersection between a line segment and triangle,faster by using
-      the pre-computed oriented normal.
-     
-      @param x0         start of line segment.
-      @param x1         end of line segment
-      @param i          triangle ID
-
-      Algorithms:
-      1) find the intersection between line segment \f$\vec{x1-x0}\f$ and plane
-         defined by point t0 and triangle normal;
-         if the dot product of line segment and plane normal equals to zero and
-         x0 is not the barycentric point of the triangle(in the plane), then
-                the line segment is parallel to plane
-                return no intersection,
-         else if particle is really move (\f$ x0 \neq x1 \f$), then
-                return  initialized position-triangle barycentric point as intersection.
-
-         The intersection position rI w.r.t x0 is obtained from:
-
-         \f$ rI=\frac{\vec{n} \cdot \vec{(t0-x0)}}{\vec{n} \cdot \vec{(x1-x0)}} \f$,
-
-         where t0 is the first vertex of triangle, n is the normal of triangle.
-         The intersection point Itsec is obtained from:
-         \f$ Itsec=x0+rI(x1-x0) \f$.
-
-     2) check if the intersection point is inside the triangle by using parametric
-        coordinates sI and tI of the intersecion point.
-        First calculate sI and tI. The parametric plane equation is given by:
-        \f$ t(sI,tI)=t0+sI(t1-t0)+tI(t2-t0)=t0+sI\vec{u}+tI\vec{v} \f$.
-        \f$\vec{w}=\vec{Itsec-t0}\f$ is also in the plane, solve equation:
-        \f$\vec{w}=t0+sI\vec{u}+tI\vec{v}\f$ , we obtain the sI and tI.
-        \f$ sI=\frac{(\vec{u} \cdot \vec{v})(\vec{w} \cdot \vec{v})-(\vec{v} \cdot \vec{v})(\vec{w} \cdot \vec{u})}{(\vec{u} \cdot \vec{v})^2-(\vec{u} \cdot \vec{u})(\vec{v} \cdot \vec{v})} \f$,
-        \f$ tI=\frac{(\vec{u} \cdot \vec{v})(\vec{w} \cdot \vec{u})-(\vec{u} \cdot \vec{u})(\vec{w} \cdot \vec{v})}{(\vec{u} \cdot \vec{v})^2-(\vec{u} \cdot \vec{u})(\vec{v} \cdot \vec{v})} \f$.
-        If \f$ sI \geq 0 \f$, \f$ tI \geq 0 \f$ and \f$ sI+tI \leq 1 \f$, then
-        the intersection is inside the triangle, and return the intersection
-        coordinate Itsec.
-     */
-    void FindIntersection (
-            const Vector_t& x0,
-            const Vector_t& x1,
-            const size_t& i,
-            double& rI, Vector_t& Isc
-        ) {
-        IpplTimings::startTimer (TRayTrace_m);
-
-        const Vector_t lseg = x1 - x0; // length and direction of line segment;
-        const Vector_t t0 = geo3Dcoords_m[allbfaces_m[4 * i + 1]];
-        const Vector_t t1 = geo3Dcoords_m[allbfaces_m[4 * i + 2]];
-        const Vector_t t2 = geo3Dcoords_m[allbfaces_m[4 * i + 3]];
-        const Vector_t u = t1 - t0; // side 1 of triangle;
-        const Vector_t v = t2 - t0; // side 2 of triangle;
-        const Vector_t lt = t0 - x0;
-        const Vector_t n = TriNormal_m[i];
-
-        const double dotLT = dot (n, lseg);
-        if (dotLT == 0) {
-            if ((x0 == Tribarycent_m[i]) && (x0 != x1)) {
-                /*
-                  Some initialized particles have momenta parallel to its
-                  triangle normal, this kind of particles will lose
-                  directly
-                */
-                Isc = Tribarycent_m[i];
-            }
-        } else {
-            // find intersection position w.r.t x0 and the unit is (x1-x0);
-            rI = dot (n, lt) / dotLT;
-
-            // find the coordinate of
-            // intersection.
-            const Vector_t ItSec = x0 + rI * lseg;
-            // find if the intersection is inside the triangle.
-            const Vector_t w = ItSec - t0;
-            const double tmp1 = dot (u, v);
-            const double tmp2 = dot (w, v);
-            const double tmp3 = dot (u, w);
-            const double tmp4 = dot (u, u);
-            const double tmp5 = dot (v, v);
-            const double temp = (tmp1 * tmp1 - tmp4 * tmp5);
-            const double sI = (tmp1 * tmp2 - tmp5 * tmp3) / temp;
-            const double tI = (tmp1 * tmp3 - tmp4 * tmp2) / temp;
-            if ((sI >= 0.0) && (tI >= 0.0) && ((sI + tI) <= 1.0)) {
-                Isc = ItSec;
-            }
-        }
-        IpplTimings::stopTimer (TRayTrace_m);
-    }
-
-    /*
-       Get the smallest bounding box of triangle given by ID. The
-       smallest bounding box is used to make sure that all part of a triangle
-       is known by boundary bounding box.
-    */
-    std::vector<Vector_t> getMinBBoxOfTriangle (size_t id) {
-        Vector_t min = getVertexCoord (id, 1);
-        Vector_t max = min;
-        for (int i = 2; i <= 3; i++) {
-            Vector_t P = getVertexCoord (id, i);
-            if (P(0) < min[0]) min[0] = P(0);
-            if (P(1) < min[1]) min[1] = P(1);
-            if (P(2) < min[2]) min[2] = P(2);
-            if (P(0) > max[0]) max[0] = P(0);
-            if (P(1) > max[1]) max[1] = P(1);
-            if (P(2) > max[2]) max[2] = P(2);
-        }
-        std::vector<Vector_t> ret;
-        ret.push_back (min);
-        ret.push_back (max);
-        PAssert (ret.size () != 0);
-        return ret;
-    }
-
-    // Calculate the area of triangle given by id.
-    inline double TriangleArea (int id) {
-        Vector_t AB = getVertexCoord (id, 2) - getVertexCoord (id, 1);
-        Vector_t AC = getVertexCoord (id, 3) - getVertexCoord (id, 1);
-        return(0.5 * sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
-    }
-
-    /*
-      We define some tags in namespace BGphysics for each surface triangle to
-      identify the physical reactions for each triangle when amplitude of
-      electrostatic field exceeds some threshold or particles incident the surface.
-    */
-    void setBGphysicstag () {
-        for (int i = 0; i < numbfaces_global_m; i++) {
-            TriBGphysicstag_m.push_back (
-                BGphysics::Absorption
-                | BGphysics::FNEmission
-                | BGphysics::SecondaryEmission);
-        }
-    }
-
-    inline double getZshift () {
-        return (double)(Attributes::getReal (itsAttr[ZSHIFT]));
-    }
-
-    inline double getXYZScale () {
-        return (double)(Attributes::getReal (itsAttr[XYZSCALE]));
-    }
+    int map_point_to_voxel_id (Vector_t x);
 
     enum {
         FGEOM,    // file holding the geometry
