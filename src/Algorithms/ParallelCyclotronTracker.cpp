@@ -359,7 +359,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
       }
     }
     else {
-      referencePt = sqrt(referencePtot * referencePtot - referencePr * referencePr - referencePz * referencePz);
+      referencePt = sqrt(insqrt);
     }
     // End TEMP
     
@@ -1086,7 +1086,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
     const bool doDumpAfterEachTurn = Options::psDumpEachTurn;
 
 
-    int boundpDestroyFreq = 10; // todo: is it better treat as a control parameter
+    int boundpDestroyFreq = 10; // TODO: Should this be treated as a control parameter? 
 
     // prepare for dump after each turn
     double oldReferenceTheta = initialReferenceTheta;
@@ -1521,7 +1521,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                 itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E= " << itsBunch->get_meanEnergy()  << endl;
+                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E = " << itsBunch->get_meanEnergy()  << endl;
 
                 //----------------------------dump in local frame-------------------------------------//
             } else {
@@ -1537,7 +1537,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 	      localToGlobal(itsBunch->R, phi, meanR);
 	      localToGlobal(itsBunch->P, phi, meanP);
 	      *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-		    << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E= " << E  << " phi= " << phi/pi*180.0 << endl;
+		    << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E = " << E  << " phi= " << phi/pi*180.0 << endl;
             }
             IpplTimings::stopTimer(DumpTimer_m);
         }
@@ -1603,8 +1603,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         t = 0.0;
     }
 
-    *gmsg << "* Beginning of this run is at t= " << t << " [ns]" << endl;
-    *gmsg << "* The time step is set to dt= " << dt << " [ns]" << endl;
+    *gmsg << "* Beginning of this run is at t = " << t << " [ns]" << endl;
+    *gmsg << "* The time step is set to dt = " << dt << " [ns]" << endl;
 
     // for single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1)
@@ -1618,7 +1618,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     const int scSolveFreq = Options::scSolveFreq;
     const bool doDumpAfterEachTurn = Options::psDumpEachTurn;
 
-    int boundpDestroyFreq = 10; // todo: is it better treat as a control parameter
+    int boundpDestroyFreq = 10; // TODO: Should this be treated as a control parameter?
 
     // prepare for dump after each turn
     const double initialReferenceTheta = referenceTheta / 180.0 * pi;
@@ -1640,6 +1640,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     // flag to determine when to transit from single-bunch to multi-bunches mode
     bool flagTransition = false;
+
     // step point determining the next time point of check for transition
     int stepsNextCheck = step_m + itsBunch->getStepsPerTurn();
 
@@ -1772,6 +1773,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             }
             //end dump
             Ippl::Comm->barrier();
+
             // bunch injection
             if(numBunch_m > 1) {
                 if((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
@@ -2169,8 +2171,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
             bool flagNeedUpdate = deleteParticle(); 
+	    //Ippl::Comm->barrier(); //TEMP for Debug -DW
+
             if(itsBunch->weHaveBins() && flagNeedUpdate)
               itsBunch->resetPartBinID2(eta_m);
+
 	    // recalculate bingamma and reset the BinID for each particles according to its current gamma
 	    if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
 	      itsBunch->resetPartBinID2(eta_m);
@@ -2428,7 +2433,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-                      << step_m + 1 << " T= " << t << " [nS]" << endl;
+                      << step_m + 1 << " T = " << t << " [ns]" << endl;
+                
                 //----------------------------dump in local frame-------------------------------------//
             } else {
 
@@ -2444,7 +2450,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 itsBunch->R *= Vector_t(1000.0); // m --> mm
 
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns], phi= " << phi/pi*180.0 <<" [deg]" <<endl;
+                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns], phi = " << phi/pi*180.0 <<" [deg]" <<endl;
 
                 localToGlobal(itsBunch->R, phi, meanR);
                 localToGlobal(itsBunch->P, phi, meanP);
@@ -3199,7 +3205,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 //  itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
                 // TODO: why no stat data in global frame?
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
 
             } else {
             	double E = itsBunch->get_meanEnergy();
@@ -3209,7 +3215,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
                 itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
                 *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-                      << step_m + 1 << " T= " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
 
                 localToGlobal(itsBunch->R, phi, meanR);
                 localToGlobal(itsBunch->P, phi, meanP);
@@ -3266,6 +3272,7 @@ Vector_t ParallelCyclotronTracker::calcMeanP() const {
 
 void ParallelCyclotronTracker::repartition() {
     if((step_m % Options::repartFreq) == 0) {
+        *gmsg << "Repartitioning" << endl; // Temp for Debug -DW
         IpplTimings::startTimer(BinRepartTimer_m);
         itsBunch->do_binaryRepart();
         Ippl::Comm->barrier();
@@ -3430,7 +3437,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         -> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
       if(flag_stripper) {
         itsBunch->boundp();
-        *gmsg << "total particle after stripping =" << itsBunch->getTotalNum() << endl;
+        *gmsg << "* Total number of particles after stripping = " << itsBunch->getTotalNum() << endl;
       }
     }
 
@@ -3443,30 +3450,36 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
 }
 
 bool ParallelCyclotronTracker::deleteParticle(){
-  // update immediately if some particle are lost during this step
+  // Update immediately if any particles are lost during this step
 
   bool flagNeedUpdate = (min(itsBunch->Bin) < 0);
   reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+
   size_t lostParticleNum = 0;
   
   if(flagNeedUpdate) {
       Vector_t const meanR = calcMeanR();
       Vector_t const meanP = calcMeanP();
       double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-      globalToLocal(itsBunch->R, phi, meanR);
 
+      globalToLocal(itsBunch->R, phi, meanR);
       itsBunch->R /= Vector_t(1000.0); // mm --> m
+
       for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
           if(itsBunch->Bin[i] < 0) {
+
               lostParticleNum++;
               itsBunch->destroy(1, i);
           }
       }
-      
-      // now destroy particles and update pertinent parameters in local frame
-      itsBunch->update();
-      itsBunch->boundp();
+
+      // Now destroy particles and update pertinent parameters in local frame
+      // Note that update() will be called within boundp() -DW
+      itsBunch->boundp();      
+      //itsBunch->update();
+
       itsBunch->calcBeamParameters_cycl();
+
       itsBunch->R *= Vector_t(1000.0); // m --> mm
 
       localToGlobal(itsBunch->R, phi, meanR);
@@ -3498,7 +3511,8 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         double const initialReferenceTheta = referenceTheta / 180.0 * pi;
         PathLength_m = 0.0;
 
-        // Force the initial phase space values of the particle with ID=0 to zero, to set it as a reference particle.
+        // Force the initial phase space values of the particle with ID = 0 to zero, 
+        // to set it as a reference particle.
         if(initialTotalNum_m > 2) {
             for(size_t i = 0; i < initialLocalNum_m; ++i) {
                 if(itsBunch->ID[i] == 0) {
@@ -3599,6 +3613,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
           itsBunch->R *= Vector_t(1000.0); // m --> mm
       }
     }
+
     Vector_t const meanR = calcMeanR();
 
     // AUTO mode
