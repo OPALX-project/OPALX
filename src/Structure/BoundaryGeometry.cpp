@@ -537,7 +537,7 @@ void BoundaryGeometry::initialize () {
 
             hr_m = len_m / nr_m;
             outside_point_m = maxcoords_m + hr_m;
-            *gmsg << "*  Geometry interval built done." << endl;
+            *gmsg << "* Geometry interval built done." << endl;
         }
 
         /*
@@ -774,7 +774,7 @@ void BoundaryGeometry::initialize () {
             if(Ippl::myNode() == 0) {
                 local.write_bbox_mesh (boundary_ids_m, hr_m, nr_m, mincoords_m);
             }
-            *gmsg << "*  Boundary index set built done." << endl;
+            *gmsg << "* Boundary index set built done." << endl;
         }
 
 
@@ -1004,7 +1004,7 @@ void BoundaryGeometry::initialize () {
                     tri_normal /= magnitute;
                 TriNormal_m.push_back (tri_normal);
             }
-            *gmsg << "*  Triangle Normal built done." << endl;
+            *gmsg << "* Triangle Normal built done." << endl;
         }
 
 
@@ -1041,23 +1041,28 @@ void BoundaryGeometry::initialize () {
 
     h5_int64_t rc;
 
-    *gmsg << "* Iniitializing Boundary Geometry ... ..." << endl;
+    *gmsg << "* Initializing Boundary Geometry..." << endl;
     IpplTimings::startTimer (TPreProc_m);
 
     apert_m = Attributes::getRealArray(itsAttr[APERTURE]);
  
     if (hasApperture()) {
-        *gmsg << "*  Found additional aperture." << endl;
+        *gmsg << "* Found additional aperture." << endl;
         for (unsigned int i=0; i<apert_m.size(); i=i+3)
-            *gmsg << "*  zmin= " << apert_m[i] << " zmax= " << apert_m[i+1] << " r= " << apert_m[i+2] << endl;
+            *gmsg << "* zmin = " << apert_m[i] << " zmax = " << apert_m[i+1] << " r= " << apert_m[i+2] << endl;
     }
 
-    double xyzscale = local.getXYZScale ();
+    *gmsg << "* Filename: " << h5FileName_m.c_str() << endl;
+
+    double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]); 
+    // Somehow local.getXYZScale () just returns the default value of 1.0 -DW
+    //double xyzscale = local.getXYZScale ();
+
     *gmsg << "* Scale all points of the geometry by " << xyzscale << endl;
 
     rc = H5SetErrorHandler (H5AbortErrorhandler);
     if (rc != H5_SUCCESS)
-        ERRORMSG ("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+        ERRORMSG ("H5 rc = " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     H5SetVerbosityLevel (1);
     h5_file_t* f = H5OpenFile (h5FileName_m.c_str (), H5_O_RDONLY, Ippl::getComm());
     h5t_mesh_t* m = NULL;
@@ -1106,7 +1111,7 @@ void BoundaryGeometry::initialize () {
                 point_coords[3 * i + 2] + zshift));
     }
     delete point_coords;
-    *gmsg << "*  Vertex built done." << endl;
+    *gmsg << "* Vertex built done." << endl;
 
     TriPrPartloss_m = new double[num_triangles_m];
     TriFEPartloss_m = new double[num_triangles_m];
@@ -1119,7 +1124,7 @@ void BoundaryGeometry::initialize () {
         TriFEPartloss_m[i] = 0.0;
         TriSePartloss_m[i] = 0.0;
     }
-    *gmsg << "*  Triangle barycent built done." << endl;
+    *gmsg << "* Triangle barycent built done." << endl;
 
     local.computeGeometryInterval ();
     local.makeBoundaryIndexSet ();
