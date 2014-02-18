@@ -3272,7 +3272,6 @@ Vector_t ParallelCyclotronTracker::calcMeanP() const {
 
 void ParallelCyclotronTracker::repartition() {
     if((step_m % Options::repartFreq) == 0) {
-        *gmsg << "Repartitioning" << endl; // Temp for Debug -DW
         IpplTimings::startTimer(BinRepartTimer_m);
         itsBunch->do_binaryRepart();
         Ippl::Comm->barrier();
@@ -3513,6 +3512,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         // Force the initial phase space values of the particle with ID = 0 to zero, 
         // to set it as a reference particle.
+	/*
         if(initialTotalNum_m > 2) {
             for(size_t i = 0; i < initialLocalNum_m; ++i) {
                 if(itsBunch->ID[i] == 0) {
@@ -3521,7 +3521,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
                 }
             }
         }
-
+	*/
         // Initialize global R
         itsBunch->R *= Vector_t(1000.0); // m --> mm
         Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, referenceZ); // [referenceR] == mm
