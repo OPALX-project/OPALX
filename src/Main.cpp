@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
             is = new FileStream(startup);
         } catch(...) {
             is = 0;
-            *gmsg << "No startup file \"" << startup << "\" found." << endl;
+            *gmsg << "No startup file \"" << startup << "\" found. Note: this is not mandatory for an OPAL simulation!" << endl;
         }
 
         if(is) {
