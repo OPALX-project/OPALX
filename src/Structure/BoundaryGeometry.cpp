@@ -879,7 +879,7 @@ void BoundaryGeometry::initialize () {
             const  Vector_t t0 = bg->getPoint (triangle_id, 1);
             const Vector_t u = bg->getPoint (triangle_id, 2) - t0;
             const Vector_t v = bg->getPoint (triangle_id, 3) - t0;
-            const Vector_t n = crossProduct (u, v);
+            const Vector_t n = cross (u, v);
 
             const Vector_t lseg = y - x;
             if (fabs (dot (n, lseg)) < 1.0e-10) {
@@ -954,7 +954,7 @@ void BoundaryGeometry::initialize () {
 
             // compute normal of first triangle 
             Vector_t t0 = bg->getPoint (0, 1);
-            Vector_t tri_normal = crossProduct (bg->getPoint (0,2) - t0, bg->getPoint (0,3) - t0);
+            Vector_t tri_normal = cross (bg->getPoint (0,2) - t0, bg->getPoint (0,3) - t0);
             tri_normal /= sqrt (SQR (tri_normal (0)) + SQR (tri_normal (1)) + SQR (tri_normal (2)));
             bg->TriNormal_m.push_back (tri_normal);
             
@@ -1001,7 +1001,7 @@ void BoundaryGeometry::initialize () {
             }
             for (int triangle_id = 1; triangle_id < bg->num_triangles_m; triangle_id++) {
                 t0 = bg->getPoint (triangle_id, 1);
-                tri_normal = crossProduct (bg->getPoint (triangle_id, 2) - t0, bg->getPoint (triangle_id, 3) - t0);
+                tri_normal = cross (bg->getPoint (triangle_id, 2) - t0, bg->getPoint (triangle_id, 3) - t0);
                 double magnitude = sqrt (SQR (tri_normal (0)) + SQR (tri_normal (1)) + SQR (tri_normal (2)));
                 if (magnitude != 0) 
                     tri_normal /= magnitude;
