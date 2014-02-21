@@ -26,7 +26,7 @@
 // include files
 #include "Message/CommCreator.h"
 #include "Message/Communicate.h"
-#include "Profile/Profiler.h"
+
 
 // include files for specific communication libraries
 
@@ -56,7 +56,7 @@ static const char *CommLibraryList = "pm, mpi, shmempi, or serial";
 // return the name of the Nth library
 const char *CommCreator::getLibraryName(int n)
 {
-    TAU_PROFILE("CommCreator::getLibraryName()", "char * (int n)", TAU_MESSAGE);
+    
     if (n >= 0 && n < COMMLIBRARIES)
         return CommLibraryNames[n];
     else
@@ -68,7 +68,7 @@ const char *CommCreator::getLibraryName(int n)
 // return a list of all the libraries, as a single string
 const char *CommCreator::getAllLibraryNames()
 {
-    TAU_PROFILE("CommCreator::getAllLibraryNames()", "char *()", TAU_MESSAGE);
+    
     return CommLibraryList;
 }
 
@@ -76,7 +76,7 @@ const char *CommCreator::getAllLibraryNames()
 /////////////////////////////////////////////////////////////////////////
 bool CommCreator::supported(int cm)
 {
-    TAU_PROFILE("CommCreator::supported()", "bool (int)", TAU_MESSAGE);
+    
     if (cm == PM)
     {
 #ifdef IPPL_PM
@@ -106,7 +106,7 @@ bool CommCreator::supported(int cm)
 // return the index of the given named library, or (-1) if not found
 int CommCreator::libindex(const char *nm)
 {
-    TAU_PROFILE("CommCreator::libindex()", "int (char *)", TAU_MESSAGE);
+    
     for (int i=0; i < COMMLIBRARIES; ++i)
     {
         if (strcmp(nm, getLibraryName(i)) == 0)
@@ -126,8 +126,6 @@ int CommCreator::libindex(const char *nm)
 Communicate *CommCreator::create(int cm, int& argc, char**& argv, int nodes,
                                  bool doinit, MPI_Comm mpicomm)
 {
-    TAU_PROFILE("CommCreator::create()",
-                "Communicate * (int, int, char **, int, bool, MPI_Comm)", TAU_MESSAGE);
 
     Communicate *comm = 0;
 

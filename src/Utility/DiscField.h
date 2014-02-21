@@ -771,9 +771,6 @@ public:
   //--------------------------------------------------------------------
   template<class T, class M, class C>
   bool write(Field<T,Dim,M,C>& f, unsigned int varID) {
-    TAU_TYPE_STRING(taustr, "bool (" + CT(f) + ", unsigned int)" );
-    TAU_PROFILE("DiscField::write()", taustr,
-		TAU_UTILITY | TAU_FIELD | TAU_IO);
 
     // sanity checking for input arguments and state of this object
     if (!ConfigOK) {
@@ -1230,9 +1227,6 @@ private:
   void write_offset_and_data(FILE *outputOffset, int outputDatafd,
 			     CompressedBrickIterator<T,Dim> &cbi,
 			     const NDIndex<Dim> &owned) {
-    TAU_TYPE_STRING(taustr, "void (FILE *, FILE *, " + CT(cbi) + ", NDIndex");
-    TAU_PROFILE("DiscField::write_offset_and_data()", taustr,
-		TAU_UTILITY | TAU_FIELD | TAU_IO);
 
     DFDBG(std::string dbgmsgname("DF:write_offset_and_data"));
     DFDBG(Inform dbgmsg(dbgmsgname.c_str(), INFORM_ALL_NODES));
@@ -1421,10 +1415,6 @@ private:
 		   unsigned int sf,
 		   std::vector<DFOffsetData<Dim,T> > &offdata,
 		   int vnodes) {
-    TAU_TYPE_STRING(taustr, CT(*this) +  
-		 " bool (unsigned int, unsigned int, unsigned int)");
-    TAU_PROFILE("DiscField::read_offset()", taustr, 
-		TAU_UTILITY | TAU_FIELD | TAU_IO);
 
     // Open the offset file
     FILE *outputOffset = open_df_file(Config->getFilename(sf),
@@ -1669,10 +1659,6 @@ private:
   template <class T>
   bool read_data(int outputDatafd, T* buffer, Offset_t readsize,
 		 Offset_t seekpos) {
-    TAU_TYPE_STRING(taustr, CT(*this) + " bool (FILE*, " + CT(buffer) 
-		    + ", Offset_t, Offset_t )" );
-    TAU_PROFILE("DiscField::read_data()", taustr, 
-		TAU_UTILITY | TAU_FIELD | TAU_IO);
 
     DFDBG(Inform dbgmsg("DiscField::read_data", INFORM_ALL_NODES));
     DFDBG(dbgmsg << "readsize=" << readsize << ", seekpos=" << seekpos);

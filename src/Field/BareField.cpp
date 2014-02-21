@@ -34,7 +34,7 @@
 #include "Utility/Unique.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_STDSTL
 #include <map>
@@ -61,8 +61,8 @@ BareField<T,Dim>::BareField(const BareField<T,Dim>& a)
   Gc( a.Gc ),			// Copy the number of guard cells.
   compressible_m( a.compressible_m )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + " )" );
-  TAU_PROFILE("BareField::BareField()", taustr, TAU_FIELD);
+  
+  
 
   // We assume the guard cells are peachy so clear the dirty flag.
   clearDirtyFlag();
@@ -91,8 +91,8 @@ BareField<T,Dim>::BareField(const BareField<T,Dim>& a)
 
 template< class T, unsigned Dim >
 BareField<T,Dim>::~BareField() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("BareField::~BareField()", taustr, TAU_FIELD);
+  
+  
   // must check out from our layout
   if (Layout != 0) {
     Layout->checkout(*this);
@@ -108,8 +108,8 @@ BareField<T,Dim>::~BareField() {
 template< class T, unsigned Dim >
 void
 BareField<T,Dim>::initialize(Layout_t & l) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + " )" );
-  TAU_PROFILE("BareField::initialize()", taustr, TAU_FIELD);
+  
+  
 
   // if our Layout has been previously set, we just ignore this request
   if (Layout == 0) {
@@ -122,8 +122,8 @@ template< class T, unsigned Dim >
 void
 BareField<T,Dim>::initialize(Layout_t & l,
 			     const GuardCellSizes<Dim>& gc) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + ", " + CT(gc) + " )" );
-  TAU_PROFILE("BareField::initialize()", taustr, TAU_FIELD);
+  
+  
 
   // if our Layout has been previously set, we just ignore this request
   if (Layout == 0) {
@@ -144,8 +144,8 @@ template< class T, unsigned Dim >
 void
 BareField<T,Dim>::setup()
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("BareField::setup()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // Make sure this FieldLayout can handle the number of GuardCells
   // which we have here
@@ -197,8 +197,8 @@ template< class T, unsigned Dim>
 void 
 BareField<T,Dim>::write(std::ostream& out)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("BareField::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
 
   // Inform dbgmsg(">>>>>>>> BareField::write", INFORM_ALL_NODES);
   // dbgmsg << "Printing values for field at address = " << &(*this) << endl;
@@ -286,24 +286,6 @@ BareField<T,Dim>::write(std::ostream& out)
 template< class T, unsigned Dim >
 void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
 {
-  // profiling macros
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("BareField::fillGuardCells()", taustr, TAU_FIELD);
-
-  TAU_PROFILE_TIMER(sendtimer, "  fillGuardCells-send", 
-	 	    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(sendcommtimer, "   fillGuardCells-send-comm",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(findrectimer, "  fillGuardCells-findreceive",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(localstimer, "  fillGuardCells-locals",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(rectimer, "  fillGuardCells-receive",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(reccommtimer, "   fillGuardCells-receive-comm",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(localsexprtimer, "   fillGuardCells-locals-expression",
-		    taustr, TAU_FIELD);
 
   // This operation is logically const because the physical cells
   // of the BareField are unaffected, so cast away const here.
@@ -336,14 +318,14 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
   // send data to the remote ones they overlap.
   int nprocs = Ippl::getNodes();
   if (nprocs > 1) {
-    TAU_PROFILE_START(findrectimer);
+    
     // Build a map of the messages we expect to receive.
     typedef std::multimap< NDIndex<Dim> , LField<T,Dim>* , std::less<NDIndex<Dim> > > ac_recv_type;
     ac_recv_type recv_ac;
     bool* recvmsg = new bool[nprocs];
-    TAU_PROFILE_STOP(findrectimer);
+    
 
-    TAU_PROFILE_START(sendtimer);
+    
     // set up messages to be sent
     Message** mess = new Message*[nprocs];
 #ifdef IPPL_PRINTDEBUG
@@ -357,10 +339,10 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
       ndomains[iproc] = 0;
 #endif
     }
-    TAU_PROFILE_STOP(sendtimer);
+    
     // now do main loop over LFields, packing overlaps into proper messages
     for (lf_i = ncf.begin_if(); lf_i != lf_e; ++lf_i) {
-      TAU_PROFILE_START(findrectimer);
+      
       // Cache some information about this local array.
       LField<T,Dim> &lf = *((*lf_i).second);
       const NDIndex<Dim> &lf_domain = lf.getAllocated();
@@ -377,9 +359,9 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
         int rnode = (*rv_i).second->getNode();
         recvmsg[rnode] = true;
       }
-      TAU_PROFILE_STOP(findrectimer);
+      
 
-      TAU_PROFILE_START(sendtimer);
+      
       const NDIndex<Dim>& lo = lf.getOwned();
 #ifdef IPPL_PRINTDEBUG
       msg << "Finding send overlap regions for domain " << lo << endl;
@@ -415,19 +397,19 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
         ndomains[rnode]++;
 #endif
       }
-    TAU_PROFILE_STOP(sendtimer);
+    
     }
-    TAU_PROFILE_START(findrectimer);
+    
     int remaining = 0;
     for (iproc=0; iproc<nprocs; ++iproc)
       if (recvmsg[iproc]) ++remaining;
     delete [] recvmsg;
-    TAU_PROFILE_STOP(findrectimer);
+    
 
-    TAU_PROFILE_START(sendtimer);
+    
     // Get message tag.
     int tag = Ippl::Comm->next_tag( F_GUARD_CELLS_TAG , F_TAG_CYCLE );
-    TAU_PROFILE_START(sendcommtimer);
+    
     // Send all the messages.
     for (iproc=0; iproc<nprocs; ++iproc) {
       if (mess[iproc]) {
@@ -439,17 +421,17 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
         Ippl::Comm->send(mess[iproc], iproc, tag);
       }
     }
-    TAU_PROFILE_STOP(sendcommtimer);
+    
     delete [] mess;
 #ifdef IPPL_PRINTDEBUG
     delete [] ndomains;
 #endif
-    TAU_PROFILE_STOP(sendtimer);
+    
 
     // ----------------------------------------
     // Handle the local fills.
     // Loop over all the local arrays.
-    TAU_PROFILE_START(localstimer);
+    
     for (lf_i = ncf.begin_if(); lf_i != lf_e; ++lf_i)
     {
       // Cache some information about this LField.
@@ -493,7 +475,7 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
         // If these are compressed we might not have to do any work.
         if ( !( c1 && c2 && c3 ) )
         {
-	  TAU_PROFILE_START(localsexprtimer);
+	  
 
 	  // Find the intersection.
 	  NDIndex<Dim> intersection = la.intersect(ro);
@@ -516,7 +498,7 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
 	    BrickExpression<Dim,LFI,LFI,OpAssign>(lhs,rhs).apply();
 	  }
 	      
-	  TAU_PROFILE_STOP(localsexprtimer);
+	  
         }
 #ifdef IPPL_PRINTDEBUG
         else {
@@ -526,19 +508,19 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
 #endif
       }
     }
-    TAU_PROFILE_STOP(localstimer);
+    
 
     // ----------------------------------------
     // Receive all the messages.
-    TAU_PROFILE_START(rectimer);
+    
     while (remaining>0) {
       // Receive the next message.
       int any_node = COMM_ANY_NODE;
-      TAU_PROFILE_START(reccommtimer);
+      
       Message* rmess = Ippl::Comm->receive_block(any_node,tag);
       PAssert(rmess);
       --remaining;
-      TAU_PROFILE_STOP(reccommtimer);
+      
 
       // Determine the number of domains being sent
       int ndoms = rmess->size() / (Dim + 3);
@@ -590,13 +572,13 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
       }
       delete rmess;
     }
-    TAU_PROFILE_STOP(rectimer);
+    
   }
   else { // single-node case
     // ----------------------------------------
     // Handle the local fills.
     // Loop over all the local arrays.
-    TAU_PROFILE_START(localstimer);
+    
     for (lf_i = ncf.begin_if(); lf_i != lf_e; ++lf_i)
     {
       // Cache some information about this LField.
@@ -640,7 +622,7 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
         // If these are compressed we might not have to do any work.
         if ( !( c1 && c2 && c3 ) )
         {
-	  TAU_PROFILE_START(localsexprtimer);
+	  
 
 	  // Find the intersection.
 	  NDIndex<Dim> intersection = la.intersect(ro);
@@ -663,7 +645,7 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
 	    BrickExpression<Dim,LFI,LFI,OpAssign>(lhs,rhs).apply();
 	  }
 	      
-	  TAU_PROFILE_STOP(localsexprtimer);
+	  
         }
 #ifdef IPPL_PRINTDEBUG
         else {
@@ -673,7 +655,7 @@ void BareField<T,Dim>::fillGuardCells(bool reallyFill) const
 #endif
       }
     }
-    TAU_PROFILE_STOP(localstimer);
+    
   }
   return;
 }
@@ -689,8 +671,8 @@ template <class T, unsigned Dim>
 void BareField<T,Dim>::setGuardCells(const T& val) const
 {
   // profiling macros
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(val) + ")" );
-  TAU_PROFILE("BareField::setGuardCells()", taustr, TAU_FIELD);
+  
+  
 
   // if there are no guard cells, we can just return
   if (Gc == GuardCellSizes<Dim>())
@@ -770,24 +752,6 @@ void BareField<T,Dim>::setGuardCells(const T& val) const
 template <class T, unsigned Dim>
 void BareField<T,Dim>::accumGuardCells()
 {
-  // profiling macros
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("BareField::accumGuardCells()", taustr, TAU_FIELD);
-
-  TAU_PROFILE_TIMER(sendtimer, "  accumGuardCells-send", 
-	 	    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(sendcommtimer, "   accumGuardCells-send-comm",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(findrectimer, "  accumGuardCells-findreceive",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(localstimer, "  accumGuardCells-locals",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(rectimer, "  accumGuardCells-receive",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(reccommtimer, "   accumGuardCells-receive-comm",
-		    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(localsexprtimer, "   accumGuardCells-locals-expression",
-		    taustr, TAU_FIELD);
 
   // Only need to do work if we have non-zero GuardCellSizes
   if (Gc == GuardCellSizes<Dim>())
@@ -806,14 +770,14 @@ void BareField<T,Dim>::accumGuardCells()
   // send data to the remote ones they overlap.
   int nprocs = Ippl::getNodes();
   if (nprocs > 1) {
-    TAU_PROFILE_START(findrectimer);
+    
     // Build a map of the messages we expect to receive.
     typedef std::multimap< NDIndex<Dim> , LField<T,Dim>* , std::less<NDIndex<Dim> > > ac_recv_type;
     ac_recv_type recv_ac;
     bool* recvmsg = new bool[nprocs];
-    TAU_PROFILE_STOP(findrectimer);
+    
 
-    TAU_PROFILE_START(sendtimer);
+    
     // set up messages to be sent
     Message** mess = new Message*[nprocs];
 #ifdef IPPL_PRINTDEBUG
@@ -827,10 +791,10 @@ void BareField<T,Dim>::accumGuardCells()
       ndomains[iproc] = 0;
 #endif
     }
-    TAU_PROFILE_STOP(sendtimer);
+    
     // now do main loop over LFields, packing overlaps into proper messages
     for (lf_i = begin_if(); lf_i != lf_e; ++lf_i) {
-      TAU_PROFILE_START(findrectimer);
+      
       // Cache some information about this local array.
       LField<T,Dim> &lf = *((*lf_i).second);
       const NDIndex<Dim>& lo = lf.getOwned();
@@ -846,9 +810,9 @@ void BareField<T,Dim>::accumGuardCells()
         int rnode = (*rv_i).second->getNode();
         recvmsg[rnode] = true;
       } 
-      TAU_PROFILE_STOP(findrectimer);
+      
 
-      TAU_PROFILE_START(sendtimer);
+      
       const NDIndex<Dim> &lf_domain = lf.getAllocated();
 #ifdef IPPL_PRINTDEBUG
       msg << "Finding send overlap regions for domain " << lf_domain << endl;
@@ -884,19 +848,19 @@ void BareField<T,Dim>::accumGuardCells()
         ndomains[rnode]++;
 #endif
       }
-    TAU_PROFILE_STOP(sendtimer);
+    
     }
-    TAU_PROFILE_START(findrectimer);
+    
     int remaining = 0;
     for (iproc=0; iproc<nprocs; ++iproc)
       if (recvmsg[iproc]) ++remaining;
     delete [] recvmsg;
-    TAU_PROFILE_STOP(findrectimer);
+    
 
-    TAU_PROFILE_START(sendtimer);
+    
     // Get message tag.
     int tag = Ippl::Comm->next_tag( F_GUARD_CELLS_TAG , F_TAG_CYCLE );
-    TAU_PROFILE_START(sendcommtimer);
+    
     // Send all the messages.
     for (iproc=0; iproc<nprocs; ++iproc) {
       if (mess[iproc]) {
@@ -908,17 +872,17 @@ void BareField<T,Dim>::accumGuardCells()
         Ippl::Comm->send(mess[iproc], iproc, tag);
       }
     }
-    TAU_PROFILE_STOP(sendcommtimer);
+    
     delete [] mess;
 #ifdef IPPL_PRINTDEBUG
     delete [] ndomains;
 #endif
-    TAU_PROFILE_STOP(sendtimer);
+    
 
     // ----------------------------------------
     // Handle the local fills.
     // Loop over all the local arrays.
-    TAU_PROFILE_START(localstimer);
+    
     for (lf_i=begin_if(); lf_i != lf_e; ++lf_i)
     {
       // Cache some information about this LField.
@@ -955,7 +919,7 @@ void BareField<T,Dim>::accumGuardCells()
         LField<T, Dim> &rf = *(*rf_i);
         const NDIndex<Dim>& ro = rf.getOwned();
 
-        TAU_PROFILE_START(localsexprtimer);
+        
 
         // Find the intersection.
         NDIndex<Dim> intersection = la.intersect(ro);
@@ -978,22 +942,22 @@ void BareField<T,Dim>::accumGuardCells()
           // And do the accumulation
           BrickExpression<Dim,LFI,LFI,OpAddAssign>(rhs,lhs).apply();
 	}    
-        TAU_PROFILE_STOP(localsexprtimer);
+        
       }
     }
-    TAU_PROFILE_STOP(localstimer);
+    
 
     // ----------------------------------------
     // Receive all the messages.
-    TAU_PROFILE_START(rectimer);
+    
     while (remaining>0) {
       // Receive the next message.
       int any_node = COMM_ANY_NODE;
-      TAU_PROFILE_START(reccommtimer);
+      
       Message* rmess = Ippl::Comm->receive_block(any_node,tag);
       PAssert(rmess);
       --remaining;
-      TAU_PROFILE_STOP(reccommtimer);
+      
 
       // Determine the number of domains being sent
       int ndoms = rmess->size() / (Dim + 3);
@@ -1033,13 +997,13 @@ void BareField<T,Dim>::accumGuardCells()
       }
       delete rmess;
     }
-    TAU_PROFILE_STOP(rectimer);
+    
   }
   else { // single-node case
     // ----------------------------------------
     // Handle the local fills.
     // Loop over all the local arrays.
-    TAU_PROFILE_START(localstimer);
+    
     for (lf_i=begin_if(); lf_i != lf_e; ++lf_i)
     {
       // Cache some information about this LField.
@@ -1076,7 +1040,7 @@ void BareField<T,Dim>::accumGuardCells()
         LField<T, Dim> &rf = *(*rf_i);
         const NDIndex<Dim>& ro = rf.getOwned();
 
-        TAU_PROFILE_START(localsexprtimer);
+        
 
         // Find the intersection.
         NDIndex<Dim> intersection = la.intersect(ro);
@@ -1098,10 +1062,10 @@ void BareField<T,Dim>::accumGuardCells()
           // And do the accumulation
           BrickExpression<Dim,LFI,LFI,OpAddAssign>(rhs,lhs).apply();
 	}    
-        TAU_PROFILE_STOP(localsexprtimer);
+        
       }
     }
-    TAU_PROFILE_STOP(localstimer);
+    
   }
 
   // since we just modified real cell values, set dirty flag if using
@@ -1124,8 +1088,8 @@ void BareField<T,Dim>::accumGuardCells()
 template< class T, unsigned Dim >
 void BareField<T,Dim>::write(char* fname) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (char * )" );
-  TAU_PROFILE("BareField::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   
 #ifdef IPPL_NETCDF
 
@@ -1244,8 +1208,8 @@ void BareField<T,Dim>::write(char* fname) const
 template< class T, unsigned Dim >
 void BareField<T,Dim>::writeb(char* fname)  const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (char * )" );
-  TAU_PROFILE("BareField::writeb()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   Inform outC(0, fname, Inform::OVERWRITE);
 
   int icount = 0;
@@ -1328,8 +1292,8 @@ void BareField<T,Dim>::writeb(char* fname)  const
 template<class T, unsigned Dim>
 void BareField<T,Dim>::Compress() const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("BareField::Compress()", taustr, TAU_FIELD);
+  
+  
 
   if (!compressible_m) return;
 
@@ -1342,8 +1306,8 @@ void BareField<T,Dim>::Compress() const
 template<class T, unsigned Dim>
 void BareField<T,Dim>::Uncompress() const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("BareField::Uncompress()", taustr, TAU_FIELD);
+  
+  
 
   // This operation is logically const, so cast away const here
   BareField<T,Dim>& ncf = const_cast<BareField<T,Dim>&>(*this);
@@ -1358,8 +1322,8 @@ void BareField<T,Dim>::Uncompress() const
 template<class T, unsigned Dim>
 double BareField<T,Dim>::CompressedFraction() const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " double ()" );
-  TAU_PROFILE("BareField::CompressedFraction()", taustr, TAU_FIELD);
+  
+  
 
   // elements[0] = total elements
   // elements[1] = compressed elements
@@ -1391,8 +1355,8 @@ double BareField<T,Dim>::CompressedFraction() const
 template<class T, unsigned Dim>
 void BareField<T,Dim>::Repartition(UserList* userlist)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (UserList * )" );
-  TAU_PROFILE("BareField::Repartition()", taustr, TAU_FIELD);
+  
+  
 
   // Cast to the proper type of FieldLayout.
   Layout_t *newLayout = (Layout_t *)( userlist );
@@ -1416,8 +1380,8 @@ void BareField<T,Dim>::Repartition(UserList* userlist)
 template<class T, unsigned Dim>
 void BareField<T,Dim>::notifyUserOfDelete(UserList* userlist)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (UserList * )" );
-  TAU_PROFILE("BareField::notifyUserOfDelete()", taustr, TAU_FIELD);
+  
+  
 
   // just set our layout pointer to NULL; if we try to do anything more
   // with this object, other than delete it, a core dump is likely
@@ -1499,9 +1463,9 @@ T* PtrOffset(T* ptr, const NDIndex<Dim>& pos, const NDIndex<Dim>& alloc,
 template<class T, unsigned Dim> 
 T& BareField<T,Dim>::localElement(const NDIndex<Dim>& Indexes) const
 {
-  TAU_PROFILE_STMT(T tauT);
-  TAU_TYPE_STRING(taustr, "BareField<" + CT(tauT) + ",Dim> (" + CT(Indexes) + " )" );
-  TAU_PROFILE("localElement()", taustr, TAU_FIELD);
+  
+  
+  
 
   // Instead of checking to see if the user has asked for one element,
   // we will just use the first element specified for each dimension.
@@ -1546,8 +1510,8 @@ T& BareField<T,Dim>::localElement(const NDIndex<Dim>& Indexes) const
 template <class T, unsigned int Dim>
 void BareField<T,Dim>::getsingle(const NDIndex<Dim>& Indexes, T& r) const
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(Indexes) + ", " + CT(r) + " )" );
-  TAU_PROFILE("BareField::getsingle()", taustr, TAU_FIELD);
+  
+  
 
   // Instead of checking to see if the user has asked for one element,
   // we will just use the first element specified for each dimension.

@@ -33,7 +33,7 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_STDSTL
 #include <algorithm>
@@ -49,8 +49,8 @@
 // an error.  For initialize, you must supply a layout instance.
 template<class PLayout>
 void ParticleBase<PLayout>::initialize(PLayout *layout) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(*layout) + ")"); 
-  TAU_PROFILE("ParticleBase::initialize()", taustr, TAU_PARTICLE);
+   
+  
 
   // make sure we have not already been initialized, and that we have
   // been given a good layout
@@ -67,8 +67,8 @@ void ParticleBase<PLayout>::initialize(PLayout *layout) {
 // set up this new object:  add attributes and check in to the layout
 template<class PLayout>
 void ParticleBase<PLayout>::setup() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleBase::setup()", taustr, TAU_PARTICLE);
+   
+  
 
   TotalNum = 0;
   LocalNum = 0;
@@ -93,8 +93,8 @@ void ParticleBase<PLayout>::setup() {
 // be used for single-node particle creation and initialization
 template<class PLayout>
 bool ParticleBase<PLayout>::singleInitNode() const {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleBase::singleInitNode()", taustr, TAU_PARTICLE);
+   
+  
   
   return (Ippl::Comm->myNode() == 0);
 }
@@ -105,8 +105,8 @@ bool ParticleBase<PLayout>::singleInitNode() const {
 // The ID number = (i * numprocs) + myproc, i = 0, 1, 2, ...
 template<class PLayout>
 unsigned ParticleBase<PLayout>::getNextID() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleBase::getNextID()", taustr, TAU_PARTICLE);
+   
+  
 
   return (NextID += Ippl::Comm->getNodes());
 }
@@ -115,8 +115,8 @@ unsigned ParticleBase<PLayout>::getNextID() {
 // Reset the particle ID's to be globally consecutive, 0 thru TotalNum.
 template <class PLayout>
 void ParticleBase<PLayout>::resetID(void) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("ParticleBase::resetID()", taustr, TAU_PARTICLE);
+  
+  
 
   unsigned int nodes = Ippl::getNodes();
   unsigned int myNode = Ippl::myNode();
@@ -191,8 +191,6 @@ void ParticleBase<PLayout>::resetID(void) {
 template<class PLayout>
 size_t
 ParticleBase<PLayout>::putMessage(Message& msg, size_t M, size_t I) {
-  TAU_PROFILE("ParticleBase::putMessage()", 
-    "unsigned (Message, unsigned, unsigned)", TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -223,8 +221,6 @@ size_t
 ParticleBase<PLayout>::putMessage(Message& msg,
 				  const std::vector<size_t>& putList)
 {
-  TAU_PROFILE("ParticleBase::putMessage()", 
-    "unsigned (Message, std::vector<unsigned>)", TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -246,8 +242,6 @@ ParticleBase<PLayout>::putMessage(Message& msg,
 template<class PLayout>
 size_t
 ParticleBase<PLayout>::putMessage(Message& msg, size_t I) {
-  TAU_PROFILE("ParticleBase::putMessage()", 
-    "unsigned (Message, unsigned, unsigned)", TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -362,8 +356,6 @@ ParticleBase<PLayout>::readGhostMsgBuffer(MsgBuffer *msgbuf, int node)
 // retrieve particles from the given message and store them
 template<class PLayout>
 size_t ParticleBase<PLayout>::getMessage(Message& msg) {
-  TAU_PROFILE("ParticleBase::getMessage()", "unsigned (Message)",
-	      TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -387,8 +379,6 @@ size_t ParticleBase<PLayout>::getMessage(Message& msg) {
 // retrieve particles from the given message and store them
 template<class PLayout>
 size_t ParticleBase<PLayout>::getSingleMessage(Message& msg) {
-  TAU_PROFILE("ParticleBase::getMessage()", "unsigned (Message)",
-	      TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -414,8 +404,6 @@ size_t ParticleBase<PLayout>::getSingleMessage(Message& msg) {
 // number of particles created.
 template<class PLayout>
 size_t ParticleBase<PLayout>::getMessageAndCreate(Message& msg) {
-  TAU_PROFILE("ParticleBase::getMessageAndCreate()", "unsigned (Message)",
-	      TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -432,7 +420,7 @@ size_t ParticleBase<PLayout>::getMessageAndCreate(Message& msg) {
 // create M new particles on this processor
 template<class PLayout>
 void ParticleBase<PLayout>::create(size_t M) {
-  TAU_PROFILE("ParticleBase::create()", "void (unsigned)", TAU_PARTICLE);
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -459,7 +447,7 @@ void ParticleBase<PLayout>::create(size_t M) {
 // create 1 new particle with a given ID
 template<class PLayout>
 void ParticleBase<PLayout>::createWithID(unsigned id) {
-  TAU_PROFILE("ParticleBase::createWithID()", "void (unsigned)", TAU_PARTICLE);
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -487,7 +475,7 @@ void ParticleBase<PLayout>::createWithID(unsigned id) {
 // create np new particles globally, equally distributed among all processors
 template<class PLayout>
 void ParticleBase<PLayout>::globalCreate(size_t np) {
-  TAU_PROFILE("ParticleBase::globalCreate()", "void (unsigned)", TAU_PARTICLE);
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -513,8 +501,6 @@ void ParticleBase<PLayout>::globalCreate(size_t np) {
 // will be cached.
 template<class PLayout>
 void ParticleBase<PLayout>::destroy(size_t M, size_t I, bool doNow) {
-  TAU_PROFILE("ParticleBase::destroy()", 
-    "void (unsigned, unsigned, bool)", TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -547,8 +533,8 @@ void ParticleBase<PLayout>::destroy(size_t M, size_t I, bool doNow) {
 // our local, total, create particle counts properly.
 template<class PLayout>
 void ParticleBase<PLayout>::update() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleBase::update()", taustr, TAU_PARTICLE);
+   
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -564,8 +550,8 @@ void ParticleBase<PLayout>::update() {
 // our local, total, create particle counts properly.
 template<class PLayout>
 void ParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ParticleAttrib<char>)"); 
-  TAU_PROFILE("ParticleBase::update()", taustr, TAU_PARTICLE);
+   
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -581,8 +567,8 @@ void ParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {
 // does it.  This should in most cases only be called by the layout manager.
 template<class PLayout>
 void ParticleBase<PLayout>::performDestroy() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleBase::performDestroy()", taustr, TAU_PARTICLE);
+   
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -621,8 +607,8 @@ void ParticleBase<PLayout>::performDestroy() {
 // This is done immediately.
 template<class PLayout>
 void ParticleBase<PLayout>::ghostDestroy(size_t M, size_t I) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned, unsigned)"); 
-  TAU_PROFILE("ParticleBase::ghostDestroy()", taustr, TAU_PARTICLE);
+   
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -646,8 +632,6 @@ void ParticleBase<PLayout>::ghostDestroy(size_t M, size_t I) {
 template<class PLayout>
 size_t
 ParticleBase<PLayout>::ghostPutMessage(Message &msg, size_t M, size_t I) {
-  TAU_PROFILE("ParticleBase::ghostPutMessage()", 
-	      "unsigned (Message, unsigned, unsigned)", TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -684,8 +668,6 @@ template<class PLayout>
 size_t
 ParticleBase<PLayout>::ghostPutMessage(Message &msg,
 				       const std::vector<size_t>& pl) {
-  TAU_PROFILE("ParticleBase::ghostPutMessage()", 
-	      "unsigned (Message, std::vector<unsigned>)", TAU_PARTICLE);
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -710,8 +692,8 @@ ParticleBase<PLayout>::ghostPutMessage(Message &msg,
 template<class PLayout>
 size_t
 ParticleBase<PLayout>::ghostGetMessage(Message& msg, int node) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " unsigned (Message, int)"); 
-  TAU_PROFILE("ParticleBase::ghostGetMessage()", taustr, TAU_PARTICLE);
+   
+  
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -770,8 +752,8 @@ void ParticleBase<PLayout>::sort(SortList_t &sortlist) {
 // print it out
 template<class PLayout>
 std::ostream& operator<<(std::ostream& out, const ParticleBase<PLayout>& P) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(P) + " )" ); 
-  TAU_PROFILE("operator<<()", taustr, TAU_PARTICLE | TAU_IO);
+   
+  
   out << "Particle object contents:";
   out << "\n  Total particles: " << P.getTotalNum();
   out << "\n  Local particles: " << P.getLocalNum();
@@ -785,7 +767,7 @@ std::ostream& operator<<(std::ostream& out, const ParticleBase<PLayout>& P) {
 // print out debugging information
 template<class PLayout>
 void ParticleBase<PLayout>::printDebug(Inform& o) {
-  TAU_PROFILE("printDebug()", "void (Inform)", TAU_PARTICLE | TAU_IO);
+  
   o << "PBase: total = " << getTotalNum() << ", local = " << getLocalNum();
   o << ", attributes = " << AttribList.size() << endl;
   for (attrib_container_t::size_type i=0; i < AttribList.size(); ++i) {

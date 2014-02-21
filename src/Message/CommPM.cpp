@@ -27,7 +27,7 @@
 #include "Message/CommPM.h"
 #include "Message/Message.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 // include mpi header file
 #include <mpi.h>
@@ -78,7 +78,7 @@ static pmCtx pm_network;
 CommPM::CommPM(int& argc , char**& argv, int procs)
         : Communicate(argc, argv, procs)
 {
-    TAU_PROFILE("CommPM::CommPM()", "void (int, char **, int)", TAU_MESSAGE);
+    
     int i, reported, rep_host, ierror, result_len;
     MPI_Status stat;
     char *currtok, *nexttok, *execname;
@@ -134,7 +134,7 @@ CommPM::CommPM(int& argc , char**& argv, int procs)
         for (i = 1; i < TotalNodes; i++)
         {
             MPI_Send(&myHost, 1, MPI_INT, i, COMM_HOSTS_TAG, MPI_COMM_WORLD);
-            TAU_TRACE_SENDMSG(COMM_HOSTS_TAG, i, 1*size_of_MPI_INT);
+            
         }
 
         // wait for the spawned processes to report back that they're ready
@@ -147,7 +147,7 @@ CommPM::CommPM(int& argc , char**& argv, int procs)
         {
             ierror = MPI_Recv(&rep_host, 1, MPI_INT, MPI_ANY_SOURCE,
                               COMM_HOSTS_TAG, MPI_COMM_WORLD, &stat);
-            TAU_TRACE_RECVMSG(COMM_HOSTS_TAG, stat.MPI_SOURCE, 1*size_of_MPI_INT);
+            
             if (rep_host >= 0 && rep_host < TotalNodes && !(child_ready[rep_host]))
             {
                 child_ready[rep_host] = 1;
@@ -184,13 +184,13 @@ CommPM::CommPM(int& argc , char**& argv, int procs)
         int checknode;
         MPI_Recv(&checknode, 1, MPI_INT, 0, COMM_HOSTS_TAG, MPI_COMM_WORLD,
                  &stat);
-        TAU_TRACE_RECVMSG(COMM_HOSTS_TAG, 0, 1*size_of_MPI_INT);
+        
         if (checknode != 0)
             WARNMSG("CommPM: Child received bad message during startup." << endl);
 
         // send back an acknowledgement
         MPI_Send(&myHost, 1, MPI_INT, 0, COMM_HOSTS_TAG, MPI_COMM_WORLD);
-        TAU_TRACE_SENDMSG(COMM_HOSTS_TAG, 0, 1*size_of_MPI_INT);
+        
     }
 
     // set up the contexts and processes arrays properly
@@ -212,7 +212,7 @@ CommPM::CommPM(int& argc , char**& argv, int procs)
 // class destructor
 CommPM::~CommPM(void)
 {
-    TAU_PROFILE("CommPM::~CommPM()", "void()", TAU_MESSAGE);
+    
     int i, dieCode = 0;
     MPI_Status stat;
 
@@ -246,14 +246,14 @@ CommPM::~CommPM(void)
         for (i = 1; i < TotalNodes; i++)
         {
             MPI_Send(&dieCode, 1, MPI_INT, i, COMM_DIE_TAG, MPI_COMM_WORLD);
-            TAU_TRACE_SENDMSG(COMM_DIE_TAG, i, 1*size_of_MPI_INT);
+            
         }
     }
     else
     {
         // on client nodes, receive message
         MPI_Recv(&dieCode, 1, MPI_INT, 0, COMM_DIE_TAG, MPI_COMM_WORLD, &stat);
-        TAU_TRACE_RECVMSG(COMM_DIE_TAG, 0, 1*size_of_MPI_INT);
+        
     }
 
     // release sub-network
@@ -283,8 +283,6 @@ struct PM_Message
 //              item N data     (various)
 void *CommPM::pack_message(Message *msg, int tag, int &buffsize)
 {
-    TAU_PROFILE("CommPM::pack_message()", "(Message *, int, int)",
-                TAU_MESSAGE);
     // calculate size of buffer
     buffsize = find_msg_length(*msg);
 
@@ -306,8 +304,6 @@ void *CommPM::pack_message(Message *msg, int tag, int &buffsize)
 // tag is in the data sent between nodes.  Return success.
 bool CommPM::mysend(Message *msg, int node, int tag, int etag)
 {
-    TAU_PROFILE("CommPM::mysend()", "bool (Message *, int, int, int)",
-                TAU_MESSAGE);
 
     int nerr = 0;
 
@@ -384,7 +380,7 @@ int CommPM::pickup_message(void)
     else
     {
         // a message is received, unpack it
-        TAU_TRACE_RECVMSG(rec_tag, src_node, rec_size);
+        
         src_node = msgbuf->node;
         // rec_tag = msgbuf->tag;
         rec_size = length - sizeof(PM_Message);
@@ -420,7 +416,7 @@ int CommPM::pickup_message(void)
 // If tag = COMM_ANY_TAG, checks for messages with any user tag.
 Message *CommPM::myreceive(int& node, int& tag, int etag)
 {
-    TAU_PROFILE("CommPM::myreceive()", "Message *(int, int, int)", TAU_MESSAGE);
+    
     int error;
     PM_Message* msgbuf;
     int length;
@@ -445,7 +441,7 @@ Message *CommPM::myreceive(int& node, int& tag, int etag)
     else
     {
         // a message is received, unpack it
-        TAU_TRACE_RECVMSG(rec_tag, src_node, rec_size);
+        
         src_node = msgbuf->node;
         rec_tag = msgbuf->tag;
         rec_size = length - sizeof(PM_Message);
@@ -470,7 +466,7 @@ Message *CommPM::myreceive(int& node, int& tag, int etag)
 // Uses MPI barrier for all procs
 void CommPM::mybarrier(void)
 {
-    TAU_PROFILE("CommPM::mybarrier()", "void ()", TAU_MESSAGE);
+    
 
     MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -480,7 +476,7 @@ void CommPM::mybarrier(void)
 // clean up after a Message has been used (called by Message).
 void CommPM::cleanupMessage(void *d)
 {
-    TAU_PROFILE("CommPM::cleanupMessage()", "void (void *)", TAU_MESSAGE);
+    
 
     // need to free the allocated storage
     freebuffer(d);

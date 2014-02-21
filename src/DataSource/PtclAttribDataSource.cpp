@@ -27,7 +27,7 @@
 #include "DataSource/PtclAttribDataSource.h"
 #include "DataSource/PtclBaseDataSource.h"
 #include "Utility/Pstring.h"
-#include "Profile/Profiler.h"
+
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -35,10 +35,6 @@
 ParticleAttribDataSource::ParticleAttribDataSource(const char *nm,
         DataConnect *dc, int tm, ParticleAttribBase *pa, DataSource *ds)
   : DataSourceObject(nm, ds, dc, tm) {
-
-  TAU_PROFILE("ParticleAttribDataSource::ParticleAttribDataSource()", 
-    "void (char *, DataConnect *, int, ParticleAttribBase *, DataSource *)",
-    TAU_VIZ);
 
   // find a particlebase object which contains this attribute; if none
   // found, it is an error

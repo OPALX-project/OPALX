@@ -34,7 +34,7 @@
 #include "Field/LField.h"
 #include "Field/Assign.h"
 #include "Field/AssignDefs.h"
-#include "Profile/Profiler.h"
+
 #include "Utility/IpplInfo.h"
 
 
@@ -42,9 +42,6 @@
 // assign an arbitrary expression to a SubBareField, with aligned Fields
 template<class T1, unsigned Dim, class S, class RHS, class OP>
 void assign(SubBareField<T1,Dim,S> a, RHS b, OP op, ExprTag<true>) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + ", " + CT(b) + ", " + CT(op) 
-		  + ", ExprTag<true> )" );
-  TAU_PROFILE("assign()", taustr, TAU_SUBFIELD | TAU_ASSIGN);
 
   // Get the object wrapped in the PETE expression object
   typename RHS::Wrapped& bb = b.PETE_unwrap();

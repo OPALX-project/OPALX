@@ -25,7 +25,7 @@
 
 // include files
 #include "Utility/FieldDebugPrint.h"
-#include "Profile/Profiler.h"
+
 #include "Field/BrickExpression.h"
 #include "Field/GuardCellSizes.h"
 #include "Utility/IpplInfo.h"
@@ -88,10 +88,6 @@ void FieldDebugPrint<T,Dim>::print(BareField<T,Dim>& F,
 				   const NDIndex<Dim>& view,
 				   Inform& out,
                                    bool allnodes) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(F) + ", " + CT(view) +
-		  ", " + CT(out) + ", " + CT(allnodes) + " )");
-  TAU_PROFILE("FieldDebugPrint::print()", taustr,
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // a debug Inform object
   FDPDBG(Inform dbgmsg("FieldDebugPrint", INFORM_ALL_NODES));

@@ -28,7 +28,7 @@
 #include "Index/IndexedSIndex.h"
 #include "FieldLayout/FieldLayout.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 
 
@@ -37,7 +37,7 @@
 // before any other actions are carried out with this SIndex
 template<unsigned int Dim>
 SIndex<Dim>::SIndex() : Layout(0) {
-  TAU_PROFILE("SIndex::SIndex()", typeid(*this).name(), TAU_SPARSE);
+  
 }
 
 
@@ -45,8 +45,8 @@ SIndex<Dim>::SIndex() : Layout(0) {
 // constructor: requires a FieldLayout, and optionally an offset amount
 template<unsigned int Dim>
 SIndex<Dim>::SIndex(FieldLayout<Dim>& fl) : Layout(&fl) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(fl) + " )");
-  TAU_PROFILE("SIndex::SIndex()", taustr, TAU_SPARSE);
+  
+  
 
   setup();
 }
@@ -59,8 +59,8 @@ SIndex<Dim>::SIndex(const SIndex<Dim>& si)
   : Layout(si.Layout), Offset(si.Offset), IndexList(si.IndexList),
     BoundingBox(si.BoundingBox)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(si) + " )");
-  TAU_PROFILE("SIndex::SIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // check in as a user of this Layout
   Layout->checkin(*this);
@@ -76,8 +76,8 @@ SIndex<Dim>::SIndex(const SIndex<Dim>& si, const SOffset<Dim>& so)
   : Layout(si.Layout), Offset(si.Offset), IndexList(si.IndexList),
     BoundingBox(si.BoundingBox)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(si) + ", " + CT(so) + " )");
-  TAU_PROFILE("SIndex::SIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // add in the extra offset amount
   Offset += so;
@@ -96,8 +96,8 @@ SIndex<Dim>::SIndex(const SIndex<Dim>& si, const int *so)
   : Layout(si.Layout), Offset(si.Offset), IndexList(si.IndexList),
     BoundingBox(si.BoundingBox)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(si) + ", " + CT(so) + " )");
-  TAU_PROFILE("SIndex::SIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // add in the extra offset amount
   Offset += so;
@@ -111,7 +111,7 @@ SIndex<Dim>::SIndex(const SIndex<Dim>& si, const int *so)
 // destructor: frees memory used to store indices, and check out from Layout
 template<unsigned int Dim>
 SIndex<Dim>::~SIndex() {
-  TAU_PROFILE("SIndex::~SIndex()", typeid(*this).name(), TAU_SPARSE);
+  
   if (Layout != 0)
     Layout->checkout(*this);
 }
@@ -122,8 +122,8 @@ SIndex<Dim>::~SIndex() {
 // constructor
 template<unsigned int Dim>
 void SIndex<Dim>::initialize(FieldLayout<Dim>& fl) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(fl) + " )");
-  TAU_PROFILE("SIndex::initialize()", taustr, TAU_SPARSE);
+  
+  
 
   Layout = &fl;
   setup();
@@ -135,7 +135,7 @@ void SIndex<Dim>::initialize(FieldLayout<Dim>& fl) {
 // the Layout and Offset have been set.
 template<unsigned int Dim>
 void SIndex<Dim>::setup() {
-  TAU_PROFILE("SIndex::setup()", typeid(*this).name(), TAU_SPARSE);
+  
 
   // check in as a user of the FieldLayout
   Layout->checkin(*this);
@@ -158,8 +158,8 @@ void SIndex<Dim>::setup() {
 // return success (this can fail if the point is outsize the field's domain)
 template<unsigned int Dim>
 bool SIndex<Dim>::addIndex(const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(so) + " )");
-  TAU_PROFILE("SIndex::addIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // right now, this is straightforward: try to add to each LSIndex in
   // succession until one actually works
@@ -181,8 +181,8 @@ bool SIndex<Dim>::addIndex(const SOffset<Dim>& so) {
 template<unsigned int Dim>
 bool SIndex<Dim>::addIndex(SIndex<Dim>::iterator_iv& curr,
 			   const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(curr) + ", " + CT(so) + " )");
-  TAU_PROFILE("SIndex::addIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // if the point is in the LField's region, add it
   if ((*curr)->contains(so) && ! (*curr)->hasIndex(so)) {
@@ -202,8 +202,8 @@ bool SIndex<Dim>::addIndex(SIndex<Dim>::iterator_iv& curr,
 // 6 points in total will be added to this SIndex).
 template<unsigned int Dim>
 void SIndex<Dim>::addIndex(const NDIndex<Dim>& constndi) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(constndi) + " )");
-  TAU_PROFILE("SIndex::addIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // cast away const; we are not modifying the NDIndex, so this should be ok
   NDIndex<Dim>& ndi((NDIndex<Dim> &)constndi);
@@ -241,8 +241,8 @@ void SIndex<Dim>::addIndex(const NDIndex<Dim>& constndi) {
 // return success (this can fail if the point is outsize the field's domain)
 template<unsigned int Dim>
 bool SIndex<Dim>::removeIndex(const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(so) + " )");
-  TAU_PROFILE("SIndex::removeIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // right now, this is straightforward: try to add to each LSIndex in
   // succession until one actually works
@@ -262,8 +262,8 @@ bool SIndex<Dim>::removeIndex(const SOffset<Dim>& so) {
 template<unsigned int Dim>
 bool SIndex<Dim>::removeIndex(SIndex<Dim>::iterator_iv& curr,
 			   const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(curr) + ", " + CT(so) + " )");
-  TAU_PROFILE("SIndex::removeIndex()", taustr, TAU_SPARSE);
+  
+  
   if ((*curr)->hasIndex(so)) {
     (*curr).CopyForWrite();
     (*curr)->removeIndex(so);
@@ -279,8 +279,8 @@ bool SIndex<Dim>::removeIndex(SIndex<Dim>::iterator_iv& curr,
 // 6 points in total will be added to this SIndex).
 template<unsigned int Dim>
 void SIndex<Dim>::removeIndex(const NDIndex<Dim>& constndi) {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(constndi) + " )");
-  TAU_PROFILE("SIndex::removeIndex()", taustr, TAU_SPARSE);
+  
+  
 
   // cast away const; we are not modifying the NDIndex, so this should be ok
   NDIndex<Dim>& ndi((NDIndex<Dim> &)constndi);
@@ -332,7 +332,7 @@ void SIndex<Dim>::reserve(double fraction) {
 // clear out the existing indices
 template<unsigned int Dim>
 void SIndex<Dim>::clear() {
-  TAU_PROFILE("SIndex::clear()", "void ()", TAU_SPARSE);
+  
 
   // tell all LSIndex objects to remove their points
   for (iterator_iv a = begin_iv(); a != end_iv(); ++a) {
@@ -346,8 +346,8 @@ void SIndex<Dim>::clear() {
 // return whether the given point is contained here
 template<unsigned int Dim>
 bool SIndex<Dim>::hasIndex(const SOffset<Dim>& so) const {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(so) + " )");
-  TAU_PROFILE("SIndex::hasIndex()", taustr, TAU_SPARSE);
+  
+  
 
   for (const_iterator_iv a = begin_iv(); a != end_iv(); ++a)
     if ((*a)->hasIndex(so))
@@ -361,8 +361,8 @@ bool SIndex<Dim>::hasIndex(const SOffset<Dim>& so) const {
 // NOTE: this right now only works properly when the layout's match
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator=(const SIndex<Dim>& si) {
-  TAU_TYPE_STRING(taustr, CT(si) +  " (" + CT(si) + " )");
-  TAU_PROFILE("SIndex::operator=()", taustr, TAU_SPARSE);
+  
+  
 
   if (&si != this) {
     // copy the offset and layout, checking ourselves in if necessary
@@ -390,8 +390,8 @@ SIndex<Dim>& SIndex<Dim>::operator=(const SIndex<Dim>& si) {
 // with just the one point.
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator=(const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(so) + " )");
-  TAU_PROFILE("SIndex::operator=()", taustr, TAU_SPARSE);
+  
+  
 
   // put in the single point
   clear();
@@ -409,8 +409,8 @@ SIndex<Dim>& SIndex<Dim>::operator=(const SOffset<Dim>& so) {
 // will be added.
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator=(const NDIndex<Dim>& ndi) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(ndi) + " )");
-  TAU_PROFILE("SIndex::operator=()", taustr, TAU_SPARSE);
+  
+  
 
   // put in all the points from the NDIndex
   clear();
@@ -428,8 +428,8 @@ SIndex<Dim>& SIndex<Dim>::operator=(const NDIndex<Dim>& ndi) {
 // NOTE: this right now only works properly when the layout's match
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator&=(const SIndex<Dim>& si) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(si) + " )");
-  TAU_PROFILE("SIndex::operator&=()", taustr, TAU_SPARSE);
+  
+  
 
   if (&si != this) {
     // for all our own points, only keep those which are in the other one
@@ -462,8 +462,8 @@ SIndex<Dim>& SIndex<Dim>::operator&=(const SIndex<Dim>& si) {
 // intersection operator, with another SOffset object.
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator&=(const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(so) + " )");
-  TAU_PROFILE("SIndex::operator&=()", taustr, TAU_SPARSE);
+  
+  
 
   bool found = hasIndex(so);
   clear();
@@ -479,8 +479,8 @@ SIndex<Dim>& SIndex<Dim>::operator&=(const SOffset<Dim>& so) {
 // intersection operator, with the points in an NDIndex
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator&=(const NDIndex<Dim>& ndi) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(ndi) + " )");
-  TAU_PROFILE("SIndex::operator&=()", taustr, TAU_SPARSE);
+  
+  
 
   // for all our own points, only keep those which are in the other one
   SIndex<Dim> newval(*Layout);
@@ -512,8 +512,8 @@ SIndex<Dim>& SIndex<Dim>::operator&=(const NDIndex<Dim>& ndi) {
 // NOTE: this right now only works properly when the layout's match.
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator|=(const SIndex<Dim>& si) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(si) + " )");
-  TAU_PROFILE("SIndex::operator|=()", taustr, TAU_SPARSE);
+  
+  
 
   if (&si != this) {
     const_iterator_iv a  = si.begin_iv();
@@ -539,8 +539,8 @@ SIndex<Dim>& SIndex<Dim>::operator|=(const SIndex<Dim>& si) {
 // append the point if it is not already present.
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator|=(const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(so) + " )");
-  TAU_PROFILE("SIndex::operator|=()", taustr, TAU_SPARSE);
+  
+  
 
   addIndex(so);
 
@@ -556,8 +556,8 @@ SIndex<Dim>& SIndex<Dim>::operator|=(const SOffset<Dim>& so) {
 // points in the NDIndex object
 template<unsigned int Dim>
 SIndex<Dim>& SIndex<Dim>::operator|=(const NDIndex<Dim>& ndi) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(ndi) + " )");
-  TAU_PROFILE("SIndex::operator|=()", taustr, TAU_SPARSE);
+  
+  
 
   addIndex(ndi);
 
@@ -574,8 +574,8 @@ SIndex<Dim>& SIndex<Dim>::operator|=(const NDIndex<Dim>& ndi) {
 // nicer syntax.  That is, si(1,1) means  si + SOffset<Dim>(1,1)
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(int i0) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (int)");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
 
   CTAssert(Dim==1);
   return SIndex(*this, SOffset<Dim>(i0));
@@ -583,16 +583,16 @@ SIndex<Dim> SIndex<Dim>::operator()(int i0) {
 
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (int, int)");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
   CTAssert(Dim==2);
   return SIndex(*this, SOffset<Dim>(i0,i1));
 }
 
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (int, int, int)");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
 
   CTAssert(Dim==3);
   return SIndex(*this, SOffset<Dim>(i0,i1,i2));
@@ -600,8 +600,8 @@ SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2) {
 
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2, int i3) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (int, int, int, int)");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
 
   CTAssert(Dim==4);
   return SIndex(*this, SOffset<Dim>(i0,i1,i2,i3));
@@ -609,8 +609,8 @@ SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2, int i3) {
 
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2, int i3, int i4) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (int, int, int, int, int)");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
 
   CTAssert(Dim==5);
   return SIndex(*this, SOffset<Dim>(i0,i1,i2,i3,i4));
@@ -619,8 +619,8 @@ SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2, int i3, int i4) {
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2, int i3, int i4,
 				    int i5) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (int, int, int, int, int, int)");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
 
   CTAssert(Dim==6);
   return SIndex(*this, SOffset<Dim>(i0,i1,i2,i3,i4,i5));
@@ -628,16 +628,16 @@ SIndex<Dim> SIndex<Dim>::operator()(int i0, int i1, int i2, int i3, int i4,
 
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(const SOffset<Dim>& so) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " ("  + CT(so) + " )");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
 
   return SIndex(*this, so);
 }
 
 template<unsigned int Dim>
 SIndex<Dim> SIndex<Dim>::operator()(const int *so) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " ("  + CT(so) + " )");
-  TAU_PROFILE("SIndex::operator()", taustr, TAU_SPARSE);
+  
+  
 
   return SIndex(*this, SOffset<Dim>(so));
 }
@@ -650,8 +650,8 @@ SIndex<Dim> SIndex<Dim>::operator()(const int *so) {
 // of Index objects are being applied
 template<unsigned int Dim>
 IndexedSIndex<Dim,1> SIndex<Dim>::operator[](const Index &i) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (Index)");
-  TAU_PROFILE("SIndex::operator[]", taustr, TAU_SPARSE);
+  
+  
 
   CTAssert(Dim >= 1);
   NDIndex<Dim> dom;
@@ -665,8 +665,8 @@ IndexedSIndex<Dim,1> SIndex<Dim>::operator[](const Index &i) {
 // convert from the given SOffset value to an NDIndex, with offset added
 template<unsigned int Dim>
 void SIndex<Dim>::toNDIndex(const SOffset<Dim>& val, NDIndex<Dim>& NDI) {
-  TAU_TYPE_STRING(taustr, "void ("  + CT(val) + ", " + CT(NDI) + " )");
-  TAU_PROFILE("SIndex::toNDIndex()", taustr, TAU_SPARSE);
+  
+  
 
   for (unsigned int d=0; d < Dim; ++d) {
     int m = val[d] + Offset[d];
@@ -679,8 +679,8 @@ void SIndex<Dim>::toNDIndex(const SOffset<Dim>& val, NDIndex<Dim>& NDI) {
 // return the total size, which is the sum of the individual sizes
 template<unsigned int Dim>
 typename SIndex<Dim>::size_type_iv SIndex<Dim>::size() const {
-  TAU_TYPE_STRING(taustr, CT(*this) + " ()");
-  TAU_PROFILE("SIndex::size", taustr, TAU_SPARSE);
+  
+  
 
   size_type_iv retval = 0;
   for (const_iterator_iv a = begin_iv(); a != end_iv(); ++a)
@@ -696,8 +696,8 @@ typename SIndex<Dim>::size_type_iv SIndex<Dim>::size() const {
 // their proper nodes.
 template<unsigned int Dim>
 void SIndex<Dim>::setFieldLayout(FieldLayout<Dim>& fl) {
-  TAU_TYPE_STRING(taustr, "void ("  + CT(fl) + " )");
-  TAU_PROFILE("SIndex::setFieldLayout()", taustr, TAU_SPARSE);
+  
+  
 
   // create a new, empty SIndex
   SIndex<Dim> newindx(fl, Offset);
@@ -714,8 +714,8 @@ void SIndex<Dim>::setFieldLayout(FieldLayout<Dim>& fl) {
 // Repartition onto a new layout
 template<unsigned int Dim>
 void SIndex<Dim>::Repartition(UserList *userlist) {
-  TAU_TYPE_STRING(taustr, "void ("  + CT(userlist) + " )");
-  TAU_PROFILE("SIndex::Repartition()", taustr, TAU_SPARSE);
+  
+  
 
   if (Layout != 0 && userlist->getUserListID() == Layout->get_Id()) {
     // it is indeed our layout which is being repartitioned.  The easiest
@@ -730,8 +730,8 @@ void SIndex<Dim>::Repartition(UserList *userlist) {
 // Tell this object that an object is being deleted
 template<unsigned int Dim>
 void SIndex<Dim>::notifyUserOfDelete(UserList *userlist) {
-  TAU_TYPE_STRING(taustr, "void ("  + CT(userlist) + " )");
-  TAU_PROFILE("SIndex::notifyUserOfDelete()", taustr, TAU_SPARSE);
+  
+  
 
   if (Layout != 0 && userlist->getUserListID() == Layout->get_Id())
     Layout = 0;
@@ -742,8 +742,8 @@ void SIndex<Dim>::notifyUserOfDelete(UserList *userlist) {
 // write contents to given ostream
 template<unsigned int Dim>
 std::ostream& operator<<(std::ostream& o, const SIndex<Dim>& si) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, "  + CT(si) + " )");
-  TAU_PROFILE("SIndex::operator<<()", taustr, TAU_SPARSE | TAU_IO);
+  
+  
 
   o << "vnodes = " << si.size_iv();
   o << ", offset = " << si.getOffset();
@@ -765,7 +765,7 @@ std::ostream& operator<<(std::ostream& o, const SIndex<Dim>& si) {
 // print out debugging info
 template<unsigned int Dim>
 void SIndex<Dim>::printDebug(Inform& o) const {
-  TAU_PROFILE("SIndex::printDebug()", "void (Inform)", TAU_SPARSE);
+  
 
   o << *this << endl;
 }

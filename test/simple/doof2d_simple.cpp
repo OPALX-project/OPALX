@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 {
   Ippl ippl(argc,argv);
 
-  TAU_PROFILE("void", "main", TAU_DEFAULT);
+  
 
   int sizeX, sizeY, iterations;
 

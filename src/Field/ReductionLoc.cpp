@@ -96,9 +96,6 @@ Reduction(const PETE_Expr<T>& const_expr,
 	  AccOp  acc_op,
 	  NDIndex<D>& loc)
 {
-  TAU_TYPE_STRING(taustr, "T::PETE_Return_t (" + CT(const_expr) + ", " + CT(acc_op) 
-    + ", " + CT(loc) + " )" );
-  TAU_PROFILE("Reduction()", taustr, TAU_FIELD);
   
   // Extract the expression. 
   typename T::PETE_Expr_t expr ( const_expr.PETE_unwrap().MakeExpression() );

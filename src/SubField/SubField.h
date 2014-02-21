@@ -58,8 +58,8 @@ public:
   operator[](const S2& s) {
     // create a new instance of the resulting subset object
     typename SubFieldTraits<T,Dim,S,S2>::Return_t newdomain;
-    TAU_TYPE_STRING(taustr, CT(newdomain) + " (" + CT(s) + " )" );
-    TAU_PROFILE("SubBareField::operator[]()", taustr, TAU_SUBFIELD);
+    
+    
 
     // make sure we can subset by the number of dimensions requested, then
     // combine the current subset value with the new one
@@ -98,9 +98,7 @@ public:
   template<class B>
   SubField<T,Dim,M,C,S>&
   operator=(const PETE_Expr<B> &b) {
-    TAU_TYPE_STRING(taustr, CT(*this) +  " (" + CT(b) + " )" );
-    TAU_PROFILE("SubBareField::operator=()", taustr, 
-		TAU_SUBFIELD | TAU_ASSIGN);
+
     assign(*this, b);
     return *this;
   }

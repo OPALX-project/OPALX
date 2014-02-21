@@ -30,7 +30,7 @@
 #include "Message/Communicate.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/Pstring.h"
-#include "Profile/Profiler.h"
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -43,8 +43,8 @@ FileFieldDataSource<T,Dim,M,C>::FileFieldDataSource(const char *nm,
 						    Field<T,Dim,M,C>& F)
   : DataSourceObject(nm,&F,dc,tm), DF(0), myField(F), FieldID(0), counter(0) {
 
-  TAU_TYPE_STRING(taustr, "void (char *, DataConnect *, int, " + CT(F) + " )");
-  TAU_PROFILE("FileFieldDataSource::FileFieldDataSource()", taustr, TAU_VIZ);
+  
+  
 
   std::string filestring = "file";
   if (std::string(dc->DSID()) != filestring) {
@@ -84,8 +84,8 @@ FileFieldDataSource<T,Dim,M,C>::FileFieldDataSource(const char *nm,
 // destructor
 template<class T, unsigned Dim, class M, class C>
 FileFieldDataSource<T,Dim,M,C>::~FileFieldDataSource() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("FileFieldDataSource::~FileFieldDataSource()", taustr, TAU_VIZ);
+  
+  
 
   if (DF != 0 && getConnection()->size() == 0)
     delete DF;
@@ -97,8 +97,8 @@ FileFieldDataSource<T,Dim,M,C>::~FileFieldDataSource() {
 // current and consistent snapshot of the current stat dc->name()e.  Return success.
 template<class T, unsigned Dim, class M, class C>
 bool FileFieldDataSource<T,Dim,M,C>::update() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("FileFieldDataSource::update()", taustr, TAU_VIZ);
+  
+  
 
   if (TransferMethod == DataSource::OUTPUT)
     DF->write(myField, FieldID);

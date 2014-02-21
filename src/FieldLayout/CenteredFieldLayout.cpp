@@ -29,7 +29,7 @@
 #include "Meshes/Centering.h"
 #include "Meshes/CartesianCentering.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 //=============================================================================
 // Helper global functions:
@@ -263,10 +263,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag *p, 
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", e_dim_tag *, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim<=Mesh::Dimension,
     "CenteredFieldLayout dimension cannot be greater than Mesh dimension!!");
@@ -281,10 +277,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, 
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" 
-		  + CT(mesh) + ", e_dim_tag, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==1,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -298,10 +290,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, 
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", e_dim_tag, e_dim_tag, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==2,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -317,10 +305,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, 
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", e_dim_tag, e_dim_tag, e_dim_tag, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==3,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -336,11 +320,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, e_dim_tag p4,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, "
-		  + "int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==4,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -357,11 +336,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p5,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" + CT(mesh) 
-		  + ", e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, "
-		  + "int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==5,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -378,12 +352,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p5, e_dim_tag p6,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) 
-		  + ", e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, "
-		  + "e_dim_tag, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr, 
-	      TAU_LAYOUT);
 
   PInsist(Dim==6,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -410,10 +378,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    bool recurse,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", e_dim_tag *, unsigned *, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim<=Mesh::Dimension,
     "CenteredFieldLayout dimension cannot be greater than Mesh dimension!!");
@@ -428,10 +392,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    bool recurse,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" 
-		  + CT(mesh) + ", e_dim_tag, unsigned, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==1,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -447,11 +407,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    bool recurse,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", e_dim_tag, e_dim_tag, unsigned, unsigned, "
-		  + "int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==2,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -471,12 +426,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    bool recurse,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) 
-		  + ", e_dim_tag, e_dim_tag, e_dim_tag, "
-		  + "unsigned, unsigned, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==3,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -497,11 +446,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    bool recurse,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, "
-		  + "unsigned, unsigned, unsigned, unsigned, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==4,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -524,12 +468,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    bool recurse,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) 
-		  + ", e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, "
-		  + "unsigned, unsigned, unsigned, unsigned, unsigned, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr
-	      , TAU_LAYOUT);
 
   PInsist(Dim==5,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -552,14 +490,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    bool recurse,
 		    int vnodes)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) 
-		  + ", e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, "
-		  + "e_dim_tag, "
-		  + "unsigned, unsigned, unsigned, unsigned, unsigned, "
-		  + "unsigned, int)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr, 
-	      TAU_LAYOUT);
 
   PInsist(Dim==6,
     "Number of arguments does not match dimension of CenteredFieldLayout!!");
@@ -585,10 +515,6 @@ CenteredFieldLayout(Mesh& mesh,
 		    const int *nbegin,
 		    const int *nend)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" 
-		  + CT(mesh) + ", NDIndex *, NDIndex *, int *, int *)");
-  TAU_PROFILE("CenteredFieldLayout::CenteredFieldLayout()", taustr, 
-	      TAU_LAYOUT);
 
   centeredInitialize(*this, mesh, dombegin, domend, nbegin, nend);
 }

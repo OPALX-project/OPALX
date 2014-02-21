@@ -62,7 +62,7 @@ const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
 
 int main(int argc, char *argv[]){
-  TAU_PROFILE("main()", "int (int, char **)", TAU_DEFAULT);
+  
   unsigned int len;
   int i, it;
 

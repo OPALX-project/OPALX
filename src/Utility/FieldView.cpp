@@ -31,7 +31,7 @@
 #include "Field/Field.h"
 #include "Field/LField.h"
 #include "Message/Message.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_GDL
 #include <gdl.h>
@@ -48,10 +48,7 @@ FieldView<T,Dim,Mesh,Centering>::FieldView(Field<T,Dim,Mesh,Centering>& f,
 					   unsigned parent) : 
   MyField(f), SliceDim(0),ScaleX(scaleX), ScaleY(scaleY), 
   MinSizeX(minSizeX), MinSizeY(minSizeY), Parent(parent) 
-{
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) 
-    + ", unsigned, unsigned, unsigned, unsigned, unsigned )" );
-  TAU_PROFILE("FieldView::FieldView()", taustr, TAU_UTILITY | TAU_FIELD);
+{ 
 
 #ifdef IPPL_GDL
   if (Ippl::Comm->myNode() == Parent) {
@@ -84,9 +81,6 @@ FieldView<T,Dim,Mesh,Centering>::FieldView(unsigned sliceDim,
   MyField(f), SliceDim(sliceDim),ScaleX(scaleX), ScaleY(scaleY), 
   MinSizeX(minSizeX), MinSizeY(minSizeY), Parent(parent) 
 {
-  TAU_TYPE_STRING(taustr, "void (unsigned, " + CT(f) 
-    + ", unsigned, unsigned, unsigned, unsigned, unsigned )" );
-  TAU_PROFILE("FieldView::FieldView()", taustr, TAU_UTILITY | TAU_FIELD);
 
 #ifdef IPPL_GDL
   if (Ippl::Comm->myNode() == Parent) {
@@ -114,8 +108,8 @@ FieldView<T,Dim,Mesh,Centering>::FieldView(unsigned sliceDim,
 template<class T, unsigned Dim, class Mesh, class Centering >
 FieldView<T,Dim,Mesh,Centering>::~FieldView() 
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("FieldView::FieldView()", taustr, TAU_UTILITY | TAU_FIELD);
+  
+  
 #ifdef IPPL_GDL
   delete MyLField; 
   delete [] MapX;
@@ -128,8 +122,8 @@ FieldView<T,Dim,Mesh,Centering>::~FieldView()
 template<class T, unsigned Dim, class Mesh, class Centering >
 void FieldView<T,Dim,Mesh,Centering>::void_view(int &r) 
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (int )" );
-  TAU_PROFILE("FieldView::void_view()", taustr, TAU_UTILITY | TAU_FIELD);
+  
+  
 #ifdef IPPL_GDL
   update_2D_data();
   /* only 0 should do apply map */
@@ -144,8 +138,8 @@ void FieldView<T,Dim,Mesh,Centering>::void_view(int &r)
 template<class T, unsigned Dim, class Mesh, class Centering >
 void FieldView<T,Dim,Mesh,Centering>::void_view(unsigned slice, int &r) 
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned, int )" );
-  TAU_PROFILE("FieldView::void_view()", taustr, TAU_UTILITY | TAU_FIELD);
+  
+  
 
 #ifdef IPPL_GDL
   update_3D_data(slice);
@@ -161,9 +155,6 @@ void FieldView<T,Dim,Mesh,Centering>::void_view(unsigned slice, int &r)
 template<class T, unsigned Dim, class Mesh, class Centering >
 void FieldView<T,Dim,Mesh,Centering>::void_apply_map(int &r)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (int )" );
-  TAU_PROFILE("FieldView::void_apply_map()", taustr, 
-    TAU_UTILITY | TAU_FIELD);
 
 #ifdef IPPL_GDL
   int icount = 0;
@@ -188,9 +179,6 @@ template<class T, unsigned Dim, class Mesh, class Centering >
 void 
 FieldView<T,Dim,Mesh,Centering>::update_2D_data(void) 
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("FieldView::update_2D_data()", taustr, 
-    TAU_UTILITY | TAU_FIELD);
 
 #ifdef IPPL_GDL
   int tag = Ippl::Comm->next_tag( FV_2D_TAG, FV_TAG_CYCLE );
@@ -253,9 +241,6 @@ template<class T, unsigned Dim, class Mesh, class Centering >
 void 
 FieldView<T,Dim,Mesh,Centering>::update_3D_data(unsigned slice) 
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned )" );
-  TAU_PROFILE("FieldView::update_3D_data()", taustr, 
-    TAU_UTILITY | TAU_FIELD);
 
 #ifdef IPPL_GDL
   Inform testmsg("FieldView");
@@ -374,8 +359,8 @@ template<class T, unsigned Dim, class Mesh, class Centering >
 void 
 FieldView<T,Dim,Mesh,Centering>::init_map(void) 
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void()" );
-  TAU_PROFILE("FieldView::init_map()", taustr, TAU_UTILITY | TAU_FIELD);
+  
+  
 #ifdef IPPL_GDL
   int i,j;
 

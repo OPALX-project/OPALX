@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 // include files
-#include "Profile/Profiler.h"
+
 #include "Utility/FieldDebugFunctions.h"
 
 // forward class declarations
@@ -38,7 +38,7 @@ Inform* FldDbgInform;           // Pointer to active Inform object
 bool FldDbgInformIsSet = false; // Flags whether pointer is set
 void 
 setInform(Inform& inform) {
-  TAU_PROFILE("setInform", "void (Inform&)", TAU_UTILITY);
+  
   FldDbgInform = &inform;
   FldDbgInformIsSet = true;
 }
@@ -55,7 +55,7 @@ int widthOfElements = 0;
 void 
 setFormat(int ElementsPerLine, int DigitsPastDecimal, 
 	       int WidthOfElements) {
-  TAU_PROFILE("setFormat", "void (int, int)", TAU_UTILITY);
+  
   elementsPerLine = ElementsPerLine;
   digitsPastDecimal = DigitsPastDecimal;
   widthOfElements = WidthOfElements;

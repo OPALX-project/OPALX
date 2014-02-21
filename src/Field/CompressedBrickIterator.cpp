@@ -26,7 +26,7 @@
 // include files
 #include "Field/CompressedBrickIterator.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -41,9 +41,6 @@ template<class T, unsigned Dim>
 CompressedBrickIterator<T,Dim>::
 CompressedBrickIterator(const NDIndex<Dim>& o, T& compressed)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(o) + ", " + CT(compressed) + " )" );
-  TAU_PROFILE("CompressedBrickIterator::CompressedBrickIterator()", taustr,
-              TAU_FIELD);
 
   // Point to the single data element.
   BrickIterator<T,Dim>::Current = CompressedData = &compressed;
@@ -101,9 +98,7 @@ all_values_equal( const CompressedBrickIterator<T,Dim>& iter, T val,
 		  CompressedLoopTag<1,true> )
 		  //mwerks		  CompressedLoopTag<1> )
 {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(iter) + ", " + CT(val) 
-    + ", CompressedLoopTag<1> )" );
-  TAU_PROFILE("all_values_equal()", taustr, TAU_FIELD);
+  
   // Loop over all the elements.
   int n = iter.size(0);
   for (int i=0; i<n; ++i)
@@ -125,9 +120,7 @@ all_values_equal( const CompressedBrickIterator<T,Dim>& iter, T val ,
 		  CompressedLoopTag<2,true> )
   //mwerks		  CompressedLoopTag<2> )
 {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(iter) + ", " + CT(val) 
-    + ", CompressedLoopTag<2> )" );
-  TAU_PROFILE("all_values_equal()", taustr, TAU_FIELD);
+  
   // Loop over all of the elements.
   int n0 = iter.size(0);
   int n1 = iter.size(1);
@@ -155,9 +148,7 @@ all_values_equal( const CompressedBrickIterator<T,Dim>& iter, T val ,
 		  CompressedLoopTag<3,true> )
   //mwerks		  CompressedLoopTag<3> )
 {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(iter) + ", " + CT(val) 
-    + ", CompressedLoopTag<3> )" );
-  TAU_PROFILE("all_values_equal()", taustr, TAU_FIELD);
+  
   // Loop over all of the elements.
   int n0 = iter.size(0);
   int n1 = iter.size(1);
@@ -186,9 +177,7 @@ inline bool
 all_values_equal(CompressedBrickIterator<T,Dim1> iter, T val,
 		 CompressedLoopTag<Dim2,false>)
 {
-  TAU_TYPE_STRING(taustr, "bool (" + CT(iter) + ", " + CT(val) 
-    + ", CompressedLoopTag<Dim2,false> )" );
-  TAU_PROFILE("all_values_equal()", taustr, TAU_FIELD);
+  
   // Loop over the outermost dimension.
   int n = iter.size(Dim2-1);
   for (int i=0; i<n; ++i)
@@ -216,8 +205,8 @@ all_values_equal(CompressedBrickIterator<T,Dim1> iter, T val,
 template<class T, unsigned Dim>
 bool CompressedBrickIterator<T,Dim>::CanCompress(const T& val) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (" + CT(val) + " )" );
-  TAU_PROFILE("CompressedBrickIterator::CanCompress()", taustr, TAU_FIELD);
+  
+  
   if ( IsCompressed() )
     return *CompressedData == val;
   else
@@ -238,9 +227,6 @@ bool CompressedBrickIterator<T,Dim>::CanCompress(const T& val) const
 template<class T, unsigned Dim>
 Message& CompressedBrickIterator<T,Dim>::putMessage(Message& m, bool makecopy)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " Message (Message )" );
-  TAU_PROFILE("CompressedBrickIterator::putMessage()", taustr,
-              TAU_FIELD|TAU_MESSAGE);
 
   // Add in flag indicating if we're compressed.  Put it in as an integer.
   int compressed = (IsCompressed() ? 1 : 0);
@@ -266,9 +252,6 @@ Message& CompressedBrickIterator<T,Dim>::putMessage(Message& m, bool makecopy)
 template<class T, unsigned Dim>
 Message& CompressedBrickIterator<T,Dim>::getMessage(Message& m)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " Message (Message )" );
-  TAU_PROFILE("CompressedBrickIterator::getMessage()",taustr,
-              TAU_FIELD|TAU_MESSAGE);
   // Inform msg("CBI::getMessage", INFORM_ALL_NODES);
   int compressed;
   m.get(compressed);
@@ -303,12 +286,7 @@ CompressedBrickIterator<T,D2>
 permute(const CompressedBrickIterator<T,D1>& iter,
 	const NDIndex<D1>& current, const NDIndex<D2>& perm)
 {
-#if (defined(PROFILING_ON) || defined(TRACING_ON))
-  static CompressedBrickIterator<T,D2>* tautmp;
-#endif
-  TAU_TYPE_STRING(taustr, CT(*tautmp) + " (" + CT(iter) + ", " + CT(current) +
-                          ", " + CT(perm) + ")");
-  TAU_PROFILE("permute()", taustr, TAU_FIELD);
+  
   unsigned int d1, d2;
 
 #ifdef IPPL_DEBUG
@@ -381,9 +359,7 @@ const CompressedBrickIterator<T,Dim>&
 CompressedBrickIterator<T,Dim>::
 operator=(const CompressedBrickIterator<T,Dim>& rhs)
 {
-  TAU_TYPE_STRING(taustr, CT(rhs) + " (" + CT(rhs) + " )" ); 
-  TAU_PROFILE("CompressedBrickIterator::operator=()", taustr, 
-    TAU_FIELD | TAU_ASSIGN);
+   
   if ( this != &rhs )
     {
       *(dynamic_cast<BrickIterator<T,Dim>*>(this)) = rhs;
@@ -399,9 +375,7 @@ CompressedBrickIterator<T,Dim>::
 CompressedBrickIterator(const CompressedBrickIterator<T,Dim>& X)
   : BrickIterator<T,Dim>(X), CompressedData(X.CompressedData)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(X) + " )" ); 
-  TAU_PROFILE("CompressedBrickIterator::CompressedBrickIterator()", taustr, 
-    TAU_FIELD);
+   
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -418,8 +392,8 @@ template<class T, unsigned Dim>
 void 
 CompressedBrickIterator<T,Dim>::Compress(T& val)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(val) + " )" );
-  TAU_PROFILE("CompressedBrickIterator::Compress()", taustr, TAU_FIELD);
+  
+  
   // Inform msg("CBI::Compress", INFORM_ALL_NODES);
   // msg << "Before storing value " << val << ": ";
   // msg << "CompressedData = " << (void *)CompressedData;
@@ -444,8 +418,8 @@ template<class T, unsigned Dim>
 bool 
 CompressedBrickIterator<T,Dim>::TryCompress(T val)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (" + CT(val) + " )" );
-  TAU_PROFILE("CompressedBrickIterator::TryCompress()", taustr, TAU_FIELD);
+  
+  
   // Inform msg("CBI::TryCompress", INFORM_ALL_NODES);
   // msg << "Trying to compress to value " << val;
   // msg << " : IsCompressed = " << IsCompressed() << endl;

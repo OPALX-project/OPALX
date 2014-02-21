@@ -28,7 +28,7 @@
 #include "Utility/RefCounted.h"
 #include "Field/LField.h"
 #include "FieldLayout/Vnode.h"
-#include "Profile/Profiler.h"
+
 
 
 
@@ -43,8 +43,8 @@ void
 DomainMap<Key,T,Touches,Contains,Split>::insert(const value_type& d,
 						bool noSplit)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (value_type)"); 
-  TAU_PROFILE("DomainMap::insert()", taustr, TAU_DOMAINMAP);
+   
+  
 
   // Tell the tree top to insert.
   Root->insert(d, noSplit);
@@ -62,8 +62,8 @@ template < class Key , class T , class Touches, class Contains, class Split >
 void
 DomainMap<Key,T,Touches,Contains,Split>::update_leftmost()
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("DomainMap::update_leftmost()", taustr, TAU_DOMAINMAP);
+   
+  
 
   Node *p=Root;
   // First dive all the way left.
@@ -102,9 +102,6 @@ std::pair<typename DomainMap<Key,T,Touches,Contains,Split>::touch_iterator,
           typename DomainMap<Key,T,Touches,Contains,Split>::touch_iterator>
 DomainMap<Key,T,Touches,Contains,Split>::touch_range(const Key& t) const
 { 
-  TAU_TYPE_STRING(taustr, "pair<" + CT(*this)
-    + "::touch_iterator, " + CT(*this) + "::touch_iterator > (Key) "); 
-  TAU_PROFILE("DomainMap::iterator::op_pp()", taustr, TAU_DOMAINMAP);
 
   typedef std::pair<touch_iterator,touch_iterator> ret_pair;
   Node *p=Root;
@@ -159,8 +156,8 @@ DomainMap<Key,T,Touches,Contains,Split>::
 DomainMap(const DomainMap<Key,T,Touches,Contains,Split>& a)
 : Root( new Node(a.Root->MyDomain) ), Size(0)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + ")"); 
-  TAU_PROFILE("DomainMap::DomainMap()", taustr, TAU_DOMAINMAP);
+   
+  
 
   for (iterator p=a.begin(); p!=a.end(); ++p)
     insert_noupdate( *p );
@@ -172,8 +169,8 @@ void
 DomainMap<Key,T,Touches,Contains,Split>::
 operator=(const DomainMap<Key,T,Touches,Contains,Split>& a)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + ")" ); 
-  TAU_PROFILE("DomainMap::operator=()", taustr, TAU_DOMAINMAP);
+   
+  
 
   if ( this != &a ) {
     // Clean out the current contents.

@@ -25,7 +25,7 @@
 
 // include files
 #include "Utility/vmap.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_STDSTL
 #include <algorithm>
@@ -42,8 +42,8 @@ template<class Key, class T, class Compare>
 vmap<Key,T,Compare>::vmap( const vmap<Key,T,Compare>& x_ac )
   : Lt(x_ac.Lt)			// Copy the comparison object.
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(x_ac) + " )" );
-  TAU_PROFILE("vmap::vmap()", taustr, TAU_UTILITY );
+  
+  
   V_c = x_ac.V_c;		// Copy the vector of data.
 }
 
@@ -56,8 +56,8 @@ template<class Key, class T, class Compare>
 vmap<Key,T,Compare>&
 vmap<Key,T,Compare>::operator=( const vmap<Key,T,Compare>& x_ac )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(x_ac) + " )" );
-  TAU_PROFILE("vmap::operator=()", taustr, TAU_UTILITY );
+  
+  
   Lt = x_ac.Lt;			// Copy the comparison object.
   V_c = x_ac.V_c;		// Copy the vector of data.
   return *this;
@@ -79,8 +79,8 @@ std::pair<typename vmap<Key,T,Compare>::iterator,bool>
 vmap<Key,T,Compare>::insert(const value_type& value)
 {
   iterator f_i;
-  TAU_TYPE_STRING(taustr, "pair<" + CT(f_i) + ", bool> (value_type )" );
-  TAU_PROFILE("vmap::insert()", taustr, TAU_UTILITY );
+  
+  
 
   bool success;
   f_i = lower_bound( value.first );            // Look for it.
@@ -117,8 +117,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::iterator
 vmap<Key,T,Compare>::insert(iterator hint_i, const value_type& value)
 {
-    TAU_TYPE_STRING(taustr, CT(hint_i) + " (" + CT(hint_i) + ", value_type )" );
-    TAU_PROFILE("vmap::insert()", taustr, TAU_UTILITY );
+    
+    
     iterator low_i = begin();	// The bounds for the search range
     iterator high_i = end();	// to find where to really put it.
     if ( hint_i == high_i ) {	// Is the hint to append?
@@ -150,8 +150,8 @@ template<class Key, class T, class Compare>
 void
 vmap<Key,T,Compare>::insert(const value_type *first_i,const value_type *last_i)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "void (value_type, value_type )" );
-  TAU_PROFILE("vmap::insert()", taustr, TAU_UTILITY );
+  
+  
   for (; first_i != last_i; ++first_i)
     insert( end() , *first_i );
 }
@@ -170,8 +170,8 @@ template<class Key, class T, class Compare>
 void
 vmap<Key,T,Compare>::erase(iterator p_i)
 {
-  TAU_TYPE_STRING(taustr, " void (" + CT(p_i) + " )" );
-  TAU_PROFILE("vmap::erase()", taustr, TAU_UTILITY );
+  
+  
   V_c.erase(p_i);
 }
 
@@ -183,8 +183,8 @@ template<class Key, class T, class Compare>
 void
 vmap<Key,T,Compare>::erase(iterator first_i, iterator last_i)
 {
-  TAU_TYPE_STRING(taustr, " void (" + CT(first_i) + ", " + CT(last_i) + " )" );
-  TAU_PROFILE("vmap::erase()", taustr, TAU_UTILITY );
+  
+  
   V_c.erase(first_i, last_i);
 }
 
@@ -197,8 +197,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::size_type
 vmap<Key,T,Compare>::erase(const key_type& key)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::size_type (key_type )" );
-  TAU_PROFILE("vmap::erase()", taustr, TAU_UTILITY );
+  
+  
   std::pair<iterator,iterator> range( equal_range(key) );
   erase(range.first, range.second);
   return range.second - range.first;
@@ -219,8 +219,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::iterator
 vmap<Key,T,Compare>::find(const key_type& key)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::iterator (key_type )" );
-  TAU_PROFILE("vmap::find()", taustr, TAU_UTILITY );
+  
+  
   iterator f_i = lower_bound(key); // Look for it.
   if ( f_i == end() )		   // Are we at the end?
     return end();		   //   Yes, don't try to deref.
@@ -241,8 +241,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::iterator
 vmap<Key,T,Compare>::lower_bound(const key_type& key)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::iterator (key_type )" );
-  TAU_PROFILE("vmap::lower_bound()", taustr, TAU_UTILITY );
+  
+  
   return std::lower_bound(begin(),end(),value_type(key,T()),value_compare(Lt));
 }
 
@@ -256,8 +256,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::iterator
 vmap<Key,T,Compare>::upper_bound(const key_type& key)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::iterator (key_type )" );
-  TAU_PROFILE("vmap::upper_bound()", taustr, TAU_UTILITY );
+  
+  
   return std::upper_bound(begin(),end(),value_type(key,T()),value_compare(Lt));
 }
 
@@ -270,9 +270,7 @@ std::pair<typename vmap<Key,T,Compare>::iterator,
           typename vmap<Key,T,Compare>::iterator>
 vmap<Key,T,Compare>::equal_range(const key_type& key)
 {
-  TAU_TYPE_STRING(taustr, "pair<" + CT(*this) + "::iterator, " + CT(*this) 
-    + "::iterator> (key_type )" );
-  TAU_PROFILE("vmap::equal_range()", taustr, TAU_UTILITY );
+  
   return std::equal_range(begin(),end(),value_type(key,T()),value_compare(Lt));
 }
 
@@ -285,8 +283,8 @@ template<class Key, class T, class Compare>
 T&
 vmap<Key,T,Compare>::operator[](const key_type& key)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " T (key_type )" );
-  TAU_PROFILE("vmap::operator[]()", taustr, TAU_UTILITY );
+  
+  
   size_type n;			// We will need to calculate the offset.
   iterator f_i;			// Pointer to the data we find.
   if ( V_c.empty() )		// Is there anything here?
@@ -320,8 +318,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::size_type
 vmap<Key,T,Compare>::count(const key_type& key) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::size_type (key_type )" );
-  TAU_PROFILE("vmap::count()", taustr, TAU_UTILITY );
+  
+  
   std::pair<const_iterator,const_iterator>
     range( equal_range(key) );	     // Find the bounds.
   return range.second - range.first; // Difference to get the count.
@@ -336,8 +334,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::const_iterator
 vmap<Key,T,Compare>::find(const key_type& key) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::const_iterator (key_type )" );
-  TAU_PROFILE("vmap::find()", taustr, TAU_UTILITY );
+  
+  
   const_iterator f_i = lower_bound(key); // Look for it.
   // BFH: Ge -> Le
   if ( Le((*f_i).first , key ))	         // Did you find it?
@@ -356,8 +354,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::const_iterator
 vmap<Key,T,Compare>::lower_bound(const key_type& key) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::const_iterator (key_type )" );
-  TAU_PROFILE("vmap::lower_bound()", taustr, TAU_UTILITY );
+  
+  
   return std::lower_bound(begin(),end(),value_type(key,T()),value_compare(Lt));
 }
 
@@ -371,8 +369,8 @@ template<class Key, class T, class Compare>
 typename vmap<Key,T,Compare>::const_iterator
 vmap<Key,T,Compare>::upper_bound(const key_type& key) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::const_iterator (key_type )" );
-  TAU_PROFILE("vmap::upper_bound()", taustr, TAU_UTILITY );
+  
+  
   return std::upper_bound(begin(),end(),value_type(key,T()),value_compare(Lt));
 }
 
@@ -385,9 +383,7 @@ std::pair<typename vmap<Key,T,Compare>::const_iterator,
           typename vmap<Key,T,Compare>::const_iterator>
 vmap<Key,T,Compare>::equal_range(const key_type& key) const
 {
-  TAU_TYPE_STRING(taustr, "pair<" + CT(*this) + "::const_iterator, " 
-    + CT(*this) + "::const_iterator> (key_type )" );
-  TAU_PROFILE("vmap::equal_range()", taustr, TAU_UTILITY );
+  
   return std::equal_range(begin(),end(),value_type(key,T()),value_compare(Lt));
 }
 
@@ -401,8 +397,8 @@ template<class Key, class T, class Compare>
 const T&
 vmap<Key,T,Compare>::operator[](const key_type& key) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " T (key_type )" );
-  TAU_PROFILE("vmap::operator[]()", taustr, TAU_UTILITY );
+  
+  
   const_iterator f_i = lower_bound(key);   // Search the whole range.
   return (*f_i).second;		     // Return what you found.
 }

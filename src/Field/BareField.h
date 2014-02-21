@@ -442,8 +442,8 @@ template< class T, unsigned Dim >
 inline
 std::ostream& operator<<(std::ostream& out, const BareField<T,Dim>& a)
 {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(a) + " )" );
-  TAU_PROFILE("operator<<()", taustr, TAU_FIELD | TAU_IO);
+  
+  
 
   BareField<T,Dim>& nca = const_cast<BareField<T,Dim>&>(a);
   nca.write(out);

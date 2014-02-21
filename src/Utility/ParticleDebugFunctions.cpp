@@ -26,7 +26,7 @@
 // described in ParticleDebugFunctions.cpp.
 
 // include files
-#include "Profile/Profiler.h"
+
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/ParticleDebugFunctions.h"
@@ -41,7 +41,7 @@
 Inform* PtclDbgInform;           // Pointer to active Inform object
 bool PtclDbgInformIsSet = false; // Flags whether pointer is set
 void setPtclDbgInform(Inform& inform) {
-  TAU_PROFILE("setPtclDbgInform", "void (Inform&)", TAU_UTILITY);
+  
   PtclDbgInform = &inform;
   PtclDbgInformIsSet = true;
 }

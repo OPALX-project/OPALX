@@ -31,7 +31,7 @@
 #include "Message/Message.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/Pstring.h"
-#include "Profile/Profiler.h"
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -41,12 +41,6 @@ ACLVISParticleAttribDataSource<T>::ACLVISParticleAttribDataSource(const
 								  char *nm,
       DataConnect *dc, int tm, ParticleAttrib<T>& pa)
   : ParticleAttribDataSource(nm, dc, tm, &pa, &pa), MyParticles(pa) {
-
-  TAU_TYPE_STRING(taustr, "void (char *, DataConnect *, int, " +
-		  CT(pa));
-  TAU_PROFILE(
-    "ACLVISParticleAttribDataSource::ACLVISParticleAttribDataSource()",
-    taustr, TAU_VIZ);
 
   // do general initialization
   LocalData = 0;
@@ -84,10 +78,6 @@ ACLVISParticleAttribDataSource<T>::ACLVISParticleAttribDataSource(const
 template<class T>
 ACLVISParticleAttribDataSource<T>::~ACLVISParticleAttribDataSource() {
 
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("ACLVISParticleAttribDataSource::~ACLVISParticleAttribDataSource()", 
-    taustr, TAU_VIZ);
-
   // disassociate ourselves from the ParticleBase container
   if (PBase != 0)
     PBase->disconnect_attrib(this);
@@ -107,8 +97,8 @@ ACLVISParticleAttribDataSource<T>::~ACLVISParticleAttribDataSource() {
 // DataConnect object).
 template<class T>
 bool ACLVISParticleAttribDataSource<T>::update() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool ()");
-  TAU_PROFILE("ACLVISParticleAttribDataSource::update()", taustr, TAU_VIZ);
+  
+  
 
   // just return, the user should do an update for the ParticleBase
   return true;
@@ -121,8 +111,8 @@ bool ACLVISParticleAttribDataSource<T>::update() {
 // This should only return when the manipulation is done.
 template<class T>
 void ACLVISParticleAttribDataSource<T>::interact(const char *str) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("ACLVISParticleAttribDataSource::interact()", taustr, TAU_VIZ);
+  
+  
 
   // hand off control to ACLVIS API
   if (PBase != 0)
@@ -135,8 +125,8 @@ void ACLVISParticleAttribDataSource<T>::interact(const char *str) {
 template<class T>
 void ACLVISParticleAttribDataSource<T>::putMessage(Message *msg) {
 
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (Message *)");
-  TAU_PROFILE("ACLVISParticleAttribDataSource::putMessage()", taustr, TAU_VIZ);
+  
+  
 
   unsigned N = MyParticles.size();
 
@@ -160,8 +150,8 @@ void ACLVISParticleAttribDataSource<T>::putMessage(Message *msg) {
 //            # of particles to prepare for.
 template<class T>
 void ACLVISParticleAttribDataSource<T>::prepare_data(bool start, unsigned N) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (bool, unsigned)");
-  TAU_PROFILE("ACLVISParticleAttribDataSource::prepare_data()", taustr, TAU_VIZ);
+  
+  
 
   if (start) {
     // reallocate new storage for the attribute and coordinate data
@@ -183,8 +173,8 @@ void ACLVISParticleAttribDataSource<T>::prepare_data(bool start, unsigned N) {
 template<class T>
 void ACLVISParticleAttribDataSource<T>::insert_data(unsigned N,unsigned sIndx,
 						    Message* msg) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned, unsigned, Message *)");
-  TAU_PROFILE("ACLVISParticleAttribDataSource::insert_data()", taustr, TAU_VIZ);
+  
+  
 
   // maximum index for the data
   unsigned maxIndx = sIndx + N;

@@ -26,15 +26,15 @@
 // include files
 #include "Particle/ParticleLayout.h"
 #include "Particle/ParticleBConds.h"
-#include "Profile/Profiler.h"
+
 
 
 /////////////////////////////////////////////////////////////////////
 // constructor
 template<class T, unsigned Dim>
 ParticleLayout<T, Dim>::ParticleLayout() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-  TAU_PROFILE("ParticleLayout::ParticleLayout()", taustr, TAU_PARTICLE);
+   
+  
   setUpdateFlag(ALL, true);
 }
 

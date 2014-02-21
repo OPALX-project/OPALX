@@ -28,7 +28,7 @@
 #include "Field/Field.h"
 #include "Message/Communicate.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -54,8 +54,8 @@ FieldDataSource<T,Dim,M,C>::~FieldDataSource() {
 // draw all the data together onto the Parent process
 template<class T, unsigned Dim, class M, class C >
 void FieldDataSource<T,Dim,M,C>::gather_data(void) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("FieldDataSource::gather_data()", taustr, TAU_VIZ);
+  
+  
 
   // the tag used to send data, my node, and total number of nodes
   int n, tag = Ippl::Comm->next_tag(DS_FIELD_TAG, DS_CYCLE);

@@ -16,7 +16,7 @@
 
 
 void report(const char *str, bool result) {
-  TAU_PROFILE("report()", "void (const char *, bool)", TAU_DEFAULT); 
+   
   Inform msg("Results", INFORM_ALL_NODES);
   msg << "Test " << str << ": ";
   msg << (result ? "PASSED" : "FAILED") << endl;
@@ -24,7 +24,7 @@ void report(const char *str, bool result) {
 
 
 int main(int argc, char *argv[]) {
-  TAU_PROFILE("main()", "int (int, char **)", TAU_DEFAULT);
+  
   Ippl ippl(argc, argv);
 
   Message *msg;

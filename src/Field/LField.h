@@ -282,8 +282,8 @@ template<class T, unsigned Dim>
 inline
 std::ostream& operator<<(std::ostream& out, const LField<T,Dim>& a)
 {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(a) + " )" );
-  TAU_PROFILE("operator<<()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   a.write(out);
   return out;
 }

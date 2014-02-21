@@ -31,7 +31,7 @@
 #include "Field/LField.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -39,8 +39,8 @@
 // current number
 template<class T, unsigned int Dim, class S>
 bool SubBareField<T,Dim,S>::checkAddBrackets(unsigned int B) {
-  TAU_TYPE_STRING(taustr, CT(*this) + "bool (unsigned int)" );
-  TAU_PROFILE("SubBareField::checkAddBrackets()", taustr, TAU_SUBFIELD);
+  
+  
 
   if ((Brackets + B) > Dim) {
     ERRORMSG("Too many dimensions indexed in SubBareField: ");
@@ -57,8 +57,8 @@ bool SubBareField<T,Dim,S>::checkAddBrackets(unsigned int B) {
 template<class T, unsigned int Dim, class S>
 SubBareField<T,Dim,S>&
 SubBareField<T,Dim,S>::operator=(const SubBareField<T,Dim,S> &t) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(t) + " )" );
-  TAU_PROFILE("SubBareField::operator=()", taustr, TAU_SUBFIELD | TAU_ASSIGN);
+  
+  
   assign(*this, t);
   return *this;
 }
@@ -69,8 +69,8 @@ SubBareField<T,Dim,S>::operator=(const SubBareField<T,Dim,S> &t) {
 template<class T, unsigned int Dim, class S>
 SubBareField<T,Dim,S>&
 SubBareField<T,Dim,S>::operator=(T t) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(t) + " )" );
-  TAU_PROFILE("SubBareField::operator=()", taustr, TAU_SUBFIELD | TAU_ASSIGN);
+  
+  
   assign(*this, t);
   return *this;
 }
@@ -81,8 +81,8 @@ SubBareField<T,Dim,S>::operator=(T t) {
 // node owns the value must broadcast it to the other nodes.
 template<class T, unsigned int Dim, class S>
 void SubBareField<T,Dim,S>::get(T& r) {
-  TAU_TYPE_STRING(taustr, CT(*this) + "void (" + CT(r) + " )" );
-  TAU_PROFILE("SubBareField::get()", taustr, TAU_SUBFIELD );
+  
+  
   // make sure we have a properly bracketed object
   PAssert(checkBrackets());
 
@@ -99,16 +99,16 @@ void SubBareField<T,Dim,S>::get(T& r) {
 // Return the beginning and end iterators for this class.
 template<class T, unsigned int Dim, class S>
 typename SubBareField<T,Dim,S>::iterator SubBareField<T,Dim,S>::begin() const {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::iterator ()" );
-  TAU_PROFILE("SubBareField::begin()", taustr, TAU_SUBFIELD );
+  
+  
 
   return iterator(A, A.begin_if(), MyDomain, Brackets);
 }
 
 template<class T, unsigned int Dim, class S>
 typename SubBareField<T,Dim,S>::iterator SubBareField<T,Dim,S>::end() const {
-  TAU_TYPE_STRING(taustr, CT(*this) + "::iterator ()" );
-  TAU_PROFILE("SubBareField::end()", taustr, TAU_SUBFIELD );
+  
+  
 
   return iterator(A, A.end_if(), MyDomain, Brackets);
 }
@@ -118,8 +118,8 @@ typename SubBareField<T,Dim,S>::iterator SubBareField<T,Dim,S>::end() const {
 // write this subfield to the given ostream
 template<class T, unsigned int Dim, class S>
 void SubBareField<T,Dim,S>::write(std::ostream& o) {
-  TAU_TYPE_STRING(taustr, CT(*this) + "void (ostream)" );
-  TAU_PROFILE("SubBareField::write()", taustr, TAU_SUBFIELD | TAU_IO );
+  
+  
   // make sure we have the right number of brackets
   PAssert(Dim == Brackets);
 

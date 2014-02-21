@@ -29,7 +29,7 @@
 #include "Utility/DiscMeta.h"
 #include "Field/BrickIterator.h"
 #include "Message/Tags.h"
-#include "Profile/Profiler.h"
+
 #include "Utility/PAssert.h"
 #include "Utility/IpplStats.h"
 #include <cstring>
@@ -52,10 +52,7 @@
 template <unsigned Dim>
 DiscField<Dim>::DiscField(const char* base, const char* config,
 			  unsigned int numFields, const char* typestr) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  
-		  " void (char *, char *, unsigned int, char *)" );
-  TAU_PROFILE("DiscField::DiscField()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+
   initialize(base, config, typestr, numFields);
 }
 
@@ -67,9 +64,7 @@ DiscField<Dim>::DiscField(const char* base, const char* config,
 template <unsigned Dim>
 DiscField<Dim>::DiscField(const char* base, unsigned int numFields,
 			  const char* typestr) {
-  TAU_TYPE_STRING(taustr,CT(*this) +  " void (char *, unsigned int, char *)" );
-  TAU_PROFILE("DiscField::DiscField()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+
   initialize(base, 0, typestr, numFields);
 }
 
@@ -80,9 +75,7 @@ DiscField<Dim>::DiscField(const char* base, unsigned int numFields,
 // config = name of configuration file
 template <unsigned Dim>
 DiscField<Dim>::DiscField(const char* base, const char* config) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (char *, char *)" );
-  TAU_PROFILE("DiscField::DiscField()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
   initialize(base, config, 0, 0);
 }
 
@@ -93,9 +86,7 @@ DiscField<Dim>::DiscField(const char* base, const char* config) {
 // each SMP machine, assume the directory to put data files in is "."
 template <unsigned Dim>
 DiscField<Dim>::DiscField(const char* base) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (char * )" );
-  TAU_PROFILE("DiscField::DiscField()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+
   initialize(base, 0, 0, 0);
 }
 
@@ -105,10 +96,6 @@ DiscField<Dim>::DiscField(const char* base) {
 template <unsigned Dim>
 void DiscField<Dim>::initialize(const char *base, const char *config,
 				const char *typestr, unsigned int numFields) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  
-		  " void (char *, char *, char *, unsigned int )" );
-  TAU_PROFILE("DiscField::initialize()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // save string data
   BaseFile = base;
@@ -158,9 +145,6 @@ void DiscField<Dim>::initialize(const char *base, const char *config,
 // Destructor
 template <unsigned Dim>
 DiscField<Dim>::~DiscField() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void ()" );
-  TAU_PROFILE("DiscField::~DiscField()", taustr, 
-    TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // delete per-record vnode information
   if (NumVnodes != 0)
@@ -180,9 +164,7 @@ DiscField<Dim>::~DiscField() {
 template <unsigned Dim>
 void DiscField<Dim>::query(int& numRecords, int& numFields,
 			   std::vector<int>& size) const {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (int, int, std::vector<int> )" );
-  TAU_PROFILE("DiscField::query()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+
   numRecords = NumRecords;
   numFields = NumFields;
   if (numFiles() > 0 && myBox0() == Ippl::myNode()) {
@@ -200,9 +182,7 @@ void DiscField<Dim>::query(int& numRecords, int& numFields,
 // and return 0.
 template <unsigned Dim>
 FILE* DiscField<Dim>::open_df_file(const std::string& fnm, const std::string& mode) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " FILE * (string, string)" );
-  TAU_PROFILE("DiscField::open_df_file()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
   FILE *f = fopen(fnm.c_str(), mode.c_str());
   if (f == 0) {
     ERRORMSG("DiscField: Could not open file '" << fnm.c_str());
@@ -285,10 +265,6 @@ int DiscField<Dim>::open_df_file_fd(const std::string& fnm, const std::string& s
 template <unsigned Dim>
 FILE* DiscField<Dim>::open_df_file(const std::string& fnm, const std::string& suf,
 				   const std::string& mode) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  
-		  " FILE * (string, string, string)" );
-  TAU_PROFILE("DiscField::open_df_file()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   std::string fnamebuf("");
   if (fnm.length() > 0)
@@ -322,9 +298,7 @@ FILE* DiscField<Dim>::open_df_file(const std::string& fnm, const std::string& su
 // create the data files used to store Field data.  Return success.
 template <unsigned Dim>
 bool DiscField<Dim>::create_files() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool ()" );
-  TAU_PROFILE("DiscField::create_files()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
 
   FILE *f;
   std::string om("w");
@@ -370,10 +344,7 @@ bool DiscField<Dim>::create_files() {
 // success.
 template <unsigned Dim>
 bool DiscField<Dim>::make_globalID(FieldLayout<Dim>& layout) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool (" + CT(layout) + " )" );
-  TAU_PROFILE("DiscField::make_globalID()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
-
+  
   // check layout to make sure it's valid
   if (Size.size() != 0 && !(Size == layout.getDomain()))
     return false;
@@ -443,9 +414,6 @@ bool DiscField<Dim>::make_globalID(FieldLayout<Dim>& layout) {
 // This is mostly handled by the DiscConfig class.  Return success.
 template <unsigned Dim>
 bool DiscField<Dim>::parse_config(const char *fname, bool writing) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool (char *, bool)" );
-  TAU_PROFILE("DiscField::parse_config()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // create a DiscConfig instance, which will parse the file on some of
   // the nodes and distribute the information to all the other nodes.
@@ -490,9 +458,6 @@ void DiscField<Dim>::printDebug() { printDebug(std::cout); }
 
 template <unsigned Dim>
 void DiscField<Dim>::printDebug(std::ostream& outmsg) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (ostream )" );
-  TAU_PROFILE("DiscField::printDebug()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   Inform msg("DiscField", outmsg, INFORM_ALL_NODES);
 
@@ -523,9 +488,6 @@ void DiscField<Dim>::printDebug(std::ostream& outmsg) {
 // return success of operation.
 template <unsigned Dim>
 bool DiscField<Dim>::write_meta() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool ()" );
-  TAU_PROFILE("DiscField::write_meta()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   unsigned int r, d;
 
@@ -572,9 +534,7 @@ bool DiscField<Dim>::write_meta() {
 // return success of operation.
 template <unsigned Dim>
 bool DiscField<Dim>::read_meta() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool ()" );
-  TAU_PROFILE("DiscField::read_meta()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
+
   bool iserror = false;
   int tag = Ippl::Comm->next_tag(DF_READ_META_TAG, DF_TAG_CYCLE);
 
@@ -878,9 +838,6 @@ bool DiscField<Dim>::write_NDIndex(FILE *f, const NDIndex<Dim> &ndi) {
 // return success of update
 template <unsigned Dim>
 bool DiscField<Dim>::write_layout() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool ()" );
-  TAU_PROFILE("DiscField::write_layout()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // no need to write anything if we have no files for this SMP
   if (numFiles() == 0)
@@ -920,9 +877,6 @@ bool DiscField<Dim>::write_layout() {
 // Read layout info for one file set in the given record.
 template <unsigned Dim>
 int DiscField<Dim>::read_layout(int record, int sf) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " int (int, int, int &)" );
-  TAU_PROFILE("DiscField::read_layout()", taustr,
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   DFDBG(std::string dbgmsgname("DF:read_layout:"));
   DFDBG(dbgmsgname += Config->getConfigFile());
@@ -1028,9 +982,6 @@ NDIndex<Dim> DiscField<Dim>::chunk_domain(const NDIndex<Dim> &currblock,
 					  int &msdim,
 					  bool iscompressed)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " NDIndex (NDIndex, int, int &, bool)");
-  TAU_PROFILE("DiscField::chunk_domain()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // Initialize result to the total block sizes
   NDIndex<Dim> sliceblock;

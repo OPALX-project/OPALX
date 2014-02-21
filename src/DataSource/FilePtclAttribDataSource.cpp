@@ -29,7 +29,7 @@
 #include "Utility/DiscParticle.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/Pstring.h"
-#include "Profile/Profiler.h"
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -41,10 +41,6 @@ FileParticleAttribDataSource<T>::FileParticleAttribDataSource(const char *nm,
 							      int tm,
 							  ParticleAttrib<T>& P)
   : DataSourceObject(nm,&P,dc,tm), DP(0), MyParticles(P), counter(0) {
-
-  TAU_TYPE_STRING(taustr, "void (char *, DataConnect *, int, " + CT(P) + " )");
-  TAU_PROFILE("FileParticleAttribDataSource::FileParticleAttribDataSource()",
-	      taustr, TAU_PARTICLE);
 
   std::string filestring = "file";
   if (std::string(dc->DSID()) != filestring) {
@@ -66,9 +62,6 @@ FileParticleAttribDataSource<T>::FileParticleAttribDataSource(const char *nm,
 // destructor
 template<class T>
 FileParticleAttribDataSource<T>::~FileParticleAttribDataSource() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("FileParticleAttribDataSource::~FileParticleAttribDataSource()",
-	      taustr, TAU_PARTICLE);
 
   if (DP != 0)
     delete DP;
@@ -80,9 +73,6 @@ FileParticleAttribDataSource<T>::~FileParticleAttribDataSource() {
 // current and consistent snapshot of the current state.  Return success.
 template<class T>
 bool FileParticleAttribDataSource<T>::update() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("FileParticleAttribDataSource::update()",
-	      taustr, TAU_PARTICLE);
 
   if (TransferMethod == DataSource::OUTPUT)
     return DP->write(MyParticles);

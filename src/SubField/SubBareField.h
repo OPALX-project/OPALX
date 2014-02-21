@@ -122,8 +122,8 @@ public:
   operator[](const S2& s) {
     // create a new instance of the resulting subset object
     typename SubFieldTraits<T,Dim,S,S2>::Return_t newdomain;
-    TAU_TYPE_STRING(taustr, CT(newdomain) + " (" + CT(s) + " )" );
-    TAU_PROFILE("SubBareField::operator[]()", taustr, TAU_SUBFIELD);
+    
+    
 
     // make sure we can subset by the number of dimensions requested, then
     // combine the current subset value with the new one
@@ -157,8 +157,8 @@ public:
   template<class B>
   SubBareField<T,Dim,S>&
   operator=(const PETE_Expr<B> &b) {
-    TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(b) + " )" );
-    TAU_PROFILE("SubBareField::operator=()",taustr, TAU_SUBFIELD | TAU_ASSIGN);
+    
+    
     assign(*this, b);
     return *this;
   }
@@ -216,8 +216,8 @@ public:
   // can construct them.
   template<class S2>
   SubBareField(BareField<T,Dim>& f, const S2& s) : A(f) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(s) + " )" );
-    TAU_PROFILE("SubBareField::SubBareField()", taustr, TAU_SUBFIELD);
+    
+    
     
     // initialize the subset object, to a state where it can be combined
     // with the given input data.  Then, put in data from given subset object.
@@ -232,8 +232,8 @@ public:
 template<class T, unsigned int Dim, class S>
 inline
 std::ostream& operator<<(std::ostream& o, const SubBareField<T,Dim,S>& s) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(s) + " )" );
-  TAU_PROFILE("SubBareField::operator<<()", taustr, TAU_SUBFIELD | TAU_IO );
+  
+  
   SubBareField<T,Dim,S>& ncs = const_cast<SubBareField<T,Dim,S>&>(s);
   ncs.write(o);
   return o;

@@ -30,7 +30,7 @@
 #include "Index/SIndex.h"
 #include "SubField/SubField.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 
 //=============================================================================
 // Global functions
@@ -53,8 +53,8 @@
 template<class T, unsigned Dim, class M, class C>
 inline M* makeMesh(Field<T,Dim,M,C>& f)
 { 
-  TAU_TYPE_STRING(taustr, "MeshType* (" + CT(f) + " )" );
-  TAU_PROFILE("makeMesh()", taustr, TAU_FIELD);
+  
+  
   
   NDIndex<Dim> ndi;
   ndi = f.getLayout().getDomain();
@@ -67,8 +67,8 @@ template<class T, unsigned Dim, class MFLOAT, class C>
 UniformCartesian<Dim,MFLOAT>*
 makeMesh(Field<T,Dim,UniformCartesian<Dim,MFLOAT>,C>& f)
 { 
-  TAU_TYPE_STRING(taustr, "UniformCartesian<Dim,MFLOAT>* (" + CT(f) + " )" );
-  TAU_PROFILE("makeMesh()", taustr, TAU_FIELD);
+  
+  
   
   NDIndex<Dim> ndi;
   ndi = f.getLayout().getDomain();
@@ -80,8 +80,8 @@ template<class T, unsigned Dim, class MFLOAT, class C>
 Cartesian<Dim,MFLOAT>*
 makeMesh(Field<T,Dim,Cartesian<Dim,MFLOAT>,C>& f)
 {
-  TAU_TYPE_STRING(taustr, "Cartesian<Dim,MFLOAT>* (" + CT(f) + " )" );
-  TAU_PROFILE("makeMesh()", taustr, TAU_FIELD);
+  
+  
 
   NDIndex<Dim> ndi;
   ndi = f.getLayout().getDomain();
@@ -101,8 +101,8 @@ makeMesh(Field<T,Dim,Cartesian<Dim,MFLOAT>,C>& f)
 // been properly initialized
 template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(0, true);
 }
 
@@ -111,8 +111,8 @@ Field<T,Dim,M,C>::Field() {
 // Field destructor
 template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::~Field() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("Field::~Field()", taustr, TAU_FIELD); 
+  
+   
   delete_mesh();
 }
 
@@ -124,24 +124,24 @@ Field<T,Dim,M,C>::~Field() {
 // constructor arguments for different mesh types.
 template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Layout_t & l) : BareField<T,Dim>(l) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(l) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(makeMesh(*this), true);
 }
 
 template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Layout_t & l, const GuardCellSizes<Dim>& gc)
   : BareField<T,Dim>(l,gc) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(l) + ", " + CT(gc) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(makeMesh(*this), true);
 }
 
 template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Layout_t & l, const BConds<T,Dim,M,C>& bc)
   : BareField<T,Dim>(l), Bc(bc) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + ", " + CT(bc) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(makeMesh(*this), true);
 }
 
@@ -149,8 +149,8 @@ template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Layout_t & l, const GuardCellSizes<Dim>& gc,
 			const BConds<T,Dim,M,C>& bc)
   : BareField<T,Dim>(l,gc), Bc(bc) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + ", " + CT(gc) + ", " + CT(bc) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(makeMesh(*this), true);
 }
 
@@ -158,8 +158,8 @@ template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Layout_t & l, const BConds<T,Dim,M,C>& bc,
 			const GuardCellSizes<Dim>& gc)
   : BareField<T,Dim>(l,gc), Bc(bc) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + ", " + CT(bc) + ", " + CT(gc) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(makeMesh(*this), true);
 }
 
@@ -167,8 +167,8 @@ template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(FieldSpec<T,Dim,M,C>& spec)
   : BareField<T,Dim>( (Layout_t &) spec.get_Layout(), spec.get_GC()),
     Bc(spec.get_BC()) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(spec) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(makeMesh(*this), true);
 }
 
@@ -178,8 +178,8 @@ Field<T,Dim,M,C>::Field(FieldSpec<T,Dim,M,C>& spec)
 template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Mesh_t& m, Layout_t & l)
   : BareField<T,Dim>(l) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (Mesh_t, " + CT(l) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(&m, false);
 }
 
@@ -187,9 +187,7 @@ template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Mesh_t& m, Layout_t & l,
 			const GuardCellSizes<Dim>& gc)
   : BareField<T,Dim>(l,gc) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (Mesh_t, " + CT(l) + ", " + CT(gc) 
-    + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+   
   store_mesh(&m, false);
 }
 
@@ -197,8 +195,8 @@ template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Mesh_t& m, Layout_t & l,
 			const BConds<T,Dim,M,C>& bc)
   : BareField<T,Dim>(l), Bc(bc) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(l) + ", " + CT(bc) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(&m, false);
 }
 
@@ -207,9 +205,7 @@ Field<T,Dim,M,C>::Field(Mesh_t& m, Layout_t & l,
 			const GuardCellSizes<Dim>& gc,
 			const BConds<T,Dim,M,C>& bc)
   : BareField<T,Dim>(l,gc), Bc(bc) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(l) + ", " + CT(gc) + ", " +  CT(bc) 
-    + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+   
   store_mesh(&m, false);
 }
 
@@ -218,9 +214,7 @@ Field<T,Dim,M,C>::Field(Mesh_t& m, Layout_t & l,
 			const BConds<T,Dim,M,C>& bc,
 			const GuardCellSizes<Dim>& gc)
   : BareField<T,Dim>(l,gc), Bc(bc) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(l) + ", " + CT(bc) + ", " +  CT(gc) 
-    + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+   
   store_mesh(&m, false);
 }
 
@@ -228,8 +222,8 @@ template<class T, unsigned Dim, class M, class C>
 Field<T,Dim,M,C>::Field(Mesh_t& m, FieldSpec<T,Dim,M,C>& spec)
   : BareField<T,Dim>( (Layout_t &) spec.get_Layout(), spec.get_GC()),
     Bc(spec.get_BC()) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(spec) + " )" );
-  TAU_PROFILE("Field::Field()", taustr, TAU_FIELD); 
+  
+   
   store_mesh(&m, false);
 }
 
@@ -240,8 +234,8 @@ Field<T,Dim,M,C>::Field(Mesh_t& m, FieldSpec<T,Dim,M,C>& spec)
 // a FieldLayout or FieldSpec
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Layout_t & l) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(l) + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize(l);
   store_mesh(makeMesh(*this), true);
 }
@@ -249,8 +243,8 @@ void Field<T,Dim,M,C>::initialize(Layout_t & l) {
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Layout_t & l,
 				  const GuardCellSizes<Dim>& gc) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(l) + ", " + CT(gc) +  " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize(l,gc);
   store_mesh(makeMesh(*this), true);
 }
@@ -258,8 +252,8 @@ void Field<T,Dim,M,C>::initialize(Layout_t & l,
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Layout_t & l,
 				  const BConds<T,Dim,M,C>& bc) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + ", " + CT(bc) +  " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize(l);
   Bc = bc;
   store_mesh(makeMesh(*this), true);
@@ -269,8 +263,8 @@ template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Layout_t & l,
 				  const GuardCellSizes<Dim>& gc,
 				  const BConds<T,Dim,M,C>& bc) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + ", " + CT(gc) + ", " + CT(bc) +  " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize(l,gc);
   Bc = bc;
   store_mesh(makeMesh(*this), true);
@@ -280,8 +274,8 @@ template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Layout_t & l,
 				  const BConds<T,Dim,M,C>& bc,
 				  const GuardCellSizes<Dim>& gc) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(l) + ", " + CT(bc) + ", " + CT(gc) +  " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize(l,gc);
   Bc = bc;
   store_mesh(makeMesh(*this), true);
@@ -289,8 +283,8 @@ void Field<T,Dim,M,C>::initialize(Layout_t & l,
 
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(FieldSpec<T,Dim,M,C>& spec) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(spec) + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize( (Layout_t &) spec.get_Layout(),
 				spec.get_GC());
   Bc = spec.get_BC();
@@ -302,8 +296,8 @@ void Field<T,Dim,M,C>::initialize(FieldSpec<T,Dim,M,C>& spec) {
 // Initialize the Field, also specifying a mesh
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (Mesh_t, " + CT(l) + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize(l);
   store_mesh(&m, false);
 }
@@ -311,9 +305,7 @@ void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l) {
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l,
 				  const GuardCellSizes<Dim>& gc) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (Mesh_t, " + CT(l) + ", " + CT(gc) 
-    + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+   
   BareField<T,Dim>::initialize(l,gc);
   store_mesh(&m, false);
 }
@@ -321,8 +313,8 @@ void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l,
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l,
 				  const BConds<T,Dim,M,C>& bc) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(l) + ", " + CT(bc) + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize(l);
   Bc = bc;
   store_mesh(&m, false);
@@ -332,9 +324,7 @@ template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l,
 				  const GuardCellSizes<Dim>& gc,
 				  const BConds<T,Dim,M,C>& bc) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(l) + ", " + CT(gc) + ", " +  CT(bc) 
-    + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+   
   BareField<T,Dim>::initialize(l,gc);
   Bc = bc;
   store_mesh(&m, false);
@@ -344,9 +334,7 @@ template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l,
 				  const BConds<T,Dim,M,C>& bc,
 				  const GuardCellSizes<Dim>& gc) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(l) + ", " + CT(bc) + ", " +  CT(gc) 
-    + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+   
   BareField<T,Dim>::initialize(l,gc);
   Bc = bc;
   store_mesh(&m, false);
@@ -354,8 +342,8 @@ void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l,
 
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Mesh_t& m, FieldSpec<T,Dim,M,C>& spec) {
-  TAU_TYPE_STRING(taustr, "void (Mesh_t, " + CT(spec) + " )" );
-  TAU_PROFILE("Field::initialize()", taustr, TAU_FIELD); 
+  
+   
   BareField<T,Dim>::initialize( (Layout_t &) spec.get_Layout(),
 				spec.get_GC());
   Bc = spec.get_BC();
@@ -367,8 +355,8 @@ void Field<T,Dim,M,C>::initialize(Mesh_t& m, FieldSpec<T,Dim,M,C>& spec) {
 // If you make any modifications using an iterator, you must call this.
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::fillGuardCells(bool reallyFill) const {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("Field::fillGuardCells()", taustr, TAU_FIELD); 
+  
+   
 
   // Fill the internal guard cells.
   BareField<T,Dim>::fillGuardCells(reallyFill);
@@ -391,8 +379,8 @@ void Field<T,Dim,M,C>::fillGuardCells(bool reallyFill) const {
 // that we have the right number of indexes and brackets.
 template<class T, unsigned Dim, class M, class C>
 IndexedField<T,Dim,1,M,C> Field<T,Dim,M,C>::operator[](const Index& idx) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " IndexedField<T,Dim,1,M,C> (Index )" );
-  TAU_PROFILE("Field::operator[]()", taustr, TAU_FIELD); 
+  
+   
   return IndexedField<T,Dim,1,M,C>(*this,idx);
 }
 
@@ -401,8 +389,8 @@ IndexedField<T,Dim,1,M,C> Field<T,Dim,M,C>::operator[](const Index& idx) {
 // Also allow using an integer instead of a whole Index
 template<class T, unsigned Dim, class M, class C>
 IndexedField<T,Dim,1,M,C> Field<T,Dim,M,C>::operator[](int i) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " IndexedField<T,Dim,1,M,C> (int )" );
-  TAU_PROFILE("Field::operator[]()", taustr, TAU_FIELD); 
+  
+   
   return IndexedField<T,Dim,1,M,C>(*this,i);
 }
 
@@ -411,8 +399,8 @@ IndexedField<T,Dim,1,M,C> Field<T,Dim,M,C>::operator[](int i) {
 // Also allow using a single NDIndex instead of N Index objects:
 template<class T, unsigned D, class M, class C>
 IndexedField<T,D,D,M,C> Field<T,D,M,C>::operator[](const NDIndex<D>& n) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " IndexedField<T,D,D,M,C> (" + CT(n) + " )" );
-  TAU_PROFILE("Field::operator[]()", taustr, TAU_FIELD); 
+  
+   
   return IndexedField<T,D,D,M,C>(*this,n);
 }
 
@@ -421,8 +409,8 @@ IndexedField<T,D,D,M,C> Field<T,D,M,C>::operator[](const NDIndex<D>& n) {
 // Also allow using a sparse index
 template<class T, unsigned D, class M, class C>
 SubField<T,D,M,C,SIndex<D> > Field<T,D,M,C>::operator[](const SIndex<D>& s) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " SubField<T,D,M,C,SIndex<D>> (" +CT(s) + " )" );
-  TAU_PROFILE("Field::operator[]()", taustr, TAU_FIELD); 
+  
+   
   return SubField<T,D,M,C,SIndex<D> >(*this, s);
 }
 
@@ -432,8 +420,8 @@ SubField<T,D,M,C,SIndex<D> > Field<T,D,M,C>::operator[](const SIndex<D>& s) {
 // Print out contents of Centering class
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::print_Centerings(std::ostream& out) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("Field::print_Centerings()", taustr, TAU_FIELD | TAU_IO); 
+  
+   
   Centering_t::print_Centerings(out);
 }
 
@@ -442,8 +430,8 @@ void Field<T,Dim,M,C>::print_Centerings(std::ostream& out) {
 // Repartition onto a new layout, or when the mesh changes
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::Repartition(UserList *userlist) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (UserList * )" );
-  TAU_PROFILE("Field::Repartition()", taustr, TAU_FIELD ); 
+  
+   
 
   // see if the userlist corresponds to our current mesh
   if (mesh != 0 && mesh->get_Id() == userlist->getUserListID()) {
@@ -472,8 +460,8 @@ void Field<T,Dim,M,C>::Repartition(UserList *userlist) {
 // Tell this object that an object is being deleted
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::notifyUserOfDelete(UserList *userlist) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (UserList * )" );
-  TAU_PROFILE("Field::notifyUserOfDelete()", taustr, TAU_FIELD ); 
+  
+   
   // see if the userlist corresponds to our current mesh
   if (mesh != 0 && mesh->get_Id() == userlist->getUserListID()) {
     mesh = 0;
@@ -492,9 +480,7 @@ template<class T, unsigned Dim, class M, class C>
 DataSourceObject *Field<T,Dim,M,C>::createDataSourceObject(const char *nm,
 							   DataConnect *dc,
 							   int tm) {
-  TAU_TYPE_STRING(taustr, CT(*this) 
-    + "DataSourceObject * (char *, DataConnect *, int)");
-  TAU_PROFILE("Field::createDataSourceObject()", taustr, TAU_FIELD ); 
+   
   return make_DataSourceObject(nm, dc, tm, *this);
 }
 
@@ -503,8 +489,8 @@ DataSourceObject *Field<T,Dim,M,C>::createDataSourceObject(const char *nm,
 // store the given mesh object pointer, and the flag whether we use it or not
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::store_mesh(Mesh_t* m, bool WeOwn) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (Mesh_t *, bool)");
-  TAU_PROFILE("Field::store_mesh()", taustr, TAU_FIELD ); 
+  
+   
   mesh = m;
   WeOwnMesh = WeOwn;
   if (mesh != 0)
@@ -516,8 +502,8 @@ void Field<T,Dim,M,C>::store_mesh(Mesh_t* m, bool WeOwn) {
 // delete the mesh object, if necessary; otherwise, just zero the pointer
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::delete_mesh() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("Field::delete_mesh()", taustr, TAU_FIELD ); 
+  
+   
   if (mesh != 0) {
     mesh->checkout(*this);
     if (WeOwnMesh)

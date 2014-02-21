@@ -26,7 +26,7 @@
 // include files
 #include "Particle/ParticleInteractAttrib.h"
 #include "Message/Message.h"
-#include "Profile/Profiler.h"
+
 
 
 /////////////////////////////////////////////////////////////////////
@@ -36,8 +36,6 @@ template<class T>
 size_t
 ParticleInteractAttrib<T>::putMessage(Message& msg,
 				      size_t M, size_t I) {
-  TAU_PROFILE("ParticleInteractAttrib::putMessage()", 
-    "unsigned (Message, unsigned, unsigned)", TAU_PARTICLE); 
 
   if (I >= this->size()) {
     // put in ghost particles
@@ -61,8 +59,6 @@ ParticleInteractAttrib<T>::putMessage(Message& msg,
 template<class T>
 size_t
 ParticleInteractAttrib<T>::ghostDestroy(size_t M, size_t I) {
-  TAU_PROFILE("ParticleInteractAttrib::ghostDestroy()", 
-    "unsigned (unsigned, unsigned)", TAU_PARTICLE); 
 
   if (M > 0) {
     // get iterators for where the data to be deleted begins, and where
@@ -94,8 +90,6 @@ ParticleInteractAttrib<T>::ghostDestroy(size_t M, size_t I) {
 template<class T>
 size_t
 ParticleInteractAttrib<T>::ghostGetMessage(Message& msg, size_t M) {
-  TAU_PROFILE("ParticleInteractAttrib::ghostGetMessage()", 
-    "unsigned (Message, unsigned)", TAU_PARTICLE); 
 
   size_t currsize = GhostList.size();
   GhostList.insert(GhostList.end(), M, T());
@@ -109,8 +103,6 @@ ParticleInteractAttrib<T>::ghostGetMessage(Message& msg, size_t M) {
 // prints out static information, so it is static
 template<class T>
 void ParticleInteractAttrib<T>::printDebug(Inform& o) {
-  TAU_PROFILE("ParticleInteractAttrib::printDebug()", 
-    "void (Inform)", TAU_PARTICLE | TAU_IO); 
 
   o << "PAttr: size = " << this->ParticleList.size()
     << ", capacity = " << this->ParticleList.capacity()

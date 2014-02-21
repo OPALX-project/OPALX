@@ -44,7 +44,7 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 #include "PETE/IpplExpressions.h"
 
 #ifdef IPPL_STDSTL
@@ -80,22 +80,6 @@ template<class T1, unsigned Dim, class RHS, class Op>
 void
 assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
 {
-  // profiling macros
-  // here, 'Op' is not used to form the type string, so the timings here
-  // will be the sum of all different operators 'Op' used in the code.
-  TAU_TYPE_STRING(p1, "void (" + CT(clhs) + ", " + CT(rhsp) + ", " + CT(op) 
-    + ", ExprTag<false> )" );
-  TAU_PROFILE("assign()", p1.data(), TAU_ASSIGN | TAU_FIELD);
-  TAU_PROFILE_TIMER(sendtimer,   " assign[BareField]-send", p1.data(),
-		    TAU_ASSIGN);
-  TAU_PROFILE_TIMER(findtimer,   " assign[BareField]-findreceive", p1.data(),
-		    TAU_ASSIGN);
-  TAU_PROFILE_TIMER(localstimer, " assign[BareField]-locals", p1.data(),
-		    TAU_ASSIGN);
-  TAU_PROFILE_TIMER(rectimer,    " assign[BareField]-receive", p1.data(),
-		    TAU_ASSIGN);
-  TAU_PROFILE_TIMER(filltimer,   " assign[BareField]-fill", p1.data(),
-		    TAU_ASSIGN);
 
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
@@ -141,7 +125,7 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
   if (nprocs > 1) {
 
     // set up messages to be sent
-    TAU_PROFILE_START(sendtimer);
+    
     Message** mess = new Message*[nprocs];
     bool* recvmsg = new bool[nprocs]; // receive msg from this node?
     int iproc;
@@ -149,10 +133,10 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
       mess[iproc] = 0;
       recvmsg[iproc] = false;
     }
-    TAU_PROFILE_STOP(sendtimer);
+    
 
     // now loop over LFields of lhs, building receive list
-    TAU_PROFILE_START(findtimer);
+    
     for (lf_i = lhs.begin_if(); lf_i != lf_e; ++lf_i) {
       // Cache some information about this LField.
       LField<T1,Dim> &lf = *((*lf_i).second);
@@ -174,10 +158,10 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
         recvmsg[rnode] = true;
       }
     }
-    TAU_PROFILE_STOP(findtimer);
+    
 
     // now loop over LFields of rhs, packing overlaps into proper messages
-    TAU_PROFILE_START(sendtimer);
+    
     for (rf_i = rhs.begin_if(); rf_i != rf_e; ++rf_i) {
       // Cache some information about this local array.
       LField<T2,Dim> &rf = *((*rf_i).second);
@@ -206,23 +190,23 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
 	rhs_i.putMessage(*mess[rnode]);
       }
     }
-    TAU_PROFILE_STOP(sendtimer);
+    
 
     // tally number of messages to receive
-    TAU_PROFILE_START(findtimer);
+    
     for (iproc=0; iproc<nprocs; ++iproc)
       if (recvmsg[iproc]) ++remaining;
     delete [] recvmsg;
-    TAU_PROFILE_STOP(findtimer);
+    
 
     // send the messages
-    TAU_PROFILE_START(sendtimer);
+    
     for (iproc=0; iproc<nprocs; ++iproc) {
       if (mess[iproc] != 0)
         Ippl::Comm->send(mess[iproc],iproc,tag);
     }
     delete [] mess;
-    TAU_PROFILE_STOP(sendtimer);
+    
   }
 
   // ----------------------------------------
@@ -234,7 +218,7 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
   ASSIGNMSG(msg << "Doing local fills for " << lhs.size_if());
   ASSIGNMSG(msg << " local lhs blocks and ");
   ASSIGNMSG(msg << rhs.size_if() << " local rhs blocks." << endl);
-  TAU_PROFILE_START(localstimer);
+  
   for (lf_i = lhs.begin_if(); lf_i != lf_e; ++lf_i) {
     // Cache some information about this LField.
     LField<T1,Dim> &lf = *(*lf_i).second;
@@ -324,13 +308,13 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
       }
     }
   }
-  TAU_PROFILE_STOP(localstimer);
+  
 
   // ----------------------------------------
   // Receive all the messages.
   ASSIGNMSG(msg << "Processing receive-loop for " << nprocs<<" nodes."<<endl);
   if (nprocs > 1) {
-    TAU_PROFILE_START(rectimer);
+    
     while (remaining>0) {
       // Receive the next message.
       int any_node = COMM_ANY_NODE;
@@ -378,15 +362,15 @@ assign(const BareField<T1,Dim>& clhs, RHS rhsp, Op op, ExprTag<false>)
       }
       delete rmess;
     }
-    TAU_PROFILE_STOP(rectimer);
+    
   }
 
   // Update the guard cells.
   ASSIGNMSG(msg << "Filling GC's at end if necessary ..." << endl);
-  TAU_PROFILE_START(filltimer);
+  
   lhs.setDirtyFlag();
   lhs.fillGuardCellsIfNotDirty();
-  TAU_PROFILE_STOP(filltimer);
+  
 
   // Compress the LHS.
   ASSIGNMSG(msg << "Trying to compress BareField at end ..." << endl);

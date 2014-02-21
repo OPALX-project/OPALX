@@ -28,7 +28,7 @@
 // include files
 #include "Utility/ParticleDebug.h"
 #include "Utility/Inform.h"
-#include "Profile/Profiler.h"
+
 #include "Particle/ParticleAttrib.h"
 
 #ifdef IPPL_USE_STANDARD_HEADERS
@@ -45,8 +45,8 @@
 //----------------------------------------------------------------------
 template<class T>
 void pap(ParticleAttrib<T>& pattr, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(pattr) + " )" );
-  TAU_PROFILE("pap()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   // Set Inform ptr if not set:
   if (!PtclDbgInformIsSet) {
     if (!FldDbgInformIsSet) {
@@ -102,8 +102,8 @@ void pap(ParticleAttrib<T>& pattr, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void epap(ParticleAttrib<T>& pattr, int i, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(pattr) + ", int )" );
-  TAU_PROFILE("epap()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   // Set Inform ptr if not set:
   if (!PtclDbgInformIsSet) {
     if (!FldDbgInformIsSet) {
@@ -122,8 +122,8 @@ void epap(ParticleAttrib<T>& pattr, int i, bool docomm) {
 template<class T>
 void spap(ParticleAttrib<T>& pattr, 
 	  int ibase, int ibound, int istride, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(pattr) + ", int, int, int )" );
-  TAU_PROFILE("spap()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
 
   // Set Inform ptr if not set:
   if (!PtclDbgInformIsSet) {

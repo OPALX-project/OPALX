@@ -209,8 +209,8 @@ public:
   NDRegion<T,Dim>
   convert_index(const NDIndex<D>& ni) const {
     NDRegion<T,Dim> new_pregion; // Needed in TAU_TYPE_STRING
-    TAU_TYPE_STRING(taustr, CT(new_pregion) + " ("  + CT(ni) + " )");
-    TAU_PROFILE("RegionLayout::convert_index()", taustr, TAU_REGION);
+    
+    
 
     PInsist(D==Dim,"Dimension of input NDIndex does not match RegionLayout!!");
     return new_pregion;
@@ -222,8 +222,8 @@ public:
   NDIndex<Dim>
   convert_region(const NDRegion<T,D>& nr) const {
     NDIndex<Dim> index;
-    TAU_TYPE_STRING(taustr, CT(index) + " ("  + CT(nr) + " )");
-    TAU_PROFILE("RegionLayout::convert_region()", taustr, TAU_REGION);
+    
+    
 
     PInsist(D==Dim,"Dimension of input NDRegion does not match RegionLayout!!");
     return index;

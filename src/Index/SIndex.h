@@ -230,8 +230,8 @@ public:
 
   template<unsigned int Dim2>
   IndexedSIndex<Dim,Dim2> operator[](const NDIndex<Dim2> &ndi) {
-    TAU_TYPE_STRING(taustr, CT(*this) + " (NDIndex)"); 
-    TAU_PROFILE("SIndex::operator[]", taustr, TAU_SPARSE);
+     
+    
     
     CTAssert(Dim >= Dim2);
     NDIndex<Dim> dom;

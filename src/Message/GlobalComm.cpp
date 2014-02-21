@@ -30,7 +30,7 @@
 #include "Message/Tags.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_STDSTL
 // Standard STL names this file "algorithm"
@@ -60,11 +60,7 @@ template <class InputIterator, class OutputIterator, class ReduceOp>
 bool reduce(Communicate& comm, InputIterator s1, InputIterator s2,
             OutputIterator t1, const ReduceOp& op, bool *IncludeVal)
 {
-
-    TAU_TYPE_STRING(profileString, "bool (Communicate, " + CT(s1) + ", "
-                    + CT(s2) + " )");
-
-    TAU_PROFILE("reduce()", profileString, TAU_MESSAGE);
+   
 
     // Inform dbgmsg("reduce-vector", INFORM_ALL_NODES);
 
@@ -208,11 +204,7 @@ bool reduce(Communicate& comm, InputIterator s1, InputIterator s2,
 template <class InputIterator, class OutputIterator, class ReduceOp>
 bool reduce(InputIterator s1, InputIterator s2,
             OutputIterator t1, const ReduceOp& op, bool *IncludeVal)
-{
-
-    TAU_TYPE_STRING(profileString, "bool (" + CT(s1) + ", " + CT(s2) + ", "
-                    + CT(t1) + ", " + CT(op) + ")");
-    TAU_PROFILE("reduce()", profileString, TAU_MESSAGE);
+{   
 
     return reduce(*Ippl::Comm, s1, s2, t1, op, IncludeVal);
 }
@@ -234,11 +226,7 @@ bool reduce(InputIterator s1, InputIterator s2,
 template <class T, class ReduceOp>
 bool reduce_masked(Communicate& comm, T& input, T& output,
                    const ReduceOp& op, bool IncludeVal)
-{
-
-    TAU_TYPE_STRING(profileString, "bool (Communicate, " + CT(input) + ", "
-                    + CT(output) + " )");
-    TAU_PROFILE("reduce_masked()", profileString, TAU_MESSAGE);
+{    
 
     // Inform dbgmsg("reduce_masked", INFORM_ALL_NODES);
 
@@ -364,10 +352,6 @@ bool reduce_masked(T& input, T& output, const ReduceOp& op,
                    bool IncludeVal)
 {
 
-    TAU_TYPE_STRING(profileString, "bool (" + CT(input) + ", "
-                    + CT(output) + " )");
-    TAU_PROFILE("reduce()", profileString, TAU_MESSAGE);
-
     return reduce_masked(*Ippl::Comm, input, output, op, IncludeVal);
 }
 
@@ -387,10 +371,6 @@ bool scatter(Communicate& comm, InputIterator s1, InputIterator s2,
              RandomIterator t1, int *target_node,
              int *target_position, const ScatterOp& op)
 {
-
-    TAU_TYPE_STRING(profileString, "bool (Communicate&, " + CT(s1) + ", "
-                    + CT(s2) + ", " + CT(t1) + ", int *, int *, " + CT(op) + ")");
-    TAU_PROFILE("scatter()", profileString, TAU_MESSAGE);
 
     int i;			// loop variables
     int tag = comm.next_tag(COMM_REDUCE_SCATTER_TAG, COMM_REDUCE_CYCLE);
@@ -478,10 +458,6 @@ bool scatter(InputIterator s1, InputIterator s2,
              RandomIterator t1, int *target_node,
              int *target_position, const ScatterOp& op)
 {
-
-    TAU_TYPE_STRING(profileString, "bool (" + CT(s1) + ", "
-                    + CT(s2) + ", " + CT(t1) + ", " + "int *, int *, " + CT(op) + ")");
-    TAU_PROFILE("scatter()", profileString, TAU_MESSAGE);
 
     return scatter(*Ippl::Comm, s1, s2, t1, target_node, target_position, op);
 }

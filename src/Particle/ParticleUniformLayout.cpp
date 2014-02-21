@@ -28,7 +28,7 @@
 #include "Utility/IpplInfo.h"
 #include "Message/Communicate.h"
 #include "Message/Message.h"
-#include "Profile/Profiler.h"
+
 #include <cstddef>
 
 
@@ -37,10 +37,7 @@
 // create storage for per-node data
 template<class T, unsigned Dim>
 ParticleUniformLayout<T, Dim>::ParticleUniformLayout() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("ParticleUniformLayout::ParticleUniformLayout()", taustr,
-    TAU_PARTICLE);
-
+  
   int N = Ippl::getNodes();
   LocalSize = new int[N];
   Change = new int[N];
@@ -52,10 +49,7 @@ ParticleUniformLayout<T, Dim>::ParticleUniformLayout() {
 // destructor
 template<class T, unsigned Dim>
 ParticleUniformLayout<T, Dim>::~ParticleUniformLayout() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("ParticleUniformLayout::~ParticleUniformLayout()", taustr,
-    TAU_PARTICLE);
-
+  
   delete [] LocalSize;
   delete [] Change;
   delete [] MsgCount;
@@ -71,9 +65,6 @@ template<class T, unsigned Dim>
 void ParticleUniformLayout<T, Dim>::update(
   ParticleBase< ParticleUniformLayout<T, Dim> >& PData,
   const ParticleAttrib<char>* canSwap) {
-  TAU_TYPE_STRING(taustr, " void (" + CT(PData) + "ParticleAttrib<char>* )");
-  TAU_PROFILE("ParticleUniformLayout::update()", taustr,
-    TAU_PARTICLE);
 
   int i, j;			// loop variables
   int N = Ippl::getNodes();
@@ -310,9 +301,7 @@ void ParticleUniformLayout<T, Dim>::update(
 template<class T, unsigned Dim>
 inline
 std::ostream& operator<<(std::ostream& out, const ParticleUniformLayout<T,Dim>& L) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(L) + " )");
-  TAU_PROFILE("ParticleBase::singleInitNode()", taustr,
-    TAU_PARTICLE | TAU_IO);
+
   out << "ParticleUniformLayout" << std::endl;
   return out;
 }
@@ -322,8 +311,6 @@ std::ostream& operator<<(std::ostream& out, const ParticleUniformLayout<T,Dim>& 
 // print out debugging information
 template<class T, unsigned Dim>
 void ParticleUniformLayout<T, Dim>::printDebug(Inform& o) {
-  TAU_PROFILE("ParticleUniformLayout::printDebug()", "void (Inform)",
-    TAU_PARTICLE | TAU_IO);
 
   o << "ParticleUniformLayout";
 }

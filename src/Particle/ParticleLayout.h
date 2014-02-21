@@ -106,10 +106,6 @@ protected:
   void apply_bconds(unsigned n, PPT& R,
 		    const ParticleBConds<T,Dim>& bcs,
 		    const NDI& nr) {
-    TAU_TYPE_STRING(taustr, "void (unsigned, " + CT(R) + ", "
-		    + CT(bcs) + ", " + CT(nr)  + " )");
-    TAU_PROFILE("ParticleLayout::apply_bconds()", taustr, 
-		TAU_PARTICLE | TAU_ASSIGN);
 
     // apply boundary conditions to the positions
     for (unsigned int i=0; i < n; ++i)

@@ -29,13 +29,13 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/Inform.h"
-#include "Profile/Profiler.h"
+
 
 ///////////////////////////////////////////////////////////////////////////
 // Constructor: read and parse the given meta file
 DiscMeta::DiscMeta(const char *fname) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (char *)" );
-  TAU_PROFILE("DiscMeta::DiscMeta()", taustr, TAU_UTILITY | TAU_IO);
+  
+  
 
   if (fname != 0)
     MetaFile = fname;
@@ -84,8 +84,8 @@ DiscMeta::~DiscMeta() {
 ///////////////////////////////////////////////////////////////////////////
 // return the line number of the Nth valid line (from 1 ... M)
 int DiscMeta::getLineNumber(unsigned int n) const {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " int (unsigned int)" );
-  TAU_PROFILE("DiscMeta::getLineNumber()", taustr, TAU_UTILITY | TAU_IO);
+  
+  
   PAssert(n < size());
 
   unsigned int i=0;
@@ -103,8 +103,8 @@ int DiscMeta::getLineNumber(unsigned int n) const {
 ///////////////////////////////////////////////////////////////////////////
 // return the keyword of the Nth line
 const std::string &DiscMeta::getKeyword(unsigned int n) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " string (unsigned int)" );
-  TAU_PROFILE("DiscMeta::getKeyword()", taustr, TAU_UTILITY | TAU_IO);
+  
+  
 
   return getWords(n)[0];
 }
@@ -113,8 +113,8 @@ const std::string &DiscMeta::getKeyword(unsigned int n) {
 ///////////////////////////////////////////////////////////////////////////
 // return the number of words in the value for the Nth line
 int DiscMeta::getNumWords(unsigned int n) const {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " int (unsigned int)" );
-  TAU_PROFILE("DiscMeta::getNumWords()", taustr, TAU_UTILITY | TAU_IO);
+  
+  
   PAssert(n < size());
 
   unsigned int i=0;
@@ -132,8 +132,8 @@ int DiscMeta::getNumWords(unsigned int n) const {
 ///////////////////////////////////////////////////////////////////////////
 // return the list of words in the Nth line
 std::string *DiscMeta::getWords(unsigned int n) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " string * (unsigned int)" );
-  TAU_PROFILE("DiscMeta::getWords()", taustr, TAU_UTILITY | TAU_IO);
+  
+  
 
   unsigned int i=0;
   iterator iter = begin();
@@ -151,8 +151,8 @@ std::string *DiscMeta::getWords(unsigned int n) {
 // read in a single line from the meta data file and parse it.
 // return success of operation.
 bool DiscMeta::read_meta_line(FILE *f, std::string *&tokens, int &numtokens) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (FILE *, vector<string>)" );
-  TAU_PROFILE("DiscMeta::read_meta_line()", taustr, TAU_UTILITY | TAU_IO);
+  
+  
 
   const int bufferSize = 1024*128;
   char bufferstore[bufferSize];
@@ -183,8 +183,8 @@ bool DiscMeta::read_meta_line(FILE *f, std::string *&tokens, int &numtokens) {
 ///////////////////////////////////////////////////////////////////////////
 // print out debugging information for this DiscMeta
 void DiscMeta::printDebug(Inform &msg) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (Inform &)" );
-  TAU_PROFILE("DiscMeta::printDebug()", taustr, TAU_UTILITY | TAU_IO);
+  
+  
 
   msg << "Meta file name = " << MetaFile << endl;
   msg << "Lines in file = " << size() << endl;
