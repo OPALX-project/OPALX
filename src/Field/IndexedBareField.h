@@ -116,8 +116,8 @@ public:
   bool
   plugBase(const NDIndex<D2>& i)
   {
-    TAU_TYPE_STRING(taustr, "bool (" + CT(*this) + ", " + CT(i) + ", DimTag<D1> )" );
-    TAU_PROFILE("plugBase()", taustr, TAU_FIELD);
+    
+    
     
     //  Inform msg("plugBase", INFORM_ALL_NODES);
     
@@ -334,8 +334,8 @@ protected:
 template < class T, unsigned Dim, unsigned Brackets >
 inline
 std::ostream& operator<<(std::ostream& out, const IndexedBareField<T,Dim,Brackets>& i) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(i) + " )" );
-  TAU_PROFILE("operator<<()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   IndexedBareField<T,Dim,Brackets>& nci =
     const_cast<IndexedBareField<T,Dim,Brackets>&>(i);
   nci.write(out);

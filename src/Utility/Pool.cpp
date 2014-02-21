@@ -26,7 +26,7 @@
 // include files
 #include "Utility/Pool.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 #include <cstdlib>
 
@@ -62,7 +62,7 @@ Pool::~Pool()
 // Grow a Pool.
 void Pool::grow()
 {
-  TAU_PROFILE("Pool::grow()", "void ()", TAU_UTILITY);
+  
   size_t alloc_this;
   if ( bsize>page() )
     alloc_this = bsize;

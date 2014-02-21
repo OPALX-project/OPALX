@@ -57,13 +57,7 @@ FFT<CCTransform,Dim,T>::FFT(
   : FFTBase<Dim,T>(FFT<CCTransform,Dim,T>::ccFFT, cdomain,
                    transformTheseDims, compressTemps)
 {
-
-  // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype,
-		  "(" + CT(cdomain) + ", const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-
+ 
   // construct array of axis lengths
   unsigned nTransformDims = this->numTransformDims();
   int* lengths = new int[nTransformDims];
@@ -99,9 +93,9 @@ void
 FFT<CCTransform,Dim,T>::setup(void)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::setup");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   unsigned d, activeDim;
   unsigned nTransformDims = this->numTransformDims();
@@ -149,9 +143,9 @@ template <unsigned Dim, class T>
 FFT<CCTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::~FFT");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // delete arrays of temporary fields and field layouts
   unsigned nTransformDims = this->numTransformDims();
@@ -177,11 +171,11 @@ FFT<CCTransform,Dim,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -208,7 +202,7 @@ FFT<CCTransform,Dim,T>::transform(
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim += direction) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -258,9 +252,9 @@ FFT<CCTransform,Dim,T>::transform(
       if (this->compressTemps() && temp != &f) *temp = 0;
       temp = &g;  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -282,16 +276,16 @@ FFT<CCTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*temp)[temp->getLayout().getDomain()];
     if (this->compressTemps() && temp != &f) *temp = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -312,11 +306,11 @@ FFT<CCTransform,Dim,T>::transform(
   typename FFT<CCTransform,Dim,T>::ComplexField_t& f)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ")");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   // INCIPPLSTAT(incFFTs);
@@ -340,7 +334,7 @@ FFT<CCTransform,Dim,T>::transform(
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim += direction) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -390,9 +384,9 @@ FFT<CCTransform,Dim,T>::transform(
       if (this->compressTemps()) *temp = 0;
       temp = &f;  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -414,17 +408,17 @@ FFT<CCTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
 
   } // loop over all transformed dimensions 
 
   // skip final assignment and compress if we used f as final temporary
   if (temp != &f) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign back into original Field, and compress last temp's storage:
     f[in_dom] = (*temp)[temp->getLayout().getDomain()];
     if (this->compressTemps()) *temp = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -453,9 +447,9 @@ FFT<CCTransform,1U,T>::FFT(
 {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(cdomain) + ", const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
+  
+  
+  
 
   unsigned nTransformDims = 1U;
   // get axis length
@@ -487,9 +481,9 @@ FFT<CCTransform,1U,T>::FFT(
 {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(cdomain) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // get axis length
   int length;
@@ -517,9 +511,9 @@ void
 FFT<CCTransform,1U,T>::setup(void)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::setup");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // Get input Field's domain
   const Domain_t& ndic = this->getDomain();
@@ -541,9 +535,9 @@ template <class T>
 FFT<CCTransform,1U,T>::~FFT(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::~FFT");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // delete temporary fields and field layouts
   delete tempFields_m;
@@ -564,11 +558,11 @@ FFT<CCTransform,1U,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   // INCIPPLSTAT(incFFTs);
@@ -586,7 +580,7 @@ FFT<CCTransform,1U,T>::transform(
   // Local work array passed to FFT:
   Complex_t* localdata;
       
-  TAU_PROFILE_START(timer_swap);
+  
   // Now do the serial transforms along this dimension:
 
   // get temp domain for comparison
@@ -631,9 +625,9 @@ FFT<CCTransform,1U,T>::transform(
     if (this->compressTemps() && temp != &f) *temp = 0;
     temp = &g;  // Field* management aid
   }
-  TAU_PROFILE_STOP(timer_swap);
+  
       
-  TAU_PROFILE_START(timer_fft);
+  
 
   // should be only one LField!
   typename ComplexField_t::const_iterator_if l_i = temp->begin_if();
@@ -649,15 +643,15 @@ FFT<CCTransform,1U,T>::transform(
     this->getEngine().callFFT(0, direction, localdata);
   }
 
-  TAU_PROFILE_STOP(timer_fft);
+  
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g = (*temp);
     if (this->compressTemps() && temp != &f) *temp = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -678,11 +672,11 @@ FFT<CCTransform,1U,T>::transform(
   typename FFT<CCTransform,1U,T>::ComplexField_t& f)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ")");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   // INCIPPLSTAT(incFFTs);
@@ -697,7 +691,7 @@ FFT<CCTransform,1U,T>::transform(
   // Local work array passed to FFT:
   Complex_t* localdata;
       
-  TAU_PROFILE_START(timer_swap);
+  
   // Now do the serial transforms along this dimension:
 
   // get domain for comparison
@@ -719,9 +713,9 @@ FFT<CCTransform,1U,T>::transform(
     (*tempFields_m) = (*temp);
     temp = tempFields_m;  // Field* management aid
   }
-  TAU_PROFILE_STOP(timer_swap);
+  
       
-  TAU_PROFILE_START(timer_fft);
+  
 
   // should be only one LField!
   typename ComplexField_t::const_iterator_if l_i = temp->begin_if();
@@ -737,15 +731,15 @@ FFT<CCTransform,1U,T>::transform(
     this->getEngine().callFFT(0, direction, localdata);
   }
 
-  TAU_PROFILE_STOP(timer_fft);
+  
 
   // skip final assignment and compress if we used f as final temporary
   if (temp != &f) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign back into original Field, and compress last temp's storage:
     f = (*temp);
     if (this->compressTemps()) *temp = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -777,11 +771,6 @@ FFT<RCTransform,Dim,T>::FFT(
                    transformTheseDims, compressTemps), 
     complexDomain_m(cdomain), serialAxes_m(1)
 {
-  // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", " + CT(cdomain) +
-                  ", const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
 
   // construct array of axis lengths
   unsigned nTransformDims = this->numTransformDims();
@@ -825,9 +814,9 @@ FFT<RCTransform,Dim,T>::FFT(
     complexDomain_m(cdomain), serialAxes_m(serialAxes)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", " + CT(cdomain) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // construct array of axis lengths
   int lengths[Dim];
@@ -863,9 +852,9 @@ void
 FFT<RCTransform,Dim,T>::setup(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::setup");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   PAssert(serialAxes_m > 0 && (unsigned int) serialAxes_m < Dim);
 
@@ -999,9 +988,9 @@ template <unsigned Dim, class T>
 FFT<RCTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::~FFT");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // delete temporary fields and layouts
   unsigned nTransformDims = this->numTransformDims();
@@ -1028,11 +1017,11 @@ FFT<RCTransform,Dim,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // IPPL timers
   static IpplTimings::TimerRef tr1=IpplTimings::getTimer("RC-RRtranspose");
@@ -1097,7 +1086,7 @@ FFT<RCTransform,Dim,T>::transform(
 
   // if we're not using input as a temporary ...
   if (tempR != &f) {
-    TAU_PROFILE_START(timer_swap);
+    
 
     // transpose and permute to real Field with transform dim first
     FFTDBG(tmsg << "Doing transpose of real field into temporary ");
@@ -1106,7 +1095,7 @@ FFT<RCTransform,Dim,T>::transform(
     (*tempR)[tempR->getDomain()] = f[in_dom];
     IpplTimings::stopTimer(tr1);
 
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Field* for temp Field management:
@@ -1141,7 +1130,7 @@ FFT<RCTransform,Dim,T>::transform(
   }
 
   FFTDBG(tmsg << "Doing real->complex fft of first dimension ..." << endl);
-  TAU_PROFILE_START(timer_fft);
+  
   IpplTimings::startTimer(ffttr1);
 
   // Loop over all the Vnodes, working on the LField in each.
@@ -1181,7 +1170,7 @@ FFT<RCTransform,Dim,T>::transform(
   } // loop over all the LFields
 
   IpplTimings::stopTimer(ffttr1);
-  TAU_PROFILE_STOP(timer_fft);
+  
 
   // compress temporary storage
   if (this->compressTemps() && tempR != &f)
@@ -1194,7 +1183,7 @@ FFT<RCTransform,Dim,T>::transform(
       
   // Loop over the remaining dimensions to be transformed:
   for (idim = 1; idim < nTransformDims; ++idim) {
-    TAU_PROFILE_START(timer_swap);
+    
     bool skipTranspose = false;
 
     // if this is the last transform dimension, we might be able
@@ -1245,10 +1234,10 @@ FFT<RCTransform,Dim,T>::transform(
 	*temp = 0;
       temp = &g;  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
 
     FFTDBG(tmsg << "Doing complex->complex fft of other dimension .." << endl);
-    TAU_PROFILE_START(timer_fft);
+    
     IpplTimings::startTimer(ffttr2);
 
     // Loop over all the Vnodes, working on the LField in each.
@@ -1278,12 +1267,12 @@ FFT<RCTransform,Dim,T>::transform(
     } // loop over all the LFields
 
     IpplTimings::stopTimer(ffttr2);
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
 
     // Now assign into output Field, and compress last temp's storage:
     FFTDBG(tmsg << "Doing cleanup complex->complex transpose ");
@@ -1295,7 +1284,7 @@ FFT<RCTransform,Dim,T>::transform(
     IpplTimings::stopTimer(tr2);
 
     if (this->compressTemps()) *temp = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -1318,11 +1307,11 @@ FFT<RCTransform,Dim,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // IPPL timers
   static IpplTimings::TimerRef tr1=IpplTimings::getTimer("RC-RRtranspose");
@@ -1361,7 +1350,7 @@ FFT<RCTransform,Dim,T>::transform(
       
   // Loop over all dimensions to be transformed except last one:
   for (idim = nTransformDims-1; idim != 0; --idim) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -1392,10 +1381,10 @@ FFT<RCTransform,Dim,T>::transform(
 	*temp = 0;
       temp = tempFields_m[idim];  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
 
     FFTDBG(tmsg << "Doing complex->complex fft of other dimension .." << endl);
-    TAU_PROFILE_START(timer_fft);
+    
     IpplTimings::startTimer(ffttr2);
 
     // Loop over all the Vnodes, working on the LField in each.
@@ -1426,7 +1415,7 @@ FFT<RCTransform,Dim,T>::transform(
     } // loop over all the LFields
 
     IpplTimings::stopTimer(ffttr2);
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // handle last CR transform separately
@@ -1481,7 +1470,7 @@ FFT<RCTransform,Dim,T>::transform(
     skipTemp = false;
   }
 
-  TAU_PROFILE_START(timer_swap);
+  
   if (!skipTemp) {
     // transpose and permute to complex Field with transform dim first
     FFTDBG(tmsg << "Doing final complex->complex transpose into field ");
@@ -1496,10 +1485,10 @@ FFT<RCTransform,Dim,T>::transform(
       *temp = 0;
     temp = tempFields_m[0];
   }
-  TAU_PROFILE_STOP(timer_swap);
+  
 
   FFTDBG(tmsg << "Doing complex->real fft of final dimension ..." << endl);
-  TAU_PROFILE_START(timer_fft);
+  
   IpplTimings::startTimer(ffttr1);
 
   // Loop over all the Vnodes, working on the LField in each.
@@ -1541,7 +1530,7 @@ FFT<RCTransform,Dim,T>::transform(
   } // loop over all the LFields
 
   IpplTimings::stopTimer(ffttr1);
-  TAU_PROFILE_STOP(timer_fft);
+  
 
   // compress previous iterates storage
   if (this->compressTemps() && temp != &f)
@@ -1549,7 +1538,7 @@ FFT<RCTransform,Dim,T>::transform(
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
 
     // Now assign into output Field, and compress last temp's storage:
     FFTDBG(tmsg << "Doing cleanup real->real transpose into return ");
@@ -1560,7 +1549,7 @@ FFT<RCTransform,Dim,T>::transform(
 
     if (this->compressTemps())
       *tempR = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -1591,12 +1580,6 @@ FFT<RCTransform,1U,T>::FFT(
                   transformTheseDims, compressTemps), 
     complexDomain_m(cdomain)
 {
-  // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", " + CT(cdomain) +
-                  ", const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-
   unsigned nTransformDims = 1U;
   // get axis length
   int length;
@@ -1628,9 +1611,9 @@ FFT<RCTransform,1U,T>::FFT(
     complexDomain_m(cdomain)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", " + CT(cdomain) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // get axis length
   int length;
@@ -1658,9 +1641,9 @@ void
 FFT<RCTransform,1U,T>::setup(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::setup");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // check that domain lengths agree between real and complex domains
   const Domain_t& domain = this->getDomain();
@@ -1696,9 +1679,9 @@ template <class T>
 FFT<RCTransform,1U,T>::~FFT(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::~FFT");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // delete temporary fields and layouts
   delete tempFields_m;
@@ -1720,11 +1703,11 @@ FFT<RCTransform,1U,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -1754,10 +1737,10 @@ FFT<RCTransform,1U,T>::transform(
   }
 
   if (tempR != &f) {  // not using input as a temporary
-    TAU_PROFILE_START(timer_swap);
+    
     // assign to real Field with proper layout
     (*tempR) = f;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Field* for temp Field management:
@@ -1774,7 +1757,7 @@ FFT<RCTransform,1U,T>::transform(
   if (!(g.getGC() == FFT<RCTransform,1U,T>::nullGC)) skipFinal = false;
   if (skipFinal) temp = &g;
 
-  TAU_PROFILE_START(timer_fft);
+  
   // There should be just one vnode!
   typename RealField_t::const_iterator_if rl_i = tempR->begin_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -1797,20 +1780,20 @@ FFT<RCTransform,1U,T>::transform(
     // note that real-to-complex FFT direction is always +1
     this->getEngine().callFFT(0, +1, localcomp);
   } 
-  TAU_PROFILE_STOP(timer_fft);
+  
 
-  TAU_PROFILE_START(timer_swap);
+  
   // compress temporary storage
   if (this->compressTemps() && tempR != &f) *tempR = 0;
-  TAU_PROFILE_STOP(timer_swap);
+  
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g = (*temp);
     if (this->compressTemps()) *temp = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -1832,11 +1815,11 @@ FFT<RCTransform,1U,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -1885,7 +1868,7 @@ FFT<RCTransform,1U,T>::transform(
     skipTemp = false;
   }
 
-  TAU_PROFILE_START(timer_swap);
+  
   if (!skipTemp) {
     // assign to complex Field with proper layout
     (*tempFields_m) = (*temp);
@@ -1893,9 +1876,9 @@ FFT<RCTransform,1U,T>::transform(
     if (this->compressTemps() && temp != &f) *temp = 0;
     temp = tempFields_m;
   }
-  TAU_PROFILE_STOP(timer_swap);
+  
 
-  TAU_PROFILE_START(timer_fft);
+  
   // There should be just one vnode!
   typename RealField_t::const_iterator_if rl_i = tempR->begin_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -1920,20 +1903,20 @@ FFT<RCTransform,1U,T>::transform(
       localreal[ilen+1] = imag(localcomp[ilen/2]);
     }
   }
-  TAU_PROFILE_STOP(timer_fft);
+  
 
-  TAU_PROFILE_START(timer_swap);
+  
   // compress previous iterates storage
   if (this->compressTemps() && temp != &f) *temp = 0;
-  TAU_PROFILE_STOP(timer_swap);
+  
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g = (*tempR);
     if (this->compressTemps()) *tempR = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -1965,11 +1948,6 @@ FFT<SineTransform,Dim,T>::FFT(
                    transformTheseDims, compressTemps), 
     complexDomain_m(&cdomain)
 {
-  // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", " + CT(cdomain) +
-                  ", const bool [], const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
 
   unsigned d;
   // store which dimensions get sine transforms and count how many
@@ -2030,11 +2008,6 @@ FFT<SineTransform,Dim,T>::FFT(
   : FFTBase<Dim,T>(FFT<SineTransform,Dim,T>::sineFFT, rdomain, compressTemps),
     complexDomain_m(&cdomain)
 {
-  // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", " + CT(cdomain) +
-                  ", const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
 
   unsigned d;
   // store which dimensions get sine transforms and count how many
@@ -2090,9 +2063,9 @@ FFT<SineTransform,Dim,T>::FFT(
                    sineTransformDims, compressTemps)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
+  
+  
+  
 
   // store which dimensions get sine transforms and how many
   numSineTransforms_m = this->numTransformDims();
@@ -2133,9 +2106,9 @@ FFT<SineTransform,Dim,T>::FFT(
   : FFTBase<Dim,T>(FFT<SineTransform,Dim,T>::sineFFT, rdomain, compressTemps)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   unsigned d;
   // store which dimensions get sine transforms and how many
@@ -2173,9 +2146,9 @@ void
 FFT<SineTransform,Dim,T>::setup(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::setup");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   unsigned d, dim, activeDim = 0;
   unsigned int icount;
@@ -2327,9 +2300,9 @@ template <unsigned Dim, class T>
 FFT<SineTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::~FFT");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // delete temporary fields and layouts
   unsigned d;
@@ -2370,11 +2343,11 @@ FFT<SineTransform,Dim,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ")");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -2407,7 +2380,7 @@ FFT<SineTransform,Dim,T>::transform(
   icount = 0;
   activeDim = 0;
   for (idim = 0; idim != numSineTransforms_m; ++idim, ++icount, ++activeDim) {
-    TAU_PROFILE_START(timer_swap);
+    
     // find next sine transform dim
     while (!sineTransformDims_m[icount]) {
       if (this->transformDim(icount)) ++activeDim;
@@ -2439,9 +2412,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps() && tempR != &f) *tempR = 0;
       tempR = tempRFields_m[idim];  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -2463,7 +2436,7 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // now handle the RC transform separately
@@ -2477,7 +2450,7 @@ FFT<SineTransform,Dim,T>::transform(
   }
   PAssert(activeDim<Dim);  // check that this is a valid dimension!
 
-  TAU_PROFILE_START(timer_swap);
+  
   // transpose and permute to final real Field with transform dim first
   int last = numSineTransforms_m;
   (*tempRFields_m[last])[tempRLayouts_m[last]->getDomain()] =
@@ -2486,7 +2459,7 @@ FFT<SineTransform,Dim,T>::transform(
   // Compress out previous iterate's storage:
   if (this->compressTemps() && tempR != &f) *tempR = 0;
   tempR = tempRFields_m[last];  // Field* management aid
-  TAU_PROFILE_STOP(timer_swap);
+  
 
   // Field* for temp Field management:
   ComplexField_t* temp = tempFields_m[0];
@@ -2508,7 +2481,7 @@ FFT<SineTransform,Dim,T>::transform(
   }
 
 
-  TAU_PROFILE_START(timer_fft);
+  
   // Loop over all the Vnodes, working on the LField in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -2538,7 +2511,7 @@ FFT<SineTransform,Dim,T>::transform(
       localcomp += lengthcomp;
     } // loop over 1D strips
   } // loop over all the LFields
-  TAU_PROFILE_STOP(timer_fft);
+  
 
   // now proceed with the other complex-to-complex transforms
 
@@ -2549,7 +2522,7 @@ FFT<SineTransform,Dim,T>::transform(
   ++icount;
   ++activeDim;
   for (idim = 1; idim != numComplex; ++idim, ++icount, ++activeDim) {
-    TAU_PROFILE_START(timer_swap);
+    
     // find the next non-sine transform dimension
     while (!this->transformDim(icount) || sineTransformDims_m[icount]) {
       if (sineTransformDims_m[icount]) ++activeDim;
@@ -2592,9 +2565,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps()) *temp = 0;
       temp = &g;  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -2616,16 +2589,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*temp)[temp->getLayout().getDomain()];
     if (this->compressTemps()) *temp = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -2647,11 +2620,11 @@ FFT<SineTransform,Dim,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ")");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   // INCIPPLSTAT(incFFTs);
@@ -2682,7 +2655,7 @@ FFT<SineTransform,Dim,T>::transform(
   icount = Dim-1;  // start with last dimension
   activeDim = nTransformDims-1;
   for (idim = numComplex-1; idim != 0; --idim, --icount, --activeDim) {
-    TAU_PROFILE_START(timer_swap);
+    
     // find next non-sine transform dim
     while (!this->transformDim(icount) || sineTransformDims_m[icount]) {
       if (sineTransformDims_m[icount]) --activeDim;
@@ -2714,9 +2687,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps() && temp != &f) *temp = 0;
       temp = tempFields_m[idim];  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -2738,7 +2711,7 @@ FFT<SineTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // handle the CR transform separately
@@ -2773,17 +2746,17 @@ FFT<SineTransform,Dim,T>::transform(
   }
 
   if (!skipTemp) {
-    TAU_PROFILE_START(timer_swap);
+    
     // transpose and permute to complex Field with transform dim first
     (*tempFields_m[0])[tempLayouts_m[0]->getDomain()] =
       (*temp)[temp->getLayout().getDomain()];
     // compress previous iterates storage
     if (this->compressTemps() && temp != &f) *temp = 0;
     temp = tempFields_m[0];
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
-  TAU_PROFILE_START(timer_fft);
+  
   // Loop over all the Vnodes, working on the LField in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -2815,12 +2788,12 @@ FFT<SineTransform,Dim,T>::transform(
       localcomp += lengthcomp;
     } // loop over 1D strips
   } // loop over all the LFields
-  TAU_PROFILE_STOP(timer_fft);
+  
 
-  TAU_PROFILE_START(timer_swap);
+  
   // compress previous iterates storage
   if (this->compressTemps() && temp != &f) *temp = 0;
-  TAU_PROFILE_STOP(timer_swap);
+  
 
   // now do the real-to-real FFTs
 
@@ -2832,7 +2805,7 @@ FFT<SineTransform,Dim,T>::transform(
   activeDim = nTransformDims - 1;
   for (idim = numSineTransforms_m-1; idim != -1;
        --idim, --icount, --activeDim) {
-    TAU_PROFILE_START(timer_swap);
+    
     // find next sine transform dim
     while (!sineTransformDims_m[icount]) {
       if (this->transformDim(icount)) --activeDim;
@@ -2875,9 +2848,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps()) *tempR = 0;
       tempR = &g;  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -2899,16 +2872,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
     if (this->compressTemps()) *tempR = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -2930,11 +2903,11 @@ FFT<SineTransform,Dim,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ")");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -2967,7 +2940,7 @@ FFT<SineTransform,Dim,T>::transform(
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim+=direction) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3017,9 +2990,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps() && tempR != &f) *tempR = 0;
       tempR = &g;  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -3041,16 +3014,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
     if (this->compressTemps() && tempR != &f) *tempR = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -3070,11 +3043,11 @@ FFT<SineTransform,Dim,T>::transform(
   FFT<SineTransform,Dim,T>::RealField_t& f)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ")");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -3104,7 +3077,7 @@ FFT<SineTransform,Dim,T>::transform(
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim+=direction) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3154,9 +3127,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps() && tempR != &f) *tempR = 0;
       tempR = &f;  // Field* management aid
     }
-    TAU_PROFILE_STOP(timer_swap);
+    
       
-    TAU_PROFILE_START(timer_fft);
+    
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -3178,16 +3151,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    TAU_PROFILE_STOP(timer_fft);
+    
   } // loop over all transformed dimensions 
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &f) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     f[in_dom] = (*tempR)[tempR->getLayout().getDomain()];
     if (this->compressTemps()) *tempR = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -3215,9 +3188,9 @@ FFT<SineTransform,1U,T>::FFT(
                   sineTransformDims, compressTemps)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", const bool [], const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
+  
+  
+  
 
   // get axis length
   int length;
@@ -3247,9 +3220,9 @@ FFT<SineTransform,1U,T>::FFT(
   : FFTBase<1U,T>(FFT<SineTransform,1U,T>::sineFFT, rdomain, compressTemps)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::FFT");
-  TAU_TYPE_STRING(tautype, "(" + CT(rdomain) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // get axis length
   int length;
@@ -3277,9 +3250,9 @@ void
 FFT<SineTransform,1U,T>::setup(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::setup");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   const Domain_t& domain = this->getDomain();          // get real Field domain
 
@@ -3301,9 +3274,9 @@ template <class T>
 FFT<SineTransform,1U,T>::~FFT(void) {
 
   // Tau profiling
-  TAU_TYPE_STRING(tauname, CT(*this) + "::~FFT");
-  TAU_TYPE_STRING(tautype, "(void)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT); 
+  
+  
+   
 
   // delete temporary field and layout
   delete tempRFields_m;
@@ -3323,11 +3296,11 @@ FFT<SineTransform,1U,T>::transform(
   const bool& constInput)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ", " + CT(g) + ", const bool&)");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -3345,7 +3318,7 @@ FFT<SineTransform,1U,T>::transform(
   // Local work array passed to FFT:
   T* localdataR;
       
-  TAU_PROFILE_START(timer_swap);
+  
   // Now do the serial transform along this dimension:
 
   // get the domain for comparison
@@ -3389,9 +3362,9 @@ FFT<SineTransform,1U,T>::transform(
     if (this->compressTemps() && tempR != &f) *tempR = 0;
     tempR = &g;  // Field* management aid
   }
-  TAU_PROFILE_STOP(timer_swap);
+  
       
-  TAU_PROFILE_START(timer_fft);
+  
   // There should be just one LField.
   typename RealField_t::const_iterator_if l_i = tempR->begin_if();
   if (l_i != tempR->end_if()) {
@@ -3406,15 +3379,15 @@ FFT<SineTransform,1U,T>::transform(
     // Do the 1D FFT:
     this->getEngine().callFFT(0, direction, localdataR);
   } 
-  TAU_PROFILE_STOP(timer_fft);
+  
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     g = (*tempR);
     if (this->compressTemps() && tempR != &f) *tempR = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:
@@ -3434,11 +3407,11 @@ FFT<SineTransform,1U,T>::transform(
   FFT<SineTransform,1U,T>::RealField_t& f)
 {
   // Tau profiling
-  TAU_TYPE_STRING(tauname, "void " + CT(*this) + "::transform");
-  TAU_TYPE_STRING(tautype, "(int, " + CT(f) + ")");
-  TAU_PROFILE(tauname, tautype, TAU_FFT);
-  TAU_PROFILE_TIMER(timer_swap, tauname, "-- data transpose", TAU_FFT);
-  TAU_PROFILE_TIMER(timer_fft, tauname, "-- fft", TAU_FFT);
+  
+  
+  
+  
+  
 
   // indicate we're doing another FFT
   //INCIPPLSTAT(incFFTs);
@@ -3453,7 +3426,7 @@ FFT<SineTransform,1U,T>::transform(
   // Local work array passed to FFT:
   T* localdataR;
       
-  TAU_PROFILE_START(timer_swap);
+  
   // Now do the serial transform along this dimension:
 
   // get domain for comparison
@@ -3497,9 +3470,9 @@ FFT<SineTransform,1U,T>::transform(
     if (this->compressTemps() && tempR != &f) *tempR = 0;
     tempR = &f;  // Field* management aid
   }
-  TAU_PROFILE_STOP(timer_swap);
+  
       
-  TAU_PROFILE_START(timer_fft);
+  
   // There should be just one LField.
   typename RealField_t::const_iterator_if l_i = tempR->begin_if();
   if (l_i != tempR->end_if()) {
@@ -3514,15 +3487,15 @@ FFT<SineTransform,1U,T>::transform(
     // Do the 1D FFT:
     this->getEngine().callFFT(0, direction, localdataR);
   }
-  TAU_PROFILE_STOP(timer_fft);
+  
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &f) {
-    TAU_PROFILE_START(timer_swap);
+    
     // Now assign into output Field, and compress last temp's storage:
     f = (*tempR);
     if (this->compressTemps()) *tempR = 0;
-    TAU_PROFILE_STOP(timer_swap);
+    
   }
 
   // Normalize:

@@ -36,7 +36,7 @@
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
 #include "AppTypes/AppTypeTraits.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
@@ -203,8 +203,8 @@ template<class T, unsigned D, class M, class C>
 void
 ExtrapolateFace<T,D,M,C>::write(std::ostream& o) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("ExtrapolateFace::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   o << "ExtrapolateFace, Face=" << BCondBase<T,D,M,C>::m_face
     << ", Offset=" << Offset << ", Slope=" << Slope;
 }
@@ -213,8 +213,8 @@ template<class T, unsigned D, class M, class C>
 void
 ExtrapolateAndZeroFace<T,D,M,C>::write(std::ostream& o) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("ExtrapolateAndZeroFace::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   o << "ExtrapolateAndZeroFace, Face=" << BCondBase<T,D,M,C>::m_face
     << ", Offset=" << Offset << ", Slope=" << Slope;
 }
@@ -223,8 +223,8 @@ template<class T, unsigned D, class M, class C>
 void
 LinearExtrapolateFace<T,D,M,C>::write(std::ostream& o) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("LinearExtrapolateFace::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   o << "LinearExtrapolateFace, Face=" << BCondBase<T,D,M,C>::m_face;
 }
 
@@ -232,9 +232,7 @@ template<class T, unsigned D, class M, class C>
 void
 ComponentLinearExtrapolateFace<T,D,M,C>::write(std::ostream& o) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("ComponentLinearExtrapolateFace::write()", 
-	      taustr, TAU_FIELD | TAU_IO);
+
   o << "ComponentLinearExtrapolateFace, Face=" << BCondBase<T,D,M,C>::m_face;
 }
 
@@ -244,8 +242,8 @@ template<class T, unsigned D, class M, class C>
 void
 BConds<T,D,M,C>::write(std::ostream& o) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("BConds::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
 
   o << "BConds:(" << std::endl;
   const_iterator p=this->begin();
@@ -266,8 +264,8 @@ template<class T, unsigned D, class M, class C>
 void 
 BConds<T,D,M,C>::apply( Field<T,D,M,C>& a )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + " )" );
-  TAU_PROFILE("BConds::apply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
   for (iterator p=this->begin(); p!=this->end(); ++p)
     (*p).second->apply(a);
 }
@@ -291,16 +289,16 @@ template<class T, unsigned D, class M, class C>
 PeriodicFace<T,D,M,C>::PeriodicFace(unsigned f, int i, int j)
   : BCondBase<T,D,M,C>(f,i,j)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned, int, int)" );
-  TAU_PROFILE("PeriodicFace::PeriodicFace()", taustr, TAU_FIELD);
+  
+  
 }
 
 template<class T, unsigned D, class M, class C>
 ExtrapolateFace<T,D,M,C>::ExtrapolateFace(unsigned f, T o, T s, int i, int j)
   : BCondBase<T,D,M,C>(f,i,j), Offset(o), Slope(s)
 {
-  TAU_TYPE_STRING(taustr, "void (unsigned, " + CT(o) + ", " + CT(s) + ", int, int )" );
-  TAU_PROFILE("ExtrapolateFace::ExtrapolateFace()", taustr, TAU_FIELD);
+  
+  
 }
 
 template<class T, unsigned D, class M, class C>
@@ -308,10 +306,7 @@ ExtrapolateAndZeroFace<T,D,M,C>::
 ExtrapolateAndZeroFace(unsigned f, T o, T s, int i, int j)
   : BCondBase<T,D,M,C>(f,i,j), Offset(o), Slope(s)
 {
-  TAU_TYPE_STRING(taustr, 
-		  "void (unsigned, " + CT(o) + ", " + CT(s) + ", int, int )" );
-  TAU_PROFILE("ExtrapolateAndZeroFace::ExtrapolateAndZeroFace()", 
-	      taustr, TAU_FIELD);
+
   BCondBase<T,D,M,C>::m_changePhysical = true;
 }
 
@@ -320,8 +315,8 @@ FunctionFace<T,D,M,C>::
 FunctionFace(T (*func)(const T&), unsigned face)
   : BCondBase<T,D,M,C>(face), Func(func)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(func) + ", unsigned )" );
-  TAU_PROFILE("FunctionFace::FunctionFace()", taustr, TAU_FIELD);
+  
+  
 }
 
 template<class T, unsigned D, class M, class C>
@@ -331,9 +326,6 @@ ComponentFunctionFace(typename ApplyToComponentType<T>::type
 		      unsigned face, int i, int j)
   : BCondBase<T,D,M,C>(face,i,j), Func(func)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(func) + ", unsigned, int, int )" );
-  TAU_PROFILE("ComponentFunctionFace::ComponentFunctionFace()", taustr, 
-    TAU_FIELD | TAU_ASSIGN);
 
   // Disallow specification of all components (default, unfortunately):
   if ( (j == BCondBase<T,D,M,C>::allComponents) &&
@@ -417,8 +409,8 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 template<class T, unsigned D, class M, class C>
 void PeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(A) + " )" );
-  TAU_PROFILE("PeriodicFace()", taustr, TAU_FIELD);
+  
+  
   PeriodicFaceBCApply(*this, A);
 }
 
@@ -431,8 +423,8 @@ template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
 			 Field<T,D,M,Cell>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(pf) + ", " + CT(A) + " )" );
-  TAU_PROFILE("PeriodicFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
   // NOTE: See the PeriodicFaceBCApply functions below for more 
   // comprehensible comments --TJW
 
@@ -528,8 +520,8 @@ template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Vert>& pf,
 			 Field<T,D,M,Vert>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(pf) + ", " + CT(A) + " )" );
-  TAU_PROFILE("PeriodicFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions below for more 
   // comprehensible comments --TJW
@@ -627,8 +619,8 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& pf,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(pf) + ", " + CT(A) + " )" );
-  TAU_PROFILE("PeriodicFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions below for more 
   // comprehensible comments --TJW
@@ -1011,30 +1003,6 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 template<class T, unsigned D, class M, class C>
 void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(A) + " )" );
-  TAU_PROFILE("ParallelPeriodicFace::apply()", taustr, TAU_FIELD);
-
-  TAU_PROFILE_TIMER(sendtimer,       
-		    "  ParallelPeriodicFaceBCApply-send", 
-                    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(sendcommtimer,
-		    "   ParallelPeriodicFaceBCApply-send-comm",
-                    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(findrectimer,    
-		    "  ParallelPeriodicFaceBCApply-findreceive",
-                    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(localstimer,     
-		    "  ParallelPeriodicFaceBCApply-locals",
-                    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(rectimer,       
-		    "  ParallelPeriodicFaceBCApply-receive",
-                    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(reccommtimer,  
-		    "   ParallelPeriodicFaceBCApply-receive-comm",
-                    taustr, TAU_FIELD);
-  TAU_PROFILE_TIMER(localsexprtimer, 
-		    "   ParallelPeriodicFaceBCApply-locals-expression",
-                    taustr, TAU_FIELD);
 
 #ifdef PRINT_DEBUG
   Inform msg("PPeriodicBC", INFORM_ALL_NODES);
@@ -1126,11 +1094,11 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
   // (Time this since it allocates an empty map.)
 
-  TAU_PROFILE_START(findrectimer);
+  
 
   ReceiveMap_t receive_map;
 
-  TAU_PROFILE_STOP(findrectimer);
+  
 
   // Number of nodes that will send us messages.
 
@@ -1217,7 +1185,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
   if (nprocs > 1) // Skip send/receive code if we're single-processor.
     {
-      TAU_PROFILE_START(findrectimer);
+      
 
 #ifdef PRINT_DEBUG
       msg << "Starting receive calculation." << endl;
@@ -1315,10 +1283,10 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
       //      stop_here();
 #endif
 
-      TAU_PROFILE_STOP(findrectimer);
+      
 
 
-      TAU_PROFILE_START(sendtimer);
+      
 
 #ifdef PRINT_DEBUG
       msg << "Starting send calculation" << endl;
@@ -1448,7 +1416,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
       bc_comm_tag = 
 	Ippl::Comm->next_tag(BC_PARALLEL_PERIODIC_TAG,BC_TAG_CYCLE);
 
-      TAU_PROFILE_START(sendcommtimer);
+      
 
       // Send the messages.
 
@@ -1477,14 +1445,14 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
       msg << "Done with send." << endl;
 #endif
 
-      TAU_PROFILE_STOP(sendcommtimer);
+      
 	  
-      TAU_PROFILE_STOP(sendtimer);
+      
 
     } // if (nprocs > 1) 
 
 
-  TAU_PROFILE_START(localstimer);
+  
 
   //===========================================================================
   //  2. Evaluate local pieces directly.
@@ -1574,7 +1542,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   msg << "Done with local calculation." << endl;
 #endif
 
-  TAU_PROFILE_STOP(localstimer);
+  
 
 
   //===========================================================================
@@ -1584,7 +1552,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   if (nprocs > 1)
     {
       
-      TAU_PROFILE_START(rectimer);
+      
 
 #ifdef PRINT_DEBUG
       msg << "Starting receive..." << endl;
@@ -1598,7 +1566,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 	  int any_node = COMM_ANY_NODE;
 
-	  TAU_PROFILE_START(reccommtimer);
+	  
 
 	  Message* message = 
 	    Ippl::Comm->receive_block(any_node,bc_comm_tag);
@@ -1606,7 +1574,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 	  --receive_count;
 
-	  TAU_PROFILE_STOP(reccommtimer);
+	  
 
 	  // Determine the number of domains being sent
 
@@ -1687,7 +1655,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 	  delete message;
 	}
-      TAU_PROFILE_STOP(rectimer);
+      
 
 #ifdef PRINT_DEBUG
       msg << "Done with receive." << endl;
@@ -1859,8 +1827,8 @@ template<class T, unsigned D, class M>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
 			    Field<T,D,M,Cell>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ExtrapolateFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -1991,8 +1959,8 @@ template<class T, unsigned D, class M>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
 			    Field<T,D,M,Vert>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ExtrapolateFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -2124,8 +2092,8 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
 			    Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ExtrapolateFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -2603,8 +2571,8 @@ template<class T, unsigned D, class M>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
 			    Field<T,D,M,Cell>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ExtrapolateAndZeroFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -2736,9 +2704,6 @@ template<class T, unsigned D, class M>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
 			    Field<T,D,M,Vert>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ExtrapolateAndZeroFaceBCApply()", taustr, TAU_FIELD | 
-    TAU_ASSIGN);
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -2903,9 +2868,6 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
 			    Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ExtrapolateAndZeroFaceBCApply()", taustr, TAU_FIELD | 
-	      TAU_ASSIGN);
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -3228,8 +3190,8 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,
 template<class T, unsigned D, class M, class C>
 void FunctionFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(A) + " )" );
-  TAU_PROFILE("FunctionFace::apply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
   FunctionFaceBCApply(*this, A);
 }
 
@@ -3241,8 +3203,8 @@ template<class T, unsigned D, class M>
 void FunctionFaceBCApply(FunctionFace<T,D,M,Cell>& ff,
 			 Field<T,D,M,Cell>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ff) + ", " + CT(A) + " )" );
-  TAU_PROFILE("FunctionFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions above for more 
   // comprehensible comments --TJW
@@ -3326,8 +3288,8 @@ template<class T, unsigned D, class M>
 void FunctionFaceBCApply(FunctionFace<T,D,M,Vert>& ff,
 			 Field<T,D,M,Vert>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ff) + ", " + CT(A) + " )" );
-  TAU_PROFILE("FunctionFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions above for more 
   // comprehensible comments --TJW
@@ -3416,8 +3378,8 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ff) + ", " + CT(A) + " )" );
-  TAU_PROFILE("FunctionFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions above for more 
   // comprehensible comments --TJW
@@ -3603,8 +3565,8 @@ template<class T, unsigned D, class M>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Cell>& ff,
 				  Field<T,D,M,Cell>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ff) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ComponentFunctionFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions above for more 
   // comprehensible comments --TJW
@@ -3690,8 +3652,8 @@ template<class T, unsigned D, class M>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Vert>& ff,
 			 Field<T,D,M,Vert>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ff) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ComponentFunctionFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions above for more 
   // comprehensible comments --TJW
@@ -3782,8 +3744,8 @@ void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ff) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ComponentFunctionFaceBCApply()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // NOTE: See the ExtrapolateFaceBCApply functions above for more 
   // comprehensible comments --TJW
@@ -4369,8 +4331,8 @@ template<class T, unsigned D, class M, class C>
 void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
 				  Field<T,D,M,C>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("LinearExtrapolateFaceBCApply()", taustr,TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -4557,9 +4519,6 @@ void ComponentLinearExtrapolateFaceBCApply(ComponentLinearExtrapolateFace
 					   <T,D,M,C>& ef,
 					   Field<T,D,M,C>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ef) + ", " + CT(A) + " )" );
-  TAU_PROFILE("ComponentLinearExtrapolateFaceBCApply()", 
-	      taustr,TAU_FIELD | TAU_ASSIGN);
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -4674,8 +4633,8 @@ PatchBC<T,D,M,C>::
 PatchBC(unsigned face)
   : BCondBase<T,D,M,C>(face)
 {
-  TAU_TYPE_STRING(taustr, "void ( unsigned )" );
-  TAU_PROFILE("PatchBC::PatchBC()", taustr, TAU_FIELD);
+  
+  
 }
 
 //-----------------------------------------------------------------------------
@@ -4688,8 +4647,8 @@ PatchBC(unsigned face)
 template<class T, unsigned D, class M, class C>
 void PatchBC<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(A) + " )" );
-  TAU_PROFILE("PatchBC()", taustr, TAU_FIELD | TAU_ASSIGN);
+  
+  
 
   //------------------------------------------------------------
   // Find the slab that is the destination.

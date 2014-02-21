@@ -137,8 +137,6 @@ private:
         // the number of times it calls split.  There is some duplicated
         // code here to keep the threading through the if statements smooth.
         void  insert(const value_type& d, bool noSplit=false) {
-            TAU_TYPE_STRING(taustr, CT(*this) + " void (value_type)"); 
-            TAU_PROFILE("DomainMap::Node::insert()", taustr, TAU_DOMAINMAP);
                 
             Key left_domain;		// When splitting a node, we'll need a spot
             Key right_domain;		// to store the left and right domains.
@@ -288,8 +286,8 @@ public:
         // Increment an iterator.
         void op_pp()
             {
-                TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-                TAU_PROFILE("DomainMap::iterator::op_pp()", taustr, TAU_DOMAINMAP);
+                 
+                
 
                 PAssert(p != 0);
                 // First try to increment inside this node.
@@ -361,8 +359,8 @@ public:
         // Increment a const_iterator.
         void op_pp()
             {
-                TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-                TAU_PROFILE("DomainMap::const_iterator::op_pp()", taustr, TAU_DOMAINMAP);
+                 
+                
 
                 PAssert(p != 0);
                 // First try to increment inside this node.
@@ -447,8 +445,8 @@ public:
         // Increment a touch iterator.
         void op_pp()
             {
-                TAU_TYPE_STRING(taustr, CT(*this) + " void ()"); 
-                TAU_PROFILE("DomainMap::iterator::op_pp()", taustr, TAU_DOMAINMAP);
+                 
+                
 
                 PAssert(p != 0);
 

@@ -32,7 +32,7 @@
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 #include <cstdlib>
 #include <limits>
@@ -42,8 +42,8 @@
 // call 'initialize' soon after (before using in any context)
 template<unsigned Dim>
 FieldLayout<Dim>::FieldLayout() {
-  TAU_TYPE_STRING(taustr, "void ()");
-  TAU_PROFILE("FieldLayout::FieldLayout()", taustr, TAU_LAYOUT);
+  
+  
 
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
@@ -65,8 +65,8 @@ FieldLayout<Dim>::FieldLayout() {
 // distributed in some other manner.
 template<unsigned Dim>
 FieldLayout<Dim>::FieldLayout(const char *filename) {
-  TAU_TYPE_STRING(taustr, "void (const char *)");
-  TAU_PROFILE("FieldLayout::FieldLayout()", taustr, TAU_LAYOUT);
+  
+  
 
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
@@ -108,8 +108,8 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 			     e_dim_tag *p, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", e_dim_tag*, int)");
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
+  
+  
   setup(domain, p, vnodes);
 }
 
@@ -117,8 +117,8 @@ FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const Index& i1, e_dim_tag p1, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (Index, e_dim_tag, int)");
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
+  
+  
 
   PInsist(Dim==1,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -130,8 +130,8 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const Index& i1, const Index& i2,
 			     e_dim_tag p1, e_dim_tag p2, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (Index, Index, e_dim_tag, e_dim_tag, int)");
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
+  
+  
 
   PInsist(Dim==2,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -148,10 +148,7 @@ void
 FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index,") +
-                  std::string(" e_dim_tag, e_dim_tag, e_dim_tag, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
-
+  
   PInsist(Dim==3,
           "Number of arguments does not match dimension of FieldLayout!!");
   e_dim_tag par[Dim];
@@ -171,9 +168,7 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     e_dim_tag p4,
 			     int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index, Index,") +
-                  std::string(" e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
+  
 
   PInsist(Dim==4,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -196,10 +191,6 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     e_dim_tag p4, e_dim_tag p5,
 			     int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index, Index, Index,") +
-                  std::string(" e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag,") +
-                  std::string(" e_dim_tag, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
 
   PInsist(Dim==5,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -224,10 +215,6 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     e_dim_tag p4, e_dim_tag p5, e_dim_tag p6,
 			     int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index, Index, Index,") +
-                  std::string(" Index, e_dim_tag, e_dim_tag, e_dim_tag,") +
-                  std::string(" e_dim_tag, e_dim_tag, e_dim_tag, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
 
   PInsist(Dim==6,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -260,10 +247,8 @@ void
 FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 			     e_dim_tag *p, unsigned* vnodesPerDirection,
 			     bool recurse, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) +
-                  ", e_dim_tag*, unsigned*, bool, int)");
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
 
+  
   // Default to correct total vnodes:
   unsigned vnodesProduct = 1;
   for (unsigned int d=0; d<Dim; d++) vnodesProduct *= vnodesPerDirection[d];
@@ -284,8 +269,8 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const Index& i1, e_dim_tag p1, 
 			     unsigned vnodes1, bool recurse, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (Index, e_dim_tag, unsigned, bool, int)");
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
+  
+  
 
   PInsist(Dim==1,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -299,9 +284,6 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2,
 			     e_dim_tag p1, e_dim_tag p2, 
 			     unsigned vnodes1, unsigned vnodes2, 
 			     bool recurse, int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, e_dim_tag, e_dim_tag,") +
-                  std::string(" unsigned, unsigned, bool, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
 
   PInsist(Dim==2,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -322,11 +304,7 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     unsigned vnodes1, unsigned vnodes2, 
 			     unsigned vnodes3, 
-			     bool recurse, int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index, e_dim_tag,") +
-                  std::string(" e_dim_tag, e_dim_tag, unsigned, unsigned,") +
-                  std::string(" unsigned, bool, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
+			     bool recurse, int vnodes) {  
 
   PInsist(Dim==3,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -353,12 +331,7 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     unsigned vnodes1, unsigned vnodes2, 
 			     unsigned vnodes3, unsigned vnodes4, 
 			     bool recurse, int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index, Index,") +
-                  std::string(" e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag,") +
-                  std::string(" unsigned, unsigned, unsigned, unsigned, bool,") +
-                  std::string(" int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
-
+  
   PInsist(Dim==4,
           "Number of arguments does not match dimension of FieldLayout!!");
   e_dim_tag par[Dim];
@@ -387,12 +360,7 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     unsigned vnodes1, unsigned vnodes2, 
 			     unsigned vnodes3, unsigned vnodes4, 
 			     unsigned vnodes5, 
-			     bool recurse, int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index, Index, Index,") +
-                  std::string(" e_dim_tag, e_dim_tag, e_dim_tag, e_dim_tag,") +
-                  std::string(" e_dim_tag, unsigned, unsigned, unsigned,") +
-                  std::string(" unsigned, unsigned, bool, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
+			     bool recurse, int vnodes) { 
 
   PInsist(Dim==5,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -426,13 +394,7 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     unsigned vnodes3, unsigned vnodes4, 
 			     unsigned vnodes5, unsigned vnodes6, 
 			     bool recurse, int vnodes) {
-  TAU_TYPE_STRING(taustr, std::string("void (Index, Index, Index, Index, Index,") +
-                  std::string(" Index, e_dim_tag, e_dim_tag, e_dim_tag,") +
-                  std::string(" e_dim_tag, e_dim_tag, e_dim_tag, unsigned,") +
-                  std::string(" unsigned, unsigned, unsigned, unsigned,") +
-                  std::string(" unsigned, bool, int)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
-
+  
   PInsist(Dim==6,
           "Number of arguments does not match dimension of FieldLayout!!");
   e_dim_tag par[Dim];
@@ -476,9 +438,6 @@ FieldLayout<Dim>::initialize(const NDIndex<Dim> &domain,
 			     const NDIndex<Dim> *domend,
 			     const int *nbegin, const int *nend)
 {
-  TAU_TYPE_STRING(taustr, std::string("void (NDIndex, NDIndex *, NDIndex *,") +
-		  std::string(" int *, int *)"));
-  TAU_PROFILE("FieldLayout::initialize()", taustr, TAU_LAYOUT);
 
   // Loop variables
   int i, j;
@@ -564,8 +523,8 @@ void
 FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
 			e_dim_tag *userflags, int vnodes)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", e_dim_tag, int)");
-  TAU_PROFILE("FieldLayout::setup()", taustr, TAU_LAYOUT);
+  
+  
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
 
@@ -757,10 +716,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
 			e_dim_tag *userflags, unsigned* vnodesPerDirection,
 			bool recurse, int vnodes)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + 
-		  ", e_dim_tag, unsigned, int)");
-  TAU_PROFILE("FieldLayout::setup()", taustr, TAU_LAYOUT);
-
+ 
   // Find the number processors.
   int nprocs = Ippl::getNodes();
   int myproc = Ippl::myNode();
@@ -949,8 +905,8 @@ getVnodesPerDirection(unsigned dir) {
 template<unsigned Dim>
 void FieldLayout<Dim>::new_gc_layout(const GuardCellSizes<Dim>& gc)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(gc) + " )");
-  TAU_PROFILE("FieldLayout::new_gc_layout()", taustr, TAU_LAYOUT);
+  
+  
 
   // Build the guarded domain.
   NDIndex<Dim> guarded_domain( AddGuardCells(Domain,gc) );
@@ -978,10 +934,7 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
 			      const NDIndex<Dim>* idx_begin,
 			      const NDIndex<Dim>* idx_end)
   : Domain(domain)
-{
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", " + CT(idx_begin) 
-    + CT(idx_end) + " )");
-  TAU_PROFILE("FieldLayout::FieldLayout()", taustr, TAU_LAYOUT);
+{ 
 
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
@@ -1065,9 +1018,6 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
 			      const Vnode<Dim>* idx_end)
   : Domain(domain)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", " + CT(idx_begin) 
-    + CT(idx_end) + " )");
-  TAU_PROFILE("FieldLayout::FieldLayout()", taustr, TAU_LAYOUT);
 
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
@@ -1153,8 +1103,8 @@ void
 FieldLayout<Dim>::Repartition(const NDIndex<Dim>* idxBegin,
 			      const NDIndex<Dim>* idxEnd)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(idxBegin) + ", " + CT(idxEnd) + " )");
-  TAU_PROFILE("FieldLayout::Repartition()", taustr, TAU_LAYOUT);
+  
+  
 
   // Build a temporary FieldLayout to declare the temporary arrays.
   FieldLayout<Dim> tempLayout(Domain,idxBegin,idxEnd);
@@ -1197,8 +1147,8 @@ void
 FieldLayout<Dim>::Repartition(const Vnode<Dim>* idxBegin, 
 			      const Vnode<Dim>* idxEnd)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(idxBegin) + ", " + CT(idxEnd) + " )");
-  TAU_PROFILE("FieldLayout::Repartition()", taustr, TAU_LAYOUT);
+  
+  
 
   // Build a temporary FieldLayout to declare the temporary arrays.
   FieldLayout<Dim> tempLayout(Domain,idxBegin,idxEnd);
@@ -1233,8 +1183,8 @@ FieldLayout<Dim>::Repartition(const Vnode<Dim>* idxBegin,
 // with keyword=value.  Return success.
 template<unsigned Dim>
 bool FieldLayout<Dim>::write(const char *filename) {
-  TAU_TYPE_STRING(taustr, "bool (const char *)");
-  TAU_PROFILE("FieldLayout::write()", taustr, TAU_LAYOUT);
+  
+  
 
   unsigned int d;
 
@@ -1306,8 +1256,8 @@ bool FieldLayout<Dim>::write(const char *filename) {
 // false and leave our own layout unchanged.
 template<unsigned Dim>
 bool FieldLayout<Dim>::read(const char *filename) {
-  TAU_TYPE_STRING(taustr, "bool (const char *)");
-  TAU_PROFILE("FieldLayout::read()", taustr, TAU_LAYOUT);
+  
+  
 
   // generate a tag to use for communication
   int tag = Ippl::Comm->next_tag(F_LAYOUT_IO_TAG, F_TAG_CYCLE);
@@ -1603,8 +1553,8 @@ void
 FieldLayout<Dim>::checkin(FieldLayoutUser& f,
 			  const GuardCellSizes<Dim>& gc)
 {
-  TAU_TYPE_STRING(taustr, "void (FieldLayoutUser, " + CT(gc) + " )");
-  TAU_PROFILE("FieldLayout::checkin()", taustr, TAU_LAYOUT);
+  
+  
 
   checkinUser(f);
   iterator_gdv guarded = Remotes_ac.find(gc);
@@ -1619,7 +1569,7 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::checkout(FieldLayoutUser& f)
 {
-  TAU_PROFILE("FieldLayout::checkout()", "void (FieldLayoutUser)", TAU_LAYOUT);
+  
 
   checkoutUser(f);
 }
@@ -1644,7 +1594,7 @@ NDIndex<Dim> FieldLayout<Dim>::getLocalNDIndex()
 template<unsigned Dim>
 void FieldLayout<Dim>::write(std::ostream& out) const
 {
-  TAU_PROFILE("FieldLayout::write()", "void (ostream)", TAU_LAYOUT);
+  
 
   int icount;
 

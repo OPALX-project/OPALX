@@ -32,7 +32,7 @@
 #include "Index/LSIndex.h"
 #include "Field/BrickExpression.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -51,10 +51,7 @@ struct PAIsAssign<OpAssign> { enum { assign = 1 }; };
 // as it will be adjusted to have the same length as the number of local
 // points in the SIndex indexing the SubParticleAttrib.
 template<class PA, class T, unsigned Dim, class RHS, class OP>
-void assign(SubParticleAttrib<PA,T,Dim> a, RHS b, OP op, ExprTag<true>) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + ", " + CT(b) + ", " + CT(op) 
-    + ", ExprTag<true> )" );
-  TAU_PROFILE("assign()", taustr, TAU_SUBFIELD | TAU_ASSIGN);
+void assign(SubParticleAttrib<PA,T,Dim> a, RHS b, OP op, ExprTag<true>) {  
 
   // Make sure the LHS ParticleAttrib has the proper length.  It should
   // have the same length as the number of LOCAL sparse index points.

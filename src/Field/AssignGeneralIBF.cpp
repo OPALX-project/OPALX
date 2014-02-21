@@ -45,7 +45,7 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 #include "PETE/IpplExpressions.h"
 
 #ifdef IPPL_STDSTL
@@ -81,8 +81,8 @@ IndexedSend(IndexedBareField<T1,D1,D1>& ilhs,
 	    IndexedBareField<T2,D2,D2>& irhs,
 	    int tag)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ilhs) + ", " + CT(irhs) + ", int)" );
-  TAU_PROFILE("IndexedSend()", taustr, TAU_FIELD);
+  
+  
 
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
@@ -180,9 +180,6 @@ CalcIndexedReceive(IndexedBareField<T1,D1,D1>& ilhs,
 		   IndexedBareField<T2,D2,D2>& irhs,
 		   Container& recv_ac, int& msgnum)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ilhs) + ", " + CT(irhs) + ", " +
-		  CT(recv_ac) + " )" );
-  TAU_PROFILE("CalcIndexedReceive()", taustr, TAU_FIELD);
 
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
@@ -254,9 +251,6 @@ IndexedLocalAssign(IndexedBareField<T1,D1,D1>& ilhs,
 		   IndexedBareField<T2,D2,D2>& irhs,
 		   Op& op)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ilhs) + ", " + CT(irhs) + ", " +
-		  CT(op) + " )" );
-  TAU_PROFILE("IndexedLocalAssign()", taustr, TAU_FIELD);
 
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
@@ -407,10 +401,7 @@ IndexedReceive(IndexedBareField<T1,D1,D1>& ilhs,
 	       Op& op,
 	       Container& recv_ac, int msgnum,
 	       int tag)
-{
-  TAU_TYPE_STRING(taustr, "void (" + CT(ilhs) + ", " + CT(irhs) + ", " +
-		  CT(op) + ", " + CT(recv_ac) + ", int )" );
-  TAU_PROFILE("IndexedReceive()", taustr, TAU_FIELD);
+{ 
 
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
@@ -526,22 +517,6 @@ assign(IndexedBareField<T1,D1,D1> lhs,
        RHS rhsp,
        Op op, ExprTag<false>)
 {
-  // profiling macros
-  // here, 'Op' is not used to form the type string, so the timings here
-  // will be the sum of all different operators 'Op' used in the code.
-  TAU_TYPE_STRING(p1, "void (" + CT(lhs) + ", " + CT(rhsp) + ", " + CT(op) 
-    + ", ExprTag<false> )" );
-  TAU_PROFILE("assign()", p1.data(), TAU_ASSIGN | TAU_FIELD);
-  TAU_PROFILE_TIMER(sendtimer,   " assign[IndexedBareField]-send",
-		    p1.data(), TAU_ASSIGN);
-  TAU_PROFILE_TIMER(findtimer,   " assign[IndexedBareField]-findreceive", 
-		    p1.data(),TAU_ASSIGN);
-  TAU_PROFILE_TIMER(localstimer, " assign[IndexedBareField]-locals",
-		    p1.data(), TAU_ASSIGN);
-  TAU_PROFILE_TIMER(rectimer,    " assign[IndexedBareField]-recieve",
-		    p1.data(), TAU_ASSIGN);
-  TAU_PROFILE_TIMER(filltimer,   " assign[IndexedBareField]-fill",
-		    p1.data(), TAU_ASSIGN);
 
   typedef typename RHS::PETE_Return_t T2;
   enum { D2=RHS::Dim_u };
@@ -572,9 +547,9 @@ assign(IndexedBareField<T1,D1,D1> lhs,
   // Send all the data from the right hand side
   // the the parts of the left hand side that need them.
   if (Ippl::getNodes() > 1) {
-    TAU_PROFILE_START(sendtimer);
+    
     IndexedSend(lhs,rhs,tag);
-    TAU_PROFILE_STOP(sendtimer);
+    
   }
 
   // ----------------------------------------
@@ -582,31 +557,31 @@ assign(IndexedBareField<T1,D1,D1> lhs,
   std::multimap< NDIndex<D1> , LField<T1,D1>* , std::less< NDIndex<D1> > >  recv_ac;
   int msgnum = 0;
   if (Ippl::getNodes() > 1) {
-    TAU_PROFILE_START(findtimer);
+    
     CalcIndexedReceive(lhs,rhs,recv_ac,msgnum);
-    TAU_PROFILE_STOP(findtimer);
+    
   }
 
   // ----------------------------------------
   // Handle the local fills.
-  TAU_PROFILE_START(localstimer);
+  
   IndexedLocalAssign(lhs,rhs,op);
-  TAU_PROFILE_STOP(localstimer);
+  
 
   // ----------------------------------------
   // Receive all the messages.
   if (Ippl::getNodes() > 1) {
-    TAU_PROFILE_START(rectimer);
+    
     IndexedReceive(lhs,rhs,op,recv_ac,msgnum,tag);
-    TAU_PROFILE_STOP(rectimer);
+    
   }
 
   lhs.getBareField().setDirtyFlag();
 
   // Update the guard cells.
-  TAU_PROFILE_START(filltimer);
+  
   lhs.getBareField().fillGuardCellsIfNotDirty();
-  TAU_PROFILE_STOP(filltimer);
+  
 
   // Compress the LHS.
   lhs.getBareField().Compress();

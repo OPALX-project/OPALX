@@ -793,8 +793,8 @@ FieldLayout<Dim>::touch_range_rdv(const NDIndex<Dim>& domain,
 template<unsigned Dim>
 inline
 std::ostream& operator<<(std::ostream& out, const FieldLayout<Dim>& f) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(f) + " )");
-  TAU_PROFILE("operator<<()", taustr, TAU_LAYOUT | TAU_IO);
+  
+  
 
   f.write(out);
   return out;

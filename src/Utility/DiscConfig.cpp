@@ -29,7 +29,7 @@
 #include "Utility/PAssert.h"
 #include "Message/Communicate.h"
 #include "Message/Message.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_STDSTL
 // Standard STL names this header "algorithm"
@@ -95,8 +95,6 @@ int DiscConfig::dc_tokenize_string(const char *s, const char *tok,
 DiscConfig::DiscConfig(const char *config, const char *BaseFile,
 		       bool WritingFile)
   : NumSMPs(0), FileSMPs(0), MySMP(0), ConfigOK(false) {
-  TAU_PROFILE("DiscConfig::DiscConfig()", "void (char *, bool)",
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   if (config != 0)
     ConfigFile = config;
@@ -114,8 +112,6 @@ DiscConfig::DiscConfig(const char *config, const char *BaseFile,
 ///////////////////////////////////////////////////////////////////////////
 // Destructor
 DiscConfig::~DiscConfig() {
-  TAU_PROFILE("DiscConfig::~DiscConfig()", "void ()",
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // delete the SMP structures
   vector<SMPData *>::iterator smpiter = SMPList.begin();
@@ -167,10 +163,7 @@ unsigned int DiscConfig::pNodesPerSMP(unsigned int node) const {
 // Return a new string with the changes in place.
 string DiscConfig::replace_wildcards(const string& s,
 				     const string& machine) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " string (string, string )" );
-  TAU_PROFILE("DiscConfig::replace_wildcards()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
-
+  
   // the return string
   string retval;
 
@@ -256,9 +249,6 @@ void DiscConfig::add_SMP_directory(SMPData *&smpd,
 				   const string& s,
 				   const string& machine,
 				   bool WritingFile) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (SMPData *, string, string )" );
-  TAU_PROFILE("DiscConfig::add_SMP_directory()", taustr, 
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // create a new smpd if necessary, and add it to the list
   if (smpd == 0) {
@@ -319,9 +309,6 @@ void DiscConfig::add_SMP_directory(SMPData *&smpd,
 // we expect to find.  If this does not match later, an error will be
 // reported then.
 bool DiscConfig::parse_config(const char *BaseFile, bool WritingFile) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool (bool)" );
-  TAU_PROFILE("DiscConfig::parse_config()", taustr,
-	      TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   const int bufferSize = 1024;
   char bufferstore[bufferSize];

@@ -44,8 +44,6 @@ bool ACLVISDataConnect::ACLVISInitialized = false;
 ACLVISDataConnect::ACLVISDataConnect(const char *nm, int n)
   : DataConnect(nm, "aclvis", DataSource::OUTPUT, n)
 {
-  TAU_PROFILE("ACLVISDataConnect::ACLVISDataConnect()",
-	      "void (char *)", TAU_VIZ);
 
   // Inform dbgmsg("ACLVISDataConnect", INFORM_ALL_NODES);
   // dbgmsg << "Setting up new ACLVISDataConnect '" << nm << "'..." << endl;
@@ -80,8 +78,6 @@ ACLVISDataConnect::ACLVISDataConnect(const char *nm, int n)
 /////////////////////////////////////////////////////////////////////////
 // destructor: disconnect all data objects, and close window
 ACLVISDataConnect::~ACLVISDataConnect() {
-  TAU_PROFILE("ACLVISDataConnect::~ACLVISDataConnect()", "void ()", TAU_VIZ);
-
   // disconnect any remaining data objects
   disconnectConnections();
 
@@ -107,8 +103,6 @@ bool ACLVISDataConnect::connected() const {
 // of for all of them, since that one interact will affect all the connected
 // (well, displayed) elements.
 void ACLVISDataConnect::interact(const char *str, DataConnect *dc) {
-  TAU_PROFILE("ACLVISDataConnect::interact()", "void (const char *)", TAU_VIZ);
-
   // just do interact for first connection
   if (size() > 0)
     (*(begin()))->interact(str, dc);

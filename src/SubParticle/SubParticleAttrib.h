@@ -215,9 +215,6 @@ public:
   template<class B>
   SubParticleAttrib<PA,T,Dim>&
   operator=(const PETE_Expr<B> &b) {
-    TAU_TYPE_STRING(taustr, CT(*this) + " (" + CT(b) + " )" );
-    TAU_PROFILE("SubParticleAttrib::operator=()", taustr,
-		TAU_SUBFIELD | TAU_ASSIGN);
 
     // invoke the complex expression assignment, which gathers items from
     // the expression and puts them in the attribute
@@ -253,9 +250,7 @@ private:
 template<class PA, class T, unsigned Dim>
 inline
 std::ostream& operator<<(std::ostream &o, const SubParticleAttrib<PA,T,Dim> &n) {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(s) + " )" );
-  TAU_PROFILE("SubParticleAttrib::operator<<()", taustr,
-	      TAU_SUBFIELD | TAU_IO );
+
   n.write(o);
   return o;
 }

@@ -150,7 +150,7 @@ public:
     begdim = (direction == +1) ? 0 : (nTransformDims-1);
     enddim = (direction == +1) ? nTransformDims : -1;
     for (idim = begdim; idim != enddim; idim += direction) {
-      TAU_PROFILE_START(timer_swap);
+      
       // Now do the serial transforms along this dimension:
 
       bool skipTranspose = false;
@@ -200,9 +200,9 @@ public:
 	if (this->compressTemps()) *temp = 0;
 	temp = &f;  // Field* management aid
       }
-      TAU_PROFILE_STOP(timer_swap);
+      
 
-      TAU_PROFILE_START(timer_fft);
+      
       // Loop over all the Vnodes, working on the LField in each.
       typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
       for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -224,17 +224,17 @@ public:
 	  localdata += length;
 	} // loop over 1D strips
       } // loop over all the LFields
-      TAU_PROFILE_STOP(timer_fft);
+      
 
     } // loop over all transformed dimensions
 
     // skip final assignment and compress if we used f as final temporary
     if (temp != &f) {
-      TAU_PROFILE_START(timer_swap);
+      
       // Now assign back into original Field, and compress last temp's storage:
       f[in_dom] = (*temp)[temp->getLayout().getDomain()];
       if (this->compressTemps()) *temp = 0;
-      TAU_PROFILE_STOP(timer_swap);
+      
     }
 
     // Normalize:

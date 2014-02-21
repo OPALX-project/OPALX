@@ -26,7 +26,7 @@
 // include files
 #include "Utility/UserList.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -107,7 +107,7 @@ UserList::const_iterator_user UserList::end_user() const {
 // classes can override this, but should call this base class version
 // to actually store the user.
 UserList::ID_t UserList::checkinUser(User& user) {
-  TAU_PROFILE("UserList::checkinUser()", "UserList::ID_t (User )", TAU_UTILITY);
+  
   Key key = user.get_Id();
   if ( ! haveUser(key) )
     userlist[key] = &user;
@@ -122,7 +122,7 @@ UserList::ID_t UserList::checkinUser(User& user) {
 // being checked out (this may be useful if the person calling checkoutUser
 // is not the user being checked out).
 void UserList::checkoutUser(Key key, bool informuser) {
-  TAU_PROFILE("UserList::checkoutUser()", "void (Key, bool )", TAU_UTILITY);
+  
   iterator_user user = userlist.find(key);
   if (user != end_user()) {
     if (informuser)
@@ -136,7 +136,7 @@ void UserList::checkoutUser(Key key, bool informuser) {
 // also checkout a user, by specifying the user to checkout instead of
 // the user key.  The key is obtained from the user in this case.
 void UserList::checkoutUser(const User& user, bool informuser) {
-  TAU_PROFILE("UserList::checkoutUser()", "void (User, bool )", TAU_UTILITY );
+  
   checkoutUser(user.get_Id(), informuser);
 }
 

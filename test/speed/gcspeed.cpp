@@ -32,7 +32,7 @@
 
 int main(int argc, char *argv[]) {
   // profiling macros
-  TAU_PROFILE("main", "int (int, char *[])", TAU_DEFAULT);
+  
 
   unsigned int i, d;
 

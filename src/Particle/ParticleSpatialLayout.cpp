@@ -33,7 +33,7 @@
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
 #include "Utility/IpplMessageCounter.h"
-#include "Profile/Profiler.h"
+
 
 // forward declarations
 template <unsigned Dim> class FieldLayout;

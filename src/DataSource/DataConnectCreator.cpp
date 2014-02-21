@@ -28,7 +28,7 @@
 #include "DataSource/DataConnect.h"
 #include "DataSource/FileDataConnect.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 // include ACLVIS code if available
 #ifdef IPPL_ACLVIS
@@ -83,7 +83,7 @@ DataConnect *DataConnectCreator::DefaultConnection = 0;
 /////////////////////////////////////////////////////////////////////////
 // constructor: increment the instance count
 DataConnectCreator::DataConnectCreator() {
-  TAU_PROFILE("DataConnectCreator::DataConnectCreator()", "void ()", TAU_VIZ);
+  
   InstanceCount++;
 }
 
@@ -92,7 +92,7 @@ DataConnectCreator::DataConnectCreator() {
 // destructor: deccrement the instance count, and if it goes to zero,
 // delete any static object if necessary
 DataConnectCreator::~DataConnectCreator() {
-  TAU_PROFILE("DataConnectCreator::~DataConnectCreator()", "void ()", TAU_VIZ);
+  
   if (--InstanceCount == 0)
     if (DefaultConnection != 0)
       delete DefaultConnection;
@@ -102,7 +102,7 @@ DataConnectCreator::~DataConnectCreator() {
 /////////////////////////////////////////////////////////////////////////
 // return the name of the Nth method
 int DataConnectCreator::getNumMethods() {
-  TAU_PROFILE("DataConnectCreator::getNumMethods()", "int ()", TAU_VIZ);
+  
   return CONNECTMETHODS;
 }
 
@@ -110,7 +110,7 @@ int DataConnectCreator::getNumMethods() {
 /////////////////////////////////////////////////////////////////////////
 // return the name of the Nth method
 const char *DataConnectCreator::getMethodName(int n) {
-  TAU_PROFILE("DataConnectCreator::getMethodName()", "char * (int )", TAU_VIZ);
+  
   if (n >= 0 && n < CONNECTMETHODS)
     return ConnectMethodNames[n];
   else
@@ -121,7 +121,7 @@ const char *DataConnectCreator::getMethodName(int n) {
 /////////////////////////////////////////////////////////////////////////
 // return a list of all the methods, as a single string
 const char *DataConnectCreator::getAllMethodNames() {
-  TAU_PROFILE("DataConnectCreator::getAllMethodNames()", "char * ()", TAU_VIZ);
+  
   return ConnectMethodList;
 }
 
@@ -129,7 +129,7 @@ const char *DataConnectCreator::getAllMethodNames() {
 /////////////////////////////////////////////////////////////////////////
 // check if the given connection method is supported
 bool DataConnectCreator::supported(int cm) {
-  TAU_PROFILE("DataConnectCreator::supported()", "bool (int )", TAU_VIZ);
+  
   return (known(cm) ? ConnectMethodSupported[cm] : false);
 }
 
@@ -137,7 +137,7 @@ bool DataConnectCreator::supported(int cm) {
 /////////////////////////////////////////////////////////////////////////
 // check if the given connection method is supported
 bool DataConnectCreator::supported(const char *nm) {
-  TAU_PROFILE("DataConnectCreator::supported()", "bool (char *)", TAU_VIZ);
+  
   return supported(libindex(nm));
 }
 
@@ -145,7 +145,7 @@ bool DataConnectCreator::supported(const char *nm) {
 /////////////////////////////////////////////////////////////////////////
 // check if the given connection method is known at all
 bool DataConnectCreator::known(int cm) {
-  TAU_PROFILE("DataConnectCreator::known()", "bool (int )", TAU_VIZ);
+  
   return (cm >= 0 && cm < CONNECTMETHODS);
 }
 
@@ -153,7 +153,7 @@ bool DataConnectCreator::known(int cm) {
 /////////////////////////////////////////////////////////////////////////
 // check if the given connection method is known at all
 bool DataConnectCreator::known(const char *nm) {
-  TAU_PROFILE("DataConnectCreator::known()", "bool (char *)", TAU_VIZ);
+  
   return known(libindex(nm));
 }
 
@@ -162,8 +162,6 @@ bool DataConnectCreator::known(const char *nm) {
 // create a new connection.  Arguments = type, name, direction, nodes
 // If n <= 0, use the "default" number of nodes set earlier
 DataConnect *DataConnectCreator::create(int cm, const char *nm, int n) {
-  TAU_PROFILE("DataConnectCreator::create()", "DataConnect * (int, char * )",
-	      TAU_VIZ);
   
   // initially, we have a null pointer for the connection.  If everything
   // checks out, we'll have a non-null pointer at the end.  If we still
@@ -214,7 +212,7 @@ DataConnect *DataConnectCreator::create(int cm, const char *nm, int n) {
 // and if the default connection object has already been created, this just
 // returns that one.
 DataConnect *DataConnectCreator::create() {
-  TAU_PROFILE("DataConnectCreator::create()", "DataConnect * ()", TAU_VIZ);
+  
 
   if (DefaultConnection == 0)
     DefaultConnection = create(getMethodName(DefaultMethod));
@@ -225,7 +223,7 @@ DataConnect *DataConnectCreator::create() {
 /////////////////////////////////////////////////////////////////////////
 // change the default connection method.  Return success.
 bool DataConnectCreator::setDefaultMethod(int cm) {
-  TAU_PROFILE("DataConnectCreator::setDefaultMethod()", "bool (int)", TAU_VIZ);
+  
   if (supported(cm)) {
     DefaultMethod = cm;
     return true;
@@ -237,7 +235,7 @@ bool DataConnectCreator::setDefaultMethod(int cm) {
 /////////////////////////////////////////////////////////////////////////
 // return the index of the given named method, or (-1) if not found
 int DataConnectCreator::libindex(const char *nm) {
-  TAU_PROFILE("DataConnectCreator::libindex()", "int (char * )", TAU_VIZ);
+  
   for (int i=0; i < CONNECTMETHODS; ++i) {
     if (strcmp(nm, getMethodName(i)) == 0)
       return i;

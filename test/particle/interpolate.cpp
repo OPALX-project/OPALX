@@ -52,13 +52,13 @@ const int nx=8, ny=8;
 int main(int argc, char *argv[])
 {
 // Macro to invoke profiling of MC++.
-  TAU_PROFILE("main", "int (int, char**)", TAU_DEFAULT);
+  
 // This profiling macro and all others are a no-op if profiling is off.
 
 // Create some tau profile timers
-  TAU_PROFILE_TIMER(ngptime, "NGP interpolations", " ", TAU_USER);
-  TAU_PROFILE_TIMER(cictime, "CIC interpolations", " ", TAU_USER);
-  TAU_PROFILE_TIMER(sudstime, "SUDS interpolations", " ", TAU_USER);
+  
+  
+  
   Ippl ippl(argc, argv);
   Inform testinfo(argv[0]);
   Inform testmsg(argv[0], INFORM_ALL_NODES);
@@ -152,15 +152,15 @@ int main(int argc, char *argv[])
 
   // NGP test: gather Field A into P.data[0] and scatter P.data[1] into B.
   testinfo << "Performing NGP gather of A into P.data[0] ... " << endl;
-  TAU_PROFILE_START(ngptime);
+  
   // perform gather and cache mesh info in index attribute
   P.data[0].gather(A, P.R, IntNGP(), P.CacheNGP);
-  TAU_PROFILE_STOP(ngptime);
+  
   testinfo << "Performing NGP scatter of P.data[1] onto B ... " << endl;
-  TAU_PROFILE_START(ngptime);
+  
   // perform scatter, reusing cached mesh info
   P.data[1].scatter(B, IntNGP(), P.CacheNGP);
-  TAU_PROFILE_STOP(ngptime);
+  
 
   // Just print out the contents of particle data
   testinfo << "------------------" << endl;
@@ -177,10 +177,10 @@ int main(int argc, char *argv[])
   // Perform 2nd NGP scatter, to test handling of guard cells
   testinfo << "Performing 2nd NGP scatter of P.data[1] onto B ... " << endl;
   // B = 0.0;
-  TAU_PROFILE_START(cngpime);
+  
   // perform scatter, reusing cached mesh info
   P.data[1].scatter(B, IntNGP(), P.CacheNGP);
-  TAU_PROFILE_STOP(ngptime);
+  
 
   // Print out the fields
   testinfo << "------------------" << endl;
@@ -190,16 +190,16 @@ int main(int argc, char *argv[])
 
   // CIC test: gather Field A into P.data[0] and scatter P.data[1] into B.
   testinfo << "Performing CIC gather of A into P.data[0] ... " << endl;
-  TAU_PROFILE_START(cictime);
+  
   // perform gather and cache mesh info in index and delta attributes
   P.data[0].gather(A, P.R, IntCIC(), P.CacheCIC);
-  TAU_PROFILE_STOP(cictime);
+  
   testinfo << "Performing CIC scatter of P.data[1] onto B ... " << endl;
   B = 0.0;
-  TAU_PROFILE_START(cictime);
+  
   // perform scatter, reusing cached mesh info
   P.data[1].scatter(B, IntCIC(), P.CacheCIC);
-  TAU_PROFILE_STOP(cictime);
+  
 
   // Just print out the contents of node 0's data
   testinfo << "------------------" << endl;
@@ -216,10 +216,10 @@ int main(int argc, char *argv[])
   // do a second CIC scatter, to test handling of guard cells
   testinfo << "Performing 2nd CIC scatter of P.data[1] onto B ... " << endl;
   // B = 0.0;
-  TAU_PROFILE_START(cictime);
+  
   // perform scatter, reusing cached mesh info
   P.data[1].scatter(B, IntCIC(), P.CacheCIC);
-  TAU_PROFILE_STOP(cictime);
+  
 
   // print out the fields
   testinfo << "------------------" << endl;
@@ -229,16 +229,16 @@ int main(int argc, char *argv[])
 
   // SUDS test: gather Field A into P.data[0] and scatter P.data[1] into B.
   testinfo << "Performing SUDS gather of A into P.data[0] ... " << endl;
-  TAU_PROFILE_START(sudstime);
+  
   // perform gather and cache mesh info in index and delta attributes
   P.data[0].gather(A, P.R, IntSUDS(), P.CacheSUDS);
-  TAU_PROFILE_STOP(sudstime);
+  
   testinfo << "Performing SUDS scatter of P.data[1] onto B ... " << endl;
   B = 0.0;
-  TAU_PROFILE_START(sudstime);
+  
   // perform scatter, reusing cached mesh info
   P.data[1].scatter(B, IntSUDS(), P.CacheSUDS);
-  TAU_PROFILE_STOP(sudstime);
+  
 
   // Just print out the contents of node 0's data
   testinfo << "------------------" << endl;
@@ -255,10 +255,10 @@ int main(int argc, char *argv[])
   // Perform 2nd SUDS scatter, to test handling of guard cells
   testinfo << "Performing 2nd SUDS scatter of P.data[1] onto B ... " << endl;
   // B = 0.0;
-  TAU_PROFILE_START(sudstime);
+  
   // perform scatter, reusing cached mesh info
   P.data[1].scatter(B, IntSUDS(), P.CacheSUDS);
-  TAU_PROFILE_STOP(sudstime);
+  
 
   // print out the fields
   testinfo << "------------------" << endl;

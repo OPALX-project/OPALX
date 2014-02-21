@@ -27,7 +27,7 @@
 #include "DataSource/DataSourceObject.h"
 #include "DataSource/DataConnect.h"
 #include "Utility/Pstring.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_PAWS
 #include "IpplPaws/PawsStringDataSource.h"
@@ -42,8 +42,8 @@ template <class T>
 DataSourceObject *StringDataSource<T>::createDataSourceObject(const char *nm,
 							   DataConnect *dc,
 							   int tm) {
-  TAU_TYPE_STRING(taustr, "DataSourceObject * (char *, DataConnect *, int)");
-  TAU_PROFILE("make_DataSourceObject()", taustr, TAU_VIZ);
+  
+  
 
   // get the connection method name, and make a string out of it
   std::string method(dc->DSID());

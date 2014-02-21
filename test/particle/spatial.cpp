@@ -40,7 +40,7 @@ typedef ParticleSpatialLayout< double, Dim, Cartesian<Dim> > playout_t;
 
 int main(int argc, char *argv[])
 {
-  TAU_PROFILE("main", "int (int, char**)", TAU_DEFAULT);
+  
 
   Ippl ippl(argc, argv);
   Inform testmsg(argv[0]);

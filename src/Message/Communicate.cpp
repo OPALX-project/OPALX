@@ -35,7 +35,7 @@
 #include "Message/Message.h"
 #include "Message/CRC.h"
 #include "PETE/IpplExpressions.h"
-#include "Profile/Profiler.h"
+
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
 #include "Utility/RandomNumberGen.h"
@@ -47,8 +47,6 @@
 // print summary of this class to the given output stream
 std::ostream& operator<<(std::ostream& o, const Communicate& c)
 {
-    TAU_PROFILE("operator<<()", "ostream (ostream, Communicate)",
-                TAU_MESSAGE | TAU_IO);
 
     o << "Parallel communication method: " << c.name() << "\n";
     o << "  Total nodes: " << c.getNodes() << ", Current node: ";
@@ -72,8 +70,6 @@ std::ostream& operator<<(std::ostream& o, const Communicate& c)
 Communicate::Communicate(int, char **, int)
         : nextMsgNum(1)
 {
-    TAU_PROFILE("Communicate::Communicate()", "void (int, char **, int)",
-                TAU_MESSAGE);
 
     // initialize data for Communicate
     TotalNodes = 1;
@@ -88,7 +84,7 @@ Communicate::Communicate(int, char **, int)
 // Destructor.  Nothing to do at present.
 Communicate::~Communicate(void)
 {
-    TAU_PROFILE("Communicate::~Communicate()", "void ()", TAU_MESSAGE);
+    
 
     // delete the cached messages
     SentCache_t::iterator cachei = sentMsgCache.begin();
@@ -101,9 +97,6 @@ Communicate::~Communicate(void)
 // Add a new on-node message to the linked list.  Return success.
 bool Communicate::add_msg(Message *msg, int node, int tag)
 {
-    TAU_PROFILE("Communicate::add_msg()", "bool (Message *, int, int)",
-                TAU_MESSAGE);
-
     recMsgList.push_back(MessageData(node, tag, msg));
     return true;
 }
@@ -117,8 +110,6 @@ bool Communicate::add_msg(Message *msg, int node, int tag)
 // the queue.
 Message* Communicate::find_msg(int& node, int& tag)
 {
-    TAU_PROFILE("Communicate::find_msg()", "Message* (int&, int&)",
-                TAU_MESSAGE);
 
     // just find the first message that meets the criteria
     std::vector<MessageData>::iterator qi   = recMsgList.begin();
@@ -147,8 +138,6 @@ Message* Communicate::find_msg(int& node, int& tag)
 // Default version of virtual send function ... here, does nothing.
 bool Communicate::mysend(Message *, int, int, int)
 {
-    TAU_PROFILE("Communicate::mysend()", "bool (Message *, int, int, int)",
-                TAU_MESSAGE);
 
     // just return false, since we cannot send a message with this function
     return false;
@@ -159,8 +148,6 @@ bool Communicate::mysend(Message *, int, int, int)
 // Default version of virtual receive function ... here, does nothing.
 Message* Communicate::myreceive(int&, int&, int)
 {
-    TAU_PROFILE("Communicate::myreceive()", "Message* (int, int, int)",
-                TAU_MESSAGE);
 
     // just return NULL, since we cannot find a message with this function
     return 0;
@@ -171,7 +158,7 @@ Message* Communicate::myreceive(int&, int&, int)
 // Default version of virtual barrier function ... here, does nothing.
 void Communicate::mybarrier(void)
 {
-    TAU_PROFILE("Communicate::mybarrier()", "void ()", TAU_MESSAGE);
+    
 
     // just return NULL, since we cannot find a message with this function
     return;
@@ -183,8 +170,6 @@ void Communicate::mybarrier(void)
 // into the provided buffer.  Return success.
 bool Communicate::resend(void *, int, int, int)
 {
-    TAU_PROFILE("Communicate::resend()", "void (void *, int, int, int)",
-                TAU_MESSAGE);
 
     // just return false, since we cannot resend a message with this function
     return false;
@@ -196,9 +181,6 @@ bool Communicate::resend(void *, int, int, int)
 // message will be deleted after it is sent, otherwise it will be left alone.
 bool Communicate::send(Message *msg, int node, int tag, bool delmsg)
 {
-    TAU_PROFILE("Communicate::send()", "bool (Message *, int, int, bool)",
-                TAU_MESSAGE);
-
     bool retval;
 
     // process list of resend requests
@@ -258,7 +240,7 @@ bool Communicate::send(Message *msg, int node, int tag, bool delmsg)
 //      2. In receive queue
 Message* Communicate::receive(int& node, int& tag)
 {
-    TAU_PROFILE("Communicate::receive()", "Message* (int, int)", TAU_MESSAGE);
+    
 
     //Inform dbgmsg("Comm::receive", INFORM_ALL_NODES);
     //dbgmsg << "Doing receive from node " << node << ", tag " << tag << endl;
@@ -318,10 +300,10 @@ Message* Communicate::receive(int& node, int& tag)
 // A blocking version of receive.
 Message *Communicate::receive_block(int& node, int &tag)
 {
-    TAU_TYPE_STRING(taustr, "Message *(int, int)" );
-    TAU_PROFILE("Communicate::receive_block()", taustr, TAU_MESSAGE);
-    TAU_PROFILE_TIMER(findtimer, "  Comm::recblock::find", taustr, TAU_MESSAGE);
-    TAU_PROFILE_TIMER(looptimer, "  Comm::recblock::loop", taustr, TAU_MESSAGE);
+    
+    
+    
+    
 
     // process list of resend requests
     process_resend_requests();
@@ -332,13 +314,13 @@ Message *Communicate::receive_block(int& node, int &tag)
 
     // If we haven't already found a message, check the local messages
     //dbgmsg << "Checking for queued message ..." << endl;
-    TAU_PROFILE_START(findtimer);
+    
     Message *msg = find_msg(node, tag);
-    TAU_PROFILE_STOP(findtimer);
+    
     //dbgmsg << "Found one? " << (msg != 0 ? "yes" : "no") << endl;
 
     // keep checking for remote msgs until we get one
-    TAU_PROFILE_START(looptimer);
+    
     if (myNode() != node)
     {
         while (msg == 0)
@@ -381,7 +363,7 @@ Message *Communicate::receive_block(int& node, int &tag)
             }
         }
     }
-    TAU_PROFILE_STOP(looptimer);
+    
 
     // If we're on just one node, and we did not find a message, this is
     // a big problem.
@@ -402,8 +384,6 @@ Message *Communicate::receive_block(int& node, int &tag)
 // Arguments are the Message, and the tag for the message.
 int Communicate::broadcast_all(Message *msg, int tag)
 {
-    TAU_PROFILE("Communicate::broadcast_all()", "int (Message *, int)",
-                TAU_MESSAGE);
     int i;			// loop variable
 
     // send message to all other nodes
@@ -433,8 +413,6 @@ int Communicate::broadcast_all(Message *msg, int tag)
 // we should delete the given message object.
 int Communicate::broadcast_others(Message *msg, int tag, bool delmsg)
 {
-    TAU_PROFILE("Communicate::broadcast_others()", "int (Message *, int, bool)",
-                TAU_MESSAGE);
     int i;			// loop variable
 
     // send message to all other nodes
@@ -461,7 +439,7 @@ int Communicate::broadcast_others(Message *msg, int tag, bool delmsg)
 // else to get here before returning to calling function).
 void Communicate::barrier()
 {
-    TAU_PROFILE("Communicate::barrier()", "void ()", TAU_MESSAGE);
+    
 
     mybarrier();
     //INCIPPLSTAT(incBarriers);
@@ -478,8 +456,6 @@ void Communicate::cleanupMessage(void *) { }
 // calculate how big the buffer must be to send the given message
 int Communicate::find_msg_length(Message &msg)
 {
-    TAU_PROFILE("Communicate::find_msg_length()", "int (Message)",
-                TAU_MESSAGE);
 
     static const unsigned int longsize = wordround(sizeof(MsgNum_t));
     static const unsigned int intsize4 = wordround(4 * sizeof(int));
@@ -508,8 +484,6 @@ int Communicate::find_msg_length(Message &msg)
 void Communicate::fill_msg_buffer(void *buffer, Message &msg, int tag,
                                   int bufsize, int node)
 {
-    TAU_PROFILE("Communicate::fill_msg_buffer()",
-                "void (void *, Message, int, int, int)", TAU_MESSAGE);
 
     void *pos = buffer;		  // location in buffer to pack data
     int nitems = msg.size();	  // Number of items in Message
@@ -581,8 +555,6 @@ void Communicate::fill_msg_buffer(void *buffer, Message &msg, int tag,
 // get data out of a buffer and create a Message
 Message* Communicate::unpack_message(int &node, int &tag, void *buffer)
 {
-    TAU_PROFILE("Communicate::unpack_message()",
-                "Message* (int, int, long, void*)", TAU_MESSAGE);
 
     Message *newmsg = 0;
 
@@ -717,8 +689,6 @@ Message* Communicate::unpack_message(int &node, int &tag, void *buffer)
 void Communicate::add_to_send_cache(void *msgbuf, MsgNum_t mnum, int msgsize,
                                     int node)
 {
-    TAU_PROFILE("Communicate::add_to_send_cache",
-                "void (void*, MsgNum_t, int)", TAU_MESSAGE);
 
     // make sure we do not already have this message
     SentCache_t::iterator senti = sentMsgCache.find(mnum);

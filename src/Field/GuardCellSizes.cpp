@@ -25,13 +25,13 @@
 
 // include files
 #include "Field/GuardCellSizes.h"
-#include "Profile/Profiler.h"
+
 
 template<unsigned Dim>
 GuardCellSizes<Dim>::GuardCellSizes(unsigned s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned)" );
-  TAU_PROFILE("GuardCellSizes::GuardCellSizes()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d)
     Left[d] = Right[d] = s;
 }
@@ -39,8 +39,8 @@ GuardCellSizes<Dim>::GuardCellSizes(unsigned s)
 template<unsigned Dim>
 GuardCellSizes<Dim>::GuardCellSizes(unsigned *s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned * )" );
-  TAU_PROFILE("GuardCellSizes::GuardCellSizes()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d)
     Left[d] = Right[d] = s[d];
 }
@@ -48,8 +48,8 @@ GuardCellSizes<Dim>::GuardCellSizes(unsigned *s)
 template<unsigned Dim>
 GuardCellSizes<Dim>::GuardCellSizes(unsigned l, unsigned r)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned, unsigned)" );
-  TAU_PROFILE("GuardCellSizes::GuardCellSizes()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d) {
     Left[d] = l;
     Right[d] = r;
@@ -59,8 +59,8 @@ GuardCellSizes<Dim>::GuardCellSizes(unsigned l, unsigned r)
 template<unsigned Dim>
 GuardCellSizes<Dim>::GuardCellSizes(unsigned *l, unsigned *r)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned * , unsigned * )" );
-  TAU_PROFILE("GuardCellSizes::GuardCellSizes()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d) {
     Left[d] = l[d];
     Right[d] = r[d];
@@ -70,8 +70,8 @@ GuardCellSizes<Dim>::GuardCellSizes(unsigned *l, unsigned *r)
 template<unsigned Dim>
 void GuardCellSizes<Dim>::set_Left(unsigned s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned)" );
-  TAU_PROFILE("GuardCellSizes::set_Left()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d)
     Left[d] = s;
 }
@@ -79,8 +79,8 @@ void GuardCellSizes<Dim>::set_Left(unsigned s)
 template<unsigned Dim>
 void GuardCellSizes<Dim>::set_Left(unsigned *s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned * )" );
-  TAU_PROFILE("GuardCellSizes::set_Left()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d)
     Left[d] = s[d];
 }
@@ -88,16 +88,16 @@ void GuardCellSizes<Dim>::set_Left(unsigned *s)
 template<unsigned Dim>
 void GuardCellSizes<Dim>::set_Left(unsigned d, unsigned *s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned, unsigned * )" );
-  TAU_PROFILE("GuardCellSizes::set_Left()", taustr, TAU_FIELD);
+  
+  
   Left[d] = s[d];
 }
 
 template<unsigned Dim>
 void GuardCellSizes<Dim>::set_Right(unsigned s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned )" );
-  TAU_PROFILE("GuardCellSizes::set_Right()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d)
     Right[d] = s;
 }
@@ -105,8 +105,8 @@ void GuardCellSizes<Dim>::set_Right(unsigned s)
 template<unsigned Dim>
 void GuardCellSizes<Dim>::set_Right(unsigned *s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned * )" );
-  TAU_PROFILE("GuardCellSizes::set_Right()", taustr, TAU_FIELD);
+  
+  
   for (unsigned d=0; d<Dim; ++d)
     Right[d] = s[d];
 }
@@ -114,8 +114,8 @@ void GuardCellSizes<Dim>::set_Right(unsigned *s)
 template<unsigned Dim>
 void GuardCellSizes<Dim>::set_Right(unsigned d, unsigned *s)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (unsigned, unsigned * )" );
-  TAU_PROFILE("GuardCellSizes::set_Right()", taustr, TAU_FIELD);
+  
+  
   Right[d] = s[d];
 }
 
@@ -125,8 +125,8 @@ template<unsigned Dim>
 std::ostream&
 operator<<(std::ostream& out, const GuardCellSizes<Dim>& gc)
 {
-  TAU_TYPE_STRING(taustr, "ostream (ostream, " + CT(gc) + " )" );
-  TAU_PROFILE("operator<<()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   for (unsigned d=0; d<Dim; ++d)
     out << "[" << gc.left(d) << "," << gc.right(d) << "]";
   return out;

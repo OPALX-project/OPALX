@@ -26,7 +26,7 @@
 // include files
 #include "DataSource/PtclBaseDataSource.h"
 #include "DataSource/PtclAttribDataSource.h"
-#include "Profile/Profiler.h"
+
 
 
 // static objects for this class
@@ -45,8 +45,6 @@ ParticleBaseDataSource::ParticleBaseDataSource(const char *nm,
 ///////////////////////////////////////////////////////////////////////////
 // destructor ... unregister ourselves if this has not already been done
 ParticleBaseDataSource::~ParticleBaseDataSource() {
-  TAU_PROFILE("ParticleBaseDataSource::~ParticleBaseDataSource()",
-	      "void ()", TAU_VIZ);
 
   // disconnect all our currently connected attributes
   while (AttribList.size() > 0)
@@ -68,9 +66,6 @@ ParticleBaseDataSource::~ParticleBaseDataSource() {
 ParticleBaseDataSource*
 ParticleBaseDataSource::find_particle_base(ParticleAttribDataSource *pa,
 					   ParticleAttribBase *pabase) {
-  TAU_PROFILE("ParticleBaseDataSource::find_particle_base()",
-"ParticleBaseDataSource * (ParticleAttribDataSource *, ParticleAttribBase *)", 
-	      TAU_VIZ);
 
   // search through the particle base holders, and check for matching
   // connection method, and if pa is in currbase
@@ -92,7 +87,7 @@ ParticleBaseDataSource::find_particle_base(ParticleAttribDataSource *pa,
 // should be called by the constructors of subclasses after a successful
 // connect.  Argument = name of this particle base
 void ParticleBaseDataSource::checkin() {
-  TAU_PROFILE("ParticleBaseDataSource::checkin()", "void ()", TAU_VIZ);
+  
 
   // first see if we're already here ...
   BaseList_t::iterator currbase = ParticleBaseDataSource::begin_base();
@@ -109,7 +104,7 @@ void ParticleBaseDataSource::checkin() {
 ///////////////////////////////////////////////////////////////////////////
 // unregister ourselves ... generally called by subclass destructors.
 void ParticleBaseDataSource::checkout() {
-  TAU_PROFILE("ParticleBaseDataSource::checkout()", "void ()", TAU_VIZ);
+  
 
   for (unsigned i=0; i < BaseList.size(); ++i) {
     if (BaseList[i] == this) {
@@ -124,9 +119,6 @@ void ParticleBaseDataSource::checkout() {
 ////////////////////////////////////////////////////////////////////////////
 // make a connection using the given attribute.  Return success.
 bool ParticleBaseDataSource::connect_attrib(ParticleAttribDataSource *pa) {
-  TAU_PROFILE("ParticleBaseDataSource::connect_attrib()", 
-    "bool (ParticleAttribDataSource *)", TAU_VIZ);
-
   AttribList.push_back(pa);
   return true;
 }
@@ -136,8 +128,6 @@ bool ParticleBaseDataSource::connect_attrib(ParticleAttribDataSource *pa) {
 // disconnect from the external agency the connection involving this
 // particle base and the given attribute.  Return success.
 bool ParticleBaseDataSource::disconnect_attrib(ParticleAttribDataSource *pa) {
-  TAU_PROFILE("ParticleBaseDataSource::disconnect_attrib()", 
-    "bool (ParticleAttribDataSource *)", TAU_VIZ);
 
   // remove the attribute from our list
   int i, size = AttribList.size();

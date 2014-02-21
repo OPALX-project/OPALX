@@ -31,7 +31,7 @@
 #include "FieldLayout/FieldLayout.h"
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 // static RegionLayout members
 template < class T, unsigned Dim, class MeshType >
@@ -43,8 +43,8 @@ typename RegionLayout<T,Dim,MeshType>::RnodePool
 // default constructor
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   for (unsigned d=0; d < Dim; ++d) {
     IndexOffset[d] = 0;
@@ -66,8 +66,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout() {
 // copy constructor
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const RegionLayout<T,Dim,MeshType>& r) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(r) + ")");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   for (unsigned d=0; d < Dim; ++d) {
     IndexOffset[d] = r.IndexOffset[d];
@@ -97,8 +97,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const RegionLayout<T,Dim,MeshType>& r
 // destructor
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::~RegionLayout() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("RegionLayout::~RegionLayout()", taustr, TAU_REGION);
+  
+  
  
   // delete all our existing rnodes
   delete_rnodes();
@@ -116,8 +116,8 @@ RegionLayout<T,Dim,MeshType>::~RegionLayout() {
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const NDRegion<T,Dim>& domain,
 					   MeshType& mesh, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", " + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   FLayout = 0;
   theMesh = 0;
@@ -131,8 +131,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const NDRegion<T,Dim>& domain,
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const PRegion<T>& i1,
 					   MeshType& mesh, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   PInsist(Dim==1,
     "Number of PRegion arguments does not match RegionLayout dimension!!");
@@ -152,9 +152,7 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const PRegion<T>& i1,
 					   const PRegion<T>& i2,
 					   MeshType& mesh,
 					   int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(i2) + ", " 
-    + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
 
   PInsist(Dim==2,
     "Number of PRegion arguments does not match RegionLayout dimension!!");
@@ -176,9 +174,6 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const PRegion<T>& i1,
 					   const PRegion<T>& i3,
 					   MeshType& mesh,
 					   int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(i2) + ", " 
-    + CT(i3) + ", " + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
 
   PInsist(Dim==3,
     "Number of PRegion arguments does not match RegionLayout dimension!!");
@@ -200,8 +195,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const PRegion<T>& i1,
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const NDIndex<Dim>& domain,
 					   int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   // build mesh on this domain, with each axis extended by one
   NDIndex<Dim> extended;
@@ -219,8 +214,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const NDIndex<Dim>& domain,
 // constructor for just a 1-D PRegion, given an Index
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
  
   PInsist(Dim==1,
     "Number of Index arguments does not match RegionLayout dimension!!");
@@ -240,8 +235,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1, int vnodes) {
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1, const Index& i2,
 			   	       int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(i2) + ", int)"); 
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+   
+  
 
   PInsist(Dim==2,
     "Number of Index arguments does not match RegionLayout dimension!!");
@@ -263,9 +258,6 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1, const Index& i2,
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1, const Index& i2,
 				       const Index& i3, int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(i2) + ", "
-    + CT(i3) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
 
   PInsist(Dim==3,
     "Number of Index arguments does not match RegionLayout dimension!!");
@@ -292,8 +284,8 @@ template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const NDIndex<Dim>& domain,
 					   MeshType& mesh,
 					   int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", " + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   FLayout = 0;
   theMesh = 0;
@@ -308,8 +300,8 @@ template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1,
 					   MeshType& mesh,
 					   int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   PInsist(Dim==1,
     "Number of Index arguments does not match RegionLayout dimension!!");
@@ -329,9 +321,6 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1,
 					   const Index& i2,
 					   MeshType& mesh,
 					   int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(i2) + ", " 
-    + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
 
   PInsist(Dim==2,
     "Number of Index arguments does not match RegionLayout dimension!!");
@@ -353,9 +342,6 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1,
 					   const Index& i3,
 					   MeshType& mesh,
 					   int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(i1) + ", " + CT(i2) + ", " 
-    + CT(i3) + ", " + CT(mesh) + ", int)");
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
 
   PInsist(Dim==3,
     "Number of Index arguments does not match RegionLayout dimension!!");
@@ -375,8 +361,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const Index& i1,
 // Constructor which takes a FieldLayout, and uses it for our layout
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(FieldLayout<Dim>& fl) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(fl) + " )" );
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   // build mesh on domain extended by one along each axis
   NDIndex<Dim> domain = fl.getDomain();
@@ -397,8 +383,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(FieldLayout<Dim>& fl) {
 template < class T, unsigned Dim, class MeshType >
 RegionLayout<T,Dim,MeshType>::RegionLayout(FieldLayout<Dim>& fl,
 					   MeshType& mesh) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(fl) + ", " + CT(mesh)  + " )" );
-  TAU_PROFILE("RegionLayout::RegionLayout()", taustr, TAU_REGION);
+  
+  
 
   FLayout = 0;
   theMesh = 0;
@@ -414,8 +400,8 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(FieldLayout<Dim>& fl,
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::changeDomain(const NDIndex<Dim>& domain,
 						int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", int)");
-  TAU_PROFILE("RegionLayout::changeDomain()", taustr, TAU_REGION);
+  
+  
 
   unsigned int d;			// loop variable
 
@@ -457,8 +443,8 @@ void RegionLayout<T,Dim,MeshType>::changeDomain(const NDIndex<Dim>& domain,
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::changeDomain(const NDRegion<T,Dim>& domain,
 						int vnodes) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) + ", int)");
-  TAU_PROFILE("RegionLayout::changeDomain()", taustr, TAU_REGION);
+  
+  
 
   unsigned int d;			// loop variable
 
@@ -498,8 +484,8 @@ void RegionLayout<T,Dim,MeshType>::changeDomain(const NDRegion<T,Dim>& domain,
 // we just use the FieldLayout as-is, instead of making a new one.
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::changeDomain(FieldLayout<Dim>& fl) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(fl) + " )");
-  TAU_PROFILE("RegionLayout::changeDomain()", taustr, TAU_REGION);
+  
+  
 
   unsigned int d;			// loop variable
 
@@ -540,9 +526,6 @@ NDRegion<T,Dim>
 RegionLayout<T,Dim,MeshType>::convert_index(const NDIndex<Dim>& ni) const {
 
   NDRegion<T,Dim> new_pregion; // Needed in TAU_TYPE_STRING
-
-  TAU_TYPE_STRING(taustr, CT(new_pregion) + " ("  + CT(ni) + " )");
-  TAU_PROFILE("RegionLayout::convert_index()", taustr, TAU_REGION);
 
   unsigned int d;
 
@@ -588,8 +571,8 @@ template < class T, unsigned Dim, class MeshType >
 NDIndex<Dim>
 RegionLayout<T,Dim,MeshType>::convert_region(const NDRegion<T,Dim>& nr) const {
   NDIndex<Dim> index;
-  TAU_TYPE_STRING(taustr, CT(index) + " ("  + CT(nr) + " )");
-  TAU_PROFILE("RegionLayout::convert_region()", taustr, TAU_REGION);
+  
+  
 
   unsigned d;
 
@@ -629,8 +612,8 @@ template < class T, unsigned Dim, class MeshType >
 void
 RegionLayout<T,Dim,MeshType>::make_rnodes(const NDRegion<T,Dim>& dom,
 					  FieldLayout<Dim>& FL) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(dom) + ", " + CT(FL) + " )");
-  TAU_PROFILE("RegionLayout::make_rnodes()", taustr, TAU_REGION);
+  
+  
 
   //Inform dbgmsg("RegionLayout::make_rnodes");
   //dbgmsg << "Creating new rnodes based on FieldLayout = " << FL << endl;
@@ -694,8 +677,8 @@ RegionLayout<T,Dim,MeshType>::make_rnodes(const NDRegion<T,Dim>& dom,
 // remove the elements from the lists.
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::delete_rnodes() {
-  TAU_TYPE_STRING(taustr, "void ()");
-  TAU_PROFILE("RegionLayout::delete_rnodes()", taustr, TAU_REGION);
+  
+  
 
   // delete local rnodes
   typename ac_id_vnodes::iterator lociter = Local_ac.begin();
@@ -721,8 +704,8 @@ void RegionLayout<T,Dim,MeshType>::delete_rnodes() {
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::store_flayout(FieldLayout<Dim>* f,
 						 bool WeOwn) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", bool)");
-  TAU_PROFILE("RegionLayout::store_flayout()", taustr, TAU_REGION);
+  
+  
 
   // get rid of the existing layout, if necessary
   delete_flayout();
@@ -741,7 +724,7 @@ void RegionLayout<T,Dim,MeshType>::store_flayout(FieldLayout<Dim>* f,
 // check out from the layout
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::delete_flayout() {
-  TAU_PROFILE("RegionLayout::delete_flayout()", "void ()", TAU_REGION);
+  
   if (FLayout != 0) {
     FLayout->checkout(*this);
     if (WeOwnFieldLayout)
@@ -755,8 +738,8 @@ void RegionLayout<T,Dim,MeshType>::delete_flayout() {
 // Store a Mesh pointer, and note if we own it or not.
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::store_mesh(MeshType* m, bool WeOwn) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(m) + ", bool)"); 
-  TAU_PROFILE("RegionLayout::store_mesh()", taustr, TAU_REGION);
+   
+  
 
   // get rid of the existing mesh, if necessary
   delete_mesh();
@@ -778,7 +761,7 @@ void RegionLayout<T,Dim,MeshType>::store_mesh(MeshType* m, bool WeOwn) {
 // check out from the mesh
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::delete_mesh() {
-  TAU_PROFILE("RegionLayout::delete_mesh()", "void ()", TAU_REGION);
+  
   
   if (theMesh != 0) {
     theMesh->checkout(*this);
@@ -795,8 +778,8 @@ template < class T, unsigned Dim, class MeshType >
 NDRegion<T,Dim> RegionLayout<T,Dim,MeshType>::getMeshDomain(MeshType *m) {
   NDRegion<T,Dim> retDomain;
 
-  TAU_TYPE_STRING(taustr, CT(retDomain) + " (" + CT(m) + " )");
-  TAU_PROFILE("RegionLayout::getMeshDomain()", taustr, TAU_REGION);
+  
+  
 
   typename MeshType::MeshVektor_t morigin  = m->get_origin();
   NDIndex<Dim> meshCells;
@@ -816,8 +799,8 @@ template < class T, unsigned Dim, class MeshType >
 NDIndex<Dim> RegionLayout<T,Dim,MeshType>::getMeshVertices(MeshType *m) {
   NDIndex<Dim> mvertices;
 
-  TAU_TYPE_STRING(taustr, CT(mvertices) + " (" + CT(m) + " )" );
-  TAU_PROFILE("RegionLayout::getMeshVertices()", taustr, TAU_REGION);
+  
+  
 
   for (unsigned int d=0; d < Dim; ++d)
     mvertices[d] = Index(m->gridSizes[d]);
@@ -829,8 +812,8 @@ NDIndex<Dim> RegionLayout<T,Dim,MeshType>::getMeshVertices(MeshType *m) {
 // output
 template < class T, unsigned Dim, class MeshType >
 std::ostream& operator<<(std::ostream& out, const RegionLayout<T,Dim,MeshType>& f) {
-  TAU_TYPE_STRING(taustr, "ostream ( ostream, " + CT(f) + " )");
-  TAU_PROFILE("operator<<()", taustr, TAU_REGION | TAU_IO);
+  
+  
  
   int icount;
 
@@ -873,8 +856,8 @@ std::ostream& operator<<(std::ostream& out, const RegionLayout<T,Dim,MeshType>& 
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::RepartitionLayout(NDIndex<Dim>* ni,
 						     NDIndex<Dim>* nf) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ni) + ", " + CT(nf) + " )");
-  TAU_PROFILE("RegionLayout::RepartitionLayout()", taustr, TAU_REGION);
+  
+  
 
   // repartition the FieldLayout, using the given list of local vnodes.  This
   // call will result in a distribution of the data to all the nodes.  Also,
@@ -891,8 +874,8 @@ void RegionLayout<T,Dim,MeshType>::RepartitionLayout(NDIndex<Dim>* ni,
 // function used by the particle load balancing mechanism.
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::Repartition(UserList* userlist) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(userlist) + " )");
-  TAU_PROFILE("RegionLayout::Repartition()", taustr, TAU_REGION);
+  
+  
 
   if (theMesh != 0 && userlist->getUserListID() == theMesh->get_Id()) {
     // perform actions to restructure our data due to a change in the
@@ -938,8 +921,8 @@ void RegionLayout<T,Dim,MeshType>::Repartition(UserList* userlist) {
 // don't use it anymore
 template < class T, unsigned Dim, class MeshType >
 void RegionLayout<T,Dim,MeshType>::notifyUserOfDelete(UserList* userlist) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(userlist) + " )");
-  TAU_PROFILE("RegionLayout::notifyUserOfDelete()", taustr, TAU_REGION);
+  
+  
 
   if (FLayout != 0 && FLayout->get_Id() == userlist->getUserListID()) {
     // set our FieldLayout pointer to null, if it matches the given userlist.

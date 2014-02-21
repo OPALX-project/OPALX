@@ -27,16 +27,14 @@
 #include "SubField/SubField.h"
 #include "SubField/SubFieldTraits.h"
 #include "Field/Field.h"
-#include "Profile/Profiler.h"
+
 
 
 //////////////////////////////////////////////////////////////////////
 // assignment of a scalar
 template<class T, unsigned int Dim, class M, class C, class S>
 void SubField<T,Dim,M,C,S>::operator=(T t) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  "void (" + CT(t) + " )" );
-  TAU_PROFILE("SubBareField::operator=()", taustr, 
-    TAU_SUBFIELD | TAU_ASSIGN);
+
   assign(*this, t);
 }
 
@@ -46,9 +44,6 @@ void SubField<T,Dim,M,C,S>::operator=(T t) {
 template<class T, unsigned int Dim, class M, class C, class S>
 SubField<T,Dim,M,C,S>&
 SubField<T,Dim,M,C,S>::operator=(const SubField<T,Dim,M,C,S> &s) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " (" + CT(s) + " )" );
-  TAU_PROFILE("SubBareField::operator=()", taustr, 
-    TAU_SUBFIELD | TAU_ASSIGN);
 
   assign(*this, s);
   return *this;

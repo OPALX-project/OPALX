@@ -38,7 +38,7 @@
 
 // include files
 #include "Utility/Timer.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_XT3
 #include <catamount/dclock.h>
@@ -67,7 +67,7 @@
 
 Timer::Timer()
 {
-  TAU_PROFILE("Timer::Timer()", "void ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -98,7 +98,7 @@ Timer::Timer()
 
 Timer::~Timer()
 {
-  TAU_PROFILE("Timer::~Timer()", "void ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -129,7 +129,7 @@ Timer::~Timer()
 
 void Timer::clear()
 {
-  TAU_PROFILE("Timer::clear()", "void ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -170,7 +170,7 @@ void Timer::clear()
 
 void Timer::start()
 {
-  TAU_PROFILE("Timer::start()", "void ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -221,7 +221,7 @@ void Timer::start()
 
 void Timer::stop()
 {
-  TAU_PROFILE("Timer::stop()", "void ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -276,7 +276,7 @@ void Timer::stop()
 
 double Timer::clock_time()
 {
-  TAU_PROFILE("Timer::clock_time()", "double ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -366,7 +366,7 @@ double Timer::clock_time()
 
 double Timer::user_time()
 {
-  TAU_PROFILE("Timer::user_time()", "double ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
 // For now, stub out all Timer guts for MetroWerks
@@ -415,7 +415,7 @@ double Timer::user_time()
 
 double Timer::system_time()
 {
-  TAU_PROFILE("Timer::system_time()", "double ()", TAU_UTILITY );
+  
 
 #ifdef __MWERKS__
 // For now, stub out all Timer guts for MetroWerks

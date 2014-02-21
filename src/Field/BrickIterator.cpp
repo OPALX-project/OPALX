@@ -27,7 +27,7 @@
 #include "Field/AssignDefs.h"
 #include "Index/NDIndex.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 //////////////////////////////////////////////////////////////////////
 // BrickCounter methods
@@ -35,9 +35,6 @@
 template<unsigned Dim>
 BrickCounter<Dim>::BrickCounter(const NDIndex<Dim>& counted)
 {
-  // Remove this profiling because this is too lightweight.
-  // TAU_TYPE_STRING(taustr, "void (" + CT(counted) + " )" );
-  // TAU_PROFILE("BrickCounter::BrickCounter()", taustr, TAU_FIELD);
   for (unsigned d=0; d<Dim; ++d)
     {
       BrickCounter<Dim>::Counters[d] = 0;
@@ -52,8 +49,8 @@ void
 BrickCounter<Dim>::op_pp()
 {
   // Remove this profiling because this is too lightweight.
-  // TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  // TAU_PROFILE("BrickCounter::op_pp()", taustr, TAU_FIELD);
+  // 
+  // 
   for (unsigned d=0; d<Dim; ++d) {
     step(d);
     if ( BrickCounter<Dim>::Counters[d] != BrickCounter<Dim>::Counts[d] )
@@ -74,8 +71,8 @@ BrickIterator<T,Dim>::BrickIterator(T* p,
 : BrickCounter<Dim>(counted), Current(p), Whole(true)
 {
   // Remove this profiling because this is too lightweight.
-  // TAU_TYPE_STRING(taustr, "void (" + CT(p) + ", " + CT(counted) + ", " + CT(alloc) + " )" );
-  // TAU_PROFILE("BrickIterator::BrickIterator()", taustr, TAU_FIELD);
+  // 
+  // 
 
   // Calculate the strides,carriage returns and offset for the pointer.
   int n=1;
@@ -93,8 +90,8 @@ template< class T, unsigned Dim >
 BrickIterator<T,Dim>::BrickIterator(T* p, const vec<int,Dim>& sizes)
 {
   // Remove this profiling because this is too lightweight.
-  //TAU_TYPE_STRING(taustr, "void (" + CT(p) + ", " + CT(sizes) + " )" );
-  //TAU_PROFILE("BrickIterator::BrickIterator()", taustr, TAU_FIELD);
+  //
+  //
 
   int n = 1;
   for (unsigned d=0; d<Dim; ++d) {
@@ -114,8 +111,8 @@ void
 BrickIterator<T,Dim>::op_pp()
 {
   // Remove this profiling because this is too lightweight.
-  // TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  // TAU_PROFILE("BrickIterator::op_pp()", taustr, TAU_FIELD);
+  // 
+  // 
 
   for (unsigned d=0; d<Dim; ++d) {
     step(d);
@@ -140,8 +137,8 @@ BrickIterator<T,Dim>::op_pp()
 // has no such option, it always does the most efficient thing it can.
 template<class T, unsigned Dim>
 Message& BrickIterator<T,Dim>::putMessage(Message& m, bool makecopy) {
-  TAU_TYPE_STRING(taustr, "Message& (" + CT(m) + ", bool)" );
-  TAU_PROFILE("BrickIterator::putMessage", taustr, TAU_FIELD|TAU_MESSAGE);
+  
+  
 
   int n, s[Dim];
   unsigned int i;
@@ -191,8 +188,8 @@ Message& BrickIterator<T,Dim>::putMessage(Message& m, bool makecopy) {
 // get data out from a message
 template<class T, unsigned Dim>
 Message& BrickIterator<T,Dim>::getMessage(Message& m) {
-  TAU_TYPE_STRING(taustr, "Message& (" + CT(m) + " )" );
-  TAU_PROFILE("BrickIterator::getMessage", taustr, TAU_FIELD|TAU_MESSAGE);
+  
+  
   int n, s[Dim];
   unsigned int i;
   // this will only work if this iterator does not yet point

@@ -29,7 +29,7 @@
 #include "Utility/DiscMeta.h"
 #include "Message/Communicate.h"
 #include "Message/Message.h"
-#include "Profile/Profiler.h"
+
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
@@ -51,9 +51,7 @@
 //           be anything the user prefers.
 DiscParticle::DiscParticle(const char *base, const char *config,
 			   int iomode, const char *typestr) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (char *, char *, int, char *)" );
-  TAU_PROFILE("DiscParticle::DiscParticle()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
+  
   initialize(base, config, typestr, iomode);
 }
 
@@ -64,9 +62,7 @@ DiscParticle::DiscParticle(const char *base, const char *config,
 // each SMP machine, assume the directory to put data files in is "."
 DiscParticle::DiscParticle(const char *base,
 			   int iomode, const char *typestr) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (char *, int, char *)" );
-  TAU_PROFILE("DiscParticle::DiscParticle()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
+  
   initialize(base, 0, typestr, iomode);
 }
 
@@ -75,9 +71,7 @@ DiscParticle::DiscParticle(const char *base,
 // perform initialization based on the constuctor arguments
 void DiscParticle::initialize(const char *base, const char *config,
 			      const char *typestr, int iomode) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (char *, char *, char *, int )");
-  TAU_PROFILE("DiscParticle::initialize()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
+  
 
   // save which IO mode we're running, and make sure it is OK
   if (iomode != INPUT && iomode != OUTPUT && iomode != APPEND)
@@ -114,9 +108,6 @@ void DiscParticle::initialize(const char *base, const char *config,
 ///////////////////////////////////////////////////////////////////////////
 // Destructor
 DiscParticle::~DiscParticle() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void ()" );
-  TAU_PROFILE("DiscParticle::~DiscParticle()", taustr, 
-    TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
   // delete per-record information
   std::vector<RecordInfo *>::iterator rec = RecordList.begin();
@@ -159,9 +150,6 @@ unsigned int DiscParticle::get_NumLocalParticles(unsigned int record) const {
 // and return 0.
 FILE *DiscParticle::open_file(const std::string& fnm, const std::string& mode,
 			      bool reporterr) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " FILE * (string, string, bool )" );
-  TAU_PROFILE("DiscParticle::open_file()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
   // open the file, with the given name and mode
   FILE *f = fopen(fnm.c_str(), mode.c_str());
@@ -192,9 +180,6 @@ FILE *DiscParticle::open_file(const std::string& fnm, const std::string& mode,
 //       Offset location of start of attribute data in .data file
 // return success of operation.
 bool DiscParticle::write_meta() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool ()" );
-  TAU_PROFILE("DiscParticle::write_meta()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
   // Sanity checking
   if (!ConfigOK) {
@@ -266,9 +251,6 @@ bool DiscParticle::write_meta() {
 // The format for a .meta file is described in the write_meta routine.
 // return success of operation.
 bool DiscParticle::read_meta() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool ()" );
-  TAU_PROFILE("DiscParticle::read_meta()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
   // Sanity checking
   if (!ConfigOK) {
@@ -640,10 +622,6 @@ bool DiscParticle::read_meta() {
 ///////////////////////////////////////////////////////////////////////////
 bool DiscParticle::write_data(FILE *outputData, std::vector<Message *> &msgvec,
 			      RecordInfo *info) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (FILE *, vector<Message *>" +
-		  ", RecordInfo *)");
-  TAU_PROFILE("DiscParticle::write_data()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
   DPFDBG(Inform dbgmsg("DiscParticle::write_data", INFORM_ALL_NODES));
 
@@ -726,10 +704,6 @@ bool DiscParticle::write_data(FILE *outputData, std::vector<Message *> &msgvec,
 // and return the newly allocated buffer (or 0 if an error occurs).
 void *DiscParticle::read_data(FILE *outputData, unsigned int attrib,
 			      unsigned int record, unsigned int fileset) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void *(FILE *, unsigned int" +
-		  ", unsigned int, unsigned int)");
-  TAU_PROFILE("DiscParticle::read_data()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
   DPFDBG(Inform dbgmsg("DiscParticle::read_data", INFORM_ALL_NODES));
 
@@ -781,9 +755,6 @@ void *DiscParticle::read_data(FILE *outputData, unsigned int attrib,
 void DiscParticle::printDebug() { printDebug(std::cout); }
 
 void DiscParticle::printDebug(std::ostream& outmsg) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (ostream )" );
-  TAU_PROFILE("DiscParticle::printDebug()", taustr, 
-	      TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
   Inform msg("DiscParticle", outmsg, INFORM_ALL_NODES);
 

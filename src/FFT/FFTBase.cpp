@@ -50,8 +50,8 @@ FFTBase<Dim,T>::FFTBase(FFTBase<Dim,T>::FFT_e transform,
 {
 
   // Tau profiling
-  TAU_TYPE_STRING(taustr, " (FFT_e, " + CT(domain) + ", bool [], bool)");
-  TAU_PROFILE("FFTBase::FFTBase", taustr, TAU_FFT);
+  
+  
 
   // Store which dims are transformed, and count up how many there are
   nTransformDims_m = 0;
@@ -82,8 +82,8 @@ FFTBase<Dim,T>::FFTBase(FFTBase<Dim,T>::FFT_e transform,
 {
 
   // Tau profiling
-  TAU_TYPE_STRING(taustr, " (FFT_e, " + CT(domain) + ", bool)");
-  TAU_PROFILE("FFTBase::FFTBase", taustr, TAU_FFT);
+  
+  
 
   // Default, transform all dims:
   nTransformDims_m = Dim;
@@ -103,8 +103,8 @@ template <unsigned Dim, class T>
 void FFTBase<Dim,T>::write(std::ostream& out) const {
 
   // Tau profiling
-  TAU_TYPE_STRING(taustr, " (ostream&)");
-  TAU_PROFILE("void " + CT(*this) + "::write", taustr, TAU_FFT | TAU_IO);
+  
+  
 
   // Dump contents of FFT object
   out << "---------------FFT Object Dump Begin-------------------" << std::endl;

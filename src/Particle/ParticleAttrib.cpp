@@ -32,7 +32,7 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplStats.h"
 #include "AppTypes/AppTypeTraits.h"
-#include "Profile/Profiler.h"
+
 
 
 /////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ ParticleAttrib<T>::operator()(unsigned i, unsigned j, unsigned k) {
 // New items are appended to the end of the array.
 template<class T>
 void ParticleAttrib<T>::create(size_t M) {
-  TAU_PROFILE("ParticleAttrib::create()", "void (unsigned)", TAU_PARTICLE);
+  
   // make sure we have storage for M more items
   // and push back M items, using default value
   if (M > 0)
@@ -98,7 +98,7 @@ void ParticleAttrib<T>::create(size_t M) {
 
 template<class T>
 void ParticleAttrib<T>::destroy(size_t M, size_t I, bool optDestroy) {
-  TAU_PROFILE("ParticleAttrib::destroy()", "void (unsigned, unsigned, bool)", TAU_PARTICLE);
+  
 
   if (M == 0) return;
   if (optDestroy) {
@@ -142,7 +142,7 @@ template <class T>
 void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& dlist,
                                 bool optDestroy)
 {
-  TAU_PROFILE("ParticleAttrib::destroy()", "void (std::vector< pair<unsigned,unsigned> >, bool)", TAU_PARTICLE);
+  
 
   if (dlist.empty()) return;
   typedef std::vector< std::pair<size_t,size_t> > dlist_t;
@@ -232,8 +232,6 @@ template<class T>
 size_t
 ParticleAttrib<T>::putMessage(Message& msg, size_t M, size_t I)
 {
-  TAU_PROFILE("ParticleAttrib::putMessage()",
-	      "unsigned (Message, unsigned, unsigned)", TAU_PARTICLE);
 
   if (M > 0) {
     if (isTemporary()) {
@@ -258,8 +256,6 @@ size_t
 ParticleAttrib<T>::putMessage(Message& msg,
 			      const std::vector<size_t>& putList)
 {
-  TAU_PROFILE("ParticleAttrib::putMessage()",
-    "unsigned (Message, std::vector<unsigned>)", TAU_PARTICLE);
 
   std::vector<size_t>::size_type M = putList.size();
 
@@ -284,8 +280,6 @@ template<class T>
 size_t
 ParticleAttrib<T>::getMessage(Message& msg, size_t M)
 {
-  TAU_PROFILE("ParticleAttrib::getMessage()",
-    "unsigned (Message, unsigned)", TAU_PARTICLE);
 
   if (M > 0) {
     if (isTemporary()) {
@@ -334,7 +328,7 @@ ParticleAttrib<T>::getMessage(Message& msg, size_t M)
 
 template<class T>
 void ParticleAttrib<T>::ghostCreate(size_t M) {
-  TAU_PROFILE("ParticleAttrib::create()", "void (unsigned)", TAU_PARTICLE);
+  
   // make sure we have storage for M more items
   // and push back M items, using default value
   if (M > 0)
@@ -347,7 +341,7 @@ void ParticleAttrib<T>::ghostCreate(size_t M) {
 
 template<class T>
 size_t ParticleAttrib<T>::ghostDestroy(size_t M, size_t I) {
-  TAU_PROFILE("ParticleAttrib::create()", "void (unsigned)", TAU_PARTICLE);
+  
 
   if (M > 0)
   {
@@ -361,8 +355,6 @@ template<class T>
 size_t
 ParticleAttrib<T>::ghostGetMessage(Message& msg, size_t M)
 {
-  TAU_PROFILE("ParticleAttrib::getMessage()",
-    "unsigned (Message, unsigned)", TAU_PARTICLE);
 
   if (M > 0) {
       size_t currsize = ParticleList.size();
@@ -380,8 +372,6 @@ ParticleAttrib<T>::ghostGetMessage(Message& msg, size_t M)
 template<class T>
 void ParticleAttrib<T>::printDebug(Inform& o)
 {
-  TAU_PROFILE("ParticleAttrib::printDebug()",
-    "void (Inform)", TAU_PARTICLE | TAU_IO);
 
   o << "PAttr: size = " << ParticleList.size()
     << ", capacity = " << ParticleList.capacity()
@@ -569,9 +559,6 @@ template <class FT, unsigned Dim, class M, class C, class PT, class IntOp>
 void
 scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
         const IntOp& intop, FT val) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
-    + CT(intop)  + ", " + CT(val)  + " )" );
-  TAU_PROFILE("scatter()", taustr, TAU_PARTICLE);
 
   // make sure field is uncompressed and guard cells are zeroed
   f.Uncompress();
@@ -598,10 +585,6 @@ void
 scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
   const IntOp& intop, ParticleAttrib<CacheData>& cache, FT val) {
 
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
-    + CT(intop)  + ", " + CT(cache)  + ", " + CT(val)  + " )" );
-  TAU_PROFILE("scatter()", taustr, TAU_PARTICLE);
-
   // make sure field is uncompressed and guard cells are zeroed
   f.Uncompress();
   FT zero = 0;
@@ -627,10 +610,6 @@ template <class FT, unsigned Dim, class M, class C,
 void
 scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
         const ParticleAttrib<CacheData>& cache, FT val) {
-
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", "
-    + CT(cache)  + ", " + CT(val)  + " )" );
-  TAU_PROFILE("scatter()", taustr, TAU_PARTICLE);
 
   // make sure field is uncompressed and guard cells are zeroed
   f.Uncompress();

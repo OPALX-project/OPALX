@@ -43,11 +43,6 @@ ACLVISFieldDataSource<T,Dim,M,C>::ACLVISFieldDataSource(const char *nm,
 							Field<T,Dim,M,C>& F)
   : FieldDataSource<T,Dim,M,C>(nm, dc, tm, F) {
 
-  TAU_TYPE_STRING(taustr, "void (char *, DataConnect *, int, " + CT(F) +
-		  ", unsigned)");
-  TAU_PROFILE("ACLVISFieldDataSource::ACLVISFieldDataSource()", taustr,
-	      TAU_VIZ);
-
   // Inform dbgmsg("ACLVISFieldDataSource", INFORM_ALL_NODES);
   // dbgmsg << "Setting up new ACLVISFieldDataSource '" << nm << "'...";
   // dbgmsg << endl;
@@ -88,9 +83,6 @@ ACLVISFieldDataSource<T,Dim,M,C>::ACLVISFieldDataSource(const char *nm,
 // destructor
 template<class T, unsigned Dim, class M, class C>
 ACLVISFieldDataSource<T,Dim,M,C>::~ACLVISFieldDataSource() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("ACLVISFieldDataSource::~ACLVISFieldDataSource()", taustr,
-	      TAU_VIZ);
 
   // call ACLVIS API to unregister this data.
   if (ACLVISConnection->onConnectNode() && connected()) {
@@ -115,8 +107,8 @@ ACLVISFieldDataSource<T,Dim,M,C>::~ACLVISFieldDataSource() {
 // a function to set the mesh characteristics of the ReadFieldTool
 template<class T, unsigned Dim, class M, class C>
 void ACLVISFieldDataSource<T,Dim,M,C>::set_mesh(Field<T,Dim,M,C>& F) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " set_mesh (" + CT(F) + ")");
-  TAU_PROFILE("ACLVISFieldDataSource::set_mesh()", taustr, TAU_VIZ);
+  
+  
 
   // only change mesh on parent node
   if (ACLVISConnection->onConnectNode() && connected()) {
@@ -151,8 +143,8 @@ void ACLVISFieldDataSource<T,Dim,M,C>::set_mesh(Field<T,Dim,M,C>& F) {
 // current and consistent snapshot of the current state.  Return success.
 template<class T, unsigned Dim, class M, class C>
 bool ACLVISFieldDataSource<T,Dim,M,C>::update() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool ()");
-  TAU_PROFILE("ACLVISFieldDataSource::update()", taustr, TAU_VIZ);
+  
+  
 
   if (ACLVISConnection->onConnectNode() && connected()) {
     // tell the ACLVIS library what type and how much data to expect
@@ -188,8 +180,8 @@ bool ACLVISFieldDataSource<T,Dim,M,C>::update() {
 // This should only return when the manipulation is done.
 template<class T, unsigned Dim, class M, class C>
 void ACLVISFieldDataSource<T,Dim,M,C>::interact(const char *str) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()");
-  TAU_PROFILE("ACLVISFieldDataSource::interact()", taustr, TAU_VIZ);
+  
+  
 
   // on parent node, hand off control to ACLVIS API.  If a command string
   // is given, instead call the viz API function to execute it as an
@@ -216,11 +208,7 @@ void ACLVISFieldDataSource<T,Dim,M,C>::interact(const char *str) {
 template<class T, unsigned Dim, class M, class C >
 void ACLVISFieldDataSource<T,Dim,M,C>::insert_data(
                    const NDIndex<Dim>& dom,
-		   CompressedBrickIterator<T,Dim> rhs) {
-
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(dom) + ", " +
-		  CT(rhs) + " )" );
-  TAU_PROFILE("ACLVISFieldDataSource::insert_data()", taustr, TAU_VIZ);
+		   CompressedBrickIterator<T,Dim> rhs) { 
 
   // if we're not connected, just ignore the data
   if (! connected())

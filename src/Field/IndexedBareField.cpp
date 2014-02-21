@@ -27,7 +27,7 @@
 #include "Field/IndexedBareField.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 #include "FieldLayout/FieldLayout.h"
 
 #ifdef IPPL_STDSTL
@@ -58,8 +58,8 @@ template< class T, unsigned Dim, unsigned Brackets >
 void 
 IndexedBareField<T,Dim,Brackets>::write(std::ostream& out)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream )" );
-  TAU_PROFILE("IndexedBareField::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   // make sure we have the right number of brackets
   PInsist(Dim == Brackets,
           "Field not fully indexed in IndexedBareField::write!!");
@@ -86,8 +86,8 @@ template<class T, unsigned Dim, unsigned Brackets>
 void
 IndexedBareField<T,Dim,Brackets>::getsingle(T& r)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(r) + " )" );
-  TAU_PROFILE("IndexedBareField::getsingle()", taustr, TAU_FIELD);
+  
+  
   A.getsingle(Indexes, r);
 }
 
@@ -98,8 +98,8 @@ T
 IndexedBareField<T,Dim,Brackets>::get()
 {
   T r;
-  TAU_TYPE_STRING(taustr, CT(*this) + " " + CT(r) + " ()" );
-  TAU_PROFILE("IndexedBareField::get()", taustr, TAU_FIELD);
+  
+  
   getsingle(r);
   return r;
 }

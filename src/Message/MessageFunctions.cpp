@@ -29,7 +29,7 @@
 #include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 #include <new>
 #include <memory>
@@ -43,7 +43,7 @@ using namespace std;
 // called for all the items
 Message::~Message()
 {
-    TAU_PROFILE("Message::~Message()", "void (void)", TAU_MESSAGE);
+    
 
     // remove all unused items
     clear();
@@ -64,7 +64,7 @@ Message::~Message()
 // remove the top MsgItem
 void Message::deleteMsgItem()
 {
-    TAU_PROFILE("Message::deleteMsgItem()", "void (void)", TAU_MESSAGE);
+    
 
     if (!empty())
         numRemoved++;
@@ -77,7 +77,7 @@ void Message::deleteMsgItem()
 // and how many items total to copy
 Message& Message::putmsg(void *data, int s, int nelem)
 {
-    TAU_PROFILE("Message::putmsg()", "Message (void *, int, int)", TAU_MESSAGE);
+    
 
     // if this is a scalar, we always copy, and have one element
     if (nelem < 1)
@@ -110,7 +110,7 @@ Message& Message::putmsg(void *data, int s, int nelem)
 // deletes the top MsgItem.
 Message& Message::getmsg(void *data)
 {
-    TAU_PROFILE("Message::getmsg()", "Message (void *)", TAU_MESSAGE);
+    
 
     // check to see if there is an item
     if (empty())
@@ -145,7 +145,7 @@ Message& Message::getmsg(void *data)
 // clear the message; remove all the MsgItems
 Message& Message::clear(void)
 {
-    TAU_PROFILE("Message::clear()", "Message ()", TAU_MESSAGE);
+    
 
     while (!empty())
         deleteMsgItem();
@@ -165,7 +165,7 @@ Message& Message::clear(void)
 // item(N).item  .
 void *Message::remove()
 {
-    TAU_PROFILE("Message::remove()", "void * ()", TAU_MESSAGE);
+    
 
     // get the data out of the item
     MsgItem &m = item(0);
@@ -194,8 +194,7 @@ void *Message::remove()
 // use the << operator to print out a summary of the message
 std::ostream& operator<<(std::ostream& o, const Message& m)
 {
-    TAU_PROFILE("operator<<()", "ostream& (ostream&, const Message&)",
-                TAU_MESSAGE | TAU_IO);
+
     o << "Message contains " << m.size() << " items (" << m.removed();
     o << " removed).  Contents:\n";
     for (size_t i = 0 ; i < m.size(); ++i)

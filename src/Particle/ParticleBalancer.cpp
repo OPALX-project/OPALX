@@ -35,7 +35,7 @@
 #include "FieldLayout/FieldLayout.h"
 #include "FieldLayout/BinaryBalancer.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -44,8 +44,8 @@
 template < class T, unsigned Dim, class Mesh, class CachingPolicy>
 bool
 BinaryRepartition(ParticleBase<ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& PB, double offset) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(PB) + " )");
-  TAU_PROFILE("BinaryRepartition()", taustr, TAU_PARTICLE);
+  
+  
 
   static IntNGP interp; // to scatter particle density
 

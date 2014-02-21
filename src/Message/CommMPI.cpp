@@ -28,7 +28,7 @@
 #include "Message/Message.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 #include "Utility/IpplMessageCounter.h"
 
@@ -73,7 +73,7 @@ static long mpipackbuf[PSIZE];
 CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpicomm)
         : Communicate(argc, argv, procs), weInitialized(mpiinit)
 {
-    TAU_PROFILE("CommMPI::CommMPI()", "void (int, char **, int)", TAU_MESSAGE);
+    
     int i, reported, rep_host, ierror, result_len;
     MPI_Status stat;
     char *currtok, *nexttok, *execname;
@@ -129,7 +129,6 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
         for (i = 1; i < TotalNodes; i++)
         {
             MPI_Send(&myHost, 1, MPI_INT, i, COMM_HOSTS_TAG, communicator);
-            TAU_TRACE_SENDMSG(COMM_HOSTS_TAG, i, 1*size_of_MPI_INT);
         }
 
         // wait for the spawned processes to report back that they're ready
@@ -142,7 +141,7 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
         {
             ierror = MPI_Recv(&rep_host, 1, MPI_INT, MPI_ANY_SOURCE,
                               COMM_HOSTS_TAG, communicator, &stat);
-            TAU_TRACE_RECVMSG(COMM_HOSTS_TAG, stat.MPI_SOURCE, 1*size_of_MPI_INT);
+            
             if (rep_host >= 0 && rep_host < TotalNodes && !(child_ready[rep_host]))
             {
                 child_ready[rep_host] = 1;
@@ -179,13 +178,13 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
         int checknode;
         MPI_Recv(&checknode, 1, MPI_INT, 0, COMM_HOSTS_TAG, communicator,
                  &stat);
-        TAU_TRACE_RECVMSG(COMM_HOSTS_TAG, 0, 1*size_of_MPI_INT);
+        
         if (checknode != 0)
             WARNMSG("CommMPI: Child received bad message during startup." << endl);
 
         // send back an acknowledgement
         MPI_Send(&myHost, 1, MPI_INT, 0, COMM_HOSTS_TAG, communicator);
-        TAU_TRACE_SENDMSG(COMM_HOSTS_TAG, 0, 1*size_of_MPI_INT);
+        
     }
 
     // set up the contexts and processes arrays properly
@@ -207,7 +206,7 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
 // class destructor
 CommMPI::~CommMPI(void)
 {
-    TAU_PROFILE("CommMPI::~CommMPI()", "void()", TAU_MESSAGE);
+    
     int i, dieCode = 0;
     MPI_Status stat;
 
@@ -241,14 +240,14 @@ CommMPI::~CommMPI(void)
         for (i = 1; i < TotalNodes; i++)
         {
             MPI_Send(&dieCode, 1, MPI_INT, i, COMM_DIE_TAG, communicator);
-            TAU_TRACE_SENDMSG(COMM_DIE_TAG, i, 1*size_of_MPI_INT);
+            
         }
     }
     else
     {
         // on client nodes, receive message
         MPI_Recv(&dieCode, 1, MPI_INT, 0, COMM_DIE_TAG, communicator, &stat);
-        TAU_TRACE_RECVMSG(COMM_DIE_TAG, 0, 1*size_of_MPI_INT);
+        
     }
 
     MPI_Barrier(communicator);
@@ -281,8 +280,7 @@ CommMPI::~CommMPI(void)
 //              item N data     (various)
 void *CommMPI::pack_message(Message *msg, int tag, int &buffsize, int node)
 {
-    TAU_PROFILE("CommMPI::pack_message()", "(Message *, int, int, int)",
-                TAU_MESSAGE);
+
     // calculate size of buffer
     buffsize = find_msg_length(*msg);
 
@@ -304,8 +302,6 @@ void *CommMPI::pack_message(Message *msg, int tag, int &buffsize, int node)
 // tag is in the data sent between nodes.  Return success.
 bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
 {
-    TAU_PROFILE("CommMPI::mysend()", "bool (Message *, int, int, int)",
-                TAU_MESSAGE);
 
     int errstat = (-1);
     int flag = false;
@@ -330,7 +326,7 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
 
     errstat = MPI_Isend(outbuffer, size, MPI_BYTE, node, etag,
                         communicator, &request);
-    TAU_TRACE_SENDMSG(etag, node, size);
+    
 
     while (!flag)
     {
@@ -355,7 +351,7 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
                     // blocking receive, unpack message
                     MPI_Recv(rec_buff, rec_size, MPI_BYTE, src_node, rec_tag,
                              communicator, &rec_status);
-                    TAU_TRACE_RECVMSG(rec_tag, src_node, rec_size);
+                    
                     newmsg = unpack_message(rec_node, rec_utag, rec_buff);
 
                     // if there was an error unpacking, then the message had a problem
@@ -408,7 +404,7 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
 // If tag = COMM_ANY_TAG, checks for messages with any user tag.
 Message *CommMPI::myreceive(int& node, int& tag, int etag)
 {
-    TAU_PROFILE("CommMPI::myreceive()", "Message *(int, int, int)", TAU_MESSAGE);
+    
     int bufid, size, checknode, checktag, flag = false;
     Message *newmsg = 0;
     MPI_Status stat;
@@ -464,7 +460,7 @@ Message *CommMPI::myreceive(int& node, int& tag, int etag)
             //dbgmsg << checknode << "." << endl;
             MPI_Recv(outbuff, size, MPI_BYTE, checknode, checktag,
                      communicator, &stat);
-            TAU_TRACE_RECVMSG(checktag, checknode, size);
+            
             newmsg = unpack_message(node, tag, outbuff);
 
             // if there was an error unpacking, then the message had a problem
@@ -502,7 +498,7 @@ Message *CommMPI::myreceive(int& node, int& tag, int etag)
 // Uses MPI barrier for all procs
 void CommMPI::mybarrier(void)
 {
-    TAU_PROFILE("CommMPI::mybarrier()", "void ()", TAU_MESSAGE);
+    
 
     MPI_Barrier(communicator);
 }
@@ -513,8 +509,6 @@ void CommMPI::mybarrier(void)
 // into the provided buffer.  Return success.
 bool CommMPI::resend(void *buf, int buffsize, int node, int etag)
 {
-    TAU_PROFILE("CommMPI::resend()", "void (void *, int, int, int)",
-                TAU_MESSAGE);
 
     //Inform dbgmsg("CommMPI::resend", INFORM_ALL_NODES);
     //dbgmsg << "About to resend buffer of size " << buffsize << " to node ";
@@ -529,7 +523,7 @@ bool CommMPI::resend(void *buf, int buffsize, int node, int etag)
     MPI_Request request;
     int errstat = MPI_Isend(buf, buffsize, MPI_BYTE, node, etag,
                             communicator, &request);
-    TAU_TRACE_SENDMSG(etag, node, size);
+    
 
     int flag = false;
     MPI_Status status;
@@ -548,7 +542,7 @@ bool CommMPI::resend(void *buf, int buffsize, int node, int etag)
 // clean up after a Message has been used (called by Message).
 void CommMPI::cleanupMessage(void *d)
 {
-    TAU_PROFILE("CommMPI::cleanupMessage()", "void (void *)", TAU_MESSAGE);
+    
 
     // need to free the allocated storage
     freebuffer(d);

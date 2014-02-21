@@ -28,7 +28,7 @@
 #include "FieldLayout/FieldLayout.h"
 #include "Field/BareField.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -81,8 +81,8 @@ template <unsigned Dim>
 static int
 FindCutAxis(const NDIndex<Dim> &domain, const FieldLayout<Dim> &layout)
 {
-  TAU_TYPE_STRING(taustr, "int (" + CT(domain) + "," + CT(layout) + " )");
-  TAU_PROFILE("FindCutAxis()", taustr, TAU_LAYOUT);
+  
+  
 
   // CutAxis will be the dimension to cut.
   int cutAxis=-1;
@@ -127,9 +127,7 @@ FindMedian(int nprocs,RandomIterator begin, RandomIterator end, T)
   // First find the total weight.
   T w = 0;
   // Use w to find T's name 
-  TAU_TYPE_STRING(taustr, CT(begin) + " (" + CT(begin) + ", " 
-    + CT(end) +  ", " + CT(w) + " )");
-  TAU_PROFILE("FindMedian()", taustr, TAU_LAYOUT);
+  
   
   // If we have only one processor, cut at the left.
   if ( nprocs == 1 )
@@ -264,8 +262,8 @@ template<unsigned Dim>
 static void
 LocalReduce(double *reduced, int cutAxis, BrickIterator<double,Dim> data)
 {
-  TAU_TYPE_STRING(taustr, "double (double *, int, " + CT(data) + " )"); 
-  TAU_PROFILE("LocalReduce()", taustr, TAU_LAYOUT);
+   
+  
 
   int length = data.size(cutAxis);
   for (int i=0; i<length; ++i)
@@ -288,10 +286,7 @@ template<class IndexIterator, unsigned Dim>
 static void
 SendReduce(IndexIterator domainsBegin, IndexIterator domainsEnd,
            BareField<double,Dim>& weights, int tag)
-{
-  TAU_TYPE_STRING(taustr, "void (" + CT(domainsBegin) + ", " 
-    + CT(domainsEnd) + ", " + CT(weights) +  ", int )");
-  TAU_PROFILE("SendReduce()", taustr, TAU_LAYOUT);
+{  
 
   // Buffers to store up domains and blocks of reduced data.
   std::vector<double*> reducedBuffer;
@@ -372,9 +367,7 @@ ReceiveReduce(NDIndex<Dim>& domain, BareField<double,Dim>& weights,
               int reduce_tag, int nprocs,
 	      int& cutLoc, int& cutAxis)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domain) 
-    + ", " + CT(weights) + ", int, int, int )");
-  TAU_PROFILE("ReceiveReduce()", taustr, TAU_LAYOUT);
+  
 
   // Build a place to accumulate the reduced data.
   cutAxis = FindCutAxis(domain, weights.getLayout());
@@ -463,7 +456,7 @@ ReceiveReduce(NDIndex<Dim>& domain, BareField<double,Dim>& weights,
 inline void
 BcastCuts(int cutLoc, int cutAxis, int bcast_tag)
 {
-  TAU_PROFILE("BcastCuts()", "void (int, int, int)", TAU_LAYOUT);
+  
 
   // Make a message.
   Message *mess = new Message();
@@ -488,8 +481,8 @@ ReceiveCuts(std::vector< NDIndex<Dim> > &domains,
 	    std::vector< int >& nprocs,
 	    int bcast_tag)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(domains) + ", int)");
-  TAU_PROFILE("ReceiveCuts()", taustr, TAU_LAYOUT);
+  
+  
 
   // Make a container to hold the split domains.
   int nDomains = domains.size();
@@ -563,10 +556,7 @@ static void
 CutEach(std::vector< NDIndex<Dim> >& domains,
 	std::vector< int >& nprocs,
 	BareField<double,Dim>& weights)
-{
-  TAU_TYPE_STRING(taustr, "void (" + CT(domains) + ", " 
-    + CT(weights) + " )");
-  TAU_PROFILE("CutEach()", taustr, TAU_LAYOUT);
+{ 
 
   // Get tags for the reduction and the broadcast.
   int reduce_tag = Ippl::Comm->next_tag( F_REDUCE_PERP_TAG , F_TAG_CYCLE );
@@ -610,11 +600,7 @@ CalcBinaryRepartition(FieldLayout<Dim>& layout, BareField<double,Dim>& weights)
 {
 // Build a list of domains as we go.
   std::vector< NDIndex<Dim> > domains; // used by TAU_TYPE_STRING
-  std::vector<int> procs;
-
-  TAU_TYPE_STRING(taustr, CT(domains) + " (" + CT(layout) + ", "
-    + CT(weights) + " )");
-  TAU_PROFILE("CalcBinaryRepartition()", taustr, TAU_LAYOUT);
+  std::vector<int> procs; 
 
   /*out << "Starting CalcBinaryRepartition, outstanding msgs="
       << Ippl::Comm->getReceived()

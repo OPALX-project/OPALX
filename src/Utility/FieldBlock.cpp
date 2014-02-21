@@ -33,7 +33,7 @@
 #include "Field/LField.h"
 #include "Message/Message.h"
 #include "Message/Communicate.h"
-#include "Profile/Profiler.h"
+
 
 #include <cstring>
 #include <cstdio>
@@ -54,10 +54,6 @@ FieldBlock<T,Dim,Mesh,Centering>::FieldBlock(char* fname,
 					     unsigned numFields) :
   Layout(layout), NumFields(numFields)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (char *, " + CT(layout) 
-    + ", unsigned )" );
-  TAU_PROFILE("FieldBlock::FieldBlock()", taustr, 
-    TAU_UTILITY | TAU_FIELD | TAU_IO);
   
   strcpy(FName, fname);
   NumRecords = 0;
@@ -122,9 +118,6 @@ FieldBlock<T,Dim,Mesh,Centering>::
 FieldBlock(char* fname, FieldLayout<Dim>& layout) 
 : Layout(layout)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void (char *, " + CT(layout) + " )" );
-  TAU_PROFILE("FieldBlock::FieldBlock()", taustr, 
-    TAU_UTILITY | TAU_FIELD | TAU_IO);
 
     strcpy(FName, fname);
   // setup the file
@@ -176,9 +169,6 @@ void FieldBlock<T,Dim,Mesh,Centering>::write(Field<T,Dim,Mesh,Centering>& f,
 					     unsigned varID,
 					     unsigned record)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", unsigned, unsigned )" );
-  TAU_PROFILE("FieldBlock::write()", taustr, 
-    TAU_UTILITY | TAU_FIELD | TAU_IO);
 
 #ifdef IPPL_NETCDF
   Inform msg("FieldBlock::write");
@@ -323,9 +313,6 @@ void FieldBlock<T,Dim,Mesh,Centering>::read(Field<T,Dim,Mesh,Centering>& f,
 					     unsigned varID,
 					     unsigned record)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", unsigned, unsigned )" );
-  TAU_PROFILE("FieldBlock::read()", taustr, 
-    TAU_UTILITY | TAU_FIELD | TAU_IO);
 #ifdef IPPL_NETCDF
   Inform msg("FieldBlock::read");
   int i; // loop variables

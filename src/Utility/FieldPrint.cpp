@@ -28,7 +28,7 @@
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
 #include "Field/BrickExpression.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_USE_STANDARD_HEADERS
 #include <iomanip>
@@ -41,9 +41,6 @@
 template<class T, unsigned Dim >
 void 
 FieldPrint<T,Dim>::print(NDIndex<Dim>& view) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(view) + " )" );
-  TAU_PROFILE("FieldPrint::print()", taustr, 
-    TAU_UTILITY | TAU_FIELD | TAU_IO);
 
   // check that the view is contained inside of the Field's domain
   NDIndex<Dim>& domain = (NDIndex<Dim>&) MyField.getDomain();

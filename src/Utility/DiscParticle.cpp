@@ -31,7 +31,7 @@
 #include "Particle/ParticleAttrib.h"
 #include "Message/Communicate.h"
 #include "Message/Tags.h"
-#include "Profile/Profiler.h"
+
 #include "Utility/IpplInfo.h"
 
 // debugging macros; MWERKS: put these at top of .h files.

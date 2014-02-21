@@ -25,7 +25,7 @@
 
 // include files
 #include "Field/LField.h"
-#include "Profile/Profiler.h"
+
 #include "Utility/PAssert.h"
 #include "Utility/IpplStats.h"
 #include "Utility/Unique.h"
@@ -108,10 +108,7 @@ LField<T,Dim>::LField(const NDIndex<Dim>& owned,
     ownedCompressIndex(-1),
     offsetBlocks(Unique::get() % IPPL_OFFSET_BLOCKS)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(owned) + ", " 
-    + CT(allocated) + " )" );
-  TAU_PROFILE("LField::LField()", taustr, TAU_FIELD);
-
+  
   // Give the LField some initial (compressed) value
   LFieldInitializer<T>::apply(*Begin);
 
@@ -143,8 +140,8 @@ LField<T,Dim>::LField(const LField<T,Dim>& lf)
     ownedCompressIndex(lf.ownedCompressIndex),
     offsetBlocks(Unique::get() % IPPL_OFFSET_BLOCKS)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(lf) + " )" );
-  TAU_PROFILE("LField::LField()", taustr, TAU_FIELD);
+  
+  
 
   if ( lf.IsCompressed() )
     {
@@ -198,8 +195,8 @@ template<class T, unsigned Dim>
 bool
 LField<T,Dim>::TryCompress(bool baseOnPhysicalCells)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool ()" );
-  TAU_PROFILE("LField::TryCompress()", taustr, TAU_FIELD);
+  
+  
 
   if (IsCompressed() || IpplInfo::noFieldCompression)
     return false;
@@ -240,8 +237,8 @@ template<class T, unsigned Dim>
 bool
 LField<T,Dim>::CanCompress(T val) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (" + CT(val) + " )" );
-  TAU_PROFILE("LField::CanCompress()", taustr, TAU_FIELD);
+  
+  
 
   // Debugging macro
   LFIELDMSG(Inform dbgmsg("CanCompress"));
@@ -373,8 +370,8 @@ LField<T,Dim>::CanCompress(T val) const
 template<class T, unsigned Dim>
 bool LField<T,Dim>::CanCompressBasedOnPhysicalCells() const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool ()" );
-  TAU_PROFILE("LField::CanCompressBasedOnPhysicalCells()", taustr, TAU_FIELD);
+  
+  
 
   // Debugging macro
 
@@ -461,8 +458,8 @@ template<class T, unsigned Dim>
 void
 LField<T,Dim>::Compress(const T& val)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (" + CT(val) + " )" );
-  TAU_PROFILE("LField::Compress()", taustr, TAU_FIELD);
+  
+  
 
   LFIELDMSG(Inform dbgmsg("LField::Compress", INFORM_ALL_NODES));
   LFIELDMSG(dbgmsg << "Compressing LField with domain = " << getOwned());
@@ -511,8 +508,8 @@ template<class T, unsigned Dim>
 void
 LField<T,Dim>::CompressBasedOnPhysicalCells()
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("LField::CompressBasedOnPhysicalCells()", taustr, TAU_FIELD);
+  
+  
 
   // We do nothing in this case if compression is turned off.
 
@@ -542,8 +539,8 @@ LField<T,Dim>::CompressBasedOnPhysicalCells()
 template<class T, unsigned Dim>
 void LField<T,Dim>::ReallyUncompress(bool fill_domain)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("LField::ReallyUncompress()", taustr, TAU_FIELD);
+  
+  
 
   PAssert(Allocated.size()!=0);
 
@@ -595,8 +592,8 @@ typename LField<T,Dim>::iterator
 LField<T,Dim>::begin(const NDIndex<Dim>& domain)
 {
   // Remove this profiling because this is too lightweight.
-  // TAU_TYPE_STRING(taustr, CT(*this) + "::iterator (" + CT(domain) + " )" );
-  // TAU_PROFILE("LField::begin()", taustr, TAU_FIELD);
+  // 
+  // 
   return iterator(P,domain,Allocated,CompressedData);
 }
 
@@ -612,10 +609,7 @@ LField<T,Dim>::begin(const NDIndex<Dim>& domain)
 template<class T, unsigned Dim>
 typename LField<T,Dim>::iterator 
 LField<T,Dim>::begin(const NDIndex<Dim>& domain, T& compstore)
-{
-  TAU_TYPE_STRING(taustr, CT(*this) + "::iterator (" + CT(domain) + ", " + CT(compstore) 
-    + " )" );
-  TAU_PROFILE("LField::begin()", taustr, TAU_FIELD);
+{ 
 
   if (IsCompressed())
     compstore = CompressedData;
@@ -633,8 +627,8 @@ template<class T, unsigned Dim>
 void 
 LField<T,Dim>::swapData( LField<T,Dim>& a )
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + " )" );
-  TAU_PROFILE("LField::swapData()", taustr, TAU_FIELD);
+  
+  
 
   // Swap the pointers to the data.
   {
@@ -755,8 +749,8 @@ LField<T,Dim>::deallocateStorage()
 template<class T, unsigned Dim>
 void LField<T,Dim>::write(std::ostream& out) const
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (ostream)" );
-  TAU_PROFILE("LField::write()", taustr, TAU_FIELD | TAU_IO);
+  
+  
   for (iterator p = begin(); p!=end(); ++p)
     out << *p << " ";
 }

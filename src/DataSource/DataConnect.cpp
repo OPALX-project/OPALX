@@ -29,7 +29,7 @@
 #include "DataSource/DataSourceObject.h"
 #include "DataSource/DataConnectCreator.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -72,9 +72,6 @@ bool DataConnect::connected() const {
 // not actually connected, it is an error and this will return NULL.
 // Otherwise, if the connection works, return the connection.
 DataConnect *DataConnect::connect(const char *nm, DataSource *s, int tm) {
-  TAU_PROFILE("DataConnect::connect()",
-	      "DataConnect * (char *, DataSource *, int", 
-	      TAU_VIZ);
   DataConnect *conn = 0;
   if (connected() && s != 0)
     conn = s->connect(nm, this, tm);
@@ -91,7 +88,7 @@ DataConnect *DataConnect::connect(const char *nm, DataSource& s, int tm) {
 // DataSource's list of single connections, and the DataSource will
 // end up being added to our list of known sources.  Return success.
 bool DataConnect::connect(DataSourceObject *dso) {
-  TAU_PROFILE("DataConnect::connect()", "DataSourceObject *", TAU_VIZ);
+  
 
   // make sure the DataSourceObject has a source and the proper DataConnect
   if (dso == 0 || dso->getSource() == 0 || dso->getConnection() != this)
@@ -106,8 +103,6 @@ bool DataConnect::connect(DataSourceObject *dso) {
 /////////////////////////////////////////////////////////////////////////
 // perform update for all registered DataSource's
 void DataConnect::updateConnections(DataConnect *dc) {
-  TAU_PROFILE("DataConnect::updateConnections()", "void (DataConnect *)",
-	      TAU_VIZ);
   for (iterator a = begin(); a != end(); ++a)
     (*a)->updateConnection(dc);
 }
@@ -116,7 +111,7 @@ void DataConnect::updateConnections(DataConnect *dc) {
 /////////////////////////////////////////////////////////////////////////
 // disconnect all the registered DataSource's
 void DataConnect::disconnectConnections() {
-  TAU_PROFILE("DataConnect::disconnectConnections()", "void ()", TAU_VIZ);
+  
   while (! SourceList.empty() )
     checkout(SourceList.front());
 }
@@ -125,8 +120,6 @@ void DataConnect::disconnectConnections() {
 /////////////////////////////////////////////////////////////////////////
 // allow all connections to perform an interactive action
 void DataConnect::interact(const char *str, DataConnect *dc) {
-  TAU_PROFILE("DataConnect::interact()", "void (const char *, DataConnect *)",
-	      TAU_VIZ);
   for (iterator a = begin(); a != end(); ++a)
     (*a)->interact(str, dc);
 }
@@ -135,7 +128,7 @@ void DataConnect::interact(const char *str, DataConnect *dc) {
 /////////////////////////////////////////////////////////////////////////
 // Register a data object as connected here.  Return success.
 bool DataConnect::checkin(DataSource *ds) {
-  TAU_PROFILE("DataConnect::checkin()", "bool (DataSource *)", TAU_VIZ);
+  
 
   // make sure we do not have this DataSource already
   for (iterator a = begin(); a != end(); ++a) {
@@ -152,7 +145,7 @@ bool DataConnect::checkin(DataSource *ds) {
 /////////////////////////////////////////////////////////////////////////
 // remove a data object from our connected list.  Return success.
 bool DataConnect::checkout(DataSource *ds, bool NeedDisconnect) {
-  TAU_PROFILE("DataConnect::checkout()", "bool (DataSource *, bool)", TAU_VIZ);
+  
 
   //Inform dbgmsg("DataConnect::checkout", INFORM_ALL_NODES);
 

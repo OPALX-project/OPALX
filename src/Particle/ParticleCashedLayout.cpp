@@ -32,7 +32,7 @@
 #include "Utility/IpplInfo.h"
 #include "Message/Communicate.h"
 #include "Message/Message.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_STDSTL
 #include <algorithm>

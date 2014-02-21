@@ -27,7 +27,7 @@
 #include "Message/Message.h"
 #include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 #ifdef IPPL_STDSTL
 

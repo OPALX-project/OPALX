@@ -31,7 +31,7 @@
 #include "Field/IndexedField.h"
 #include "Field/Assign.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -57,10 +57,6 @@ public:
 		    typename SIndex<Dim>::iterator_iv& LSI,
 		    const SOffset<Dim>& SO,
 		    bool result) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(SI) + ", " + CT(LSI) + ", " + CT(SO) 
-      + ", bool)" );
-    TAU_PROFILE("SIndexAssignTraits::apply()", taustr, 
-      TAU_SPARSE | TAU_ASSIGN);
     if (result) {
       // we can just add the index to the LSIndex's list here, for the
       // following reasons:
@@ -95,10 +91,6 @@ public:
 		    typename SIndex<Dim>::iterator_iv& LSI,
 		    const SOffset<Dim>& SO,
 		    bool result) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(SI) + ", " + CT(LSI) + ", " + CT(SO)
-      + ", bool)" );
-    TAU_PROFILE("SIndexAssignTraits::apply()", taustr, 
-      TAU_SPARSE | TAU_ASSIGN);
     if (!result && (*LSI)->hasIndex(SO)) {
       // we must call removeIndex in SIndex (and not in LSIndex) here
       // because we might need to make a copy of the LSIndex data
@@ -126,10 +118,7 @@ public:
 		    typename SIndex<Dim>::iterator_iv& LSI,
 		    const SOffset<Dim>& SO,
 		    bool result) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(SI) + ", " + CT(LSI) + ", " + CT(SO)
-      + ", bool)" );
-    TAU_PROFILE("SIndexAssignTraits::apply()", taustr, 
-      TAU_SPARSE | TAU_ASSIGN);
+
     if (result && ! (*LSI)->hasIndex(SO)) {
       // we must call addIndex in SIndex (and not in LSIndex) here
       // because we need to check if this point SO is already in the
@@ -151,9 +140,7 @@ public:
   template<class RHS>
   static void evaluate(SIndex<Dim>& si, typename SIndex<Dim>::iterator_iv& lsi,
 		       NDIndex<Dim>& dom, RHS& Rhs) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(si) + ", " + CT(lsi) + ", " 
-      + CT(dom) + ", " + CT(Rhs) + " )" );
-    TAU_PROFILE("SIndexExpLoop::evaluate()", taustr, TAU_SPARSE);
+    
     int n0 = dom[0].length();
     int n1 = dom[1].length();
     int n2 = dom[2].length();
@@ -207,9 +194,7 @@ public:
   template<class RHS>
   static void evaluate(SIndex<1U>& si, SIndex<1U>::iterator_iv& lsi,
 		       NDIndex<1U>& dom, RHS& Rhs) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(si) + ", " + CT(lsi) + ", " + CT(dom)
-      + ", " + CT(Rhs) + " )" );
-    TAU_PROFILE("SIndexExpLoop::evaluate()", taustr, TAU_SPARSE );
+    
     int n0 = dom[0].length();
     if (n0 > 0) {
       Index::iterator x0 = dom[0].begin();
@@ -231,9 +216,7 @@ public:
   template<class RHS>
   static void evaluate(SIndex<2U>& si, SIndex<2U>::iterator_iv& lsi,
 		       NDIndex<2U>& dom, RHS& Rhs) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(si) + ", " + CT(lsi) + ", " + CT(dom)
-      + ", " + CT(Rhs) + " )" );
-    TAU_PROFILE("SIndexExpLoop::evaluate()", taustr, TAU_SPARSE );
+    
     int n0 = dom[0].length();
     int n1 = dom[1].length();
     if (n0 > 0 && n1 > 0) {
@@ -260,9 +243,7 @@ public:
   template<class RHS>
   static void evaluate(SIndex<3U>& si, SIndex<3U>::iterator_iv& lsi,
 		       NDIndex<3U>& dom, RHS& Rhs) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(si) + ", " + CT(lsi) + ", " + CT(dom)
-      + ", " + CT(Rhs) + " )" );
-    TAU_PROFILE("SIndexExpLoop::evaluate()", taustr, TAU_SPARSE );
+    
     int n0 = dom[0].length();
     int n1 = dom[1].length();
     int n2 = dom[2].length();
@@ -352,9 +333,9 @@ struct AssignActions<Dim, SIExprTag<false> > {
 template<unsigned Dim, class RHS, class Op, bool IsExpr>
 void assign(SIndex<Dim>& a, RHS b, Op, const NDIndex<Dim> &domain,
 	    SIExprTag<IsExpr> isexpr) {
-  TAU_PROFILE_STMT(Op oper);
-  TAU_TYPE_STRING(taustr, "void (" + CT(a) + ", " + CT(b) + CT(oper) + " )"); 
-  TAU_PROFILE("assign()", taustr, TAU_SPARSE | TAU_ASSIGN);
+  
+   
+  
 
   // Inform dbgmsg("SIndex assign", INFORM_ALL_NODES);
   // dbgmsg << "Computing on total domain = " << domain << endl;

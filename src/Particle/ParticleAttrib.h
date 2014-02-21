@@ -209,9 +209,7 @@ public:
   scatter(Field<T,Dim,M,C>& f,
 	  const ParticleAttrib< Vektor<PT,Dim> >& pp,
 	  const IntOp& intop) const {
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
-		    + CT(intop) + ")");
-    TAU_PROFILE("ParticleAttrib::scatter()", taustr, TAU_PARTICLE);
+    
 
     // make sure field is uncompressed and guard cells are zeroed
     f.Uncompress();
@@ -242,9 +240,7 @@ public:
 	  const IntOp& intop,
 	  ParticleAttrib<CacheData>& cache) const {
 
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
-		    + CT(intop) + ", " + CT(cache) + ")");
-    TAU_PROFILE("ParticleAttrib::scatter()", taustr, TAU_PARTICLE);
+    
 
     // make sure field is uncompressed and guard cells are zeroed
     f.Uncompress();
@@ -273,9 +269,7 @@ public:
   scatter(Field<T,Dim,M,C>& f, const IntOp& intop,
 	  const ParticleAttrib<CacheData>& cache) const {
 
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", "
-		    + CT(cache)  + " )" );
-    TAU_PROFILE("ParticleAttrib::scatter()", taustr, TAU_PARTICLE);
+    
 
     // make sure field is uncompressed and guard cells are zeroed
     f.Uncompress();
@@ -302,9 +296,7 @@ public:
   gather(const Field<T,Dim,M,C>& f,
 	 const ParticleAttrib< Vektor<PT,Dim> >& pp,
 	 const IntOp& intop) {
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
-		    + CT(intop)  + " )" );
-    TAU_PROFILE("ParticleAttrib::gather()", taustr, TAU_PARTICLE);
+    
 
     // make sure field is uncompressed
     f.Uncompress();
@@ -335,10 +327,7 @@ public:
 	 const ParticleAttrib< Vektor<PT,Dim> >& pp,
 	 const IntOp& intop,
 	 ParticleAttrib<CacheData>& cache) {
-
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(pp) + ", "
-		    + CT(intop) + ", " + CT(cache) + ")");
-    TAU_PROFILE("ParticleAttrib::gather()", taustr, TAU_PARTICLE);
+    
 
     // make sure field is uncompressed
     f.Uncompress();
@@ -367,10 +356,7 @@ public:
   void
   gather(const Field<T,Dim,M,C>& f, const IntOp& intop,
 	 const ParticleAttrib<CacheData>& cache) {
-
-    TAU_TYPE_STRING(taustr, "void (" + CT(f) + ", " + CT(intop) + ", "
-		    + CT(cache)  + " )" );
-    TAU_PROFILE("ParticleAttrib::gather()", taustr, TAU_PARTICLE);
+    
 
     // make sure field is uncompressed
     f.Uncompress();

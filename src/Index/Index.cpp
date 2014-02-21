@@ -31,12 +31,12 @@
 // include files
 #include "Index/Index.h"
 #include "Utility/PAssert.h"
-#include "Profile/Profiler.h"
+
 
 //////////////////////////////////////////////////////////////////////
 
 std::ostream& operator<<(std::ostream& out, const Index& I) {
-  TAU_PROFILE("operator<<()", "ostream (ostream, Index)", TAU_SPARSE | TAU_IO);
+  
   out << '[' << I.first() << ':' << I.last() << ':' << I.stride() << ']';
   return out;
 }
@@ -52,7 +52,7 @@ std::ostream& operator<<(std::ostream& out, const Index& I) {
 inline 
 void lcm(int s1, int s2, int &s, int &m1, int &m2)
 {
-  TAU_PROFILE("lcm()", "void (int, int, int, int, int)", TAU_SPARSE);
+  
   PAssert(s1>0);   // For simplicity, make some assumptions.
   PAssert(s2>0);
   int i1=s1;
@@ -147,7 +147,7 @@ Index::intersect(const Index& rhs) const
 
 static Index do_intersect(const Index &a, const Index &b)
 {
-  TAU_PROFILE("do_intersect()", "Index (Index, Index)", TAU_SPARSE);
+  
   PAssert(a.stride()>0);		// This should be assured by the
   PAssert(b.stride()>0);		// caller of this function.
 
@@ -189,7 +189,7 @@ static Index do_intersect(const Index &a, const Index &b)
 
 Index Index::general_intersect(const Index& that) const
 {
-  TAU_PROFILE("Index::general_intersect()", "Index (Index)", TAU_SPARSE);
+  
   // If they just don't overlap, return null indexes.
   if ( (min() > that.max()) || (that.min() > max()) )
     return Index(0);
@@ -231,7 +231,7 @@ Index Index::general_intersect(const Index& that) const
 #ifdef DEBUG_INDEX
 int main()
 {
-  TAU_PROFILE("main()", "int ()", TAU_DEFAULT);
+  
   const int N  = 16;		// Number of grid points.
   const int NP = 4;		// Number of processors.
   const int NL = N/NP;		// Grid points per processor.

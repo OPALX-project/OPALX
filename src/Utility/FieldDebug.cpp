@@ -29,7 +29,7 @@
 #include "Utility/FieldDebug.h"
 #include "Utility/FieldDebugPrint.h"
 #include "Utility/Inform.h"
-#include "Profile/Profiler.h"
+
 #include "Field/BareField.h"
 
 #ifdef IPPL_USE_STANDARD_HEADERS
@@ -46,8 +46,8 @@
 //----------------------------------------------------------------------
 template<class T>
 void fp1(BareField<T,1U>& field, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("fp1()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
   int base0   = field.getLayout().getDomain()[0].first();
   int bound0  = field.getLayout().getDomain()[0].last();
@@ -59,8 +59,8 @@ void fp1(BareField<T,1U>& field, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void fp2(BareField<T,2U>& field, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("fp2()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
   int base0   = field.getLayout().getDomain()[0].first();
   int bound0  = field.getLayout().getDomain()[0].last();
@@ -75,8 +75,8 @@ void fp2(BareField<T,2U>& field, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void fp3(BareField<T,3U>& field, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("fp3()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   int base0   = field.getLayout().getDomain()[0].first();
   int bound0  = field.getLayout().getDomain()[0].last();
   int stride0 = field.getLayout().getDomain()[0].stride();
@@ -94,8 +94,8 @@ void fp3(BareField<T,3U>& field, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void ggfp1(BareField<T,1U>& field, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("ggfp1()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
   int stride0 = field.getLayout().getDomain()[0].stride();
   int base0   = field.getLayout().getDomain()[0].first() - 
@@ -109,8 +109,8 @@ void ggfp1(BareField<T,1U>& field, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void ggfp2(BareField<T,2U>& field, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("ggfp2()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
   int stride0 = field.getLayout().getDomain()[0].stride();
   int base0   = field.getLayout().getDomain()[0].first() - 
@@ -129,8 +129,8 @@ void ggfp2(BareField<T,2U>& field, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void ggfp3(BareField<T,3U>& field, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("ggfp3()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   int stride0 = field.getLayout().getDomain()[0].stride();
   int base0   = field.getLayout().getDomain()[0].first() - 
     field.leftGuard(0)*stride0;
@@ -154,8 +154,8 @@ void ggfp3(BareField<T,3U>& field, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void agfp1(BareField<T,1U>& field) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("agfp1()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
   FieldDebugWriteb(field);
 }
@@ -164,8 +164,8 @@ void agfp1(BareField<T,1U>& field) {
 //----------------------------------------------------------------------
 template<class T>
 void agfp2(BareField<T,2U>& field) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("agfp2()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
   FieldDebugWriteb(field);
 }
@@ -174,8 +174,8 @@ void agfp2(BareField<T,2U>& field) {
 //----------------------------------------------------------------------
 template<class T>
 void agfp3(BareField<T,3U>& field) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + " )" );
-  TAU_PROFILE("agfp3()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
   FieldDebugWriteb(field);
 }
@@ -184,8 +184,8 @@ void agfp3(BareField<T,3U>& field) {
 //----------------------------------------------------------------------
 template<class T>
 void efp1(BareField<T,1U>& field, int i, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + ", int )" );
-  TAU_PROFILE("efp1()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   sfp1(field, i, i, 1, docomm);
 }
 //----------------------------------------------------------------------
@@ -193,8 +193,8 @@ void efp1(BareField<T,1U>& field, int i, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void efp2(BareField<T,2U>& field, int i, int j, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + ", int, int )" );
-  TAU_PROFILE("efp2()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   sfp2(field, i, i, 1, j, j, 1, docomm);
 }
 //----------------------------------------------------------------------
@@ -202,8 +202,8 @@ void efp2(BareField<T,2U>& field, int i, int j, bool docomm) {
 //----------------------------------------------------------------------
 template<class T>
 void efp3(BareField<T,3U>& field, int i, int j, int k, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + ", int, int, int )" );
-  TAU_PROFILE("efp3()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
   sfp3(field, i, i, 1, j, j, 1, k, k, 1, docomm);
 }
 //----------------------------------------------------------------------
@@ -212,8 +212,8 @@ void efp3(BareField<T,3U>& field, int i, int j, int k, bool docomm) {
 template<class T>
 void sfp1(BareField<T,1U>& field,
 	  int ibase, int ibound, int istride, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) + ", int, int, int )" );
-  TAU_PROFILE("sfp1()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
+  
+  
 
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
 
@@ -266,10 +266,7 @@ template<class T>
 void sfp2(BareField<T,2U>& field,
 	  int ibase, int ibound, int istride,
 	  int jbase, int jbound, int jstride, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) 
-    + ", int, int, int, int, int, int )" );
-  TAU_PROFILE("sfp2()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
-
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
 
   // Check input parameters for errors and unimplemented values:
@@ -354,10 +351,7 @@ void sfp3(BareField<T,3U>& field,
 	  int ibase, int ibound, int istride,
 	  int jbase, int jbound, int jstride,
 	  int kbase, int kbound, int kstride, bool docomm) {
-  TAU_TYPE_STRING(taustr, "void (" + CT(field) 
-    + ", int, int, int, int, int, int, int, int, int )" );
-  TAU_PROFILE("sfp3()", taustr, TAU_UTILITY | TAU_FIELD | TAU_IO);
-
+  
   if (!FldDbgInformIsSet) setInform(*IpplInfo::Info); // Set ptr if not set.
 
   // Check input parameters for errors and unimplemented values:
@@ -477,8 +471,8 @@ void sfp3(BareField<T,3U>& field,
 template< class T, unsigned Dim >
 inline void FieldDebugWriteb(BareField<T,Dim>& F)
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void (char * )" );
-  TAU_PROFILE("FieldDebugWriteb", taustr, TAU_FIELD | TAU_IO);
+  
+  
 
   int ibase,ibound,istride,jbase,jbound,jstride,kbase,kbound,kstride;
   istride = F.getLayout().getDomain()[0].stride();

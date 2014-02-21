@@ -25,7 +25,7 @@
 #include "Ippl.h"
 
 int main(int argc, char *argv[]) {
-  TAU_PROFILE("main", "int (int, char**)", TAU_DEFAULT);
+  
   Ippl ippl(argc,argv);
   Inform msg(argv[0]);
 

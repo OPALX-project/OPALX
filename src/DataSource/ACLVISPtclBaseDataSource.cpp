@@ -32,7 +32,7 @@
 #include "Message/Communicate.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/Pstring.h"
-#include "Profile/Profiler.h"
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -44,10 +44,6 @@ ACLVISParticleBaseDataSource<PLayout>::ACLVISParticleBaseDataSource(const
   : ParticleBaseDataSource(nm, dc, tm, &PB), MyParticleBase(PB),
     IDMap(&IDMapA), NewIDMap(&IDMapB)
 {
-
-  TAU_TYPE_STRING(taustr, "void (char *, DataConnect *, int, " + CT(PB));
-  TAU_PROFILE("ACLVISParticleBaseDataSource::ACLVISParticleBaseDataSource()", 
-	      taustr, TAU_VIZ);
 
   // make sure we do not have a ParticleBase with positions greater than
   // 3 dimensions
@@ -75,9 +71,7 @@ ACLVISParticleBaseDataSource<PLayout>::ACLVISParticleBaseDataSource(const
 // destructor
 template<class PLayout>
 ACLVISParticleBaseDataSource<PLayout>::~ACLVISParticleBaseDataSource() {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("ACLVISParticleBaseDataSource::~ACLVISParticleBaseDataSource()", 
-    taustr, TAU_VIZ);
+
 }
 
 
@@ -86,9 +80,6 @@ ACLVISParticleBaseDataSource<PLayout>::~ACLVISParticleBaseDataSource() {
 template<class PLayout>
 bool ACLVISParticleBaseDataSource<PLayout>::connect_attrib(
 	   ParticleAttribDataSource *pa) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (ParticleAttribDataSource * )");
-  TAU_PROFILE("ACLVISParticleBaseDataSource::connect_attrib()", 
-    taustr, TAU_VIZ);
 
   // on parent node, establish connection to ACLVIS for this base+attrib pair
   if (getConnection()->onConnectNode() && connected())
@@ -108,9 +99,6 @@ bool ACLVISParticleBaseDataSource<PLayout>::connect_attrib(
 template<class PLayout>
 bool ACLVISParticleBaseDataSource<PLayout>::disconnect_attrib(
 	   ParticleAttribDataSource *pa) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (ParticleAttribDataSource * )");
-  TAU_PROFILE("ACLVISParticleBaseDataSource::disconnect_attrib()", 
-    taustr, TAU_VIZ);
 
   // on parent node, remove connection to ACLVIS for this base+attrib pair
   if (getConnection()->onConnectNode() && connected())
@@ -130,9 +118,6 @@ bool ACLVISParticleBaseDataSource<PLayout>::disconnect_attrib(
 template<class PLayout>
 bool ACLVISParticleBaseDataSource<PLayout>::has_attrib(
 	    ParticleAttribBase *pa) {
-  TAU_TYPE_STRING(taustr, CT(*this) + " bool (ParticleAttribDataSource * )");
-  TAU_PROFILE("ACLVISParticleBaseDataSource::has_attrib()", 
-    taustr, TAU_VIZ);
 
   // go through the list of registered attributes in our ParticleBase ...
   typename ParticleBase<PLayout>::attrib_iterator attr=MyParticleBase.begin();
@@ -152,8 +137,8 @@ bool ACLVISParticleBaseDataSource<PLayout>::has_attrib(
 // This should only return when the manipulation is done.
 template<class PLayout>
 void ACLVISParticleBaseDataSource<PLayout>::interact(const char *str) {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " void ()" );
-  TAU_PROFILE("ACLVISParticleBaseDataSource::interact()", taustr, TAU_VIZ);
+  
+  
 
   // on parent node, hand off control to ACLVIS API.  If a command string
   // is given, instead call the viz API function to execute it as an
@@ -179,8 +164,8 @@ void ACLVISParticleBaseDataSource<PLayout>::interact(const char *str) {
 // current and consistent snapshot of the current state.  Return success.
 template<class PLayout>
 bool ACLVISParticleBaseDataSource<PLayout>::update() {
-  TAU_TYPE_STRING(taustr, CT(*this) +  " bool ()" );
-  TAU_PROFILE("ACLVISParticleBaseDataSource::update()", taustr, TAU_VIZ);
+  
+  
 
   //Inform dbgmsg("APB::update", INFORM_ALL_NODES);
   //dbgmsg << "Starting update on node " << Ippl::myNode() << endl;
@@ -321,10 +306,7 @@ void ACLVISParticleBaseDataSource<PLayout>::insert_pos(
 		      unsigned N, unsigned sIndx,
 		      typename PLayout::SingleParticlePos_t* data,
 		      typename PLayout::Index_t* iddata,
-		      ParticleAttribDataSource* pa) {
-  TAU_TYPE_STRING(taustr, "void (unsigned, unsigned, " + CT(data) 
-    + ", ParticleAttribDataSource *" );
-  TAU_PROFILE("ACLVISParticleBaseDataSource::insert_pos()", taustr, TAU_VIZ);
+		      ParticleAttribDataSource* pa) { 
 
   //  Inform dbgmsg("APB::insert_pos", INFORM_ALL_NODES);
 

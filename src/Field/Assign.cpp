@@ -43,7 +43,7 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 #include "PETE/IpplExpressions.h"
 
 #ifdef IPPL_STDSTL
@@ -80,12 +80,6 @@ template<class T, unsigned Dim, class A, class Op>
 bool
 TryCompressLHS(LField<T,Dim>& lf, A& rhs, Op op, const NDIndex<Dim>& domain)
 {
-  // profiling macros
-  // here, 'Op' is not used to form the type string, so the timings here
-  // will be the sum of all different operators 'Op' used in the code.
-  TAU_TYPE_STRING(taustr, "bool (" + CT(lf) + ", " + CT(rhs) + ", " +
-		  CT(Op) + ", " + CT(domain) + " )" );
-  TAU_PROFILE("TryCompressLHS()", taustr, TAU_ASSIGN | TAU_FIELD);
 
   // just skip this if we can
   if (IpplInfo::noFieldCompression)
@@ -273,17 +267,6 @@ assign(const IndexedBareField<T1,Dim,Dim> &aa, RHS b, OP op, ExprTag<true>,
   IndexedBareField<T1,Dim,Dim> &a = 
     const_cast<IndexedBareField<T1,Dim,Dim>&>(aa);
 
-  // profiling macros
-  // here, 'Op' is not used to form the type string, so the timings here
-  // will be the sum of all different operators 'Op' used in the code.
-  TAU_TYPE_STRING(p1, "void (" + CT(a) + ", " + CT(b) + ", " + CT(op) 
-    + ", ExprTag<true> )" );
-  TAU_PROFILE("assign()", p1.data(), TAU_ASSIGN | TAU_FIELD);
-  TAU_PROFILE_TIMER(looptimer, " assign[IndexedBareField]-vnodeloop",
-		    p1.data(), TAU_ASSIGN);
-  TAU_PROFILE_TIMER(filltimer, " assign[IndexedBareField]-guardfill",
-		    p1.data(), TAU_ASSIGN);
-
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
   ASSIGNMSG(Inform msg("assign IBF(t)", INFORM_ALL_NODES));
@@ -312,7 +295,7 @@ assign(const IndexedBareField<T1,Dim,Dim> &aa, RHS b, OP op, ExprTag<true>,
   a.getBareField().setDirtyFlag();
 
   // Loop over all the local fields of the left hand side.
-  TAU_PROFILE_START(looptimer);
+  
   int lfcount=0;
   bool needFinalCompressCheck = false;
   while (la != aend)
@@ -413,16 +396,16 @@ assign(const IndexedBareField<T1,Dim,Dim> &aa, RHS b, OP op, ExprTag<true>,
       ++la;
       ++lfcount;
     }
-  TAU_PROFILE_STOP(looptimer);
+  
 
   // If we are not deferring guard cell fills, and we need to do this
   // now, fill the guard cells.  This will also apply any boundary
   // conditions after the guards have been updated.
   if (fillGC) {
     ASSIGNMSG(msg << "Filling GC's at end if necessary ..." << endl);
-    TAU_PROFILE_START(filltimer);
+    
     a.getBareField().fillGuardCellsIfNotDirty();
-    TAU_PROFILE_STOP(filltimer);
+    
   }
 
   // Try to compress the result.
@@ -454,17 +437,6 @@ void
 assign(PETE_TUTree<OpParens<TP>,A> lhs, RHS wrhs, OP op, Tag,
        bool fillGC)
 {
-  // profiling macros
-  // here, 'Op' is not used to form the type string, so the timings here
-  // will be the sum of all different operators 'Op' used in the code.
-  TAU_PROFILE_STMT(Tag tauTag);
-  TAU_TYPE_STRING(p1, "void (" + CT(lhs) + ", " + CT(wrhs) + ", " + CT(op)
-		  + ", " + CT(tauTag) + " )" );
-  TAU_PROFILE("assign()", p1.data(), TAU_ASSIGN | TAU_FIELD);
-  TAU_PROFILE_TIMER(looptimer, " assign[TUTree]-vnodeloop", p1.data(),
-		    TAU_ASSIGN);
-  TAU_PROFILE_TIMER(filltimer, " assign[TUTree]-guardfill", p1.data(),
-		    TAU_ASSIGN);
 
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
@@ -499,7 +471,7 @@ assign(PETE_TUTree<OpParens<TP>,A> lhs, RHS wrhs, OP op, Tag,
   bare.setDirtyFlag();
 
   // Loop over all the local fields of the left hand side.
-  TAU_PROFILE_START(looptimer);
+  
   bool needFinalCompressCheck = false;
   while (la != aend)
     {
@@ -585,15 +557,15 @@ assign(PETE_TUTree<OpParens<TP>,A> lhs, RHS wrhs, OP op, Tag,
 	}
       ++la;
     }
-  TAU_PROFILE_STOP(looptimer);
+  
 
   // Fill the guard cells on the left hand side, if we are deferring
   // this operation until the next time it is needed.
   ASSIGNMSG(msg << "Filling GC's at end if necessary ..." << endl);
   if (fillGC) {
-    TAU_PROFILE_START(filltimer);
+    
     bare.fillGuardCellsIfNotDirty();
-    TAU_PROFILE_STOP(filltimer);
+    
   }
 
   // Compress the LHS.
@@ -626,16 +598,6 @@ template<class T1, unsigned Dim, class RHS, class OP>
 void
 assign(const BareField<T1,Dim>& ca, RHS b, OP op, ExprTag<true>)
 {
-  // profiling macros
-  // here, 'Op' is not used to form the type string, so the timings here
-  // will be the sum of all different operators 'Op' used in the code.
-  TAU_TYPE_STRING(p1, "void (" + CT(ca) + ", " + CT(b) + ", " +
-		  CT(op) + ", ExprTag<true> )" );
-  TAU_PROFILE("assign()", p1.data(), TAU_ASSIGN | TAU_FIELD);
-  TAU_PROFILE_TIMER(looptimer, " assign[BareField]-vnodeloop", p1.data(),
-		    TAU_ASSIGN);
-  TAU_PROFILE_TIMER(filltimer, " assign[BareField]-guardfill", p1.data(),
-		    TAU_ASSIGN);
 
   // debugging output macros.  these are only enabled if DEBUG_ASSIGN is
   // defined.
@@ -661,7 +623,7 @@ assign(const BareField<T1,Dim>& ca, RHS b, OP op, ExprTag<true>)
   a.setDirtyFlag();
 
   // Loop over the LHS LFields, and assign from RHS LFields
-  TAU_PROFILE_START(looptimer);
+  
   int lfcount = 0;
   bool needFinalCompressCheck = false;
   while (la != aend)
@@ -708,14 +670,14 @@ assign(const BareField<T1,Dim>& ca, RHS b, OP op, ExprTag<true>)
     for_each(bb,NextLField(),PETE_NullCombiner());
     ++lfcount;
   }
-  TAU_PROFILE_STOP(looptimer);
+  
 
   // Fill the guard cells on the left hand side, if we are deferring
   // this operation until the next time it is needed.
   ASSIGNMSG(msg << "Filling GC's at end if necessary ..." << endl);
-  TAU_PROFILE_START(filltimer);
+  
   a.fillGuardCellsIfNotDirty();
-  TAU_PROFILE_STOP(filltimer);
+  
 
   // Compress the LHS, if necessary
   if (needFinalCompressCheck) {

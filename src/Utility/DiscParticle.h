@@ -159,10 +159,6 @@ public:
   // Return success of operation.
   template<class T>
   bool read(ParticleBase<T> &pbase, unsigned int record) {
-    TAU_TYPE_STRING(taustr, CT(*this) +  " bool (ParticleBase<" + CT(T) +
-		    ">, unsigned int)");
-    TAU_PROFILE("DiscParticle::read()", taustr, 
-		TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
     // re-read the meta file since it might have changed
     ConfigOK = read_meta(); 
@@ -283,10 +279,6 @@ public:
   // Return success of operation.
   template<class T>
   bool read(ParticleAttrib<T> &pattr, unsigned int record) {
-    TAU_TYPE_STRING(taustr, CT(*this) +  " bool (ParticleAttrib<" + CT(T) +
-		    ">, unsigned int)");
-    TAU_PROFILE("DiscParticle::read()", taustr,
-		TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
     // re-read the meta file since it might have changed
     ConfigOK = read_meta();
@@ -388,9 +380,6 @@ public:
   // Return success of operation.
   template<class T>
   bool write(ParticleBase<T> &pbase) {
-    TAU_TYPE_STRING(taustr, CT(*this) +  " bool (ParticleBase<" + CT(T)+">)");
-    TAU_PROFILE("DiscParticle::write()", taustr, 
-		TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
     // generate a tag to use for communication
     int tag = Ippl::Comm->next_tag(FB_WRITE_TAG, FB_TAG_CYCLE);
@@ -539,9 +528,6 @@ public:
   // Return success of operation.
   template<class T>
   bool write(ParticleAttrib<T> &pattr) {
-    TAU_TYPE_STRING(taustr, CT(*this) + " bool (ParticleAttrib<" + CT(T)+">)");
-    TAU_PROFILE("DiscParticle::write()", taustr,
-		TAU_UTILITY | TAU_PARTICLE | TAU_IO);
 
     // generate a tag to use for communication
     int tag = Ippl::Comm->next_tag(FB_WRITE_TAG, FB_TAG_CYCLE);

@@ -34,7 +34,7 @@
 #include "FieldLayout/BinaryBalancer.h"
 #include "FieldLayout/FieldLayout.h"
 #include "Field/BareField.h"
-#include "Profile/Profiler.h"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Implementation of VnodeMultiRepartition().
@@ -60,8 +60,8 @@ template<unsigned Dim>
 void VnodeMultiRepartition(FieldLayout<Dim>& layout, 
    			   std::vector<BareField<bool,Dim>* >& weights) {
   
-  TAU_TYPE_STRING(taustr, " (" + CT(layout) + ", "+ CT(weights) + " )");
-  TAU_PROFILE("VnodeMultiRepartition()", taustr, TAU_LAYOUT);
+  
+  
 
   int npe = Ippl::Comm->getNodes(); // Total number of PE's (pnodes)
   if (npe == 1) return; // Not much hope of balancing on 1 node, eh?

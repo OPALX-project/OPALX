@@ -28,7 +28,7 @@
 #include "DataSource/DataSourceObject.h"
 #include "DataSource/DataConnect.h"
 #include "Utility/Pstring.h"
-#include "Profile/Profiler.h"
+
 
 //
 // include the connection-method-specific class headers
@@ -62,9 +62,6 @@ template<class T, unsigned Dim, class M, class C>
 DataSourceObject *
 make_DataSourceObject(const char *nm, DataConnect *dc, int t,
 		      Field<T,Dim,M,C>& F) {
-  TAU_TYPE_STRING(taustr, "DataSourceObject * (char *, DataConnect *, " +
-		  CT(F) + " )");
-  TAU_PROFILE("make_DataSourceObject()", taustr, TAU_VIZ);
 
   // get the connection method name, and make a string out of it
   std::string method(dc->DSID());
@@ -104,9 +101,6 @@ template<class T>
 DataSourceObject *
 make_DataSourceObject(const char *nm, DataConnect *dc, int t,
 		      ParticleAttrib<T>& P) {
-  TAU_TYPE_STRING(taustr, "DataSourceObject * (char *, DataConnect *, int, "
-		  + CT(P) + " )");
-  TAU_PROFILE("make_DataSourceObject()", taustr, TAU_VIZ);
 
   // get the connection method name, and make a string out of it
   std::string method(dc->DSID());
@@ -146,9 +140,6 @@ template<class PLayout>
 DataSourceObject *
 make_DataSourceObject(const char *nm, DataConnect *dc, int t,
 		      ParticleBase<PLayout>& P) {
-  TAU_TYPE_STRING(taustr, "DataSourceObject * (char *, DataConnect *, int, "
-		  + CT(P) + " )");
-  TAU_PROFILE("make_DataSourceObject()", taustr, TAU_VIZ);
 
   // get the connection method name, and make a string out of it
   std::string method(dc->DSID());
@@ -184,9 +175,6 @@ template<class T>
 DataSourceObject *
 make_DataSourceObject(const char *nm, DataConnect *dc, int t,
                       ScalarDataSource<T>& S) {
-  TAU_TYPE_STRING(taustr, "DataSourceObject * (char *, DataConnect *, int, "
-                  + CT(S) + " )");
-  TAU_PROFILE("make_DataSourceObject()", taustr, TAU_VIZ);
 
   // get the connection method name, and make a string out of it
   std::string method(dc->DSID());
@@ -221,10 +209,7 @@ template<class T>
 DataSourceObject *
 make_DataSourceObject(const char *nm, DataConnect *dc, int t,
                       StringDataSource<T>& S) {
-  TAU_TYPE_STRING(taustr, "DataSourceObject * (char *, DataConnect *, int, "
-                  + CT(S) + " )");
-  TAU_PROFILE("make_DataSourceObject()", taustr, TAU_VIZ);
-
+  
   // get the connection method name, and make a string out of it
   std::string method(dc->DSID());
 

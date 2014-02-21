@@ -25,7 +25,7 @@
 
 // include files
 #include "Utility/Inform.h"
-#include "Profile/Profiler.h"
+
 #include "Utility/IpplInfo.h"
 
 #ifdef IPPL_USE_STANDARD_HEADERS
@@ -55,7 +55,7 @@ Inform& level5(Inform& inf) { return inf.setMessageLevel(5); }
 // perform initialization for this object; called by the constructors.
 // arguments = prefix string, print node
 void Inform::setup(const char *myname, int pnode) {
-  TAU_PROFILE("Inform::setup()", "void (char *, int)", TAU_UTILITY | TAU_IO);
+  
   On = true;
   OutputLevel = MsgLevel = MIN_INFORM_LEVEL;
   PrintNode = pnode;
@@ -76,7 +76,7 @@ Inform::Inform(const char *myname, int pnode)
     : FormatBuf(MsgBuf, MAX_INFORM_MSG_SIZE, ios::out), 
         OpenedSuccessfully(true) {
 #endif
-  TAU_PROFILE("Inform::Inform()", "void (char *, int)", TAU_UTILITY | TAU_IO);
+  
 
   // in this case, the default destination stream is cout
   NeedClose = false;
@@ -97,8 +97,6 @@ Inform::Inform(const char *myname, const char *fname, const WriteMode opnmode,
     : FormatBuf(MsgBuf, MAX_INFORM_MSG_SIZE, ios::out), 
         OpenedSuccessfully(true) {
 #endif
-  TAU_PROFILE("Inform::Inform()", "void (char *, char *, WriteMode, int)", 
-    TAU_UTILITY | TAU_IO);
 
   // only open a file if we're on the proper node
   MsgDest = 0;
@@ -135,8 +133,6 @@ Inform::Inform(const char *myname, std::ostream& os, int pnode)
   : FormatBuf(MsgBuf, MAX_INFORM_MSG_SIZE, ios::out), 
       OpenedSuccessfully(true) {
 #endif
-  TAU_PROFILE("Inform::Inform()", "void (char *, ostream, int)", 
-    TAU_UTILITY | TAU_IO);
 
   // just store a ref to the provided stream
   NeedClose = false;
@@ -150,7 +146,7 @@ Inform::Inform(const char *myname, std::ostream& os, int pnode)
 /////////////////////////////////////////////////////////////////////
 // class destructor ... frees up space
 Inform::~Inform(void) {
-  TAU_PROFILE("Inform::~Inform()", "void ()", TAU_UTILITY | TAU_IO) ;
+  
   delete [] Name;
   if ( NeedClose )
     delete MsgDest;
@@ -159,8 +155,6 @@ Inform::~Inform(void) {
 
 // print out just a single line, from the given buffer
 void Inform::display_single_line(char *buf) {
-  TAU_PROFILE("Inform::display_single_line", "void (char *)", 
-    TAU_UTILITY | TAU_IO);
 
   // output the prefix name if necessary ... if no name was given, do
   // not print any prefix at all
@@ -188,8 +182,6 @@ void Inform::display_single_line(char *buf) {
 /////////////////////////////////////////////////////////////////////
 // Print out the message in the given buffer.
 void Inform::display_message(char *buf) {
-  TAU_PROFILE("Inform::display_message()", "void (char *)", 
-    TAU_UTILITY | TAU_IO);
 
   // check if we should even print out the message
   if ( On && MsgLevel <= OutputLevel && buf != 0 ) {
@@ -221,7 +213,7 @@ void Inform::display_message(char *buf) {
 /////////////////////////////////////////////////////////////////////
 // Set the current output level for this Inform object.
 Inform& Inform::setOutputLevel(const int ol) {
-  TAU_PROFILE("Inform::setOutputLevel()", "Inform (int)", TAU_UTILITY | TAU_IO);
+  
 
   if ( ol >= (MIN_INFORM_LEVEL-1) && ol <= MAX_INFORM_LEVEL )
     OutputLevel = ol;
@@ -232,7 +224,7 @@ Inform& Inform::setOutputLevel(const int ol) {
 /////////////////////////////////////////////////////////////////////
 // Set the current message level for the current message in this Inform object.
 Inform& Inform::setMessageLevel(const int ol) {
-  TAU_PROFILE("Inform::setMessageLevel()", "Inform (int)",TAU_UTILITY | TAU_IO);
+  
   if ( ol >= MIN_INFORM_LEVEL && ol <= MAX_INFORM_LEVEL )
     MsgLevel = ol;
   return *this;
@@ -242,7 +234,7 @@ Inform& Inform::setMessageLevel(const int ol) {
 /////////////////////////////////////////////////////////////////////
 // the signal has been given ... process the message.  Return ref to object.
 Inform& Inform::outputMessage(void) {
-  TAU_PROFILE("Inform::setMessageLevel()", "Inform ()", TAU_UTILITY | TAU_IO);
+  
   // print out the message (only if this is the master node)
   if (PrintNode < 0 || PrintNode == Ippl::myNode()) {
     FormatBuf << ends;
@@ -271,7 +263,7 @@ Inform& Inform::outputMessage(void) {
 #ifdef DEBUG_INFORM_CLASS
 
 int main(int argc, char *argv[]) {
-  TAU_PROFILE("main()", "int (int, char **)", TAU_DEFAULT);
+  
   int i;
 
   // create an Inform instance

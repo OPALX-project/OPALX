@@ -27,7 +27,7 @@
 #include "Message/CommSHMEMPI.h"
 #include "Message/Message.h"
 #include "Utility/IpplInfo.h"
-#include "Profile/Profiler.h"
+
 
 // include mpi header file.
 #include <mpi.h>
@@ -62,8 +62,6 @@ static long shmempipackbuf[PSIZE];
 CommSHMEMPI::CommSHMEMPI(int& argc , char**& argv, int procs)
         : Communicate(argc, argv, procs)
 {
-    TAU_PROFILE("CommSHMEMPI::CommSHMEMPI()", "void (int, char **, int)",
-                TAU_MESSAGE);
 
     int i, reported, rep_host, ierror, result_len;
     MPI_Status stat;
@@ -113,7 +111,7 @@ CommSHMEMPI::CommSHMEMPI(int& argc , char**& argv, int procs)
         for (i = 1; i < TotalNodes; i++)
         {
             MPI_Send(&myHost, 1, MPI_INT, i, COMM_HOSTS_TAG, MPI_COMM_WORLD);
-            TAU_TRACE_SENDMSG(COMM_HOSTS_TAG, i, 1*size_of_SHMEMPI_INT);
+            
         }
 
         // wait for the spawned processes to report back that they're ready
@@ -125,8 +123,7 @@ CommSHMEMPI::CommSHMEMPI(int& argc , char**& argv, int procs)
         {
             ierror = MPI_Recv(&rep_host, 1, MPI_INT, MPI_ANY_SOURCE,
                               COMM_HOSTS_TAG, MPI_COMM_WORLD, &stat);
-            TAU_TRACE_RECVMSG(COMM_HOSTS_TAG, stat.MPI_SOURCE,
-                              1*size_of_SHMEMPI_INT);
+
             if (rep_host >= 0 && rep_host < TotalNodes && !(child_ready[rep_host]))
             {
                 child_ready[rep_host] = 1;
@@ -162,13 +159,13 @@ CommSHMEMPI::CommSHMEMPI(int& argc , char**& argv, int procs)
         int checknode;
         MPI_Recv(&checknode, 1, MPI_INT, 0, COMM_HOSTS_TAG, MPI_COMM_WORLD,
                  &stat);
-        TAU_TRACE_RECVMSG(COMM_HOSTS_TAG, 0, 1*size_of_SHMEMPI_INT);
+        
         if (checknode != 0)
             WARNMSG("CommSHMEMPI: Child received bad message during startup." << endl);
 
         // send back an acknowledgement
         MPI_Send(&myHost, 1, MPI_INT, 0, COMM_HOSTS_TAG, MPI_COMM_WORLD);
-        TAU_TRACE_SENDMSG(COMM_HOSTS_TAG, 0, 1*size_of_SHMEMPI_INT);
+        
     }
 
     // set up the contexts and processes arrays properly
@@ -189,7 +186,7 @@ CommSHMEMPI::CommSHMEMPI(int& argc , char**& argv, int procs)
 // class destructor
 CommSHMEMPI::~CommSHMEMPI(void)
 {
-    TAU_PROFILE("CommSHMEMPI::~CommSHMEMPI()", "void()", TAU_MESSAGE);
+    
     int i, dieCode = 0;
     MPI_Status stat;
 
@@ -223,14 +220,14 @@ CommSHMEMPI::~CommSHMEMPI(void)
         for (i = 1; i < TotalNodes; i++)
         {
             MPI_Send(&dieCode, 1, MPI_INT, i, COMM_DIE_TAG, MPI_COMM_WORLD);
-            TAU_TRACE_SENDMSG(COMM_DIE_TAG, i, 1*size_of_SHMEMPI_INT);
+            
         }
     }
     else
     {
         // on client nodes, receive message
         MPI_Recv(&dieCode, 1, MPI_INT, 0, COMM_DIE_TAG, MPI_COMM_WORLD, &stat);
-        TAU_TRACE_RECVMSG(COMM_DIE_TAG, 0, 1*size_of_SHMEMPI_INT);
+        
     }
 
     MPI_Finalize();
@@ -250,8 +247,6 @@ CommSHMEMPI::~CommSHMEMPI(void)
 //              item N data     (various)
 void *CommSHMEMPI::pack_message(Message *msg, int tag, int &buffsize)
 {
-    TAU_PROFILE("CommSHMEMPI::pack_message()", "(Message *, int, int)",
-                TAU_MESSAGE);
     // calculate size of buffer
     buffsize = find_msg_length(*msg);
 
@@ -273,8 +268,6 @@ void *CommSHMEMPI::pack_message(Message *msg, int tag, int &buffsize)
 // tag is in the data sent between nodes.  Return success.
 bool CommSHMEMPI::mysend(Message *msg, int node, int tag, int etag)
 {
-    TAU_PROFILE("CommSHMEMPI::mysend()", "bool (Message *, int, int, int)",
-                TAU_MESSAGE);
 
     int nitems = msg->size();
     int errstat = (-1);
@@ -293,7 +286,7 @@ bool CommSHMEMPI::mysend(Message *msg, int node, int tag, int etag)
     // send the message (non-blocking)
     errstat = MPI_Isend(outbuffer, size, MPI_BYTE, node, etag,
                         MPI_COMM_WORLD, &request);
-    TAU_TRACE_SENDMSG(etag, node, size);
+    
 
     while (!flag)
     {
@@ -314,7 +307,7 @@ bool CommSHMEMPI::mysend(Message *msg, int node, int tag, int etag)
                 // blocking receive, unpack message
                 MPI_Recv(rec_buff, rec_size, MPI_BYTE, src_node, rec_tag,
                          MPI_COMM_WORLD, &rec_status);
-                TAU_TRACE_RECVMSG(rec_tag, src_node, rec_size);
+                
                 newmsg = unpack_message(rec_node, rec_utag, rec_buff);
 
                 // tell this new Message that we were the one that created its
@@ -357,8 +350,6 @@ bool CommSHMEMPI::mysend(Message *msg, int node, int tag, int etag)
 // If tag = COMM_ANY_TAG, checks for messages with any user tag.
 Message *CommSHMEMPI::myreceive(int& node, int& tag, int etag)
 {
-    TAU_PROFILE("CommSHMEMPI::myreceive()", "Message *(int, int, int)",
-                TAU_MESSAGE);
 
     int bufid, size, checknode, checktag, flag = false;
     Message *newmsg = 0;
@@ -412,7 +403,7 @@ Message *CommSHMEMPI::myreceive(int& node, int& tag, int etag)
             // blocking receive
             MPI_Recv(outbuff, size, MPI_BYTE, checknode, checktag,
                      MPI_COMM_WORLD, &stat);
-            TAU_TRACE_RECVMSG(checktag, checknode, size);
+            
             newmsg = unpack_message(node, tag, outbuff);
 
             // tell this new Message that we were the one that created its
@@ -440,7 +431,7 @@ Message *CommSHMEMPI::myreceive(int& node, int& tag, int etag)
 // Uses MPI barrier for all procs
 void CommSHMEMPI::mybarrier(void)
 {
-    TAU_PROFILE("CommSHMEMPI::mybarrier()", "void ()", TAU_MESSAGE);
+    
 
     MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -450,7 +441,7 @@ void CommSHMEMPI::mybarrier(void)
 // clean up after a Message has been used (called by Message).
 void CommSHMEMPI::cleanupMessage(void *d)
 {
-    TAU_PROFILE("CommSHMEMPI::cleanupMessage()", "void (void *)", TAU_MESSAGE);
+    
 
     // need to free the allocated storage
     freebuffer(d);

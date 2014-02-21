@@ -30,7 +30,7 @@
 #include "Particle/ParticleAttribElem.h"
 #include "PETE/IpplExpressions.h"
 #include "Utility/IpplStats.h"
-#include "Profile/Profiler.h"
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -39,10 +39,6 @@ template<class T, unsigned Dim, class RHS, class OP>
 void
 assign(const ParticleAttribElem<T,Dim>& ca, RHS b, OP op)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ca) + ", " + CT(b) + ", " 
-    + CT(op) + " )" );
-  TAU_PROFILE("assign()", taustr, TAU_ASSIGN | TAU_PARTICLE);
-
   // Cast away Const-ness.  Aarrgghh!!
   ParticleAttribElem<T,Dim>& a = (ParticleAttribElem<T,Dim>&) ca;
   typename RHS::Wrapped& bb = b.PETE_unwrap();
@@ -61,10 +57,6 @@ template<class T, class RHS, class OP>
 void
 assign(const ParticleAttrib<T>& ca, RHS b, OP op)
 {
-  TAU_TYPE_STRING(taustr, "void (" + CT(ca) + ", " + CT(b) + ", " 
-    + CT(op)  + " )" );
-  TAU_PROFILE("assign()", taustr, TAU_ASSIGN | TAU_PARTICLE);
-
   // Cast away Const-ness.  Aarrgghh!!
   ParticleAttrib<T>& a = (ParticleAttrib<T>&) ca;
   typename RHS::Wrapped& bb = b.PETE_unwrap();

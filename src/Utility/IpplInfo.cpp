@@ -33,7 +33,7 @@
 #include "DataSource/DataConnectCreator.h"
 #include "Message/CommCreator.h"
 #include "Message/Communicate.h"
-#include "Profile/Profiler.h"
+
 #include "IpplVersions.h"
 
 #include <unistd.h>
@@ -175,7 +175,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
         bool startcomm = false;
         bool comminit = true;         // do comm. system's init call
         int nprocs = (-1);		// num of processes to start; -1 means default
-        TAU_PROFILE_INIT(argc, argv);
+        
 
         /*
           if no argument is given, we assume mpi as
@@ -265,7 +265,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
             for (i=1; i < argc; ++i)
                 retargv[retargc++] = argv[i];
 
-        TAU_PROFILE_SET_NODE(MyNode);
+        
         // Parse command-line options, looking for ippl options.  When found,
         // save their suggested values and use them at the end to create data, etc.
         for (i=1; i < argc; ++i) {
@@ -363,7 +363,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                     ++i;
 
             } else if   ( strcmp(argv[i], "--profile") == 0 )  {
-                // handled above in TAU_PROFILE_INIT(argc, argv);
+                // handled above in 
                 if ( (i + 1) < argc && argv[i+1][0] != '-' )
                     ++i;
 
@@ -456,14 +456,14 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 INFOMSG("   --warn <n>      : Set warning message level.  0 = off.\n");
                 INFOMSG("   --error <n>     : Set error message level.  0 = off.\n");
                 INFOMSG("   --debug <n>     : Set debug message level.  0 = off.\n");
-#ifdef PROFILING_ON
+/*#ifdef PROFILING_ON
                 INFOMSG("   --profile <gr>  : Enable profiling for groups (e.g., M+P+io) \n");
                 INFOMSG("             M - Message, P - Pete, V - Viz, A - Assign, I - IO\n");
                 INFOMSG("             F - Field, L - Layout, S - Sparse, D - Domainmap \n");
                 INFOMSG("             Ut - Utility, R - Region, Ff - FFT \n");
                 INFOMSG("             U - User, 1 - User1, 2 - User2, 3 - User3, 4 - User4\n");
 
-#endif //PROFILING_ON
+#endif*/ //PROFILING_ON
                 INFOMSG("   --defergcfill   : Turn on deferred guard cell fills.\n");
                 INFOMSG("   --nofieldcompression: Turn off compression in the Field classes.\n");
                 INFOMSG("   --offsetstorage : Turn on random LField storage offsets.\n");
@@ -627,7 +627,7 @@ void IpplInfo::abort(const char *msg, int exitcode) {
     }
 
     // that's it, folks
-    TAU_PROFILE_EXIT(msg);
+    
     if (exitcode < 0)
         ::abort();
     else

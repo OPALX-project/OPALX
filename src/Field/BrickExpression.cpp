@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 // include files
-#include "Profile/Profiler.h"
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -132,8 +132,8 @@ template<unsigned Dim, class LHS, class RHS, class OP>
  void BrickExpression<Dim,LHS,RHS,OP>::apply() restrict
 #endif
 {
-  TAU_TYPE_STRING(taustr, CT(*this) + " void ()" );
-  TAU_PROFILE("BrickExpression::apply()", taustr, TAU_PETE);
+  
+  
   
   // #pragma inline here
   BrickExpLoop<LHS,RHS,OP,Dim>::apply(Lhs,Rhs,Op);
