@@ -64,8 +64,8 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[ESCALE]   = Attributes::makeRealArray
                         ("ESCALE", "Scale factor for the RF field(s)");
 
-    itsAttr[SUPERPOSE]= Attributes::makeBool
- 	                ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF", false);
+    itsAttr[SUPERPOSE]= Attributes::makeBoolArray
+ 	                ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF");
 
     itsAttr[RFMAPFN]  = Attributes::makeStringArray
                         ("RFMAPFN", "Filename for the RF fieldmap(s)");
@@ -174,7 +174,6 @@ void OpalCyclotron::update() {
     double tcr2 = Attributes::getReal(itsAttr[TCR2]);
     double mbtc = Attributes::getReal(itsAttr[MBTC]);
     double slptc = Attributes::getReal(itsAttr[SLPTC]);
-    bool   superpose = Attributes::getBool(itsAttr[SUPERPOSE]);
     
     double minz = Attributes::getReal(itsAttr[MINZ]);
     double maxz = Attributes::getReal(itsAttr[MAXZ]);
@@ -199,8 +198,6 @@ void OpalCyclotron::update() {
     cycl->setTCr2(tcr2);
     cycl->setMBtc(mbtc);
     cycl->setSLPtc(slptc);
-    cycl->setSuperpose(superpose);
-
 
     cycl->setMinR(minr);
     cycl->setMaxR(maxr);
@@ -211,6 +208,7 @@ void OpalCyclotron::update() {
     std::vector<double> scale_str = Attributes::getRealArray(itsAttr[ESCALE]);
     std::vector<double> phi_str = Attributes::getRealArray(itsAttr[RFPHI]);
     std::vector<double> rff_str = Attributes::getRealArray(itsAttr[RFFREQ]);
+    std::vector<bool> superpose_str = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
 
     // if ((fm_str.size() == scale_str.size()) && 
     //     (fm_str.size() == phi_str.size()) && 
@@ -229,7 +227,7 @@ void OpalCyclotron::update() {
     cycl->setEScale(scale_str);
     cycl->setRfFieldMapFN(fm_str);
     cycl->setRfFrequ(rff_str);
-    cycl->setSuperpose(superpose);
+    cycl->setSuperpose(superpose_str);
 
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
       obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));

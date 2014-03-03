@@ -419,6 +419,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     double zmax = elptr->getMaxZ();
     *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [mm]"<< endl;
 
+    /**
     bool Sflag = elptr->getSuperpose();
     string flagsuperposed;
     if (Sflag)
@@ -426,13 +427,15 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     else
       flagsuperposed="no";
     *gmsg << "* Electric field maps are superposed? " << flagsuperposed << " " << endl;
-
+    */
 
     double h = elptr->getCyclHarm();
     *gmsg << "* Harmonic number h = " << h << " " << endl;
 
+    /**
     if (elptr->getSuperpose())
         *gmsg << "* Fields are superposed " << endl;
+    */
 
     /**
      * To ease the initialise() function, set a integral parameter fieldflag internally.

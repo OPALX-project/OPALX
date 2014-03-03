@@ -146,13 +146,13 @@ void Cyclotron::setRfFrequ(vector<double> f) {
     rffrequ_m = f;
 }
 
-void Cyclotron::setSuperpose(bool flag) {
+void Cyclotron::setSuperpose(std::vector<bool> flag) {
     superpose_m = flag;
 }
 
-bool Cyclotron::getSuperpose() const {
-    return superpose_m;
-}
+//bool Cyclotron::getSuperpose() const {
+//    return superpose_m;
+//}
 
 void Cyclotron::setSymmetry(double s) {
     symmetry_m = s;
@@ -472,20 +472,26 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         vector<double>::const_iterator rffi    = rffrequ_m.begin();
         vector<double>::const_iterator rfphii  = rfphi_m.begin();
         vector<double>::const_iterator escali  = escale_m.begin();
+	vector<bool>::const_iterator superposei = superpose_m.begin();
         double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
         int fcount = 0;
-        for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++fcount) {
+        for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
             (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
+	    bool SuperPose = *superposei;
+            if (fcount > 0 && !SuperPose) {
+	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
+	      break;
+            }
             if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
                 if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
+		  ++fcount;
                   double phase = 2.0 * pi * 1E-3 * (*rffi) * t + *rfphii;
                   double ebscale = *escali;
                   E += ebscale * cos(phase) * tmpE;
                   B -= ebscale * sin(phase) * tmpB;
                   //INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
                 }
-                if (!superpose_m) break;
             }
     	}
     }
