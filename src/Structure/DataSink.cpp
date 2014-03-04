@@ -583,6 +583,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     Vektor<double, 3 > geomvareps = beam.get_emit();
     Vektor<double, 3 > RefPartR = beam.RefPart_R;
     Vektor<double, 3 > RefPartP = beam.RefPart_P;
+    Vektor<double, 3>  pmean = beam.get_pmean();
 
     double meanEnergy = beam.get_meanEnergy();
     double energySpread = beam.getdE();
@@ -619,32 +620,23 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep",        &localTrackStep, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep",        &globalTrackStep, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "SPOS",     &actPos, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "Step",       &H5call_m, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#sigma",   &sigma, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
     rc = H5WriteStepAttribFloat64(H5file_m, "RMSX", (h5_float64_t *)&xsigma, 3);    //sigma
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
+    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon", (h5_float64_t *)&vareps, 3);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
     rc = H5WriteStepAttribFloat64(H5file_m, "RMSP", (h5_float64_t *)&psigma, 3);    //sigma
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "MEANP", (h5_float64_t *)&pmean, 3);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "centroid", (h5_float64_t *)&centroid, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
@@ -663,28 +655,8 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     rc = H5WriteStepAttribFloat64(H5file_m, "minP", (h5_float64_t *)&minP, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
- 
-    rc = H5WriteStepAttribFloat64(H5file_m, "centroid", (h5_float64_t *)&centroid, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    
-    rc = H5WriteStepAttribFloat64(H5file_m, "TIME",     &t, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
- 
-    rc = H5WriteStepAttribFloat64(H5file_m, "ENERGY",   &meanEnergy, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon", (h5_float64_t *)&vareps, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
+     
     rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "dE",       &energySpread, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
@@ -719,6 +691,41 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     rc = H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    // scalar values 
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "SPOS",     &actPos, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "Step",       &H5call_m, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "#sigma",   &sigma, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "TIME",     &t, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+ 
+    rc = H5WriteStepAttribFloat64(H5file_m, "ENERGY",   &meanEnergy, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "dE",       &energySpread, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep",        &localTrackStep, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep",        &globalTrackStep, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
 
     /// Write particle mass and charge per particle. (Consider making these file attributes.)
     double mpart = 1.0e-9 * beam.getM();
