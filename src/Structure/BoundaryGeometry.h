@@ -379,11 +379,10 @@ private:
 
     std::map< size_t, std::set<size_t> >
             CubicLookupTable_m;         // Maps boundary box ID to included triangles
-    std::set<size_t> isOriented_m;      // IDs of oriented triangles.
-    std::map< size_t, std::vector<size_t> >
-            triangleLookupTable_m;      // map vertex ID to triangles with this vertex
-    std::vector<size_t> NaliT_m;        // IDs of to be oriented triangles
-    std::vector<size_t> alignedT_m;     // IDs of oriented triangles
+    bool* isOriented_m;                  // IDs of oriented triangles.
+    std::map< int, std::set<int> >
+            triangleNeighbors_m;        // map vertex ID to triangles with this vertex
+
     Vector_t outside_point_m;           // a point outside the domain
 
 
@@ -439,12 +438,8 @@ private:
         return (apert_m.size() != 0);
     }
     
-    inline Vector_t getPoint (int triangle_id, int vertex_id) {
+    inline Vector_t getPoint (const int triangle_id, const int vertex_id) {
         return geo3Dcoords_m[allbfaces_m[4 * triangle_id + vertex_id]];
-    }
-
-    inline size_t getPointID (size_t triangle_id, size_t vertex_id) const {
-        return allbfaces_m[4 * triangle_id + vertex_id];
     }
 
     /*

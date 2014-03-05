@@ -19,6 +19,8 @@ using namespace Physics;
 extern Inform* gmsg;
 
 #define SQR(x) ((x)*(x))
+#define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
+#define Point(triangle_id, vertex_id)   geo3Dcoords_m[allbfaces_m[4 * (triangle_id) + (vertex_id)]]
 
 BoundaryGeometry::BoundaryGeometry() :
     Definition (
@@ -256,7 +258,7 @@ int BoundaryGeometry::doBGphysics (
             }
             assert(cosTheta>=0);
             int idx = 0;
-            if (intecoords != getPoint (triId, 1)) {
+            if (intecoords != Point (triId, 1)) {
                 idx = 1; // intersection is not the 1st vertex
             } else {
                 idx = 2; // intersection is the 1st vertex
@@ -269,7 +271,7 @@ int BoundaryGeometry::doBGphysics (
                              incQ,
                              TriNormal_m[triId],
                              intecoords,
-                             getPoint (triId, idx),
+                             Point (triId, idx),
                              itsBunch,
                              seyNum,
                              ppVw_m,
@@ -319,7 +321,7 @@ int BoundaryGeometry::doBGphysics (
             }
             //assert(cosTheta>=0);
             int idx = 0;
-            if (intecoords != getPoint (triId, 1)) {
+            if (intecoords != Point (triId, 1)) {
                 // intersection is not the 1st vertex
                 idx = 1;
             } else {
@@ -333,7 +335,7 @@ int BoundaryGeometry::doBGphysics (
                              incQ,
                              TriNormal_m[triId],
                              intecoords,
-                             getPoint (triId, idx),
+                             Point (triId, idx),
                              itsBunch,
                              seyNum,
                              ppVw_m,
@@ -383,9 +385,9 @@ size_t BoundaryGeometry::doFNemission (
                opposite to inward normal of surface */
             if (Enormal < fieldFNthreshold_m) {
                 std::vector<Vector_t> vertex;
-                vertex.push_back (getPoint (i, 1));
-                vertex.push_back (getPoint (i, 2));
-                vertex.push_back (getPoint (i, 3));
+                vertex.push_back (Point (i, 1));
+                vertex.push_back (Point (i, 2));
+                vertex.push_back (Point (i, 3));
                 PriEmissionPhysics::Fieldemission (itsBunch, fa, Enormal,
                                                    parameterFNB_m,
                                                    workFunction_m,
@@ -403,6 +405,830 @@ size_t BoundaryGeometry::doFNemission (
     }
     *gmsg << "* Emit " << Nstp << " field emission particles at the surfaces" << endl;
     return Nstp;
+}
+
+/*
+   helper functions for STL max/min_element
+ */
+struct VectorLessX {
+    bool operator() (Vector_t x1, Vector_t x2) {
+        return x1 (0) < x2 (0);
+    }
+};
+
+struct VectorLessY {
+    bool operator() (Vector_t x1, Vector_t x2) {
+        return x1 (1) < x2 (1);
+    }
+};
+
+struct VectorLessZ {
+    bool operator() (Vector_t x1, Vector_t x2) {
+        return x1 (2) < x2 (2);
+    }
+};
+
+/**
+   Calculate the maximum of coordinates of geometry,i.e the maximum of X,Y,Z
+ */
+Vector_t get_max_extend (std::vector<Vector_t>& coords) {
+    const Vector_t x = *max_element (
+        coords.begin (), coords.end (), VectorLessX ());
+    const Vector_t y = *max_element (
+        coords.begin (), coords.end (), VectorLessY ());
+    const Vector_t z = *max_element (
+        coords.begin (), coords.end (), VectorLessZ ());
+    return Vector_t (x (0), y (1), z (2));
+}
+
+/*
+   Compute the minimum of coordinates of geometry, i.e the minimum of X,Y,Z
+ */
+Vector_t get_min_extend (std::vector<Vector_t>& coords) {
+    const Vector_t x = *min_element (
+        coords.begin (), coords.end (), VectorLessX ());
+    const Vector_t y = *min_element (
+        coords.begin (), coords.end (), VectorLessY ());
+    const Vector_t z = *min_element (
+        coords.begin (), coords.end (), VectorLessZ ());
+    return Vector_t (x (0), y (1), z (2));
+}
+
+/*
+  "ULP compare" for double precision floating point numbers.
+  See:
+    http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
+
+  Note:
+    An updated version of this document with improved code you will find here:
+    http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+
+ */
+static int64_t fcmp (
+    double A,
+    double B,
+    int maxUlps ) {
+                    
+    // Make sure maxUlps is non-negative and small enough that the
+    // default NAN won't compare as equal to anything.
+    assert (maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
+    assert (sizeof (long long) == sizeof (int64_t) );
+    assert (sizeof (long long) == sizeof (double) );
+                    
+    // Make [ab]Int lexicographically ordered as a twos-complement int
+    double* pa = &A;
+    int64_t aInt = *(int64_t*)pa;
+    if (aInt < 0)
+        aInt = 0x8000000000000000LL - aInt;
+                    
+    double* pb = &B;
+    int64_t bInt = *(int64_t*)pb;
+    if (bInt < 0)
+        bInt = 0x8000000000000000LL - bInt;
+                    
+    int64_t intDiff = aInt - bInt;
+    if (llabs(intDiff) <= maxUlps)
+        return 0;
+    return intDiff;
+}
+
+
+/*
+  Map point to unique voxel ID.
+
+  Remember:
+  * hr_m:  is the  mesh size
+  * nr_m:  number of mesh points
+  */
+int BoundaryGeometry::map_point_to_voxel_id (Vector_t x) {
+    int id_tx = floor ((x[0] - mincoords_m[0]) / hr_m[0]);
+    int id_ty = floor ((x[1] - mincoords_m[1]) / hr_m[1]);
+    int id_tz = floor ((x[2] - mincoords_m[2]) / hr_m[2]);
+    
+    if (id_tx == -1) id_tx = 0;
+    if (id_ty == -1) id_ty = 0;
+    if (id_tz == -1) id_tz = 0;
+    
+    if (id_tx < 0 || id_ty < 0 || id_tz < 0) {
+        return 0;
+    }
+    return 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
+}
+
+void BoundaryGeometry::initialize () {
+
+    class Local {
+
+    public:
+
+        static void computeGeometryInterval (BoundaryGeometry* bg) {
+
+            bg->mincoords_m = get_min_extend (bg->geo3Dcoords_m);
+            bg->maxcoords_m = get_max_extend (bg->geo3Dcoords_m);
+            bg->len_m = bg->maxcoords_m - bg->mincoords_m;
+
+            /*
+              Calculate the maximum dimension of triangles. This value will be used to
+              define the cubic box size
+            */
+
+            bg->longest_side_max_m = 0.0;
+            bg->longest_side_min_m = 0.01;
+            for (int i = 0; i < bg->num_triangles_m; i++) {
+                // compute length of longest edge
+                Vector_t x1 = bg->getPoint (i, 1);
+                Vector_t x2 = bg->getPoint (i, 2);
+                Vector_t x3 = bg->getPoint (i, 3);
+                double length_edge1 = sqrt (
+                    SQR (x1[0] - x2[0]) + SQR (x1[1] - x2[1]) + SQR (x1[2] - x2[2]));
+                double length_edge2 = sqrt (
+                    SQR (x3[0] - x2[0]) + SQR (x3[1] - x2[1]) + SQR (x3[2] - x2[2]));
+                double length_edge3 = sqrt (
+                    SQR (x3[0] - x1[0]) + SQR (x3[1] - x1[1]) + SQR (x3[2] - x1[2]));
+        
+                double max = length_edge1;
+                if (length_edge2 > max) max = length_edge2;
+                if (length_edge3 > max) max = length_edge3;
+        
+                // save min and max of length of longest edge
+                if (bg->longest_side_max_m < max) bg->longest_side_max_m = max;
+                if (bg->longest_side_min_m > max) bg->longest_side_min_m = max;
+            }
+
+            /*
+              In principal the number of discretization nr_m is the extend of
+              the geometry divided by the extend of the largest triangle. Whereby
+              the extend of a triangle is defined as the lenght of its longest
+              edge. Thus the largest triangle is the triangle with the longest edge.
+
+              But if the hot spot, i.e., the multipacting/field emission zone is
+              too small that the normal bounding box covers the whole hot spot, the
+              expensive triangle-line intersection tests will be frequently called.
+              In these cases, we have to use smaller bounding box size to speed up
+              simulation. 
+
+              Todo:
+              The relation between bounding box size and simulation time step &
+              geometry shape maybe need to be summarized and modeled in a more
+              flexible manner and could be adjusted in input file.
+            */
+            bg->nr_m (0) = (int)floor (bg->len_m (0) / bg->longest_side_max_m * 8.0);
+            bg->nr_m (1) = (int)floor (bg->len_m (1) / bg->longest_side_max_m * 8.0);
+            bg->nr_m (2) = (int)floor (bg->len_m (2) / bg->longest_side_max_m * 8.0);
+
+            bg->hr_m = bg->len_m / bg->nr_m;
+            bg->outside_point_m = bg->maxcoords_m + bg->hr_m;
+            *gmsg << "* Geometry interval built done." << endl;
+        }
+
+        /*
+          Make the boundary set by using
+          * triangle vertices
+          * bounding box vertices
+          * several points in triangle central lines
+          * several points in triangle edges
+          */
+        static void makeBoundaryIndexSet (BoundaryGeometry* bg) {
+            class Local {
+            public:
+                static inline bool is_in_voxel (Vector_t& point, Vector_t& min, Vector_t& max) {
+                    if (fcmp (point [0], min [0], 10) < 0) return false;
+                    if (fcmp (point [1], min [1], 10) < 0) return false;
+                    if (fcmp (point [2], min [2], 10) < 0) return false;
+                    if (fcmp (point [0], max [0], 10) > 0) return false;
+                    if (fcmp (point [1], max [1], 10) > 0) return false;
+                    if (fcmp (point [2], max [2], 10) > 0) return false;
+                    return true;
+                }
+
+                /*
+                  Get the smallest bounding box of triangle given by ID. The
+                  smallest bounding box is used to make sure that all part of a triangle
+                  is known by boundary bounding box.
+                */
+                static std::vector<Vector_t> getBBoxOfTriangle (BoundaryGeometry* bg, size_t id) {
+                    Vector_t min = bg->getPoint (id, 1);
+                    Vector_t max = min;
+                    for (int i = 2; i <= 3; i++) {
+                        Vector_t P = bg->getPoint (id, i);
+                        if (P(0) < min[0]) min[0] = P(0);
+                        if (P(1) < min[1]) min[1] = P(1);
+                        if (P(2) < min[2]) min[2] = P(2);
+                        if (P(0) > max[0]) max[0] = P(0);
+                        if (P(1) > max[1]) max[1] = P(1);
+                        if (P(2) > max[2]) max[2] = P(2);
+                    }
+                    std::vector<Vector_t> ret;
+                    ret.push_back (min);
+                    ret.push_back (max);
+                    PAssert (ret.size () != 0);
+                    return ret;
+                }
+
+                static void write_bbox_mesh (
+                    std::set<size_t> ids,
+                    Vector_t hr_m,
+                    Vektor<int,3> nr,
+                    Vector_t origin
+                    ) {
+                    /*-------------------------------------------------------------------------*/
+                    size_t numpoints = 8 * ids.size ();
+                    std::set<size_t>::iterator id;
+                    std::ofstream of;
+                    of.open (string ("data/testBBox.vtk").c_str ());
+                    assert (of.is_open ());
+                    of.precision (6);
+    
+                    of << "# vtk DataFile Version 2.0" << std::endl;
+                    of << "generated using BoundaryGeometry::makeBoundaryIndexSet" << std::endl;
+                    of << "ASCII" << std::endl << std::endl;
+                    of << "DATASET UNSTRUCTURED_GRID" << std::endl;
+                    of << "POINTS " << numpoints << " float" << std::endl;
+    
+                    for (id = ids.begin (); id != ids.end (); id++) {
+                        size_t k = (*id - 1) / (nr[0] * nr[1]);
+                        size_t rest = (*id - 1) % (nr[0] * nr[1]);
+                        size_t j = rest / nr[0];
+                        size_t i = rest % nr[0]; 
+
+                        Vector_t P;
+                        P[0] = i * hr_m[0] + origin[0];
+                        P[1] = j * hr_m[1] + origin[1];
+                        P[2] = k * hr_m[2] + origin[2];
+
+                        of << P[0]           << " " << P[1]           << " " << P[2]           << std::endl;
+                        of << P[0] + hr_m[0] << " " << P[1]           << " " << P[2]           << std::endl;
+                        of << P[0]           << " " << P[1] + hr_m[1] << " " << P[2]           << std::endl;
+                        of << P[0] + hr_m[0] << " " << P[1] + hr_m[1] << " " << P[2]           << std::endl;
+                        of << P[0]           << " " << P[1]           << " " << P[2] + hr_m[2] << std::endl;
+                        of << P[0] + hr_m[0] << " " << P[1]           << " " << P[2] + hr_m[2] << std::endl;
+                        of << P[0]           << " " << P[1] + hr_m[1] << " " << P[2] + hr_m[2] << std::endl;
+                        of << P[0] + hr_m[0] << " " << P[1] + hr_m[1] << " " << P[2] + hr_m[2] << std::endl;
+                    }
+                    of << std::endl;
+    
+                    of << "CELLS " << ids.size () << " " << 9 * ids.size () << std::endl;
+                    for (size_t i = 0; i < ids.size (); i++)
+                        of << "8 "
+                           << 8 * i << " " << 8 * i + 1 << " " << 8 * i + 2 << " " << 8 * i + 3 << " "
+                           << 8 * i + 4 << " " << 8 * i + 5 << " " << 8 * i + 6 << " " << 8 * i + 7 << std::endl;
+                    of << "CELL_TYPES " << ids.size () << std::endl;
+                    for (size_t i = 0; i <  ids.size (); i++)
+                        of << "11" << std::endl;
+                    of << "CELL_DATA " << ids.size () << std::endl;
+                    of << "SCALARS " << "cell_attribute_data" << " float " << "1" << std::endl;
+                    of << "LOOKUP_TABLE " << "default" << std::endl;
+                    for (size_t i = 0; i <  ids.size (); i++)
+                        of << (float)(i) << std::endl;
+                    of << std::endl;
+                    of << "COLOR_SCALARS " << "BBoxColor " << 4 << std::endl;
+                    for (size_t i = 0; i < ids.size (); i++) {
+                        of << "1.0" << " 1.0 " << "0.0 " << "1.0" << std::endl;
+                    }
+                    of << std::endl;
+                }
+
+
+            };
+
+
+            for (int i = 0; i < bg->num_triangles_m; i++) {
+                std::vector<Vector_t> coords;
+                /* Discretize the three central lines and the three triangle edges to
+                   200 segments to get a more complete boundary index set. */
+                const Vector_t c1 = 0.5 * (bg->getPoint (i, 2) + bg->getPoint (i, 3)) - bg->getPoint (i, 1);
+                const Vector_t c2 = 0.5 * (bg->getPoint (i, 3) + bg->getPoint (i, 1)) - bg->getPoint (i, 2);
+                const Vector_t c3 = 0.5 * (bg->getPoint (i, 1) + bg->getPoint (i, 2)) - bg->getPoint (i, 3);
+
+                const Vector_t e1 = bg->getPoint (i, 2) - bg->getPoint (i, 1);
+                const Vector_t e2 = bg->getPoint (i, 3) - bg->getPoint (i, 2);
+                const Vector_t e3 = bg->getPoint (i, 1) - bg->getPoint (i, 3);
+                const int num_segments = 200;
+                const double x = 1.0 / num_segments;
+                for (int j = 1; j <= num_segments; j++) {
+                    // discretize the three central lines.
+                    coords.push_back (bg->getPoint (i, 1) + x * j * c1);
+                    coords.push_back (bg->getPoint (i, 2) + x * j * c2);
+                    coords.push_back (bg->getPoint (i, 3) + x * j * c3);
+                    // discretize the three  triangle edges:
+                    coords.push_back (bg->getPoint (i, 1) + x * j * e1);
+                    coords.push_back (bg->getPoint (i, 2) + x * j * e2);
+                    coords.push_back (bg->getPoint (i, 3) + x * j * e3);
+                }
+
+#if 0
+                std::vector<Vector_t> ret = Local::getBBoxOfTriangle (bg, i);
+
+                Vector_t min = ret[0];
+                Vector_t max = ret[1];
+
+                coords.push_back (Vector_t (min[0], min[1], min[2]));
+                coords.push_back (Vector_t (min[0], min[1], max[2]));
+                coords.push_back (Vector_t (min[0], max[1], max[2]));
+                coords.push_back (Vector_t (min[0], max[1], min[2]));
+                coords.push_back (Vector_t (max[0], min[1], min[2]));
+                coords.push_back (Vector_t (max[0], min[1], max[2]));
+                coords.push_back (Vector_t (max[0], max[1], max[2]));
+                coords.push_back (Vector_t (max[0], max[1], min[2]));
+
+                /*
+                  :TODO: better description why we are doing this. Actually I (Achim)
+                  don't understand it.
+
+                  add some margins to make sure that boundary bounding box has both
+                  positive and negtive margins w.r.t boundary. Just make sure that the
+                  size of bounding box for triangle is smaller than the boundary bounding
+                  box.
+                */
+                min -= bg->hr_m;
+                max += bg->hr_m;
+                Vector_t P;
+                P = Vector_t (min[0], min[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+                P = Vector_t (min[0], min[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+                P = Vector_t (min[0], min[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+                P = Vector_t (min[0], max[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+                P = Vector_t (min[0], max[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->mincoords_m)) coords.push_back (P);
+                P = Vector_t (max[0], min[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+                P = Vector_t (max[0], min[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+                P = Vector_t (max[0], max[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+                P = Vector_t (max[0], max[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
+#endif
+                std::vector<Vector_t>::iterator point;
+                for (point = coords.begin (); point != coords.end (); point++) {
+                    /*
+                      if (!is_in_bbox (*point, mincoords_m, maxcoords_m))
+                      continue;
+                    */
+                    int id = bg->map_point_to_voxel_id (*point);
+                    assert (id > 0);
+                    // insert ID to std::set! 
+                    bg->boundary_ids_m.insert (id);
+            
+                    std::map< size_t, std::set<size_t> >::iterator It;
+                    It = bg->CubicLookupTable_m.find (id);
+                    if (It == bg->CubicLookupTable_m.end ()) {
+                        std::set<size_t> tmp;
+                        tmp.insert (i);
+                        bg->CubicLookupTable_m.insert (std::pair <size_t, std::set<size_t> > (id, tmp));
+                    } else
+                        (*It).second.insert (i);
+                }
+            }
+            if(Ippl::myNode() == 0) {
+                Local::write_bbox_mesh (bg->boundary_ids_m, bg->hr_m, bg->nr_m, bg->mincoords_m);
+            }
+            *gmsg << "* Boundary index set built done." << endl;
+        }
+
+
+/*
+  
+  Following combinations are possible:
+              1,1 && 2,2   1,2 && 2,1   1,3 && 2,1
+              1,1 && 2,3   1,2 && 2,3   1,3 && 2,2
+              1,1 && 3,2   1,2 && 3,1   1,3 && 3,1
+              1,1 && 3,3   1,2 && 3,3   1,3 && 3,2
+
+             (2,1 && 1,2) (2,2 && 1,1) (2,3 && 1,1)
+             (2,1 && 1,3) (2,2 && 1,3) (2,3 && 1,2)
+              2,1 && 3,2   2,2 && 3,1   2,3 && 3,1
+              2,1 && 3,3   2,2 && 3,3   2,3 && 3,2
+
+             (3,1 && 1,2) (3,2 && 1,1) (3,3 && 1,1)
+             (3,1 && 1,3) (3,2 && 1,3) (3,3 && 1,2)
+             (3,1 && 2,2) (3,2 && 2,1) (3,3 && 2,1)
+             (3,1 && 2,3) (3,2 && 2,3) (3,3 && 2,2)
+
+  Note:
+     Since we find vertices with lower enumeration first, we
+     can ignore combinations in ()
+
+                  2 2           2 3           3 2           3 3    
+                   *             *             *             *     
+                  /|\           /|\           /|\           /|\    
+                 / | \         / | \         / | \         / | \   
+                /  |  \       /  |  \       /  |  \       /  |  \  
+               /   |   \     /   |   \     /   |   \     /   |   \ 
+              *----*----*   *----*----*   *----*----*   *----*----*
+              3   1 1   3   3   1 1   2   2   1 1   3   2   1 1   2      
+diff:            (1,1)         (1,2)         (2,1)         (2,2)
+change orient.:   yes           no            no            yes
+
+
+                  2 1           2 3           3 1           3 3    
+                   *             *             *             *     
+                  /|\           /|\           /|\           /|\    
+                 / | \         / | \         / | \         / | \   
+                /  |  \       /  |  \       /  |  \       /  |  \  
+               /   |   \     /   |   \     /   |   \     /   |   \ 
+              *----*----*   *----*----*   *----*----*   *----*----*
+              3   1 2   3   3   1 2   1   2   1 2   3   2   1 2   1      
+diff:            (1,-1)        (1,1)         (2,-1)        (2,1)
+change orient.:   no            yes           yes           no
+
+
+                  2 1           2 2           3 1           3 2    
+                   *             *             *             *     
+                  /|\           /|\           /|\           /|\    
+                 / | \         / | \         / | \         / | \   
+                /  |  \       /  |  \       /  |  \       /  |  \  
+               /   |   \     /   |   \     /   |   \     /   |   \ 
+              *----*----*   *----*----*   *----*----*   *----*----*
+              3   1 3   2   3   1 3   1   2   1 3   2   2   1 3   1      
+diff:            (1,-2)        (1,-1)        (2,-2)        (2,-1)
+change orient.:   yes           no            no            yes
+
+                                              3 2           3 3    
+                                               *             *     
+                                              /|\           /|\    
+                                             / | \         / | \   
+                                            /  |  \       /  |  \  
+                                           /   |   \     /   |   \ 
+                                          *----*----*   *----*----*
+                                          1   2 1   3   1   2 1   2
+diff:                                        (1,1)         (1,2)
+change orient.:                               yes           no
+
+                                              3 1           3 3
+                                               *             *     
+                                              /|\           /|\    
+                                             / | \         / | \   
+                                            /  |  \       /  |  \  
+                                           /   |   \     /   |   \ 
+                                          *----*----*   *----*----*
+                                          1   2 2   3   1   2 2   1
+diff:                                        (1,-1)        (1,1)
+change orient.:                               no            yes
+
+                                              3 1           3 2
+                                               *             *     
+                                              /|\           /|\    
+                                             / | \         / | \   
+                                            /  |  \       /  |  \  
+                                           /   |   \     /   |   \ 
+                                          *----*----*   *----*----*
+                                          1   2 3   2   1   2 3   1
+diff:                                        (1,-2)        (1,-1)
+change orient.:                               yes           no
+
+
+Change orientation if diff is:
+(1,1) || (1,-2) || (2,2) || (2,-1) || (2,-1)
+
+*/
+
+
+        static void orientTriangles (BoundaryGeometry* bg, int ref_id, int triangle_id) {
+
+            // find pts of common edge
+            int ic[2];
+            int id[2];
+            int n = 0;
+
+            for (int i = 1; i <= 3; i++) {
+                for (int j = 1; j <= 3; j++) {
+                    if (bg->PointID (triangle_id, j) == bg->PointID (ref_id, i)) {
+                        id[n] = j;
+                        ic[n] = i;
+                        n++;
+                        if (n == 2) goto edge_found;
+                    }
+                }
+            }
+            assert (n == 2);
+        edge_found:
+            int diff = id[1] - id[0];
+            if ((((ic[1] - ic[0]) == 1) && ((diff == 1) || (diff == -2))) || 
+                (((ic[1] - ic[0]) == 2) && ((diff == -1) || (diff == 2)))) {
+                bg->PointID (triangle_id, id[0]) = bg->PointID (ref_id, ic[1]);
+                bg->PointID (triangle_id, id[1]) = bg->PointID (ref_id, ic[0]);
+            }
+            bg->isOriented_m [triangle_id] = true;
+            std::set<int> neighbors = bg->triangleNeighbors_m[triangle_id];
+
+            for (std::set<int>::iterator triangle_iter = neighbors.begin();
+                 triangle_iter != neighbors.end();
+                 triangle_iter++) {
+                if (!bg->isOriented_m [*triangle_iter])
+                    orientTriangles (bg, triangle_id, *triangle_iter);
+            }
+        }
+
+        /*
+          Compute intersection point of line segment given by x and y 
+          and triangle given by its ID.
+
+          Returns true if the value returned in argument 'result' is an 
+          intersection point. 
+
+          Used in: isInside() 
+        */
+
+        static bool computeLineTriangleIntersectionPoint (
+            BoundaryGeometry* bg,
+            const Vector_t& x,
+            const Vector_t& y,
+            const size_t& triangle_id,
+            Vector_t& result
+            ) {
+            const Vector_t t0 = bg->getPoint (triangle_id, 1);
+            const Vector_t u = bg->getPoint (triangle_id, 2) - t0;
+            const Vector_t v = bg->getPoint (triangle_id, 3) - t0;
+            const Vector_t n = cross (u, v);
+
+            const Vector_t lseg = y - x;
+            if (fabs (dot (n, lseg)) < 1.0e-10) {
+                // triangle is parallel to line segment
+                return false;
+            }
+
+            double rI = dot(n, t0-x) / dot(n, lseg);
+            if((rI < 0) || (rI > 1)) {
+                // intersection point is on the extended line
+                return false;
+            }
+            result = x + rI * lseg;
+            Vector_t w = result - t0;
+            double tmp1 = dot (u, v);
+            double tmp2 = dot (w, v);
+            double tmp3 = dot (u, w);
+            double tmp4 = dot (u, u);
+            double tmp5 = dot (v, v);
+            double tmp6 = tmp1 * tmp1 - tmp4 * tmp5;
+            double sI = (tmp1 * tmp2 - tmp5 * tmp3) / tmp6;
+            double tI = (tmp1 * tmp3 - tmp4 * tmp2) / tmp6;
+            return (sI >= 0) && (tI >= 0) && ((sI + tI) <= 1);
+        }
+
+        /*
+          Determine if a point x is outside or inside the geometry or just on
+          the boundary. Return true if point is inside geometry or on the
+          boundary, false otherwise
+
+          The basic idea here is:
+          If a line segment from the point to test to a random point outside
+          the geometry has has an even number of intersections with the
+          boundary, the point is outside the geometry.
+
+          Note:
+          If the point is on the boundary, the number of intersections is 1.
+          Points on the boundary are handled as inside.
+
+          A random selection of the reference point outside the boundary avoids
+          some specific issues, like line parallel to boundary.
+         */
+        static inline bool isInside (BoundaryGeometry* bg, const Vector_t x) {
+            IpplTimings::startTimer (bg->Tinward_m);
+
+            Vector_t y = Vector_t (
+                x[0],
+                bg->maxcoords_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
+                bg->maxcoords_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
+            std::vector<Vector_t> intersection_points;
+            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
+                Vector_t result;
+                if (computeLineTriangleIntersectionPoint (bg, x, y, triangle_id, result)) {
+                    intersection_points.push_back (result);
+                }
+            }
+            IpplTimings::stopTimer (bg->Tinward_m);
+            return ((intersection_points.size () % 2) == 1);
+        }
+
+
+        static void computeTriangleNeighbors (BoundaryGeometry* bg) {
+            std::set<int> adjacencies_to_pt  [bg->num_points_m];
+
+            // for each triangles find adjacent triangles for each vertex
+            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
+                for (int j = 1; j <= 3; j++) {
+                    int pt_id = bg->PointID (triangle_id, j);
+                    assert (pt_id < bg->num_points_m);
+                    adjacencies_to_pt [pt_id].insert (triangle_id);
+                }
+            }
+
+            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
+                std::set<int>  to_A = adjacencies_to_pt [bg->PointID (triangle_id, 1)];
+                std::set<int>  to_B = adjacencies_to_pt [bg->PointID (triangle_id, 2)];
+                std::set<int>  to_C = adjacencies_to_pt [bg->PointID (triangle_id, 3)];
+
+                std::set<int>  intersect;
+                std::set_intersection (
+                    to_A.begin(), to_A.end(),
+                    to_B.begin(), to_B.end(),
+                    std::inserter(intersect,intersect.begin()));
+                std::set_intersection(
+                    to_B.begin(), to_B.end(),
+                    to_C.begin(), to_C.end(),
+                    std::inserter(intersect,intersect.begin()));
+                std::set_intersection(
+                    to_C.begin(), to_C.end(),
+                    to_A.begin(), to_A.end(),
+                    std::inserter(intersect,intersect.begin()));
+
+                bg->triangleNeighbors_m.insert (std::pair <int, std::set<int>> (triangle_id, intersect));
+                                
+            }
+        }
+
+        /*
+          Recursively get inward-pointing normal of all surface triangles.
+          
+          The basic idea is as follow:
+          -  get the inward-pointing normal of the first triangle by determine
+             whether a nearby point is inside or outside the boundary geometry.
+             (using ray-triangle intersection and even/odd intersection number).
+          -  Then use a recursion method to switch the vertex order of adjacent
+             triangles. The inward normal is stored in TriNormal_m.
+        */
+        static void makeTriNormal (BoundaryGeometry* bg) {
+
+            /* compute normal of first triangle */
+            Vector_t A = bg->getPoint (0, 1);
+            Vector_t N = cross (bg->getPoint (0,2) - A, bg->getPoint (0,3) - A);
+            N /= sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
+
+            /*
+              choose a point P close to corner A of first triangle
+              and compute the dot product of PA and the triangle normal
+            */
+            Vector_t P = A + N * 0.1 * bg->longest_side_min_m;
+            double dotPA_N = dot (P - A, N);
+
+            /*
+              To get the triangle normal pointing inward, we have to swap two
+              points of the triangle if P 
+              - is inside the geometry and the dot product is negativ
+              - is outside the geometry and the dot product is positv
+
+              Remember:
+                The dot product is positiv only if both vectors are
+                pointing in the same direction.
+            */
+            if (
+                (isInside (bg, P) && dotPA_N < 0) ||
+                (!isInside (bg, P) && dotPA_N >= 0)
+                ) {
+                N = -N;
+                int id = bg->PointID (0, 2);
+                bg->PointID (0, 2) = bg->PointID (0, 3);
+                bg->PointID (0, 3) = id;
+            }
+
+            bg->TriNormal_m.push_back (N);
+
+            bg->isOriented_m = new bool[bg->num_triangles_m];
+            memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->num_triangles_m);
+
+            bg->isOriented_m [0] = true;
+
+            // compute edge-neightbors for each triangle
+            computeTriangleNeighbors (bg);
+
+            // orient all triangles, starting with the neighbors of the first
+            std::set<int> neighbors = bg->triangleNeighbors_m[0];
+            for (std::set<int>::iterator triangle_iter = neighbors.begin();
+                 triangle_iter != neighbors.end();
+                 triangle_iter++) {
+                if (!bg->isOriented_m [*triangle_iter])
+                    orientTriangles (bg, 0, *triangle_iter);
+            }
+
+            // compute inward-normals
+            for (int triangle_id = 1; triangle_id < bg->num_triangles_m; triangle_id++) {
+                A = bg->getPoint (triangle_id, 1);
+                N = cross (bg->getPoint (triangle_id, 2) - A, bg->getPoint (triangle_id, 3) - A);
+                double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
+                if (magnitude != 0) 
+                    N /= magnitude;
+                bg->TriNormal_m.push_back (N);
+            }
+            *gmsg << "* Triangle Normal built done." << endl;
+        }
+
+
+        // Calculate the area of triangle given by id.
+        static inline double computeArea (BoundaryGeometry* bg, int id) {
+            Vector_t AB = bg->getPoint (id, 2) - bg->getPoint (id, 1);
+            Vector_t AC = bg->getPoint (id, 3) - bg->getPoint (id, 1);
+            return(0.5 * sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
+        }
+
+        /*
+          We define some tags in namespace BGphysics for each surface triangle to
+          identify the physical reactions for each triangle when amplitude of
+          electrostatic field exceeds some threshold or particles incident the surface.
+        */
+        static void setBGphysicstag (BoundaryGeometry* bg) {
+            for (int i = 0; i < bg->num_triangles_m; i++) {
+                bg->TriBGphysicstag_m.push_back (
+                    BGphysics::Absorption
+                    | BGphysics::FNEmission
+                    | BGphysics::SecondaryEmission);
+            }
+        }
+
+    };
+
+    h5_int64_t rc;
+
+    *gmsg << "* Initializing Boundary Geometry..." << endl;
+    IpplTimings::startTimer (TPreProc_m);
+
+    apert_m = Attributes::getRealArray(itsAttr[APERTURE]);
+ 
+    if (hasApperture()) {
+        *gmsg << "* Found additional aperture." << endl;
+        for (unsigned int i=0; i<apert_m.size(); i=i+3)
+            *gmsg << "* zmin = " << apert_m[i]
+                  << " zmax = " << apert_m[i+1]
+                  << " r= " << apert_m[i+2] << endl;
+    }
+
+    *gmsg << "* Filename: " << h5FileName_m.c_str() << endl;
+
+    double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]); 
+
+    *gmsg << "* Scale all points of geometry by " << xyzscale << endl;
+
+    rc = H5SetErrorHandler (H5AbortErrorhandler);
+    if (rc != H5_SUCCESS)
+        ERRORMSG ("H5 rc = " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    H5SetVerbosityLevel (1);
+    h5_file_t* f = H5OpenFile (h5FileName_m.c_str (), H5_O_RDONLY, Ippl::getComm());
+    h5t_mesh_t* m = NULL;
+    H5FedOpenTriangleMesh (f, "0", &m);
+    H5FedSetLevel (m, 0);
+
+    num_triangles_m = H5FedGetNumElementsTotal (m);
+    allbfaces_m = new int[num_triangles_m * 4];
+
+    // iterate over all co-dim 0 entities, i.e. elements
+    h5_loc_id_t local_id;
+    int i = 0;
+    h5t_iterator_t* iter = H5FedBeginTraverseEntities (m, 0);
+    while ((local_id = H5FedTraverseEntities (iter)) >= 0) {
+        h5_loc_id_t local_vids[4];
+        H5FedGetVertexIndicesOfEntity (m, local_id, local_vids);
+        PointID (i, 0) = 0;
+        PointID (i, 1) = local_vids[0];
+        PointID (i, 2) = local_vids[1];
+        PointID (i, 3) = local_vids[2];
+        i++;
+    }
+    H5FedEndTraverseEntities (iter);
+
+    // loop over all vertices
+    num_points_m = H5FedGetNumVerticesTotal (m);
+    double* point_coords = new double[3 * num_points_m];
+    for (i = 0; i < num_points_m; i++) {
+        h5_float64_t P[3];
+        H5FedGetVertexCoordsByIndex (m, i, P);
+        point_coords[i * 3]   = P[0] * xyzscale;
+        point_coords[i * 3 + 1] = P[1] * xyzscale;
+        point_coords[i * 3 + 2] = P[2] * xyzscale;
+    }
+    H5FedCloseMesh (m);
+    H5CloseFile (f);
+
+    double zshift = (double)(Attributes::getReal (itsAttr[ZSHIFT]));
+
+    for (int i = 0; i < num_points_m; i++) {
+        geo3Dcoords_m.push_back (
+            Vector_t (
+                point_coords[3 * i],
+                point_coords[3 * i + 1],
+                point_coords[3 * i + 2] + zshift));
+    }
+    delete point_coords;
+    *gmsg << "* Vertex built done." << endl;
+
+    Local::computeGeometryInterval (this);
+
+    Local::makeBoundaryIndexSet (this);
+    Local::makeTriNormal (this);
+    Local::setBGphysicstag (this);
+
+
+    Tribarycent_m = new Vector_t[num_triangles_m];
+    TriPrPartloss_m = new double[num_triangles_m];
+    TriFEPartloss_m = new double[num_triangles_m];
+    TriSePartloss_m = new double[num_triangles_m];
+    for (int i = 0; i < num_triangles_m; i++) {
+        Tribarycent_m[i] = (getPoint (i, 1) + getPoint (i, 2) + getPoint (i, 3)) / 3.0;
+        Triarea_m.push_back (Local::computeArea (this, i));
+
+        TriPrPartloss_m[i] = 0.0;
+        TriFEPartloss_m[i] = 0.0;
+        TriSePartloss_m[i] = 0.0;
+    }
+    *gmsg << "* Triangle barycent built done." << endl;
+
+
+    *gmsg << *this << endl;
+    IpplTimings::stopTimer (TPreProc_m);
+
 }
 
 /**
@@ -627,724 +1453,6 @@ void BoundaryGeometry::createPriPart (
         }
     }
 }
-
-/*
-   helper functions for STL max/min_element
- */
-struct VectorLessX {
-    bool operator() (Vector_t x1, Vector_t x2) {
-        return x1 (0) < x2 (0);
-    }
-};
-
-struct VectorLessY {
-    bool operator() (Vector_t x1, Vector_t x2) {
-        return x1 (1) < x2 (1);
-    }
-};
-
-struct VectorLessZ {
-    bool operator() (Vector_t x1, Vector_t x2) {
-        return x1 (2) < x2 (2);
-    }
-};
-
-/**
-   Calculate the maximum of coordinates of geometry,i.e the maximum of X,Y,Z
- */
-Vector_t get_max_extend (std::vector<Vector_t>& coords) {
-    const Vector_t x = *max_element (
-        coords.begin (), coords.end (), VectorLessX ());
-    const Vector_t y = *max_element (
-        coords.begin (), coords.end (), VectorLessY ());
-    const Vector_t z = *max_element (
-        coords.begin (), coords.end (), VectorLessZ ());
-    return Vector_t (x (0), y (1), z (2));
-}
-
-/*
-   Compute the minimum of coordinates of geometry, i.e the minimum of X,Y,Z
- */
-Vector_t get_min_extend (std::vector<Vector_t>& coords) {
-    const Vector_t x = *min_element (
-        coords.begin (), coords.end (), VectorLessX ());
-    const Vector_t y = *min_element (
-        coords.begin (), coords.end (), VectorLessY ());
-    const Vector_t z = *min_element (
-        coords.begin (), coords.end (), VectorLessZ ());
-    return Vector_t (x (0), y (1), z (2));
-}
-
-/*
-  Map point to unique voxel ID.
-
-  Remember:
-  * hr_m:  is the  mesh size
-  * nr_m:  number of mesh points
-  */
-int BoundaryGeometry::map_point_to_voxel_id (Vector_t x) {
-    int id_tx = floor ((x[0] - mincoords_m[0]) / hr_m[0]);
-    int id_ty = floor ((x[1] - mincoords_m[1]) / hr_m[1]);
-    int id_tz = floor ((x[2] - mincoords_m[2]) / hr_m[2]);
-    
-    if (id_tx == -1) id_tx = 0;
-    if (id_ty == -1) id_ty = 0;
-    if (id_tz == -1) id_tz = 0;
-    
-    if (id_tx < 0 || id_ty < 0 || id_tz < 0) {
-        return 0;
-    }
-    return 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
-}
-
-void BoundaryGeometry::initialize () {
-
-    class Local {
-
-    public:
-
-        static void computeGeometryInterval (BoundaryGeometry* bg) {
-
-            bg->mincoords_m = get_min_extend (bg->geo3Dcoords_m);
-            bg->maxcoords_m = get_max_extend (bg->geo3Dcoords_m);
-            bg->len_m = bg->maxcoords_m - bg->mincoords_m;
-
-            /*
-              Calculate the maximum dimension of triangles. This value will be used to
-              define the cubic box size
-            */
-
-            bg->longest_side_max_m = 0.0;
-            bg->longest_side_min_m = 0.01;
-            for (int i = 0; i < bg->num_triangles_m; i++) {
-                // compute length of longest edge
-                Vector_t x1 = bg->getPoint (i, 1);
-                Vector_t x2 = bg->getPoint (i, 2);
-                Vector_t x3 = bg->getPoint (i, 3);
-                double length_edge1 = sqrt (
-                    SQR (x1[0] - x2[0]) + SQR (x1[1] - x2[1]) + SQR (x1[2] - x2[2]));
-                double length_edge2 = sqrt (
-                    SQR (x3[0] - x2[0]) + SQR (x3[1] - x2[1]) + SQR (x3[2] - x2[2]));
-                double length_edge3 = sqrt (
-                    SQR (x3[0] - x1[0]) + SQR (x3[1] - x1[1]) + SQR (x3[2] - x1[2]));
-        
-                double max = length_edge1;
-                if (length_edge2 > max) max = length_edge2;
-                if (length_edge3 > max) max = length_edge3;
-        
-                // save min and max of length of longest edge
-                if (bg->longest_side_max_m < max) bg->longest_side_max_m = max;
-                if (bg->longest_side_min_m > max) bg->longest_side_min_m = max;
-            }
-
-            /*
-              In principal the number of discretization nr_m is the extend of
-              the geometry divided by the extend of the largest triangle. Whereby
-              the extend of a triangle is defined as the lenght of its longest
-              edge. Thus the largest triangle is the triangle with the longest edge.
-
-              But if the hot spot, i.e., the multipacting/field emission zone is
-              too small that the normal bounding box covers the whole hot spot, the
-              expensive triangle-line intersection tests will be frequently called.
-              In these cases, we have to use smaller bounding box size to speed up
-              simulation. 
-
-              Todo:
-              The relation between bounding box size and simulation time step &
-              geometry shape maybe need to be summarized and modeled in a more
-              flexible manner and could be adjusted in input file.
-            */
-            bg->nr_m (0) = (int)floor (bg->len_m (0) / bg->longest_side_max_m * 8.0);
-            bg->nr_m (1) = (int)floor (bg->len_m (1) / bg->longest_side_max_m * 8.0);
-            bg->nr_m (2) = (int)floor (bg->len_m (2) / bg->longest_side_max_m * 8.0);
-
-            bg->hr_m = bg->len_m / bg->nr_m;
-            bg->outside_point_m = bg->maxcoords_m + bg->hr_m;
-            *gmsg << "* Geometry interval built done." << endl;
-        }
-
-        /*
-          Make the boundary set by using
-          * triangle vertices
-          * bounding box vertices
-          * several points in triangle central lines
-          * several points in triangle edges
-          */
-        static void makeBoundaryIndexSet (BoundaryGeometry* bg) {
-            class Local {
-            public:
-                static int64_t fcmp (
-                    double A,
-                    double B,
-                    int maxUlps ) {
-                    
-                    // Make sure maxUlps is non-negative and small enough that the
-                    // default NAN won't compare as equal to anything.
-                    assert (maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
-                    assert (sizeof (long long) == sizeof (int64_t) );
-                    assert (sizeof (long long) == sizeof (double) );
-                    
-                    // Make [ab]Int lexicographically ordered as a twos-complement int
-                    double* pa = &A;
-                    int64_t aInt = *(int64_t*)pa;
-                    if (aInt < 0)
-                        aInt = 0x8000000000000000LL - aInt;
-                    
-                    double* pb = &B;
-                    int64_t bInt = *(int64_t*)pb;
-                    if (bInt < 0)
-                        bInt = 0x8000000000000000LL - bInt;
-                    
-                    int64_t intDiff = aInt - bInt;
-                    if (llabs(intDiff) <= maxUlps)
-                        return 0;
-                    return intDiff;
-                }
-
-                static inline bool is_in_voxel (Vector_t& point, Vector_t& min, Vector_t& max) {
-                    if (fcmp (point [0], min [0], 10) < 0) return false;
-                    if (fcmp (point [1], min [1], 10) < 0) return false;
-                    if (fcmp (point [2], min [2], 10) < 0) return false;
-                    if (fcmp (point [0], max [0], 10) > 0) return false;
-                    if (fcmp (point [1], max [1], 10) > 0) return false;
-                    if (fcmp (point [2], max [2], 10) > 0) return false;
-                    return true;
-                }
-
-                /*
-                  Get the smallest bounding box of triangle given by ID. The
-                  smallest bounding box is used to make sure that all part of a triangle
-                  is known by boundary bounding box.
-                */
-                static std::vector<Vector_t> getBBoxOfTriangle (BoundaryGeometry* bg, size_t id) {
-                    Vector_t min = bg->getPoint (id, 1);
-                    Vector_t max = min;
-                    for (int i = 2; i <= 3; i++) {
-                        Vector_t P = bg->getPoint (id, i);
-                        if (P(0) < min[0]) min[0] = P(0);
-                        if (P(1) < min[1]) min[1] = P(1);
-                        if (P(2) < min[2]) min[2] = P(2);
-                        if (P(0) > max[0]) max[0] = P(0);
-                        if (P(1) > max[1]) max[1] = P(1);
-                        if (P(2) > max[2]) max[2] = P(2);
-                    }
-                    std::vector<Vector_t> ret;
-                    ret.push_back (min);
-                    ret.push_back (max);
-                    PAssert (ret.size () != 0);
-                    return ret;
-                }
-
-                static void write_bbox_mesh (
-                    std::set<size_t> ids,
-                    Vector_t hr_m,
-                    Vektor<int,3> nr,
-                    Vector_t origin
-                    ) {
-                    /*-------------------------------------------------------------------------*/
-                    size_t numpoints = 8 * ids.size ();
-                    std::set<size_t>::iterator id;
-                    std::ofstream of;
-                    of.open (string ("data/testBBox.vtk").c_str ());
-                    assert (of.is_open ());
-                    of.precision (6);
-    
-                    of << "# vtk DataFile Version 2.0" << std::endl;
-                    of << "generated using BoundaryGeometry::makeBoundaryIndexSet" << std::endl;
-                    of << "ASCII" << std::endl << std::endl;
-                    of << "DATASET UNSTRUCTURED_GRID" << std::endl;
-                    of << "POINTS " << numpoints << " float" << std::endl;
-    
-                    for (id = ids.begin (); id != ids.end (); id++) {
-                        size_t k = (*id - 1) / (nr[0] * nr[1]);
-                        size_t rest = (*id - 1) % (nr[0] * nr[1]);
-                        size_t j = rest / nr[0];
-                        size_t i = rest % nr[0]; 
-
-                        Vector_t P;
-                        P[0] = i * hr_m[0] + origin[0];
-                        P[1] = j * hr_m[1] + origin[1];
-                        P[2] = k * hr_m[2] + origin[2];
-
-                        of << P[0]           << " " << P[1]           << " " << P[2]           << std::endl;
-                        of << P[0] + hr_m[0] << " " << P[1]           << " " << P[2]           << std::endl;
-                        of << P[0]           << " " << P[1] + hr_m[1] << " " << P[2]           << std::endl;
-                        of << P[0] + hr_m[0] << " " << P[1] + hr_m[1] << " " << P[2]           << std::endl;
-                        of << P[0]           << " " << P[1]           << " " << P[2] + hr_m[2] << std::endl;
-                        of << P[0] + hr_m[0] << " " << P[1]           << " " << P[2] + hr_m[2] << std::endl;
-                        of << P[0]           << " " << P[1] + hr_m[1] << " " << P[2] + hr_m[2] << std::endl;
-                        of << P[0] + hr_m[0] << " " << P[1] + hr_m[1] << " " << P[2] + hr_m[2] << std::endl;
-                    }
-                    of << std::endl;
-    
-                    of << "CELLS " << ids.size () << " " << 9 * ids.size () << std::endl;
-                    for (size_t i = 0; i < ids.size (); i++)
-                        of << "8 "
-                           << 8 * i << " " << 8 * i + 1 << " " << 8 * i + 2 << " " << 8 * i + 3 << " "
-                           << 8 * i + 4 << " " << 8 * i + 5 << " " << 8 * i + 6 << " " << 8 * i + 7 << std::endl;
-                    of << "CELL_TYPES " << ids.size () << std::endl;
-                    for (size_t i = 0; i <  ids.size (); i++)
-                        of << "11" << std::endl;
-                    of << "CELL_DATA " << ids.size () << std::endl;
-                    of << "SCALARS " << "cell_attribute_data" << " float " << "1" << std::endl;
-                    of << "LOOKUP_TABLE " << "default" << std::endl;
-                    for (size_t i = 0; i <  ids.size (); i++)
-                        of << (float)(i) << std::endl;
-                    of << std::endl;
-                    of << "COLOR_SCALARS " << "BBoxColor " << 4 << std::endl;
-                    for (size_t i = 0; i < ids.size (); i++) {
-                        of << "1.0" << " 1.0 " << "0.0 " << "1.0" << std::endl;
-                    }
-                    of << std::endl;
-                }
-
-
-            };
-
-
-            for (int i = 0; i < bg->num_triangles_m; i++) {
-                std::vector<Vector_t> coords;
-                /* Discretize the three central lines and the three triangle edges to
-                   200 segments to get a more complete boundary index set. */
-                const Vector_t c1 = 0.5 * (bg->getPoint (i, 2) + bg->getPoint (i, 3)) - bg->getPoint (i, 1);
-                const Vector_t c2 = 0.5 * (bg->getPoint (i, 3) + bg->getPoint (i, 1)) - bg->getPoint (i, 2);
-                const Vector_t c3 = 0.5 * (bg->getPoint (i, 1) + bg->getPoint (i, 2)) - bg->getPoint (i, 3);
-
-                const Vector_t e1 = bg->getPoint (i, 2) - bg->getPoint (i, 1);
-                const Vector_t e2 = bg->getPoint (i, 3) - bg->getPoint (i, 2);
-                const Vector_t e3 = bg->getPoint (i, 1) - bg->getPoint (i, 3);
-                const int num_segments = 200;
-                const double x = 1.0 / num_segments;
-                for (int j = 1; j <= num_segments; j++) {
-                    // discretize the three central lines.
-                    coords.push_back (bg->getPoint (i, 1) + x * j * c1);
-                    coords.push_back (bg->getPoint (i, 2) + x * j * c2);
-                    coords.push_back (bg->getPoint (i, 3) + x * j * c3);
-                    // discretize the three  triangle edges:
-                    coords.push_back (bg->getPoint (i, 1) + x * j * e1);
-                    coords.push_back (bg->getPoint (i, 2) + x * j * e2);
-                    coords.push_back (bg->getPoint (i, 3) + x * j * e3);
-                }
-
-                coords.push_back (bg->Tribarycent_m[i]);
-
-#if 0
-                std::vector<Vector_t> ret = Local::getBBoxOfTriangle (bg, i);
-
-                Vector_t min = ret[0];
-                Vector_t max = ret[1];
-
-                coords.push_back (Vector_t (min[0], min[1], min[2]));
-                coords.push_back (Vector_t (min[0], min[1], max[2]));
-                coords.push_back (Vector_t (min[0], max[1], max[2]));
-                coords.push_back (Vector_t (min[0], max[1], min[2]));
-                coords.push_back (Vector_t (max[0], min[1], min[2]));
-                coords.push_back (Vector_t (max[0], min[1], max[2]));
-                coords.push_back (Vector_t (max[0], max[1], max[2]));
-                coords.push_back (Vector_t (max[0], max[1], min[2]));
-
-                /*
-                  :TODO: better description why we are doing this. Actually I (Achim)
-                  don't understand it.
-
-                  add some margins to make sure that boundary bounding box has both
-                  positive and negtive margins w.r.t boundary. Just make sure that the
-                  size of bounding box for triangle is smaller than the boundary bounding
-                  box.
-                */
-                min -= bg->hr_m;
-                max += bg->hr_m;
-                Vector_t P;
-                P = Vector_t (min[0], min[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-                P = Vector_t (min[0], min[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-                P = Vector_t (min[0], min[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-                P = Vector_t (min[0], max[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-                P = Vector_t (min[0], max[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->mincoords_m)) coords.push_back (P);
-                P = Vector_t (max[0], min[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-                P = Vector_t (max[0], min[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-                P = Vector_t (max[0], max[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-                P = Vector_t (max[0], max[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
-#endif
-                std::vector<Vector_t>::iterator point;
-                for (point = coords.begin (); point != coords.end (); point++) {
-                    /*
-                      if (!is_in_bbox (*point, mincoords_m, maxcoords_m))
-                      continue;
-                    */
-                    int id = bg->map_point_to_voxel_id (*point);
-                    assert (id > 0);
-                    // insert ID to std::set! 
-                    bg->boundary_ids_m.insert (id);
-            
-                    std::map< size_t, std::set<size_t> >::iterator It;
-                    It = bg->CubicLookupTable_m.find (id);
-                    if (It == bg->CubicLookupTable_m.end ()) {
-                        std::set<size_t> tmp;
-                        tmp.insert (i);
-                        bg->CubicLookupTable_m.insert (std::pair <size_t, std::set<size_t> > (id, tmp));
-                    } else
-                        (*It).second.insert (i);
-                }
-            }
-            if(Ippl::myNode() == 0) {
-                Local::write_bbox_mesh (bg->boundary_ids_m, bg->hr_m, bg->nr_m, bg->mincoords_m);
-            }
-            *gmsg << "* Boundary index set built done." << endl;
-        }
-
-
-        static void orientTriangle (BoundaryGeometry* bg, size_t idx, size_t caller) {
-            std::vector<size_t> id, ic;
-            for (int i = 1; i <= 3; i++) {
-                for (int j = 1; j <= 3; j++) {
-                    if (bg->getPointID (idx, j) == bg->getPointID (caller, i)) {
-                        id.push_back (j);
-                        ic.push_back (i);
-                    }
-                }
-            }
-            if ((ic[1] - ic[0]) == 1) {
-                int idtmp = id[1] - id[0];
-                if (idtmp == 1) {
-                    bg->alignedT_m.push_back (idx);
-                    bg->allbfaces_m[4 * idx + id[0]] = bg->allbfaces_m[4 * caller + ic[1]];
-                    bg->allbfaces_m[4 * idx + id[1]] = bg->allbfaces_m[4 * caller + ic[0]];
-                }
-                if (idtmp == - 1) {
-                    bg->NaliT_m.push_back (idx);
-                }
-                if (idtmp == 2) {
-                    bg->NaliT_m.push_back (idx);
-                }
-                if (idtmp == - 2) {
-                    bg->alignedT_m.push_back (idx);
-                    bg->allbfaces_m[4 * idx + id[0]] = bg->allbfaces_m[4 * caller + ic[1]];
-                    bg->allbfaces_m[4 * idx + id[1]] = bg->allbfaces_m[4 * caller + ic[0]];
-                }
-            }
-            if ((ic[1] - ic[0]) == 2) {
-                int idtmp = id[1] - id[0];
-                if (idtmp == - 1) {
-                    bg->alignedT_m.push_back (idx);
-                    bg->allbfaces_m[4 * idx + id[0]] = bg->allbfaces_m[4 * caller + ic[1]];
-                    bg->allbfaces_m[4 * idx + id[1]] = bg->allbfaces_m[4 * caller + ic[0]];
-                }
-                if (idtmp == 1) {
-                    bg->NaliT_m.push_back (idx);
-                }
-                if (idtmp == - 2) {
-                    bg->NaliT_m.push_back (idx);
-                }
-                if (idtmp == 2) {
-                    bg->alignedT_m.push_back (idx);
-                    bg->allbfaces_m[4 * idx + id[0]] = bg->allbfaces_m[4 * caller + ic[1]];
-                    bg->allbfaces_m[4 * idx + id[1]] = bg->allbfaces_m[4 * caller + ic[0]];
-                }
-            }
-        }
-
-        static void orientAllTriangles (BoundaryGeometry* bg, size_t caller, size_t idx) {
-            orientTriangle (bg, idx, caller);
-            bg->isOriented_m.insert (idx);
-            std::vector<size_t> neighbours = findNeighbours (bg, idx);
-            for (unsigned int i = 0; i < neighbours.size (); i++) {
-                if (bg->isOriented_m.find (neighbours[i]) == bg->isOriented_m.end ())
-                    orientAllTriangles (bg, idx, neighbours[i]);
-            }
-        }
-
-        static std::vector<size_t> findNeighbours (BoundaryGeometry* bg, size_t idx) {
-            std::vector<size_t> ret, ret1;
-            std::set<size_t>temp;
-            std::vector<size_t>::iterator retIt;
-            std::map< size_t, std::vector<size_t> >::iterator it;
-            for (int i = 1; i <= 3; i++) {
-                it = bg->triangleLookupTable_m.find (bg->getPointID (idx, i));
-                ret.insert (ret.end (), (*it).second.begin (), (*it).second.end ());
-            }
-            for (retIt = ret.begin (); retIt != ret.end (); retIt++) {
-                if (*retIt != idx) {
-                    if (temp.find (*retIt) == temp.end ()) {
-                        temp.insert (*retIt);
-                    } else
-                        ret1.push_back (*retIt);
-                }
-            }
-            PAssert (ret1.size () != 0);
-            return ret1;
-        }
-
-        /*
-          Compute intersection point of line segment given by x and y 
-          and triangle given by its ID.
-
-          Returns true if the value returned in argument 'result' is an 
-          intersection point. 
-
-          Used in: isInside() 
-        */
-
-        static bool computeLineTriangleIntersectionPoint (
-            BoundaryGeometry* bg,
-            const Vector_t& x,
-            const Vector_t& y,
-            const size_t& triangle_id,
-            Vector_t& result
-            ) {
-            const  Vector_t t0 = bg->getPoint (triangle_id, 1);
-            const Vector_t u = bg->getPoint (triangle_id, 2) - t0;
-            const Vector_t v = bg->getPoint (triangle_id, 3) - t0;
-            const Vector_t n = cross (u, v);
-
-            const Vector_t lseg = y - x;
-            if (fabs (dot (n, lseg)) < 1.0e-10) {
-                // triangle is parallel to line segment
-                return false;
-            }
-
-            double rI = dot(n, t0-x) / dot(n, lseg);
-            if((rI < 0) || (rI > 1)) {
-                // intersection point is on the extended line
-                return false;
-            }
-            result = x + rI * lseg;
-            Vector_t w = result - t0;
-            double tmp1 = dot (u, v);
-            double tmp2 = dot (w, v);
-            double tmp3 = dot (u, w);
-            double tmp4 = dot (u, u);
-            double tmp5 = dot (v, v);
-            double tmp6 = tmp1 * tmp1 - tmp4 * tmp5;
-            double sI = (tmp1 * tmp2 - tmp5 * tmp3) / tmp6;
-            double tI = (tmp1 * tmp3 - tmp4 * tmp2) / tmp6;
-            return (sI >= 0) && (tI >= 0) && ((sI + tI) <= 1);
-        }
-
-        /*
-          Determine if a point x is outside or inside the geometry or just on
-          the boundary. Return true if point is inside geometry or on the
-          boundary, false otherwise
-
-          The basic idea here is:
-          If a line segment from the point to test to a random point outside
-          the geometry has has an even number of intersections with the
-          boundary, the point is outside the geometry.
-
-          Note:
-          If the point is on the boundary, the number of intersections is 1.
-          Points on the boundary are handled as inside.
-
-          A random selection of the reference point outside the boundary avoids
-          some specific issues, like line parallel to boundary.
-         */
-        static inline bool isInside (BoundaryGeometry* bg, const Vector_t x) {
-            IpplTimings::startTimer (bg->Tinward_m);
-
-            Vector_t y = Vector_t (
-                x[0],
-                bg->maxcoords_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
-                bg->maxcoords_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
-            std::vector<Vector_t> intersection_points;
-            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                Vector_t result;
-                if (computeLineTriangleIntersectionPoint (bg, x, y, triangle_id, result)) {
-                    intersection_points.push_back (result);
-                }
-            }
-            IpplTimings::stopTimer (bg->Tinward_m);
-            return ((intersection_points.size () % 2) == 1);
-        }
-
-        /*
-          Recursively get inward-pointing normal of all surface triangles.
-          
-          The basic idea is as follow:
-          -  get the inward-pointing normal of the first triangle by determine
-             whether a nearby point is inside or outside the boundary geometry.
-             (using ray-triangle intersection and even/odd intersection number).
-          -  Then use a recursion method to switch the vertex order of adjacent
-             triangles. The inward normal is stored in TriNormal_m.
-        */
-        static void makeTriNormal (BoundaryGeometry* bg) {
-
-            // compute normal of first triangle 
-            Vector_t t0 = bg->getPoint (0, 1);
-            Vector_t tri_normal = cross (bg->getPoint (0,2) - t0, bg->getPoint (0,3) - t0);
-            tri_normal /= sqrt (SQR (tri_normal (0)) + SQR (tri_normal (1)) + SQR (tri_normal (2)));
-            bg->TriNormal_m.push_back (tri_normal);
-            
-            Vector_t nearby_point = t0 + tri_normal * 0.1 * bg->longest_side_min_m;
-
-            if (!isInside (bg, nearby_point)) {
-                if (dot (nearby_point - t0, bg->TriNormal_m[0]) >= 0) {
-                    // nearby pt is outside and triangle normal is outward-pointing
-                    bg->TriNormal_m[0] = - bg->TriNormal_m[0];
-                    int temp = bg->allbfaces_m[2];
-                    bg->allbfaces_m[2] = bg->allbfaces_m[3];
-                    bg->allbfaces_m[3] = temp;
-                }
-            } else {
-                if (dot (nearby_point - t0, bg->TriNormal_m[0]) < 0) {
-                    // nearby pt is inside and triangle normal is outward-pointing
-                    bg->TriNormal_m[0] = - bg->TriNormal_m[0];
-                    int temp = bg->allbfaces_m[2];
-                    bg->allbfaces_m[2] = bg->allbfaces_m[3];
-                    bg->allbfaces_m[3] = temp;
-                }
-            }
-            
-            // for all triangles find adjacent triangles to each vertex
-            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                for (int j = 1; j <= 3; j++) {
-                    std::map< size_t, std::vector<size_t> >::iterator it;
-                    it = bg->triangleLookupTable_m.find (bg->getPointID (triangle_id, j));
-                    if (it == bg->triangleLookupTable_m.end ()) {
-                        std::vector <size_t> tmp;
-                        tmp.push_back (triangle_id);
-                        bg->triangleLookupTable_m.insert (
-                            std::pair<size_t, std::vector<size_t> > (bg->getPointID (triangle_id, j), tmp));
-                    } else
-                        (*it).second.push_back (triangle_id);
-                }
-            }
-            bg->isOriented_m.insert (0);
-            std::vector<size_t> neighbours = findNeighbours (bg, 0);
-            
-            for (unsigned int i = 0; i < neighbours.size (); i++) {
-                if (bg->isOriented_m.find (neighbours[i]) == bg->isOriented_m.end ())
-                    orientAllTriangles (bg, 0, neighbours[i]);
-            }
-            for (int triangle_id = 1; triangle_id < bg->num_triangles_m; triangle_id++) {
-                t0 = bg->getPoint (triangle_id, 1);
-                tri_normal = cross (bg->getPoint (triangle_id, 2) - t0, bg->getPoint (triangle_id, 3) - t0);
-                double magnitude = sqrt (SQR (tri_normal (0)) + SQR (tri_normal (1)) + SQR (tri_normal (2)));
-                if (magnitude != 0) 
-                    tri_normal /= magnitude;
-                bg->TriNormal_m.push_back (tri_normal);
-            }
-            *gmsg << "* Triangle Normal built done." << endl;
-        }
-
-
-        // Calculate the area of triangle given by id.
-        static inline double computeArea (BoundaryGeometry* bg, int id) {
-            Vector_t AB = bg->getPoint (id, 2) - bg->getPoint (id, 1);
-            Vector_t AC = bg->getPoint (id, 3) - bg->getPoint (id, 1);
-            return(0.5 * sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
-        }
-
-        /*
-          We define some tags in namespace BGphysics for each surface triangle to
-          identify the physical reactions for each triangle when amplitude of
-          electrostatic field exceeds some threshold or particles incident the surface.
-        */
-        static void setBGphysicstag (BoundaryGeometry* bg) {
-            for (int i = 0; i < bg->num_triangles_m; i++) {
-                bg->TriBGphysicstag_m.push_back (
-                    BGphysics::Absorption
-                    | BGphysics::FNEmission
-                    | BGphysics::SecondaryEmission);
-            }
-        }
-
-    };
-
-    h5_int64_t rc;
-
-    *gmsg << "* Initializing Boundary Geometry..." << endl;
-    IpplTimings::startTimer (TPreProc_m);
-
-    apert_m = Attributes::getRealArray(itsAttr[APERTURE]);
- 
-    if (hasApperture()) {
-        *gmsg << "* Found additional aperture." << endl;
-        for (unsigned int i=0; i<apert_m.size(); i=i+3)
-            *gmsg << "* zmin = " << apert_m[i] << " zmax = " << apert_m[i+1] << " r= " << apert_m[i+2] << endl;
-    }
-
-    *gmsg << "* Filename: " << h5FileName_m.c_str() << endl;
-
-    double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]); 
-
-    *gmsg << "* Scale all points of the geometry by " << xyzscale << endl;
-
-    rc = H5SetErrorHandler (H5AbortErrorhandler);
-    if (rc != H5_SUCCESS)
-        ERRORMSG ("H5 rc = " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    H5SetVerbosityLevel (1);
-    h5_file_t* f = H5OpenFile (h5FileName_m.c_str (), H5_O_RDONLY, Ippl::getComm());
-    h5t_mesh_t* m = NULL;
-    H5FedOpenTriangleMesh (f, "0", &m);
-    H5FedSetLevel (m, 0);
-
-    num_triangles_m = H5FedGetNumElementsTotal (m);
-    allbfaces_m = new int[num_triangles_m * 4];
-    Tribarycent_m = new Vector_t[num_triangles_m];
-
-    // iterate over all co-dim 0 entities, i.e. elements
-    h5_loc_id_t local_id;
-    int i = 0;
-    h5t_iterator_t* iter = H5FedBeginTraverseEntities (m, 0);
-    while ((local_id = H5FedTraverseEntities (iter)) >= 0) {
-        h5_loc_id_t local_vids[4];
-        H5FedGetVertexIndicesOfEntity (m, local_id, local_vids);
-        allbfaces_m[4 * i]   = 0;
-        allbfaces_m[4 * i + 1] = local_vids[0];
-        allbfaces_m[4 * i + 2] = local_vids[1];
-        allbfaces_m[4 * i + 3] = local_vids[2];
-        i++;
-    }
-    H5FedEndTraverseEntities (iter);
-
-    // loop over all vertices
-    num_points_m = H5FedGetNumVerticesTotal (m);
-    double* point_coords = new double[3 * num_points_m];
-    for (i = 0; i < num_points_m; i++) {
-        h5_float64_t P[3];
-        H5FedGetVertexCoordsByIndex (m, i, P);
-        point_coords[i * 3]   = P[0] * xyzscale;
-        point_coords[i * 3 + 1] = P[1] * xyzscale;
-        point_coords[i * 3 + 2] = P[2] * xyzscale;
-    }
-    H5FedCloseMesh (m);
-    H5CloseFile (f);
-
-    double zshift = (double)(Attributes::getReal (itsAttr[ZSHIFT]));
-
-    for (int i = 0; i < num_points_m; i++) {
-        geo3Dcoords_m.push_back (
-            Vector_t (
-                point_coords[3 * i],
-                point_coords[3 * i + 1],
-                point_coords[3 * i + 2] + zshift));
-    }
-    delete point_coords;
-    *gmsg << "* Vertex built done." << endl;
-
-    TriPrPartloss_m = new double[num_triangles_m];
-    TriFEPartloss_m = new double[num_triangles_m];
-    TriSePartloss_m = new double[num_triangles_m];
-    for (int i = 0; i < num_triangles_m; i++) {
-        Tribarycent_m[i] = (getPoint (i, 1) + getPoint (i, 2) + getPoint (i, 3)) / 3.0;
-        Triarea_m.push_back (Local::computeArea (this, i));
-
-        TriPrPartloss_m[i] = 0.0;
-        TriFEPartloss_m[i] = 0.0;
-        TriSePartloss_m[i] = 0.0;
-    }
-    *gmsg << "* Triangle barycent built done." << endl;
-
-    Local::computeGeometryInterval (this);
-
-    Local::makeBoundaryIndexSet (this);
-    Local::makeTriNormal (this);
-    Local::setBGphysicstag (this);
-
-    *gmsg << *this << endl;
-    IpplTimings::stopTimer (TPreProc_m);
-
-}
-
 
 /**
    Determine whether a particle with position @param r, momenta @param v,
@@ -1598,9 +1706,9 @@ void BoundaryGeometry::writeGeomToVtk (string fn) {
        << 4 * num_triangles_m << std::endl;
     for (int i = 0; i < num_triangles_m; i++)
         of << "3 "
-	   << allbfaces_m[4 * i + 1] << " "
-	   << allbfaces_m[4 * i + 2] << " "
-	   << allbfaces_m[4 * i + 3] << std::endl;
+	   << PointID (i, 1) << " "
+	   << PointID (i, 2) << " "
+	   << PointID (i, 3) << std::endl;
     of << "CELL_TYPES " << num_triangles_m << std::endl;
     for (int i = 0; i < num_triangles_m; i++)
 	of << "5" << std::endl;
@@ -1627,7 +1735,6 @@ Inform& BoundaryGeometry::printInfo (Inform& os) const {
            << "* L1                         " << Attributes::getReal (itsAttr[L2]) << '\n';
     }
     os << "* Total triangle num         " << num_triangles_m << '\n'
-       << "* Oriented triangle num      " << isOriented_m.size () << '\n'
        << "* Total points num           " << num_points_m << '\n'
        << "* Triangle side(m)   Max=    " << longest_side_max_m << '\n'
        << "*                    Min=    " << longest_side_min_m << '\n'
@@ -1638,7 +1745,7 @@ Inform& BoundaryGeometry::printInfo (Inform& os) const {
        << "* Boundary box size(m)       " << hr_m << '\n'
        << "* Size of boundary index set " << boundary_ids_m.size () << '\n'
        << "* Number of all boxes        " << nr_m (0) * nr_m (1) * nr_m (2) << '\n'
-       << "* Aligned Triangle Number    " << alignedT_m.size () << endl;
+        << endl;
     os << "* ********************************************************************************** " << endl;
     return os;
 }
