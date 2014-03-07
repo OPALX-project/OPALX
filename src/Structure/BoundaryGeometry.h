@@ -364,9 +364,9 @@ private:
     double longest_side_min_m;          // minimum of all triangle longest sides 
 
     std::vector<Vector_t> TriNormal_m;   // oriented normal vector of triangles
-    std::vector<Vector_t> geo3Dcoords_m; // geometry point coordinates 
     std::vector<double> Triarea_m;       // area of triangles
 
+    std::vector<Vector_t> geo3Dcoords_m; // geometry point coordinates 
 
     std::set<size_t> boundary_ids_m;    // boundary triangle IDs
     Vector_t len_m;                     // length of geometry in 3D Cartesian coordinates.

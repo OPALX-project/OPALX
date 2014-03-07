@@ -1053,9 +1053,9 @@ Change orientation if diff is:
         }
 
         static inline Vector_t normalVector (BoundaryGeometry* const bg, const int triangle_id) {
-            const Vector_t A = bg->getPoint (0, 1);
-            const Vector_t B = bg->getPoint (0, 2);
-            const Vector_t C = bg->getPoint (0, 3);
+            const Vector_t A = bg->getPoint (triangle_id, 1);
+            const Vector_t B = bg->getPoint (triangle_id, 2);
+            const Vector_t C = bg->getPoint (triangle_id, 3);
 
             /*
               compute triangle normal
@@ -1133,6 +1133,7 @@ Change orientation if diff is:
             }
 #endif
             // compute inward-normals
+            bg->TriNormal_m.reserve (bg->num_triangles_m);
             for (int triangle_id = 1; triangle_id < bg->num_triangles_m; triangle_id++) {
                 bg->TriNormal_m.push_back (normalVector (bg, triangle_id));
             }
@@ -1571,8 +1572,8 @@ int BoundaryGeometry::PartInside (
 
             bool result = false;
             const Vector_t t0 = bg->getPoint (triangle_id, 1);
-            const Vector_t u = bg->getPoint (triangle_id, 2) - t0; // side 1 of triangle;
-            const Vector_t v = bg->getPoint (triangle_id, 3) - t0; // side 2 of triangle;
+            const Vector_t u = bg->getPoint (triangle_id, 2) - t0;
+            const Vector_t v = bg->getPoint (triangle_id, 3) - t0;
             const Vector_t lt = t0 - x;
             const Vector_t n = bg->TriNormal_m[triangle_id];
 
