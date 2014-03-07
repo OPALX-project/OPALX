@@ -1222,8 +1222,8 @@ void PartBunch::boundp() {
      */
 
     IpplTimings::startTimer(boundpTimer_m);
-
-    if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
+    //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
+    if ( !(R.isDirty() || ID.isDirty() ) && stateOfLastBoundP_ == unit_state_) return; //-DW
 
     stateOfLastBoundP_ = unit_state_;
 
