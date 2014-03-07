@@ -942,21 +942,21 @@ Change orientation if diff is:
                 return false;
             }
 
-            double rI = dot(n, t0-x) / dot(n, lseg);
+            const double rI = dot(n, t0-x) / dot(n, lseg);
             if((rI < 0) || (rI > 1)) {
                 // intersection point is on the extended line
                 return false;
             }
             result = x + rI * lseg;
-            Vector_t w = result - t0;
-            double tmp1 = dot (u, v);
-            double tmp2 = dot (w, v);
-            double tmp3 = dot (u, w);
-            double tmp4 = dot (u, u);
-            double tmp5 = dot (v, v);
-            double tmp6 = tmp1 * tmp1 - tmp4 * tmp5;
-            double sI = (tmp1 * tmp2 - tmp5 * tmp3) / tmp6;
-            double tI = (tmp1 * tmp3 - tmp4 * tmp2) / tmp6;
+            const Vector_t w = result - t0;
+            const double tmp1 = dot (u, v);
+            const double tmp2 = dot (w, v);
+            const double tmp3 = dot (u, w);
+            const double tmp4 = dot (u, u);
+            const double tmp5 = dot (v, v);
+            const double tmp6 = tmp1 * tmp1 - tmp4 * tmp5;
+            const double sI = (tmp1 * tmp2 - tmp5 * tmp3) / tmp6;
+            const double tI = (tmp1 * tmp3 - tmp4 * tmp2) / tmp6;
             return (sI >= 0) && (tI >= 0) && ((sI + tI) <= 1);
         }
 
@@ -981,14 +981,19 @@ Change orientation if diff is:
             IpplTimings::startTimer (bg->Tinward_m);
 
             Vector_t y = Vector_t (
-                x[0],
+                //x[0],
+                bg->maxcoords_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
                 bg->maxcoords_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
                 bg->maxcoords_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
+
             std::vector<Vector_t> intersection_points;
+            int num_intersections = 0;
+
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
                 Vector_t result;
                 if (computeLineTriangleIntersectionPoint (bg, x, y, triangle_id, result)) {
                     intersection_points.push_back (result);
+                    num_intersections++;
                 }
             }
             IpplTimings::stopTimer (bg->Tinward_m);
@@ -1032,6 +1037,40 @@ Change orientation if diff is:
             }
         }
 
+        static inline Vector_t normalVector (BoundaryGeometry* const bg, const int triangle_id) {
+            const Vector_t A = bg->getPoint (0, 1);
+            const Vector_t B = bg->getPoint (0, 2);
+            const Vector_t C = bg->getPoint (0, 3);
+
+            /*
+              compute triangle normal
+             */
+            const Vector_t N = cross (B - A, C - A);
+            const double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
+            assert (fcmp (magnitude, 0.0, 10) > 0); // in case we have degenerted triangles
+            return N / magnitude;
+        }
+
+        static bool hasInwardPointingNormal (BoundaryGeometry* const bg, const int triangle_id, Vector_t& N) {
+            N = normalVector (bg, triangle_id);
+
+            // choose a point P close to the center of the triangle
+            const Vector_t P = (A+B+C)/3 + N * 0.1 * bg->longest_side_min_m;
+
+            /*
+              The triangle normal points inward, if P is
+              - outside the geometry and the dot product is negativ
+              - or inside the geometry and the dot product is positiv
+
+              Remember:
+                The dot product is positiv only if both vectors are
+                pointing in the same direction.
+            */
+            const bool is_inside = isInside (bg, P);
+            const double dotPA_N = dot (P - A, N);
+            return (is_inside && dotPA_N >= 0) || (!is_inside && dotPA_N < 0);
+        }
+
         /*
           Recursively get inward-pointing normal of all surface triangles.
           
@@ -1043,33 +1082,11 @@ Change orientation if diff is:
              triangles. The inward normal is stored in TriNormal_m.
         */
         static void makeTriNormal (BoundaryGeometry* bg) {
+            bg->isOriented_m = new bool[bg->num_triangles_m];
+            memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->num_triangles_m);
 
-            /* compute normal of first triangle */
-            Vector_t A = bg->getPoint (0, 1);
-            Vector_t N = cross (bg->getPoint (0,2) - A, bg->getPoint (0,3) - A);
-            N /= sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
-
-            /*
-              choose a point P close to corner A of first triangle
-              and compute the dot product of PA and the triangle normal
-            */
-            Vector_t P = A + N * 0.1 * bg->longest_side_min_m;
-            double dotPA_N = dot (P - A, N);
-
-            /*
-              To get the triangle normal pointing inward, we have to swap two
-              points of the triangle if P 
-              - is inside the geometry and the dot product is negativ
-              - is outside the geometry and the dot product is positv
-
-              Remember:
-                The dot product is positiv only if both vectors are
-                pointing in the same direction.
-            */
-            if (
-                (isInside (bg, P) && dotPA_N < 0) ||
-                (!isInside (bg, P) && dotPA_N >= 0)
-                ) {
+            Vector_t N;
+            if (!hasInwardPointingNormal (bg, 0, N)) {
                 N = -N;
                 int id = bg->PointID (0, 2);
                 bg->PointID (0, 2) = bg->PointID (0, 3);
@@ -1077,9 +1094,6 @@ Change orientation if diff is:
             }
 
             bg->TriNormal_m.push_back (N);
-
-            bg->isOriented_m = new bool[bg->num_triangles_m];
-            memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->num_triangles_m);
 
             bg->isOriented_m [0] = true;
 
@@ -1095,14 +1109,17 @@ Change orientation if diff is:
                     orientTriangles (bg, 0, *triangle_iter);
             }
 
+#if 0
+            // for debugging only!
+            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
+                if (!hasInwardPointingNormal (bg, triangle_id)) {
+                    *gmsg << "* Wrong oriented triangle: " << triangle_id << endl;
+                }
+            }
+#endif
             // compute inward-normals
             for (int triangle_id = 1; triangle_id < bg->num_triangles_m; triangle_id++) {
-                A = bg->getPoint (triangle_id, 1);
-                N = cross (bg->getPoint (triangle_id, 2) - A, bg->getPoint (triangle_id, 3) - A);
-                double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
-                if (magnitude != 0) 
-                    N /= magnitude;
-                bg->TriNormal_m.push_back (N);
+                bg->TriNormal_m.push_back (normalVector (bg, triangle_id));
             }
             *gmsg << "* Triangle Normal built done." << endl;
         }

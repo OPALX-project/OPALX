@@ -374,9 +374,6 @@ private:
     Vektor<int, 3> nr_m;                // number of intervals of geometry in X,Y,Z direction
     Vector_t mincoords_m;               // minimum of geometry coordinate.
     Vector_t maxcoords_m;               // maximum of geometry coordinate.
-    std::vector<Vector_t> partsp_m;     // particle momenta
-    std::vector<Vector_t> partsr_m;     // particle positions
-
     std::map< size_t, std::set<size_t> >
             CubicLookupTable_m;         // Maps boundary box ID to included triangles
     bool* isOriented_m;                  // IDs of oriented triangles.
@@ -385,6 +382,9 @@ private:
 
     Vector_t outside_point_m;           // a point outside the domain
 
+
+    std::vector<Vector_t> partsp_m;     // particle momenta
+    std::vector<Vector_t> partsr_m;     // particle positions
 
     /* 
        An additional structure to hold apperture information
