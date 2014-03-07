@@ -1398,7 +1398,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
         // apply the plugin elements: probe, colilmator, stripper, septum
         applyPluginElements(dt);
-        // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
+        // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global aperture
         bool flagNeedUpdate = deleteParticle(); 
         if(itsBunch->weHaveBins() && flagNeedUpdate)
           itsBunch->resetPartBinID2(eta_m);
@@ -2101,7 +2101,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                     pold_m[j] = variable_m[j+3]; // used for gap cross
                 }
 
-                // integrate for one step in the lab Cartesian frame (absulate value ).
+                // integrate for one step in the lab Cartesian frame (absolute value).
                 // IpplTimings::startTimer(IntegrationTimer_m);
                 flagNoDeletion = rk4(variable_m, t, dt, i);
 
@@ -2172,8 +2172,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 	    // check if we loose particles at the boundary
 	    bgf_main_collision_test();
 
-            // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
-            bool flagNeedUpdate = deleteParticle(); 
+            // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global aperture
+            bool flagNeedUpdate = deleteParticle();
 	    //Ippl::Comm->barrier(); //TEMP for Debug -DW
 
             if(itsBunch->weHaveBins() && flagNeedUpdate)
@@ -3469,7 +3469,6 @@ bool ParallelCyclotronTracker::deleteParticle(){
 
       for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
           if(itsBunch->Bin[i] < 0) {
-
               lostParticleNum++;
               itsBunch->destroy(1, i);
           }
