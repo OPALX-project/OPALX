@@ -89,6 +89,21 @@ BoundaryGeometry::BoundaryGeometry() :
          "Multiplicative scaling factor for coordinates ",
          1.0);
 
+    itsAttr[XSCALE] = Attributes::makeReal
+        ("XSCALE",
+         "Multiplicative scaling factor for X coordinates ",
+         1.0);
+
+    itsAttr[YSCALE] = Attributes::makeReal
+        ("YSCALE",
+         "Multiplicative scaling factor for Y coordinates ",
+         1.0);
+
+    itsAttr[ZSCALE] = Attributes::makeReal
+        ("ZSCALE",
+         "Multiplicative scaling factor for Z coordinates ",
+         1.0);
+
     itsAttr[ZSHIFT] = Attributes::makeReal
         ("ZSHIFT",
          "Shift in z direction",
@@ -460,7 +475,7 @@ Vector_t get_min_extend (std::vector<Vector_t>& coords) {
     http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
 
   Note:
-    An updated version of this document with improved code you will find here:
+    An updated version of this document with improved code is here:
     http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
 
  */
@@ -1081,7 +1096,7 @@ Change orientation if diff is:
           -  Then use a recursion method to switch the vertex order of adjacent
              triangles. The inward normal is stored in TriNormal_m.
         */
-        static void makeTriNormal (BoundaryGeometry* bg) {
+        static void makeTriangleNormalInwardPointing (BoundaryGeometry* bg) {
             bg->isOriented_m = new bool[bg->num_triangles_m];
             memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->num_triangles_m);
 
@@ -1165,8 +1180,15 @@ Change orientation if diff is:
 
     *gmsg << "* Filename: " << h5FileName_m.c_str() << endl;
 
+    double xscale = Attributes::getReal(itsAttr[XSCALE]); 
+    double yscale = Attributes::getReal(itsAttr[YSCALE]); 
+    double zscale = Attributes::getReal(itsAttr[ZSCALE]); 
+
     double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]); 
 
+    *gmsg << "* X-scale all points of geometry by " << xscale << endl;
+    *gmsg << "* Y-scale all points of geometry by " << yscale << endl;
+    *gmsg << "* Z-scale all points of geometry by " << zscale << endl;
     *gmsg << "* Scale all points of geometry by " << xyzscale << endl;
 
     rc = H5SetErrorHandler (H5AbortErrorhandler);
@@ -1202,9 +1224,9 @@ Change orientation if diff is:
     for (i = 0; i < num_points_m; i++) {
         h5_float64_t P[3];
         H5FedGetVertexCoordsByIndex (m, i, P);
-        point_coords[i * 3]   = P[0] * xyzscale;
-        point_coords[i * 3 + 1] = P[1] * xyzscale;
-        point_coords[i * 3 + 2] = P[2] * xyzscale;
+        point_coords[i * 3]     = P[0] * xyzscale * xscale;
+        point_coords[i * 3 + 1] = P[1] * xyzscale * yscale;
+        point_coords[i * 3 + 2] = P[2] * xyzscale * zscale;
     }
     H5FedCloseMesh (m);
     H5CloseFile (f);
@@ -1224,7 +1246,7 @@ Change orientation if diff is:
     Local::computeGeometryInterval (this);
 
     Local::makeBoundaryIndexSet (this);
-    Local::makeTriNormal (this);
+    Local::makeTriangleNormalInwardPointing (this);
     Local::setBGphysicstag (this);
 
 
@@ -1241,7 +1263,6 @@ Change orientation if diff is:
         TriSePartloss_m[i] = 0.0;
     }
     *gmsg << "* Triangle barycent built done." << endl;
-
 
     *gmsg << *this << endl;
     IpplTimings::stopTimer (TPreProc_m);

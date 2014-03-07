@@ -460,7 +460,10 @@ private:
         DISTR,    // Add distribution to generate physics model on the surface
         DISTRS,   // Add distribution array to generate physics model on the surface
         ZSHIFT,   // Shift in z direction
-        XYZSCALE,  // Multiplicative scaling factor for coordinates
+        XYZSCALE, // Multiplicative scaling factor for coordinates
+        XSCALE,   // Multiplicative scaling factor for x-coordinates
+        YSCALE,   // Multiplicative scaling factor for y-coordinates
+        ZSCALE,   // Multiplicative scaling factor for z-coordinates
         APERTURE,    // in addition to the geometry 
         SIZE
     };
