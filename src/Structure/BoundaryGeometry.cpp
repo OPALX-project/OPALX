@@ -13,121 +13,114 @@
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
 
-struct Ray {
-    Vector_t P0;
-    Vector_t P1;
-};
-struct Triangle {
-    Vector_t V0, V1, V2;
-};
-
-#define SMALL_NUM (0.00000001)
-
-/*
-  Find the 3D intersection of a line segment, ray or line with a triangle.
-
-  Input:
-        kind: type of test: SEGMENT, RAY or LINE
-        P0, P0: defining 
-            a line segment from P0 to P1 or
-            a ray starting at P0 with directional vector P1-P0 or
-            a line through P0 and P1
-        V0, V1, V2: the triangle vertices
-        
-  Output:
-        I: intersection point (when it exists)
-
-  Return:
-        -1 = triangle is degenerate (a segment or point)
-        0 =  disjoint (no intersect)
-        1 =  intersect in unique point I1
-        2 =  are in the same plane
-
-  For algorithm and implementation see:
-  http://geomalgorithms.com/a06-_intersect-2.html
-
-  Copyright 2001 softSurfer, 2012 Dan Sunday
-  This code may be freely used and modified for any purpose
-  providing that this copyright notice is included with it.
-  SoftSurfer makes no warranty for this code, and cannot be held
-  liable for any real or imagined damage resulting from its use.
-  Users of this code must verify correctness for their application.
- */
-
-int
-BoundaryGeometry::intersect3dLineTriangle (
-    const enum INTERSECTION_TESTS kind,
-    const Vector_t& P0,
-    const Vector_t& P1,
-    const int triangle_id,
-    Vector_t& I
-    ) {
-    Vector_t V0 = getPoint (triangle_id, 1);
-    Vector_t V1 = getPoint (triangle_id, 2);
-    Vector_t V2 = getPoint (triangle_id, 3);
-
-    // get triangle edge vectors and plane normal
-    const Vector_t u = V1 - V0;         // triangle vectors
-    const Vector_t v = V2 - V0;
-    const Vector_t n = cross (u, v);
-    if (n == (Vector_t)0)               // triangle is degenerate
-        return -1;                      // do not deal with this case
-    
-    const Vector_t dir = P1 - P0;       // ray direction vector
-    const Vector_t w0 = P0 - V0;
-    const double a = -dot(n,w0);
-    const double b = dot(n,dir);
-    if (fabs(b) < SMALL_NUM) {          // ray is  parallel to triangle plane
-        if (a == 0)                     // ray lies in triangle plane
-            return 2;
-        else
-            return 0;                   // ray disjoint from plane
-    }
-    
-    // get intersect point of ray with triangle plane
-    const double r = a / b;
-    switch (kind) {
-    case RAY:
-        if (r < 0.0)                    // ray goes away from triangle
-            return 0;                   // => no intersect
-    case SEGMENT:
-        if (r > 1.0)                    // intersection on extendet
-            return 0;                   // segment
-    case LINE:
-        break;
-    };
-    I = P0 + r * dir;                 // intersect point of ray and plane
-    
-    // is I inside T?
-    const double uu = dot(u,u);
-    const double uv = dot(u,v);
-    const double vv = dot(v,v);
-    const Vector_t w = I - V0;
-    const double wu = dot(w,u);
-    const double wv = dot(w,v);
-    const double D = uv * uv - uu * vv;
-    
-    // get and test parametric coords
-    const double s = (uv * wv - vv * wu) / D;
-    if (s < 0.0 || s > 1.0)             // I is outside T
-        return 0;
-    const double t = (uv * wu - uu * wv) / D;
-    if (t < 0.0 || (s + t) > 1.0)       // I is outside T
-        return 0;
-    
-    return 1;                           // I is in T
-}
-
-
-
-using namespace Expressions;
-using namespace Physics;
-
 extern Inform* gmsg;
 
 #define SQR(x) ((x)*(x))
 #define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
 #define Point(triangle_id, vertex_id)   geo3Dcoords_m[allbfaces_m[4 * (triangle_id) + (vertex_id)]]
+
+/*
+
+  Some
+   _   _      _                 
+  | | | | ___| |_ __   ___ _ __ 
+  | |_| |/ _ \ | '_ \ / _ \ '__|
+  |  _  |  __/ | |_) |  __/ |   
+  |_| |_|\___|_| .__/ \___|_|   
+             |_|  
+
+  functions
+ */
+struct VectorLessX {
+    bool operator() (Vector_t x1, Vector_t x2) {
+        return x1 (0) < x2 (0);
+    }
+};
+
+struct VectorLessY {
+    bool operator() (Vector_t x1, Vector_t x2) {
+        return x1 (1) < x2 (1);
+    }
+};
+
+struct VectorLessZ {
+    bool operator() (Vector_t x1, Vector_t x2) {
+        return x1 (2) < x2 (2);
+    }
+};
+
+/**
+   Calculate the maximum of coordinates of geometry,i.e the maximum of X,Y,Z
+ */
+Vector_t get_max_extend (std::vector<Vector_t>& coords) {
+    const Vector_t x = *max_element (
+        coords.begin (), coords.end (), VectorLessX ());
+    const Vector_t y = *max_element (
+        coords.begin (), coords.end (), VectorLessY ());
+    const Vector_t z = *max_element (
+        coords.begin (), coords.end (), VectorLessZ ());
+    return Vector_t (x (0), y (1), z (2));
+}
+
+/*
+   Compute the minimum of coordinates of geometry, i.e the minimum of X,Y,Z
+ */
+Vector_t get_min_extend (std::vector<Vector_t>& coords) {
+    const Vector_t x = *min_element (
+        coords.begin (), coords.end (), VectorLessX ());
+    const Vector_t y = *min_element (
+        coords.begin (), coords.end (), VectorLessY ());
+    const Vector_t z = *min_element (
+        coords.begin (), coords.end (), VectorLessZ ());
+    return Vector_t (x (0), y (1), z (2));
+}
+
+/*
+  "ULP compare" for double precision floating point numbers.
+  See:
+    http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
+
+  Note:
+    An updated version of this document with improved code is here:
+    http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+
+ */
+static int64_t fcmp (
+    double A,
+    double B,
+    int maxUlps ) {
+                    
+    // Make sure maxUlps is non-negative and small enough that the
+    // default NAN won't compare as equal to anything.
+    assert (maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
+    assert (sizeof (long long) == sizeof (int64_t) );
+    assert (sizeof (long long) == sizeof (double) );
+                    
+    // Make [ab]Int lexicographically ordered as a twos-complement int
+    double* pa = &A;
+    int64_t aInt = *(int64_t*)pa;
+    if (aInt < 0)
+        aInt = 0x8000000000000000LL - aInt;
+                    
+    double* pb = &B;
+    int64_t bInt = *(int64_t*)pb;
+    if (bInt < 0)
+        bInt = 0x8000000000000000LL - bInt;
+                    
+    int64_t intDiff = aInt - bInt;
+    if (llabs(intDiff) <= maxUlps)
+        return 0;
+    return intDiff;
+}
+
+/*
+  ____                           _              
+ / ___| ___  ___  _ __ ___   ___| |_ _ __ _   _ 
+| |  _ / _ \/ _ \| '_ ` _ \ / _ \ __| '__| | | |
+| |_| |  __/ (_) | | | | | |  __/ |_| |  | |_| |
+ \____|\___|\___/|_| |_| |_|\___|\__|_|   \__, |
+                                          |___/
+*/
 
 BoundaryGeometry::BoundaryGeometry() :
     Definition (
@@ -315,305 +308,105 @@ BoundaryGeometry* BoundaryGeometry::find (const string& name) {
     return geom;
 }
 
+void BoundaryGeometry::updateElement (ElementBase* element) {
+}
 
-/**
-   Determine physical behaviour when particle hits the boundary triangle,
-   non secondary emission version.
+#define SMALL_NUM (0.00000001)
+
+/*
+  Find the 3D intersection of a line segment, ray or line with a triangle.
+
+  Input:
+        kind: type of test: SEGMENT, RAY or LINE
+        P0, P0: defining 
+            a line segment from P0 to P1 or
+            a ray starting at P0 with directional vector P1-P0 or
+            a line through P0 and P1
+        V0, V1, V2: the triangle vertices
+        
+  Output:
+        I: intersection point (when it exists)
+
+  Return:
+        -1 = triangle is degenerate (a segment or point)
+        0 =  disjoint (no intersect)
+        1 =  intersect in unique point I1
+        2 =  are in the same plane
+
+  For algorithm and implementation see:
+  http://geomalgorithms.com/a06-_intersect-2.html
+
+  Copyright 2001 softSurfer, 2012 Dan Sunday
+  This code may be freely used and modified for any purpose
+  providing that this copyright notice is included with it.
+  SoftSurfer makes no warranty for this code, and cannot be held
+  liable for any real or imagined damage resulting from its use.
+  Users of this code must verify correctness for their application.
  */
-int BoundaryGeometry::doBGphysics (
-    const Vector_t& intecoords,
-    const int& triId
+
+int
+BoundaryGeometry::intersect3dLineTriangle (
+    const enum INTERSECTION_TESTS kind,
+    const Vector_t& P0,
+    const Vector_t& P1,
+    const int triangle_id,
+    Vector_t& I
     ) {
-    short BGtag = TriBGphysicstag_m[triId];
-    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
-        return -1;
-    } else if (((BGtag & BGphysics::Absorption) == BGphysics::Absorption)
-               && ((BGtag & BGphysics::FNEmission) != BGphysics::FNEmission)) {
+    Vector_t V0 = getPoint (triangle_id, 1);
+    Vector_t V1 = getPoint (triangle_id, 2);
+    Vector_t V2 = getPoint (triangle_id, 3);
+
+    // get triangle edge vectors and plane normal
+    const Vector_t u = V1 - V0;         // triangle vectors
+    const Vector_t v = V2 - V0;
+    const Vector_t n = cross (u, v);
+    if (n == (Vector_t)0)               // triangle is degenerate
+        return -1;                      // do not deal with this case
+    
+    const Vector_t dir = P1 - P0;       // ray direction vector
+    const Vector_t w0 = P0 - V0;
+    const double a = -dot(n,w0);
+    const double b = dot(n,dir);
+    if (fabs(b) < SMALL_NUM) {          // ray is  parallel to triangle plane
+        if (a == 0)                     // ray lies in triangle plane
+            return 2;
+        else
+            return 0;                   // ray disjoint from plane
+    }
+    
+    // get intersect point of ray with triangle plane
+    const double r = a / b;
+    switch (kind) {
+    case RAY:
+        if (r < 0.0)                    // ray goes away from triangle
+            return 0;                   // => no intersect
+    case SEGMENT:
+        if (r > 1.0)                    // intersection on extendet
+            return 0;                   // segment
+    case LINE:
+        break;
+    };
+    I = P0 + r * dir;                 // intersect point of ray and plane
+    
+    // is I inside T?
+    const double uu = dot(u,u);
+    const double uv = dot(u,v);
+    const double vv = dot(v,v);
+    const Vector_t w = I - V0;
+    const double wu = dot(w,u);
+    const double wv = dot(w,v);
+    const double D = uv * uv - uu * vv;
+    
+    // get and test parametric coords
+    const double s = (uv * wv - vv * wu) / D;
+    if (s < 0.0 || s > 1.0)             // I is outside T
         return 0;
-    } else {
-        return 1;
-    }
-}
-
-/**
-   Determine physical behaviour when particle hits the boundary triangle,
-   call Furman-Pivi's secondary emission model.
- */
-int BoundaryGeometry::doBGphysics (
-    const Vector_t& intecoords,
-    const int& triId,
-    const double& incEnergy,
-    const double& incQ,
-    const Vector_t& incMomentum,
-    PartBunch* itsBunch,
-    double& seyNum
-    ) {
-    Inform msg ("BGphyDebug");
-    short BGtag = TriBGphysicstag_m[triId];
-    int ret = 0;
-    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
-        ret = - 1;
-    } else if ((BGtag & BGphysics::Absorption) == BGphysics::Absorption &&
-               (BGtag & BGphysics::FNEmission) != BGphysics::FNEmission &&
-               (BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission) {
-        ret = 0;
-    } else {
-        // Secondary Emission;
-        ret = 1;
-        int se_Num = 0;
-        int seType = 0;
-        if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
-            double cosTheta = - dot (incMomentum, TriNormal_m[triId]) /
-                              sqrt (dot (incMomentum, incMomentum));
-            if (cosTheta < 0) {
-                //cosTheta should be positive
-                std::cout << "cosTheta = " << cosTheta
-                          << " intecoords " << intecoords (0) << " " << intecoords (1)
-                          << " " << intecoords (2) << " "
-                          << std::endl;
-                std::cout << "incident momentum=("
-                          << incMomentum (0) << "," << incMomentum (1) << "," << incMomentum (2) << ")"
-                          << " triNormal=("
-                          << TriNormal_m[triId](0) << ","
-                          << TriNormal_m[triId](1) << "," << TriNormal_m[triId](2) << ") "
-                          << std::endl;
-            }
-            assert(cosTheta>=0);
-            int idx = 0;
-            if (intecoords != Point (triId, 1)) {
-                idx = 1; // intersection is not the 1st vertex
-            } else {
-                idx = 2; // intersection is the 1st vertex
-            }
-            sec_phys_m.nSec (incEnergy,
-                             cosTheta,
-                             seBoundaryMatType_m,
-                             se_Num,
-                             seType,
-                             incQ,
-                             TriNormal_m[triId],
-                             intecoords,
-                             Point (triId, idx),
-                             itsBunch,
-                             seyNum,
-                             ppVw_m,
-                             vVThermal_m,
-                             nEmissionMode_m);
-        }
-    }
-    return ret;
-}
-
-/**
-   Determine physical behaviour when particle hits the boundary triangle,
-   call Vaughan's secondary emission model.
- */
-int BoundaryGeometry::doBGphysics (
-    const Vector_t& intecoords,
-    const int& triId,
-    const double& incEnergy,
-    const double& incQ,
-    const Vector_t& incMomentum,
-    PartBunch* itsBunch,
-    double& seyNum,
-    const int& para_null
-    ) {
-    short BGtag = TriBGphysicstag_m[triId];
-    int ret = 0;
-    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
-        ret = - 1;
-    } else if (((BGtag & BGphysics::Absorption) == BGphysics::Absorption) &&
-               ((BGtag & BGphysics::FNEmission) != BGphysics::FNEmission) &&
-               ((BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission)) {
-        ret = 0;
-    } else {
-        // Secondary Emission;
-        int se_Num = 0;
-        int seType = 0;
-        if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
-            double cosTheta = - dot (incMomentum, TriNormal_m[triId]) /
-                              sqrt (dot (incMomentum, incMomentum));
-            //cosTheta should be positive
-            if (cosTheta < 0) {
-                std::cout << "cosTheta = " << cosTheta << std::endl;
-                INFOMSG ("incident momentum=" << incMomentum
-                                              << " triNormal=" << TriNormal_m[triId]
-                                              << " dot=" << dot (incMomentum, TriNormal_m[triId])
-                                              << endl);
-            }
-            //assert(cosTheta>=0);
-            int idx = 0;
-            if (intecoords != Point (triId, 1)) {
-                // intersection is not the 1st vertex
-                idx = 1;
-            } else {
-                // intersection is the 1st vertex
-                idx = 2;
-            }
-            sec_phys_m.nSec (incEnergy,
-                             cosTheta,
-                             se_Num,
-                             seType,
-                             incQ,
-                             TriNormal_m[triId],
-                             intecoords,
-                             Point (triId, idx),
-                             itsBunch,
-                             seyNum,
-                             ppVw_m,
-                             vSeyZero_m,
-                             vEzero_m,
-                             vSeyMax_m,
-                             vEmax_m,
-                             vKenergy_m,
-                             vKtheta_m,
-                             vVThermal_m,
-                             nEmissionMode_m);
-        }
-    }
-    return ret;
-}
-
-/**
-   Here we call field emission model.
- */
-/// \returns size_t
-///     - number of emitted electrons at the surface
-size_t BoundaryGeometry::doFNemission (
-    OpalBeamline& itsOpalBeamline,
-    PartBunch* itsBunch,
-    const double t
-    ) {
-    // Self-field is not considered at moment. Only 1D Child-Langmuir law is
-    // implemented for space charge limited current density.
-    const double fa = parameterFNA_m / workFunction_m * fieldEnhancement_m * fieldEnhancement_m;
-    /*  int node_num = Ippl::getNodes();
-
-       size_t *count = new size_t [node_num];
-       // itsBunch->getLocalNum();
-       for(int i = 0; i < node_num; i++) {
-
-       count[i] = 0;
-
-       }*/
-    size_t Nstp = 0;
-    for (int i = 0; i < num_triangles_m; i++) {
-        if ((TriBGphysicstag_m[i] & BGphysics::FNEmission) == BGphysics::FNEmission) {
-            Vector_t E (0.0), B (0.0);
-            Vector_t centroid (0.0);
-            itsOpalBeamline.getFieldAt (Tribarycent_m[i], centroid, t, E, B);
-            double Enormal = dot (TriNormal_m[i], E);
-            /* Enormal should be negative as E field direction should be
-               opposite to inward normal of surface */
-            if (Enormal < fieldFNthreshold_m) {
-                std::vector<Vector_t> vertex;
-                vertex.push_back (Point (i, 1));
-                vertex.push_back (Point (i, 2));
-                vertex.push_back (Point (i, 3));
-                PriEmissionPhysics::Fieldemission (itsBunch, fa, Enormal,
-                                                   parameterFNB_m,
-                                                   workFunction_m,
-                                                   parameterFNVYZe_m,
-                                                   parameterFNVYSe_m,
-                                                   parameterFNY_m,
-                                                   fieldEnhancement_m,
-                                                   maxFNemission_m,
-                                                   Triarea_m[i],
-                                                   vertex,
-                                                   TriNormal_m[i],
-                                                   Nstp);
-            }
-        }
-    }
-    *gmsg << "* Emit " << Nstp << " field emission particles at the surfaces" << endl;
-    return Nstp;
-}
-
-/*
-   helper functions for STL max/min_element
- */
-struct VectorLessX {
-    bool operator() (Vector_t x1, Vector_t x2) {
-        return x1 (0) < x2 (0);
-    }
-};
-
-struct VectorLessY {
-    bool operator() (Vector_t x1, Vector_t x2) {
-        return x1 (1) < x2 (1);
-    }
-};
-
-struct VectorLessZ {
-    bool operator() (Vector_t x1, Vector_t x2) {
-        return x1 (2) < x2 (2);
-    }
-};
-
-/**
-   Calculate the maximum of coordinates of geometry,i.e the maximum of X,Y,Z
- */
-Vector_t get_max_extend (std::vector<Vector_t>& coords) {
-    const Vector_t x = *max_element (
-        coords.begin (), coords.end (), VectorLessX ());
-    const Vector_t y = *max_element (
-        coords.begin (), coords.end (), VectorLessY ());
-    const Vector_t z = *max_element (
-        coords.begin (), coords.end (), VectorLessZ ());
-    return Vector_t (x (0), y (1), z (2));
-}
-
-/*
-   Compute the minimum of coordinates of geometry, i.e the minimum of X,Y,Z
- */
-Vector_t get_min_extend (std::vector<Vector_t>& coords) {
-    const Vector_t x = *min_element (
-        coords.begin (), coords.end (), VectorLessX ());
-    const Vector_t y = *min_element (
-        coords.begin (), coords.end (), VectorLessY ());
-    const Vector_t z = *min_element (
-        coords.begin (), coords.end (), VectorLessZ ());
-    return Vector_t (x (0), y (1), z (2));
-}
-
-/*
-  "ULP compare" for double precision floating point numbers.
-  See:
-    http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
-
-  Note:
-    An updated version of this document with improved code is here:
-    http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
-
- */
-static int64_t fcmp (
-    double A,
-    double B,
-    int maxUlps ) {
-                    
-    // Make sure maxUlps is non-negative and small enough that the
-    // default NAN won't compare as equal to anything.
-    assert (maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
-    assert (sizeof (long long) == sizeof (int64_t) );
-    assert (sizeof (long long) == sizeof (double) );
-                    
-    // Make [ab]Int lexicographically ordered as a twos-complement int
-    double* pa = &A;
-    int64_t aInt = *(int64_t*)pa;
-    if (aInt < 0)
-        aInt = 0x8000000000000000LL - aInt;
-                    
-    double* pb = &B;
-    int64_t bInt = *(int64_t*)pb;
-    if (bInt < 0)
-        bInt = 0x8000000000000000LL - bInt;
-                    
-    int64_t intDiff = aInt - bInt;
-    if (llabs(intDiff) <= maxUlps)
+    const double t = (uv * wu - uu * wv) / D;
+    if (t < 0.0 || (s + t) > 1.0)       // I is outside T
         return 0;
-    return intDiff;
+    
+    return 1;                           // I is in T
 }
-
 
 /*
   Map point to unique voxel ID.
@@ -1036,7 +829,6 @@ Change orientation if diff is:
             }
         }
 
-
         /*
           Compute intersection point of line segment given by x and y 
           and triangle given by its ID.
@@ -1371,7 +1163,485 @@ Change orientation if diff is:
 
     *gmsg << *this << endl;
     IpplTimings::stopTimer (TPreProc_m);
+}
 
+/**
+   Determine whether a particle with position @param r, momenta @param v,
+   and time step @param dt will hit the boundary.
+
+   Basic algorithms are as follows:
+   1) Determine if the particle is near the boundary by checking r is in
+      boundary bounding box index set.
+      if r is in, then do the following checking step, else return -1 to
+      indicate that particle is far from boundary and to be integrated.
+   2) Traversal all the triangles in the bounding cubic box which the
+       particle is in, as well as triangles in the adjacent 26 bounding
+       cubic boxes
+       if the momenta has oppsite direction with those triangles' normals,
+       then check if the particle has intersection with those triangles. If
+       intersection exsists, then return 0.
+ */
+int BoundaryGeometry::PartInside (
+    const Vector_t r,
+    const Vector_t v,
+    const double dt,
+    int Parttype,
+    const double Qloss,
+    Vector_t& intecoords,
+    int& triId,
+    double& Energy
+    ) {
+    class Local {
+
+    public:
+        static bool FindIntersection (
+            BoundaryGeometry* bg,
+            const Vector_t& x,          // [in] start of line segment
+            const Vector_t& y,          // [in] end of line segment
+            const size_t& triangle_id,  // [in] triangle ID
+            double& rI,
+            Vector_t& intersection_pt   // [out] intersection point
+            ) {
+            IpplTimings::startTimer (bg->TRayTrace_m);
+
+            bool result = false;
+            const Vector_t t0 = bg->getPoint (triangle_id, 1);
+            const Vector_t u = bg->getPoint (triangle_id, 2) - t0;
+            const Vector_t v = bg->getPoint (triangle_id, 3) - t0;
+            const Vector_t lt = t0 - x;
+            const Vector_t n = bg->TriNormal_m[triangle_id];
+
+            const Vector_t lseg = y - x; // length and direction of line segment;
+            const double dotLT = dot (n, lseg);
+            if (fabs (dotLT) < 1.0e-10) {
+                if ((x == bg->Tribarycent_m[triangle_id]) && (x != y)) {
+                    /*
+                      Some initialized particles have momenta parallel to its
+                      triangle normal, this kind of particles will lose
+                      directly
+                    */
+                    intersection_pt = bg->Tribarycent_m[triangle_id];
+                    return true;
+                }
+            } else {
+                // find intersection position w.r.t x and the unit is (y-x);
+                rI = dot (n, lt) / dotLT;
+
+                // find the coordinate of intersection plane.
+                const Vector_t ItSec = x + rI * lseg;
+
+                // test if intersection is inside the triangle.
+                const Vector_t w = ItSec - t0;
+                const double tmp1 = dot (u, v);
+                const double tmp2 = dot (w, v);
+                const double tmp3 = dot (u, w);
+                const double tmp4 = dot (u, u);
+                const double tmp5 = dot (v, v);
+                const double temp = (tmp1 * tmp1 - tmp4 * tmp5);
+                const double sI = (tmp1 * tmp2 - tmp5 * tmp3) / temp;
+                const double tI = (tmp1 * tmp3 - tmp4 * tmp2) / temp;
+                if ((sI >= 0.0) && (tI >= 0.0) && ((sI + tI) <= 1.0)) {
+                    intersection_pt = ItSec;
+                    result = true;
+                }
+            }
+            IpplTimings::stopTimer (bg->TRayTrace_m);
+            return result;
+        }
+    };
+
+    int ret = -1;
+    const double p_sq = dot (v, v);
+    const double betaP = 1.0 / sqrt (1.0 + p_sq);
+
+    const Vector_t temp1 = r; //particle position in timestep n;
+    const Vector_t temp = r + (Physics::c * betaP * v * dt); //particle position in tstep n+1;
+    double rI = 0.0;
+    Vector_t intersection_pt = outside_point_m;
+
+    IpplTimings::startTimer (TPInside_m);
+
+    /* test if particle position in timestep n is inside the cubic bounding box.
+       If true, do the following tests */
+    int id;
+    if (boundary_ids_m.find (map_point_to_voxel_id (temp1)) != boundary_ids_m.end ()) {
+        // particle is in geometry at timestep n
+        id = map_point_to_voxel_id (temp1);
+    } else if (boundary_ids_m.find (map_point_to_voxel_id (temp)) != boundary_ids_m.end ()) {
+        // particle is in geometry at timestep n+1
+        id = map_point_to_voxel_id (temp);
+    } else {
+        goto out;
+    }
+    { /* we need this brace! Otherwise the compiler (gcc) complains about
+         initializing nx, ny und idc after above goto statement. */
+
+        /* Build an array containing the IDs of 27(3*3*3) voxels. The ID
+           of the voxel containing the particle, is the center of these
+           voxels. Just for the situation that even the line segment
+           cross more than one voxel.*/
+        int nx = nr_m[0];
+        int ny = nr_m[1];
+        int idc[27] = {
+            id,                    id + 1,                id - 1,
+            id + nx,               id - nx,               id + nx + 1,
+            id + nx - 1,           id - nx - 1,           id - nx + 1,
+            id + nx * ny,          id + nx * ny + 1,      id + nx * ny - 1,
+            id + nx * ny + nx,     id + nx * ny - nx,     id + nx * ny + nx + 1,
+            id + nx * ny + nx - 1, id + nx * ny - nx - 1, id + nx * ny - nx + 1,
+            id - nx * ny,          id - nx * ny + 1,      id - nx * ny - 1,
+            id - nx * ny + nx,     id - nx * ny - nx,     id - nx * ny + nx + 1,
+            id - nx * ny + nx - 1, id - nx * ny - nx - 1, id - nx * ny - nx + 1
+        };
+        
+        /* Test all the 27 voxels to find if the line segment has
+           intersection with the triangles in those voxels. */
+        for (int k = 0; k < 27; k++) {
+            std::map< size_t, std::set<size_t> >::iterator It;
+            It = CubicLookupTable_m.find (idc[k]);
+            if (It == CubicLookupTable_m.end ())
+                continue; // not a voxel
+            
+            // for each triangle in this voxel
+            std::set<size_t> ::iterator faceIt;
+            for (faceIt = (*It).second.begin ();
+                 faceIt != (*It).second.end ();
+                 faceIt++) {
+                if (v != 0 && dot (v, TriNormal_m[*faceIt]) <= 0.0) {
+                    /* If the particle have a momenta greater zero with opposite
+                       direction to triangle normal, do the following tests. */
+                    if (Local::FindIntersection (
+                            this,
+                            temp1,      // IN: particle position in tstep n
+                            temp,       // IN: particle position in tstep n+1
+                            *faceIt,    // IN: triangle id
+                            rI,         // OUT: ratio
+                            intersection_pt // OUT: intersection points
+                            )) {       
+                        /* Test if the intersection is between the particle
+                           position in tstep n and particle position in
+                           tstep n+1 or is in the extension of line segment
+                           when particle position in tstep n is already
+                           outside the geometry( this may be not accurate
+                           and may be the source of problem.) */
+                        if ((rI >= -0.00001 && rI <= 1.00001) ||
+                            (rI < 0 && dot (temp1 - Tribarycent_m[*faceIt], TriNormal_m[*faceIt]) <= 0.0)) {
+                            intecoords = intersection_pt;
+                            triId = (*faceIt);
+                            assert (dot (TriNormal_m[*faceIt], v) < 0 || intersection_pt == temp1);
+                            // energy in eV
+                            Energy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
+                            if (Parttype == 0)
+                                TriPrPartloss_m[*faceIt] += Qloss;
+                            else if (Parttype == 1)
+                                TriFEPartloss_m[*faceIt] += Qloss;
+                            else
+                                TriSePartloss_m[*faceIt] += Qloss;
+                            if (TriPrPartloss_m[*faceIt] > 0 ||
+                                TriSePartloss_m[*faceIt] > 0 ||
+                                TriFEPartloss_m[*faceIt] > 0) {
+                                ;
+                            }
+                            ret = 0;
+                            goto out;
+                        }
+                    }
+                }
+            } // end for all triangles
+        } // end for all voxels
+    }
+out:
+    IpplTimings::stopTimer (TPInside_m);
+    return ret;
+}
+
+void BoundaryGeometry::writeGeomToVtk (string fn) {
+    std::ofstream of;
+    of.open (fn.c_str ());
+    assert (of.is_open ());
+    of.precision (6);
+    of << "# vtk DataFile Version 2.0" << std::endl;
+    of << "generated using DataSink::writeGeoToVtk" << std::endl;
+    of << "ASCII" << std::endl << std::endl;
+    of << "DATASET UNSTRUCTURED_GRID" << std::endl;
+    of << "POINTS " << num_points_m << " float" << std::endl;
+    for (int i = 0; i < num_points_m; i++)
+        of << geo3Dcoords_m[i](0) << " "
+	   << geo3Dcoords_m[i](1) << " "
+	   << geo3Dcoords_m[i](2) << std::endl;
+    of << std::endl;
+
+    of << "CELLS "
+       << num_triangles_m << " "
+       << 4 * num_triangles_m << std::endl;
+    for (int i = 0; i < num_triangles_m; i++)
+        of << "3 "
+	   << PointID (i, 1) << " "
+	   << PointID (i, 2) << " "
+	   << PointID (i, 3) << std::endl;
+    of << "CELL_TYPES " << num_triangles_m << std::endl;
+    for (int i = 0; i < num_triangles_m; i++)
+	of << "5" << std::endl;
+    of << "CELL_DATA " << num_triangles_m << std::endl;
+    of << "SCALARS " << "cell_attribute_data" << " float " << "1" << std::endl;
+    of << "LOOKUP_TABLE " << "default" << std::endl;
+    for (int i = 0; i < num_triangles_m; i++)
+	of << (float)(i) << std::endl;
+    of << std::endl;
+}
+
+Inform& BoundaryGeometry::printInfo (Inform& os) const {
+    os << "* *************Boundary Geometry Info*********************************************** " << endl;
+    os << "* GEOMETRY                   " << getOpalName () << '\n'
+       << "* FGEOM                      " << Attributes::getString (itsAttr[FGEOM]) << '\n'
+       << "* TOPO                       " << Attributes::getString (itsAttr[TOPO]) << '\n'
+       << "* LENGTH                     " << Attributes::getReal (itsAttr[LENGTH]) << '\n'
+       << "* S                          " << Attributes::getReal (itsAttr[S]) << '\n'
+       << "* A                          " << Attributes::getReal (itsAttr[A]) << '\n'
+       << "* B                          " << Attributes::getReal (itsAttr[B]) << '\n';
+    if (getTopology () == string ("BOXCORNER")) {
+        os << "* C                          " << Attributes::getReal (itsAttr[C]) << '\n'
+           << "* L1                         " << Attributes::getReal (itsAttr[L1]) << '\n'
+           << "* L1                         " << Attributes::getReal (itsAttr[L2]) << '\n';
+    }
+    os << "* Total triangle num         " << num_triangles_m << '\n'
+       << "* Total points num           " << num_points_m << '\n'
+       << "* Triangle side(m)   Max=    " << longest_side_max_m << '\n'
+       << "*                    Min=    " << longest_side_min_m << '\n'
+       << "* Geometry bounds(m) Max=    " << maxcoords_m << '\n'
+       << "*                    Min=    " << mincoords_m << '\n'
+       << "* Geometry length(m)         " << len_m << '\n'
+       << "* Boundary box grid num      " << nr_m << '\n'
+       << "* Boundary box size(m)       " << hr_m << '\n'
+       << "* Size of boundary index set " << boundary_ids_m.size () << '\n'
+       << "* Number of all boxes        " << nr_m (0) * nr_m (1) * nr_m (2) << '\n'
+        << endl;
+    os << "* ********************************************************************************** " << endl;
+    return os;
+}
+
+/*
+   ____  _               _          
+  |  _ \| |__  _   _ ___(_) ___ ___ 
+  | |_) | '_ \| | | / __| |/ __/ __|
+  |  __/| | | | |_| \__ \ | (__\__ \
+  |_|   |_| |_|\__, |___/_|\___|___/
+                |___/          
+
+  start here ...
+*/
+
+/**
+   Determine physical behaviour when particle hits the boundary triangle,
+   non secondary emission version.
+ */
+int BoundaryGeometry::doBGphysics (
+    const Vector_t& intecoords,
+    const int& triId
+    ) {
+    short BGtag = TriBGphysicstag_m[triId];
+    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
+        return -1;
+    } else if (((BGtag & BGphysics::Absorption) == BGphysics::Absorption)
+               && ((BGtag & BGphysics::FNEmission) != BGphysics::FNEmission)) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+/**
+   Determine physical behaviour when particle hits the boundary triangle,
+   call Furman-Pivi's secondary emission model.
+ */
+int BoundaryGeometry::doBGphysics (
+    const Vector_t& intecoords,
+    const int& triId,
+    const double& incEnergy,
+    const double& incQ,
+    const Vector_t& incMomentum,
+    PartBunch* itsBunch,
+    double& seyNum
+    ) {
+    Inform msg ("BGphyDebug");
+    short BGtag = TriBGphysicstag_m[triId];
+    int ret = 0;
+    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
+        ret = - 1;
+    } else if ((BGtag & BGphysics::Absorption) == BGphysics::Absorption &&
+               (BGtag & BGphysics::FNEmission) != BGphysics::FNEmission &&
+               (BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission) {
+        ret = 0;
+    } else {
+        // Secondary Emission;
+        ret = 1;
+        int se_Num = 0;
+        int seType = 0;
+        if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
+            double cosTheta = - dot (incMomentum, TriNormal_m[triId]) /
+                              sqrt (dot (incMomentum, incMomentum));
+            if (cosTheta < 0) {
+                //cosTheta should be positive
+                std::cout << "cosTheta = " << cosTheta
+                          << " intecoords " << intecoords (0) << " " << intecoords (1)
+                          << " " << intecoords (2) << " "
+                          << std::endl;
+                std::cout << "incident momentum=("
+                          << incMomentum (0) << "," << incMomentum (1) << "," << incMomentum (2) << ")"
+                          << " triNormal=("
+                          << TriNormal_m[triId](0) << ","
+                          << TriNormal_m[triId](1) << "," << TriNormal_m[triId](2) << ") "
+                          << std::endl;
+            }
+            assert(cosTheta>=0);
+            int idx = 0;
+            if (intecoords != Point (triId, 1)) {
+                idx = 1; // intersection is not the 1st vertex
+            } else {
+                idx = 2; // intersection is the 1st vertex
+            }
+            sec_phys_m.nSec (incEnergy,
+                             cosTheta,
+                             seBoundaryMatType_m,
+                             se_Num,
+                             seType,
+                             incQ,
+                             TriNormal_m[triId],
+                             intecoords,
+                             Point (triId, idx),
+                             itsBunch,
+                             seyNum,
+                             ppVw_m,
+                             vVThermal_m,
+                             nEmissionMode_m);
+        }
+    }
+    return ret;
+}
+
+/**
+   Determine physical behaviour when particle hits the boundary triangle,
+   call Vaughan's secondary emission model.
+ */
+int BoundaryGeometry::doBGphysics (
+    const Vector_t& intecoords,
+    const int& triId,
+    const double& incEnergy,
+    const double& incQ,
+    const Vector_t& incMomentum,
+    PartBunch* itsBunch,
+    double& seyNum,
+    const int& para_null
+    ) {
+    short BGtag = TriBGphysicstag_m[triId];
+    int ret = 0;
+    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
+        ret = - 1;
+    } else if (((BGtag & BGphysics::Absorption) == BGphysics::Absorption) &&
+               ((BGtag & BGphysics::FNEmission) != BGphysics::FNEmission) &&
+               ((BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission)) {
+        ret = 0;
+    } else {
+        // Secondary Emission;
+        int se_Num = 0;
+        int seType = 0;
+        if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
+            double cosTheta = - dot (incMomentum, TriNormal_m[triId]) /
+                              sqrt (dot (incMomentum, incMomentum));
+            //cosTheta should be positive
+            if (cosTheta < 0) {
+                std::cout << "cosTheta = " << cosTheta << std::endl;
+                INFOMSG ("incident momentum=" << incMomentum
+                                              << " triNormal=" << TriNormal_m[triId]
+                                              << " dot=" << dot (incMomentum, TriNormal_m[triId])
+                                              << endl);
+            }
+            //assert(cosTheta>=0);
+            int idx = 0;
+            if (intecoords != Point (triId, 1)) {
+                // intersection is not the 1st vertex
+                idx = 1;
+            } else {
+                // intersection is the 1st vertex
+                idx = 2;
+            }
+            sec_phys_m.nSec (incEnergy,
+                             cosTheta,
+                             se_Num,
+                             seType,
+                             incQ,
+                             TriNormal_m[triId],
+                             intecoords,
+                             Point (triId, idx),
+                             itsBunch,
+                             seyNum,
+                             ppVw_m,
+                             vSeyZero_m,
+                             vEzero_m,
+                             vSeyMax_m,
+                             vEmax_m,
+                             vKenergy_m,
+                             vKtheta_m,
+                             vVThermal_m,
+                             nEmissionMode_m);
+        }
+    }
+    return ret;
+}
+
+/**
+   Here we call field emission model.
+ */
+/// \returns size_t
+///     - number of emitted electrons at the surface
+size_t BoundaryGeometry::doFNemission (
+    OpalBeamline& itsOpalBeamline,
+    PartBunch* itsBunch,
+    const double t
+    ) {
+    // Self-field is not considered at moment. Only 1D Child-Langmuir law is
+    // implemented for space charge limited current density.
+    const double fa = parameterFNA_m / workFunction_m * fieldEnhancement_m * fieldEnhancement_m;
+    /*  int node_num = Ippl::getNodes();
+
+       size_t *count = new size_t [node_num];
+       // itsBunch->getLocalNum();
+       for(int i = 0; i < node_num; i++) {
+
+       count[i] = 0;
+
+       }*/
+    size_t Nstp = 0;
+    for (int i = 0; i < num_triangles_m; i++) {
+        if ((TriBGphysicstag_m[i] & BGphysics::FNEmission) == BGphysics::FNEmission) {
+            Vector_t E (0.0), B (0.0);
+            Vector_t centroid (0.0);
+            itsOpalBeamline.getFieldAt (Tribarycent_m[i], centroid, t, E, B);
+            double Enormal = dot (TriNormal_m[i], E);
+            /* Enormal should be negative as E field direction should be
+               opposite to inward normal of surface */
+            if (Enormal < fieldFNthreshold_m) {
+                std::vector<Vector_t> vertex;
+                vertex.push_back (Point (i, 1));
+                vertex.push_back (Point (i, 2));
+                vertex.push_back (Point (i, 3));
+                PriEmissionPhysics::Fieldemission (itsBunch, fa, Enormal,
+                                                   parameterFNB_m,
+                                                   workFunction_m,
+                                                   parameterFNVYZe_m,
+                                                   parameterFNVYSe_m,
+                                                   parameterFNY_m,
+                                                   fieldEnhancement_m,
+                                                   maxFNemission_m,
+                                                   Triarea_m[i],
+                                                   vertex,
+                                                   TriNormal_m[i],
+                                                   Nstp);
+            }
+        }
+    }
+    *gmsg << "* Emit " << Nstp << " field emission particles at the surfaces" << endl;
+    return Nstp;
 }
 
 /**
@@ -1594,302 +1864,6 @@ void BoundaryGeometry::createPriPart (
             }
         }
     }
-}
-
-/**
-   Determine whether a particle with position @param r, momenta @param v,
-   and time step @param dt will hit the boundary.
-
-   Basic algorithms are as follows:
-   1) Determine if the particle is near the boundary by checking r is in
-      boundary bounding box index set.
-      if r is in, then do the following checking step, else return -1 to
-      indicate that particle is far from boundary and to be integrated.
-   2) Traversal all the triangles in the bounding cubic box which the
-       particle is in, as well as triangles in the adjacent 26 bounding
-       cubic boxes
-       if the momenta has oppsite direction with those triangles' normals,
-       then check if the particle has intersection with those triangles. If
-       intersection exsists, then return 0.
- */
-int BoundaryGeometry::PartInside (
-    const Vector_t r,
-    const Vector_t v,
-    const double dt,
-    int Parttype,
-    const double Qloss,
-    Vector_t& intecoords,
-    int& triId,
-    double& Energy
-    ) {
-    class Local {
-
-    public:
-        /*
-          Find a intersection between a line segment and triangle,faster by using
-          the pre-computed oriented normal.
-     
-          @param x0         start of line segment.
-          @param x1         end of line segment
-          @param i          triangle ID
-
-          Algorithms:
-          1) find the intersection between line segment \f$\vec{x1-x0}\f$ and plane
-          defined by point t0 and triangle normal;
-          if the dot product of line segment and plane normal equals to zero and
-          x0 is not the barycentric point of the triangle(in the plane), then
-          the line segment is parallel to plane
-          return no intersection,
-          else if particle is really move (\f$ x0 \neq x1 \f$), then
-          return  initialized position-triangle barycentric point as intersection.
-
-          The intersection position rI w.r.t x0 is obtained from:
-
-          \f$ rI=\frac{\vec{n} \cdot \vec{(t0-x0)}}{\vec{n} \cdot \vec{(x1-x0)}} \f$,
-
-          where t0 is the first vertex of triangle, n is the normal of triangle.
-          The intersection point Itsec is obtained from:
-          \f$ Itsec=x0+rI(x1-x0) \f$.
-
-          2) check if the intersection point is inside the triangle by using parametric
-          coordinates sI and tI of the intersecion point.
-          First calculate sI and tI. The parametric plane equation is given by:
-          \f$ t(sI,tI)=t0+sI(t1-t0)+tI(t2-t0)=t0+sI\vec{u}+tI\vec{v} \f$.
-          \f$\vec{w}=\vec{Itsec-t0}\f$ is also in the plane, solve equation:
-          \f$\vec{w}=t0+sI\vec{u}+tI\vec{v}\f$ , we obtain the sI and tI.
-          \f$ sI=\frac{(\vec{u} \cdot \vec{v})(\vec{w} \cdot \vec{v})-(\vec{v} \cdot \vec{v})(\vec{w} \cdot \vec{u})}{(\vec{u} \cdot \vec{v})^2-(\vec{u} \cdot \vec{u})(\vec{v} \cdot \vec{v})} \f$,
-          \f$ tI=\frac{(\vec{u} \cdot \vec{v})(\vec{w} \cdot \vec{u})-(\vec{u} \cdot \vec{u})(\vec{w} \cdot \vec{v})}{(\vec{u} \cdot \vec{v})^2-(\vec{u} \cdot \vec{u})(\vec{v} \cdot \vec{v})} \f$.
-          If \f$ sI \geq 0 \f$, \f$ tI \geq 0 \f$ and \f$ sI+tI \leq 1 \f$, then
-          the intersection is inside the triangle, and return the intersection
-          coordinate Itsec.
-        */
-        static bool FindIntersection (
-            BoundaryGeometry* bg,
-            const Vector_t& x,          // [in] start of line segment
-            const Vector_t& y,          // [in] end of line segment
-            const size_t& triangle_id,  // [in] triangle ID
-            double& rI,
-            Vector_t& intersection_pt   // [out] intersection point
-            ) {
-            IpplTimings::startTimer (bg->TRayTrace_m);
-
-            bool result = false;
-            const Vector_t t0 = bg->getPoint (triangle_id, 1);
-            const Vector_t u = bg->getPoint (triangle_id, 2) - t0;
-            const Vector_t v = bg->getPoint (triangle_id, 3) - t0;
-            const Vector_t lt = t0 - x;
-            const Vector_t n = bg->TriNormal_m[triangle_id];
-
-            const Vector_t lseg = y - x; // length and direction of line segment;
-            const double dotLT = dot (n, lseg);
-            if (fabs (dotLT) < 1.0e-10) {
-                if ((x == bg->Tribarycent_m[triangle_id]) && (x != y)) {
-                    /*
-                      Some initialized particles have momenta parallel to its
-                      triangle normal, this kind of particles will lose
-                      directly
-                    */
-                    intersection_pt = bg->Tribarycent_m[triangle_id];
-                    return true;
-                }
-            } else {
-                // find intersection position w.r.t x and the unit is (y-x);
-                rI = dot (n, lt) / dotLT;
-
-                // find the coordinate of intersection plane.
-                const Vector_t ItSec = x + rI * lseg;
-
-                // test if intersection is inside the triangle.
-                const Vector_t w = ItSec - t0;
-                const double tmp1 = dot (u, v);
-                const double tmp2 = dot (w, v);
-                const double tmp3 = dot (u, w);
-                const double tmp4 = dot (u, u);
-                const double tmp5 = dot (v, v);
-                const double temp = (tmp1 * tmp1 - tmp4 * tmp5);
-                const double sI = (tmp1 * tmp2 - tmp5 * tmp3) / temp;
-                const double tI = (tmp1 * tmp3 - tmp4 * tmp2) / temp;
-                if ((sI >= 0.0) && (tI >= 0.0) && ((sI + tI) <= 1.0)) {
-                    intersection_pt = ItSec;
-                    result = true;
-                }
-            }
-            IpplTimings::stopTimer (bg->TRayTrace_m);
-            return result;
-        }
-    };
-
-    int ret = -1;
-    const double p_sq = dot (v, v);
-    const double betaP = 1.0 / sqrt (1.0 + p_sq);
-
-    const Vector_t temp1 = r; //particle position in timestep n;
-    const Vector_t temp = r + (c * betaP * v * dt); //particle position in tstep n+1;
-    double rI = 0.0;
-    Vector_t intersection_pt = outside_point_m;
-
-    IpplTimings::startTimer (TPInside_m);
-
-    /* test if particle position in timestep n is inside the cubic bounding box.
-       If true, do the following tests */
-    int id;
-    if (boundary_ids_m.find (map_point_to_voxel_id (temp1)) != boundary_ids_m.end ()) {
-        // particle is in geometry at timestep n
-        id = map_point_to_voxel_id (temp1);
-    } else if (boundary_ids_m.find (map_point_to_voxel_id (temp)) != boundary_ids_m.end ()) {
-        // particle is in geometry at timestep n+1
-        id = map_point_to_voxel_id (temp);
-    } else {
-        goto out;
-    }
-    { /* we need this brace! Otherwise the compiler (gcc) complains about
-         initializing nx, ny und idc after above goto statement. */
-
-        /* Build an array containing the IDs of 27(3*3*3) voxels. The ID
-           of the voxel containing the particle, is the center of these
-           voxels. Just for the situation that even the line segment
-           cross more than one voxel.*/
-        int nx = nr_m[0];
-        int ny = nr_m[1];
-        int idc[27] = {
-            id,                    id + 1,                id - 1,
-            id + nx,               id - nx,               id + nx + 1,
-            id + nx - 1,           id - nx - 1,           id - nx + 1,
-            id + nx * ny,          id + nx * ny + 1,      id + nx * ny - 1,
-            id + nx * ny + nx,     id + nx * ny - nx,     id + nx * ny + nx + 1,
-            id + nx * ny + nx - 1, id + nx * ny - nx - 1, id + nx * ny - nx + 1,
-            id - nx * ny,          id - nx * ny + 1,      id - nx * ny - 1,
-            id - nx * ny + nx,     id - nx * ny - nx,     id - nx * ny + nx + 1,
-            id - nx * ny + nx - 1, id - nx * ny - nx - 1, id - nx * ny - nx + 1
-        };
-        
-        /* Test all the 27 voxels to find if the line segment has
-           intersection with the triangles in those voxels. */
-        for (int k = 0; k < 27; k++) {
-            std::map< size_t, std::set<size_t> >::iterator It;
-            It = CubicLookupTable_m.find (idc[k]);
-            if (It == CubicLookupTable_m.end ())
-                continue; // not a voxel
-            
-            // for each triangle in this voxel
-            std::set<size_t> ::iterator faceIt;
-            for (faceIt = (*It).second.begin ();
-                 faceIt != (*It).second.end ();
-                 faceIt++) {
-                if (v != 0 && dot (v, TriNormal_m[*faceIt]) <= 0.0) {
-                    /* If the particle have a momenta greater zero with opposite
-                       direction to triangle normal, do the following tests. */
-                    if (Local::FindIntersection (
-                            this,
-                            temp1,      // IN: particle position in tstep n
-                            temp,       // IN: particle position in tstep n+1
-                            *faceIt,    // IN: triangle id
-                            rI,         // OUT: ratio
-                            intersection_pt // OUT: intersection points
-                            )) {       
-                        /* Test if the intersection is between the particle
-                           position in tstep n and particle position in
-                           tstep n+1 or is in the extension of line segment
-                           when particle position in tstep n is already
-                           outside the geometry( this may be not accurate
-                           and may be the source of problem.) */
-                        if ((rI >= -0.00001 && rI <= 1.00001) ||
-                            (rI < 0 && dot (temp1 - Tribarycent_m[*faceIt], TriNormal_m[*faceIt]) <= 0.0)) {
-                            intecoords = intersection_pt;
-                            triId = (*faceIt);
-                            assert (dot (TriNormal_m[*faceIt], v) < 0 || intersection_pt == temp1);
-                            // energy in eV
-                            Energy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
-                            if (Parttype == 0)
-                                TriPrPartloss_m[*faceIt] += Qloss;
-                            else if (Parttype == 1)
-                                TriFEPartloss_m[*faceIt] += Qloss;
-                            else
-                                TriSePartloss_m[*faceIt] += Qloss;
-                            if (TriPrPartloss_m[*faceIt] > 0 ||
-                                TriSePartloss_m[*faceIt] > 0 ||
-                                TriFEPartloss_m[*faceIt] > 0) {
-                                ;
-                            }
-                            ret = 0;
-                            goto out;
-                        }
-                    }
-                }
-            } // end for all triangles
-        } // end for all voxels
-    }
-out:
-    IpplTimings::stopTimer (TPInside_m);
-    return ret;
-}
-
-void BoundaryGeometry::updateElement (ElementBase* element) {
-}
-
-void BoundaryGeometry::writeGeomToVtk (string fn) {
-    std::ofstream of;
-    of.open (fn.c_str ());
-    assert (of.is_open ());
-    of.precision (6);
-    of << "# vtk DataFile Version 2.0" << std::endl;
-    of << "generated using DataSink::writeGeoToVtk" << std::endl;
-    of << "ASCII" << std::endl << std::endl;
-    of << "DATASET UNSTRUCTURED_GRID" << std::endl;
-    of << "POINTS " << num_points_m << " float" << std::endl;
-    for (int i = 0; i < num_points_m; i++)
-        of << geo3Dcoords_m[i](0) << " "
-	   << geo3Dcoords_m[i](1) << " "
-	   << geo3Dcoords_m[i](2) << std::endl;
-    of << std::endl;
-
-    of << "CELLS "
-       << num_triangles_m << " "
-       << 4 * num_triangles_m << std::endl;
-    for (int i = 0; i < num_triangles_m; i++)
-        of << "3 "
-	   << PointID (i, 1) << " "
-	   << PointID (i, 2) << " "
-	   << PointID (i, 3) << std::endl;
-    of << "CELL_TYPES " << num_triangles_m << std::endl;
-    for (int i = 0; i < num_triangles_m; i++)
-	of << "5" << std::endl;
-    of << "CELL_DATA " << num_triangles_m << std::endl;
-    of << "SCALARS " << "cell_attribute_data" << " float " << "1" << std::endl;
-    of << "LOOKUP_TABLE " << "default" << std::endl;
-    for (int i = 0; i < num_triangles_m; i++)
-	of << (float)(i) << std::endl;
-    of << std::endl;
-}
-
-Inform& BoundaryGeometry::printInfo (Inform& os) const {
-    os << "* *************Boundary Geometry Info*********************************************** " << endl;
-    os << "* GEOMETRY                   " << getOpalName () << '\n'
-       << "* FGEOM                      " << Attributes::getString (itsAttr[FGEOM]) << '\n'
-       << "* TOPO                       " << Attributes::getString (itsAttr[TOPO]) << '\n'
-       << "* LENGTH                     " << Attributes::getReal (itsAttr[LENGTH]) << '\n'
-       << "* S                          " << Attributes::getReal (itsAttr[S]) << '\n'
-       << "* A                          " << Attributes::getReal (itsAttr[A]) << '\n'
-       << "* B                          " << Attributes::getReal (itsAttr[B]) << '\n';
-    if (getTopology () == string ("BOXCORNER")) {
-        os << "* C                          " << Attributes::getReal (itsAttr[C]) << '\n'
-           << "* L1                         " << Attributes::getReal (itsAttr[L1]) << '\n'
-           << "* L1                         " << Attributes::getReal (itsAttr[L2]) << '\n';
-    }
-    os << "* Total triangle num         " << num_triangles_m << '\n'
-       << "* Total points num           " << num_points_m << '\n'
-       << "* Triangle side(m)   Max=    " << longest_side_max_m << '\n'
-       << "*                    Min=    " << longest_side_min_m << '\n'
-       << "* Geometry bounds(m) Max=    " << maxcoords_m << '\n'
-       << "*                    Min=    " << mincoords_m << '\n'
-       << "* Geometry length(m)         " << len_m << '\n'
-       << "* Boundary box grid num      " << nr_m << '\n'
-       << "* Boundary box size(m)       " << hr_m << '\n'
-       << "* Size of boundary index set " << boundary_ids_m.size () << '\n'
-       << "* Number of all boxes        " << nr_m (0) * nr_m (1) * nr_m (2) << '\n'
-        << endl;
-    os << "* ********************************************************************************** " << endl;
-    return os;
 }
 
 // vi: set et ts=4 sw=4 sts=4:
