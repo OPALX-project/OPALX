@@ -13,6 +13,113 @@
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
 
+struct Ray {
+    Vector_t P0;
+    Vector_t P1;
+};
+struct Triangle {
+    Vector_t V0, V1, V2;
+};
+
+#define SMALL_NUM (0.00000001)
+
+/*
+  Find the 3D intersection of a line segment, ray or line with a triangle.
+
+  Input:
+        kind: type of test: SEGMENT, RAY or LINE
+        P0, P0: defining 
+            a line segment from P0 to P1 or
+            a ray starting at P0 with directional vector P1-P0 or
+            a line through P0 and P1
+        V0, V1, V2: the triangle vertices
+        
+  Output:
+        I: intersection point (when it exists)
+
+  Return:
+        -1 = triangle is degenerate (a segment or point)
+        0 =  disjoint (no intersect)
+        1 =  intersect in unique point I1
+        2 =  are in the same plane
+
+  For algorithm and implementation see:
+  http://geomalgorithms.com/a06-_intersect-2.html
+
+  Copyright 2001 softSurfer, 2012 Dan Sunday
+  This code may be freely used and modified for any purpose
+  providing that this copyright notice is included with it.
+  SoftSurfer makes no warranty for this code, and cannot be held
+  liable for any real or imagined damage resulting from its use.
+  Users of this code must verify correctness for their application.
+ */
+
+int
+BoundaryGeometry::intersect3dLineTriangle (
+    const enum INTERSECTION_TESTS kind,
+    const Vector_t& P0,
+    const Vector_t& P1,
+    const int triangle_id,
+    Vector_t& I
+    ) {
+    Vector_t V0 = getPoint (triangle_id, 1);
+    Vector_t V1 = getPoint (triangle_id, 2);
+    Vector_t V2 = getPoint (triangle_id, 3);
+
+    // get triangle edge vectors and plane normal
+    const Vector_t u = V1 - V0;         // triangle vectors
+    const Vector_t v = V2 - V0;
+    const Vector_t n = cross (u, v);
+    if (n == (Vector_t)0)               // triangle is degenerate
+        return -1;                      // do not deal with this case
+    
+    const Vector_t dir = P1 - P0;       // ray direction vector
+    const Vector_t w0 = P0 - V0;
+    const double a = -dot(n,w0);
+    const double b = dot(n,dir);
+    if (fabs(b) < SMALL_NUM) {          // ray is  parallel to triangle plane
+        if (a == 0)                     // ray lies in triangle plane
+            return 2;
+        else
+            return 0;                   // ray disjoint from plane
+    }
+    
+    // get intersect point of ray with triangle plane
+    const double r = a / b;
+    switch (kind) {
+    case RAY:
+        if (r < 0.0)                    // ray goes away from triangle
+            return 0;                   // => no intersect
+    case SEGMENT:
+        if (r > 1.0)                    // intersection on extendet
+            return 0;                   // segment
+    case LINE:
+        break;
+    };
+    I = P0 + r * dir;                 // intersect point of ray and plane
+    
+    // is I inside T?
+    const double uu = dot(u,u);
+    const double uv = dot(u,v);
+    const double vv = dot(v,v);
+    const Vector_t w = I - V0;
+    const double wu = dot(w,u);
+    const double wv = dot(w,v);
+    const double D = uv * uv - uu * vv;
+    
+    // get and test parametric coords
+    const double s = (uv * wv - vv * wu) / D;
+    if (s < 0.0 || s > 1.0)             // I is outside T
+        return 0;
+    const double t = (uv * wu - uu * wv) / D;
+    if (t < 0.0 || (s + t) > 1.0)       // I is outside T
+        return 0;
+    
+    return 1;                           // I is in T
+}
+
+
+
 using namespace Expressions;
 using namespace Physics;
 
@@ -621,7 +728,9 @@ void BoundaryGeometry::initialize () {
                   smallest bounding box is used to make sure that all part of a triangle
                   is known by boundary bounding box.
                 */
-                static std::vector<Vector_t> getBBoxOfTriangle (BoundaryGeometry* bg, size_t id) {
+                static std::vector<Vector_t> getBBoxOfTriangle (
+                    BoundaryGeometry* bg,
+                    int id) {
                     Vector_t min = bg->getPoint (id, 1);
                     Vector_t max = min;
                     for (int i = 2; i <= 3; i++) {
@@ -646,7 +755,7 @@ void BoundaryGeometry::initialize () {
                     Vektor<int,3> nr,
                     Vector_t origin
                     ) {
-                    /*-------------------------------------------------------------------------*/
+                    /*----------------------------------------------------------------------*/
                     size_t numpoints = 8 * ids.size ();
                     std::set<size_t>::iterator id;
                     std::ofstream of;
@@ -655,7 +764,8 @@ void BoundaryGeometry::initialize () {
                     of.precision (6);
     
                     of << "# vtk DataFile Version 2.0" << std::endl;
-                    of << "generated using BoundaryGeometry::makeBoundaryIndexSet" << std::endl;
+                    of << "generated using BoundaryGeometry::makeBoundaryIndexSet"
+                       << std::endl;
                     of << "ASCII" << std::endl << std::endl;
                     of << "DATASET UNSTRUCTURED_GRID" << std::endl;
                     of << "POINTS " << numpoints << " float" << std::endl;
@@ -705,7 +815,6 @@ void BoundaryGeometry::initialize () {
 
 
             };
-
 
             for (int i = 0; i < bg->num_triangles_m; i++) {
                 std::vector<Vector_t> coords;
@@ -794,7 +903,6 @@ void BoundaryGeometry::initialize () {
             }
             *gmsg << "* Boundary index set built done." << endl;
         }
-
 
 /*
   
@@ -892,7 +1000,6 @@ Change orientation if diff is:
 
 */
 
-
         static void orientTriangles (BoundaryGeometry* bg, int ref_id, int triangle_id) {
 
             // find pts of common edge
@@ -928,6 +1035,7 @@ Change orientation if diff is:
                     orientTriangles (bg, triangle_id, *triangle_iter);
             }
         }
+
 
         /*
           Compute intersection point of line segment given by x and y 
@@ -1016,7 +1124,9 @@ Change orientation if diff is:
         }
 
 
-        static void computeTriangleNeighbors (BoundaryGeometry* bg) {
+        static void computeTriangleNeighbors (
+            BoundaryGeometry* bg
+            ) {
             std::set<int> adjacencies_to_pt  [bg->num_points_m];
 
             // for each triangles find adjacent triangles for each vertex
@@ -1052,25 +1162,30 @@ Change orientation if diff is:
             }
         }
 
-        static inline Vector_t normalVector (BoundaryGeometry* const bg, const int triangle_id) {
+        static inline Vector_t normalVector (
+            BoundaryGeometry* const bg,
+            const int triangle_id
+            ) {
             const Vector_t A = bg->getPoint (triangle_id, 1);
             const Vector_t B = bg->getPoint (triangle_id, 2);
             const Vector_t C = bg->getPoint (triangle_id, 3);
 
-            /*
-              compute triangle normal
-             */
             const Vector_t N = cross (B - A, C - A);
             const double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
             assert (fcmp (magnitude, 0.0, 10) > 0); // in case we have degenerted triangles
             return N / magnitude;
         }
 
-        static bool hasInwardPointingNormal (BoundaryGeometry* const bg, const int triangle_id, Vector_t& N) {
-            N = normalVector (bg, triangle_id);
-
+        static bool hasInwardPointingNormal (
+            BoundaryGeometry* const bg,
+            const int triangle_id
+            ) {
+            const Vector_t A = bg->getPoint (triangle_id, 1);
+            const Vector_t B = bg->getPoint (triangle_id, 2);
+            const Vector_t C = bg->getPoint (triangle_id, 3);
+            
             // choose a point P close to the center of the triangle
-            const Vector_t P = (A+B+C)/3 + N * 0.1 * bg->longest_side_min_m;
+            const Vector_t P = (A+B+C)/3 + bg->TriNormal_m[triangle_id] * 0.1 * bg->longest_side_min_m;
 
             /*
               The triangle normal points inward, if P is
@@ -1082,7 +1197,7 @@ Change orientation if diff is:
                 pointing in the same direction.
             */
             const bool is_inside = isInside (bg, P);
-            const double dotPA_N = dot (P - A, N);
+            const double dotPA_N = dot (P - A, bg->TriNormal_m[0]);
             return (is_inside && dotPA_N >= 0) || (!is_inside && dotPA_N < 0);
         }
 
@@ -1099,23 +1214,23 @@ Change orientation if diff is:
         static void makeTriangleNormalInwardPointing (BoundaryGeometry* bg) {
             bg->isOriented_m = new bool[bg->num_triangles_m];
             memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->num_triangles_m);
+            bg->TriNormal_m.reserve (bg->num_triangles_m);
 
-            Vector_t N;
-            if (!hasInwardPointingNormal (bg, 0, N)) {
-                N = -N;
+            bg->TriNormal_m[0] = normalVector (bg, 0);
+            if (!hasInwardPointingNormal (bg, 0)) {
+                bg->TriNormal_m[0] = -bg->TriNormal_m[0];
                 int id = bg->PointID (0, 2);
                 bg->PointID (0, 2) = bg->PointID (0, 3);
                 bg->PointID (0, 3) = id;
             }
-
-            bg->TriNormal_m.push_back (N);
-
             bg->isOriented_m [0] = true;
 
-            // compute edge-neightbors for each triangle
+            /*
+              compute edge-neightbors for each triangle
+              then orient all triangles, starting with the neighbors of the first
+            */
             computeTriangleNeighbors (bg);
 
-            // orient all triangles, starting with the neighbors of the first
             std::set<int> neighbors = bg->triangleNeighbors_m[0];
             for (std::set<int>::iterator triangle_iter = neighbors.begin();
                  triangle_iter != neighbors.end();
@@ -1124,22 +1239,12 @@ Change orientation if diff is:
                     orientTriangles (bg, 0, *triangle_iter);
             }
 
-#if 0
-            // for debugging only!
-            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                if (!hasInwardPointingNormal (bg, triangle_id)) {
-                    *gmsg << "* Wrong oriented triangle: " << triangle_id << endl;
-                }
-            }
-#endif
             // compute inward-normals
-            bg->TriNormal_m.reserve (bg->num_triangles_m);
             for (int triangle_id = 1; triangle_id < bg->num_triangles_m; triangle_id++) {
                 bg->TriNormal_m.push_back (normalVector (bg, triangle_id));
             }
             *gmsg << "* Triangle Normal built done." << endl;
         }
-
 
         // Calculate the area of triangle given by id.
         static inline double computeArea (BoundaryGeometry* bg, int id) {
@@ -1250,7 +1355,6 @@ Change orientation if diff is:
     Local::makeTriangleNormalInwardPointing (this);
     Local::setBGphysicstag (this);
 
-
     Tribarycent_m = new Vector_t[num_triangles_m];
     TriPrPartloss_m = new double[num_triangles_m];
     TriFEPartloss_m = new double[num_triangles_m];
@@ -1325,7 +1429,6 @@ void BoundaryGeometry::createParticlesOnSurface (
         }
 
     }
-
 }
 
 /**

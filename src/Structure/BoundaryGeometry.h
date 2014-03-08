@@ -352,6 +352,30 @@ public:
         return false;
     }
  
+    inline int intersectLineSegmentTriangle (
+        const Vector_t& P0,
+        const Vector_t& P1,
+        const int triangle_id,
+        Vector_t& I) {
+        return intersect3dLineTriangle (SEGMENT, P0, P1, triangle_id, I);
+    }
+
+    inline int intersectRayTriangle (
+        const Vector_t& P0,
+        const Vector_t& P1,
+        const int triangle_id,
+        Vector_t& I) {
+        return intersect3dLineTriangle (RAY, P0, P1, triangle_id, I);
+    }
+
+    inline int intersectLineTriangle (
+        const Vector_t& P0,
+        const Vector_t& P1,
+        const int triangle_id,
+        Vector_t& I) {
+        return intersect3dLineTriangle (LINE, P0, P1, triangle_id, I);
+    }
+
    
 private:
     std::string h5FileName_m;           // H5hut filename
@@ -442,6 +466,19 @@ private:
         return geo3Dcoords_m[allbfaces_m[4 * triangle_id + vertex_id]];
     }
 
+    enum INTERSECTION_TESTS {
+        SEGMENT,
+        RAY,
+        LINE
+    };
+
+    int intersect3dLineTriangle (
+        const enum INTERSECTION_TESTS kind,
+        const Vector_t& P0,
+        const Vector_t& P1,
+        const int triangle_id,
+        Vector_t& I);
+    
     /*
       Map point to unique voxel ID.
     */
