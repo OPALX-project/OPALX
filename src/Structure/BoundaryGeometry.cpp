@@ -327,11 +327,19 @@ void BoundaryGeometry::updateElement (ElementBase* element) {
   Output:
         I: intersection point (when it exists)
 
-  Return:
-        -1 = triangle is degenerate (a segment or point)
+  Return values for line segment and ray test :
+        -1 = triangle is degenerated (a segment or point)
         0 =  disjoint (no intersect)
-        1 =  intersect in unique point I1
-        2 =  are in the same plane
+        1 =  are in the same plane
+        2 =  intersect in unique point I1
+
+  Return values for line intersection test :
+        -1: triangle is degenerated (a segment or point)
+        0:  disjoint (no intersect)
+        1:  are in the same plane
+        2:  intersect in unique point I1, with r < 0.0
+        3:  intersect in unique point I1, with 0.0 <= r <= 1.0
+        4:  intersect in unique point I1, with 1.0 < r
 
   For algorithm and implementation see:
   http://geomalgorithms.com/a06-_intersect-2.html
@@ -369,9 +377,9 @@ BoundaryGeometry::intersect3dLineTriangle (
     const double b = dot(n,dir);
     if (fabs(b) < SMALL_NUM) {          // ray is  parallel to triangle plane
         if (a == 0)                     // ray lies in triangle plane
-            return 2;
-        else
-            return 0;                   // ray disjoint from plane
+            return 1;
+        else                            // ray disjoint from plane
+            return 0;
     }
     
     // get intersect point of ray with triangle plane
@@ -386,7 +394,7 @@ BoundaryGeometry::intersect3dLineTriangle (
     case LINE:
         break;
     };
-    I = P0 + r * dir;                 // intersect point of ray and plane
+    I = P0 + r * dir;                   // intersect point of ray and plane
     
     // is I inside T?
     const double uu = dot(u,u);
@@ -404,8 +412,14 @@ BoundaryGeometry::intersect3dLineTriangle (
     const double t = (uv * wu - uu * wv) / D;
     if (t < 0.0 || (s + t) > 1.0)       // I is outside T
         return 0;
-    
-    return 1;                           // I is in T
+
+    // intersection point is in triangle
+    if (r < 0.0)
+        return 2;               
+    else if ((0.0 <= r) && (r <= 1.0))
+        return 3;
+    else
+        return 4;
 }
 
 /*
@@ -419,12 +433,14 @@ int BoundaryGeometry::map_point_to_voxel_id (Vector_t x) {
     int id_tx = floor ((x[0] - mincoords_m[0]) / hr_m[0]);
     int id_ty = floor ((x[1] - mincoords_m[1]) / hr_m[1]);
     int id_tz = floor ((x[2] - mincoords_m[2]) / hr_m[2]);
-    
+    /*
     if (id_tx == -1) id_tx = 0;
     if (id_ty == -1) id_ty = 0;
     if (id_tz == -1) id_tz = 0;
-    
-    if (id_tx < 0 || id_ty < 0 || id_tz < 0) {
+    */
+    if (id_tx < 0 || id_tx >= nr_m[0] ||
+        id_ty < 0 || id_ty >= nr_m[1] ||
+        id_tz < 0 || id_tz >= nr_m[2]) {
         return 0;
     }
     return 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
@@ -620,7 +636,7 @@ void BoundaryGeometry::initialize () {
                 const Vector_t e1 = bg->getPoint (i, 2) - bg->getPoint (i, 1);
                 const Vector_t e2 = bg->getPoint (i, 3) - bg->getPoint (i, 2);
                 const Vector_t e3 = bg->getPoint (i, 1) - bg->getPoint (i, 3);
-                const int num_segments = 200;
+                const int num_segments = 100;
                 const double x = 1.0 / num_segments;
                 for (int j = 1; j <= num_segments; j++) {
                     // discretize the three central lines.
@@ -670,23 +686,60 @@ void BoundaryGeometry::initialize () {
                 P = Vector_t (max[0], max[1], max[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
                 P = Vector_t (max[0], max[1], min[2]); if (Local::is_in_voxel (P, bg->mincoords_m, bg->maxcoords_m)) coords.push_back (P);
 #endif
-                std::vector<Vector_t>::iterator point;
-                for (point = coords.begin (); point != coords.end (); point++) {
+                for (std::vector<Vector_t>::iterator point = coords.begin ();
+                     point != coords.end ();
+                     point++) {
                     /*
                       if (!is_in_bbox (*point, mincoords_m, maxcoords_m))
                       continue;
                     */
                     int id = bg->map_point_to_voxel_id (*point);
                     assert (id > 0);
-                    // insert ID to std::set! 
-                    bg->boundary_ids_m.insert (id);
+                    // insert ID to std::set!
+                    int nx = bg->nr_m[0];   // nx >> 3
+                    int ny = bg->nr_m[1];   // ny >> 3
+
+                    int idc[27] = {                  // if nx = ny = 3
+                        id - nx * ny - nx - 1,       // id-13
+                        id - nx * ny - nx,           // id-12
+                        id - nx * ny - nx + 1,       // id-11    
+                        id - nx * ny - 1,            // id-10
+                        id - nx * ny,                // id-9
+                        id - nx * ny + 1,            // id-8
+                        id - nx * ny + nx - 1,       // id-7
+                        id - nx * ny + nx,           // id-6
+                        id - nx * ny + nx + 1,       // id-5
+                        id - nx - 1,                 // id-4
+                        id - nx,                     // id-3
+                        id - nx + 1,                 // id-2
+                        id - 1,                      // id-1
+                        id,                          // id
+                        id + 1,                      // id+1
+                        id + nx - 1,                 // id+2
+                        id + nx,                     // id+3
+                        id + nx + 1,                 // id+4
+                        id + nx * ny - nx - 1,       // id+5
+                        id + nx * ny - nx,           // id+6
+                        id + nx * ny - nx + 1,       // id+7
+                        id + nx * ny - 1,            // id+8
+                        id + nx * ny,                // id+9
+                        id + nx * ny + 1,            // id+10
+                        id + nx * ny + nx - 1,       // id+11
+                        id + nx * ny + nx,           // id+12
+                        id + nx * ny + nx + 1,       // id+13
+                    };
+                    size_t start = -1;
+                    while (idc[++start] <= 0);
+                    std::set<int> voxel_ids(idc+start, idc+27-start);
+
+                    bg->boundary_ids_m.insert (voxel_ids.begin(), voxel_ids.end());
             
-                    std::map< size_t, std::set<size_t> >::iterator It;
+                    std::map< int, std::set<int> >::iterator It;
                     It = bg->CubicLookupTable_m.find (id);
                     if (It == bg->CubicLookupTable_m.end ()) {
-                        std::set<size_t> tmp;
+                        std::set<int> tmp;
                         tmp.insert (i);
-                        bg->CubicLookupTable_m.insert (std::pair <size_t, std::set<size_t> > (id, tmp));
+                        bg->CubicLookupTable_m.insert (std::pair <int, std::set<int> > (id, tmp));
                     } else
                         (*It).second.insert (i);
                 }
@@ -1185,10 +1238,10 @@ int BoundaryGeometry::PartInside (
     const Vector_t r,
     const Vector_t v,
     const double dt,
-    int Parttype,
+    const int Parttype,
     const double Qloss,
     Vector_t& intecoords,
-    int& triId,
+    int& triangle_id,
     double& Energy
     ) {
     class Local {
@@ -1254,24 +1307,27 @@ int BoundaryGeometry::PartInside (
     const double p_sq = dot (v, v);
     const double betaP = 1.0 / sqrt (1.0 + p_sq);
 
-    const Vector_t temp1 = r; //particle position in timestep n;
-    const Vector_t temp = r + (Physics::c * betaP * v * dt); //particle position in tstep n+1;
-    double rI = 0.0;
+    const Vector_t P0 = r; //particle position in timestep n;
+    const Vector_t P1 = r + (Physics::c * betaP * v * dt); //particle position in tstep n+1;
     Vector_t intersection_pt = outside_point_m;
 
     IpplTimings::startTimer (TPInside_m);
 
-    /* test if particle position in timestep n is inside the cubic bounding box.
-       If true, do the following tests */
-    int id;
-    if (boundary_ids_m.find (map_point_to_voxel_id (temp1)) != boundary_ids_m.end ()) {
+    if (v == (Vector_t)0)               // nothing to do if momenta == 0
+        goto done;
+    /*
+      Test if particle position in timestep n or n+1 is inside the voxelized boundary
+      If not, we are done ...
+    */
+    int voxel_id;
+    if (boundary_ids_m.find (map_point_to_voxel_id (P0)) != boundary_ids_m.end ()) {
         // particle is in geometry at timestep n
-        id = map_point_to_voxel_id (temp1);
-    } else if (boundary_ids_m.find (map_point_to_voxel_id (temp)) != boundary_ids_m.end ()) {
+        voxel_id = map_point_to_voxel_id (P0);
+    } else if (boundary_ids_m.find (map_point_to_voxel_id (P1)) != boundary_ids_m.end ()) {
         // particle is in geometry at timestep n+1
-        id = map_point_to_voxel_id (temp);
+        voxel_id = map_point_to_voxel_id (P1);
     } else {
-        goto out;
+        goto done;
     }
     { /* we need this brace! Otherwise the compiler (gcc) complains about
          initializing nx, ny und idc after above goto statement. */
@@ -1279,78 +1335,79 @@ int BoundaryGeometry::PartInside (
         /* Build an array containing the IDs of 27(3*3*3) voxels. The ID
            of the voxel containing the particle, is the center of these
            voxels. Just for the situation that even the line segment
-           cross more than one voxel.*/
+           crosses more than one voxel.*/
         int nx = nr_m[0];
         int ny = nr_m[1];
         int idc[27] = {
-            id,                    id + 1,                id - 1,
-            id + nx,               id - nx,               id + nx + 1,
-            id + nx - 1,           id - nx - 1,           id - nx + 1,
-            id + nx * ny,          id + nx * ny + 1,      id + nx * ny - 1,
-            id + nx * ny + nx,     id + nx * ny - nx,     id + nx * ny + nx + 1,
-            id + nx * ny + nx - 1, id + nx * ny - nx - 1, id + nx * ny - nx + 1,
-            id - nx * ny,          id - nx * ny + 1,      id - nx * ny - 1,
-            id - nx * ny + nx,     id - nx * ny - nx,     id - nx * ny + nx + 1,
-            id - nx * ny + nx - 1, id - nx * ny - nx - 1, id - nx * ny - nx + 1
+            voxel_id,                    voxel_id + 1,                voxel_id - 1,
+            voxel_id + nx,               voxel_id - nx,               voxel_id + nx + 1,
+            voxel_id + nx - 1,           voxel_id - nx - 1,           voxel_id - nx + 1,
+            voxel_id + nx * ny,          voxel_id + nx * ny + 1,      voxel_id + nx * ny - 1,
+            voxel_id + nx * ny + nx,     voxel_id + nx * ny - nx,     voxel_id + nx * ny + nx + 1,
+            voxel_id + nx * ny + nx - 1, voxel_id + nx * ny - nx - 1, voxel_id + nx * ny - nx + 1,
+            voxel_id - nx * ny,          voxel_id - nx * ny + 1,      voxel_id - nx * ny - 1,
+            voxel_id - nx * ny + nx,     voxel_id - nx * ny - nx,     voxel_id - nx * ny + nx + 1,
+            voxel_id - nx * ny + nx - 1, voxel_id - nx * ny - nx - 1, voxel_id - nx * ny - nx + 1
         };
         
         /* Test all the 27 voxels to find if the line segment has
            intersection with the triangles in those voxels. */
         for (int k = 0; k < 27; k++) {
-            std::map< size_t, std::set<size_t> >::iterator It;
-            It = CubicLookupTable_m.find (idc[k]);
-            if (It == CubicLookupTable_m.end ())
-                continue; // not a voxel
+            std::map< int, std::set<int> >::iterator triangles_overlaping_with_voxel
+                = CubicLookupTable_m.find (idc[k]);
+            if (triangles_overlaping_with_voxel == CubicLookupTable_m.end ())
+                continue;               // not in voxelization of boundary
             
             // for each triangle in this voxel
-            std::set<size_t> ::iterator faceIt;
-            for (faceIt = (*It).second.begin ();
-                 faceIt != (*It).second.end ();
-                 faceIt++) {
-                if (v != 0 && dot (v, TriNormal_m[*faceIt]) <= 0.0) {
-                    /* If the particle have a momenta greater zero with opposite
-                       direction to triangle normal, do the following tests. */
-                    if (Local::FindIntersection (
-                            this,
-                            temp1,      // IN: particle position in tstep n
-                            temp,       // IN: particle position in tstep n+1
-                            *faceIt,    // IN: triangle id
-                            rI,         // OUT: ratio
-                            intersection_pt // OUT: intersection points
-                            )) {       
-                        /* Test if the intersection is between the particle
-                           position in tstep n and particle position in
-                           tstep n+1 or is in the extension of line segment
-                           when particle position in tstep n is already
-                           outside the geometry( this may be not accurate
-                           and may be the source of problem.) */
-                        if ((rI >= -0.00001 && rI <= 1.00001) ||
-                            (rI < 0 && dot (temp1 - Tribarycent_m[*faceIt], TriNormal_m[*faceIt]) <= 0.0)) {
-                            intecoords = intersection_pt;
-                            triId = (*faceIt);
-                            assert (dot (TriNormal_m[*faceIt], v) < 0 || intersection_pt == temp1);
-                            // energy in eV
-                            Energy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
-                            if (Parttype == 0)
-                                TriPrPartloss_m[*faceIt] += Qloss;
-                            else if (Parttype == 1)
-                                TriFEPartloss_m[*faceIt] += Qloss;
-                            else
-                                TriSePartloss_m[*faceIt] += Qloss;
-                            if (TriPrPartloss_m[*faceIt] > 0 ||
-                                TriSePartloss_m[*faceIt] > 0 ||
-                                TriFEPartloss_m[*faceIt] > 0) {
-                                ;
-                            }
-                            ret = 0;
-                            goto out;
-                        }
+            for (std::set<int>::iterator it = (*triangles_overlaping_with_voxel).second.begin ();
+                 it != (*triangles_overlaping_with_voxel).second.end ();
+                 it++) {
+                if (dot (v, TriNormal_m[*it]) >= 0.0) 
+                    continue;           // particle moves away from triangle
+
+                // particle moves towards triangle
+                int intersect_result = intersect3dLineTriangle (
+                    SEGMENT,
+                    P0, P1,
+                    *it,
+                    intersection_pt);
+                switch (intersect_result) {
+                case -1:                // triangle is degenerated
+                    assert (intersect_result != -1);
+                case 0:                 // no intersection
+                    break;              
+                case 1:                 // line and triangle are in same plane
+                case 3:                 // unique intersection in segment
+                    triangle_id = (*it);
+                    goto found;
+                case 2:                 // unique intersection, but both particles are outside
+                    //if (dot (P0 - Tribarycent_m[*it], TriNormal_m[*it]) <= 0.0)
+                    {
+                        triangle_id = (*it);
+                        goto found;
                     }
-                }
-            } // end for all triangles
-        } // end for all voxels
+                };
+            }                           // end for all triangles
+        }                               // end for all voxels
     }
-out:
+found:                                  // particle hits boundary
+    intecoords = intersection_pt;
+    // energy in eV
+    Energy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
+    if (Parttype == 0)
+        TriPrPartloss_m[triangle_id] += Qloss;
+    else if (Parttype == 1)
+        TriFEPartloss_m[triangle_id] += Qloss;
+    else
+        TriSePartloss_m[triangle_id] += Qloss;
+    if (TriPrPartloss_m[triangle_id] > 0 ||
+        TriSePartloss_m[triangle_id] > 0 ||
+        TriFEPartloss_m[triangle_id] > 0) {
+        ;
+    }
+    ret = 0;
+
+done:
     IpplTimings::stopTimer (TPInside_m);
     return ret;
 }

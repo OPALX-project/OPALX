@@ -398,7 +398,7 @@ private:
     Vektor<int, 3> nr_m;                // number of intervals of geometry in X,Y,Z direction
     Vector_t mincoords_m;               // minimum of geometry coordinate.
     Vector_t maxcoords_m;               // maximum of geometry coordinate.
-    std::map< size_t, std::set<size_t> >
+    std::map< int, std::set<int> >
             CubicLookupTable_m;         // Maps boundary box ID to included triangles
     bool* isOriented_m;                  // IDs of oriented triangles.
     std::map< int, std::set<int> >
