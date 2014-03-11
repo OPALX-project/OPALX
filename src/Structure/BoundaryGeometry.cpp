@@ -438,11 +438,19 @@ int BoundaryGeometry::map_point_to_voxel_id (Vector_t x) {
     if (id_ty == -1) id_ty = 0;
     if (id_tz == -1) id_tz = 0;
     */
+#if 0
     if (id_tx < 0 || id_tx >= nr_m[0] ||
         id_ty < 0 || id_ty >= nr_m[1] ||
         id_tz < 0 || id_tz >= nr_m[2]) {
         return 0;
     }
+#endif
+    if (id_tx < 0 ||
+        id_ty < 0 ||
+        id_tz < 0) {
+        return 0;
+    }
+
     return 1 + id_tz * nr_m[0] * nr_m[1] + id_ty * nr_m[0] + id_tx;
 }
 
