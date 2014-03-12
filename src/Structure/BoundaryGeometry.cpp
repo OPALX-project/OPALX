@@ -444,6 +444,15 @@ int BoundaryGeometry::map_point_to_voxel_id (Vector_t x) {
         id_tz < 0 || id_tz >= nr_m[2]) {
         return 0;
     }
+    if (id_tx >= nr_m[0] || id_ty >= nr_m[1] || id_tz >= nr_m[2]) {
+        *gmsg << "Warning: "
+              << "(" << x[0] << ", " << x[1] << ", " << x[2] << ")"
+              << " outside BBox? "
+              << "(" << mincoords_m[0] << ", " << mincoords_m[1] << ", " << mincoords_m[2] << ")"
+              << ", "
+              << "(" << maxcoords_m[0] << ", " << maxcoords_m[1] << ", " << maxcoords_m[2] << ")"
+              << endl;
+    }  
 #endif
     if (id_tx < 0 ||
         id_ty < 0 ||
@@ -1252,65 +1261,6 @@ int BoundaryGeometry::PartInside (
     int& triangle_id,
     double& Energy
     ) {
-    class Local {
-
-    public:
-        static bool FindIntersection (
-            BoundaryGeometry* bg,
-            const Vector_t& x,          // [in] start of line segment
-            const Vector_t& y,          // [in] end of line segment
-            const size_t& triangle_id,  // [in] triangle ID
-            double& rI,
-            Vector_t& intersection_pt   // [out] intersection point
-            ) {
-            IpplTimings::startTimer (bg->TRayTrace_m);
-
-            bool result = false;
-            const Vector_t t0 = bg->getPoint (triangle_id, 1);
-            const Vector_t u = bg->getPoint (triangle_id, 2) - t0;
-            const Vector_t v = bg->getPoint (triangle_id, 3) - t0;
-            const Vector_t lt = t0 - x;
-            const Vector_t n = bg->TriNormal_m[triangle_id];
-
-            const Vector_t lseg = y - x; // length and direction of line segment;
-            const double dotLT = dot (n, lseg);
-            if (fabs (dotLT) < 1.0e-10) {
-                if ((x == bg->Tribarycent_m[triangle_id]) && (x != y)) {
-                    /*
-                      Some initialized particles have momenta parallel to its
-                      triangle normal, this kind of particles will lose
-                      directly
-                    */
-                    intersection_pt = bg->Tribarycent_m[triangle_id];
-                    return true;
-                }
-            } else {
-                // find intersection position w.r.t x and the unit is (y-x);
-                rI = dot (n, lt) / dotLT;
-
-                // find the coordinate of intersection plane.
-                const Vector_t ItSec = x + rI * lseg;
-
-                // test if intersection is inside the triangle.
-                const Vector_t w = ItSec - t0;
-                const double tmp1 = dot (u, v);
-                const double tmp2 = dot (w, v);
-                const double tmp3 = dot (u, w);
-                const double tmp4 = dot (u, u);
-                const double tmp5 = dot (v, v);
-                const double temp = (tmp1 * tmp1 - tmp4 * tmp5);
-                const double sI = (tmp1 * tmp2 - tmp5 * tmp3) / temp;
-                const double tI = (tmp1 * tmp3 - tmp4 * tmp2) / temp;
-                if ((sI >= 0.0) && (tI >= 0.0) && ((sI + tI) <= 1.0)) {
-                    intersection_pt = ItSec;
-                    result = true;
-                }
-            }
-            IpplTimings::stopTimer (bg->TRayTrace_m);
-            return result;
-        }
-    };
-
     int ret = -1;
     const double p_sq = dot (v, v);
     const double betaP = 1.0 / sqrt (1.0 + p_sq);
@@ -1360,6 +1310,7 @@ int BoundaryGeometry::PartInside (
         
         /* Test all the 27 voxels to find if the line segment has
            intersection with the triangles in those voxels. */
+        triangle_id = -1;
         for (int k = 0; k < 27; k++) {
             std::map< int, std::set<int> >::iterator triangles_overlaping_with_voxel
                 = CubicLookupTable_m.find (idc[k]);
@@ -1387,33 +1338,28 @@ int BoundaryGeometry::PartInside (
                 case 1:                 // line and triangle are in same plane
                 case 3:                 // unique intersection in segment
                     triangle_id = (*it);
-                    goto found;
                 case 2:                 // unique intersection, but both particles are outside
                     //if (dot (P0 - Tribarycent_m[*it], TriNormal_m[*it]) <= 0.0)
                     {
                         triangle_id = (*it);
-                        goto found;
                     }
                 };
+                if (triangle_id >= 0) {
+                    intecoords = intersection_pt;
+                    // energy in eV
+                    Energy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
+                    if (Parttype == 0)
+                        TriPrPartloss_m[triangle_id] += Qloss;
+                    else if (Parttype == 1)
+                        TriFEPartloss_m[triangle_id] += Qloss;
+                    else
+                        TriSePartloss_m[triangle_id] += Qloss;
+                    ret = 0;
+                    goto done;
+                }
             }                           // end for all triangles
         }                               // end for all voxels
     }
-found:                                  // particle hits boundary
-    intecoords = intersection_pt;
-    // energy in eV
-    Energy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
-    if (Parttype == 0)
-        TriPrPartloss_m[triangle_id] += Qloss;
-    else if (Parttype == 1)
-        TriFEPartloss_m[triangle_id] += Qloss;
-    else
-        TriSePartloss_m[triangle_id] += Qloss;
-    if (TriPrPartloss_m[triangle_id] > 0 ||
-        TriSePartloss_m[triangle_id] > 0 ||
-        TriFEPartloss_m[triangle_id] > 0) {
-        ;
-    }
-    ret = 0;
 
 done:
     IpplTimings::stopTimer (TPInside_m);
