@@ -23,6 +23,8 @@ class OpalBeamline;
 class ElementBase;
 
 #include <assert.h>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "AbstractObjects/Definition.h"
 #include "Attributes/Attributes.h"
@@ -391,14 +393,19 @@ private:
     std::vector<double> Triarea_m;       // area of triangles
 
     std::vector<Vector_t> geo3Dcoords_m; // geometry point coordinates 
-
-    std::set<size_t> boundary_ids_m;    // boundary triangle IDs
-    Vector_t len_m;                     // length of geometry in 3D Cartesian coordinates.
-    Vector_t hr_m;                      // length of cubic box
-    Vektor<int, 3> nr_m;                // number of intervals of geometry in X,Y,Z direction
     Vector_t mincoords_m;               // minimum of geometry coordinate.
     Vector_t maxcoords_m;               // maximum of geometry coordinate.
-    std::map< int, std::set<int> >
+
+    std::set<size_t> boundary_ids_m;    // boundary triangle IDs
+    Vector_t hr_m;                      // length of cubic box
+    Vector_t len_m;                     // extend of geometries bounding box
+    Vektor<int, 3> nr_m;                // number of intervals of geometry in X,Y,Z direction
+    struct {
+        Vector_t extend;                // extend of voxel mesh
+        Vector_t minExtend;
+        Vector_t maxExtend;
+    } voxelMesh_m;
+    std::unordered_map< int, std::unordered_set<int> >
             CubicLookupTable_m;         // Maps boundary box ID to included triangles
     bool* isOriented_m;                  // IDs of oriented triangles.
     std::map< int, std::set<int> >
