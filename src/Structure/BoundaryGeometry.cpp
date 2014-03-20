@@ -427,7 +427,7 @@ void BoundaryGeometry::updateElement (ElementBase* element) {
 
 int
 BoundaryGeometry::intersect3dLineTriangle (
-    Const enum INTERSECTION_TESTS kind,
+    const enum INTERSECTION_TESTS kind,
     const Vector_t& P0,
     const Vector_t& P1,
     const int triangle_id,
@@ -1148,8 +1148,7 @@ int BoundaryGeometry::PartInside (
     const int Parttype,                 // [in] type of particle
     const double Qloss,                 // [in]
     Vector_t& intecoords,               // [out] intersection with boundary
-    int& triangle_id,                   // [out] appropriate triangle 
-    double& Energy
+    int& triangle_id                    // [out] appropriate triangle 
     ) {
     int ret = -1;
     if (v == (Vector_t)0)               // nothing to do if momenta == 0
@@ -1236,8 +1235,6 @@ int BoundaryGeometry::PartInside (
             if (triangle_id >= 0) {
                 *gmsg << "* Intersection test returned: " << intersect_result << endl;
                 intecoords = intersection_pt;
-                // energy in eV
-                Energy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
                 if (Parttype == 0)
                     TriPrPartloss_m[triangle_id] += Qloss;
                 else if (Parttype == 1)
@@ -1356,13 +1353,16 @@ int BoundaryGeometry::doBGphysics (
 int BoundaryGeometry::doBGphysics (
     const Vector_t& intecoords,
     const int& triId,
-    const double& incEnergy,
     const double& incQ,
     const Vector_t& incMomentum,
     PartBunch* itsBunch,
     double& seyNum
     ) {
     Inform msg ("BGphyDebug");
+
+    const double p_sq = dot (incMomentum, incMomentum);    
+    const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
+
     short BGtag = TriBGphysicstag_m[triId];
     int ret = 0;
     if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
@@ -1425,13 +1425,15 @@ int BoundaryGeometry::doBGphysics (
 int BoundaryGeometry::doBGphysics (
     const Vector_t& intecoords,
     const int& triId,
-    const double& incEnergy,
     const double& incQ,
     const Vector_t& incMomentum,
     PartBunch* itsBunch,
     double& seyNum,
     const int& para_null
     ) {
+    const double p_sq = dot (incMomentum, incMomentum);    
+    const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
+
     short BGtag = TriBGphysicstag_m[triId];
     int ret = 0;
     if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {

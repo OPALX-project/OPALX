@@ -198,11 +198,10 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
 
   Vector_t intecoords = bgf_m->getmaxcoords() + bgf_m->gethr();
   double dtime = 0.5 * itsBunch->getdT(); 
-  double Energy = 0.0;
   int triId = 0;     
   size_t Nimpact = 0;
   for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
-    int res = bgf_m->PartInside(itsBunch->R[i]*1.0e-3, itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy);
+    int res = bgf_m->PartInside(itsBunch->R[i]*1.0e-3, itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
     if(res >= 0) { 
       itsBunch->Bin[i] = -1;
       Nimpact++;

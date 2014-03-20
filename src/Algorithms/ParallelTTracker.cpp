@@ -1801,10 +1801,9 @@ void ParallelTTracker::bgf_main_collision_test() {
                  */
                 Vector_t intecoords = outr;
                 int triId = 0;
-                double Energy = 0.0;
-                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy);
+                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
                 if(res == 0) {
-                    res += bgf_m->doBGphysics(intecoords, triId, Energy, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
+                    res += bgf_m->doBGphysics(intecoords, triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
                 }
                 if(res >= 0) {
                     itsBunch->Bin[i] = -1;
@@ -1821,11 +1820,9 @@ void ParallelTTracker::bgf_main_collision_test() {
                  momentum.
                  */
 
-                double p_sq = dot(itsBunch->P[i], itsBunch->P[i]);
-                double Energy =  Physics::m_e * (sqrt(1.0 + p_sq) - 1.0) * 1.0e9;
                 int triId = itsBunch->TriID[i];
 
-                int res = bgf_m->doBGphysics(itsBunch->R[i], triId, Energy, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
+                int res = bgf_m->doBGphysics(itsBunch->R[i], triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
                 if(res >= 0) {
                     itsBunch->Bin[i] = -1;
                     Nimpact_m++;
@@ -1866,11 +1863,11 @@ void ParallelTTracker::bgf_main_collision_test() {
             if(itsBunch->TriID[i] == 0) {
                 Vector_t intecoords = outr;
                 int triId = 0;
-                double Energy = 0.0;
-                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy);
+
+                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
 
                 if(res == 0) {
-                    res += bgf_m->doBGphysics(intecoords, triId, Energy, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum, para_null);
+                    res += bgf_m->doBGphysics(intecoords, triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum, para_null);
                 }
 
                 if(res >= 0) {
@@ -1882,11 +1879,9 @@ void ParallelTTracker::bgf_main_collision_test() {
                 // Particles which collide the boundary in previous two tests will not do main collision test and directly call
                 // secondary emission module according to their energy and momentum before collision. Attention, these secondaries have not
                 // been kicked and are without new momentum.
-                double p_sq = dot(itsBunch->P[i], itsBunch->P[i]);
-                double Energy =  Physics::m_e * (sqrt(1.0 + p_sq) - 1.0) * 1.0e9;
                 int triId = itsBunch->TriID[i];
                 //assert(dot(itsBunch->P[i], bgf_m->TriNormal_m[triId]) < 0);
-                int res = bgf_m->doBGphysics(itsBunch->R[i], triId, Energy, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum, para_null);
+                int res = bgf_m->doBGphysics(itsBunch->R[i], triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum, para_null);
 
                 if(res >= 0) {
                     itsBunch->Bin[i] = -1;
@@ -1912,8 +1907,7 @@ void ParallelTTracker::bgf_main_collision_test() {
             Vector_t intecoords = outr;
             if(itsBunch->TriID[i] == 0) { // Particles which do not collide the boundary in collision test after kick
                 int triId = 0;
-                double Energy = 0.0;
-                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], itsBunch->getdT(), itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy);
+                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], itsBunch->getdT(), itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
                 if(res == 0) {
                     res += bgf_m->doBGphysics(intecoords, triId);
                 }
@@ -2004,8 +1998,7 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
         int triId = 0;
 
         if(itsBunch->PType[i] == 3) { // only test newly generated secondaries
-            double Energy = 0.0;
-            particleHitBoundary = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], 0.5 * itsBunch->dt[i], itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy) == 0;
+            particleHitBoundary = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], 0.5 * itsBunch->dt[i], itsBunch->PType[i], itsBunch->Q[i], intecoords, triId) == 0;
         }
 
 
@@ -2122,10 +2115,9 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
         int triId = 0;
         itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
         if(itsBunch->TriID[i] == 0) { // test all particles except those already have collided the boundary in the first half step.
-            double Energy = 0.0;
             Vector_t scale_factor(0.0);
 
-            particleHitBoundary =  bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId, Energy) == 0;
+            particleHitBoundary =  bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId) == 0;
 
             if(particleHitBoundary) {
                 itsBunch->R[i] = intecoords / Vector_t(Physics::c * itsBunch->dt[i]);
@@ -2350,10 +2342,10 @@ void ParallelTTracker::computeExternalFields() {
         msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
         surfaceStatus_m = false;
 	/*       
- if (sphys_m) {
-            delete sphys_m;
-	    sphys_m = NULL;
-	}
+		 if (sphys_m) {
+		 delete sphys_m;
+		 sphys_m = NULL;
+		 }
 	*/
     }
     size_t ne = 0;

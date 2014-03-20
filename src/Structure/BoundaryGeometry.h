@@ -87,7 +87,7 @@ public:
         int Parttype,
         const double Qloss,
         Vector_t& intecoords,
-        int& triId, double& Energy);
+        int& triId);
 
     // non secondary emission version.
     int doBGphysics (
@@ -98,7 +98,6 @@ public:
     int doBGphysics (
         const Vector_t& intecoords,
         const int& triId,
-        const double& incEnergy,
         const double& incQ,
         const Vector_t& incMomentum,
         PartBunch* itsBunch,
@@ -108,7 +107,6 @@ public:
     int doBGphysics (
         const Vector_t& intecoords,
         const int& triId,
-        const double& incEnergy,
         const double& incQ,
         const Vector_t& incMomentum,
         PartBunch* itsBunch,
