@@ -190,6 +190,383 @@ static void write_voxel_mesh (
     of << std::endl;
 }
 
+#include <math.h>
+
+#define EPS 10e-5
+#define SIGN3( A )                                           \
+    (((A)[0] < EPS) ? 4 : 0 | ((A)[0] > -EPS) ? 32 : 0 |       \
+     ((A)[1] < EPS) ? 2 : 0 | ((A)[1] > -EPS) ? 16 : 0 |       \
+     ((A)[2] < EPS) ? 1 : 0 | ((A)[2] > -EPS) ? 8 : 0)
+
+#define LERP( A, B, C) ((B)+(A)*((C)-(B)))
+#define MIN3(a,b,c) ((((a)<(b))&&((a)<(c))) ? (a) : (((b)<(c)) ? (b) : (c)))
+#define MAX3(a,b,c) ((((a)>(b))&&((a)>(c))) ? (a) : (((b)>(c)) ? (b) : (c)))
+#define INSIDE 0
+#define OUTSIDE 1
+
+typedef struct {
+    Vector_t v1;                 /* Vertex1 */
+    Vector_t v2;                 /* Vertex2 */
+    Vector_t v3;                 /* Vertex3 */
+} Triangle; 
+
+typedef struct {
+    Vector_t v1;
+    Vector_t v2;
+} Cube;
+
+/*___________________________________________________________________________*/
+
+/* Which of the six face-plane(s) is point P outside of? */
+
+static inline int
+face_plane (
+    const Vector_t p
+    ) {
+    int outcode;
+
+    outcode = 0;
+    if (p[0] >  .5) outcode |= 0x01;
+    if (p[0] < -.5) outcode |= 0x02;
+    if (p[1] >  .5) outcode |= 0x04;
+    if (p[1] < -.5) outcode |= 0x08;
+    if (p[2] >  .5) outcode |= 0x10;
+    if (p[2] < -.5) outcode |= 0x20;
+    return(outcode);
+}
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+/* Which of the twelve edge plane(s) is point P outside of? */
+
+static inline int
+bevel_2d (
+    const Vector_t p
+    ) {
+    int outcode;
+
+    outcode = 0;
+    if ( p[0] + p[1] > 1.0) outcode |= 0x001;
+    if ( p[0] - p[1] > 1.0) outcode |= 0x002;
+    if (-p[0] + p[1] > 1.0) outcode |= 0x004;
+    if (-p[0] - p[1] > 1.0) outcode |= 0x008;
+    if ( p[0] + p[2] > 1.0) outcode |= 0x010;
+    if ( p[0] - p[2] > 1.0) outcode |= 0x020;
+    if (-p[0] + p[2] > 1.0) outcode |= 0x040;
+    if (-p[0] - p[2] > 1.0) outcode |= 0x080;
+    if ( p[1] + p[2] > 1.0) outcode |= 0x100;
+    if ( p[1] - p[2] > 1.0) outcode |= 0x200;
+    if (-p[1] + p[2] > 1.0) outcode |= 0x400;
+    if (-p[1] - p[2] > 1.0) outcode |= 0x800;
+    return(outcode);
+}
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+
+  Which of the eight corner plane(s) is point P outside of?
+*/
+static inline int
+bevel_3d (
+    const Vector_t p
+    ) {
+    int outcode;
+
+    outcode = 0;
+    if (( p[0] + p[1] + p[2]) > 1.5) outcode |= 0x01;
+    if (( p[0] + p[1] - p[2]) > 1.5) outcode |= 0x02;
+    if (( p[0] - p[1] + p[2]) > 1.5) outcode |= 0x04;
+    if (( p[0] - p[1] - p[2]) > 1.5) outcode |= 0x08;
+    if ((-p[0] + p[1] + p[2]) > 1.5) outcode |= 0x10;
+    if ((-p[0] + p[1] - p[2]) > 1.5) outcode |= 0x20;
+    if ((-p[0] - p[1] + p[2]) > 1.5) outcode |= 0x40;
+    if ((-p[0] - p[1] - p[2]) > 1.5) outcode |= 0x80;
+    return(outcode);
+}
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+  Test the point "alpha" of the way from P1 to P2
+  See if it is on a face of the cube
+  Consider only faces in "mask"
+*/
+
+static inline int
+check_point (
+    const Vector_t p1,
+    const Vector_t p2,
+    const double alpha,
+    const int mask
+    ) {
+    Vector_t plane_point;
+
+    plane_point[0] = LERP(alpha, p1[0], p2[0]);
+    plane_point[1] = LERP(alpha, p1[1], p2[1]);
+    plane_point[2] = LERP(alpha, p1[2], p2[2]);
+    return(face_plane(plane_point) & mask);
+}
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+  Compute intersection of P1 --> P2 line segment with face planes
+  Then test intersection point to see if it is on cube face
+  Consider only face planes in "outcode_diff"
+  Note: Zero bits in "outcode_diff" means face line is outside of
+*/
+static inline int
+check_line (
+    const Vector_t p1,
+    const Vector_t p2,
+    const int outcode_diff
+    ) {
+    if ((0x01 & outcode_diff) != 0)
+        if (check_point(p1,p2,( .5-p1[0])/(p2[0]-p1[0]),0x3e) == INSIDE) return(INSIDE);
+    if ((0x02 & outcode_diff) != 0)
+        if (check_point(p1,p2,(-.5-p1[0])/(p2[0]-p1[0]),0x3d) == INSIDE) return(INSIDE);
+    if ((0x04 & outcode_diff) != 0) 
+        if (check_point(p1,p2,( .5-p1[1])/(p2[1]-p1[1]),0x3b) == INSIDE) return(INSIDE);
+    if ((0x08 & outcode_diff) != 0) 
+        if (check_point(p1,p2,(-.5-p1[1])/(p2[1]-p1[1]),0x37) == INSIDE) return(INSIDE);
+    if ((0x10 & outcode_diff) != 0) 
+        if (check_point(p1,p2,( .5-p1[2])/(p2[2]-p1[2]),0x2f) == INSIDE) return(INSIDE);
+    if ((0x20 & outcode_diff) != 0) 
+        if (check_point(p1,p2,(-.5-p1[2])/(p2[2]-p1[2]),0x1f) == INSIDE) return(INSIDE);
+    return(OUTSIDE);
+}
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+  Test if 3D point is inside 3D triangle
+*/
+static int
+point_triangle_intersection (
+    const Vector_t p,
+    const Triangle t
+    ) {
+    /*
+      First, a quick bounding-box test:
+      If P is outside triangle bbox, there cannot be an intersection.
+    */
+    if (p[0] > MAX3(t.v1[0], t.v2[0], t.v3[0])) return(OUTSIDE);  
+    if (p[1] > MAX3(t.v1[1], t.v2[1], t.v3[1])) return(OUTSIDE);
+    if (p[2] > MAX3(t.v1[2], t.v2[2], t.v3[2])) return(OUTSIDE);
+    if (p[0] < MIN3(t.v1[0], t.v2[0], t.v3[0])) return(OUTSIDE);
+    if (p[1] < MIN3(t.v1[1], t.v2[1], t.v3[1])) return(OUTSIDE);
+    if (p[2] < MIN3(t.v1[2], t.v2[2], t.v3[2])) return(OUTSIDE);
+    
+    /*
+      For each triangle side, make a vector out of it by subtracting vertexes;
+      make another vector from one vertex to point P.
+      The crossproduct of these two vectors is orthogonal to both and the
+      signs of its X,Y,Z components indicate whether P was to the inside or
+      to the outside of this triangle side.                                
+    */
+    const Vector_t vect12 = t.v1 - t.v2;
+    const Vector_t vect1h = t.v1 - p;
+    const Vector_t cross12_1p = cross (vect12, vect1h);
+    const long sign12 = SIGN3(cross12_1p);      /* Extract X,Y,Z signs as 0..7 or 0...63 integer */
+
+    const Vector_t vect23 = t.v2 - t.v3;
+    const Vector_t vect2h = t.v2 - p;
+    const Vector_t cross23_2p = cross (vect23, vect2h);
+    const long sign23 = SIGN3(cross23_2p);
+
+    const Vector_t vect31 = t.v3 - t.v1;
+    const Vector_t vect3h = t.v3 - p;
+    const Vector_t cross31_3p = cross (vect31, vect3h);
+    const long sign31 = SIGN3(cross31_3p);
+
+    /*
+      If all three crossproduct vectors agree in their component signs,
+      then the point must be inside all three.
+      P cannot be OUTSIDE all three sides simultaneously.
+    */
+    return ((sign12 & sign23 & sign31) == 0) ? OUTSIDE : INSIDE;
+}
+
+
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+  This is the main algorithm procedure.
+  Triangle t is compared with a unit cube,
+  centered on the origin.
+  It returns INSIDE (0) or OUTSIDE(1) if t
+  intersects or does not intersect the cube.
+*/
+static int
+t_c_intersection (
+    Triangle t
+    ) {
+    int v1_test;
+    int v2_test;
+    int v3_test;
+
+    /*
+      First compare all three vertexes with all six face-planes
+      If any vertex is inside the cube, return immediately!
+    */
+   if ((v1_test = face_plane(t.v1)) == INSIDE) return(INSIDE);
+   if ((v2_test = face_plane(t.v2)) == INSIDE) return(INSIDE);
+   if ((v3_test = face_plane(t.v3)) == INSIDE) return(INSIDE);
+
+   /*
+     If all three vertexes were outside of one or more face-planes,
+     return immediately with a trivial rejection!
+   */
+   if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);
+
+   /*
+     Now do the same trivial rejection test for the 12 edge planes
+   */
+   v1_test |= bevel_2d(t.v1) << 8; 
+   v2_test |= bevel_2d(t.v2) << 8; 
+   v3_test |= bevel_2d(t.v3) << 8;
+   if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);  
+
+   /*
+     Now do the same trivial rejection test for the 8 corner planes
+   */
+   v1_test |= bevel_3d(t.v1) << 24; 
+   v2_test |= bevel_3d(t.v2) << 24; 
+   v3_test |= bevel_3d(t.v3) << 24; 
+   if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);   
+
+   /*
+     If vertex 1 and 2, as a pair, cannot be trivially rejected
+     by the above tests, then see if the v1-->v2 triangle edge
+     intersects the cube.  Do the same for v1-->v3 and v2-->v3./
+     Pass to the intersection algorithm the "OR" of the outcode
+     bits, so that only those cube faces which are spanned by
+     each triangle edge need be tested.
+   */
+   if ((v1_test & v2_test) == 0)
+      if (check_line(t.v1,t.v2,v1_test|v2_test) == INSIDE) return(INSIDE);
+   if ((v1_test & v3_test) == 0)
+      if (check_line(t.v1,t.v3,v1_test|v3_test) == INSIDE) return(INSIDE);
+   if ((v2_test & v3_test) == 0)
+      if (check_line(t.v2,t.v3,v2_test|v3_test) == INSIDE) return(INSIDE);
+
+   /*
+     By now, we know that the triangle is not off to any side,
+     and that its sides do not penetrate the cube.  We must now
+     test for the cube intersecting the interior of the triangle.
+     We do this by looking for intersections between the cube
+     diagonals and the triangle...first finding the intersection
+     of the four diagonals with the plane of the triangle, and
+     then if that intersection is inside the cube, pursuing
+     whether the intersection point is inside the triangle itself.
+
+     To find plane of the triangle, first perform crossproduct on 
+     two triangle side vectors to compute the normal vector.
+   */  
+   Vector_t vect12 = t.v1 - t.v2;
+   Vector_t vect13 = t.v1 - t.v3;
+   Vector_t norm = cross (vect12, vect13);
+
+   /*
+     The normal vector "norm" X,Y,Z components are the coefficients
+     of the triangles AX + BY + CZ + D = 0 plane equation.  If we
+     solve the plane equation for X=Y=Z (a diagonal), we get
+     -D/(A+B+C) as a metric of the distance from cube center to the
+     diagonal/plane intersection.  If this is between -0.5 and 0.5,
+     the intersection is inside the cube.  If so, we continue by
+     doing a point/triangle intersection.
+     Do this for all four diagonals.
+   */
+   double d = norm[0] * t.v1[0] + norm[1] * t.v1[1] + norm[2] * t.v1[2];
+
+   /*
+     if one of the diagonals is parallel to the plane, the other will
+     intersect the plane
+   */
+   double denom;
+   if(fabs(denom=(norm[0] + norm[1] + norm[2]))>EPS) {
+       /* skip parallel diagonals to the plane; division by 0 can occur */
+       Vector_t hitpp = d / denom;
+       if (fabs(hitpp[0]) <= 0.5)
+           if (point_triangle_intersection(hitpp,t) == INSIDE) return(INSIDE);
+   }
+   if(fabs(denom=(norm[0] + norm[1] - norm[2]))>EPS) {
+       Vector_t hitpn;
+       hitpn[2] = -(hitpn[0] = hitpn[1] = d / denom);
+       if (fabs(hitpn[0]) <= 0.5)
+           if (point_triangle_intersection(hitpn,t) == INSIDE) return(INSIDE);
+   }       
+   if(fabs(denom=(norm[0] - norm[1] + norm[2]))>EPS) {       
+       Vector_t hitnp;
+       hitnp[1] = -(hitnp[0] = hitnp[2] = d / denom);
+       if (fabs(hitnp[0]) <= 0.5)
+           if (point_triangle_intersection(hitnp,t) == INSIDE) return(INSIDE);
+   }
+   if(fabs(denom=(norm[0] - norm[1] - norm[2]))>EPS) {
+       Vector_t hitnn;
+       hitnn[1] = hitnn[2] = -(hitnn[0] = d / denom);
+       if (fabs(hitnn[0]) <= 0.5)
+           if (point_triangle_intersection(hitnn,t) == INSIDE) return(INSIDE);
+   }
+   
+   /*
+     No edge touched the cube; no cube diagonal touched the triangle.
+     We're done...there was no intersection.
+   */
+   return(OUTSIDE);
+}
+
+static inline void
+scaleCube (
+    Cube& c,
+    const Vector_t& scale
+    ) {
+    c.v1[0] *= scale[0];
+    c.v1[1] *= scale[1];
+    c.v1[2] *= scale[2];
+    c.v2[0] *= scale[0];
+    c.v2[1] *= scale[1];
+    c.v2[2] *= scale[2];
+}
+
+static inline void
+scaleTriangle (
+    Triangle& t,
+    const Vector_t& scale
+    ) {
+    t.v1[0] *= scale[0];
+    t.v1[1] *= scale[1];
+    t.v1[2] *= scale[2];
+    t.v2[0] *= scale[0];
+    t.v2[1] *= scale[1];
+    t.v2[2] *= scale[2];
+    t.v3[0] *= scale[0];
+    t.v3[1] *= scale[1];
+    t.v3[2] *= scale[2];
+}
+
+static inline void
+shiftTriangle (
+    Triangle& t,
+    const Vector_t& shift
+    ) {
+    t.v1 -= shift;
+    t.v2 -= shift;
+    t.v3 -= shift;
+}
+
+int
+intersect3dTriangleCube (
+    const Triangle& t,
+    const Cube& c
+    ) {
+    Cube c_ = c;
+    Triangle t_ = t;
+    Vector_t extend = c_.v2 - c_.v1;
+    const Vector_t scale = 1.0 / extend; 
+    scaleTriangle (t_, scale);
+    scaleCube (c_, scale);
+
+    shiftTriangle (t_, c_.v1 - 0.5);
+    
+    return t_c_intersection (t);
+}
+
 /*
   ____                           _              
  / ___| ___  ___  _ __ ___   ___| |_ _ __ _   _ 
@@ -384,6 +761,32 @@ BoundaryGeometry* BoundaryGeometry::find (const string& name) {
 }
 
 void BoundaryGeometry::updateElement (ElementBase* element) {
+}
+
+int
+BoundaryGeometry::intersectTriangleVoxel (
+    const int triangle_id,
+    const int voxel_id
+    ) {
+    const Triangle t = {getPoint (triangle_id, 1),
+                        getPoint (triangle_id, 2),
+                        getPoint (triangle_id, 3)};
+
+    const int k = (voxel_id - 1) / (nr_m[0] * nr_m[1]);
+    const int rest = (voxel_id - 1) % (nr_m[0] * nr_m[1]);
+    const int j = rest / nr_m[0];
+    const int i = rest % nr_m[0]; 
+    
+    Cube c;
+    c.v1 = {
+        i * hr_m[0] + voxelMesh_m.minExtend[0],
+        j * hr_m[1] + voxelMesh_m.minExtend[1],
+        k * hr_m[2] + voxelMesh_m.minExtend[2]
+    };
+
+    c.v2 = c.v2 * hr_m;
+
+    return intersect3dTriangleCube (t, c);
 }
 
 /*
@@ -590,10 +993,11 @@ void BoundaryGeometry::initialize () {
             *gmsg << "* Geometry interval built done." << endl;
         }
 
+//#define LEGACY_VOXELIZATION
+#if defined (LEGACY_VOXELIZATION)
         /*
           Make the boundary set by using
           * triangle vertices
-          * bounding box vertices
           * several points in triangle central lines
           * several points in triangle edges
           */
@@ -704,6 +1108,117 @@ void BoundaryGeometry::initialize () {
             }
             *gmsg << "* Boundary index set built done." << endl;
         }
+#else
+        static void computeVoxelMesh (BoundaryGeometry* bg) {
+
+            const int num_segments = 100;
+            std::vector<Vector_t> coords;
+            coords.reserve (num_segments*6);
+
+            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
+                const Vector_t V0 = bg->getPoint (triangle_id, 1);
+                const Vector_t V1 = bg->getPoint (triangle_id, 2);
+                const Vector_t V2 = bg->getPoint (triangle_id, 3);
+
+                /*
+                  Discretize the three central lines and the three triangle edges
+                  to get a more complete boundary index set.
+                */
+                const Vector_t c1 = (0.5 * (V1 + V2) - V0) / num_segments;
+                const Vector_t c2 = (0.5 * (V2 + V0) - V1) / num_segments;
+                const Vector_t c3 = (0.5 * (V0 + V1) - V2) / num_segments;
+
+                const Vector_t e1 = (V1 - V0) / num_segments;
+                const Vector_t e2 = (V2 - V1) / num_segments;
+                const Vector_t e3 = (V0 - V2) / num_segments;
+                                 
+                for (int j = 0; j < num_segments; j++) {
+                    // discretize the three central lines.
+                    coords [j*6 + 0] = V0 + j * c1;
+                    coords [j*6 + 1] = V1 + j * c2;
+                    coords [j*6 + 2] = V2 + j * c3;
+                    // discretize the three  triangle edges:
+                    coords [j*6 + 3] = V0 + j * e1;
+                    coords [j*6 + 4] = V1 + j * e2;
+                    coords [j*6 + 5] = V2 + j * e3;
+                }
+
+                std::unordered_set<int> voxel_ids;
+                std::unordered_map< int, std::unordered_set<int> > lookupTable;
+
+                const auto endIt = coords.end ();
+                for (auto pointIt = coords.begin (); pointIt != endIt; pointIt++) {
+                    /*
+                      if (!is_in_bbox (*point, mincoords_m, maxcoords_m))
+                      continue;
+                    */
+                    const int voxel_id = bg->map_point_to_voxel_id (*pointIt);
+                    assert (voxel_id > 0);
+
+                    const int nx = bg->nr_m[0];         // nx >> 3
+                    const int ny = bg->nr_m[1];         // ny >> 3
+
+                    const int idc[27] = {               // for the case  nx = ny = 3
+                        voxel_id - nx * ny - nx - 1,    // voxel_id-13
+                        voxel_id - nx * ny - nx,        // voxel_id-12
+                        voxel_id - nx * ny - nx + 1,    // voxel_id-11    
+                        voxel_id - nx * ny - 1,         // voxel_id-10
+                        voxel_id - nx * ny,             // voxel_id-9
+                        voxel_id - nx * ny + 1,         // voxel_id-8
+                        voxel_id - nx * ny + nx - 1,    // voxel_id-7
+                        voxel_id - nx * ny + nx,        // voxel_id-6
+                        voxel_id - nx * ny + nx + 1,    // voxel_id-5
+                        voxel_id - nx - 1,              // voxel_id-4
+                        voxel_id - nx,                  // voxel_id-3
+                        voxel_id - nx + 1,              // voxel_id-2
+                        voxel_id - 1,                   // voxel_id-1
+                        voxel_id,                       // voxel_id
+                        voxel_id + 1,                   // voxel_id+1
+                        voxel_id + nx - 1,              // voxel_id+2
+                        voxel_id + nx,                  // voxel_id+3
+                        voxel_id + nx + 1,              // voxel_id+4
+                        voxel_id + nx * ny - nx - 1,    // voxel_id+5
+                        voxel_id + nx * ny - nx,        // voxel_id+6
+                        voxel_id + nx * ny - nx + 1,    // voxel_id+7
+                        voxel_id + nx * ny - 1,         // voxel_id+8
+                        voxel_id + nx * ny,             // voxel_id+9
+                        voxel_id + nx * ny + 1,         // voxel_id+10
+                        voxel_id + nx * ny + nx - 1,    // voxel_id+11
+                        voxel_id + nx * ny + nx,        // voxel_id+12
+                        voxel_id + nx * ny + nx + 1,    // voxel_id+13
+                    };
+                    size_t start = -1;
+                    while (idc[++start] <= 0);
+                    voxel_ids.insert (idc+start, idc+27-start);
+
+                    auto it = lookupTable.find (voxel_id);
+                    if (it == lookupTable.end ()) {
+                        lookupTable [voxel_id] = std::unordered_set<int> (&triangle_id, &triangle_id+1);
+                    } else
+                        it->second.insert (triangle_id);
+                }
+                if ((triangle_id % 1000) == 0)
+                    *gmsg << "*Triangle ID: " << triangle_id << endl;
+                bg->boundary_ids_m.insert (voxel_ids.begin(), voxel_ids.end());
+
+                for (auto mapIt = lookupTable.begin ();
+                     mapIt != lookupTable.end ();
+                     mapIt++) {
+                
+                    auto it = bg->CubicLookupTable_m.find (mapIt->first);
+                    if (it == bg->CubicLookupTable_m.end ()) {
+                        bg->CubicLookupTable_m [mapIt->first] = mapIt->second;
+                    } else {
+                        it->second.insert (mapIt->second.begin(), mapIt->second.end());
+                    }
+                }
+            }
+            if(Ippl::myNode() == 0) {
+                write_voxel_mesh (bg->boundary_ids_m, bg->hr_m, bg->nr_m, bg->voxelMesh_m.minExtend);
+            }
+            *gmsg << "* Boundary index set built done." << endl;
+        }
+#endif
 
 /*
   

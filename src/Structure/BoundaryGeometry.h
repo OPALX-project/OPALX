@@ -378,6 +378,10 @@ public:
 
    
 private:
+    int intersectTriangleVoxel (
+        const int triangle_id,
+        const int voxel_id);
+
     std::string h5FileName_m;           // H5hut filename
 
     int* allbfaces_m;                   // boundary faces given by point n-tuples
