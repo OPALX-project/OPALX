@@ -373,7 +373,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
    
     *gmsg << "" << endl;
 
-    *gmsg << "*** Bunch global starting position: ***" << endl;
+    *gmsg << "* Bunch global starting position:" << endl;
 
     *gmsg << "* RINIT = " << referenceR  << " [mm]" << endl;
 
@@ -383,7 +383,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     *gmsg << "" << endl;
 
-    *gmsg << "*** Bunch global starting momenta: ***" << endl;
+    *gmsg << "* Bunch global starting momenta:" << endl;
 
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
 
@@ -396,6 +396,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << "* Reference radial momentum (Pr) = " << referencePr * 1000.0 << " [MCU]" << endl;
 
     *gmsg << "* Reference axial momentum (Pz) = " << referencePz * 1000.0 << " [MCU]" << endl;
+
+    *gmsg << "" << endl;
 
     double sym = elptr->getSymmetry();
     *gmsg << "* " << sym << "-fold field symmerty " << endl;
