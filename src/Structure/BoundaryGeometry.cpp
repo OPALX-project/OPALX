@@ -993,7 +993,7 @@ void BoundaryGeometry::initialize () {
             *gmsg << "* Geometry interval built done." << endl;
         }
 
-//#define LEGACY_VOXELIZATION
+#define LEGACY_VOXELIZATION
 #if defined (LEGACY_VOXELIZATION)
         /*
           Make the boundary set by using
@@ -1111,7 +1111,7 @@ void BoundaryGeometry::initialize () {
 #else
         static void computeVoxelMesh (BoundaryGeometry* bg) {
 
-            const int num_segments = 100;
+            const int num_segments = 16;
             std::vector<Vector_t> coords;
             coords.reserve (num_segments*6);
 
@@ -1146,13 +1146,8 @@ void BoundaryGeometry::initialize () {
                 std::unordered_set<int> voxel_ids;
                 std::unordered_map< int, std::unordered_set<int> > lookupTable;
 
-                const auto endIt = coords.end ();
-                for (auto pointIt = coords.begin (); pointIt != endIt; pointIt++) {
-                    /*
-                      if (!is_in_bbox (*point, mincoords_m, maxcoords_m))
-                      continue;
-                    */
-                    const int voxel_id = bg->map_point_to_voxel_id (*pointIt);
+                for (int j = 0; j < num_segments*6; j++) {
+                    const int voxel_id = bg->map_point_to_voxel_id (coords [j]);
                     assert (voxel_id > 0);
 
                     const int nx = bg->nr_m[0];         // nx >> 3
