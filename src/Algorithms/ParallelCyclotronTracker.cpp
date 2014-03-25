@@ -197,7 +197,11 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
    */
 
   Vector_t intecoords = bgf_m->getmaxcoords() + bgf_m->gethr();
-  double dtime = 0.5 * itsBunch->getdT(); 
+
+  // This has to match the dT in the rk4 pusher! -DW
+  //double dtime = 0.5 * itsBunch->getdT();  // Old
+  double dtime = itsBunch->getdT() * getHarmonicNumber();  // New
+
   int triId = 0;     
   size_t Nimpact = 0;
   for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
@@ -2091,6 +2095,14 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             // track all particles for one step
             IpplTimings::startTimer(IntegrationTimer_m);
 
+            // *** This was moved here b/c collision should be tested before the **********************
+            // *** actual timestep (bgf_main_collision_test() predicts the next step automatically) -DW
+            // apply the plugin elements: probe, collimator, stripper, septum
+            applyPluginElements(dt);  // New
+
+	    // check if we loose particles at the boundary
+	    bgf_main_collision_test();  // New
+            // ****************************************************************************************
 
             for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
                 flagNoDeletion = true;
@@ -2167,11 +2179,13 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 } //end for: finish checking for all cavities
             } //end for: finish one step tracking for all particles for initialTotalNum_m != 2 mode
 
+            // *** This has to go before the actual timestep -DW ******************************
             // apply the plugin elements: probe, collimator, stripper, septum
-            applyPluginElements(dt);
+            //applyPluginElements(dt);  // Old
 
 	    // check if we loose particles at the boundary
-	    bgf_main_collision_test();
+	    //bgf_main_collision_test();  // Old
+            // ********************************************************************************
 
             // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global aperture
             bool flagNeedUpdate = deleteParticle();
@@ -2239,6 +2253,15 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
           IpplTimings::startTimer(IntegrationTimer_m);
           flagNoDeletion = true;
+
+          // *** This was moved here b/c collision should be tested before the **********************
+          // *** actual timestep (bgf_main_collision_test() predicts the next step automatically) -DW
+          // apply the plugin elements: probe, collimator, stripper, septum
+          applyPluginElements(dt);  // New
+
+	  // check if we loose particles at the boundary
+	  bgf_main_collision_test();  // New
+          // ****************************************************************************************
 
           // track for one step
           for( unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
@@ -2374,13 +2397,16 @@ void ParallelCyclotronTracker::Tracker_RK4() {
               }// end if: gap-crossing monentum kicking at certain cavity
             }//end for: finish checking for all cavities
           }
+
+          // *** This has to go before the actual timestep -DW ******************************
           // apply the plugin elements: probe, collimator, stripper, septum
-          applyPluginElements(dt);
+          //applyPluginElements(dt);  // Old
+
+          // check if we loose particles at the boundary
+          //bgf_main_collision_test();  // Old
+          // ********************************************************************************
+
           // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
-
-	  // check if we loose particles at the boundary
-	  bgf_main_collision_test();
-
           deleteParticle(); 
           
           IpplTimings::stopTimer(IntegrationTimer_m);
