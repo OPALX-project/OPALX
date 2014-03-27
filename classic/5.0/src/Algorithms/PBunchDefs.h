@@ -6,6 +6,7 @@
 #include "Particle/IntNGP.h"
 #include "Particle/IntSUDS.h"
 #include "Particle/ParticleSpatialLayout.h"
+#include "Particle/ParticleUniformLayout.h"
 #include "Particle/ParticleAttrib.h"
 #include "Meshes/UniformCartesian.h"
 #include "Meshes/Centering.h"
@@ -20,15 +21,17 @@ typedef IntSUDS IntrplSUDS_t;
 typedef ParticleSpatialLayout<double, 3>::ParticlePos_t Ppos_t;
 typedef ParticleSpatialLayout<double, 3>::ParticleIndex_t PID_t;
 
+typedef ParticleUniformLayout<double, 3>::ParticlePos_t UPpos_t;
+typedef ParticleUniformLayout<double, 3>::ParticleIndex_t UPID_t;
+
 typedef ParticleAttrib<double> Pscalar_t;
 
 typedef InterpolatorTraits<double, 3, IntrplCIC_t>::Cache_t Pcache_t;
 
 typedef UniformCartesian<3, double> Mesh_t;
 
-//typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
-
 typedef ParticleSpatialLayout< double, 3, Mesh_t  > Layout_t;
+typedef ParticleUniformLayout< double, 3  > ULayout_t;
 
 typedef Cell Center_t;
 
