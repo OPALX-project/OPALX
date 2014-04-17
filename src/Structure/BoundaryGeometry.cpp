@@ -141,7 +141,7 @@ static void write_voxel_mesh (
     of.precision (6);
     
     of << "# vtk DataFile Version 2.0" << std::endl;
-    of << "generated using BoundaryGeometry::computeVoxelMesh"
+    of << "generated using BoundaryGeometry::computeMeshVoxelization"
        << std::endl;
     of << "ASCII" << std::endl << std::endl;
     of << "DATASET UNSTRUCTURED_GRID" << std::endl;
@@ -192,11 +192,6 @@ static void write_voxel_mesh (
 
 #include <math.h>
 
-#define EPS 10e-5
-#define SIGN3( A )                                           \
-    (((A)[0] < EPS) ? 4 : 0 | ((A)[0] > -EPS) ? 32 : 0 |       \
-     ((A)[1] < EPS) ? 2 : 0 | ((A)[1] > -EPS) ? 16 : 0 |       \
-     ((A)[2] < EPS) ? 1 : 0 | ((A)[2] > -EPS) ? 8 : 0)
 
 #define LERP( A, B, C) ((B)+(A)*((C)-(B)))
 #define MIN3(a,b,c) ((((a)<(b))&&((a)<(c))) ? (a) : (((b)<(c)) ? (b) : (c)))
@@ -337,6 +332,17 @@ check_line (
 
   Test if 3D point is inside 3D triangle
 */
+#define EPS 10e-5
+
+static inline int
+SIGN3 (
+    Vector_t A
+    ) {
+    return ((A[0] < EPS) ? 4 : 0 | (A[0] > -EPS) ? 32 : 0 |
+            (A[1] < EPS) ? 2 : 0 | (A[1] > -EPS) ? 16 : 0 |
+            (A[2] < EPS) ? 1 : 0 | (A[2] > -EPS) ? 8 : 0);
+}
+
 static int
 point_triangle_intersection (
     const Vector_t p,
@@ -363,17 +369,17 @@ point_triangle_intersection (
     const Vector_t vect12 = t.v1 - t.v2;
     const Vector_t vect1h = t.v1 - p;
     const Vector_t cross12_1p = cross (vect12, vect1h);
-    const long sign12 = SIGN3(cross12_1p);      /* Extract X,Y,Z signs as 0..7 or 0...63 integer */
+    const int sign12 = SIGN3(cross12_1p);      /* Extract X,Y,Z signs as 0..7 or 0...63 integer */
 
     const Vector_t vect23 = t.v2 - t.v3;
     const Vector_t vect2h = t.v2 - p;
     const Vector_t cross23_2p = cross (vect23, vect2h);
-    const long sign23 = SIGN3(cross23_2p);
+    const int sign23 = SIGN3(cross23_2p);
 
     const Vector_t vect31 = t.v3 - t.v1;
     const Vector_t vect3h = t.v3 - p;
     const Vector_t cross31_3p = cross (vect31, vect3h);
-    const long sign31 = SIGN3(cross31_3p);
+    const int sign31 = SIGN3(cross31_3p);
 
     /*
       If all three crossproduct vectors agree in their component signs,
@@ -993,7 +999,7 @@ void BoundaryGeometry::initialize () {
             *gmsg << "* Geometry interval built done." << endl;
         }
 
-#define LEGACY_VOXELIZATION
+#undef LEGACY_VOXELIZATION
 #if defined (LEGACY_VOXELIZATION)
         /*
           Make the boundary set by using
@@ -1001,7 +1007,7 @@ void BoundaryGeometry::initialize () {
           * several points in triangle central lines
           * several points in triangle edges
           */
-        static void computeVoxelMesh (BoundaryGeometry* bg) {
+        static void computeMeshVoxelization (BoundaryGeometry* bg) {
 
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
                 const Vector_t V0 = bg->getPoint (triangle_id, 1);
@@ -1089,7 +1095,7 @@ void BoundaryGeometry::initialize () {
                         it->second.insert (triangle_id);
                 }
                 if ((triangle_id % 1000) == 0)
-                    *gmsg << "*Triangle ID: " << triangle_id << endl;
+                    *gmsg << "* Triangle ID: " << triangle_id << endl;
                 bg->boundary_ids_m.insert (voxel_ids.begin(), voxel_ids.end());
                 for (auto mapIt = lookupTable.begin ();
                      mapIt != lookupTable.end ();
@@ -1109,97 +1115,116 @@ void BoundaryGeometry::initialize () {
             *gmsg << "* Boundary index set built done." << endl;
         }
 #else
-        static void computeVoxelMesh (BoundaryGeometry* bg) {
+
+#define surrounding_voxels( voxel_id, nx, ny ) {                        \
+            (voxel_id) - (nx) * (ny) - (nx) - 1,                        \
+                (voxel_id) - (nx) * (ny) - (nx),                        \
+                (voxel_id) - (nx) * (ny) - (nx) + 1,                    \
+                (voxel_id) - (nx) * (ny) - 1,                           \
+                (voxel_id) - (nx) * (ny),                               \
+                (voxel_id) - (nx) * (ny) + 1,                           \
+                (voxel_id) - (nx) * (ny) + (nx) - 1,                    \
+                (voxel_id) - (nx) * (ny) + (nx),                        \
+                (voxel_id) - (nx) * (ny) + (nx) + 1,                    \
+                (voxel_id) - (nx) - 1,                                  \
+                (voxel_id) - (nx),                                      \
+                (voxel_id) - (nx) + 1,                                  \
+                (voxel_id) - 1,                                         \
+                (voxel_id),                                             \
+                (voxel_id) + 1,                                         \
+                (voxel_id) + (nx) - 1,                                  \
+                (voxel_id) + (nx),                                      \
+                (voxel_id) + (nx) + 1,                                  \
+                (voxel_id) + (nx) * (ny) - (nx) - 1,                    \
+                (voxel_id) + (nx) * (ny) - (nx),                        \
+                (voxel_id) + (nx) * (ny) - (nx) + 1,                    \
+                (voxel_id) + (nx) * (ny) - 1,                           \
+                (voxel_id) + (nx) * (ny),                               \
+                (voxel_id) + (nx) * (ny) + 1,                           \
+                (voxel_id) + (nx) * (ny) + (nx) - 1,                    \
+                (voxel_id) + (nx) * (ny) + (nx),                        \
+                (voxel_id) + (nx) * (ny) + (nx) + 1,                    \
+                }
+        /*
+          add voxels to integer array
+          sort this array
+          get unique set 
+         */
+
+        static inline void computeLineVoxelization (
+            BoundaryGeometry* bg,
+            const Vector_t& P,
+            const Vector_t& v,
+            const int num_segments,
+            std::unordered_set<int>& voxel_ids
+            ) {
+            Vector_t P1 = P;
+            const Vector_t v_ = v / num_segments;
+            for (int j = 0; j < num_segments; j++, P1 += v_) {
+                const int voxel_id = bg->map_point_to_voxel_id (P + j*v_);
+                assert (voxel_id > 0);
+                const int idc[27] = 
+                    surrounding_voxels (voxel_id, bg->nr_m[0], bg->nr_m[1]);
+                int offset = -1;
+                while (idc[++offset] <= 0);
+                voxel_ids.insert (idc+offset, idc+27-offset);
+            }
+        }
+
+        static inline void computeTriangleVoxelization (
+            BoundaryGeometry* bg,
+            const int triangle_id,
+            const int num_segments,
+            std::unordered_set<int>& voxel_ids
+            ) {
+            /*
+              Discretize the three central lines and the three triangle edges
+              to get a more complete boundary index set.
+            */
+            const Vector_t V0 = bg->getPoint (triangle_id, 1);
+            const Vector_t V1 = bg->getPoint (triangle_id, 2);
+            const Vector_t V2 = bg->getPoint (triangle_id, 3);
+
+            computeLineVoxelization (bg, V0, 0.5 * (V1 + V2) - V0, num_segments, voxel_ids);
+            computeLineVoxelization (bg, V1, 0.5 * (V2 + V0) - V1, num_segments, voxel_ids);
+            computeLineVoxelization (bg, V2, 0.5 * (V0 + V1) - V2, num_segments, voxel_ids);
+            computeLineVoxelization (bg, V0, V1 - V0,              num_segments, voxel_ids);
+            computeLineVoxelization (bg, V1, V2 - V1,              num_segments, voxel_ids);
+            computeLineVoxelization (bg, V2, V0 - V2,              num_segments, voxel_ids);
+        }
+
+        static void computeMeshVoxelization (BoundaryGeometry* bg) {
 
             const int num_segments = 16;
-            std::vector<Vector_t> coords;
-            coords.reserve (num_segments*6);
 
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                const Vector_t V0 = bg->getPoint (triangle_id, 1);
-                const Vector_t V1 = bg->getPoint (triangle_id, 2);
-                const Vector_t V2 = bg->getPoint (triangle_id, 3);
-
-                /*
-                  Discretize the three central lines and the three triangle edges
-                  to get a more complete boundary index set.
-                */
-                const Vector_t c1 = (0.5 * (V1 + V2) - V0) / num_segments;
-                const Vector_t c2 = (0.5 * (V2 + V0) - V1) / num_segments;
-                const Vector_t c3 = (0.5 * (V0 + V1) - V2) / num_segments;
-
-                const Vector_t e1 = (V1 - V0) / num_segments;
-                const Vector_t e2 = (V2 - V1) / num_segments;
-                const Vector_t e3 = (V0 - V2) / num_segments;
-                                 
-                for (int j = 0; j < num_segments; j++) {
-                    // discretize the three central lines.
-                    coords [j*6 + 0] = V0 + j * c1;
-                    coords [j*6 + 1] = V1 + j * c2;
-                    coords [j*6 + 2] = V2 + j * c3;
-                    // discretize the three  triangle edges:
-                    coords [j*6 + 3] = V0 + j * e1;
-                    coords [j*6 + 4] = V1 + j * e2;
-                    coords [j*6 + 5] = V2 + j * e3;
-                }
-
                 std::unordered_set<int> voxel_ids;
-                std::unordered_map< int, std::unordered_set<int> > lookupTable;
+                computeTriangleVoxelization (bg, triangle_id, num_segments, voxel_ids);
 
-                for (int j = 0; j < num_segments*6; j++) {
-                    const int voxel_id = bg->map_point_to_voxel_id (coords [j]);
-                    assert (voxel_id > 0);
+                // add voxeliziation of triangle to voxelization of mesh
+                bg->boundary_ids_m.insert (voxel_ids.begin(), voxel_ids.end());
 
-                    const int nx = bg->nr_m[0];         // nx >> 3
-                    const int ny = bg->nr_m[1];         // ny >> 3
+                // 
+                std::unordered_map< int, std::unordered_set<int> > map_of_voxel_ids_to_intersect_triangles;
+                for (auto voxelIt = voxel_ids.begin ();
+                     voxelIt != voxel_ids.end ();
+                     voxelIt++) {
+                    int voxel_id = *voxelIt;
 
-                    const int idc[27] = {               // for the case  nx = ny = 3
-                        voxel_id - nx * ny - nx - 1,    // voxel_id-13
-                        voxel_id - nx * ny - nx,        // voxel_id-12
-                        voxel_id - nx * ny - nx + 1,    // voxel_id-11    
-                        voxel_id - nx * ny - 1,         // voxel_id-10
-                        voxel_id - nx * ny,             // voxel_id-9
-                        voxel_id - nx * ny + 1,         // voxel_id-8
-                        voxel_id - nx * ny + nx - 1,    // voxel_id-7
-                        voxel_id - nx * ny + nx,        // voxel_id-6
-                        voxel_id - nx * ny + nx + 1,    // voxel_id-5
-                        voxel_id - nx - 1,              // voxel_id-4
-                        voxel_id - nx,                  // voxel_id-3
-                        voxel_id - nx + 1,              // voxel_id-2
-                        voxel_id - 1,                   // voxel_id-1
-                        voxel_id,                       // voxel_id
-                        voxel_id + 1,                   // voxel_id+1
-                        voxel_id + nx - 1,              // voxel_id+2
-                        voxel_id + nx,                  // voxel_id+3
-                        voxel_id + nx + 1,              // voxel_id+4
-                        voxel_id + nx * ny - nx - 1,    // voxel_id+5
-                        voxel_id + nx * ny - nx,        // voxel_id+6
-                        voxel_id + nx * ny - nx + 1,    // voxel_id+7
-                        voxel_id + nx * ny - 1,         // voxel_id+8
-                        voxel_id + nx * ny,             // voxel_id+9
-                        voxel_id + nx * ny + 1,         // voxel_id+10
-                        voxel_id + nx * ny + nx - 1,    // voxel_id+11
-                        voxel_id + nx * ny + nx,        // voxel_id+12
-                        voxel_id + nx * ny + nx + 1,    // voxel_id+13
-                    };
-                    size_t start = -1;
-                    while (idc[++start] <= 0);
-                    voxel_ids.insert (idc+start, idc+27-start);
 
-                    auto it = lookupTable.find (voxel_id);
-                    if (it == lookupTable.end ()) {
-                        lookupTable [voxel_id] = std::unordered_set<int> (&triangle_id, &triangle_id+1);
+
+                    auto it = map_of_voxel_ids_to_intersect_triangles.find (voxel_id);
+                    if (it == map_of_voxel_ids_to_intersect_triangles.end ()) {
+                        map_of_voxel_ids_to_intersect_triangles [voxel_id] =
+                            std::unordered_set<int> (&triangle_id, &triangle_id+1);
                     } else
                         it->second.insert (triangle_id);
                 }
-                if ((triangle_id % 1000) == 0)
-                    *gmsg << "*Triangle ID: " << triangle_id << endl;
-                bg->boundary_ids_m.insert (voxel_ids.begin(), voxel_ids.end());
 
-                for (auto mapIt = lookupTable.begin ();
-                     mapIt != lookupTable.end ();
+                // add map for given triangle to map for mesh
+                for (auto mapIt = map_of_voxel_ids_to_intersect_triangles.begin ();
+                     mapIt != map_of_voxel_ids_to_intersect_triangles.end ();
                      mapIt++) {
-                
                     auto it = bg->CubicLookupTable_m.find (mapIt->first);
                     if (it == bg->CubicLookupTable_m.end ()) {
                         bg->CubicLookupTable_m [mapIt->first] = mapIt->second;
@@ -1207,7 +1232,9 @@ void BoundaryGeometry::initialize () {
                         it->second.insert (mapIt->second.begin(), mapIt->second.end());
                     }
                 }
-            }
+                if (triangle_id > 0 && (triangle_id % 1000) == 0)
+                    *gmsg << "* Triangle ID: " << triangle_id << endl;
+            } // for_each triangle
             if(Ippl::myNode() == 0) {
                 write_voxel_mesh (bg->boundary_ids_m, bg->hr_m, bg->nr_m, bg->voxelMesh_m.minExtend);
             }
@@ -1613,7 +1640,7 @@ Change orientation if diff is:
 
     Local::computeGeometryInterval (this);
 
-    Local::computeVoxelMesh (this);
+    Local::computeMeshVoxelization (this);
     Local::makeTriangleNormalInwardPointing (this);
     Local::setBGphysicstag (this);
 
