@@ -357,7 +357,6 @@ classic/5.0/src/Fields/SectorMagneticFieldMap/Interpolator3dGridTo1d.cpp -text
 classic/5.0/src/Fields/SectorMagneticFieldMap/Interpolator3dGridTo1d.h -text
 classic/5.0/src/Fields/SectorMagneticFieldMap/Interpolator3dGridTo3d.cpp -text
 classic/5.0/src/Fields/SectorMagneticFieldMap/Interpolator3dGridTo3d.h -text
-classic/5.0/src/Fields/SectorMagneticFieldMap/Makefile -text
 classic/5.0/src/Fields/SectorMagneticFieldMap/Mesh-inl.icc -text
 classic/5.0/src/Fields/SectorMagneticFieldMap/Mesh.cpp -text
 classic/5.0/src/Fields/SectorMagneticFieldMap/Mesh.h -text
