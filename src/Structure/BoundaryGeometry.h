@@ -376,11 +376,22 @@ public:
         return intersect3dLineTriangle (LINE, P0, P1, triangle_id, I);
     }
 
+    int intersectRayBoundary (
+        const Vector_t& P,
+        const Vector_t& v,
+        Vector_t& I);
+
    
 private:
     int intersectTriangleVoxel (
         const int triangle_id,
         const int voxel_id);
+
+    int intersectLineSegmentBoundary (
+        const Vector_t P0,
+        const Vector_t P1,
+        Vector_t& I,
+        int& triangle_id);
 
     std::string h5FileName_m;           // H5hut filename
 
