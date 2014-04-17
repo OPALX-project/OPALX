@@ -211,6 +211,7 @@ void ClassicParser::parse(Statement &statement) const {
         statement.printWhere(true);
         statement.print();
         *gmsg << ex.what() << endl << endl;
+	exit(1);
     } catch(ClassicException &ex) {
         *gmsg << endl << "*** Error detected by method \"" << ex.where()
               << "\"" << endl;

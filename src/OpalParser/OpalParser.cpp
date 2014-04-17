@@ -546,6 +546,7 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
         stat->print();
         *gmsg << "    " << ex.what() << '\n' << endl;
         stat = readStatement(is);
+	exit(1);
     }
 
     return stat;
@@ -567,6 +568,7 @@ void OpalParser::run() const {
             *gmsg << "    ";
             stat->print();
             *gmsg << "    " << ex.what() << '\n' << endl;
+	    exit(1);
         } catch(OpalException &ex) {
             *gmsg << "\n*** User error detected by function \""
                   << ex.where() << "\"\n";
