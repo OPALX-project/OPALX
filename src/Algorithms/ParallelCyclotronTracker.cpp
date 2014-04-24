@@ -1007,6 +1007,9 @@ void ParallelCyclotronTracker::execute() {
     extE_m = Vector_t(0.0, 0.0, 0.0);
     extB_m = Vector_t(0.0, 0.0, 0.0);
 
+
+    *gmsg << *itsBunch << endl;
+
     if(timeIntegrator_m == 0) {
         *gmsg << "* 4th order Runge-Kutta integrator" << endl;
         Tracker_RK4();
