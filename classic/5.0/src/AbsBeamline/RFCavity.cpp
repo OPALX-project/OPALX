@@ -723,7 +723,7 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
     momentum[1] = -sin(rotate) * px + cos(rotate) * py;
 
     if(PID == 0) {
-        *gmsg << "* Cavity Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
+      *gmsg << "* Cavity " << getName() << " Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
 	      << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
 	      << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
     }
