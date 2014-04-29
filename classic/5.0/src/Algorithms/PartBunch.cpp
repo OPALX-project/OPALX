@@ -145,12 +145,14 @@ PartBunch::PartBunch(const PartData *ref):
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
 
     pmsg_m.release();
-    f_stream.release();
+    //    f_stream.release();
+    /*
     if(Ippl::getNodes() == 1) {
         f_stream = std::unique_ptr<ofstream>(new ofstream);
         f_stream->open("data/dist.dat", ios::out);
         pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
     }
+    */
 }
 
 PartBunch::PartBunch(const PartBunch &rhs):
@@ -909,7 +911,7 @@ void PartBunch::computeSelfFields() {
         //divide charge by a 'grid-cube' volume to get [C/m^3]
         rho_m *= tmp2;
 
-        #define DBG_SCALARFIELD
+	//        #define DBG_SCALARFIELD
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
         ofstream fstr1;
