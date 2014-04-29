@@ -349,7 +349,7 @@ Distribution::~Distribution() {
  * @param
  */
 void Distribution::WriteToFile() {
-
+  /*
     if(Ippl::getNodes() == 1) {
         if(os_m.is_open()) {
             ;
@@ -364,6 +364,7 @@ void Distribution::WriteToFile() {
             os_m.close();
         }
     }
+  */
 }
 
 /// Distribution can only be replaced by another distribution.
