@@ -916,6 +916,9 @@ static inline double magnitude (
     return sqrt (dot (v,v));
 }
 
+/*
+  P must be *inside* the boundary geometry!
+ */
 int BoundaryGeometry::intersectRayBoundary (
     const Vector_t& P,
     const Vector_t& v,
@@ -1648,11 +1651,18 @@ int BoundaryGeometry::fastIsInside (
 }
 
 /*
+  Compute intersection between line-segment given by the endpoints P0 and P1
+  and boundary geometry.
+
   result:
     0   no intersection
     1   line-segment is on boundary
     2   unique intersection, but both particles are outside
     3   unique intersection in segment
+
+    WARNING:
+    This is *not* a general porpose method! If neither P0 nor P1 is in the
+    voxelized boundary geometry, no intersection will be found!
 */
 int BoundaryGeometry::intersectLineSegmentBoundary (
     const Vector_t P0,                  // [in] starting point of ray
@@ -1711,9 +1721,11 @@ int BoundaryGeometry::intersectLineSegmentBoundary (
                 assert (intersect_result != -1);
                 exit (42);              // terminate even if NDEBUG is set
             case 0:                     // no intersection
+            case 4:                     // both points are inside
+                intersect_result = 0;
                 break;              
             case 1:                     // line and triangle are in same plane
-            case 2:                     // unique intersection, but both particles are outside
+            case 2:                     // both points are outside
             case 3:                     // unique intersection in segment
                 *gmsg << "* Intersection test returned: " << intersect_result << endl;
                 triangle_id = (*it);
