@@ -352,34 +352,15 @@ public:
         return false;
     }
  
-    inline int intersectLineSegmentTriangle (
-        const Vector_t& P0,
-        const Vector_t& P1,
-        const int triangle_id,
-        Vector_t& I) {
-        return intersect3dLineTriangle (SEGMENT, P0, P1, triangle_id, I);
-    }
-
-    inline int intersectRayTriangle (
-        const Vector_t& P0,
-        const Vector_t& P1,
-        const int triangle_id,
-        Vector_t& I) {
-        return intersect3dLineTriangle (RAY, P0, P1, triangle_id, I);
-    }
-
-    inline int intersectLineTriangle (
-        const Vector_t& P0,
-        const Vector_t& P1,
-        const int triangle_id,
-        Vector_t& I) {
-        return intersect3dLineTriangle (LINE, P0, P1, triangle_id, I);
-    }
-
     int intersectRayBoundary (
         const Vector_t& P,
         const Vector_t& v,
         Vector_t& I);
+
+    int fastIsInside (
+        const Vector_t reference_pt,        // [in] a reference point
+        const Vector_t P                    // [in] point to test
+        );
 
    
 private:
@@ -492,7 +473,7 @@ private:
         LINE
     };
 
-    int intersect3dLineTriangle (
+    int intersectLineTriangle (
         const enum INTERSECTION_TESTS kind,
         const Vector_t& P0,
         const Vector_t& P1,
@@ -502,7 +483,9 @@ private:
     /*
       Map point to unique voxel ID.
     */
-    int map_point_to_voxel_id (Vector_t x);
+    inline int mapPoint2VoxelID (const int i, const int j, const int k);
+    inline int mapPoint2VoxelID (const Vector_t x);
+    inline Vector_t& mapPoint2Voxel (const Vector_t&);
 
     enum {
         FGEOM,    // file holding the geometry
