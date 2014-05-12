@@ -917,8 +917,39 @@ static inline double magnitude (
 }
 
 /*
+  Game plan:
+  Count number of intersection of the line segment defined by P and a reference
+  pt with the boundary. If the reference pt is inside the boundary and the number
+  of intersections is even, then P is inside the geometry. Otherwise P is outside.
+  To count the number of intersection, we divide the line segment in N segments
+  and run the line-segment boundary intersection test for all these segments.
+  N must be choosen carefully. It shouldn't be to large to avoid needless test.
+ */
+int BoundaryGeometry::fastIsInside (
+    const Vector_t reference_pt,        // [in] a reference point which must be in the boundary
+    const Vector_t P                    // [in] point to test
+    ) {
+    const Vector_t v = P - reference_pt;
+
+    const int N = ceil (magnitude (v) / MIN3 (hr_m[0], hr_m[1], hr_m[2]));
+    const Vector_t v_ = v / N;
+    Vector_t P0 = P;
+    Vector_t P1 = P + v_;
+    Vector_t I;
+    int triangle_id = -1;
+    int result = 0;
+    for (int i = 0; i < N; i++) {
+        result += intersectLineSegmentBoundary (P0, P1, I, triangle_id) == 3 ? 1 : 0;
+        P0 = P1;
+        P1 += v_;
+    }
+    return result;
+}
+
+/*
   P must be *inside* the boundary geometry!
  */
+#if 0
 int BoundaryGeometry::intersectRayBoundary (
     const Vector_t& P,
     const Vector_t& v,
@@ -936,7 +967,26 @@ int BoundaryGeometry::intersectRayBoundary (
     }
     return (result == 3);
 }
+#else
+int BoundaryGeometry::intersectRayBoundary (
+    const Vector_t& P,
+    const Vector_t& v,
+    Vector_t& I) {
 
+    const int N = ceil (magnitude (v) / MIN3 (hr_m[0], hr_m[1], hr_m[2]));
+    const Vector_t v_ = v / N;
+    Vector_t P0 = P;
+    Vector_t P1 = P + v_;
+    int triangle_id = -1;
+    for (int i = 0; i < N; i++) {
+        if (3 == intersectLineSegmentBoundary (P0, P1, I, triangle_id))
+            return 1;
+        P0 = P1;
+        P1 += v_;
+    }
+    return 0;
+}
+#endif
 /*
   Map point to unique voxel ID.
 
@@ -1620,35 +1670,6 @@ Change orientation if diff is:
     IpplTimings::stopTimer (TPreProc_m);
 }
 
-/*
-  Game plan:
-  Count number of intersection of the line segment defined by P and a reference
-  pt with the boundary. If the reference pt is inside the boundary and the number
-  of intersections is even, then P is inside the geometry. Otherwise P is outside.
-  To count the number of intersection, we divide the line segment in N segments
-  and run the line-segment boundary intersection test for all these segments.
-  N must be choosen carefully. It shouldn't be to large to avoid needless test.
- */
-int BoundaryGeometry::fastIsInside (
-    const Vector_t reference_pt,        // [in] a reference point which must be in the boundary
-    const Vector_t P                    // [in] point to test
-    ) {
-    const Vector_t v = P - reference_pt;
-
-    const int N = ceil (magnitude (v) / MIN3 (hr_m[0], hr_m[1], hr_m[2]));
-    const Vector_t v_ = v / N;
-    Vector_t P0 = P;
-    Vector_t P1 = P + v_;
-    Vector_t I;
-    int triangle_id = -1;
-    int result = 0;
-    for (int i = 0; i < N; i++) {
-        result += intersectLineSegmentBoundary (P0, P1, I, triangle_id) == 3 ? 1 : 0;
-        P0 = P1;
-        P1 += v_;
-    }
-    return result;
-}
 
 /*
   Compute intersection between line-segment given by the endpoints P0 and P1
