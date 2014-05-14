@@ -559,6 +559,16 @@ void TrackRun::execute() {
         *gmsg << "* Mass of simulation particle= " << macromass << " GeV/c^2" << endl;
         *gmsg << "* Charge of simulation particle= " << macrocharge << " [C]" << endl;
 
+	try {
+	  throw (beam->getNumberOfParticles() != Track::block->bunch->getTotalNum());
+	}
+	catch (bool notEqual) {
+	  if (notEqual) {
+	    ERRORMSG(" -> Number of macro particles and NPART on BEAM are not equal ... STOP now" << endl);
+	    MPI_Finalize();
+	    exit(1);
+	  }
+	}
 
         Track::block->bunch->setdT(1.0 / (Track::block->stepsPerTurn * beam->getFrequency() * 1.0e6));
         Track::block->bunch->setStepsPerTurn(Track::block->stepsPerTurn);
