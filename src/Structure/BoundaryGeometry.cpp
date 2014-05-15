@@ -19,6 +19,8 @@ extern Inform* gmsg;
 #define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
 #define Point(triangle_id, vertex_id)   geo3Dcoords_m[allbfaces_m[4 * (triangle_id) + (vertex_id)]]
 
+//#define FAST_VOXELIZATION
+
 /*
 
   Some
@@ -773,16 +775,18 @@ void BoundaryGeometry::updateElement (ElementBase* element) {
 int
 BoundaryGeometry::intersectTriangleVoxel (
     const int triangle_id,
-    const int voxel_id
+    const int i,
+    const int j,
+    const int k
     ) {
     const Triangle t = {getPoint (triangle_id, 1),
                         getPoint (triangle_id, 2),
                         getPoint (triangle_id, 3)};
 
-    const int k = (voxel_id - 1) / (nr_m[0] * nr_m[1]);
-    const int rest = (voxel_id - 1) % (nr_m[0] * nr_m[1]);
-    const int j = rest / nr_m[0];
-    const int i = rest % nr_m[0]; 
+    //const int k = (voxel_id - 1) / (nr_m[0] * nr_m[1]);
+    //const int rest = (voxel_id - 1) % (nr_m[0] * nr_m[1]);
+    //const int j = rest / nr_m[0];
+    //const int i = rest % nr_m[0]; 
     
     Cube c;
     c.v1 = {
@@ -949,25 +953,6 @@ int BoundaryGeometry::fastIsInside (
 /*
   P must be *inside* the boundary geometry!
  */
-#if 0
-int BoundaryGeometry::intersectRayBoundary (
-    const Vector_t& P,
-    const Vector_t& v,
-    Vector_t& I) {
-
-    double x = MIN3 (hr_m[0], hr_m[1], hr_m[2]) / magnitude (v);
-    const Vector_t v_ = x * v;
-    Vector_t P0 = P;
-    Vector_t P1 = P + v_;
-    int triangle_id = -1;
-    int result = -1;
-    while ((result = intersectLineSegmentBoundary (P0, P1, I, triangle_id)) == 0) {
-        P0 = P1;
-        P1 += v_;
-    }
-    return (result == 3);
-}
-#else
 int BoundaryGeometry::intersectRayBoundary (
     const Vector_t& P,
     const Vector_t& v,
@@ -986,7 +971,7 @@ int BoundaryGeometry::intersectRayBoundary (
     }
     return 0;
 }
-#endif
+
 /*
   Map point to unique voxel ID.
 
@@ -1007,15 +992,28 @@ BoundaryGeometry::mapPoint2VoxelID (
     }
     return 1 + k * nr_m[0] * nr_m[1] + j * nr_m[0] + i;
 }
+
+inline int
+BoundaryGeometry::mapPoint2VoxelIndices(
+    const Vector_t pt,
+    int& i,
+    int& j,
+    int& k
+    ) {
+    i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);
+    j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);
+    k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
+    assert (i >= 0 && j >= 0 && k >= 0);
+    assert (i < nr_m[0] && j < nr_m[1] && k < nr_m[2]);
+    return 0;
+}
     
 inline int
 BoundaryGeometry::mapPoint2VoxelID (
     const Vector_t x
     ) {
-    const int i = floor ((x[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);
-    const int j = floor ((x[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);
-    const int k = floor ((x[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
-
+    int i, j, k;
+    mapPoint2VoxelIndices (x, i, j, k);
     return mapPoint2VoxelID (i, j, k);
 }
 
@@ -1202,14 +1200,43 @@ void BoundaryGeometry::initialize () {
                 MAX3 (v1[0], v2[0], v3[0]),
                 MAX3 (v1[1], v2[1], v3[1]),
                 MAX3 (v1[2], v2[2], v3[2]) };
+            /*
+              get voxel ID
+              map voxel ID to i,j,k
+             */
+            int i_min, j_min, k_min;
+            int i_max, j_max, k_max;
+            bg->mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
+            bg->mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
+            for (int i = i_min; i <= i_max; i++) {
+                for (int j = j_min; j <= j_max; j++) {
+                    for (int k = k_min; k <= k_max; k++) {
+                        // test if voxel (i,j,k) has an intersection with triangle
+                        if (bg->intersectTriangleVoxel (triangle_id, i, j, k) == INSIDE) {
+                            int voxel_id = bg->mapPoint2VoxelID (i, j, k);
+                            voxel_ids.insert (voxel_id);
+                        }
+                    }
+                }
+            } 
         }
 
         static void computeMeshVoxelization (BoundaryGeometry* bg) {
 
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
                 std::unordered_set<int> voxel_ids;
+#if defined(FAST_VOXELIZATION)
+                computeTriangleVoxelizationViaBBox (bg, triangle_id, voxel_ids);
+#else
                 computeTriangleVoxelization (bg, triangle_id, voxel_ids);
-
+#endif
+#if 0
+                *gmsg << "* Triangle: " << triangle_id << " voxels:";
+                for (auto it = voxel_ids.begin(); it != voxel_ids.end(); it++) {
+                    *gmsg << " " << *it;
+                }
+                *gmsg << endl;
+#endif
                 // add voxeliziation of triangle to voxelization of mesh
                 bg->boundary_ids_m.insert (voxel_ids.begin(), voxel_ids.end());
 
@@ -1219,8 +1246,6 @@ void BoundaryGeometry::initialize () {
                      voxelIt != voxel_ids.end ();
                      voxelIt++) {
                     int voxel_id = *voxelIt;
-
-
 
                     auto it = map_of_voxel_ids_to_intersect_triangles.find (voxel_id);
                     if (it == map_of_voxel_ids_to_intersect_triangles.end ()) {
@@ -1685,7 +1710,8 @@ Change orientation if diff is:
     This is *not* a general porpose method! If neither P0 nor P1 is in the
     voxelized boundary geometry, no intersection will be found!
 */
-int BoundaryGeometry::intersectLineSegmentBoundary (
+int
+BoundaryGeometry::intersectLineSegmentBoundary (
     const Vector_t P0,                  // [in] starting point of ray
     const Vector_t P1,                  // [in] end point of ray
     Vector_t& intersection_pt,          // [out] intersection with boundary
@@ -1774,107 +1800,8 @@ done:
        then check if the particle has intersection with those triangles. If
        intersection exsists, then return 0.
  */
-
-#if defined(OLD_PARTINSIDE)
-int BoundaryGeometry::PartInside (
-    const Vector_t r,                   // [in] particle position
-    const Vector_t v,                   // [in] momentum
-    const double dt,                    // [in]
-    const int Parttype,                 // [in] type of particle
-    const double Qloss,                 // [in]
-    Vector_t& intecoords,               // [out] intersection with boundary
-    int& triangle_id                    // [out] appropriate triangle 
-    ) {
-    int ret = -1;
-    if (v == (Vector_t)0)               // nothing to do if momenta == 0
-        return ret;
-
-    const double p_sq = dot (v, v);
-    const double betaP = 1.0 / sqrt (1.0 + p_sq);
-
-    const Vector_t P0 = r;              //particle position in timestep n;
-    const Vector_t P1 = r + (Physics::c * betaP * v * dt); //particle position in tstep n+1
-
-    IpplTimings::startTimer (TPInside_m);
-
-    /*
-      Test if particle position in timestep n or n+1 is inside the voxelized boundary
-      If not, we are done ...
-    */
-    int voxel_id;
-    if (boundary_ids_m.find (mapPoint2VoxelID (P0)) != boundary_ids_m.end ()) {
-        // particle is in geometry at timestep n
-        voxel_id = mapPoint2VoxelID (P0);
-    } else if (boundary_ids_m.find (mapPoint2VoxelID (P1)) != boundary_ids_m.end ()) {
-        // particle is in geometry at timestep n+1
-        voxel_id = mapPoint2VoxelID (P1);
-    } else {
-        return ret;
-    }
-
-    /*
-      Build an array containing the IDs of 27(3*3*3) voxels. The ID
-      of the voxel containing the particle, is the center of these
-      voxels. Just for the situation that even the line segment
-      crosses more than one voxel.
-    */
-    const int nx = nr_m[0];
-    const int ny = nr_m[1];
-    const int idc[27] = surrounding_voxels (voxel_id, nx, ny);
-    
-    /* Test all the 27 voxels to find if the line segment has
-       intersection with the triangles in those voxels. */
-    Vector_t intersection_pt = outside_point_m;
-    triangle_id = -1;
-    for (int k = 0; k < 27; k++) {
-        const auto triangles_overlaping_with_voxel = CubicLookupTable_m.find (idc[k]);
-        if (triangles_overlaping_with_voxel == CubicLookupTable_m.end ())
-            continue;                   // not in voxelization of boundary
-        
-        // for each triangle in this voxel
-        for (auto it = triangles_overlaping_with_voxel->second.begin ();
-             it != triangles_overlaping_with_voxel->second.end ();
-             it++) {
-            if (dot (v, TriNormal_m[*it]) >= 0.0) 
-                continue;               // particle moves away from triangle
-            
-            // particle moves towards triangle
-            const int intersect_result = intersectLineTriangle (
-                LINE,
-                P0, P1,
-                *it,
-                intersection_pt);
-            switch (intersect_result) {
-            case -1:                    // triangle is degenerated
-                assert (intersect_result != -1);
-            case 0:                     // no intersection
-                break;              
-            case 1:                     // line and triangle are in same plane
-            case 2:                     // unique intersection, but both particles are outside
-            case 3:                     // unique intersection in segment
-                *gmsg << "* Intersection test returned: " << intersect_result << endl;
-                triangle_id = (*it);
-                goto done;
-            };
-        }                               // end for all triangles
-    }                                   // end for all voxels
-
-done:
-    if (triangle_id >= 0) {
-        intecoords = intersection_pt;
-        if (Parttype == 0)
-            TriPrPartloss_m[triangle_id] += Qloss;
-        else if (Parttype == 1)
-            TriFEPartloss_m[triangle_id] += Qloss;
-        else
-            TriSePartloss_m[triangle_id] += Qloss;
-        ret = 0;
-    }
-    IpplTimings::stopTimer (TPInside_m);
-    return ret;
-}
-#else
-int BoundaryGeometry::PartInside (
+int
+BoundaryGeometry::PartInside (
     const Vector_t r,                   // [in] particle position
     const Vector_t v,                   // [in] momentum
     const double dt,                    // [in]
@@ -1909,9 +1836,9 @@ int BoundaryGeometry::PartInside (
     IpplTimings::stopTimer (TPInside_m);
     return ret;
 }
-#endif
 
-void BoundaryGeometry::writeGeomToVtk (string fn) {
+void
+BoundaryGeometry::writeGeomToVtk (string fn) {
     std::ofstream of;
     of.open (fn.c_str ());
     assert (of.is_open ());
@@ -1946,7 +1873,8 @@ void BoundaryGeometry::writeGeomToVtk (string fn) {
     of << std::endl;
 }
 
-Inform& BoundaryGeometry::printInfo (Inform& os) const {
+Inform&
+BoundaryGeometry::printInfo (Inform& os) const {
     os << "* *************Boundary Geometry Info*********************************************** " << endl;
     os << "* GEOMETRY                   " << getOpalName () << '\n'
        << "* FGEOM                      " << Attributes::getString (itsAttr[FGEOM]) << '\n'

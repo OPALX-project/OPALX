@@ -366,7 +366,9 @@ public:
 private:
     int intersectTriangleVoxel (
         const int triangle_id,
-        const int voxel_id);
+        const int i,
+        const int j,
+        const int k);
 
     int intersectLineSegmentBoundary (
         const Vector_t P0,
@@ -483,6 +485,12 @@ private:
     /*
       Map point to unique voxel ID.
     */
+    inline int mapPoint2VoxelIndices(
+        const Vector_t pt,
+        int& i,
+        int& j,
+        int& k);
+
     inline int mapPoint2VoxelID (const int i, const int j, const int k);
     inline int mapPoint2VoxelID (const Vector_t x);
     inline Vector_t& mapPoint2Voxel (const Vector_t&);
