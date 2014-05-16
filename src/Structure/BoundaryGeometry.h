@@ -404,7 +404,7 @@ private:
     std::unordered_map< int, std::unordered_set<int> >
             CubicLookupTable_m;         // Maps boundary box ID to included triangles
     bool* isOriented_m;                  // IDs of oriented triangles.
-    std::map< int, std::set<int> >
+    std::map< int, std::unordered_set<int> >
             triangleNeighbors_m;        // map vertex ID to triangles with this vertex
 
     Vector_t outside_point_m;           // a point outside the domain
@@ -485,13 +485,13 @@ private:
     /*
       Map point to unique voxel ID.
     */
-    inline int mapPoint2VoxelIndices(
+    inline bool mapPoint2VoxelIndices(
         const Vector_t pt,
         int& i,
         int& j,
         int& k);
 
-    inline int mapPoint2VoxelID (const int i, const int j, const int k);
+    inline int mapVoxelIndices2ID (const int i, const int j, const int k);
     inline int mapPoint2VoxelID (const Vector_t x);
     inline Vector_t& mapPoint2Voxel (const Vector_t&);
 

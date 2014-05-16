@@ -19,7 +19,7 @@ extern Inform* gmsg;
 #define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
 #define Point(triangle_id, vertex_id)   geo3Dcoords_m[allbfaces_m[4 * (triangle_id) + (vertex_id)]]
 
-//#define FAST_VOXELIZATION
+#define FAST_VOXELIZATION
 
 /*
 
@@ -147,12 +147,14 @@ static void write_voxel_mesh (
     of << "ASCII" << std::endl << std::endl;
     of << "DATASET UNSTRUCTURED_GRID" << std::endl;
     of << "POINTS " << numpoints << " float" << std::endl;
-    
-    for (auto id = ids.begin (); id != ids.end (); id++) {
-        size_t k = (*id - 1) / (nr[0] * nr[1]);
-        size_t rest = (*id - 1) % (nr[0] * nr[1]);
-        size_t j = rest / nr[0];
-        size_t i = rest % nr[0]; 
+
+    const auto end_it = ids.end();
+    const auto nr0_times_nr1 = nr[0] * nr[1];
+    for (auto id = ids.begin (); id != end_it; id++) {
+        int k = (*id - 1) / nr0_times_nr1;
+        int rest = (*id - 1) % nr0_times_nr1;
+        int j = rest / nr[0];
+        int i = rest % nr[0]; 
 
         Vector_t P;
         P[0] = i * hr_m[0] + origin[0];
@@ -169,27 +171,36 @@ static void write_voxel_mesh (
         of << P[0] + hr_m[0] << " " << P[1] + hr_m[1] << " " << P[2] + hr_m[2] << std::endl;
     }
     of << std::endl;
-    
-    of << "CELLS " << ids.size () << " " << 9 * ids.size () << std::endl;
-    for (size_t i = 0; i < ids.size (); i++)
+    const auto num_cells = ids.size ();
+    of << "CELLS " << num_cells << " " << 9 * num_cells << std::endl;
+    for (size_t i = 0; i < num_cells; i++)
         of << "8 "
            << 8 * i << " " << 8 * i + 1 << " " << 8 * i + 2 << " " << 8 * i + 3 << " "
            << 8 * i + 4 << " " << 8 * i + 5 << " " << 8 * i + 6 << " " << 8 * i + 7 << std::endl;
-    of << "CELL_TYPES " << ids.size () << std::endl;
-    for (size_t i = 0; i <  ids.size (); i++)
+    of << "CELL_TYPES " << num_cells << std::endl;
+    for (size_t i = 0; i <  num_cells; i++)
         of << "11" << std::endl;
-    of << "CELL_DATA " << ids.size () << std::endl;
+    of << "CELL_DATA " << num_cells << std::endl;
     of << "SCALARS " << "cell_attribute_data" << " float " << "1" << std::endl;
     of << "LOOKUP_TABLE " << "default" << std::endl;
-    for (size_t i = 0; i <  ids.size (); i++)
+    for (size_t i = 0; i <  num_cells; i++)
         of << (float)(i) << std::endl;
     of << std::endl;
     of << "COLOR_SCALARS " << "BBoxColor " << 4 << std::endl;
-    for (size_t i = 0; i < ids.size (); i++) {
+    for (size_t i = 0; i < num_cells; i++) {
         of << "1.0" << " 1.0 " << "0.0 " << "1.0" << std::endl;
     }
     of << std::endl;
 }
+
+/*___________________________________________________________________________
+
+  Triangle-cube intersection test.
+
+  See:
+  http://tog.acm.org/resources/GraphicsGems/gemsiii/triangleCube.c
+
+ */
 
 #include <math.h>
 
@@ -979,7 +990,7 @@ int BoundaryGeometry::intersectRayBoundary (
   * nr_m:  number of mesh points
   */
 inline int
-BoundaryGeometry::mapPoint2VoxelID (
+BoundaryGeometry::mapVoxelIndices2ID (
     const int i,
     const int j,
     const int k
@@ -992,7 +1003,7 @@ BoundaryGeometry::mapPoint2VoxelID (
     return 1 + k * nr_m[0] * nr_m[1] + j * nr_m[0] + i;
 }
 
-inline int
+inline bool
 BoundaryGeometry::mapPoint2VoxelIndices(
     const Vector_t pt,
     int& i,
@@ -1002,9 +1013,12 @@ BoundaryGeometry::mapPoint2VoxelIndices(
     i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);
     j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);
     k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
-    assert (i >= 0 && j >= 0 && k >= 0);
-    assert (i < nr_m[0] && j < nr_m[1] && k < nr_m[2]);
-    return 0;
+    if (0 <= i && i < nr_m[0] &&
+        0 <= j && j < nr_m[1] &&
+        0 <= k && k < nr_m[2]) {
+        return true;
+    }
+    return false;
 }
     
 inline int
@@ -1012,8 +1026,10 @@ BoundaryGeometry::mapPoint2VoxelID (
     const Vector_t x
     ) {
     int i, j, k;
-    mapPoint2VoxelIndices (x, i, j, k);
-    return mapPoint2VoxelID (i, j, k);
+    if (mapPoint2VoxelIndices (x, i, j, k)) {
+        return mapVoxelIndices2ID (i, j, k);
+    }
+    return -1;
 }
 
 inline Vector_t&
@@ -1199,10 +1215,6 @@ void BoundaryGeometry::initialize () {
                 MAX3 (v1[0], v2[0], v3[0]),
                 MAX3 (v1[1], v2[1], v3[1]),
                 MAX3 (v1[2], v2[2], v3[2]) };
-            /*
-              get voxel ID
-              map voxel ID to i,j,k
-             */
             int i_min, j_min, k_min;
             int i_max, j_max, k_max;
             bg->mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
@@ -1212,7 +1224,7 @@ void BoundaryGeometry::initialize () {
                     for (int k = k_min; k <= k_max; k++) {
                         // test if voxel (i,j,k) has an intersection with triangle
                         if (bg->intersectTriangleVoxel (triangle_id, i, j, k) == INSIDE) {
-                            int voxel_id = bg->mapPoint2VoxelID (i, j, k);
+                            int voxel_id = bg->mapVoxelIndices2ID (i, j, k);
                             voxel_ids.insert (voxel_id);
                         }
                     }
@@ -1268,10 +1280,10 @@ void BoundaryGeometry::initialize () {
                 if (triangle_id > 0 && (triangle_id % 1000) == 0)
                     *gmsg << "* Triangle ID: " << triangle_id << endl;
             } // for_each triangle
+            *gmsg << "* Boundary index set built done." << endl;
             if(Ippl::myNode() == 0) {
                 write_voxel_mesh (bg->boundaryVoxelIDs_m, bg->hr_m, bg->nr_m, bg->voxelMesh_m.minExtend);
             }
-            *gmsg << "* Boundary index set built done." << endl;
         }
 
 /*
@@ -1396,7 +1408,7 @@ Change orientation if diff is:
                 bg->PointID (triangle_id, id[1]) = bg->PointID (ref_id, ic[0]);
             }
             bg->isOriented_m [triangle_id] = true;
-            std::set<int> neighbors = bg->triangleNeighbors_m[triangle_id];
+            std::unordered_set<int> neighbors = bg->triangleNeighbors_m[triangle_id];
 
             const auto endIt = neighbors.end ();
             for (auto triangleIt = neighbors.begin(); triangleIt != endIt; triangleIt++) {
@@ -1449,7 +1461,7 @@ Change orientation if diff is:
         static void computeTriangleNeighbors (
             BoundaryGeometry* bg
             ) {
-            std::set<int> adjacencies_to_pt  [bg->num_points_m];
+            std::unordered_set<int> adjacencies_to_pt  [bg->num_points_m];
 
             // for each triangles find adjacent triangles for each vertex
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
@@ -1461,11 +1473,11 @@ Change orientation if diff is:
             }
 
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                std::set<int>  to_A = adjacencies_to_pt [bg->PointID (triangle_id, 1)];
-                std::set<int>  to_B = adjacencies_to_pt [bg->PointID (triangle_id, 2)];
-                std::set<int>  to_C = adjacencies_to_pt [bg->PointID (triangle_id, 3)];
+                std::unordered_set<int>  to_A = adjacencies_to_pt [bg->PointID (triangle_id, 1)];
+                std::unordered_set<int>  to_B = adjacencies_to_pt [bg->PointID (triangle_id, 2)];
+                std::unordered_set<int>  to_C = adjacencies_to_pt [bg->PointID (triangle_id, 3)];
 
-                std::set<int>  intersect;
+                std::unordered_set<int>  intersect;
                 std::set_intersection (
                     to_A.begin(), to_A.end(),
                     to_B.begin(), to_B.end(),
@@ -1479,7 +1491,7 @@ Change orientation if diff is:
                     to_A.begin(), to_A.end(),
                     std::inserter(intersect,intersect.begin()));
 
-                bg->triangleNeighbors_m.insert (std::pair <int, std::set<int>> (triangle_id, intersect));
+                bg->triangleNeighbors_m.insert (std::pair <int, std::unordered_set<int>> (triangle_id, intersect));
                                 
             }
         }
@@ -1692,6 +1704,7 @@ Change orientation if diff is:
 
     *gmsg << *this << endl;
     IpplTimings::stopTimer (TPreProc_m);
+    exit(42);
 }
 
 
@@ -1702,7 +1715,7 @@ Change orientation if diff is:
   result:
     0   no intersection
     1   line-segment is on boundary
-    2   unique intersection, but both particles are outside
+    2   unique intersection, but both Pts are outside
     3   unique intersection in segment
 
     WARNING:
@@ -1718,7 +1731,7 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     ) {
     triangle_id = -1;
     /*
-      Test if particle position in timestep n or n+1 is inside the voxelized boundary
+      Test if P0 or P1 is inside the voxelized boundary
       If not, we are done ...
     */
     int voxel_id;
