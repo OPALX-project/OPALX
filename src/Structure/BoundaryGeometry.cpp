@@ -129,14 +129,13 @@ static inline bool is_in_voxel (Vector_t& point, Vector_t& min, Vector_t& max) {
   write legacy VTK file of voxel mesh
 */
 static void write_voxel_mesh (
-    const std::set<size_t> ids,
+    const std::unordered_set<int> ids,
     const Vector_t hr_m,
     const Vektor<int,3> nr,
     const Vector_t origin
     ) {
     /*----------------------------------------------------------------------*/
     const size_t numpoints = 8 * ids.size ();
-    std::set<size_t>::iterator id;
     std::ofstream of;
     of.open (string ("data/testBBox.vtk").c_str ());
     assert (of.is_open ());
@@ -149,7 +148,7 @@ static void write_voxel_mesh (
     of << "DATASET UNSTRUCTURED_GRID" << std::endl;
     of << "POINTS " << numpoints << " float" << std::endl;
     
-    for (id = ids.begin (); id != ids.end (); id++) {
+    for (auto id = ids.begin (); id != ids.end (); id++) {
         size_t k = (*id - 1) / (nr[0] * nr[1]);
         size_t rest = (*id - 1) % (nr[0] * nr[1]);
         size_t j = rest / nr[0];
@@ -1238,7 +1237,7 @@ void BoundaryGeometry::initialize () {
                 *gmsg << endl;
 #endif
                 // add voxeliziation of triangle to voxelization of mesh
-                bg->boundary_ids_m.insert (voxel_ids.begin(), voxel_ids.end());
+                bg->boundaryVoxelIDs_m.insert (voxel_ids.begin(), voxel_ids.end());
 
                 // 
                 std::unordered_map< int, std::unordered_set<int> > map_of_voxel_ids_to_intersect_triangles;
@@ -1270,7 +1269,7 @@ void BoundaryGeometry::initialize () {
                     *gmsg << "* Triangle ID: " << triangle_id << endl;
             } // for_each triangle
             if(Ippl::myNode() == 0) {
-                write_voxel_mesh (bg->boundary_ids_m, bg->hr_m, bg->nr_m, bg->voxelMesh_m.minExtend);
+                write_voxel_mesh (bg->boundaryVoxelIDs_m, bg->hr_m, bg->nr_m, bg->voxelMesh_m.minExtend);
             }
             *gmsg << "* Boundary index set built done." << endl;
         }
@@ -1723,10 +1722,10 @@ BoundaryGeometry::intersectLineSegmentBoundary (
       If not, we are done ...
     */
     int voxel_id;
-    if (boundary_ids_m.find (mapPoint2VoxelID (P0)) != boundary_ids_m.end ()) {
+    if (boundaryVoxelIDs_m.find (mapPoint2VoxelID (P0)) != boundaryVoxelIDs_m.end ()) {
         // particle is in geometry at timestep n
         voxel_id = mapPoint2VoxelID (P0);
-    } else if (boundary_ids_m.find (mapPoint2VoxelID (P1)) != boundary_ids_m.end ()) {
+    } else if (boundaryVoxelIDs_m.find (mapPoint2VoxelID (P1)) != boundaryVoxelIDs_m.end ()) {
         // particle is in geometry at timestep n+1
         voxel_id = mapPoint2VoxelID (P1);
     } else {
@@ -1897,7 +1896,7 @@ BoundaryGeometry::printInfo (Inform& os) const {
        << "* Geometry length(m)         " << len_m << '\n'
        << "* Boundary box grid num      " << nr_m << '\n'
        << "* Boundary box size(m)       " << hr_m << '\n'
-       << "* Size of boundary index set " << boundary_ids_m.size () << '\n'
+       << "* Size of boundary index set " << boundaryVoxelIDs_m.size () << '\n'
        << "* Number of all boxes        " << nr_m (0) * nr_m (1) * nr_m (2) << '\n'
         << endl;
     os << "* ********************************************************************************** " << endl;

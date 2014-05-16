@@ -392,7 +392,7 @@ private:
     Vector_t mincoords_m;               // minimum of geometry coordinate.
     Vector_t maxcoords_m;               // maximum of geometry coordinate.
 
-    std::set<size_t> boundary_ids_m;    // boundary triangle IDs
+    std::unordered_set<int> boundaryVoxelIDs_m;    // boundary voxeliziation IDs
     Vector_t hr_m;                      // length of cubic box
     Vector_t len_m;                     // extend of geometries bounding box
     Vektor<int, 3> nr_m;                // number of intervals of geometry in X,Y,Z direction
