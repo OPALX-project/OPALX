@@ -277,6 +277,11 @@ public:
 
     void computeSelfFields_cycl(double gamma);
 
+    // Overload computeselffields with version that has meanR and the quaternion of the 
+    // rotation of the particle bunch in order to take into account the rotation
+    // when finding the boundary conditions for the fieldsolver -DW
+    void computeSelfFields_cycl(double gamma, Vector_t const meanR, Vektor<double, 4> const quaternion);
+
     void computeSelfFields_cycl(int b);
 
     void resetInterpolationCache(bool clearCache = false);
@@ -511,6 +516,9 @@ private:
 
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
+
+    // Rotate three element vector Vector_t counter clockwise with quaternion. -DW
+    inline void rotateWithQuaternion(Vector_t v, Vektor<double, 4> const quaternion);
 
     /*
       Member variables starts here
