@@ -191,6 +191,11 @@ private:
     /// The maximal number of steps the system is integrated
     int maxSteps_m;
 
+    /// The positive axes unit vectors
+    Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
+    Vector_t const yaxis = Vector_t(0.0, 1.0, 0.0);
+    Vector_t const zaxis = Vector_t(0.0, 0.0, 1.0);
+
     /// The scale factor for dimensionless variables
     double scaleFactor_m;
     double bega;
@@ -202,6 +207,8 @@ private:
     double referencePt;
     double referencePz;
     double referencePtot;
+
+    Vector_t PreviousMeanP;
 
     double sinRefTheta_m;
     double cosRefTheta_m;
@@ -336,13 +343,41 @@ private:
     
     // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the 
     // global reference frame to the local reference frame.
-    //
+
     // phi is the angle of the bunch measured counter-clockwise from the positive x-axis.
     void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, double phi, Vector_t const translationToGlobal = 0);
     
     // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the 
     // local reference frame to the global reference frame.
     void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, double phi, Vector_t const translationToGlobal = 0);
+    
+    // Overloaded version of globalToLocal using a quaternion for 3D rotation
+    inline void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, Vektor<double, 4> const quaternion, Vector_t const meanR = 0);
+    
+    // Overloaded version of localToGlobal using a quaternion for 3D rotation
+    inline void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, Vektor<double, 4> const quaternion, Vector_t const meanR = 0);
+    
+    // Overloaded version of globalToLocal using phi and theta for pseudo 3D rotation
+    inline void globalToLocal(ParticleAttrib<Vector_t> & particleVectors, double const phi, double const psi, Vector_t const meanR = 0);
+
+    // Overloaded version of localToGlobal using phi and theta for pseudo 3D rotation
+    inline void localToGlobal(ParticleAttrib<Vector_t> & particleVectors, double const phi, double const psi, Vector_t const meanR = 0);
+
+    // Rotate the particles by an angle and axis defined in the quaternion (4-vector w,x,y,z)
+    inline void rotateWithQuaternion(ParticleAttrib<Vector_t> & vectorArray, Vektor<double, 4> const quaternion);
+
+    // Returns the quaternion of the rotation from vector u to vector v
+    inline void getQuaternionTwoVectors(Vector_t u, Vector_t v, Vektor<double, 4> & quaternion);
+
+    // Normalization of a quaternion
+    inline void normalizeQuaternion(Vektor<double, 4> & quaternion);
+    
+    // Normalization of a quaternion
+    inline void normalizeVector(Vector_t & vector); 
+
+    // Some rotations
+    inline void rotateAroundZ(ParticleAttrib<Vector_t> & particleVectors, double const phi);
+    inline void rotateAroundX(ParticleAttrib<Vector_t> & particleVectors, double const psi);
     
     // Push particles for time h.
     // Apply effects of RF Gap Crossings.
@@ -369,6 +404,8 @@ private:
     void initTrackOrbitFile();
 
     void singleParticleDump();
+
+    void bunchDumpPhaseSpaceStatData();
 
     void evaluateSpaceChargeField();
 
