@@ -1704,7 +1704,6 @@ Change orientation if diff is:
 
     *gmsg << *this << endl;
     IpplTimings::stopTimer (TPreProc_m);
-    exit(42);
 }
 
 
