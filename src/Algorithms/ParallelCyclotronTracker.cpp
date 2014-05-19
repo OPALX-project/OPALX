@@ -1501,55 +1501,87 @@ void ParallelCyclotronTracker::Tracker_LF() {
             IpplTimings::startTimer(DumpTimer_m);
 
             itsBunch->setSteptoLastInj(SteptoLastInj);
-
             itsBunch->setLocalTrackStep((step_m + 1));
+            
+            // Write Phase Space and Statistics Data to h5 and dat files
+            bunchDumpPhaseSpaceStatData();
 
-            extE_m = Vector_t(0.0, 0.0, 0.0);
-            extB_m = Vector_t(0.0, 0.0, 0.0);
+            // extE_m = Vector_t(0.0, 0.0, 0.0);
+            // extB_m = Vector_t(0.0, 0.0, 0.0);
 
-            //--------------------- calculate mean coordinates  of bunch -------------------------------//
-            //------------  and calculate the external field at the mass of bunch-----------------------//
+            // //--------------------- calculate mean coordinates  of bunch -------------------------------//
+            // //------------  and calculate the external field at the mass of bunch-----------------------//
 
-            Vector_t const meanR = calcMeanR();
-	    //            *gmsg << "* meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
+            // Vector_t const meanR = calcMeanR();
+	    // // *gmsg << "* meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
 
-            beamline_list::iterator DumpSindex = FieldDimensions.begin();
-            (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
-            FDext_m[0] = extB_m / 10.0; // kgauss -> T
-            FDext_m[1] = extE_m;
+            // beamline_list::iterator DumpSindex = FieldDimensions.begin();
+            // (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
+            // FDext_m[0] = extB_m / 10.0; // kgauss -> T
+            // FDext_m[1] = extE_m;
 
-            //----------------------------dump in global frame-------------------------------------//
-            // Note: Don't dump when
-            // 1. after one turn
-            // in order to sychronize the dump step for multi-bunch and single bunch for compare
-            // with each other during post-process phase.
-            if(!(Options::psDumpLocalFrame)) {
-   	        double E = itsBunch->get_meanEnergy(); 
-                itsBunch->R /= Vector_t(1000.0); // mm --> m
+            // // --------------------------- Particle dumping ------------------------------------------ //
+            // // Note: Don't dump when
+            // // 1. after one turn
+            // // in order to sychronize the dump step for multi-bunch and single bunch for compare
+            // // with each other during post-process phase.
+            // double const E = itsBunch->get_meanEnergy(); 
 
+            // if(!(Options::psDumpLocalFrame)) {
+            //     // --------------------------- Dump in global frame ---------------------------------- //
 
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-                itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
-                itsBunch->R *= Vector_t(1000.0); // m --> mm
-                *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E = " << itsBunch->get_meanEnergy()  << endl;
+            //     itsBunch->R /= Vector_t(1000.0); // mm --> m
 
-                //----------------------------dump in local frame-------------------------------------//
-            } else {
-	      Vector_t const meanP = calcMeanP();
-	      double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-	      double E = itsBunch->get_meanEnergy();
-	      globalToLocal(itsBunch->R, phi, meanR);
-	      globalToLocal(itsBunch->P, phi, meanP);
-	      itsBunch->R /= Vector_t(1000.0); // mm --> m
-	      lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-	      itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
-	      itsBunch->R *= Vector_t(1000.0); // m --> mm
-	      localToGlobal(itsBunch->R, phi, meanR);
-	      localToGlobal(itsBunch->P, phi, meanP);
-	      *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-		    << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E = " << E  << " phi= " << phi/pi*180.0 << endl;
-            }
+            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
+            //     itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
+
+            //     itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+            //     *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
+            //           << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E = " << itsBunch->get_meanEnergy()  << endl;
+
+            // } else {
+            //     // --------------------------- Dump in local frame ---------------------------------- //
+
+	    //     Vector_t const meanP = calcMeanP();
+	    //     double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+            //     // TEMP for testing -DW ********************************************
+            //     // NEW:
+	    //     Vektor<double, 4> quaternionToXAxis;
+            //     Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
+
+            //     getQuaternionTwoVectors(meanP, xaxis, quaternionToXAxis);
+
+            //     globalToLocal(itsBunch->R, quaternionToXAxis, meanR);
+            //     globalToLocal(itsBunch->P, quaternionToXAxis, meanP);
+
+            //     // OLD:
+            //     //globalToLocal(itsBunch->R, phi, meanR);
+            //     //globalToLocal(itsBunch->P, phi, meanP);
+            //     // TEMP END ********************************************************
+
+	    //     itsBunch->R /= Vector_t(1000.0); // mm --> m
+
+	    //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
+	    //     itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+
+	    //     itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+            //     // TEMP for testing -DW ********************************************
+            //     // NEW:
+            //     localToGlobal(itsBunch->R, quaternionToXAxis, meanR);
+            //     localToGlobal(itsBunch->P, quaternionToXAxis, meanP);
+
+            //     // OLD:
+            //     //localToGlobal(itsBunch->R, phi, meanR);
+            //     //localToGlobal(itsBunch->P, phi, meanP);
+            //     // TEMP END ********************************************************
+
+	    //     *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
+	    // 	      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" << " E = " << E  << " phi= " << phi/pi*180.0 << endl;
+            // }
+            // // -------------------- Done with particle dumping ------------------------------------ //
             IpplTimings::stopTimer(DumpTimer_m);
         }
     }
@@ -1657,7 +1689,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     const double deltaTheta = pi / (stepsPerTurn); // half of the average angle per step
     // record at which angle the space charge are solved
-    double angleSpaceChargeSolve = 0.0;
+    // double angleSpaceChargeSolve = 0.0; unused? -DW
 
     if(initialTotalNum_m == 1) {
         *gmsg << "* ---------------------------- SINGLE PARTICLE MODE------ ----------------------------*** " << endl;
@@ -1817,14 +1849,14 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                             saveOneBunch();
                             flagTransition = true;
                             *gmsg << "*** Save beam distribution at turn #" << turnnumber_m << " ***" << endl;
-                            *gmsg << "*** After one revolution, Multi-Bunch Mode will be invorked ***" << endl;
+                            *gmsg << "*** After one revolution, Multi-Bunch Mode will be invoked ***" << endl;
 
                         }
                         stepsNextCheck += stepsPerTurn;
 
-                        *gmsg << "RLastTurn = " << RLastTurn_m << " [mm]" << endl;
-                        *gmsg << "RThisTurn = " << RThisTurn_m << " [mm]" << endl;
-                        *gmsg << "    XYrms = " << XYrms    << " [mm]" << endl;
+                        *gmsg << "* RLastTurn = " << RLastTurn_m << " [mm]" << endl;
+                        *gmsg << "* RThisTurn = " << RThisTurn_m << " [mm]" << endl;
+                        *gmsg << "* XYrms = " << XYrms    << " [mm]" << endl;
 
                         RLastTurn_m = RThisTurn_m;
                     }
@@ -1870,47 +1902,62 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 }
             }
 
+            Vector_t const meanR = calcMeanR();
+            oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
+
             // Calculate SC field before each time step and keep constant during integration.
             // Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
             if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+
                 if(step_m % scSolveFreq == 0) {
+
                     // Firstly reset E and B to zero before fill new space charge field data for each track step
                     itsBunch->Bf = Vector_t(0.0);
                     itsBunch->Ef = Vector_t(0.0);
 
                     IpplTimings::startTimer(TransformTimer_m);
 
-                    //HERE transform particles coordinates to local frame (rotate and shift)
-                    Vector_t const meanR = calcMeanR();
+                    PreviousMeanP = calcMeanP();
 
-                    // in global Cartesian frame, calculate the location in global frame of bunch
-                    oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
+                    // // in global Cartesian frame, calculate the location in global frame of bunch
+                    // oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
 
                     if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
-                        double binsMeanPhi = itsBunch->calcMeanPhi() - 0.5 * pi;
-                        angleSpaceChargeSolve = binsMeanPhi;
+                        // --- Multibunche mode --- //
 
-                        double cosTemp_binsMeanPhi = cos(binsMeanPhi);
-                        double sinTemp_binsMeanPhi = sin(binsMeanPhi);
+                        // Since calcMeanP takes into account all particles of all bins (TODO: Check this! -DW)
+                        // Using the quaternion method with PreviousMeanP and yaxis should give the correct result
+	                Vektor<double, 4> quaternionToYAxis;
 
+                        getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
 
-                        // remove mean coordinates
-                        itsBunch->R -= meanR;
+                        globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
 
-                        //scale coordinates
                         itsBunch->R /= Vector_t(1000.0); // mm --> m
 
-                        // rotate from global frame to local frame(transverse horizontal,longitudinal,transverse vertical)
-                        // For multi-bin, rotate the frame for binsMeanPhi degree
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_binsMeanPhi
-                                                         + itsBunch->R[ii](1) * sinTemp_binsMeanPhi;
-                            double temp_RLongitudinal = -itsBunch->R[ii](0) * sinTemp_binsMeanPhi
-                                                        + itsBunch->R[ii](1) * cosTemp_binsMeanPhi;
+                        // double binsMeanPhi = itsBunch->calcMeanPhi() - 0.5 * pi;
+                        // angleSpaceChargeSolve = binsMeanPhi;
 
-                            itsBunch->R[ii](0) = temp_RHorizontal;
-                            itsBunch->R[ii](1) = temp_RLongitudinal;
-                        }
+                        // double cosTemp_binsMeanPhi = cos(binsMeanPhi);
+                        // double sinTemp_binsMeanPhi = sin(binsMeanPhi);
+
+                        // // remove mean coordinates
+                        // itsBunch->R -= meanR;
+
+                        // //scale coordinates
+                        // itsBunch->R /= Vector_t(1000.0); // mm --> m
+
+                        // // rotate from global frame to local frame(transverse horizontal,longitudinal,transverse vertical)
+                        // // For multi-bin, rotate the frame for binsMeanPhi degree
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_binsMeanPhi
+                        //                                  + itsBunch->R[ii](1) * sinTemp_binsMeanPhi;
+                        //     double temp_RLongitudinal = -itsBunch->R[ii](0) * sinTemp_binsMeanPhi
+                        //                                 + itsBunch->R[ii](1) * cosTemp_binsMeanPhi;
+
+                        //     itsBunch->R[ii](0) = temp_RHorizontal;
+                        //     itsBunch->R[ii](1) = temp_RLongitudinal;
+                        // }
 
                         if((step_m + 1) % boundpDestroyFreq == 0)
                             itsBunch->boundp_destroy();
@@ -1919,7 +1966,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         IpplTimings::stopTimer(TransformTimer_m);
 
-                        // calcualte gamma for each energy bin
+                        // Calcualte gamma for each energy bin
                         itsBunch->calcGammas_cycl();
 
                         repartition();
@@ -1935,76 +1982,95 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         IpplTimings::startTimer(TransformTimer_m);
 
-                        // HERE transform particles coordinates back to global frame (rotate and shift)
-                        // rotate back from local reference frame to global frame
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_binsMeanPhi
-                                                         - itsBunch->R[ii](1) * sinTemp_binsMeanPhi;
-                            double temp_RLongitudinal =  itsBunch->R[ii](0) * sinTemp_binsMeanPhi
-                                                         + itsBunch->R[ii](1) * cosTemp_binsMeanPhi;
-
-                            itsBunch->R[ii](0) = temp_RHorizontal;
-                            itsBunch->R[ii](1) = temp_RLongitudinal;
-                        }
-
                         //scale coordinates back
                         itsBunch->R *= Vector_t(1000.0); // m --> mm
 
-                        // retrieve mean coordinates
-                        itsBunch->R += meanR;
+                        // Transform coordinates back to global
+                        localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
+
+                        // Transform self field back to global frame (rotate only)
+                        localToGlobal(itsBunch->Ef, quaternionToYAxis);
+                        localToGlobal(itsBunch->Bf, quaternionToYAxis);
+
+                        // // HERE transform particles coordinates back to global frame (rotate and shift)
+                        // // rotate back from local reference frame to global frame
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_binsMeanPhi
+                        //                                  - itsBunch->R[ii](1) * sinTemp_binsMeanPhi;
+                        //     double temp_RLongitudinal =  itsBunch->R[ii](0) * sinTemp_binsMeanPhi
+                        //                                  + itsBunch->R[ii](1) * cosTemp_binsMeanPhi;
+
+                        //     itsBunch->R[ii](0) = temp_RHorizontal;
+                        //     itsBunch->R[ii](1) = temp_RLongitudinal;
+                        // }
+
+                        // //scale coordinates back
+                        // itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+                        // // retrieve mean coordinates
+                        // itsBunch->R += meanR;
 
                         // HERE transform self field back to global frame (rotate)
 
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_E1 =  itsBunch->Ef[ii](0) * cosTemp_binsMeanPhi
-                                              - itsBunch->Ef[ii](1) * sinTemp_binsMeanPhi;
-                            double temp_E2 =  itsBunch->Ef[ii](0) * sinTemp_binsMeanPhi
-                                              + itsBunch->Ef[ii](1) * cosTemp_binsMeanPhi;
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_E1 =  itsBunch->Ef[ii](0) * cosTemp_binsMeanPhi
+                        //                       - itsBunch->Ef[ii](1) * sinTemp_binsMeanPhi;
+                        //     double temp_E2 =  itsBunch->Ef[ii](0) * sinTemp_binsMeanPhi
+                        //                       + itsBunch->Ef[ii](1) * cosTemp_binsMeanPhi;
 
-                            itsBunch->Ef[ii](0) = temp_E1;  // Ex,V/m
-                            itsBunch->Ef[ii](1) = temp_E2;  // Ey,V/m
-                        }
+                        //     itsBunch->Ef[ii](0) = temp_E1;  // Ex,V/m
+                        //     itsBunch->Ef[ii](1) = temp_E2;  // Ey,V/m
+                        // }
 
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_E1 =  itsBunch->Bf[ii](0) * cosTemp_binsMeanPhi
-                                              - itsBunch->Bf[ii](1) * sinTemp_binsMeanPhi;
-                            double temp_E2 =  itsBunch->Bf[ii](0) * sinTemp_binsMeanPhi
-                                              + itsBunch->Bf[ii](1) * cosTemp_binsMeanPhi;
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_E1 =  itsBunch->Bf[ii](0) * cosTemp_binsMeanPhi
+                        //                       - itsBunch->Bf[ii](1) * sinTemp_binsMeanPhi;
+                        //     double temp_E2 =  itsBunch->Bf[ii](0) * sinTemp_binsMeanPhi
+                        //                       + itsBunch->Bf[ii](1) * cosTemp_binsMeanPhi;
 
-                            itsBunch->Bf[ii](0) = temp_E1;  // Bx,T
-                            itsBunch->Bf[ii](1) = temp_E2;  // By,T
-                        }
+                        //     itsBunch->Bf[ii](0) = temp_E1;  // Bx,T
+                        //     itsBunch->Bf[ii](1) = temp_E2;  // By,T
+                        // }
                     } else {
-                        Vector_t const meanP = calcMeanP();
+                        // --- Single bunch mode --- //                 
+                        double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
 
-                        // in global Cartesian frame, calculate the direction of longitudinal angle of bunch
-                        double meanPhi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+	                Vektor<double, 4> quaternionToYAxis;
 
-                        angleSpaceChargeSolve = meanPhi;
+                        getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
 
-                        double cosTemp_meanPhi = cos(meanPhi);
-                        double sinTemp_meanPhi = sin(meanPhi);
+                        globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
 
-                        double meanPLongitudinal2 = pow(meanP(0), 2.0) + pow(meanP(1), 2.0);
-                        double temp_meangamma = sqrt(1.0 + meanPLongitudinal2);
-
-                        // remove mean coordinates
-                        itsBunch->R -= meanR;
-
-                        //scale coordinates
                         itsBunch->R /= Vector_t(1000.0); // mm --> m
 
-                        // rotate from global frame to local frame(transverse horizontal,longitudinal, transverse vertical)
-                        // For single bin, rotate the frame for meanPhi degree
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_meanPhi
-                                                         + itsBunch->R[ii](1) * sinTemp_meanPhi;
-                            double temp_RLongitudinal = -itsBunch->R[ii](0) * sinTemp_meanPhi
-                                                        + itsBunch->R[ii](1) * cosTemp_meanPhi;
+                        // // in global Cartesian frame, calculate the direction of longitudinal angle of bunch
+                        // double meanPhi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+                        
+                        // angleSpaceChargeSolve = meanPhi;
 
-                            itsBunch->R[ii](0) = temp_RHorizontal;
-                            itsBunch->R[ii](1) = temp_RLongitudinal;
-                        }
+                        // double cosTemp_meanPhi = cos(meanPhi);
+                        // double sinTemp_meanPhi = sin(meanPhi);
+
+                        // double meanPLongitudinal2 = pow(meanP(0), 2.0) + pow(meanP(1), 2.0);
+                        // double temp_meangamma = sqrt(1.0 + meanPLongitudinal2);
+
+                        // // remove mean coordinates
+                        // itsBunch->R -= meanR;
+
+                        //scale coordinates
+                        //itsBunch->R /= Vector_t(1000.0); // mm --> m
+
+                        // // rotate from global frame to local frame(transverse horizontal,longitudinal, transverse vertical)
+                        // // For single bin, rotate the frame for meanPhi degree
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_meanPhi
+                        //                                  + itsBunch->R[ii](1) * sinTemp_meanPhi;
+                        //     double temp_RLongitudinal = -itsBunch->R[ii](0) * sinTemp_meanPhi
+                        //                                 + itsBunch->R[ii](1) * cosTemp_meanPhi;
+
+                        //     itsBunch->R[ii](0) = temp_RHorizontal;
+                        //     itsBunch->R[ii](1) = temp_RLongitudinal;
+                        // }
 
                         if((step_m + 1) % boundpDestroyFreq == 0)
                             itsBunch->boundp_destroy();
@@ -2014,88 +2080,105 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         IpplTimings::stopTimer(TransformTimer_m);
 
                         repartition();
-                        itsBunch->computeSelfFields_cycl(temp_meangamma);
+
+                        itsBunch->computeSelfFields_cycl(temp_meangamma, meanR, quaternionToYAxis);
 
                         IpplTimings::startTimer(TransformTimer_m);
+
                         // HERE transform particles coordinates back to global frame (rotate and shift)
                         // rotate back from local reference frame to global frame
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_meanPhi
-                                                         - itsBunch->R[ii](1) * sinTemp_meanPhi;
-                            double temp_RLongitudinal =  itsBunch->R[ii](0) * sinTemp_meanPhi
-                                                         + itsBunch->R[ii](1) * cosTemp_meanPhi;
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_RHorizontal   =  itsBunch->R[ii](0) * cosTemp_meanPhi
+                        //                                  - itsBunch->R[ii](1) * sinTemp_meanPhi;
+                        //     double temp_RLongitudinal =  itsBunch->R[ii](0) * sinTemp_meanPhi
+                        //                                  + itsBunch->R[ii](1) * cosTemp_meanPhi;
 
-                            itsBunch->R[ii](0) = temp_RHorizontal;
-                            itsBunch->R[ii](1) = temp_RLongitudinal;
-                        }
+                        //     itsBunch->R[ii](0) = temp_RHorizontal;
+                        //     itsBunch->R[ii](1) = temp_RLongitudinal;
+                        // }
 
                         //scale coordinates back
                         itsBunch->R *= Vector_t(1000.0); // m --> mm
 
+                        // Transform coordinates back to global
+                        localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
+
+                        // Transform self field back to global frame (rotate only)
+                        localToGlobal(itsBunch->Ef, quaternionToYAxis);
+                        localToGlobal(itsBunch->Bf, quaternionToYAxis);
+
                         // retrieve mean coordinates
-                        itsBunch->R += meanR;
+                        //itsBunch->R += meanR;
 
-                        // HERE transform self field back to global frame (rotate)
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_E1 =  itsBunch->Ef[ii](0) * cosTemp_meanPhi  - itsBunch->Ef[ii](1) * sinTemp_meanPhi;
-                            double temp_E2 =  itsBunch->Ef[ii](0) * sinTemp_meanPhi  + itsBunch->Ef[ii](1) * cosTemp_meanPhi;
-                            itsBunch->Ef[ii](0) = temp_E1;  // Ex,V/m
-                            itsBunch->Ef[ii](1) = temp_E2;  // Ey,V/m
-                        }
+                        // Transform self field back to global frame (rotate only)
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_E1 =  itsBunch->Ef[ii](0) * cosTemp_meanPhi  - itsBunch->Ef[ii](1) * sinTemp_meanPhi;
+                        //     double temp_E2 =  itsBunch->Ef[ii](0) * sinTemp_meanPhi  + itsBunch->Ef[ii](1) * cosTemp_meanPhi;
+                        //     itsBunch->Ef[ii](0) = temp_E1;  // Ex,V/m
+                        //     itsBunch->Ef[ii](1) = temp_E2;  // Ey,V/m
+                        // }
 
-                        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                            double temp_E1 =  itsBunch->Bf[ii](0) * cosTemp_meanPhi  - itsBunch->Bf[ii](1) * sinTemp_meanPhi;
-                            double temp_E2 =  itsBunch->Bf[ii](0) * sinTemp_meanPhi  + itsBunch->Bf[ii](1) * cosTemp_meanPhi;
-                            itsBunch->Bf[ii](0) = temp_E1;  // Bx,T
-                            itsBunch->Bf[ii](1) = temp_E2;  // By,T
-                        }
+                        // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                        //     double temp_E1 =  itsBunch->Bf[ii](0) * cosTemp_meanPhi  - itsBunch->Bf[ii](1) * sinTemp_meanPhi;
+                        //     double temp_E2 =  itsBunch->Bf[ii](0) * sinTemp_meanPhi  + itsBunch->Bf[ii](1) * cosTemp_meanPhi;
+                        //     itsBunch->Bf[ii](0) = temp_E1;  // Bx,T
+                        //     itsBunch->Bf[ii](1) = temp_E2;  // By,T
+                        // }
                     }
 
                     IpplTimings::stopTimer(TransformTimer_m);
 
                 } else {
-                    //HERE transform particles coordinates to local frame (rotate and shift)
-                    Vector_t const meanR = calcMeanR();
+		    // If we are not solving for the space charge fields at this time step
+                    // we will apply the fields from the previous step and have to rotate them
+                    // accordingly. For this we find the quaternion between the previous mean momentum (PreviousMeanP)
+                    // and the current mean momentum (meanP) and rotate the fields with this quaternion.
+                
+                    // Transform particles coordinates to local frame (rotate and shift)
+                    //Vector_t const meanR = calcMeanR();
                     Vector_t const meanP = calcMeanP();
 
-                    // in global Cartesian frame, calculate the location in global frame of bunch
-                    oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
+                    Vektor<double, 4> quaternionToNewMeanP;
 
-                    // in global Cartesian frame, calculate the direction of longitudinal angle of bunch
-                    double meanPhi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+                    getQuaternionTwoVectors(PreviousMeanP, meanP, quaternionToNewMeanP);
 
-                    double deltaPhi = meanPhi - angleSpaceChargeSolve;
+                    // Reset PreviousMeanP. Cave: This HAS to be after the quaternion is calculated!
+                    PreviousMeanP = calcMeanP();
 
-                    double cosTemp_deltaPhi = cos(deltaPhi);
-                    double sinTemp_deltaPhi = sin(deltaPhi);
+                    // Rotate the fields 
+                    globalToLocal(itsBunch->Ef, quaternionToNewMeanP);
+                    globalToLocal(itsBunch->Bf, quaternionToNewMeanP);
+
+                    // // in global Cartesian frame, calculate the location in global frame of bunch
+                    //oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
+
+                    // // in global Cartesian frame, calculate the direction of longitudinal angle of bunch
+                    // double meanPhi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+                    // double deltaPhi = meanPhi - angleSpaceChargeSolve;
+
+                    // double cosTemp_deltaPhi = cos(deltaPhi);
+                    // double sinTemp_deltaPhi = sin(deltaPhi);
 
 
-                    for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                        double temp_E1 =  itsBunch->Ef[ii](0) * cosTemp_deltaPhi  - itsBunch->Ef[ii](1) * sinTemp_deltaPhi;
-                        double temp_E2 =  itsBunch->Ef[ii](0) * sinTemp_deltaPhi  + itsBunch->Ef[ii](1) * cosTemp_deltaPhi;
-                        itsBunch->Ef[ii](0) = temp_E1;  // Ex,V/m
-                        itsBunch->Ef[ii](1) = temp_E2;  // Ey,V/m
-                    }
+                    // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                    //     double temp_E1 =  itsBunch->Ef[ii](0) * cosTemp_deltaPhi  - itsBunch->Ef[ii](1) * sinTemp_deltaPhi;
+                    //     double temp_E2 =  itsBunch->Ef[ii](0) * sinTemp_deltaPhi  + itsBunch->Ef[ii](1) * cosTemp_deltaPhi;
+                    //     itsBunch->Ef[ii](0) = temp_E1;  // Ex,V/m
+                    //     itsBunch->Ef[ii](1) = temp_E2;  // Ey,V/m
+                    // }
 
-                    for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-                        double temp_E1 =  itsBunch->Bf[ii](0) * cosTemp_deltaPhi  - itsBunch->Bf[ii](1) * sinTemp_deltaPhi;
-                        double temp_E2 =  itsBunch->Bf[ii](0) * sinTemp_deltaPhi  + itsBunch->Bf[ii](1) * cosTemp_deltaPhi;
-                        itsBunch->Bf[ii](0) = temp_E1;  // Bx,T
-                        itsBunch->Bf[ii](1) = temp_E2;  // By,T
-                    }
+                    // for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+                    //     double temp_E1 =  itsBunch->Bf[ii](0) * cosTemp_deltaPhi  - itsBunch->Bf[ii](1) * sinTemp_deltaPhi;
+                    //     double temp_E2 =  itsBunch->Bf[ii](0) * sinTemp_deltaPhi  + itsBunch->Bf[ii](1) * cosTemp_deltaPhi;
+                    //     itsBunch->Bf[ii](0) = temp_E1;  // Bx,T
+                    //     itsBunch->Bf[ii](1) = temp_E2;  // By,T
                 }
-
-            } else {
-                // if field solver is not available , only update bunch, to transfer particles between nodes if needed,
-                // reset parameters such as LocalNum, initialTotalNum_m.
-
-                // in global Cartesian frame, calculate the location in global frame of bunch
-                Vector_t const meanR = calcMeanR();
-                oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
-
-                // if no space charge effects are included, don't need to call update() in local frame
             }
-            // track all particles for one step
+            // If field solver is not available or number of particles is less than 1000
+            // we don't need to do anything space charge related.
+
+            // ------------------------ Track all particles for one step --------------------------- //
             IpplTimings::startTimer(IntegrationTimer_m);
 
             // *** This was moved here b/c collision should be tested before the **********************
@@ -2192,8 +2275,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global aperture
             bool flagNeedUpdate = deleteParticle();
-	    //Ippl::Comm->barrier(); //TEMP for Debug -DW
-
+	    
             if(itsBunch->weHaveBins() && flagNeedUpdate)
               itsBunch->resetPartBinID2(eta_m);
 
@@ -2431,68 +2513,99 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
         if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
            || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
+
             IpplTimings::startTimer(DumpTimer_m);
 
             itsBunch->setLocalTrackStep((step_m + 1));
 
-            extE_m = Vector_t(0.0, 0.0, 0.0);
-            extB_m = Vector_t(0.0, 0.0, 0.0);
+            // Write Phase Space and Statistics Data to h5 and dat files
+            bunchDumpPhaseSpaceStatData();
 
-            //--------------------- calculate mean coordinates  of bunch -------------------------------//
-            //------------  and calculate the external field at the mass of bunch-----------------------//
+            // extE_m = Vector_t(0.0, 0.0, 0.0);
+            // extB_m = Vector_t(0.0, 0.0, 0.0);
 
-            Vector_t meanR = calcMeanR();
-            Vector_t meanP = calcMeanP();
+            // //--------------------- calculate mean coordinates  of bunch -------------------------------//
+            // //------------  and calculate the external field at the mass of bunch-----------------------//
 
-            // define longitudinal direction of the bunch
-            // x:[0] transverse horizontal, y:[1] longitudinal, z:[2] transverse vertical
+            // Vector_t meanR = calcMeanR();
 
-            beamline_list::iterator DumpSindex = FieldDimensions.begin();
-            (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), t, extE_m, extB_m);
-            FDext_m[0] = extB_m / 10.0; // kgauss -> T
-            FDext_m[1] = extE_m;
+            // // define longitudinal direction of the bunch
+            // // x:[0] transverse horizontal, y:[1] longitudinal, z:[2] transverse vertical
 
-            //----------------------------dump in global frame-------------------------------------//
-            // Note: Don't dump when
-            // 1. after one turn
-            // in order to sychronize the dump step for multi-bunch and single
-            // bunch for compare with each other during post-process phase.
-            if(!(Options::psDumpLocalFrame)) {
-	      /* Fixme: ROGERS: BUG - THIS IO ROUTINE CAUSES FACTOR 100 SLOW DOWN IN PROCESSING TIME!!! */
-		double E = itsBunch->get_meanEnergy();
-                itsBunch->R /= Vector_t(1000.0); // mm --> m
-                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
-              
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-                itsBunch->R *= Vector_t(1000.0); // m --> mm
-                *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-                      << step_m + 1 << " T = " << t << " [ns]" << endl;
-                
-                //----------------------------dump in local frame-------------------------------------//
-            } else {
+            // beamline_list::iterator DumpSindex = FieldDimensions.begin();
+            // (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), t, extE_m, extB_m);
+            // FDext_m[0] = extB_m / 10.0; // kgauss -> T
+            // FDext_m[1] = extE_m;
 
-                double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-		double E = itsBunch->get_meanEnergy();
-                globalToLocal(itsBunch->R, phi, meanR);
-                globalToLocal(itsBunch->P, phi, meanP);
+            // // ---------------------------- Particle dumping ----------------------------------------- //
+            // // Note: Don't dump when
+            // // 1. after one turn
+            // // in order to sychronize the dump step for multi-bunch and single
+            // // bunch for compare with each other during post-process phase.
+            // double const E = itsBunch->get_meanEnergy();
 
-                // dump in local frame
-                itsBunch->R /= Vector_t(1000.0); // mm --> m
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
-                itsBunch->R *= Vector_t(1000.0); // m --> mm
+            // if(!(Options::psDumpLocalFrame)) {
+            //     // --------------------------- Dump in global frame ----------------------------------- //
+	    //     // Fixme: ROGERS: BUG - THIS IO ROUTINE CAUSES FACTOR 100 SLOW DOWN IN PROCESSING TIME!!!
+		
+            //     itsBunch->R /= Vector_t(1000.0); // mm --> m
 
-                *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns], phi = " << phi/pi*180.0 <<" [deg]" <<endl;
+            //     itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
 
-                localToGlobal(itsBunch->R, phi, meanR);
-                localToGlobal(itsBunch->P, phi, meanP);
-            }
+            //     itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+            //     *gmsg << "* Phase space dump " << lastDumpedStep_m
+            //           << " (global frame) at integration step " << step_m + 1
+            //           << " T = " << t << " [ns]" << endl;
+                   
+            // } else {
+            //     // --------------------------- Dump in local frame ----------------------------------- //
+
+            //     double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+            //     // TEMP for testing -DW ********************************************
+            //     // NEW:
+	    //     Vektor<double, 4> quaternionToXAxis;
+            //     Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
+
+            //     getQuaternionTwoVectors(meanP, xaxis, quaternionToXAxis);
+
+            //     globalToLocal(itsBunch->R, quaternionToXAxis, meanR);
+            //     globalToLocal(itsBunch->P, quaternionToXAxis, meanP);
+
+            //     // OLD:
+            //     //globalToLocal(itsBunch->R, phi, meanR);
+            //     //globalToLocal(itsBunch->P, phi, meanP);
+            //     // TEMP END ********************************************************
+
+            //     // dump in local frame
+            //     itsBunch->R /= Vector_t(1000.0); // mm --> m
+
+            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
+            //     itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+
+            //     itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+            //     // TEMP for testing -DW ********************************************
+            //     // NEW:
+            //     localToGlobal(itsBunch->R, quaternionToXAxis, meanR);
+            //     localToGlobal(itsBunch->P, quaternionToXAxis, meanP);
+
+            //     // OLD:
+            //     //localToGlobal(itsBunch->R, phi, meanR);
+            //     //localToGlobal(itsBunch->P, phi, meanP);
+            //     // TEMP END ********************************************************
+
+            //     *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
+            //           << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns], phi = " << phi/pi*180.0 <<" [deg]" <<endl;
+            // }
+            // // ------------- Done with dumping ------------------------------------------------------- //
             IpplTimings::stopTimer(DumpTimer_m);
         }
         if(!(step_m + 1 % 1000))
             *gmsg << "Step " << step_m + 1 << endl;
-    }// end for: the integration is DONE after maxSteps_m steps!
+    } // end for: the integration is DONE after maxSteps_m steps!
 
     // some post-integration works
     *gmsg << "* *---------------------------- PARTICLES TRACK DONE------ ----------------------------*** " << endl;
@@ -3080,7 +3193,8 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         }
         IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Various"));
 
-		IpplTimings::startTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
+	IpplTimings::startTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
+
         // calculate self fields Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
         if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
             evaluateSpaceChargeField();
@@ -3203,61 +3317,98 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
         // dump phase space distribution of bunch
         IpplTimings::startTimer(IpplTimings::getTimer("MTS-Dump"));
+
         if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2) ||
-           (Options::psDumpEachTurn && dumpEachTurn && initialTotalNum_m != 2))
-        {
+           (Options::psDumpEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
+
             IpplTimings::startTimer(DumpTimer_m);
+
             itsBunch->setSteptoLastInj(SteptoLastInj);
             itsBunch->setLocalTrackStep((step_m + 1));
 
-            //--------------------- calculate mean coordinates of bunch -------------------------------//
-            //------------ and calculate the external field at the mass of bunch -----------------------//
+            // Go from m --> mm to be compatible with bunchDumpPhaseSpaceStatData()
+            // which is called also from Tracker_RK4 and Tracker_LF which are using mm
+            itsBunch->R *= Vector_t(1000.0);
 
-            Vector_t const meanR = calcMeanR();
-            Vector_t const meanP = calcMeanP();
+            // Write Phase Space and Statistics Data to h5 and dat files
+	    bunchDumpPhaseSpaceStatData();
+  
+	    // Go back from mm --> m
+            itsBunch->R *= Vector_t(0.001);
 
-            // define longitudinal direction of the bunch
-            double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+            // //--------------------- calculate mean coordinates of bunch -------------------------------//
+            // //------------ and calculate the external field at the mass of bunch -----------------------//
 
-	    //            *gmsg << "meanR=( " << meanR(0) * 1000.0 << " " << meanR(1) * 1000.0 << " " << meanR(2) * 1000.0 << " ) [mm] " << endl;
-			extE_m = Vector_t(0.0, 0.0, 0.0);
-            extB_m = Vector_t(0.0, 0.0, 0.0);
-            beamline_list::iterator DumpSindex = FieldDimensions.begin();
-            (((*DumpSindex)->second).second)->apply(meanR * 1000.0, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
-            FDext_m[0] = extB_m * 0.1; // kgauss -> T
-            FDext_m[1] = extE_m;
+            // Vector_t const meanR = calcMeanR();
+            // Vector_t const meanP = calcMeanP();
 
-            // Note: Don't dump when
-            // 1. after one turn
-            // in order to sychronize the dump step for multi-bunch and single bunch for compare
-            // with each other during post-process phase.
-            if(!(Options::psDumpLocalFrame)) {
-    	        double E = itsBunch->get_meanEnergy();
-                // dump in global frame
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m,E, referencePr, referenceR, referenceTheta);
-                //  itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
-                // TODO: why no stat data in global frame?
-                *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+            // // define longitudinal direction of the bunch
+            // //double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
-            } else {
-            	double E = itsBunch->get_meanEnergy();
-                globalToLocal(itsBunch->R, phi, meanR);
-                globalToLocal(itsBunch->P, phi, meanP);
-                // dump in local frame
-                lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-                itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
-                *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-                      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+	    // // *gmsg << "meanR = ( " << meanR(0) * 1000.0 << " " << meanR(1) * 1000.0 << " " << meanR(2) * 1000.0 << " ) [mm] " << endl;
+	    // extE_m = Vector_t(0.0, 0.0, 0.0);
+            // extB_m = Vector_t(0.0, 0.0, 0.0);
+            // beamline_list::iterator DumpSindex = FieldDimensions.begin();
+            // (((*DumpSindex)->second).second)->apply(meanR * 1000.0, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
+            // FDext_m[0] = extB_m * 0.1; // kgauss -> T
+            // FDext_m[1] = extE_m;
 
-                localToGlobal(itsBunch->R, phi, meanR);
-                localToGlobal(itsBunch->P, phi, meanP);
-            }
+            // // --------------------------- Particle dumping ------------------------------------------ //
+            // // Note: Don't dump when
+            // // 1. after one turn
+            // // in order to sychronize the dump step for multi-bunch and single bunch for compare
+            // // with each other during post-process phase.
+            // double const E = itsBunch->get_meanEnergy();
+
+            // if(!(Options::psDumpLocalFrame)) {
+	    //     // --------------------------- Dump in global frame ----------------------------------- //
+
+            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m,E, referencePr, referenceR, referenceTheta);
+            //     // itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);  // TODO: why no stat data in global frame?
+
+            //     *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
+            //           << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+
+            // } else {
+	    //     // --------------------------- Dump in global frame ----------------------------------- //
+
+            //     // TEMP for testing -DW ********************************************
+            //     // NEW:
+	    //     Vektor<double, 4> quaternionToXAxis;
+            //     Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
+
+            //     getQuaternionTwoVectors(meanP, xaxis, quaternionToXAxis);
+
+            //     globalToLocal(itsBunch->R, quaternionToXAxis, meanR);
+            //     globalToLocal(itsBunch->P, quaternionToXAxis, meanP);
+
+            //     // OLD:
+            //     //globalToLocal(itsBunch->R, phi, meanR);
+            //     //globalToLocal(itsBunch->P, phi, meanP);
+            //     // TEMP END ********************************************************
+
+            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
+            //     itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+
+            //     // TEMP for testing -DW ********************************************
+            //     // NEW:
+            //     localToGlobal(itsBunch->R, quaternionToXAxis, meanR);
+            //     localToGlobal(itsBunch->P, quaternionToXAxis, meanP);
+
+            //     // OLD:
+            //     //localToGlobal(itsBunch->R, phi, meanR);
+            //     //localToGlobal(itsBunch->P, phi, meanP);
+            //     // TEMP END ********************************************************  
+              
+            //     *gmsg << "* Phase space dump " << lastDumpedStep_m 
+            //           << " (local frame) at integration step " << step_m + 1 
+            //           << " T = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
             IpplTimings::stopTimer(DumpTimer_m);
         }
         IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Dump"));
     }
-	IpplTimings::startTimer(IpplTimings::getTimer("MTS-Dump"));
+    IpplTimings::startTimer(IpplTimings::getTimer("MTS-Dump"));
+
     for(size_t ii = 0; ii < itsBunch->getLocalNum(); ++ii) {
         if(itsBunch->ID[ii] == 0) {
             double FinalMomentum2  = pow(itsBunch->P[ii](0), 2.0) +
@@ -3330,6 +3481,171 @@ void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particle
         particleVectors[i] = dot(rotation, particleVectors[i]);
     }
     particleVectors += translationToGlobal;
+}
+
+
+inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, Vektor<double, 4> const quaternion, Vector_t const meanR) {
+    
+    // Translation from global to local 
+    particleVectors -= meanR;
+
+    // Rotation to align P_mean with x-axis
+    rotateWithQuaternion(particleVectors, quaternion);
+}
+
+inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors, Vektor<double, 4> const quaternion, Vector_t const meanR) {
+    
+    // Reverse the quaternion by multiplying the axis components (x,y,z) with -1
+    Vektor<double, 4> reverseQuaternion = quaternion * -1.0;
+    reverseQuaternion(0) *= -1.0;
+
+    // Rotation back to original P_mean direction
+    rotateWithQuaternion(particleVectors, reverseQuaternion);
+
+    // Translation from local to global 
+    particleVectors += meanR;
+}
+
+inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, double const phi, double const psi, Vector_t const meanR) {
+    
+    //double const tolerance = 1.0e-4; // TODO What is a good angle threshold? -DW
+
+    // Translation from global to local 
+    particleVectors -= meanR;
+
+    // Rotation to align P_mean with x-axis
+    rotateAroundZ(particleVectors, phi);
+
+    // If theta is large enough (i.e. there is significant momentum in z direction)
+    // rotate around x-axis next
+    //if (fabs(psi) > tolerance)
+    rotateAroundX(particleVectors, psi);
+}
+
+inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors, double const phi, double const psi, Vector_t const meanR) {
+    
+    //double const tolerance = 1.0e-4; // TODO What is a good angle threshold? -DW
+
+    // If theta is large enough (i.e. there is significant momentum in z direction)
+    // rotate back around x-axis next
+    //if (fabs(psi) > tolerance)
+    rotateAroundX(particleVectors, -psi);
+
+     // Rotation to align P_mean with x-axis
+    rotateAroundZ(particleVectors, -phi);
+
+    // Translation from local to global 
+    particleVectors += meanR;
+}
+
+inline void ParallelCyclotronTracker::rotateWithQuaternion(ParticleAttrib<Vector_t> & particleVectors, Vektor<double, 4> const quaternion) {
+
+    Vector_t const quaternionVectorComponent = Vector_t(quaternion(1), quaternion(2), quaternion(3));
+    double const quaternionScalarComponent = quaternion(0);
+
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        
+        particleVectors[i] = 2.0f * dot(quaternionVectorComponent, particleVectors[i]) * quaternionVectorComponent + 
+                             (quaternionScalarComponent * quaternionScalarComponent - 
+                              dot(quaternionVectorComponent, quaternionVectorComponent)) * particleVectors[i] + 2.0f * 
+                              quaternionScalarComponent * cross(quaternionVectorComponent, particleVectors[i]);
+    }
+}
+
+inline void ParallelCyclotronTracker::normalizeQuaternion(Vektor<double, 4> & quaternion){
+
+    double tolerance = 1.0e-10;
+    double length2 = dot(quaternion, quaternion);
+
+    if (fabs(length2) > tolerance && fabs(length2 - 1.0f) > tolerance) {
+
+        double length = sqrt(length2);
+        quaternion /= length;
+    }
+}
+
+inline void ParallelCyclotronTracker::normalizeVector(Vector_t & vector) {
+
+    double tolerance = 1.0e-10;
+    double length2 = dot(vector, vector);
+
+    if (fabs(length2) > tolerance && fabs(length2 - 1.0f) > tolerance) {
+
+        double length = sqrt(length2);
+        vector /= length;
+    }
+}
+
+inline void ParallelCyclotronTracker::rotateAroundZ(ParticleAttrib<Vector_t> & particleVectors, double const phi) {
+    // Clockwise rotation of particles 'particleVectors' by 'phi' around Z axis 
+
+    Tenzor<double, 3> const rotation( cos(phi), sin(phi), 0,
+                                     -sin(phi), cos(phi), 0,
+                                             0,        0, 1);
+
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+     
+        particleVectors[i] = dot(rotation, particleVectors[i]);
+    }
+}
+
+inline void ParallelCyclotronTracker::rotateAroundX(ParticleAttrib<Vector_t> & particleVectors, double const psi) {
+    // Clockwise rotation of particles 'particleVectors' by 'psi' around X axis 
+
+    Tenzor<double, 3> const rotation(1,  0,          0,
+				     0,  cos(psi), sin(psi),
+				     0, -sin(psi), cos(psi));
+
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+     
+        particleVectors[i] = dot(rotation, particleVectors[i]);
+    }
+}
+
+inline void ParallelCyclotronTracker::getQuaternionTwoVectors(Vector_t u, Vector_t v, Vektor<double, 4> & quaternion) {
+    // four vector (w,x,y,z) of the quaternion of P_mean with the positive x-axis
+       
+    normalizeVector(u);
+    normalizeVector(v);
+
+    double k_cos_theta = dot(u, v);
+    double k = sqrt(dot(u, u) * dot(v, v));
+    double tolerance1 = 1.0e-5;
+    double tolerance2 = 1.0e-8;
+    Vector_t resultVectorComponent;
+
+    if (fabs(k_cos_theta / k + 1.0) < tolerance1) {
+        // u and v are almost exactly antiparallel so we need to do 
+        // 180 degree rotation around any vector orthogonal to u
+       
+        resultVectorComponent = cross(u, xaxis);
+        
+        // If by chance u is parallel to xaxis, use zaxis instead
+	if (dot(resultVectorComponent, resultVectorComponent) < tolerance2) {
+
+	    resultVectorComponent = cross(u, zaxis);
+        }
+
+        double halfAngle = 0.5 * pi;
+        double sinHalfAngle = sin(halfAngle);
+
+        resultVectorComponent *= sinHalfAngle;   
+      
+        k = 0.0;
+        k_cos_theta = cos(halfAngle);
+        
+    } else {
+
+        resultVectorComponent = cross(u, v);
+
+    }
+
+    quaternion(0) = k_cos_theta + k;
+    quaternion(1) = resultVectorComponent(0);
+    quaternion(2) = resultVectorComponent(1);
+    quaternion(3) = resultVectorComponent(2);
+ 
+    normalizeQuaternion(quaternion);
 }
 
 void ParallelCyclotronTracker::push(double h) {
@@ -3539,12 +3855,13 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
 
 void ParallelCyclotronTracker::initDistInGlobalFrame() {
     if(!OpalData::getInstance()->inRestartRun()) {
+        // Start a new run (no restart)  
+
         double const initialReferenceTheta = referenceTheta / 180.0 * pi;
         PathLength_m = 0.0;
 
         // Force the initial phase space values of the particle with ID = 0 to zero, 
         // to set it as a reference particle.
-	/*
         if(initialTotalNum_m > 2) {
             for(size_t i = 0; i < initialLocalNum_m; ++i) {
                 if(itsBunch->ID[i] == 0) {
@@ -3553,33 +3870,27 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
                 }
             }
         }
-	*/
     
-    // Initial dump (if requested in local frame)
-        if(Options::psDumpLocalFrame) {
-      	    itsBunch->R *= Vector_t(0.001); // mm --> m
-            itsBunch->calcBeamParameters_cycl();
-            double E = itsBunch->get_meanEnergy();
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-            itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0, E);
-            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T = 0 [ns]" << endl;
-            itsBunch->R *= Vector_t(1000.0); // m --> mm
-        }
+        // Changed the order of things here: Do all the initializations first and 
+        // Save initial phase space dump at the end (local or global) in order
+        // To correctly consider the z momentum in case of axial injection -DW
 
-
-    // Initialize global R
+        // Initialize global R
         itsBunch->R *= Vector_t(1000.0); // m --> mm
-        Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, referenceZ); // [referenceR] == mm
 
-    
+        Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, // [referenceR] = mm
+                                            referenceR * sinRefTheta_m, 
+                                            referenceZ);                // [referenceZ] = mm
+
         localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
 
-        // Initialize global P
+        // Initialize global P (Cartesian, but input P_ref is in Pr, Ptheta, Pz,
+        // so translation has to be done before the rotation this once
         for(size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch->P[i](0) += referencePr;
             itsBunch->P[i](1) += referencePt;
             itsBunch->P[i](2) += referencePz;
-        }
+	}
 
         localToGlobal(itsBunch->P, initialReferenceTheta);
 
@@ -3588,80 +3899,143 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch->Bin[i] = 0;
         }
 
-        // Initial dump (if requested in global frame)
-        if(!(Options::psDumpLocalFrame)) {
-            double E = itsBunch->get_meanEnergy();
+        // Initial dump:
+        double E = itsBunch->get_meanEnergy();
+
+        if(Options::psDumpLocalFrame) {
+            // If requested in local frame
+
+            // Old quaternion method. probably not good. -DW
+	    //Vector_t const initMeanP = calcMeanP();
+            //Vektor<double, 4> quaternionToYAxis;
+            //getQuaternionTwoVectors(initMeanP, yaxis, quaternionToYAxis);
+            //globalToLocal(itsBunch->R, quaternionToYAxis, initMeanR);
+            //globalToLocal(itsBunch->P, quaternionToYAxis, initMeanP);
+
+            Vector_t const meanR = calcMeanR();
+            Vector_t const meanP = calcMeanP();
+            double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;       // Azimuth
+            double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP))); // Elevation    
+
+            globalToLocal(itsBunch->R, phi, psi, meanR);
+            globalToLocal(itsBunch->P, phi, psi, meanP);
+
             itsBunch->R *= Vector_t(0.001); // mm --> m
+
             itsBunch->calcBeamParameters_cycl();
 
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
+            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+                                                                 FDext_m, E, 
+                                                                 referencePr, 
+                                                                 referenceR, 
+                                                                 referenceTheta);
+
+            itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0, E);
+
             itsBunch->R *= Vector_t(1000.0); // m --> mm
-            *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step 0 T = 0 [ns]" << endl;
+
+            //localToGlobal(itsBunch->R, quaternionToYAxis, initMeanR);
+            //localToGlobal(itsBunch->P, quaternionToYAxis, initMeanP);
+
+            localToGlobal(itsBunch->R, phi, psi, meanR);
+            localToGlobal(itsBunch->P, phi, psi, meanP);
+
+            *gmsg << "* Phase space dump " << lastDumpedStep_m 
+                  << " (local frame) at integration step 0 T = 0 [ns]" << endl;
+
+        } else {
+            // If requested in global frame
+
+            itsBunch->R *= Vector_t(0.001); // mm --> m
+
+            itsBunch->calcBeamParameters_cycl();
+
+            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+                                                                 FDext_m, E, 
+                                                                 referencePr, 
+                                                                 referenceR, 
+                                                                 referenceTheta);
+
+            itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+            *gmsg << "* Phase space dump " << lastDumpedStep_m 
+                  << " (global frame) at integration step 0 T = 0 [ns]" << endl;
         } 
 
         // Backup initial distribution if multi bunch mode
         if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == 1)) {
+
             initialR_m = new Vector_t[initialLocalNum_m];
             initialP_m = new Vector_t[initialLocalNum_m];
+
             for(size_t i = 0; i < initialLocalNum_m; ++i) {
+
                 initialR_m[i] = itsBunch->R[i];
                 initialP_m[i] = itsBunch->P[i];
             }
         }
-
-
-
     } else {
+        // Restart a run 
 
-      if((Options::psDumpLocalFrame)) {
-        *gmsg<<"* Restart in the local frame" <<endl;
-          double const initialReferenceTheta = referenceTheta / 180.0 * pi;
-          PathLength_m = 0.0;
+        if((Options::psDumpLocalFrame)) {
+            // Restart from the distribution in the local frame
+
+            *gmsg<<"* Restart in the local frame" <<endl;
+
+            double const initialReferenceTheta = referenceTheta / 180.0 * pi;
+            PathLength_m = 0.0;
           
-          // Initial dump (if requested in local frame)
-          // lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m);
-          // itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0);
-          // *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step 0 T= 0 [ns]" << endl;
+            // Initialize global R
+            itsBunch->R *= Vector_t(1000.0); // m --> mm
+            Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, referenceZ); // [referenceR] == mm
 
-          // Initialize global R
-          itsBunch->R *= Vector_t(1000.0); // m --> mm
-          Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, referenceZ); // [referenceR] == mm
-          localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
+            localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
           
-          // Initialize global P
-          for(size_t i = 0; i < initialLocalNum_m; ++i) {
-              itsBunch->P[i](0) += referencePr;
-              itsBunch->P[i](1) += referencePt;
-              itsBunch->P[i](2) += referencePz;
-          }
-          localToGlobal(itsBunch->P, initialReferenceTheta);
+            // Initialize global P
+            for(size_t i = 0; i < initialLocalNum_m; ++i) {
+                itsBunch->P[i](0) += referencePr;
+                itsBunch->P[i](1) += referencePt;
+                itsBunch->P[i](2) += referencePz;
+            }
 
-          // Initialize the bin number of the first bunch to 0
-          for(size_t i = 0; i < initialLocalNum_m; ++i) {
-              itsBunch->Bin[i] = 0;
-          }
-          // multi-bunch mast not be done in the local frame
-          // if restart from opal-t h5 file, must dump in the local frame
+            localToGlobal(itsBunch->P, initialReferenceTheta);
 
-      //restart from the distribution in the global frame
-      }else{
-        *gmsg<<"* Restart in the global frame" <<endl;
-          PathLength_m = itsBunch->getLPath();
-          itsBunch->R *= Vector_t(1000.0); // m --> mm
-      }
+            // Initialize the bin number of the first bunch to 0
+            for(size_t i = 0; i < initialLocalNum_m; ++i) {
+
+                itsBunch->Bin[i] = 0;
+
+            }
+            // Multi-bunch must not be done in the local frame!
+            // If you restart from OPAL-T h5 file, you must dump in the local frame!
+
+        } else {
+            // Restart from the distribution in the global frame
+
+            *gmsg<<"* Restart in the global frame" <<endl;
+
+            PathLength_m = itsBunch->getLPath();
+            itsBunch->R *= Vector_t(1000.0); // m --> mm
+        }
     }
 
     Vector_t const meanR = calcMeanR();
 
     // AUTO mode
     if(multiBunchMode_m == 2) {
+
         RLastTurn_m = sqrt(meanR[0] * meanR[0] + meanR[1] * meanR[1]);
         RThisTurn_m = RLastTurn_m;
+
         if(OpalData::getInstance()->inRestartRun()) {
+
             *gmsg << "Radial position at restart position = ";
+
         } else {
+
             *gmsg << "Initial radial position = ";
         }
+
         *gmsg << RThisTurn_m << " [mm]" << endl;
     }
 
@@ -3772,6 +4146,84 @@ void ParallelCyclotronTracker::singleParticleDump() {
     IpplTimings::stopTimer(DumpTimer_m);
 }
 
+void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
+    // --------------------------- Particle dumping ------------------------------------------ //
+    // Note: Don't dump when
+    // 1. after one turn
+    // in order to sychronize the dump step for multi-bunch and single bunch for compare
+    // with each other during post-process phase.
+    // --------------------------------------------------------------------------------------- //
+
+    // ------------ Get some Values ---------------------------------------------------------- //
+    double const E = itsBunch->get_meanEnergy();
+    double const temp_t = itsBunch->getT() * 1e9;
+    Vector_t const meanR = calcMeanR();
+    Vector_t const meanP = calcMeanP();
+    double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;       // Bunch Azimuth at meanR
+    double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP))); // Bunch Elevation at meanR
+
+    // -----------  Calculate the external fields at the center of the bunch ------------------//
+    beamline_list::iterator DumpSindex = FieldDimensions.begin();
+
+    extE_m = Vector_t(0.0, 0.0, 0.0);
+    extB_m = Vector_t(0.0, 0.0, 0.0);
+
+    (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), temp_t, extE_m, extB_m);
+    FDext_m[0] = extB_m / 10.0; // kgauss --> T
+    FDext_m[1] = extE_m;
+
+    if(!(Options::psDumpLocalFrame)) {
+        // --------------------------- Dump in global frame ---------------------------------- //
+
+        itsBunch->R /= Vector_t(1000.0); // mm --> m
+
+        lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+                                                             FDext_m, E, 
+                                                             referencePr, 
+                                                             referenceR, 
+                                                             referenceTheta);
+
+        itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0);
+
+        itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+        *gmsg << "* Phase space dump " << lastDumpedStep_m 
+              << " (global frame) at integration step " << step_m + 1 
+              << ", T = " << temp_t << " [ns]"
+              << ", E = " << E  
+              << ", Local Azim. = " << phi / pi * 180.0 << "Deg"
+              << ", Local Elev. = " << psi / pi * 180.0 << "Deg" << endl;
+
+    } else {
+        // --------------------------- Dump in local frame ---------------------------------- //
+       
+        globalToLocal(itsBunch->R, phi, psi, meanR);
+        globalToLocal(itsBunch->P, phi, psi, meanP);
+
+	itsBunch->R /= Vector_t(1000.0); // mm --> m
+
+	lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+                                                             FDext_m, E, 
+                                                             referencePr, 
+                                                             referenceR, 
+                                                             referenceTheta);
+
+	itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
+
+	itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+        localToGlobal(itsBunch->R, phi, psi, meanR);
+        localToGlobal(itsBunch->P, phi, psi, meanP);
+
+	*gmsg << "* Phase space dump " << lastDumpedStep_m 
+              << " (local frame) at integration step " << step_m + 1 
+              << ", T = " << temp_t << " [ns]" 
+              << ", E = " << E  
+              << ", Local Azim. = " << phi / pi * 180.0
+              << ", Local Elev. = " << psi / pi * 180.0 << endl;
+    }
+}
+
 void ParallelCyclotronTracker::evaluateSpaceChargeField() {
     Vector_t const meanR = calcMeanR();
     itsBunch->Bf = Vector_t(0.0);
@@ -3808,3 +4260,4 @@ void ParallelCyclotronTracker::evaluateSpaceChargeField() {
         localToGlobal(itsBunch->R, phi, meanR);
     }
 }
+    
