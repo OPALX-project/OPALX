@@ -104,6 +104,8 @@ public:
 
     void do_binaryRepart();
 
+    
+
     /// per default the MT value of the field solver is used
     void set_nBinsLineDensity(int n);
 
@@ -400,6 +402,9 @@ public:
     inline void setNumBunch(int n);
     inline int getNumBunch() const;
 
+    inline Vector_t getGlobalMeanR() {return globalMeanR;}
+    inline Vektor<double, 4> getGlobalToLocalQuaternion() {return globalToLocalQuaternion;}
+
     void setSteptoLastInj(int n);
     int getSteptoLastInj();
 
@@ -552,6 +557,9 @@ private:
     double *energy_m;
     /// energy spread of the beam in keV
     double dE_m;
+
+    Vektor<double, 4> globalToLocalQuaternion;
+    Vector_t globalMeanR;
 
     /// maximal extend of particles
     Vector_t rmax_m;

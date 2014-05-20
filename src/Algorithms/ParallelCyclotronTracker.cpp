@@ -2032,7 +2032,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         //     itsBunch->Bf[ii](1) = temp_E2;  // By,T
                         // }
                     } else {
-                        // --- Single bunch mode --- //                 
+                        // --- Single bunch mode --- //             
                         double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
 
 	                Vektor<double, 4> quaternionToYAxis;
@@ -2042,7 +2042,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
 
                         itsBunch->R /= Vector_t(1000.0); // mm --> m
-
                         // // in global Cartesian frame, calculate the direction of longitudinal angle of bunch
                         // double meanPhi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
                         
@@ -2078,10 +2077,10 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                             itsBunch->boundp();
 
                         IpplTimings::stopTimer(TransformTimer_m);
-
+              
                         repartition();
 
-                        itsBunch->computeSelfFields_cycl(temp_meangamma, meanR, quaternionToYAxis);
+                        itsBunch->computeSelfFields_cycl(temp_meangamma, 0.001 * meanR, quaternionToYAxis);
 
                         IpplTimings::startTimer(TransformTimer_m);
 
@@ -2199,7 +2198,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                     rold_m[j] = variable_m[j]; // used for gap cross checking
                     pold_m[j] = variable_m[j+3]; // used for gap cross
                 }
-
                 // integrate for one step in the lab Cartesian frame (absolute value).
                 // IpplTimings::startTimer(IntegrationTimer_m);
                 flagNoDeletion = rk4(variable_m, t, dt, i);

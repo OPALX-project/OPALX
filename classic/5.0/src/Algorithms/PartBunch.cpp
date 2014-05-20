@@ -1112,14 +1112,16 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vektor<double, 4> const quaternion) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
+    globalMeanR = meanR;
+    globalToLocalQuaternion = quaternion;
+
     /// set initial charge density to zero.
     rho_m = 0.0;
 
     /// set initial E field to zero
     eg_m = Vector_t(0.0);
 
-    if(fs_m->hasValidSolver()) {
-
+    if(fs_m->hasValidSolver()) { 
         /// scatter particles charge onto grid.
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
 
@@ -1133,7 +1135,7 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vekto
         hr_scaled[1] *= gamma;
 
         /// now charge density is in rho_m
-        /// calculate Possion equation (without coefficient: -1/(eps))
+        /// calculate Possion equation (without coefficient: -1/(eps))  
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
 
         /// additional work of FFT solver
@@ -1166,7 +1168,6 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vekto
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
         // end debug
          */
-
         /// interpolate electric field at particle positions.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
