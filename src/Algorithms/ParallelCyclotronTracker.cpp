@@ -1972,6 +1972,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         repartition();
 
                         // calculate space charge field for each energy bin
+                        // TODO update this to include rotation of the BoundaryGeometry -Dw
                         for(int b = 0; b < itsBunch->getLastemittedBin(); b++) {
 
                             itsBunch->setBinCharge(b, itsBunch->getChargePerParticle());
@@ -2326,7 +2327,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             // store dx and dz for future tune calculation if higher precision needed, reduce freqSample.
             if(step_m % SinglePartDumpFreq == 0) {
                 Ttime.push_back(t * 1.0e-9);
-                Tdeltz.push_back(z_tuning [1]);
+                Tdeltz.push_back(z_tuning[1]);
                 Tdeltr.push_back(r_tuning[1]  - r_tuning[0]);
                 TturnNumber.push_back(turnnumber_m);
             }
@@ -4157,8 +4158,12 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
     double const temp_t = itsBunch->getT() * 1e9;
     Vector_t const meanR = calcMeanR();
     Vector_t const meanP = calcMeanP();
-    double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;       // Bunch Azimuth at meanR
-    double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP))); // Bunch Elevation at meanR
+
+    // Bunch azimuth at meanR with respect to y-axis
+    double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+    // Bunch elevation at meanR with respect to xy plane
+    double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
 
     // -----------  Calculate the external fields at the center of the bunch ------------------//
     beamline_list::iterator DumpSindex = FieldDimensions.begin();
