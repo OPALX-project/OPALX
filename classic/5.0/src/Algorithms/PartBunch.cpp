@@ -1176,6 +1176,89 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vekto
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
+void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Vektor<double, 4> const quaternion) {
+    IpplTimings::startTimer(selfFieldTimer_m);
+
+    globalMeanR = meanR;
+    globalToLocalQuaternion = quaternion;
+
+    /// set initial charge dentsity to zero.
+    rho_m = 0.0;
+
+    /// set initial E field to zero
+    eg_m = Vector_t(0.0);
+
+    /// get gamma of this bin
+    double gamma = getBinGamma(bin);
+
+    if(fs_m->hasValidSolver()) {
+
+        /// scatter particles charge onto grid.
+        this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
+
+        /// from charge to charge density.
+        double tmp2 = 1.0 / gamma / (hr_m[0] * hr_m[1] * hr_m[2]);
+        rho_m *= tmp2;
+
+        /// Lorentz transformation
+        /// In particle rest frame, the longitudinal length enlarged
+        Vector_t hr_scaled = hr_m ;
+        hr_scaled[1] *= gamma;
+
+        /// now charge density is in rho_m
+        /// calculate Possion equation (without coefficient: -1/(eps))
+        fs_m->solver_m->computePotential(rho_m, hr_scaled);
+
+        /// additional work of FFT solver
+        /// now the scalar potential is given back in rho_m
+        rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
+
+        /// retrive coefficient: -1/(eps)
+        rho_m *= getCouplingConstant();
+
+        /// calculate electric field vectors from field potential
+        eg_m = -Grad(rho_m, eg_m);
+
+        /// back Lorentz transformation
+        eg_m *= Vector_t(gamma, 1.0, gamma);
+
+        /*
+        //debug
+        // output field on the grid points
+
+        int m1 = (int)nr_m[0]-1;
+        int m2 = (int)nr_m[0]/2;
+
+        for (int i=0; i<m1; i++ )
+         *gmsg << "Field along x axis E = " << eg_m[i][m2][m2] << " Pot = " << rho_m[i][m2][m2]  << endl;
+
+        for (int i=0; i<m1; i++ )
+         *gmsg << "Field along y axis E = " << eg_m[m2][i][m2] << " Pot = " << rho_m[m2][i][m2]  << endl;
+
+        for (int i=0; i<m1; i++ )
+         *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
+        // end debug
+         */
+
+        /// interpolate electric field at particle positions.
+        Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
+
+        /// calculate coefficient
+        double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+
+        /// calculate B_bin field from E_bin field accumulate B and E field
+        Bf(0) = Bf(0) + betaC * Eftmp(2);
+        Bf(2) = Bf(2) - betaC * Eftmp(0);
+
+        Ef += Eftmp;
+    }
+    // *gmsg<<"gamma ="<<gamma<<endl;
+    // *gmsg<<"dx,dy,dz =("<<hr_m[0]<<", "<<hr_m[1]<<", "<<hr_m[2]<<") [m] "<<endl;
+    // *gmsg<<"max of bunch is ("<<rmax_m(0)<<", "<<rmax_m(1)<<", "<<rmax_m(2)<<") [m] "<<endl;
+    // *gmsg<<"min of bunch is ("<<rmin_m(0)<<", "<<rmin_m(1)<<", "<<rmin_m(2)<<") [m] "<<endl;
+    IpplTimings::stopTimer(selfFieldTimer_m);
+}
+
 void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::startTimer(selfFieldTimer_m);
 

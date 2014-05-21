@@ -278,13 +278,13 @@ public:
     void computeSelfFields(int b);
 
     void computeSelfFields_cycl(double gamma);
+    void computeSelfFields_cycl(int b);
 
-    // Overload computeselffields with version that has meanR and the quaternion of the 
+    // Overload computeselffields with versions that have meanR and the quaternion of the 
     // rotation of the particle bunch in order to take into account the rotation
     // when finding the boundary conditions for the fieldsolver -DW
     void computeSelfFields_cycl(double gamma, Vector_t const meanR, Vektor<double, 4> const quaternion);
-
-    void computeSelfFields_cycl(int b);
+    void computeSelfFields_cycl(int b, Vector_t const meanR, Vektor<double, 4> const quaternion);
 
     void resetInterpolationCache(bool clearCache = false);
 
