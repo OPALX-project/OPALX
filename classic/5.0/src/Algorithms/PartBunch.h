@@ -522,9 +522,6 @@ private:
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
 
-    // Rotate three element vector Vector_t counter clockwise with quaternion. -DW
-    inline void rotateWithQuaternion(Vector_t v, Vektor<double, 4> const quaternion);
-
     /*
       Member variables starts here
     */

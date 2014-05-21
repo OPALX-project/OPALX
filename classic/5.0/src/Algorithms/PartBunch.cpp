@@ -1256,19 +1256,6 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
-inline void PartBunch::rotateWithQuaternion(Vector_t v, Vektor<double, 4> const quaternion) {
-    // rotates a Vector_t (3 elements) counter-clockwise using the quaternion 'quaternion'.
-    // Flip direction of rotation by quaternionVectorcomponent *= -1
-
-    Vector_t const quaternionVectorComponent = Vector_t(quaternion(1), quaternion(2), quaternion(3));
-    double const quaternionScalarComponent = quaternion(0);
-        
-    v = 2.0f * dot(quaternionVectorComponent, v) * quaternionVectorComponent 
-        + (quaternionScalarComponent * quaternionScalarComponent - 
-           dot(quaternionVectorComponent, quaternionVectorComponent)) * v 
-        + 2.0f * quaternionScalarComponent * cross(quaternionVectorComponent, v);
-}
-
 void PartBunch::setBCAllOpen() {
     for(int i = 0; i < 2 * 3; ++i) {
         bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
@@ -1294,7 +1281,6 @@ void PartBunch::setBCForDCBeam() {
     dcBeam_m=true;
     INFOMSG("BC set for DC-Beam" << endl);
 }
-
 
 void PartBunch::boundp() {
     /*
