@@ -1593,7 +1593,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                                      pow(itsBunch->P[ii](1), 2.0) +
                                      pow(itsBunch->P[ii](2), 2.0);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
-            *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
+            *gmsg << "* Final energy of reference particle = " << FinalEnergy << " MeV" << endl;
             *gmsg << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
             *gmsg << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
         }
@@ -3884,7 +3884,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
 
         // Initialize global P (Cartesian, but input P_ref is in Pr, Ptheta, Pz,
-        // so translation has to be done before the rotation this once
+        // so translation has to be done before the rotation this once)
         for(size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch->P[i](0) += referencePr;
             itsBunch->P[i](1) += referencePt;
@@ -3898,68 +3898,83 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch->Bin[i] = 0;
         }
 
-        // Initial dump:
-        double E = itsBunch->get_meanEnergy();
+        // Calculate beam parameters in global frame in m, TODO: Think about this -DW
+        itsBunch->R *= Vector_t(0.001); // mm --> m
+        itsBunch->calcBeamParameters_cycl();
+        itsBunch->R *= Vector_t(1000.0); // m --> mm
+        
+        step_m -= 1;
+        
+        bunchDumpPhaseSpaceStatData();
 
-        if(Options::psDumpLocalFrame) {
-            // If requested in local frame
+        step_m += 1;
 
-            // Old quaternion method. probably not good. -DW
-	    //Vector_t const initMeanP = calcMeanP();
-            //Vektor<double, 4> quaternionToYAxis;
-            //getQuaternionTwoVectors(initMeanP, yaxis, quaternionToYAxis);
-            //globalToLocal(itsBunch->R, quaternionToYAxis, initMeanR);
-            //globalToLocal(itsBunch->P, quaternionToYAxis, initMeanP);
+        // // Initial dump:
+        // double E = itsBunch->get_meanEnergy();
 
-            Vector_t const meanR = calcMeanR();
-            Vector_t const meanP = calcMeanP();
-            double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;       // Azimuth
-            double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP))); // Elevation    
+        // if(Options::psDumpLocalFrame) {
+        //     // If requested in local frame
 
-            globalToLocal(itsBunch->R, phi, psi, meanR);
-            globalToLocal(itsBunch->P, phi, psi, meanP);
+        //     // Old quaternion method. probably not good. -DW
+	//     //Vector_t const initMeanP = calcMeanP();
+        //     //Vektor<double, 4> quaternionToYAxis;
+        //     //getQuaternionTwoVectors(initMeanP, yaxis, quaternionToYAxis);
+        //     //globalToLocal(itsBunch->R, quaternionToYAxis, initMeanR);
+        //     //globalToLocal(itsBunch->P, quaternionToYAxis, initMeanP);
 
-            itsBunch->R *= Vector_t(0.001); // mm --> m
+        //     Vector_t const meanR = calcMeanR();
+        //     Vector_t const meanP = calcMeanP();
 
-            itsBunch->calcBeamParameters_cycl();
+        //     double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;       // Azimuth
+        //     double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP))); // Elevation    
 
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
-                                                                 FDext_m, E, 
-                                                                 referencePr, 
-                                                                 referenceR, 
-                                                                 referenceTheta);
+        //     *gmsg << "Initial T = " << itsBunch->getT() * 1e9 << " ns, Step = " << step_m + 1 << endl;
 
-            itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0, E);
+        //     globalToLocal(itsBunch->R, phi, psi, meanR);
+        //     globalToLocal(itsBunch->P, phi, psi, meanP);
 
-            itsBunch->R *= Vector_t(1000.0); // m --> mm
+        //     itsBunch->R *= Vector_t(0.001); // mm --> m
 
-            //localToGlobal(itsBunch->R, quaternionToYAxis, initMeanR);
-            //localToGlobal(itsBunch->P, quaternionToYAxis, initMeanP);
+        //     itsBunch->calcBeamParameters_cycl();
 
-            localToGlobal(itsBunch->R, phi, psi, meanR);
-            localToGlobal(itsBunch->P, phi, psi, meanP);
+        //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+        //                                                          FDext_m, E, 
+        //                                                          referencePr, 
+        //                                                          referenceR, 
+        //                                                          referenceTheta);
 
-            *gmsg << "* Phase space dump " << lastDumpedStep_m 
-                  << " (local frame) at integration step 0 T = 0 [ns]" << endl;
+        //     itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0, E);
 
-        } else {
-            // If requested in global frame
+        //     itsBunch->R *= Vector_t(1000.0); // m --> mm
 
-            itsBunch->R *= Vector_t(0.001); // mm --> m
+        //     //localToGlobal(itsBunch->R, quaternionToYAxis, initMeanR);
+        //     //localToGlobal(itsBunch->P, quaternionToYAxis, initMeanP);
 
-            itsBunch->calcBeamParameters_cycl();
+        //     localToGlobal(itsBunch->R, phi, psi, meanR);
+        //     localToGlobal(itsBunch->P, phi, psi, meanP);
 
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
-                                                                 FDext_m, E, 
-                                                                 referencePr, 
-                                                                 referenceR, 
-                                                                 referenceTheta);
+        //     *gmsg << "* Phase space dump " << lastDumpedStep_m 
+        //           << " (local frame) at integration step 0 T = 0 [ns]" << endl;
 
-            itsBunch->R *= Vector_t(1000.0); // m --> mm
+        // } else {
+        //     // If requested in global frame
 
-            *gmsg << "* Phase space dump " << lastDumpedStep_m 
-                  << " (global frame) at integration step 0 T = 0 [ns]" << endl;
-        } 
+        //     itsBunch->R *= Vector_t(0.001); // mm --> m
+
+        //     itsBunch->calcBeamParameters_cycl();
+
+        //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+        //                                                          FDext_m, E, 
+        //                                                          referencePr, 
+        //                                                          referenceR, 
+        //                                                          referenceTheta);
+
+        //     itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+        //     *gmsg << "* Phase space dump " << lastDumpedStep_m 
+        //           << " (global frame) at integration step 0 T = 0 [ns]" << endl;
+        // }
+	
 
         // Backup initial distribution if multi bunch mode
         if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == 1)) {
@@ -4035,7 +4050,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             *gmsg << "Initial radial position = ";
         }
 
-        *gmsg << RThisTurn_m << " [mm]" << endl;
+        *gmsg << RThisTurn_m << " mm" << endl;
     }
 
     Vector_t const meanP = calcMeanP();
@@ -4192,10 +4207,10 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
 
         *gmsg << "* Phase space dump " << lastDumpedStep_m 
               << " (global frame) at integration step " << step_m + 1 
-              << ", T = " << temp_t << " [ns]"
-              << ", E = " << E  
-              << ", Local Azim. = " << phi / pi * 180.0 << "Deg"
-              << ", Local Elev. = " << psi / pi * 180.0 << "Deg" << endl;
+              << ", T = " << temp_t << " ns"
+              << ", E = " << E << " MeV"
+              << ", Local Azim. = " << phi / pi * 180.0 << " Deg"
+              << ", Local Elev. = " << psi / pi * 180.0 << " Deg" << endl;
 
     } else {
         // --------------------------- Dump in local frame ---------------------------------- //
@@ -4220,10 +4235,10 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
 
 	*gmsg << "* Phase space dump " << lastDumpedStep_m 
               << " (local frame) at integration step " << step_m + 1 
-              << ", T = " << temp_t << " [ns]" 
-              << ", E = " << E  
-              << ", Local Azim. = " << phi / pi * 180.0
-              << ", Local Elev. = " << psi / pi * 180.0 << endl;
+              << ", T = " << temp_t << " ns" 
+              << ", E = " << E << " MeV"
+              << ", Local Azim. = " << phi / pi * 180.0 << " Deg"
+              << ", Local Elev. = " << psi / pi * 180.0 << " Deg" << endl;
     }
 }
 
