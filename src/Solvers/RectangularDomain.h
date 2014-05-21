@@ -16,8 +16,9 @@ public:
     /// constructor
     RectangularDomain(double a, double b, Vector_t nr, Vector_t hr);
 
-    /// calculates intersection with the elliptic beam pipe
-    void Compute(Vector_t hr);
+    /// calculates intersection with the beam pipe
+    void Compute(Vector_t hr, NDIndex<3> localId);
+
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);
     /// returns discretization at (x,y,z)
@@ -44,6 +45,9 @@ public:
     double getXRangeMax() { return a_m; }
     double getYRangeMin() { return -b_m; }
     double getYRangeMax() { return b_m; }
+    double getZRangeMin() { return getMinZ(); }
+    double getZRangeMax() { return getMaxZ(); }
+
 
     int getStartIdx() {return 0;}
 

@@ -2648,8 +2648,10 @@ void ParallelTTracker::initializeBoundaryGeometry() {
     for(unsigned int i = 0; i < itsOpalBeamline_m.sections_m.size(); i++) {
 
         bgf_m = itsOpalBeamline_m.getBoundaryGeometry(i);
-        if(!bgf_m) continue;
-
+        if(!bgf_m) 
+          continue;
+        else
+          break;
         Distribution *dist = NULL;
         Distribution *distrand = NULL;
         vector<string> distr_str = bgf_m->getDistributionArray();

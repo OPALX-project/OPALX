@@ -1,4 +1,5 @@
 #ifdef HAVE_SAAMG_SOLVER
+
 #include <map>
 #include <cmath>
 #include <iostream>
@@ -19,11 +20,11 @@ EllipticDomain::EllipticDomain(double semimajor, double semiminor, Vector_t nr, 
     setNr(nr);
     setHr(hr);
 
-    if(interpl == "constant")
+    if(interpl == "CONSTANT")
         interpolationMethod = CONSTANT;
-    else if(interpl == "linear")
+    else if(interpl == "LINEAR")
         interpolationMethod = LINEAR;
-    else if(interpl == "quadratic")
+    else if(interpl == "QUADRATIC")
         interpolationMethod = QUADRATIC;
 }
 
@@ -36,20 +37,16 @@ EllipticDomain::~EllipticDomain() {
 // one x-y-plane
 // for the moment we center the ellipse around the center of the grid
 // hr holds the grid-spacings (boundary ellipse embedded in hr-grid)
-void EllipticDomain::Compute(Vector_t hr) {
-
-	std::cout << " EllipticDomain::Compute" << hr[0] << " " <<  hr[1] << " " << hr[2] << std::endl;
+void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
     //there is nothing to be done if the mesh spacings have not changed
     if(hr[0] == getHr()[0] && hr[1] == getHr()[1] && hr[2] == getHr()[2]) {
         hasGeometryChanged_m = false;
         return;
     }
-	std::cout << " EllipticDomain::Compute" <<  getHr()[0] << " " <<   getHr()[1] << " " << getHr()[2] << std::endl;
-
     setHr(hr);
+    hasGeometryChanged_m = true;
     //reset number of points inside domain
     nxy_m = 0;
-
 
     // clear previous coordinate maps
     IdxMap.clear();
@@ -61,14 +58,12 @@ void EllipticDomain::Compute(Vector_t hr) {
     // build a index and coordinate map
     register int idx = 0;
     register int x, y;
-	std::cout << " EllipticDomain::Compute" << nr[0] << " " <<  nr[1] << " " << nr[2] << std::endl;
 
     for(x = 0; x < nr[0]; x++) {
         for(y = 0; y < nr[1]; y++) {
 
             if(isInside(x, y, 1)) {
                 //IdxMap[toCoordIdx(x, y)] = idx++;
-		std::cout << "x,y " << x << " "<< y << "-> " << toCoordIdx(x,y) <<  std::endl;
                 IdxMap[toCoordIdx(x, y)] = idx;
                 CoordMap[idx++] = toCoordIdx(x, y);
                 nxy_m++;
@@ -78,7 +73,6 @@ void EllipticDomain::Compute(Vector_t hr) {
     }
 
     switch(interpolationMethod) {
-
         case CONSTANT:
             break;
         case LINEAR:
@@ -123,8 +117,9 @@ void EllipticDomain::Compute(Vector_t hr) {
 }
 
 void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+    scaleFactor = 1.0;
 
-    // determine which interpolation method we use for points near the boundary
+        // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod) {
         case CONSTANT:
             ConstantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);

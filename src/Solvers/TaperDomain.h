@@ -65,6 +65,9 @@ public:
     double getXRangeMax() { return radius_big;  }
     double getYRangeMin() { return -radius_big; }
     double getYRangeMax() { return radius_big;  }
+    double getZRangeMin() { return z_min; }
+    double getZRangeMax() { return z_max; }
+
 
     //TODO: ?
     int getStartIdx() {return 0;}

@@ -99,12 +99,15 @@ public:
     /// set semi-major
     //void setSemiMajor(double sm) {SemiMajor = sm;}
 
-    void Compute(Vector_t hr);
+    void Compute(Vector_t hr, NDIndex<3> localId);
 
     double getXRangeMin() { return -A_m; }
     double getXRangeMax() { return  A_m; }
     double getYRangeMin() { return  -B_m;} // actBMin_m; }
     double getYRangeMax() { return  B_m; } // actBMax_m; }
+    double getZRangeMin() { return  L1_m;}
+    double getZRangeMax() { return  L1_m+L2_m; } 
+
 
     //TODO: ?
     int getStartIdx() {return 0;}

@@ -57,12 +57,12 @@ namespace {
         BCFFTT,     // boundary condition in z [FFT only]
         GREENSF,    // holds greensfunction to be used [FFT only]
         BBOXINCR,   // how much the boundingbox is increased
-        GEOMETRY,   // geometry of boundary [MG only]
-        ITSOLVER,   // iterative solver [MG only]
-        INTERPL,    // interpolation used for boundary points [MG only]
-        TOL,        // tolerance of the MG preconditioned solver [MG only]
-        MAXITERS,   // max number of iterations [MG only]
-        PRECMODE,   // preconditioner mode [MG only]
+        GEOMETRY,   // geometry of boundary [SAAMG only]
+        ITSOLVER,   // iterative solver [SAAMG only]
+        INTERPL,    // interpolation used for boundary points [SAAMG only]
+        TOL,        // tolerance of the SAAMG preconditioned solver [SAAMG only]
+        MAXITERS,   // max number of iterations [SAAMG only]
+        PRECMODE,   // preconditioner mode [SAAMG only]
         RPP,        // defines in units of the meshsize where the PP interactions takes place [P3M only]
         // FOR XXX BASED SOLVER
         SIZE
@@ -74,7 +74,7 @@ FieldSolver::FieldSolver():
     Definition(SIZE, "FIELDSOLVER",
                "The \"FIELDSOLVER\" statement defines data for a the field solver ") {
 
-    itsAttr[FSTYPE] = Attributes::makeString("FSTYPE", "Name of the attached field solver: FFT, FFTPERIODIC, MG, AMR, and NONE ");
+    itsAttr[FSTYPE] = Attributes::makeString("FSTYPE", "Name of the attached field solver: FFT, FFTPERIODIC, SAAMG, AMR, and NONE ");
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
@@ -95,7 +95,7 @@ FieldSolver::FieldSolver():
     // P3M only:
     itsAttr[RPP]  = Attributes::makeReal("RPP", "Defines in units of the meshsize where the PP interactions takes place ", 1);
 
-    //MG and in case of FFT with dirichlet BC in x and y
+    //SAAMG and in case of FFT with dirichlet BC in x and y
     itsAttr[GEOMETRY] = Attributes::makeString("GEOMETRY", "GEOMETRY to be used as domain boundary", "");
     itsAttr[ITSOLVER]  = Attributes::makeString("ITSOLVER", "Type of iterative solver [CG | BiCGSTAB | GMRES]", "CG");
     itsAttr[INTERPL]  = Attributes::makeString("INTERPL", "interpolation used for boundary points [CONSTANT | LINEAR | QUADRATIC]", "LINEAR");
@@ -237,7 +237,7 @@ void FieldSolver::initSolver(PartBunch &b) {
             fsType_m = "FFT";
         }
 
-    } else if(Attributes::getString(itsAttr[FSTYPE]) == "MG") {
+    } else if(Attributes::getString(itsAttr[FSTYPE]) == "SAAMG") {
 #ifdef HAVE_SAAMG_SOLVER
         //we go over all geometries and add the Geometry Elements to the geometry list
         std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
@@ -246,7 +246,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         std::vector<BoundaryGeometry *> geometries;
         for(unsigned int i = 0; i <= geoms.length(); i++) {
             if(geoms[i] == ',' || i == geoms.length()) {
-                BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
+                BoundaryGeometry *geom = BoundaryGeometry::find(tmp)->clone(getOpalName() + string("_geometry"));
                 if(geom != 0) {
                     geometries.push_back(geom);
                 }
@@ -256,9 +256,9 @@ void FieldSolver::initSolver(PartBunch &b) {
         }
         solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]), Attributes::getString(itsAttr[INTERPL]), Attributes::getReal(itsAttr[TOL]), (int)Attributes::getReal(itsAttr[MAXITERS]), Attributes::getString(itsAttr[PRECMODE]));
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-        fsType_m = "MG";
+        fsType_m = "SAAMG";
 #else
-        INFOMSG("MG Solver not enabled! Please recompile OPAL with --with-ml-solver" << endl);
+        INFOMSG("SAAMG Solver not enabled! Please build OPAL with SAAMG_SOLVER enabled" << endl);
         INFOMSG("switching to FFT solver..." << endl);
         solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
         fsType_m = "FFT";

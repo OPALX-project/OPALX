@@ -67,6 +67,9 @@ public:
     double getXRangeMax() {return 1.0;}
     double getYRangeMin() {return 1.0;}
     double getYRangeMax() {return 1.0;}
+    double getZRangeMin() {return 1.0;}
+    double getZRangeMax() {return 1.0;}
+
 
     Inform &print(Inform &os) const;
 private:

@@ -4,6 +4,7 @@ set (_SRCS
   MGPoissonSolver.cpp
   RectangularDomain.cpp
   EllipticDomain.cpp
+  ArbitraryDomain.cpp
   BoxCornerDomain.cpp
   TaperDomain.cpp
   )

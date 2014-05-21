@@ -820,18 +820,13 @@ void PartBunch::computeSelfFields(int binNumber) {
 }
 
 void PartBunch::resizeMesh() {
-    double scaleFactor = 1.0; 
-    //scaleFactor = (Physics::c * dt_m); 
-    //get x, y range and scale to unit-less
-    double xmin = fs_m->solver_m->getXRangeMin() * scaleFactor ;
-    double xmax = fs_m->solver_m->getXRangeMax() * scaleFactor;
-    double ymin = fs_m->solver_m->getYRangeMin() * scaleFactor;
-    double ymax = fs_m->solver_m->getYRangeMax() * scaleFactor;
-
-
-    // Check if the new domain is larger than bunch max, mins
-    get_bounds(rmin_m, rmax_m);
-    //XXX: instead of assert delete oob particles!
+    double xmin = fs_m->solver_m->getXRangeMin();
+    double xmax = fs_m->solver_m->getXRangeMax();
+    double ymin = fs_m->solver_m->getYRangeMin();
+    double ymax = fs_m->solver_m->getYRangeMax();
+    double zmin = fs_m->solver_m->getZRangeMin();
+    double zmax = fs_m->solver_m->getZRangeMax();
+    
     if(xmin > rmin_m[0] || xmax < rmax_m[0] ||
        ymin > rmin_m[1] || ymax < rmax_m[1]) {
 
@@ -851,21 +846,15 @@ void PartBunch::resizeMesh() {
         boundp();
         get_bounds(rmin_m, rmax_m);
     }
+ 
+    Vector_t mymin = Vector_t(xmin, ymin , zmin);
+    Vector_t mymax = Vector_t(xmax, ymax , zmax);
 
-    hr_m[0] = (xmax - xmin) / (nr_m[0]-1);
-    hr_m[1] = (ymax - ymin) / (nr_m[1]-1);
-    //hr_m[2] = (rmax_m[2] - rmin_m[2]) / (nr_m[2] - 1);
+    for(int i = 0; i < 3; i++) 
+        hr_m[i]   = (mymax[i] - mymin[i]) / nr_m[i];
 
-    // we cannot increase the number of mesh points
-    // this would require to delete and recreate the
-    // particle bunch since the FieldLayout is fixed
-    // in ParticleBase
-
-    Vector_t mymin = Vector_t(xmin, ymin, rmin_m[2]);
-
-    // rescale mesh
     getMesh().set_meshSpacing(&(hr_m[0]));
-    getMesh().set_origin(mymin);
+    getMesh().set_origin(mymin); 
 
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
@@ -877,6 +866,8 @@ void PartBunch::resizeMesh() {
                     vbc_m);
 
     update();
+
+//    setGridIsFixed();
 }
 
 void PartBunch::computeSelfFields() {
@@ -886,8 +877,8 @@ void PartBunch::computeSelfFields() {
 
     if(fs_m->hasValidSolver()) {
 
-        if(fs_m->getFieldSolverType() == "MG") // || fs_m->getFieldSolverType() == "FFTBOX") {
-            resizeMesh();
+//        if(fs_m->getFieldSolverType() == "SAAMG" && !isGridFixed())
+//            resizeMesh();
 	INFOMSG("after resizeMesh" << hr_m << endl);
 
         //scatter charges onto grid
@@ -911,7 +902,6 @@ void PartBunch::computeSelfFields() {
         //divide charge by a 'grid-cube' volume to get [C/m^3]
         rho_m *= tmp2;
 
-	//        #define DBG_SCALARFIELD
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
         ofstream fstr1;

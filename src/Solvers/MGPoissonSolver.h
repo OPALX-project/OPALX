@@ -108,6 +108,9 @@ public:
     double getXRangeMax() { return bp->getXRangeMax(); }
     double getYRangeMin() { return bp->getYRangeMin(); }
     double getYRangeMax() { return bp->getYRangeMax(); }
+    double getZRangeMin() { return bp->getZRangeMin(); }
+    double getZRangeMax() { return bp->getZRangeMax(); }
+
 
 
     /// useful load balance information
@@ -182,10 +185,10 @@ private:
     typedef Epetra_MultiVector              MV;
     typedef Belos::OperatorTraits<ST, MV, OP> OPT;
     typedef Belos::MultiVecTraits<ST, MV>    MVT;
-    Belos::LinearProblem<double, MV, OP> problem;
+    Belos::LinearProblem<ST, MV, OP> problem;
     RCP< Belos::EpetraPrecOp > prec;
     RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest;
-    RCP< Belos::SolverManager<double, MV, OP> > solver;
+    RCP< Belos::SolverManager<ST, MV, OP> > solver;
 
     /// parameter list for the ML solver
     Teuchos::ParameterList MLList_m;
@@ -209,8 +212,7 @@ private:
     /// global number of mesh points in each direction
     Vektor<int, 3> orig_nr_m;
 
-    /// idx for arbitrary domain 
-    NDIndex<3> localidx_m;
+    NDIndex<3> localId;
 
     // timers
     IpplTimings::TimerRef FunctionTimer1_m;
@@ -219,17 +221,19 @@ private:
     IpplTimings::TimerRef FunctionTimer4_m;
     IpplTimings::TimerRef FunctionTimer5_m;
     IpplTimings::TimerRef FunctionTimer6_m;
+    IpplTimings::TimerRef FunctionTimer7_m;
+    IpplTimings::TimerRef FunctionTimer8_m;
 
     /// recomputes the Epetra_Map
-    void computeMap();
+    void computeMap(NDIndex<3> localId);
 
     /// redistributes Map with RCB
-    /// \param localidx local IPPL grid node indices
-    void redistributeWithRCB(NDIndex<3> localidx);
+    /// \param localId local IPPL grid node indices
+    void redistributeWithRCB(NDIndex<3> localId);
 
     /// converts IPPL grid to a 3D Epetra_Map
-    /// \param localidx local IPPL grid node indices
-    void IPPLToMap3D(NDIndex<3> localidx);
+    /// \param localId local IPPL grid node indices
+    void IPPLToMap3D(NDIndex<3> localId);
 
     /** returns a discretized stencil that has Neumann BC in z direction and
      * Dirichlet BC on the surface of a specified geometry
@@ -254,12 +258,13 @@ protected:
             belosList.set("Verbosity", Belos::Errors + Belos::Warnings + Belos::TimingDetails + Belos::FinalSummary + Belos::StatusTestDetails);
             belosList.set("Output Frequency", 1);
         } else
-            belosList.set("Verbosity", Belos::Errors);
-    }
+            belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
+      }
 
     /// Setup the parameters for the SAAMG preconditioner.
     inline void SetupMLList() {
         ML_Epetra::SetDefaults("SA", MLList_m);
+
         MLList_m.set("max levels", 8);
         MLList_m.set("increasing or decreasing", "increasing");
 
@@ -271,7 +276,7 @@ protected:
         MLList_m.set("aggregation: type", "Uncoupled");
 
         // smoother related parameters
-        MLList_m.set("smoother: type", "Chebyshev");
+        MLList_m.set("smoother: type","Chebyshev");
         MLList_m.set("smoother: sweeps", 3);
         MLList_m.set("smoother: pre or post", "both");
 
@@ -284,10 +289,10 @@ protected:
         // number of floating-point operations.
         MLList_m.set("coarse: type", "Amesos-KLU");
 
-        //FIXME: CHEBY COARSE LEVEL SOLVER
+        //XXX: or use Chebyshev coarse level solver
         // SEE PAPER FOR EVALUATION KLU vs. Chebyshev
-//        MLList_m.set("coarse: sweeps", 20);
-//        MLList_m.set("coarse: type", "Chebyshev");
+        //MLList.set("coarse: sweeps", 10);
+        //MLList.set("coarse: type", "Chebyshev");
 
         // turn on all output
         if(verbose_m)
@@ -295,15 +300,15 @@ protected:
         else
             MLList_m.set("ML output", -1);
 
-        // try to optimize mem for xt3
-        //MLList_m.set("low memory usage", true);
-
         // heuristic for max coarse size depending on number of processors
         int coarsest_size = std::max(Comm.NumProc() * 10, 1024);
         MLList_m.set("coarse: max size", coarsest_size);
+
     }
 
 };
+
+
 
 inline Inform &operator<<(Inform &os, const MGPoissonSolver &fs) {
     return fs.print(os);

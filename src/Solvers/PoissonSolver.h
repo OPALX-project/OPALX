@@ -27,6 +27,8 @@ public:
     virtual double getXRangeMax() = 0;
     virtual double getYRangeMin() = 0;
     virtual double getYRangeMax() = 0;
+    virtual double getZRangeMin() = 0;
+    virtual double getZRangeMax() = 0;
 };
 
 inline Inform &operator<<(Inform &os, const PoissonSolver &fs) {
