@@ -370,11 +370,18 @@ private:
         const int j,
         const int k);
 
+    int intersectLineSegmentBoundary4PartInside (
+        const Vector_t P0,
+        const Vector_t P1,
+        Vector_t& intersect_pt,
+        int& triangle_id);
+
     int intersectLineSegmentBoundary (
         const Vector_t P0,
         const Vector_t P1,
-        Vector_t& I,
-        int& triangle_id);
+        Vector_t& intersection_pt,
+        int& triangle_id
+        );
 
     std::string h5FileName_m;           // H5hut filename
 
@@ -493,6 +500,7 @@ private:
 
     inline int mapVoxelIndices2ID (const int i, const int j, const int k);
     inline int mapPoint2VoxelID (const Vector_t x);
+    inline Vector_t& mapIndices2Voxel (const int, const int, const int);
     inline Vector_t& mapPoint2Voxel (const Vector_t&);
 
     enum {
