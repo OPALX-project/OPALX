@@ -402,8 +402,8 @@ public:
     inline void setNumBunch(int n);
     inline int getNumBunch() const;
 
-    inline Vector_t getGlobalMeanR() {return globalMeanR;}
-    inline Vektor<double, 4> getGlobalToLocalQuaternion() {return globalToLocalQuaternion;}
+    inline Vector_t getGlobalMeanR() {return globalMeanR_m;}
+    inline Vektor<double, 4> getGlobalToLocalQuaternion() {return globalToLocalQuaternion_m;}
 
     void setSteptoLastInj(int n);
     int getSteptoLastInj();
@@ -555,8 +555,8 @@ private:
     /// energy spread of the beam in keV
     double dE_m;
 
-    Vektor<double, 4> globalToLocalQuaternion;
-    Vector_t globalMeanR;
+    Vector_t globalMeanR_m;
+    Vektor<double, 4> globalToLocalQuaternion_m;
 
     /// maximal extend of particles
     Vector_t rmax_m;

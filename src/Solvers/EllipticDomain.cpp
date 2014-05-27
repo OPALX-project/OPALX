@@ -36,8 +36,7 @@ EllipticDomain::~EllipticDomain() {
 // for this geometry we only have to calculate the intersection on
 // one x-y-plane
 // for the moment we center the ellipse around the center of the grid
-// hr holds the grid-spacings (boundary ellipse embedded in hr-grid)
-void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
+void EllipticDomain::Compute(Vector_t hr){
     //there is nothing to be done if the mesh spacings have not changed
     if(hr[0] == getHr()[0] && hr[1] == getHr()[1] && hr[2] == getHr()[2]) {
         hasGeometryChanged_m = false;
@@ -116,6 +115,11 @@ void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
     }
 }
 
+void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
+}
+
+void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion){
+}
 void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
     scaleFactor = 1.0;
 

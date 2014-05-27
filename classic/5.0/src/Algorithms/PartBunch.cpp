@@ -1102,8 +1102,8 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vektor<double, 4> const quaternion) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
-    globalMeanR = meanR;
-    globalToLocalQuaternion = quaternion;
+    globalMeanR_m = meanR;
+    globalToLocalQuaternion_m = quaternion;
 
     /// set initial charge density to zero.
     rho_m = 0.0;
@@ -1179,8 +1179,8 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vekto
 void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Vektor<double, 4> const quaternion) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
-    globalMeanR = meanR;
-    globalToLocalQuaternion = quaternion;
+    globalMeanR_m = meanR;
+    globalToLocalQuaternion_m = quaternion;
 
     /// set initial charge dentsity to zero.
     rho_m = 0.0;

@@ -60,7 +60,7 @@ MGPoissonSolver::MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl
 	}
         else if(currentGeometry->getTopology() == "BOXCORNER") {
             bp = new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl);
-//            bp->Compute(itsBunch_m->get_hr(), localId);
+            bp->Compute(itsBunch_m->get_hr());
         } else {
             ERRORMSG("Geometry not known" << endl);
             exit(1);
@@ -182,11 +182,11 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     bp->setMinMaxZ(itsBunch_m->get_origin()[2], itsBunch_m->get_maxExtend()[2]);
     
     bp->setNr(nr_m);
-    bp->setHr(hr);
 
     localId = layout_m->getLocalNDIndex();
+
     IpplTimings::startTimer(FunctionTimer1_m);
-	    bp->Compute(hr, localId); 	// Build the index and coord map
+            bp->Compute(hr, localId, itsBunch_m->getGlobalMeanR(), itsBunch_m->getGlobalToLocalQuaternion());
     IpplTimings::stopTimer(FunctionTimer1_m);
    
     IpplTimings::startTimer(FunctionTimer2_m);

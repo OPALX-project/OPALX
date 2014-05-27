@@ -29,10 +29,10 @@ ArbitraryDomain::ArbitraryDomain(
     	bgeom_m  = bgeom;
     	Geo_mincoords_m = bgeom->getmincoords();
     	Geo_maxcoords_m = bgeom->getmaxcoords();
-   
+
     	setNr(nr);
     	setHr(hr);
-    	setMinMaxZ(Geo_mincoords_m[2],Geo_maxcoords_m[2]);
+
    	startId = 0;
 
 	if(interpl == "CONSTANT")
@@ -46,6 +46,12 @@ ArbitraryDomain::ArbitraryDomain(
 ArbitraryDomain::~ArbitraryDomain() {
     //nothing so far
 }
+
+void ArbitraryDomain::Compute(Vector_t hr) {
+
+    setHr(hr);
+}
+
 
 void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId) {
 
@@ -214,6 +220,240 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId) {
      }
 }
 
+void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion){
+
+    setHr(hr);
+
+    globalMeanR_m = globalMeanR;
+    globalToLocalQuaternion_m = globalToLocalQuaternion;	
+    localToGlobalQuaternion_m[0] = globalToLocalQuaternion[0];
+    for (int i=1; i<4; i++)
+		localToGlobalQuaternion_m[i] = -globalToLocalQuaternion[i];	
+
+    int zGhostOffsetLeft  = (localId[2].first()== 0) ? 0 : 1;
+    int zGhostOffsetRight = (localId[2].last() == nr[2] - 1) ? 0 : 1;
+    int yGhostOffsetLeft  = (localId[1].first()== 0) ? 0 : 1;
+    int yGhostOffsetRight = (localId[1].last() == nr[1] - 1) ? 0 : 1;
+    int xGhostOffsetLeft  = (localId[0].first()== 0) ? 0 : 1;
+    int xGhostOffsetRight = (localId[0].last() == nr[0] - 1) ? 0 : 1;
+    
+    hasGeometryChanged_m = true;
+
+    IntersectLoX.clear();
+    IntersectHiX.clear();
+    IntersectLoY.clear();
+    IntersectHiY.clear();
+    IntersectLoZ.clear();
+    IntersectHiZ.clear();
+
+    //calculate intersection 
+    Vector_t P, saveP, dir, I;
+
+    for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
+	 saveP[2] = (idz - (nr[2]-1)/2.0)*hr[2];
+
+	 for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
+	     saveP[1] = (idy - (nr[1]-1)/2.0)*hr[1];
+
+    	     for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
+	       	  saveP[0] = (idx - (nr[0]-1)/2.0)*hr[0];
+
+			P = saveP;
+			rotateWithQuaternion(P, localToGlobalQuaternion_m); 
+			P += globalMeanR;
+
+       			std::tuple<int, int, int> pos(idx, idy, idz);
+
+			rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		        if (bgeom_m->intersectRayBoundary(P, dir, I))
+			{
+			   *gmsg << "zdir= +1G: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
+			   I -= globalMeanR;
+			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+			   *gmsg << "zdir= +1L: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
+       	      		   IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
+			}
+			else
+			{
+			   *gmsg << "zdir= " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+			}
+
+		        if (bgeom_m->intersectRayBoundary(P, -dir, I))
+			{
+			   *gmsg << "zdir= -1G: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
+			   I -= globalMeanR;
+			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+			   *gmsg << "zdir= -1L: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
+       	      		   IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
+			}
+			else
+			{
+			   *gmsg << "zdir= " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+			}
+
+	        	rotateYAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		        if (bgeom_m->intersectRayBoundary(P, dir, I))
+			{
+			   *gmsg << "ydir= +1G: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
+			   I -= globalMeanR;
+			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		   IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
+			   *gmsg << "ydir= +1L: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
+			}
+			else
+			{
+			   *gmsg << "ydir= " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+			}
+
+
+		        if (bgeom_m->intersectRayBoundary(P, -dir, I))
+			{
+			   *gmsg << "ydir= -1G: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
+			   I -= globalMeanR;
+			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		   IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
+			   *gmsg << "ydir= -1L: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
+			}
+			else{
+			   *gmsg << "ydir= " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+			}
+
+
+	        	rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		        if (bgeom_m->intersectRayBoundary(P, dir, I))
+			{
+			   *gmsg << "xdir= +1G: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
+			   I -= globalMeanR;
+			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+			   *gmsg << "xdir= +1L: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
+       	      		   IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
+			}
+			else{
+			   *gmsg << "xdir= " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+			}
+
+
+		        if (bgeom_m->intersectRayBoundary(P, -dir, I))
+			{
+			   *gmsg << "xdir= -1G: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
+			   I -= globalMeanR;
+			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+			   *gmsg << "xdir= -1L: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
+       	      		   IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
+			}
+			else{
+			   *gmsg << "xdir= " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+			}
+
+		}
+	 }
+     }
+
+    //number of ghost nodes to the right 
+    int znumGhostNodesRight = 0;
+    if(zGhostOffsetRight != 0) {
+        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+            for(int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+                if(isInside(idx, idy, localId[2].last() + zGhostOffsetRight))
+                    znumGhostNodesRight++;
+            }
+        }
+    }
+
+    //number of ghost nodes to the left 
+    int znumGhostNodesLeft = 0;
+    if(zGhostOffsetLeft != 0) {
+        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+            for(int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+                if(isInside(idx, idy, localId[2].first() - zGhostOffsetLeft))
+                    znumGhostNodesLeft++;
+            }
+        }
+    }
+
+    //number of ghost nodes to the right 
+    int ynumGhostNodesRight = 0;
+    if(yGhostOffsetRight != 0) {
+        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+            for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+                if(isInside(idx, localId[1].last() + yGhostOffsetRight, idz))
+                    ynumGhostNodesRight++;
+            }
+        }
+    }
+
+    //number of ghost nodes to the left 
+    int ynumGhostNodesLeft = 0;
+    if(yGhostOffsetLeft != 0) {
+        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+            for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+                if(isInside(idx, localId[1].first() - yGhostOffsetLeft, idz))
+                    ynumGhostNodesLeft++;
+            }
+        }
+    }
+
+
+    //number of ghost nodes to the right 
+    int xnumGhostNodesRight = 0;
+    if(xGhostOffsetRight != 0) {
+	for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+            for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+                if(isInside(localId[0].last() + xGhostOffsetRight, idy, idz))
+                    xnumGhostNodesRight++;
+            }
+        }
+    }
+
+    //number of ghost nodes to the left 
+    int xnumGhostNodesLeft = 0;
+    if(xGhostOffsetLeft != 0) {
+       	for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+            for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+                if(isInside(localId[0].first() - xGhostOffsetLeft, idy, idz))
+                    xnumGhostNodesLeft++;
+            }
+        }
+    }
+    //xy points in z plane
+    int numxy; 
+    int numtotalxy = 0;
+
+    numXY.clear();
+
+    for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+	numxy =0;
+        for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+            for (int idx =localId[0].first(); idx <= localId[0].last(); idx++) {
+                if (isInside(idx, idy, idz))
+                   numxy++;
+            }
+        }
+        numtotalxy += numxy;
+    }
+
+    startId = 0;
+    MPI_Scan(&numtotalxy, &startId, 1, MPI_INTEGER, MPI_SUM, Ippl::getComm());
+
+    startId -= numtotalxy;
+
+    //build up index and coord map
+    IdxMap.clear();
+    CoordMap.clear();
+    
+    register int id = startId - xnumGhostNodesLeft - ynumGhostNodesLeft - znumGhostNodesLeft;
+     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
+    	 for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
+    	     for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
+	            if (isInside(idx, idy, idz)) {
+                    IdxMap[toCoordIdx(idx, idy, idz)] = id;
+                    CoordMap[id] = toCoordIdx(idx, idy, idz);
+                    id++;
+                 }
+             }
+         }
+     }
+}
 // Conversion from (x,y,z) to index in xyz plane
 inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
 	return (idz * nr[1] + idy) * nr[0]  + idx;
@@ -255,40 +495,40 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
     double cy = (idy - (nr[1]-1)/2.0)*hr[1];
     double cz = (idz - (nr[2]-1)/2.0)*hr[2];
 
-    int    countHz, countLz, countHy, countLy, countHx, countLx;
-    std::multimap < std::tuple<int, int, int>, double >::iterator itrHz, itrLz;
-    std::multimap < std::tuple<int, int, int>, double >::iterator itrHy, itrLy;
-    std::multimap < std::tuple<int, int, int>, double >::iterator itrHx, itrLx;
+    int    countH, countL;
+    std::multimap < std::tuple<int, int, int>, double >::iterator itrH, itrL;
 
     std::tuple<int, int, int> coordxyz(idx, idy, idz);
              
     //check if z is inside with x,y coords
-    itrHz = IntersectHiZ.find(coordxyz);
-    itrLz = IntersectLoZ.find(coordxyz);
+    itrH = IntersectHiZ.find(coordxyz);
+    itrL = IntersectLoZ.find(coordxyz);
 
-    countHz = IntersectHiZ.count(coordxyz);
-    countLz = IntersectLoZ.count(coordxyz);
+    countH = IntersectHiZ.count(coordxyz);
+    countL = IntersectLoZ.count(coordxyz);
+
+    if(countH == 1 && countL == 1)
+        ret = (cz <= itrH->second) && (cz >= itrL->second);
 
      //check if y is inside with x,z coords
-    itrHy = IntersectHiY.find(coordxyz);
-    itrLy = IntersectLoY.find(coordxyz);
+    itrH = IntersectHiY.find(coordxyz);
+    itrL = IntersectLoY.find(coordxyz);
 
-    countHy = IntersectHiY.count(coordxyz);
-    countLy = IntersectLoY.count(coordxyz);
+    countH = IntersectHiY.count(coordxyz);
+    countL = IntersectLoY.count(coordxyz);
+
+    if(countH == 1 && countL == 1)
+        ret = ret && (cy <= itrH->second) && (cy >= itrL->second);
 
     //check if x is inside with y,z coords
-    itrHx = IntersectHiX.find(coordxyz);
-    itrLx = IntersectLoX.find(coordxyz);
+    itrH = IntersectHiX.find(coordxyz);
+    itrL = IntersectLoX.find(coordxyz);
 
-    countHx = IntersectHiX.count(coordxyz);
-    countLx = IntersectLoX.count(coordxyz);
+    countH = IntersectHiX.count(coordxyz);
+    countL = IntersectLoX.count(coordxyz);
 
-    if(countHz == 1 && countLz == 1)
-        ret = (cz <= itrHz->second) && (cz >= itrLz->second);
-    else if(countHy == 1 && countLy == 1)
-        ret = ret && (cy <= itrHy->second) && (cy >= itrLy->second);
-    else if(countHx == 1 && countLx == 1)
-        ret = ret && (cx <= itrHx->second) && (cx >= itrLx->second);
+    if(countH == 1 && countL == 1)
+        ret = ret && (cx <= itrH->second) && (cx >= itrL->second);
        
     return ret; 
 }
@@ -300,25 +540,25 @@ int ArbitraryDomain::getNumXY(int z) {
 
 
 void ArbitraryDomain::getBoundaryStencil(int idxyz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
-    int x = 0, y = 0, z = 0;
+    int idx = 0, idy = 0, idz = 0;
 
-    getCoord(idxyz, x, y, z);
-    getBoundaryStencil(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+    getCoord(idxyz, idx, idy, idz);
+    getBoundaryStencil(idx, idy, idz, W, E, S, N, F, B, C, scaleFactor);
 }
 
-void ArbitraryDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     scaleFactor = 1.0;
    // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod){
     	case CONSTANT:
-        	ConstantInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
+        	ConstantInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
         	break;
     	case LINEAR:
-        //	LinearInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
+//        	LinearInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
         	break;
     	case QUADRATIC:
-	    //  QuadraticInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
+	    //  QuadraticInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
         	break;
     }
 
@@ -326,7 +566,7 @@ void ArbitraryDomain::getBoundaryStencil(int x, int y, int z, double &W, double 
     assert(C > 0);
 }
 
-void ArbitraryDomain::ConstantInterpolation(int x, int y, int z, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) {
+void ArbitraryDomain::ConstantInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) {
 
     W = -1/(hr[0]*hr[0]);
     E = -1/(hr[0]*hr[0]);
@@ -336,40 +576,58 @@ void ArbitraryDomain::ConstantInterpolation(int x, int y, int z, double& W, doub
     B = -1/(hr[2]*hr[2]);
     C = 2/(hr[0]*hr[0]) + 2/(hr[1]*hr[1]) + 2/(hr[2]*hr[2]);
 
-    if(!isInside(x+1,y,z)) 
+    if(!isInside(idx+1,idy,idz)) 
         E = 0.0;
 
-    if(!isInside(x-1,y,z))
+    if(!isInside(idx-1,idy,idz))
         W = 0.0;
 
-    if(!isInside(x,y+1,z))
+    if(!isInside(idx,idy+1,idz))
         N = 0.0;
 
-    if(!isInside(x,y-1,z)) 
+    if(!isInside(idx,idy-1,idz)) 
         S = 0.0;
     
-    if(!isInside(x,y,z-1)) 
+    if(!isInside(idx,idy,idz-1)) 
 	F = 0.0;	
 
-    if(!isInside(x,y,z+1)) 
+    if(!isInside(idx,idy,idz+1)) 
 	B = 0.0;	
 
 }
 /*
-void ArbitraryDomain::LinearInterpolation(int x, int y, int z, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) 
+void ArbitraryDomain::LinearInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) 
 {
 
     scaleFactor = 1.0;
 
-    double dx=-1, dy=-1;
+    double dx=-1, dy=-1, dz=-1;
 
-    double cx = x * hr[0];
-    double cy = y * hr[1];
+    double cx = (idx - (nr[0]-1)/2.0)*hr[0]-globalMeanR_m[0];
+    double cy = (idy - (nr[1]-1)/2.0)*hr[1]-globalMeanR_m[1];
+    double cz = (idz - (nr[2]-1)/2.0)*hr[2]-globalMeanR_m[2];
+
+    int    countH, countL;
+    std::multimap < std::tuple<int, int, int>, double >::iterator itrH, itrL;
+
+    std::tuple<int, int, int> coordxyz(idx, idy, idz);
+             
+    //check if z is inside with x,y coords
+    itrH = IntersectHiZ.find(coordxyz);
+    itrL = IntersectLoZ.find(coordxyz);
+
+    countH = IntersectHiZ.count(coordxyz);
+    countL = IntersectLoZ.count(coordxyz);
+
+    if(countH == 1 && countL == 1)
+        ret = (cz <= itrH->second) && (cz >= itrL->second);
+
+
 
     std::multimap< std::pair<int, int>, double >::iterator it;
     std::pair< std::multimap< std::pair<int, int>, double>::iterator, std::multimap< std::pair<int, int>, double>::iterator > ret;
 
-    std::pair<int, int> coordyz(y, z);
+    std::pair<int, int> coordyz(idy, idz);
     ret = IntersectXDir.equal_range(coordyz);
     for(it = ret.first; it != ret.second; ++it) {
         if(fabs(it->second - cx) < hr[0]) {
@@ -378,7 +636,7 @@ void ArbitraryDomain::LinearInterpolation(int x, int y, int z, double& W, double
         }
     }
 
-    std::pair<int, int> coordxz(x, z);
+    std::pair<int, int> coordxz(idx, idz);
     ret = IntersectYDir.equal_range(coordxz);
     for(it = ret.first; it != ret.second; ++it) {
         if(fabs(it->second - cy) < hr[1]) {
@@ -471,42 +729,45 @@ void ArbitraryDomain::LinearInterpolation(int x, int y, int z, double& W, double
     } else 
         C += 2*1/hr[2]*1/hr[2];
 }
-        */
+*/        
 
 void ArbitraryDomain::getNeighbours(int id, int &W, int &E, int &S, int &N, int &F, int &B) {
 
-    int x = 0, y = 0, z = 0;
+    int idx = 0, idy = 0, idz = 0;
 
-    getCoord(id, x, y, z);
-    getNeighbours(x, y, z, W, E, S, N, F, B);
+    getCoord(id, idx, idy, idz);
+    getNeighbours(idx, idy, idz, W, E, S, N, F, B);
 }
 
-void ArbitraryDomain::getNeighbours(int x, int y, int z, int &W, int &E, int &S, int &N, int &F, int &B) {
+void ArbitraryDomain::getNeighbours(int idx, int idy, int idz, int &W, int &E, int &S, int &N, int &F, int &B) {
 
-    if(x > 0)
-        W = getIdx(x - 1, y, z);
+    if(idx > 0)
+        W = getIdx(idx - 1, idy, idz);
     else
         W = -1;
-    if(x < nr[0] - 1)
-        E = getIdx(x + 1, y, z);
+
+    if(idx < nr[0] - 1)
+        E = getIdx(idx + 1, idy, idz);
     else
         E = -1;
 
-    if(y < nr[1] - 1)
-        N = getIdx(x, y + 1, z);
+    if(idy < nr[1] - 1)
+        N = getIdx(idx, idy + 1, idz);
     else
         N = -1;
-    if(y > 0)
-        S = getIdx(x, y - 1, z);
+
+    if(idy > 0)
+        S = getIdx(idx, idy - 1, idz);
     else
         S = -1;
 
-    if(z > 0)
-        F = getIdx(x, y, z - 1);
+    if(idz > 0)
+        F = getIdx(idx, idy, idz - 1);
     else
         F = -1;
-    if(z < nr[2] - 1)
-        B = getIdx(x, y, z + 1);
+
+    if(idz < nr[2] - 1)
+        B = getIdx(idx, idy, idz + 1);
     else
         B = -1;
 
@@ -519,4 +780,53 @@ inline void ArbitraryDomain::crossProduct(double A[], double B[], double C[]) {
     C[2] = A[0] * B[1] - A[1] * B[0];
 }
 
+inline void ArbitraryDomain::rotateWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+    // rotates a Vector_t (3 elements) using a quaternion.
+    // Flip direction of rotation by quaternionVectorcomponent *= -1
+
+    Vector_t const quaternionVectorComponent = Vector_t(quaternion(1), quaternion(2), quaternion(3));
+    double const quaternionScalarComponent = quaternion(0);
+        
+    v = 2.0 * dot(quaternionVectorComponent, v) * quaternionVectorComponent 
+        + (quaternionScalarComponent * quaternionScalarComponent  
+        -  dot(quaternionVectorComponent, quaternionVectorComponent)) * v 
+        + 2.0 * quaternionScalarComponent * cross(quaternionVectorComponent, v);
+}
+
+inline void ArbitraryDomain::rotateXAxisWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+    // rotates the positive xaxis using a quaternion.
+   
+    v(0) = quaternion(0) * quaternion(0) 
+         + quaternion(1) * quaternion(1) 
+         - quaternion(2) * quaternion(2) 
+         - quaternion(3) * quaternion(3);
+ 
+    v(1) = 2.0 * (quaternion(1) * quaternion(2) + quaternion(0) * quaternion(3));
+    v(2) = 2.0 * (quaternion(1) * quaternion(3) - quaternion(0) * quaternion(2));
+}
+
+inline void ArbitraryDomain::rotateYAxisWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+    // rotates the positive yaxis using a quaternion.
+    
+    v(0) = 2.0 * (quaternion(1) * quaternion(2) - quaternion(0) * quaternion(3));
+      
+    v(1) = quaternion(0) * quaternion(0) 
+         - quaternion(1) * quaternion(1)
+         + quaternion(2) * quaternion(2)
+         - quaternion(3) * quaternion(3);
+
+    v(2) = 2.0 * (quaternion(2) * quaternion(3) + quaternion(0) * quaternion(1));
+}
+
+inline void ArbitraryDomain::rotateZAxisWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+    // rotates the positive zaxis using a quaternion.
+    v(0) = 2.0 * (quaternion(1) * quaternion(3) + quaternion(0) * quaternion(2));
+    v(1) = 2.0 * (quaternion(2) * quaternion(3) - quaternion(0) * quaternion(1));    
+
+    v(2) = quaternion(0) * quaternion(0) 
+         - quaternion(1) * quaternion(1)
+         - quaternion(2) * quaternion(2)
+         + quaternion(3) * quaternion(3);
+
+}
 #endif //#ifdef HAVE_SAAMG_SOLVER
