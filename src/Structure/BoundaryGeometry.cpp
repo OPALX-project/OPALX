@@ -1095,7 +1095,7 @@ BoundaryGeometry::intersectRayBoundary (
     double tmax = 0.0;
     c.intersect (r, tmin, tmax);
     int triangle_id = -1;
-
+    //*gmsg << "* Ray: P = " << P << ";  v = " << P + tmax*v << endl;
     return (3 == intersectLineSegmentBoundary (P, P + tmax*v, I, triangle_id)) ? 1 : 0;
 }
 
@@ -2032,7 +2032,7 @@ BoundaryGeometry::intersectLineSegmentBoundary (
             MAX2 (P[2], Q[2]) };
         mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
         mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
-        Vector_t temp_intersect_pt = Q;
+        Vector_t tmp_intersect_pt = Q;
         double tmin = 1.0;
         for (int i = i_min; i <= i_max; i++) {
             for (int j = j_min; j <= j_max; j++) {
@@ -2044,8 +2044,8 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                     */
                     double t1 = 0.0;
                     double t2 = 0.0;
-                    int intersect_result = intersect3dRayCube (r, c, t1, t2);
-                    if (intersect_result != 2 && intersect_result != 3) {
+                    int tmp_intersect_result = intersect3dRayCube (r, c, t1, t2);
+                    if (tmp_intersect_result != 2 && tmp_intersect_result != 3) {
                         continue;
                     }
                     int voxel_id = mapVoxelIndices2ID (i, j, k);
@@ -2064,28 +2064,28 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                             continue;               // particle moves away from triangle
                     
                         // particle moves towards triangle
-                        intersect_result = intersectLineTriangle (
+                        tmp_intersect_result = intersectLineTriangle (
                             LINE,
                             P0, P1,
                             *it,
-                            temp_intersect_pt);
-                        switch (intersect_result) {
+                            tmp_intersect_pt);
+                        switch (tmp_intersect_result) {
                         case -1:                    // triangle is degenerated
-                            assert (intersect_result != -1);
+                            assert (tmp_intersect_result != -1);
                             exit (42);              // terminate even if NDEBUG is set
                         case 0:                     // no intersection
                         case 4:                     // both points are inside
-                            intersect_result = 0;
                             break;              
                         case 1:                     // line and triangle are in same plane
                         case 2:                     // both points are outside
                         case 3:                     // unique intersection in segment
                             *gmsg << "* Intersection test returned: " << intersect_result << endl;
-                            double t = (temp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
+                            double t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
                             if (t < tmin) {
                                 tmin = t;
-                                intersect_pt = temp_intersect_pt;
+                                intersect_pt = tmp_intersect_pt;
                                 triangle_id = (*it);
+                                intersect_result = tmp_intersect_result;
                             }
                         }
                     }                   // end for all triangles
