@@ -1089,14 +1089,12 @@ BoundaryGeometry::intersectRayBoundary (
       set P1 to intersection of ray with bbox of voxel mesh 
       run line segment boundary intersection test with P and P1
      */
-    //*gmsg << "* Ray: P = " << P << ";  v = " << v << endl;
     Ray r = Ray (P, v);
     Box c = Box (mincoords_m, maxcoords_m);
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect (r, tmin, tmax);
     int triangle_id = -1;
-    *gmsg << "* Ray: P0 = " << P << ";  P1 = " << P + tmax*v << endl;
     return (3 == intersectLineSegmentBoundary (P, P + tmax*v, I, triangle_id)) ? 1 : 0;
 }
 
@@ -1991,15 +1989,12 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     Vector_t& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] triangle the line segment intersects with
     ) {
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+    *gmsg << "* Line segment: P0 = " << P0 << ", P1 = " << P1 << endl;
+#endif
     triangle_id = -1;
-   
-    const Vector_t v = P1 - P0;
-   
-    // This needs to be initialized before looping over all the Test Cubes -DW
-    // Square of maximum distance (P0->P1) plus a little extra to ensure saving
-    // intersection point if only one is found and it is on the outer boundary.
-    double tmin = dot(v, v) + 1.0;
 
+    const Vector_t v = P1 - P0;
     int intersect_result = 0;
     int n = 0;
     int i_min, j_min, k_min;
@@ -2022,11 +2017,9 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     Vector_t Q;
     Ray r = Ray (P, v);
     const Vector_t v_ = v / n;
-    *gmsg << "* n = " << n << endl;
+
     for (int l = 1; l <= n; l++, P = Q) {
         Q = P0 + l*v_;
-        *gmsg << "* P = " << P << endl;
-        *gmsg << "* Q = " << Q << endl;
         Vector_t bbox_min = {
             MIN2 (P[0], Q[0]),
             MIN2 (P[1], Q[1]),
@@ -2035,21 +2028,20 @@ BoundaryGeometry::intersectLineSegmentBoundary (
             MAX2 (P[0], Q[0]),
             MAX2 (P[1], Q[1]),
             MAX2 (P[2], Q[2]) };
-        *gmsg << "* Test cube: bbox_min = " << bbox_min << endl;
-        *gmsg << "* Test cube: bbox_max = " << bbox_max << endl;
         mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
         mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
-        *gmsg << "* Test cube: i_min = " << i_min << ", j_min = " << j_min << ", k_min = " << k_min << endl;
-        *gmsg << "* Test cube: i_max = " << i_max << ", j_max = " << j_max << ", k_max = " << k_max << endl;
+
         Vector_t tmp_intersect_pt = Q;
-        //double tmin = 1.0;
+        double tmin = 1.0;
         for (int i = i_min; i <= i_max; i++) {
             for (int j = j_min; j <= j_max; j++) {
                 for (int k = k_min; k <= k_max; k++) {
                     Vector_t bmin = mapIndices2Voxel(i, j, k);
                     Cube c = {bmin, bmin + hr_m};
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
                     *gmsg << "* Test cube: (" << i << ", " << j << ", " << k << "), "
                           << c.v1 << c.v2 << endl;
+#endif
                     /*
                       do line segment and voxel intersect? continue if not
                     */
@@ -2078,12 +2070,14 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                             P, Q,
                             *it,
                             tmp_intersect_pt);
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
                         *gmsg << "* Test triangle: " << *it
                               << " intersect: " << tmp_intersect_result
                               << getPoint(*it,1)
                               << getPoint(*it,2)
                               << getPoint(*it,3)
                               << endl;
+#endif
                         switch (tmp_intersect_result) {
                         case -1:                    // triangle is degenerated
                             assert (tmp_intersect_result != -1);
@@ -2094,13 +2088,14 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                         case 1:                     // line and triangle are in same plane
                         case 2:                     // both points are outside
                         case 3:                     // unique intersection in segment
-                            *gmsg << "* Intersection test returned: " << tmp_intersect_result << endl;
-                            //double t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
-
-                            // Square of distance of P0 to newly found intersection point -DW
-                            Vector_t temp_dist = tmp_intersect_pt - P; 
-                            double t = dot(temp_dist, temp_dist);
-
+                            double t;
+                            if (fcmp (Q[0] - P[0], 0.0, 10) != 0) {
+                                t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
+                            } else if (fcmp (Q[1] - P[1], 0.0, 10) != 0) {
+                                t = (tmp_intersect_pt[1] - P[1]) / (Q[1] - P[1]);
+                            } else {
+                                t = (tmp_intersect_pt[2] - P[2]) / (Q[2] - P[2]);
+                            }
                             if (t < tmin) {
                                 tmin = t;
                                 intersect_pt = tmp_intersect_pt;
