@@ -1089,14 +1089,14 @@ BoundaryGeometry::intersectRayBoundary (
       set P1 to intersection of ray with bbox of voxel mesh 
       run line segment boundary intersection test with P and P1
      */
-    *gmsg << "* Ray: P = " << P << ";  v = " << v << endl;
+    //*gmsg << "* Ray: P = " << P << ";  v = " << v << endl;
     Ray r = Ray (P, v);
     Box c = Box (mincoords_m, maxcoords_m);
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect (r, tmin, tmax);
     int triangle_id = -1;
-    *gmsg << "* Ray: P = " << P << ";  v = " << P + tmax*v << endl;
+    *gmsg << "* Ray: P0 = " << P << ";  P1 = " << P + tmax*v << endl;
     return (3 == intersectLineSegmentBoundary (P, P + tmax*v, I, triangle_id)) ? 1 : 0;
 }
 
@@ -1992,15 +1992,21 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     int& triangle_id                    // [out] triangle the line segment intersects with
     ) {
     triangle_id = -1;
-
+   
     const Vector_t v = P1 - P0;
+   
+    // This needs to be initialized before looping over all the Test Cubes -DW
+    // Square of maximum distance (P0->P1) plus a little extra to ensure saving
+    // intersection point if only one is found and it is on the outer boundary.
+    double tmin = dot(v, v) + 1.0;
+
     int intersect_result = 0;
     int n = 0;
     int i_min, j_min, k_min;
     int i_max, j_max, k_max;
     do {
         n++;
-        Vector_t Q = P0 + v/n;
+        Vector_t Q = P0 + v / n;
         Vector_t bbox_min = {
             MIN2 (P0[0], Q[0]),
             MIN2 (P0[1], Q[1]),
@@ -2036,7 +2042,7 @@ BoundaryGeometry::intersectLineSegmentBoundary (
         *gmsg << "* Test cube: i_min = " << i_min << ", j_min = " << j_min << ", k_min = " << k_min << endl;
         *gmsg << "* Test cube: i_max = " << i_max << ", j_max = " << j_max << ", k_max = " << k_max << endl;
         Vector_t tmp_intersect_pt = Q;
-        double tmin = 1.0;
+        //double tmin = 1.0;
         for (int i = i_min; i <= i_max; i++) {
             for (int j = j_min; j <= j_max; j++) {
                 for (int k = k_min; k <= k_max; k++) {
@@ -2073,7 +2079,7 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                             *it,
                             tmp_intersect_pt);
                         *gmsg << "* Test triangle: " << *it
-                              << " intersect: " << intersect_result
+                              << " intersect: " << tmp_intersect_result
                               << getPoint(*it,1)
                               << getPoint(*it,2)
                               << getPoint(*it,3)
@@ -2088,8 +2094,13 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                         case 1:                     // line and triangle are in same plane
                         case 2:                     // both points are outside
                         case 3:                     // unique intersection in segment
-                            *gmsg << "* Intersection test returned: " << intersect_result << endl;
-                            double t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
+                            *gmsg << "* Intersection test returned: " << tmp_intersect_result << endl;
+                            //double t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
+
+                            // Square of distance of P0 to newly found intersection point -DW
+                            Vector_t temp_dist = tmp_intersect_pt - P; 
+                            double t = dot(temp_dist, temp_dist);
+
                             if (t < tmin) {
                                 tmin = t;
                                 intersect_pt = tmp_intersect_pt;
