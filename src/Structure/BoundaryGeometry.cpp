@@ -1983,7 +1983,7 @@ BoundaryGeometry::intersectLineSegmentBoundary (
         mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
 
         Vector_t tmp_intersect_pt = Q;
-        double tmin = 1.0;
+        double tmin = 1.1;
         for (int i = i_min; i <= i_max; i++) {
             for (int j = j_min; j <= j_max; j++) {
                 for (int k = k_min; k <= k_max; k++) {
@@ -2034,10 +2034,10 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                             assert (tmp_intersect_result != -1);
                             exit (42);              // terminate even if NDEBUG is set
                         case 0:                     // no intersection
+                        case 2:                     // both points are outside
                         case 4:                     // both points are inside
                             break;              
                         case 1:                     // line and triangle are in same plane
-                        case 2:                     // both points are outside
                         case 3:                     // unique intersection in segment
                             double t;
                             if (fcmp (Q[0] - P[0], 0.0, 10) != 0) {
@@ -2058,6 +2058,9 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                 }
             }
         }
+        /*
+          leave outer loop, if we found an intersection
+        */
         if (triangle_id != -1) {
             break;
         }
