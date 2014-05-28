@@ -1057,8 +1057,7 @@ BoundaryGeometry::fastIsInside (
     const Vector_t reference_pt,        // [in] reference pt inside the boundary
     const Vector_t P                    // [in] pt to test
     ) {
-    const Vector_t v = P - reference_pt;
-
+    const Vector_t v = reference_pt - P; // Bugfix: Switched the direction here -DW
     const int N = ceil (magnitude (v) / MIN3 (hr_m[0], hr_m[1], hr_m[2]));
     const Vector_t v_ = v / N;
     Vector_t P0 = P;
@@ -1067,7 +1066,8 @@ BoundaryGeometry::fastIsInside (
     int triangle_id = -1;
     int result = 0;
     for (int i = 0; i < N; i++) {
-        result += intersectLineSegmentBoundary4PartInside (P0, P1, I, triangle_id) == 3 ? 1 : 0;
+        //result += intersectLineSegmentBoundary4PartInside (P0, P1, I, triangle_id) == 3 ? 1 : 0;
+        result += intersectLineSegmentBoundary (P0, P1, I, triangle_id) == 3 ? 1 : 0;
         P0 = P1;
         P1 += v_;
     }
