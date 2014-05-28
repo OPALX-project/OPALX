@@ -19,8 +19,6 @@ extern Inform* gmsg;
 #define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
 #define Point(triangle_id, vertex_id)   geo3Dcoords_m[allbfaces_m[4 * (triangle_id) + (vertex_id)]]
 
-#define FAST_VOXELIZATION
-
 /*
 
   Some
@@ -1278,50 +1276,7 @@ void BoundaryGeometry::initialize () {
           get unique set 
          */
 
-        static inline void computeLineVoxelization (
-            BoundaryGeometry* bg,
-            const Vector_t& P,
-            const Vector_t& v,
-            const int num_segments,
-            std::unordered_set<int>& voxel_ids
-            ) {
-            Vector_t P1 = P;
-            const Vector_t v_ = v / num_segments;
-            for (int j = 0; j < num_segments; j++, P1 += v_) {
-                const int voxel_id = bg->mapPoint2VoxelID (P + j*v_);
-                assert (voxel_id > 0);
-                const int idc[27] = 
-                    surrounding_voxels (voxel_id, bg->nr_m[0], bg->nr_m[1]);
-                int offset = -1;
-                while (idc[++offset] <= 0);
-                voxel_ids.insert (idc+offset, idc+27-offset);
-            }
-        }
-
         static inline void computeTriangleVoxelization (
-            BoundaryGeometry* bg,
-            const int triangle_id,
-            std::unordered_set<int>& voxel_ids
-            ) {
-            const int num_segments = 16;
-
-            /*
-              Discretize the three central lines and the three triangle edges
-              to get a more complete boundary index set.
-            */
-            const Vector_t V0 = bg->getPoint (triangle_id, 1);
-            const Vector_t V1 = bg->getPoint (triangle_id, 2);
-            const Vector_t V2 = bg->getPoint (triangle_id, 3);
-
-            computeLineVoxelization (bg, V0, 0.5 * (V1 + V2) - V0, num_segments, voxel_ids);
-            computeLineVoxelization (bg, V1, 0.5 * (V2 + V0) - V1, num_segments, voxel_ids);
-            computeLineVoxelization (bg, V2, 0.5 * (V0 + V1) - V2, num_segments, voxel_ids);
-            computeLineVoxelization (bg, V0, V1 - V0,              num_segments, voxel_ids);
-            computeLineVoxelization (bg, V1, V2 - V1,              num_segments, voxel_ids);
-            computeLineVoxelization (bg, V2, V0 - V2,              num_segments, voxel_ids);
-        }
-
-        static inline void computeTriangleVoxelizationViaBBox (
             BoundaryGeometry* bg,
             const int triangle_id,
             std::unordered_set<int>& voxel_ids
@@ -1359,11 +1314,7 @@ void BoundaryGeometry::initialize () {
 
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
                 std::unordered_set<int> voxel_ids;
-#if defined(FAST_VOXELIZATION)
-                computeTriangleVoxelizationViaBBox (bg, triangle_id, voxel_ids);
-#else
                 computeTriangleVoxelization (bg, triangle_id, voxel_ids);
-#endif
                 // add voxeliziation of triangle to voxelization of mesh
                 bg->boundaryVoxelIDs_m.insert (voxel_ids.begin(), voxel_ids.end());
 
