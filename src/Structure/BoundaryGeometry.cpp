@@ -1089,13 +1089,14 @@ BoundaryGeometry::intersectRayBoundary (
       set P1 to intersection of ray with bbox of voxel mesh 
       run line segment boundary intersection test with P and P1
      */
+    *gmsg << "* Ray: P = " << P << ";  v = " << v << endl;
     Ray r = Ray (P, v);
     Box c = Box (mincoords_m, maxcoords_m);
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect (r, tmin, tmax);
     int triangle_id = -1;
-    //*gmsg << "* Ray: P = " << P << ";  v = " << P + tmax*v << endl;
+    *gmsg << "* Ray: P = " << P << ";  v = " << P + tmax*v << endl;
     return (3 == intersectLineSegmentBoundary (P, P + tmax*v, I, triangle_id)) ? 1 : 0;
 }
 
@@ -1149,27 +1150,22 @@ BoundaryGeometry::mapPoint2VoxelID (
     return -1;
 }
 
-inline Vector_t&
+inline Vector_t
 BoundaryGeometry::mapIndices2Voxel (
     const int i,
     const int j,
     const int k
     ) {
-    Vector_t r;
-    r = {
+    return Vector_t (
         i * hr_m[0] + voxelMesh_m.minExtend[0],
         j * hr_m[1] + voxelMesh_m.minExtend[1],
-        k * hr_m[2] + voxelMesh_m.minExtend[2]
-    };
-    Vector_t &result = r;
-    return result;
+        k * hr_m[2] + voxelMesh_m.minExtend[2]);
 }
 
-inline Vector_t&
+inline Vector_t
 BoundaryGeometry::mapPoint2Voxel (
     const Vector_t& pt
     ) {
-    Vector_t r;
     const int i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);
     const int j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);
     const int k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
@@ -2004,7 +2000,7 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     int i_max, j_max, k_max;
     do {
         n++;
-        Vector_t Q = P0 + n*v;
+        Vector_t Q = P0 + v/n;
         Vector_t bbox_min = {
             MIN2 (P0[0], Q[0]),
             MIN2 (P0[1], Q[1]),
@@ -2020,8 +2016,11 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     Vector_t Q;
     Ray r = Ray (P, v);
     const Vector_t v_ = v / n;
-    for (int l = 0; l < n; l++, Q = P) {
-        Q = P + l*v_;
+    *gmsg << "* n = " << n << endl;
+    for (int l = 1; l <= n; l++, P = Q) {
+        Q = P0 + l*v_;
+        *gmsg << "* P = " << P << endl;
+        *gmsg << "* Q = " << Q << endl;
         Vector_t bbox_min = {
             MIN2 (P[0], Q[0]),
             MIN2 (P[1], Q[1]),
@@ -2030,8 +2029,12 @@ BoundaryGeometry::intersectLineSegmentBoundary (
             MAX2 (P[0], Q[0]),
             MAX2 (P[1], Q[1]),
             MAX2 (P[2], Q[2]) };
+        *gmsg << "* Test cube: bbox_min = " << bbox_min << endl;
+        *gmsg << "* Test cube: bbox_max = " << bbox_max << endl;
         mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
         mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
+        *gmsg << "* Test cube: i_min = " << i_min << ", j_min = " << j_min << ", k_min = " << k_min << endl;
+        *gmsg << "* Test cube: i_max = " << i_max << ", j_max = " << j_max << ", k_max = " << k_max << endl;
         Vector_t tmp_intersect_pt = Q;
         double tmin = 1.0;
         for (int i = i_min; i <= i_max; i++) {
@@ -2039,6 +2042,8 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                 for (int k = k_min; k <= k_max; k++) {
                     Vector_t bmin = mapIndices2Voxel(i, j, k);
                     Cube c = {bmin, bmin + hr_m};
+                    *gmsg << "* Test cube: (" << i << ", " << j << ", " << k << "), "
+                          << c.v1 << c.v2 << endl;
                     /*
                       do line segment and voxel intersect? continue if not
                     */
@@ -2049,6 +2054,7 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                         continue;
                     }
                     int voxel_id = mapVoxelIndices2ID (i, j, k);
+
                     const auto triangles_overlaping_with_voxel = CubicLookupTable_m.find (voxel_id);
                     if (triangles_overlaping_with_voxel == CubicLookupTable_m.end ())
                         continue;                   // not in voxelization of boundary
@@ -2060,15 +2066,18 @@ BoundaryGeometry::intersectLineSegmentBoundary (
                     for (auto it = triangles_overlaping_with_voxel->second.begin ();
                          it != triangles_overlaping_with_voxel->second.end ();
                          it++) {
-                        if (dot (v, TriNormal_m[*it]) >= 0.0) 
-                            continue;               // particle moves away from triangle
                     
-                        // particle moves towards triangle
                         tmp_intersect_result = intersectLineTriangle (
                             LINE,
-                            P0, P1,
+                            P, Q,
                             *it,
                             tmp_intersect_pt);
+                        *gmsg << "* Test triangle: " << *it
+                              << " intersect: " << intersect_result
+                              << getPoint(*it,1)
+                              << getPoint(*it,2)
+                              << getPoint(*it,3)
+                              << endl;
                         switch (tmp_intersect_result) {
                         case -1:                    // triangle is degenerated
                             assert (tmp_intersect_result != -1);
