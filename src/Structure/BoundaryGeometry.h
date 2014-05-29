@@ -370,11 +370,12 @@ private:
         const int j,
         const int k);
 
-    int intersectLineSegmentBoundary4PartInside (
-        const Vector_t P0,
-        const Vector_t P1,
-        Vector_t& intersect_pt,
-        int& triangle_id);
+    int intersectTinyLineSegmentBoundary (
+        const Vector_t,
+        const Vector_t,
+        Vector_t&,
+        int&
+        );
 
     int intersectLineSegmentBoundary (
         const Vector_t P0,
