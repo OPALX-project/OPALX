@@ -11,6 +11,7 @@
 // $Author: kaman $
 // $Date: 2014 $
 // ------------------------------------------------------------------------
+#define DEBUG_INTERSECT_RAY_BOUNDARY
 
 #ifdef HAVE_SAAMG_SOLVER
 #include <map>
@@ -226,9 +227,9 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
     globalMeanR_m = globalMeanR;
     globalToLocalQuaternion_m = globalToLocalQuaternion;	
-    localToGlobalQuaternion_m[0] = -globalToLocalQuaternion[0];
+    localToGlobalQuaternion_m[0] = globalToLocalQuaternion[0];
     for (int i=1; i<4; i++)
-		localToGlobalQuaternion_m[i] = globalToLocalQuaternion[i];	
+		localToGlobalQuaternion_m[i] = -globalToLocalQuaternion[i];	
 
     int zGhostOffsetLeft  = (localId[2].first()== 0) ? 0 : 1;
     int zGhostOffsetRight = (localId[2].last() == nr[2] - 1) ? 0 : 1;
@@ -261,10 +262,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 		  P += globalMeanR_m;
 
 		  if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
-		     // If P is inside the geometry it becomes the new reference point P0.
-                     // This way the fastIsInside test only needs to test a very short 
-                     // ray for intersections. -DW
-                     P0 = P;
+		     P0 = P;
        		     
                      std::tuple<int, int, int> pos(idx, idy, idz);
 
@@ -274,7 +272,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
 		     } else {
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
 			   *gmsg << "zdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
 		     }
@@ -284,7 +282,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		 IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
 		     } else {
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
 			   *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
 	  	     }
@@ -295,7 +293,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 			 rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		 IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
 	   	     } else {
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
 			   *gmsg << "ydir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
 		     }
@@ -305,7 +303,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
 		     } else {
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
 			   *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
 		     }
@@ -316,7 +314,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
 		     } else {
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
 			   *gmsg << "xdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif	
 		     }
@@ -326,7 +324,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
 		     } else {
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
 			   *gmsg << "xdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif		
 		     }
