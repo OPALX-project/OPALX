@@ -261,7 +261,12 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 		  P += globalMeanR_m;
 
 		  if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
-       		     std::tuple<int, int, int> pos(idx, idy, idz);
+		     // If P is inside the geometry it becomes the new reference point P0.
+                     // This way the fastIsInside test only needs to test a very short 
+                     // ray for intersections. -DW
+                     P0 = P;
+       		     
+                     std::tuple<int, int, int> pos(idx, idy, idz);
 
 		     rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
 		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
