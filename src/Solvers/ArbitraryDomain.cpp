@@ -226,9 +226,9 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
     globalMeanR_m = globalMeanR;
     globalToLocalQuaternion_m = globalToLocalQuaternion;	
-    localToGlobalQuaternion_m[0] = globalToLocalQuaternion[0];
+    localToGlobalQuaternion_m[0] = -globalToLocalQuaternion[0];
     for (int i=1; i<4; i++)
-		localToGlobalQuaternion_m[i] = -globalToLocalQuaternion[i];	
+		localToGlobalQuaternion_m[i] = globalToLocalQuaternion[i];	
 
     int zGhostOffsetLeft  = (localId[2].first()== 0) ? 0 : 1;
     int zGhostOffsetRight = (localId[2].last() == nr[2] - 1) ? 0 : 1;
@@ -248,135 +248,117 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
     //calculate intersection 
     Vector_t P, saveP, dir, I;
+    Vector_t P0 = Vector_t(0,0,Geo_mincoords_m[2]+hr[2]); //Reference Point inside the boundary
 
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 	 saveP[2] = (idz - (nr[2]-1)/2.0)*hr[2];
-
 	 for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
 	     saveP[1] = (idy - (nr[1]-1)/2.0)*hr[1];
-
     	     for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
 	       	  saveP[0] = (idx - (nr[0]-1)/2.0)*hr[0];
+		  P = saveP;
+		  rotateWithQuaternion(P, localToGlobalQuaternion_m); 
+		  P += globalMeanR_m;
 
-			P = saveP;
-			rotateWithQuaternion(P, localToGlobalQuaternion_m); 
-			P += globalMeanR;
+		  if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
+       		     std::tuple<int, int, int> pos(idx, idy, idz);
 
-       			std::tuple<int, int, int> pos(idx, idy, idz);
+		     rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
+			I -= globalMeanR_m;
+			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
+		     } else {
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+			   *gmsg << "zdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+#endif
+		     }
 
-			rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
-		        if (bgeom_m->intersectRayBoundary(P, dir, I))
-			{
-			   *gmsg << "zdir= +1G: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
-			   I -= globalMeanR;
-			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
-			   *gmsg << "zdir= +1L: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
-       	      		   IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
-			}
-			else
-			{
-			   *gmsg << "zdir= " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
-			}
+		     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
+		        I -= globalMeanR_m;
+			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		 IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
+		     } else {
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+			   *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+#endif
+	  	     }
+	
+	             rotateYAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
+			 I -= globalMeanR_m;
+			 rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		 IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
+	   	     } else {
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+			   *gmsg << "ydir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+#endif
+		     }
 
-		        if (bgeom_m->intersectRayBoundary(P, -dir, I))
-			{
-			   *gmsg << "zdir= -1G: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
-			   I -= globalMeanR;
-			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
-			   *gmsg << "zdir= -1L: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
-       	      		   IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
-			}
-			else
-			{
-			   *gmsg << "zdir= " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
-			}
+		     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
+		   	I -= globalMeanR_m;
+			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
+		     } else {
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+			   *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+#endif
+		     }
 
-	        	rotateYAxisWithQuaternion(dir, localToGlobalQuaternion_m);
-		        if (bgeom_m->intersectRayBoundary(P, dir, I))
-			{
-			   *gmsg << "ydir= +1G: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
-			   I -= globalMeanR;
-			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
-       	      		   IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
-			   *gmsg << "ydir= +1L: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
-			}
-			else
-			{
-			   *gmsg << "ydir= " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
-			}
+	             rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
+			I -= globalMeanR_m;
+			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
+		     } else {
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+			   *gmsg << "xdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+#endif	
+		     }
 
-
-		        if (bgeom_m->intersectRayBoundary(P, -dir, I))
-			{
-			   *gmsg << "ydir= -1G: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
-			   I -= globalMeanR;
-			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
-       	      		   IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
-			   *gmsg << "ydir= -1L: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
-			}
-			else{
-			   *gmsg << "ydir= " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
-			}
-
-
-	        	rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
-		        if (bgeom_m->intersectRayBoundary(P, dir, I))
-			{
-			   *gmsg << "xdir= +1G: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
-			   I -= globalMeanR;
-			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
-			   *gmsg << "xdir= +1L: dir:" << dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
-       	      		   IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
-			}
-			else{
-			   *gmsg << "xdir= " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
-			}
-
-
-		        if (bgeom_m->intersectRayBoundary(P, -dir, I))
-			{
-			   *gmsg << "xdir= -1G: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P << " I=" << I << endl;
-			   I -= globalMeanR;
-			   rotateWithQuaternion(I, globalToLocalQuaternion_m); 
-			   *gmsg << "xdir= -1L: dir:" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " I=" << I << endl;
-       	      		   IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
-			}
-			else{
-			   *gmsg << "xdir= " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
-			}
-
-		}
+		     if (bgeom_m->intersectRayBoundary(P, -dir, I)){
+			I -= globalMeanR_m;
+			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
+       	      		IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
+		     } else {
+#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+			   *gmsg << "xdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+#endif		
+		     }
+		  } else
+	 	     continue;
+	     }
 	 }
      }
 
     //number of ghost nodes to the right 
     int znumGhostNodesRight = 0;
-    if(zGhostOffsetRight != 0) {
-        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-            for(int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
-                if(isInside(idx, idy, localId[2].last() + zGhostOffsetRight))
-                    znumGhostNodesRight++;
-            }
-        }
+    if (zGhostOffsetRight != 0) {
+       for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+           for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+                if (isInside(idx, idy, localId[2].last() + zGhostOffsetRight))
+                   znumGhostNodesRight++;
+           }
+       }
     }
 
     //number of ghost nodes to the left 
     int znumGhostNodesLeft = 0;
-    if(zGhostOffsetLeft != 0) {
-        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-            for(int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
-                if(isInside(idx, idy, localId[2].first() - zGhostOffsetLeft))
-                    znumGhostNodesLeft++;
+    if (zGhostOffsetLeft != 0) {
+        for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+            for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+                if (isInside(idx, idy, localId[2].first() - zGhostOffsetLeft))
+                   znumGhostNodesLeft++;
             }
         }
     }
 
     //number of ghost nodes to the right 
     int ynumGhostNodesRight = 0;
-    if(yGhostOffsetRight != 0) {
-        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-            for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-                if(isInside(idx, localId[1].last() + yGhostOffsetRight, idz))
+    if (yGhostOffsetRight != 0) {
+        for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+            for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+                if (isInside(idx, localId[1].last() + yGhostOffsetRight, idz))
                     ynumGhostNodesRight++;
             }
         }
@@ -384,11 +366,11 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
     //number of ghost nodes to the left 
     int ynumGhostNodesLeft = 0;
-    if(yGhostOffsetLeft != 0) {
-        for(int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-            for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-                if(isInside(idx, localId[1].first() - yGhostOffsetLeft, idz))
-                    ynumGhostNodesLeft++;
+    if (yGhostOffsetLeft != 0) {
+        for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+            for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+                if (isInside(idx, localId[1].first() - yGhostOffsetLeft, idz))
+                   ynumGhostNodesLeft++;
             }
         }
     }
@@ -396,22 +378,22 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
     //number of ghost nodes to the right 
     int xnumGhostNodesRight = 0;
-    if(xGhostOffsetRight != 0) {
+    if (xGhostOffsetRight != 0) {
 	for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-                if(isInside(localId[0].last() + xGhostOffsetRight, idy, idz))
-                    xnumGhostNodesRight++;
+                if (isInside(localId[0].last() + xGhostOffsetRight, idy, idz))
+                   xnumGhostNodesRight++;
             }
         }
     }
 
     //number of ghost nodes to the left 
     int xnumGhostNodesLeft = 0;
-    if(xGhostOffsetLeft != 0) {
+    if (xGhostOffsetLeft != 0) {
        	for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
-            for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-                if(isInside(localId[0].first() - xGhostOffsetLeft, idy, idz))
-                    xnumGhostNodesLeft++;
+            for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+                if (isInside(localId[0].first() - xGhostOffsetLeft, idy, idz))
+                   xnumGhostNodesLeft++;
             }
         }
     }
@@ -445,10 +427,9 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
      for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
     	 for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
     	     for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
-	            if (isInside(idx, idy, idz)) {
+	         if (isInside(idx, idy, idz)) {
                     IdxMap[toCoordIdx(idx, idy, idz)] = id;
-                    CoordMap[id] = toCoordIdx(idx, idy, idz);
-                    id++;
+                    CoordMap[id++] = toCoordIdx(idx, idy, idz);
                  }
              }
          }
@@ -461,10 +442,10 @@ inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
 
 // Conversion from (x,y,z) to index on the 3D grid
 int ArbitraryDomain::getIdx(int idx, int idy, int idz) {
-	if(isInside(idx, idy, idz) && idx>=0 && idy >=0 && idz >=0 )
-       	       	 	return IdxMap[toCoordIdx(idx, idy, idz)];
+	if (isInside(idx, idy, idz) && idx>=0 && idy >=0 && idz >=0 )
+       	   return IdxMap[toCoordIdx(idx, idy, idz)];
     	else
-        	return -1;
+           return -1;
 } 
 
 // Conversion from a 3D index to (x,y,z)
@@ -481,15 +462,18 @@ inline void ArbitraryDomain::getCoord(int idxyz, int &idx, int &idy, int &idz) {
 
 inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
  /* Expensive computation to check */
- /*
-	Vector_t P0, P;
-    	P0 = Vector_t(0,0,0);
+     Vector_t P0, P;
 
-	P[0] = (idx - (nr[0]-1)/2.0)*hr[0];
-	P[1] = (idy - (nr[1]-1)/2.0)*hr[1];
-	P[2] = (idz - (nr[2]-1)/2.0)*hr[z];
-	return (bgeom_m->fastIsInside(P0, P) % 2 == 0); 
- */
+     P0 = Vector_t(0, 0, Geo_mincoords_m[2]+hr[2]); //Reference Point inside the boundary
+
+     P[0] = (idx - (nr[0]-1)/2.0)*hr[0];
+     P[1] = (idy - (nr[1]-1)/2.0)*hr[1];
+     P[2] = (idz - (nr[2]-1)/2.0)*hr[2];
+     rotateWithQuaternion(P, localToGlobalQuaternion_m); 
+     P += globalMeanR_m;
+
+    return (bgeom_m->fastIsInside(P0, P) % 2 == 0); 
+/*
     bool ret = false;
     double cx = (idx - (nr[0]-1)/2.0)*hr[0];
     double cy = (idy - (nr[1]-1)/2.0)*hr[1];
@@ -531,6 +515,7 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
         ret = ret && (cx <= itrH->second) && (cx >= itrL->second);
        
     return ret; 
+*/
 }
 
 int ArbitraryDomain::getNumXY(int z) {
@@ -603,9 +588,9 @@ void ArbitraryDomain::LinearInterpolation(int idx, int idy, int idz, double& W, 
 
     double dx=-1, dy=-1, dz=-1;
 
-    double cx = (idx - (nr[0]-1)/2.0)*hr[0]-globalMeanR_m[0];
-    double cy = (idy - (nr[1]-1)/2.0)*hr[1]-globalMeanR_m[1];
-    double cz = (idz - (nr[2]-1)/2.0)*hr[2]-globalMeanR_m[2];
+    double cx = (idx - (nr[0]-1)/2.0)*hr[0];
+    double cy = (idy - (nr[1]-1)/2.0)*hr[1];
+    double cz = (idz - (nr[2]-1)/2.0)*hr[2];
 
     int    countH, countL;
     std::multimap < std::tuple<int, int, int>, double >::iterator itrH, itrL;

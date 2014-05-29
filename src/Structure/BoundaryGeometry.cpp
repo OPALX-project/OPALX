@@ -1848,13 +1848,13 @@ BoundaryGeometry::intersectLineSegmentBoundary4PartInside (
                 assert (intersect_result != -1);
                 exit (42);              // terminate even if NDEBUG is set
             case 0:                     // no intersection
+            case 2:                     // both points are outside
             case 4:                     // both points are inside
                 intersect_result = 0;
                 break;              
             case 1:                     // line and triangle are in same plane
-            case 2:                     // both points are outside
             case 3:                     // unique intersection in segment
-                *gmsg << "* Intersection test returned: " << intersect_result << endl;
+                //*gmsg << "* Intersection test returned: " << intersect_result << endl;
                 triangle_id = (*it);
                 goto done;
             };

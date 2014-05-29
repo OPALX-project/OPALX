@@ -246,7 +246,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         std::vector<BoundaryGeometry *> geometries;
         for(unsigned int i = 0; i <= geoms.length(); i++) {
             if(geoms[i] == ',' || i == geoms.length()) {
-                BoundaryGeometry *geom = BoundaryGeometry::find(tmp)->clone(getOpalName() + string("_geometry"));
+                BoundaryGeometry *geom = BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY]))->clone(getOpalName() + string("_geometry"));
                 if(geom != 0) {
                     geometries.push_back(geom);
                 }
