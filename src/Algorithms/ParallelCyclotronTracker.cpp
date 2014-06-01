@@ -1718,7 +1718,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     // main integration loop
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
-	*gmsg << "step_m=" << step_m << endl;
+      //	*gmsg << "step_m=" << step_m << endl;
         bool dumpEachTurn = false;
         if(initialTotalNum_m > 2) {
             // single particle dumping
@@ -1928,8 +1928,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         // Since calcMeanP takes into account all particles of all bins (TODO: Check this! -DW)
                         // Using the quaternion method with PreviousMeanP and yaxis should give the correct result
-	                Vektor<double, 4> quaternionToYAxis;
 
+			Quaternion_t quaternionToYAxis;
+			
                         getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
 
                         globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
@@ -2037,7 +2038,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         // --- Single bunch mode --- //             
                         double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
 
-	                Vektor<double, 4> quaternionToYAxis;
+	                Quaternion_t quaternionToYAxis;
 
                         getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
 
@@ -2139,7 +2140,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                     //Vector_t const meanR = calcMeanR();
                     Vector_t const meanP = calcMeanP();
 
-                    Vektor<double, 4> quaternionToNewMeanP;
+                    Quaternion_t quaternionToNewMeanP;
 
                     getQuaternionTwoVectors(PreviousMeanP, meanP, quaternionToNewMeanP);
 
@@ -2566,7 +2567,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             //     // TEMP for testing -DW ********************************************
             //     // NEW:
-	    //     Vektor<double, 4> quaternionToXAxis;
+	    //     Quaternion_t quaternionToXAxis;
             //     Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
 
             //     getQuaternionTwoVectors(meanP, xaxis, quaternionToXAxis);
@@ -3374,7 +3375,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
             //     // TEMP for testing -DW ********************************************
             //     // NEW:
-	    //     Vektor<double, 4> quaternionToXAxis;
+	    //     Quaternion_t quaternionToXAxis;
             //     Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
 
             //     getQuaternionTwoVectors(meanP, xaxis, quaternionToXAxis);
@@ -3484,7 +3485,7 @@ void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particle
 }
 
 
-inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, Vektor<double, 4> const quaternion, Vector_t const meanR) {
+inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, Quaternion_t const quaternion, Vector_t const meanR) {
     
     // Translation from global to local 
     particleVectors -= meanR;
@@ -3493,10 +3494,10 @@ inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & p
     rotateWithQuaternion(particleVectors, quaternion);
 }
 
-inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors, Vektor<double, 4> const quaternion, Vector_t const meanR) {
+inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors, Quaternion_t const quaternion, Vector_t const meanR) {
     
     // Reverse the quaternion by multiplying the axis components (x,y,z) with -1
-    Vektor<double, 4> reverseQuaternion = quaternion * -1.0;
+    Quaternion_t reverseQuaternion = quaternion * -1.0;
     reverseQuaternion(0) *= -1.0;
 
     // Rotation back to original P_mean direction
@@ -3538,7 +3539,7 @@ inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & p
     particleVectors += meanR;
 }
 
-inline void ParallelCyclotronTracker::rotateWithQuaternion(ParticleAttrib<Vector_t> & particleVectors, Vektor<double, 4> const quaternion) {
+inline void ParallelCyclotronTracker::rotateWithQuaternion(ParticleAttrib<Vector_t> & particleVectors, Quaternion_t const quaternion) {
 
     Vector_t const quaternionVectorComponent = Vector_t(quaternion(1), quaternion(2), quaternion(3));
     double const quaternionScalarComponent = quaternion(0);
@@ -3552,7 +3553,7 @@ inline void ParallelCyclotronTracker::rotateWithQuaternion(ParticleAttrib<Vector
     }
 }
 
-inline void ParallelCyclotronTracker::normalizeQuaternion(Vektor<double, 4> & quaternion){
+inline void ParallelCyclotronTracker::normalizeQuaternion(Quaternion_t & quaternion){
 
     double tolerance = 1.0e-10;
     double length2 = dot(quaternion, quaternion);
@@ -3602,7 +3603,7 @@ inline void ParallelCyclotronTracker::rotateAroundX(ParticleAttrib<Vector_t> & p
     }
 }
 
-inline void ParallelCyclotronTracker::getQuaternionTwoVectors(Vector_t u, Vector_t v, Vektor<double, 4> & quaternion) {
+inline void ParallelCyclotronTracker::getQuaternionTwoVectors(Vector_t u, Vector_t v, Quaternion_t & quaternion) {
     // four vector (w,x,y,z) of the quaternion of P_mean with the positive x-axis
        
     normalizeVector(u);
@@ -3918,7 +3919,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         //     // Old quaternion method. probably not good. -DW
 	//     //Vector_t const initMeanP = calcMeanP();
-        //     //Vektor<double, 4> quaternionToYAxis;
+        //     //Quaternion_t quaternionToYAxis;
         //     //getQuaternionTwoVectors(initMeanP, yaxis, quaternionToYAxis);
         //     //globalToLocal(itsBunch->R, quaternionToYAxis, initMeanR);
         //     //globalToLocal(itsBunch->P, quaternionToYAxis, initMeanP);
