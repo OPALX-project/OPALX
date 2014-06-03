@@ -2769,7 +2769,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             *gmsg << endl;
         }
 #endif
-    
+	
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -2814,7 +2814,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             yDist_m.push_back(sigmaR_m[1]*gsl_vector_get(ry, 2));
             pyDist_m.push_back(sigmaP_m[1]*gsl_vector_get(ry, 3));
             tOrZDist_m.push_back(sigmaR_m[2]*gsl_vector_get(ry, 4));
-            pzDist_m.push_back(avrgpz_m*(1.0+(sigmaP_m[2]*gsl_vector_get(ry, 5))));
+            pzDist_m.push_back(avrgpz_m +(sigmaP_m[2]*gsl_vector_get(ry, 5)));
         }
 	
     }
