@@ -5,9 +5,10 @@
  */
 
 //#define   DEBUG_INTERSECT_RAY_BOUNDARY
+//#define   DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
 //#define   DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
 //#define   DEBUG_PART_INSIDE
-#define     DEBUG_FAST_IS_INSIDE
+//#define   DEBUG_FAST_IS_INSIDE
 
 #include <fstream>
 
@@ -19,6 +20,10 @@
 #include "Elements/OpalBeamline.h"
 
 extern Inform* gmsg;
+
+#include <sstream>
+std::stringstream debug_output;
+bool enable_debug_output=false;
 
 #define SQR(x) ((x)*(x))
 #define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
@@ -118,16 +123,6 @@ static int64_t fcmp (
     return intDiff;
 }
 
-static inline bool is_in_voxel (Vector_t& point, Vector_t& min, Vector_t& max) {
-    if (fcmp (point [0], min [0], 10) < 0) return false;
-    if (fcmp (point [1], min [1], 10) < 0) return false;
-    if (fcmp (point [2], min [2], 10) < 0) return false;
-    if (fcmp (point [0], max [0], 10) > 0) return false;
-    if (fcmp (point [1], max [1], 10) > 0) return false;
-    if (fcmp (point [2], max [2], 10) > 0) return false;
-    return true;
-}
-
 /*
   write legacy VTK file of voxel mesh
 */
@@ -216,21 +211,56 @@ static void write_voxel_mesh (
 #define INSIDE 0
 #define OUTSIDE 1
 
-typedef struct {
-    Vector_t v1;
-    Vector_t v2;
-} LineSegment;
+class Triangle {
+public:
+    Triangle () { }
+    Triangle (const Vector_t& v1, const Vector_t& v2, const Vector_t& v3) {
+        pts[0] = v1;
+        pts[1] = v2;
+        pts[2] = v3;
+    }
 
-typedef struct {
-    Vector_t v1;                 /* Vertex1 */
-    Vector_t v2;                 /* Vertex2 */
-    Vector_t v3;                 /* Vertex3 */
-} Triangle; 
+    inline const Vector_t& v1() const {
+        return pts[0];
+    }
+    inline const double v1(int i) const {
+        return pts[0][i];
+    }
+    inline const Vector_t& v2() const {
+        return pts[1];
+    }
+    inline const double v2(int i) const {
+        return pts[1][i];
+    }
+    inline const Vector_t& v3() const {
+        return pts[2];
+    }
+    inline const double v3(int i) const {
+        return pts[2][i];
+    }
 
-typedef struct {
-    Vector_t v1;
-    Vector_t v2;
-} Cube;
+
+    inline void scale (
+        const Vector_t& scaleby,
+        const Vector_t& shiftby
+        ) {
+        pts[0][0] *= scaleby[0];
+        pts[0][1] *= scaleby[1];
+        pts[0][2] *= scaleby[2];
+        pts[1][0] *= scaleby[0];
+        pts[1][1] *= scaleby[1];
+        pts[1][2] *= scaleby[2];
+        pts[2][0] *= scaleby[0];
+        pts[2][1] *= scaleby[1];
+        pts[2][2] *= scaleby[2];
+        pts[0] -= shiftby;
+        pts[1] -= shiftby;
+        pts[2] -= shiftby;
+    }
+
+
+    Vector_t pts[3];
+};
 
 /*___________________________________________________________________________*/
 
@@ -355,7 +385,7 @@ check_line (
   Test if 3D point is inside 3D triangle
 */
 
-#define EPS 10e-5
+#define EPS 10e-15
 
 static inline int
 SIGN3 (
@@ -375,12 +405,12 @@ point_triangle_intersection (
       First, a quick bounding-box test:
       If P is outside triangle bbox, there cannot be an intersection.
     */
-    if (p[0] > MAX3(t.v1[0], t.v2[0], t.v3[0])) return(OUTSIDE);  
-    if (p[1] > MAX3(t.v1[1], t.v2[1], t.v3[1])) return(OUTSIDE);
-    if (p[2] > MAX3(t.v1[2], t.v2[2], t.v3[2])) return(OUTSIDE);
-    if (p[0] < MIN3(t.v1[0], t.v2[0], t.v3[0])) return(OUTSIDE);
-    if (p[1] < MIN3(t.v1[1], t.v2[1], t.v3[1])) return(OUTSIDE);
-    if (p[2] < MIN3(t.v1[2], t.v2[2], t.v3[2])) return(OUTSIDE);
+    if (p[0] > MAX3(t.v1(0), t.v2(0), t.v3(0))) return(OUTSIDE);  
+    if (p[1] > MAX3(t.v1(1), t.v2(1), t.v3(1))) return(OUTSIDE);
+    if (p[2] > MAX3(t.v1(2), t.v2(2), t.v3(2))) return(OUTSIDE);
+    if (p[0] < MIN3(t.v1(0), t.v2(0), t.v3(0))) return(OUTSIDE);
+    if (p[1] < MIN3(t.v1(1), t.v2(1), t.v3(1))) return(OUTSIDE);
+    if (p[2] < MIN3(t.v1(2), t.v2(2), t.v3(2))) return(OUTSIDE);
     
     /*
       For each triangle side, make a vector out of it by subtracting vertexes;
@@ -389,18 +419,18 @@ point_triangle_intersection (
       signs of its X,Y,Z components indicate whether P was to the inside or
       to the outside of this triangle side.                                
     */
-    const Vector_t vect12 = t.v1 - t.v2;
-    const Vector_t vect1h = t.v1 - p;
+    const Vector_t vect12 = t.v1() - t.v2();
+    const Vector_t vect1h = t.v1() - p;
     const Vector_t cross12_1p = cross (vect12, vect1h);
     const int sign12 = SIGN3(cross12_1p);      /* Extract X,Y,Z signs as 0..7 or 0...63 integer */
 
-    const Vector_t vect23 = t.v2 - t.v3;
-    const Vector_t vect2h = t.v2 - p;
+    const Vector_t vect23 = t.v2() - t.v3();
+    const Vector_t vect2h = t.v2() - p;
     const Vector_t cross23_2p = cross (vect23, vect2h);
     const int sign23 = SIGN3(cross23_2p);
 
-    const Vector_t vect31 = t.v3 - t.v1;
-    const Vector_t vect3h = t.v3 - p;
+    const Vector_t vect31 = t.v3() - t.v1();
+    const Vector_t vect3h = t.v3() - p;
     const Vector_t cross31_3p = cross (vect31, vect3h);
     const int sign31 = SIGN3(cross31_3p);
 
@@ -433,9 +463,9 @@ triangle_intersects_cube (
       First compare all three vertexes with all six face-planes
       If any vertex is inside the cube, return immediately!
     */
-   if ((v1_test = face_plane(t.v1)) == INSIDE) return(INSIDE);
-   if ((v2_test = face_plane(t.v2)) == INSIDE) return(INSIDE);
-   if ((v3_test = face_plane(t.v3)) == INSIDE) return(INSIDE);
+    if ((v1_test = face_plane(t.v1())) == INSIDE) return(INSIDE);
+    if ((v2_test = face_plane(t.v2())) == INSIDE) return(INSIDE);
+    if ((v3_test = face_plane(t.v3())) == INSIDE) return(INSIDE);
 
    /*
      If all three vertexes were outside of one or more face-planes,
@@ -446,17 +476,17 @@ triangle_intersects_cube (
    /*
      Now do the same trivial rejection test for the 12 edge planes
    */
-   v1_test |= bevel_2d(t.v1) << 8; 
-   v2_test |= bevel_2d(t.v2) << 8; 
-   v3_test |= bevel_2d(t.v3) << 8;
+   v1_test |= bevel_2d(t.v1()) << 8; 
+   v2_test |= bevel_2d(t.v2()) << 8; 
+   v3_test |= bevel_2d(t.v3()) << 8;
    if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);  
 
    /*
      Now do the same trivial rejection test for the 8 corner planes
    */
-   v1_test |= bevel_3d(t.v1) << 24; 
-   v2_test |= bevel_3d(t.v2) << 24; 
-   v3_test |= bevel_3d(t.v3) << 24; 
+   v1_test |= bevel_3d(t.v1()) << 24; 
+   v2_test |= bevel_3d(t.v2()) << 24; 
+   v3_test |= bevel_3d(t.v3()) << 24; 
    if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);   
 
    /*
@@ -468,11 +498,11 @@ triangle_intersects_cube (
      each triangle edge need be tested.
    */
    if ((v1_test & v2_test) == 0)
-      if (check_line(t.v1,t.v2,v1_test|v2_test) == INSIDE) return(INSIDE);
+       if (check_line (t.v1(), t.v2(), v1_test|v2_test) == INSIDE) return(INSIDE);
    if ((v1_test & v3_test) == 0)
-      if (check_line(t.v1,t.v3,v1_test|v3_test) == INSIDE) return(INSIDE);
+       if (check_line (t.v1(), t.v3(), v1_test|v3_test) == INSIDE) return(INSIDE);
    if ((v2_test & v3_test) == 0)
-      if (check_line(t.v2,t.v3,v2_test|v3_test) == INSIDE) return(INSIDE);
+       if (check_line (t.v2(), t.v3(), v2_test|v3_test) == INSIDE) return(INSIDE);
 
    /*
      By now, we know that the triangle is not off to any side,
@@ -486,9 +516,9 @@ triangle_intersects_cube (
 
      To find plane of the triangle, first perform crossproduct on 
      two triangle side vectors to compute the normal vector.
-   */  
-   Vector_t vect12 = t.v1 - t.v2;
-   Vector_t vect13 = t.v1 - t.v3;
+   */
+   Vector_t vect12 = t.v1() - t.v2();
+   Vector_t vect13 = t.v1() - t.v3();
    Vector_t norm = cross (vect12, vect13);
 
    /*
@@ -501,7 +531,7 @@ triangle_intersects_cube (
      doing a point/triangle intersection.
      Do this for all four diagonals.
    */
-   double d = norm[0] * t.v1[0] + norm[1] * t.v1[1] + norm[2] * t.v1[2];
+   double d = norm[0] * t.v1(0) + norm[1] * t.v1(1) + norm[2] * t.v1(2);
 
    /*
      if one of the diagonals is parallel to the plane, the other will
@@ -540,58 +570,6 @@ triangle_intersects_cube (
    return(OUTSIDE);
 }
 
-static inline void
-scaleCube (
-    Cube& c,
-    const Vector_t& scale
-    ) {
-    c.v1[0] *= scale[0];
-    c.v1[1] *= scale[1];
-    c.v1[2] *= scale[2];
-    c.v2[0] *= scale[0];
-    c.v2[1] *= scale[1];
-    c.v2[2] *= scale[2];
-}
-
-static inline void
-scaleTriangle (
-    Triangle& t,
-    const Vector_t& scale,
-    const Vector_t& shift
-    ) {
-    t.v1[0] *= scale[0];
-    t.v1[1] *= scale[1];
-    t.v1[2] *= scale[2];
-    t.v2[0] *= scale[0];
-    t.v2[1] *= scale[1];
-    t.v2[2] *= scale[2];
-    t.v3[0] *= scale[0];
-    t.v3[1] *= scale[1];
-    t.v3[2] *= scale[2];
-    t.v1 -= shift;
-    t.v2 -= shift;
-    t.v3 -= shift;
-}
-
-static inline int
-intersect3dTriangleCube (
-    const Triangle& t,
-    const Cube& c
-    ) {
-    Cube c_ = c;
-    Triangle t_ = t;
-    Vector_t extend = c_.v2 - c_.v1;
-    const Vector_t scale = 1.0 / extend; 
-    scaleCube (c_, scale);
-    scaleTriangle (t_, scale , c_.v1 + 0.5);
-    return triangle_intersects_cube (t_);
-}
-
-
-/*.................................................................................
-
-  Ray-cube intersection
- */
 /*
  * Ray class, for use with the optimized ray-box intersection test
  * described in:
@@ -604,27 +582,28 @@ intersect3dTriangleCube (
 
 class Ray {
 public:
-	Ray() { }
-	Ray(Vector_t o, Vector_t d) {
-		origin = o;
-		direction = d;
-		inv_direction = Vector_t (1/d[0], 1/d[1], 1/d[2]);
-		sign[0] = (inv_direction[0] < 0);
-		sign[1] = (inv_direction[1] < 0);
-		sign[2] = (inv_direction[2] < 0);
-	}
-	Ray(const Ray &r) {
-		origin = r.origin;
-		direction = r.direction;
-		inv_direction = r.inv_direction;
-		sign[0] = r.sign[0]; sign[1] = r.sign[1]; sign[2] = r.sign[2];
-	}
-
-	Vector_t origin;
-	Vector_t direction;
-	Vector_t inv_direction;
-	int sign[3];
+    Ray () { }
+    Ray (Vector_t o, Vector_t d) {
+        origin = o;
+        direction = d;
+        inv_direction = Vector_t (1/d[0], 1/d[1], 1/d[2]);
+        sign[0] = (inv_direction[0] < 0);
+        sign[1] = (inv_direction[1] < 0);
+        sign[2] = (inv_direction[2] < 0);
+    }
+    Ray(const Ray &r) {
+        origin = r.origin;
+        direction = r.direction;
+        inv_direction = r.inv_direction;
+        sign[0] = r.sign[0]; sign[1] = r.sign[1]; sign[2] = r.sign[2];
+    }
+    
+    Vector_t origin;
+    Vector_t direction;
+    Vector_t inv_direction;
+    int sign[3];
 };
+
 
 /*
  * Axis-aligned bounding box class, for use with the optimized ray-box
@@ -636,73 +615,79 @@ public:
  *
  */
 
-class Box {
+class Voxel {
 public:
-    Box() { }
-    Box(const Vector_t &min, const Vector_t &max) {
-        parameters[0] = min;
-        parameters[1] = max;
+    Voxel () { }
+    Voxel (const Vector_t &min, const Vector_t &max) {
+        pts[0] = min;
+        pts[1] = max;
     }
+    inline void scale (
+        const Vector_t& scale
+        ) {
+        pts[0][0] *= scale[0];
+        pts[0][1] *= scale[1];
+        pts[0][2] *= scale[2];
+        pts[1][0] *= scale[0];
+        pts[1][1] *= scale[1];
+        pts[1][2] *= scale[2];
+    }
+
     // (t0, t1) is the interval for valid hits
     bool intersect (
         const Ray& r,
-        double& tmin,
-        double& tmax
+        double& tmin,       // tmin and tmax are unchanged, if there is
+        double& tmax        // no intersection
         ) const {
-	double tmin_ = (parameters[r.sign[0]][0]   - r.origin[0]) * r.inv_direction[0];
-	double tmax_ = (parameters[1-r.sign[0]][0] - r.origin[0]) * r.inv_direction[0];
-	double tymin = (parameters[r.sign[1]][1]   - r.origin[1]) * r.inv_direction[1];
-	double tymax = (parameters[1-r.sign[1]][1] - r.origin[1]) * r.inv_direction[1];
+	double tmin_ = (pts[r.sign[0]][0]   - r.origin[0]) * r.inv_direction[0];
+	double tmax_ = (pts[1-r.sign[0]][0] - r.origin[0]) * r.inv_direction[0];
+	const double tymin = (pts[r.sign[1]][1]   - r.origin[1]) * r.inv_direction[1];
+	const double tymax = (pts[1-r.sign[1]][1] - r.origin[1]) * r.inv_direction[1];
 	if ( (tmin_ > tymax) || (tymin > tmax_) ) 
-		return false;
+            return 0;       // no intersection
 	if (tymin > tmin_)
-		tmin_ = tymin;
+            tmin_ = tymin;
 	if (tymax < tmax_)
-		tmax_ = tymax;
-	double tzmin = (parameters[r.sign[2]][2]   - r.origin[2]) * r.inv_direction[2];
-	double tzmax = (parameters[1-r.sign[2]][2] - r.origin[2]) * r.inv_direction[2];
+            tmax_ = tymax;
+	const double tzmin = (pts[r.sign[2]][2]   - r.origin[2]) * r.inv_direction[2];
+	const double tzmax = (pts[1-r.sign[2]][2] - r.origin[2]) * r.inv_direction[2];
 	if ( (tmin_ > tzmax) || (tzmin > tmax_) ) 
-		return false;
+            return 0;       // no intersection
 	if (tzmin > tmin_)
 		tmin_ = tzmin;
 	tmin = tmin_;
 	if (tzmax < tmax_)
 		tmax_ = tzmax;
 	tmax = tmax_;
-	return true;
+	return (tmax >= 0);
     }
 
-    // corners
-    Vector_t parameters[2];
+    inline bool intersect (
+        const Ray& r
+        ) {
+        double tmin = 0.0;
+        double tmax = 0.0;
+        return intersect(r, tmin, tmax);
+    }
+
+    inline Vector_t extend () const {
+        return (pts[1] - pts[0]);
+    }
+
+    inline int intersect (
+        const Triangle& t
+        ) {
+        Voxel v_ = *this;
+        Triangle t_ = t;
+        const Vector_t scaleby = 1.0 / v_.extend(); 
+        v_.scale (scaleby);
+        t_.scale (scaleby , v_.pts[0] + 0.5);
+        return triangle_intersects_cube (t_);
+    }
+
+    Vector_t pts[2];
 };
 
-/*
-  Result:
-    0   no intersection
-    1   ???
-    2   intersection, origin of ray outside cube
-    3   intersection, origin of ray inside cube
-    4   intersection on extended line (in opposite direction)
- */
-static inline int
-intersect3dRayCube (
-    const Ray& r,
-    const Cube& c,
-    double& tmin,
-    double& tmax
-    ) {
-    Box b = Box(c.v1, c.v2);
-    if (!b.intersect(r, tmin, tmax)) {
-        return 0;
-    }
-    if (tmin > 0) {
-        return 2;
-    }
-    if (tmin <= 0 && tmax > 0) {
-        return 3;
-    }
-    return 4;
-}
 
 /*
   ____                           _              
@@ -911,21 +896,15 @@ BoundaryGeometry::intersectTriangleVoxel (
                         getPoint (triangle_id, 2),
                         getPoint (triangle_id, 3)};
 
-    //const int k = (voxel_id - 1) / (nr_m[0] * nr_m[1]);
-    //const int rest = (voxel_id - 1) % (nr_m[0] * nr_m[1]);
-    //const int j = rest / nr_m[0];
-    //const int i = rest % nr_m[0]; 
-    
-    Cube c;
-    c.v1 = {
+    const Vector_t P(
         i * hr_m[0] + voxelMesh_m.minExtend[0],
         j * hr_m[1] + voxelMesh_m.minExtend[1],
         k * hr_m[2] + voxelMesh_m.minExtend[2]
-    };
+        );
 
-    c.v2 = c.v1 + hr_m;
+    Voxel v(P, P+hr_m);
 
-    return intersect3dTriangleCube (t, c);
+    return v.intersect (t);
 }
 
 /*
@@ -990,7 +969,7 @@ BoundaryGeometry::intersectLineTriangle (
     const Vector_t w0 = P0 - V0;
     const double a = -dot(n,w0);
     const double b = dot(n,dir);
-    if (fcmp (b, 0.0, 10) == 0) {       // ray is  parallel to triangle plane
+    if (fcmp (b, 0.0, 4) == 0) {       // ray is  parallel to triangle plane
         if (a == 0) {                   // ray lies in triangle plane
             return 1;
         } else {                        // ray disjoint from plane
@@ -1102,27 +1081,34 @@ BoundaryGeometry::intersectRayBoundary (
     Vector_t& I
     ) {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-    *gmsg << "* " << __func__ << ": Ray: "
-          << "origin=" << P
-          << "dir=" << v
-          << endl;
+    enable_debug_output=true;
+    debug_output.str( std::string() );
+    debug_output.clear();
+    debug_output << "* " << __func__ << ": Ray: "
+                 << "origin=" << P
+                 << "dir=" << v
+                 << std::endl;
 #endif
     /*
       set P1 to intersection of ray with bbox of voxel mesh 
       run line segment boundary intersection test with P and P1
      */
     Ray r = Ray (P, v);
-    Box c = Box (mincoords_m, maxcoords_m);
+    Voxel c = Voxel (voxelMesh_m.minExtend, voxelMesh_m.maxExtend);
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect (r, tmin, tmax);
     int triangle_id = -1;
     int result = (intersectLineSegmentBoundary (P, P + tmax*v, I, triangle_id) > 0) ? 1 : 0;
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-    *gmsg << "* " << __func__ << ": "
-          << result
-          << "  I=" << I
-          << endl;
+    debug_output << "* " << __func__ << ": "
+                 << result
+                 << "  I=" << I
+                 << std::endl;
+    if (!result) {
+        *gmsg << debug_output.str();
+    }
+    enable_debug_output=false;
 #endif
     return result;
 }
@@ -1847,18 +1833,16 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
         for (int j = j_min; j <= j_max; j++) {
             for (int k = k_min; k <= k_max; k++) {
                 Vector_t bmin = mapIndices2Voxel(i, j, k);
-                Cube c = {bmin, bmin + hr_m};
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
-                *gmsg << "* Test cube: (" << i << ", " << j << ", " << k << "), "
-                      << c.v1 << c.v2 << endl;
+                Voxel v(bmin, bmin + hr_m);
+#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
+                if (enable_debug_output)
+                    debug_output << "* Test voxel: (" << i << ", " << j << ", " << k << "), "
+                                 << v.pts[0] << v.pts[1] << std::endl;
 #endif
                 /*
                   do line segment and voxel intersect? continue if not
                 */
-                double t1 = 0.0;
-                double t2 = 0.0;
-                int tmp_intersect_result = intersect3dRayCube (r, c, t1, t2);
-                if (tmp_intersect_result != 2 && tmp_intersect_result != 3) {
+                if (!v.intersect (r)) {
                     continue;
                 }
                 int voxel_id = mapVoxelIndices2ID (i, j, k);
@@ -1871,6 +1855,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                   test all triangles intersecting with voxel
                   if there are intersections return closest
                 */
+                int tmp_intersect_result = 0;
                 for (auto it = triangles_overlaping_with_voxel->second.begin ();
                      it != triangles_overlaping_with_voxel->second.end ();
                      it++) {
@@ -1880,13 +1865,14 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                         P, Q,
                         *it,
                         tmp_intersect_pt);
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
-                    *gmsg << "* Test triangle: " << *it
-                          << " intersect: " << tmp_intersect_result
-                          << getPoint(*it,1)
-                          << getPoint(*it,2)
-                          << getPoint(*it,3)
-                          << endl;
+#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
+                    if (enable_debug_output)
+                        debug_output << "* Test triangle: " << *it
+                                     << " intersect: " << tmp_intersect_result
+                                     << getPoint(*it,1)
+                                     << getPoint(*it,2)
+                                     << getPoint(*it,3)
+                                     << std::endl;
 #endif
                     switch (tmp_intersect_result) {
                     case -1:                    // triangle is degenerated
@@ -1899,15 +1885,19 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                     case 1:                     // line and triangle are in same plane
                     case 3:                     // unique intersection in segment
                         double t;
-                        if (fcmp (Q[0] - P[0], 0.0, 10) != 0) {
+                        if (fcmp (Q[0] - P[0], 0.0, 4) != 0) {
                             t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
-                        } else if (fcmp (Q[1] - P[1], 0.0, 10) != 0) {
+                        } else if (fcmp (Q[1] - P[1], 0.0, 4) != 0) {
                             t = (tmp_intersect_pt[1] - P[1]) / (Q[1] - P[1]);
                         } else {
                             t = (tmp_intersect_pt[2] - P[2]) / (Q[2] - P[2]);
                         }
                         intersect_result++;
                         if (t < tmin) {
+#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
+                            if (enable_debug_output)
+                                debug_output << "* set triangle" << std::endl;
+#endif
                             tmin = t;
                             intersect_pt = tmp_intersect_pt;
                             triangle_id = (*it);
@@ -1933,7 +1923,8 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     int& triangle_id                    // [out] triangle the line segment intersects with
     ) {
 #ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
-    *gmsg << "* " __func__ << ": P0 = " << P0 << ", P1 = " << P1 << endl;
+    if (enable_debug_output)
+        debug_output << "* " << __func__ << ": P0 = " << P0 << ", P1 = " << P1 << std::endl;
 #endif
     triangle_id = -1;
 
@@ -1968,7 +1959,8 @@ BoundaryGeometry::intersectLineSegmentBoundary (
         }
     }
 #ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
-    *gmsg << "* " << __func__ << ": " << intersect_result << "  Intersection pt: " << intersect_pt << endl;
+    if (enable_debug_output)
+        debug_output << "* " << __func__ << ": " << intersect_result << "  Intersection pt: " << intersect_pt << std::endl;
 #endif
     return intersect_result;
 }
