@@ -30,8 +30,14 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
         }
         if((*clit)->hasWake()) {
             if(has_wake_m && wakefunction_m != (*clit)->getWake()) {
-                *gmsg << "more than one wake function in one section! dismiss all." << endl;
-                wakefunction_m = NULL;
+            /*--------- Modified by Xiaoying Pang 04/22/2014 ---------------
+             * If two overlapping elements in one section both have wake functions,
+             * the first wake function is applied for now. Later, we will implement
+             * mulitple wake functions.*/
+            //    *gmsg << "more than one wake function in one section! dismiss all." << endl;
+            //    wakefunction_m = NULL;
+                *gmsg << " more than one wake function in one section! use the wake function from the first element." << endl;
+                
             } else {
                 wakefunction_m = (*clit)->getWake();
                 wakeFunctionOwner_m = (*clit);

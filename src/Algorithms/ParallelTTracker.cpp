@@ -52,6 +52,8 @@
 #include "AbsBeamline/CyclotronValley.h"
 #include "Beamlines/Beamline.h"
 #include "Lines/Sequence.h"
+//--------- Added by Xiaoying Pang 04/22/2014 ---------------
+#include "Solvers/CSRWakeFunction.hh"
 
 #include "AbstractObjects/OpalData.h"
 
@@ -87,6 +89,8 @@ RefPartR_suv_m(0.0),
 RefPartP_suv_m(0.0),
 globalEOL_m(false),
 wakeStatus_m(false),
+//--------- Added by Xiaoying Pang 04/22/2014 ---------------
+wakeFunction_m(NULL),
 surfaceStatus_m(false),
 secondaryFlg_m(false),
 mpacflg_m(true),
@@ -2292,13 +2296,25 @@ void ParallelTTracker::computeExternalFields() {
         IpplTimings::startTimer(WakeFieldTimer_m);
         reduce(wfSection, wfSection, OpMaxAssign());
         WakeFunction *wf = itsOpalBeamline_m.getWakeFunction(wfSection);
+        /*--------- Added by Xiaoying Pang 04/22/2014 ---------------
+         * If the CSR is turned on for a dipole, save its pointer to the CSRWakeFunction 
+         * and reuse it in the following drift.*/
+        // xpang: start
+        const ElementBase* element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
+        if(dynamic_cast<CSRWakeFunction*>(wf))
+        {
+          if(dynamic_cast<const RBend*>(element) || dynamic_cast<const SBend*>(element))
+            wakeFunction_m = wf;
+          if(dynamic_cast<const Drift*>(element))
+            wf = wakeFunction_m;
+        }
+        // xpang: end
         if(!wakeStatus_m) {
             msg << "============== START WAKE CALCULATION =============" << endl;
             const ElementBase* element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
             wf->initialize(element);
             wakeStatus_m = true;
         }
-
         if(wf == NULL) {
             INFOMSG("no wakefunction attached" << endl);
         } else {

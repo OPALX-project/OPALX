@@ -267,6 +267,12 @@ private:
 
     bool wakeStatus_m;
 
+    /*--------- Added by Xiaoying Pang 04/22/2014 ---------------
+     * This WakeFunction pointer is used to store a dipole's wake function and 
+     * to be used in the following drift if CSR calculation is requested in 
+     * the drift. */
+    WakeFunction* wakeFunction_m;
+
     bool surfaceStatus_m;
 
     int secondaryFlg_m;
