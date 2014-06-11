@@ -13,7 +13,7 @@
 */
 
 #define SVN_DATE "$Date: 2007-05-08 21:12:24 +0200 (Tue, 08 May 2007) $"
-
+#include "Ippl.h"
 #include <iostream>
 #include <cmath>
 #include <stdlib.h>
@@ -92,7 +92,9 @@ Profile::Profile(char *fname, double eps) {
     // read all values
     f = fopen(fname, "r");
     for(i = 0; i < n; i++) {
-        fscanf(f, "%lf %lf", &x[i], &y[i]);
+      int res = fscanf(f, "%lf %lf", &x[i], &y[i]);
+      if (res !=0)
+	ERRORMSG("fscanf in profile.cpp has res!=0" << endl);
     }
     fclose(f);
 
