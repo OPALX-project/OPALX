@@ -15,7 +15,7 @@
 // $Author: jsberg $
 //
 // ------------------------------------------------------------------------
-
+#include "Ippl.h"
 #include "BasicActions/System.h"
 #include "Attributes/Attributes.h"
 
@@ -48,7 +48,9 @@ System *System::clone(const string &name) {
 
 
 void System::execute() {
-    system(Attributes::getString(itsAttr[0]).c_str());
+int res = system(Attributes::getString(itsAttr[0]).c_str());
+ if (res!=0)
+   ERRORMSG("System call failed" << endl);
 }
 
 
