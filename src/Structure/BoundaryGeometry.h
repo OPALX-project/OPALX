@@ -362,7 +362,22 @@ public:
         const Vector_t P                    // [in] point to test
         );
 
+    inline void enable_debug(void) {
+        enable_debug_output = true;
+    }
+
+    inline void disable_debug(void) {
+        enable_debug_output = false;
+    }
+
+    inline void setTimeStep(int timestep) {
+        timeStep = timestep;
+    }
    
+    inline int getTimeStep(void) {
+        return timeStep;
+    }
+
 private:
     int intersectTriangleVoxel (
         const int triangle_id,
@@ -410,13 +425,15 @@ private:
         Vector_t maxExtend;
     } voxelMesh_m;
     std::unordered_map< int, std::unordered_set<int> >
-            CubicLookupTable_m;         // Maps boundary box ID to included triangles
+            trianglesIntersectingVoxel_m;// Maps boundary box ID to included triangles
     bool* isOriented_m;                  // IDs of oriented triangles.
     std::map< int, std::unordered_set<int> >
             triangleNeighbors_m;        // map vertex ID to triangles with this vertex
 
     Vector_t outside_point_m;           // a point outside the domain
 
+    bool enable_debug_output;
+    int timeStep;
 
     std::vector<Vector_t> partsp_m;     // particle momenta
     std::vector<Vector_t> partsr_m;     // particle positions

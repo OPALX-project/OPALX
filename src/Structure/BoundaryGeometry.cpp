@@ -4,11 +4,11 @@
   Copyright & License: See Copyright.readme in src directory
  */
 
-//#define   DEBUG_INTERSECT_RAY_BOUNDARY
-//#define   DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-//#define   DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
+#define   DEBUG_INTERSECT_RAY_BOUNDARY
+#define   DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
+#define   DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
 //#define   DEBUG_PART_INSIDE
-//#define   DEBUG_FAST_IS_INSIDE
+#define   DEBUG_FAST_IS_INSIDE
 
 #include <fstream>
 
@@ -23,7 +23,6 @@ extern Inform* gmsg;
 
 #include <sstream>
 std::stringstream debug_output;
-bool enable_debug_output=false;
 
 #define SQR(x) ((x)*(x))
 #define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
@@ -1042,9 +1041,13 @@ BoundaryGeometry::fastIsInside (
     const Vector_t P                    // [in] pt to test
     ) {
 #ifdef DEBUG_FAST_IS_INSIDE
-    *gmsg << "* " << __func__ << ": "
-          << "reference_pt=" << reference_pt
-          << "  P=" << P << endl;
+    if (enable_debug_output) {
+        debug_output.str( std::string() );
+        debug_output.clear();
+        debug_output << "* " << __func__ << ": "
+                     << "reference_pt=" << reference_pt
+                     << "  P=" << P << std::endl;
+    }
 #endif
     const Vector_t v = reference_pt - P;
     const int N = ceil (magnitude (v) / MIN3 (hr_m[0], hr_m[1], hr_m[2]));
@@ -1060,8 +1063,11 @@ BoundaryGeometry::fastIsInside (
         P1 += v_;
     }
 #ifdef DEBUG_FAST_IS_INSIDE
-    *gmsg << "* " << __func__ << ": "
-        "result: " << result << endl;
+    if (enable_debug_output) {
+        debug_output << "* " << __func__ << ": "
+                     << "result: " << result << std::endl;
+        *gmsg << debug_output.str();
+    }
 #endif
     return result;
 }
@@ -1257,36 +1263,6 @@ void BoundaryGeometry::initialize () {
             *gmsg << "* Geometry interval built done." << endl;
         }
 
-
-#define surrounding_voxels( voxel_id, nx, ny ) {                        \
-            (voxel_id) - (nx) * (ny) - (nx) - 1,                        \
-                (voxel_id) - (nx) * (ny) - (nx),                        \
-                (voxel_id) - (nx) * (ny) - (nx) + 1,                    \
-                (voxel_id) - (nx) * (ny) - 1,                           \
-                (voxel_id) - (nx) * (ny),                               \
-                (voxel_id) - (nx) * (ny) + 1,                           \
-                (voxel_id) - (nx) * (ny) + (nx) - 1,                    \
-                (voxel_id) - (nx) * (ny) + (nx),                        \
-                (voxel_id) - (nx) * (ny) + (nx) + 1,                    \
-                (voxel_id) - (nx) - 1,                                  \
-                (voxel_id) - (nx),                                      \
-                (voxel_id) - (nx) + 1,                                  \
-                (voxel_id) - 1,                                         \
-                (voxel_id),                                             \
-                (voxel_id) + 1,                                         \
-                (voxel_id) + (nx) - 1,                                  \
-                (voxel_id) + (nx),                                      \
-                (voxel_id) + (nx) + 1,                                  \
-                (voxel_id) + (nx) * (ny) - (nx) - 1,                    \
-                (voxel_id) + (nx) * (ny) - (nx),                        \
-                (voxel_id) + (nx) * (ny) - (nx) + 1,                    \
-                (voxel_id) + (nx) * (ny) - 1,                           \
-                (voxel_id) + (nx) * (ny),                               \
-                (voxel_id) + (nx) * (ny) + 1,                           \
-                (voxel_id) + (nx) * (ny) + (nx) - 1,                    \
-                (voxel_id) + (nx) * (ny) + (nx),                        \
-                (voxel_id) + (nx) * (ny) + (nx) + 1,                    \
-                }
         /*
           add voxels to integer array
           sort this array
@@ -1296,7 +1272,7 @@ void BoundaryGeometry::initialize () {
         static inline void computeTriangleVoxelization (
             BoundaryGeometry* bg,
             const int triangle_id,
-            std::unordered_set<int>& voxel_ids
+            std::unordered_map< int, std::unordered_set<int> >& voxels
             ) {
             Vector_t v1 = bg->getPoint (triangle_id, 1);
             Vector_t v2 = bg->getPoint (triangle_id, 2);
@@ -1314,13 +1290,15 @@ void BoundaryGeometry::initialize () {
             bg->mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
             bg->mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
 
+            voxels.reserve ((i_max-i_min+1) * (j_max-j_min+1) * (k_max-k_min+1));
+            std::unordered_set<int> triangle (&triangle_id, &triangle_id+1);
             for (int i = i_min; i <= i_max; i++) {
                 for (int j = j_min; j <= j_max; j++) {
                     for (int k = k_min; k <= k_max; k++) {
                         // test if voxel (i,j,k) has an intersection with triangle
                         if (bg->intersectTriangleVoxel (triangle_id, i, j, k) == INSIDE) {
                             int voxel_id = bg->mapVoxelIndices2ID (i, j, k);
-                            voxel_ids.insert (voxel_id);
+                            voxels[voxel_id] = triangle;
                         }
                     }
                 }
@@ -1330,33 +1308,14 @@ void BoundaryGeometry::initialize () {
         static void computeMeshVoxelization (BoundaryGeometry* bg) {
 
             for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                std::unordered_set<int> voxel_ids;
-                computeTriangleVoxelization (bg, triangle_id, voxel_ids);
-                // add voxeliziation of triangle to voxelization of mesh
-                bg->boundaryVoxelIDs_m.insert (voxel_ids.begin(), voxel_ids.end());
-
-                // 
-                std::unordered_map< int, std::unordered_set<int> > map_of_voxel_ids_to_intersect_triangles;
-                for (auto voxelIt = voxel_ids.begin ();
-                     voxelIt != voxel_ids.end ();
-                     voxelIt++) {
-                    int voxel_id = *voxelIt;
-
-                    auto it = map_of_voxel_ids_to_intersect_triangles.find (voxel_id);
-                    if (it == map_of_voxel_ids_to_intersect_triangles.end ()) {
-                        map_of_voxel_ids_to_intersect_triangles [voxel_id] =
-                            std::unordered_set<int> (&triangle_id, &triangle_id+1);
-                    } else
-                        it->second.insert (triangle_id);
-                }
+                std::unordered_map< int, std::unordered_set<int> > voxels;
+                computeTriangleVoxelization (bg, triangle_id, voxels);
 
                 // add map for given triangle to map for mesh
-                for (auto mapIt = map_of_voxel_ids_to_intersect_triangles.begin ();
-                     mapIt != map_of_voxel_ids_to_intersect_triangles.end ();
-                     mapIt++) {
-                    auto it = bg->CubicLookupTable_m.find (mapIt->first);
-                    if (it == bg->CubicLookupTable_m.end ()) {
-                        bg->CubicLookupTable_m [mapIt->first] = mapIt->second;
+                for (auto mapIt = voxels.begin (); mapIt != voxels.end (); mapIt++) {
+                    auto it = bg->trianglesIntersectingVoxel_m.find (mapIt->first);
+                    if (it == bg->trianglesIntersectingVoxel_m.end ()) {
+                        bg->trianglesIntersectingVoxel_m [mapIt->first] = mapIt->second;
                     } else {
                         it->second.insert (mapIt->second.begin(), mapIt->second.end());
                     }
@@ -1687,7 +1646,7 @@ Change orientation if diff is:
     };
 
     h5_int64_t rc;
-
+    enable_debug_output = false;
     *gmsg << "* Initializing Boundary Geometry..." << endl;
     IpplTimings::startTimer (TPreProc_m);
 
@@ -1810,7 +1769,11 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     Vector_t& intersect_pt,             // [o] intersection with boundary
     int& triangle_id                    // [o] intersected triangle
     ) {
-    int intersect_result = 0;
+#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
+    if (enable_debug_output)
+        debug_output << "* " << __func__ << ": P = " << P << ", Q = " << Q << std::endl;
+#endif
+
     Vector_t v_ = Q - P;
     Ray r = Ray (P, v_);
     Vector_t bbox_min = {
@@ -1829,6 +1792,21 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     
     Vector_t tmp_intersect_pt = Q;
     double tmin = 1.1;
+
+    /*
+      Triangles can - and in many cases do - intersect with more than one
+      voxel. So, if we loop over all voxels spaned by P and Q, we might 
+      perform the same line-triangle intersection test more than once
+      and must be take this into account when counting the intersections
+      with the boundary.
+
+      To avoid double counting we can either build a set of all relevant
+      triangles and loop over this set or we loop over all voxels and
+      remember the intersecting triangles.
+
+      The first solution is implemented here.
+     */
+    std::unordered_set<int> triangle_ids;
     for (int i = i_min; i <= i_max; i++) {
         for (int j = j_min; j <= j_max; j++) {
             for (int k = k_min; k <= k_max; k++) {
@@ -1845,69 +1823,77 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                 if (!v.intersect (r)) {
                     continue;
                 }
-                int voxel_id = mapVoxelIndices2ID (i, j, k);
-                
-                const auto triangles_overlaping_with_voxel = CubicLookupTable_m.find (voxel_id);
-                if (triangles_overlaping_with_voxel == CubicLookupTable_m.end ())
-                    continue;                   // not in voxelization of boundary
-                
+
                 /*
-                  test all triangles intersecting with voxel
-                  if there are intersections return closest
-                */
-                int tmp_intersect_result = 0;
-                for (auto it = triangles_overlaping_with_voxel->second.begin ();
-                     it != triangles_overlaping_with_voxel->second.end ();
-                     it++) {
-                    
-                    tmp_intersect_result = intersectLineTriangle (
-                        LINE,
-                        P, Q,
-                        *it,
-                        tmp_intersect_pt);
-#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-                    if (enable_debug_output)
-                        debug_output << "* Test triangle: " << *it
-                                     << " intersect: " << tmp_intersect_result
-                                     << getPoint(*it,1)
-                                     << getPoint(*it,2)
-                                     << getPoint(*it,3)
-                                     << std::endl;
-#endif
-                    switch (tmp_intersect_result) {
-                    case -1:                    // triangle is degenerated
-                        assert (tmp_intersect_result != -1);
-                        exit (42);              // terminate even if NDEBUG is set
-                    case 0:                     // no intersection
-                    case 2:                     // both points are outside
-                    case 4:                     // both points are inside
-                        break;              
-                    case 1:                     // line and triangle are in same plane
-                    case 3:                     // unique intersection in segment
-                        double t;
-                        if (fcmp (Q[0] - P[0], 0.0, 4) != 0) {
-                            t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
-                        } else if (fcmp (Q[1] - P[1], 0.0, 4) != 0) {
-                            t = (tmp_intersect_pt[1] - P[1]) / (Q[1] - P[1]);
-                        } else {
-                            t = (tmp_intersect_pt[2] - P[2]) / (Q[2] - P[2]);
-                        }
-                        intersect_result++;
-                        if (t < tmin) {
-#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-                            if (enable_debug_output)
-                                debug_output << "* set triangle" << std::endl;
-#endif
-                            tmin = t;
-                            intersect_pt = tmp_intersect_pt;
-                            triangle_id = (*it);
-                        }
-                    }
-                }                   // end for all triangles
+                  get triangles intersectiong with this voxel and add them to
+                  the to be tested triangles.
+                 */
+                int voxel_id = mapVoxelIndices2ID (i, j, k);
+                const auto triangles_overlaping_with_voxel = trianglesIntersectingVoxel_m.find (voxel_id);
+                if (triangles_overlaping_with_voxel == trianglesIntersectingVoxel_m.end()) {
+                    continue;
+                }
+                triangle_ids.insert (
+                    triangles_overlaping_with_voxel->second.begin(),
+                    triangles_overlaping_with_voxel->second.end());
             }
         }
     }
-    return intersect_result;
+    /*
+      test all triangles intersecting with one of the above voxels
+      if there is more than one intersection, return closest
+    */
+    int num_intersections = 0;
+    int tmp_intersect_result = 0;
+    for (auto it = triangle_ids.begin ();
+         it != triangle_ids.end ();
+         it++) {
+                    
+        tmp_intersect_result = intersectLineTriangle (
+            LINE,
+            P, Q,
+            *it,
+            tmp_intersect_pt);
+#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
+        if (enable_debug_output)
+            debug_output << "* Test triangle: " << *it
+                         << " intersect: " << tmp_intersect_result
+                         << getPoint(*it,1)
+                         << getPoint(*it,2)
+                         << getPoint(*it,3)
+                         << std::endl;
+#endif
+        switch (tmp_intersect_result) {
+        case -1:                    // triangle is degenerated
+            assert (tmp_intersect_result != -1);
+            exit (42);              // terminate even if NDEBUG is set
+        case 0:                     // no intersection
+        case 2:                     // both points are outside
+        case 4:                     // both points are inside
+            break;              
+        case 1:                     // line and triangle are in same plane
+        case 3:                     // unique intersection in segment
+            double t;
+            if (fcmp (Q[0] - P[0], 0.0, 4) != 0) {
+                t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
+            } else if (fcmp (Q[1] - P[1], 0.0, 4) != 0) {
+                t = (tmp_intersect_pt[1] - P[1]) / (Q[1] - P[1]);
+            } else {
+                t = (tmp_intersect_pt[2] - P[2]) / (Q[2] - P[2]);
+            }
+            num_intersections++;
+            if (t < tmin) {
+#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
+                if (enable_debug_output)
+                    debug_output << "* set triangle" << std::endl;
+#endif
+                tmin = t;
+                intersect_pt = tmp_intersect_pt;
+                triangle_id = (*it);
+            }
+        }
+    }                   // end for all triangles
+    return num_intersections;
 }
 
 /*
