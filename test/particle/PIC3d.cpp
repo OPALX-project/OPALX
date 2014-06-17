@@ -63,21 +63,18 @@ const double dt = 1.0;          // size of timestep
 void dumpVTK(Field<Vektor<double,3>,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int iteration,
              double dx, double dy, double dz) {
 
-    ofstream vtkout;
+    std::ofstream vtkout;
     vtkout.precision(10);
-    vtkout.setf(ios::scientific, ios::floatfield);
-
+    vtkout.setf(std::ios::scientific, std::ios::floatfield);
+    
     std::stringstream fname;
     fname << "data/ef_";
-    fname << setw(4) << setfill('0') << iteration;
+    fname << std::setw(4) << std::setfill('0') << iteration;
     fname << ".vtk";
-
-    //SERIAL at the moment
-    //if (Ippl::myNode() == 0) {
 
     // open a new data file for this iteration
     // and start with header
-    vtkout.open(fname.str().c_str(), ios::out);
+    vtkout.open(fname.str().c_str(), std::ios::out);
     vtkout << "# vtk DataFile Version 2.0" << endl;
     vtkout << "pic3d" << endl;
     vtkout << "ASCII" << endl;
@@ -107,13 +104,13 @@ void dumpVTK(Field<Vektor<double,3>,3> &EFD, NDIndex<3> lDom, int nx, int ny, in
 void dumpVTK(Field<double,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int iteration,
              double dx, double dy, double dz) {
 
-    ofstream vtkout;
+    std::ofstream vtkout;
     vtkout.precision(10);
-    vtkout.setf(ios::scientific, ios::floatfield);
+    vtkout.setf(std::ios::scientific, std::ios::floatfield);
 
     std::stringstream fname;
     fname << "data/scalar_";
-    fname << setw(4) << setfill('0') << iteration;
+    fname << std::setw(4) << std::setfill('0') << iteration;
     fname << ".vtk";
 
     //SERIAL at the moment
@@ -121,7 +118,7 @@ void dumpVTK(Field<double,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int 
 
     // open a new data file for this iteration
     // and start with header
-    vtkout.open(fname.str().c_str(), ios::out);
+    vtkout.open(fname.str().c_str(), std::ios::out);
     vtkout << "# vtk DataFile Version 2.0" << endl;
     vtkout << "toyfdtd" << endl;
     vtkout << "ASCII" << endl;
@@ -387,10 +384,10 @@ public:
     void setRMin(Vector_t x) { rmin_m = x; }
     void setHr(Vector_t x) { hr_m = x; }
 
-    void savePhaseSpace(string fn, int idx) {
+    void savePhaseSpace(std::string fn, int idx) {
 
         int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
-        vector<double> tmp;
+	std::vector<double> tmp;
         tmp.clear();
 
         // every node ckecks if he has to dump particles
@@ -405,14 +402,14 @@ public:
         }
 
         if(Ippl::myNode() == 0) {
-            ofstream ostr;
-            string Fn;
+ 	    std::ofstream ostr;
+            std::string Fn;
             char numbuf[6];
             sprintf(numbuf, "%05d", idx);
-            Fn = fn  + string(numbuf) + ".dat";
-            ostr.open(Fn.c_str(), ios::out );
+            Fn = fn  + std::string(numbuf) + ".dat";
+            ostr.open(Fn.c_str(), std::ios::out );
             ostr.precision(15);
-            ostr.setf(ios::scientific, ios::floatfield);
+            ostr.setf(std::ios::scientific, std::ios::floatfield);
 
             ostr << " x, px, y, py t, pt, id, node" << endl;
 
@@ -551,13 +548,13 @@ int main(int argc, char *argv[]){
     const int nt              = atoi(argv[5]);
 
     InterPol_t myInterpol;
-    if (string(argv[6])==string("CIC"))
+    if (std::string(argv[6])==std::string("CIC"))
         myInterpol = CIC;
     else
         myInterpol = NGP;
 
     bool gCells;
-    gCells =  (string(argv[8])==string("GUARDCELLS"));
+    gCells =  (std::string(argv[8])==std::string("GUARDCELLS"));
 
     msg << "Particle test PIC3d " << endl;
     msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
@@ -573,11 +570,11 @@ int main(int argc, char *argv[]){
         msg << "Not using guard cells" << endl;
 
     BC_t myBC;
-    if (string(argv[7])==string("OOO")) {
+    if (std::string(argv[7])==std::string("OOO")) {
         myBC = OOO; // open boundary
         msg << "BC == OOO" << endl;
     }
-    else if (string(argv[7])==string("OOP")) {
+    else if (std::string(argv[7])==std::string("OOP")) {
         myBC = OOP; // open boundary in x and y, periodic in z
         msg << "BC == OOP" << endl;
     }
