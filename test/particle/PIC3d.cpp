@@ -14,13 +14,12 @@
 
 /***************************************************************************
 
- This test program sets up a simple sine-wave electric field in 3D,
-   creates a population of particles with random q/m values (charge-to-mass
-   ratio) and velocities, and then tracks their motions in the static
-   electric field using nearest-grid-point interpolation.
+This test program sets up a simple sine-wave electric field in 3D,
+  creates a population of particles with random q/m values (charge-to-mass
+  ratio) and velocities, and then tracks their motions in the static
+  electric field using nearest-grid-point interpolation.
 
 Usage:
-
 
  mpirun -np 2 PIC3d 128 128 128 10000 10 NGP OOP GUARDCELLS --commlib mpi --info 0
 
@@ -32,8 +31,6 @@ Usage:
 #include <vector>
 #include <iostream>
 #include <set>
-
-#include "mpi.h"
 
 // dimension of our positions
 const unsigned Dim = 3;
@@ -50,7 +47,6 @@ typedef IntCIC IntrplCIC_t;
 typedef IntNGP IntrplNGP_t;
 
 #define GUARDCELL 1
-
 
 enum BC_t {OOO,OOP,PPP};
 enum InterPol_t {NGP,CIC};
