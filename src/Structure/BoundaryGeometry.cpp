@@ -4,11 +4,7 @@
   Copyright & License: See Copyright.readme in src directory
  */
 
-#define   DEBUG_INTERSECT_RAY_BOUNDARY
-#define   DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-#define   DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
-//#define   DEBUG_PART_INSIDE
-#define   DEBUG_FAST_IS_INSIDE
+#define   ENABLE_DEBUG
 
 #include <fstream>
 
@@ -126,10 +122,10 @@ static int64_t fcmp (
   write legacy VTK file of voxel mesh
 */
 static void write_voxel_mesh (
-    const std::unordered_set<int> ids,
-    const Vector_t hr_m,
-    const Vektor<int,3> nr,
-    const Vector_t origin
+    const std::unordered_map< int, std::unordered_set<int> >& ids,
+    const Vector_t& hr_m,
+    const Vektor<int,3>& nr,
+    const Vector_t& origin
     ) {
     /*----------------------------------------------------------------------*/
     const size_t numpoints = 8 * ids.size ();
@@ -147,9 +143,10 @@ static void write_voxel_mesh (
 
     const auto end_it = ids.end();
     const auto nr0_times_nr1 = nr[0] * nr[1];
-    for (auto id = ids.begin (); id != end_it; id++) {
-        int k = (*id - 1) / nr0_times_nr1;
-        int rest = (*id - 1) % nr0_times_nr1;
+    for (auto it = ids.begin (); it != end_it; it++) {
+        int id = it->first;
+        int k = (id - 1) / nr0_times_nr1;
+        int rest = (id - 1) % nr0_times_nr1;
         int j = rest / nr[0];
         int i = rest % nr[0]; 
 
@@ -1040,13 +1037,13 @@ BoundaryGeometry::fastIsInside (
     const Vector_t reference_pt,        // [in] reference pt inside the boundary
     const Vector_t P                    // [in] pt to test
     ) {
-#ifdef DEBUG_FAST_IS_INSIDE
-    if (enable_debug_output) {
-        debug_output.str( std::string() );
-        debug_output.clear();
-        debug_output << "* " << __func__ << ": "
-                     << "reference_pt=" << reference_pt
-                     << "  P=" << P << std::endl;
+#ifdef ENABLE_DEBUG
+    int saved_flags = debugFlags_m;
+    if (debugFlags_m & debug_fastIsInside) {
+        *gmsg << "* " << __func__ << ": "
+              << "reference_pt=" << reference_pt
+              << ",  P=" << P << endl;
+        debugFlags_m |= debug_intersectTinyLineSegmentBoundary;
     }
 #endif
     const Vector_t v = reference_pt - P;
@@ -1062,11 +1059,11 @@ BoundaryGeometry::fastIsInside (
         P0 = P1;
         P1 += v_;
     }
-#ifdef DEBUG_FAST_IS_INSIDE
-    if (enable_debug_output) {
-        debug_output << "* " << __func__ << ": "
-                     << "result: " << result << std::endl;
-        *gmsg << debug_output.str();
+#ifdef ENABLE_DEBUG
+    if (debugFlags_m & debug_fastIsInside) {
+        *gmsg << "* " << __func__ << ": "
+              << "result: " << result << endl;
+        debugFlags_m = saved_flags;
     }
 #endif
     return result;
@@ -1086,14 +1083,16 @@ BoundaryGeometry::intersectRayBoundary (
     const Vector_t& v,
     Vector_t& I
     ) {
-#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-    enable_debug_output=true;
-    debug_output.str( std::string() );
-    debug_output.clear();
-    debug_output << "* " << __func__ << ": Ray: "
-                 << "origin=" << P
-                 << "dir=" << v
-                 << std::endl;
+#ifdef ENABLE_DEBUG
+    int saved_flags = debugFlags_m;
+    if (debugFlags_m & debug_intersectRayBoundary) {
+        *gmsg << "* " << __func__ << ": "
+              << "  ray: "
+              << "  origin=" << P
+              << "  dir=" << v
+              << endl;
+        debugFlags_m |= debug_intersectLineSegmentBoundary;
+    }
 #endif
     /*
       set P1 to intersection of ray with bbox of voxel mesh 
@@ -1106,15 +1105,14 @@ BoundaryGeometry::intersectRayBoundary (
     c.intersect (r, tmin, tmax);
     int triangle_id = -1;
     int result = (intersectLineSegmentBoundary (P, P + tmax*v, I, triangle_id) > 0) ? 1 : 0;
-#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-    debug_output << "* " << __func__ << ": "
-                 << result
-                 << "  I=" << I
-                 << std::endl;
-    if (!result) {
-        *gmsg << debug_output.str();
+#ifdef ENABLE_DEBUG
+    if (debugFlags_m & debug_intersectRayBoundary) {
+        *gmsg << "* " << __func__ << ": "
+              << "  result=" << result
+              << "  I=" << I
+              << endl;
+        debugFlags_m = saved_flags;
     }
-    enable_debug_output=false;
 #endif
     return result;
 }
@@ -1325,7 +1323,9 @@ void BoundaryGeometry::initialize () {
             } // for_each triangle
             *gmsg << "* Boundary index set built done." << endl;
             if(Ippl::myNode() == 0) {
-                write_voxel_mesh (bg->boundaryVoxelIDs_m, bg->hr_m, bg->nr_m, bg->voxelMesh_m.minExtend);
+                write_voxel_mesh (bg->trianglesIntersectingVoxel_m,
+                                  bg->hr_m,
+                                  bg->nr_m, bg->voxelMesh_m.minExtend);
             }
         }
 
@@ -1646,7 +1646,7 @@ Change orientation if diff is:
     };
 
     h5_int64_t rc;
-    enable_debug_output = false;
+    debugFlags_m = 0;
     *gmsg << "* Initializing Boundary Geometry..." << endl;
     IpplTimings::startTimer (TPreProc_m);
 
@@ -1769,9 +1769,13 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     Vector_t& intersect_pt,             // [o] intersection with boundary
     int& triangle_id                    // [o] intersected triangle
     ) {
-#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-    if (enable_debug_output)
-        debug_output << "* " << __func__ << ": P = " << P << ", Q = " << Q << std::endl;
+#ifdef ENABLE_DEBUG
+    if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
+        *gmsg << "* " << __func__ << ": "
+              << "  P = " << P
+              << ", Q = " << Q
+              << endl;
+    }
 #endif
 
     Vector_t v_ = Q - P;
@@ -1812,10 +1816,13 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
             for (int k = k_min; k <= k_max; k++) {
                 Vector_t bmin = mapIndices2Voxel(i, j, k);
                 Voxel v(bmin, bmin + hr_m);
-#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-                if (enable_debug_output)
-                    debug_output << "* Test voxel: (" << i << ", " << j << ", " << k << "), "
-                                 << v.pts[0] << v.pts[1] << std::endl;
+#ifdef ENABLE_DEBUG
+                if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
+                    *gmsg << "* " << __func__ << ": "
+                          << "  Test voxel: (" << i << ", " << j << ", " << k << "), "
+                          << v.pts[0] << v.pts[1]
+                          << endl;
+                }
 #endif
                 /*
                   do line segment and voxel intersect? continue if not
@@ -1854,14 +1861,16 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
             P, Q,
             *it,
             tmp_intersect_pt);
-#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-        if (enable_debug_output)
-            debug_output << "* Test triangle: " << *it
-                         << " intersect: " << tmp_intersect_result
-                         << getPoint(*it,1)
-                         << getPoint(*it,2)
-                         << getPoint(*it,3)
-                         << std::endl;
+#ifdef ENABLE_DEBUG
+        if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
+            *gmsg << "* " << __func__ << ": "
+                  << "  Test triangle: " << *it
+                  << "  intersect: " << tmp_intersect_result
+                  << getPoint(*it,1)
+                  << getPoint(*it,2)
+                  << getPoint(*it,3)
+                  << endl;
+        }
 #endif
         switch (tmp_intersect_result) {
         case -1:                    // triangle is degenerated
@@ -1883,9 +1892,12 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
             }
             num_intersections++;
             if (t < tmin) {
-#ifdef DEBUG_INTERSECT_TINY_LINE_SEGMENT_BOUNDARY
-                if (enable_debug_output)
-                    debug_output << "* set triangle" << std::endl;
+#ifdef ENABLE_DEBUG
+                if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
+                    *gmsg << "* " << __func__ << ": "
+                          << "  set triangle"
+                          << endl;
+                }
 #endif
                 tmin = t;
                 intersect_pt = tmp_intersect_pt;
@@ -1908,9 +1920,15 @@ BoundaryGeometry::intersectLineSegmentBoundary (
     Vector_t& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] triangle the line segment intersects with
     ) {
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
-    if (enable_debug_output)
-        debug_output << "* " << __func__ << ": P0 = " << P0 << ", P1 = " << P1 << std::endl;
+#ifdef ENABLE_DEBUG
+    int saved_flags = debugFlags_m;
+    if (debugFlags_m & debug_intersectLineSegmentBoundary) {
+        *gmsg << "* " << __func__ << ": "
+              << "  P0 = " << P0
+              << "  P1 = " << P1
+              << endl;
+        debugFlags_m |= debug_intersectTinyLineSegmentBoundary;
+    }
 #endif
     triangle_id = -1;
 
@@ -1944,9 +1962,14 @@ BoundaryGeometry::intersectLineSegmentBoundary (
             break;
         }
     }
-#ifdef DEBUG_INTERSECT_LINE_SEGMENT_BOUNDARY
-    if (enable_debug_output)
-        debug_output << "* " << __func__ << ": " << intersect_result << "  Intersection pt: " << intersect_pt << std::endl;
+#ifdef ENABLE_DEBUG
+    if (debugFlags_m & debug_intersectLineSegmentBoundary) {
+        *gmsg << "* " << __func__ << ": "
+              << "  result=" << intersect_result
+              << "  intersection pt: " << intersect_pt
+              << endl;
+        debugFlags_m = saved_flags;
+    }
 #endif
     return intersect_result;
 }
@@ -1969,11 +1992,16 @@ BoundaryGeometry::PartInside (
     Vector_t& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] intersected triangle 
     ) {
-#ifdef DEBUG_PART_INSIDE
-    *gmsg << "* " << __func__ << ": "
-          << "r=" << r
-          << "  v=" <<v
-          << "  dt=" << dt << endl;
+#ifdef ENABLE_DEBUG
+    int saved_flags = debugFlags_m;
+    if (debugFlags_m & debug_PartInside) {
+        *gmsg << "* " << __func__ << ": "
+              << "  r=" << r
+              << "  v=" << v
+              << "  dt=" << dt
+              << endl;
+        debugFlags_m |= debug_intersectTinyLineSegmentBoundary;
+    }
 #endif
     int ret = -1;                       // result defaults to no collision
 
@@ -2004,13 +2032,16 @@ BoundaryGeometry::PartInside (
             TriSePartloss_m[triangle_id] += Qloss;
         ret = 0;
     }
-#ifdef DEBUG_PART_INSIDE
-    *gmsg << "* " << __func__ << ": "
-          << "return: " << ret;
-    if (ret == 0) {
-        *gmsg << "  intersetion: " << intersect_pt;
+#ifdef ENABLE_DEBUG
+    if (debugFlags_m & debug_PartInside) {
+        *gmsg << "* " << __func__ << ":"
+              << "  result=" << ret;
+        if (ret == 0) {
+            *gmsg << "  intersetion=" << intersect_pt;
+        }
+        *gmsg << endl;
+        debugFlags_m = saved_flags;
     }
-    *gmsg << endl;
 #endif
     IpplTimings::stopTimer (TPInside_m);
     return ret;
@@ -2076,7 +2107,7 @@ BoundaryGeometry::printInfo (Inform& os) const {
        << "* Geometry length(m)         " << len_m << '\n'
        << "* Boundary box grid num      " << nr_m << '\n'
        << "* Boundary box size(m)       " << hr_m << '\n'
-       << "* Size of boundary index set " << boundaryVoxelIDs_m.size () << '\n'
+       << "* Size of boundary index set " << trianglesIntersectingVoxel_m.size () << '\n'
        << "* Number of all boxes        " << nr_m (0) * nr_m (1) * nr_m (2) << '\n'
         << endl;
     os << "* ********************************************************************************** " << endl;

@@ -362,12 +362,21 @@ public:
         const Vector_t P                    // [in] point to test
         );
 
-    inline void enable_debug(void) {
-        enable_debug_output = true;
+    enum DebugFlags {
+        debug_isInside                         = 0x0001,
+        debug_fastIsInside                     = 0x0002,
+        debug_intersectRayBoundary             = 0x0004,
+        debug_intersectLineSegmentBoundary     = 0x0008,
+        debug_intersectTinyLineSegmentBoundary = 0x0010,
+        debug_PartInside                       = 0x0020,
+    };
+
+    inline void enableDebug(enum DebugFlags flags) {
+        debugFlags_m |= flags;
     }
 
-    inline void disable_debug(void) {
-        enable_debug_output = false;
+    inline void disableDebug(enum DebugFlags flags) {
+        debugFlags_m &= ~flags;
     }
 
     inline void setTimeStep(int timestep) {
@@ -415,7 +424,6 @@ private:
     Vector_t mincoords_m;               // minimum of geometry coordinate.
     Vector_t maxcoords_m;               // maximum of geometry coordinate.
 
-    std::unordered_set<int> boundaryVoxelIDs_m;    // boundary voxeliziation IDs
     Vector_t hr_m;                      // length of cubic box
     Vector_t len_m;                     // extend of geometries bounding box
     Vektor<int, 3> nr_m;                // number of intervals of geometry in X,Y,Z direction
@@ -432,7 +440,7 @@ private:
 
     Vector_t outside_point_m;           // a point outside the domain
 
-    bool enable_debug_output;
+    int debugFlags_m;
     int timeStep;
 
     std::vector<Vector_t> partsp_m;     // particle momenta
