@@ -358,8 +358,8 @@ public:
         Vector_t& I);
 
     int fastIsInside (
-        const Vector_t reference_pt,        // [in] a reference point
-        const Vector_t P                    // [in] point to test
+        const Vector_t& reference_pt,        // [in] a reference point
+        const Vector_t& P                    // [in] point to test
         );
 
     enum DebugFlags {
@@ -377,14 +377,6 @@ public:
 
     inline void disableDebug(enum DebugFlags flags) {
         debugFlags_m &= ~flags;
-    }
-
-    inline void setTimeStep(int timestep) {
-        timeStep = timestep;
-    }
-   
-    inline int getTimeStep(void) {
-        return timeStep;
     }
 
 private:

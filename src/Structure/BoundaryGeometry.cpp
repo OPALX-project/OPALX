@@ -14,6 +14,7 @@
 #include "Structure/PriEmissionPhysics.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
+#include <gsl/gsl_sys.h>
 
 extern Inform* gmsg;
 
@@ -23,6 +24,8 @@ std::stringstream debug_output;
 #define SQR(x) ((x)*(x))
 #define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
 #define Point(triangle_id, vertex_id)   geo3Dcoords_m[allbfaces_m[4 * (triangle_id) + (vertex_id)]]
+
+#define EPS 10e-10
 
 /*
 
@@ -78,45 +81,6 @@ Vector_t get_min_extend (std::vector<Vector_t>& coords) {
     const Vector_t z = *min_element (
         coords.begin (), coords.end (), VectorLessZ ());
     return Vector_t (x (0), y (1), z (2));
-}
-
-/*
-  "ULP compare" for double precision floating point numbers.
-  See:
-    http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
-
-  Note:
-    An updated version of this document with improved code is here:
-    http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
-
- */
-static int64_t fcmp (
-    const double A,
-    const double B
-    ) {
-    const int maxUlps = 4;
-                    
-    // Make sure maxUlps is non-negative and small enough that the
-    // default NAN won't compare as equal to anything.
-    //assert (maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
-    //assert (sizeof (long long) == sizeof (int64_t) );
-    //assert (sizeof (long long) == sizeof (double) );
-                    
-    // Make [ab]Int lexicographically ordered as a twos-complement int
-    const double* pa = &A;
-    int64_t aInt = *(int64_t*)pa;
-    if (aInt < 0)
-        aInt = 0x8000000000000000LL - aInt;
-                    
-    const double* pb = &B;
-    int64_t bInt = *(int64_t*)pb;
-    if (bInt < 0)
-        bInt = 0x8000000000000000LL - bInt;
-                    
-    const int64_t intDiff = aInt - bInt;
-    if (llabs(intDiff) <= maxUlps)
-        return 0;
-    return intDiff;
 }
 
 /*
@@ -267,16 +231,33 @@ static inline int
 face_plane (
     const Vector_t& p
     ) {
-    int outcode;
+    int outcode_fcmp = 0;
 
-    outcode = 0;
+    if (gsl_fcmp (p[0], 0.5, EPS) > 0) outcode_fcmp |= 0x01;
+    if (gsl_fcmp (p[0],-0.5, EPS) < 0) outcode_fcmp |= 0x02;
+    if (gsl_fcmp (p[1], 0.5, EPS) > 0) outcode_fcmp |= 0x04;
+    if (gsl_fcmp (p[1],-0.5, EPS) < 0) outcode_fcmp |= 0x08;
+    if (gsl_fcmp (p[2], 0.5, EPS) > 0) outcode_fcmp |= 0x10;
+    if (gsl_fcmp (p[2],-0.5, EPS) < 0) outcode_fcmp |= 0x20;
+
+#if 0
+    int outcode = 0;
     if (p[0] >  .5) outcode |= 0x01;
     if (p[0] < -.5) outcode |= 0x02;
     if (p[1] >  .5) outcode |= 0x04;
     if (p[1] < -.5) outcode |= 0x08;
     if (p[2] >  .5) outcode |= 0x10;
     if (p[2] < -.5) outcode |= 0x20;
-    return(outcode);
+
+    if (outcode != outcode_fcmp) {
+        *gmsg << "* " << __func__ << ":"
+              << " P=" << p
+              << "  outcode=" << outcode
+              << "  outcode_fcmp=" << outcode_fcmp
+              << endl;
+    }
+#endif
+    return(outcode_fcmp);
 }
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -287,9 +268,23 @@ static inline int
 bevel_2d (
     const Vector_t& p
     ) {
-    int outcode;
+    int outcode_fcmp = 0;
 
-    outcode = 0;
+    if (gsl_fcmp( p[0] + p[1], 1.0, EPS) > 0) outcode_fcmp |= 0x001;
+    if (gsl_fcmp( p[0] - p[1], 1.0, EPS) > 0) outcode_fcmp |= 0x002;
+    if (gsl_fcmp(-p[0] + p[1], 1.0, EPS) > 0) outcode_fcmp |= 0x004;
+    if (gsl_fcmp(-p[0] - p[1], 1.0, EPS) > 0) outcode_fcmp |= 0x008;
+    if (gsl_fcmp( p[0] + p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x010;
+    if (gsl_fcmp( p[0] - p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x020;
+    if (gsl_fcmp(-p[0] + p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x040;
+    if (gsl_fcmp(-p[0] - p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x080;
+    if (gsl_fcmp( p[1] + p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x100;
+    if (gsl_fcmp( p[1] - p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x200;
+    if (gsl_fcmp(-p[1] + p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x400;
+    if (gsl_fcmp(-p[1] - p[2], 1.0, EPS) > 0) outcode_fcmp |= 0x800;
+
+#if 0
+    int outcode = 0;
     if ( p[0] + p[1] > 1.0) outcode |= 0x001;
     if ( p[0] - p[1] > 1.0) outcode |= 0x002;
     if (-p[0] + p[1] > 1.0) outcode |= 0x004;
@@ -302,7 +297,16 @@ bevel_2d (
     if ( p[1] - p[2] > 1.0) outcode |= 0x200;
     if (-p[1] + p[2] > 1.0) outcode |= 0x400;
     if (-p[1] - p[2] > 1.0) outcode |= 0x800;
-    return(outcode);
+
+    if (outcode != outcode_fcmp) {
+        *gmsg << "* " << __func__ << ":"
+              << " P=" << p
+              << "  outcode=" << outcode
+              << "  outcode_fcmp=" << outcode_fcmp
+              << endl;
+    }
+#endif
+    return(outcode_fcmp);
 }
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
@@ -313,9 +317,18 @@ static inline int
 bevel_3d (
     const Vector_t& p
     ) {
-    int outcode;
+    int outcode_fcmp = 0;
 
-    outcode = 0;
+    if (gsl_fcmp( p[0] + p[1] + p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x01;
+    if (gsl_fcmp( p[0] + p[1] - p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x02;
+    if (gsl_fcmp( p[0] - p[1] + p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x04;
+    if (gsl_fcmp( p[0] - p[1] - p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x08;
+    if (gsl_fcmp(-p[0] + p[1] + p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x10;
+    if (gsl_fcmp(-p[0] + p[1] - p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x20;
+    if (gsl_fcmp(-p[0] - p[1] + p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x40;
+    if (gsl_fcmp(-p[0] - p[1] - p[2], 1.5, EPS) > 0) outcode_fcmp |= 0x80;
+#if 0
+    int outcode = 0;
     if (( p[0] + p[1] + p[2]) > 1.5) outcode |= 0x01;
     if (( p[0] + p[1] - p[2]) > 1.5) outcode |= 0x02;
     if (( p[0] - p[1] + p[2]) > 1.5) outcode |= 0x04;
@@ -324,7 +337,16 @@ bevel_3d (
     if ((-p[0] + p[1] - p[2]) > 1.5) outcode |= 0x20;
     if ((-p[0] - p[1] + p[2]) > 1.5) outcode |= 0x40;
     if ((-p[0] - p[1] - p[2]) > 1.5) outcode |= 0x80;
-    return(outcode);
+
+    if (outcode != outcode_fcmp) {
+        *gmsg << "* " << __func__ << ":"
+              << " P=" << p
+              << "  outcode=" << outcode
+              << "  outcode_fcmp=" << outcode_fcmp
+              << endl;
+    }
+#endif
+    return(outcode_fcmp);
 }
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -382,8 +404,6 @@ check_line (
   Test if 3D point is inside 3D triangle
 */
 
-#define EPS 10e-15
-
 static inline int
 SIGN3 (
     Vector_t A
@@ -402,12 +422,12 @@ point_triangle_intersection (
       First, a quick bounding-box test:
       If P is outside triangle bbox, there cannot be an intersection.
     */
-    if (fcmp (p[0], MAX3(t.v1(0), t.v2(0), t.v3(0))) > 0) return(OUTSIDE);  
-    if (fcmp (p[1], MAX3(t.v1(1), t.v2(1), t.v3(1))) > 0) return(OUTSIDE);
-    if (fcmp (p[2], MAX3(t.v1(2), t.v2(2), t.v3(2))) > 0) return(OUTSIDE);
-    if (fcmp (p[0], MIN3(t.v1(0), t.v2(0), t.v3(0))) < 0) return(OUTSIDE);
-    if (fcmp (p[1], MIN3(t.v1(1), t.v2(1), t.v3(1))) < 0) return(OUTSIDE);
-    if (fcmp (p[2], MIN3(t.v1(2), t.v2(2), t.v3(2))) < 0) return(OUTSIDE);
+    if (gsl_fcmp (p[0], MAX3(t.v1(0), t.v2(0), t.v3(0)), EPS) > 0) return(OUTSIDE);  
+    if (gsl_fcmp (p[1], MAX3(t.v1(1), t.v2(1), t.v3(1)), EPS) > 0) return(OUTSIDE);
+    if (gsl_fcmp (p[2], MAX3(t.v1(2), t.v2(2), t.v3(2)), EPS) > 0) return(OUTSIDE);
+    if (gsl_fcmp (p[0], MIN3(t.v1(0), t.v2(0), t.v3(0)), EPS) < 0) return(OUTSIDE);
+    if (gsl_fcmp (p[1], MIN3(t.v1(1), t.v2(1), t.v3(1)), EPS) < 0) return(OUTSIDE);
+    if (gsl_fcmp (p[2], MIN3(t.v1(2), t.v2(2), t.v3(2)), EPS) < 0) return(OUTSIDE);
     
     /*
       For each triangle side, make a vector out of it by subtracting vertexes;
@@ -661,25 +681,37 @@ public:
 
     inline bool intersect (
         const Ray& r
-        ) {
+        ) const {
         double tmin = 0.0;
         double tmax = 0.0;
         return intersect(r, tmin, tmax);
     }
 
-    inline Vector_t extend () const {
-        return (pts[1] - pts[0]);
-    }
-
     inline int intersect (
         const Triangle& t
-        ) {
+        ) const {
         Voxel v_ = *this;
         Triangle t_ = t;
         const Vector_t scaleby = 1.0 / v_.extend(); 
         v_.scale (scaleby);
         t_.scale (scaleby , v_.pts[0] + 0.5);
         return triangle_intersects_cube (t_);
+    }
+
+    inline Vector_t extend () const {
+        return (pts[1] - pts[0]);
+    }
+
+    inline bool isInside  (
+        const Vector_t& P
+        ) const {
+        return (
+            P[0] >= pts[0][0] &&
+            P[1] >= pts[0][1] &&
+            P[2] >= pts[0][2] &&
+            P[0] <= pts[1][0] &&
+            P[1] <= pts[1][1] &&
+            P[2] <= pts[1][2]);
     }
 
     Vector_t pts[2];
@@ -966,7 +998,7 @@ BoundaryGeometry::intersectLineTriangle (
     const Vector_t w0 = P0 - V0;
     const double a = -dot(n,w0);
     const double b = dot(n,dir);
-    if (fcmp (b, 0.0) == 0) {           // ray is  parallel to triangle plane
+    if (gsl_fcmp (b, 0.0, EPS) == 0) {  // ray is  parallel to triangle plane
         if (a == 0) {                   // ray lies in triangle plane
             return 1;
         } else {                        // ray disjoint from plane
@@ -1035,9 +1067,11 @@ static inline double magnitude (
  */
 int
 BoundaryGeometry::fastIsInside (
-    const Vector_t reference_pt,        // [in] reference pt inside the boundary
-    const Vector_t P                    // [in] pt to test
+    const Vector_t& reference_pt,        // [in] reference pt inside the boundary
+    const Vector_t& P                    // [in] pt to test
     ) {
+    const Voxel c(mincoords_m, maxcoords_m);
+    if (!c.isInside (P)) return 1;
     IpplTimings::startTimer (TRayTrace_m);
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
@@ -1145,32 +1179,6 @@ BoundaryGeometry::mapVoxelIndices2ID (
     return 1 + k * nr_m[0] * nr_m[1] + j * nr_m[0] + i;
 }
 
-#if 0
-inline bool
-BoundaryGeometry::mapPoint2VoxelIndices(
-    const Vector_t pt,
-    int& i,
-    int& j,
-    int& k
-    ) {
-    i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);
-    j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);
-    k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
-    if (!(0 <= i && i < nr_m[0] &&
-          0 <= j && j < nr_m[1] &&
-          0 <= k && k < nr_m[2])) {
-        *gmsg << "* " << __func__ << ":"
-              << "  WARNING: pt=" << pt
-              << "  is outside the bbox"
-              << "  i=" << i
-              << "  j=" << j
-              << "  k=" << k
-              << endl;
-        return false;
-    }
-    return true;
-}
-#else
 #define mapPoint2VoxelIndices(pt, i, j, k) {                            \
     i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);          \
     j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);          \
@@ -1185,7 +1193,6 @@ BoundaryGeometry::mapPoint2VoxelIndices(
               << endl; \
     } \
 }
-#endif
 
 inline Vector_t
 BoundaryGeometry::mapIndices2Voxel (
@@ -1329,9 +1336,9 @@ void BoundaryGeometry::initialize () {
               geometry shape maybe need to be summarized and modeled in a more
               flexible manner and could be adjusted in input file.
             */
-            bg->nr_m (0) = (int)floor (bg->len_m (0) / bg->longest_side_max_m * 8.0);
-            bg->nr_m (1) = (int)floor (bg->len_m (1) / bg->longest_side_max_m * 8.0);
-            bg->nr_m (2) = (int)floor (bg->len_m (2) / bg->longest_side_max_m * 8.0);
+            bg->nr_m (0) = 16 * (int)floor (bg->len_m (0) / bg->longest_side_max_m);
+            bg->nr_m (1) = 16 * (int)floor (bg->len_m (1) / bg->longest_side_max_m);
+            bg->nr_m (2) = 16 * (int)floor (bg->len_m (2) / bg->longest_side_max_m);
 
             bg->hr_m = bg->len_m / bg->nr_m;
             bg->voxelMesh_m.minExtend = bg->mincoords_m - 0.5 * bg->hr_m;
@@ -1564,7 +1571,7 @@ Change orientation if diff is:
 
             const Vector_t N = cross (B - A, C - A);
             const double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
-            assert (fcmp (magnitude, 0.0) > 0); // in case we have degenerted triangles
+            assert (gsl_fcmp (magnitude, 0.0, EPS) > 0); // in case we have degenerted triangles
             return N / magnitude;
         }
 
@@ -1898,9 +1905,9 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
         case 1:                     // line and triangle are in same plane
         case 3:                     // unique intersection in segment
             double t;
-            if (fcmp (Q[0] - P[0], 0.0) != 0) {
+            if (gsl_fcmp (Q[0] - P[0], 0.0, EPS) != 0) {
                 t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
-            } else if (fcmp (Q[1] - P[1], 0.0) != 0) {
+            } else if (gsl_fcmp (Q[1] - P[1], 0.0, EPS) != 0) {
                 t = (tmp_intersect_pt[1] - P[1]) / (Q[1] - P[1]);
             } else {
                 t = (tmp_intersect_pt[2] - P[2]) / (Q[2] - P[2]);
