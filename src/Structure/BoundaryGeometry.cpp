@@ -92,14 +92,15 @@ Vector_t get_min_extend (std::vector<Vector_t>& coords) {
  */
 static int64_t fcmp (
     const double A,
-    const double B,
-    const int maxUlps ) {
+    const double B
+    ) {
+    const int maxUlps = 4;
                     
     // Make sure maxUlps is non-negative and small enough that the
     // default NAN won't compare as equal to anything.
-    assert (maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
-    assert (sizeof (long long) == sizeof (int64_t) );
-    assert (sizeof (long long) == sizeof (double) );
+    //assert (maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
+    //assert (sizeof (long long) == sizeof (int64_t) );
+    //assert (sizeof (long long) == sizeof (double) );
                     
     // Make [ab]Int lexicographically ordered as a twos-complement int
     const double* pa = &A;
@@ -965,7 +966,7 @@ BoundaryGeometry::intersectLineTriangle (
     const Vector_t w0 = P0 - V0;
     const double a = -dot(n,w0);
     const double b = dot(n,dir);
-    if (fcmp (b, 0.0, 4) == 0) {       // ray is  parallel to triangle plane
+    if (fcmp (b, 0.0) == 0) {           // ray is  parallel to triangle plane
         if (a == 0) {                   // ray lies in triangle plane
             return 1;
         } else {                        // ray disjoint from plane
@@ -1549,7 +1550,7 @@ Change orientation if diff is:
 
             const Vector_t N = cross (B - A, C - A);
             const double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
-            assert (fcmp (magnitude, 0.0, 10) > 0); // in case we have degenerted triangles
+            assert (fcmp (magnitude, 0.0) > 0); // in case we have degenerted triangles
             return N / magnitude;
         }
 
@@ -1883,9 +1884,9 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
         case 1:                     // line and triangle are in same plane
         case 3:                     // unique intersection in segment
             double t;
-            if (fcmp (Q[0] - P[0], 0.0, 4) != 0) {
+            if (fcmp (Q[0] - P[0], 0.0) != 0) {
                 t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
-            } else if (fcmp (Q[1] - P[1], 0.0, 4) != 0) {
+            } else if (fcmp (Q[1] - P[1], 0.0) != 0) {
                 t = (tmp_intersect_pt[1] - P[1]) / (Q[1] - P[1]);
             } else {
                 t = (tmp_intersect_pt[2] - P[2]) / (Q[2] - P[2]);
