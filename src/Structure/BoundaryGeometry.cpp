@@ -265,7 +265,7 @@ public:
 
 static inline int
 face_plane (
-    const Vector_t p
+    const Vector_t& p
     ) {
     int outcode;
 
@@ -285,7 +285,7 @@ face_plane (
 
 static inline int
 bevel_2d (
-    const Vector_t p
+    const Vector_t& p
     ) {
     int outcode;
 
@@ -311,7 +311,7 @@ bevel_2d (
 */
 static inline int
 bevel_3d (
-    const Vector_t p
+    const Vector_t& p
     ) {
     int outcode;
 
@@ -336,8 +336,8 @@ bevel_3d (
 
 static inline int
 check_point (
-    const Vector_t p1,
-    const Vector_t p2,
+    const Vector_t& p1,
+    const Vector_t& p2,
     const double alpha,
     const int mask
     ) {
@@ -358,8 +358,8 @@ check_point (
 */
 static inline int
 check_line (
-    const Vector_t p1,
-    const Vector_t p2,
+    const Vector_t& p1,
+    const Vector_t& p2,
     const int outcode_diff
     ) {
     if ((0x01 & outcode_diff) != 0)
@@ -395,8 +395,8 @@ SIGN3 (
 
 static int
 point_triangle_intersection (
-    const Vector_t p,
-    const Triangle t
+    const Vector_t& p,
+    const Triangle& t
     ) {
     /*
       First, a quick bounding-box test:
@@ -1038,6 +1038,7 @@ BoundaryGeometry::fastIsInside (
     const Vector_t reference_pt,        // [in] reference pt inside the boundary
     const Vector_t P                    // [in] pt to test
     ) {
+    IpplTimings::startTimer (TRayTrace_m);
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
     if (debugFlags_m & debug_fastIsInside) {
@@ -1067,6 +1068,7 @@ BoundaryGeometry::fastIsInside (
         debugFlags_m = saved_flags;
     }
 #endif
+    IpplTimings::stopTimer (TRayTrace_m);
     return result;
 }
 
@@ -1084,6 +1086,7 @@ BoundaryGeometry::intersectRayBoundary (
     const Vector_t& v,
     Vector_t& I
     ) {
+    IpplTimings::startTimer (TRayTrace_m);
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
     if (debugFlags_m & debug_intersectRayBoundary) {
@@ -1100,12 +1103,14 @@ BoundaryGeometry::intersectRayBoundary (
       run line segment boundary intersection test with P and P1
      */
     Ray r = Ray (P, v);
-    Voxel c = Voxel (voxelMesh_m.minExtend, voxelMesh_m.maxExtend);
+    Voxel c = Voxel (voxelMesh_m.minExtend+0.25*hr_m, voxelMesh_m.maxExtend-0.25*hr_m);
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect (r, tmin, tmax);
     int triangle_id = -1;
-    int result = (intersectLineSegmentBoundary (P, P + tmax*v, I, triangle_id) > 0) ? 1 : 0;
+    int result = (intersectLineSegmentBoundary (
+                      P, P + (tmax*v),
+                      I, triangle_id) > 0) ? 1 : 0;
 #ifdef ENABLE_DEBUG
     if (debugFlags_m & debug_intersectRayBoundary) {
         *gmsg << "* " << __func__ << ": "
@@ -1115,6 +1120,7 @@ BoundaryGeometry::intersectRayBoundary (
         debugFlags_m = saved_flags;
     }
 #endif
+    IpplTimings::stopTimer (TRayTrace_m);
     return result;
 }
 
@@ -1139,6 +1145,7 @@ BoundaryGeometry::mapVoxelIndices2ID (
     return 1 + k * nr_m[0] * nr_m[1] + j * nr_m[0] + i;
 }
 
+#if 0
 inline bool
 BoundaryGeometry::mapPoint2VoxelIndices(
     const Vector_t pt,
@@ -1149,24 +1156,36 @@ BoundaryGeometry::mapPoint2VoxelIndices(
     i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);
     j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);
     k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
-    if (0 <= i && i < nr_m[0] &&
-        0 <= j && j < nr_m[1] &&
-        0 <= k && k < nr_m[2]) {
-        return true;
+    if (!(0 <= i && i < nr_m[0] &&
+          0 <= j && j < nr_m[1] &&
+          0 <= k && k < nr_m[2])) {
+        *gmsg << "* " << __func__ << ":"
+              << "  WARNING: pt=" << pt
+              << "  is outside the bbox"
+              << "  i=" << i
+              << "  j=" << j
+              << "  k=" << k
+              << endl;
+        return false;
     }
-    return false;
+    return true;
 }
-    
-inline int
-BoundaryGeometry::mapPoint2VoxelID (
-    const Vector_t x
-    ) {
-    int i, j, k;
-    if (mapPoint2VoxelIndices (x, i, j, k)) {
-        return mapVoxelIndices2ID (i, j, k);
-    }
-    return -1;
+#else
+#define mapPoint2VoxelIndices(pt, i, j, k) {                            \
+    i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);          \
+    j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);          \
+    k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);          \
+    if (!(0 <= i && i < nr_m[0] && 0 <= j && j < nr_m[1] && 0 <= k && k < nr_m[2])) { \
+        *gmsg << "* " << __func__ << ":"                                \
+              << "  WARNING: pt=" << pt \
+              << "  is outside the bbox" \
+              << "  i=" << i \
+              << "  j=" << j \
+              << "  k=" << k \
+              << endl; \
+    } \
 }
+#endif
 
 inline Vector_t
 BoundaryGeometry::mapIndices2Voxel (
@@ -1189,6 +1208,68 @@ BoundaryGeometry::mapPoint2Voxel (
     const int k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
 
     return mapIndices2Voxel (i, j, k);
+}
+
+
+inline void
+BoundaryGeometry::computeTriangleVoxelization (
+    const int triangle_id,
+    std::unordered_map< int, std::unordered_set<int> >& voxels
+    ) {
+    Vector_t v1 = getPoint (triangle_id, 1);
+    Vector_t v2 = getPoint (triangle_id, 2);
+    Vector_t v3 = getPoint (triangle_id, 3);
+    Vector_t bbox_min = {
+        MIN3 (v1[0], v2[0], v3[0]),
+        MIN3 (v1[1], v2[1], v3[1]),
+        MIN3 (v1[2], v2[2], v3[2]) };
+    Vector_t bbox_max = {
+        MAX3 (v1[0], v2[0], v3[0]),
+        MAX3 (v1[1], v2[1], v3[1]),
+        MAX3 (v1[2], v2[2], v3[2]) };
+    int i_min, j_min, k_min;
+    int i_max, j_max, k_max;
+    mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
+    mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
+
+    voxels.reserve ((i_max-i_min+1) * (j_max-j_min+1) * (k_max-k_min+1));
+    std::unordered_set<int> triangle (&triangle_id, &triangle_id+1);
+    for (int i = i_min; i <= i_max; i++) {
+        for (int j = j_min; j <= j_max; j++) {
+            for (int k = k_min; k <= k_max; k++) {
+                // test if voxel (i,j,k) has an intersection with triangle
+                if (intersectTriangleVoxel (triangle_id, i, j, k) == INSIDE) {
+                    int voxel_id = mapVoxelIndices2ID (i, j, k);
+                    voxels[voxel_id] = triangle;
+                }
+            }
+        }
+    } 
+}
+
+inline void
+BoundaryGeometry::computeMeshVoxelization (void) {
+    for (int triangle_id = 0; triangle_id < num_triangles_m; triangle_id++) {
+        std::unordered_map< int, std::unordered_set<int> > voxels;
+        computeTriangleVoxelization (triangle_id, voxels);
+
+        // add map for given triangle to map for mesh
+        for (auto mapIt = voxels.begin (); mapIt != voxels.end (); mapIt++) {
+            auto it = trianglesIntersectingVoxel_m.find (mapIt->first);
+            if (it == trianglesIntersectingVoxel_m.end ()) {
+                trianglesIntersectingVoxel_m [mapIt->first] = mapIt->second;
+            } else {
+                it->second.insert (mapIt->second.begin(), mapIt->second.end());
+            }
+        }
+        if (triangle_id > 0 && (triangle_id % 1000) == 0)
+            *gmsg << "* Triangle ID: " << triangle_id << endl;
+    } // for_each triangle
+    *gmsg << "* Boundary index set built done." << endl;
+    if(Ippl::myNode() == 0) {
+        write_voxel_mesh (trianglesIntersectingVoxel_m,
+                          hr_m, nr_m, voxelMesh_m.minExtend);
+    }
 }
 
 
@@ -1262,73 +1343,6 @@ void BoundaryGeometry::initialize () {
             *gmsg << "* Geometry interval built done." << endl;
         }
 
-        /*
-          add voxels to integer array
-          sort this array
-          get unique set 
-         */
-
-        static inline void computeTriangleVoxelization (
-            BoundaryGeometry* bg,
-            const int triangle_id,
-            std::unordered_map< int, std::unordered_set<int> >& voxels
-            ) {
-            Vector_t v1 = bg->getPoint (triangle_id, 1);
-            Vector_t v2 = bg->getPoint (triangle_id, 2);
-            Vector_t v3 = bg->getPoint (triangle_id, 3);
-            Vector_t bbox_min = {
-                MIN3 (v1[0], v2[0], v3[0]),
-                MIN3 (v1[1], v2[1], v3[1]),
-                MIN3 (v1[2], v2[2], v3[2]) };
-            Vector_t bbox_max = {
-                MAX3 (v1[0], v2[0], v3[0]),
-                MAX3 (v1[1], v2[1], v3[1]),
-                MAX3 (v1[2], v2[2], v3[2]) };
-            int i_min, j_min, k_min;
-            int i_max, j_max, k_max;
-            bg->mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
-            bg->mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
-
-            voxels.reserve ((i_max-i_min+1) * (j_max-j_min+1) * (k_max-k_min+1));
-            std::unordered_set<int> triangle (&triangle_id, &triangle_id+1);
-            for (int i = i_min; i <= i_max; i++) {
-                for (int j = j_min; j <= j_max; j++) {
-                    for (int k = k_min; k <= k_max; k++) {
-                        // test if voxel (i,j,k) has an intersection with triangle
-                        if (bg->intersectTriangleVoxel (triangle_id, i, j, k) == INSIDE) {
-                            int voxel_id = bg->mapVoxelIndices2ID (i, j, k);
-                            voxels[voxel_id] = triangle;
-                        }
-                    }
-                }
-            } 
-        }
-
-        static void computeMeshVoxelization (BoundaryGeometry* bg) {
-
-            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                std::unordered_map< int, std::unordered_set<int> > voxels;
-                computeTriangleVoxelization (bg, triangle_id, voxels);
-
-                // add map for given triangle to map for mesh
-                for (auto mapIt = voxels.begin (); mapIt != voxels.end (); mapIt++) {
-                    auto it = bg->trianglesIntersectingVoxel_m.find (mapIt->first);
-                    if (it == bg->trianglesIntersectingVoxel_m.end ()) {
-                        bg->trianglesIntersectingVoxel_m [mapIt->first] = mapIt->second;
-                    } else {
-                        it->second.insert (mapIt->second.begin(), mapIt->second.end());
-                    }
-                }
-                if (triangle_id > 0 && (triangle_id % 1000) == 0)
-                    *gmsg << "* Triangle ID: " << triangle_id << endl;
-            } // for_each triangle
-            *gmsg << "* Boundary index set built done." << endl;
-            if(Ippl::myNode() == 0) {
-                write_voxel_mesh (bg->trianglesIntersectingVoxel_m,
-                                  bg->hr_m,
-                                  bg->nr_m, bg->voxelMesh_m.minExtend);
-            }
-        }
 
 /*
   
@@ -1728,7 +1742,7 @@ Change orientation if diff is:
 
     Local::computeGeometryInterval (this);
 
-    Local::computeMeshVoxelization (this);
+    computeMeshVoxelization ();
     Local::makeTriangleNormalInwardPointing (this);
     Local::setBGphysicstag (this);
 

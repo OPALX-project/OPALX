@@ -525,9 +525,11 @@ private:
         int& k);
 
     inline int mapVoxelIndices2ID (const int i, const int j, const int k);
-    inline int mapPoint2VoxelID (const Vector_t x);
     inline Vector_t mapIndices2Voxel (const int, const int, const int);
     inline Vector_t mapPoint2Voxel (const Vector_t&);
+    inline void computeTriangleVoxelization (
+        const int, std::unordered_map< int, std::unordered_set<int> >&);
+    inline void computeMeshVoxelization (void);
 
     enum {
         FGEOM,    // file holding the geometry
