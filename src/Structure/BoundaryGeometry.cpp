@@ -402,12 +402,12 @@ point_triangle_intersection (
       First, a quick bounding-box test:
       If P is outside triangle bbox, there cannot be an intersection.
     */
-    if (p[0] > MAX3(t.v1(0), t.v2(0), t.v3(0))) return(OUTSIDE);  
-    if (p[1] > MAX3(t.v1(1), t.v2(1), t.v3(1))) return(OUTSIDE);
-    if (p[2] > MAX3(t.v1(2), t.v2(2), t.v3(2))) return(OUTSIDE);
-    if (p[0] < MIN3(t.v1(0), t.v2(0), t.v3(0))) return(OUTSIDE);
-    if (p[1] < MIN3(t.v1(1), t.v2(1), t.v3(1))) return(OUTSIDE);
-    if (p[2] < MIN3(t.v1(2), t.v2(2), t.v3(2))) return(OUTSIDE);
+    if (fcmp (p[0], MAX3(t.v1(0), t.v2(0), t.v3(0))) > 0) return(OUTSIDE);  
+    if (fcmp (p[1], MAX3(t.v1(1), t.v2(1), t.v3(1))) > 0) return(OUTSIDE);
+    if (fcmp (p[2], MAX3(t.v1(2), t.v2(2), t.v3(2))) > 0) return(OUTSIDE);
+    if (fcmp (p[0], MIN3(t.v1(0), t.v2(0), t.v3(0))) < 0) return(OUTSIDE);
+    if (fcmp (p[1], MIN3(t.v1(1), t.v2(1), t.v3(1))) < 0) return(OUTSIDE);
+    if (fcmp (p[2], MIN3(t.v1(2), t.v2(2), t.v3(2))) < 0) return(OUTSIDE);
     
     /*
       For each triangle side, make a vector out of it by subtracting vertexes;
