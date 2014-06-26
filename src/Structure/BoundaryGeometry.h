@@ -406,9 +406,6 @@ private:
     int num_points_m;                   // number of boundary points (vertices)
     int num_triangles_m;                // number of boundary triangles
 
-    double longest_side_max_m;          // maximum of all triangle longest sides 
-    double longest_side_min_m;          // minimum of all triangle longest sides 
-
     std::vector<Vector_t> TriNormal_m;   // oriented normal vector of triangles
     std::vector<double> Triarea_m;       // area of triangles
 
@@ -430,10 +427,7 @@ private:
     std::map< int, std::unordered_set<int> >
             triangleNeighbors_m;        // map vertex ID to triangles with this vertex
 
-    Vector_t outside_point_m;           // a point outside the domain
-
     int debugFlags_m;
-    int timeStep;
 
     std::vector<Vector_t> partsp_m;     // particle momenta
     std::vector<Vector_t> partsr_m;     // particle positions

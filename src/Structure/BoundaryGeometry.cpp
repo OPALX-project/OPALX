@@ -1256,6 +1256,7 @@ BoundaryGeometry::computeTriangleVoxelization (
 
 inline void
 BoundaryGeometry::computeMeshVoxelization (void) {
+    
     for (int triangle_id = 0; triangle_id < num_triangles_m; triangle_id++) {
         std::unordered_map< int, std::unordered_set<int> > voxels;
         computeTriangleVoxelization (triangle_id, voxels);
@@ -1296,8 +1297,7 @@ void BoundaryGeometry::initialize () {
               Calculate the maximum dimension of triangles. This value will be used to
               define the cubic box size
             */
-            bg->longest_side_max_m = 0.0;
-            bg->longest_side_min_m = 0.01;
+            double longest_edge_max_m = 0.0;
             for (int i = 0; i < bg->num_triangles_m; i++) {
                 // compute length of longest edge
                 const Vector_t x1 = bg->getPoint (i, 1);
@@ -1315,8 +1315,7 @@ void BoundaryGeometry::initialize () {
                 if (length_edge3 > max) max = length_edge3;
         
                 // save min and max of length of longest edge
-                if (bg->longest_side_max_m < max) bg->longest_side_max_m = max;
-                if (bg->longest_side_min_m > max) bg->longest_side_min_m = max;
+                if (longest_edge_max_m < max) longest_edge_max_m = max;
             }
 
             /*
@@ -1336,9 +1335,9 @@ void BoundaryGeometry::initialize () {
               geometry shape maybe need to be summarized and modeled in a more
               flexible manner and could be adjusted in input file.
             */
-            bg->nr_m (0) = 16 * (int)floor (bg->len_m (0) / bg->longest_side_max_m);
-            bg->nr_m (1) = 16 * (int)floor (bg->len_m (1) / bg->longest_side_max_m);
-            bg->nr_m (2) = 16 * (int)floor (bg->len_m (2) / bg->longest_side_max_m);
+            bg->nr_m (0) = 16 * (int)floor (bg->len_m (0) / longest_edge_max_m);
+            bg->nr_m (1) = 16 * (int)floor (bg->len_m (1) / longest_edge_max_m);
+            bg->nr_m (2) = 16 * (int)floor (bg->len_m (2) / longest_edge_max_m);
 
             bg->hr_m = bg->len_m / bg->nr_m;
             bg->voxelMesh_m.minExtend = bg->mincoords_m - 0.5 * bg->hr_m;
@@ -1346,7 +1345,6 @@ void BoundaryGeometry::initialize () {
             bg->voxelMesh_m.extend = bg->voxelMesh_m.maxExtend - bg->voxelMesh_m.minExtend;
             bg->nr_m += 1;
 
-            bg->outside_point_m = bg->maxcoords_m + bg->hr_m;
             *gmsg << "* Geometry interval built done." << endl;
         }
 
@@ -1473,8 +1471,7 @@ Change orientation if diff is:
                 bg->PointID (triangle_id, id[1]) = bg->PointID (ref_id, ic[0]);
             }
             bg->isOriented_m [triangle_id] = true;
-            std::unordered_set<int> neighbors = bg->triangleNeighbors_m[triangle_id];
-
+            const auto neighbors = bg->triangleNeighbors_m[triangle_id];
             const auto endIt = neighbors.end ();
             for (auto triangleIt = neighbors.begin(); triangleIt != endIt; triangleIt++) {
                 if (!bg->isOriented_m [*triangleIt])
@@ -1503,7 +1500,6 @@ Change orientation if diff is:
             IpplTimings::startTimer (bg->Tinward_m);
 
             Vector_t y = Vector_t (
-                //x[0],
                 bg->maxcoords_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
                 bg->maxcoords_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
                 bg->maxcoords_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
@@ -1557,7 +1553,6 @@ Change orientation if diff is:
                     std::inserter(intersect,intersect.begin()));
 
                 bg->triangleNeighbors_m.insert (std::pair <int, std::unordered_set<int>> (triangle_id, intersect));
-                                
             }
         }
 
@@ -1584,7 +1579,7 @@ Change orientation if diff is:
             const Vector_t C = bg->getPoint (triangle_id, 3);
             
             // choose a point P close to the center of the triangle
-            const Vector_t P = (A+B+C)/3 + bg->TriNormal_m[triangle_id] * 0.1 * bg->longest_side_min_m;
+            const Vector_t P = (A+B+C)/3 + bg->TriNormal_m[triangle_id] * 0.1;
 
             /*
               The triangle normal points inward, if P is
@@ -1799,14 +1794,13 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
               << endl;
     }
 #endif
-
-    Vector_t v_ = Q - P;
-    Ray r = Ray (P, v_);
-    Vector_t bbox_min = {
+    const Vector_t v_ = Q - P;
+    const Ray r = Ray (P, v_);
+    const Vector_t bbox_min = {
         MIN2 (P[0], Q[0]),
         MIN2 (P[1], Q[1]),
         MIN2 (P[2], Q[2]) };
-    Vector_t bbox_max = {
+    const Vector_t bbox_max = {
         MAX2 (P[0], Q[0]),
         MAX2 (P[1], Q[1]),
         MAX2 (P[2], Q[2]) };
@@ -1836,8 +1830,8 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     for (int i = i_min; i <= i_max; i++) {
         for (int j = j_min; j <= j_max; j++) {
             for (int k = k_min; k <= k_max; k++) {
-                Vector_t bmin = mapIndices2Voxel(i, j, k);
-                Voxel v(bmin, bmin + hr_m);
+                const Vector_t bmin = mapIndices2Voxel(i, j, k);
+                const Voxel v(bmin, bmin + hr_m);
 #ifdef ENABLE_DEBUG
                 if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
                     *gmsg << "* " << __func__ << ": "
@@ -1857,14 +1851,13 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                   get triangles intersectiong with this voxel and add them to
                   the to be tested triangles.
                  */
-                int voxel_id = mapVoxelIndices2ID (i, j, k);
-                const auto triangles_overlaping_with_voxel = trianglesIntersectingVoxel_m.find (voxel_id);
-                if (triangles_overlaping_with_voxel == trianglesIntersectingVoxel_m.end()) {
-                    continue;
+                const int voxel_id = mapVoxelIndices2ID (i, j, k);
+                const auto triangles_intersecting_voxel = trianglesIntersectingVoxel_m.find (voxel_id);
+                if (triangles_intersecting_voxel != trianglesIntersectingVoxel_m.end()) {
+                    triangle_ids.insert (
+                        triangles_intersecting_voxel->second.begin(),
+                        triangles_intersecting_voxel->second.end());
                 }
-                triangle_ids.insert (
-                    triangles_overlaping_with_voxel->second.begin(),
-                    triangles_overlaping_with_voxel->second.end());
             }
         }
     }
@@ -1874,6 +1867,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     */
     int num_intersections = 0;
     int tmp_intersect_result = 0;
+
     for (auto it = triangle_ids.begin ();
          it != triangle_ids.end ();
          it++) {
@@ -1895,9 +1889,6 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
         }
 #endif
         switch (tmp_intersect_result) {
-        case -1:                    // triangle is degenerated
-            assert (tmp_intersect_result != -1);
-            exit (42);              // terminate even if NDEBUG is set
         case 0:                     // no intersection
         case 2:                     // both points are outside
         case 4:                     // both points are inside
@@ -1925,6 +1916,10 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                 intersect_pt = tmp_intersect_pt;
                 triangle_id = (*it);
             }
+            break;
+        case -1:                    // triangle is degenerated
+            assert (tmp_intersect_result != -1);
+            exit (42);              // terminate even if NDEBUG is set
         }
     }                   // end for all triangles
     return num_intersections;
@@ -2122,8 +2117,6 @@ BoundaryGeometry::printInfo (Inform& os) const {
     }
     os << "* Total triangle num         " << num_triangles_m << '\n'
        << "* Total points num           " << num_points_m << '\n'
-       << "* Triangle side(m)   Max=    " << longest_side_max_m << '\n'
-       << "*                    Min=    " << longest_side_min_m << '\n'
        << "* Geometry bounds(m) Max=    " << maxcoords_m << '\n'
        << "*                    Min=    " << mincoords_m << '\n'
        << "* Geometry length(m)         " << len_m << '\n'
