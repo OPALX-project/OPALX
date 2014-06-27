@@ -468,10 +468,11 @@ private:
 
     gsl_rng *randGen_m;         // 
   
-    IpplTimings::TimerRef TPInside_m;   // timers for profiling
-    IpplTimings::TimerRef TPreProc_m;
-    IpplTimings::TimerRef TRayTrace_m;
-    IpplTimings::TimerRef Tinward_m;
+    IpplTimings::TimerRef Tinitialize_m; // initialize geometry
+    IpplTimings::TimerRef TisInside_m;
+    IpplTimings::TimerRef TfastIsInside_m;
+    IpplTimings::TimerRef TRayTrace_m;   // ray tracing
+    IpplTimings::TimerRef TPartInside_m; // particle inside 
 
     BoundaryGeometry(const BoundaryGeometry&);
     void operator= (const BoundaryGeometry&);

@@ -819,11 +819,13 @@ BoundaryGeometry::BoundaryGeometry() :
     BoundaryGeometry* defGeometry = clone ("UNNAMED_GEOMETRY");
     defGeometry->builtin = true;
 
-    TPInside_m = IpplTimings::getTimer ("Particle Inside");
-    TPreProc_m = IpplTimings::getTimer ("Pre Processing");
-    TRayTrace_m = IpplTimings::getTimer ("Ray tracing");
+    Tinitialize_m =   IpplTimings::getTimer ("Initialize geometry");
+    TisInside_m =     IpplTimings::getTimer ("Inside test");
+    TfastIsInside_m = IpplTimings::getTimer ("Fast inside test");
+    TRayTrace_m =     IpplTimings::getTimer ("Ray tracing");
+    TPartInside_m =   IpplTimings::getTimer ("Particle Inside");
+
     h5FileName_m = Attributes::getString (itsAttr[FGEOM]);
-    Tinward_m = IpplTimings::getTimer ("Check inward");
     try {
         defGeometry->update ();
         OpalData::getInstance ()->define (defGeometry);
@@ -853,11 +855,12 @@ BoundaryGeometry::BoundaryGeometry(
     h5FileName_m = Attributes::getString (itsAttr[FGEOM]);
     if (!h5FileName_m.empty ())
         initialize ();
-    TPInside_m = IpplTimings::getTimer ("Particle Inside");
-    TPreProc_m = IpplTimings::getTimer ("zshiftPre Processing");
-    TRayTrace_m = IpplTimings::getTimer ("Ray tracing");
-    Tinward_m = IpplTimings::getTimer ("Check inward");
 
+    Tinitialize_m =   IpplTimings::getTimer ("Initialize geometry");
+    TisInside_m =     IpplTimings::getTimer ("Inside test");
+    TfastIsInside_m = IpplTimings::getTimer ("Fast inside test");
+    TRayTrace_m =     IpplTimings::getTimer ("Ray tracing");
+    TPartInside_m =   IpplTimings::getTimer ("Particle Inside");
  }
 
 BoundaryGeometry::~BoundaryGeometry() {
@@ -889,10 +892,11 @@ void BoundaryGeometry::update () {
 
 void BoundaryGeometry::execute () {
     update ();
-    TPInside_m = IpplTimings::getTimer ("Particle Inside");
-    TPreProc_m = IpplTimings::getTimer ("Pre Processing");
-    TRayTrace_m = IpplTimings::getTimer ("Ray tracing");
-    Tinward_m = IpplTimings::getTimer ("Check inward");
+    Tinitialize_m =   IpplTimings::getTimer ("Initialize geometry");
+    TisInside_m =     IpplTimings::getTimer ("Inside test");
+    TfastIsInside_m = IpplTimings::getTimer ("Fast inside test");
+    TRayTrace_m =     IpplTimings::getTimer ("Ray tracing");
+    TPartInside_m =   IpplTimings::getTimer ("Particle Inside");
 }
 
 BoundaryGeometry* BoundaryGeometry::find (const string& name) {
@@ -1068,7 +1072,7 @@ BoundaryGeometry::fastIsInside (
     ) {
     const Voxel c(minExtent_m, maxExtent_m);
     if (!c.isInside (P)) return 1;
-    IpplTimings::startTimer (TRayTrace_m);
+    IpplTimings::startTimer (TfastIsInside_m);
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
     if (debugFlags_m & debug_fastIsInside) {
@@ -1100,7 +1104,7 @@ BoundaryGeometry::fastIsInside (
         debugFlags_m = saved_flags;
     }
 #endif
-    IpplTimings::stopTimer (TRayTrace_m);
+    IpplTimings::stopTimer (TfastIsInside_m);
     return result;
 }
 
@@ -1498,7 +1502,7 @@ Change orientation if diff is:
           some specific issues, like line parallel to boundary.
          */
         static inline bool isInside (BoundaryGeometry* bg, const Vector_t x) {
-            IpplTimings::startTimer (bg->Tinward_m);
+            IpplTimings::startTimer (bg->TisInside_m);
 
             Vector_t y = Vector_t (
                 bg->maxExtent_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
@@ -1515,7 +1519,7 @@ Change orientation if diff is:
                     num_intersections++;
                 }
             }
-            IpplTimings::stopTimer (bg->Tinward_m);
+            IpplTimings::stopTimer (bg->TisInside_m);
             return ((intersection_points.size () % 2) == 1);
         }
 
@@ -1685,7 +1689,7 @@ Change orientation if diff is:
     h5_int64_t rc;
     debugFlags_m = 0;
     *gmsg << "* Initializing Boundary Geometry..." << endl;
-    IpplTimings::startTimer (TPreProc_m);
+    IpplTimings::startTimer (Tinitialize_m);
 
     apert_m = Attributes::getRealArray(itsAttr[APERTURE]);
  
@@ -1772,7 +1776,7 @@ Change orientation if diff is:
     *gmsg << "* Triangle barycent built done." << endl;
 
     *gmsg << *this << endl;
-    IpplTimings::stopTimer (TPreProc_m);
+    IpplTimings::stopTimer (Tinitialize_m);
 }
 
 /*
@@ -2036,7 +2040,7 @@ BoundaryGeometry::PartInside (
     if (v == (Vector_t)0)
         return ret;
 
-    IpplTimings::startTimer (TPInside_m);
+    IpplTimings::startTimer (TPartInside_m);
 
     // set P1 to next particle position
     const double p_sq = dot (v, v);
@@ -2070,7 +2074,7 @@ BoundaryGeometry::PartInside (
         debugFlags_m = saved_flags;
     }
 #endif
-    IpplTimings::stopTimer (TPInside_m);
+    IpplTimings::stopTimer (TPartInside_m);
     return ret;
 }
 
