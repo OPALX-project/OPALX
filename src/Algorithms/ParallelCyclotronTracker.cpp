@@ -196,7 +196,7 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
    *Here we check if a particles is outside the domain, flag it for deletion
    */
 
-  Vector_t intecoords = bgf_m->getmaxcoords() + bgf_m->gethr();
+  Vector_t intecoords = 0.0;
 
   // This has to match the dT in the rk4 pusher! -DW
   //double dtime = 0.5 * itsBunch->getdT();  // Old

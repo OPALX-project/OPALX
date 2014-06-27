@@ -22,8 +22,8 @@ extern Inform* gmsg;
 std::stringstream debug_output;
 
 #define SQR(x) ((x)*(x))
-#define PointID(triangle_id, vertex_id) allbfaces_m[4 * (triangle_id) + (vertex_id)]
-#define Point(triangle_id, vertex_id)   geo3Dcoords_m[allbfaces_m[4 * (triangle_id) + (vertex_id)]]
+#define PointID(triangle_id, vertex_id) Triangles_m[4 * (triangle_id) + (vertex_id)]
+#define Point(triangle_id, vertex_id)   Points_m[Triangles_m[4 * (triangle_id) + (vertex_id)]]
 
 #define EPS 10e-10
 
@@ -60,7 +60,7 @@ struct VectorLessZ {
 /**
    Calculate the maximum of coordinates of geometry,i.e the maximum of X,Y,Z
  */
-Vector_t get_max_extend (std::vector<Vector_t>& coords) {
+Vector_t get_max_extent (std::vector<Vector_t>& coords) {
     const Vector_t x = *max_element (
         coords.begin (), coords.end (), VectorLessX ());
     const Vector_t y = *max_element (
@@ -73,7 +73,7 @@ Vector_t get_max_extend (std::vector<Vector_t>& coords) {
 /*
    Compute the minimum of coordinates of geometry, i.e the minimum of X,Y,Z
  */
-Vector_t get_min_extend (std::vector<Vector_t>& coords) {
+Vector_t get_min_extent (std::vector<Vector_t>& coords) {
     const Vector_t x = *min_element (
         coords.begin (), coords.end (), VectorLessX ());
     const Vector_t y = *min_element (
@@ -692,13 +692,13 @@ public:
         ) const {
         Voxel v_ = *this;
         Triangle t_ = t;
-        const Vector_t scaleby = 1.0 / v_.extend(); 
+        const Vector_t scaleby = 1.0 / v_.extent(); 
         v_.scale (scaleby);
         t_.scale (scaleby , v_.pts[0] + 0.5);
         return triangle_intersects_cube (t_);
     }
 
-    inline Vector_t extend () const {
+    inline Vector_t extent () const {
         return (pts[1] - pts[0]);
     }
 
@@ -730,11 +730,10 @@ public:
 BoundaryGeometry::BoundaryGeometry() :
     Definition (
         SIZE, "GEOMETRY", "The \"GEOMETRY\" statement defines the beam pipe geometry."),
-    Tribarycent_m (NULL),
     TriPrPartloss_m (NULL),
     TriSePartloss_m (NULL),
     TriFEPartloss_m (NULL),
-    allbfaces_m (NULL) {
+    Triangles_m (NULL) {
 
     itsAttr[FGEOM] = Attributes::makeString
         ("FGEOM",
@@ -844,11 +843,10 @@ BoundaryGeometry::BoundaryGeometry(
     BoundaryGeometry* parent
     ) :
     Definition (name, parent),
-    Tribarycent_m (NULL),
     TriPrPartloss_m (NULL),
     TriSePartloss_m (NULL),
     TriFEPartloss_m (NULL),
-    allbfaces_m (NULL) {
+    Triangles_m (NULL) {
     gsl_rng_env_setup();
     randGen_m = gsl_rng_alloc(gsl_rng_default);    
 
@@ -863,18 +861,14 @@ BoundaryGeometry::BoundaryGeometry(
  }
 
 BoundaryGeometry::~BoundaryGeometry() {
-    /*
-       if (allbfaces_m)
-          delete allbfaces_m;
-       if (Tribarycent_m)
-          delete Tribarycent_m;
+       if (Triangles_m)
+          delete Triangles_m;
        if (TriPrPartloss_m )
-       delete TriPrPartloss_m ;
+           delete TriPrPartloss_m ;
        if (TriFEPartloss_m)
-       delete TriFEPartloss_m;
+           delete TriFEPartloss_m;
        if (TriSePartloss_m)
-       delete TriSePartloss_m;
-     */
+           delete TriSePartloss_m;
 
     gsl_rng_free(randGen_m);
 }
@@ -921,17 +915,19 @@ BoundaryGeometry::intersectTriangleVoxel (
     const int j,
     const int k
     ) {
-    const Triangle t = {getPoint (triangle_id, 1),
-                        getPoint (triangle_id, 2),
-                        getPoint (triangle_id, 3)};
-
-    const Vector_t P(
-        i * hr_m[0] + voxelMesh_m.minExtend[0],
-        j * hr_m[1] + voxelMesh_m.minExtend[1],
-        k * hr_m[2] + voxelMesh_m.minExtend[2]
+    const Triangle t(
+        getPoint (triangle_id, 1),
+        getPoint (triangle_id, 2),
+        getPoint (triangle_id, 3)
         );
 
-    Voxel v(P, P+hr_m);
+    const Vector_t P(
+        i * voxelMesh_m.sizeOfVoxel [0] + voxelMesh_m.minExtent[0],
+        j * voxelMesh_m.sizeOfVoxel [1] + voxelMesh_m.minExtent[1],
+        k * voxelMesh_m.sizeOfVoxel [2] + voxelMesh_m.minExtent[2]
+        );
+
+    Voxel v(P, P+voxelMesh_m.sizeOfVoxel);
 
     return v.intersect (t);
 }
@@ -1070,7 +1066,7 @@ BoundaryGeometry::fastIsInside (
     const Vector_t& reference_pt,        // [in] reference pt inside the boundary
     const Vector_t& P                    // [in] pt to test
     ) {
-    const Voxel c(mincoords_m, maxcoords_m);
+    const Voxel c(minExtent_m, maxExtent_m);
     if (!c.isInside (P)) return 1;
     IpplTimings::startTimer (TRayTrace_m);
 #ifdef ENABLE_DEBUG
@@ -1083,7 +1079,9 @@ BoundaryGeometry::fastIsInside (
     }
 #endif
     const Vector_t v = reference_pt - P;
-    const int N = ceil (magnitude (v) / MIN3 (hr_m[0], hr_m[1], hr_m[2]));
+    const int N = ceil (magnitude (v) / MIN3 (voxelMesh_m.sizeOfVoxel [0],
+                                              voxelMesh_m.sizeOfVoxel [1],
+                                              voxelMesh_m.sizeOfVoxel [2]));
     const Vector_t v_ = v / N;
     Vector_t P0 = P;
     Vector_t P1 = P + v_;
@@ -1137,7 +1135,8 @@ BoundaryGeometry::intersectRayBoundary (
       run line segment boundary intersection test with P and P1
      */
     Ray r = Ray (P, v);
-    Voxel c = Voxel (voxelMesh_m.minExtend+0.25*hr_m, voxelMesh_m.maxExtend-0.25*hr_m);
+    Voxel c = Voxel (voxelMesh_m.minExtent+0.25*voxelMesh_m.sizeOfVoxel,
+                     voxelMesh_m.maxExtent-0.25*voxelMesh_m.sizeOfVoxel);
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect (r, tmin, tmax);
@@ -1171,28 +1170,30 @@ BoundaryGeometry::mapVoxelIndices2ID (
     const int j,
     const int k
     ) {
-    if (i < 0 || i >= nr_m[0] ||
-        j < 0 || j >= nr_m[1] ||
-        k < 0 || k >= nr_m[2]) {
+    if (i < 0 || i >= voxelMesh_m.nr_m[0] ||
+        j < 0 || j >= voxelMesh_m.nr_m[1] ||
+        k < 0 || k >= voxelMesh_m.nr_m[2]) {
         return 0;
     }
-    return 1 + k * nr_m[0] * nr_m[1] + j * nr_m[0] + i;
+    return 1 + k * voxelMesh_m.nr_m[0] * voxelMesh_m.nr_m[1] + j * voxelMesh_m.nr_m[0] + i;
 }
 
 #define mapPoint2VoxelIndices(pt, i, j, k) {                            \
-    i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);          \
-    j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);          \
-    k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);          \
-    if (!(0 <= i && i < nr_m[0] && 0 <= j && j < nr_m[1] && 0 <= k && k < nr_m[2])) { \
-        *gmsg << "* " << __func__ << ":"                                \
-              << "  WARNING: pt=" << pt \
-              << "  is outside the bbox" \
-              << "  i=" << i \
-              << "  j=" << j \
-              << "  k=" << k \
-              << endl; \
-    } \
-}
+        i = floor ((pt[0] - voxelMesh_m.minExtent [0]) / voxelMesh_m.sizeOfVoxel[0]); \
+        j = floor ((pt[1] - voxelMesh_m.minExtent [1]) / voxelMesh_m.sizeOfVoxel[1]); \
+        k = floor ((pt[2] - voxelMesh_m.minExtent [2]) / voxelMesh_m.sizeOfVoxel[2]); \
+        if (!(0 <= i && i < voxelMesh_m.nr_m[0] &&                      \
+              0 <= j && j < voxelMesh_m.nr_m[1] &&                      \
+              0 <= k && k < voxelMesh_m.nr_m[2])) {                     \
+            *gmsg << "* " << __func__ << ":"                            \
+                  << "  WARNING: pt=" << pt                             \
+                  << "  is outside the bbox"                            \
+                  << "  i=" << i                                        \
+                  << "  j=" << j                                        \
+                  << "  k=" << k                                        \
+                  << endl;                                              \
+        }                                                               \
+    }
 
 inline Vector_t
 BoundaryGeometry::mapIndices2Voxel (
@@ -1201,18 +1202,18 @@ BoundaryGeometry::mapIndices2Voxel (
     const int k
     ) {
     return Vector_t (
-        i * hr_m[0] + voxelMesh_m.minExtend[0],
-        j * hr_m[1] + voxelMesh_m.minExtend[1],
-        k * hr_m[2] + voxelMesh_m.minExtend[2]);
+        i * voxelMesh_m.sizeOfVoxel [0] + voxelMesh_m.minExtent[0],
+        j * voxelMesh_m.sizeOfVoxel [1] + voxelMesh_m.minExtent[1],
+        k * voxelMesh_m.sizeOfVoxel [2] + voxelMesh_m.minExtent[2]);
 }
 
 inline Vector_t
 BoundaryGeometry::mapPoint2Voxel (
     const Vector_t& pt
     ) {
-    const int i = floor ((pt[0] - voxelMesh_m.minExtend [0]) / hr_m[0]);
-    const int j = floor ((pt[1] - voxelMesh_m.minExtend [1]) / hr_m[1]);
-    const int k = floor ((pt[2] - voxelMesh_m.minExtend [2]) / hr_m[2]);
+    const int i = floor ((pt[0] - voxelMesh_m.minExtent [0]) / voxelMesh_m.sizeOfVoxel [0]);
+    const int j = floor ((pt[1] - voxelMesh_m.minExtent [1]) / voxelMesh_m.sizeOfVoxel [1]);
+    const int k = floor ((pt[2] - voxelMesh_m.minExtent [2]) / voxelMesh_m.sizeOfVoxel [2]);
 
     return mapIndices2Voxel (i, j, k);
 }
@@ -1257,15 +1258,15 @@ BoundaryGeometry::computeTriangleVoxelization (
 inline void
 BoundaryGeometry::computeMeshVoxelization (void) {
     
-    for (int triangle_id = 0; triangle_id < num_triangles_m; triangle_id++) {
+    for (int triangle_id = 0; triangle_id < numTriangles_m; triangle_id++) {
         std::unordered_map< int, std::unordered_set<int> > voxels;
         computeTriangleVoxelization (triangle_id, voxels);
 
         // add map for given triangle to map for mesh
         for (auto mapIt = voxels.begin (); mapIt != voxels.end (); mapIt++) {
-            auto it = trianglesIntersectingVoxel_m.find (mapIt->first);
-            if (it == trianglesIntersectingVoxel_m.end ()) {
-                trianglesIntersectingVoxel_m [mapIt->first] = mapIt->second;
+            auto it = voxelMesh_m.ids.find (mapIt->first);
+            if (it == voxelMesh_m.ids.end ()) {
+                voxelMesh_m.ids [mapIt->first] = mapIt->second;
             } else {
                 it->second.insert (mapIt->second.begin(), mapIt->second.end());
             }
@@ -1275,8 +1276,10 @@ BoundaryGeometry::computeMeshVoxelization (void) {
     } // for_each triangle
     *gmsg << "* Boundary index set built done." << endl;
     if(Ippl::myNode() == 0) {
-        write_voxel_mesh (trianglesIntersectingVoxel_m,
-                          hr_m, nr_m, voxelMesh_m.minExtend);
+        write_voxel_mesh (voxelMesh_m.ids,
+                          voxelMesh_m.sizeOfVoxel,
+                          voxelMesh_m.nr_m,
+                          voxelMesh_m.minExtent);
     }
 }
 
@@ -1289,16 +1292,15 @@ void BoundaryGeometry::initialize () {
 
         static void computeGeometryInterval (BoundaryGeometry* bg) {
 
-            bg->mincoords_m = get_min_extend (bg->geo3Dcoords_m);
-            bg->maxcoords_m = get_max_extend (bg->geo3Dcoords_m);
-            bg->len_m = bg->maxcoords_m - bg->mincoords_m;
+            bg->minExtent_m = get_min_extent (bg->Points_m);
+            bg->maxExtent_m = get_max_extent (bg->Points_m);
 
             /*
               Calculate the maximum dimension of triangles. This value will be used to
               define the cubic box size
             */
             double longest_edge_max_m = 0.0;
-            for (int i = 0; i < bg->num_triangles_m; i++) {
+            for (int i = 0; i < bg->numTriangles_m; i++) {
                 // compute length of longest edge
                 const Vector_t x1 = bg->getPoint (i, 1);
                 const Vector_t x2 = bg->getPoint (i, 2);
@@ -1319,9 +1321,9 @@ void BoundaryGeometry::initialize () {
             }
 
             /*
-              In principal the number of discretization nr_m is the extend of
-              the geometry divided by the extend of the largest triangle. Whereby
-              the extend of a triangle is defined as the lenght of its longest
+              In principal the number of discretization nr_m is the extent of
+              the geometry divided by the extent of the largest triangle. Whereby
+              the extent of a triangle is defined as the lenght of its longest
               edge. Thus the largest triangle is the triangle with the longest edge.
 
               But if the hot spot, i.e., the multipacting/field emission zone is
@@ -1335,15 +1337,15 @@ void BoundaryGeometry::initialize () {
               geometry shape maybe need to be summarized and modeled in a more
               flexible manner and could be adjusted in input file.
             */
-            bg->nr_m (0) = 16 * (int)floor (bg->len_m (0) / longest_edge_max_m);
-            bg->nr_m (1) = 16 * (int)floor (bg->len_m (1) / longest_edge_max_m);
-            bg->nr_m (2) = 16 * (int)floor (bg->len_m (2) / longest_edge_max_m);
+            Vector_t extent = bg->maxExtent_m - bg->minExtent_m;
+            bg->voxelMesh_m.nr_m (0) = 16 * (int)floor (extent [0] / longest_edge_max_m);
+            bg->voxelMesh_m.nr_m (1) = 16 * (int)floor (extent [1] / longest_edge_max_m);
+            bg->voxelMesh_m.nr_m (2) = 16 * (int)floor (extent [2] / longest_edge_max_m);
 
-            bg->hr_m = bg->len_m / bg->nr_m;
-            bg->voxelMesh_m.minExtend = bg->mincoords_m - 0.5 * bg->hr_m;
-            bg->voxelMesh_m.maxExtend = bg->maxcoords_m + 0.5 * bg->hr_m;
-            bg->voxelMesh_m.extend = bg->voxelMesh_m.maxExtend - bg->voxelMesh_m.minExtend;
-            bg->nr_m += 1;
+            bg->voxelMesh_m.sizeOfVoxel = extent / bg->voxelMesh_m.nr_m;
+            bg->voxelMesh_m.minExtent = bg->minExtent_m - 0.5 * bg->voxelMesh_m.sizeOfVoxel;
+            bg->voxelMesh_m.maxExtent = bg->maxExtent_m + 0.5 * bg->voxelMesh_m.sizeOfVoxel;
+            bg->voxelMesh_m.nr_m += 1;
 
             *gmsg << "* Geometry interval built done." << endl;
         }
@@ -1446,7 +1448,6 @@ Change orientation if diff is:
 */
 
         static void orientTriangles (BoundaryGeometry* bg, int ref_id, int triangle_id) {
-
             // find pts of common edge
             int ic[2];
             int id[2];
@@ -1500,14 +1501,14 @@ Change orientation if diff is:
             IpplTimings::startTimer (bg->Tinward_m);
 
             Vector_t y = Vector_t (
-                bg->maxcoords_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
-                bg->maxcoords_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
-                bg->maxcoords_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
+                bg->maxExtent_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
+                bg->maxExtent_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
+                bg->maxExtent_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
 
             std::vector<Vector_t> intersection_points;
             int num_intersections = 0;
 
-            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
+            for (int triangle_id = 0; triangle_id < bg->numTriangles_m; triangle_id++) {
                 Vector_t result;
                 if (bg->intersectLineTriangle (SEGMENT, x, y, triangle_id, result)) {
                     intersection_points.push_back (result);
@@ -1522,23 +1523,23 @@ Change orientation if diff is:
         static void computeTriangleNeighbors (
             BoundaryGeometry* bg
             ) {
-            std::unordered_set<int> adjacencies_to_pt  [bg->num_points_m];
+            std::set<int> adjacencies_to_pt  [bg->Points_m.size ()];
 
             // for each triangles find adjacent triangles for each vertex
-            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
+            for (int triangle_id = 0; triangle_id < bg->numTriangles_m; triangle_id++) {
                 for (int j = 1; j <= 3; j++) {
-                    int pt_id = bg->PointID (triangle_id, j);
-                    assert (pt_id < bg->num_points_m);
+                    unsigned int pt_id = bg->PointID (triangle_id, j);
+                    assert (pt_id < bg->Points_m.size ());
                     adjacencies_to_pt [pt_id].insert (triangle_id);
                 }
             }
 
-            for (int triangle_id = 0; triangle_id < bg->num_triangles_m; triangle_id++) {
-                std::unordered_set<int>  to_A = adjacencies_to_pt [bg->PointID (triangle_id, 1)];
-                std::unordered_set<int>  to_B = adjacencies_to_pt [bg->PointID (triangle_id, 2)];
-                std::unordered_set<int>  to_C = adjacencies_to_pt [bg->PointID (triangle_id, 3)];
+            for (int triangle_id = 0; triangle_id < bg->numTriangles_m; triangle_id++) {
+                std::set<int>  to_A = adjacencies_to_pt [bg->PointID (triangle_id, 1)];
+                std::set<int>  to_B = adjacencies_to_pt [bg->PointID (triangle_id, 2)];
+                std::set<int>  to_C = adjacencies_to_pt [bg->PointID (triangle_id, 3)];
 
-                std::unordered_set<int>  intersect;
+                std::set<int> intersect;
                 std::set_intersection (
                     to_A.begin(), to_A.end(),
                     to_B.begin(), to_B.end(),
@@ -1550,9 +1551,10 @@ Change orientation if diff is:
                 std::set_intersection(
                     to_C.begin(), to_C.end(),
                     to_A.begin(), to_A.end(),
-                    std::inserter(intersect,intersect.begin()));
+                    std::inserter(intersect, intersect.begin()));
+                intersect.erase (triangle_id);
 
-                bg->triangleNeighbors_m.insert (std::pair <int, std::unordered_set<int>> (triangle_id, intersect));
+                bg->triangleNeighbors_m [triangle_id] = intersect;
             }
         }
 
@@ -1579,7 +1581,7 @@ Change orientation if diff is:
             const Vector_t C = bg->getPoint (triangle_id, 3);
             
             // choose a point P close to the center of the triangle
-            const Vector_t P = (A+B+C)/3 + bg->TriNormal_m[triangle_id] * 0.1;
+            const Vector_t P = (A+B+C)/3 + bg->TriNormals_m[triangle_id] * 0.1;
 
             /*
               The triangle normal points inward, if P is
@@ -1591,7 +1593,7 @@ Change orientation if diff is:
                 pointing in the same direction.
             */
             const bool is_inside = isInside (bg, P);
-            const double dotPA_N = dot (P - A, bg->TriNormal_m[0]);
+            const double dotPA_N = dot (P - A, bg->TriNormals_m[0]);
             return (is_inside && dotPA_N >= 0) || (!is_inside && dotPA_N < 0);
         }
 
@@ -1603,38 +1605,56 @@ Change orientation if diff is:
              whether a nearby point is inside or outside the boundary geometry.
              (using ray-triangle intersection and even/odd intersection number).
           -  Then use a recursion method to switch the vertex order of adjacent
-             triangles. The inward normal is stored in TriNormal_m.
+             triangles. The inward normal is stored in TriNormals_m.
         */
-        static void makeTriangleNormalInwardPointing (BoundaryGeometry* bg) {
-            bg->isOriented_m = new bool[bg->num_triangles_m];
-            memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->num_triangles_m);
-            bg->TriNormal_m.reserve (bg->num_triangles_m);
-
-            bg->TriNormal_m[0] = normalVector (bg, 0);
-            if (!hasInwardPointingNormal (bg, 0)) {
-                bg->TriNormal_m[0] = -bg->TriNormal_m[0];
-                int id = bg->PointID (0, 2);
-                bg->PointID (0, 2) = bg->PointID (0, 3);
-                bg->PointID (0, 3) = id;
+        static void makeTriangleNormalInwardPointingSubMesh (
+            BoundaryGeometry* bg,
+            const int triangle_id
+            ) {
+            bg->TriNormals_m[triangle_id] = normalVector (bg, triangle_id);
+            if (!hasInwardPointingNormal (bg, triangle_id)) {
+                bg->TriNormals_m[triangle_id] = -bg->TriNormals_m[triangle_id];
+                int id = bg->PointID (triangle_id, 2);
+                bg->PointID (triangle_id, 2) = bg->PointID (triangle_id, 3);
+                bg->PointID (triangle_id, 3) = id;
             }
-            bg->isOriented_m [0] = true;
+            bg->isOriented_m [triangle_id] = true;
 
             /*
-              compute edge-neightbors for each triangle
-              then orient all triangles, starting with the neighbors of the first
+              orient all triangles, starting with the neighbors of the first
             */
+            const auto& neighbors = bg->triangleNeighbors_m[triangle_id];
+            orientTriangles (bg, triangle_id, *neighbors.begin());
+        }
+
+        static void makeTriangleNormalInwardPointing (BoundaryGeometry* bg) {
             computeTriangleNeighbors (bg);
 
-            const auto neighbors = bg->triangleNeighbors_m[0];
-            const auto endIt = neighbors.end ();
-            for (auto triangleIt = neighbors.begin(); triangleIt != endIt; triangleIt++) {
-                if (!bg->isOriented_m [*triangleIt])
-                    orientTriangles (bg, 0, *triangleIt);
+            bg->isOriented_m = new bool[bg->numTriangles_m];
+            memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->numTriangles_m);
+            bg->TriNormals_m.reserve (bg->numTriangles_m);
+
+            int triangle_id = 0;
+            int parts = 0;
+            do {
+                parts++;
+                makeTriangleNormalInwardPointingSubMesh (bg, triangle_id);
+                while (bg->isOriented_m[triangle_id]) triangle_id++;
+            } while (triangle_id < bg->numTriangles_m);
+
+            delete bg->isOriented_m;
+            bg->isOriented_m = 0;
+            bg->triangleNeighbors_m.clear ();
+
+            if (parts == 1) {
+                *gmsg << "* " << __func__ << ": mesh is contiguous." << endl;
+            } else {
+                *gmsg << "* " << __func__ << ": mesh is discontiguous (" << parts << ") parts." << endl;
             }
 
             // compute inward-normals
-            for (int triangle_id = 1; triangle_id < bg->num_triangles_m; triangle_id++) {
-                bg->TriNormal_m.push_back (normalVector (bg, triangle_id));
+            for (int triangle_id = 1; triangle_id < bg->numTriangles_m; triangle_id++) {
+                bg->TriNormals_m.push_back (normalVector (bg, triangle_id));
             }
             *gmsg << "* Triangle Normal built done." << endl;
         }
@@ -1652,7 +1672,7 @@ Change orientation if diff is:
           electrostatic field exceeds some threshold or particles incident the surface.
         */
         static void setBGphysicstag (BoundaryGeometry* bg) {
-            for (int i = 0; i < bg->num_triangles_m; i++) {
+            for (int i = 0; i < bg->numTriangles_m; i++) {
                 bg->TriBGphysicstag_m.push_back (
                     BGphysics::Absorption
                     | BGphysics::FNEmission
@@ -1682,8 +1702,8 @@ Change orientation if diff is:
     double xscale = Attributes::getReal(itsAttr[XSCALE]); 
     double yscale = Attributes::getReal(itsAttr[YSCALE]); 
     double zscale = Attributes::getReal(itsAttr[ZSCALE]); 
-
     double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]); 
+    double zshift = (double)(Attributes::getReal (itsAttr[ZSHIFT]));
 
     *gmsg << "* X-scale all points of geometry by " << xscale << endl;
     *gmsg << "* Y-scale all points of geometry by " << yscale << endl;
@@ -1699,8 +1719,8 @@ Change orientation if diff is:
     H5FedOpenTriangleMesh (f, "0", &m);
     H5FedSetLevel (m, 0);
 
-    num_triangles_m = H5FedGetNumElementsTotal (m);
-    allbfaces_m = new int[num_triangles_m * 4];
+    numTriangles_m = H5FedGetNumElementsTotal (m);
+    Triangles_m = new int[numTriangles_m * 4];
 
     // iterate over all co-dim 0 entities, i.e. elements
     h5_loc_id_t local_id;
@@ -1718,29 +1738,19 @@ Change orientation if diff is:
     H5FedEndTraverseEntities (iter);
 
     // loop over all vertices
-    num_points_m = H5FedGetNumVerticesTotal (m);
-    double* point_coords = new double[3 * num_points_m];
-    for (i = 0; i < num_points_m; i++) {
+    int num_points = H5FedGetNumVerticesTotal (m);
+    Points_m.reserve (num_points);
+    for (i = 0; i < num_points; i++) {
         h5_float64_t P[3];
         H5FedGetVertexCoordsByIndex (m, i, P);
-        point_coords[i * 3]     = P[0] * xyzscale * xscale;
-        point_coords[i * 3 + 1] = P[1] * xyzscale * yscale;
-        point_coords[i * 3 + 2] = P[2] * xyzscale * zscale;
+        Points_m.push_back (Vector_t (
+            P[0] * xyzscale * xscale,
+            P[1] * xyzscale * yscale,
+            P[2] * xyzscale * zscale + zshift));
     }
     H5FedCloseMesh (m);
     H5CloseFile (f);
-
-    double zshift = (double)(Attributes::getReal (itsAttr[ZSHIFT]));
-
-    for (int i = 0; i < num_points_m; i++) {
-        geo3Dcoords_m.push_back (
-            Vector_t (
-                point_coords[3 * i],
-                point_coords[3 * i + 1],
-                point_coords[3 * i + 2] + zshift));
-    }
-    delete point_coords;
-    *gmsg << "* Vertex built done." << endl;
+    *gmsg << "* Reading mesh done." << endl;
 
     Local::computeGeometryInterval (this);
 
@@ -1748,13 +1758,12 @@ Change orientation if diff is:
     Local::makeTriangleNormalInwardPointing (this);
     Local::setBGphysicstag (this);
 
-    Tribarycent_m = new Vector_t[num_triangles_m];
-    TriPrPartloss_m = new double[num_triangles_m];
-    TriFEPartloss_m = new double[num_triangles_m];
-    TriSePartloss_m = new double[num_triangles_m];
-    for (int i = 0; i < num_triangles_m; i++) {
-        Tribarycent_m[i] = (getPoint (i, 1) + getPoint (i, 2) + getPoint (i, 3)) / 3.0;
-        Triarea_m.push_back (Local::computeArea (this, i));
+    TriPrPartloss_m = new double[numTriangles_m];
+    TriFEPartloss_m = new double[numTriangles_m];
+    TriSePartloss_m = new double[numTriangles_m];
+    for (int i = 0; i < numTriangles_m; i++) {
+        TriBarycenters_m.push_back ((getPoint (i, 1) + getPoint (i, 2) + getPoint (i, 3)) / 3.0);
+        TriAreas_m.push_back (Local::computeArea (this, i));
 
         TriPrPartloss_m[i] = 0.0;
         TriFEPartloss_m[i] = 0.0;
@@ -1831,7 +1840,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
         for (int j = j_min; j <= j_max; j++) {
             for (int k = k_min; k <= k_max; k++) {
                 const Vector_t bmin = mapIndices2Voxel(i, j, k);
-                const Voxel v(bmin, bmin + hr_m);
+                const Voxel v(bmin, bmin + voxelMesh_m.sizeOfVoxel);
 #ifdef ENABLE_DEBUG
                 if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
                     *gmsg << "* " << __func__ << ": "
@@ -1852,8 +1861,9 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                   the to be tested triangles.
                  */
                 const int voxel_id = mapVoxelIndices2ID (i, j, k);
-                const auto triangles_intersecting_voxel = trianglesIntersectingVoxel_m.find (voxel_id);
-                if (triangles_intersecting_voxel != trianglesIntersectingVoxel_m.end()) {
+                const auto triangles_intersecting_voxel =
+                    voxelMesh_m.ids.find (voxel_id);
+                if (triangles_intersecting_voxel != voxelMesh_m.ids.end()) {
                     triangle_ids.insert (
                         triangles_intersecting_voxel->second.begin(),
                         triangles_intersecting_voxel->second.end());
@@ -2074,28 +2084,28 @@ BoundaryGeometry::writeGeomToVtk (string fn) {
     of << "generated using DataSink::writeGeoToVtk" << std::endl;
     of << "ASCII" << std::endl << std::endl;
     of << "DATASET UNSTRUCTURED_GRID" << std::endl;
-    of << "POINTS " << num_points_m << " float" << std::endl;
-    for (int i = 0; i < num_points_m; i++)
-        of << geo3Dcoords_m[i](0) << " "
-	   << geo3Dcoords_m[i](1) << " "
-	   << geo3Dcoords_m[i](2) << std::endl;
+    of << "POINTS " << Points_m.size () << " float" << std::endl;
+    for (unsigned int i = 0; i < Points_m.size (); i++)
+        of << Points_m[i](0) << " "
+	   << Points_m[i](1) << " "
+	   << Points_m[i](2) << std::endl;
     of << std::endl;
 
     of << "CELLS "
-       << num_triangles_m << " "
-       << 4 * num_triangles_m << std::endl;
-    for (int i = 0; i < num_triangles_m; i++)
+       << numTriangles_m << " "
+       << 4 * numTriangles_m << std::endl;
+    for (int i = 0; i < numTriangles_m; i++)
         of << "3 "
 	   << PointID (i, 1) << " "
 	   << PointID (i, 2) << " "
 	   << PointID (i, 3) << std::endl;
-    of << "CELL_TYPES " << num_triangles_m << std::endl;
-    for (int i = 0; i < num_triangles_m; i++)
+    of << "CELL_TYPES " << numTriangles_m << std::endl;
+    for (int i = 0; i < numTriangles_m; i++)
 	of << "5" << std::endl;
-    of << "CELL_DATA " << num_triangles_m << std::endl;
+    of << "CELL_DATA " << numTriangles_m << std::endl;
     of << "SCALARS " << "cell_attribute_data" << " float " << "1" << std::endl;
     of << "LOOKUP_TABLE " << "default" << std::endl;
-    for (int i = 0; i < num_triangles_m; i++)
+    for (int i = 0; i < numTriangles_m; i++)
 	of << (float)(i) << std::endl;
     of << std::endl;
 }
@@ -2115,15 +2125,14 @@ BoundaryGeometry::printInfo (Inform& os) const {
            << "* L1                         " << Attributes::getReal (itsAttr[L1]) << '\n'
            << "* L1                         " << Attributes::getReal (itsAttr[L2]) << '\n';
     }
-    os << "* Total triangle num         " << num_triangles_m << '\n'
-       << "* Total points num           " << num_points_m << '\n'
-       << "* Geometry bounds(m) Max=    " << maxcoords_m << '\n'
-       << "*                    Min=    " << mincoords_m << '\n'
-       << "* Geometry length(m)         " << len_m << '\n'
-       << "* Boundary box grid num      " << nr_m << '\n'
-       << "* Boundary box size(m)       " << hr_m << '\n'
-       << "* Size of boundary index set " << trianglesIntersectingVoxel_m.size () << '\n'
-       << "* Number of all boxes        " << nr_m (0) * nr_m (1) * nr_m (2) << '\n'
+    os << "* Total triangle num         " << numTriangles_m << '\n'
+       << "* Total points num           " << Points_m.size () << '\n'
+       << "* Geometry bounds(m) Max=    " << maxExtent_m << '\n'
+       << "*                    Min=    " << minExtent_m << '\n'
+       << "* Geometry length(m)         " << maxExtent_m - minExtent_m << '\n'
+       << "* Resolution of voxel mesh   " << voxelMesh_m.nr_m << '\n'
+       << "* Size of voxel              " << voxelMesh_m.sizeOfVoxel << '\n'
+       << "* Number of voxels in mesh   " << voxelMesh_m.ids.size () << '\n'
         << endl;
     os << "* ********************************************************************************** " << endl;
     return os;
@@ -2190,7 +2199,7 @@ int BoundaryGeometry::doBGphysics (
         int se_Num = 0;
         int seType = 0;
         if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
-            double cosTheta = - dot (incMomentum, TriNormal_m[triId]) /
+            double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
                               sqrt (dot (incMomentum, incMomentum));
             if (cosTheta < 0) {
                 //cosTheta should be positive
@@ -2201,8 +2210,8 @@ int BoundaryGeometry::doBGphysics (
                 std::cout << "incident momentum=("
                           << incMomentum (0) << "," << incMomentum (1) << "," << incMomentum (2) << ")"
                           << " triNormal=("
-                          << TriNormal_m[triId](0) << ","
-                          << TriNormal_m[triId](1) << "," << TriNormal_m[triId](2) << ") "
+                          << TriNormals_m[triId](0) << ","
+                          << TriNormals_m[triId](1) << "," << TriNormals_m[triId](2) << ") "
                           << std::endl;
             }
             assert(cosTheta>=0);
@@ -2218,7 +2227,7 @@ int BoundaryGeometry::doBGphysics (
                              se_Num,
                              seType,
                              incQ,
-                             TriNormal_m[triId],
+                             TriNormals_m[triId],
                              intecoords,
                              Point (triId, idx),
                              itsBunch,
@@ -2260,14 +2269,14 @@ int BoundaryGeometry::doBGphysics (
         int se_Num = 0;
         int seType = 0;
         if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
-            double cosTheta = - dot (incMomentum, TriNormal_m[triId]) /
+            double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
                               sqrt (dot (incMomentum, incMomentum));
             //cosTheta should be positive
             if (cosTheta < 0) {
                 std::cout << "cosTheta = " << cosTheta << std::endl;
                 INFOMSG ("incident momentum=" << incMomentum
-                                              << " triNormal=" << TriNormal_m[triId]
-                                              << " dot=" << dot (incMomentum, TriNormal_m[triId])
+                                              << " triNormal=" << TriNormals_m[triId]
+                                              << " dot=" << dot (incMomentum, TriNormals_m[triId])
                                               << endl);
             }
             //assert(cosTheta>=0);
@@ -2284,7 +2293,7 @@ int BoundaryGeometry::doBGphysics (
                              se_Num,
                              seType,
                              incQ,
-                             TriNormal_m[triId],
+                             TriNormals_m[triId],
                              intecoords,
                              Point (triId, idx),
                              itsBunch,
@@ -2326,12 +2335,12 @@ size_t BoundaryGeometry::doFNemission (
 
        }*/
     size_t Nstp = 0;
-    for (int i = 0; i < num_triangles_m; i++) {
+    for (int i = 0; i < numTriangles_m; i++) {
         if ((TriBGphysicstag_m[i] & BGphysics::FNEmission) == BGphysics::FNEmission) {
             Vector_t E (0.0), B (0.0);
             Vector_t centroid (0.0);
-            itsOpalBeamline.getFieldAt (Tribarycent_m[i], centroid, t, E, B);
-            double Enormal = dot (TriNormal_m[i], E);
+            itsOpalBeamline.getFieldAt (TriBarycenters_m[i], centroid, t, E, B);
+            double Enormal = dot (TriNormals_m[i], E);
             /* Enormal should be negative as E field direction should be
                opposite to inward normal of surface */
             if (Enormal < fieldFNthreshold_m) {
@@ -2347,9 +2356,9 @@ size_t BoundaryGeometry::doFNemission (
                                                    parameterFNY_m,
                                                    fieldEnhancement_m,
                                                    maxFNemission_m,
-                                                   Triarea_m[i],
+                                                   TriAreas_m[i],
                                                    vertex,
-                                                   TriNormal_m[i],
+                                                   TriNormals_m[i],
                                                    Nstp);
             }
         }
@@ -2384,14 +2393,14 @@ void BoundaryGeometry::createParticlesOnSurface (
                     fabs (E (2)) < eInitThreshold_m)) {
                 E = Vector_t (0.0);
                 B = Vector_t (0.0);
-                int tmp = (int)(IpplRandom () * num_triangles_m);
+                int tmp = (int)(IpplRandom () * numTriangles_m);
                 BGtag = TriBGphysicstag_m[tmp];
                 k = tmp;
                 Vector_t centroid (0.0);
-                itsOpalBeamline.getFieldAt (Tribarycent_m[k] + darkinward * TriNormal_m[k],
+                itsOpalBeamline.getFieldAt (TriBarycenters_m[k] + darkinward * TriNormals_m[k],
                                             centroid, itsBunch.getdT (), E, B);
             }
-            partsr_m.push_back (Tribarycent_m[k] + darkinward * TriNormal_m[k]);
+            partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
 
         }
         Message* mess = new Message ();
@@ -2428,33 +2437,34 @@ void BoundaryGeometry::createPriPart (
         int tag = 1001;
         int Parent = 0;
         if (Ippl::myNode () == 0) {
+            Vector_t len = maxExtent_m - minExtent_m;
             /* limit the initial particle in the center of the lower
                parallel plate. There is a distance of 0.01*length in
                x direction as margin. */
-            double x_low = mincoords_m (0) + 0.5 * len_m (0) - 0.49 * len_m (0);
+            double x_low = minExtent_m (0) + 0.5 * len [0] - 0.49 * len [0];
 
             /* limit the initial particle in the center of the upper
                parallel
                plate. There is a distance of 0.01*length in x direction as
                margin. */
-            double x_up = mincoords_m (0) + 0.5 * len_m (0) + 0.49 * len_m (0);
+            double x_up = minExtent_m (0) + 0.5 * len [0] + 0.49 * len [0];
 
             /* limit the initial particle in the center of the lower
                parallel
                plate. There is a distance of 0.01*length in y direction as
                margin. */
-            double y_low = mincoords_m (1) + 0.5 * len_m (1) - 0.49 * len_m (1);
+            double y_low = minExtent_m (1) + 0.5 * len [1] - 0.49 * len [1];
 
             /* limit the initial particle in the center of the upper
                parallel
                plate. There is a distance of 0.01*length in y direction as
                margin. */
-            double y_up = mincoords_m (1) + 0.5 * len_m (1) + 0.49 * len_m (1);
+            double y_up = minExtent_m (1) + 0.5 * len [1] + 0.49 * len [1];
 
             for (size_t i = 0; i < n / 2; i++) {
-                double zCoord = maxcoords_m (2);
-                double xCoord = maxcoords_m (0);
-                double yCoord = maxcoords_m (1);
+                double zCoord = maxExtent_m (2);
+                double xCoord = maxExtent_m (0);
+                double yCoord = maxExtent_m (1);
                 while (zCoord > 0.000001 ||
                        zCoord < - 0.000001 ||
                        xCoord > x_up ||
@@ -2462,43 +2472,43 @@ void BoundaryGeometry::createPriPart (
                        yCoord > y_up ||
                        yCoord < y_low) {
 
-                    int k = (int)(IpplRandom () * num_triangles_m);
-                    zCoord = Tribarycent_m[k](2);
-                    xCoord = Tribarycent_m[k](0);
-                    yCoord = Tribarycent_m[k](1);
-                    if (Tribarycent_m[k](2) < 0.000001 &&
-                        Tribarycent_m[k](2) > - 0.000001 &&
-                        Tribarycent_m[k](0) < x_up &&
-                        Tribarycent_m[k](0) > x_low &&
-                        Tribarycent_m[k](1) < y_up &&
-                        Tribarycent_m[k](1) > y_low) {
-                        partsr_m.push_back (Tribarycent_m[k] + darkinward * TriNormal_m[k]);
-                        partsp_m.push_back (TriNormal_m[k]);
+                    int k = (int)(IpplRandom () * numTriangles_m);
+                    zCoord = TriBarycenters_m[k](2);
+                    xCoord = TriBarycenters_m[k](0);
+                    yCoord = TriBarycenters_m[k](1);
+                    if (TriBarycenters_m[k](2) < 0.000001 &&
+                        TriBarycenters_m[k](2) > - 0.000001 &&
+                        TriBarycenters_m[k](0) < x_up &&
+                        TriBarycenters_m[k](0) > x_low &&
+                        TriBarycenters_m[k](1) < y_up &&
+                        TriBarycenters_m[k](1) > y_low) {
+                        partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
+                        partsp_m.push_back (TriNormals_m[k]);
                     }
                 }
             }
             for (size_t i = 0; i < n / 2; i++) {
-                double zCoord = maxcoords_m (2);
-                double xCoord = maxcoords_m (0);
-                double yCoord = maxcoords_m (1);
-                while (zCoord > (maxcoords_m (2) + 0.000001) ||
-                       (zCoord < (maxcoords_m (2) - 0.00000)) ||
+                double zCoord = maxExtent_m (2);
+                double xCoord = maxExtent_m (0);
+                double yCoord = maxExtent_m (1);
+                while (zCoord > (maxExtent_m (2) + 0.000001) ||
+                       (zCoord < (maxExtent_m (2) - 0.00000)) ||
                        xCoord > x_up ||
                        xCoord < x_low ||
                                 yCoord > y_up ||
                        yCoord < y_low) {
-                    int k = (int)(IpplRandom () * num_triangles_m);
-                    zCoord = Tribarycent_m[k](2);
-                    xCoord = Tribarycent_m[k](0);
-                    yCoord = Tribarycent_m[k](1);
-                    if ((Tribarycent_m[k](2) < maxcoords_m (2) + 0.000001) &&
-                        (Tribarycent_m[k](2) > maxcoords_m (2) - 0.000001) &&
-                        Tribarycent_m[k](0) < x_up &&
-                        Tribarycent_m[k](0) > x_low &&
-                        Tribarycent_m[k](1) < y_up &&
-                        Tribarycent_m[k](1) > y_low) {
-                        partsr_m.push_back (Tribarycent_m[k] + darkinward * TriNormal_m[k]);
-                        partsp_m.push_back (TriNormal_m[k]);
+                    int k = (int)(IpplRandom () * numTriangles_m);
+                    zCoord = TriBarycenters_m[k](2);
+                    xCoord = TriBarycenters_m[k](0);
+                    yCoord = TriBarycenters_m[k](1);
+                    if ((TriBarycenters_m[k](2) < maxExtent_m (2) + 0.000001) &&
+                        (TriBarycenters_m[k](2) > maxExtent_m (2) - 0.000001) &&
+                        TriBarycenters_m[k](0) < x_up &&
+                        TriBarycenters_m[k](0) > x_low &&
+                        TriBarycenters_m[k](1) < y_up &&
+                        TriBarycenters_m[k](1) > y_low) {
+                        partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
+                        partsp_m.push_back (TriNormals_m[k]);
                     }
                 }
             }
@@ -2544,18 +2554,18 @@ void BoundaryGeometry::createPriPart (
                         fabs (E (2)) < eInitThreshold_m)) {
                     E = Vector_t (0.0);
                     B = Vector_t (0.0);
-                    int tmp = (int)(IpplRandom () * num_triangles_m);
+                    int tmp = (int)(IpplRandom () * numTriangles_m);
                     BGtag = TriBGphysicstag_m[tmp];
                     k = tmp;
                     Vector_t centroid (0.0);
                     itsOpalBeamline.getFieldAt (
-                        Tribarycent_m[k] + darkinward * TriNormal_m[k],
+                        TriBarycenters_m[k] + darkinward * TriNormals_m[k],
                         centroid,
                         itsBunch->getdT (),
                         E,
                         B);
                 }
-                partsr_m.push_back (Tribarycent_m[k] + darkinward * TriNormal_m[k]);
+                partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
             }
             Message* mess = new Message ();
             putMessage (*mess, partsr_m.size ());

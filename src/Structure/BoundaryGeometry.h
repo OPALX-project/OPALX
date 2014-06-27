@@ -279,42 +279,42 @@ public:
        Return number of boundary faces.
     */
     inline int getNumBFaces () {
-            return num_triangles_m;
+        return numTriangles_m;
     }
 
     /**
        Return the hr_m.
     */
     inline Vector_t gethr () {
-        return hr_m;
+        return voxelMesh_m.sizeOfVoxel;
     }
     /**
        Return the nr_m.
      */
     inline Vektor<int, 3> getnr () {
-        return nr_m;
+        return voxelMesh_m.nr_m;
     }
  
     /**
        Return the mincoords_m.
      */
     inline Vector_t getmincoords () {
-        return mincoords_m;
+        return minExtent_m;
     }
     /**
        Return the maxcoords_m.
     */
     inline Vector_t getmaxcoords () {
-        return maxcoords_m;
+        return maxExtent_m;
     }
 
     /**
-       @param  Tribarycent_m store the coordinates of barycentric points of
+       @param  TriBarycenters_m store the coordinates of barycentric points of
        triangles, The Id number is the same with triangle Id.
     */
-    Vector_t* Tribarycent_m;
+    std::vector<Vector_t> TriBarycenters_m;
 
-    /**1
+    /**
        @param TriPrPartloss_m store the number of primary particles hitting the
        Id th triangle. The Id number is the same with triangle Id(not vertex ID).
     */
@@ -402,29 +402,28 @@ private:
 
     std::string h5FileName_m;           // H5hut filename
 
-    int* allbfaces_m;                   // boundary faces given by point n-tuples
-    int num_points_m;                   // number of boundary points (vertices)
-    int num_triangles_m;                // number of boundary triangles
+    std::vector<Vector_t> Points_m;     // geometry point coordinates 
+    int* Triangles_m;                   // boundary faces given by point n-tuples
+    int numTriangles_m;                // number of boundary triangles
 
-    std::vector<Vector_t> TriNormal_m;   // oriented normal vector of triangles
-    std::vector<double> Triarea_m;       // area of triangles
+    std::vector<Vector_t> TriNormals_m; // oriented normal vector of triangles
+    std::vector<double> TriAreas_m;     // area of triangles
 
-    std::vector<Vector_t> geo3Dcoords_m; // geometry point coordinates 
-    Vector_t mincoords_m;               // minimum of geometry coordinate.
-    Vector_t maxcoords_m;               // maximum of geometry coordinate.
+    Vector_t minExtent_m;               // minimum of geometry coordinate.
+    Vector_t maxExtent_m;               // maximum of geometry coordinate.
 
-    Vector_t hr_m;                      // length of cubic box
-    Vector_t len_m;                     // extend of geometries bounding box
-    Vektor<int, 3> nr_m;                // number of intervals of geometry in X,Y,Z direction
     struct {
-        Vector_t extend;                // extend of voxel mesh
-        Vector_t minExtend;
-        Vector_t maxExtend;
+        Vector_t minExtent;
+        Vector_t maxExtent;
+        Vector_t sizeOfVoxel;
+        Vektor<int, 3> nr_m;            // number of intervals of geometry in X,Y,Z direction
+        std::unordered_map<int,         // map voxel IDs ->
+            std::unordered_set<int>> ids; // intersecting triangles
+
     } voxelMesh_m;
-    std::unordered_map< int, std::unordered_set<int> >
-            trianglesIntersectingVoxel_m;// Maps boundary box ID to included triangles
+
     bool* isOriented_m;                  // IDs of oriented triangles.
-    std::map< int, std::unordered_set<int> >
+    std::map< int, std::set<int> >
             triangleNeighbors_m;        // map vertex ID to triangles with this vertex
 
     int debugFlags_m;
@@ -485,7 +484,7 @@ private:
     }
     
     inline Vector_t getPoint (const int triangle_id, const int vertex_id) {
-        return geo3Dcoords_m[allbfaces_m[4 * triangle_id + vertex_id]];
+        return Points_m[Triangles_m[4 * triangle_id + vertex_id]];
     }
 
     enum INTERSECTION_TESTS {

@@ -1884,7 +1884,7 @@ void ParallelTTracker::bgf_main_collision_test() {
                 // secondary emission module according to their energy and momentum before collision. Attention, these secondaries have not
                 // been kicked and are without new momentum.
                 int triId = itsBunch->TriID[i];
-                //assert(dot(itsBunch->P[i], bgf_m->TriNormal_m[triId]) < 0);
+                //assert(dot(itsBunch->P[i], bgf_m->TriNormals_m[triId]) < 0);
                 int res = bgf_m->doBGphysics(itsBunch->R[i], triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum, para_null);
 
                 if(res >= 0) {
@@ -1922,7 +1922,7 @@ void ParallelTTracker::bgf_main_collision_test() {
             } else {// Particles which collide the boundary in collision test after kick will not do main collision test and directly call doBGphysics function.
                 int triId = itsBunch->TriID[i];
 
-                //assert(dot(itsBunch->P[i], bgf_m->TriNormal_m[triId]) < 0);
+                //assert(dot(itsBunch->P[i], bgf_m->TriNormals_m[triId]) < 0);
                 int res = bgf_m->doBGphysics(intecoords, triId);
 
                 if(res >= 0) {

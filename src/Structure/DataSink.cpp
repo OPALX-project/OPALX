@@ -2263,8 +2263,8 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
         sePartLossZ[i] = 0;
         fePartLossZ[i] = 0;
         for(int j = 0; j < bg.getNumBFaces(); j++) {
-            if(((Geo_mincoords[2] + Geo_hr(2)*i) < bg.Tribarycent_m[j](2))
-               && (bg.Tribarycent_m[j](2) < (Geo_hr(2)*i + Geo_hr(2) + Geo_mincoords[2]))) {
+            if(((Geo_mincoords[2] + Geo_hr(2)*i) < bg.TriBarycenters_m[j](2))
+               && (bg.TriBarycenters_m[j](2) < (Geo_hr(2)*i + Geo_hr(2) + Geo_mincoords[2]))) {
                 prPartLossZ[i] += bg.TriPrPartloss_m[j];
                 sePartLossZ[i] += bg.TriSePartloss_m[j];
                 fePartLossZ[i] += bg.TriFEPartloss_m[j];
@@ -2274,9 +2274,9 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
     }
     for(int j = 0; j < bg.getNumBFaces(); j++) {
         fidtr << t_step << std::setw(18) << j << std::setw(18)// fixme: maybe gether particle loss data, i.e., do a reduce() for each triangle in each node befor write to file.
-              << bg.Tribarycent_m[j](0) << std::setw(18)
-              << bg.Tribarycent_m[j](1) << std::setw(18)
-              << bg.Tribarycent_m[j](2) <<  std::setw(40)
+              << bg.TriBarycenters_m[j](0) << std::setw(18)
+              << bg.TriBarycenters_m[j](1) << std::setw(18)
+              << bg.TriBarycenters_m[j](2) <<  std::setw(40)
               << -bg.TriPrPartloss_m[j] << std::setw(40)
               << -bg.TriFEPartloss_m[j] <<  std::setw(40)
               << -bg.TriSePartloss_m[j] << endl;
