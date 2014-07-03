@@ -70,29 +70,30 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
         if(oldBendName != bendName_m) counter = 0;
 
         const int every = 1;
-        bool print_criterion = (counter + 1) % every == 0 && Ippl::myNode() == 0;
+        bool print_criterion = (counter + 1) % every == 0;
         if(print_criterion) {
             static unsigned int file_number = 0;
             if(counter == 0) file_number = 0;
-
-            std::stringstream filename_str;
-            filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
-            std::ofstream csr(filename_str.str().c_str());
-            csr << bunch.get_sPos() << std::endl;
-            for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
+	    double spos = bunch.get_sPos();
+	    if (Ippl::myNode() == 0) {
+	      std::stringstream filename_str;
+	      filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
+	      std::ofstream csr(filename_str.str().c_str());
+	      csr << spos << std::endl;
+	      for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
                 csr << i *meshSpacing << "\t"
                     << Ez_m[i] << "\t"
                     << lineDensity_m[i] << "\t"
                     << dlineDensitydz_m[i] << std::endl;
-            }
-            csr.close();
-            msg << "** wrote " << filename_str.str() << endl;
+	      }
+	      csr.close();
+	      msg << "** wrote " << filename_str.str() << endl;
+	    }
             ++ file_number;
         }
         ++ counter;
         oldBendName = bendName_m;
     }
-
 }
 
 void CSRWakeFunction::initialize(const ElementBase *ref) {
