@@ -435,11 +435,6 @@ public:
     virtual void actT();
     const PartData *getReference() const;
 
-    /// holds the courant Shnider parameters
-    Vector_t get_csBeta();
-    Vector_t get_csAlpha();
-
-
     double getTBin();
     double GetEmissionDeltaT();
     bool isDcBeam();
@@ -1276,18 +1271,6 @@ inline
 double PartBunch::getBeta(int i) {
     return 0;
 }
-
-inline
-Vector_t PartBunch::get_csBeta() {
-    return csBeta_m;
-}
-
-inline
-Vector_t PartBunch::get_csAlpha() {
-    return csAlpha_m;
-}
-
-
 
 inline
 void PartBunch::actT() {};
