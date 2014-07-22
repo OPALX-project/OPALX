@@ -2207,16 +2207,16 @@ int BoundaryGeometry::doBGphysics (
                               sqrt (dot (incMomentum, incMomentum));
             if (cosTheta < 0) {
                 //cosTheta should be positive
-                std::cout << "cosTheta = " << cosTheta
-                          << " intecoords " << intecoords (0) << " " << intecoords (1)
-                          << " " << intecoords (2) << " "
-                          << std::endl;
-                std::cout << "incident momentum=("
-                          << incMomentum (0) << "," << incMomentum (1) << "," << incMomentum (2) << ")"
-                          << " triNormal=("
-                          << TriNormals_m[triId](0) << ","
-                          << TriNormals_m[triId](1) << "," << TriNormals_m[triId](2) << ") "
-                          << std::endl;
+                ERRORMSG("cosTheta = " << cosTheta
+                         << " intecoords " << intecoords (0) << " " << intecoords (1)
+                         << " " << intecoords (2) << " "
+                         << endl);
+                ERRORMSG("incident momentum=("
+                         << incMomentum (0) << "," << incMomentum (1) << "," << incMomentum (2) << ")"
+                         << " triNormal=("
+                         << TriNormals_m[triId](0) << ","
+                         << TriNormals_m[triId](1) << "," << TriNormals_m[triId](2) << ") "
+                         << endl);
             }
             assert(cosTheta>=0);
             int idx = 0;
@@ -2277,10 +2277,10 @@ int BoundaryGeometry::doBGphysics (
                               sqrt (dot (incMomentum, incMomentum));
             //cosTheta should be positive
             if (cosTheta < 0) {
-                std::cout << "cosTheta = " << cosTheta << std::endl;
                 INFOMSG ("incident momentum=" << incMomentum
                                               << " triNormal=" << TriNormals_m[triId]
                                               << " dot=" << dot (incMomentum, TriNormals_m[triId])
+                                              << " cosTheta = " << cosTheta
                                               << endl);
             }
             //assert(cosTheta>=0);
