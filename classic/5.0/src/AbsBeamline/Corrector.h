@@ -97,6 +97,13 @@ protected:
 
     // Not implemented.
     void operator=(const Corrector &);
+
+    Plane plane_m;
+
+    double position_m; 
+    bool   informed_m;
+
+
 };
 
 #endif // CLASSIC_Corrector_HH
