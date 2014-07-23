@@ -93,6 +93,20 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
+    void SetKickX(double k);
+    
+    void SetKickY(double k);
+    
+    double GetKickX() const;
+    
+    double GetKickY() const; 
+
+
+ private:
+    double startField_m;
+    double kickX_m;
+    double kickY_m;
+
 protected:
 
     // Not implemented.

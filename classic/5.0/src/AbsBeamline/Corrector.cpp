@@ -61,7 +61,9 @@ bool Corrector::apply(const Vector_t &R, const Vector_t &centroid, const double 
 }
 
 void Corrector::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+    endField = startField + getElementLength();
     RefPartBunch_m = bunch;
+    startField_m = startField;
 }
 
 void Corrector::finalise()
@@ -72,9 +74,20 @@ bool Corrector::bends() const {
 }
 
 void Corrector::getDimensions(double &zBegin, double &zEnd) const
-{ }
+{ 
+  zBegin = startField_m;
+  zEnd = startField_m + getElementLength();
+}
 
 const string &Corrector::getType() const {
     static const string type("Corrector");
     return type;
 }
+
+void Corrector::SetKickX(double k) {kickX_m = k; }
+
+void Corrector::SetKickY(double k) {kickY_m = k; }
+
+double Corrector::GetKickX() const {return kickX_m; }
+
+double Corrector::GetKickY() const {return kickY_m; }
