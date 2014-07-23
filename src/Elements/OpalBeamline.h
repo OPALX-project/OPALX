@@ -313,12 +313,28 @@ void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, Tracker &aTrack
     }
 }
 
+/*
 template<> inline
-void OpalBeamline::visit<Corrector>(const Corrector &element, Tracker &, PartBunch *) {
-    Inform msg("OPAL ");
-    msg << element.getType() << " not implemented yet!" << endl;
-}
+void OpalBeamline::visit<Corrector>(const Corrector &element, Tracker &, PartBunch *bunch) {
+    Inform msg("visit<Corrector ");
 
+    Corrector *elptr = dynamic_cast<Corrector *>(element.clone()->removeWrappers());
+    if(!elptr->hasAttribute("ELEMEDGE")) {
+        msg << elptr->getType() << ": no position of the element given!" << endl;
+        return;
+    }
+    //     if (elptr->hasWake()) {
+    //         const Wake *wf = elptr->getWake();
+    //     }
+
+    double startField = elptr->getAttribute("ELEMEDGE");
+    double endField;
+    elptr->initialise(bunch, startField, endField, 1.0);
+    elements_m.push_back(OpalField(elptr, startField, endField));
+
+    msg << element.getType() << " ELEMEDGE=" << startField << endl;
+}
+*/
 template<> inline
 void OpalBeamline::visit<BeamBeam>(const BeamBeam &element, Tracker &, PartBunch *) {
     Inform msg("OPAL ");

@@ -20,8 +20,6 @@
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-// JMJ 18/12/2000 no longer need this, see code commented out below.
-//#include "Utilities/Options.h"
 #include "BeamlineCore/YCorrectorRep.h"
 #include "ComponentWrappers/CorrectorWrapper.h"
 #include "Physics/Physics.h"
