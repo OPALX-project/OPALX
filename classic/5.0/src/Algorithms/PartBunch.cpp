@@ -2071,8 +2071,8 @@ void PartBunch::calcEMean() {
 
   eKin_m = 0.0;
   for(unsigned int k = 0; k < locNp; k++)
-    //eKin_m += (sqrt(dot(P[k], P[k]) + 1.0) - 1.0) * getM() * 1e-6;                                                                                                                        
-    eKin_m += (sqrt(P[k](2)*P[k](2) + 1.0) - 1.0) * getM() * 1e-6;
+    eKin_m += (sqrt(dot(P[k], P[k]) + 1.0) - 1.0) * getM() * 1e-6;                                                                                                                        
+  //eKin_m += (sqrt(P[k](2)*P[k](2) + 1.0) - 1.0) * getM() * 1e-6;
   
   reduce(eKin_m, eKin_m, OpAddAssign());
   eKin_m /= TotalNp;
