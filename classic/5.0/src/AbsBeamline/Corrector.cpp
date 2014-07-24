@@ -61,19 +61,14 @@ void Corrector::accept(BeamlineVisitor &visitor) const {
 }
 
 bool Corrector::apply(const size_t &i, const double &t, double E[], double B[]) {
-  Inform m("Corrector::apply 1" );
-  const double xk = GetKickX();
-  const double yk = GetKickY();
-  B[0] = xk;
-  B[1] = yk;
+  B[0] = kickField_m(0);
+  B[1] = kickField_m(1);
+
   return false;
 }
 
 bool Corrector::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-
-  const double xk = GetKickX();
-  const double yk = GetKickY();
-  B = Vector_t(xk,yk,0.0);
+  B = kickField_m;
   return false;
 }
 
@@ -82,9 +77,15 @@ bool Corrector::apply(const Vector_t &R, const Vector_t &centroid, const double 
 }
 
 void Corrector::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+  Inform m("Corrector::initialise ");
+
   endField_m = endField = startField + getElementLength();
   RefPartBunch_m = bunch;
   startField_m = startField;
+
+  BDipoleField f = getField();
+  kickField_m = Vector_t(f.getBx(),f.getBy(),0.0);
+  m << "B= " << kickField_m << endl;
 }
 
 void Corrector::finalise()

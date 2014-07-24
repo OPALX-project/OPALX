@@ -108,6 +108,8 @@ public:
     double kickX_m;
     double kickY_m;
 
+    Vector_t kickField_m;
+
 protected:
 
     // Not implemented.

@@ -20,6 +20,7 @@
 
 #include "Distribution/Distribution.h"
 #include "AbstractObjects/Expressions.h"
+#include "AbstractObjects/OpalData.h" 
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
 #include "halton1d_sequence.hh"
@@ -1818,7 +1819,8 @@ void Distribution::CreateOpalT(PartBunch &beam,
                                size_t &numberOfParticles,
                                bool scan) {
     // This is PC from BEAM
-    avrgpz_m = beam.getP()/beam.getM();
+
+    avrgpz_m = OpalData::getInstance()->getP0(); // beam.getP()/beam.getM();
     addedDistributions_m = addedDistributions;
     CreateOpalT(beam, numberOfParticles, scan);
 }
@@ -2730,7 +2732,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_matrix_set (m,0,4, distCorr_m.at(5));
     gsl_matrix_set (m,4,1, distCorr_m.at(6));
     gsl_matrix_set (m,1,4, distCorr_m.at(6));
-
+#define DISTDBG1
 #ifdef DISTDBG1
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
@@ -2757,6 +2759,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         }
     }        
     gsl_matrix_transpose(m);
+#define DISTDBG2
 #ifdef DISTDBG2	
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 6; j++) {
@@ -2809,15 +2812,21 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
                 INFOMSG("oops... something wrong with GSL matvec\n");
                 exit(1);
 	    }
-            xDist_m.push_back(sigmaR_m[0]*gsl_vector_get(ry, 0));
-            pxDist_m.push_back(sigmaP_m[0]*gsl_vector_get(ry, 1));
-            yDist_m.push_back(sigmaR_m[1]*gsl_vector_get(ry, 2));
-            pyDist_m.push_back(sigmaP_m[1]*gsl_vector_get(ry, 3));
-            tOrZDist_m.push_back(sigmaR_m[2]*gsl_vector_get(ry, 4));
+            xDist_m.push_back(            sigmaR_m[0]*gsl_vector_get(ry, 0));
+            pxDist_m.push_back(           sigmaP_m[0]*gsl_vector_get(ry, 1));
+            yDist_m.push_back(            sigmaR_m[1]*gsl_vector_get(ry, 2));
+            pyDist_m.push_back(           sigmaP_m[1]*gsl_vector_get(ry, 3));
+            tOrZDist_m.push_back(         sigmaR_m[2]*gsl_vector_get(ry, 4));
             pzDist_m.push_back(avrgpz_m +(sigmaP_m[2]*gsl_vector_get(ry, 5)));
         }
 	
     }
+    //std::for_each(v.rbegin(), v.rend(), [&](int n) { sum_of_elements += n; });
+    double pxm = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0);
+    double pym = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0);
+    double pzm = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
+    *gmsg << "pxm= " << pxm << " pym= " << pym << " pzm= " << pzm << endl;
+
     if (randGen)
         delete randGen;
 }
