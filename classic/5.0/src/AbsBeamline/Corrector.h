@@ -104,6 +104,7 @@ public:
 
  private:
     double startField_m;
+    double endField_m;
     double kickX_m;
     double kickY_m;
 

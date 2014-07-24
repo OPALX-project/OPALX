@@ -26,17 +26,29 @@
 // ------------------------------------------------------------------------
 
 Corrector::Corrector():
-    Component()
+  Component(),
+  startField_m(0.0),
+  endField_m(0.0),
+  kickX_m(0.0),
+  kickY_m(0.0)
 { }
 
 
 Corrector::Corrector(const Corrector &right):
-    Component(right)
+  Component(right),
+  startField_m(right.startField_m),
+  endField_m(right.endField_m),
+  kickX_m(right.kickX_m),
+  kickY_m(right.kickY_m)
 { }
 
 
 Corrector::Corrector(const string &name):
-    Component(name)
+  Component(name),
+  startField_m(0.0),
+  endField_m(0.0),
+  kickX_m(0.0),
+  kickY_m(0.0)
 { }
 
 
@@ -49,21 +61,30 @@ void Corrector::accept(BeamlineVisitor &visitor) const {
 }
 
 bool Corrector::apply(const size_t &i, const double &t, double E[], double B[]) {
-    return false;
+  Inform m("Corrector::apply 1" );
+  const double xk = GetKickX();
+  const double yk = GetKickY();
+  B[0] = xk;
+  B[1] = yk;
+  return false;
 }
 
 bool Corrector::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
+
+  const double xk = GetKickX();
+  const double yk = GetKickY();
+  B = Vector_t(xk,yk,0.0);
+  return false;
 }
 
 bool Corrector::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
+  return false;
 }
 
 void Corrector::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-    endField = startField + getElementLength();
-    RefPartBunch_m = bunch;
-    startField_m = startField;
+  endField_m = endField = startField + getElementLength();
+  RefPartBunch_m = bunch;
+  startField_m = startField;
 }
 
 void Corrector::finalise()
