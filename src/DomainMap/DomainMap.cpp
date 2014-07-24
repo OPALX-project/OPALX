@@ -103,7 +103,6 @@ std::pair<typename DomainMap<Key,T,Touches,Contains,Split>::touch_iterator,
 DomainMap<Key,T,Touches,Contains,Split>::touch_range(const Key& t) const
 { 
 
-  typedef std::pair<touch_iterator,touch_iterator> ret_pair;
   Node *p=Root;
 
   if ( p ) {
