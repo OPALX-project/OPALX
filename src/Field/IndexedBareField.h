@@ -234,7 +234,6 @@ public:
 
   void operator=(T x)
   {
-    typedef PETE_Scalar<T> S;
     assign(*this,x);
   }
 
