@@ -58,9 +58,11 @@ OpalVKicker *OpalVKicker::clone(const string &name) {
 
 void OpalVKicker::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
+    Inform m("fillRegisteredAttributes ");
     OpalElement::fillRegisteredAttributes(base, flag);
+
     const CorrectorWrapper *corr =
-        dynamic_cast<const CorrectorWrapper *>(base.removeAlignWrapper());
+    dynamic_cast<const CorrectorWrapper *>(base.removeAlignWrapper());
     BDipoleField field;
 
     if(flag == ERROR_FLAG) {
@@ -74,17 +76,24 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     double scale = Physics::c / OpalData::getInstance()->getP0();
     attributeRegistry["HKICK"]->setReal(- field.getBy() * scale);
     attributeRegistry["VKICK"]->setReal(+ field.getBx() * scale);
+
+    m << "P= " << OpalData::getInstance()->getP0()
+      << " Bx= " << field.getBx()
+      << " By= " << field.getBy() << endl;
+
 }
 
 
 void OpalVKicker::update() {
-    YCorrectorRep *corr =
-        dynamic_cast<YCorrectorRep *>(getElement()->removeWrappers());
+    YCorrectorRep *corr = dynamic_cast<YCorrectorRep *>(getElement()->removeWrappers());
+
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     double kick = Attributes::getReal(itsAttr[KICK]);
+
     corr->setElementLength(length);
     corr->setBx(kick * factor);
+    corr->SetKickY(Attributes::getReal(itsAttr[KICK]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(corr);

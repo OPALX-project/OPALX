@@ -86,6 +86,8 @@ void OpalHKicker::update() {
     corr->setElementLength(length);
     corr->setBy(- kick * factor);
 
+    corr->SetKickX(Attributes::getReal(itsAttr[KICK]));
+
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(corr);
 }

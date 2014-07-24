@@ -63,6 +63,8 @@ OpalKicker *OpalKicker::clone(const string &name) {
 
 void OpalKicker::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
+    Inform m("fillRegisteredAttributes ");
+
     OpalElement::fillRegisteredAttributes(base, flag);
     const CorrectorWrapper *corr =
         dynamic_cast<const CorrectorWrapper *>(base.removeAlignWrapper());
@@ -79,6 +81,10 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     double scale = Physics::c / OpalData::getInstance()->getP0();
     attributeRegistry["HKICK"]->setReal(- field.getBy() * scale);
     attributeRegistry["VKICK"]->setReal(+ field.getBx() * scale);
+
+    m << "P= " << OpalData::getInstance()->getP0()
+      << " Bx= " << field.getBx()
+      << " By= " << field.getBy() << endl;
 }
 
 
@@ -92,6 +98,9 @@ void OpalKicker::update() {
     corr->setElementLength(length);
     corr->setBy(- hKick * factor);
     corr->setBx(vKick * factor);
+
+    corr->SetKickX(Attributes::getReal(itsAttr[HKICK]));
+    corr->SetKickY(Attributes::getReal(itsAttr[VKICK]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(corr);

@@ -301,7 +301,6 @@ void OpalBeamline::visit(const T &element, Tracker &, PartBunch *bunch) {
     double endField;
     elptr->initialise(bunch, startField, endField, 1.0);
     elements_m.push_back(OpalField(elptr, startField, endField));
-    msg << element.getType() << " ELEMEDGE=" << startField << endl;
 }
 
 template<> inline
