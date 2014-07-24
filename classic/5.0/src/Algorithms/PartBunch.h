@@ -517,6 +517,10 @@ private:
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
 
+
+    void calcEMean(); // update eKin_m;
+
+
     /*
       Member variables starts here
     */

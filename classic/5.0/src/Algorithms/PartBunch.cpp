@@ -1728,7 +1728,9 @@ void PartBunch::calcBeamParameters() {
 
     reduce(gamma, gamma, OpAddAssign());
     gamma /= N;
-    eKin_m = (gamma - 1.0) * m0;
+
+    calcEMean();
+
     // calculate energy spread
     dE_m = prms_m(2) * sqrt(eKin_m * (eKin_m + 2.*m0) / (1. + eKin_m * (eKin_m + 2.*m0) / (m0 * m0)));
 
@@ -1984,7 +1986,7 @@ Inform &PartBunch::print(Inform &os) {
         os << "* Qtot            =   " << setw(12) << setprecision(5) << abs(sum(Q)) * 1.0e9 << " [nC]       "
            << "Qi    = " << setw(12) << std::abs(qi_m) * 1e9 << " [nC]" << "\n";
         os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV]      "
-           << "dEkin = " << setw(12) << dE_m << " [MeV]" << endl;
+           << "dEkin = " << setw(12) << dE_m << " [MeV]" << endl;                                    
         os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]" << endl;
         os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]" << endl;
         os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]" << endl;
@@ -2048,15 +2050,8 @@ void PartBunch::calcBeamParameters_cycl() {
     DDy_m = moments_m(5, 3) / TotalNp;
 
     // calculate mean energy
-    eKin_m = 0.0;
-    for(unsigned int k = 0; k < locNp; k++)
-        eKin_m += (sqrt(dot(P[k], P[k]) + 1.0) - 1.0) * getM() * 1e-6;
+    calcEMean();
 
-    localeKin = eKin_m / locNp;
-    // sum energy of all nodes
-    reduce(eKin_m, eKin_m, OpAddAssign());
-    eKin_m /= TotalNp;
-    
     double meanLocalBetaGamma = sqrt(pow(1 + localeKin / (getM() * 1.0e-6), 2.0) - 1);
 
     double betagamma = meanLocalBetaGamma * locNp;
@@ -2068,6 +2063,20 @@ void PartBunch::calcBeamParameters_cycl() {
     eps_m = eps_norm_m / Vector_t(betagamma);
 }
 
+
+void PartBunch::calcEMean() {
+  
+  const double locNp   = static_cast<double>(this->getLocalNum());
+  const double TotalNp = static_cast<double>(this->getTotalNum());
+
+  eKin_m = 0.0;
+  for(unsigned int k = 0; k < locNp; k++)
+    //eKin_m += (sqrt(dot(P[k], P[k]) + 1.0) - 1.0) * getM() * 1e-6;                                                                                                                        
+    eKin_m += (sqrt(P[k](2)*P[k](2) + 1.0) - 1.0) * getM() * 1e-6;
+  
+  reduce(eKin_m, eKin_m, OpAddAssign());
+  eKin_m /= TotalNp;
+}
 
 
 size_t PartBunch::boundp_destroyT() {
