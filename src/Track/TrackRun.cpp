@@ -371,8 +371,6 @@ void TrackRun::execute() {
              prob_lo_in[i] = prob_lo[i];
           }
 	 
-	  std::cout << "#TK ncell" << ncell[0] << " " << ncell[1] << " " << ncell[2] << std::endl; 
-  
           // We set this to -1 so that we can now control max_lev from the inputs file
 	  int maxLevel = -1;
 

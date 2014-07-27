@@ -1718,7 +1718,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     // main integration loop
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
-      //	*gmsg << "step_m=" << step_m << endl;
+	*gmsg << "step_m= " << step_m << endl;
         bool dumpEachTurn = false;
         if(initialTotalNum_m > 2) {
             // single particle dumping
@@ -4060,9 +4060,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     globalToLocal(itsBunch->R, phi, meanR);
     itsBunch->R *= Vector_t(0.001); // mm --> m
     itsBunch->boundp();
-    checkNumPart(std::string("* Before repartation: "));
+    checkNumPart(std::string("* Before repartition: "));
     repartition();
-    checkNumPart(std::string("* After repartation: "));
+    checkNumPart(std::string("* After repartition: "));
     itsBunch->R *= Vector_t(1000.0); // m --> mm
     localToGlobal(itsBunch->R, phi, meanR);
 }

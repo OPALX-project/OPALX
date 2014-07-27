@@ -60,9 +60,7 @@ void EllipticDomain::Compute(Vector_t hr){
 
     for(x = 0; x < nr[0]; x++) {
         for(y = 0; y < nr[1]; y++) {
-
             if(isInside(x, y, 1)) {
-                //IdxMap[toCoordIdx(x, y)] = idx++;
                 IdxMap[toCoordIdx(x, y)] = idx;
                 CoordMap[idx++] = toCoordIdx(x, y);
                 nxy_m++;
@@ -116,10 +114,86 @@ void EllipticDomain::Compute(Vector_t hr){
 }
 
 void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
+    //there is nothing to be done if the mesh spacings have not changed
+    if(hr[0] == getHr()[0] && hr[1] == getHr()[1] && hr[2] == getHr()[2]) {
+        hasGeometryChanged_m = false;
+        return;
+    }
+    setHr(hr);
+    hasGeometryChanged_m = true;
+    //reset number of points inside domain
+    nxy_m = 0;
+
+    // clear previous coordinate maps
+    IdxMap.clear();
+    CoordMap.clear();
+    //clear previous intersection points
+    IntersectYDir.clear();
+    IntersectXDir.clear();
+
+    // build a index and coordinate map
+    register int idx = 0;
+    register int x, y;
+
+    for(x = localId[0].first();  x<= localId[0].last(); x++) {
+        for(y = localId[1].first(); y <= localId[1].last(); y++) {
+            if(isInside(x, y, 1)) {
+                IdxMap[toCoordIdx(x, y)] = idx;
+                CoordMap[idx++] = toCoordIdx(x, y);
+                nxy_m++;
+            }
+
+        }
+    }
+
+    switch(interpolationMethod) {
+        case CONSTANT:
+            break;
+        case LINEAR:
+        case QUADRATIC:
+
+            double smajsq = SemiMajor * SemiMajor;
+            double sminsq = SemiMinor * SemiMinor;
+            double yd = 0.0;
+            double xd = 0.0;
+            double pos = 0.0;
+            double mx = (nr[0] - 1) * hr[0] / 2.0;
+            double my = (nr[1] - 1) * hr[1] / 2.0;
+
+            //calculate intersection with the ellipse
+            for(x = localId[0].first(); x <= localId[0].last(); x++) {
+                pos = x * hr[0] - mx;
+                if (pos <= -SemiMajor || pos >= SemiMajor)
+                {
+                	IntersectYDir.insert(std::pair<int, double>(x, 0));
+	                IntersectYDir.insert(std::pair<int, double>(x, 0));
+		}else{
+                	yd = std::abs(sqrt(sminsq - sminsq * pos * pos / smajsq)); // + 0.5*nr[1]*hr[1]);
+	                IntersectYDir.insert(std::pair<int, double>(x, yd));
+       		        IntersectYDir.insert(std::pair<int, double>(x, -yd));
+		}
+
+            }
+
+            for(y = localId[0].first(); y < localId[1].last(); y++) {
+                pos = y * hr[1] - my;
+		if (pos <= -SemiMinor || pos >= SemiMinor)
+                {
+                	IntersectXDir.insert(std::pair<int, double>(y, 0));
+	                IntersectXDir.insert(std::pair<int, double>(y, 0));
+		}else{
+	                xd = std::abs(sqrt(smajsq - smajsq * pos * pos / sminsq)); // + 0.5*nr[0]*hr[0]);
+        	        IntersectXDir.insert(std::pair<int, double>(y, xd));
+               		IntersectXDir.insert(std::pair<int, double>(y, -xd));
+		}
+            }
+    }
 }
 
 void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion){
+
 }
+
 void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
     scaleFactor = 1.0;
 

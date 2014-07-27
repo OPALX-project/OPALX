@@ -824,8 +824,8 @@ void PartBunch::resizeMesh() {
     double xmax = fs_m->solver_m->getXRangeMax();
     double ymin = fs_m->solver_m->getYRangeMin();
     double ymax = fs_m->solver_m->getYRangeMax();
-    double zmin = fs_m->solver_m->getZRangeMin();
-    double zmax = fs_m->solver_m->getZRangeMax();
+    double zmin = rmin_m[2]; //fs_m->solver_m->getZRangeMin();
+    double zmax = rmax_m[2]; //fs_m->solver_m->getZRangeMax();
     
     if(xmin > rmin_m[0] || xmax < rmax_m[0] ||
        ymin > rmin_m[1] || ymax < rmax_m[1]) {
@@ -846,9 +846,9 @@ void PartBunch::resizeMesh() {
         boundp();
         get_bounds(rmin_m, rmax_m);
     }
- 
-    Vector_t mymin = Vector_t(xmin, ymin , zmin);
-    Vector_t mymax = Vector_t(xmax, ymax , zmax);
+    // extend domain with extra "ghost" point
+    Vector_t mymin = Vector_t(xmin, ymin , zmin-hr_m[2]);
+    Vector_t mymax = Vector_t(xmax, ymax , zmax+hr_m[2]);
 
     for(int i = 0; i < 3; i++) 
         hr_m[i]   = (mymax[i] - mymin[i]) / nr_m[i];
@@ -877,8 +877,8 @@ void PartBunch::computeSelfFields() {
 
     if(fs_m->hasValidSolver()) {
 
-//        if(fs_m->getFieldSolverType() == "SAAMG" && !isGridFixed())
-//            resizeMesh();
+        if (fs_m->getFieldSolverType() == "SAAMG")
+           resizeMesh();
 	INFOMSG("after resizeMesh" << hr_m << endl);
 
         //scatter charges onto grid
@@ -926,7 +926,9 @@ void PartBunch::computeSelfFields() {
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
         // charge density is in rho_m
+        IpplTimings::startTimer(compPotenTimer_m);
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
+        IpplTimings::stopTimer(compPotenTimer_m);
 
         //do the multiplication of the grid-cube volume coming
         //from the discretization of the convolution integral.
@@ -1126,7 +1128,9 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vekto
 
         /// now charge density is in rho_m
         /// calculate Possion equation (without coefficient: -1/(eps))  
+        IpplTimings::startTimer(compPotenTimer_m);
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
+        IpplTimings::stopTimer(compPotenTimer_m);
 
         /// additional work of FFT solver
         /// now the scalar potential is given back in rho_m

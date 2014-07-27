@@ -57,19 +57,15 @@ MGPoissonSolver::MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl
     if(currentGeometry->getFilename() == "") {
         if(currentGeometry->getTopology() == "ELLIPTIC"){
             bp = new EllipticDomain(currentGeometry->getA(), currentGeometry->getB(), orig_nr_m, hr_m, interpl);
-	}
-        else if(currentGeometry->getTopology() == "BOXCORNER") {
+	} else if (currentGeometry->getTopology() == "BOXCORNER") {
             bp = new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl);
             bp->Compute(itsBunch_m->get_hr());
         } else {
             ERRORMSG("Geometry not known" << endl);
             exit(1);
         }
-    } else {
-	localId = layout_m->getLocalNDIndex();
+    } else 
 	bp = new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl);
-    }
-
 
     Map = 0;
     A = Teuchos::null;
@@ -82,7 +78,6 @@ MGPoissonSolver::MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl
     nLHS = Options::nLHS;
     SetupMLList();
     SetupBelosList();
-
     // setup Belos solver
     if(numBlocks_m == 0 || recycleBlocks_m == 0)
         solver = rcp(new Belos::BlockCGSolMgr<double, MV, OP>());
@@ -124,7 +119,9 @@ void MGPoissonSolver::computeMap(NDIndex<3> localId) {
             delete Map;
         if(useRCB_m)
             redistributeWithRCB(localId);
-        else
+        else if ( bp->getType() == "Geometric" )
+            IPPLToMap3DGeo(localId);    	    
+	else if ( bp->getType() == "Elliptic" )
             IPPLToMap3D(localId);
     }
 	extrapolateLHS();
@@ -136,10 +133,8 @@ void MGPoissonSolver::extrapolateLHS() {
 // Pik (x) := (x − xi ) Pi+1,k−1(x) − (x − xi+k ) Pi,k−1(x) /(xi+k − xi )
 // k = 1, . . . , n, i = 0, . . . , n − k.
 
-     if(LHS == Teuchos::null) {
-          LHS = rcp(new Epetra_Vector(*Map));
-          LHS->PutScalar(1.0);
-     } 
+    LHS = rcp(new Epetra_Vector(*Map));
+    LHS->PutScalar(0.0);
 
     std::deque< Epetra_Vector >::iterator it = OldLHS.begin();
 
@@ -178,28 +173,27 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     nr_m[0] = orig_nr_m[0];
     nr_m[1] = orig_nr_m[1];
     nr_m[2] = orig_nr_m[2];
-    
+
     bp->setMinMaxZ(itsBunch_m->get_origin()[2], itsBunch_m->get_maxExtend()[2]);
-    
     bp->setNr(nr_m);
-
+    layout_m = &itsBunch_m->getFieldLayout();
     localId = layout_m->getLocalNDIndex();
-
+ 
     IpplTimings::startTimer(FunctionTimer1_m);
-            bp->Compute(hr, localId, itsBunch_m->getGlobalMeanR(), itsBunch_m->getGlobalToLocalQuaternion());
+    if ( bp->getType() == "Geometric" )
+        bp->Compute(hr, localId, itsBunch_m->getGlobalMeanR(), itsBunch_m->getGlobalToLocalQuaternion());
+    else if ( bp->getType() == "Elliptic"  )
+        bp->Compute(hr);
     IpplTimings::stopTimer(FunctionTimer1_m);
-   
+
+    // Define the Map
     IpplTimings::startTimer(FunctionTimer2_m);
-    	    computeMap(localId);	// Define the Map
+    computeMap(localId);	
     IpplTimings::stopTimer(FunctionTimer2_m);
 
-
     // Allocate the RHS with the new Epetra Map
-    if(RHS == Teuchos::null) {
-    	RHS = rcp(new Epetra_Vector(*Map));
-	RHS->PutScalar(0.0);
-    }	
- 
+    RHS = rcp(new Epetra_Vector(*Map));
+    RHS->PutScalar(0.0);
     // get charge densities from IPPL field and store in Epetra vector (RHS)
     IpplTimings::startTimer(FunctionTimer3_m);
     int id = 0;
@@ -216,8 +210,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     // build discretization matrix
     IpplTimings::startTimer(FunctionTimer4_m);
-    if (A == Teuchos::null)
-	A = rcp(new Epetra_CrsMatrix(Copy, *Map,  7, true));
+    A = rcp(new Epetra_CrsMatrix(Copy, *Map,  7, true));
     ComputeStencil(hr, RHS);
     IpplTimings::stopTimer(FunctionTimer4_m);
 
@@ -226,24 +219,24 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 #endif
 
     IpplTimings::startTimer(FunctionTimer5_m);
-    if (MLPrec == Teuchos::null)
-        MLPrec = rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
-
     switch(precmode_m) {
         case REUSE_PREC:
+            if (MLPrec == Teuchos::null)
+               MLPrec = rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
             break;
 
         case REUSE_HIERARCHY:
-                MLPrec->ReComputePreconditioner();
+            if (MLPrec == Teuchos::null)
+               MLPrec = rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
+            else
+               MLPrec->ReComputePreconditioner();
             break;
 
         case STD_PREC:
             MLPrec = rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
             break;
-    }   
+    }
     IpplTimings::stopTimer(FunctionTimer5_m);
-    
-
     // setup preconditioned iterative solver
     // use old LHS solution as initial guess
     IpplTimings::startTimer(FunctionTimer6_m);
@@ -256,11 +249,10 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     solver->setProblem(rcp(&problem,false));
     if(!problem.isProblemSet()){
         if (problem.setProblem() == false) {
-            std::cout << std::endl << "ERROR:  Belos::LinearProblem failed to set up correctly!" << std::endl;
+            ERRORMSG("Belos::LinearProblem failed to set up correctly!" << endl);
         }
     }
     IpplTimings::stopTimer(FunctionTimer6_m);
-
     std::ofstream timings;
     char filename[50];
     sprintf(filename, "timing_MX%d_MY%d_MZ%d_nProc%d_recB%d_numB%d_nLHS%d", orig_nr_m[0], orig_nr_m[1], orig_nr_m[2], Comm.NumProc(), recycleBlocks_m, numBlocks_m, nLHS);
@@ -298,7 +290,6 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     IpplTimings::startTimer(FunctionTimer8_m);
     id = 0;
     rho = 0.0;
-
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
@@ -371,17 +362,31 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
 }
 
 void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
-
     int NumMyElements = 0;
     vector<int> MyGlobalElements;
 
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                 if (bp->isInside(idx, idy, idz)) {
+                if (bp->isInside(idx, idy, idz)) {
                     MyGlobalElements.push_back(bp->getIdx(idx, idy, idz));
                     NumMyElements++;
                 }
+            }
+	}
+    }
+    Map = new Epetra_Map(-1, NumMyElements, &MyGlobalElements[0], 0, Comm);
+}
+
+void MGPoissonSolver::IPPLToMap3DGeo(NDIndex<3> localId) {
+    int NumMyElements = 0;
+    vector<int> MyGlobalElements;
+
+    for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
+        for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
+            for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
+                    MyGlobalElements.push_back(bp->getIdx(idx, idy, idz));
+                    NumMyElements++;
             }
 	}
     }

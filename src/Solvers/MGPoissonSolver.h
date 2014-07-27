@@ -234,6 +234,7 @@ private:
     /// converts IPPL grid to a 3D Epetra_Map
     /// \param localId local IPPL grid node indices
     void IPPLToMap3D(NDIndex<3> localId);
+    void IPPLToMap3DGeo(NDIndex<3> localId);
 
     /** returns a discretized stencil that has Neumann BC in z direction and
      * Dirichlet BC on the surface of a specified geometry
