@@ -1718,7 +1718,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     // main integration loop
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
-	*gmsg << "step_m= " << step_m << endl;
+	//*gmsg << "step_m= " << step_m << endl;
         bool dumpEachTurn = false;
         if(initialTotalNum_m > 2) {
             // single particle dumping
