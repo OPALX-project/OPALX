@@ -20,7 +20,6 @@
 
 #include "Distribution/Distribution.h"
 #include "AbstractObjects/Expressions.h"
-#include "AbstractObjects/OpalData.h" 
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
 #include "halton1d_sequence.hh"
@@ -2764,7 +2763,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 6; j++) {
                 if (j==0)
-                    *gmsg << "r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+                    *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
                           << std::setprecision(3) << gsl_matrix_get (m, i, j);
                 else
                     *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
@@ -2821,6 +2820,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         }
 	
     }
+
     //std::for_each(v.rbegin(), v.rend(), [&](int n) { sum_of_elements += n; });
     double pxm = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0);
     double pym = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0);
@@ -3132,6 +3132,8 @@ void Distribution::InjectBeam(PartBunch &beam) {
     pzDist_m.clear();
 
     beam.boundp();
+
+
 }
 
 bool Distribution::GetIfDistEmitting() {
