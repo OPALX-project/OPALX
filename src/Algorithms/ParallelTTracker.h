@@ -434,6 +434,10 @@ private:
     Vector_t calcMeanP() const;
 };
 
+inline double ParallelTTracker::p2(Vector_t p) {
+  return p[0]*p[0] +  p[0]*p[1] + p[0]*p[2] + p[1]*p[0] + p[1]*p[1]+ p[1]*p[2] + p[2]*p[0] +  p[2]*p[1]+ p[2]*p[2];
+}
+
 inline double ParallelTTracker::ptoEMeV(Vector_t p) {
     return (sqrt(dot(p, p) + 1.0) - 1.0) * itsBunch->getM() * 1e-6;
 }
