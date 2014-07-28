@@ -432,10 +432,11 @@ private:
     double calcG(); // Time step chooser for adaptive variant
     Vector_t calcMeanR() const;
     Vector_t calcMeanP() const;
+    double pSqr(Vector_t p1, Vector_t p2);
 };
 
-inline double ParallelTTracker::p2(Vector_t p) {
-  return p[0]*p[0] +  p[0]*p[1] + p[0]*p[2] + p[1]*p[0] + p[1]*p[1]+ p[1]*p[2] + p[2]*p[0] +  p[2]*p[1]+ p[2]*p[2];
+inline double ParallelTTracker::pSqr(Vector_t p1, Vector_t p2) {
+  return p1[0]*p2[0] + p1[0]*p2[1] + p1[0]*p2[2] + p1[1]*p2[0] + p1[1]*p2[1] + p1[1]*p2[2] + p1[2]*p2[0] + p1[2]*p2[1] + p1[2]*p2[2];
 }
 
 inline double ParallelTTracker::ptoEMeV(Vector_t p) {

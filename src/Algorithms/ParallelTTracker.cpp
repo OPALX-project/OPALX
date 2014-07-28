@@ -369,7 +369,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
          before they are allocated when increasing the timestep in the gun.
          */
         itsBunch->get_bounds(rmin, rmax);
-        margin = 10. * RefPartP_suv_m(2) * scaleFactor_m / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
+        margin = 10. * RefPartP_suv_m(2) * scaleFactor_m / sqrt(1.0 + pSqr(RefPartP_suv_m, RefPartP_suv_m));
         margin = 0.01 > margin ? 0.01 : margin;
         itsOpalBeamline_m.switchElements(rmin(2) - margin, rmax(2) + margin);
     }
