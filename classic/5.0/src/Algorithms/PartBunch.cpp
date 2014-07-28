@@ -2070,16 +2070,18 @@ void PartBunch::calcBeamParameters_cycl() {
 
 void PartBunch::calcEMean() {
   
-  const double locNp   = static_cast<double>(this->getLocalNum());
-  const double TotalNp = static_cast<double>(this->getTotalNum());
+  const double totalNp = static_cast<double>(this->getTotalNum());
+  Vector_t pm(0.0);
 
-  eKin_m = 0.0;
-  for(unsigned int k = 0; k < locNp; k++)
-    eKin_m += (sqrt(dot(P[k], P[k]) + 1.0) - 1.0) * getM() * 1e-6;                                                                                                                        
-  //eKin_m += (sqrt(P[k](2)*P[k](2) + 1.0) - 1.0) * getM() * 1e-6;
-  
-  reduce(eKin_m, eKin_m, OpAddAssign());
-  eKin_m /= TotalNp;
+  std::for_each(P.begin(), P.end(), [&](Vector_t x) { pm += x; }); 
+
+  double bega = std::sqrt(dot(pm,pm));
+  reduce(bega, bega, OpAddAssign());
+  bega /= totalNp;
+
+  double ga = std::sqrt(bega*bega + 1.0);
+
+  eKin_m = (ga-1.0) * getM() * 1e-6;
 }
 
 

@@ -2820,13 +2820,13 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         }
 	
     }
-
+    /*
     //std::for_each(v.rbegin(), v.rend(), [&](int n) { sum_of_elements += n; });
     double pxm = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0);
     double pym = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0);
     double pzm = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
-    *gmsg << "pxm= " << pxm << " pym= " << pym << " pzm= " << pzm << endl;
-
+    std::cout << "bega= " << std::sqrt(pxm*pxm + pym*pym + pzm*pzm) << std::endl;
+    */
     if (randGen)
         delete randGen;
 }
