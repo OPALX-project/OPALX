@@ -411,7 +411,7 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
         break;
     }
 
-    // Scale and shift coordinates according to distribution input.
+    // AAA Scale and shift coordinates according to distribution input.
     ScaleDistCoordinates();
     ShiftDistCoordinates(massIneV);
 }
@@ -3131,9 +3131,9 @@ void Distribution::InjectBeam(PartBunch &beam) {
     pzDist_m.clear();
 
     beam.boundp();
-
-    beam.correctEnergy(avrgpz_m);
-
+   
+    if (distrTypeT_m != DistrTypeT::FROMFILE)
+      beam.correctEnergy(avrgpz_m);
     beam.calcEMean();
 }
 
