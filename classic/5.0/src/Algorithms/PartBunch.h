@@ -517,10 +517,10 @@ private:
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
 
-
-    double pSqr(Vector_t p1, Vector_t p2) const;
+ public:
     void calcEMean(); // update eKin_m;
-
+    void correctEnergy(double avrgp);
+ private:
 
     /*
       Member variables starts here
@@ -681,12 +681,6 @@ private:
 
 
 };
-
-inline double PartBunch::pSqr(Vector_t p1, Vector_t p2) const {
-  return p1[0]*p2[0] + p1[0]*p2[1] + p1[0]*p2[2] + p1[1]*p2[0] + p1[1]*p2[1] + p1[1]*p2[2] + p1[2]*p2[0] + p1[2]*p2[1] + p1[2]*p2[2];
-}
-
-
 
 inline 
 bool PartBunch::isDcBeam() { return dcBeam_m;}

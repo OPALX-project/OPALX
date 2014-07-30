@@ -1628,7 +1628,7 @@ void Distribution::CreateDistributionGauss(size_t numberOfParticles, double mass
         GenerateTransverseGauss(numberOfParticles);
         GenerateLongFlattopT(numberOfParticles);
     } else {
-        GenerateGaussZ(numberOfParticles);
+      GenerateGaussZ(numberOfParticles);
     }
 }
 
@@ -2714,7 +2714,6 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
                 gsl_matrix_set (m, i, j, 0.0);
         }
     }
-
     gsl_matrix_set (m,0,1, distCorr_m.at(0));
     gsl_matrix_set (m,1,0, distCorr_m.at(0));
     gsl_matrix_set (m,2,3, distCorr_m.at(1));
@@ -2726,100 +2725,100 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_matrix_set (m,0,5, distCorr_m.at(3));
     gsl_matrix_set (m,5,1, distCorr_m.at(4));
     gsl_matrix_set (m,1,5, distCorr_m.at(4));
-			
+    
     gsl_matrix_set (m,4,0, distCorr_m.at(5));
     gsl_matrix_set (m,0,4, distCorr_m.at(5));
     gsl_matrix_set (m,4,1, distCorr_m.at(6));
     gsl_matrix_set (m,1,4, distCorr_m.at(6));
-#define DISTDBG1
+
 #ifdef DISTDBG1
     for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 6; j++) {
-            if (j==0)
-                *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
-                      << std::setprecision(3) << gsl_matrix_get (m, i, j);
-            else
-                *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
-        }
-    *gmsg << endl;
+      for (int j = 0; j < 6; j++) {
+	if (j==0)
+	  *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+		<< std::setprecision(3) << gsl_matrix_get (m, i, j);
+	else
+	  *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
+      }
+      *gmsg << endl;
     }
 #endif
 
     int errcode = gsl_linalg_cholesky_decomp(m);
 
     if (errcode == GSL_EDOM) {
-        INFOMSG("gsl_linalg_cholesky_decomp faliled" << endl);
-        exit(1);
+      INFOMSG("gsl_linalg_cholesky_decomp faliled" << endl);
+      exit(1);
     }
     // so make the lower part zero.
     for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < i ; j++) {
-            gsl_matrix_set (m, i, j, 0.0);
-        }
+      for (int j = 0; j < i ; j++) {
+	gsl_matrix_set (m, i, j, 0.0);
+      }
     }        
     gsl_matrix_transpose(m);
-#define DISTDBG2
-#ifdef DISTDBG2	
-        for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 6; j++) {
-                if (j==0)
-                    *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
-                          << std::setprecision(3) << gsl_matrix_get (m, i, j);
-                else
-                    *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
-            }
-            *gmsg << endl;
-        }
+
+#ifdef DISTDBG2
+    for (int i = 0; i < 6; i++) {
+      for (int j = 0; j < 6; j++) {
+	if (j==0)
+	  *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+		<< std::setprecision(3) << gsl_matrix_get (m, i, j);
+	else
+	  *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
+      }
+      *gmsg << endl;
+    }
 #endif
-	
+    
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
-        double rval = 0.0;
+      double rval = 0.0;
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[0])
-            ;
-        gsl_vector_set(rx,0,rval);       
+      while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[0])
+	;
+      gsl_vector_set(rx,0,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[0])
-            ;
-        gsl_vector_set(rx,1,rval);       
+      while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[0])
+	;
+      gsl_vector_set(rx,1,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[1])
-            ;
-        gsl_vector_set(rx,2,rval);       
+      while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[1])
+	;
+      gsl_vector_set(rx,2,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[1])
-            ;
-        gsl_vector_set(rx,3,rval);       
+      while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[1])
+	;
+      gsl_vector_set(rx,3,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[2])
-            ;
-        gsl_vector_set(rx,4,rval);       
+      while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[2])
+	;
+      gsl_vector_set(rx,4,rval);       
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[2])
-            ;
-        gsl_vector_set(rx,5,rval);       
+      while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[2])
+	;
+      gsl_vector_set(rx,5,rval);       
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
+      // Save to each processor in turn.
+      saveProcessor++;
+      if (saveProcessor >= Ippl::getNodes())
+	saveProcessor = 0;
 
-        if (Ippl::myNode() == saveProcessor) {
-            if (gsl_blas_dgemv(CblasNoTrans,1.0,m,rx,0.0,ry)) {
-                INFOMSG("oops... something wrong with GSL matvec\n");
-                exit(1);
-	    }
-            xDist_m.push_back(            sigmaR_m[0]*gsl_vector_get(ry, 0));
-            pxDist_m.push_back(           sigmaP_m[0]*gsl_vector_get(ry, 1));
-            yDist_m.push_back(            sigmaR_m[1]*gsl_vector_get(ry, 2));
-            pyDist_m.push_back(           sigmaP_m[1]*gsl_vector_get(ry, 3));
-            tOrZDist_m.push_back(         sigmaR_m[2]*gsl_vector_get(ry, 4));
-            pzDist_m.push_back(avrgpz_m +(sigmaP_m[2]*gsl_vector_get(ry, 5)));
-        }
-	
+      if (Ippl::myNode() == saveProcessor) {
+	if (gsl_blas_dgemv(CblasNoTrans,1.0,m,rx,0.0,ry)) {
+	  INFOMSG("oops... something wrong with GSL matvec\n");
+	  exit(1);
+	}
+	xDist_m.push_back(            sigmaR_m[0]*gsl_vector_get(ry, 0));
+	pxDist_m.push_back(           sigmaP_m[0]*gsl_vector_get(ry, 1));
+	yDist_m.push_back(            sigmaR_m[1]*gsl_vector_get(ry, 2));
+	pyDist_m.push_back(           sigmaP_m[1]*gsl_vector_get(ry, 3));
+	tOrZDist_m.push_back(         sigmaR_m[2]*gsl_vector_get(ry, 4));
+	pzDist_m.push_back(avrgpz_m +(sigmaP_m[2]*gsl_vector_get(ry, 5)));
+      }      
     }
+
     /*
     //std::for_each(v.rbegin(), v.rend(), [&](int n) { sum_of_elements += n; });
     double pxm = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0);
@@ -3133,7 +3132,9 @@ void Distribution::InjectBeam(PartBunch &beam) {
 
     beam.boundp();
 
+    beam.correctEnergy(avrgpz_m);
 
+    beam.calcEMean();
 }
 
 bool Distribution::GetIfDistEmitting() {

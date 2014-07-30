@@ -2067,6 +2067,23 @@ void PartBunch::calcBeamParameters_cycl() {
     eps_m = eps_norm_m / Vector_t(betagamma);
 }
 
+void PartBunch::correctEnergy(double avrgp_m) {
+
+  const double totalNp = static_cast<double>(this->getTotalNum());
+  const double locNp = static_cast<double>(this->getLocalNum());
+
+  double avrgp = 0.0;
+  for(unsigned int k = 0; k < locNp; k++)
+    avrgp += sqrt(dot(P[k], P[k]));
+
+  reduce(avrgp, avrgp, OpAddAssign());
+  avrgp /= totalNp;
+
+  for(unsigned int k = 0; k < locNp; k++)
+    P[k](2) =  P[k](2) - avrgp + avrgp_m;
+}
+
+
 void PartBunch::calcEMean() {
   
   const double totalNp = static_cast<double>(this->getTotalNum());
@@ -2080,17 +2097,6 @@ void PartBunch::calcEMean() {
   reduce(eKin_m, eKin_m, OpAddAssign());
   eKin_m /= totalNp;
 
-    /*
-  std::for_each(P.begin(), P.end(), [&](Vector_t x) { pm += x; }); 
-
-  double bega = std::sqrt(dot(pm,pm));
-  reduce(bega, bega, OpAddAssign());
-  bega /= totalNp;
-
-  double ga = std::sqrt(bega*bega + 1.0);
-
-  eKin_m = (ga-1.0) * getM() * 1e-6;
-    */
 }
 
 
