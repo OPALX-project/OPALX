@@ -258,7 +258,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
         fsType_m = "SAAMG";
 #else
-        INFOMSG("SAAMG Solver not enabled! Please build OPAL with SAAMG_SOLVER enabled" << endl);
+        INFOMSG("SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1" << endl);
         INFOMSG("switching to FFT solver..." << endl);
         solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
         fsType_m = "FFT";
