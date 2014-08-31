@@ -943,8 +943,6 @@ void PartBunch::computeSelfFields() {
         rho_m *= getCouplingConstant();
 
         //write out rho
-
-
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
         ostringstream oss;
@@ -1047,14 +1045,15 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         /// In particle rest frame, the longitudinal length enlarged
         Vector_t hr_scaled = hr_m ;
         hr_scaled[1] *= gamma;
-
         /// now charge density is in rho_m
         /// calculate Possion equation (without coefficient: -1/(eps))
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
 
         /// additional work of FFT solver
         /// now the scalar potential is given back in rho_m
-        rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
+        /// FIXME: this scaling should be moved into FFTPoissonSolver
+        if(fs_m->getFieldSolverType() == "FFT" || fs_m->getFieldSolverType() == "FFTBOX")
+            rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
 
         /// retrive coefficient: -1/(eps)
         rho_m *= getCouplingConstant();
@@ -1126,6 +1125,29 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vekto
         Vector_t hr_scaled = hr_m ;
         hr_scaled[1] *= gamma;
 
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+
+        std::ostringstream istr;
+        istr << localTrackStep_m;
+
+        ofstream fstr1;
+        fstr1.precision(9);
+
+        string SfileName = OpalData::getInstance()->getInputBasename();
+        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
+        fstr1.open(rho_fn.c_str(), ios::out);
+        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
+        for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
+            for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
+                for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                }
+            }
+        }
+        fstr1.close();
+        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
         /// now charge density is in rho_m
         /// calculate Possion equation (without coefficient: -1/(eps))  
         IpplTimings::startTimer(compPotenTimer_m);
@@ -1134,16 +1156,61 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Vekto
 
         /// additional work of FFT solver
         /// now the scalar potential is given back in rho_m
-        rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
+        /// FIXME: this scaling should be moved into FFTPoissonSolver
+        if(fs_m->getFieldSolverType() == "FFT" || fs_m->getFieldSolverType() == "FFTBOX")
+           rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
 
         /// retrive coefficient: -1/(eps)
         rho_m *= getCouplingConstant();
+
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+
+        ofstream fstr2;
+        fstr2.precision(9);
+
+        string phi_fn = string("data/") + SfileName + string("-phi_scalar-") + string(istr.str());
+        fstr2.open(phi_fn.c_str(), ios::out);
+        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
+        for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
+            for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
+                for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
+                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                }
+            }
+        }
+        fstr2.close();
+
+        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
 
         /// calculate electric field vectors from field potential
         eg_m = -Grad(rho_m, eg_m);
 
         /// back Lorentz transformation
         eg_m *= Vector_t(gamma, 1.0, gamma);
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING E FIELD ***" << endl);
+
+        ofstream fstr3;
+        fstr3.precision(9);
+
+        string e_field = string("data/") + SfileName + string("-e_field-") + string(istr.str());
+        fstr3.open(e_field.c_str(), ios::out);
+        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
+        for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
+            for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
+                for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
+                    fstr3 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << endl;
+                }
+            }
+        }
+        fstr3.close();
+        fieldDBGStep_m++;
+
+        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+#endif
+
 
         /*
         //debug

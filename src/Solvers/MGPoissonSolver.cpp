@@ -197,12 +197,11 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // get charge densities from IPPL field and store in Epetra vector (RHS)
     IpplTimings::startTimer(FunctionTimer3_m);
     int id = 0;
-
+    float scaleFactor = itsBunch_m->getdT(); 
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                 if (bp->isInside(idx, idy, idz)) 
-                    RHS->Values()[id++] = rho[idx][idy][idz].get();
+                    RHS->Values()[id++] = rho[idx][idy][idz].get()/scaleFactor;
             }
         }
     }
@@ -295,7 +294,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
                   NDIndex<3> l(Index(idx, idx), Index(idy, idy), Index(idz, idz));
                   if (bp->isInside(idx, idy, idz))
-                     rho.localElement(l) = LHS->Values()[id++];
+                     rho.localElement(l) = LHS->Values()[id++]*scaleFactor;
             }
         }
     }
