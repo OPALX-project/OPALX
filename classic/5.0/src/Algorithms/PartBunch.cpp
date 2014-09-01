@@ -1216,7 +1216,7 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Quate
         /// only hr_scaled is! -DW
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
         
-      
+        /*
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
 
@@ -1232,7 +1232,7 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Quate
         for (int i=0; i<m1; i++ )
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
         // end debug
-            
+        */
 
         // If debug flag is set, dump vector field (electric field) into file under ./data/
 #ifdef DBG_SCALARFIELD
