@@ -71,11 +71,20 @@ public:
     X[0] = x00;
     X[1] = x01;
   }
+
   Vektor(const T& x00, const T& x01, const T& x02) {
     PInsist(D==3, "Number of arguments does not match Vektor dimension!!");
     X[0] = x00;
     X[1] = x01;
     X[2] = x02;
+  }
+
+  Vektor(const T& x00, const T& x01, const T& x02, const T& x03) {
+    PInsist(D==4, "Number of arguments does not match Vektor dimension!!");
+    X[0] = x00;
+    X[1] = x01;
+    X[2] = x02;
+    X[3] = x03;
   }
 
   // Destructor
