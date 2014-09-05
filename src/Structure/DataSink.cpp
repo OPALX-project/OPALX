@@ -121,11 +121,7 @@ DataSink::DataSink(int restartStep) :
     // Define file name.
     fn += string(".h5");
 
-#ifdef PARALLEL_IO
-    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_APPEND, Ippl::getComm());
-#else
-    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_APPEND, 0);
-#endif
+    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_RDWR, Ippl::getComm());
 
     *gmsg << "Will append to " << fn << endl;
 
