@@ -47,7 +47,7 @@ MGPoissonSolver::MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl
 
     hasParallelDecompositionChanged_m = true;
     useRCB_m = false;
-    if(Ippl::Info->getOutputLevel() > 0)
+    if(Ippl::Info->getOutputLevel() > 1)
         verbose_m = true;
     else
         verbose_m = false;

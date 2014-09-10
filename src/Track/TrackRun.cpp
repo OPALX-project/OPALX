@@ -43,6 +43,7 @@
 #include "Structure/FieldSolver.h"
 #include "Structure/DataSink.h"
 #include "Distribution/Distribution.h"
+#include "Structure/BoundaryGeometry.h"
 
 #ifdef HAVE_AMR_SOLVER
 #define DIM 3
@@ -72,6 +73,7 @@ namespace {
         PARAMB,       // The control parameter for "AUTO" mode of multi-bunch
         BEAM,         // The beam to track
         FIELDSOLVER,  // The field solver attached
+        BOUNDARYGEOMETRY, // The boundary geometry
         DISTRIBUTION, // The particle distribution
         DISTRIBUTIONS, // A list of  particle distributions
         MULTIPACTING, // MULTIPACTING flag
@@ -103,6 +105,8 @@ TrackRun::TrackRun():
                     ("BEAM", "Name of beam ", "BEAM");
     itsAttr[FIELDSOLVER] = Attributes::makeString
                            ("FIELDSOLVER", "Field solver to be used ", "FIELDSOLVER");
+    itsAttr[BOUNDARYGEOMETRY] = Attributes::makeString
+                           ("BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default)", "NONE");
     itsAttr[DISTRIBUTION] = Attributes::makeString
                             ("DISTRIBUTION", "Particle distribution to be used ", "DISTRIBUTION");
     itsAttr[DISTRIBUTIONS] = Attributes::makeStringArray
@@ -500,6 +504,15 @@ void TrackRun::execute() {
         OpalData::getInstance()->setInOPALCyclMode();
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
+        if (Attributes::getString(itsAttr[BOUNDARYGEOMETRY]) != "NONE") {
+        // Ask the dictionary if BoundaryGeometry is allocated.
+        // If it is allocated use the allocated BoundaryGeometry 
+          if (!OpalData::getInstance()->hasGlobalGeometry()) {
+            BoundaryGeometry *bg = BoundaryGeometry::find(Attributes::getString(itsAttr[BOUNDARYGEOMETRY]))->
+                                                 clone(getOpalName() + string("_geometry"));
+            OpalData::getInstance()->setGlobalGeometry(bg);
+          }
+        }
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
         fs->initCartesianFields();
         Track::block->bunch->setSolver(fs);

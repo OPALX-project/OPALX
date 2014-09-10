@@ -246,7 +246,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         std::vector<BoundaryGeometry *> geometries;
         for(unsigned int i = 0; i <= geoms.length(); i++) {
             if(geoms[i] == ',' || i == geoms.length()) {
-                BoundaryGeometry *geom = BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY]))->clone(getOpalName() + string("_geometry"));
+                BoundaryGeometry *geom = OpalData::getInstance()->getGlobalGeometry();
                 if(geom != 0) {
                     geometries.push_back(geom);
                 }
@@ -254,7 +254,11 @@ void FieldSolver::initSolver(PartBunch &b) {
             } else
                 tmp += geoms[i];
         }
-        solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]), Attributes::getString(itsAttr[INTERPL]), Attributes::getReal(itsAttr[TOL]), (int)Attributes::getReal(itsAttr[MAXITERS]), Attributes::getString(itsAttr[PRECMODE]));
+        solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]),
+                                                                    Attributes::getString(itsAttr[INTERPL]), 
+                                                                    Attributes::getReal(itsAttr[TOL]),
+                                                                    Attributes::getReal(itsAttr[MAXITERS]), 
+                                                                    Attributes::getString(itsAttr[PRECMODE]));
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
         fsType_m = "SAAMG";
 #else

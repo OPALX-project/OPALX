@@ -1002,7 +1002,9 @@ void ParallelCyclotronTracker::execute() {
       *gmsg << "* -> " <<  ((*sindex)->first) << endl;
     *gmsg << "* -----------------------------" << endl;
 
-    initializeBoundaryGeometry();
+    // don't initializeBoundaryGeometry()
+    // get BoundaryGeometry that is already initialized
+    bgf_m = OpalData::getInstance()->getGlobalGeometry(); 
 
     // external field arrays for dumping
     for(int k = 0; k < 2; k++)

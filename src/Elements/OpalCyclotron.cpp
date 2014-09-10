@@ -230,7 +230,7 @@ void OpalCyclotron::update() {
     cycl->setSuperpose(superpose_str);
 
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
-      obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));
+      obgeo_m = BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY]));
       if(obgeo_m) {
 	cycl->setBoundaryGeometry(obgeo_m);
       }

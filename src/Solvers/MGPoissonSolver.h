@@ -295,11 +295,11 @@ protected:
         //MLList.set("coarse: sweeps", 10);
         //MLList.set("coarse: type", "Chebyshev");
 
-        // turn on all output
+        // Controls the amount of printed information.
+        // Ranges from 0 to 10 (0 is no output, and
+        // 10 is incredibly detailed output). Default: 0
         if(verbose_m)
-            MLList_m.set("ML output", 101);
-        else
-            MLList_m.set("ML output", -1);
+            MLList_m.set("ML output", 10);
 
         // heuristic for max coarse size depending on number of processors
         int coarsest_size = std::max(Comm.NumProc() * 10, 1024);
