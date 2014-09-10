@@ -163,8 +163,11 @@ public:
     inline void  setParaAutoMode(const double para) {CoeffDBunches_m = para; }
   
     inline void setPr(double x) {referencePr = x;}
+    inline void setPt(double x) {referencePt = x;}
+    inline void setPz(double x) {referencePz = x;}
     inline void setR(double x) {referenceR = x;}
     inline void setTheta(double x) {referenceTheta = x;}
+    inline void setZ(double x) {referenceZ = x;}
     inline void setBeGa(double x) {bega = x;}
 
     void bgf_main_collision_test();

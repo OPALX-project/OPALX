@@ -620,10 +620,16 @@ void TrackRun::execute() {
         itsTracker->setNumBunch(specifiedNumBunch);
 
 	if(OPAL->inRestartRun()) {
-	  itsTracker->setPr(dist->GetPr());
-	  itsTracker->setR(dist->GetR());
-	  itsTracker->setTheta(dist->GetTheta());
-	  itsTracker->setBeGa(dist->GetBeGa());
+
+            itsTracker->setBeGa(dist->GetBeGa());
+
+	    itsTracker->setPr(dist->GetPr());
+            itsTracker->setPt(dist->GetPt());
+            itsTracker->setPz(dist->GetPz());
+          
+	    itsTracker->setR(dist->GetR());
+	    itsTracker->setTheta(dist->GetTheta());
+            itsTracker->setZ(dist->GetZ());
 	}
 
         // statistical data are calculated (rms, eps etc.)

@@ -154,8 +154,11 @@ public:
 
 
     virtual void setPr(double x) { } ;
+    virtual void setPt(double x) { } ;
+    virtual void setPz(double x) { } ;
     virtual void setR(double x) { } ;
     virtual void setTheta(double x) { } ;
+    virtual void setZ(double x) { } ;
     virtual void setBeGa(double x) { } ;
 
 

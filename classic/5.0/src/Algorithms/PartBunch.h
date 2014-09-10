@@ -275,16 +275,19 @@ public:
     void   computeSelfFields();
 
     /** /brief used for self fields with binned distribution */
-    void computeSelfFields(int b);
+    void   computeSelfFields(int b);
 
-    void computeSelfFields_cycl(double gamma);
-    void computeSelfFields_cycl(int b);
+    //void computeSelfFields_cycl(double gamma);
+    //void computeSelfFields_cycl(int b);
 
-    // Overload computeselffields with versions that have meanR and the quaternion of the 
+    // Replaced computeSelfFields_cycl() with versions that have meanR and the quaternion of the 
     // rotation of the particle bunch in order to take into account the rotation
-    // when finding the boundary conditions for the fieldsolver -DW
-    void computeSelfFields_cycl(double gamma, Vector_t const meanR, Vektor<double, 4> const quaternion);
-    void computeSelfFields_cycl(int b, Vector_t const meanR, Vektor<double, 4> const quaternion);
+    // when finding the boundary conditions for the fieldsolver. -DW
+    void computeSelfFields_cycl(double gamma, Vector_t const meanR=Vector_t(0.0, 0.0, 0.0), 
+				              Quaternion_t const quaternion=Quaternion_t(1.0, 0.0, 0.0, 0.0));
+
+    void computeSelfFields_cycl(int b,        Vector_t const meanR=Vector_t(0.0, 0.0, 0.0), 
+                                              Quaternion_t const quaternion=Quaternion_t(1.0, 0.0, 0.0, 0.0));
 
     void resetInterpolationCache(bool clearCache = false);
 

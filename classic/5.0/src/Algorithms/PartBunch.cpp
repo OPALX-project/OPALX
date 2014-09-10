@@ -925,9 +925,12 @@ void PartBunch::computeSelfFields() {
         fstr1.close();
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
+
         // charge density is in rho_m
         IpplTimings::startTimer(compPotenTimer_m);
+
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
+
         IpplTimings::stopTimer(compPotenTimer_m);
 
         //do the multiplication of the grid-cube volume coming
@@ -1023,7 +1026,7 @@ void PartBunch::computeSelfFields() {
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
-
+/*
 void PartBunch::computeSelfFields_cycl(double gamma) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
@@ -1065,7 +1068,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 
         /// back Lorentz transformation
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
-
+*/
         /*
         //debug
         // output field on the grid points
@@ -1083,7 +1086,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
         // end debug
          */
-
+/*
         /// interpolate electric field at particle positions.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
@@ -1101,7 +1104,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
     // *gmsg<<"min of bunch is ("<<rmin_m(0)<<", "<<rmin_m(1)<<", "<<rmin_m(2)<<") [m] "<<endl;
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
-
+*/
 
 /**
  * \method computeSelfFields_cycl()
@@ -1276,13 +1279,34 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Quate
         Bf(2) = -betaC * Ef(0);
 
     }
-    // *gmsg<<"gamma ="<<gamma<<endl;
-    // *gmsg<<"dx,dy,dz =("<<hr_m[0]<<", "<<hr_m[1]<<", "<<hr_m[2]<<") [m] "<<endl;
-    // *gmsg<<"max of bunch is ("<<rmax_m(0)<<", "<<rmax_m(1)<<", "<<rmax_m(2)<<") [m] "<<endl;
-    // *gmsg<<"min of bunch is ("<<rmin_m(0)<<", "<<rmin_m(1)<<", "<<rmin_m(2)<<") [m] "<<endl;
+    
+    /*
+    *gmsg << "gamma =" << gamma << endl;
+    *gmsg << "dx,dy,dz =(" << hr_m[0] << ", " << hr_m[1] << ", " << hr_m[2] << ") [m] " << endl;
+    *gmsg << "max of bunch is (" << rmax_m(0) << ", " << rmax_m(1) << ", " << rmax_m(2) << ") [m] " << endl;
+    *gmsg << "min of bunch is (" << rmin_m(0) << ", " << rmin_m(1) << ", " << rmin_m(2) << ") [m] " << endl;
+    */
+
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
+/**
+ * \method computeSelfFields_cycl()
+ * \brief Calculates the self electric field from the charge density distribution for use in cyclotrons
+ * \see ParallelCyclotronTracker
+ * \warning none yet
+ *
+ * Overloaded version for having multiple bins with separate gamma for each bin. This is necessary
+ * For multi-bunch mode.
+ *
+ * Comments -DW:
+ * I have made some changes in here:
+ * -) Some refacturing to make more similar to computeSelfFields()
+ * -) Added meanR and quaternion to be handed to the function (TODO: fall back to meanR = 0 and unit quaternion
+ *    if not specified) so that SAAMG solver knows how to rotate the boundary geometry correctly.
+ * -) Fixed an error where gamma was not taken into account correctly in direction of movement (y in cyclotron)
+ * -) Comment: There is no account for image charges in the cyclotron tracker (yet?)!
+ */
 void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion_t const quaternion) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
@@ -1312,19 +1336,68 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
         double tmp2 = 1.0 / (hr_scaled[0] * hr_scaled[1] * hr_scaled[2]);
         rho_m *= tmp2;
 
+        // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+        ofstream fstr1;
+        fstr1.precision(9);
+
+        std::ostringstream istr;
+        istr << fieldDBGStep_m;
+
+        string SfileName = OpalData::getInstance()->getInputBasename();
+
+        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
+        fstr1.open(rho_fn.c_str(), ios::out);
+        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
+        for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
+            for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
+                for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                }
+            }
+        }
+        fstr1.close();
+        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
+
         /// now charge density is in rho_m
         /// calculate Possion equation (without coefficient: -1/(eps))
+        IpplTimings::startTimer(compPotenTimer_m);
+
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
 
-        //do the multiplication of the grid-cube volume coming
-        //from the discretization of the convolution integral.
-        //this is only necessary for the FFT solver
-        //FIXME: later move this scaling into FFTPoissonSolver
+        IpplTimings::stopTimer(compPotenTimer_m);
+
+        // Do the multiplication of the grid-cube volume coming from the discretization of the convolution integral.
+        // This is only necessary for the FFT solver. FIXME: later move this scaling into FFTPoissonSolver
         if(fs_m->getFieldSolverType() == "FFT" || fs_m->getFieldSolverType() == "FFTBOX")
             rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
 
         /// retrive coefficient: -1/(eps)
         rho_m *= getCouplingConstant();
+
+	// If debug flag is set, dump scalar field (potential 'phi') into file under ./data/
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+
+        ofstream fstr2;
+        fstr2.precision(9);
+
+        string phi_fn = string("data/") + SfileName + string("-phi_scalar-") + string(istr.str());
+        fstr2.open(phi_fn.c_str(), ios::out);
+        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
+        for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
+            for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
+                for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
+                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                }
+            }
+        }
+        fstr2.close();
+
+        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
 
         /// calculate electric field vectors from field potential
         eg_m = -Grad(rho_m, eg_m);
@@ -1336,8 +1409,8 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
 
         /*
-        //debug
-        // output field on the grid points
+        // Immediate debug output:
+        // Output potential and e-field along the x-, y-, and z-axes
 
         int m1 = (int)nr_m[0]-1;
         int m2 = (int)nr_m[0]/2;
@@ -1350,29 +1423,65 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
 
         for (int i=0; i<m1; i++ )
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
-        // end debug
+
+        // End debug
         */
 
-        /// interpolate electric field at particle positions.
+        // If debug flag is set, dump vector field (electric field) into file under ./data/
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING E FIELD ***" << endl);
+        //ostringstream oss;
+        //MPI_File file;
+        //MPI_Status status;
+        //MPI_Info fileinfo;
+        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
+        ofstream fstr;
+        fstr.precision(9);
+
+        string e_field = string("data/") + SfileName + string("-e_field-") + string(istr.str());
+        fstr.open(e_field.c_str(), ios::out);
+        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
+        for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
+            for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
+                for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
+                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << endl;
+                }
+            }
+        }
+
+        fstr.close();
+        fieldDBGStep_m++;
+
+        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
+        //MPI_File_close(&file);
+
+        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+#endif
+
+        /// Interpolate electric field at particle positions.
         Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
 
-        /// calculate coefficient
+        /// Calculate coefficient
         double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
-        /// calculate B_bin field from E_bin field accumulate B and E field
+        /// Calculate B_bin field from E_bin field accumulate B and E field
         Bf(0) = Bf(0) + betaC * Eftmp(2);
         Bf(2) = Bf(2) - betaC * Eftmp(0);
 
         Ef += Eftmp;
     }
-    // *gmsg<<"gamma ="<<gamma<<endl;
-    // *gmsg<<"dx,dy,dz =("<<hr_m[0]<<", "<<hr_m[1]<<", "<<hr_m[2]<<") [m] "<<endl;
-    // *gmsg<<"max of bunch is ("<<rmax_m(0)<<", "<<rmax_m(1)<<", "<<rmax_m(2)<<") [m] "<<endl;
-    // *gmsg<<"min of bunch is ("<<rmin_m(0)<<", "<<rmin_m(1)<<", "<<rmin_m(2)<<") [m] "<<endl;
+
+    /*
+    *gmsg << "gamma =" << gamma << endl;
+    *gmsg << "dx,dy,dz =(" << hr_m[0] << ", " << hr_m[1] << ", " << hr_m[2] << ") [m] " << endl;
+    *gmsg << "max of bunch is (" << rmax_m(0) << ", " << rmax_m(1) << ", " << rmax_m(2) << ") [m] " << endl;
+    *gmsg << "min of bunch is (" << rmin_m(0) << ", " << rmin_m(1) << ", " << rmin_m(2) << ") [m] " << endl;
+    */
+
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
-
+/*
 void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
@@ -1416,7 +1525,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         /// back Lorentz transformation
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
-
+*/
         /*
         //debug
         // output field on the grid points
@@ -1434,7 +1543,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
         // end debug
          */
-
+/*
         /// interpolate electric field at particle positions.
         Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
 
@@ -1453,7 +1562,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     // *gmsg<<"min of bunch is ("<<rmin_m(0)<<", "<<rmin_m(1)<<", "<<rmin_m(2)<<") [m] "<<endl;
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
-
+*/
 
 void PartBunch::setBCAllOpen() {
     for(int i = 0; i < 2 * 3; ++i) {

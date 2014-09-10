@@ -186,7 +186,10 @@ public:
      *  \param E average energy (MeB)
      *  \return Returns the number of the time step just written.
      */
-    int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double E, double refPr, double refR, double refTheta);
+    int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double E, 
+			     double refPr, double refPt, double refPz, 
+                             double refR, double refTheta, double refZ,
+                             double azimuth, double elevation);
 
     /** \brief Dumps Phase Space for Envelope trakcer to H5 file.
      *

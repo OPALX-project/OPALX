@@ -325,83 +325,86 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(elptr);
      
+    // Fresh run (no restart):
     if(!OpalData::getInstance()->inRestartRun()) {
-      // get values from cyclotron command
-      referenceR     = elptr->getRinit();
-      referenceTheta = elptr->getPHIinit();
-      referenceZ     = elptr->getZinit();
-      referencePr    = elptr->getPRinit();
-      referencePz    = elptr->getPZinit();
-      //msg << "PRINIT= " << pri << " [CU]" << endl;
+
+        // Get reference values from cyclotron element
+        referenceR     = elptr->getRinit();
+        referenceTheta = elptr->getPHIinit();
+        referenceZ     = elptr->getZinit();
+        referencePr    = elptr->getPRinit();
+        referencePz    = elptr->getPZinit();
+         
+        if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+            throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
+        }
+
+        referencePtot =  itsReference.getGamma() * itsReference.getBeta();
+
+        // Calculate reference azimuthal (tangential) momentum from total-, z- and radial momentum:
+        float insqrt = referencePtot * referencePtot - referencePr * referencePr - referencePz * referencePz;
+
+        if(insqrt < 0) {
+
+            if(insqrt > -1.0e-10) {
+
+	        referencePt = 0.0;
+
+            } else {
+
+	        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "Pt imaginary!");
+            }
+
+        } else {
+
+            referencePt = sqrt(insqrt);
+        }
+
+        if(referencePtot < 0.0) referencePt *= -1.0;
+        // End calculate referencePt
+
+    // Restart a run:
+    } else {
+
+        if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+
+            throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
+
+        }
       
-      if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
-        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
-      }
-      referencePtot =  itsReference.getGamma() * itsReference.getBeta();
-    } 
-    else {
-      // in case of a restart the values from the h5 file are already within this class
-      if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
-        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
-      }
-      referencePtot =  bega;
+        referencePtot =  bega;
+        // Note: Nothing else has to be set, b/c everything comes from the h5 file -DW
     }
 
-    // TEMP for testing if we can inject a bunch vertically for inflector -DW
-    // This will probably not work for long bunches, also I don't know what happens for a restart
-    //Vector_t pmean = itsBunch->get_pmean();
-    //referencePz = pmean[2];
-    //referencePr = sqrt(pmean[0] * pmean[0] + pmean[1] * pmean[1]);
-    float insqrt = referencePtot * referencePtot - referencePr * referencePr - referencePz * referencePz;
-    if(insqrt < 0) {
-      if(insqrt > -1.0e-10) {
-	referencePt = 0.0;
-      } 
-      else {
-	throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "Pt imaginary!");
-      }
-    }
-    else {
-      referencePt = sqrt(insqrt);
-    }
-    // End TEMP
-    
-    // Old Pz and Pt
-    //referencePz = 0.0;
-    //referencePt = sqrt(referencePtot * referencePtot - referencePr * referencePr);
-
-    if(referencePtot < 0.0) referencePt *= -1.0;
+    // TEMP Debug Output -DW
+    Vector_t const meanP = calcMeanP();
+    *gmsg << endl;
+    *gmsg << "** Reference P:"  << endl;
+    *gmsg << "referencePtot = " << referencePtot << endl;
+    *gmsg << "Ptot (from Bunch) = " << sqrt(dot(meanP, meanP)) << endl;
+    *gmsg << "referencePr = "   << referencePr   << endl;
+    *gmsg << "referencePz = "   << referencePz   << endl;
+    *gmsg << "referencePt = "   << referencePt   << endl;
+    *gmsg << endl;
+    // ENDTEMP
 
     sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
     cosRefTheta_m = cos(referenceTheta / 180.0 * pi);   
    
-    *gmsg << "" << endl;
-
+    *gmsg << endl;
     *gmsg << "* Bunch global starting position:" << endl;
-
     *gmsg << "* RINIT = " << referenceR  << " [mm]" << endl;
-
     *gmsg << "* PHIINIT = " << referenceTheta << " [deg]" << endl;
-
     *gmsg << "* ZINIT = " << referenceZ << " [mm]" << endl;
-
-    *gmsg << "" << endl;
-
+    *gmsg << endl;
     *gmsg << "* Bunch global starting momenta:" << endl;
-
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
-
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-
     *gmsg << "* Total reference momentum (beta * gamma) = " << referencePtot * 1000.0 << " [MCU]" << endl;
-
     *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt * 1000.0 << " [MCU]" << endl;
-
     *gmsg << "* Reference radial momentum (Pr) = " << referencePr * 1000.0 << " [MCU]" << endl;
-
     *gmsg << "* Reference axial momentum (Pz) = " << referencePz * 1000.0 << " [MCU]" << endl;
-
-    *gmsg << "" << endl;
+    *gmsg << endl;
 
     double sym = elptr->getSymmetry();
     *gmsg << "* " << sym << "-fold field symmerty " << endl;
@@ -1628,7 +1631,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     // find the injection time interval
     if(numBunch_m > 1) {
-        *gmsg << "Time interval between neighbour bunches is set to " << stepsPerTurn *dt << "[ns]" << endl;
+        *gmsg << "Time interval between neighbour bunches is set to " << stepsPerTurn * dt << "[ns]" << endl;
     }
 
     initTrackOrbitFile();
@@ -1637,8 +1640,14 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     if(OpalData::getInstance()->inRestartRun()) {
         restartStep0_m = itsBunch->getLocalTrackStep();
         step_m = restartStep0_m;
+       
         if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
+
+        //TEMP for testing -DW
+        //maxSteps_m += restartStep0_m;
+        //*gmsg << "* New maxStep_m in restarted run = " << maxSteps_m << endl;
+	//ENDTEMP
     }
 
     if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
@@ -1689,7 +1698,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     const double deltaTheta = pi / (stepsPerTurn); // half of the average angle per step
     // record at which angle the space charge are solved
-    // double angleSpaceChargeSolve = 0.0; unused? -DW
+    // double angleSpaceChargeSolve = 0.0; // unused? -DW
 
     if(initialTotalNum_m == 1) {
         *gmsg << "* ---------------------------- SINGLE PARTICLE MODE------ ----------------------------*** " << endl;
@@ -2081,7 +2090,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         IpplTimings::stopTimer(TransformTimer_m);
               
-                        repartition();
+                        // repartition(); //temporary deactivation -DW
 
                         itsBunch->computeSelfFields_cycl(temp_meangamma, 0.001 * meanR, quaternionToYAxis);
 
@@ -3887,12 +3896,15 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         // Initialize global P (Cartesian, but input P_ref is in Pr, Ptheta, Pz,
         // so translation has to be done before the rotation this once)
+        // Cave: In the local frame, the positive y-axis is the direction of movement -DW
         for(size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch->P[i](0) += referencePr;
             itsBunch->P[i](1) += referencePt;
             itsBunch->P[i](2) += referencePz;
 	}
 
+        // Out of the three coordinates of meanR (R, Theta, Z) only the angle
+        // changes the momentum vector...
         localToGlobal(itsBunch->P, initialReferenceTheta);
 
         // Initialize the bin number of the first bunch to 0
@@ -3900,7 +3912,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch->Bin[i] = 0;
         }
 
-        // Calculate beam parameters in global frame in m, TODO: Think about this -DW
+        // Calculate beam parameters in global frame in m
         itsBunch->R *= Vector_t(0.001); // mm --> m
         itsBunch->calcBeamParameters_cycl();
         itsBunch->R *= Vector_t(1000.0); // m --> mm
@@ -3909,74 +3921,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         
         bunchDumpPhaseSpaceStatData();
 
-        step_m += 1;
-
-        // // Initial dump:
-        // double E = itsBunch->get_meanEnergy();
-
-        // if(Options::psDumpLocalFrame) {
-        //     // If requested in local frame
-
-        //     // Old quaternion method. probably not good. -DW
-	//     //Vector_t const initMeanP = calcMeanP();
-        //     //Quaternion_t quaternionToYAxis;
-        //     //getQuaternionTwoVectors(initMeanP, yaxis, quaternionToYAxis);
-        //     //globalToLocal(itsBunch->R, quaternionToYAxis, initMeanR);
-        //     //globalToLocal(itsBunch->P, quaternionToYAxis, initMeanP);
-
-        //     Vector_t const meanR = calcMeanR();
-        //     Vector_t const meanP = calcMeanP();
-
-        //     double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;       // Azimuth
-        //     double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP))); // Elevation    
-
-        //     *gmsg << "Initial T = " << itsBunch->getT() * 1e9 << " ns, Step = " << step_m + 1 << endl;
-
-        //     globalToLocal(itsBunch->R, phi, psi, meanR);
-        //     globalToLocal(itsBunch->P, phi, psi, meanP);
-
-        //     itsBunch->R *= Vector_t(0.001); // mm --> m
-
-        //     itsBunch->calcBeamParameters_cycl();
-
-        //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
-        //                                                          FDext_m, E, 
-        //                                                          referencePr, 
-        //                                                          referenceR, 
-        //                                                          referenceTheta);
-
-        //     itsDataSink->writeStatData(*itsBunch, FDext_m, 0, 0, 0, E);
-
-        //     itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-        //     //localToGlobal(itsBunch->R, quaternionToYAxis, initMeanR);
-        //     //localToGlobal(itsBunch->P, quaternionToYAxis, initMeanP);
-
-        //     localToGlobal(itsBunch->R, phi, psi, meanR);
-        //     localToGlobal(itsBunch->P, phi, psi, meanP);
-
-        //     *gmsg << "* Phase space dump " << lastDumpedStep_m 
-        //           << " (local frame) at integration step 0 T = 0 [ns]" << endl;
-
-        // } else {
-        //     // If requested in global frame
-
-        //     itsBunch->R *= Vector_t(0.001); // mm --> m
-
-        //     itsBunch->calcBeamParameters_cycl();
-
-        //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
-        //                                                          FDext_m, E, 
-        //                                                          referencePr, 
-        //                                                          referenceR, 
-        //                                                          referenceTheta);
-
-        //     itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-        //     *gmsg << "* Phase space dump " << lastDumpedStep_m 
-        //           << " (global frame) at integration step 0 T = 0 [ns]" << endl;
-        // }
-	
+        step_m += 1;	
 
         // Backup initial distribution if multi bunch mode
         if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == 1)) {
@@ -3991,10 +3936,20 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             }
         }
     } else {
-        // Restart a run 
+        // Restart from the distribution in the h5 file
 
+        PathLength_m = itsBunch->getLPath();
+        itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+        /* 
+        // Omit restarting in local fram in future releases! -DW
         if((Options::psDumpLocalFrame)) {
             // Restart from the distribution in the local frame
+            // Multi-bunch must not be done in the local frame!
+            // If you restart from OPAL-T h5 file, you must dump in the local frame!
+            // TODO: In the future, this should be decided by the mode of the 
+            // H5 file containing restart data, not from the mode of the current
+            // run! -DW
 
             *gmsg<<"* Restart in the local frame" <<endl;
 
@@ -4003,11 +3958,16 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
           
             // Initialize global R
             itsBunch->R *= Vector_t(1000.0); // m --> mm
-            Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, referenceR * sinRefTheta_m, referenceZ); // [referenceR] == mm
+
+            Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m, // [referenceR] == mm
+                                                referenceR * sinRefTheta_m, 
+                                                referenceZ);                // [referenceZ] == mm
 
             localToGlobal(itsBunch->R, initialReferenceTheta, initMeanR);
           
-            // Initialize global P
+            // Initialize global P (Cartesian, but input P_ref is in Pr, Ptheta, Pz,
+            // so translation has to be done before the rotation this once)
+            // Cave: In the local frame, the positive y-axis is the direction of movement -DW
             for(size_t i = 0; i < initialLocalNum_m; ++i) {
                 itsBunch->P[i](0) += referencePr;
                 itsBunch->P[i](1) += referencePt;
@@ -4018,12 +3978,8 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
             // Initialize the bin number of the first bunch to 0
             for(size_t i = 0; i < initialLocalNum_m; ++i) {
-
                 itsBunch->Bin[i] = 0;
-
             }
-            // Multi-bunch must not be done in the local frame!
-            // If you restart from OPAL-T h5 file, you must dump in the local frame!
 
         } else {
             // Restart from the distribution in the global frame
@@ -4032,10 +3988,20 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
             PathLength_m = itsBunch->getLPath();
             itsBunch->R *= Vector_t(1000.0); // m --> mm
-        }
+        } 
+        */ 
+        //END omission of local restart -DW
     }
 
+    // ------------ Get some Values ---------------------------------------------------------- //
     Vector_t const meanR = calcMeanR();
+    Vector_t const meanP = calcMeanP(); 
+
+    // Bunch (local) azimuth at meanR w.r.t. y-axis
+    double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+    // Bunch (local) elevation at meanR w.r.t. xy plane
+    double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
 
     // AUTO mode
     if(multiBunchMode_m == 2) {
@@ -4054,17 +4020,21 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         *gmsg << RThisTurn_m << " mm" << endl;
     }
+       
+    // Do boundp and repartition in the local frame at beginning of this run
+    globalToLocal(itsBunch->R, phi, psi, meanR);
 
-    Vector_t const meanP = calcMeanP();
-    double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-    globalToLocal(itsBunch->R, phi, meanR);
     itsBunch->R *= Vector_t(0.001); // mm --> m
+
     itsBunch->boundp();
+
     checkNumPart(std::string("* Before repartition: "));
     repartition();
     checkNumPart(std::string("* After repartition: "));
+
     itsBunch->R *= Vector_t(1000.0); // m --> mm
-    localToGlobal(itsBunch->R, phi, meanR);
+
+    localToGlobal(itsBunch->R, phi, psi, meanR);
 }
 
 void ParallelCyclotronTracker::singleParticleDump() {
@@ -4166,21 +4136,37 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
     // --------------------------- Particle dumping ------------------------------------------ //
     // Note: Don't dump when
     // 1. after one turn
-    // in order to sychronize the dump step for multi-bunch and single bunch for compare
+    // in order to sychronize the dump step for multi-bunch and single bunch for comparison
     // with each other during post-process phase.
     // --------------------------------------------------------------------------------------- //
 
     // ------------ Get some Values ---------------------------------------------------------- //
     double const E = itsBunch->get_meanEnergy();
-    double const temp_t = itsBunch->getT() * 1e9;
+    double const temp_t = itsBunch->getT() * 1e9; // s -> ns
     Vector_t const meanR = calcMeanR();
-    Vector_t const meanP = calcMeanP();
+    Vector_t const meanP = calcMeanP();    
 
-    // Bunch azimuth at meanR with respect to y-axis
+    double const betagamma_temp = sqrt(dot(meanP, meanP));
+
+    // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
+    double const theta = atan2(meanR(1), meanR(0));
+
+    // Bunch (local) azimuth at meanR w.r.t. y-axis
     double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
-    // Bunch elevation at meanR with respect to xy plane
+    // Bunch (local) elevation at meanR w.r.t. xy plane
     double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
+
+    // Re-calculate reference values in format of input values
+    // Position:
+    referenceR = sqrt(meanR(0) * meanR(0) + meanR(1) * meanR(1));
+    referenceTheta = theta * 180.0 / pi;
+    referenceZ = meanR(2);
+    // Momentum in Theta-hat, R-hat, Z-hat coordinates at position meanR:
+    referencePtot = betagamma_temp;
+    referencePz = meanP(2);
+    referencePr = meanP(0) * cos(theta) + meanP(1) * sin(theta);
+    referencePt = sqrt(referencePtot * referencePtot - referencePz * referencePz - referencePr * referencePr);
 
     // -----------  Calculate the external fields at the center of the bunch ------------------//
     beamline_list::iterator DumpSindex = FieldDimensions.begin();
@@ -4192,29 +4178,43 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
     FDext_m[0] = extB_m / 10.0; // kgauss --> T
     FDext_m[1] = extE_m;
 
-    if(!(Options::psDumpLocalFrame)) {
-        // --------------------------- Dump in global frame ---------------------------------- //
+    *gmsg << endl; // Print empty line
 
-        itsBunch->R /= Vector_t(1000.0); // mm --> m
+    // if(!(Options::psDumpLocalFrame)) {
+    // --------------------- Always dump whole bunch in global frame ------------------------ //
 
-        lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
-                                                             FDext_m, E, 
-                                                             referencePr, 
-                                                             referenceR, 
-                                                             referenceTheta);
+    itsBunch->R /= Vector_t(1000.0); // mm --> m
 
-        itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0);
+    lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+                                                         FDext_m, E, 
+                                                         referencePr, 
+                                                         referencePt, 
+                                                         referencePz,
+                                                         referenceR,
+                                                         referenceTheta,
+                                                         referenceZ,
+                                                         phi * 180.0 / pi,  // P_mean azimuth at ref. R/Th/Z
+                                                         psi * 180.0 / pi); // P_mean elevation at ref. R/Th/Z
 
-        itsBunch->R *= Vector_t(1000.0); // m --> mm
+    // For statistics data, the bunch is transformed into a local coordinate system 
+    // with meanP in direction of y-axis -DW
+    globalToLocal(itsBunch->R, phi, psi, meanR / Vector_t(1000.0));  // meanR mm --> m
+    globalToLocal(itsBunch->P, phi, psi, Vector_t(0.0)); // P should be rotated, but not shifted
+    
+    itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0);
 
-        *gmsg << "* Phase space dump " << lastDumpedStep_m 
-              << " (global frame) at integration step " << step_m + 1 
-              << ", T = " << temp_t << " ns"
-              << ", E = " << E << " MeV"
-              << ", Local Azim. = " << phi / pi * 180.0 << " Deg"
-              << ", Local Elev. = " << psi / pi * 180.0 << " Deg" << endl;
+    itsBunch->R *= Vector_t(1000.0); // m --> mm
 
-    } else {
+    localToGlobal(itsBunch->R, phi, psi, meanR);  // Already changed bunch back to mm 
+    localToGlobal(itsBunch->P, phi, psi, Vector_t(0.0));
+
+    // Tell user we are dumping data
+    *gmsg << "* Phase space dump " << lastDumpedStep_m 
+          << " at integration step " << step_m + 1 << endl;
+              
+	//} 
+    /* // No more dumping in local frame! -DW
+    else {
         // --------------------------- Dump in local frame ---------------------------------- //
        
         globalToLocal(itsBunch->R, phi, psi, meanR);
@@ -4224,9 +4224,11 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
 
 	lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
                                                              FDext_m, E, 
-                                                             referencePr, 
+                                                             referencePr,
+                                                             referencePz, 
                                                              referenceR, 
-                                                             referenceTheta);
+                                                             referenceTheta,
+                                                             referenceZ);
 
 	itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
 
@@ -4235,13 +4237,25 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
         localToGlobal(itsBunch->R, phi, psi, meanR);
         localToGlobal(itsBunch->P, phi, psi, meanP);
 
+        // Tell user in which mode we are dumping
 	*gmsg << "* Phase space dump " << lastDumpedStep_m 
-              << " (local frame) at integration step " << step_m + 1 
-              << ", T = " << temp_t << " ns" 
-              << ", E = " << E << " MeV"
-              << ", Local Azim. = " << phi / pi * 180.0 << " Deg"
-              << ", Local Elev. = " << psi / pi * 180.0 << " Deg" << endl;
-    }
+              << " (local frame) at integration step " << step_m + 1 << endl;
+              
+    } 
+    */ 
+    // END omission of local frame dumping
+
+    // Print dump information on screen
+    *gmsg << "* T = " << temp_t << " ns" 
+          << ", Live Particles: " << itsBunch->getTotalNum() << endl;
+    *gmsg << "* E = " << E << " MeV"
+          << ", beta * gamma = " << betagamma_temp << endl;
+    *gmsg << "* Bunch position: R =  " << referenceR << " mm"
+          << ", Theta = " << referenceTheta << " Deg"
+          << ", Z = " << referenceZ << " m" << endl;
+    *gmsg << "* Local Azimuth = " << phi / pi * 180.0 << " Deg"
+          << ", Local Elevation = " << psi / pi * 180.0 << " Deg" << endl;
+
 }
 
 void ParallelCyclotronTracker::evaluateSpaceChargeField() {

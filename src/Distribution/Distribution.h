@@ -177,10 +177,13 @@ public:
     void ShiftBeam(double &maxTOrZ, double &minTOrZ);
 
     // in case if OPAL-cycl in restart mode
+    double GetBeGa() {return bega_m;}
     double GetPr() {return referencePr_m;}
+    double GetPt() {return referencePt_m;}
+    double GetPz() {return referencePz_m;}
     double GetR() {return referenceR_m;}
     double GetTheta() {return referenceTheta_m;}
-    double GetBeGa() {return bega_m;}
+    double GetZ() {return referenceZ_m;}
 
 private:
 
@@ -389,10 +392,12 @@ private:
     double cutoff_m;
 
     double referencePr_m;
+    double referencePt_m;
+    double referencePz_m = 0.0;
     double referenceR_m;
     double referenceTheta_m;
+    double referenceZ_m = 0.0;
     double bega_m;
-
 
 };
 

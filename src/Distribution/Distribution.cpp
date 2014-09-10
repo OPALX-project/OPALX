@@ -748,11 +748,21 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
+    referencePz_m = 0.0;
+    rc = H5ReadStepAttribFloat64(H5file, "REFPZ",&referencePz_m);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
     rc = H5ReadStepAttribFloat64(H5file, "REFR",&referenceR_m);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     rc = H5ReadStepAttribFloat64(H5file, "REFTHETA",&referenceTheta_m);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    referenceZ_m = 0.0;
+    rc = H5ReadStepAttribFloat64(H5file, "REFZ",&referenceZ_m);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
@@ -768,14 +778,17 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
 
     beam.setLPath(pathLength);
 
-    *gmsg << "* Restart Energy " << meanE << "(MeV) Path lenght " << pathLength << " (m)" <<  endl;
+    *gmsg << "* Restart Energy = " << meanE << " (MeV), Path lenght = " << pathLength << " (m)" <<  endl;
 
-    double ga = 1 + meanE/beam.getM()*1E3;
+    *gmsg << "beam.getM() = " << beam.getM() << endl;
+
+    // beam.getM() in eV, meanE in MeV had to change 1e3 to 1e6 -DW
+    double ga = 1 + meanE/beam.getM()*1.0e6;
     double be = sqrt(1.0-(1.0/(ga*ga)));
 
     bega_m = be*ga;
 
-    *gmsg << "* Restart Energy " << meanE << " ga= " << ga << " be= " << be << endl;
+    *gmsg << "* Restart Energy = " << meanE << " (MeV), gamma = " << ga << ", beta = " << be << endl;
 
     std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
 

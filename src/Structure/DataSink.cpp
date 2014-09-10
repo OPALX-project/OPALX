@@ -927,7 +927,10 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 
 
 
-int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy, double refPr, double refR, double refTheta) {
+int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy, 
+                                   double refPr, double refPt, double refPz, 
+                                   double refR, double refTheta, double refZ,
+                                   double azimuth, double elevation) {
     
   if (!doHDF5_m) return -1;
   //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW 
@@ -969,8 +972,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
   h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
   h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
   h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
-
-
+    
     ///Get the particle decomposition from all the compute nodes.
     std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
     std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
@@ -991,11 +993,11 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-        rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep",        &localTrackStep, 1);
+    rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep", &localTrackStep, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep",        &globalTrackStep, 1);
+    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep", &globalTrackStep, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
@@ -1095,11 +1097,31 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
+    rc = H5WriteStepAttribFloat64(H5file_m, "REFPT", (h5_float64_t *)&refPt, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "REFPZ", (h5_float64_t *)&refPz, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
     rc = H5WriteStepAttribFloat64(H5file_m, "REFR", (h5_float64_t *)&refR, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     rc = H5WriteStepAttribFloat64(H5file_m, "REFTHETA", (h5_float64_t *)&refTheta, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "REFZ", (h5_float64_t *)&refZ, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribFloat64(H5file_m, "AZIMUTH", (h5_float64_t *)&azimuth, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl); 
+   
+    rc = H5WriteStepAttribFloat64(H5file_m, "ELEVATION", (h5_float64_t *)&elevation, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
@@ -1825,7 +1847,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     /// header information.
     ofstream os_statData;
     ofstream os_lBalData;
-    double     Q = beam.getCharge();
+    double Q = beam.getCharge();
 
     if(Ippl::myNode() == 0) {
         if(firstWriteToStat_m) {
