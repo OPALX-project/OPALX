@@ -703,7 +703,8 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         }
     }
 
-    *gmsg << "Restart from hdf5 format file " << fn << ", read phase space data of DumpStep " << (int)restartStep << endl;
+    *gmsg << "Restart from hdf5 format file " << fn 
+          << ", read phase space data of DumpStep " << (int)restartStep << endl;
 
     rc = H5SetStep(H5file, restartStep);
     if(rc != H5_SUCCESS)
@@ -719,8 +720,8 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
     if(Ippl::myNode() == Ippl::getNodes() - 1)
         endi = -1;
     else
-        endi = starti + numberOfParticlesPerNode;
-
+        endi = starti + numberOfParticlesPerNode - 1;
+    
     rc = H5PartSetView(H5file, starti, endi);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -745,6 +746,11 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     rc = H5ReadStepAttribFloat64(H5file, "REFPR",&referencePr_m);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    referencePt_m = 0.0;
+    rc = H5ReadStepAttribFloat64(H5file, "REFPT",&referencePt_m);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 

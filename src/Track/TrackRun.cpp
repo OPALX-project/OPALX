@@ -595,7 +595,6 @@ void TrackRun::execute() {
         if(!OPAL->hasBunchAllocated() && !Options::scan) {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "  Selected Tracking Method == CYCLOTRON-T, NEW TRACK" << endl;
-
             *gmsg << "* ********************************************************************************** " << endl;
         } else if(OPAL->hasBunchAllocated() && !Options::scan) {
             *gmsg << "* ********************************************************************************** " << endl;
@@ -638,7 +637,7 @@ void TrackRun::execute() {
         *gmsg << *dist << endl;
         *gmsg << *beam << endl;
         *gmsg << *fs   << endl;
-	//       *gmsg << *Track::block->bunch  << endl;
+	// *gmsg << *Track::block->bunch  << endl;
 
         if(specifiedNumBunch > 1) {
 

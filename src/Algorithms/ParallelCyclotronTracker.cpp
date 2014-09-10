@@ -4252,7 +4252,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
           << ", beta * gamma = " << betagamma_temp << endl;
     *gmsg << "* Bunch position: R =  " << referenceR << " mm"
           << ", Theta = " << referenceTheta << " Deg"
-          << ", Z = " << referenceZ << " m" << endl;
+          << ", Z = " << referenceZ << " mm" << endl;
     *gmsg << "* Local Azimuth = " << phi / pi * 180.0 << " Deg"
           << ", Local Elevation = " << psi / pi * 180.0 << " Deg" << endl;
 
