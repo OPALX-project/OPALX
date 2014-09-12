@@ -786,15 +786,13 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
 
     *gmsg << "* Restart Energy = " << meanE << " (MeV), Path lenght = " << pathLength << " (m)" <<  endl;
 
-    *gmsg << "beam.getM() = " << beam.getM() << endl;
-
     // beam.getM() in eV, meanE in MeV had to change 1e3 to 1e6 -DW
-    double ga = 1 + meanE/beam.getM()*1.0e6;
-    double be = sqrt(1.0-(1.0/(ga*ga)));
+    double ga = 1 + meanE / beam.getM() * 1.0e6;
+    double be = sqrt(1.0 - (1.0 / (ga * ga)));
 
-    bega_m = be*ga;
+    bega_m = be * ga;
 
-    *gmsg << "* Restart Energy = " << meanE << " (MeV), gamma = " << ga << ", beta = " << be << endl;
+    *gmsg << "* Gamma = " << ga << ", Beta = " << be << endl;
 
     std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
 

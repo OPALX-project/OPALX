@@ -2307,17 +2307,27 @@ void PartBunch::correctEnergy(double avrgp_m) {
 
 void PartBunch::calcEMean() {
   
-  const double totalNp = static_cast<double>(this->getTotalNum());
-  const double locNp = static_cast<double>(this->getLocalNum());
+    const double totalNp = static_cast<double>(this->getTotalNum());
+    const double locNp = static_cast<double>(this->getLocalNum());
 
-  Vector_t pm(0.0);
+    Vector_t meanP_temp = Vector_t(0.0);
 
-  eKin_m = 0.0;
-  for(unsigned int k = 0; k < locNp; k++)
-    eKin_m += (sqrt(dot(P[k], P[k]) + 1.0) - 1.0) * getM() * 1e-6;                                                                                                                        
-  reduce(eKin_m, eKin_m, OpAddAssign());
-  eKin_m /= totalNp;
+    eKin_m = 0.0;
 
+    for(unsigned int k = 0; k < locNp; k++)
+        meanP_temp += P[k];
+        //eKin_m += sqrt(dot(P[k], P[k]) + 1.0);
+
+    //eKin_m -= locNp;
+    //eKin_m *= getM() * 1.0e-6;
+  
+    reduce(meanP_temp, meanP_temp, OpAddAssign());
+    //reduce(eKin_m, eKin_m, OpAddAssign());
+
+    meanP_temp /= totalNp;
+    //eKin_m /= totalNp;
+
+    eKin_m = (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * getM() * 1.0e-6;
 }
 
 

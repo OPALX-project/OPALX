@@ -376,6 +376,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         // Note: Nothing else has to be set, b/c everything comes from the h5 file -DW
     }
 
+    /*
     // TEMP Debug Output -DW
     Vector_t const meanP = calcMeanP();
     *gmsg << endl;
@@ -387,6 +388,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << "referencePt = "   << referencePt   << endl;
     *gmsg << endl;
     // ENDTEMP
+    */
 
     sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
     cosRefTheta_m = cos(referenceTheta / 180.0 * pi);   
@@ -400,7 +402,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << "* Bunch global starting momenta:" << endl;
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Total reference momentum (beta * gamma) = " << referencePtot * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Reference total momentum (beta * gamma) = " << referencePtot * 1000.0 << " [MCU]" << endl;
     *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt * 1000.0 << " [MCU]" << endl;
     *gmsg << "* Reference radial momentum (Pr) = " << referencePr * 1000.0 << " [MCU]" << endl;
     *gmsg << "* Reference axial momentum (Pz) = " << referencePz * 1000.0 << " [MCU]" << endl;
@@ -3457,6 +3459,7 @@ Vector_t ParallelCyclotronTracker::calcMeanR() const {
 
 Vector_t ParallelCyclotronTracker::calcMeanP() const {
     Vector_t meanP(0.0, 0.0, 0.0);
+
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         for(int d = 0; d < 3; ++d) {
             meanP(d) += itsBunch->P[i](d);
@@ -4149,6 +4152,50 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
     Vector_t const meanP = calcMeanP();    
 
     double const betagamma_temp = sqrt(dot(meanP, meanP));
+
+    // TEMP DEBUG output -DW
+    //*gmsg << endl;
+    //*gmsg << "* BetaGamma from meanP = " << betagamma_temp << endl; 
+    //*gmsg << "* BetaGamma from meanE = " << sqrt((1.0 + E / itsBunch->getM() * 1.0e6) * (1.0 + E / itsBunch->getM() * 1.0e6) - 1.0) << endl;
+
+    /*
+    *gmsg << endl;
+    *gmsg << "* Comparison of beta gamma from meanE and meanP respectively:" << endl;
+
+    const double totalNp = itsBunch->getTotalNum();
+    const double locNp = itsBunch->getLocalNum();
+
+    Vector_t meanP_temp = Vector_t(0.0, 0.0, 0.0);
+    double meanE_temp = 0.0;
+
+    for(unsigned int k = 0; k < locNp; ++k) {
+
+        meanE_temp += sqrt(dot(itsBunch->P[k], itsBunch->P[k]) + 1.0);    
+        
+        for(int d = 0; d < 3; ++d) {
+
+            meanP_temp(d) += itsBunch->P[k](d);
+
+        }
+
+    }
+
+    meanE_temp -= locNp;
+    meanE_temp *= itsBunch->getM() * 1.0e-6;
+                                                                                               
+    reduce(meanE_temp, meanE_temp, OpAddAssign());
+    reduce(meanP_temp, meanP_temp, OpAddAssign());
+    
+    meanP_temp /= totalNp;
+    meanE_temp /= totalNp;
+
+    *gmsg << "* meanE from meanE = " << meanE_temp << endl;
+    *gmsg << "* meanE from meanP = " << (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * itsBunch->getM() * 1.0e-6 << endl;
+
+    *gmsg << "* BetaGamma from meanP = " << sqrt(dot(meanP_temp, meanP_temp)) << endl; 
+    *gmsg << "* BetaGamma from meanE = " << sqrt((1.0 + meanE_temp / itsBunch->getM() * 1.0e6) * (1.0 + meanE_temp / itsBunch->getM() * 1.0e6) - 1.0) << endl;
+    // END TEMP
+    */
 
     // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
     double const theta = atan2(meanR(1), meanR(0));
