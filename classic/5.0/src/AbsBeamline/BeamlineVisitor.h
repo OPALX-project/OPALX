@@ -46,10 +46,12 @@ class Lambertson;
 class Marker;
 class Monitor;
 class Multipole;
+class Offset;
 class Patch;
 class Probe;
 class RBend;
 class RFCavity;
+class VariableRFCavity;
 class TravelingWave;
 class RFQuadrupole;
 class SBend;
@@ -62,6 +64,7 @@ class ParallelPlate;
 class CyclotronValley;
 class Stripper;
 class OpalRing;
+
 // Integrators.
 class Integrator;
 class MapIntegrator;
@@ -128,6 +131,9 @@ public:
     /// Apply the algorithm to a Lambertson septum magnet.
     virtual void visitLambertson(const Lambertson &) = 0;
 
+    /// Apply the algorithm to an Offset (placement).
+    virtual void visitOffset(const Offset &) = 0;
+
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &) = 0;
 
@@ -148,6 +154,9 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &) = 0;
+
+    /// Apply the algorithm to a variable RF cavity.
+    virtual void visitVariableRFCavity(const VariableRFCavity &) = 0;
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &) = 0;

@@ -123,10 +123,11 @@ void SBend3D::setFieldMapFileName(std::string name) {
         double delta_phi = map_m->getDeltaPhi();
         planarArcGeometry_m.setElementLength(r_curv*delta_phi);
         planarArcGeometry_m.setCurvature(1./r_curv);
-        // std::cerr << "RCURV " << r_curv << " DPHI " << delta_phi << " DELTA X: "
+        //std::cerr << "RCURV " << r_curv << " DPHI " << delta_phi << " DELTA X: "
         //          << planarArcGeometry_m.getTotalTransform().getVector()(0) << " Y: "
         //          << planarArcGeometry_m.getTotalTransform().getVector()(1) << " Z: "
-        //          << planarArcGeometry_m.getTotalTransform().getVector()(2) << std::endl;
+        //          << planarArcGeometry_m.getTotalTransform().getVector()(2) << " phi: "
+        //          << planarArcGeometry_m.getTotalTransform().getRotation().getAxis()(1) << std::endl;
     }
 }
 

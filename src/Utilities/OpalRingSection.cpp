@@ -1,5 +1,5 @@
 /* 
- *  Copyright (c) 2012, Chris Rogers
+ *  Copyright (c) 2012-2014, Chris Rogers
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without 
  *  modification, are permitted provided that the following conditions are met: 
@@ -25,6 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "Physics/Physics.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/OpalRingSection.h"
 
 OpalRingSection::OpalRingSection() 
@@ -34,46 +36,159 @@ OpalRingSection::OpalRingSection()
     endPosition_m(0.), endOrientation_m(0.) {
 }
 
-bool OpalRingSection::isOnOrPastStartPlane(const Vector_t& pos) {
-    Vector_t pos_transformed = pos-startPosition_m;
-    double dot_prod = pos_transformed(0)*startOrientation_m(0)+
-                      pos_transformed(1)*startOrientation_m(1)+
-                      pos_transformed(2)*startOrientation_m(2);
-    return dot_prod >= 0.;
+OpalRingSection::OpalRingSection(const OpalRingSection& rhs)
+  : component_m(NULL),
+    componentPosition_m(0.), componentOrientation_m(0.),
+    startPosition_m(0.), startOrientation_m(0.),
+    endPosition_m(0.), endOrientation_m(0.) {
+    *this = rhs;
+} 
+
+OpalRingSection::~OpalRingSection() {
+    //if (component_m != NULL)
+    //    delete component_m;
 }
 
-bool OpalRingSection::isPastEndPlane(const Vector_t& pos) {
-    Vector_t pos_transformed = pos-endPosition_m;
-    double dot_prod = pos_transformed(0)*endOrientation_m(0)+
-                      pos_transformed(1)*endOrientation_m(1)+
-                      pos_transformed(2)*endOrientation_m(2);
-    return dot_prod > 0.;
+OpalRingSection& OpalRingSection::operator=(const OpalRingSection& rhs) {
+    component_m = dynamic_cast<Component*>(rhs.component_m->clone());
+    if (component_m == NULL)
+        throw OpalException("OpalRingSection::operator=",
+                            "Failed to copy OpalRingSection");
+    componentPosition_m = rhs.componentPosition_m;
+    componentOrientation_m = rhs.componentOrientation_m;
+    startPosition_m = rhs.startPosition_m;
+    startOrientation_m = rhs.startOrientation_m;
+    endPosition_m = rhs.endPosition_m;
+    endOrientation_m = rhs.endOrientation_m;
+}
+
+bool OpalRingSection::isOnOrPastStartPlane(const Vector_t& pos) const {
+    Vector_t posTransformed = pos-startPosition_m;
+    // check that pos-startPosition_m is in front of startOrientation_m
+    double normProd = posTransformed(0)*startOrientation_m(0)+
+                      posTransformed(1)*startOrientation_m(1)+
+                      posTransformed(2)*startOrientation_m(2);
+    // check that pos and startPosition_m are on the same side of the ring
+    double posProd = pos(0)*startPosition_m(0)+
+                     pos(1)*startPosition_m(1)+
+                     pos(2)*startPosition_m(2);
+    return normProd >= 0. && posProd >= 0.;
+}
+
+bool OpalRingSection::isPastEndPlane(const Vector_t& pos) const {
+    Vector_t posTransformed = pos-endPosition_m;
+    double normProd = posTransformed(0)*endOrientation_m(0)+
+                      posTransformed(1)*endOrientation_m(1)+
+                      posTransformed(2)*endOrientation_m(2);
+    // check that pos and startPosition_m are on the same side of the ring
+    double posProd = pos(0)*endPosition_m(0)+
+                     pos(1)*endPosition_m(1)+
+                     pos(2)*endPosition_m(2);
+    return normProd > 0. && posProd > 0.;
 }
 
 bool OpalRingSection::getFieldValue(const Vector_t& pos,
                                     const Vector_t& centroid, const double& t,
-                                    Vector_t& E, Vector_t& B) {
+                                    Vector_t& E, Vector_t& B) const {
+    // std::cerr << startOrientation_m << " " << componentPosition_m << " " << componentOrientation_m(2) << std::endl;
     // transform position into local coordinate system
     Vector_t pos_local = pos-componentPosition_m;
     rotate(pos_local);
-
+    // std::cerr << "OpalRingSection::getFieldValue for " << component_m->getName() << " at " << startPosition_m << "\n    Global: " << pos << " Local: " << pos_local << std::endl;
+    rotateToTCoordinates(pos_local);
     bool outOfBounds = component_m->apply(pos_local, centroid, t, E, B);
+    // std::cerr << "    B: " << B << std::endl;
     if (outOfBounds) {
         return true;
     }
     // rotate fields back to global coordinate system
+    rotateToCyclCoordinates(E);
+    rotateToCyclCoordinates(B);
     rotate_back(E);
     rotate_back(B);
-    B *= 10.;
     return false;
 }
 
 void OpalRingSection::updateComponentOrientation() {
-    sin0_m = sin(componentOrientation_m(0));
-    cos0_m = cos(componentOrientation_m(0));
-    sin1_m = sin(componentOrientation_m(1));
-    cos1_m = cos(componentOrientation_m(1));
     sin2_m = sin(componentOrientation_m(2));
     cos2_m = cos(componentOrientation_m(2));
 }
+
+std::vector<Vector_t> OpalRingSection::getVirtualBoundingBox() const {
+    Vector_t startParallel(getStartNormal()(1), -getStartNormal()(0), 0);
+    Vector_t endParallel(getEndNormal()(1), -getEndNormal()(0), 0);
+    normalise(startParallel);
+    normalise(endParallel);
+    double startRadius = 0.99*sqrt(getStartPosition()(0)*getStartPosition()(0)+
+                                   getStartPosition()(1)*getStartPosition()(1));
+    double endRadius = 0.99*sqrt(getEndPosition()(0)*getEndPosition()(0)+
+                                 getEndPosition()(1)*getEndPosition()(1));
+    std::vector<Vector_t> bb;
+    bb.push_back(getStartPosition()-startParallel*startRadius);
+    bb.push_back(getStartPosition()+startParallel*startRadius);
+    bb.push_back(getEndPosition()-endParallel*endRadius);
+    bb.push_back(getEndPosition()+endParallel*endRadius);
+    return bb;
+}
+
+//    double phi = atan2(r(1), r(0))+Physics::pi;
+bool OpalRingSection::doesOverlap(double phiStart, double phiEnd) const {
+    OpalRingSection phiVirtualORS;
+    // phiStart -= Physics::pi;
+    // phiEnd -= Physics::pi;
+    phiVirtualORS.setStartPosition(Vector_t(sin(phiStart),
+                                            cos(phiStart),
+                                            0.));
+    phiVirtualORS.setStartNormal(Vector_t(cos(phiStart),
+                                          -sin(phiStart),
+                                          0.));
+    phiVirtualORS.setEndPosition(Vector_t(sin(phiEnd),
+                                          cos(phiEnd),
+                                          0.));
+    phiVirtualORS.setEndNormal(Vector_t(cos(phiEnd),
+                                        -sin(phiEnd),
+                                        0.));
+    std::vector<Vector_t> virtualBB = getVirtualBoundingBox();
+    // at least one of the bounding box coordinates is in the defined sector
+    // std::cerr << "OpalRingSection::doesOverlap " << phiStart << " " << phiEnd << " "
+    //          << phiVirtualORS.getStartPosition() << " " << phiVirtualORS.getStartNormal() << " "
+    //          << phiVirtualORS.getEndPosition() << " " << phiVirtualORS.getEndNormal() << " " << std::endl
+    //          << "    Component " << this << " " << getStartPosition() << " " << getStartNormal() << " "
+    //          << getEndPosition() << " " << getEndNormal() << " " << std::endl;
+    for (size_t i = 0; i < virtualBB.size(); ++i) {
+        // std::cerr << "    VBB " << i << " " << virtualBB[i] << std::endl;
+        if (phiVirtualORS.isOnOrPastStartPlane(virtualBB[i]) &&
+            !phiVirtualORS.isPastEndPlane(virtualBB[i]))
+            return true;
+    }
+    // the bounding box coordinates span the defined sector and the sector
+    // sits inside the bb
+    bool hasBefore = false; // some elements in bb are before phiVirtualORS
+    bool hasAfter = false; // some elements in bb are after phiVirtualORS
+    for (size_t i = 0; i < virtualBB.size(); ++i) {
+        hasBefore = hasBefore || 
+                    !phiVirtualORS.isOnOrPastStartPlane(virtualBB[i]);
+        hasAfter = hasAfter ||
+                   phiVirtualORS.isPastEndPlane(virtualBB[i]);
+        // std::cerr << "    " << hasBefore << " " << hasAfter << std::endl;
+    }
+    if (hasBefore && hasAfter)
+        return true;
+    // std::cerr << "DOES NOT OVERLAP" << std::endl;
+    return false;
+}
+
+
+void OpalRingSection::rotate(Vector_t& vector) const {
+    const Vector_t temp(vector);
+    vector(0) = +cos2_m * temp(0) + sin2_m * temp(1);
+    vector(1) = -sin2_m * temp(0) + cos2_m * temp(1);
+}
+
+void OpalRingSection::rotate_back(Vector_t& vector) const {
+    const Vector_t temp(vector);
+    vector(0) = +cos2_m * temp(0) - sin2_m * temp(1);
+    vector(1) = +sin2_m * temp(0) + cos2_m * temp(1);
+}
+
 

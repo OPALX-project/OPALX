@@ -114,14 +114,37 @@ set (OPAL_LIBS
     ${HDF5_LIBRARY}
     ${IPPL_LIBRARY}
     z
+    mpi
+    mpi_cxx
 )
 
 add_executable( opal ${OPAL_SRCS} Main.cpp )
 target_link_libraries( opal CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran)
 
-if (BUILD_LIBOPAL)
+if (BUILD_LIBOPAL OR BUILD_OPAL_UNIT_TESTS)
     add_library( OPAL ${OPAL_SRCS} opal.cpp )
-endif (BUILD_LIBOPAL)
-install (TARGETS opal 
-            RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+endif (BUILD_LIBOPAL OR BUILD_OPAL_UNIT_TESTS)
+
+# build unit tests; unit tests are defined in unit_tests directory, we build the
+# executable here so that we can use the OPAL src and lib definitions
+if (BUILD_OPAL_UNIT_TESTS)
+    # touch CMakeLists to force cmake to redo the glob for new test source files
+    # otherwise cmake does not detect new source files
+    execute_process(COMMAND touch ${CMAKE_CURRENT_SOURCE_DIR}/unit_tests/CMakeLists.txt)
+    add_subdirectory(unit_tests)
+    # include and link gtest library
+    # this can be built using the script provided at
+    #     unit_test/gtest/bin/install_gtest.bash
+    link_directories( ${GTEST_LIB_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+    include_directories(${GTEST_INCLUDE_DIR})
+    # Check to see if cmake finds the test files
+    message(STATUS "unit test src files: ${TEST_SRCS}")
+    # Build the test exe. We don't do an install on the unit test exe as it is
+    # assumed that this is internal to opal
+    add_executable(${TEST_EXE} ${TEST_SRCS} ${OPAL_SRCS} ${CLASSIC_SRCS})
+    target_link_libraries(${TEST_EXE} -lOPAL -lCLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${GTEST_LINK_TARGETS} )
+endif (BUILD_OPAL_UNIT_TESTS)
+
+install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 

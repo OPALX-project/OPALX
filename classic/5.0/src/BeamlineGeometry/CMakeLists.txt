@@ -2,6 +2,7 @@ set (_SRCS
   Euclid3D.cpp
   Geometry.cpp
   Matrix3D.cpp
+  Euclid3DGeometry.cpp
   NullGeometry.cpp
   OffsetGeometry.cpp
   PlanarArcGeometry.cpp

@@ -1,5 +1,5 @@
 /* 
- *  Copyright (c) 2012, Chris Rogers
+ *  Copyright (c) 2012-2014, Chris Rogers
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without 
  *  modification, are permitted provided that the following conditions are met: 
@@ -28,13 +28,14 @@
 #include <sstream>
 #include <limits>
 
+#include "Utility/Inform.h" // ippl
+
 #include "Fields/EMField.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Structure/LossDataSink.h"
 #include "Algorithms/PartBunch.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/OpalRingSection.h"
-#include "AbsBeamline/SBend3D.h"
 
 #include "Elements/OpalRing.h"
 
@@ -44,15 +45,17 @@ const double OpalRing::lengthTolerance_m = 1e-2;
 const double OpalRing::angleTolerance_m = 1e-2;
 
 OpalRing::OpalRing(std::string ring)
-        : Component(ring), constBField_m(), planarArcGeometry_m(1, 1),
+        : Component(ring), planarArcGeometry_m(1, 1),
           refPartBunch_m(NULL),
           lossDS_m(NULL),
           beamRInit_m(0.), beamPRInit_m(0.), beamPhiInit_m(0.),
           latticeRInit_m(0.), latticePhiInit_m(0.), latticeThetaInit_m(0.),
           isLocked_m(false), isClosed_m(true),
-          symmetry_m(0), cyclHarm_m(0), rfFreq_m(0), current_section_m(0) {
+          symmetry_m(0), cyclHarm_m(0), rfFreq_m(0),
+          phiStep_m(Physics::pi/100.),
+          ringSections_m(),
+          section_list_m() {
     setRefPartBunch(NULL);
-    constBField_m.setB(1.);
 }
 
 void OpalRing::accept(BeamlineVisitor& visitor) const {
@@ -60,7 +63,7 @@ void OpalRing::accept(BeamlineVisitor& visitor) const {
 }
 
 OpalRing::OpalRing(const OpalRing& ring)
-               : constBField_m(ring.constBField_m),
+               : Component(ring.getName()),
                  planarArcGeometry_m(ring.planarArcGeometry_m),
                  lossDS_m(NULL),
                  beamRInit_m(ring.beamRInit_m),
@@ -73,16 +76,24 @@ OpalRing::OpalRing(const OpalRing& ring)
                  isClosed_m(ring.isClosed_m),
                  symmetry_m(ring.symmetry_m),
                  cyclHarm_m(ring.cyclHarm_m),
-                 current_section_m(ring.current_section_m) {
+                 phiStep_m(ring.phiStep_m),
+                 ringSections_m(),
+                 section_list_m(ring.section_list_m.size()) {
     setRefPartBunch(ring.refPartBunch_m);
     if (ring.lossDS_m != NULL)
         throw OpalException("OpalRing::OpalRing(const OpalRing&)",
                  "Can't copy construct LossDataSink so copy constructor fails");
+    for (size_t i = 0; i < section_list_m.size(); ++i) {
+        section_list_m[i] = new OpalRingSection(*ring.section_list_m[i]);
+    }
+    buildRingSections();
 }
 
 OpalRing::~OpalRing() {
     if (lossDS_m != NULL)
         delete lossDS_m;
+    for (size_t i = 0; i < section_list_m.size(); ++i)
+        delete section_list_m[i];
 }
 
 bool OpalRing::apply(const size_t &id, const double &t, Vector_t &E,
@@ -120,11 +131,21 @@ bool OpalRing::apply(const size_t &id, const double &t,
 
 bool OpalRing::apply(const Vector_t &R, const Vector_t &centroid,
                                     const double &t, Vector_t &E, Vector_t &B) {
-    B = Vector_t(0.0);
-    E = Vector_t(0.0);
+    B = Vector_t(0.0, 0.0, 0.0);
+    E = Vector_t(0.0, 0.0, 0.0);
 
-    OpalRingSection* section = getSectionAt(R);
-    return section->getFieldValue(R, centroid, t, E, B);
+    std::vector<OpalRingSection*> sections = getSectionsAt(R);
+    bool outOfBounds = true;
+    // assume field maps don't set B, E to 0... 
+    for (size_t i = 0; i < sections.size(); ++i) {
+        Vector_t B_temp(0.0, 0.0, 0.0);
+        Vector_t E_temp(0.0, 0.0, 0.0);
+        outOfBounds &= sections[i]->getFieldValue(R, centroid, t, E_temp, B_temp);
+        B += B_temp;
+        E += E_temp;
+    }
+    // std::cerr << "OpalRing::apply " << sections.size() << " Pos: " << R << " B: " << B << std::endl;
+    return outOfBounds;
 }
 
 void OpalRing::setLossDataSink(LossDataSink* sink) {
@@ -161,34 +182,13 @@ void OpalRing::setRefPartBunch(PartBunch* bunch) {
     refPartBunch_m = bunch; // private data (obeys style guide)
 }
 
-// potential BUG - what if start plane/end plane intersect with non-zero radius
-// needs an inner radial and outer radial aperture also to be defined
-OpalRingSection* OpalRing::getSectionAt(const Vector_t& r) {
-    size_t n_iterations = 0;
-    size_t sec_list_size = section_list_m.size();
-    while (n_iterations < 2*sec_list_size) {
-        // std::cerr << "getSectionAt "
-        //          << current_section_m-section_list_m.begin() << std::endl;
-        if ((*current_section_m)->isOnOrPastStartPlane(r)) {
-            if ((*current_section_m)->isPastEndPlane(r)) {
-                ++current_section_m;
-                if (current_section_m == section_list_m.end())
-                    current_section_m = section_list_m.begin();
-            } else {
-                return *current_section_m;
-            }
-        } else {
-            if (current_section_m == section_list_m.begin())
-                current_section_m = section_list_m.end()-1;
-            else
-                --current_section_m;
-        }
-        ++n_iterations;
-    }
-    std::stringstream r_stream;
-    r_stream << r;
-    throw OpalException("OpalRing::getSectionAt(const Vector_t& R)",
-                        "Failed to locate section at "+r_stream.str());
+std::vector<OpalRingSection*> OpalRing::getSectionsAt(const Vector_t& r) {
+    return section_list_m;
+    double phi = atan2(r(1), -r(0))+Physics::pi;
+    // std::cerr << "GetSectionsAt " << phi << " " << phiStep_m << " " << int((phi)/phiStep_m) << " " << ringSections_m.size() << std::endl;
+    if (phi >= 2.*Physics::pi)
+        phi -= 2.*Physics::pi;
+    return ringSections_m[(phi)/phiStep_m];
 }
 
 Rotation3D OpalRing::getRotationStartToEnd(Euclid3D delta) const {
@@ -203,13 +203,40 @@ Rotation3D OpalRing::getRotationStartToEnd(Euclid3D delta) const {
 }
 
 void OpalRing::checkMidplane(Euclid3D delta) const {
-    if (fabs(delta.getVector()(1)) > lengthTolerance_m ||
+    if (fabs(delta.getVector()(2)) > lengthTolerance_m ||
         fabs(delta.getRotation().getAxis()(0)) > angleTolerance_m ||
-        fabs(delta.getRotation().getAxis()(2)) > angleTolerance_m) {
+        fabs(delta.getRotation().getAxis()(1)) > angleTolerance_m) {
         throw OpalException("OpalRing::checkMidplane",
                             std::string("Placement of elements out of the ")+
                             "midplane is not supported by OpalRing");
     }
+}
+
+void OpalRing::rotateToCyclCoordinates(Euclid3D& delta) const {
+    Vector3D v = delta.getVector();
+    Vector3D r = delta.getRotation().getAxis();
+//    Euclid3D euclid(v(0), -v(2), v(1), r(0), -r(2), r(1));
+    Euclid3D euclid(v(2), v(0), -v(1), r(2), r(0), -r(1));
+    delta = euclid;
+}
+
+ 
+Vector_t OpalRing::getNextPosition() const {
+    if (section_list_m.size() > 0) {
+        return section_list_m.back()->getEndPosition();
+    }
+    return Vector_t(latticeRInit_m*sin(latticePhiInit_m),
+                    latticeRInit_m*cos(latticePhiInit_m),
+                    0.);
+}
+
+Vector_t OpalRing::getNextNormal() const {
+    if (section_list_m.size() > 0) {
+        return section_list_m.back()->getEndNormal();
+    }
+    return Vector_t(cos(latticePhiInit_m+latticeThetaInit_m),
+                    -sin(latticePhiInit_m+latticeThetaInit_m),
+                    0.);
 }
 
 void OpalRing::appendElement(const Component &element) {
@@ -219,55 +246,42 @@ void OpalRing::appendElement(const Component &element) {
                             " when ring is locked");
     }
     // delta is transform from start of bend to end with x, z as horizontal
+    // I failed to get Rotation3D to work so use rotations written by hand.
+    // Probably an error in my call to Rotation3D.
     Euclid3D delta = element.getGeometry().getTotalTransform();
+    rotateToCyclCoordinates(delta);
     checkMidplane(delta);
 
     OpalRingSection* section = new OpalRingSection();
-
-    Vector3D start_pos(latticeRInit_m*cos(latticePhiInit_m),
-                       latticeRInit_m*sin(latticePhiInit_m),
-                       0.);
-    Vector3D start_norm(sin(latticePhiInit_m+latticeThetaInit_m),
-                        cos(latticePhiInit_m+latticeThetaInit_m),
-                        0.);
-    if (section_list_m.size() > 0) {
-        start_pos = section_list_m.back()->getEndPosition();
-        start_norm = section_list_m.back()->getEndNormal();
-    }
+    Vector_t startPos = getNextPosition();
+    Vector_t startNorm = getNextNormal();
 
     section->setComponent(dynamic_cast<Component*>(element.clone()));
-    section->setStartPosition(start_pos);
-    section->setStartNormal(start_norm);
-    // translation from start to end in local coordinates (note we Euclid3D
-    // works in x-z as horizontal plane; but OPAL-CYCL works with x-y as
-    // horizontal plane. So we need to rotate the translation into midplane
-    Vector3D elementTranslation = Rotation3D::XRotation(-Physics::pi/2.)
-                                                             *delta.getVector();
-    /*double r = 2350., pi=3.14159265359;
-    double theta = pi/4.;
-    std::cerr << "DX (local, no rot) " << delta.getVector()(0) << " " << delta.getVector()(1) << " " << delta.getVector()(2) << std::endl;
-    std::cerr << "DX (local) " << elementTranslation(0) << " " << elementTranslation(1) << " " << elementTranslation(2) << std::endl;
-    std::cerr << "DX (test local) " << -2.*r*sin(theta/2.)*sin(theta/2.) << " " << 2.*r*sin(theta/2.)*cos(theta/2.) << " " << 0. << std::endl;*/
-    // rotation to element start
-    double dphi = atan2(-start_norm(0), start_norm(1));
-    Rotation3D elementStart = Rotation3D::ZRotation(dphi);
-    // std::cerr << "DPHI to start " << dphi << " [rad] " << dphi/Physics::pi*180. << " [deg] " << std::endl;
-    // translation from start to end in global coordinates
-    Vector3D globalTrans = elementStart*elementTranslation;
-    // std::cerr << "DX (global) " << globalTrans(0) << " " << globalTrans(1) << " " << globalTrans(2) << std::endl;
+    section->setStartPosition(startPos);
+    section->setStartNormal(startNorm);
 
-    section->setEndPosition(start_pos + globalTrans);
+    double startF = atan2(startNorm(1), startNorm(0));
+    Vector_t endPos = Vector_t(
+                       +delta.getVector()(0)*cos(startF)-delta.getVector()(1)*sin(startF),
+                       +delta.getVector()(0)*sin(startF)+delta.getVector()(1)*cos(startF),
+                       0)+startPos;
+    section->setEndPosition(endPos);
 
-    // rotation from start to end in global coordinates
-    Rotation3D elementRotation = getRotationStartToEnd(delta);
-    section->setEndNormal(elementRotation*start_norm);
-    // dphi = atan2(-section->getEndNormal()(0), section->getEndNormal()(1));
-    section->setComponentPosition(Vector3D(0., 0., 0.));
-    section->setComponentOrientation(Vector3D(0., 0., -2.*Physics::pi/8.+dphi));
+    double endF = delta.getRotation().getAxis()(2);//+
+                  //atan2(delta.getVector()(1), delta.getVector()(0));
+    Vector_t endNorm = Vector_t(
+                        +startNorm(0)*cos(endF) + startNorm(1)*sin(endF),
+                        -startNorm(0)*sin(endF) + startNorm(1)*cos(endF),
+                        0);
+    section->setEndNormal(endNorm);
+
+    section->setComponentPosition(startPos);
+    section->setComponentOrientation(Vector_t(0, 0, startF));
 
     section_list_m.push_back(section);
 
-    Inform msg("OPAL ");
+    double dphi = atan2(startNorm(0), startNorm(1));
+    Inform msg("OPAL");
     msg << "Added " << element.getName() << " to OpalRing" << endl;
     msg << "  Start position ("
         << section->getStartPosition()(0) << ", "
@@ -275,7 +289,7 @@ void OpalRing::appendElement(const Component &element) {
         << section->getStartPosition()(2) << ") normal ("
         << section->getStartNormal()(0) << ", "
         << section->getStartNormal()(1) << ", "
-        << section->getStartNormal()(2) << "), dphi " << dphi << endl;
+        << section->getStartNormal()(2) << "), phi " << dphi << endl;
     msg << "  End position ("
         << section->getEndPosition()(0) << ", "
         << section->getEndPosition()(1) << ", "
@@ -283,7 +297,6 @@ void OpalRing::appendElement(const Component &element) {
         << section->getEndNormal()(0) << ", "
         << section->getEndNormal()(1) << ", "
         << section->getEndNormal()(2) << ")" << endl;
-    current_section_m = section_list_m.begin();
 }
 
 void OpalRing::lockRing() {
@@ -298,7 +311,6 @@ void OpalRing::lockRing() {
         throw OpalException("OpalRing::lockRing",
                             "Failed to find any elements in OpalRing");
     }
-    current_section_m = section_list_m.begin();
     // Apply symmetry properties; I think it is fastest to just duplicate
     // elements rather than try to do some angle manipulations when we do field
     // lookups because we do field lookups in Cartesian coordinates in general.
@@ -308,68 +320,69 @@ void OpalRing::lockRing() {
             appendElement(*section_list_m[j]->getComponent());
         }
     }
-    // Check that the ring is closed within tolerance
-    if (isClosed_m) {
-        Vector3D last_pos = section_list_m.back()->getEndPosition();
-        Vector3D last_norm = section_list_m.back()->getEndNormal();
-        Vector3D first_pos = section_list_m[0]->getStartPosition();
-        Vector3D first_norm = section_list_m[0]->getStartNormal();
-        for (int i = 0; i < 3; ++i) {
-            if (fabs(first_pos(i) - last_pos(i)) > lengthTolerance_m || 
-                fabs(first_norm(i) - last_norm(i)) > angleTolerance_m)
-                throw OpalException("OpalRing::lockRing",
-                                    "Ring is not closed");
-        }
-        // Exactly close the ring
-        section_list_m.back()
-                        ->setEndPosition(section_list_m[0]->getStartPosition());
-        section_list_m.back()
-                        ->setEndNormal(section_list_m[0]->getStartNormal());
-        // std::cerr << "IsClosed" << std::endl;
-    }
+    //resetAzimuths();
+    // Check that the ring is closed within tolerance and close exactly
+    if (isClosed_m)
+        checkAndClose();
+    buildRingSections();
     isLocked_m = true;
-    getSectionAt(Vector_t(2349 , -0.000232433 , 2.87833e-12));
-    // test_f();  // poor man's unit tests
-}
-
-Vector_t convert(Vector3D vec_3d) {
-    return Vector_t(vec_3d(0), vec_3d(1), vec_3d(2));
-}
-
-Vector3D convert(Vector_t vec_t) {
-    return Vector3D(vec_t[0], vec_t[0], vec_t[0]);
-}
-
-void OpalRing::test_f() {
-    std::ofstream fout("TestOpalRing.dat");
-    std::string testpass = "pass";
-    for (size_t i = 0; i < section_list_m.size(); ++i) {
-        OpalRingSection* sec = section_list_m[i];
-        Vector3D start = sec->getStartPosition();
-        Vector3D end = sec->getEndPosition();
-        bool my_test = getSectionAt(convert(start)) == sec;
-        my_test = getSectionAt(convert(end)) == sec;
-        my_test = getSectionAt(convert(start+end)/2.) == sec;
-        if (!my_test)
-            testpass = "fail";
-        Vector_t pos, e_loc, b_loc, e_glob, b_glob;
-        pos[0] = (sec->getStartPosition()(0)+sec->getEndPosition()(0))/2.;
-        pos[1] = (sec->getStartPosition()(1)+sec->getEndPosition()(1))/2.;
-        pos[2] = (sec->getStartPosition()(2)+sec->getEndPosition()(2))/2.;
-        bool oob_loc = sec->getComponent()->apply(Vector_t(2350., 0., 0.), Vector_t(0., 0., 0.), 0., e_loc, b_loc);
-        bool oob_glob = apply(pos, pos, 0., e_glob, b_glob);
-        fout << "Local " << oob_loc << " " << e_loc << " " << b_loc << std::endl;
-        fout << "Global " << oob_glob << " " << e_glob << " " << b_glob << std::endl;
+    for (size_t i = 0; i < section_list_m.size(); i++) {
     }
-    double pi = 3.14159265359;
-    for (double phi = -pi/8.; phi < 17.*pi/8.; phi += pi/16.)
-      for (double r = 2350.; r < 2351.; r += 50.)
-        for (double y = 50.; y < 51.; y += 50.) {
-            Vector_t pos(r*cos(phi), r*sin(phi), y);
-            Vector_t b, e;
-            fout << "Position, field " << pos << " " << b << " " << sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]) << std::endl;
+}
+
+void OpalRing::resetAzimuths() {
+    for (size_t i = 0; i < section_list_m.size(); ++i) {
+        Vector_t startPos = section_list_m[i]->getEndPosition();
+        Vector_t startDir = section_list_m[i]->getEndNormal();
+        Vector_t endPos = section_list_m[i]->getEndPosition();
+        Vector_t endDir = section_list_m[i]->getEndNormal();
+        if (!section_list_m[i]->isOnOrPastStartPlane(endPos)) {
+            section_list_m[i]->setEndPosition(startPos);
+            section_list_m[i]->setEndNormal(startDir);
+            section_list_m[i]->setStartPosition(endPos);
+            section_list_m[i]->setStartNormal(endDir);
         }
-    fout << "TestOpalRing " << testpass << std::endl;
-    std::cerr << "TestOpalRing " << testpass << std::endl;
+    }
+}
+
+void OpalRing::checkAndClose() {
+    Vector_t first_pos = section_list_m[0]->getStartPosition();
+    Vector_t first_norm = section_list_m[0]->getStartNormal();
+    Vector_t last_pos = section_list_m.back()->getEndPosition();
+    Vector_t last_norm = section_list_m.back()->getEndNormal();
+    for (int i = 0; i < 3; ++i) {
+        if (fabs(first_pos(i) - last_pos(i)) > lengthTolerance_m || 
+            fabs(first_norm(i) - last_norm(i)) > angleTolerance_m)
+            throw OpalException("OpalRing::lockRing",
+                                "Ring is not closed");
+    }
+    section_list_m.back()->setEndPosition(first_pos);
+    section_list_m.back()->setEndNormal(first_norm);
+}
+
+void OpalRing::buildRingSections() {
+    size_t nSections = 2.*Physics::pi/phiStep_m+1;
+    ringSections_m = std::vector< std::vector<OpalRingSection*> >(nSections);
+    for (size_t i = 0; i < ringSections_m.size(); ++i) {
+        double phi0 = i*phiStep_m;
+        double phi1 = (i+1)*phiStep_m;
+        // std::cerr << phi0 << " " << phi1 << std::endl;
+        for (size_t j = 0; j < section_list_m.size(); ++j) {
+            if (section_list_m[j]->doesOverlap(phi0, phi1))
+                ringSections_m[i].push_back(section_list_m[j]);
+        }
+    }
+}
+
+OpalRingSection* OpalRing::getLastSectionPlaced() const {
+    if (section_list_m.size() == 0) {
+        return NULL;
+    }
+    return section_list_m.back();
+}
+
+bool OpalRing::sectionCompare(OpalRingSection const* const sec1,
+                              OpalRingSection const* const sec2) {
+    return sec1 > sec2;
 }
 

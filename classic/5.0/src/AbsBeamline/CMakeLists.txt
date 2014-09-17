@@ -17,10 +17,12 @@ set (_SRCS
   Marker.cpp
   Monitor.cpp
   Multipole.cpp
+  Offset.cpp
   Patch.cpp
   Probe.cpp
   RBend.cpp
   RFCavity.cpp
+  VariableRFCavity.cpp
   TravelingWave.cpp
   RFQuadrupole.cpp
   SBend.cpp

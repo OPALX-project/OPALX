@@ -90,6 +90,9 @@ public:
     /// Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole &);
 
+    /// Apply the algorithm to an Offset.
+    virtual void visitOffset(const Offset &);
+
     /// Apply the algorithm to a patch.
     virtual void visitPatch(const Patch &pat);
 
@@ -98,6 +101,9 @@ public:
 
     /// Apply the algorithm to a rectangular bend.
     virtual void visitRBend(const RBend &);
+
+    /// Apply the algorithm to a RF cavity.
+    virtual void visitVariableRFCavity(const VariableRFCavity &vcav);
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);

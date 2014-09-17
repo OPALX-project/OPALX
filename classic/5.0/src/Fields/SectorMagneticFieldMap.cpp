@@ -74,8 +74,7 @@ SectorMagneticFieldMap::SectorMagneticFieldMap(std::string file_name,
         }
         setInterpolator(tgt->interpolator_m->clone());
     }
-    phiOffset_m = interpolator_m->getMesh()->minZ();
-    //  test_f();
+    phiOffset_m = -interpolator_m->getMesh()->minZ();
 }
 
 SectorMagneticFieldMap::SectorMagneticFieldMap
@@ -180,24 +179,30 @@ bool SectorMagneticFieldMap::getFieldstrength
     // I also do a rotation through 180 deg about x to make the bend in the
     // correct sense but this should be implemented in the end by OpalRing (i.e.
     // should be able to do off-midplane transformations)
-    double R_temp[3] = {+R_c[1], -R_c[2], -R_c[0]};
+    double radius = (getPolarBoundingBoxMin()[0]+getPolarBoundingBoxMax()[0])/2;
+    double R_temp[3] = {R_c(0)+radius, R_c(1), R_c(2)};
     double B_temp[3] = {0., 0., 0.};
     SectorField::convertToPolar(R_temp);
+    // interpolator has phi in 0. to dphi
     R_temp[2] -= phiOffset_m;
     if (!isInBoundingBox(R_temp)) {
-        // std::cerr << "SectorMagneticFieldMap R_c " << R_c << " R_temp "
-        //           << R_temp[0] << " " << R_temp[1] << " " << R_temp[2]
-        //           << std::endl;
+        // std::cerr << "SectorMagneticFieldMap r: " << radius << " R_c " << R_c << " R_temp "
+        //          << R_temp[0] << " " << R_temp[1] << " " << R_temp[2]
+        //          << std::endl;
         return true;
     }
     interpolator_m->function(R_temp, B_temp);
     // and here we transform back
-    B_c(0) = (-B_temp[2])*cos(phiOffset_m)-B_temp[0]*sin(phiOffset_m);
-    B_c(1) = (-B_temp[2])*sin(phiOffset_m)+B_temp[0]*cos(phiOffset_m);
-    B_c(2) = -B_temp[1];
-    // std::cerr << "\nSMFM::getFieldStrength R_c: " << R_c
-    //          << " R_p: " << R_temp[0] << " " << R_temp[1] << " " << 180.*R_temp[2]/3.142
-    //         << " B: " << B_c[0] << " " << B_c[1] << " " << B_c[2] << std::endl;
+    // we want phi in 0. to dphi
+    R_temp[2] += phiOffset_m;
+    SectorField::convertToCartesian(R_temp, B_temp);
+    B_c(0) = B_temp[0];
+    B_c(1) = B_temp[1];
+    B_c(2) = B_temp[2];
+    // B_c *= 10.;
+    // std::cerr << "\nSMFM::getFieldStrength r: " << radius << " R_c: " << R_c
+    //          << " R_p: " << R_temp[0] << " " << R_temp[1] << " " << R_temp[2]
+    //          << " B: " << B_c[0] << " " << B_c[1] << " " << B_c[2] << std::endl;
     return false;
 }
 
@@ -423,74 +428,5 @@ ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
 
 double dot_prod(Vector_t vec_1, Vector_t vec_2) {
     return vec_1[0]*vec_2[0] + vec_1[1]*vec_2[1] + vec_1[2]*vec_2[2];
-}
-
-void SectorMagneticFieldMap::test_f() {
-    std::ofstream fout("TestSectorMagneticFieldMap.dat");
-    std::string testpass = "pass";
-    Vector_t r_c;
-    Vector_t b;
-    Vector_t e;
-    ThreeDGrid* grid = interpolator_m->getMesh();
-    for (double phiTol = 1.e-2; phiTol < 1.1e-1; phiTol *= 10.) {
-        double dphi = grid->maxZ() - grid->minZ();
-        SectorField::setPolarBoundingBox(grid->minX(), grid->minY(), grid->minZ(),
-                                         grid->maxX(), grid->maxY(), grid->maxZ(),
-                                         0., 0., phiTol*dphi);
-        fout << "Grid " << dphi << " " << phiTol << "\n"
-             << "   x: " << grid->minX() << " " << grid->maxX() << " ** " << polarBBMin_m[0] << " " << polarBBMax_m[0] << "\n"
-             << "   y: " << grid->minY() << " " << grid->maxY() << " ** " << polarBBMin_m[1] << " " << polarBBMax_m[1] << "\n"
-             << "   z: " << grid->minZ() << " " << grid->maxZ() << " ** " << polarBBMin_m[2] << " " << polarBBMax_m[2] << std::endl;
-    }
-
-    for (double phi = -0.1; phi < 0.8; phi += 0.01) {
-            Vector_t e_p, b_p, r_p;
-            // polar coordinates
-            r_p[0] = 2350.;
-            r_p[1] = 50.;
-            r_p[2] = phi;
-            double minZ = grid->minZ()-phiOffset_m;
-            double maxZ = grid->maxZ()-phiOffset_m;
-            bool oob_p = getFieldstrengthPolar(r_p, e_p, b_p);
-            bool my_test = (dot_prod(b_p, b_p) > 1e-9 && phi >= minZ && phi <= maxZ)
-                        || (dot_prod(b_p, b_p) < 1e-9 && (phi < minZ || phi > maxZ));
-            if (!my_test) {
-                testpass = "fail";
-                fout << "polar " << oob_p << " " << r_p << " " << b_p << " " << e_p << "\n";
-            }
-    }
-    for (double r = 2050.; r < 2651.; r += 100.)
-      for (double y = -150.; y < 151.; y += 50.)
-        for (double phi = -0.5; phi < 1.51; phi += 0.1) {
-            bool my_test = true;
-            Vector_t e_p, b_p, r_p, e_c, b_c, r_c;
-            // polar coordinates
-            r_p[0] = r;
-            r_p[1] = y;
-            r_p[2] = phi;
-            bool oob_p = getFieldstrengthPolar(r_p, e_p, b_p);
-
-            r_c[0] = r*sin(phi);
-            r_c[1] = r*cos(phi);
-            r_c[2] = y;
-            bool oob_c = getFieldstrength(r_c, e_c, b_c);
-
-            bool oob = phi > -0.7853*0.1 && phi < 0.7853*1.1 &&
-                       r > 2100 && r < 2600 &&
-                       y > -115 && r < 115; 
-            my_test = ((oob_p == oob_c) == oob);
-            // magnitude should be same but direction different due to differing
-            // coordinate systems
-            my_test = abs(dot_prod(e_c, e_c) - dot_prod(e_p, e_p)) < 1e-9;
-            my_test = abs(dot_prod(b_c, b_c) - dot_prod(b_p, b_p)) < 1e-9;
-            if (!my_test) testpass = "fail";
-            if (true || !my_test) {
-                fout << "polar " << oob_p << " " << r_p << " " << b_p << " " << e_p << "\n";
-                fout << "cart  " << oob_c << " " << r_c << " " << b_c << " " << e_c << "\n";
-            }
-    }
-    std::cerr << "SectorMagneticFieldMapTest "+testpass << std::endl;
-    fout << "SectorMagneticFieldMapTest "+testpass << std::endl;
-    fout.close();
 }
 

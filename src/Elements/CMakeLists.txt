@@ -19,9 +19,14 @@ set (_SRCS
   OpalMonitor.cpp
   OpalMultipole.cpp
   OpalOctupole.cpp
+  OpalOffset/OpalLocalCylindricalOffset.cpp
+  OpalOffset/OpalLocalCartesianOffset.cpp
+  OpalOffset/OpalGlobalCylindricalOffset.cpp
+  OpalOffset/OpalGlobalCartesianOffset.cpp
   OpalPatch.cpp
   OpalProbe.cpp
   OpalPepperPot.cpp
+  OpalPolynomialTimeDependence.cpp
   OpalQuadrupole.cpp
   OpalRBend.cpp
   OpalRCollimator.cpp
@@ -35,6 +40,7 @@ set (_SRCS
   OpalSlit.cpp
   OpalSolenoid.cpp
   OpalSRot.cpp
+  OpalVariableRFCavity.cpp
   OpalVKicker.cpp
   OpalVMonitor.cpp
   OpalWire.cpp

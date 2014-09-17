@@ -1,5 +1,6 @@
 set (_SRCS
   AbstractMapper.cpp
+  AbstractTimeDependence.cpp
   AbstractTracker.cpp
   DefaultVisitor.cpp
   Flagger.cpp
@@ -13,6 +14,7 @@ set (_SRCS
   PartBinsCyc.cpp
   PartData.cpp
   Particle.cpp
+  PolynomialTimeDependence.cpp
   Surveyor.cpp
   ThinMapper.cpp
   ThinTracker.cpp

@@ -100,10 +100,15 @@
 #include "Elements/OpalMonitor.h"
 #include "Elements/OpalMultipole.h"
 #include "Elements/OpalOctupole.h"
+#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
+#include "Elements/OpalOffset/OpalLocalCylindricalOffset.h"
+#include "Elements/OpalOffset/OpalGlobalCartesianOffset.h"
+#include "Elements/OpalOffset/OpalGlobalCylindricalOffset.h"
 #include "Elements/OpalPepperPot.h"
 #include "Elements/OpalPatch.h"
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalQuadrupole.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalRCollimator.h"
 #include "Elements/OpalSBend.h"
@@ -123,6 +128,7 @@
 #include "Elements/OpalCyclotronValley.h"
 #include "Elements/OpalStripper.h"
 #include "Elements/OpalRingDefinition.h"
+#include "Elements/OpalVariableRFCavity.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -217,9 +223,14 @@ namespace Configure {
         OPAL->create(new OpalMonitor());
         OPAL->create(new OpalMultipole());
         OPAL->create(new OpalOctupole());
+        OPAL->create(new OpalOffset::OpalLocalCartesianOffset());
+//        OPAL->create(new OpalOffset::OpalLocalCylindricalOffset());
+//        OPAL->create(new OpalOffset::OpalGlobalCartesianOffset());
+//        OPAL->create(new OpalOffset::OpalGlobalCylindricalOffset());
         OPAL->create(new OpalPatch());
         OPAL->create(new OpalProbe());
         OPAL->create(new OpalPepperPot());
+        OPAL->create(new OpalPolynomialTimeDependence());
         OPAL->create(new OpalQuadrupole());
         OPAL->create(new OpalRBend());
         OPAL->create(new OpalRCollimator());
@@ -232,6 +243,7 @@ namespace Configure {
         OPAL->create(new OpalSolenoid());
         OPAL->create(new OpalSRot());
         OPAL->create(new OpalTravelingWave());
+        OPAL->create(new OpalVariableRFCavity());
         OPAL->create(new OpalVKicker());
         OPAL->create(new OpalVMonitor());
         OPAL->create(new OpalWire());

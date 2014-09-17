@@ -30,6 +30,7 @@
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
+#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -37,6 +38,7 @@
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/VariableRFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
@@ -125,21 +127,21 @@ void DefaultVisitor::visitLambertson(const Lambertson &lamb) {
     applyDefault(lamb);
 }
 
-
 void DefaultVisitor::visitMarker(const Marker &mark) {
     applyDefault(mark);
 }
-
 
 void DefaultVisitor::visitMonitor(const Monitor &mon) {
     applyDefault(mon);
 }
 
-
 void DefaultVisitor::visitMultipole(const Multipole &mult) {
     applyDefault(mult);
 }
 
+void DefaultVisitor::visitOffset(const Offset& off) {
+    applyDefault(off);
+}
 
 void DefaultVisitor::visitOpalRing(const OpalRing &ring) {
    applyDefault(ring);
@@ -158,6 +160,10 @@ void DefaultVisitor::visitRBend(const RBend &bend) {
     applyDefault(bend);
 }
 
+
+void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity &vcav) {
+    applyDefault(vcav);
+}
 
 void DefaultVisitor::visitRFCavity(const RFCavity &cav) {
     applyDefault(cav);

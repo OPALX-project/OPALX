@@ -1,5 +1,5 @@
 /* 
- *  Copyright (c) 2012, Chris Rogers
+ *  Copyright (c) 2012-2014, Chris Rogers
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without 
  *  modification, are permitted provided that the following conditions are met: 
@@ -31,12 +31,8 @@
 #include <string>
 
 #include "Physics/Physics.h"
-#include "Algorithms/Tracker.h"
-#include "Fields/ConstBField.h"
 #include "AbsBeamline/Component.h"
-#include "AbsBeamline/SBend3D.h"
 
-#include "BeamlineCore/RBendRep.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
 #include "Utilities/OpalRingSection.h"
@@ -59,7 +55,7 @@ class FieldMap;
  *  in an x-y geometry for OpalRing (i.e. the axis of the ring is by default the
  *  z-axis). So far only placement of elements in the midplane is supported. It
  *  is not possible to give vertical displacements or rotations, or add elements
- *  that might create vertical displacements and rotations. 
+ *  that might create vertical displacements and rotations.
  *
  *  Also aim to maintain backwards compatibility with Cyclotron (i.e. use
  *  ParallelCyclotronTracker)
@@ -125,7 +121,9 @@ class OpalRing : public Component {
      *  @param B vector where magnetic field vector will be stored - any
      *         existing data is overwritten
      *
-     *  @returns false if particle is still in the ring aperture, else true
+     *  @returns false if particle is outside of the ring aperture, else true.
+     *  If particle is off the field maps, then set flag on the particle
+     *  "Bin" data to -1
      */
     virtual bool apply(const Vector_t &R, const Vector_t &centroid,
                        const double &t, Vector_t &E, Vector_t &B);
@@ -176,21 +174,27 @@ class OpalRing : public Component {
      *  Add element to the ring. Elements are assumed to occupy a region of
      *  space defined by a (flat) plane at the start and a plane at the end,
      *  both infinite in extent. The position and rotation of these planes are
-     *  defined according to the Component geometry.
+     *  defined according to the Component geometry given by
+     *  element.getGeometry().
      *
-     *  Borrows a reference to the element (relinquished when the ring is
-     *  deleted).
+     *  Caller owns memory allocated to element - OpalRing makes a copy.
      *
      *  Throws an exception if the geometry would bend the element out of the
-     *  midplane (elements out of midplane are not yet supported).
+     *  midplane (elements out of midplane are not yet supported). Note that
+     *  BeamlineGeometry considers midplane to be x-z, whereas OpalRing
+     *  considers midplane to be x-y; we apply a rotation during set up.
+     *
+     *  The element is assumed to extend not beyond the element geometry; 
+     *  OpalRing applies a bounding box based on the element geometry, if there
+     *  are field maps expanding outside this region they may get cut.
      */
     void appendElement(const Component &element);
 
-    /** Not implemented */
-    virtual EMField &getField() {return constBField_m.getField();}
+    /** Not implemented, throws an exception */
+    virtual EMField &getField() {throw OpalException("OpalRing::getField", "Not implemented");}
 
-    /** Not implemented */
-    virtual const EMField &getField() const {return constBField_m.getField();}
+    /** Not implemented, throws an exception */
+    virtual const EMField &getField() const {throw OpalException("OpalRing::getField", "Not implemented");}
 
     /** Not implemented */
     virtual PlanarArcGeometry &getGeometry() {return planarArcGeometry_m;}
@@ -269,6 +273,12 @@ class OpalRing : public Component {
     /** Get the initial  element's azimuthal angle */
     double getLatticePhiInit() const {return latticePhiInit_m;}
  
+    /** Get the initial element's start position in cartesian coordinates */
+    Vector_t getNextPosition() const;
+
+    /** Get the initial element's start normal in cartesian coordinates */
+    Vector_t getNextNormal() const;
+
     /** Set the first element's horizontal angle
      *
      *  Set the angle in the ring plane with respect to the tangent vector
@@ -296,16 +306,42 @@ class OpalRing : public Component {
     /** Lock the ring
      *
      *  Lock the ring; apply closure checks and symmetry properties as required.
+     *  Impose rule that start must be before end and switch objects around if 
+     *  this is not the case. Sort by startPosition azimuthal angle.
+     *
      *  Sets isLocked_m to true. New elements can no longer be added (as it may
      *  break the symmetry/bound checking)
      */
     void lockRing();
 
-    void test_f();
+    /** Get the last section placed or NULL if no sections were placed yet */
+    OpalRingSection* getLastSectionPlaced() const;
+
+    /** Get the list of sections at position pos */
+    std::vector<OpalRingSection*> getSectionsAt(const Vector_t& pos);
+
+    /** Convert from a Vector3D to a Vector_t */
+    static inline Vector_t convert(const Vector3D& vec);
+
+    /** Convert from a Vector_t to a Vector3D */
+    static inline Vector3D convert(const Vector_t& vec);
 
   private:
-    /** Get the section at position pos */
-    OpalRingSection* getSectionAt(const Vector_t& pos);
+    // Force end to have azimuthal angle > start unless crossing phi = pi/-pi
+    void resetAzimuths();
+
+    // check for closure; throw an exception is ring is not closed within 
+    // tolerance; enforce closure to floating point precision
+    void checkAndClose();
+
+    // build a map that maps section to sections that overlap it
+    void buildRingSections();
+
+    void rotateToCyclCoordinates(Euclid3D& euclid3d) const;
+
+    // predicate for sorting
+    static bool sectionCompare(OpalRingSection const* const sec1,
+                               OpalRingSection const* const sec2);
 
     /** Disabled */
     OpalRing();
@@ -316,7 +352,6 @@ class OpalRing : public Component {
     void checkMidplane(Euclid3D delta) const;
     Rotation3D getRotationStartToEnd(Euclid3D delta) const;
 
-    RBendRep constBField_m;
     PlanarArcGeometry planarArcGeometry_m;
 
     // points to same location as RefPartBunch_m on the child bunch, but we
@@ -356,14 +391,23 @@ class OpalRing : public Component {
     // nominal rf frequency
     double rfFreq_m;
 
-    // element wrappers
-    RingSectionList::iterator current_section_m;
-    RingSectionList section_list_m; // vector of OpalRingSection (Component placement)
+    // vector of OpalRingSection sorted by phi (Component placement)
+    double phiStep_m;
+    std::vector<RingSectionList> ringSections_m;
+    RingSectionList section_list_m;
 
     // tolerance on checking for geometry consistency
     static const double lengthTolerance_m;
     static const double angleTolerance_m;
 };
+
+Vector_t OpalRing::convert(const Vector3D& vec_3d) {
+    return Vector_t(vec_3d(0), vec_3d(1), vec_3d(2));
+}
+
+Vector3D OpalRing::convert(const Vector_t& vec_t) {
+    return Vector3D(vec_t[0], vec_t[1], vec_t[2]);
+}
 
 #endif //#ifndef OPALRING_H
 

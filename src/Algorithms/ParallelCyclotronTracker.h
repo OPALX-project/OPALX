@@ -28,6 +28,8 @@ class PartBunch;
 class PlanarArcGeometry;
 class OpalRing;
 class SBend3D;
+class VariableRFCavity;
+class Offset;
 
 // Class ParallelCyclotronTracker
 // ------------------------------------------------------------------------
@@ -106,6 +108,9 @@ public:
     /// Apply the algorithm to a Multipole.
     virtual void visitMultipole(const Multipole &);
 
+    /// Apply the algorithm to a Offset.
+    virtual void visitOffset(const Offset &);
+
     /// Apply the algorithm to a Probe.
     virtual void visitProbe(const Probe &);
 
@@ -138,6 +143,9 @@ public:
 
     /// Apply the algorithm to a CyclotronValley.it is empty for cyclotrontracker .
     virtual void visitCyclotronValley(const CyclotronValley &);
+
+    /// Apply the algorithm to a VariabelRFCavity.
+    virtual void visitVariableRFCavity(const VariableRFCavity &cav);
 
     /// Apply the algorithm to the top-level beamline.
     //  overwrite the execute-methode from DefaultVisitor
@@ -195,9 +203,9 @@ private:
     int maxSteps_m;
 
     /// The positive axes unit vectors
-    Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
-    Vector_t const yaxis = Vector_t(0.0, 1.0, 0.0);
-    Vector_t const zaxis = Vector_t(0.0, 0.0, 1.0);
+    static Vector_t const xaxis;
+    static Vector_t const yaxis;
+    static Vector_t const zaxis;
 
     /// The scale factor for dimensionless variables
     double scaleFactor_m;

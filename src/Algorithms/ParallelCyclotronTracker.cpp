@@ -30,6 +30,7 @@
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
+#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -44,6 +45,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
+#include "AbsBeamline/VariableRFCavity.h"
 
 #include "Elements/OpalBeamline.h"
 #include "Elements/OpalRing.h"
@@ -83,6 +85,9 @@ using Physics::q_e;
 
 const double c_mmtns = c * 1.0e-6; // m/s --> mm/ns
 const double mass_coeff = 1.0e18 * q_e / c / c; // from GeV/c^2 to basic unit: GV*C*s^2/m^2
+Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
+Vector_t const ParallelCyclotronTracker::yaxis = Vector_t(0.0, 1.0, 0.0);
+Vector_t const ParallelCyclotronTracker::zaxis = Vector_t(0.0, 0.0, 1.0);
 
 #define PSdim 6
 
@@ -161,6 +166,9 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
         delete(*fdindex);
     }
     delete itsBeamline;
+    if (opalRing_m != NULL) {
+        // delete opalRing_m;
+    }
 }
 
 /**
@@ -594,6 +602,17 @@ void ParallelCyclotronTracker::visitLambertson(const Lambertson &lamb) {
     myElements.push_back(dynamic_cast<Lambertson *>(lamb.clone()));
 }
 
+void ParallelCyclotronTracker::visitOffset(const Offset & off) {
+    if (opalRing_m == NULL)
+        throw OpalException(
+                        "ParallelCylcotronTracker::visitOffset",
+                        "Attempt to place an offset when OpalRing not defined");
+    Offset* offNonConst = const_cast<Offset*>(&off);
+    offNonConst->updateGeometry(opalRing_m->getNextPosition(),
+                       opalRing_m->getNextNormal());
+    opalRing_m->appendElement(off);
+}
+
 /**
  *
  *
@@ -687,6 +706,15 @@ void ParallelCyclotronTracker::visitSBend3D(const SBend3D &bend) {
     else
         throw OpalException("ParallelCyclotronTracker::visitSBend3D",
                       "Need to define a RINGDEFINITION to use SBend3D element");
+}
+
+void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity &cav) {
+    *gmsg << "Adding Variable RF Cavity" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(cav);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitVariableRFCavity",
+            "Need to define a RINGDEFINITION to use VariableRFCavity element");
 }
 
 /**
@@ -1732,6 +1760,26 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     for(; step_m < maxSteps_m; step_m++) {
 	//*gmsg << "step_m= " << step_m << endl;
+        /*
+        Vector_t B(0., 0., 0.), E(0., 0., 0.);
+        Vector_t Pt = itsBunch->P[0];
+        (*FieldDimensions.begin())->second.second->apply(0, itsBunch->getT()*1e9, E, B);
+        double PTot = sqrt(Pt(0)*Pt(0)+Pt(1)*Pt(1)+Pt(2)*Pt(2));
+        std::cerr << step_m << " P: " << PTot << " ";
+        std::cerr << "R: ";
+        for (int jj = 0; jj < 3; jj++)
+            std::cerr << itsBunch->R[0](jj) << " ";
+        std::cerr << "B: ";
+        for (int jj = 0; jj < 3; jj++)
+            std::cerr << B(jj) << " ";
+        std::cerr << "E: ";
+        for (int jj = 0; jj < 3; jj++)
+            std::cerr << E(jj) << " ";
+        std::cerr << "P: ";
+        for (int jj = 0; jj < 3; jj++)
+            std::cerr << itsBunch->P[0](jj) << " ";
+        std::cerr << std::endl;
+        */
         bool dumpEachTurn = false;
         if(initialTotalNum_m > 2) {
             // single particle dumping
@@ -1791,7 +1839,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                             delete rmsg;
 
                         }
-                        for(int ii = 0; ii < counter; ii++) {
+                        for(int ii = 0; ii < 1; ii++) {
                             tmpi.push_back(itsBunch->ID[found[ii]]);
                             for(int jj = 0; jj < 3; jj++) {
                                 tmpr.push_back(itsBunch->R[found[ii]](jj));
@@ -1803,7 +1851,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
                             outfTrackOrbit_m << "ID" << *itId;
-                            for(int ii = 0; ii < 6; ii++) {
+                            for(int ii = 0; ii < 12; ii++) {
                                 outfTrackOrbit_m << " " << *itParameter;
                                 itParameter++;
                             }
