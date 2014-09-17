@@ -73,8 +73,8 @@ class VariableRFCavity: public Component {
 
     virtual double getHeight() const {return halfHeight_m*2;}
     virtual double getWidth() const {return halfWidth_m*2;}
-    virtual double setHeight(double fullHeight) {halfHeight_m = fullHeight/2;} 
-    virtual double setWidth(double fullWidth) {halfWidth_m = fullWidth/2;}
+    virtual void setHeight(double fullHeight) {halfHeight_m = fullHeight/2;} 
+    virtual void setWidth(double fullWidth) {halfWidth_m = fullWidth/2;}
 
 
     virtual AbstractTimeDependence* getAmplitudeModel() const;
@@ -134,4 +134,3 @@ double VariableRFCavity::getFrequency(double time) const {
 
 
 #endif // CLASSIC_VirtualRFCavity_HH
-

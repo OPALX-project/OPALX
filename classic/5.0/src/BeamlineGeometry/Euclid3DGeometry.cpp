@@ -33,14 +33,17 @@ Euclid3DGeometry::Euclid3DGeometry(Euclid3D transformation)
     : BGeometryBase(), transformation_m(transformation) {
 }
 
-Euclid3DGeometry::Euclid3DGeometry(const Euclid3DGeometry &right)
-    : BGeometryBase(), transformation_m(right.transformation_m) {
+Euclid3DGeometry::Euclid3DGeometry(const Euclid3DGeometry &rhs)
+    : BGeometryBase(), transformation_m(rhs.transformation_m) {
 }
 
 Euclid3DGeometry::~Euclid3DGeometry() {}
 
-const Euclid3DGeometry &Euclid3DGeometry::operator=(const Euclid3DGeometry &right) {
-    transformation_m = right.transformation_m;
+const Euclid3DGeometry &Euclid3DGeometry::operator=(const Euclid3DGeometry &rhs) {
+    if (&rhs != this) {
+        transformation_m = rhs.transformation_m;
+    }
+    return *this;
 }
 
 double Euclid3DGeometry::getArcLength() const {

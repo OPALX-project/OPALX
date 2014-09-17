@@ -49,17 +49,21 @@ OpalRingSection::~OpalRingSection() {
     //    delete component_m;
 }
 
+// Assignment operator
 OpalRingSection& OpalRingSection::operator=(const OpalRingSection& rhs) {
-    component_m = dynamic_cast<Component*>(rhs.component_m->clone());
-    if (component_m == NULL)
-        throw OpalException("OpalRingSection::operator=",
-                            "Failed to copy OpalRingSection");
-    componentPosition_m = rhs.componentPosition_m;
-    componentOrientation_m = rhs.componentOrientation_m;
-    startPosition_m = rhs.startPosition_m;
-    startOrientation_m = rhs.startOrientation_m;
-    endPosition_m = rhs.endPosition_m;
-    endOrientation_m = rhs.endOrientation_m;
+    if (&rhs != this) {
+        component_m = dynamic_cast<Component*>(rhs.component_m->clone());
+        if (component_m == NULL)
+            throw OpalException("OpalRingSection::operator=",
+                                "Failed to copy OpalRingSection");
+        componentPosition_m = rhs.componentPosition_m;
+        componentOrientation_m = rhs.componentOrientation_m;
+        startPosition_m = rhs.startPosition_m;
+        startOrientation_m = rhs.startOrientation_m;
+        endPosition_m = rhs.endPosition_m;
+        endOrientation_m = rhs.endOrientation_m;
+    }
+    return *this;
 }
 
 bool OpalRingSection::isOnOrPastStartPlane(const Vector_t& pos) const {

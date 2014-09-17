@@ -213,12 +213,12 @@ bool operator==(const Offset& off1, const Offset& off2) {
         return false;
     }
     for (int i = 0; i < 3; ++i) {
-        if (fabs(off1.getEndPosition()(i)-off2.getEndPosition()(i)) > tol ||
-            fabs(off1.getEndDirection()(i)-off2.getEndDirection()(i)) > tol)
+      if ( (fabs(off1.getEndPosition()(i)-off2.getEndPosition()(i)) > tol) ||
+	   (fabs(off1.getEndDirection()(i)-off2.getEndDirection()(i)) > tol))
             return false;
     }
-    if (&off1.getGeometry() == NULL && &off2.getGeometry() != NULL ||
-        &off2.getGeometry() == NULL && &off1.getGeometry() != NULL)
+    if ( (&off1.getGeometry() == NULL && &off2.getGeometry() != NULL) ||
+	 (&off2.getGeometry() == NULL && &off1.getGeometry() != NULL))
         return false;
     Euclid3D transform1 = off1.getGeometry().getTotalTransform();
     Euclid3D transform2 = off2.getGeometry().getTotalTransform();
@@ -239,7 +239,7 @@ std::ostream& operator<<(std::ostream& out, const Offset& off) {
     out << "Offset " << off.getName() << " local " << off.getIsLocal()
         << " end pos: " << off.getEndPosition()
         << " end dir: " << off.getEndDirection() << std::endl;
-
+    return out;
 }
 
 bool Offset::bends() const {
