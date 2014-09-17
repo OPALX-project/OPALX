@@ -106,6 +106,8 @@ FieldSolver::FieldSolver():
     mesh_m = 0;
     FL_m = 0;
     PL_m = 0;
+ 
+    solver_m = 0;
 }
 
 
@@ -115,7 +117,8 @@ FieldSolver::FieldSolver(const string &name, FieldSolver *parent):
 
 
 FieldSolver::~FieldSolver() {
-
+    if (solver_m) 
+       delete solver_m;
 }
 
 FieldSolver *FieldSolver::clone(const string &name) {

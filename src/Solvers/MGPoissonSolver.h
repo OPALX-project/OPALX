@@ -69,6 +69,7 @@ typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
 typedef Field<double, 3, Mesh_t, Center_t> Field_t;
 
 enum {
+    NO,
     STD_PREC,
     REUSE_PREC,
     REUSE_HIERARCHY
@@ -110,8 +111,6 @@ public:
     double getYRangeMax() { return bp->getYRangeMax(); }
     double getZRangeMin() { return bp->getZRangeMin(); }
     double getZRangeMax() { return bp->getZRangeMax(); }
-
-
 
     /// useful load balance information
     void printLoadBalanceStats();
@@ -167,15 +166,16 @@ private:
     RCP<Epetra_Vector> LHS;
     /// matrix used in the linear system of equations
     RCP<Epetra_CrsMatrix> A;
+
     /// ML preconditioner object
-    RCP<ML_Epetra::MultiLevelPreconditioner> MLPrec;
+    ML_Epetra::MultiLevelPreconditioner *MLPrec;
     /// Epetra_Map holding the processor distribution of data
     Epetra_Map *Map;
     /// communicator used by Trilinos
     Epetra_MpiComm Comm;
 
     /// last N LHS's for extrapolating the new LHS as starting vector
-    uint nLHS;
+    uint nLHS_m;
     RCP<Epetra_MultiVector> P;
     std::deque< Epetra_Vector > OldLHS;
 
@@ -185,10 +185,16 @@ private:
     typedef Epetra_MultiVector              MV;
     typedef Belos::OperatorTraits<ST, MV, OP> OPT;
     typedef Belos::MultiVecTraits<ST, MV>    MVT;
-    Belos::LinearProblem<ST, MV, OP> problem;
-    RCP< Belos::EpetraPrecOp > prec;
+
+    //Belos::LinearProblem<double, MV, OP> problem;
+    typedef Belos::LinearProblem<ST, MV, OP> problem;
+    RCP< problem > problem_ptr;
+
+    typedef Belos::SolverManager<ST, MV, OP> solver;
+    RCP< solver > solver_ptr;
+
+    RCP< Belos::EpetraPrecOp > prec_m;
     RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest;
-    RCP< Belos::SolverManager<ST, MV, OP> > solver;
 
     /// parameter list for the ML solver
     Teuchos::ParameterList MLList_m;
@@ -212,8 +218,6 @@ private:
     /// global number of mesh points in each direction
     Vektor<int, 3> orig_nr_m;
 
-    NDIndex<3> localId;
-
     // timers
     IpplTimings::TimerRef FunctionTimer1_m;
     IpplTimings::TimerRef FunctionTimer2_m;
@@ -223,6 +227,8 @@ private:
     IpplTimings::TimerRef FunctionTimer6_m;
     IpplTimings::TimerRef FunctionTimer7_m;
     IpplTimings::TimerRef FunctionTimer8_m;
+
+    void deletePtr();
 
     /// recomputes the Epetra_Map
     void computeMap(NDIndex<3> localId);
@@ -244,6 +250,8 @@ private:
      */
     void ComputeStencil(Vector_t hr, Teuchos::RCP<Epetra_Vector> RHS);
 
+    
+   
 protected:
 
     /// Setup the parameters for the Belos iterative solver.
