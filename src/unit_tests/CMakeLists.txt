@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.6)
 
 set (GTEST_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gtest/include PARENT_SCOPE)
 set (GTEST_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gtest/lib PARENT_SCOPE)
-set (GTEST_LINK_TARGETS -lgtest -lgtest_main PARENT_SCOPE)
+set (GTEST_LINK_TARGETS -lgtest -lgtest_main -lpthread PARENT_SCOPE)
 set (TEST_EXE opal_unit_tests PARENT_SCOPE)
 
 set(SRC_DIRS classic_src opal_src)

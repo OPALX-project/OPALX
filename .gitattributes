@@ -1137,7 +1137,6 @@ src/opal.cpp -text
 src/opal.h -text
 src/unit_tests/CMakeLists.txt -text
 src/unit_tests/Main.cpp -text
-src/unit_tests/Makefile -text
 src/unit_tests/classic_src/AbsBeamline/OffsetTest.cpp -text
 src/unit_tests/classic_src/AbsBeamline/SBend3DTest.cpp -text
 src/unit_tests/classic_src/AbsBeamline/SBend3D_map.field -text
