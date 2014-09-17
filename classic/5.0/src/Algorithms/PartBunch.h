@@ -558,8 +558,11 @@ private:
     /// energy spread of the beam in keV
     double dE_m;
 
-    Vector_t globalMeanR_m;
-    Vektor<double, 4> globalToLocalQuaternion_m;
+    /// Initialize the translation vector and rotation quaternion
+    /// here. Cyclotron tracker will reset these values each timestep
+    /// TTracker can just use 0 translation and 0 rotation (quat[1 0 0 0]). 
+    Vector_t globalMeanR_m = Vector_t(0.0, 0.0, 0.0);
+    Quaternion_t globalToLocalQuaternion_m = Quaternion_t(1.0, 0.0, 0.0, 0.0);
 
     /// maximal extend of particles
     Vector_t rmax_m;
