@@ -164,6 +164,7 @@ void LossDataSink::save() {
       writeHeaderASCII();
       saveASCII();
       close();
+      Ippl::Comm->barrier();
     }
     x_m.clear();
     y_m.clear();
