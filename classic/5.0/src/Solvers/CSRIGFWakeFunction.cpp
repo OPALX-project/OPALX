@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "Solvers/CSRWakeFunction.hh"
+#include "Solvers/CSRIGFWakeFunction.hh"
 #include "Algorithms/PartBunch.h"
 #include "Filters/Filter.h"
 #include "Physics/Physics.h"
@@ -8,60 +8,63 @@
 #include "AbsBeamline/SBend.h"
 #include "Utilities/Options.h"
 
-// using namespace std;
 
-CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N):
+CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N):
     WakeFunction(name, element),
     filters_m(filters.begin(), filters.end()),
     lineDensity_m(),
     dlineDensitydz_m(),
-    d2lineDensitydz2_m(),
     bendRadius_m(0.0),
     totalBendAngle_m(0.0),
     NBin_m(N)
 { }
 
-void CSRWakeFunction::apply(PartBunch &bunch) {
+void CSRIGFWakeFunction::apply(PartBunch &bunch) {
     Inform msg("CSRWake ");
 
     const double &meshSpacing = bunch.getMesh().get_meshSpacing(2);
     const Vector_t &meshOrigin = bunch.getMesh().get_origin();
 
     calculateLineDensity(bunch, meshSpacing);
+    unsigned int numOfSlices = lineDensity_m.size();
 
-    if(Ez_m.size() < lineDensity_m.size()) {
-        Ez_m.resize(lineDensity_m.size(), 0.0);
-        Psi_m.resize(lineDensity_m.size(), 0.0);
+    if(Ez_m.size() < numOfSlices) {
+        Ez_m.resize(numOfSlices, 0.0);
+        Chi_m.resize(numOfSlices, 0.0);
+        Grn_m.resize(numOfSlices, 0.0);
+        Psi_m.resize(numOfSlices, 0.0);
     }
 
+    for(unsigned int i = 0; i < numOfSlices; ++i) {
+      Ez_m[i] = 0.0;
+    }
+    
     Vector_t smin, smax;
     bunch.get_bounds(smin, smax);
     double minPathLength = smin(2) - FieldBegin_m;
-    Ez_m[0] = 0.0;
-    // calculate wake field of bunch
-    for(unsigned int i = 1; i < lineDensity_m.size(); ++i) {
-        Ez_m[i] = 0.0;
-
-        double angleOfSlice = 0.0;
-        double pathLengthOfSlice = minPathLength + i * meshSpacing;
-        if(pathLengthOfSlice > 0.0)
-            angleOfSlice = pathLengthOfSlice / bendRadius_m;
-
-        calculateContributionInside(i, angleOfSlice, meshSpacing);
-        calculateContributionAfter(i, angleOfSlice, meshSpacing);
-
-        Ez_m[i] /= (4. * Physics::pi * Physics::epsilon_0);
+    for(unsigned int i = 1; i < numOfSlices; i++) {
+      double pathLengthOfSlice = minPathLength + i * meshSpacing;
+      double angleOfSlice = 0.0;
+      angleOfSlice = pathLengthOfSlice/bendRadius_m;
+      if (angleOfSlice > 0.0 && angleOfSlice <= totalBendAngle_m){
+        calculateGreenFunction(bunch, meshSpacing);
+      }
+      // convolute with line density
+      calculateContributionInside(i, angleOfSlice, meshSpacing);
+      calculateContributionAfter(i, angleOfSlice, meshSpacing);
+      Ez_m[i] /= 4 * Physics::pi * Physics::epsilon_0;
     }
 
     // calculate the wake field seen by the particles
     for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
         const Vector_t &R = bunch.R[i];
-        int indexz = (int)floor((R(2) - meshOrigin(2)) / meshSpacing);
+        unsigned int indexz = (unsigned int)floor((R(2) - meshOrigin(2)) / meshSpacing);
         double leverz = (R(2) - meshOrigin(2)) / meshSpacing - indexz;
-        bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
+        if(indexz < numOfSlices - 1)
+          bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
+        else          
+          bunch.Ef[i](2) += Ez_m[numOfSlices-1];
     }
-
-
 
     if(Options::csrDump) {
         static string oldBendName;
@@ -79,12 +82,11 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
 	      std::stringstream filename_str;
 	      filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
 	      std::ofstream csr(filename_str.str().c_str());
-	      csr << spos << std::endl;
+	      csr << spos << ", " << FieldBegin_m << ", " << smin(2) << ", " << smax(2) << ", " << meshSpacing*64 << std::endl;
 	      for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
                 csr << i *meshSpacing << "\t"
                     << Ez_m[i] << "\t"
-                    << lineDensity_m[i] << "\t"
-                    << dlineDensitydz_m[i] << std::endl;
+                    << lineDensity_m[i] << std::endl;
 	      }
 	      csr.close();
 	      msg << "** wrote " << filename_str.str() << endl;
@@ -96,14 +98,13 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
     }
 }
 
-void CSRWakeFunction::initialize(const ElementBase *ref) {
+void CSRIGFWakeFunction::initialize(const ElementBase *ref) {
     double End;
     if(dynamic_cast<const RBend *>(ref)) {
         const RBend *bend = dynamic_cast<const RBend *>(ref);
         bendRadius_m = bend->GetBendRadius();
         bend->getDimensions(Begin_m, End);
         Length_m = bend->GetEffectiveLength();
-        //xpang 09-19-2014 : removed "Begin_m +" from FieldBegin_m
         FieldBegin_m = bend->GetEffectiveCenter() - Length_m / 2.0;
         totalBendAngle_m = std::abs(bend->GetBendAngle());
         bendName_m = bend->getName();
@@ -112,112 +113,61 @@ void CSRWakeFunction::initialize(const ElementBase *ref) {
         bendRadius_m = bend->GetBendRadius();
         bend->getDimensions(Begin_m, End);
         Length_m = bend->GetEffectiveLength();
-        //xpang 09-19-2014 : removed "Begin_m +" from FieldBegin_m 
         FieldBegin_m = bend->GetEffectiveCenter() - Length_m / 2.0;
         totalBendAngle_m = bend->GetBendAngle();
         bendName_m = bend->getName();
     }
 }
 
-void CSRWakeFunction::calculateLineDensity(PartBunch &bunch, double meshSpacing) {
+void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, double meshSpacing) {
     bunch.calcLineDensity();
     bunch.getLineDensity(lineDensity_m);
 
+// the following is only needed for after dipole 
     std::vector<Filter *>::const_iterator fit;
     for(fit = filters_m.begin(); fit != filters_m.end(); ++ fit) {
         (*fit)->apply(lineDensity_m);
     }
     dlineDensitydz_m.assign(lineDensity_m.begin(), lineDensity_m.end());
     filters_m.back()->calc_derivative(dlineDensitydz_m, meshSpacing);
+
 }
 
-void CSRWakeFunction::calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing) {
-    if(angleOfSlice > totalBendAngle_m || angleOfSlice < 0.0) return;
-
-    const double meshSpacingsup = pow(meshSpacing, -1. / 3.);
-    double SlippageLength = pow(angleOfSlice, 3) * bendRadius_m / 24.;
-    double relativeSlippageLength = SlippageLength / meshSpacing;
-    if(relativeSlippageLength > sliceNumber) {
-
-        /*
-        Break integral into sum of integrals between grid points, then
-        use linear interpolation between each grid point.
-        */
-
-        double dx1 = pow(sliceNumber, 2. / 3.);
-        double dx2 = pow(sliceNumber, 5. / 3.);
-        double dx3 = pow(sliceNumber - 1., 5. / 3.);
-        Ez_m[sliceNumber] += 0.3 * meshSpacingsup * dlineDensitydz_m[0] * (5. * dx1 - 3. * dx2 + 3. * dx3);
-        for(unsigned int j = 1; j < sliceNumber; ++ j) {
-            dx1 = dx2;
-            dx2 = dx3;
-            dx3 = pow(sliceNumber - j - 1., 5. / 3.);
-            Ez_m[sliceNumber] += 0.9 * meshSpacingsup * dlineDensitydz_m[j] * (dx1 - 2.* dx2 + dx3);
-        }
-        Ez_m[sliceNumber] += 0.9 * meshSpacingsup * dlineDensitydz_m[sliceNumber];
-
-    } else if(relativeSlippageLength < 1) {
-
-        // First do transient term.
-        if(4.0 * relativeSlippageLength <= 1) {
-
-            Ez_m[sliceNumber] += 3.0 * pow(SlippageLength, 2.0 / 3.0) * (lineDensity_m[sliceNumber] - lineDensity_m[sliceNumber - 1]) / meshSpacing;
-        } else {
-
-            if(4.0 * relativeSlippageLength < sliceNumber) {
-
-                int j = sliceNumber - static_cast<int>(floor(4.0 * relativeSlippageLength));
-                double frac = 4.0 * relativeSlippageLength - (sliceNumber - j);
-                Ez_m[sliceNumber] -= (frac * lineDensity_m[j - 1] + (1. - frac) * lineDensity_m[j]) / pow(SlippageLength, 1. / 3.);
-
-            }
-
-            Ez_m[sliceNumber] += (relativeSlippageLength * lineDensity_m[sliceNumber - 1] + (1. - relativeSlippageLength) * lineDensity_m[sliceNumber]) / pow(SlippageLength, 1. / 3.);
-
-        }
-
-        // Now do steady state term.
-        Ez_m[sliceNumber] += (0.3 / meshSpacing) * pow(SlippageLength, 2. / 3.) * (5. * dlineDensitydz_m[sliceNumber] - 2. * relativeSlippageLength * (dlineDensitydz_m[sliceNumber] - dlineDensitydz_m[sliceNumber - 1]));
-
-    } else {
-
-        if(4. * relativeSlippageLength < sliceNumber) {
-
-            int j = sliceNumber - static_cast<int>(floor(4. * relativeSlippageLength));
-            double frac = 4. * relativeSlippageLength - (sliceNumber - j);
-            Ez_m[sliceNumber] -= (frac * lineDensity_m[j - 1] + (1. - frac) * lineDensity_m[j]) / pow(SlippageLength, 1. / 3.);
-
-        }
-
-        int j = sliceNumber - static_cast<int>(floor(SlippageLength / meshSpacing));
-        double frac = relativeSlippageLength - (sliceNumber - j);
-        Ez_m[sliceNumber] += (frac * lineDensity_m[j - 1] + (1. - frac) * lineDensity_m[j]) / pow(SlippageLength, 1. / 3.);
-
-        double dx1 = pow(sliceNumber - j + frac, 2. / 3.);
-        double dx2 = pow(sliceNumber - j, 2. / 3.);
-        double dx3 = pow(sliceNumber - j + frac, 5. / 3.);
-        double dx4 = pow(sliceNumber - j, 5. / 3.);
-
-        Ez_m[sliceNumber] += 1.5 * meshSpacingsup * dlineDensitydz_m[j - 1] * (dx1 - dx2);
-        Ez_m[sliceNumber] += 0.3 * meshSpacingsup * (dlineDensitydz_m[j] - dlineDensitydz_m[j - 1]) * (5.*(dx1 - dx2) + 3.*(dx3 - dx4));
-
-        dx1 = dx2;
-        dx2 = dx4;
-        dx3 = pow(sliceNumber - j - 1., 5. / 3.);
-        Ez_m[sliceNumber] += 0.3 * meshSpacingsup * dlineDensitydz_m[j] * (5.*dx1 - 3.*dx2 + 3.*dx3);
-        for(unsigned int k = j + 1; k < sliceNumber; ++ k) {
-            dx1 = dx2;
-            dx2 = dx3;
-            dx3 = pow(sliceNumber - k - 1., 5. / 3.);
-            Ez_m[sliceNumber] += 0.9 * meshSpacingsup * dlineDensitydz_m[k] * (dx1 - 2.*dx2 + dx3);
-        }
-        Ez_m[sliceNumber] += 0.9 * meshSpacingsup * dlineDensitydz_m[sliceNumber];
+void CSRIGFWakeFunction::calculateGreenFunction(PartBunch &bunch, double meshSpacing)
+{
+    unsigned int numOfSlices = lineDensity_m.size();
+    double gamma = bunch.get_meanEnergy()/(bunch.getM()*1e-6)+1.0;
+    double xmu_const = 3.0 * gamma * gamma * gamma / (2.0 * bendRadius_m);
+    double chi_const = 9.0 / 16.0 * (6.0 - log(27.0 / 4.0));
+      
+    for(unsigned int i = 0; i < numOfSlices; ++i) {
+        Chi_m[i] = 0.0;
+        double z = i * meshSpacing;
+        double xmu = xmu_const * z;
+        double b = sqrt(xmu * xmu + 1.0) + xmu;
+        if(xmu < 1e-3)
+          Chi_m[i] = chi_const + 0.5 * pow(xmu, 2) - 7.0 / 54.0 * pow(xmu, 4) + 140.0 / 2187.0 * pow(xmu, 6);
+        else
+          Chi_m[i] = 9.0 / 16.0 * (3.0 * (-2.0 * xmu * pow(b, 1.0/3.0) + pow(b, 2.0/3.0) + pow(b, 4.0/3.0)) +
+                     log(pow((1 - pow(b, 2.0 / 3.0)) / xmu, 2) / (1 + pow(b, 2.0 / 3.0) + pow(b, 4.0 / 3.0))));
     }
-    double prefactor = -2. / pow(3. * bendRadius_m * bendRadius_m, 1. / 3.);
-    Ez_m[sliceNumber] *= prefactor;
+    double grn_const = -16.0/(27.0 * gamma * gamma * meshSpacing);
+    Grn_m[0] = grn_const * (Chi_m[1] - Chi_m[0]);
+    Grn_m[numOfSlices - 1] = 0.0;
+    for(unsigned int i = 1; i < numOfSlices - 1; ++i) {
+      Grn_m[i] = grn_const * (Chi_m[i + 1] - 2.0 * Chi_m[i] + Chi_m[i - 1]); 
+    }
 }
 
-void CSRWakeFunction::calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing) {
+void CSRIGFWakeFunction::calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing)
+{
+    if(angleOfSlice > totalBendAngle_m || angleOfSlice < 0.0) return;
+    int startSliceNum = 0; 
+    for(int j = sliceNumber; j >= startSliceNum; j--)
+      Ez_m[sliceNumber] += lineDensity_m[j] * Grn_m[sliceNumber - j];
+}
+
+void CSRIGFWakeFunction::calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing) {
     if(angleOfSlice <= totalBendAngle_m) return;
 
     double Ds_max = bendRadius_m * pow(totalBendAngle_m, 3) / 24. * (4. - 3.* totalBendAngle_m / angleOfSlice);
@@ -274,7 +224,7 @@ void CSRWakeFunction::calculateContributionAfter(size_t sliceNumber, double angl
     Ez_m[sliceNumber] *= prefactor;
 }
 
-double CSRWakeFunction::calcPsi(const double &psiInitial, const double &x, const double &Ds) const {
+double CSRIGFWakeFunction::calcPsi(const double &psiInitial, const double &x, const double &Ds) const {
     /** solve the equation
      *  \f[
      *  \Delta s = \frac{R \Psi^3}{24} \frac{\Psi + 4x}{\Psi + x}
@@ -297,9 +247,6 @@ double CSRWakeFunction::calcPsi(const double &psiInitial, const double &x, const
     ERRORMSG("In CSRWakeFunction::calcPsi(): exceed maximum number of iterations!" << endl);
     return psi;
 }
-
-const std::string CSRWakeFunction::getType() const {
-    return "CSRWakeFunction";
+const std::string CSRIGFWakeFunction::getType() const {
+    return "CSRIGFWakeFunction";
 }
-
-

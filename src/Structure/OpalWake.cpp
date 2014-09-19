@@ -17,6 +17,7 @@
 #include "Structure/OpalWake.h"
 #include "Solvers/GreenWakeFunction.hh"
 #include "Solvers/CSRWakeFunction.hh"
+#include "Solvers/CSRIGFWakeFunction.hh"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Physics/Physics.h"
@@ -57,7 +58,7 @@ OpalWake::OpalWake():
                "on an element."),
     wf_m(0) {
     itsAttr[TYPE] = Attributes::makeString
-                    ("TYPE", "Specifies the wake function: 1D-CSR, LONG-SHORT-RANGE, TRANSV-SHORT-RANGE, LONG-TRANSV-SHORT-RANGE");
+                    ("TYPE", "Specifies the wake function: 1D-CSR, 1D-CSR-IGF, LONG-SHORT-RANGE, TRANSV-SHORT-RANGE, LONG-TRANSV-SHORT-RANGE");
 
     itsAttr[NBIN] = Attributes::makeReal
                     ("NBIN", "Number of bins for the line density calculation");
@@ -171,6 +172,8 @@ void OpalWake::initWakefunction(ElementBase &element) {
     }
     if(Attributes::getString(itsAttr[TYPE]) == "1D-CSR") {
         wf_m = new CSRWakeFunction(getOpalName(), itsElement_m, filters, (int)(Attributes::getReal(itsAttr[NBIN])));
+    } else if(Attributes::getString(itsAttr[TYPE]) == "1D-CSR-IGF") {
+        wf_m = new CSRIGFWakeFunction(getOpalName(), itsElement_m, filters, (int)(Attributes::getReal(itsAttr[NBIN])));
     } else if(Attributes::getString(itsAttr[TYPE]) == "LONG-SHORT-RANGE") {
         int acMode = 1;
         if(Attributes::getString(itsAttr[CONDUCT]).compare("DC") == 0) {

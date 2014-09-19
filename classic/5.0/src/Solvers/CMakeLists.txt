@@ -1,6 +1,7 @@
 set (_SRCS
   CollimatorPhysics.cpp
   CSRWakeFunction.cpp
+  CSRIGFWakeFunction.cpp
   GreenWakeFunction.cpp
   )
 

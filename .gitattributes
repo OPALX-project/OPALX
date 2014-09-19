@@ -461,6 +461,8 @@ classic/5.0/src/Physics/Physics.cpp -text
 classic/5.0/src/Physics/Physics.h -text
 classic/5.0/src/ReadMe -text
 classic/5.0/src/Solvers/CMakeLists.txt -text
+classic/5.0/src/Solvers/CSRIGFWakeFunction.cpp -text
+classic/5.0/src/Solvers/CSRIGFWakeFunction.hh -text
 classic/5.0/src/Solvers/CSRWakeFunction.cpp -text
 classic/5.0/src/Solvers/CSRWakeFunction.hh -text
 classic/5.0/src/Solvers/CollimatorPhysics.cpp -text
