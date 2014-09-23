@@ -209,20 +209,23 @@ private:
 
     /// The scale factor for dimensionless variables
     double scaleFactor_m;
+
+    /// The reference variables
     double bega;
     double referenceR;
     double referenceTheta;
-    double referenceZ;
+    double referenceZ = 0.0;
 
     double referencePr;
     double referencePt;
-    double referencePz;
+    double referencePz = 0.0;
     double referencePtot;
 
     Vector_t PreviousMeanP;
 
     double sinRefTheta_m;
     double cosRefTheta_m;
+    
     /// The number of bunches specified in TURNS of RUN commond
     int numBunch_m;
 

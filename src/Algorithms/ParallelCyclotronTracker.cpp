@@ -277,32 +277,44 @@ void ParallelCyclotronTracker::closeFiles() {
  * @param ring
  */
 void ParallelCyclotronTracker::visitOpalRing(const OpalRing &ring) {
+
     *gmsg << "Adding OpalRing" << endl;
-    if (opalRing_m != NULL) {
+
+    if (opalRing_m != NULL)
         delete opalRing_m;
-    }
+
     opalRing_m = dynamic_cast<OpalRing*>(ring.clone());
+
     myElements.push_back(opalRing_m);
+
     opalRing_m->initialise(itsBunch);
 
     referenceR = opalRing_m->getBeamRInit();
     referencePr = opalRing_m->getBeamPRInit();
     referenceTheta = opalRing_m->getBeamPhiInit();
+
     if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
         throw OpalException("Error in ParallelCyclotronTracker::visitOpalRing",
                             "PHIINIT is out of [-180, 180)!");
     }
+
+    referenceZ = 0.0;
     referencePz = 0.0;
-    referencePtot =  itsReference.getGamma() * itsReference.getBeta();
-    referencePt = sqrt(referencePtot * referencePtot
-                     - referencePr * referencePr);
+
+    referencePtot = itsReference.getGamma() * itsReference.getBeta();
+    referencePt = sqrt(referencePtot * referencePtot - referencePr * referencePr);
+
     if(referencePtot < 0.0)
         referencePt *= -1.0;
+
     sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
     cosRefTheta_m = cos(referenceTheta / 180.0 * pi);
 
     double BcParameter[8];
-    for(int i = 0; i < 8; i++) BcParameter[i] = 0.0;
+
+    for(int i = 0; i < 8; i++) 
+        BcParameter[i] = 0.0;
+
     buildupFieldList(BcParameter, "OPALRING", opalRing_m);
 
     // Finally print some diagnostic
@@ -368,7 +380,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
             referencePt = sqrt(insqrt);
         }
 
-        if(referencePtot < 0.0) referencePt *= -1.0;
+        if(referencePtot < 0.0) 
+            referencePt *= -1.0;
         // End calculate referencePt
 
     // Restart a run:
@@ -492,7 +505,6 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     // store inner radius and outer radius of cyclotron field map in the list
     buildupFieldList(BcParameter, ElementType, elptr);
-
 }
 
 /**
@@ -1015,7 +1027,8 @@ void ParallelCyclotronTracker::execute() {
 
     step_m = 0;
     restartStep0_m = 0;
-    // record how many bunches have already been injected. ONLY FOR MPM
+
+    // Record how many bunches have already been injected. ONLY FOR MPM
     BunchCount_m = itsBunch->getNumBunch();
 
     // For the time being, we set bin number equal to bunch number. FixMe: not used
@@ -1025,23 +1038,23 @@ void ParallelCyclotronTracker::execute() {
     if (opalRing_m != NULL)
         opalRing_m->lockRing();
 
-    // display the selected elements
-    *gmsg << "* -----------------------------" << endl;
+    // Display the selected elements
+    *gmsg << "* -------------------------------------" << endl;
     *gmsg << "* The selected Beam line elements are :" << endl;
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++)
       *gmsg << "* -> " <<  ((*sindex)->first) << endl;
-    *gmsg << "* -----------------------------" << endl;
+    *gmsg << "* -------------------------------------" << endl;
 
-    // don't initializeBoundaryGeometry()
-    // get BoundaryGeometry that is already initialized
+    // Don't initializeBoundaryGeometry()
+    // Get BoundaryGeometry that is already initialized
     bgf_m = OpalData::getInstance()->getGlobalGeometry(); 
 
-    // external field arrays for dumping
+    // External field arrays for dumping
     for(int k = 0; k < 2; k++)
         FDext_m[k] = Vector_t(0.0, 0.0, 0.0);
+
     extE_m = Vector_t(0.0, 0.0, 0.0);
     extB_m = Vector_t(0.0, 0.0, 0.0);
-
 
     *gmsg << *itsBunch << endl;
 
@@ -1058,13 +1071,12 @@ void ParallelCyclotronTracker::execute() {
         *gmsg << "ERROR: Invalid name of TIMEINTEGRATOR in Track command" << endl;
         exit(1);
     }
-
-    *gmsg << "* -----------------------------" << endl;
+    *gmsg << "* -------------------------------------" << endl;
     *gmsg << "* Finalizing i.e. write data and close files :" << endl;
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++) {
         (((*sindex)->second).second)->finalise();
     }
-    *gmsg << "* -----------------------------" << endl;
+    *gmsg << "* -------------------------------------" << endl;
 }
 
 /**
@@ -1661,25 +1673,20 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     double t  = itsBunch->getT() * 1.0e9;
     const double dt = itsBunch->getdT() * 1.0e9 * harm; //[s]-->[ns]
 
-    // find the injection time interval
+    // Find the injection time interval
     if(numBunch_m > 1) {
         *gmsg << "Time interval between neighbour bunches is set to " << stepsPerTurn * dt << "[ns]" << endl;
     }
 
     initTrackOrbitFile();
 
-    // get data from h5 file for restart run
+    // Get data from h5 file for restart run
     if(OpalData::getInstance()->inRestartRun()) {
         restartStep0_m = itsBunch->getLocalTrackStep();
         step_m = restartStep0_m;
        
         if (numBunch_m > 1) itsBunch->resetPartBinID2(eta_m);
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
-
-        //TEMP for testing -DW
-        //maxSteps_m += restartStep0_m;
-        //*gmsg << "* New maxStep_m in restarted run = " << maxSteps_m << endl;
-	//ENDTEMP
     }
 
     if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
@@ -1690,13 +1697,13 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     *gmsg << "* Beginning of this run is at t = " << t << " [ns]" << endl;
     *gmsg << "* The time step is set to dt = " << dt << " [ns]" << endl;
 
-    // for single Particle Mode, output at zero degree.
+    // For single Particle Mode, output at zero degree.
     if(initialTotalNum_m == 1)
         openFiles(OpalData::getInstance()->getInputBasename());
 
     initDistInGlobalFrame(); // AAA
 
-    //  read in some control parameters
+    //  Read in some control parameters
     const int SinglePartDumpFreq = Options::sptDumpFreq;
     const int resetBinFreq = Options::rebinFreq;
     const int scSolveFreq = Options::scSolveFreq;
@@ -1704,7 +1711,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     int boundpDestroyFreq = 10; // TODO: Should this be treated as a control parameter?
 
-    // prepare for dump after each turn
+    // Prepare for dump after each turn
     const double initialReferenceTheta = referenceTheta / 180.0 * pi;
     double oldReferenceTheta = initialReferenceTheta;
 
@@ -1715,17 +1722,17 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     if(numBunch_m > 1)
         *gmsg << "* The particles energy bin reset frequency is set to " << resetBinFreq << endl;
 
-    // if initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
+    // If initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
     vector<double> Ttime, Tdeltr, Tdeltz;
     vector<int> TturnNumber;
     turnnumber_m = 1;
 
     bool flagNoDeletion = false;
 
-    // flag to determine when to transit from single-bunch to multi-bunches mode
+    // Flag to determine when to transit from single-bunch to multi-bunches mode
     bool flagTransition = false;
 
-    // step point determining the next time point of check for transition
+    // Step point determining the next time point of check for transition
     int stepsNextCheck = step_m + itsBunch->getStepsPerTurn();
 
     const double deltaTheta = pi / (stepsPerTurn); // half of the average angle per step
@@ -1781,6 +1788,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         std::cerr << std::endl;
         */
         bool dumpEachTurn = false;
+
         if(initialTotalNum_m > 2) {
             // single particle dumping
             if(step_m % SinglePartDumpFreq == 0) { // dump
