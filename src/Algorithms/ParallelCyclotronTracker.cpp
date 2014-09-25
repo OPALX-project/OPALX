@@ -190,6 +190,7 @@ void ParallelCyclotronTracker::initializeBoundaryGeometry() {
     *gmsg << "* Boundary geometry initialized " << endl;
   }
 }
+
 /**
  *
  *
@@ -353,7 +354,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         referenceTheta = elptr->getPHIinit();
         referenceZ     = elptr->getZinit();
         referencePr    = elptr->getPRinit();
-        referencePz    = elptr->getPZinit();
+        referencePz    = elptr->getPZinit(); 
          
         if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
             throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", "PHIINIT is out of [-180, 180)!");
@@ -396,20 +397,6 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         referencePtot =  bega;
         // Note: Nothing else has to be set, b/c everything comes from the h5 file -DW
     }
-
-    /*
-    // TEMP Debug Output -DW
-    Vector_t const meanP = calcMeanP();
-    *gmsg << endl;
-    *gmsg << "** Reference P:"  << endl;
-    *gmsg << "referencePtot = " << referencePtot << endl;
-    *gmsg << "Ptot (from Bunch) = " << sqrt(dot(meanP, meanP)) << endl;
-    *gmsg << "referencePr = "   << referencePr   << endl;
-    *gmsg << "referencePz = "   << referencePz   << endl;
-    *gmsg << "referencePt = "   << referencePt   << endl;
-    *gmsg << endl;
-    // ENDTEMP
-    */
 
     sinRefTheta_m = sin(referenceTheta / 180.0 * pi);
     cosRefTheta_m = cos(referenceTheta / 180.0 * pi);   
@@ -489,7 +476,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         fieldflag = 5;
     } else if(type == string("BANDRF")) {
         fieldflag = 6;
-    } else
+    } else //(type == "RING")
         fieldflag = 1;
 
     // read field map on the  middle plane of cyclotron.
@@ -497,14 +484,15 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     elptr->initialise(itsBunch, fieldflag, 1.0);
 
     double BcParameter[8];
+
     for(int i = 0; i < 8; i++) 
       BcParameter[i] = 0.0;
-    string ElementType = "CYCLOTRON";
+
     BcParameter[0] = elptr->getRmin();
     BcParameter[1] = elptr->getRmax();
 
-    // store inner radius and outer radius of cyclotron field map in the list
-    buildupFieldList(BcParameter, ElementType, elptr);
+    // Store inner radius and outer radius of cyclotron field map in the list
+    buildupFieldList(BcParameter, "CYCLOTRON", elptr);
 }
 
 /**
@@ -939,10 +927,10 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     *gmsg << "Width= " << width << " [mm]" << endl;
 
     double opcharge = elptr->getOPCharge();
-    *gmsg << "Charge of outcome particle = +e * " << opcharge << endl;
+    *gmsg << "Charge of outcoming particle = +e * " << opcharge << endl;
 
     double opmass = elptr->getOPMass();
-    *gmsg << "* Mass of the outcome particle = " << opmass << " [GeV/c^2]" << endl;
+    *gmsg << "* Mass of the outcoming particle = " << opmass << " [GeV/c^2]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
 
@@ -987,7 +975,7 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], string Ele
     (localpair->second).second = elptr;
 
     // always put cyclotron as the first element in the list.
-    if(ElementType == "OPALRING") {
+    if(ElementType == "OPALRING" || ElementType == "CYCLOTRON") { // CYCLOTRON is TEMP -DW
         sindex = FieldDimensions.begin();
     } else {
         sindex = FieldDimensions.end();
@@ -1041,8 +1029,10 @@ void ParallelCyclotronTracker::execute() {
     // Display the selected elements
     *gmsg << "* -------------------------------------" << endl;
     *gmsg << "* The selected Beam line elements are :" << endl;
+
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++)
-      *gmsg << "* -> " <<  ((*sindex)->first) << endl;
+        *gmsg << "* -> " <<  ((*sindex)->first) << endl;
+
     *gmsg << "* -------------------------------------" << endl;
 
     // Don't initializeBoundaryGeometry()
@@ -1055,8 +1045,6 @@ void ParallelCyclotronTracker::execute() {
 
     extE_m = Vector_t(0.0, 0.0, 0.0);
     extB_m = Vector_t(0.0, 0.0, 0.0);
-
-    *gmsg << *itsBunch << endl;
 
     if(timeIntegrator_m == 0) {
         *gmsg << "* 4th order Runge-Kutta integrator" << endl;
@@ -1652,7 +1640,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     if(initialTotalNum_m == 1)
         closeFiles();
-
+ 
     *gmsg << *itsBunch << endl;
 }
 
@@ -1911,7 +1899,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
 
-                        // if the distance between two nieghbour bunch is less than 5 times of its 2D rms size
+                        // if the distance between two neighbour bunch is less than 5 times of its 2D rms size
                         // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
 
                         if((RThisTurn_m - RLastTurn_m) < CoeffDBunches_m * XYrms) {
@@ -2114,6 +2102,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
 
                         itsBunch->R /= Vector_t(1000.0); // mm --> m
+
                         // // in global Cartesian frame, calculate the direction of longitudinal angle of bunch
                         // double meanPhi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
                         
@@ -2741,7 +2730,7 @@ bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, 
     itsBunch->R[Pindex] = tempR;
     bool outOfBound = (((*sindex)->second).second)->apply(Pindex, t, externalE, externalB);
     
-    for(int i = 0; i < 3; i++) externalB(i) = externalB(i) * 0.10; //[kGauss] -> [T]
+    for(int i = 0; i < 3; i++) externalB(i) = externalB(i) * 0.10;  //[kGauss] -> [T]
     for(int i = 0; i < 3; i++) externalE(i) = externalE(i) * 1.0e6; //[kV/mm ] -> [V/m]
 
     // for working modes without space charge effects, override this step to save time
@@ -2751,7 +2740,6 @@ bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, 
             externalE += itsBunch->Ef[Pindex];
             externalB += itsBunch->Bf[Pindex];
         }
-
     }
 
     double qtom = itsBunch->Q[Pindex] / (itsBunch->M[Pindex] * mass_coeff);   // m^2/s^2/GV
@@ -3879,9 +3867,18 @@ bool ParallelCyclotronTracker::deleteParticle(){
   if(flagNeedUpdate) {
       Vector_t const meanR = calcMeanR();
       Vector_t const meanP = calcMeanP();
+
+      // Bunch (local) azimuth at meanR w.r.t. y-axis
       double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
-      globalToLocal(itsBunch->R, phi, meanR);
+      // Bunch (local) elevation at meanR w.r.t. xy plane
+      double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
+
+      // For statistics data, the bunch is transformed into a local coordinate system 
+      // with meanP in direction of y-axis -DW
+      globalToLocal(itsBunch->R, phi, psi, meanR);
+      globalToLocal(itsBunch->P, phi, psi, Vector_t(0.0)); // P should be rotated, but not shifted
+
       itsBunch->R /= Vector_t(1000.0); // mm --> m
 
       for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
@@ -3900,7 +3897,8 @@ bool ParallelCyclotronTracker::deleteParticle(){
 
       itsBunch->R *= Vector_t(1000.0); // m --> mm
 
-      localToGlobal(itsBunch->R, phi, meanR);
+      localToGlobal(itsBunch->R, phi, psi, meanR);
+      localToGlobal(itsBunch->P, phi, psi, Vector_t(0.0));
 
       reduce(lostParticleNum, lostParticleNum, OpAddAssign());
       INFOMSG("Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, or out of cyclotron aperture" << endl);
@@ -3972,17 +3970,6 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         for(size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch->Bin[i] = 0;
         }
-
-        // Calculate beam parameters in global frame in m
-        itsBunch->R *= Vector_t(0.001); // mm --> m
-        itsBunch->calcBeamParameters_cycl();
-        itsBunch->R *= Vector_t(1000.0); // m --> mm
-        
-        step_m -= 1;
-        
-        bunchDumpPhaseSpaceStatData();
-
-        step_m += 1;	
 
         // Backup initial distribution if multi bunch mode
         if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == 1)) {
@@ -4084,18 +4071,35 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
        
     // Do boundp and repartition in the local frame at beginning of this run
     globalToLocal(itsBunch->R, phi, psi, meanR);
+    globalToLocal(itsBunch->P, phi, psi, Vector_t(0.0)); // P should be rotated, but not shifted
 
-    itsBunch->R *= Vector_t(0.001); // mm --> m
-
+    itsBunch->R /= Vector_t(1000.0); // mm --> m
+    
     itsBunch->boundp();
 
     checkNumPart(std::string("* Before repartition: "));
     repartition();
     checkNumPart(std::string("* After repartition: "));
 
+    itsBunch->calcBeamParameters_cycl();
+
     itsBunch->R *= Vector_t(1000.0); // m --> mm
 
     localToGlobal(itsBunch->R, phi, psi, meanR);
+    localToGlobal(itsBunch->P, phi, psi, Vector_t(0.0));
+
+    // Save initial distribution if not a restart
+    if(!OpalData::getInstance()->inRestartRun()) {
+
+        step_m -= 1;
+        
+        bunchDumpPhaseSpaceStatData();
+
+        step_m += 1;
+    }
+
+    // Print out the Bunch information at beginning of the run
+    *gmsg << *itsBunch << endl;
 }
 
 void ParallelCyclotronTracker::singleParticleDump() {
@@ -4202,56 +4206,11 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
     // --------------------------------------------------------------------------------------- //
 
     // ------------ Get some Values ---------------------------------------------------------- //
-    double const E = itsBunch->get_meanEnergy();
     double const temp_t = itsBunch->getT() * 1e9; // s -> ns
     Vector_t const meanR = calcMeanR();
     Vector_t const meanP = calcMeanP();    
 
     double const betagamma_temp = sqrt(dot(meanP, meanP));
-
-    // TEMP DEBUG output -DW
-    //*gmsg << endl;
-    //*gmsg << "* BetaGamma from meanP = " << betagamma_temp << endl; 
-    //*gmsg << "* BetaGamma from meanE = " << sqrt((1.0 + E / itsBunch->getM() * 1.0e6) * (1.0 + E / itsBunch->getM() * 1.0e6) - 1.0) << endl;
-
-    /*
-    *gmsg << endl;
-    *gmsg << "* Comparison of beta gamma from meanE and meanP respectively:" << endl;
-
-    const double totalNp = itsBunch->getTotalNum();
-    const double locNp = itsBunch->getLocalNum();
-
-    Vector_t meanP_temp = Vector_t(0.0, 0.0, 0.0);
-    double meanE_temp = 0.0;
-
-    for(unsigned int k = 0; k < locNp; ++k) {
-
-        meanE_temp += sqrt(dot(itsBunch->P[k], itsBunch->P[k]) + 1.0);    
-        
-        for(int d = 0; d < 3; ++d) {
-
-            meanP_temp(d) += itsBunch->P[k](d);
-
-        }
-
-    }
-
-    meanE_temp -= locNp;
-    meanE_temp *= itsBunch->getM() * 1.0e-6;
-                                                                                               
-    reduce(meanE_temp, meanE_temp, OpAddAssign());
-    reduce(meanP_temp, meanP_temp, OpAddAssign());
-    
-    meanP_temp /= totalNp;
-    meanE_temp /= totalNp;
-
-    *gmsg << "* meanE from meanE = " << meanE_temp << endl;
-    *gmsg << "* meanE from meanP = " << (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * itsBunch->getM() * 1.0e-6 << endl;
-
-    *gmsg << "* BetaGamma from meanP = " << sqrt(dot(meanP_temp, meanP_temp)) << endl; 
-    *gmsg << "* BetaGamma from meanE = " << sqrt((1.0 + meanE_temp / itsBunch->getM() * 1.0e6) * (1.0 + meanE_temp / itsBunch->getM() * 1.0e6) - 1.0) << endl;
-    // END TEMP
-    */
 
     // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
     double const theta = atan2(meanR(1), meanR(0));
@@ -4283,14 +4242,27 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
     FDext_m[0] = extB_m / 10.0; // kgauss --> T
     FDext_m[1] = extE_m;
 
-    *gmsg << endl; // Print empty line
-
     // if(!(Options::psDumpLocalFrame)) {
     // --------------------- Always dump whole bunch in global frame ------------------------ //
 
+    // For statistics data, the bunch is transformed into a local coordinate system 
+    // with meanP in direction of y-axis -DW
+    globalToLocal(itsBunch->R, phi, psi, meanR);  // meanR mm --> m
+    globalToLocal(itsBunch->P, phi, psi, Vector_t(0.0)); // P should be rotated, but not shifted
+
     itsBunch->R /= Vector_t(1000.0); // mm --> m
 
-    lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, 
+    // Calculate the beam parameters in a local frame but with the magnitude of the momentum
+    // vector unchanged
+    //itsBunch->calcBeamParameters_cycl();
+    itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0);
+
+    localToGlobal(itsBunch->R, phi, psi, meanR / Vector_t(1000.0)); // Right now: R (m), meanR (mm)
+    localToGlobal(itsBunch->P, phi, psi, Vector_t(0.0));
+
+    double const E = itsBunch->get_meanEnergy();
+
+    lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Global and in (m)
                                                          FDext_m, E, 
                                                          referencePr, 
                                                          referencePt, 
@@ -4301,19 +4273,10 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
                                                          phi * 180.0 / pi,  // P_mean azimuth at ref. R/Th/Z
                                                          psi * 180.0 / pi); // P_mean elevation at ref. R/Th/Z
 
-    // For statistics data, the bunch is transformed into a local coordinate system 
-    // with meanP in direction of y-axis -DW
-    globalToLocal(itsBunch->R, phi, psi, meanR / Vector_t(1000.0));  // meanR mm --> m
-    globalToLocal(itsBunch->P, phi, psi, Vector_t(0.0)); // P should be rotated, but not shifted
-    
-    itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0);
-
     itsBunch->R *= Vector_t(1000.0); // m --> mm
 
-    localToGlobal(itsBunch->R, phi, psi, meanR);  // Already changed bunch back to mm 
-    localToGlobal(itsBunch->P, phi, psi, Vector_t(0.0));
-
     // Tell user we are dumping data
+    *gmsg << endl;
     *gmsg << "* Phase space dump " << lastDumpedStep_m 
           << " at integration step " << step_m + 1 << endl;
               

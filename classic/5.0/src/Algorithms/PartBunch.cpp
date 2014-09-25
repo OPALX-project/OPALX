@@ -47,6 +47,8 @@
 #define nullptr NULL
 #endif
 
+//#define DBG_SCALARFIELD
+
 using Physics::pi;
 
 using namespace std;
@@ -1120,7 +1122,10 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
  * -) Fixed an error where gamma was not taken into account correctly in direction of movement (y in cyclotron)
  * -) Comment: There is no account for image charges in the cyclotron tracker (yet?)!
  */
-void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Quaternion_t const quaternion) {
+void PartBunch::computeSelfFields_cycl(double gamma, 
+                                       Vector_t const meanR, 
+                                       Quaternion_t const quaternion) {
+
     IpplTimings::startTimer(selfFieldTimer_m);
 
     globalMeanR_m = meanR;
@@ -1219,10 +1224,9 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Quate
         /// only hr_scaled is! -DW
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
         
-        /*
+#ifdef DBG_SCALARFIELD        
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
-
         int m1 = (int)nr_m[0]-1;
         int m2 = (int)nr_m[0]/2;
 
@@ -1234,11 +1238,8 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Quate
 
         for (int i=0; i<m1; i++ )
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
-        // end debug
-        */
 
         // If debug flag is set, dump vector field (electric field) into file under ./data/
-#ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
         //ostringstream oss;
         //MPI_File file;
@@ -1272,6 +1273,9 @@ void PartBunch::computeSelfFields_cycl(double gamma, Vector_t const meanR, Quate
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
         /// calculate coefficient
+        // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
+        // but because we already transformed E_trans into the moving frame we have to
+        // add 1/gamma so we are using the E_trans from the rest frame -DW
         double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
         /// calculate B field from E field
@@ -2206,6 +2210,7 @@ Inform &PartBunch::print(Inform &os) {
     if(this->getTotalNum() != 0) {  // to suppress Nan's
         Inform::FmtFlags_t ff = os.flags();
         os << scientific;
+        os << endl;
         os << "* ************** B U N C H ********************************************************* " << endl;
         os << "* NP              =   " << this->getTotalNum() << "\n";
         os << "* Qtot            =   " << setw(12) << setprecision(5) << abs(sum(Q)) * 1.0e9 << " [nC]       "
@@ -2237,8 +2242,8 @@ void PartBunch::calcBeamParameters_cycl() {
 
     Vector_t eps2, fac, rsqsum, psqsum, rpsum;
 
-    const size_t locNp = this->getLocalNum();
-    double localeKin = 0.0;
+    //const size_t locNp = this->getLocalNum();
+    //double localeKin = 0.0;
 
     const double zero = 0.0;
     const double TotalNp =  static_cast<double>(this->getTotalNum());
@@ -2277,12 +2282,22 @@ void PartBunch::calcBeamParameters_cycl() {
     // calculate mean energy
     calcEMean();
 
+    /*
+    *gmsg << endl;
+    *gmsg << "* In calcBeamParameters_cycl():" << endl;
+    *gmsg << "* eKin_m = " << eKin_m << endl;
+
     double meanLocalBetaGamma = sqrt(pow(1 + localeKin / (getM() * 1.0e-6), 2.0) - 1);
 
     double betagamma = meanLocalBetaGamma * locNp;
+
     // sum the betagamma of all nodes
     reduce(betagamma, betagamma, OpAddAssign());
     betagamma /= TotalNp;
+    */
+
+    double betagamma = sqrt(pow(1.0 + eKin_m / (getM() * 1.0e-6), 2.0) - 1.0);
+    // *gmsg << "* betagamma = " << betagamma << endl;
 
     // obtain the global RMS emmitance, it make no sense for multi-bunch simulation
     eps_m = eps_norm_m / Vector_t(betagamma);
