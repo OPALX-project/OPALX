@@ -28,10 +28,10 @@
 namespace Physics {
 
     /// The value of \f[ \pi \f]
-    extern const double pi;
+    extern const double pi  __attribute__ ((unused));
 
     /// The value of \f[2 \pi \f]
-    extern const double two_pi;
+    extern const double two_pi  __attribute__ ((unused));
 
     /// The value of \f[ \frac{1}{2} \pi \f]
     extern const double u_two_pi;
