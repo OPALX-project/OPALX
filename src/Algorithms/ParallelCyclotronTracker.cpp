@@ -481,7 +481,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     // read field map on the  middle plane of cyclotron.
     // currently scalefactor is set to 1.0
-    elptr->initialise(itsBunch, fieldflag, 1.0);
+    // TEMP changed 1.0 to getBScale() to test if we can sclae the midplane field -DW
+    elptr->initialise(itsBunch, fieldflag, elptr->getBScale());
 
     double BcParameter[8];
 
@@ -1464,7 +1465,10 @@ void ParallelCyclotronTracker::Tracker_LF() {
             if((oldReferenceTheta < initialReferenceTheta - deltaTheta) &&
                (temp_meanTheta >= initialReferenceTheta - deltaTheta)) {
                 ++turnnumber_m;
-                *gmsg << "Turn " << turnnumber_m << endl;
+                
+                *gmsg << endl;
+                *gmsg << "*** Turn " << turnnumber_m << endl;
+
                 dumpEachTurn = true;
                 outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
                 outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
@@ -1525,7 +1529,11 @@ void ParallelCyclotronTracker::Tracker_LF() {
             if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
                 ++turnnumber_m;
                 dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber_m << " total particles " << itsBunch->getTotalNum() << endl;
+             
+                *gmsg << endl;
+                *gmsg << "*** Finished turn " << turnnumber_m - 1 
+                      << ", Total number of live particles: " 
+                      << itsBunch->getTotalNum() << endl;
             }
         }
 
@@ -2345,7 +2353,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
                 ++turnnumber_m;
                 dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber_m << " total particles " << itsBunch->getTotalNum() << endl;
+
+                *gmsg << endl;
+                *gmsg << "*** Finished turn " << turnnumber_m - 1 
+                      << ", Total number of live particles: " 
+                      << itsBunch->getTotalNum() << endl;
             }
 
             IpplTimings::stopTimer(IntegrationTimer_m);
@@ -2667,7 +2679,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     } // end for: the integration is DONE after maxSteps_m steps!
 
     // some post-integration works
-    *gmsg << "* *---------------------------- PARTICLES TRACK DONE------ ----------------------------*** " << endl;
+    *gmsg << endl;
+    *gmsg << "* *---------------------------- DONE TRACKING PARTICLES --------------------------------* " << endl;
 
     // calculate tunes after tracking.
 
@@ -2692,7 +2705,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     } else {
         // not for multibunch
         if(!(itsBunch->weHaveBins()))
-            *gmsg << "* Total finished turn number (not correct for restart mode) = " << turnnumber_m << endl;
+          *gmsg << "*" << endl;
+	  *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
+          *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
     }
 
     Ippl::Comm->barrier();
@@ -3365,7 +3380,11 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             if((step_m > 10) && ((step_m + 1) % itsBunch->getStepsPerTurn()) == 0) {
                 ++turnnumber_m;
                 dumpEachTurn = true;
-                *gmsg << "Turn " << turnnumber_m << " total particles " << itsBunch->getTotalNum() << endl;
+
+                *gmsg << endl;
+                *gmsg << "*** Finished turn " << turnnumber_m - 1 
+                      << ", Total number of live particles: " 
+                      << itsBunch->getTotalNum() << endl;
             }
         }
         // reset Bin ID for each particle
