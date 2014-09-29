@@ -765,7 +765,7 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
 
     *gmsg << "* ----------------------------------------------" << endl;
     *gmsg << "*             READ IN RING FIELD MAP            " << endl;
-    *gmsg << "*      (The first data block is useless)       " << endl;
+    *gmsg << "*      (The first data block is useless)        " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
 
     BP.Bfact = scaleFactor;
@@ -791,7 +791,7 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
     *gmsg << "* Stepsize in azimuth direction: " << BP.dtet << " [deg.]" << endl;
 
     for(int i = 0; i < 13; i++)
-		CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+        CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.nrad));
     *gmsg << "* Index in radial direction: " << Bfield.nrad << endl;

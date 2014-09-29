@@ -481,7 +481,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     // read field map on the  middle plane of cyclotron.
     // currently scalefactor is set to 1.0
-    // TEMP changed 1.0 to getBScale() to test if we can sclae the midplane field -DW
+    // TEMP changed 1.0 to getBScale() to test if we can scale the midplane field -DW
     elptr->initialise(itsBunch, fieldflag, elptr->getBScale());
 
     double BcParameter[8];
@@ -2147,7 +2147,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         IpplTimings::stopTimer(TransformTimer_m);
               
-                        // repartition(); //temporary deactivation -DW
+                        repartition();
 
                         itsBunch->computeSelfFields_cycl(temp_meangamma, 0.001 * meanR, quaternionToYAxis);
 
