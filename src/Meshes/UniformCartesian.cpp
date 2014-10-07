@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -40,7 +40,7 @@
 // Setup chores common to all constructors:
 //-----------------------------------------------------------------------------
 template <unsigned Dim, class MFLOAT>
-void 
+void
 UniformCartesian<Dim,MFLOAT>::
 setup()
 {
@@ -480,7 +480,10 @@ MFLOAT UniformCartesian<Dim,MFLOAT>::
 get_meshSpacing(unsigned d) const
 {
   PAssert(d<Dim);
-  MFLOAT ms = meshSpacing[d]; 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+  MFLOAT ms = meshSpacing[d];
+#pragma GCC diagnostic pop
   return ms;
 }
 
@@ -506,8 +509,8 @@ struct OpUMeshExtrapolate
 };
 
 template<class T>
-inline void PETE_apply(OpUMeshExtrapolate<T> e, T& a, T b) 
-{ 
+inline void PETE_apply(OpUMeshExtrapolate<T> e, T& a, T b)
+{
   a = b*e.Slope+e.Offset;
 }
 
@@ -573,18 +576,18 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
     // Note: enough guard cells only for existing Div(), etc. implementations:
     // (not really used by Div() etc for UniformCartesian); someday should make
     // this user-settable.
-    VertSpacings = 
+    VertSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlCell,GuardCellSizes<Dim>(1));
     // Added 12/8/98 --TJW:
-    FlVert = 
+    FlVert =
       new FieldLayout<Dim>(verts, et, vnodes);
     // Note: enough guard cells only for existing Div(), etc. implementations:
-    CellSpacings = 
+    CellSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlVert,GuardCellSizes<Dim>(1));
   }
   BareField<Vektor<MFLOAT,Dim>,Dim>& vertSpacings = *VertSpacings;
   Vektor<MFLOAT,Dim> vertexSpacing;
-  for (d=0; d<Dim; d++) 
+  for (d=0; d<Dim; d++)
     vertexSpacing[d] = meshSpacing[d];
   vertSpacings = vertexSpacing;
   //-------------------------------------------------
@@ -609,14 +612,14 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
     // Shrink it down to be the guards along the active face:
     d = face/2;
     // The following bitwise AND logical test returns true if face is odd
-    // (meaning the "high" or "right" face in the numbering convention) and 
-    // returns false if face is even (meaning the "low" or "left" face in 
+    // (meaning the "high" or "right" face in the numbering convention) and
+    // returns false if face is even (meaning the "low" or "left" face in
     // the numbering convention):
     if ( face & 1u ) {
-      vSlab[d] = Index(cells[d].max() + 1, 
+      vSlab[d] = Index(cells[d].max() + 1,
 		       cells[d].max() + vertSpacings.rightGuard(d));
     } else {
-      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d), 
+      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d),
 		       cells[d].min() - 1);
     }
     // Compute pointer offsets used with LField::iterator below:
@@ -626,10 +629,10 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
       voffset = 2*cells[d].max() + 1 - 1;
     } else {
       voffset = 2*cells[d].min() - 1 + 1;
-    }	
+    }
 
     // +++++++++++++++vertSpacings++++++++++++++
-    for (vfill_i=vertSpacings.begin_if(); 
+    for (vfill_i=vertSpacings.begin_if();
 	 vfill_i!=vertSpacings.end_if(); ++vfill_i)
       {
 	// Cache some things we will use often below.
@@ -637,7 +640,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	LField<T,Dim> &fill = *(*vfill_i).second;
 	// NDIndex spanning all elements in the LField, including the guards:
 	const NDIndex<Dim> &fill_alloc = fill.getAllocated();
-	// If the previously-created boundary guard-layer NDIndex "cSlab" 
+	// If the previously-created boundary guard-layer NDIndex "cSlab"
 	// contains any of the elements in this LField (they will be guard
 	// elements if it does), assign the values into them here by applying
 	// the boundary condition:
@@ -649,17 +652,17 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	    // For exrapolation boundary conditions, the boundary guard-layer
 	    // elements are typically copied from interior values; the "src"
 	    // NDIndex specifies the interior elements to be copied into the
-	    // "dest" boundary guard-layer elements (possibly after some 
+	    // "dest" boundary guard-layer elements (possibly after some
 	    // mathematical operations like multipplying by minus 1 later):
 	    NDIndex<Dim> src = dest; // Create dest equal to src
-	    // Now calculate the interior elements; the voffset variable 
+	    // Now calculate the interior elements; the voffset variable
 	    // computed above makes this right for "low" or "high" face cases:
 	    src[d] = voffset - src[d];
 
 	    // TJW: Why is there another loop over LField's here??????????
 	    // Loop over the ones that src touches.
 	    typename BareField<T,Dim>::iterator_if from_i;
-	    for (from_i=vertSpacings.begin_if(); 
+	    for (from_i=vertSpacings.begin_if();
 		 from_i!=vertSpacings.end_if(); ++from_i)
 	      {
 		// Cache a few things.
@@ -682,7 +685,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
 	      }
 	  }
       }
-    
+
   }
 
   // For uniform cartesian mesh, cell-cell spacings are identical to
@@ -691,7 +694,7 @@ storeSpacingFields(e_dim_tag* et, int vnodes)
   // Added 12/8/98 --TJW:
   BareField<Vektor<MFLOAT,Dim>,Dim>& cellSpacings = *CellSpacings;
   cellSpacings = vertexSpacing;
-  
+
   hasSpacingFields = true; // Flag this as having been done to this object.
 }
 
@@ -752,8 +755,8 @@ storeSpacingFields(e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 // The general storeSpacingfields() function; others invoke this internally:
 template<unsigned Dim, class MFLOAT>
 void UniformCartesian<Dim,MFLOAT>::
-storeSpacingFields(e_dim_tag *p, 
-		   unsigned* vnodesPerDirection, 
+storeSpacingFields(e_dim_tag *p,
+		   unsigned* vnodesPerDirection,
 		   bool recurse, int vnodes)
 {
   // VERTEX-VERTEX SPACINGS (same as CELL-CELL SPACINGS for uniform):
@@ -765,23 +768,23 @@ storeSpacingFields(e_dim_tag *p,
   }
   if (!hasSpacingFields) {
     // allocate layout and spacing field
-    FlCell = 
+    FlCell =
       new FieldLayout<Dim>(cells, p, vnodesPerDirection, recurse, vnodes);
     // Note: enough guard cells only for existing Div(), etc. implementations:
     // (not really used by Div() etc for UniformCartesian); someday should make
     // this user-settable.
-    VertSpacings = 
+    VertSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlCell,GuardCellSizes<Dim>(1));
     // Added 12/8/98 --TJW:
-    FlVert = 
+    FlVert =
       new FieldLayout<Dim>(verts, p, vnodesPerDirection, recurse, vnodes);
     // Note: enough guard cells only for existing Div(), etc. implementations:
-    CellSpacings = 
+    CellSpacings =
       new BareField<Vektor<MFLOAT,Dim>,Dim>(*FlVert,GuardCellSizes<Dim>(1));
   }
   BareField<Vektor<MFLOAT,Dim>,Dim>& vertSpacings = *VertSpacings;
   Vektor<MFLOAT,Dim> vertexSpacing;
-  for (d=0; d<Dim; d++) 
+  for (d=0; d<Dim; d++)
     vertexSpacing[d] = meshSpacing[d];
   vertSpacings = vertexSpacing;
   //-------------------------------------------------
@@ -806,14 +809,14 @@ storeSpacingFields(e_dim_tag *p,
     // Shrink it down to be the guards along the active face:
     d = face/2;
     // The following bitwise AND logical test returns true if face is odd
-    // (meaning the "high" or "right" face in the numbering convention) and 
-    // returns false if face is even (meaning the "low" or "left" face in 
+    // (meaning the "high" or "right" face in the numbering convention) and
+    // returns false if face is even (meaning the "low" or "left" face in
     // the numbering convention):
     if ( face & 1u ) {
-      vSlab[d] = Index(cells[d].max() + 1, 
+      vSlab[d] = Index(cells[d].max() + 1,
 		       cells[d].max() + vertSpacings.rightGuard(d));
     } else {
-      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d), 
+      vSlab[d] = Index(cells[d].min() - vertSpacings.leftGuard(d),
 		       cells[d].min() - 1);
     }
     // Compute pointer offsets used with LField::iterator below:
@@ -823,10 +826,10 @@ storeSpacingFields(e_dim_tag *p,
       voffset = 2*cells[d].max() + 1 - 1;
     } else {
       voffset = 2*cells[d].min() - 1 + 1;
-    }	
+    }
 
     // +++++++++++++++vertSpacings++++++++++++++
-    for (vfill_i=vertSpacings.begin_if(); 
+    for (vfill_i=vertSpacings.begin_if();
 	 vfill_i!=vertSpacings.end_if(); ++vfill_i)
       {
 	// Cache some things we will use often below.
@@ -834,7 +837,7 @@ storeSpacingFields(e_dim_tag *p,
 	LField<T,Dim> &fill = *(*vfill_i).second;
 	// NDIndex spanning all elements in the LField, including the guards:
 	const NDIndex<Dim> &fill_alloc = fill.getAllocated();
-	// If the previously-created boundary guard-layer NDIndex "cSlab" 
+	// If the previously-created boundary guard-layer NDIndex "cSlab"
 	// contains any of the elements in this LField (they will be guard
 	// elements if it does), assign the values into them here by applying
 	// the boundary condition:
@@ -846,17 +849,17 @@ storeSpacingFields(e_dim_tag *p,
 	    // For exrapolation boundary conditions, the boundary guard-layer
 	    // elements are typically copied from interior values; the "src"
 	    // NDIndex specifies the interior elements to be copied into the
-	    // "dest" boundary guard-layer elements (possibly after some 
+	    // "dest" boundary guard-layer elements (possibly after some
 	    // mathematical operations like multipplying by minus 1 later):
 	    NDIndex<Dim> src = dest; // Create dest equal to src
-	    // Now calculate the interior elements; the voffset variable 
+	    // Now calculate the interior elements; the voffset variable
 	    // computed above makes this right for "low" or "high" face cases:
 	    src[d] = voffset - src[d];
 
 	    // TJW: Why is there another loop over LField's here??????????
 	    // Loop over the ones that src touches.
 	    typename BareField<T,Dim>::iterator_if from_i;
-	    for (from_i=vertSpacings.begin_if(); 
+	    for (from_i=vertSpacings.begin_if();
 		 from_i!=vertSpacings.end_if(); ++from_i)
 	      {
 		// Cache a few things.
@@ -879,7 +882,7 @@ storeSpacingFields(e_dim_tag *p,
 	      }
 	  }
       }
-    
+
   }
 
   // For uniform cartesian mesh, cell-cell spacings are identical to
@@ -888,7 +891,7 @@ storeSpacingFields(e_dim_tag *p,
   // Added 12/8/98 --TJW:
   BareField<Vektor<MFLOAT,Dim>,Dim>& cellSpacings = *CellSpacings;
   cellSpacings = vertexSpacing;
-  
+
   hasSpacingFields = true; // Flag this as having been done to this object.
 }
 
@@ -897,7 +900,7 @@ storeSpacingFields(e_dim_tag *p,
 //-----------------------------------------------------------------------------
 // Formatted output of UniformCartesian object:
 template< unsigned Dim, class MFLOAT >
-void 
+void
 UniformCartesian<Dim,MFLOAT>::
 print(std::ostream& out)
 {
@@ -906,18 +909,18 @@ print(std::ostream& out)
 }
 
 template< unsigned Dim, class MFLOAT >
-void 
+void
 UniformCartesian<Dim,MFLOAT>::
 print(Inform& out)
 {
   out << "======UniformCartesian<" << Dim << ",MFLOAT>==begin======" << endl;
   unsigned int d;
-  for (d=0; d < Dim; d++) 
+  for (d=0; d < Dim; d++)
     out << "gridSizes[" << d << "] = " << gridSizes[d] << endl;
   out << "origin = " << origin << endl;
-  for (d=0; d < Dim; d++) 
+  for (d=0; d < Dim; d++)
     out << "meshSpacing[" << d << "] = " << meshSpacing[d] << endl;
-  for (d=0; d < (1u<<Dim); d++) 
+  for (d=0; d < (1u<<Dim); d++)
     out << "Dvc[" << d << "] = " << Dvc[d] << endl;
   out << "cell volume = " << volume << endl;
   out << "======UniformCartesian<" << Dim << ",MFLOAT>==end========" << endl;
@@ -929,14 +932,14 @@ print(Inform& out)
 
 // Volume of single cell indexed by NDIndex:
 template <unsigned Dim, class MFLOAT>
-MFLOAT 
+MFLOAT
 UniformCartesian<Dim,MFLOAT>::
 getCellVolume(const NDIndex<Dim>& ndi) const
 {
   unsigned int d;
-  for (d=0; d<Dim; d++) 
-    if (ndi[d].length() != 1) 
-      ERRORMSG("UniformCartesian::getCellVolume() error: arg is not a NDIndex" 
+  for (d=0; d<Dim; d++)
+    if (ndi[d].length() != 1)
+      ERRORMSG("UniformCartesian::getCellVolume() error: arg is not a NDIndex"
 	       << "specifying a single element" << endl);
   return volume;
 }
@@ -944,7 +947,7 @@ getCellVolume(const NDIndex<Dim>& ndi) const
 template <unsigned Dim, class MFLOAT>
 Field<MFLOAT,Dim,UniformCartesian<Dim,MFLOAT>,Cell>&
 UniformCartesian<Dim,MFLOAT>::
-getCellVolumeField(Field<MFLOAT,Dim,UniformCartesian<Dim,MFLOAT>,Cell>& 
+getCellVolumeField(Field<MFLOAT,Dim,UniformCartesian<Dim,MFLOAT>,Cell>&
 		   volumes) const
 {
   volumes = volume;
@@ -1001,11 +1004,11 @@ getCellRangeVolume(const NDIndex<Dim>& ndi) const
 
 // Nearest vertex index to (x,y,z):
 template <unsigned Dim, class MFLOAT>
-NDIndex<Dim> 
+NDIndex<Dim>
 UniformCartesian<Dim,MFLOAT>::
 getNearestVertex(const Vektor<MFLOAT,Dim>& x) const
 {
-  // Find coordinate vectors of the vertices just above and just below the 
+  // Find coordinate vectors of the vertices just above and just below the
   // input point (extremal vertices on cell containing point):
   NDIndex<Dim> ndi;
   int i;
@@ -1024,7 +1027,7 @@ NDIndex<Dim>
 UniformCartesian<Dim,MFLOAT>::
 getVertexBelow(const Vektor<MFLOAT,Dim>& x) const
 {
-  // Find coordinate vectors of the vertices just above and just below the 
+  // Find coordinate vectors of the vertices just above and just below the
   // input point (extremal vertices on cell containing point):
   NDIndex<Dim> ndi;
   int i;
@@ -1039,25 +1042,25 @@ getVertexBelow(const Vektor<MFLOAT,Dim>& x) const
 }
 // (x,y,z) coordinates of indexed vertex:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim> 
+Vektor<MFLOAT,Dim>
 UniformCartesian<Dim,MFLOAT>::
 getVertexPosition(const NDIndex<Dim>& ndi) const
 {
   unsigned int d;
   for (d=0; d<Dim; d++) {
-    if (ndi[d].length() != 1) 
+    if (ndi[d].length() != 1)
       ERRORMSG("UniformCartesian::getVertexPosition() error: arg is not a"
 	       << " NDIndex specifying a single element" << endl);
   }
   // N.B.: following may need modification to be right for periodic Mesh BC:
   Vektor<MFLOAT,Dim> vertexPosition;
-  for (d=0; d<Dim; d++) 
+  for (d=0; d<Dim; d++)
     vertexPosition(d) = ndi[d].first()*meshSpacing[d] + origin(d);
   return vertexPosition;
 }
 // Field of (x,y,z) coordinates of all vertices:
 template <unsigned Dim, class MFLOAT>
-Field<Vektor<MFLOAT,Dim>,Dim,UniformCartesian<Dim,MFLOAT>,Vert>& 
+Field<Vektor<MFLOAT,Dim>,Dim,UniformCartesian<Dim,MFLOAT>,Vert>&
 UniformCartesian<Dim,MFLOAT>::
 getVertexPositionField(Field<Vektor<MFLOAT,Dim>,Dim,
   UniformCartesian<Dim,MFLOAT>,Vert>& vertexPositions) const
@@ -1079,25 +1082,25 @@ getVertexPositionField(Field<Vektor<MFLOAT,Dim>,Dim,
 
 // (x,y,z) coordinates of indexed cell:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim> 
+Vektor<MFLOAT,Dim>
 UniformCartesian<Dim,MFLOAT>::
 getCellPosition(const NDIndex<Dim>& ndi) const
 {
   unsigned int d;
   for (d=0; d<Dim; d++) {
-    if (ndi[d].length() != 1) 
+    if (ndi[d].length() != 1)
       ERRORMSG("UniformCartesian::getCellPosition() error: arg is not a"
 	       << " NDIndex specifying a single element" << endl);
   }
   // N.B.: following may need modification to be right for periodic Mesh BC:
   Vektor<MFLOAT,Dim> cellPosition;
-  for (d=0; d<Dim; d++) 
+  for (d=0; d<Dim; d++)
     cellPosition(d) = (ndi[d].first()+0.5)*meshSpacing[d] + origin(d);
   return cellPosition;
 }
 // Field of (x,y,z) coordinates of all cells:
 template <unsigned Dim, class MFLOAT>
-Field<Vektor<MFLOAT,Dim>,Dim,UniformCartesian<Dim,MFLOAT>,Cell>& 
+Field<Vektor<MFLOAT,Dim>,Dim,UniformCartesian<Dim,MFLOAT>,Cell>&
 UniformCartesian<Dim,MFLOAT>::
 getCellPositionField(Field<Vektor<MFLOAT,Dim>,Dim,
   UniformCartesian<Dim,MFLOAT>,Cell>& cellPositions) const
@@ -1146,7 +1149,7 @@ getDeltaVertexField(Field<Vektor<MFLOAT,Dim>,Dim,
 
 // Cell-cell grid spacing of indexed vertex:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim> 
+Vektor<MFLOAT,Dim>
 UniformCartesian<Dim,MFLOAT>::
 getDeltaCell(const NDIndex<Dim>& ndi) const
 {
@@ -1172,7 +1175,7 @@ getDeltaCellField(Field<Vektor<MFLOAT,Dim>,Dim,
 }
 // Array of surface normals to cells adjoining indexed cell:
 template <unsigned Dim, class MFLOAT>
-Vektor<MFLOAT,Dim>* 
+Vektor<MFLOAT,Dim>*
 UniformCartesian<Dim,MFLOAT>::
 getSurfaceNormals(const NDIndex<Dim>& ndi) const
 {
@@ -1193,7 +1196,7 @@ template <unsigned Dim, class MFLOAT>
 void
 UniformCartesian<Dim,MFLOAT>::
 getSurfaceNormalFields(Field<Vektor<MFLOAT,Dim>, Dim,
-		       UniformCartesian<Dim,MFLOAT>,Cell>** 
+		       UniformCartesian<Dim,MFLOAT>,Cell>**
 		       surfaceNormalsFields ) const
 {
   Vektor<MFLOAT,Dim>* surfaceNormals = new Vektor<MFLOAT,Dim>[2*Dim];
@@ -1206,13 +1209,13 @@ getSurfaceNormalFields(Field<Vektor<MFLOAT,Dim>, Dim,
     surfaceNormals[2*d](d)   = -1.0;
     surfaceNormals[2*d+1](d) =  1.0;
   }
-  for (d=0; d<2*Dim; d++) assign((*(surfaceNormalsFields[d])), 
+  for (d=0; d<2*Dim; d++) assign((*(surfaceNormalsFields[d])),
 				 surfaceNormals[d]);
   //  return surfaceNormalsFields;
 }
 // Similar functions, but specify the surface normal to a single face, using
 // the following numbering convention: 0 means low face of 1st dim, 1 means
-// high face of 1st dim, 2 means low face of 2nd dim, 3 means high face of 
+// high face of 1st dim, 2 means low face of 2nd dim, 3 means high face of
 // 2nd dim, and so on:
 // Surface normal to face on indexed cell:
 template <unsigned Dim, class MFLOAT>
@@ -1223,7 +1226,7 @@ getSurfaceNormal(const NDIndex<Dim>& ndi, unsigned face) const
   Vektor<MFLOAT,Dim> surfaceNormal;
   unsigned int d;
   // The following bitwise AND logical test returns true if face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
+  // (meaning the "high" or "right" face in the numbering convention) and
   // returns false if face is even (meaning the "low" or "left" face in the
   // numbering convention):
   if ( face & 1 ) {
@@ -1247,7 +1250,7 @@ getSurfaceNormal(const NDIndex<Dim>& ndi, unsigned face) const
 }
 // Field of surface normals to face on all cells:
 template <unsigned Dim, class MFLOAT>
-Field<Vektor<MFLOAT,Dim>,Dim,UniformCartesian<Dim,MFLOAT>,Cell>& 
+Field<Vektor<MFLOAT,Dim>,Dim,UniformCartesian<Dim,MFLOAT>,Cell>&
 UniformCartesian<Dim,MFLOAT>::
 getSurfaceNormalField(Field<Vektor<MFLOAT,Dim>, Dim,
 		      UniformCartesian<Dim,MFLOAT>,Cell>& surfaceNormalField,
@@ -1256,7 +1259,7 @@ getSurfaceNormalField(Field<Vektor<MFLOAT,Dim>, Dim,
   Vektor<MFLOAT,Dim> surfaceNormal;
   unsigned int d;
   // The following bitwise AND logical test returns true if face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
+  // (meaning the "high" or "right" face in the numbering convention) and
   // returns false if face is even (meaning the "low" or "left" face in the
   // numbering convention):
   if ( face & 1 ) {
@@ -1295,13 +1298,13 @@ getSurfaceNormalField(Field<Vektor<MFLOAT,Dim>, Dim,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
     Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  dot(x[I  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1], x.get_mesh().Dvc[1]));
   return r;
@@ -1309,14 +1312,14 @@ Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
     Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot(x[I  ][J  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1][J  ], x.get_mesh().Dvc[1]) +
 	  dot(x[I  ][J+1], x.get_mesh().Dvc[2]) +
@@ -1326,7 +1329,7 @@ Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
     Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1334,7 +1337,7 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(x[I  ][J  ][K  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1][J  ][K  ], x.get_mesh().Dvc[1]) +
 	  dot(x[I  ][J+1][K  ], x.get_mesh().Dvc[2]) +
@@ -1350,13 +1353,13 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
     Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  dot(x[I-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ], x.get_mesh().Dvc[1]));
   return r;
@@ -1365,14 +1368,14 @@ Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 // (tjw: the one in cv.cpp)
 template < class T, class MFLOAT >
 Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
     Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot(x[I-1][J-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ][J-1], x.get_mesh().Dvc[1]) +
 	  dot(x[I-1][J  ], x.get_mesh().Dvc[2]) +
@@ -1382,7 +1385,7 @@ Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
     Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1390,7 +1393,7 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(x[I-1][J-1][K-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ][J-1][K-1], x.get_mesh().Dvc[1]) +
 	  dot(x[I-1][J  ][K-1], x.get_mesh().Dvc[2]) +
@@ -1406,7 +1409,7 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
     Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -1420,7 +1423,7 @@ Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
     Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -1432,7 +1435,7 @@ Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
   idy[0] = 0.0;
   idy[1] = 0.5/x.get_mesh().get_meshSpacing(1);
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot( idx , (x[I+1][J  ] - x[I-1][J  ])) +
 	  dot( idy , (x[I  ][J+1] - x[I  ][J-1])) );
   return r;
@@ -1440,7 +1443,7 @@ Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
     Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1458,7 +1461,7 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   idz[1] = 0.0;
   idz[2] = 0.5/x.get_mesh().get_meshSpacing(2);
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(idx , (x[I+1][J  ][K  ] - x[I-1][J  ][K  ] )) +
 	  dot(idy , (x[I  ][J+1][K  ] - x[I  ][J-1][K  ] )) +
 	  dot(idz , (x[I  ][J  ][K+1] - x[I  ][J  ][K-1] )) );
@@ -1469,7 +1472,7 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
     Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -1483,7 +1486,7 @@ Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
     Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -1495,7 +1498,7 @@ Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
   idy[0] = 0.0;
   idy[1] = 0.5/x.get_mesh().get_meshSpacing(1);
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot( idx , (x[I+1][J  ] - x[I-1][J  ])) +
 	  dot( idy , (x[I  ][J+1] - x[I  ][J-1])) );
   return r;
@@ -1503,7 +1506,7 @@ Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
     Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1521,7 +1524,7 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   idz[1] = 0.0;
   idz[2] = 0.5/x.get_mesh().get_meshSpacing(2);
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(idx , (x[I+1][J  ][K  ] - x[I-1][J  ][K  ] )) +
 	  dot(idy , (x[I  ][J+1][K  ] - x[I  ][J-1][K  ] )) +
 	  dot(idz , (x[I  ][J  ][K+1] - x[I  ][J  ][K-1] )) );
@@ -1532,13 +1535,13 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Div(Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
     Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  dot(x[I  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1], x.get_mesh().Dvc[1]));
   return r;
@@ -1546,14 +1549,14 @@ Div(Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Div(Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
     Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot(x[I  ][J  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1][J  ], x.get_mesh().Dvc[1]) +
 	  dot(x[I  ][J+1], x.get_mesh().Dvc[2]) +
@@ -1564,7 +1567,7 @@ Div(Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 inline Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
     Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1572,7 +1575,7 @@ Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(x[I  ][J  ][K  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1][J  ][K  ], x.get_mesh().Dvc[1]) +
 	  dot(x[I  ][J+1][K  ], x.get_mesh().Dvc[2]) +
@@ -1589,13 +1592,13 @@ Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 inline Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
     Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  dot(x[I  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1], x.get_mesh().Dvc[1]));
   return r;
@@ -1603,14 +1606,14 @@ Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 inline Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
     Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot(x[I  ][J  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1][J  ], x.get_mesh().Dvc[1]) +
 	  dot(x[I  ][J+1], x.get_mesh().Dvc[2]) +
@@ -1620,7 +1623,7 @@ Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 inline Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
     Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1628,7 +1631,7 @@ Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(x[I  ][J  ][K  ], x.get_mesh().Dvc[0]) +
 	  dot(x[I+1][J  ][K  ], x.get_mesh().Dvc[1]) +
 	  dot(x[I  ][J+1][K  ], x.get_mesh().Dvc[2]) +
@@ -1645,13 +1648,13 @@ Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Div(Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
     Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  dot(x[I-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ], x.get_mesh().Dvc[1]));
   return r;
@@ -1659,14 +1662,14 @@ Div(Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Div(Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
     Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot(x[I-1][J-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ][J-1], x.get_mesh().Dvc[1]) +
 	  dot(x[I-1][J  ], x.get_mesh().Dvc[2]) +
@@ -1676,7 +1679,7 @@ Div(Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
     Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1684,7 +1687,7 @@ Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(x[I-1][J-1][K-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ][J-1][K-1], x.get_mesh().Dvc[1]) +
 	  dot(x[I-1][J  ][K-1], x.get_mesh().Dvc[2]) +
@@ -1701,13 +1704,13 @@ Div(Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
+Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
     Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  dot(x[I-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ], x.get_mesh().Dvc[1]));
   return r;
@@ -1715,14 +1718,14 @@ Div(Field<SymTenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
     Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  dot(x[I-1][J-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ][J-1], x.get_mesh().Dvc[1]) +
 	  dot(x[I-1][J  ], x.get_mesh().Dvc[2]) +
@@ -1732,7 +1735,7 @@ Div(Field<SymTenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
     Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1740,7 +1743,7 @@ Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  dot(x[I-1][J-1][K-1], x.get_mesh().Dvc[0]) +
 	  dot(x[I  ][J-1][K-1], x.get_mesh().Dvc[1]) +
 	  dot(x[I-1][J  ][K-1], x.get_mesh().Dvc[2]) +
@@ -1757,13 +1760,13 @@ Div(Field<SymTenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
      Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  x[I  ] * x.get_mesh().Dvc[0] +
 	  x[I+1] * x.get_mesh().Dvc[1]);
   return r;
@@ -1771,14 +1774,14 @@ Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
      Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  x[I  ][J  ] * x.get_mesh().Dvc[0] +
 	  x[I+1][J  ] * x.get_mesh().Dvc[1] +
 	  x[I  ][J+1] * x.get_mesh().Dvc[2] +
@@ -1788,7 +1791,7 @@ Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
      Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1796,7 +1799,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  x[I  ][J  ][K  ] * x.get_mesh().Dvc[0] +
 	  x[I+1][J  ][K  ] * x.get_mesh().Dvc[1] +
 	  x[I  ][J+1][K  ] * x.get_mesh().Dvc[2] +
@@ -1813,7 +1816,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
+Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
      Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -1827,14 +1830,14 @@ Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
      Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  x[I-1][J-1] * x.get_mesh().Dvc[0] +
 	  x[I  ][J-1] * x.get_mesh().Dvc[1] +
 	  x[I-1][J  ] * x.get_mesh().Dvc[2] +
@@ -1844,7 +1847,7 @@ Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1852,7 +1855,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  x[I-1][J-1][K-1] * x.get_mesh().Dvc[0] +
 	  x[I  ][J-1][K-1] * x.get_mesh().Dvc[1] +
 	  x[I-1][J  ][K-1] * x.get_mesh().Dvc[2] +
@@ -1868,7 +1871,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
      Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -1883,7 +1886,7 @@ Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
      Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -1896,7 +1899,7 @@ Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
   idy[0] = 0.0;
   idy[1] = 0.5/x.get_mesh().get_meshSpacing(1);
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  idx * (x[I+1][J  ] - x[I-1][J  ]) +
 	  idy * (x[I  ][J+1] - x[I  ][J-1]) );
   return r;
@@ -1904,7 +1907,7 @@ Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
      Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1923,7 +1926,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   idz[1] = 0.0;
   idz[2] = 0.5/x.get_mesh().get_meshSpacing(2);
 
-  assign(r[I][J][K] , 
+  assign(r[I][J][K] ,
 	 idx * (x[I+1][J  ][K  ] - x[I-1][J  ][K  ]) +
 	 idy * (x[I  ][J+1][K  ] - x[I  ][J-1][K  ]) +
 	 idz * (x[I  ][J  ][K+1] - x[I  ][J  ][K-1]));
@@ -1934,7 +1937,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
+Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
      Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -1949,7 +1952,7 @@ Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
      Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -1962,7 +1965,7 @@ Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
   idy[0] = 0.0;
   idy[1] = 0.5/x.get_mesh().get_meshSpacing(1);
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  idx * (x[I+1][J  ] - x[I-1][J  ]) +
 	  idy * (x[I  ][J+1] - x[I  ][J-1]) );
 
@@ -1971,7 +1974,7 @@ Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -1990,7 +1993,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   idz[1] = 0.0;
   idz[2] = 0.5/x.get_mesh().get_meshSpacing(2);
 
-  assign(r[I][J][K] , 
+  assign(r[I][J][K] ,
 	 idx * (x[I+1][J  ][K  ] - x[I-1][J  ][K  ]) +
 	 idy * (x[I  ][J+1][K  ] - x[I  ][J-1][K  ]) +
 	 idz * (x[I  ][J  ][K+1] - x[I  ][J  ][K-1]));
@@ -2002,10 +2005,10 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 
   r[0][J][K] = idx * (-1.0*x[2][J][K] + 4.0*x[1][J][K] - 3.0*x[0][J][K]) + yy*r[0][J][K] + zz*r[0][J][K];
   r[I.length()-1][J][K] = idx * (1.0*x[I.length()-3][J][K] - 4.0*x[I.length()-2][J][K] + 3.0*x[I.length()-1][J][K]) + yy*r[I.length()-1][J][K] + zz*r[I.length()-1][J][K];
-  
+
   r[I][0][K] = idy * (-1.0*x[I][2][K] + 4.0*x[I][1][K] - 3.0*x[I][0][K]) + xx*r[I][0][K] + zz*r[I][0][K];
   r[I][J.length()-1][K] = idy * (1.0*x[I][J.length()-3][K] - 4.0*x[I][J.length()-2][K] + 3.0*x[I][J.length()-1][K]) + xx*r[I][J.length()-1][K] + zz*r[I][J.length()-1][K];
-  
+
   r[I][J][0] = idz * (-1.0*x[I][J][2] + 4.0*x[I][J][1] - 3.0*x[I][J][0]) + xx*r[I][J][0] + yy*r[I][J][0];
   r[I][J][K.length()-1] = idz * (1.0*x[I][J][K.length()-3] - 4.0*x[I][J][K.length()-2] + 3.0*x[I][J][K.length()-1]) + xx*r[I][J][K.length()-1] + yy*r[I][J][K.length()-1];
 
@@ -2015,7 +2018,7 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 
 template < class T, class MFLOAT >
 inline Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Grad1Ord(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Grad1Ord(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -2034,7 +2037,7 @@ Grad1Ord(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   idz[1] = 0.0;
   idz[2] = 0.5/x.get_mesh().get_meshSpacing(2);
 
-  assign(r[I][J][K] , 
+  assign(r[I][J][K] ,
 	 idx * (x[I+1][J  ][K  ] - x[I-1][J  ][K  ]) +
 	 idy * (x[I  ][J+1][K  ] - x[I  ][J-1][K  ]) +
 	 idz * (x[I  ][J  ][K+1] - x[I  ][J  ][K-1]));
@@ -2045,13 +2048,13 @@ Grad1Ord(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Grad(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Grad(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
 
-  assign( r[I] , 
+  assign( r[I] ,
 	  outerProduct( x[I  ] , x.get_mesh().Dvc[0] ) +
 	  outerProduct( x[I+1] , x.get_mesh().Dvc[1])) ;
   return r;
@@ -2059,14 +2062,14 @@ Grad(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Grad(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Grad(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  outerProduct( x[I  ][J  ] , x.get_mesh().Dvc[0] ) +
 	  outerProduct( x[I+1][J  ] , x.get_mesh().Dvc[1] ) +
 	  outerProduct( x[I  ][J+1] , x.get_mesh().Dvc[2] ) +
@@ -2076,7 +2079,7 @@ Grad(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Grad(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Grad(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -2084,7 +2087,7 @@ Grad(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  outerProduct( x[I  ][J  ][K  ] , x.get_mesh().Dvc[0] ) +
 	  outerProduct( x[I+1][J  ][K  ] , x.get_mesh().Dvc[1] ) +
 	  outerProduct( x[I  ][J+1][K  ] , x.get_mesh().Dvc[2] ) +
@@ -2101,7 +2104,7 @@ Grad(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Grad(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
+Grad(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
@@ -2115,14 +2118,14 @@ Grad(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Grad(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Grad(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
+  assign( r[I][J] ,
 	  outerProduct( x[I-1][J-1] , x.get_mesh().Dvc[0] ) +
 	  outerProduct( x[I  ][J-1] , x.get_mesh().Dvc[1] ) +
 	  outerProduct( x[I-1][J  ] , x.get_mesh().Dvc[2] ) +
@@ -2132,7 +2135,7 @@ Grad(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
 Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Grad(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Grad(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -2140,7 +2143,7 @@ Grad(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Index J = domain[1];
   Index K = domain[2];
 
-  assign( r[I][J][K] , 
+  assign( r[I][J][K] ,
 	  outerProduct( x[I-1][J-1][K-1] , x.get_mesh().Dvc[0] ) +
 	  outerProduct( x[I  ][J-1][K-1] , x.get_mesh().Dvc[1] ) +
 	  outerProduct( x[I-1][J  ][K-1] , x.get_mesh().Dvc[2] ) +
@@ -2159,13 +2162,13 @@ namespace IPPL {
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
 Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
-	Field<T2,1U,UniformCartesian<1U,MFLOAT>,Cell>& w, 
-	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& r) 
+Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
+	Field<T2,1U,UniformCartesian<1U,MFLOAT>,Cell>& w,
+	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
-  assign( r[I] , 
+  assign( r[I] ,
 	  ( x[I-1] * w[I-1] + x[I  ] * w[I  ] )/
 	  ( w[I-1] + w[I  ] ) );
   return r;
@@ -2173,20 +2176,20 @@ Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
 Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
-	Field<T2,2U,UniformCartesian<2U,MFLOAT>,Cell>& w, 
+Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
+	Field<T2,2U,UniformCartesian<2U,MFLOAT>,Cell>& w,
 	Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
-	  ( x[I-1][J-1] * w[I-1][J-1] + 
+  assign( r[I][J] ,
+	  ( x[I-1][J-1] * w[I-1][J-1] +
 	    x[I  ][J-1] * w[I  ][J-1] +
 	    x[I-1][J  ] * w[I-1][J  ] +
 	    x[I  ][J  ] * w[I  ][J  ] )/
-	  ( w[I-1][J-1] + 
+	  ( w[I-1][J-1] +
 	    w[I  ][J-1] +
 	    w[I-1][J  ] +
 	    w[I  ][J  ] ) );
@@ -2195,8 +2198,8 @@ Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
 Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
-	Field<T2,3U,UniformCartesian<3U,MFLOAT>,Cell>& w, 
+Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
+	Field<T2,3U,UniformCartesian<3U,MFLOAT>,Cell>& w,
 	Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -2205,7 +2208,7 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Index K = domain[2];
 
   assign( r[I][J][K] ,
-	  ( x[I-1][J-1][K-1] * w[I-1][J-1][K-1] + 
+	  ( x[I-1][J-1][K-1] * w[I-1][J-1][K-1] +
 	    x[I  ][J-1][K-1] * w[I  ][J-1][K-1] +
 	    x[I-1][J  ][K-1] * w[I-1][J  ][K-1] +
 	    x[I  ][J  ][K-1] * w[I  ][J  ][K-1] +
@@ -2213,7 +2216,7 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 	    x[I  ][J-1][K  ] * w[I  ][J-1][K  ] +
 	    x[I-1][J  ][K  ] * w[I-1][J  ][K  ] +
 	    x[I  ][J  ][K  ] * w[I  ][J  ][K  ] )/
-	  ( w[I-1][J-1][K-1] + 
+	  ( w[I-1][J-1][K-1] +
 	    w[I  ][J-1][K-1] +
 	    w[I-1][J  ][K-1] +
 	    w[I  ][J  ][K-1] +
@@ -2224,18 +2227,18 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   return r;
 }
 //----------------------------------------------------------------------
-// Weighted average Vert to Cell 
+// Weighted average Vert to Cell
 // N.B.: won't work except for unit-stride (& zero-base?) Field's.
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
 Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
-	Field<T2,1U,UniformCartesian<1U,MFLOAT>,Vert>& w, 
-	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& r) 
+Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
+	Field<T2,1U,UniformCartesian<1U,MFLOAT>,Vert>& w,
+	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
-  assign( r[I] , 
+  assign( r[I] ,
 	  ( x[I+1] * w[I+1] + x[I  ] * w[I  ] )/
 	  ( w[I+1] + w[I  ] ) );
   return r;
@@ -2243,20 +2246,20 @@ Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
 Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
-	Field<T2,2U,UniformCartesian<2U,MFLOAT>,Vert>& w, 
+Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
+	Field<T2,2U,UniformCartesian<2U,MFLOAT>,Vert>& w,
 	Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
   Index J = domain[1];
 
-  assign( r[I][J] , 
-	  ( x[I+1][J+1] * w[I+1][J+1] + 
+  assign( r[I][J] ,
+	  ( x[I+1][J+1] * w[I+1][J+1] +
 	    x[I  ][J+1] * w[I  ][J+1] +
 	    x[I+1][J  ] * w[I+1][J  ] +
 	    x[I  ][J  ] * w[I  ][J  ] )/
-	  ( w[I+1][J+1] + 
+	  ( w[I+1][J+1] +
 	    w[I  ][J+1] +
 	    w[I+1][J  ] +
 	    w[I  ][J  ] ) );
@@ -2265,8 +2268,8 @@ Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T1, class T2, class MFLOAT >
 Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
-	Field<T2,3U,UniformCartesian<3U,MFLOAT>,Vert>& w, 
+Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
+	Field<T2,3U,UniformCartesian<3U,MFLOAT>,Vert>& w,
 	Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -2275,7 +2278,7 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   Index K = domain[2];
 
   assign( r[I][J][K] ,
-	  ( x[I+1][J+1][K+1] * w[I+1][J+1][K+1] + 
+	  ( x[I+1][J+1][K+1] * w[I+1][J+1][K+1] +
 	    x[I  ][J+1][K+1] * w[I  ][J+1][K+1] +
 	    x[I+1][J  ][K+1] * w[I+1][J  ][K+1] +
 	    x[I  ][J  ][K+1] * w[I  ][J  ][K+1] +
@@ -2283,7 +2286,7 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 	    x[I  ][J+1][K  ] * w[I  ][J+1][K  ] +
 	    x[I+1][J  ][K  ] * w[I+1][J  ][K  ] +
 	    x[I  ][J  ][K  ] * w[I  ][J  ][K  ] )/
-	  ( w[I+1][J+1][K+1] + 
+	  ( w[I+1][J+1][K+1] +
 	    w[I  ][J+1][K+1] +
 	    w[I+1][J  ][K+1] +
 	    w[I  ][J  ][K+1] +
@@ -2299,8 +2302,8 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
 Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>&
-Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& x, 
-	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& r) 
+Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
+	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2310,7 +2313,7 @@ Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
 Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>&
-Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& x, 
+Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 	Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -2322,7 +2325,7 @@ Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& x,
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
 Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>&
-Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x, 
+Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
 	Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -2335,14 +2338,14 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   return r;
 }
 //----------------------------------------------------------------------
-// Unweighted average Vert to Cell 
+// Unweighted average Vert to Cell
 // N.B.: won't work except for unit-stride (& zero-base?) Field's.
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
 Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>&
-Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& x, 
+Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 
-	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& r) 
+	Field<T1,1U,UniformCartesian<1U,MFLOAT>,Cell>& r)
 {
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2352,7 +2355,7 @@ Average(Field<T1,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
 Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>&
-Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& x, 
+Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 	Field<T1,2U,UniformCartesian<2U,MFLOAT>,Cell>& r)
 {
   const NDIndex<2U>& domain = r.getDomain();
@@ -2364,7 +2367,7 @@ Average(Field<T1,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 template < class T1, class MFLOAT >
 Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>&
-Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x, 
+Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 	Field<T1,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
@@ -2382,5 +2385,5 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 /***************************************************************************
  * $RCSfile: UniformCartesian.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: UniformCartesian.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: UniformCartesian.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/

@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -43,7 +43,7 @@ public:
   enum { ElemDim = 2 };
   enum { Size = D*D };
 
-  // Default Constructor 
+  // Default Constructor
   Tenzor() {
     TSV_MetaAssignScalar<Tenzor<T,D>,T,OpAssign>::apply(*this,T(0));
   }
@@ -52,7 +52,7 @@ public:
   class DontInitialize {};
   Tenzor(DontInitialize) {}
 
-  // Copy Constructor 
+  // Copy Constructor
   Tenzor(const Tenzor<T,D> &rhs) {
     TSV_MetaAssign< Tenzor<T,D> , Tenzor<T,D> ,OpAssign >::apply(*this,rhs);
   }
@@ -86,10 +86,10 @@ public:
 
   // constructor from SymTenzor
   Tenzor(const SymTenzor<T,D>&);
-  
+
   // constructor from AntiSymTenzor
   Tenzor(const AntiSymTenzor<T,D>&);
-  
+
   // destructor
   ~Tenzor() { };
 
@@ -112,13 +112,13 @@ public:
   template<class T1>
   Tenzor<T,D>& operator+=(const Tenzor<T1,D> &rhs)
   {
-    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpAddAssign > :: 
+    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpAddAssign > ::
       apply(*this,rhs);
     return *this;
   }
   Tenzor<T,D>& operator+=(const T& rhs)
   {
-    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpAddAssign > :: 
+    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpAddAssign > ::
       apply(*this,rhs);
     return *this;
   }
@@ -126,13 +126,13 @@ public:
   template<class T1>
   Tenzor<T,D>& operator-=(const Tenzor<T1,D> &rhs)
   {
-    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpSubtractAssign > :: 
+    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpSubtractAssign > ::
       apply(*this,rhs);
     return *this;
   }
   Tenzor<T,D>& operator-=(const T& rhs)
   {
-    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpSubtractAssign > :: 
+    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpSubtractAssign > ::
       apply(*this,rhs);
     return *this;
   }
@@ -140,13 +140,13 @@ public:
   template<class T1>
   Tenzor<T,D>& operator*=(const Tenzor<T1,D> &rhs)
   {
-    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpMultipplyAssign > :: 
+    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpMultipplyAssign > ::
       apply(*this,rhs);
     return *this;
   }
   Tenzor<T,D>& operator*=(const T& rhs)
   {
-    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpMultipplyAssign > :: 
+    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpMultipplyAssign > ::
       apply(*this,rhs);
     return *this;
   }
@@ -154,13 +154,13 @@ public:
   template<class T1>
   Tenzor<T,D>& operator/=(const Tenzor<T1,D> &rhs)
   {
-    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpDivideAssign > :: 
+    TSV_MetaAssign< Tenzor<T,D> , Tenzor<T1,D> , OpDivideAssign > ::
       apply(*this,rhs);
     return *this;
   }
   Tenzor<T,D>& operator/=(const T& rhs)
   {
-    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpDivideAssign > :: 
+    TSV_MetaAssignScalar< Tenzor<T,D> , T , OpDivideAssign > ::
       apply(*this,rhs);
     return *this;
   }
@@ -168,7 +168,7 @@ public:
   // Methods
 
   void diagonal(const T& rhs) {
-    for (int i = 0 ; i < D ; i++ ) 
+    for (unsigned int i = 0 ; i < D ; i++ )
       (*this)(i,i) = rhs;
   }
 
@@ -192,12 +192,12 @@ public:
   //TJW: add these 12/16/97 to help with NegReflectAndZeroFace BC:
   // These are the same as operator[] but with () instead:
 
-  Element_t& operator()(unsigned int i) { 
+  Element_t& operator()(unsigned int i) {
     PAssert (i < Size);
     return X[i];
   }
 
-  Element_t operator()(unsigned int i) const { 
+  Element_t operator()(unsigned int i) const {
     PAssert (i < Size);
     return X[i];
   }
@@ -267,7 +267,7 @@ private:
 template <class T, unsigned D>
 inline T trace(const Tenzor<T,D>& rhs) {
   T result = 0.0;
-  for (int i = 0 ; i < D ; i++ )
+  for (unsigned int i = 0 ; i < D ; i++ )
     result += rhs(i,i);
   return result;
 }
@@ -278,8 +278,8 @@ template <class T, unsigned D>
 inline Tenzor<T,D> transpose(const Tenzor<T,D>& rhs) {
   Tenzor<T,D> result = typename Tenzor<T,D>::DontInitialize();
 
-  for (int j = 0 ; j < D ; j++ ) 
-    for (int i = 0 ; i < D ; i++ )
+  for (unsigned int j = 0 ; j < D ; j++ )
+    for (unsigned int i = 0 ; i < D ; i++ )
       result(i,j) = rhs(j,i);
   return result;
 }
@@ -295,7 +295,7 @@ inline T det(const Tenzor<T,D>& rhs) {
 template <class T>
 inline T det(const Tenzor<T,3>& rhs) {
   T result;
-  result = 
+  result =
     rhs(0,0)*(rhs(1,1)*rhs(2,2) - rhs(1,2)*rhs(2,1)) +
     rhs(0,1)*(rhs(1,2)*rhs(2,0) - rhs(1,0)*rhs(2,2)) +
     rhs(0,2)*(rhs(1,0)*rhs(2,1) - rhs(1,1)*rhs(2,0));
@@ -408,21 +408,21 @@ TSV_ELEMENTWISE_OPERATOR(Tenzor,Max,FnMax)
 
 template < class T1, class T2, unsigned D >
 inline Tenzor<typename PETEBinaryReturn<T1,T2,OpMultipply>::type,D>
-dot(const Tenzor<T1,D> &lhs, const Tenzor<T2,D> &rhs) 
+dot(const Tenzor<T1,D> &lhs, const Tenzor<T2,D> &rhs)
 {
   return TSV_MetaDot< Tenzor<T1,D> , Tenzor<T2,D> > :: apply(lhs,rhs);
 }
 
 template < class T1, class T2, unsigned D >
 inline Vektor<typename PETEBinaryReturn<T1,T2,OpMultipply>::type,D>
-dot(const Vektor<T1,D> &lhs, const Tenzor<T2,D> &rhs) 
+dot(const Vektor<T1,D> &lhs, const Tenzor<T2,D> &rhs)
 {
   return TSV_MetaDot< Vektor<T1,D> , Tenzor<T2,D> > :: apply(lhs,rhs);
 }
 
 template < class T1, class T2, unsigned D >
 inline Vektor<typename PETEBinaryReturn<T1,T2,OpMultipply>::type,D>
-dot(const Tenzor<T1,D> &lhs, const Vektor<T2,D> &rhs) 
+dot(const Tenzor<T1,D> &lhs, const Vektor<T2,D> &rhs)
 {
   return TSV_MetaDot< Tenzor<T1,D> , Vektor<T2,D> > :: apply(lhs,rhs);
 }
@@ -433,7 +433,7 @@ dot(const Tenzor<T1,D> &lhs, const Vektor<T2,D> &rhs)
 
 template < class T1, class T2, unsigned D >
 inline typename PETEBinaryReturn<T1,T2,OpMultipply>::type
-dotdot(const Tenzor<T1,D> &lhs, const Tenzor<T2,D> &rhs) 
+dotdot(const Tenzor<T1,D> &lhs, const Tenzor<T2,D> &rhs)
 {
   return TSV_MetaDotDot< Tenzor<T1,D> , Tenzor<T2,D> > :: apply(lhs,rhs);
 }
@@ -461,9 +461,9 @@ template<class T, unsigned D>
 inline std::ostream& operator<<(std::ostream& out, const Tenzor<T,D>& rhs)
 {
   if (D >= 1) {
-    for (int i=0; i<D; i++) {
+    for (unsigned int i=0; i<D; i++) {
       out << "(";
-      for (int j=0; j<D-1; j++) {
+      for (unsigned int j=0; j<D-1; j++) {
 	out << rhs(i,j) << " , ";
       }
       out << rhs(i,D-1) << ")";
@@ -482,15 +482,15 @@ inline std::ostream& operator<<(std::ostream& out, const Tenzor<T,D>& rhs)
 
 template <class T, unsigned D>
 Tenzor<T,D>::Tenzor(const SymTenzor<T,D>& rhs) {
-  for (int i=0; i<D; ++i)
-    for (int j=0; j<D; ++j)
+  for (unsigned int i=0; i<D; ++i)
+    for (unsigned int j=0; j<D; ++j)
       (*this)(i,j) = rhs(i,j);
 }
 
 template <class T, unsigned D>
 Tenzor<T,D>::Tenzor(const AntiSymTenzor<T,D>& rhs) {
-  for (int i=0; i<D; ++i)
-    for (int j=0; j<D; ++j)
+  for (unsigned int i=0; i<D; ++i)
+    for (unsigned int j=0; j<D; ++j)
       (*this)(i,j) = rhs(i,j);
 }
 
@@ -500,5 +500,5 @@ Tenzor<T,D>::Tenzor(const AntiSymTenzor<T,D>& rhs) {
 /***************************************************************************
  * $RCSfile: Tenzor.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:24 $
- * IPPL_VERSION_ID: $Id: Tenzor.h,v 1.1.1.1 2003/01/23 07:40:24 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: Tenzor.h,v 1.1.1.1 2003/01/23 07:40:24 adelmann Exp $
  ***************************************************************************/
