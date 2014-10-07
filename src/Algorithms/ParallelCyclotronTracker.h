@@ -1,6 +1,6 @@
 #ifndef OPAL_ParallelCyclotronTracker_HH
 #define OPAL_ParallelCyclotronTracker_HH
-
+// #define GENERICTRACKER 
 // ------------------------------------------------------------------------
 // $RCSfile: ParallelCyclotronTracker.h,v $
 // ------------------------------------------------------------------------
@@ -252,6 +252,11 @@ private:
     void Tracker_RK4();
     void Tracker_MTS();
 
+#ifdef GENERICTRACKER
+    void Tracker_Generic();
+    bool getFieldsAtPoint(const double &t, const size_t &Pindex, Vector_t &Efield, Vector_t &Bfield);
+#endif
+
     /*
      Local Variables both used by the integration methods
     */
@@ -418,6 +423,7 @@ private:
     void initTrackOrbitFile();
 
     void singleParticleDump();
+    void singleParticleDump_rk4(); // TODO: Consolidate the two -DW
 
     void bunchDumpPhaseSpaceStatData();
 

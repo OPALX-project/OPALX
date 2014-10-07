@@ -141,11 +141,13 @@ void LossDataSink::addParticle(const Vector_t x, const Vector_t p, const size_t 
 void LossDataSink::save() {
 
     if (element_m == std::string("")) return;
-    
-    if (hasNoParticlesToDump()) return;
-    
+
+    if (hasNoParticlesToDump()) return;  
+
     if (h5hut_mode_m) {
+
         if (!Options::enableHDF5) return;
+
         fn_m = element_m + std::string(".h5");
 	INFOMSG("Save " << fn_m << endl);
 	openH5();
@@ -153,19 +155,23 @@ void LossDataSink::save() {
 	saveH5();
 	H5CloseFile(H5file_m);
 	Ippl::Comm->barrier();
+
     }
     else {
-      fn_m = element_m + std::string(".loss");
-      INFOMSG("Save " << fn_m << endl);
-      if(OpalData::getInstance()->inRestartRun()) 
-	append();
-      else
-	open();
-      writeHeaderASCII();
-      saveASCII();
-      close();
-      Ippl::Comm->barrier();
+
+        fn_m = element_m + std::string(".loss");
+        INFOMSG("Save " << fn_m << endl);
+        if(OpalData::getInstance()->inRestartRun()) 
+	    append();
+        else
+	    open();
+        writeHeaderASCII();
+        saveASCII();
+        close();
+        Ippl::Comm->barrier();
+
     }
+
     x_m.clear();
     y_m.clear();
     z_m.clear();
@@ -177,13 +183,27 @@ void LossDataSink::save() {
     time_m.clear();        
 }
 
+// Note: This was changed to calculate the global number of dumped particles
+// because there are two cases to be considered: 
+// 1. ALL nodes have 0 lost particles -> nothing to be done. 
+// 2. Some nodes have 0 lost particles, some not -> H5 can handle that but all 
+// nodes HAVE to participate, otherwise H5 waits endlessly for a response from
+// the nodes that didn't enter the saveH5 function. -DW
+bool LossDataSink::hasNoParticlesToDump() {
+
+    size_t nLoc = x_m.size();
+
+    reduce(nLoc, nLoc, OpAddAssign());
+
+    return nLoc == 0;
+}
 
 void LossDataSink::saveH5() {
     h5_int64_t rc;
 
     size_t nLoc = x_m.size();
 
-    INFOMSG("saveH5 n= " << nLoc << endl);
+    INFOMSG("saveH5 n = " << nLoc << endl);
     
     std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());

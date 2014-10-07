@@ -1117,8 +1117,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
  * Comments -DW:
  * I have made some changes in here:
  * -) Some refacturing to make more similar to computeSelfFields()
- * -) Added meanR and quaternion to be handed to the function (TODO: fall back to meanR = 0 and unit quaternion
- *    if not specified) so that SAAMG solver knows how to rotate the boundary geometry correctly.
+ * -) Added meanR and quaternion to be handed to the function so that SAAMG solver knows how to rotate the boundary geometry correctly.
  * -) Fixed an error where gamma was not taken into account correctly in direction of movement (y in cyclotron)
  * -) Comment: There is no account for image charges in the cyclotron tracker (yet?)!
  */
@@ -1186,7 +1185,7 @@ void PartBunch::computeSelfFields_cycl(double gamma,
         //do the multiplication of the grid-cube volume coming
         //from the discretization of the convolution integral.
         //this is only necessary for the FFT solver
-        //FIXME: later move this scaling into FFTPoissonSolver
+        //TODO FIXME: later move this scaling into FFTPoissonSolver
         if(fs_m->getFieldSolverType() == "FFT" || fs_m->getFieldSolverType() == "FFTBOX")
             rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
 

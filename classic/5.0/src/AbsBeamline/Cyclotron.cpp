@@ -281,6 +281,7 @@ bool Cyclotron::apply(const size_t &id, const double &t, double E[], double B[])
 bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &B) {
   
   bool flagNeedUpdate = false;
+
   const double rpos = sqrt(RefPartBunch_m->R[id](0) * RefPartBunch_m->R[id](0) 
                            + RefPartBunch_m->R[id](1) * RefPartBunch_m->R[id](1));
   const double zpos = RefPartBunch_m->R[id](2);
@@ -288,14 +289,14 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
   if (zpos > maxz_m || zpos < minz_m || rpos > maxr_m || rpos < minr_m){
       flagNeedUpdate = true;
       Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-      gmsgALL<<getName() << ": particle "<< id <<" out of the global aperture of cyclotron!"<< endl;
+      gmsgALL << getName() << ": particle "<< id <<" out of the global aperture of cyclotron!"<< endl;
 
   } else{
 
       flagNeedUpdate = apply(RefPartBunch_m->R[id], Vector_t(0.0), t, E, B);
       if(flagNeedUpdate){ 
           Inform gmsgALL("OPAL ", INFORM_ALL_NODES);    
-          gmsgALL<<getName() << ": particle "<< id <<" out of the field map boundary!"<< endl;
+          gmsgALL << getName() << ": particle "<< id <<" out of the field map boundary!"<< endl;
       }
   }
   
@@ -303,6 +304,7 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
       lossDs_m->addParticle(RefPartBunch_m->R[id], RefPartBunch_m->P[id],id);
       RefPartBunch_m->Bin[id] = -1;
   }
+
   return flagNeedUpdate;
 }
 
@@ -499,9 +501,11 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
 }
 
 void Cyclotron::finalise() {
+
     online_m = false;
     lossDs_m->save();
     *gmsg << "* Finalize cyclotron" << endl;
+
 }
 
 bool Cyclotron::bends() const {

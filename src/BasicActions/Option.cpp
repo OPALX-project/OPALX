@@ -110,6 +110,10 @@ namespace Options {
     // during each time step. If false then the time step during emission is set so that one
     // energy bin of the beam is emitted during each time step.
     bool fineEmission = true;
+
+    // Governs how often boundp_destroy is called to destroy lost particles
+    // Mainly used in the CyclotronTracker as of now -DW
+    int boundpDestroyFreq = 10;
 }
 
 
@@ -152,6 +156,7 @@ namespace {
         FINEEMISSION,
         ENABLEHDF5,
         ASCIIDUMP,
+        BOUNDPDESTROYFREQ,
         SIZE
     };
 }
@@ -247,6 +252,9 @@ Option::Option():
     itsAttr[ASCIIDUMP] = Attributes::makeBool
         ("ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", false);
 
+    itsAttr[BOUNDPDESTROYFREQ] = Attributes::makeReal                          
+                      ("BOUNDPDESTROYFREQ", "The frequency to do boundp_destroy to delete lost particles. Default value is 10.");
+
     FileStream::setEcho(echo);
     rangen.init55(seed);
 }
@@ -289,6 +297,7 @@ Option::Option(const string &name, Option *parent):
     Attributes::setReal(itsAttr[NLHS], nLHS);
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
+    Attributes::setReal(itsAttr[BOUNDPDESTROYFREQ], boundpDestroyFreq);
 }
 
 
@@ -409,6 +418,10 @@ void Option::execute() {
 
     if(itsAttr[FINEEMISSION]) {
         fineEmission = bool(Attributes::getBool(itsAttr[FINEEMISSION]));
+    }
+
+    if(itsAttr[BOUNDPDESTROYFREQ]) {
+        boundpDestroyFreq = int(Attributes::getReal(itsAttr[BOUNDPDESTROYFREQ]));
     }
 
     // Set message flags.

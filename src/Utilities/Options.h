@@ -39,7 +39,6 @@ namespace Options {
     // true if in bet mode
     extern bool bet;
 
-
     /// Trace flag.
     //  If true, print CPU time before and after each command.
     extern bool mtrace;
@@ -81,6 +80,10 @@ namespace Options {
     //  if true, dump phase space after each turn
     extern bool psDumpEachTurn;
 
+    // Governs how often boundp_destroy is called to destroy lost particles
+    // Mainly used in the CyclotronTracker as of now -DW
+    extern int boundpDestroyFreq;
+
     /// flag to decide in which coordinate frame the phase space will be dumped for OPAL-cycl
     // if true, in local Cartesian frame, otherwise in global Cartesian frame
     extern bool psDumpLocalFrame;
@@ -94,7 +97,6 @@ namespace Options {
     // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size of the bunch in any dimension,
     // the particle will be deleted artifically to hold the accuracy of space charge calculation. The default setting of -1 stands for no deletion. 
     extern int remotePartDel;
-
 
     /// this allows to repeat tracks starting always at the begining of the lattice and
     /// generates a new distribution

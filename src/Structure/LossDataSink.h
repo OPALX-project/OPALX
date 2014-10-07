@@ -65,15 +65,18 @@ private:
         }
     }
 
-    bool hasNoParticlesToDump() {
-        return x_m.size() == 0;
-    }
+    //bool hasNoParticlesToDump() {
+        //return x_m.size() == 0;
+    //}
+
+    bool hasNoParticlesToDump();
 
     void writeHeaderH5();
 
     void openH5();
 
     void saveH5();
+
     void saveASCII();
 
 private:
