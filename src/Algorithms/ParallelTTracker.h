@@ -129,7 +129,7 @@ public:
 
     /// Constructor
     //  Amr pointer is taken
-#ifdef HAVE_AMR_SOLVER 
+#ifdef HAVE_AMR_SOLVER
     explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
                               const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator, size_t N, Amr* amrptr_in);
 #endif
@@ -268,8 +268,8 @@ private:
     bool wakeStatus_m;
 
     /*--------- Added by Xiaoying Pang 04/22/2014 ---------------
-     * This WakeFunction pointer is used to store a dipole's wake function and 
-     * to be used in the following drift if CSR calculation is requested in 
+     * This WakeFunction pointer is used to store a dipole's wake function and
+     * to be used in the following drift if CSR calculation is requested in
      * the drift. */
     WakeFunction* wakeFunction_m;
 
@@ -353,8 +353,8 @@ private:
     // 3 --- AMTS (Adaptive Boris-Buneman with multiple time stepping)
     int timeIntegrator_m;
 
-    
-    size_t Nimpact_m; 
+
+    size_t Nimpact_m;
     double SeyNum_m;
 
 
@@ -640,6 +640,7 @@ inline void ParallelTTracker::updateSpaceOrientation(const bool &move) {
 
     double AbsMomentum = sqrt(dot(RefPartP_suv_m, RefPartP_suv_m));
     double AbsMomentumProj = sqrt(RefPartP_suv_m(0) * RefPartP_suv_m(0) + RefPartP_suv_m(2) * RefPartP_suv_m(2));
+    RefPartP_zxy_m *= AbsMomentum / sqrt(dot(RefPartP_zxy_m, RefPartP_zxy_m));
 
     space_orientation_m(0, 0) = RefPartP_zxy_m(2) / AbsMomentumProj;
     space_orientation_m(0, 1) = -RefPartP_zxy_m(0) * RefPartP_zxy_m(1) / (AbsMomentum * AbsMomentumProj);
