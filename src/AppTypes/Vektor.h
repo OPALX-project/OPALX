@@ -199,29 +199,41 @@ private:
 template<class T, unsigned D>
 typename Vektor<T,D>::Element_t& Vektor<T,D>::operator[](unsigned int i)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
   PAssert (i<D);
   return X[i];
+#pragma GCC diagnostic pop
 }
 
 template<class T, unsigned D>
 typename Vektor<T,D>::Element_t Vektor<T,D>::operator[](unsigned int i) const
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
   PAssert (i<D);
   return X[i];
+#pragma GCC diagnostic pop
 }
 
 template<class T, unsigned D>
 typename Vektor<T,D>::Element_t& Vektor<T,D>::operator()(unsigned int i)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
   PAssert (i<D);
   return X[i];
+#pragma GCC diagnostic pop
 }
 
 template<class T, unsigned D>
 typename Vektor<T,D>::Element_t Vektor<T,D>::operator()( unsigned int i) const
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
   PAssert (i<D);
   return X[i];
+#pragma GCC diagnostic pop
 }
 
 //////////////////////////////////////////////////////////////////////
