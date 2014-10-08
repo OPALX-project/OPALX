@@ -617,8 +617,8 @@ void PartBunch::calcGammas() {
         s += pInBin;
     }
 
-    
-    
+
+
     if(s != getTotalNum() && !OpalData::getInstance()->hasGlobalGeometry())
         ERRORMSG("sum(Bins)= " << s << " != sum(R)= " << getTotalNum() << endl;);
 
@@ -828,7 +828,7 @@ void PartBunch::resizeMesh() {
     double ymax = fs_m->solver_m->getYRangeMax();
     double zmin = rmin_m[2]; //fs_m->solver_m->getZRangeMin();
     double zmax = rmax_m[2]; //fs_m->solver_m->getZRangeMax();
-    
+
     if(xmin > rmin_m[0] || xmax < rmax_m[0] ||
        ymin > rmin_m[1] || ymax < rmax_m[1]) {
 
@@ -852,11 +852,11 @@ void PartBunch::resizeMesh() {
     Vector_t mymin = Vector_t(xmin, ymin , zmin-hr_m[2]);
     Vector_t mymax = Vector_t(xmax, ymax , zmax+hr_m[2]);
 
-    for(int i = 0; i < 3; i++) 
+    for(int i = 0; i < 3; i++)
         hr_m[i]   = (mymax[i] - mymin[i]) / nr_m[i];
 
     getMesh().set_meshSpacing(&(hr_m[0]));
-    getMesh().set_origin(mymin); 
+    getMesh().set_origin(mymin);
 
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
@@ -1121,8 +1121,8 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
  * -) Fixed an error where gamma was not taken into account correctly in direction of movement (y in cyclotron)
  * -) Comment: There is no account for image charges in the cyclotron tracker (yet?)!
  */
-void PartBunch::computeSelfFields_cycl(double gamma, 
-                                       Vector_t const meanR, 
+void PartBunch::computeSelfFields_cycl(double gamma,
+                                       Vector_t const meanR,
                                        Quaternion_t const quaternion) {
 
     IpplTimings::startTimer(selfFieldTimer_m);
@@ -1136,7 +1136,7 @@ void PartBunch::computeSelfFields_cycl(double gamma,
     /// set initial E field to zero
     eg_m = Vector_t(0.0);
 
-    if(fs_m->hasValidSolver()) { 
+    if(fs_m->hasValidSolver()) {
         /// scatter particles charge onto grid.
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
 
@@ -1175,7 +1175,7 @@ void PartBunch::computeSelfFields_cycl(double gamma,
 #endif
 
         /// now charge density is in rho_m
-        /// calculate Possion equation (without coefficient: -1/(eps))  
+        /// calculate Possion equation (without coefficient: -1/(eps))
         IpplTimings::startTimer(compPotenTimer_m);
 
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
@@ -1218,12 +1218,12 @@ void PartBunch::computeSelfFields_cycl(double gamma,
         eg_m = -Grad(rho_m, eg_m);
 
         /// Back Lorentz transformation
-        /// CAVE: y coordinate needs 1/gamma factor because IPPL function Grad() divides by 
+        /// CAVE: y coordinate needs 1/gamma factor because IPPL function Grad() divides by
         /// hr_m which is not scaled appropriately with Lorentz contraction in y direction
         /// only hr_scaled is! -DW
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
-        
-#ifdef DBG_SCALARFIELD        
+
+#ifdef DBG_SCALARFIELD
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
         int m1 = (int)nr_m[0]-1;
@@ -1282,7 +1282,7 @@ void PartBunch::computeSelfFields_cycl(double gamma,
         Bf(2) = -betaC * Ef(0);
 
     }
-    
+
     /*
     *gmsg << "gamma =" << gamma << endl;
     *gmsg << "dx,dy,dz =(" << hr_m[0] << ", " << hr_m[1] << ", " << hr_m[2] << ") [m] " << endl;
@@ -1406,7 +1406,7 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
         eg_m = -Grad(rho_m, eg_m);
 
         /// Back Lorentz transformation
-        /// CAVE: y coordinate needs 1/gamma factor because IPPL function Grad() divides by 
+        /// CAVE: y coordinate needs 1/gamma factor because IPPL function Grad() divides by
         /// hr_m which is not scaled appropriately with Lorentz contraction in y direction
         /// only hr_scaled is! -DW
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
@@ -1583,7 +1583,7 @@ void PartBunch::setBCForDCBeam() {
         vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
         getBConds()[i] = ParticleNoBCond;
     }
-    
+
     // z-direction
     bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
     this->getBConds()[4] = ParticlePeriodicBCond;
@@ -1607,14 +1607,14 @@ void PartBunch::boundp() {
     if(!isGridFixed()) {
         const int dimIdx = 3;
 
-	/** 
+	/**
 	   In case of dcBeam_m && hr_m < 0
-	   this is the first call to boundp and we 
+	   this is the first call to boundp and we
 	   have to set hr completely i.e. x,y and z.
 
 	 */
 
-	const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;	
+	const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
 	double hzSave;
 
 	NDIndex<3> domain = getFieldLayout().getDomain();
@@ -1622,7 +1622,7 @@ void PartBunch::boundp() {
 	  nr_m[i] = domain[i].length();
 	get_bounds(rmin_m, rmax_m);
 	Vector_t len = rmax_m - rmin_m;
-	
+
 	if (!fullUpdate) {
 	  hzSave = hr_m[2];
 	}
@@ -1651,7 +1651,7 @@ void PartBunch::boundp() {
 			  getFieldLayout(),
 			  GuardCellSizes<Dim>(1),
 			  vbc_m);
-	}	
+	}
     }
     update();
     R.resetDirtyFlag();
@@ -2215,7 +2215,7 @@ Inform &PartBunch::print(Inform &os) {
         os << "* Qtot            =   " << setw(12) << setprecision(5) << abs(sum(Q)) * 1.0e9 << " [nC]       "
            << "Qi    = " << setw(12) << std::abs(qi_m) * 1e9 << " [nC]" << "\n";
         os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV]      "
-           << "dEkin = " << setw(12) << dE_m << " [MeV]" << endl;                                    
+           << "dEkin = " << setw(12) << dE_m << " [MeV]" << endl;
         os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]" << endl;
         os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]" << endl;
         os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]" << endl;
@@ -2320,7 +2320,7 @@ void PartBunch::correctEnergy(double avrgp_m) {
 
 
 void PartBunch::calcEMean() {
-  
+
     const double totalNp = static_cast<double>(this->getTotalNum());
     const double locNp = static_cast<double>(this->getLocalNum());
 
@@ -2334,7 +2334,7 @@ void PartBunch::calcEMean() {
 
     //eKin_m -= locNp;
     //eKin_m *= getM() * 1.0e-6;
-  
+
     reduce(meanP_temp, meanP_temp, OpAddAssign());
     //reduce(eKin_m, eKin_m, OpAddAssign());
 

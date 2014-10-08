@@ -215,39 +215,48 @@ inline void OpalBeamline::updateOrientation(const Vector_t &angle, const Vector_
     }
 
     reduce(online_sections_m, online_sections_m + 5 * Ippl::getNodes(), online_sections_m, OpAddAssign());
+
+    bool anyOnline = false;
+    size_t lastSectionOnline = 0;
     for(int i = 0; i < 5 * Ippl::getNodes(); ++ i) {
-        if(online_sections_m[i] > 0)
+        if(online_sections_m[i] > 0) {
             online_secs_m[online_sections_m[i] - 1] = true;
+            anyOnline = true;
+            lastSectionOnline = std::max(lastSectionOnline, (size_t) online_sections_m[i]);
+        }
     }
 
+    if (!anyOnline) return;
+    lastSectionOnline = std::min(lastSectionOnline, sections_m.size());
+
     // Update orientation of online sections.
-    for(unsigned int i = 0; i < sections_m.size(); ++ i) {
-        if(online_secs_m[i]) {
-            online_secs_m[i] = false;
-            Vector_t oldAngle = sections_m[i].getOrientation();
+    for(unsigned int i = 0; i < lastSectionOnline; ++ i) {
+        if (i > 0 && sections_m[i-1].is_glued_to(&sections_m[i])) continue;
 
-            // Rotate about z axis before changing section's Euler angles.
-            Vector_t newAngle;
-            double cosc = cos(oldAngle(2));
-            double sinc = -sin(oldAngle(2));
+        online_secs_m[i] = false;
+        Vector_t oldAngle = sections_m[i].getOrientation();
 
-            newAngle(0) = oldAngle(0) + cosc * angle(0) - sinc * angle(1);
-            newAngle(1) = oldAngle(1) + sinc * angle(0) + cosc * angle(1);
-            newAngle(2) = oldAngle(2);
+        // Rotate about z axis before changing section's Euler angles.
+        Vector_t newAngle;
+        double cosc = cos(oldAngle(2));
+        double sinc = -sin(oldAngle(2));
 
-            sections_m[i].setOrientation(newAngle);
+        newAngle(0) = oldAngle(0) + cosc * angle(0) - sinc * angle(1);
+        newAngle(1) = oldAngle(1) + sinc * angle(0) + cosc * angle(1);
+        newAngle(2) = oldAngle(2);
 
-            if(smin < sections_m[i].getStart(0.0, 0.0)) {
-                double dist = sections_m[i].getStart(0.0, 0.0) - centroid(2);
-                double newdist = dist / (1. - tan(oldAngle(0)) * angle(0));  // * cos(oldAngle(0)) / cos(newAngle(0));
-                sections_m[i].setStart(centroid(2) + newdist);
-            } else if(smax > sections_m[i].getEnd(0.0, 0.0)) {
-                double dist = sections_m[i].getEnd(0.0, 0.0) - centroid(2);
-                double newdist = dist / (1. - tan(oldAngle(0)) * angle(0)); // * cos(oldAngle(0)) / cos(newAngle(0));
-                sections_m[i].setEnd(centroid(2) + newdist);
-                if(i + 1 < sections_m.size() && sections_m[i].is_glued_to(&sections_m[i + 1])) {
-                    sections_m[i + 1].setStart(centroid(2) + newdist);
-                }
+        sections_m[i].setOrientation(newAngle);
+
+        if(smin < sections_m[i].getStart(0.0, 0.0)) {
+            double dist = sections_m[i].getStart(0.0, 0.0) - centroid(2);
+            double newdist = dist / (1. - tan(oldAngle(0)) * angle(0));  // * cos(oldAngle(0)) / cos(newAngle(0));
+            sections_m[i].setStart(centroid(2) + newdist);
+        } else if(smax > sections_m[i].getEnd(0.0, 0.0)) {
+            double dist = sections_m[i].getEnd(0.0, 0.0) - centroid(2);
+            double newdist = dist / (1. - tan(oldAngle(0)) * angle(0)); // * cos(oldAngle(0)) / cos(newAngle(0));
+            sections_m[i].setEnd(centroid(2) + newdist);
+            if(i + 1 < sections_m.size() && sections_m[i].is_glued_to(&sections_m[i + 1])) {
+                sections_m[i + 1].setStart(centroid(2) + newdist);
             }
         }
     }
