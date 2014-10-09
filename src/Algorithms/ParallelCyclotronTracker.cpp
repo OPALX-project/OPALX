@@ -783,7 +783,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
  * @param rfq
  */
 void ParallelCyclotronTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    *gmsg << "In RFQuadrupole; L= " << rfq.getElementLength() << " however the element is missing " << endl;
+    *gmsg << "In RFQuadrupole; L = " << rfq.getElementLength() << " however the element is missing " << endl;
     myElements.push_back(dynamic_cast<RFQuadrupole *>(rfq.clone()));
 }
 
@@ -793,7 +793,7 @@ void ParallelCyclotronTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
  * @param bend
  */
 void ParallelCyclotronTracker::visitSBend(const SBend &bend) {
-    *gmsg << "In SBend; L= " << bend.getElementLength() << " however the element is missing " << endl;
+    *gmsg << "In SBend; L = " << bend.getElementLength() << " however the element is missing " << endl;
     myElements.push_back(dynamic_cast<SBend *>(bend.clone()));
 }
 
@@ -814,7 +814,7 @@ void ParallelCyclotronTracker::visitSeparator(const Separator &sep) {
  */
 void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
 
-    *gmsg << "* -----------  Septum -------------------------------" << endl;
+    *gmsg << endl << "* -----------------------------  Septum ------------------------------- *" << endl;
 
     Septum *elptr = dynamic_cast<Septum *>(sept.clone());
     myElements.push_back(elptr);
@@ -1168,6 +1168,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
     double angleSpaceChargeSolve = 0.0;
 
     if(initialTotalNum_m == 1) {
+        *gmsg << endl;
         *gmsg << "* *---------------------------- SINGLE PARTICLE MODE------ ----------------------------*** " << endl;
         *gmsg << "* Instruction: when the total particle number equal to 1, single particle mode is triggered automatically," << endl
               << "* The initial distribution file must be specified which should contain only one line for the single particle " << endl
@@ -1176,6 +1177,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             throw OpalException("Error in ParallelCyclotronTracker::execute", "SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
 
     } else if(initialTotalNum_m == 2) {
+	*gmsg << endl;
         *gmsg << "* *------------------------ STATIC EQUILIBRIUM ORBIT MODE ----------------------------*** " << endl;
         *gmsg << "* Instruction: when the total particle number equal to 2, SEO mode is triggered automatically." << endl
               << "* This mode does NOT include any RF cavities. The initial distribution file must be specified" << endl
@@ -1739,6 +1741,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
     int stepsNextCheck = step_m + itsBunch->getStepsPerTurn();
 
     if(initialTotalNum_m == 1) {
+        *gmsg << endl;
         *gmsg << "* ---------------------------- SINGLE PARTICLE MODE------ ----------------------------*** " << endl;
         *gmsg << "* Instruction: when the total particle number equal to 1, single particle mode is triggered automatically," << endl
               << "* The initial distribution file must be specified which should contain only one line for the single particle " << endl
@@ -1747,6 +1750,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             throw OpalException("Error in ParallelCyclotronTracker::execute", "SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
 
     } else if(initialTotalNum_m == 2) {
+        *gmsg << endl;
         *gmsg << "* ------------------------ STATIC EQUILIBRIUM ORBIT MODE ----------------------------*** " << endl;
         *gmsg << "* Instruction: when the total particle number equal to 2, SEO mode is triggered automatically." << endl
               << "* This mode does NOT include any RF cavities. The initial distribution file must be specified" << endl
@@ -2828,7 +2832,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     *gmsg << "* The repartition frequency is set to " << Options::repartFreq << endl;
 
     if(initialTotalNum_m == 1) {
-
+        *gmsg << endl;
         *gmsg << "* ------------------------------ SINGLE PARTICLE MODE---------------------------------- *" << endl
               << "* Instruction: When the total particle number is equal to 1, single particle mode is    *" << endl
               << "* triggered automatically. The initial distribution file must be specified which should *" << endl
@@ -2839,7 +2843,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
             throw OpalException("Error in ParallelCyclotronTracker::execute", "SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
 
     } else if(initialTotalNum_m == 2) {
-
+        *gmsg << endl;
         *gmsg << "* ------------------------- STATIC EQUILIBRIUM ORBIT MODE ----------------------------- *" << endl
               << "* Instruction: When the total particle number is equal to 2, SEO mode is triggered      *" << endl
               << "* automatically. This mode does NOT include any RF cavities. The initial distribution   *" << endl
@@ -2857,7 +2861,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     
     /********************************
      *     Main integration loop    *
-     ********************************/                              
+     ********************************/
+    *gmsg << endl;                              
     *gmsg << "* --------------------------------- Start tracking ------------------------------------ *" << endl;
 
     for(; step_m < maxSteps_m; step_m++) {
@@ -2868,18 +2873,10 @@ void ParallelCyclotronTracker::Tracker_Generic() {
         if(initialTotalNum_m > 2) {
 
             // single particle dumping
-            if(step_m % SinglePartDumpFreq == 0) {
-              
-                if (timeIntegrator_m == 0) {
+            if(step_m % SinglePartDumpFreq == 0)
+                singleParticleDump();
 
-                    singleParticleDump_rk4();
-                }
-                else {
-
-                    singleParticleDump();
-                }
-            }
-            Ippl::Comm->barrier();
+            //Ippl::Comm->barrier(); TEMP moved into singleParticleDump() -DW
 
             // If we are using the 2nd order Leap Frog method, push half a step
             /* TEMP move this right before the second half step for testing -DW
@@ -3625,7 +3622,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
     // Some post-integration stuff
     *gmsg << endl;
-    *gmsg << "* ---------------------------- DONE TRACKING PARTICLES ----------------------------- * " << endl;
+    *gmsg << "* ---------------------------- DONE TRACKING PARTICLES -------------------------------- * " << endl;
 
     // Calculate tunes after tracking.
 
@@ -3642,7 +3639,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     Ippl::Comm->barrier();
 
     if(initialTotalNum_m == 2) {
-        *gmsg << "* ******** The result for tune calulation (NO space charge) ********** " << endl
+	*gmsg << endl;
+        *gmsg << "* **************** The result for tune calulation (NO space charge) ******************* *" << endl
               << "* Number of tracked turns: " << TturnNumber.back() << endl;
         double nur, nuz;
         getTunes(Ttime, Tdeltr, Tdeltz, TturnNumber.back(), nur, nuz);
@@ -3929,7 +3927,8 @@ bool ParallelCyclotronTracker::getTunes(vector<double> &t, vector<double> &r, ve
 
     T = t[Ndat-1];
 
-    *gmsg << "* *************** nuR ***************" << endl;
+    *gmsg << endl;
+    *gmsg << "* ************************************* nuR ******************************************* *" << endl;
     *gmsg << endl << "* ===> " << Ndat << " data points  Ti=" << ti << " Tf= " << tf << " -> T= " << T << endl;
 
     int nhis_lomb = 10;
@@ -3939,15 +3938,17 @@ bool ParallelCyclotronTracker::getTunes(vector<double> &t, vector<double> &r, ve
     stat = tune->LombAnalysis(t, r, nhis_lomb, T / lastTurn);
     if(stat != 0)
         *gmsg << "* TUNE: Lomb analysis failed" << endl;
-    *gmsg << "* ***********************************" << endl << endl;
+    *gmsg << "* ************************************************************************************* *" << endl;
 
     delete tune;
     tune = NULL;
-    // FixMe: need to come from the inputfile
+    // FIXME: FixMe: need to come from the inputfile
     nhis_lomb = 100;
 
     if(zsum != 0.0) {
-        *gmsg << "* *************** nuZ ***************" << endl;
+
+        *gmsg << endl;
+        *gmsg << "* ************************************* nuZ ******************************************* *" << endl;
         *gmsg << endl << "* ===> " << Ndat << " data points  Ti=" << ti << " Tf= " << tf << " -> T= " << T << endl;
 
         // book tune class
@@ -3955,7 +3956,7 @@ bool ParallelCyclotronTracker::getTunes(vector<double> &t, vector<double> &r, ve
         stat = tune->LombAnalysis(t, z, nhis_lomb, T / lastTurn);
         if(stat != 0)
             *gmsg << "* TUNE: Lomb analysis failed" << endl;
-        *gmsg << " ***********************************" << endl << endl;
+        *gmsg << "* ************************************************************************************* *" << endl;
 
         delete tune;
         tune = NULL;
@@ -3964,7 +3965,9 @@ bool ParallelCyclotronTracker::getTunes(vector<double> &t, vector<double> &r, ve
 }
 
 void ParallelCyclotronTracker::saveOneBunch() {
-    *gmsg << "---------------- Clone Beam----------------" << endl;
+
+    *gmsg << endl;
+    *gmsg << "* ---------------- Clone Beam---------------- *" << endl;
 
     npart_mb = itsBunch->getLocalNum();
 
@@ -3994,7 +3997,9 @@ void ParallelCyclotronTracker::saveOneBunch() {
  * @param step
  */
 bool ParallelCyclotronTracker::readOneBunch(const size_t BinID) {
-    *gmsg << "---------------- Copy Beam----------------" << endl;
+
+    *gmsg << endl;
+    *gmsg << "* ---------------- Copy Beam---------------- *" << endl;
 
     const size_t LocalNum = itsBunch->getLocalNum();
     const size_t NewLocalNum = LocalNum + npart_mb;
@@ -4917,14 +4922,20 @@ bool ParallelCyclotronTracker::deleteParticle(){
 }
 
 void ParallelCyclotronTracker::initTrackOrbitFile() {
+
     std::string f = OpalData::getInstance()->getInputBasename() + string("-trackOrbit.dat");
+
     outfTrackOrbit_m.setf(ios::scientific, ios::floatfield);
     outfTrackOrbit_m.precision(8);
+
     if(myNode_m == 0) {
+
         if(OpalData::getInstance()->inRestartRun()) {
+
             outfTrackOrbit_m.open(f.c_str(), ios::app);
             outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getLocalTrackStep() << endl;
         } else {
+
             outfTrackOrbit_m.open(f.c_str());
             outfTrackOrbit_m << "# The six-dimensional phase space data in the global Cartesian coordinates" << endl;
             outfTrackOrbit_m << "# Part. ID    x [mm]       beta_x*gamma       y [mm]      beta_y*gamma        z [mm]      beta_z*gamma" << endl;
@@ -5111,116 +5122,6 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     // Print out the Bunch information at beginning of the run
     *gmsg << *itsBunch << endl;
 }
-#ifdef GENERICTRACKER
-// TODO: Consolidate the two single particle dumps
-void ParallelCyclotronTracker::singleParticleDump_rk4() { 
-        IpplTimings::startTimer(DumpTimer_m);
-
-        double x;
-        int  id;
-        vector<double> tmpr;
-        vector<int> tmpi;
-
-        int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
-
-        // for all nodes, find the location of particle with ID = 0 & 1 in bunch containers
-        int found[2] = { -1, -1};
-        int counter = 0;
-
-        for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-
-            if(itsBunch->ID[ii] == 0) {
-                found[counter] = ii;
-                counter++;
-            }
-            if(itsBunch->ID[ii] == 1) {
-                found[counter] = ii;
-                counter++;
-            }
-        }
-        // for the regular modes only the space data of particles with ID = 0 and 1 need be transfored
-        if(myNode_m == 0) {
-            // for root node
-            int notReceived =  Ippl::getNodes() - 1;
-            int numberOfPart = 0;
-
-            while(notReceived > 0) {
-                int node = COMM_ANY_NODE;
-                Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-                if(rmsg == 0)
-                    ERRORMSG("Could not receive from client nodes in main." << endl);
-                notReceived--;
-                rmsg->get(&numberOfPart);
-
-                for(int ii = 0; ii < numberOfPart; ii++) {
-
-                    rmsg->get(&id);
-                    tmpi.push_back(id);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                }
-                delete rmsg;
-
-            }
-            for(int ii = 0; ii < 1; ii++) {
-
-                tmpi.push_back(itsBunch->ID[found[ii]]);
-
-                for(int jj = 0; jj < 3; jj++) {
-
-                    tmpr.push_back(itsBunch->R[found[ii]](jj));
-                    tmpr.push_back(itsBunch->P[found[ii]](jj));
-                }
-            }
-            vector<double>::iterator itParameter = tmpr.begin();
-            vector<int>::iterator  itId = tmpi.begin();
-
-            for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
-
-                outfTrackOrbit_m << "ID" << *itId;
-
-                for(int ii = 0; ii < 12; ii++) {
-
-                    outfTrackOrbit_m << " " << *itParameter;
-                    itParameter++;
-                }
-
-                outfTrackOrbit_m << endl;
-
-            }
-        // sample frequency = SinglePartDumpFreq
-        } else {
-            // for other nodes
-            Message *smsg = new Message();
-            smsg->put(counter);
-
-            for(int ii = 0; ii < counter; ii++) {
-
-                smsg->put(itsBunch->ID[found[ii]]);
-
-                for(int jj = 0; jj < 3; jj++) {
-
-                    smsg->put(itsBunch->R[found[ii]](jj));
-                    smsg->put(itsBunch->P[found[ii]](jj));
-                }
-           }
-           bool res = Ippl::Comm->send(smsg, 0, tag);
-           if(!res)
-               ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
-         }
-        IpplTimings::stopTimer(DumpTimer_m);
-}
-#endif //GENERICTRACKER
 
 void ParallelCyclotronTracker::singleParticleDump() {
     IpplTimings::startTimer(DumpTimer_m);
@@ -5237,6 +5138,7 @@ void ParallelCyclotronTracker::singleParticleDump() {
         // for all nodes, find the location of particle with ID = 0 & 1 in bunch containers
         int found[2] = {-1, -1};
         int counter = 0;
+
         for(size_t i = 0; i < itsBunch->getLocalNum(); ++i) {
             if(itsBunch->ID[i] == 0) {
                 found[counter] = i;
@@ -5331,6 +5233,8 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
         }
 
+        Ippl::Comm->barrier();
+
     } else {
 
         for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
@@ -5344,6 +5248,7 @@ void ParallelCyclotronTracker::singleParticleDump() {
             }
         }
     }
+
     IpplTimings::stopTimer(DumpTimer_m);
 }
 
