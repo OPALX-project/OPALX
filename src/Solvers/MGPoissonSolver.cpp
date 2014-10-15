@@ -245,7 +245,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
                   if (bp->isInside(idx, idy, idz))
-                    RHS->Values()[id++] = rho[idx][idy][idz].get()/scaleFactor;
+                    RHS->Values()[id++] = 4*M_PI*rho[idx][idy][idz].get()/scaleFactor;
             }
         }
     }

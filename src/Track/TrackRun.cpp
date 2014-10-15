@@ -262,6 +262,15 @@ void TrackRun::execute() {
             *gmsg << "  Selected Tracking Method is NOT implemented, good luck ..." << endl;
 
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+        if (Attributes::getString(itsAttr[BOUNDARYGEOMETRY]) != "NONE") {
+        // Ask the dictionary if BoundaryGeometry is allocated.
+        // If it is allocated use the allocated BoundaryGeometry 
+          if (!OpalData::getInstance()->hasGlobalGeometry()) {
+            BoundaryGeometry *bg = BoundaryGeometry::find(Attributes::getString(itsAttr[BOUNDARYGEOMETRY]))->
+                                                 clone(getOpalName() + string("_geometry"));
+            OpalData::getInstance()->setGlobalGeometry(bg);
+          }
+        }
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
         fs->initCartesianFields();
         Track::block->bunch->setSolver(fs);

@@ -252,8 +252,11 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
     //calculate intersection 
     Vector_t P, saveP, dir, I;
-    Vector_t P0 = Vector_t(0,0,bgeom_m->getmincoords()[2]+hr[2]); //Reference Point inside the boundary
-
+    // TODO: Find and set the reference point for any time of geometry 
+    //Reference Point inside the boundary for IsoDar Geo
+    Vector_t P0 = Vector_t(0,0,bgeom_m->getmincoords()[2]+hr[2]);     
+    //Reference Point where the boundary geometry is cylinder 
+    P0 = Vector_t(0,0,0);
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 	 saveP[2] = (idz - (nr[2]-1)/2.0)*hr[2];
 	 for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
@@ -271,7 +274,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
 		     rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
 		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-			setYRangeMax(MIN2(intersectMaxCoords_m(2),I[2]));
+//			setYRangeMax(MIN2(intersectMaxCoords_m(2),I[2]));
 			I -= globalMeanR_m;
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
@@ -282,7 +285,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 		     }
 
 		     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-			setYRangeMin(MAX2(intersectMinCoords_m(2),I[2]));
+//			setYRangeMin(MAX2(intersectMinCoords_m(2),I[2]));
 		        I -= globalMeanR_m;
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
@@ -294,7 +297,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 	
 	             rotateYAxisWithQuaternion(dir, localToGlobalQuaternion_m);
 		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-			 setZRangeMax(MIN2(intersectMaxCoords_m(1),I[1]));
+//			 setZRangeMax(MIN2(intersectMaxCoords_m(1),I[1]));
 			 I -= globalMeanR_m;
 			 rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		 IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
@@ -305,7 +308,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 		     }
 
 		     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-	    	        setZRangeMin(MAX2(intersectMinCoords_m(1),I[1]));
+//	    	        setZRangeMin(MAX2(intersectMinCoords_m(1),I[1]));
 		   	I -= globalMeanR_m;
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
@@ -317,7 +320,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 
 	             rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
 		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-			setXRangeMax(MIN2(intersectMaxCoords_m(0),I[0]));
+//			setXRangeMax(MIN2(intersectMaxCoords_m(0),I[0]));
 			I -= globalMeanR_m;
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
@@ -328,7 +331,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
 		     }
 
 		     if (bgeom_m->intersectRayBoundary(P, -dir, I)){
-			setXRangeMin(MAX2(intersectMinCoords_m(0),I[0]));
+//			setXRangeMin(MAX2(intersectMinCoords_m(0),I[0]));
 			I -= globalMeanR_m;
 			rotateWithQuaternion(I, globalToLocalQuaternion_m); 
        	      		IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));

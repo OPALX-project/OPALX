@@ -878,9 +878,9 @@ void PartBunch::computeSelfFields() {
     eg_m = Vector_t(0.0);
 
     if(fs_m->hasValidSolver()) {
-
-        if (fs_m->getFieldSolverType() == "SAAMG")
-           resizeMesh();
+        //use the mesh that is already set
+        //if (fs_m->getFieldSolverType() == "SAAMG")
+        //   resizeMesh();
 	INFOMSG("after resizeMesh" << hr_m << endl);
 
         //scatter charges onto grid
@@ -978,6 +978,20 @@ void PartBunch::computeSelfFields() {
 
         //write out e field
 #ifdef DBG_SCALARFIELD
+        // Immediate debug output:
+        // Output potential and e-field along the x-, y-, and z-axes
+        int m1 = (int)nr_m[0]-1;
+        int m2 = (int)nr_m[0]/2;
+
+        for (int i=0; i<m1; i++ )
+         *gmsg << "Field along x axis E = " << eg_m[i][m2][m2] << " Pot = " << rho_m[i][m2][m2]  << endl;
+
+        for (int i=0; i<m1; i++ )
+         *gmsg << "Field along y axis E = " << eg_m[m2][i][m2] << " Pot = " << rho_m[m2][i][m2]  << endl;
+
+        for (int i=0; i<m1; i++ )
+         *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
+
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
         //ostringstream oss;
         //MPI_File file;
