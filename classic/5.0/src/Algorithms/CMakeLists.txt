@@ -20,6 +20,7 @@ set (_SRCS
   ThinTracker.cpp
   TrackIntegrator.cpp
   Tracker.cpp
+  Vektor.cpp
   )
 
 include_directories (
