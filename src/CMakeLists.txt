@@ -135,7 +135,7 @@ if (BUILD_OPAL_UNIT_TESTS)
     # include and link gtest library
     # this can be built using the script provided at
     #     unit_test/gtest/bin/install_gtest.bash
-    link_directories( ${GTEST_LIB_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+    link_directories( ${GTEST_LIB_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/../classic/5.0/src)
     include_directories(${GTEST_INCLUDE_DIR})
     # Check to see if cmake finds the test files
     message(STATUS "unit test src files: ${TEST_SRCS}")
@@ -147,4 +147,3 @@ endif (BUILD_OPAL_UNIT_TESTS)
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-
