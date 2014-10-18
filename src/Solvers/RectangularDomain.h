@@ -4,7 +4,6 @@
 
 #include <vector>
 #include <string>
-using namespace std;
 #include "IrregularDomain.h"
 
 class RectangularDomain : public IrregularDomain {
@@ -30,7 +29,7 @@ public:
     /// returns index of neighbours at 3D index
     void getNeighbours(int idx, double &W, double &E, double &S, double &N, double &F, double &B);
     /// returns type of boundary condition
-    string getType() {return "Rectangular";}
+    std::string getType() {return "Rectangular";}
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
         double xx = (x - (nr[0] - 1) / 2.0) * hr[0];

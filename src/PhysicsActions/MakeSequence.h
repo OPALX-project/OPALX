@@ -35,7 +35,7 @@ public:
     virtual ~MakeSequence();
 
     /// Make clone.
-    virtual MakeSequence *clone(const string &name);
+    virtual MakeSequence *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const MakeSequence &);
 
     // Clone constructor.
-    MakeSequence(const string &name, MakeSequence *parent);
+    MakeSequence(const std::string &name, MakeSequence *parent);
 };
 
 #endif // __MakeSequence_HH

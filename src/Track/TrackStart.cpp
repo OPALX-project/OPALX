@@ -58,7 +58,7 @@ TrackStart::TrackStart():
 }
 
 
-TrackStart::TrackStart(const string &name, TrackStart *parent):
+TrackStart::TrackStart(const std::string &name, TrackStart *parent):
     Action(name, parent)
 {}
 
@@ -67,7 +67,7 @@ TrackStart::~TrackStart()
 {}
 
 
-TrackStart *TrackStart::clone(const string &name) {
+TrackStart *TrackStart::clone(const std::string &name) {
     return new TrackStart(name, this);
 }
 

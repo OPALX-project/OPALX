@@ -57,7 +57,7 @@ void Match::addVariable(AbstractVar *var) {
 }
 
 
-void Match::deleteVariable(const string &name) {
+void Match::deleteVariable(const std::string &name) {
     for(VarList::iterator var = theVariables.begin();
         var != theVariables.end(); ++var) {
         if((*var)->getName() == name) theVariables.erase(var);
@@ -65,7 +65,7 @@ void Match::deleteVariable(const string &name) {
 }
 
 
-AbstractVar *Match::findVariable(const string &name) {
+AbstractVar *Match::findVariable(const std::string &name) {
     for(VarList::iterator var = theVariables.begin();
         var != theVariables.end(); ++var) {
         if((*var)->getName() == name) return *var;

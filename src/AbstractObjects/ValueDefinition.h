@@ -36,7 +36,7 @@ public:
 
     /// Return the object category as a string.
     //  Return the string "VARIABLE".
-    virtual const string getCategory() const;
+    virtual const std::string getCategory() const;
 
     /// Trace flag.
     //  If true, the object's execute() function should be traced.
@@ -67,11 +67,11 @@ public:
 
     /// Return string value.
     //  The default version throws OpalException.
-    virtual string getString() const;
+    virtual std::string getString() const;
 
     /// Return indexed string value.
     //  The default version throws OpalException.
-    virtual string getStringComponent(int) const;
+    virtual std::string getStringComponent(int) const;
 
     /// Return the attribute representing the value of the definition.
     //  Version for non-constant object.
@@ -87,12 +87,12 @@ protected:
     ValueDefinition(int size, const char *name, const char *help);
 
     /// Constructor for clones.
-    ValueDefinition(const string &name, ValueDefinition *parent);
+    ValueDefinition(const std::string &name, ValueDefinition *parent);
 
     /// The declaration prefix.
     //  A string representing the value type in OPAL-9 input format:
     //  "BOOL", "REAL", "REAL CONST", "REAL VECTOR", etc.
-    const string itsPrefix;
+    const std::string itsPrefix;
 
 private:
 

@@ -35,7 +35,7 @@ public:
     virtual ~EditCycle();
 
     /// Make clone.
-    virtual EditCycle *clone(const string &name);
+    virtual EditCycle *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const EditCycle &);
 
     // Clone constructor.
-    EditCycle(const string &name, EditCycle *parent);
+    EditCycle(const std::string &name, EditCycle *parent);
 };
 
 #endif // OPAL_EditCycle_HH

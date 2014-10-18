@@ -44,7 +44,7 @@ public:
     virtual ~OpalDrift();
 
     /// Make clone.
-    virtual OpalDrift *clone(const string &name);
+    virtual OpalDrift *clone(const std::string &name);
 
     /// Test for drift.
     //  Return true.
@@ -60,7 +60,7 @@ private:
     void operator=(const OpalDrift &);
 
     // Clone constructor.
-    OpalDrift(const string &name, OpalDrift *parent);
+    OpalDrift(const std::string &name, OpalDrift *parent);
 
     OpalWake *owk_m;
     SurfacePhysics *sphys_m;

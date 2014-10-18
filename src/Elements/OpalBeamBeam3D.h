@@ -60,7 +60,7 @@ public:
     virtual ~OpalBeamBeam3D();
 
     /// Make clone.
-    virtual OpalBeamBeam3D *clone(const string &name);
+    virtual OpalBeamBeam3D *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -75,7 +75,7 @@ private:
     void operator=(const OpalBeamBeam3D &);
 
     // Clone constructor.
-    OpalBeamBeam3D(const string &name, OpalBeamBeam3D *parent);
+    OpalBeamBeam3D(const std::string &name, OpalBeamBeam3D *parent);
 };
 
 #endif // OPAL_OpalBeamBeam3D_H

@@ -81,7 +81,7 @@ BeamBeam3D::BeamBeam3D(const BeamBeam3D &rhs):
 }
 
 
-BeamBeam3D::BeamBeam3D(const string &name):
+BeamBeam3D::BeamBeam3D(const std::string &name):
     BeamBeam(name), geometry(), errorFunction(Werrf), F(0.0),
     slices(1), nsli(1) {
     lf.betax = lf.betay = lf.emitx = lf.emity = 1;
@@ -102,7 +102,7 @@ ElementBase *BeamBeam3D::clone() const {
 }
 
 
-Channel *BeamBeam3D::getChannel(const string &aKey, bool create) {
+Channel *BeamBeam3D::getChannel(const std::string &aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
@@ -137,8 +137,8 @@ ElementImage *BeamBeam3D::getImage() const {
 }
 
 
-const string &BeamBeam3D::getType() const {
-    static const string type("BeamBeam3D");
+const std::string &BeamBeam3D::getType() const {
+    static const std::string type("BeamBeam3D");
     return type;
 }
 

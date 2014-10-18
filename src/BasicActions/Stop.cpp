@@ -28,7 +28,7 @@ Stop::Stop(): Action(0, "STOP",
 {}
 
 
-Stop::Stop(const string &name, Stop *parent):
+Stop::Stop(const std::string &name, Stop *parent):
     Action(name, parent)
 {}
 
@@ -37,7 +37,7 @@ Stop::~Stop()
 {}
 
 
-Stop *Stop::clone(const string &name) {
+Stop *Stop::clone(const std::string &name) {
     return new Stop(name, this);
 }
 

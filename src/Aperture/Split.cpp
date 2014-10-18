@@ -61,7 +61,7 @@ namespace {
         { 0,       0,                0, 0, 0, 0 }
     };
 
-    const ColDesc *findCol(const MSplit &table, const string &colName) {
+    const ColDesc *findCol(const MSplit &table, const std::string &colName) {
         for(const ColDesc *col = allColumns; col->colName; ++col) {
             if(colName == col->colName) {
                 return col;
@@ -85,7 +85,7 @@ namespace {
         //  Identify the table by its name [b]tab[/b], and the column by its
         //  name [b]col[/b] and the function [b]col[/b].
         //  The row is specified as the ``current'' row of the table.
-        Column(const MSplit &tab, const string &colName, const ColDesc &desc);
+        Column(const MSplit &tab, const std::string &colName, const ColDesc &desc);
 
         Column(const Column &);
         virtual ~Column();
@@ -109,7 +109,7 @@ namespace {
         const MSplit &itsTable;
 
         // Column name.
-        string colName;
+        std::string colName;
 
         // The function returning the column value.
         double(MSplit::*get)(const MSplit::A_row &, int, int) const;
@@ -122,7 +122,7 @@ namespace {
     // Implementation.
     // ------------------------------------------------------------------------
 
-    Column::Column(const MSplit &tab, const string &colName, const ColDesc &desc):
+    Column::Column(const MSplit &tab, const std::string &colName, const ColDesc &desc):
         itsTable(tab), colName(colName),
         get(desc.get), ind_1(desc.ind_1), ind_2(desc.ind_2)
     {}
@@ -168,7 +168,7 @@ MSplit::MSplit():
     itsAttr[FILE] = Attributes::makeString
                     ("FILE", "Name of file to receive SPLIT output", "SPLIT.dat");
 }
-MSplit::MSplit(const string &name, MSplit *parent):
+MSplit::MSplit(const std::string &name, MSplit *parent):
     DefaultVisitor(itsTable, false, false),
     Table(name, parent), itsTable(name)
 {}
@@ -613,7 +613,7 @@ void MSplit::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp) {
 }
 
 void MSplit::execute() {
-    const string &beamName = Attributes::getString(itsAttr[BEAM]);
+    const std::string &beamName = Attributes::getString(itsAttr[BEAM]);
     beam = Beam::find(beamName);
     fill();
     if(Attributes::getBool(itsAttr[STATIC])) dynamic = false;
@@ -636,7 +636,7 @@ void MSplit::run() {
         throw OpalException("MSplit::execute()", "Unknown Twiss Table\"" + itsLine + "\".");
     }
     tp->fill();
-    string file = Attributes::getString(itsAttr[FILE]);
+    std::string file = Attributes::getString(itsAttr[FILE]);
     ofstream outFile(file.c_str());
     if(!outFile) {
         cerr << "MSplit: Cannot open output file."
@@ -684,7 +684,7 @@ double MSplit::getLength() {
     return itsTable.getElementLength();
 }
 
-double MSplit::getCell(const PlaceRep &place, const string &colName) {
+double MSplit::getCell(const PlaceRep &place, const std::string &colName) {
     A_row &row = findRow(place);
     const ColDesc *col = findCol(*this, colName);
     return (this->*(col->get))(row, col->ind_1, col->ind_2);
@@ -701,7 +701,7 @@ Table::CellArray MSplit::getDefault() const {
     }
     return columns;
 }
-std::vector<double> MSplit::getColumn(const RangeRep &rng, const string
+std::vector<double> MSplit::getColumn(const RangeRep &rng, const std::string
                                       &colName) {
     const ColDesc *col = findCol(*this, colName);
     RangeRep range(rng);
@@ -719,7 +719,7 @@ std::vector<double> MSplit::getColumn(const RangeRep &rng, const string
     return column;
 }
 std::vector<double> MSplit::getRow(const PlaceRep &pos, const
-                                   std::vector<string> &cols) {
+                                   std::vector<std::string> &cols) {
     A_row &row = findRow(pos);
     std::vector<double> result;
 
@@ -730,7 +730,7 @@ std::vector<double> MSplit::getRow(const PlaceRep &pos, const
         }
     } else {
         // User column selection.
-        for(std::vector<string>::const_iterator iter = cols.begin();
+        for(std::vector<std::string>::const_iterator iter = cols.begin();
             iter != cols.end(); ++iter) {
             const ColDesc *col = findCol(*this, *iter);
             result.push_back((this->*(col->get))(row, col->ind_1, col->ind_2));
@@ -739,7 +739,7 @@ std::vector<double> MSplit::getRow(const PlaceRep &pos, const
 
     return result;
 }
-bool MSplit::isDependent(const string &name) const {
+bool MSplit::isDependent(const std::string &name) const {
     // Test if name refers to USE attribute.
     if(itsLine == name) return true;
 
@@ -752,11 +752,11 @@ bool MSplit::isDependent(const string &name) const {
     return false;
 }
 bool MSplit::matches(Table *rhs) const { return false; }
-Expressions::PtrToScalar<double> MSplit::makeColumnExpression(const string &colname) const {
+Expressions::PtrToScalar<double> MSplit::makeColumnExpression(const std::string &colname) const {
     const ColDesc *col = findCol(*this, colname);
     return new Column(*this, colname, *col);
 }
-Object *MSplit::clone(const string &name) {
+Object *MSplit::clone(const std::string &name) {
     return new MSplit(name, this);
 }
 

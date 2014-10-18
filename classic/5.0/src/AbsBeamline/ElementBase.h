@@ -25,7 +25,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/AttributeSet.h"
-#include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "MemoryManagement/RCObject.h"
 #include <string>
@@ -118,28 +117,26 @@ class BoundaryGeometry;
 //  This returns a full deep copy.
 //  [/OL]
 
-using std::string;
-
 
 class ElementBase: public RCObject {
 
 public:
 
     /// Constructor with given name.
-    explicit ElementBase(const string &name);
+    explicit ElementBase(const std::string &name);
 
     ElementBase();
     ElementBase(const ElementBase &);
     virtual ~ElementBase();
 
     /// Get element name.
-    virtual const string &getName() const;
+    virtual const std::string &getName() const;
 
     /// Set element name.
-    virtual void setName(const string &name);
+    virtual void setName(const std::string &name);
 
-    /// Get element type string.
-    virtual const string &getType() const = 0;
+    /// Get element type std::string.
+    virtual const std::string &getType() const = 0;
 
     /// Get geometry.
     //  Return the element geometry.
@@ -227,32 +224,32 @@ public:
 
     /// Get attribute value.
     //  If the attribute does not exist, return zero.
-    virtual double getAttribute(const string &aKey) const;
+    virtual double getAttribute(const std::string &aKey) const;
 
     /// Test for existence of an attribute.
     //  If the attribute exists, return true, otherwise false.
-    virtual bool hasAttribute(const string &aKey) const;
+    virtual bool hasAttribute(const std::string &aKey) const;
 
     /// Remove an existing attribute.
-    virtual void removeAttribute(const string &aKey);
+    virtual void removeAttribute(const std::string &aKey);
 
     /// Set value of an attribute.
-    virtual void setAttribute(const string &aKey, double val);
+    virtual void setAttribute(const std::string &aKey, double val);
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool create = false);
+    virtual Channel *getChannel(const std::string &aKey, bool create = false);
 
     /// Construct a read-only channel.
     //  This method constructs a Channel permitting read-only access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual const ConstChannel *getConstChannel(const string &aKey) const;
+    virtual const ConstChannel *getConstChannel(const std::string &aKey) const;
 
     /// Construct an image.
-    //  Return the image of the element, containing the name and type string
+    //  Return the image of the element, containing the name and type std::string
     //  of the element, and a copy of the user-defined attributes.
     virtual ElementImage *getImage() const;
 
@@ -373,7 +370,7 @@ private:
     void operator=(const ElementBase &);
 
     // The element's name
-    string elementID;
+    std::string elementID;
 
     // The user-defined set of attributes.
     AttributeSet userAttribs;

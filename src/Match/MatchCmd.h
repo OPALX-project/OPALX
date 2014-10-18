@@ -35,7 +35,7 @@ public:
     virtual ~MatchCmd();
 
     /// Make clone.
-    virtual MatchCmd *clone(const string &name);
+    virtual MatchCmd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const MatchCmd &);
 
     // Clone constructor.
-    MatchCmd(const string &name, MatchCmd *parent);
+    MatchCmd(const std::string &name, MatchCmd *parent);
 };
 
 #endif // OPAL_MatchCmd_HH

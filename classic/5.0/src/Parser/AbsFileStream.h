@@ -34,7 +34,7 @@ public:
 
     /// Constructor.
     //  Store stream name.
-    explicit AbsFileStream(const string &name);
+    explicit AbsFileStream(const std::string &name);
 
     virtual ~AbsFileStream();
 
@@ -60,7 +60,7 @@ protected:
     bool skipComments();
 
     // Current input line and position in line.
-    string line;
+    std::string line;
     int curr_char;
 
 private:

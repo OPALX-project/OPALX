@@ -35,7 +35,7 @@ public:
     virtual ~TrackCmd();
 
     /// Make clone.
-    virtual TrackCmd *clone(const string &name);
+    virtual TrackCmd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ public:
 
     double getDTAU() const;
 
-    /// Return the elapsed time (sec) of the bunch 
+    /// Return the elapsed time (sec) of the bunch
     double getT0() const;
 
     /// Return the maximum timsteps we integrate the system
@@ -74,7 +74,7 @@ private:
     void operator=(const TrackCmd &);
 
     // Clone constructor.
-    TrackCmd(const string &name, TrackCmd *parent);
+    TrackCmd(const std::string &name, TrackCmd *parent);
 };
 
 #endif // OPAL_TrackCmd_HH

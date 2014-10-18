@@ -106,22 +106,22 @@ FieldSolver::FieldSolver():
     mesh_m = 0;
     FL_m = 0;
     PL_m = 0;
- 
+
     solver_m = 0;
 }
 
 
-FieldSolver::FieldSolver(const string &name, FieldSolver *parent):
+FieldSolver::FieldSolver(const std::string &name, FieldSolver *parent):
     Definition(name, parent)
 {}
 
 
 FieldSolver::~FieldSolver() {
-    if (solver_m) 
+    if (solver_m)
        delete solver_m;
 }
 
-FieldSolver *FieldSolver::clone(const string &name) {
+FieldSolver *FieldSolver::clone(const std::string &name) {
     return new FieldSolver(name, this);
 }
 
@@ -129,7 +129,7 @@ void FieldSolver::execute() {
     update();
 }
 
-FieldSolver *FieldSolver::find(const string &name) {
+FieldSolver *FieldSolver::find(const std::string &name) {
     FieldSolver *fs = dynamic_cast<FieldSolver *>(OpalData::getInstance()->find(name));
 
     if(fs == 0) {
@@ -196,24 +196,24 @@ void FieldSolver::initCartesianFields() {
     // OpalData::getInstance()->setLayout(PL_m);
 }
 
-bool FieldSolver::hasPeriodicZ() { 
+bool FieldSolver::hasPeriodicZ() {
   return Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC");
 }
 
-bool FieldSolver::isAMRSolver() { 
+bool FieldSolver::isAMRSolver() {
   return Attributes::getString(itsAttr[FSTYPE])==std::string("AMR");
 }
 
 
 void FieldSolver::initSolver(PartBunch &b) {
     itsBunch_m = &b;
-     string bcx = Attributes::getString(itsAttr[BCFFTX]);
-     string bcy = Attributes::getString(itsAttr[BCFFTY]);
-     string bcz = Attributes::getString(itsAttr[BCFFTT]);
+     std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
+     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
+     std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
 
      if(Attributes::getString(itsAttr[FSTYPE]) == "FFT" || Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
 
-	bool sinTrafo = ((bcx == string("DIRICHLET")) && (bcy == string("DIRICHLET")) && (bcz == string("DIRICHLET")));
+	bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
         if(sinTrafo) {
             std::cout << "FFTBOX ACTIVE" << std::endl;
             //we go over all geometries and add the Geometry Elements to the geometry list
@@ -258,9 +258,9 @@ void FieldSolver::initSolver(PartBunch &b) {
                 tmp += geoms[i];
         }
         solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]),
-                                                                    Attributes::getString(itsAttr[INTERPL]), 
+                                                                    Attributes::getString(itsAttr[INTERPL]),
                                                                     Attributes::getReal(itsAttr[TOL]),
-                                                                    Attributes::getReal(itsAttr[MAXITERS]), 
+                                                                    Attributes::getReal(itsAttr[MAXITERS]),
                                                                     Attributes::getString(itsAttr[PRECMODE]));
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
         fsType_m = "SAAMG";

@@ -23,8 +23,6 @@
 #include "MemoryManagement/Pointer.h"
 #include <string>
 
-using std::string;
-
 class Attribute;
 class AttributeBase;
 class Statement;

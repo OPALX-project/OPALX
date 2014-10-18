@@ -41,7 +41,7 @@ public:
     virtual ~ErrorSave();
 
     /// Make clone.
-    virtual ErrorSave *clone(const string &name);
+    virtual ErrorSave *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -51,7 +51,7 @@ public:
     //  errors are related to [b]mainField[/b]. The field error is fetched
     //  from [b]errorField[/b].  This class's execute() method uses a MPHandler
     //  to call this method for all elements which have a field error.
-    virtual void fieldError(const string &name, int occur,
+    virtual void fieldError(const std::string &name, int occur,
                             const BMultipoleField &mainField,
                             BMultipoleField &errorField);
 
@@ -68,7 +68,7 @@ private:
     void operator=(const ErrorSave &);
 
     // Clone constructor.
-    ErrorSave(const string &name, ErrorSave *parent);
+    ErrorSave(const std::string &name, ErrorSave *parent);
 
     // Output stream; "mutable" is required to enable writing.
     mutable std::ofstream os;

@@ -57,7 +57,7 @@ Eigen::Eigen():
 }
 
 
-Eigen::Eigen(const string &name, Eigen *parent):
+Eigen::Eigen(const std::string &name, Eigen *parent):
     Action(name, parent)
 {}
 
@@ -66,17 +66,17 @@ Eigen::~Eigen()
 {}
 
 
-Eigen *Eigen::clone(const string &name) {
+Eigen *Eigen::clone(const std::string &name) {
     return new Eigen(name, this);
 }
 
 
 void Eigen::execute() {
-    string tableName = Attributes::getString(itsAttr[TABLE]);
+    std::string tableName = Attributes::getString(itsAttr[TABLE]);
     Twiss *table = dynamic_cast<Twiss *>(OpalData::getInstance()->find(tableName));
 
     if(table) {
-        string fileName = Attributes::getString(itsAttr[FNAME]);
+        std::string fileName = Attributes::getString(itsAttr[FNAME]);
         if(fileName == "TERM") {
             format(std::cout, table);
         } else {
@@ -109,17 +109,17 @@ void Eigen::formatPrint(std::ostream &os, const Twiss *table) const {
 
     // Print table specific header.
     table->printTableTitle(os, "Eigenvectors");
-    os << string(118, '-') << '\n';
-    os << "Element" << string(24, ' ') << "S       Orbit |"
-       << string(25, ' ') << "E i g e n v e c t o r s\n";
-    os << string(118, '-') << '\n';
+    os << std::string(118, '-') << '\n';
+    os << "Element" << std::string(24, ' ') << "S       Orbit |"
+       << std::string(25, ' ') << "E i g e n v e c t o r s\n";
+    os << std::string(118, '-') << '\n';
 
     // Print table body.
     for(Twiss::TLine::const_iterator row = table->begin();
         row != table->end(); ++row) {
         if(row->getSelectionFlag()) {
             os << '\n';
-            string name = row->getElement()->getName();
+            std::string name = row->getElement()->getName();
             if(int occur = row->getCounter()) {
 #if defined(__GNUC__) && __GNUC__ < 3
                 char buffer[128];
@@ -137,17 +137,17 @@ void Eigen::formatPrint(std::ostream &os, const Twiss *table) const {
 
             if(name.length() > 16) {
                 // Truncate the element name.
-                os << string(name, 0, 13) << ".. ";
+                os << std::string(name, 0, 13) << ".. ";
             } else {
                 // Left adjust the element name.
-                os << name << string(16 - name.length(), ' ');
+                os << name << std::string(16 - name.length(), ' ');
             }
             os << std::setw(16) << table->getS(*row);
 
             FMatrix<double, 6, 6> eigen = table->getCurlyA(*row);
             FVector<double, 6> orbit = table->getOrbit(*row);
             for(int i = 0; i < 6; ++i) {
-                if(i != 0) os << string(32, ' ');
+                if(i != 0) os << std::string(32, ' ');
                 os << std::setw(12) << orbit[i] << " |";
                 for(int j = 0; j < 6; ++j) {
                     os << std::setw(12)  << eigen[i][j];
@@ -157,11 +157,9 @@ void Eigen::formatPrint(std::ostream &os, const Twiss *table) const {
         }
     }
 
-    os << string(118, '-') << std::endl;
+    os << std::string(118, '-') << std::endl;
 
     // Restore the formatting flags.
     os.precision(old_prec);
     os.setf(std::ios::fixed, std::ios::floatfield);
 }
-
-

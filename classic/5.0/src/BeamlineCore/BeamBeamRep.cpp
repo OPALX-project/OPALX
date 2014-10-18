@@ -65,7 +65,7 @@ BeamBeamRep::BeamBeamRep(const BeamBeamRep &right):
 {}
 
 
-BeamBeamRep::BeamBeamRep(const string &name):
+BeamBeamRep::BeamBeamRep(const std::string &name):
     BeamBeam(name), geometry()
 {}
 
@@ -79,7 +79,7 @@ ElementBase *BeamBeamRep::clone() const {
 }
 
 
-Channel *BeamBeamRep::getChannel(const string &aKey, bool create) {
+Channel *BeamBeamRep::getChannel(const std::string &aKey, bool create) {
     static char plane[] = "XYS";
     if(aKey[0] == 'D') {
         for(int i = 0; i < 3; i++) {

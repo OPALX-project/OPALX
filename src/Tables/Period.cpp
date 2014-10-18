@@ -101,7 +101,7 @@ Period::Period():
 }
 
 
-Period::Period(const string &name, Period *parent):
+Period::Period(const std::string &name, Period *parent):
     Twiss(name, parent)
 {}
 
@@ -110,7 +110,7 @@ Period::~Period()
 {}
 
 
-Period *Period::clone(const string &name) {
+Period *Period::clone(const std::string &name) {
     return new Period(name, this);
 }
 

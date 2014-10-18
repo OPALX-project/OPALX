@@ -35,7 +35,7 @@ BeamBeam::BeamBeam(const BeamBeam &right):
 {}
 
 
-BeamBeam::BeamBeam(const string &name):
+BeamBeam::BeamBeam(const std::string &name):
     Component(name)
 {}
 
@@ -76,8 +76,7 @@ void BeamBeam::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &BeamBeam::getType() const {
-    static const string type("BeamBeam");
+const std::string &BeamBeam::getType() const {
+    static const std::string type("BeamBeam");
     return type;
 }
-

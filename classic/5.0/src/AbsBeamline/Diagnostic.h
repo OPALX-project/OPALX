@@ -34,7 +34,7 @@ class Diagnostic: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Diagnostic(const string &name);
+    explicit Diagnostic(const std::string &name);
 
     Diagnostic();
     Diagnostic(const Diagnostic &rhs);
@@ -55,7 +55,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

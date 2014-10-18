@@ -22,8 +22,6 @@
 
 #include <string>
 
-using std::string;
-
 class ElementBase;
 class AttributeSet;
 
@@ -48,18 +46,18 @@ public:
     /// Erase element by name.
     //  If there is no element with the given [b]name[/b],
     //  the request is ignored.
-    virtual void erase(const string &name) = 0;
+    virtual void erase(const std::string &name) = 0;
 
     /// Find element by name.
     //  If an element with the name [b]name[/b] exists,
     //  return a pointer to this element, otherwise return NULL.
-    virtual ElementBase *find(const string &name) const = 0;
+    virtual ElementBase *find(const std::string &name) const = 0;
 
     /// Make new element.
     //  Create a new element with the type [b]type[/b], the name [b]name[/b]
     //  and the attributes in [b]set[/b].  If an element with the name
     //  [b]name[/b] already exists, it is replaced.
-    virtual ElementBase *makeElement(const string &type, const string &name,
+    virtual ElementBase *makeElement(const std::string &type, const std::string &name,
                                      const AttributeSet &set) = 0;
 
     /// Define a new element.

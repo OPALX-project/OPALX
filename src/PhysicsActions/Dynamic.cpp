@@ -66,7 +66,7 @@ Dynamic::Dynamic():
 }
 
 
-Dynamic::Dynamic(const string &name, Dynamic *parent):
+Dynamic::Dynamic(const std::string &name, Dynamic *parent):
     Action(name, parent)
 {}
 
@@ -75,7 +75,7 @@ Dynamic::~Dynamic()
 {}
 
 
-Dynamic *Dynamic::clone(const string &name) {
+Dynamic *Dynamic::clone(const std::string &name) {
     return new Dynamic(name, this);
 }
 
@@ -86,7 +86,7 @@ void Dynamic::execute() {
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
     // Open output file.
-    string file = Attributes::getString(itsAttr[FNAME]);
+    std::string file = Attributes::getString(itsAttr[FNAME]);
     std::ofstream os(file.c_str());
     if(os.bad()) {
         throw OpalException("Dynamic::execute()",

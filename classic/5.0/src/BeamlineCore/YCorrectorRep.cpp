@@ -62,7 +62,7 @@ YCorrectorRep::YCorrectorRep(const YCorrectorRep &right):
 {}
 
 
-YCorrectorRep::YCorrectorRep(const string &name):
+YCorrectorRep::YCorrectorRep(const std::string &name):
     CorrectorRep(name)
 {}
 
@@ -76,7 +76,7 @@ ElementBase *YCorrectorRep::clone() const {
 }
 
 
-Channel *YCorrectorRep::getChannel(const string &aKey, bool create) {
+Channel *YCorrectorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<YCorrectorRep>(*this, entry->get, entry->set);
@@ -111,4 +111,3 @@ double YCorrectorRep::getBy() const {
 void YCorrectorRep::setBy(double) {
     // Do nothing.
 }
-

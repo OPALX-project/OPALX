@@ -23,7 +23,7 @@
 // Class TableTester
 // ------------------------------------------------------------------------
 
-TableTester::TableTester(const Beamline &beamline, const string &name):
+TableTester::TableTester(const Beamline &beamline, const std::string &name):
     DefaultVisitor(beamline, false, false), itsName(name)
 {}
 

@@ -48,7 +48,7 @@ class ParallelCyclotronTracker: public Tracker {
 public:
 
     typedef std::pair<double[8], Component *>      element_pair;
-    typedef std::pair<string, element_pair>        type_pair;
+    typedef std::pair<std::string, element_pair>        type_pair;
     typedef std::list<type_pair *>                 beamline_list;
     /// Constructor.
     //  The beam line to be tracked is "bl".
@@ -170,7 +170,7 @@ public:
 
     /// set the control parameter for "AUTO" sub-mode
     inline void  setParaAutoMode(const double para) {CoeffDBunches_m = para; }
-  
+
     inline void setPr(double x) {referencePr = x;}
     inline void setPt(double x) {referencePt = x;}
     inline void setPz(double x) {referencePz = x;}
@@ -181,7 +181,7 @@ public:
 
     void bgf_main_collision_test();
     void initializeBoundaryGeometry();
-    
+
 private:
 
     // Not implemented.
@@ -226,7 +226,7 @@ private:
 
     double sinRefTheta_m;
     double cosRefTheta_m;
-    
+
     /// The number of bunches specified in TURNS of RUN commond
     int numBunch_m;
 
@@ -321,7 +321,7 @@ private:
     ParticleAttrib<short> ptype_mb;
     size_t npart_mb;
 
-    void openFiles(string fn);
+    void openFiles(std::string fn);
     void closeFiles();
 
     // Fringe fields for entrance and exit of magnetic elements.
@@ -330,9 +330,9 @@ private:
     void applyExitFringe(double edge, double curve,
                          const BMultipoleField &field, double scale);
 
-    void buildupFieldList(double BcParameter[], string ElementType, Component *elptr);
+    void buildupFieldList(double BcParameter[], std::string ElementType, Component *elptr);
 
-    bool derivate(double *y, const double &t, double *yp, const size_t &Pindex); 
+    bool derivate(double *y, const double &t, double *yp, const size_t &Pindex);
 
     bool rk4(double x[], const double &t, const double &tau, const size_t &Pindex);
 
@@ -356,27 +356,27 @@ private:
     IpplTimings::TimerRef BinRepartTimer_m;
 
     Vector_t calcMeanR() const;
-    
+
     Vector_t calcMeanP() const;
-    
+
     void repartition(); // Do repartition between nodes if step_m is multiple of Options::repartFreq
-    
-    // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the 
+
+    // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the
     // global reference frame to the local reference frame.
 
     // phi is the angle of the bunch measured counter-clockwise from the positive x-axis.
     void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, double phi, Vector_t const translationToGlobal = 0);
-    
-    // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the 
+
+    // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the
     // local reference frame to the global reference frame.
     void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, double phi, Vector_t const translationToGlobal = 0);
-    
+
     // Overloaded version of globalToLocal using a quaternion for 3D rotation
     inline void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, Quaternion_t const quaternion, Vector_t const meanR = Vector_t(0.0));
-    
+
     // Overloaded version of localToGlobal using a quaternion for 3D rotation
     inline void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, Quaternion_t const quaternion, Vector_t const meanR = Vector_t(0.0));
-    
+
     // Overloaded version of globalToLocal using phi and theta for pseudo 3D rotation
     inline void globalToLocal(ParticleAttrib<Vector_t> & particleVectors, double const phi, double const psi, Vector_t const meanR = Vector_t(0.0));
 
@@ -391,14 +391,14 @@ private:
 
     // Normalization of a quaternion
     inline void normalizeQuaternion(Quaternion_t & quaternion);
-    
+
     // Normalization of a quaternion
-    inline void normalizeVector(Vector_t & vector); 
+    inline void normalizeVector(Vector_t & vector);
 
     // Some rotations
     inline void rotateAroundZ(ParticleAttrib<Vector_t> & particleVectors, double const phi);
     inline void rotateAroundX(ParticleAttrib<Vector_t> & particleVectors, double const psi);
-    
+
     // Push particles for time h.
     // Apply effects of RF Gap Crossings.
     // Update time and path length.
@@ -412,13 +412,13 @@ private:
     // Apply the trilogy half push - kick - half push,
     // considering only external fields
     void borisExternalFields(double h);
-    
-    // apply the plugin elements: probe, collimator, stripper, septum 
+
+    // apply the plugin elements: probe, collimator, stripper, septum
     void applyPluginElements(const double dt);
-    
+
     // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
     bool deleteParticle();
-    
+
     std::ofstream outfTrackOrbit_m;
 
     void initTrackOrbitFile();
@@ -467,7 +467,7 @@ double ParallelCyclotronTracker::calculateAngle(double x, double y) {
  * @return angle range [-PI~PI) degree
  */
 inline
-double ParallelCyclotronTracker::calculateAngle2(double x, double y) 
+double ParallelCyclotronTracker::calculateAngle2(double x, double y)
 { return atan2(y,x); }
 
 #endif // OPAL_ParallelCyclotronTracker_HH

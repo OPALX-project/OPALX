@@ -35,7 +35,7 @@ public:
     virtual ~TrackSave();
 
     /// Make clone.
-    virtual TrackSave *clone(const string &name);
+    virtual TrackSave *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const TrackSave &);
 
     // Clone constructor.
-    TrackSave(const string &name, TrackSave *parent);
+    TrackSave(const std::string &name, TrackSave *parent);
 };
 
 #endif // OPAL_TrackSave_HH

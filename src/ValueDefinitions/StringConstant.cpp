@@ -34,7 +34,7 @@ StringConstant::StringConstant():
 }
 
 
-StringConstant::StringConstant(const string &name, StringConstant *parent):
+StringConstant::StringConstant(const std::string &name, StringConstant *parent):
     ValueDefinition(name, parent)
 {}
 
@@ -48,13 +48,13 @@ bool StringConstant::canReplaceBy(Object *) {
 }
 
 
-StringConstant *StringConstant::clone(const string &name) {
+StringConstant *StringConstant::clone(const std::string &name) {
     return new StringConstant(name, this);
 }
 
 
 
-string StringConstant::getString() const {
+std::string StringConstant::getString() const {
     return Attributes::getString(itsAttr[0]);
 }
 

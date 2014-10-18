@@ -112,7 +112,7 @@ Collimator::Collimator(const Collimator &right):
 }
 
 
-Collimator::Collimator(const string &name):
+Collimator::Collimator(const std::string &name):
     Component(name),
     filename_m(""),
     plane_m(OFF),
@@ -339,7 +339,7 @@ void Collimator::finalise()
 void Collimator::goOnline() {
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
-            string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
+            std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             ERRORMSG(errormsg << endl);
             if(Ippl::myNode() == 0) {
                 ofstream omsg("errormsg.txt", ios_base::app);
@@ -378,7 +378,7 @@ void Collimator::goOnline() {
 void Collimator::print() {
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
-            string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
+            std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             *gmsg << errormsg << "\n"
                 << endl;
             if(Ippl::myNode() == 0) {
@@ -416,7 +416,7 @@ bool Collimator::bends() const {
     return false;
 }
 
-void Collimator::setOutputFN(string fn) {
+void Collimator::setOutputFN(std::string fn) {
     filename_m = fn;
 }
 
@@ -558,8 +558,8 @@ void Collimator::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const string &Collimator::getType() const {
-    static const string type("Collimator");
+const std::string &Collimator::getType() const {
+    static const std::string type("Collimator");
     return type;
 }
 

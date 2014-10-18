@@ -30,7 +30,7 @@ Macro::Macro(int size, const char *name, const char *help):
 {}
 
 
-Macro::Macro(const string &name, Object *parent):
+Macro::Macro(const std::string &name, Object *parent):
     Object(name, parent), formals(), actuals()
 {}
 
@@ -39,14 +39,14 @@ Macro::~Macro()
 {}
 
 
-Macro *Macro::clone(const string &) {
+Macro *Macro::clone(const std::string &) {
     throw ParseError("Macro::clone()",
                      "You cannot execute the command \"" + getOpalName() +
                      "\" without parameters.");
 }
 
 
-const string Macro::getCategory() const {
+const std::string Macro::getCategory() const {
     return "MACRO";
 }
 
@@ -101,10 +101,10 @@ void Macro::parseFormals(Statement &stat) {
     // We start after the opening '('.
     formals.clear();
     if(! stat.delimiter(')')) {
-        string form;
+        std::string form;
 
         do {
-            string form =
+            std::string form =
                 Expressions::parseString(stat, "Expected formal argument name.");
             formals.push_back(form);
         } while(stat.delimiter(','));

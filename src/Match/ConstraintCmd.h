@@ -36,7 +36,7 @@ public:
     virtual ~ConstraintCmd();
 
     /// Make clone.
-    virtual ConstraintCmd *clone(const string &name);
+    virtual ConstraintCmd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -57,7 +57,7 @@ private:
     void operator=(const ConstraintCmd &);
 
     // Clone constructor.
-    ConstraintCmd(const string &name, ConstraintCmd *parent);
+    ConstraintCmd(const std::string &name, ConstraintCmd *parent);
 
     // The value of the relational operator:
     // 0 = "==", 1 = ">", 2 = "<".

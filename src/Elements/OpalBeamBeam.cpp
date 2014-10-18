@@ -54,7 +54,7 @@ OpalBeamBeam::OpalBeamBeam():
 }
 
 
-OpalBeamBeam::OpalBeamBeam(const string &name, OpalBeamBeam *parent):
+OpalBeamBeam::OpalBeamBeam(const std::string &name, OpalBeamBeam *parent):
     OpalElement(name, parent) {
     setElement(new BeamBeamRep(name));
 }
@@ -64,7 +64,7 @@ OpalBeamBeam::~OpalBeamBeam()
 {}
 
 
-OpalBeamBeam *OpalBeamBeam::clone(const string &name) {
+OpalBeamBeam *OpalBeamBeam::clone(const std::string &name) {
     return new OpalBeamBeam(name, this);
 }
 

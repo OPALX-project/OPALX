@@ -87,7 +87,7 @@ protected:
     CorrectionBase(int size, const char *name, const char *help);
 
     /// Clone constructor.
-    CorrectionBase(const string &name, CorrectionBase *parent);
+    CorrectionBase(const std::string &name, CorrectionBase *parent);
 
     /// Add to kicker strength.
     //  Arguments:

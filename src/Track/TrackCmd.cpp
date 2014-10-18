@@ -42,7 +42,7 @@ namespace {
                       // charge integration. Has no direct interpretation like DTSCINIT, but lower
                       // means smaller steps and more accurate. If given, DTSCINIT is not used. Useful
                       // for continuing with same step size in follow-up tracks.
-        T0,           // The elapsed time (sec) of the bunch 
+        T0,           // The elapsed time (sec) of the bunch
         MAXSTEPS,     // The maximum timesteps we integrate
         ZSTOP,        // Defines a z-location [m], after which the simulation stops when the last particles passes
         STEPSPERTURN, // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
@@ -79,7 +79,7 @@ TrackCmd::TrackCmd():
                    ("NNB", "Number of neighbouring bunches in OPAL-cycl", 0.0);
 }
 
-TrackCmd::TrackCmd(const string &name, TrackCmd *parent):
+TrackCmd::TrackCmd(const std::string &name, TrackCmd *parent):
     Action(name, parent)
 {}
 
@@ -88,7 +88,7 @@ TrackCmd::~TrackCmd()
 {}
 
 
-TrackCmd *TrackCmd::clone(const string &name) {
+TrackCmd *TrackCmd::clone(const std::string &name) {
     return new TrackCmd(name, this);
 }
 
@@ -126,15 +126,15 @@ int TrackCmd::getNNB() const {
 
 // return int type rathor than string to improve the speed
 int TrackCmd::getTIMEINTEGRATOR() const {
-    string name = Attributes::getString(itsAttr[TIMEINTEGRATOR]);
+    std::string name = Attributes::getString(itsAttr[TIMEINTEGRATOR]);
     int  nameID;
-    if(name == string("RK-4"))
+    if(name == std::string("RK-4"))
         nameID =  0;
-    else if(name == string("LF-2"))
+    else if(name == std::string("LF-2"))
         nameID =  1;
-    else if(name == string("MTS"))
+    else if(name == std::string("MTS"))
         nameID = 2;
-    else if(name == string("AMTS"))
+    else if(name == std::string("AMTS"))
         nameID = 3;
     else
         nameID = -1;

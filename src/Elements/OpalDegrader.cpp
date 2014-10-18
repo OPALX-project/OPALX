@@ -52,7 +52,7 @@ OpalDegrader::OpalDegrader():
 }
 
 
-OpalDegrader::OpalDegrader(const string &name, OpalDegrader *parent):
+OpalDegrader::OpalDegrader(const std::string &name, OpalDegrader *parent):
     OpalElement(name, parent),
     sphys_m(NULL) {
     setElement((new DegraderRep(name))->makeAlignWrapper());
@@ -65,7 +65,7 @@ OpalDegrader::~OpalDegrader() {
 }
 
 
-OpalDegrader *OpalDegrader::clone(const string &name) {
+OpalDegrader *OpalDegrader::clone(const std::string &name) {
     return new OpalDegrader(name, this);
 }
 
@@ -108,7 +108,7 @@ void OpalDegrader::update() {
     }
     */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*deg);
         deg->setSurfacePhysics(sphys_m->handler_m);
     }

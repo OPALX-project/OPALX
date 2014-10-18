@@ -35,11 +35,11 @@ public:
     /// Constructor.
     //  Stores the name of the input stream and the line at which
     //  the statement begins.
-    SimpleStatement(const string &streamName, int streamLine);
+    SimpleStatement(const std::string &streamName, int streamLine);
 
     /// Constructor.
     //  Stores a name (e.g. for a macro) and the token list.
-    SimpleStatement(const string &streamName, TokenList &list);
+    SimpleStatement(const std::string &streamName, TokenList &list);
 
     /// Destructor.
     virtual ~SimpleStatement();
@@ -52,4 +52,3 @@ public:
 };
 
 #endif // CLASSIC_SimpleStatement_HH
-

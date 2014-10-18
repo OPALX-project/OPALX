@@ -27,8 +27,6 @@
 
 #include <Ippl.h>
 
-using std::string;
-
 class Parser;
 
 

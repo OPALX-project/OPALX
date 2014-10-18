@@ -36,7 +36,7 @@ public:
     virtual ~ErrorAlign();
 
     /// Make clone.
-    virtual ErrorAlign *clone(const string &name);
+    virtual ErrorAlign *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -55,7 +55,7 @@ private:
     void operator=(const ErrorAlign &);
 
     // Clone constructor.
-    ErrorAlign(const string &name, ErrorAlign *parent);
+    ErrorAlign(const std::string &name, ErrorAlign *parent);
 
     // Counters for new and existing errors.
     int oldError, newError;

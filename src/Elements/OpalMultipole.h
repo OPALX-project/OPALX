@@ -42,7 +42,7 @@ public:
     virtual ~OpalMultipole();
 
     /// Make clone.
-    virtual OpalMultipole *clone(const string &name);
+    virtual OpalMultipole *clone(const std::string &name);
 
     /// Print the object.
     //  Handle printing in OPAL-8 format.
@@ -61,7 +61,7 @@ private:
     void operator=(const OpalMultipole &);
 
     // Clone constructor.
-    OpalMultipole(const string &name, OpalMultipole *parent);
+    OpalMultipole(const std::string &name, OpalMultipole *parent);
 };
 
 #endif // OPAL_OpalMultipole_HH

@@ -71,7 +71,7 @@ public:
     virtual ~Survey();
 
     /// Make clone.
-    virtual Survey *clone(const string &name);
+    virtual Survey *clone(const std::string &name);
 
     /// Check validity of survey definition.
     virtual void execute();
@@ -80,14 +80,14 @@ public:
     virtual void fill();
 
     /// Return a selected value in a selected row.
-    virtual double getCell(const PlaceRep &row, const string &col);
+    virtual double getCell(const PlaceRep &row, const std::string &col);
 
     /// Return the default print columns.
     virtual CellArray getDefault() const;
 
     /// Return column [b]col[/b] of this table, limited by [b]range[/b].
     virtual std::vector<double>
-    getColumn(const RangeRep &range, const string &col);
+    getColumn(const RangeRep &range, const std::string &col);
 
     /// Return current row of table.
     const Row &getCurrent() const;
@@ -101,7 +101,7 @@ public:
 
     /// Return a table row, possible user-defined.
     virtual std::vector<double>
-    getRow(const PlaceRep &, const std::vector<string> &);
+    getRow(const PlaceRep &, const std::vector<std::string> &);
 
 
     /// Arc length for given row.
@@ -135,13 +135,13 @@ public:
 
     /// Find dependency.
     //  Return true, if this table depends on the named object.
-    virtual bool isDependent(const string &name) const;
+    virtual bool isDependent(const std::string &name) const;
 
     /// Return column.
     //  Return an expression which denotes the selected column,
     //  identified by its name.
     virtual Expressions::PtrToScalar<double>
-    makeColumnExpression(const string &colName) const;
+    makeColumnExpression(const std::string &colName) const;
 
     /// Check compatibility.
     //  True, if [b]rhs[/b] is a survey table.
@@ -157,7 +157,7 @@ private:
     void operator=(const Survey &);
 
     // Clone constructor.
-    Survey(const string &name, Survey *parent);
+    Survey(const std::string &name, Survey *parent);
 
 
     // Set the current table row for a given place specification.
@@ -179,7 +179,7 @@ private:
     double s;
 
     // The name of the surveyed line.
-    string itsLine;
+    std::string itsLine;
 
     /// Number of table columns.
     static const int numColumns = 7;

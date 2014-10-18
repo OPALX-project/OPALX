@@ -36,7 +36,7 @@ RFQuadrupole::RFQuadrupole(const RFQuadrupole &rhs):
 {}
 
 
-RFQuadrupole::RFQuadrupole(const string &name):
+RFQuadrupole::RFQuadrupole(const std::string &name):
     Component(name)
 {}
 
@@ -78,8 +78,8 @@ void RFQuadrupole::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &RFQuadrupole::getType() const {
-    static const string type("RFQuadrupole");
+const std::string &RFQuadrupole::getType() const {
+    static const std::string type("RFQuadrupole");
     return type;
 }
 

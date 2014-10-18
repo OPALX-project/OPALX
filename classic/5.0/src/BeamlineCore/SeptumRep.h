@@ -33,7 +33,7 @@ class SeptumRep: public Septum {
 public:
 
     /// Constructor with given name.
-    explicit SeptumRep(const string &name);
+    explicit SeptumRep(const std::string &name);
 
     SeptumRep();
     SeptumRep(const SeptumRep &);
@@ -47,7 +47,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.

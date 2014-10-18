@@ -75,7 +75,7 @@ SurfacePhysics::SurfacePhysics():
 }
 
 
-SurfacePhysics::SurfacePhysics(const string &name, SurfacePhysics *parent):
+SurfacePhysics::SurfacePhysics(const std::string &name, SurfacePhysics *parent):
     Definition(name, parent),
     handler_m(parent->handler_m)
 {}
@@ -93,7 +93,7 @@ bool SurfacePhysics::canReplaceBy(Object *object) {
 }
 
 
-SurfacePhysics *SurfacePhysics::clone(const string &name) {
+SurfacePhysics *SurfacePhysics::clone(const std::string &name) {
     return new SurfacePhysics(name, this);
 }
 
@@ -103,7 +103,7 @@ void SurfacePhysics::execute() {
 }
 
 
-SurfacePhysics *SurfacePhysics::find(const string &name) {
+SurfacePhysics *SurfacePhysics::find(const std::string &name) {
     SurfacePhysics *sphys = dynamic_cast<SurfacePhysics *>(OpalData::getInstance()->find(name));
 
     if(sphys == 0) {

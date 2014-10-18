@@ -32,7 +32,7 @@ public:
     RealConstant();
 
     /// Constructor for built-in constants.
-    RealConstant(const string &name, RealConstant *parent, double value);
+    RealConstant(const std::string &name, RealConstant *parent, double value);
 
     virtual ~RealConstant();
 
@@ -41,7 +41,7 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual RealConstant *clone(const string &name);
+    virtual RealConstant *clone(const std::string &name);
 
     /// Print the constant.
     virtual void print(std::ostream &) const;
@@ -56,7 +56,7 @@ private:
     void operator=(const RealConstant &);
 
     // Clone constructor.
-    RealConstant(const string &name, RealConstant *parent);
+    RealConstant(const std::string &name, RealConstant *parent);
 };
 
 #endif // OPAL_RealConstant_HH

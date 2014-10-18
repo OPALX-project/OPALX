@@ -39,7 +39,7 @@ public:
 
     //enum CavityType { SW, SGSW };
     /// Constructor with given name.
-    explicit ParallelPlate(const string &name);
+    explicit ParallelPlate(const std::string &name);
 
     ParallelPlate();
     ParallelPlate(const ParallelPlate &);
@@ -52,9 +52,9 @@ public:
 
     void getDimensions(double &zBegin, double &zEnd) const;
 
-    const string &getType() const;
+    const std::string &getType() const;
 
-    string getFieldMapFN() const;
+    std::string getFieldMapFN() const;
 
     void setAmplitude(double vPeak);
     double getAmplitude() const ;
@@ -91,7 +91,7 @@ public:
 
 
 private:
-    string filename_m;             /**< The name of the inputfile*/
+    std::string filename_m;             /**< The name of the inputfile*/
 
     double scale_m;              /**< scale multiplier*/
     double phase_m;              /**< phase shift of time varying field(degrees)*/

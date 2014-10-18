@@ -38,13 +38,13 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual StringConstant *clone(const string &name);
+    virtual StringConstant *clone(const std::string &name);
 
     /// Print the constant.
     virtual void print(std::ostream &) const;
 
     /// Return value.
-    virtual string getString() const;
+    virtual std::string getString() const;
 
 private:
 
@@ -53,7 +53,7 @@ private:
     void operator=(const StringConstant &);
 
     // Clone constructor.
-    StringConstant(const string &name, StringConstant *parent);
+    StringConstant(const std::string &name, StringConstant *parent);
 };
 
 #endif // OPAL_StringConstant_HH

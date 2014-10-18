@@ -34,7 +34,7 @@ class Marker: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Marker(const string &name);
+    explicit Marker(const std::string &name);
 
     Marker();
     Marker(const Marker &);
@@ -55,7 +55,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

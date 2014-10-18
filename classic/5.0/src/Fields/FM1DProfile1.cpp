@@ -156,7 +156,7 @@ void FM1DProfile1::readMap() {
 
     } else {
 
-        ifstream inputFile(Filename_m.c_str());
+        std::ifstream inputFile(Filename_m.c_str());
 
         int tempInt;
         std::string tempString;

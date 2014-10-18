@@ -74,7 +74,7 @@ ErrorField::ErrorField():
 }
 
 
-ErrorField::ErrorField(const string &name, ErrorField *parent):
+ErrorField::ErrorField(const std::string &name, ErrorField *parent):
     Action(name, parent)
 {}
 
@@ -83,7 +83,7 @@ ErrorField::~ErrorField()
 {}
 
 
-ErrorField *ErrorField::clone(const string &name) {
+ErrorField *ErrorField::clone(const std::string &name) {
     return new ErrorField(name, this);
 }
 
@@ -129,7 +129,7 @@ void ErrorField::execute() {
 }
 
 
-void ErrorField::fieldError(const string &, int,
+void ErrorField::fieldError(const std::string &, int,
                             const BMultipoleField &designField,
                             BMultipoleField &errorField) {
     // Use of relative error requires radius to be given.

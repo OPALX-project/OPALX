@@ -35,7 +35,7 @@ Show::Show():
 }
 
 
-Show::Show(const string &name, Show *parent):
+Show::Show(const std::string &name, Show *parent):
     Action(name, parent)
 {}
 
@@ -44,14 +44,14 @@ Show::~Show()
 {}
 
 
-Show *Show::clone(const string &name) {
+Show *Show::clone(const std::string &name) {
     return new Show(name, this);
 }
 
 
 void Show::execute() {
     if(itsAttr[0]) {
-        string pattern = Attributes::getString(itsAttr[0]);
+        std::string pattern = Attributes::getString(itsAttr[0]);
         OpalData::getInstance()->printNames(std::cerr, pattern);
     } else {
         printHelp(std::cerr);

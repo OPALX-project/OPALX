@@ -80,19 +80,19 @@ struct OpalDataImpl {
     typedef std::set<AttributeBase *>::iterator exprIterator;
 
     // The page title from the latest TITLE command.
-    string itsTitle;
+    std::string itsTitle;
 
     // true if we restart a simulation
     bool isRestart;
 
     // Input file name
-    string inputFn;
+    std::string inputFn;
 
     // Where to resume in a restart run
     int restartStep;
 
     // Where to resume in a restart run
-    string restartFn;
+    std::string restartFn;
 
     // true if the name of a restartFile is specified
     bool hasRestartFile_m;
@@ -209,7 +209,7 @@ void OpalData::setMaxTrackSteps(unsigned long long s) {
     p->maxTrackSteps = s;
 }
 
-void OpalData::incMaxTrackSteps(unsigned long long s) { 
+void OpalData::incMaxTrackSteps(unsigned long long s) {
     p->maxTrackSteps += s;
 }
 
@@ -289,12 +289,12 @@ int OpalData::getRestartStep() {
 }
 
 
-string OpalData::getRestartFileName() {
+std::string OpalData::getRestartFileName() {
     return p->restartFn;
 }
 
 
-void OpalData::setRestartFileName(string s) {
+void OpalData::setRestartFileName(std::string s) {
     p->restartFn = s;
     p->hasRestartFile_m = true;
 }
@@ -366,7 +366,7 @@ DataSink *OpalData::getDataSink() {
     return p->dataSink_m;
 }
 
-void OpalData::setMaxPhase(string elName, double phi) {
+void OpalData::setMaxPhase(std::string elName, double phi) {
     p->maxPhases_m.push_back(MaxPhasesT(elName, phi));
 }
 
@@ -441,7 +441,7 @@ void OpalData::apply(const ObjectFunction &fun) {
 
 void OpalData::create(Object *newObject) {
     // Test for existing node with same name.
-    const string name = newObject->getOpalName();
+    const std::string name = newObject->getOpalName();
     Object *oldObject = p->mainDirectory.find(name);
 
     if(oldObject != 0) {
@@ -455,7 +455,7 @@ void OpalData::create(Object *newObject) {
 
 void OpalData::define(Object *newObject) {
     // Test for existing node with same name.
-    const string name = newObject->getOpalName();
+    const std::string name = newObject->getOpalName();
     Object *oldObject = p->mainDirectory.find(name);
 
     if(oldObject != 0  &&  oldObject != newObject) {
@@ -474,7 +474,7 @@ void OpalData::define(Object *newObject) {
                 // We must increment i before calling erase(name),
                 // since erase(name) removes "this" from "tables".
                 Table *table = *i++;
-                const string &tableName = table->getOpalName();
+                const std::string &tableName = table->getOpalName();
 
                 if(table->isDependent(name)) {
                     if(Options::info) {
@@ -514,7 +514,7 @@ void OpalData::define(Object *newObject) {
 }
 
 
-void OpalData::erase(const string &name) {
+void OpalData::erase(const std::string &name) {
     Object *oldObject = p->mainDirectory.find(name);
 
     if(oldObject != 0) {
@@ -533,7 +533,7 @@ void OpalData::erase(const string &name) {
 }
 
 
-Object *OpalData::find(const string &name) {
+Object *OpalData::find(const std::string &name) {
     return p->mainDirectory.find(name);
 }
 
@@ -550,7 +550,7 @@ void OpalData::makeDirty(Object *obj) {
 }
 
 
-void OpalData::printNames(std::ostream &os, const string &pattern) {
+void OpalData::printNames(std::ostream &os, const std::string &pattern) {
     int column = 0;
     RegularExpression regex(pattern);
     os << endl << "Object names matching the pattern \""
@@ -558,7 +558,7 @@ void OpalData::printNames(std::ostream &os, const string &pattern) {
 
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
         index != p->mainDirectory.end(); index++) {
-        const string name = (*index).first;
+        const std::string name = (*index).first;
 
         if(! name.empty()  &&  regex.match(name)) {
             os << name;
@@ -611,11 +611,11 @@ void OpalData::setP0(ValueDefinition *p0) {
 }
 
 
-void OpalData::storeTitle(const string &title) {
+void OpalData::storeTitle(const std::string &title) {
     p->itsTitle = title;
 }
 
-void OpalData::storeInputFn(const string &fn) {
+void OpalData::storeInputFn(const std::string &fn) {
     p->inputFn = fn;
 }
 
@@ -624,11 +624,11 @@ void OpalData::printTitle(std::ostream &os) {
     os << p->itsTitle;
 }
 
-string OpalData::getTitle() {
+std::string OpalData::getTitle() {
     return p->itsTitle;
 }
 
-string OpalData::getInputFn() {
+std::string OpalData::getInputFn() {
     return p->inputFn;
 }
 
@@ -664,12 +664,12 @@ void OpalData::update() {
     }
 }
 
-std::vector<string> OpalData::getAllNames() {
-    std::vector<string> result;
+std::vector<std::string> OpalData::getAllNames() {
+    std::vector<std::string> result;
 
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
         index != p->mainDirectory.end(); index++) {
-        string tmpName = (*index).first;
+        std::string tmpName = (*index).first;
         if(!tmpName.empty()) result.push_back(tmpName);
         //// DTA
         //if (!tmpName.empty()) {
@@ -690,7 +690,7 @@ std::vector<string> OpalData::getAllNames() {
     // ss = new StringStream("myVar:=ALPHA+BETA;");
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
         index != p->mainDirectory.end(); index++) {
-        string tmpName = (*index).first;
+        std::string tmpName = (*index).first;
         if(!tmpName.empty()) {
             Object *tmpObject = OpalData::getInstance()->find(tmpName);
             if(!tmpObject || tmpObject->isBuiltin()) continue;
@@ -732,4 +732,3 @@ std::vector<string> OpalData::getAllNames() {
 
     return result;
 }
-

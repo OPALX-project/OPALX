@@ -676,7 +676,7 @@ namespace {
                 zt = ::implicitIntStep(zt, f, gradf, ya * dsc, nx);
             } catch(ConvergenceError &cnverr) {
                 if(++ci > cx) {
-                    string msg = "Convergence not achieved within " + NumToStr(cx) + " cuts of step-size!";
+                    std::string msg = "Convergence not achieved within " + NumToStr(cx) + " cuts of step-size!";
                     throw ConvergenceError("ThickMapper::implicitInt4()", msg);
                 }
                 //std::cerr << "  cutting step size in half" << std::endl;
@@ -720,7 +720,7 @@ namespace {
         int ni = 0;
         while(bcount < PSdim) {
             if(ni == nx) {
-                string msg = "Convergence not achieved within " + NumToStr(nx) + " iterations!";
+                std::string msg = "Convergence not achieved within " + NumToStr(nx) + " iterations!";
                 throw ConvergenceError("ThickMapper::implicitIntStep()", msg);
             }
 

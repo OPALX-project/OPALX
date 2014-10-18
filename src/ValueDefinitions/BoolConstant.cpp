@@ -34,7 +34,7 @@ BoolConstant::BoolConstant():
 }
 
 
-BoolConstant::BoolConstant(const string &name, BoolConstant *parent):
+BoolConstant::BoolConstant(const std::string &name, BoolConstant *parent):
     ValueDefinition(name, parent)
 {}
 
@@ -48,7 +48,7 @@ bool BoolConstant::canReplaceBy(Object *) {
 }
 
 
-BoolConstant *BoolConstant::clone(const string &name) {
+BoolConstant *BoolConstant::clone(const std::string &name) {
     return new BoolConstant(name, this);
 }
 

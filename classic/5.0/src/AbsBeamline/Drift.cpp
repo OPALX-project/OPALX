@@ -20,7 +20,6 @@
 
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "BeamlineCore/DriftRep.h"
 
 extern Inform *gmsg;
 
@@ -37,7 +36,7 @@ Drift::Drift(const Drift &right):
 { }
 
 
-Drift::Drift(const string &name):
+Drift::Drift(const std::string &name):
     Component(name) {
 
 }
@@ -80,7 +79,7 @@ void Drift::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = startField_m + getElementLength();
 }
 
-const string &Drift::getType() const {
-    static const string type("Drift");
+const std::string &Drift::getType() const {
+    static const std::string type("Drift");
     return type;
 }

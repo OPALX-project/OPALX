@@ -34,7 +34,7 @@ What::What():
 }
 
 
-What::What(const string &name, What *parent):
+What::What(const std::string &name, What *parent):
     Action(name, parent)
 {}
 
@@ -43,14 +43,14 @@ What::~What()
 {}
 
 
-What *What::clone(const string &name) {
+What *What::clone(const std::string &name) {
     return new What(name, this);
 }
 
 
 void What::execute() {
     if(itsAttr[0]) {
-        string name = Attributes::getString(itsAttr[0]);
+        std::string name = Attributes::getString(itsAttr[0]);
 
         if(Object *object = OpalData::getInstance()->find(name)) {
             std::cerr << *object << std::endl;

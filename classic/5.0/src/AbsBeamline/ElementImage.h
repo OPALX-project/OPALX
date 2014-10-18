@@ -10,7 +10,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: ElementImage
-//   Contains two strings, representing the element name and type, and a
+//   Contains two std::strings, representing the element name and type, and a
 //   map of attributes used to represent this element's state.
 //
 // ------------------------------------------------------------------------
@@ -25,8 +25,6 @@
 #include "AbsBeamline/AttributeSet.h"
 #include <string>
 
-using std::string;
-
 class ElementBase;
 
 
@@ -34,7 +32,7 @@ class ElementBase;
 // ------------------------------------------------------------------------
 /// An image of an element.
 //  Class ElementImage implements an image of an element. It contains two
-//  strings, the name and the type of the element, and a map of name versus
+//  std::strings, the name and the type of the element, and a map of name versus
 //  value for all attributes of the element.
 
 class ElementImage: public AttributeSet {
@@ -42,10 +40,10 @@ class ElementImage: public AttributeSet {
 public:
 
     /// Constructor.
-    //  This constructor takes the [b]name[/b] and [b]type[/b] strings as
+    //  This constructor takes the [b]name[/b] and [b]type[/b] std::strings as
     //  arguments, as well as an AttributeSet mapping attribute names to
     //  values.
-    ElementImage(const string &name, const string &type,
+    ElementImage(const std::string &name, const std::string &type,
                  const AttributeSet &map);
 
     ElementImage();
@@ -56,24 +54,24 @@ public:
     const ElementImage &operator=(const ElementImage &);
 
     /// Set element name.
-    void setName(const string &name);
+    void setName(const std::string &name);
 
     /// Get element name.
-    const string &getName() const;
+    const std::string &getName() const;
 
-    /// Set element type string.
-    void setType(const string &type);
+    /// Set element type std::string.
+    void setType(const std::string &type);
 
-    /// Get element type string.
-    const string &getType() const;
+    /// Get element type std::string.
+    const std::string &getType() const;
 
 private:
 
     // String representing element name
-    string elementName;
+    std::string elementName;
 
     // String representing element type
-    string elementType;
+    std::string elementType;
 };
 
 #endif // CLASSIC_ElementImage_HH

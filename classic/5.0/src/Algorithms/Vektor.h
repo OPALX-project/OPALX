@@ -4,7 +4,9 @@
 #include <limits>
 
 #include "AppTypes/Vektor.h"
-#include "AppTypes/Tenzor.h"
+
+template <class, unsigned>
+class Tenzor;
 
 typedef Vektor<double, 3> Vector_t;
 
@@ -18,28 +20,28 @@ public:
     Quaternion(const Vector_t &);
     Quaternion(const double &, const Vector_t &);
 
-    Quaternion operator*(const double &) const;
-    Quaternion operator*(const Quaternion &) const;
+    const Quaternion operator*(const double &) const;
+    const Quaternion operator*(const Quaternion &) const;
     Quaternion& operator*=(const Quaternion &);
-    Quaternion operator/(const double &) const;
+    const Quaternion operator/(const double &) const;
 
-    double Norm() const;
-    double length() const;
+    const double Norm() const;
+    const double length() const;
     Quaternion & normalize();
 
-    bool isUnit() const;
-    bool isPure() const;
-    bool isPureUnit() const;
+    const bool isUnit() const;
+    const bool isPure() const;
+    const bool isPureUnit() const;
 
-    Quaternion inverse() const;
-    Quaternion conjugate() const;
+    const Quaternion inverse() const;
+    const Quaternion conjugate() const;
 
-    double real() const;
-    Vector_t imag() const;
+    const double real() const;
+    const Vector_t imag() const;
 
-    Vector_t rotate(const Vector_t &) const;
+    const Vector_t rotate(const Vector_t &) const;
 
-    Tenzor<double, 3> getRotationMatrix() const;
+    const Tenzor<double, 3> getRotationMatrix() const;
 };
 
 typedef Quaternion Quaternion_t;
@@ -74,37 +76,37 @@ Quaternion::Quaternion(const double & realPart, const Vector_t & vec):
 {}
 
 inline
-double Quaternion::Norm() const
+const double Quaternion::Norm() const
 {
     return dot(*this, *this);
 }
 
 inline
-double Quaternion::length() const
+const double Quaternion::length() const
 {
     return sqrt(this->Norm());
 }
 
 inline
-bool Quaternion::isUnit() const
+const bool Quaternion::isUnit() const
 {
     return (std::abs(this->Norm() - 1.0) < 1e-12);
 }
 
 inline
-bool Quaternion::isPure() const
+const bool Quaternion::isPure() const
 {
     return (std::abs((*this)(0)) < 1e-12);
 }
 
 inline
-bool Quaternion::isPureUnit() const
+const bool Quaternion::isPureUnit() const
 {
     return (this->isPure() && this->isUnit());
 }
 
 inline
-Quaternion Quaternion::conjugate() const
+const Quaternion Quaternion::conjugate() const
 {
     Quaternion quat(this->real(), -this->imag());
 
@@ -112,13 +114,13 @@ Quaternion Quaternion::conjugate() const
 }
 
 inline
-double Quaternion::real() const
+const double Quaternion::real() const
 {
     return (*this)(0);
 }
 
 inline
-Vector_t Quaternion::imag() const
+const Vector_t Quaternion::imag() const
 {
     Vector_t vec((*this)(1), (*this)(2), (*this)(3));
 

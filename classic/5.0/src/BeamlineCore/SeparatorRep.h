@@ -34,7 +34,7 @@ class SeparatorRep: public Separator {
 public:
 
     /// Constructor with given name.
-    explicit SeparatorRep(const string &name);
+    explicit SeparatorRep(const std::string &name);
 
     SeparatorRep();
     SeparatorRep(const SeparatorRep &);
@@ -48,7 +48,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.

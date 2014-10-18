@@ -35,7 +35,7 @@ public:
     virtual ~What();
 
     /// Make clone.
-    virtual What *clone(const string &name);
+    virtual What *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const What &);
 
     // Clone constructor.
-    What(const string &name, What *parent);
+    What(const std::string &name, What *parent);
 };
 
 #endif // OPAL_What_HH

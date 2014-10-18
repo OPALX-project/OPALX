@@ -46,7 +46,7 @@ OpalQuadrupole::OpalQuadrupole():
                   ("K1", "Normalised upright quadrupole coefficient in m^(-2)");
     itsAttr[K1S] = Attributes::makeReal
                    ("K1S", "Normalised skew quadrupole coefficient in m^(-2)");
-    
+
     itsAttr[DX] = Attributes::makeReal
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
@@ -59,7 +59,7 @@ OpalQuadrupole::OpalQuadrupole():
 }
 
 
-OpalQuadrupole::OpalQuadrupole(const string &name, OpalQuadrupole *parent):
+OpalQuadrupole::OpalQuadrupole(const std::string &name, OpalQuadrupole *parent):
     OpalElement(name, parent),
     sphys_m(NULL) {
     setElement((new MultipoleRep(name))->makeWrappers());
@@ -72,7 +72,7 @@ OpalQuadrupole::~OpalQuadrupole() {
 }
 
 
-OpalQuadrupole *OpalQuadrupole::clone(const string &name) {
+OpalQuadrupole *OpalQuadrupole::clone(const std::string &name) {
     return new OpalQuadrupole(name, this);
 }
 
@@ -113,15 +113,15 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 #endif
         ss << (order - 1) << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-        string orderString(buffer);
+        std::string orderString(buffer);
 #else
         std::string orderString = ss.str();
 #endif
 
-        string normName = "K" + orderString + "L";
+        std::string normName = "K" + orderString + "L";
         registerRealAttribute(normName)->setReal(scale * field.normal(order));
 
-        string skewName = "K" + orderString + "SL";
+        std::string skewName = "K" + orderString + "SL";
         registerRealAttribute(skewName)->setReal(scale * field.skew(order));
 
         scale *= double(order);
@@ -164,7 +164,7 @@ void OpalQuadrupole::update() {
     }
     */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*quad);
         quad->setSurfacePhysics(sphys_m->handler_m);
     }

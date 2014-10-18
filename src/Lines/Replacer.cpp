@@ -30,7 +30,7 @@ class Element;
 // ------------------------------------------------------------------------
 
 Replacer::Replacer(const Beamline &beamline,
-                   const string &name,
+                   const std::string &name,
                    ElementBase *elm):
     DefaultVisitor(beamline, false, false),
     itsName(name),
@@ -44,7 +44,7 @@ Replacer::~Replacer()
 
 void Replacer::visitFlaggedElmPtr(const FlaggedElmPtr &fep) {
     // Find proper OPAL element.
-    const string &name = fep.getElement()->getName();
+    const std::string &name = fep.getElement()->getName();
 
     // Do the required operations on the beamline or element.
     if(name == itsName) {

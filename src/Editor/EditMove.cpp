@@ -58,7 +58,7 @@ EditMove::EditMove():
 }
 
 
-EditMove::EditMove(const string &name, EditMove *parent):
+EditMove::EditMove(const std::string &name, EditMove *parent):
     Editor(name, parent)
 {}
 
@@ -67,7 +67,7 @@ EditMove::~EditMove()
 {}
 
 
-EditMove *EditMove::clone(const string &name) {
+EditMove *EditMove::clone(const std::string &name) {
     return new EditMove(name, this);
 }
 

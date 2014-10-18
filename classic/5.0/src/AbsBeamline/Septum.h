@@ -34,7 +34,7 @@ class Septum: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Septum(const string &name);
+    explicit Septum(const std::string &name);
 
     Septum();
     Septum(const Septum &);
@@ -81,12 +81,12 @@ public:
     bool  checkSeptum(PartBunch &bunch);
     double calculateAngle(double x, double y);
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
 private:
-    string filename_m;             /**< The name of the inputfile*/
+    std::string filename_m;             /**< The name of the inputfile*/
     double position_m;
     double xstart_m;
     double xend_m;

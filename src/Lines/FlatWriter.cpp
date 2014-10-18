@@ -82,7 +82,7 @@ void FlatWriter::visitMapIntegrator(const MapIntegrator &i) {
             // JMJ modified following to get rid of char stuff 13/10/2000
             // This removes leading zeros in slice number and also changes
             // underscore character to a pair of dots.
-            const string name = base->getName();
+            const std::string name = base->getName();
 
             // Store the slices in the temporary sequence.
             // JMJ 18/12/2000, put name generation inside loop
@@ -126,7 +126,7 @@ void FlatWriter::visitMapIntegrator(const MapIntegrator &i) {
 
 
 void FlatWriter::applyDefault(const ElementBase &elem) {
-    const string name = elem.getName();
+    const std::string name = elem.getName();
 
     if(name[0] != '#') {
         SequenceMember member;

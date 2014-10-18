@@ -27,7 +27,7 @@
 #include "Channels/Channel.h"
 #include <string>
 
-#include "Structure/BoundaryGeometry.h"
+#include "Structure/BoundaryGeometry.h"    // OPAL file
 #include "Solvers/WakeFunction.hh"
 #include "Solvers/SurfacePhysicsHandler.hh"
 
@@ -64,7 +64,7 @@ ElementBase::ElementBase(const ElementBase &right):
 }
 
 
-ElementBase::ElementBase(const string &name):
+ElementBase::ElementBase(const std::string &name):
     RCObject(),
     shareFlag(true),
     elementID(name),
@@ -80,19 +80,19 @@ ElementBase::~ElementBase()
 {}
 
 
-const string &ElementBase::getName() const
+const std::string &ElementBase::getName() const
 
 {
     return elementID;
 }
 
 
-void ElementBase::setName(const string &name) {
+void ElementBase::setName(const std::string &name) {
     elementID = name;
 }
 
 
-double ElementBase::getAttribute(const string &aKey) const {
+double ElementBase::getAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
     if(aChannel != NULL) {
@@ -105,7 +105,7 @@ double ElementBase::getAttribute(const string &aKey) const {
 }
 
 
-bool ElementBase::hasAttribute(const string &aKey) const {
+bool ElementBase::hasAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
     if(aChannel != NULL) {
@@ -117,12 +117,12 @@ bool ElementBase::hasAttribute(const string &aKey) const {
 }
 
 
-void ElementBase::removeAttribute(const string &aKey) {
+void ElementBase::removeAttribute(const std::string &aKey) {
     userAttribs.removeAttribute(aKey);
 }
 
 
-void ElementBase::setAttribute(const string &aKey, double val) {
+void ElementBase::setAttribute(const std::string &aKey, double val) {
     Channel *aChannel = getChannel(aKey, true);
 
     if(aChannel != NULL  &&  aChannel->isSettable()) {
@@ -133,12 +133,12 @@ void ElementBase::setAttribute(const string &aKey, double val) {
 }
 
 
-Channel *ElementBase::getChannel(const string &aKey, bool create) {
+Channel *ElementBase::getChannel(const std::string &aKey, bool create) {
     return userAttribs.getChannel(aKey, create);
 }
 
 
-const ConstChannel *ElementBase::getConstChannel(const string &aKey) const {
+const ConstChannel *ElementBase::getConstChannel(const std::string &aKey) const {
     // Use const_cast to allow calling the non-const method GetChannel().
     // The const return value of this method will nevertheless inhibit set().
     return const_cast<ElementBase *>(this)->getChannel(aKey);
@@ -220,11 +220,11 @@ bool ElementBase::update(const AttributeSet &set) {
 }
 
 void ElementBase::setWake(WakeFunction *wk) {
-    wake_m = wk;//->clone(getName() + string("_wake")); }
+    wake_m = wk;//->clone(getName() + std::string("_wake")); }
 }
 
 void ElementBase::setBoundaryGeometry(BoundaryGeometry *geo) {
-    bgeometry_m = geo;//->clone(getName() + string("_wake")); }
+    bgeometry_m = geo;//->clone(getName() + std::string("_wake")); }
 }
 
 void ElementBase::setSurfacePhysics(SurfacePhysicsHandler *sphys) {

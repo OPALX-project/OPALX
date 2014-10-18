@@ -96,9 +96,9 @@ private:
     ParallelSliceTracker(const ParallelSliceTracker &);
     void operator=(const ParallelSliceTracker &);
 
-    void updateRFElement(string elName, double maxPhi);
+    void updateRFElement(std::string elName, double maxPhi);
     void updateAllRFElements();
-    double getCavityPhase(FieldList cav, string name);
+    double getCavityPhase(FieldList cav, std::string name);
 
     double currentSimulationTime_m;
     bool globalEOL_m;

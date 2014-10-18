@@ -51,7 +51,7 @@ OpalSlit::OpalSlit():
 }
 
 
-OpalSlit::OpalSlit(const string &name, OpalSlit *parent):
+OpalSlit::OpalSlit(const std::string &name, OpalSlit *parent):
     OpalElement(name, parent),
     sphys_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
@@ -64,7 +64,7 @@ OpalSlit::~OpalSlit() {
 }
 
 
-OpalSlit *OpalSlit::clone(const string &name) {
+OpalSlit *OpalSlit::clone(const std::string &name) {
     return new OpalSlit(name, this);
 }
 
@@ -109,7 +109,7 @@ void OpalSlit::update() {
     }
     */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*coll);
         coll->setSurfacePhysics(sphys_m->handler_m);
     }

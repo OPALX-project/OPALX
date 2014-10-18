@@ -11,13 +11,13 @@ using Physics::mu_0;
 using Physics::c;
 using Physics::two_pi;
 
-Astra1DDynamic_fast::Astra1DDynamic_fast(string aFilename):
+Astra1DDynamic_fast::Astra1DDynamic_fast(std::string aFilename):
     Fieldmap(aFilename) {
     Inform msg("*1DD ");
     ifstream file;
     int tmpInt;
     int skippedValues = 0;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
     double tmpDouble2;
 
@@ -28,7 +28,7 @@ Astra1DDynamic_fast::Astra1DDynamic_fast(string aFilename):
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, int>(file, tmpString, tmpInt);
+        bool parsing_passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
         parsing_passed = parsing_passed &&
                          interpreteLine<double>(file, frequency_m);
         parsing_passed = parsing_passed &&
@@ -88,7 +88,7 @@ void Astra1DDynamic_fast::readMap() {
         int nsp;
         int ii;
 
-        string tmpString;
+        std::string tmpString;
 
         double tmpDouble;
         double Ez_max = 0.0;
@@ -103,7 +103,7 @@ void Astra1DDynamic_fast::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<string, int>(in, tmpString, accuracy);
+        interpreteLine<std::string, int>(in, tmpString, accuracy);
         interpreteLine<double>(in, tmpDouble);
 
         tmpDouble = zbegin_m - hz_m;
@@ -281,10 +281,10 @@ void Astra1DDynamic_fast::getOnaxisEz(vector<pair<double, double> > & F) {
         double Ez_max = 0.0;
         double tmpDouble;
         int tmpInt;
-        string tmpString;
+        std::string tmpString;
 
         ifstream in(Filename_m.c_str());
-        interpreteLine<string, int>(in, tmpString, tmpInt);
+        interpreteLine<std::string, int>(in, tmpString, tmpInt);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double>(in, tmpDouble);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);

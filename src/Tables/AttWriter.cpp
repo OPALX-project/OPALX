@@ -65,7 +65,7 @@ AttWriter::~AttWriter()
 
 void AttWriter::visitFlaggedElmPtr(const FlaggedElmPtr &fep) {
     ElementBase *base = fep.getElement()->removeWrappers();
-    const string &nam = base->getName();
+    const std::string &nam = base->getName();
     if(dynamic_cast<Beamline *>(base)) {
         DefaultVisitor::visitFlaggedElmPtr(fep);
     } else if(fep.getSelectionFlag()) {

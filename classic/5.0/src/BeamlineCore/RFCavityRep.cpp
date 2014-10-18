@@ -74,7 +74,7 @@ RFCavityRep::RFCavityRep(const RFCavityRep &right):
 {}
 
 
-RFCavityRep::RFCavityRep(const string &name):
+RFCavityRep::RFCavityRep(const std::string &name):
     RFCavity(name)
 {}
 
@@ -88,7 +88,7 @@ ElementBase *RFCavityRep::clone() const {
 }
 
 
-Channel *RFCavityRep::getChannel(const string &aKey, bool create) {
+Channel *RFCavityRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<RFCavityRep>(*this, entry->get, entry->set);

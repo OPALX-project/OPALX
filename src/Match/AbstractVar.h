@@ -21,8 +21,6 @@
 #include <iosfwd>
 #include <string>
 
-using std::string;
-
 
 // Class AbstractVar
 // ------------------------------------------------------------------------
@@ -36,12 +34,12 @@ public:
 
     /// Constructor.
     //  Assign the variable name.
-    AbstractVar(const string &name);
+    AbstractVar(const std::string &name);
 
     virtual ~AbstractVar();
 
     /// Get the variable name.
-    virtual const string &getName() const;
+    virtual const std::string &getName() const;
 
     /// Get the current internal parameter value.
     virtual double getInternalValue() const = 0;
@@ -61,7 +59,7 @@ public:
 protected:
 
     /// Name of the variable.
-    const string itsName;
+    const std::string itsName;
 
 private:
 

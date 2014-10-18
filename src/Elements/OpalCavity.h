@@ -63,7 +63,7 @@ public:
     virtual ~OpalCavity();
 
     /// Make clone.
-    virtual OpalCavity *clone(const string &name);
+    virtual OpalCavity *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -78,7 +78,7 @@ private:
     void operator=(const OpalCavity &);
 
     // Clone constructor.
-    OpalCavity(const string &name, OpalCavity *parent);
+    OpalCavity(const std::string &name, OpalCavity *parent);
 
     OpalWake *owk_m;
 

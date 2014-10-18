@@ -37,7 +37,7 @@ public:
     virtual ~Select();
 
     /// Make clone.
-    virtual Select *clone(const string &name);
+    virtual Select *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -49,7 +49,7 @@ private:
     void operator=(const Select &);
 
     // Clone constructor.
-    Select(const string &name, Select *parent);
+    Select(const std::string &name, Select *parent);
 
     // Do the selection.
     void select(const Beamline &);

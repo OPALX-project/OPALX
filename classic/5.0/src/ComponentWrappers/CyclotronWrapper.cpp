@@ -129,8 +129,8 @@ double CyclotronWrapper::getStepsize()  const {
 }
 
 
-const string &CyclotronWrapper::getType() const {
-    static const string type("CyclotronWrapper");
+const std::string &CyclotronWrapper::getType() const {
+    static const std::string type("CyclotronWrapper");
     return type;
 }
 

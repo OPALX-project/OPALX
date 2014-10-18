@@ -57,7 +57,7 @@ Solenoid::Solenoid(const Solenoid &right):
 }
 
 
-Solenoid::Solenoid(const string &name):
+Solenoid::Solenoid(const std::string &name):
     Component(name),
     filename_m(""),
     myFieldmap_m(NULL),
@@ -79,7 +79,7 @@ void Solenoid::accept(BeamlineVisitor &visitor) const {
     visitor.visitSolenoid(*this);
 }
 
-void Solenoid::setFieldMapFN(string fn) {
+void Solenoid::setFieldMapFN(std::string fn) {
     filename_m = fn;
 }
 
@@ -251,8 +251,8 @@ void Solenoid::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &Solenoid::getType() const {
-    static const string type("Solenoid");
+const std::string &Solenoid::getType() const {
+    static const std::string type("Solenoid");
     return type;
 }
 

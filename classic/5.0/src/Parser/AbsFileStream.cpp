@@ -27,7 +27,7 @@
 // Class AbsFileStream
 // ------------------------------------------------------------------------
 
-AbsFileStream::AbsFileStream(const string &name):
+AbsFileStream::AbsFileStream(const std::string &name):
     TokenStream(name),
     line("\n"),
     curr_char(0)
@@ -159,7 +159,7 @@ Token AbsFileStream::readNumber() {
     if(digit  &&  line[curr_char] != '.'  &&
        toupper(line[curr_char]) != 'E') {
         // Unsigned integer seen.
-        string lexeme(line.data() + lex_pos, curr_char - lex_pos);
+        std::string lexeme(line.data() + lex_pos, curr_char - lex_pos);
         return Token(stream_name, curr_line, lexeme, int(value + 0.5));
     }
 
@@ -207,7 +207,7 @@ Token AbsFileStream::readNumber() {
     }
 
     // Put pieces together.
-    string lexeme(line.data() + lex_pos, curr_char - lex_pos);
+    std::string lexeme(line.data() + lex_pos, curr_char - lex_pos);
 
     if(eflag) {
         return Token(stream_name, curr_line, Token::IS_ERROR,
@@ -229,7 +229,7 @@ Token AbsFileStream::readNumber() {
 
 
 Token AbsFileStream::readString() {
-    string lexeme;
+    std::string lexeme;
 
     if(line[curr_char] == '"'  ||  line[curr_char] == '\'') {
         char quote = line[curr_char];
@@ -257,7 +257,7 @@ Token AbsFileStream::readString() {
 
 
 Token AbsFileStream::readWord() {
-    string lexeme;
+    std::string lexeme;
     char ch = line[curr_char];
 
     if(isalpha(line[curr_char])) {

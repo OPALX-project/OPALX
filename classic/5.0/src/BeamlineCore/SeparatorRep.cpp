@@ -71,7 +71,7 @@ SeparatorRep::SeparatorRep(const SeparatorRep &right):
 {}
 
 
-SeparatorRep::SeparatorRep(const string &name):
+SeparatorRep::SeparatorRep(const std::string &name):
     Separator(name),
     geometry(),
     field()
@@ -87,7 +87,7 @@ ElementBase *SeparatorRep::clone() const {
 }
 
 
-Channel *SeparatorRep::getChannel(const string &aKey, bool create) {
+Channel *SeparatorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *table = entries; table->name != 0; ++table) {
         if(aKey == table->name) {
             return new IndirectChannel<SeparatorRep>(*this, table->get, table->set);

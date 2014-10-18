@@ -73,7 +73,7 @@ ParallelPlateRep::ParallelPlateRep(const ParallelPlateRep &right):
 {}
 
 
-ParallelPlateRep::ParallelPlateRep(const string &name):
+ParallelPlateRep::ParallelPlateRep(const std::string &name):
     ParallelPlate(name)
 {}
 
@@ -87,7 +87,7 @@ ElementBase *ParallelPlateRep::clone() const {
 }
 
 
-Channel *ParallelPlateRep::getChannel(const string &aKey, bool create) {
+Channel *ParallelPlateRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<ParallelPlateRep>(*this, entry->get, entry->set);
@@ -125,7 +125,3 @@ ElementImage *ParallelPlateRep::getImage() const {
 
     return image;
 }
-
-
-
-

@@ -57,7 +57,7 @@ YMonitorRep::YMonitorRep(const YMonitorRep &right):
 {}
 
 
-YMonitorRep::YMonitorRep(const string &name):
+YMonitorRep::YMonitorRep(const std::string &name):
     MonitorRep(name)
 {}
 
@@ -71,7 +71,7 @@ ElementBase *YMonitorRep::clone() const {
 }
 
 
-Channel *YMonitorRep::getChannel(const string &aKey, bool create) {
+Channel *YMonitorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<YMonitorRep>(*this, entry->get, entry->set);
@@ -96,5 +96,3 @@ ElementImage *YMonitorRep::getImage() const {
 Monitor::Plane YMonitorRep::getPlane() const {
     return active ? Y : OFF;
 }
-
-

@@ -33,7 +33,7 @@ class ProbeRep: public Probe {
 public:
 
     /// Constructor with given name.
-    explicit ProbeRep(const string &name);
+    explicit ProbeRep(const std::string &name);
 
     ProbeRep();
     ProbeRep(const ProbeRep &);
@@ -47,7 +47,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.

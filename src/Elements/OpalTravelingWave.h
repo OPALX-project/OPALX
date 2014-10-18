@@ -56,7 +56,7 @@ public:
     virtual ~OpalTravelingWave();
 
     /// Make clone.
-    virtual OpalTravelingWave *clone(const string &name);
+    virtual OpalTravelingWave *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -71,7 +71,7 @@ private:
     void operator=(const OpalTravelingWave &);
 
     // Clone constructor.
-    OpalTravelingWave(const string &name, OpalTravelingWave *parent);
+    OpalTravelingWave(const std::string &name, OpalTravelingWave *parent);
 
     OpalWake *owk_m;
 };

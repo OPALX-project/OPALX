@@ -20,8 +20,6 @@
 
 #include <string>
 
-using std::string;
-
 
 // Class RegularExpression
 // ------------------------------------------------------------------------
@@ -37,13 +35,13 @@ public:
     /// Constructor.
     //  Construct regular expression from [b]pattern[/b].
     //  If [b]ignore[/b] is true, the expression ignores upper/lower case.
-    RegularExpression(const string &pattern, bool ignore = false);
+    RegularExpression(const std::string &pattern, bool ignore = false);
 
     RegularExpression(const RegularExpression &);
     ~RegularExpression();
 
     /// Match a string against the pattern.
-    bool match(const string &s) const;
+    bool match(const std::string &s) const;
 
     /// Check the regular expression for sanity.
     bool OK() const;
@@ -57,7 +55,7 @@ private:
     void init();
 
     // A copy of the pattern string.
-    const string patt;
+    const std::string patt;
 
     // The flag to ignore case.
     bool caseIgnore;

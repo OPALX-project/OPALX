@@ -35,7 +35,7 @@ public:
     virtual ~EditEnd();
 
     /// Make clone.
-    virtual EditEnd *clone(const string &name);
+    virtual EditEnd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const EditEnd &);
 
     // Clone constructor.
-    EditEnd(const string &name, EditEnd *parent);
+    EditEnd(const std::string &name, EditEnd *parent);
 };
 
 #endif // OPAL_EditEnd_HH

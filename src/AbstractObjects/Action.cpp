@@ -31,7 +31,7 @@ bool Action::canReplaceBy(Object *) {
 }
 
 
-const string Action::getCategory() const {
+const std::string Action::getCategory() const {
     return "ACTION";
 }
 
@@ -46,7 +46,7 @@ bool Action::shouldUpdate() const {
 }
 
 
-Action::Action(const string &name, Action *parent):
+Action::Action(const std::string &name, Action *parent):
     Object(name, parent)
 {}
 

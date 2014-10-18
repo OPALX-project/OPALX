@@ -43,7 +43,7 @@ public:
     virtual ~OpalHKicker();
 
     /// Make clone.
-    virtual OpalHKicker *clone(const string &name);
+    virtual OpalHKicker *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -58,7 +58,7 @@ private:
     void operator=(const OpalHKicker &);
 
     // Clone constructor.
-    OpalHKicker(const string &name, OpalHKicker *parent);
+    OpalHKicker(const std::string &name, OpalHKicker *parent);
 };
 
 #endif // OPAL_OpalHKicker_HH

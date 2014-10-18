@@ -56,7 +56,7 @@ Septum::Septum(const Septum &right):
 {}
 
 
-Septum::Septum(const string &name):
+Septum::Septum(const std::string &name):
     Component(name),
     filename_m(""),
     position_m(0.0),
@@ -218,8 +218,8 @@ void Septum::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &Septum::getType() const {
-    static const string type("Septum");
+const std::string &Septum::getType() const {
+    static const std::string type("Septum");
     return type;
 }
 

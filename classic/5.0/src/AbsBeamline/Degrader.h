@@ -51,7 +51,7 @@ public:
     };
 
     /// Constructor with given name.
-    explicit Degrader(const string &name);
+    explicit Degrader(const std::string &name);
 
     Degrader();
     Degrader(const Degrader &rhs);
@@ -78,22 +78,22 @@ public:
 
     virtual void goOffline();
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
-    string  getDegraderShape(); // AAA
- 
-    void setOutputFN(string fn);
-    string getOutputFN();
+    std::string  getDegraderShape(); // AAA
+
+    void setOutputFN(std::string fn);
+    std::string getOutputFN();
 
     void setZSize( double z) ;
-   
-    void setZStart(double zstart) ; 
-    void setZEnd(double zend) ; 
-   
-    double getZStart() ; 
-    double getZEnd() ; 
+
+    void setZStart(double zstart) ;
+    void setZEnd(double zend) ;
+
+    double getZStart() ;
+    double getZEnd() ;
     double getZSize();
 
     virtual bool isInMaterial(double z);
@@ -103,7 +103,7 @@ private:
     // Not implemented.
     void operator=(const Degrader &);
 
-    string filename_m;               /**< The name of the outputfile*/
+    std::string filename_m;               /**< The name of the outputfile*/
 
     double position_m;
     double deg_width_m;
@@ -117,7 +117,7 @@ private:
     std::vector<double> time_m;
     std::vector<int> id_m;
     bool informed_m;
-    
+
     double zstart_m;
     double zend_m;
 

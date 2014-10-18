@@ -35,7 +35,7 @@ public:
     virtual ~EditReplace();
 
     /// Make clone.
-    virtual EditReplace *clone(const string &name);
+    virtual EditReplace *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const EditReplace &);
 
     // Clone constructor.
-    EditReplace(const string &name, EditReplace *parent);
+    EditReplace(const std::string &name, EditReplace *parent);
 };
 
 #endif // OPAL_EditReplace_HH

@@ -57,7 +57,7 @@ CyclotronValleyRep::CyclotronValleyRep(const CyclotronValleyRep &right):
 {}
 
 
-CyclotronValleyRep::CyclotronValleyRep(const string &name):
+CyclotronValleyRep::CyclotronValleyRep(const std::string &name):
     CyclotronValley(name)
 {}
 
@@ -71,7 +71,7 @@ ElementBase *CyclotronValleyRep::clone() const {
 }
 
 
-Channel *CyclotronValleyRep::getChannel(const string &aKey, bool create) {
+Channel *CyclotronValleyRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<CyclotronValleyRep>(*this, entry->get, entry->set);
@@ -110,7 +110,3 @@ ElementImage *CyclotronValleyRep::getImage() const {
 
     return image;
 }
-
-
-
-

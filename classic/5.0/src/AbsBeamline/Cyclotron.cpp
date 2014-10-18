@@ -72,7 +72,7 @@ Cyclotron::Cyclotron(const Cyclotron &right):
 }
 
 
-Cyclotron::Cyclotron(const string &name):
+Cyclotron::Cyclotron(const std::string &name):
     Component(name) {
 }
 
@@ -126,7 +126,7 @@ double Cyclotron::getPZinit() const {
     return pzinit_m;
 }
 
-void Cyclotron::setFieldMapFN(string f) {
+void Cyclotron::setFieldMapFN(std::string f) {
     fmapfn_m = f;
 }
 
@@ -163,11 +163,11 @@ double Cyclotron::getSymmetry() const {
 }
 
 
-void Cyclotron::setType(string t) {
+void Cyclotron::setType(std::string t) {
     type_m = t;
 }
 
-const string &Cyclotron::getType() const {
+const std::string &Cyclotron::getType() const {
     return type_m;
 }
 

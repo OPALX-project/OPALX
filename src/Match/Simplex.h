@@ -41,7 +41,7 @@ public:
     virtual ~Simplex();
 
     /// Make clone.
-    virtual Simplex *clone(const string &name);
+    virtual Simplex *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -53,7 +53,7 @@ private:
     void operator=(const Simplex &);
 
     // Clone constructor.
-    Simplex(const string &name, Simplex *parent);
+    Simplex(const std::string &name, Simplex *parent);
 
     // Razzia routine from MINUIT.
     void razzia(double Fnew, Vector<double> &Xnew);

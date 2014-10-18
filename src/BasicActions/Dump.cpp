@@ -46,7 +46,7 @@ Dump::Dump():
 {}
 
 
-Dump::Dump(const string &name, Dump *parent):
+Dump::Dump(const std::string &name, Dump *parent):
     Action(name, parent)
 {}
 
@@ -61,6 +61,6 @@ void Dump::execute() {
 }
 
 
-Dump *Dump::clone(const string &name) {
+Dump *Dump::clone(const std::string &name) {
     return new Dump(name, this);
 }

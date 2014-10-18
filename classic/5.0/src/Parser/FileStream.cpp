@@ -30,7 +30,7 @@
 bool FileStream::echoFlag = true;
 
 
-FileStream::FileStream(const string &name):
+FileStream::FileStream(const std::string &name):
     AbsFileStream(name),
     is(name.c_str()) {
     if(is.fail()) {

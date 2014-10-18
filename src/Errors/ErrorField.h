@@ -38,7 +38,7 @@ public:
     virtual ~ErrorField();
 
     /// Make clone.
-    virtual ErrorField *clone(const string &name);
+    virtual ErrorField *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -48,7 +48,7 @@ public:
     //  to [b]mainField[/b]. The result is stored in [b]errorField[/b].
     //  This class's execute() method uses a MPHandler to call this function
     //  for each element which may have a multipole field error.
-    virtual void fieldError(const string &name, int occur,
+    virtual void fieldError(const std::string &name, int occur,
                             const BMultipoleField &mainField,
                             BMultipoleField &errorField);
 
@@ -59,7 +59,7 @@ private:
     void operator=(const ErrorField &);
 
     // Clone constructor.
-    ErrorField(const string &name, ErrorField *parent);
+    ErrorField(const std::string &name, ErrorField *parent);
 
     // Counters for new and existing errors.
     int oldError, newError;

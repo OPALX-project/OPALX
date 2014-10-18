@@ -35,7 +35,7 @@ public:
     virtual ~System();
 
     /// Make clone.
-    virtual System *clone(const string &name);
+    virtual System *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const System &);
 
     // Clone constructor.
-    System(const string &name, System *parent);
+    System(const std::string &name, System *parent);
 };
 
 #endif // OPAL_System_HH

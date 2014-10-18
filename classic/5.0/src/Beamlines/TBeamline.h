@@ -43,7 +43,7 @@ public:
     TBeamline();
 
     /// Constructor with given name.
-    explicit TBeamline(const string &name);
+    explicit TBeamline(const std::string &name);
 
     TBeamline(const TBeamline<T> &right);
     virtual ~TBeamline();
@@ -135,7 +135,7 @@ public:
     virtual ElementImage *getImage() const;
 
     /// Get beamline type string.
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     /// Append a T object.
     virtual void append(const T &);
@@ -151,7 +151,7 @@ protected:
 
 private:
 
-    const string type;
+    const std::string type;
 
 
 };
@@ -167,7 +167,7 @@ TBeamline<T>::TBeamline():
 
 
 template <class T>
-TBeamline<T>::TBeamline(const string &name):
+TBeamline<T>::TBeamline(const std::string &name):
     Beamline(name), std::list<T>(), itsGeometry(*this), type("beamline")
 {}
 
@@ -395,7 +395,7 @@ ElementImage *TBeamline<T>::getImage() const {
 
 
 template <class T> inline
-const string &TBeamline<T>::getType() const {
+const std::string &TBeamline<T>::getType() const {
     return type;
 }
 

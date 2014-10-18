@@ -117,7 +117,7 @@ TrackRun::TrackRun():
 }
 
 
-TrackRun::TrackRun(const string &name, TrackRun *parent):
+TrackRun::TrackRun(const std::string &name, TrackRun *parent):
     Action(name, parent) {
     OPAL = OpalData::getInstance();
 }
@@ -127,7 +127,7 @@ TrackRun::~TrackRun()
 {}
 
 
-TrackRun *TrackRun::clone(const string &name) {
+TrackRun *TrackRun::clone(const std::string &name) {
     return new TrackRun(name, this);
 }
 
@@ -264,10 +264,10 @@ void TrackRun::execute() {
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
         if (Attributes::getString(itsAttr[BOUNDARYGEOMETRY]) != "NONE") {
         // Ask the dictionary if BoundaryGeometry is allocated.
-        // If it is allocated use the allocated BoundaryGeometry 
+        // If it is allocated use the allocated BoundaryGeometry
           if (!OpalData::getInstance()->hasGlobalGeometry()) {
             BoundaryGeometry *bg = BoundaryGeometry::find(Attributes::getString(itsAttr[BOUNDARYGEOMETRY]))->
-                                                 clone(getOpalName() + string("_geometry"));
+                                                 clone(getOpalName() + std::string("_geometry"));
             OpalData::getInstance()->setGlobalGeometry(bg);
           }
         }
@@ -316,18 +316,18 @@ void TrackRun::execute() {
 	  FieldLayout<3>::iterator_iv locDomEnd = Track::block->bunch->getFieldLayout().end_iv();
 	  FieldLayout<3>::iterator_dv globDomBegin = Track::block->bunch->getFieldLayout().begin_rdv();
 	  FieldLayout<3>::iterator_dv globDomEnd = Track::block->bunch->getFieldLayout().end_rdv();
-	  
+
 	  NDIndex<3> ipplDom = Track::block->bunch->getFieldLayout().getDomain();
-	
+
 	  BoxArray lev0_grids(Ippl::getNodes());
-	
+
 	  Array<int> procMap;
-	  procMap.resize(lev0_grids.size()+1); // +1 is a historical thing, do not ask	
+	  procMap.resize(lev0_grids.size()+1); // +1 is a historical thing, do not ask
 
 	  // first iterate over the local owned domain(s)
 	  for(FieldLayout<3>::const_iterator_iv v_i = locDomBegin ; v_i != locDomEnd; ++v_i) {
 	    std::ostringstream stream;
-	    stream << *((*v_i).second);	 
+	    stream << *((*v_i).second);
 
 	    std::pair<Box,unsigned int> res = getBlGrids(stream.str());
 	    lev0_grids.set(res.second,res.first);
@@ -338,13 +338,13 @@ void TrackRun::execute() {
 	  for(FieldLayout<3>::iterator_dv v_i = globDomBegin ; v_i != globDomEnd; ++v_i) {
 	    std::ostringstream stream;
 	    stream << *((*v_i).second);
-	    
+
 	    std::pair<Box,unsigned int> res = getBlGrids(stream.str());
 	    lev0_grids.set(res.second,res.first);
 	    procMap[res.second] = res.second;
 	  }
 	  procMap[lev0_grids.size()] = Ippl::myNode();
-	  
+
 	  // This init call will cache the distribution map as determined by procMap
 	  // so that all data will end up on the right processor
 	  RealBox rb;
@@ -366,7 +366,7 @@ void TrackRun::execute() {
 
 	  rb.setLo(prob_lo);
 	  rb.setHi(prob_hi);
-	  
+
 	  int coord_sys = 0;
 
 	  Array<int> ncell(3);
@@ -383,13 +383,13 @@ void TrackRun::execute() {
              hr[i] = (prob_hi[i] - prob_lo[i]) / ncell[i];
              prob_lo_in[i] = prob_lo[i];
           }
-	 
+
           // We set this to -1 so that we can now control max_lev from the inputs file
 	  int maxLevel = -1;
 
 	  amrptr = new Amr(&rb,maxLevel,ncell,coord_sys);
 
-	  Real strt_time = 0.0; 
+	  Real strt_time = 0.0;
 	  Real stop_time = 1.0;
 
 	  // This init call will cache the distribution map as determined by procMap                                                                                            // so that all data will end up on the right processor
@@ -402,7 +402,7 @@ void TrackRun::execute() {
           std::vector<double> x(3);
 	  std::vector<double> attr(11);
 
-	  for (size_t i=0; i<Track::block->bunch->getLocalNum(); i++) 
+	  for (size_t i=0; i<Track::block->bunch->getLocalNum(); i++)
           {
             // X, Y, Z are stored separately from the other attributes
 	    for (unsigned int k=0; k<3; k++)
@@ -414,12 +414,12 @@ void TrackRun::execute() {
 	    //             then you must change "start_comp_for_e" in Accel_advance.cpp
 	    /*
 	      Q      : 0
-	      Vvec   : 1, 2, 3 the velocity 
+	      Vvec   : 1, 2, 3 the velocity
 	      Evec   : 4, 5, 6 the electric field at the particle location
 	      Bvec   : 7, 8, 9 the electric field at the particle location
 	      id+1   : 10 (we add 1 to make the particle ID > 0)
 	    */
-	
+
 	    // This is the charge
             attr[0] = Track::block->bunch->Q[i];
 
@@ -429,11 +429,11 @@ void TrackRun::execute() {
 	        attr[k+1] = Track::block->bunch->P[i](k) * Physics::c /gamma;
 
 	    // These are E and B
-	    for (unsigned int k=4; k<10; k++) 
-	      attr[k]= 0.0;	
+	    for (unsigned int k=4; k<10; k++)
+	      attr[k]= 0.0;
 
             //
-            // The Particle stuff in AMR requires ids > 0 
+            // The Particle stuff in AMR requires ids > 0
             //   (because we flip the sign to make them invalid)
             // So we just make id->id+1 here.
 	    int particle_id = Track::block->bunch->ID[i] + 1;
@@ -448,13 +448,13 @@ void TrackRun::execute() {
           amrptr->RedistributeParticles();
 
 	  // This part of the call must come after we add the particles
-	  // since this one calls post_init which does the field solve. 
+	  // since this one calls post_init which does the field solve.
 	  amrptr->FinalizeInit(strt_time, stop_time);
 
 	  amrptr->writePlotFile();
-	
+
 	  *gmsg << "A M R Initialization DONE" << endl;
-	
+
 	// }
 //      }
 #endif
@@ -515,10 +515,10 @@ void TrackRun::execute() {
 
         if (Attributes::getString(itsAttr[BOUNDARYGEOMETRY]) != "NONE") {
         // Ask the dictionary if BoundaryGeometry is allocated.
-        // If it is allocated use the allocated BoundaryGeometry 
+        // If it is allocated use the allocated BoundaryGeometry
           if (!OpalData::getInstance()->hasGlobalGeometry()) {
             BoundaryGeometry *bg = BoundaryGeometry::find(Attributes::getString(itsAttr[BOUNDARYGEOMETRY]))->
-                                                 clone(getOpalName() + string("_geometry"));
+                                                 clone(getOpalName() + std::string("_geometry"));
             OpalData::getInstance()->setGlobalGeometry(bg);
           }
         }
@@ -647,7 +647,7 @@ void TrackRun::execute() {
 	    itsTracker->setPr(dist->GetPr());
             itsTracker->setPt(dist->GetPt());
             itsTracker->setPz(dist->GetPz());
-          
+
 	    itsTracker->setR(dist->GetR());
 	    itsTracker->setTheta(dist->GetTheta());
             itsTracker->setZ(dist->GetZ());
@@ -741,7 +741,7 @@ void TrackRun::execute() {
           OLD SERIAL STUFF
         */
         // Open output file.
-        string file = Attributes::getString(itsAttr[FNAME]);
+        std::string file = Attributes::getString(itsAttr[FNAME]);
         std::ofstream os(file.c_str());
         if(os.bad()) {
             throw OpalException("TrackRun::execute()",
@@ -936,12 +936,12 @@ std::vector<std::string> TrackRun::filterString(std::string str) {
 
   // charakters to remove from the string
   char chars[] = "Node=;vn_mDmain{[][][]}:,";
- 	
-  for (unsigned int i = 0; i < strlen(chars); ++i) 
+
+  for (unsigned int i = 0; i < strlen(chars); ++i)
     std::replace(str.begin(), str.end(), chars[i], ' ');
 
   std::vector<std::string> tokens;
-  
+
   // filter spaces
   std::istringstream iss(str);
   copy(std::istream_iterator<std::string>(iss),
@@ -954,7 +954,7 @@ std::pair<Box,unsigned int> TrackRun::getBlGrids(std::string str){
 
   std::vector<std::string> tokens = filterString(str);
 
-  unsigned int theGrid; 
+  unsigned int theGrid;
   std::istringstream (tokens[0]) >> theGrid;
 
   int ilo,ihi,jlo,jhi,klo,khi;
@@ -969,8 +969,8 @@ std::pair<Box,unsigned int> TrackRun::getBlGrids(std::string str){
   Inform m2a("AMR ",INFORM_ALL_NODES);
   /*
   m2a << "Grid " << tokens[0]
-      << " i (" << tokens[2] << " ... " << tokens[3] << ")" 
-      << " j (" << tokens[5] << " ... " << tokens[6] << ")" 
+      << " i (" << tokens[2] << " ... " << tokens[3] << ")"
+      << " j (" << tokens[5] << " ... " << tokens[6] << ")"
       << " k (" << tokens[8] << " ... " << tokens[9] << ")" << " myNode " << Ippl::myNode() << endl;
   */
   IntVect loEnd(ilo,jlo,klo);
@@ -980,4 +980,3 @@ std::pair<Box,unsigned int> TrackRun::getBlGrids(std::string str){
   return std::pair<Box,unsigned int>(bx,theGrid);
 }
 #endif
-

@@ -37,7 +37,7 @@ class Beamline: public ElementBase {
 public:
 
     /// Constructor with given name.
-    explicit Beamline(const string &name);
+    explicit Beamline(const std::string &name);
 
     Beamline();
     Beamline(const Beamline &);

@@ -35,7 +35,7 @@ public:
     virtual ~EditCmd();
 
     /// Make clone.
-    virtual EditCmd *clone(const string &name);
+    virtual EditCmd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const EditCmd &);
 
     // Clone constructor.
-    EditCmd(const string &name, EditCmd *parent);
+    EditCmd(const std::string &name, EditCmd *parent);
 };
 
 #endif // OPAL_EditCmd_HH

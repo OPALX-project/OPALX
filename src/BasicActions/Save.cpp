@@ -128,7 +128,7 @@ Save::Save():
 }
 
 
-Save::Save(const string &name, Save *parent):
+Save::Save(const std::string &name, Save *parent):
     Action(name, parent)
 {}
 
@@ -137,13 +137,13 @@ Save::~Save()
 {}
 
 
-Save *Save::clone(const string &name) {
+Save *Save::clone(const std::string &name) {
     return new Save(name, this);
 }
 
 
 void Save::execute() {
-    string file = Attributes::getString(itsAttr[0]);
+    std::string file = Attributes::getString(itsAttr[0]);
     std::ofstream os(file.c_str());
 
     if(os.bad()) {
@@ -158,7 +158,7 @@ void Save::execute() {
         //JMJ adding some comment tags to saved output 25/10/2000
         //JMJ more of those 18/12/2000
 
-        string comchar = "// ";
+        std::string comchar = "// ";
 
         os << comchar << "<OPAL Version " << PACKAGE_VERSION << " SVN version "
            << SVN_VERSION << "  (c) PSI, http://amas.web.psi.ch"

@@ -77,7 +77,7 @@ Select::Select():
 }
 
 
-Select::Select(const string &name, Select *parent):
+Select::Select(const std::string &name, Select *parent):
     Action(name, parent)
 {}
 
@@ -86,14 +86,14 @@ Select::~Select()
 {}
 
 
-Select *Select::clone(const string &name) {
+Select *Select::clone(const std::string &name) {
     return new Select(name, this);
 }
 
 
 void Select::execute() {
     // Find beam sequence  or table definition.
-    const string name = Attributes::getString(itsAttr[LINE]);
+    const std::string name = Attributes::getString(itsAttr[LINE]);
 
     if(Object *obj = OpalData::getInstance()->find(name)) {
         if(BeamSequence *line = dynamic_cast<BeamSequence *>(obj)) {

@@ -12,12 +12,12 @@ using Physics::mu_0;
 using Physics::c;
 using Physics::two_pi;
 
-Astra1DMagnetoStatic_fast::Astra1DMagnetoStatic_fast(string aFilename):
+Astra1DMagnetoStatic_fast::Astra1DMagnetoStatic_fast(std::string aFilename):
     Fieldmap(aFilename) {
     ifstream file;
     int tmpInt;
     int skippedValues = 0;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
     double tmpDouble2;
 
@@ -28,7 +28,7 @@ Astra1DMagnetoStatic_fast::Astra1DMagnetoStatic_fast(string aFilename):
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, int>(file, tmpString, tmpInt);
+        bool parsing_passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
         parsing_passed = parsing_passed &&
                          interpreteLine<double, double>(file, zbegin_m, tmpDouble);
 
@@ -79,7 +79,7 @@ void Astra1DMagnetoStatic_fast::readMap() {
         int nsp;
         int ii;
 
-        string tmpString;
+        std::string tmpString;
 
         double Bz_max = 0.0;
         double *higherDerivatives[3];
@@ -95,7 +95,7 @@ void Astra1DMagnetoStatic_fast::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<string, int>(in, tmpString, accuracy);
+        interpreteLine<std::string, int>(in, tmpString, accuracy);
 
         for(nsp = 0; nsp < num_gridpz_m && parsing_passed; /* skip increment of nsp here */) {
             parsing_passed = interpreteLine<double, double>(in, zvals[0][nsp], RealValues[nsp]);

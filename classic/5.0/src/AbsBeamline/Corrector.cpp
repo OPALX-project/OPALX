@@ -43,7 +43,7 @@ Corrector::Corrector(const Corrector &right):
 { }
 
 
-Corrector::Corrector(const string &name):
+Corrector::Corrector(const std::string &name):
   Component(name),
   startField_m(0.0),
   endField_m(0.0),
@@ -96,13 +96,13 @@ bool Corrector::bends() const {
 }
 
 void Corrector::getDimensions(double &zBegin, double &zEnd) const
-{ 
+{
   zBegin = startField_m;
   zEnd = startField_m + getElementLength();
 }
 
-const string &Corrector::getType() const {
-    static const string type("Corrector");
+const std::string &Corrector::getType() const {
+    static const std::string type("Corrector");
     return type;
 }
 

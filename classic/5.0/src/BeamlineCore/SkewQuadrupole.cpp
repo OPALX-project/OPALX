@@ -27,7 +27,7 @@
 
 // The SkewQuadrupole type string.
 template <>
-const string SingleMultipole < -2 >::type("SkewQuadrupole");
+const std::string SingleMultipole < -2 >::type("SkewQuadrupole");
 
 template <>
 const SingleMultipole < -2 >::Entry SingleMultipole < -2 >::entries[] = {

@@ -39,7 +39,7 @@ class BeamBeam: public Component {
 public:
 
     /// Constructor with given name.
-    explicit BeamBeam(const string &name);
+    explicit BeamBeam(const std::string &name);
 
     BeamBeam();
     BeamBeam(const BeamBeam &right);
@@ -75,7 +75,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

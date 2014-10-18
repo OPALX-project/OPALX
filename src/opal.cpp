@@ -1,9 +1,6 @@
 #include "opal.h"
 #include "Utilities/OpalException.h"
 
-Ippl *ippl;
-Inform *gmsg;
-
 int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm) {
 
     MPI_Barrier(comm);

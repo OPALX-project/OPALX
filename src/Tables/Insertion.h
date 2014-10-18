@@ -35,7 +35,7 @@ public:
     virtual ~Insertion();
 
     /// Make clone.
-    virtual Insertion *clone(const string &name);
+    virtual Insertion *clone(const std::string &name);
 
     /// Fill the buffer using the defined algorithm.
     virtual void fill();
@@ -50,7 +50,7 @@ private:
     void operator=(const Insertion &);
 
     // Clone constructor.
-    Insertion(const string &name, Insertion *parent);
+    Insertion(const std::string &name, Insertion *parent);
 
     // The attribute of class Insertion.
     enum {

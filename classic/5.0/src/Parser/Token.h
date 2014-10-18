@@ -23,8 +23,6 @@
 #include <iosfwd>
 #include <string>
 
-using std::string;
-
 
 // Class Token
 // ------------------------------------------------------------------------
@@ -53,25 +51,25 @@ public:
 
     /// Constructor.
     //  Construct character token with type [b]type[/b] and value [b]c[/b].
-    Token(const string &file, int line, Type type, char c);
+    Token(const std::string &file, int line, Type type, char c);
 
     /// Constructor.
-    //  Construct string token with type [b]type[/b] and value [b]s[/b].
-    Token(const string &file, int line, Type type, const char *s);
+    //  Construct std::string token with type [b]type[/b] and value [b]s[/b].
+    Token(const std::string &file, int line, Type type, const char *s);
 
     /// Constructor.
     //  Construct string token with type [b]type[/b] and value [b]lex[/b].
-    Token(const string &file, int line, Type type, const string &lex);
+    Token(const std::string &file, int line, Type type, const std::string &lex);
 
     /// Constructor.
     //  Construct real numeric token with lexeme [b]lex[/b] and value
     //  [b]value[/b].
-    Token(const string &file, int line, const string &lex,
+    Token(const std::string &file, int line, const std::string &lex,
           double value);
 
     /// Constructor.
     //  Construct integer token with lexeme [b]lex[/b] and value [b]value[/b].
-    Token(const string &file, int line, const string &lex, int value);
+    Token(const std::string &file, int line, const std::string &lex, int value);
 
     Token(const Token &);
     ~Token();
@@ -123,20 +121,20 @@ public:
 
     /// Return string value.
     //  Throw ParseError, if token is not string.
-    string getString() const;
+    std::string getString() const;
 
     /// Return word value.
     //  Throw ParseError, if token is not word.
-    string getWord() const;
+    std::string getWord() const;
 
     /// Return the lexeme.
-    const string &getLex() const;
+    const std::string &getLex() const;
 
     /// Return the token type.
     Type getType() const;
 
     /// Return the token's file name.
-    const string &getFile() const;
+    const std::string &getFile() const;
 
     /// Return the token's line number.
     int getLine() const;
@@ -147,14 +145,14 @@ private:
     void invalid(const char *) const;
 
     // Input line and file.
-    string file;
+    std::string file;
     int line;
 
     // Token type.
     Type type;
 
     // Lexeme for token.
-    string lexeme;
+    std::string lexeme;
 
     // Value for token.
     double   d_value;

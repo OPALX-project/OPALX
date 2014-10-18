@@ -76,7 +76,7 @@ Line::Line():
 }
 
 
-Line::Line(const string &name, Line *parent):
+Line::Line(const std::string &name, Line *parent):
     // Do not copy list members; they will be filled at parse time.
     BeamSequence(name, parent) {
     setElement((new FlaggedBeamline(name))->makeAlignWrapper());
@@ -87,12 +87,12 @@ Line::~Line()
 {}
 
 
-Line *Line::clone(const string &name) {
+Line *Line::clone(const std::string &name) {
     return new Line(name, this);
 }
 
 
-Line *Line::copy(const string &name) {
+Line *Line::copy(const std::string &name) {
     Line *clone = new Line(name, this);
     FlaggedBeamline *oldLine = fetchLine();
     FlaggedBeamline *newLine = clone->fetchLine();
@@ -106,7 +106,7 @@ double Line::getLength() const {
 
 
 Object *Line::makeTemplate
-(const string &name, TokenStream &is, Statement &statement) {
+(const std::string &name, TokenStream &is, Statement &statement) {
     LineTemplate *macro = new LineTemplate(name, this);
 
     try {
@@ -172,7 +172,7 @@ void Line::print(std::ostream &os) const {
 
     for(FlaggedBeamline::const_iterator i = line->begin();
         i != line->end(); ++i) {
-        const string name = i->getElement()->getName();
+        const std::string name = i->getElement()->getName();
         if(name[0] != '#') {
             if(seen) os << ',';
             if(i->getReflectionFlag()) os << '-';
@@ -228,7 +228,7 @@ void Line::parseList(Statement &stat) {
             }
         } else {
             // Identifier.
-            string name = parseString(stat, "Line member expected.");
+            std::string name = parseString(stat, "Line member expected.");
             Pointer<Object> obj = OpalData::getInstance()->find(name);
 
             if(! obj.isValid()) {

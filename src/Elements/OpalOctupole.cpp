@@ -47,7 +47,7 @@ OpalOctupole::OpalOctupole():
 }
 
 
-OpalOctupole::OpalOctupole(const string &name, OpalOctupole *parent):
+OpalOctupole::OpalOctupole(const std::string &name, OpalOctupole *parent):
     OpalElement(name, parent) {
     setElement((new MultipoleRep(name))->makeWrappers());
 }
@@ -57,7 +57,7 @@ OpalOctupole::~OpalOctupole()
 {}
 
 
-OpalOctupole *OpalOctupole::clone(const string &name) {
+OpalOctupole *OpalOctupole::clone(const std::string &name) {
     return new OpalOctupole(name, this);
 }
 
@@ -98,15 +98,15 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 #endif
         ss << (order - 1) << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-        string orderString(buffer);
+        std::string orderString(buffer);
 #else
         std::string orderString = ss.str();
 #endif
 
-        string normName = "K" + orderString + "L";
+        std::string normName = "K" + orderString + "L";
         registerRealAttribute(normName)->setReal(scale * field.normal(order));
 
-        string skewName = "K" + orderString + "SL";
+        std::string skewName = "K" + orderString + "SL";
         registerRealAttribute(skewName)->setReal(scale * field.skew(order));
 
         scale *= double(order);

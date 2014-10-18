@@ -64,7 +64,7 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
 
 
     if(Options::csrDump) {
-        static string oldBendName;
+        static std::string oldBendName;
         static unsigned long counter = 0;
 
         if(oldBendName != bendName_m) counter = 0;
@@ -112,7 +112,7 @@ void CSRWakeFunction::initialize(const ElementBase *ref) {
         bendRadius_m = bend->GetBendRadius();
         bend->getDimensions(Begin_m, End);
         Length_m = bend->GetEffectiveLength();
-        //xpang 09-19-2014 : removed "Begin_m +" from FieldBegin_m 
+        //xpang 09-19-2014 : removed "Begin_m +" from FieldBegin_m
         FieldBegin_m = bend->GetEffectiveCenter() - Length_m / 2.0;
         totalBendAngle_m = bend->GetBendAngle();
         bendName_m = bend->getName();
@@ -301,5 +301,3 @@ double CSRWakeFunction::calcPsi(const double &psiInitial, const double &x, const
 const std::string CSRWakeFunction::getType() const {
     return "CSRWakeFunction";
 }
-
-

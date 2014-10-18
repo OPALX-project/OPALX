@@ -54,7 +54,7 @@ GreenWakeFunction::GreenWakeFunction(const std::string &name,
                                      double tau,
                                      int direction,
                                      bool constLength,
-                                     string fname):
+                                     std::string fname):
     WakeFunction(name, element),
     lineDensity_m(),
     //~ FftWField_m(0),
@@ -513,7 +513,7 @@ void GreenWakeFunction::CalcWakeFFT(double spacing) {
  */
 void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     Inform msg("readSDDS ");
-    string name;
+    std::string name;
     char temp[256];
     int Np, j;
     double dummy;
@@ -560,7 +560,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     msg  << " Np = " << Np << endl;
     std::vector<double> wake(Np);
     std::vector<double> dist(Np);
-    
+
     // read the wakefunction
     for(int i = 0; i < Np; i ++) {
         if(!fs.eof()) {
@@ -598,7 +598,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     gsl_fft_real_workspace_free(work);
 }
 
-const string GreenWakeFunction::getType() const {
+const std::string GreenWakeFunction::getType() const {
     return "GreenWakeFunction";
 }
 

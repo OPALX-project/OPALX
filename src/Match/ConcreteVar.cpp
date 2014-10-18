@@ -34,7 +34,7 @@
 
 
 ConcreteVar::ConcreteVar
-(const string &name, Attribute &attr, int limits, double pars[4]):
+(const std::string &name, Attribute &attr, int limits, double pars[4]):
     AbstractVar(name),
     itsAttr(attr),
     itsStep(std::abs(pars[1])),

@@ -45,7 +45,7 @@ public:
     virtual ~OpalSolenoid();
 
     /// Make clone.
-    virtual OpalSolenoid *clone(const string &name);
+    virtual OpalSolenoid *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -60,8 +60,7 @@ private:
     void operator=(const OpalSolenoid &);
 
     // Clone constructor.
-    OpalSolenoid(const string &name, OpalSolenoid *parent);
+    OpalSolenoid(const std::string &name, OpalSolenoid *parent);
 };
 
 #endif // OPAL_OpalSolenoid_HH
-

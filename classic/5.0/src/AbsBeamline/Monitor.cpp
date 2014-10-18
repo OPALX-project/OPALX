@@ -55,7 +55,7 @@ Monitor::Monitor(const Monitor &right):
 {}
 
 
-Monitor::Monitor(const string &name):
+Monitor::Monitor(const std::string &name):
     Component(name),
     filename_m(""),
     plane_m(OFF),
@@ -115,7 +115,7 @@ void Monitor::goOnline() {
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             Inform msg("Monitor ");
-            string errormsg;
+            std::string errormsg;
             errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             msg << errormsg << "\n"
                 << endl;
@@ -146,7 +146,7 @@ bool Monitor::bends() const {
     return false;
 }
 
-void Monitor::setOutputFN(string fn) {
+void Monitor::setOutputFN(std::string fn) {
     filename_m = fn;
 }
 
@@ -156,8 +156,8 @@ void Monitor::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &Monitor::getType() const {
-    static const string type("Monitor");
+const std::string &Monitor::getType() const {
+    static const std::string type("Monitor");
     return type;
 }
 

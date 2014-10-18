@@ -26,7 +26,7 @@
 // ------------------------------------------------------------------------
 
 
-AlignWriter::AlignWriter(const string &name) 
+AlignWriter::AlignWriter(const std::string &name)
 { }
 
 
@@ -34,5 +34,5 @@ AlignWriter::~AlignWriter()
 { }
 
 
-void AlignWriter::misalignment(const AlignWrapper &wrap, int occur) 
+void AlignWriter::misalignment(const AlignWrapper &wrap, int occur)
 { }

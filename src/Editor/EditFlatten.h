@@ -35,7 +35,7 @@ public:
     virtual ~EditFlatten();
 
     /// Make clone.
-    virtual EditFlatten *clone(const string &name);
+    virtual EditFlatten *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const EditFlatten &);
 
     // Clone constructor.
-    EditFlatten(const string &name, EditFlatten *parent);
+    EditFlatten(const std::string &name, EditFlatten *parent);
 };
 
 #endif // OPAL_EditFlatten_HH

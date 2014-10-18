@@ -26,7 +26,7 @@ Editor::~Editor()
 {}
 
 
-const string Editor::getCategory() const {
+const std::string Editor::getCategory() const {
     return "EDITOR";
 }
 
@@ -41,7 +41,7 @@ bool Editor::shouldUpdate() const {
 }
 
 
-Editor::Editor(const string &name, Editor *parent):
+Editor::Editor(const std::string &name, Editor *parent):
     Object(name, parent)
 {}
 

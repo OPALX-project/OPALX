@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: ElementImage
-//   Contains two strings, representing the element name and type, and a
+//   Contains two std::strings, representing the element name and type, and a
 //   map of its attributes used to represent this element's state.
 //
 // ------------------------------------------------------------------------
@@ -37,7 +37,7 @@ ElementImage::ElementImage(const ElementImage &right):
     elementType(right.elementType)
 {}
 
-ElementImage::ElementImage(const string &name, const string &type,
+ElementImage::ElementImage(const std::string &name, const std::string &type,
                            const AttributeSet &attrib):
     AttributeSet(attrib),
     elementName(name),
@@ -56,21 +56,21 @@ const ElementImage &ElementImage::operator=(const ElementImage &right) {
 }
 
 
-const string &ElementImage::getName() const {
+const std::string &ElementImage::getName() const {
     return elementName;
 }
 
 
-void ElementImage::setName(const string &name) {
+void ElementImage::setName(const std::string &name) {
     elementName = name;
 }
 
 
-const string &ElementImage::getType() const {
+const std::string &ElementImage::getType() const {
     return elementType;
 }
 
 
-void ElementImage::setType(const string &type) {
+void ElementImage::setType(const std::string &type) {
     elementType = type;
 }

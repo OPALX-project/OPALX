@@ -133,7 +133,7 @@ ClassicParser::~ClassicParser()
 
 void ClassicParser::parse(Statement &statement) const {
     try {
-        string name;
+        std::string name;
 
         if(! statement.word(name)) {
             throw ParseError("ClassicParser::parse()",
@@ -152,7 +152,7 @@ void ClassicParser::parse(Statement &statement) const {
             }
         } else {
             // Statement must be an element or beamline definition.
-            string type;
+            std::string type;
 
             if(! statement.delimiter(':')  ||  ! statement.word(type)) {
                 throw ParseError("ClassicParser::parse()",
@@ -176,7 +176,7 @@ void ClassicParser::parse(Statement &statement) const {
                 AttributeSet set;
 
                 while(statement.delimiter(',')) {
-                    string attrName;
+                    std::string attrName;
 
                     if(statement.word(attrName) && statement.delimiter('=')) {
                         double value = parseExpression(statement);
@@ -323,7 +323,7 @@ SimpleBeamline *ClassicParser::parseLine
         if(statement.delimiter('(')) {
             do {
                 ElementBase *element = 0;
-                string name;
+                std::string name;
                 statement.mark();
 
                 if(statement.word(name)) {
@@ -396,7 +396,7 @@ double ClassicParser::parseFactor(Statement &statement) const {
 
 double ClassicParser::parsePrimary(Statement &statement) const {
     double result = 0.0;
-    string name;
+    std::string name;
 
     if(statement.delimiter('(')) {
         result = parseExpression(statement);

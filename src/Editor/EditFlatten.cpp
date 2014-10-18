@@ -34,7 +34,7 @@ EditFlatten::EditFlatten():
 {}
 
 
-EditFlatten::EditFlatten(const string &name, EditFlatten *parent):
+EditFlatten::EditFlatten(const std::string &name, EditFlatten *parent):
     Editor(name, parent)
 {}
 
@@ -43,7 +43,7 @@ EditFlatten::~EditFlatten()
 {}
 
 
-EditFlatten *EditFlatten::clone(const string &name) {
+EditFlatten *EditFlatten::clone(const std::string &name) {
     return new EditFlatten(name, this);
 }
 

@@ -35,7 +35,7 @@ class MacroCmd: public Macro {
 public:
 
     MacroCmd();
-    MacroCmd(const string &name, MacroCmd *parent);
+    MacroCmd(const std::string &name, MacroCmd *parent);
     virtual ~MacroCmd();
 
     /// Execute the macro command.
@@ -46,11 +46,11 @@ public:
     //  The parser is used to determine the parse mode
     //  (normal, error, match, edit, track).
     virtual Object *makeInstance
-    (const string &name, Statement &, const Parser *);
+    (const std::string &name, Statement &, const Parser *);
 
     /// Make a macro template.
     //  Expects parse pointer in the statement to be set on the first argument.
-    virtual Object *makeTemplate(const string &, TokenStream &, Statement &);
+    virtual Object *makeTemplate(const std::string &, TokenStream &, Statement &);
 
 private:
 

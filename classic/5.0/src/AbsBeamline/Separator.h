@@ -35,7 +35,7 @@ class Separator: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Separator(const string &name);
+    explicit Separator(const std::string &name);
 
     Separator();
     Separator(const Separator &);
@@ -62,7 +62,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

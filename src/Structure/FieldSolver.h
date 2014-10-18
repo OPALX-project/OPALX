@@ -43,10 +43,10 @@ public:
     virtual ~FieldSolver();
 
     /// Make clone.
-    virtual FieldSolver *clone(const string &name);
+    virtual FieldSolver *clone(const std::string &name);
 
     /// Find named FieldSolver.
-    static FieldSolver *find(const string &name);
+    static FieldSolver *find(const std::string &name);
 
     /// Return meshsize
     double getMX() const;
@@ -99,7 +99,7 @@ private:
     void operator=(const FieldSolver &);
 
     // Clone constructor.
-    FieldSolver(const string &name, FieldSolver *parent);
+    FieldSolver(const std::string &name, FieldSolver *parent);
 
     /// The cartesian mesh
     Mesh_t *mesh_m;

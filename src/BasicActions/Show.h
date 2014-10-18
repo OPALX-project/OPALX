@@ -35,7 +35,7 @@ public:
     virtual ~Show();
 
     /// Make clone.
-    virtual Show *clone(const string &name);
+    virtual Show *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const Show &);
 
     // Clone constructor.
-    Show(const string &name, Show *parent);
+    Show(const std::string &name, Show *parent);
 };
 
 #endif // OPAL_Show_HH

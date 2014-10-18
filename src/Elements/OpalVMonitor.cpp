@@ -32,7 +32,7 @@ OpalVMonitor::OpalVMonitor():
 }
 
 
-OpalVMonitor::OpalVMonitor(const string &name, OpalVMonitor *parent):
+OpalVMonitor::OpalVMonitor(const std::string &name, OpalVMonitor *parent):
     OpalElement(name, parent) {
     setElement((new YMonitorRep(name))->makeAlignWrapper());
 }
@@ -42,7 +42,7 @@ OpalVMonitor::~OpalVMonitor()
 {}
 
 
-OpalVMonitor *OpalVMonitor::clone(const string &name) {
+OpalVMonitor *OpalVMonitor::clone(const std::string &name) {
     return new OpalVMonitor(name, this);
 }
 

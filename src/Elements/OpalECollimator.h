@@ -46,7 +46,7 @@ public:
     virtual ~OpalECollimator();
 
     /// Make clone.
-    virtual OpalECollimator *clone(const string &name);
+    virtual OpalECollimator *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -61,7 +61,7 @@ private:
     void operator=(const OpalECollimator &);
 
     // Clone constructor.
-    OpalECollimator(const string &name, OpalECollimator *parent);
+    OpalECollimator(const std::string &name, OpalECollimator *parent);
 
     SurfacePhysics *sphys_m;
 };

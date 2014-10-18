@@ -93,7 +93,7 @@ SBendRep::SBendRep(const SBendRep &rhs):
 }
 
 
-SBendRep::SBendRep(const string &name):
+SBendRep::SBendRep(const std::string &name):
     SBend(name),
     geometry(0.0, 0.0),
     field() {
@@ -110,11 +110,11 @@ ElementBase *SBendRep::clone() const {
 }
 
 
-Channel *SBendRep::getChannel(const string &aKey, bool create) {
+Channel *SBendRep::getChannel(const std::string &aKey, bool create) {
     if(aKey[0] == 'a'  ||  aKey[0] == 'b') {
         int n = 0;
 
-        for(string::size_type k = 1; k < aKey.length(); k++) {
+        for(std::string::size_type k = 1; k < aKey.length(); k++) {
             if(isdigit(aKey[k])) {
                 n = 10 * n + aKey[k] - '0';
             } else {
@@ -178,7 +178,7 @@ ElementImage *SBendRep::getImage() const {
             k /= 10;
         }
 
-        string name(" ");
+        std::string name(" ");
         while(p > buffer) name += *--p;
 
         double b = field.getNormalComponent(n);

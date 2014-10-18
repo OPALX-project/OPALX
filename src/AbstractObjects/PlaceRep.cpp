@@ -39,7 +39,7 @@ PlaceRep::PlaceRep(const PlaceRep &rhs):
 }
 
 
-PlaceRep::PlaceRep(const string &def):
+PlaceRep::PlaceRep(const std::string &def):
     data(), is_selected(def == "SELECTED") {
     append(def, 1);
     initialize();
@@ -57,7 +57,7 @@ const PlaceRep &PlaceRep::operator=(const PlaceRep &rhs) {
 }
 
 
-void PlaceRep::append(const string &name, int occur) {
+void PlaceRep::append(const std::string &name, int occur) {
     data.push_back(std::make_pair(name, occur));
 }
 
@@ -69,7 +69,7 @@ void PlaceRep::initialize() {
 
 
 void PlaceRep::enter(const FlaggedElmPtr &fep) const {
-    const string &name = fep.getElement()->getName();
+    const std::string &name = fep.getElement()->getName();
     const int occur = fep.getCounter();
 
     if(seen < data.size()  &&
@@ -83,7 +83,7 @@ void PlaceRep::enter(const FlaggedElmPtr &fep) const {
 
 
 void PlaceRep::leave(const FlaggedElmPtr &fep) const {
-    const string &name = fep.getElement()->getName();
+    const std::string &name = fep.getElement()->getName();
     const int occur = fep.getCounter();
 
     if(seen > 0  &&

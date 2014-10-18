@@ -49,7 +49,7 @@ EditRemove::EditRemove():
 }
 
 
-EditRemove::EditRemove(const string &name, EditRemove *parent):
+EditRemove::EditRemove(const std::string &name, EditRemove *parent):
     Editor(name, parent)
 {}
 
@@ -58,7 +58,7 @@ EditRemove::~EditRemove()
 {}
 
 
-EditRemove *EditRemove::clone(const string &name) {
+EditRemove *EditRemove::clone(const std::string &name) {
     return new EditRemove(name, this);
 }
 

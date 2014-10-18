@@ -42,7 +42,7 @@ public:
     //  [li] A code for limit values: 0=no limit, 1=lower, 2=upper, 3=both.
     //  [li] Value, lower, upper, and step.
     //  [/ol]
-    ConcreteVar(const string &name, Attribute &data,
+    ConcreteVar(const std::string &name, Attribute &data,
                 int limits, double pars[4]);
 
     virtual ~ConcreteVar();

@@ -58,12 +58,12 @@ RealConstant::RealConstant():
 }
 
 
-RealConstant::RealConstant(const string &name, RealConstant *parent):
+RealConstant::RealConstant(const std::string &name, RealConstant *parent):
     ValueDefinition(name, parent)
 {}
 
 
-RealConstant::RealConstant(const string &name, RealConstant *parent,
+RealConstant::RealConstant(const std::string &name, RealConstant *parent,
                            double value):
     ValueDefinition(name, parent) {
     Attributes::setReal(itsAttr[0], value);
@@ -81,7 +81,7 @@ bool RealConstant::canReplaceBy(Object *) {
 }
 
 
-RealConstant *RealConstant::clone(const string &name) {
+RealConstant *RealConstant::clone(const std::string &name) {
     return new RealConstant(name, this);
 }
 

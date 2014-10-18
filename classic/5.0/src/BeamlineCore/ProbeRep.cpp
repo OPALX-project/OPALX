@@ -57,7 +57,7 @@ ProbeRep::ProbeRep(const ProbeRep &right):
 {}
 
 
-ProbeRep::ProbeRep(const string &name):
+ProbeRep::ProbeRep(const std::string &name):
     Probe(name), field(), geometry(), active(true)
 {}
 
@@ -71,7 +71,7 @@ ElementBase *ProbeRep::clone() const {
 }
 
 
-Channel *ProbeRep::getChannel(const string &aKey, bool create) {
+Channel *ProbeRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<ProbeRep>(*this, entry->get, entry->set);
@@ -111,4 +111,3 @@ ElementImage *ProbeRep::getImage() const {
 void ProbeRep::setActive(bool flag) {
     active = flag;
 }
-

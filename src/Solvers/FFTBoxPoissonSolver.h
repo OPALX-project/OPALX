@@ -29,9 +29,9 @@ class PartBunch;
 class FFTBoxPoissonSolver : public PoissonSolver {
 public:
     // constructor and destructor
-    FFTBoxPoissonSolver(PartBunch &bunch, string greensFuntion);
+    FFTBoxPoissonSolver(PartBunch &bunch, std::string greensFuntion);
 
-    FFTBoxPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, string greensFunction, double boxSize);
+    FFTBoxPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction, double boxSize);
 
     ~FFTBoxPoissonSolver();
 

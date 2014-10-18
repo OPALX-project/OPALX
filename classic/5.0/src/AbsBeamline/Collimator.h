@@ -52,7 +52,7 @@ public:
     };
 
     /// Constructor with given name.
-    explicit Collimator(const string &name);
+    explicit Collimator(const std::string &name);
 
     Collimator();
     Collimator(const Collimator &rhs);
@@ -74,7 +74,7 @@ public:
     virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
 
     virtual bool checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep);
-   
+
     virtual bool checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax);
 
     virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
@@ -89,15 +89,15 @@ public:
 
     virtual void goOffline();
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     void print();
 
-    string  getCollimatorShape();
-    void setOutputFN(string fn);
-    string getOutputFN();
+    std::string  getCollimatorShape();
+    void setOutputFN(std::string fn);
+    std::string getOutputFN();
 
     void setXsize(double a) ;
 
@@ -155,7 +155,7 @@ private:
     // Not implemented.
     void operator=(const Collimator &);
 
-    string filename_m;               /**< The name of the outputfile*/
+    std::string filename_m;               /**< The name of the outputfile*/
     Plane plane_m;
     double position_m;
     std::vector<double> PosX_m;

@@ -47,7 +47,7 @@ class Multipole: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Multipole(const string &name);
+    explicit Multipole(const std::string &name);
 
     Multipole();
     Multipole(const Multipole &);
@@ -105,7 +105,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

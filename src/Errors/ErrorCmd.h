@@ -35,7 +35,7 @@ public:
     virtual ~ErrorCmd();
 
     /// Make clone.
-    virtual ErrorCmd *clone(const string &name);
+    virtual ErrorCmd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const ErrorCmd &);
 
     // Clone constructor.
-    ErrorCmd(const string &name, ErrorCmd *parent);
+    ErrorCmd(const std::string &name, ErrorCmd *parent);
 };
 
 #endif // OPAL_ErrorCmd_HH

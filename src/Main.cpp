@@ -19,42 +19,21 @@
 //~ #include "Allocator.h"
 //~ #endif
 
+#include "opal.h"
 #include "Ippl.h"
 #include "H5hut.h"
 
-#include "AbstractObjects/OpalData.h"
-#include "OpalConfigure/Configure.h"
 #include "FixedAlgebra/FTps.h"
-#include "OpalParser/OpalParser.h"
-#include "Parser/FileStream.h"
-#include "Parser/TerminalStream.h"
-#include "Utilities/ClassicException.h"
-#include "Utilities/ParseError.h"
-#include "Utilities/Timer.h"
 
 #ifdef HAVE_AMR_SOLVER
 #include <ParallelDescriptor.H>
 #endif
 
-#include <iostream>
-#include <vector>
-
-#include <new>
-#include <exception>
-
-#include "config.h"
-
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-using namespace std;
-using namespace OPALTimer;
 //  DTA
 #define NC 5
 #define MY_MASK 0755
 
-void printStringVector(const vector<string> &strings) {
+void printStringVector(const std::vector<std::string> &strings) {
     unsigned int iend = strings.size(), nc = 0;
     for(unsigned int i = 0; i < iend; ++i) {
         std::cout << "  " << strings[i];
@@ -76,46 +55,43 @@ void printStringVector(const vector<string> &strings) {
 
 //: A global Inform object
 
-Inform *gmsg;
-Ippl *ippl;
-
 //: The OPAL main program.
 int main(int argc, char *argv[]) {
     ippl = new Ippl(argc, argv);
+    gmsg = new  Inform("OPAL");
 
 #ifdef HAVE_AMR_SOLVER
-    std::cout << "Initializing BoxLib with inputs file " << argv[1] << std::endl;
+    *gmsg << "Initializing BoxLib with inputs file " << argv[1] << endl;
     BoxLib::Initialize(argc, argv, true, Ippl::getComm());
-    std::cout << "Done initializing BoxLib with inputs file " << argv[1] << std::endl;
+    *gmsg << "Done initializing BoxLib with inputs file " << argv[1] << endl;
 #endif
 
     OPALTimer::Timer simtimer;
 
-    string dateStr(simtimer.date());
-    string timeStr(simtimer.time());
+    std::string dateStr(simtimer.date());
+    std::string timeStr(simtimer.time());
 
     H5SetVerbosityLevel(0); //65535);
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
 
-    gmsg = new  Inform("OPAL");
     Inform hmsg("");
-    string mySpace("            ");
+    std::string mySpace("            ");
 
     if(Ippl::myNode() == 0) remove("errormsg.txt");
 
     /*
 
-       hmsg << mySpace << string("   _______  _______  _______  _  ")<< endl;
-       hmsg << mySpace << string("  (  ___  )(  ____ )(  ___  )( ")<< endl;
-       hmsg << mySpace << string("  | (   ) || (    )|| (   ) || (")<< endl;
-       hmsg << mySpace << string("  | |   | || (____)|| (___) || |")<< endl;
-       hmsg << mySpace << string("  | |   | ||  _____)|  ___  || |")<< endl;
-       hmsg << mySpace << string("  | |   | || (      | (   ) || |")<< endl;
-    //  hmsg << mySpace << string("  | (___) || )      | )   ( || (____/\")<< endl;
+       hmsg << mySpace << std::string("   _______  _______  _______  _  ")<< endl;
+       hmsg << mySpace << std::string("  (  ___  )(  ____ )(  ___  )( ")<< endl;
+       hmsg << mySpace << std::string("  | (   ) || (    )|| (   ) || (")<< endl;
+       hmsg << mySpace << std::string("  | |   | || (____)|| (___) || |")<< endl;
+       hmsg << mySpace << std::string("  | |   | ||  _____)|  ___  || |")<< endl;
+       hmsg << mySpace << std::string("  | |   | || (      | (   ) || |")<< endl;
+    //  hmsg << mySpace << std::string("  | (___) || )      | )   ( || (____/\")<< endl;
     //
-    hmsg << mySpace << string("  (_______)|//       |//     /\|(_______// ")<< endl;
+    hmsg << mySpace << std::string("  (_______)|//       |//     /\|(_______// ")<< endl;
     */
 
     hmsg << mySpace <<  "   ____  _____       ___ " << endl;
@@ -168,7 +144,7 @@ int main(int argc, char *argv[]) {
         FileStream::setEcho(true);
 
 #ifndef __LIBCATAMOUNT__
-        string startup = getenv("HOME");
+        std::string startup = getenv("HOME");
         startup += "/init.opal";
         FileStream::setEcho(false);
         FileStream *is;
@@ -190,23 +166,23 @@ int main(int argc, char *argv[]) {
 #endif
 
         if(argc > 1)
-            OPAL->storeInputFn(string(argv[1]));
+            OPAL->storeInputFn(std::string(argv[1]));
 
         if(argc > 3) {
             if(argc > 5) {
                 // will write dumping date into a new h5 file
                 for(int ii = 2; ii < 6; ii = ii + 2)
                     // The sequence of the two arguments is free
-                    if(string(argv[ii]) == string("-restart")) {
+                    if(std::string(argv[ii]) == std::string("-restart")) {
                         OPAL->setRestartRun();
                         OPAL->setRestartStep(atoi(argv[ii+1]));
                         OPAL->setRestartFileName(argv[1]);
-                    } else if((string(argv[ii]) == string("-restartfn"))) {
+                    } else if((std::string(argv[ii]) == std::string("-restartfn"))) {
                         OPAL->setRestartFileName(argv[ii+1]);
                     }
             } else {
                 // will append dumping date into old h5 file
-                if(string(argv[2]) == string("-restart")) {
+                if(std::string(argv[2]) == std::string("-restart")) {
                     OPAL->setRestartRun();
                     OPAL->setRestartStep(atoi(argv[3]));
                 }
@@ -235,20 +211,20 @@ int main(int argc, char *argv[]) {
 
         ////  DTA
         //  std::cout << std::endl << std::endl;
-        //  vector<string> names=OPAL->getAllNames();
+        //  vector<std::string> names=OPAL->getAllNames();
         //  printStringVector(names);
         //// /DTA
 
 
         IpplTimings::stopTimer(mainTimer);
         IpplTimings::print();
-        IpplTimings::print(string("timing.dat"));
+        IpplTimings::print(std::string("timing.dat"));
 
         if(Ippl::myNode() == 0) {
-            ifstream errormsg("errormsg.txt");
+            std::ifstream errormsg("errormsg.txt");
             if(errormsg.good()) {
                 char buffer[256];
-                string closure("*                                                                                  *\n");
+                std::string closure("*                                                                                  *\n");
                 *gmsg << "\n"
                       << "* **********************************************************************************\n"
                       << "* ************** E R R O R * * M E S S A G E S *************************************\n"
@@ -282,7 +258,7 @@ int main(int argc, char *argv[]) {
         *gmsg << endl << "*** User error detected by function \""
               << ex.where() << "\"" << endl;
         abort();
-    } catch(bad_alloc) {
+    } catch(std::bad_alloc) {
         *gmsg << "Sorry, virtual memory exhausted." << endl;
         abort();
     } catch(...) {

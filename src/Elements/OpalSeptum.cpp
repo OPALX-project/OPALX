@@ -56,7 +56,7 @@ OpalSeptum::OpalSeptum():
 }
 
 
-OpalSeptum::OpalSeptum(const string &name, OpalSeptum *parent):
+OpalSeptum::OpalSeptum(const std::string &name, OpalSeptum *parent):
     OpalElement(name, parent),
     owk_m(NULL) {
     setElement((new SeptumRep(name))->makeAlignWrapper());
@@ -69,7 +69,7 @@ OpalSeptum::~OpalSeptum() {
 }
 
 
-OpalSeptum *OpalSeptum::clone(const string &name) {
+OpalSeptum *OpalSeptum::clone(const std::string &name) {
     return new OpalSeptum(name, this);
 }
 
@@ -92,7 +92,7 @@ void OpalSeptum::update() {
     double width = Attributes::getReal(itsAttr[WIDTH]);
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*sept);
         sept->setWake(owk_m->wf_m);
     }

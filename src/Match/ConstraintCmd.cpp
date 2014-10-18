@@ -55,7 +55,7 @@ ConstraintCmd::ConstraintCmd():
 }
 
 
-ConstraintCmd::ConstraintCmd(const string &name, ConstraintCmd *parent):
+ConstraintCmd::ConstraintCmd(const std::string &name, ConstraintCmd *parent):
     Action(name, parent) {
     relation = 0;
 }
@@ -65,7 +65,7 @@ ConstraintCmd::~ConstraintCmd()
 {}
 
 
-ConstraintCmd *ConstraintCmd::clone(const string &name) {
+ConstraintCmd *ConstraintCmd::clone(const std::string &name) {
     return new ConstraintCmd(name, this);
 }
 
@@ -103,7 +103,7 @@ void ConstraintCmd::parse(Statement &stat) {
 
     // Weight array.
     Expressions::parseDelimiter(stat, ',');
-    string name = Expressions::parseString(stat, "Attribute name expected.");
+    std::string name = Expressions::parseString(stat, "Attribute name expected.");
 
     if(name == "WGT") {
         if(stat.delimiter('=')) {

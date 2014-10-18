@@ -39,7 +39,7 @@ public:
     virtual ~Twiss3();
 
     /// Make clone.
-    virtual Twiss3 *clone(const string &name);
+    virtual Twiss3 *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -51,7 +51,7 @@ private:
     void operator=(const Twiss3 &);
 
     // Clone constructor.
-    Twiss3(const string &name, Twiss3 *parent);
+    Twiss3(const std::string &name, Twiss3 *parent);
 
     // Do the listing.
     void format(std::ostream &, const Twiss *);

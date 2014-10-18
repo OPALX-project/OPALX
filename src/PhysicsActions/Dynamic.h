@@ -35,7 +35,7 @@ public:
     virtual ~Dynamic();
 
     /// Make clone.
-    virtual Dynamic *clone(const string &name);
+    virtual Dynamic *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const Dynamic &);
 
     // Clone constructor.
-    Dynamic(const string &name, Dynamic *parent);
+    Dynamic(const std::string &name, Dynamic *parent);
 };
 
 #endif // OPAL_Dynamic_HH

@@ -118,12 +118,9 @@ set (OPAL_LIBS
     mpi_cxx
 )
 
-add_executable( opal ${OPAL_SRCS} Main.cpp )
-target_link_libraries( opal CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran)
-
-if (BUILD_LIBOPAL OR BUILD_OPAL_UNIT_TESTS)
-    add_library( OPAL ${OPAL_SRCS} opal.cpp )
-endif (BUILD_LIBOPAL OR BUILD_OPAL_UNIT_TESTS)
+add_library( OPAL ${OPAL_SRCS} opal.cpp )
+add_executable( opal Main.cpp )
+target_link_libraries( opal OPAL CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran)
 
 # build unit tests; unit tests are defined in unit_tests directory, we build the
 # executable here so that we can use the OPAL src and lib definitions

@@ -1,4 +1,5 @@
 #include "Algorithms/Vektor.h"
+#include "AppTypes/Tenzor.h"
 
 void normalize(Vector_t & vec)
 {
@@ -41,14 +42,14 @@ Quaternion getQuaternion(Vector_t u, Vector_t v)
     return result;
 }
 
-Quaternion Quaternion::operator*(const double & d) const
+const Quaternion Quaternion::operator*(const double & d) const
 {
     Quaternion result(d * this->real(), d * this->imag());
 
     return result;
 }
 
-Quaternion Quaternion::operator*(const Quaternion & other) const
+const Quaternion Quaternion::operator*(const Quaternion & other) const
 {
     Quaternion result(*this);
     return result *= other;
@@ -65,7 +66,7 @@ Quaternion & Quaternion::operator*=(const Quaternion & other)
     return *this;
 }
 
-Quaternion Quaternion::operator/(const double & d) const
+const Quaternion Quaternion::operator/(const double & d) const
 {
     Quaternion result(this->real() / d, this->imag() / d);
 
@@ -81,7 +82,7 @@ Quaternion & Quaternion::normalize()
     return (*this);
 }
 
-Quaternion Quaternion::inverse() const
+const Quaternion Quaternion::inverse() const
 {
     PAssert(this->Norm() > 1e-12);
 
@@ -90,7 +91,7 @@ Quaternion Quaternion::inverse() const
     return returnValue.normalize();
 }
 
-Vector_t Quaternion::rotate(const Vector_t & vec) const
+const Vector_t Quaternion::rotate(const Vector_t & vec) const
 {
     PAssert(this->isUnit());
 
@@ -99,7 +100,7 @@ Vector_t Quaternion::rotate(const Vector_t & vec) const
     return ((*this) * (quat * (*this).conjugate())).imag();
 }
 
-Tenzor<double, 3> Quaternion::getRotationMatrix() const
+const Tenzor<double, 3> Quaternion::getRotationMatrix() const
 {
     Tenzor<double, 3> mat(1 - 2 * ((*this)(2)*(*this)(2) + (*this)(3)*(*this)(3)),
                           2 * ((*this)(0) * (*this)(3) + (*this)(1) * (*this)(2)),

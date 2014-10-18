@@ -35,7 +35,7 @@ RealVector::RealVector():
 }
 
 
-RealVector::RealVector(const string &name, RealVector *parent):
+RealVector::RealVector(const std::string &name, RealVector *parent):
     ValueDefinition(name, parent)
 {}
 
@@ -50,7 +50,7 @@ bool RealVector::canReplaceBy(Object *object) {
 }
 
 
-RealVector *RealVector::clone(const string &name) {
+RealVector *RealVector::clone(const std::string &name) {
     return new RealVector(name, this);
 }
 

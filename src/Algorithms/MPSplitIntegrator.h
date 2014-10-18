@@ -89,7 +89,7 @@ public:
     virtual const BGeometryBase &getGeometry() const;
 
     /// Get element type string.
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     /// Get map from MPSplitIntegrator.
     // The map is returned in [b]map[/b], the other values are the same

@@ -99,7 +99,7 @@ namespace Options {
     // If true create symmetric distribution
     bool cZero = false;
 
-    string rngtype = string("RANDOM");
+    std::string rngtype = std::string("RANDOM");
 
     bool schottkyCorrection = false;
 
@@ -252,7 +252,7 @@ Option::Option():
     itsAttr[ASCIIDUMP] = Attributes::makeBool
         ("ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", false);
 
-    itsAttr[BOUNDPDESTROYFREQ] = Attributes::makeReal                          
+    itsAttr[BOUNDPDESTROYFREQ] = Attributes::makeReal
                       ("BOUNDPDESTROYFREQ", "The frequency to do boundp_destroy to delete lost particles. Default value is 10.");
 
     FileStream::setEcho(echo);
@@ -260,7 +260,7 @@ Option::Option():
 }
 
 
-Option::Option(const string &name, Option *parent):
+Option::Option(const std::string &name, Option *parent):
     Action(name, parent) {
     Attributes::setBool(itsAttr[ECHO],       echo);
     Attributes::setBool(itsAttr[INFO],       info);
@@ -289,7 +289,7 @@ Option::Option(const string &name, Option *parent):
     Attributes::setReal(itsAttr[SURFDUMPFREQ], surfDumpFreq);
     Attributes::setBool(itsAttr[CZERO], cZero);
     Attributes::setBool(itsAttr[SCHOTTKYCORR], schottkyCorrection);
-    Attributes::setString(itsAttr[RNGTYPE], string(rngtype));
+    Attributes::setString(itsAttr[RNGTYPE], std::string(rngtype));
     Attributes::setReal(itsAttr[SCHOTTKYRENO], schottkyRennormalization);
     Attributes::setBool(itsAttr[FINEEMISSION], fineEmission);
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
@@ -305,7 +305,7 @@ Option::~Option()
 {}
 
 
-Option *Option::clone(const string &name) {
+Option *Option::clone(const std::string &name) {
     return new Option(name, this);
 }
 
@@ -411,9 +411,9 @@ void Option::execute() {
     }
 
     if(itsAttr[RNGTYPE]) {
-        rngtype = string(Attributes::getString(itsAttr[RNGTYPE]));
+        rngtype = std::string(Attributes::getString(itsAttr[RNGTYPE]));
     } else {
-        rngtype = string("RANDOM");
+        rngtype = std::string("RANDOM");
     }
 
     if(itsAttr[FINEEMISSION]) {

@@ -57,7 +57,7 @@ Migrad::Migrad():
 }
 
 
-Migrad::Migrad(const string &name, Migrad *parent):
+Migrad::Migrad(const std::string &name, Migrad *parent):
     Action(name, parent)
 {}
 
@@ -66,7 +66,7 @@ Migrad::~Migrad()
 {}
 
 
-Migrad *Migrad::clone(const string &name) {
+Migrad *Migrad::clone(const std::string &name) {
     return new Migrad(name, this);
 }
 

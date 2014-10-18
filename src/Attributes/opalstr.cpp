@@ -30,7 +30,7 @@ using namespace Expressions;
 
 namespace Attributes {
 
-    String::String(const string &name, const string &help):
+    String::String(const std::string &name, const std::string &help):
         AttributeHandler(name, help, 0)
     {}
 
@@ -39,14 +39,14 @@ namespace Attributes {
     {}
 
 
-    const string &String::getType() const {
-        static const string type("string");
+    const std::string &String::getType() const {
+        static const std::string type("string");
         return type;
     }
 
 
     void String::parse(Attribute &attr, Statement &stat, bool) const {
-        attr.set(new SValue<string>(parseString(stat, "String value expected.")));
+        attr.set(new SValue<std::string>(parseString(stat, "String value expected.")));
     }
 
 };

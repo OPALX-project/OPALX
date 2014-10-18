@@ -35,7 +35,7 @@ Lambertson::Lambertson(const Lambertson &rhs):
 { }
 
 
-Lambertson::Lambertson(const string &name):
+Lambertson::Lambertson(const std::string &name):
     Component(name)
 { }
 
@@ -75,8 +75,7 @@ void Lambertson::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const string &Lambertson::getType() const {
-    static const string type("Lambertson");
+const std::string &Lambertson::getType() const {
+    static const std::string type("Lambertson");
     return type;
 }
-

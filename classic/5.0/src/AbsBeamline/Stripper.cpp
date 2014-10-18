@@ -80,7 +80,7 @@ Stripper::Stripper(const Stripper &right):
 }
 
 
-Stripper::Stripper(const string &name):
+Stripper::Stripper(const std::string &name):
     Component(name),
     filename_m(""),
     position_m(0.0),
@@ -387,8 +387,8 @@ void Stripper::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = position_m + 0.005;
 }
 
-const string &Stripper::getType() const {
-    static const string type("Stripper");
+const std::string &Stripper::getType() const {
+    static const std::string type("Stripper");
     return type;
 }
 

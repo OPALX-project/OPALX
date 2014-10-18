@@ -67,7 +67,7 @@ CorrectionBase::CorrectionBase(int size, const char *name, const char *help):
 }
 
 
-CorrectionBase::CorrectionBase(const string &name, CorrectionBase *parent):
+CorrectionBase::CorrectionBase(const std::string &name, CorrectionBase *parent):
     Action(name, parent)
 {}
 
@@ -78,7 +78,7 @@ CorrectionBase::~CorrectionBase()
 
 void CorrectionBase::addKick(int plane, Row &row, double kick) {
     // Find object corresponding to current corrector.
-    const string &name = row.getElement()->getName();
+    const std::string &name = row.getElement()->getName();
     Object *elem = OpalData::getInstance()->find(name);
 
     // Decide on type of corrector.

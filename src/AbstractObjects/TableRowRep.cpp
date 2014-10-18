@@ -18,7 +18,6 @@
 
 #include "AbstractObjects/TableRowRep.h"
 #include <iostream>
-using namespace std;
 
 
 // Class TableRowRep
@@ -34,7 +33,7 @@ TableRowRep::TableRowRep(const TableRowRep &rhs):
 {}
 
 
-TableRowRep::TableRowRep(const string &tab, const PlaceRep &row):
+TableRowRep::TableRowRep(const std::string &tab, const PlaceRep &row):
     tabName(tab), position(row)
 {}
 
@@ -50,7 +49,7 @@ const TableRowRep &TableRowRep::operator=(const TableRowRep &rhs) {
 }
 
 
-const string &TableRowRep::getTabName() const {
+const std::string &TableRowRep::getTabName() const {
     return tabName;
 }
 

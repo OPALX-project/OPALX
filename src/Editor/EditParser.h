@@ -41,7 +41,7 @@ public:
 protected:
 
     /// Find object by name in the sequence editor command directory.
-    virtual Object *find(const string &) const;
+    virtual Object *find(const std::string &) const;
 
     /// Parse and execute current statement.
     virtual void parse(Statement &) const;

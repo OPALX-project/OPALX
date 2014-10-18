@@ -9,7 +9,7 @@
 using namespace std;
 using Physics::mu_0;
 
-FM3DDynamic::FM3DDynamic(string aFilename):
+FM3DDynamic::FM3DDynamic(std::string aFilename):
     Fieldmap(aFilename),
     FieldstrengthEz_m(NULL),
     FieldstrengthEx_m(NULL),
@@ -18,14 +18,14 @@ FM3DDynamic::FM3DDynamic(string aFilename):
     FieldstrengthHx_m(NULL),
     FieldstrengthHy_m(NULL) {
     Inform msg("FM3DD ");
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
 
     Type = T3DDynamic;
     ifstream file(Filename_m.c_str());
 
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, string>(file, tmpString, tmpString);
+        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
         if(tmpString == "XYZ") {
             swap_m = false;
             parsing_passed = parsing_passed &&
@@ -103,10 +103,10 @@ void FM3DDynamic::readMap() {
         Inform msg("FM3DD ");
         ifstream in(Filename_m.c_str());
         int tmpInt;
-        string tmpString;
+        std::string tmpString;
         double tmpDouble, Ezmax = 0.0;
 
-        interpreteLine<string, string>(in, tmpString, tmpString);
+        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
         interpreteLine<double>(in, tmpDouble);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);

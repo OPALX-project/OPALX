@@ -40,7 +40,7 @@ public:
 
     enum CavityType { SW, TW };
     /// Constructor with given name.
-    explicit TravelingWave(const string &name);
+    explicit TravelingWave(const std::string &name);
 
     TravelingWave();
     TravelingWave(const TravelingWave &);
@@ -59,13 +59,13 @@ public:
     virtual double getPhase() const = 0;
 
     /// Set the name of the field map
-    void setFieldMapFN(string fmapfn);
+    void setFieldMapFN(std::string fmapfn);
 
-    /*   void setExitFieldMapFN(string fn); */
+    /*   void setExitFieldMapFN(std::string fn); */
 
-    /*   void setExitFieldMapFN(string fn); */
+    /*   void setExitFieldMapFN(std::string fn); */
 
-    string getFieldMapFN() const;
+    std::string getFieldMapFN() const;
 
     void setFast(bool fast);
 
@@ -91,10 +91,10 @@ public:
 
     double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
 
-    std::pair<double, double> trackOnAxisParticle(const double & p0, 
-                                                  const double & t0, 
-                                                  const double & dt, 
-                                                  const double & q, 
+    std::pair<double, double> trackOnAxisParticle(const double & p0,
+                                                  const double & t0,
+                                                  const double & dt,
+                                                  const double & q,
                                                   const double & mass);
 
     virtual void addKR(int i, double t, Vector_t &K);
@@ -117,14 +117,14 @@ public:
 
     virtual void goOffline();
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
 private:
-    string CoreFilename_m;             /**< The name of the inputfile*/
-    /*   string EntryFilename_m; */
-    /*   string ExitFilename_m; */
+    std::string CoreFilename_m;             /**< The name of the inputfile*/
+    /*   std::string EntryFilename_m; */
+    /*   std::string ExitFilename_m; */
 
     Fieldmap *CoreFieldmap_m;
     /*   Fieldmap *EntryFringeField_m; */
@@ -154,50 +154,50 @@ private:
 
     bool autophaseVeto_m;
 
-    inline double getdE(const int & i, 
-                        const int & I, 
-                        const std::vector<double> & t, 
+    inline double getdE(const int & i,
+                        const int & I,
+                        const std::vector<double> & t,
                         const double & phi,
                         const std::vector<std::pair<double, double> > & F) const;
 
-    inline double getdT(const int & i, 
-                        const int & I, 
+    inline double getdT(const int & i,
+                        const int & I,
                         const std::vector<double> & E,
                         const std::vector<std::pair<double, double> > & F,
                         const double mass) const;
 
     inline double getdA(const int & i,
                         const int & I,
-                        const std::vector<double> & t, 
+                        const std::vector<double> & t,
                         const double & phi,
                         const std::vector<std::pair<double, double> > & F) const;
 
     inline double getdB(const int & i,
                         const int & I,
-                        const std::vector<double> & t, 
+                        const std::vector<double> & t,
                         const double & phi,
                         const std::vector<std::pair<double, double> > & F) const;
     // Not implemented.
     void operator=(const TravelingWave &);
 };
 
-inline 
+inline
 void TravelingWave::updatePhasem(double phase) {
     setPhasem(phase);
 }
 
 double TravelingWave::getdE(const int & i,
                             const int & I,
-                            const std::vector<double> & t, 
+                            const std::vector<double> & t,
                             const double & phi,
                             const std::vector<std::pair<double, double> > & F) const {
-    return (F[I].first - F[I-1].first) / (frequency_m * frequency_m * (t[i] - t[i-1]) * (t[i] - t[i-1])) * 
+    return (F[I].first - F[I-1].first) / (frequency_m * frequency_m * (t[i] - t[i-1]) * (t[i] - t[i-1])) *
         (frequency_m * (t[i] - t[i-1]) * (F[I].second * sin(frequency_m * t[i] + phi) - F[I-1].second * sin(frequency_m * t[i-1] + phi)) +
          (F[I].second - F[I-1].second) * (cos(frequency_m * t[i] + phi) - cos(frequency_m * t[i-1] + phi)));
 }
 
-double TravelingWave::getdT(const int & i, 
-                            const int & I, 
+double TravelingWave::getdT(const int & i,
+                            const int & I,
                             const std::vector<double> & E,
                             const std::vector<std::pair<double, double> > & F,
                             const double mass) const {
@@ -226,18 +226,18 @@ double TravelingWave::getdT(const int & i,
 
 double TravelingWave::getdA(const int & i,
                             const int & I,
-                            const std::vector<double> & t, 
+                            const std::vector<double> & t,
                             const double & phi,
                             const std::vector<std::pair<double, double> > & F) const {
     double dt = t[i] - t[i-1];
-    return (F[I].first - F[I-1].first) / (frequency_m * frequency_m * dt * dt) * 
+    return (F[I].first - F[I-1].first) / (frequency_m * frequency_m * dt * dt) *
         (frequency_m * dt * (F[I].second * cos(frequency_m * t[i] + phi) - F[I-1].second * cos(frequency_m * t[i-1] + phi)) -
          (F[I].second - F[I-1].second) * (sin(frequency_m * t[i] + phi) - sin(frequency_m * t[i-1] + phi)));
 }
 
 double TravelingWave::getdB(const int & i,
                             const int & I,
-                            const std::vector<double> & t, 
+                            const std::vector<double> & t,
                             const double & phi,
                             const std::vector<std::pair<double, double> > & F) const {
     double dt = t[i] - t[i-1];

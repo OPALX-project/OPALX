@@ -39,18 +39,18 @@ public:
     Macro(int size, const char *name, const char *help);
 
     /// Clone constructor.
-    Macro(const string &name, Object *parent);
+    Macro(const std::string &name, Object *parent);
 
     virtual ~Macro();
 
     /// Make clone.
     //  Throw ParseError, since for macro we must make a template and not
     //  a clone.
-    virtual Macro *clone(const string &name);
+    virtual Macro *clone(const std::string &name);
 
     /// Return the object category as a string.
     //  Return the string "MACRO".
-    virtual const string getCategory() const;
+    virtual const std::string getCategory() const;
 
     /// Trace flag.
     //  If true, the object's execute() function should be traced.
@@ -75,7 +75,7 @@ protected:
 
     /// The formal argument list.
     //  Each formal argument is represented as a name and stored as a string.
-    std::vector<string> formals;
+    std::vector<std::string> formals;
 
     /// The actual argument list.
     //  Each actual argument is stored as a vector of tokens.

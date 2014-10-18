@@ -36,7 +36,7 @@ Help::Help():
 }
 
 
-Help::Help(const string &name, Help *parent):
+Help::Help(const std::string &name, Help *parent):
     Action(name, parent)
 {}
 
@@ -45,14 +45,14 @@ Help::~Help()
 {}
 
 
-Help *Help::clone(const string &name) {
+Help *Help::clone(const std::string &name) {
     return new Help(name, this);
 }
 
 
 void Help::execute() {
     if(itsAttr[0]) {
-        string name = Attributes::getString(itsAttr[0]);
+        std::string name = Attributes::getString(itsAttr[0]);
 
         if(Object *object = OpalData::getInstance()->find(name)) {
             object->printHelp(std::cerr);

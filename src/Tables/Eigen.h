@@ -39,7 +39,7 @@ public:
     virtual ~Eigen();
 
     /// Make clone.
-    virtual Eigen *clone(const string &name);
+    virtual Eigen *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -51,7 +51,7 @@ private:
     void operator=(const Eigen &);
 
     // Clone constructor.
-    Eigen(const string &name, Eigen *parent);
+    Eigen(const std::string &name, Eigen *parent);
 
     // Do the listing.
     void format(std::ostream &, const Twiss *);

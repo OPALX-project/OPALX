@@ -110,14 +110,14 @@ public:
     virtual void execute();
 
     /// Return a selected value in a selected row.
-    virtual double getCell(const PlaceRep &row, const string &col);
+    virtual double getCell(const PlaceRep &row, const std::string &col);
 
     /// Return the default print columns.
     virtual CellArray getDefault() const;
 
     /// Return column [b]col[/b] of this table, limited by [b]range[/b].
     virtual std::vector<double>
-    getColumn(const RangeRep &range, const string &col);
+    getColumn(const RangeRep &range, const std::string &col);
 
     /// Return current table row in iteration.
     const Row &getCurrent() const;
@@ -139,17 +139,17 @@ public:
 
     /// Return a table row, possible user-defined.
     virtual std::vector<double>
-    getRow(const PlaceRep &, const std::vector<string> &);
+    getRow(const PlaceRep &, const std::vector<std::string> &);
 
     /// Check dependency.
     //  Return true, if this table depends on the named object.
-    virtual bool isDependent(const string &name) const;
+    virtual bool isDependent(const std::string &name) const;
 
     /// Return column expression.
     //  Return an expression which denotes a column of the twiss table,
     //  identified by its name.
     virtual Expressions::PtrToScalar<double>
-    makeColumnExpression(const string &colName) const;
+    makeColumnExpression(const std::string &colName) const;
 
     /// Check compatibility.
     //  True, if [b]rhs[/b] is derived from [b]Twiss[/b].
@@ -259,7 +259,7 @@ protected:
     Twiss(int size, const char *name, const char *help);
 
     /// Clone constructor.
-    Twiss(const string &name, Twiss *parent);
+    Twiss(const std::string &name, Twiss *parent);
 
 
     /// Number of table columns.
@@ -307,7 +307,7 @@ private:
     bool revPath;   // true, if tracking from right (s=C) to left (s=0).
 
     // The name of the analysed line.
-    string itsLine;
+    std::string itsLine;
 };
 
 #endif // OPAL_Twiss_HH

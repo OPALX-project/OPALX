@@ -43,7 +43,7 @@ namespace {
 
     public:
         // Construction/destruction.
-        Setter(const Beamline &, const string &type, int slices);
+        Setter(const Beamline &, const std::string &type, int slices);
         virtual ~Setter();
 
         // Override method for integratorconst  visit.
@@ -54,7 +54,7 @@ namespace {
 
     private:
         // The type of integrator.
-        const string itsType;
+        const std::string itsType;
 
         // The number of slices.
         int itsSlices;
@@ -64,7 +64,7 @@ namespace {
     };
 
 
-    Setter::Setter(const Beamline &beamline, const string &type, int slices):
+    Setter::Setter(const Beamline &beamline, const std::string &type, int slices):
         DefaultVisitor(beamline, false, false),
         itsType(type), itsSlices(slices), added(0), removed(0), replaced(0)
     {}
@@ -154,7 +154,7 @@ SetIntegrator::SetIntegrator():
 }
 
 
-SetIntegrator::SetIntegrator(const string &name, SetIntegrator *parent):
+SetIntegrator::SetIntegrator(const std::string &name, SetIntegrator *parent):
     Action(name, parent)
 {}
 
@@ -163,7 +163,7 @@ SetIntegrator::~SetIntegrator()
 {}
 
 
-SetIntegrator *SetIntegrator::clone(const string &name) {
+SetIntegrator *SetIntegrator::clone(const std::string &name) {
     return new SetIntegrator(name, this);
 }
 

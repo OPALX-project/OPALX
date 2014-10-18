@@ -10,7 +10,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: AttributeSet
-//   A map of name (string) versus value (double) intended to store
+//   A map of name (std::string) versus value (double) intended to store
 //   user-defined attributes.
 //
 // ------------------------------------------------------------------------
@@ -33,8 +33,8 @@ class ConstChannel;
 
 // Class AttributeSet
 // ------------------------------------------------------------------------
-/// Map of string versus double value.
-//  Class AttributeSet implements a map of name (string) versus value
+/// Map of std::string versus double value.
+//  Class AttributeSet implements a map of name (std::string) versus value
 //  (double) for user-defined attributes.  This map is intended for
 //  algorithms that require specific, but not predefined data in the
 //  accelerator model for their working.

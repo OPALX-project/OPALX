@@ -21,8 +21,6 @@
 #include "AbstractObjects/PlaceRep.h"
 #include <string>
 
-using std::string;
-
 class Table;
 
 
@@ -46,14 +44,14 @@ public:
     /// Constructor.
     //  Construct reference to the row identified by [b]row[/b] of the
     //  table with name [b]name[/b].
-    TableRowRep(const string &tab, const PlaceRep &row);
+    TableRowRep(const std::string &tab, const PlaceRep &row);
 
     TableRowRep(const TableRowRep &);
     ~TableRowRep();
     const TableRowRep &operator=(const TableRowRep &);
 
     /// Return the table name.
-    const string &getTabName() const;
+    const std::string &getTabName() const;
 
     /// Return the row position representation.
     PlaceRep getPosition() const;
@@ -64,7 +62,7 @@ public:
 private:
 
     // Table row structure.
-    string tabName;      // Table name.
+    std::string tabName;      // Table name.
     PlaceRep position;   // Position reference.
 };
 

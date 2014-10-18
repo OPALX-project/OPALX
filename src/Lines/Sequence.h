@@ -53,10 +53,10 @@ public:
 
     /// Make clone.
     // The new object is an empty sequence, it will be filled in by the parser.
-    virtual Sequence *clone(const string &name);
+    virtual Sequence *clone(const std::string &name);
 
     /// Make copy of the sequence line.
-    virtual Sequence *copy(const string &name);
+    virtual Sequence *copy(const std::string &name);
 
     /// Return sequence length.
     virtual double getLength() const;
@@ -78,7 +78,7 @@ public:
     //  [li] Token stream to be read for the sequence line.
     //  [li] Statement to be read for the arguments.
     //  [/ol]
-    virtual Object *makeTemplate(const string &, TokenStream &, Statement &);
+    virtual Object *makeTemplate(const std::string &, TokenStream &, Statement &);
 
     /// Parse sequence.
     virtual void parse(Statement &);
@@ -108,7 +108,7 @@ private:
     void operator=(const Sequence &);
 
     // Clone constructor.
-    Sequence(const string &name, Sequence *parent);
+    Sequence(const std::string &name, Sequence *parent);
 
     // Add the top-level begin and end markers.
     void addEndMarkers(TLine &line) const;
@@ -117,7 +117,7 @@ private:
     double findDriftLength(TLine::iterator drift) const;
 
     // Find named position in sequence line.
-    TLine::iterator findNamedPosition(TLine &, const string &) const;
+    TLine::iterator findNamedPosition(TLine &, const std::string &) const;
 
     // Insert the top-level drift spaces.
     void insertDrifts(TLine &line);
@@ -129,7 +129,7 @@ private:
     ReferenceType itsCode;
 
     // The reference point.
-    string itsRefPoint;
+    std::string itsRefPoint;
 };
 
 #endif // OPAL_Sequence_HH

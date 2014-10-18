@@ -1,7 +1,15 @@
 #ifdef HAVE_SAAMG_SOLVER
 #define DBG_STENCIL
-#include "Algorithms/PartBunch.h"
+
 #include "MGPoissonSolver.h"
+
+#include "Structure/BoundaryGeometry.h"
+#include "ArbitraryDomain.h"
+#include "EllipticDomain.h"
+#include "BoxCornerDomain.h"
+//#include "RectangularDomain.h"
+
+#include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Attributes/Attributes.h"
 #include "ValueDefinitions/RealVariable.h"
@@ -11,26 +19,56 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
-#include <algorithm>
-#include "omp.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#include "Epetra_Map.h"
+#include "Epetra_Vector.h"
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_Operator.h"
+#include "EpetraExt_RowMatrixOut.h"
+#include "Epetra_Import.h"
+
+#include "Teuchos_CommandLineProcessor.hpp"
+
+#include "BelosLinearProblem.hpp"
+#include "BelosRCGSolMgr.hpp"
+#include "BelosEpetraAdapter.hpp"
+#include "BelosBlockCGSolMgr.hpp"
+
+#include "ml_MultiLevelPreconditioner.h"
+#include "ml_MultiLevelOperator.h"
+#include "ml_epetra_utils.h"
+
+#include "Isorropia_Exception.hpp"
+#include "Isorropia_Epetra.hpp"
+#include "Isorropia_EpetraRedistributor.hpp"
+#include "Isorropia_EpetraPartitioner.hpp"
+
+#pragma GCC diagnostic pop
+
+#include <algorithm>
+#include <omp.h>
+
+using Teuchos::RCP;
+using Teuchos::rcp;
 using Physics::c;
 
 MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
-                                   Mesh_t *mesh, 
-                                   FieldLayout_t *fl, 
-                                   std::vector<BoundaryGeometry *> geometries, 
-                                   std::string itsolver, 
-                                   std::string interpl, 
-                                   double tol, 
-                                   int maxiters, 
+                                   Mesh_t *mesh,
+                                   FieldLayout_t *fl,
+                                   std::vector<BoundaryGeometry *> geometries,
+                                   std::string itsolver,
+                                   std::string interpl,
+                                   double tol,
+                                   int maxiters,
                                    std::string precmode):
     itsBunch_m(&beam),
-    mesh_m(mesh), 
-    layout_m(fl), 
-    geometries_m(geometries), 
-    tol_m(tol), 
-    maxiters_m(maxiters), 
+    mesh_m(mesh),
+    layout_m(fl),
+    geometries_m(geometries),
+    tol_m(tol),
+    maxiters_m(maxiters),
     Comm(Ippl::getComm()) {
 
     domain_m = layout_m->getDomain();
@@ -74,7 +112,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
             ERRORMSG("Geometry not known" << endl);
             exit(1);
         }
-    } else 
+    } else
 	bp = new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl);
 
     Map = 0;
@@ -82,14 +120,14 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
     LHS = Teuchos::null;
     RHS = Teuchos::null;
     MLPrec = 0;
-    
+
     numBlocks_m = Options::numBlocks;
     recycleBlocks_m = Options::recycleBlocks;
     nLHS_m = Options::nLHS;
     SetupMLList();
     SetupBelosList();
     problem_ptr = rcp(new Belos::LinearProblem<ST, MV, OP>);
-    // setup Belos solver 
+    // setup Belos solver
     if(numBlocks_m == 0 || recycleBlocks_m == 0)
         solver_ptr = rcp(new Belos::BlockCGSolMgr<double, MV, OP>());
     else
@@ -144,7 +182,7 @@ void MGPoissonSolver::computeMap(NDIndex<3> localId) {
         if(useRCB_m)
             redistributeWithRCB(localId);
         else if ( bp->getType() == "Geometric" )
-            IPPLToMap3DGeo(localId);    	    
+            IPPLToMap3DGeo(localId);
         else if ( bp->getType() == "Elliptic" )
             IPPLToMap3D(localId);
 
@@ -158,7 +196,7 @@ void MGPoissonSolver::extrapolateLHS() {
 // Pik (x) := (x − xi ) Pi+1,k−1(x) − (x − xi+k ) Pi,k−1(x) /(xi+k − xi )
 // k = 1, . . . , n, i = 0, . . . , n − k.
     //we also have to redistribute LHS
-    
+
     if (Teuchos::is_null(LHS)){
         LHS = rcp(new Epetra_Vector(*Map));
         LHS->PutScalar(1.0);
@@ -230,17 +268,17 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     // Define the Map
     IpplTimings::startTimer(FunctionTimer2_m);
-    computeMap(localId);	
+    computeMap(localId);
     IpplTimings::stopTimer(FunctionTimer2_m);
 
     // Allocate the RHS with the new Epetra Map
-    if (Teuchos::is_null(RHS)) 
+    if (Teuchos::is_null(RHS))
       RHS = rcp(new Epetra_Vector(*Map));
     RHS->PutScalar(0.0);
     // get charge densities from IPPL field and store in Epetra vector (RHS)
     IpplTimings::startTimer(FunctionTimer3_m);
     int id = 0;
-    float scaleFactor = itsBunch_m->getdT(); 
+    float scaleFactor = itsBunch_m->getdT();
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
@@ -401,7 +439,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
 
 void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
     int NumMyElements = 0;
-    vector<int> MyGlobalElements;
+    std::vector<int> MyGlobalElements;
 
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
@@ -418,9 +456,9 @@ void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
 
 void MGPoissonSolver::IPPLToMap3DGeo(NDIndex<3> localId) {
     int NumMyElements = 0;
-    vector<int> MyGlobalElements;
-/*   std::cout << Ippl::myNode() << " In IPPLToMap3DGeo localId: " << localId[0].first() << " " << localId[0].last()  << "\n" 
-					<< localId[1].first() << " " << localId[1].last()  << "\n" 
+    std::vector<int> MyGlobalElements;
+/*   std::cout << Ippl::myNode() << " In IPPLToMap3DGeo localId: " << localId[0].first() << " " << localId[0].last()  << "\n"
+					<< localId[1].first() << " " << localId[1].last()  << "\n"
 					<< localId[2].first() << " " << localId[2].last()  << std::endl; */
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
@@ -440,18 +478,18 @@ void MGPoissonSolver::ComputeStencil(Vector_t hr, Teuchos::RCP<Epetra_Vector> RH
     int NumMyElements = Map->NumMyElements();
     int *MyGlobalElements = Map->MyGlobalElements();
 
-    vector<double> Values(6);
-    vector<int> Indices(6);
+    std::vector<double> Values(6);
+    std::vector<int> Indices(6);
 
     for(int i = 0 ; i < NumMyElements ; i++) {
 
         int NumEntries = 0;
 
-        double WV, EV, SV, NV, FV, BV, CV, scaleFactor=1.0; 
+        double WV, EV, SV, NV, FV, BV, CV, scaleFactor=1.0;
         int W, E, S, N, F, B;
 
         bp->getBoundaryStencil(MyGlobalElements[i], WV, EV, SV, NV, FV, BV, CV, scaleFactor);
-//        RHS->Values()[i] *= scaleFactor; 
+//        RHS->Values()[i] *= scaleFactor;
 
         bp->getNeighbours(MyGlobalElements[i], W, E, S, N, F, B);
         if(E != -1) {
@@ -481,18 +519,18 @@ void MGPoissonSolver::ComputeStencil(Vector_t hr, Teuchos::RCP<Epetra_Vector> RH
 
     	// if matrix has already been filled (FillComplete()) we can only
         // replace entries
-        
+
         if(A->Filled()) {
             // off-diagonal entries
             A->ReplaceGlobalValues(MyGlobalElements[i], NumEntries, &Values[0], &Indices[0]);
             // diagonal entry
             A->ReplaceGlobalValues(MyGlobalElements[i], 1, &CV, MyGlobalElements + i);
-        } else { 
+        } else {
             // off-diagonal entries
             A->InsertGlobalValues(MyGlobalElements[i], NumEntries, &Values[0], &Indices[0]);
             // diagonal entry
             A->InsertGlobalValues(MyGlobalElements[i], 1, &CV, MyGlobalElements + i);
-        } 
+        }
     }
 
     A->FillComplete();
@@ -528,7 +566,7 @@ Inform &MGPoissonSolver::print(Inform &os) const {
     os << "* *************** M G P o i s s o n S o l v e r ************************************ " << endl;
     os << "* h " << hr_m << '\n';
     os << "* ********************************************************************************** " << endl;
-    return os;	
+    return os;
 }
 
 #endif /* HAVE_SAAMG_SOLVER */

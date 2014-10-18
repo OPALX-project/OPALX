@@ -41,7 +41,7 @@ Call::Call():
 }
 
 
-Call::Call(const string &name, Call *parent):
+Call::Call(const std::string &name, Call *parent):
     Action(name, parent)
 {}
 
@@ -50,13 +50,13 @@ Call::~Call()
 {}
 
 
-Call *Call::clone(const string &name) {
+Call *Call::clone(const std::string &name) {
     return new Call(name, this);
 }
 
 
 void Call::execute() {
-    string file = Attributes::getString(itsAttr[0]);
+    std::string file = Attributes::getString(itsAttr[0]);
 
     if(Options::info) {
         cerr << endl

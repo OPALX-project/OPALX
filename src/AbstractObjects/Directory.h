@@ -23,15 +23,13 @@
 #include <map>
 #include <string>
 
-using std::string;
-
 class Object;
 
 
 // Class Directory
 // ------------------------------------------------------------------------
 
-typedef std::map<string, Pointer<Object>, std::less<string> >
+typedef std::map<std::string, Pointer<Object>, std::less<std::string> >
 ObjectDir;
 
 /// A map of string versus pointer to Object.
@@ -68,17 +66,17 @@ public:
 
     /// Remove existing entry.
     //  The entry is identified by [b]name[/b].
-    void erase(const string &name);
+    void erase(const std::string &name);
 
     /// Find entry.
     //  The entry is identified by [b]name[/b].
     //  If the entry [b]name[/b] does not exist, return [b]NULL[/b].
-    Object *find(const string &name) const;
+    Object *find(const std::string &name) const;
 
     /// Define new object.
     //  Insert new object in directory.
     //  If the entry [b]name[/b] exists already, it is removed.
-    void insert(const string &name, Object *newObject);
+    void insert(const std::string &name, Object *newObject);
 
 private:
 

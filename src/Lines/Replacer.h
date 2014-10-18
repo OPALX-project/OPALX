@@ -21,8 +21,6 @@
 #include "Algorithms/DefaultVisitor.h"
 #include <string>
 
-using std::string;
-
 class Beamline;
 class ElementBase;
 
@@ -37,7 +35,7 @@ public:
 
     /// Constructor.
     //  Attach visitor to a beamline, remember the range.
-    Replacer(const Beamline &, const string &name, ElementBase *elm);
+    Replacer(const Beamline &, const std::string &name, ElementBase *elm);
 
     virtual ~Replacer();
 
@@ -52,7 +50,7 @@ private:
     void operator=(const Replacer &);
 
     // The name to be replaced.
-    const string itsName;
+    const std::string itsName;
 
     // The new element replacing the old one.
     ElementBase *newBase;

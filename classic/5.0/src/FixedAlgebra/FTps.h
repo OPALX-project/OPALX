@@ -385,7 +385,7 @@ private:
 
     // Check that min-, max-, and trcOrder's have the correct relationships.
     // If not, complain with a message that names the given "method".
-    static void checkOrders(const string &method, int minOrder, int maxOrder, int &trcOrder);
+    static void checkOrders(const std::string &method, int minOrder, int maxOrder, int &trcOrder);
 
     // Pointer to representation.
     // This is the only non-static data member of class FTps<T,N>.

@@ -47,7 +47,7 @@ public:
     virtual ~Migrad();
 
     /// Make clone.
-    virtual Migrad *clone(const string &name);
+    virtual Migrad *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -59,7 +59,7 @@ private:
     void operator=(const Migrad &);
 
     // Clone constructor.
-    Migrad(const string &name, Migrad *parent);
+    Migrad(const std::string &name, Migrad *parent);
 
     // Find covariance matrix.
     void hessenberg(Vector<double> &X, Vector<double> &F,

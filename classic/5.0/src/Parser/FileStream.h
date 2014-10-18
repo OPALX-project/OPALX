@@ -35,7 +35,7 @@ public:
 
     /// Constructor.
     //  Open associated file.
-    explicit FileStream(const string &name);
+    explicit FileStream(const std::string &name);
 
     /// Destructor.
     //  Close associated file.

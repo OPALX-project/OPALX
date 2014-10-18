@@ -36,7 +36,7 @@ public:
     virtual ~ThreadBpm();
 
     /// Make clone.
-    virtual ThreadBpm *clone(const string &name);
+    virtual ThreadBpm *clone(const std::string &name);
 
     /// Check validity of the table definition.
     virtual void execute();
@@ -56,7 +56,7 @@ private:
     void operator=(const ThreadBpm &);
 
     /// Clone constructor.
-    ThreadBpm(const string &name, ThreadBpm *parent);
+    ThreadBpm(const std::string &name, ThreadBpm *parent);
 
     // Backtrack to correct in one plane.
     void correct(int plane, TLine::iterator &);

@@ -11,7 +11,7 @@ extern Inform *gmsg;
 using namespace std;
 using Physics::mu_0;
 
-FM3DH5Block_nonescale::FM3DH5Block_nonescale(string aFilename):
+FM3DH5Block_nonescale::FM3DH5Block_nonescale(std::string aFilename):
     Fieldmap(aFilename) {
     Inform msg("FM3DH5 ");
     h5_err_t h5err;

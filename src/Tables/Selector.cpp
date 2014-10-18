@@ -33,8 +33,8 @@
 // ------------------------------------------------------------------------
 
 Selector::Selector(const Beamline &bl, const RangeRep &range,
-                   const string &clsName, const string &typName,
-                   const string &pattern):
+                   const std::string &clsName, const std::string &typName,
+                   const std::string &pattern):
     RangeSelector(bl, range),
     itsClass(0), itsType(typName), itsPattern(0), itsCount(0) {
     if(! clsName.empty()  && (itsClass = Element::find(clsName)) == 0) {
@@ -64,7 +64,7 @@ void Selector::execute() {
 void Selector::handleElement(const FlaggedElmPtr &fep) {
     // Skip elements which are not in range.
     if(itsRange.isActive()) {
-        const string &name = fep.getElement()->getName();
+        const std::string &name = fep.getElement()->getName();
         if(name[0] != '[') {
             bool set = true;
             OpalElement &elem = dynamic_cast<OpalElement &>(*Element::find(name));

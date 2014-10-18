@@ -62,7 +62,7 @@ List::List():
 }
 
 
-List::List(const string &name, List *parent):
+List::List(const std::string &name, List *parent):
     Action(name, parent)
 {}
 
@@ -71,17 +71,17 @@ List::~List()
 {}
 
 
-List *List::clone(const string &name) {
+List *List::clone(const std::string &name) {
     return new List(name, this);
 }
 
 
 void List::execute() {
-    string tableName = Attributes::getString(itsAttr[TABLE]);
+    std::string tableName = Attributes::getString(itsAttr[TABLE]);
     Table *table = Table::find(tableName);
 
     if(table) {
-        string fileName = Attributes::getString(itsAttr[FNAME]);
+        std::string fileName = Attributes::getString(itsAttr[FNAME]);
 
         if(fileName == "TERM") {
             list(std::cout, table);

@@ -797,7 +797,7 @@ void ParallelTTracker::showCavities(Inform &msg) {
 }
 
 
-void ParallelTTracker::updateRFElement(string elName, double maxPhi) {
+void ParallelTTracker::updateRFElement(std::string elName, double maxPhi) {
     /**
      The maximum phase is added to the nominal phase of
      the element. This is done on all nodes except node 0 where
@@ -934,7 +934,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
       Message *mess = new Message();
       putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
 
-      for(vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
+      for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
 	putMessage(*mess, (*it).first);
 	putMessage(*mess, (*it).second);
       }
@@ -945,7 +945,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
       Message *mess = Ippl::Comm->receive_block(Parent, tag);
       getMessage(*mess, nData);
       for(int i = 0; i < nData; i++) {
-	string elName;
+	std::string elName;
 	double maxPhi;
 	getMessage(*mess, elName);
 	getMessage(*mess, maxPhi);
@@ -1709,13 +1709,13 @@ void ParallelTTracker::doAutoPhasing() {
     if(OpalData::getInstance()->inRestartRun()) {
         itsDataSink_m->retriveCavityInformation(OpalData::getInstance()->getInputFn());
 
-        for(vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++)
+        for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++)
             updateRFElement((*it).first, (*it).second);
     } else {
         if(OpalData::getInstance()->hasBunchAllocated()) {
             // we are in a followup track and the phase information is
             // already stored in the OPAL dictionary.
-            for(vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
+            for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
                 updateRFElement((*it).first, (*it).second);
                 INFOMSG("In follow-up track use saved phases for -> name: " << (*it).first << " phi= " << (*it).second << " (rad)" << endl);
             }
@@ -1742,7 +1742,7 @@ void ParallelTTracker::doAutoPhasing() {
                 Message *mess = new Message();
                 putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
 
-                for(vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
+                for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
                     putMessage(*mess, (*it).first);
                     putMessage(*mess, (*it).second);
                 }
@@ -1757,7 +1757,7 @@ void ParallelTTracker::doAutoPhasing() {
                 Message *mess = Ippl::Comm->receive_block(Parent, tag);
                 getMessage(*mess, nData);
                 for(int i = 0; i < nData; i++) {
-                    string elName;
+                    std::string elName;
                     double maxPhi;
                     getMessage(*mess, elName);
                     getMessage(*mess, maxPhi);
@@ -2477,18 +2477,18 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
     double sposRef = itsBunch->get_sPos();
     double sposPrint = sposRef;
-    string sposUnit(" [m] ");
+    std::string sposUnit(" [m] ");
     double meanEnergy = itsBunch->get_meanEnergy();
-    string meanEnergyUnit(" [MeV] ");
+    std::string meanEnergyUnit(" [MeV] ");
 
     if (sposRef < 1.0) {
         sposPrint = 1000.0*sposRef;
-        sposUnit = string(" [mm] ");
+        sposUnit = std::string(" [mm] ");
     }
 
     if (meanEnergy < 1.0) {
         meanEnergy *= 1000.0;
-        meanEnergyUnit = string(" [keV] ");
+        meanEnergyUnit = std::string(" [keV] ");
     }
 
     size_t totalParticles_f = numParticlesInSimulation_m;
@@ -2517,13 +2517,13 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
         reduce(SeyNum_m, SeyNum_m, OpAddAssign());
         reduce(Nimpact_m, Nimpact_m, OpAddAssign());
 
-        itsDataSink_m->writePartlossZASCII(*itsBunch, *bgf_m, string("data/Partloss-"));
+        itsDataSink_m->writePartlossZASCII(*itsBunch, *bgf_m, std::string("data/Partloss-"));
 
         long long ustep = step;
-        itsDataSink_m->writeImpactStatistics(*itsBunch, ustep, Nimpact_m, SeyNum_m, numberOfFieldEmittedParticles_m, nEmissionMode_m, string("data/PartStatistics"));
+        itsDataSink_m->writeImpactStatistics(*itsBunch, ustep, Nimpact_m, SeyNum_m, numberOfFieldEmittedParticles_m, nEmissionMode_m, std::string("data/PartStatistics"));
 
         if(((Options::surfDumpFreq) > 0) && ((step % Options::surfDumpFreq) == 0)) {
-            itsDataSink_m->writeSurfaceInteraction(*itsBunch, ustep, *bgf_m, string("SurfaceInteraction"));
+            itsDataSink_m->writeSurfaceInteraction(*itsBunch, ustep, *bgf_m, std::string("SurfaceInteraction"));
         }
 
         // If we are dealing with field emission and secondary emission, set upper
@@ -2688,10 +2688,10 @@ void ParallelTTracker::initializeBoundaryGeometry() {
   if (bgf_m) {
     Distribution *dist = NULL;
     Distribution *distrand = NULL;
-    vector<string> distr_str = bgf_m->getDistributionArray();
+    std::vector<std::string> distr_str = bgf_m->getDistributionArray();
 
     if(distr_str.size() == 0) {
-      string distr = bgf_m->getDistribution();
+      std::string distr = bgf_m->getDistribution();
       if(!distr.empty()) {
 	msg << "* Find boundary geometry, start at: " << bgf_m->getS() << " (m) Distribution= " << bgf_m->getDistribution() << endl;
 	dist = Distribution::find(bgf_m->getDistribution());
@@ -2704,7 +2704,7 @@ void ParallelTTracker::initializeBoundaryGeometry() {
       msg << "************************************************************************************************* " << endl;
       msg <<  "* Find boundary geometry, start at: " << bgf_m->getS()  << " (m). " << endl;
       msg << "* Attached more than one distribution: " << endl;
-      for(vector<string>::const_iterator dit = distr_str.begin(); dit != distr_str.end(); ++ dit) {
+      for(std::vector<std::string>::const_iterator dit = distr_str.begin(); dit != distr_str.end(); ++ dit) {
 	Distribution *d = Distribution::find(*dit);
 	msg << "* Distribution: " << *dit << " distribution type: " << d->GetTypeofDistribution() << endl;
 	msg << "************************************************************************************************* " << endl;
@@ -2838,8 +2838,8 @@ void ParallelTTracker::initializeBoundaryGeometry() {
     if(numParticlesInSimulation_m > 0) {
       writePhaseSpace(0, 0, true, true); // dump the initial particles
     }
-    itsDataSink_m->writeGeomToVtk(*bgf_m, string("data/testGeometry-00000.vtk"));
-    //itsDataSink->writePartlossZASCII(*itsBunch, *bgf_m, string("vtk/PartlossZ-"));
+    itsDataSink_m->writeGeomToVtk(*bgf_m, std::string("data/testGeometry-00000.vtk"));
+    //itsDataSink->writePartlossZASCII(*itsBunch, *bgf_m, std::string("vtk/PartlossZ-"));
 
     OpalData::getInstance()->setGlobalGeometry(bgf_m);
 

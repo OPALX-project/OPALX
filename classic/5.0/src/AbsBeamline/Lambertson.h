@@ -35,7 +35,7 @@ class Lambertson: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Lambertson(const string &name);
+    explicit Lambertson(const std::string &name);
 
     Lambertson();
     Lambertson(const Lambertson &);
@@ -56,7 +56,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

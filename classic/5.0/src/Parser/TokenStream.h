@@ -25,9 +25,6 @@
 #include "Parser/Token.h"
 #include <string>
 
-using std::string;
-
-
 // Class TokenStream
 // ------------------------------------------------------------------------
 /// Abstract interface for a stream of input tokens.
@@ -39,7 +36,7 @@ public:
 
     /// Constructor.
     //  Store the stream name.
-    TokenStream(const string &name);
+    TokenStream(const std::string &name);
 
     virtual ~TokenStream();
 
@@ -51,7 +48,7 @@ public:
     virtual Token readToken() = 0;
 
     /// Return stream name.
-    const string &getName() const;
+    const std::string &getName() const;
 
     /// Return line number.
     int getLine() const;
@@ -59,7 +56,7 @@ public:
 protected:
 
     // Current stream name.
-    string stream_name;
+    std::string stream_name;
 
     // Current input line number.
     int curr_line;

@@ -21,8 +21,6 @@
 #include "Tables/RangeSelector.h"
 #include <string>
 
-using std::string;
-
 class Element;
 class RangeRep;
 class RegularExpression;
@@ -40,8 +38,8 @@ public:
     //  Attach visitor to [b]bl[/b].  Remember range [b]range[/b],
     //  class name [b]cName[/b], type name [b]tName[/b], and pattern
     //  string [b]pString[/b].
-    Selector(const Beamline &, const RangeRep &range, const string &cName,
-             const string &tName, const string &pString);
+    Selector(const Beamline &, const RangeRep &range, const std::string &cName,
+             const std::string &tName, const std::string &pString);
 
     virtual ~Selector();
 
@@ -67,7 +65,7 @@ private:
     const Element *itsClass;
 
     // Type name of "SELECT".
-    const string itsType;
+    const std::string itsType;
 
     // Pattern of "SELECT", or zero.
     const RegularExpression *itsPattern;

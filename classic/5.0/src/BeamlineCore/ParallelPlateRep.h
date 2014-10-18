@@ -34,7 +34,7 @@ class ParallelPlateRep: public ParallelPlate {
 public:
 
     /// Constructor with given name.
-    explicit ParallelPlateRep(const string &name);
+    explicit ParallelPlateRep(const std::string &name);
 
     ParallelPlateRep();
     ParallelPlateRep(const ParallelPlateRep &);
@@ -48,7 +48,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.
@@ -73,7 +73,7 @@ public:
     //  of the element, and a copy of the user-defined attributes.
     virtual ElementImage *getImage() const;
 
-   
+
 
 private:
 
@@ -86,7 +86,7 @@ private:
     /// The cavity's field.
     AcceleratingField field;
 
-  
+
 };
 
 #endif // CLASSIC_ParallelPlateRep_HH

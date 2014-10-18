@@ -69,7 +69,7 @@ CorrectorRep::CorrectorRep(const CorrectorRep &right):
 {}
 
 
-CorrectorRep::CorrectorRep(const string &name):
+CorrectorRep::CorrectorRep(const std::string &name):
     Corrector(name), geometry(), field(), active(true)
 {}
 
@@ -83,7 +83,7 @@ ElementBase *CorrectorRep::clone() const {
 }
 
 
-Channel *CorrectorRep::getChannel(const string &aKey, bool create) {
+Channel *CorrectorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *table = entries; table->name != 0; ++table) {
         if(aKey == table->name) {
             return new IndirectChannel<CorrectorRep>(*this, table->get, table->set);

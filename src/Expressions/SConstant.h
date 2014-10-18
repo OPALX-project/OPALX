@@ -116,7 +116,7 @@ namespace Expressions {
 
 
     template<> inline
-    void SConstant<string>::print(std::ostream &os, int) const {
+    void SConstant<std::string>::print(std::ostream &os, int) const {
         os << '"' << value << '"';
     }
 

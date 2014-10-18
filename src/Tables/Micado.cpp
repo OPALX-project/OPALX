@@ -68,7 +68,7 @@ Micado::Micado():
 }
 
 
-Micado::Micado(const string &name, Micado *parent):
+Micado::Micado(const std::string &name, Micado *parent):
     CorrectionBase(name, parent)
 {}
 
@@ -77,18 +77,18 @@ Micado::~Micado()
 {}
 
 
-Micado *Micado::clone(const string &name) {
+Micado *Micado::clone(const std::string &name) {
     return new Micado(name, this);
 }
 
 
 void Micado::execute() {
     // Find Table definition.
-    const string &lineName = Attributes::getString(itsAttr[LINE]);
+    const std::string &lineName = Attributes::getString(itsAttr[LINE]);
     BeamSequence *use = BeamSequence::find(lineName);
 
     // Find Beam data.
-    const string &beamName = Attributes::getString(itsAttr[BEAM]);
+    const std::string &beamName = Attributes::getString(itsAttr[BEAM]);
     Beam *beam = Beam::find(beamName);
     reference = beam->getReference();
 
@@ -113,7 +113,7 @@ void Micado::execute() {
     }
 
     // Decode the plane name.
-    const string &planeName = Attributes::getString(itsAttr[PLANE]);
+    const std::string &planeName = Attributes::getString(itsAttr[PLANE]);
     bool planes[2] = { false, false };
     if(planeName == "BOTH") {
         planes[0] = planes[1] = true;
@@ -127,7 +127,7 @@ void Micado::execute() {
     }
 
     // Decode the method name.
-    const string &methodName = Attributes::getString(itsAttr[METHOD]);
+    const std::string &methodName = Attributes::getString(itsAttr[METHOD]);
     // Create the mapper to be used.
     FTps<double, 6>::setGlobalTruncOrder(2);
     if(methodName == "THICK") {
@@ -425,7 +425,7 @@ void Micado::solve(int plane, Matrix<double> &A, Vector<double> &B) {
         if(list) {
             std::cout << "\nCorrector              increment              r.m.s.";
             for(int k = 0; k < corr; ++k) {
-                const string &name = index[k]->getElement()->getName();
+                const std::string &name = index[k]->getElement()->getName();
                 std::cout << '\n'   << name << std::string(20 - name.length(), ' ')
                           << std::setw(12) << (- x[k]);
             }

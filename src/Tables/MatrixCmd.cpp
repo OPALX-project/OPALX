@@ -56,7 +56,7 @@ MatrixCmd::MatrixCmd():
 }
 
 
-MatrixCmd::MatrixCmd(const string &name, MatrixCmd *parent):
+MatrixCmd::MatrixCmd(const std::string &name, MatrixCmd *parent):
     Action(name, parent)
 {}
 
@@ -65,17 +65,17 @@ MatrixCmd::~MatrixCmd()
 {}
 
 
-MatrixCmd *MatrixCmd::clone(const string &name) {
+MatrixCmd *MatrixCmd::clone(const std::string &name) {
     return new MatrixCmd(name, this);
 }
 
 
 void MatrixCmd::execute() {
-    string tableName = Attributes::getString(itsAttr[TABLE]);
+    std::string tableName = Attributes::getString(itsAttr[TABLE]);
     Twiss *table = dynamic_cast<Twiss *>(OpalData::getInstance()->find(tableName));
 
     if(table) {
-        string fileName = Attributes::getString(itsAttr[FNAME]);
+        std::string fileName = Attributes::getString(itsAttr[FNAME]);
         if(fileName == "TERM") {
             format(std::cout, table);
         } else {
@@ -108,17 +108,17 @@ void MatrixCmd::formatPrint(std::ostream &os, const Twiss *table) const {
 
     // Write table specific header.
     table->printTableTitle(os, "Accumulated transfer matrix");
-    os << string(118, '-') << '\n';
-    os << "Element" << string(24, ' ') << "S        Kick |"
-       << string(25, ' ') << "T r a n s f e r   M a t r i x\n";
-    os << string(118, '-') << '\n';
+    os << std::string(118, '-') << '\n';
+    os << "Element" << std::string(24, ' ') << "S        Kick |"
+       << std::string(25, ' ') << "T r a n s f e r   M a t r i x\n";
+    os << std::string(118, '-') << '\n';
 
     // Write table body.
     for(Twiss::TLine::const_iterator row = table->begin();
         row != table->end(); ++row) {
         if(row->getSelectionFlag()) {
             os << '\n';
-            string name = row->getElement()->getName();
+            std::string name = row->getElement()->getName();
             if(int occur = row->getCounter()) {
 #if defined(__GNUC__) && __GNUC__ < 3
                 char buffer[128];
@@ -136,17 +136,17 @@ void MatrixCmd::formatPrint(std::ostream &os, const Twiss *table) const {
 
             if(name.length() > 16) {
                 // Truncate the element name.
-                os << string(name, 0, 13) << ".. ";
+                os << std::string(name, 0, 13) << ".. ";
             } else {
                 // Left adjust the element name.
-                os << name << string(16 - name.length(), ' ');
+                os << name << std::string(16 - name.length(), ' ');
             }
             os << std::setw(16) << table->getS(*row);
 
             FVector<double, 6> orbit = table->getOrbit(*row);
             FMatrix<double, 6, 6> matrix = table->getMatrix(*row);
             for(int i = 0; i < 6; ++i) {
-                if(i != 0) os << string(32, ' ');
+                if(i != 0) os << std::string(32, ' ');
                 os << std::setw(12) << orbit[i] << " |";
                 for(int j = 0; j < 6; ++j) {
                     os << std::setw(12) << matrix[i][j];
@@ -156,11 +156,9 @@ void MatrixCmd::formatPrint(std::ostream &os, const Twiss *table) const {
         }
     }
 
-    os << string(118, '-') << std::endl;
+    os << std::string(118, '-') << std::endl;
 
     // Restore the formatting flags.
     os.precision(old_prec);
     os.setf(std::ios::fixed, std::ios::floatfield);
 }
-
-

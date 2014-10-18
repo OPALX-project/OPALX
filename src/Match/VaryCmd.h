@@ -35,7 +35,7 @@ public:
     virtual ~VaryCmd();
 
     /// Make clone.
-    virtual VaryCmd *clone(const string &name);
+    virtual VaryCmd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const VaryCmd &);
 
     // Clone constructor.
-    VaryCmd(const string &name, VaryCmd *parent);
+    VaryCmd(const std::string &name, VaryCmd *parent);
 };
 
 #endif // OPAL_VaryCmd_HH

@@ -66,7 +66,7 @@ TravelingWave::TravelingWave(const TravelingWave &right):
 {}
 
 
-TravelingWave::TravelingWave(const string &name):
+TravelingWave::TravelingWave(const std::string &name):
     Component(name)
 {}
 
@@ -82,16 +82,16 @@ void TravelingWave::accept(BeamlineVisitor &visitor) const {
     visitor.visitTravelingWave(*this);
 }
 
-void TravelingWave::setFieldMapFN(string fn) {
+void TravelingWave::setFieldMapFN(std::string fn) {
     CoreFilename_m = fn;
 }
 
-// void TravelingWave::setEntryFieldMapFN(string fn)
+// void TravelingWave::setEntryFieldMapFN(std::string fn)
 // {
 //   EntryFilename_m = fn;
 // }
 
-// void TravelingWave::setExitFieldMapFN(string fn)
+// void TravelingWave::setExitFieldMapFN(std::string fn)
 // {
 //   ExitFilename_m = fn;
 // }
@@ -388,7 +388,7 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
     using Physics::two_pi;
 
     Inform msg("TravelingWave ");
-    stringstream errormsg;
+    std::stringstream errormsg;
 
     RefPartBunch_m = bunch;
 
@@ -404,7 +404,7 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
                 errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" <<  CoreFilename_m + "';\n"
                          << frequency_m / two_pi * 1e-6 << " MHz <> "
                          << CoreFieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER\n";
-                string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+                std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
                 msg << errormsg_str << "\n"
                     << endl;
                 if(Ippl::myNode() == 0) {
@@ -435,7 +435,7 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
                 Mode_m = 1. / 3.;
                 errormsg.str("");
                 errormsg  << "NO MODE GIVEN; 2\\pi/3 MODE ASSUMED.";
-                string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+                std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
                 msg << errormsg_str << "\n"
                     << endl;
                 if(Ippl::myNode() == 0) {
@@ -492,8 +492,8 @@ void TravelingWave::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &TravelingWave::getType() const {
-    static const string type("TravelingWave");
+const std::string &TravelingWave::getType() const {
+    static const std::string type("TravelingWave");
     return type;
 }
 
@@ -587,7 +587,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
                 }
                 msg << "estimated phi= " << tmp_phi << " rad, "
                     << "Ekin= " << E[N3 - 1] << " MeV" << endl;
-                //                 stringstream fn;
+                //                 std::stringstream fn;
                 //                 fn << getName() << ".dat";
                 //                 ofstream ckrtest(fn.str().c_str());
                 //                 ckrtest << setprecision(12);

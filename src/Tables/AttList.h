@@ -38,7 +38,7 @@ public:
     virtual ~AttList();
 
     /// Make clone.
-    virtual AttList *clone(const string &name);
+    virtual AttList *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const AttList &);
 
     // Clone constructor.
-    AttList(const string &name, AttList *parent);
+    AttList(const std::string &name, AttList *parent);
 
     // The working routine.
     void writeTable(const Beamline &line, std::ostream &os);

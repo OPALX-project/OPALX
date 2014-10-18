@@ -35,7 +35,7 @@ public:
     virtual ~OpalMarker();
 
     /// Make clone.
-    virtual OpalMarker *clone(const string &name);
+    virtual OpalMarker *clone(const std::string &name);
 
     /// Print the element.
     //  Handle printing in OPAL-8 format.
@@ -51,7 +51,7 @@ private:
     void operator=(const OpalMarker &);
 
     // Clone constructor.
-    OpalMarker(const string &name, OpalMarker *parent);
+    OpalMarker(const std::string &name, OpalMarker *parent);
 };
 
 #endif // OPAL_OpalMarker_HH

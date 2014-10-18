@@ -69,7 +69,7 @@ CollimatorRep::CollimatorRep(const CollimatorRep &right):
 {}
 
 
-CollimatorRep::CollimatorRep(const string &name):
+CollimatorRep::CollimatorRep(const std::string &name):
     Collimator(name),
     geometry()
 {}
@@ -84,7 +84,7 @@ ElementBase *CollimatorRep::clone() const {
 }
 
 
-Channel *CollimatorRep::getChannel(const string &aKey, bool create) {
+Channel *CollimatorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<CollimatorRep>(*this, entry->get, entry->set);

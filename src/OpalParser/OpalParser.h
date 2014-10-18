@@ -23,8 +23,6 @@
 #include <string>
 #include <vector>
 
-using std::string;
-
 class Object;
 class Token;
 class Statement;
@@ -76,10 +74,10 @@ public:
 protected:
 
     /// Execute or check the current command.
-    void execute(Object *, const string &) const;
+    void execute(Object *, const std::string &) const;
 
     /// Find object by name in the main directory.
-    virtual Object *find(const string &) const;
+    virtual Object *find(const std::string &) const;
 
     /// Parse executable command.
     virtual void parseAction(Statement &) const;
@@ -94,10 +92,10 @@ protected:
     virtual void parseEnd(Statement &) const;
 
     /// Parse macro definition or call.
-    virtual void parseMacro(const string &name, Statement &) const;
+    virtual void parseMacro(const std::string &name, Statement &) const;
 
     /// Print help on named command.
-    virtual void printHelp(const string &) const;
+    virtual void printHelp(const std::string &) const;
 
 private:
 

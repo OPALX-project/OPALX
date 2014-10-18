@@ -4,16 +4,16 @@
 
 using namespace std;
 
-FMDummy::FMDummy(string aFilename):
+FMDummy::FMDummy(std::string aFilename):
     Fieldmap(aFilename),
     zbegin_m(0.0),
     zend_m(-1e-3) {
     Inform msg("Fieldmap ");
-    stringstream errormsg;
+    std::stringstream errormsg;
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "Could not determine the file type.\n"
              << "Please check the section about field maps in the user manual.\n";
-    string errormsg_str = typeset_msg(errormsg.str(), "error");
+    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
     msg << errormsg_str << "\n"
         << endl;
     if(Ippl::myNode() == 0) {

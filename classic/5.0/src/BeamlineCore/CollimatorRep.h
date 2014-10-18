@@ -34,7 +34,7 @@ class CollimatorRep: public Collimator {
 public:
 
     /// Constructor with given name.
-    explicit CollimatorRep(const string &name);
+    explicit CollimatorRep(const std::string &name);
 
     CollimatorRep();
     CollimatorRep(const CollimatorRep &);
@@ -48,7 +48,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.

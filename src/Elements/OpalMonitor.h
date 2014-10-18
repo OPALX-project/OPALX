@@ -40,7 +40,7 @@ public:
     virtual ~OpalMonitor();
 
     /// Make clone.
-    virtual OpalMonitor *clone(const string &name);
+    virtual OpalMonitor *clone(const std::string &name);
 
     /// Update the embedded CLASSIC monitor.
     virtual void update();
@@ -52,7 +52,7 @@ private:
     void operator=(const OpalMonitor &);
 
     // Clone constructor.
-    OpalMonitor(const string &name, OpalMonitor *parent);
+    OpalMonitor(const std::string &name, OpalMonitor *parent);
 };
 
 #endif // OPAL_OpalMonitor_HH

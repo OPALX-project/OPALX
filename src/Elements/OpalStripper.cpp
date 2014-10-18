@@ -62,17 +62,17 @@ OpalStripper::OpalStripper():
 }
 
 
-OpalStripper::OpalStripper(const string &name, OpalStripper *parent):
+OpalStripper::OpalStripper(const std::string &name, OpalStripper *parent):
     OpalElement(name, parent) {
     setElement((new StripperRep(name))->makeAlignWrapper());
 }
 
 
-OpalStripper::~OpalStripper() 
+OpalStripper::~OpalStripper()
 {}
 
 
-OpalStripper *OpalStripper::clone(const string &name) {
+OpalStripper *OpalStripper::clone(const std::string &name) {
     return new OpalStripper(name, this);
 }
 

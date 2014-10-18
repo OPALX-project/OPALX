@@ -27,7 +27,7 @@
 
 // The Sextupole type string.
 template <>
-const string SingleMultipole<3>::type("Sextupole");
+const std::string SingleMultipole<3>::type("Sextupole");
 
 template <>
 const SingleMultipole<3>::Entry SingleMultipole<3>::entries[] = {

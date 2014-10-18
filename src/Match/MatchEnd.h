@@ -37,7 +37,7 @@ public:
     virtual ~MatchEnd();
 
     /// Make clone.
-    virtual MatchEnd *clone(const string &name);
+    virtual MatchEnd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -49,7 +49,7 @@ private:
     void operator=(const MatchEnd &);
 
     // Clone constructor.
-    MatchEnd(const string &name, MatchEnd *parent);
+    MatchEnd(const std::string &name, MatchEnd *parent);
 };
 
 #endif // OPAL_MatchEnd_HH

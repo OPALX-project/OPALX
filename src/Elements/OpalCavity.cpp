@@ -97,7 +97,7 @@ OpalCavity::OpalCavity():
 }
 
 
-OpalCavity::OpalCavity(const string &name, OpalCavity *parent):
+OpalCavity::OpalCavity(const std::string &name, OpalCavity *parent):
     OpalElement(name, parent),
     owk_m(NULL),
     obgeo_m(NULL) {
@@ -111,7 +111,7 @@ OpalCavity::~OpalCavity() {
 }
 
 
-OpalCavity *OpalCavity::clone(const string &name) {
+OpalCavity *OpalCavity::clone(const std::string &name) {
     return new OpalCavity(name, this);
 }
 
@@ -144,8 +144,8 @@ void OpalCavity::update() {
     std::vector<double> vPeak  = Attributes::getRealArray(itsAttr[VOLT]);
     std::vector<double> phase  = Attributes::getRealArray(itsAttr[LAG]);
     std::vector<double> freq   = Attributes::getRealArray(itsAttr[FREQ]);
-    std::vector<string> fmapfns = Attributes::getStringArray(itsAttr[FMAPFN]);
-    string type = Attributes::getString(itsAttr[TYPE]);
+    std::vector<std::string> fmapfns = Attributes::getStringArray(itsAttr[FMAPFN]);
+    std::string type = Attributes::getString(itsAttr[TYPE]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
     double max_freq = 0.0;
     for (size_t i = 0; i < freq.size(); ++ i) max_freq = std::max(std::abs(freq[i]), max_freq);
@@ -161,13 +161,13 @@ void OpalCavity::update() {
     double dy = Attributes::getReal(itsAttr[DY]);
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*rfc);
         rfc->setWake(owk_m->wf_m);
     }
-    
+
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
-        obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));
+        obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
         if(obgeo_m) {
 	    rfc->setBoundaryGeometry(obgeo_m);
         }
@@ -199,7 +199,7 @@ void OpalCavity::update() {
     for (phase_it = phase.begin(); phase_it != phase.end(); ++ phase_it) {
         rfc->setPhasem(*phase_it);
     }
-    std::vector<string>::iterator fmap_it;
+    std::vector<std::string>::iterator fmap_it;
     for (fmap_it = fmapfns.begin(); fmap_it != fmapfns.end(); ++ fmap_it) {
         rfc->setFieldMapFN(*fmap_it);
     }

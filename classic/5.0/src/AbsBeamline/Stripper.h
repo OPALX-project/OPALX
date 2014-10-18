@@ -33,7 +33,7 @@ class Stripper: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Stripper(const string &name);
+    explicit Stripper(const std::string &name);
 
     Stripper();
     Stripper(const Stripper &);
@@ -89,7 +89,7 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
 private:
     std::string filename_m;             /**< The name of the inputfile*/

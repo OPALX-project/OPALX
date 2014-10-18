@@ -24,7 +24,7 @@
 
 //#define DEBUG_FTps_CC
 
-#include "FixedAlgebra/FTps.h"
+//#include "FixedAlgebra/FTps.h"
 #include "FixedAlgebra/FTpsData.h"
 #include "Algebra/Array1D.h"
 #include "FixedAlgebra/FArray1D.h"
@@ -1518,14 +1518,14 @@ std::istream &FTps<T, N>::get(std::istream &is) {
     //    throw FormatError("FTps::get()", "Flag word \"Tps\" missing.");
 
     // Check for Tps.
-    string head;
+    std::string head;
     is >> head;
     if(head != "Tps")
         throw FormatError("FTps::get()", "Flag word \"Tps\" missing.");
 
     // Read in order data.
     int minOrder, maxOrder, trcOrder, nVar;
-    string trunc;
+    std::string trunc;
     is >> minOrder >> maxOrder >> trunc >> nVar;
     if(trunc == "EXACT") trcOrder = EXACT;
     else trcOrder = std::atoi(trunc.c_str());
@@ -1704,9 +1704,9 @@ Array1D<int> FTps<T, N>::getRepOrders() const {
 
 
 template <class T, int N>
-void FTps<T, N>::checkOrders(const string &method, int minOrder, int maxOrder, int &trcOrder) {
+void FTps<T, N>::checkOrders(const std::string &method, int minOrder, int maxOrder, int &trcOrder) {
     bool errF = false;
-    string message;
+    std::string message;
 
     // Check that min-, max-, and trcOrder's have the correct relationships.
     if(!(0 <= minOrder && minOrder <= maxOrder && maxOrder <= trcOrder && maxOrder < EXACT)) {

@@ -27,7 +27,7 @@
 
 // The quadrupole type string.
 template <>
-const string SingleMultipole<2>::type("Quadrupole");
+const std::string SingleMultipole<2>::type("Quadrupole");
 
 template <>
 const SingleMultipole<2>::Entry SingleMultipole<2>::entries[] = {

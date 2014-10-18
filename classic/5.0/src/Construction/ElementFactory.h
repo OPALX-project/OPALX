@@ -55,19 +55,19 @@ public:
     /// Erase element by name.
     //  If there is no element with the given [b]name[/b],
     //  the request is ignored.
-    virtual void erase(const string &name);
+    virtual void erase(const std::string &name);
 
     /// Find element by name.
     //  If an element with the name [b]name[/b] exists,
     //  return a pointer to this element, otherwise return NULL.
-    virtual ElementBase *find(const string &name) const;
+    virtual ElementBase *find(const std::string &name) const;
 
     /// Make new element.
     //  Create a new element with the type [b]type[/b], the name [b]name[/b]
     //  and the attributes in [b]set[/b].
     //  If an element with the name [b]name[/b] already exists, it is replaced.
-    virtual ElementBase *makeElement(const string &type,
-                                     const string &name,
+    virtual ElementBase *makeElement(const std::string &type,
+                                     const std::string &name,
                                      const AttributeSet &set);
 
     /// Define a new element.
@@ -82,7 +82,7 @@ private:
     void operator=(const ElementFactory &);
 
     // The beamline elements are stored in this map.
-    typedef std::map<string, ElementBase *, std::less<string> > MapType;
+    typedef std::map<std::string, ElementBase *, std::less<std::string> > MapType;
     MapType inventory;
 };
 

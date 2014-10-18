@@ -39,7 +39,7 @@ public:
     virtual ~List();
 
     /// Make clone.
-    virtual List *clone(const string &name);
+    virtual List *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -51,7 +51,7 @@ private:
     void operator=(const List &);
 
     // Clone constructor.
-    List(const string &name, List *parent);
+    List(const std::string &name, List *parent);
 
     // Do the listing.
     void list(std::ostream &, Table *);

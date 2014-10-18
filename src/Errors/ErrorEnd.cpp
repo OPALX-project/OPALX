@@ -30,7 +30,7 @@ ErrorEnd::ErrorEnd():
 {}
 
 
-ErrorEnd::ErrorEnd(const string &name, ErrorEnd *parent):
+ErrorEnd::ErrorEnd(const std::string &name, ErrorEnd *parent):
     Action(name, parent)
 {}
 
@@ -39,7 +39,7 @@ ErrorEnd::~ErrorEnd()
 {}
 
 
-ErrorEnd *ErrorEnd::clone(const string &name) {
+ErrorEnd *ErrorEnd::clone(const std::string &name) {
     return new ErrorEnd(name, this);
 }
 

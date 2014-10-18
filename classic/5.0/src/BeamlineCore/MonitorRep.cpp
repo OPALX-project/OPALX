@@ -58,7 +58,7 @@ MonitorRep::MonitorRep(const MonitorRep &right):
 {}
 
 
-MonitorRep::MonitorRep(const string &name):
+MonitorRep::MonitorRep(const std::string &name):
     Monitor(name), field(), geometry(), active(true)
 {}
 
@@ -72,7 +72,7 @@ ElementBase *MonitorRep::clone() const {
 }
 
 
-Channel *MonitorRep::getChannel(const string &aKey, bool create) {
+Channel *MonitorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<MonitorRep>(*this, entry->get, entry->set);
@@ -120,4 +120,3 @@ Monitor::Plane MonitorRep::getPlane() const {
 void MonitorRep::setActive(bool flag) {
     active = flag;
 }
-

@@ -59,7 +59,7 @@ ErrorCmd::ErrorCmd():
 }
 
 
-ErrorCmd::ErrorCmd(const string &name, ErrorCmd *parent):
+ErrorCmd::ErrorCmd(const std::string &name, ErrorCmd *parent):
     Action(name, parent)
 {}
 
@@ -68,7 +68,7 @@ ErrorCmd::~ErrorCmd()
 {}
 
 
-ErrorCmd *ErrorCmd::clone(const string &name) {
+ErrorCmd *ErrorCmd::clone(const std::string &name) {
     return new ErrorCmd(name, this);
 }
 
@@ -77,7 +77,7 @@ void ErrorCmd::execute() {
     Error::block = new Error();
 
     // Define the active line.
-    const string &lineName = Attributes::getString(itsAttr[LINE]);
+    const std::string &lineName = Attributes::getString(itsAttr[LINE]);
     Error::block->itsLine = BeamSequence::find(lineName)->fetchLine();
 
     // If "CLEAR", remove all errors.

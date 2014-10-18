@@ -62,10 +62,10 @@ enum {
 typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
 
 //using namespace Teuchos;
-using Teuchos::RCP;
-using Teuchos::rcp;
-using namespace ML_Epetra;
-using namespace Isorropia;
+// using Teuchos::RCP;
+// using Teuchos::rcp;
+// using namespace ML_Epetra;
+// using namespace Isorropia;
 
 class Solver {
 
@@ -75,8 +75,8 @@ public:
      * \param verbose flag if output should be verbose.
      * \sa ~Solver(), SetupMLList() and SetupProblem()
      */
-    Solver(Epetra_MpiComm& Comm, std::string& itsolver, std::string& interpl, bool verbose, 
-           double tol, int maxIterations, int numBlocks, int recycleBlocks, 
+    Solver(Epetra_MpiComm& Comm, std::string& itsolver, std::string& interpl, bool verbose,
+           double tol, int maxIterations, int numBlocks, int recycleBlocks,
            int maxOldLHS, int nlevs, PArray<MultiFab>& rhs, PArray<MultiFab>& soln,
            const Real* hr_in,  const Real* prob_lo_in,
            BoundaryPointList& xlo_in, BoundaryPointList& xhi_in,
@@ -182,7 +182,7 @@ public:
     void Compute();
 
     /** Performs setup of data distribution and problem (system matrix, RHS, LHS).  */
-    void SetupProblem(PArray<MultiFab>& rhs, PArray<MultiFab>& soln); 
+    void SetupProblem(PArray<MultiFab>& rhs, PArray<MultiFab>& soln);
 
     /** Copy LHS->Values() into MultiFab soln */
     void CopySolution(PArray<MultiFab>& soln);
@@ -252,7 +252,7 @@ private:
     Epetra_MpiComm Comm_m;
 
     /// iterativer solver type
-    std::string	 itsolver_m;	
+    std::string	 itsolver_m;
     /// interpolation type
     int interpolationMethod;
 
@@ -272,25 +272,25 @@ private:
      */
     void redistributeWithRCB();
 
-    void getBoundaryStencil(int x, int y, int z, double& WV, double& EV, double& SV, double& NV, 
-                            double& FV, double& BV, double& CV, double& scaleFactor, IArrayBox& fab_mask) 
+    void getBoundaryStencil(int x, int y, int z, double& WV, double& EV, double& SV, double& NV,
+                            double& FV, double& BV, double& CV, double& scaleFactor, IArrayBox& fab_mask)
     {
     // Determine which interpolation method we use for points near the boundary
     if (interpolationMethod == CONSTANT)
-        ConstantInterpolation(x,y,z,WV,EV,SV,NV,FV,BV,CV,scaleFactor,fab_mask); 
+        ConstantInterpolation(x,y,z,WV,EV,SV,NV,FV,BV,CV,scaleFactor,fab_mask);
 #if 0
     else if (interpolationMethod == LINEAR)
-        LinearInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor); 
+        LinearInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
     else if (interpolationMethod == QUADRATIC)
-        QuadraticInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor); 
+        QuadraticInterpolation(x,y,z,W,E,S,N,F,B,C,scaleFactor);
 #endif
     // stencil center value has to be positive!
     assert(CV > 0);
     };
 
-    void ConstantInterpolation(int x, int y, int z, double& WV, double& EV, double& SV, double& NV, 
+    void ConstantInterpolation(int x, int y, int z, double& WV, double& EV, double& SV, double& NV,
                                double& FV, double& BV, double& CV, double& scaleFactor,
-                               IArrayBox& fab_mask) 
+                               IArrayBox& fab_mask)
     {
 
     scaleFactor = 1.0;
@@ -306,27 +306,27 @@ private:
     IntVect iv(x,y,z);
 
     // we are a left boundary point
-    if (fab_mask(IntVect(x-1,y,z),0) == OUTSIDE) 
+    if (fab_mask(IntVect(x-1,y,z),0) == OUTSIDE)
         WV = 0.0;
 
     // we are a right boundary point
-    if (fab_mask(IntVect(x+1,y,z),0) == OUTSIDE) 
+    if (fab_mask(IntVect(x+1,y,z),0) == OUTSIDE)
         EV = 0.0;
 
     // we are a lower boundary point
-    if (fab_mask(IntVect(x,y-1,z),0) == OUTSIDE) 
+    if (fab_mask(IntVect(x,y-1,z),0) == OUTSIDE)
         SV = 0.0;
 
     // we are a upper boundary point
-    if (fab_mask(IntVect(x,y+1,z),0) == OUTSIDE) 
+    if (fab_mask(IntVect(x,y+1,z),0) == OUTSIDE)
         NV = 0.0;
 
     // we are at the low z end
-    if (fab_mask(IntVect(x,y,z-1),0) == OUTSIDE) 
+    if (fab_mask(IntVect(x,y,z-1),0) == OUTSIDE)
         FV = 0.0;
 
     // we are at the high z end
-    if (fab_mask(IntVect(x,y,z+1),0) == OUTSIDE) 
+    if (fab_mask(IntVect(x,y,z+1),0) == OUTSIDE)
         BV = 0.0;
 };
 

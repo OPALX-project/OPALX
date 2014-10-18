@@ -57,7 +57,7 @@ StripperRep::StripperRep(const StripperRep &right):
 {}
 
 
-StripperRep::StripperRep(const string &name):
+StripperRep::StripperRep(const std::string &name):
     Stripper(name), field(), geometry(), active(true)
 {}
 
@@ -71,7 +71,7 @@ ElementBase *StripperRep::clone() const {
 }
 
 
-Channel *StripperRep::getChannel(const string &aKey, bool create) {
+Channel *StripperRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<StripperRep>(*this, entry->get, entry->set);
@@ -111,4 +111,3 @@ ElementImage *StripperRep::getImage() const {
 void StripperRep::setActive(bool flag) {
     active = flag;
 }
-

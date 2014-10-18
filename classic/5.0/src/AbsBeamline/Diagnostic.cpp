@@ -35,7 +35,7 @@ Diagnostic::Diagnostic(const Diagnostic &rhs):
 { }
 
 
-Diagnostic::Diagnostic(const string &name):
+Diagnostic::Diagnostic(const std::string &name):
     Component(name)
 { }
 
@@ -71,11 +71,10 @@ bool Diagnostic::bends() const {
     return false;
 }
 
-const string &Diagnostic::getType() const {
-    static const string type("Diagnostic");
+const std::string &Diagnostic::getType() const {
+    static const std::string type("Diagnostic");
     return type;
 }
 
 void Diagnostic::getDimensions(double &zBegin, double &zEnd) const
 { }
-

@@ -27,7 +27,7 @@
 
 // The SkewOctupole type string.
 template <>
-const string SingleMultipole < -4 >::type("SkewOctupole");
+const std::string SingleMultipole < -4 >::type("SkewOctupole");
 
 template <>
 const SingleMultipole < -4 >::Entry SingleMultipole < -4 >::entries[] = {

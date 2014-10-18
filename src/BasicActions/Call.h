@@ -35,7 +35,7 @@ public:
     virtual ~Call();
 
     /// Make clone.
-    virtual Call *clone(const string &name);
+    virtual Call *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const Call &);
 
     // Clone constructor.
-    Call(const string &name, Call *parent);
+    Call(const std::string &name, Call *parent);
 };
 
 #endif // OPAL_Call_HH

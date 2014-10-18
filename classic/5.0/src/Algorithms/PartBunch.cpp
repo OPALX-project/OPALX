@@ -27,11 +27,11 @@
 #include <fstream>
 #include <iomanip>
 
-#include "AbstractObjects/OpalData.h"
-#include "Distribution/Distribution.h"
-#include "Structure/LossDataSink.h"
-#include "Structure/FieldSolver.h"
-#include "Utilities/Options.h"
+#include "AbstractObjects/OpalData.h"   // OPAL file
+#include "Distribution/Distribution.h"  // OPAL file
+#include "Structure/LossDataSink.h"     // OPAL file
+#include "Structure/FieldSolver.h"      // OPAL file
+#include "Utilities/Options.h"          // OPAL file
 
 #include "ListElem.h"
 #include "BasicActions/Option.h"
@@ -317,7 +317,7 @@ void PartBunch::makHistograms()  {
                 }
                 notReceived--;
             }
-            stringstream filename_str;
+            std::stringstream filename_str;
             static unsigned int file_number = 0;
             ++ file_number;
             filename_str << "data/zhist-" << file_number << ".dat";
@@ -912,9 +912,9 @@ void PartBunch::computeSelfFields() {
         std::ostringstream istr;
         istr << fieldDBGStep_m;
 
-        string SfileName = OpalData::getInstance()->getInputBasename();
+        std::string SfileName = OpalData::getInstance()->getInputBasename();
 
-        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
+        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
         fstr1.open(rho_fn.c_str(), ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
         for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
@@ -950,12 +950,12 @@ void PartBunch::computeSelfFields() {
         //write out rho
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        ostringstream oss;
+        std::ostringstream oss;
 
         ofstream fstr2;
         fstr2.precision(9);
 
-        string phi_fn = string("data/") + SfileName + string("-phi_scalar-") + string(istr.str());
+        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
         fstr2.open(phi_fn.c_str(), ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
@@ -1001,7 +1001,7 @@ void PartBunch::computeSelfFields() {
         ofstream fstr;
         fstr.precision(9);
 
-        string e_field = string("data/") + SfileName + string("-e_field-") + string(istr.str());
+        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
         fstr.open(e_field.c_str(), ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
@@ -1172,9 +1172,9 @@ void PartBunch::computeSelfFields_cycl(double gamma,
         std::ostringstream istr;
         istr << fieldDBGStep_m;
 
-        string SfileName = OpalData::getInstance()->getInputBasename();
+        std::string SfileName = OpalData::getInstance()->getInputBasename();
 
-        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
+        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
         fstr1.open(rho_fn.c_str(), ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
         for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
@@ -1213,7 +1213,7 @@ void PartBunch::computeSelfFields_cycl(double gamma,
         ofstream fstr2;
         fstr2.precision(9);
 
-        string phi_fn = string("data/") + SfileName + string("-phi_scalar-") + string(istr.str());
+        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
         fstr2.open(phi_fn.c_str(), ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
@@ -1262,7 +1262,7 @@ void PartBunch::computeSelfFields_cycl(double gamma,
         ofstream fstr;
         fstr.precision(9);
 
-        string e_field = string("data/") + SfileName + string("-e_field-") + string(istr.str());
+        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
         fstr.open(e_field.c_str(), ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
@@ -1362,9 +1362,9 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
         std::ostringstream istr;
         istr << fieldDBGStep_m;
 
-        string SfileName = OpalData::getInstance()->getInputBasename();
+        std::string SfileName = OpalData::getInstance()->getInputBasename();
 
-        string rho_fn = string("data/") + SfileName + string("-rho_scalar-") + string(istr.str());
+        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
         fstr1.open(rho_fn.c_str(), ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
         for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
@@ -1401,7 +1401,7 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
         ofstream fstr2;
         fstr2.precision(9);
 
-        string phi_fn = string("data/") + SfileName + string("-phi_scalar-") + string(istr.str());
+        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
         fstr2.open(phi_fn.c_str(), ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
@@ -1455,7 +1455,7 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
         ofstream fstr;
         fstr.precision(9);
 
-        string e_field = string("data/") + SfileName + string("-e_field-") + string(istr.str());
+        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
         fstr.open(e_field.c_str(), ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {

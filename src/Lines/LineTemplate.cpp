@@ -35,7 +35,7 @@ LineTemplate::LineTemplate():
 {}
 
 
-LineTemplate::LineTemplate(const string &name, Object *parent):
+LineTemplate::LineTemplate(const std::string &name, Object *parent):
     Macro(name, parent), body(name)
 {}
 
@@ -44,14 +44,14 @@ LineTemplate::~LineTemplate()
 {}
 
 
-LineTemplate *LineTemplate::clone(const string &name) {
+LineTemplate *LineTemplate::clone(const std::string &name) {
     throw ParseError("LineTemplate::clone()",
                      "You cannot use this object without attributes.");
 }
 
 
 Object *LineTemplate::makeInstance
-(const string &name, Statement &statement, const Parser *) {
+(const std::string &name, Statement &statement, const Parser *) {
     Line *instance = 0;
 
     try {
@@ -69,9 +69,9 @@ Object *LineTemplate::makeInstance
         while(! token.isEOF()) {
             bool found = false;
             if(token.isWord()) {
-                string word = token.getWord();
+                std::string word = token.getWord();
 
-                for(std::vector<string>::size_type i = 0;
+                for(std::vector<std::string>::size_type i = 0;
                     i < formals.size(); i++) {
                     if(word == formals[i]) {
                         std::vector<Token> act = actuals[i];
@@ -103,7 +103,7 @@ Object *LineTemplate::makeInstance
 }
 
 
-Object *LineTemplate::makeTemplate(const string &, TokenStream &, Statement &) {
+Object *LineTemplate::makeTemplate(const std::string &, TokenStream &, Statement &) {
     // Should not be called.
     return 0;
 }

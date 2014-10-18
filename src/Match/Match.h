@@ -23,8 +23,6 @@
 #include <string>
 #include <list>
 
-using std::string;
-
 class AbstractFun;
 class AbstractVar;
 class MatchParser;
@@ -53,11 +51,11 @@ public:
 
     /// Delete a matching variable.
     //  Identified by name.
-    void deleteVariable(const string &name);
+    void deleteVariable(const std::string &name);
 
     /// Find a matching variable.
     //  Identified by name.
-    AbstractVar *findVariable(const string &name);
+    AbstractVar *findVariable(const std::string &name);
 
     /// Get values of matching variables.
     void getVariables(Vector<double> &x) const;

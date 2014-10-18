@@ -11,7 +11,7 @@ extern Inform *gmsg;
 using namespace std;
 using Physics::mu_0;
 
-FM3DH5Block::FM3DH5Block(string aFilename):
+FM3DH5Block::FM3DH5Block(std::string aFilename):
     Fieldmap(aFilename) {
     Inform msg("FM3DH5 ");
     h5_err_t h5err;
@@ -256,9 +256,9 @@ bool FM3DH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     if(index_y + 2 > num_gridpy_m) {
         return false;
     }
-    
+
     const long index1 = index_x + (index_y + index_z * num_gridpy_m) * num_gridpx_m;
-    
+
 
 
     E(0) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthEx_m[index1]
@@ -359,7 +359,7 @@ void FM3DH5Block::setFrequency(double freq) {
 
 void FM3DH5Block::getOnaxisEz(vector<pair<double, double> > & F) {
     double Ez_max = 0.0, dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
-    string tmpString;
+    std::string tmpString;
     const int index_x = -static_cast<int>(floor(xbegin_m / hx_m));
     const double lever_x = -xbegin_m / hx_m - index_x;
 

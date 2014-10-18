@@ -47,7 +47,7 @@ public:
     virtual ~OpalCyclotronValley();
 
     /// Make clone.
-    virtual OpalCyclotronValley *clone(const string &name);
+    virtual OpalCyclotronValley *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -62,7 +62,7 @@ private:
     void operator=(const OpalCyclotronValley &);
 
     // Clone constructor.
-    OpalCyclotronValley(const string &name, OpalCyclotronValley *parent);
+    OpalCyclotronValley(const std::string &name, OpalCyclotronValley *parent);
 
 
 };

@@ -41,6 +41,6 @@ TrackParser::~TrackParser()
 {}
 
 
-Object *TrackParser::find(const string &name) const {
+Object *TrackParser::find(const std::string &name) const {
     return trackDirectory.find(name);
 }

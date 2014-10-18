@@ -40,7 +40,7 @@ public:
     // [DD]the name of the method or function detecting the exception
     // [/DL]
     // Construction/destruction.
-    explicit SingularMatrixError(const string &meth);
+    explicit SingularMatrixError(const std::string &meth);
 
     SingularMatrixError(const SingularMatrixError &);
     virtual ~SingularMatrixError();

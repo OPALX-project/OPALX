@@ -38,7 +38,7 @@ public:
     virtual ~MatchOption();
 
     /// Make clone.
-    virtual MatchOption *clone(const string &name);
+    virtual MatchOption *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const MatchOption &);
 
     // Clone constructor.
-    MatchOption(const string &name, MatchOption *parent);
+    MatchOption(const std::string &name, MatchOption *parent);
 };
 
 #endif // OPAL_MatchOption_HH

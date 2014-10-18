@@ -46,7 +46,7 @@ public:
     virtual ~OpalSlit();
 
     /// Make clone.
-    virtual OpalSlit *clone(const string &name);
+    virtual OpalSlit *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -61,7 +61,7 @@ private:
     void operator=(const OpalSlit &);
 
     // Clone constructor.
-    OpalSlit(const string &name, OpalSlit *parent);
+    OpalSlit(const std::string &name, OpalSlit *parent);
 
     SurfacePhysics *sphys_m;
 };

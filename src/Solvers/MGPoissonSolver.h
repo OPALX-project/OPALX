@@ -9,18 +9,10 @@
 #define MG_POISSON_SOLVER_H_
 
 //////////////////////////////////////////////////////////////
-#include "Structure/BoundaryGeometry.h"
-#include "Elements/OpalBeamline.h"
 #include "PoissonSolver.h"
 #include "IrregularDomain.h"
-#include "ArbitraryDomain.h"
-#include "EllipticDomain.h"
-#include "BoxCornerDomain.h"
-#include "RectangularDomain.h"
 //////////////////////////////////////////////////////////////
 #include "ml_include.h"
-
-#if defined(HAVE_ML_EPETRA) && defined(HAVE_ML_TEUCHOS) && defined(HAVE_ML_AZTECOO)
 
 #ifdef HAVE_MPI
 #include "mpi.h"
@@ -29,36 +21,56 @@
 #include "Epetra_SerialComm.h"
 #endif
 
-#include "Epetra_Map.h"
-#include "Epetra_Vector.h"
-#include "Epetra_CrsMatrix.h"
-#include "Epetra_LinearProblem.h"
-#include "Epetra_Operator.h"
-#include "EpetraExt_RowMatrixOut.h"
-#include <Epetra_Import.h>
+#if defined(HAVE_ML_EPETRA) && defined(HAVE_ML_TEUCHOS) && defined(HAVE_ML_AZTECOO)
 
-#include "Teuchos_CommandLineProcessor.hpp"
-#include <Teuchos_ParameterList.hpp>
+class Epetra_Map;
+class Epetra_Vector;
+class Epetra_CrsMatrix;
+//#include "Epetra_LinearProblem.h"
+class Epetra_MultiVector;
+class Epetra_Operator;
+class Epetra_MpiComm;
 
-#include "BelosConfigDefs.hpp"
-#include "BelosLinearProblem.hpp"
-#include "BelosEpetraAdapter.hpp"
-#include "BelosRCGSolMgr.hpp"
-#include "BelosBlockCGSolMgr.hpp"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#include "Teuchos_ParameterList.hpp"
+// #include "BelosLinearProblem.hpp"
+// #include "BelosRCGSolMgr.hpp"
 
-#include "ml_MultiLevelPreconditioner.h"
-#include "ml_MultiLevelOperator.h"
-#include "ml_epetra_utils.h"
+#include "BelosTypes.hpp"
 
-#include <Isorropia_Exception.hpp>
-#include <Isorropia_Epetra.hpp>
-#include <Isorropia_EpetraRedistributor.hpp>
-#include <Isorropia_EpetraPartitioner.hpp>
+namespace Belos {
+    template <class ScalarType, class MV, class OP>
+    class LinearProblem;
 
-using Teuchos::RCP;
-using Teuchos::rcp;
-using namespace ML_Epetra;
-using namespace Isorropia;
+    template <class ScalarType, class MV, class OP>
+    class OperatorTraits;
+
+    template<class ScalarType, class MV>
+    class MultiVecTraits;
+
+    template<class ScalarType, class MV, class OP>
+    class SolverManager;
+
+    class EpetraPrecOp;
+
+    template <class ScalarType, class MV, class OP>
+    class StatusTestGenResNorm;
+}
+
+namespace ML_Epetra {
+    class MultiLevelPreconditioner;
+
+    int SetDefaults(std::string ProblemType, Teuchos::ParameterList & List,
+                    int * options, double * params, const bool OverWrite);
+}
+
+#pragma GCC diagnostic pop
+
+// using Teuchos::RCP;
+// using Teuchos::rcp;
+// using namespace ML_Epetra;
+// using namespace Isorropia;
 //////////////////////////////////////////////////////////////
 
 typedef UniformCartesian<3, double> Mesh_t;
@@ -128,7 +140,7 @@ private:
 
     /// container for multiple geometries
     std::vector<BoundaryGeometry *> geometries_m;
-	
+
     /// flag notifying us that the geometry (discretization) has changed
     bool hasGeometryChanged_m;
     /// flag is set when OPAL changed decomposition of mesh
@@ -161,11 +173,11 @@ private:
     IrregularDomain *bp;
 
     /// right hand side of our problem
-    RCP<Epetra_Vector> RHS;
+    Teuchos::RCP<Epetra_Vector> RHS;
     /// left hand side of the linear system of equations we solve
-    RCP<Epetra_Vector> LHS;
+    Teuchos::RCP<Epetra_Vector> LHS;
     /// matrix used in the linear system of equations
-    RCP<Epetra_CrsMatrix> A;
+    Teuchos::RCP<Epetra_CrsMatrix> A;
 
     /// ML preconditioner object
     ML_Epetra::MultiLevelPreconditioner *MLPrec;
@@ -176,7 +188,7 @@ private:
 
     /// last N LHS's for extrapolating the new LHS as starting vector
     uint nLHS_m;
-    RCP<Epetra_MultiVector> P;
+    Teuchos::RCP<Epetra_MultiVector> P;
     std::deque< Epetra_Vector > OldLHS;
 
     /// Solver (Belos RCG)
@@ -188,13 +200,13 @@ private:
 
     //Belos::LinearProblem<double, MV, OP> problem;
     typedef Belos::LinearProblem<ST, MV, OP> problem;
-    RCP< problem > problem_ptr;
+    Teuchos::RCP< problem > problem_ptr;
 
     typedef Belos::SolverManager<ST, MV, OP> solver;
-    RCP< solver > solver_ptr;
+    Teuchos::RCP< solver > solver_ptr;
 
-    RCP< Belos::EpetraPrecOp > prec_m;
-    RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest;
+    Teuchos::RCP< Belos::EpetraPrecOp > prec_m;
+    Teuchos::RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest;
 
     /// parameter list for the ML solver
     Teuchos::ParameterList MLList_m;
@@ -250,8 +262,8 @@ private:
      */
     void ComputeStencil(Vector_t hr, Teuchos::RCP<Epetra_Vector> RHS);
 
-    
-   
+
+
 protected:
 
     /// Setup the parameters for the Belos iterative solver.
@@ -272,7 +284,7 @@ protected:
 
     /// Setup the parameters for the SAAMG preconditioner.
     inline void SetupMLList() {
-        ML_Epetra::SetDefaults("SA", MLList_m);
+        ML_Epetra::SetDefaults("SA", MLList_m, 0, 0, true);
 
         MLList_m.set("max levels", 8);
         MLList_m.set("increasing or decreasing", "increasing");

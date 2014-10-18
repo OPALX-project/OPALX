@@ -38,7 +38,7 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual BoolConstant *clone(const string &name);
+    virtual BoolConstant *clone(const std::string &name);
 
     /// Print the constant.
     virtual void print(std::ostream &) const;
@@ -53,7 +53,7 @@ private:
     void operator=(const BoolConstant &);
 
     // Clone constructor.
-    BoolConstant(const string &name, BoolConstant *parent);
+    BoolConstant(const std::string &name, BoolConstant *parent);
 };
 
 #endif // OPAL_BoolConstant_HH

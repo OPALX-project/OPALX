@@ -38,7 +38,7 @@ public:
     virtual bool canReplaceBy(Object *rhs);
 
     /// Make clone.
-    virtual RealVector *clone(const string &name);
+    virtual RealVector *clone(const std::string &name);
 
     /// Print the vector.
     virtual void print(std::ostream &) const;
@@ -53,7 +53,7 @@ private:
     void operator=(const RealVector &);
 
     // Clone constructor.
-    RealVector(const string &name, RealVector *parent);
+    RealVector(const std::string &name, RealVector *parent);
 };
 
 #endif // OPAL_RealVector_HH

@@ -60,7 +60,7 @@ Simplex::Simplex():
 }
 
 
-Simplex::Simplex(const string &name, Simplex *parent):
+Simplex::Simplex(const std::string &name, Simplex *parent):
     Action(name, parent)
 {}
 
@@ -69,7 +69,7 @@ Simplex::~Simplex()
 {}
 
 
-Simplex *Simplex::clone(const string &name) {
+Simplex *Simplex::clone(const std::string &name) {
     return new Simplex(name, this);
 }
 

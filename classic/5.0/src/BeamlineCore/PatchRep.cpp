@@ -82,7 +82,7 @@ PatchRep::PatchRep(const PatchRep &rhs):
 {}
 
 
-PatchRep::PatchRep(const string &name):
+PatchRep::PatchRep(const std::string &name):
     Patch(name), geometry(), patch()
 {}
 
@@ -96,7 +96,7 @@ ElementBase *PatchRep::clone() const {
 }
 
 
-Channel *PatchRep::getChannel(const string &aKey, bool create) {
+Channel *PatchRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<PatchRep>(*this, entry->get, entry->set);

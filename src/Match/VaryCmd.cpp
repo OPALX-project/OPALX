@@ -54,7 +54,7 @@ VaryCmd::VaryCmd():
 }
 
 
-VaryCmd::VaryCmd(const string &name, VaryCmd *parent):
+VaryCmd::VaryCmd(const std::string &name, VaryCmd *parent):
     Action(name, parent)
 {}
 
@@ -63,7 +63,7 @@ VaryCmd::~VaryCmd()
 {}
 
 
-VaryCmd *VaryCmd::clone(const string &name) {
+VaryCmd *VaryCmd::clone(const std::string &name) {
     return new VaryCmd(name, this);
 }
 
@@ -95,7 +95,7 @@ void VaryCmd::execute() {
     }
 
     // Make the match variable name.
-    string name(itsAttr[NAME].getImage());
+    std::string name(itsAttr[NAME].getImage());
 
     // Test for previously existing match variable;
     // if found, remove it.

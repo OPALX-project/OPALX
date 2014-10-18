@@ -37,7 +37,7 @@ public:
     virtual ~ErrorEnd();
 
     /// Make clone.
-    virtual ErrorEnd *clone(const string &name);
+    virtual ErrorEnd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -49,7 +49,7 @@ private:
     void operator=(const ErrorEnd &);
 
     // Clone constructor.
-    ErrorEnd(const string &name, ErrorEnd *parent);
+    ErrorEnd(const std::string &name, ErrorEnd *parent);
 };
 
 #endif // OPAL_ErrorEnd_HH

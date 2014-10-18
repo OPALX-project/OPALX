@@ -74,7 +74,7 @@ OpalCyclotron::OpalCyclotron():
                         ("RFPHI", "Initial phase(s) of the electric field map(s) [deg]");
 
     itsAttr[TYPE]     = Attributes::makeString
-                        ("TYPE", "Used to identify special cyclotron types");    
+                        ("TYPE", "Used to identify special cyclotron types");
 
     itsAttr[TCR1]     = Attributes::makeReal
                         ("TCR1", "trim coil r1 [mm]");
@@ -102,7 +102,7 @@ OpalCyclotron::OpalCyclotron():
 
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "Boundary Geometry for the Cyclotron");
-    
+
     registerStringAttribute("FMAPFN");
     registerStringAttribute("GEOMETRY");
     registerStringAttribute("RFMAPFN");
@@ -130,7 +130,7 @@ OpalCyclotron::OpalCyclotron():
     setElement((new CyclotronRep("CYCLOTRON"))->makeAlignWrapper());
 }
 
-OpalCyclotron::OpalCyclotron(const string &name, OpalCyclotron *parent):
+OpalCyclotron::OpalCyclotron(const std::string &name, OpalCyclotron *parent):
     OpalElement(name, parent),
     obgeo_m(NULL) {
     setElement((new CyclotronRep(name))->makeAlignWrapper());
@@ -141,7 +141,7 @@ OpalCyclotron::~OpalCyclotron()
 {}
 
 
-OpalCyclotron *OpalCyclotron::clone(const string &name) {
+OpalCyclotron *OpalCyclotron::clone(const std::string &name) {
     return new OpalCyclotron(name, this);
 }
 
@@ -157,9 +157,9 @@ void OpalCyclotron::update() {
     CyclotronRep *cycl =
         dynamic_cast<CyclotronRep *>(getElement()->removeWrappers());
 
-    string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
+    std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
 
-    string type = Attributes::getString(itsAttr[TYPE]);
+    std::string type = Attributes::getString(itsAttr[TYPE]);
 
     double harmnum = Attributes::getReal(itsAttr[CYHARMON]);
     double symmetry = Attributes::getReal(itsAttr[SYMMETRY]);
@@ -174,7 +174,7 @@ void OpalCyclotron::update() {
     double tcr2 = Attributes::getReal(itsAttr[TCR2]);
     double mbtc = Attributes::getReal(itsAttr[MBTC]);
     double slptc = Attributes::getReal(itsAttr[SLPTC]);
-    
+
     double minz = Attributes::getReal(itsAttr[MINZ]);
     double maxz = Attributes::getReal(itsAttr[MAXZ]);
     double minr = Attributes::getReal(itsAttr[MINR]);
@@ -187,7 +187,7 @@ void OpalCyclotron::update() {
     cycl->setPRinit(prinit);
     cycl->setPHIinit(phiinit);
     cycl->setZinit(zinit);
-    cycl->setPZinit(pzinit);    
+    cycl->setPZinit(pzinit);
 
     cycl->setBScale(bscale);
 
@@ -204,21 +204,21 @@ void OpalCyclotron::update() {
     cycl->setMinZ(minz);
     cycl->setMaxZ(maxz);
 
-    std::vector<string> fm_str = Attributes::getStringArray(itsAttr[RFMAPFN]);
+    std::vector<std::string> fm_str = Attributes::getStringArray(itsAttr[RFMAPFN]);
     std::vector<double> scale_str = Attributes::getRealArray(itsAttr[ESCALE]);
     std::vector<double> phi_str = Attributes::getRealArray(itsAttr[RFPHI]);
     std::vector<double> rff_str = Attributes::getRealArray(itsAttr[RFFREQ]);
     std::vector<bool> superpose_str = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
 
-    // if ((fm_str.size() == scale_str.size()) && 
-    //     (fm_str.size() == phi_str.size()) && 
+    // if ((fm_str.size() == scale_str.size()) &&
+    //     (fm_str.size() == phi_str.size()) &&
     //     (fm_str.size() == rff_str.size())) {
 
-    //     std::vector<string>::const_iterator fm    = fm_str.begin();
-    //     std::vector<double>::const_iterator scale = scale_str.begin();        
+    //     std::vector<std::string>::const_iterator fm    = fm_str.begin();
+    //     std::vector<double>::const_iterator scale = scale_str.begin();
     //     std::vector<double>::const_iterator phi   = phi_str.begin();
     //     std::vector<double>::const_iterator rff   = rff_str.begin();
-        
+
     //     for( ; fm != fm_str.end(); ++fm,++scale,++phi,++rff)
     //         INFOMSG(" FM= " << *fm << "\t SCALE= " << *scale << "\t PHI= " << *phi << "\t FREQU= " << *rff << endl;);
     // }

@@ -8,14 +8,14 @@
 using namespace std;
 using Physics::mu_0;
 
-FM2DDynamic::FM2DDynamic(string aFilename)
+FM2DDynamic::FM2DDynamic(std::string aFilename)
     : Fieldmap(aFilename),
       FieldstrengthEz_m(NULL),
       FieldstrengthEr_m(NULL),
       FieldstrengthHt_m(NULL) {
     Inform msg("FM2DD ");
     ifstream file;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
 
     Type = T2DDynamic;
@@ -23,7 +23,7 @@ FM2DDynamic::FM2DDynamic(string aFilename)
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, string>(file, tmpString, tmpString);
+        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
         if(tmpString == "ZX") {
             swap_m = true;
             parsing_passed = parsing_passed &&
@@ -99,7 +99,7 @@ void FM2DDynamic::readMap() {
         Inform msg("FM2DD ");
         ifstream in;
         int tmpInt;
-        string tmpString;
+        std::string tmpString;
         double tmpDouble, Ezmax = 0.0;
 
         FieldstrengthEz_m = new double[num_gridpz_m * num_gridpr_m];
@@ -108,7 +108,7 @@ void FM2DDynamic::readMap() {
 
         // read in field map and parse it
         in.open(Filename_m.c_str());
-        interpreteLine<string, string>(in, tmpString, tmpString);
+        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double>(in, tmpDouble);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
@@ -244,7 +244,7 @@ void FM2DDynamic::setFrequency(double freq) {
 
 void FM2DDynamic::getOnaxisEz(vector<pair<double, double> > & F) {
     double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
-    string tmpString;
+    std::string tmpString;
     F.resize(num_gridpz_m);
 
     for(int i = 0; i < num_gridpz_m; ++ i) {

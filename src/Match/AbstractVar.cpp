@@ -24,7 +24,7 @@
 // ------------------------------------------------------------------------
 
 
-AbstractVar::AbstractVar(const string &name):
+AbstractVar::AbstractVar(const std::string &name):
     itsName(name)
 {}
 
@@ -33,7 +33,6 @@ AbstractVar::~AbstractVar()
 {}
 
 
-const string &AbstractVar::getName() const {
+const std::string &AbstractVar::getName() const {
     return itsName;
 }
-

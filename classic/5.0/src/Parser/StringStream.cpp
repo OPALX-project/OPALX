@@ -29,7 +29,7 @@
 // Class StringStream
 // ------------------------------------------------------------------------
 
-StringStream::StringStream(const string &str):
+StringStream::StringStream(const std::string &str):
     TokenStream("expression"),
     line(str + '\n'),
     curr_char(0)
@@ -123,7 +123,7 @@ Token StringStream::readNumber() {
 
     if(digit && line[curr_char] != '.' && toupper(line[curr_char]) != 'E') {
         // Unsigned integer seen.
-        string lexeme(line.data() + lex_pos, curr_char - lex_pos);
+        std::string lexeme(line.data() + lex_pos, curr_char - lex_pos);
         return Token("string", 1, lexeme, int(value + 0.5));
     }
 
@@ -171,7 +171,7 @@ Token StringStream::readNumber() {
     }
 
     // Put pieces together.
-    string lexeme(line.data() + lex_pos, curr_char - lex_pos);
+    std::string lexeme(line.data() + lex_pos, curr_char - lex_pos);
 
     if(eflag) {
         return Token("string", 1, Token::IS_ERROR,
@@ -193,7 +193,7 @@ Token StringStream::readNumber() {
 
 
 Token StringStream::readString() {
-    string lexeme;
+    std::string lexeme;
 
     if(line[curr_char] == '"'  ||  line[curr_char] == '\'') {
         char quote = line[curr_char];
@@ -221,7 +221,7 @@ Token StringStream::readString() {
 
 
 Token StringStream::readWord() {
-    string lexeme;
+    std::string lexeme;
     char ch = line[curr_char];
 
     if(isalpha(line[curr_char])) {

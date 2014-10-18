@@ -36,7 +36,7 @@ class Patch: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Patch(const string &name);
+    explicit Patch(const std::string &name);
 
     Patch();
     Patch(const Patch &);
@@ -60,7 +60,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual  const string &getType() const;
+    virtual  const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

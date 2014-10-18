@@ -35,7 +35,7 @@ class Drift: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Drift(const string &name);
+    explicit Drift(const std::string &name);
 
     Drift();
     Drift(const Drift &right);
@@ -56,7 +56,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

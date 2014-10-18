@@ -33,7 +33,7 @@ Title::Title():
 }
 
 
-Title::Title(const string &name, Title *parent):
+Title::Title(const std::string &name, Title *parent):
     Action(name, parent)
 {}
 
@@ -42,13 +42,13 @@ Title::~Title()
 {}
 
 
-Title *Title::clone(const string &name) {
+Title *Title::clone(const std::string &name) {
     return new Title(name, this);
 }
 
 
 void Title::execute() {
-    string title = Attributes::getString(itsAttr[0]);
+    std::string title = Attributes::getString(itsAttr[0]);
     OpalData::getInstance()->storeTitle(title);
 }
 

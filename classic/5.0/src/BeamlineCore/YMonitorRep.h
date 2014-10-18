@@ -33,7 +33,7 @@ class YMonitorRep: public MonitorRep {
 public:
 
     /// Constructor with given name.
-    explicit YMonitorRep(const string &name);
+    explicit YMonitorRep(const std::string &name);
 
     YMonitorRep();
     YMonitorRep(const YMonitorRep &);
@@ -47,7 +47,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Construct an image.
     //  Return the image of the element, containing the name and type string

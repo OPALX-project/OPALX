@@ -26,7 +26,7 @@
 // Class TokenStream
 // ------------------------------------------------------------------------
 
-TokenStream::TokenStream(const string &name):
+TokenStream::TokenStream(const std::string &name):
     stream_name(name), curr_line(0), put_back_flag(false), put_back()
 {}
 
@@ -51,6 +51,6 @@ int TokenStream::getLine() const {
 }
 
 
-const string &TokenStream::getName() const {
+const std::string &TokenStream::getName() const {
     return stream_name;
 }

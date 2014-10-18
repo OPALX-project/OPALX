@@ -30,12 +30,12 @@ std::stringstream debug_output;
 /*
 
   Some
-   _   _      _                 
-  | | | | ___| |_ __   ___ _ __ 
+   _   _      _
+  | | | | ___| |_ __   ___ _ __
   | |_| |/ _ \ | '_ \ / _ \ '__|
-  |  _  |  __/ | |_) |  __/ |   
-  |_| |_|\___|_| .__/ \___|_|   
-             |_|  
+  |  _  |  __/ | |_) |  __/ |
+  |_| |_|\___|_| .__/ \___|_|
+             |_|
 
   functions
  */
@@ -95,10 +95,10 @@ static void write_voxel_mesh (
     /*----------------------------------------------------------------------*/
     const size_t numpoints = 8 * ids.size ();
     std::ofstream of;
-    of.open (string ("data/testBBox.vtk").c_str ());
+    of.open (std::string ("data/testBBox.vtk").c_str ());
     assert (of.is_open ());
     of.precision (6);
-    
+
     of << "# vtk DataFile Version 2.0" << std::endl;
     of << "generated using BoundaryGeometry::computeMeshVoxelization"
        << std::endl;
@@ -113,7 +113,7 @@ static void write_voxel_mesh (
         int k = (id - 1) / nr0_times_nr1;
         int rest = (id - 1) % nr0_times_nr1;
         int j = rest / nr[0];
-        int i = rest % nr[0]; 
+        int i = rest % nr[0];
 
         Vector_t P;
         P[0] = i * hr_m[0] + origin[0];
@@ -309,7 +309,7 @@ bevel_2d (
     return(outcode_fcmp);
 }
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
   Which of the eight corner plane(s) is point P outside of?
 */
@@ -388,13 +388,13 @@ check_line (
         if (check_point(p1,p2,( .5-p1[0])/(p2[0]-p1[0]),0x3e) == INSIDE) return(INSIDE);
     if ((0x02 & outcode_diff) != 0)
         if (check_point(p1,p2,(-.5-p1[0])/(p2[0]-p1[0]),0x3d) == INSIDE) return(INSIDE);
-    if ((0x04 & outcode_diff) != 0) 
+    if ((0x04 & outcode_diff) != 0)
         if (check_point(p1,p2,( .5-p1[1])/(p2[1]-p1[1]),0x3b) == INSIDE) return(INSIDE);
-    if ((0x08 & outcode_diff) != 0) 
+    if ((0x08 & outcode_diff) != 0)
         if (check_point(p1,p2,(-.5-p1[1])/(p2[1]-p1[1]),0x37) == INSIDE) return(INSIDE);
-    if ((0x10 & outcode_diff) != 0) 
+    if ((0x10 & outcode_diff) != 0)
         if (check_point(p1,p2,( .5-p1[2])/(p2[2]-p1[2]),0x2f) == INSIDE) return(INSIDE);
-    if ((0x20 & outcode_diff) != 0) 
+    if ((0x20 & outcode_diff) != 0)
         if (check_point(p1,p2,(-.5-p1[2])/(p2[2]-p1[2]),0x1f) == INSIDE) return(INSIDE);
     return(OUTSIDE);
 }
@@ -422,19 +422,19 @@ point_triangle_intersection (
       First, a quick bounding-box test:
       If P is outside triangle bbox, there cannot be an intersection.
     */
-    if (gsl_fcmp (p[0], MAX3(t.v1(0), t.v2(0), t.v3(0)), EPS) > 0) return(OUTSIDE);  
+    if (gsl_fcmp (p[0], MAX3(t.v1(0), t.v2(0), t.v3(0)), EPS) > 0) return(OUTSIDE);
     if (gsl_fcmp (p[1], MAX3(t.v1(1), t.v2(1), t.v3(1)), EPS) > 0) return(OUTSIDE);
     if (gsl_fcmp (p[2], MAX3(t.v1(2), t.v2(2), t.v3(2)), EPS) > 0) return(OUTSIDE);
     if (gsl_fcmp (p[0], MIN3(t.v1(0), t.v2(0), t.v3(0)), EPS) < 0) return(OUTSIDE);
     if (gsl_fcmp (p[1], MIN3(t.v1(1), t.v2(1), t.v3(1)), EPS) < 0) return(OUTSIDE);
     if (gsl_fcmp (p[2], MIN3(t.v1(2), t.v2(2), t.v3(2)), EPS) < 0) return(OUTSIDE);
-    
+
     /*
       For each triangle side, make a vector out of it by subtracting vertexes;
       make another vector from one vertex to point P.
       The crossproduct of these two vectors is orthogonal to both and the
       signs of its X,Y,Z components indicate whether P was to the inside or
-      to the outside of this triangle side.                                
+      to the outside of this triangle side.
     */
     const Vector_t vect12 = t.v1() - t.v2();
     const Vector_t vect1h = t.v1() - p;
@@ -493,18 +493,18 @@ triangle_intersects_cube (
    /*
      Now do the same trivial rejection test for the 12 edge planes
    */
-   v1_test |= bevel_2d(t.v1()) << 8; 
-   v2_test |= bevel_2d(t.v2()) << 8; 
+   v1_test |= bevel_2d(t.v1()) << 8;
+   v2_test |= bevel_2d(t.v2()) << 8;
    v3_test |= bevel_2d(t.v3()) << 8;
-   if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);  
+   if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);
 
    /*
      Now do the same trivial rejection test for the 8 corner planes
    */
-   v1_test |= bevel_3d(t.v1()) << 24; 
-   v2_test |= bevel_3d(t.v2()) << 24; 
-   v3_test |= bevel_3d(t.v3()) << 24; 
-   if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);   
+   v1_test |= bevel_3d(t.v1()) << 24;
+   v2_test |= bevel_3d(t.v2()) << 24;
+   v3_test |= bevel_3d(t.v3()) << 24;
+   if ((v1_test & v2_test & v3_test) != 0) return(OUTSIDE);
 
    /*
      If vertex 1 and 2, as a pair, cannot be trivially rejected
@@ -531,7 +531,7 @@ triangle_intersects_cube (
      then if that intersection is inside the cube, pursuing
      whether the intersection point is inside the triangle itself.
 
-     To find plane of the triangle, first perform crossproduct on 
+     To find plane of the triangle, first perform crossproduct on
      two triangle side vectors to compute the normal vector.
    */
    Vector_t vect12 = t.v1() - t.v2();
@@ -566,8 +566,8 @@ triangle_intersects_cube (
        hitpn[2] = -(hitpn[0] = hitpn[1] = d / denom);
        if (fabs(hitpn[0]) <= 0.5)
            if (point_triangle_intersection(hitpn,t) == INSIDE) return(INSIDE);
-   }       
-   if(fabs(denom=(norm[0] - norm[1] + norm[2]))>EPS) {       
+   }
+   if(fabs(denom=(norm[0] - norm[1] + norm[2]))>EPS) {
        Vector_t hitnp;
        hitnp[1] = -(hitnp[0] = hitnp[2] = d / denom);
        if (fabs(hitnp[0]) <= 0.5)
@@ -579,7 +579,7 @@ triangle_intersects_cube (
        if (fabs(hitnn[0]) <= 0.5)
            if (point_triangle_intersection(hitnn,t) == INSIDE) return(INSIDE);
    }
-   
+
    /*
      No edge touched the cube; no cube diagonal touched the triangle.
      We're done...there was no intersection.
@@ -594,7 +594,7 @@ triangle_intersects_cube (
  *      Amy Williams, Steve Barrus, R. Keith Morley, and Peter Shirley
  *      "An Efficient and Robust Ray-Box Intersection Algorithm"
  *      Journal of graphics tools, 10(1):49-54, 2005
- * 
+ *
  */
 
 class Ray {
@@ -614,7 +614,7 @@ public:
         inv_direction = r.inv_direction;
         sign[0] = r.sign[0]; sign[1] = r.sign[1]; sign[2] = r.sign[2];
     }
-    
+
     Vector_t origin;
     Vector_t direction;
     Vector_t inv_direction;
@@ -660,7 +660,7 @@ public:
 	double tmax_ = (pts[1-r.sign[0]][0] - r.origin[0]) * r.inv_direction[0];
 	const double tymin = (pts[r.sign[1]][1]   - r.origin[1]) * r.inv_direction[1];
 	const double tymax = (pts[1-r.sign[1]][1] - r.origin[1]) * r.inv_direction[1];
-	if ( (tmin_ > tymax) || (tymin > tmax_) ) 
+	if ( (tmin_ > tymax) || (tymin > tmax_) )
             return 0;       // no intersection
 	if (tymin > tmin_)
             tmin_ = tymin;
@@ -668,7 +668,7 @@ public:
             tmax_ = tymax;
 	const double tzmin = (pts[r.sign[2]][2]   - r.origin[2]) * r.inv_direction[2];
 	const double tzmax = (pts[1-r.sign[2]][2] - r.origin[2]) * r.inv_direction[2];
-	if ( (tmin_ > tzmax) || (tzmin > tmax_) ) 
+	if ( (tmin_ > tzmax) || (tzmin > tmax_) )
             return 0;       // no intersection
 	if (tzmin > tmin_)
 		tmin_ = tzmin;
@@ -692,7 +692,7 @@ public:
         ) const {
         Voxel v_ = *this;
         Triangle t_ = t;
-        const Vector_t scaleby = 1.0 / v_.extent(); 
+        const Vector_t scaleby = 1.0 / v_.extent();
         v_.scale (scaleby);
         t_.scale (scaleby , v_.pts[0] + 0.5);
         return triangle_intersects_cube (t_);
@@ -719,8 +719,8 @@ public:
 
 
 /*
-  ____                           _              
- / ___| ___  ___  _ __ ___   ___| |_ _ __ _   _ 
+  ____                           _
+ / ___| ___  ___  _ __ ___   ___| |_ _ __ _   _
 | |  _ / _ \/ _ \| '_ ` _ \ / _ \ __| '__| | | |
 | |_| |  __/ (_) | | | | | |  __/ |_| |  | |_| |
  \____|\___|\___/|_| |_| |_|\___|\__|_|   \__, |
@@ -833,7 +833,7 @@ BoundaryGeometry::BoundaryGeometry() :
         delete defGeometry;
     }
     gsl_rng_env_setup();
-    randGen_m = gsl_rng_alloc(gsl_rng_default);    
+    randGen_m = gsl_rng_alloc(gsl_rng_default);
 
     if (!h5FileName_m.empty ())
         initialize ();
@@ -841,7 +841,7 @@ BoundaryGeometry::BoundaryGeometry() :
 }
 
 BoundaryGeometry::BoundaryGeometry(
-    const string& name,
+    const std::string& name,
     BoundaryGeometry* parent
     ) :
     Definition (name, parent),
@@ -850,7 +850,7 @@ BoundaryGeometry::BoundaryGeometry(
     TriFEPartloss_m (NULL),
     Triangles_m (NULL) {
     gsl_rng_env_setup();
-    randGen_m = gsl_rng_alloc(gsl_rng_default);    
+    randGen_m = gsl_rng_alloc(gsl_rng_default);
 
     h5FileName_m = Attributes::getString (itsAttr[FGEOM]);
     if (!h5FileName_m.empty ())
@@ -881,7 +881,7 @@ bool BoundaryGeometry::canReplaceBy (Object* object) {
     return dynamic_cast<BGeometryBase*>(object) != 0;
 }
 
-BoundaryGeometry* BoundaryGeometry::clone (const string& name) {
+BoundaryGeometry* BoundaryGeometry::clone (const std::string& name) {
     return new BoundaryGeometry (name, this);
 }
 
@@ -899,7 +899,7 @@ void BoundaryGeometry::execute () {
     TPartInside_m =   IpplTimings::getTimer ("Particle Inside");
 }
 
-BoundaryGeometry* BoundaryGeometry::find (const string& name) {
+BoundaryGeometry* BoundaryGeometry::find (const std::string& name) {
     BoundaryGeometry* geom = dynamic_cast<BoundaryGeometry*>(
         OpalData::getInstance ()->find (name));
 
@@ -941,12 +941,12 @@ BoundaryGeometry::intersectTriangleVoxel (
 
   Input:
         kind: type of test: SEGMENT, RAY or LINE
-        P0, P0: defining 
+        P0, P0: defining
             a line segment from P0 to P1 or
             a ray starting at P0 with directional vector P1-P0 or
             a line through P0 and P1
         V0, V1, V2: the triangle vertices
-        
+
   Output:
         I: intersection point (when it exists)
 
@@ -993,7 +993,7 @@ BoundaryGeometry::intersectLineTriangle (
     const Vector_t n = cross (u, v);
     if (n == (Vector_t)0)               // triangle is degenerate
         return -1;                      // do not deal with this case
-    
+
     const Vector_t dir = P1 - P0;       // ray direction vector
     const Vector_t w0 = P0 - V0;
     const double a = -dot(n,w0);
@@ -1005,7 +1005,7 @@ BoundaryGeometry::intersectLineTriangle (
             return 0;
         }
     }
-    
+
     // get intersect point of ray with triangle plane
     const double r = a / b;
     switch (kind) {
@@ -1021,7 +1021,7 @@ BoundaryGeometry::intersectLineTriangle (
         break;
     };
     I = P0 + r * dir;                   // intersect point of ray and plane
-    
+
     // is I inside T?
     const double uu = dot(u,u);
     const double uv = dot(u,v);
@@ -1030,7 +1030,7 @@ BoundaryGeometry::intersectLineTriangle (
     const double wu = dot(w,u);
     const double wv = dot(w,v);
     const double D = uv * uv - uu * vv;
-    
+
     // get and test parametric coords
     const double s = (uv * wv - vv * wu) / D;
     if (s < 0.0 || s > 1.0) {           // I is outside T
@@ -1046,7 +1046,7 @@ BoundaryGeometry::intersectLineTriangle (
     } else if ((0.0 <= r) && (r <= 1.0)) { // in segment
         return 3;
     } else {                            // in extended segment in
-        return 4;                       // direction of ray 
+        return 4;                       // direction of ray
     }
 }
 
@@ -1135,7 +1135,7 @@ BoundaryGeometry::intersectRayBoundary (
     }
 #endif
     /*
-      set P1 to intersection of ray with bbox of voxel mesh 
+      set P1 to intersection of ray with bbox of voxel mesh
       run line segment boundary intersection test with P and P1
      */
     Ray r = Ray (P, v);
@@ -1256,12 +1256,12 @@ BoundaryGeometry::computeTriangleVoxelization (
                 }
             }
         }
-    } 
+    }
 }
 
 inline void
 BoundaryGeometry::computeMeshVoxelization (void) {
-    
+
     for (int triangle_id = 0; triangle_id < numTriangles_m; triangle_id++) {
         std::unordered_map< int, std::unordered_set<int> > voxels;
         computeTriangleVoxelization (triangle_id, voxels);
@@ -1315,11 +1315,11 @@ void BoundaryGeometry::initialize () {
                     SQR (x3[0] - x2[0]) + SQR (x3[1] - x2[1]) + SQR (x3[2] - x2[2]));
                 const double length_edge3 = sqrt (
                     SQR (x3[0] - x1[0]) + SQR (x3[1] - x1[1]) + SQR (x3[2] - x1[2]));
-        
+
                 double max = length_edge1;
                 if (length_edge2 > max) max = length_edge2;
                 if (length_edge3 > max) max = length_edge3;
-        
+
                 // save min and max of length of longest edge
                 if (longest_edge_max_m < max) longest_edge_max_m = max;
             }
@@ -1334,7 +1334,7 @@ void BoundaryGeometry::initialize () {
               too small that the normal bounding box covers the whole hot spot, the
               expensive triangle-line intersection tests will be frequently called.
               In these cases, we have to use smaller bounding box size to speed up
-              simulation. 
+              simulation.
 
               Todo:
               The relation between bounding box size and simulation time step &
@@ -1356,7 +1356,7 @@ void BoundaryGeometry::initialize () {
 
 
 /*
-  
+
   Following combinations are possible:
               1,1 && 2,2   1,2 && 2,1   1,3 && 2,1
               1,1 && 2,3   1,2 && 2,3   1,3 && 2,2
@@ -1377,69 +1377,69 @@ void BoundaryGeometry::initialize () {
      Since we find vertices with lower enumeration first, we
      can ignore combinations in ()
 
-                  2 2           2 3           3 2           3 3    
-                   *             *             *             *     
-                  /|\           /|\           /|\           /|\    
-                 / | \         / | \         / | \         / | \   
-                /  |  \       /  |  \       /  |  \       /  |  \  
-               /   |   \     /   |   \     /   |   \     /   |   \ 
+                  2 2           2 3           3 2           3 3
+                   *             *             *             *
+                  /|\           /|\           /|\           /|\
+                 / | \         / | \         / | \         / | \
+                /  |  \       /  |  \       /  |  \       /  |  \
+               /   |   \     /   |   \     /   |   \     /   |   \
               *----*----*   *----*----*   *----*----*   *----*----*
-              3   1 1   3   3   1 1   2   2   1 1   3   2   1 1   2      
+              3   1 1   3   3   1 1   2   2   1 1   3   2   1 1   2
 diff:            (1,1)         (1,2)         (2,1)         (2,2)
 change orient.:   yes           no            no            yes
 
 
-                  2 1           2 3           3 1           3 3    
-                   *             *             *             *     
-                  /|\           /|\           /|\           /|\    
-                 / | \         / | \         / | \         / | \   
-                /  |  \       /  |  \       /  |  \       /  |  \  
-               /   |   \     /   |   \     /   |   \     /   |   \ 
+                  2 1           2 3           3 1           3 3
+                   *             *             *             *
+                  /|\           /|\           /|\           /|\
+                 / | \         / | \         / | \         / | \
+                /  |  \       /  |  \       /  |  \       /  |  \
+               /   |   \     /   |   \     /   |   \     /   |   \
               *----*----*   *----*----*   *----*----*   *----*----*
-              3   1 2   3   3   1 2   1   2   1 2   3   2   1 2   1      
+              3   1 2   3   3   1 2   1   2   1 2   3   2   1 2   1
 diff:            (1,-1)        (1,1)         (2,-1)        (2,1)
 change orient.:   no            yes           yes           no
 
 
-                  2 1           2 2           3 1           3 2    
-                   *             *             *             *     
-                  /|\           /|\           /|\           /|\    
-                 / | \         / | \         / | \         / | \   
-                /  |  \       /  |  \       /  |  \       /  |  \  
-               /   |   \     /   |   \     /   |   \     /   |   \ 
+                  2 1           2 2           3 1           3 2
+                   *             *             *             *
+                  /|\           /|\           /|\           /|\
+                 / | \         / | \         / | \         / | \
+                /  |  \       /  |  \       /  |  \       /  |  \
+               /   |   \     /   |   \     /   |   \     /   |   \
               *----*----*   *----*----*   *----*----*   *----*----*
-              3   1 3   2   3   1 3   1   2   1 3   2   2   1 3   1      
+              3   1 3   2   3   1 3   1   2   1 3   2   2   1 3   1
 diff:            (1,-2)        (1,-1)        (2,-2)        (2,-1)
 change orient.:   yes           no            no            yes
 
-                                              3 2           3 3    
-                                               *             *     
-                                              /|\           /|\    
-                                             / | \         / | \   
-                                            /  |  \       /  |  \  
-                                           /   |   \     /   |   \ 
+                                              3 2           3 3
+                                               *             *
+                                              /|\           /|\
+                                             / | \         / | \
+                                            /  |  \       /  |  \
+                                           /   |   \     /   |   \
                                           *----*----*   *----*----*
                                           1   2 1   3   1   2 1   2
 diff:                                        (1,1)         (1,2)
 change orient.:                               yes           no
 
                                               3 1           3 3
-                                               *             *     
-                                              /|\           /|\    
-                                             / | \         / | \   
-                                            /  |  \       /  |  \  
-                                           /   |   \     /   |   \ 
+                                               *             *
+                                              /|\           /|\
+                                             / | \         / | \
+                                            /  |  \       /  |  \
+                                           /   |   \     /   |   \
                                           *----*----*   *----*----*
                                           1   2 2   3   1   2 2   1
 diff:                                        (1,-1)        (1,1)
 change orient.:                               no            yes
 
                                               3 1           3 2
-                                               *             *     
-                                              /|\           /|\    
-                                             / | \         / | \   
-                                            /  |  \       /  |  \  
-                                           /   |   \     /   |   \ 
+                                               *             *
+                                              /|\           /|\
+                                             / | \         / | \
+                                            /  |  \       /  |  \
+                                           /   |   \     /   |   \
                                           *----*----*   *----*----*
                                           1   2 3   2   1   2 3   1
 diff:                                        (1,-2)        (1,-1)
@@ -1470,7 +1470,7 @@ Change orientation if diff is:
             assert (n == 2);
         edge_found:
             int diff = id[1] - id[0];
-            if ((((ic[1] - ic[0]) == 1) && ((diff == 1) || (diff == -2))) || 
+            if ((((ic[1] - ic[0]) == 1) && ((diff == 1) || (diff == -2))) ||
                 (((ic[1] - ic[0]) == 2) && ((diff == -1) || (diff == 2)))) {
                 bg->PointID (triangle_id, id[0]) = bg->PointID (ref_id, ic[1]);
                 bg->PointID (triangle_id, id[1]) = bg->PointID (ref_id, ic[0]);
@@ -1583,7 +1583,7 @@ Change orientation if diff is:
             const Vector_t A = bg->getPoint (triangle_id, 1);
             const Vector_t B = bg->getPoint (triangle_id, 2);
             const Vector_t C = bg->getPoint (triangle_id, 3);
-            
+
             // choose a point P close to the center of the triangle
             const Vector_t P = (A+B+C)/3 + bg->TriNormals_m[triangle_id] * 0.1;
 
@@ -1603,7 +1603,7 @@ Change orientation if diff is:
 
         /*
           Recursively get inward-pointing normal of all surface triangles.
-          
+
           The basic idea is as follow:
           -  get the inward-pointing normal of the first triangle by determine
              whether a nearby point is inside or outside the boundary geometry.
@@ -1692,7 +1692,7 @@ Change orientation if diff is:
     IpplTimings::startTimer (Tinitialize_m);
 
     apert_m = Attributes::getRealArray(itsAttr[APERTURE]);
- 
+
     if (hasApperture()) {
         *gmsg << "* Found additional aperture." << endl;
         for (unsigned int i=0; i<apert_m.size(); i=i+3)
@@ -1703,10 +1703,10 @@ Change orientation if diff is:
 
     *gmsg << "* Filename: " << h5FileName_m.c_str() << endl;
 
-    double xscale = Attributes::getReal(itsAttr[XSCALE]); 
-    double yscale = Attributes::getReal(itsAttr[YSCALE]); 
-    double zscale = Attributes::getReal(itsAttr[ZSCALE]); 
-    double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]); 
+    double xscale = Attributes::getReal(itsAttr[XSCALE]);
+    double yscale = Attributes::getReal(itsAttr[YSCALE]);
+    double zscale = Attributes::getReal(itsAttr[ZSCALE]);
+    double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]);
     double zshift = (double)(Attributes::getReal (itsAttr[ZSHIFT]));
 
     *gmsg << "* X-scale all points of geometry by " << xscale << endl;
@@ -1822,13 +1822,13 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     int k_min, k_max;
     mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
     mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
-    
+
     Vector_t tmp_intersect_pt = Q;
     double tmin = 1.1;
 
     /*
       Triangles can - and in many cases do - intersect with more than one
-      voxel. So, if we loop over all voxels spaned by P and Q, we might 
+      voxel. So, if we loop over all voxels spaned by P and Q, we might
       perform the same line-triangle intersection test more than once
       and must be take this into account when counting the intersections
       with the boundary.
@@ -1885,7 +1885,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     for (auto it = triangle_ids.begin ();
          it != triangle_ids.end ();
          it++) {
-                    
+
         tmp_intersect_result = intersectLineTriangle (
             LINE,
             P, Q,
@@ -1906,7 +1906,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
         case 0:                     // no intersection
         case 2:                     // both points are outside
         case 4:                     // both points are inside
-            break;              
+            break;
         case 1:                     // line and triangle are in same plane
         case 3:                     // unique intersection in segment
             double t;
@@ -2021,7 +2021,7 @@ BoundaryGeometry::PartInside (
     const int Parttype,                 // [in] type of particle
     const double Qloss,                 // [in]
     Vector_t& intersect_pt,             // [out] intersection with boundary
-    int& triangle_id                    // [out] intersected triangle 
+    int& triangle_id                    // [out] intersected triangle
     ) {
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
@@ -2079,7 +2079,7 @@ BoundaryGeometry::PartInside (
 }
 
 void
-BoundaryGeometry::writeGeomToVtk (string fn) {
+BoundaryGeometry::writeGeomToVtk (std::string fn) {
     std::ofstream of;
     of.open (fn.c_str ());
     assert (of.is_open ());
@@ -2124,7 +2124,7 @@ BoundaryGeometry::printInfo (Inform& os) const {
        << "* S                          " << Attributes::getReal (itsAttr[S]) << '\n'
        << "* A                          " << Attributes::getReal (itsAttr[A]) << '\n'
        << "* B                          " << Attributes::getReal (itsAttr[B]) << '\n';
-    if (getTopology () == string ("BOXCORNER")) {
+    if (getTopology () == std::string ("BOXCORNER")) {
         os << "* C                          " << Attributes::getReal (itsAttr[C]) << '\n'
            << "* L1                         " << Attributes::getReal (itsAttr[L1]) << '\n'
            << "* L1                         " << Attributes::getReal (itsAttr[L2]) << '\n';
@@ -2143,12 +2143,12 @@ BoundaryGeometry::printInfo (Inform& os) const {
 }
 
 /*
-   ____  _               _          
-  |  _ \| |__  _   _ ___(_) ___ ___ 
+   ____  _               _
+  |  _ \| |__  _   _ ___(_) ___ ___
   | |_) | '_ \| | | / __| |/ __/ __|
   |  __/| | | | |_| \__ \ | (__\__ \
   |_|   |_| |_|\__, |___/_|\___|___/
-                |___/          
+                |___/
 
   start here ...
 */
@@ -2186,7 +2186,7 @@ int BoundaryGeometry::doBGphysics (
     ) {
     Inform msg ("BGphyDebug");
 
-    const double p_sq = dot (incMomentum, incMomentum);    
+    const double p_sq = dot (incMomentum, incMomentum);
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
     short BGtag = TriBGphysicstag_m[triId];
@@ -2257,7 +2257,7 @@ int BoundaryGeometry::doBGphysics (
     double& seyNum,
     const int& para_null
     ) {
-    const double p_sq = dot (incMomentum, incMomentum);    
+    const double p_sq = dot (incMomentum, incMomentum);
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
     short BGtag = TriBGphysicstag_m[triId];

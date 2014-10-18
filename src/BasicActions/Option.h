@@ -37,7 +37,7 @@ public:
     virtual ~Option();
 
     /// Make clone.
-    virtual Option *clone(const string &name);
+    virtual Option *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -49,7 +49,7 @@ private:
     void operator=(const Option &);
 
     // Clone constructor.
-    Option(const string &name, Option *parent);
+    Option(const std::string &name, Option *parent);
 };
 
 #endif // OPAL_Option_HH

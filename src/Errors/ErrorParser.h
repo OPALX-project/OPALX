@@ -39,7 +39,7 @@ public:
 protected:
 
     /// Find object by name in the error command directory.
-    virtual Object *find(const string &) const;
+    virtual Object *find(const std::string &) const;
 
 private:
 

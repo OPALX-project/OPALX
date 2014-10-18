@@ -35,7 +35,7 @@ Separator::Separator(const Separator &right):
 {}
 
 
-Separator::Separator(const string &name):
+Separator::Separator(const std::string &name):
     Component(name)
 {}
 
@@ -76,8 +76,8 @@ void Separator::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &Separator::getType() const {
-    static const string type("Separator");
+const std::string &Separator::getType() const {
+    static const std::string type("Separator");
     return type;
 }
 

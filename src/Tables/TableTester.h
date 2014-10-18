@@ -18,8 +18,6 @@
 #include "Algorithms/DefaultVisitor.h"
 #include <string>
 
-using std::string;
-
 class ElementBase;
 
 
@@ -36,7 +34,7 @@ public:
 
     /// Constructor.
     //  Attach visitor to [b]bl[/b], remember the name [b]name[/b].
-    TableTester(const Beamline &bl, const string &name);
+    TableTester(const Beamline &bl, const std::string &name);
 
     ~TableTester();
 
@@ -52,5 +50,5 @@ private:
     void operator=(const TableTester &);
 
     // The name to be tested.
-    const string itsName;
+    const std::string itsName;
 };

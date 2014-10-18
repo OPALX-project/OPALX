@@ -34,7 +34,7 @@ public:
 
     /// Constructor.
     //  Store [b]name[/b] in the DOOM environment.
-    AlignWriter(const string &name);
+    AlignWriter(const std::string &name);
 
     virtual ~AlignWriter();
 

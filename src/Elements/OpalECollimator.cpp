@@ -50,7 +50,7 @@ OpalECollimator::OpalECollimator():
 }
 
 
-OpalECollimator::OpalECollimator(const string &name, OpalECollimator *parent):
+OpalECollimator::OpalECollimator(const std::string &name, OpalECollimator *parent):
     OpalElement(name, parent),
     sphys_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
@@ -63,7 +63,7 @@ OpalECollimator::~OpalECollimator() {
 }
 
 
-OpalECollimator *OpalECollimator::clone(const string &name) {
+OpalECollimator *OpalECollimator::clone(const std::string &name) {
     return new OpalECollimator(name, this);
 }
 
@@ -108,7 +108,7 @@ void OpalECollimator::update() {
     }
     */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*coll);
         coll->setSurfacePhysics(sphys_m->handler_m);
     }

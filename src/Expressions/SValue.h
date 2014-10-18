@@ -135,7 +135,7 @@ namespace Expressions {
 
 
     template<> inline
-    void SValue<string>::print(std::ostream &os) const {
+    void SValue<std::string>::print(std::ostream &os) const {
         os << '"' << value << '"';
         return;
     }

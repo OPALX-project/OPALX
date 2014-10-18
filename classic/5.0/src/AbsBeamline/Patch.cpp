@@ -35,7 +35,7 @@ Patch::Patch(const Patch &rhs):
 {}
 
 
-Patch::Patch(const string &name):
+Patch::Patch(const std::string &name):
     Component(name)
 {}
 
@@ -76,8 +76,8 @@ void Patch::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &Patch::getType() const {
-    static const string type("Patch");
+const std::string &Patch::getType() const {
+    static const std::string type("Patch");
     return type;
 }
 

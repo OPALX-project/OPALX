@@ -39,7 +39,7 @@ public:
 
    
     /// Constructor with given name.
-    explicit CyclotronValley(const string &name);
+    explicit CyclotronValley(const std::string &name);
 
     CyclotronValley();
     CyclotronValley(const CyclotronValley &);
@@ -50,14 +50,14 @@ public:
 
    
     /// Set the name of the field map
-    void setFieldMapFN(string fmapfn);
+    void setFieldMapFN(std::string fmapfn);
 
-    string getFieldMapFN() const;
+    std::string getFieldMapFN() const;
 
     void setFast(bool fast);
 
     bool getFast() const;
-    const string &getType() const;
+    const std::string &getType() const;
     virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
    
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
@@ -79,7 +79,7 @@ public:
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
 private:
-    string filename_m;             /**< The name of the inputfile*/
+    std::string filename_m;             /**< The name of the inputfile*/
     Fieldmap *fieldmap_m;
     double scale_m;              /**< scale multiplier*/
    

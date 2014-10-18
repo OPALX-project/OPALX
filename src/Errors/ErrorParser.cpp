@@ -54,6 +54,6 @@ ErrorParser::~ErrorParser()
 {}
 
 
-Object *ErrorParser::find(const string &name) const {
+Object *ErrorParser::find(const std::string &name) const {
     return ErrorDirectory.find(name);
 }

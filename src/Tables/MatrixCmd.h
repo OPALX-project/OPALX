@@ -39,7 +39,7 @@ public:
     virtual ~MatrixCmd();
 
     /// Make clone.
-    virtual MatrixCmd *clone(const string &name);
+    virtual MatrixCmd *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -51,7 +51,7 @@ private:
     void operator=(const MatrixCmd &);
 
     // Clone constructor.
-    MatrixCmd(const string &name, MatrixCmd *parent);
+    MatrixCmd(const std::string &name, MatrixCmd *parent);
 
     // Do the listing.
     void format(std::ostream &, const Twiss *);

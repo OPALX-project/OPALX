@@ -35,7 +35,7 @@ public:
     virtual ~Echo();
 
     /// Make clone.
-    virtual Echo *clone(const string &name);
+    virtual Echo *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const Echo &);
 
     // Clone constructor.
-    Echo(const string &name, Echo *parent);
+    Echo(const std::string &name, Echo *parent);
 };
 
 #endif // OPAL_Echo_HH

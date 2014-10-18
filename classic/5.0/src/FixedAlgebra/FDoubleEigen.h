@@ -25,7 +25,6 @@
 #include <complex>
 
 using std::complex;
-using std::abs;
 using std::imag;
 using std::max;
 using std::real;
@@ -118,9 +117,9 @@ void cdiv(double ar, double ai, double br, double bi,
     double ais = ai / s;
     double brs = br / s;
     double bis = bi / s;
-    
+
     s = brs * brs + bis * bis;
-    
+
     cr = (ars * brs + ais * bis) / s;
     ci = (ais * brs - ars * bis) / s;
 }

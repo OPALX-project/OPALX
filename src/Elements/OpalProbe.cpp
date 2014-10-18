@@ -56,7 +56,7 @@ OpalProbe::OpalProbe():
 }
 
 
-OpalProbe::OpalProbe(const string &name, OpalProbe *parent):
+OpalProbe::OpalProbe(const std::string &name, OpalProbe *parent):
     OpalElement(name, parent),
     owk_m(NULL) {
     setElement((new ProbeRep(name))->makeAlignWrapper());
@@ -69,7 +69,7 @@ OpalProbe::~OpalProbe() {
 }
 
 
-OpalProbe *OpalProbe::clone(const string &name) {
+OpalProbe *OpalProbe::clone(const std::string &name) {
     return new OpalProbe(name, this);
 }
 
@@ -92,7 +92,7 @@ void OpalProbe::update() {
     double width = Attributes::getReal(itsAttr[WIDTH]);
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*prob);
         prob->setWake(owk_m->wf_m);
     }

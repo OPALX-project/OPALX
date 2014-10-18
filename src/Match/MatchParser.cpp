@@ -61,6 +61,6 @@ MatchParser::~MatchParser()
 {}
 
 
-Object *MatchParser::find(const string &name) const {
+Object *MatchParser::find(const std::string &name) const {
     return MatchDirectory.find(name);
 }

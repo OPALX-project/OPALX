@@ -20,7 +20,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "BeamlineGeometry/Vector3D.h"
+class Vector3D;
 
 
 // Class Matrix3D

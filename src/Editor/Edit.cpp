@@ -107,7 +107,7 @@ namespace {
 
 
     void EditFlat::visitMarker(const Marker &marker) {
-        const string &name = marker.getName();
+        const std::string &name = marker.getName();
         if(name[0] != '#') applyDefault(marker);
     }
 
@@ -221,7 +221,7 @@ bool Edit::cycle(const PlaceRep &init) {
 }
 
 
-void Edit::finish(const string &newName) {
+void Edit::finish(const std::string &newName) {
     selectClear();
 
     if(newName == itsSequence->getOpalName()) {
@@ -312,8 +312,8 @@ int Edit::replaceSingle(const PlaceRep &pos, ElementBase *elm) {
 }
 
 
-int Edit::select(const RangeRep &rng, const string &cls,
-                 const string &typ, const string &patt) {
+int Edit::select(const RangeRep &rng, const std::string &cls,
+                 const std::string &typ, const std::string &patt) {
     Selector sel(*itsLine, rng, cls, typ, patt);
     sel.execute();
     return sel.getCount();

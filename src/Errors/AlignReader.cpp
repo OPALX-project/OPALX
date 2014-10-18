@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 
-AlignReader::AlignReader(const string &name) {
+AlignReader::AlignReader(const std::string &name) {
 
 }
 

@@ -58,12 +58,12 @@ void Directory::erase() {
 }
 
 
-void Directory::erase(const string &name) {
+void Directory::erase(const std::string &name) {
     dir.erase(name);
 }
 
 
-Object *Directory::find(const string &name) const {
+Object *Directory::find(const std::string &name) const {
     ObjectDir::const_iterator index = dir.find(name);
 
     if(index == dir.end()) {
@@ -74,7 +74,7 @@ Object *Directory::find(const string &name) const {
 }
 
 
-void Directory::insert(const string &name, Object *newObject) {
+void Directory::insert(const std::string &name, Object *newObject) {
     ObjectDir::value_type p(name, Pointer<Object>(newObject));
     dir.insert(p);
 }

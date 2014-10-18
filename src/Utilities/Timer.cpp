@@ -32,16 +32,16 @@ namespace OPALTimer {
     {}
 
 
-    string Timer::date() const {
+    std::string Timer::date() const {
         char buffer[12];
         strftime(buffer, 12, "%d/%m/%Y", localtime(&timer));
-        return string(buffer, 10);
+        return std::string(buffer, 10);
     }
 
 
-    string Timer::time() const {
+    std::string Timer::time() const {
         char buffer[12];
         strftime(buffer, 12, "%H.%M.%S", localtime(&timer));
-        return string(buffer, 8);
+        return std::string(buffer, 8);
     }
 }

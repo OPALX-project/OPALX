@@ -47,7 +47,7 @@ public:
     virtual ~OpalSeptum();
 
     /// Make clone.
-    virtual OpalSeptum *clone(const string &name);
+    virtual OpalSeptum *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -62,7 +62,7 @@ private:
     void operator=(const OpalSeptum &);
 
     // Clone constructor.
-    OpalSeptum(const string &name, OpalSeptum *parent);
+    OpalSeptum(const std::string &name, OpalSeptum *parent);
 
     OpalWake *owk_m;
 };

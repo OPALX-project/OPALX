@@ -49,8 +49,8 @@ public:
         TCR2,      //trim coil r2 (mm)
         MBTC,      //max bfield of trim coil (kG)
         SLPTC,     //slope of the rising edge
-	RFPHI,     // the initial phase of RF field 
-	SUPERPOSE, // whether the electric field map are superposed or not 
+	RFPHI,     // the initial phase of RF field
+	SUPERPOSE, // whether the electric field map are superposed or not
 	MINZ,      // minimal vertical extend of the machine
 	MAXZ,      // maximal vertical extend of the machine
 	MINR,      // minimal radial extend of the machine
@@ -66,7 +66,7 @@ public:
     virtual ~OpalCyclotron();
 
     /// Make clone.
-    virtual OpalCyclotron *clone(const string &name);
+    virtual OpalCyclotron *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -81,7 +81,7 @@ private:
     void operator=(const OpalCyclotron &);
 
     // Clone constructor.
-    OpalCyclotron(const string &name, OpalCyclotron *parent);
+    OpalCyclotron(const std::string &name, OpalCyclotron *parent);
 
     BoundaryGeometry *obgeo_m;
 

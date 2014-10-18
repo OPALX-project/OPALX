@@ -56,7 +56,7 @@ OpalWire::OpalWire():
 }
 
 
-OpalWire::OpalWire(const string &name, OpalWire *parent):
+OpalWire::OpalWire(const std::string &name, OpalWire *parent):
     OpalElement(name, parent),
     sphys_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
@@ -69,7 +69,7 @@ OpalWire::~OpalWire() {
 }
 
 
-OpalWire *OpalWire::clone(const string &name) {
+OpalWire *OpalWire::clone(const std::string &name) {
     return new OpalWire(name, this);
 }
 
@@ -121,7 +121,7 @@ void OpalWire::update() {
     }
     */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*coll);
         coll->setSurfacePhysics(sphys_m->handler_m);
     }

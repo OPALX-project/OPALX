@@ -34,7 +34,7 @@ MacroCmd::MacroCmd():
 {}
 
 
-MacroCmd::MacroCmd(const string &name, MacroCmd *parent):
+MacroCmd::MacroCmd(const std::string &name, MacroCmd *parent):
     Macro(name, parent), body() {
     body = new MacroStream(name);
 }
@@ -51,7 +51,7 @@ void MacroCmd::execute() {
 
 
 Object *MacroCmd::makeInstance
-(const string &name, Statement &statement, const Parser *parser) {
+(const std::string &name, Statement &statement, const Parser *parser) {
     parseActuals(statement);
 
     // Check for consistency in argument number.
@@ -70,9 +70,9 @@ Object *MacroCmd::makeInstance
         bool found = false;
 
         if(token.isWord()) {
-            string word = token.getWord();
+            std::string word = token.getWord();
 
-            for(std::vector<string>::size_type i = 0;
+            for(std::vector<std::string>::size_type i = 0;
                 i < formals.size(); i++) {
                 if(word == formals[i]) {
                     std::vector<Token> act = actuals[i];
@@ -95,7 +95,7 @@ Object *MacroCmd::makeInstance
 
 
 Object *MacroCmd::makeTemplate
-(const string &name, TokenStream &, Statement &statement) {
+(const std::string &name, TokenStream &, Statement &statement) {
     MacroCmd *macro = new MacroCmd(name, this);
     macro->parseFormals(statement);
 

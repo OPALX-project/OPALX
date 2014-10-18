@@ -51,7 +51,7 @@ public:
     virtual ~OpalPepperPot();
 
     /// Make clone.
-    virtual OpalPepperPot *clone(const string &name);
+    virtual OpalPepperPot *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -66,7 +66,7 @@ private:
     void operator=(const OpalPepperPot &);
 
     // Clone constructor.
-    OpalPepperPot(const string &name, OpalPepperPot *parent);
+    OpalPepperPot(const std::string &name, OpalPepperPot *parent);
 
     SurfacePhysics *sphys_m;
 };

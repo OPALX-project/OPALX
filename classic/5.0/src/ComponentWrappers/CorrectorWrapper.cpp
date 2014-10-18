@@ -93,8 +93,8 @@ Corrector::Plane CorrectorWrapper::getPlane() const {
 }
 
 
-const string &CorrectorWrapper::getType() const {
-    static const string type("CorrectorWrapper");
+const std::string &CorrectorWrapper::getType() const {
+    static const std::string type("CorrectorWrapper");
     return type;
 }
 
@@ -151,4 +151,3 @@ const BDipoleField &CorrectorWrapper::getField() const {
     tempField.addField(itsError);
     return tempField;
 }
-

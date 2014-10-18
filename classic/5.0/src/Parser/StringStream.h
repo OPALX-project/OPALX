@@ -34,7 +34,7 @@ public:
 
     /// Constructor.
     //  Initialize stream to read from the named file.
-    StringStream(const string &s);
+    StringStream(const std::string &s);
 
     virtual ~StringStream();
 
@@ -58,8 +58,8 @@ private:
     Token readWord();
 
     // Current input string;
-    const string line;
-    string::size_type curr_char;
+    const std::string line;
+    std::string::size_type curr_char;
 };
 
 #endif // CLASSIC_StringStream_HH

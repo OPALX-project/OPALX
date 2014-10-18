@@ -22,8 +22,6 @@
 #include <iosfwd>
 #include <string>
 
-using std::string;
-
 
 // Class AbstractFun
 // ------------------------------------------------------------------------
@@ -57,4 +55,3 @@ private:
 };
 
 #endif // OPAL_AbstractFun_HH
-

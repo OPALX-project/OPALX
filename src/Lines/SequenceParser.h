@@ -57,13 +57,13 @@ private:
         Reference(): fromName()
         { fromPosition = 0; }
 
-        Reference(string name, SequenceMember *member): fromName(name)
+        Reference(std::string name, SequenceMember *member): fromName(name)
         { fromPosition = 0; itsList.push_back(member); }
 
         ~Reference()
         { }
 
-        string fromName;
+        std::string fromName;
         SequenceMember *fromPosition;
         std::list<SequenceMember *> itsList;
     };

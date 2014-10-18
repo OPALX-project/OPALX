@@ -40,34 +40,34 @@ Token::Token(const Token &rhs):
 {}
 
 
-Token::Token(const string &fil, int lin, Type typ, char value):
+Token::Token(const std::string &fil, int lin, Type typ, char value):
     file(fil), line(lin), type(typ), lexeme(1u, value),
     d_value(0.0), i_value(0), c_value(value)
 {}
 
 
-Token::Token(const string &fil, int lin, Type typ, const char *value):
+Token::Token(const std::string &fil, int lin, Type typ, const char *value):
     file(fil), line(lin), type(typ), lexeme(value),
     d_value(0.0), i_value(0), c_value(0)
 {}
 
 
 Token::Token
-(const string &fil, int lin, Type typ, const string &lex):
+(const std::string &fil, int lin, Type typ, const std::string &lex):
     file(fil), line(lin), type(typ), lexeme(lex),
     d_value(0.0), i_value(0), c_value(0)
 {}
 
 
 Token::Token
-(const string &fil, int lin, const string &lex, double value):
+(const std::string &fil, int lin, const std::string &lex, double value):
     file(fil), line(lin), type(IS_REAL), lexeme(lex),
     d_value(value), i_value(0), c_value(0)
 {}
 
 
 Token::Token
-(const string &fil, int lin, const string &lex, int value):
+(const std::string &fil, int lin, const std::string &lex, int value):
     file(fil), line(lin), type(IS_INTEGER), lexeme(lex),
     d_value(0.0), i_value(value), c_value(0)
 {}
@@ -90,7 +90,7 @@ const Token &Token::operator=(const Token &rhs) {
 
 
 bool Token::isDel(char del) const {
-    return (type == IS_DELIMITER  &&  lexeme == string(1u, del));
+    return (type == IS_DELIMITER  &&  lexeme == std::string(1u, del));
 }
 
 
@@ -177,7 +177,7 @@ double Token::getReal() const {
 }
 
 
-string Token::getString() const {
+std::string Token::getString() const {
     if(type == IS_STRING) {
         return lexeme;
     }
@@ -187,7 +187,7 @@ string Token::getString() const {
 }
 
 
-string Token::getWord() const {
+std::string Token::getWord() const {
     if(type == IS_WORD) {
         return lexeme;
     }
@@ -197,7 +197,7 @@ string Token::getWord() const {
 }
 
 
-const string &Token::getLex() const {
+const std::string &Token::getLex() const {
     return lexeme;
 }
 
@@ -207,7 +207,7 @@ Token::Type Token::getType() const {
 }
 
 
-const string &Token::getFile() const {
+const std::string &Token::getFile() const {
     return file;
 }
 

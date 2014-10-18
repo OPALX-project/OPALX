@@ -104,7 +104,7 @@ class BorisPusher;
 // To complete the map, we propagate the closed orbit and add that to the map.
 
 typedef std::pair<double, Vector_t > PhaseEnT;
-// typedef std::pair<string, double > MaxPhasesT;
+// typedef std::pair<std::string, double > MaxPhasesT;
 
 class ParallelTTracker: public Tracker {
 
@@ -386,7 +386,7 @@ private:
 
     void showCavities(Inform &m);
 
-    void updateRFElement(string elName, double maxPhi);
+    void updateRFElement(std::string elName, double maxPhi);
     void updateAllRFElements(double phiShift);
     void executeAutoPhase(int numRefs, double zStop);
 

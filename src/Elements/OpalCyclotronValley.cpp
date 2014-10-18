@@ -30,7 +30,7 @@ extern Inform *gmsg;
 OpalCyclotronValley::OpalCyclotronValley():
     OpalElement(SIZE, "CYCLOTRONVALLEY",
                 "The \"CYCLOTRONVALLEY\" element defines a CyclotronValley for Multipacting Simulation.") {
-    
+
     itsAttr[FMAPFN] = Attributes::makeString
                       ("FMAPFN", "Filename for the fieldmap");
     itsAttr[DX] = Attributes::makeReal
@@ -50,18 +50,18 @@ OpalCyclotronValley::OpalCyclotronValley():
 }
 
 
-OpalCyclotronValley::OpalCyclotronValley(const string &name, OpalCyclotronValley *parent):
+OpalCyclotronValley::OpalCyclotronValley(const std::string &name, OpalCyclotronValley *parent):
     OpalElement(name, parent) {
     setElement((new CyclotronValleyRep(name))->makeAlignWrapper());
 }
 
 
 OpalCyclotronValley::~OpalCyclotronValley() {
-   
+
 }
 
 
-OpalCyclotronValley *OpalCyclotronValley::clone(const string &name) {
+OpalCyclotronValley *OpalCyclotronValley::clone(const std::string &name) {
     return new OpalCyclotronValley(name, this);
 }
 
@@ -89,14 +89,14 @@ void OpalCyclotronValley::update() {
     CyclotronValleyRep *cv =
         dynamic_cast<CyclotronValleyRep *>(getElement()->removeWrappers());
 
-   
-    string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
+
+    std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
     double dz = Attributes::getReal(itsAttr[DZ]);
-  
+
     cv->setMisalignment(dx, dy, dz);
-  
+
     cv->setFieldMapFN(fmapfm);
 
     cv->setFast(false);//fast flag for cyclotronvalley has not been implemented yet.

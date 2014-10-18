@@ -33,7 +33,7 @@ public:
     /// The attributes of class OpalDegrader.
     enum {
         XSIZE = COMMON,  // not used
-        YSIZE,           // not used 
+        YSIZE,           // not used
         ZSIZE,           // the thickness of the degrader
         OUTFN,
         DX,             // Misalignment: translation in x direction
@@ -47,7 +47,7 @@ public:
     virtual ~OpalDegrader();
 
     /// Make clone.
-    virtual OpalDegrader *clone(const string &name);
+    virtual OpalDegrader *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -62,7 +62,7 @@ private:
     void operator=(const OpalDegrader &);
 
     // Clone constructor.
-    OpalDegrader(const string &name, OpalDegrader *parent);
+    OpalDegrader(const std::string &name, OpalDegrader *parent);
 
     SurfacePhysics *sphys_m;
 };

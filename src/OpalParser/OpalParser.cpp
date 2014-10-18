@@ -73,7 +73,7 @@ void OpalParser::parse(Statement &stat) const {
         // Keywords introducing variable definitions.
         parseAssign(stat);
     } else {
-        string name = parseString(stat, "Identifier or keyword expected.");
+        std::string name = parseString(stat, "Identifier or keyword expected.");
 
         if(stat.delimiter('?')) {
             // "<class>?": give help for class.
@@ -97,7 +97,7 @@ void OpalParser::parse(Statement &stat) const {
 }
 
 
-void OpalParser::execute(Object *object, const string &name) const {
+void OpalParser::execute(Object *object, const std::string &name) const {
     // Trace execution.
     if(Options::mtrace && object->shouldTrace()) {
         double time = double(clock()) / double(CLOCKS_PER_SEC);
@@ -122,14 +122,14 @@ void OpalParser::execute(Object *object, const string &name) const {
 }
 
 
-Object *OpalParser::find(const string &name) const {
+Object *OpalParser::find(const std::string &name) const {
     return OpalData::getInstance()->find(name);
 }
 
 
 void OpalParser::parseAction(Statement &stat) const {
     stat.start();
-    string cmdName = parseString(stat, "Command name expected");
+    std::string cmdName = parseString(stat, "Command name expected");
 
     if(cmdName == "STOP") {
         stopFlag = true;
@@ -189,11 +189,11 @@ void OpalParser::parseAssign(Statement &stat) const {
         }
     }
 
-    string objName = parseString(stat, "Object name expected.");
+    std::string objName = parseString(stat, "Object name expected.");
 
     // Test for attribute name.
     Object *object = 0;
-    string attrName;
+    std::string attrName;
 
     if(stat.delimiter("->")) {
         // Assignment to object attribute.
@@ -294,10 +294,10 @@ void OpalParser::parseAssign(Statement &stat) const {
 void OpalParser::parseDefine(Statement &stat) const {
     stat.start();
     bool isShared = stat.keyword("SHARED");
-    string objName = parseString(stat, "Object name expected.");
+    std::string objName = parseString(stat, "Object name expected.");
 
     if(stat.delimiter(':')) {
-        string clsName = parseString(stat, "Class name expected.");
+        std::string clsName = parseString(stat, "Class name expected.");
         Object *classObject = find(clsName);
 
         if(classObject == 0) {
@@ -342,7 +342,7 @@ void OpalParser::parseEnd(Statement &stat) const {
 }
 
 
-void OpalParser::parseMacro(const string &macName, Statement &stat) const {
+void OpalParser::parseMacro(const std::string &macName, Statement &stat) const {
     // Record the position just after the '(' of the argument list.
     stat.mark();
 
@@ -360,7 +360,7 @@ void OpalParser::parseMacro(const string &macName, Statement &stat) const {
 
     if(stat.delimiter(':')) {
         // Macro definition.
-        string className = parseString(stat, "Class name expected.");
+        std::string className = parseString(stat, "Class name expected.");
 
         if(Object *macro = OpalData::getInstance()->find(className)) {
             // Backtrack to first argument.
@@ -398,7 +398,7 @@ void OpalParser::parseMacro(const string &macName, Statement &stat) const {
 }
 
 
-void OpalParser::printHelp(const string &cmdName) const {
+void OpalParser::printHelp(const std::string &cmdName) const {
     Object *object = find(cmdName);
 
     if(object == 0) {
@@ -464,7 +464,7 @@ Token OpalParser::readToken() {
 Statement *OpalParser::readStatement(TokenStream *is) const {
     Statement *stat = 0;
     Token token = is->readToken();
-    string name;
+    std::string name;
 
     try {
         if(token.isDel('{')) {

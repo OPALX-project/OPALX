@@ -52,7 +52,7 @@ OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL fiel
 IF (ENABLE_AMR_SOLVER)
    MESSAGE (STATUS "----> Enable AMR")
 #
-   FIND_PACKAGE (CCSE REQUIRED HINTS $ENV{CCSE_INCLUDE_DIRS} $ENV{CCSE_LIBRARY_DIR})	
+   FIND_PACKAGE (CCSE REQUIRED HINTS $ENV{CCSE_INCLUDE_DIRS} $ENV{CCSE_LIBRARY_DIR})
 #
    SET(BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
    SET(ENABLE_MPI 1 CACHE INT "Enable build with MPI")
@@ -60,7 +60,7 @@ IF (ENABLE_AMR_SOLVER)
    SET(BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
    SET(BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
    SET(ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
-   SET(ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")   
+   SET(ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")
    INCLUDE($ENV{BOXLIB_HOME}/Tools/CMake/CCSEOptions.cmake)
    SET (CMAKE_CXX_FLAGS "-Wno-sign-compare -DHAVE_AMR_SOLVER -DTULIN ${CMAKE_CXX_FLAGS}")
    SET (CCSE_INCLUDE_DIRS $ENV{CCSE_INCLUDE_DIRS})
@@ -240,4 +240,3 @@ MESSAGE (STATUS "Compiling with ${CMAKE_CXX_FLAGS}")
 
 ADD_SUBDIRECTORY (classic/5.0/src)
 ADD_SUBDIRECTORY (src)
-

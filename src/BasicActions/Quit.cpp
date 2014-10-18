@@ -28,7 +28,7 @@ Quit::Quit(): Action(0, "QUIT",
 {}
 
 
-Quit::Quit(const string &name, Quit *parent):
+Quit::Quit(const std::string &name, Quit *parent):
     Action(name, parent)
 {}
 
@@ -37,7 +37,7 @@ Quit::~Quit()
 {}
 
 
-Quit *Quit::clone(const string &name) {
+Quit *Quit::clone(const std::string &name) {
     return new Quit(name, this);
 }
 

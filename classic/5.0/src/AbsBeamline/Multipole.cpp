@@ -47,7 +47,7 @@ Multipole::Multipole(const Multipole &right):
 }
 
 
-Multipole::Multipole(const string &name):
+Multipole::Multipole(const std::string &name):
     Component(name),
     NormalComponents(4, 0.0),
     SkewComponents(4, 0.0),
@@ -367,8 +367,8 @@ void Multipole::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &Multipole::getType() const {
-    static const string type("Multipole");
+const std::string &Multipole::getType() const {
+    static const std::string type("Multipole");
     return type;
 }
 

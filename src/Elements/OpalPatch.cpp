@@ -38,7 +38,7 @@ OpalPatch::OpalPatch():
 }
 
 
-OpalPatch::OpalPatch(const string &name, OpalPatch *parent):
+OpalPatch::OpalPatch(const std::string &name, OpalPatch *parent):
     OpalElement(name, parent) {
     setElement(new PatchRep(name));
 }
@@ -48,7 +48,7 @@ OpalPatch::~OpalPatch()
 {}
 
 
-OpalPatch *OpalPatch::clone(const string &name) {
+OpalPatch *OpalPatch::clone(const std::string &name) {
     return new OpalPatch(name, this);
 }
 

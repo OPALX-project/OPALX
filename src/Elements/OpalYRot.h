@@ -41,7 +41,7 @@ public:
     virtual ~OpalYRot();
 
     /// Make clone.
-    virtual OpalYRot *clone(const string &name);
+    virtual OpalYRot *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -56,7 +56,7 @@ private:
     void operator=(const OpalYRot &);
 
     // Clone constructor.
-    OpalYRot(const string &name, OpalYRot *parent);
+    OpalYRot(const std::string &name, OpalYRot *parent);
 };
 
 #endif // OPAL_OpalYRot_HH

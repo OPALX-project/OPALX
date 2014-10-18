@@ -31,7 +31,7 @@ public:
     RealVariable();
 
     /// Constructor for built-in variables.
-    RealVariable(const string &name, RealVariable *parent, double value);
+    RealVariable(const std::string &name, RealVariable *parent, double value);
 
     virtual ~RealVariable();
 
@@ -40,7 +40,7 @@ public:
     virtual bool canReplaceBy(Object *rhs);
 
     /// Make clone.
-    virtual RealVariable *clone(const string &name);
+    virtual RealVariable *clone(const std::string &name);
 
     /// Print the variable.
     virtual void print(std::ostream &) const;
@@ -55,7 +55,7 @@ private:
     void operator=(const RealVariable &);
 
     // Clone constructor.
-    RealVariable(const string &name, RealVariable *parent);
+    RealVariable(const std::string &name, RealVariable *parent);
 };
 
 #endif // OPAL_RealVariable_HH

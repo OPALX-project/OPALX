@@ -38,14 +38,14 @@ public:
 
     /// Make complete copy.
     //  Copy also the line list.
-    virtual BeamSequence *copy(const string &name) = 0;
+    virtual BeamSequence *copy(const std::string &name) = 0;
 
     /// Find a BeamSequence by name.
-    static BeamSequence *find(const string &name);
+    static BeamSequence *find(const std::string &name);
 
     /// Return the object category as a string.
     //  Return the string "SEQUENCE".
-    virtual const string getCategory() const;
+    virtual const std::string getCategory() const;
 
     /// Return the embedded CLASSIC beam line.
     //  The result it the ideal line.
@@ -59,7 +59,7 @@ protected:
     /// Constructor for clones.
     //  The clone will be [b]empty[/b].
     //  It has to be filled in by the corresponding parser.
-    BeamSequence(const string &name, BeamSequence *parent);
+    BeamSequence(const std::string &name, BeamSequence *parent);
 
 private:
 

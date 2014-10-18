@@ -56,7 +56,7 @@ LMDif::LMDif():
 }
 
 
-LMDif::LMDif(const string &name, LMDif *parent):
+LMDif::LMDif(const std::string &name, LMDif *parent):
     Action(name, parent) {
     fraction = 1.0e-6;
     delta = 10.0;
@@ -67,7 +67,7 @@ LMDif::~LMDif()
 {}
 
 
-LMDif *LMDif::clone(const string &name) {
+LMDif *LMDif::clone(const std::string &name) {
     return new LMDif(name, this);
 }
 

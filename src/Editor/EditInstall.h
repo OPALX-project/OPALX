@@ -37,7 +37,7 @@ public:
     virtual ~EditInstall();
 
     /// Make clone.
-    virtual EditInstall *clone(const string &name);
+    virtual EditInstall *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -53,7 +53,7 @@ private:
     void operator=(const EditInstall &);
 
     // Clone constructor.
-    EditInstall(const string &name, EditInstall *parent);
+    EditInstall(const std::string &name, EditInstall *parent);
 
     // A pointer to the new element to be installed.
     Pointer<Element> newElement;

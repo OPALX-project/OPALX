@@ -45,13 +45,13 @@ public:
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual Beam *clone(const string &name);
+    virtual Beam *clone(const std::string &name);
 
     /// Check the BEAM data.
     virtual void execute();
 
     /// Find named BEAM.
-    static Beam *find(const string &name);
+    static Beam *find(const std::string &name);
 
     /// Return emittance for mode 1.
     double getEX() const;
@@ -80,14 +80,14 @@ public:
     /// Return the beam current in A
     double getCurrent() const;
 
-    /// Return the charge number in elementary charge 
+    /// Return the charge number in elementary charge
     double getCharge() const;
 
     /// Return the beam frequency in Hz
     double getFrequency() const;
 
     /// Return Particle's name
-    string getParticleName() const;
+    std::string getParticleName() const;
 
     /// Return Particle's rest mass in GeV
     double getMass() const;
@@ -113,7 +113,7 @@ private:
     void operator=(const Beam &);
 
     // Clone constructor.
-    Beam(const string &name, Beam *parent);
+    Beam(const std::string &name, Beam *parent);
 
     // The particle reference data.
     PartData reference;

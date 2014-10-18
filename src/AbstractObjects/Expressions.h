@@ -57,8 +57,6 @@
 #include <string>
 #include <vector>
 
-using std::string;
-
 class PlaceRep;
 class RangeRep;
 class SFunction;

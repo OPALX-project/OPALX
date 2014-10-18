@@ -132,7 +132,7 @@ void SequenceParser::findFromPositions() const {
 void SequenceParser::findNeighbourPositions() const {
     Sequence::ReferenceType type = Sequence::IS_CENTRE;
     Attribute *attr = itsSequence->findAttribute("REFER");
-    string ref = Attributes::getString(*attr);
+    std::string ref = Attributes::getString(*attr);
 
     if(ref == "ENTRY") {
         type = Sequence::IS_ENTRY;
@@ -155,7 +155,7 @@ void SequenceParser::findNeighbourPositions() const {
             case SequenceMember::IMMEDIATE:
                 // Add scaled length of current.
                 if(type != Sequence::IS_ENTRY) {
-                    string name = i->getElement()->getName();
+                    std::string name = i->getElement()->getName();
                     Element *elem = Element::find(name);
                     double length = elem->getLength();
 
@@ -170,7 +170,7 @@ void SequenceParser::findNeighbourPositions() const {
                 if(j != itsLine.begin()) {
                     --j;
                     if(type != Sequence::IS_EXIT) {
-                        string name = j->getElement()->getName();
+                        std::string name = j->getElement()->getName();
                         Element *elem = Element::find(name);
                         double length = elem->getLength();
 
@@ -234,8 +234,8 @@ void SequenceParser::findNeighbourPositions() const {
 
 
 void SequenceParser::parseMember(Statement &stat) const {
-    string objName;
-    string clsName;
+    std::string objName;
+    std::string clsName;
     SequenceMember member;
 
     // Read object identifier.
@@ -321,11 +321,11 @@ void SequenceParser::parsePosition
 (Statement &stat, Object &elem, bool defined) const {
     SequenceMember &member = itsLine.back();
     double position = 0.0;
-    string fromName;
+    std::string fromName;
     int flag = 0;
 
     while(stat.delimiter(',')) {
-        string name =
+        std::string name =
             Expressions::parseString(stat, "Attribute name expected.");
 
         if(name == "AT") {

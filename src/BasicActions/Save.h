@@ -35,7 +35,7 @@ public:
     virtual ~Save();
 
     /// Make clone.
-    virtual Save *clone(const string &name);
+    virtual Save *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const Save &);
 
     // Clone constructor.
-    Save(const string &name, Save *parent);
+    Save(const std::string &name, Save *parent);
 };
 
 #endif // OPAL_Save_H

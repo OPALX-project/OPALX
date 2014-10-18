@@ -6,12 +6,12 @@
 
 using namespace std;
 
-FM2DMagnetoStatic::FM2DMagnetoStatic(string aFilename):
+FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename):
     Fieldmap(aFilename),
     FieldstrengthBz_m(NULL),
     FieldstrengthBr_m(NULL) {
     ifstream file;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
 
     Type = T2DMagnetoStatic;
@@ -19,7 +19,7 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(string aFilename):
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, string>(file, tmpString, tmpString);
+        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
         if(tmpString == "ZX") {
             swap_m = true;
             parsing_passed = parsing_passed &&
@@ -83,7 +83,7 @@ void FM2DMagnetoStatic::readMap() {
         // declare variables and allocate memory
         ifstream in;
         int tmpInt;
-        string tmpString;
+        std::string tmpString;
         double tmpDouble, Bzmax = 0.0;
 
         FieldstrengthBz_m = new double[num_gridpz_m * num_gridpr_m];
@@ -91,7 +91,7 @@ void FM2DMagnetoStatic::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<string, string>(in, tmpString, tmpString);
+        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
 

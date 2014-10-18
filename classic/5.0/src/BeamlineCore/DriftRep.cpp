@@ -59,7 +59,7 @@ DriftRep::DriftRep(const DriftRep &right):
 {}
 
 
-DriftRep::DriftRep(const string &name):
+DriftRep::DriftRep(const std::string &name):
     Drift(name),
     geometry()
 {}
@@ -74,7 +74,7 @@ ElementBase *DriftRep::clone() const {
 }
 
 
-Channel *DriftRep::getChannel(const string &aKey, bool create) {
+Channel *DriftRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<DriftRep>(*this, entry->get, entry->set);
@@ -112,5 +112,3 @@ ElementImage *DriftRep::getImage() const {
 
     return image;
 }
-
-

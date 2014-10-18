@@ -29,7 +29,7 @@ int RectangularDomain::getNumXY(int z) {
 
 // ignore z since its the same for every z
 std::vector<double> RectangularDomain::getYDirIntersect(int x, int z) {
-    return vector<double>(2);
+    return std::vector<double>(2);
 }
 
 void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
@@ -237,8 +237,8 @@ inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DOneSidedDirichlet(Vector_t hr
     int* MyGlobalElements = Map->MyGlobalElements();
 
     int W, E, S, N, F, B, numout;
-    vector<double> Values(6);
-    vector<int> Indices(6);
+    std::vector<double> Values(6);
+    std::vector<int> Indices(6);
 
     for (int i = 0 ; i < NumMyElements ; ++i)
     {
@@ -569,8 +569,8 @@ inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DLongitudinalNeumann(Vector_t 
     int* MyGlobalElements = Map->MyGlobalElements();
 
     int W, E, S, N, F, B, numout;
-    vector<double> Values(6);
-    vector<int> Indices(6);
+    std::vector<double> Values(6);
+    std::vector<int> Indices(6);
 
     for (int i = 0 ; i < NumMyElements ; ++i)
     {

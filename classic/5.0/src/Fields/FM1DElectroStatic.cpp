@@ -7,7 +7,7 @@
 
 #include "gsl/gsl_fft_real.h"
 
-FM1DElectroStatic::FM1DElectroStatic(string aFilename):
+FM1DElectroStatic::FM1DElectroStatic(std::string aFilename):
     Fieldmap(aFilename) {
 
     Type = T1DElectroStatic;
@@ -41,7 +41,7 @@ void FM1DElectroStatic::readMap() {
 
     if(fourierCoefs_m.empty()) {
 
-        ifstream fieldFile(Filename_m.c_str());
+        std::ifstream fieldFile(Filename_m.c_str());
         stripFileHeader(fieldFile);
 
         double *fieldData = new double[2 * numberOfGridPoints_m - 1];
@@ -250,7 +250,7 @@ bool FM1DElectroStatic::readFileHeader(std::ifstream &fieldFile) {
     std::string tempString;
     int tempInt;
 
-    bool parsingPassed = interpreteLine<string, int>(fieldFile,
+    bool parsingPassed = interpreteLine<std::string, int>(fieldFile,
                          tempString, accuracy_m);
     parsingPassed = parsingPassed &&
                     interpreteLine<double, double, int>(fieldFile,
@@ -273,7 +273,7 @@ void FM1DElectroStatic::stripFileHeader(std::ifstream &fieldFile) {
     int tempInt;
     double tempDouble;
 
-    interpreteLine<string, int>(fieldFile, tempString, tempInt);
+    interpreteLine<std::string, int>(fieldFile, tempString, tempInt);
     interpreteLine<double, double, int>(fieldFile, tempDouble,
                                         tempDouble, tempInt);
     interpreteLine<double, double, int>(fieldFile, tempDouble,

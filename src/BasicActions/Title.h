@@ -35,7 +35,7 @@ public:
     virtual ~Title();
 
     /// Make clone.
-    virtual Title *clone(const string &name);
+    virtual Title *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,8 +50,7 @@ private:
     void operator=(const Title &);
 
     // Clone constructor.
-    Title(const string &name, Title *parent);
+    Title(const std::string &name, Title *parent);
 };
 
 #endif // OPAL_Title_HH
-

@@ -35,7 +35,7 @@ public:
     virtual ~TrackStart();
 
     /// Make clone.
-    virtual TrackStart *clone(const string &name);
+    virtual TrackStart *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const TrackStart &);
 
     // Clone constructor.
-    TrackStart(const string &name, TrackStart *parent);
+    TrackStart(const std::string &name, TrackStart *parent);
 };
 
 #endif // OPAL_TrackStart_HH

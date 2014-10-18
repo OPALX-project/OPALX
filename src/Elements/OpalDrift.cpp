@@ -46,7 +46,7 @@ OpalDrift::OpalDrift():
 }
 
 
-OpalDrift::OpalDrift(const string &name, OpalDrift *parent):
+OpalDrift::OpalDrift(const std::string &name, OpalDrift *parent):
     OpalElement(name, parent),
     owk_m(NULL),
     sphys_m(NULL),
@@ -65,7 +65,7 @@ OpalDrift::~OpalDrift() {
 }
 
 
-OpalDrift *OpalDrift::clone(const string &name) {
+OpalDrift *OpalDrift::clone(const std::string &name) {
     return new OpalDrift(name, this);
 }
 
@@ -80,7 +80,7 @@ void OpalDrift::update() {
     DriftRep *drf = static_cast<DriftRep *>(getElement());
     drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     if(itsAttr[WAKEF] && owk_m == NULL) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*drf);
         drf->setWake(owk_m->wf_m);
     }
@@ -97,12 +97,12 @@ void OpalDrift::update() {
     }
     */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*drf);
         drf->setSurfacePhysics(sphys_m->handler_m);
     }
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
-        obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));
+        obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
         if(obgeo_m) {
 	    drf->setBoundaryGeometry(obgeo_m);
         }

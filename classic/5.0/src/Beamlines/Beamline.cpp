@@ -37,7 +37,7 @@ Beamline::Beamline(const Beamline &):
 }
 
 
-Beamline::Beamline(const string &name):
+Beamline::Beamline(const std::string &name):
     ElementBase(name) {
     shareFlag = false;
 }
@@ -45,4 +45,3 @@ Beamline::Beamline(const string &name):
 
 Beamline::~Beamline()
 {}
-

@@ -49,7 +49,7 @@ class BeamBeamRep: public BeamBeam {
 public:
 
     /// Constructor with given name.
-    explicit BeamBeamRep(const string &name);
+    explicit BeamBeamRep(const std::string &name);
 
     BeamBeamRep();
     BeamBeamRep(const BeamBeamRep &);
@@ -63,7 +63,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute[b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get bunch charge.
     //  Return the number of particles times the particle charge in the

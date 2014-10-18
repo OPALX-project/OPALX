@@ -51,7 +51,7 @@ ThreadBpm::ThreadBpm():
 }
 
 
-ThreadBpm::ThreadBpm(const string &name, ThreadBpm *parent):
+ThreadBpm::ThreadBpm(const std::string &name, ThreadBpm *parent):
     CorrectionBase(name, parent)
 {}
 
@@ -60,18 +60,18 @@ ThreadBpm::~ThreadBpm()
 {}
 
 
-ThreadBpm *ThreadBpm::clone(const string &name) {
+ThreadBpm *ThreadBpm::clone(const std::string &name) {
     return new ThreadBpm(name, this);
 }
 
 
 void ThreadBpm::execute() {
     // Find Table definition.
-    const string &lineName = Attributes::getString(itsAttr[LINE]);
+    const std::string &lineName = Attributes::getString(itsAttr[LINE]);
     BeamSequence *use = BeamSequence::find(lineName);
 
     // Find Beam data.
-    const string &beamName = Attributes::getString(itsAttr[BEAM]);
+    const std::string &beamName = Attributes::getString(itsAttr[BEAM]);
     Beam *beam = Beam::find(beamName);
     reference = beam->getReference();
 

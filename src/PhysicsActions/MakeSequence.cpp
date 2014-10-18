@@ -86,7 +86,7 @@ namespace  MakeSequenceNS {
     class SequenceWriter: public DefaultVisitor {
     public:
         // Construction/destruction.
-        SequenceWriter(const Beamline &beamline, const string &name,
+        SequenceWriter(const Beamline &beamline, const std::string &name,
                        std::ostream &os);
         virtual ~SequenceWriter();
 
@@ -103,7 +103,7 @@ namespace  MakeSequenceNS {
 
     private:
         // The sequence name.
-        string itsName;
+        std::string itsName;
 
         // The output stream to be written.
         std::ostream &itsStream;
@@ -112,15 +112,15 @@ namespace  MakeSequenceNS {
         double sum_length;
     };
 
-    SequenceWriter::SequenceWriter(const Beamline &beamline, const string &name,
+    SequenceWriter::SequenceWriter(const Beamline &beamline, const std::string &name,
                                    std::ostream &os):
         DefaultVisitor(beamline, false, false),
         itsName(name), itsStream(os)
     {}
 
     void SequenceWriter::execute() {
-        string comment = "// ";
-        string line(72, '-');
+        std::string comment = "// ";
+        std::string line(72, '-');
         itsStream << comment << line << '\n'
                   << comment << "Sequence definition.\n"
                   << comment << line << '\n'
@@ -141,7 +141,7 @@ namespace  MakeSequenceNS {
     }
 
     void SequenceWriter::applyDefault(const ElementBase &element) {
-        string objectName = element.getName();
+        std::string objectName = element.getName();
         if(objectName[0] != '#') {
             Element *elem = Element::find(objectName);
             sum_length -= elem->getEntrance(Element::IS_CENTRE);
@@ -177,7 +177,7 @@ MakeSequence::MakeSequence():
 }
 
 
-MakeSequence::MakeSequence(const string &name, MakeSequence *parent):
+MakeSequence::MakeSequence(const std::string &name, MakeSequence *parent):
     Action(name, parent)
 {}
 
@@ -186,16 +186,16 @@ MakeSequence::~MakeSequence()
 {}
 
 
-MakeSequence *MakeSequence::clone(const string &name) {
+MakeSequence *MakeSequence::clone(const std::string &name) {
     return new MakeSequence(name, this);
 }
 
 
 void MakeSequence::execute() {
     // Get relevant names.
-    string useName = Attributes::getString(itsAttr[LINE]);
-    string name = Attributes::getString(itsAttr[NAME]);
-    string file = Attributes::getString(itsAttr[FNAME]);
+    std::string useName = Attributes::getString(itsAttr[LINE]);
+    std::string name = Attributes::getString(itsAttr[NAME]);
+    std::string file = Attributes::getString(itsAttr[FNAME]);
     if(name.empty()) name = useName;
     if(file.empty()) file = name;
 
@@ -209,8 +209,8 @@ void MakeSequence::execute() {
                             "Unable to open output stream \"" + file + "\".");
     }
     os.precision(12);
-    string line(72, '-');
-    string comment = "// ";
+    std::string line(72, '-');
+    std::string comment = "// ";
 
     // Flag all objects which should be output.
     OpalData::getInstance()->apply(MakeSequenceNS::ObjectFlagger());

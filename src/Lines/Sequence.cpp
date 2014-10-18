@@ -92,7 +92,7 @@ Sequence::Sequence():
 }
 
 
-Sequence::Sequence(const string &name, Sequence *parent):
+Sequence::Sequence(const std::string &name, Sequence *parent):
     BeamSequence(name, parent)
     // Do not copy parent's line, it will be filled in at parse time,
     // In case of a clone within a sequence, it is filled by the method
@@ -106,12 +106,12 @@ Sequence::~Sequence()
 {}
 
 
-Sequence *Sequence::clone(const string &name) {
+Sequence *Sequence::clone(const std::string &name) {
     return new Sequence(name, this);
 }
 
 
-Sequence *Sequence::copy(const string &name) {
+Sequence *Sequence::copy(const std::string &name) {
     TLine *oldLine = fetchLine();
     TLine *newLine = new TLine(name);
 
@@ -133,7 +133,7 @@ Sequence *Sequence::copy(const string &name) {
 }
 
 Sequence::TLine::iterator
-Sequence::findNamedPosition(TLine &line, const string &name) const {
+Sequence::findNamedPosition(TLine &line, const std::string &name) const {
     TLine::iterator first = line.begin();
     TLine::iterator last  = line.end();
 
@@ -187,7 +187,7 @@ double Sequence::getExit(ReferenceType ref) const {
 
 
 Sequence::ReferenceType Sequence::getReference() const {
-    string ref = Attributes::getString(itsAttr[REFER]);
+    std::string ref = Attributes::getString(itsAttr[REFER]);
     ReferenceType code = IS_CENTRE;
 
     if(ref == "ENTRY") {
@@ -201,7 +201,7 @@ Sequence::ReferenceType Sequence::getReference() const {
 
 
 Object *Sequence::makeTemplate
-(const string &name, TokenStream &is, Statement &statement) {
+(const std::string &name, TokenStream &is, Statement &statement) {
     SequenceTemplate *macro = new SequenceTemplate(name, this);
 
     try {
@@ -249,7 +249,7 @@ void Sequence::print(std::ostream &os) const {
         const SequenceMember &member = *iter;
 
         if(member.itsType != SequenceMember::GENERATED) {
-            const string &name = member.getElement()->getName();
+            const std::string &name = member.getElement()->getName();
             if(name[0] != '#') {
                 // Name of current element.
                 os << "  ";
@@ -308,7 +308,7 @@ void Sequence::storeLine(TLine &newLine) {
     // Set occurrence counts.
     for(TLine::iterator i = line->begin(); i != line->end(); ++i) {
         if(i->itsType != SequenceMember::GENERATED) {
-            const string &name = i->getElement()->getName();
+            const std::string &name = i->getElement()->getName();
             Element *elem = Element::find(name);
             // ada 4.5 2000 to speed up matching, add a pointer to
             // opal elements in order to avoid serching the opal elements
@@ -339,7 +339,7 @@ double Sequence::findDriftLength(TLine::iterator drift) const {
     // It is assumed that the elements preceding and following the drift exist.
     TLine::iterator prev(drift);
     --prev;
-    const string prev_name = prev->getElement()->getName();
+    const std::string prev_name = prev->getElement()->getName();
 
     // ada 4.5 2000 to speed up matching, add a pointer to
     // opal elements in order to avoid serching the opal elements
@@ -349,7 +349,7 @@ double Sequence::findDriftLength(TLine::iterator drift) const {
 
     TLine::iterator next(drift);
     ++next;
-    const string next_name = next->getElement()->getName();
+    const std::string next_name = next->getElement()->getName();
 
     // ada 4.5 2000 to speed up matching, add a pointer to
     // opal elements in order to avoid serching the opal elements
@@ -414,7 +414,7 @@ void Sequence::updateList(Sequence *seq, TLine *line) {
         if(! base->isSharable()) {
             TLine *sub_line = dynamic_cast<TLine *>(base);
             if(sub_line != 0) {
-                const string &sub_name = sub_line->getName();
+                const std::string &sub_name = sub_line->getName();
                 Sequence *sub_seq = dynamic_cast<Sequence *>(OpalData::getInstance()->find(sub_name));
                 updateList(sub_seq, sub_line);
             }

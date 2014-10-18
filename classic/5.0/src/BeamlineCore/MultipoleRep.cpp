@@ -63,7 +63,7 @@ MultipoleRep::MultipoleRep(const MultipoleRep &multipole):
 {}
 
 
-MultipoleRep::MultipoleRep(const string &name):
+MultipoleRep::MultipoleRep(const std::string &name):
     Multipole(name),
     geometry(),
     field()
@@ -79,11 +79,11 @@ ElementBase *MultipoleRep::clone() const {
 }
 
 
-Channel *MultipoleRep::getChannel(const string &aKey, bool create) {
+Channel *MultipoleRep::getChannel(const std::string &aKey, bool create) {
     if(aKey[0] == 'A'  ||  aKey[0] == 'B') {
         int n = 0;
 
-        for(string::size_type k = 1; k < aKey.length(); k++) {
+        for(std::string::size_type k = 1; k < aKey.length(); k++) {
             if(isdigit(aKey[k])) {
                 n = 10 * n + aKey[k] - '0';
             } else {
@@ -139,7 +139,7 @@ ElementImage *MultipoleRep::getImage() const {
             k /= 10;
         }
 
-        string name(" ");
+        std::string name(" ");
         while(p > buffer) name += *--p;
 
         double b = getNormalComponent(n);

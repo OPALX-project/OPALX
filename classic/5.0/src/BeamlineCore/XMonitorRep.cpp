@@ -57,7 +57,7 @@ XMonitorRep::XMonitorRep(const XMonitorRep &rhs):
 {}
 
 
-XMonitorRep::XMonitorRep(const string &name):
+XMonitorRep::XMonitorRep(const std::string &name):
     MonitorRep(name)
 {}
 
@@ -71,7 +71,7 @@ ElementBase *XMonitorRep::clone() const {
 }
 
 
-Channel *XMonitorRep::getChannel(const string &aKey, bool create) {
+Channel *XMonitorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<XMonitorRep>(*this, entry->get, entry->set);
@@ -96,5 +96,3 @@ ElementImage *XMonitorRep::getImage() const {
 Monitor::Plane XMonitorRep::getPlane() const {
     return active ? X : OFF;
 }
-
-

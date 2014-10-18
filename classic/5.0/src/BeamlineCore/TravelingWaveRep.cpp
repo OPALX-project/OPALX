@@ -74,7 +74,7 @@ TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep &right):
 {}
 
 
-TravelingWaveRep::TravelingWaveRep(const string &name):
+TravelingWaveRep::TravelingWaveRep(const std::string &name):
     TravelingWave(name)
 {}
 
@@ -88,7 +88,7 @@ ElementBase *TravelingWaveRep::clone() const {
 }
 
 
-Channel *TravelingWaveRep::getChannel(const string &aKey, bool create) {
+Channel *TravelingWaveRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
 

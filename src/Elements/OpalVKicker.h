@@ -42,7 +42,7 @@ public:
     virtual ~OpalVKicker();
 
     /// Make clone.
-    virtual OpalVKicker *clone(const string &name);
+    virtual OpalVKicker *clone(const std::string &name);
 
 
     // JMJ 18/12/2000 Following method not needed, commented out, delete after next CVS commit.
@@ -65,7 +65,7 @@ private:
     void operator=(const OpalVKicker &);
 
     // Clone constructor.
-    OpalVKicker(const string &name, OpalVKicker *parent);
+    OpalVKicker(const std::string &name, OpalVKicker *parent);
 };
 
 #endif // OPAL_OpalVKicker_HH

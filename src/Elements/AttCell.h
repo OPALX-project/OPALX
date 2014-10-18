@@ -21,8 +21,6 @@
 #include <map>
 #include <string>
 
-using std::string;
-
 
 //  Class AttCell.
 // ------------------------------------------------------------------------
@@ -134,6 +132,3 @@ private:
 };
 
 #endif // OPAL_AttCell_HH
-
-
-

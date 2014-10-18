@@ -54,7 +54,7 @@ EditInstall::EditInstall():
 }
 
 
-EditInstall::EditInstall(const string &name, EditInstall *parent):
+EditInstall::EditInstall(const std::string &name, EditInstall *parent):
     Editor(name, parent)
 {}
 
@@ -63,7 +63,7 @@ EditInstall::~EditInstall()
 {}
 
 
-EditInstall *EditInstall::clone(const string &name) {
+EditInstall *EditInstall::clone(const std::string &name) {
     return new EditInstall(name, this);
 }
 
@@ -87,7 +87,7 @@ void EditInstall::execute() {
     }
 
     if(Options::info) {
-        const string &name = elm->getName();
+        const std::string &name = elm->getName();
 
         if(count == 0) {
             std::cerr << "\nNo \"" << name << '"';
@@ -104,8 +104,8 @@ void EditInstall::execute() {
 
 void EditInstall::parse(Statement &stat) {
     // Read object identifier.
-    string className;
-    string objectName = Expressions::parseString(stat, "Object name expected.");
+    std::string className;
+    std::string objectName = Expressions::parseString(stat, "Object name expected.");
 
     // Read class identifier.
     if(stat.delimiter(':')) {
@@ -149,7 +149,7 @@ void EditInstall::parse(Statement &stat) {
             newElement = element;
 
             while(stat.delimiter(',')) {
-                string attrName =
+                std::string attrName =
                     Expressions::parseString(stat, "Attribute name expected.");
                 Attribute *attr = 0;
 

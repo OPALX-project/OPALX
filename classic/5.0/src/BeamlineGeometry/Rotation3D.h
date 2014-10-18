@@ -21,7 +21,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineGeometry/Matrix3D.h"
-#include "BeamlineGeometry/Rotation3D.h"
 #include "BeamlineGeometry/Vector3D.h"
 
 

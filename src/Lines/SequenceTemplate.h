@@ -46,17 +46,17 @@ public:
 
     /// Make clone.
     //  Throw OpalException, since the template cannot be cloned.
-    virtual SequenceTemplate *clone(const string &name);
+    virtual SequenceTemplate *clone(const std::string &name);
 
     /// Make line instance.
     //  The instance gets the name [b]name[/b], and its actual arguments
     //  are read from [b]stat[/b].  The parser is ignored.
     virtual Object *makeInstance
-    (const string &name, Statement &, const Parser *);
+    (const std::string &name, Statement &, const Parser *);
 
     /// Make a sequence template.
     //  Return NULL, since one cannot make a template from a template.
-    virtual Object *makeTemplate(const string &name, TokenStream &, Statement &);
+    virtual Object *makeTemplate(const std::string &name, TokenStream &, Statement &);
 
     /// Parse the sequence template.
     void parseTemplate(TokenStream &, Statement &);
@@ -68,7 +68,7 @@ private:
     void operator=(const SequenceTemplate &);
 
     // Clone constructor.
-    SequenceTemplate(const string &name, Object *parent);
+    SequenceTemplate(const std::string &name, Object *parent);
 
     // The contained beam sequence element list.
     MacroStream body;

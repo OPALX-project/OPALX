@@ -30,7 +30,7 @@ MatchCmd::MatchCmd():
 {}
 
 
-MatchCmd::MatchCmd(const string &name, MatchCmd *parent):
+MatchCmd::MatchCmd(const std::string &name, MatchCmd *parent):
     Action(name, parent)
 {}
 
@@ -39,7 +39,7 @@ MatchCmd::~MatchCmd()
 {}
 
 
-MatchCmd *MatchCmd::clone(const string &name) {
+MatchCmd *MatchCmd::clone(const std::string &name) {
     return new MatchCmd(name, this);
 }
 

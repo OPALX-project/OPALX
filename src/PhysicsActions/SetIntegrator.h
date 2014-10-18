@@ -34,7 +34,7 @@ public:
     virtual ~SetIntegrator();
 
     /// Make clone.
-    virtual SetIntegrator *clone(const string &name);
+    virtual SetIntegrator *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -46,7 +46,7 @@ private:
     void operator=(const SetIntegrator &);
 
     // Clone constructor.
-    SetIntegrator(const string &name, SetIntegrator *parent);
+    SetIntegrator(const std::string &name, SetIntegrator *parent);
 };
 
 #endif // __SetIntegrator_HH

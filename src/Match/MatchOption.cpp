@@ -33,7 +33,7 @@ MatchOption::MatchOption():
 }
 
 
-MatchOption::MatchOption(const string &name, MatchOption *parent):
+MatchOption::MatchOption(const std::string &name, MatchOption *parent):
     Action(name, parent)
 {}
 
@@ -42,7 +42,7 @@ MatchOption::~MatchOption()
 {}
 
 
-MatchOption *MatchOption::clone(const string &name) {
+MatchOption *MatchOption::clone(const std::string &name) {
     return new MatchOption(name, this);
 }
 

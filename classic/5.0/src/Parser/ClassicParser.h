@@ -25,8 +25,6 @@
 #include "Parser/Parser.h"
 #include <string>
 
-using std::string;
-
 class TokenStream;
 
 

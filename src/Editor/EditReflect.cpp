@@ -31,7 +31,7 @@ EditReflect::EditReflect():
 {}
 
 
-EditReflect::EditReflect(const string &name, EditReflect *parent):
+EditReflect::EditReflect(const std::string &name, EditReflect *parent):
     Editor(name, parent)
 {}
 
@@ -40,7 +40,7 @@ EditReflect::~EditReflect()
 {}
 
 
-EditReflect *EditReflect::clone(const string &name) {
+EditReflect *EditReflect::clone(const std::string &name) {
     return new EditReflect(name, this);
 }
 

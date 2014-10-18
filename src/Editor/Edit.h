@@ -23,8 +23,6 @@
 #include "Lines/Sequence.h"
 #include <string>
 
-using std::string;
-
 class Attribute;
 class EditParser;
 class ElementBase;
@@ -62,7 +60,7 @@ public:
     //  Reconstruct the modified sequence as required.
     //  If a new name is given, make a copy, otherwise if the sequence is
     //  modified, overwrite the original.
-    void finish(const string &newName);
+    void finish(const std::string &newName);
 
     /// Flatten the edit sequence.
     void flatten();
@@ -110,8 +108,8 @@ public:
 
     /// Select elements in the edit sequence.
     //  Use range, class and regular expression.
-    int select(const RangeRep &rng, const string &cls,
-               const string &typ, const string &patt);
+    int select(const RangeRep &rng, const std::string &cls,
+               const std::string &typ, const std::string &patt);
 
     /// Clear all selection flags.
     void selectClear();

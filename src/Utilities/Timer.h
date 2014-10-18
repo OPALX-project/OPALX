@@ -21,8 +21,6 @@
 #include <ctime>
 #include <string>
 
-using std::string;
-
 
 // Class Timer
 // ------------------------------------------------------------------------
@@ -43,10 +41,10 @@ namespace OPALTimer {
         ~Timer();
 
         /// Return date.
-        string date() const;
+        std::string date() const;
 
         /// Return time.
-        string time() const;
+        std::string time() const;
 
     private:
 

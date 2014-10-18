@@ -62,7 +62,7 @@ TerminalStream::~TerminalStream() {
 bool TerminalStream::fillLine() {
 #ifdef READLINE
     char *p = readline("==>");
-    line = string(p) + '\n';
+    line = std::string(p) + '\n';
     add_history(p);
     line += "\n";
     curr_line++;

@@ -51,7 +51,7 @@ ParallelSliceTracker::~ParallelSliceTracker()
  * the element. This is done on all nodes except node 0 where
  * the Autophase took place.
  */
-void ParallelSliceTracker::updateRFElement(string elName, double maxPhi) {
+void ParallelSliceTracker::updateRFElement(std::string elName, double maxPhi) {
     FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
     FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
     cl.merge(twl, OpalField::SortAsc);
@@ -111,7 +111,7 @@ void ParallelSliceTracker::updateAllRFElements() {
 }
 
 
-double ParallelSliceTracker::getCavityPhase(FieldList cav, string name) {
+double ParallelSliceTracker::getCavityPhase(FieldList cav, std::string name) {
     double phi = 0.0;
     for (FieldList::iterator fit = cav.begin(); fit != cav.end(); ++fit) {
         if ((*fit).getElement()->getName() == name) {
@@ -352,4 +352,3 @@ void ParallelSliceTracker::dumpPhaseSpaceOnScan() {
 bool ParallelSliceTracker::hasEndOfLineReached() {
     return (itsBunch_m->get_sPos() > zstop_m || !(itsBunch_m->isValid_m));
 }
-

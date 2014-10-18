@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: AttributeSet
-//   A map of name (string) versus value (double) intended to store
+//   A map of name (std::string) versus value (double) intended to store
 //   user-defined attributes.
 //
 // ------------------------------------------------------------------------
@@ -48,7 +48,7 @@ const AttributeSet &AttributeSet::operator=(const AttributeSet &rhs) {
 }
 
 
-double AttributeSet::getAttribute(const string &aKey) const {
+double AttributeSet::getAttribute(const std::string &aKey) const {
     const_iterator index = itsMap.find(aKey);
 
     if(index == itsMap.end()) {
@@ -59,17 +59,17 @@ double AttributeSet::getAttribute(const string &aKey) const {
 }
 
 
-bool AttributeSet::hasAttribute(const string &aKey) const {
+bool AttributeSet::hasAttribute(const std::string &aKey) const {
     return (itsMap.find(aKey) != itsMap.end());
 }
 
 
-void AttributeSet::removeAttribute(const string &aKey) {
+void AttributeSet::removeAttribute(const std::string &aKey) {
     itsMap.erase(aKey);
 }
 
 
-void AttributeSet::setAttribute(const string &aKey, double value) {
+void AttributeSet::setAttribute(const std::string &aKey, double value) {
     itsMap[aKey] = value;
 }
 
@@ -77,7 +77,7 @@ void AttributeSet::setAttribute(const string &aKey, double value) {
 // This method is inlined so its const version can wrap it.
 // ada 3-7-2000 remove inline because KCC does not like it.
 
-Channel *AttributeSet::getChannel(const string &aKey, bool create) {
+Channel *AttributeSet::getChannel(const std::string &aKey, bool create) {
     NameMap::iterator index = itsMap.find(aKey);
 
     if(index == itsMap.end()) {
@@ -93,9 +93,8 @@ Channel *AttributeSet::getChannel(const string &aKey, bool create) {
 }
 
 
-const ConstChannel *AttributeSet::getConstChannel(const string &aKey) const {
+const ConstChannel *AttributeSet::getConstChannel(const std::string &aKey) const {
     // Use const_cast to allow calling the non-const GetChannel().
     // The const return value will nevertheless inhibit set().
     return const_cast<AttributeSet *>(this)->getChannel(aKey);
 }
-

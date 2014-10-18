@@ -21,7 +21,7 @@ protected:
     //Properties of the optic element
     struct Data {
         double kq, k0s, e1, e2, l, phi, courb;
-        string type;
+        std::string type;
     } data;
 
     //data needed for the aperture calculation
@@ -60,11 +60,11 @@ public:
         inline double getDisp_x_prim(int ind) ;
         inline double getDisp_y_prim(int ind) ;
         inline double getApert(int ind);
-        inline string getType_elm() ;
+        inline std::string getType_elm() ;
         inline double getOrb();
 
     private:
-        string Type_elm;
+        std::string Type_elm;
         double Orb;
         struct pt_interpol {
             double Beta_x, Beta_y;
@@ -82,7 +82,7 @@ public:
     typedef TBeamline<A_row> A_Tline;
 
     Aperture();
-    Aperture(const string &name, Aperture *parent);
+    Aperture(const std::string &name, Aperture *parent);
     virtual ~Aperture() {};
 
     //return the maximum of the betax(y) function in the elm
@@ -98,20 +98,20 @@ public:
     //return the lenght of the table
     virtual double getLength();
 
-    virtual double getCell(const PlaceRep &place, const string &colName);
+    virtual double getCell(const PlaceRep &place, const std::string &colName);
 
     //return the beamline used
     virtual const Beamline *getLine() const;
     //comments in Twiss class
     virtual CellArray getDefault() const;
-    virtual std::vector<double> getColumn(const RangeRep &rng, const string
+    virtual std::vector<double> getColumn(const RangeRep &rng, const std::string
                                           &colName);
     virtual std::vector<double> getRow(const PlaceRep &pos, const
-                                       std::vector<string> &cols);
-    virtual bool isDependent(const string &name) const;
+                                       std::vector<std::string> &cols);
+    virtual bool isDependent(const std::string &name) const;
     virtual bool matches(Table *rhs) const;
-    virtual Expressions::PtrToScalar<double> makeColumnExpression(const string &colname) const;
-    virtual Object *clone(const string &name);
+    virtual Expressions::PtrToScalar<double> makeColumnExpression(const std::string &colname) const;
+    virtual Object *clone(const std::string &name);
     virtual void printTable(std::ostream &, const CellArray &)const;
     virtual void fill();
 
@@ -171,7 +171,7 @@ private:
     A_row &findRow(const PlaceRep &row);
     mutable A_Tline::const_iterator current;
     //line name
-    string itsLine;
+    std::string itsLine;
 };
 
 

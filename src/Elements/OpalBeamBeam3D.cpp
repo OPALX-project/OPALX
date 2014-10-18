@@ -91,7 +91,7 @@ OpalBeamBeam3D::OpalBeamBeam3D():
 }
 
 
-OpalBeamBeam3D::OpalBeamBeam3D(const string &name, OpalBeamBeam3D *parent):
+OpalBeamBeam3D::OpalBeamBeam3D(const std::string &name, OpalBeamBeam3D *parent):
     OpalElement(name, parent) {
     setElement(new BeamBeam3D(name));
 }
@@ -101,7 +101,7 @@ OpalBeamBeam3D::~OpalBeamBeam3D()
 {}
 
 
-OpalBeamBeam3D *OpalBeamBeam3D::clone(const string &name) {
+OpalBeamBeam3D *OpalBeamBeam3D::clone(const std::string &name) {
     return new OpalBeamBeam3D(name, this);
 }
 

@@ -38,7 +38,7 @@ EditCycle::EditCycle():
 }
 
 
-EditCycle::EditCycle(const string &name, EditCycle *parent):
+EditCycle::EditCycle(const std::string &name, EditCycle *parent):
     Editor(name, parent)
 {}
 
@@ -47,7 +47,7 @@ EditCycle::~EditCycle()
 {}
 
 
-EditCycle *EditCycle::clone(const string &name) {
+EditCycle *EditCycle::clone(const std::string &name) {
     return new EditCycle(name, this);
 }
 

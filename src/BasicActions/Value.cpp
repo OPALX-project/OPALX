@@ -37,7 +37,7 @@ Value::Value():
 }
 
 
-Value::Value(const string &name, Value *parent):
+Value::Value(const std::string &name, Value *parent):
     Action(name, parent)
 {}
 
@@ -46,7 +46,7 @@ Value::~Value()
 {}
 
 
-Value *Value::clone(const string &name) {
+Value *Value::clone(const std::string &name) {
     return new Value(name, this);
 }
 

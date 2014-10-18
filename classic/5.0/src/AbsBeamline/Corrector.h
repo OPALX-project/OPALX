@@ -50,7 +50,7 @@ public:
     };
 
     /// Constructor with given name.
-    explicit Corrector(const string &name);
+    explicit Corrector(const std::string &name);
 
     Corrector();
     Corrector(const Corrector &right);
@@ -89,17 +89,17 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     void SetKickX(double k);
-    
+
     void SetKickY(double k);
-    
+
     double GetKickX() const;
-    
-    double GetKickY() const; 
+
+    double GetKickY() const;
 
 
  private:
@@ -117,7 +117,7 @@ protected:
 
     Plane plane_m;
 
-    double position_m; 
+    double position_m;
     bool   informed_m;
 
 

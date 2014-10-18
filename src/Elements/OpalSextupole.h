@@ -42,7 +42,7 @@ public:
     virtual ~OpalSextupole();
 
     /// Make clone.
-    virtual OpalSextupole *clone(const string &name);
+    virtual OpalSextupole *clone(const std::string &name);
 
     /// Print the sextupole.
     //  Handle printing in OPAL-8 format.
@@ -61,7 +61,7 @@ private:
     void operator=(const OpalSextupole &);
 
     // Clone constructor.
-    OpalSextupole(const string &name, OpalSextupole *parent);
+    OpalSextupole(const std::string &name, OpalSextupole *parent);
 };
 
 #endif // OPAL_OpalSextupole_HH

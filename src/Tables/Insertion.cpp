@@ -96,7 +96,7 @@ Insertion::Insertion():
 }
 
 
-Insertion::Insertion(const string &name, Insertion *parent):
+Insertion::Insertion(const std::string &name, Insertion *parent):
     Twiss(name, parent)
 {}
 
@@ -105,7 +105,7 @@ Insertion::~Insertion()
 {}
 
 
-Insertion *Insertion::clone(const string &name) {
+Insertion *Insertion::clone(const std::string &name) {
     return new Insertion(name, this);
 }
 
@@ -219,5 +219,3 @@ void Insertion::printTable(std::ostream &os, const CellArray &cells) const {
     os.precision(old_prec);
     os.setf(std::ios::fixed, std::ios::floatfield);
 }
-
-

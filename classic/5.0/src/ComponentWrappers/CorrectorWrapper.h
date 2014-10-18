@@ -86,7 +86,7 @@ public:
     virtual Plane getPlane() const;
 
     /// Get element type string.
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     /// Get design corrector.
     //  Version for constant object.

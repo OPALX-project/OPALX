@@ -35,7 +35,7 @@ public:
     virtual ~Help();
 
     /// Make clone.
-    virtual Help *clone(const string &name);
+    virtual Help *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,8 +50,7 @@ private:
     void operator=(const Help &);
 
     // Clone constructor.
-    Help(const string &name, Help *parent);
+    Help(const std::string &name, Help *parent);
 };
 
 #endif // OPAL_Help_HH
-

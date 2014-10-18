@@ -52,7 +52,7 @@ public:
     virtual ~LMDif();
 
     /// Make clone.
-    virtual LMDif *clone(const string &name);
+    virtual LMDif *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -64,7 +64,7 @@ private:
     void operator=(const LMDif &);
 
     // Clone constructor.
-    LMDif(const string &name, LMDif *parent);
+    LMDif(const std::string &name, LMDif *parent);
 
     // Compute the Jacobian of the set of functions with respect to the
     // set of variables.

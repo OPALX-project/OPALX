@@ -33,7 +33,7 @@ System::System():
 }
 
 
-System::System(const string &name, System *parent):
+System::System(const std::string &name, System *parent):
     Action(name, parent)
 {}
 
@@ -42,7 +42,7 @@ System::~System()
 {}
 
 
-System *System::clone(const string &name) {
+System *System::clone(const std::string &name) {
     return new System(name, this);
 }
 

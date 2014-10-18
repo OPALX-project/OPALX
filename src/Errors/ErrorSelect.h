@@ -35,7 +35,7 @@ public:
     virtual ~ErrorSelect();
 
     /// Make clone.
-    virtual ErrorSelect *clone(const string &name);
+    virtual ErrorSelect *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const ErrorSelect &);
 
     // Clone constructor.
-    ErrorSelect(const string &name, ErrorSelect *parent);
+    ErrorSelect(const std::string &name, ErrorSelect *parent);
 };
 
 #endif // OPAL_ErrorSelect_HH

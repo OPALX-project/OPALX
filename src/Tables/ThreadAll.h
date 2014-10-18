@@ -37,7 +37,7 @@ public:
     virtual ~ThreadAll();
 
     /// Make clone.
-    virtual ThreadAll *clone(const string &name);
+    virtual ThreadAll *clone(const std::string &name);
 
     /// Check validity of the table definition.
     virtual void execute();
@@ -58,7 +58,7 @@ private:
     void operator=(const ThreadAll &);
 
     /// Clone constructor.
-    ThreadAll(const string &name, ThreadAll *parent);
+    ThreadAll(const std::string &name, ThreadAll *parent);
 
     // Backtrack to correct in one plane.
     virtual void correct(int plane, TLine::iterator &);

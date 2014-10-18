@@ -33,7 +33,7 @@ MarkerRep::MarkerRep(const MarkerRep &right):
 {}
 
 
-MarkerRep::MarkerRep(const string &name):
+MarkerRep::MarkerRep(const std::string &name):
     Marker(name)
 {}
 

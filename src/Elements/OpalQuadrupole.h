@@ -45,7 +45,7 @@ public:
     virtual ~OpalQuadrupole();
 
     /// Make clone.
-    virtual OpalQuadrupole *clone(const string &name);
+    virtual OpalQuadrupole *clone(const std::string &name);
 
     /// Print the quadrupole.
     //  Handle printing in OPAL-8 format.
@@ -64,7 +64,7 @@ private:
     void operator=(const OpalQuadrupole &);
 
     // Clone constructor.
-    OpalQuadrupole(const string &name, OpalQuadrupole *parent);
+    OpalQuadrupole(const std::string &name, OpalQuadrupole *parent);
 
     SurfacePhysics *sphys_m;
 };

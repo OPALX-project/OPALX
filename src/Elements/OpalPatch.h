@@ -46,7 +46,7 @@ public:
     virtual ~OpalPatch();
 
     /// Make clone.
-    virtual OpalPatch *clone(const string &name);
+    virtual OpalPatch *clone(const std::string &name);
 
     /// Test for patch.
     //  Return true.
@@ -62,7 +62,7 @@ private:
     void operator=(const OpalPatch &);
 
     // Clone constructor.
-    OpalPatch(const string &name, OpalPatch *parent);
+    OpalPatch(const std::string &name, OpalPatch *parent);
 };
 
 #endif // OPAL_OpalPatch_HH

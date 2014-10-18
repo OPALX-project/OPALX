@@ -57,7 +57,7 @@ class SingleMultipole: public Multipole {
 public:
 
     /// Constructor with given name.
-    explicit SingleMultipole(const string &name);
+    explicit SingleMultipole(const std::string &name);
 
     SingleMultipole();
     SingleMultipole(const SingleMultipole &);
@@ -95,7 +95,7 @@ public:
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const string &aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Construct an image.
     //  Return the image of the element, containing the name and type string
@@ -117,7 +117,7 @@ private:
     BSingleMultipoleField<order> field;
 
     // The type string returned.
-    static const string type;
+    static const std::string type;
 
     // Attribute access table.
     struct Entry {
@@ -152,7 +152,7 @@ SingleMultipole<order>::SingleMultipole
 
 
 template <int order>
-SingleMultipole<order>::SingleMultipole(const string &name):
+SingleMultipole<order>::SingleMultipole(const std::string &name):
     Multipole(name),
     geometry(),
     field()
@@ -207,7 +207,7 @@ ElementBase *SingleMultipole<order>::clone() const {
 
 
 template <int order> inline
-Channel *SingleMultipole<order>::getChannel(const string &aKey, bool) {
+Channel *SingleMultipole<order>::getChannel(const std::string &aKey, bool) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<SingleMultipole<order> >

@@ -67,7 +67,7 @@ Probe::Probe(const Probe &right):
 }
 
 
-Probe::Probe(const string &name):
+Probe::Probe(const std::string &name):
     Component(name),
     filename_m(""),
     position_m(0.0),
@@ -309,8 +309,8 @@ void Probe::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = position_m + 0.005;
 }
 
-const string &Probe::getType() const {
-    static const string type("Probe");
+const std::string &Probe::getType() const {
+    static const std::string type("Probe");
     return type;
 }
 

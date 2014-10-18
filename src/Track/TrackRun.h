@@ -55,7 +55,7 @@ public:
     virtual ~TrackRun();
 
     /// Make clone.
-    virtual TrackRun *clone(const string &name);
+    virtual TrackRun *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -67,7 +67,7 @@ private:
     void operator=(const TrackRun &);
 
     // Clone constructor.
-    TrackRun(const string &name, TrackRun *parent);
+    TrackRun(const std::string &name, TrackRun *parent);
 
     double SetDistributionParallelT(Beam *beam);
     ParallelTTracker *setupForAutophase();

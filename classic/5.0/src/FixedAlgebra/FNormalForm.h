@@ -26,7 +26,6 @@
 #include <complex>
 
 using std::complex;
-using std::abs;
 using std::arg;
 using std::imag;
 using std::pow;

@@ -337,7 +337,7 @@ void OpalBeamline::switchAllElements() {
 
 }
 
-void OpalBeamline::switchElementsOff(const double &min, const string &eltype) {
+void OpalBeamline::switchElementsOff(const double &min, const std::string &eltype) {
     if(eltype == "All") {
         for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
             if((*flit).isOn() && min >= (*flit).getEnd()) {

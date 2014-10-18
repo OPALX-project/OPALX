@@ -35,7 +35,7 @@ public:
     virtual ~Period();
 
     /// Make clone.
-    virtual Period *clone(const string &name);
+    virtual Period *clone(const std::string &name);
 
     /// Fill the buffer using the defined algorithm.
     virtual void fill();
@@ -50,7 +50,7 @@ private:
     void operator=(const Period &);
 
     // Clone constructor.
-    Period(const string &name, Period *parent);
+    Period(const std::string &name, Period *parent);
 
     // Find the closed orbit.
     void findClosedOrbit();

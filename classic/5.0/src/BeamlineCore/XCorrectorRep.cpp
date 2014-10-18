@@ -65,7 +65,7 @@ XCorrectorRep::XCorrectorRep(const XCorrectorRep &rhs):
 {}
 
 
-XCorrectorRep::XCorrectorRep(const string &name):
+XCorrectorRep::XCorrectorRep(const std::string &name):
     CorrectorRep(name)
 {}
 
@@ -79,7 +79,7 @@ ElementBase *XCorrectorRep::clone() const {
 }
 
 
-Channel *XCorrectorRep::getChannel(const string &aKey, bool create) {
+Channel *XCorrectorRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<XCorrectorRep>(*this, entry->get, entry->set);

@@ -37,7 +37,7 @@ class Solenoid: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Solenoid(const string &name);
+    explicit Solenoid(const std::string &name);
 
     Solenoid();
     Solenoid(const Solenoid &);
@@ -72,20 +72,20 @@ public:
     virtual void goOffline();
 
     //  Assign the field filename.
-    void setFieldMapFN(string fn);
+    void setFieldMapFN(std::string fn);
 
     void setFast(bool fast);
 
     bool getFast() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
 private:
 
-    //  string name;                   /**< The name of the object*/
-    string filename_m;               /**< The name of the inputfile*/
+    //  std::string name;                   /**< The name of the object*/
+    std::string filename_m;               /**< The name of the inputfile*/
     Fieldmap *myFieldmap_m;
     double scale_m;                /**< scale multiplier*/
     double ElementEdge_m;

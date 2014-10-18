@@ -47,7 +47,7 @@ public:
     virtual ~OpalWire();
 
     /// Make clone.
-    virtual OpalWire *clone(const string &name);
+    virtual OpalWire *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -62,7 +62,7 @@ private:
     void operator=(const OpalWire &);
 
     // Clone constructor.
-    OpalWire(const string &name, OpalWire *parent);
+    OpalWire(const std::string &name, OpalWire *parent);
     SurfacePhysics *sphys_m;
 };
 

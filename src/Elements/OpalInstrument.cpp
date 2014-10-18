@@ -33,7 +33,7 @@ OpalInstrument::OpalInstrument():
 }
 
 
-OpalInstrument::OpalInstrument(const string &name, OpalInstrument *parent):
+OpalInstrument::OpalInstrument(const std::string &name, OpalInstrument *parent):
     OpalElement(name, parent) {
     setElement(new DriftRep(name));
 }
@@ -43,7 +43,7 @@ OpalInstrument::~OpalInstrument()
 {}
 
 
-OpalInstrument *OpalInstrument::clone(const string &name) {
+OpalInstrument *OpalInstrument::clone(const std::string &name) {
     return new OpalInstrument(name, this);
 }
 

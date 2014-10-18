@@ -30,7 +30,7 @@ TrackEnd::TrackEnd():
 {}
 
 
-TrackEnd::TrackEnd(const string &name, TrackEnd *parent):
+TrackEnd::TrackEnd(const std::string &name, TrackEnd *parent):
     Action(name, parent)
 {}
 
@@ -39,7 +39,7 @@ TrackEnd::~TrackEnd()
 {}
 
 
-TrackEnd *TrackEnd::clone(const string &name) {
+TrackEnd *TrackEnd::clone(const std::string &name) {
     return new TrackEnd(name, this);
 }
 

@@ -35,7 +35,7 @@ public:
     virtual ~Value();
 
     /// Make clone.
-    virtual Value *clone(const string &name);
+    virtual Value *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -50,7 +50,7 @@ private:
     void operator=(const Value &);
 
     // Clone constructor.
-    Value(const string &name, Value *parent);
+    Value(const std::string &name, Value *parent);
 };
 
 #endif // OPAL_Value_HH

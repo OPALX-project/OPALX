@@ -48,7 +48,7 @@ public:
     virtual ~OpalProbe();
 
     /// Make clone.
-    virtual OpalProbe *clone(const string &name);
+    virtual OpalProbe *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -63,7 +63,7 @@ private:
     void operator=(const OpalProbe &);
 
     // Clone constructor.
-    OpalProbe(const string &name, OpalProbe *parent);
+    OpalProbe(const std::string &name, OpalProbe *parent);
 
     OpalWake *owk_m;
 };

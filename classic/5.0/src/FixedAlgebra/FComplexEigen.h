@@ -26,7 +26,6 @@
 #include <complex>
 
 using std::complex;
-using std::abs;
 using std::conj;
 using std::imag;
 using std::norm;

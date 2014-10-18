@@ -6,7 +6,7 @@
 
 using namespace std;
 
-FM2DElectroStatic_cspline::FM2DElectroStatic_cspline(string aFilename):
+FM2DElectroStatic_cspline::FM2DElectroStatic_cspline(std::string aFilename):
     Fieldmap(aFilename),
     Ez_interpolants_m(NULL),
     Er_interpolants_m(NULL),
@@ -18,7 +18,7 @@ FM2DElectroStatic_cspline::FM2DElectroStatic_cspline(string aFilename):
     rvals_m(NULL) {
     Inform msg("FM2DES ");
     ifstream file;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
 
     Type =  T2DElectroStatic;
@@ -26,7 +26,7 @@ FM2DElectroStatic_cspline::FM2DElectroStatic_cspline(string aFilename):
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, string>(file, tmpString, tmpString);
+        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
         if(tmpString == "ZX") {
             swap_m = true;
             parsing_passed = parsing_passed &&
@@ -107,7 +107,7 @@ void FM2DElectroStatic_cspline::readMap() {
         Inform msg("FM2DES ");
         ifstream in;
         int tmpInt;
-        string tmpString;
+        std::string tmpString;
         double tmpDouble, Ezmax = 0.0;
 
         double *FieldstrengthEz = new double[num_gridpz_m * num_gridpr_m];
@@ -115,7 +115,7 @@ void FM2DElectroStatic_cspline::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<string, string>(in, tmpString, tmpString);
+        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
 

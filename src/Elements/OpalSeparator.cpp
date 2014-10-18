@@ -39,7 +39,7 @@ OpalSeparator::OpalSeparator():
 }
 
 
-OpalSeparator::OpalSeparator(const string &name, OpalSeparator *parent):
+OpalSeparator::OpalSeparator(const std::string &name, OpalSeparator *parent):
     OpalElement(name, parent) {
     setElement((new SeparatorRep(name))->makeAlignWrapper());
 }
@@ -49,7 +49,7 @@ OpalSeparator::~OpalSeparator()
 {}
 
 
-OpalSeparator *OpalSeparator::clone(const string &name) {
+OpalSeparator *OpalSeparator::clone(const std::string &name) {
     return new OpalSeparator(name, this);
 }
 

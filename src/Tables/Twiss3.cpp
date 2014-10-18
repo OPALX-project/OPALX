@@ -59,7 +59,7 @@ Twiss3::Twiss3():
 }
 
 
-Twiss3::Twiss3(const string &name, Twiss3 *parent):
+Twiss3::Twiss3(const std::string &name, Twiss3 *parent):
     Action(name, parent)
 {}
 
@@ -68,17 +68,17 @@ Twiss3::~Twiss3()
 {}
 
 
-Twiss3 *Twiss3::clone(const string &name) {
+Twiss3 *Twiss3::clone(const std::string &name) {
     return new Twiss3(name, this);
 }
 
 
 void Twiss3::execute() {
-    string tableName = Attributes::getString(itsAttr[TABLE]);
+    std::string tableName = Attributes::getString(itsAttr[TABLE]);
     Twiss *table = dynamic_cast<Twiss *>(OpalData::getInstance()->find(tableName));
 
     if(table) {
-        string fileName = Attributes::getString(itsAttr[FNAME]);
+        std::string fileName = Attributes::getString(itsAttr[FNAME]);
         if(fileName == "TERM") {
             format(std::cout, table);
         } else {
@@ -111,16 +111,16 @@ void Twiss3::formatPrint(std::ostream &os, const Twiss *table) const {
 
     // Write table specific header.
     table->printTableTitle(os, "Mais-Ripken lattice functions");
-    os << string(124, '-') << '\n';
-    os << "Element" << string(24, ' ') << "S"
-       << string(10, ' ') << "XC" << string(9, ' ') << "PXC"
-       << string(10, ' ') << "YC" << string(9, ' ') << "PYC"
-       << string(10, ' ') << "TC" << string(9, ' ') << "PTC\n";
+    os << std::string(124, '-') << '\n';
+    os << "Element" << std::string(24, ' ') << "S"
+       << std::string(10, ' ') << "XC" << std::string(9, ' ') << "PXC"
+       << std::string(10, ' ') << "YC" << std::string(9, ' ') << "PYC"
+       << std::string(10, ' ') << "TC" << std::string(9, ' ') << "PTC\n";
     os << "Mode          MU"
        << "        BETX        GAMX        ALFX"
        << "        BETY        GAMY        ALFY"
        << "        BETT        GAMY        ALFT\n";
-    os << string(124, '-') << '\n';
+    os << std::string(124, '-') << '\n';
     // Jumbled function names affecting PRINT style output
     // fixed at 15:26:46 on 9 Aug 2000 by JMJ
 
@@ -128,7 +128,7 @@ void Twiss3::formatPrint(std::ostream &os, const Twiss *table) const {
     for(Twiss::TLine::const_iterator row = table->begin();
         row != table->end(); ++row) {
         if(row->getSelectionFlag()) {
-            string name = row->getElement()->getName();
+            std::string name = row->getElement()->getName();
             if(int occur = row->getCounter()) {
 #if defined(__GNUC__) && __GNUC__ < 3
                 char buffer[128];
@@ -146,10 +146,10 @@ void Twiss3::formatPrint(std::ostream &os, const Twiss *table) const {
 
             if(name.length() > 16) {
                 // Truncate the element name.
-                os << string(name, 0, 13) << ".. ";
+                os << std::string(name, 0, 13) << ".. ";
             } else {
                 // Left adjust the element name.
-                os << name << string(16 - name.length(), ' ');
+                os << name << std::string(16 - name.length(), ' ');
             }
             os << setw(16) << table->getS(*row);
 
@@ -172,11 +172,9 @@ void Twiss3::formatPrint(std::ostream &os, const Twiss *table) const {
         }
     }
 
-    os << string(124, '-') << std::endl;
+    os << std::string(124, '-') << std::endl;
 
     // Restore the formatting flags.
     os.precision(old_prec);
     os.setf(std::ios::fixed, std::ios::floatfield);
 }
-
-

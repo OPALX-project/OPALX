@@ -34,12 +34,12 @@ namespace Attributes {
 
         /// Constructor.
         //  Assign attribute name and help string.
-        String(const string &name, const string &help);
+        String(const std::string &name, const std::string &help);
 
         virtual ~String();
 
         /// Return attribute type string ``string''.
-        virtual const string &getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
         virtual void parse(Attribute &, Statement &, bool) const;

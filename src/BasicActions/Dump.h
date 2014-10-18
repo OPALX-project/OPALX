@@ -35,7 +35,7 @@ public:
     virtual ~Dump();
 
     /// Make clone.
-    virtual Dump *clone(const string &name);
+    virtual Dump *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const Dump &);
 
     // Clone constructor.
-    Dump(const string &name, Dump *parent);
+    Dump(const std::string &name, Dump *parent);
 };
 
 #endif // OPAL_Dump_H

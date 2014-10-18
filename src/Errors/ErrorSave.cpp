@@ -68,7 +68,7 @@ ErrorSave::ErrorSave():
 }
 
 
-ErrorSave::ErrorSave(const string &name, ErrorSave *parent):
+ErrorSave::ErrorSave(const std::string &name, ErrorSave *parent):
     Action(name, parent)
 {}
 
@@ -77,14 +77,14 @@ ErrorSave::~ErrorSave()
 {}
 
 
-ErrorSave *ErrorSave::clone(const string &name) {
+ErrorSave *ErrorSave::clone(const std::string &name) {
     return new ErrorSave(name, this);
 }
 
 
 void ErrorSave::execute() {
     // Prepare output stream.
-    string file = Attributes::getString(itsAttr[FNAME]);
+    std::string file = Attributes::getString(itsAttr[FNAME]);
     os.open(file.c_str());
     if(os.bad()) {
         throw OpalException("ErrorSave::execute()",
@@ -107,7 +107,7 @@ void ErrorSave::execute() {
 }
 
 
-void ErrorSave::fieldError(const string &name, int occur,
+void ErrorSave::fieldError(const std::string &name, int occur,
                            const BMultipoleField &designField,
                            BMultipoleField &errorField) {
     if(errorField.order() != 0) {
@@ -148,7 +148,7 @@ void ErrorSave::misalignment(const AlignWrapper &wrap, int occur) {
     double dx, dy, ds, vx, vy, vz;
 
     if(! offset.isIdentity()) {
-        const string &name = wrap.getElement()->getName();
+        const std::string &name = wrap.getElement()->getName();
         offset.getAll(dx, dy, ds, vx, vy, vz);
 
 	os << "SELECT, CLEAR;\nSELECT, RANGE = "

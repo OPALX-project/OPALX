@@ -35,7 +35,7 @@ public:
     virtual ~OpalInstrument();
 
     /// Make clone.
-    virtual OpalInstrument *clone(const string &name);
+    virtual OpalInstrument *clone(const std::string &name);
 
     /// Update the embedded CLASSIC drift.
     virtual void update();
@@ -47,7 +47,7 @@ private:
     void operator=(const OpalInstrument &);
 
     // Clone constructor.
-    OpalInstrument(const string &name, OpalInstrument *parent);
+    OpalInstrument(const std::string &name, OpalInstrument *parent);
 };
 
 #endif // OPAL_OpalInstrument_HH

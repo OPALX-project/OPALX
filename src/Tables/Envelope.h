@@ -39,7 +39,7 @@ public:
     virtual ~Envelope();
 
     /// Make clone.
-    virtual Envelope *clone(const string &name);
+    virtual Envelope *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -51,7 +51,7 @@ private:
     void operator=(const Envelope &);
 
     // Clone constructor.
-    Envelope(const string &name, Envelope *parent);
+    Envelope(const std::string &name, Envelope *parent);
 
     // Do the listing.
     void format(std::ostream &, const Twiss *);

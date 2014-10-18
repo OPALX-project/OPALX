@@ -127,7 +127,7 @@ Flatten<Member>::handleBeamline(const FlaggedElmPtr &fep) {
 template <class Member> void
 Flatten<Member>::handleElement(const FlaggedElmPtr &fep) {
     if(itsRange.isActive()) {
-        const string &name = fep.getElement()->getName();
+        const std::string &name = fep.getElement()->getName();
         if(name[0] != '#') {
             Member member(fep);
             itsTable.push_back(member);

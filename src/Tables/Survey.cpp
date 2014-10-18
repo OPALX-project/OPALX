@@ -106,7 +106,7 @@ namespace {
 
 
     // Find a column by name.
-    const ColDesc *findCol(const Survey &table, const string &colName) {
+    const ColDesc *findCol(const Survey &table, const std::string &colName) {
         for(const ColDesc *col = allColumns; col->colName; ++col) {
             if(colName == col->colName) {
                 return col;
@@ -130,7 +130,7 @@ namespace {
         //  Identify the table by its name [b]tab[/b], and the column by its
         //  name [b]col[/b] and the function [b]col[/b].
         //  The row is specified as the ``current'' row of the table.
-        Column(const Survey &tab, const string &scol, const ColDesc &col);
+        Column(const Survey &tab, const std::string &scol, const ColDesc &col);
 
         Column(const Column &);
         virtual ~Column();
@@ -154,7 +154,7 @@ namespace {
         const Survey &itsTable;
 
         // Column name.
-        string colName;
+        std::string colName;
 
         // The function returning the column value from the given row.
         double(Survey::*get)(const Survey::Row &, int, int) const;
@@ -168,7 +168,7 @@ namespace {
     // ------------------------------------------------------------------------
 
     Column::Column(const Survey &tab,
-                   const string &name,
+                   const std::string &name,
                    const ColDesc &desc):
         itsTable(tab),
         colName(name),
@@ -291,7 +291,7 @@ Survey::Survey():
 }
 
 
-Survey::Survey(const string &name, Survey *parent):
+Survey::Survey(const std::string &name, Survey *parent):
     Table(name, parent), itsTable(new TLine(name)), itsVisitor(0)
 {}
 
@@ -302,7 +302,7 @@ Survey::~Survey() {
 }
 
 
-Survey *Survey::clone(const string &name) {
+Survey *Survey::clone(const std::string &name) {
     return new Survey(name, this);
 }
 
@@ -415,7 +415,7 @@ const Survey::Row &Survey::findRow(const PlaceRep &place) {
 #endif
     os << row << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-    string name(buffer);
+    std::string name(buffer);
     throw OpalException("Survey::setRow()", "Row \"" + name +
                         "\" not found in survey table \"" + getOpalName() + "\".");
 #else
@@ -425,7 +425,7 @@ const Survey::Row &Survey::findRow(const PlaceRep &place) {
 }
 
 
-double Survey::getCell(const PlaceRep &place, const string &name) {
+double Survey::getCell(const PlaceRep &place, const std::string &name) {
     const Row &row = findRow(place);
     const ColDesc *col = findCol(*this, name);
     return (this->*(col->get))(row, col->ind_1, col->ind_2);
@@ -443,7 +443,7 @@ Table::CellArray Survey::getDefault() const {
 }
 
 
-std::vector<double> Survey::getColumn(const RangeRep &rng, const string &name) {
+std::vector<double> Survey::getColumn(const RangeRep &rng, const std::string &name) {
     // Find proper column function.
     const ColDesc *col = findCol(*this, name);
     RangeRep range(rng);
@@ -478,7 +478,7 @@ const Beamline *Survey::getLine() const {
 
 
 std::vector<double>
-Survey::getRow(const PlaceRep &pos, const std::vector<string> &columns) {
+Survey::getRow(const PlaceRep &pos, const std::vector<std::string> &columns) {
     const Row &row = findRow(pos);
     std::vector<double> result;
 
@@ -489,7 +489,7 @@ Survey::getRow(const PlaceRep &pos, const std::vector<string> &columns) {
         }
     } else {
         // User column selection.
-        for(std::vector<string>::const_iterator name = columns.begin();
+        for(std::vector<std::string>::const_iterator name = columns.begin();
             name != columns.end(); ++name) {
             const ColDesc *col = findCol(*this, *name);
             result.push_back((this->*(col->get))(row, col->ind_1, col->ind_2));
@@ -500,7 +500,7 @@ Survey::getRow(const PlaceRep &pos, const std::vector<string> &columns) {
 }
 
 
-bool Survey::isDependent(const string &name) const {
+bool Survey::isDependent(const std::string &name) const {
     // Test if name refers to LINE attribute.
     if(itsLine == name) return true;
 
@@ -515,7 +515,7 @@ bool Survey::isDependent(const string &name) const {
 
 
 Expressions::PtrToScalar<double>
-Survey::makeColumnExpression(const string &colName) const {
+Survey::makeColumnExpression(const std::string &colName) const {
     return new Column(*this, colName, *findCol(*this, colName));
 }
 
@@ -538,7 +538,7 @@ void Survey::printTable(std::ostream &os, const CellArray &cells) const {
         cell < cells.end(); ++cell) {
         lineLength += cell->printWidth;
     }
-    os << string(lineLength, '-') << '\n';
+    os << std::string(lineLength, '-') << '\n';
 
     // Print table header.
     os << "Element         ";
@@ -553,21 +553,21 @@ void Survey::printTable(std::ostream &os, const CellArray &cells) const {
         cell->itsExpr->print(ss, 0);
         ss << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-        string image(buffer);
+        std::string image(buffer);
 #else
         std::string image = ss.str();
 #endif
 
         if(int(image.length()) < cell->printWidth) {
             // Right adjust the column header.
-            os << string(cell->printWidth - image.length(), ' ') << image;
+            os << std::string(cell->printWidth - image.length(), ' ') << image;
         } else {
             // Truncate the column header.
-            os << ' ' << string(image, 0, cell->printWidth - 3) << "..";
+            os << ' ' << std::string(image, 0, cell->printWidth - 3) << "..";
         }
     }
     os << '\n';
-    os << string(lineLength, '-') << '\n';
+    os << std::string(lineLength, '-') << '\n';
 
     // Save the formatting flags.
     std::streamsize old_prec = os.precision(6);
@@ -576,7 +576,7 @@ void Survey::printTable(std::ostream &os, const CellArray &cells) const {
     // Write table body.
     for(current = itsTable->begin(); current != itsTable->end(); ++current) {
         if(current->getSelectionFlag()) {
-            string name = current->getElement()->getName();
+            std::string name = current->getElement()->getName();
             if(int occur = current->getCounter()) {
 #if defined(__GNUC__) && __GNUC__ < 3
                 char buffer[128];
@@ -594,10 +594,10 @@ void Survey::printTable(std::ostream &os, const CellArray &cells) const {
 
             if(name.length() > 16) {
                 // Truncate the element name.
-                os << string(name, 0, 13) << ".. ";
+                os << std::string(name, 0, 13) << ".. ";
             } else {
                 // Left adjust the element name.
-                os << name << string(16 - name.length(), ' ');
+                os << name << std::string(16 - name.length(), ' ');
             }
 
             for(CellArray::const_iterator cell = cells.begin();
@@ -611,7 +611,7 @@ void Survey::printTable(std::ostream &os, const CellArray &cells) const {
     }
 
     // Write table specific summary.
-    os << string(lineLength, '-') << '\n';
+    os << std::string(lineLength, '-') << '\n';
 
     // Restore the formatting flags.
     os.precision(old_prec);

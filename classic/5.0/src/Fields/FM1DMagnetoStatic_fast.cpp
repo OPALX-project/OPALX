@@ -54,7 +54,7 @@ void FM1DMagnetoStatic_fast::readMap() {
 
     if(onAxisField_m == NULL) {
 
-        ifstream fieldFile(Filename_m.c_str());
+        std::ifstream fieldFile(Filename_m.c_str());
         int accuracy = stripFileHeader(fieldFile);
 
         onAxisField_m = new double[numberOfGridPoints_m];
@@ -339,7 +339,7 @@ bool FM1DMagnetoStatic_fast::readFileHeader(std::ifstream &fieldFile) {
     std::string tempString;
     int tempInt;
 
-    bool parsingPassed = interpreteLine<string, int>(fieldFile,
+    bool parsingPassed = interpreteLine<std::string, int>(fieldFile,
                          tempString, tempInt);
     parsingPassed = parsingPassed &&
                     interpreteLine<double, double, int>(fieldFile,
@@ -360,7 +360,7 @@ int FM1DMagnetoStatic_fast::stripFileHeader(std::ifstream &fieldFile) {
     int accuracy;
     double tempDouble;
 
-    interpreteLine<string, int>(fieldFile, tempString, accuracy);
+    interpreteLine<std::string, int>(fieldFile, tempString, accuracy);
     interpreteLine<double, double, int>(fieldFile, tempDouble,
                                         tempDouble, tempInt);
     interpreteLine<double, double, int>(fieldFile, tempDouble,

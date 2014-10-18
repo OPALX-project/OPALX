@@ -36,7 +36,7 @@ Marker::Marker(const Marker &right):
 { }
 
 
-Marker::Marker(const string &name):
+Marker::Marker(const std::string &name):
     Component(name)
 { }
 
@@ -77,7 +77,7 @@ void Marker::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const string &Marker::getType() const {
-    static const string type("Marker");
+const std::string &Marker::getType() const {
+    static const std::string type("Marker");
     return type;
 }

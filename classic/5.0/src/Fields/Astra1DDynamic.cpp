@@ -13,13 +13,13 @@ using Physics::mu_0;
 using Physics::c;
 using Physics::two_pi;
 
-Astra1DDynamic::Astra1DDynamic(string aFilename):
+Astra1DDynamic::Astra1DDynamic(std::string aFilename):
     Fieldmap(aFilename),
     FourCoefs_m(NULL) {
     Inform msg("*1DD ");
     ifstream file;
     int skippedValues = 0;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
     double tmpDouble2;
 
@@ -28,7 +28,7 @@ Astra1DDynamic::Astra1DDynamic(string aFilename):
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, int>(file, tmpString, accuracy_m);
+        bool parsing_passed = interpreteLine<std::string, int>(file, tmpString, accuracy_m);
         parsing_passed = parsing_passed &&
                          interpreteLine<double>(file, frequency_m);
         parsing_passed = parsing_passed &&
@@ -80,7 +80,7 @@ void Astra1DDynamic::readMap() {
 
         int tmpInt;
 
-        string tmpString;
+        std::string tmpString;
 
         double tmpDouble;
         double Ez_max = 0.0;
@@ -99,7 +99,7 @@ void Astra1DDynamic::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<string, int>(in, tmpString, tmpInt);
+        interpreteLine<std::string, int>(in, tmpString, tmpInt);
         interpreteLine<double>(in, tmpDouble);
 
         tmpDouble = zbegin_m - dz;
@@ -247,11 +247,11 @@ void Astra1DDynamic::getOnaxisEz(vector<pair<double, double> > & F) {
     double Ez_max = 0.0;
     double tmpDouble;
     int tmpInt;
-    string tmpString;
+    std::string tmpString;
     F.resize(num_gridpz_m);
 
     ifstream in(Filename_m.c_str());
-    interpreteLine<string, int>(in, tmpString, tmpInt);
+    interpreteLine<std::string, int>(in, tmpString, tmpInt);
     interpreteLine<double>(in, tmpDouble);
 
     for(int i = 0; i < num_gridpz_m; ++ i) {

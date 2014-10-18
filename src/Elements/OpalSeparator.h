@@ -42,7 +42,7 @@ public:
     virtual ~OpalSeparator();
 
     /// Make clone.
-    virtual OpalSeparator *clone(const string &name);
+    virtual OpalSeparator *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -57,7 +57,7 @@ private:
     void operator=(const OpalSeparator &);
 
     // Clone constructor.
-    OpalSeparator(const string &name, OpalSeparator *parent);
+    OpalSeparator(const std::string &name, OpalSeparator *parent);
 };
 
 #endif // OPAL_OpalSeparator_HH

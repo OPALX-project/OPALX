@@ -48,7 +48,7 @@ public:
     virtual ~OpalStripper();
 
     /// Make clone.
-    virtual OpalStripper *clone(const string &name);
+    virtual OpalStripper *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -63,7 +63,7 @@ private:
     void operator=(const OpalStripper &);
 
     // Clone constructor.
-    OpalStripper(const string &name, OpalStripper *parent);
+    OpalStripper(const std::string &name, OpalStripper *parent);
 
 };
 

@@ -67,7 +67,7 @@ Degrader::Degrader(const Degrader &right):
     zend_m(right.zend_m)
 {}
 
-Degrader::Degrader(const string &name):
+Degrader::Degrader(const std::string &name):
     Component(name),
     filename_m(""),
     position_m(0.0),
@@ -101,7 +101,7 @@ void Degrader::accept(BeamlineVisitor &visitor) const {
 inline bool Degrader::isInMaterial(double z ) {
  /**
      check if the particle is in the degarder material
-   
+
   */
     return ((z > position_m) && (z <= position_m + getZSize())); //getElementLength()));
 }
@@ -131,7 +131,7 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
       MomentumZ_m.push_back(P(2));
       time_m.push_back(t + frac * RefPartBunch_m->getdT());
       id_m.push_back(i);
-    }    
+    }
     return false;
 }
 
@@ -169,7 +169,7 @@ void Degrader::goOnline() {
  Inform msg("Degrader::goOnline ");
    if(RefPartBunch_m == NULL) {
         if(!informed_m) {
-            string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
+            std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             msg << errormsg << "\n"
                 << endl;
             if(Ippl::myNode() == 0) {
@@ -203,14 +203,14 @@ bool Degrader::bends() const {
     return false;
 }
 
-void Degrader::setOutputFN(string fn) {
+void Degrader::setOutputFN(std::string fn) {
     filename_m = fn;
 }
 
 string Degrader::getOutputFN() {
     if (filename_m == std::string(""))
         return getName();
-    else 
+    else
         return filename_m.substr(0, filename_m.rfind("."));
 }
 
@@ -228,8 +228,8 @@ void Degrader::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const string &Degrader::getType() const {
-    static const string type("DEGRADER");
+const std::string &Degrader::getType() const {
+    static const std::string type("DEGRADER");
     return type;
 }
 

@@ -8,7 +8,7 @@
 using namespace std;
 using Physics::mu_0;
 
-FM2DDynamic_cspline::FM2DDynamic_cspline(string aFilename)
+FM2DDynamic_cspline::FM2DDynamic_cspline(std::string aFilename)
     : Fieldmap(aFilename),
       Ez_interpolants_m(NULL),
       Er_interpolants_m(NULL),
@@ -23,7 +23,7 @@ FM2DDynamic_cspline::FM2DDynamic_cspline(string aFilename)
       rvals_m(NULL) {
     Inform msg("FM2DD ");
     ifstream file;
-    string tmpString;
+    std::string tmpString;
     double tmpDouble;
 
     Type = T2DDynamic_cspline;
@@ -31,7 +31,7 @@ FM2DDynamic_cspline::FM2DDynamic_cspline(string aFilename)
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<string, string>(file, tmpString, tmpString);
+        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
         if(tmpString == "ZX") {
             swap_m = true;
             parsing_passed = parsing_passed &&
@@ -127,7 +127,7 @@ void FM2DDynamic_cspline::readMap() {
         Inform msg("FM2DD ");
         ifstream in;
         int tmpInt;
-        string tmpString;
+        std::string tmpString;
         double tmpDouble, Ezmax = 0.0;
         double *FieldstrengthEz = new double[num_gridpz_m * num_gridpr_m];
         double *FieldstrengthEr = new double[num_gridpz_m * num_gridpr_m];
@@ -135,7 +135,7 @@ void FM2DDynamic_cspline::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<string, string>(in, tmpString, tmpString);
+        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double>(in, tmpDouble);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);

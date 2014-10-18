@@ -35,7 +35,7 @@ public:
     virtual ~EditReflect();
 
     /// Make clone.
-    virtual EditReflect *clone(const string &name);
+    virtual EditReflect *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const EditReflect &);
 
     // Clone constructor.
-    EditReflect(const string &name, EditReflect *parent);
+    EditReflect(const std::string &name, EditReflect *parent);
 };
 
 #endif // OPAL_EditReflect_HH

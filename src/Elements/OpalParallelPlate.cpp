@@ -61,7 +61,7 @@ OpalParallelPlate::OpalParallelPlate():
 }
 
 
-OpalParallelPlate::OpalParallelPlate(const string &name, OpalParallelPlate *parent):
+OpalParallelPlate::OpalParallelPlate(const std::string &name, OpalParallelPlate *parent):
     OpalElement(name, parent) {
     setElement((new ParallelPlateRep(name))->makeAlignWrapper());
 }
@@ -72,7 +72,7 @@ OpalParallelPlate::~OpalParallelPlate() {
 }
 
 
-OpalParallelPlate *OpalParallelPlate::clone(const string &name) {
+OpalParallelPlate *OpalParallelPlate::clone(const std::string &name) {
     return new OpalParallelPlate(name, this);
 }
 
@@ -109,7 +109,7 @@ void OpalParallelPlate::update() {
     double dy = Attributes::getReal(itsAttr[DY]);
 
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
-        obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + string("_geometry"));
+        obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
         if(obgeo_m) {
             //obgeo_m->initialize();
 

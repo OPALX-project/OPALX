@@ -34,7 +34,7 @@ OpalHMonitor::OpalHMonitor():
 }
 
 
-OpalHMonitor::OpalHMonitor(const string &name, OpalHMonitor *parent):
+OpalHMonitor::OpalHMonitor(const std::string &name, OpalHMonitor *parent):
     OpalElement(name, parent) {
     setElement((new XMonitorRep(name))->makeAlignWrapper());
 }
@@ -44,7 +44,7 @@ OpalHMonitor::~OpalHMonitor()
 {}
 
 
-OpalHMonitor *OpalHMonitor::clone(const string &name) {
+OpalHMonitor *OpalHMonitor::clone(const std::string &name) {
     return new OpalHMonitor(name, this);
 }
 

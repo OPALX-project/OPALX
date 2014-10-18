@@ -34,7 +34,7 @@ class MarkerRep: public Marker {
 public:
 
     /// Constructor with given name.
-    explicit MarkerRep(const string &name);
+    explicit MarkerRep(const std::string &name);
 
     MarkerRep();
     MarkerRep(const MarkerRep &);

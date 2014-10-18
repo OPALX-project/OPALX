@@ -97,7 +97,7 @@ ErrorAlign::ErrorAlign():
 }
 
 
-ErrorAlign::ErrorAlign(const string &name, ErrorAlign *parent):
+ErrorAlign::ErrorAlign(const std::string &name, ErrorAlign *parent):
     Action(name, parent)
 {}
 
@@ -106,7 +106,7 @@ ErrorAlign::~ErrorAlign()
 {}
 
 
-ErrorAlign *ErrorAlign::clone(const string &name) {
+ErrorAlign *ErrorAlign::clone(const std::string &name) {
     return new ErrorAlign(name, this);
 }
 

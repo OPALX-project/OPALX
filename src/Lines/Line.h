@@ -46,11 +46,11 @@ public:
 
     /// Make clone.
     //  The new object is an empty line, it will be filled by the parser.
-    virtual Line *clone(const string &name);
+    virtual Line *clone(const std::string &name);
 
     /// Make complete copy.
     //  Copy also the line list.
-    virtual Line *copy(const string &name);
+    virtual Line *copy(const std::string &name);
 
     /// Return line length.
     virtual double getLength() const;
@@ -59,7 +59,7 @@ public:
     //  The template gets the name [b]name[/b], [b]is[/b] is ignored,
     //  and the formals and the line list are read from [b]stat[/b].
     virtual Object *makeTemplate
-    (const string &name, TokenStream &is, Statement &stat);
+    (const std::string &name, TokenStream &is, Statement &stat);
 
     /// Parse the line object.
     //  Read the definition from [b]stat[/b].
@@ -75,7 +75,7 @@ private:
     void operator=(const Line &);
 
     // Clone constructor.
-    Line(const string &name, Line *parent);
+    Line(const std::string &name, Line *parent);
 
     // Return the embedded CLASSIC beam line.
     // The result it the ideal line.

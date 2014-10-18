@@ -66,7 +66,7 @@ Static::Static():
 }
 
 
-Static::Static(const string &name, Static *parent):
+Static::Static(const std::string &name, Static *parent):
     Action(name, parent)
 {}
 
@@ -75,7 +75,7 @@ Static::~Static()
 {}
 
 
-Static *Static::clone(const string &name) {
+Static *Static::clone(const std::string &name) {
     return new Static(name, this);
 }
 
@@ -86,7 +86,7 @@ void Static::execute() {
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
     // Open output file.
-    string file = Attributes::getString(itsAttr[FNAME]);
+    std::string file = Attributes::getString(itsAttr[FNAME]);
     std::ofstream os(file.c_str());
     if(os.bad()) {
         throw OpalException("Static::execute()",

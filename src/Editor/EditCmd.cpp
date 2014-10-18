@@ -34,7 +34,7 @@ EditCmd::EditCmd():
 }
 
 
-EditCmd::EditCmd(const string &name, EditCmd *parent):
+EditCmd::EditCmd(const std::string &name, EditCmd *parent):
     Action(name, parent)
 {}
 
@@ -43,14 +43,14 @@ EditCmd::~EditCmd()
 {}
 
 
-EditCmd *EditCmd::clone(const string &name) {
+EditCmd *EditCmd::clone(const std::string &name) {
     return new EditCmd(name, this);
 }
 
 
 void EditCmd::execute() {
     // The parser strategy for sequence edit mode.
-    string seqName = Attributes::getString(itsAttr[0]);
+    std::string seqName = Attributes::getString(itsAttr[0]);
 
     if(seqName == "") {
         throw OpalException("EditCmd::execute()",

@@ -66,7 +66,7 @@ public:
     void switchElements(const double &, const double &, const bool &nomonitors = false);
     void switchAllElements();
 
-    void switchElementsOff(const double &, const string &eltype = "All");
+    void switchElementsOff(const double &, const std::string &eltype = "All");
     void switchElementsOff();
 
     WakeFunction *getWakeFunction(const unsigned int &);
@@ -94,7 +94,7 @@ public:
     double calcBeamlineLenght();
     SectionList sections_m;
 
-    void removeElement(const string &ElName);
+    void removeElement(const std::string &ElName);
 
 private:
     FieldList elements_m;
@@ -386,7 +386,7 @@ void OpalBeamline::visit<Septum>(const Septum &element, Tracker &, PartBunch *) 
 }
 
 inline
-void OpalBeamline::removeElement(const string &ElName) {
+void OpalBeamline::removeElement(const std::string &ElName) {
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         if(flit->getElement()->getName() == ElName) {
             flit->setStart(-flit->getEnd());

@@ -57,7 +57,7 @@ SeptumRep::SeptumRep(const SeptumRep &right):
 {}
 
 
-SeptumRep::SeptumRep(const string &name):
+SeptumRep::SeptumRep(const std::string &name):
     Septum(name), field(), geometry(), active(true)
 {}
 
@@ -71,7 +71,7 @@ ElementBase *SeptumRep::clone() const {
 }
 
 
-Channel *SeptumRep::getChannel(const string &aKey, bool create) {
+Channel *SeptumRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<SeptumRep>(*this, entry->get, entry->set);
@@ -111,4 +111,3 @@ ElementImage *SeptumRep::getImage() const {
 void SeptumRep::setActive(bool flag) {
     active = flag;
 }
-

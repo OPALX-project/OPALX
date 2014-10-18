@@ -33,7 +33,7 @@ using Physics::z_p;
 using Physics::Avo;
 
 
-CollimatorPhysics::CollimatorPhysics(const string &name, ElementBase *element, string &material):
+CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
     SurfacePhysicsHandler(name, element),
     material_m(material),
     Z_m(0),
@@ -106,12 +106,12 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     Eavg_m = 0.0;
     Emax_m = 0.0;
     Emin_m = 0.0;
-    
+
     /// the deltat in collimator is 1/n of the main tracking timestep.
 
     dT_m = bunch.getdT();
 
-    /*    
+    /*
     while(dT_m > 1.01e-12)
         dT_m = dT_m / 10;
     N_m = bunch.getdT() / dT_m;
@@ -121,7 +121,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     N_m = 1;
 
     time_m = bunch.getT();
-   
+
     /*
       Because this is not propper set in the Component class when calling in the Constructor
     */
@@ -138,8 +138,8 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
     if (bunch.getTotalNum() > 50) {
       Vector_t rmin, rmax;
-      bunch.get_bounds(rmin, rmax); 
-      
+      bunch.get_bounds(rmin, rmax);
+
       for(int ii = 0; ii < N_m; ++ii) {
         for(unsigned int i = 0; i < locParts_m.size(); ++i) {
 	  if(locParts_m[i].label != -1) {
@@ -147,8 +147,8 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	    Vector_t &R = locParts_m[i].Rincol;
 	    Vector_t &P = locParts_m[i].Pincol;
 	    double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
-	    
-	    if(collshape_m == "CCollimator") 
+
+	    if(collshape_m == "CCollimator")
 	      incoll_m = coll->checkPoint(R(0),R(1));
 	    //	      incoll_m = coll->checkCollimator(R,rmin,rmax);
 
@@ -157,7 +157,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	    }
 	    else
 	      incoll_m = coll->isInColl(R,P,Physics::c * bunch.getdT()/sqrt(1.0  + dot(P, P)));
-	    
+
 	    if(incoll_m) {
 	      EnergyLoss(Eng, pdead, dT_m);
 	      if(!pdead) {
@@ -168,18 +168,18 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 		  The checkInColl call just above will detect if the
 		  particle is rediffused from the material into vacuum.
 		*/
-		
+
 		CoulombScat(R, P, dT_m);
-		
+
 		locParts_m[i].Rincol = R;
 		locParts_m[i].Pincol = P;
-		
+
 		Eavg_m += Eng;
 		if (Emin_m > Eng)
 		  Emin_m = Eng;
 		if (Emax_m < Eng)
 		  Emax_m = Eng;
-		
+
 	      } else {
 		// The particle is stopped in the material, set lable_m to -1
 		locParts_m[i].label = -1.0;
@@ -188,34 +188,34 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	      }
 	    } else {
 	      /* The particle exits the material but is still in the loop of the substep,
-		 Finish the timestep by letting the particle drift and after the last 
+		 Finish the timestep by letting the particle drift and after the last
 		 substep call addBackToBunch
 	      */
 	      double gamma = (Eng + m_p) / m_p;
 	      double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
 	      if(collshape_m == "CCollimator") {
 		R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
-	      } else {      		        
+	      } else {
 		//                        m << "2 Out of mat but still in the loop" << endl;
 		//locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) ;
 		locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * Physics::c * P / sqrt( 1+ dot(P, P)) ;
-		
+
 		if (ii == N_m-1) {
 		  addBackToBunch(bunch, i);
 		  redifusedStat_m++;
-		}   
+		}
 	      }
 	    }
 	  }
         }
       }
 
-      /* 
+      /*
 	 add new (lost particles) to local data structure
       */
 
-      copyFromBunch(bunch); 
-      
+      copyFromBunch(bunch);
+
       /*
 	delete absorbed particles
       */
@@ -223,21 +223,21 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     }
     else {
 
-      /* 
-	 More than N-50 particles are in the degrader  
+      /*
+	 More than N-50 particles are in the degrader
       */
       m << "------------------------------------------"  << endl;
       m << "All particles are in the material ....    " << endl;
       m << "------------------------------------------"  << endl;
 
-      /* 
-	 first mark all 
+      /*
+	 first mark all
 	 remaining particels in the primamry bunch
       */
-      
+
       bunch.Bin = -1;
       /*
-	Integrate in the material and populate the bunch	
+	Integrate in the material and populate the bunch
       */
 
       while (bunch.getLocalNum() < 80) {
@@ -258,16 +258,16 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	      }
 	      else
 		incoll_m = coll->isInColl(R,P,Physics::c * bunch.getdT()/sqrt(1.0  + dot(P, P)));
-	      
+
 	      if(incoll_m) {
 		EnergyLoss(Eng, pdead, dT_m);
 		if(!pdead) {
 		  double ptot =  sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
 		  P = P * ptot / sqrt(dot(P, P));
-		  /*                                                                                                                                                                                                                                            
-                  Now scatter and transport particle in material.                                                                                                                                                                                             
-                  The checkInColl call just above will detect if the                                                                                                                                                                                          
-                  particle is rediffused from the material into vacuum.                                                                                                                                                                                       
+		  /*
+                  Now scatter and transport particle in material.
+                  The checkInColl call just above will detect if the
+                  particle is rediffused from the material into vacuum.
 		  */
 
 		  CoulombScat(R, P, dT_m);
@@ -282,23 +282,23 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 		    Emax_m = Eng;
 
 		} else {
-		  // The particle is stopped in the material, set lable_m to -1                                                                                                                                                                                 
+		  // The particle is stopped in the material, set lable_m to -1
 		  locParts_m[i].label = -1.0;
 		  stoppedPartStat_m++;
 		  lossDs_m->addParticle(R,P,-locParts_m[i].IDincol);
 		}
 	      } else {
-		/* The particle exits the material but is still in the loop of the substep,                                                                                                                                                                    		        Finish the timestep by letting the particle drift and after the last                                      		   substep call addBackToBunch                                                                                                                                                                                                                  
+		/* The particle exits the material but is still in the loop of the substep,                                                                                                                                                                    		        Finish the timestep by letting the particle drift and after the last                                      		   substep call addBackToBunch
 		*/
 		double gamma = (Eng + m_p) / m_p;
 		double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
 		if(collshape_m == "CCollimator") {
 		  R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
 		} else {
-		  //                        m << "2 Out of mat but still in the loop" << endl;                                                                                                                                                                  
-		  //locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) ;                                                                                                                                              
+		  //                        m << "2 Out of mat but still in the loop" << endl;
+		  //locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) ;
 		  locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * Physics::c * P / sqrt( 1+ dot(P, P)) ;
- 		  
+
 		  if (ii == N_m-1) {
 		    addBackToBunch(bunch, i);
 		    redifusedStat_m++;
@@ -319,7 +319,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     }
 }
 
-const string CollimatorPhysics::getType() const {
+const std::string CollimatorPhysics::getType() const {
     return "CollimatorPhysics";
 }
 
@@ -335,7 +335,7 @@ void  CollimatorPhysics::Material() {
         X0_m = 12.86 / rho_m / 100;
         I_m = 10. * Z_m;
         n_m = rho_m / A_m * Avo;
-        
+
         A2_c = 4.194;
         A3_c = 4.649E3;
         A4_c = 8.113E1;
@@ -350,12 +350,12 @@ void  CollimatorPhysics::Material() {
         X0_m = 65.19 / rho_m / 100;
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
-	
+
 	A2_c = 2.590;
         A3_c = 9.660E2;
         A4_c = 1.538E2;
         A5_c =3.475E-2;
-    
+
     }
 
     if(material_m == "Graphite") {
@@ -365,13 +365,13 @@ void  CollimatorPhysics::Material() {
 
         X0_m = 42.70 / rho_m / 100;
         I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;       
-	
+        n_m = rho_m / A_m * Avo;
+
 	A2_c = 2.601;
         A3_c = 1.701E3;
         A4_c = 1.279E3;
         A5_c = 1.638E-2;
-	
+
     }
 
     if(material_m == "GraphiteR6710") {
@@ -381,13 +381,13 @@ void  CollimatorPhysics::Material() {
 
         X0_m = 42.70 / rho_m / 100;
         I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;       
-	
+        n_m = rho_m / A_m * Avo;
+
 	A2_c = 2.601;
         A3_c = 1.701E3;
         A4_c = 1.279E3;
         A5_c = 1.638E-2;
-	
+
     }
 
     if(material_m == "Mo") {
@@ -398,7 +398,7 @@ void  CollimatorPhysics::Material() {
         X0_m = 9.8 / rho_m / 100;
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
-	
+
 	A2_c = 7.248;
         A3_c = 9.545E3;
         A4_c = 4.802E2;
@@ -421,17 +421,17 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
     double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
     double gamma2 = gamma * gamma;
     double beta2 = beta * beta;
-    
+
     double deltas = deltat * beta * Physics::c;
-    double deltasrho = deltas * 100 * rho_m; 
+    double deltasrho = deltas * 100 * rho_m;
     double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
     double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m)* deltas * 1E5);
-    
-    
-     
-    if ((Eng > 0.00001) && (Eng < 0.0006)) { 
+
+
+
+    if ((Eng > 0.00001) && (Eng < 0.0006)) {
         double Ts = (Eng*1E6)/1.0073; // 1.0073 is the proton mass divided by the atomic mass number. T is in KeV
-        double epsilon_low = A2_c*pow(Ts,0.45);		
+        double epsilon_low = A2_c*pow(Ts,0.45);
         double epsilon_high = (A3_c/Ts)*log(1+(A4_c/Ts)+(A5_c*Ts));
         double epsilon = (epsilon_low*epsilon_high)/(epsilon_low + epsilon_high);
         dEdx = - epsilon /(1E21*(A_m/Avo)); // Stopping_power is in MeV
@@ -440,18 +440,18 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
         double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m,sigma_E);
         Eng = Eng + delta_E / 1E3;
     }
-    
+
     if (Eng >= 0.0006) {
-        double Tmax = 2.0 * m_e * 1e9 * beta2 * gamma2 / 
+        double Tmax = 2.0 * m_e * 1e9 * beta2 * gamma2 /
                       (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p));
-               dEdx = -K * z_p * z_p * Z_m / (A_m * beta2) * 
+               dEdx = -K * z_p * z_p * Z_m / (A_m * beta2) *
                       (1.0 / 2.0 * std::log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2);
 
 	       // INFOMSG("stopping power_BB: " << dEdx << " MeV" << endl);
         double delta_Eave = deltasrho * dEdx;
         double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m,sigma_E);
         Eng = Eng+delta_E / 1E3;
-    }	
+    }
 
     //INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
 
@@ -466,14 +466,14 @@ void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, doubl
     double pxz;
 // Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
     if (px>=0 && pz>=0) Psixz = atan(px/pz);
-    else if (px>0 && pz<0) 
+    else if (px>0 && pz<0)
 	Psixz = atan(px/pz) + Physics::pi;
-    else if (px<0 && pz>0) 
+    else if (px<0 && pz>0)
 	Psixz = atan(px/pz) + 2*Physics::pi;
-    else  
+    else
 	Psixz = atan(px/pz) + Physics::pi;
 
-// Apply the rotation about the random angle thetacou & change from beam coordinate system to the lab coordinate system using Psixz (2 dimensions)   
+// Apply the rotation about the random angle thetacou & change from beam coordinate system to the lab coordinate system using Psixz (2 dimensions)
     pxz = sqrt(px*px + pz*pz);
     if(coord==1) {
     	x = x + deltas * px/normP + xplane*cos(Psixz);
@@ -485,7 +485,7 @@ void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, doubl
 	}
     px = pxz*cos(Psixz)*sin(thetacou) + pxz*sin(Psixz)*cos(thetacou);
     pz = -pxz*sin(Psixz)*sin(thetacou) + pxz*cos(Psixz)*cos(thetacou);
-     
+
 }
 
 void  CollimatorPhysics::CoulombScat()
@@ -509,7 +509,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
     double z1 = gsl_ran_gaussian(rGen_m,1.0);
     double z2 = gsl_ran_gaussian(rGen_m,1.0);
     double thetacou = z2 * theta0;
-   
+
     while(fabs(thetacou) > 3.5 * theta0) {
         z1 = gsl_ran_gaussian(rGen_m,1.0);
         z2 = gsl_ran_gaussian(rGen_m,1.0);
@@ -521,7 +521,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
 
 
 // Rutherford-scattering in x-direction
-    if(collshape_m == "CCollimator") 
+    if(collshape_m == "CCollimator")
         R = R * 1000.0;
 
     double P2 = gsl_rng_uniform(rGen_m);
@@ -529,7 +529,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
         double P3 = gsl_rng_uniform(rGen_m);
         double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
         double P4 = gsl_rng_uniform(rGen_m);
-        if(P4 > 0.5) 
+        if(P4 > 0.5)
             thetaru = -thetaru;
 	coord = 0; // no change in coordinates but one in momenta-direction
 	Rot(P(0),P(2),R(0),R(2), xplane, normP, thetaru, deltas, coord);
@@ -539,7 +539,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
     z1 = gsl_ran_gaussian(rGen_m,1.0);
     z2 = gsl_ran_gaussian(rGen_m,1.0);
     thetacou = z2 * theta0;
-   
+
     while(fabs(thetacou) > 3.5 * theta0) {
         z1 = gsl_ran_gaussian(rGen_m,1.0);
         z2 = gsl_ran_gaussian(rGen_m,1.0);
@@ -551,7 +551,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
 
 
     // Rutherford-scattering in x-direction
-    if(collshape_m == "CCollimator") 
+    if(collshape_m == "CCollimator")
         R = R * 1000.0;
 
     P2 = gsl_rng_uniform(rGen_m);
@@ -559,7 +559,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
         double P3 = gsl_rng_uniform(rGen_m);
         double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
         double P4 = gsl_rng_uniform(rGen_m);
-        if(P4 > 0.5) 
+        if(P4 > 0.5)
             thetaru = -thetaru;
 	coord = 0; // no change in coordinates but one in momenta-direction
 	Rot(P(1),P(2),R(1),R(2), yplane, normP, thetaru, deltas, coord);
@@ -602,7 +602,7 @@ void CollimatorPhysics::setCColimatorGeom() {
 //     }
 // }
 // */
-  
+
 // /**
 //    Descr          Need to be elliminated
 //    @param[in]     _x coordinate of point (m)
@@ -632,13 +632,13 @@ void CollimatorPhysics::setCColimatorGeom() {
 //    @return        true if particle is in collimator
 
 // bool  CollimatorPhysics::checkInColl(Vector_t R)
-// {            
+// {
 
-//   if(R(2) < zend_m && R(2) > zstart_m ) 
+//   if(R(2) < zend_m && R(2) > zstart_m )
 //     return (checkPoint(R(0), R(1)) == 1 );
 //   else
 //     return false;
-   
+
 // }
 // */
 
@@ -648,7 +648,7 @@ void CollimatorPhysics::setCColimatorGeom() {
 
      /*
        Binincol is still <0, but now the particle is rediffused
-       from the material and hence this is not a "lost" particle anymore 
+       from the material and hence this is not a "lost" particle anymore
      */
      bunch.Bin[bunch.getLocalNum()-1] = -1*locParts_m[i].Binincol;
 
@@ -681,11 +681,11 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
       x.Qincol       = bunch.Q[i];
       x.LastSecincol = bunch.LastSection[i];
       x.Bfincol      = bunch.Bf[i];
-      x.Efincol      = bunch.Ef[i];                
+      x.Efincol      = bunch.Ef[i];
       x.label        = 0; // allive in matter
-      
+
       locParts_m.push_back(x);
-      
+
       bunchToMatStat_m++;
     }
   }
@@ -696,8 +696,8 @@ void CollimatorPhysics::print(Inform &msg){
   msg << std::scientific;
   msg << "Material " << material_m << endl;
   msg << "dTm= " << std::setw(8) << std::setprecision(3) << dT_m << " sub-timesteps " << N_m << endl;
-  msg << "Coll/Deg statistics: " 
-      << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m 
+  msg << "Coll/Deg statistics: "
+      << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
       << " stopped " << stoppedPartStat_m << endl;
   msg << "\n--- CollimatorPhysics - Type is " << collshape_m << " -------------------------------\n" << endl;
   msg.flags(ff);
@@ -708,22 +708,22 @@ bool myCompF(PART x, PART y) {
 }
 
 void CollimatorPhysics::deleteParticleFromLocalVector() {
-    
+
     /*
       the particle to be deleted (label < 0) are all at the end of
       the vector.
     */
     sort(locParts_m.begin(),locParts_m.end(),myCompF);
-    
+
     // find start of particles to delete
-        
+
     std::vector<PART>::iterator inv = locParts_m.begin();
-    
+
     for (; inv != locParts_m.end(); inv++) {
         if ((*inv).label == -1)
             break;
-    }    
-    locParts_m.erase(inv,locParts_m.end());   
+    }
+    locParts_m.erase(inv,locParts_m.end());
 
     // update statistics
     if (locParts_m.size() > 0) {

@@ -33,7 +33,7 @@ EditEnd::EditEnd():
 }
 
 
-EditEnd::EditEnd(const string &name, EditEnd *parent):
+EditEnd::EditEnd(const std::string &name, EditEnd *parent):
     Editor(name, parent)
 {}
 
@@ -42,14 +42,14 @@ EditEnd::~EditEnd()
 {}
 
 
-EditEnd *EditEnd::clone(const string &name) {
+EditEnd *EditEnd::clone(const std::string &name) {
     return new EditEnd(name, this);
 }
 
 
 void EditEnd::execute() {
     try {
-        string newName = Edit::block->itsSequence->getOpalName();
+        std::string newName = Edit::block->itsSequence->getOpalName();
         if(itsAttr[0]) newName = Attributes::getString(itsAttr[0]);
         Edit::block->finish(newName);
         Edit::block->parser.stop();

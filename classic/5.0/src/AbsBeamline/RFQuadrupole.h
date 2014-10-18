@@ -32,7 +32,7 @@ class RFQuadrupole: public Component {
 public:
 
     /// Constructor with given name.
-    explicit RFQuadrupole(const string &name);
+    explicit RFQuadrupole(const std::string &name);
 
     RFQuadrupole();
     RFQuadrupole(const RFQuadrupole &);
@@ -53,7 +53,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

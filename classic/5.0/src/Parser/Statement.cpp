@@ -27,12 +27,12 @@ extern Inform *gmsg;
 // Class Statement
 // ------------------------------------------------------------------------
 
-Statement::Statement(const string &name, int line):
+Statement::Statement(const std::string &name, int line):
     stat_line(line), buffer_name(name), tokens()
 {}
 
 
-Statement::Statement(const string &name, TokenList &list):
+Statement::Statement(const std::string &name, TokenList &list):
     stat_line(1), buffer_name(name), tokens() {
     tokens.swap(list);
     curr = tokens.begin();
@@ -56,7 +56,7 @@ bool Statement::atEnd() const {
 
 bool Statement::boolean(bool &value) {
     if(curr != tokens.end()  &&  curr->isWord()) {
-        string word = curr->getWord();
+        std::string word = curr->getWord();
 
         if(word == "TRUE") {
             value = true;
@@ -147,7 +147,7 @@ bool Statement::real(double &value) {
 }
 
 
-bool Statement::str(string &value) {
+bool Statement::str(std::string &value) {
     if(curr != tokens.end()  &&  curr->isString()) {
         value = curr->getLex();
         ++curr;
@@ -158,7 +158,7 @@ bool Statement::str(string &value) {
 }
 
 
-bool Statement::word(string &value) {
+bool Statement::word(std::string &value) {
     if(curr != tokens.end()  &&  curr->isWord()) {
         value = curr->getLex();
         ++curr;

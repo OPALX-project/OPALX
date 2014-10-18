@@ -37,7 +37,7 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
             //    *gmsg << "more than one wake function in one section! dismiss all." << endl;
             //    wakefunction_m = NULL;
                 *gmsg << " more than one wake function in one section! use the wake function from the first element." << endl;
-                
+
             } else {
                 wakefunction_m = (*clit)->getWake();
                 wakeFunctionOwner_m = (*clit);
@@ -107,7 +107,7 @@ bool OpalSection::find(const Component *check) const {
 
 void OpalSection::print(Inform &msg) const {
     std::stringstream mymsg;
-    static string closure("------------------------------------------------------------------------------------\n");
+    static std::string closure("------------------------------------------------------------------------------------\n");
     if(glued_to_m) {
         mymsg << "--- "
               << start_m << " m -- "

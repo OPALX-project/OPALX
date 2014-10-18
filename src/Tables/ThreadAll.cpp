@@ -53,7 +53,7 @@ ThreadAll::ThreadAll():
 }
 
 
-ThreadAll::ThreadAll(const string &name, ThreadAll *parent):
+ThreadAll::ThreadAll(const std::string &name, ThreadAll *parent):
     CorrectionBase(name, parent)
 {}
 
@@ -62,18 +62,18 @@ ThreadAll::~ThreadAll()
 {}
 
 
-ThreadAll *ThreadAll::clone(const string &name) {
+ThreadAll *ThreadAll::clone(const std::string &name) {
     return new ThreadAll(name, this);
 }
 
 
 void ThreadAll::execute() {
     // Find Table definition.
-    const string &lineName = Attributes::getString(itsAttr[LINE]);
+    const std::string &lineName = Attributes::getString(itsAttr[LINE]);
     BeamSequence *use = BeamSequence::find(lineName);
 
     // Find Beam data.
-    const string &beamName = Attributes::getString(itsAttr[BEAM]);
+    const std::string &beamName = Attributes::getString(itsAttr[BEAM]);
     Beam *beam = Beam::find(beamName);
     reference = beam->getReference();
 

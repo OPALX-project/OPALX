@@ -65,7 +65,7 @@ CyclotronRep::CyclotronRep(const CyclotronRep &rhs):
 }
 
 
-CyclotronRep::CyclotronRep(const string &name):
+CyclotronRep::CyclotronRep(const std::string &name):
     Cyclotron(name),
     geometry(0.0, 0.0),
     field() {
@@ -82,11 +82,11 @@ ElementBase *CyclotronRep::clone() const {
 }
 
 
-Channel *CyclotronRep::getChannel(const string &aKey, bool create) {
+Channel *CyclotronRep::getChannel(const std::string &aKey, bool create) {
     if(aKey[0] == 'a'  ||  aKey[0] == 'b') {
         int n = 0;
 
-        for(string::size_type k = 1; k < aKey.length(); k++) {
+        for(std::string::size_type k = 1; k < aKey.length(); k++) {
             if(isdigit(aKey[k])) {
                 n = 10 * n + aKey[k] - '0';
             } else {

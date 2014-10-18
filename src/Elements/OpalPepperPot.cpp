@@ -63,7 +63,7 @@ OpalPepperPot::OpalPepperPot():
 }
 
 
-OpalPepperPot::OpalPepperPot(const string &name, OpalPepperPot *parent):
+OpalPepperPot::OpalPepperPot(const std::string &name, OpalPepperPot *parent):
     OpalElement(name, parent),
     sphys_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
@@ -76,7 +76,7 @@ OpalPepperPot::~OpalPepperPot() {
 }
 
 
-OpalPepperPot *OpalPepperPot::clone(const string &name) {
+OpalPepperPot *OpalPepperPot::clone(const std::string &name) {
     return new OpalPepperPot(name, this);
 }
 
@@ -127,7 +127,7 @@ void OpalPepperPot::update() {
     }
     */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + string("_sphys"));
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*ppo);
         ppo->setSurfacePhysics(sphys_m->handler_m);
     }

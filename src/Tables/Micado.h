@@ -40,7 +40,7 @@ public:
     virtual ~Micado();
 
     /// Make clone.
-    virtual Micado *clone(const string &name);
+    virtual Micado *clone(const std::string &name);
 
     /// Check validity of the table definition.
     virtual void execute();
@@ -69,7 +69,7 @@ private:
     void operator=(const Micado &);
 
     /// Clone constructor.
-    Micado(const string &name, Micado *parent);
+    Micado(const std::string &name, Micado *parent);
 
     // Set the correctors for this plane.
     void applyCorrections(int mode, Vector<double> &X);

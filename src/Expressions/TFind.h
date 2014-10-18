@@ -20,8 +20,6 @@
 
 #include <string>
 
-using std::string;
-
 
 namespace Expressions {
 
@@ -33,7 +31,7 @@ namespace Expressions {
     //  May be replaced by a map<> with suitable parameters.
 
     template <class T> inline
-    const T *find(const T table[], const string &name) {
+    const T *find(const T table[], const std::string &name) {
         for(const T *x = table; x->name != 0; x++) {
             if(x->name == name) return x;
         }

@@ -34,7 +34,7 @@ public:
 
     /// Constructor.
     //  Assign the macro name as a buffer name.
-    MacroStream(const string &);
+    MacroStream(const std::string &);
 
     virtual ~MacroStream();
 

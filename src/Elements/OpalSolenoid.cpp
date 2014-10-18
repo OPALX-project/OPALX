@@ -51,7 +51,7 @@ OpalSolenoid::OpalSolenoid():
 }
 
 
-OpalSolenoid::OpalSolenoid(const string &name, OpalSolenoid *parent):
+OpalSolenoid::OpalSolenoid(const std::string &name, OpalSolenoid *parent):
     OpalElement(name, parent) {
     setElement((new SolenoidRep(name))->makeAlignWrapper());
 }
@@ -61,7 +61,7 @@ OpalSolenoid::~OpalSolenoid()
 {}
 
 
-OpalSolenoid *OpalSolenoid::clone(const string &name) {
+OpalSolenoid *OpalSolenoid::clone(const std::string &name) {
     return new OpalSolenoid(name, this);
 }
 

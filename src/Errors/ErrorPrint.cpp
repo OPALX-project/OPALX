@@ -67,7 +67,7 @@ ErrorPrint::ErrorPrint():
 }
 
 
-ErrorPrint::ErrorPrint(const string &name, ErrorPrint *parent):
+ErrorPrint::ErrorPrint(const std::string &name, ErrorPrint *parent):
     Action(name, parent)
 {}
 
@@ -76,14 +76,14 @@ ErrorPrint::~ErrorPrint()
 {}
 
 
-ErrorPrint *ErrorPrint::clone(const string &name) {
+ErrorPrint *ErrorPrint::clone(const std::string &name) {
     return new ErrorPrint(name, this);
 }
 
 
 void ErrorPrint::execute() {
     // Prepare output stream.
-    string file = Attributes::getString(itsAttr[FNAME]);
+    std::string file = Attributes::getString(itsAttr[FNAME]);
     os.open(file.c_str());
     if(os.bad()) {
         throw OpalException("ErrorPrint::execute()",
@@ -108,7 +108,7 @@ void ErrorPrint::execute() {
 }
 
 
-void ErrorPrint::fieldError(const string &name, int occur,
+void ErrorPrint::fieldError(const std::string &name, int occur,
                             const BMultipoleField &designField,
                             BMultipoleField &errorField) {
     os << "Element name \"" << name << "\" , occurrence = " << occur
@@ -133,7 +133,7 @@ void ErrorPrint::fieldError(const string &name, int occur,
 void ErrorPrint::misalignment(const AlignWrapper &wrap, int occur) {
     Euclid3D offset = wrap.offset();
 
-    const string &name = wrap.getElement()->getName();
+    const std::string &name = wrap.getElement()->getName();
     double dx, dy, dz, vx, vy, vz;
     offset.getAll(dx, dy, dz, vx, vy, vz);
     os << "Element name \"" << name << "\", occur = " << occur << '\n'

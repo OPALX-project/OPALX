@@ -41,7 +41,7 @@ OpalVKicker::OpalVKicker():
 }
 
 
-OpalVKicker::OpalVKicker(const string &name, OpalVKicker *parent):
+OpalVKicker::OpalVKicker(const std::string &name, OpalVKicker *parent):
     OpalElement(name, parent) {
     setElement((new YCorrectorRep(name))->makeWrappers());
 }
@@ -51,7 +51,7 @@ OpalVKicker::~OpalVKicker()
 {}
 
 
-OpalVKicker *OpalVKicker::clone(const string &name) {
+OpalVKicker *OpalVKicker::clone(const std::string &name) {
     return new OpalVKicker(name, this);
 }
 

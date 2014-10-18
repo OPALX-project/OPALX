@@ -8,7 +8,7 @@
    A GEOMETRY definition is used by most physics commands to define the
    particle charge and the reference momentum, together with some other
    data.
-  
+
    i.e:
    G1: Geometry, FILE="input.h5"
    G2: Geometry, L=1.0, A=0.0025, B=0.0001
@@ -112,30 +112,30 @@ public:
         PartBunch* itsBunch,
         double& seyNum,
         const int& para_null);
-    
+
     size_t doFNemission (
         OpalBeamline& itsOpalBeamline,
         PartBunch* itsBunch,
         const double t);
-    
+
     Inform& printInfo (
         Inform& os) const;
 
-    void writeGeomToVtk (string fn);
+    void writeGeomToVtk (std::string fn);
 
-    inline string getFilename () const {
-        return (string) Attributes::getString (itsAttr[FGEOM]);
+    inline std::string getFilename () const {
+        return (std::string) Attributes::getString (itsAttr[FGEOM]);
     }
 
-    inline string getTopology () const {
-        return (string) Attributes::getString (itsAttr[TOPO]);
+    inline std::string getTopology () const {
+        return (std::string) Attributes::getString (itsAttr[TOPO]);
     }
 
-    inline string getDistribution () {
-        return (string) Attributes::getString (itsAttr[DISTR]);
+    inline std::string getDistribution () {
+        return (std::string) Attributes::getString (itsAttr[DISTR]);
     }
 
-    inline std::vector<string> getDistributionArray () {
+    inline std::vector<std::string> getDistributionArray () {
         return Attributes::getStringArray (itsAttr[DISTRS]);
     }
 
@@ -258,7 +258,7 @@ public:
     inline void setvKenergy (double vKenergy) {
         vKenergy_m = vKenergy;
     }
-    
+
     // return fitting parameter denotes the roughness of surface for impact
     // angle in Vaughan's model
     inline void setvKtheta (double vKtheta) {
@@ -294,7 +294,7 @@ public:
     inline Vektor<int, 3> getnr () {
         return voxelMesh_m.nr_m;
     }
- 
+
     /**
        Return the mincoords_m.
      */
@@ -351,7 +351,7 @@ public:
         }
         return false;
     }
- 
+
     int intersectRayBoundary (
         const Vector_t& P,
         const Vector_t& v,
@@ -402,7 +402,7 @@ private:
 
     std::string h5FileName_m;           // H5hut filename
 
-    std::vector<Vector_t> Points_m;     // geometry point coordinates 
+    std::vector<Vector_t> Points_m;     // geometry point coordinates
     int* Triangles_m;                   // boundary faces given by point n-tuples
     int numTriangles_m;                // number of boundary triangles
 
@@ -431,7 +431,7 @@ private:
     std::vector<Vector_t> partsp_m;     // particle momenta
     std::vector<Vector_t> partsr_m;     // particle positions
 
-    /* 
+    /*
        An additional structure to hold apperture information
        to prevent that particles go past the geometry. The user
        can specify n trippel with the form: (zmin, zmax, r)
@@ -466,24 +466,24 @@ private:
     double parameterFNVYZe_m;   // zero order fit constant for v(y). Default:\f$0.9632\f$.
     double parameterFNVYSe_m;   // second order fit constant for v(y). Default:\f$1.065\f$.
 
-    gsl_rng *randGen_m;         // 
-  
+    gsl_rng *randGen_m;         //
+
     IpplTimings::TimerRef Tinitialize_m; // initialize geometry
     IpplTimings::TimerRef TisInside_m;
     IpplTimings::TimerRef TfastIsInside_m;
     IpplTimings::TimerRef TRayTrace_m;   // ray tracing
-    IpplTimings::TimerRef TPartInside_m; // particle inside 
+    IpplTimings::TimerRef TPartInside_m; // particle inside
 
     BoundaryGeometry(const BoundaryGeometry&);
     void operator= (const BoundaryGeometry&);
 
     // Clone constructor.
     BoundaryGeometry(const std::string& name, BoundaryGeometry* parent);
- 
+
     inline bool hasApperture() {
         return (apert_m.size() != 0);
     }
-    
+
     inline Vector_t getPoint (const int triangle_id, const int vertex_id) {
         return Points_m[Triangles_m[4 * triangle_id + vertex_id]];
     }
@@ -500,7 +500,7 @@ private:
         const Vector_t& P1,
         const int triangle_id,
         Vector_t& I);
-    
+
     /*
       Map point to unique voxel ID.
     */
@@ -534,7 +534,7 @@ private:
         XSCALE,   // Multiplicative scaling factor for x-coordinates
         YSCALE,   // Multiplicative scaling factor for y-coordinates
         ZSCALE,   // Multiplicative scaling factor for z-coordinates
-        APERTURE,    // in addition to the geometry 
+        APERTURE,    // in addition to the geometry
         SIZE
     };
 };

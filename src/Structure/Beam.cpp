@@ -169,7 +169,7 @@ Beam::Beam():
 }
 
 
-Beam::Beam(const string &name, Beam *parent):
+Beam::Beam(const std::string &name, Beam *parent):
     Definition(name, parent),
     reference(parent->reference)
 {}
@@ -185,7 +185,7 @@ bool Beam::canReplaceBy(Object *object) {
 }
 
 
-Beam *Beam::clone(const string &name) {
+Beam *Beam::clone(const std::string &name) {
     return new Beam(name, this);
 }
 
@@ -195,7 +195,7 @@ void Beam::execute() {
 }
 
 
-Beam *Beam::find(const string &name) {
+Beam *Beam::find(const std::string &name) {
     Beam *beam = dynamic_cast<Beam *>(OpalData::getInstance()->find(name));
 
     if(beam == 0) {
@@ -246,7 +246,7 @@ double Beam::getMass() const {
     return Attributes::getReal(itsAttr[MASS]);
 }
 
-string Beam::getParticleName() const {
+std::string Beam::getParticleName() const {
     return Attributes::getString(itsAttr[PARTICLE]);
 }
 
@@ -284,7 +284,7 @@ void Beam::update() {
     };
 
     if(itsAttr[PARTICLE]) {
-        string pName  = Attributes::getString(itsAttr[PARTICLE]);
+        std::string pName  = Attributes::getString(itsAttr[PARTICLE]);
         for(int i = 0; i < 11; ++i) {
             if(pName == names[i]) {
                 Attributes::setReal(itsAttr[MASS], masses[i]);
@@ -363,7 +363,3 @@ void Beam::print(std::ostream &os) const {
        << "* NPART       " << Attributes::getReal(itsAttr[NPART])   << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }
-
-
-
-

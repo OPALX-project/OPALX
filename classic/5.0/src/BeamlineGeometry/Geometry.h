@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 // Euclid3D represents an aribitrary 3-d rotation and displacement.
-class Euclid3D;
+#include "BeamlineGeometry/Euclid3D.h"
 
 
 // Class BGeometryBase

@@ -75,7 +75,7 @@ OpalTravelingWave::OpalTravelingWave():
 }
 
 
-OpalTravelingWave::OpalTravelingWave(const string &name, OpalTravelingWave *parent):
+OpalTravelingWave::OpalTravelingWave(const std::string &name, OpalTravelingWave *parent):
     OpalElement(name, parent),
     owk_m(NULL) {
     setElement((new TravelingWaveRep(name))->makeAlignWrapper());
@@ -88,7 +88,7 @@ OpalTravelingWave::~OpalTravelingWave() {
 }
 
 
-OpalTravelingWave *OpalTravelingWave::clone(const string &name) {
+OpalTravelingWave *OpalTravelingWave::clone(const std::string &name) {
     return new OpalTravelingWave(name, this);
 }
 
@@ -121,11 +121,11 @@ void OpalTravelingWave::update() {
     double vPeak  = Attributes::getReal(itsAttr[VOLT]);
     double phase  = Attributes::getReal(itsAttr[LAG]);
     double freq   = (1.0e6 * two_pi) * Attributes::getReal(itsAttr[FREQ]);
-    string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
+    std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
     bool apVeto = Attributes::getBool(itsAttr[APVETO]);
 
-    string type = Attributes::getString(itsAttr[TYPE]);
+    std::string type = Attributes::getString(itsAttr[TYPE]);
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
 
@@ -145,7 +145,7 @@ void OpalTravelingWave::update() {
     rfc->setNumCells((int)Attributes::getReal(itsAttr[NUMCELLS]));
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + string("_wake"));
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*rfc);
         rfc->setWake(owk_m->wf_m);
     }

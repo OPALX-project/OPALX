@@ -61,7 +61,7 @@ ErrorSelect::ErrorSelect():
 }
 
 
-ErrorSelect::ErrorSelect(const string &name, ErrorSelect *parent):
+ErrorSelect::ErrorSelect(const std::string &name, ErrorSelect *parent):
     Action(name, parent)
 {}
 
@@ -70,7 +70,7 @@ ErrorSelect::~ErrorSelect()
 {}
 
 
-ErrorSelect *ErrorSelect::clone(const string &name) {
+ErrorSelect *ErrorSelect::clone(const std::string &name) {
     return new ErrorSelect(name, this);
 }
 

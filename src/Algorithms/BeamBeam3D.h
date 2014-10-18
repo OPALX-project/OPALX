@@ -67,7 +67,7 @@ public:
     };
 
     /// Constructor with given name.
-    explicit BeamBeam3D(const string &name);
+    explicit BeamBeam3D(const std::string &name);
 
     BeamBeam3D();
     BeamBeam3D(const BeamBeam3D &right);
@@ -80,7 +80,7 @@ public:
     virtual ElementBase *clone() const;
 
     /// Return a channel to an attribute.
-    virtual Channel *getChannel(const string &aKey, bool create = false);
+    virtual Channel *getChannel(const std::string &aKey, bool create = false);
 
     /// Return the zero electromagnetic field.
     virtual NullField &getField();
@@ -98,7 +98,7 @@ public:
     virtual ElementImage *getImage() const;
 
     /// Return type name string.
-    virtual const string &getType() const;
+    virtual const std::string &getType() const;
 
     /// Get the bunch charge.
     //  Return number of particles times the particle charge in the strong

@@ -40,7 +40,7 @@ class RegularExpression::Expression: public regex_t {};
 // Class RegularExpression
 // ------------------------------------------------------------------------
 
-RegularExpression::RegularExpression(const string &pattern, bool ignore):
+RegularExpression::RegularExpression(const std::string &pattern, bool ignore):
     patt(pattern), caseIgnore(ignore) {
     init();
 }
@@ -57,7 +57,7 @@ RegularExpression::~RegularExpression() {
 }
 
 
-bool RegularExpression::match(const string &s) const {
+bool RegularExpression::match(const std::string &s) const {
     int rc = state;
 
     if(rc == 0) {

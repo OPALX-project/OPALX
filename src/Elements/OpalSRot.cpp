@@ -37,7 +37,7 @@ OpalSRot::OpalSRot():
 }
 
 
-OpalSRot::OpalSRot(const string &name, OpalSRot *parent):
+OpalSRot::OpalSRot(const std::string &name, OpalSRot *parent):
     OpalElement(name, parent) {
     setElement(new PatchRep(name));
 }
@@ -47,7 +47,7 @@ OpalSRot::~OpalSRot()
 {}
 
 
-OpalSRot *OpalSRot::clone(const string &name) {
+OpalSRot *OpalSRot::clone(const std::string &name) {
     return new OpalSRot(name, this);
 }
 

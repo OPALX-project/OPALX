@@ -55,13 +55,13 @@ EditParser::~EditParser()
 {}
 
 
-Object *EditParser::find(const string &name) const {
+Object *EditParser::find(const std::string &name) const {
     return editDirectory.find(name);
 }
 
 
 void EditParser::parse(Statement &stat) const {
-    string name =
+    std::string name =
         Expressions::parseString(stat, "Identifier or keyword expected.");
 
     if(stat.delimiter('?')) {

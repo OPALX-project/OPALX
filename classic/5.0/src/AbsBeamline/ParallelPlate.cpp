@@ -63,7 +63,7 @@ ParallelPlate::ParallelPlate(const ParallelPlate &right):
 }
 
 
-ParallelPlate::ParallelPlate(const string &name):
+ParallelPlate::ParallelPlate(const std::string &name):
     Component(name),
     filename_m(""),
     scale_m(1.0),
@@ -89,7 +89,7 @@ void ParallelPlate::accept(BeamlineVisitor &visitor) const {
 }
 
 
-string ParallelPlate::getFieldMapFN() const {
+std::string ParallelPlate::getFieldMapFN() const {
     return "";
 }
 
@@ -232,10 +232,7 @@ void ParallelPlate::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &ParallelPlate::getType() const {
-    static const string type("ParallelPlate");
+const std::string &ParallelPlate::getType() const {
+    static const std::string type("ParallelPlate");
     return type;
 }
-
-
-

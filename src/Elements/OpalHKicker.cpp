@@ -41,7 +41,7 @@ OpalHKicker::OpalHKicker():
 }
 
 
-OpalHKicker::OpalHKicker(const string &name, OpalHKicker *parent):
+OpalHKicker::OpalHKicker(const std::string &name, OpalHKicker *parent):
     OpalElement(name, parent) {
     setElement((new XCorrectorRep(name))->makeWrappers());
 }
@@ -51,7 +51,7 @@ OpalHKicker::~OpalHKicker()
 {}
 
 
-OpalHKicker *OpalHKicker::clone(const string &name) {
+OpalHKicker *OpalHKicker::clone(const std::string &name) {
     return new OpalHKicker(name, this);
 }
 

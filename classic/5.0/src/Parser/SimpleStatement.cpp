@@ -27,12 +27,12 @@
 // class SimpleStatement
 // ------------------------------------------------------------------------
 
-SimpleStatement::SimpleStatement(const string &name, int line):
+SimpleStatement::SimpleStatement(const std::string &name, int line):
     Statement(name, line)
 {}
 
 
-SimpleStatement::SimpleStatement(const string &name, TokenList &list):
+SimpleStatement::SimpleStatement(const std::string &name, TokenList &list):
     Statement(name, list)
 {}
 

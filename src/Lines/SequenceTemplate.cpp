@@ -38,7 +38,7 @@ SequenceTemplate::SequenceTemplate():
 {}
 
 
-SequenceTemplate::SequenceTemplate(const string &name, Object *parent):
+SequenceTemplate::SequenceTemplate(const std::string &name, Object *parent):
     Macro(name, parent), body(name)
 {}
 
@@ -47,14 +47,14 @@ SequenceTemplate::~SequenceTemplate()
 {}
 
 
-SequenceTemplate *SequenceTemplate::clone(const string &name) {
+SequenceTemplate *SequenceTemplate::clone(const std::string &name) {
     throw ParseError("SequenceTemplate::clone()",
                      "You cannot use this object without attributes.");
 }
 
 
 Object *SequenceTemplate::makeInstance
-(const string &name, Statement &statement, const Parser *) {
+(const std::string &name, Statement &statement, const Parser *) {
     MacroStream *expansion = 0;
     Sequence *instance = 0;
 
@@ -73,8 +73,8 @@ Object *SequenceTemplate::makeInstance
         while(! token.isEOF()) {
             bool found = false;
             if(token.isWord()) {
-                string word = token.getWord();
-                for(std::vector<string>::size_type i = 0;
+                std::string word = token.getWord();
+                for(std::vector<std::string>::size_type i = 0;
                     i < formals.size(); i++) {
                     if(word == formals[i]) {
                         std::vector<Token> act = actuals[i];
@@ -109,7 +109,7 @@ Object *SequenceTemplate::makeInstance
 
 
 Object *SequenceTemplate::makeTemplate
-(const string &, TokenStream &, Statement &) {
+(const std::string &, TokenStream &, Statement &) {
     // Should not be called.
     return 0;
 }

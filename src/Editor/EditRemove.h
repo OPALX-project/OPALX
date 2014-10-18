@@ -35,7 +35,7 @@ public:
     virtual ~EditRemove();
 
     /// Make clone.
-    virtual EditRemove *clone(const string &name);
+    virtual EditRemove *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const EditRemove &);
 
     // Clone constructor.
-    EditRemove(const string &name, EditRemove *parent);
+    EditRemove(const std::string &name, EditRemove *parent);
 };
 
 #endif // OPAL_EditRemove_HH

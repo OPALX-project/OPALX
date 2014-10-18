@@ -33,7 +33,7 @@ public:
 
     /// Constructor.
     //  Store [b]name[/b] in the DOOM environment.
-    AlignReader(const string &name);
+    AlignReader(const std::string &name);
 
     virtual ~AlignReader();
 

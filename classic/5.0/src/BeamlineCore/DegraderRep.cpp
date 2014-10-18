@@ -59,7 +59,7 @@ DegraderRep::DegraderRep(const DegraderRep &right):
 {}
 
 
-DegraderRep::DegraderRep(const string &name):
+DegraderRep::DegraderRep(const std::string &name):
     Degrader(name),
     geometry()
 {}
@@ -74,7 +74,7 @@ ElementBase *DegraderRep::clone() const {
 }
 
 
-Channel *DegraderRep::getChannel(const string &aKey, bool create) {
+Channel *DegraderRep::getChannel(const std::string &aKey, bool create) {
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         if(aKey == entry->name) {
             return new IndirectChannel<DegraderRep>(*this, entry->get, entry->set);

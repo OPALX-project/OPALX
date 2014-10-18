@@ -32,7 +32,7 @@ struct SpecializedGreensFunction<3> {
     }
 };
 
-FFTBoxPoissonSolver::FFTBoxPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, string greensFunction, double boxSize):
+FFTBoxPoissonSolver::FFTBoxPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction, double boxSize):
     mesh_m(mesh),
     layout_m(fl),
     mesh2_m(0),
@@ -104,7 +104,7 @@ FFTBoxPoissonSolver::FFTBoxPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, string
     GreensFunctionTimer4_m = IpplTimings::getTimer("GreenF4");
 }
 
-FFTBoxPoissonSolver::FFTBoxPoissonSolver(PartBunch &beam, string greensFunction):
+FFTBoxPoissonSolver::FFTBoxPoissonSolver(PartBunch &beam, std::string greensFunction):
     mesh_m(&beam.getMesh()),
     layout_m(&beam.getFieldLayout()),
     mesh2_m(0),
@@ -243,7 +243,7 @@ void FFTBoxPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // have to check if we can do G with h = (1,1,1)
     // and rescale later
     IpplTimings::startTimer(GreensFunctionTimer_m);
-    if(greensFunction_m == string("INTEGRATED"))
+    if(greensFunction_m == std::string("INTEGRATED"))
         integratedGreensFunction();
     else
         greensFunction();
@@ -517,4 +517,3 @@ Inform &FFTBoxPoissonSolver::print(Inform &os) const {
  * $RCSfile: FFTBoxPoissonSolver.cc,v $   $Author: adelmann $
  * $Revision: 1.6 $   $Date: 2001/08/16 09:36:08 $
  ***************************************************************************/
-

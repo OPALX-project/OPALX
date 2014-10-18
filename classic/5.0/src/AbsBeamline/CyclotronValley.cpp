@@ -58,7 +58,7 @@ CyclotronValley::CyclotronValley(const CyclotronValley &right):
 }
 
 
-CyclotronValley::CyclotronValley(const string &name):
+CyclotronValley::CyclotronValley(const std::string &name):
     Component(name),
     filename_m(""),
     fieldmap_m(NULL),
@@ -85,11 +85,11 @@ void CyclotronValley::accept(BeamlineVisitor &visitor) const {
     visitor.visitCyclotronValley(*this);
 }
 
-void CyclotronValley::setFieldMapFN(string fn) {
+void CyclotronValley::setFieldMapFN(std::string fn) {
     filename_m = fn;
 }
 
-string CyclotronValley::getFieldMapFN() const {
+std::string CyclotronValley::getFieldMapFN() const {
     return filename_m;
 }
 
@@ -205,7 +205,7 @@ void CyclotronValley::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &CyclotronValley::getType() const {
-    static const string type("CyclotronValley");
+const std::string &CyclotronValley::getType() const {
+    static const std::string type("CyclotronValley");
     return type;
 }

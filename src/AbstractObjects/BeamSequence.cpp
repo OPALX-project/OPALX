@@ -29,12 +29,12 @@ BeamSequence::~BeamSequence()
 {}
 
 
-const string BeamSequence::getCategory() const {
+const std::string BeamSequence::getCategory() const {
     return "SEQUENCE";
 }
 
 
-BeamSequence *BeamSequence::find(const string &name) {
+BeamSequence *BeamSequence::find(const std::string &name) {
     OpalData *OPAL = OpalData::getInstance();
     BeamSequence *bs = dynamic_cast<BeamSequence *>(OPAL->find(name));
     if(bs == 0) {
@@ -50,6 +50,6 @@ BeamSequence::BeamSequence(int size, const char *name, const char *help):
 {}
 
 
-BeamSequence::BeamSequence(const string &name, BeamSequence *parent):
+BeamSequence::BeamSequence(const std::string &name, BeamSequence *parent):
     Element(name, parent)
 {}

@@ -93,9 +93,9 @@ public:
     //  structure.
     Euclid3D &offset() const;
 
-    /// Get element type string.
-    //  Returns the type string for the enclosed item.
-    virtual const string &getType() const;
+    /// Get element type std::string.
+    //  Returns the type std::string for the enclosed item.
+    virtual const std::string &getType() const;
 
     /// Disallow misalignment of an already misaligned object.
     //  This method returns [b]this[/b], since "this" is already an

@@ -38,7 +38,7 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
     for(unsigned int i = 0; i < numOfSlices; ++i) {
       Ez_m[i] = 0.0;
     }
-    
+
     Vector_t smin, smax;
     bunch.get_bounds(smin, smax);
     double minPathLength = smin(2) - FieldBegin_m;
@@ -62,12 +62,12 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
         double leverz = (R(2) - meshOrigin(2)) / meshSpacing - indexz;
         if(indexz < numOfSlices - 1)
           bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
-        else          
+        else
           bunch.Ef[i](2) += Ez_m[numOfSlices-1];
     }
 
     if(Options::csrDump) {
-        static string oldBendName;
+        static std::string oldBendName;
         static unsigned long counter = 0;
 
         if(oldBendName != bendName_m) counter = 0;
@@ -123,7 +123,7 @@ void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, double meshSpaci
     bunch.calcLineDensity();
     bunch.getLineDensity(lineDensity_m);
 
-// the following is only needed for after dipole 
+// the following is only needed for after dipole
     std::vector<Filter *>::const_iterator fit;
     for(fit = filters_m.begin(); fit != filters_m.end(); ++ fit) {
         (*fit)->apply(lineDensity_m);
@@ -139,7 +139,7 @@ void CSRIGFWakeFunction::calculateGreenFunction(PartBunch &bunch, double meshSpa
     double gamma = bunch.get_meanEnergy()/(bunch.getM()*1e-6)+1.0;
     double xmu_const = 3.0 * gamma * gamma * gamma / (2.0 * bendRadius_m);
     double chi_const = 9.0 / 16.0 * (6.0 - log(27.0 / 4.0));
-      
+
     for(unsigned int i = 0; i < numOfSlices; ++i) {
         Chi_m[i] = 0.0;
         double z = i * meshSpacing;
@@ -155,14 +155,14 @@ void CSRIGFWakeFunction::calculateGreenFunction(PartBunch &bunch, double meshSpa
     Grn_m[0] = grn_const * (Chi_m[1] - Chi_m[0]);
     Grn_m[numOfSlices - 1] = 0.0;
     for(unsigned int i = 1; i < numOfSlices - 1; ++i) {
-      Grn_m[i] = grn_const * (Chi_m[i + 1] - 2.0 * Chi_m[i] + Chi_m[i - 1]); 
+      Grn_m[i] = grn_const * (Chi_m[i + 1] - 2.0 * Chi_m[i] + Chi_m[i - 1]);
     }
 }
 
 void CSRIGFWakeFunction::calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing)
 {
     if(angleOfSlice > totalBendAngle_m || angleOfSlice < 0.0) return;
-    int startSliceNum = 0; 
+    int startSliceNum = 0;
     for(int j = sliceNumber; j >= startSliceNum; j--)
       Ez_m[sliceNumber] += lineDensity_m[j] * Grn_m[sliceNumber - j];
 }

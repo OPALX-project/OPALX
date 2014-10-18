@@ -53,7 +53,7 @@ EditReplace::EditReplace():
 }
 
 
-EditReplace::EditReplace(const string &name, EditReplace *parent):
+EditReplace::EditReplace(const std::string &name, EditReplace *parent):
     Editor(name, parent)
 {}
 
@@ -62,14 +62,14 @@ EditReplace::~EditReplace()
 {}
 
 
-EditReplace *EditReplace::clone(const string &name) {
+EditReplace *EditReplace::clone(const std::string &name) {
     return new EditReplace(name, this);
 }
 
 
 void EditReplace::execute() {
     int count = 0;
-    string newName = Attributes::getString(itsAttr[BY]);
+    std::string newName = Attributes::getString(itsAttr[BY]);
 
     // Check consistency.
     if(! bool(itsAttr[CLASS])  ||  newName.empty()) {

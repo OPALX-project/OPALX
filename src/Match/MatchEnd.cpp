@@ -31,7 +31,7 @@ MatchEnd::MatchEnd():
 {}
 
 
-MatchEnd::MatchEnd(const string &name, MatchEnd *parent):
+MatchEnd::MatchEnd(const std::string &name, MatchEnd *parent):
     Action(name, parent)
 {}
 
@@ -40,7 +40,7 @@ MatchEnd::~MatchEnd()
 {}
 
 
-MatchEnd *MatchEnd::clone(const string &name) {
+MatchEnd *MatchEnd::clone(const std::string &name) {
     return new MatchEnd(name, this);
 }
 

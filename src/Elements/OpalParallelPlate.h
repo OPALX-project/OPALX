@@ -50,7 +50,7 @@ public:
     virtual ~OpalParallelPlate();
 
     /// Make clone.
-    virtual OpalParallelPlate *clone(const string &name);
+    virtual OpalParallelPlate *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -65,7 +65,7 @@ private:
     void operator=(const OpalParallelPlate &);
 
     // Clone constructor.
-    OpalParallelPlate(const string &name, OpalParallelPlate *parent);
+    OpalParallelPlate(const std::string &name, OpalParallelPlate *parent);
 
 
 

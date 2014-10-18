@@ -46,7 +46,7 @@ OpalKicker::OpalKicker():
 }
 
 
-OpalKicker::OpalKicker(const string &name, OpalKicker *parent):
+OpalKicker::OpalKicker(const std::string &name, OpalKicker *parent):
     OpalElement(name, parent) {
     setElement((new CorrectorRep(name))->makeWrappers());
 }
@@ -56,7 +56,7 @@ OpalKicker::~OpalKicker()
 {}
 
 
-OpalKicker *OpalKicker::clone(const string &name) {
+OpalKicker *OpalKicker::clone(const std::string &name) {
     return new OpalKicker(name, this);
 }
 

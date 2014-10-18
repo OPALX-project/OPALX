@@ -29,7 +29,7 @@ ValueDefinition::~ValueDefinition()
 {}
 
 
-const string ValueDefinition::getCategory() const {
+const std::string ValueDefinition::getCategory() const {
     return "VARIABLE";
 }
 
@@ -72,14 +72,14 @@ double ValueDefinition::getRealComponent(int) const {
 }
 
 
-string ValueDefinition::getString() const {
+std::string ValueDefinition::getString() const {
     throw OpalException("ValueDefinition::getString()",
                         "You cannot get a string value from \"" +
                         getOpalName() + "\".");
 }
 
 
-string ValueDefinition::getStringComponent(int) const {
+std::string ValueDefinition::getStringComponent(int) const {
     throw OpalException("ValueDefinition::getString()",
                         "You cannot get an indexed string value from \"" +
                         getOpalName() + "\".");
@@ -102,6 +102,6 @@ ValueDefinition::ValueDefinition
 {}
 
 
-ValueDefinition::ValueDefinition(const string &name, ValueDefinition *parent):
+ValueDefinition::ValueDefinition(const std::string &name, ValueDefinition *parent):
     Object(name, parent)
 {}

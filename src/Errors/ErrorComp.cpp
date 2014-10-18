@@ -78,7 +78,7 @@ ErrorComp::ErrorComp():
 }
 
 
-ErrorComp::ErrorComp(const string &name, ErrorComp *parent):
+ErrorComp::ErrorComp(const std::string &name, ErrorComp *parent):
     Action(name, parent)
 {}
 
@@ -87,7 +87,7 @@ ErrorComp::~ErrorComp()
 {}
 
 
-ErrorComp *ErrorComp::clone(const string &name) {
+ErrorComp *ErrorComp::clone(const std::string &name) {
     return new ErrorComp(name, this);
 }
 
@@ -142,7 +142,7 @@ void ErrorComp::execute() {
 }
 
 
-void ErrorComp::fieldError(const string &, int,
+void ErrorComp::fieldError(const std::string &, int,
                            const BMultipoleField &designField,
                            BMultipoleField &errorField) {
     // Use of relative error requires "RADIUS" to be given.

@@ -36,7 +36,7 @@ ElementFactory::~ElementFactory()
 
 
 bool ElementFactory::define(ElementBase *newElement) {
-    string name = newElement->getName();
+    std::string name = newElement->getName();
     MapType::value_type value(name, newElement);
     std::pair<MapType::iterator, bool> index = inventory.insert(value);
 
@@ -51,12 +51,12 @@ bool ElementFactory::define(ElementBase *newElement) {
 }
 
 
-void ElementFactory::erase(const string &name) {
+void ElementFactory::erase(const std::string &name) {
     inventory.erase(name);
 }
 
 
-ElementBase *ElementFactory::find(const string &name) const {
+ElementBase *ElementFactory::find(const std::string &name) const {
     MapType::const_iterator index = inventory.find(name);
 
     if(index == inventory.end()) {
@@ -67,8 +67,8 @@ ElementBase *ElementFactory::find(const string &name) const {
 }
 
 
-ElementBase *ElementFactory::makeElement(const string &type,
-        const string &name,
+ElementBase *ElementFactory::makeElement(const std::string &type,
+        const std::string &name,
         const AttributeSet &set) {
     ElementBase *model = find(type);
     ElementBase *copy  = 0;
@@ -90,7 +90,7 @@ ElementBase *ElementFactory::makeElement(const string &type,
 
 
 bool ElementFactory::storeElement(ElementBase *newElement) {
-    string name = newElement->getName();
+    std::string name = newElement->getName();
     MapType::value_type value(name, newElement);
     std::pair<MapType::iterator, bool> index = inventory.insert(value);
 

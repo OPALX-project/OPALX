@@ -42,7 +42,7 @@ void FM1DDynamic::readMap() {
 
     if(fourierCoefs_m.empty()) {
 
-        ifstream fieldFile(Filename_m.c_str());
+        std::ifstream fieldFile(Filename_m.c_str());
         stripFileHeader(fieldFile);
 
         double *fieldData = new double[2 * numberOfGridPoints_m - 1];
@@ -129,10 +129,10 @@ void FM1DDynamic::setFrequency(double frequency) {
     frequency_m = frequency;
 }
 
-void FM1DDynamic::getOnaxisEz(vector<pair<double, double> > &eZ) {
+void FM1DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > &eZ) {
 
     eZ.resize(numberOfGridPoints_m);
-    ifstream fieldFile(Filename_m.c_str());
+    std::ifstream fieldFile(Filename_m.c_str());
     stripFileHeader(fieldFile);
     double maxEz = readFileData(fieldFile, eZ);
     fieldFile.close();
@@ -292,7 +292,7 @@ bool FM1DDynamic::readFileHeader(std::ifstream &fieldFile) {
     std::string tempString;
     int tempInt;
 
-    bool parsingPassed = interpreteLine<string, int>(fieldFile, tempString,
+    bool parsingPassed = interpreteLine<std::string, int>(fieldFile, tempString,
                          accuracy_m);
     parsingPassed = parsingPassed &&
                     interpreteLine<double, double, int>(fieldFile, zBegin_m,

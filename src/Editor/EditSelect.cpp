@@ -63,7 +63,7 @@ EditSelect::EditSelect():
 }
 
 
-EditSelect::EditSelect(const string &name, EditSelect *parent):
+EditSelect::EditSelect(const std::string &name, EditSelect *parent):
     Editor(name, parent)
 {}
 
@@ -72,7 +72,7 @@ EditSelect::~EditSelect()
 {}
 
 
-EditSelect *EditSelect::clone(const string &name) {
+EditSelect *EditSelect::clone(const std::string &name) {
     return new EditSelect(name, this);
 }
 
@@ -93,9 +93,9 @@ void EditSelect::execute() {
     } else {
         // Now set select flags according to range, class and pattern.
         const RangeRep &range = Attributes::getRange(itsAttr[RANGE]);
-        const string &clsName = Attributes::getString(itsAttr[CLASS]);
-        const string &typName = Attributes::getString(itsAttr[TYPE]);
-        const string &pattern = Attributes::getString(itsAttr[PATTERN]);
+        const std::string &clsName = Attributes::getString(itsAttr[CLASS]);
+        const std::string &typName = Attributes::getString(itsAttr[TYPE]);
+        const std::string &pattern = Attributes::getString(itsAttr[PATTERN]);
         int count = Edit::block->select(range, clsName, typName, pattern);
 
         // inform user about number of selections done

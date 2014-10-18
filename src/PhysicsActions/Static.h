@@ -35,7 +35,7 @@ public:
     virtual ~Static();
 
     /// Make clone.
-    virtual Static *clone(const string &name);
+    virtual Static *clone(const std::string &name);
 
     /// Execute the command.
     virtual void execute();
@@ -47,7 +47,7 @@ private:
     void operator=(const Static &);
 
     // Clone constructor.
-    Static(const string &name, Static *parent);
+    Static(const std::string &name, Static *parent);
 };
 
 #endif // OPAL_Static_HH

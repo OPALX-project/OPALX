@@ -116,7 +116,7 @@ RFCavity::RFCavity(const RFCavity &right):
 }
 
 
-RFCavity::RFCavity(const string &name):
+RFCavity::RFCavity(const std::string &name):
     Component(name),
     filename_m(""),
     scale_m(1.0),
@@ -174,13 +174,13 @@ void RFCavity::dropFieldmaps() {
     multiFrequencies_m.clear();
 }
 
-void RFCavity::setFieldMapFN(string fn) {
+void RFCavity::setFieldMapFN(std::string fn) {
     multiFilenames_m.push_back(fn);
     filename_m = multiFilenames_m[0];
 }
 
 string RFCavity::getFieldMapFN() const {
-    string filename("No_fieldmap");
+    std::string filename("No_fieldmap");
     if(numFieldmaps() > 0) {
         filename = multiFilenames_m[0];
     }
@@ -228,7 +228,7 @@ double RFCavity::getPhasem() const {
     return phase_m;
 }
 
-void RFCavity::setCavityType(string type) {
+void RFCavity::setCavityType(std::string type) {
 
 }
 
@@ -407,11 +407,11 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
     using Physics::two_pi;
     double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
     Inform msg("RFCavity ");
-    stringstream errormsg;
+    std::stringstream errormsg;
     RefPartBunch_m = bunch;
 
     for(size_t i = 0; i < numFieldmaps(); ++ i) {
-        string fname = multiFilenames_m[i];
+        std::string fname = multiFilenames_m[i];
         Fieldmap *fmap = Fieldmap::getFieldmap(fname, fast_m);
         if(fmap != NULL) {
             multiFieldmaps_m.push_back(fmap);
@@ -456,7 +456,7 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
         for(size_t i = 0; i < numFieldmaps(); ++ i) {
             Fieldmap *fmap = multiFieldmaps_m[i];
             double &frequency = multiFrequencies_m[i];
-            const string &filename = multiFilenames_m[i];
+            const std::string &filename = multiFilenames_m[i];
 
             fmap->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
             if(zEnd > zBegin) {
@@ -466,7 +466,7 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
                     errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename << "';\n"
                              << frequency / two_pi * 1e-6 << " MHz <> "
                              << fmap->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER";
-                    string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+                    std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
                     msg << errormsg_str << "\n"
                         << endl;
                     if(Ippl::myNode() == 0) {
@@ -638,7 +638,7 @@ double RFCavity::getPhi0() const {
     return phi0_m;
 }
 
-void RFCavity::setComponentType(string name) {
+void RFCavity::setComponentType(std::string name) {
     if(name == "STANDING") {
         type_m = SW;
     } else if(name == "SINGLEGAP") {
@@ -646,10 +646,10 @@ void RFCavity::setComponentType(string name) {
     } else {
         if(name != "") {
             Inform msg("RFCavity ");
-            stringstream errormsg;
+            std::stringstream errormsg;
             errormsg << "CAVITY TYPE " << name << " DOES NOT EXIST; \n"
                      << "CHANGING TO REGULAR STANDING WAVE";
-            string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+            std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
             msg << errormsg_str << "\n"
                 << endl;
             if(Ippl::myNode() == 0) {
@@ -665,9 +665,9 @@ void RFCavity::setComponentType(string name) {
 
 string RFCavity::getComponentType()const {
     if(type_m == SGSW)
-        return string("SINGLEGAP");
+        return std::string("SINGLEGAP");
     else
-        return string("STANDING");
+        return std::string("STANDING");
 }
 
 double RFCavity::getCycFrequency()const {
@@ -801,8 +801,8 @@ void RFCavity::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const string &RFCavity::getType() const {
-    static const string type("RFCavity");
+const std::string &RFCavity::getType() const {
+    static const std::string type("RFCavity");
     return type;
 }
 

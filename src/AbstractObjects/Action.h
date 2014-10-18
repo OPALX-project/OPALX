@@ -39,7 +39,7 @@ public:
 
     /// Return the object category as a string.
     //  Return the string "ACTION".
-    virtual const string getCategory() const;
+    virtual const std::string getCategory() const;
 
     /// Trace flag.
     //  If true, the object's execute() function should be traced.
@@ -57,7 +57,7 @@ protected:
     Action(int size, const char *name, const char *help);
 
     /// Constructor for cloning.
-    Action(const string &name, Action *parent);
+    Action(const std::string &name, Action *parent);
 
 private:
 

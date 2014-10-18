@@ -38,7 +38,7 @@ TrackSave::TrackSave():
 }
 
 
-TrackSave::TrackSave(const string &name, TrackSave *parent):
+TrackSave::TrackSave(const std::string &name, TrackSave *parent):
     Action(name, parent)
 {}
 
@@ -47,14 +47,14 @@ TrackSave::~TrackSave()
 {}
 
 
-TrackSave *TrackSave::clone(const string &name) {
+TrackSave *TrackSave::clone(const std::string &name) {
     return new TrackSave(name, this);
 }
 
 
 void TrackSave::execute() {
     // open output file.
-    string file = Attributes::getString(itsAttr[0]);
+    std::string file = Attributes::getString(itsAttr[0]);
     std::ofstream os(file.c_str());
 
     if(os.bad()) {

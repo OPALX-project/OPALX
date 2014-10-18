@@ -68,7 +68,7 @@ namespace {
         { 0,       0,                0, 0, 0, 0 }
     };
 
-    const ColDesc *findCol(const Aperture &table, const string &colName) {
+    const ColDesc *findCol(const Aperture &table, const std::string &colName) {
         for(const ColDesc *col = allColumns; col->colName; ++col) {
             if(colName == col->colName) {
                 return col;
@@ -92,7 +92,7 @@ namespace {
         //  Identify the table by its name [b]tab[/b], and the column by its
         //  name [b]col[/b] and the function [b]col[/b].
         //  The row is specified as the ``current'' row of the table.
-        Column(const Aperture &tab, const string &colName, const ColDesc &desc);
+        Column(const Aperture &tab, const std::string &colName, const ColDesc &desc);
 
         Column(const Column &);
         virtual ~Column();
@@ -116,7 +116,7 @@ namespace {
         const Aperture &itsTable;
 
         // Column name.
-        string colName;
+        std::string colName;
 
         // The function returning the column value.
         double(Aperture::*get)(const Aperture::A_row &, int, int) const;
@@ -129,7 +129,7 @@ namespace {
     // Implementation.
     // ------------------------------------------------------------------------
 
-    Column::Column(const Aperture &tab, const string &colName, const ColDesc &desc):
+    Column::Column(const Aperture &tab, const std::string &colName, const ColDesc &desc):
         itsTable(tab), colName(colName),
         get(desc.get), ind_1(desc.ind_1), ind_2(desc.ind_2)
     {}
@@ -179,7 +179,7 @@ Aperture::Aperture():
     itsAttr[FILE] = Attributes::makeString
                     ("FILE", "Name of file to receive APERTURE output", "APERTURE.dat");
 }
-Aperture::Aperture(const string &name, Aperture *parent):
+Aperture::Aperture(const std::string &name, Aperture *parent):
     DefaultVisitor(itsTable, false, false),
     Table(name, parent), itsTable(name)
 {}
@@ -210,7 +210,7 @@ inline double Aperture::A_row::getDisp_y_prim(int ind) {
 inline double Aperture::A_row::getApert(int ind) {
     return Interpol[ind].apert;
 }
-inline string Aperture::A_row::getType_elm() {
+inline std::string Aperture::A_row::getType_elm() {
     return Type_elm;
 }
 inline double Aperture::A_row::getOrb() {
@@ -625,7 +625,7 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
         }
     }
 
-    const string &nam1 = a.getElement()->getName();
+    const std::string &nam1 = a.getElement()->getName();
 
 
     if(nam1 == "[DRIFT]") {
@@ -830,7 +830,7 @@ vector<Aperture::coord> Aperture::getShape(vector<double> vec) {
 
 void Aperture::execute() {
 
-    const string &beamName = Attributes::getString(itsAttr[BEAM]);
+    const std::string &beamName = Attributes::getString(itsAttr[BEAM]);
     beam = Beam::find(beamName);
 
     std::vector<double> dat = Attributes::getRealArray(itsAttr[DATA]);
@@ -847,7 +847,7 @@ void Aperture::execute() {
 
     //output of the Aperture command
     double nslice = Attributes::getReal(itsAttr[NSLICE]);
-    string file_out = Attributes::getString(itsAttr[FILE]);
+    std::string file_out = Attributes::getString(itsAttr[FILE]);
     ofstream outFile(file_out.c_str());
     if(!outFile) {
         cerr << "Aperture: unable to open output file:" << file_out << endl;
@@ -893,7 +893,7 @@ void Aperture::run() {
     if(dat.size() != 0) {
         i = tp->begin();
         while(i != tp->end()) {
-            const string nam = i->getElement()->getName();
+            const std::string nam = i->getElement()->getName();
             if(nam == "[DRIFT]") {
                 A_row row(*i, static_cast<int>(nslice));
                 i->accept(*this);
@@ -902,7 +902,7 @@ void Aperture::run() {
                 i++;
             } else {
                 OpalElement &elem = dynamic_cast<OpalElement &>(*Element::find(nam));
-                string Typ = elem.getBaseObject()->getOpalName();
+                std::string Typ = elem.getBaseObject()->getOpalName();
                 if((elem.getApert().size() == 0) && (Typ != "MARKER")) i++;
                 else {
                     A_row row(*i, static_cast<int>(nslice));
@@ -917,11 +917,11 @@ void Aperture::run() {
     } else {
         i = tp->begin();
         while(i != tp->end()) {
-            const string nam = i->getElement()->getName();
+            const std::string nam = i->getElement()->getName();
             if(nam == "[DRIFT]") i++;
             else {
                 OpalElement &elem = dynamic_cast<OpalElement &>(*Element::find(nam));
-                string Typ = elem.getBaseObject()->getOpalName();
+                std::string Typ = elem.getBaseObject()->getOpalName();
                 if(Typ == "MARKER") i++;
                 else if(elem.getApert().size() == 0) i++;
                 else {
@@ -945,7 +945,7 @@ double Aperture::getLength() {
     return itsTable.getElementLength();
 }
 
-double Aperture::getCell(const PlaceRep &place, const string &colName) {
+double Aperture::getCell(const PlaceRep &place, const std::string &colName) {
     A_row &row = findRow(place);
     const ColDesc *col = findCol(*this, colName);
     return (this->*(col->get))(row, col->ind_1, col->ind_2);
@@ -962,7 +962,7 @@ Table::CellArray Aperture::getDefault() const {
     }
     return columns;
 }
-std::vector<double> Aperture::getColumn(const RangeRep &rng, const string
+std::vector<double> Aperture::getColumn(const RangeRep &rng, const std::string
                                         &colName) {
     const ColDesc *col = findCol(*this, colName);
     RangeRep range(rng);
@@ -980,7 +980,7 @@ std::vector<double> Aperture::getColumn(const RangeRep &rng, const string
     return column;
 }
 std::vector<double> Aperture::getRow(const PlaceRep &pos, const
-                                     std::vector<string> &cols) {
+                                     std::vector<std::string> &cols) {
     A_row &row = findRow(pos);
     std::vector<double> result;
 
@@ -991,7 +991,7 @@ std::vector<double> Aperture::getRow(const PlaceRep &pos, const
         }
     } else {
         // User column selection.
-        for(std::vector<string>::const_iterator iter = cols.begin();
+        for(std::vector<std::string>::const_iterator iter = cols.begin();
             iter != cols.end(); ++iter) {
             const ColDesc *col = findCol(*this, *iter);
             result.push_back((this->*(col->get))(row, col->ind_1, col->ind_2));
@@ -1000,7 +1000,7 @@ std::vector<double> Aperture::getRow(const PlaceRep &pos, const
 
     return result;
 }
-bool Aperture::isDependent(const string &name) const {
+bool Aperture::isDependent(const std::string &name) const {
     // Test if name refers to USE attribute.
     if(itsLine == name) return true;
 
@@ -1013,11 +1013,11 @@ bool Aperture::isDependent(const string &name) const {
     return false;
 }
 bool Aperture::matches(Table *rhs) const { return false; }
-Expressions::PtrToScalar<double> Aperture::makeColumnExpression(const string &colname) const {
+Expressions::PtrToScalar<double> Aperture::makeColumnExpression(const std::string &colname) const {
     const ColDesc *col = findCol(*this, colname);
     return new Column(*this, colname, *col);
 }
-Object *Aperture::clone(const string &name) {
+Object *Aperture::clone(const std::string &name) {
     return new Aperture(name, this);
 }
 

@@ -45,7 +45,6 @@
 #else
 #include <sstream>
 #endif
-using namespace std;
 
 using std::max;
 
@@ -276,7 +275,7 @@ namespace {
     };
 
 
-    const ColDesc *findCol(const Twiss &table, const string &colName) {
+    const ColDesc *findCol(const Twiss &table, const std::string &colName) {
         for(const ColDesc *col = allColumns; col->colName; ++col) {
             if(colName == col->colName) {
                 return col;
@@ -300,7 +299,7 @@ namespace {
         //  Identify the table by its name [b]tab[/b], and the column by its
         //  name [b]col[/b] and the function [b]col[/b].
         //  The row is specified as the ``current'' row of the table.
-        Column(const Twiss &tab, const string &colName, const ColDesc &desc);
+        Column(const Twiss &tab, const std::string &colName, const ColDesc &desc);
 
         Column(const Column &);
         virtual ~Column();
@@ -324,7 +323,7 @@ namespace {
         const Twiss &itsTable;
 
         // Column name.
-        string colName;
+        std::string colName;
 
         // The function returning the column value.
         double(Twiss::*get)(const Twiss::Row &, int, int) const;
@@ -337,7 +336,7 @@ namespace {
     // Implementation.
     // ------------------------------------------------------------------------
 
-    Column::Column(const Twiss &tab, const string &colName, const ColDesc &desc):
+    Column::Column(const Twiss &tab, const std::string &colName, const ColDesc &desc):
         itsTable(tab), colName(colName),
         get(desc.get), ind_1(desc.ind_1), ind_2(desc.ind_2)
     {}
@@ -475,7 +474,7 @@ Twiss::Twiss(int size, const char *name, const char *help):
 }
 
 
-Twiss::Twiss(const string &name, Twiss *parent):
+Twiss::Twiss(const std::string &name, Twiss *parent):
     Table(name, parent), itsTable(new TLine(name)), itsMapper(0)
 {}
 
@@ -495,7 +494,7 @@ void Twiss::doomPut(DoomWriter &writer) const {
     const_cast<Twiss *>(this)->fill();
 
     // Make the table header.
-    const string &tableName = getOpalName();
+    const std::string &tableName = getOpalName();
     {
         static const int headKeyList[] = { 1, TABLE_HEAD };
         DoomWriter headWriter(tableName, headKeyList);
@@ -577,12 +576,12 @@ void Twiss::execute() {
     BeamSequence *use = BeamSequence::find(itsLine);
 
     // Find Beam data.
-    const string &beamName = Attributes::getString(itsAttr[BEAM]);
+    const std::string &beamName = Attributes::getString(itsAttr[BEAM]);
     beam = Beam::find(beamName);
     reference = &beam->getReference();
 
     // Get the algorithm name.
-    string method = Attributes::getString(itsAttr[METHOD]);
+    std::string method = Attributes::getString(itsAttr[METHOD]);
 
     // Make sure all is up-to-date.
     OpalData::getInstance()->update();
@@ -630,7 +629,7 @@ void Twiss::execute() {
 }
 
 
-double Twiss::getCell(const PlaceRep &place, const string &colName) {
+double Twiss::getCell(const PlaceRep &place, const std::string &colName) {
     Row &row = findRow(place);
     const ColDesc *col = findCol(*this, colName);
     return (this->*(col->get))(row, col->ind_1, col->ind_2);
@@ -649,7 +648,7 @@ Table::CellArray Twiss::getDefault() const {
 
 
 std::vector<double>
-Twiss::getColumn(const RangeRep &rng, const string &colName) {
+Twiss::getColumn(const RangeRep &rng, const std::string &colName) {
     // Find proper column function.
     const ColDesc *col = findCol(*this, colName);
     RangeRep range(rng);
@@ -742,7 +741,7 @@ FMatrix<double, 6, 6> Twiss::getSigma(const Row &row) const {
 
 
 std::vector<double>
-Twiss::getRow(const PlaceRep &pos, const std::vector<string> &cols) {
+Twiss::getRow(const PlaceRep &pos, const std::vector<std::string> &cols) {
     Row &row = findRow(pos);
     std::vector<double> result;
 
@@ -753,7 +752,7 @@ Twiss::getRow(const PlaceRep &pos, const std::vector<string> &cols) {
         }
     } else {
         // User column selection.
-        for(std::vector<string>::const_iterator iter = cols.begin();
+        for(std::vector<std::string>::const_iterator iter = cols.begin();
             iter != cols.end(); ++iter) {
             const ColDesc *col = findCol(*this, *iter);
             result.push_back((this->*(col->get))(row, col->ind_1, col->ind_2));
@@ -764,7 +763,7 @@ Twiss::getRow(const PlaceRep &pos, const std::vector<string> &cols) {
 }
 
 
-bool Twiss::isDependent(const string &name) const {
+bool Twiss::isDependent(const std::string &name) const {
     // Test if name refers to USE attribute.
     if(itsLine == name) return true;
 
@@ -779,7 +778,7 @@ bool Twiss::isDependent(const string &name) const {
 
 
 Expressions::PtrToScalar<double>
-Twiss::makeColumnExpression(const string &colName) const {
+Twiss::makeColumnExpression(const std::string &colName) const {
     const ColDesc *col = findCol(*this, colName);
     return new Column(*this, colName, *col);
 }
@@ -799,7 +798,7 @@ void Twiss::printTableBody(std::ostream &os, const CellArray &cells) const {
     }
 
     // Write table header.
-    os << string(lineLength, '-') << '\n';
+    os << std::string(lineLength, '-') << '\n';
     os << "Element        ";
     for(CellArray::const_iterator cell = cells.begin();
         cell < cells.end(); ++cell) {
@@ -812,26 +811,26 @@ void Twiss::printTableBody(std::ostream &os, const CellArray &cells) const {
         cell->itsExpr->print(ss, 0);
         ss << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-        string image(buffer);
+        std::string image(buffer);
 #else
         std::string image = ss.str();
 #endif
 
         if(int(image.length()) < cell->printWidth) {
             // Right adjust the column header.
-            os << string(cell->printWidth - image.length(), ' ') << image;
+            os << std::string(cell->printWidth - image.length(), ' ') << image;
         } else {
             // Truncate the column header.
-            os << ' ' << string(image, 0, cell->printWidth - 3) << "..";
+            os << ' ' << std::string(image, 0, cell->printWidth - 3) << "..";
         }
     }
     os << '\n';
-    os << string(lineLength, '-') << '\n';
+    os << std::string(lineLength, '-') << '\n';
 
     // Write table body.
     for(current = begin(); current != end(); ++current) {
         if(current->getSelectionFlag()) {
-            string name = current->getElement()->getName();
+            std::string name = current->getElement()->getName();
             if(int occur = current->getCounter()) {
 #if defined(__GNUC__) && __GNUC__ < 3
                 char buffer[128];
@@ -849,10 +848,10 @@ void Twiss::printTableBody(std::ostream &os, const CellArray &cells) const {
 
             if(name.length() > 16) {
                 // Truncate the element name.
-                os << string(name, 0, 13) << ".. ";
+                os << std::string(name, 0, 13) << ".. ";
             } else {
                 // Left adjust the element name.
-                os << name << string(16 - name.length(), ' ');
+                os << name << std::string(16 - name.length(), ' ');
             }
 
             for(CellArray::const_iterator cell = cells.begin();
@@ -865,7 +864,7 @@ void Twiss::printTableBody(std::ostream &os, const CellArray &cells) const {
         }
     }
 
-    os << string(lineLength, '-') << '\n';
+    os << std::string(lineLength, '-') << '\n';
 }
 
 
@@ -901,7 +900,7 @@ Twiss::Row &Twiss::findRow(const PlaceRep &place) {
 #endif
     os << row << std::ends;
 #if defined(__GNUC__) && __GNUC__ < 3
-    string name(buffer);
+    std::string name(buffer);
     throw OpalException("Twiss::findRow()", "Row \"" + name +
                         "\" not found in twiss table \"" + getOpalName() + "\".");
 #else
@@ -1103,18 +1102,18 @@ void Twiss::put() {
     double dyrms = 0.0;
 
     for(TLine::iterator row = begin(); row != end(); ++row) {
-        betxmax = max(abs(getBETi(*row, 0, 0)), betxmax);
-        betymax = max(abs(getBETi(*row, 1, 0)), betymax);
+        betxmax = std::max(std::abs(getBETi(*row, 0, 0)), betxmax);
+        betymax = std::max(std::abs(getBETi(*row, 1, 0)), betymax);
         double x = getCO(*row, 0, 0);
         double y = getCO(*row, 2, 0);
         double dx = getDisp(*row, 0, 0);
         double dy = getDisp(*row, 2, 0);
-        xmax = max(abs(x), xmax);
-        ymax = max(abs(y), ymax);
+        xmax = std::max(std::abs(x), xmax);
+        ymax = std::max(std::abs(y), ymax);
         xrms += x * x;
         yrms += y * y;
-        dxmax = max(abs(dx), dxmax);
-        dymax = max(abs(dy), dymax);
+        dxmax = std::max(std::abs(dx), dxmax);
+        dymax = std::max(std::abs(dy), dymax);
         dxrms += dx * dx;
         dyrms += dy * dy;
     }
@@ -1328,7 +1327,3 @@ double Twiss::getSigma(const Twiss::Row &row, int i1, int i2) const {
 double Twiss::getMatrix(const Twiss::Row &row, int i1, int i2) const {
     return row.matrix[i1][i2];
 }
-
-
-
-
