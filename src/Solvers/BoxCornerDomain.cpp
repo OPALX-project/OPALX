@@ -1,4 +1,6 @@
 #ifdef HAVE_SAAMG_SOLVER
+#include "Solvers/BoxCornerDomain.h"
+
 #include <map>
 #include <string>
 #include <cmath>
@@ -6,8 +8,6 @@
 #include <assert.h>
 
 //FIXME: ORDER HOW TO TRAVERSE NODES IS FIXED, THIS SHOULD BE MORE GENERIC! (PLACES MARKED)
-
-#include "BoxCornerDomain.h"
 
 extern Inform *gmsg;
 

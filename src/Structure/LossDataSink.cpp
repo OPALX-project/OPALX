@@ -1,6 +1,7 @@
+#include <Structure/LossDataSink.h>
+
 #include "Ippl.h"
 #include "Algorithms/PBunchDefs.h"
-#include <Structure/LossDataSink.h>
 #include "Utilities/Options.h"
 
 using namespace Options;
@@ -50,7 +51,7 @@ void LossDataSink::openH5() {
 #else
     H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, 0);
 #endif
-    
+
     if(!H5file_m) {
         ERRORMSG("h5 file open failed: exiting!" << endl);
         exit(0);
@@ -58,7 +59,7 @@ void LossDataSink::openH5() {
 }
 
 void LossDataSink::writeHeaderH5() {
-	
+
     h5_int64_t rc;
     // Write file attributes to describe phase space to H5 file.
     std::stringstream OPAL_version;
@@ -142,7 +143,7 @@ void LossDataSink::save() {
 
     if (element_m == std::string("")) return;
 
-    if (hasNoParticlesToDump()) return;  
+    if (hasNoParticlesToDump()) return;
 
     if (h5hut_mode_m) {
 
@@ -161,7 +162,7 @@ void LossDataSink::save() {
 
         fn_m = element_m + std::string(".loss");
         INFOMSG("Save " << fn_m << endl);
-        if(OpalData::getInstance()->inRestartRun()) 
+        if(OpalData::getInstance()->inRestartRun())
 	    append();
         else
 	    open();
@@ -180,13 +181,13 @@ void LossDataSink::save() {
     pz_m.clear();
     id_m.clear();
     turn_m.clear();
-    time_m.clear();        
+    time_m.clear();
 }
 
 // Note: This was changed to calculate the global number of dumped particles
-// because there are two cases to be considered: 
-// 1. ALL nodes have 0 lost particles -> nothing to be done. 
-// 2. Some nodes have 0 lost particles, some not -> H5 can handle that but all 
+// because there are two cases to be considered:
+// 1. ALL nodes have 0 lost particles -> nothing to be done.
+// 2. Some nodes have 0 lost particles, some not -> H5 can handle that but all
 // nodes HAVE to participate, otherwise H5 waits endlessly for a response from
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() {
@@ -204,21 +205,21 @@ void LossDataSink::saveH5() {
     size_t nLoc = x_m.size();
 
     INFOMSG("saveH5 n = " << nLoc << endl);
-    
+
     std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
     h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-    
+
     std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
     std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
-    
+
     for(int i = 0; i < Ippl::getNodes(); i++) {
         globN[i] = locN[i] = 0;
     }
-    
+
     locN[Ippl::myNode()] = nLoc;
     reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
-    
+
     /// Set current record/time step.
     rc = H5SetStep(H5file_m, 0);
     if(rc != H5_SUCCESS)
@@ -226,26 +227,26 @@ void LossDataSink::saveH5() {
     rc = H5PartSetNumParticles(H5file_m, nLoc);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    
+
     // Write all data
     for(size_t i = 0; i < nLoc; i++)
         farray[i] = x_m[i];
     rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    
+
     for(size_t i = 0; i < nLoc; i++)
         farray[i] = y_m[i];
     rc = H5PartWriteDataFloat64(H5file_m, "y", farray);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    
+
     for(size_t i = 0; i < nLoc; i++)
         farray[i] = z_m[i];
     rc = H5PartWriteDataFloat64(H5file_m, "z", farray);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        
+
     for(size_t i = 0; i < nLoc; i++)
         farray[i] = px_m[i];
     rc = H5PartWriteDataFloat64(H5file_m, "px", farray);
@@ -271,7 +272,7 @@ void LossDataSink::saveH5() {
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    if (time_m.size() != 0) {            
+    if (time_m.size() != 0) {
         for(size_t i = 0; i < nLoc; i++)
             farray[i] = time_m[i];
         rc = H5PartWriteDataFloat64(H5file_m, "time", farray);
@@ -290,13 +291,13 @@ void LossDataSink::saveH5() {
 void LossDataSink::saveASCII() {
 
     /*
-      ASCII output      
-    */        
+      ASCII output
+    */
     int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
     if(Ippl::Comm->myNode() == 0) {
         const unsigned partCount = x_m.size();
-        
-        if (time_m.size() != 0) {            
+
+        if (time_m.size() != 0) {
             for(unsigned i = 0; i < partCount; i++) {
                 os_m << element_m   << "   ";
                 os_m << x_m[i] << "   ";
@@ -307,7 +308,7 @@ void LossDataSink::saveASCII() {
                 os_m << pz_m[i] << "   ";
                 os_m << id_m[i]   << "   ";
                 os_m << turn_m[i] << "   ";
-                os_m << time_m[i] << " " << std::endl;                
+                os_m << time_m[i] << " " << std::endl;
             }
         }
         else {
@@ -332,7 +333,7 @@ void LossDataSink::saveASCII() {
             }
             notReceived--;
             rmsg->get(&dataBlocks);
-            if (time_m.size() != 0) {            
+            if (time_m.size() != 0) {
                 for(unsigned i = 0; i < dataBlocks; i++) {
                     long id, turn;
                     double rx, ry, rz, px, py, pz, time;
@@ -344,7 +345,7 @@ void LossDataSink::saveASCII() {
                     rmsg->get(&py);
                     rmsg->get(&pz);
                     rmsg->get(&turn);
-                    rmsg->get(&time);                           
+                    rmsg->get(&time);
                     os_m << element_m << "   ";
                     os_m << rx << "   ";
                     os_m << ry << "   ";
@@ -354,7 +355,7 @@ void LossDataSink::saveASCII() {
                     os_m << pz << "   ";
                     os_m << id << "   ";
                     os_m << turn << "   ";
-                    os_m << time << std::endl;                
+                    os_m << time << std::endl;
                 }
             }
             else {
@@ -375,7 +376,7 @@ void LossDataSink::saveASCII() {
                     os_m << px << "   ";
                     os_m << py << "   ";
                     os_m << pz << "   ";
-                    os_m << id << " " << std::endl;                   
+                    os_m << id << " " << std::endl;
                 }
             }
             delete rmsg;
@@ -384,7 +385,7 @@ void LossDataSink::saveASCII() {
         Message *smsg = new Message();
         const unsigned msgsize = x_m.size();
         smsg->put(msgsize);
-        if (time_m.size() != 0) {            
+        if (time_m.size() != 0) {
             for(unsigned i = 0; i < msgsize; i++) {
                 smsg->put(id_m[i]);
                 smsg->put(x_m[i]);
@@ -394,7 +395,7 @@ void LossDataSink::saveASCII() {
                 smsg->put(py_m[i]);
                 smsg->put(pz_m[i]);
                 smsg->put(turn_m[i]);
-                smsg->put(time_m[i]);                
+                smsg->put(time_m[i]);
             }
         }
         else {
@@ -413,4 +414,3 @@ void LossDataSink::saveASCII() {
             ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
     }
 }
-

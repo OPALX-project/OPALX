@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "Ippl.h"
-#include "PBunchDefs.h"
+#include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Particle.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
@@ -104,7 +104,7 @@ public:
 
     void do_binaryRepart();
 
-    
+
 
     /// per default the MT value of the field solver is used
     void set_nBinsLineDensity(int n);
@@ -280,13 +280,13 @@ public:
     //void computeSelfFields_cycl(double gamma);
     //void computeSelfFields_cycl(int b);
 
-    // Replaced computeSelfFields_cycl() with versions that have meanR and the quaternion of the 
+    // Replaced computeSelfFields_cycl() with versions that have meanR and the quaternion of the
     // rotation of the particle bunch in order to take into account the rotation
     // when finding the boundary conditions for the fieldsolver. -DW
-    void computeSelfFields_cycl(double gamma, Vector_t const meanR=Vector_t(0.0, 0.0, 0.0), 
+    void computeSelfFields_cycl(double gamma, Vector_t const meanR=Vector_t(0.0, 0.0, 0.0),
 				              Quaternion_t const quaternion=Quaternion_t(1.0, 0.0, 0.0, 0.0));
 
-    void computeSelfFields_cycl(int b,        Vector_t const meanR=Vector_t(0.0, 0.0, 0.0), 
+    void computeSelfFields_cycl(int b,        Vector_t const meanR=Vector_t(0.0, 0.0, 0.0),
                                               Quaternion_t const quaternion=Quaternion_t(1.0, 0.0, 0.0, 0.0));
 
     void resetInterpolationCache(bool clearCache = false);
@@ -560,7 +560,7 @@ private:
 
     /// Initialize the translation vector and rotation quaternion
     /// here. Cyclotron tracker will reset these values each timestep
-    /// TTracker can just use 0 translation and 0 rotation (quat[1 0 0 0]). 
+    /// TTracker can just use 0 translation and 0 rotation (quat[1 0 0 0]).
     Vector_t globalMeanR_m = Vector_t(0.0, 0.0, 0.0);
     Quaternion_t globalToLocalQuaternion_m = Quaternion_t(1.0, 0.0, 0.0, 0.0);
 
@@ -688,7 +688,7 @@ private:
 
 };
 
-inline 
+inline
 bool PartBunch::isDcBeam() { return dcBeam_m;}
 
 inline

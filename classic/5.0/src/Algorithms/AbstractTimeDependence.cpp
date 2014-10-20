@@ -1,5 +1,5 @@
+#include "Algorithms/AbstractTimeDependence.h"
 #include <sstream>
-#include "AbstractTimeDependence.h"
 
 std::map<std::string, AbstractTimeDependence*> AbstractTimeDependence::td_map =
                               std::map<std::string, AbstractTimeDependence*>();
@@ -32,4 +32,3 @@ std::string AbstractTimeDependence::getName(AbstractTimeDependence* time_dep) {
     throw OpalException("AbstractTimeDependence::getTimeDependence",
                         "Could not find TimeDependence with address "+ss.str());
 }
-

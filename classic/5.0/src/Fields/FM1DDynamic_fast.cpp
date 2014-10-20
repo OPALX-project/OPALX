@@ -1,11 +1,11 @@
-#include <fstream>
-#include <ios>
-
 #include "Fields/FM1DDynamic_fast.hh"
 #include "Fields/Fieldmap.icc"
 #include "Physics/Physics.h"
 
 #include "gsl/gsl_fft_real.h"
+
+#include <fstream>
+#include <ios>
 
 FM1DDynamic_fast::FM1DDynamic_fast(std::string aFilename):
     Fieldmap(aFilename) {

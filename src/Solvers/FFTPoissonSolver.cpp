@@ -13,7 +13,7 @@
  ***************************************************************************/
 
 // include files
-#include "FFTPoissonSolver.h"
+#include "Solvers/FFTPoissonSolver.h"
 #include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include <fstream>
@@ -57,9 +57,9 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     layout4_m(nullptr),
     greensFunction_m(greensFunction) {
     int i;
-    
+
     bcz_m = (bcz==std::string("PERIODIC"));   // for DC beams, the z direction has periodic boundary conditions
-	
+
     domain_m = layout_m->getDomain();
 
     // For efficiency in the FFT's, we can use a parallel decomposition
@@ -90,13 +90,13 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
       for(i = 0; i < 2 * 3; ++i) {
         bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
         vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
-      }    
+      }
       // z-direction
       bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
       bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
       vbc_m[4] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(4);
       vbc_m[5] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(5);
-    } 
+    }
     else {
       // The FFT's require double-sized field sizes in order to
       // simulate an isolated system.  The FFT of the charge density field, rho,
@@ -112,7 +112,7 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
       for(i = 0; i < 2 * 3; ++i) {
         bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
         vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
-      }    
+      }
     }
 
     // create double sized mesh and layout objects for the use in the FFT's
@@ -135,7 +135,7 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     // complex transformed fields
     mesh3_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
     layout3_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_m, decomp2));
- 
+
     rho2tr_m.initialize(*mesh3_m, *layout3_m);
     imgrho2tr_m.initialize(*mesh3_m, *layout3_m);
     grntr_m.initialize(*mesh3_m, *layout3_m);
@@ -674,4 +674,3 @@ Inform &FFTPoissonSolver::print(Inform &os) const {
  * $RCSfile: FFTPoissonSolver.cc,v $   $Author: adelmann $
  * $Revision: 1.6 $   $Date: 2001/08/16 09:36:08 $
  ***************************************************************************/
-

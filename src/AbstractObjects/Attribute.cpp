@@ -16,12 +16,12 @@
 //
 // ------------------------------------------------------------------------
 
-#include <set>
-#include <iostream>
-
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/AttributeBase.h"
 #include "Utilities/Options.h"
+
+#include <set>
+#include <iostream>
 
 extern Inform *gmsg;
 

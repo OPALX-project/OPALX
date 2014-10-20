@@ -2,9 +2,9 @@
 //  Copyright & License: See Copyright.readme in src directory
 //
 
-#include "config.h"
-#include "DataSink.h"
+#include "Structure/DataSink.h"
 
+#include "config.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
@@ -28,7 +28,7 @@ using namespace std;
 
 DataSink::DataSink() :
     lossWrCounter_m(0),
-    doHDF5_m(true) 
+    doHDF5_m(true)
 {
     /// Constructor steps:
     /// Get timers from IPPL.
@@ -48,9 +48,9 @@ DataSink::DataSink() :
     lBalFileName_m = fn + string(".lbal");
 
     fn += string(".h5");
-    
+
     doHDF5_m = Options::enableHDF5;
-	
+
     if (doHDF5_m) {
         /// Open H5 file. Check that it opens correctly.
 #ifdef PARALLEL_IO
@@ -74,9 +74,9 @@ DataSink::DataSink() :
 
 DataSink::DataSink(int restartStep) :
     lossWrCounter_m(0)
-{		
+{
     doHDF5_m = Options::enableHDF5;
-    if (!doHDF5_m) {	
+    if (!doHDF5_m) {
       ERRORMSG ("Can not restart when HDF5 is disabled" << endl);
       exit(1);
     }
@@ -133,7 +133,7 @@ DataSink::DataSink(int restartStep) :
     int numStepsInFile = H5GetNumSteps(H5file_m);
 
     *gmsg << "numStepsInFile " << numStepsInFile << endl;
-    
+
     if(restartStep == -1) {
       restartStep = numStepsInFile;
     }
@@ -161,9 +161,9 @@ DataSink::~DataSink() {
 }
 
 void DataSink::writeH5FileAttributes() {
- 
+
     if (!doHDF5_m) return;
-	
+
 	h5_int64_t rc;
     /// Function steps:
 
@@ -445,7 +445,7 @@ void DataSink::writeH5FileAttributes() {
 }
 
 void DataSink::retriveCavityInformation(string fn) {
-	
+
   h5_int64_t rc;
   h5_int64_t nAutoPhaseCavities = 0;
   rc = H5ReadFileAttribInt64(H5file_m, "nAutoPhaseCavities", &nAutoPhaseCavities);
@@ -549,7 +549,7 @@ int DataSink::storeFieldmaps() {
 }
 
 void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
-  
+
 	if (!doHDF5_m) return;
 
 	h5_int64_t rc;
@@ -651,7 +651,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     rc = H5WriteStepAttribFloat64(H5file_m, "minP", (h5_float64_t *)&minP, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-     
+
     rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -683,12 +683,12 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     rc = H5WriteStepAttribFloat64(H5file_m, "RefPartR", (h5_float64_t *)&RefPartR, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    
+
     rc = H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    // scalar values 
+    // scalar values
 
     rc = H5WriteStepAttribFloat64(H5file_m, "SPOS",     &actPos, 1);
     if(rc != H5_SUCCESS)
@@ -705,7 +705,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     rc = H5WriteStepAttribFloat64(H5file_m, "TIME",     &t, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
- 
+
     rc = H5WriteStepAttribFloat64(H5file_m, "ENERGY",   &meanEnergy, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -733,7 +733,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 
     rc = H5WriteStepAttribFloat64(H5file_m, "Q", &Q, 1);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);    
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     rc = H5WriteStepAttribFloat64(H5file_m, "spos-head", &sposHead, 1);
     if(rc != H5_SUCCESS)
@@ -745,24 +745,24 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    /* 
-       Attributes originally not in OPAL-t 
+    /*
+       Attributes originally not in OPAL-t
 
     */
 
     h5_int64_t numBunch = 1;
     h5_int64_t SteptoLastInj = 0;
-    
+
     rc = H5WriteStepAttribInt64(H5file_m, "NumBunch",         &numBunch, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    
+
     rc = H5WriteStepAttribInt64(H5file_m, "SteptoLastInj",    &SteptoLastInj, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    /* 
-       Done attributes originally not in OPAL-t 
+    /*
+       Done attributes originally not in OPAL-t
 
     */
 
@@ -927,13 +927,13 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 
 
 
-int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy, 
-                                   double refPr, double refPt, double refPz, 
+int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy,
+                                   double refPr, double refPt, double refPz,
                                    double refR, double refTheta, double refZ,
                                    double azimuth, double elevation) {
-    
+
   if (!doHDF5_m) return -1;
-  //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW 
+  //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW
 
   h5_int64_t rc;
   IpplTimings::startTimer(H5PartTimer_m);
@@ -950,29 +950,29 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
   Vektor<double, 3 > psigma = beam.get_prms();
   Vektor<double, 3 > geomvareps = beam.get_emit();
   Vektor<double, 3 > vareps = beam.get_norm_emit();
-  
+
   Vektor<double, 3 > RefPartR = beam.RefPart_R;
   Vektor<double, 3 > RefPartP = beam.RefPart_P;
 
   double energySpread = beam.getdE();
-  
+
   double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
     (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
-  
+
   Vektor< double, 3 >  maxP(0.0);
-  Vektor< double, 3 >  minP(0.0);    
+  Vektor< double, 3 >  minP(0.0);
   beam.get_PBounds(minP, maxP);
-  
+
   std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
   double *farray = reinterpret_cast<double *>(varray.get());
   h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-  
+
   double  pathLength = beam.getLPath();
   h5_int64_t localTrackStep = (h5_int64_t)beam.getLocalTrackStep();
   h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
   h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
   h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
-    
+
     ///Get the particle decomposition from all the compute nodes.
     std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
     std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
@@ -982,9 +982,9 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     }
     locN[Ippl::myNode()] = nLoc;
     reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
-    
+
     /* ------------------------------------------------------------------------ */
-    
+
     rc = H5SetStep(H5file_m, H5call_m);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -1061,7 +1061,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-ref", (h5_float64_t *)&FDext[0], 3);    
+    rc = H5WriteStepAttribFloat64(H5file_m, "B-ref", (h5_float64_t *)&FDext[0], 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
@@ -1088,7 +1088,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     rc = H5WriteStepAttribFloat64(H5file_m, "RefPartR", (h5_float64_t *)&RefPartR, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    
+
     rc = H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -1119,8 +1119,8 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
 
     rc = H5WriteStepAttribFloat64(H5file_m, "AZIMUTH", (h5_float64_t *)&azimuth, 1);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl); 
-   
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
     rc = H5WriteStepAttribFloat64(H5file_m, "ELEVATION", (h5_float64_t *)&elevation, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -1135,7 +1135,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
 
     rc = H5WriteStepAttribFloat64(H5file_m, "Q", &Q, 1);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);    
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
 
     rc = H5WriteStepAttribInt64(H5file_m, "NumBunch",         &numBunch, 1);
@@ -1147,11 +1147,11 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
 
-    /* 
+    /*
        Attributes originally not in OPAL-cycl
     */
 
-    double sposHead = 0.0; 
+    double sposHead = 0.0;
     double sposRef = 0.0;
     double sposTail = 0.0;
     rc = H5WriteStepAttribFloat64(H5file_m, "spos-head", &sposHead, 1);
@@ -1164,8 +1164,8 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    /* 
-       Done attributes originally not in OPAL-cycl 
+    /*
+       Done attributes originally not in OPAL-cycl
     */
 
     setOPALcycl();
@@ -1239,13 +1239,13 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
         rc = H5PartWriteDataFloat64(H5file_m, "Ex", farray);
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        
+
         for(size_t i = 0; i < nLoc; i++)
             farray[i] =  beam.Ef[i](1);
         rc = H5PartWriteDataFloat64(H5file_m, "Ey", farray);
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        
+
         for(size_t i = 0; i < nLoc; i++)
             farray[i] =  beam.Ef[i](2);
         rc = H5PartWriteDataFloat64(H5file_m, "Ez", farray);
@@ -1263,7 +1263,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
         rc = H5PartWriteDataFloat64(H5file_m, "By", farray);
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        
+
         for(size_t i = 0; i < nLoc; i++)
             farray[i] =  beam.Bf[i](2);
         rc = H5PartWriteDataFloat64(H5file_m, "Bz", farray);
@@ -1329,7 +1329,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
 void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
 
     if (!doHDF5_m) return;
-	
+
 	h5_int64_t rc;
     /// Function steps:
 
@@ -1576,7 +1576,7 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 void DataSink::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
 
 	if (!doHDF5_m) return;
-	 
+
 	/// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
 
@@ -1665,9 +1665,9 @@ void DataSink::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 }
 
 void DataSink::dumpStashedPhaseSpaceEnvelope() {
-    
+
 	if (!doHDF5_m) return;
-	
+
 	h5_int64_t rc;
     /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
@@ -1836,13 +1836,13 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     /// Calculate beam statistics and gather load balance statistics.
     beam.calcBeamParameters();
     beam.gatherLoadBalanceStatistics();
-    
+
     double  pathLength = 0.0;
     if (OpalData::getInstance()->isInOPALCyclMode())
       pathLength = beam.getLPath();
     else
       pathLength = sposRef;
-    
+
     /// Write data to files. If this is the first write to the beam statistics file, write SDDS
     /// header information.
     ofstream os_statData;
@@ -2323,9 +2323,9 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
 }
 
 void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, BoundaryGeometry &bg, string fn) {
- 
+
 	if (!doHDF5_m) return;
-	
+
 	h5_int64_t rc;
     /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
@@ -2552,7 +2552,7 @@ void DataSink::writeGeomToVtk(BoundaryGeometry &bg, string fn) {
 void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
 
 	if (!doHDF5_m) return;
-	
+
     h5_int64_t rc;
     /// Define file names.
     string fn = OpalData::getInstance()->getInputBasename();
@@ -2690,7 +2690,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
 bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const size_t BinID) {
 
     if (!doHDF5_m) return false;
-	
+
     h5_int64_t rc;
     /// Define file names.
     string fn = OpalData::getInstance()->getInputBasename();
@@ -2811,7 +2811,7 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
 }
 
 /** \brief Find out which if we write HDF5 or not
- *   
+ *
  *
  *
  */
@@ -2843,7 +2843,7 @@ bool DataSink::isOPALt() {
 void DataSink::setOPALcycl() {
 
     if (!doHDF5_m) return;
-	
+
 	string OPALFlavour("opal-cycl");
     h5_int64_t rc = H5WriteStepAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
     if(rc != H5_SUCCESS)
@@ -2856,9 +2856,9 @@ void DataSink::setOPALcycl() {
  *
  */
 void DataSink::setOPALt() {
-  
+
 	if (!doHDF5_m) return;
-	
+
 	string OPALFlavour("opal-t");
     h5_int64_t rc = H5WriteStepAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
     if(rc != H5_SUCCESS)
@@ -2869,5 +2869,3 @@ void DataSink::setOPALt() {
  * $RCSfile: DataSink.cpp,v $   $Author: adelmann $
  * $Revision: 1.3 $   $Date: 2004/06/02 19:38:54 $
  ***************************************************************************/
-
-

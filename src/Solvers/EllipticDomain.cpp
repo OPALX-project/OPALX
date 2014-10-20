@@ -1,5 +1,7 @@
 #ifdef HAVE_SAAMG_SOLVER
 
+#include "Solvers/EllipticDomain.h"
+
 #include <map>
 #include <cmath>
 #include <iostream>
@@ -7,7 +9,6 @@
 
 //FIXME: ORDER HOW TO TRAVERSE NODES IS FIXED, THIS SHOULD BE MORE GENERIC! (PLACES MARKED)
 
-#include "EllipticDomain.h"
 
 EllipticDomain::EllipticDomain(Vector_t nr, Vector_t hr) {
     setNr(nr);

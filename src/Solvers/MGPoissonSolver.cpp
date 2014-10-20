@@ -1,7 +1,7 @@
 #ifdef HAVE_SAAMG_SOLVER
 #define DBG_STENCIL
 
-#include "MGPoissonSolver.h"
+#include "Solvers/MGPoissonSolver.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "ArbitraryDomain.h"

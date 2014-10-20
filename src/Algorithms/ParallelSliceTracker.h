@@ -4,7 +4,7 @@
 #include <vector>
 #include <list>
 
-class EnvelopeBunch;
+#include "Algorithms/bet/EnvelopeBunch.h"
 
 #include "Algorithms/Vektor.h"
 #include "Algorithms/Tracker.h"

@@ -1,5 +1,3 @@
-#include <iostream>
-#include <fstream>
 #include "Solvers/CSRIGFWakeFunction.hh"
 #include "Algorithms/PartBunch.h"
 #include "Filters/Filter.h"
@@ -8,6 +6,8 @@
 #include "AbsBeamline/SBend.h"
 #include "Utilities/Options.h"
 
+#include <iostream>
+#include <fstream>
 
 CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N):
     WakeFunction(name, element),

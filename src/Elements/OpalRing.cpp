@@ -1,29 +1,31 @@
-/* 
+/*
  *  Copyright (c) 2012-2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "Elements/OpalRing.h"
 
 #include <sstream>
 #include <limits>
@@ -36,8 +38,6 @@
 #include "Algorithms/PartBunch.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/OpalRingSection.h"
-
-#include "Elements/OpalRing.h"
 
 // fairly generous tolerance here... maybe too generous? Maybe should be
 // user parameter?
@@ -136,7 +136,7 @@ bool OpalRing::apply(const Vector_t &R, const Vector_t &centroid,
 
     std::vector<OpalRingSection*> sections = getSectionsAt(R);
     bool outOfBounds = true;
-    // assume field maps don't set B, E to 0... 
+    // assume field maps don't set B, E to 0...
     for (size_t i = 0; i < sections.size(); ++i) {
         Vector_t B_temp(0.0, 0.0, 0.0);
         Vector_t E_temp(0.0, 0.0, 0.0);
@@ -220,7 +220,7 @@ void OpalRing::rotateToCyclCoordinates(Euclid3D& delta) const {
     delta = euclid;
 }
 
- 
+
 Vector_t OpalRing::getNextPosition() const {
     if (section_list_m.size() > 0) {
         return section_list_m.back()->getEndPosition();
@@ -314,7 +314,7 @@ void OpalRing::lockRing() {
     // Apply symmetry properties; I think it is fastest to just duplicate
     // elements rather than try to do some angle manipulations when we do field
     // lookups because we do field lookups in Cartesian coordinates in general.
-    msg << "Applying symmetry to OpalRing" << endl;  
+    msg << "Applying symmetry to OpalRing" << endl;
     for (int i = 1; i < symmetry_m; ++i) {
         for (size_t j = 0; j < sectionListSize; ++j) {
             appendElement(*section_list_m[j]->getComponent());
@@ -351,7 +351,7 @@ void OpalRing::checkAndClose() {
     Vector_t last_pos = section_list_m.back()->getEndPosition();
     Vector_t last_norm = section_list_m.back()->getEndNormal();
     for (int i = 0; i < 3; ++i) {
-        if (fabs(first_pos(i) - last_pos(i)) > lengthTolerance_m || 
+        if (fabs(first_pos(i) - last_pos(i)) > lengthTolerance_m ||
             fabs(first_norm(i) - last_norm(i)) > angleTolerance_m)
             throw OpalException("OpalRing::lockRing",
                                 "Ring is not closed");
@@ -385,4 +385,3 @@ bool OpalRing::sectionCompare(OpalRingSection const* const sec1,
                               OpalRingSection const* const sec2) {
     return sec1 > sec2;
 }
-

@@ -1,9 +1,9 @@
-#include <fstream>
-#include <ios>
-
 #include "Fields/FM1DProfile1.hh"
 #include "Fields/Fieldmap.icc"
 #include "Physics/Physics.h"
+
+#include <fstream>
+#include <ios>
 
 FM1DProfile1::FM1DProfile1(std::string aFilename):
     Fieldmap(aFilename),

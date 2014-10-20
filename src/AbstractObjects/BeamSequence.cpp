@@ -16,7 +16,6 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"

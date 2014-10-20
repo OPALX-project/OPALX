@@ -1,6 +1,6 @@
 #ifdef HAVE_SAAMG_SOLVER
 
-#include "RectangularDomain.h"
+#include "Solvers/RectangularDomain.h"
 
 RectangularDomain::RectangularDomain(Vector_t nr, Vector_t hr) {
     setNr(nr);

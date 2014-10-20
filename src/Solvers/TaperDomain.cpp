@@ -1,6 +1,6 @@
 #ifdef HAVE_SAAMG_SOLVER
 
-#include "TaperDomain.h"
+#include "Solvers/TaperDomain.h"
 
 TaperDomain::TaperDomain(Vector_t nr, Vector_t hr) {
     setNr(nr);

@@ -15,8 +15,10 @@
 // $Author: jsberg $
 //
 // ------------------------------------------------------------------------
-#include "Ippl.h"
+
 #include "BasicActions/System.h"
+
+#include "Ippl.h"
 #include "Attributes/Attributes.h"
 
 #include <cstdlib>

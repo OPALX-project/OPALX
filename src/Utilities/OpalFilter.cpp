@@ -14,8 +14,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Filters/Filters.h"
 #include "Utilities/OpalFilter.h"
+
+#include "Filters/Filters.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Physics/Physics.h"

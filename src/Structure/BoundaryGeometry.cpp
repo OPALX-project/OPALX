@@ -6,11 +6,12 @@
 
 #define   ENABLE_DEBUG
 
+#include "Structure/BoundaryGeometry.h"
+
 #include <fstream>
 
 #include "H5hut.h"
 
-#include "Structure/BoundaryGeometry.h"
 #include "Structure/PriEmissionPhysics.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"

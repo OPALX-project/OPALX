@@ -1,12 +1,12 @@
-#include <fstream>
-#include <ios>
-
 #include "Fields/Astra1DElectroStatic.hh"
 #include "Fields/Fieldmap.icc"
 #include "Physics/Physics.h"
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_fft_real.h"
+
+#include <fstream>
+#include <ios>
 
 using namespace std;
 using Physics::mu_0;

@@ -1,9 +1,9 @@
-#include <fstream>
-#include <ios>
-
 #include "Fields/FM1DProfile2.hh"
 #include "Fields/Fieldmap.icc"
 #include "Physics/Physics.h"
+
+#include <fstream>
+#include <ios>
 
 using namespace std;
 using Physics::mu_0;

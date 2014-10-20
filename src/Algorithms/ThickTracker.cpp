@@ -18,9 +18,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include <cfloat>
-
 #include "Algorithms/ThickTracker.h"
+
+#include <cfloat>
 
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"

@@ -18,13 +18,13 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Physics/Physics.h"
 #include "AbsBeamline/Collimator.h"
+#include "Physics/Physics.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
-#include "Solvers/SurfacePhysicsHandler.hh"  
+#include "Solvers/SurfacePhysicsHandler.hh"
 #include <memory>
 
 extern Inform *gmsg;
@@ -168,10 +168,10 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
      range of the collimator
   */
   const double z = R(2) + P(2) * recpgamma;
-  
+
   if((z > position_m) && (z <= position_m + getElementLength())) {
     if(isAPepperPot_m) {
-      
+
     /**
        ------------
        |(0)|  |(0)|
@@ -187,13 +187,13 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
        Observation: the area in a) is much larger than the
        area(s) (0). In a) particles are lost in (0)
        particles they are not lost.
-       
+
     */
       const double h  =   pitch_m;
       const double xL = - 0.5 * h * (nHolesX_m - 1);
       const double yL = - 0.5 * h * (nHolesY_m - 1);
       bool alive = false;
-    
+
       for(unsigned int m = 0; (m < nHolesX_m && (!alive)); m++) {
 	for(unsigned int n = 0; (n < nHolesY_m && (!alive)); n++) {
 	  double x_m = xL  + (m * h);
@@ -210,10 +210,10 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
         return (R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize());
     } else if(isAWire_m) {
         ERRORMSG("Not yet implemented");
-    } else {            
+    } else {
         // case of an elliptic collimator
         const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
-        const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));                                 
+        const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));
         return (trm1 + trm2) > 1.0;
     }
   }
@@ -235,7 +235,7 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
     if(pdead) {
       double frac = (R(2) - position_m) / P(2) * recpgamma;
       lossDs_m->addParticle(R,P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
-    }    
+    }
     return pdead;
 }
 
@@ -302,15 +302,15 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
     position_m = startField;
     endField = position_m + getElementLength();
 
-    sphys_m = getSurfacePhysics();     
-    
+    sphys_m = getSurfacePhysics();
+
     if (!sphys_m) {
       if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
       else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
-    
+
     goOnline();
 }
 
@@ -325,7 +325,7 @@ void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
       else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
-    
+
     goOnline();
 }
 
@@ -423,7 +423,7 @@ void Collimator::setOutputFN(std::string fn) {
 string Collimator::getOutputFN() {
     if (filename_m == std::string(""))
         return getName();
-    else 
+    else
         return filename_m.substr(0, filename_m.rfind("."));
 }
 

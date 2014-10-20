@@ -1,8 +1,8 @@
-#include <fstream>
-#include <ios>
-
 #include "Fields/FM2DMagnetoStatic.hh"
 #include "Fields/Fieldmap.icc"
+
+#include <fstream>
+#include <ios>
 
 using namespace std;
 

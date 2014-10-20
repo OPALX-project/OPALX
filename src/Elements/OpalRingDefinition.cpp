@@ -25,9 +25,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "Elements/OpalRingDefinition.h"
+
 #include <limits>
 
-#include "Elements/OpalRingDefinition.h"
 #include "Elements/OpalRing.h"
 
 #include "Attributes/Attributes.h"

@@ -1,35 +1,36 @@
-/* 
+/*
  *  Copyright (c) 2012-2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Physics/Physics.h"
-#include "Utilities/OpalException.h"
 #include "Utilities/OpalRingSection.h"
 
-OpalRingSection::OpalRingSection() 
+#include "Physics/Physics.h"
+#include "Utilities/OpalException.h"
+
+OpalRingSection::OpalRingSection()
   : component_m(NULL),
     componentPosition_m(0.), componentOrientation_m(0.),
     startPosition_m(0.), startOrientation_m(0.),
@@ -42,7 +43,7 @@ OpalRingSection::OpalRingSection(const OpalRingSection& rhs)
     startPosition_m(0.), startOrientation_m(0.),
     endPosition_m(0.), endOrientation_m(0.) {
     *this = rhs;
-} 
+}
 
 OpalRingSection::~OpalRingSection() {
     //if (component_m != NULL)
@@ -170,7 +171,7 @@ bool OpalRingSection::doesOverlap(double phiStart, double phiEnd) const {
     bool hasBefore = false; // some elements in bb are before phiVirtualORS
     bool hasAfter = false; // some elements in bb are after phiVirtualORS
     for (size_t i = 0; i < virtualBB.size(); ++i) {
-        hasBefore = hasBefore || 
+        hasBefore = hasBefore ||
                     !phiVirtualORS.isOnOrPastStartPlane(virtualBB[i]);
         hasAfter = hasAfter ||
                    phiVirtualORS.isPastEndPlane(virtualBB[i]);
@@ -194,5 +195,3 @@ void OpalRingSection::rotate_back(Vector_t& vector) const {
     vector(0) = +cos2_m * temp(0) - sin2_m * temp(1);
     vector(1) = +sin2_m * temp(0) + cos2_m * temp(1);
 }
-
-

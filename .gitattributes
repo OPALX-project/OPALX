@@ -1036,8 +1036,6 @@ src/Structure/OpalWake.cpp -text
 src/Structure/OpalWake.h -text
 src/Structure/PriEmissionPhysics.cpp -text
 src/Structure/PriEmissionPhysics.h -text
-src/Structure/Restart.cpp -text
-src/Structure/Restart.h -text
 src/Structure/SecondaryEmissionPhysics.cpp -text
 src/Structure/SecondaryEmissionPhysics.h -text
 src/Structure/SurfacePhysics.cpp -text

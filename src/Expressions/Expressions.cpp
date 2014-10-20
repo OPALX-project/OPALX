@@ -17,8 +17,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
+
+#include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/PlaceRep.h"
 #include "AbstractObjects/RangeRep.h"
 #include "AbstractObjects/Table.h"

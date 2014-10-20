@@ -1,9 +1,9 @@
+#include "Structure/SecondaryEmissionPhysics.h"
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <sys/stat.h>
 #include "Algorithms/PartBunch.h"
-#include "Structure/SecondaryEmissionPhysics.h"
 #include "Utilities/Options.h"
 
 using namespace myeps;

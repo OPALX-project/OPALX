@@ -17,13 +17,13 @@
 // $Author: fci $
 //
 // ------------------------------------------------------------------------
+#include "AbsBeamline/Monitor.h"
 #include "Physics/Physics.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "AbsBeamline/Monitor.h"
 
 #include <memory>
 
@@ -85,7 +85,7 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) 
         double frac = (position_m - R(2)) / (P(2) * recpgamma);
 
         lossDs_m->addParticle(Vector_t(R(0) + frac * P(0) * recpgamma, R(1) + frac * P(1) * recpgamma, position_m),
-                                   P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);        
+                                   P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
     }
 
     return false;
@@ -172,7 +172,7 @@ map<string, unsigned int> Monitor::h5pfiles_s = map<string, unsigned int>();
 
     /*
     if (!Options::enableHDF5) return;
-	
+
 	reduce(online_m, online_m, OpOr());
 
     if(online_m) {
@@ -231,8 +231,8 @@ map<string, unsigned int> Monitor::h5pfiles_s = map<string, unsigned int>();
         std::unique_ptr<char> varray(new char[nLoc * sizeof(double)]);
         double *fvalues = reinterpret_cast<double*>(varray.get());
         h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
-	
-	  FixMe: if I write with nLoc==0 -> rc == -2	  
+
+	  FixMe: if I write with nLoc==0 -> rc == -2
 
 
 

@@ -15,12 +15,14 @@
 // $Author: adelmann, yang, winklehner $
 //
 // ------------------------------------------------------------------------
+
+#include "Algorithms/ParallelCyclotronTracker.h"
+
 #include <cfloat>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/ParallelCyclotronTracker.h"
 
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"

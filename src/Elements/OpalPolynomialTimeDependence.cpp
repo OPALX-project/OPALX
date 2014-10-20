@@ -25,9 +25,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "Elements/OpalPolynomialTimeDependence.h"
+
 #include <string>
 
-#include "Elements/OpalPolynomialTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 
 #include "Attributes/Attributes.h"

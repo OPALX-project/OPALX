@@ -25,11 +25,12 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "Elements/OpalOffset/OpalLocalCylindricalOffset.h"
+
 #include <string>
 
 #include "AbsBeamline/Offset.h"
 #include "Elements/OpalElement.h"
-#include "Elements/OpalOffset/OpalLocalCylindricalOffset.h"
 
 #include "Attributes/Attributes.h"
 

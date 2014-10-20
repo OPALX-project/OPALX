@@ -25,6 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "AbsBeamline/Offset.h"
+
 #include "math.h"
 
 #include "Utilities/OpalException.h"
@@ -32,7 +34,6 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Elements/OpalRing.h"
 
-#include "AbsBeamline/Offset.h"
 
 double Offset::float_tolerance = 1e-12;
 

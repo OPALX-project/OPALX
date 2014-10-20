@@ -10,6 +10,9 @@
 //   The class for the OPAL Distribution command.
 //
 // ------------------------------------------------------------------------
+
+#include "Distribution/Distribution.h"
+
 #include <cmath>
 #include <cfloat>
 #include <iomanip>
@@ -18,7 +21,6 @@
 #include <vector>
 #include <numeric>
 
-#include "Distribution/Distribution.h"
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
@@ -41,7 +43,7 @@
 
 extern Inform *gmsg;
 
-#define DISTDBG1	
+#define DISTDBG1
 #define noDISTDBG2
 
 //
@@ -703,7 +705,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         }
     }
 
-    *gmsg << "Restart from hdf5 format file " << fn 
+    *gmsg << "Restart from hdf5 format file " << fn
           << ", read phase space data of DumpStep " << (int)restartStep << endl;
 
     rc = H5SetStep(H5file, restartStep);
@@ -721,7 +723,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         endi = -1;
     else
         endi = starti + numberOfParticlesPerNode - 1;
-    
+
     rc = H5PartSetView(H5file, starti, endi);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -1529,7 +1531,7 @@ double Distribution::ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double mas
 
 void Distribution::CreateDistributionBinomial(size_t numberOfParticles, double massIneV) {
 
-    SetDistParametersBinomial(massIneV);    
+    SetDistParametersBinomial(massIneV);
     GenerateBinomial(numberOfParticles);
 }
 
@@ -1699,9 +1701,9 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      * for the first pass.
      */
 
-    /* 
-       Fixme: 
-       
+    /*
+       Fixme:
+
        avrgpz_m = beam.getP()/beam.getM();
     */
     size_t numberOfPartToCreate = numberOfParticles;
@@ -1781,7 +1783,7 @@ void Distribution::CreateOpalE(Beam *beam,
     ChooseInputMomentumUnits(InputMomentumUnitsT::NONE);
 
     SetDistType();
-    
+
     // Check if this is to be an emitted beam.
     CheckIfEmitted();
 
@@ -2349,14 +2351,14 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
 
     /*!
      *
-     * \brief Following W. Johos for his report  <a href="http://gfa.web.psi.ch/publications/presentations/WernerJoho/TM-11-14.pdf"> TM-11-14 </a> 
+     * \brief Following W. Johos for his report  <a href="http://gfa.web.psi.ch/publications/presentations/WernerJoho/TM-11-14.pdf"> TM-11-14 </a>
      *
      * For the \f$x,p_x\f$ phase space we have:
      * \f[
      *  \epsilon_x = \sigma_x \sigma_{p_x} \cos{( \arcsin{(\sigma_{12}) }) }
      *  \f]
      *
-     * \f{eqnarray*}{     
+     * \f{eqnarray*}{
      * \beta_x &=& \frac{\sigma_x^2}{\epsilon_x} \\
      * \gamma_x &=& \frac{\sigma_{p_x}^2}{\epsilon_x} \\
      * \alpha_x &=& -\sigma_{12} \sqrt{(\beta_x \gamma_x)} \\
@@ -2558,7 +2560,7 @@ void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
 void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
     gsl_rng_env_setup();
-    gsl_rng  *randGenStandard = gsl_rng_alloc(gsl_rng_default);  
+    gsl_rng  *randGenStandard = gsl_rng_alloc(gsl_rng_default);
     gsl_qrng *quasiRandGen2D = NULL;
 
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2631,7 +2633,7 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
 
     gsl_rng_env_setup();
-    gsl_rng *randGenStandard = gsl_rng_alloc(gsl_rng_default);  
+    gsl_rng *randGenStandard = gsl_rng_alloc(gsl_rng_default);
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2712,17 +2714,17 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
         gsl_qrng_free(quasiRandGen2D);
 }
 
-void Distribution::GenerateGaussZ(size_t numberOfParticles) { 
+void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 
     gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
+    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
 
     gsl_matrix * m  = gsl_matrix_alloc (6, 6);
     gsl_vector * rx = gsl_vector_alloc(6);
     gsl_vector * ry = gsl_vector_alloc(6);
-        
+
     int i,j;
-    
+
     for (i = 0; i < 6; i++) {
         for (j = 0; j < 6; j++) {
 	    if (i==j)
@@ -2742,7 +2744,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_matrix_set (m,0,5, distCorr_m.at(3));
     gsl_matrix_set (m,5,1, distCorr_m.at(4));
     gsl_matrix_set (m,1,5, distCorr_m.at(4));
-    
+
     gsl_matrix_set (m,4,0, distCorr_m.at(5));
     gsl_matrix_set (m,0,4, distCorr_m.at(5));
     gsl_matrix_set (m,4,1, distCorr_m.at(6));
@@ -2752,7 +2754,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < 6; j++) {
 	if (j==0)
-	  *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+	  *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = "
 		<< std::setprecision(3) << gsl_matrix_get (m, i, j);
 	else
 	  *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
@@ -2772,14 +2774,14 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
       for (int j = 0; j < i ; j++) {
 	gsl_matrix_set (m, i, j, 0.0);
       }
-    }        
+    }
     gsl_matrix_transpose(m);
 
 #ifdef DISTDBG2
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < 6; j++) {
 	if (j==0)
-	  *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = " 
+	  *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = "
 		<< std::setprecision(3) << gsl_matrix_get (m, i, j);
 	else
 	  *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
@@ -2787,7 +2789,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
       *gmsg << endl;
     }
 #endif
-    
+
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -2795,27 +2797,27 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 
       while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[0])
 	;
-      gsl_vector_set(rx,0,rval);       
+      gsl_vector_set(rx,0,rval);
 
       while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[0])
 	;
-      gsl_vector_set(rx,1,rval);       
+      gsl_vector_set(rx,1,rval);
 
       while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[1])
 	;
-      gsl_vector_set(rx,2,rval);       
+      gsl_vector_set(rx,2,rval);
 
       while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[1])
 	;
-      gsl_vector_set(rx,3,rval);       
+      gsl_vector_set(rx,3,rval);
 
       while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[2])
 	;
-      gsl_vector_set(rx,4,rval);       
+      gsl_vector_set(rx,4,rval);
 
       while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[2])
 	;
-      gsl_vector_set(rx,5,rval);       
+      gsl_vector_set(rx,5,rval);
 
       // Save to each processor in turn.
       saveProcessor++;
@@ -2833,7 +2835,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 	pyDist_m.push_back(           sigmaP_m[1]*gsl_vector_get(ry, 3));
 	tOrZDist_m.push_back(         sigmaR_m[2]*gsl_vector_get(ry, 4));
 	pzDist_m.push_back(avrgpz_m +(sigmaP_m[2]*gsl_vector_get(ry, 5)));
-      }      
+      }
     }
 
     /*
@@ -2914,7 +2916,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
         modulationPeriod = flattopTime / numModulationPeriods;
 
     gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
+    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
     if(Options::rngtype != std::string("RANDOM")) {
@@ -3009,7 +3011,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
             pzDist_m.push_back(pz);
         }
     }
-    
+
     gsl_rng_free(randGenGSL);
 
     if (randGen)
@@ -3026,7 +3028,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
 
     // Generate coordinates.
     gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);  
+    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
 
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
@@ -3043,7 +3045,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
         bool allow = false;
         while (!allow) {
 
-            
+
             random1 = gsl_ran_gaussian (randGen,1.0);
             random2 = gsl_ran_gaussian (randGen,1.0);
             x = random1 * sigmaR_m[0];
@@ -3148,7 +3150,7 @@ void Distribution::InjectBeam(PartBunch &beam) {
     pzDist_m.clear();
 
     beam.boundp();
-   
+
     if (distrTypeT_m != DistrTypeT::FROMFILE)
       beam.correctEnergy(avrgpz_m);
     beam.calcEMean();
@@ -4143,11 +4145,11 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
     cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
-    
+
     cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
-    
+
     if (mBinomial_m[2] == 0.0
         || Attributes::getReal(itsAttr[AttributesT::MZ]) != 0.0)
         mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::MZ]));
@@ -4292,9 +4294,9 @@ void Distribution::SetDistParametersGauss(double massIneV) {
     cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
-    
+
     std::vector<double> cr = Attributes::getRealArray(itsAttr[AttributesT::R]);
-    
+
     if(cr.size()>0) {
         if(cr.size() == 15) {
             *gmsg << "* Use r to specify correlations" << endl;
@@ -4316,17 +4318,17 @@ void Distribution::SetDistParametersGauss(double massIneV) {
         distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
         distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
         distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
-        
+
         // CORRZ overrides CORRT.
         if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
             distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
-        
+
         distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
         distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
         distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));    
+        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));
     }
-    
+
     if (emitting_m) {
 
         sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
@@ -4422,7 +4424,7 @@ void Distribution::SetupEmissionModelAstra(PartBunch &beam) {
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
 
     gsl_rng_env_setup();
-    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);  
+    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
 }
 
 void Distribution::SetupEmissionModelNone(PartBunch &beam) {
@@ -4447,7 +4449,7 @@ void Distribution::SetupEmissionModelNonEquil() {
                              + Physics::kB * cathodeTemp_m * log(1.0e9 - 1.0);
 
     gsl_rng_env_setup();
-    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);  
+    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
 }
 
 void Distribution::SetupEnergyBins(double maxTOrZ, double minTOrZ) {
@@ -4567,7 +4569,7 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
 
     if (Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT])!=0.0)
       WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
-    
+
     // Check input momentum units.
     switch (inputMoUnits_m) {
     case InputMomentumUnitsT::EV:

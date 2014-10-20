@@ -17,6 +17,8 @@
 //
 // ------------------------------------------------------------------------
 
+#include "Algorithms/ParallelTTracker.h"
+
 #include <cfloat>
 #include <iostream>
 #include <fstream>
@@ -26,7 +28,6 @@
 #include <limits>
 #include <cmath>
 
-#include "Algorithms/ParallelTTracker.h"
 #include "Algorithms/PartPusher.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"

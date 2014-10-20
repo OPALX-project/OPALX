@@ -1,6 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <ios>
 #include "Fields/Fieldmap.hh"
 #include "Fields/FM3DDynamic.hh"
 #include "Fields/FM3DH5Block.hh"
@@ -28,6 +25,10 @@
 #include "Fields/FM1DProfile2.hh"
 #include "Fields/FMDummy.hh"
 #include "H5hut.h"
+
+#include <iostream>
+#include <fstream>
+#include <ios>
 
 #define REGISTER_PARSE_TYPE(X) template <> struct Fieldmap::TypeParseTraits<X> \
     { static const char* name; } ; const char* Fieldmap::TypeParseTraits<X>::name = #X

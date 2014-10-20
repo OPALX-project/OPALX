@@ -25,12 +25,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
+
 #include <string>
 
 #include "AbsBeamline/Offset.h"
 #include "Utilities/OpalException.h"
 #include "Elements/OpalElement.h"
-#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
 
 #include "Attributes/Attributes.h"
 

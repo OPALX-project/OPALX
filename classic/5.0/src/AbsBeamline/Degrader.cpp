@@ -18,12 +18,12 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Physics/Physics.h"
 #include "AbsBeamline/Degrader.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
+#include "Physics/Physics.h"
 #include <memory>
 
 extern Inform *gmsg;
