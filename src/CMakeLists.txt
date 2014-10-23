@@ -118,9 +118,11 @@ set (OPAL_LIBS
     mpi_cxx
 )
 
-add_library( OPAL ${OPAL_SRCS} opal.cpp )
+add_library( OPALib ${OPAL_SRCS} opal.cpp )
+set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
+
 add_executable( opal Main.cpp )
-target_link_libraries( opal OPAL CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran)
+target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran)
 
 # build unit tests; unit tests are defined in unit_tests directory, we build the
 # executable here so that we can use the OPAL src and lib definitions
@@ -138,8 +140,8 @@ if (BUILD_OPAL_UNIT_TESTS)
     message(STATUS "unit test src files: ${TEST_SRCS}")
     # Build the test exe. We don't do an install on the unit test exe as it is
     # assumed that this is internal to opal
-    add_executable(${TEST_EXE} ${TEST_SRCS} ${OPAL_SRCS} ${CLASSIC_SRCS})
-    target_link_libraries(${TEST_EXE} -lOPAL -lCLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${GTEST_LINK_TARGETS} )
+    add_executable(${TEST_EXE} ${TEST_SRCS}) # the opal and classic sources are not needed again if we link agains libOPAL and libCLASSIC!
+    target_link_libraries(${TEST_EXE} OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_LINK_TARGETS} )
 endif (BUILD_OPAL_UNIT_TESTS)
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

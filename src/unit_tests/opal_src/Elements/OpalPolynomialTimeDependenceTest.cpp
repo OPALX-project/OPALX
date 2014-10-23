@@ -9,7 +9,7 @@ class TestElement : public ElementBase {
   public:
 
     TestElement() : ElementBase(), base(NULL), type("") {}
-    const string &getType() const {return type;}
+    const std::string &getType() const {return type;}
     BGeometryBase  &getGeometry() {
         return *base;
     }
@@ -51,6 +51,5 @@ TEST(OpalPolynomialTimeDependenceTest, UpdateTest) {
     // makes a segmentation fault...
     // dependence.fillRegisteredAttributes(element, OpalElement::IDEAL_FLAG);
     std::cerr << "DONE" << std::endl;
-    
-}
 
+}
