@@ -24,8 +24,7 @@ FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
     Type = T3DMagnetoStaticH5Block;
     h5_file_t *file = H5OpenFile(aFilename.c_str(), H5_O_RDONLY, Ippl::getComm());
 
-
-    if(file) {
+    if(file != (void*)H5_ERR) {
         h5_int64_t last_step = H5GetNumSteps(file) - 1;
         h5err = H5SetStep(file, last_step);
         if(h5err != H5_SUCCESS)
@@ -79,7 +78,7 @@ void FM3DMagnetoStaticH5Block::readMap() {
         Inform msg("FM3DMagH5 ");
         h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
 
-        if(file) {
+        if(file != (void*)H5_ERR) {
             h5_int64_t h5err;
 
             long field_size = 0;

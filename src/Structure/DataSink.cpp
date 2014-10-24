@@ -58,8 +58,8 @@ DataSink::DataSink() :
 #else
         H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
-        if(!H5file_m) {
-            ERRORMSG("h5 file open failed: exiting!" << endl);
+        if (H5file_m == (void*)H5_ERR) {
+	    ERRORMSG("h5 file " << fn.c_str() << " open failed: exiting!" << endl);
             exit(0);
         }
         /// Write file attributes.
@@ -125,7 +125,7 @@ DataSink::DataSink(int restartStep) :
 
     *gmsg << "Will append to " << fn << endl;
 
-    if(!H5file_m) {
+    if(H5file_m == (void*)H5_ERR) {
         ERRORMSG("h5 file open failed: exiting!" << endl);
         exit(0);
     }
@@ -2337,7 +2337,7 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
         H5fileS_m = H5OpenFile(surfacLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
 
-        if(!H5fileS_m) {
+        if(H5fileS_m == (void*)H5_ERR) {
             ERRORMSG("h5 file for surface loss open failed: exiting!" << endl);
             exit(0);
         }
@@ -2572,7 +2572,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
     H5file = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
 
-    if(!H5file) {
+    if(H5file == (void*)H5_ERR) {
         ERRORMSG("h5 file for backup bunch in OPAL-CYCL open failed: exiting!" << endl);
         exit(0);
     }
@@ -2702,7 +2702,7 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
 #else
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY);
 #endif
-    if(!H5file) {
+    if(H5file == (void*)H5_ERR) {
         ERRORMSG("File open failed:  exiting!" << endl);
         exit(0);
     }

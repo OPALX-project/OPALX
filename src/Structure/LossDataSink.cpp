@@ -52,7 +52,7 @@ void LossDataSink::openH5() {
     H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, 0);
 #endif
 
-    if(!H5file_m) {
+    if(H5file_m == (void*)H5_ERR) {
         ERRORMSG("h5 file open failed: exiting!" << endl);
         exit(0);
     }

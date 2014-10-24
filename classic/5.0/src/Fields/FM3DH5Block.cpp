@@ -25,8 +25,7 @@ FM3DH5Block::FM3DH5Block(std::string aFilename):
     Type = T3DDynamicH5Block;
     h5_file_t *file = H5OpenFile(aFilename.c_str(), H5_O_RDONLY, Ippl::getComm());
 
-
-    if(file) {
+    if(file != (void*)H5_ERR) {
         h5_int64_t last_step = H5GetNumSteps(file) - 1;
         h5err = H5SetStep(file, last_step);
         if(h5err != H5_SUCCESS)
@@ -82,7 +81,7 @@ void FM3DH5Block::readMap() {
         Inform msg("FM3DH5 ");
         h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
 
-        if(file) {
+        if(file != (void*)H5_ERR) {
             h5_int64_t h5err;
 
             long field_size = 0;

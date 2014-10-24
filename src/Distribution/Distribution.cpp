@@ -545,7 +545,7 @@ void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep) {
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, 0);
 #endif
 
-    if(!H5file) {
+    if(H5file == (void*)H5_ERR) {
         ERRORMSG("could not open file '" << fn << "';  exiting!" << endl);
         exit(0);
     }
@@ -690,7 +690,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, 0);
 #endif
 
-    if(!H5file) {
+    if(H5file == (void*)H5_ERR) {
         ERRORMSG("File open failed:  exiting!" << endl);
         exit(0);
     }
@@ -978,7 +978,7 @@ void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartSte
     H5file = H5PartOpenFile(fn.c_str(), H5_O_RDONLY, 0);
 #endif
 
-    if(!H5file) {
+    if(H5file == (void*)H5_ERR) {
         ERRORMSG("could not open file '" << fn << "';  exiting!" << endl);
         exit(0);
     }

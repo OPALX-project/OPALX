@@ -273,7 +273,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         h5_int64_t ftype;
 
         h5_file_t *file = H5OpenFile(Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
-        if(file) {
+        if(file != (void*)H5_ERR) {
             h5err = H5SetStep(file, 0);
             if(h5err != H5_SUCCESS)
                 ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
