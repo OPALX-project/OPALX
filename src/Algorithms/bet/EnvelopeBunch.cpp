@@ -794,11 +794,12 @@ void EnvelopeBunch::calcI() {
         vend--;
 
     //XXX: THIS LOOP IS THE EXPENSIVE PART!!!
+    int i, j;
 #ifdef _OPENMP
 #pragma omp parallel for private(i,j,dz)
 #endif //_OPENMP
-    for(int i = my_start; i <= vend; i++) {
-        int j = 1;
+    for(i = my_start; i <= vend; i++) {
+        j = 1;
         do {
             dz = fabs(z1[i+j] - z1[i-j]);
             j++;
@@ -829,7 +830,7 @@ void EnvelopeBunch::calcI() {
     double Mz1 = 0.0;
     double MI1 = 0.0;
     int np = 0;
-    int j = 0;
+    j = 0;
 
     // XXX: COMPUTE ON ALL NODES
     // first value
