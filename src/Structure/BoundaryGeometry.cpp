@@ -2163,10 +2163,10 @@ int BoundaryGeometry::doBGphysics (
     const int& triId
     ) {
     short BGtag = TriBGphysicstag_m[triId];
-    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
+    if (BGtag & BGphysics::Nop) {
         return -1;
-    } else if (((BGtag & BGphysics::Absorption) == BGphysics::Absorption)
-               && ((BGtag & BGphysics::FNEmission) != BGphysics::FNEmission)) {
+    } else if ((BGtag & BGphysics::Absorption) &&
+               !(BGtag & BGphysics::FNEmission)) {
         return 0;
     } else {
         return 1;
@@ -2191,58 +2191,50 @@ int BoundaryGeometry::doBGphysics (
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
     short BGtag = TriBGphysicstag_m[triId];
-    int ret = 0;
-    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
-        ret = - 1;
-    } else if ((BGtag & BGphysics::Absorption) == BGphysics::Absorption &&
-               (BGtag & BGphysics::FNEmission) != BGphysics::FNEmission &&
-               (BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission) {
-        ret = 0;
-    } else {
-        // Secondary Emission;
-        ret = 1;
+    if (BGtag & BGphysics::Nop) {
+        return -1;
+    } else if ((BGtag & BGphysics::Absorption) &&
+               !(BGtag & BGphysics::FNEmission) &&
+               !(BGtag & BGphysics::SecondaryEmission)) {
+        return 0;
+    } else if (BGtag & BGphysics::SecondaryEmission) {
         int se_Num = 0;
         int seType = 0;
-        if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
-            double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
-                              sqrt (dot (incMomentum, incMomentum));
-            if (cosTheta < 0) {
-                //cosTheta should be positive
-                ERRORMSG("cosTheta = " << cosTheta
-                         << " intecoords " << intecoords (0) << " " << intecoords (1)
-                         << " " << intecoords (2) << " "
-                         << endl);
-                ERRORMSG("incident momentum=("
-                         << incMomentum (0) << "," << incMomentum (1) << "," << incMomentum (2) << ")"
-                         << " triNormal=("
-                         << TriNormals_m[triId](0) << ","
-                         << TriNormals_m[triId](1) << "," << TriNormals_m[triId](2) << ") "
-                         << endl);
-            }
-            assert(cosTheta>=0);
-            int idx = 0;
-            if (intecoords != Point (triId, 1)) {
-                idx = 1; // intersection is not the 1st vertex
-            } else {
-                idx = 2; // intersection is the 1st vertex
-            }
-            sec_phys_m.nSec (incEnergy,
-                             cosTheta,
-                             seBoundaryMatType_m,
-                             se_Num,
-                             seType,
-                             incQ,
-                             TriNormals_m[triId],
-                             intecoords,
-                             Point (triId, idx),
-                             itsBunch,
-                             seyNum,
-                             ppVw_m,
-                             vVThermal_m,
-                             nEmissionMode_m);
+
+        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
+            sqrt (dot (incMomentum, incMomentum));
+        if (cosTheta < 0) {
+            //cosTheta should be positive
+            ERRORMSG("cosTheta = " << cosTheta
+                     << " intecoords = " << intecoords
+                     << endl);
+            ERRORMSG("incident momentum = " << incMomentum
+                     << " triNormal = " << TriNormals_m[triId]
+                     << endl);
         }
+        assert(cosTheta>=0);
+        int idx = 0;
+        if (intecoords != Point (triId, 1)) {
+            idx = 1; // intersection is not the 1st vertex
+        } else {
+            idx = 2; // intersection is the 1st vertex
+        }
+        sec_phys_m.nSec (incEnergy,
+                         cosTheta,
+                         seBoundaryMatType_m,
+                         se_Num,
+                         seType,
+                         incQ,
+                         TriNormals_m[triId],
+                         intecoords,
+                         Point (triId, idx),
+                         itsBunch,
+                         seyNum,
+                         ppVw_m,
+                         vVThermal_m,
+                         nEmissionMode_m);
     }
-    return ret;
+    return 1;
 }
 
 /**
@@ -2262,66 +2254,62 @@ int BoundaryGeometry::doBGphysics (
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
     short BGtag = TriBGphysicstag_m[triId];
-    int ret = 0;
-    if ((BGtag & BGphysics::Nop) == BGphysics::Nop) {
-        ret = - 1;
-    } else if (((BGtag & BGphysics::Absorption) == BGphysics::Absorption) &&
-               ((BGtag & BGphysics::FNEmission) != BGphysics::FNEmission) &&
-               ((BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission)) {
-        ret = 0;
-    } else {
-        // Secondary Emission;
+    if (BGtag & BGphysics::Nop) {
+        return -1;
+    } else if ((BGtag & BGphysics::Absorption) &&
+               !(BGtag & BGphysics::FNEmission) &&
+               !(BGtag & BGphysics::SecondaryEmission)) {
+        return 0;
+    } else if (BGtag & BGphysics::SecondaryEmission) {
         int se_Num = 0;
         int seType = 0;
-        if ((BGtag & BGphysics::SecondaryEmission) == BGphysics::SecondaryEmission) {
-            double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
-                              sqrt (dot (incMomentum, incMomentum));
-            //cosTheta should be positive
-            if (cosTheta < 0) {
-                INFOMSG ("incident momentum=" << incMomentum
-                                              << " triNormal=" << TriNormals_m[triId]
-                                              << " dot=" << dot (incMomentum, TriNormals_m[triId])
-                                              << " cosTheta = " << cosTheta
-                                              << endl);
-            }
-            //assert(cosTheta>=0);
-            int idx = 0;
-            if (intecoords != Point (triId, 1)) {
-                // intersection is not the 1st vertex
-                idx = 1;
-            } else {
-                // intersection is the 1st vertex
-                idx = 2;
-            }
-            sec_phys_m.nSec (incEnergy,
-                             cosTheta,
-                             se_Num,
-                             seType,
-                             incQ,
-                             TriNormals_m[triId],
-                             intecoords,
-                             Point (triId, idx),
-                             itsBunch,
-                             seyNum,
-                             ppVw_m,
-                             vSeyZero_m,
-                             vEzero_m,
-                             vSeyMax_m,
-                             vEmax_m,
-                             vKenergy_m,
-                             vKtheta_m,
-                             vVThermal_m,
-                             nEmissionMode_m);
+        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
+            sqrt (dot (incMomentum, incMomentum));
+        //cosTheta should be positive
+        if (cosTheta < 0) {
+            INFOMSG ("incident momentum=" << incMomentum
+                     << " triNormal=" << TriNormals_m[triId]
+                     << " dot=" << dot (incMomentum, TriNormals_m[triId])
+                     << " cosTheta = " << cosTheta
+                     << endl);
         }
+        //assert(cosTheta>=0);
+        int idx = 0;
+        if (intecoords != Point (triId, 1)) {
+            // intersection is not the 1st vertex
+            idx = 1;
+        } else {
+            // intersection is the 1st vertex
+            idx = 2;
+        }
+        sec_phys_m.nSec (incEnergy,
+                         cosTheta,
+                         se_Num,
+                         seType,
+                         incQ,
+                         TriNormals_m[triId],
+                         intecoords,
+                         Point (triId, idx),
+                         itsBunch,
+                         seyNum,
+                         ppVw_m,
+                         vSeyZero_m,
+                         vEzero_m,
+                         vSeyMax_m,
+                         vEmax_m,
+                         vKenergy_m,
+                         vKtheta_m,
+                         vVThermal_m,
+                         nEmissionMode_m);
     }
-    return ret;
+    return 1;
 }
 
 /**
    Here we call field emission model.
+
+   \return number of emitted electrons
  */
-/// \returns size_t
-///     - number of emitted electrons at the surface
 size_t BoundaryGeometry::doFNemission (
     OpalBeamline& itsOpalBeamline,
     PartBunch* itsBunch,
@@ -2330,42 +2318,35 @@ size_t BoundaryGeometry::doFNemission (
     // Self-field is not considered at moment. Only 1D Child-Langmuir law is
     // implemented for space charge limited current density.
     const double fa = parameterFNA_m / workFunction_m * fieldEnhancement_m * fieldEnhancement_m;
-    /*  int node_num = Ippl::getNodes();
-
-       size_t *count = new size_t [node_num];
-       // itsBunch->getLocalNum();
-       for(int i = 0; i < node_num; i++) {
-
-       count[i] = 0;
-
-       }*/
     size_t Nstp = 0;
     for (int i = 0; i < numTriangles_m; i++) {
-        if ((TriBGphysicstag_m[i] & BGphysics::FNEmission) == BGphysics::FNEmission) {
-            Vector_t E (0.0), B (0.0);
-            Vector_t centroid (0.0);
-            itsOpalBeamline.getFieldAt (TriBarycenters_m[i], centroid, t, E, B);
-            double Enormal = dot (TriNormals_m[i], E);
-            /* Enormal should be negative as E field direction should be
-               opposite to inward normal of surface */
-            if (Enormal < fieldFNthreshold_m) {
-                std::vector<Vector_t> vertex;
-                vertex.push_back (Point (i, 1));
-                vertex.push_back (Point (i, 2));
-                vertex.push_back (Point (i, 3));
-                PriEmissionPhysics::Fieldemission (itsBunch, fa, Enormal,
-                                                   parameterFNB_m,
-                                                   workFunction_m,
-                                                   parameterFNVYZe_m,
-                                                   parameterFNVYSe_m,
-                                                   parameterFNY_m,
-                                                   fieldEnhancement_m,
-                                                   maxFNemission_m,
-                                                   TriAreas_m[i],
-                                                   vertex,
-                                                   TriNormals_m[i],
-                                                   Nstp);
-            }
+        if ( !(TriBGphysicstag_m[i] & BGphysics::FNEmission)) {
+            // skip triangles without emission
+            continue;
+        }
+        Vector_t E (0.0), B (0.0);
+        Vector_t centroid (0.0);
+        itsOpalBeamline.getFieldAt (TriBarycenters_m[i], centroid, t, E, B);
+        double Enormal = dot (TriNormals_m[i], E);
+        /* Enormal should be negative as E field direction should be
+           opposite to inward normal of surface */
+        if (Enormal < fieldFNthreshold_m) {
+            std::vector<Vector_t> vertex;
+            vertex.push_back (Point (i, 1));
+            vertex.push_back (Point (i, 2));
+            vertex.push_back (Point (i, 3));
+            PriEmissionPhysics::Fieldemission (itsBunch, fa, Enormal,
+                                               parameterFNB_m,
+                                               workFunction_m,
+                                               parameterFNVYZe_m,
+                                               parameterFNVYSe_m,
+                                               parameterFNY_m,
+                                               fieldEnhancement_m,
+                                               maxFNemission_m,
+                                               TriAreas_m[i],
+                                               vertex,
+                                               TriNormals_m[i],
+                                               Nstp);
         }
     }
     *gmsg << "* Emit " << Nstp << " field emission particles at the surfaces" << endl;
@@ -2384,14 +2365,14 @@ void BoundaryGeometry::createParticlesOnSurface (
     ) {
     int tag = 1002;
     int Parent = 0;
-    if (Ippl::myNode () == 0) {
+    if (Ippl::myNode () == Parent) {
         for (size_t i = 0; i < n; i++) {
             short BGtag = BGphysics::Absorption;
             int k = 0;
             Vector_t E (0.0), B (0.0);
-            while (((BGtag & BGphysics::Absorption) == BGphysics::Absorption &&
-                    (BGtag & BGphysics::FNEmission) != BGphysics::FNEmission &&
-                    (BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission)
+            while (((BGtag & BGphysics::Absorption) &&
+                    !(BGtag & BGphysics::FNEmission) &&
+                    !(BGtag & BGphysics::SecondaryEmission))
                    ||
                    (fabs (E (0)) < eInitThreshold_m &&
                     fabs (E (1)) < eInitThreshold_m &&
@@ -2548,29 +2529,24 @@ void BoundaryGeometry::createPriPart (
         if (Ippl::myNode () == 0) {
             for (size_t i = 0; i < n; i++) {
                 short BGtag = BGphysics::Absorption;
-                int k = 0;
                 Vector_t E (0.0), B (0.0);
-                while ((((BGtag & BGphysics::Absorption) == BGphysics::Absorption) &&
-                        ((BGtag & BGphysics::FNEmission) != BGphysics::FNEmission) &&
-                        ((BGtag & BGphysics::SecondaryEmission) != BGphysics::SecondaryEmission))
+                Vector_t priPart;
+                while (((BGtag & BGphysics::Absorption) &&
+                        !(BGtag & BGphysics::FNEmission) &&
+                        !(BGtag & BGphysics::SecondaryEmission))
                        ||
                        (fabs (E (0)) < eInitThreshold_m &&
                         fabs (E (1)) < eInitThreshold_m &&
                         fabs (E (2)) < eInitThreshold_m)) {
+                    Vector_t centroid (0.0);
                     E = Vector_t (0.0);
                     B = Vector_t (0.0);
-                    int tmp = (int)(IpplRandom () * numTriangles_m);
-                    BGtag = TriBGphysicstag_m[tmp];
-                    k = tmp;
-                    Vector_t centroid (0.0);
-                    itsOpalBeamline.getFieldAt (
-                        TriBarycenters_m[k] + darkinward * TriNormals_m[k],
-                        centroid,
-                        itsBunch->getdT (),
-                        E,
-                        B);
+                    const int triangle_id = (int)(IpplRandom () * numTriangles_m);
+                    BGtag = TriBGphysicstag_m[triangle_id];
+                    priPart = TriBarycenters_m[triangle_id] + darkinward * TriNormals_m[triangle_id];
+                    itsOpalBeamline.getFieldAt (priPart, centroid, itsBunch->getdT (), E, B);
                 }
-                partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
+                partsr_m.push_back (priPart);
             }
             Message* mess = new Message ();
             putMessage (*mess, partsr_m.size ());
