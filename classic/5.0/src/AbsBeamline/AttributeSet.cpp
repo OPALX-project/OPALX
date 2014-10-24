@@ -21,7 +21,6 @@
 
 #include "AbsBeamline/AttributeSet.h"
 #include "Channels/Channel.h"
-#include "AbsBeamline/ElementBase.h"
 #include "Channels/DirectChannel.h"
 
 

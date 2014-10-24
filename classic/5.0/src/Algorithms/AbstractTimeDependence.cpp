@@ -1,4 +1,6 @@
 #include "Algorithms/AbstractTimeDependence.h"
+#include "Utilities/OpalException.h"
+
 #include <sstream>
 
 std::map<std::string, AbstractTimeDependence*> AbstractTimeDependence::td_map =

@@ -57,14 +57,13 @@ add_subdirectory(Utilities)
 
 
 include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR} 
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
     ${GSL_INCLUDE_DIR}
     ${IPPL_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src  # libclassic should not have any dependencies on libopal
 )
 
 add_library( CLASSIC ${CLASSIC_SRCS} )
-

@@ -9,7 +9,6 @@
 // $Author: Bi, Yang, Stachel, Adelmann$
 //-------------------------------------------------------------------------
 #include <vector>
-#include "Ippl.h"
 #include "Solvers/SurfacePhysicsHandler.hh"
 #include "Algorithms/Vektor.h"
 #include "AbsBeamline/Component.h"
@@ -19,6 +18,7 @@
 class ElementBase;
 class PartBunch;
 class LossDataSink;
+class Inform;
 
 typedef struct {
     int label;
@@ -31,7 +31,7 @@ typedef struct {
     double Qincol;
     long LastSecincol;
     Vector_t Bfincol;
-    Vector_t Efincol;    
+    Vector_t Efincol;
 } PART;
 
 
@@ -59,7 +59,7 @@ public:
 private:
 
     gsl_rng *rGen_m;
-       
+
     std::string material_m;
     std::string FN_m;
     std::string collshape_m;
@@ -100,7 +100,7 @@ private:
     double time_m;
 
     std::vector<PART> locParts_m;
-  
+
     std::unique_ptr<LossDataSink> lossDs_m;
 
     void copyFromBunch(PartBunch &bunch);

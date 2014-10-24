@@ -1527,19 +1527,6 @@ void ParallelTTracker::Tracker_Default() {
     secondaryFlg_m = false;
     dtTrack_m = itsBunch->getdT();
 
-    double testPhi = 22.0 / 180.0 * Physics::pi;
-    double testTheta = 112 / 180.0 * Physics::pi;
-    Vector_t testA(1.0, 0,0);
-    Vector_t testB(cos(testPhi)*sin(testTheta), sin(testPhi)*sin(testTheta), cos(testTheta));
-    Quaternion testQ = getQuaternion(testA, testB);
-
-    Vector_t testC = testQ.rotate(testA);
-    msg << __FILE__ << ": " << __LINE__ << "\n"
-        << testC << "\n"
-        << testB << endl;
-
-    // msg << testB << "\n"
-    //     << testC << endl;
     // upper limit of particle number when we do field emission and secondary emission
     // simulation. Could be reset to another value in input file with MAXPARTSNUM.
     maxNparts_m = 100000000;

@@ -20,13 +20,11 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/AttributeSet.h"
 #include "Beamlines/SimpleBeamline.h"
 #include "Parser/Parser.h"
 #include <string>
 
 class TokenStream;
-
 
 // Class ClassicParser
 // ------------------------------------------------------------------------

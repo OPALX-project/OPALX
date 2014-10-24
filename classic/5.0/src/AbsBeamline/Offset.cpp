@@ -27,7 +27,7 @@
 
 #include "AbsBeamline/Offset.h"
 
-#include "math.h"
+#include <cmath>
 
 #include "Utilities/OpalException.h"
 #include "BeamlineGeometry/Euclid3DGeometry.h"

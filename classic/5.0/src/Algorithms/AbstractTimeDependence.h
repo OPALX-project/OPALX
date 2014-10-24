@@ -4,8 +4,6 @@
 #include <string>
 #include <map>
 
-#include "Utilities/OpalException.h"
-
 /** Time dependence abstraction for field parameters that vary slowly with time
  */
 class AbstractTimeDependence {
@@ -28,4 +26,3 @@ class AbstractTimeDependence {
 };
 
 #endif
-

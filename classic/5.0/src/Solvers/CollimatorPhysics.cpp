@@ -17,6 +17,7 @@
 #include "AbsBeamline/Multipole.h"
 #include "Structure/LossDataSink.h"
 
+#include "Ippl.h"
 
 #include <iostream>
 #include <fstream>

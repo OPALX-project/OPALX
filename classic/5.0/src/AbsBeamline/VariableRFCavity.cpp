@@ -30,6 +30,7 @@
 #include "Physics/Physics.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Utilities/OpalException.h"
 
 VariableRFCavity::VariableRFCavity(const std::string &name) : Component(name) {
     initNull();  // initialise everything to NULL

@@ -28,7 +28,7 @@
 #include "BeamlineGeometry/Euclid3DGeometry.h"
 
 #include "Utilities/OpalException.h"
-#include "math.h"
+#include <cmath>
 
 Euclid3DGeometry::Euclid3DGeometry(Euclid3D transformation)
     : BGeometryBase(), transformation_m(transformation) {
