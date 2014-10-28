@@ -31,6 +31,10 @@ extern Inform *gmsg;
 
 Multipole::Multipole():
     Component(),
+    NormalComponents(1, 0.0),
+    SkewComponents(1, 0.0),
+    max_SkewComponent_m(1),
+    max_NormalComponent_m(1),
     myFieldmap_m(NULL) {
     setElType(isMultipole);
 }
@@ -49,10 +53,10 @@ Multipole::Multipole(const Multipole &right):
 
 Multipole::Multipole(const std::string &name):
     Component(name),
-    NormalComponents(4, 0.0),
-    SkewComponents(4, 0.0),
-    max_SkewComponent_m(0),
-    max_NormalComponent_m(0),
+    NormalComponents(1, 0.0),
+    SkewComponents(1, 0.0),
+    max_SkewComponent_m(1),
+    max_NormalComponent_m(1),
     myFieldmap_m(NULL) {
     setElType(isMultipole);
 }
@@ -79,34 +83,41 @@ double Multipole::getSkewComponent(int n) const {
 
 void Multipole::setNormalComponent(int n, double v) {
     //   getField().setNormalComponent(n, v);
-    NormalComponents[n-2] = v; //starting from the quad (= 2)
-    if(n - 1 > max_NormalComponent_m)
-        max_NormalComponent_m = n - 1;
-}
+    PAssert(n > 1);
 
+    if(n - 1 >  max_NormalComponent_m) {
+        max_NormalComponent_m = n - 1;
+        NormalComponents.resize(max_NormalComponent_m, 0.0);
+    }
+    NormalComponents[n - 2] = v; //starting from the quad (= 2)
+}
 
 void Multipole::setSkewComponent(int n, double v) {
     //   getField().setSkewComponent(n, v);
-    SkewComponents[n-2] = v;  //starting from the quad (= 2)
-    if(n - 1 > max_SkewComponent_m)
+    PAssert(n > 1);
+
+    if(n - 1 > max_SkewComponent_m) {
         max_SkewComponent_m = n - 1;
+        SkewComponents.resize(max_SkewComponent_m, 0.0);
+    }
+    SkewComponents[n - 2] = v;  //starting from the quad (= 2)
 }
 
 double Multipole::EngeFunc(double z) {
-  const double a1 = 0.296417; 
-  const double a2 = 4.533; 
-  const double a3 = -2.27; 
-  const double a4 = 1.06; 
-  const double a5 = -0.03; 
+  const double a1 = 0.296417;
+  const double a2 = 4.533;
+  const double a3 = -2.27;
+  const double a4 = 1.06;
+  const double a5 = -0.03;
   const double a6 = 0.02;					\
   const double DD = 0.99;
 
-  const double y = z - 1.0; 
-  return 1.0/(1 + std::exp(a1 + a2*(y/DD) + a3*std::pow(y/DD,2) + a4*std::pow(y/DD,3) + a5*std::pow(y/DD,4) + a6*std::pow(y/DD,5)));    
+  const double y = z - 1.0;
+  return 1.0/(1 + std::exp(a1 + a2*(y/DD) + a3*std::pow(y/DD,2) + a4*std::pow(y/DD,3) + a5*std::pow(y/DD,4) + a6*std::pow(y/DD,5)));
 }
 
 double Multipole::EngeFact(double z) {
-  // Normalize 
+  // Normalize
   const double lFringe = std::abs(endField_m-startField_m);
   const double zn = (z - startField_m) / lFringe;
 
@@ -174,7 +185,7 @@ void Multipole::addKT(int i, double t, Vector_t &K) {
 
 bool Multipole::apply(const size_t &i, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    
+
     const Vector_t Rt(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - ds_m);
     // before misalignment    Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
 
@@ -371,4 +382,3 @@ const std::string &Multipole::getType() const {
     static const std::string type("Multipole");
     return type;
 }
-

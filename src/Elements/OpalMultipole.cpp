@@ -142,11 +142,13 @@ void OpalMultipole::update() {
         factor /= double(comp);
         if(comp <= normSize) {
             field.setNormalComponent(comp, norm[comp-1] * factor);
-            mult->setNormalComponent(comp, norm[comp-1]);
+            if (comp > 1) // dipole not supported in opal-t yet
+                mult->setNormalComponent(comp, norm[comp-1]);
         }
         if(comp <= skewSize) {
             field.setSkewComponent(comp, skew[comp-1] * factor);
-            mult->setSkewComponent(comp, skew[comp-1]);
+            if (comp > 1) //dipole not supported in opal-t yet
+                mult->setSkewComponent(comp, skew[comp-1]);
         }
     }
 
