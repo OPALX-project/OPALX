@@ -2,6 +2,7 @@
 #define OPAL_SECTION_H
 
 #include <vector>
+#include <memory>
 
 #include "Solvers/SurfacePhysicsHandler.hh"
 #include "AbsBeamline/Component.h"
@@ -10,7 +11,7 @@ class WakeFunction;
 class SurfacePhysicsHandler;
 class BoundaryGeometry;
 
-typedef std::vector<Component *> CompVec;
+typedef std::vector<std::shared_ptr<Component> > CompVec;
 
 class OpalSection {
 public:
@@ -31,7 +32,7 @@ public:
     const bool &getStatus() const;
 
     WakeFunction *getWakeFunction();
-    const ElementBase *getWakeFunctionOwner();
+    std::shared_ptr<const ElementBase> getWakeFunctionOwner();
 
     SurfacePhysicsHandler *getSurfacePhysicsHandler();
     BoundaryGeometry *getBoundaryGeometry();
@@ -41,8 +42,8 @@ public:
     const bool &hasBoundaryGeometry() const;
     const bool &hasSurfacePhysics() const;
 
-    void push_back(Component *);
-    bool find(const Component *) const;
+    void push_back(std::shared_ptr<Component>);
+    bool find(const std::shared_ptr<Component>) const;
     CompVec &getElements();
 
     void print(Inform &) const;
@@ -65,7 +66,7 @@ private:
     bool has_surface_physics_m;
     bool is_live_m;
     WakeFunction *wakefunction_m;
-    const ElementBase *wakeFunctionOwner_m;
+    std::shared_ptr<const ElementBase> wakeFunctionOwner_m;
     SurfacePhysicsHandler *sphys_handler_m;
     BoundaryGeometry *boundarygeometry_m;
 
@@ -141,7 +142,7 @@ inline WakeFunction *OpalSection::getWakeFunction() {
     return wakefunction_m;
 }
 
-inline const ElementBase *OpalSection::getWakeFunctionOwner() {
+inline std::shared_ptr<const ElementBase> OpalSection::getWakeFunctionOwner() {
     return wakeFunctionOwner_m;
 }
 
@@ -161,7 +162,7 @@ inline const bool &OpalSection::doesBend() const {
     return bends_m;
 }
 
-inline void OpalSection::push_back(Component *cmp) {
+inline void OpalSection::push_back(std::shared_ptr<Component> cmp) {
     elements_m.push_back(cmp);
 }
 

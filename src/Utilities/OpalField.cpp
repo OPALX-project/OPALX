@@ -2,7 +2,7 @@
 
 extern Inform *gmsg;
 
-OpalField::OpalField(Component *element, const double &start, const double &end):
+OpalField::OpalField(std::shared_ptr<Component> element, const double &start, const double &end):
     element_m(element),
     start_m(start),
     end_m(end),

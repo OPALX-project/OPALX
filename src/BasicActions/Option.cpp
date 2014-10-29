@@ -19,12 +19,10 @@
 #include "BasicActions/Option.h"
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
-#include "Utilities/Options.h"
+//#include "Utilities/Options.h"
 #include "Utilities/Random.h"
 #include <ctime>
 #include <iostream>
-
-using namespace Options;
 
 extern Inform *gmsg;
 
@@ -160,6 +158,8 @@ namespace {
         SIZE
     };
 }
+
+using namespace Options;
 
 
 Option::Option():

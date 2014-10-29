@@ -1,4 +1,4 @@
-#include "Fields/FM3DH5Block_nonescale.hh"
+#include "Fields/FM3DH5Block_nonscale.hh"
 #include "Fields/Fieldmap.icc"
 #include "H5hut.h"
 #include "Physics/Physics.h"
@@ -11,7 +11,7 @@ extern Inform *gmsg;
 using namespace std;
 using Physics::mu_0;
 
-FM3DH5Block_nonescale::FM3DH5Block_nonescale(std::string aFilename):
+FM3DH5Block_nonscale::FM3DH5Block_nonscale(std::string aFilename):
     Fieldmap(aFilename) {
     Inform msg("FM3DH5 ");
     h5_err_t h5err;
@@ -72,11 +72,11 @@ FM3DH5Block_nonescale::FM3DH5Block_nonescale(std::string aFilename):
 }
 
 
-FM3DH5Block_nonescale::~FM3DH5Block_nonescale() {
+FM3DH5Block_nonscale::~FM3DH5Block_nonscale() {
 
 }
 
-void FM3DH5Block_nonescale::readMap() {
+void FM3DH5Block_nonscale::readMap() {
     if(FieldstrengthEz_m.empty()) {
         Inform msg("FM3DH5_NS ");
         h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
@@ -179,7 +179,7 @@ void FM3DH5Block_nonescale::readMap() {
     }
 }
 
-void FM3DH5Block_nonescale::freeMap() {
+void FM3DH5Block_nonscale::freeMap() {
     if(!FieldstrengthEz_m.empty()) {
         Inform msg("FM3DH5_NS ");
         FieldstrengthEx_m.clear();
@@ -194,7 +194,7 @@ void FM3DH5Block_nonescale::freeMap() {
     }
 }
 
-bool FM3DH5Block_nonescale::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
+bool FM3DH5Block_nonscale::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
     const int index_x = static_cast<int>(floor((R(0) - xbegin_m) / hx_m));
     const double lever_x = (R(0) - xbegin_m) / hx_m - index_x;
 
@@ -276,33 +276,33 @@ bool FM3DH5Block_nonescale::getFieldstrength(const Vector_t &R, Vector_t &E, Vec
     return false;
 }
 
-bool FM3DH5Block_nonescale::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM3DH5Block_nonscale::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
     return false;
 }
 
-void FM3DH5Block_nonescale::getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const {
+void FM3DH5Block_nonscale::getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const {
     zBegin = zbegin_m;
     zEnd = zend_m;
     rBegin = xbegin_m;
     rEnd = xend_m;
 }
-void FM3DH5Block_nonescale::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
+void FM3DH5Block_nonscale::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
-void FM3DH5Block_nonescale::swap() { }
+void FM3DH5Block_nonscale::swap() { }
 
-void FM3DH5Block_nonescale::getInfo(Inform *msg) {
+void FM3DH5Block_nonscale::getInfo(Inform *msg) {
     (*msg) << Filename_m << " (3D dynamic); zini= " << zbegin_m << " m; zfinal= " << zend_m << " m;" << endl;
 }
 
-double FM3DH5Block_nonescale::getFrequency() const {
+double FM3DH5Block_nonscale::getFrequency() const {
     return frequency_m;
 }
 
-void FM3DH5Block_nonescale::setFrequency(double freq) {
+void FM3DH5Block_nonscale::setFrequency(double freq) {
     frequency_m = freq;
 }
 
-void FM3DH5Block_nonescale::getOnaxisEz(vector<pair<double, double> > & F) {
+void FM3DH5Block_nonscale::getOnaxisEz(vector<pair<double, double> > & F) {
     double Ez_max = 0.0, dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
     const int index_x = -static_cast<int>(floor(xbegin_m / hx_m));
     const double lever_x = -xbegin_m / hx_m - index_x;

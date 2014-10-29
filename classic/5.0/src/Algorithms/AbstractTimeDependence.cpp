@@ -3,10 +3,10 @@
 
 #include <sstream>
 
-std::map<std::string, AbstractTimeDependence*> AbstractTimeDependence::td_map =
-                              std::map<std::string, AbstractTimeDependence*>();
+std::map<std::string, std::shared_ptr<AbstractTimeDependence> > AbstractTimeDependence::td_map =
+    std::map<std::string, std::shared_ptr<AbstractTimeDependence> >();
 
-AbstractTimeDependence* AbstractTimeDependence::getTimeDependence(std::string name) {
+std::shared_ptr<AbstractTimeDependence> AbstractTimeDependence::getTimeDependence(std::string name) {
     if (td_map.find(name) != td_map.end()) {
         return td_map[name];
     } else {
@@ -16,15 +16,15 @@ AbstractTimeDependence* AbstractTimeDependence::getTimeDependence(std::string na
 }
 
 void AbstractTimeDependence::setTimeDependence(std::string name,
-                                               AbstractTimeDependence* time_dep) {
-    if (td_map.find(name) != td_map.end()) {
-        delete td_map[name];
-    }
+                                               std::shared_ptr<AbstractTimeDependence> time_dep) {
+    // if (td_map.find(name) != td_map.end()) {
+    //     delete td_map[name];
+    // }
     td_map[name] = time_dep;
 }
 
-std::string AbstractTimeDependence::getName(AbstractTimeDependence* time_dep) {
-    typedef std::map<std::string, AbstractTimeDependence*>::iterator iter;
+std::string AbstractTimeDependence::getName(std::shared_ptr<AbstractTimeDependence> time_dep) {
+    typedef std::map<std::string, std::shared_ptr<AbstractTimeDependence> >::iterator iter;
     for (iter i = td_map.begin(); i != td_map.end(); ++i) {
         if (i->second == time_dep)
             return i->first;

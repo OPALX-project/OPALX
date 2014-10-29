@@ -1,11 +1,11 @@
-#ifndef CLASSIC_FIELDMAP3DH5BLOCK_nonescale_HH
-#define CLASSIC_FIELDMAP3DH5BLOCK_nonescale_HH
+#ifndef CLASSIC_FIELDMAP3DH5BLOCK_nonscale_HH
+#define CLASSIC_FIELDMAP3DH5BLOCK_nonscale_HH
 
 #include "Fields/Fieldmap.hh"
 #include "hdf5.h"
 #include "H5hut.h"
 
-class FM3DH5Block_nonescale: public Fieldmap {
+class FM3DH5Block_nonscale: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
@@ -19,8 +19,8 @@ public:
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
 
 private:
-    FM3DH5Block_nonescale(std::string aFilename);
-    ~FM3DH5Block_nonescale();
+    FM3DH5Block_nonscale(std::string aFilename);
+    ~FM3DH5Block_nonscale();
 
     virtual void readMap();
     virtual void freeMap();

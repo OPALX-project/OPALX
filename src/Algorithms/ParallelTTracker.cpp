@@ -732,7 +732,7 @@ void ParallelTTracker::checkCavity(double s, Component *& comp, double & cavity_
     for(FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++ fit) {
         if((fit != currently_ap_cavity_m)
            && ((*fit).getStart() <= s) && (s <= (*fit).getEnd())) {
-            comp = (*fit).getElement();
+            comp = (*fit).getElement().get();
             cavity_start_pos = (*fit).getStart();
             currently_ap_cavity_m = fit;
             return;
@@ -790,9 +790,9 @@ void ParallelTTracker::showCavities(Inform &msg) {
         << " from " << (*fit).getStart() << " to "
         << (*fit).getEnd() << " (m) phi=";
         if((*fit).getElement()->getType() == "TravelingWave")
-            msg << static_cast<TravelingWave *>((*fit).getElement())->getPhasem() / Physics::pi * 180.0 << endl;
+            msg << static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem() / Physics::pi * 180.0 << endl;
         else
-            msg << static_cast<RFCavity *>((*fit).getElement())->getPhasem() / Physics::pi * 180.0 << endl;
+            msg << static_cast<RFCavity *>((*fit).getElement().get())->getPhasem() / Physics::pi * 180.0 << endl;
     }
     msg << endl << endl;
 }
@@ -808,13 +808,13 @@ void ParallelTTracker::updateRFElement(std::string elName, double maxPhi) {
     for(FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++ fit) {
         if((*fit).getElement()->getName() == elName) {
             if((*fit).getElement()->getType() == "TravelingWave") {
-                phi  =  static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
+                phi  =  static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
                 phi += maxPhi;
-                static_cast<TravelingWave *>((*fit).getElement())->updatePhasem(phi);
+                static_cast<TravelingWave *>((*fit).getElement().get())->updatePhasem(phi);
             } else {
-                phi  = static_cast<RFCavity *>((*fit).getElement())->getPhasem();
+                phi  = static_cast<RFCavity *>((*fit).getElement().get())->getPhasem();
                 phi += maxPhi;
-                static_cast<RFCavity *>((*fit).getElement())->updatePhasem(phi);
+                static_cast<RFCavity *>((*fit).getElement().get())->updatePhasem(phi);
             }
         }
     }
@@ -836,21 +836,21 @@ void ParallelTTracker::updateAllRFElements(double phiShift) {
         if(fit != cavities_m.begin())
             msg << "\n";
         if((*fit).getElement()->getType() == "TravelingWave") {
-            freq = static_cast<TravelingWave *>((*fit).getElement())->getFrequencym();
-            phi = static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
+            freq = static_cast<TravelingWave *>((*fit).getElement().get())->getFrequencym();
+            phi = static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
             msg << (*fit).getElement()->getName()
             << ": phi= phi_nom + phi_maxE + global phase shift= " << (phi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
             << "(global phase shift= " << -phiShift *freq *RADDEG << " degree)\n";
             phi -= (phiShift * freq);
-            static_cast<TravelingWave *>((*fit).getElement())->updatePhasem(phi);
+            static_cast<TravelingWave *>((*fit).getElement().get())->updatePhasem(phi);
         } else {
-            freq = static_cast<RFCavity *>((*fit).getElement())->getFrequencym();
-            phi = static_cast<RFCavity *>((*fit).getElement())->getPhasem();
+            freq = static_cast<RFCavity *>((*fit).getElement().get())->getFrequencym();
+            phi = static_cast<RFCavity *>((*fit).getElement().get())->getPhasem();
             msg << (*fit).getElement()->getName()
             << ": phi= phi_nom + phi_maxE + global phase shift= " << (phi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
             << "global phase shift= " << -phiShift *freq *RADDEG << " degree\n";
             phi -= (phiShift * freq);
-            static_cast<RFCavity *>((*fit).getElement())->updatePhasem(phi);
+            static_cast<RFCavity *>((*fit).getElement().get())->updatePhasem(phi);
         }
     }
     msg << "-------------------------------------------------------------------------------------\n"
@@ -880,7 +880,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
             << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
             << "\033[0m"
             << endl;
-            static_cast<Monitor *>(it->getElement())->moveBy(-zend - 0.001);
+            static_cast<Monitor *>(it->getElement().get())->moveBy(-zend - 0.001);
             itsOpalBeamline_m.removeElement(it->getElement()->getName());
         }
     }
@@ -940,6 +940,8 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
 	putMessage(*mess, (*it).second);
       }
       Ippl::Comm->broadcast_all(mess, tag);
+
+      delete mess;
     } else {
       // receive max phases and names and update the structures
       int nData = 0;
@@ -953,6 +955,8 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
 	updateRFElement(elName, maxPhi);
 	OpalData::getInstance()->setMaxPhase(elName, maxPhi);
       }
+
+      delete mess;
     }
 
     if(Ippl::myNode() == 0)
@@ -1673,7 +1677,7 @@ void ParallelTTracker::handleOverlappingMonitors() {
             << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
             << "\033[0m"
             << endl;
-            static_cast<Monitor *>(it->getElement())->moveBy(-zend - 0.001);
+            static_cast<Monitor *>(it->getElement().get())->moveBy(-zend - 0.001);
             itsOpalBeamline_m.removeElement(it->getElement()->getName());
         }
     }
@@ -1737,6 +1741,8 @@ void ParallelTTracker::doAutoPhasing() {
                 Ippl::Comm->broadcast_all(mess, tag);
 
                 itsBunch->destroy(1, 0);
+
+                delete mess;
             } else {
                 // receive max phases and names and update the structure
                 itsBunch->update();
@@ -1752,6 +1758,8 @@ void ParallelTTracker::doAutoPhasing() {
                     updateRFElement(elName, maxPhi);
                     OpalData::getInstance()->setMaxPhase(elName, maxPhi);
                 }
+
+                delete mess;
             }
             itsBunch->update();
             itsBunch->pop();
@@ -2302,19 +2310,19 @@ void ParallelTTracker::computeExternalFields() {
          * If the CSR is turned on for a dipole, save its pointer to the CSRWakeFunction
          * and reuse it in the following drift.*/
         // xpang: start
-        const ElementBase* element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
+        std::shared_ptr<const ElementBase> element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
         if(dynamic_cast<CSRWakeFunction*>(wf))
         {
-          if(dynamic_cast<const RBend*>(element) || dynamic_cast<const SBend*>(element))
-            wakeFunction_m = wf;
-          if(dynamic_cast<const Drift*>(element))
-            wf = wakeFunction_m;
+            if(dynamic_cast<const RBend*>(element.get()) || dynamic_cast<const SBend*>(element.get()))
+                wakeFunction_m = wf;
+            if(dynamic_cast<const Drift*>(element.get()))
+                wf = wakeFunction_m;
         }
         // xpang: end
         if(!wakeStatus_m) {
             msg << "============== START WAKE CALCULATION =============" << endl;
-            const ElementBase* element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
-            wf->initialize(element);
+            std::shared_ptr<const ElementBase> element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
+            wf->initialize(element.get());
             wakeStatus_m = true;
         }
         if(wf == NULL) {

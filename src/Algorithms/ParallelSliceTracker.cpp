@@ -60,13 +60,13 @@ void ParallelSliceTracker::updateRFElement(std::string elName, double maxPhi) {
     for (FieldList::iterator fit = cl.begin(); fit != cl.end(); ++fit) {
         if ((*fit).getElement()->getName() == elName) {
             if ((*fit).getElement()->getType() == "TravelingWave") {
-                phi  =  static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
+                phi  =  static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
                 phi += maxPhi;
-                static_cast<TravelingWave *>((*fit).getElement())->setPhasem(phi);
+                static_cast<TravelingWave *>((*fit).getElement().get())->setPhasem(phi);
             } else {
-                phi  = static_cast<RFCavity *>((*fit).getElement())->getPhasem();
+                phi  = static_cast<RFCavity *>((*fit).getElement().get())->getPhasem();
                 phi += maxPhi;
-                static_cast<RFCavity *>((*fit).getElement())->setPhasem(phi);
+                static_cast<RFCavity *>((*fit).getElement().get())->setPhasem(phi);
             }
         }
     }
@@ -92,15 +92,15 @@ void ParallelSliceTracker::updateAllRFElements() {
     for (FieldList::iterator it = cl.begin(); it != cl.end(); ++it) {
         if ((*it).getElement()->getType() == "TravelingWave") {
             const double apphi = getCavityPhase(cavities_m, (*it).getElement()->getName());
-            static_cast<TravelingWave *>((*it).getElement())->updatePhasem(apphi);
-	    const double freq = static_cast<TravelingWave *>((*it).getElement())->getFrequencym();
+            static_cast<TravelingWave *>((*it).getElement().get())->updatePhasem(apphi);
+	    const double freq = static_cast<TravelingWave *>((*it).getElement().get())->getFrequencym();
 	    msg << (*it).getElement()->getName()
 		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
 		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree) \n";
         } else {
             const double apphi = getCavityPhase(cavities_m, (*it).getElement()->getName());
-            static_cast<RFCavity *>((*it).getElement())->updatePhasem(apphi+phiShift);
-	    const double freq = static_cast<RFCavity *>((*it).getElement())->getFrequencym();
+            static_cast<RFCavity *>((*it).getElement().get())->updatePhasem(apphi+phiShift);
+	    const double freq = static_cast<RFCavity *>((*it).getElement().get())->getFrequencym();
 	    msg << (*it).getElement()->getName()
 		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
 		<< "(global phase shift= " << -phiShift *freq *RADDEG << "(degree) \n";
@@ -116,9 +116,9 @@ double ParallelSliceTracker::getCavityPhase(FieldList cav, std::string name) {
     for (FieldList::iterator fit = cav.begin(); fit != cav.end(); ++fit) {
         if ((*fit).getElement()->getName() == name) {
             if ((*fit).getElement()->getType() == "TravelingWave")
-                phi = static_cast<TravelingWave *>((*fit).getElement())->getPhasem();
+                phi = static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
             else
-                phi = static_cast<RFCavity *>((*fit).getElement())->getPhasem();
+                phi = static_cast<RFCavity *>((*fit).getElement().get())->getPhasem();
         }
     }
     return phi;

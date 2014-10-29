@@ -249,9 +249,14 @@ int main(int argc, char *argv[]) {
 
         Ippl::Comm->barrier();
         // cleanup/free global data
+        Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
         delete ippl;
+        delete Ippl::Info;
+        delete Ippl::Warn;
+        delete Ippl::Error;
+        delete Ippl::Debug;
         return 0;
 
     } catch(ClassicException &ex) {

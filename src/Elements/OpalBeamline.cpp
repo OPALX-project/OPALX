@@ -28,7 +28,7 @@ OpalBeamline::~OpalBeamline() {
 CompVec OpalBeamline::dummy_list_m = CompVec();
 OpalSection OpalBeamline::dummy_section_m = OpalSection(dummy_list_m, 0., 0.);
 
-CompVec &OpalBeamline::getPredecessors(const Component *element) {
+CompVec &OpalBeamline::getPredecessors(const std::shared_ptr<Component> element) {
     size_t index;
     bool found = false;
     for(index = 0; index < sections_m.size(); ++ index) {
@@ -49,7 +49,7 @@ CompVec &OpalBeamline::getPredecessors(const Component *element) {
 
 }
 
-CompVec &OpalBeamline::getSuccessors(const Component *element) {
+CompVec &OpalBeamline::getSuccessors(const std::shared_ptr<Component> element) {
     size_t index;
     bool found = false;
 

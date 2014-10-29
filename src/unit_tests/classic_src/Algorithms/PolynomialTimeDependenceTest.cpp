@@ -31,19 +31,19 @@ TEST(PolynomialTimeDependenceTest, TDMapTest) {
     EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"),
                  OpalException);
     std::vector<double> test;
-    
+
     // set/get time dependence
     PolynomialTimeDependence time_dep(test);
-    PolynomialTimeDependence* td1 = time_dep.clone();
+    std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td1", td1);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td1"), td1);
-    PolynomialTimeDependence* td2 = time_dep.clone();
+    std::shared_ptr<PolynomialTimeDependence> td2(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td2", td2);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td2"), td2);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td1"), td1);
     // set time dependence overwriting existing time dependence
     // should overwrite, without memory leak
-    PolynomialTimeDependence* td3 = time_dep.clone();
+    std::shared_ptr<PolynomialTimeDependence> td3(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td1", td3);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td1"), td3);
 }
@@ -52,9 +52,9 @@ TEST(PolynomialTimeDependenceTest, TDMapNameLookupTest) {
     EXPECT_THROW(AbstractTimeDependence::getName(NULL),
                  OpalException);
     PolynomialTimeDependence time_dep(std::vector<double>(1, 1));
-    PolynomialTimeDependence* td1 = time_dep.clone();
-    PolynomialTimeDependence* td2 = time_dep.clone();
-    PolynomialTimeDependence* td3 = time_dep.clone();
+    std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
+    std::shared_ptr<PolynomialTimeDependence> td2(time_dep.clone());
+    std::shared_ptr<PolynomialTimeDependence> td3(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td1", td1);
     AbstractTimeDependence::setTimeDependence("td2", td2);
     AbstractTimeDependence::setTimeDependence("td3", td2);
@@ -66,4 +66,3 @@ TEST(PolynomialTimeDependenceTest, TDMapNameLookupTest) {
                  OpalException);
 
 }
-

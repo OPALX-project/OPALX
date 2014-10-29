@@ -40,8 +40,8 @@ public:
     OpalBeamline();
     ~OpalBeamline();
 
-    CompVec &getPredecessors(const Component *);
-    CompVec &getSuccessors(const Component *);
+    CompVec &getPredecessors(const std::shared_ptr<Component>);
+    CompVec &getSuccessors(const std::shared_ptr<Component>);
     OpalSection &getSectionAt(const Vector_t &, long &);
     OpalSection &getSection(const unsigned int &);
     void getSectionIndexAt(const Vector_t &, long &) const;
@@ -70,7 +70,7 @@ public:
     void switchElementsOff();
 
     WakeFunction *getWakeFunction(const unsigned int &);
-    const ElementBase *getWakeFunctionOwner(const unsigned int &);
+    std::shared_ptr<const ElementBase> getWakeFunctionOwner(const unsigned int &);
 
     SurfacePhysicsHandler *getSurfacePhysicsHandler(const unsigned int &);
 
@@ -133,7 +133,7 @@ inline WakeFunction *OpalBeamline::getWakeFunction(const unsigned int &index) {
     return NULL;
 }
 
-inline const ElementBase *OpalBeamline::getWakeFunctionOwner(const unsigned int &index) {
+inline std::shared_ptr<const ElementBase> OpalBeamline::getWakeFunctionOwner(const unsigned int &index) {
     if(index < sections_m.size()) {
         return sections_m[index].getWakeFunctionOwner();
     }
@@ -297,7 +297,7 @@ inline bool OpalBeamline::section_is_glued_to(const long &i, const long &j) cons
 template<class T> inline
 void OpalBeamline::visit(const T &element, Tracker &, PartBunch *bunch) {
     Inform msg("OPAL ");
-    T *elptr = dynamic_cast<T *>(element.clone()->removeWrappers());
+    std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()->removeWrappers()));
     if(!elptr->hasAttribute("ELEMEDGE")) {
         msg << elptr->getType() << ": no position of the element given!" << endl;
         return;

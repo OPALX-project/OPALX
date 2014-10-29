@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <memory>
 
 /** Time dependence abstraction for field parameters that vary slowly with time
  */
@@ -13,16 +14,16 @@ class AbstractTimeDependence {
     virtual AbstractTimeDependence* clone() = 0;
     virtual double getValue(double time) = 0;
 
-    static AbstractTimeDependence* getTimeDependence(std::string name);
+    static std::shared_ptr<AbstractTimeDependence> getTimeDependence(std::string name);
     static void setTimeDependence(std::string name,
-                                  AbstractTimeDependence* time_dep);
+                                  std::shared_ptr<AbstractTimeDependence> time_dep);
 
     /** Reverse the mapping - slow
      */
-    static std::string getName(AbstractTimeDependence* time_dep);
+    static std::string getName(std::shared_ptr<AbstractTimeDependence> time_dep);
 
   private:
-    static std::map<std::string, AbstractTimeDependence*> td_map;
+    static std::map<std::string, std::shared_ptr<AbstractTimeDependence> > td_map;
 };
 
 #endif

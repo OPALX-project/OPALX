@@ -113,12 +113,27 @@ FieldSolver::FieldSolver():
 
 FieldSolver::FieldSolver(const std::string &name, FieldSolver *parent):
     Definition(name, parent)
-{}
+{
+    mesh_m = 0;
+    FL_m = 0;
+    PL_m = 0;
+    solver_m = 0;
+}
 
 
 FieldSolver::~FieldSolver() {
-    if (solver_m)
+    if (mesh_m) {
+        delete mesh_m;
+        mesh_m = 0;
+    }
+    if (FL_m) {
+        delete FL_m;
+        FL_m = 0;
+    }
+    if (solver_m) {
        delete solver_m;
+       solver_m = 0;
+    }
 }
 
 FieldSolver *FieldSolver::clone(const std::string &name) {

@@ -60,6 +60,7 @@ public:
     static Fieldmap *getFieldmap(std::string Filename, bool fast = false);
     static std::vector<std::string> getListFieldmapNames();
     static void deleteFieldmap(std::string Filename);
+    static void clearDictionary();
     static MapType readHeader(std::string Filename);
     static void readMap(std::string Filename);
     static void freeMap(std::string Filename);

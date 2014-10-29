@@ -349,8 +349,8 @@ classic/5.0/src/Fields/FM3DDynamic.cpp -text
 classic/5.0/src/Fields/FM3DDynamic.hh -text
 classic/5.0/src/Fields/FM3DH5Block.cpp -text
 classic/5.0/src/Fields/FM3DH5Block.hh -text
-classic/5.0/src/Fields/FM3DH5Block_nonescale.cpp -text
-classic/5.0/src/Fields/FM3DH5Block_nonescale.hh -text
+classic/5.0/src/Fields/FM3DH5Block_nonscale.cpp -text
+classic/5.0/src/Fields/FM3DH5Block_nonscale.hh -text
 classic/5.0/src/Fields/FM3DMagnetoStaticH5Block.cpp -text
 classic/5.0/src/Fields/FM3DMagnetoStaticH5Block.hh -text
 classic/5.0/src/Fields/FMDummy.cpp -text

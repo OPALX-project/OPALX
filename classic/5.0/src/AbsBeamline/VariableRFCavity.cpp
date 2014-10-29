@@ -54,13 +54,12 @@ VariableRFCavity& VariableRFCavity::operator=(const VariableRFCavity& rhs) {
     setAmplitudeModel(NULL);
     setFrequencyModel(NULL);
     if (rhs._phase_td != NULL)
-        setPhaseModel(rhs._phase_td->clone());
+        setPhaseModel(std::shared_ptr<AbstractTimeDependence>(rhs._phase_td->clone()));
     if (rhs._amplitude_td != NULL) {
-        AbstractTimeDependence* new_amp = rhs._amplitude_td->clone();
-        setAmplitudeModel(new_amp);
+        setAmplitudeModel(std::shared_ptr<AbstractTimeDependence>(rhs._amplitude_td->clone()));
     }
     if (rhs._frequency_td != NULL)
-        setFrequencyModel(rhs._frequency_td->clone());
+        setFrequencyModel(std::shared_ptr<AbstractTimeDependence>(rhs._frequency_td->clone()));
     phaseName_m = rhs.phaseName_m;
     amplitudeName_m = rhs.amplitudeName_m;
     frequencyName_m = rhs.frequencyName_m;
@@ -71,19 +70,19 @@ VariableRFCavity& VariableRFCavity::operator=(const VariableRFCavity& rhs) {
 }
 
 VariableRFCavity::~VariableRFCavity() {
-    if (_phase_td != NULL)
-        delete _phase_td;
-    if (_amplitude_td != NULL)
-        delete _amplitude_td;
-    if (_frequency_td != NULL)
-        delete _frequency_td;
+    // if (_phase_td != NULL)
+    //     delete _phase_td;
+    // if (_amplitude_td != NULL)
+    //     delete _amplitude_td;
+    // if (_frequency_td != NULL)
+    //     delete _frequency_td;
 }
 
 void VariableRFCavity::initNull() {
   _length = 0.;
-  _phase_td = NULL;
-  _amplitude_td = NULL;
-  _frequency_td = NULL;
+  // _phase_td = NULL;
+  // _amplitude_td = NULL;
+  // _frequency_td = NULL;
   phaseName_m = "";
   amplitudeName_m = "";
   frequencyName_m = "";
@@ -92,33 +91,33 @@ void VariableRFCavity::initNull() {
   RefPartBunch_m = NULL;
 }
 
-AbstractTimeDependence* VariableRFCavity::getAmplitudeModel() const {
+std::shared_ptr<AbstractTimeDependence> VariableRFCavity::getAmplitudeModel() const {
     return _amplitude_td;
 }
 
-AbstractTimeDependence* VariableRFCavity::getPhaseModel() const {
+std::shared_ptr<AbstractTimeDependence> VariableRFCavity::getPhaseModel() const {
     return _phase_td;
 }
 
-AbstractTimeDependence* VariableRFCavity::getFrequencyModel() const {
+std::shared_ptr<AbstractTimeDependence> VariableRFCavity::getFrequencyModel() const {
     return _frequency_td;
 }
 
-void VariableRFCavity::setAmplitudeModel(AbstractTimeDependence* amplitude_td) {
-    if (_amplitude_td != NULL && amplitude_td != _amplitude_td)
-        delete _amplitude_td;
+void VariableRFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> amplitude_td) {
+    // if (_amplitude_td != NULL && amplitude_td != _amplitude_td)
+    //     delete _amplitude_td;
     _amplitude_td = amplitude_td;
 }
 
-void VariableRFCavity::setPhaseModel(AbstractTimeDependence* phase_td) {
-    if (_phase_td != NULL && phase_td != _phase_td)
-        delete _phase_td;
+void VariableRFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phase_td) {
+    // if (_phase_td != NULL && phase_td != _phase_td)
+    //     delete _phase_td;
     _phase_td = phase_td;
 }
 
-void VariableRFCavity::setFrequencyModel(AbstractTimeDependence* frequency_td) {
-    if (_frequency_td != NULL && frequency_td != _frequency_td)
-        delete _frequency_td;
+void VariableRFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequency_td) {
+    // if (_frequency_td != NULL && frequency_td != _frequency_td)
+    //     delete _frequency_td;
     _frequency_td = frequency_td;
 }
 
@@ -198,15 +197,15 @@ ElementBase* VariableRFCavity::clone() const {
 
 void VariableRFCavity::accept(BeamlineVisitor& visitor) const {
     VariableRFCavity* cavity = const_cast<VariableRFCavity*>(this);
-    AbstractTimeDependence* phaseTD =
+    std::shared_ptr<AbstractTimeDependence> phaseTD =
                     AbstractTimeDependence::getTimeDependence(phaseName_m);
-    cavity->setPhaseModel(phaseTD->clone());
-    AbstractTimeDependence* frequencyTD =
+    cavity->setPhaseModel(std::shared_ptr<AbstractTimeDependence>(phaseTD->clone()));
+    std::shared_ptr<AbstractTimeDependence> frequencyTD =
                     AbstractTimeDependence::getTimeDependence(frequencyName_m);
-    cavity->setFrequencyModel(frequencyTD->clone());
-    AbstractTimeDependence* amplitudeTD =
+    cavity->setFrequencyModel(std::shared_ptr<AbstractTimeDependence>(frequencyTD->clone()));
+        std::shared_ptr<AbstractTimeDependence> amplitudeTD =
                     AbstractTimeDependence::getTimeDependence(amplitudeName_m);
-    cavity->setAmplitudeModel(amplitudeTD->clone());
+    cavity->setAmplitudeModel(std::shared_ptr<AbstractTimeDependence>(amplitudeTD->clone()));
     visitor.visitVariableRFCavity(*this);
 
     if (halfHeight_m < 1e-9 || halfWidth_m < 1e-9)

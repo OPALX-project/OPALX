@@ -39,6 +39,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
     // cleanup
     //OPAL->reset();
     OpalData::deleteInstance();
+    Fieldmap::clearDictionary();
     delete parser;
     delete gmsg;
 

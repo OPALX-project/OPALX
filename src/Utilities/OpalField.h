@@ -3,13 +3,14 @@
 
 #include <vector>
 #include <list>
+#include <memory>
 #include "AbsBeamline/Component.h"
 
 class OpalField {
 public:
-    OpalField(Component *, const double &, const double &);
+    OpalField(std::shared_ptr<Component>, const double &, const double &);
     ~OpalField();
-    Component *getElement();
+    std::shared_ptr<Component> getElement();
     double getLength() const;
     const double &getStart() const;
     const double &getEnd() const;
@@ -29,7 +30,7 @@ public:
 
 
 private:
-    Component *element_m;
+    std::shared_ptr<Component> element_m;
     double start_m;
     double end_m;
     bool is_on_m;
@@ -37,7 +38,7 @@ private:
 
 typedef std::list<OpalField> FieldList;
 
-inline Component *OpalField::getElement() {
+inline std::shared_ptr<Component> OpalField::getElement() {
     return element_m;
 }
 

@@ -12,7 +12,7 @@ set (_SRCS
   StaticMagneticField.cpp
   Fieldmap.cpp
   FM3DH5Block.cpp
-  FM3DH5Block_nonescale.cpp
+  FM3DH5Block_nonscale.cpp
   FM3DMagnetoStaticH5Block.cpp
   FM3DDynamic.cpp
   FM2DElectroStatic.cpp

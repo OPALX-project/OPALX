@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -35,7 +35,7 @@
 #include "Algorithms/PolynomialTimeDependence.h"
 
 void testNull(VariableRFCavity& cav1) {
-    PolynomialTimeDependence* null_poly = NULL;
+    std::shared_ptr<AbstractTimeDependence> null_poly(NULL);
     EXPECT_DOUBLE_EQ(cav1.getLength(), 0.);
     EXPECT_EQ(cav1.getAmplitudeModel(), null_poly);
     EXPECT_EQ(cav1.getPhaseModel(), null_poly);
@@ -49,19 +49,17 @@ TEST(VariableRFCavityTest, TestConstructorEtc) {
     VariableRFCavity cav2("a_name");
     EXPECT_EQ(cav2.getName(), "a_name");
     testNull(cav1);
-    // and now we implicitly check the destructor doesnt throw up on 
+    // and now we implicitly check the destructor doesnt throw up on
     // case where everything is initialised to NULL
 }
 
 // Is the obscure pointer-to-member function syntax appropriate here? I have
 // been doing too much python where this stuff is easy
 void testGetSet(VariableRFCavity& cav1,
-              AbstractTimeDependence* (VariableRFCavity::*getMethod)() const,
-              void (VariableRFCavity::*setMethod)(AbstractTimeDependence*)) {
-    PolynomialTimeDependence* poly_1 =
-                       new PolynomialTimeDependence(std::vector<double>(1, 1.));
-    PolynomialTimeDependence* poly_2 =
-                       new PolynomialTimeDependence(std::vector<double>(2, 2.));
+                std::shared_ptr<AbstractTimeDependence> (VariableRFCavity::*getMethod)() const,
+                void (VariableRFCavity::*setMethod)(std::shared_ptr<AbstractTimeDependence>)) {
+    std::shared_ptr<AbstractTimeDependence> poly_1(new PolynomialTimeDependence(std::vector<double>(1, 1.)));
+    std::shared_ptr<AbstractTimeDependence> poly_2(new PolynomialTimeDependence(std::vector<double>(2, 2.)));
 
     (cav1.*setMethod)(poly_1);
     EXPECT_EQ((cav1.*getMethod)(), poly_1);  // shallow equals is okay
@@ -99,12 +97,9 @@ TEST(VariableRFCavityTest, TestAssignmentNull) {
 }
 
 TEST(VariableRFCavityTest, TestAssignmentValue) {
-    PolynomialTimeDependence* poly1 =
-                       new PolynomialTimeDependence(std::vector<double>(1, 1.));
-    PolynomialTimeDependence* poly2 =
-                       new PolynomialTimeDependence(std::vector<double>(1, 2.));
-    PolynomialTimeDependence* poly3 =
-                       new PolynomialTimeDependence(std::vector<double>(1, 3.));
+    std::shared_ptr<AbstractTimeDependence> poly1(new PolynomialTimeDependence(std::vector<double>(1, 1.)));
+    std::shared_ptr<AbstractTimeDependence> poly2(new PolynomialTimeDependence(std::vector<double>(1, 2.)));
+    std::shared_ptr<AbstractTimeDependence> poly3(new PolynomialTimeDependence(std::vector<double>(1, 3.)));
     VariableRFCavity cav1;
     cav1.setPhaseModel(poly1);
     cav1.setAmplitudeModel(poly2);
@@ -156,9 +151,9 @@ TEST(VariableRFCavityTest, TestApplyField) {
     std::vector<double>  vec3;
     vec3.push_back(5.);
     vec3.push_back(6.);
-    PolynomialTimeDependence* poly1 = new PolynomialTimeDependence(vec1);
-    PolynomialTimeDependence* poly2 = new PolynomialTimeDependence(vec2);
-    PolynomialTimeDependence* poly3 = new PolynomialTimeDependence(vec3);
+    std::shared_ptr<AbstractTimeDependence> poly1(new PolynomialTimeDependence(vec1));
+    std::shared_ptr<AbstractTimeDependence> poly2(new PolynomialTimeDependence(vec2));
+    std::shared_ptr<AbstractTimeDependence> poly3(new PolynomialTimeDependence(vec3));
     cav1.setAmplitudeModel(poly1);
     cav1.setFrequencyModel(poly2);
     cav1.setPhaseModel(poly3);
@@ -183,12 +178,9 @@ TEST(VariableRFCavityTest, TestApplyField) {
 
 TEST(VariableRFCavityTest, TestApplyBoundingBox) {
     VariableRFCavity cav1;
-    PolynomialTimeDependence* poly1 =
-                       new PolynomialTimeDependence(std::vector<double>(1, 1.));
-    PolynomialTimeDependence* poly2 =
-                       new PolynomialTimeDependence(std::vector<double>(2, 2.));
-    PolynomialTimeDependence* poly3 =
-                       new PolynomialTimeDependence(std::vector<double>(3, 3.));
+    std::shared_ptr<AbstractTimeDependence> poly1(new PolynomialTimeDependence(std::vector<double>(1, 1.)));
+    std::shared_ptr<AbstractTimeDependence> poly2(new PolynomialTimeDependence(std::vector<double>(2, 2.)));
+    std::shared_ptr<AbstractTimeDependence> poly3(new PolynomialTimeDependence(std::vector<double>(3, 3.)));
     cav1.setAmplitudeModel(poly1);
     cav1.setFrequencyModel(poly2);
     cav1.setPhaseModel(poly3);
@@ -226,4 +218,3 @@ TEST(VariableRFCavityTest, TestApplyBoundingBox) {
 
 TEST(VariableRFCavityTest, DISABLED_TestAccept) {
 }
-

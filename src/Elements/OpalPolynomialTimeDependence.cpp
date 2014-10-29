@@ -85,7 +85,7 @@ void OpalPolynomialTimeDependence::update() {
     polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P1]));
     polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P2]));
     polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P3]));
-    PolynomialTimeDependence* time_dependence = new PolynomialTimeDependence(
-                                                    polynomial_coefficients);
-    AbstractTimeDependence::setTimeDependence(getOpalName(), time_dependence);
+
+    AbstractTimeDependence::setTimeDependence(getOpalName(),
+                                              std::make_shared<PolynomialTimeDependence>(polynomial_coefficients));
 }

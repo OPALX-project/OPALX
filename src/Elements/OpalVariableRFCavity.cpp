@@ -88,9 +88,9 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     }
 
     attributeRegistry["L"]->setReal(cavity->getLength());
-    AbstractTimeDependence* phase_model = cavity->getPhaseModel();
-    AbstractTimeDependence* freq_model = cavity->getFrequencyModel();
-    AbstractTimeDependence* amp_model = cavity->getAmplitudeModel();
+    std::shared_ptr<AbstractTimeDependence> phase_model = cavity->getPhaseModel();
+    std::shared_ptr<AbstractTimeDependence> freq_model = cavity->getFrequencyModel();
+    std::shared_ptr<AbstractTimeDependence> amp_model = cavity->getAmplitudeModel();
     std::string phase_name = AbstractTimeDependence::getName(phase_model);
     std::string amp_name = AbstractTimeDependence::getName(amp_model);
     std::string freq_name = AbstractTimeDependence::getName(freq_model);

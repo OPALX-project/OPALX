@@ -145,6 +145,7 @@ void OpalParser::parseAction(Statement &stat) const {
             copy->parse(stat);
             parseEnd(stat);
             execute(copy, cmdName);
+            delete copy;
         } catch(...) {
             delete copy;
             throw;

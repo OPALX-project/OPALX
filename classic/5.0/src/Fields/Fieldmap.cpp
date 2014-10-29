@@ -1,7 +1,7 @@
 #include "Fields/Fieldmap.hh"
 #include "Fields/FM3DDynamic.hh"
 #include "Fields/FM3DH5Block.hh"
-#include "Fields/FM3DH5Block_nonescale.hh"
+#include "Fields/FM3DH5Block_nonscale.hh"
 #include "Fields/FM3DMagnetoStaticH5Block.hh"
 #include "Fields/FM2DDynamic.hh"
 #include "Fields/FM2DDynamic_cspline.hh"
@@ -139,7 +139,7 @@ Fieldmap *Fieldmap::getFieldmap(std::string Filename, bool fast) {
                 break;
             case T3DDynamicH5Block:
                 if(fast) {
-                    position = FieldmapDictionary.insert(std::pair<std::string, FieldmapDescription>(Filename, FieldmapDescription(T3DDynamic, new FM3DH5Block_nonescale(Filename))));
+                    position = FieldmapDictionary.insert(std::pair<std::string, FieldmapDescription>(Filename, FieldmapDescription(T3DDynamic, new FM3DH5Block_nonscale(Filename))));
                 } else {
                     position = FieldmapDictionary.insert(std::pair<std::string, FieldmapDescription>(Filename, FieldmapDescription(T3DDynamic, new FM3DH5Block(Filename))));
                 }
@@ -184,6 +184,15 @@ void Fieldmap::deleteFieldmap(std::string Filename) {
             FieldmapDictionary.erase(position);
         }
     }
+}
+
+void Fieldmap::clearDictionary() {
+    std::map<std::string, FieldmapDescription>::iterator it = FieldmapDictionary.begin();
+    for (;it != FieldmapDictionary.end(); ++ it) {
+        delete it->second.Map;
+        it->second.Map = NULL;
+    }
+    FieldmapDictionary.clear();
 }
 
 MapType Fieldmap::readHeader(std::string Filename) {

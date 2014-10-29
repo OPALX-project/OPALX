@@ -12,6 +12,7 @@
 #include "Utilities/ClassicException.h"
 #include "Utilities/ParseError.h"
 #include "Utilities/Timer.h"
+#include "Fields/Fieldmap.hh"
 
 #include <iostream>
 #include <vector>
