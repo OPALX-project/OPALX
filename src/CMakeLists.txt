@@ -27,15 +27,22 @@ EXECUTE_PROCESS (
     COMMAND uname -a
         OUTPUT_VARIABLE UNAME_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+EXECUTE_PROCESS (
+    COMMAND whoami
+        OUTPUT_VARIABLE WHOAMI_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 
 SET (IPPL_COMPILE_ARCH \"$ENV{IPPL_ARCH}\")
 SET (IPPL_COMPILE_LINE \"${CMAKE_CXX_FLAGS}\")
 SET (IPPL_COMPILE_DATE \"${DATE_OUT}\")
 SET (IPPL_COMPILE_MACHINE \"${UNAME_OUT}\")
 SET (IPPL_COMPILE_OPTIONS \"${CXXDEFINES}\")
-SET (IPPL_COMPILE_USER \"adelmann\")
-#FIXME: "CVS" version of each file:
-#echo `find ${IPPL_ROOT}/src -name '*.cpp' -print` `find ${IPPL_ROOT}/src -name '*.h' -print` | perl ${IPPL_ROOT}/bin/mkver2 >> IpplVersions.h
+SET (IPPL_COMPILE_USER \"${WHOAMI_OUT}\")
+EXECUTE_PROCESS (
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND bin/findFiles.sh
+    OUTPUT_VARIABLE IPPL_VERSION_LOG
+    )
 CONFIGURE_FILE (IpplVersions.h.in ${CMAKE_CURRENT_SOURCE_DIR}/IpplVersions.h)
 
 ### print the compiler flags #############################
