@@ -335,6 +335,7 @@ src/Index/inst/SOffset_1D.cpp -text
 src/Index/inst/SOffset_2D.cpp -text
 src/Index/inst/SOffset_3D.cpp -text
 src/Ippl.h -text
+src/IpplVersions.h -text
 src/IpplVersions.h.in -text
 src/Meshes/.cvsignore -text
 src/Meshes/CMakeLists.txt -text
