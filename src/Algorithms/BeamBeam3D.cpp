@@ -358,7 +358,7 @@ void BeamBeam3D::synchroBeamCollision(PartBunch &bunch) const {
 
             double sepx = part.x() + part.px() * s - slice->xstar;
             double sepy = part.y() + part.py() * s - slice->ystar;
-            double bbfx, bbfy, bbgx, bbgy;
+            double bbfx = 0, bbfy = 0, bbgx = 0, bbgy = 0;
 
             if(std::abs(sx - sy) < 1.0e-6 * std::abs(sx + sy)) {
                 double x = sepx * sepx + sepy * sepy;

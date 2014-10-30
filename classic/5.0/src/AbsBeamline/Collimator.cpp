@@ -66,8 +66,8 @@ Collimator::Collimator():
     nHolesX_m(0),
     nHolesY_m(0),
     pitch_m(0.0),
-    sphys_m(NULL),
-    lossDs_m(nullptr)
+    lossDs_m(nullptr),
+    sphys_m(NULL)
 {}
 
 
@@ -105,8 +105,8 @@ Collimator::Collimator(const Collimator &right):
     nHolesX_m(right.nHolesX_m),
     nHolesY_m(right.nHolesY_m),
     pitch_m(right.pitch_m),
-    sphys_m(NULL),
-    lossDs_m(nullptr)
+    lossDs_m(nullptr),
+    sphys_m(NULL)
 {
   setGeom();
 }
@@ -146,8 +146,8 @@ Collimator::Collimator(const std::string &name):
     nHolesX_m(0),
     nHolesY_m(0),
     pitch_m(0.0),
-    sphys_m(NULL),
-    lossDs_m(nullptr)
+    lossDs_m(nullptr),
+    sphys_m(NULL)
 {}
 
 

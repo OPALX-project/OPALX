@@ -1158,7 +1158,7 @@ bool RBend::InMagnetCentralRegion(Vector_t R, double &deltaX, double &angle) {
 
 bool RBend::InMagnetEntranceRegion(Vector_t R, double &deltaX) {
 
-    if(std::abs(R(0) <= aperture_m / 2.0)) {
+    if(std::abs(R(0)) <= aperture_m / 2.0) {
 
         Vector_t RTransformed(0.0, R(1), 0.0);
         RTransformed(0) = (R(0) - xOriginEngeEntry_m) * cosEntranceAngle_m

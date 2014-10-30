@@ -93,7 +93,7 @@ void EnvelopeBunch::calcBeamParameters() {
     Inform msg("calcBeamParameters");
     IpplTimings::startTimer(statParamTimer_m);
     double ex, ey, nex, ney, b0, bRms, bMax, bMin, g0, dgdt, gInc;
-    double RxRms, RyRms, Px, PxRms, PxMax, PxMin, Py, PyRms, PyMax, PyMin;
+    double RxRms = 0.0, RyRms = 0.0, Px = 0.0, PxRms = 0.0, PxMax = 0.0, PxMin = 0.0, Py = 0.0, PyRms = 0.0, PyMax = 0.0, PyMin = 0.0;
     double Pz, PzMax, PzMin, PzRms;
     double x0Rms, y0Rms, zRms, zMax, zMin, I0, IRms, IMax, IMin;
 
@@ -625,7 +625,7 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
     reduce(gz0, gz0, OpAddAssign());
     reduce(gzN, gzN, OpAddAssign());
 
-    double hbin_m = (gzN - gz0) / nebin_m;
+    hbin_m = (gzN - gz0) / nebin_m;
 
     // initialize all bins with an empty vector
     for(int i = 0; i < nebin_m; i++) {
@@ -1568,4 +1568,3 @@ Inform &EnvelopeBunch::slprint(Inform &os) {
     }
     return os;
 }
-

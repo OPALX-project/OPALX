@@ -25,16 +25,16 @@ private:
     void calculateGreenFunction(PartBunch &bunch, double meshSpacing);
     double calcPsi(const double &psiInitial, const double &x, const double &Ds) const;
 
-    LineDensity lineDensity_m;
     std::vector<Filter *> filters_m;
+    LineDensity lineDensity_m;
     LineDensity dlineDensitydz_m;
 
     // Longitudinal CSR field.
     std::vector<double> Ez_m;
-    
+
     // Chi used to calculate the Green's function
     std::vector<double> Chi_m;
-  
+
     // Green's function
     std::vector<double> Grn_m;
 
@@ -57,8 +57,6 @@ private:
     std::string bendName_m;
 
     double totalBendAngle_m;
-
-    unsigned int NBin_m;
 
 };
 

@@ -652,14 +652,14 @@ double Survey::getPhi(const Survey::Row &row, int, int) const {
 
 double Survey::getTheta(const Survey::Row &row, int, int) const {
     const Rotation3D &rot = row.getMap().getRotation();
-    double arg = abs(rot(0, 2)) + abs(rot(2, 2));
+    double arg = std::abs(rot(0, 2)) + std::abs(rot(2, 2));
     return (arg > 1.0e-10) ? atan2(rot(0, 2), rot(2, 2)) : 0.0;
 }
 
 
 double Survey::getPsi(const Survey::Row &row, int, int) const {
     const Rotation3D &rot = row.getMap().getRotation();
-    double arg = abs(rot(1, 0)) + abs(rot(1, 1));
+    double arg = std::abs(rot(1, 0)) + std::abs(rot(1, 1));
     return (arg > 1.0e-10) ? atan2(rot(1, 0), rot(1, 1)) : 0.0;
 }
 

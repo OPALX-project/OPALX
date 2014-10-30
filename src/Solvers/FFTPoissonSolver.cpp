@@ -200,7 +200,6 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
     layout3_m(nullptr),
     mesh4_m(nullptr),
     layout4_m(nullptr),
-    itsBunch_m(&beam),
     greensFunction_m(greensFunction) {
     int i;
     domain_m = layout_m->getDomain();

@@ -136,8 +136,6 @@ private:
     BConds<double, 3, Mesh_t, Center_t> bc_m;
     BConds<Vector_t, 3, Mesh_t, Center_t> vbc_m;
 
-    PartBunch *itsBunch_m;
-
     std::string greensFunction_m;
 
     bool bcz_m;

@@ -17,8 +17,7 @@ CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, 
     dlineDensitydz_m(),
     d2lineDensitydz2_m(),
     bendRadius_m(0.0),
-    totalBendAngle_m(0.0),
-    NBin_m(N)
+    totalBendAngle_m(0.0)
 { }
 
 void CSRWakeFunction::apply(PartBunch &bunch) {

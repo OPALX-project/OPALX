@@ -100,8 +100,6 @@ private:
     Vector_t hr_m;
     Vektor<int, 3> nr_m;
 
-    PartBunch *itsBunch_m;
-
     std::string greensFunction_m;
 
     double a_m; // the box size

@@ -74,7 +74,6 @@ private:
     double I_m;
     double n_m;
 
-    unsigned matToBunchStat_m;
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
     unsigned redifusedStat_m;
@@ -84,11 +83,6 @@ private:
     double Eavg_m;
     double Emax_m;
     double Emin_m;
-
-    double Kmax_m;
-    double Kmin_m;
-
-    double Emean_m;
 
 public:
     double dT_m;

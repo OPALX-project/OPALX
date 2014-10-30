@@ -198,6 +198,7 @@ Distribution::Distribution():
     cathodeFermiEnergy_m(0.0),
     cathodeTemp_m(0.0),
     emitEnergyUpperLimit_m(0.0),
+    avrgpz_m(0.0),
     inputMoUnits_m(InputMomentumUnitsT::NONE),
     sigmaTRise_m(0.0),
     sigmaTFall_m(0.0),
@@ -220,8 +221,7 @@ Distribution::Distribution():
     paraFNVYZe_m(0.0),
     secondaryFlag_m(0),
     ppVw_m(0.0),
-    vVThermal_m(0.0),
-    avrgpz_m(0.0) {
+    vVThermal_m(0.0) {
 
     SetAttributes();
 
@@ -280,6 +280,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     pyWrite_m(parent->pyWrite_m),
     tOrZWrite_m(parent->tOrZWrite_m),
     pzWrite_m(parent->pzWrite_m),
+    avrgpz_m(parent->avrgpz_m),
     inputMoUnits_m(parent->inputMoUnits_m),
     sigmaTRise_m(parent->sigmaTRise_m),
     sigmaTFall_m(parent->sigmaTFall_m),
@@ -312,8 +313,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     tFall_m(parent->tFall_m),
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
-    cutoff_m(parent->cutoff_m),
-    avrgpz_m(parent->avrgpz_m){
+    cutoff_m(parent->cutoff_m){
 }
 
 Distribution::~Distribution() {

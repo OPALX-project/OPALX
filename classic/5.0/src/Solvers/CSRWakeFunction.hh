@@ -53,8 +53,6 @@ private:
 
     double totalBendAngle_m;
 
-    unsigned int NBin_m;
-
 };
 
 #endif //CSRWAKEFUNCTION_HH

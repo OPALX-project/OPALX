@@ -15,8 +15,7 @@ CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *ele
     lineDensity_m(),
     dlineDensitydz_m(),
     bendRadius_m(0.0),
-    totalBendAngle_m(0.0),
-    NBin_m(N)
+    totalBendAngle_m(0.0)
 { }
 
 void CSRIGFWakeFunction::apply(PartBunch &bunch) {

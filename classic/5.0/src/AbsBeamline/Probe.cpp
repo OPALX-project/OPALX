@@ -213,7 +213,7 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
     double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     double r2 = sqrt(rmin(0) * rmin(0) + rmin(1) * rmin(1));
-   
+
     if( r1 > r_start - 10.0 && r2 < r_end + 10.0 ){
         size_t tempnum = bunch.getLocalNum();
         int pflag = 0;
@@ -260,17 +260,17 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 		    if (k1 == 0.0)
 		      tangle = 1.0e12;
 		    else
-		      tangle = abs(1/k1);
+                      tangle = std::abs(1/k1);
 		  }else if (bunch.P[i](0) == 0.0 ){
 		    k2 = -A_m/B_m;
 		    if (k2 == 0.0)
 		      tangle = 1.0e12;
 		    else
-		      tangle = abs(1/k2);
+                      tangle = std::abs(1/k2);
 		  }else {
 		    k1 = bunch.P[i](1)/bunch.P[i](0);
 		    k2 = -A_m/B_m;
-		    tangle = abs(( k1-k2 )/(1 + k1*k2));
+		    tangle = std::abs(( k1-k2 )/(1 + k1*k2));
 		  }
 		  double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
 		  double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch.P[i], bunch.P[i]))) * Physics::c)*1.0e9;
@@ -313,4 +313,3 @@ const std::string &Probe::getType() const {
     static const std::string type("Probe");
     return type;
 }
-

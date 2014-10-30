@@ -1,5 +1,5 @@
 #ifndef OPAL_LASERPROFILE_HH
-#define OPAL_LaserProfile_HH
+#define OPAL_LASERPROFILE_HH
 // ------------------------------------------------------------------------
 // $RCSfile: LaserProfile.h,v $
 // ------------------------------------------------------------------------
@@ -47,14 +47,11 @@ public:
     void GetProfileMax(unsigned short int *profileMax_m, unsigned short int   *image);
 
 private:
-    double X, Y;
     //unsigned short int profileMax_m;
     hsize_t sizeX_m, sizeY_m;
     gsl_histogram2d *hist2d_m;
-    const gsl_rng_type *rngT_m;
     gsl_rng *r_m;
     gsl_histogram2d_pdf *pdf_m;
 
 };
 #endif
-

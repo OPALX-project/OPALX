@@ -34,8 +34,8 @@ class LossDataSink {
     void save();
 
     void addParticle(const Vector_t x, const Vector_t p, const size_t id);
-    
-    void addParticle(const Vector_t x, const Vector_t p, const size_t  id, const double time, const size_t turn); 
+
+    void addParticle(const Vector_t x, const Vector_t p, const size_t  id, const double time, const size_t turn);
 
 private:
 
@@ -50,12 +50,12 @@ private:
             os_m.open(fn_m.c_str(), std::ios::app);
         }
     }
-    
+
     void close() {
         if(Ippl::myNode() == 0)
             os_m.close();
     }
-    
+
     void writeHeaderASCII() {
         if(Ippl::myNode() == 0) {
             if (time_m.size() != 0)
@@ -86,12 +86,10 @@ private:
 
     // used to write out the data
     std::ofstream os_m;
-    
+
     std::string element_m;
 
     bool h5hut_mode_m;
-
-    bool hdf5FileIsOpen_m;
 
     /// %Pointer to H5 file for particle data.
     h5_file_t *H5file_m;
@@ -106,11 +104,8 @@ private:
     std::vector<double> px_m;
     std::vector<double> py_m;
     std::vector<double> pz_m;
-    
+
     std::vector<size_t> turn_m;
     std::vector<double> time_m;
 };
 #endif
-
-
-

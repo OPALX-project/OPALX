@@ -110,7 +110,6 @@ FFTBoxPoissonSolver::FFTBoxPoissonSolver(PartBunch &beam, std::string greensFunc
     layout_m(&beam.getFieldLayout()),
     mesh2_m(0),
     layout2_m(0),
-    itsBunch_m(&beam),
     greensFunction_m(greensFunction) {
     int i;
     domain_m = layout_m->getDomain();
