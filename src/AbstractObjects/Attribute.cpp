@@ -62,6 +62,9 @@ AttributeBase &Attribute::getBase() const {
     return *base;
 }
 
+bool Attribute::isBaseAllocated() const {
+    return base != NULL;
+}
 
 AttributeHandler &Attribute::getHandler() const {
     return *handler;

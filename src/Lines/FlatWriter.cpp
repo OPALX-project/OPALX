@@ -105,7 +105,7 @@ void FlatWriter::visitMapIntegrator(const MapIntegrator &i) {
                     Attribute *attr = split->findAttribute("L");
                     Attributes::setReal(*attr, length / double(slices));
                     OpalData::getInstance()->define(split);
-                    *gmsg << *split;
+                    itsStream << *split;
                 }
                 SequenceMember member;
                 member.setElement(static_cast<Element *>(split)->getElement());

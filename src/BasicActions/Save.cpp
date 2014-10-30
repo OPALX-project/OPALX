@@ -70,7 +70,7 @@ namespace  SaveNS {
            ! dynamic_cast<BeamSequence *>(object)) {
             if(object->getOpalName()[0] != '#') {
                 (*this)(object->getParent());
-                *gmsg << object;//->print(*gmsg);
+                os << object;//->print(*gmsg);
                 object->setFlag(false);
             }
         }
@@ -87,7 +87,7 @@ namespace  SaveNS {
 
     void ParameterWriter::operator()(Object *object) const {
         if(object->isFlagged() && dynamic_cast<ValueDefinition *>(object)) {
-            *gmsg << object;//->print(*gmsg);
+            os << object;//->print(*gmsg);
             object->setFlag(false);
         }
     }
@@ -104,7 +104,7 @@ namespace  SaveNS {
     void SpecialWriter::operator()(Object *object) const {
         if(object->isFlagged() && dynamic_cast<Definition *>(object)) {
             (*this)(object->getParent());
-            *gmsg << object;//->print(*gmsg);
+            os << object;//->print(*gmsg);
             object->setFlag(false);
         }
     }

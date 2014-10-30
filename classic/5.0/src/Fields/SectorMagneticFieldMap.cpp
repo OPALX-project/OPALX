@@ -154,7 +154,7 @@ std::string SectorMagneticFieldMap::SymmetryToString
     }
     throw(LogicalError(
             "SectorMagneticFieldMap::SymmetryToString",
-            "Didn't recognise symmetry type "+sym
+            "Didn't recognise symmetry type " + std::to_string(sym)
           ));
 }
 

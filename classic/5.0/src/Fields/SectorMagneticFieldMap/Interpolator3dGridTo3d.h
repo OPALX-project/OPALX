@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2012, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -34,7 +34,7 @@
 #include "Fields/SectorMagneticFieldMap/TriLinearInterpolator.h"
 
 /** Interpolator3dGridTo3d interpolates from 3d grid to a 3d vector
- * 
+ *
  *  Wraps three Interpolator3dGridTo1d, one for each variable in the output
  *  vector B. At the moment the wrapped Interpolator3dGridTo1d is encoded by
  *  means of an enumeration, with the only possible value trilinear interpolator
@@ -98,7 +98,7 @@ class Interpolator3dGridTo3d : public VectorMap {
                             (const Mesh::Iterator& point, double* value) const {
      VectorMap::function(point, value);
   }
- 
+
   /** Do not use (just raises exception) - der
    */
   void functionPrime(const double Point[3], double Value[3], int axis) const;
@@ -118,9 +118,8 @@ class Interpolator3dGridTo3d : public VectorMap {
   /** Dimension of output values */
   inline unsigned int getValueDimension()  const;
 
-  using VectorMap::getMesh;
   /** Return a pointer to the mesh*/
-  inline ThreeDGrid* getMesh();
+  inline ThreeDGrid* getMesh() const;
 
   /** Reset the mesh
    *
@@ -179,7 +178,7 @@ unsigned int Interpolator3dGridTo3d::getValueDimension()  const {
     return 3;
 }
 
-ThreeDGrid* Interpolator3dGridTo3d::getMesh() {
+ThreeDGrid* Interpolator3dGridTo3d::getMesh() const {
     return coordinates_m;
 }
 
@@ -221,4 +220,3 @@ void Interpolator3dGridTo3d::clear() {
 }
 
 #endif
-

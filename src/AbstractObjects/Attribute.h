@@ -81,6 +81,8 @@ public:
     /// Return reference to polymorphic value.
     AttributeBase &getBase() const;
 
+    bool isBaseAllocated() const;
+
     /// Return printable representation.
     //  This string duplicates the input expression defining the attribute.
     std::string getImage() const;

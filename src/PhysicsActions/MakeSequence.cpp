@@ -61,7 +61,7 @@ namespace  MakeSequenceNS {
            ! dynamic_cast<BeamSequence *>(object)) {
             if(object->getOpalName()[0] != '#') {
                 (*this)(object->getParent());
-                *gmsg << object;
+                os << object;
             }
             object->setFlag(false);
         }
@@ -77,7 +77,7 @@ namespace  MakeSequenceNS {
 
     void VariableWriter::operator()(Object *object) const {
         if(object->isFlagged() && dynamic_cast<ValueDefinition *>(object)) {
-            *gmsg << object;
+            os << object;
             object->setFlag(false);
         }
     }

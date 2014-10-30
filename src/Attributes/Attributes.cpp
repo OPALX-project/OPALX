@@ -131,7 +131,7 @@ namespace Attributes {
 
 
     PlaceRep getPlace(const Attribute &attr) {
-        if(&attr.getBase()) {
+        if(attr.isBaseAllocated()) {
             if(SValue<PlaceRep> *place =
                    dynamic_cast<SValue<PlaceRep> *>(&attr.getBase())) {
                 return place->evaluate();
@@ -165,7 +165,7 @@ namespace Attributes {
 
 
     RangeRep getRange(const Attribute &attr) {
-        if(&attr.getBase()) {
+        if(attr.isBaseAllocated()) {
             if(SValue<RangeRep> *range =
                    dynamic_cast<SValue<RangeRep> *>(&attr.getBase())) {
                 return range->evaluate();
@@ -366,7 +366,7 @@ namespace Attributes {
 
 
     TableRowRep getTableRow(const Attribute &attr) {
-        if(&attr.getBase()) {
+        if(attr.isBaseAllocated()) {
             if(SValue<TableRowRep> *row =
                    dynamic_cast<SValue<TableRowRep> *>(&attr.getBase())) {
                 return row->evaluate();
