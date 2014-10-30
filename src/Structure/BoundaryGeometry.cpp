@@ -1528,7 +1528,7 @@ Change orientation if diff is:
         static void computeTriangleNeighbors (
             BoundaryGeometry* bg
             ) {
-            std::set<int> adjacencies_to_pt  [bg->Points_m.size ()];
+            std::set<int> * adjacencies_to_pt = new std::set<int> [bg->Points_m.size ()];
 
             // for each triangles find adjacent triangles for each vertex
             for (int triangle_id = 0; triangle_id < bg->numTriangles_m; triangle_id++) {
@@ -1561,6 +1561,8 @@ Change orientation if diff is:
 
                 bg->triangleNeighbors_m [triangle_id] = intersect;
             }
+
+            delete[] adjacencies_to_pt;
         }
 
         static inline Vector_t normalVector (
