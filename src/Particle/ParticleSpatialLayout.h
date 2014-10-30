@@ -177,7 +177,7 @@ public:
         else
             return -1;
     }
-    
+
     void enableCaching() { caching = true; }
     void disableCaching() { caching = false; }
 
@@ -269,7 +269,7 @@ protected:
         {
             SingleParticlePos_t tmpminpos;
             SingleParticlePos_t tmpmaxpos;
-            size_t tmphaveLocal;
+            size_t tmphaveLocal = 0;
             unsigned unreceived = Ippl::getNodes() - 1;
 
             // collect data from other nodes
@@ -685,13 +685,13 @@ protected:
 
 /*
  * Simplified version for testing purposes.
- */ 
+ */
 
    template < class PB >
     size_t short_swap_particles(size_t LocalNum, PB& PData)
     {
     	static int sent = 0, old_sent=0;
-	
+
 
         unsigned d, i, j;			// loop variables
         size_t ip;
@@ -756,7 +756,7 @@ protected:
                                 typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN =
                                     RLayout.touch_range_rdv(pLoc);
 
-               
+
                                     // the node has been found - add index to put list
                                     unsigned node = (*(touchingVN.first)).second->getNode();
                                     PAssert(SwapNodeList[d][node]);
@@ -766,8 +766,8 @@ protected:
                                     PData.destroy(1, ip);
 
                                     // indicate we found it to quit this check
-                                    foundit = true;  
-                                    sent++; 
+                                    foundit = true;
+                                    sent++;
                             }
                     }
 
@@ -779,21 +779,21 @@ protected:
                     {
                         if (SwapNodeList[d][i])
                         {
-                            
+
                             // put data for particles on this put list into message
                             PData.putMessage( *(SwapMsgList[i]), PutList[i] );
 
                             // add a final 'zero' number of particles to indicate the end
                             PData.putMessage(*(SwapMsgList[i]), (size_t) 0, (size_t) 0);
-                            
+
                             int node = i;
                             Ippl::Comm->send(SwapMsgList[i], node, tag);
 
                             // clear the list
                             PutList[i].erase(PutList[i].begin(), PutList[i].end());
-                            
-                           
-                         
+
+
+
                         }
                     }
 
@@ -812,9 +812,9 @@ protected:
                             LocalNum += recvd;
                         delete recmsg;
                     }
- 
+
                 }  // end if (NeighborNodes[d] > 0)
-                
+
             }  // end for (d=0; d<Dim; ++d)
 
 		//std::cout << "node " << Ippl::myNode() << " sent particles " << sent - old_sent << std::endl;
@@ -1153,13 +1153,13 @@ protected:
 /*
  * Newer (cleaner) version of swap particles that uses less bandwidth
  * and drastically lowers message counts for real cases.
- */ 
+ */
     template < class PB >
     size_t new_swap_particles(size_t LocalNum, PB& PData)
     {
         Ippl::Comm->barrier();
         static int sent = 0;
-	
+
         unsigned N = Ippl::getNodes();
         unsigned myN = Ippl::myNode();
 
@@ -1210,8 +1210,8 @@ protected:
         typename std::multimap<unsigned, unsigned>::iterator i = p2n.begin();
 
         Format *format = PData.getFormat();
-        
-        
+
+
         std::vector<MPI_Request> requests;
         std::vector<MsgBuffer*> buffers;
 
@@ -1228,7 +1228,7 @@ protected:
                 PData.destroy(1, i->second);
                 msgbuf->add(&msg);
             }
-            
+
             MPI_Request request = Ippl::Comm->raw_isend( msgbuf->getBuffer(), msgbuf->getSize(), cur_destination, tag);
 
 			//remember request and buffer so we can delete them later
@@ -1268,7 +1268,7 @@ protected:
         delete[] msgsend;
         delete[] msgrecv;
         delete format;
-		
+
         //std::cout << "node " << myN << " sent particles " << sent - old_sent << std::endl;
 
         return LocalNum;
@@ -1280,7 +1280,7 @@ protected:
     {
         Ippl::Comm->barrier();
         static int sent = 0;
-	
+
         unsigned N = Ippl::getNodes();
         unsigned myN = Ippl::myNode();
 
@@ -1300,7 +1300,7 @@ protected:
         {
             if (!bool(canSwap[ip]))//skip if it can't be swapped
                 continue;
-			
+
             for (unsigned int j = 0; j < Dim; j++)
                 pLoc[j] = PRegion<T>(PData.R[ip][j], PData.R[ip][j]);
 
@@ -1385,12 +1385,12 @@ protected:
         {
             delete buffers[j];
         }
-        
+
         delete[] msgsend;
         delete[] msgrecv;
         delete format;
         //std::cout << "node " << myN << " sent particles " << sent - old_sent << std::endl;
-		
+
         return LocalNum;
     }
 

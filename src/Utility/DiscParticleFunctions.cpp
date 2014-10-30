@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -51,7 +51,7 @@
 //           be anything the user prefers.
 DiscParticle::DiscParticle(const char *base, const char *config,
 			   int iomode, const char *typestr) {
-  
+
   initialize(base, config, typestr, iomode);
 }
 
@@ -62,7 +62,7 @@ DiscParticle::DiscParticle(const char *base, const char *config,
 // each SMP machine, assume the directory to put data files in is "."
 DiscParticle::DiscParticle(const char *base,
 			   int iomode, const char *typestr) {
-  
+
   initialize(base, 0, typestr, iomode);
 }
 
@@ -71,7 +71,7 @@ DiscParticle::DiscParticle(const char *base,
 // perform initialization based on the constuctor arguments
 void DiscParticle::initialize(const char *base, const char *config,
 			      const char *typestr, int iomode) {
-  
+
 
   // save which IO mode we're running, and make sure it is OK
   if (iomode != INPUT && iomode != OUTPUT && iomode != APPEND)
@@ -541,12 +541,12 @@ bool DiscParticle::read_meta() {
     DPFDBG(dbgmsg << "Summary of received meta info:" << endl);
     ::getMessage(*msg, TypeString);
     DPFDBG(dbgmsg << "  TypeString = " << TypeString << endl);
-    int errint, numrec, val;
+    int errint = 0, numrec = 0, val = 0;
     msg->get(errint);
     iserror = (errint != 0);
     DPFDBG(dbgmsg << "  iserror = " << iserror << endl);
     if (!iserror) {
-      long curroff;
+      long curroff = 0;
       msg->get(curroff);
       CurrentOffset = curroff;
       DPFDBG(dbgmsg << "  CurrentOffset = " << curroff << endl);
@@ -584,7 +584,7 @@ bool DiscParticle::read_meta() {
 	for (int z=0; z < filesnum; ++z) {
           std::vector<Offset_t> offsetvec;
 	  Offset_t offset;
-	  long value;
+	  long value = 0;
 	  for (int o=0; o < numattr; ++o) {
 	    msg->get(value);
 	    offset = value;
@@ -650,7 +650,7 @@ bool DiscParticle::write_data(FILE *outputData, std::vector<Message *> &msgvec,
     for (unsigned int n=0; n < msgvec.size(); ++n) {
       // for each node, get out the number of particles, get the data, and
       // write it out
-      int nump;
+      int nump = 0;
       if (a == 0) {
 	msgvec[n]->get(nump);
 	numvec.push_back(nump);
@@ -796,5 +796,5 @@ void DiscParticle::printDebug(std::ostream& outmsg) {
 /***************************************************************************
  * $RCSfile: DiscParticleFunctions.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: DiscParticleFunctions.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: DiscParticleFunctions.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

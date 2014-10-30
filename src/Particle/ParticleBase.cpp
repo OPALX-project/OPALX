@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -49,8 +49,8 @@
 // an error.  For initialize, you must supply a layout instance.
 template<class PLayout>
 void ParticleBase<PLayout>::initialize(PLayout *layout) {
-   
-  
+
+
 
   // make sure we have not already been initialized, and that we have
   // been given a good layout
@@ -67,8 +67,8 @@ void ParticleBase<PLayout>::initialize(PLayout *layout) {
 // set up this new object:  add attributes and check in to the layout
 template<class PLayout>
 void ParticleBase<PLayout>::setup() {
-   
-  
+
+
 
   TotalNum = 0;
   LocalNum = 0;
@@ -93,9 +93,9 @@ void ParticleBase<PLayout>::setup() {
 // be used for single-node particle creation and initialization
 template<class PLayout>
 bool ParticleBase<PLayout>::singleInitNode() const {
-   
-  
-  
+
+
+
   return (Ippl::Comm->myNode() == 0);
 }
 
@@ -105,8 +105,8 @@ bool ParticleBase<PLayout>::singleInitNode() const {
 // The ID number = (i * numprocs) + myproc, i = 0, 1, 2, ...
 template<class PLayout>
 unsigned ParticleBase<PLayout>::getNextID() {
-   
-  
+
+
 
   return (NextID += Ippl::Comm->getNodes());
 }
@@ -115,8 +115,8 @@ unsigned ParticleBase<PLayout>::getNextID() {
 // Reset the particle ID's to be globally consecutive, 0 thru TotalNum.
 template <class PLayout>
 void ParticleBase<PLayout>::resetID(void) {
-  
-  
+
+
 
   unsigned int nodes = Ippl::getNodes();
   unsigned int myNode = Ippl::myNode();
@@ -125,7 +125,7 @@ void ParticleBase<PLayout>::resetID(void) {
   int master = 0;
   if (myNode == (unsigned int) master) {
     // Node 0 can immediately set its ID's to 0 thru LocalNum-1
-    for (ip=0; ip<localNum; ++ip) 
+    for (ip=0; ip<localNum; ++ip)
       this->ID[ip] = ip;
     // if there is only one processor, we are done
     if (nodes == 1) return;
@@ -178,7 +178,7 @@ void ParticleBase<PLayout>::resetID(void) {
     msg2->get(initialID);
     delete msg2;
     // now reset our particle ID's using this initial value
-    for (ip=0; ip<localNum; ++ip) 
+    for (ip=0; ip<localNum; ++ip)
       this->ID[ip] = ip + initialID;
     // we are done
     return;
@@ -225,7 +225,7 @@ ParticleBase<PLayout>::putMessage(Message& msg,
   // make sure we've been initialized
   PAssert(Layout != 0);
 
-  std::vector<size_t>::size_type M = putList.size();  
+  std::vector<size_t>::size_type M = putList.size();
   msg.put(M);
 
   // go through all the attributes and put their data in the message
@@ -247,14 +247,14 @@ ParticleBase<PLayout>::putMessage(Message& msg, size_t I) {
   PAssert(Layout != 0);
 
   // put into message the number of items in the message
-  
+
   // go through all the attributes and put their data in the message
-  
+
     attrib_container_t::iterator abeg = AttribList.begin();
     attrib_container_t::iterator aend = AttribList.end();
     for ( ; abeg != aend; abeg++ )
       (*abeg)->putMessage(msg, 1, I);
-  
+
  return 1;
 }
 
@@ -274,20 +274,20 @@ Format* ParticleBase<PLayout>::getFormat()
     this->putMessage(*msg, (size_t) 0);
     Format *format = new Format(msg);
     delete msg;
-        
+
 	//remove the dummy particle again
     if (wasempty)
         this->destroy(1, 0, true);
-    
+
     return format;
 }
 
-template<class PLayout> 
+template<class PLayout>
 size_t
 ParticleBase<PLayout>::writeMsgBuffer(MsgBuffer *&msgbuf, const std::vector<size_t> &list)
 {
     msgbuf = new MsgBuffer(this->getFormat(), list.size());
-    
+
     for (unsigned int i = 0;i<list.size();++i)
     {
         Message msg;
@@ -297,7 +297,7 @@ ParticleBase<PLayout>::writeMsgBuffer(MsgBuffer *&msgbuf, const std::vector<size
     return list.size();
 }
 
-template<class PLayout> 
+template<class PLayout>
 template<class O>
 size_t
 ParticleBase<PLayout>::writeMsgBufferWithOffsets(MsgBuffer *&msgbuf, const std::vector<size_t> &list, const std::vector<O> &offset)
@@ -311,17 +311,17 @@ ParticleBase<PLayout>::writeMsgBufferWithOffsets(MsgBuffer *&msgbuf, const std::
                  {
                      R[list[i]][d] += offset[i][d];
                  }
-             
+
              Message msg;
              this->putMessage(msg, list[i]);
              msgbuf->add(&msg);
-             
+
              R[list[i]] = oldpos;
          }
      return list.size();
  }
 
-template<class PLayout> 
+template<class PLayout>
 size_t
 ParticleBase<PLayout>::readMsgBuffer(MsgBuffer *msgbuf)
 {
@@ -337,7 +337,7 @@ ParticleBase<PLayout>::readMsgBuffer(MsgBuffer *msgbuf)
 }
 
 
-template<class PLayout> 
+template<class PLayout>
 size_t
 ParticleBase<PLayout>::readGhostMsgBuffer(MsgBuffer *msgbuf, int node)
 {
@@ -361,7 +361,7 @@ size_t ParticleBase<PLayout>::getMessage(Message& msg) {
   PAssert(Layout != 0);
 
   // get the number of items in the message
-  size_t numitems;
+  size_t numitems = 0;
   msg.get(numitems);
 
   // go through all the attributes and get their data from the message
@@ -399,7 +399,7 @@ size_t ParticleBase<PLayout>::getSingleMessage(Message& msg) {
 
 
 /////////////////////////////////////////////////////////////////////
-// retrieve particles from the given message and store them, also 
+// retrieve particles from the given message and store them, also
 // signaling we are creating the given number of particles.  Return the
 // number of particles created.
 template<class PLayout>
@@ -420,7 +420,7 @@ size_t ParticleBase<PLayout>::getMessageAndCreate(Message& msg) {
 // create M new particles on this processor
 template<class PLayout>
 void ParticleBase<PLayout>::create(size_t M) {
-  
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -447,7 +447,7 @@ void ParticleBase<PLayout>::create(size_t M) {
 // create 1 new particle with a given ID
 template<class PLayout>
 void ParticleBase<PLayout>::createWithID(unsigned id) {
-  
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -475,7 +475,7 @@ void ParticleBase<PLayout>::createWithID(unsigned id) {
 // create np new particles globally, equally distributed among all processors
 template<class PLayout>
 void ParticleBase<PLayout>::globalCreate(size_t np) {
-  
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -533,8 +533,8 @@ void ParticleBase<PLayout>::destroy(size_t M, size_t I, bool doNow) {
 // our local, total, create particle counts properly.
 template<class PLayout>
 void ParticleBase<PLayout>::update() {
-   
-  
+
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -550,8 +550,8 @@ void ParticleBase<PLayout>::update() {
 // our local, total, create particle counts properly.
 template<class PLayout>
 void ParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {
-   
-  
+
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -567,8 +567,8 @@ void ParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {
 // does it.  This should in most cases only be called by the layout manager.
 template<class PLayout>
 void ParticleBase<PLayout>::performDestroy() {
-   
-  
+
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -587,7 +587,7 @@ void ParticleBase<PLayout>::performDestroy() {
   }
   if (!isSorted)
     std::sort(DestroyList.begin(),DestroyList.end());
- 
+
   // find out if we are using optimized destroy method
   bool optDestroy = getUpdateFlag(PLayout::OPTDESTROY);
 
@@ -607,8 +607,8 @@ void ParticleBase<PLayout>::performDestroy() {
 // This is done immediately.
 template<class PLayout>
 void ParticleBase<PLayout>::ghostDestroy(size_t M, size_t I) {
-   
-  
+
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -672,7 +672,7 @@ ParticleBase<PLayout>::ghostPutMessage(Message &msg,
   // make sure we've been initialized
   PAssert(Layout != 0);
 
-  std::vector<size_t>::size_type M = pl.size();  
+  std::vector<size_t>::size_type M = pl.size();
   msg.put(M);
 
   // go through all the attributes and put their data in the message
@@ -692,8 +692,8 @@ ParticleBase<PLayout>::ghostPutMessage(Message &msg,
 template<class PLayout>
 size_t
 ParticleBase<PLayout>::ghostGetMessage(Message& msg, int node) {
-   
-  
+
+
 
   // make sure we've been initialized
   PAssert(Layout != 0);
@@ -752,8 +752,8 @@ void ParticleBase<PLayout>::sort(SortList_t &sortlist) {
 // print it out
 template<class PLayout>
 std::ostream& operator<<(std::ostream& out, const ParticleBase<PLayout>& P) {
-   
-  
+
+
   out << "Particle object contents:";
   out << "\n  Total particles: " << P.getTotalNum();
   out << "\n  Local particles: " << P.getLocalNum();
@@ -767,7 +767,7 @@ std::ostream& operator<<(std::ostream& out, const ParticleBase<PLayout>& P) {
 // print out debugging information
 template<class PLayout>
 void ParticleBase<PLayout>::printDebug(Inform& o) {
-  
+
   o << "PBase: total = " << getTotalNum() << ", local = " << getLocalNum();
   o << ", attributes = " << AttribList.size() << endl;
   for (attrib_container_t::size_type i=0; i < AttribList.size(); ++i) {
@@ -783,5 +783,5 @@ void ParticleBase<PLayout>::printDebug(Inform& o) {
 /***************************************************************************
  * $RCSfile: ParticleBase.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: ParticleBase.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleBase.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/

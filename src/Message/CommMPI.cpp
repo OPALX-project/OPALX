@@ -73,7 +73,7 @@ static long mpipackbuf[PSIZE];
 CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpicomm)
         : Communicate(argc, argv, procs), weInitialized(mpiinit)
 {
-    
+
     int i, reported, rep_host, ierror, result_len;
     MPI_Status stat;
     char *currtok, *nexttok, *execname;
@@ -134,14 +134,15 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
         // wait for the spawned processes to report back that they're ready
         //~ int *child_ready = new int[TotalNodes];
         std::vector<int> child_ready(TotalNodes);
-        for (i = 0; i < TotalNodes; child_ready[i++] = 0);
+        for (i = 0; i < TotalNodes; child_ready[i++] = 0)
+            ;
         INFOMSG("CommMPI: Parent process waiting for children ..." << endl);
         reported = 1;		// since the parent is already ready
         while (reported < TotalNodes)
         {
             ierror = MPI_Recv(&rep_host, 1, MPI_INT, MPI_ANY_SOURCE,
                               COMM_HOSTS_TAG, communicator, &stat);
-            
+
             if (rep_host >= 0 && rep_host < TotalNodes && !(child_ready[rep_host]))
             {
                 child_ready[rep_host] = 1;
@@ -178,13 +179,13 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
         int checknode;
         MPI_Recv(&checknode, 1, MPI_INT, 0, COMM_HOSTS_TAG, communicator,
                  &stat);
-        
+
         if (checknode != 0)
             WARNMSG("CommMPI: Child received bad message during startup." << endl);
 
         // send back an acknowledgement
         MPI_Send(&myHost, 1, MPI_INT, 0, COMM_HOSTS_TAG, communicator);
-        
+
     }
 
     // set up the contexts and processes arrays properly
@@ -206,7 +207,7 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
 // class destructor
 CommMPI::~CommMPI(void)
 {
-    
+
     int i, dieCode = 0;
     MPI_Status stat;
 
@@ -240,14 +241,14 @@ CommMPI::~CommMPI(void)
         for (i = 1; i < TotalNodes; i++)
         {
             MPI_Send(&dieCode, 1, MPI_INT, i, COMM_DIE_TAG, communicator);
-            
+
         }
     }
     else
     {
         // on client nodes, receive message
         MPI_Recv(&dieCode, 1, MPI_INT, 0, COMM_DIE_TAG, communicator, &stat);
-        
+
     }
 
     MPI_Barrier(communicator);
@@ -326,7 +327,7 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
 
     errstat = MPI_Isend(outbuffer, size, MPI_BYTE, node, etag,
                         communicator, &request);
-    
+
 
     while (!flag)
     {
@@ -351,7 +352,7 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
                     // blocking receive, unpack message
                     MPI_Recv(rec_buff, rec_size, MPI_BYTE, src_node, rec_tag,
                              communicator, &rec_status);
-                    
+
                     newmsg = unpack_message(rec_node, rec_utag, rec_buff);
 
                     // if there was an error unpacking, then the message had a problem
@@ -404,7 +405,7 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
 // If tag = COMM_ANY_TAG, checks for messages with any user tag.
 Message *CommMPI::myreceive(int& node, int& tag, int etag)
 {
-    
+
     int bufid, size, checknode, checktag, flag = false;
     Message *newmsg = 0;
     MPI_Status stat;
@@ -460,7 +461,7 @@ Message *CommMPI::myreceive(int& node, int& tag, int etag)
             //dbgmsg << checknode << "." << endl;
             MPI_Recv(outbuff, size, MPI_BYTE, checknode, checktag,
                      communicator, &stat);
-            
+
             newmsg = unpack_message(node, tag, outbuff);
 
             // if there was an error unpacking, then the message had a problem
@@ -498,7 +499,7 @@ Message *CommMPI::myreceive(int& node, int& tag, int etag)
 // Uses MPI barrier for all procs
 void CommMPI::mybarrier(void)
 {
-    
+
 
     MPI_Barrier(communicator);
 }
@@ -523,7 +524,7 @@ bool CommMPI::resend(void *buf, int buffsize, int node, int etag)
     MPI_Request request;
     int errstat = MPI_Isend(buf, buffsize, MPI_BYTE, node, etag,
                             communicator, &request);
-    
+
 
     int flag = false;
     MPI_Status status;
@@ -542,7 +543,7 @@ bool CommMPI::resend(void *buf, int buffsize, int node, int etag)
 // clean up after a Message has been used (called by Message).
 void CommMPI::cleanupMessage(void *d)
 {
-    
+
 
     // need to free the allocated storage
     freebuffer(d);
@@ -593,7 +594,7 @@ MPI_Request CommMPI::raw_ireceive(char *buf, int size, int node, int tag)
 
     MPI_Request request;
     MPI_Irecv(buf, size, MPI_BYTE, node, tag, communicator, &request);
-    
+
     return request;
 }
 

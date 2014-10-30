@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -40,8 +40,11 @@ extern "C" int read_counters( int e0, long long *c0, int e1, long long *c21);
 // constructor
 IpplCounter::IpplCounter(const char *category)
     : totalcyc_m(0), totalinst_m(0), c0_m(0), c21_m(0),
-    e0_m(0), e1_m(21), gen_start_m(0), gen_read_m(0), 
-    category_m(category), msg_m("Counter")
+#ifdef SGI_HW_COUNTERS
+      e0_m(0), e1_m(21),
+#endif
+      gen_start_m(0), gen_read_m(0),
+      category_m(category), msg_m("Counter")
 { }
 
 
@@ -112,6 +115,5 @@ void IpplCounter::printIt()
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
-

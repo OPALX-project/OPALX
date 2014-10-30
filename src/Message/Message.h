@@ -502,7 +502,7 @@ public:
     Message& get(const std::string& s)
     {
         std::string& ncs = const_cast<std::string&>(s);
-        int len;
+        int len = 0;
         get(len);
         char* cstring = new char[len];
         get(cstring);
