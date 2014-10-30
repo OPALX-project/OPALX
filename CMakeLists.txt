@@ -44,7 +44,7 @@ ENDIF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
 ### CXX_FLAGS common to all compilers and platforms which ###
 ### may be written to the configure file                  ###
 SET (IPPL_CXX_FLAGS
-    "-std=c++0x -DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_GCC -DIPPL_DONT_POOL -DIPPL_USE_XDIV_RNG -DIPPL_NO_STRINGSTREAM -DPETE_BITWISE_COPY -DIPPL_HAS_TEMPLATED_COMPLEX -DIPPL_USE_STANDARD_HEADERS -DIPPL_USE_PARTIAL_SPECIALIZATION -DIPPL_STDSTL -DIPPL_LONGLONG -DWITH_BRICK -DnoCOMP_GNUOLD -Drestrict=__restrict__ -DNOCTAssert ${IPPL_CXX_FLAGS}"
+    "-std=c++1y -DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_GCC -DIPPL_DONT_POOL -DIPPL_USE_XDIV_RNG -DIPPL_NO_STRINGSTREAM -DPETE_BITWISE_COPY -DIPPL_HAS_TEMPLATED_COMPLEX -DIPPL_USE_STANDARD_HEADERS -DIPPL_USE_PARTIAL_SPECIALIZATION -DIPPL_STDSTL -DIPPL_LONGLONG -DWITH_BRICK -DnoCOMP_GNUOLD -Drestrict=__restrict__ -DNOCTAssert ${IPPL_CXX_FLAGS}"
 )
 
 
@@ -92,12 +92,25 @@ IF (LINUXGCC)
             # using clang compiler
             MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: clang++")
             SET (OTHER_CXX_FLAGS
-                 "-Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CXX_FLAGS}")
+                 "-Wall -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CXX_FLAGS}")
 
         ELSEIF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "g++")
             # using gnu compiler
             MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: g++")
+            EXECUTE_PROCESS (COMMAND ${MPI_UNDERLYING_COMPILER} --version
+                             OUTPUT_VARIABLE GCC_VERSION_OUTPUT
+                             ERROR_VARIABLE GCC_VERSION_ERROR)
+            STRING (REGEX REPLACE ".*([0-9]\\.[0-9]\\.[0-9]).*" "\\1" GCC_VERSION ${GCC_VERSION_OUTPUT})
+            MESSAGE (STATUS "Your gcc version is: ${GCC_VERSION}")
 
+            IF (${GCC_VERSION} VERSION_LESS "4.8.0")
+                SET (OTHER_CXX_FLAGS
+    	            "-Wall -std=c++0x")
+
+            ELSEIF (${GCC_VERSION} VERSION_GREATER "4.7")
+                SET (OTHER_CXX_FLAGS
+                    "-Wall -Wno-reorder -std=c++11")
+            ENDIF ()
         ELSE ("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
             # using unknown compiler
 	    MESSAGE (STATUS "${COMPILER_NAME} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of!
