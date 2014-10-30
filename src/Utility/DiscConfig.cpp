@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -163,7 +163,7 @@ unsigned int DiscConfig::pNodesPerSMP(unsigned int node) const {
 // Return a new string with the changes in place.
 string DiscConfig::replace_wildcards(const string& s,
 				     const string& machine) {
-  
+
   // the return string
   string retval;
 
@@ -197,7 +197,7 @@ string DiscConfig::replace_wildcards(const string& s,
       char *tok2 = sptr;
       while (*tok1 != '(' && *tok1 != '\0') ++tok1;
       while (*tok2 != ')' && *tok2 != '\0') ++tok2;
-      if (tok1 == '\0' || tok2 == '\0' || tok2 <= tok1) {
+      if (*tok1 == '\0' || *tok2 == '\0' || *tok2 <= *tok1) {
 	ERRORMSG("Unbalanced parenthesis in DiscConfig config file in line ");
 	ERRORMSG(s.c_str() << endl);
 	Ippl::abort("Exiting due to DiscConfig error.");
@@ -262,7 +262,7 @@ void DiscConfig::add_SMP_directory(SMPData *&smpd,
 
   // if necessary, try to add a new directory.  Buf if no directory
   // was specified, we're done
-  if (s.length() == 0) 
+  if (s.length() == 0)
     return;
 
   // create a string with the wildcards replaced, etc.
@@ -559,7 +559,7 @@ bool DiscConfig::parse_config(const char *BaseFile, bool WritingFile) {
     vector<int>::iterator nodea = smpdata->NodeList.begin();
     for ( ; nodea != smpdata->NodeList.end(); ++nodea)
       NodeList[*nodea]->SMPIndex = smpdata->SMPIndex;
-      
+
 
     // increment how many file sets we're dealing with
     FileSMPs += smpdata->BaseFileNum;
@@ -629,5 +629,5 @@ void DiscConfig::printDebug(Inform& msg) {
 /***************************************************************************
  * $RCSfile: DiscConfig.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: DiscConfig.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: DiscConfig.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

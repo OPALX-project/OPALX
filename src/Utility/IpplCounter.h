@@ -2,14 +2,14 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
  ***************************************************************************/
 
 #ifndef IPPL_COUNTER_H
-#define IPPL_COUNTER_H 
+#define IPPL_COUNTER_H
 
 /***************************************************************************
  * IpplCounter - a simple megaflops counter that accesses hardware counters
@@ -19,13 +19,13 @@
  *   1. Create a counter.
  *       example:   Counter FFTcounter("FFT");
  *
- *   2. Locate the function which you would like to measure and start the 
+ *   2. Locate the function which you would like to measure and start the
  *       counter by placing the startCounter() method before it.  Then, stop
- *       the counter after it by using the stopCounter() method.  
+ *       the counter after it by using the stopCounter() method.
  *       example:   FFTcounter.startCounter();
  *                  fft->transform(....);
- *                  FFTcounter.stopCounter(); 
- *  
+ *                  FFTcounter.stopCounter();
+ *
  *   3. Use the printIt() method to print to the screen.
  *       example:   FFTcounter.printIt();
  *
@@ -48,7 +48,7 @@ public:
   // counter operations
   void startCounter();
   void stopCounter();
-  void printIt(); 
+  void printIt();
 
 private:
 #if defined(IPPL_LONGLONG)
@@ -62,8 +62,10 @@ private:
   CounterLong c0_m;
   CounterLong c21_m;
 
+#ifdef SGI_HW_COUNTERS
   int e0_m;
   int e1_m;
+#endif
   int gen_start_m;
   int gen_read_m;
 
@@ -81,6 +83,5 @@ private:
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
-

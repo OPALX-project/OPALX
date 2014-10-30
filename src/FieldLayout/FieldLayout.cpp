@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -42,8 +42,8 @@
 // call 'initialize' soon after (before using in any context)
 template<unsigned Dim>
 FieldLayout<Dim>::FieldLayout() {
-  
-  
+
+
 
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
@@ -65,8 +65,8 @@ FieldLayout<Dim>::FieldLayout() {
 // distributed in some other manner.
 template<unsigned Dim>
 FieldLayout<Dim>::FieldLayout(const char *filename) {
-  
-  
+
+
 
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
@@ -108,8 +108,8 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 			     e_dim_tag *p, int vnodes) {
-  
-  
+
+
   setup(domain, p, vnodes);
 }
 
@@ -117,8 +117,8 @@ FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const Index& i1, e_dim_tag p1, int vnodes) {
-  
-  
+
+
 
   PInsist(Dim==1,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -130,8 +130,8 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const Index& i1, const Index& i2,
 			     e_dim_tag p1, e_dim_tag p2, int vnodes) {
-  
-  
+
+
 
   PInsist(Dim==2,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -148,7 +148,7 @@ void
 FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     int vnodes) {
-  
+
   PInsist(Dim==3,
           "Number of arguments does not match dimension of FieldLayout!!");
   e_dim_tag par[Dim];
@@ -168,7 +168,7 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     e_dim_tag p4,
 			     int vnodes) {
-  
+
 
   PInsist(Dim==4,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -248,7 +248,7 @@ FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 			     e_dim_tag *p, unsigned* vnodesPerDirection,
 			     bool recurse, int vnodes) {
 
-  
+
   // Default to correct total vnodes:
   unsigned vnodesProduct = 1;
   for (unsigned int d=0; d<Dim; d++) vnodesProduct *= vnodesPerDirection[d];
@@ -259,7 +259,7 @@ FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 	    << "(vnodes != vnodesPerDirection[0]*vnodesPerDirection[1]*"
 	    << "...*vnodesPerDirection[" << Dim-1 << "])"
 	    << " ; vnodesPerDirection[0]*vnodesPerDirection[1]*"
-	    << "...*vnodesPerDirection[" << Dim-1 << "] = " 
+	    << "...*vnodesPerDirection[" << Dim-1 << "] = "
 	    << vnodesProduct << " ; vnodes = " << vnodes << endl);
   }
   setup(domain, p, vnodesPerDirection,recurse,vnodes);
@@ -267,10 +267,10 @@ FieldLayout<Dim>::initialize(const NDIndex<Dim>& domain,
 
 template<unsigned Dim>
 void
-FieldLayout<Dim>::initialize(const Index& i1, e_dim_tag p1, 
+FieldLayout<Dim>::initialize(const Index& i1, e_dim_tag p1,
 			     unsigned vnodes1, bool recurse, int vnodes) {
-  
-  
+
+
 
   PInsist(Dim==1,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -281,8 +281,8 @@ FieldLayout<Dim>::initialize(const Index& i1, e_dim_tag p1,
 template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const Index& i1, const Index& i2,
-			     e_dim_tag p1, e_dim_tag p2, 
-			     unsigned vnodes1, unsigned vnodes2, 
+			     e_dim_tag p1, e_dim_tag p2,
+			     unsigned vnodes1, unsigned vnodes2,
 			     bool recurse, int vnodes) {
 
   PInsist(Dim==2,
@@ -302,9 +302,9 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
-			     unsigned vnodes1, unsigned vnodes2, 
-			     unsigned vnodes3, 
-			     bool recurse, int vnodes) {  
+			     unsigned vnodes1, unsigned vnodes2,
+			     unsigned vnodes3,
+			     bool recurse, int vnodes) {
 
   PInsist(Dim==3,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -328,10 +328,10 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     const Index& i4,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     e_dim_tag p4,
-			     unsigned vnodes1, unsigned vnodes2, 
-			     unsigned vnodes3, unsigned vnodes4, 
+			     unsigned vnodes1, unsigned vnodes2,
+			     unsigned vnodes3, unsigned vnodes4,
 			     bool recurse, int vnodes) {
-  
+
   PInsist(Dim==4,
           "Number of arguments does not match dimension of FieldLayout!!");
   e_dim_tag par[Dim];
@@ -357,10 +357,10 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     const Index& i4, const Index& i5,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     e_dim_tag p4, e_dim_tag p5,
-			     unsigned vnodes1, unsigned vnodes2, 
-			     unsigned vnodes3, unsigned vnodes4, 
-			     unsigned vnodes5, 
-			     bool recurse, int vnodes) { 
+			     unsigned vnodes1, unsigned vnodes2,
+			     unsigned vnodes3, unsigned vnodes4,
+			     unsigned vnodes5,
+			     bool recurse, int vnodes) {
 
   PInsist(Dim==5,
           "Number of arguments does not match dimension of FieldLayout!!");
@@ -390,11 +390,11 @@ FieldLayout<Dim>::initialize(const Index& i1, const Index& i2, const Index& i3,
 			     const Index& i4, const Index& i5, const Index& i6,
 			     e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 			     e_dim_tag p4, e_dim_tag p5, e_dim_tag p6,
-			     unsigned vnodes1, unsigned vnodes2, 
-			     unsigned vnodes3, unsigned vnodes4, 
-			     unsigned vnodes5, unsigned vnodes6, 
+			     unsigned vnodes1, unsigned vnodes2,
+			     unsigned vnodes3, unsigned vnodes4,
+			     unsigned vnodes5, unsigned vnodes6,
 			     bool recurse, int vnodes) {
-  
+
   PInsist(Dim==6,
           "Number of arguments does not match dimension of FieldLayout!!");
   e_dim_tag par[Dim];
@@ -523,8 +523,8 @@ void
 FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
 			e_dim_tag *userflags, int vnodes)
 {
-  
-  
+
+
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
 
@@ -703,7 +703,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
 // vnodes to processors.
 // If it is false, hand the vnodes to the processors in a very simple
 // but probably inefficient manner.
-// If it is true, use a binary recursive algorithm. This will usually be 
+// If it is true, use a binary recursive algorithm. This will usually be
 // more efficient because it will generate less communication, but
 // it will sometimes fail, particularly near the case of one vnode per
 // processor.
@@ -716,7 +716,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
 			e_dim_tag *userflags, unsigned* vnodesPerDirection,
 			bool recurse, int vnodes)
 {
- 
+
   // Find the number processors.
   int nprocs = Ippl::getNodes();
   int myproc = Ippl::myNode();
@@ -747,7 +747,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
       PInsist(chk,"SERIAL layout specified, yet vnodesPerDirection is not 1!");
     }
   }
-  
+
   // Make sure at least one of the parallel/serial flags is parallel
   PInsist(parallel_count>0,"At least one dimension of a FieldLayout must be PARALLEL!");
 
@@ -821,7 +821,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
   // Now find what processor each vnode will end up on.
   // This is done with a recursive bisection algorithm.
   // This produces fairly squarish blocks -- and therefore
-  // less communication at the expense of each processor getting 
+  // less communication at the expense of each processor getting
   // a less balanced load.
   int *vnodeProcs = new int[vnodes];
   int *sizes = new int[Dim];
@@ -889,7 +889,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
 template<unsigned Dim>
 unsigned FieldLayout<Dim>::
 getVnodesPerDirection(unsigned dir) {
-  
+
   // If not set, then not appropriate to be calling this function. Example:
   // now-power-of-two-constructed FieldLayout which did *not* specify numbers
   // of vnodes along each direction:
@@ -905,8 +905,8 @@ getVnodesPerDirection(unsigned dir) {
 template<unsigned Dim>
 void FieldLayout<Dim>::new_gc_layout(const GuardCellSizes<Dim>& gc)
 {
-  
-  
+
+
 
   // Build the guarded domain.
   NDIndex<Dim> guarded_domain( AddGuardCells(Domain,gc) );
@@ -934,7 +934,7 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
 			      const NDIndex<Dim>* idx_begin,
 			      const NDIndex<Dim>* idx_end)
   : Domain(domain)
-{ 
+{
 
   // we have one more FieldLayout, indicate this
   //INCIPPLSTAT(incFieldLayouts);
@@ -973,11 +973,11 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
   while ((--node_count)>=0)
     {
       // Receive a broadcast message from any node.
-      int other_node = COMM_ANY_NODE; 
+      int other_node = COMM_ANY_NODE;
       Message *recv_mess = Ippl::Comm->receive_block(other_node,tag);
       PAssert(recv_mess != 0);
       // Extract the number of vnodes coming in.
-      int count;
+      int count = 0;
       recv_mess->get(count);
       // Now get the domains for the vnodes from the message.
       NDIndex<Dim> p;
@@ -1056,7 +1056,7 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
   while ((--node_count)>=0)
     {
       // Receive a broadcast message from any node.
-      int other_node = COMM_ANY_NODE; 
+      int other_node = COMM_ANY_NODE;
       Message *recv_mess = Ippl::Comm->receive_block(other_node,tag);
       PAssert(recv_mess != 0);
       // Extract the number of vnodes coming in.
@@ -1066,7 +1066,7 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
       Vnode<Dim> p;
       while (count-- > 0) {
 	p.getMessage(*recv_mess);
-	Vnode<Dim> *vnode = 
+	Vnode<Dim> *vnode =
 	  new Vnode<Dim>(p.getDomain(), other_node, p.getVnode());
 	// For domains of extent 1 in all directions, must call
 	// DomainMap::insert() with the noSplit flag set to true, to avoid an
@@ -1095,7 +1095,7 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
 
 //----------------------------------------------------------------------
 //
-// Completely repartition this FieldLayout and all of the Fields 
+// Completely repartition this FieldLayout and all of the Fields
 // defined on it.
 //
 template<unsigned Dim>
@@ -1103,8 +1103,8 @@ void
 FieldLayout<Dim>::Repartition(const NDIndex<Dim>* idxBegin,
 			      const NDIndex<Dim>* idxEnd)
 {
-  
-  
+
+
 
   // Build a temporary FieldLayout to declare the temporary arrays.
   FieldLayout<Dim> tempLayout(Domain,idxBegin,idxEnd);
@@ -1137,18 +1137,18 @@ FieldLayout<Dim>::Repartition(const NDIndex<Dim>* idxBegin,
 
 //----------------------------------------------------------------------
 //
-// Completely repartition this FieldLayout and all of the Fields 
+// Completely repartition this FieldLayout and all of the Fields
 // defined on it.
 // This differs from the previous ctor in that it allows preservation of
 // global Vnode integer ID numbers associated with the input Vnodes. --tjw
 //
 template<unsigned Dim>
 void
-FieldLayout<Dim>::Repartition(const Vnode<Dim>* idxBegin, 
+FieldLayout<Dim>::Repartition(const Vnode<Dim>* idxBegin,
 			      const Vnode<Dim>* idxEnd)
 {
-  
-  
+
+
 
   // Build a temporary FieldLayout to declare the temporary arrays.
   FieldLayout<Dim> tempLayout(Domain,idxBegin,idxEnd);
@@ -1183,8 +1183,8 @@ FieldLayout<Dim>::Repartition(const Vnode<Dim>* idxBegin,
 // with keyword=value.  Return success.
 template<unsigned Dim>
 bool FieldLayout<Dim>::write(const char *filename) {
-  
-  
+
+
 
   unsigned int d;
 
@@ -1256,8 +1256,8 @@ bool FieldLayout<Dim>::write(const char *filename) {
 // false and leave our own layout unchanged.
 template<unsigned Dim>
 bool FieldLayout<Dim>::read(const char *filename) {
-  
-  
+
+
 
   // generate a tag to use for communication
   int tag = Ippl::Comm->next_tag(F_LAYOUT_IO_TAG, F_TAG_CYCLE);
@@ -1498,7 +1498,7 @@ bool FieldLayout<Dim>::read(const char *filename) {
 
   // Repartition the system using our list of local vnodes
   Repartition(vnlist, vnlist + localvnodes);
- 
+
   // success!
   delete [] vnlist;
   return true;
@@ -1515,7 +1515,7 @@ void FieldLayout<Dim>::calcWidths() {
   // initialize widths first
   for (d=0; d < Dim; ++d)
     MinWidth[d] = getDomain()[d].length();
-  
+
   // look for minimum width in local vnodes
   for  (const_iterator_iv v_i = begin_iv() ; v_i != end_iv(); ++v_i) {
     const NDIndex<Dim> &dom = (*v_i).second->getDomain();
@@ -1553,8 +1553,8 @@ void
 FieldLayout<Dim>::checkin(FieldLayoutUser& f,
 			  const GuardCellSizes<Dim>& gc)
 {
-  
-  
+
+
 
   checkinUser(f);
   iterator_gdv guarded = Remotes_ac.find(gc);
@@ -1569,7 +1569,7 @@ template<unsigned Dim>
 void
 FieldLayout<Dim>::checkout(FieldLayoutUser& f)
 {
-  
+
 
   checkoutUser(f);
 }
@@ -1594,7 +1594,7 @@ NDIndex<Dim> FieldLayout<Dim>::getLocalNDIndex()
 template<unsigned Dim>
 void FieldLayout<Dim>::write(std::ostream& out) const
 {
-  
+
 
   int icount;
 
@@ -1632,5 +1632,5 @@ void FieldLayout<Dim>::write(std::ostream& out) const
 /***************************************************************************
  * $RCSfile: FieldLayout.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:27 $
- * IPPL_VERSION_ID: $Id: FieldLayout.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: FieldLayout.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $
  ***************************************************************************/

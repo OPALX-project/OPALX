@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -44,7 +44,7 @@
 
   Suppose you're on the n'th split, so there are 2**n domains figured
   out so far, and after the split there will be 2**(n+1) splits.  In
-  each of those 2**n domains you need to find 
+  each of those 2**n domains you need to find
 
   a) The axis to split on. This is done by just finding the longest
      axis in that domain.
@@ -63,7 +63,7 @@
   At every stage of the process all the processors know all the
   domains.  This is necessary because the weight array could be
   distributed arbitrarily, so the reductions could involve any
-  processors.  
+  processors.
 
   Nevertheless, the reductions are performed efficiently.  Using
   DomainMaps, only the processors that need to participate in a
@@ -81,8 +81,8 @@ template <unsigned Dim>
 static int
 FindCutAxis(const NDIndex<Dim> &domain, const FieldLayout<Dim> &layout)
 {
-  
-  
+
+
 
   // CutAxis will be the dimension to cut.
   int cutAxis=-1;
@@ -126,9 +126,9 @@ FindMedian(int nprocs,RandomIterator begin, RandomIterator end, T)
 {
   // First find the total weight.
   T w = 0;
-  // Use w to find T's name 
-  
-  
+  // Use w to find T's name
+
+
   // If we have only one processor, cut at the left.
   if ( nprocs == 1 )
     return begin;
@@ -172,7 +172,7 @@ FindMedian(int nprocs,RandomIterator begin, RandomIterator end, T)
 //////////////////////////////////////////////////////////////////////
 
 //
-// Routines for doing reductions over all dimensions but one of a 
+// Routines for doing reductions over all dimensions but one of a
 // local BrickIterator.
 //
 // These will only work for 1, 2 and 3 dimensions right now.
@@ -262,8 +262,8 @@ template<unsigned Dim>
 static void
 LocalReduce(double *reduced, int cutAxis, BrickIterator<double,Dim> data)
 {
-   
-  
+
+
 
   int length = data.size(cutAxis);
   for (int i=0; i<length; ++i)
@@ -279,14 +279,14 @@ LocalReduce(double *reduced, int cutAxis, BrickIterator<double,Dim> data)
 //
 // The local reductions take place all across the machine.
 // The reductions for each domain are finished on a single processor.
-// Each of those final reductions are on different processors. 
+// Each of those final reductions are on different processors.
 //
 
 template<class IndexIterator, unsigned Dim>
 static void
 SendReduce(IndexIterator domainsBegin, IndexIterator domainsEnd,
            BareField<double,Dim>& weights, int tag)
-{  
+{
 
   // Buffers to store up domains and blocks of reduced data.
   std::vector<double*> reducedBuffer;
@@ -367,7 +367,7 @@ ReceiveReduce(NDIndex<Dim>& domain, BareField<double,Dim>& weights,
               int reduce_tag, int nprocs,
 	      int& cutLoc, int& cutAxis)
 {
-  
+
 
   // Build a place to accumulate the reduced data.
   cutAxis = FindCutAxis(domain, weights.getLayout());
@@ -406,7 +406,7 @@ ReceiveReduce(NDIndex<Dim>& domain, BareField<double,Dim>& weights,
   }
   // now just count up the number of messages to receive
   for (i=0; i<nodes; ++i)
-    if (found_touch[i]) expected++;  
+    if (found_touch[i]) expected++;
   delete [] found_touch;
 
   DEBUGMSG("ReceiveReduce, msgs expected=" << expected << endl);
@@ -419,7 +419,7 @@ ReceiveReduce(NDIndex<Dim>& domain, BareField<double,Dim>& weights,
       PAssert(mess != 0);
       DEBUGMSG("ReceiveReduce: Comm->Receive from Node " << any_node << ", tag=" << reduce_tag << endl);
       // Loop over all the domains in this message.
-      int received_domains;
+      int received_domains = 0;
       mess->get(received_domains);
       while ( --received_domains>=0 )
         {
@@ -456,7 +456,7 @@ ReceiveReduce(NDIndex<Dim>& domain, BareField<double,Dim>& weights,
 inline void
 BcastCuts(int cutLoc, int cutAxis, int bcast_tag)
 {
-  
+
 
   // Make a message.
   Message *mess = new Message();
@@ -481,8 +481,8 @@ ReceiveCuts(std::vector< NDIndex<Dim> > &domains,
 	    std::vector< int >& nprocs,
 	    int bcast_tag)
 {
-  
-  
+
+
 
   // Make a container to hold the split domains.
   int nDomains = domains.size();
@@ -497,7 +497,7 @@ ReceiveCuts(std::vector< NDIndex<Dim> > &domains,
       // The processor number will correspond to the location
       // in the domains vector.
       int whichDomain = COMM_ANY_NODE;
-      int cutLocation, cutAxis;
+      int cutLocation = 0, cutAxis = 0;
       Message *mess = Ippl::Comm->receive_block(whichDomain,bcast_tag);
       PAssert(mess != 0);
       DEBUGMSG("ReceiveCuts: received bcast " << expected << endl);
@@ -556,7 +556,7 @@ static void
 CutEach(std::vector< NDIndex<Dim> >& domains,
 	std::vector< int >& nprocs,
 	BareField<double,Dim>& weights)
-{ 
+{
 
   // Get tags for the reduction and the broadcast.
   int reduce_tag = Ippl::Comm->next_tag( F_REDUCE_PERP_TAG , F_TAG_CYCLE );
@@ -600,12 +600,12 @@ CalcBinaryRepartition(FieldLayout<Dim>& layout, BareField<double,Dim>& weights)
 {
 // Build a list of domains as we go.
   std::vector< NDIndex<Dim> > domains; // used by TAU_TYPE_STRING
-  std::vector<int> procs; 
+  std::vector<int> procs;
 
   /*out << "Starting CalcBinaryRepartition, outstanding msgs="
       << Ippl::Comm->getReceived()
       << endl;*/
-    
+
   // Get the processors we'll be dealing with.
   int nprocs = Ippl::Comm->getNodes();
   int myproc = Ippl::Comm->myNode();
@@ -632,13 +632,13 @@ CalcBinaryRepartition(FieldLayout<Dim>& layout, BareField<double,Dim>& weights)
 	if (mprocs<procs[i]) mprocs = procs[i];
     }
   // Return the domain on this processor.
-  
-  
-  //seriously dirty fix 
+
+
+  //seriously dirty fix
   typename std::vector< NDIndex<Dim> >::iterator i;
-  
+
   bool degenerated = false;
-  
+
   for(i = domains.begin();i!=domains.end();++i)
   {
 	  for(unsigned int d = 0;d<Dim;++d)
@@ -650,14 +650,14 @@ CalcBinaryRepartition(FieldLayout<Dim>& layout, BareField<double,Dim>& weights)
 	if(degenerated)
 		break;
   }
-  
+
   if(!degenerated)
 	return domains.begin()[myproc];
   else
 	{
 		throw BinaryRepartitionFailed();
 	}
-	
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -666,5 +666,5 @@ CalcBinaryRepartition(FieldLayout<Dim>& layout, BareField<double,Dim>& weights)
 /***************************************************************************
  * $RCSfile: BinaryBalancer.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:27 $
- * IPPL_VERSION_ID: $Id: BinaryBalancer.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: BinaryBalancer.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $
  ***************************************************************************/

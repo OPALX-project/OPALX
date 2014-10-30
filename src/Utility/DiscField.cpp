@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -75,7 +75,7 @@ DiscField<Dim>::DiscField(const char* base, unsigned int numFields,
 // config = name of configuration file
 template <unsigned Dim>
 DiscField<Dim>::DiscField(const char* base, const char* config) {
-  
+
   initialize(base, config, 0, 0);
 }
 
@@ -182,7 +182,7 @@ void DiscField<Dim>::query(int& numRecords, int& numFields,
 // and return 0.
 template <unsigned Dim>
 FILE* DiscField<Dim>::open_df_file(const std::string& fnm, const std::string& mode) {
-  
+
   FILE *f = fopen(fnm.c_str(), mode.c_str());
   if (f == 0) {
     ERRORMSG("DiscField: Could not open file '" << fnm.c_str());
@@ -298,7 +298,7 @@ FILE* DiscField<Dim>::open_df_file(const std::string& fnm, const std::string& su
 // create the data files used to store Field data.  Return success.
 template <unsigned Dim>
 bool DiscField<Dim>::create_files() {
-  
+
 
   FILE *f;
   std::string om("w");
@@ -344,7 +344,7 @@ bool DiscField<Dim>::create_files() {
 // success.
 template <unsigned Dim>
 bool DiscField<Dim>::make_globalID(FieldLayout<Dim>& layout) {
-  
+
   // check layout to make sure it's valid
   if (Size.size() != 0 && !(Size == layout.getDomain()))
     return false;
@@ -730,7 +730,7 @@ bool DiscField<Dim>::read_meta() {
 
     // get info out of message
     DFDBG(dbgmsg << "Summary of received meta info:" << endl);
-    int errint;
+    int errint = 0;
     msg->get(errint);
     iserror = (errint != 0);
     DFDBG(dbgmsg << "  iserror = " << iserror << endl);
@@ -1025,5 +1025,5 @@ NDIndex<Dim> DiscField<Dim>::chunk_domain(const NDIndex<Dim> &currblock,
 /***************************************************************************
  * $RCSfile: DiscField.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: DiscField.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: DiscField.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

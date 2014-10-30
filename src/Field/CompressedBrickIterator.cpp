@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -59,7 +59,7 @@ CompressedBrickIterator(const NDIndex<Dim>& o, T& compressed)
 //
 // The routine that checks to see if all the values are the same.
 // This is a regular function so that we can do compile time recursion.
-// 
+//
 //////////////////////////////////////////////////////////////////////
 
 //
@@ -70,7 +70,7 @@ CompressedBrickIterator(const NDIndex<Dim>& o, T& compressed)
 // If B==true then we have an explicit function available.
 // If B==false we need to use the general loop.
 //
-// If Dim>3 we use the general loop, but it calls the 
+// If Dim>3 we use the general loop, but it calls the
 // one for Dim-1 so the inner loops are always efficient.
 //
 
@@ -98,7 +98,7 @@ all_values_equal( const CompressedBrickIterator<T,Dim>& iter, T val,
 		  CompressedLoopTag<1,true> )
 		  //mwerks		  CompressedLoopTag<1> )
 {
-  
+
   // Loop over all the elements.
   int n = iter.size(0);
   for (int i=0; i<n; ++i)
@@ -120,11 +120,11 @@ all_values_equal( const CompressedBrickIterator<T,Dim>& iter, T val ,
 		  CompressedLoopTag<2,true> )
   //mwerks		  CompressedLoopTag<2> )
 {
-  
+
   // Loop over all of the elements.
   int n0 = iter.size(0);
   int n1 = iter.size(1);
-  
+
   if ( (n0>0)&&(n1>0) )
     for (int i1=0; i1<n1; ++i1)
       for (int i0=0; i0<n0; ++i0)
@@ -148,12 +148,12 @@ all_values_equal( const CompressedBrickIterator<T,Dim>& iter, T val ,
 		  CompressedLoopTag<3,true> )
   //mwerks		  CompressedLoopTag<3> )
 {
-  
+
   // Loop over all of the elements.
   int n0 = iter.size(0);
   int n1 = iter.size(1);
   int n2 = iter.size(2);
-  if ( (n0>0)&&(n1>0)&&(n2>0) ) 
+  if ( (n0>0)&&(n1>0)&&(n2>0) )
     for (int i2=0; i2<n2; ++i2)
       for (int i1=0; i1<n1; ++i1)
 	for (int i0=0; i0<n0; ++i0)
@@ -168,7 +168,7 @@ all_values_equal( const CompressedBrickIterator<T,Dim>& iter, T val ,
 // Here is the N dimensional version that checks if all the values
 // in a block are the same.
 //
-// Note that for this one we pass iter by value instead of by 
+// Note that for this one we pass iter by value instead of by
 // reference because we use the step() member function.
 //
 
@@ -177,7 +177,7 @@ inline bool
 all_values_equal(CompressedBrickIterator<T,Dim1> iter, T val,
 		 CompressedLoopTag<Dim2,false>)
 {
-  
+
   // Loop over the outermost dimension.
   int n = iter.size(Dim2-1);
   for (int i=0; i<n; ++i)
@@ -197,16 +197,16 @@ all_values_equal(CompressedBrickIterator<T,Dim1> iter, T val,
 
 //////////////////////////////////////////////////////////////////////
 //
-// The function that compresses the iterator if all the 
+// The function that compresses the iterator if all the
 // data it points to are equal to the given value.
-// 
+//
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned Dim>
 bool CompressedBrickIterator<T,Dim>::CanCompress(const T& val) const
 {
-  
-  
+
+
   if ( IsCompressed() )
     return *CompressedData == val;
   else
@@ -253,7 +253,7 @@ template<class T, unsigned Dim>
 Message& CompressedBrickIterator<T,Dim>::getMessage(Message& m)
 {
   // Inform msg("CBI::getMessage", INFORM_ALL_NODES);
-  int compressed;
+  int compressed = 0;
   m.get(compressed);
   // msg << "  Compressed = " << compressed << endl;
   if (compressed == 1)
@@ -286,7 +286,7 @@ CompressedBrickIterator<T,D2>
 permute(const CompressedBrickIterator<T,D1>& iter,
 	const NDIndex<D1>& current, const NDIndex<D2>& perm)
 {
-  
+
   unsigned int d1, d2;
 
 #ifdef IPPL_DEBUG
@@ -312,7 +312,7 @@ permute(const CompressedBrickIterator<T,D1>& iter,
     FoundIt:
       ;
     }
-  
+
 #endif
 
   // This is the iterator we'll be building.
@@ -359,7 +359,7 @@ const CompressedBrickIterator<T,Dim>&
 CompressedBrickIterator<T,Dim>::
 operator=(const CompressedBrickIterator<T,Dim>& rhs)
 {
-   
+
   if ( this != &rhs )
     {
       *(dynamic_cast<BrickIterator<T,Dim>*>(this)) = rhs;
@@ -375,7 +375,7 @@ CompressedBrickIterator<T,Dim>::
 CompressedBrickIterator(const CompressedBrickIterator<T,Dim>& X)
   : BrickIterator<T,Dim>(X), CompressedData(X.CompressedData)
 {
-   
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -389,11 +389,11 @@ CompressedBrickIterator(const CompressedBrickIterator<T,Dim>& X)
 //      Compress with an external variable for which you can take the address
 //      and have 'CompressedData' point to.
 template<class T, unsigned Dim>
-void 
+void
 CompressedBrickIterator<T,Dim>::Compress(T& val)
 {
-  
-  
+
+
   // Inform msg("CBI::Compress", INFORM_ALL_NODES);
   // msg << "Before storing value " << val << ": ";
   // msg << "CompressedData = " << (void *)CompressedData;
@@ -415,11 +415,11 @@ CompressedBrickIterator<T,Dim>::Compress(T& val)
 // Here is a version that lets the user specify a value
 // to try sparsifying on.
 template<class T, unsigned Dim>
-bool 
+bool
 CompressedBrickIterator<T,Dim>::TryCompress(T val)
 {
-  
-  
+
+
   // Inform msg("CBI::TryCompress", INFORM_ALL_NODES);
   // msg << "Trying to compress to value " << val;
   // msg << " : IsCompressed = " << IsCompressed() << endl;
@@ -444,5 +444,5 @@ CompressedBrickIterator<T,Dim>::TryCompress(T val)
 /***************************************************************************
  * $RCSfile: CompressedBrickIterator.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:26 $
- * IPPL_VERSION_ID: $Id: CompressedBrickIterator.cpp,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: CompressedBrickIterator.cpp,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $
  ***************************************************************************/
