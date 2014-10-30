@@ -63,7 +63,7 @@ void LossDataSink::writeHeaderH5() {
     h5_int64_t rc;
     // Write file attributes to describe phase space to H5 file.
     std::stringstream OPAL_version;
-    OPAL_version << PACKAGE_STRING << " rev. " << SVN_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION;
     rc = H5WriteFileAttribString(H5file_m, "OPAL_version", OPAL_version.str().c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);

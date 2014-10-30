@@ -16,10 +16,8 @@ ENDIF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.svn")
 set (PACKAGE \"opal\")
 set (PACKAGE_BUGREPORT \"opal@lists.psi.ch\")
 set (PACKAGE_NAME \"OPAL\")
-set (PACKAGE_STRING \"OPAL\ 1.2.1\")
 set (PACKAGE_TARNAME \"opal\")
-set (PACKAGE_VERSION \"1.2.1\")
-set (VERSION \"1.2.1\")
+set (PACKAGE_VERSION \"1.3.0rc1\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 

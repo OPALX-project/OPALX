@@ -307,14 +307,12 @@ inline void ParallelSliceTracker::writePhaseSpace(const long long step, const do
         //itsDataSink->stashPhaseSpaceEnvelope(*itsBunch_m, FDext, rmax(2), sposRef, rmin(2));
         itsDataSink_m->writePhaseSpaceEnvelope(*itsBunch_m, FDext,
                                              rmax(2), sposRef, rmin(2));
-        INFOMSG("* Wrote beam phase space." << endl);
         msg     << *itsBunch_m << endl;
     }
 
     if(step % Options::statDumpFreq == 0) {
         itsDataSink_m->writeStatData(*itsBunch_m, FDext,
                                    rmax(2), sposRef, rmin(2));
-        INFOMSG("* Wrote beam statistics." << endl);
     }
 }
 
@@ -339,7 +337,6 @@ inline void ParallelSliceTracker::writeLastStepPhaseSpace(const long long step, 
         }
 
         itsDataSink_m->writeStatData(*itsBunch_m, FDext, rmax(2), sposRef, rmin(2));
-        INFOMSG("* Wrote beam statistics." << endl);
     } else
         INFOMSG("* Invalid bunch! No statistics dumped." << endl);
 }

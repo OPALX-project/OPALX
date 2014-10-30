@@ -22,9 +22,6 @@
 
 #include "config.h"
 
-//using namespace std;
-//using namespace OPALTimer;
-
 Ippl *ippl;
 Inform *gmsg;
 
