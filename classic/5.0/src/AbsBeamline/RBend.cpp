@@ -47,7 +47,7 @@ RBend::RBend():
     bY_m(0.0),
     entranceAngle_m(0.0),
     exitAngle_m(0.0),
-    gradient_m(0.0),
+    fieldIndex_m(0.0),
     elementEdge_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
@@ -101,7 +101,7 @@ RBend::RBend(const RBend &right):
     bY_m(right.bY_m),
     entranceAngle_m(right.entranceAngle_m),
     exitAngle_m(right.exitAngle_m),
-    gradient_m(right.gradient_m),
+    fieldIndex_m(right.fieldIndex_m),
     elementEdge_m(right.elementEdge_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
@@ -157,7 +157,7 @@ RBend::RBend(const std::string &name):
     bY_m(0.0),
     entranceAngle_m(0.0),
     exitAngle_m(0.0),
-    gradient_m(0.0),
+    fieldIndex_m(0.0),
     elementEdge_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
@@ -498,7 +498,7 @@ void RBend::SetFullGap(double gap) {
 }
 
 void RBend::SetK1(double k1) {
-    gradient_m = k1;
+    fieldIndex_m = k1;
 }
 
 void RBend::SetLength(double length) {
@@ -571,9 +571,12 @@ void RBend::CalcCentralField(Vector_t R,
                              double angle,
                              Vector_t &B) {
 
-    B(0) = -gradient_m * R(1) * cos(angle) / designRadius_m;
-    B(1) = 1.0 - gradient_m * deltaX / designRadius_m;
-    B(2) = -gradient_m * R(1) * sin(angle) / designRadius_m;
+    double nOverRho = fieldIndex_m / designRadius_m;
+    double expFactor = exp(-nOverRho * deltaX);
+    double bxBzFactor = nOverRho * expFactor * R(1);
+    B(0) = -bxBzFactor * cos(angle);
+    B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
+    B(2) = -bxBzFactor * sin(angle);
 
 }
 
@@ -647,11 +650,13 @@ void RBend::CalcEntranceFringeField(Vector_t REntrance,
                      engeFuncDeriv,
                      engeFuncSecDeriv);
 
-    double bXEntrance = -(engeFunc - (engeFuncSecDeriv / 2.0) * pow(REntrance(1), 2.0))
-                        * gradient_m * REntrance(1) / designRadius_m;
-    double bYEntrance = engeFunc - (engeFuncSecDeriv / 2.0) * pow(REntrance(1), 2.0)
-                        * (1.0 - gradient_m * deltaX / designRadius_m);
-    double bZEntrance = -engeFuncDeriv * REntrance(1);
+    double nOverRho = fieldIndex_m / designRadius_m;
+    double expFactor = exp(-nOverRho * deltaX);
+    double bXEntrance = -engeFunc * nOverRho * expFactor* REntrance(1);
+    double bYEntrance = expFactor * (engeFunc - (pow(expFactor, 2.0) * engeFunc
+                                                 + engeFuncSecDeriv)
+                                     * pow(REntrance(1), 2.0) / 2.0);
+    double bZEntrance = -expFactor * engeFuncDeriv * REntrance(1);
 
     B(0) = bXEntrance * cosEntranceAngle_m - bZEntrance * sinEntranceAngle_m;
     B(1) = bYEntrance;
@@ -672,11 +677,13 @@ void RBend::CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B) {
                      engeFuncDeriv,
                      engeFuncSecDeriv);
 
-    double bXExit = -(engeFunc - (engeFuncSecDeriv / 2.0) * pow(RExit(1), 2.0))
-                    * gradient_m * RExit(1) / designRadius_m;
-    double bYExit = engeFunc - (engeFuncSecDeriv / 2.0) * pow(RExit(1), 2.0)
-                    * (1.0 - gradient_m * deltaX / designRadius_m);
-    double bZExit = engeFuncDeriv * RExit(1);
+    double nOverRho = fieldIndex_m / designRadius_m;
+    double expFactor = exp(-nOverRho * deltaX);
+    double bXExit = -engeFunc * nOverRho * expFactor* RExit(1);
+    double bYExit = expFactor * (engeFunc - (pow(expFactor, 2.0) * engeFunc
+                                                 + engeFuncSecDeriv)
+                                     * pow(RExit(1), 2.0) / 2.0);
+    double bZExit = expFactor * engeFuncDeriv * RExit(1);
 
     B(0) = bXExit * cosExitAngle_m - bZExit * sinExitAngle_m;
     B(1) = bYExit;
@@ -822,7 +829,7 @@ void RBend::CalculateRefTrajectory(double &angleX, double &angleY) {
 
     refTrajMapSize_m = refTrajMapX_m.size();
 
-    if(Orientation_m(2) == Physics::pi / 2.0
+    if(std::abs(Orientation_m(2)) == Physics::pi / 2.0
        || Orientation_m(2) == 3.0 * Physics::pi / 2.0)
         angleX = 0.0;
     else
@@ -1058,7 +1065,7 @@ bool RBend::FindIdealBendParameters(double bendLength) {
         if(angle_m < 0.0) {
             // Negative angle is a positive bend rotated 180 degrees.
             angle_m = std::abs(angle_m);
-            gradient_m *= -1.0;
+            fieldIndex_m *= -1.0;
             Orientation_m(2) += Physics::pi;
         }
         designRadius_m = bendLength
@@ -1075,7 +1082,7 @@ bool RBend::FindIdealBendParameters(double bendLength) {
         // Negative angle is a positive bend rotated 180 degrees.
         if((refCharge > 0.0 && bY_m < 0.0)
            || (refCharge < 0.0 && bY_m > 0.0)) {
-            gradient_m *= -1.0;
+            fieldIndex_m *= -1.0;
             Orientation_m(2) += Physics::pi;
         }
 
@@ -1091,7 +1098,7 @@ bool RBend::FindIdealBendParameters(double bendLength) {
 
         Orientation_m(2) += atan2(bX_m, bY_m);
         if(refCharge < 0.0) {
-            gradient_m *= -1.0;
+            fieldIndex_m *= -1.0;
             Orientation_m(2) -= Physics::pi;
         }
 
@@ -1284,9 +1291,8 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << fieldAmplitude_m
         << " T"
         << endl;
-    msg << "Field index (gradient):  "
-        << gradient_m
-        << " m^-1"
+    msg << "Field index:  "
+        << fieldIndex_m
         << endl;
     msg << "Rotation about x axis:   "
         << Orientation_m(1)

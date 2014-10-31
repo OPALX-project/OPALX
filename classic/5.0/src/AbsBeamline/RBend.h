@@ -312,7 +312,7 @@ private:
     /// and the entrance face of the magnet (radians).
     double exitAngle_m;         /// Angle between outgoing reference trajectory
     /// and the exit face of the magnet (radians).
-    double gradient_m;          /// Quadrupole component of field.
+    double fieldIndex_m;        /// Dipole field index.
     double elementEdge_m;       /// Physical start of magnet in s coordinates (m).
     double startField_m;        /// Start of magnet field map in s coordinates (m).
     double endField_m;          /// End of magnet field map in s coordinates (m).
