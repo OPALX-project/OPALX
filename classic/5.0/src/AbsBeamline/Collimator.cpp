@@ -66,6 +66,7 @@ Collimator::Collimator():
     nHolesX_m(0),
     nHolesY_m(0),
     pitch_m(0.0),
+    losses_m(0),
     lossDs_m(nullptr),
     sphys_m(NULL)
 {}
@@ -105,6 +106,7 @@ Collimator::Collimator(const Collimator &right):
     nHolesX_m(right.nHolesX_m),
     nHolesY_m(right.nHolesY_m),
     pitch_m(right.pitch_m),
+    losses_m(0),
     lossDs_m(nullptr),
     sphys_m(NULL)
 {
@@ -146,6 +148,7 @@ Collimator::Collimator(const std::string &name):
     nHolesX_m(0),
     nHolesY_m(0),
     pitch_m(0.0),
+    losses_m(0),
     lossDs_m(nullptr),
     sphys_m(NULL)
 {}
@@ -235,6 +238,7 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
     if(pdead) {
       double frac = (R(2) - position_m) / P(2) * recpgamma;
       lossDs_m->addParticle(R,P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
+      ++losses_m;
     }
     return pdead;
 }
@@ -425,6 +429,10 @@ string Collimator::getOutputFN() {
         return getName();
     else
         return filename_m.substr(0, filename_m.rfind("."));
+}
+
+unsigned int Collimator::getLosses() const {
+    return losses_m;
 }
 
 void Collimator::setXsize(double a) {

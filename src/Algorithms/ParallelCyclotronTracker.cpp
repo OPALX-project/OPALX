@@ -5312,7 +5312,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceStatData() {
     // Calculate the beam parameters in a local frame but with the magnitude of the momentum
     // vector unchanged
     //itsBunch->calcBeamParameters_cycl();
-    itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0);
+    itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0, itsBunch->get_meanEnergy());
 
     localToGlobal(itsBunch->R, phi, psi, meanR / Vector_t(1000.0)); // Right now: R (m), meanR (mm)
     localToGlobal(itsBunch->P, phi, psi, Vector_t(0.0));

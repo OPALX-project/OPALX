@@ -1815,15 +1815,15 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
 }
 
 void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E) {
-  doWriteStatData(beam, FDext, sposHead, sposRef, sposTail, E);
+    doWriteStatData(beam, FDext, sposHead, sposRef, sposTail, E, std::vector<std::pair<std::string, unsigned int> >());
 }
 
-void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
-  doWriteStatData(beam, FDext, sposHead, sposRef, sposTail, beam.get_meanEnergy());
+void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, const std::vector<std::pair<std::string, unsigned int> >& losses) {
+    doWriteStatData(beam, FDext, sposHead, sposRef, sposTail, beam.get_meanEnergy(), losses);
 }
 
 
-void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E) {
+void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E, const std::vector<std::pair<std::string, unsigned int> > &losses) {
 
     /// Function steps:
 
@@ -1854,7 +1854,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
             os_statData.open(statFileName_m.c_str(), ios::out);
             os_statData.precision(15);
             os_statData.setf(ios::scientific, ios::floatfield);
-            writeSDDSHeader(os_statData);
+            writeSDDSHeader(os_statData, losses);
 
             os_lBalData.open(lBalFileName_m.c_str(), ios::out);
             os_lBalData.precision(15);
@@ -1951,6 +1951,9 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
             os_statData << beam.P[0](2) << setw(pwi) << "\t";                                    // 54 P0_z
         }
 
+        for(size_t i = 0; i < losses.size(); ++ i) {
+            os_statData << losses[i].second << setw(pwi) << "\t";
+        }
         os_statData   << endl;
 
         for(int p = 0; p < Ippl::getNodes(); p++)
@@ -2091,6 +2094,11 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 }
 
 void DataSink::writeSDDSHeader(ofstream &outputFile) {
+    writeSDDSHeader(outputFile,
+                    std::vector<std::pair<std::string, unsigned int> >());
+}
+void DataSink::writeSDDSHeader(ofstream &outputFile,
+                               const std::vector<std::pair<std::string, unsigned int> > &losses) {
     OPALTimer::Timer simtimer;
 
     string dateStr(simtimer.date());
@@ -2223,6 +2231,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile) {
     outputFile << "&column name=dE, type=double, units=MeV , ";
     outputFile << "description=\"48 energy spread of the beam  \" &end" << endl;
 
+    unsigned int columnStart = 49;
     if(Ippl::getNodes() == 1) {
         outputFile << "&column name=R0_x, type=double, units=m , ";
         outputFile << "description=\"49 R0 Particle Position in x  \" &end" << endl;
@@ -2236,8 +2245,13 @@ void DataSink::writeSDDSHeader(ofstream &outputFile) {
         outputFile << "description=\"53 R0 Particle Position in y  \" &end" << endl;
         outputFile << "&column name=P0_s, type=double, units=1 , ";
         outputFile << "description=\"54 R0 Particle Position in s  \" &end" << endl;
+        columnStart = 55;
     }
 
+    for (size_t i = 0; i < losses.size(); ++ i) {
+        outputFile << "&column name=" << losses[i].first << " losses, type=long, units=1, ";
+        outputFile << "description=\"" << columnStart++ << " " << losses[i].second << " losses \" &end" << endl;
+    }
     outputFile << "&data mode=ascii &end" << endl;
 
     outputFile << "Cores used " << Ippl::getNodes() << endl;

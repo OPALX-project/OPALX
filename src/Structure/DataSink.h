@@ -9,16 +9,16 @@
 
 /**
    \brief Class: DataSink
- 
+
    This class acts as an observer during the calculation. It generates diagnostic
    output of the accelerated beam such as statistical beam descriptors of particle
    positions, momenta, beam phase space (emittance) etc. These are written to file
    at periodic time steps during the calculation.
-   
+
    This class also writes the full beam phase space to an H5 file at periodic time
    steps in the calculation (this period is different from that of the statistical
    numbers).
-   
+
    Class also writes processor load balancing data to file to track parallel
    calculation efficiency.
 */
@@ -133,19 +133,19 @@ public:
      *  \param sposRef Longitudinal position of the reference particle.
      *  \param sposTail Longitudinal position of the tail particles.
      */
-    void doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E);
+    void doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E, const std::vector<std::pair<std::string, unsigned int> > &losses);
 
     /** \brief for OPAL-t
-	
+
      */
-    void writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
+    void writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, const std::vector<std::pair<std::string, unsigned int> > &losses);
 
     /** \brief for OPAL-cycl
-	
+
      */
     void writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E);
 
-    
+
     /** \brief Write SDDS header.
      *
      * Writes the appropriate SDDS format header information to beam statistics file so the SDDS tools can be used
@@ -154,6 +154,8 @@ public:
      *
      */
     void writeSDDSHeader(std::ofstream &outputFile);
+
+    void writeSDDSHeader(std::ofstream &outputFile, const std::vector<std::pair<std::string, unsigned int> > &losses);
 
     /** \brief Dumps Phase Space to H5 file.
      *
@@ -186,8 +188,8 @@ public:
      *  \param E average energy (MeB)
      *  \return Returns the number of the time step just written.
      */
-    int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double E, 
-			     double refPr, double refPt, double refPz, 
+    int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double E,
+			     double refPr, double refPt, double refPz,
                              double refR, double refTheta, double refZ,
                              double azimuth, double elevation);
 
@@ -363,4 +365,3 @@ private:
  * $RCSfile: DataSink.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 13:29:44 $
  ***************************************************************************/
-

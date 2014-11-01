@@ -99,6 +99,8 @@ public:
     void setOutputFN(std::string fn);
     std::string getOutputFN();
 
+    unsigned int getLosses() const;
+
     void setXsize(double a) ;
 
     void setYsize(double b) ;
@@ -196,6 +198,7 @@ private:
     Point  geom_m[5];
     void setGeom();
 
+    unsigned int losses_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
