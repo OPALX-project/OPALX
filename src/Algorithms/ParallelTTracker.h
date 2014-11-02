@@ -810,32 +810,33 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
     if(statDump) {
         std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
         FieldList collimators = itsOpalBeamline_m.getElementByType("Collimator");
-        for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
+	if (collimators.size() != 0) {
+	  for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
   	    Collimator* coll = static_cast<Collimator*>(it->getElement().get());
             std::string name = coll->getName(); 
             unsigned int losses = coll->getLosses();
             collimatorLosses.push_back(std::make_pair(name, losses));
-        }
-        std::sort(collimatorLosses.begin(), collimatorLosses.end(),
-                  [](const std::pair<std::string, unsigned int>& a, const std::pair<std::string, unsigned int>& b) ->bool {
+	  }
+	  std::sort(collimatorLosses.begin(), collimatorLosses.end(),
+		    [](const std::pair<std::string, unsigned int>& a, const std::pair<std::string, unsigned int>& b) ->bool {
                       return a.first < b.first;
-                  });
-        std::vector<unsigned int> bareLosses(collimatorLosses.size(),0);
-        for (size_t i = 0; i < collimatorLosses.size(); ++ i){
+		    });
+	  std::vector<unsigned int> bareLosses(collimatorLosses.size(),0);
+	  for (size_t i = 0; i < collimatorLosses.size(); ++ i){
             bareLosses[i] = collimatorLosses[i].second;
-        }
+	  }
 
-        reduce(&bareLosses[0], &bareLosses[0] + bareLosses.size(), &bareLosses[0], OpAddAssign());
+	  reduce(&bareLosses[0], &bareLosses[0] + bareLosses.size(), &bareLosses[0], OpAddAssign());
 
-        for (size_t i = 0; i < collimatorLosses.size(); ++ i){
+	  for (size_t i = 0; i < collimatorLosses.size(); ++ i){
             collimatorLosses[i].second = bareLosses[i];
-        }
-
+	  }
+	}
         // Write statistical data.
         msg << "* Wrote beam statistics." << endl;
         itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2), collimatorLosses);
     }
-
+    
     //                   itsBunch->printBinHist();
 }
 
