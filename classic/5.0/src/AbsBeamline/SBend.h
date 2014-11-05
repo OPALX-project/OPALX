@@ -243,7 +243,7 @@ private:
                           int polyOrder,
                           double &engeFunc,
                           double &engeFuncDeriv,
-                          double &engeFuncSecDeriv);
+                          double &engeFuncSecDerivNorm);
     void CalcEntranceFringeField(Vector_t REntrance,
                                  double deltaX,
                                  Vector_t &B);

@@ -538,7 +538,8 @@ void SBend::CalcCentralField(Vector_t R,
 
     double nOverRho = fieldIndex_m / designRadius_m;
     double expFactor = exp(-nOverRho * deltaX);
-    double bxBzFactor = nOverRho * expFactor * R(1);
+    double bxBzFactor = expFactor * nOverRho * R(1);
+
     B(0) = -bxBzFactor * cos(angle);
     B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
     B(2) = -bxBzFactor * sin(angle);
@@ -550,7 +551,7 @@ void SBend::CalcEngeFunction(double zNormalized,
                              int polyOrder,
                              double &engeFunc,
                              double &engeFuncDeriv,
-                             double &engeFuncSecDeriv) {
+                             double &engeFuncSecDerivNorm) {
 
     double expSum = 0.0;
     double expSumDeriv = 0.0;
@@ -579,24 +580,34 @@ void SBend::CalcEngeFunction(double zNormalized,
     } else
         expSum = engeCoeff.at(0);
 
-    expSumDeriv /= gap_m;
-    expSumSecDeriv /= pow(gap_m, 2.0);
-
     double engeExp = exp(expSum);
-    double engeExpDeriv = expSumDeriv * engeExp;
-    double engeExpSecDeriv = (expSumSecDeriv + pow(expSumDeriv, 2.0)) * engeExp;
-
     engeFunc = 1.0 / (1.0 + engeExp);
-    if(engeFunc > 1.0e-30) {
-        engeFuncDeriv = -engeExpDeriv * pow(engeFunc, 2.0);
-        engeFuncSecDeriv = -engeExpSecDeriv * pow(engeFunc, 2.0)
-                           + 2.0 * pow(engeExpDeriv, 2.0) * pow(engeFunc, 3.0);
+
+    if(!isnan(engeFunc)) {
+
+        expSumDeriv /= gap_m;
+        expSumSecDeriv /= pow(gap_m, 2.0);
+        double engeExpDeriv = expSumDeriv * engeExp;
+        double engeExpSecDeriv = (expSumSecDeriv + pow(expSumDeriv, 2.0))
+                                 * engeExp;
+        double engeFuncSq = pow(engeFunc, 2.0);
+
+        engeFuncDeriv = -engeExpDeriv * engeFuncSq;
+        if (isnan(engeFuncDeriv) || isinf(engeFuncDeriv))
+            engeFuncDeriv = 0.0;
+
+        engeFuncSecDerivNorm = -engeExpSecDeriv * engeFunc
+                               + 2.0 * pow(engeExpDeriv, 2.0)
+                                 * engeFuncSq;
+        if (isnan(engeFuncSecDerivNorm) || isinf(engeFuncSecDerivNorm))
+            engeFuncSecDerivNorm = 0.0;
+
     } else {
         engeFunc = 0.0;
         engeFuncDeriv = 0.0;
-        engeFuncSecDeriv = 0.0;
-    }
+        engeFuncSecDerivNorm = 0.0;
 
+    }
 }
 
 void SBend::CalcEntranceFringeField(Vector_t REntrance,
@@ -606,27 +617,27 @@ void SBend::CalcEntranceFringeField(Vector_t REntrance,
     double zNormalized = -REntrance(2) / gap_m;
     double engeFunc = 0.0;
     double engeFuncDeriv = 0.0;
-    double engeFuncSecDeriv = 0.0;
+    double engeFuncSecDerivNorm = 0.0;
 
     CalcEngeFunction(zNormalized,
                      engeCoeffsEntry_m,
                      polyOrderEntry_m,
                      engeFunc,
                      engeFuncDeriv,
-                     engeFuncSecDeriv);
+                     engeFuncSecDerivNorm);
 
     double nOverRho = fieldIndex_m / designRadius_m;
     double expFactor = exp(-nOverRho * deltaX);
+    double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+
     double bXEntrance = -engeFunc * nOverRho * expFactor* REntrance(1);
-    double bYEntrance = expFactor * (engeFunc - (pow(expFactor, 2.0) * engeFunc
-                                                 + engeFuncSecDeriv)
-                                     * pow(REntrance(1), 2.0) / 2.0);
+    double bYEntrance = expFactor * engeFunc
+                        * (1.0  - trigFactor * pow(REntrance(1), 2.0) / 2.0);
     double bZEntrance = -expFactor * engeFuncDeriv * REntrance(1);
 
     B(0) = bXEntrance * cosEntranceAngle_m - bZEntrance * sinEntranceAngle_m;
     B(1) = bYEntrance;
     B(2) = bXEntrance * sinEntranceAngle_m + bZEntrance * cosEntranceAngle_m;
-
 }
 
 void SBend::CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B) {
@@ -634,26 +645,26 @@ void SBend::CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B) {
     double zNormalized = RExit(2) / gap_m;
     double engeFunc = 0.0;
     double engeFuncDeriv = 0.0;
-    double engeFuncSecDeriv = 0.0;
+    double engeFuncSecDerivNorm = 0.0;
     CalcEngeFunction(zNormalized,
                      engeCoeffsExit_m,
                      polyOrderExit_m,
                      engeFunc,
                      engeFuncDeriv,
-                     engeFuncSecDeriv);
+                     engeFuncSecDerivNorm);
 
     double nOverRho = fieldIndex_m / designRadius_m;
     double expFactor = exp(-nOverRho * deltaX);
+    double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+
     double bXExit = -engeFunc * nOverRho * expFactor* RExit(1);
-    double bYExit = expFactor * (engeFunc - (pow(expFactor, 2.0) * engeFunc
-                                                 + engeFuncSecDeriv)
-                                     * pow(RExit(1), 2.0) / 2.0);
+    double bYExit = expFactor * engeFunc
+                    * (1.0 - trigFactor * pow(RExit(1), 2.0) / 2.0);
     double bZExit = expFactor * engeFuncDeriv * RExit(1);
 
     B(0) = bXExit * cosExitAngle_m - bZExit * sinExitAngle_m;
     B(1) = bYExit;
     B(2) = bXExit * sinExitAngle_m + bZExit * cosExitAngle_m;
-
 }
 
 void SBend::CalculateMapField(Vector_t R, Vector_t &E, Vector_t &B) {
