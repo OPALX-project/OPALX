@@ -54,7 +54,7 @@ ParallelSliceTracker::~ParallelSliceTracker()
 void ParallelSliceTracker::updateRFElement(std::string elName, double maxPhi) {
     FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
     FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
-    cl.merge(twl, OpalField::SortAsc);
+    cl.merge(twl, ClassicField::SortAsc);
     double phi = 0.0;
 
     for (FieldList::iterator fit = cl.begin(); fit != cl.end(); ++fit) {
@@ -82,7 +82,7 @@ void ParallelSliceTracker::updateAllRFElements() {
 
     FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
     FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
-    cl.merge(twl, OpalField::SortAsc);
+    cl.merge(twl, ClassicField::SortAsc);
 
     const double RADDEG = 1.0 / Physics::pi * 180.0;
     const double phiShift = OpalData::getInstance()->getGlobalPhaseShift();

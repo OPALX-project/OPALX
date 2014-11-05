@@ -24,7 +24,7 @@
 #include "AbstractObjects/Table.h"
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Elements/OpalElement.h"
-#include "Utilities/Options.h"
+#include "Utilities/OpalOptions.h"
 #include "Utilities/RegularExpression.h"
 #include <iostream>
 

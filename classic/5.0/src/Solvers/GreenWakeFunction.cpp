@@ -1,6 +1,6 @@
 #include "Solvers/GreenWakeFunction.hh"
 #include "Algorithms/PartBunch.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 //#ifdef ENABLE_WAKE_TESTS
 #include "Solvers/TestLambda.h" // used for tests
 //#endif
@@ -135,7 +135,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
             spacing = rmax(0) * rmax(0) + rmax(1) * rmax(1);
             break;
         default:
-            throw OpalException("GreenWakeFunction", "invalid direction specified");
+            throw GeneralClassicException("GreenWakeFunction", "invalid direction specified");
     }
     assert(NBin_m > 0);
     spacing /= (NBin_m - 1); //FIXME: why -1? CKR: because grid spacings = grid points - 1
@@ -214,7 +214,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
             break;
 
         default:
-            throw OpalException("GreenWakeFunction", "invalid direction specified");
+            throw GeneralClassicException("GreenWakeFunction", "invalid direction specified");
     }
 
 #ifdef ENABLE_WAKE_DUMP
@@ -524,7 +524,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     fs.open(filename_m.c_str());
 
     if(fs.fail()) {
-        throw OpalException("GreenWakeFunction::setWake",
+        throw GeneralClassicException("GreenWakeFunction::setWake",
                             "Open file operation failed, please check if \""
                             + filename_m +  "\" really exists.");
 
@@ -535,7 +535,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     fs >> name;
     msg << " SSDS1 read = " << name << endl;
     if(name.compare("SDDS1") != 0) {
-        throw OpalException("GreenWakeFunction::setWake",
+        throw GeneralClassicException("GreenWakeFunction::setWake",
                             " No SDDS1 File. A SDDS1 file should start with a SDDS1 String. Check file \""
                             + filename_m +  "\" ");
 
@@ -551,7 +551,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     fs >> Np;
     msg << " header read" << endl;
     if(Np <= 0) {
-        throw OpalException("GreenWakeFunction::setWake",
+        throw GeneralClassicException("GreenWakeFunction::setWake",
                             " The particle number should be bigger than zero! Please check the first line of file \""
                             + filename_m +  "\".");
         msg << " The particle number should be bigger than zero! Please check the first line of file " << filename_m << endl;
@@ -567,7 +567,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
             fs >> dist[i] >> wake[i] >> dummy;
         }
         if(fs.eof()) {
-            throw OpalException("GreenWakeFunction::setWake",
+            throw GeneralClassicException("GreenWakeFunction::setWake",
                                 " End of file reached before the whole wakefield is imported, please check file \""
                                 + filename_m +  "\".");
 

@@ -25,7 +25,6 @@
 #include "Parser/SimpleStatement.h"
 #include "Parser/Token.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
 #include <fstream>
 #include <iomanip>

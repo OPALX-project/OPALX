@@ -31,7 +31,7 @@
 #include <cstdio>
 
 #include "gtest/gtest.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Structure/BoundaryGeometry.h"
 #include "AbsBeamline/SBend3D.h"
 

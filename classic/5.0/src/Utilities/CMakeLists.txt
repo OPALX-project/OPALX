@@ -2,6 +2,8 @@ set (_SRCS
   ArithmeticError.cpp
   AttributeError.cpp
   ClassicException.cpp
+  ClassicField.cpp
+  CLRangeError.cpp
   ComplexErrorFun.cpp
   ConvergenceError.cpp
   DivideError.cpp
@@ -9,13 +11,15 @@ set (_SRCS
   EigenvalueError.cpp
   FormatError.cpp
   Gauss.cpp
+  GeneralClassicException.cpp
   InverseGauss.cpp
   LogicalError.cpp
   NormalFormError.cpp
+  Options.cpp
   OverflowError.cpp
   ParseError.cpp
   Random.cpp
-  CLRangeError.cpp
+  RingSection.cpp
   SingularMatrixError.cpp
   SizeError.cpp
   SwitcherError.cpp

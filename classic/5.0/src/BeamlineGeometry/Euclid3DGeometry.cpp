@@ -27,7 +27,7 @@
 
 #include "BeamlineGeometry/Euclid3DGeometry.h"
 
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 #include <cmath>
 
 Euclid3DGeometry::Euclid3DGeometry(Euclid3D transformation)
@@ -62,7 +62,7 @@ void Euclid3DGeometry::setElementLength(double length) {
 }
 
 Euclid3D Euclid3DGeometry::getTransform(double fromS, double toS) const {
-    throw OpalException("Euclid3DGeometry::getTransform", "Not implemented");
+    throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
 }
 
 Euclid3D Euclid3DGeometry::getTotalTransform() const {

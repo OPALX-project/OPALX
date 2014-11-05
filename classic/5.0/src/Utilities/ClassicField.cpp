@@ -1,19 +1,19 @@
-#include "Utilities/OpalField.h"
+#include "Utilities/ClassicField.h"
 
 extern Inform *gmsg;
 
-OpalField::OpalField(std::shared_ptr<Component> element, const double &start, const double &end):
+ClassicField::ClassicField(std::shared_ptr<Component> element, const double &start, const double &end):
     element_m(element),
     start_m(start),
     end_m(end),
     is_on_m(false)
 { }
 
-OpalField::~OpalField() {
+ClassicField::~ClassicField() {
     element_m = NULL;
 }
 
-void OpalField::setOn() {
+void ClassicField::setOn() {
     if(!is_on_m) {
         element_m->goOnline();
         INFOMSG(element_m->getName() << " gone live" << endl);
@@ -21,7 +21,7 @@ void OpalField::setOn() {
     }
 }
 
-void OpalField::setOff() {
+void ClassicField::setOff() {
     if(is_on_m) {
         element_m->goOffline();
         INFOMSG(element_m->getName() << " gone off" << endl);

@@ -25,7 +25,7 @@
 #include "Algorithms/PartData.h"
 #include "FixedAlgebra/FTps.h"
 
-#include "Utilities/OpalField.h"
+#include "Utilities/ClassicField.h"
 
 class BMultipoleField;
 class Euclid3D;

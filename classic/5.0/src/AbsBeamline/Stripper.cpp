@@ -23,9 +23,9 @@
 #include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
+#include "Utilities/Options.h"
 #include <iostream>
 #include <fstream>
-#include "AbstractObjects/OpalData.h"
 
 
 using Physics::pi;
@@ -154,14 +154,14 @@ bool Stripper::apply(const Vector_t &R, const Vector_t &centroid, const double &
 void Stripper::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else 
+    else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
 void Stripper::initialise(PartBunch *bunch, const double &scaleFactor) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else 
+    else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
@@ -277,7 +277,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
         }
         reduce(meanP, meanP, OpAddAssign());
         meanP = meanP / Vector_t(bunch.getTotalNum());
-    
+
         double sk1, sk2, stangle = 0.0;
         if ( B_m == 0.0 ){
             sk1 = meanP(1)/meanP(0);
@@ -299,7 +299,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
         double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
         double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
         setGeom(Swidth);
-        
+
         for(unsigned int i = 0; i < tempnum; ++i) {
             if(bunch.PType[i] == 0) {
                 pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
@@ -330,7 +330,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                     strippoint(1) = (A_m*A_m*bunch.R[i](1) - A_m*B_m*bunch.R[i](0)-B_m*C_m)/(R_m*R_m);
                     strippoint(2) = bunch.R[i](2);
                     lossDs_m->addParticle(strippoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
-                    
+
                     if (stop_m) {
                         bunch.Bin[i] = -1;
                         flagNeedUpdate = true;
@@ -340,7 +340,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                         // change charge and mass of PartData when the reference particle hits the stripper.
                         if(bunch.ID[i] == 0)
                           flagresetMQ = true;
-                        
+
                         // change the mass and charge
                         bunch.M[i] = opmass_m;
                         bunch.Q[i] = opcharge_m * q_e;

@@ -1,15 +1,15 @@
-#ifndef OPAL_FIELD_H
-#define OPAL_FIELD_H
+#ifndef CLASSIC_FIELD_H
+#define CLASSIC_FIELD_H
 
 #include <vector>
 #include <list>
 #include <memory>
 #include "AbsBeamline/Component.h"
 
-class OpalField {
+class ClassicField {
 public:
-    OpalField(std::shared_ptr<Component>, const double &, const double &);
-    ~OpalField();
+    ClassicField(std::shared_ptr<Component>, const double &, const double &);
+    ~ClassicField();
     std::shared_ptr<Component> getElement();
     double getLength() const;
     const double &getStart() const;
@@ -20,11 +20,11 @@ public:
     void setOn();
     void setOff();
 
-    static bool SortAsc(const OpalField &fle1, const OpalField &fle2) {
+    static bool SortAsc(const ClassicField &fle1, const ClassicField &fle2) {
         return (fle1.start_m < fle2.start_m);
     }
 
-    static bool ZeroLength(const OpalField &fle) {
+    static bool ZeroLength(const ClassicField &fle) {
         return (fle.getLength() < 1.e-6);
     }
 
@@ -36,33 +36,33 @@ private:
     bool is_on_m;
 };
 
-typedef std::list<OpalField> FieldList;
+typedef std::list<ClassicField> FieldList;
 
-inline std::shared_ptr<Component> OpalField::getElement() {
+inline std::shared_ptr<Component> ClassicField::getElement() {
     return element_m;
 }
 
-inline double OpalField::getLength() const {
+inline double ClassicField::getLength() const {
     return end_m - start_m;
 }
 
-inline const double &OpalField::getStart() const {
+inline const double &ClassicField::getStart() const {
     return start_m;
 }
 
-inline const double &OpalField::getEnd() const {
+inline const double &ClassicField::getEnd() const {
     return end_m;
 }
 
-inline const bool &OpalField::isOn() const {
+inline const bool &ClassicField::isOn() const {
     return is_on_m;
 }
 
-inline void OpalField::setStart(const double & z) {
+inline void ClassicField::setStart(const double & z) {
     start_m = z;
 }
 
-inline void OpalField::setEnd(const double & z) {
+inline void ClassicField::setEnd(const double & z) {
     end_m = z;
 }
-#endif // OPAL_FIELD_H
+#endif // CLASSIC_FIELD_H

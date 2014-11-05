@@ -24,7 +24,8 @@
 #include "Expressions/ADeferred.h"
 #include "Expressions/SValue.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
+//#include "Utilities/Options.h"
+#include "Utilities/OpalOptions.h"
 #include <vector>
 
 

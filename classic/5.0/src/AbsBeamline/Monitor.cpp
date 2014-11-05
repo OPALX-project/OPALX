@@ -27,8 +27,6 @@
 
 #include <memory>
 
-using namespace Options;
-
 #include <fstream>
 #include <memory>
 

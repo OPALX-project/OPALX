@@ -30,7 +30,7 @@
 #include "gtest/gtest.h"
 
 #include "Physics/Physics.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "AbsBeamline/Offset.h"
 
@@ -46,7 +46,7 @@ TEST(OffsetTest, TestConstructDestruct) {
       Offset off2;
       EXPECT_EQ(off2.getName(), "");
       EXPECT_TRUE(off1.getGeometry().getTotalTransform().isIdentity());
-    } catch(OpalException& exc) {
+    } catch(GeneralClassicException& exc) {
       std::cerr << exc.what() << std::endl;
     }
 }
@@ -115,10 +115,10 @@ TEST(OffsetTest, TestUpdateRotationsNotXY) {
     // Check we throw for a translation/rotation out of the midplane
     EXPECT_THROW(buildTestOffset(Vector_t(1., 3., 1.), Vector_t(+1., 0., 0.),
                              0., 0., 0., "not x-y rotation"),
-                             OpalException);
+                             GeneralClassicException);
     EXPECT_THROW(buildTestOffset(Vector_t(1., 3., 0.), Vector_t(+1., 0., 1.),
                              0., 0., 0., "not x-y rotation"),
-                             OpalException);
+                             GeneralClassicException);
 }
 
 TEST(OffsetTest, TestUpdateRotations) {

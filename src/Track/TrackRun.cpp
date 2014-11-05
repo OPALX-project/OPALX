@@ -57,7 +57,6 @@
 
 extern Inform *gmsg;
 
-using namespace Options;
 using namespace Physics;
 
 // ------------------------------------------------------------------------

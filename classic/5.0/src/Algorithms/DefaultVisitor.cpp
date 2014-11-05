@@ -62,7 +62,7 @@
 #include "ComponentWrappers/SBendWrapper.h"
 #include "ComponentWrappers/CyclotronWrapper.h"
 
-#include "Elements/OpalRing.h"
+#include "AbsBeamline/Ring.h" // OPAL file
 
 // Class DefaultVisitor
 // ------------------------------------------------------------------------
@@ -143,7 +143,7 @@ void DefaultVisitor::visitOffset(const Offset& off) {
     applyDefault(off);
 }
 
-void DefaultVisitor::visitOpalRing(const OpalRing &ring) {
+void DefaultVisitor::visitRing(const Ring &ring) {
    applyDefault(ring);
 }
 

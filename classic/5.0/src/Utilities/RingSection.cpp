@@ -25,19 +25,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Utilities/OpalRingSection.h"
+#include "Utilities/RingSection.h"
 
 #include "Physics/Physics.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 
-OpalRingSection::OpalRingSection()
+RingSection::RingSection()
   : component_m(NULL),
     componentPosition_m(0.), componentOrientation_m(0.),
     startPosition_m(0.), startOrientation_m(0.),
     endPosition_m(0.), endOrientation_m(0.) {
 }
 
-OpalRingSection::OpalRingSection(const OpalRingSection& rhs)
+RingSection::RingSection(const RingSection& rhs)
   : component_m(NULL),
     componentPosition_m(0.), componentOrientation_m(0.),
     startPosition_m(0.), startOrientation_m(0.),
@@ -45,18 +45,18 @@ OpalRingSection::OpalRingSection(const OpalRingSection& rhs)
     *this = rhs;
 }
 
-OpalRingSection::~OpalRingSection() {
+RingSection::~RingSection() {
     //if (component_m != NULL)
     //    delete component_m;
 }
 
 // Assignment operator
-OpalRingSection& OpalRingSection::operator=(const OpalRingSection& rhs) {
+RingSection& RingSection::operator=(const RingSection& rhs) {
     if (&rhs != this) {
         component_m = dynamic_cast<Component*>(rhs.component_m->clone());
         if (component_m == NULL)
-            throw OpalException("OpalRingSection::operator=",
-                                "Failed to copy OpalRingSection");
+            throw GeneralClassicException("RingSection::operator=",
+                                "Failed to copy RingSection");
         componentPosition_m = rhs.componentPosition_m;
         componentOrientation_m = rhs.componentOrientation_m;
         startPosition_m = rhs.startPosition_m;
@@ -67,7 +67,7 @@ OpalRingSection& OpalRingSection::operator=(const OpalRingSection& rhs) {
     return *this;
 }
 
-bool OpalRingSection::isOnOrPastStartPlane(const Vector_t& pos) const {
+bool RingSection::isOnOrPastStartPlane(const Vector_t& pos) const {
     Vector_t posTransformed = pos-startPosition_m;
     // check that pos-startPosition_m is in front of startOrientation_m
     double normProd = posTransformed(0)*startOrientation_m(0)+
@@ -80,7 +80,7 @@ bool OpalRingSection::isOnOrPastStartPlane(const Vector_t& pos) const {
     return normProd >= 0. && posProd >= 0.;
 }
 
-bool OpalRingSection::isPastEndPlane(const Vector_t& pos) const {
+bool RingSection::isPastEndPlane(const Vector_t& pos) const {
     Vector_t posTransformed = pos-endPosition_m;
     double normProd = posTransformed(0)*endOrientation_m(0)+
                       posTransformed(1)*endOrientation_m(1)+
@@ -92,14 +92,14 @@ bool OpalRingSection::isPastEndPlane(const Vector_t& pos) const {
     return normProd > 0. && posProd > 0.;
 }
 
-bool OpalRingSection::getFieldValue(const Vector_t& pos,
+bool RingSection::getFieldValue(const Vector_t& pos,
                                     const Vector_t& centroid, const double& t,
                                     Vector_t& E, Vector_t& B) const {
     // std::cerr << startOrientation_m << " " << componentPosition_m << " " << componentOrientation_m(2) << std::endl;
     // transform position into local coordinate system
     Vector_t pos_local = pos-componentPosition_m;
     rotate(pos_local);
-    // std::cerr << "OpalRingSection::getFieldValue for " << component_m->getName() << " at " << startPosition_m << "\n    Global: " << pos << " Local: " << pos_local << std::endl;
+    // std::cerr << "RingSection::getFieldValue for " << component_m->getName() << " at " << startPosition_m << "\n    Global: " << pos << " Local: " << pos_local << std::endl;
     rotateToTCoordinates(pos_local);
     bool outOfBounds = component_m->apply(pos_local, centroid, t, E, B);
     // std::cerr << "    B: " << B << std::endl;
@@ -114,12 +114,12 @@ bool OpalRingSection::getFieldValue(const Vector_t& pos,
     return false;
 }
 
-void OpalRingSection::updateComponentOrientation() {
+void RingSection::updateComponentOrientation() {
     sin2_m = sin(componentOrientation_m(2));
     cos2_m = cos(componentOrientation_m(2));
 }
 
-std::vector<Vector_t> OpalRingSection::getVirtualBoundingBox() const {
+std::vector<Vector_t> RingSection::getVirtualBoundingBox() const {
     Vector_t startParallel(getStartNormal()(1), -getStartNormal()(0), 0);
     Vector_t endParallel(getEndNormal()(1), -getEndNormal()(0), 0);
     normalise(startParallel);
@@ -137,8 +137,8 @@ std::vector<Vector_t> OpalRingSection::getVirtualBoundingBox() const {
 }
 
 //    double phi = atan2(r(1), r(0))+Physics::pi;
-bool OpalRingSection::doesOverlap(double phiStart, double phiEnd) const {
-    OpalRingSection phiVirtualORS;
+bool RingSection::doesOverlap(double phiStart, double phiEnd) const {
+    RingSection phiVirtualORS;
     // phiStart -= Physics::pi;
     // phiEnd -= Physics::pi;
     phiVirtualORS.setStartPosition(Vector_t(sin(phiStart),
@@ -155,7 +155,7 @@ bool OpalRingSection::doesOverlap(double phiStart, double phiEnd) const {
                                         0.));
     std::vector<Vector_t> virtualBB = getVirtualBoundingBox();
     // at least one of the bounding box coordinates is in the defined sector
-    // std::cerr << "OpalRingSection::doesOverlap " << phiStart << " " << phiEnd << " "
+    // std::cerr << "RingSection::doesOverlap " << phiStart << " " << phiEnd << " "
     //          << phiVirtualORS.getStartPosition() << " " << phiVirtualORS.getStartNormal() << " "
     //          << phiVirtualORS.getEndPosition() << " " << phiVirtualORS.getEndNormal() << " " << std::endl
     //          << "    Component " << this << " " << getStartPosition() << " " << getStartNormal() << " "
@@ -184,13 +184,13 @@ bool OpalRingSection::doesOverlap(double phiStart, double phiEnd) const {
 }
 
 
-void OpalRingSection::rotate(Vector_t& vector) const {
+void RingSection::rotate(Vector_t& vector) const {
     const Vector_t temp(vector);
     vector(0) = +cos2_m * temp(0) + sin2_m * temp(1);
     vector(1) = -sin2_m * temp(0) + cos2_m * temp(1);
 }
 
-void OpalRingSection::rotate_back(Vector_t& vector) const {
+void RingSection::rotate_back(Vector_t& vector) const {
     const Vector_t temp(vector);
     vector(0) = +cos2_m * temp(0) - sin2_m * temp(1);
     vector(1) = +sin2_m * temp(0) + cos2_m * temp(1);

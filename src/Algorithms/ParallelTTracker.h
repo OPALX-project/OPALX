@@ -21,7 +21,6 @@
 #include "Algorithms/Tracker.h"
 #include "Algorithms/PartPusher.h"
 #include "Structure/DataSink.h"
-#include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 #ifdef HAVE_AMR_SOLVER
@@ -813,7 +812,7 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
 	if (collimators.size() != 0) {
 	  for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
   	    Collimator* coll = static_cast<Collimator*>(it->getElement().get());
-            std::string name = coll->getName(); 
+            std::string name = coll->getName();
             unsigned int losses = coll->getLosses();
             collimatorLosses.push_back(std::make_pair(name, losses));
 	  }

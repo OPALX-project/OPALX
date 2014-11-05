@@ -18,3 +18,6 @@
 
 /* Version number of package */
 #define VERSION ${VERSION}
+
+/* repository svn version */
+#define SVN_VERSION ${OPAL_WC_REVISION}

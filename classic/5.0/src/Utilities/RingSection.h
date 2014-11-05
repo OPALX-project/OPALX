@@ -1,49 +1,49 @@
-/* 
+/*
  *  Copyright (c) 2012-2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OPAL_RING_SECTION_H
-#define OPAL_RING_SECTION_H
+#ifndef RING_SECTION_H
+#define RING_SECTION_H
 
 #include <vector>
 
 #include "AbsBeamline/Component.h"
 
-/** \class OpalRingSection Component placement handler in ring geometry
+/** \class RingSection Component placement handler in ring geometry
  *
- *  OpalRingSection handles placement of a component when it is placed in a ring
+ *  RingSection handles placement of a component when it is placed in a ring
  *  geometry. Here the primary index for section placement is azimuthal angle.
- *  OpalRingSection assumes that ring objects occupy a space defined by a start
+ *  RingSection assumes that ring objects occupy a space defined by a start
  *  plane and another end plane.
  *
  *  All vectors should be in cartesian coordinates (x,y,z); with z being the
  *  axis of the ring.
  *
  *  \param component_m component that the OpalSection wraps - this is a borrowed
- *                   reference (OpalRingSection does not own the memory)
+ *                   reference (RingSection does not own the memory)
  *  \param startPosition_m position of the centre of the start face in
  *                   cylindrical polar coordinates
  *  \param startOrientation_m vector normal to the start face pointing towards
@@ -62,19 +62,19 @@
  *  Return field values are returned like B_global = R^{-1}*B_local
  */
 
-class OpalRingSection {
+class RingSection {
   public:
     /** Construct a ring section - positions, orientations etc default to 0.
      */
-    OpalRingSection();
+    RingSection();
 
     /** Copy constructor; deepcopies the Component (and copies everything else)*/
-    OpalRingSection(const OpalRingSection& sec);
+    RingSection(const RingSection& sec);
 
-    OpalRingSection& operator=(const OpalRingSection& sec);
+    RingSection& operator=(const RingSection& sec);
 
     /** Destructor - does nothing*/
-    ~OpalRingSection();
+    ~RingSection();
 
     /** Return true if pos is on or past start plane
      *
@@ -108,7 +108,7 @@ class OpalRingSection {
     bool getFieldValue(const Vector_t& pos, const Vector_t& centroid,
                        const double& t, Vector_t& E, Vector_t& B) const;
 
-    /** Get the "Virtual" bounding box for the OpalRingSection
+    /** Get the "Virtual" bounding box for the RingSection
      *
      *  Defined by the point one radial distance along each face of the element
      *  either towards the centre of the ring or towards the outside of the
@@ -124,15 +124,15 @@ class OpalRingSection {
     /** Return true if the phi range overlaps bounding box elements */
     bool doesOverlap(double phiStart, double phiEnd) const;
 
-    /** Set the component wrapped by OpalRingSection
+    /** Set the component wrapped by RingSection
      *
      *  This borrows the Component* pointer (caller is responsible for cleanup)
      */
     inline void setComponent(Component* component) {component_m = component;}
 
-    /** Get the component wrapped by OpalRingSection
+    /** Get the component wrapped by RingSection
      *
-     *  Component* is not owned by caller or OpalRingSection
+     *  Component* is not owned by caller or RingSection
      */
     inline Component* getComponent() const {return component_m;}
 
@@ -194,22 +194,22 @@ class OpalRingSection {
     double cos2_m;
 };
 
-typedef std::vector<OpalRingSection*> RingSectionList;
+typedef std::vector<RingSection*> RingSectionList;
 
-inline void OpalRingSection::setComponentOrientation(Vector_t orientation) {
+inline void RingSection::setComponentOrientation(Vector_t orientation) {
     componentOrientation_m = orientation;
     updateComponentOrientation();
 }
 
-inline void OpalRingSection::setStartNormal(Vector_t orientation) {
+inline void RingSection::setStartNormal(Vector_t orientation) {
     startOrientation_m = normalise(orientation);
 }
 
-inline void OpalRingSection::setEndNormal(Vector_t orientation) {
+inline void RingSection::setEndNormal(Vector_t orientation) {
     endOrientation_m = normalise(orientation);
 }
 
-inline Vector_t& OpalRingSection::normalise(Vector_t& orientation) const {
+inline Vector_t& RingSection::normalise(Vector_t& orientation) const {
     double magnitude = sqrt(orientation(0)*orientation(0)+
                             orientation(1)*orientation(1)+
                             orientation(2)*orientation(2));
@@ -219,13 +219,12 @@ inline Vector_t& OpalRingSection::normalise(Vector_t& orientation) const {
 }
 
 
-void OpalRingSection::rotateToTCoordinates(Vector_t& vec) const {
+void RingSection::rotateToTCoordinates(Vector_t& vec) const {
   vec = Vector_t(vec(1), vec(2), vec(0));
 }
 
-void OpalRingSection::rotateToCyclCoordinates(Vector_t& vec) const {
+void RingSection::rotateToCyclCoordinates(Vector_t& vec) const {
   vec = Vector_t(vec(2), vec(0), vec(1));
 }
 
-#endif //OPAL_RING_SECTION_H
-
+#endif //RING_SECTION_H

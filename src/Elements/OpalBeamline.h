@@ -19,7 +19,7 @@
 #include "AbsBeamline/Septum.h"
 
 #include "Utilities/OpalSection.h"
-#include "Utilities/OpalField.h"
+#include "Utilities/ClassicField.h"
 
 class Tracker;
 class PartBunch;
@@ -309,7 +309,7 @@ void OpalBeamline::visit(const T &element, Tracker &, PartBunch *bunch) {
     double startField = elptr->getAttribute("ELEMEDGE");
     double endField;
     elptr->initialise(bunch, startField, endField, 1.0);
-    elements_m.push_back(OpalField(elptr, startField, endField));
+    elements_m.push_back(ClassicField(elptr, startField, endField));
 }
 
 template<> inline
@@ -339,7 +339,7 @@ void OpalBeamline::visit<Corrector>(const Corrector &element, Tracker &, PartBun
     double startField = elptr->getAttribute("ELEMEDGE");
     double endField;
     elptr->initialise(bunch, startField, endField, 1.0);
-    elements_m.push_back(OpalField(elptr, startField, endField));
+    elements_m.push_back(ClassicField(elptr, startField, endField));
 
     msg << element.getType() << " ELEMEDGE=" << startField << endl;
 }

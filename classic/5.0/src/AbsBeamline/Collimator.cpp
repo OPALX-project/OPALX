@@ -24,6 +24,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
+#include "Utilities/Options.h"
 #include "Solvers/SurfacePhysicsHandler.hh"
 #include <memory>
 

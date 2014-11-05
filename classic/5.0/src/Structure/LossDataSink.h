@@ -3,8 +3,6 @@
 
 //////////////////////////////////////////////////////////////
 #include "Utility/IpplInfo.h"
-#include "Utilities/Options.h"
-#include "AbstractObjects/OpalData.h"
 #include "Algorithms/Vektor.h"
 
 #include <string>

@@ -32,7 +32,7 @@
 #include "Parser/Token.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
-#include "Utilities/Options.h"
+#include "Utilities/OpalOptions.h"
 #include "Utilities/Round.h"
 #include <cassert>
 #include <ctime>

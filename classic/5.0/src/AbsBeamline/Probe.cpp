@@ -24,6 +24,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
+#include "Utilities/Options.h"
 #include <iostream>
 #include <fstream>
 using Physics::pi;

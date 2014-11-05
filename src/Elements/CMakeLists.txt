@@ -31,7 +31,6 @@ set (_SRCS
   OpalRBend.cpp
   OpalRCollimator.cpp
   OpalRingDefinition.cpp
-  OpalRing.cpp
   OpalSBend.cpp
   OpalSBend3D.cpp
   OpalSeparator.cpp

@@ -51,6 +51,7 @@ add_subdirectory(MemoryManagement)
 add_subdirectory(Parser)
 add_subdirectory(Physics)
 add_subdirectory(Solvers)
+add_subdirectory(Structure)
 add_subdirectory(Utilities)
 
 

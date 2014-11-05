@@ -30,7 +30,7 @@
 #include "Structure/Beam.h"
 #include "Tables/Flatten.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
+#include "Utilities/OpalOptions.h"
 #include "Utilities/Round.h"
 #include <iomanip>
 #include <iostream>

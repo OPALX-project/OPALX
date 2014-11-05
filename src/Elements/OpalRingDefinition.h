@@ -30,12 +30,12 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalRing;
+class Ring;
 
-/** OpalRingDefinition provides UI wrapper for the OpalRing
+/** OpalRingDefinition provides UI wrapper for the Ring
  *
  *  OpalRingDefinition provides User Interface wrapper information for the
- *  OpalRing. Enables definition of lattice and beam centroid parameters.
+ *  Ring. Enables definition of lattice and beam centroid parameters.
  */
 
 class OpalRingDefinition: public OpalElement {
@@ -67,7 +67,7 @@ class OpalRingDefinition: public OpalElement {
     /** Calls fillRegisteredAttributes on the OpalElement */
     void fillRegisteredAttributes(const ElementBase &base, ValueFlag flag);
 
-    /** Receive parameters from the parser and hand them off to the OpalRing */
+    /** Receive parameters from the parser and hand them off to the Ring */
     void update();
 
     /** Calls print on the OpalElement */

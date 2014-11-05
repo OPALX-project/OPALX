@@ -1,15 +1,14 @@
 set (_SRCS
+  NumToStr.cpp
   OpalException.cpp
   OpalFilter.cpp
-  NumToStr.cpp
+  OpalOptions.cpp
+  OpalSection.cpp
   RegularExpression.cpp
   Round.cpp
   Timer.cpp
   TpsWerrf.cpp
   Truncate.cpp
-  OpalRingSection.cpp
-  OpalSection.cpp
-  OpalField.cpp
   )
 
 include_directories (

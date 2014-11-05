@@ -7,6 +7,7 @@
 #include "config.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
+#include "Utilities/OpalOptions.h"
 #include "Utilities/Options.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/BoundaryGeometry.h"
@@ -16,7 +17,6 @@
 
 extern Inform *gmsg;
 
-using namespace Options;
 using namespace std;
 
 //using Physics::m_e;

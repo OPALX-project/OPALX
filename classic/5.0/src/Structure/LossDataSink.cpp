@@ -1,10 +1,8 @@
-#include <Structure/LossDataSink.h>
+#include "Structure/LossDataSink.h"
 
 #include "Ippl.h"
-#include "Algorithms/PBunchDefs.h"
 #include "Utilities/Options.h"
-
-using namespace Options;
+#include "AbstractObjects/OpalData.h"
 
 LossDataSink::LossDataSink(std::string elem, bool hdf5Save):
     element_m(elem),

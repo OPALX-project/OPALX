@@ -7,6 +7,7 @@ set (_SRCS
   Component.cpp
   Corrector.cpp
   Cyclotron.cpp
+  CyclotronValley.cpp
   Degrader.cpp
   Diagnostic.cpp
   Drift.cpp
@@ -18,21 +19,21 @@ set (_SRCS
   Monitor.cpp
   Multipole.cpp
   Offset.cpp
+  ParallelPlate.cpp
   Patch.cpp
   Probe.cpp
   RBend.cpp
   RFCavity.cpp
-  VariableRFCavity.cpp
-  TravelingWave.cpp
   RFQuadrupole.cpp
+  Ring.cpp
   SBend.cpp
   SBend3D.cpp
   Separator.cpp
   Septum.cpp
   Solenoid.cpp
-  ParallelPlate.cpp
-  CyclotronValley.cpp
   Stripper.cpp
+  TravelingWave.cpp
+  VariableRFCavity.cpp
   )
 
 include_directories (

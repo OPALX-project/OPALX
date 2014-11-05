@@ -50,7 +50,7 @@
 #include "AbsBeamline/VariableRFCavity.h"
 
 #include "Elements/OpalBeamline.h"
-#include "Elements/OpalRing.h"
+#include "AbsBeamline/Ring.h"
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
@@ -68,6 +68,7 @@
 #include "Utilities/OpalException.h"
 
 #include "Structure/BoundaryGeometry.h"
+#include "Utilities/OpalOptions.h"
 
 #include "Ctunes.h"
 #include "Ctunes.cc"
@@ -281,14 +282,14 @@ void ParallelCyclotronTracker::closeFiles() {
  *
  * @param ring
  */
-void ParallelCyclotronTracker::visitOpalRing(const OpalRing &ring) {
+void ParallelCyclotronTracker::visitRing(const Ring &ring) {
 
-    *gmsg << "Adding OpalRing" << endl;
+    *gmsg << "Adding Ring" << endl;
 
     if (opalRing_m != NULL)
         delete opalRing_m;
 
-    opalRing_m = dynamic_cast<OpalRing*>(ring.clone());
+    opalRing_m = dynamic_cast<Ring*>(ring.clone());
 
     myElements.push_back(opalRing_m);
 
@@ -299,7 +300,7 @@ void ParallelCyclotronTracker::visitOpalRing(const OpalRing &ring) {
     referenceTheta = opalRing_m->getBeamPhiInit();
 
     if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
-        throw OpalException("Error in ParallelCyclotronTracker::visitOpalRing",
+        throw OpalException("Error in ParallelCyclotronTracker::visitRing",
                             "PHIINIT is out of [-180, 180)!");
     }
 
@@ -611,7 +612,7 @@ void ParallelCyclotronTracker::visitOffset(const Offset & off) {
     if (opalRing_m == NULL)
         throw OpalException(
                         "ParallelCylcotronTracker::visitOffset",
-                        "Attempt to place an offset when OpalRing not defined");
+                        "Attempt to place an offset when Ring not defined");
     Offset* offNonConst = const_cast<Offset*>(&off);
     offNonConst->updateGeometry(opalRing_m->getNextPosition(),
                        opalRing_m->getNextNormal());
@@ -4073,7 +4074,7 @@ double ParallelCyclotronTracker::getHarmonicNumber() const {
         return elcycl->getCyclHarm();
     throw OpalException("ParallelCyclotronTracker::Tracker_MTS()",
              std::string("The first item in the FieldDimensions list does not ")
-            +std::string("seem to be an OpalRing or a Cyclotron element"));
+            +std::string("seem to be an Ring or a Cyclotron element"));
 }
 
 void ParallelCyclotronTracker::Tracker_MTS() {

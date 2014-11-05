@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 
@@ -29,7 +29,7 @@ TEST(PolynomialTimeDependenceTest, PolynomialTimeDependenceTest) {
 TEST(PolynomialTimeDependenceTest, TDMapTest) {
     // throw on empty value
     EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"),
-                 OpalException);
+                 GeneralClassicException);
     std::vector<double> test;
 
     // set/get time dependence
@@ -50,7 +50,7 @@ TEST(PolynomialTimeDependenceTest, TDMapTest) {
 
 TEST(PolynomialTimeDependenceTest, TDMapNameLookupTest) {
     EXPECT_THROW(AbstractTimeDependence::getName(NULL),
-                 OpalException);
+                 GeneralClassicException);
     PolynomialTimeDependence time_dep(std::vector<double>(1, 1));
     std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
     std::shared_ptr<PolynomialTimeDependence> td2(time_dep.clone());
@@ -63,6 +63,6 @@ TEST(PolynomialTimeDependenceTest, TDMapNameLookupTest) {
     std::string name2 = AbstractTimeDependence::getName(td2);
     EXPECT_TRUE(name2 == "td2" || name2 == "td3");
     EXPECT_THROW(AbstractTimeDependence::getName(td3),
-                 OpalException);
+                 GeneralClassicException);
 
 }

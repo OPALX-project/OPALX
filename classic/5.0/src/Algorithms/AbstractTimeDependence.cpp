@@ -1,5 +1,5 @@
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include <sstream>
 
@@ -10,7 +10,7 @@ std::shared_ptr<AbstractTimeDependence> AbstractTimeDependence::getTimeDependenc
     if (td_map.find(name) != td_map.end()) {
         return td_map[name];
     } else {
-        throw OpalException("AbstractTimeDependence::getTimeDependence",
+        throw GeneralClassicException("AbstractTimeDependence::getTimeDependence",
                             "Could not find TimeDependence called "+name);
     }
 }
@@ -31,6 +31,6 @@ std::string AbstractTimeDependence::getName(std::shared_ptr<AbstractTimeDependen
     }
     std::stringstream ss;
     ss << time_dep;
-    throw OpalException("AbstractTimeDependence::getTimeDependence",
+    throw GeneralClassicException("AbstractTimeDependence::getTimeDependence",
                         "Could not find TimeDependence with address "+ss.str());
 }

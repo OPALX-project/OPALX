@@ -64,7 +64,7 @@ public:
     virtual void visitCyclotron(const Cyclotron &);
 
     /// Apply the algorithm to an opal ring..
-    virtual void visitOpalRing(const OpalRing &);
+    virtual void visitRing(const Ring &);
 
     /// Apply the algorithm to a corrector.
     virtual void visitCorrector(const Corrector &);

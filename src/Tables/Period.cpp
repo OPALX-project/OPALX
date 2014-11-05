@@ -31,7 +31,7 @@
 #include "Physics/Physics.h"
 #include "Structure/Beam.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
+#include "Utilities/OpalOptions.h"
 #include "Utilities/Round.h"
 #include <cmath>
 #include <iomanip>

@@ -8,7 +8,6 @@
 
 #include <iostream>
 #include <fstream>
-// using namespace std;
 
 CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N):
     WakeFunction(name, element),

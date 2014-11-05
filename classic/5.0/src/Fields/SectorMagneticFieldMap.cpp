@@ -177,7 +177,7 @@ bool SectorMagneticFieldMap::getFieldstrength
     // coordinate transform; field is in the x-z plane but OPAL-CYCL assumes
     // x-y plane; make sure to keep right handed coordinate system
     // I also do a rotation through 180 deg about x to make the bend in the
-    // correct sense but this should be implemented in the end by OpalRing (i.e.
+    // correct sense but this should be implemented in the end by Ring (i.e.
     // should be able to do off-midplane transformations)
     double radius = (getPolarBoundingBoxMin()[0]+getPolarBoundingBoxMax()[0])/2;
     double R_temp[3] = {R_c(0)+radius, R_c(1), R_c(2)};

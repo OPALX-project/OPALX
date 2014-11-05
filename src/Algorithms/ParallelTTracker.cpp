@@ -59,6 +59,8 @@
 #include "AbstractObjects/OpalData.h"
 
 #include "BasicActions/Option.h"
+#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 
 #include "Distribution/Distribution.h"
 #include "ValueDefinitions/RealVariable.h"
@@ -889,7 +891,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
     cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
     currently_ap_cavity_m = cavities_m.end();
     FieldList travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
-    cavities_m.merge(travelingwaves, OpalField::SortAsc);
+    cavities_m.merge(travelingwaves, ClassicField::SortAsc);
 
     int tag = 101;
     int Parent = 0;
@@ -928,7 +930,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
       // need to rebuild for updateAllRFElements
       cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
       travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
-      cavities_m.merge(travelingwaves, OpalField::SortAsc);
+      cavities_m.merge(travelingwaves, ClassicField::SortAsc);
 
       // now send all max phases and names of the cavities to
       // all the other nodes for updating.
@@ -1691,7 +1693,7 @@ void ParallelTTracker::prepareSections() {
 
     cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
     FieldList travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
-    cavities_m.merge(travelingwaves, OpalField::SortAsc);
+    cavities_m.merge(travelingwaves, ClassicField::SortAsc);
 }
 
 

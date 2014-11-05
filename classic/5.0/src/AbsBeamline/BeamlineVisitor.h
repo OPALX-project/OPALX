@@ -63,7 +63,7 @@ class Solenoid;
 class ParallelPlate;
 class CyclotronValley;
 class Stripper;
-class OpalRing;
+class Ring;
 
 // Integrators.
 class Integrator;
@@ -122,8 +122,8 @@ public:
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &) = 0;
 
-    /// Apply the algorithm to an OpalRing
-    virtual void visitOpalRing(const OpalRing &) = 0;
+    /// Apply the algorithm to an Ring
+    virtual void visitRing(const Ring &) = 0;
 
     /// Apply the algorithm to a cyclotron.
     virtual void visitCyclotron(const Cyclotron &) = 0;

@@ -64,7 +64,7 @@ class Euclid3DGeometry : public BGeometryBase {
     //  straight length.
     virtual void setElementLength(double length);
 
-    /// Not Implemented - raises OpalException
+    /// Not Implemented - raises GeneralClassicException
     /// Get transform.
     //  Return the transform of the local coordinate system from the
     //  position [b]fromS[/b] to the position [b]toS[/b].

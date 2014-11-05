@@ -22,7 +22,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
-#include "Structure/LossDataSink.h"
+#include "Structure/LossDataSink.h" // OPAL file
 #include <iostream>
 #include <fstream>
 using Physics::pi;
@@ -222,4 +222,3 @@ const std::string &Septum::getType() const {
     static const std::string type("Septum");
     return type;
 }
-

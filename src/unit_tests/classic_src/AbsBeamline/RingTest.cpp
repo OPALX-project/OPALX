@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -29,7 +29,8 @@
 
 #include "AbsBeamline/Offset.h"
 #include "unit_tests/opal_src/Utilities/MockComponent.h"
-#include "Elements/OpalRing.h"
+#include "AbsBeamline/Ring.h"
+#include "Utilities/OpalException.h"
 
 // generate a set of weird, but closed, elements
 // reaches theta sum after 16 elements
@@ -98,14 +99,14 @@ class OffsetFactory {
 };
 
 
-TEST(OpalRingTest, TestConstructDestruct) {
+TEST(RingTest, TestConstructDestruct) {
     // something here? someday...
 }
 
-TEST(OpalRingTest, TestAppend1) {
+TEST(RingTest, TestAppend1) {
     try {
         double radius = 5.;
-        OpalRing ring("my_ring");
+        Ring ring("my_ring");
         ring.setLatticeRInit(radius);
         ring.setLatticePhiInit(Physics::pi/2.);
         ring.setLatticeThetaInit(0.);
@@ -134,10 +135,10 @@ TEST(OpalRingTest, TestAppend1) {
     }
 }
 
-TEST(OpalRingTest, TestAppend2) {
+TEST(RingTest, TestAppend2) {
     try {
         double radius = 5.;
-        OpalRing ring("my_ring");
+        Ring ring("my_ring");
         ring.setLatticeRInit(radius);
         ring.setLatticePhiInit(0.);
         ring.setLatticeThetaInit(0.);
@@ -166,10 +167,10 @@ TEST(OpalRingTest, TestAppend2) {
     }
 }
 
-TEST(OpalRingTest, TestAppend3) {
+TEST(RingTest, TestAppend3) {
     try {
         double radius = 5.;
-        OpalRing ring("my_ring");
+        Ring ring("my_ring");
         ring.setLatticeRInit(radius);
         ring.setLatticePhiInit(0.);
         ring.setLatticeThetaInit(0.);
@@ -186,7 +187,7 @@ TEST(OpalRingTest, TestAppend3) {
     }
 }
 
-TEST(OpalRingTest, TestLatticeRInitPhiInit) {
+TEST(RingTest, TestLatticeRInitPhiInit) {
     for (double phi = -2.*Physics::pi;
          phi < 2.*Physics::pi;
          phi += Physics::pi/6.) {
@@ -194,7 +195,7 @@ TEST(OpalRingTest, TestLatticeRInitPhiInit) {
              theta < 2.*Physics::pi;
              theta += Physics::pi/6.) {
             for (double radius = 1.; radius < 5.; radius += 1.) {
-                OpalRing ring("my_ring");
+                Ring ring("my_ring");
                 ring.setLatticeRInit(radius);
                 ring.setLatticePhiInit(phi);
                 ring.setLatticeThetaInit(theta);
@@ -216,8 +217,8 @@ TEST(OpalRingTest, TestLatticeRInitPhiInit) {
 }
 
 // Check that we get the bounding box and rotation correct
-TEST(OpalRingTest, TestApply) {
-    OpalRing ring("my_ring");
+TEST(RingTest, TestApply) {
+    Ring ring("my_ring");
     try {
         double radius = 2.*(2.*sin(Physics::pi/6.)+1.*sin(Physics::pi/3.)+1.0);
         ring.setLatticeRInit(radius-2.);
@@ -260,8 +261,8 @@ TEST(OpalRingTest, TestApply) {
 }
 
 // Check that we get the bounding box correct - for exact sector geometry
-TEST(OpalRingTest, TestApply2) {
-    OpalRing ring("my_ring");
+TEST(RingTest, TestApply2) {
+    Ring ring("my_ring");
    try {
         double radius = 1.5;
         ring.setLatticeRInit(radius);
@@ -277,11 +278,11 @@ TEST(OpalRingTest, TestApply2) {
         for (double phi = 0.001; phi < 2.*Physics::pi+0.1; phi += Physics::pi/50.) {
             Vector_t pos((radius+0.5)*sin(phi), (radius+0.5)*cos(phi), -0.5);
             Vector_t centroid, B, E;
-            std::vector<OpalRingSection*> sections = ring.getSectionsAt(pos);
+            std::vector<RingSection*> sections = ring.getSectionsAt(pos);
             EXPECT_FALSE(ring.apply(pos, centroid, 0., E, B)); // check we don't throw for all angles
             // a few are coming out with Bz = 1. instead of Bz = 0.5; looks like
-            // floating point precision issue? It's okay, OpalRing is not
-            // responsible for bounding the field, Components are. 
+            // floating point precision issue? It's okay, Ring is not
+            // responsible for bounding the field, Components are.
             EXPECT_GE(-B(2), 0.1);
             EXPECT_LE(-B(2), 1.1);
             // std::cout << phi << " " << pos << " " << B << " " << sections.size() << std::endl;
@@ -291,7 +292,7 @@ TEST(OpalRingTest, TestApply2) {
         EXPECT_TRUE(false) << "Threw an exception";
     }
     // Now apply symmetry 2x10 fields instead of 20x1
-    OpalRing ring2("my_ring");
+    Ring ring2("my_ring");
     try {
         double radius = 1.5;
         ring2.setLatticeRInit(radius);
@@ -307,7 +308,7 @@ TEST(OpalRingTest, TestApply2) {
         for (double phi = 0.001; phi < 2.*Physics::pi+0.1; phi += Physics::pi/50.) {
             Vector_t pos((radius+0.5)*sin(phi), (radius+0.5)*cos(phi), 0.5);
             Vector_t centroid, B1, B2, E;
-            std::vector<OpalRingSection*> sections = ring2.getSectionsAt(pos);
+            std::vector<RingSection*> sections = ring2.getSectionsAt(pos);
             ring.apply(pos, centroid, 0., E, B1);
             ring2.apply(pos, centroid, 0., E, B2);
             EXPECT_NEAR(B1(2), B2(2), 1e-6);
@@ -319,7 +320,7 @@ TEST(OpalRingTest, TestApply2) {
     }
     // Now overlapping - we have two elements in each position, should get twice
     // the field
-    OpalRing ring3("my_ring");
+    Ring ring3("my_ring");
     try {
         double radius = 1.5;
         ring3.setLatticeRInit(radius);
@@ -334,7 +335,7 @@ TEST(OpalRingTest, TestApply2) {
         for (double phi = 0.001; phi < 2.*Physics::pi+0.1; phi += Physics::pi/50.) {
             Vector_t pos((radius+0.5)*sin(phi), (radius+0.5)*cos(phi), 0.5);
             Vector_t centroid, B1, B2, E;
-            std::vector<OpalRingSection*> sections = ring3.getSectionsAt(pos);
+            std::vector<RingSection*> sections = ring3.getSectionsAt(pos);
             ring.apply(pos, centroid, 0., E, B1);
             ring3.apply(pos, centroid, 0., E, B2);
             EXPECT_NEAR(2.*B1(2), B2(2), 1e-6);
@@ -350,7 +351,7 @@ TEST(OpalRingTest, TestApply2) {
 void testField(double s, double r, double y, double phi,
                double bx, double by, double bz, double tol) {
     double radius = 2.;
-    OpalRing ring("test");
+    Ring ring("test");
     ring.setLatticeRInit(radius);
     ring.setLatticePhiInit(phi);
     ring.setLatticeThetaInit(0.);
@@ -372,7 +373,7 @@ void testField(double s, double r, double y, double phi,
     // std::cout << pos << " ** " << B << " ** " << Vector_t(bx, by, bz) << std::endl;
 }
 
-TEST(OpalRingTest, TestApply3) {
+TEST(RingTest, TestApply3) {
     testField(0.1, 0., 0.2, 0., 3., 1., 2., 1e-6);
     testField(0.1, 0., 0.2, Physics::pi, -3., -1., 2., 1e-6);
     testField(0.1, 0., 0.2, Physics::pi/2., 1., -3., 2., 1e-6);
@@ -381,4 +382,3 @@ TEST(OpalRingTest, TestApply3) {
               3.*cos(Physics::pi/6)+1.*sin(Physics::pi/6),
               -3.*sin(Physics::pi/6)+1.*cos(Physics::pi/6), 2., 1e-6);
 }
-

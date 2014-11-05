@@ -369,7 +369,7 @@ void OpalBeamline::prepareSections() {
     /* there might be elements with length zero or extremely short ones.
        we delete them such that they don't appear in the simulation
      */
-    elements_m.sort(OpalField::SortAsc);
+    elements_m.sort(ClassicField::SortAsc);
     for(flit = elements_m.begin();  flit != elements_m.end(); ++ flit) {
         while(flit != elements_m.end() && (*flit).getLength() < tolerance) {
             FieldList::iterator temp = flit;

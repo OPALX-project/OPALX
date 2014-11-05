@@ -22,7 +22,6 @@
 #include "Attributes/Attributes.h"
 #include "Tables/Twiss.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include <fstream>
 #include <iomanip>
 #if defined(__GNUC__) && __GNUC__ < 3

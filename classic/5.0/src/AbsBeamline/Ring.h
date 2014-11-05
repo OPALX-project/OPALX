@@ -1,32 +1,32 @@
-/* 
+/*
  *  Copyright (c) 2012-2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OPALRING_H
-#define OPALRING_H
+#ifndef RING_H
+#define RING_H
 
 #include <string>
 
@@ -35,24 +35,24 @@
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
-#include "Utilities/OpalRingSection.h"
-#include "Utilities/OpalField.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/RingSection.h"
+#include "Utilities/ClassicField.h"
+#include "Utilities/GeneralClassicException.h"
 
 class LossDataSink;
 class PartBunch;
 class FieldMap;
 
-/** @class OpalRing describes a ring type geometry for tracking
+/** @class Ring describes a ring type geometry for tracking
  *
- *  OpalRing describes a ring type geometry for tracking. OpalRing provides the
+ *  Ring describes a ring type geometry for tracking. Ring provides the
  *  necessary interfaces for e.g. OPAL-CYCL to track through the ring geometry,
  *  while enabling the user to add arbitrary field elements in a closed
  *  geometry.
  *
- *  OpalRing uses similar routines to OPAL-T OpalBeamline class to set up
+ *  Ring uses similar routines to OPAL-T OpalBeamline class to set up
  *  geometry; note that as OPAL-CYCL places the beam in an x-y geometry we place
- *  in an x-y geometry for OpalRing (i.e. the axis of the ring is by default the
+ *  in an x-y geometry for Ring (i.e. the axis of the ring is by default the
  *  z-axis). So far only placement of elements in the midplane is supported. It
  *  is not possible to give vertical displacements or rotations, or add elements
  *  that might create vertical displacements and rotations.
@@ -60,22 +60,22 @@ class FieldMap;
  *  Also aim to maintain backwards compatibility with Cyclotron (i.e. use
  *  ParallelCyclotronTracker)
  */
-class OpalRing : public Component {
+class Ring : public Component {
   public:
     /** Constructor
      *
      *  \param ring Name of the ring as defined in the input file
      */
-    OpalRing(std::string ring);
+    Ring(std::string ring);
 
     /** Copy constructor
      *
      *  Can't copy LossDataSink so throw exception if this is set
      */
-    OpalRing(const OpalRing& ring);
+    Ring(const Ring& ring);
 
     /** Destructor - deletes lossDS_m if not NULL */
-    virtual ~OpalRing();
+    virtual ~Ring();
 
     /** Overwrite data in array E and B with electric and magnetic fields and
      *  flag particles outside of the ring aperture
@@ -128,9 +128,9 @@ class OpalRing : public Component {
     virtual bool apply(const Vector_t &R, const Vector_t &centroid,
                        const double &t, Vector_t &E, Vector_t &B);
 
-    /** Initialise the OpalRing
+    /** Initialise the Ring
      *
-     *  @param bunch the particle bunch. OpalRing borrows this pointer (caller
+     *  @param bunch the particle bunch. Ring borrows this pointer (caller
      *         owns memory)
      *  @param startField - not used
      *  @param endField - not used
@@ -139,25 +139,25 @@ class OpalRing : public Component {
     virtual void initialise(PartBunch *bunch, double &startField,
                             double &endField, const double &scaleFactor);
 
-    /** Initialise the OpalRing - set the bunch and allocate a new LossDataSink
+    /** Initialise the Ring - set the bunch and allocate a new LossDataSink
      *
-     *  @param bunch the particle bunch. OpalRing borrows this pointer (caller
+     *  @param bunch the particle bunch. Ring borrows this pointer (caller
      *         owns memory)
      */
     virtual void initialise(PartBunch *bunch);
 
-    /** Clean up the OpalRing
+    /** Clean up the Ring
      *
-     *  OpalRing relinquishes RefPartBunch pointer and deletes LossDataSink
+     *  Ring relinquishes RefPartBunch pointer and deletes LossDataSink
      */
     virtual void finalise();
 
-    /** Returns true - OpalRing is assumed to bend particles, being a ring */
+    /** Returns true - Ring is assumed to bend particles, being a ring */
     virtual bool bends() const {return true;}
 
     /** Accept the BeamlineVisitor
      *
-     *  Just calls visitOpalRing function on the visitor. I guess the point of
+     *  Just calls visitRing function on the visitor. I guess the point of
      *  this function is that it enables us to store a pointer to the visitor
      *  object or something
      */
@@ -167,7 +167,7 @@ class OpalRing : public Component {
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     /** Inherited copy constructor */
-    virtual ElementBase* clone() const {return new OpalRing(*this);}
+    virtual ElementBase* clone() const {return new Ring(*this);}
 
     /** Add element to the ring
      *
@@ -177,24 +177,24 @@ class OpalRing : public Component {
      *  defined according to the Component geometry given by
      *  element.getGeometry().
      *
-     *  Caller owns memory allocated to element - OpalRing makes a copy.
+     *  Caller owns memory allocated to element - Ring makes a copy.
      *
      *  Throws an exception if the geometry would bend the element out of the
      *  midplane (elements out of midplane are not yet supported). Note that
-     *  BeamlineGeometry considers midplane to be x-z, whereas OpalRing
+     *  BeamlineGeometry considers midplane to be x-z, whereas Ring
      *  considers midplane to be x-y; we apply a rotation during set up.
      *
-     *  The element is assumed to extend not beyond the element geometry; 
-     *  OpalRing applies a bounding box based on the element geometry, if there
+     *  The element is assumed to extend not beyond the element geometry;
+     *  Ring applies a bounding box based on the element geometry, if there
      *  are field maps expanding outside this region they may get cut.
      */
     void appendElement(const Component &element);
 
     /** Not implemented, throws an exception */
-    virtual EMField &getField() {throw OpalException("OpalRing::getField", "Not implemented");}
+    virtual EMField &getField() {throw GeneralClassicException("Ring::getField", "Not implemented");}
 
     /** Not implemented, throws an exception */
-    virtual const EMField &getField() const {throw OpalException("OpalRing::getField", "Not implemented");}
+    virtual const EMField &getField() const {throw GeneralClassicException("Ring::getField", "Not implemented");}
 
     /** Not implemented */
     virtual PlanarArcGeometry &getGeometry() {return planarArcGeometry_m;}
@@ -204,20 +204,20 @@ class OpalRing : public Component {
 
     /** Set LossDataSink to sink.
      *
-     *  @param sink The LossDataSink. OpalRing takes ownership of memory
+     *  @param sink The LossDataSink. Ring takes ownership of memory
      *         allocated to sink
      */
     void setLossDataSink(LossDataSink* sink);
 
     /** Get pointer to lossDataSink.
      *
-     *  OpalRing still owns the memory to which lossDataSink points.
+     *  Ring still owns the memory to which lossDataSink points.
      */
     PartBunch* getLossDataSink() const;
 
     /** Set RefPartBunch to bunch.
      *
-     *  @param sink The Bunch. OpalRing borrows memory allocated to bunch.
+     *  @param sink The Bunch. Ring borrows memory allocated to bunch.
      *
      *  Note for compliance with style guide and compatibility with parent two
      *  pointer to RefPartBunch are stored; this keeps them aligned
@@ -226,7 +226,7 @@ class OpalRing : public Component {
 
     /** Get pointer to RefPartBunch from the bunch.
      *
-     *  OpalRing does not own this memory (so neither does caller).
+     *  Ring does not own this memory (so neither does caller).
      */
     PartBunch* getRefPartBunch() const;
 
@@ -272,7 +272,7 @@ class OpalRing : public Component {
 
     /** Get the initial  element's azimuthal angle */
     double getLatticePhiInit() const {return latticePhiInit_m;}
- 
+
     /** Get the initial element's start position in cartesian coordinates */
     Vector_t getNextPosition() const;
 
@@ -290,13 +290,13 @@ class OpalRing : public Component {
      *  Get the angle in the ring plane with respect to the tangent vector
      */
     double getLatticeThetaInit() const {return latticeThetaInit_m;}
-   
+
     /** Set the rotational symmetry of the ring (number of cells) */
     void setSymmetry(double symmetry) {symmetry_m = symmetry;}
 
     /** Get the rotational symmetry of the ring (number of cells) */
     double getSymmetry() const {return symmetry_m;}
-   
+
     /** Set flag for closure checking */
     void setIsClosed(bool isClosed) {isClosed_m = isClosed;}
 
@@ -306,7 +306,7 @@ class OpalRing : public Component {
     /** Lock the ring
      *
      *  Lock the ring; apply closure checks and symmetry properties as required.
-     *  Impose rule that start must be before end and switch objects around if 
+     *  Impose rule that start must be before end and switch objects around if
      *  this is not the case. Sort by startPosition azimuthal angle.
      *
      *  Sets isLocked_m to true. New elements can no longer be added (as it may
@@ -315,10 +315,10 @@ class OpalRing : public Component {
     void lockRing();
 
     /** Get the last section placed or NULL if no sections were placed yet */
-    OpalRingSection* getLastSectionPlaced() const;
+    RingSection* getLastSectionPlaced() const;
 
     /** Get the list of sections at position pos */
-    std::vector<OpalRingSection*> getSectionsAt(const Vector_t& pos);
+    std::vector<RingSection*> getSectionsAt(const Vector_t& pos);
 
     /** Convert from a Vector3D to a Vector_t */
     static inline Vector_t convert(const Vector3D& vec);
@@ -330,7 +330,7 @@ class OpalRing : public Component {
     // Force end to have azimuthal angle > start unless crossing phi = pi/-pi
     void resetAzimuths();
 
-    // check for closure; throw an exception is ring is not closed within 
+    // check for closure; throw an exception is ring is not closed within
     // tolerance; enforce closure to floating point precision
     void checkAndClose();
 
@@ -340,14 +340,14 @@ class OpalRing : public Component {
     void rotateToCyclCoordinates(Euclid3D& euclid3d) const;
 
     // predicate for sorting
-    static bool sectionCompare(OpalRingSection const* const sec1,
-                               OpalRingSection const* const sec2);
+    static bool sectionCompare(RingSection const* const sec1,
+                               RingSection const* const sec2);
 
     /** Disabled */
-    OpalRing();
+    Ring();
 
     /** Disabled */
-    OpalRing& operator=(const OpalRing& ring);
+    Ring& operator=(const Ring& ring);
 
     void checkMidplane(Euclid3D delta) const;
     Rotation3D getRotationStartToEnd(Euclid3D delta) const;
@@ -357,12 +357,12 @@ class OpalRing : public Component {
     // points to same location as RefPartBunch_m on the child bunch, but we
     // rename to keep in line with style guide
     //
-    // OpalRing borrows this memory
+    // Ring borrows this memory
     PartBunch *refPartBunch_m;
 
-    // store for particles out of the aperture 
+    // store for particles out of the aperture
     //
-    // OpalRing owns this memory
+    // Ring owns this memory
     LossDataSink *lossDS_m;
 
     // initial position of the beam
@@ -391,7 +391,7 @@ class OpalRing : public Component {
     // nominal rf frequency
     double rfFreq_m;
 
-    // vector of OpalRingSection sorted by phi (Component placement)
+    // vector of RingSection sorted by phi (Component placement)
     double phiStep_m;
     std::vector<RingSectionList> ringSections_m;
     RingSectionList section_list_m;
@@ -401,13 +401,12 @@ class OpalRing : public Component {
     static const double angleTolerance_m;
 };
 
-Vector_t OpalRing::convert(const Vector3D& vec_3d) {
+Vector_t Ring::convert(const Vector3D& vec_3d) {
     return Vector_t(vec_3d(0), vec_3d(1), vec_3d(2));
 }
 
-Vector3D OpalRing::convert(const Vector_t& vec_t) {
+Vector3D Ring::convert(const Vector_t& vec_t) {
     return Vector3D(vec_t[0], vec_t[1], vec_t[2]);
 }
 
-#endif //#ifndef OPALRING_H
-
+#endif //#ifndef RING_H

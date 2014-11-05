@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -30,11 +30,10 @@
 #include "gtest/gtest.h"
 #include "unit_tests/opal_src/Utilities/MockComponent.h"
 #include "Physics/Physics.h"
-#include "Utilities/OpalException.h"
-#include "Utilities/OpalRingSection.h"
+#include "Utilities/RingSection.h"
 
-TEST(OpalRingSectionTest, TestConstructDestruct) {
-    OpalRingSection ors;
+TEST(RingSectionTest, TestConstructDestruct) {
+    RingSection ors;
     MockComponent* compNull = NULL;
     Vector_t vec0(0, 0, 0);
     EXPECT_EQ(ors.getComponent(), compNull);
@@ -46,14 +45,14 @@ TEST(OpalRingSectionTest, TestConstructDestruct) {
     EXPECT_EQ(ors.getComponentOrientation(), vec0);
     EXPECT_EQ(ors.getVirtualBoundingBox(), std::vector<Vector_t>(4, vec0));
 
-    OpalRingSection ors_comp;
+    RingSection ors_comp;
     MockComponent comp;
     ors_comp.setComponent(&comp);
     // and implicit destructors; should not double free comp;
 }
 
-TEST(OpalRingSectionTest, TestIsOnOrPastStartPlane) {
-    OpalRingSection ors;
+TEST(RingSectionTest, TestIsOnOrPastStartPlane) {
+    RingSection ors;
     ors.setStartPosition(Vector_t(0., 1., 0.));
     ors.setStartNormal(Vector_t(1., 0., 0.));
     Vector_t vec1(1e-9, 1.e-9, 0.);
@@ -91,8 +90,8 @@ TEST(OpalRingSectionTest, TestIsOnOrPastStartPlane) {
     EXPECT_TRUE(ors.isOnOrPastStartPlane(vec10));
 }
 
-TEST(OpalRingSectionTest, TestIsPastEndPlane) {
-    OpalRingSection ors;
+TEST(RingSectionTest, TestIsPastEndPlane) {
+    RingSection ors;
     ors.setEndPosition(Vector_t(0., 1., 0.));
     ors.setEndNormal(Vector_t(1., 0., 0.));
     Vector_t vec1(1e-9, 1.e-9, 0.);
@@ -129,8 +128,8 @@ TEST(OpalRingSectionTest, TestIsPastEndPlane) {
     EXPECT_TRUE(ors.isPastEndPlane(vec10));
 }
 
-TEST(OpalRingSectionTest, TestGetFieldValue) {
-    OpalRingSection ors;
+TEST(RingSectionTest, TestGetFieldValue) {
+    RingSection ors;
     MockComponent comp;
     ors.setComponent(&comp);
     Vector_t centre(-1.33, +1.66, 0.);
@@ -167,8 +166,8 @@ bool sort_comparator(Vector_t v1, Vector_t v2) {
     return v1(0) > v2(0);
 }
 
-TEST(OpalRingSectionTest, TestGetVirtualBoundingBox) {
-    OpalRingSection ors;
+TEST(RingSectionTest, TestGetVirtualBoundingBox) {
+    RingSection ors;
     ors.setStartPosition(Vector_t(3, -1, 99));
     ors.setStartNormal(Vector_t(-4, -1, -1000));
     ors.setEndPosition(Vector_t(2, 1, 77));
@@ -184,7 +183,7 @@ TEST(OpalRingSectionTest, TestGetVirtualBoundingBox) {
     bbRef.push_back(Vector_t(0.99*sqrt(5)/(-sqrt(2))+2.,
                              0.99*sqrt(5)/(-sqrt(2))+1., 77.));
     std::sort(bb.begin(), bb.end(), sort_comparator);
-    std::sort(bbRef.begin(), bbRef.end(), sort_comparator);    
+    std::sort(bbRef.begin(), bbRef.end(), sort_comparator);
     EXPECT_EQ(bb.size(), bbRef.size());
     for (size_t i = 0; i < bb.size(); ++i) {
         for (size_t j = 0; j < 3; ++j)
@@ -192,8 +191,8 @@ TEST(OpalRingSectionTest, TestGetVirtualBoundingBox) {
     }
 }
 
-OpalRingSection buildORS(double r, double phi1, double phi2) {
-    OpalRingSection ors;
+RingSection buildORS(double r, double phi1, double phi2) {
+    RingSection ors;
     ors.setStartPosition(Vector_t(sin(phi1)*r, cos(phi1)*r, 0.));
     ors.setStartNormal(Vector_t(cos(phi1), -sin(phi1), 0.));
     ors.setEndPosition(Vector_t(sin(phi2)*r, cos(phi2)*r, 0.));
@@ -201,20 +200,19 @@ OpalRingSection buildORS(double r, double phi1, double phi2) {
     return ors;
 }
 
-TEST(OpalRingSectionTest, TestDoesOverlap) {
+TEST(RingSectionTest, TestDoesOverlap) {
     double f1 = 1.0*Physics::pi/6.;
     double f2 = 0.5*Physics::pi/6.;
     double f3 = -0.5*Physics::pi/6.;
     double f4 = -1.0*Physics::pi/6.;
     double r = 3.;
-    OpalRingSection ors1 = buildORS(r, f1, f3);
+    RingSection ors1 = buildORS(r, f1, f3);
     EXPECT_TRUE(ors1.doesOverlap(f2, f2));
     EXPECT_FALSE(ors1.doesOverlap(f4, f4));
-    OpalRingSection ors2 = buildORS(r, f1, f4);
+    RingSection ors2 = buildORS(r, f1, f4);
     EXPECT_TRUE(ors2.doesOverlap(f2, f3));
-    OpalRingSection ors3 = buildORS(r, f2, f3);
+    RingSection ors3 = buildORS(r, f2, f3);
     EXPECT_TRUE(ors3.doesOverlap(f2, f3));
     EXPECT_FALSE(ors3.doesOverlap(f1, f1));
     EXPECT_FALSE(ors3.doesOverlap(f4, f4));
 }
-

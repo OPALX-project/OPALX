@@ -29,10 +29,10 @@
 
 #include <cmath>
 
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 #include "BeamlineGeometry/Euclid3DGeometry.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Elements/OpalRing.h"
+#include "Physics/Physics.h"
 
 
 double Offset::float_tolerance = 1e-12;
@@ -86,12 +86,12 @@ void Offset::accept(BeamlineVisitor & visitor) const {
 }
 
 EMField &Offset::getField() {
-    throw OpalException("Offset::getField()",
+    throw GeneralClassicException("Offset::getField()",
                         "No field defined for Offset");
 }
 
 const EMField &Offset::getField() const {
-    throw OpalException("Offset::getField() const",
+    throw GeneralClassicException("Offset::getField() const",
                         "No field defined for Offset");
 }
 
@@ -162,7 +162,7 @@ std::ostream& operator<<(std::ostream& out, const Vector_t& vec) {
 
 double Offset::getTheta(Vector_t vec1, Vector_t vec2) {
     if (fabs(vec1(2)) > 1e-9 || fabs(vec2(2)) > 1e-9)
-        throw OpalException("Offset::getTheta(...)",
+        throw GeneralClassicException("Offset::getTheta(...)",
                             "Rotations out of midplane are not implemented");
     // probably not the most efficient, but only called at set up
     double theta = atan2(vec2(1), vec2(0))-atan2(vec1(1), vec1(0));
@@ -181,7 +181,7 @@ Vector_t Offset::rotate(Vector_t vec, double theta) {
 
 void Offset::updateGeometry() {
     if (!_is_local)
-        throw OpalException("Offset::updateGeometry(...)",
+        throw GeneralClassicException("Offset::updateGeometry(...)",
                             "Global offset needs a local coordinate system");
     Vector_t translation = getEndPosition();
     double length = sqrt(translation(0)*translation(0)+
@@ -249,7 +249,7 @@ std::ostream& operator<<(std::ostream& out, const Offset& off) {
 
 bool Offset::bends() const {
     if (geometry_m == NULL) {
-        throw OpalException("Offset::bends",
+        throw GeneralClassicException("Offset::bends",
               "Try to determine if Offset bends when geometry_m not allocated");
     }
     Rotation3D rotation = geometry_m->getTotalTransform().getRotation();

@@ -22,6 +22,7 @@
 #include "Errors/Error.h"
 #include "Errors/MPHandler.h"
 #include "Fields/BMultipoleField.h"
+#include "Utilities/OpalOptions.h"
 #include "Utilities/Options.h"
 #include "Utilities/Round.h"
 #include <cmath>

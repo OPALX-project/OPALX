@@ -29,12 +29,11 @@
 
 #include "AbstractObjects/OpalData.h"   // OPAL file
 #include "Distribution/Distribution.h"  // OPAL file
-#include "Structure/LossDataSink.h"     // OPAL file
 #include "Structure/FieldSolver.h"      // OPAL file
-#include "Utilities/Options.h"          // OPAL file
+#include "Structure/LossDataSink.h"
+#include "Utilities/Options.h"
 
 #include "Algorithms/ListElem.h"
-#include "BasicActions/Option.h"
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>

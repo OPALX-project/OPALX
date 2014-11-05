@@ -15,6 +15,7 @@
 #include "Structure/PriEmissionPhysics.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
+#include "Utilities/Options.h"
 #include <gsl/gsl_sys.h>
 
 extern Inform* gmsg;

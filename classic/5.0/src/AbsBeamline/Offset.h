@@ -45,9 +45,9 @@ class Fieldmap;
  *  @param _is_local parameter is True if everything is in the coordinate system
  *  of the last placed object. It is expected that everything will be in a local
  *  coordinate system before tracking begins (this is expected by, for example,
- *  OpalRing). This is expected to be set by the visit function in e.g.
+ *  Ring). This is expected to be set by the visit function in e.g.
  *  ParallelCyclotronTracker.
- *  @param geometry the geometry that OpalRingSection uses to do displacements
+ *  @param geometry the geometry that RingSection uses to do displacements
  *  This has to be a pointer because SRotatedGeometry
  *  does not have an defined assignment op. SRotatedGeometry does not have
  *  a assignment op because BGeometryBase does not have an assignment op...
@@ -202,16 +202,16 @@ class Offset : public Component {
     void updateGeometry();
     bool isGeometryAllocated() const;
 
-    /// Not implemented - throws OpalException
+    /// Not implemented - throws GeneralClassicException
     EMField &getField();
-    /// Not implemented - throws OpalException
+    /// Not implemented - throws GeneralClassicException
     const EMField &getField() const;
     /** Calculate the angle between vectors on the midplane
      *
      *  Returns theta in domain -pi, pi. A positive angle means a rotation
      *  anticlockwise from vec1 to vec2.
      *
-     *  Throws an OpalException if vec1, vec2 are not in the midplane i.e.
+     *  Throws an GeneralClassicException if vec1, vec2 are not in the midplane i.e.
      *  non-zero z.
      */
     static double getTheta(Vector_t vec1, Vector_t vec2);

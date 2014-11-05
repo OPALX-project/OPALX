@@ -234,9 +234,33 @@ ELSE ()
 ENDIF ()
 
 
-
 MESSAGE (STATUS "Compiling with ${CMAKE_CXX_FLAGS}")
 
+
+INCLUDE(FindSubversion)
+IF(Subversion_SVN_EXECUTABLE)
+
+    EXECUTE_PROCESS(COMMAND ${Subversion_SVN_EXECUTABLE} info ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE OPAL_WC_INFO
+        ERROR_VARIABLE Subversion_svn_info_error
+        RESULT_VARIABLE Subversion_svn_info_result
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    IF(${Subversion_svn_info_result} EQUAL 0)
+        Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} OPAL)
+    ELSE()
+        SET (OPAL_WC_REVISION 0)
+        EXECUTE_PROCESS(
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMAND git rev-parse HEAD
+            OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+        SET (OPAL_WC_REVISION \"${GIT_OUT}\")
+    ENDIF()
+ELSE()
+    MESSAGE (STATUS "could not find subversion")
+    SET (OPAL_WC_REVISION \"\")
+ENDIF()
 
 ADD_SUBDIRECTORY (classic/5.0/src)
 ADD_SUBDIRECTORY (src)

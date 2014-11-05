@@ -21,13 +21,12 @@
 
 #include "Algorithms/Tracker.h"
 #include "Structure/DataSink.h"
-#include "Utilities/Options.h"
 #include <vector>
 
 class BMultipoleField;
 class PartBunch;
 class PlanarArcGeometry;
-class OpalRing;
+class Ring;
 class SBend3D;
 class VariableRFCavity;
 class Offset;
@@ -70,8 +69,8 @@ public:
 
     virtual ~ParallelCyclotronTracker();
 
-    /// Apply the algorithm to an OpalRing
-    virtual void visitOpalRing(const OpalRing &ring);
+    /// Apply the algorithm to an Ring
+    virtual void visitRing(const Ring &ring);
 
     /// Apply the algorithm to a Cyclotorn
     virtual void visitCyclotron(const Cyclotron &cycl);
@@ -433,10 +432,10 @@ private:
 
     void checkNumPart(std::string s);
 
-    // we store a pointer explicitly to the OpalRing
-    OpalRing* opalRing_m;
+    // we store a pointer explicitly to the Ring
+    Ring* opalRing_m;
 
-    // If OpalRing is defined take the harmonic number from OpalRing; else use
+    // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
     double getHarmonicNumber() const;
 

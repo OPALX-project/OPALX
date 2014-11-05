@@ -19,101 +19,18 @@
 #include "BasicActions/Option.h"
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
-//#include "Utilities/Options.h"
+#include "Utilities/Options.h"
+#include "Utilities/OpalOptions.h"
 #include "Utilities/Random.h"
 #include <ctime>
 #include <iostream>
 
 extern Inform *gmsg;
 
+using namespace Options;
+
 // Class Option
 // ------------------------------------------------------------------------
-
-// The global option flags.
-namespace Options {
-    // The global program options.
-    bool echo = true;
-    bool info = true;
-    bool mtrace = false;
-    bool verify = false;
-    bool warn = true;
-    bool psDumpEachTurn = false;
-    bool psDumpLocalFrame = false;
-    bool scan = false;
-    bool rhoDump = false;
-    bool ebDump = false;
-    bool csrDump = false;
-    bool efDump = false;
-    bool ppdebug = false;
-    bool enableHDF5 = true;
-    bool asciidump = false;
-
-    // The global random generator.
-    Random rangen;
-
-    // The current random seed.
-    int seed  = 123456789;
-
-    // the number of refinements of the search range for the phase with maximum energy
-    // if eq 0 then no autophase
-    int autoPhase = 0;
-
-    // The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
-    int psDumpFreq = 10;
-    // The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
-    double rDump = 0.0;
-
-    // The frequency to dump statistical quantities such as beam RMS properties, i.e. dump
-    // when step%statDumpFreq == 0.
-    int statDumpFreq = 10;
-
-    // The frequency to dump single particle trajectory of particles with ID = 0 & 1
-    int sptDumpFreq = 1;
-
-    // The frequency to do particles repartition for better load balance between nodes
-    int repartFreq = 10;
-
-    // The frequency to reset energy bin ID for all particles
-    int rebinFreq = 100;
-
-    /// The frequency to solve space charge fields.
-    int scSolveFreq = 1;
-
-    // How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator
-    int mtsSubsteps = 1;
-
-    // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size of the bunch in any dimension,
-    // the particle will be deleted artifically to hold the accuracy of space charge calculation. The default setting of -1 stands for no deletion.
-    int remotePartDel = -1;
-
-    // The frequency to dump the particle-geometry surface interation data, -1 stands for no dump.
-    int surfDumpFreq = -1;
-
-    // Options for the Belos solver
-    int numBlocks = 0;
-    int recycleBlocks = 0;
-    int nLHS = 1;
-
-    // If true create symmetric distribution
-    bool cZero = false;
-
-    std::string rngtype = std::string("RANDOM");
-
-    bool schottkyCorrection = false;
-
-    double schottkyRennormalization = -1;
-
-    // If true change the time step during emission from the cathode so that that one bin
-    // of the time histogram that describes the longitudinal beam distribution is emitted
-    // during each time step. If false then the time step during emission is set so that one
-    // energy bin of the beam is emitted during each time step.
-    bool fineEmission = true;
-
-    // Governs how often boundp_destroy is called to destroy lost particles
-    // Mainly used in the CyclotronTracker as of now -DW
-    int boundpDestroyFreq = 10;
-}
-
 
 namespace {
     // The attributes of class Option.
@@ -126,7 +43,7 @@ namespace {
         SEED,
         TELL,
         PSDUMPFREQ,
-        RDUMP,
+        // RDUMP,
         STATDUMPFREQ,
         PSDUMPEACHTURN,
         PSDUMPLOCALFRAME,
@@ -140,7 +57,7 @@ namespace {
         RHODUMP,
         EBDUMP,
 	CSRDUMP,
-        EFDUMP,
+        // EFDUMP,
         AUTOPHASE,
         PPDEBUG,
         SURFDUMPFREQ,
@@ -151,15 +68,13 @@ namespace {
         RNGTYPE,
         SCHOTTKYCORR,
         SCHOTTKYRENO,
-        FINEEMISSION,
+        // FINEEMISSION,
         ENABLEHDF5,
         ASCIIDUMP,
         BOUNDPDESTROYFREQ,
         SIZE
     };
 }
-
-using namespace Options;
 
 
 Option::Option():
@@ -181,8 +96,8 @@ Option::Option():
                     ("TELL", "If true, print the current settings", false);
     itsAttr[PSDUMPFREQ] = Attributes::makeReal
                           ("PSDUMPFREQ", "The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0, its default value is 10.");
-    itsAttr[RDUMP] = Attributes::makeReal
-                     ("RDUMP", "Dump central beam when the radius is bigger than RDUMP");
+    // itsAttr[RDUMP] = Attributes::makeReal
+    //                  ("RDUMP", "Dump central beam when the radius is bigger than RDUMP");
     itsAttr[STATDUMPFREQ] = Attributes::makeReal
                             ("STATDUMPFREQ", "The frequency to dump statistical data (e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, its default value is 10.");
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool
@@ -213,8 +128,8 @@ Option::Option():
     itsAttr[CSRDUMP] = Attributes::makeBool
                        ("CSRDUMP", "If true, the csr E field, line density and the line density derivative is dumped into the data directory)", csrDump);
 
-    itsAttr[EFDUMP] = Attributes::makeBool
-                      ("EFDUMP", "If true, in addition to the phase space the E vector field is also dumped (H5Block)", efDump);
+    // itsAttr[EFDUMP] = Attributes::makeBool
+    //                   ("EFDUMP", "If true, in addition to the phase space the E vector field is also dumped (H5Block)", efDump);
 
     itsAttr[AUTOPHASE] = Attributes::makeReal
                          ("AUTOPHASE", "If greater than zero OPAL is scaning the phases of each rf structure in order to get maximum acceleration. Defines the number of refinements of the search range", autoPhase);
@@ -236,8 +151,8 @@ Option::Option():
     itsAttr[SCHOTTKYRENO] =  Attributes::makeReal
                                          ("SCHOTTKYRENO", "IF set to a value greater than 0.0 the Schottky correction scan is disabled and the value is used for charge renormalization ", schottkyRennormalization);
 
-    itsAttr[FINEEMISSION] = Attributes::makeBool
-                            ("FINEEMISSION", "If true uses fine time step during particle emission from cathode.", fineEmission);
+    // itsAttr[FINEEMISSION] = Attributes::makeBool
+    //                         ("FINEEMISSION", "If true uses fine time step during particle emission from cathode.", fineEmission);
 
     itsAttr[NUMBLOCKS] = Attributes::makeReal
                           ("NUMBLOCKS", "Maximum number of vectors in the Krylov space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
@@ -269,7 +184,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[WARN],       warn);
     Attributes::setReal(itsAttr[SEED],       seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
-    Attributes::setReal(itsAttr[RDUMP], rDump);
+    // Attributes::setReal(itsAttr[RDUMP], rDump);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
     Attributes::setBool(itsAttr[PSDUMPLOCALFRAME], psDumpLocalFrame);
@@ -283,7 +198,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
-    Attributes::setBool(itsAttr[EFDUMP], efDump);
+    // Attributes::setBool(itsAttr[EFDUMP], efDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[PPDEBUG], ppdebug);
     Attributes::setReal(itsAttr[SURFDUMPFREQ], surfDumpFreq);
@@ -291,7 +206,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[SCHOTTKYCORR], schottkyCorrection);
     Attributes::setString(itsAttr[RNGTYPE], std::string(rngtype));
     Attributes::setReal(itsAttr[SCHOTTKYRENO], schottkyRennormalization);
-    Attributes::setBool(itsAttr[FINEEMISSION], fineEmission);
+    // Attributes::setBool(itsAttr[FINEEMISSION], fineEmission);
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
     Attributes::setReal(itsAttr[RECYCLEBLOCKS], recycleBlocks);
     Attributes::setReal(itsAttr[NLHS], nLHS);
@@ -323,7 +238,7 @@ void Option::execute() {
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
-    efDump = Attributes::getBool(itsAttr[EFDUMP]);
+    // efDump = Attributes::getBool(itsAttr[EFDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
 
@@ -343,9 +258,9 @@ void Option::execute() {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
     }
 
-    if(itsAttr[RDUMP]) {
-        rDump = double(Attributes::getReal(itsAttr[RDUMP]));
-    }
+    // if(itsAttr[RDUMP]) {
+    //     rDump = double(Attributes::getReal(itsAttr[RDUMP]));
+    // }
 
     if(itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
@@ -416,9 +331,9 @@ void Option::execute() {
         rngtype = std::string("RANDOM");
     }
 
-    if(itsAttr[FINEEMISSION]) {
-        fineEmission = bool(Attributes::getBool(itsAttr[FINEEMISSION]));
-    }
+    // if(itsAttr[FINEEMISSION]) {
+    //     fineEmission = bool(Attributes::getBool(itsAttr[FINEEMISSION]));
+    // }
 
     if(itsAttr[BOUNDPDESTROYFREQ]) {
         boundpDestroyFreq = int(Attributes::getReal(itsAttr[BOUNDPDESTROYFREQ]));

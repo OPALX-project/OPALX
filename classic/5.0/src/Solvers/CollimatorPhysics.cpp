@@ -15,7 +15,8 @@
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/Multipole.h"
-#include "Structure/LossDataSink.h"
+#include "Structure/LossDataSink.h" // OPAL file
+#include "Utilities/Options.h"
 
 #include "Ippl.h"
 

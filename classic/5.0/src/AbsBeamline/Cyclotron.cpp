@@ -23,12 +23,13 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
+#include "Utilities/Options.h"
 #include "Fields/Fieldmap.hh"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 #include <fstream>
 
 #define CHECK_CYC_FSCANF_EOF(arg) if(arg == EOF)\
-throw OpalException("Cyclotron::getFieldFromFile",\
+throw GeneralClassicException("Cyclotron::getFieldFromFile",\
 		"fscanf returned EOF at " #arg);
 
 extern Inform *gmsg;
@@ -279,10 +280,10 @@ bool Cyclotron::apply(const size_t &id, const double &t, double E[], double B[])
 }
 
 bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &B) {
-  
+
   bool flagNeedUpdate = false;
 
-  const double rpos = sqrt(RefPartBunch_m->R[id](0) * RefPartBunch_m->R[id](0) 
+  const double rpos = sqrt(RefPartBunch_m->R[id](0) * RefPartBunch_m->R[id](0)
                            + RefPartBunch_m->R[id](1) * RefPartBunch_m->R[id](1));
   const double zpos = RefPartBunch_m->R[id](2);
 
@@ -294,12 +295,12 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
   } else{
 
       flagNeedUpdate = apply(RefPartBunch_m->R[id], Vector_t(0.0), t, E, B);
-      if(flagNeedUpdate){ 
-          Inform gmsgALL("OPAL ", INFORM_ALL_NODES);    
+      if(flagNeedUpdate){
+          Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
           gmsgALL << getName() << ": particle "<< id <<" out of the field map boundary!"<< endl;
       }
   }
-  
+
   if (flagNeedUpdate) {
       lossDs_m->addParticle(RefPartBunch_m->R[id], RefPartBunch_m->P[id],id);
       RefPartBunch_m->Bin[id] = -1;
@@ -464,7 +465,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
         B[1] = br * sin(tet_rad) + bt * cos(tet_rad);
         B[2] = bz;
-        
+
     } else {
       return true;
     }
@@ -892,7 +893,7 @@ void Cyclotron::initialise(PartBunch *bunch, double &startField, double &endFiel
 void Cyclotron::initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor) {
     RefPartBunch_m = bunch;
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    
+
     //    PSIBF, AVFEQBF, ANSYSBF, FFAGBF
     // for your own format field, you should add your own getFieldFromFile() function by yourself.
 
@@ -1117,9 +1118,9 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
     *gmsg << "* rescaling of the fields with factor: " << BP.Bfact << endl;
 
     fstream fp;
-    if((Ippl::getNodes()) == 1 && Options::info) 
+    if((Ippl::getNodes()) == 1 && Options::info)
       fp.open("data/gnu.out", ios::out);
-	
+
     double tmp;
     int count = 0;
 
@@ -1203,7 +1204,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
       for(int i = 0; i < Bfield.nrad; i++) {
 	for(int k = 0; k < Bfield.ntet; k++) {
 	  fp1 << BP.rmin + (i * BP.delr) << " \t " << k*(BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(i, k)] << endl;
-	  
+
 	  Vector_t tmpR = Vector_t (BP.rmin + (i * BP.delr), 0.0, k * (BP.tetmin + BP.dtet));
 	  Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 	  tmpR /= 1000.0; // -> mm to m

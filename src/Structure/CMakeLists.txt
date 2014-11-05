@@ -7,7 +7,6 @@ set (_SRCS
   BoundaryGeometry.cpp
   FieldSolver.cpp
   DataSink.cpp
-  LossDataSink.cpp
   )
 
 include_directories (

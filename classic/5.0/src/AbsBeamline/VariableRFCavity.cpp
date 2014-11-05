@@ -30,7 +30,7 @@
 #include "Physics/Physics.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/GeneralClassicException.h"
 
 VariableRFCavity::VariableRFCavity(const std::string &name) : Component(name) {
     initNull();  // initialise everything to NULL
@@ -130,12 +130,12 @@ const StraightGeometry &VariableRFCavity::getGeometry() const {
 }
 
 EMField &VariableRFCavity::getField() {
-  throw OpalException("VariableRFCavity",
+  throw GeneralClassicException("VariableRFCavity",
                       "No field defined for VariableRFCavity");
 }
 
 const EMField &VariableRFCavity::getField() const {
-  throw OpalException("VariableRFCavity",
+  throw GeneralClassicException("VariableRFCavity",
                       "No field defined for VariableRFCavity");
 }
 
@@ -209,7 +209,7 @@ void VariableRFCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitVariableRFCavity(*this);
 
     if (halfHeight_m < 1e-9 || halfWidth_m < 1e-9)
-        throw OpalException("VariableRFCavity::accept",
+        throw GeneralClassicException("VariableRFCavity::accept",
                             "Height or width was not set on VariableRFCavity");
 }
 

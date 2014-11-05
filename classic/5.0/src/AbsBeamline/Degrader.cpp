@@ -23,6 +23,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/LossDataSink.h"
+#include "Utilities/Options.h"
 #include "Physics/Physics.h"
 #include <memory>
 
