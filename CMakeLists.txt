@@ -160,16 +160,11 @@ SET (CMAKE_CXX_FLAGS
 
 ### add test directories ####################################
 ADD_SUBDIRECTORY (src)
-
-IF (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-   ADD_SUBDIRECTORY (test)
-ENDIF (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-
+ADD_SUBDIRECTORY (test)
 
 ### write configure file ####################################
 CONFIGURE_FILE ( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config_install.cmake )
-
 
 ### install files ###########################################
 INSTALL (
