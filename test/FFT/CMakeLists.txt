@@ -17,5 +17,7 @@ link_directories (
 )
 
 add_executable (TestFFT TestFFT.cpp)
+add_executable (TestRC TestRC.cpp)
 target_link_libraries (TestFFT ippl)
+target_link_libraries (TestRC ippl)
 
