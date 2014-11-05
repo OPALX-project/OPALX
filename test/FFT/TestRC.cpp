@@ -63,11 +63,6 @@ bool Configure(int argc, char *argv[],
   return true;
 }
 
-
-
-
-
-
 int main(int argc, char *argv[])
 {
   
@@ -181,8 +176,6 @@ int main(int argc, char *argv[])
   RFieldSPStan = real(CFieldPPStan);
   CFieldSPStan0h = dcomplex(0.0,0.0);
    
-
-
   // create RC FFT object
   FFT<RCTransform,D,double> rcfft(ndiStandard, ndiStandard0h, compressTemps);
 
