@@ -4,8 +4,6 @@
 /INSTALL -text
 /LICENSE -text
 /README -text
-bin/findFiles.sh -text
-bin/mkver2 -text
 cmake/IPPLConfig.cmake.in -text
 doc/tex/dingbat.sty -text
 doc/tex/error_time.pdf -text svneol=unset#unset
