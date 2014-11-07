@@ -249,14 +249,6 @@ public:
   // (from IpplVersions.h)
   static const char *version();
 
-  // versionList: return one of the summary lines from the source code
-  // version list
-  static const char *versionList(unsigned int);
-
-  // versionListSize: return the number of source code files listed in
-  // the versionList array.
-  static unsigned int versionListSize();
-
   // compileArch: return the architecture on which this library was built
   // (from IpplVersions.h)
   static const char *compileArch();
