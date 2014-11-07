@@ -761,14 +761,6 @@ void IpplInfo::printVersion(bool printFull) {
     INFOMSG("Built for architecture: " << compileArch() << endl);
     INFOMSG("Built for machine: " << compileMachine() << endl);
     INFOMSG("Compile-time options: " << compileOptions() << endl);
-    if (printFull) {
-        INFOMSG("Compile line: " << compileLine() << endl);
-        if (versionListSize() > 0) {
-            INFOMSG("Summary of source files:" << endl);
-            for (unsigned int n=0; n < versionListSize(); ++n)
-                INFOMSG(versionList(n) << endl);
-        }
-    }
 }
 
 
@@ -790,21 +782,6 @@ const char *IpplInfo::version() {
     return ippl_version_name;
 }
 
-
-/////////////////////////////////////////////////////////////////////
-// versionList: return one of the summary lines from the source code
-// version list
-const char *IpplInfo::versionList(unsigned int n) {
-    return ippl_version_log[n];
-}
-
-
-/////////////////////////////////////////////////////////////////////
-// versionListSize: return the number of source code files listed in
-// the versionList array.
-unsigned int IpplInfo::versionListSize() {
-    return ippl_version_numfiles;
-}
 
 
 /////////////////////////////////////////////////////////////////////

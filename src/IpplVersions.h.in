@@ -12,6 +12,4 @@ const char *ippl_compile_machine = ${IPPL_COMPILE_MACHINE};
 const char *ippl_compile_options = ${IPPL_COMPILE_OPTIONS};
 const char *ippl_compile_user = ${IPPL_COMPILE_USER};
 
-${IPPL_VERSION_LOG}
-
 #endif
