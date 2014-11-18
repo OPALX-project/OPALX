@@ -650,6 +650,11 @@ void TrackRun::execute() {
 	    itsTracker->setR(dist->GetR());
 	    itsTracker->setTheta(dist->GetTheta());
             itsTracker->setZ(dist->GetZ());
+
+            // The following is for restarts in local frame
+            itsTracker->setPhi(dist->GetPhi());
+            itsTracker->setPsi(dist->GetPsi());
+            itsTracker->setPreviousH5Local(dist->GetPreviousH5Local());
 	}
 
         // statistical data are calculated (rms, eps etc.)

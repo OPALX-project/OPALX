@@ -256,7 +256,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMe
     //Reference Point inside the boundary for IsoDar Geo
     Vector_t P0 = Vector_t(0,0,bgeom_m->getmincoords()[2]+hr[2]);
     //Reference Point where the boundary geometry is cylinder
-    P0 = Vector_t(0,0,0);
+    //P0 = Vector_t(0,0,0);  // Uncomment for cylinder Benchmarking -DW
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 	 saveP[2] = (idz - (nr[2]-1)/2.0)*hr[2];
 	 for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {

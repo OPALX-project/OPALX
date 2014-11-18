@@ -177,6 +177,9 @@ public:
     inline void setTheta(double x) {referenceTheta = x;}
     inline void setZ(double x) {referenceZ = x;}
     inline void setBeGa(double x) {bega = x;}
+    inline void setPhi(double x) {referencePhi = x;}
+    inline void setPsi(double x) {referencePsi = x;}
+    inline void setPreviousH5Local(bool x) {previousH5Local = x;}
 
     void bgf_main_collision_test();
     void initializeBoundaryGeometry();
@@ -221,7 +224,12 @@ private:
     double referencePz = 0.0;
     double referencePtot;
 
+    double referencePsi;
+    double referencePhi;
+
     Vector_t PreviousMeanP;
+
+    bool previousH5Local;
 
     double sinRefTheta_m;
     double cosRefTheta_m;
@@ -364,23 +372,43 @@ private:
     // global reference frame to the local reference frame.
 
     // phi is the angle of the bunch measured counter-clockwise from the positive x-axis.
-    void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, double phi, Vector_t const translationToGlobal = 0);
+    void globalToLocal(ParticleAttrib<Vector_t> & vectorArray,
+                       double phi, Vector_t const translationToGlobal = 0);
 
     // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the
     // local reference frame to the global reference frame.
-    void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, double phi, Vector_t const translationToGlobal = 0);
+    void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, 
+                       double phi, Vector_t const translationToGlobal = 0);
 
     // Overloaded version of globalToLocal using a quaternion for 3D rotation
-    inline void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, Quaternion_t const quaternion, Vector_t const meanR = Vector_t(0.0));
+    inline void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, 
+                              Quaternion_t const quaternion, 
+                              Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of localToGlobal using a quaternion for 3D rotation
-    inline void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, Quaternion_t const quaternion, Vector_t const meanR = Vector_t(0.0));
+    inline void localToGlobal(ParticleAttrib<Vector_t> & vectorArray,
+                              Quaternion_t const quaternion, 
+                              Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of globalToLocal using phi and theta for pseudo 3D rotation
-    inline void globalToLocal(ParticleAttrib<Vector_t> & particleVectors, double const phi, double const psi, Vector_t const meanR = Vector_t(0.0));
+    inline void globalToLocal(ParticleAttrib<Vector_t> & particleVectors, 
+                              double const phi, double const psi, 
+                              Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of localToGlobal using phi and theta for pseudo 3D rotation
-    inline void localToGlobal(ParticleAttrib<Vector_t> & particleVectors, double const phi, double const psi, Vector_t const meanR = Vector_t(0.0));
+    inline void localToGlobal(ParticleAttrib<Vector_t> & particleVectors, 
+                              double const phi, double const psi, 
+                              Vector_t const meanR = Vector_t(0.0));
+
+    // Overloaded version of globalToLocal using phi and theta for pseudo 3D rotation, single vector
+    inline void globalToLocal(Vector_t & myVector, 
+                              double const phi, double const psi, 
+                              Vector_t const meanR = Vector_t(0.0));
+
+    // Overloaded version of localToGlobal using phi and theta for pseudo 3D rotation, single vector
+    inline void localToGlobal(Vector_t & myVector, 
+                              double const phi, double const psi, 
+                              Vector_t const meanR = Vector_t(0.0));
 
     // Rotate the particles by an angle and axis defined in the quaternion (4-vector w,x,y,z)
     inline void rotateWithQuaternion(ParticleAttrib<Vector_t> & vectorArray, Quaternion_t const quaternion);
@@ -397,6 +425,8 @@ private:
     // Some rotations
     inline void rotateAroundZ(ParticleAttrib<Vector_t> & particleVectors, double const phi);
     inline void rotateAroundX(ParticleAttrib<Vector_t> & particleVectors, double const psi);
+    inline void rotateAroundZ(Vector_t & myVector, double const phi);
+    inline void rotateAroundX(Vector_t & myVector, double const psi);
 
     // Push particles for time h.
     // Apply effects of RF Gap Crossings.
@@ -424,7 +454,9 @@ private:
 
     void singleParticleDump();
 
-    void bunchDumpPhaseSpaceStatData();
+    void bunchDumpStatData();
+
+    void bunchDumpPhaseSpaceData();
 
     void evaluateSpaceChargeField();
 

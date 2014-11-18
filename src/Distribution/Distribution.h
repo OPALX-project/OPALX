@@ -185,6 +185,10 @@ public:
     double GetTheta() {return referenceTheta_m;}
     double GetZ() {return referenceZ_m;}
 
+    double GetPhi() {return phi_m;}
+    double GetPsi() {return psi_m;}
+    bool GetPreviousH5Local() {return previousH5Local_m;}
+
 private:
 
     Distribution(const std::string &name, Distribution *parent);
@@ -391,6 +395,7 @@ private:
     double sigmaFall_m;
     double cutoff_m;
 
+    // Cyclotron stuff
     double referencePr_m;
     double referencePt_m;
     double referencePz_m = 0.0;
@@ -398,6 +403,11 @@ private:
     double referenceTheta_m;
     double referenceZ_m = 0.0;
     double bega_m;
+    
+    // Cyclotron for restart in local mode
+    double phi_m;
+    double psi_m;
+    bool previousH5Local_m;
 
 };
 

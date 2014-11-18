@@ -930,7 +930,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy,
                                    double refPr, double refPt, double refPz,
                                    double refR, double refTheta, double refZ,
-                                   double azimuth, double elevation) {
+                                   double azimuth, double elevation, int localFrame) {
 
   if (!doHDF5_m) return -1;
   //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW
@@ -1122,6 +1122,10 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     rc = H5WriteStepAttribFloat64(H5file_m, "ELEVATION", (h5_float64_t *)&elevation, 1);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+
+    rc = H5WriteStepAttribInt64(H5file_m, "LOCAL", (h5_int64_t *)&localFrame, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 

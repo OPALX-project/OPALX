@@ -152,7 +152,6 @@ public:
     /// set multipacting flag
     virtual void setMpacflg(bool mpacflg) {};
 
-
     virtual void setPr(double x) { } ;
     virtual void setPt(double x) { } ;
     virtual void setPz(double x) { } ;
@@ -160,7 +159,9 @@ public:
     virtual void setTheta(double x) { } ;
     virtual void setZ(double x) { } ;
     virtual void setBeGa(double x) { } ;
-
+    virtual void setPhi(double x) { } ;
+    virtual void setPsi(double x) { } ;
+    virtual void setPreviousH5Local(bool x) { } ;
 
     // standing wave structures
     FieldList cavities_m;

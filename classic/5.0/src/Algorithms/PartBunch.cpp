@@ -47,6 +47,7 @@
 #endif
 
 //#define DBG_SCALARFIELD
+#define FIELDSTDOUT
 
 using Physics::pi;
 
@@ -976,7 +977,7 @@ void PartBunch::computeSelfFields() {
         eg_m *= Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
 
         //write out e field
-#ifdef DBG_SCALARFIELD
+#ifdef FIELDSTDOUT
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
         int m1 = (int)nr_m[0]-1;
@@ -990,7 +991,8 @@ void PartBunch::computeSelfFields() {
 
         for (int i=0; i<m1; i++ )
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
-
+#endif
+#ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
         //ostringstream oss;
         //MPI_File file;
@@ -1236,7 +1238,7 @@ void PartBunch::computeSelfFields_cycl(double gamma,
         /// only hr_scaled is! -DW
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
 
-#ifdef DBG_SCALARFIELD
+#ifdef FIELDSTDOUT
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
         int m1 = (int)nr_m[0]-1;
@@ -1250,7 +1252,9 @@ void PartBunch::computeSelfFields_cycl(double gamma,
 
         for (int i=0; i<m1; i++ )
          *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
+#endif
 
+#ifdef DBG_SCALARFIELD
         // If debug flag is set, dump vector field (electric field) into file under ./data/
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
         //ostringstream oss;
@@ -2337,24 +2341,24 @@ void PartBunch::calcEMean() {
     const double totalNp = static_cast<double>(this->getTotalNum());
     const double locNp = static_cast<double>(this->getLocalNum());
 
-    Vector_t meanP_temp = Vector_t(0.0);
+    //Vector_t meanP_temp = Vector_t(0.0);
 
     eKin_m = 0.0;
 
     for(unsigned int k = 0; k < locNp; k++)
-        meanP_temp += P[k];
-        //eKin_m += sqrt(dot(P[k], P[k]) + 1.0);
+        //meanP_temp += P[k];
+        eKin_m += sqrt(dot(P[k], P[k]) + 1.0);
 
-    //eKin_m -= locNp;
-    //eKin_m *= getM() * 1.0e-6;
+    eKin_m -= locNp;
+    eKin_m *= getM() * 1.0e-6;
 
-    reduce(meanP_temp, meanP_temp, OpAddAssign());
-    //reduce(eKin_m, eKin_m, OpAddAssign());
+    //reduce(meanP_temp, meanP_temp, OpAddAssign());
+    reduce(eKin_m, eKin_m, OpAddAssign());
 
-    meanP_temp /= totalNp;
-    //eKin_m /= totalNp;
+    //meanP_temp /= totalNp;
+    eKin_m /= totalNp;
 
-    eKin_m = (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * getM() * 1.0e-6;
+    //eKin_m = (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * getM() * 1.0e-6;
 }
 
 
