@@ -583,7 +583,7 @@ void SBend::CalcEngeFunction(double zNormalized,
     double engeExp = exp(expSum);
     engeFunc = 1.0 / (1.0 + engeExp);
 
-    if(!isnan(engeFunc)) {
+    if(!std::isnan(engeFunc)) {
 
         expSumDeriv /= gap_m;
         expSumSecDeriv /= pow(gap_m, 2.0);
@@ -593,13 +593,13 @@ void SBend::CalcEngeFunction(double zNormalized,
         double engeFuncSq = pow(engeFunc, 2.0);
 
         engeFuncDeriv = -engeExpDeriv * engeFuncSq;
-        if (isnan(engeFuncDeriv) || isinf(engeFuncDeriv))
+        if (std::isnan(engeFuncDeriv) || std::isinf(engeFuncDeriv))
             engeFuncDeriv = 0.0;
 
         engeFuncSecDerivNorm = -engeExpSecDeriv * engeFunc
                                + 2.0 * pow(engeExpDeriv, 2.0)
                                  * engeFuncSq;
-        if (isnan(engeFuncSecDerivNorm) || isinf(engeFuncSecDerivNorm))
+        if (std::isnan(engeFuncSecDerivNorm) || std::isinf(engeFuncSecDerivNorm))
             engeFuncSecDerivNorm = 0.0;
 
     } else {
