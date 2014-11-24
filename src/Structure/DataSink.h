@@ -191,7 +191,7 @@ public:
     int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double E,
 			     double refPr, double refPt, double refPz,
                              double refR, double refTheta, double refZ,
-                             double azimuth, double elevation, int localFrame);
+                             double azimuth, double elevation, bool local);
 
     /** \brief Dumps Phase Space for Envelope trakcer to H5 file.
      *

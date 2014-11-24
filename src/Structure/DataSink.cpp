@@ -930,48 +930,52 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
 int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy,
                                    double refPr, double refPt, double refPz,
                                    double refR, double refTheta, double refZ,
-                                   double azimuth, double elevation, int localFrame) {
+                                   double azimuth, double elevation, bool local) {
 
-  if (!doHDF5_m) return -1;
-  //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW
+    if (!doHDF5_m) return -1;
+    //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW
 
-  h5_int64_t rc;
-  IpplTimings::startTimer(H5PartTimer_m);
+    h5_int64_t rc;
+    IpplTimings::startTimer(H5PartTimer_m);
 
-  beam.calcBeamParameters_cycl();
+    beam.calcBeamParameters_cycl();
 
-  double               t        = beam.getT();
+    double               t        = beam.getT();
 
-  Vektor< double, 3 >  rmin     = beam.get_origin();
-  Vektor< double, 3 >  rmax     = beam.get_maxExtend();
-  Vektor< double, 3 >  centroid = beam.get_centroid();
-  size_t nLoc                   = beam.getLocalNum();
-  Vektor<double, 3 > xsigma = beam.get_rrms();
-  Vektor<double, 3 > psigma = beam.get_prms();
-  Vektor<double, 3 > geomvareps = beam.get_emit();
-  Vektor<double, 3 > vareps = beam.get_norm_emit();
+    Vektor< double, 3 >  rmin     = beam.get_origin();
+    Vektor< double, 3 >  rmax     = beam.get_maxExtend();
+    Vektor< double, 3 >  centroid = beam.get_centroid();
+    size_t nLoc                   = beam.getLocalNum();
+    Vektor<double, 3 > xsigma = beam.get_rrms();
+    Vektor<double, 3 > psigma = beam.get_prms();
+    Vektor<double, 3 > geomvareps = beam.get_emit();
+    Vektor<double, 3 > vareps = beam.get_norm_emit();
 
-  Vektor<double, 3 > RefPartR = beam.RefPart_R;
-  Vektor<double, 3 > RefPartP = beam.RefPart_P;
+    Vektor<double, 3 > RefPartR = beam.RefPart_R;
+    Vektor<double, 3 > RefPartP = beam.RefPart_P;
 
-  double energySpread = beam.getdE();
+    double energySpread = beam.getdE();
 
-  double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-    (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
+    double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
+      (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
 
-  Vektor< double, 3 >  maxP(0.0);
-  Vektor< double, 3 >  minP(0.0);
-  beam.get_PBounds(minP, maxP);
+    Vektor< double, 3 >  maxP(0.0);
+    Vektor< double, 3 >  minP(0.0);
+    beam.get_PBounds(minP, maxP);
 
-  std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
-  double *farray = reinterpret_cast<double *>(varray.get());
-  h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
+    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
+    double *farray = reinterpret_cast<double *>(varray.get());
+    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
 
-  double  pathLength = beam.getLPath();
-  h5_int64_t localTrackStep = (h5_int64_t)beam.getLocalTrackStep();
-  h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
-  h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
-  h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
+    double  pathLength = beam.getLPath();
+
+    h5_int64_t localTrackStep = (h5_int64_t)beam.getLocalTrackStep();
+    h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
+    h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
+    h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
+  
+    h5_int64_t localFrame = 0;
+    if (local) localFrame = 1;
 
     ///Get the particle decomposition from all the compute nodes.
     std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
@@ -1125,7 +1129,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    rc = H5WriteStepAttribInt64(H5file_m, "LOCAL", (h5_int64_t *)&localFrame, 1);
+    rc = H5WriteStepAttribInt64(H5file_m, "LOCAL", &localFrame, 1);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 

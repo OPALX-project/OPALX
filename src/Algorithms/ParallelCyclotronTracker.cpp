@@ -284,7 +284,7 @@ void ParallelCyclotronTracker::closeFiles() {
  */
 void ParallelCyclotronTracker::visitRing(const Ring &ring) {
 
-    *gmsg << "Adding Ring" << endl;
+    *gmsg << "* ----------------------------- Adding Ring ------------------------------ *" << endl;
 
     if (opalRing_m != NULL)
         delete opalRing_m;
@@ -346,7 +346,7 @@ void ParallelCyclotronTracker::visitRing(const Ring &ring) {
  */
 void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
-    *gmsg << "* --------- Cyclotron ------------------------------" << endl;
+    *gmsg << "* -------------------------- Adding Cyclotron ---------------------------- *" << endl;
 
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(elptr);
@@ -396,10 +396,6 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     // Restart a run:
     } else {
 
-        // TEMP -DW
-        *gmsg << "previousH5Local = " << previousH5Local << endl;
-        *gmsg << "psDumpLocalFrame = " << Options::psDumpLocalFrame << endl;
-
         // If the user wants to save the restarted run in local frame, 
         // make sure the previous h5 file was local too
         if (Options::psDumpLocalFrame) {
@@ -420,7 +416,10 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
             } 
         }
   
-        referencePtot =  bega;
+        // Adjust some of the reference variables from the h5 file
+        referencePhi *= PIOVER180;
+        referencePsi *= PIOVER180;
+        referencePtot = bega;
 
         if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
 
@@ -1006,7 +1005,7 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], std::strin
     (localpair->second).second = elptr;
 
     // always put cyclotron as the first element in the list.
-    if(ElementType == "OPALRING" || ElementType == "CYCLOTRON") { // CYCLOTRON is TEMP -DW
+    if(ElementType == "OPALRING" || ElementType == "CYCLOTRON") {
         sindex = FieldDimensions.begin();
     } else {
         sindex = FieldDimensions.end();
@@ -5153,11 +5152,13 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     checkNumPart(std::string("* After repartition: "));
 
     itsBunch->calcBeamParameters_cycl();
+    *gmsg << endl << "* ********* Bunch After Calculation of Beam Parameterss in local frame: ********** *" << endl;
+    *gmsg << *itsBunch << endl;
 
     itsBunch->R *= Vector_t(1000.0); // m --> mm
 
     localToGlobal(itsBunch->R, phi, psi, meanR);
-    localToGlobal(itsBunch->P, phi, psi, Vector_t(0.0));
+    localToGlobal(itsBunch->P, phi, psi);
 
     // Save initial distribution if not a restart
     if(!OpalData::getInstance()->inRestartRun()) {
@@ -5170,8 +5171,17 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         step_m += 1;
     }
 
-    // Print out the Bunch information at beginning of the run
+    // Print out the Bunch information at beginning of the run. Because the bunch information 
+    // displays in units of m we have to change back and forth one more time.
+    // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
+    itsBunch->R *= Vector_t(0.001); // mm --> m
+
+    itsBunch->calcBeamParameters_cycl();
+
+    *gmsg << endl << "* ********* Bunch After Calculation of Beam Parameters in global frame: ********** *" << endl;
     *gmsg << *itsBunch << endl;
+
+    itsBunch->R *= Vector_t(1000.0); // m --> mm
 }
 
 void ParallelCyclotronTracker::singleParticleDump() {
@@ -5324,7 +5334,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     // If we are saving in local frame, bunch and fields at the bunch center have to be rotated
     // TODO: Make decision if we maybe want to always save statistics data in local frame? -DW
     if(Options::psDumpLocalFrame) { 
-        // -------------------- ----------- Do Transformations -------------------------------------- //
+        // -------------------- ----------- Do Transformations ---------------------------------- //
     
         // Bunch (local) azimuth at meanR w.r.t. y-axis
         phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
@@ -5428,7 +5438,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 							                      // at ref. R/Th/Z
                                                              psi / PIOVER180, // P_mean elevation 
 							                      // at ref. R/Th/Z
-                                                             0); // Flag localFrame
+                                                             false);          // Flag localFrame
 
         // Tell user in which mode we are dumping
         *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
@@ -5460,7 +5470,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 							                      // at ref. R/Th/Z
                                                              psi / PIOVER180, // P_mean elevation 
 							                      // at ref. R/Th/Z
-                                                             1); // Flag localFrame
+                                                             true);           // Flag localFrame
 
         localToGlobal(itsBunch->R, phi, psi, meanR * Vector_t(0.001));
         localToGlobal(itsBunch->P, phi, psi);

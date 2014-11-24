@@ -868,6 +868,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
 
         h5_int64_t localDump = 0;
         previousH5Local_m = false;
+
         rc = H5ReadStepAttribInt64(H5file, "LOCAL", &localDump);
         if(rc != H5_SUCCESS) {
 
@@ -879,8 +880,8 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
   OPAL 1.3.0!");
 
         } else {
-    
-            if (localDump > 0) previousH5Local_m = true;
+
+            if (localDump == 1) previousH5Local_m = true;
         }
 
         double actualT;
