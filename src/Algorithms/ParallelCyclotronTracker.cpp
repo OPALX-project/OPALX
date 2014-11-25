@@ -3697,7 +3697,17 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
     if(initialTotalNum_m == 1) closeFiles();
 
+    // Print out the Bunch information at end of the run. Because the bunch information 
+    // displays in units of m we have to change back and forth one more time.
+    // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
+    itsBunch->R *= Vector_t(0.001); // mm --> m
+
+    itsBunch->calcBeamParameters_cycl();
+
+    *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
     *gmsg << *itsBunch << endl;
+
+    itsBunch->R *= Vector_t(1000.0); // m --> mm
 }
 
 bool ParallelCyclotronTracker::getFieldsAtPoint(const double &t, const size_t &Pindex, Vector_t &Efield, Vector_t &Bfield) {
@@ -4490,6 +4500,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     IpplTimings::startTimer(IpplTimings::getTimer("MTS-Various"));
     if(myNode_m == 0) outfTrackOrbit_m.close();
     if(initialTotalNum_m == 1) closeFiles();
+    *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
     *gmsg << *itsBunch << endl;
 
 
@@ -5152,7 +5163,8 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     checkNumPart(std::string("* After repartition: "));
 
     itsBunch->calcBeamParameters_cycl();
-    *gmsg << endl << "* ********* Bunch After Calculation of Beam Parameterss in local frame: ********** *" << endl;
+
+    *gmsg << endl << "* *********************** Bunch information in local frame: ************************";
     *gmsg << *itsBunch << endl;
 
     itsBunch->R *= Vector_t(1000.0); // m --> mm
@@ -5178,7 +5190,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
     itsBunch->calcBeamParameters_cycl();
 
-    *gmsg << endl << "* ********* Bunch After Calculation of Beam Parameters in global frame: ********** *" << endl;
+    *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
     *gmsg << *itsBunch << endl;
 
     itsBunch->R *= Vector_t(1000.0); // m --> mm
