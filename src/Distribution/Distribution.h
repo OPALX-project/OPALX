@@ -27,6 +27,7 @@
 #include "Algorithms/PartData.h"
 
 #include "Algorithms/Vektor.h"
+#include "Beamlines/Beamline.h"
 
 #include "Ippl.h"
 
@@ -35,6 +36,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_qrng.h>
+
 
 class Beam;
 class PartBunch;
@@ -53,7 +55,8 @@ namespace DistrTypeT
                     SURFACEEMISSION,
                     SURFACERANDCREATE,
                     GUNGAUSSFLATTOPTH,
-                    ASTRAFLATTOPTH
+	            ASTRAFLATTOPTH,
+		    MATCHEDGAUSS
                     };
 }
 
@@ -93,6 +96,7 @@ public:
     void CreateBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
     void CreateOpalCycl(PartBunch &beam,
                         size_t numberOfParticles,
+			double current, const Beamline &bl,
                         bool scan);
     void CreateOpalE(Beam *beam,
                      std::vector<Distribution *> addedDistributions,
@@ -197,6 +201,9 @@ private:
     Distribution(const Distribution &);
     void operator=(const Distribution &);
 
+
+    //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
+
     void AddDistributions();
     void ApplyEmissionModel(double eZ, double &px, double &py, double &pz);
     void ApplyEmissModelAstra(double &px, double &py, double &pz);
@@ -215,6 +222,7 @@ private:
     void CreateDistributionFlattop(size_t numberOfParticles, double massIneV);
     void CreateDistributionFromFile(size_t numberOfParticles, double massIneV);
     void CreateDistributionGauss(size_t numberOfParticles, double massIneV);
+    void CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV);
     void DestroyBeam(PartBunch &beam);
     void FillEBinHistogram();
     void FillParticleBins();
@@ -234,6 +242,7 @@ private:
     void PrintDistFlattop(Inform &os) const;
     void PrintDistFromFile(Inform &os) const;
     void PrintDistGauss(Inform &os) const;
+    void PrintDistMatchedGauss(Inform &os) const;
     void PrintDistSurfEmission(Inform &os) const;
     void PrintDistSurfAndCreate(Inform &os) const;
     void PrintEmissionModel(Inform &os) const;
@@ -384,6 +393,20 @@ private:
     double ppVw_m;                  /// Velocity scalar for parallel plate benchmark.
     double vVThermal_m;             /// Thermal velocity of Maxwellian distribution
                                     /// of secondaries in Vaughan's model.
+
+
+    // AAA This is for the matched distribution
+    double ex_m;
+    double ey_m;
+    double et_m;
+
+    double I_m;
+    double E_m;
+
+    std::string bfieldfn_m;           /// only temporarly
+
+
+
 
 
     // Some legacy members that need to be cleaned up.

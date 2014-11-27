@@ -12,7 +12,7 @@
 // ------------------------------------------------------------------------
 
 #include "Distribution/Distribution.h"
-
+#include "Distribution/SigmaGenerator.h"
 #include <cmath>
 #include <cfloat>
 #include <iomanip>
@@ -35,6 +35,7 @@
 #include "Algorithms/PartBinsCyc.h"
 #include "BasicActions/Option.h"
 #include "Distribution/LaserProfile.h"
+#include "Elements/OpalBeamline.h"
 
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
@@ -145,6 +146,13 @@ namespace AttributesT
                       VW,
                       SURFMATERIAL,               // Add material type, currently 0 for copper
                                                   // and 1 for stainless steel.
+		      EX,                         // below is for the matched distribution
+		      EY,
+		      ET,
+		      FMAPFN,
+		      HN,
+		      FMSYM,
+		      INTSTEPS,
                       SIZE
     };
 }
@@ -222,8 +230,10 @@ Distribution::Distribution():
     paraFNVYZe_m(0.0),
     secondaryFlag_m(0),
     ppVw_m(0.0),
-    vVThermal_m(0.0) {
-
+    vVThermal_m(0.0),
+    I_m(0.0),
+    E_m(0.0)
+{
     SetAttributes();
 
     Distribution *defaultDistribution = clone("UNNAMED_Distribution");
@@ -314,7 +324,10 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     tFall_m(parent->tFall_m),
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
-    cutoff_m(parent->cutoff_m){
+    cutoff_m(parent->cutoff_m),
+    I_m(parent->I_m),
+    E_m(parent->E_m)
+{
 }
 
 Distribution::~Distribution() {
@@ -343,6 +356,16 @@ Distribution::~Distribution() {
     }
 
 }
+/*
+void Distribution::printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out) {
+  for(int i=0; i<M.size1(); ++i) {
+    for(int j=0; j<M.size2(); ++j) {
+      *gmsg  << M(i,j) << " ";
+    }
+    *gmsg << endl;
+  }
+}
+*/
 
 /**
  * At the moment only write the header into the file dist.dat
@@ -391,6 +414,9 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
 
     switch (distrTypeT_m) {
 
+    case DistrTypeT::MATCHEDGAUSS:
+        CreateMatchedGaussDistribution(numberOfParticles, massIneV); 
+        break;
     case DistrTypeT::FROMFILE:
         CreateDistributionFromFile(numberOfParticles, massIneV);
         break;
@@ -1668,6 +1694,56 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
         inputFile.close();
 }
 
+
+void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV) {
+  /// ADA
+
+  *gmsg << "----------------------------------------------------" << endl;
+  *gmsg << "About to find closed orbit and matched distribution " << endl;
+  *gmsg << "I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
+  *gmsg << "EX= "  << Attributes::getReal(itsAttr[AttributesT::EX]) 
+	<< " EY= " << Attributes::getReal(itsAttr[AttributesT::EY]) 
+	<< " ET= " << Attributes::getReal(itsAttr[AttributesT::ET]) 
+	<< " FMAPFN " << Attributes::getString(itsAttr[AttributesT::FMAPFN]) 
+	<< " FMSYM= " << Attributes::getReal(itsAttr[AttributesT::FMSYM]) << endl
+	<< " HN = "   << Attributes::getReal(itsAttr[AttributesT::HN])
+	<< " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
+  *gmsg << "----------------------------------------------------" << endl;
+
+  
+  
+  double wo = 8.44167E6*2.0*Physics::pi;
+  double m = 1;
+  
+  SigmaGenerator<double,unsigned int> siggen(I_m*1E3,
+					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
+					     Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
+					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
+					     wo,
+					     E_m*1E6,
+					     Attributes::getReal(itsAttr[AttributesT::HN]),m,72,590,
+					     Attributes::getReal(itsAttr[AttributesT::FMSYM]),
+					     Attributes::getReal(itsAttr[AttributesT::INTSTEPS]));
+  /*  
+  if(siggen.match(1e-8,100,1000,7)) {
+    *gmsg << "Converged: Sigma-Matrix for " << E_m*1E6 << " MeV" << endl;
+    for(int i=0; i<siggen.getSigma().size1(); ++i) {
+      for(int j=0; j<siggen.getSigma().size2(); ++j) {
+	*gmsg  << siggen.getSigma()(i,j) << " ";
+      }
+      *gmsg << endl;
+    }
+  } else {
+    *gmsg << "Not converged." << endl;
+  }
+  
+  
+  /// call Gauss
+  CreateDistributionGauss(numberOfParticles, massIneV);
+  */
+}
+
+
 void Distribution::CreateDistributionGauss(size_t numberOfParticles, double massIneV) {
 
     SetDistParametersGauss(massIneV);
@@ -1723,18 +1799,31 @@ void  Distribution::CreateBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg
 
 void Distribution::CreateOpalCycl(PartBunch &beam,
                                   size_t numberOfParticles,
+				  double current, const Beamline &bl,
                                   bool scan) {
 
-    /*
-     * When scan mode is true, we need to destroy particles except
-     * for the first pass.
-     */
+  /*
+   *  setup data for matched distribution generation
+   */
+  
+  E_m = (beam.getGamma()-1.0)*beam.getM();
+  I_m = current;
 
-    /*
-       Fixme:
+  //  Beamline myLine = dynamic_cast<Beamline *>(bl.clone());
+  //  FieldList cycl = bl.getElementByType("Cyclotron");
 
-       avrgpz_m = beam.getP()/beam.getM();
-    */
+
+
+  /*
+   * When scan mode is true, we need to destroy particles except
+   * for the first pass.
+   */
+  
+  /*
+    Fixme:
+    
+    avrgpz_m = beam.getP()/beam.getM();
+  */
     size_t numberOfPartToCreate = numberOfParticles;
     if (beam.getTotalNum() != 0) {
         scan_m = scan;
@@ -3338,6 +3427,9 @@ void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
     case DistrTypeT::ASTRAFLATTOPTH:
         PrintDistFlattop(os);
         break;
+    case DistrTypeT::MATCHEDGAUSS:
+        PrintDistMatchedGauss(os);
+        break;
     default:
         INFOMSG("Distribution unknown." << endl;);
         break;
@@ -3443,6 +3535,12 @@ void Distribution::PrintDistFromFile(Inform &os) const {
     os << endl;
     os << "* Input file:        "
        << Attributes::getString(itsAttr[AttributesT::FNAME]) << endl;
+}
+
+
+void Distribution::PrintDistMatchedGauss(Inform &os) const {
+  os << "* Distribution type: MATCHEDGAUSS" << endl;
+
 }
 
 void Distribution::PrintDistGauss(Inform &os) const {
@@ -3692,8 +3790,26 @@ void Distribution::SetAttributes() {
                                                     "SURFACEEMISSION, "
                                                     "SURFACERANDCREATE, "
                                                     "GUNGAUSSFLATTOPTH, "
-                                                    "ASTRAFLATTOPTH",
-                                                    "GAUSS");
+                                                    "ASTRAFLATTOPTH, "
+				                    "GAUSS, "
+                                                    "GAUSSMATCHED");
+
+    itsAttr[AttributesT::FMAPFN]
+      = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distibution ", ""); 
+    itsAttr[AttributesT::EX]
+      = Attributes::makeReal("EX", "Projected normalized emittance EX (m-rad), used to create matched distibution ", 1E-6);
+    itsAttr[AttributesT::EY]
+      = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
+    itsAttr[AttributesT::ET]
+      = Attributes::makeReal("ET", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
+    itsAttr[AttributesT::HN]
+      = Attributes::makeReal("HN", "Harmonic number used to create matched distibution ", 1);
+    itsAttr[AttributesT::FMSYM]
+      = Attributes::makeReal("FMSYM", "Field map symmetry  used to create matched distibution ", 1);
+    itsAttr[AttributesT::INTSTEPS]
+      = Attributes::makeReal("INTSTEPS", "Integration steps used to create matched distibution ", 1440);
+
+    
 
     itsAttr[AttributesT::FNAME]
             = Attributes::makeString("FNAME", "File for reading in 6D particle "
@@ -4056,6 +4172,8 @@ void Distribution::SetDistType() {
         distrTypeT_m = DistrTypeT::SURFACEEMISSION;
     else if(distT_m == "SURFACERANDCREATE")
         distrTypeT_m = DistrTypeT::SURFACERANDCREATE;
+    else if(distT_m == "GAUSSMATCHED")
+        distrTypeT_m = DistrTypeT::MATCHEDGAUSS;
 
 }
 
