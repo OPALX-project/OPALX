@@ -543,7 +543,10 @@ void TrackRun::execute() {
         if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
             macrocharge = beam->getCharge() * q_e;
             macromass = beam->getMass();
-            dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
+            dist->CreateOpalCycl(*Track::block->bunch, 
+				 beam->getNumberOfParticles(), 
+				 beam->getCurrent(),*Track::block->use->fetchLine(),
+				 Options::scan);
 
         } else {
 
@@ -558,7 +561,7 @@ void TrackRun::execute() {
                 if(!OPAL->inRestartRun()) {
                     macrocharge /= beam->getNumberOfParticles();
                     macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-                    dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
+                    dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), beam->getCurrent(), *Track::block->use->fetchLine(), Options::scan);
 
                 } else {
 		    dist->DoRestartOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(),
@@ -569,7 +572,7 @@ void TrackRun::execute() {
             } else if(OPAL->hasBunchAllocated() && Options::scan) {
                 macrocharge /= beam->getNumberOfParticles();
                 macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-                dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), Options::scan);
+                dist->CreateOpalCycl(*Track::block->bunch, beam->getNumberOfParticles(), beam->getCurrent(), *Track::block->use->fetchLine(), Options::scan);
             }
         }
         Track::block->bunch->setMass(macromass); // set the Mass per macro-particle, [GeV/c^2]
