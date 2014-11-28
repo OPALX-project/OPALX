@@ -1710,37 +1710,30 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	<< " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
   *gmsg << "----------------------------------------------------" << endl;
 
-  
-  
   double wo = 8.44167E6*2.0*Physics::pi;
   double m = 1;
-  
-  SigmaGenerator<double,unsigned int> siggen(I_m*1E3,
+  SigmaGenerator<double,unsigned int> siggen(I_m,
 					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 					     Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
 					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 					     wo,
-					     E_m*1E6,
+					     E_m*1E-6,
 					     Attributes::getReal(itsAttr[AttributesT::HN]),m,72,590,
 					     Attributes::getReal(itsAttr[AttributesT::FMSYM]),
 					     Attributes::getReal(itsAttr[AttributesT::INTSTEPS]));
-  /*  
   if(siggen.match(1e-8,100,1000,7)) {
-    *gmsg << "Converged: Sigma-Matrix for " << E_m*1E6 << " MeV" << endl;
+    *gmsg << "Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl;
     for(int i=0; i<siggen.getSigma().size1(); ++i) {
       for(int j=0; j<siggen.getSigma().size2(); ++j) {
-	*gmsg  << siggen.getSigma()(i,j) << " ";
+	*gmsg << std::setprecision(4)  << siggen.getSigma()(i,j) << " ";
       }
       *gmsg << endl;
     }
   } else {
     *gmsg << "Not converged." << endl;
-  }
-  
-  
+  }  
   /// call Gauss
   CreateDistributionGauss(numberOfParticles, massIneV);
-  */
 }
 
 

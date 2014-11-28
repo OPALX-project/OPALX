@@ -184,13 +184,13 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type 
   ptheta_ = [&](value_type p2, value_type x) {
     value_type pts = p2-x*x;
     if(pts<=0) {
-      Error::message("ClosedOrbitFinder",Error::invalid); //,"SQUARE ROOT OF NEGATIVE NUMBER");
+      Error::message("ClosedOrbitFinder1",Error::invalid); //,"SQUARE ROOT OF NEGATIVE NUMBER");
     }
     return std::sqrt(p2-x*x);
   };
     
   if(Emin_>Emax_ || E_<Emin_ || E>Emax_) {
-    Error::message("ClosedOrbitFinder",Error::invalid);
+    Error::message("ClosedOrbitFinder2",Error::invalid);
   }
   
   // my functions
@@ -275,7 +275,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
   int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
   bmag_ = MagneticField::malloc2df(Nth,nr);
-  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"data/ring590_bfld.dat",0.0);
+  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"/Users/adelmann/svnwork/OPAL/opal-tests/RegressionTests/RingCyclotronMatched/ring590_bfld.dat",0.0);
   MagneticField::MakeNFoldSymmetric(bmag_,Nth,nr,nth,nsc);
   value_type bint, brint, btint;
   
@@ -834,7 +834,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::christian_findOrbit(valu
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
   int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
   bmag_ = MagneticField::malloc2df(Nth,nr);
-  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"data/ring590_bfld.dat",0.0);
+  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"/Users/adelmann/svnwork/OPAL/opal-tests/RegressionTests/RingCyclotronMatched/ring590_bfld.dat",0.0);
   MagneticField::MakeNFoldSymmetric(bmag_,Nth,nr,nth,nsc);
   
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
