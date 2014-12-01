@@ -402,7 +402,8 @@ private:
 
     double I_m;
     double E_m;
-
+    double bg_m;                      /// beta gamma
+    double M_m;                       /// mass in terms of proton mass
     std::string bfieldfn_m;           /// only temporarly
 
 

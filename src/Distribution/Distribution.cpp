@@ -232,7 +232,9 @@ Distribution::Distribution():
     ppVw_m(0.0),
     vVThermal_m(0.0),
     I_m(0.0),
-    E_m(0.0)
+    E_m(0.0),
+    bega_m(0.0),
+    M_m(0.0)
 {
     SetAttributes();
 
@@ -326,7 +328,9 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     sigmaFall_m(parent->sigmaFall_m),
     cutoff_m(parent->cutoff_m),
     I_m(parent->I_m),
-    E_m(parent->E_m)
+    E_m(parent->E_m),
+    bega_m(parent->bega_m),
+    M_m(parent->M_m)
 {
 }
 
@@ -1711,29 +1715,79 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
   *gmsg << "----------------------------------------------------" << endl;
 
   double wo = 8.44167E6*2.0*Physics::pi;
-  double m = 1;
+  double M_m = 1;
+  
+  /*
+    Missing:
+    Pass to SigmaGenerator: Magnet field data
+    Pass to SigmaGenerator: old/new
+    Write from SigmaGenerator: to ./data/
+
+
+   * Note that you should use the following macros to access the Inform objects,
+   * so that these messages may be left out at compile time:                                                                                                         *   INFOMSG("This is some information " << 34 << endl);                                                                                                           *   WARNMSG("This is a warning " << 34 << endl);                                                                                                                  *   ERRORMSG("This is an error message " << 34 << endl);                                                                                                          *   DEBUGMSG("This is some debugging info " << 34 << endl);                                                                                                       
+    Units
+
+    ToDo:
+
+    - if an energy range is specified, only calculate the tunes
+    - 
+
+   */
+
   SigmaGenerator<double,unsigned int> siggen(I_m,
 					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 					     Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
 					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 					     wo,
 					     E_m*1E-6,
-					     Attributes::getReal(itsAttr[AttributesT::HN]),m,72,590,
+					     Attributes::getReal(itsAttr[AttributesT::HN]),M_m,72,590,
 					     Attributes::getReal(itsAttr[AttributesT::FMSYM]),
 					     Attributes::getReal(itsAttr[AttributesT::INTSTEPS]));
   if(siggen.match(1e-8,100,1000,7)) {
-    *gmsg << "Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl;
+    DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
     for(int i=0; i<siggen.getSigma().size1(); ++i) {
       for(int j=0; j<siggen.getSigma().size2(); ++j) {
-	*gmsg << std::setprecision(4)  << siggen.getSigma()(i,j) << " ";
+	*gmsg << std::setprecision(4)  << siggen.getSigma()(i,j) << "\t";
       }
       *gmsg << endl;
     }
+
+    /*
+
+      Now setup the distribution generator
+      Units of the Sigma Matrix: 
+
+      spatial: mm
+      moment:  rad 
+
+     */
+
+    sigmaR_m[0] = std::sqrt(1E-3*siggen.getSigma()(0,0));    // rms x
+    sigmaR_m[1] = std::sqrt(1E-3*siggen.getSigma()(2,2));    // rms y
+    sigmaR_m[2] = std::sqrt(1E-3*siggen.getSigma()(4,4));    // rms z
+    
+    sigmaP_m[0] = std::sqrt(1E-3*siggen.getSigma()(1,1));    // UNITS ...  
+    sigmaP_m[1] = std::sqrt(1E-3*siggen.getSigma()(3,3));
+    sigmaP_m[2] = std::sqrt(1E-3*siggen.getSigma()(5,5));
+
+    distCorr_m.push_back(1E-3*siggen.getSigma()(0,1));  // R12
+    distCorr_m.push_back(1E-3*siggen.getSigma()(2,3));  // R34
+    distCorr_m.push_back(1E-3*siggen.getSigma()(4,5));  // R56
+    distCorr_m.push_back(1E-3*siggen.getSigma()(0,5));  // R16
+    distCorr_m.push_back(1E-3*siggen.getSigma()(1,5));  // R26
+    distCorr_m.push_back(1E-3*siggen.getSigma()(0,4));  // R15
+    distCorr_m.push_back(1E-3*siggen.getSigma()(1,4));  // R25
+
   } else {
     *gmsg << "Not converged." << endl;
   }  
   /// call Gauss
+
+  *gmsg << "sigR= " << sigmaR_m << " sigP= " << sigmaP_m << endl;
+  
   CreateDistributionGauss(numberOfParticles, massIneV);
+
 }
 
 
@@ -1801,11 +1855,7 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
   
   E_m = (beam.getGamma()-1.0)*beam.getM();
   I_m = current;
-
-  //  Beamline myLine = dynamic_cast<Beamline *>(bl.clone());
-  //  FieldList cycl = bl.getElementByType("Cyclotron");
-
-
+  bega_m = beam.getGamma()*beam.getBeta();
 
   /*
    * When scan mode is true, we need to destroy particles except
@@ -2860,8 +2910,9 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_matrix_set (m,0,4, distCorr_m.at(5));
     gsl_matrix_set (m,4,1, distCorr_m.at(6));
     gsl_matrix_set (m,1,4, distCorr_m.at(6));
-
+#define DISTDBG1
 #ifdef DISTDBG1
+    *gmsg << "m before gsl_linalg_cholesky_decomp" << endl;
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < 6; j++) {
 	if (j==0)
@@ -2887,8 +2938,9 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
       }
     }
     gsl_matrix_transpose(m);
-
+#define DISTDBG2
 #ifdef DISTDBG2
+    *gmsg << "m after gsl_linalg_cholesky_decomp" << endl;
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < 6; j++) {
 	if (j==0)
@@ -3533,7 +3585,27 @@ void Distribution::PrintDistFromFile(Inform &os) const {
 
 void Distribution::PrintDistMatchedGauss(Inform &os) const {
   os << "* Distribution type: MATCHEDGAUSS" << endl;
+  os << "* SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
+  os << "* SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
+  os << "* SIGMAZ   = " << sigmaR_m[2] << " [m]" << endl;
+  os << "* SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
+  os << "* SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
+  os << "* SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+  os << "* AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
 
+  os << "* CORRX    = " << distCorr_m.at(0) << endl;
+  os << "* CORRY    = " << distCorr_m.at(1) << endl;
+  os << "* CORRZ    = " << distCorr_m.at(2) << endl;
+  os << "* R61      = " << distCorr_m.at(3) << endl;
+  os << "* R62      = " << distCorr_m.at(4) << endl;
+  os << "* R51      = " << distCorr_m.at(5) << endl;
+  os << "* R52      = " << distCorr_m.at(6) << endl;
+  os << "* CUTOFFX  = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
+  os << "* CUTOFFY  = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
+  os << "* CUTOFFZ  = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
+  os << "* CUTOFFPX = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
+  os << "* CUTOFFPY = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
+  os << "* CUTOFFPZ = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
 }
 
 void Distribution::PrintDistGauss(Inform &os) const {
@@ -4404,123 +4476,128 @@ void Distribution::SetDistParametersGauss(double massIneV) {
     /*
      * Set distribution parameters. Do all the necessary checks depending
      * on the input attributes.
+     * In case of DistrTypeT::MATCHEDGAUSS we only need to set the cutoff parameters
      */
 
-    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
-                          Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
-                          Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
-
+  
+  cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
+		       Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
+		       Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
+  
+  
+  cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
+		       Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
+		       Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
+  
+  if  (distrTypeT_m != DistrTypeT::MATCHEDGAUSS) {
     sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
+			std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
 			std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ])));
-
+    
     // SIGMAPZ overrides SIGMAPT. We initially use SIGMAPT for legacy compatibility.
     if (Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]) != 0.0)
-         sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]));
-
+      sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]));
+    
     // Check what input units we are using for momentum.
     switch (inputMoUnits_m) {
-
+	
     case InputMomentumUnitsT::EV:
-        sigmaP_m[0] = ConverteVToBetaGamma(sigmaP_m[0], massIneV);
-        sigmaP_m[1] = ConverteVToBetaGamma(sigmaP_m[1], massIneV);
-        sigmaP_m[2] = ConverteVToBetaGamma(sigmaP_m[2], massIneV);
-        break;
-
+      sigmaP_m[0] = ConverteVToBetaGamma(sigmaP_m[0], massIneV);
+      sigmaP_m[1] = ConverteVToBetaGamma(sigmaP_m[1], massIneV);
+      sigmaP_m[2] = ConverteVToBetaGamma(sigmaP_m[2], massIneV);
+      break;
+      
     default:
-        break;
+      break;
     }
-
-    cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
-
+    
     std::vector<double> cr = Attributes::getRealArray(itsAttr[AttributesT::R]);
-
+    
     if(cr.size()>0) {
-        if(cr.size() == 15) {
-            *gmsg << "* Use r to specify correlations" << endl;
-            distCorr_m.push_back(cr.at(0));   // corr x,px
-            distCorr_m.push_back(cr.at(6));   // corr y,py
-            distCorr_m.push_back(cr.at(14));  // corr z,pz
-            distCorr_m.push_back(cr.at(4));   // corr R16
-            distCorr_m.push_back(cr.at(8));   // corr R26
-            distCorr_m.push_back(cr.at(11));  // corr R36
-            distCorr_m.push_back(cr.at(13));  // corr R46
-
-    }
-        else {
-            *gmsg << "* Inconsitent set of correlations specified, check manual" << endl;
-            exit(1);
-        }
+      if(cr.size() == 15) {
+	*gmsg << "* Use r to specify correlations" << endl;
+	distCorr_m.push_back(cr.at(0));   // corr x,px
+	distCorr_m.push_back(cr.at(6));   // corr y,py
+	distCorr_m.push_back(cr.at(14));  // corr z,pz
+	distCorr_m.push_back(cr.at(4));   // corr R16
+	distCorr_m.push_back(cr.at(8));   // corr R26
+	distCorr_m.push_back(cr.at(11));  // corr R36
+	distCorr_m.push_back(cr.at(13));  // corr R46
+	
+      }
+      else {
+	*gmsg << "* Inconsitent set of correlations specified, check manual" << endl;
+	exit(1);
+      }
     }
     else {
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
-
-        // CORRZ overrides CORRT.
-        if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-            distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
-
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
-        distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));
+      distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
+      distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
+      distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
+      
+      // CORRZ overrides CORRT.
+      if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
+	distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
+      
+      distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
+      distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
+      distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
+      distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));
     }
-
-    if (emitting_m) {
-
-        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
-                            0.0);
-
-        sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
-        sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
-
-        tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]));
-
-        /*
-         * If TRISE and TFALL are defined then these attributes
-         * override SIGMAT.
-         */
-        if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0
-                || std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0) {
-
-            double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-
-            if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0)
-                sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]))
-                               / timeRatio;
-
-            if (std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0)
-                sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL]))
-                               / timeRatio;
-
-        }
-
-        // For and emitted beam, the longitudinal cutoff >= 0.
-        cutoffR_m[2] = std::abs(cutoffR_m[2]);
-
-    } else {
-
-        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT])));
-
-        // SIGMAZ overrides SIGMAT. We initially use SIGMAT for legacy compatibility.
-        if (Attributes::getReal(itsAttr[AttributesT::SIGMAZ]) != 0.0)
-            sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAZ]));
-
+  }
+  
+  if (emitting_m) {
+    
+    sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
+			std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
+			0.0);
+    
+    sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
+    sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
+      
+    tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]));
+    
+    /*
+     * If TRISE and TFALL are defined then these attributes
+     * override SIGMAT.
+     */
+    if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0
+	|| std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0) {
+      
+      double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
+	
+      if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0)
+	sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]))
+	  / timeRatio;
+      
+      if (std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0)
+	sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL]))
+	  / timeRatio;
+      
     }
-
+    
+    // For and emitted beam, the longitudinal cutoff >= 0.
+    cutoffR_m[2] = std::abs(cutoffR_m[2]);
+    
+  } else {
+    if  (distrTypeT_m != DistrTypeT::MATCHEDGAUSS) {
+      sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
+			  std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
+			  std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT])));
+      
+      // SIGMAZ overrides SIGMAT. We initially use SIGMAT for legacy compatibility.
+      if (Attributes::getReal(itsAttr[AttributesT::SIGMAZ]) != 0.0)
+	sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAZ]));
+      
+    }
+    
     if (std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR])) > 0.0) {
-        sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
-        sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
-        cutoffR_m[0] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
-        cutoffR_m[1] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
+      sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
+      sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
+      cutoffR_m[0] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
+      cutoffR_m[1] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
     }
-
+  }
 }
 
 void Distribution::SetupEmissionModel(PartBunch &beam) {
