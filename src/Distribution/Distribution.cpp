@@ -1703,7 +1703,7 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
 
 void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV) {
 
-  /*
+  /* ADA
 
     ToDo:
 
@@ -1724,55 +1724,61 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
     - fix M_m and wo
     - fix siggen.match(1e-8,100,1000,7)
     - if an energy range is specified, only calculate the tunes
-    - units ?
-    - wo ?
+    - get tunes, r0, p0 etc.
 
    */
 
   std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
-  const BeamSequence& LineSequence = *BeamSequence::find(LineName);
-  SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence.fetchLine());
-  CyclotronVisitor.execute();
-  if (CyclotronVisitor.size() > 1) {
-      throw OpalException("Distribution::CreateMatchedGaussDistribution",
-                          "found more than one Cyclotron element in line");
-  }
-
-  const Cyclotron* CyclotronElement = dynamic_cast<const Cyclotron*>(CyclotronVisitor.front());
-
-  *gmsg << "----------------------------------------------------" << endl;
-  *gmsg << "About to find closed orbit and matched distribution " << endl;
-  *gmsg << "I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
-  *gmsg << "EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
-	<< " EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
-	<< " ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
-	<< " FMAPFN " << CyclotronElement->getFieldMapFN()
-	<< " FMSYM= " << CyclotronElement->getSymmetry()
-	<< " HN = "   << CyclotronElement->getCyclHarm()
-	<< " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
-  *gmsg << "----------------------------------------------------" << endl;
-
-  double wo = 8.44167E6*2.0*Physics::pi;
-  double M_m = 1;
-
-  SigmaGenerator<double,unsigned int> siggen(I_m,
-					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
-					     Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
-					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
-					     wo,
-					     E_m*1E-6,
-					     CyclotronElement->getCyclHarm(),M_m,72,590,
-					     CyclotronElement->getSymmetry(),
-					     Attributes::getReal(itsAttr[AttributesT::INTSTEPS]));
-  if(siggen.match(1e-8,100,1000,7)) {
-    DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
-    for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
-      for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
-	*gmsg << std::setprecision(4)  << siggen.getSigma()(i,j) << "\t";
+  if (LineName != "") {
+    const BeamSequence* LineSequence = BeamSequence::find(LineName);
+    if (LineSequence != NULL) {
+      SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
+      CyclotronVisitor.execute();
+      size_t NumberOfCyclotrons = CyclotronVisitor.size();
+      
+      if (NumberOfCyclotrons > 1) {
+	throw OpalException("Distribution::CreateMatchedGaussDistribution",
+			    "found more than one Cyclotron element in line");
       }
-      *gmsg << endl;
-    }
+      if (NumberOfCyclotrons == 0) {
+	throw OpalException("Distribution::CreateMatchedGaussDistribution",
+			    "didn't find any Cyclotron element in line");
+      }
+      const Cyclotron* CyclotronElement = dynamic_cast<const Cyclotron*>(CyclotronVisitor.front());
+      
+      *gmsg << "----------------------------------------------------" << endl;
+      *gmsg << "About to find closed orbit and matched distribution " << endl;
+      *gmsg << "I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
+      *gmsg << "EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
+	    << " EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
+	    << " ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
+	    << " FMAPFN " << CyclotronElement->getFieldMapFN()
+	    << " FMSYM= " << CyclotronElement->getSymmetry()
+	    << " HN = "   << CyclotronElement->getCyclHarm()
+	    << " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
+      *gmsg << "----------------------------------------------------" << endl;
+      
+      double wo = 8.44167E6*2.0*Physics::pi;
+      double M_m = 1;
 
+      SigmaGenerator<double,unsigned int> siggen(I_m,
+						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
+						 Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
+						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
+						 wo,
+						 E_m*1E-6,
+						 CyclotronElement->getCyclHarm(),M_m,72,590,
+						 CyclotronElement->getSymmetry(),
+						 Attributes::getReal(itsAttr[AttributesT::INTSTEPS]));
+      if(siggen.match(1e-8,100,1000,7)) {
+	DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
+	for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
+	  for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
+	    *gmsg << std::setprecision(4)  << siggen.getSigma()(i,j) << "\t";
+	  }
+	  *gmsg << endl;
+	}
+	
     /*
 
       Now setup the distribution generator
@@ -1783,57 +1789,37 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 
      */
 
-    sigmaR_m[0] = std::sqrt(1E-3*siggen.getSigma()(0,0));    // rms x
-    sigmaR_m[1] = std::sqrt(1E-3*siggen.getSigma()(2,2));    // rms y
-    sigmaR_m[2] = std::sqrt(1E-3*siggen.getSigma()(4,4));    // rms z
-
-    sigmaP_m[0] = std::sqrt(1E-3*siggen.getSigma()(1,1));    // UNITS ...
-    sigmaP_m[1] = std::sqrt(1E-3*siggen.getSigma()(3,3));
-    sigmaP_m[2] = std::sqrt(1E-3*siggen.getSigma()(5,5));
-
-    distCorr_m.push_back(1E-3*siggen.getSigma()(0,1));  // R12
-    distCorr_m.push_back(1E-3*siggen.getSigma()(2,3));  // R34
-    distCorr_m.push_back(1E-3*siggen.getSigma()(4,5));  // R56
-    distCorr_m.push_back(1E-3*siggen.getSigma()(0,5));  // R16
-    distCorr_m.push_back(1E-3*siggen.getSigma()(1,5));  // R26
-    distCorr_m.push_back(1E-3*siggen.getSigma()(0,4));  // R15
-    distCorr_m.push_back(1E-3*siggen.getSigma()(1,4));  // R25
-
-  } else {
-    *gmsg << "Not converged." << endl;
+	sigmaR_m[0] = std::sqrt(1E-3*siggen.getSigma()(0,0));    // rms x
+	sigmaR_m[1] = std::sqrt(1E-3*siggen.getSigma()(2,2));    // rms y
+	sigmaR_m[2] = std::sqrt(1E-3*siggen.getSigma()(4,4));    // rms z
+	
+	sigmaP_m[0] = std::sqrt(1E-3*siggen.getSigma()(1,1));    // UNITS ...
+	sigmaP_m[1] = std::sqrt(1E-3*siggen.getSigma()(3,3));
+	sigmaP_m[2] = std::sqrt(1E-3*siggen.getSigma()(5,5));
+	
+	distCorr_m.push_back(1E-3*siggen.getSigma()(0,1));  // R12
+	distCorr_m.push_back(1E-3*siggen.getSigma()(2,3));  // R34
+	distCorr_m.push_back(1E-3*siggen.getSigma()(4,5));  // R56
+	distCorr_m.push_back(1E-3*siggen.getSigma()(0,5));  // R16
+	distCorr_m.push_back(1E-3*siggen.getSigma()(1,5));  // R26
+	distCorr_m.push_back(1E-3*siggen.getSigma()(0,4));  // R15
+	distCorr_m.push_back(1E-3*siggen.getSigma()(1,4));  // R25
+	
+      } else {
+	*gmsg << "Not converged." << endl;
+      }
+      
+      CreateDistributionGauss(numberOfParticles, massIneV);
+    }
   }
-  /// call Gauss
-
-  *gmsg << "sigR= " << sigmaR_m << " sigP= " << sigmaP_m << endl;
-
-  CreateDistributionGauss(numberOfParticles, massIneV);
-
+  else
+    throw OpalException("Distribution::CreateMatchedGaussDistribution",
+			"didn't find any Cyclotron element in line");
 }
 
 
 void Distribution::CreateDistributionGauss(size_t numberOfParticles, double massIneV) {
-    std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
-    if (LineName != "") {
-        const BeamSequence* LineSequence = BeamSequence::find(LineName);
-        if (LineSequence != NULL) {
-            SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
-            CyclotronVisitor.execute();
-            size_t NumberOfCyclotrons = CyclotronVisitor.size();
 
-            if (NumberOfCyclotrons > 1) {
-                throw OpalException("Distribution::CreateMatchedGaussDistribution",
-                                    "found more than one Cyclotron element in line");
-            }
-            if (NumberOfCyclotrons == 0) {
-                throw OpalException("Distribution::CreateMatchedGaussDistribution",
-                                    "didn't find any Cyclotron element in line");
-            }
-            const Cyclotron* CyclotronElement = dynamic_cast<const Cyclotron*>(CyclotronVisitor.front());
-            *gmsg << "the name of the field map of the cyclotron element is " << CyclotronElement->getFieldMapFN() << endl;
-            *gmsg << "its harmonic number is " << CyclotronElement->getCyclHarm() << endl;
-            *gmsg << "its symmetry is " << CyclotronElement->getSymmetry() << endl;
-        }
-    }
     SetDistParametersGauss(massIneV);
 
     if (emitting_m) {
