@@ -47,7 +47,7 @@
 #endif
 
 //#define DBG_SCALARFIELD
-#define FIELDSTDOUT
+//#define FIELDSTDOUT
 
 using Physics::pi;
 
