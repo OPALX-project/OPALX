@@ -703,6 +703,7 @@ src/Distribution/LaserProfile.h -text
 src/Distribution/MagneticField.h -text
 src/Distribution/MapGenerator.h -text
 src/Distribution/SigmaGenerator.h -text
+src/Distribution/SpecificElementVisitor.h -text
 src/Distribution/error.h -text
 src/Distribution/halton1d_sequence.cpp -text
 src/Distribution/halton1d_sequence.hh -text

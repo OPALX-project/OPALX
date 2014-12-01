@@ -13,6 +13,8 @@
 
 #include "Distribution/Distribution.h"
 #include "Distribution/SigmaGenerator.h"
+#include "Distribution/SpecificElementVisitor.h"
+
 #include <cmath>
 #include <cfloat>
 #include <iomanip>
@@ -36,6 +38,7 @@
 #include "BasicActions/Option.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
+#include "AbstractObjects/BeamSequence.h"
 
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
@@ -149,9 +152,8 @@ namespace AttributesT
 		      EX,                         // below is for the matched distribution
 		      EY,
 		      ET,
+                      LINE,
 		      FMAPFN,
-		      HN,
-		      FMSYM,
 		      INTSTEPS,
                       SIZE
     };
@@ -419,7 +421,7 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
     switch (distrTypeT_m) {
 
     case DistrTypeT::MATCHEDGAUSS:
-        CreateMatchedGaussDistribution(numberOfParticles, massIneV); 
+        CreateMatchedGaussDistribution(numberOfParticles, massIneV);
         break;
     case DistrTypeT::FROMFILE:
         CreateDistributionFromFile(numberOfParticles, massIneV);
@@ -1700,40 +1702,58 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
 
 
 void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV) {
-  /// ADA
+
+  /*
+
+    ToDo:
+
+    - Pass to SigmaGenerator: Magnet field data
+    - Pass to SigmaGenerator: old/new
+    - Write from SigmaGenerator: to ./data/
+
+    - eliminate physics and error
+
+      Note that you should use the following macros to access the Inform objects,
+      so that these messages may be left out at compile time:
+
+      INFOMSG("This is some information " << 34 << endl);
+      WARNMSG("This is a warning " << 34 << endl);
+      ERRORMSG("This is an error message " << 34 << endl);
+      DEBUGMSG("This is some debugging info " << 34 << endl);
+
+    - fix M_m and wo
+    - fix siggen.match(1e-8,100,1000,7)
+    - if an energy range is specified, only calculate the tunes
+    - units ?
+    - wo ?
+
+   */
+
+  std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
+  const BeamSequence& LineSequence = *BeamSequence::find(LineName);
+  SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence.fetchLine());
+  CyclotronVisitor.execute();
+  if (CyclotronVisitor.size() > 1) {
+      throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                          "found more than one Cyclotron element in line");
+  }
+
+  const Cyclotron* CyclotronElement = dynamic_cast<const Cyclotron*>(CyclotronVisitor.front());
 
   *gmsg << "----------------------------------------------------" << endl;
   *gmsg << "About to find closed orbit and matched distribution " << endl;
   *gmsg << "I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
-  *gmsg << "EX= "  << Attributes::getReal(itsAttr[AttributesT::EX]) 
-	<< " EY= " << Attributes::getReal(itsAttr[AttributesT::EY]) 
-	<< " ET= " << Attributes::getReal(itsAttr[AttributesT::ET]) 
-	<< " FMAPFN " << Attributes::getString(itsAttr[AttributesT::FMAPFN]) 
-	<< " FMSYM= " << Attributes::getReal(itsAttr[AttributesT::FMSYM]) << endl
-	<< " HN = "   << Attributes::getReal(itsAttr[AttributesT::HN])
+  *gmsg << "EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
+	<< " EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
+	<< " ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
+	<< " FMAPFN " << CyclotronElement->getFieldMapFN()
+	<< " FMSYM= " << CyclotronElement->getSymmetry()
+	<< " HN = "   << CyclotronElement->getCyclHarm()
 	<< " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
   *gmsg << "----------------------------------------------------" << endl;
 
   double wo = 8.44167E6*2.0*Physics::pi;
   double M_m = 1;
-  
-  /*
-    Missing:
-    Pass to SigmaGenerator: Magnet field data
-    Pass to SigmaGenerator: old/new
-    Write from SigmaGenerator: to ./data/
-
-
-   * Note that you should use the following macros to access the Inform objects,
-   * so that these messages may be left out at compile time:                                                                                                         *   INFOMSG("This is some information " << 34 << endl);                                                                                                           *   WARNMSG("This is a warning " << 34 << endl);                                                                                                                  *   ERRORMSG("This is an error message " << 34 << endl);                                                                                                          *   DEBUGMSG("This is some debugging info " << 34 << endl);                                                                                                       
-    Units
-
-    ToDo:
-
-    - if an energy range is specified, only calculate the tunes
-    - 
-
-   */
 
   SigmaGenerator<double,unsigned int> siggen(I_m,
 					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
@@ -1741,13 +1761,13 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 					     Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 					     wo,
 					     E_m*1E-6,
-					     Attributes::getReal(itsAttr[AttributesT::HN]),M_m,72,590,
-					     Attributes::getReal(itsAttr[AttributesT::FMSYM]),
+					     CyclotronElement->getCyclHarm(),M_m,72,590,
+					     CyclotronElement->getSymmetry(),
 					     Attributes::getReal(itsAttr[AttributesT::INTSTEPS]));
   if(siggen.match(1e-8,100,1000,7)) {
     DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
-    for(int i=0; i<siggen.getSigma().size1(); ++i) {
-      for(int j=0; j<siggen.getSigma().size2(); ++j) {
+    for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
+      for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
 	*gmsg << std::setprecision(4)  << siggen.getSigma()(i,j) << "\t";
       }
       *gmsg << endl;
@@ -1756,18 +1776,18 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
     /*
 
       Now setup the distribution generator
-      Units of the Sigma Matrix: 
+      Units of the Sigma Matrix:
 
       spatial: mm
-      moment:  rad 
+      moment:  rad
 
      */
 
     sigmaR_m[0] = std::sqrt(1E-3*siggen.getSigma()(0,0));    // rms x
     sigmaR_m[1] = std::sqrt(1E-3*siggen.getSigma()(2,2));    // rms y
     sigmaR_m[2] = std::sqrt(1E-3*siggen.getSigma()(4,4));    // rms z
-    
-    sigmaP_m[0] = std::sqrt(1E-3*siggen.getSigma()(1,1));    // UNITS ...  
+
+    sigmaP_m[0] = std::sqrt(1E-3*siggen.getSigma()(1,1));    // UNITS ...
     sigmaP_m[1] = std::sqrt(1E-3*siggen.getSigma()(3,3));
     sigmaP_m[2] = std::sqrt(1E-3*siggen.getSigma()(5,5));
 
@@ -1781,18 +1801,39 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 
   } else {
     *gmsg << "Not converged." << endl;
-  }  
+  }
   /// call Gauss
 
   *gmsg << "sigR= " << sigmaR_m << " sigP= " << sigmaP_m << endl;
-  
+
   CreateDistributionGauss(numberOfParticles, massIneV);
 
 }
 
 
 void Distribution::CreateDistributionGauss(size_t numberOfParticles, double massIneV) {
+    std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
+    if (LineName != "") {
+        const BeamSequence* LineSequence = BeamSequence::find(LineName);
+        if (LineSequence != NULL) {
+            SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
+            CyclotronVisitor.execute();
+            size_t NumberOfCyclotrons = CyclotronVisitor.size();
 
+            if (NumberOfCyclotrons > 1) {
+                throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                                    "found more than one Cyclotron element in line");
+            }
+            if (NumberOfCyclotrons == 0) {
+                throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                                    "didn't find any Cyclotron element in line");
+            }
+            const Cyclotron* CyclotronElement = dynamic_cast<const Cyclotron*>(CyclotronVisitor.front());
+            *gmsg << "the name of the field map of the cyclotron element is " << CyclotronElement->getFieldMapFN() << endl;
+            *gmsg << "its harmonic number is " << CyclotronElement->getCyclHarm() << endl;
+            *gmsg << "its symmetry is " << CyclotronElement->getSymmetry() << endl;
+        }
+    }
     SetDistParametersGauss(massIneV);
 
     if (emitting_m) {
@@ -1852,7 +1893,7 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
   /*
    *  setup data for matched distribution generation
    */
-  
+
   E_m = (beam.getGamma()-1.0)*beam.getM();
   I_m = current;
   bega_m = beam.getGamma()*beam.getBeta();
@@ -1861,10 +1902,10 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
    * When scan mode is true, we need to destroy particles except
    * for the first pass.
    */
-  
+
   /*
     Fixme:
-    
+
     avrgpz_m = beam.getP()/beam.getM();
   */
     size_t numberOfPartToCreate = numberOfParticles;
@@ -3859,22 +3900,20 @@ void Distribution::SetAttributes() {
 				                    "GAUSS, "
                                                     "GAUSSMATCHED");
 
+    itsAttr[AttributesT::LINE]
+      = Attributes::makeString("LINE", "Beamline that contains a cyclotron or ring ", "");
     itsAttr[AttributesT::FMAPFN]
-      = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distibution ", ""); 
+      = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distibution ", "");
     itsAttr[AttributesT::EX]
       = Attributes::makeReal("EX", "Projected normalized emittance EX (m-rad), used to create matched distibution ", 1E-6);
     itsAttr[AttributesT::EY]
       = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
     itsAttr[AttributesT::ET]
       = Attributes::makeReal("ET", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
-    itsAttr[AttributesT::HN]
-      = Attributes::makeReal("HN", "Harmonic number used to create matched distibution ", 1);
-    itsAttr[AttributesT::FMSYM]
-      = Attributes::makeReal("FMSYM", "Field map symmetry  used to create matched distibution ", 1);
     itsAttr[AttributesT::INTSTEPS]
       = Attributes::makeReal("INTSTEPS", "Integration steps used to create matched distibution ", 1440);
 
-    
+
 
     itsAttr[AttributesT::FNAME]
             = Attributes::makeString("FNAME", "File for reading in 6D particle "
@@ -4479,40 +4518,40 @@ void Distribution::SetDistParametersGauss(double massIneV) {
      * In case of DistrTypeT::MATCHEDGAUSS we only need to set the cutoff parameters
      */
 
-  
+
   cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
 		       Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
 		       Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
-  
-  
+
+
   cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
 		       Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
 		       Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
-  
+
   if  (distrTypeT_m != DistrTypeT::MATCHEDGAUSS) {
     sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
 			std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
 			std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ])));
-    
+
     // SIGMAPZ overrides SIGMAPT. We initially use SIGMAPT for legacy compatibility.
     if (Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]) != 0.0)
       sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]));
-    
+
     // Check what input units we are using for momentum.
     switch (inputMoUnits_m) {
-	
+
     case InputMomentumUnitsT::EV:
       sigmaP_m[0] = ConverteVToBetaGamma(sigmaP_m[0], massIneV);
       sigmaP_m[1] = ConverteVToBetaGamma(sigmaP_m[1], massIneV);
       sigmaP_m[2] = ConverteVToBetaGamma(sigmaP_m[2], massIneV);
       break;
-      
+
     default:
       break;
     }
-    
+
     std::vector<double> cr = Attributes::getRealArray(itsAttr[AttributesT::R]);
-    
+
     if(cr.size()>0) {
       if(cr.size() == 15) {
 	*gmsg << "* Use r to specify correlations" << endl;
@@ -4523,7 +4562,7 @@ void Distribution::SetDistParametersGauss(double massIneV) {
 	distCorr_m.push_back(cr.at(8));   // corr R26
 	distCorr_m.push_back(cr.at(11));  // corr R36
 	distCorr_m.push_back(cr.at(13));  // corr R46
-	
+
       }
       else {
 	*gmsg << "* Inconsitent set of correlations specified, check manual" << endl;
@@ -4534,63 +4573,63 @@ void Distribution::SetDistParametersGauss(double massIneV) {
       distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
       distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
       distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
-      
+
       // CORRZ overrides CORRT.
       if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
 	distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
-      
+
       distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
       distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
       distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
       distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));
     }
   }
-  
+
   if (emitting_m) {
-    
+
     sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
 			std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
 			0.0);
-    
+
     sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
     sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
-      
+
     tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]));
-    
+
     /*
      * If TRISE and TFALL are defined then these attributes
      * override SIGMAT.
      */
     if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0
 	|| std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0) {
-      
+
       double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
-	
+
       if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0)
 	sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]))
 	  / timeRatio;
-      
+
       if (std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0)
 	sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL]))
 	  / timeRatio;
-      
+
     }
-    
+
     // For and emitted beam, the longitudinal cutoff >= 0.
     cutoffR_m[2] = std::abs(cutoffR_m[2]);
-    
+
   } else {
     if  (distrTypeT_m != DistrTypeT::MATCHEDGAUSS) {
       sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
 			  std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
 			  std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT])));
-      
+
       // SIGMAZ overrides SIGMAT. We initially use SIGMAT for legacy compatibility.
       if (Attributes::getReal(itsAttr[AttributesT::SIGMAZ]) != 0.0)
 	sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAZ]));
-      
+
     }
-    
+
     if (std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR])) > 0.0) {
       sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
       sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
