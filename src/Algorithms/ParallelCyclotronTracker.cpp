@@ -1224,7 +1224,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
     // main integration loop
     // *****************II***************
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
-    for(; step_m < maxSteps_m; step_m++) {
+    for(; (step_m < maxSteps_m) && (itsBunch->getTotalNum()>0); step_m++) {
         bool dumpEachTurn = false;
         if(step_m % SinglePartDumpFreq == 0) {
             singleParticleDump();
@@ -1666,6 +1666,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
         }
     }
 
+    if (!(itsBunch->getTotalNum()>0))
+      throw OpalException("ParallelCyclotronTracker::Tracker_LF()", "No particles anymore, give up now!");
+
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
         if(itsBunch->ID[ii] == 0) {
 
@@ -1796,7 +1799,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     // main integration loop
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
-    for(; step_m < maxSteps_m; step_m++) {
+    for(; (step_m < maxSteps_m) && (itsBunch->getTotalNum()>0); step_m++) {
 	//*gmsg << "step_m= " << step_m << endl;
         /*
         Vector_t B(0., 0., 0.), E(0., 0., 0.);
@@ -2713,6 +2716,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             *gmsg << "Step " << step_m + 1 << endl;
     } // end for: the integration is DONE after maxSteps_m steps!
 
+    if (!(itsBunch->getTotalNum()>0))
+      throw OpalException("ParallelCyclotronTracker::Tracker_MTS()", "No particles anymore, give up now!");
+
     // some post-integration works
     *gmsg << endl;
     *gmsg << "* *---------------------------- DONE TRACKING PARTICLES --------------------------------* " << endl;
@@ -2893,7 +2899,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     *gmsg << endl;
     *gmsg << "* --------------------------------- Start tracking ------------------------------------ *" << endl;
 
-    for(; step_m < maxSteps_m; step_m++) {
+    for(; (step_m < maxSteps_m) && (itsBunch->getTotalNum()>0); step_m++) {
 
         bool dumpEachTurn = false;
 
@@ -3662,6 +3668,9 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     *gmsg << endl;
     *gmsg << "* ---------------------------- DONE TRACKING PARTICLES -------------------------------- * " << endl;
 
+    if (!(itsBunch->getTotalNum()>0))
+      throw OpalException("ParallelCyclotronTracker::Tracker_MTS()", "No particles anymore, give up now!");
+
     // Calculate tunes after tracking.
 
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
@@ -4210,7 +4219,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         evaluateSpaceChargeField();
     }
     IpplTimings::stopTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
-    for(; step_m < maxSteps_m; step_m++) {
+    for(; (step_m < maxSteps_m) && (itsBunch->getTotalNum()>0); step_m++) {
     	IpplTimings::startTimer(IpplTimings::getTimer("MTS-Dump"));
         bool dumpEachTurn = false;
         if(step_m % Options::sptDumpFreq == 0) {
