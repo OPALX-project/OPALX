@@ -1706,10 +1706,18 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
   /* ADA
 
     ToDo:
-
+    - Wall 
     - Pass to SigmaGenerator: Magnet field data
-    - Pass to SigmaGenerator: old/new
+
+    ============================================
+
+
     - Write from SigmaGenerator: to ./data/
+    - fix M_m and wo
+
+    - fix siggen.match(1e-8,100,1000,7)
+    - if an energy range is specified, only calculate the tunes
+    - display tunes, r0, p0 etc.
 
     - eliminate physics and error
 
@@ -1720,12 +1728,6 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       WARNMSG("This is a warning " << 34 << endl);
       ERRORMSG("This is an error message " << 34 << endl);
       DEBUGMSG("This is some debugging info " << 34 << endl);
-
-    - fix M_m and wo
-    - fix siggen.match(1e-8,100,1000,7)
-    - if an energy range is specified, only calculate the tunes
-    - get tunes, r0, p0 etc.
-
    */
 
   std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
@@ -1738,7 +1740,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       
       if (NumberOfCyclotrons > 1) {
 	throw OpalException("Distribution::CreateMatchedGaussDistribution",
-			    "found more than one Cyclotron element in line");
+			    "I am confused, found more than one Cyclotron element in line");
       }
       if (NumberOfCyclotrons == 0) {
 	throw OpalException("Distribution::CreateMatchedGaussDistribution",
@@ -1758,8 +1760,8 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	    << " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
       *gmsg << "----------------------------------------------------" << endl;
       
-      double wo = 8.44167E6*2.0*Physics::pi;
-      double M_m = 1;
+      double wo = 8.44167E6*2.0*Physics::pi;     // where is 8.44167E6 comming from
+      double M_m = 1;                            // units?
 
       SigmaGenerator<double,unsigned int> siggen(I_m,
 						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,

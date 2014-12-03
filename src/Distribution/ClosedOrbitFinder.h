@@ -184,13 +184,13 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type 
   ptheta_ = [&](value_type p2, value_type x) {
     value_type pts = p2-x*x;
     if(pts<=0) {
-      Error::message("ClosedOrbitFinder1",Error::invalid); //,"SQUARE ROOT OF NEGATIVE NUMBER");
+      Error::message("ClosedOrbitFinder",Error::invalid); //,"SQUARE ROOT OF NEGATIVE NUMBER");
     }
     return std::sqrt(p2-x*x);
   };
     
   if(Emin_>Emax_ || E_<Emin_ || E>Emax_) {
-    Error::message("ClosedOrbitFinder2",Error::invalid);
+    Error::message("ClosedOrbitFinder",Error::invalid);
   }
   
   // my functions
@@ -284,6 +284,13 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     PhysicalError::message("ClosedOrbitFinder::findOrbit",PhysicalError::undefined);
   }
   
+  // to get a closed orbit from 0 to 2*pi, one has to do one step more (to get back at the "origin")
+  size_type nsteps = N_+1;
+  
+  r_.resize(nsteps);
+  pr_.resize(nsteps);
+  
+  
   // store acon and bcon locally
   value_type acon = physics::acon(wo_);		// [acon] = m
   value_type invbcon = 1.0/physics::bcon(wo_);	// [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
@@ -360,10 +367,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
    * 0, 1, 2, 3, 4, 5, ... --> 1440 Werte
    * 
    */
-  N_ += 1;				/// ---> that was the error: instead of N, do N+1 steps
   
-  r_.resize(N_);
-  pr_.resize(N_);
   
   // iterate until suggested energy (start with minimum energy)
   value_type E = Emin_;
@@ -409,7 +413,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
 //       std::cerr << std::setprecision(16) << "init: " << y[0] << " " << y[1] << std::endl;
       
       // integrate: assume no imperfections --> only integrate over a single sector (dtheta_ = 2pi/N)
-      boost::numeric::odeint::integrate_n_steps(stepper_,orbit_integration,y,0.0,dtheta_,N_,store);
+      boost::numeric::odeint::integrate_n_steps(stepper_,orbit_integration,y,0.0,dtheta_,nsteps,store);
       
       // write new state
       x_[0] = y[2];
@@ -418,10 +422,10 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
       px_[1] = y[5];
       
       // compute error
-      err[0] = r_[N_-1] - r_[0];	// Gordon, formula (14)
-      err[1] = pr_[N_-1] - pr_[0];	// Gordon, formula (14)
+      err[0] = r_[nsteps-1] - r_[0];	// Gordon, formula (14)
+      err[1] = pr_[nsteps-1] - pr_[0];	// Gordon, formula (14)
       
-//       std::cerr << std::setprecision(16) << "last: " << r_[N_-1] << " " << pr_[N_-1] << std::endl; std::cin.get();
+//       std::cerr << std::setprecision(16) << "last: " << r_[nsteps-1] << " " << pr_[nsteps-1] << std::endl; std::cin.get();
       
       // correct inital values of r and pr
       invdenom = 1.0/(x_[0]+px_[1]-2.0);
@@ -454,10 +458,9 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     invgamma4 = 1.0/(gamma2*gamma2);
   }
   
-  // remove last entry
+  // remove last entry (since we've done one step more: nsteps = N_+1)
   r_.pop_back();
   pr_.pop_back();
-  N_ -= 1;
   
   // returns true if converged, otherwise false
   return error<accuracy;
@@ -725,7 +728,6 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
   
   // compute average radius
   ravg_ = std::accumulate(r_.begin(),r_.end(),0.0)/value_type(r_.size());
-  
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
@@ -849,6 +851,8 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::christian_findOrbit(valu
   h_.resize(N_);
   ds_.resize(N_);
   fidx_.resize(N_);
+  r_.resize(N_);
+  pr_.resize(N_);
   
   double stp,psq,pp,gam,pt,pts,tpi,rg,prg;
     double xc0,xc1,xc2,xc3,xc4,ep1,ep2,den,yp5,yp10;
