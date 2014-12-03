@@ -155,6 +155,10 @@ namespace AttributesT
                       LINE,
 		      FMAPFN,
 		      INTSTEPS,
+		      RESIDUUM,
+		      MAXSTEPSCO,
+		      MAXSTEPSSI,
+		      ORDERMAPS,
                       SIZE
     };
 }
@@ -1707,10 +1711,8 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 
     ToDo:
 
-    - Write from SigmaGenerator: to ./data/
     - fix M_m and wo
 
-    - fix siggen.match(1e-8,100,1000,7)
     - if an energy range is specified, only calculate the tunes
     - display tunes, r0, p0 etc.
 
@@ -1769,7 +1771,10 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 Attributes::getReal(itsAttr[AttributesT::INTSTEPS]),
 						 Attributes::getString(itsAttr[AttributesT::FMAPFN]));
 
-      if(siggen.match(1e-8,100,1000,7)) {
+      if(siggen.match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
+		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
+		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
+		      Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]))) {
 	DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
 	for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
 	  for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
@@ -3899,6 +3904,17 @@ void Distribution::SetAttributes() {
       = Attributes::makeReal("INTSTEPS", "Integration steps used to create matched distibution ", 1440);
 
 
+    itsAttr[AttributesT::RESIDUUM]
+      = Attributes::makeReal("RESIDUUM", "Residuum for the closed orbit finder and sigma matrix generatro ", 1e-8);
+
+    itsAttr[AttributesT::MAXSTEPSCO]
+      = Attributes::makeReal("MAXSTEPSCO", "Maximum steps used to find closed orbit ", 100);
+
+    itsAttr[AttributesT::MAXSTEPSSI]
+      = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",1000);
+
+    itsAttr[AttributesT::ORDERMAPS]
+      = Attributes::makeReal("ORDERMAPS", "Oder used in the field expansion ", 7);
 
     itsAttr[AttributesT::FNAME]
             = Attributes::makeString("FNAME", "File for reading in 6D particle "
