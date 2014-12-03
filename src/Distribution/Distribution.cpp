@@ -1706,11 +1706,6 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
   /* ADA
 
     ToDo:
-    - Wall 
-    - Pass to SigmaGenerator: Magnet field data
-
-    ============================================
-
 
     - Write from SigmaGenerator: to ./data/
     - fix M_m and wo
@@ -1771,7 +1766,9 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 E_m*1E-6,
 						 CyclotronElement->getCyclHarm(),M_m,72,590,
 						 CyclotronElement->getSymmetry(),
-						 Attributes::getReal(itsAttr[AttributesT::INTSTEPS]));
+						 Attributes::getReal(itsAttr[AttributesT::INTSTEPS]),
+						 Attributes::getString(itsAttr[AttributesT::FMAPFN]));
+
       if(siggen.match(1e-8,100,1000,7)) {
 	DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
 	for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {

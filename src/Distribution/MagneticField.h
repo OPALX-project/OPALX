@@ -207,7 +207,8 @@ int MagneticField::ReadSectorMap(float** b,int nr,int nth,int nsc, std::string f
     int i,j,k,err=0;
     FILE *f;
     
-    if (f=fopen(fname.c_str(),"r")) {
+    f = fopen(fname.c_str(),"r");
+    if (f != NULL) {
 	j=0;
 	while ((j<nr)&&(err==0)) {		// j: distance (radius)
 	    for (i=0;i<nth;i++) {		// i: angles

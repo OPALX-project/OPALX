@@ -7,6 +7,7 @@
 #include <limits>
 #include <list>
 #include <numeric>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -77,8 +78,9 @@ public:
    * @param Emax is the maximum energy [MeV] reached in cyclotron, \f$ \left[E_{max}\right] = MeV \f$
    * @param nSymmetry is the number of sectors (symmetry assumption)
    * @param N is the number of angle splits
+   * @param fieldmap is the location of the file that specifies the magnetic field
    */
-  SigmaGenerator(value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, size_type, size_type);
+  SigmaGenerator(value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, size_type, size_type, const std::string&);
   
   /// Searches for a matched distribution. Returns "true" if a matched distribution within the accuracy could be found, returns "false" otherwise
   /*!
@@ -146,6 +148,8 @@ private:
   size_type N_;
   /// Number of angle splits per sector
   Size_type nSector_;
+  /// Location of magnetic fieldmap
+  std::string fieldmap_;
   
   /// Stores the stationary distribution (sigma matrix)
   matrix_type sigma_;
@@ -212,11 +216,11 @@ public:
 
 template<typename Value_type, typename Size_type>
 SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez, value_type wo, 
-			       value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSymmetry, size_type N)
+			       value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSymmetry, size_type N, const std::string& fieldmap)
 : I_(I), wo_(wo), E_(E),
   gamma_(E/physics::E0+1.0), gamma2_(gamma_*gamma_),
   nh_(nh), beta_(std::sqrt(1.0-1.0/gamma2_)), m_(m), niterations_(0), converged_(false),
-  Emin_(Emin), Emax_(Emax), nSymmetry_(nSymmetry), N_(N), nSector_(N/nSymmetry), sigmas_(nSector_)
+  Emin_(Emin), Emax_(Emax), nSymmetry_(nSymmetry), N_(N), nSector_(N/nSymmetry), fieldmap_(fieldmap), sigmas_(nSector_) 
 {
   // set emittances (initialization like that due to old compiler version)
   emittance_[0] = ex;
@@ -234,7 +238,7 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
    */
   
   bool flag = true; // true: my functions; false: Christian's functions
-  ClosedOrbitFinder<value_type, size_type, boost::numeric::odeint::runge_kutta4<container_type> > cof(E_,wo_,N_,accuracy,maxitOrbit,Emin_,Emax_,flag);
+  ClosedOrbitFinder<value_type, size_type, boost::numeric::odeint::runge_kutta4<container_type> > cof(E_,wo_,N_,accuracy,maxitOrbit,Emin_,Emax_,flag,fieldmap_);
   
   container_type h = cof.getInverseBendingRadius();
   container_type r = cof.getOrbit();

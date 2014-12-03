@@ -4,7 +4,9 @@
 #include <array>
 #include <cmath>
 #include <functional>
+#include <limits>
 #include <numeric>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -48,8 +50,9 @@ public:
    * @param maxit is the maximal number of iterations done. Program stops if closed orbit not found within this time.
    * @param Emin is the minimum energy [MeV] needed in cyclotron
    * @param Emax is the maximum energy [MeV] reached in cyclotron
+   * @param fieldmap is the location of the file that specifies the magnetic field
    */
-  ClosedOrbitFinder(value_type, value_type, size_type, value_type, size_type, value_type, value_type, bool);	// this flag is only temporary
+  ClosedOrbitFinder(value_type, value_type, size_type, value_type, size_type, value_type, value_type, bool, const std::string&);	// this flag is only temporary
   
   /// Returns the inverse bending radius
   container_type& getInverseBendingRadius();
@@ -101,7 +104,7 @@ private:
   
   value_type christian_computeTune(const std::array<value_type,2>&, value_type, size_type);
   
-  /// This function computes nzcross_ which is used to compute the tune in z-direction.
+  /// This function computes nzcross_ which is used to compute the tune in z-direction and the phase error
   void computeVerticalOscillations();
   
   /// Stores current position in horizontal direction for the solutions of the ODE with different initial values
@@ -156,8 +159,8 @@ private:
   /// Maximum energy reached in cyclotron
   value_type Emax_;
   
-  /// Lambda-function
-  std::function<value_type(value_type, value_type)> ptheta_;
+  /// Location of magnetic field
+  std::string fieldmap_;
   
   /// Defines the stepper for integration of the ODE's
   Stepper stepper_;
@@ -176,19 +179,13 @@ private:
 
 template<typename Value_type, typename Size_type, class Stepper>
 ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type E, value_type wo, size_type N, value_type accuracy,
-								     size_type maxit,value_type Emin, value_type Emax, bool flag=true)
+								     size_type maxit,value_type Emin, value_type Emax, bool flag, const std::string& fieldmap)
 : h_(0), ds_(0), r_(N), pr_(N), fidx_(0),
-  nxcross_(0), nzcross_(0), E_(E), wo_(wo), N_(N), Emin_(Emin), Emax_(Emax),
-  dtheta_(2.0*M_PI/double(N)), gamma_(E/physics::E0+1.0), stepper_()
+  nxcross_(0), nzcross_(0), E_(E), wo_(wo), N_(N), dtheta_(2.0*M_PI/double(N)),
+  gamma_(E/physics::E0+1.0), ravg_(0), phase_(0), converged_(false), Emin_(Emin), Emax_(Emax), fieldmap_(fieldmap),
+   stepper_()
 {
-  ptheta_ = [&](value_type p2, value_type x) {
-    value_type pts = p2-x*x;
-    if(pts<=0) {
-      Error::message("ClosedOrbitFinder",Error::invalid); //,"SQUARE ROOT OF NEGATIVE NUMBER");
-    }
-    return std::sqrt(p2-x*x);
-  };
-    
+  
   if(Emin_>Emax_ || E_<Emin_ || E>Emax_) {
     Error::message("ClosedOrbitFinder",Error::invalid);
   }
@@ -275,7 +272,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
   int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
   bmag_ = MagneticField::malloc2df(Nth,nr);
-  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"/Users/adelmann/svnwork/OPAL/opal-tests/RegressionTests/RingCyclotronMatched/ring590_bfld.dat",0.0);
+  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,fieldmap_,0.0);
   MagneticField::MakeNFoldSymmetric(bmag_,Nth,nr,nth,nsc);
   value_type bint, brint, btint;
   
@@ -350,10 +347,10 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
   // define initial state container for integration: y = {r, pr, x1, px1, x2, px2}
   state_type y(6);
   
-  container_type err(2);			// difference of last and first value of r (1. element) and pr (2. element)
-  container_type delta = {0.0, 0.0};		// correction term for initial values: r = r + dr, pr = pr + dpr; Gordon, formula (17)
-  value_type error;				// amplitude of error; Gordon, formula (18) (a = a')
-  size_type niterations = 0;			// if niterations > maxit --> stop iteration
+  container_type err(2);					// difference of last and first value of r (1. element) and pr (2. element)
+  container_type delta = {0.0, 0.0};				// correction term for initial values: r = r + dr, pr = pr + dpr; Gordon, formula (17)
+  value_type error = std::numeric_limits<value_type>::max();	// amplitude of error; Gordon, formula (18) (a = a')
+  size_type niterations = 0;					// if niterations > maxit --> stop iteration
   
   /*
    * Christian:
@@ -476,7 +473,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
 //   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
 //   int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
 //   bmag_ = MagneticField::malloc2df(Nth,nr);
-//   MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"data/ring590_bfld.dat",0.0);
+//   MagneticField::ReadSectorMap(bmag_,nr,Nth,1,fieldmap_,0.0);
 //   MagneticField::MakeNFoldSymmetric(bmag_,Nth,nr,nth,nsc);
 //   value_type bint, brint, btint;
 //   
@@ -690,7 +687,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
   
   
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-  int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
+  int nsc = 8, nr = 141/*, Nth = 1440*/, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
   value_type bint, brint, btint; // B, dB/dr, dB/dtheta
   
   value_type invbcon = 1.0/physics::bcon(wo_);
@@ -734,7 +731,7 @@ template<typename Value_type, typename Size_type, class Stepper>
 void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillations() {
   
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-  int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
+  int nsc = 8, nr = 141/*, Nth = 1440*/, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
   value_type bint, brint, btint; // B, dB/dr, dB/dtheta
   
   value_type en = E_/physics::E0;				// en = E/E0 = E/(mc^2) with kinetic energy E0
@@ -775,6 +772,9 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
       dydt[i] = y[0]*y[i+1]*invptheta;
       dydt[i+1] = (y[0]*brint - y[1]*invptheta*btint)*y[i];
     }
+    
+    // integrate phase
+    dydt[6] = y[0]*invptheta*gamma_ - 1;
   };
   
   // to get next index for r and pr (to iterate over container)
@@ -785,8 +785,8 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     ++idx;
   };
   
-  // set initial state container for integration: y = {r, pr, z1, pz1, z2, pz2}
-  state_type y = {r_[0], pr_[0], 1.0, 0.0, 0.0, 1.0};
+  // set initial state container for integration: y = {r, pr, z1, pz1, z2, pz2, phase}
+  state_type y = {r_[0], pr_[0], 1.0, 0.0, 0.0, 1.0, 0.0};
   
   
   // integrate: assume no imperfections --> only integrate over a single sector (dtheta_ = 2pi/N)
@@ -797,6 +797,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
   pz_[0] = y[3];
   z_[1] = y[4];
   pz_[1] = y[5];
+  phase_ = y[6]/(2.0*M_PI);
 }
 
 // ------------------------------------------------------------------------------------------------------------------------
@@ -836,11 +837,11 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::christian_findOrbit(valu
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
   int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
   bmag_ = MagneticField::malloc2df(Nth,nr);
-  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"/Users/adelmann/svnwork/OPAL/opal-tests/RegressionTests/RingCyclotronMatched/ring590_bfld.dat",0.0);
+  MagneticField::ReadSectorMap(bmag_,nr,Nth,1,fieldmap_,0.0);
   MagneticField::MakeNFoldSymmetric(bmag_,Nth,nr,nth,nsc);
   
   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-  value_type bint, brint, btint; // B, dB/dr, dB/dtheta
+  value_type bint = 0, brint = 0, btint = 0; // B, dB/dr, dB/dtheta
   
   std::cout << "Christian's findOrbit" << std::endl;
   
@@ -854,50 +855,50 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::christian_findOrbit(valu
   r_.resize(N_);
   pr_.resize(N_);
   
-  double stp,psq,pp,gam,pt,pts,tpi,rg,prg;
+  double stp,psq,pp,gam,pt,pts,tpi,rg = 0,prg = 0;
     double xc0,xc1,xc2,xc3,xc4,ep1,ep2,den,yp5,yp10;
     double rp,prp,dth;
     // Start values of R,Pr:
     double rrk,y[12],ck[12],q[12];
     double sect,de;
-    double phs;
-    double e,rav,rmax,rmin;
-    double cn,sn;
-    double rznt,rznu[2];
+//     double phs;
+    double e/*,rav,rmax,rmin*/;
+//     double cn,sn;
+//     double rznt,rznu[2];
 //     double bint,brint,btint;
     double tmp;
-    FILE *f;
+//     FILE *f;
     char fname[200];
-    int nstp,ntry,neq,nxcros,nzcros,eqdst;
-    int i,j,n0;
-    int ir0,ith,istp;
+    int nstp,ntry,neq,nxcros,nzcros/*,eqdst*/;
+    int i,j/*,n0*/;
+    int /*ir0,*/ith,istp;
     int done=0;
     /***/
     sprintf(fname,"eo_params.dat");
-    f=fopen(fname,"w");
+//     f=fopen(fname,"w");
     /***/
     de=1.0;
-    eqdst=(de>0.0);
+//     eqdst=(de>0.0);
     tpi=2.0*M_PI;
     nth=nsc*nth;			// nsc = #sectors
     dth=tpi/(double)nth;			// dth = angle step (d\theta)
     sect=tpi;//(double)(cyc->nsc);
     nstp=nth/2;
 //     n0=(int)((cyc->emax-cyc->emin)/de+1.5);
-    n0 = 0;
+//     n0 = 0;
     // Allocate Memory:
     stp=tpi/(double)(nstp);
     
     rp=0.0;
     prp=0.0;
-    double nuz=0.0;
-    double nur=0.0;
-    phs=0.0;
+//     double nuz=0.0;
+//     double nur=0.0;
+//     phs=0.0;
 //     ir0=(int)(1.5-cyc->r0/cyc->dr);
     //dpeo[0]=phs;
     //==============================
     // PSI RING:
-    eqdst=1;
+//     eqdst=1;
     double emin = 72.0;
     e=emin;
     int neo = 0;
@@ -1080,8 +1081,8 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::christian_findOrbit(valu
 		} else ntry=-1;
 	    } else done = 1;
 	} while (!done);
-	phs=y[6]/sect;
-	rav=y[11]/sect;
+// 	phs=y[6]/sect;
+// 	rav=y[11]/sect;
 	ravg_=y[11]/sect;
 	phase_=y[6]/sect;
 // 	rmax=0.0;
@@ -1160,7 +1161,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::christian_findOrbit(valu
 //   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
 //   int nsc = 8, nr = 141, Nth = 1440, nth = 1440/8; value_type r0 = 1.8, dr = 0.02;
 //   bmag_ = MagneticField::malloc2df(Nth,nr);
-//   MagneticField::ReadSectorMap(bmag_,nr,Nth,1,"data/ring590_bfld.dat",0.0);
+//   MagneticField::ReadSectorMap(bmag_,nr,Nth,1,fieldmap_,0.0);
 //   MagneticField::MakeNFoldSymmetric(bmag_,Nth,nr,nth,nsc);
 //   
 //   // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
