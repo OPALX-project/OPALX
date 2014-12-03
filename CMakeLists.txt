@@ -224,7 +224,7 @@ ELSEIF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "g++")
 
     ELSEIF (${GCC_VERSION} VERSION_GREATER "4.7")
         SET (CMAKE_CXX_FLAGS
-        "-Wall -Werror -Wno-reorder -Werror=unused-variable -std=c++11 $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
+        "-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11 $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
     ENDIF ()
 
 ELSE ()
