@@ -1217,6 +1217,8 @@ bool RBend::InMagnetExitRegion(Vector_t R, double &deltaX) {
 }
 
 bool RBend::IsPositionInEntranceField(Vector_t R, Vector_t &REntrance) {
+    if (polyOrderEntry_m < 0)
+        return false;
 
     REntrance(1) = R(1);
 
@@ -1232,6 +1234,8 @@ bool RBend::IsPositionInEntranceField(Vector_t R, Vector_t &REntrance) {
 }
 
 bool RBend::IsPositionInExitField(Vector_t R, Vector_t &RExit) {
+    if (polyOrderExit_m < 0)
+        return false;
 
     RExit(1) = R(1);
 

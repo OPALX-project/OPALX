@@ -56,6 +56,19 @@ public:
         return (sle1.start_m < sle2.start_m);
     }
 
+    struct OrientationCache {
+        double u_factor;
+        double v_factor;
+    };
+
+    OrientationCache getStartCache() const {
+        return StartCache_m;
+    }
+
+    OrientationCache getEndCache() const {
+        return EndCache_m;
+    }
+
 private:
     CompVec elements_m;
     double start_m;
@@ -81,21 +94,18 @@ private:
     // The cache is managed by this class, and its existence should be transparent for callers from
     // outside (except the speed gains, of course :-)). See also functions
     // updateGetStartCache, updateGetEndCache.
-    struct {
-        double u_factor;
-        double v_factor;
-    } getStartCache_m, getEndCache_m;
+    OrientationCache StartCache_m;
+    OrientationCache EndCache_m;
 
-    void updateGetStartCache();
+    void updateStartCache();
 
-    void updateGetEndCache();
-
+    void updateEndCache();
 };
 
 typedef std::vector<OpalSection> SectionList;
 
 inline double OpalSection::getStart(const double &u, const double &v) const {
-    return start_m + getStartCache_m.u_factor * u + getStartCache_m.v_factor * v;
+    return start_m + StartCache_m.u_factor * u + StartCache_m.v_factor * v;
 }
 
 inline void OpalSection::setStart(const double &start) {
@@ -103,7 +113,7 @@ inline void OpalSection::setStart(const double &start) {
 }
 
 inline double OpalSection::getEnd(const double &u, const double &v) const {
-    return end_m + getEndCache_m.u_factor * u + getEndCache_m.v_factor * v;
+    return end_m + EndCache_m.u_factor * u + EndCache_m.v_factor * v;
 }
 
 inline void OpalSection::setEnd(const double &end) {
@@ -172,12 +182,12 @@ inline CompVec &OpalSection::getElements() {
 
 inline void OpalSection::previous_is_glued() {
     previous_is_glued_m = true;
-    updateGetStartCache();
+    updateStartCache();
 }
 
 inline void OpalSection::glue_to(OpalSection *sec) {
     glued_to_m = sec;
-    updateGetEndCache();
+    updateEndCache();
 }
 
 inline bool OpalSection::is_glued_to(const OpalSection *sec) const {

@@ -75,8 +75,8 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
         has_surface_physics_m = false;
     }
 
-    updateGetStartCache();
-    updateGetEndCache();
+    updateStartCache();
+    updateEndCache();
 }
 
 OpalSection::~OpalSection() {
@@ -90,8 +90,8 @@ void OpalSection::setOrientation(const Vector_t &angle) {
     if(glued_to_m) {
         glued_to_m->setOrientation(angle);
     }
-    updateGetStartCache();
-    updateGetEndCache();
+    updateStartCache();
+    updateEndCache();
 }
 
 bool OpalSection::find(const std::shared_ptr<Component> check) const {
@@ -135,34 +135,34 @@ void OpalSection::print(Inform &msg) const {
     }
 }
 
-void OpalSection::updateGetStartCache() {
+void OpalSection::updateStartCache() {
     if(previous_is_glued_m || cos(orientation_m(0)) < 1.e-8) {
         // Setting the factors to zero will cause start_m to be returned
-        getStartCache_m.u_factor = 0.0;
-        getStartCache_m.v_factor = 0.0;
+        StartCache_m.u_factor = 0.0;
+        StartCache_m.v_factor = 0.0;
     } else if(!doesBend()) {
         double const cosa = cos(orientation_m(0));
         double const tana = tan(orientation_m(0));
         double const tanb = tan(orientation_m(1));
         double const cosc = cos(orientation_m(2));
         double const sinc = sin(orientation_m(2));
-        getStartCache_m.u_factor = tanb * sinc / cosa - tana * cosc;
-        getStartCache_m.v_factor = -tanb * cosc / cosa - tana * sinc;
+        StartCache_m.u_factor = tanb * sinc / cosa - tana * cosc;
+        StartCache_m.v_factor = -tanb * cosc / cosa - tana * sinc;
     }
 }
 
-void OpalSection::updateGetEndCache() {
+void OpalSection::updateEndCache() {
     if(glued_to_m || cos(orientation_m(0) - exit_face_angle_m) < 1.e-8) {
         // Setting the factors to zero will cause end_m to be returned
-        getEndCache_m.u_factor = 0.0;
-        getEndCache_m.v_factor = 0.0;
+        EndCache_m.u_factor = 0.0;
+        EndCache_m.v_factor = 0.0;
     } else if(!doesBend()) {
         double const cosa = cos(orientation_m(0) - exit_face_angle_m);
         double const tana = tan(orientation_m(0) - exit_face_angle_m);
         double const tanb = tan(orientation_m(1));
         double const cosc = cos(orientation_m(2));
         double const sinc = sin(orientation_m(2));
-        getEndCache_m.u_factor = tanb * sinc / cosa - tana * cosc;
-        getEndCache_m.v_factor = -tanb * cosc / cosa - tana * sinc;
+        EndCache_m.u_factor = tanb * sinc / cosa - tana * cosc;
+        EndCache_m.v_factor = -tanb * cosc / cosa - tana * sinc;
     }
 }

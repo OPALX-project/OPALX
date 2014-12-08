@@ -1187,6 +1187,7 @@ bool SBend::InMagnetExitRegion(Vector_t R, double &deltaX) {
 
 bool SBend::IsPositionInEntranceField(Vector_t R, Vector_t &REntrance) {
 
+    if (polyOrderEntry_m < 0) return false;
     REntrance(1) = R(1);
 
     REntrance(0) = (R(0) - xOriginEngeEntry_m) * cosEntranceAngle_m
@@ -1202,6 +1203,7 @@ bool SBend::IsPositionInEntranceField(Vector_t R, Vector_t &REntrance) {
 
 bool SBend::IsPositionInExitField(Vector_t R, Vector_t &RExit) {
 
+    if (polyOrderExit_m < 0) return false;
     RExit(1) = R(1);
 
     RExit(0) = (R(0) - xOriginEngeExit_m) * cosExitAngle_m
