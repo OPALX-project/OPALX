@@ -43,7 +43,6 @@ namespace {
         SEED,
         TELL,
         PSDUMPFREQ,
-        // RDUMP,
         STATDUMPFREQ,
         PSDUMPEACHTURN,
         PSDUMPLOCALFRAME,
@@ -57,7 +56,6 @@ namespace {
         RHODUMP,
         EBDUMP,
 	CSRDUMP,
-        // EFDUMP,
         AUTOPHASE,
         PPDEBUG,
         SURFDUMPFREQ,
@@ -68,10 +66,9 @@ namespace {
         RNGTYPE,
         SCHOTTKYCORR,
         SCHOTTKYRENO,
-        // FINEEMISSION,
         ENABLEHDF5,
         ASCIIDUMP,
-        BOUNDPDESTROYFREQ,
+        BOUNDPDESTROYFQ,
         SIZE
     };
 }
@@ -96,8 +93,6 @@ Option::Option():
                     ("TELL", "If true, print the current settings", false);
     itsAttr[PSDUMPFREQ] = Attributes::makeReal
                           ("PSDUMPFREQ", "The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0, its default value is 10.");
-    // itsAttr[RDUMP] = Attributes::makeReal
-    //                  ("RDUMP", "Dump central beam when the radius is bigger than RDUMP");
     itsAttr[STATDUMPFREQ] = Attributes::makeReal
                             ("STATDUMPFREQ", "The frequency to dump statistical data (e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, its default value is 10.");
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool
@@ -128,9 +123,6 @@ Option::Option():
     itsAttr[CSRDUMP] = Attributes::makeBool
                        ("CSRDUMP", "If true, the csr E field, line density and the line density derivative is dumped into the data directory)", csrDump);
 
-    // itsAttr[EFDUMP] = Attributes::makeBool
-    //                   ("EFDUMP", "If true, in addition to the phase space the E vector field is also dumped (H5Block)", efDump);
-
     itsAttr[AUTOPHASE] = Attributes::makeReal
                          ("AUTOPHASE", "If greater than zero OPAL is scaning the phases of each rf structure in order to get maximum acceleration. Defines the number of refinements of the search range", autoPhase);
 
@@ -143,7 +135,7 @@ Option::Option():
                       ("CZERO", "If set to true a symmetric distribution is created -> centroid == 0.0 ", cZero);
 
     itsAttr[RNGTYPE] =  Attributes::makeString
-                        ("RNGTYPE", " RANDOM (default), Quasi-random number gernerators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
+                        ("RNGTYPE", "RANDOM (default), Quasi-random number gernerators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
 
     itsAttr[SCHOTTKYCORR] =  Attributes::makeBool
                                    ("SCHOTTKYCORR", "If set to true a Schottky correction to the charge is applied ", schottkyCorrection);
@@ -151,8 +143,6 @@ Option::Option():
     itsAttr[SCHOTTKYRENO] =  Attributes::makeReal
                                          ("SCHOTTKYRENO", "IF set to a value greater than 0.0 the Schottky correction scan is disabled and the value is used for charge renormalization ", schottkyRennormalization);
 
-    // itsAttr[FINEEMISSION] = Attributes::makeBool
-    //                         ("FINEEMISSION", "If true uses fine time step during particle emission from cathode.", fineEmission);
 
     itsAttr[NUMBLOCKS] = Attributes::makeReal
                           ("NUMBLOCKS", "Maximum number of vectors in the Krylov space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
@@ -167,8 +157,8 @@ Option::Option():
     itsAttr[ASCIIDUMP] = Attributes::makeBool
         ("ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", false);
 
-    itsAttr[BOUNDPDESTROYFREQ] = Attributes::makeReal
-                      ("BOUNDPDESTROYFREQ", "The frequency to do boundp_destroy to delete lost particles. Default value is 10.");
+    itsAttr[BOUNDPDESTROYFQ] = Attributes::makeReal
+      ("BOUNDPDESTROYFQ", "The frequency to do boundp_destroy to delete lost particles. Default 10",10.0);
 
     FileStream::setEcho(echo);
     rangen.init55(seed);
@@ -184,7 +174,6 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[WARN],       warn);
     Attributes::setReal(itsAttr[SEED],       seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
-    // Attributes::setReal(itsAttr[RDUMP], rDump);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
     Attributes::setBool(itsAttr[PSDUMPLOCALFRAME], psDumpLocalFrame);
@@ -198,7 +187,6 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
-    // Attributes::setBool(itsAttr[EFDUMP], efDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[PPDEBUG], ppdebug);
     Attributes::setReal(itsAttr[SURFDUMPFREQ], surfDumpFreq);
@@ -206,13 +194,12 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[SCHOTTKYCORR], schottkyCorrection);
     Attributes::setString(itsAttr[RNGTYPE], std::string(rngtype));
     Attributes::setReal(itsAttr[SCHOTTKYRENO], schottkyRennormalization);
-    // Attributes::setBool(itsAttr[FINEEMISSION], fineEmission);
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
     Attributes::setReal(itsAttr[RECYCLEBLOCKS], recycleBlocks);
     Attributes::setReal(itsAttr[NLHS], nLHS);
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
-    Attributes::setReal(itsAttr[BOUNDPDESTROYFREQ], boundpDestroyFreq);
+    Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], 10);
 }
 
 
@@ -238,7 +225,6 @@ void Option::execute() {
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
-    // efDump = Attributes::getBool(itsAttr[EFDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
 
@@ -257,10 +243,6 @@ void Option::execute() {
     if(itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
     }
-
-    // if(itsAttr[RDUMP]) {
-    //     rDump = double(Attributes::getReal(itsAttr[RDUMP]));
-    // }
 
     if(itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
@@ -330,19 +312,18 @@ void Option::execute() {
     } else {
         rngtype = std::string("RANDOM");
     }
-
-    // if(itsAttr[FINEEMISSION]) {
-    //     fineEmission = bool(Attributes::getBool(itsAttr[FINEEMISSION]));
-    // }
-
-    if(itsAttr[BOUNDPDESTROYFREQ]) {
-        boundpDestroyFreq = int(Attributes::getReal(itsAttr[BOUNDPDESTROYFREQ]));
+    
+    if(itsAttr[BOUNDPDESTROYFQ]) {
+        boundpDestroyFreq = int(Attributes::getReal(itsAttr[BOUNDPDESTROYFQ]));
+    }
+    else {
+      boundpDestroyFreq = 10;
     }
 
     // Set message flags.
     FileStream::setEcho(echo);
 
     if(Attributes::getBool(itsAttr[TELL])) {
-        *gmsg << "\nCurrent settings of options:\n" << *this << endl;
+    *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
 }
