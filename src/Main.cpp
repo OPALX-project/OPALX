@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
     hmsg << mySpace <<  "  \\____/|_| /_/    \\_\\______|" << endl;
 
 
-    *gmsg << endl << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION << " SVN version " << SVN_VERSION << "  (c) PSI, http://amas.web.psi.ch" << endl
+    *gmsg << endl << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION << "  (c) PSI, http://amas.web.psi.ch" << endl
           << endl;
     *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) to the OPAL developers " << PACKAGE_BUGREPORT << endl;
     *gmsg << "Time: " << timeStr << " date: " << dateStr << endl;
