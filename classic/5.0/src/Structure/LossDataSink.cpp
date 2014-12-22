@@ -91,16 +91,15 @@ void LossDataSink::writeHeaderH5() {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     /// in case of circular machines
-    if (time_m.size() != 0) {
-        rc = H5WriteFileAttribString(H5file_m, "turnUnit", "1");
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        rc = H5WriteFileAttribString(H5file_m, "timeUnit", "s");
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    if (hasTimeAttribute()) {
+      rc = H5WriteFileAttribString(H5file_m, "turnUnit", "1");
+      if(rc != H5_SUCCESS)
+	ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+      
+      rc = H5WriteFileAttribString(H5file_m, "timeUnit", "s");
+      if(rc != H5_SUCCESS)
+	ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     }
-
     rc = H5WriteFileAttribString(H5file_m, "SPOSUnit", "mm");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -154,7 +153,6 @@ void LossDataSink::save() {
 	saveH5();
 	H5CloseFile(H5file_m);
 	Ippl::Comm->barrier();
-
     }
     else {
 
@@ -197,12 +195,23 @@ bool LossDataSink::hasNoParticlesToDump() {
     return nLoc == 0;
 }
 
+bool LossDataSink::hasTimeAttribute() {
+
+    size_t tLoc = time_m.size();
+
+    reduce(tLoc, tLoc, OpAddAssign());
+
+    return tLoc != 0;
+}
+
+
+
+
+
 void LossDataSink::saveH5() {
     h5_int64_t rc;
 
     size_t nLoc = x_m.size();
-
-    INFOMSG("saveH5 n = " << nLoc << endl);
 
     std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
     double *farray = reinterpret_cast<double *>(varray.get());
@@ -270,18 +279,18 @@ void LossDataSink::saveH5() {
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
-    if (time_m.size() != 0) {
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] = time_m[i];
-        rc = H5PartWriteDataFloat64(H5file_m, "time", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            larray[i] =  turn_m[i];
-        rc = H5PartWriteDataInt64(H5file_m, "turn", larray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    if (hasTimeAttribute()) {
+      for(size_t i = 0; i < nLoc; i++)
+	farray[i] = time_m[i];
+      rc = H5PartWriteDataFloat64(H5file_m, "time", farray);
+      if(rc != H5_SUCCESS)
+	ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+      
+      for(size_t i = 0; i < nLoc; i++)
+	larray[i] =  turn_m[i];
+      rc = H5PartWriteDataInt64(H5file_m, "turn", larray);
+      if(rc != H5_SUCCESS)
+	ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     }
     H5call_m++;
 }
