@@ -63,11 +63,9 @@ private:
         }
     }
 
-    //bool hasNoParticlesToDump() {
-        //return x_m.size() == 0;
-    //}
-
     bool hasNoParticlesToDump();
+
+    bool hasTimeAttribute();
 
     void writeHeaderH5();
 
