@@ -24,7 +24,6 @@
 #include <fstream>
 #include <algorithm>
 
-//using Physics::c;
 using Physics::pi;
 using Physics::m_p;
 using Physics::m_e;
@@ -53,8 +52,6 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     time_m(0.0) {
     gsl_rng_env_setup();
     rGen_m = gsl_rng_alloc(gsl_rng_default);
-
-
 
     if(dynamic_cast<Collimator *>(element_ref_m)) {
         Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
@@ -407,6 +404,27 @@ void  CollimatorPhysics::Material() {
         A5_c = 5.376E-3;
     }
 
+    /*
+      needs to be checked !
+      
+      Z from http://journals.aps.org/prb/pdf/10.1103/PhysRevB.40.8530
+     */
+
+    if(material_m == "My") {
+        Z_m = 4.54;
+        A_m = 12.88;       
+        rho_m = 1.4;
+
+        X0_m = 9.8 / rho_m / 100;
+        I_m = 10 * Z_m;
+        n_m = rho_m / A_m * Avo;
+
+	A2_c = 1.0;
+        A3_c = 1.0;
+        A4_c = 1.0;
+        A5_c = 1.0;
+    }
+
 }
 
 /// Energy Loss:  using the Bethe-Bloch equation.
@@ -428,8 +446,6 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
     double deltasrho = deltas * 100 * rho_m;
     double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
     double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m)* deltas * 1E5);
-
-
 
     if ((Eng > 0.00001) && (Eng < 0.0006)) {
         double Ts = (Eng*1E6)/1.0073; // 1.0073 is the proton mass divided by the atomic mass number. T is in KeV
@@ -456,17 +472,15 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
     }
 
     //INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
-
     pdead = ((Eng<1E-4) || (dEdx>0));
-
-
 }
+
 // Implement the rotation in 2 dimensions here
 // For details: see J. Beringer et al. (Particle Data Group), Phys. Rev. D 86, 010001 (2012), "Passage of particles through matter"
 void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, double xplane, double normP, double thetacou, double deltas, int coord) {
     double Psixz;
     double pxz;
-// Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
+    // Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
     if (px>=0 && pz>=0) Psixz = atan(px/pz);
     else if (px>0 && pz<0)
 	Psixz = atan(px/pz) + Physics::pi;
@@ -475,7 +489,8 @@ void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, doubl
     else
 	Psixz = atan(px/pz) + Physics::pi;
 
-// Apply the rotation about the random angle thetacou & change from beam coordinate system to the lab coordinate system using Psixz (2 dimensions)
+    // Apply the rotation about the random angle thetacou & change from beam 
+    // coordinate system to the lab coordinate system using Psixz (2 dimensions)
     pxz = sqrt(px*px + pz*pz);
     if(coord==1) {
     	x = x + deltas * px/normP + xplane*cos(Psixz);
@@ -487,16 +502,10 @@ void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, doubl
 	}
     px = pxz*cos(Psixz)*sin(thetacou) + pxz*sin(Psixz)*cos(thetacou);
     pz = -pxz*sin(Psixz)*sin(thetacou) + pxz*cos(Psixz)*cos(thetacou);
-
 }
 
-void  CollimatorPhysics::CoulombScat()
-{}
-void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead)
-{}
-
-///Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
-///Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
+/// Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
+/// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
 //--------------------------------------------------------------------------
 void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
     Material();
@@ -507,7 +516,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
     double deltas = deltat * beta * Physics::c;
     double theta0 = 13.6e6 / (beta * sqrt(dot(P, P)) * m_p * 1e9) * z_p * sqrt(deltas / X0_m) * (1.0 + 0.038 * log(deltas / X0_m));
 
-// x-direction: See Physical Review, "Multiple Scattering"
+    // x-direction: See Physical Review, "Multiple Scattering"
     double z1 = gsl_ran_gaussian(rGen_m,1.0);
     double z2 = gsl_ran_gaussian(rGen_m,1.0);
     double thetacou = z2 * theta0;
@@ -522,7 +531,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
     Rot(P(0),P(2),R(0),R(2), xplane, normP, thetacou, deltas, coord);
 
 
-// Rutherford-scattering in x-direction
+    // Rutherford-scattering in x-direction
     if(collshape_m == "CCollimator")
         R = R * 1000.0;
 
@@ -537,7 +546,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
 	Rot(P(0),P(2),R(0),R(2), xplane, normP, thetaru, deltas, coord);
     }
 
-// y-direction: See Physical Review, "Multiple Scattering"
+    // y-direction: See Physical Review, "Multiple Scattering"
     z1 = gsl_ran_gaussian(rGen_m,1.0);
     z2 = gsl_ran_gaussian(rGen_m,1.0);
     thetacou = z2 * theta0;
@@ -566,85 +575,9 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
 	coord = 0; // no change in coordinates but one in momenta-direction
 	Rot(P(1),P(2),R(1),R(2), yplane, normP, thetaru, deltas, coord);
     }
-
 }
 
-/*
-void CollimatorPhysics::setCColimatorGeom() {
-
-    double slope;
-    if (xend_m == xstart_m)
-      slope = 1.0e12;
-    else
-      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
-
-    double coeff2 = sqrt(1 + slope * slope);
-    double coeff1 = slope / coeff2;
-    double halfdist = width_m / 2.0;
-    geom_m// [0].x = xstart_m - halfdist * coeff1;
-//     geom_m[0].y = ystart_m + halfdist / coeff2;
-
-//     geom_m[1].x = xstart_m + halfdist * coeff1;
-//     geom_m[1].y = ystart_m - halfdist / coeff2;
-
-//     geom_m[2].x = xend_m + halfdist * coeff1;
-//     geom_m[2].y = yend_m - halfdist  / coeff2;
-
-//     geom_m[3].x = xend_m - halfdist * coeff1;
-//     geom_m[3].y = yend_m + halfdist / coeff2;
-
-//     geom_m[4].x = geom_m[0].x;
-//     geom_m[4].y = geom_m[0].y;
-
-//     if (zstart_m > zend_m){
-//       double tempz = 0.0;
-//       tempz = zstart_m;
-//       zstart_m = zend_m;
-//       zend_m = tempz;
-//     }
-// }
-// */
-
-// /**
-//    Descr          Need to be elliminated
-//    @param[in]     _x coordinate of point (m)
-//    @param[in]     _y coordinate of point (m)
-//    @return        0 if particle is out, 1 if in
-
-
-// int CollimatorPhysics::checkPoint(const double &x, const double &y) {
-//     int    cn = 0;
-
-//     for(int i = 0; i < 4; i++) {
-//         if(((geom_m[i].y <= y) && (geom_m[i+1].y > y))
-//            || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
-
-//             float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
-//             if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
-//                 ++cn;
-//         }
-//     }
-//     return (cn & 1);
-// }
-// */
-
-// /**
-//    Descr          Need to be elliminated CColimator
-//    @param[in]     _R 3 vector of coordinates (m)
-//    @return        true if particle is in collimator
-
-// bool  CollimatorPhysics::checkInColl(Vector_t R)
-// {
-
-//   if(R(2) < zend_m && R(2) > zstart_m )
-//     return (checkPoint(R(0), R(1)) == 1 );
-//   else
-//     return false;
-
-// }
-// */
-
- void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
+void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
 
      bunch.createWithID(locParts_m[i].IDincol);
 

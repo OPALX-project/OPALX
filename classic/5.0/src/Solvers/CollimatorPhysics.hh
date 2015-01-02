@@ -38,25 +38,29 @@ typedef struct {
 class CollimatorPhysics: public SurfacePhysicsHandler {
 public:
     CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
+    ~CollimatorPhysics();
 
     void apply(PartBunch &bunch);
 
     virtual const std::string getType() const;
 
-    ~CollimatorPhysics();
-    void Material();
-    void EnergyLoss(double &Eng, bool &pdead);
-    void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
-    void CoulombScat();
-    void EnergyLoss(double &Eng, bool &pdead, double &deltat);
-
-    // Old Bi stuff
-    // void  Rot(Vector_t &P, Vector_t Prot, double normP);
-    // double Rot(double &p1, double &p2, double &scatang);
-    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P, double thetacou, double deltas, int coord);
-
+    void print(Inform& os);
+    bool stillActive() { return bunchToMatStat_m != 0;}
 
 private:
+
+    void Material();
+    void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
+    void EnergyLoss(double &Eng, bool &pdead, double &deltat);
+
+    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P, double thetacou, double deltas, int coord);
+
+    void copyFromBunch(PartBunch &bunch);
+    void addBackToBunch(PartBunch &bunch, unsigned i);
+    void deleteParticleFromLocalVector();
+
+    double dT_m;
+    int N_m;
 
     gsl_rng *rGen_m;
 
@@ -84,11 +88,6 @@ private:
     double Emax_m;
     double Emin_m;
 
-public:
-    double dT_m;
-    int N_m;
-
-private:
     bool incoll_m;
 
     double time_m;
@@ -97,16 +96,6 @@ private:
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    void copyFromBunch(PartBunch &bunch);
-
-    void addBackToBunch(PartBunch &bunch, unsigned i);
-
-    void deleteParticleFromLocalVector();
-
-public:
-    void print(Inform& os);
-
-    bool stillActive() { return bunchToMatStat_m != 0;}
 };
 
 #endif //COLLIMATORPHYSICS_HH
