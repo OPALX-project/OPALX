@@ -1010,16 +1010,17 @@ double PartBunch::get_sPos() {
         size_t numPrimBeamParts = 0;
         double z = 0.0;
         if(n != 0) {
-            for(size_t i = 0; i < n; i++) {
-                if(PType[i] == 0) {
-                    z += R[i](2);
-                    numPrimBeamParts++;
-                }
-            }
-            if(numPrimBeamParts != 0)
-                z = z / numPrimBeamParts;
+	  for(size_t i = 0; i < n; i++) {
+	    if(PType[i] == 0) {
+	      z += R[i](2);
+	      numPrimBeamParts++;
+	    }
+	  }
         }
         reduce(z, z, OpAddAssign());
+	reduce(numPrimBeamParts, numPrimBeamParts, OpAddAssign());
+	if(numPrimBeamParts != 0)
+	  z = z / numPrimBeamParts;
         return z;
     } else {
         const size_t n = getTotalNum();
