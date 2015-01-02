@@ -2812,26 +2812,8 @@ int PartBunch::GetLastEmittedEnergyBin() {
      * Get maximum last emitted energy bin.
      */
     int lastEmittedBin = dist_m->GetLastEmittedEnergyBin();
-    std::vector<int> emittedBins;
-    for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
-        if (nodeIndex == Ippl::myNode())
-            emittedBins.push_back(lastEmittedBin);
-        else
-            emittedBins.push_back(0);
-
-        reduce(emittedBins.at(nodeIndex), emittedBins.at(nodeIndex), OpAddAssign());
-    }
-
-    int maxEmittedBin = 0;
-    std::vector<int>::iterator binIt;
-    for (binIt = emittedBins.begin(); binIt != emittedBins.end(); binIt++) {
-        if (binIt == emittedBins.begin())
-            maxEmittedBin = *binIt;
-        else if (maxEmittedBin < *binIt)
-            maxEmittedBin = *binIt;
-    }
-
-    return maxEmittedBin;
+    reduce(lastEmittedBin, lastEmittedBin, OpMaxAssign());
+    return lastEmittedBin;
 }
 
 size_t PartBunch::GetNumberOfEmissionSteps() {
@@ -2839,6 +2821,7 @@ size_t PartBunch::GetNumberOfEmissionSteps() {
 }
 
 bool PartBunch::weHaveBins() const {
+
     if(pbin_m != NULL)
         return pbin_m->weHaveBins();
     else
