@@ -1020,9 +1020,6 @@ double PartBunch::get_sPos() {
                 z = z / numPrimBeamParts;
         }
         reduce(z, z, OpAddAssign());
-
-        z = z / Ippl::getNodes();
-
         return z;
     } else {
         const size_t n = getTotalNum();
