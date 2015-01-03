@@ -12,7 +12,8 @@
 #include "Solvers/SurfacePhysicsHandler.hh"
 #include "Algorithms/Vektor.h"
 #include "AbsBeamline/Component.h"
-
+#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/Degrader.h"
 #include <gsl/gsl_rng.h>
 
 class ElementBase;
@@ -59,8 +60,17 @@ private:
     void addBackToBunch(PartBunch &bunch, unsigned i);
     void deleteParticleFromLocalVector();
 
+    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll); 
+
+    inline void calcStat(double Eng) {
+      Eavg_m += Eng;
+      if (Emin_m > Eng)
+	Emin_m = Eng;
+      if (Emax_m < Eng)
+	Emax_m = Eng;
+    }
+
     double dT_m;
-    int N_m;
 
     gsl_rng *rGen_m;
 
@@ -87,10 +97,6 @@ private:
     double Eavg_m;
     double Emax_m;
     double Emin_m;
-
-    bool incoll_m;
-
-    double time_m;
 
     std::vector<PART> locParts_m;
 
