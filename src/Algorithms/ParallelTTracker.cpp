@@ -2358,23 +2358,18 @@ void ParallelTTracker::computeExternalFields() {
 	    sphys_m = sphysNew;
 	  }
 	}
-
         if(sphys_m == NULL) {
             INFOMSG("no surface physics attached" << endl);
         } else {
             sphys_m->apply(*itsBunch);
-            if (itsBunch->getTotalNum()>10)
-                sphys_m->print(msg);
+	    if (itsBunch->getTotalNum()>10)
+	      sphys_m->print(msg);
         }
     } else if(surfaceStatus_m) {
+      if (!sphys_m->stillActive()) {
         msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
         surfaceStatus_m = false;
-	/*
-		 if (sphys_m) {
-		 delete sphys_m;
-		 sphys_m = NULL;
-		 }
-	*/
+      }
     }
     size_t ne = 0;
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 10);
@@ -2382,16 +2377,17 @@ void ParallelTTracker::computeExternalFields() {
       ne = itsBunch->boundp_destroyT();
       numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
-
-    if (itsBunch->getTotalNum() > 10)
-        itsBunch->update();
-
+    
+    if (itsBunch->getTotalNum() >= 2)
+      itsBunch->update();
+    
+    /// indicate that all a node has only 2 particles
+    if(hasSurfacePhysics > 0)
+      sphys_m->AllParticlesIn(itsBunch->getLocalNum() <= 2);
+    
     if(ne > 0)
        msg << "* Deleted " << ne << " particles, "
 	   << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
-
-
-
 }
 
 void ParallelTTracker::handleBends() {
