@@ -115,6 +115,7 @@ PartBunch::PartBunch(const PartData *ref):
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
+    lowParticleCount_m(false),
     dcBeam_m(false) {
     addAttribute(X);
     addAttribute(P);
@@ -214,11 +215,11 @@ PartBunch::PartBunch(const PartBunch &rhs):
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
+    lowParticleCount_m(rhs.lowParticleCount_m),
     dcBeam_m(rhs.dcBeam_m) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
     std::exit(0);
 }
-
 
 PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     myNode_m(Ippl::myNode()),
@@ -277,7 +278,8 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
-    dcBeam_m(false) {
+    dcBeam_m(false),
+    lowParticleCount_m(false) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):" << endl);
 }
 
@@ -2387,11 +2389,13 @@ size_t PartBunch::boundp_destroyT() {
         }
     } else {
         for(unsigned int i = 0; i < this->getLocalNum(); i++) {
-            if(Bin[i] < 0) {
-                ne++;
-                this->destroy(1, i);
-            }
+	  if((Bin[i] < 0) && ((this->getLocalNum()-i)>1)) {   // need in minimum 1 particle per node
+	    ne++;
+	    this->destroy(1, i);
+	  }	      
         }
+	lowParticleCount_m = ((this->getLocalNum()-ne) <= 1);
+	reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
     }
     update();
     boundp();

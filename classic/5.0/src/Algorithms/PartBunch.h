@@ -393,6 +393,8 @@ public:
     void setStepsPerTurn(int n);
     int getStepsPerTurn() const;
 
+    inline bool hasLowParticleCount() {return lowParticleCount_m;}
+
     /// step in multiple TRACK commands
     inline void setGlobalTrackStep(long long n) {globalTrackStep_m = n;}
     inline long long getGlobalTrackStep() const {return globalTrackStep_m;}
@@ -501,6 +503,9 @@ public:
     /// for the Courant Shnider parameters
     Vector_t csBeta_m;
     Vector_t csAlpha_m;
+
+    /// if a local node has less than 2 particles  lowParticleCount_m == true
+    bool lowParticleCount_m;
 
 protected:
     /// timer for selfField calculation

@@ -48,6 +48,8 @@ public:
     void print(Inform& os);
     bool stillActive() { return bunchToMatStat_m != 0;}
 
+   inline double getTime() {return T_m;}
+
 private:
 
     void Material();
@@ -70,7 +72,11 @@ private:
 	Emax_m = Eng;
     }
 
-    double dT_m;
+    bool allParticlesIn_m;
+  
+    double  T_m;                     // own time, maybe larger than in the bunch object
+                                    
+    double dT_m;                     // dt from bunch
 
     gsl_rng *rGen_m;
 
