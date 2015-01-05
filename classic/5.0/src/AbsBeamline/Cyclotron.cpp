@@ -147,8 +147,12 @@ void Cyclotron::setRfFrequ(vector<double> f) {
     rffrequ_m = f;
 }
 
+double Cyclotron::getRfFrequ() const {
+  return rffrequ_m[0];
+}
+
 void Cyclotron::setSuperpose(std::vector<bool> flag) {
-    superpose_m = flag;
+  superpose_m = flag;
 }
 
 //bool Cyclotron::getSuperpose() const {

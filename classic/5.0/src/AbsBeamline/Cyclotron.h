@@ -142,6 +142,7 @@ public:
     void setRfPhi(std::vector<double> f);
 
     void setRfFrequ(std::vector<double> f);
+    double getRfFrequ() const;
 
     void setSymmetry(double symmetry);
     virtual double getSymmetry() const;
