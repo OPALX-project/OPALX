@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include <Ippl.h>
+
 #define MALLOC(n,a) ((a*)malloc((n)*sizeof(a)))
 
 /// Temporary class for comparison with reference program of Dr. Christian Baumgarten.
@@ -227,9 +229,9 @@ int MagneticField::ReadSectorMap(float** b,int nr,int nth,int nsc, std::string f
 	    if (!err) j++;
 	}
 	fclose(f);
-	if (!err) fprintf(stderr,"Sector map %s read in.\n",fname.c_str());
+	if (!err) INFOMSG("Sector map " << fname << " read in" << endl);
 	return j;
-    } else fprintf(stderr,"Error opening %s.\n",fname.c_str());
+    } else ERRORMSG("Can not open " << fname << endl);
     return 0;
 }
 

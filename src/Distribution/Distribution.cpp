@@ -159,6 +159,7 @@ namespace AttributesT
 		      MAXSTEPSCO,
 		      MAXSTEPSSI,
 		      ORDERMAPS,
+		      E2,
                       SIZE
     };
 }
@@ -1707,24 +1708,10 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
 
 void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV) {
 
-  /* ADA
-
+  /* 
     ToDo:
-
-    - fix M_m and wo
-
-    - if an energy range is specified, only calculate the tunes
-    - display tunes, r0, p0 etc.
-
+    - add flag in order to calculate tunes from FMLOWE to FMHIGHE 
     - eliminate physics and error
-
-      Note that you should use the following macros to access the Inform objects,
-      so that these messages may be left out at compile time:
-
-      INFOMSG("This is some information " << 34 << endl);
-      WARNMSG("This is a warning " << 34 << endl);
-      ERRORMSG("This is an error message " << 34 << endl);
-      DEBUGMSG("This is some debugging info " << 34 << endl);
    */
 
   std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
@@ -1756,17 +1743,27 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	    << " HN = "   << CyclotronElement->getCyclHarm()
 	    << " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
       *gmsg << "----------------------------------------------------" << endl;
-      
-      double wo = 8.44167E6*2.0*Physics::pi;     // where is 8.44167E6 comming from
-      double M_m = 1;                            // units?
 
+      const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
+
+      const double fmLowE  = CyclotronElement->getFMLowE();
+      const double fmHighE = CyclotronElement->getFMHighE();
+
+      if ((fmLowE>fmHighE) || (fmLowE<0) || (fmHighE<0)) {
+	ERRORMSG("FMHIGHE of FMLOWE not set propperly" << endl);
+	exit(1);
+      }
+      
       SigmaGenerator<double,unsigned int> siggen(I_m,
 						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 						 Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
 						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 						 wo,
 						 E_m*1E-6,
-						 CyclotronElement->getCyclHarm(),M_m,72,590,
+						 CyclotronElement->getCyclHarm(),
+						 massIneV*1E-6,
+						 fmLowE,
+						 fmHighE,
 						 CyclotronElement->getSymmetry(),
 						 Attributes::getReal(itsAttr[AttributesT::INTSTEPS]),
 						 Attributes::getString(itsAttr[AttributesT::FMAPFN]));
@@ -1778,9 +1775,9 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
 	for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
 	  for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
-	    *gmsg << std::setprecision(4)  << siggen.getSigma()(i,j) << "\t";
+	    INFOMSG(std::setprecision(4)  << siggen.getSigma()(i,j) << "\t");
 	  }
-	  *gmsg << endl;
+	  INFOMSG(endl);
 	}
 	
     /*
@@ -3902,23 +3899,20 @@ void Distribution::SetAttributes() {
       = Attributes::makeReal("ET", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
     itsAttr[AttributesT::INTSTEPS]
       = Attributes::makeReal("INTSTEPS", "Integration steps used to create matched distibution ", 1440);
-
-
+    itsAttr[AttributesT::E2]
+      = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
     itsAttr[AttributesT::RESIDUUM]
       = Attributes::makeReal("RESIDUUM", "Residuum for the closed orbit finder and sigma matrix generatro ", 1e-8);
-
     itsAttr[AttributesT::MAXSTEPSCO]
       = Attributes::makeReal("MAXSTEPSCO", "Maximum steps used to find closed orbit ", 100);
-
     itsAttr[AttributesT::MAXSTEPSSI]
       = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",1000);
-
     itsAttr[AttributesT::ORDERMAPS]
       = Attributes::makeReal("ORDERMAPS", "Oder used in the field expansion ", 7);
-
     itsAttr[AttributesT::FNAME]
             = Attributes::makeString("FNAME", "File for reading in 6D particle "
                                      "coordinates.", "");
+
 
     itsAttr[AttributesT::WRITETOFILE]
             = Attributes::makeBool("WRITETOFILE", "Write initial distribution to file.",
