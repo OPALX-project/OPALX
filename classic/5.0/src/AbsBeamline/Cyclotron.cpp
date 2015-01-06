@@ -69,7 +69,9 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
     maxz_m(right.maxz_m),
-    RFfilename_m(right.RFfilename_m) {
+    RFfilename_m(right.RFfilename_m),
+    fmLowE_m(right.fmLowE_m),
+    fmHighE_m(right.fmHighE_m) {
 }
 
 
@@ -267,6 +269,13 @@ void Cyclotron::setMaxZ(double z) {
 double Cyclotron::getMaxZ() const {
     return maxz_m;
 }
+
+void Cyclotron::setFMLowE(double e) { fmLowE_m = e;}
+double Cyclotron::getFMLowE() const { return fmLowE_m;}
+
+void Cyclotron::setFMHighE(double e) { fmHighE_m = e;}
+double Cyclotron::getFMHighE() const { return fmHighE_m;}
+
 
 bool Cyclotron::apply(const size_t &id, const double &t, double E[], double B[]) {
     Vector_t Ev(0, 0, 0), Bv(0, 0, 0);

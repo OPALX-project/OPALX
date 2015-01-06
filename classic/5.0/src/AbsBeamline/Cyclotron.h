@@ -192,6 +192,10 @@ public:
     void setMaxZ(double z);
     virtual double getMaxZ() const;
 
+    void setFMLowE(double e);
+    virtual double getFMLowE() const;
+    void setFMHighE(double e);
+    virtual double getFMHighE() const;
 
     virtual bool apply(const size_t &id, const double &t, double E[], double B[]);
 
@@ -242,6 +246,9 @@ private:
 
     double minz_m;
     double maxz_m;
+
+    double fmLowE_m;
+    double fmHighE_m;
 
     // Not implemented.
     void operator=(const Cyclotron &);

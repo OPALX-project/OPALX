@@ -55,6 +55,8 @@ public:
 	MAXZ,      // maximal vertical extend of the machine
 	MINR,      // minimal radial extend of the machine
 	MAXR,      // maximal radial extend of the machine
+	FMLOWE,    // minimal energy of the field map
+	FMHIGHE,   // maximal energy of the field map
         SIZE
     };
 

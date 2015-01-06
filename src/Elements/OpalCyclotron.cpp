@@ -103,6 +103,12 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "Boundary Geometry for the Cyclotron");
 
+    itsAttr[FMLOWE]     = Attributes::makeReal
+                        ("FMLOWE","Minimal Energy [MeV]  the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
+
+    itsAttr[FMHIGHE]     = Attributes::makeReal
+                        ("FMHIGHE","Maximal Energy [MeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
+
     registerStringAttribute("FMAPFN");
     registerStringAttribute("GEOMETRY");
     registerStringAttribute("RFMAPFN");
@@ -126,6 +132,8 @@ OpalCyclotron::OpalCyclotron():
     registerRealAttribute("MAXZ");
     registerRealAttribute("MINR");
     registerRealAttribute("MAXR");
+    registerRealAttribute("FMLOWE");
+    registerRealAttribute("FMHIGHE");
 
     setElement((new CyclotronRep("CYCLOTRON"))->makeAlignWrapper());
 }
@@ -180,6 +188,9 @@ void OpalCyclotron::update() {
     double minr = Attributes::getReal(itsAttr[MINR]);
     double maxr = Attributes::getReal(itsAttr[MAXR]);
 
+    double fmLowE = Attributes::getReal(itsAttr[FMLOWE]);
+    double fmHighE = Attributes::getReal(itsAttr[FMHIGHE]);
+
     cycl->setFieldMapFN(fmapfm);
     cycl->setSymmetry(symmetry);
 
@@ -203,6 +214,12 @@ void OpalCyclotron::update() {
     cycl->setMaxR(maxr);
     cycl->setMinZ(minz);
     cycl->setMaxZ(maxz);
+
+    cycl->setFMLowE(fmLowE);
+    cycl->setFMHighE(fmHighE);
+
+
+
 
     std::vector<std::string> fm_str = Attributes::getStringArray(itsAttr[RFMAPFN]);
     std::vector<double> scale_str = Attributes::getRealArray(itsAttr[ESCALE]);
