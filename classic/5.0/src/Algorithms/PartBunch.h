@@ -348,6 +348,9 @@ public:
 
     void gatherLoadBalanceStatistics();
     size_t getLoadBalance(int p) const;
+    size_t getMinLocalNum();
+
+
 
     void get_PBounds(Vector_t &min, Vector_t &max) const;
 
@@ -682,8 +685,10 @@ private:
       Data structure for particle load balance information
     */
 
-    std::unique_ptr<double[]> partPerNode_m;
-    std::unique_ptr<double[]> globalPartPerNode_m;
+    std::unique_ptr<size_t[]> partPerNode_m;
+    std::unique_ptr<size_t[]> globalPartPerNode_m;
+    size_t minLocNum_m;
+
 
     Distribution *dist_m;
 
@@ -1145,6 +1150,14 @@ double PartBunch::get_meshEnlargement() const {
 inline
 size_t PartBunch::getLoadBalance(int p) const {
     return globalPartPerNode_m[p];
+}
+
+inline 
+size_t PartBunch::getMinLocalNum() {
+/// Get the minimal number of particles per node
+  if (minLocNum_m < 0)
+    gatherLoadBalanceStatistics();
+  return minLocNum_m;
 }
 
 inline

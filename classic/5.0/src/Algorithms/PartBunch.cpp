@@ -116,7 +116,8 @@ PartBunch::PartBunch(const PartData *ref):
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
     lowParticleCount_m(false),
-    dcBeam_m(false) {
+    dcBeam_m(false),
+    minLocNum_m(0) {
     addAttribute(X);
     addAttribute(P);
     addAttribute(Q);
@@ -142,8 +143,8 @@ PartBunch::PartBunch(const PartData *ref):
     distrReload_m = IpplTimings::getTimer("LoadDistr");
 
 
-    partPerNode_m = std::unique_ptr<double[]>(new double[Ippl::getNodes()]);
-    globalPartPerNode_m = std::unique_ptr<double[]>(new double[Ippl::getNodes()]);
+    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
 
@@ -216,7 +217,8 @@ PartBunch::PartBunch(const PartBunch &rhs):
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
     lowParticleCount_m(rhs.lowParticleCount_m),
-    dcBeam_m(rhs.dcBeam_m) {
+    dcBeam_m(rhs.dcBeam_m),
+    minLocNum_m(rhs.minLocNum_m) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
     std::exit(0);
 }
@@ -279,7 +281,8 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
     dcBeam_m(false),
-    lowParticleCount_m(false) {
+    lowParticleCount_m(false),
+    minLocNum_m(0) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):" << endl);
 }
 
@@ -1797,15 +1800,19 @@ void PartBunch::beamEllipsoid(FVector<double, 6>   &centroid,
     }
 }
 
-
 void PartBunch::gatherLoadBalanceStatistics() {
-    for(int i = 0; i < Ippl::getNodes(); i++)
+   minLocNum_m =  std::numeric_limits<size_t>::max();
+    
+   for(int i = 0; i < Ippl::getNodes(); i++)
         partPerNode_m[i] = globalPartPerNode_m[i] = 0.0;
 
     partPerNode_m[Ippl::myNode()] = this->getLocalNum();
 
     reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
 
+    for(int i = 0; i < Ippl::getNodes(); i++)
+        if (globalPartPerNode_m[i] <  minLocNum_m)
+	    minLocNum_m = globalPartPerNode_m[i];
 }
 
 void PartBunch::calcMoments() {

@@ -2339,7 +2339,7 @@ void ParallelTTracker::computeExternalFields() {
         wakeStatus_m = false;
     }
 
-    if(hasSurfacePhysics > 0) {
+    if(hasSurfacePhysics > 0) { // ADA
         if(!surfaceStatus_m) {
             msg << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
@@ -2382,9 +2382,10 @@ void ParallelTTracker::computeExternalFields() {
       itsBunch->update();
     
     /// indicate that all a node has only 2 particles
-    if(hasSurfacePhysics > 0)
-      sphys_m->AllParticlesIn(itsBunch->getLocalNum() <= 2);
-    
+    if(hasSurfacePhysics > 0) {
+      itsBunch->gatherLoadBalanceStatistics();
+      sphys_m->AllParticlesIn(itsBunch->getMinLocalNum() <= 1);
+    }    
     if(ne > 0)
        msg << "* Deleted " << ne << " particles, "
 	   << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
