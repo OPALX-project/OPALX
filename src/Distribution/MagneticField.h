@@ -9,6 +9,11 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+
+#include "Utilities/LogicalError.h"
 
 #include <Ippl.h>
 
@@ -59,6 +64,18 @@ public:
    * @param sum is 0
    */
   static int ReadSectorMap(float**, int, int, int, std::string, double);
+
+  /// Reads the header of magnetic field from a file
+  /*!
+   * @param nr is the number of radial steps
+   * @param nth is the number of angle steps per sector
+   * @param rmin minimal radial position (m)
+   * @param dr radial step (m)
+   * @parame dth angle per theta step (rad)
+   * @param fname is the filename
+   */
+  static void ReadHeader(int*, int*, double*, double*, double*, int*, std::string);
+
   static void MakeNFoldSymmetric(float**, int, int, int, int);
   static float** malloc2df(int, int);
   
@@ -200,6 +217,32 @@ int MagneticField::interpolate1(double *bint,double *brint,double *btint,int ith
     return 0;
 }
 
+void MagneticField::ReadHeader(int *nr, int *nth, double *rmin, double *dr, double *dth, int *nsc, std::string fname){
+
+  std::ifstream fin(fname.c_str());
+
+  if (!fin || !fin.is_open()) {
+    throw(LogicalError(
+		       "SectorMagneticFieldMap::IO::ReadLines",
+		       "Failed to open file "+fname
+		       ));
+  }
+  double dthtmp;
+  fin >> *rmin;
+  *rmin /= 1000.0;
+  fin >> *dr;
+  *dr /= 1000.0;
+  fin >> *nsc;
+  fin >> dthtmp;
+  if (dthtmp<0.0)
+    *dth = -1.0/dthtmp;
+  else
+    *dth = dthtmp;
+  fin >> *nth;  
+  fin >> *nr;
+  fin.close();
+}
+
 // Sum=0: Read Field Map with nr,nth entries from file "fname" into array "b"
 // Sum=1: Add Field Map with nr,nth entries from file "fname" to array "b"
 // b=b[nth*nsc][nr];
@@ -211,7 +254,12 @@ int MagneticField::ReadSectorMap(float** b,int nr,int nth,int nsc, std::string f
     
     f = fopen(fname.c_str(),"r");
     if (f != NULL) {
-	j=0;
+
+        // overread the 6 header lines
+        for (int n=0; n<5; n++)
+          err=(fscanf(f,"%lf",&tmp)==EOF); 
+      
+        j=0;
 	while ((j<nr)&&(err==0)) {		// j: distance (radius)
 	    for (i=0;i<nth;i++) {		// i: angles
 		err=(fscanf(f,"%lf",&tmp)==EOF);
@@ -322,12 +370,14 @@ double MagneticField::norm360(double phi) {
 
 void MagneticField::MakeNFoldSymmetric(float** bmag, int N, int nr, int nth, int nsc) {
   double bav;
+  int nthpersec = nth/nsc;
+
   for (int i=0;i<nr;i++) {
-    for (int j=0;j<nth;j++) {
+    for (int j=0;j<nthpersec;j++) {
       bav=0.0;
-      for (int k=0;k<nsc;k++) bav+=bmag[(j+k*nth) % N][i];
+      for (int k=0;k<nsc;k++) bav+=bmag[(j+k*nthpersec) % N][i];
       bav/=(double)nsc;
-      for (int k=0;k<nsc;k++) bmag[(j+k*nth) % N][i]=bav;
+      for (int k=0;k<nsc;k++) bmag[(j+k*nthpersec) % N][i]=bav;
     }
   }
 }

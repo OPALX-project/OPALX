@@ -46,6 +46,8 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
+#include "MagneticField.h"
+
 extern Inform *gmsg;
 
 #define DISTDBG1
@@ -154,7 +156,6 @@ namespace AttributesT
 		      ET,
                       LINE,
 		      FMAPFN,
-		      INTSTEPS,
 		      RESIDUUM,
 		      MAXSTEPSCO,
 		      MAXSTEPSSI,
@@ -1740,8 +1741,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	    << " ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
 	    << " FMAPFN " << CyclotronElement->getFieldMapFN()
 	    << " FMSYM= " << CyclotronElement->getSymmetry()
-	    << " HN = "   << CyclotronElement->getCyclHarm()
-	    << " INTSTEPS = " << Attributes::getReal(itsAttr[AttributesT::INTSTEPS]) << endl;
+	    << " HN = "   << CyclotronElement->getCyclHarm() << endl;
       *gmsg << "----------------------------------------------------" << endl;
 
       const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
@@ -1753,7 +1753,13 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	ERRORMSG("FMHIGHE of FMLOWE not set propperly" << endl);
 	exit(1);
       }
-      
+     
+      int nr, nth, nsc;
+      double rmin, dr, dth;
+
+      MagneticField::ReadHeader(&nr, &nth, &rmin, &dr, &dth, &nsc, Attributes::getString(itsAttr[AttributesT::FMAPFN]));
+
+
       SigmaGenerator<double,unsigned int> siggen(I_m,
 						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 						 Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
@@ -1764,8 +1770,8 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 massIneV*1E-6,
 						 fmLowE,
 						 fmHighE,
-						 CyclotronElement->getSymmetry(),
-						 Attributes::getReal(itsAttr[AttributesT::INTSTEPS]),
+						 nsc,
+						 nth,
 						 Attributes::getString(itsAttr[AttributesT::FMAPFN]));
 
       if(siggen.match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
@@ -3897,8 +3903,6 @@ void Distribution::SetAttributes() {
       = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
     itsAttr[AttributesT::ET]
       = Attributes::makeReal("ET", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
-    itsAttr[AttributesT::INTSTEPS]
-      = Attributes::makeReal("INTSTEPS", "Integration steps used to create matched distibution ", 1440);
     itsAttr[AttributesT::E2]
       = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
     itsAttr[AttributesT::RESIDUUM]

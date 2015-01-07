@@ -25,7 +25,7 @@
 #include "physics.h"
 #include "physical_error.h"
 
-#include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
+#include "MagneticField.h"
 
 
 #include <fstream>
@@ -175,6 +175,10 @@ class ClosedOrbitFinder
         /// Location of magnetic field
         std::string fieldmap_m;
 
+	/// some proerties of the magnetic field map
+	int nr_m, nth_m, nsc_m;
+	double rmin_m, dr_m, dth_m;
+
         /// Defines the stepper for integration of the ODE's
         Stepper stepper_m;
 
@@ -291,11 +295,15 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      * a' = a = acon
      */
 
-    // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-    int nsc = 8, nr = 141, Nth = 1440, nth = 1440 / 8; value_type r0 = 1.8, dr = 0.02;
-    bmag_m = MagneticField::malloc2df(Nth,nr);
-    MagneticField::ReadSectorMap(bmag_m,nr,Nth,1,fieldmap_m,0.0);
-    MagneticField::MakeNFoldSymmetric(bmag_m,Nth,nr,nth,nsc);
+    // ada Injector 2  int nsc = 4, nr = 179, Nth = 144, nth = 144 / 4; value_type r0 = 0.24, dr = 0.02;
+
+    MagneticField::ReadHeader(&nr_m, &nth_m, &rmin_m, &dr_m, &dth_m, &nsc_m, fieldmap_m);
+    INFOMSG("Magnetic fiel map properties nr= " << nr_m << " nth= " << nth_m << " rmin= " << rmin_m << " dr= " << dr_m << " dth= " << dth_m << " nsc= " << nsc_m << endl);
+
+    bmag_m = MagneticField::malloc2df(nth_m,nr_m);
+    MagneticField::ReadSectorMap(bmag_m,nr_m,nth_m,1,fieldmap_m,0.0);
+
+    MagneticField::MakeNFoldSymmetric(bmag_m,nth_m,nr_m,nth_m,nsc_m);
     value_type bint, brint, btint;
 
     // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
@@ -343,7 +351,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nr,Nth,y[0],r0,dr,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nr_m,nth_m,y[0],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
 
@@ -535,8 +543,6 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
      * p. 6
      */
     
-    // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-    int nsc = 8, nr = 141/*, Nth = 1440*/, nth = 1440 / 8; value_type r0 = 1.8, dr = 0.02;
     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
 
     value_type invbcon = 1.0 / physics::bcon(wo_m);
@@ -553,7 +559,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180.0 / M_PI,nr,nth*nsc,r_m[i],r0,dr,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180.0 / M_PI,nr_m,nth_m,r_m[i],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -582,7 +588,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     vertOscDone_m = true;
 
     // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-    int /*nsc = 8,*/ nr = 141, Nth = 1440/*, nth = 1440/8*/; value_type r0 = 1.8, dr = 0.02;
+   
     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
 
     value_type en = E_m / physics::E0;                                  // en = E/E0 = E/(mc^2) with kinetic energy E0
@@ -607,7 +613,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nr,Nth,y[0],r0,dr,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nr_m,nth_m,y[0],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
