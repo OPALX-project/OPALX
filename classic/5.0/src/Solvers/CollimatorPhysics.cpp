@@ -213,13 +213,19 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       /*
 	delete absorbed particles
       */
-      deleteParticleFromLocalVector();
-      copyFromBunch(bunch);
       bunch.update();
+      
+      deleteParticleFromLocalVector();
+      
+      if (onlyOneLoopOverParticles) 
+	copyFromBunch(bunch);
+      
       T_m =+ dT_m;              // update local time 
 
-      if (onlyOneLoopOverParticles == false) {
+      if (!onlyOneLoopOverParticles) {
 	bunch.gatherLoadBalanceStatistics();
+	for(int i = 0; i < Ippl::getNodes(); i++)
+	  INFOMSG("T= " << T_m << " P= " << i << " npl= " << bunch.getLocalNum() << " npm= " << locParts_m.size() << " redifused = " << redifusedStat_m << endl);	
 	onlyOneLoopOverParticles = (bunch.getMinLocalNum() > 1);
       }
     } while (onlyOneLoopOverParticles == false);    
