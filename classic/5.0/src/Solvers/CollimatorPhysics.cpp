@@ -100,7 +100,8 @@ bool CollimatorPhysics::checkHit(Vector_t R, Vector_t P, double dt, Degrader *de
 }
 
 void CollimatorPhysics::apply(PartBunch &bunch) {
-    Inform m ("CollimatorPhysics::apply ");
+   
+   Inform m ("CollimatorPhysics::apply ");
     /*
       Particles that have entered material are flagged as Bin[i] == -1.
       Fixme: should use PType
@@ -118,18 +119,13 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     Emax_m = 0.0;
     Emin_m = 0.0;
     
+    bunchToMatStat_m  = 0;
+    redifusedStat_m   = 0;
+    stoppedPartStat_m = 0;
+
+    bool onlyOneLoopOverParticles = true;
+
     dT_m = bunch.getdT();
-
-    if (T_m > bunch.getT()) {
-      /*
-	In this case partciles in the material
-	have an other time than the particles in the
-	bunch and we have to integrate particles in the bunch.
-       */
-      m << "T_m > bunch.getT() " << T_m << "   "  << bunch.getT() << endl;
-      return;
-    }
-
     T_m  = bunch.getT();
 
     /*
@@ -146,7 +142,6 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         coll = dynamic_cast<Collimator *>(element_ref_m);
     }
 
-    bool onlyOneLoopOverParticles = true;
     if(allParticleInMat_m) {
       /*
 	WE ARE HERE because on one node only 1 particles,
@@ -156,11 +151,9 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	until on every node more than 2 partciles - out
 	of the material - exist.	
       */
-      // copyFromBunch(bunch);
       m << "All Particles are in the material ... " << endl;
       onlyOneLoopOverParticles = false;      
-    }
-    
+    }    
     do{
       for(unsigned int i = 0; i < locParts_m.size(); ++i) {
 	if(locParts_m[i].label != -1) {
@@ -203,31 +196,37 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	    if(collshape_m == "CCollimator") {
 	      R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
 	    } else {
-	      locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * Physics::c * P / sqrt( 1+ dot(P, P)) ;
+	      locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * Physics::c * P / sqrt(1.0+dot(P, P)) ;
 	      addBackToBunch(bunch, i);
 	      redifusedStat_m++;
 	    }
 	  }
 	}          
       }
+
       /*
-	delete absorbed particles
+	because we have particles going back from material to the bunch
       */
-      bunch.update();
-      
+      bunch.boundp();
+
+      /*
+	delete absorbed particles and particles that went to the bunch
+      */
       deleteParticleFromLocalVector();
       
+      /*
+	if we are not looping copy newly arrived particles
+       */
       if (onlyOneLoopOverParticles) 
 	copyFromBunch(bunch);
-      
+           
       T_m =+ dT_m;              // update local time 
-
+      
       if (!onlyOneLoopOverParticles) {
 	bunch.gatherLoadBalanceStatistics();
-	for(int i = 0; i < Ippl::getNodes(); i++)
-	  INFOMSG("T= " << T_m << " P= " << i << " npl= " << bunch.getLocalNum() << " npm= " << locParts_m.size() << " redifused = " << redifusedStat_m << endl);	
 	onlyOneLoopOverParticles = (bunch.getMinLocalNum() > 1);
-      }
+	//	m << "npl,npt= " << bunch.getLocalNum() << "," << bunch.getTotalNum() << " npm= " << locParts_m.size() << " redifused = " << redifusedStat_m << endl;	
+      }     
     } while (onlyOneLoopOverParticles == false);    
 }
 
@@ -365,8 +364,7 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
         const double epsilon_low = A2_c*pow(Ts,0.45);
         const double epsilon_high = (A3_c/Ts)*log(1+(A4_c/Ts)+(A5_c*Ts));
         const double epsilon = (epsilon_low*epsilon_high)/(epsilon_low + epsilon_high);
-        dEdx = - epsilon /(1E21*(A_m/Avo)); // Stopping_power is in MeV
-        // INFOMSG("stopping power: " << dEdx << " MeV" << endl);
+        dEdx = - epsilon /(1E21*(A_m/Avo)); // Stopping_power is in MeV INFOMSG("stopping power: " << dEdx << " MeV" << endl);
         const double delta_Eave = deltasrho * dEdx;
         const double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m,sigma_E);
         Eng = Eng + delta_E / 1E3;
@@ -507,11 +505,12 @@ void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
      bunch.Bf[bunch.getLocalNum()-1]          = locParts_m[i].Bfincol;
      bunch.Ef[bunch.getLocalNum()-1]          = locParts_m[i].Efincol;
      bunch.dt[bunch.getLocalNum()-1]          = locParts_m[i].DTincol;
+
      /*
-      This particle is back to the bunch, by set
-      ting the lable to -1.0
-      the particle will be deleted.
-    */
+       This particle is back to the bunch, by set
+       ting the lable to -1.0
+       the particle will be deleted.
+     */
     locParts_m[i].label = -1.0;
 }
 
@@ -541,9 +540,17 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 
 void CollimatorPhysics::print(Inform &msg){
   Inform::FmtFlags_t ff = msg.flags();
+
+  size_t locPartsInMat = locParts_m.size();
+
+  reduce(locPartsInMat,locPartsInMat, OpAddAssign());
+  reduce(bunchToMatStat_m,bunchToMatStat_m, OpAddAssign());
+  reduce(redifusedStat_m,redifusedStat_m, OpAddAssign());
+  reduce(stoppedPartStat_m,stoppedPartStat_m, OpAddAssign());
+
   msg << std::scientific;
   msg << "--- CollimatorPhysics - Type is " << collshape_m
-      << " Material " << material_m << " Particles in material " << locParts_m.size() << endl;
+      << " Material " << material_m << " Particles in material " << locPartsInMat << endl;
   msg << "Coll/Deg statistics: "
       << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
       << " stopped " << stoppedPartStat_m << endl;  

@@ -2339,11 +2339,14 @@ void ParallelTTracker::computeExternalFields() {
         wakeStatus_m = false;
     }
 
-    if(hasSurfacePhysics > 0) { // ADA
+    if(hasSurfacePhysics > 0) {    // in a section we have an element with surface physics
+
         if(!surfaceStatus_m) {
             msg << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
         }
+
+	// now get surphase physics handler
         reduce(sphysSection, sphysSection, OpMaxAssign());
 	if (sphys_m==NULL)
 	  sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
@@ -2358,19 +2361,25 @@ void ParallelTTracker::computeExternalFields() {
 	    sphys_m = sphysNew;
 	  }
 	}
+
         if(sphys_m == NULL) {
-            INFOMSG("no surface physics attached" << endl);
+	    INFOMSG("no surface physics attached" << endl);
         } else {
-            sphys_m->apply(*itsBunch);
-	    if (itsBunch->getTotalNum()>10)
-	      sphys_m->print(msg);
+	    sphys_m->apply(*itsBunch);
+	    sphys_m->print(msg);
         }
     } else if(surfaceStatus_m) {
-      if (!sphys_m->stillActive()) {
-        msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
-        surfaceStatus_m = false;
+      if (sphys_m->stillActive()) {
+	sphys_m->apply(*itsBunch);
+	msg << "Out of scope " << endl;
+	sphys_m->print(msg);
+      } else { 	
+	msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
+	surfaceStatus_m = false;
+	sphysSection = 0;
       }
     }
+    
     size_t ne = 0;
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 10);
     if(globPartOutOfBounds) {
