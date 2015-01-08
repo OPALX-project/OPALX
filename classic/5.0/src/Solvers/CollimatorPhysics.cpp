@@ -122,6 +122,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     bunchToMatStat_m  = 0;
     redifusedStat_m   = 0;
     stoppedPartStat_m = 0;
+    locPartsInMat_m   = 0;
 
     bool onlyOneLoopOverParticles = true;
 
@@ -540,22 +541,27 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 
 void CollimatorPhysics::print(Inform &msg){
   Inform::FmtFlags_t ff = msg.flags();
-
-  size_t locPartsInMat = locParts_m.size();
-
-  reduce(locPartsInMat,locPartsInMat, OpAddAssign());
+ 
+  // ToDo: need to move that to a statistics function
+  locPartsInMat_m = locParts_m.size();
+  reduce(locPartsInMat_m,locPartsInMat_m, OpAddAssign());
   reduce(bunchToMatStat_m,bunchToMatStat_m, OpAddAssign());
   reduce(redifusedStat_m,redifusedStat_m, OpAddAssign());
   reduce(stoppedPartStat_m,stoppedPartStat_m, OpAddAssign());
 
   msg << std::scientific;
   msg << "--- CollimatorPhysics - Type is " << collshape_m
-      << " Material " << material_m << " Particles in material " << locPartsInMat << endl;
+      << " Material " << material_m << " Particles in material " << locPartsInMat_m << endl;
   msg << "Coll/Deg statistics: "
       << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
       << " stopped " << stoppedPartStat_m << endl;  
   msg.flags(ff);
 }
+
+bool CollimatorPhysics::stillActive() { return locPartsInMat_m != 0;}
+
+
+
 
 bool myCompF(PART x, PART y) {
     return x.label > y.label;

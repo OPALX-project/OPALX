@@ -2271,6 +2271,7 @@ void ParallelTTracker::computeExternalFields() {
         const unsigned long rtv = itsOpalBeamline_m.getFieldAt(i, itsBunch->R[i], ls, itsBunch->getT() + itsBunch->dt[i] / 2., externalE, externalB);
 
         globalEOL_m = globalEOL_m && (rtv & BEAMLINE_EOL);
+
         if((rtv & BEAMLINE_WAKE) && hasWake == 0) {
             wfSection = ls;
             hasWake = 1;
@@ -2314,12 +2315,12 @@ void ParallelTTracker::computeExternalFields() {
         // xpang: start
         std::shared_ptr<const ElementBase> element = itsOpalBeamline_m.getWakeFunctionOwner(wfSection);
         if(dynamic_cast<CSRWakeFunction*>(wf))
-        {
-            if(dynamic_cast<const RBend*>(element.get()) || dynamic_cast<const SBend*>(element.get()))
-                wakeFunction_m = wf;
-            if(dynamic_cast<const Drift*>(element.get()))
-                wf = wakeFunction_m;
-        }
+            {
+                if(dynamic_cast<const RBend*>(element.get()) || dynamic_cast<const SBend*>(element.get()))
+                    wakeFunction_m = wf;
+                if(dynamic_cast<const Drift*>(element.get()))
+                    wf = wakeFunction_m;
+            }
         // xpang: end
         if(!wakeStatus_m) {
             msg << "============== START WAKE CALCULATION =============" << endl;
@@ -2340,63 +2341,61 @@ void ParallelTTracker::computeExternalFields() {
     }
 
     if(hasSurfacePhysics > 0) {    // in a section we have an element with surface physics
-
         if(!surfaceStatus_m) {
             msg << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
-        }
-
-	// now get surphase physics handler
-        reduce(sphysSection, sphysSection, OpMaxAssign());
-	if (sphys_m==NULL)
-	  sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
-	else {
-	  /*
-	   In case we have an other
-	     handler, delete the first one and use the new one
-	  */
-	  SurfacePhysicsHandler *sphysNew = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
-	  if (sphysNew != sphys_m && sphysNew != NULL) {
-	    //delete sphys_m; FixMe: should do this right!!!
-	    sphys_m = sphysNew;
-	  }
-	}
-
+        
+            // now get surface physics handler
+            reduce(sphysSection, sphysSection, OpMaxAssign());
+            if (sphys_m==NULL)
+                sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
+            else {  
+                /* FixMe: this needs to be redone !
+                In case we have an other
+                handler, delete the first one and use the new one
+                */
+                ERRORMSG("Internal error: try to allocate second SurfacePhysicsHandler - SRCFILE" << __FILE__ << " LINE " << __LINE__ << endl);
+                SurfacePhysicsHandler *sphysNew = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
+                if (sphysNew != sphys_m && sphysNew != NULL) {
+                    //delete sphys_m; FixMe: should do this right!!!
+                    sphys_m = sphysNew;
+                }
+            }
+        }   
         if(sphys_m == NULL) {
-	    INFOMSG("no surface physics attached" << endl);
+            INFOMSG("no surface physics attached" << endl);
         } else {
-	    sphys_m->apply(*itsBunch);
-	    sphys_m->print(msg);
+            sphys_m->apply(*itsBunch);
+            sphys_m->print(msg);
         }
     } else if(surfaceStatus_m) {
-      if (sphys_m->stillActive()) {
-	sphys_m->apply(*itsBunch);
-	msg << "Out of scope " << endl;
-	sphys_m->print(msg);
-      } else { 	
-	msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
-	surfaceStatus_m = false;
-	sphysSection = 0;
-      }
+        if (sphys_m->stillActive()) {
+            sphys_m->apply(*itsBunch);
+            sphys_m->print(msg);
+        } else { 	
+            msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
+            surfaceStatus_m = false;
+        }
     }
     
     size_t ne = 0;
-    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 10);
+    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 1);
     if(globPartOutOfBounds) {
-      ne = itsBunch->boundp_destroyT();
-      numParticlesInSimulation_m  = itsBunch->getTotalNum();
+        ne = itsBunch->boundp_destroyT();
+        numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
     
-    if (itsBunch->getTotalNum() >= 2)
-      itsBunch->update();
+    if (itsBunch->getTotalNum() > 1)
+        itsBunch->update();
     
-    /// indicate that all a node has only 2 particles
-    if(hasSurfacePhysics > 0) {
+    /// indicate at least one a node has only 1 particles
+    if(surfaceStatus_m) {
       itsBunch->gatherLoadBalanceStatistics();
       sphys_m->AllParticlesIn(itsBunch->getMinLocalNum() <= 1);
     }    
+
     if(ne > 0)
-       msg << "* Deleted " << ne << " particles, "
+        msg << "* Deleted " << ne << " particles, "
 	   << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
 }
 

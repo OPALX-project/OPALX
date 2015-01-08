@@ -33,8 +33,8 @@ OpalDegrader::OpalDegrader():
         ("XSIZE", "not used",0.0);
     itsAttr[YSIZE] = Attributes::makeReal
         ("YSIZE", "not used",0.0);
-    itsAttr[ZSIZE] = Attributes::makeReal
-        ("ZSIZE", "Thickness of the Degrader");
+//    itsAttr[ZSIZE] = Attributes::makeReal
+//        ("ZSIZE", "Thickness of the Degrader");
     itsAttr[OUTFN] = Attributes::makeString
         ("OUTFN", "Degrader output filename");
     itsAttr[DX] = Attributes::makeReal
@@ -43,7 +43,7 @@ OpalDegrader::OpalDegrader():
         ("DY", "not used",0.0);
 
     registerStringAttribute("OUTFN");
-    registerRealAttribute("ZSIZE");
+//    registerRealAttribute("ZSIZE");
 
     registerRealAttribute("DX");
     registerRealAttribute("DY");
@@ -78,19 +78,19 @@ void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag f
 
     double dx, dy, dz;
     deg->getMisalignment(dx, dy, dz);
-    attributeRegistry["ZSIZE"]->setReal(Attributes::getReal(itsAttr[ZSIZE]));
+//    attributeRegistry["ZSIZE"]->setReal(Attributes::getReal(itsAttr[ZSIZE]));
 }
 
 
 void OpalDegrader::update() {
 
-    double thick = Attributes::getReal(itsAttr[ZSIZE]);
+//    double thick = Attributes::getReal(itsAttr[ZSIZE]);
 
     DegraderRep *deg =
         dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
-    deg->setZSize(thick);
+    deg->setZSize(length);
 
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     deg->setMisalignment(0.0, 0.0, 0.0);

@@ -46,7 +46,7 @@ public:
     virtual const std::string getType() const;
 
     void print(Inform& os);
-    bool stillActive() { return bunchToMatStat_m != 0;}
+    bool stillActive();
 
    inline double getTime() {return T_m;}
 
@@ -97,6 +97,7 @@ private:
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
     unsigned redifusedStat_m;
+    size_t locPartsInMat_m;
 
     // some statistics
 
