@@ -1,5 +1,9 @@
 #include "opal.h"
 
+Ippl *ippl;
+Inform *gmsg;
+
+
 #include "AbstractObjects/OpalData.h"
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"

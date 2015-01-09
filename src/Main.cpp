@@ -21,6 +21,9 @@
 
 #include "opal.h"
 
+Ippl *ippl;
+Inform *gmsg;
+
 #include "H5hut.h"
 
 #include "AbstractObjects/OpalData.h"
