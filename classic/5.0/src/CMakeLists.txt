@@ -66,3 +66,5 @@ include_directories (
 )
 
 add_library( CLASSIC ${CLASSIC_SRCS} )
+install (TARGETS CLASSIC DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+install (FILES Utilities/ClassicException.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
