@@ -20,10 +20,20 @@
 //~ #endif
 
 #include "opal.h"
-#include "Ippl.h"
+
 #include "H5hut.h"
 
+#include "AbstractObjects/OpalData.h"
+#include "OpalConfigure/Configure.h"
+#include "OpalParser/OpalParser.h"
+#include "Parser/FileStream.h"
+#include "Parser/TerminalStream.h"
+#include "Utilities/Timer.h"
+#include "Fields/Fieldmap.hh"
 #include "FixedAlgebra/FTps.h"
+
+
+#include "config.h"
 
 #ifdef HAVE_AMR_SOLVER
 #include <ParallelDescriptor.H>

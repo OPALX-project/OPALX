@@ -1,5 +1,14 @@
 #include "opal.h"
+
+#include "AbstractObjects/OpalData.h"
+#include "OpalConfigure/Configure.h"
+#include "OpalParser/OpalParser.h"
+#include "Parser/FileStream.h"
 #include "Utilities/OpalException.h"
+#include "Fields/Fieldmap.hh"
+
+#include "config.h"
+
 
 int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm) {
 
