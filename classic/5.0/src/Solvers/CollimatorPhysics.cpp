@@ -221,7 +221,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       if (onlyOneLoopOverParticles) 
 	copyFromBunch(bunch);
            
-      T_m =+ dT_m;              // update local time 
+      T_m += dT_m;              // update local time 
       
       if (!onlyOneLoopOverParticles) {
 	bunch.gatherLoadBalanceStatistics();
@@ -240,7 +240,7 @@ const std::string CollimatorPhysics::getType() const {
 void  CollimatorPhysics::Material() {
 
     if(material_m == "Cu") {
-        Z_m = 29;
+        Z_m = 29.0;
         A_m = 63.546;
         rho_m = 8.96;
 
@@ -255,7 +255,7 @@ void  CollimatorPhysics::Material() {
     }
 
     if(material_m == "Be") {
-        Z_m = 4;
+        Z_m = 4.0;
         A_m = 9.012;
         rho_m = 1.848;
 
@@ -263,7 +263,7 @@ void  CollimatorPhysics::Material() {
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
 
-	A2_c = 2.590;
+        A2_c = 2.590;
         A3_c = 9.660E2;
         A4_c = 1.538E2;
         A5_c =3.475E-2;
@@ -271,7 +271,7 @@ void  CollimatorPhysics::Material() {
     }
 
     if(material_m == "Graphite") {
-        Z_m = 6;
+        Z_m = 6.0;
         A_m = 12.0107;
         rho_m = 2.210;
 
@@ -279,7 +279,7 @@ void  CollimatorPhysics::Material() {
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
 
-	A2_c = 2.601;
+        A2_c = 2.601;
         A3_c = 1.701E3;
         A4_c = 1.279E3;
         A5_c = 1.638E-2;
@@ -287,7 +287,7 @@ void  CollimatorPhysics::Material() {
     }
 
     if(material_m == "GraphiteR6710") {
-        Z_m = 6;
+        Z_m = 6.0;
         A_m = 12.0107;
         rho_m = 1.88;
 
@@ -295,7 +295,7 @@ void  CollimatorPhysics::Material() {
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
 
-	A2_c = 2.601;
+        A2_c = 2.601;
         A3_c = 1.701E3;
         A4_c = 1.279E3;
         A5_c = 1.638E-2;
@@ -303,7 +303,7 @@ void  CollimatorPhysics::Material() {
     }
 
     if(material_m == "Mo") {
-        Z_m = 42;
+        Z_m = 42.0;
         A_m = 95.94;
         rho_m = 10.22;
 
@@ -311,7 +311,7 @@ void  CollimatorPhysics::Material() {
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
 
-	A2_c = 7.248;
+        A2_c = 7.248;
         A3_c = 9.545E3;
         A4_c = 4.802E2;
         A5_c = 5.376E-3;
@@ -332,7 +332,7 @@ void  CollimatorPhysics::Material() {
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
 
-	A2_c = 1.0;
+        A2_c = 1.0;
         A3_c = 1.0;
         A4_c = 1.0;
         A5_c = 1.0;

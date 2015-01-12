@@ -83,7 +83,7 @@ private:
     std::string material_m;
     std::string FN_m;
     std::string collshape_m;
-    int Z_m;
+    double Z_m;
     double A_m;
     double A2_c;
     double A3_c;
