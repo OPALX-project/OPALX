@@ -2095,7 +2095,10 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
     itsBunch->switchOffUnitlessPositions(true);
 
-    fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
+    //std::fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        itsBunch->dt[i] = itsBunch->getdT();
+    }
 
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
@@ -2149,7 +2152,10 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
         itsBunch->X[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
     }
 
-    fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
+    //fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        itsBunch->dt[i] = itsBunch->getdT();
+    }
 
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
