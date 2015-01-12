@@ -31,7 +31,17 @@ MESSAGE (STATUS "Found IPPL include dir: ${IPPL_INCLUDE_DIR}")
 FIND_PACKAGE (H5Hut REQUIRED)
 FIND_PACKAGE (HDF5 REQUIRED)
 FIND_PACKAGE (GSL REQUIRED)
-FIND_PACKAGE (MPI REQUIRED)
+
+set(BOOST_ROOT $ENV{BOOST_DIR})
+set(Boost_USE_STATIC_LIBS ON)
+set(BOOST_NO_SYSTEM_PATHS TRUE)
+set(BOOST_INCLUDEDIR $ENV{BOOST_DIR})
+set(BOOST_LIBRARYDIR $ENV{BOOST_DIR}}/lib)
+find_package (Boost REQUIRED)
+if (Boost_INCLUDE_DIRS)
+    message (STATUS "Found boost include dir: ${Boost_INCLUDE_DIR}")
+    include_directories (${Boost_INCLUDE_DIRS})
+endif ()
 
 # Handle options
 OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
