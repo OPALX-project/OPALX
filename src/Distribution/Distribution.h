@@ -422,10 +422,10 @@ private:
     // Cyclotron stuff
     double referencePr_m;
     double referencePt_m;
-    double referencePz_m = 0.0;
+    double referencePz_m;
     double referenceR_m;
     double referenceTheta_m;
-    double referenceZ_m = 0.0;
+    double referenceZ_m;
     double bega_m;
     
     // Cyclotron for restart in local mode

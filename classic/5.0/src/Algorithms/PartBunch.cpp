@@ -115,6 +115,8 @@ PartBunch::PartBunch(const PartData *ref):
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     lowParticleCount_m(false),
     dcBeam_m(false),
     minLocNum_m(0) {
@@ -216,6 +218,8 @@ PartBunch::PartBunch(const PartBunch &rhs):
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     lowParticleCount_m(rhs.lowParticleCount_m),
     dcBeam_m(rhs.dcBeam_m),
     minLocNum_m(rhs.minLocNum_m) {
@@ -280,6 +284,8 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     dcBeam_m(false),
     lowParticleCount_m(false),
     minLocNum_m(0) {

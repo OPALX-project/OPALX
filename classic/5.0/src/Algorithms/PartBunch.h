@@ -569,8 +569,10 @@ private:
     /// Initialize the translation vector and rotation quaternion
     /// here. Cyclotron tracker will reset these values each timestep
     /// TTracker can just use 0 translation and 0 rotation (quat[1 0 0 0]).
-    Vector_t globalMeanR_m = Vector_t(0.0, 0.0, 0.0);
-    Quaternion_t globalToLocalQuaternion_m = Quaternion_t(1.0, 0.0, 0.0, 0.0);
+    //Vector_t globalMeanR_m = Vector_t(0.0, 0.0, 0.0);
+    //Quaternion_t globalToLocalQuaternion_m = Quaternion_t(1.0, 0.0, 0.0, 0.0);
+    Vector_t globalMeanR_m;
+    Quaternion_t globalToLocalQuaternion_m;
 
     /// maximal extend of particles
     Vector_t rmax_m;
