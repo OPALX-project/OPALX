@@ -11,7 +11,6 @@ IF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 ENDIF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 
 MESSAGE (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
-MESSAGE (STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 
 # Select flags.
 SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
@@ -21,7 +20,30 @@ SET (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 # Resolve all library dependencies
 SET (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
-FIND_PACKAGE (MPI REQUIRED)
+find_package (MPI REQUIRED)
+message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
+message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
+message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
+message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
+
+# compiler dependent flags
+if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
+    add_definitions (-diag-disable 383 -diag-disable 981)
+    
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    add_definitions (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
+    
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
+	message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
+
+    elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
+	add_definitions (-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11)
+    endif ()
+else ()
+    message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
+endif ()
+
 
 FIND_PACKAGE (IPPL REQUIRED HINTS $ENV{IPPL_PREFIX} $ENV{IPPL_DIR} $ENV{IPPL})
 MESSAGE (STATUS "Found IPPL library: ${IPPL_LIBRARY}")
@@ -93,7 +115,7 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
     message (STATUS "      Trilinos libraries: ${Trilinos_LIBRARIES}")
     message (STATUS "      Trilinos TPL libraries: ${Trilinos_TPL_LIBRARIES}")
 
-    if (NOT ${CMAKE_CXX_COMPILER} STREQUAL ${Trilinos_CXX_COMPILER} )
+    if (NOT ${MPI_CXX_COMPILER} STREQUAL ${Trilinos_CXX_COMPILER} )
         message (STATUS "Compiler mismatch:")
         message (STATUS "        Trilinos was compiled with:")
         message (STATUS "            ${Trilinos_C_COMPILER}")
@@ -103,6 +125,7 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
         message (STATUS "            ${CMAKE_C_COMPILER}")
         message (STATUS "            ${CMAKE_CXX_COMPILER}")
         message (STATUS "            ${CMAKE_Fortran_COMPILER}")
+        message (FATAL  "")
     endif ()
 endif ()
 
@@ -140,26 +163,6 @@ IF (NO_FIELD_ASSIGN_OPTIMIZATION)
         "-DdontOPTIMIZE_FIELD_ASSIGNMENT ${CMAKE_CXX_FLAGS}"
 	)
 ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
-
-# compiler dependent flags
-message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
-message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
-if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
-    add_definitions (-diag-disable 383 -diag-disable 981)
-    
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    add_definitions (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
-    
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
-	message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
-
-    elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
-	add_definitions (-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11)
-    endif ()
-else ()
-    message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
-endif ()
 
 INCLUDE(FindSubversion)
 IF(Subversion_SVN_EXECUTABLE)
