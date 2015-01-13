@@ -3,12 +3,11 @@ PROJECT (OPAL)
 SET (OPAL_VERSION_MAJOR 1)
 SET (OPAL_VERSION_MINOR 3.0)
 
-
 IF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     SET (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
         "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
         FORCE
-    )
+	)
 ENDIF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 
 MESSAGE (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
@@ -54,32 +53,32 @@ OPTION (NOCPLUSPLUS11_NULLPTR "Disable C++11 nullptr support" OFF)
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
 if (ENABLE_AMR_SOLVER)
-   message (STATUS "----> Enable AMR")
+    message (STATUS "----> Enable AMR")
 
-   find_package (CCSE REQUIRED HINTS $ENV{CCSE_INCLUDE_DIRS} $ENV{CCSE_LIBRARY_DIR})
-   include ($ENV{BOXLIB_HOME}/Tools/CMake/CCSEOptions.cmake)
+    find_package (CCSE REQUIRED HINTS $ENV{CCSE_INCLUDE_DIRS} $ENV{CCSE_LIBRARY_DIR})
+    include ($ENV{BOXLIB_HOME}/Tools/CMake/CCSEOptions.cmake)
 
-   set (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
-   set (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
-   set (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
-   set (BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
-   set (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
-   set (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
-   set (ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")
-   set (CMAKE_CXX_FLAGS "-Wno-sign-compare -DHAVE_AMR_SOLVER -DTULIN ${CMAKE_CXX_FLAGS}")
-   set (CCSE_INCLUDE_DIRS $ENV{CCSE_INCLUDE_DIRS})
-   set (CCSE_LIBRARY_DIR $ENV{CCSE_LIBRARY_DIR})
+    set (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
+    set (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
+    set (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
+    set (BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
+    set (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
+    set (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
+    set (ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")
+    set (CMAKE_CXX_FLAGS "-Wno-sign-compare -DHAVE_AMR_SOLVER -DTULIN ${CMAKE_CXX_FLAGS}")
+    set (CCSE_INCLUDE_DIRS $ENV{CCSE_INCLUDE_DIRS})
+    set (CCSE_LIBRARY_DIR $ENV{CCSE_LIBRARY_DIR})
 
-   set(CCSE_LIBRARIES box_camrdata;cboxlib;cfboxlib;fboxlib)
-   foreach (L ${CCSE_LIBRARIES})
-            find_library(CCSE_LIBRARY
-                         NAMES ${L}
-                         HINTS ${CCSE_LIBRARY_DIR}
-                         NO_DEFAULT_PATH)
+    set(CCSE_LIBRARIES box_camrdata;cboxlib;cfboxlib;fboxlib)
+    foreach (L ${CCSE_LIBRARIES})
+        find_library(CCSE_LIBRARY
+            NAMES ${L}
+            HINTS ${CCSE_LIBRARY_DIR}
+            NO_DEFAULT_PATH)
 
-            if ( NOT CCSE_LIBRARY )
-                message(SEND_ERROR "Cannot locate CCSE library: ${L}")
-            endif()
+        if ( NOT CCSE_LIBRARY )
+            message(SEND_ERROR "Cannot locate CCSE library: ${L}")
+        endif()
 
     endforeach()
     message (STATUS "----> Enable AMR done")
@@ -108,58 +107,58 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
 endif ()
 
 IF (DBG_SCALARFIELD)
-   MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
-   SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
+    MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
+    SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
 ENDIF (DBG_SCALARFIELD)
 
 IF (DBG_STENCIL)
-   MESSAGE (STATUS "\nWrite stencil is enabled ")
-   SET (CMAKE_CXX_FLAGS "-DDBG_STENCIL ${CMAKE_CXX_FLAGS}")
+    MESSAGE (STATUS "\nWrite stencil is enabled ")
+    SET (CMAKE_CXX_FLAGS "-DDBG_STENCIL ${CMAKE_CXX_FLAGS}")
 ENDIF (DBG_STENCIL)
 
 IF (BUILD_LIBOPAL)
-   MESSAGE (STATUS "\nBuilding OPAL library")
+    MESSAGE (STATUS "\nBuilding OPAL library")
 ENDIF (BUILD_LIBOPAL)
 
 IF (NOCPLUSPLUS11_FOREACH)
     MESSAGE (STATUS "\nBuilding OPAL without c++11 foreach support")
     SET (CMAKE_CXX_FLAGS
         "-DOPAL_NOCPLUSPLUS11_FOREACH ${CMAKE_CXX_FLAGS}"
-    )
+	)
 ENDIF (NOCPLUSPLUS11_FOREACH)
 
 IF (NOCPLUSPLUS11_NULLPTR)
     MESSAGE (STATUS "\nBuilding OPAL without c++11 nullptr support")
     SET (CMAKE_CXX_FLAGS
         "-DOPAL_NOCPLUSPLUS11_NULLPTR ${CMAKE_CXX_FLAGS}"
-    )
+	)
 ENDIF (NOCPLUSPLUS11_NULLPTR)
 
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE (STATUS "\nCompiler will not try to optimize field assignment")
     SET (CMAKE_CXX_FLAGS
         "-DdontOPTIMIZE_FIELD_ASSIGNMENT ${CMAKE_CXX_FLAGS}"
-    )
+	)
 ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
 
 # compiler dependent flags
 message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
 message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
-  add_definitions (-diag-disable 383 -diag-disable 981)
-  
+    add_definitions (-diag-disable 383 -diag-disable 981)
+    
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-  add_definitions (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
-  
+    add_definitions (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
+    
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-  if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
-    message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
+    if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
+	message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
 
-  elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
-    add_definitions (-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11)
-  endif ()
+    elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
+	add_definitions (-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11)
+    endif ()
 else ()
-  message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
+    message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
 endif ()
 
 INCLUDE(FindSubversion)
