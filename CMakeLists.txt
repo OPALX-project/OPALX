@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED (VERSION 2.8.10)
 PROJECT (OPAL)
 SET (OPAL_VERSION_MAJOR 1)
 SET (OPAL_VERSION_MINOR 3.0)
@@ -143,69 +143,24 @@ IF (NO_FIELD_ASSIGN_OPTIMIZATION)
 ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
 
 # compiler dependent flags
+message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
+message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
+if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
+  add_definitions (-diag-disable 383 -diag-disable 981)
+  
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  add_definitions (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
+  
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+  if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
+    message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
 
-SET (MPI_UNDERLYING_COMPILER "")
-
-EXECUTE_PROCESS (COMMAND ${CMAKE_CXX_COMPILER} -show
-                OUTPUT_VARIABLE MPI_COMPILER_OUTPUT
-                ERROR_VARIABLE MPI_COMPILER_ERROR)
-IF ("${MPI_COMPILER_ERROR}" STREQUAL "")
-    STRING (REGEX REPLACE "([A-Za-z.0-9/]*) .*$" "\\1" MPI_UNDERLYING_COMPILER ${MPI_COMPILER_OUTPUT})
-    STRING (REGEX REPLACE "/" ";" MPI_UNDERLYING_COMPILER_SPLIT ${MPI_UNDERLYING_COMPILER})
-    LIST (REVERSE MPI_UNDERLYING_COMPILER_SPLIT)
-    LIST (GET MPI_UNDERLYING_COMPILER_SPLIT 0 MPI_UNDERLYING_COMPILER_NAME)
-ENDIF ("${MPI_COMPILER_ERROR}" STREQUAL "")
-
-IF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "icpc")
-    # using intel compiler
-    MESSAGE (STATUS "The underlying compiler is: icpc")
-    SET (CMAKE_CXX_FLAGS
-         "-diag-disable 383 -diag-disable 981 $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
-
-ELSEIF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "clang++")
-    # using clang compiler
-    MESSAGE (STATUS "The underlying compiler is: clang++")
-    SET (CMAKE_CXX_FLAGS
-         "-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
-
-ELSEIF ("${MPI_UNDERLYING_COMPILER_NAME}" STREQUAL "g++")
-    # using gnu compiler
-    MESSAGE (STATUS "The underlying compiler is: g++")
-    EXECUTE_PROCESS (COMMAND ${MPI_UNDERLYING_COMPILER} --version
-                    OUTPUT_VARIABLE GCC_VERSION_OUTPUT
-                    ERROR_VARIABLE GCC_VERSION_ERROR)
-    STRING (REGEX REPLACE ".*([0-9]\\.[0-9]\\.[0-9]).*" "\\1" GCC_VERSION ${GCC_VERSION_OUTPUT})
-    MESSAGE (STATUS "Your gcc version is: ${GCC_VERSION}")
-
-    IF (${GCC_VERSION} VERSION_LESS "4.5.0")
-        MESSAGE (FATAL_ERROR "To build OPAL you need gcc version 4.5.0 or greater")
-
-    ELSEIF (${GCC_VERSION} VERSION_LESS "4.6.0")
-        SET (CMAKE_CXX_FLAGS
-             "-DOPAL_NOCPLUSPLUS11_NULLPTR -DOPAL_NOCPLUSPLUS11_FOREACH $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
-
-    ELSEIF (${GCC_VERSION} VERSION_LESS "4.7.0")
-        SET (CMAKE_CXX_FLAGS
-    	"-Wall -Werror -Wno-reorder -std=c++0x $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
-
-    ELSEIF (${GCC_VERSION} VERSION_EQUAL "4.7.0")
-        SET (CMAKE_CXX_FLAGS
-            "-DdontOPTIMIZE_FIELD_ASSIGNMENT $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
-
-    ELSEIF (${GCC_VERSION} VERSION_GREATER "4.7")
-        SET (CMAKE_CXX_FLAGS
-        "-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11 $ENV{CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${OTHER_CMAKE_CXX_FLAGS}")
-    ENDIF ()
-
-ELSE ()
-    # using unknown compiler
-    MESSAGE (STATUS "${CMAKE_CXX_COMPILER} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of!
-             Please use the gnu compiler or the intel compiler IF you are having problems.")
-ENDIF ()
-
-
-MESSAGE (STATUS "Compiling with ${CMAKE_CXX_FLAGS}")
-
+  elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
+    add_definitions (-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11)
+  endif ()
+else ()
+  message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
+endif ()
 
 INCLUDE(FindSubversion)
 IF(Subversion_SVN_EXECUTABLE)
