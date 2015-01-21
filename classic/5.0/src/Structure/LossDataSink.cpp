@@ -68,13 +68,13 @@ void LossDataSink::writeHeaderH5() {
     rc = H5WriteFileAttribString(H5file_m, "tUnit", "s");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "xUnit", "mm");
+    rc = H5WriteFileAttribString(H5file_m, "xUnit", "m");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "yUnit", "mm");
+    rc = H5WriteFileAttribString(H5file_m, "yUnit", "m");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "zUnit", "mm");
+    rc = H5WriteFileAttribString(H5file_m, "zUnit", "m");
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     rc = H5WriteFileAttribString(H5file_m, "pxUnit", "#beta#gamma");
