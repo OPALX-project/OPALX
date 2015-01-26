@@ -81,7 +81,7 @@ class SigmaGenerator
          * @param N is the number of angle splits
          * @param fieldmap is the location of the file that specifies the magnetic field
          */
-        SigmaGenerator(value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, size_type, size_type, const std::string&, bool);
+        SigmaGenerator(value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, size_type, size_type, const std::string&, bool = true);
 
         /// Searches for a matched distribution. Returns "true" if a matched distribution within the accuracy could be found, returns "false" otherwise
         /*!
@@ -169,7 +169,7 @@ class SigmaGenerator
          * @param ravg is the average radius of the closed orbit
          */
         void initialize(value_type, value_type);
-        
+
         /// Reduces the 6x6 matrix to a 4x4 matrix (for more explanations consider the source code comments)
         template<class matrix>
             void reduce(matrix&);
@@ -185,7 +185,7 @@ class SigmaGenerator
          * @param invR is the inverse transformation matrix
          */
         matrix_type updateInitialSigma(const matrix_type&, const vector_type&, sparse_matrix_type&, sparse_matrix_type&);
-        
+
         /// Computes new sigma matrices (one for each angle)
         /*!
          * Mscs is a vector of all space charge maps
@@ -199,7 +199,7 @@ class SigmaGenerator
          * @param newS is the new sigma matrix
          */
         value_type L2ErrorNorm(const matrix_type&, const matrix_type&);
-        
+
         /// Transforms a floating point value to a string
         /*!
          * @param val is the floating point value which is transformed to a string
@@ -212,8 +212,8 @@ class SigmaGenerator
 // -----------------------------------------------------------------------------------------------------------------------
 
 template<typename Value_type, typename Size_type>
-SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez, value_type wo, 
-        value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSymmetry, size_type N, const std::string& fieldmap, bool write=true)
+SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez, value_type wo,
+        value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSymmetry, size_type N, const std::string& fieldmap, bool write)
 : I_m(I), wo_m(wo), E_m(E),
   gamma_m(E/physics::E0+1.0), gamma2_m(gamma_m*gamma_m),
   nh_m(nh), beta_m(std::sqrt(1.0-1.0/gamma2_m)), m_m(m), niterations_m(0), converged_m(false),
@@ -252,87 +252,87 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
     container_type fidx = cof.getFieldIndex();
     std::pair<value_type,value_type> tunes = cof.getTunes();    // tunes = {nur, nuz}
     value_type ravg = cof.getAverageRadius();                   // average radius
-    
-    
+
+
     // write properties to file (if write_m = true)
-    if (write_m) {        
+    if (write_m) {
         // write tunes
         std::ofstream writeTunes("data/Tunes.dat", std::ios::app);
-        
+
         if(writeTunes.tellp() == 0) // if nothing yet written --> write description
             writeTunes << "energy [MeV]" << std::setw(15) << "nur" << std::setw(25) << "nuz" << std::endl;
-        
+
         writeTunes << E_m << std::setw(30) << std::setprecision(10) << tunes.first << std::setw(25) << tunes.second << std::endl;
-        
+
         // write average radius
         std::ofstream writeAvgRadius("data/AverageRadius.dat", std::ios::app);
-        
+
         if(writeAvgRadius.tellp() == 0) // if nothing yet written --> write description
             writeAvgRadius << "energy [MeV]" << std::setw(15) << "avg. radius [m]" << std::endl;
-        
+
         writeAvgRadius << E_m << std::setw(25) << std::setprecision(10) << ravg << std::endl;
-        
+
         // write frequency error
         std::ofstream writePhase("data/FrequencyError.dat",std::ios::app);
-        
+
         if(writePhase.tellp() == 0) // if nothing yet written --> write description
             writePhase << "energy [MeV]" << std::setw(15) << "freq. error" << std::endl;
-        
+
         writePhase << E_m << std::setw(30) << std::setprecision(10) << cof.getPhase() << std::endl;
-        
+
         // write other properties
         std::string energy = float2string(E_m);
         std::ofstream writeProperties("data/orbit/PropertiesForEnergy.dat"+energy+"MeV.dat", std::ios::app);
         writeProperties << std::left << std::setw(25) << "orbit radius" << std::setw(25);
         writeProperties << "inverse bending radius" << std::setw(25) << "field index";
         writeProperties << std::setw(25) << "path length" << std::endl;
-        
+
         for (size_type i = 0; i < r.size(); ++i) {
             writeProperties << std::setprecision(10) << std::left << std::setw(25) << r[i];
             writeProperties << std::setw(25) << h[i] << std::setw(25) << fidx[i] << std::setw(25) <<  ds[i] << std::endl;
         }
-        
+
         // close all files within this if-statement
         writeTunes.close();
         writeAvgRadius.close();
         writePhase.close();
         writeProperties.close();
     }
-    
+
     // initialize sigma matrices (for each angle one) (first guess)
     initialize(tunes.second,cof.getAverageRadius());
-    
+
     // object for space charge map and cyclotron map
     MapGenerator<value_type, size_type> mapgen(nSector_m,I_m,gamma_m,wo_m,nh_m,m_m);
 
     // compute cyclotron map and space charge map for each angle and store them into a vector
     std::vector<typename MapGenerator<value_type, size_type>::matrix_type> Mcycs(nSector_m), Mscs(nSector_m);
-    
+
     // for writing
     std::ofstream writeMturn, writeMcyc, writeMsc;
-    
+
     if (write_m) {
-        
+
         std::string energy = float2string(E_m);
-        
+
         writeMturn.open("data/maps/OneTurnMapForEnergy"+energy+"MeV.dat",std::ios::app);
         writeMsc.open("data/maps/SpaceChargeMapPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
         writeMcyc.open("data/maps/CyclotronMapPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
-        
+
         writeMturn << "--------------------------------" << std::endl;
         writeMturn << "Iteration: 0 " << std::endl;
         writeMturn << "--------------------------------" << std::endl;
-        
+
         writeMsc << "--------------------------------" << std::endl;
         writeMsc << "Iteration: 0 " << std::endl;
         writeMsc << "--------------------------------" << std::endl;
     }
-    
+
     // calculate only for a single sector (a nSymmetry_-th) of the whole cyclotron
     for (size_type i = 0; i < nSector_m; ++i) {
         Mcycs[i] = mapgen.generateMcyc(h[i],fidx[i],ds[i],order);
         Mscs[i] = mapgen.generateMsc(sigmas_m[i],ds[i]);
-        
+
         if (write_m) {
             writeMcyc << Mcycs[i] << std::endl;
             writeMsc << Mscs[i] << std::endl;
@@ -342,7 +342,7 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
     // one turn matrix
     mapgen.combine(Mscs,Mcycs);
     matrix_type Mturn = mapgen.getMap();
-    
+
     if (write_m)
         writeMturn << Mturn << std::endl;
 
@@ -351,10 +351,10 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
 
     // eigenvalues
     vector_type eigen(4);
-    
+
     // new initial sigma matrix
     matrix_type newSigma(6,6);
-    
+
     // for exiting loop
     bool stop = false;
 
@@ -367,26 +367,26 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
 
         // construct new initial sigma-matrix
         newSigma = updateInitialSigma(Mturn,eigen,R,invR);
-        
+
         // compute new sigma matrices for all angles (except for initial sigma)
         updateSigma(Mscs,Mcycs);
 
         // compute error
         error = L2ErrorNorm(sigmas_m[0],newSigma);
-        
+
         // write new initial sigma-matrix into vector
         sigmas_m[0] = newSigma;
-        
+
         if (write_m) {
             writeMsc << "--------------------------------" << std::endl;
             writeMsc << "Iteration: " << niterations_m + 1 << std::endl;
             writeMsc << "--------------------------------" << std::endl;
         }
-        
+
         // compute new space charge maps
         for (size_type i = 0; i < nSector_m; ++i) {
             Mscs[i] = mapgen.generateMsc(sigmas_m[i],ds[i]);
-            
+
             if (write_m)
                 writeMsc << Mscs[i] << std::endl;
         }
@@ -394,7 +394,7 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
         // construct new one turn transfer matrix M
         mapgen.combine(Mscs,Mcycs);
         Mturn = mapgen.getMap();
-        
+
         if (write_m) {
             writeMturn << "--------------------------------" << std::endl;
             writeMturn << "Iteration: " << niterations_m + 1 << std::endl;
@@ -412,20 +412,20 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
 
     // returns if the sigma matrix has converged
     converged_m = error < accuracy;
-    
+
     // Close files
     if (write_m) {
         writeMturn.close();
         writeMsc.close();
         writeMcyc.close();
     }
-    
+
     return converged_m;
 }
 
 template<typename Value_type, typename Size_type>
 typename SigmaGenerator<Value_type, Size_type>::vector_type SigmaGenerator<Value_type, Size_type>::decouple(const matrix_type& Mturn, sparse_matrix_type& R,
-        sparse_matrix_type& invR) {  
+        sparse_matrix_type& invR) {
     // copy one turn matrix
     matrix_type M(Mturn);
 
@@ -441,13 +441,13 @@ typename SigmaGenerator<Value_type, Size_type>::vector_type SigmaGenerator<Value
     /*
      * formula (38) in paper of Dr. Christian Baumgarten:
      * Geometrical method of decoupling
-     * 
+     *
      * 		[0, 	alpha, 	0, 	0;
      * F_{d} =	-beta, 	0, 	0, 	0;
      * 		0, 	0, 	0, 	gamma;
      * 		0, 	0, 	-delta,	0]
-     * 
-     * 
+     *
+     *
      */
     vector_type eigen(4);
     eigen(0) =   Ms(0,1);       // alpha
@@ -501,7 +501,7 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
      * [beta] = 1
      * [gamma] = 1
      * [m] = kg
-     * 
+     *
      * [lam] = m
      * [K3] = m
      * [alpha] = 10^{3}/(pi*mrad)
@@ -542,10 +542,10 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     value_type lam = 2.0 * M_PI * physics::c / (wo_m * nh_m); // wavelength, [lam] = m
     value_type K3 = 3.0 * physics::q0 * I_m * lam / (20.0 * std::sqrt(5.0) * M_PI * physics::eps0 * m *
                     physics::c * physics::c * physics::c * beta_m * beta_m * gamma2_m * gamma_m);               // [K3] = m
-    
+
     value_type alpha = physics::q0 * physics::mu0 * I_m / (5.0 * std::sqrt(10.0) * m * physics::c *
                        gamma_m * nh_m) * std::sqrt(rcyc * rcyc * rcyc / (e * e * e));                           // [alpha] = 1/rad --> [alpha] = 1
-                       
+
     value_type sig0 = std::sqrt(2.0 * rcyc * e) / gamma_m;                                                      // [sig0] = m*sqrt(rad) --> [sig0] = m
 
     // formula (56)
@@ -561,11 +561,11 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     // K = Kx = Ky = Kz
     value_type K = K3 * gamma_m / (3.0 * sig * sig * sig);   // formula (46), [K] = 1/m^{2}
     value_type kx = h * h * gamma2_m;                        // formula (46) (assumption of an isochronous cyclotron), [kx] = 1/m^{2}
-    
+
     value_type a = 0.5 * kx - K;    // formula (22) (with K = Kx = Kz), [a] = 1/m^{2}
     value_type b = K * K;           // formula (22) (with K = Kx = Kz and kx = h^2*gamma^2), [b] = 1/m^{4}
-    
-    
+
+
     // b must be positive, otherwise no real-valued frequency
     if (b < 0)
         PhysicalError::message("SigmaGenerator::initialize()",PhysicalError::negative);
@@ -573,9 +573,9 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     value_type tmp = a * a - b;           // [tmp] = 1/m^{4}
     if (tmp < 0)
         PhysicalError::message("SigmaGenerator::initialize()", PhysicalError::negative);
-    
+
     tmp = std::sqrt(tmp);               // [tmp] = 1/m^{2}
-    
+
     if (a < tmp)
         PhysicalError::message("SigmaGenerator::initialize()", PhysicalError::negative);
 
@@ -585,7 +585,7 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     value_type A = h / (Omega * Omega + K);           // formula (26), [A] = m
     value_type B = h / (omega * omega + K);           // formula (26), [B] = m
     value_type invAB = 1.0 / (B - A);                 // [invAB] = 1/m
-    
+
     // construct initial sigma-matrix (formula (29, 30, 31)
     // Remark: We multiply with 10^{6} (= mega) to convert emittances back.
     // 1 m^{2} = 10^{6} mm^{2}
@@ -597,13 +597,13 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     sigma(2,2) = sigma(3,3) = invAB * ey / (std::sqrt(h * h * nuz * nuz - K)) * mega;   // formula (31), [sigma(2,2)] = [sigma(3,3)] = m rad * 10^{6} = mm mrad
     sigma(4,4) = invAB * (A * ex * Omega + B * ez * omega) / (K * gamma2_m) * mega;     // [sigma(4,4)] = m^{2} rad * 10^{6} = mm^{2} rad = mm mrad
     sigma(5,5) = invAB * (ex / (B * Omega) + ez / (A * omega)) * mega;                  // formula (30), [sigma(5,5)] = rad * 10^{6} = mrad (and promille)
-    
+
     // fill in initial guess of the sigma matrix (for each angle the same guess)
     sigmas_m.resize(nSector_m);
     for (typename std::vector<matrix_type>::iterator it = sigmas_m.begin(); it != sigmas_m.end(); ++it) {
         *it = sigma;
     }
-    
+
     if (write_m) {
         std::string energy = float2string(E_m);
         std::ofstream writeInit("data/maps/InitialSigmaPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
@@ -616,7 +616,7 @@ template<typename Value_type, typename Size_type>
 template<class matrix>
 void SigmaGenerator<Value_type, Size_type>::reduce(matrix& M) {
     /* The 6x6 matrix gets reduced to a 4x4 matrix in the following way:
-     * 
+     *
      * a11 a12 a13 a14 a15 a16
      * a21 a22 a23 a24 a25 a26          a11 a12 a15 a16
      * a31 a32 a33 a34 a35 a36  -->     a21 a22 a25 a26
@@ -650,10 +650,10 @@ template<typename Value_type, typename Size_type>
 template<class matrix>
 void SigmaGenerator<Value_type, Size_type>::expand(matrix& M) {
     /* The 4x4 matrix gets expanded to a 6x6 matrix in the following way:
-     * 
+     *
      *                          a11 a12 0 0 a13 a14
      * a11 a12 a13 a14          a21 a22 0 0 a23 a24
-     * a21 a22 a23 a24  -->     0   0   1 0 0   0 
+     * a21 a22 a23 a24  -->     0   0   1 0 0   0
      * a31 a32 a33 a34          0   0   0 1 0   0
      * a41 a42 a43 a44          a31 a32 0 0 a33 a34
      *                          a41 a42 0 0 a43 a44
@@ -716,37 +716,37 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
      * eigen(1) 0        0        0
      * 0        0        0        eigen(2)
      * 0        0        eigen(3) 0
-     * 
+     *
      * M = cos(mux)*[1, 0; 0, 1] + sin(mux)*[alpha, beta; -gamma, -alpha], Book, p. 242
-     * 
+     *
      * -----------------------------------------------------------------------------------
      * X-DIRECTION and Z-DIRECTION
      * -----------------------------------------------------------------------------------
      * --> eigen(0) = sin(mux)*betax
      * --> eigen(1) = -gammax*sin(mux)
-     * 
+     *
      * What is sin(mux)?   --> alphax = 0 --> -alphax^2+betax*gammax = betax*gammax = 1
-     * 
+     *
      * Convention: betax > 0
-     * 
+     *
      * 1) betax = 1/gammax
      * 2) eig0 = sin(mux)*betax
      * 3) eig1 = -gammax*sin(mux)
-     * 
+     *
      * eig0 = sin(mux)/gammax
      * eig1 = -gammax*sin(mux) <--> 1/gammax = -sin(mux)/eig1
-     * 
+     *
      * eig0 = -sin(mux)^2/eig1 --> -sin(mux)^2 = eig0*eig1      --> sin(mux) = sqrt(-eig0*eig1)
      *                                                          --> gammax = -eig1/sin(mux)
      *                                                          --> betax = eig0/sin(mux)
      */
-    
-    
+
+
     // x-direction
     value_type alphax = 0.0;
     value_type betax  = std::sqrt(std::fabs(eigen(0) / eigen(1)));
     value_type gammax = 1.0 / betax;
-    
+
     // z-direction
     value_type alphaz = 0.0;
     value_type betaz  = std::sqrt(std::fabs(eigen(2) / eigen(3)));
@@ -756,26 +756,26 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
      * -----------------------------------------------------------------------------------
      * Y-DIRECTION
      * -----------------------------------------------------------------------------------
-     * 
+     *
      * m22 m23
      * m32 m33
-     * 
+     *
      * m22 = cos(muy) + alpha*sin(muy)
      * m33 = cos(muy) - alpha*sin(muy)
-     * 
+     *
      * --> cos(muy) = 0.5*(m22 + m33)
      *     sin(muy) = sign(m32)*sqrt(1-cos(muy)^2)
-     * 
+     *
      * m22-m33 = 2*alpha*sin(muy) --> alpha = 0.5*(m22-m33)/sin(muy)
-     * 
+     *
      * m23 = betay*sin(muy)     --> betay = m23/sin(muy)
      * m32 = -gammay*sin(muy)   --> gammay = -m32/sin(muy)
      */
 
     value_type cosy = 0.5 * (M(2,2) + M(3,3));
-    
+
     value_type invsiny = matt::sign(M(2,3)) / std::sqrt(std::fabs( 1.0 - cosy * cosy));
-    
+
     value_type alphay = 0.5 * (M(2,2) - M(3,3)) * invsiny;
     value_type betay  =   M(2,3) * invsiny;
     value_type gammay = - M(3,2) * invsiny;
@@ -783,7 +783,7 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
     // Convention beta>0
     if (std::signbit(betay))    // singbit = true if beta<0, else false
         betay  *= -1.0;
-    
+
     // diagonal matrix with eigenvalues
     matrix_type D = boost::numeric::ublas::zero_matrix<value_type>(6,6);
     // x-direction
@@ -811,44 +811,44 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
     // sigma = -R*D*R^{-1}*S
     matrix_type sigma = matt_boost::gemmm<matrix_type>(-invR,D,R);
     sigma = boost::numeric::ublas::prod(sigma,S);
-    
+
     if (write_m) {
         std::string energy = float2string(E_m);
         std::ofstream writeSigma("data/maps/SigmaPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
-    
+
         writeSigma << "--------------------------------" << std::endl;
         writeSigma << "Iteration: " << niterations_m + 1 << std::endl;
         writeSigma << "--------------------------------" << std::endl;
-    
+
         writeSigma << sigma << std::endl;
         writeSigma.close();
     }
-    
+
     return sigma;
 }
 
 template<typename Value_type, typename Size_type>
 void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix_type>& Mscs, const std::vector<matrix_type>& Mcycs) {
     matrix_type M = boost::numeric::ublas::matrix<value_type>(6,6);
-    
+
     std::ofstream writeSigma;
-    
+
     if (write_m) {
         std::string energy = float2string(E_m);
         writeSigma.open("data/maps/SigmaPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
     }
-    
+
     // initial sigma is already computed
     for (size_type i = 1; i < nSector_m; ++i) {
         // transfer matrix for one angle
         M = boost::numeric::ublas::prod(Mscs[i - 1],Mcycs[i - 1]);
         // transfer the matrix sigma
         sigmas_m[i] = matt_boost::gemmm<matrix_type>(M,sigmas_m[i - 1],boost::numeric::ublas::trans(M));
-        
+
         if (write_m)
             writeSigma << sigmas_m[i] << std::endl;
     }
-    
+
     if (write_m) {
         writeSigma << std::endl;
         writeSigma.close();
@@ -856,7 +856,7 @@ void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix
 }
 
 template<typename Value_type, typename Size_type>
-typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_type, Size_type>::L2ErrorNorm(const matrix_type& oldS, const matrix_type& newS) {  
+typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_type, Size_type>::L2ErrorNorm(const matrix_type& oldS, const matrix_type& newS) {
     // compute difference
     matrix_type diff = newS - oldS;
 
