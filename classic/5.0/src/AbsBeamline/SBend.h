@@ -224,6 +224,14 @@ public:
     /// Set rotation about z axis in bend frame.
     void SetRotationAboutZ(double rotation);
 
+    void doReinitialize() {
+        reinitialize_m = true;
+    }
+
+    void doRecalcRefTraj() {
+        recalcRefTraj_m = true;
+    }
+
 private:
 
     // Not implemented.
@@ -395,7 +403,6 @@ private:
     double exitEdgeAngle_m;         /// Exit edge angle (radians.
     double cosExitAngle_m;
     double sinExitAngle_m;
-
 };
 
 #endif // CLASSIC_SBend_HH
