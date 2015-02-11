@@ -1288,6 +1288,20 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
 	}
     }
 
+    FieldList sbends = itsOpalBeamline_m.getElementByType("SBend");
+    for (FieldList::iterator it = sbends.begin(); it != sbends.end(); ++ it) {
+        SBend* bend = static_cast<SBend*>(it->getElement().get());
+        bend->doReinitialize();
+        bend->doRecalcRefTraj();
+    }
+
+    FieldList rbends = itsOpalBeamline_m.getElementByType("RBend");
+    for (FieldList::iterator it = rbends.begin(); it != rbends.end(); ++ it) {
+        RBend* bend = static_cast<RBend*>(it->getElement().get());
+        bend->doReinitialize();
+        bend->doRecalcRefTraj();
+    }
+
     localTrackSteps_m = maxStepsSave;
     scaleFactor_m = scaleFactorSave;
     itsBunch->setT(tSave);
@@ -2350,12 +2364,12 @@ void ParallelTTracker::computeExternalFields() {
         if(!surfaceStatus_m) {
             msg << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
-        
+
             // now get surface physics handler
             reduce(sphysSection, sphysSection, OpMaxAssign());
             if (sphys_m==NULL)
                 sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
-            else {  
+            else {
                 /* FixMe: this needs to be redone !
                 In case we have an other
                 handler, delete the first one and use the new one
@@ -2367,7 +2381,7 @@ void ParallelTTracker::computeExternalFields() {
                     sphys_m = sphysNew;
                 }
             }
-        }   
+        }
         if(sphys_m == NULL) {
             INFOMSG("no surface physics attached" << endl);
         } else {
@@ -2378,27 +2392,27 @@ void ParallelTTracker::computeExternalFields() {
         if (sphys_m->stillActive()) {
             sphys_m->apply(*itsBunch);
             sphys_m->print(msg);
-        } else { 	
+        } else {
             msg << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = false;
         }
     }
-    
+
     size_t ne = 0;
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 1);
     if(globPartOutOfBounds) {
         ne = itsBunch->boundp_destroyT();
         numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
-    
+
     if (itsBunch->getTotalNum() > 1)
         itsBunch->update();
-    
+
     /// indicate at least one a node has only 1 particles
     if(surfaceStatus_m) {
       itsBunch->gatherLoadBalanceStatistics();
       sphys_m->AllParticlesIn(itsBunch->getMinLocalNum() <= 1);
-    }    
+    }
 
     if(ne > 0)
         msg << "* Deleted " << ne << " particles, "
