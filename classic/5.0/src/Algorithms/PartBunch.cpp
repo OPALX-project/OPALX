@@ -844,12 +844,12 @@ void PartBunch::computeSelfFields(int binNumber) {
 #ifdef FIELDSTDOUT
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
-        int mx = (int)nr_m[0];
-        int mx2 = (int)nr_m[0] / 2;
-        int my = (int)nr_m[1];
-        int my2 = (int)nr_m[1] / 2;
-        int mz = (int)nr_m[2];
-        int mz2 = (int)nr_m[2] / 2;
+        //int mx = (int)nr_m[0];
+        //int mx2 = (int)nr_m[0] / 2;
+        //int my = (int)nr_m[1];
+        //int my2 = (int)nr_m[1] / 2;
+        //int mz = (int)nr_m[2];
+        //int mz2 = (int)nr_m[2] / 2;
 
         for (int i=0; i<mx; i++ )
 	    *gmsg << "Bin " << binNumber 
