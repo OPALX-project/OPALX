@@ -690,6 +690,11 @@ double PartBunch::getMaxdEBins() {
 void PartBunch::computeSelfFields(int binNumber) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
+    // Need to set mean R to shift geometry from file to account for beam movement
+    // No rotations necessary, i.e. quaternion stays default unit-quatertion
+    // TODO: Include transversal offsets here!
+    globalMeanR_m = Vector_t(0.0, 0.0, get_sPos());
+
     /// Set initial charge density to zero. Create image charge
     /// potential field.
     rho_m = 0.0;
@@ -757,6 +762,33 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// units.
         eg_m *= Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
 
+        // If desired write E-field and potential to terminal
+#ifdef FIELDSTDOUT
+        // Immediate debug output:
+        // Output potential and e-field along the x-, y-, and z-axes
+        int mx = (int)nr_m[0];
+        int mx2 = (int)nr_m[0] / 2;
+        int my = (int)nr_m[1];
+        int my2 = (int)nr_m[1] / 2;
+        int mz = (int)nr_m[2];
+        int mz2 = (int)nr_m[2] / 2;
+
+        for (int i=0; i<mx; i++ )
+	    *gmsg << "Bin " << binNumber 
+                  << ", Self Field along x axis E = " << eg_m[i][my2][mz2] 
+                  << ", Pot = " << rho_m[i][my2][mz2]  << endl;
+
+        for (int i=0; i<my; i++ )
+            *gmsg << "Bin " << binNumber 
+                  << ", Self Field along y axis E = " << eg_m[mx2][i][mz2] 
+                  << ", Pot = " << rho_m[mx2][i][mz2]  << endl;
+
+        for (int i=0; i<mz; i++ )
+            *gmsg << "Bin " << binNumber 
+                  << ", Self Field along z axis E = " << eg_m[mx2][my2][i] 
+                  << ", Pot = " << rho_m[mx2][my2][i]  << endl;
+#endif
+
         /// Interpolate electric field at particle positions.  We reuse the
         /// cached information about where the particles are relative to the
         /// field, since the particles have not moved since this the most recent
@@ -777,7 +809,6 @@ void PartBunch::computeSelfFields(int binNumber) {
         Bf(1) = Bf(1) + betaC * Eftmp(0);
 
         Ef += Eftmp;
-
 
         /// Now compute field due to image charge. This is done separately as the image charge
         /// is moving to -infinity (instead of +infinity) so the Lorentz transform is different.
@@ -809,6 +840,33 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// units.
         eg_m *= Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
 
+        // If desired write E-field and potential to terminal
+#ifdef FIELDSTDOUT
+        // Immediate debug output:
+        // Output potential and e-field along the x-, y-, and z-axes
+        int mx = (int)nr_m[0];
+        int mx2 = (int)nr_m[0] / 2;
+        int my = (int)nr_m[1];
+        int my2 = (int)nr_m[1] / 2;
+        int mz = (int)nr_m[2];
+        int mz2 = (int)nr_m[2] / 2;
+
+        for (int i=0; i<mx; i++ )
+	    *gmsg << "Bin " << binNumber 
+                  << ", Image Field along x axis E = " << eg_m[i][my2][mz2] 
+                  << ", Pot = " << rho_m[i][my2][mz2]  << endl;
+
+        for (int i=0; i<my; i++ )
+            *gmsg << "Bin " << binNumber 
+                  << ", Image Field along y axis E = " << eg_m[mx2][i][mz2] 
+                  << ", Pot = " << rho_m[mx2][i][mz2]  << endl;
+
+        for (int i=0; i<mz; i++ )
+            *gmsg << "Bin " << binNumber 
+                  << ", Image Field along z axis E = " << eg_m[mx2][my2][i] 
+                  << ", Pot = " << rho_m[mx2][my2][i]  << endl;
+#endif
+
         /// Interpolate electric field at particle positions.  We reuse the
         /// cached information about where the particles are relative to the
         /// field, since the particles have not moved since this the most recent
@@ -828,6 +886,7 @@ void PartBunch::computeSelfFields(int binNumber) {
         Bf(1) = Bf(1) - betaC * Eftmp(0);
 
         Ef += Eftmp;
+
     }
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
@@ -887,6 +946,11 @@ void PartBunch::computeSelfFields() {
     IpplTimings::startTimer(selfFieldTimer_m);
     rho_m = 0.0;
     eg_m = Vector_t(0.0);
+
+    // Need to set mean R to shift geometry from file to account for beam movement
+    // No rotations necessary, i.e. quaternion stays default unit-quatertion
+    // TODO: Include transversal offsets here!
+    globalMeanR_m = Vector_t(0.0, 0.0, get_sPos());
 
     if(fs_m->hasValidSolver()) {
         //use the mesh that is already set
@@ -991,18 +1055,23 @@ void PartBunch::computeSelfFields() {
 #ifdef FIELDSTDOUT
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
-        int m1 = (int)nr_m[0]-1;
-        int m2 = (int)nr_m[0]/2;
+        int mx = (int)nr_m[0];
+        int mx2 = (int)nr_m[0] / 2;
+        int my = (int)nr_m[1];
+        int my2 = (int)nr_m[1] / 2;
+        int mz = (int)nr_m[2];
+        int mz2 = (int)nr_m[2] / 2;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along x axis E = " << eg_m[i][m2][m2] << " Pot = " << rho_m[i][m2][m2]  << endl;
+        for (int i=0; i<mx; i++ )
+         *gmsg << "Field along x axis Ex = " << eg_m[i][my2][mz2] << " Pot = " << rho_m[i][my2][mz2]  << endl;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along y axis E = " << eg_m[m2][i][m2] << " Pot = " << rho_m[m2][i][m2]  << endl;
+        for (int i=0; i<my; i++ )
+         *gmsg << "Field along y axis Ey = " << eg_m[mx2][i][mz2] << " Pot = " << rho_m[mx2][i][mz2]  << endl;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
+        for (int i=0; i<mz; i++ )
+         *gmsg << "Field along z axis Ez = " << eg_m[mx2][my2][i] << " Pot = " << rho_m[mx2][my2][i]  << endl;
 #endif
+
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
         //ostringstream oss;
@@ -1252,17 +1321,21 @@ void PartBunch::computeSelfFields_cycl(double gamma,
 #ifdef FIELDSTDOUT
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
-        int m1 = (int)nr_m[0]-1;
-        int m2 = (int)nr_m[0]/2;
+        int mx = (int)nr_m[0];
+        int mx2 = (int)nr_m[0] / 2;
+        int my = (int)nr_m[1];
+        int my2 = (int)nr_m[1] / 2;
+        int mz = (int)nr_m[2];
+        int mz2 = (int)nr_m[2] / 2;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along x axis E = " << eg_m[i][m2][m2] << " Pot = " << rho_m[i][m2][m2]  << endl;
+        for (int i=0; i<mx; i++ )
+         *gmsg << "Field along x axis Ex = " << eg_m[i][my2][mz2] << " Pot = " << rho_m[i][my2][mz2]  << endl;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along y axis E = " << eg_m[m2][i][m2] << " Pot = " << rho_m[m2][i][m2]  << endl;
+        for (int i=0; i<my; i++ )
+         *gmsg << "Field along y axis Ey = " << eg_m[mx2][i][mz2] << " Pot = " << rho_m[mx2][i][mz2]  << endl;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
+        for (int i=0; i<mz; i++ )
+         *gmsg << "Field along z axis Ez = " << eg_m[mx2][my2][i] << " Pot = " << rho_m[mx2][my2][i]  << endl;
 #endif
 
 #ifdef DBG_SCALARFIELD
@@ -1439,24 +1512,31 @@ void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion
         /// only hr_scaled is! -DW
         eg_m *= Vector_t(gamma, 1.0 / gamma, gamma);
 
-        /*
+#ifdef FIELDSTDOUT
         // Immediate debug output:
         // Output potential and e-field along the x-, y-, and z-axes
+        int mx = (int)nr_m[0];
+        int mx2 = (int)nr_m[0] / 2;
+        int my = (int)nr_m[1];
+        int my2 = (int)nr_m[1] / 2;
+        int mz = (int)nr_m[2];
+        int mz2 = (int)nr_m[2] / 2;
 
-        int m1 = (int)nr_m[0]-1;
-        int m2 = (int)nr_m[0]/2;
+        for (int i=0; i<mx; i++ )
+	    *gmsg << "Bin " << bin 
+                  << ", Field along x axis Ex = " << eg_m[i][my2][mz2] 
+                  << ", Pot = " << rho_m[i][my2][mz2]  << endl;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along x axis E = " << eg_m[i][m2][m2] << " Pot = " << rho_m[i][m2][m2]  << endl;
+        for (int i=0; i<my; i++ )
+            *gmsg << "Bin " << bin 
+                  << ", Field along y axis Ey = " << eg_m[mx2][i][mz2] 
+                  << ", Pot = " << rho_m[mx2][i][mz2]  << endl;
 
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along y axis E = " << eg_m[m2][i][m2] << " Pot = " << rho_m[m2][i][m2]  << endl;
-
-        for (int i=0; i<m1; i++ )
-         *gmsg << "Field along z axis E = " << eg_m[m2][m2][i] << " Pot = " << rho_m[m2][m2][i]  << endl;
-
-        // End debug
-        */
+        for (int i=0; i<mz; i++ )
+            *gmsg << "Bin " << bin 
+                  << ", Field along z axis Ez = " << eg_m[mx2][my2][i] 
+                  << ", Pot = " << rho_m[mx2][my2][i]  << endl;
+#endif
 
         // If debug flag is set, dump vector field (electric field) into file under ./data/
 #ifdef DBG_SCALARFIELD
