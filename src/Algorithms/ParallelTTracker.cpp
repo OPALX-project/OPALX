@@ -1291,15 +1291,15 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
     FieldList sbends = itsOpalBeamline_m.getElementByType("SBend");
     for (FieldList::iterator it = sbends.begin(); it != sbends.end(); ++ it) {
         SBend* bend = static_cast<SBend*>(it->getElement().get());
-        bend->doReinitialize();
-        bend->doRecalcRefTraj();
+        bend->resetReinitializeFlag();
+        bend->resetRecalcRefTrajFlag();
     }
 
     FieldList rbends = itsOpalBeamline_m.getElementByType("RBend");
     for (FieldList::iterator it = rbends.begin(); it != rbends.end(); ++ it) {
         RBend* bend = static_cast<RBend*>(it->getElement().get());
-        bend->doReinitialize();
-        bend->doRecalcRefTraj();
+        bend->resetReinitializeFlag();
+        bend->resetRecalcRefTrajFlag();
     }
 
     localTrackSteps_m = maxStepsSave;
