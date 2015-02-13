@@ -125,3 +125,4 @@ src/ValueDefinitions/cmake_install.cmake
 src/cmake_install.cmake
 src/config.h
 src/opal
+*~
