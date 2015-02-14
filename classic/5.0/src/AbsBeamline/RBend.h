@@ -233,13 +233,8 @@ public:
     /// Set rotation about z axis in bend frame.
     void SetRotationAboutZ(double rotation);
 
-    void doReinitialize() {
-        reinitialize_m = true;
-    }
-
-    void doRecalcRefTraj() {
-        recalcRefTraj_m = true;
-    }
+    void resetReinitializeFlag();
+    void resetRecalcRefTrajFlag();
 
 private:
 
@@ -413,5 +408,15 @@ private:
     // For OPAL-SLICE.
     static int RBend_counter_m;
 };
+
+inline
+void RBend::resetReinitializeFlag() {
+    reinitialize_m = true;
+}
+
+inline
+void RBend::resetRecalcRefTrajFlag() {
+    recalcRefTraj_m = true;
+}
 
 #endif // CLASSIC_RBend_HH
