@@ -39,6 +39,13 @@ LossDataSink::LossDataSink() {
 }
 
 LossDataSink::~LossDataSink() {
+  h5_int64_t rc;
+  if(H5file_m) {
+    rc = H5CloseFile(H5file_m);
+    if(rc != H5_SUCCESS)
+      ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+  }
+  Ippl::Comm->barrier();
 }
 
 void LossDataSink::openH5() {
