@@ -47,18 +47,21 @@ public:
 
     int getStartId() {return startId;}
 
-    double getXRangeMin(){ return intersectMinCoords_m(0); }
-    double getXRangeMax(){ return intersectMaxCoords_m(0); }
-    double getYRangeMin(){ return intersectMinCoords_m(1); }
-    double getYRangeMax(){ return intersectMaxCoords_m(1); }
-    double getZRangeMin(){ return intersectMinCoords_m(2); }
-    double getZRangeMax(){ return intersectMaxCoords_m(2); }
-    void setXRangeMin(double xmin){ intersectMinCoords_m(0) = xmin; }
-    void setXRangeMax(double xmax){ intersectMaxCoords_m(0) = xmax; }
-    void setYRangeMin(double ymin){ intersectMinCoords_m(1) = ymin; }
-    void setYRangeMax(double ymax){ intersectMaxCoords_m(1) = ymax; }
-    void setZRangeMin(double zmin){ intersectMinCoords_m(2) = zmin; }
-    void setZRangeMax(double zmax){ intersectMaxCoords_m(2) = zmax; }
+    double getXRangeMin(){ return minCoords_m(0); }
+    double getYRangeMin(){ return minCoords_m(1); }
+    double getZRangeMin(){ return minCoords_m(2); }
+
+    double getXRangeMax(){ return maxCoords_m(0); }
+    double getYRangeMax(){ return maxCoords_m(1); }
+    double getZRangeMax(){ return maxCoords_m(2); }
+
+    void setXRangeMin(double xmin){ minCoords_m(0) = xmin; }
+    void setYRangeMin(double ymin){ minCoords_m(1) = ymin; }
+    void setZRangeMin(double zmin){ minCoords_m(2) = zmin; }
+
+    void setXRangeMax(double xmax){ maxCoords_m(0) = xmax; }
+    void setYRangeMax(double ymax){ maxCoords_m(1) = ymax; }
+    void setZRangeMax(double zmax){ maxCoords_m(2) = zmax; }
 
 
     bool hasGeometryChanged() { return hasGeometryChanged_m; }
@@ -83,6 +86,7 @@ private:
     Vektor<double, 4> globalToLocalQuaternion_m;
     Vektor<double, 4> localToGlobalQuaternion_m;
 
+    Vector_t globalMinR_m;
     int startId;
 
     // Here we store the number of nodes in a xy layer for a given z coordinate
@@ -104,10 +108,8 @@ private:
 
     Vector_t Geo_nr_m;
     Vector_t Geo_hr_m;
-    Vector_t Geo_mincoords_m;
-    Vector_t Geo_maxcoords_m;
-    Vector_t intersectMinCoords_m;
-    Vector_t intersectMaxCoords_m;
+    Vector_t minCoords_m;
+    Vector_t maxCoords_m;
 
     // Conversion from (x,y,z) to index in xyz plane
     inline int toCoordIdx(int idx, int idy, int idz);

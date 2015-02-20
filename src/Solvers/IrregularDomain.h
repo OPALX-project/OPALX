@@ -88,6 +88,12 @@ public:
     double getMinZ() { return zMin_m; }
     double getMaxZ() { return zMax_m; }
 
+    void setCentroid(Vector_t rmean) { rMean_m = rmean;}
+    Vector_t getCentroid() { return rMean_m; }
+
+    void setOrigin(Vector_t rmin) { rMin_m = rmin;}
+    Vector_t getOrigin() { return rMin_m; }
+
     virtual double getXRangeMin() = 0;
     virtual double getXRangeMax() = 0;
     virtual double getYRangeMin() = 0;
@@ -109,6 +115,11 @@ protected:
     /// min/max of bunch in floor coordinates
     double zMin_m;
     double zMax_m;
+
+    /// mean position of bunch (m)
+    Vector_t rMean_m;
+    /// min position of the bunch
+    Vector_t rMin_m;
 };
 
 #endif //#ifdef HAVE_SAAMG_SOLVER
