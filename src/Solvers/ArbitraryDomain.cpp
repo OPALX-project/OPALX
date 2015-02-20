@@ -25,27 +25,25 @@
 #define MIN2(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX2(a,b) (((a) > (b)) ? (a) : (b))
 
-ArbitraryDomain::ArbitraryDomain(
-	BoundaryGeometry * bgeom,
-	Vector_t nr,
-	Vector_t hr,
-	std::string interpl) {
+ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
+   	                          Vector_t nr,
+	                          Vector_t hr,
+	                          std::string interpl){ 
+    bgeom_m  = bgeom;
+    minCoords_m = bgeom->getmincoords();
+    maxCoords_m = bgeom->getmaxcoords();
 
-    	bgeom_m  = bgeom;
-    	minCoords_m = bgeom->getmincoords();
-    	maxCoords_m = bgeom->getmaxcoords();
+    setNr(nr);
+    setHr(hr);
 
-    	setNr(nr);
-    	setHr(hr);
+    startId = 0;
 
-   	startId = 0;
-
-	if(interpl == "CONSTANT")
-        	interpolationMethod = CONSTANT;
-	else if(interpl == "LINEAR")
-        	interpolationMethod = LINEAR;
-	else if(interpl == "QUADRATIC")
-        	interpolationMethod = QUADRATIC;
+    if (interpl == "CONSTANT")
+        interpolationMethod = CONSTANT;
+    else if(interpl == "LINEAR")
+        interpolationMethod = LINEAR;
+    else if(interpl == "QUADRATIC")
+        interpolationMethod = QUADRATIC;
 }
 
 ArbitraryDomain::~ArbitraryDomain() {
@@ -57,7 +55,7 @@ void ArbitraryDomain::Compute(Vector_t hr) {
     setHr(hr);
 }
 
-
+/*
 void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId) {
 
     setHr(hr);
@@ -224,16 +222,18 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId) {
          }
      }
 }
+*/
 
-void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion){
+void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 
     setHr(hr);
-    globalMeanR_m = getCentroid();
 
-    globalToLocalQuaternion_m = globalToLocalQuaternion;
-    localToGlobalQuaternion_m[0] = globalToLocalQuaternion[0];
+    globalMeanR_m = getGlobalMeanR();
+
+    globalToLocalQuaternion_m = getGlobalToLocalQuaternion();
+    localToGlobalQuaternion_m[0] = globalToLocalQuaternion_m[0];
     for (int i=1; i<4; i++)
-		localToGlobalQuaternion_m[i] = -globalToLocalQuaternion[i];
+		localToGlobalQuaternion_m[i] = -globalToLocalQuaternion_m[i];
 
     int zGhostOffsetLeft  = (localId[2].first()== 0) ? 0 : 1;
     int zGhostOffsetRight = (localId[2].last() == nr[2] - 1) ? 0 : 1;
@@ -612,7 +612,7 @@ inline void ArbitraryDomain::crossProduct(double A[], double B[], double C[]) {
     C[2] = A[0] * B[1] - A[1] * B[0];
 }
 
-inline void ArbitraryDomain::rotateWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+inline void ArbitraryDomain::rotateWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
     // rotates a Vector_t (3 elements) using a quaternion.
     // Flip direction of rotation by quaternionVectorcomponent *= -1
 
@@ -625,7 +625,7 @@ inline void ArbitraryDomain::rotateWithQuaternion(Vector_t & v, Vektor<double, 4
         + 2.0 * quaternionScalarComponent * cross(quaternionVectorComponent, v);
 }
 
-inline void ArbitraryDomain::rotateXAxisWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+inline void ArbitraryDomain::rotateXAxisWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
     // rotates the positive xaxis using a quaternion.
 
     v(0) = quaternion(0) * quaternion(0)
@@ -637,7 +637,7 @@ inline void ArbitraryDomain::rotateXAxisWithQuaternion(Vector_t & v, Vektor<doub
     v(2) = 2.0 * (quaternion(1) * quaternion(3) - quaternion(0) * quaternion(2));
 }
 
-inline void ArbitraryDomain::rotateYAxisWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+inline void ArbitraryDomain::rotateYAxisWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
     // rotates the positive yaxis using a quaternion.
 
     v(0) = 2.0 * (quaternion(1) * quaternion(2) - quaternion(0) * quaternion(3));
@@ -650,7 +650,7 @@ inline void ArbitraryDomain::rotateYAxisWithQuaternion(Vector_t & v, Vektor<doub
     v(2) = 2.0 * (quaternion(2) * quaternion(3) + quaternion(0) * quaternion(1));
 }
 
-inline void ArbitraryDomain::rotateZAxisWithQuaternion(Vector_t & v, Vektor<double, 4> const quaternion) {
+inline void ArbitraryDomain::rotateZAxisWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
     // rotates the positive zaxis using a quaternion.
     v(0) = 2.0 * (quaternion(1) * quaternion(3) + quaternion(0) * quaternion(2));
     v(1) = 2.0 * (quaternion(2) * quaternion(3) - quaternion(0) * quaternion(1));

@@ -2187,7 +2187,9 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         repartition();
 
-                        itsBunch->computeSelfFields_cycl(temp_meangamma, 0.001 * meanR, quaternionToYAxis);
+                        itsBunch->setGlobalMeanR(0.001 * meanR);
+                        itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
+                        itsBunch->computeSelfFields_cycl(temp_meangamma);
 
                         IpplTimings::startTimer(TransformTimer_m);
 
@@ -3070,7 +3072,9 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                         for(int b = 0; b < itsBunch->getLastemittedBin(); b++) {
 
                             itsBunch->setBinCharge(b, itsBunch->getChargePerParticle());
-                            itsBunch->computeSelfFields_cycl(b, 0.001 * meanR, quaternionToYAxis);
+                            itsBunch->setGlobalMeanR(0.001 * meanR);
+   		            itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
+                            itsBunch->computeSelfFields_cycl(b);
                         }
 
                         itsBunch->Q = itsBunch->getChargePerParticle();
@@ -3108,7 +3112,9 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                         repartition();
 
-                        itsBunch->computeSelfFields_cycl(temp_meangamma, 0.001 * meanR, quaternionToYAxis);
+                        itsBunch->setGlobalMeanR(0.001 * meanR);
+                        itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
+                        itsBunch->computeSelfFields_cycl(temp_meangamma);
 
                         IpplTimings::startTimer(TransformTimer_m);
 

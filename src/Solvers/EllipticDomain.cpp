@@ -191,10 +191,6 @@ void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
     }
 }
 
-void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion){
-
-}
-
 void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
     scaleFactor = 1.0;
 

@@ -277,17 +277,8 @@ public:
     /** /brief used for self fields with binned distribution */
     void   computeSelfFields(int b);
 
-    //void computeSelfFields_cycl(double gamma);
-    //void computeSelfFields_cycl(int b);
-
-    // Replaced computeSelfFields_cycl() with versions that have meanR and the quaternion of the
-    // rotation of the particle bunch in order to take into account the rotation
-    // when finding the boundary conditions for the fieldsolver. -DW
-    void computeSelfFields_cycl(double gamma, Vector_t const meanR=Vector_t(0.0, 0.0, 0.0),
-				              Quaternion_t const quaternion=Quaternion_t(1.0, 0.0, 0.0, 0.0));
-
-    void computeSelfFields_cycl(int b,        Vector_t const meanR=Vector_t(0.0, 0.0, 0.0),
-                                              Quaternion_t const quaternion=Quaternion_t(1.0, 0.0, 0.0, 0.0));
+    void computeSelfFields_cycl(double gamma);
+    void computeSelfFields_cycl(int b);
 
     void resetInterpolationCache(bool clearCache = false);
 
@@ -410,8 +401,11 @@ public:
     inline void setNumBunch(int n);
     inline int getNumBunch() const;
 
+    inline void setGlobalMeanR(Vector_t globalMeanR) {globalMeanR_m = globalMeanR;}
     inline Vector_t getGlobalMeanR() {return globalMeanR_m;}
-    inline Vektor<double, 4> getGlobalToLocalQuaternion() {return globalToLocalQuaternion_m;}
+    inline void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
+        globalToLocalQuaternion_m = globalToLocalQuaternion;}
+    inline Quaternion_t getGlobalToLocalQuaternion() {return globalToLocalQuaternion_m;}
 
     void setSteptoLastInj(int n);
     int getSteptoLastInj();

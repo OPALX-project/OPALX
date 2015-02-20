@@ -20,7 +20,7 @@ class ArbitraryDomain : public IrregularDomain {
 public:
 
     ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, std::string interpl);
-    ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion, std::string interpl);
+    ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, Vector_t globalMeanR, Quaternion_t globalToLocalQuaternion, std::string interpl);
 
     ~ArbitraryDomain();
 
@@ -41,9 +41,8 @@ public:
     int getNumXY(int idz);
     /// calculates intersection 
     void Compute(Vector_t hr);
-    void Compute(Vector_t hr, NDIndex<3> localId);
     // calculates intersection with rotated and shifted geometry 
-    void Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion);
+    void Compute(Vector_t hr, NDIndex<3> localId);
 
     int getStartId() {return startId;}
 
@@ -83,10 +82,9 @@ private:
     
     // meanR to shift from global to local frame 
     Vector_t globalMeanR_m;
-    Vektor<double, 4> globalToLocalQuaternion_m;
-    Vektor<double, 4> localToGlobalQuaternion_m;
+    Quaternion_t globalToLocalQuaternion_m;
+    Quaternion_t localToGlobalQuaternion_m;
 
-    Vector_t globalMinR_m;
     int startId;
 
     // Here we store the number of nodes in a xy layer for a given z coordinate
@@ -127,11 +125,11 @@ private:
     void QuadraticInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
 
     // Rotate positive axes with quaternion -DW
-    inline void rotateWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
+    inline void rotateWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
  	
-    inline void rotateXAxisWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
-    inline void rotateYAxisWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
-    inline void rotateZAxisWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
+    inline void rotateXAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
+    inline void rotateYAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
+    inline void rotateZAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
 };
 
 #endif //#ifdef HAVE_SAAMG_SOLVER

@@ -42,7 +42,6 @@ public:
     /// calculates intersection 
     void Compute(Vector_t hr);
     void Compute(Vector_t hr, NDIndex<3> localId);
-    void Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion);
 
     double getXRangeMin() { return -SemiMajor; }
     double getXRangeMax() { return SemiMajor;  }

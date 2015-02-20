@@ -256,14 +256,14 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     nr_m[2] = orig_nr_m[2];
 
     //bp->setMinMaxZ(itsBunch_m->get_origin()[2], itsBunch_m->get_maxExtend()[2]);
-    bp->setCentroid(itsBunch_m->get_centroid());
-    bp->setOrigin(itsBunch_m->get_origin());
+    bp->setGlobalMeanR(itsBunch_m->getGlobalMeanR());
+    bp->setGlobalToLocalQuaternion(itsBunch_m->getGlobalToLocalQuaternion());
     bp->setNr(nr_m);
     NDIndex<3> localId = layout_m->getLocalNDIndex();
 
     IpplTimings::startTimer(FunctionTimer1_m);
     if ( bp->getType() == "Geometric" ) {
-        bp->Compute(hr, localId, itsBunch_m->getGlobalMeanR(), itsBunch_m->getGlobalToLocalQuaternion());
+        bp->Compute(hr, localId);
     } else if ( bp->getType() == "Elliptic"  )
         bp->Compute(hr);
     IpplTimings::stopTimer(FunctionTimer1_m);
