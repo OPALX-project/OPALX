@@ -28,7 +28,8 @@ using namespace std;
 
 DataSink::DataSink() :
     lossWrCounter_m(0),
-    doHDF5_m(true)
+    doHDF5_m(true),
+    H5file_m(NULL)
 {
     /// Constructor steps:
     /// Get timers from IPPL.
@@ -73,7 +74,8 @@ DataSink::DataSink() :
 }
 
 DataSink::DataSink(int restartStep) :
-    lossWrCounter_m(0)
+  lossWrCounter_m(0),
+  H5file_m(NULL)
 {
     doHDF5_m = Options::enableHDF5;
     if (!doHDF5_m) {
@@ -154,6 +156,7 @@ DataSink::~DataSink() {
     h5_int64_t rc;
     if(H5file_m) {
         rc = H5CloseFile(H5file_m);
+	H5file_m = NULL;
         if(rc != H5_SUCCESS)
             ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     }
@@ -2704,6 +2707,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     rc = H5CloseFile(H5file);
+    H5file = NULL;
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     Ippl::Comm->barrier();
@@ -2822,6 +2826,7 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
 
     Ippl::Comm->barrier();
     rc = H5CloseFile(H5file);
+    H5file = NULL;
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     // update statistics parameters of PartBunch
