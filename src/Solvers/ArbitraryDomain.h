@@ -20,7 +20,7 @@ class ArbitraryDomain : public IrregularDomain {
 public:
 
     ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, std::string interpl);
-    ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion, std::string interpl);
+    ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, Vector_t globalMeanR, Quaternion_t globalToLocalQuaternion, std::string interpl);
 
     ~ArbitraryDomain();
 
@@ -41,24 +41,26 @@ public:
     int getNumXY(int idz);
     /// calculates intersection 
     void Compute(Vector_t hr);
-    void Compute(Vector_t hr, NDIndex<3> localId);
     // calculates intersection with rotated and shifted geometry 
-    void Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion);
+    void Compute(Vector_t hr, NDIndex<3> localId);
 
     int getStartId() {return startId;}
 
-    double getXRangeMin(){ return intersectMinCoords_m(0); }
-    double getXRangeMax(){ return intersectMaxCoords_m(0); }
-    double getYRangeMin(){ return intersectMinCoords_m(1); }
-    double getYRangeMax(){ return intersectMaxCoords_m(1); }
-    double getZRangeMin(){ return intersectMinCoords_m(2); }
-    double getZRangeMax(){ return intersectMaxCoords_m(2); }
-    void setXRangeMin(double xmin){ intersectMinCoords_m(0) = xmin; }
-    void setXRangeMax(double xmax){ intersectMaxCoords_m(0) = xmax; }
-    void setYRangeMin(double ymin){ intersectMinCoords_m(1) = ymin; }
-    void setYRangeMax(double ymax){ intersectMaxCoords_m(1) = ymax; }
-    void setZRangeMin(double zmin){ intersectMinCoords_m(2) = zmin; }
-    void setZRangeMax(double zmax){ intersectMaxCoords_m(2) = zmax; }
+    double getXRangeMin(){ return minCoords_m(0); }
+    double getYRangeMin(){ return minCoords_m(1); }
+    double getZRangeMin(){ return minCoords_m(2); }
+
+    double getXRangeMax(){ return maxCoords_m(0); }
+    double getYRangeMax(){ return maxCoords_m(1); }
+    double getZRangeMax(){ return maxCoords_m(2); }
+
+    void setXRangeMin(double xmin){ minCoords_m(0) = xmin; }
+    void setYRangeMin(double ymin){ minCoords_m(1) = ymin; }
+    void setZRangeMin(double zmin){ minCoords_m(2) = zmin; }
+
+    void setXRangeMax(double xmax){ maxCoords_m(0) = xmax; }
+    void setYRangeMax(double ymax){ maxCoords_m(1) = ymax; }
+    void setZRangeMax(double zmax){ maxCoords_m(2) = zmax; }
 
 
     bool hasGeometryChanged() { return hasGeometryChanged_m; }
@@ -80,8 +82,8 @@ private:
     
     // meanR to shift from global to local frame 
     Vector_t globalMeanR_m;
-    Vektor<double, 4> globalToLocalQuaternion_m;
-    Vektor<double, 4> localToGlobalQuaternion_m;
+    Quaternion_t globalToLocalQuaternion_m;
+    Quaternion_t localToGlobalQuaternion_m;
 
     int startId;
 
@@ -104,10 +106,8 @@ private:
 
     Vector_t Geo_nr_m;
     Vector_t Geo_hr_m;
-    Vector_t Geo_mincoords_m;
-    Vector_t Geo_maxcoords_m;
-    Vector_t intersectMinCoords_m;
-    Vector_t intersectMaxCoords_m;
+    Vector_t minCoords_m;
+    Vector_t maxCoords_m;
 
     // Conversion from (x,y,z) to index in xyz plane
     inline int toCoordIdx(int idx, int idy, int idz);
@@ -125,11 +125,11 @@ private:
     void QuadraticInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
 
     // Rotate positive axes with quaternion -DW
-    inline void rotateWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
+    inline void rotateWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
  	
-    inline void rotateXAxisWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
-    inline void rotateYAxisWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
-    inline void rotateZAxisWithQuaternion(Vector_t &v, Vektor<double, 4> const quaternion);
+    inline void rotateXAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
+    inline void rotateYAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
+    inline void rotateZAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
 };
 
 #endif //#ifdef HAVE_SAAMG_SOLVER

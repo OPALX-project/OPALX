@@ -107,7 +107,7 @@ add_library( OPALib ${OPAL_SRCS} opal.cpp )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 
 add_executable( opal Main.cpp )
-target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran)
+target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran ${CMAKE_DL_LIBS})
 
 # build unit tests; unit tests are defined in unit_tests directory, we build the
 # executable here so that we can use the OPAL src and lib definitions

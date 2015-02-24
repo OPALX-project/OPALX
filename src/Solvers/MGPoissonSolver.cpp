@@ -256,12 +256,14 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     nr_m[2] = orig_nr_m[2];
 
     //bp->setMinMaxZ(itsBunch_m->get_origin()[2], itsBunch_m->get_maxExtend()[2]);
+    bp->setGlobalMeanR(itsBunch_m->getGlobalMeanR());
+    bp->setGlobalToLocalQuaternion(itsBunch_m->getGlobalToLocalQuaternion());
     bp->setNr(nr_m);
     NDIndex<3> localId = layout_m->getLocalNDIndex();
 
     IpplTimings::startTimer(FunctionTimer1_m);
     if ( bp->getType() == "Geometric" ) {
-        bp->Compute(hr, localId, itsBunch_m->getGlobalMeanR(), itsBunch_m->getGlobalToLocalQuaternion());
+        bp->Compute(hr, localId);
     } else if ( bp->getType() == "Elliptic"  )
         bp->Compute(hr);
     IpplTimings::stopTimer(FunctionTimer1_m);
@@ -457,9 +459,7 @@ void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
 void MGPoissonSolver::IPPLToMap3DGeo(NDIndex<3> localId) {
     int NumMyElements = 0;
     std::vector<int> MyGlobalElements;
-/*   std::cout << Ippl::myNode() << " In IPPLToMap3DGeo localId: " << localId[0].first() << " " << localId[0].last()  << "\n"
-					<< localId[1].first() << " " << localId[1].last()  << "\n"
-					<< localId[2].first() << " " << localId[2].last()  << std::endl; */
+
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
@@ -489,7 +489,7 @@ void MGPoissonSolver::ComputeStencil(Vector_t hr, Teuchos::RCP<Epetra_Vector> RH
         int W, E, S, N, F, B;
 
         bp->getBoundaryStencil(MyGlobalElements[i], WV, EV, SV, NV, FV, BV, CV, scaleFactor);
-//        RHS->Values()[i] *= scaleFactor;
+        RHS->Values()[i] *= scaleFactor;
 
         bp->getNeighbours(MyGlobalElements[i], W, E, S, N, F, B);
         if(E != -1) {

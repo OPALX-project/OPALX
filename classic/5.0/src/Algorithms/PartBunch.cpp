@@ -690,11 +690,6 @@ double PartBunch::getMaxdEBins() {
 void PartBunch::computeSelfFields(int binNumber) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
-    // Need to set mean R to shift geometry from file to account for beam movement
-    // No rotations necessary, i.e. quaternion stays default unit-quatertion
-    // TODO: Include transversal offsets here!
-    globalMeanR_m = Vector_t(0.0, 0.0, get_sPos());
-
     /// Set initial charge density to zero. Create image charge
     /// potential field.
     rho_m = 0.0;
@@ -946,11 +941,6 @@ void PartBunch::computeSelfFields() {
     IpplTimings::startTimer(selfFieldTimer_m);
     rho_m = 0.0;
     eg_m = Vector_t(0.0);
-
-    // Need to set mean R to shift geometry from file to account for beam movement
-    // No rotations necessary, i.e. quaternion stays default unit-quatertion
-    // TODO: Include transversal offsets here!
-    globalMeanR_m = Vector_t(0.0, 0.0, get_sPos());
 
     if(fs_m->hasValidSolver()) {
         //use the mesh that is already set
@@ -1216,14 +1206,9 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
  * -) Fixed an error where gamma was not taken into account correctly in direction of movement (y in cyclotron)
  * -) Comment: There is no account for image charges in the cyclotron tracker (yet?)!
  */
-void PartBunch::computeSelfFields_cycl(double gamma,
-                                       Vector_t const meanR,
-                                       Quaternion_t const quaternion) {
+void PartBunch::computeSelfFields_cycl(double gamma) {
 
     IpplTimings::startTimer(selfFieldTimer_m);
-
-    globalMeanR_m = meanR;
-    globalToLocalQuaternion_m = quaternion;
 
     /// set initial charge density to zero.
     rho_m = 0.0;
@@ -1411,11 +1396,8 @@ void PartBunch::computeSelfFields_cycl(double gamma,
  * -) Fixed an error where gamma was not taken into account correctly in direction of movement (y in cyclotron)
  * -) Comment: There is no account for image charges in the cyclotron tracker (yet?)!
  */
-void PartBunch::computeSelfFields_cycl(int bin, Vector_t const meanR, Quaternion_t const quaternion) {
+void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::startTimer(selfFieldTimer_m);
-
-    globalMeanR_m = meanR;
-    globalToLocalQuaternion_m = quaternion;
 
     /// set initial charge dentsity to zero.
     rho_m = 0.0;

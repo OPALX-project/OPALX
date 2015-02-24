@@ -2246,12 +2246,14 @@ void ParallelTTracker::computeSpaceChargeFields() {
             binNumber < itsBunch->GetNumberOfEnergyBins(); ++binNumber) {
 
             itsBunch->setBinCharge(binNumber);
+            itsBunch->setGlobalMeanR(itsBunch->get_centroid());
             itsBunch->computeSelfFields(binNumber);
             itsBunch->Q = Q_back;
 
         }
 
     } else {
+        itsBunch->setGlobalMeanR(itsBunch->get_centroid());
         itsBunch->computeSelfFields();
     }
 

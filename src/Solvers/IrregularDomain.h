@@ -24,7 +24,6 @@ public:
      */
     virtual void Compute(Vector_t hr) = 0;
     virtual void Compute(Vector_t hr, NDIndex<3> localId) = 0;
-    virtual void Compute(Vector_t hr, NDIndex<3> localId, Vector_t globalMeanR, Vektor<double, 4> globalToLocalQuaternion) = 0;
     /** method to get the number of gridpoints in a given z plane
      * \param z coordinate of the z plane
      * \return int number of grid nodes in the given z plane
@@ -88,6 +87,13 @@ public:
     double getMinZ() { return zMin_m; }
     double getMaxZ() { return zMax_m; }
 
+    void setGlobalMeanR(Vector_t rmean) { rMean_m = rmean;}
+    Vector_t getGlobalMeanR() { return rMean_m; }
+
+    void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion){
+        globalToLocalQuaternion_m = globalToLocalQuaternion;}
+    Quaternion_t getGlobalToLocalQuaternion() { return globalToLocalQuaternion_m;}
+
     virtual double getXRangeMin() = 0;
     virtual double getXRangeMax() = 0;
     virtual double getYRangeMin() = 0;
@@ -109,6 +115,10 @@ protected:
     /// min/max of bunch in floor coordinates
     double zMin_m;
     double zMax_m;
+
+    /// mean position of bunch (m)
+    Vector_t rMean_m;
+    Quaternion_t globalToLocalQuaternion_m;
 };
 
 #endif //#ifdef HAVE_SAAMG_SOLVER
