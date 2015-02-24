@@ -21,6 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
 #include "Physics/Physics.h"
+#include "config.h"
 
 #include <cmath>
 #include <iostream>
@@ -54,7 +55,20 @@ RealConstant::RealConstant():
 
     OPAL->create(new RealConstant("CLIGHT", this, Physics::c));
 
-    OPAL->create(new RealConstant("OPALVERSION", this, 120));
+    std::string version_str(PACKAGE_VERSION);
+    int version = 0;
+    {
+        size_t i = 0;
+        while (i < version_str.size()) {
+            size_t n = version_str.find_first_of("0123456789",i);
+            if (n != std::string::npos) {
+                version = version * 10 + version_str[n] - 48;
+                version_str[n] = '.';
+            }
+            i = n;
+        }
+    }
+    OPAL->create(new RealConstant("OPALVERSION", this, version));
 }
 
 
