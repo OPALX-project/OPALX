@@ -74,7 +74,6 @@ namespace {
         FIELDSOLVER,  // The field solver attached
         BOUNDARYGEOMETRY, // The boundary geometry
         DISTRIBUTION, // The particle distribution
-        DISTRIBUTIONS, // A list of  particle distributions
         MULTIPACTING, // MULTIPACTING flag
         // THE INTEGRATION TIMESTEP IN SEC
         SIZE
@@ -106,10 +105,8 @@ TrackRun::TrackRun():
                            ("FIELDSOLVER", "Field solver to be used ", "FIELDSOLVER");
     itsAttr[BOUNDARYGEOMETRY] = Attributes::makeString
                            ("BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default)", "NONE");
-    itsAttr[DISTRIBUTION] = Attributes::makeString
-                            ("DISTRIBUTION", "Particle distribution to be used ", "DISTRIBUTION");
-    itsAttr[DISTRIBUTIONS] = Attributes::makeStringArray
-                             ("DISTRIBUTIONS", "List of particle distributions to be used ");
+    itsAttr[DISTRIBUTION] = Attributes::makeStringArray
+                             ("DISTRIBUTION", "List of particle distributions to be used ");
     itsAttr[MULTIPACTING] = Attributes::makeBool
                             ("MULTIPACTING", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry", false);
     OPAL = OpalData::getInstance();
@@ -163,24 +160,30 @@ void TrackRun::execute() {
         }
 
         Beam   *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-        dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
+
+        std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
+        const size_t numberOfDistributions = distr_str.size();
+        dist = Distribution::find(distr_str.at(0));
+        dist->setNumberOfDistributions(numberOfDistributions);
+
+        if(numberOfDistributions > 1) {
+            *gmsg << "Found more than one distribution: ";
+            for(size_t i = 1; i < numberOfDistributions; ++ i) {
+                Distribution *d = Distribution::find(distr_str.at(i));
+
+                d->setNumberOfDistributions(numberOfDistributions);
+                distrs_m.push_back(d);
+
+                *gmsg << " " << distr_str.at(i);
+            }
+            *gmsg << endl;
+        }
 
 
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
         fs->initCartesianFields();
 
         double charge = 0.0;
-
-        std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTIONS]);
-        if(distr_str.size() > 0) {
-            *gmsg << "Found more than one distribution: ";
-            for(std::vector<std::string>::const_iterator dit = distr_str.begin(); dit != distr_str.end(); ++ dit) {
-                Distribution *d = Distribution::find(*dit);
-                *gmsg << " " << *dit;
-                distrs_m.push_back(d);
-            }
-            *gmsg << endl;
-        }
 
         if(!OPAL->hasSLBunchAllocated()) {
             if(!OPAL->inRestartRun()) {
@@ -457,7 +460,6 @@ void TrackRun::execute() {
 	// }
 //      }
 #endif
-
         if(!OPAL->inRestartRun()) {
             if(!OPAL->hasDataSinkAllocated() && !Options::scan) {
                 OPAL->setDataSink(new DataSink());
@@ -532,7 +534,8 @@ void TrackRun::execute() {
 
         Track::block->bunch->PType = 0;
 
-        dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
+        std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
+        dist = Distribution::find(distr_str.at(0));
 
         // set macromass and charge for simulation particles
         double macromass = 0.0;
@@ -543,8 +546,8 @@ void TrackRun::execute() {
         if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
             macrocharge = beam->getCharge() * q_e;
             macromass = beam->getMass();
-            dist->CreateOpalCycl(*Track::block->bunch, 
-				 beam->getNumberOfParticles(), 
+            dist->CreateOpalCycl(*Track::block->bunch,
+				 beam->getNumberOfParticles(),
 				 beam->getCurrent(),*Track::block->use->fetchLine(),
 				 Options::scan);
 
@@ -799,34 +802,32 @@ double TrackRun::SetDistributionParallelT(Beam *beam) {
          * it to create the full distribution.
          */
         std::vector<std::string> distributionArray
-            = Attributes::getStringArray(itsAttr[DISTRIBUTIONS]);
+            = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
+        const size_t numberOfDistributions = distributionArray.size();
 
-        if (distributionArray.size() > 0) {
+        dist = Distribution::find(distributionArray.at(0));
+        dist->setNumberOfDistributions(numberOfDistributions);
+
+        if (numberOfDistributions > 1) {
             *gmsg << endl
                   << "---------------------------------" << endl
                   << "Found more than one distribution:" << endl << endl;
+            *gmsg << "Main Distribution" << endl
+                  << "---------------------------------" << endl
+                  << distributionArray.at(0) << endl << endl
+                  << "Secondary Distribution(s)" << endl
+                  << "---------------------------------" << endl;
 
-            for (std::vector<std::string>::const_iterator distIterator
-                 = distributionArray.begin();
-                 distIterator != distributionArray.end(); ++distIterator) {
+            for (size_t i = 1; i < numberOfDistributions; ++ i) {
+                Distribution *distribution = Distribution::find(distributionArray.at(i));
+                distribution->setNumberOfDistributions(numberOfDistributions);
+                distrs_m.push_back(distribution);
 
-                if (distIterator == distributionArray.begin()) {
-                    dist = Distribution::find(*distIterator);
-                    *gmsg << "Main Distribution" << endl
-                          << "-----------------" << endl
-                          << *distIterator << endl << endl
-                          << "Secondary Distribution(s)" << endl
-                          << "-------------------------" << endl;
-                } else {
-                    Distribution *distribution = Distribution::find(*distIterator);
-                    *gmsg << *distIterator << endl;
-                    distrs_m.push_back(distribution);
-                }
+                *gmsg << distributionArray.at(i) << endl;
             }
             *gmsg << endl
                   << "---------------------------------" << endl << endl;
-        } else
-            dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
+        }
     }
 
 
@@ -897,7 +898,8 @@ ParallelTTracker *TrackRun::setupForAutophase() {
 
     Track::block->bunch->setSolver(fs);
 
-    dist = Distribution::find(Attributes::getString(itsAttr[DISTRIBUTION]));
+    std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
+    dist = Distribution::find(distr_str.at(0));
 
     double charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
 

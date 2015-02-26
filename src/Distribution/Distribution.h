@@ -193,6 +193,7 @@ public:
     double GetPsi() {return psi_m;}
     bool GetPreviousH5Local() {return previousH5Local_m;}
 
+    void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
 private:
 
     Distribution(const std::string &name, Distribution *parent);
@@ -275,6 +276,8 @@ private:
     std::ofstream os_m;                  /// Output file to write distribution.
     void writeToFileCycl(PartBunch &beam, size_t Np);
 
+    unsigned int numberOfDistributions_m;
+
     bool emitting_m;                     /// Distribution is an emitted, and is currently
                                          /// emitting, rather than an injected, beam.
 
@@ -338,7 +341,7 @@ private:
     std::vector<size_t> binWrite_m;
 
     // for compatibility reasons
-    double avrgpz_m; 
+    double avrgpz_m;
 
 
 
@@ -427,7 +430,7 @@ private:
     double referenceTheta_m;
     double referenceZ_m;
     double bega_m;
-    
+
     // Cyclotron for restart in local mode
     double phi_m;
     double psi_m;

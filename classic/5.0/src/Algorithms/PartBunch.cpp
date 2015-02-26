@@ -396,7 +396,9 @@ void PartBunch::setDistribution(Distribution *d,
                                 bool scan) {
     Inform m("setDistribution " );
     dist_m = d;
+
     dist_m->CreateOpalT(*this, addedDistributions, np, scan);
+
 //    if (Options::cZero)
 //        dist_m->Create(*this, addedDistributions, np / 2, scan);
 //    else
@@ -769,18 +771,18 @@ void PartBunch::computeSelfFields(int binNumber) {
         int mz2 = (int)nr_m[2] / 2;
 
         for (int i=0; i<mx; i++ )
-	    *gmsg << "Bin " << binNumber 
-                  << ", Self Field along x axis E = " << eg_m[i][my2][mz2] 
+	    *gmsg << "Bin " << binNumber
+                  << ", Self Field along x axis E = " << eg_m[i][my2][mz2]
                   << ", Pot = " << rho_m[i][my2][mz2]  << endl;
 
         for (int i=0; i<my; i++ )
-            *gmsg << "Bin " << binNumber 
-                  << ", Self Field along y axis E = " << eg_m[mx2][i][mz2] 
+            *gmsg << "Bin " << binNumber
+                  << ", Self Field along y axis E = " << eg_m[mx2][i][mz2]
                   << ", Pot = " << rho_m[mx2][i][mz2]  << endl;
 
         for (int i=0; i<mz; i++ )
-            *gmsg << "Bin " << binNumber 
-                  << ", Self Field along z axis E = " << eg_m[mx2][my2][i] 
+            *gmsg << "Bin " << binNumber
+                  << ", Self Field along z axis E = " << eg_m[mx2][my2][i]
                   << ", Pot = " << rho_m[mx2][my2][i]  << endl;
 #endif
 
@@ -847,18 +849,18 @@ void PartBunch::computeSelfFields(int binNumber) {
         //int mz2 = (int)nr_m[2] / 2;
 
         for (int i=0; i<mx; i++ )
-	    *gmsg << "Bin " << binNumber 
-                  << ", Image Field along x axis E = " << eg_m[i][my2][mz2] 
+	    *gmsg << "Bin " << binNumber
+                  << ", Image Field along x axis E = " << eg_m[i][my2][mz2]
                   << ", Pot = " << rho_m[i][my2][mz2]  << endl;
 
         for (int i=0; i<my; i++ )
-            *gmsg << "Bin " << binNumber 
-                  << ", Image Field along y axis E = " << eg_m[mx2][i][mz2] 
+            *gmsg << "Bin " << binNumber
+                  << ", Image Field along y axis E = " << eg_m[mx2][i][mz2]
                   << ", Pot = " << rho_m[mx2][i][mz2]  << endl;
 
         for (int i=0; i<mz; i++ )
-            *gmsg << "Bin " << binNumber 
-                  << ", Image Field along z axis E = " << eg_m[mx2][my2][i] 
+            *gmsg << "Bin " << binNumber
+                  << ", Image Field along z axis E = " << eg_m[mx2][my2][i]
                   << ", Pot = " << rho_m[mx2][my2][i]  << endl;
 #endif
 
@@ -1505,18 +1507,18 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         int mz2 = (int)nr_m[2] / 2;
 
         for (int i=0; i<mx; i++ )
-	    *gmsg << "Bin " << bin 
-                  << ", Field along x axis Ex = " << eg_m[i][my2][mz2] 
+	    *gmsg << "Bin " << bin
+                  << ", Field along x axis Ex = " << eg_m[i][my2][mz2]
                   << ", Pot = " << rho_m[i][my2][mz2]  << endl;
 
         for (int i=0; i<my; i++ )
-            *gmsg << "Bin " << bin 
-                  << ", Field along y axis Ey = " << eg_m[mx2][i][mz2] 
+            *gmsg << "Bin " << bin
+                  << ", Field along y axis Ey = " << eg_m[mx2][i][mz2]
                   << ", Pot = " << rho_m[mx2][i][mz2]  << endl;
 
         for (int i=0; i<mz; i++ )
-            *gmsg << "Bin " << bin 
-                  << ", Field along z axis Ez = " << eg_m[mx2][my2][i] 
+            *gmsg << "Bin " << bin
+                  << ", Field along z axis Ez = " << eg_m[mx2][my2][i]
                   << ", Pot = " << rho_m[mx2][my2][i]  << endl;
 #endif
 
@@ -1870,7 +1872,7 @@ void PartBunch::beamEllipsoid(FVector<double, 6>   &centroid,
 
 void PartBunch::gatherLoadBalanceStatistics() {
    minLocNum_m =  std::numeric_limits<size_t>::max();
-    
+
    for(int i = 0; i < Ippl::getNodes(); i++)
         partPerNode_m[i] = globalPartPerNode_m[i] = 0.0;
 
@@ -2467,7 +2469,7 @@ size_t PartBunch::boundp_destroyT() {
 	  if((Bin[i] < 0) && ((this->getLocalNum()-i)>1)) {   // need in minimum 1 particle per node
 	    ne++;
 	    this->destroy(1, i);
-	  }	      
+	  }
         }
 	lowParticleCount_m = ((this->getLocalNum()-ne) <= 1);
 	reduce(lowParticleCount_m, lowParticleCount_m, OpOr());

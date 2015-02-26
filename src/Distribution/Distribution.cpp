@@ -196,6 +196,7 @@ Distribution::Distribution():
     Definition(AttributesT::SIZE + LegacyAttributesT::SIZE, "DISTRIBUTION",
                "The DISTRIBUTION statement defines data for the 6D particle distribution."),
     distrTypeT_m(DistrTypeT::NODIST),
+    numberOfDistributions_m(1),
     emitting_m(false),
     scan_m(false),
     emissionModel_m(EmissionModelT::NONE),
@@ -269,6 +270,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     Definition(name, parent),
     distT_m(parent->distT_m),
     distrTypeT_m(DistrTypeT::NODIST),
+    numberOfDistributions_m(parent->numberOfDistributions_m),
     emitting_m(parent->emitting_m),
     scan_m(parent->scan_m),
     particleRefData_m(parent->particleRefData_m),
@@ -1471,27 +1473,22 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
 
 void Distribution::CalcPartPerDist(size_t numberOfParticles) {
 
-    double totalWeight = GetWeight();
-    size_t numberOfDistributions = 1;
-    std::vector<Distribution *>::iterator distributionIt;
-    for (distributionIt = addedDistributions_m.begin();
-         distributionIt != addedDistributions_m.end(); distributionIt++) {
-        totalWeight += (*distributionIt)->GetWeight();
-        numberOfDistributions++;
-    }
+    typedef std::vector<Distribution *>::iterator iterator;
 
-    if (numberOfDistributions == 1)
+    if (numberOfDistributions_m == 1)
         particlesPerDist_m.push_back(numberOfParticles);
     else {
+        double totalWeight = GetWeight();
+        for (iterator it = addedDistributions_m.begin(); it != addedDistributions_m.end(); it++) {
+            totalWeight += (*it)->GetWeight();
+        }
 
         particlesPerDist_m.push_back(0);
         size_t numberOfCommittedPart = 0;
-        for (distributionIt = addedDistributions_m.begin();
-             distributionIt != addedDistributions_m.end(); distributionIt++) {
-            particlesPerDist_m.push_back(numberOfParticles
-                                        * (*distributionIt)->GetWeight()
-                                       / totalWeight);
-            numberOfCommittedPart += particlesPerDist_m.back();
+        for (iterator it = addedDistributions_m.begin(); it != addedDistributions_m.end(); it++) {
+            size_t particlesCurrentDist = numberOfParticles * (*it)->GetWeight() / totalWeight;
+            particlesPerDist_m.push_back(particlesCurrentDist);
+            numberOfCommittedPart += particlesCurrentDist;
         }
 
         // Remaining particles go into main distribution.
@@ -1545,24 +1542,25 @@ void Distribution::CheckIfEmitted() {
 
 void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
 
-    size_t numberOfDistParticles = tOrZDist_m.size();
-    reduce(numberOfDistParticles, numberOfDistParticles, OpAddAssign());
-    if (numberOfDistParticles != numberOfParticles) {
+    size_t numberOfDistParticles[] = {tOrZDist_m.size(), numberOfParticles};
+    reduce(numberOfDistParticles, numberOfDistParticles + 2, numberOfDistParticles, OpAddAssign());
+
+    if (numberOfDistParticles[0] != numberOfDistParticles[1]) {
         *gmsg << "\n--------------------------------------------------" << endl
               << "Warning!! The number of particles in the initial" << endl
-              << "distribution is " << numberOfDistParticles << "." << endl << endl
+              << "distribution is " << numberOfDistParticles[0] << "." << endl << endl
               << "This is different from the number of particles" << endl
-              << "defined by the BEAM command: " << numberOfParticles << endl << endl
+              << "defined by the BEAM command: " << numberOfDistParticles[1] << endl << endl
               << "This is often happens when using a FROMFILE type" << endl
               << "distribution and not matching the number of" << endl
               << "particles in the particles file(s) with the number" << endl
               << "given in the BEAM command." << endl << endl
               << "The number of particles in the initial distribution" << endl
-              << "(" << numberOfDistParticles << ") "
+              << "(" << numberOfDistParticles[0] << ") "
               << "will take precedence." << endl
               << "---------------------------------------------------\n" << endl;
     }
-    numberOfParticles = numberOfDistParticles;
+    numberOfParticles = numberOfDistParticles[0];
 }
 
 void Distribution::ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits) {
@@ -1711,9 +1709,9 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
 
 void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV) {
 
-  /* 
+  /*
     ToDo:
-    - add flag in order to calculate tunes from FMLOWE to FMHIGHE 
+    - add flag in order to calculate tunes from FMLOWE to FMHIGHE
     - eliminate physics and error
    */
 
@@ -1724,7 +1722,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
       CyclotronVisitor.execute();
       size_t NumberOfCyclotrons = CyclotronVisitor.size();
-      
+
       if (NumberOfCyclotrons > 1) {
 	throw OpalException("Distribution::CreateMatchedGaussDistribution",
 			    "I am confused, found more than one Cyclotron element in line");
@@ -1734,7 +1732,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 			    "didn't find any Cyclotron element in line");
       }
       const Cyclotron* CyclotronElement = dynamic_cast<const Cyclotron*>(CyclotronVisitor.front());
-      
+
       *gmsg << "----------------------------------------------------" << endl;
       *gmsg << "About to find closed orbit and matched distribution " << endl;
       *gmsg << "I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
@@ -1755,7 +1753,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	ERRORMSG("FMHIGHE of FMLOWE not set propperly" << endl);
 	exit(1);
       }
-     
+
       int nr, nth, nsc;
       double rmin, dr, dth;
 
@@ -1787,7 +1785,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	  }
 	  INFOMSG(endl);
 	}
-	
+
     /*
 
       Now setup the distribution generator
@@ -1801,11 +1799,11 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	sigmaR_m[0] = std::sqrt(1E-3*siggen.getSigma()(0,0));    // rms x
 	sigmaR_m[1] = std::sqrt(1E-3*siggen.getSigma()(2,2));    // rms y
 	sigmaR_m[2] = std::sqrt(1E-3*siggen.getSigma()(4,4));    // rms z
-	
+
 	sigmaP_m[0] = std::sqrt(1E-3*siggen.getSigma()(1,1));    // UNITS ...
 	sigmaP_m[1] = std::sqrt(1E-3*siggen.getSigma()(3,3));
 	sigmaP_m[2] = std::sqrt(1E-3*siggen.getSigma()(5,5));
-	
+
 	distCorr_m.push_back(1E-3*siggen.getSigma()(0,1));  // R12
 	distCorr_m.push_back(1E-3*siggen.getSigma()(2,3));  // R34
 	distCorr_m.push_back(1E-3*siggen.getSigma()(4,5));  // R56
@@ -1813,11 +1811,11 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	distCorr_m.push_back(1E-3*siggen.getSigma()(1,5));  // R26
 	distCorr_m.push_back(1E-3*siggen.getSigma()(0,4));  // R15
 	distCorr_m.push_back(1E-3*siggen.getSigma()(1,4));  // R25
-	
+
       } else {
 	*gmsg << "Not converged." << endl;
       }
-      
+
       CreateDistributionGauss(numberOfParticles, massIneV);
     }
   }
@@ -1835,7 +1833,7 @@ void Distribution::CreateDistributionGauss(size_t numberOfParticles, double mass
         GenerateTransverseGauss(numberOfParticles);
         GenerateLongFlattopT(numberOfParticles);
     } else {
-      GenerateGaussZ(numberOfParticles);
+        GenerateGaussZ(numberOfParticles);
     }
 }
 
@@ -3075,6 +3073,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
     gsl_rng_env_setup();
     gsl_rng *randGenGSL = gsl_rng_alloc(gsl_rng_default);
     int saveProcessor = -1;
+
     for (size_t partIndex = 0; partIndex < numFall; partIndex++) {
 
         double t = 0.0;
@@ -3477,9 +3476,9 @@ void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
 
     if (numberOfParticles > 0) {
         os << "Number of particles: "
-                << numberOfParticles
-                << endl
-                << endl;
+           << numberOfParticles * (Options::cZero ? 2: 1)
+           << endl
+           << endl;
     }
 
     switch (distrTypeT_m) {
