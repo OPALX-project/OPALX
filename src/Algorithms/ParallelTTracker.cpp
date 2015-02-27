@@ -1731,13 +1731,21 @@ void ParallelTTracker::doAutoPhasing() {
             int tag = 101;
             int Parent = 0;
 
+            Vector_t stashedP = itsBunch->get_pmean();
+            Vector_t initialR(0.0);
+            Vector_t initialP(0.0, 0.0, std::max(stashedP(2), 1e-6));
+
+            if (itsBunch->getTotalNum() > 0) { // we are not emiting otherwise there wouldn't be any particles yet
+                Vector_t stashedR = itsBunch->get_rmean();
+                initialR = stashedR;
+            }
+
             itsBunch->stash();
             double zStop = itsOpalBeamline_m.calcBeamlineLenght();
             if(Ippl::myNode() == 0) {
                 itsBunch->create(1);
-                itsBunch->R[0] = Vector_t(0.0);
-                Vector_t stashedP = itsBunch->getStashIniP();
-                itsBunch->P[0] = Vector_t(0.0, 0.0, std::max(stashedP(2), 1e-6));
+                itsBunch->R[0] = initialR;
+                itsBunch->P[0] = initialP;
                 itsBunch->Bin[0] = 0;
                 itsBunch->Q[0] = itsBunch->getChargePerParticle();
                 itsBunch->PType[0] = 0;
