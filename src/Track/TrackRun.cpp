@@ -80,6 +80,8 @@ namespace {
     };
 }
 
+const std::string TrackRun::defaultDistribution("DISTRIBUTION");
+
 TrackRun::TrackRun():
     Action(SIZE, "RUN",
            "The \"RUN\" sub-command tracks the defined particles through "
@@ -163,22 +165,25 @@ void TrackRun::execute() {
 
         std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
         const size_t numberOfDistributions = distr_str.size();
-        dist = Distribution::find(distr_str.at(0));
-        dist->setNumberOfDistributions(numberOfDistributions);
+        if (numberOfDistributions == 0) {
+            dist = Distribution::find(defaultDistribution);
+        } else {
+            dist = Distribution::find(distr_str.at(0));
+            dist->setNumberOfDistributions(numberOfDistributions);
 
-        if(numberOfDistributions > 1) {
-            *gmsg << "Found more than one distribution: ";
-            for(size_t i = 1; i < numberOfDistributions; ++ i) {
-                Distribution *d = Distribution::find(distr_str.at(i));
+            if(numberOfDistributions > 1) {
+                *gmsg << "Found more than one distribution: ";
+                for(size_t i = 1; i < numberOfDistributions; ++ i) {
+                    Distribution *d = Distribution::find(distr_str.at(i));
 
-                d->setNumberOfDistributions(numberOfDistributions);
-                distrs_m.push_back(d);
+                    d->setNumberOfDistributions(numberOfDistributions);
+                    distrs_m.push_back(d);
 
-                *gmsg << " " << distr_str.at(i);
+                    *gmsg << " " << distr_str.at(i);
+                }
+                *gmsg << endl;
             }
-            *gmsg << endl;
         }
-
 
         fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
         fs->initCartesianFields();
@@ -535,7 +540,11 @@ void TrackRun::execute() {
         Track::block->bunch->PType = 0;
 
         std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
-        dist = Distribution::find(distr_str.at(0));
+        if (distr_str.size() == 0) {
+            dist = Distribution::find(defaultDistribution);
+        } else {
+            dist = Distribution::find(distr_str.at(0));
+        }
 
         // set macromass and charge for simulation particles
         double macromass = 0.0;
@@ -805,31 +814,34 @@ double TrackRun::SetDistributionParallelT(Beam *beam) {
             = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
         const size_t numberOfDistributions = distributionArray.size();
 
-        dist = Distribution::find(distributionArray.at(0));
-        dist->setNumberOfDistributions(numberOfDistributions);
+        if (numberOfDistributions == 0) {
+            dist = Distribution::find(defaultDistribution);
+        } else {
+            dist = Distribution::find(distributionArray.at(0));
+            dist->setNumberOfDistributions(numberOfDistributions);
 
-        if (numberOfDistributions > 1) {
-            *gmsg << endl
-                  << "---------------------------------" << endl
-                  << "Found more than one distribution:" << endl << endl;
-            *gmsg << "Main Distribution" << endl
-                  << "---------------------------------" << endl
-                  << distributionArray.at(0) << endl << endl
-                  << "Secondary Distribution(s)" << endl
-                  << "---------------------------------" << endl;
+            if (numberOfDistributions > 1) {
+                *gmsg << endl
+                      << "---------------------------------" << endl
+                      << "Found more than one distribution:" << endl << endl;
+                *gmsg << "Main Distribution" << endl
+                      << "---------------------------------" << endl
+                      << distributionArray.at(0) << endl << endl
+                      << "Secondary Distribution(s)" << endl
+                      << "---------------------------------" << endl;
 
-            for (size_t i = 1; i < numberOfDistributions; ++ i) {
-                Distribution *distribution = Distribution::find(distributionArray.at(i));
-                distribution->setNumberOfDistributions(numberOfDistributions);
-                distrs_m.push_back(distribution);
+                for (size_t i = 1; i < numberOfDistributions; ++ i) {
+                    Distribution *distribution = Distribution::find(distributionArray.at(i));
+                    distribution->setNumberOfDistributions(numberOfDistributions);
+                    distrs_m.push_back(distribution);
 
-                *gmsg << distributionArray.at(i) << endl;
+                    *gmsg << distributionArray.at(i) << endl;
+                }
+                *gmsg << endl
+                      << "---------------------------------" << endl << endl;
             }
-            *gmsg << endl
-                  << "---------------------------------" << endl << endl;
         }
     }
-
 
     /*
      * Initialize distributions.
@@ -899,7 +911,11 @@ ParallelTTracker *TrackRun::setupForAutophase() {
     Track::block->bunch->setSolver(fs);
 
     std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
-    dist = Distribution::find(distr_str.at(0));
+    if (distr_str.size() == 0) {
+        dist = Distribution::find(defaultDistribution);
+    } else {
+        dist = Distribution::find(distr_str.at(0));
+    }
 
     double charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
 

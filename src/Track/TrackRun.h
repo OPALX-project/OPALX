@@ -84,6 +84,8 @@ private:
     DataSink *ds;
 
     OpalData *OPAL;
+
+    static const std::string defaultDistribution;
 #ifdef HAVE_AMR_SOLVER
     std::vector<std::string>  filterString(std::string str);
     std::pair<Box,unsigned int> getBlGrids(std::string str);
