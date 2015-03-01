@@ -948,8 +948,9 @@ void PartBunch::computeSelfFields() {
         //use the mesh that is already set
         //if (fs_m->getFieldSolverType() == "SAAMG")
         //   resizeMesh();
-	INFOMSG("after resizeMesh" << hr_m << endl);
+	// INFOMSG("after resizeMesh" << hr_m << endl);
 
+        INFOMSG("mesh size" << hr_m << endl);
         //scatter charges onto grid
         this->Q *= this->dt;
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
@@ -1712,6 +1713,7 @@ void PartBunch::boundp() {
 	NDIndex<3> domain = getFieldLayout().getDomain();
 	for(int i = 0; i < Dim; i++)
 	  nr_m[i] = domain[i].length();
+
 	get_bounds(rmin_m, rmax_m);
 	Vector_t len = rmax_m - rmin_m;
 
@@ -1724,6 +1726,7 @@ void PartBunch::boundp() {
 	    rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
 	    hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
 	  }
+
 	  //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 	}
 
@@ -2754,39 +2757,42 @@ void PartBunch::setPBins(PartBinsCyc *pbin) {
 void PartBunch::stash() {
 
     size_t Nloc = getLocalNum();
-    if(Nloc == 0) return;
+
     if(bunchStashed_m) {
         *gmsg << "ERROR: bunch already stashed, call pop() first" << endl;
         return;
     }
 
-    // save all particles
-    stash_Nloc_m = Nloc;
-    stash_iniR_m = get_rmean();
-    stash_iniP_m = get_pmean();
+    if(Nloc > 0) {
+        // save all particles
+        stash_Nloc_m = Nloc;
+        stash_iniR_m = get_rmean();
+        stash_iniP_m = get_pmean();
 
-    stash_id_m.create(Nloc);
-    stash_r_m.create(Nloc);
-    stash_p_m.create(Nloc);
-    stash_x_m.create(Nloc);
-    stash_q_m.create(Nloc);
-    stash_bin_m.create(Nloc);
-    stash_dt_m.create(Nloc);
-    stash_ls_m.create(Nloc);
-    stash_ptype_m.create(Nloc);
+        stash_id_m.create(Nloc);
+        stash_r_m.create(Nloc);
+        stash_p_m.create(Nloc);
+        stash_x_m.create(Nloc);
+        stash_q_m.create(Nloc);
+        stash_bin_m.create(Nloc);
+        stash_dt_m.create(Nloc);
+        stash_ls_m.create(Nloc);
+        stash_ptype_m.create(Nloc);
 
-    stash_id_m    = this->ID;
-    stash_r_m     = this->R;
-    stash_p_m     = this->P;
-    stash_x_m     = this->X;
-    stash_q_m     = this->Q;
-    stash_bin_m   = this->Bin;
-    stash_dt_m    = this->dt;
-    stash_ls_m    = this->LastSection;
-    stash_ptype_m = this->PType;
+        stash_id_m    = this->ID;
+        stash_r_m     = this->R;
+        stash_p_m     = this->P;
+        stash_x_m     = this->X;
+        stash_q_m     = this->Q;
+        stash_bin_m   = this->Bin;
+        stash_dt_m    = this->dt;
+        stash_ls_m    = this->LastSection;
+        stash_ptype_m = this->PType;
 
-    // and destroy all particles in bunch
-    destroy(Nloc, 0);
+        // and destroy all particles in bunch
+        destroy(Nloc, 0);
+    }
+
     update();
 
     bunchStashed_m = true;
@@ -2802,30 +2808,32 @@ void PartBunch::pop() {
     }
     update();
 
-    this->create(stash_Nloc_m);
+    if (stash_Nloc_m > 0) {
+        this->create(stash_Nloc_m);
 
-    this->ID          = stash_id_m;
-    this->R           = stash_r_m;
-    this->P           = stash_p_m;
-    this->X           = stash_x_m;
-    this->Q           = stash_q_m;
-    this->Bin         = stash_bin_m;
-    this->dt          = stash_dt_m;
-    this->LastSection = stash_ls_m;
-    this->PType       = stash_ptype_m;
+        this->ID          = stash_id_m;
+        this->R           = stash_r_m;
+        this->P           = stash_p_m;
+        this->X           = stash_x_m;
+        this->Q           = stash_q_m;
+        this->Bin         = stash_bin_m;
+        this->dt          = stash_dt_m;
+        this->LastSection = stash_ls_m;
+        this->PType       = stash_ptype_m;
 
-    stash_iniR_m = Vector_t(0.0);
-    stash_iniP_m = Vector_t (0.0, 0.0, 1E-6);
+        stash_iniR_m = Vector_t(0.0);
+        stash_iniP_m = Vector_t (0.0, 0.0, 1E-6);
 
-    stash_id_m.destroy(stash_Nloc_m, 0);
-    stash_r_m.destroy(stash_Nloc_m, 0);
-    stash_p_m.destroy(stash_Nloc_m, 0);
-    stash_x_m.destroy(stash_Nloc_m, 0);
-    stash_q_m.destroy(stash_Nloc_m, 0);
-    stash_dt_m.destroy(stash_Nloc_m, 0);
-    stash_bin_m.destroy(stash_Nloc_m, 0);
-    stash_ls_m.destroy(stash_Nloc_m, 0);
-    stash_ptype_m.destroy(stash_Nloc_m, 0);
+        stash_id_m.destroy(stash_Nloc_m, 0);
+        stash_r_m.destroy(stash_Nloc_m, 0);
+        stash_p_m.destroy(stash_Nloc_m, 0);
+        stash_x_m.destroy(stash_Nloc_m, 0);
+        stash_q_m.destroy(stash_Nloc_m, 0);
+        stash_dt_m.destroy(stash_Nloc_m, 0);
+        stash_bin_m.destroy(stash_Nloc_m, 0);
+        stash_ls_m.destroy(stash_Nloc_m, 0);
+        stash_ptype_m.destroy(stash_Nloc_m, 0);
+    }
 
     bunchStashed_m = false;
 
