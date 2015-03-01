@@ -1712,20 +1712,26 @@ void ParallelTTracker::prepareSections() {
 
 
 void ParallelTTracker::doAutoPhasing() {
+    typedef std::vector<MaxPhasesT>::iterator iterator;
 
     if(Options::autoPhase == 0) return;
+
     if(OpalData::getInstance()->inRestartRun()) {
         itsDataSink_m->retriveCavityInformation(OpalData::getInstance()->getInputFn());
-
-        for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++)
+        iterator begin = OpalData::getInstance()->getFirstMaxPhases();
+        iterator end = OpalData::getInstance()->getLastMaxPhases();
+        for(iterator it = begin; it < end; it++)
             updateRFElement((*it).first, (*it).second);
     } else {
         if(OpalData::getInstance()->hasBunchAllocated()) {
             // we are in a followup track and the phase information is
             // already stored in the OPAL dictionary.
-            for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
+            iterator begin = OpalData::getInstance()->getFirstMaxPhases();
+            iterator end = OpalData::getInstance()->getLastMaxPhases();
+            for(iterator it = begin; it < end; it++) {
                 updateRFElement((*it).first, (*it).second);
-                INFOMSG("In follow-up track use saved phases for -> name: " << (*it).first << " phi= " << (*it).second << " (rad)" << endl);
+                INFOMSG("In follow-up track use saved phases for -> name: " << (*it).first
+                        << " phi= " << (*it).second << " (rad)" << endl);
             }
         } else {
             int tag = 101;
@@ -1750,15 +1756,35 @@ void ParallelTTracker::doAutoPhasing() {
                 itsBunch->Q[0] = itsBunch->getChargePerParticle();
                 itsBunch->PType[0] = 0;
                 itsBunch->LastSection[0] = 0;
-                itsBunch->update();
-                executeAutoPhase(Options::autoPhase, zStop);
+            }
+            itsBunch->update(); // the single particle may change the node during update
 
-                // now send all max phases and names of the cavities to
+            std::vector<int> numberOfLocalParticles(Ippl::getNodes(), 0);
+            numberOfLocalParticles[Ippl::myNode()] = itsBunch->getLocalNum();
+            MPI_Allgather(&numberOfLocalParticles[Ippl::myNode()],
+                          1,
+                          MPI_INT,
+                          &numberOfLocalParticles.front(),
+                          1,
+                          MPI_INT,
+                          Ippl::getComm());
+            for (size_t i = 0; i < (size_t)Ippl::getNodes(); ++ i) {
+                if (numberOfLocalParticles[i] == 1) {
+                    Parent = i;
+                    break;
+                }
+            }
+
+            executeAutoPhase(Options::autoPhase, zStop);
+
+            if (Ippl::myNode() == Parent) {    // now send all max phases and names of the cavities to
                 // all the other nodes for updating.
                 Message *mess = new Message();
                 putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
 
-                for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
+                iterator begin = OpalData::getInstance()->getFirstMaxPhases();
+                iterator end = OpalData::getInstance()->getLastMaxPhases();
+                for(iterator it = begin; it < end; it++) {
                     putMessage(*mess, (*it).first);
                     putMessage(*mess, (*it).second);
                 }
@@ -1769,8 +1795,6 @@ void ParallelTTracker::doAutoPhasing() {
                 delete mess;
             } else {
                 // receive max phases and names and update the structure
-                itsBunch->update();
-                executeAutoPhase(Options::autoPhase, zStop);
                 int nData = 0;
                 Message *mess = Ippl::Comm->receive_block(Parent, tag);
                 getMessage(*mess, nData);
