@@ -1542,25 +1542,25 @@ void Distribution::CheckIfEmitted() {
 
 void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
 
-    size_t numberOfDistParticles[] = {tOrZDist_m.size(), numberOfParticles};
-    reduce(numberOfDistParticles, numberOfDistParticles + 2, numberOfDistParticles, OpAddAssign());
+    size_t numberOfDistParticles = tOrZDist_m.size();
+    reduce(numberOfDistParticles, numberOfDistParticles, OpAddAssign());
 
-    if (numberOfDistParticles[0] != numberOfDistParticles[1]) {
+    if (numberOfDistParticles != numberOfParticles) {
         *gmsg << "\n--------------------------------------------------" << endl
               << "Warning!! The number of particles in the initial" << endl
-              << "distribution is " << numberOfDistParticles[0] << "." << endl << endl
+              << "distribution is " << numberOfDistParticles << "." << endl << endl
               << "This is different from the number of particles" << endl
-              << "defined by the BEAM command: " << numberOfDistParticles[1] << endl << endl
+              << "defined by the BEAM command: " << numberOfParticles << endl << endl
               << "This is often happens when using a FROMFILE type" << endl
               << "distribution and not matching the number of" << endl
               << "particles in the particles file(s) with the number" << endl
               << "given in the BEAM command." << endl << endl
               << "The number of particles in the initial distribution" << endl
-              << "(" << numberOfDistParticles[0] << ") "
+              << "(" << numberOfDistParticles << ") "
               << "will take precedence." << endl
               << "---------------------------------------------------\n" << endl;
     }
-    numberOfParticles = numberOfDistParticles[0];
+    numberOfParticles = numberOfDistParticles;
 }
 
 void Distribution::ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits) {
@@ -1924,21 +1924,20 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      */
     ChooseInputMomentumUnits(InputMomentumUnitsT::EV);
 
+    // Set distribution type.
+    SetDistType();
+
+    // Emitting particles in not supported in OpalCyclT.
+    emitting_m = false;
+
     /*
      * If Options::cZero is true than we reflect generated distribution
      * to ensure that the transverse averages are 0.0.
      *
      * For now we just cut the number of generated particles in half.
      */
-
     if (Options::cZero && !distrTypeT_m == DistrTypeT::FROMFILE)
         numberOfPartToCreate /= 2;
-
-    // Set distribution type.
-    SetDistType();
-
-    // Emitting particles in not supported in OpalCyclT.
-    emitting_m = false;
 
     // Create distribution.
     Create(numberOfPartToCreate, beam.getM());
@@ -2059,6 +2058,13 @@ void Distribution::CreateOpalT(PartBunch &beam,
      */
     ChooseInputMomentumUnits(InputMomentumUnitsT::NONE);
 
+    // Set distribution type(s).
+    SetDistType();
+    std::vector<Distribution *>::iterator addedDistIt;
+    for (addedDistIt = addedDistributions_m.begin();
+         addedDistIt != addedDistributions_m.end(); addedDistIt++)
+        (*addedDistIt)->SetDistType();
+
     /*
      * If Options::cZero is true than we reflect generated distribution
      * to ensure that the transverse averages are 0.0.
@@ -2067,13 +2073,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
      */
     if (Options::cZero && !distrTypeT_m == DistrTypeT::FROMFILE)
         numberOfParticles /= 2;
-
-    // Set distribution type(s).
-    SetDistType();
-    std::vector<Distribution *>::iterator addedDistIt;
-    for (addedDistIt = addedDistributions_m.begin();
-         addedDistIt != addedDistributions_m.end(); addedDistIt++)
-        (*addedDistIt)->SetDistType();
 
     /*
      * Determine the number of particles for each distribution. Note
