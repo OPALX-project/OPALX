@@ -1759,21 +1759,9 @@ void ParallelTTracker::doAutoPhasing() {
             }
             itsBunch->update(); // the single particle may change the node during update
 
-            std::vector<int> numberOfLocalParticles(Ippl::getNodes(), 0);
-            numberOfLocalParticles[Ippl::myNode()] = itsBunch->getLocalNum();
-            MPI_Allgather(&numberOfLocalParticles[Ippl::myNode()],
-                          1,
-                          MPI_INT,
-                          &numberOfLocalParticles.front(),
-                          1,
-                          MPI_INT,
-                          Ippl::getComm());
-            for (size_t i = 0; i < (size_t)Ippl::getNodes(); ++ i) {
-                if (numberOfLocalParticles[i] == 1) {
-                    Parent = i;
-                    break;
-                }
-            }
+            Parent = (itsBunch->getLocalNum() == 1? Ippl::myNode(): -1);
+            reduce(Parent, Parent, OpAddAssign());
+            Parent += (Ippl::getNodes() - 1);
 
             executeAutoPhase(Options::autoPhase, zStop);
 
