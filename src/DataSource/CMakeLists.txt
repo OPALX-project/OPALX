@@ -9,33 +9,33 @@ SET (_SRCS
 
 SET (_HDRS
   ACLVISDataConnect.h
-  ACLVISFieldDataSource.cpp
+  ACLVISFieldDataSource.hpp
   ACLVISFieldDataSource.h
   ACLVISOperations.h
-  ACLVISPtclAttribDataSource.cpp
+  ACLVISPtclAttribDataSource.hpp
   ACLVISPtclAttribDataSource.h
-  ACLVISPtclBaseDataSource.cpp
+  ACLVISPtclBaseDataSource.hpp
   ACLVISPtclBaseDataSource.h
   DataConnectCreator.h
   DataConnect.h
   DataSource.h
   DataSourceObject.h
-  FieldDataSource.cpp
+  FieldDataSource.hpp
   FieldDataSource.h
   FileDataConnect.h
-  FileFieldDataSource.cpp
+  FileFieldDataSource.hpp
   FileFieldDataSource.h
-  FilePtclAttribDataSource.cpp
+  FilePtclAttribDataSource.hpp
   FilePtclAttribDataSource.h
-  FilePtclBaseDataSource.cpp
+  FilePtclBaseDataSource.hpp
   FilePtclBaseDataSource.h
-  MakeDataSource.cpp
+  MakeDataSource.hpp
   MakeDataSource.h
   PtclAttribDataSource.h
   PtclBaseDataSource.h
-  ScalarDataSource.cpp
+  ScalarDataSource.hpp
   ScalarDataSource.h
-  StringDataSource.cpp
+  StringDataSource.hpp
   StringDataSource.h
   )
 

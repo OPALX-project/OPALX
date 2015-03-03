@@ -103,45 +103,45 @@ std::pair<typename DomainMap<Key,T,Touches,Contains,Split>::touch_iterator,
 DomainMap<Key,T,Touches,Contains,Split>::touch_range(const Key& t) const
 { 
 
-  Node *p=Root;
+	Node *p=Root;
 
-  if ( p ) {
+	if ( p ) {
 
-    // First dive left, checking touches.
-    for ( Node* y=p->Left; y && Touches::test(t,y->MyDomain); y=y->Left )
-      p = y;
+		// First dive left, checking touches.
+		for ( Node* y=p->Left; y && Touches::test(t,y->MyDomain); y=y->Left )
+			p = y;
 
-    do {
-      // Look for the first element that actually touches.
-      for (typename Node::cont_type::iterator v=p->cont.begin();
-	   v!=p->cont.end(); ++v)
-	if ( Touches::test(t,(*v).first) ) {
-	  // Found it!
-	  touch_iterator f;
-	  f.TouchThis = t;
-	  f.p = p;
-	  f.v = v;
-	  return std::pair<touch_iterator,touch_iterator>(f,touch_iterator());
+		do {
+			// Look for the first element that actually touches.
+			for (typename Node::cont_type::iterator v=p->cont.begin();
+					v!=p->cont.end(); ++v)
+				if ( Touches::test(t,(*v).first) ) {
+					// Found it!
+					touch_iterator f;
+					f.TouchThis = t;
+					f.p = p;
+					f.v = v;
+					return std::pair<touch_iterator,touch_iterator>(f,touch_iterator());
+				}
+
+			// Didn't find one here. Move on.
+			Node *y = p->Right;
+			if ( y && Touches::test(t,y->MyDomain) ) {
+				// If it is there, go there and then all the way left.
+				p = y;
+				for ( y=p->Left; y && Touches::test(t,y->MyDomain) ; y=y->Left )
+					p = y;
+			}
+			else {
+				// If there is no right, go up until you can go right more.
+				for ( y = p->Parent; y && (p==y->Right); y = y->Parent )
+					p = y;
+				p = y;
+			}
+		} while (p);
 	}
-
-      // Didn't find one here. Move on.
-      Node *y = p->Right;
-      if ( y && Touches::test(t,y->MyDomain) ) {
-	// If it is there, go there and then all the way left.
-	p = y;
-	for ( y=p->Left; y && Touches::test(t,y->MyDomain) ; y=y->Left ) 
-	  p = y;
-      }
-      else {
-	// If there is no right, go up until you can go right more.
-	for ( y = p->Parent; y && (p==y->Right); y = y->Parent )
-	  p = y;
-	p = y;
-      }
-    } while (p);
-  }
-  // Didn't find any.
-  return std::pair<touch_iterator,touch_iterator>(touch_iterator(),touch_iterator());
+	// Didn't find any.
+	return std::pair<touch_iterator,touch_iterator>(touch_iterator(),touch_iterator());
 }
 
 //////////////////////////////////////////////////////////////////////

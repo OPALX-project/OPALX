@@ -9,9 +9,9 @@ SET (_HDRS
   LSIndex.h
   NDIndex.h
   NDIndexInlines.h
-  SIndexAssign.cpp
+  SIndexAssign.hpp
   SIndexAssign.h
-  SIndex.cpp
+  SIndex.hpp
   SIndex.h
   SOffset.h
   )

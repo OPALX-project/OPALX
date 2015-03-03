@@ -2,35 +2,35 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  Assign.cpp
+  Assign.hpp
   AssignDefs.h
-  AssignGeneralBF.cpp
-  AssignGeneralIBF.cpp
+  AssignGeneralBF.hpp
+  AssignGeneralIBF.hpp
   Assign.h
   AssignTags.h
-  BareField.cpp
+  BareField.hpp
   BareField.h
   BareFieldIterator.h
-  BCond.cpp
+  BCond.hpp
   BCond.h
-  BrickExpression.cpp
+  BrickExpression.hpp
   BrickExpression.h
-  BrickIterator.cpp
+  BrickIterator.hpp
   BrickIterator.h
-  CompressedBrickIterator.cpp
+  CompressedBrickIterator.hpp
   CompressedBrickIterator.h
-  Field.cpp
+  Field.hpp
   Field.h
   FieldLoc.h
   FieldSpec.h
-  GuardCellSizes.cpp
+  GuardCellSizes.hpp
   GuardCellSizes.h
-  IndexedBareField.cpp
+  IndexedBareField.hpp
   IndexedBareField.h
   IndexedField.h
-  LField.cpp
+  LField.hpp
   LField.h
-  ReductionLoc.cpp
+  ReductionLoc.hpp
   ReductionLoc.h
   )
 

@@ -2,7 +2,7 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  DomainMap.cpp
+  DomainMap.hpp
   DomainMap.h
   )
 

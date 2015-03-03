@@ -145,28 +145,28 @@ public:
 
   // Test to see if there is any overlap between two PRegions
   bool touches(const PRegion<T>& r) const {
-    bool retval = false;
-    // find min and max of both ranges
-    T Amin = min();
-    T Amax = max();
-    T Bmin = r.min();
-    T Bmax = r.max();
+	  bool retval = false;
+	  // find min and max of both ranges
+	  T Amin = min();
+	  T Amax = max();
+	  T Bmin = r.min();
+	  T Bmax = r.max();
 
-    // check for overlap ... must check special case of single points
-    if (Amin == Amax) {
-      if ((Bmin == Bmax && Amin == Bmin) ||
-	  (Bmin != Bmax && Amin >= Bmin && Amin < Bmax))
-	retval = true;
-    }
-    else if (Bmin == Bmax) {
-      if (Bmin >= Amin && Bmin < Amax)
-	retval = true;
-    }
-    else {
-      if (Amax > Bmin && Bmax > Amin)
-	retval = true;
-    }
-    return retval;
+	  // check for overlap ... must check special case of single points
+	  if (Amin == Amax) {
+		  if ((Bmin == Bmax && Amin == Bmin) ||
+				  (Bmin != Bmax && Amin >= Bmin && Amin < Bmax))
+			  retval = true;
+	  }
+	  else if (Bmin == Bmax) {
+		  if (Bmin >= Amin && Bmin < Amax)
+			  retval = true;
+	  }
+	  else {
+		  if (Amax > Bmin && Bmax > Amin)
+			  retval = true;
+	  }
+	  return retval;
   }
 
   // Test to see if the given PRegion is contained within this one

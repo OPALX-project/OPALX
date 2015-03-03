@@ -3,15 +3,15 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  CartesianCentering.cpp
+  CartesianCentering.hpp
   CartesianCentering.h
-  Cartesian.cpp
+  Cartesian.hpp
   Cartesian.h
   CartesianStencilSetup.h
   Centering.h
-  Mesh.cpp
+  Mesh.hpp
   Mesh.h
-  UniformCartesian.cpp
+  UniformCartesian.hpp
   UniformCartesian.h
   )
 
