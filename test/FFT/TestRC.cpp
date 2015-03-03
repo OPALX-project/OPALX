@@ -31,23 +31,12 @@ bool Configure(int argc, char *argv[],
 
   string bc_str;
   string dist_str;
+  *nx = 16; 
+  *ny = 16;
+  *nz = 1024;
+  *nLoop = 1; 
+  *serialDim = 0;
 
-  for (int i=1; i < argc; ++i) {
-    string s(argv[i]);
-    if (s == "-grid") {
-      *nx = atoi(argv[++i]);
-      *ny = atoi(argv[++i]);
-      *nz = atoi(argv[++i]);
-    } else if (s == "-Loop") {
-      *nLoop = atoi(argv[++i]);
-    } else if (s == "-Decomp") {
-      *serialDim = atoi(argv[++i]);
-    } 
-    else {
-      errmsg << "Illegal format for or unknown option '" << s.c_str() << "'.";
-      errmsg << endl;
-    }
-  }
   if (*serialDim == 0)
     msg << "Serial dimension is x" << endl;
   else if (*serialDim == 1)
@@ -68,13 +57,11 @@ int main(int argc, char *argv[])
   
   Ippl ippl(argc,argv);
   Inform testmsg(NULL,0);
-
+  
   const unsigned D=3U;
   bool compressTemps = false;
   bool constInput    = true;  // preserve input field in two-field transform
 
-  testmsg << "%%%%%%% Dimensionality: D = " << D << " %%%%%%%" << endl;
-  
 
   unsigned int processes;
   int serialDim;
@@ -144,9 +131,6 @@ int main(int argc, char *argv[])
   INFOMSG("RFieldSPStan   layout= " << layoutSPStan << endl;);
   INFOMSG("CFieldSPStan0h layout= " << layoutSPStan0h << endl;);
   
-  // For calling FieldDebug functions from debugger, set up output format:
-  setFormat(4,3);
-
   // Rather more complete test functions (sine or cosine mode):
   dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
   dcomplex cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
@@ -155,39 +139,60 @@ int main(int argc, char *argv[])
   xfact = pi/(ngrid[0] + 1.0);
   yfact = 2.0*twopi/(ngrid[1]);
   zfact = 2.0*twopi/(ngrid[2]);
-  kx = 1.0; ky = 2.0; kz = 3.0; // wavenumbers
+  kx = 1.0; ky = 2.0; kz = 32.0; // wavenumbers
 
   CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
     sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
-		   ndiStandard[1]    * ky * yfact +
-		   ndiStandard[2]    * kz * zfact ) +
+ 		    ndiStandard[1]    * ky * yfact +
+		    ndiStandard[2]    * kz * zfact ) +
 	      sin( (ndiStandard[0]+1) * kx * xfact -
-		   ndiStandard[1]    * ky * yfact -
-		   ndiStandard[2]    * kz * zfact ) ) + 
+		    ndiStandard[1]    * ky * yfact -
+		    ndiStandard[2]    * kz * zfact ) ) + 
     cfact * (-cos( (ndiStandard[0]+1) * kx * xfact +
-		   ndiStandard[1]    * ky * yfact +
-		   ndiStandard[2]    * kz * zfact ) + 
-	     cos( (ndiStandard[0]+1) * kx * xfact -
-		  ndiStandard[1]    * ky * yfact -
-		  ndiStandard[2]    * kz * zfact ) );
+		    ndiStandard[1]    * ky * yfact +
+		    ndiStandard[2]    * kz * zfact ) + 
+	      cos( (ndiStandard[0]+1) * kx * xfact -
+		    ndiStandard[1]    * ky * yfact -
+		    ndiStandard[2]    * kz * zfact ) );
   
   // RC FFT tests
   
   RFieldSPStan = real(CFieldPPStan);
   CFieldSPStan0h = dcomplex(0.0,0.0);
+
+  Inform fo1(NULL,"realField.dat",Inform::OVERWRITE);
    
+  for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
+    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
+      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
+	fo1 << x << " " << y << " " << z << " " <<  RFieldSPStan[x][y][z].get() << endl;
+      }
+    }
+  }
+
   // create RC FFT object
   FFT<RCTransform,D,double> rcfft(ndiStandard, ndiStandard0h, compressTemps);
 
   // set direction names
   rcfft.setDirectionName(+1, "forward");
   rcfft.setDirectionName(-1, "inverse");
+
+  Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
   
   testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
   for (unsigned i=0; i<nLoop; i++) {
     RFieldSPStan_save = RFieldSPStan;
     timer.start();
     rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
+
+    for(int x = ndiStandard0h[0].first(); x <= ndiStandard0h[0].last(); x++) {
+      for(int y = ndiStandard0h[1].first(); y <= ndiStandard0h[1].last(); y++) {
+	for(int z = ndiStandard0h[2].first(); z <= ndiStandard0h[2].last(); z++) {
+	  fo2 << x << " " << y << " " << z << " " <<  real(CFieldSPStan0h[x][y][z].get()) << " " << imag(CFieldSPStan0h[x][y][z].get()) << endl;
+	}
+      }
+    }    
+
     rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
     timer.stop();
   

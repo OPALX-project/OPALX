@@ -23,7 +23,7 @@ template<class T, unsigned Dim>
 class RadiusCondition
 {
 public:
-	RadiusCondition(T r) : radius(r), sqradius(r*r)
+ RadiusCondition(T r) : sqradius(r*r), radius(r)
 	{  }
 
 	template<class V>

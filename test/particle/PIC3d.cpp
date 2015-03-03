@@ -71,23 +71,23 @@ void dumpVTK(Field<Vektor<double,3>,3> &EFD, NDIndex<3> lDom, int nx, int ny, in
     // open a new data file for this iteration
     // and start with header
     vtkout.open(fname.str().c_str(), std::ios::out);
-    vtkout << "# vtk DataFile Version 2.0" << endl;
-    vtkout << "pic3d" << endl;
-    vtkout << "ASCII" << endl;
-    vtkout << "DATASET STRUCTURED_POINTS" << endl;
-    vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << endl;
-    vtkout << "ORIGIN 0 0 0" << endl;
-    vtkout << "SPACING " << dx << " " << dy << " " << dz << endl;
-    vtkout << "POINT_DATA " << nx*ny*nz << endl;
+    vtkout << "# vtk DataFile Version 2.0" << std::endl;
+    vtkout << "pic3d" << std::endl;
+    vtkout << "ASCII" << std::endl;
+    vtkout << "DATASET STRUCTURED_POINTS" << std::endl;
+    vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl;
+    vtkout << "ORIGIN 0 0 0" << std::endl;
+    vtkout << "SPACING " << dx << " " << dy << " " << dz << std::endl;
+    vtkout << "POINT_DATA " << nx*ny*nz << std::endl;
 
-    vtkout << "VECTORS E-Field float" << endl;
+    vtkout << "VECTORS E-Field float" << std::endl;
     for(int z=lDom[2].first(); z<lDom[2].last(); z++) {
         for(int y=lDom[1].first(); y<lDom[1].last(); y++) {
             for(int x=lDom[0].first(); x<lDom[0].last(); x++) {
                 Vektor<double, 3> tmp = EFD[x][y][z].get();
                 vtkout << tmp(0) << "\t"
                        << tmp(1) << "\t"
-                       << tmp(2) << endl;
+                       << tmp(2) << std::endl;
             }
         }
     }
@@ -115,21 +115,21 @@ void dumpVTK(Field<double,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int 
     // open a new data file for this iteration
     // and start with header
     vtkout.open(fname.str().c_str(), std::ios::out);
-    vtkout << "# vtk DataFile Version 2.0" << endl;
-    vtkout << "toyfdtd" << endl;
-    vtkout << "ASCII" << endl;
-    vtkout << "DATASET STRUCTURED_POINTS" << endl;
-    vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << endl;
-    vtkout << "ORIGIN 0 0 0" << endl;
-    vtkout << "SPACING " << dx << " " << dy << " " << dz << endl;
-    vtkout << "POINT_DATA " << nx*ny*nz << endl;
+    vtkout << "# vtk DataFile Version 2.0" << std::endl;
+    vtkout << "toyfdtd" << std::endl;
+    vtkout << "ASCII" << std::endl;
+    vtkout << "DATASET STRUCTURED_POINTS" << std::endl;
+    vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl;
+    vtkout << "ORIGIN 0 0 0" << std::endl;
+    vtkout << "SPACING " << dx << " " << dy << " " << dz << std::endl;
+    vtkout << "POINT_DATA " << nx*ny*nz << std::endl;
 
-    vtkout << "SCALARS E-Field float" << endl;
-    vtkout << "LOOKUP_TABLE default" << endl;
+    vtkout << "SCALARS E-Field float" << std::endl;
+    vtkout << "LOOKUP_TABLE default" << std::endl;
     for(int z=lDom[2].first(); z<=lDom[2].last(); z++) {
         for(int y=lDom[1].first(); y<=lDom[1].last(); y++) {
             for(int x=lDom[0].first(); x<=lDom[0].last(); x++) {
-                vtkout << EFD[x][y][z].get() << endl;
+                vtkout << EFD[x][y][z].get() << std::endl;
             }
         }
     }
@@ -143,6 +143,28 @@ void dumpVTK(Field<double,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int 
 
 template<class PL>
 class ChargedParticles : public ParticleBase<PL> {
+
+  Field<Vektor<double,Dim>,Dim> EFD_m;
+  Field<double,Dim> EFDMag_m;
+  
+  BConds<double,Dim,Mesh_t,Center_t> bc_m;
+  BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
+  
+  Vektor<int,Dim> nr_m;
+
+  BC_t bco_m;
+  InterPol_t interpol_m;
+  bool fieldNotInitialized_m;
+  bool doRepart_m;
+  bool withGuardCells_m;
+  
+  e_dim_tag decomp_m[Dim];
+  
+  Vector_t hr_m;
+  Vector_t rmin_m;
+  Vector_t rmax_m;
+
+
 public:
     ParticleAttrib<double>     qm; // charge-to-mass ratio
     typename PL::ParticlePos_t P;  // particle velocity
@@ -177,12 +199,12 @@ public:
         ParticleBase<PL>(pl),
         bco_m(bc),
         interpol_m(interpol),
-        hr_m(hr),
-        rmin_m(rmin),
-        rmax_m(rmax),
-        fieldNotInitialized_m(true),
+	fieldNotInitialized_m(true),
         doRepart_m(true),
-        withGuardCells_m(gCells)
+        withGuardCells_m(gCells),
+	hr_m(hr),
+        rmin_m(rmin),
+        rmax_m(rmax)
     {
         // register the particle attributes
         this->addAttribute(qm);
@@ -407,7 +429,7 @@ public:
             ostr.precision(15);
             ostr.setf(std::ios::scientific, std::ios::floatfield);
 
-            ostr << " x, px, y, py t, pt, id, node" << endl;
+            ostr << " x, px, y, py t, pt, id, node" << std::endl;
 
             unsigned int dataBlocks=0;
             double x,y,z,px,py,pz,id;
@@ -416,7 +438,7 @@ public:
             for (unsigned i=0; i < tmp.size(); i+=7)
                 ostr << tmp[i+1] << " " << tmp[i+4] << " " << tmp[i+2]  << " " \
                      << tmp[i+5] << " " << tmp[i+3] << " " << tmp[i+6]  << " " \
-                     << tmp[i]   << " " << Ippl::myNode() << endl;
+                     << tmp[i]   << " " << Ippl::myNode() << std::endl;
 
             int notReceived =  Ippl::getNodes() - 1;
             while (notReceived > 0) {
@@ -437,7 +459,7 @@ public:
                     rmsg->get(&pz);
                     ostr << x  << "\t " << px  << "\t " << y  << "\t " \
                          << py << "\t " << z << "\t " << pz << "\t "   \
-                         << id   << "\t " << vn << endl;
+                         << id   << "\t " << vn << std::endl;
                 }
                 delete rmsg;
             }
@@ -460,7 +482,7 @@ public:
 private:
 
     inline void setBCAllOpen() {
-        for (int i=0; i < 2*Dim; i++) {
+        for (unsigned i=0; i < 2*Dim; i++) {
             this->getBConds()[i] = ParticleNoBCond;
             bc_m[i]  = new ZeroFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
@@ -468,7 +490,7 @@ private:
     }
 
     inline void setBCAllPeriodic() {
-        for (int i=0; i < 2*Dim; i++) {
+        for (unsigned i=0; i < 2*Dim; i++) {
             this->getBConds()[i] = ParticlePeriodicBCond;
             bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
@@ -476,12 +498,12 @@ private:
     }
 
     inline void setBCOOP() {
-        for (int i=0; i < 2*Dim - 2; i++) {
+        for (unsigned i=0; i < 2*Dim - 2; i++) {
             bc_m[i]  = new ZeroFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
             this->getBConds()[i] = ParticleNoBCond;
         }
-        for (int i= 2*Dim - 2; i < 2*Dim; i++) {
+        for (unsigned i= 2*Dim - 2; i < 2*Dim; i++) {
             bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
             this->getBConds()[i] = ParticlePeriodicBCond;
@@ -512,25 +534,6 @@ private:
         qm.scatter(EFDMag_m, this->R, myinterp);
     }
 
-    Field<Vektor<double,Dim>,Dim> EFD_m;
-    Field<double,Dim> EFDMag_m;
-
-    BConds<double,Dim,Mesh_t,Center_t> bc_m;
-    BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
-
-    Vektor<int,Dim> nr_m;
-
-    Vector_t hr_m;
-    Vector_t rmin_m;
-    Vector_t rmax_m;
-
-    BC_t bco_m;
-    InterPol_t interpol_m;
-    bool fieldNotInitialized_m;
-    bool doRepart_m;
-    bool withGuardCells_m;
-    e_dim_tag decomp_m[Dim];
-
 };
 
 int main(int argc, char *argv[]){
@@ -541,7 +544,7 @@ int main(int argc, char *argv[]){
     Vektor<int,Dim> nr(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
 
     const unsigned int totalP = atoi(argv[4]);
-    const int nt              = atoi(argv[5]);
+    const unsigned int nt     = atoi(argv[5]);
 
     InterPol_t myInterpol;
     if (std::string(argv[6])==std::string("CIC"))
@@ -580,7 +583,7 @@ int main(int argc, char *argv[]){
     }
 
     e_dim_tag decomp[Dim];
-    int serialDim = 2;
+    unsigned serialDim = 2;
 
     msg << "Serial dimension is " << serialDim  << endl;
 
@@ -590,15 +593,15 @@ int main(int argc, char *argv[]){
 
     NDIndex<Dim> domain;
     if (gCells) {
-        for(int i=0; i<Dim; i++)
+        for(unsigned i=0; i<Dim; i++)
             domain[i] = domain[i] = Index(nr[i] + 1);
     }
     else {
-        for(int i=0; i<Dim; i++)
+        for(unsigned i=0; i<Dim; i++)
             domain[i] = domain[i] = Index(nr[i]);
     }
 
-    for (int d=0; d < Dim; ++d)
+    for (unsigned d=0; d < Dim; ++d)
         decomp[d] = (d == serialDim) ? SERIAL : PARALLEL;
 
     // create mesh and layout objects for this problem domain
