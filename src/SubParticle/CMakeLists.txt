@@ -2,10 +2,10 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  SubParticleAssign.cpp
+  SubParticleAssign.hpp
   SubParticleAssignDefs.h
   SubParticleAssign.h
-  SubParticleAttrib.cpp
+  SubParticleAttrib.hpp
   SubParticleAttrib.h
   )
 

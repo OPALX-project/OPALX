@@ -3,9 +3,9 @@ SET (_SRCS
 
 SET (_HDRS
   f2c.h
-  FFTBase.cpp
+  FFTBase.hpp
   FFTBase.h
-  FFT.cpp
+  FFT.hpp
   FFT.h
   fftpack_FFT.h
   SCSL_FFT.h

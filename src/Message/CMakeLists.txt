@@ -15,9 +15,9 @@ SET (_HDRS
   Communicate.h
   CRC.h
   Formatter.h
-  GlobalComm.cpp
+  GlobalComm.hpp
   GlobalComm.h
-  Message.cpp
+  Message.hpp
   Message.h
   TagMaker.h
   Tags.h

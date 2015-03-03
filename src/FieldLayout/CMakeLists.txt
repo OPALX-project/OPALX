@@ -5,18 +5,18 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  BinaryBalancer.cpp
+  BinaryBalancer.hpp
   BinaryBalancer.h
-  CenteredFieldLayout.cpp
+  CenteredFieldLayout.hpp
   CenteredFieldLayout.h
-  ConejoBalancer.cpp
+  ConejoBalancer.hpp
   ConejoBalancer.h
-  FieldLayout.cpp
+  FieldLayout.hpp
   FieldLayout.h
   FieldLayoutUser.h
   MultiBalancer.h
   Vnode.h
-  VnodeMultiBalancer.cpp
+  VnodeMultiBalancer.hpp
   VnodeMultiBalancer.h
   VRB.h
   )

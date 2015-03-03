@@ -28,22 +28,22 @@ SET (_HDRS
   bstring.h
   DiscBuffer.h
   DiscConfig.h
-  DiscField.cpp
+  DiscField.hpp
   DiscField.h
   DiscMeta.h
-  DiscParticle.cpp
+  DiscParticle.hpp
   DiscParticle.h
   DiscType.h
-  FieldBlock.cpp
+  FieldBlock.hpp
   FieldBlock.h
-  FieldDebug.cpp
+  FieldDebug.hpp
   FieldDebug.h
   FieldDebugFunctions.h
-  FieldDebugPrint.cpp
+  FieldDebugPrint.hpp
   FieldDebugPrint.h
-  FieldPrint.cpp
+  FieldPrint.hpp
   FieldPrint.h
-  FieldView.cpp
+  FieldView.hpp
   FieldView.h
   Inform.h
   IplCounter.h
@@ -55,11 +55,11 @@ SET (_HDRS
   IpplTimings.h
   my_auto_ptr.h
   NamedObj.h
-  ParticleDebug.cpp
+  ParticleDebug.hpp
   ParticleDebug.h
   ParticleDebugFunctions.h
   PAssert.h
-  Pooled.cpp
+  Pooled.hpp
   Pooled.h
   Pool.h
   Pstring.h
@@ -79,7 +79,7 @@ SET (_HDRS
   User.h
   UserList.h
   Vec.h
-  vmap.cpp
+  vmap.hpp
   vmap.h
   )
 

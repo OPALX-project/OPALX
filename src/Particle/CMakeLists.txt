@@ -16,28 +16,28 @@ SET (_HDRS
   PairBuilder/PairConditions.h
   PairBuilder/SortingPairBuilder.h
   ParticleAttribBase.h
-  ParticleAttrib.cpp
+  ParticleAttrib.hpp
   ParticleAttribElem.h
   ParticleAttrib.h
-  ParticleBalancer.cpp
+  ParticleBalancer.hpp
   ParticleBalancer.h
-  ParticleBase.cpp
+  ParticleBase.hpp
   ParticleBase.h
   ParticleBConds.h
-  ParticleCashedLayout.cpp
+  ParticleCashedLayout.hpp
   ParticleCashedLayout.h
-  ParticleInteractAttrib.cpp
+  ParticleInteractAttrib.hpp
   ParticleInteractAttrib.h
-  ParticleInteractLayout.cpp
+  ParticleInteractLayout.hpp
   ParticleInteractLayout.h
-  ParticleLayout.cpp
+  ParticleLayout.hpp
   ParticleLayoutFromGrid.h
   ParticleLayout.h
-  ParticleSpatialLayout.cpp
+  ParticleSpatialLayout.hpp
   ParticleSpatialLayout.h
-  ParticleUniformLayout.cpp
+  ParticleUniformLayout.hpp
   ParticleUniformLayout.h
-  PAssign.cpp
+  PAssign.hpp
   PAssignDefs.h
   PAssign.h
   )

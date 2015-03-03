@@ -4,7 +4,7 @@ SET (_SRCS
 SET (_HDRS
   NDRegion.h
   PRegion.h
-  RegionLayout.cpp
+  RegionLayout.hpp
   RegionLayout.h
   Rnode.h
   )

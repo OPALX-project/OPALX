@@ -2,12 +2,12 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  SubBareField.cpp
+  SubBareField.hpp
   SubBareField.h
-  SubFieldAssign.cpp
+  SubFieldAssign.hpp
   SubFieldAssignDefs.h
   SubFieldAssign.h
-  SubField.cpp
+  SubField.hpp
   SubField.h
   SubFieldIter.h
   SubFieldTraits.h
