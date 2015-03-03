@@ -117,7 +117,7 @@ std::ostream& operator<<(std::ostream&,const GuardCellSizes<Dim>&);
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/GuardCellSizes.cpp"
+#include "Field/GuardCellSizes.hpp"
 
 #endif // GUARD_CELL_SIZES_H
 

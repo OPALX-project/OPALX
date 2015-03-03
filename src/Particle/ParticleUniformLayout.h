@@ -85,7 +85,7 @@ private:
   int *MsgCount;
 };
 
-#include "Particle/ParticleUniformLayout.cpp"
+#include "Particle/ParticleUniformLayout.hpp"
 
 #endif // PARTICLE_UNIFORM_LAYOUT_H
 

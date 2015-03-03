@@ -68,7 +68,7 @@ private:
   void printelem(bool, T&, unsigned int, Inform&);
 };
 
-#include "Utility/FieldDebugPrint.cpp"
+#include "Utility/FieldDebugPrint.hpp"
 
 #endif
 

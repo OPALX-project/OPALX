@@ -821,7 +821,7 @@ Average(Field<T1,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 //----------------------------------------------------------------------
 } 
 
-#include "Meshes/UniformCartesian.cpp"
+#include "Meshes/UniformCartesian.hpp"
 
 #endif // UNIFORM_CARTESIAN_H
 

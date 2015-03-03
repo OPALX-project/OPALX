@@ -74,7 +74,7 @@ SI_ASSIGNMENT_OPERATORS(operator<<,OpAssign)
 SI_ASSIGNMENT_OPERATORS(operator|=,OpBitwiseOrAssign)
 SI_ASSIGNMENT_OPERATORS(operator&=,OpBitwiseAndAssign)
 
-#include "Index/SIndexAssign.cpp"
+#include "Index/SIndexAssign.hpp"
 
 #endif // SINDEX_ASSIGN_H
 

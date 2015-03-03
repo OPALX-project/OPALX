@@ -124,7 +124,7 @@ public:
 
 };
 
-#include "SubField/SubField.cpp"
+#include "SubField/SubField.hpp"
 
 #endif // SUB_FIELD_H
 

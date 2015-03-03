@@ -382,7 +382,7 @@ private:
 
 };
 
-#include "Region/RegionLayout.cpp"
+#include "Region/RegionLayout.hpp"
 
 #endif // REGION_LAYOUT_H
 

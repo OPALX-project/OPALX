@@ -748,7 +748,7 @@ private:
   DiscParticle& operator=(const DiscParticle&);
 };
 
-#include "Utility/DiscParticle.cpp"
+#include "Utility/DiscParticle.hpp"
 
 #endif // DISC_PARTICLE_H
 

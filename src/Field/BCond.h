@@ -867,7 +867,7 @@ operator<<(std::ostream& o, const BConds<T,D,M,C>& bc)
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/BCond.cpp"
+#include "Field/BCond.hpp"
 
 #endif // BCOND_H
 

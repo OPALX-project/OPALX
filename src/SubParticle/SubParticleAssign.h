@@ -75,7 +75,7 @@ SUBPARTICLE_ASSIGNMENT_OPERATORS(operator/=,OpDivideAssign)
 SUBPARTICLE_ASSIGNMENT_OPERATORS(mineq,OpMinAssign)
 SUBPARTICLE_ASSIGNMENT_OPERATORS(maxeq,OpMaxAssign)
 
-#include "SubParticle/SubParticleAssign.cpp"
+#include "SubParticle/SubParticleAssign.hpp"
 
 #endif
 

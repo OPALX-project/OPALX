@@ -206,7 +206,7 @@ inline bool operator<(const vmap<Key, T, Compare>& x,
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Utility/vmap.cpp"
+#include "Utility/vmap.hpp"
 
 #endif // VMAP_H
 

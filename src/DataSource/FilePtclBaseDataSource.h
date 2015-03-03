@@ -63,7 +63,7 @@ private:
   int counter;
 };
 
-#include "DataSource/FilePtclBaseDataSource.cpp"
+#include "DataSource/FilePtclBaseDataSource.hpp"
 
 #endif // FILE_PARTICLE_BASE_DATA_SOURCE_H
 

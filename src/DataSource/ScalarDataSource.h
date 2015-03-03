@@ -53,7 +53,7 @@ private:
   T& MyScalar;
 };
 
-#include "DataSource/ScalarDataSource.cpp"
+#include "DataSource/ScalarDataSource.hpp"
 
 #endif // SCALAR_DATA_SOURCE_H
 

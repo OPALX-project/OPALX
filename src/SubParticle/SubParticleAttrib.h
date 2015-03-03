@@ -256,7 +256,7 @@ std::ostream& operator<<(std::ostream &o, const SubParticleAttrib<PA,T,Dim> &n) 
 }
 
 
-#include "SubParticle/SubParticleAttrib.cpp"
+#include "SubParticle/SubParticleAttrib.hpp"
 
 #endif
 

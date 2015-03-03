@@ -69,7 +69,7 @@ SUB_ASSIGNMENT_OPERATORS(operator/=,OpDivideAssign)
 SUB_ASSIGNMENT_OPERATORS(mineq,OpMinAssign)
 SUB_ASSIGNMENT_OPERATORS(maxeq,OpMaxAssign)
 
-#include "SubField/SubFieldAssign.cpp"
+#include "SubField/SubFieldAssign.hpp"
 
 #endif // SUB_FIELD_ASSIGN_H
 

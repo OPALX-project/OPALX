@@ -72,7 +72,7 @@ BinaryRepartition(FieldLayout<Dim>& layout, BareField<double,Dim>& weights)
 
 //////////////////////////////////////////////////////////////////////
 
-#include "FieldLayout/BinaryBalancer.cpp"
+#include "FieldLayout/BinaryBalancer.hpp"
 
 #endif // BINARY_BALANCER_H
 

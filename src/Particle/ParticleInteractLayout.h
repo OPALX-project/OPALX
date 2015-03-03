@@ -206,7 +206,7 @@ private:
   T getMaxLocalInteractionRadius();
 };
 
-#include "Particle/ParticleInteractLayout.cpp"
+#include "Particle/ParticleInteractLayout.hpp"
 
 #endif  // PARTICLE_INTERACT_LAYOUT_H
 

@@ -63,7 +63,7 @@ template<class T>
 DataSourceObject *
 make_DataSourceObject(const char *,DataConnect *,int,StringDataSource<T>&);
 
-#include "DataSource/MakeDataSource.cpp"
+#include "DataSource/MakeDataSource.hpp"
 
 #endif // MAKE_DATA_SOURCE_H
 

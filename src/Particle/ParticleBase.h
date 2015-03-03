@@ -377,7 +377,7 @@ private:
   unsigned getNextID();
 };
 
-#include "Particle/ParticleBase.cpp"
+#include "Particle/ParticleBase.hpp"
 
 #endif // PARTICLE_BASE_H
 

@@ -70,7 +70,7 @@ private:
 };
 //----------------------------------------------------------------------
 
-#include "Utility/FieldBlock.cpp"
+#include "Utility/FieldBlock.hpp"
 
 #endif // FIELD_BLOCK_H
 

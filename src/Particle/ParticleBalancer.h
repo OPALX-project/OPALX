@@ -42,7 +42,7 @@ template<class T, unsigned Dim>
 bool
 BinaryRepartition(ParticleBase<ParticleUniformLayout<T,Dim> >&, double = 0.0);
 
-#include "Particle/ParticleBalancer.cpp"
+#include "Particle/ParticleBalancer.hpp"
 
 #endif // PARTICLE_BALANCER_H
 

@@ -129,7 +129,7 @@ max(const PETE_Expr<T>& expr, NDIndex<D>& loc)
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/ReductionLoc.cpp"
+#include "Field/ReductionLoc.hpp"
 
 #endif // REDUCTION_LOC_H
 

@@ -839,7 +839,7 @@ Average(Field<T1,3U,Cartesian<3U,MFLOAT>,Vert>& x,
 
 //----------------------------------------------------------------------
 }
-#include "Meshes/Cartesian.cpp"
+#include "Meshes/Cartesian.hpp"
 
 #endif // CARTESIAN_H
 

@@ -1396,7 +1396,7 @@ protected:
 
 };
 
-#include "Particle/ParticleSpatialLayout.cpp"
+#include "Particle/ParticleSpatialLayout.hpp"
 
 #endif // PARTICLE_SPATIAL_LAYOUT_H
 

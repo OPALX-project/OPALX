@@ -623,6 +623,6 @@ extern "C"
 }
 #endif // IPPL_MPIXX || IPPL_PM
 
-#include "Message/Message.cpp"
+#include "Message/Message.hpp"
 
 #endif // MESSAGE_H

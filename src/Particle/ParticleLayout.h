@@ -121,7 +121,7 @@ private:
   unsigned int UpdateOptions;
 };
 
-#include "Particle/ParticleLayout.cpp"
+#include "Particle/ParticleLayout.hpp"
 
 #endif // PARTICLE_LAYOUT_H
 

@@ -801,7 +801,7 @@ std::ostream& operator<<(std::ostream& out, const FieldLayout<Dim>& f) {
 }
 
 
-#include "FieldLayout/FieldLayout.cpp"
+#include "FieldLayout/FieldLayout.hpp"
 
 #endif // FIELD_LAYOUT_H
 

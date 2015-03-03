@@ -64,7 +64,7 @@ protected:
 			   CompressedBrickIterator<T,Dim>) = 0;
 };
 
-#include "DataSource/FieldDataSource.cpp"
+#include "DataSource/FieldDataSource.hpp"
 
 #endif // FIELD_DATA_SOURCE_H
 

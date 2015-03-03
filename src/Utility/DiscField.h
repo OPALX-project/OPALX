@@ -1765,7 +1765,7 @@ private:
   DiscField& operator=(const DiscField<Dim>&);
 };
 
-#include "Utility/DiscField.cpp"
+#include "Utility/DiscField.hpp"
 
 #endif // DISC_FIELD_H
 

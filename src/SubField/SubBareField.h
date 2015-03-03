@@ -240,7 +240,7 @@ std::ostream& operator<<(std::ostream& o, const SubBareField<T,Dim,S>& s) {
 }
 
 
-#include "SubField/SubBareField.cpp"
+#include "SubField/SubBareField.hpp"
 
 #endif // SUB_BARE_FIELD_H
 

@@ -195,7 +195,7 @@ private:
   ParticleList_t GhostList;
 };
 
-#include "Particle/ParticleInteractAttrib.cpp"
+#include "Particle/ParticleInteractAttrib.hpp"
 
 #endif  // PARTICLE_INTERACT_ATTRIB_H
 
