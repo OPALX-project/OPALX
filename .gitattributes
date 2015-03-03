@@ -148,11 +148,11 @@ src/FFT/fftpack.F -text
 src/FFT/fftpack.cpp -text
 src/FFT/fftpack_FFT.h -text
 src/Field/.cvsignore -text
-src/Field/Assign.cpp -text
 src/Field/Assign.h -text
+src/Field/Assign.hpp -text
 src/Field/AssignDefs.h -text
-src/Field/AssignGeneralBF.cpp -text
-src/Field/AssignGeneralIBF.cpp -text
+src/Field/AssignGeneralBF.hpp -text
+src/Field/AssignGeneralIBF.hpp -text
 src/Field/AssignTags.h -text
 src/Field/BCond.h -text
 src/Field/BCond.hpp -text

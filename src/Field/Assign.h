@@ -240,9 +240,9 @@ bool TryCompressLHS(LField<T,Dim>&, A&, Op, const NDIndex<Dim>&);
 
 
 // Include the .cpp function definitions.
-#include "Field/Assign.cpp"
-#include "Field/AssignGeneralBF.cpp"
-#include "Field/AssignGeneralIBF.cpp"
+#include "Field/Assign.hpp"
+#include "Field/AssignGeneralBF.hpp"
+#include "Field/AssignGeneralIBF.hpp"
 
 #endif // ASSIGN_H
 
