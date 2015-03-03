@@ -354,10 +354,10 @@ public:
     istr << idx;
 
     
-    ofstream fstr2;
+    std::ofstream fstr2;
     fstr2.precision(9);
-    string rho_fn = string("rhofield-" + string(istr.str()) + ".dat");
-    fstr2.open(rho_fn.c_str(), ios::out);
+    std::string rho_fn = std::string("rhofield-" + std::string(istr.str()) + ".dat");
+    fstr2.open(rho_fn.c_str(), std::ios::out);
 
     NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
     for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
@@ -370,10 +370,10 @@ public:
     fstr2.close();
 
     INFOMSG("*** START DUMPING E FIELD ***" << endl);
-    ofstream fstr;
+    std::ofstream fstr;
     fstr.precision(9);
-    string e_field = string("efield-" + string(istr.str()) + ".dat");
-    fstr.open(e_field.c_str(), ios::out);
+    std::string e_field = std::string("efield-" + std::string(istr.str()) + ".dat");
+    fstr.open(e_field.c_str(), std::ios::out);
     NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
     for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
       for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
@@ -450,28 +450,32 @@ int main(int argc, char *argv[]){
   unsigned param = 1;
 
   if(Dim == 3) {
-    nr = Vektor<int,Dim>(atoi(argv[param++]),atoi(argv[param++]),atoi(argv[param++]));
+    nr = Vektor<int,Dim>(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
+    param = 4;
   } else {
-    nr = Vektor<int,Dim>(atoi(argv[param++]),atoi(argv[param++]));
+    nr = Vektor<int,Dim>(atoi(argv[1]),atoi(argv[2]));
+    param = 3;
   }
 
   double interaction_radius = atof(argv[param++]);
   size_t count = atoi(argv[param++]);
 
   enum DistType {UNIFORM, RANDOM, POINT};
-  DistType type;
-  if(argv[param] == string("uniform"))
+  DistType type = UNIFORM;
+
+  if(argv[param] == std::string("uniform"))
     {
       type = UNIFORM;
     }
-  else if(argv[param] == string("random"))
+  else if(argv[param] == std::string("random"))
     {
       type = RANDOM;
     }
-  else if(argv[param] == string("point"))
+  else if(argv[param] == std::string("point"))
     {
       type = POINT;
     }
+  
 
   e_dim_tag decomp[Dim];
   Mesh_t *mesh;
@@ -479,10 +483,10 @@ int main(int argc, char *argv[]){
   ChargedParticles<playout_t>  *P;
 
   NDIndex<Dim> domain;
-  for(int i=0; i<Dim; i++)
+  for(unsigned i=0; i<Dim; i++)
     domain[i] = domain[i] = Index(nr[i]);
 
-  for (int d=0; d < Dim; ++d)
+  for (unsigned d=0; d < Dim; ++d)
     decomp[d] = PARALLEL;
 	
   // create mesh and layout objects for this problem domain
@@ -553,7 +557,7 @@ int main(int argc, char *argv[]){
 	  IpplRandom.SetSeed(42);
 
 	  P->create(count);
-	  for(int i = 0;i<count;++i)
+	  for(unsigned i=0; i<count; ++i)
 	    {
 	      Vektor<double, Dim> pos;
 	      do {
@@ -599,7 +603,7 @@ int main(int argc, char *argv[]){
 
   double error = 0;
   int n = 0;
-  for(int i = 0;i<P->getLocalNum();++i)
+  for(unsigned i=0; i<P->getLocalNum(); ++i)
     {
       double radius = std::sqrt(dot(source - P->R[i], source - P->R[i]));
       double E = std::sqrt(dot(P->EF[i], P->EF[i]));
