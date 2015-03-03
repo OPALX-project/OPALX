@@ -290,7 +290,7 @@ std::ostream& operator<<(std::ostream& out, const LField<T,Dim>& a)
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/LField.cpp"
+#include "Field/LField.hpp"
 
 #endif // LFIELD_H
 

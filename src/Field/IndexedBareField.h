@@ -343,7 +343,7 @@ std::ostream& operator<<(std::ostream& out, const IndexedBareField<T,Dim,Bracket
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/IndexedBareField.cpp"
+#include "Field/IndexedBareField.hpp"
 
 #endif // INDEXED_BARE_FIELD_H
 

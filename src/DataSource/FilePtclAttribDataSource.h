@@ -63,7 +63,7 @@ private:
   int counter;
 };
 
-#include "DataSource/FilePtclAttribDataSource.cpp"
+#include "DataSource/FilePtclAttribDataSource.hpp"
 
 #endif // FILE_PARTICLE_ATTRIB_DATA_SOURCE_H
 

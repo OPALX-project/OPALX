@@ -90,7 +90,7 @@ private:
   ReadParticleTool *LocalData;
 };
 
-#include "DataSource/ACLVISPtclAttribDataSource.cpp"
+#include "DataSource/ACLVISPtclAttribDataSource.hpp"
 
 #endif // ACLVIS_PARTICLE_ATTRIB_DATA_SOURCE_H
 

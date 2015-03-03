@@ -66,7 +66,7 @@ private:
   int counter;
 };
 
-#include "DataSource/FileFieldDataSource.cpp"
+#include "DataSource/FileFieldDataSource.hpp"
 
 #endif // FILE_FIELD_DATA_SOURCE_H
 

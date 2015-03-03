@@ -40,7 +40,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Utility/Pooled.cpp"
+#include "Utility/Pooled.hpp"
 
 #endif // POOLED_H
 

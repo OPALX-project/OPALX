@@ -312,7 +312,7 @@ FFTBase<Dim,T>::checkDomain(const FFTBase<Dim,T>::Domain_t& dom1,
     return true;
 }
 
-#include "FFT/FFTBase.cpp"
+#include "FFT/FFTBase.hpp"
 
 #endif // IPPL_FFT_FFTBASE_H
 

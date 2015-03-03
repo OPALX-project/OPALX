@@ -124,7 +124,7 @@ public:
 		      const int *nend);
 };
 
-#include "FieldLayout/CenteredFieldLayout.cpp"
+#include "FieldLayout/CenteredFieldLayout.hpp"
 
 #endif // CENTERED_FIELD_LAYOUT_H
 

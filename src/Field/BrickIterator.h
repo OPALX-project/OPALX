@@ -195,7 +195,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/BrickIterator.cpp"
+#include "Field/BrickIterator.hpp"
 
 #endif // BRICK_ITERATOR_H
 

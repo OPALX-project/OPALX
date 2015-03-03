@@ -63,7 +63,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/BrickExpression.cpp"
+#include "Field/BrickExpression.hpp"
 
 #endif // BRICK_EXPRESSION_H
 

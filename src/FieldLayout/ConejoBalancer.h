@@ -289,7 +289,7 @@ private:
   }
 };
 
-#include "FieldLayout/ConejoBalancer.cpp"
+#include "FieldLayout/ConejoBalancer.hpp"
 
 #endif // CONEJO_BALANCER_H
 

@@ -102,7 +102,7 @@ private:
 		  ParticleAttribDataSource *);
 };
 
-#include "DataSource/ACLVISPtclBaseDataSource.cpp"
+#include "DataSource/ACLVISPtclBaseDataSource.hpp"
 
 #endif // ACLVIS_PARTICLE_BASE_DATA_SOURCE_H
 

@@ -74,7 +74,7 @@ template<class T>
 void spap(ParticleAttrib<T>& pattr, 
 	  int ibase, int ibound, int istride, bool docomm = true);
 
-#include "Utility/ParticleDebug.cpp"
+#include "Utility/ParticleDebug.hpp"
 
 #endif // PARTICLE_DEBUG_H
 

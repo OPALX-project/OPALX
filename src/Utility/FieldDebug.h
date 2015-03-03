@@ -231,7 +231,7 @@ void sfp3(BareField<T, 3U>& field,
 //	   int base3, int bound3, int stride3) {
 //  sfp3(f,base1,bound1,stride1,base2,bound2,stride2,base3,bound3,stride3);}
 
-#include "Utility/FieldDebug.cpp"
+#include "Utility/FieldDebug.hpp"
 
 #endif // FIELD_DEBUG_H
 

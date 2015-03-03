@@ -60,7 +60,7 @@ private:
   int StringLen;
 };
 
-#include "DataSource/StringDataSource.cpp"
+#include "DataSource/StringDataSource.hpp"
 
 #endif // STRING_DATA_SOURCE_H
 

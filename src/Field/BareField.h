@@ -453,7 +453,7 @@ std::ostream& operator<<(std::ostream& out, const BareField<T,Dim>& a)
 
 //////////////////////////////////////////////////////////////////////
 
-#include "Field/BareField.cpp"
+#include "Field/BareField.hpp"
 
 #endif // BARE_FIELD_H
 

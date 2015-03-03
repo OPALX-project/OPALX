@@ -100,7 +100,7 @@ private:
 };
 //----------------------------------------------------------------------
 
-#include "Utility/FieldView.cpp"
+#include "Utility/FieldView.hpp"
 
 #endif // FIELD_VIEW_H
 

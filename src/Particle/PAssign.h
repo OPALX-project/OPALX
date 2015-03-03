@@ -128,7 +128,7 @@ ASSIGNMENT_OPERATORS_PTCL(operator/=,OpDivideAssign)
 ASSIGNMENT_OPERATORS_PTCL(mineq,OpMinAssign)
 ASSIGNMENT_OPERATORS_PTCL(maxeq,OpMaxAssign)
 
-#include "Particle/PAssign.cpp"
+#include "Particle/PAssign.hpp"
 
 #endif // PASSIGN_H
 

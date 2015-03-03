@@ -924,7 +924,7 @@ inline void scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
     scatter(f, intop, cache, FT(1));
 }
 
-#include "Particle/ParticleAttrib.cpp"
+#include "Particle/ParticleAttrib.hpp"
 
 #endif // PARTICLE_ATTRIB_H
 

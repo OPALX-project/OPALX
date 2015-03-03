@@ -61,7 +61,7 @@ template<unsigned Dim>
 void VnodeMultiRepartition(FieldLayout<Dim>& layout, 
 			   std::vector<BareField<bool,Dim>* >& weights);
 
-#include "FieldLayout/VnodeMultiBalancer.cpp"
+#include "FieldLayout/VnodeMultiBalancer.hpp"
 
 #endif // VNODE_MULTI_BALANCER_H
 

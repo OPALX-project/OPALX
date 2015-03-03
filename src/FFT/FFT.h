@@ -954,7 +954,7 @@ FFT<SineTransform,1U,T>::transform(
   transform(dir, f);
   return;
 }
-#include "FFT/FFT.cpp"
+#include "FFT/FFT.hpp"
 #endif // IPPL_FFT_FFT_H
 
 /***************************************************************************

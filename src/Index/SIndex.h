@@ -308,7 +308,7 @@ private:
   void setup();
 };
 
-#include "Index/SIndex.cpp"
+#include "Index/SIndex.hpp"
 
 #endif // SINDEX_H
 

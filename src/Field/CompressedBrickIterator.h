@@ -183,7 +183,7 @@ private:
 };
 
 
-#include "Field/CompressedBrickIterator.cpp"
+#include "Field/CompressedBrickIterator.hpp"
 
 #endif // COMPRESSED_BRICK_ITERATOR_H
 

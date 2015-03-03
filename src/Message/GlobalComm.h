@@ -99,6 +99,6 @@ template <class InputIterator, class RandomIterator, class ScatterOp>
 bool scatter(InputIterator, InputIterator, RandomIterator,
              int *, int *, const ScatterOp&);
 
-#include "Message/GlobalComm.cpp"
+#include "Message/GlobalComm.hpp"
 
 #endif // GLOBAL_COMM_H

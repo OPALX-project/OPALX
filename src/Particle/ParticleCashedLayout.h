@@ -176,7 +176,7 @@ private:
   T getMaxLocalInteractionRadius();
 };
 
-#include "Particle/ParticleCashedLayout.cpp"
+#include "Particle/ParticleCashedLayout.hpp"
 
 #endif  // PARTICLE_CASHED_LAYOUT_H
 

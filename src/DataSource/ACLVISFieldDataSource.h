@@ -74,7 +74,7 @@ private:
   void set_mesh(Field<T,Dim,M,C>&);
 };
 
-#include "DataSource/ACLVISFieldDataSource.cpp"
+#include "DataSource/ACLVISFieldDataSource.hpp"
 
 #endif // ACLVIS_FIELD_DATA_SOURCE_H
 

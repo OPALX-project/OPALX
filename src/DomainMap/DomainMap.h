@@ -553,7 +553,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 
-#include "DomainMap/DomainMap.cpp"
+#include "DomainMap/DomainMap.hpp"
 
 #endif // DOMAIN_MAP_H
 

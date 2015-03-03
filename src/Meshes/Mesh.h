@@ -105,7 +105,7 @@ public:
 
 };
 
-#include "Meshes/Mesh.cpp"
+#include "Meshes/Mesh.hpp"
 
 #endif // MESH_H
 
