@@ -3,6 +3,7 @@
 #include "Ippl.h"
 #include "Utilities/Options.h"
 #include "AbstractObjects/OpalData.h"
+#include "Utilities/GeneralClassicException.h"
 
 LossDataSink::LossDataSink(std::string elem, bool hdf5Save):
     element_m(elem),
@@ -61,8 +62,8 @@ void LossDataSink::openH5() {
 #endif
 
     if(H5file_m == (void*)H5_ERR) {
-        ERRORMSG("h5 file open failed: exiting!" << endl);
-        exit(0);
+        throw GeneralClassicException("LossDataSink::openH5",
+                                      "failed to open h5 file '" + fn_m + "'");
     }
 }
 
@@ -105,7 +106,7 @@ void LossDataSink::writeHeaderH5() {
       rc = H5WriteFileAttribString(H5file_m, "turnUnit", "1");
       if(rc != H5_SUCCESS)
 	ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-      
+
       rc = H5WriteFileAttribString(H5file_m, "timeUnit", "s");
       if(rc != H5_SUCCESS)
 	ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -296,7 +297,7 @@ void LossDataSink::saveH5() {
       rc = H5PartWriteDataFloat64(H5file_m, "time", farray);
       if(rc != H5_SUCCESS)
 	ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-      
+
       for(size_t i = 0; i < nLoc; i++)
 	larray[i] =  turn_m[i];
       rc = H5PartWriteDataInt64(H5file_m, "turn", larray);

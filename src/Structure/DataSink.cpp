@@ -44,7 +44,7 @@ DataSink::DataSink() :
     firstWriteH5Surface_m = true;
     /// Define file names.
     string fn = OpalData::getInstance()->getInputBasename();
-    surfacLossFileName_m = fn + string(".SurfaceLoss.h5");
+    surfaceLossFileName_m = fn + string(".SurfaceLoss.h5");
     statFileName_m = fn + string(".stat");
     lBalFileName_m = fn + string(".lbal");
 
@@ -60,8 +60,8 @@ DataSink::DataSink() :
         H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
         if (H5file_m == (void*)H5_ERR) {
-	    ERRORMSG("h5 file " << fn.c_str() << " open failed: exiting!" << endl);
-            exit(0);
+            throw OpalException("DataSink::DataSink()",
+                                "failed to open h5 file '" + fn + "'");
         }
         /// Write file attributes.
         writeH5FileAttributes();
@@ -79,8 +79,8 @@ DataSink::DataSink(int restartStep) :
 {
     doHDF5_m = Options::enableHDF5;
     if (!doHDF5_m) {
-      ERRORMSG ("Can not restart when HDF5 is disabled" << endl);
-      exit(1);
+        throw OpalException("DataSink::DataSink(int)",
+                            "Can not restart when HDF5 is disabled");
     }
     /// Constructor steps:
     h5_int64_t rc;
@@ -128,8 +128,8 @@ DataSink::DataSink(int restartStep) :
     *gmsg << "Will append to " << fn << endl;
 
     if(H5file_m == (void*)H5_ERR) {
-        ERRORMSG("h5 file open failed: exiting!" << endl);
-        exit(0);
+        throw OpalException("DataSink::DataSink(int)",
+                            "failed to open h5 file '" + fn + "'");
     }
 
     int numStepsInFile = H5GetNumSteps(H5file_m);
@@ -976,7 +976,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
     h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
     h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
-  
+
     h5_int64_t localFrame = 0;
     if (local) localFrame = 1;
 
@@ -2357,14 +2357,14 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     if(firstWriteH5Surface_m) {
         firstWriteH5Surface_m = false;
 #ifdef PARALLEL_IO
-        H5fileS_m = H5OpenFile(surfacLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
+        H5fileS_m = H5OpenFile(surfaceLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
 #else
-        H5fileS_m = H5OpenFile(surfacLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
+        H5fileS_m = H5OpenFile(surfaceLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
 #endif
 
         if(H5fileS_m == (void*)H5_ERR) {
-            ERRORMSG("h5 file for surface loss open failed: exiting!" << endl);
-            exit(0);
+            throw OpalException("DataSink::writeSurfaceInteraction",
+                                "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
         }
 
 
@@ -2598,8 +2598,8 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
 #endif
 
     if(H5file == (void*)H5_ERR) {
-        ERRORMSG("h5 file for backup bunch in OPAL-CYCL open failed: exiting!" << endl);
-        exit(0);
+        throw OpalException("DataSink::storeOneBunch",
+                            "failed to open h5 file '" + fn + "' for backup bunch in OPAL-CYCL");
     }
 
     h5_int64_t H5call = 0;
@@ -2729,8 +2729,8 @@ bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const siz
     H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY);
 #endif
     if(H5file == (void*)H5_ERR) {
-        ERRORMSG("File open failed:  exiting!" << endl);
-        exit(0);
+        throw OpalException("DataSink::readOneBunch",
+                            "failed to open h5 file '" + fn + "'");
     }
 
     h5_int64_t H5call = 0;

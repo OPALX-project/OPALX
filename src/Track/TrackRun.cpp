@@ -598,9 +598,8 @@ void TrackRun::execute() {
 	}
 	catch (bool notEqual) {
 	  if (notEqual && !OPAL->inRestartRun()) {
-	    ERRORMSG(" -> Number of macro particles and NPART on BEAM are not equal ... STOP now" << endl);
-	    MPI_Finalize();
-	    exit(1);
+              throw OpalException("TrackRun::execute CYCLOTRON_T",
+                                  "Number of macro particles and NPART on BEAM are not equal");
 	  }
 	}
 

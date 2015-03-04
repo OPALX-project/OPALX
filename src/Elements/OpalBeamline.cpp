@@ -1,4 +1,5 @@
 #include "Elements/OpalBeamline.h"
+#include "Utilities/OpalException.h"
 
 using namespace std;
 
@@ -385,8 +386,8 @@ void OpalBeamline::prepareSections() {
     start_end.sort();
 
     if(start_end.size() == 0) {
-        ERRORMSG("no valid elements found; will exit now" << endl);
-        exit(1);
+        throw OpalException("OpalBeamline::prepareSections",
+                            "no valid elements found");
     }
 
     next_it = start_end.begin();

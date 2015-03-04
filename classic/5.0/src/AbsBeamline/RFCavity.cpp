@@ -22,6 +22,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.hh"
+#include "Utilities/GeneralClassicException.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -352,7 +353,7 @@ bool RFCavity::apply(const size_t &i, const double &t, double E[], double B[]) {
 bool RFCavity::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     bool out_of_bounds = true;
     const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
-    
+
     if (tmpR(2) >= 0.0) {
         // inside the cavity
         for(size_t j = 0; j < numFieldmaps(); ++ j) {
@@ -372,7 +373,7 @@ bool RFCavity::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
         }
     }
     else {
-        /* 
+        /*
            some of the bunch is still outside of the cavity
            so let them drift in
         */
@@ -524,9 +525,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
 
     ifstream in(filename_m.c_str());
     if(!in.good()) {
-        ERRORMSG("Error in Cyclotron::readFieldMap() !" << endl);
-        ERRORMSG(" Cannot open file " << filename_m << ", please check if it really exists." << endl);
-        exit(1);
+        throw GeneralClassicException("RFCavity::initialise",
+                                      "failed to open file '" + filename_m + "', please check if it exists");
     }
     *gmsg << "* Read cavity voltage profile data" << endl;
       // << "    (data format: s/L, v, dV/dr)" << endl;
@@ -543,9 +543,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
 
     for(int i = 0; i < num_points_m; i++) {
         if(in.eof()) {
-            ERRORMSG("Error in Cyclotron::readFieldMap() !" << endl);
-            ERRORMSG(" Not enough data in" << filename_m << ", please check data format." << endl);
-            exit(1);
+            throw GeneralClassicException("RFCavity::initialise",
+                                          "not enough data in file '" + filename_m + "', please check the data format");
         }
         in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
 
@@ -736,8 +735,8 @@ double RFCavity::spline(double z, double *za) {
 
     // domain-test and handling of case "1-support-point"
     if(num_points_m < 1) {
-        printf("Error in RFCavity::SPLINT(): No Support-Points ! \n");
-        exit(1);
+        throw GeneralClassicException("RFCavity::spline",
+                                      "no support points!");
     }
     if(num_points_m == 1) {
         splint = RNormal_m[0];

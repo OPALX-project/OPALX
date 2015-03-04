@@ -292,7 +292,7 @@ private:
     h5_file_t *H5file_m;
 
     /// Name of output file for surface loss data.
-    std::string surfacLossFileName_m;
+    std::string surfaceLossFileName_m;
 
     /// %Pointer to H5 file for surface loss data.
     h5_file_t *H5fileS_m;

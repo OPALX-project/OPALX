@@ -380,7 +380,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
             } else {
 
-	        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", 
+	        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "Pt imaginary!");
             }
 
@@ -396,7 +396,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     // Restart a run:
     } else {
 
-        // If the user wants to save the restarted run in local frame, 
+        // If the user wants to save the restarted run in local frame,
         // make sure the previous h5 file was local too
         if (Options::psDumpLocalFrame) {
 
@@ -404,18 +404,18 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a local restart from a global h5 file!");
-	    } 
-	// Else, if the user wants to save the restarted run in global frame, 
+	    }
+	// Else, if the user wants to save the restarted run in global frame,
         // make sure the previous h5 file was global too
         } else {
-   
+
 	    if (previousH5Local) {
-           
+
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a global restart from a local h5 file!");
-            } 
+            }
         }
-  
+
         // Adjust some of the reference variables from the h5 file
         referencePhi *= PIOVER180;
         referencePsi *= PIOVER180;
@@ -423,7 +423,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
         if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
 
-            throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron", 
+            throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                 "PHIINIT is out of [-180, 180)!");
         }
     }
@@ -1094,8 +1094,8 @@ void ParallelCyclotronTracker::execute() {
         *gmsg << "* Multiple time stepping (MTS) integrator" << endl;
         Tracker_MTS();
     } else {
-        *gmsg << "ERROR: Invalid name of TIMEINTEGRATOR in Track command" << endl;
-        exit(1);
+        throw OpalException("ParallelTTracker::execute",
+                            "Invalid name of TIMEINTEGRATOR in Track command");
     }
     *gmsg << "* ----------------------------------------------- *" << endl;
     *gmsg << "* Finalizing i.e. write data and close files :" << endl;
@@ -3650,7 +3650,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
         // Here is global frame, don't do itsBunch->boundp();
 
-        // Check separately for phase space (ps) and statistics (stat) data dump frequency 
+        // Check separately for phase space (ps) and statistics (stat) data dump frequency
         if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
             || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
@@ -3712,7 +3712,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
     if(initialTotalNum_m == 1) closeFiles();
 
-    // Print out the Bunch information at end of the run. Because the bunch information 
+    // Print out the Bunch information at end of the run. Because the bunch information
     // displays in units of m we have to change back and forth one more time.
     // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
     itsBunch->R *= Vector_t(0.001); // mm --> m
@@ -4555,7 +4555,7 @@ void ParallelCyclotronTracker::repartition() {
     }
 }
 
-void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, 
+void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors,
                                              double phi, Vector_t const translationToGlobal) {
     particleVectors -= translationToGlobal;
 
@@ -4569,7 +4569,7 @@ void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particle
     }
 }
 
-void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors, 
+void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors,
                                              double phi, Vector_t const translationToGlobal) {
 
     Tenzor<double, 3> const rotation(cos(phi), -sin(phi), 0,
@@ -4585,8 +4585,8 @@ void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particle
 }
 
 
-inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, 
-                                                    Quaternion_t const quaternion, 
+inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors,
+                                                    Quaternion_t const quaternion,
                                                     Vector_t const meanR) {
 
     // Translation from global to local
@@ -4596,8 +4596,8 @@ inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & p
     rotateWithQuaternion(particleVectors, quaternion);
 }
 
-inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors, 
-                                                    Quaternion_t const quaternion, 
+inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors,
+                                                    Quaternion_t const quaternion,
                                                     Vector_t const meanR) {
 
     // Reverse the quaternion by multiplying the axis components (x,y,z) with -1
@@ -4611,9 +4611,9 @@ inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & p
     particleVectors += meanR;
 }
 
-inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors, 
-                                                    double const phi, 
-                                                    double const psi, 
+inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & particleVectors,
+                                                    double const phi,
+                                                    double const psi,
                                                     Vector_t const meanR) {
 
     //double const tolerance = 1.0e-4; // TODO What is a good angle threshold? -DW
@@ -4630,9 +4630,9 @@ inline void ParallelCyclotronTracker::globalToLocal(ParticleAttrib<Vector_t> & p
     rotateAroundX(particleVectors, psi);
 }
 
-inline void ParallelCyclotronTracker::globalToLocal(Vector_t & myVector, 
-                                                    double const phi, 
-                                                    double const psi, 
+inline void ParallelCyclotronTracker::globalToLocal(Vector_t & myVector,
+                                                    double const phi,
+                                                    double const psi,
                                                     Vector_t const meanR) {
 
     //double const tolerance = 1.0e-4; // TODO What is a good angle threshold? -DW
@@ -4649,9 +4649,9 @@ inline void ParallelCyclotronTracker::globalToLocal(Vector_t & myVector,
     rotateAroundX(myVector, psi);
 }
 
-inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors, 
-                                                    double const phi, 
-                                                    double const psi, 
+inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & particleVectors,
+                                                    double const phi,
+                                                    double const psi,
                                                     Vector_t const meanR) {
 
     //double const tolerance = 1.0e-4; // TODO What is a good angle threshold? -DW
@@ -4668,9 +4668,9 @@ inline void ParallelCyclotronTracker::localToGlobal(ParticleAttrib<Vector_t> & p
     particleVectors += meanR;
 }
 
-inline void ParallelCyclotronTracker::localToGlobal(Vector_t & myVector, 
-                                                    double const phi, 
-                                                    double const psi, 
+inline void ParallelCyclotronTracker::localToGlobal(Vector_t & myVector,
+                                                    double const phi,
+                                                    double const psi,
                                                     Vector_t const meanR) {
 
     //double const tolerance = 1.0e-4; // TODO What is a good angle threshold? -DW
@@ -5102,9 +5102,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
     // Else: Restart from the distribution in the h5 file
     } else {
-        
+
         // Do a local frame restart (we have already checked that the old h5 file was saved in local
-        // frame as well). 
+        // frame as well).
         // Cave: Multi-bunch must not be done in the local frame! (TODO: Is this still true? -DW)
         if((Options::psDumpLocalFrame)) {
 
@@ -5117,7 +5117,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             Vector_t const initMeanR = Vector_t(referenceR * cosRefTheta_m,
                                                 referenceR * sinRefTheta_m,
                                                 referenceZ);
-            
+
             // Do the tranformations
             localToGlobal(itsBunch->R, referencePhi, referencePsi, initMeanR);
             localToGlobal(itsBunch->P, referencePhi, referencePsi);
@@ -5198,7 +5198,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         step_m += 1;
     }
 
-    // Print out the Bunch information at beginning of the run. Because the bunch information 
+    // Print out the Bunch information at beginning of the run. Because the bunch information
     // displays in units of m we have to change back and forth one more time.
     // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
     itsBunch->R *= Vector_t(0.001); // mm --> m
@@ -5360,17 +5360,17 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // If we are saving in local frame, bunch and fields at the bunch center have to be rotated
     // TODO: Make decision if we maybe want to always save statistics data in local frame? -DW
-    if(Options::psDumpLocalFrame) { 
+    if(Options::psDumpLocalFrame) {
         // -------------------- ----------- Do Transformations ---------------------------------- //
-    
+
         // Bunch (local) azimuth at meanR w.r.t. y-axis
         phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
         // Bunch (local) elevation at meanR w.r.t. xy plane
         psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
 
-        // Rotate so Pmean is in positive y direction. No shift, so that normalized emittance and 
-        // unnormalized emittance as well as centroids are calculated correctly in 
+        // Rotate so Pmean is in positive y direction. No shift, so that normalized emittance and
+        // unnormalized emittance as well as centroids are calculated correctly in
         // PartBunch::calcBeamParameters()
         globalToLocal(extB_m, phi, psi);
         globalToLocal(extE_m, phi, psi);
@@ -5386,7 +5386,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // If we are in local mode, transform back after saving
     if(Options::psDumpLocalFrame) {
- 
+
         localToGlobal(itsBunch->R, phi, psi);
         localToGlobal(itsBunch->P, phi, psi);
     }
@@ -5406,7 +5406,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     // --------------------------------- Get some Values ---------------------------------------- //
     double const temp_t = itsBunch->getT() * 1.0e9; // s -> ns
-    
+
     Vector_t const meanR = calcMeanR();
     Vector_t const meanP = calcMeanP();
 
@@ -5448,8 +5448,8 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     itsBunch->R *= Vector_t(0.001); // mm --> m
 
     // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
-    if(!(Options::psDumpLocalFrame)) {  
-        
+    if(!(Options::psDumpLocalFrame)) {
+
         FDext_m[0] = extB_m * 0.1; // kgauss --> T
         FDext_m[1] = extE_m;
 
@@ -5461,16 +5461,16 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                              referenceR,
                                                              referenceTheta,
                                                              referenceZ,
-                                                             phi / PIOVER180, // P_mean azimuth   
+                                                             phi / PIOVER180, // P_mean azimuth
 							                      // at ref. R/Th/Z
-                                                             psi / PIOVER180, // P_mean elevation 
+                                                             psi / PIOVER180, // P_mean elevation
 							                      // at ref. R/Th/Z
                                                              false);          // Flag localFrame
 
         // Tell user in which mode we are dumping
         *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
                       << " (global frame) at integration step " << step_m + 1 << endl;
-    } 
+    }
 
     // ---------------- If flag DumpLocalFrame is set, dump bunch in local frame ---------------- //
     else {
@@ -5480,7 +5480,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
         globalToLocal(itsBunch->P, phi, psi); // P should only be rotated
 
         globalToLocal(extB_m, phi, psi);
-        globalToLocal(extE_m, phi, psi);        
+        globalToLocal(extE_m, phi, psi);
 
         FDext_m[0] = extB_m * 0.1; // kgauss --> T
         FDext_m[1] = extE_m;
@@ -5493,9 +5493,9 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                              referenceR,
                                                              referenceTheta,
                                                              referenceZ,
-                                                             phi / PIOVER180, // P_mean azimuth   
+                                                             phi / PIOVER180, // P_mean azimuth
 							                      // at ref. R/Th/Z
-                                                             psi / PIOVER180, // P_mean elevation 
+                                                             psi / PIOVER180, // P_mean elevation
 							                      // at ref. R/Th/Z
                                                              true);           // Flag localFrame
 

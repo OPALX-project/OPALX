@@ -109,8 +109,8 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
             bp = new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl);
             bp->Compute(itsBunch_m->get_hr());
         } else {
-            ERRORMSG("Geometry not known" << endl);
-            exit(1);
+            throw OpalException("MGPoissonSolver::MGPoissonSolver",
+                                "Geometry not known");
         }
     } else
 	bp = new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl);

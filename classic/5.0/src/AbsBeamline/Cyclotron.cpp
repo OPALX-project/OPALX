@@ -30,7 +30,7 @@
 
 #define CHECK_CYC_FSCANF_EOF(arg) if(arg == EOF)\
 throw GeneralClassicException("Cyclotron::getFieldFromFile",\
-		"fscanf returned EOF at " #arg);
+                              "fscanf returned EOF at " #arg);
 
 extern Inform *gmsg;
 
@@ -789,9 +789,8 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
     BP.Bfact = scaleFactor;
 
     if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
-        ERRORMSG("* Error in Cyclotron::getFieldFromFile()!" << endl);
-        ERRORMSG("* Cannot open file, please check if it really exists." << endl);
-        exit(1);
+        throw GeneralClassicException("Cyclotron::getFieldFromField",
+                                      "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
@@ -1084,9 +1083,8 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
     BP.Bfact = scaleFactor / 1000.;
 
     if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
-        ERRORMSG("* Error in Cyclotron::getFieldFromFile_AVFEQ()!" << endl);
-        ERRORMSG("* Cannot open file, please check if it really exists." << endl);
-        exit(1);
+        throw GeneralClassicException("Cyclotron::getFieldFromFile_AVFEQ",
+                                      "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
@@ -1165,9 +1163,8 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
     BP.Bfact = scaleFactor;
 
     if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
-        ERRORMSG("* Error in Cyclotron::getFieldFromFile_Carbon()!" << endl);
-        ERRORMSG("* Cannot open file, please check if it really exists." << endl);
-        exit(1);
+        throw GeneralClassicException("Cyclotron::getFieldFromFile_Carbon",
+                                      "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
@@ -1259,9 +1256,8 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
     BP.Bfact = scaleFactor;
 
     if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
-        ERRORMSG("* Error in Cyclotron::getFieldFromFile_Carbon()!" << endl);
-        ERRORMSG(" Cannot open file, please check if it really exists." << endl);
-        exit(1);
+        throw GeneralClassicException("Cyclotron::getFieldFromFile_CYCIAE",
+                                      "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
@@ -1336,9 +1332,8 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
     for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali, ++fcount) {
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);
         if(f == NULL) {
-            ERRORMSG("* Error in Cyclotron::getFieldFromFile_BandRF()!" << endl);
-            ERRORMSG(" Cannot open file, please check if it really exists." << endl);
-            exit(1);
+            throw GeneralClassicException("Cyclotron::getFieldFromFile_BandRF",
+                                          "failed to open file '" + *fm + "', please check if it exists");
         }
         f->readMap();
 	//	if (IPPL::Comm->getOutputLevel() != 0)
