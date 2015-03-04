@@ -164,17 +164,19 @@ int main(int argc, char *argv[])
 
    testmsg << "Test 3D complex<-->complex transform (simple test: forward then inverse transform" << endl;
    timer.start();
-	
+    
    // ================BEGIN INTERACTION LOOP====================================
    for (unsigned int i=0; i<nLoop; i++)  {
       ccfft.transform( -1 , CFieldPPStan);
       ccfft.transform( +1 , CFieldPPStan);
+      
       diffFieldPPStan = Abs(CFieldPPStan - CFieldPPStan_save);
       realDiff = max(diffFieldPPStan);
       testmsg << "CC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
       //-------------------------------------------------------------------------
       CFieldPPStan = CFieldPPStan_save;
     }
+    
     timer.stop();
     testmsg << " CPU time used = " << timer.cpu_time() << " secs. NP= " << Ippl::getNodes() << endl;
     return 0;

@@ -302,6 +302,15 @@ void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l) {
   store_mesh(&m, false);
 }
 
+//UL: for pinned memory allocation
+template<class T, unsigned Dim, class M, class C>
+void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l, const bool p) {
+  
+   
+  BareField<T,Dim>::initialize(l, p);
+  store_mesh(&m, false);
+}
+
 template<class T, unsigned Dim, class M, class C>
 void Field<T,Dim,M,C>::initialize(Mesh_t& m, Layout_t & l,
 				  const GuardCellSizes<Dim>& gc) {

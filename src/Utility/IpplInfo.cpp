@@ -49,6 +49,24 @@ Inform *IpplInfo::Warn = new Inform("Warning", std::cerr);
 Inform *IpplInfo::Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
 Inform *IpplInfo::Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
 
+//dks base member of IpplInfo initialized to default values
+#ifdef IPPL_DKS
+
+#ifdef IPPL_DKS_CUDA
+DKSBase *IpplInfo::DKS = new DKSBase("Cuda", "-gpu");
+#endif
+
+#ifdef IPPL_DKS_OPENCL
+DKSBase *IpplInfo::DKS = new DKSBase("OpenCL", "-gpu");
+#endif
+
+#ifdef IPPL_DKS_MIC
+DKSBase *IpplInfo::DKS = new DKSBase("OpenCL", "-mic");
+#endif
+
+#endif
+
+
 // should we use the optimization of deferring guard cell fills until
 // absolutely needed?  Can be changed to true by specifying the
 // flag --defergcfill

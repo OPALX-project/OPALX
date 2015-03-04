@@ -30,24 +30,30 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /usr/bin/cmake
+CMAKE_COMMAND = /afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake
 
 # The command to remove a file.
-RM = /usr/bin/cmake -E remove -f
+RM = /afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -E remove -f
+
+# Escaping for special characters.
+EQUALS = =
+
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/uldisl/OPAL/IPPL_TAU/trunk
+CMAKE_SOURCE_DIR = /home/l_locans/programs/IPPL/trunk
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/uldisl/OPAL/IPPL_TAU/trunk
+CMAKE_BINARY_DIR = /home/l_locans/programs/IPPL/trunk
 
 #=============================================================================
 # Targets provided globally by CMake.
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running interactive CMake command-line interface..."
-	/usr/bin/cmake -i .
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
+	/usr/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -57,19 +63,19 @@ edit_cache/fast: edit_cache
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -P cmake_install.cmake
 .PHONY : install
 
 # Special rule for the target install
 install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local
 
 # Special rule for the target install/local
@@ -79,7 +85,7 @@ install/local/fast: install/local
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip
 
 # Special rule for the target install/strip
@@ -98,7 +104,7 @@ list_install_components/fast: list_install_components
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -107,14 +113,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(CMAKE_COMMAND) -E cmake_progress_start /home/uldisl/OPAL/IPPL_TAU/trunk/CMakeFiles /home/uldisl/OPAL/IPPL_TAU/trunk/test/toyfdtf/CMakeFiles/progress.marks
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/uldisl/OPAL/IPPL_TAU/trunk/CMakeFiles 0
+	cd /home/l_locans/programs/IPPL/trunk && $(CMAKE_COMMAND) -E cmake_progress_start /home/l_locans/programs/IPPL/trunk/CMakeFiles /home/l_locans/programs/IPPL/trunk/test/toyfdtf/CMakeFiles/progress.marks
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/l_locans/programs/IPPL/trunk/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/clean
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/clean
 .PHONY : clean
 
 # The main clean target
@@ -123,22 +129,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/preinstall
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/preinstall
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/l_locans/programs/IPPL/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/rule:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/rule
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/rule
 .PHONY : test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/rule
 
 # Convenience name for target.
@@ -147,7 +153,7 @@ ipplToyFDTD: test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/rule
 
 # fast build rule for target.
 ipplToyFDTD/fast:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build
 .PHONY : ipplToyFDTD/fast
 
 ToyFDTD-DataSink/DataSink.o: ToyFDTD-DataSink/DataSink.cpp.o
@@ -155,7 +161,7 @@ ToyFDTD-DataSink/DataSink.o: ToyFDTD-DataSink/DataSink.cpp.o
 
 # target to build an object file
 ToyFDTD-DataSink/DataSink.cpp.o:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/DataSink.cpp.o
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/DataSink.cpp.o
 .PHONY : ToyFDTD-DataSink/DataSink.cpp.o
 
 ToyFDTD-DataSink/DataSink.i: ToyFDTD-DataSink/DataSink.cpp.i
@@ -163,7 +169,7 @@ ToyFDTD-DataSink/DataSink.i: ToyFDTD-DataSink/DataSink.cpp.i
 
 # target to preprocess a source file
 ToyFDTD-DataSink/DataSink.cpp.i:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/DataSink.cpp.i
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/DataSink.cpp.i
 .PHONY : ToyFDTD-DataSink/DataSink.cpp.i
 
 ToyFDTD-DataSink/DataSink.s: ToyFDTD-DataSink/DataSink.cpp.s
@@ -171,7 +177,7 @@ ToyFDTD-DataSink/DataSink.s: ToyFDTD-DataSink/DataSink.cpp.s
 
 # target to generate assembly for a file
 ToyFDTD-DataSink/DataSink.cpp.s:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/DataSink.cpp.s
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/DataSink.cpp.s
 .PHONY : ToyFDTD-DataSink/DataSink.cpp.s
 
 ToyFDTD-DataSink/ipplToyFDTD2.o: ToyFDTD-DataSink/ipplToyFDTD2.cpp.o
@@ -179,7 +185,7 @@ ToyFDTD-DataSink/ipplToyFDTD2.o: ToyFDTD-DataSink/ipplToyFDTD2.cpp.o
 
 # target to build an object file
 ToyFDTD-DataSink/ipplToyFDTD2.cpp.o:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/ipplToyFDTD2.cpp.o
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/ipplToyFDTD2.cpp.o
 .PHONY : ToyFDTD-DataSink/ipplToyFDTD2.cpp.o
 
 ToyFDTD-DataSink/ipplToyFDTD2.i: ToyFDTD-DataSink/ipplToyFDTD2.cpp.i
@@ -187,7 +193,7 @@ ToyFDTD-DataSink/ipplToyFDTD2.i: ToyFDTD-DataSink/ipplToyFDTD2.cpp.i
 
 # target to preprocess a source file
 ToyFDTD-DataSink/ipplToyFDTD2.cpp.i:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/ipplToyFDTD2.cpp.i
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/ipplToyFDTD2.cpp.i
 .PHONY : ToyFDTD-DataSink/ipplToyFDTD2.cpp.i
 
 ToyFDTD-DataSink/ipplToyFDTD2.s: ToyFDTD-DataSink/ipplToyFDTD2.cpp.s
@@ -195,7 +201,7 @@ ToyFDTD-DataSink/ipplToyFDTD2.s: ToyFDTD-DataSink/ipplToyFDTD2.cpp.s
 
 # target to generate assembly for a file
 ToyFDTD-DataSink/ipplToyFDTD2.cpp.s:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/ipplToyFDTD2.cpp.s
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/build.make test/toyfdtf/CMakeFiles/ipplToyFDTD.dir/ToyFDTD-DataSink/ipplToyFDTD2.cpp.s
 .PHONY : ToyFDTD-DataSink/ipplToyFDTD2.cpp.s
 
 # Help Target
@@ -228,6 +234,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/l_locans/programs/IPPL/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

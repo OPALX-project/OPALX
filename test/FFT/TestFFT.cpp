@@ -29,6 +29,7 @@
 // Tests the use of the (parallel) FFT class.
 
 #include "Ippl.h"
+#include <fstream>
 
 #ifdef IPPL_USE_STANDARD_HEADERS
 #include <complex>
@@ -231,19 +232,46 @@ int main(int argc, char *argv[])
     // set direction names
     // ccfft.setDirectionName(+1, "forward");
     // ccfft.setDirectionName(-1, "inverse");
+    
+    //ccfft.transform(+1, CFieldPPStan);
+    //ccfft.transform( -1 , CFieldPPStan);
+    //CFieldPPStan = CFieldPPStan_save;
+    
+    testmsg << " Start timer " << endl;
+    
     timer.start();
+    
+    cout << "Start: " << endl << CFieldPPStan << endl << endl;
+    
     for (unsigned int i=0; i<nLoop; i++)  {
       // Test complex<-->complex transform (simple test: forward then inverse transform, see if get back original values.
-      ccfft.transform( -1 , CFieldPPStan);
       ccfft.transform( +1 , CFieldPPStan);
+      cout << "FFT: " << endl << CFieldPPStan << endl << endl;
+      ccfft.transform( -1 , CFieldPPStan);
+      cout << "IFFT: " << endl << CFieldPPStan << endl << endl;
+     
       diffFieldPPStan = Abs(CFieldPPStan - CFieldPPStan_save);
       realDiff = max(diffFieldPPStan);
+      
       testmsg << "CC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
+      testmsg << "Time: " << timer.clock_time() << "\tCC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
+      //testmsg << (i+1) << ") Time: " << timer.clock_time() / (i+1) << endl;
       //-------------------------------------------------------------------------
       CFieldPPStan = CFieldPPStan_save;
     }
     timer.stop();
+    
     testmsg << " CPU time used = " << timer.cpu_time() << " secs." << endl;
+    testmsg << " Average clock time = " << timer.clock_time() / nLoop << " secs." << endl;
+    
+    
+    /*
+    ofstream myfile;
+    myfile.open("IPPL_FFT", ofstream::app);
+    myfile << nx << "\t" << timer.clock_time() << "\t" << timer.clock_time() / nLoop << endl;
+    myfile.close();
+    */
+    
     return 0;
 }
 

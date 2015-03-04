@@ -92,6 +92,7 @@ public:
 
   // Initialize the Field, also specifying a mesh
   void initialize(Mesh_t&, Layout_t &);
+  void initialize(Mesh_t&, Layout_t &, const bool); //UL: for pinned memory allocation
   void initialize(Mesh_t&, Layout_t &, const GuardCellSizes<Dim>&);
   void initialize(Mesh_t&, Layout_t &, const BConds<T,Dim,M,C>&);
   void initialize(Mesh_t&, Layout_t &, const GuardCellSizes<Dim>&,

@@ -59,7 +59,8 @@ template< class T, unsigned Dim >
 BareField<T,Dim>::BareField(const BareField<T,Dim>& a)
 : Layout( a.Layout ),		// Copy the layout.
   Gc( a.Gc ),			// Copy the number of guard cells.
-  compressible_m( a.compressible_m )
+  compressible_m( a.compressible_m ),
+  pinned(false) //UL: for pinned memory allocation
 {
   
   
@@ -114,6 +115,21 @@ BareField<T,Dim>::initialize(Layout_t & l) {
   // if our Layout has been previously set, we just ignore this request
   if (Layout == 0) {
     Layout = &l;
+    setup();
+  }
+}
+
+//UL: for pinned memory allocation
+template< class T, unsigned Dim >
+void
+BareField<T,Dim>::initialize(Layout_t & l, const bool p) {
+  
+  
+
+  // if our Layout has been previously set, we just ignore this request
+  if (Layout == 0) {
+    Layout = &l;
+    pinned = p;
     setup();
   }
 }
@@ -176,7 +192,12 @@ BareField<T,Dim>::setup()
       int vnode = (*v_i).second->getVnode();
 
       // Construct the LField for this Vnode.
-      LField<T,Dim> *lf = new LField<T,Dim>( owned, guarded, vnode );
+      //UL: for pinned memory allocation
+      LField<T, Dim> *lf;
+      if (pinned)
+	lf = new LField<T,Dim>( owned, guarded, vnode, pinned );
+      else
+	lf = new LField<T,Dim>( owned, guarded, vnode );
 
       // Put it in the list.
       Locals_ac.insert( end_if(), 

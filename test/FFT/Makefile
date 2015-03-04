@@ -30,24 +30,30 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /usr/bin/cmake
+CMAKE_COMMAND = /afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake
 
 # The command to remove a file.
-RM = /usr/bin/cmake -E remove -f
+RM = /afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -E remove -f
+
+# Escaping for special characters.
+EQUALS = =
+
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/uldisl/OPAL/IPPL_TAU/trunk
+CMAKE_SOURCE_DIR = /home/l_locans/programs/IPPL/trunk
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/uldisl/OPAL/IPPL_TAU/trunk
+CMAKE_BINARY_DIR = /home/l_locans/programs/IPPL/trunk
 
 #=============================================================================
 # Targets provided globally by CMake.
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running interactive CMake command-line interface..."
-	/usr/bin/cmake -i .
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
+	/usr/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -57,19 +63,19 @@ edit_cache/fast: edit_cache
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -P cmake_install.cmake
 .PHONY : install
 
 # Special rule for the target install
 install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local
 
 # Special rule for the target install/local
@@ -79,7 +85,7 @@ install/local/fast: install/local
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip
 
 # Special rule for the target install/strip
@@ -98,7 +104,7 @@ list_install_components/fast: list_install_components
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/afs/psi.ch/sys/psi.x86_64_slp6/Programming/cmake/2.8.12.2/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -107,14 +113,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(CMAKE_COMMAND) -E cmake_progress_start /home/uldisl/OPAL/IPPL_TAU/trunk/CMakeFiles /home/uldisl/OPAL/IPPL_TAU/trunk/test/FFT/CMakeFiles/progress.marks
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/uldisl/OPAL/IPPL_TAU/trunk/CMakeFiles 0
+	cd /home/l_locans/programs/IPPL/trunk && $(CMAKE_COMMAND) -E cmake_progress_start /home/l_locans/programs/IPPL/trunk/CMakeFiles /home/l_locans/programs/IPPL/trunk/test/FFT/CMakeFiles/progress.marks
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/l_locans/programs/IPPL/trunk/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/clean
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/clean
 .PHONY : clean
 
 # The main clean target
@@ -123,22 +129,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/preinstall
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/preinstall
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/l_locans/programs/IPPL/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 test/FFT/CMakeFiles/TestFFT.dir/rule:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/CMakeFiles/TestFFT.dir/rule
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/CMakeFiles/TestFFT.dir/rule
 .PHONY : test/FFT/CMakeFiles/TestFFT.dir/rule
 
 # Convenience name for target.
@@ -147,15 +153,29 @@ TestFFT: test/FFT/CMakeFiles/TestFFT.dir/rule
 
 # fast build rule for target.
 TestFFT/fast:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/build
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/build
 .PHONY : TestFFT/fast
+
+# Convenience name for target.
+test/FFT/CMakeFiles/TestRC.dir/rule:
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f CMakeFiles/Makefile2 test/FFT/CMakeFiles/TestRC.dir/rule
+.PHONY : test/FFT/CMakeFiles/TestRC.dir/rule
+
+# Convenience name for target.
+TestRC: test/FFT/CMakeFiles/TestRC.dir/rule
+.PHONY : TestRC
+
+# fast build rule for target.
+TestRC/fast:
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestRC.dir/build.make test/FFT/CMakeFiles/TestRC.dir/build
+.PHONY : TestRC/fast
 
 TestFFT.o: TestFFT.cpp.o
 .PHONY : TestFFT.o
 
 # target to build an object file
 TestFFT.cpp.o:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/TestFFT.cpp.o
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/TestFFT.cpp.o
 .PHONY : TestFFT.cpp.o
 
 TestFFT.i: TestFFT.cpp.i
@@ -163,7 +183,7 @@ TestFFT.i: TestFFT.cpp.i
 
 # target to preprocess a source file
 TestFFT.cpp.i:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/TestFFT.cpp.i
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/TestFFT.cpp.i
 .PHONY : TestFFT.cpp.i
 
 TestFFT.s: TestFFT.cpp.s
@@ -171,8 +191,32 @@ TestFFT.s: TestFFT.cpp.s
 
 # target to generate assembly for a file
 TestFFT.cpp.s:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/TestFFT.cpp.s
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestFFT.dir/build.make test/FFT/CMakeFiles/TestFFT.dir/TestFFT.cpp.s
 .PHONY : TestFFT.cpp.s
+
+TestRC.o: TestRC.cpp.o
+.PHONY : TestRC.o
+
+# target to build an object file
+TestRC.cpp.o:
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestRC.dir/build.make test/FFT/CMakeFiles/TestRC.dir/TestRC.cpp.o
+.PHONY : TestRC.cpp.o
+
+TestRC.i: TestRC.cpp.i
+.PHONY : TestRC.i
+
+# target to preprocess a source file
+TestRC.cpp.i:
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestRC.dir/build.make test/FFT/CMakeFiles/TestRC.dir/TestRC.cpp.i
+.PHONY : TestRC.cpp.i
+
+TestRC.s: TestRC.cpp.s
+.PHONY : TestRC.s
+
+# target to generate assembly for a file
+TestRC.cpp.s:
+	cd /home/l_locans/programs/IPPL/trunk && $(MAKE) -f test/FFT/CMakeFiles/TestRC.dir/build.make test/FFT/CMakeFiles/TestRC.dir/TestRC.cpp.s
+.PHONY : TestRC.cpp.s
 
 # Help Target
 help:
@@ -181,6 +225,7 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... TestFFT"
+	@echo "... TestRC"
 	@echo "... edit_cache"
 	@echo "... install"
 	@echo "... install/local"
@@ -190,6 +235,9 @@ help:
 	@echo "... TestFFT.o"
 	@echo "... TestFFT.i"
 	@echo "... TestFFT.s"
+	@echo "... TestRC.o"
+	@echo "... TestRC.i"
+	@echo "... TestRC.s"
 .PHONY : help
 
 
@@ -201,6 +249,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/uldisl/OPAL/IPPL_TAU/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/l_locans/programs/IPPL/trunk && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 
