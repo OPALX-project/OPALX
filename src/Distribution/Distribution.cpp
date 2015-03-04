@@ -13,7 +13,7 @@
 
 #include "Distribution/Distribution.h"
 #include "Distribution/SigmaGenerator.h"
-#include "Distribution/SpecificElementVisitor.h"
+#include "AbsBeamline/SpecificElementVisitor.h"
 
 #include <cmath>
 #include <cfloat>
@@ -589,8 +589,8 @@ void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep) {
 #endif
 
     if(H5file == (void*)H5_ERR) {
-        ERRORMSG("could not open file '" << fn << "';  exiting!" << endl);
-        exit(0);
+	throw OpalException("Distribution::DoRestartOpalT",
+                            "could not open file '" + fn + "'");
     }
 
     if(restartStep == -1) {
@@ -598,8 +598,8 @@ void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep) {
         OpalData::getInstance()->setRestartStep(restartStep);
     } else {
         if(restartStep != H5GetNumSteps(H5file) - 1 && !OpalData::getInstance()->hasRestartFile()) {
-            ERRORMSG("can't append to the file '" << fn << "' exiting!" << endl);
-            exit(0);
+            throw OpalException("Distribution::DoRestartOpalT",
+                                "can't append to the file '" + fn + "'");
         }
     }
 
@@ -734,8 +734,8 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
 #endif
 
     if(H5file == (void*)H5_ERR) {
-        ERRORMSG("File open failed:  exiting!" << endl);
-        exit(0);
+        throw OpalException("Distribution::DoRestartOpalCycl",
+                            "could not open file '" + fn + "'");
     }
 
     if(restartStep == -1) {
@@ -743,8 +743,8 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         OpalData::getInstance()->setRestartStep(restartStep);
     } else {
         if(restartStep != H5GetNumSteps(H5file) - 1 && !OpalData::getInstance()->hasRestartFile()) {
-            ERRORMSG("can't append to the file '" << fn << "' exiting!" << endl);
-            exit(0);
+            throw OpalException("Distribution::DoRestartOpalCycl",
+                                "can't append to the file '" + fn + "'");
         }
     }
 
@@ -1050,8 +1050,8 @@ void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartSte
 #endif
 
     if(H5file == (void*)H5_ERR) {
-        ERRORMSG("could not open file '" << fn << "';  exiting!" << endl);
-        exit(0);
+	throw OpalException("Distribution::DoRestartOpalE",
+                            "could not open file '" + fn + "'");
     }
 
     if(restartStep == -1) {
@@ -1059,8 +1059,8 @@ void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartSte
         OpalData::getInstance()->setRestartStep(restartStep);
     } else {
         if(restartStep != H5GetNumSteps(H5file) - 1 && !OpalData::getInstance()->hasRestartFile()) {
-            ERRORMSG("can't append to the file '" << fn << "' exiting!" << endl);
-            exit(0);
+            throw OpalException("Distribution::DoRestartOpalE",
+                                "can't append to the file '" + fn + "'");
         }
     }
 
@@ -1731,7 +1731,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	throw OpalException("Distribution::CreateMatchedGaussDistribution",
 			    "didn't find any Cyclotron element in line");
       }
-      const Cyclotron* CyclotronElement = dynamic_cast<const Cyclotron*>(CyclotronVisitor.front());
+      const Cyclotron* CyclotronElement = CyclotronVisitor.front();
 
       *gmsg << "----------------------------------------------------" << endl;
       *gmsg << "About to find closed orbit and matched distribution " << endl;
@@ -1750,8 +1750,8 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       const double fmHighE = CyclotronElement->getFMHighE();
 
       if ((fmLowE>fmHighE) || (fmLowE<0) || (fmHighE<0)) {
-	ERRORMSG("FMHIGHE of FMLOWE not set propperly" << endl);
-	exit(1);
+	throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                            "FMHIGHE or FMLOWE not set properly");
       }
 
       int nr, nth, nsc;
@@ -2961,8 +2961,8 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     int errcode = gsl_linalg_cholesky_decomp(m);
 
     if (errcode == GSL_EDOM) {
-      INFOMSG("gsl_linalg_cholesky_decomp faliled" << endl);
-      exit(1);
+        throw OpalException("Distribution::GenerateGaussZ",
+                            "gsl_linalg_cholesky_decomp failed");
     }
     // so make the lower part zero.
     for (int i = 0; i < 6; i++) {
@@ -3022,8 +3022,8 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 
       if (Ippl::myNode() == saveProcessor) {
 	if (gsl_blas_dgemv(CblasNoTrans,1.0,m,rx,0.0,ry)) {
-	  INFOMSG("oops... something wrong with GSL matvec\n");
-	  exit(1);
+            throw OpalException("Distribution::GenerateGaussZ",
+                                "oops... something wrong with GSL matvec");
 	}
 	xDist_m.push_back(            sigmaR_m[0]*gsl_vector_get(ry, 0));
 	pxDist_m.push_back(           sigmaP_m[0]*gsl_vector_get(ry, 1));
@@ -4564,8 +4564,8 @@ void Distribution::SetDistParametersGauss(double massIneV) {
 
       }
       else {
-	*gmsg << "* Inconsitent set of correlations specified, check manual" << endl;
-	exit(1);
+          throw OpalException("Distribution::SetDistParametersGauss",
+                              "Inconsitent set of correlations specified, check manual");
       }
     }
     else {

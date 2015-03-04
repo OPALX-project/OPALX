@@ -47,12 +47,29 @@
 #include "Algorithms/MapIntegrator.h"
 #include "Algorithms/TrackIntegrator.h"
 
-template <class E>
+template <class ELEM1, class ELEM2>
+struct CastsTrait {
+    typedef std::list<const ELEM1*> ElementList_t;
+
+    static void apply(ElementList_t &, const ELEM2 &)
+    { }
+};
+
+template <class ELEM>
+struct CastsTrait<ELEM,ELEM> {
+    typedef std::list<const ELEM*> ElementList_t;
+
+    static void apply(ElementList_t &allElements, const ELEM &element)
+    {
+        allElements.push_back(dynamic_cast<const ELEM*>(&element));
+    }
+};
+
+template <class ELEM>
 class SpecificElementVisitor: public BeamlineVisitor {
 public:
     SpecificElementVisitor(const Beamline &beamline);
 
-    /// Apply the algorithm to the top-level beamline.
     virtual void execute();
 
     /// Apply the algorithm to a beam-beam.
@@ -179,7 +196,7 @@ public:
 
     size_t size() const;
 
-    typedef std::list<const Component*> ElementList_t;
+    typedef std::list<const ELEM*> ElementList_t;
     typedef typename ElementList_t::iterator iterator_t;
     typedef typename ElementList_t::const_iterator const_iterator_t;
 
@@ -196,203 +213,164 @@ public:
     const_reference_t front() const;
 
 private:
-    const Beamline &itsLine;
-
-    const std::string ElementType;
-
-    std::list<const ElementBase*> matchingElements;
     ElementList_t allElementsOfTypeE;
 };
 
 template<class ELEM>
 SpecificElementVisitor<ELEM>::SpecificElementVisitor(const Beamline &beamline):
     BeamlineVisitor(),
-    itsLine(beamline),
-    matchingElements(),
     allElementsOfTypeE()
-{ }
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::execute() {
-    itsLine.iterate(*this, false);
-
-    for (auto it = matchingElements.begin(); it != matchingElements.end(); ++ it) {
-        allElementsOfTypeE.push_back(dynamic_cast<const ELEM*>(*it));
-    }
+{
+    beamline.iterate(*this, false);
 }
 
 template<class ELEM>
+void SpecificElementVisitor<ELEM>::execute()
+{ }
+
+template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitBeamBeam(const BeamBeam &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, BeamBeam>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitCollimator(const Collimator &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Collimator>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitComponent(const Component &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Component>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitCyclotron(const Cyclotron &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Cyclotron>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitRing(const Ring &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Ring>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitCorrector(const Corrector &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Corrector>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitDegrader(const Degrader &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Degrader>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitDiagnostic(const Diagnostic &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Diagnostic>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitLambertson(const Lambertson &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Lambertson>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMarker(const Marker &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Marker>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMonitor(const Monitor &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Monitor>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipole(const Multipole &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Multipole>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitOffset(const Offset &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Offset>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitPatch(const Patch &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Patch>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitProbe(const Probe &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Probe>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitRBend(const RBend &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, RBend>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitVariableRFCavity(const VariableRFCavity &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, VariableRFCavity>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitRFCavity(const RFCavity &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, RFCavity>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitTravelingWave(const TravelingWave &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, TravelingWave>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitRFQuadrupole(const RFQuadrupole &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, RFQuadrupole>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, SBend>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend3D(const SBend3D &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, SBend3D>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSeparator(const Separator &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Separator>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSeptum(const Septum &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Septum>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSolenoid(const Solenoid &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Solenoid>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitParallelPlate(const ParallelPlate &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, ParallelPlate>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitCyclotronValley(const CyclotronValley &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, CyclotronValley>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitStripper(const Stripper &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, Stripper>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
@@ -414,32 +392,27 @@ void SpecificElementVisitor<ELEM>::visitAlignWrapper(const AlignWrapper &element
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitCorrectorWrapper(const CorrectorWrapper &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, CorrectorWrapper>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitCyclotronWrapper(const CyclotronWrapper &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, CyclotronWrapper>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipoleWrapper(const MultipoleWrapper &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, MultipoleWrapper>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitRBendWrapper(const RBendWrapper &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, RBendWrapper>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBendWrapper(const SBendWrapper &element) {
-    if (dynamic_cast<const ELEM*>(&element))
-        matchingElements.push_back(&element);
+    CastsTrait<ELEM, SBendWrapper>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
