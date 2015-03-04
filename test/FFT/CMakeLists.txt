@@ -29,10 +29,8 @@ ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
 add_executable (TestFFT TestFFT.cpp)
 add_executable (TestRC TestRC.cpp)
-add_executable (TestRCGPU TestRCGPU.cpp)
 
 target_link_libraries (TestFFT ${IPPL_LIBS})
 target_link_libraries (TestRC ${IPPL_LIBS})
-target_link_libraries (TestRCGPU ${IPPL_LIBS})
 
 
