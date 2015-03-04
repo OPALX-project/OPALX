@@ -87,6 +87,7 @@ public:
   // This should NOT be called if the field was constructed by providing
   // a FieldLayout.
   void initialize(Layout_t &);
+  void initialize(Layout_t &, const bool); //UL: for pinned memory allocation
   void initialize(Layout_t &, const GuardCellSizes<Dim>&);
 
   // Some typedefs to make access to the maps a bit simpler.
@@ -357,6 +358,9 @@ private:
 
   // compression flags
   bool compressible_m;          // are we allowed to compress this BareField?
+
+  //UL: for pinned memory allocation
+  bool pinned;
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -371,7 +375,8 @@ BareField<T,Dim>::
 BareField()
 : Layout(0),			 // No layout yet.
   Gc( GuardCellSizes<Dim>(0U) ), // No guard cells.
-  compressible_m(!Ippl::noFieldCompression)
+  compressible_m(!Ippl::noFieldCompression),
+  pinned(false) //UL: for pinned memory allocation
 {
 }
 
@@ -386,7 +391,8 @@ BareField<T,Dim>::
 BareField(Layout_t & l)
 : Layout(&l),			 // Just record the layout.
   Gc( GuardCellSizes<Dim>(0U) ), // No guard cells.
-  compressible_m(!Ippl::noFieldCompression)
+  compressible_m(!Ippl::noFieldCompression),
+  pinned(false) //UL: for pinned memory allocation
 {
   setup();			// Do the common setup chores.
 }
@@ -402,7 +408,8 @@ BareField<T,Dim>::
 BareField(Layout_t & l, const GuardCellSizes<Dim>& g)
 : Layout(&l),			// Just record the layout.
   Gc(g),			// Just record guard cells.
-  compressible_m(!Ippl::noFieldCompression)
+  compressible_m(!Ippl::noFieldCompression),
+  pinned(false) //UL: for pinned memory allocation
 {
   setup();			// Do the common setup chores.
 }

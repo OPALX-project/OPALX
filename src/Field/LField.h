@@ -74,6 +74,12 @@ public:
 	 const NDIndex<Dim>& allocated,
 	 int vnode = -1);
 
+  //UL: for pinned memory allocation
+  LField(const NDIndex<Dim>& owned,
+	 const NDIndex<Dim>& allocated,
+	 int vnode,
+	 bool p);
+
   // Copy constructor.
   LField(const LField<T,Dim>&);
 
@@ -217,6 +223,10 @@ private:
 
   T*             P;
 
+  // UL: for pinned memory allocation
+
+  bool           Pinned;
+
   // What domain in the data is owned by this LField.
 
   NDIndex<Dim>   Owned;
@@ -264,12 +274,11 @@ private:
 
   // Actualy allocate storage for the LField data, doing any special
   // memory tricks needed for performance.  Sets P pointer to new memory.
-
   void allocateStorage(int newsize);
 
   // Actually free the storage used in the LField, if any.  Resets P to zero.
-
   void deallocateStorage();
+
 
   // Disable default constructor and operator=
 

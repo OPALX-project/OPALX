@@ -18,6 +18,10 @@
 // include files
 #include "FFT/FFTBase.h"
 
+#ifdef IPPL_DKS
+#include "DKSBase.h"
+#endif
+
 // forward declarations
 //template <unsigned Dim> class FieldLayout;
 #include "FieldLayout/FieldLayout.h"
@@ -33,30 +37,35 @@ template <class T, unsigned Dim> class LField;
 */
 
 /**
-    Tag classes for CC type of Fourier transforms
+   Tag classes for CC type of Fourier transforms
 */
 class CCTransform {};
 /**
-    Tag classes for RC type of Fourier transforms
+   Tag classes for RC type of Fourier transforms
 */
 class RCTransform {};
 /**
-    Tag classes for sine types of Fourier transforms
+   Tag classes for sine types of Fourier transforms
 */
 class SineTransform {};
 
 /**
-    Non-specialized FFT class.  We specialize based on Transform tag class
+   Non-specialized FFT class.  We specialize based on Transform tag class
 */
 template <class Transform, unsigned Dim, class T>
 class FFT : public FFTBase<Dim,T> {};
 
 
 /**
-    complex-to-complex FFT class
+   complex-to-complex FFT class
 */
 template <unsigned Dim, class T>
 class FFT<CCTransform,Dim,T> : public FFTBase<Dim,T> {
+
+private:
+#ifdef IPPL_DKS
+  DKSBase base;
+#endif
 
 public:
 
@@ -76,10 +85,10 @@ public:
       const bool& compressTemps=false);
 
   /**
-      Create a new FFT object of type CCTransform, with a
-      given domain. Default case of transforming along all dimensions.
-      Note this was formerly in the .cpp file, but the IBM linker
-      could not find it!
+     Create a new FFT object of type CCTransform, with a
+     given domain. Default case of transforming along all dimensions.
+     Note this was formerly in the .cpp file, but the IBM linker
+     could not find it!
   */
   FFT(const Domain_t& cdomain, const bool& compressTemps=false)
     : FFTBase<Dim,T>(FFT<CCTransform,Dim,T>::ccFFT, cdomain,compressTemps) {
@@ -98,7 +107,32 @@ public:
       transformTypes[d] = FFTBase<Dim,T>::ccFFT;  // all transforms are complex-to-complex
       normFact /= lengths[d];
     }
-
+    
+#ifdef IPPL_DKS
+#ifdef IPPL_DKS_OPENCL
+    INFOMSG("Init DKS base opencl" << endl);
+    base.setAPI("OpenCL", 6);
+    base.setDevice("-gpu", 4);
+    base.initDevice();
+    		
+#endif
+    	
+#ifdef IPPL_DKS_CUDA
+    INFOMSG("Init DKS base cuda" << endl);
+    base.setAPI("Cuda", 4);
+    base.setDevice("-gpu", 4);
+    base.initDevice();
+#endif
+    	
+#ifdef IPPL_DKS_MIC
+    INFOMSG("Init DKS base MIC" << endl);
+    base.setAPI("OpenCL", 6);
+    base.setDevice("-mic", 4);
+    base.initDevice();
+#endif
+#endif
+    
+    
     // set up FFT Engine
     this->getEngine().setup(Dim, transformTypes, lengths);
     // set up the temporary fields
@@ -119,7 +153,7 @@ public:
   void transform(int direction, ComplexField_t& f, ComplexField_t& g,
 		 const bool& constInput=false);
   /**
-      invoke using string for direction name
+     invoke using string for direction name
   */
   void transform(const char* directionName, ComplexField_t& f,
 		 ComplexField_t& g, const bool& constInput=false);
@@ -127,6 +161,7 @@ public:
   /** overloaded versions which perform the FFT "in place"
    */
   void transform(int direction, ComplexField_t& f);
+
   void transform(const char* directionName, ComplexField_t& f) {
     // invoke in-place transform function using direction name string
     int direction = this->getDirection(directionName);
@@ -251,10 +286,10 @@ private:
   void setup(void);
 
   /**
-      How the temporary field's are laid out; these are computed from the
-      input Field's domain. This will be allocated as an array of FieldLayouts
-      with nTransformDims elements. Each is SERIAL along the zeroth dimension
-      and the axes are permuted so that the transform direction is first
+     How the temporary field's are laid out; these are computed from the
+     input Field's domain. This will be allocated as an array of FieldLayouts
+     with nTransformDims elements. Each is SERIAL along the zeroth dimension
+     and the axes are permuted so that the transform direction is first
   */
   Layout_t** tempLayouts_m;
 
@@ -267,7 +302,7 @@ private:
 
 
 /**
-    invoke two-field transform function using direction name string
+   invoke two-field transform function using direction name string
 */
 template <unsigned Dim, class T>
 inline void
@@ -284,7 +319,7 @@ FFT<CCTransform,Dim,T>::transform(
 
 
 /**
-    1D complex-to-complex FFT class
+   1D complex-to-complex FFT class
 */
 template <class T>
 class FFT<CCTransform,1U,T> : public FFTBase<1U,T> {
@@ -328,13 +363,13 @@ public:
   void transform(int direction, ComplexField_t& f, ComplexField_t& g,
 		 const bool& constInput=false);
   /**
-      invoke using string for direction name
+     invoke using string for direction name
   */
   void transform(const char* directionName, ComplexField_t& f,
 		 ComplexField_t& g, const bool& constInput=false);
 
   /**
-      overloaded versions which perform the FFT "in place"
+     overloaded versions which perform the FFT "in place"
   */
   void transform(int direction, ComplexField_t& f);
   void transform(const char* directionName, ComplexField_t& f);
@@ -348,12 +383,12 @@ private:
   void setup(void);
 
   /**
-      The temporary field layout
+     The temporary field layout
   */
   Layout_t* tempLayouts_m;
 
   /**
-      The temporary field
+     The temporary field
   */
   ComplexField_t* tempFields_m;
 
@@ -363,7 +398,7 @@ private:
 // inline function definitions
 
 /**
-    invoke two-field transform function using direction name string
+   invoke two-field transform function using direction name string
 */
 template <class T>
 inline void
@@ -379,7 +414,7 @@ FFT<CCTransform,1U,T>::transform(
 }
 
 /**
-    invoke in-place transform function using direction name string
+   invoke in-place transform function using direction name string
 */
 template <class T>
 inline void
@@ -393,13 +428,17 @@ FFT<CCTransform,1U,T>::transform(
 }
 
 
-
-
 /**
-    real-to-complex FFT class
+   real-to-complex FFT class
 */
 template <unsigned Dim, class T>
 class FFT<RCTransform,Dim,T> : public FFTBase<Dim,T> {
+
+private:
+#ifdef IPPL_DKS
+  DKSBase base;
+  int fftStreamId;
+#endif
 
 public:
 
@@ -423,7 +462,7 @@ public:
       const bool transformTheseDims[Dim], const bool& compressTemps=false);
 
   /**
-      Same as above, but transform all dims:
+     Same as above, but transform all dims:
   */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool& compressTemps=false, int serialAxes = 1);
@@ -443,6 +482,13 @@ public:
   void transform(const char* directionName, RealField_t& f,
 		 ComplexField_t& g, const bool& constInput=false);
 
+  /** real-to-complex FFT on GPU: transfer the real field to GPU execute FFT
+      return the pointer to memory on GPU where complex results are stored
+  */     
+#ifdef IPPL_DKS
+  void transformDKSRC(int direction, RealField_t &f, void* real_ptr, void* comp_ptr,
+		      DKSBase &dksbase, int streamId = -1, const bool& constInput=false);
+#endif
   /** complex-to-real FFT
       Same as above, but with input and output field types reversed.
   */
@@ -450,6 +496,14 @@ public:
 		 const bool& constInput=false);
   void transform(const char* directionName, ComplexField_t& f,
 		 RealField_t& g, const bool& constInput=false);
+		 
+  /** complex-to-real FFT on GPU: pass pointer to GPU memory where complex field
+      is stored, do the inverse FFT and transfer real field back to host memory
+  */
+#ifdef IPPL_DKS
+  void transformDKSCR(int direction, RealField_t& g, void* real_ptr, void* comp_ptr, 
+		      DKSBase &dksbase, const bool& constInput=false);
+#endif
 
 private:
 
@@ -467,7 +521,7 @@ private:
   Layout_t** tempLayouts_m;
 
   /**
-      extra layout for the one real Field needed
+     extra layout for the one real Field needed
   */
   Layout_t* tempRLayout_m;
 
@@ -476,28 +530,28 @@ private:
   */
   ComplexField_t** tempFields_m;
 
-   /**
-       We need one real internal Field in this case.
-   */
+  /**
+     We need one real internal Field in this case.
+  */
   RealField_t* tempRField_m;
 
-   /**
-       domain of the resulting complex fields
-       const Domain_t& complexDomain_m;
-   */
+  /**
+     domain of the resulting complex fields
+     const Domain_t& complexDomain_m;
+  */
   Domain_t complexDomain_m;
 
   /**
-      number of axes to make serial
+     number of axes to make serial
   */
   int serialAxes_m;
 };
 
-   // Inline function definitions
+// Inline function definitions
 
-   /**
-       invoke real-to-complex transform using string for transform direction
-   */
+/**
+   invoke real-to-complex transform using string for transform direction
+*/
 template <unsigned Dim, class T>
 inline void
 FFT<RCTransform,Dim,T>::transform(
@@ -512,7 +566,7 @@ FFT<RCTransform,Dim,T>::transform(
 }
 
 /**
-    invoke complex-to-real transform using string for transform direction
+   invoke complex-to-real transform using string for transform direction
 */
 template <unsigned Dim, class T>
 inline void
@@ -529,7 +583,7 @@ FFT<RCTransform,Dim,T>::transform(
 
 
 /**
-    1D real-to-complex FFT class
+   1D real-to-complex FFT class
 */
 template <class T>
 class FFT<RCTransform,1U,T> : public FFTBase<1U,T> {
@@ -548,31 +602,31 @@ public:
   // Constructors:
 
   /**
-      Create a new FFT object with the given domains for input/output Fields
-      Specify which dimensions to transform along.
-      Optional argument compress indicates whether or not to compress
-      temporary Fields in between uses.
+     Create a new FFT object with the given domains for input/output Fields
+     Specify which dimensions to transform along.
+     Optional argument compress indicates whether or not to compress
+     temporary Fields in between uses.
   */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool transformTheseDims[1U], const bool& compressTemps=false);
   /**
-      Same as above, but transform all dims:
+     Same as above, but transform all dims:
   */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool& compressTemps=false);
 
   /**
-      Destructor
+     Destructor
   */
   ~FFT(void);
 
   /**
-      real-to-complex FFT: specify +1 or -1 to indicate forward or inverse
-      transform, or specify the user-defined name string for the direction.
-      Supply a second BareField to store the output.
-      optional argument constInput indicates whether or not to treat the
-      input Field argument f as const.  If not, we can use it as a temporary
-      in order to avoid an additional data transpose.
+     real-to-complex FFT: specify +1 or -1 to indicate forward or inverse
+     transform, or specify the user-defined name string for the direction.
+     Supply a second BareField to store the output.
+     optional argument constInput indicates whether or not to treat the
+     input Field argument f as const.  If not, we can use it as a temporary
+     in order to avoid an additional data transpose.
   */
   void transform(int direction, RealField_t& f, ComplexField_t& g,
 		 const bool& constInput=false);
@@ -580,8 +634,8 @@ public:
 		 ComplexField_t& g, const bool& constInput=false);
 
   /**
-      complex-to-real FFT
-      Same as above, but with input and output field types reversed.
+     complex-to-real FFT
+     Same as above, but with input and output field types reversed.
   */
   void transform(int direction, ComplexField_t& f, RealField_t& g,
 		 const bool& constInput=false);
@@ -597,33 +651,33 @@ private:
   void setup(void);
 
   /**
-      The temporary field layout
+     The temporary field layout
   */
   Layout_t* tempLayouts_m;
 
-   /**
-       The temporary field
-   */
+  /**
+     The temporary field
+  */
   ComplexField_t* tempFields_m;
 
-   /**
-       Real field layout
-   */
+  /**
+     Real field layout
+  */
   Layout_t* tempRLayout_m;
 
-   /**
-       We need one real internal Field in this case.
-       domain of the resulting complex fields
-   */
+  /**
+     We need one real internal Field in this case.
+     domain of the resulting complex fields
+  */
   //  const Domain_t& complexDomain_m;
   Domain_t complexDomain_m;
 };
 
 /**
-    invoke real-to-complex transform using string for transform direction
+   invoke real-to-complex transform using string for transform direction
 */
 template <class T>
-   inline void
+inline void
 FFT<RCTransform,1U,T>::transform(
 				 const char* directionName,
 				 typename FFT<RCTransform,1U,T>::RealField_t& f,
@@ -636,7 +690,7 @@ FFT<RCTransform,1U,T>::transform(
 }
 
 /**
-    invoke complex-to-real transform using string for transform direction
+   invoke complex-to-real transform using string for transform direction
 */
 template <class T>
 inline void
@@ -651,9 +705,9 @@ FFT<RCTransform,1U,T>::transform(
   return;
 }
 
-   /**
-       sine transform class
-   */
+/**
+   sine transform class
+*/
 template <unsigned Dim, class T>
 class FFT<SineTransform,Dim,T> : public FFTBase<Dim,T> {
 
@@ -678,36 +732,36 @@ public:
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool transformTheseDims[Dim],
       const bool sineTransformDims[Dim], const bool& compressTemps=false);
-   /**
-       Same as above, but transform all dims:
-   */
+  /**
+     Same as above, but transform all dims:
+  */
   FFT(const Domain_t& rdomain, const Domain_t& cdomain,
       const bool sineTransformDims[Dim], const bool& compressTemps=false);
   /**
-       Separate constructors for doing only sine transforms
-       Create a new FFT object with the given domain for input/output Field
-       Specify which dimensions to transform along.
-       Optional argument compress indicates whether or not to compress
-       temporary Fields in between uses.
-   */
+     Separate constructors for doing only sine transforms
+     Create a new FFT object with the given domain for input/output Field
+     Specify which dimensions to transform along.
+     Optional argument compress indicates whether or not to compress
+     temporary Fields in between uses.
+  */
   FFT(const Domain_t& rdomain, const bool sineTransformDims[Dim],
       const bool& compressTemps=false);
-   /**
-       Same as above, but transform all dims:
-   */
+  /**
+     Same as above, but transform all dims:
+  */
   FFT(const Domain_t& rdomain, const bool& compressTemps=false);
 
   ~FFT(void);
 
   /**
-      These transforms are for combinations of sine transforms and RC FFTs
+     These transforms are for combinations of sine transforms and RC FFTs
 
-      Do the FFT: specify +1 or -1 to indicate forward or inverse
-      transform, or specify the user-defined name string for the direction.
-      Supply a second BareField to store the output.
-      optional argument constInput indicates whether or not to treat the
-      input Field argument f as const.  If not, we can use it as a temporary
-      in order to avoid an additional data transpose.
+     Do the FFT: specify +1 or -1 to indicate forward or inverse
+     transform, or specify the user-defined name string for the direction.
+     Supply a second BareField to store the output.
+     optional argument constInput indicates whether or not to treat the
+     input Field argument f as const.  If not, we can use it as a temporary
+     in order to avoid an additional data transpose.
   */
   void transform(int direction, RealField_t& f, ComplexField_t& g,
 		 const bool& constInput=false);
@@ -715,8 +769,8 @@ public:
 		 ComplexField_t& g, const bool& constInput=false);
 
   /**
-      complex-to-real FFT, followed by sine transform(s)
-      Same as above, but with input and output field types reversed.
+     complex-to-real FFT, followed by sine transform(s)
+     Same as above, but with input and output field types reversed.
   */
   void transform(int direction, ComplexField_t& f, RealField_t& g,
 		 const bool& constInput=false);
@@ -724,22 +778,22 @@ public:
 		 RealField_t& g, const bool& constInput=false);
 
   /**
-      These transforms are for doing sine transforms only
-      sine transform: specify +1 or -1 to indicate forward or inverse
-      transform, or specify the user-defined name string for the direction.
-      Supply a second BareField to store the output.
-      optional argument constInput indicates whether or not to treat the
-      input Field argument f as const.  If not, we can use it as a temporary
-      in order to avoid an additional data transpose.
+     These transforms are for doing sine transforms only
+     sine transform: specify +1 or -1 to indicate forward or inverse
+     transform, or specify the user-defined name string for the direction.
+     Supply a second BareField to store the output.
+     optional argument constInput indicates whether or not to treat the
+     input Field argument f as const.  If not, we can use it as a temporary
+     in order to avoid an additional data transpose.
   */
   void transform(int direction, RealField_t& f, RealField_t& g,
 		 const bool& constInput=false);
   void transform(const char* directionName, RealField_t& f,
 		 RealField_t& g, const bool& constInput=false);
 
-   /**
-       In-place version of real-to-real transform
-   */
+  /**
+     In-place version of real-to-real transform
+  */
   void transform(int direction, RealField_t& f);
   void transform(const char* directionName, RealField_t& f);
 
@@ -754,27 +808,27 @@ private:
 
 
   /**
-      which dimensions are sine transformed
-   */
+     which dimensions are sine transformed
+  */
   bool sineTransformDims_m[Dim];
 
-/**
-    number of sine transforms to perform
-*/
+  /**
+     number of sine transforms to perform
+  */
   unsigned numSineTransforms_m;
 
   /**
-      layouts for temporary Fields: SERIAL along the zeroth dimension, with
-      the axes are permuted so that the transform direction is first
+     layouts for temporary Fields: SERIAL along the zeroth dimension, with
+     the axes are permuted so that the transform direction is first
 
-      layouts for the temporary complex Fields
+     layouts for the temporary complex Fields
   */
 
   Layout_t** tempLayouts_m;
 
-   /**
-       layouts for the temporary real Fields
-   */
+  /**
+     layouts for the temporary real Fields
+  */
   Layout_t** tempRLayouts_m;
 
   /** The array of temporary complex Fields
@@ -788,13 +842,13 @@ private:
   RealField_t** tempRFields_m;
 
   /**
-      domain of the resulting complex Field for real-to-complex transform
-   */
+     domain of the resulting complex Field for real-to-complex transform
+  */
   const Domain_t* complexDomain_m;
 };
 
 /**
-    invoke real-to-complex transform using string for transform direction
+   invoke real-to-complex transform using string for transform direction
 */
 template <unsigned Dim, class T>
 inline void
@@ -810,7 +864,7 @@ FFT<SineTransform,Dim,T>::transform(
 }
 
 /**
-    invoke complex-to-real transform using string for transform direction
+   invoke complex-to-real transform using string for transform direction
 */
 template <unsigned Dim, class T>
 inline void
@@ -821,12 +875,12 @@ FFT<SineTransform,Dim,T>::transform(
 				    const bool& constInput)
 {
   int dir = this->getDirection(directionName);
-   transform(dir, f, g, constInput);
-   return;
+  transform(dir, f, g, constInput);
+  return;
 }
 
 /**
-    invoke real-to-real transform using string for transform direction
+   invoke real-to-real transform using string for transform direction
 */
 template <unsigned Dim, class T>
 inline void
@@ -842,7 +896,7 @@ FFT<SineTransform,Dim,T>::transform(
 }
 
 /**
-    invoke in-place real-to-real transform using string for transform direction
+   invoke in-place real-to-real transform using string for transform direction
 */
 template <unsigned Dim, class T>
 inline void
@@ -857,76 +911,76 @@ FFT<SineTransform,Dim,T>::transform(
 
 
 /**
-    1D sine transform class
+   1D sine transform class
 */
- template <class T>
- class FFT<SineTransform,1U,T> : public FFTBase<1U,T> {
+template <class T>
+class FFT<SineTransform,1U,T> : public FFTBase<1U,T> {
 
- public:
+public:
 
-   typedef FieldLayout<1U> Layout_t;
-   typedef BareField<T,1U> RealField_t;
-   typedef LField<T,1U> RealLField_t;
-   typedef typename FFTBase<1U,T>::Domain_t Domain_t;
+  typedef FieldLayout<1U> Layout_t;
+  typedef BareField<T,1U> RealField_t;
+  typedef LField<T,1U> RealLField_t;
+  typedef typename FFTBase<1U,T>::Domain_t Domain_t;
 
-   /**
-       Constructors for doing only sine transforms
-       Create a new FFT object with the given domain for input/output Field
-       specify which dimensions to transform along.
-       Optional argument compress indicates whether or not to compress
-       temporary Fields in between uses.
-   */
-   FFT(const Domain_t& rdomain, const bool sineTransformDims[1U],
-       const bool& compressTemps=false);
-   /**
-       Same as above, but transform all dims:
-   */
-   FFT(const Domain_t& rdomain, const bool& compressTemps=false);
+  /**
+     Constructors for doing only sine transforms
+     Create a new FFT object with the given domain for input/output Field
+     specify which dimensions to transform along.
+     Optional argument compress indicates whether or not to compress
+     temporary Fields in between uses.
+  */
+  FFT(const Domain_t& rdomain, const bool sineTransformDims[1U],
+      const bool& compressTemps=false);
+  /**
+     Same as above, but transform all dims:
+  */
+  FFT(const Domain_t& rdomain, const bool& compressTemps=false);
 
 
-   ~FFT(void);
+  ~FFT(void);
 
-   /**
-       sine transform: specify +1 or -1 to indicate forward or inverse
-       transform, or specify the user-defined name string for the direction.
-       Supply a second BareField to store the output.
-       optional argument constInput indicates whether or not to treat the
-       input Field argument f as const.  If not, we can use it as a temporary
-       in order to avoid an additional data transpose.
-   */
-   void transform(int direction, RealField_t& f, RealField_t& g,
-		  const bool& constInput=false);
-   void transform(const char* directionName, RealField_t& f,
-		  RealField_t& g, const bool& constInput=false);
+  /**
+     sine transform: specify +1 or -1 to indicate forward or inverse
+     transform, or specify the user-defined name string for the direction.
+     Supply a second BareField to store the output.
+     optional argument constInput indicates whether or not to treat the
+     input Field argument f as const.  If not, we can use it as a temporary
+     in order to avoid an additional data transpose.
+  */
+  void transform(int direction, RealField_t& f, RealField_t& g,
+		 const bool& constInput=false);
+  void transform(const char* directionName, RealField_t& f,
+		 RealField_t& g, const bool& constInput=false);
 
-   /**
-       In-place version of real-to-real transform
-   */
-   void transform(int direction, RealField_t& f);
-   void transform(const char* directionName, RealField_t& f);
+  /**
+     In-place version of real-to-real transform
+  */
+  void transform(int direction, RealField_t& f);
+  void transform(const char* directionName, RealField_t& f);
 
-   private:
+private:
 
-   /**
-      setup performs all the initializations necessary after the transform
-      directions have been specified.
-   */
-   void setup(void);
+  /**
+     setup performs all the initializations necessary after the transform
+     directions have been specified.
+  */
+  void setup(void);
 
-   /**
-       The temporary real Field layout
-   */
-   Layout_t* tempRLayouts_m;
+  /**
+     The temporary real Field layout
+  */
+  Layout_t* tempRLayouts_m;
 
-   /**
-       The temporary real Field
-   */
-   RealField_t* tempRFields_m;
+  /**
+     The temporary real Field
+  */
+  RealField_t* tempRFields_m;
 
- };
+};
 
 /**
-    invoke real-to-real transform using string for transform direction
+   invoke real-to-real transform using string for transform direction
 */
 template <class T>
 inline void
@@ -942,7 +996,7 @@ FFT<SineTransform,1U,T>::transform(
 }
 
 /**
-    invoke in-place real-to-real transform using string for transform direction
+   invoke in-place real-to-real transform using string for transform direction
 */
 template <class T>
 inline void

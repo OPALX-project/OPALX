@@ -97,8 +97,38 @@ template<class T, unsigned Dim>
 LField<T,Dim>::LField(const NDIndex<Dim>& owned, 
 		      const NDIndex<Dim>& allocated, 
 		      int vnode)
+: vnode_m(vnode),
+  P(0),
+  Pinned(false),
+  Owned(owned),
+  Allocated(allocated),
+  Begin(owned, CompressedData),
+  End(CompressedData),
+  overlapCacheInited(false),
+  allocCompressIndex(0),
+  ownedCompressIndex(-1),
+  offsetBlocks(Unique::get() % IPPL_OFFSET_BLOCKS)
+{
+  
+  // Give the LField some initial (compressed) value
+  LFieldInitializer<T>::apply(*Begin);
+
+  // If we are not actually doing compression, expand the storage out,
+  // and copy the initial value to all the elements
+  if (IpplInfo::noFieldCompression)
+    this->ReallyUncompress(true);
+
+  //INCIPPLSTAT(incLFields);
+}
+
+//UL: for pinned mempory allocation
+template<class T, unsigned Dim>
+LField<T,Dim>::LField(const NDIndex<Dim>& owned, 
+		      const NDIndex<Dim>& allocated, 
+		      int vnode, bool p)
   : vnode_m(vnode),
     P(0),
+    Pinned(p),
     Owned(owned),
     Allocated(allocated),
     Begin(owned, CompressedData),
@@ -120,7 +150,6 @@ LField<T,Dim>::LField(const NDIndex<Dim>& owned,
   //INCIPPLSTAT(incLFields);
 }
 
-
 //////////////////////////////////////////////////////////////////////
 //
 // Deep copy constructor.
@@ -131,6 +160,7 @@ template<class T, unsigned Dim>
 LField<T,Dim>::LField(const LField<T,Dim>& lf)
   : vnode_m(lf.vnode_m),
     P(0),
+    Pinned(false),
     Owned(lf.Owned),
     Allocated(lf.Allocated),
     Begin(CompressedData),
@@ -680,6 +710,8 @@ LField<T,Dim>::swapData( LField<T,Dim>& a )
 //
 //////////////////////////////////////////////////////////////////////
 
+// allocate memory for LField and if DKS is used and page-locked (pl) is +1 allocate 
+// page-locked memory for storage
 template<class T, unsigned Dim>
 void 
 LField<T,Dim>::allocateStorage(int newsize)
@@ -696,11 +728,35 @@ LField<T,Dim>::allocateStorage(int newsize)
 
   // Allocate the storage, creating some extra to account for offset, and
   // then add in the offset.
-
+  // If DKS is used allocete in page-locked memory to increase data transfer speed and
+  // allow asynchronous data transfer
+  //#ifdef IPPL_DKS
+  //Ippl::DKS->allocateHostMemory(P, newsize+extra);
+  //#elif IPPL_DIRECTIO
 #ifdef IPPL_DIRECTIO
-  P = (T *)valloc(sizeof(T) * (newsize + extra));
+
+  if (Pinned) {
+#ifdef IPPL_DKS
+    Ippl::DKS->allocateHostMemory(P, newsize+extra);
 #else
-  P = new T[newsize + extra];
+    P = (T *)valloc(sizeof(T) * (newsize + extra));
+#endif
+  } else {
+    P = (T *)valloc(sizeof(T) * (newsize + extra));
+  }
+
+#else
+
+  if (Pinned) {
+#ifdef IPPL_DKS
+    Ippl::DKS->allocateHostMemory(P, newsize+extra);
+#else
+    P = new T[newsize + extra];
+#endif
+  } else {
+    P = new T[newsize + extra];
+  }
+
 #endif
   P += extra;
 
@@ -728,10 +784,34 @@ LField<T,Dim>::deallocateStorage()
 
       // Free the storage
 
+      //if DKS is used free page-locked host memory
+      //#ifdef IPPL_DKS
+      //Ippl::DKS->freeHostMemory(P, -1);
+      //#elif IPPL_DIRECTIO
 #ifdef IPPL_DIRECTIO
-      free(P);
+
+      if(Pinned) {
+#ifdef IPPL_DKS
+	Ippl::DKS->freeHostMemory(P, -1);
 #else
-      delete [] P;
+	free(P);
+#endif
+      } else {
+	free(P);
+      }
+
+#else
+     
+      if (Pinned) {
+#ifdef IPPL_DKS
+	Ippl::DKS->freeHostMemory(P, -1);
+#else
+	delete [] P;
+#endif
+      } else {
+	delete [] P;
+      }
+
 #endif
       // Reset our own pointer to zero
 

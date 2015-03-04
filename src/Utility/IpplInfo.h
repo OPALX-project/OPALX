@@ -54,6 +54,12 @@
 //(without further increasing the number of defines).
 #include <mpi.h>
 
+//DKS include
+#ifdef IPPL_DKS
+#include "DKSBase.h"
+#endif
+
+
 // forward declarations
 class IpplStats;
 class IpplInfo;
@@ -92,6 +98,10 @@ public:
 
   // the statistics collection object
   static IpplStats *Stats;
+
+#ifdef IPPL_DKS
+  static DKSBase *DKS;
+#endif
 
 public:
   // Constructor 1: specify the argc, argv values from the cmd line.
@@ -301,6 +311,7 @@ public:
   static void printStatistics(Inform&);
 
 private:
+
   static MPI_Comm communicator_m;
 
   // Static counter indicating how many IpplInit objects have been created.
