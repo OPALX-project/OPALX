@@ -2469,12 +2469,12 @@ size_t PartBunch::boundp_destroyT() {
         }
     } else {
         for(unsigned int i = 0; i < this->getLocalNum(); i++) {
-	  if((Bin[i] < 0) && ((this->getLocalNum()-i)>1)) {   // need in minimum 1 particle per node
-	    ne++;
-	    this->destroy(1, i);
-	  }
+            if((Bin[i] < 0) && ((this->getLocalNum() - ne) > 1)) {   // need in minimum 1 particle per node
+                ne++;
+                this->destroy(1, i);
+            }
         }
-	lowParticleCount_m = ((this->getLocalNum()-ne) <= 1);
+	lowParticleCount_m = ((this->getLocalNum() - ne) <= 1);
 	reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
     }
     update();
