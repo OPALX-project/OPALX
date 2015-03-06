@@ -97,12 +97,13 @@ surfaceStatus_m(false),
 secondaryFlg_m(false),
 mpacflg_m(true),
 nEmissionMode_m(false),
-zStop_m(0.0),
+zStop_m(),
 scaleFactor_m(1.0),
 vscaleFactor_m(scaleFactor_m),
 recpGamma_m(1.0),
 rescale_coeff_m(1.0),
-dtTrack_m(0.0),
+dtCurrentTrack_m(0.0),
+dtAllTracks_m(),
 surfaceEmissionStop_m(-1),
 specifiedNPart_m(N),
 minStepforReBin_m(-1),
@@ -112,7 +113,7 @@ lastVisited_m(-1),
 numRefs_m(-1),
 gunSubTimeSteps_m(-1),
 emissionSteps_m(std::numeric_limits<unsigned int>::max()),
-localTrackSteps_m(0),
+localTrackSteps_m(),
 maxNparts_m(0),
 numberOfFieldEmittedParticles_m(std::numeric_limits<size_t>::max()),
 bends_m(0),
@@ -134,9 +135,10 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    const PartData &reference,
                                    bool revBeam,
                                    bool revTrack,
-                                   int maxSTEPS,
-                                   double zstop,
+                                   const std::vector<unsigned long long> &maxSTEPS,
+                                   const std::vector<double> &zstop,
                                    int timeIntegrator,
+                                   const std::vector<double> &dt,
 				   size_t N):
 Tracker(beamline, reference, revBeam, revTrack),
 itsBunch(&bunch),
@@ -159,7 +161,8 @@ scaleFactor_m(itsBunch->getdT() * Physics::c),
 vscaleFactor_m(scaleFactor_m),
 recpGamma_m(1.0),
 rescale_coeff_m(1.0),
-dtTrack_m(0.0),
+dtCurrentTrack_m(0.0),
+dtAllTracks_m(dt),
 surfaceEmissionStop_m(-1),
 specifiedNPart_m(N),
 minStepforReBin_m(-1),
@@ -195,9 +198,10 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    const PartData &reference,
                                    bool revBeam,
                                    bool revTrack,
-                                   int maxSTEPS,
-                                   double zstop,
+                                   const std::vector<unsigned long long> &maxSTEPS,
+                                   const std::vector<double> &zstop,
                                    int timeIntegrator,
+                                   const std::vector<double> &dt,
 				   size_t N,
 				   Amr* amrptr_in):
 Tracker(beamline, reference, revBeam, revTrack),
@@ -221,7 +225,8 @@ scaleFactor_m(itsBunch->getdT() * Physics::c),
 vscaleFactor_m(scaleFactor_m),
 recpGamma_m(1.0),
 rescale_coeff_m(1.0),
-dtTrack_m(0.0),
+dtCurrentTrack_m(0.0),
+dtAllTracks_m(dt),
 surfaceEmissionStop_m(-1),
 specifiedNPart_m(N),
 minStepforReBin_m(-1),
@@ -408,7 +413,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
 
     size_t totalParticles_f = 0;
 
-    for(; step < localTrackSteps_m; ++step) {
+    for(; step < localTrackSteps_m.front(); ++step) {
         global_EOL = true;  // check if any particle hasn't reached the end of the field from the last element
 
         itsOpalBeamline_m.resetStatus();
@@ -698,8 +703,8 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
             /**
              Stop simulation if beyond zStop_m
              */
-            if(sposRef > zStop_m) {
-                localTrackSteps_m = step;
+            if(sposRef > zStop_m.front()) {
+                localTrackSteps_m.front() = step;
             }
         } else {
             INFOMSG("Step " << step << " no emission yet "  << " t= " << t << " [s]" << endl);
@@ -874,7 +879,7 @@ FieldList ParallelTTracker::executeAutoPhaseForSliceTracker() {
     for(FieldList::iterator it = monitors.begin(); it != monitors.end(); ++ it) {
         double zbegin, zend;
         it->getElement()->getDimensions(zbegin, zend);
-        if(zbegin < zStop_m && zend >= zStop_m) {
+        if(zbegin < zStop_m.front() && zend >= zStop_m.front()) {
             msg << "\033[0;31m"
             << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
             << "% Removing '" << it->getElement()->getName() << "' since it resides in two tracks.   %\n"
@@ -977,7 +982,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
 
     Vector_t rmin, rmax;
 
-    size_t maxStepsSave = localTrackSteps_m;
+    size_t maxStepsSave = localTrackSteps_m.front();
     size_t step = 0;
 
     double tSave = itsBunch->getT();
@@ -1031,7 +1036,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
     double cavity_start = 0.0;
     Component *cavity = NULL;
 
-    for(; step < localTrackSteps_m * dtfraction; ++step) {
+    for(; step < localTrackSteps_m.front() * dtfraction; ++step) {
 
         if (itsBunch->getLocalNum() != 0) {
             // let's do a drifting step to probe if the particle will reach element in next step
@@ -1280,7 +1285,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
          reduce(sposRef,sposRef,OpAddAssign());
 
 	 if(sposRef > zStop)
-	   localTrackSteps_m = floor(step / dtfraction);
+	   localTrackSteps_m.front() = floor(step / dtfraction);
 
 
 	  INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch->getT() << " [s], "
@@ -1302,7 +1307,7 @@ void ParallelTTracker::executeAutoPhase(int numRefs, double zStop) {
         bend->resetRecalcRefTrajFlag();
     }
 
-    localTrackSteps_m = maxStepsSave;
+    localTrackSteps_m.front() = maxStepsSave;
     scaleFactor_m = scaleFactorSave;
     itsBunch->setT(tSave);
     itsBunch->setdT(dTSave);
@@ -1347,7 +1352,7 @@ void ParallelTTracker::Tracker_AMR()
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
     BorisPusher pusher(itsReference);
     secondaryFlg_m = false;
-    dtTrack_m = itsBunch->getdT();
+    dtCurrentTrack_m = itsBunch->getdT();
 
     // upper limit of particle number when we do field emission and secondary emission
     // simulation. Could be reset to another value in input file with MAXPARTSNUM.
@@ -1369,7 +1374,7 @@ void ParallelTTracker::Tracker_AMR()
 
     unsigned long long step = itsBunch->getLocalTrackStep();
 
-    msg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m << " [m]" << endl;
+    msg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m.front() << " [m]" << endl;
 
     gunSubTimeSteps_m = 10;
     prepareEmission();
@@ -1377,7 +1382,7 @@ void ParallelTTracker::Tracker_AMR()
     doSchottyRenormalization();
 
     msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
-    << "max integration steps " << localTrackSteps_m << ", next step= " << step << endl;
+    << "max integration steps " << localTrackSteps_m.front() << ", next step= " << step << endl;
     msg << "Using default (Boris-Buneman) integrator" << endl;
 
     // itsBeamline_m.accept(*this);
@@ -1405,7 +1410,7 @@ void ParallelTTracker::Tracker_AMR()
     itsBunch->Ef = Vector_t(0.0);
     itsBunch->Bf = Vector_t(0.0);
 
-    for(; step < localTrackSteps_m; ++step)
+    for(; step < localTrackSteps_m.front(); ++step)
     {
         bends_m = 0;
         numberOfFieldEmittedParticles_m = 0;
@@ -1545,7 +1550,7 @@ void ParallelTTracker::Tracker_Default() {
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
     BorisPusher pusher(itsReference);
     secondaryFlg_m = false;
-    dtTrack_m = itsBunch->getdT();
+    dtCurrentTrack_m = itsBunch->getdT();
 
     // upper limit of particle number when we do field emission and secondary emission
     // simulation. Could be reset to another value in input file with MAXPARTSNUM.
@@ -1567,7 +1572,7 @@ void ParallelTTracker::Tracker_Default() {
 
     unsigned long long step = itsBunch->getLocalTrackStep();
 
-    msg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m << " [m]" << endl;
+    msg << "Track start at: " << myt1.time() << ", t= " << t << "; zstop at: " << zStop_m.front() << " [m]" << endl;
 
     gunSubTimeSteps_m = 10;
     prepareEmission();
@@ -1575,7 +1580,7 @@ void ParallelTTracker::Tracker_Default() {
     doSchottyRenormalization();
 
     msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
-    << "max integration steps " << localTrackSteps_m << ", next step= " << step << endl;
+    << "max integration steps " << localTrackSteps_m.front() << ", next step= " << step << endl;
     msg << "Using default (Boris-Buneman) integrator" << endl;
 
     // itsBeamline_m.accept(*this);
@@ -1599,7 +1604,7 @@ void ParallelTTracker::Tracker_Default() {
     wakeStatus_m = false;
     surfaceStatus_m = false;
 
-    for(; step < localTrackSteps_m; ++step) {
+    for(; step < localTrackSteps_m.front(); ++step) {
         bends_m = 0;
         numberOfFieldEmittedParticles_m = 0;
 
@@ -1685,7 +1690,7 @@ void ParallelTTracker::handleOverlappingMonitors() {
     for(FieldList::iterator it = monitors.begin(); it != monitors.end(); ++ it) {
         double zbegin, zend;
         it->getElement()->getDimensions(zbegin, zend);
-        if(zbegin < zStop_m && zend >= zStop_m) {
+        if(zbegin < zStop_m.front() && zend >= zStop_m.front()) {
             msg << "\033[0;31m"
             << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
             << "% Removing '" << it->getElement()->getName() << "' since it resides in two tracks.   %\n"
@@ -2196,7 +2201,7 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
 
 void ParallelTTracker::selectDT() {
 
-    double dt = dtTrack_m;
+    double dt = dtCurrentTrack_m;
     itsBunch->setdT(dt);
     scaleFactor_m = dt * Physics::c;
     vscaleFactor_m = Vector_t(scaleFactor_m);
@@ -2574,14 +2579,14 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
         // If we are dealing with field emission and secondary emission, set upper
         // limit of particle number in simulation to prevent memory overflow.
         if(numParticlesInSimulation_m > maxNparts_m)
-            localTrackSteps_m = step;
+            localTrackSteps_m.front() = step;
 
         // ada reset Nimpact_m, does not make sense to integrate this we obtain a rediculus large number !!
         Nimpact_m = 0;
     }
 
-    if(sposRef > zStop_m)
-        localTrackSteps_m = step;
+    if(sposRef > zStop_m.front())
+        localTrackSteps_m.front() = step;
 }
 
 
@@ -2912,7 +2917,7 @@ void ParallelTTracker::execute() {
 void ParallelTTracker::Tracker_AMTS() {
     Inform msg("ParallelTTracker ");
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
-    dtTrack_m = itsBunch->getdT();
+    dtCurrentTrack_m = itsBunch->getdT();
 
     // upper limit of particle number when we do field emission and secondary emission
     // simulation. Could be reset to another value in input file with MAXPARTSNUM.
@@ -2926,7 +2931,7 @@ void ParallelTTracker::Tracker_AMTS() {
     numParticlesInSimulation_m = itsBunch->getTotalNum();
     setTime();
     unsigned long long step = itsBunch->getLocalTrackStep();
-    msg << "Track start at: " << OPALTimer::Timer().time() << ", t = " << itsBunch->getT() << "; zstop at: " << zStop_m << " [m]" << endl;
+    msg << "Track start at: " << OPALTimer::Timer().time() << ", t = " << itsBunch->getT() << "; zstop at: " << zStop_m.front() << " [m]" << endl;
     msg << "Executing ParallelTTracker, next step = " << step << endl;
     msg << "Using AMTS (adaptive multiple-time-stepping) integrator" << endl;
     itsOpalBeamline_m.print(msg);
@@ -2972,7 +2977,7 @@ void ParallelTTracker::Tracker_AMTS() {
     msg << "AMTS initialization: dt_outer = " << dt_outer << " deltaTau = " << deltaTau << endl;
 
     // AMTS calculation of stopping times
-    double const tEnd = itsBunch->getT() + double(localTrackSteps_m - step) * dt_inner_target;
+    double const tEnd = itsBunch->getT() + double(localTrackSteps_m.front() - step) * dt_inner_target;
     double const psDumpInterval = double(Options::psDumpFreq) * dt_inner_target;
     double const statDumpInterval = double(Options::statDumpFreq) * dt_inner_target;
     double const repartInterval = double(repartFreq_m) * dt_inner_target;
