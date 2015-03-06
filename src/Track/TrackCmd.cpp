@@ -59,20 +59,20 @@ TrackCmd::TrackCmd():
                     ("LINE", "Name of lattice to be tracked");
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam to be used", "UNNAMED_BEAM");
-    itsAttr[DT] = Attributes::makeReal
-                  ("DT", "THE INTEGRATION TIMESTEP IN SECONDS", 1e-12);
+    itsAttr[DT] = Attributes::makeRealArray
+                  ("DT", "THE INTEGRATION TIMESTEP IN SECONDS");
     itsAttr[DTSCINIT] = Attributes::makeReal
                   ("DTSCINIT", "Only for adaptive integrator: Initial time step for space charge integration", 1e-12);
     itsAttr[DTAU] = Attributes::makeReal
                   ("DTAU", "Only for adaptive integrator: Alternative way to set accuracy of space integration.", -1.0);
     itsAttr[T0] = Attributes::makeReal
                   ("T0", "THE ELAPSED TIME OF THE BUNCH IN SECONDS", 0.0);
-    itsAttr[MAXSTEPS] = Attributes::makeReal
-                        ("MAXSTEPS", "THE MAXIMUM NUMBER OF INTEGRATION STEPS DT, should be larger ZSTOP/(beta*c average)", 10);
+    itsAttr[MAXSTEPS] = Attributes::makeRealArray
+                        ("MAXSTEPS", "THE MAXIMUM NUMBER OF INTEGRATION STEPS DT, should be larger ZSTOP/(beta*c average)");
     itsAttr[STEPSPERTURN] = Attributes::makeReal
                             ("STEPSPERTURN", "THE TIME STEPS PER REVOLUTION PERIOD, ONLY FOR OPAL-CYCL", 720);
-    itsAttr[ZSTOP] = Attributes::makeReal
-                     ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes", 1000000.0);
+    itsAttr[ZSTOP] = Attributes::makeRealArray
+                     ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
     itsAttr[TIMEINTEGRATOR] = Attributes::makeString
                               ("TIMEINTEGRATOR", "Name of time integrator to be used", "RK-4");
     itsAttr[NNB] = Attributes::makeReal
@@ -92,8 +92,12 @@ TrackCmd *TrackCmd::clone(const std::string &name) {
     return new TrackCmd(name, this);
 }
 
-double TrackCmd::getDT() const {
-    return Attributes::getReal(itsAttr[DT]);
+std::vector<double> TrackCmd::getDT() const {
+    std::vector<double> dt = Attributes::getRealArray(itsAttr[DT]);
+    if (dt.size() == 0) {
+        dt.push_back(1e-12);
+    }
+    return dt;
 }
 
 double TrackCmd::getDTSCINIT() const {
@@ -108,12 +112,25 @@ double TrackCmd::getT0() const {
     return Attributes::getReal(itsAttr[T0]);
 }
 
-double TrackCmd::getZSTOP() const {
-    return Attributes::getReal(itsAttr[ZSTOP]);
+std::vector<double> TrackCmd::getZSTOP() const {
+    std::vector<double> zstop = Attributes::getRealArray(itsAttr[ZSTOP]);
+    if (zstop.size() == 0) {
+        zstop.push_back(1000000.0);
+    }
+    return zstop;
 }
 
-int TrackCmd::getMAXSTEPS() const {
-    return (int) Attributes::getReal(itsAttr[MAXSTEPS]);
+std::vector<int> TrackCmd::getMAXSTEPS() const {
+    std::vector<double> maxsteps_d = Attributes::getRealArray(itsAttr[MAXSTEPS]);
+    std::vector<int> maxsteps_i;
+    if (maxsteps_d.size() == 0) {
+        maxsteps_i.push_back(10);
+    }
+    for (auto it = maxsteps_d.begin(); it != maxsteps_d.end(); ++ it) {
+        maxsteps_i.push_back(*it);
+    }
+
+    return maxsteps_i;
 }
 
 int TrackCmd::getSTEPSPERTURN() const {
@@ -147,15 +164,28 @@ void TrackCmd::execute() {
     BeamSequence *use = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
-    double dt = getDT();
+    std::vector<double> dt = getDT();
     double t0 = getT0();
-    int    maxsteps = getMAXSTEPS();
+    std::vector<int>    maxsteps = getMAXSTEPS();
     int    stepsperturn = getSTEPSPERTURN();
-    double zstop = getZSTOP();
+    std::vector<double> zstop = getZSTOP();
     int timeintegrator = getTIMEINTEGRATOR();
     int nslices = beam->getNumberOfSlices();
 
-    // Execute track block.
+    size_t numTracks = dt.size();
+    numTracks = std::max(numTracks, maxsteps.size());
+    numTracks = std::max(numTracks, zstop.size());
+    for (size_t i = dt.size(); i < numTracks; ++ i) {
+        dt.push_back(dt.back());
+    }
+    for (size_t i = maxsteps.size(); i < numTracks; ++ i) {
+        maxsteps.push_back(maxsteps.back());
+    }
+    for (size_t i = zstop.size(); i < numTracks; ++ i) {
+        zstop.push_back(zstop.back());
+    }
+
+   // Execute track block.
     Track::block = new Track(use, beam->getReference(), dt, maxsteps, stepsperturn, zstop, timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
     Track::block->parser.run();
 

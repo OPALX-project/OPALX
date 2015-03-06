@@ -41,7 +41,7 @@ public:
     virtual void execute();
 
     /// Return the timestep in seconds
-    double getDT() const;
+    std::vector<double> getDT() const;
 
     double getDTSCINIT() const;
 
@@ -51,14 +51,14 @@ public:
     double getT0() const;
 
     /// Return the maximum timsteps we integrate the system
-    int getMAXSTEPS() const;
+    std::vector<int> getMAXSTEPS() const;
 
     /// Return the timsteps per revolution period. ONLY available for OPAL-cycl.
     /// In OPAL-cycl, timestep is calculated by STEPSPERTURN, rather than given in TRACK command.
     int getSTEPSPERTURN() const;
 
     /// location at which the simulation stops
-    double getZSTOP() const;
+    std::vector<double> getZSTOP() const;
 
     /// return the name of time integrator
     int getTIMEINTEGRATOR() const;
