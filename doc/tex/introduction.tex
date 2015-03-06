@@ -400,6 +400,25 @@ CXX=mpicxx F77=gfortran cmake -DCMAKE_VERBOSE_MAKEFILE=OFF
 \end{verbatim}
 
 
+\subsection{Building \ippl with Dynamic Kernel Scheduler}
+To build \ippl with Dynamic Kernel Scheduler the DKS library must be built first. See the DKS readme file
+for detailed instructions on DKS installation. The following environment variables must be set
+\begin{verbatim}
+$DKS_PREFIX
+\end{verbatim}
+defining where DKS library is installed.\\
+To use DKS in \ippl it must be eneabled in CMakeLists.txt file. There are six options than can be set to
+enable DKS for \ippl. Options ENABLE\_OPENCL, ENABLE\_CUDA and ENABLE\_OPENMP set which framework the 
+DKS  was compiled with, at least one of these options needs to be set for \ippl to be able 
+to use DKS. USE\_OPENCL, USE\_CUDA and USE\_MIC specifies which framework \ippl should use for DKS, only one 
+option can be enabled at a time.\\ 
+If Intel compiler is used to compile \ippl than DKS should also be compiled 
+with intel compiler and OpenCL and OpenMP framworks can be enabled and used. If GNU compiler is used to compile 
+\ippl DKS should also be compiled with GNU compiler and OpenCL and CUDA frameworks can be enabled and used. 
+If \ippl is compiled with MPI compiler then DKS should also be compiled with MPI compiler to enable full MPI 
+support in DKS.
+
+
 \subsection{Used Compilers and Libraries}
 The supported operating systems and libraries are listed in Table \ref{tab:archlib}.
 \begin{table}[h]
@@ -416,6 +435,8 @@ The supported operating systems and libraries are listed in Table \ref{tab:archl
     \end{tabular}
   \end{center}
 \end{table}
+
+
 
 
 
