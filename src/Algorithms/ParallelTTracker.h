@@ -124,13 +124,17 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
-                              const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator, size_t N);
+                              const PartData &data, bool revBeam, bool revTrack,
+                              const std::vector<unsigned long long> &maxSTEPS, const std::vector<double> &zstop,
+                              int timeIntegrator, const std::vector<double> &dt, size_t N);
 
     /// Constructor
     //  Amr pointer is taken
 #ifdef HAVE_AMR_SOLVER
     explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
-                              const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, double zstop, int timeIntegrator, size_t N, Amr* amrptr_in);
+                              const PartData &data, bool revBeam, bool revTrack,
+                              const std::vector<unsigned long long> &maxSTEPS, const std::vector<double> &zstop,
+                              int timeIntegrator, const std::vector<double> &dt, size_t N, Amr* amrptr_in);
 #endif
 
     virtual ~ParallelTTracker();
@@ -282,7 +286,7 @@ private:
     bool nEmissionMode_m;
 
     /// where to stop
-    double zStop_m;
+    std::vector<double> zStop_m;
 
     /// The scale factor for dimensionless variables (FIXME: move to PartBunch)
     double scaleFactor_m;
@@ -294,7 +298,8 @@ private:
 
     double rescale_coeff_m;
 
-    double dtTrack_m;
+    double dtCurrentTrack_m;
+    std::vector<double> dtAllTracks_m;
 
     double surfaceEmissionStop_m;
 
@@ -324,7 +329,7 @@ private:
     unsigned int emissionSteps_m;
 
     /// The maximal number of steps the system is integrated per TRACK
-    unsigned long long localTrackSteps_m;
+    std::vector<unsigned long long> localTrackSteps_m;
 
     size_t maxNparts_m;
     size_t numberOfFieldEmittedParticles_m;
@@ -835,7 +840,7 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
         msg << "* Wrote beam statistics." << endl;
         itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2), collimatorLosses);
     }
-    
+
     //                   itsBunch->printBinHist();
 }
 

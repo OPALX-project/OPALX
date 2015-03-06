@@ -36,7 +36,7 @@ class Track {
 public:
 
     Track(BeamSequence *, const PartData &, const std::vector<double> & dt,
-          const std::vector<int> & maxtsteps, int stepsperturn,
+          const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
           const std::vector<double> & zStop, int timeintegrator, int nslices,
           double t0, double dtScInit, double deltaTau);
     ~Track();
@@ -69,7 +69,7 @@ public:
     double t0_m;
 
     /// Maximal number of timesteps
-    std::vector<int> localTimeSteps;
+    std::vector<unsigned long long> localTimeSteps;
 
     /// The timsteps per revolution period. ONLY available for OPAL-cycl.
     int stepsPerTurn;

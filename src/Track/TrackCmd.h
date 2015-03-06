@@ -51,7 +51,7 @@ public:
     double getT0() const;
 
     /// Return the maximum timsteps we integrate the system
-    std::vector<int> getMAXSTEPS() const;
+    std::vector<unsigned long long> getMAXSTEPS() const;
 
     /// Return the timsteps per revolution period. ONLY available for OPAL-cycl.
     /// In OPAL-cycl, timestep is calculated by STEPSPERTURN, rather than given in TRACK command.

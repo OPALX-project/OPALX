@@ -120,14 +120,19 @@ std::vector<double> TrackCmd::getZSTOP() const {
     return zstop;
 }
 
-std::vector<int> TrackCmd::getMAXSTEPS() const {
+std::vector<unsigned long long> TrackCmd::getMAXSTEPS() const {
     std::vector<double> maxsteps_d = Attributes::getRealArray(itsAttr[MAXSTEPS]);
-    std::vector<int> maxsteps_i;
+    std::vector<unsigned long long> maxsteps_i;
     if (maxsteps_d.size() == 0) {
-        maxsteps_i.push_back(10);
+        maxsteps_i.push_back(10ul);
     }
     for (auto it = maxsteps_d.begin(); it != maxsteps_d.end(); ++ it) {
-        maxsteps_i.push_back(*it);
+        if (*it < 0) {
+            maxsteps_i.push_back(10);
+        } else {
+            unsigned long long value = *it;
+            maxsteps_i.push_back(value);
+        }
     }
 
     return maxsteps_i;
@@ -166,7 +171,7 @@ void TrackCmd::execute() {
 
     std::vector<double> dt = getDT();
     double t0 = getT0();
-    std::vector<int>    maxsteps = getMAXSTEPS();
+    std::vector<unsigned long long> maxsteps = getMAXSTEPS();
     int    stepsperturn = getSTEPSPERTURN();
     std::vector<double> zstop = getZSTOP();
     int timeintegrator = getTIMEINTEGRATOR();
