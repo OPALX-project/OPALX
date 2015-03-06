@@ -35,7 +35,9 @@ class Track {
 
 public:
 
-    Track(BeamSequence *, const PartData &, double dt, int maxtsteps, int stepsperturn, double zStop, int timeintegrator, int nslices,
+    Track(BeamSequence *, const PartData &, const std::vector<double> & dt,
+          const std::vector<int> & maxtsteps, int stepsperturn,
+          const std::vector<double> & zStop, int timeintegrator, int nslices,
           double t0, double dtScInit, double deltaTau);
     ~Track();
 
@@ -57,7 +59,7 @@ public:
     static Track *block;
 
     /// The initial timestep
-    double dT;
+    std::vector<double> dT;
 
     // For AMTS integrator in OPAL-T
     double dtScInit, deltaTau;
@@ -67,13 +69,13 @@ public:
     double t0_m;
 
     /// Maximal number of timesteps
-    int localTimeSteps;
+    std::vector<int> localTimeSteps;
 
     /// The timsteps per revolution period. ONLY available for OPAL-cycl.
     int stepsPerTurn;
 
     /// The location at which the simulation stops
-    double zstop;
+    std::vector<double> zstop;
 
     /// The ID of time integrator
     // 0 --- RK-4(default)

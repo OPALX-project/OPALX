@@ -207,7 +207,7 @@ void TrackRun::execute() {
             charge = 1.0;
         }
 
-        Track::block->slbunch->setdT(Track::block->dT);
+        Track::block->slbunch->setdT(Track::block->dT.front());
         // set the total charge
         charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
         Track::block->slbunch->setCharge(charge);
@@ -239,8 +239,8 @@ void TrackRun::execute() {
                                               *ds,
                                               Track::block->reference,
                                               false, false,
-                                              Track::block->localTimeSteps,
-                                              Track::block->zstop,
+                                              Track::block->localTimeSteps.front(),
+                                              Track::block->zstop.front(),
                                               *mySlApTracker);
     } else if(method == "PARALLEL-T") {
         OpalData::getInstance()->setInOPALTMode();
@@ -289,7 +289,7 @@ void TrackRun::execute() {
 
         double charge = SetDistributionParallelT(beam);
 
-        Track::block->bunch->setdT(Track::block->dT);
+        Track::block->bunch->setdT(Track::block->dT.front());
         Track::block->bunch->dtScInit_m = Track::block->dtScInit;
         Track::block->bunch->deltaTau_m = Track::block->deltaTau;
 
@@ -500,14 +500,14 @@ void TrackRun::execute() {
 #ifdef HAVE_AMR_SOLVER
         itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                           dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                          Track::block->reference, false, false, Track::block->localTimeSteps,
-                                          Track::block->zstop, Track::block->timeIntegrator,
+                                          Track::block->reference, false, false, Track::block->localTimeSteps.front(),
+                                          Track::block->zstop.front(), Track::block->timeIntegrator,
 					  beam->getNumberOfParticles(),amrptr);
 #else
         itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                           dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                          Track::block->reference, false, false, Track::block->localTimeSteps,
-                                          Track::block->zstop, Track::block->timeIntegrator,
+                                          Track::block->reference, false, false, Track::block->localTimeSteps.front(),
+                                          Track::block->zstop.front(), Track::block->timeIntegrator,
 					  beam->getNumberOfParticles());
 #endif
         itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
@@ -641,15 +641,15 @@ void TrackRun::execute() {
             *gmsg << "* ********************************************************************************** " << endl;
         }
         *gmsg << "* Number of neighbour bunches= " << specifiedNumBunch << endl;
-        *gmsg << "* DT                         = " << Track::block->dT << endl;
-        *gmsg << "* MAXSTEPS                   = " << Track::block->localTimeSteps << endl;
+        *gmsg << "* DT                         = " << Track::block->dT.front() << endl;
+        *gmsg << "* MAXSTEPS                   = " << Track::block->localTimeSteps.front() << endl;
         *gmsg << "* Phase space dump frequency = " << Options::psDumpFreq << endl;
         *gmsg << "* Statistics dump frequency  = " << Options::statDumpFreq << " w.r.t. the time step." << endl;
         *gmsg << "* ********************************************************************************** " << endl;
 
         itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
                  dynamic_cast<PartBunch &>(*Track::block->bunch), *ds, Track::block->reference,
-                false, false, Track::block->localTimeSteps, Track::block->timeIntegrator);
+                 false, false, Track::block->localTimeSteps.front(), Track::block->timeIntegrator);
 
         itsTracker->setNumBunch(specifiedNumBunch);
 
@@ -920,7 +920,7 @@ ParallelTTracker *TrackRun::setupForAutophase() {
 
     charge /= beam->getNumberOfParticles();
 
-    Track::block->bunch->setdT(Track::block->dT);
+    Track::block->bunch->setdT(Track::block->dT.front());
 
     Track::block->bunch->resetIfScan();
 
@@ -937,14 +937,14 @@ ParallelTTracker *TrackRun::setupForAutophase() {
     Amr* null_amrptr = 0;
     return new ParallelTTracker(*Track::block->use->fetchLine(),
                                 dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                Track::block->reference, false, false, Track::block->localTimeSteps,
-                                Track::block->zstop, Track::block->timeIntegrator,
+                                Track::block->reference, false, false, Track::block->localTimeSteps.front(),
+                                Track::block->zstop.front(), Track::block->timeIntegrator,
 				N,null_amrptr);
 #else
     return new ParallelTTracker(*Track::block->use->fetchLine(),
                                 dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                Track::block->reference, false, false, Track::block->localTimeSteps,
-                                Track::block->zstop, Track::block->timeIntegrator,
+                                Track::block->reference, false, false, Track::block->localTimeSteps.front(),
+                                Track::block->zstop.front(), Track::block->timeIntegrator,
 				N);
 #endif
 }
