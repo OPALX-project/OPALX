@@ -1193,7 +1193,8 @@ protected:
 
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
-			//external location
+            //external location
+            PInsist(touchingVN.first != touchingVN.second, "could not find node responsible for particle;\nmesh does not seem correctly adapted to particle distribution");
             destination = (*(touchingVN.first)).second->getNode();
 
             msgsend[destination] = 1;
@@ -1318,6 +1319,7 @@ protected:
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
 			//external location
+            PInsist(touchingVN.first != touchingVN.second, "could not find node responsible for particle;\nmesh does not seem correctly adapted to particle distribution");
             destination = (*(touchingVN.first)).second->getNode();
 
             msgsend[destination] = 1;

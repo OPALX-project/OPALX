@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -48,20 +48,23 @@ using namespace std;
 
 //---------------------------------------------------------------------------//
 
-assertion::assertion( const char *cond, const char *file, int line )
+assertion::assertion( const char *cond, const char *file, int line ):
+    std::runtime_error(cond)
 {
     msg = new char[ strlen(cond) + strlen(file) + 500 ];
     sprintf( msg, "Assertion: %s, failed in %s, line %8d.",
 	     cond, file, line );
 }
 
-assertion::assertion( const char *m )
+assertion::assertion( const char *m ):
+    std::runtime_error(m)
 {
     msg = new char[ strlen(m)+1 ];
     strcpy( msg, m );
 }
 
-assertion::assertion( const assertion& a )
+assertion::assertion( const assertion& a ):
+    std::runtime_error(a.msg)
 {
     msg = new char[ strlen(a.msg)+1 ];
     strcpy( msg, a.msg );
@@ -94,13 +97,17 @@ void toss_cookies( const char *cond, const char *file, int line )
 // Function to perform the task of actually throwing an isistion.
 //---------------------------------------------------------------------------//
 
-void insist( const char *, const char *msg, const char *, int  )
+void insist( const char *cond, const char *msg, const char *file, int line )
 {
   // inform other nodes they should quit
-  Ippl::exitAllNodes(msg, false);
+    // Ippl::exitAllNodes(msg, false);
+
+    char* fullmsg = new char[ strlen(cond) + strlen(msg) + strlen(file) + 500 ];
+    sprintf( fullmsg, "%s\nAssertion '%s' failed in %s on line %8d.",
+	     msg, cond, file, line );
 
 #ifndef IPPL_NO_EXCEPTIONS
-    throw assertion( msg );
+    throw assertion( fullmsg );
 #else
     abort();
 #endif
@@ -113,5 +120,5 @@ void insist( const char *, const char *msg, const char *, int  )
 /***************************************************************************
  * $RCSfile: PAssert.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: PAssert.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: PAssert.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/
