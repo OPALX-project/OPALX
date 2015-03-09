@@ -2432,8 +2432,9 @@ void ParallelTTracker::computeExternalFields() {
         numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
 
-    if (itsBunch->getTotalNum() > 1)
-        itsBunch->update();
+    if(numParticlesInSimulation_m > minBinEmitted_m) {
+      itsBunch->update();
+    }
 
     /// indicate at least one a node has only 1 particles
     if(surfaceStatus_m) {
