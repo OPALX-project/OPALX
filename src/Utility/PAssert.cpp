@@ -103,7 +103,7 @@ void insist( const char *cond, const char *msg, const char *file, int line )
     // Ippl::exitAllNodes(msg, false);
 
     char* fullmsg = new char[ strlen(cond) + strlen(msg) + strlen(file) + 500 ];
-    sprintf( fullmsg, "%s\nAssertion '%s' failed in %s on line %8d.",
+    sprintf( fullmsg, "%s\nAssertion '%s' failed in \n%s on line %8d.",
 	     msg, cond, file, line );
 
 #ifndef IPPL_NO_EXCEPTIONS
