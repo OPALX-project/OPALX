@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -11,6 +11,8 @@
 #ifndef PASSERT_H
 #define PASSERT_H
 
+#include <exception>
+#include <stdexcept>
 //////////////////////////////////////////////////////////////////////
 //
 // This is a compile time assert.
@@ -46,16 +48,16 @@ template<> struct IpplCTAssert<true> { static void test() {} };
 // classes for which we don't have implementations...
 //===========================================================================//
 
-class assertion /* : std::runtime_error */
+class assertion: public std::runtime_error
 {
     char *msg;
-  public:
+public:
     assertion( const char *cond, const char *file, int line );
     assertion( const char *m );
     assertion( const assertion& a );
     ~assertion() { delete[] msg; }
     assertion& operator=( const assertion& a );
-    const char* what() const { return msg; }
+    const char* what() const noexcept { return msg; }
 };
 
 //---------------------------------------------------------------------------//
@@ -79,7 +81,7 @@ void insist( const char *cond, const char *msg, const char *file, int line );
 //---------------------------------------------------------------------------//
 
 #ifdef NOPAssert
-#define PAssert(c) 
+#define PAssert(c)
 #else
 #define PAssert(c) if (!(c)) toss_cookies( #c, __FILE__, __LINE__ );
 #endif
@@ -110,5 +112,5 @@ void insist( const char *cond, const char *msg, const char *file, int line );
 /***************************************************************************
  * $RCSfile: PAssert.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: PAssert.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: PAssert.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/
