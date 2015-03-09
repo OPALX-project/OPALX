@@ -66,7 +66,7 @@ public:
   // return an NDIndex with the point as one-element Index objects
   NDIndex<Dim> getDomain() const {
     NDIndex<Dim> retval;
-    for (int d=0; d < Dim; ++d)
+    for (unsigned int d=0; d < Dim; ++d)
       retval[d] = Index(loc[d], loc[d]);
     return retval;
   }

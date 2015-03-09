@@ -141,7 +141,7 @@ Cartesian(const Index& I)
     (meshPosition[0])[i] = MFLOAT(i);
   }
   (meshPosition[0])[gridSizes[0]-1] = MFLOAT(gridSizes[0]-1);
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -156,7 +156,7 @@ Cartesian(const Index& I, MFLOAT** const delX)
   gridSizes[0] = I.length();  // Number of vertices along this dimension.
   setup();                    // Setup chores, such as array allocations
   origin(0) = I.first();      // Default origin at I.first()
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -172,7 +172,7 @@ Cartesian(const Index& I, MFLOAT** const delX,
   PInsist(Dim==1,"Number of Index arguments does not match mesh dimension!!");
   setup();
   gridSizes[0] = I.length();  // Number of vertices along this dimension.
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -218,7 +218,7 @@ Cartesian(const Index& I, const Index& J)
     (meshPosition[1])[i] = MFLOAT(i);
   }
   (meshPosition[1])[gridSizes[1]-1] = MFLOAT(gridSizes[1]-1);
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -235,7 +235,7 @@ Cartesian(const Index& I, const Index& J, MFLOAT** const delX)
   setup();                    // Setup chores, such as array allocations
   origin(0) = I.first();      // Default origin at I.first(),J.first()
   origin(1) = J.first();
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -252,7 +252,7 @@ Cartesian(const Index& I, const Index& J, MFLOAT** const delX,
   gridSizes[0] = I.length();  // Number of vertices along this dimension.
   gridSizes[1] = J.length();  // Number of vertices along this dimension.
   setup();                    // Setup chores, such as array allocations
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -308,7 +308,7 @@ Cartesian(const Index& I, const Index& J, const Index& K)
   }
   (meshPosition[2])[gridSizes[2]-1] = MFLOAT(gridSizes[2]-1);
 
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -328,7 +328,7 @@ Cartesian(const Index& I, const Index& J, const Index& K,
   origin(0) = I.first();    // Default origin at I.first(),J.first(),K.first()
   origin(1) = J.first();
   origin(2) = K.first();
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -346,7 +346,7 @@ Cartesian(const Index& I, const Index& J, const Index& K,
   gridSizes[1] = J.length();  // Number of vertices along this dimension.
   gridSizes[2] = K.length();  // Number of vertices along this dimension.
   setup();                    // Setup chores, such as array allocations
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -471,7 +471,7 @@ initialize(const Index& I)
     (meshPosition[0])[i] = MFLOAT(i);
   }
   (meshPosition[0])[gridSizes[0]-1] = MFLOAT(gridSizes[0]-1);
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -487,7 +487,7 @@ initialize(const Index& I, MFLOAT** const delX)
   gridSizes[0] = I.length();  // Number of vertices along this dimension.
   setup();                    // Setup chores, such as array allocations
   origin(0) = I.first();      // Default origin at I.first()
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -504,7 +504,7 @@ initialize(const Index& I, MFLOAT** const delX,
   PInsist(Dim==1,"Number of Index arguments does not match mesh dimension!!");
   setup();
   gridSizes[0] = I.length();  // Number of vertices along this dimension.
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -552,7 +552,7 @@ initialize(const Index& I, const Index& J)
     (meshPosition[1])[i] = MFLOAT(i);
   }
   (meshPosition[1])[gridSizes[1]-1] = MFLOAT(gridSizes[1]-1);
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -570,7 +570,7 @@ initialize(const Index& I, const Index& J, MFLOAT** const delX)
   setup();                    // Setup chores, such as array allocations
   origin(0) = I.first();      // Default origin at I.first(),J.first()
   origin(1) = J.first();
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -588,7 +588,7 @@ initialize(const Index& I, const Index& J, MFLOAT** const delX,
   gridSizes[0] = I.length();  // Number of vertices along this dimension.
   gridSizes[1] = J.length();  // Number of vertices along this dimension.
   setup();                    // Setup chores, such as array allocations
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -646,7 +646,7 @@ initialize(const Index& I, const Index& J, const Index& K)
   }
   (meshPosition[2])[gridSizes[2]-1] = MFLOAT(gridSizes[2]-1);
 
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -667,7 +667,7 @@ initialize(const Index& I, const Index& J, const Index& K,
   origin(0) = I.first();    // Default origin at I.first(),J.first(),K.first()
   origin(1) = J.first();
   origin(2) = K.first();
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -686,7 +686,7 @@ initialize(const Index& I, const Index& J, const Index& K,
   gridSizes[1] = J.length();  // Number of vertices along this dimension.
   gridSizes[2] = K.length();  // Number of vertices along this dimension.
   setup();                    // Setup chores, such as array allocations
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     MeshBC[2*d]   = Reflective; // Default mesh: reflective boundary conds
     MeshBC[2*d+1] = Reflective; // Default mesh: reflective boundary conds
   }
@@ -845,7 +845,7 @@ storeSpacingFields()
 {
   // Set up default FieldLayout parameters:
   e_dim_tag et[Dim];
-  for (int d=0; d<Dim; d++) et[d] = PARALLEL;
+  for (unsigned int d=0; d<Dim; d++) et[d] = PARALLEL;
   storeSpacingFields(et, -1);
 }
 // 1D
@@ -1836,7 +1836,7 @@ getDeltaVertex(const NDIndex<Dim>& ndi) const
   // return value
   Vektor<MFLOAT,Dim> vertexVertexSpacing(0);
 
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     // endpoints of the index range ... make sure they are in ascending order
     int a = ndi[d].first();
     int b = ndi[d].last();
@@ -1891,7 +1891,7 @@ getDeltaCell(const NDIndex<Dim>& ndi) const
   // return value
   Vektor<MFLOAT,Dim> cellCellSpacing(0);
 
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     // endpoints of the index range ... make sure they are in ascending order
     int a = ndi[d].first();
     int b = ndi[d].last();
@@ -2068,7 +2068,7 @@ void
 Cartesian<Dim,MFLOAT>::
 set_MeshBC(MeshBC_E* meshBCTypes)
 {
-  for (int face=0; face < 2*Dim; face++) {
+  for (unsigned int face=0; face < 2*Dim; face++) {
     MeshBC[face] = meshBCTypes[face];
     updateMeshSpacingGuards(face);
   }
@@ -2176,7 +2176,7 @@ Cartesian<Dim,MFLOAT>::
 get_MeshBC() const
 {
   MeshBC_E* mb = new MeshBC_E[2*Dim];
-  for (int b=0; b < 2*Dim; b++) mb[b] = MeshBC[b];
+  for (unsigned int b=0; b < 2*Dim; b++) mb[b] = MeshBC[b];
   return mb;
 }
 
@@ -2804,7 +2804,7 @@ Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
   Index J = domain[1];
   Index K = domain[2];
   Vektor<MFLOAT,3U> dvc[1<<3U];
-  for (int d=0; d < 1<<3U; d++) dvc[d] = x.get_mesh().Dvc[d];
+  for (unsigned int d=0; d < 1<<3U; d++) dvc[d] = x.get_mesh().Dvc[d];
   r[I][J][K] = (x[I-1][J-1][K-1]*dvc[0] +
 		x[I  ][J-1][K-1]*dvc[1] +
 		x[I-1][J  ][K-1]*dvc[2] +

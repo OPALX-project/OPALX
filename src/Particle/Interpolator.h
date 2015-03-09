@@ -125,7 +125,7 @@ template <class T, unsigned Dim>
 inline std::ostream &operator<<(std::ostream &o, const CacheDataCIC<T,Dim> &c)
 {
   Vektor<int,Dim> offset;
-  for (int i=0; i < Dim; ++i)
+  for (unsigned int i=0; i < Dim; ++i)
     offset[i] = c.Offset_m[i];
   o << "(" << c.Index_m << "," << c.Delta_m << "," << offset << ")";
   return o;
