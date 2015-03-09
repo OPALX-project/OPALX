@@ -590,6 +590,11 @@ void OpalParser::run() const {
             *gmsg << "    ";
             stat->print();
             *gmsg << "    Sorry, virtual memory exhausted.\n" << endl;
+        } catch(assertion &ex) {
+            ERRORMSG("\n*** Runtime-error ******************\n");
+            ERRORMSG(ex.what());
+            ERRORMSG("\n************************************\n" << endl);
+            abort();
         } catch(exception &ex) {
             *gmsg << "\n*** Error:\n";
             stat->printWhere(false);
