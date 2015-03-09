@@ -62,7 +62,7 @@ void dumpVTK(Field<Vektor<double,3>,3> &EFD, NDIndex<3> lDom, int nx, int ny, in
     std::ofstream vtkout;
     vtkout.precision(10);
     vtkout.setf(std::ios::scientific, std::ios::floatfield);
-    
+
     std::stringstream fname;
     fname << "data/ef_";
     fname << std::setw(4) << std::setfill('0') << iteration;
@@ -81,9 +81,9 @@ void dumpVTK(Field<Vektor<double,3>,3> &EFD, NDIndex<3> lDom, int nx, int ny, in
     vtkout << "POINT_DATA " << nx*ny*nz << std::endl;
 
     vtkout << "VECTORS E-Field float" << std::endl;
-    for(int z=lDom[2].first(); z<lDom[2].last(); z++) {
-        for(int y=lDom[1].first(); y<lDom[1].last(); y++) {
-            for(int x=lDom[0].first(); x<lDom[0].last(); x++) {
+    for (int z=lDom[2].first(); z<lDom[2].last(); z++) {
+        for (int y=lDom[1].first(); y<lDom[1].last(); y++) {
+            for (int x=lDom[0].first(); x<lDom[0].last(); x++) {
                 Vektor<double, 3> tmp = EFD[x][y][z].get();
                 vtkout << tmp(0) << "\t"
                        << tmp(1) << "\t"
@@ -126,9 +126,9 @@ void dumpVTK(Field<double,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int 
 
     vtkout << "SCALARS E-Field float" << std::endl;
     vtkout << "LOOKUP_TABLE default" << std::endl;
-    for(int z=lDom[2].first(); z<=lDom[2].last(); z++) {
-        for(int y=lDom[1].first(); y<=lDom[1].last(); y++) {
-            for(int x=lDom[0].first(); x<=lDom[0].last(); x++) {
+    for (int z=lDom[2].first(); z<=lDom[2].last(); z++) {
+        for (int y=lDom[1].first(); y<=lDom[1].last(); y++) {
+            for (int x=lDom[0].first(); x<=lDom[0].last(); x++) {
                 vtkout << EFD[x][y][z].get() << std::endl;
             }
         }
@@ -146,10 +146,10 @@ class ChargedParticles : public ParticleBase<PL> {
 
   Field<Vektor<double,Dim>,Dim> EFD_m;
   Field<double,Dim> EFDMag_m;
-  
+
   BConds<double,Dim,Mesh_t,Center_t> bc_m;
   BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
-  
+
   Vektor<int,Dim> nr_m;
 
   BC_t bco_m;
@@ -157,9 +157,9 @@ class ChargedParticles : public ParticleBase<PL> {
   bool fieldNotInitialized_m;
   bool doRepart_m;
   bool withGuardCells_m;
-  
+
   e_dim_tag decomp_m[Dim];
-  
+
   Vector_t hr_m;
   Vector_t rmin_m;
   Vector_t rmax_m;
@@ -185,7 +185,7 @@ public:
         this->addAttribute(E);
         this->addAttribute(B);
         setupBCs();
-        for(int i=0; i<Dim; i++)
+        for (unsigned int i=0; i<Dim; i++)
             decomp_m[i]=decomp[i];
     }
 
@@ -212,10 +212,10 @@ public:
         this->addAttribute(E);
         this->addAttribute(B);
         setupBCs();
-        for(int i=0; i<Dim; i++)
+        for (unsigned int i=0; i<Dim; i++)
             decomp_m[i]=decomp[i];
     }
-    
+
     void setupBCs() {
         if (bco_m == OOO)
             setBCAllOpen();
@@ -289,7 +289,7 @@ public:
         m << "sum(qm)= " << initialQ << " sum(EFDMag)= " << sum(EFDMag_m) << endl;
         return initialQ-Q;
     }
-    
+
     void myUpdate() {
 
         double hz   = hr_m[2];
@@ -301,10 +301,10 @@ public:
 
             NDIndex<Dim> domain = this->getFieldLayout().getDomain();
 
-            for(int i=0; i<Dim; i++)
+            for (unsigned int i=0; i<Dim; i++)
                 nr_m[i] = domain[i].length();
 
-            for(int i=0; i<Dim; i++)
+            for (unsigned int i=0; i<Dim; i++)
                 hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0);
 
             if (bco_m == OOP) {
@@ -364,13 +364,13 @@ public:
 
 
 
-    
+
     void initFields() {
         Inform m("initFields ");
 
         NDIndex<Dim> domain = getFieldLayout().getDomain();
 
-        for(int i=0; i<Dim; i++)
+        for (unsigned int i=0; i<Dim; i++)
             nr_m[i] = domain[i].length();
 
         int nx = nr_m[0];
@@ -409,7 +409,7 @@ public:
         tmp.clear();
 
         // every node ckecks if he has to dump particles
-        for(unsigned i=0; i<this->getLocalNum(); i++) {
+        for (unsigned i=0; i<this->getLocalNum(); i++) {
             tmp.push_back(this->ID[i]);
             tmp.push_back(this->R[i](0));
             tmp.push_back(this->R[i](1));
@@ -593,11 +593,11 @@ int main(int argc, char *argv[]){
 
     NDIndex<Dim> domain;
     if (gCells) {
-        for(unsigned i=0; i<Dim; i++)
+        for (unsigned i=0; i<Dim; i++)
             domain[i] = domain[i] = Index(nr[i] + 1);
     }
     else {
-        for(unsigned i=0; i<Dim; i++)
+        for (unsigned i=0; i<Dim; i++)
             domain[i] = domain[i] = Index(nr[i]);
     }
 
@@ -684,4 +684,3 @@ int main(int argc, char *argv[]){
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
  * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
-

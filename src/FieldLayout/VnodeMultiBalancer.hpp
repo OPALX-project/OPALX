@@ -70,17 +70,17 @@ void VnodeMultiRepartition(FieldLayout<Dim>& layout,
   // number of vnodes:
   unsigned vpd[Dim];
   int vnodes = 1;
-  for (int d=0; d<Dim; d++) {
+  for (unsigned int d=0; d<Dim; d++) {
     vpd[d] = layout.getVnodesPerDirection(d);
     vnodes *= vpd[d];
   }
 
   // Construct the Field sized as vpd[d] elements along each dimension d:
   NDIndex<Dim> vfndi;
-  for (int d=0; d<Dim; d++) vfndi[d] = Index(vpd[d]);
+  for (unsigned int d=0; d<Dim; d++) vfndi[d] = Index(vpd[d]);
   // SERIAL/PARALLEL specification must match input FieldLayout layout:
   e_dim_tag edt[Dim];
-  for (int d=0; d<Dim; d++) edt[d] = layout.getDistribution(d);
+  for (unsigned int d=0; d<Dim; d++) edt[d] = layout.getDistribution(d);
   // Because "true" for recurse parameter selected here, this algorithm will
   // run faster the first time through if the input "layout" was also
   // constructed with recurse=true. Should be correct even if not, though, and
@@ -259,14 +259,14 @@ void VnodeMultiRepartition(FieldLayout<Dim>& layout,
       // have the global-index-space base index values of this LField's
       // subdomain so you can add it on:
       int lfBase[Dim];
-      for (int d=0; d<Dim; d++) {
+      for (unsigned int d=0; d<Dim; d++) {
 	lfBase[d] = (*vfItr).second->getOwned()[d].first();
       }
-      for (int d=0; d<Dim; d++) vfIndex[d] = lfi.GetOffset(d) + lfBase[d];
+      for (unsigned int d=0; d<Dim; d++) vfIndex[d] = lfi.GetOffset(d) + lfBase[d];
       // Global integer index of this vnode:
       int vnode = vfIndex[0];
       int multipplier = 1;
-      for (int d=1; d<Dim; d++) {
+      for (unsigned int d=1; d<Dim; d++) {
 	multipplier *= vpd[d-1];
 	vnode += vfIndex[d]*multipplier;
       }

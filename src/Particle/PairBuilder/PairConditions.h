@@ -30,7 +30,7 @@ public:
 	bool operator()(const V &a, const V &b) const
 	{
 		T sqr = 0;
-		for(int d = 0;d<Dim;++d)
+		for(unsigned int d = 0;d<Dim;++d)
 		{
 			sqr += (a[d]-b[d])*(a[d]-b[d]);
 		}
@@ -52,7 +52,7 @@ public:
 	template<class V>
 	bool operator()(const V &a, const V &b) const
 	{
-		for(int d = 0;d<Dim;++d)
+		for(unsigned int d = 0;d<Dim;++d)
 		{
 			T diff = a[d]-b[d];
 			if(diff > box[d] || diff < -box[d])

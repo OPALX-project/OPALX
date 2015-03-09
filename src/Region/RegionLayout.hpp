@@ -200,7 +200,7 @@ RegionLayout<T,Dim,MeshType>::RegionLayout(const NDIndex<Dim>& domain,
 
   // build mesh on this domain, with each axis extended by one
   NDIndex<Dim> extended;
-  for (int i=0; i<Dim; i++)
+  for (unsigned int i=0; i<Dim; i++)
     extended[i] = Index(domain[i].first(), domain[i].last()+1,
                         domain[i].stride());
   FLayout = 0;

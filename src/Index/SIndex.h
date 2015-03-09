@@ -235,7 +235,7 @@ public:
     
     CTAssert(Dim >= Dim2);
     NDIndex<Dim> dom;
-    for (int i=0; i < Dim2; ++i)
+    for (unsigned int i=0; i < Dim2; ++i)
       dom[i] = ndi[i];
     return IndexedSIndex<Dim,Dim2>(*this, dom);
   }

@@ -87,7 +87,7 @@ public:
   operator[](const NDIndex<Dim2> &ndi) {
     CTAssert((Brackets + Dim2) <= Dim);
     NDIndex<Dim> dom = domain;
-    for (int i=0; i < Dim2; ++i)
+    for (unsigned int i=0; i < Dim2; ++i)
       dom[Brackets + i] = ndi[i];
     return IndexedSIndex<Dim,Brackets + Dim2>(sIndex, dom);
   }
