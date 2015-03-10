@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include <vector>
 #include <cmath>
+#include <functional>
 
 typedef struct {
     double x, y;
