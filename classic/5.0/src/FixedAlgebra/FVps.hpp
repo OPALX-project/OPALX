@@ -733,9 +733,10 @@ FVps<T, N> FVps<T, N>::substitute(const FMatrix<T, N, N> &mat, int nl, int nh) c
     // Initialisations.
     // Array element fp[k][m] points to the next order m monomial
     // to transform in k-th component.
-    const T *fp[N][nh+1];
+    const T **fp[N];
     T *g[N];
     for(int k = N; k-- > 0;) {
+    	fp[k] = new const T* [nh+1];
         for(int m = nl; m <= nh; ++m) fp[k][m] = f[k].begin(m);
         g[k] = result[k].begin();
     }
@@ -831,6 +832,10 @@ FVps<T, N> FVps<T, N>::substitute(const FMatrix<T, N, N> &mat, int nl, int nh) c
         oldvrbl = vrbl;
     }
 
+    for(int k = N; k-- > 0;) {
+        delete[] fp[k];
+    }
+
     return result;
 }
 
@@ -875,14 +880,16 @@ FVps<T, N> FVps<T, N>::substitute(const FVps<T, N> &rhs, int trunc) const {
     if(nl == 0) nl = 1;
 
     // Allocate working arrays.
-    const T *fp[N][nh+1];
+    const T ** fp[N];
     Array1D< FTps<T, N> > t(nh + 1);
 
     // Initialisations.
     // Array element fp[k][m] points to the next order m monomial
     // to transform in the k-th component.
-    for(int k = N; k-- > 0;)
+    for(int k = N; k-- > 0;) {
+        fp[k] = new const T* [nh+1];
         for(int m = nl; m <= nh; ++m) fp[k][m] = f[k].begin(m);
+    }
     const Array1D<int> *oldvrbl = 0;
     int start_nh = FTps<T, N>::orderStart(nh), end_nh = FTps<T, N>::orderEnd(nh);
     int nh1 = nh - 1, nh2 = nh - 2;
@@ -961,6 +968,10 @@ FVps<T, N> FVps<T, N>::substitute(const FVps<T, N> &rhs, int trunc) const {
 
         // Save variable list for comparison with the next one.
         oldvrbl = vrbl;
+    }
+
+    for(int k = N; k-- > 0;) {
+        delete[] fp[k];
     }
 
     return result;
