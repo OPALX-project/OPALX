@@ -6,6 +6,7 @@
 /* (update: ASM, September 2001)                                             */
 /*****************************************************************************/
 #include "lomb.h"
+#include <iostream>
 
 using namespace std;
 
