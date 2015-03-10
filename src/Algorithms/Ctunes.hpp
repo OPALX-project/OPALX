@@ -13,7 +13,7 @@
 
 #include "Algorithms/Ctunes.h"
 #include "Algorithms/lomb.h"
-#include "Algoritms/lomb.hpp"
+#include "Algorithms/lomb.hpp"
 
 
 extern Inform *gmsg;
