@@ -424,11 +424,11 @@ private:
     void setTime();
     void initializeBoundaryGeometry();
     void doBinaryRepartition();
-    void Tracker_Default();
+    void executeDefaultTracker();
 #ifdef HAVE_AMR_SOLVER
-    void Tracker_AMR();
+    void executeAMRTracker();
 #endif
-    void Tracker_AMTS();
+    void executeAMTSTracker();
     void push(double h);
     void kick(double h, bool avoidGammaCalc = false);
     void computeExternalFields_AMTS();

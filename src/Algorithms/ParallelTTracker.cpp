@@ -1346,7 +1346,7 @@ double ParallelTTracker::APtrack(Component *cavity, double cavity_start_pos, con
 }
 
 #ifdef HAVE_AMR_SOLVER
-void ParallelTTracker::Tracker_AMR()
+void ParallelTTracker::executeAMRTracker()
 {
     Inform msg("ParallelTTracker ");
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
@@ -1545,7 +1545,7 @@ void ParallelTTracker::Tracker_AMR()
 }
 #endif
 
-void ParallelTTracker::Tracker_Default() {
+void ParallelTTracker::executeDefaultTracker() {
     Inform msg("ParallelTTracker ");
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
     BorisPusher pusher(itsReference);
@@ -2905,17 +2905,17 @@ void ParallelTTracker::initializeBoundaryGeometry() {
 
 void ParallelTTracker::execute() {
 #ifdef HAVE_AMR_SOLVER
-        Tracker_AMR();
+    executeAMRTracker();
 #else
-    if(timeIntegrator_m == 3) { // AMTS
-        Tracker_AMTS();
+    if(timeIntegrator_m == 3) {
+        executeAMTSTracker();
     } else {
-        Tracker_Default();
+        executeDefaultTracker();
     }
 #endif
 }
 
-void ParallelTTracker::Tracker_AMTS() {
+void ParallelTTracker::executeAMTSTracker() {
     Inform msg("ParallelTTracker ");
     const Vector_t vscaleFactor_m = Vector_t(scaleFactor_m);
     dtCurrentTrack_m = itsBunch->getdT();

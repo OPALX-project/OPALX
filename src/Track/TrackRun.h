@@ -69,7 +69,13 @@ private:
     // Clone constructor.
     TrackRun(const std::string &name, TrackRun *parent);
 
-    double SetDistributionParallelT(Beam *beam);
+    void setupSliceTracker();
+    void setupTTracker();
+    void setupCyclotronTracker();
+
+    void setupFieldsolver();
+
+    double setDistributionParallelT(Beam *beam);
     ParallelTTracker *setupForAutophase();
 
     // Pointer to tracking algorithm.
@@ -87,6 +93,7 @@ private:
 
     static const std::string defaultDistribution;
 #ifdef HAVE_AMR_SOLVER
+    Amr* setupAMRSolver();
     std::vector<std::string>  filterString(std::string str);
     std::pair<Box,unsigned int> getBlGrids(std::string str);
 #endif
