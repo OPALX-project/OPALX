@@ -1,13 +1,8 @@
 FILE (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 MESSAGE (STATUS "Adding test FFT found in ${_relPath}")
 
-set (CMAKE_CXX_FLAGS
-    "-std=c++0x ${CMAKE_CXX_FLAGS}"
-    )
-
-
 include_directories (
-    ${CMAKE_SOURCE_DIR}/src                                   
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 link_directories (
@@ -23,7 +18,9 @@ link_directories (${DKS_LIBRARY_DIR})
 SET (IPPL_LIBS ${IPPL_LIBS} dks)
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
-
+set_source_files_properties(SOURCE PIC3d.cpp p3m3d.cpp
+                            PROPERTY COMPILE_FLAGS
+                            -fno-tree-vrp)
 add_executable (PIC3d PIC3d.cpp)
 target_link_libraries (PIC3d ${IPPL_LIBS})
 

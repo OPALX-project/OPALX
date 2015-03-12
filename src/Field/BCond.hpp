@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -81,12 +81,12 @@ BCondBase<T,D,M,C>::BCondBase(unsigned int face, int i, int j)
   // for which this BC is to apply; of none are specified, it applies to
   // all components of the elements (of type T).
   if (j != BCondBase<T,D,M,C>::allComponents) {
-    if (i == BCondBase<T,D,M,C>::allComponents) 
-      ERRORMSG("BCondBase(): component 2 specified, component 1 not." 
+    if (i == BCondBase<T,D,M,C>::allComponents)
+      ERRORMSG("BCondBase(): component 2 specified, component 1 not."
 	       << endl);
     // For two specified component indices, must turn the two integer component
-    // index values into a single int value for Component, which is used in 
-    // pointer offsets in applicative templates elsewhere. How to do this 
+    // index values into a single int value for Component, which is used in
+    // pointer offsets in applicative templates elsewhere. How to do this
     // depends on what kind of two-index multicomponent object T is. Implement
     // only for Tenzor, AntiSymTenzor, and SymTenzor (for now, at least):
     if (getTensorOrder(get_tag(T())) == IPPL_TENSOR) {
@@ -103,15 +103,15 @@ BCondBase<T,D,M,C>::BCondBase(unsigned int face, int i, int j)
         "BCondBase(): something other than [Sym,AntiSym]Tenzor specified"
 	<< " two component indices; not implemented." << endl);
     }
-    
+
   } else {
     // For only one specified component index (including the default case of
     // BCondBase::allComponents meaning apply to all components of T, just
-    // assign the Component value for use in pointer offsets into 
+    // assign the Component value for use in pointer offsets into
     // single-component-index types in applicative templates elsewhere:
     m_component = i;
   }
-}			      
+}
 
 //////////////////////////////////////////////////////////////////////
 
@@ -203,8 +203,8 @@ template<class T, unsigned D, class M, class C>
 void
 ExtrapolateFace<T,D,M,C>::write(std::ostream& o) const
 {
-  
-  
+
+
   o << "ExtrapolateFace, Face=" << BCondBase<T,D,M,C>::m_face
     << ", Offset=" << Offset << ", Slope=" << Slope;
 }
@@ -213,8 +213,8 @@ template<class T, unsigned D, class M, class C>
 void
 ExtrapolateAndZeroFace<T,D,M,C>::write(std::ostream& o) const
 {
-  
-  
+
+
   o << "ExtrapolateAndZeroFace, Face=" << BCondBase<T,D,M,C>::m_face
     << ", Offset=" << Offset << ", Slope=" << Slope;
 }
@@ -223,8 +223,8 @@ template<class T, unsigned D, class M, class C>
 void
 LinearExtrapolateFace<T,D,M,C>::write(std::ostream& o) const
 {
-  
-  
+
+
   o << "LinearExtrapolateFace, Face=" << BCondBase<T,D,M,C>::m_face;
 }
 
@@ -242,8 +242,8 @@ template<class T, unsigned D, class M, class C>
 void
 BConds<T,D,M,C>::write(std::ostream& o) const
 {
-  
-  
+
+
 
   o << "BConds:(" << std::endl;
   const_iterator p=this->begin();
@@ -261,11 +261,11 @@ BConds<T,D,M,C>::write(std::ostream& o) const
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned D, class M, class C>
-void 
+void
 BConds<T,D,M,C>::apply( Field<T,D,M,C>& a )
 {
-  
-  
+
+
   for (iterator p=this->begin(); p!=this->end(); ++p)
     (*p).second->apply(a);
 }
@@ -289,16 +289,16 @@ template<class T, unsigned D, class M, class C>
 PeriodicFace<T,D,M,C>::PeriodicFace(unsigned f, int i, int j)
   : BCondBase<T,D,M,C>(f,i,j)
 {
-  
-  
+
+
 }
 
 template<class T, unsigned D, class M, class C>
 ExtrapolateFace<T,D,M,C>::ExtrapolateFace(unsigned f, T o, T s, int i, int j)
   : BCondBase<T,D,M,C>(f,i,j), Offset(o), Slope(s)
 {
-  
-  
+
+
 }
 
 template<class T, unsigned D, class M, class C>
@@ -315,14 +315,14 @@ FunctionFace<T,D,M,C>::
 FunctionFace(T (*func)(const T&), unsigned face)
   : BCondBase<T,D,M,C>(face), Func(func)
 {
-  
-  
+
+
 }
 
 template<class T, unsigned D, class M, class C>
 ComponentFunctionFace<T,D,M,C>::
-ComponentFunctionFace(typename ApplyToComponentType<T>::type 
-		      (*func)( typename ApplyToComponentType<T>::type), 
+ComponentFunctionFace(typename ApplyToComponentType<T>::type
+		      (*func)( typename ApplyToComponentType<T>::type),
 		      unsigned face, int i, int j)
   : BCondBase<T,D,M,C>(face,i,j), Func(func)
 {
@@ -366,10 +366,10 @@ template<class T>
 inline void PETE_apply(const OpPeriodicComponent<T>& e, T& a, const T& b)
 { a[e.Component] = b[e.Component]; }
 
-// Following specializations are necessary because of the runtime branches in 
-// code which unfortunately force instantiation of OpPeriodicComponent 
-// instances for non-multicomponent types like {char,double,...}. 
-// Note: if user uses non-multicomponent (no operator[]) types of his own, 
+// Following specializations are necessary because of the runtime branches in
+// code which unfortunately force instantiation of OpPeriodicComponent
+// instances for non-multicomponent types like {char,double,...}.
+// Note: if user uses non-multicomponent (no operator[]) types of his own,
 // he'll get a compile error. See comments regarding similar specializations
 // for OpExtrapolateComponent for a more details.
 
@@ -386,12 +386,12 @@ COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,dcomplex)
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
-// For unspecified centering, can't implement PeriodicFace::apply() 
+// For unspecified centering, can't implement PeriodicFace::apply()
 // correctly, and can't partial-specialize yet, so... don't have a prototype
 // for unspecified centering, so user gets a compile error if he tries to
 // invoke it for a centering not yet implemented. Implement external functions
-// which are specializations for the various centerings 
-// {Cell,Vert,CartesianCentering}; these are called from the general 
+// which are specializations for the various centerings
+// {Cell,Vert,CartesianCentering}; these are called from the general
 // PeriodicFace::apply() function body.
 //----------------------------------------------------------------------------
 
@@ -409,8 +409,8 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 template<class T, unsigned D, class M, class C>
 void PeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
-  
-  
+
+
   PeriodicFaceBCApply(*this, A);
 }
 
@@ -423,9 +423,9 @@ template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
 			 Field<T,D,M,Cell>& A )
 {
-  
-  
-  // NOTE: See the PeriodicFaceBCApply functions below for more 
+
+
+  // NOTE: See the PeriodicFaceBCApply functions below for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -520,10 +520,10 @@ template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Vert>& pf,
 			 Field<T,D,M,Vert>& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions below for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions below for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -619,10 +619,10 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& pf,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions below for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions below for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -649,7 +649,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 	  offset = -domain[d].length();     // CELL case
 	} else {
 	  // TJW: this used to say "leftGuard(d)", which I think was wrong:
-	  slab[d] = 
+	  slab[d] =
 	    Index( domain[d].max(), domain[d].max() + A.rightGuard(d));
 	  offset = -domain[d].length()+1; // VERT case
 	}
@@ -658,7 +658,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 	if (CE[pf.getComponent() + d*NC] == CELL) {
 	  offset = -domain[d].length();     // CELL case
 	} else {
-	  slab[d] = 
+	  slab[d] =
 	    Index( domain[d].max(), domain[d].max() + A.rightGuard(d));
 	  offset = -domain[d].length()+1; // VERT case
 	}
@@ -760,7 +760,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 
 
 //-----------------------------------------------------------------------------
-// Specialization of CalcParallelPeriodicDomain for various centerings. 
+// Specialization of CalcParallelPeriodicDomain for various centerings.
 // This is the centering-specific code for ParallelPeriodicFace::apply().
 //-----------------------------------------------------------------------------
 
@@ -770,7 +770,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 #endif
 
 template <class T, unsigned D, class M>
-inline void 
+inline void
 CalcParallelPeriodicDomain(const Field<T,D,M,Cell> &A,
 			   const ParallelPeriodicFace<T,D,M,Cell>& pf,
 			   NDIndex<D> &dest_slab,
@@ -790,7 +790,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,Cell> &A,
       // cell. Change "dest_slab" to restrict direction "d" to this
       // subdomain.
 
-      dest_slab[d] = 
+      dest_slab[d] =
 	Index(domain[d].max() + 1, domain[d].max() + A.leftGuard(d));
 
       // The offset to the cells that we are going to read; i.e. the
@@ -803,9 +803,9 @@ CalcParallelPeriodicDomain(const Field<T,D,M,Cell> &A,
     {
       // The cells that we need to fill start with the first guard
       // cell on the bottom and continue up through the cell before
-      // the first physical cell. 
+      // the first physical cell.
 
-      dest_slab[d] = 
+      dest_slab[d] =
 	Index(domain[d].min() - A.leftGuard(d), domain[d].min()-1);
 
       // See above.
@@ -814,11 +814,11 @@ CalcParallelPeriodicDomain(const Field<T,D,M,Cell> &A,
     }
 }
 
-// Note: this does the same thing that PeriodicFace::apply() does, but 
+// Note: this does the same thing that PeriodicFace::apply() does, but
 // I don't think that this is correct.
 
 template <class T, unsigned D, class M>
-inline void 
+inline void
 CalcParallelPeriodicDomain(const Field<T,D,M,Vert> &A,
 			   const ParallelPeriodicFace<T,D,M,Vert>& pf,
 			   NDIndex<D> &dest_slab,
@@ -839,7 +839,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,Vert> &A,
       // include the last physical point (domain[d].max()) and the
       // guard points.
 
-      dest_slab[d] = 
+      dest_slab[d] =
 	Index(domain[d].max(), domain[d].max() + A.rightGuard(d));
 
       // The offset to the points that we are going to read; i.e. the
@@ -852,9 +852,9 @@ CalcParallelPeriodicDomain(const Field<T,D,M,Vert> &A,
     {
       // The points that we need to fill start with the first guard
       // cell on the bottom and continue up through the cell before
-      // the first physical cell. 
+      // the first physical cell.
 
-      dest_slab[d] = 
+      dest_slab[d] =
 	Index(domain[d].min() - A.leftGuard(d), domain[d].min()-1);
 
       // See above.
@@ -866,7 +866,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,Vert> &A,
 // See comments above - vert centering wrong, I think.
 
 template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
-inline void 
+inline void
 CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 			   const ParallelPeriodicFace<T,D,M,
 			           CartesianCentering<CE,D,NC> >& pf,
@@ -890,15 +890,15 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
       // source cells, depend on the centering.  See below and the
       // comments in the vert and cell versions above.
 
-      if (pf.getComponent() == BCBase_t::allComponents) 
+      if (pf.getComponent() == BCBase_t::allComponents)
 	{
 	  // Make sure all components are really centered the same, as
 	  // assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component
 	                                           // along dir d
-	  for (int c = 1; c < NC; c++) 
-	    { 
+	  for (int c = 1; c < NC; c++)
+	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
 		ERRORMSG("ParallelPeriodicFaceBCApply:"
@@ -913,24 +913,24 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 	  if (centering0 == CELL) {
 	    offset = -domain[d].length();     // CELL case
 	  } else {
-	    dest_slab[d] = 
+	    dest_slab[d] =
 	      Index(domain[d].max(), domain[d].max() + A.leftGuard(d));
 	    offset = -domain[d].length() + 1; // VERT case
 	  }
 
-	} 
-      else 
-	{ 
+	}
+      else
+	{
 	  // The BC applies only to one component, not all: Do the
 	  // right thing for CELL or VERT centering of the component:
 
-	  if (CE[pf.getComponent() + d*NC] == CELL) 
+	  if (CE[pf.getComponent() + d*NC] == CELL)
 	    {
 	      offset = -domain[d].length();     // CELL case
 	    }
-	  else 
+	  else
 	    {
-	      dest_slab[d] = 
+	      dest_slab[d] =
 		Index(domain[d].max(), domain[d].max() + A.leftGuard(d));
 	      offset = -domain[d].length() + 1; // VERT case
 	    }
@@ -940,21 +940,21 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
     {
       // The cells that we need to fill start with the first guard
       // cell on the bottom and continue up through the cell before
-      // the first physical cell. 
+      // the first physical cell.
 
-      dest_slab[d] = 
+      dest_slab[d] =
 	Index(domain[d].min() - A.leftGuard(d), domain[d].min()-1);
 
       // See above.
 
-      if (pf.getComponent() == BCBase_t::allComponents) 
+      if (pf.getComponent() == BCBase_t::allComponents)
 	{
 	  // Make sure all components are really centered the same, as
 	  // assumed:
-	  
+
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component
 	                                           // along dir d
-	  for (int c = 1; c < NC; c++) 
+	  for (int c = 1; c < NC; c++)
 	    { // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
 		ERRORMSG("ParallelPeriodicFaceBCApply:"
@@ -973,16 +973,16 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 	  }
 
 	}
-      else 
-	{ 
+      else
+	{
 	  // The BC applies only to one component, not all: Do the
 	  // right thing for CELL or VERT centering of the component:
 
-	  if (CE[pf.getComponent() + d*NC] == CELL) 
+	  if (CE[pf.getComponent() + d*NC] == CELL)
 	    {
 	      offset = domain[d].length();     // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      offset = domain[d].length() - 1; // VERT case
 	    }
@@ -991,7 +991,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 }
 
 //-----------------------------------------------------------------------------
-// ParallelPeriodicFace::apply() 
+// ParallelPeriodicFace::apply()
 // Apply the periodic boundary condition. This version can handle
 // fields that are parallel in the periodic direction. Unlike the
 // other BCond types, the Lion's share of the code is in this single
@@ -1031,9 +1031,9 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   //  - The source and destination domains are offset, not overlapping.
   //  - Only a subset of all LFields are, in general, involved.
   //  - The corners must be handled correctly.
-  // 
+  //
   // Here's the plan:
-  // 
+  //
   //  0. Calculate source and destination domains.
   //  1. Build send and receive lists, and send messages.
   //  2. Evaluate local pieces directly.
@@ -1042,7 +1042,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   //===========================================================================
 
 #ifdef PRINT_DEBUG
-  msg << "Starting BC Calculation for face " 
+  msg << "Starting BC Calculation for face "
       << getFace() << "." << endl;
 #endif
 
@@ -1083,7 +1083,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
   // Declare these at this scope so that we don't have to duplicate
   // the local code. (fillguardcells puts these in the scope of the
-  // "if (nprocs > 1) { ... }" section, but has to duplicate the 
+  // "if (nprocs > 1) { ... }" section, but has to duplicate the
   // code for the local fills as a result. The cost of this is a bit
   // of stackspace, and the cost of allocating an empty map.)
 
@@ -1094,11 +1094,11 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
   // (Time this since it allocates an empty map.)
 
-  
+
 
   ReceiveMap_t receive_map;
 
-  
+
 
   // Number of nodes that will send us messages.
 
@@ -1116,7 +1116,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   // (Do we need this for local-only code???)
 
   // (Also, if a domain ends up in both lists, it will only be
-  // involved in local communication. We should structure this code to 
+  // involved in local communication. We should structure this code to
   // take advantage of this, otherwise all existing parallel code is
   // going to incur additional overhead that really is unnecessary.)
   // (In other words, we should be able to do the general case, but
@@ -1143,7 +1143,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
     {
       LField_t &lf = *lf_i->second;
 
-      // We fill if our allocated domain touches the 
+      // We fill if our allocated domain touches the
       // destination slab.
 
       const Domain_t &lf_allocated = lf.getAllocated();
@@ -1158,7 +1158,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
       // We only provide data if our owned cells touch
       // the source slab (although we actually send the
-      // allocated data). 
+      // allocated data).
 
       const Domain_t &lf_owned = lf.getOwned();
 
@@ -1185,7 +1185,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
   if (nprocs > 1) // Skip send/receive code if we're single-processor.
     {
-      
+
 
 #ifdef PRINT_DEBUG
       msg << "Starting receive calculation." << endl;
@@ -1202,7 +1202,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
       DestListIterator_t dest_i;
 
-      for (dest_i = dest_begin; dest_i != dest_end; ++dest_i) 
+      for (dest_i = dest_begin; dest_i != dest_end; ++dest_i)
         {
           // Cache some information about this local array.
 
@@ -1240,10 +1240,10 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
           typename Layout_t::touch_iterator_dv rv_i;
 
-          for (rv_i = src_range.first; rv_i != src_range.second; ++rv_i) 
+          for (rv_i = src_range.first; rv_i != src_range.second; ++rv_i)
             {
-              // Intersect src_domain with the allocated cells for the 
-	      // remote LField (rv_alloc). This will give us the strip 
+              // Intersect src_domain with the allocated cells for the
+	      // remote LField (rv_alloc). This will give us the strip
 	      // that will be sent. Translate this domain back to the
 	      // domain of the receiving LField.
 
@@ -1283,10 +1283,10 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
       //      stop_here();
 #endif
 
-      
 
 
-      
+
+
 
 #ifdef PRINT_DEBUG
       msg << "Starting send calculation" << endl;
@@ -1305,7 +1305,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 #ifdef PRINT_DEBUG
       // KCC 3.2d has trouble with this. 3.3 doesn't, but
-      // some are still using 3.2. 
+      // some are still using 3.2.
       //      vector<int> ndomains(nprocs,0);
       std::vector<int> ndomains(nprocs);
       for(int i = 0; i < nprocs; ++i) ndomains[i] = 0;
@@ -1313,7 +1313,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
       SrcListIterator_t src_i;
 
-      for (src_i = src_begin; src_i != src_end; ++src_i) 
+      for (src_i = src_begin; src_i != src_end; ++src_i)
         {
           // Cache some information about this local array.
 
@@ -1363,11 +1363,11 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 	      << distance(dest_range.first, dest_range.second)
 	      << " elements." << endl;
 #endif
-	  
 
-          for (rv_i = dest_range.first; rv_i != dest_range.second; ++rv_i) 
+
+          for (rv_i = dest_range.first; rv_i != dest_range.second; ++rv_i)
             {
-              // Find the intersection of the returned domain with the 
+              // Find the intersection of the returned domain with the
 	      // allocated version of the translated source domain.
 	      // Translate this intersection back to the source side.
 
@@ -1396,7 +1396,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
               // Put intersection domain and field data into message
 
-              if (!messages[rnode]) 
+              if (!messages[rnode])
 		{
 		  messages[rnode] = new Message;
 		  PAssert(messages[rnode]);
@@ -1413,23 +1413,23 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
       // Get message tag.
 
-      bc_comm_tag = 
+      bc_comm_tag =
 	Ippl::Comm->next_tag(BC_PARALLEL_PERIODIC_TAG,BC_TAG_CYCLE);
 
-      
+
 
       // Send the messages.
 
-      for (int iproc = 0; iproc < nprocs; ++iproc) 
+      for (int iproc = 0; iproc < nprocs; ++iproc)
 	{
-	  if (messages[iproc]) 
+	  if (messages[iproc])
 	    {
 
 #ifdef PRINT_DEBUG
-	      msg << "  ParallelPeriodicBCApply: Sending message to node " 
+	      msg << "  ParallelPeriodicBCApply: Sending message to node "
 		  << iproc << endl
 		  << "    number of domains  = " << ndomains[iproc] << endl
-		  << "    number of MsgItems = " 
+		  << "    number of MsgItems = "
 		  << messages[iproc]->size() << endl;
 #endif
 
@@ -1445,14 +1445,14 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
       msg << "Done with send." << endl;
 #endif
 
-      
-	  
-      
-
-    } // if (nprocs > 1) 
 
 
-  
+
+
+    } // if (nprocs > 1)
+
+
+
 
   //===========================================================================
   //  2. Evaluate local pieces directly.
@@ -1464,7 +1464,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
   DestListIterator_t dest_i;
 
-  for (dest_i = dest_begin; dest_i != dest_end; ++dest_i) 
+  for (dest_i = dest_begin; dest_i != dest_end; ++dest_i)
     {
       // Cache some information about this local array.
 
@@ -1479,7 +1479,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
       SrcListIterator_t src_i;
 
-      for (src_i = src_begin; src_i != src_end; ++src_i) 
+      for (src_i = src_begin; src_i != src_end; ++src_i)
         {
           // Cache some information about this local array.
 
@@ -1505,7 +1505,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 	      // Calculate the actual source and destination domains.
 
-	      Domain_t real_src_domain = 
+	      Domain_t real_src_domain =
 		src_domain.intersect(src_lf_alloc);
 
 	      Domain_t real_dest_domain = real_src_domain;
@@ -1518,18 +1518,18 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 #endif
 
 	      // Build the iterators for the copy
-	      
+
 	      LFI_t lhs = dest_lf.begin(real_dest_domain);
 	      LFI_t rhs = src_lf.begin(real_src_domain);
 
 	      // And do the assignment:
 
-	      if (this->getComponent() == BCondBase<T,D,M,C>::allComponents) 
+	      if (this->getComponent() == BCondBase<T,D,M,C>::allComponents)
 		{
 		  BrickExpression<D,LFI_t,LFI_t,OpPeriodic<T> >
 		    (lhs,rhs,OpPeriodic<T>()).apply();
-		} 
-	      else 
+		}
+	      else
 		{
 		  BrickExpression<D,LFI_t,LFI_t,OpPeriodicComponent<T> >
 		    (lhs,rhs,OpPeriodicComponent<T>(this->getComponent())).apply();
@@ -1542,7 +1542,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   msg << "Done with local calculation." << endl;
 #endif
 
-  
+
 
 
   //===========================================================================
@@ -1551,44 +1551,44 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
   if (nprocs > 1)
     {
-      
-      
+
+
 
 #ifdef PRINT_DEBUG
       msg << "Starting receive..." << endl;
       //      stop_here();
 #endif
 
-      while (receive_count > 0) 
+      while (receive_count > 0)
 	{
 
 	  // Receive the next message.
 
 	  int any_node = COMM_ANY_NODE;
 
-	  
 
-	  Message* message = 
+
+	  Message* message =
 	    Ippl::Comm->receive_block(any_node,bc_comm_tag);
 	  PAssert(message);
 
 	  --receive_count;
 
-	  
+
 
 	  // Determine the number of domains being sent
 
 	  int ndomains = message->size() / (D + 3);
 
 #ifdef PRINT_DEBUG
-	  msg << "  Message received from node " 
+	  msg << "  Message received from node "
 	      << any_node << "," << endl
 	      << "  number of domains = " << ndomains << endl;
 #endif
 
-	  for (int idomain=0; idomain < ndomains; ++idomain) 
+	  for (int idomain=0; idomain < ndomains; ++idomain)
 	    {
-	      // Extract the intersection domain from the message 
+	      // Extract the intersection domain from the message
 	      // and translate it to the destination side.
 
 	      Domain_t intersection;
@@ -1608,7 +1608,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 	      // Find the LField it is destined for.
 
-	      typename ReceiveMap_t::iterator hit = 
+	      typename ReceiveMap_t::iterator hit =
 		receive_map.find(intersection);
 
 	      PAssert(hit != receive_map.end());
@@ -1628,7 +1628,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 	      msg << ", LHS value = " << *lf.begin() << endl;
 	      msg << "   RHS compressed ? " << rhs.IsCompressed();
 	      msg << ", RHS value = " << *rhs << endl;
-	      msg << "   *rhs == *lf.begin() ? " 
+	      msg << "   *rhs == *lf.begin() ? "
 		  << (*rhs == *lf.begin()) << endl;
 #endif
 	      if (!(rhs.IsCompressed() && lf.IsCompressed() &&
@@ -1655,7 +1655,7 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 	  delete message;
 	}
-      
+
 
 #ifdef PRINT_DEBUG
       msg << "Done with receive." << endl;
@@ -1677,7 +1677,7 @@ struct OpExtrapolate
   T Offset, Slope;
 };
 template<class T>
-inline void PETE_apply(const OpExtrapolate<T>& e, T& a, const T& b) 
+inline void PETE_apply(const OpExtrapolate<T>& e, T& a, const T& b)
 { a = b*e.Slope + e.Offset; }
 
 // Special, for applying to single component of multicomponent elemental type:
@@ -1690,12 +1690,12 @@ struct OpExtrapolateComponent
   int Component;
 };
 template<class T>
-inline void PETE_apply(const OpExtrapolateComponent<T>& e, T& a, const T& b) 
-{ 
+inline void PETE_apply(const OpExtrapolateComponent<T>& e, T& a, const T& b)
+{
   a[e.Component] = b[e.Component]*e.Slope[e.Component] + e.Offset[e.Component];
 }
 
-// Following specializations are necessary because of the runtime branches in 
+// Following specializations are necessary because of the runtime branches in
 // functions like these in code below:
 // 		  if (ef.Component == BCondBase<T,D,M,Cell>::allComponents) {
 // 		    BrickExpression<D,LFI,LFI,OpExtrapolate<T> >
@@ -1706,7 +1706,7 @@ inline void PETE_apply(const OpExtrapolateComponent<T>& e, T& a, const T& b)
 // 		       (ef.Offset,ef.Slope,ef.Component)).apply();
 // 		  }
 // which unfortunately force instantiation of OpExtrapolateComponent instances
-// for non-multicomponent types like {char,double,...}. Note: if user uses 
+// for non-multicomponent types like {char,double,...}. Note: if user uses
 // non-multicomponent (no operator[]) types of his own, he'll get a compile
 // error.
 
@@ -1723,12 +1723,12 @@ COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,dcomplex)
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
-// For unspecified centering, can't implement ExtrapolateFace::apply() 
+// For unspecified centering, can't implement ExtrapolateFace::apply()
 // correctly, and can't partial-specialize yet, so... don't have a prototype
 // for unspecified centering, so user gets a compile error if he tries to
 // invoke it for a centering not yet implemented. Implement external functions
-// which are specializations for the various centerings 
-// {Cell,Vert,CartesianCentering}; these are called from the general 
+// which are specializations for the various centerings
+// {Cell,Vert,CartesianCentering}; these are called from the general
 // ExtrapolateFace::apply() function body.
 //----------------------------------------------------------------------------
 
@@ -1752,16 +1752,18 @@ void ExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 }
 
 
+//#pragma GCC push_options
+//#pragma GCC optimize "no-tree-vrp"
 template<class T, unsigned D, class M, class C>
-inline void 
+inline void
 ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
-  LField<T,D> &fill, LField<T,D> &from, const NDIndex<D> &from_alloc, 
+  LField<T,D> &fill, LField<T,D> &from, const NDIndex<D> &from_alloc,
   ExtrapolateFace<T,D,M,C> &ef)
-{	      
-  // If both the 'fill' and 'from' are compressed and applying the boundary 
+{
+  // If both the 'fill' and 'from' are compressed and applying the boundary
   // condition on the compressed value would result in no change to
   // 'fill' we don't need to uncompress.
-  
+
   if (fill.IsCompressed() && from.IsCompressed())
     {
       // So far, so good. Let's check to see if the boundary condition
@@ -1788,7 +1790,7 @@ ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
 	}
     }
 
-  // Well poop, we have no alternative but to uncompress the region 
+  // Well poop, we have no alternative but to uncompress the region
   // we're filling.
 
   fill.Uncompress();
@@ -1797,25 +1799,26 @@ ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
   NDIndex<D> fill_it = dest.plugBase(from_it);
 
   // Build iterators for the copy...
-  
+
   typedef typename LField<T,D>::iterator LFI;
   LFI lhs = fill.begin(fill_it);
   LFI rhs = from.begin(from_it);
 
   // And do the assignment.
 
-  if (ef.getComponent() == BCondBase<T,D,M,C>::allComponents) 
+  if (ef.getComponent() == BCondBase<T,D,M,C>::allComponents)
     {
       BrickExpression<D,LFI,LFI,OpExtrapolate<T> >
 	(lhs,rhs,OpExtrapolate<T>(ef.getOffset(),ef.getSlope())).apply();
-    } 
-  else 
+    }
+  else
     {
       BrickExpression<D,LFI,LFI,OpExtrapolateComponent<T> >
 	(lhs,rhs,OpExtrapolateComponent<T>
 	 (ef.getOffset(),ef.getSlope(),ef.getComponent())).apply();
     }
 }
+//#pragma GCC pop_options
 
 
 //-----------------------------------------------------------------------------
@@ -1827,8 +1830,8 @@ template<class T, unsigned D, class M>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
 			    Field<T,D,M,Cell>& A )
 {
-  
-  
+
+
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -1841,17 +1844,17 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
   int offset;
 
   // The following bitwise AND logical test returns true if ef.m_face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
-  // returns false if ef.m_face is even (meaning the "low" or "left" face in 
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if ef.m_face is even (meaning the "low" or "left" face in
   // the numbering convention):
 
   if (ef.getFace() & 1)
     {
-      // For "high" face, index in active direction goes from max index of 
+      // For "high" face, index in active direction goes from max index of
       // Field plus 1 to the same plus number of guard layers:
       // TJW: this used to say "leftGuard(d)", which I think was wrong:
 
@@ -1864,7 +1867,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
     }
   else
     {
-      // For "low" face, index in active direction goes from min index of 
+      // For "low" face, index in active direction goes from min index of
       // Field minus the number of guard layers (usually a negative number)
       // to the same min index minus 1 (usually negative, and usually -1):
 
@@ -1890,7 +1893,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
 
       const NDIndex<D> &fill_alloc = fill.getAllocated();
 
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
@@ -1904,24 +1907,24 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
           // For extrapolation boundary conditions, the boundary guard-layer
 	  // elements are typically copied from interior values; the "src"
 	  // NDIndex specifies the interior elements to be copied into the
-	  // "dest" boundary guard-layer elements (possibly after some 
+	  // "dest" boundary guard-layer elements (possibly after some
 	  // mathematical operations like multipplying by minus 1 later):
 
-          NDIndex<D> src = dest; 
+          NDIndex<D> src = dest;
 
 	  // Now calculate the interior elements; the offset variable computed
 	  // above makes this correct for "low" or "high" face cases:
 
           src[d] = offset - src[d];
 
-	  // At this point, we need to see if 'src' is fully contained by 
+	  // At this point, we need to see if 'src' is fully contained by
 	  // by 'fill_alloc'. If it is, we have a lot less work to do.
 
 	  if (fill_alloc.contains(src))
 	    {
 	      // Great! Our domain contains the elements we're filling from.
-	      
-	      ExtrapolateFaceBCApply2(dest, src, fill, fill, 
+
+	      ExtrapolateFaceBCApply2(dest, src, fill, fill,
 	        fill_alloc, ef);
 	    }
 	  else
@@ -1933,7 +1936,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
 	      for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
 		{
 		  // Cache a few things.
-		  
+
 		  LField<T,D> &from = *(*from_i).second;
 		  const NDIndex<D> &from_owned = from.getOwned();
 		  const NDIndex<D> &from_alloc = from.getAllocated();
@@ -1959,8 +1962,8 @@ template<class T, unsigned D, class M>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
 			    Field<T,D,M,Vert>& A )
 {
-  
-  
+
+
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -1973,17 +1976,17 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
   int offset;
 
   // The following bitwise AND logical test returns true if ef.m_face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
-  // returns false if ef.m_face is even (meaning the "low" or "left" face 
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if ef.m_face is even (meaning the "low" or "left" face
   // in the numbering convention):
 
   if ( ef.getFace() & 1 )
     {
-      // For "high" face, index in active direction goes from max index of 
+      // For "high" face, index in active direction goes from max index of
       // Field plus 1 to the same plus number of guard layers:
       // TJW: this used to say "leftGuard(d)", which I think was wrong:
 
@@ -1998,7 +2001,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
     }
   else
     {
-      // For "low" face, index in active direction goes from min index of 
+      // For "low" face, index in active direction goes from min index of
       // Field minus the number of guard layers (usually a negative number)
       // to the same min index minus 1 (usually negative, and usually -1):
 
@@ -2023,7 +2026,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
       // NDIndex spanning all elements in the LField, including the guards:
 
       const NDIndex<D> &fill_alloc = fill.getAllocated();
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
@@ -2037,7 +2040,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
           // For exrapolation boundary conditions, the boundary guard-layer
 	  // elements are typically copied from interior values; the "src"
 	  // NDIndex specifies the interior elements to be copied into the
-	  // "dest" boundary guard-layer elements (possibly after some 
+	  // "dest" boundary guard-layer elements (possibly after some
 	  // mathematical operations like multipplying by minus 1 later):
 
           NDIndex<D> src = dest;
@@ -2047,14 +2050,14 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
 
           src[d] = offset - src[d];
 
-	  // At this point, we need to see if 'src' is fully contained by 
+	  // At this point, we need to see if 'src' is fully contained by
 	  // by 'fill_alloc'. If it is, we have a lot less work to do.
 
 	  if (fill_alloc.contains(src))
 	    {
 	      // Great! Our domain contains the elements we're filling from.
-	      
-	      ExtrapolateFaceBCApply2(dest, src, fill, fill, 
+
+	      ExtrapolateFaceBCApply2(dest, src, fill, fill,
 	        fill_alloc, ef);
 	    }
 	  else
@@ -2092,8 +2095,8 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
 			    Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  
-  
+
+
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -2106,29 +2109,29 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
   int offset;
 
   // The following bitwise AND logical test returns true if ef.m_face is odd
   // (meaning the "high" or "right" face in the numbering convention) and
-  // returns false if ef.m_face is even (meaning the "low" or "left" face 
+  // returns false if ef.m_face is even (meaning the "low" or "left" face
   // in the numbering convention):
 
   if ( ef.getFace() & 1 )
     {
-      // offset is used in computing interior elements used in computing fill 
+      // offset is used in computing interior elements used in computing fill
       // values for boundary guard  elements; see below:
       // Do the right thing for CELL or VERT centering for this component (or
       // all components, if the PeriodicFace object so specifies):
 
       if (ef.getComponent() == BCondBase<T,D,M,CartesianCentering<CE,D,NC> >::
-	  allComponents) 
+	  allComponents)
 	{
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++) 
-	    { 
+	  for (int c=1; c<NC; c++)
+	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
 		ERRORMSG("ExtrapolateFaceBCApply: BCond thinks all components"
@@ -2136,29 +2139,29 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 			 << ", but it isn't so." << endl);
 	    }
 
-	  // Now do the right thing for CELL or VERT centering of 
+	  // Now do the right thing for CELL or VERT centering of
 	  // all components:
 
 	  // For "high" face, index in active direction goes from max index of
 	  // Field plus 1 to the same plus number of guard layers:
 
-	  slab[d] = Index(domain[d].max() + 1, 
+	  slab[d] = Index(domain[d].max() + 1,
 			  domain[d].max() + A.rightGuard(d));
 
-	  if (centering0 == CELL) 
+	  if (centering0 == CELL)
 	    {
 	      offset = 2*domain[d].max() + 1 ;    // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      offset = 2*domain[d].max() + 1 - 1; // VERT case
 	    }
 	}
-      else 
-	{ 
+      else
+	{
 	  // The BC applies only to one component, not all:
 	  // Do the right thing for CELL or VERT centering of the component:
-	  if (CE[ef.getComponent() + d*NC] == CELL) 
+	  if (CE[ef.getComponent() + d*NC] == CELL)
 	    {
 	      // For "high" face, index in active direction goes from max index
 	      // of cells in the Field plus 1 to the same plus number of guard
@@ -2168,8 +2171,8 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 
 	      //	      offset = 2*domain[d].max() + 1 ;    // CELL case
 	      offset = 2*highcell + 1 ;    // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      // For "high" face, index in active direction goes from max index
 	      // of verts in the Field plus 1 to the same plus number of guard
@@ -2184,25 +2187,25 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
     }
   else
     {
-      // For "low" face, index in active direction goes from min index of 
+      // For "low" face, index in active direction goes from min index of
       // Field minus the number of guard layers (usually a negative number)
       // to the same min index minus 1 (usually negative, and usually -1):
 
       slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
 
-      // offset is used in computing interior elements used in computing fill 
+      // offset is used in computing interior elements used in computing fill
       // values for boundary guard  elements; see below:
       // Do the right thing for CELL or VERT centering for this component (or
       // all components, if the PeriodicFace object so specifies):
 
       if (ef.getComponent() == BCondBase<T,D,M,CartesianCentering<CE,D,NC> >::
-	  allComponents) 
+	  allComponents)
 	{
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++) 
-	    { 
+	  for (int c=1; c<NC; c++)
+	    {
 	      // Compare other components with 1st
 
 	      if (CE[c + d*NC] != centering0)
@@ -2211,28 +2214,28 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 		     << ", but it isn't so." << endl);
 	    }
 
-	  // Now do the right thing for CELL or VERT centering of all 
+	  // Now do the right thing for CELL or VERT centering of all
 	  // components:
 
-	  if (centering0 == CELL) 
+	  if (centering0 == CELL)
 	    {
 	      offset = 2*domain[d].min() - 1;     // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      offset = 2*domain[d].min() - 1 + 1; // VERT case
 	    }
-	} 
-      else 
-	{ 
+	}
+      else
+	{
 	  // The BC applies only to one component, not all:
 	  // Do the right thing for CELL or VERT centering of the component:
 
-	  if (CE[ef.getComponent() + d*NC] == CELL) 
+	  if (CE[ef.getComponent() + d*NC] == CELL)
 	    {
 	      offset = 2*domain[d].min() - 1;     // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      offset = 2*domain[d].min() - 1 + 1; // VERT case
 	    }
@@ -2253,11 +2256,11 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 
       const NDIndex<D> &fill_alloc = fill.getAllocated();
 
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
-      
+
       if ( slab.touches( fill_alloc ) )
         {
           // Find what it touches in this LField.
@@ -2267,24 +2270,24 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
           // For exrapolation boundary conditions, the boundary guard-layer
 	  // elements are typically copied from interior values; the "src"
 	  // NDIndex specifies the interior elements to be copied into the
-	  // "dest" boundary guard-layer elements (possibly after some 
+	  // "dest" boundary guard-layer elements (possibly after some
 	  // mathematical operations like multipplying by minus 1 later):
 
-          NDIndex<D> src = dest; 
+          NDIndex<D> src = dest;
 
 	  // Now calculate the interior elements; the offset variable computed
 	  // above makes this correct for "low" or "high" face cases:
 
           src[d] = offset - src[d];
 
-	  // At this point, we need to see if 'src' is fully contained by 
+	  // At this point, we need to see if 'src' is fully contained by
 	  // by 'fill_alloc'. If it is, we have a lot less work to do.
 
 	  if (fill_alloc.contains(src))
 	    {
 	      // Great! Our domain contains the elements we're filling from.
-	      
-	      ExtrapolateFaceBCApply2(dest, src, fill, fill, 
+
+	      ExtrapolateFaceBCApply2(dest, src, fill, fill,
 	        fill_alloc, ef);
 	    }
 	  else
@@ -2292,7 +2295,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 	      // Yuck! Our domain doesn't contain all of the src. We
 	      // must loop over LFields to find the ones the touch the src.
 
-	      typename Field<T,D,M,CartesianCentering<CE,D,NC> >::iterator_if 
+	      typename Field<T,D,M,CartesianCentering<CE,D,NC> >::iterator_if
 		from_i;
 	      for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
 		{
@@ -2327,7 +2330,7 @@ struct OpExtrapolateAndZero
   T Offset, Slope;
 };
 template<class T>
-inline void PETE_apply(const OpExtrapolateAndZero<T>& e, T& a, const T& b) 
+inline void PETE_apply(const OpExtrapolateAndZero<T>& e, T& a, const T& b)
 { a = b*e.Slope + e.Offset; }
 
 // Special, for applying to single component of multicomponent elemental type:
@@ -2341,12 +2344,12 @@ struct OpExtrapolateAndZeroComponent
 };
 template<class T>
 inline void PETE_apply(const OpExtrapolateAndZeroComponent<T>& e, T& a,
-                       const T& b) 
-{ 
+                       const T& b)
+{
   a[e.Component] = b[e.Component]*e.Slope[e.Component] + e.Offset[e.Component];
 }
 
-// Following specializations are necessary because of the runtime branches in 
+// Following specializations are necessary because of the runtime branches in
 // functions like these in code below:
 // 		  if (ef.Component == BCondBase<T,D,M,Cell>::allComponents) {
 // 		    BrickExpression<D,LFI,LFI,OpExtrapolateAndZero<T> >
@@ -2358,9 +2361,9 @@ inline void PETE_apply(const OpExtrapolateAndZeroComponent<T>& e, T& a,
 // 		      (lhs,rhs,OpExtrapolateAndZeroComponent<T>
 // 		       (ef.Offset,ef.Slope,ef.Component)).apply();
 // 		  }
-// which unfortunately force instantiation of OpExtrapolateAndZeroComponent 
-// instances for non-multicomponent types like {char,double,...}. Note: if 
-// user uses non-multicomponent (no operator[]) types of his own, he'll get a 
+// which unfortunately force instantiation of OpExtrapolateAndZeroComponent
+// instances for non-multicomponent types like {char,double,...}. Note: if
+// user uses non-multicomponent (no operator[]) types of his own, he'll get a
 // compile error.
 
 COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,char)
@@ -2383,8 +2386,8 @@ struct OpAssignComponent
 };
 
 template<class T, class T1>
-inline void PETE_apply(const OpAssignComponent<T>& e, T& a, const T1& b) 
-{ 
+inline void PETE_apply(const OpAssignComponent<T>& e, T& a, const T1& b)
+{
   a[e.Component] = b;
 }
 
@@ -2401,12 +2404,12 @@ COMPONENT_APPLY_BUILTIN(OpAssignComponent,dcomplex)
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
-// For unspecified centering, can't implement ExtrapolateAndZeroFace::apply() 
+// For unspecified centering, can't implement ExtrapolateAndZeroFace::apply()
 // correctly, and can't partial-specialize yet, so... don't have a prototype
 // for unspecified centering, so user gets a compile error if he tries to
 // invoke it for a centering not yet implemented. Implement external functions
-// which are specializations for the various centerings 
-// {Cell,Vert,CartesianCentering}; these are called from the general 
+// which are specializations for the various centerings
+// {Cell,Vert,CartesianCentering}; these are called from the general
 // ExtrapolateAndZeroFace::apply() function body.
 //----------------------------------------------------------------------------
 
@@ -2431,15 +2434,15 @@ void ExtrapolateAndZeroFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 
 template<class T, unsigned D, class M, class C>
-inline void 
-ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest, 
-  const NDIndex<D> &src, LField<T,D> &fill, LField<T,D> &from, 
+inline void
+ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest,
+  const NDIndex<D> &src, LField<T,D> &fill, LField<T,D> &from,
   const NDIndex<D> &from_alloc, ExtrapolateAndZeroFace<T,D,M,C> &ef)
-{	      
-  // If both the 'fill' and 'from' are compressed and applying the boundary 
+{
+  // If both the 'fill' and 'from' are compressed and applying the boundary
   // condition on the compressed value would result in no change to
   // 'fill' we don't need to uncompress.
-  
+
   if (fill.IsCompressed() && from.IsCompressed())
     {
       // So far, so good. Let's check to see if the boundary condition
@@ -2466,7 +2469,7 @@ ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest,
 	}
     }
 
-  // Well poop, we have no alternative but to uncompress the region 
+  // Well poop, we have no alternative but to uncompress the region
   // we're filling.
 
   fill.Uncompress();
@@ -2475,20 +2478,20 @@ ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest,
   NDIndex<D> fill_it = dest.plugBase(from_it);
 
   // Build iterators for the copy...
-  
+
   typedef typename LField<T,D>::iterator LFI;
   LFI lhs = fill.begin(fill_it);
   LFI rhs = from.begin(from_it);
 
   // And do the assignment.
 
-  if (ef.getComponent() == BCondBase<T,D,M,C>::allComponents) 
+  if (ef.getComponent() == BCondBase<T,D,M,C>::allComponents)
     {
       BrickExpression< D, LFI, LFI, OpExtrapolateAndZero<T> >
 	(lhs, rhs,
          OpExtrapolateAndZero<T>(ef.getOffset(),ef.getSlope())).apply();
-    } 
-  else 
+    }
+  else
     {
       BrickExpression< D, LFI, LFI, OpExtrapolateAndZeroComponent<T> >
 	(lhs, rhs,
@@ -2499,14 +2502,14 @@ ExtrapolateAndZeroFaceBCApply2(const NDIndex<D> &dest,
 
 
 template<class T, unsigned D, class M, class C>
-inline void 
-ExtrapolateAndZeroFaceBCApply3(const NDIndex<D> &dest, 
+inline void
+ExtrapolateAndZeroFaceBCApply3(const NDIndex<D> &dest,
   LField<T,D> &fill, ExtrapolateAndZeroFace<T,D,M,C> &ef)
-{	      
+{
   // If the LField we're filling is compressed and setting the
   // cells/components to zero wouldn't make any difference, we don't
   // need to uncompress.
-  
+
   if (fill.IsCompressed())
     {
       // So far, so good. Let's check to see if the boundary condition
@@ -2533,24 +2536,24 @@ ExtrapolateAndZeroFaceBCApply3(const NDIndex<D> &dest,
 	}
     }
 
-  // Well poop, we have no alternative but to uncompress the region 
+  // Well poop, we have no alternative but to uncompress the region
   // we're filling.
 
   fill.Uncompress();
 
   // Build iterator for the assignment...
-  
+
   typedef typename LField<T,D>::iterator LFI;
   LFI lhs = fill.begin(dest);
 
   // And do the assignment.
 
-  if (ef.getComponent() == BCondBase<T,D,M,C>::allComponents) 
+  if (ef.getComponent() == BCondBase<T,D,M,C>::allComponents)
     {
       BrickExpression<D,LFI,PETE_Scalar<T>,OpAssign >
 	(lhs,PETE_Scalar<T>(T(0)),OpAssign()).apply();
-    } 
-  else 
+    }
+  else
     {
       typedef typename AppTypeTraits<T>::Element_t T1;
 
@@ -2563,7 +2566,7 @@ ExtrapolateAndZeroFaceBCApply3(const NDIndex<D> &dest,
 
 //-----------------------------------------------------------------------------
 // Specialization of ExtrapolateAndZeroFace::apply() for Cell centering.
-// Rather, indirectly-called specialized global function 
+// Rather, indirectly-called specialized global function
 // ExtrapolateAndZeroFaceBCApply
 //-----------------------------------------------------------------------------
 
@@ -2571,8 +2574,8 @@ template<class T, unsigned D, class M>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
 			    Field<T,D,M,Cell>& A )
 {
-  
-  
+
+
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -2585,17 +2588,17 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
   int offset;
 
   // The following bitwise AND logical test returns true if ef.m_face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
-  // returns false if ef.m_face is even (meaning the "low" or "left" face 
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if ef.m_face is even (meaning the "low" or "left" face
   // in the numbering convention):
 
   if (ef.getFace() & 1)
     {
-      // For "high" face, index in active direction goes from max index of 
+      // For "high" face, index in active direction goes from max index of
       // Field plus 1 to the same plus number of guard layers:
       // TJW: this used to say "leftGuard(d)", which I think was wrong:
 
@@ -2608,7 +2611,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
     }
   else
     {
-      // For "low" face, index in active direction goes from min index of 
+      // For "low" face, index in active direction goes from min index of
       // Field minus the number of guard layers (usually a negative number)
       // to the same min index minus 1 (usually negative, and usually -1):
 
@@ -2634,7 +2637,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
 
       const NDIndex<D> &fill_alloc = fill.getAllocated();
 
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
@@ -2648,24 +2651,24 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
           // For extrapolation boundary conditions, the boundary guard-layer
 	  // elements are typically copied from interior values; the "src"
 	  // NDIndex specifies the interior elements to be copied into the
-	  // "dest" boundary guard-layer elements (possibly after some 
+	  // "dest" boundary guard-layer elements (possibly after some
 	  // mathematical operations like multipplying by minus 1 later):
 
-          NDIndex<D> src = dest; 
+          NDIndex<D> src = dest;
 
 	  // Now calculate the interior elements; the offset variable computed
 	  // above makes this correct for "low" or "high" face cases:
 
           src[d] = offset - src[d];
 
-	  // At this point, we need to see if 'src' is fully contained by 
+	  // At this point, we need to see if 'src' is fully contained by
 	  // by 'fill_alloc'. If it is, we have a lot less work to do.
 
 	  if (fill_alloc.contains(src))
 	    {
 	      // Great! Our domain contains the elements we're filling from.
-	      
-	      ExtrapolateAndZeroFaceBCApply2(dest, src, fill, fill, 
+
+	      ExtrapolateAndZeroFaceBCApply2(dest, src, fill, fill,
 	        fill_alloc, ef);
 	    }
 	  else
@@ -2677,7 +2680,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
 	      for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
 		{
 		  // Cache a few things.
-		  
+
 		  LField<T,D> &from = *(*from_i).second;
 		  const NDIndex<D> &from_owned = from.getOwned();
 		  const NDIndex<D> &from_alloc = from.getAllocated();
@@ -2718,7 +2721,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
   int offset;
 
   // The following bitwise AND logical test returns true if ef.m_face is odd
@@ -2728,7 +2731,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
 
   if ( ef.getFace() & 1 )
     {
-      // For "high" face, index in active direction goes from max index of 
+      // For "high" face, index in active direction goes from max index of
       // Field plus 1 to the same plus number of guard layers:
       // TJW: this used to say "leftGuard(d)", which I think was wrong:
 
@@ -2747,7 +2750,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
     }
   else
     {
-      // For "low" face, index in active direction goes from min index of 
+      // For "low" face, index in active direction goes from min index of
       // Field minus the number of guard layers (usually a negative number)
       // to the same min index minus 1 (usually negative, and usually -1):
 
@@ -2798,7 +2801,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
 
       //boo-boo-2      const NDIndex<D> &fill_alloc = fill.getAllocated();
 
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
@@ -2812,7 +2815,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
           // For exrapolation boundary conditions, the boundary guard-layer
 	  // elements are typically copied from interior values; the "src"
 	  // NDIndex specifies the interior elements to be copied into the
-	  // "dest" boundary guard-layer elements (possibly after some 
+	  // "dest" boundary guard-layer elements (possibly after some
 	  // mathematical operations like multipplying by minus 1 later):
 
           NDIndex<D> src = dest;
@@ -2822,14 +2825,14 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
 
           src[d] = offset - src[d];
 
-	  // At this point, we need to see if 'src' is fully contained by 
+	  // At this point, we need to see if 'src' is fully contained by
 	  // by 'fill_alloc'. If it is, we have a lot less work to do.
 
 	  if (fill_alloc.contains(src))
 	    {
 	      // Great! Our domain contains the elements we're filling from.
-	      
-	      ExtrapolateAndZeroFaceBCApply2(dest, src, fill, fill, 
+
+	      ExtrapolateAndZeroFaceBCApply2(dest, src, fill, fill,
 	        fill_alloc, ef);
 	    }
 	  else
@@ -2882,7 +2885,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
   int offset;
   bool setPhys = false;
 
@@ -2893,19 +2896,19 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 
   if ( ef.getFace() & 1 )
     {
-      // offset is used in computing interior elements used in computing fill 
+      // offset is used in computing interior elements used in computing fill
       // values for boundary guard  elements; see below:
       // Do the right thing for CELL or VERT centering for this component (or
       // all components, if the PeriodicFace object so specifies):
 
       if (ef.getComponent() == BCondBase<T,D,M,CartesianCentering<CE,D,NC> >::
-	  allComponents) 
+	  allComponents)
 	{
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++) 
-	    { 
+	  for (int c=1; c<NC; c++)
+	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
 		ERRORMSG(
@@ -2914,20 +2917,20 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 			 << ", but it isn't so." << endl);
 	    }
 
-	  // Now do the right thing for CELL or VERT centering of 
+	  // Now do the right thing for CELL or VERT centering of
 	  // all components:
 
 	  // For "high" face, index in active direction goes from max index of
 	  // Field plus 1 to the same plus number of guard layers:
 
-	  slab[d] = Index(domain[d].max() + 1, 
+	  slab[d] = Index(domain[d].max() + 1,
 			  domain[d].max() + A.rightGuard(d));
 
-	  if (centering0 == CELL) 
+	  if (centering0 == CELL)
 	    {
 	      offset = 2*domain[d].max() + 1 ;    // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      offset = 2*domain[d].max() + 1 - 1; // VERT case
 
@@ -2937,11 +2940,11 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	      setPhys = true;
 	    }
 	}
-      else 
-	{ 
+      else
+	{
 	  // The BC applies only to one component, not all:
 	  // Do the right thing for CELL or VERT centering of the component:
-	  if (CE[ef.getComponent() + d*NC] == CELL) 
+	  if (CE[ef.getComponent() + d*NC] == CELL)
 	    {
 	      // For "high" face, index in active direction goes from max index
 	      // of cells in the Field plus 1 to the same plus number of guard
@@ -2951,8 +2954,8 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 
 	      //	      offset = 2*domain[d].max() + 1 ;    // CELL case
 	      offset = 2*highcell + 1 ;    // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      // For "high" face, index in active direction goes from max index
 	      // of verts in the Field plus 1 to the same plus number of guard
@@ -2966,7 +2969,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	      offset = 2*highvert + 1 - 1; // VERT case
 
 	      // Compute the layer of physical cells we're going to set.
-	      
+
 	      phys[d] = Index( highvert, highvert, 1 );
 	      setPhys = true;
 	    }
@@ -2974,25 +2977,25 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
     }
   else
     {
-      // For "low" face, index in active direction goes from min index of 
+      // For "low" face, index in active direction goes from min index of
       // Field minus the number of guard layers (usually a negative number)
       // to the same min index minus 1 (usually negative, and usually -1):
 
       slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
 
-      // offset is used in computing interior elements used in computing fill 
+      // offset is used in computing interior elements used in computing fill
       // values for boundary guard  elements; see below:
       // Do the right thing for CELL or VERT centering for this component (or
       // all components, if the PeriodicFace object so specifies):
 
       if (ef.getComponent() == BCondBase<T,D,M,CartesianCentering<CE,D,NC> >::
-	  allComponents) 
+	  allComponents)
 	{
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++) 
-	    { 
+	  for (int c=1; c<NC; c++)
+	    {
 	      // Compare other components with 1st
 
 	      if (CE[c + d*NC] != centering0)
@@ -3002,14 +3005,14 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 		     << ", but it isn't so." << endl);
 	    }
 
-	  // Now do the right thing for CELL or VERT centering of all 
+	  // Now do the right thing for CELL or VERT centering of all
 	  // components:
 
-	  if (centering0 == CELL) 
+	  if (centering0 == CELL)
 	    {
 	      offset = 2*domain[d].min() - 1;     // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      offset = 2*domain[d].min() - 1 + 1; // VERT case
 
@@ -3018,17 +3021,17 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	      phys[d] = Index(domain[d].min(),  domain[d].min(), 1);
 	      setPhys = true;
 	    }
-	} 
-      else 
-	{ 
+	}
+      else
+	{
 	  // The BC applies only to one component, not all:
 	  // Do the right thing for CELL or VERT centering of the component:
 
-	  if (CE[ef.getComponent() + d*NC] == CELL) 
+	  if (CE[ef.getComponent() + d*NC] == CELL)
 	    {
 	      offset = 2*domain[d].min() - 1;     // CELL case
-	    } 
-	  else 
+	    }
+	  else
 	    {
 	      offset = 2*domain[d].min() - 1 + 1; // VERT case
 
@@ -3063,12 +3066,12 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	  if (phys.touches(fill_alloc))
 	    {
 	      // Find out what we're touching.
-	      
+
 	      //boo-boo-2	      NDIndex<D> dest = phys.intersect(fill_owned);
 	      NDIndex<D> dest = phys.intersect(fill_alloc);
-	      
+
 	      // Zero the cells.
-	      
+
 	      ExtrapolateAndZeroFaceBCApply3(dest, fill, ef);
 	    }
 	}
@@ -3077,11 +3080,11 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 
       //boo-boo-2      const NDIndex<D> &fill_alloc = fill.getAllocated();
 
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
-      
+
       if ( slab.touches( fill_alloc ) )
         {
           // Find what it touches in this LField.
@@ -3091,24 +3094,24 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
           // For extrapolation boundary conditions, the boundary guard-layer
 	  // elements are typically copied from interior values; the "src"
 	  // NDIndex specifies the interior elements to be copied into the
-	  // "dest" boundary guard-layer elements (possibly after some 
+	  // "dest" boundary guard-layer elements (possibly after some
 	  // mathematical operations like multipplying by minus 1 later):
 
-          NDIndex<D> src = dest; 
+          NDIndex<D> src = dest;
 
 	  // Now calculate the interior elements; the offset variable computed
 	  // above makes this correct for "low" or "high" face cases:
 
           src[d] = offset - src[d];
 
-	  // At this point, we need to see if 'src' is fully contained by 
+	  // At this point, we need to see if 'src' is fully contained by
 	  // by 'fill_alloc'. If it is, we have a lot less work to do.
 
 	  if (fill_alloc.contains(src))
 	    {
 	      // Great! Our domain contains the elements we're filling from.
-	      
-	      ExtrapolateAndZeroFaceBCApply2(dest, src, fill, fill, 
+
+	      ExtrapolateAndZeroFaceBCApply2(dest, src, fill, fill,
 	        fill_alloc, ef);
 	    }
 	  else
@@ -3116,7 +3119,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	      // Yuck! Our domain doesn't contain all of the src. We
 	      // must loop over LFields to find the ones the touch the src.
 
-	      typename Field<T,D,M,CartesianCentering<CE,D,NC> >::iterator_if 
+	      typename Field<T,D,M,CartesianCentering<CE,D,NC> >::iterator_if
 		from_i;
 	      for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
 		{
@@ -3165,12 +3168,12 @@ inline void PETE_apply(const OpBCFunctionEq<T>& e, T& a, T& b)
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
-// For unspecified centering, can't implement FunctionFace::apply() 
+// For unspecified centering, can't implement FunctionFace::apply()
 // correctly, and can't partial-specialize yet, so... don't have a prototype
 // for unspecified centering, so user gets a compile error if he tries to
 // invoke it for a centering not yet implemented. Implement external functions
-// which are specializations for the various centerings 
-// {Cell,Vert,CartesianCentering}; these are called from the general 
+// which are specializations for the various centerings
+// {Cell,Vert,CartesianCentering}; these are called from the general
 // FunctionFace::apply() function body.
 //----------------------------------------------------------------------------
 
@@ -3190,8 +3193,8 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,
 template<class T, unsigned D, class M, class C>
 void FunctionFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
-  
-  
+
+
   FunctionFaceBCApply(*this, A);
 }
 
@@ -3203,10 +3206,10 @@ template<class T, unsigned D, class M>
 void FunctionFaceBCApply(FunctionFace<T,D,M,Cell>& ff,
 			 Field<T,D,M,Cell>& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions above for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -3288,10 +3291,10 @@ template<class T, unsigned D, class M>
 void FunctionFaceBCApply(FunctionFace<T,D,M,Vert>& ff,
 			 Field<T,D,M,Vert>& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions above for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -3378,10 +3381,10 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions above for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -3496,7 +3499,7 @@ struct OpBCFunctionEqComponent
 {
   OpBCFunctionEqComponent(typename ApplyToComponentType<T>::type (*func)
 			  ( typename ApplyToComponentType<T>::type ),
-                          int c) : 
+                          int c) :
     Func(func), Component(c) {}
   typename ApplyToComponentType<T>::type
     (*Func)( typename ApplyToComponentType<T>::type );
@@ -3506,10 +3509,10 @@ template<class T>
 inline void PETE_apply(const OpBCFunctionEqComponent<T>& e, T& a, const T& b)
 { a[e.Component] = e.Func(b[e.Component]); }
 
-// Following specializations are necessary because of the runtime branches in 
-// code which unfortunately force instantiation of OpBCFunctionEqComponent 
-// instances for non-multicomponent types like {char,double,...}. 
-// Note: if user uses non-multicomponent (no operator[]) types of his own, 
+// Following specializations are necessary because of the runtime branches in
+// code which unfortunately force instantiation of OpBCFunctionEqComponent
+// instances for non-multicomponent types like {char,double,...}.
+// Note: if user uses non-multicomponent (no operator[]) types of his own,
 // he'll get a compile error. See comments regarding similar specializations
 // for OpExtrapolateComponent for a more details.
 
@@ -3527,12 +3530,12 @@ COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,dcomplex)
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
-// For unspecified centering, can't implement ComponentFunctionFace::apply() 
+// For unspecified centering, can't implement ComponentFunctionFace::apply()
 // correctly, and can't partial-specialize yet, so... don't have a prototype
 // for unspecified centering, so user gets a compile error if he tries to
 // invoke it for a centering not yet implemented. Implement external functions
-// which are specializations for the various centerings 
-// {Cell,Vert,CartesianCentering}; these are called from the general 
+// which are specializations for the various centerings
+// {Cell,Vert,CartesianCentering}; these are called from the general
 // ComponentFunctionFace::apply() function body.
 //----------------------------------------------------------------------------
 
@@ -3565,10 +3568,10 @@ template<class T, unsigned D, class M>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Cell>& ff,
 				  Field<T,D,M,Cell>& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions above for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -3652,10 +3655,10 @@ template<class T, unsigned D, class M>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Vert>& ff,
 			 Field<T,D,M,Vert>& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions above for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -3744,10 +3747,10 @@ void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
 {
-  
-  
 
-  // NOTE: See the ExtrapolateFaceBCApply functions above for more 
+
+
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
   // comprehensible comments --TJW
 
   // Find the slab that is the destination.
@@ -3854,7 +3857,7 @@ void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,
 //------------------------------------------------------------
 
 template<class T, unsigned int D, class M, class C>
-void EurekaFace<T,D,M,C>::apply(Field<T,D,M,C>& field) 
+void EurekaFace<T,D,M,C>::apply(Field<T,D,M,C>& field)
 {
   // Calculate the domain we're going to fill
   // using the domain of the field.
@@ -3892,13 +3895,13 @@ template<class T>
 #endif // __MWERKS__
 struct EurekaAssign
 {
-  static const T& get(const T& x, int) { 
+  static const T& get(const T& x, int) {
     ERRORMSG("Eureka assign to a component of class without an op[]!"<<endl);
-    return x; 
+    return x;
   }
-  static T& get(T& x, int) { 
+  static T& get(T& x, int) {
     ERRORMSG("Eureka assign to a component of class without an op[]!"<<endl);
-    return x; 
+    return x;
   }
   int m_component;
   EurekaAssign(int c) : m_component(c) {}
@@ -3913,8 +3916,8 @@ struct EurekaAssign
 //------------------------------------------------------------
 
 template<class T, unsigned int D, class M, class C>
-static void 
-fillSlabWithZero(Field<T,D,M,C>& field, 
+static void
+fillSlabWithZero(Field<T,D,M,C>& field,
 		 const NDIndex<D>& fillDomain,
 		 int component)
 {
@@ -3932,10 +3935,10 @@ fillSlabWithZero(Field<T,D,M,C>& field,
       NDIndex<D> localDomain = lf.getAllocated();
 
       // If localDomain intersects fillDomain, we have work to do.
-      if ( fillDomain.touches(localDomain) ) 
+      if ( fillDomain.touches(localDomain) )
         {
           // If lf is compressed, we may not have to do any work.
-          if ( lf.IsCompressed() ) 
+          if ( lf.IsCompressed() )
             {
               // Check and see if we're dealing with all components
               if ( component == BCondBase<T,D,M,C>::allComponents )
@@ -3965,7 +3968,7 @@ fillSlabWithZero(Field<T,D,M,C>& field,
               // Have to uncompress.
               lf.Uncompress();
             }
-        
+
           // Get the actual intersection.
           NDIndex<D> intersectDomain = fillDomain.intersect(localDomain);
 
@@ -3979,7 +3982,7 @@ fillSlabWithZero(Field<T,D,M,C>& field,
           typedef PETE_Scalar<T> Rhs_t;
 
           // If we are assigning all components, use regular assignment.
-          if ( component == BCondBase<T,D,M,C>::allComponents ) 
+          if ( component == BCondBase<T,D,M,C>::allComponents )
             {
               // The type of the expression.
               typedef BrickExpression<D,Lhs_t,Rhs_t,OpAssign> Expr_t;
@@ -4090,16 +4093,16 @@ struct EurekaAssign< SymTenzor<T,D> >
 // putting D template parameter on EurekaAssign struct and all the
 // specializations:
 template<class T, int D>
-inline void PETE_apply(const EurekaAssign<T,D>& e, T& a, const T& b) 
-{ 
-  EurekaAssign<T,D>::get(a,e.m_component) = 
+inline void PETE_apply(const EurekaAssign<T,D>& e, T& a, const T& b)
+{
+  EurekaAssign<T,D>::get(a,e.m_component) =
     EurekaAssign<T,D>::get(b,e.m_component);
 }
 #else
 template<class T>
-inline void PETE_apply(const EurekaAssign<T>& e, T& a, const T& b) 
-{ 
-  EurekaAssign<T>::get(a,e.m_component) = 
+inline void PETE_apply(const EurekaAssign<T>& e, T& a, const T& b)
+{
+  EurekaAssign<T>::get(a,e.m_component) =
     EurekaAssign<T>::get(b,e.m_component);
 }
 #endif // __MWERKS__
@@ -4126,7 +4129,7 @@ calcEurekaDomain(const NDIndex<D>& realDomain,
 
   // The upper and lower bounds of the domain.
   int low,high;
-    
+
   // If the face is odd, then it is the "high" end of the dimension.
   if ( face&1 )
     {
@@ -4146,7 +4149,7 @@ calcEurekaDomain(const NDIndex<D>& realDomain,
   PAssert( low<=high );
   PAssert( high<=slab[dim].max() );
   PAssert( low >=slab[dim].min() );
-  
+
   // Build the domain.
   slab[dim] = Index(low,high);
   return slab;
@@ -4161,14 +4164,14 @@ calcEurekaDomain(const NDIndex<D>& realDomain,
 //
 
 template<class T, unsigned int D, class M>
-static NDIndex<D> 
+static NDIndex<D>
 calcEurekaSlabToFill(const Field<T,D,M,Cell>& field, int face,int)
 {
   return calcEurekaDomain(field.getDomain(),face,field.getGC());
 }
 
 template<class T, unsigned int D, class M>
-static NDIndex<D> 
+static NDIndex<D>
 calcEurekaSlabToFill(const Field<T,D,M,Vert>& field, int face,int)
 {
   return calcEurekaDomain(field.getDomain(),face,field.getGC());
@@ -4187,8 +4190,8 @@ calcEurekaSlabToFill(const Field<T,D,M,Vert>& field, int face,int)
 //
 
 template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
-static NDIndex<D> 
-calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field, 
+static NDIndex<D>
+calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field,
                      int face,
                      int component)
 {
@@ -4215,14 +4218,14 @@ calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field,
       slab = AddGuardCells(field.getDomain(),field.getGC());
 
       // If face is odd, this is the "high" face.
-      if ( face&1 ) 
+      if ( face&1 )
         {
           // Find the upper and lower bounds of the domain.
           int low = field.getDomain()[d].min() + field.get_mesh().gridSizes[d] - 1;
           int high = low + field.rightGuard(d);
 
           // For cell centered, we do one fewer layer of guard cells.
-          if (CE[component + d*NC] == CELL) 
+          if (CE[component + d*NC] == CELL)
 	    low++;
 
 	  // Sanity checks.
@@ -4241,7 +4244,7 @@ calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field,
           int high = low + field.leftGuard(d) ;
 
           // For cell centered, we do one fewer layer of guard cells.
-          if (CE[component + d*NC] == CELL) 
+          if (CE[component + d*NC] == CELL)
             high--;
 
 	  // Sanity checks.
@@ -4261,14 +4264,14 @@ calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field,
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
-// For unspecified centering, can't implement LinearExtrapolateFace::apply() 
+// For unspecified centering, can't implement LinearExtrapolateFace::apply()
 // correctly, and can't partial-specialize yet, so... don't have a prototype
 // for unspecified centering, so user gets a compile error if he tries to
 // invoke it for a centering not yet implemented. Implement external functions
-// which are specializations for the various centerings 
-// {Cell,Vert,CartesianCentering}; these are called from the general 
+// which are specializations for the various centerings
+// {Cell,Vert,CartesianCentering}; these are called from the general
 // LinearExtrapolateFace::apply() function body.
-// 
+//
 // TJW: Actually, for LinearExtrapolate, don't need to specialize on
 // centering. Probably don't need this indirection here, but leave it in for
 // now.
@@ -4288,11 +4291,11 @@ void LinearExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 
 template<class T, unsigned D, class M, class C>
-inline void 
-LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest, 
+inline void
+LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
 				   const NDIndex<D> &src1,
 				   const NDIndex<D> &src2,
-				   LField<T,D> &fill, 
+				   LField<T,D> &fill,
 				   LinearExtrapolateFace<T,D,M,C> &ef,
 				   int slopeMultipplier)
 {
@@ -4300,7 +4303,7 @@ LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
   // compressed value would result in no change to 'fill' we don't need to
   // uncompress.  For this particular type of BC (linear extrapolation), this
   // result would *never* happen, so we already know we're done:
-  
+
   if (fill.IsCompressed()) { return; } // Yea! We're outta here.
 
   // Build iterators for the copy:
@@ -4331,8 +4334,8 @@ template<class T, unsigned D, class M, class C>
 void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
 				  Field<T,D,M,C>& A )
 {
-  
-  
+
+
 
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
@@ -4345,25 +4348,25 @@ void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
 
   // Must loop explicitly over the number of guard layers:
   int nGuardLayers;
 
   // The following bitwise AND logical test returns true if ef.m_face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
-  // returns false if ef.m_face is even (meaning the "low" or "left" face in 
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if ef.m_face is even (meaning the "low" or "left" face in
   // the numbering convention):
 
   if (ef.getFace() & 1) {
 
-    // For "high" face, index in active direction goes from max index of 
+    // For "high" face, index in active direction goes from max index of
     // Field plus 1 to the same plus number of guard layers:
     nGuardLayers = A.rightGuard(d);
 
   } else {
 
-    // For "low" face, index in active direction goes from min index of 
+    // For "low" face, index in active direction goes from min index of
     // Field minus the number of guard layers (usually a negative number)
     // to the same min index minus 1 (usually negative, and usually -1):
     nGuardLayers = A.leftGuard(d);
@@ -4380,10 +4383,10 @@ void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
     int slopeMultipplier = -1*guardLayer;
 
     if (ef.getFace() & 1) {
-      slab[d] = Index(domain[d].max() + guardLayer, 
+      slab[d] = Index(domain[d].max() + guardLayer,
 		      domain[d].max() + guardLayer);
     } else {
-      slab[d] = Index(domain[d].min() - guardLayer, 
+      slab[d] = Index(domain[d].min() - guardLayer,
 		      domain[d].min() - guardLayer);
     }
 
@@ -4400,7 +4403,7 @@ void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
       // NDIndex spanning all elements in the LField, including the guards:
       const NDIndex<D> &fill_alloc = fill.getAllocated();
 
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
@@ -4417,8 +4420,8 @@ void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
 	// by mathematical operations whose results are put into dest.  The
 	// ordering of what is defined as src1 and src2 is set differently for
 	// hi and lo faces, to make the sign for extrapolation work out right:
-	NDIndex<D> src1 = dest; 
-	NDIndex<D> src2 = dest; 
+	NDIndex<D> src1 = dest;
+	NDIndex<D> src2 = dest;
 	if (ef.getFace() & 1) {
 	  src2[d] = Index(domain[d].max() - 1, domain[d].max() - 1, 1);
 	  src1[d] = Index(domain[d].max(), domain[d].max(), 1);
@@ -4431,7 +4434,7 @@ void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
 	// domain; I think this is always true if the vnodes are always at
 	// least one guard-layer-width wide in number of physical elements:
 
-	LinearExtrapolateFaceBCApply2(dest, src1, src2, fill, ef, 
+	LinearExtrapolateFaceBCApply2(dest, src1, src2, fill, ef,
 				      slopeMultipplier);
 
       }
@@ -4451,7 +4454,7 @@ void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
 // specializations for the various centerings {Cell,Vert,CartesianCentering};
 // these are called from the general ComponentLinearExtrapolateFace::apply()
 // function body.
-// 
+//
 // TJW: Actually, for ComponentLinearExtrapolate, don't need to specialize on
 // centering. Probably don't need this indirection here, but leave it in for
 // now.
@@ -4470,11 +4473,11 @@ void ComponentLinearExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 
 template<class T, unsigned D, class M, class C>
-inline void 
-ComponentLinearExtrapolateFaceBCApply2(const NDIndex<D> &dest, 
+inline void
+ComponentLinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
 					    const NDIndex<D> &src1,
 					    const NDIndex<D> &src2,
-					    LField<T,D> &fill, 
+					    LField<T,D> &fill,
 					    ComponentLinearExtrapolateFace
 					    <T,D,M,C> &ef,
 					    int slopeMultipplier)
@@ -4483,7 +4486,7 @@ ComponentLinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
   // compressed value would result in no change to 'fill' we don't need to
   // uncompress.  For this particular type of BC (linear extrapolation), this
   // result would *never* happen, so we already know we're done:
-  
+
   if (fill.IsCompressed()) { return; } // Yea! We're outta here.
 
   // Build iterators for the copy:
@@ -4500,7 +4503,7 @@ ComponentLinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
   int component = ef.getComponent();
   for ( ; lhs != endi, rhs1 != endi, rhs2 != endi;
 	++lhs, ++rhs1, ++rhs2) {
-    (*lhs)[component] = 
+    (*lhs)[component] =
       ((*rhs2)[component] - (*rhs1)[component])*slopeMultipplier +
       (*rhs1)[component];
   }
@@ -4531,25 +4534,25 @@ void ComponentLinearExtrapolateFaceBCApply(ComponentLinearExtrapolateFace
   // The numbering convention makes this division by two return the right
   // value, which will be between 0 and (D-1):
 
-  unsigned d = ef.getFace()/2; 
+  unsigned d = ef.getFace()/2;
 
   // Must loop explicitly over the number of guard layers:
   int nGuardLayers;
 
   // The following bitwise AND logical test returns true if ef.m_face is odd
-  // (meaning the "high" or "right" face in the numbering convention) and 
-  // returns false if ef.m_face is even (meaning the "low" or "left" face in 
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if ef.m_face is even (meaning the "low" or "left" face in
   // the numbering convention):
 
   if (ef.getFace() & 1) {
 
-    // For "high" face, index in active direction goes from max index of 
+    // For "high" face, index in active direction goes from max index of
     // Field plus 1 to the same plus number of guard layers:
     nGuardLayers = A.rightGuard(d);
 
   } else {
 
-    // For "low" face, index in active direction goes from min index of 
+    // For "low" face, index in active direction goes from min index of
     // Field minus the number of guard layers (usually a negative number)
     // to the same min index minus 1 (usually negative, and usually -1):
     nGuardLayers = A.leftGuard(d);
@@ -4566,10 +4569,10 @@ void ComponentLinearExtrapolateFaceBCApply(ComponentLinearExtrapolateFace
     int slopeMultipplier = -1*guardLayer;
 
     if (ef.getFace() & 1) {
-      slab[d] = Index(domain[d].max() + guardLayer, 
+      slab[d] = Index(domain[d].max() + guardLayer,
 		      domain[d].max() + guardLayer);
     } else {
-      slab[d] = Index(domain[d].min() - guardLayer, 
+      slab[d] = Index(domain[d].min() - guardLayer,
 		      domain[d].min() - guardLayer);
     }
 
@@ -4586,7 +4589,7 @@ void ComponentLinearExtrapolateFaceBCApply(ComponentLinearExtrapolateFace
       // NDIndex spanning all elements in the LField, including the guards:
       const NDIndex<D> &fill_alloc = fill.getAllocated();
 
-      // If the previously-created boundary guard-layer NDIndex "slab" 
+      // If the previously-created boundary guard-layer NDIndex "slab"
       // contains any of the elements in this LField (they will be guard
       // elements if it does), assign the values into them here by applying
       // the boundary condition:
@@ -4603,8 +4606,8 @@ void ComponentLinearExtrapolateFaceBCApply(ComponentLinearExtrapolateFace
 	// by mathematical operations whose results are put into dest.  The
 	// ordering of what is defined as src1 and src2 is set differently for
 	// hi and lo faces, to make the sign for extrapolation work out right:
-	NDIndex<D> src1 = dest; 
-	NDIndex<D> src2 = dest; 
+	NDIndex<D> src1 = dest;
+	NDIndex<D> src2 = dest;
 	if (ef.getFace() & 1) {
 	  src2[d] = Index(domain[d].max() - 1, domain[d].max() - 1, 1);
 	  src1[d] = Index(domain[d].max(), domain[d].max(), 1);
@@ -4617,7 +4620,7 @@ void ComponentLinearExtrapolateFaceBCApply(ComponentLinearExtrapolateFace
 	// domain; I think this is always true if the vnodes are always at
 	// least one guard-layer-width wide in number of physical elements:
 
-	ComponentLinearExtrapolateFaceBCApply2(dest, src1, src2, fill, ef, 
+	ComponentLinearExtrapolateFaceBCApply2(dest, src1, src2, fill, ef,
 					       slopeMultipplier);
 
       }
@@ -4633,8 +4636,8 @@ PatchBC<T,D,M,C>::
 PatchBC(unsigned face)
   : BCondBase<T,D,M,C>(face)
 {
-  
-  
+
+
 }
 
 //-----------------------------------------------------------------------------
@@ -4647,8 +4650,8 @@ PatchBC(unsigned face)
 template<class T, unsigned D, class M, class C>
 void PatchBC<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
-  
-  
+
+
 
   //------------------------------------------------------------
   // Find the slab that is the destination.
@@ -4734,5 +4737,5 @@ void PatchBC<T,D,M,C>::apply( Field<T,D,M,C>& A )
 /***************************************************************************
  * $RCSfile: BCond.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:26 $
- * IPPL_VERSION_ID: $Id: BCond.cpp,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: BCond.cpp,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $
  ***************************************************************************/
