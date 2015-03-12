@@ -5,12 +5,6 @@ set (IPPLTOYFDTD_SRCS
     ToyFDTD-DataSink/DataSink.cpp
 )
 
-IF(NOT ${MPI_UNDERLYING_COMPILER} STREQUAL "icpc")
-  set (CMAKE_CXX_FLAGS
-      "-std=c++0x ${CMAKE_CXX_FLAGS}"
-      )
-ENDIF(NOT ${MPI_UNDERLYING_COMPILER} STREQUAL "icpc")
-
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
 )
