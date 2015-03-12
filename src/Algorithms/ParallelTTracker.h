@@ -59,6 +59,7 @@ class CyclotronValley;
 
 #include <list>
 #include <vector>
+#include <queue>
 
 class BorisPusher;
 
@@ -240,14 +241,6 @@ private:
     Amr* amrptr;
 #endif
 
-    void checkCavity(double s, Component *& comp, double & cavity_start_pos);
-
-    void doOneStep(BorisPusher & pusher);
-
-    inline double getEnergyMeV(Vector_t p) {
-        return (sqrt(dot(p, p) + 1.0) - 1.0) * itsBunch->getM() * 1e-6;
-    }
-
     /******************** STATE VARIABLES ***********************************/
 
     PartBunch        *itsBunch;
@@ -286,7 +279,7 @@ private:
     bool nEmissionMode_m;
 
     /// where to stop
-    std::vector<double> zStop_m;
+    std::queue<double> zStop_m;
 
     /// The scale factor for dimensionless variables (FIXME: move to PartBunch)
     double scaleFactor_m;
@@ -299,7 +292,7 @@ private:
     double rescale_coeff_m;
 
     double dtCurrentTrack_m;
-    std::vector<double> dtAllTracks_m;
+    std::queue<double> dtAllTracks_m;
 
     double surfaceEmissionStop_m;
 
@@ -329,7 +322,7 @@ private:
     unsigned int emissionSteps_m;
 
     /// The maximal number of steps the system is integrated per TRACK
-    std::vector<unsigned long long> localTrackSteps_m;
+    std::queue<unsigned long long> localTrackSteps_m;
 
     size_t maxNparts_m;
     size_t numberOfFieldEmittedParticles_m;
@@ -375,6 +368,10 @@ private:
     void applyExitFringe(double edge, double curve,
                          const BMultipoleField &field, double scale);
 
+    inline double getEnergyMeV(Vector_t p) {
+        return (sqrt(dot(p, p) + 1.0) - 1.0) * itsBunch->getM() * 1e-6;
+    }
+
     void kickParticles(const BorisPusher &pusher);
     void kickParticlesAutophase(const BorisPusher &pusher);
     void kickParticles(const BorisPusher &pusher, const int &flg);
@@ -388,26 +385,27 @@ private:
     void kickReferenceParticle(const Vector_t &externalE, const Vector_t &externalB);
     void writePhaseSpace(const long long step, const double &sposRef, bool psDump, bool statDump);
 
-    void showCavities(Inform &m);
-
+    /********** BEGIN AUTOPHSING STUFF **********/
+    void checkCavity(double s, Component *& comp, double & cavity_start_pos);
     void updateRFElement(std::string elName, double maxPhi);
     void updateAllRFElements(double phiShift);
     void executeAutoPhase(int numRefs, double zStop);
-
-    double ptoEMeV(Vector_t p);
-
-    inline double APtrack(Component *cavity, double cavity_start, const double &phi) const;
-
+    double APtrack(Component *cavity, double cavity_start, const double &phi) const;
     double getGlobalPhaseShift();
     void handleOverlappingMonitors();
     void prepareSections();
     void doAutoPhasing();
+    /************ END AUTOPHSING STUFF **********/
+
+    double ptoEMeV(Vector_t p);
+
     void bgf_main_collision_test();
     void timeIntegration1(BorisPusher & pusher);
     void timeIntegration1_bgf(BorisPusher & pusher);
     void timeIntegration2(BorisPusher & pusher);
     void timeIntegration2_bgf(BorisPusher & pusher);
     void selectDT();
+    void changeDT();
     void emitParticles(long long step);
     void computeExternalFields();
     void handleBends();
