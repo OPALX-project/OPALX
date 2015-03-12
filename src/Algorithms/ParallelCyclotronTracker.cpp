@@ -16,6 +16,7 @@
 //
 // ------------------------------------------------------------------------
 
+#include <Algorithms/Ctunes.hpp>
 #include "Algorithms/ParallelCyclotronTracker.h"
 
 #include <cfloat>
@@ -71,7 +72,6 @@
 #include "Utilities/OpalOptions.h"
 
 #include "Ctunes.h"
-#include "Ctunes.cc"
 #include <cassert>
 
 #include <hdf5.h>

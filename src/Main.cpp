@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
         *gmsg << endl << "*** User error detected by function \""
               << ex.where() << "\"" << endl;
         abort();
-    } catch(std::bad_alloc) {
+    } catch(std::bad_alloc &) {
         *gmsg << "Sorry, virtual memory exhausted." << endl;
         abort();
     } catch(...) {

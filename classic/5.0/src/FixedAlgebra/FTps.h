@@ -486,6 +486,6 @@ std::ostream &operator<<(std::ostream &os, const FTps<T, N> &);
 
 // Implementation.
 #include "FixedAlgebra/FVps.h"
-#include "FixedAlgebra/FTps.cpp"
+#include <FixedAlgebra/FTps.hpp>
 
 #endif // CLASSIC_FTps_HH

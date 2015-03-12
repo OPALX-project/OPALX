@@ -7,10 +7,13 @@
 /*****************************************************************************/
 #include <algorithm>
 #include <vector>
+#include <cstring>
 
-#include "Ctunes.h"
-#include "lomb.h"
-#include "lomb.cc"
+#include "Utility/Inform.h"
+
+#include "Algorithms/Ctunes.h"
+#include "Algorithms/lomb.h"
+#include "Algorithms/lomb.hpp"
 
 
 extern Inform *gmsg;
@@ -18,7 +21,11 @@ extern Inform *gmsg;
 //RANLIB_class rndm(265314159,4);
 
 
-TUNE_class::TUNE_class()
+TUNE_class::TUNE_class():
+        ofac(0.0),
+        hifac(0.0),
+        Qmin(0.0),
+        Qmax(0.0)
 /*---------------------------------------------------------------------------*
  * constructor
  * ===========
@@ -101,7 +108,7 @@ int TUNE_class::LombAnalysis(vector<double> &x, vector<double> &y, int nhis, dou
         memset(mess, '\0', sizeof(mess));
         sprintf(mess, "@C3ERROR: Lomb analysis failed!");
         *gmsg << "* " << mess << endl;
-       
+
         delete la;
         la = NULL;
         return(-1);
@@ -240,7 +247,7 @@ int TUNE_class::LombAnalysis(double *x, double *y, int Ndat, int nhis)
                     memset(mess, '\0', sizeof(mess));
                     sprintf(mess, "%12.8f %8.2f %8.3f %d", pairx[pairc], pairy[pairc],
                             probi, i);
-		    *gmsg << "* " << mess << endl;        
+		    *gmsg << "* " << mess << endl;
                 }
             }
             pairc++;
@@ -257,4 +264,3 @@ int TUNE_class::LombAnalysis(double *x, double *y, int Ndat, int nhis)
     return(0);
 
 }
-

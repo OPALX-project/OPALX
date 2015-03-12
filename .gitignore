@@ -126,4 +126,8 @@ src/ValueDefinitions/cmake_install.cmake
 src/cmake_install.cmake
 src/config.h
 src/opal
+unit_tests/gtest/include/
+unit_tests/gtest/lib/
+unit_tests/gtest/src/
 *~
+/Debug/

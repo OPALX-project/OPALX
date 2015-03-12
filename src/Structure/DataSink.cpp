@@ -2260,8 +2260,8 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     }
 
     for (size_t i = 0; i < losses.size(); ++ i) {
-        outputFile << "&column name=" << losses[i].first << " losses, type=long, units=1, ";
-        outputFile << "description=\"" << columnStart++ << " " << losses[i].second << " losses \" &end" << endl;
+        outputFile << "&column name=" << losses[i].first << ", type=long, units=1, ";
+        outputFile << "description=\"" << columnStart++ << " " << losses[i].second << "\" &end" << endl;
     }
     outputFile << "&data mode=ascii &end" << endl;
 
