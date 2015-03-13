@@ -21,6 +21,7 @@
 #include "AbsBeamline/RBend.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Utilities/Options.h"
 #include "Fields/Fieldmap.hh"
 #include "Fields/FM1DProfile1.hh"
 #include "Fields/FM1DProfile2.hh"
@@ -1252,7 +1253,7 @@ bool RBend::IsPositionInExitField(Vector_t R, Vector_t &RExit) {
 }
 
 void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
-
+  if (Options::info) {
     msg << endl
         << "Start of field map:      "
         << startField_m
@@ -1344,13 +1345,14 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << bendAngleY * 180.0 / Physics::pi
         << " degrees) in y plane"
         << endl << endl;
-
+  }
 }
 
 void RBend::ReadFieldMap(Inform &msg) {
-
-    msg << getName() << " using file ";
-    fieldmap_m->getInfo(&msg);
+    if(Options::info) {
+      msg << getName() << " using file ";
+      fieldmap_m->getInfo(&msg);
+    }
     Fieldmap::readMap(fileName_m);
     fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
                                            entranceParameter2_m,
@@ -1618,7 +1620,7 @@ bool RBend::SetupDefaultFieldMap(Inform &msg) {
         return false;
     } else {
         fieldmap_m->SetFieldGap(gap_m);
-        fieldmap_m->getInfo(&msg);
+	if(Options::info) fieldmap_m->getInfo(&msg);
         return true;
     }
 

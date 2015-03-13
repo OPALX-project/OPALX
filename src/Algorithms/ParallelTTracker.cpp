@@ -1012,10 +1012,11 @@ void ParallelTTracker::executeDefaultTracker() {
     msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
     << "max integration steps " << localTrackSteps_m.front() << ", next step= " << step << endl;
     msg << "Using default (Boris-Buneman) integrator" << endl;
-
-    // itsBeamline_m.accept(*this);
-    // itsOpalBeamline_m.prepareSections();
-    itsOpalBeamline_m.print(msg);
+    
+    if (Options::info)
+      itsOpalBeamline_m.print(msg);
+    else
+      msg << "Silent track ... " << endl;
 
     setupSUV();
 
@@ -1607,7 +1608,8 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
         minBinEmitted = ar->getReal();  // the space charge solver crashes if we use less than ~10 particles.
         // This variable controls the number of particles to be emitted before we use
         // the space charge solver.
-        msg << "MINBINEMITTED " << minBinEmitted << endl;
+
+        if (Options::info) msg << "MINBINEMITTED " << minBinEmitted << endl;
     }
 
 
@@ -1616,14 +1618,14 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
     if(br) {
         minStepforReBin = br->getReal();  // this variable controls the minimal number of steps of emission (using bins)
         // before we can merge the bins
-        msg << "MINSTEPFORREBIN " << minStepforReBin << endl;
+        if (Options::info) msg << "MINSTEPFORREBIN " << minStepforReBin << endl;
     }
 
     int repartFreq = 1000;
     RealVariable *rep = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("REPARTFREQ"));
     if(rep) {
         repartFreq = static_cast<int>(rep->getReal());  // this variable controls the minimal number of steps until we repartition the particles
-        msg << "REPARTFREQ " << repartFreq << endl;
+        if (Options::info) msg << "REPARTFREQ " << repartFreq << endl;
     }
 
     // there is no point to do repartitioning with one node
@@ -2619,7 +2621,7 @@ void ParallelTTracker::computeExternalFields() {
       sphys_m->AllParticlesIn(itsBunch->getMinLocalNum() <= 1);
     }
 
-    if(ne > 0)
+    if((ne > 0) && Options::info)
         msg << "* Deleted " << ne << " particles, "
 	   << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
 }
@@ -2731,12 +2733,13 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
+      if (Options::info)
         msg << myt2.time() << " "
-        << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << " "
-        << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
-        << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
-        << "E="  << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
-        << endl;
+	    << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << " "
+	    << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
+	    << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
+	    << "E="  << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
+	    << endl;
 
         writePhaseSpace(step, sposRef, psDump, statDump);
     }
@@ -2775,25 +2778,25 @@ void ParallelTTracker::setOptionalVariables() {
     RealVariable *ar = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINBINEMITTED"));
     if(ar)
         minBinEmitted_m = static_cast<size_t>(ar->getReal());
-    msg << "MINBINEMITTED " << minBinEmitted_m << endl;
-
+    if (Options::info) msg << "MINBINEMITTED " << minBinEmitted_m << endl;
+    
     minStepforReBin_m  = 200;
     RealVariable *br = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINSTEPFORREBIN"));
     if(br)
         minStepforReBin_m = static_cast<int>(br->getReal());
-    msg << "MINSTEPFORREBIN " << minStepforReBin_m << endl;
+    if (Options::info) msg << "MINSTEPFORREBIN " << minStepforReBin_m << endl;
 
     surfaceEmissionStop_m  = 1000.0;
     RealVariable *cr = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("SURFACEEMISSIONSTOP"));
     if(cr)
         surfaceEmissionStop_m = static_cast<double>(cr->getReal());
-    msg << "SURFACEEMISSIONSTOP after " << surfaceEmissionStop_m << " seconds" <<  endl;
+    if (Options::info) msg << "SURFACEEMISSIONSTOP after " << surfaceEmissionStop_m << " seconds" <<  endl;
 
     repartFreq_m = 1000;
     RealVariable *rep = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("REPARTFREQ"));
     if(rep)
         repartFreq_m = static_cast<int>(rep->getReal());
-    msg << "REPARTFREQ " << repartFreq_m << endl;
+    if (Options::info) msg << "REPARTFREQ " << repartFreq_m << endl;
 
 }
 

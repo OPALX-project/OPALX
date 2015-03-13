@@ -35,6 +35,9 @@ Inform *gmsg;
 #include "Fields/Fieldmap.hh"
 #include "FixedAlgebra/FTps.h"
 
+#include "BasicActions/Option.h"                                                                     
+#include "Utilities/OpalOptions.h"                                                                    
+#include "Utilities/Options.h"   
 
 #include "config.h"
 
@@ -229,9 +232,13 @@ int main(int argc, char *argv[]) {
         //// /DTA
 
 
+	
         IpplTimings::stopTimer(mainTimer);
-        IpplTimings::print();
-        IpplTimings::print(std::string("timing.dat"));
+
+        if (Options::info) {
+	  IpplTimings::print();
+	  IpplTimings::print(std::string("timing.dat"));
+	}
 
         if(Ippl::myNode() == 0) {
             std::ifstream errormsg("errormsg.txt");
