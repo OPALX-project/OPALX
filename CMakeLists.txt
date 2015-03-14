@@ -1,14 +1,14 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 PROJECT (IPPL CXX Fortran)
 SET (IPPL_VERSION_MAJOR 1)
-SET (IPPL_VERSION_MINOR 0)
+SET (IPPL_VERSION_MINOR 1.4)
 SET (PACKAGE \"ippl\")
 SET (PACKAGE_BUGREPORT \"andreas.adelmann@psi.ch\")
 SET (PACKAGE_NAME \"IPPL\")
-SET (PACKAGE_STRING \"IPPL\ 1.0\")
+SET (PACKAGE_STRING \"IPPL\ 1.1.4\")
 SET (PACKAGE_TARNAME \"ippl\")
-SET (PACKAGE_VERSION \"1.0\")
-SET (VERSION \"1.0\")
+SET (PACKAGE_VERSION \"1.1.4\")
+SET (VERSION \"1.1.4\")
 
 ENABLE_LANGUAGE (Fortran)
 
@@ -105,9 +105,13 @@ IF (USE_MIC)
 	SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -DIPPL_DKS_MIC")
 ENDIF (USE_MIC)
 
-
 ### CXX_FLAGS specific to compiler and platform #############
-MESSAGE (STATUS "Your compiler is: ${CMAKE_CXX_COMPILER}")
+find_package (MPI REQUIRED)
+message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
+message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
+message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
+message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
+
 IF (LINUXGCC)
     MESSAGE (STATUS "Linux GCC flags SET")
     SET (IPPL_CXX_FLAGS
@@ -117,68 +121,30 @@ IF (LINUXGCC)
         "-ftemplate-depth-80 -funroll-loops -fstrict-aliasing ${OTHER_CXX_FLAGS}"
     )
 
-    # compiler dependent flags
-    MESSAGE (STATUS "Your compiler is: ${CMAKE_CXX_COMPILER}")
-    STRING (REGEX REPLACE ".*/([A-Za-z]*)$" "\\1" COMPILER_NAME ${CMAKE_CXX_COMPILER})
-    MESSAGE (STATUS "Your compiler is: ${COMPILER_NAME}")
-    MESSAGE (STATUS "Your compiler is: ${CMAKE_CXX_COMPILER}")
+    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+        SET (OTHER_CXX_FLAGS
+             "-diag-disable 383,981 ${OTHER_CXX_FLAGS}")
 
-    IF ("${COMPILER_NAME}" STREQUAL "mpicxx")
+    ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        SET (OTHER_CXX_FLAGS
+             "-Wall -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CXX_FLAGS}")
 
-        SET (MPI_UNDERLYING_COMPILER
-             "")
-
-        EXECUTE_PROCESS (COMMAND ${CMAKE_CXX_COMPILER} -show
-                         OUTPUT_VARIABLE MPI_COMPILER_OUTPUT
-                         ERROR_VARIABLE MPI_COMPILER_ERROR)
-
-
-        IF ("${MPI_COMPILER_ERROR}" STREQUAL "")
-            STRING (REGEX REPLACE "([A-Za-z]*) .*$" "\\1" MPI_UNDERLYING_COMPILER ${MPI_COMPILER_OUTPUT})
-        ENDIF ("${MPI_COMPILER_ERROR}" STREQUAL "")
-
-        IF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
-            # using intel compiler
-            MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: icpc")
+    ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        IF (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.8.0")
             SET (OTHER_CXX_FLAGS
-                 "-diag-disable 383,981 ${OTHER_CXX_FLAGS}")
+	            "-Wall -std=c++0x")
 
-        ELSEIF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "clang++")
-            # using clang compiler
-            MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: clang++")
+        ELSEIF (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7")
             SET (OTHER_CXX_FLAGS
-                 "-Wall -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CXX_FLAGS}")
+                "-Wall -Wno-reorder -std=c++1y")
+        ENDIF ()
+    ELSE ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+        # using unknown compiler
+        MESSAGE (STATUS "${COMPILER_NAME} is using a compiler (${CMAKE_CXX_COMPILER_ID}) we were not thinking of!
+                 Please use the gnu compiler or the intel compiler if you are having problems.")
+    ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
-        ELSEIF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "g++")
-            # using gnu compiler
-            MESSAGE (STATUS "The underlying compiler of ${COMPILER_NAME} is: g++")
-            EXECUTE_PROCESS (COMMAND ${MPI_UNDERLYING_COMPILER} --version
-                             OUTPUT_VARIABLE GCC_VERSION_OUTPUT
-                             ERROR_VARIABLE GCC_VERSION_ERROR)
-            STRING (REGEX REPLACE ".*([0-9]\\.[0-9]\\.[0-9]).*" "\\1" GCC_VERSION ${GCC_VERSION_OUTPUT})
-            MESSAGE (STATUS "Your gcc version is: ${GCC_VERSION}")
-
-            IF (${GCC_VERSION} VERSION_LESS "4.8.0")
-                SET (OTHER_CXX_FLAGS
-    	            "-Wall -std=c++0x")
-
-            ELSEIF (${GCC_VERSION} VERSION_GREATER "4.7")
-                SET (OTHER_CXX_FLAGS
-                    "-Wall -Wno-reorder -std=c++1y")
-            ENDIF ()
-        ELSE ("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
-            # using unknown compiler
-	    MESSAGE (STATUS "${COMPILER_NAME} is using a compiler (${MPI_UNDERLYING_COMPILER}) we were not thinking of!
-                     Please use the gnu compiler or the intel compiler if you are having problems.")
-        ENDIF ("${MPI_UNDERLYING_COMPILER}" STREQUAL "icpc")
-
-    ELSE ("${COMPILER_NAME}" STREQUAL "mpicxx")
-        # using unknown mpi implementation
-        MESSAGE (STATUS "You are using an unsupported MPI compiler: ${COMPILER_NAME}!
-                 Please use the OpenMPI or MPICH if you are having problems.")
-    ENDIF ("${COMPILER_NAME}" STREQUAL "mpicxx")
-
-    SET (IPPL_VERSION_NAME \"V1.0 01-2007 Linux GNU\")
+    SET (IPPL_VERSION_NAME "\"V${IPPL_VERSION_MAJOR}.${IPPL_VERSION_MINOR} Linux GNU\"")
 ENDIF (LINUXGCC)
 
 IF (XT3GCC)
@@ -189,7 +155,7 @@ IF (XT3GCC)
     SET (OTHER_CXX_FLAGS
         "-Wno-deprecated -ftemplate-depth-80 -funroll-loops -fstrict-aliasing"
     )
-    SET (IPPL_VERSION_NAME \"V1.0 01-2007 XT3 GNU\")
+    SET (IPPL_VERSION_NAME "\"V${IPPL_VERSION_MAJOR}.${IPPL_VERSION_MINOR} XT3 GNU\"")
 ENDIF (XT3GCC)
 
 IF (LINUXPGI)
@@ -197,7 +163,7 @@ IF (LINUXPGI)
     SET (IPPL_CXX_FLAGS
         "-DIPPLProf -DIPPL_GPLUSPLUS -DMPICH_IGNORE_CXX_SEEK -DIPPL_LINUX ${IPPL_CXX_FLAGS}"
     )
-    SET (IPPL_VERSION_NAME \"V1.0 01-2007 Linux PGI\")
+    SET (IPPL_VERSION_NAME "\"V${IPPL_VERSION_MAJOR}.${IPPL_VERSION_MINOR} Linux PGI\"")
 ENDIF (LINUXPGI)
 
 SET (IPPLLINUXGCCF

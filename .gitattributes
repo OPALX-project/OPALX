@@ -594,7 +594,6 @@ src/Utility/bstring.h -text
 src/Utility/my_auto_ptr.h -text
 src/Utility/vmap.h -text
 src/Utility/vmap.hpp -text
-src/config.h -text
 src/config.h.in -text
 test/6dtrack/.job -text
 test/6dtrack/CMakeLists.txt -text
