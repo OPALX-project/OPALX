@@ -22,6 +22,10 @@
 #include "Algorithms/PartPusher.h"
 #include "Structure/DataSink.h"
 
+#include "BasicActions/Option.h"
+#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
+
 #include "Physics/Physics.h"
 #ifdef HAVE_AMR_SOLVER
 #include <Amr.H>
@@ -805,8 +809,10 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
     if(psDump) {
         // Write fields to .h5 file.
         itsDataSink_m->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
-        msg << "* Wrote beam phase space." << endl;
-        msg << *itsBunch << endl;
+	if (Options::info) {
+	  msg << "* Wrote beam phase space." << endl;
+	  msg << *itsBunch << endl;
+	}
     }
 
     if(statDump) {
@@ -835,7 +841,8 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
 	  }
 	}
         // Write statistical data.
-        msg << "* Wrote beam statistics." << endl;
+	if (Options::info)
+	  msg << "* Wrote beam statistics." << endl;
         itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2), collimatorLosses);
     }
 

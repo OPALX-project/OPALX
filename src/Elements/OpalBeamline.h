@@ -18,6 +18,9 @@
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 
+#include "BasicActions/Option.h"
+#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/OpalSection.h"
 #include "Utilities/ClassicField.h"
 
@@ -364,6 +367,7 @@ void OpalBeamline::visit<Lambertson>(const Lambertson &element, Tracker &, PartB
 
 template<> inline
 void OpalBeamline::visit<Marker>(const Marker &element, Tracker &, PartBunch *) {
+  if (Options::info)
     WARNMSG(element.getType() << " not implemented yet!" << endl);
 }
 
