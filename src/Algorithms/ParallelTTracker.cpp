@@ -69,6 +69,8 @@
 #include "Solvers/SurfacePhysicsHandler.hh"
 #include "Structure/BoundaryGeometry.h"
 
+#include "Algorithms/AutophaseTracker.h"
+
 class PartData;
 
 using namespace std;
@@ -889,6 +891,9 @@ void ParallelTTracker::doAutoPhasing() {
                         << " phi= " << (*it).second << " (rad)" << endl);
             }
         } else {
+            AutophaseTracker ap(itsBeamline_m, itsReference, itsBunch->getT());
+            ap.execute(dtAllTracks_m, zStop_m, localTrackSteps_m);
+
             int tag = 101;
             int Parent = 0;
 
