@@ -989,6 +989,13 @@ void ParallelTTracker::executeDefaultTracker() {
 
     prepareSections();
 
+    if (OpalData::getInstance()->hasBunchAllocated()) {
+        // delete last entry of sdds file and load balance file
+        // if we are in a follow-up track
+        itsDataSink_m->rewindLinesSDDS(1);
+        itsDataSink_m->rewindLinesLBal(1);
+    }
+
     // do autophasing before tracking without a global phase shift!
     doAutoPhasing();
 
@@ -1012,7 +1019,7 @@ void ParallelTTracker::executeDefaultTracker() {
     msg << "Executing ParallelTTracker, initial DT " << itsBunch->getdT() << " [s];\n"
     << "max integration steps " << localTrackSteps_m.front() << ", next step= " << step << endl;
     msg << "Using default (Boris-Buneman) integrator" << endl;
-    
+
     if (Options::info)
       itsOpalBeamline_m.print(msg);
     else
@@ -1080,8 +1087,8 @@ void ParallelTTracker::executeDefaultTracker() {
             t += itsBunch->getdT();
             itsBunch->setT(t);
 
-            bool const psDump = step % Options::psDumpFreq == 0;
-            bool const statDump = step % Options::statDumpFreq == 0;
+            bool const psDump = itsBunch->getGlobalTrackStep() % Options::psDumpFreq == 0;
+            bool const statDump = itsBunch->getGlobalTrackStep() % Options::statDumpFreq == 0;
             dumpStats(step, psDump, statDump);
 
             if(hasEndOfLineReached()) break;
@@ -2779,7 +2786,7 @@ void ParallelTTracker::setOptionalVariables() {
     if(ar)
         minBinEmitted_m = static_cast<size_t>(ar->getReal());
     if (Options::info) msg << "MINBINEMITTED " << minBinEmitted_m << endl;
-    
+
     minStepforReBin_m  = 200;
     RealVariable *br = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINSTEPFORREBIN"));
     if(br)
