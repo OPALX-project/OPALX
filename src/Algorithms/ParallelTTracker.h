@@ -559,8 +559,6 @@ inline void ParallelTTracker::visitCyclotronValley(const CyclotronValley &cv) {
 }
 
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
-    using Physics::c;
-
     int localNum = itsBunch->getLocalNum();
     for(int i = 0; i < localNum; ++i)
         pusher.kick(itsBunch->R[i], itsBunch->P[i], itsBunch->Ef[i], itsBunch->Bf[i], itsBunch->dt[i]);
@@ -568,8 +566,6 @@ inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
 }
 
 inline void ParallelTTracker::kickParticlesAutophase(const BorisPusher &pusher) {
-    using Physics::c;
-
     int localNum = itsBunch->getLocalNum();
     for(int i = 0; i < localNum; ++i)
         pusher.kick(itsBunch->R[i], itsBunch->P[i], itsBunch->Ef[i], itsBunch->Bf[i], itsBunch->dt[i]);
@@ -578,8 +574,6 @@ inline void ParallelTTracker::kickParticlesAutophase(const BorisPusher &pusher) 
 
 // BoundaryGeometry version of kickParticles function
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher, const int &flg) {
-    using Physics::c;
-
     int localNum = itsBunch->getLocalNum();
     for(int i = 0; i < localNum; ++i) {
         if(itsBunch->TriID[i] == 0) { //TriID[i] will be 0 if particles don't collide the boundary before kick;

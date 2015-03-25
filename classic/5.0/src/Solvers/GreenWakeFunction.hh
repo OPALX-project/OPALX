@@ -13,7 +13,6 @@
 #include <complex>
 
 //#define USE_FFTW
-using Physics::pi;
 
 enum { TRANSVERSAL, LONGITUDINAL };
 typedef std::map<std::string, int> FilterOptions;
@@ -70,18 +69,18 @@ private:
             //2 == DC
             switch(acMode_) {
                 case 1:
-                    Z = (Z0_ / (2 * pi * a_)) * 1.0 / (sqrt(Z0_ * std::abs(k) / 2) * sqrt(sigma_ / (1.0 - i * Physics::c * k * tau_)) * (i + signK) / k - (i * k * a_) / 2.0);
+                    Z = (Z0_ / (2 * Physics::pi * a_)) * 1.0 / (sqrt(Z0_ * std::abs(k) / 2) * sqrt(sigma_ / (1.0 - i * Physics::c * k * tau_)) * (i + signK) / k - (i * k * a_) / 2.0);
                     break;
                 case 2:
-                    Z = (Z0_ / (2 * pi * a_)) * 1.0 / (sqrt(sigma_ * Z0_ * std::abs(k) / 2) * (i + signK) / k - (i * k * a_) / 2.0);
+                    Z = (Z0_ / (2 * Physics::pi * a_)) * 1.0 / (sqrt(sigma_ * Z0_ * std::abs(k) / 2) * (i + signK) / k - (i * k * a_) / 2.0);
                     break;
             }
             switch(direction_) {
                 case LONGITUDINAL:
-                    return real(Z) * cos(k * s_) * 2.0 * Physics::c / pi;
+                    return real(Z) * cos(k * s_) * 2.0 * Physics::c / Physics::pi;
                     break;
                 case TRANSVERSAL:
-                    return real(Z) * Physics::c / k * cos(k * s_) * 2.0 * Physics::c / pi;
+                    return real(Z) * Physics::c / k * cos(k * s_) * 2.0 * Physics::c / Physics::pi;
                     break;
             }
             ERRORMSG("We should not be here: " << __FILE__ << " L" << __LINE__ << endl);
