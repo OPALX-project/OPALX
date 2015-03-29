@@ -1734,17 +1734,17 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       }
       const Cyclotron* CyclotronElement = CyclotronVisitor.front();
 
-      *gmsg << "----------------------------------------------------" << endl;
-      *gmsg << "About to find closed orbit and matched distribution " << endl;
-      *gmsg << "I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
-      *gmsg << "EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
-	    << " EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
-	    << " ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
-	    << " FMAPFN " << Attributes::getString(itsAttr[AttributesT::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
-	    << "FMSYM= " << (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM])
-	    << " HN= "   << CyclotronElement->getCyclHarm()
-	    << " PHIINIT= " << CyclotronElement->getPHIinit() << endl;
-      *gmsg << "----------------------------------------------------" << endl;
+      *gmsg << "* ----------------------------------------------------" << endl;
+      *gmsg << "* About to find closed orbit and matched distribution " << endl;
+      *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
+      *gmsg << "* EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
+	    << "* EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
+	    << "* ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
+	    << "* FMAPFN " << Attributes::getString(itsAttr[AttributesT::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
+	    << "* FMSYM= " << (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM])
+	    << "* HN= "   << CyclotronElement->getCyclHarm()
+	    << "* PHIINIT= " << CyclotronElement->getPHIinit() << endl;
+      *gmsg << "* ----------------------------------------------------" << endl;
 
       const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
 
@@ -1752,7 +1752,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       const double fmHighE = CyclotronElement->getFMHighE();
 
       if ((fmLowE>fmHighE) || (fmLowE<0) || (fmHighE<0)) {
-	throw OpalException("Distribution::CreateMatchedGaussDistribution",
+	throw OpalException("* Distribution::CreateMatchedGaussDistribution",
                             "FMHIGHE or FMLOW not set properly");
       }
 
@@ -1785,17 +1785,24 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 writeMap);
 
       if(siggen.match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
-		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
 		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
+		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
 		      CyclotronElement->getPHIinit(),
 	              false))  {
-	DEBUGMSG("Converged: Sigma-Matrix for " << E_m*1E-6 << " MeV" << endl);
+	std::array<double,3> Emit = siggen.getEmittances();
+	
+	*gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", " << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
+	*gmsg << "* Sigma-Matrix " << endl; 
+	
 	for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
 	  for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
-	    INFOMSG(std::setprecision(4)  << siggen.getSigma()(i,j) << "\t");
+	    *gmsg << "* " <<  std::setprecision(4)  << siggen.getSigma()(i,j) << "\t";
 	  }
-	  INFOMSG(endl);
+	  *gmsg << "*" << endl;
 	}
+      }
+      else {
+	*gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
       }
       
 
@@ -2955,7 +2962,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_matrix_set (m,1,4, distCorr_m.at(6));
 #define DISTDBG1
 #ifdef DISTDBG1
-    *gmsg << "m before gsl_linalg_cholesky_decomp" << endl;
+    *gmsg << "* m before gsl_linalg_cholesky_decomp" << endl;
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < 6; j++) {
 	if (j==0)
@@ -2964,7 +2971,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 	else
 	  *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
       }
-      *gmsg << endl;
+      *gmsg << "*" << endl;
     }
 #endif
 
@@ -2983,7 +2990,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_matrix_transpose(m);
 #define DISTDBG2
 #ifdef DISTDBG2
-    *gmsg << "m after gsl_linalg_cholesky_decomp" << endl;
+    *gmsg << "* m after gsl_linalg_cholesky_decomp" << endl;
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < 6; j++) {
 	if (j==0)
@@ -2992,7 +2999,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 	else
 	  *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
       }
-      *gmsg << endl;
+      *gmsg << "*" << endl;
     }
 #endif
 
@@ -3920,10 +3927,9 @@ void Distribution::SetAttributes() {
     itsAttr[AttributesT::MAXSTEPSCO]
       = Attributes::makeReal("MAXSTEPSCO", "Maximum steps used to find closed orbit ", 100);
     itsAttr[AttributesT::MAXSTEPSSI]
-      = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",1000);
+      = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",2000);
     itsAttr[AttributesT::ORDERMAPS]
       = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
-
     itsAttr[AttributesT::MAGSYM]
       = Attributes::makeReal("MAGSYM", "Number of sector magnets ", 0);
 
