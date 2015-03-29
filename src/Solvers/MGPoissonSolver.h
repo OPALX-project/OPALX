@@ -67,10 +67,6 @@ namespace ML_Epetra {
 
 #pragma GCC diagnostic pop
 
-// using Teuchos::RCP;
-// using Teuchos::rcp;
-// using namespace ML_Epetra;
-// using namespace Isorropia;
 //////////////////////////////////////////////////////////////
 
 typedef UniformCartesian<3, double> Mesh_t;

@@ -25,15 +25,15 @@
 
 /// @brief Expands the existing functions of the boost library uBLAS (http://www.boost.org/).
 namespace matt_boost {
-    using namespace boost::numeric::ublas;
+    namespace ublas = boost::numeric::ublas;
 
     /// Computes the trace of a square matrix
     template<class V>
         BOOST_UBLAS_INLINE
-        V trace(matrix<V>& e) {
+        V trace(ublas::matrix<V>& e) {
             V tr = 0;
             if (e.size1() == e.size2()) {
-                matrix_vector_range<matrix<V> > diag(e,range(0,e.size1()),range(0,e.size2()));
+                ublas::matrix_vector_range<ublas::matrix<V> > diag(e,ublas::range(0,e.size1()),ublas::range(0,e.size2()));
                 tr = sum(diag);
             }
             else
@@ -45,8 +45,8 @@ namespace matt_boost {
     /// Computes the cross product \f$ v_{1}\times v_{2}\f$ of two vectors in \f$ \mathbb{R}^{3} \f$
     template<class V>
         BOOST_UBLAS_INLINE
-        vector<V> cross_prod(vector<V>& v1, vector<V>& v2) {
-            vector<V> v(v1.size());
+        ublas::vector<V> cross_prod(ublas::vector<V>& v1, ublas::vector<V>& v2) {
+            ublas::vector<V> v(v1.size());
             if (v1.size() == v2.size() && v1.size() == 3) {
                 v(0) = v1(1) * v2(2) - v1(2) * v2(1);
                 v(1) = v1(2) * v2(0) - v1(0) * v2(2);
@@ -61,10 +61,10 @@ namespace matt_boost {
     /// Computes Taylor-Series of M(s) = exp(F*s)
     template<class V>
         BOOST_UBLAS_INLINE
-        matrix<V> taylor_exp(const matrix<V>& F, const V ds, const unsigned int order) {
+        ublas::matrix<V> taylor_exp(const ublas::matrix<V>& F, const V ds, const unsigned int order) {
             double fac = 1.0;
-            matrix<V> Fn = identity_matrix<V>(6);
-            matrix<V> M = Fn;
+            ublas::matrix<V> Fn = ublas::identity_matrix<V>(6);
+            ublas::matrix<V> M = Fn;
 
             for (unsigned int k = 1; k < order; ++k) {
                 fac *= ds / V(k);
@@ -77,7 +77,7 @@ namespace matt_boost {
     /// Generalized matrix-matrix-matrix multiplication \f$ e_{1}\cdot e_{2}\cdot e_{3} \f$
     template<class M, class E1, class E2, class E3>
         BOOST_UBLAS_INLINE
-        M gemmm(const matrix_expression<E1>& e1, const matrix_expression<E2>& e2, const matrix_expression<E3>& e3) {
+        M gemmm(const ublas::matrix_expression<E1>& e1, const ublas::matrix_expression<E2>& e2, const ublas::matrix_expression<E3>& e3) {
             M tmp = prod(e2,e3);
             return prod(e1,tmp);
         }

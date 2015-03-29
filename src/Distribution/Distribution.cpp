@@ -1946,14 +1946,14 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      *
      * For now we just cut the number of generated particles in half.
      */
-    if (Options::cZero && !distrTypeT_m == DistrTypeT::FROMFILE)
+    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         numberOfPartToCreate /= 2;
 
     // Create distribution.
     Create(numberOfPartToCreate, beam.getM());
 
     // Now reflect particles if Options::cZero is true.
-    if (Options::cZero && !distrTypeT_m == DistrTypeT::FROMFILE)
+    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         ReflectDistribution(numberOfPartToCreate);
 
     // Setup energy bins.
@@ -2081,7 +2081,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
      *
      * For now we just cut the number of generated particles in half.
      */
-    if (Options::cZero && !distrTypeT_m == DistrTypeT::FROMFILE)
+    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         numberOfParticles /= 2;
 
     /*
@@ -2117,7 +2117,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
     AddDistributions();
 
     // Now reflect particles if Options::cZero is true
-    if (Options::cZero && !distrTypeT_m == DistrTypeT::FROMFILE)
+    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         ReflectDistribution(numberOfParticles);
 
     // Check number of particles in distribution.
@@ -3485,7 +3485,7 @@ void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
 
     if (numberOfParticles > 0) {
         os << "Number of particles: "
-           << numberOfParticles * (Options::cZero && !distrTypeT_m == DistrTypeT::FROMFILE? 2: 1)
+           << numberOfParticles * (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE)? 2: 1)
            << endl
            << endl;
     }

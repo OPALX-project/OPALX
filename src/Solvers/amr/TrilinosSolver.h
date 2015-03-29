@@ -61,12 +61,6 @@ enum {
 
 typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
 
-//using namespace Teuchos;
-// using Teuchos::RCP;
-// using Teuchos::rcp;
-// using namespace ML_Epetra;
-// using namespace Isorropia;
-
 class Solver {
 
 public:
