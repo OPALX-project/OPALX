@@ -1,3 +1,11 @@
+/**
+ * @file MagneticField.h
+ * This class provides an interpolation algorithm for the computation of \f$ B(r,\theta),\ \frac{\partial B(r,\theta)}{\partial r},\
+ * \frac{\partial B(r,\theta)}{\partial\theta} \f$
+ *
+ * @author Dr. Christian Baumgarten
+ * @version 1.0
+ */
 #ifndef MAGNETICFIELD_H
 #define MAGNETICFIELD_H
 
@@ -13,10 +21,11 @@
 #include <iostream>
 #include <fstream>
 
-#include "Utilities/LogicalError.h"
+// #include "Utilities/LogicalError.h"
 
-#include <Ippl.h>
+// #include <Ippl.h>
 
+/// Memory allocator
 #define MALLOC(n,a) ((a*)malloc((n)*sizeof(a)))
 
 /// Temporary class for comparison with reference program of Dr. Christian Baumgarten.
@@ -68,23 +77,56 @@ public:
   /// Reads the header of magnetic field from a file
   /*!
    * @param nr is the number of radial steps
-   * @param nth is the number of angle steps per sector
+   * @param nth is the number of angle steps
    * @param rmin minimal radial position (m)
    * @param dr radial step (m)
-   * @parame dth angle per theta step (rad)
+   * @param dth angle per theta step (rad)
+   * @param nsc is the number of stectors
    * @param fname is the filename
    */
   static void ReadHeader(int*, int*, double*, double*, double*, int*, std::string);
-
+  
+  /// Make cyclotron N symmetric
+  /*!
+   * @param bmag is magnetic field
+   * @param N
+   * @param nr is the number of radial steps
+   * @param nth is the number of angular steps
+   * @param nsc is the number of sectors
+   */
   static void MakeNFoldSymmetric(float**, int, int, int, int);
+  
+  /// Allocate memory for magnetic field variable
+  /*!
+   * @param n is number of angular steps
+   * @param m is number of radial steps
+   */
   static float** malloc2df(int, int);
   
 private:
   // ipolmethod==0 => lineare Interpolation
+  /// Interpolation method
   static int ipolmethod;
   
+  /// Calculates coefficients for Laplace-Interpolation
+  /*!
+   * @param x
+   * @param cof
+   */
   static void intcf(double, std::vector<double>&);
+  
+  /// Calculates coefficients for Laplace-Interpolation
+  /*!
+   * @param x
+   * @param cof
+   * @param ctrl
+   */
   static void _intcf(double, std::vector<double>&, int);
+  
+  /// Shift angle to [0°,360°]
+  /*!
+   * @param phi is the angle
+   */
   static double norm360(double);
   
 };
@@ -222,10 +264,11 @@ void MagneticField::ReadHeader(int *nr, int *nth, double *rmin, double *dr, doub
   std::ifstream fin(fname.c_str());
 
   if (!fin || !fin.is_open()) {
-    throw(LogicalError(
-		       "SectorMagneticFieldMap::IO::ReadLines",
-		       "Failed to open file "+fname
-		       ));
+      std::cerr << "Exit in reading." << std::endl; std::abort();
+//     throw(LogicalError(
+// 		       "SectorMagneticFieldMap::IO::ReadLines",
+// 		       "Failed to open file "+fname
+// 		       ));
   }
   double dthtmp;
   fin >> *rmin;
@@ -277,9 +320,8 @@ int MagneticField::ReadSectorMap(float** b,int nr,int nth,int nsc, std::string f
 	    if (!err) j++;
 	}
 	fclose(f);
-	if (!err) INFOMSG("Sector map " << fname << " read in" << endl);
 	return j;
-    } else ERRORMSG("Can not open " << fname << endl);
+    } else std::cerr << "Error" << std::endl; //ERRORMSG("Can not open " << fname << endl);
     return 0;
 }
 
@@ -370,14 +412,13 @@ double MagneticField::norm360(double phi) {
 
 void MagneticField::MakeNFoldSymmetric(float** bmag, int N, int nr, int nth, int nsc) {
   double bav;
-  int nthpersec = nth/nsc;
 
   for (int i=0;i<nr;i++) {
-    for (int j=0;j<nthpersec;j++) {
+    for (int j=0;j<nth;j++) {
       bav=0.0;
-      for (int k=0;k<nsc;k++) bav+=bmag[(j+k*nthpersec) % N][i];
+      for (int k=0;k<nsc;k++) bav+=bmag[(j+k*nth) % N][i];
       bav/=(double)nsc;
-      for (int k=0;k<nsc;k++) bmag[(j+k*nthpersec) % N][i]=bav;
+      for (int k=0;k<nsc;k++) bmag[(j+k*nth) % N][i]=bav;
     }
   }
 }
