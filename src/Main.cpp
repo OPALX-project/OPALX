@@ -237,8 +237,9 @@ int main(int argc, char *argv[]) {
 
         if (Options::info) {
 	  IpplTimings::print();
-	  IpplTimings::print(std::string("timing.dat"));
 	}
+
+	IpplTimings::print(std::string("timing.dat"));
 
         if(Ippl::myNode() == 0) {
             std::ifstream errormsg("errormsg.txt");

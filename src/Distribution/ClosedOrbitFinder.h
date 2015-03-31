@@ -17,15 +17,14 @@
 #include <functional>
 #include <limits>
 #include <numeric>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "error.h"
 #include "physics.h"
-#include "physical_error.h"
 
-#include "MagneticField.h"
+#include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
 
 
 #include <fstream>
@@ -51,14 +50,20 @@ class ClosedOrbitFinder
         /*!
          * @param E is the energy [MeV] to which the closed orbit should be found
          * @param wo is the nominal orbital frequency (see paper of Dr. C. Baumgarten: "Transverse-Longitudinal Coupling by Space Charge in Cyclotrons" (2012), formula (1))
-         * @param N specifies the number of splits (2pi/N)
+         * @param N specifies the number of splits (2pi/N), i.e number of integration steps
          * @param accuracy specifies the accuracy of the closed orbit
          * @param maxit is the maximal number of iterations done. Program stops if closed orbit not found within this time.
          * @param Emin is the minimum energy [MeV] needed in cyclotron
          * @param Emax is the maximum energy [MeV] reached in cyclotron
+         * @param nSector is the number of sectors (--> symmetry) of cyclotron
+         * @param rmin is the minimal radius of the cyclotron, \f$ \left[r_{min}\right] = m \f$
+         * @param ntheta is the number of angle splits (fieldmap variable)
+         * @param nradial is the number of radial splits (fieldmap variable)
+         * @param dr is the radial step size, \f$ \left[\Delta r\right] = m \f$
          * @param fieldmap is the location of the file that specifies the magnetic field
+         * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector, otherwise over 2*pi.
          */
-        ClosedOrbitFinder(value_type, value_type, size_type, value_type, size_type, value_type, value_type, const std::string&);
+        ClosedOrbitFinder(value_type, value_type, size_type, value_type, size_type, value_type, value_type, size_type, value_type, size_type, size_type, value_type, const std::string&, bool);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type& getInverseBendingRadius();
@@ -81,8 +86,8 @@ class ClosedOrbitFinder
         /// Returns the average orbit radius
         value_type getAverageRadius();
 
-        /// Returns the phase
-        value_type getPhase();
+        /// Returns the frequency error
+        value_type getFrequencyError();
 
         /// Returns true if a closed orbit could be found
         bool isConverged();
@@ -106,9 +111,7 @@ class ClosedOrbitFinder
          */
         value_type computeTune(const std::array<value_type,2>&, value_type, size_type);
 
-        value_type christian_computeTune(const std::array<value_type,2>&, value_type, size_type);
-
-        /// This function computes nzcross_ which is used to compute the tune in z-direction and the phase error
+        /// This function computes nzcross_ which is used to compute the tune in z-direction and the frequency error
         void computeVerticalOscillations();
 
         /// Stores current position in horizontal direction for the solutions of the ODE with different initial values
@@ -140,7 +143,7 @@ class ClosedOrbitFinder
         value_type E_m;
         /// Is the nominal orbital frequency
         value_type wo_m;
-        /// Is the number of angle splits (2*pi/N) and the number of integration steps
+        /// Number of integration steps
         size_type N_m;
         /// Is the angle step size
         value_type dtheta_m;
@@ -162,6 +165,21 @@ class ClosedOrbitFinder
 
         /// Maximum energy reached in cyclotron
         value_type Emax_m;
+        
+        /// Number of sectors (symmetry)
+        size_type nSector_m;
+        
+        /// Minimal radius of cyclotron, \f$ \left[r_{min}\right] = m \f$
+        value_type rmin_m;
+        
+        /// Number of angle splits (fieldmap)
+        size_type ntheta_m;
+        
+        /// Number of radial steps (fieldmap)
+        size_type nradial_m;
+        
+        /// Radial step size, \f$ \left[\Delta r\right] = m \f$
+        value_type dr_m;
 
         /// Stores the last orbit value (since we have to return to the beginning to check the convergence in the findOrbit() function. This last value is then deleted from the array but is stored in lastOrbitVal_m to compute the vertical oscillations)
         value_type lastOrbitVal_m;
@@ -169,24 +187,20 @@ class ClosedOrbitFinder
         /// Stores the last momentum value (since we have to return to the beginning to check the convergence in the findOrbit() function. This last value is then deleted from the array but is stored in lastMomentumVal_m to compute the vertical oscillations)
         value_type lastMomentumVal_m;
         
-        /// Boolean which is true if computeVerticalOscillations() executed, otherwise false. This is used for checking in getTunes() and getPhase().
+        /// Boolean which is true if computeVerticalOscillations() executed, otherwise false. This is used for checking in getTunes() and getFrequencyError().
         bool vertOscDone_m;
 
         /// Location of magnetic field
         std::string fieldmap_m;
-
-	/// some proerties of the magnetic field map
-	int nr_m, nth_m, nsc_m;
-	double rmin_m, dr_m, dth_m;
+        
+        /// Boolean which is true by default. "true": orbit integration over one sector only, "false": integration over 2*pi
+        bool domain_m;
 
         /// Defines the stepper for integration of the ODE's
         Stepper stepper_m;
 
         /// ONLY FOR STAND-ALONE PROGRAM
         float** bmag_m;
-
-        /// Christian's function for finding equilibrium orbit
-        void christian_findOrbit(value_type, size_type);
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -195,27 +209,37 @@ class ClosedOrbitFinder
 
     template<typename Value_type, typename Size_type, class Stepper>
 ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type E, value_type wo, size_type N, value_type accuracy,
-        size_type maxit,value_type Emin, value_type Emax, const std::string& fieldmap)
-    : nxcross_m(0), nzcross_m(0), E_m(E), wo_m(wo), N_m(N), dtheta_m(2.0*M_PI/double(N)),
-    gamma_m(E/physics::E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax),
-    lastOrbitVal_m(0.0), lastMomentumVal_m(0.0), vertOscDone_m(false), fieldmap_m(fieldmap), stepper_m()
+        size_type maxit,value_type Emin, value_type Emax, size_type nSector, value_type rmin, size_type ntheta, size_type nradial, value_type dr, const std::string& fieldmap, bool domain = true)
+    : nxcross_m(0), nzcross_m(0), E_m(E), wo_m(wo), N_m(N), dtheta_m(2.0*M_PI/value_type(N)),
+    gamma_m(E/physics::E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
+    rmin_m(rmin), ntheta_m(ntheta), nradial_m(nradial), dr_m(dr), lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
+    vertOscDone_m(false), fieldmap_m(fieldmap), domain_m(domain), stepper_m()
 {
 
     if (Emin_m > Emax_m || E_m < Emin_m || E > Emax_m)
-        Error::message("ClosedOrbitFinder",Error::invalid);
+        throw std::domain_error("Error in ClosedOrbitFinder: Emin <= E <= Emax and Emin < Emax");
+    
+    // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
+    if (gamma_m == 0)
+        throw std::invalid_argument("Error in ClosedOrbitFinder: Relativistic factor equal zero.");
+    
+    // if domain_m = true --> integrate over a single sector
+    if (domain_m) {
+        N_m /=  nSector_m;
+    }
     
     // reserve storage for the orbit and momentum (--> size = 0, capacity = N_m+1)
     /*
      * we need N+1 storage, since dtheta = 2pi/N (and not 2pi/(N-1)) that's why we need N+1 integration steps
      * to return to the origin (but the return size is N_m)
      */
-    r_m.reserve(N + 1);
-    pr_m.reserve(N + 1);
+    r_m.reserve(N_m + 1);
+    pr_m.reserve(N_m + 1);
     
     // reserve memory of N_m for the properties (--> size = 0, capacity = N_m)
-    h_m.reserve(N);
-    ds_m.reserve(N);
-    fidx_m.reserve(N);
+    h_m.reserve(N_m);
+    ds_m.reserve(N_m);
+    fidx_m.reserve(N_m);
     
     // compute closed orbit
     converged_m = findOrbit(accuracy, maxit);
@@ -270,7 +294,7 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type Cl
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
-typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::getPhase() {
+typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::getFrequencyError() {
     
     // if the vertical oscillations aren't computed, we have to, since there we also compuote the frequency error.
     if(!vertOscDone_m)
@@ -295,20 +319,11 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      * a' = a = acon
      */
 
-    // ada Injector 2  int nsc = 4, nr = 179, Nth = 144, nth = 144 / 4; value_type r0 = 0.24, dr = 0.02;
-
-    MagneticField::ReadHeader(&nr_m, &nth_m, &rmin_m, &dr_m, &dth_m, &nsc_m, fieldmap_m);
-    INFOMSG("Magnetic fiel map properties nr= " << nr_m << " nth= " << nth_m << " rmin= " << rmin_m << " dr= " << dr_m << " dth= " << dth_m << " nsc= " << nsc_m << endl);
-
-    bmag_m = MagneticField::malloc2df(nth_m,nr_m);
-    MagneticField::ReadSectorMap(bmag_m,nr_m,nth_m,1,fieldmap_m,0.0);
-
-    MagneticField::MakeNFoldSymmetric(bmag_m,nth_m,nr_m,nth_m,nsc_m);
+    // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
+    bmag_m = MagneticField::malloc2df(ntheta_m,nradial_m);
+    MagneticField::ReadSectorMap(bmag_m,nradial_m,ntheta_m,1,fieldmap_m,0.0);
+    MagneticField::MakeNFoldSymmetric(bmag_m,ntheta_m,nradial_m,ntheta_m/nSector_m,nSector_m);
     value_type bint, brint, btint;
-
-    // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
-    if (gamma_m == 0)
-        PhysicalError::message("ClosedOrbitFinder::findOrbit",PhysicalError::undefined);
     
     // resize vectors (--> size = N_m+1, capacity = N_m+1), note: we do N_m+1 integration steps
     r_m.resize(N_m+1);
@@ -344,14 +359,14 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     std::function<void(const state_type&, state_type&, const double)> orbit_integration = [&](const state_type &y, state_type &dydt, const double theta){
         pr2 = y[1] * y[1];
         if (p2 < pr2)
-            PhysicalError::message("ClosedOrbitFinder::findOrbit",PhysicalError::negative);
+            throw std::domain_error("Error in ClosedOrbitFinder::findOrbit: p_{r} > p^{2} (defined in Gordon paper)");
             
         // Gordon, formula (5c)
         ptheta = std::sqrt(p2 - pr2);
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nr_m,nth_m,y[0],rmin_m,dr_m,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
 
@@ -389,6 +404,12 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     
     // iterate until suggested energy (start with minimum energy)
     value_type E = Emin_m;
+    
+    // step size of energy    
+    value_type dE = (E_m - Emin_m) / (Emax_m - Emin_m);
+    
+    // energy increase not more than 0.25
+    dE = (dE > 0.25) ? 0.25 : dE;
 
     // energy dependent values
     value_type en = E / physics::E0;                      // en = E/E0 = E/(mc^2) (E0 is kinetic energy)
@@ -406,7 +427,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // store initial values for updating values for higher energies
     container_type previous_init = {0.0, 0.0};
     
-    while (E <= E_m) {
+    do {
 
         // (re-)set inital values for r and pr
         r_m[0] = init[0]; 
@@ -458,9 +479,12 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         
         // reset correction term
         delta[0] = delta[1] = 0.0;
-        
-        // increase energy by one
-        E += 1.0;
+
+        // increase energy by dE
+        if (E_m <= E + dE)
+            E = E_m;
+        else
+            E += dE;
         
         // set constants for new energy E
         en = E / physics::E0;                     // en = E/E0 = E/(mc^2) (E0 is kinetic energy)
@@ -468,7 +492,9 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         p2 = p * p;                               // p^2 = p*p
         gamma2 = (1.0 + en) * (1.0 + en);
         invgamma4 = 1.0 / (gamma2 * gamma2);
-    }
+        
+        
+    } while (E != E_m);
     
     /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
      * number of integrations steps there.
@@ -531,6 +557,13 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
     }
     
     // nu = mu/theta, where theta = integration domain
+    
+    /* domain_m = true --> only integrated over a single sector --> multiply by nSector_m to
+     * get correct tune.
+     */
+    if (domain_m)
+        mu *= nSector_m;
+    
     return mu / twopi;
 }
 
@@ -543,6 +576,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
      * p. 6
      */
     
+    // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
 
     value_type invbcon = 1.0 / physics::bcon(wo_m);
@@ -559,7 +593,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180.0 / M_PI,nr_m,nth_m,r_m[i],rmin_m,dr_m,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180.0 / M_PI,nradial_m,ntheta_m,r_m[i],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -588,7 +622,6 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     vertOscDone_m = true;
 
     // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-   
     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
 
     value_type en = E_m / physics::E0;                                  // en = E/E0 = E/(mc^2) with kinetic energy E0
@@ -606,14 +639,14 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     std::function<void(const state_type&, state_type&, const double)> vertical = [&](const state_type &y, state_type &dydt, const double theta){
         pr2 = y[1] * y[1];
         if (p2 < pr2)
-            PhysicalError::message("ClosedOrbitFinder::findOrbit",PhysicalError::negative);
+            throw std::domain_error("Error in ClosedOrbitFinder::computeVerticalOscillations: p_{r} > p^{2} (defined in Gordon paper)");
         
         // Gordon, formula (5c)
         ptheta = std::sqrt(p2 - pr2);
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nr_m,nth_m,y[0],rmin_m,dr_m,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -662,6 +695,12 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     z_m[1] = y[4];
     pz_m[1] = y[5];
     phase_m = y[6] / (2.0 * M_PI);
+    
+    /* domain_m = true --> only integrated over a single sector
+     * --> multiply by nSector_m to get correct phase_m
+     */
+    if (domain_m)
+        phase_m *= nSector_m;
 }
 
 #endif

@@ -16,7 +16,7 @@
 
 #include <boost/numeric/ublas/vector.hpp>
 
-#include "error.h"
+#include <stdexcept>
 
 /*!
  *  \addtogroup matt_boost
@@ -37,7 +37,8 @@ namespace matt_boost {
                 tr = sum(diag);
             }
             else
-                Error::message("matt_boost::trace",Error::dim);
+                throw std::length_error("Error in function trace() of matrix_vector_operation.h: Wrong matrix dimensions.");
+            
             return tr;
         }
 
@@ -52,7 +53,8 @@ namespace matt_boost {
                 v(2) = v1(0) * v2(1) - v1(1) * v2(0);
             }
             else
-                Error::message("matt_boost::cross_prod",Error::dim);
+                throw std::length_error("Error in function cross_prod() of matrix_vector_operation.h: Wrong vector dimensions.");
+            
             return v;
         }
 
