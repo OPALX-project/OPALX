@@ -2122,7 +2122,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << ", contents=\"stat parameters\" &end" << endl;
 
     outputFile << "&parameter name=processors, type=long, ";
-    outputFile << "description=\"Number of Processors\" &end" << endl;
+    outputFile << "description=\"Number of Cores used\" &end" << endl;
 
     outputFile << "&parameter name=revision, type=string, "
                << "description=\"svn revision of opal\" &end\n";
@@ -2267,7 +2267,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     }
     outputFile << "&data mode=ascii &end" << endl;
 
-    outputFile << "Cores used " << Ippl::getNodes() << endl;
+    outputFile << Ippl::getNodes() << endl;
     outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << GIT_VERSION << endl;
 }
 
