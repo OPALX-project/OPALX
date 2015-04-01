@@ -2183,7 +2183,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&column name=zpz, type=double, units=1 , ";
     outputFile << "description=\"23 Correlation zpz  \" &end" << endl;
 
-    outputFile << "&column name=notused2, type=double, units=1 , ";
+    outputFile << "&column name=notused1, type=double, units=1 , ";
     outputFile << "description=\"24 notused1 in y  \" &end" << endl;
 
     outputFile << "&column name=notused2, type=double, units=1 , ";
