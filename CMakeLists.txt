@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.10)
 PROJECT (OPAL)
 SET (OPAL_VERSION_MAJOR 1)
-SET (OPAL_VERSION_MINOR 3.1)
+SET (OPAL_VERSION_MINOR 3.99)
 
 IF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     SET (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
@@ -29,10 +29,10 @@ message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     add_definitions (-diag-disable 383 -diag-disable 981)
-    
+
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     add_definitions (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
-    
+
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
 	message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
