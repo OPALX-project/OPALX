@@ -2263,7 +2263,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "&column name=" << losses[i].first << ", type=long, units=1, ";
         outputFile << "description=\"" << columnStart++ << " " << losses[i].second << "\" &end" << endl;
     }
-    outputFile << "&data mode=ascii &end" << endl;
+    outputFile << "&data mode=ascii, no_row_counts=1 &end" << endl;
 
     outputFile << Ippl::getNodes() << endl;
     outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION << endl;
