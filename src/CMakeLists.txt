@@ -77,7 +77,7 @@ include_directories (Solvers/amr
     ${CLASSIC_SOURCE_DIR}
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
-    ${IPPL_INCLUDE_DIRS}
+    ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
 )
 
@@ -119,14 +119,14 @@ if (BUILD_OPAL_UNIT_TESTS)
     # include and link gtest library
     # this can be built using the script provided at
     #     unit_test/gtest/bin/install_gtest.bash
-    link_directories( ${GTEST_LIB_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/../classic/5.0/src)
+    link_directories( ${GTEST_LIB_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/../classic/5.0/src ${CMAKE_CURRENT_BINARY_DIR}/../ippl/src)
     include_directories(${GTEST_INCLUDE_DIR})
     # Check to see if cmake finds the test files
     message(STATUS "unit test src files: ${TEST_SRCS}")
     # Build the test exe. We don't do an install on the unit test exe as it is
     # assumed that this is internal to opal
     add_executable(${TEST_EXE} ${TEST_SRCS}) # the opal and classic sources are not needed again if we link agains libOPAL and libCLASSIC!
-    target_link_libraries(${TEST_EXE} OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_LINK_TARGETS} )
+    target_link_libraries(${TEST_EXE} OPALib CLASSIC IPPL ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_LINK_TARGETS} )
 endif (BUILD_OPAL_UNIT_TESTS)
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
