@@ -1,0 +1,21 @@
+/AbsFileStream.cpp/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/AbsFileStream.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/ClassicParser.cpp/1.2.2.1/Fri Nov 12 18:57:54 2004//Tdta-tpsa-25_3_2002
+/ClassicParser.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/FileStream.cpp/1.2/Fri Aug 24 19:33:11 2001//Tdta-tpsa-25_3_2002
+/FileStream.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/Parser.cpp/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/Parser.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/SimpleStatement.cpp/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/SimpleStatement.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/Statement.cpp/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/Statement.h/1.1.1.1.2.1/Sat Oct  5 00:48:29 2002//Tdta-tpsa-25_3_2002
+/StringStream.cpp/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/StringStream.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/TerminalStream.cpp/1.2/Fri Aug 24 19:33:11 2001//Tdta-tpsa-25_3_2002
+/TerminalStream.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/Token.cpp/1.1.1.1.2.2/Fri Nov 12 18:57:54 2004//Tdta-tpsa-25_3_2002
+/Token.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/TokenStream.cpp/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+/TokenStream.h/1.1.1.1/Mon Mar 27 09:32:37 2000//Tdta-tpsa-25_3_2002
+D
