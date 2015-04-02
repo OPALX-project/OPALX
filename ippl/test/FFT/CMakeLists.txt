@@ -8,6 +8,7 @@ set (CMAKE_CXX_FLAGS
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/ippl/src
 )
 
 link_directories (
