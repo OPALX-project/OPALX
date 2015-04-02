@@ -28,26 +28,30 @@ message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
-    add_definitions (-diag-disable 383 -diag-disable 981)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-disable 383 -diag-disable 981")
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    add_definitions (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG")
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
 	message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
 
     elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
-	add_definitions (-Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
     endif ()
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
 endif ()
 
 
-FIND_PACKAGE (IPPL REQUIRED HINTS $ENV{IPPL_PREFIX} $ENV{IPPL_DIR} $ENV{IPPL})
-MESSAGE (STATUS "Found IPPL library: ${IPPL_LIBRARY}")
-MESSAGE (STATUS "Found IPPL include dir: ${IPPL_INCLUDE_DIR}")
+#FIND_PACKAGE (IPPL REQUIRED HINTS $ENV{IPPL_PREFIX} $ENV{IPPL_DIR} $ENV{IPPL})
+#MESSAGE (STATUS "Found IPPL library: ${IPPL_LIBRARY}")
+#MESSAGE (STATUS "Found IPPL include dir: ${IPPL_INCLUDE_DIR}")
+SET(IPPL_CMAKE_CXX_FLAGS "-DIPPL_LINUX -DIPPL_STRINGSTREAM -std=c++1y -DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_GCC -DIPPL_DONT_POOL -DIPPL_USE_XDIV_RNG -DIPPL_NO_STRINGSTREAM -DPETE_BITWISE_COPY -DIPPL_HAS_TEMPLATED_COMPLEX -DIPPL_USE_STANDARD_HEADERS -DIPPL_USE_PARTIAL_SPECIALIZATION -DIPPL_STDSTL -DIPPL_LONGLONG -DWITH_BRICK -DnoCOMP_GNUOLD -Drestrict=__restrict__ -DNOCTAssert ")
+set (IPPL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ippl/src")
+set (IPPL_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ippl/src")
+set (IPPL_LIBRARY "ippl")
 
 FIND_PACKAGE (H5Hut REQUIRED)
 FIND_PACKAGE (HDF5 REQUIRED)
@@ -189,5 +193,6 @@ ELSE()
     SET (OPAL_WC_REVISION \"\")
 ENDIF()
 
+ADD_SUBDIRECTORY (ippl)
 ADD_SUBDIRECTORY (classic/5.0/src)
 ADD_SUBDIRECTORY (src)
