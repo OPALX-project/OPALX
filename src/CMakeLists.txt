@@ -126,7 +126,7 @@ if (BUILD_OPAL_UNIT_TESTS)
     # Build the test exe. We don't do an install on the unit test exe as it is
     # assumed that this is internal to opal
     add_executable(${TEST_EXE} ${TEST_SRCS}) # the opal and classic sources are not needed again if we link agains libOPAL and libCLASSIC!
-    target_link_libraries(${TEST_EXE} OPALib CLASSIC IPPL ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_LINK_TARGETS} )
+    target_link_libraries(${TEST_EXE} OPALib CLASSIC ippl ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_LINK_TARGETS} )
 endif (BUILD_OPAL_UNIT_TESTS)
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
