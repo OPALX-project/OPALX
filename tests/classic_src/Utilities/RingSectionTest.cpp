@@ -28,7 +28,7 @@
 #include <algorithm>
 
 #include "gtest/gtest.h"
-#include "unit_tests/opal_src/Utilities/MockComponent.h"
+#include "opal_src/Utilities/MockComponent.h"
 #include "Physics/Physics.h"
 #include "Utilities/RingSection.h"
 

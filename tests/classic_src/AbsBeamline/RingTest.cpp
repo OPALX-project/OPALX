@@ -28,7 +28,7 @@
 #include "gtest/gtest.h"
 
 #include "AbsBeamline/Offset.h"
-#include "unit_tests/opal_src/Utilities/MockComponent.h"
+#include "opal_src/Utilities/MockComponent.h"
 #include "AbsBeamline/Ring.h"
 #include "Utilities/OpalException.h"
 
