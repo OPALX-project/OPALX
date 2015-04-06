@@ -196,3 +196,13 @@ ENDIF()
 ADD_SUBDIRECTORY (ippl)
 ADD_SUBDIRECTORY (classic/5.0/src)
 ADD_SUBDIRECTORY (src)
+
+IF (BUILD_OPAL_UNIT_TESTS)
+    FIND_PACKAGE (GTest REQUIRED)
+
+    # touch CMakeLists to force cmake to redo the glob for new test source files
+    # otherwise cmake does not detect new source files
+    EXECUTE_PROCESS(COMMAND touch ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
+    ADD_SUBDIRECTORY(tests)
+
+ENDIF (BUILD_OPAL_UNIT_TESTS)
