@@ -420,7 +420,7 @@ private:
     void setOptionalVariables();
     bool hasEndOfLineReached();
     void doSchottyRenormalization();
-    void setupSUV();
+    void setupSUV(bool updateReference = true);
     void handleRestartRun();
     void prepareEmission();
     void setTime();

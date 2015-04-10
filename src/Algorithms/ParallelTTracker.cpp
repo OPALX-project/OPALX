@@ -1025,7 +1025,7 @@ void ParallelTTracker::executeDefaultTracker() {
     else
       msg << "Silent track ... " << endl;
 
-    setupSUV();
+    setupSUV(!(OpalData::getInstance()->inRestartRun() || (OpalData::getInstance()->hasBunchAllocated() && !Options::scan)));
 
     // increase margin from 3.*c*dt to 10.*c*dt to prevent that fieldmaps are accessed
     // before they are allocated when increasing the timestep in the gun.
@@ -2841,7 +2841,7 @@ void ParallelTTracker::doSchottyRenormalization() {
     }
 }
 
-void ParallelTTracker::setupSUV() {
+void ParallelTTracker::setupSUV(bool updateReference) {
 
     if(mpacflg_m) return;
 
@@ -2871,10 +2871,13 @@ void ParallelTTracker::setupSUV() {
 
     RefPartP_suv_m = itsBunch->get_pmean();
     RefPartR_suv_m = itsBunch->get_rmean();
-    RefPartP_zxy_m = RefPartP_suv_m;
 
-    updateSpaceOrientation(false);
-    RefPartP_suv_m = itsBunch->get_pmean();
+    if (updateReference) {
+        RefPartP_zxy_m = RefPartP_suv_m;
+
+        updateSpaceOrientation(false);
+        RefPartP_suv_m = itsBunch->get_pmean();
+    }
 }
 
 void ParallelTTracker::setTime() {
