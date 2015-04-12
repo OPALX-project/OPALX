@@ -1,5 +1,5 @@
 #ifdef HAVE_SAAMG_SOLVER
-#define DBG_STENCIL
+//#define DBG_STENCIL
 
 #include "Solvers/MGPoissonSolver.h"
 
@@ -10,6 +10,7 @@
 //#include "RectangularDomain.h"
 
 #include "Algorithms/PartBunch.h"
+#include "Track/Track.h"
 #include "Physics/Physics.h"
 #include "Attributes/Attributes.h"
 #include "ValueDefinitions/RealVariable.h"
@@ -94,6 +95,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
     forcePreconditionerRecomputation_m = false;
 
     hasParallelDecompositionChanged_m = true;
+    repartFreq_m = 1000; 
     useRCB_m = false;
     if(Ippl::Info->getOutputLevel() > 1)
         verbose_m = true;
@@ -104,7 +106,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
     currentGeometry = geometries_m[0];
     if(currentGeometry->getFilename() == "") {
         if(currentGeometry->getTopology() == "ELLIPTIC"){
-            bp = new EllipticDomain(currentGeometry->getA(), currentGeometry->getB(), orig_nr_m, hr_m, interpl);
+            bp = new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl);
 	} else if (currentGeometry->getTopology() == "BOXCORNER") {
             bp = new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl);
             bp->Compute(itsBunch_m->get_hr());
@@ -112,7 +114,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
             throw OpalException("MGPoissonSolver::MGPoissonSolver",
                                 "Geometry not known");
         }
-    } else
+    } else 
 	bp = new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl);
 
     Map = 0;
@@ -120,6 +122,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
     LHS = Teuchos::null;
     RHS = Teuchos::null;
     MLPrec = 0;
+    prec_m = Teuchos::null;
 
     numBlocks_m = Options::numBlocks;
     recycleBlocks_m = Options::recycleBlocks;
@@ -169,6 +172,8 @@ void MGPoissonSolver::deletePtr() {
     A = Teuchos::null;
     LHS = Teuchos::null;
     RHS = Teuchos::null;
+    if(Map) delete Map;
+    if(MLPrec) delete MLPrec; MLPrec=0;
     prec_m = Teuchos::null;
 }
 
@@ -177,13 +182,11 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift)
 }
 
 void MGPoissonSolver::computeMap(NDIndex<3> localId) {
-    if (hasParallelDecompositionChanged_m){
-        if (Map !=0 ) delete Map;
+    if (itsBunch_m->getLocalTrackStep()%repartFreq_m == 0){
+        deletePtr(); 
         if(useRCB_m)
             redistributeWithRCB(localId);
-        else if ( bp->getType() == "Geometric" )
-            IPPLToMap3DGeo(localId);
-        else if ( bp->getType() == "Elliptic" )
+        else
             IPPLToMap3D(localId);
 
         extrapolateLHS();
@@ -255,17 +258,14 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     nr_m[1] = orig_nr_m[1];
     nr_m[2] = orig_nr_m[2];
 
-    //bp->setMinMaxZ(itsBunch_m->get_origin()[2], itsBunch_m->get_maxExtend()[2]);
     bp->setGlobalMeanR(itsBunch_m->getGlobalMeanR());
     bp->setGlobalToLocalQuaternion(itsBunch_m->getGlobalToLocalQuaternion());
     bp->setNr(nr_m);
     NDIndex<3> localId = layout_m->getLocalNDIndex();
 
     IpplTimings::startTimer(FunctionTimer1_m);
-    if ( bp->getType() == "Geometric" ) {
+    if(!itsBunch_m->getLocalTrackStep())
         bp->Compute(hr, localId);
-    } else if ( bp->getType() == "Elliptic"  )
-        bp->Compute(hr);
     IpplTimings::stopTimer(FunctionTimer1_m);
 
     // Define the Map
@@ -274,8 +274,8 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     IpplTimings::stopTimer(FunctionTimer2_m);
 
     // Allocate the RHS with the new Epetra Map
-    if (Teuchos::is_null(RHS))
-      RHS = rcp(new Epetra_Vector(*Map));
+    if (Teuchos::is_null(RHS)) 
+        RHS = rcp(new Epetra_Vector(*Map));
     RHS->PutScalar(0.0);
     // get charge densities from IPPL field and store in Epetra vector (RHS)
     IpplTimings::startTimer(FunctionTimer3_m);
@@ -293,23 +293,21 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     // build discretization matrix
     IpplTimings::startTimer(FunctionTimer4_m);
-    if (Teuchos::is_null(A))
+    if(Teuchos::is_null(A))
         A = rcp(new Epetra_CrsMatrix(Copy, *Map,  7, true));
     ComputeStencil(hr, RHS);
     IpplTimings::stopTimer(FunctionTimer4_m);
+
 #ifdef DBG_STENCIL
     EpetraExt::RowMatrixToMatlabFile("DiscrStencil.dat", *A);
 #endif
 
     IpplTimings::startTimer(FunctionTimer5_m);
-    if ( MLPrec == 0 ){
+    if(!MLPrec) {
         MLPrec = new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m);
     } else if (precmode_m == REUSE_HIERARCHY) {
         MLPrec->ReComputePreconditioner();
     } else if (precmode_m == REUSE_PREC){
-    } else if (precmode_m == STD_PREC) {
-        delete MLPrec; MLPrec = 0;
-        MLPrec = new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m);
     }
     IpplTimings::stopTimer(FunctionTimer5_m);
 
@@ -320,7 +318,8 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     problem_ptr->setOperator(A);
     problem_ptr->setLHS(LHS);
     problem_ptr->setRHS(RHS);
-    prec_m = Teuchos::rcp ( new Belos::EpetraPrecOp ( rcp(MLPrec,false)));
+    if(Teuchos::is_null(prec_m))
+        prec_m = Teuchos::rcp ( new Belos::EpetraPrecOp ( rcp(MLPrec,false)));
     problem_ptr->setLeftPrec(prec_m);
     solver_ptr->setProblem( problem_ptr);
     if (!problem_ptr->isProblemSet()) {
@@ -376,8 +375,13 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         }
     }
     IpplTimings::stopTimer(FunctionTimer8_m);
-    if ( hasParallelDecompositionChanged_m )
-        deletePtr();
+
+    if(itsBunch_m->getLocalTrackStep()+1 == (long long)Track::block->localTimeSteps.front()) {
+        A = Teuchos::null;
+        LHS = Teuchos::null;
+        RHS = Teuchos::null;
+        prec_m = Teuchos::null;
+    }	
 }
 
 
@@ -450,21 +454,6 @@ void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
                     MyGlobalElements.push_back(bp->getIdx(idx, idy, idz));
                     NumMyElements++;
                 }
-            }
-	}
-    }
-    Map = new Epetra_Map(-1, NumMyElements, &MyGlobalElements[0], 0, Comm);
-}
-
-void MGPoissonSolver::IPPLToMap3DGeo(NDIndex<3> localId) {
-    int NumMyElements = 0;
-    std::vector<int> MyGlobalElements;
-
-    for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-        for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
-            for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                    MyGlobalElements.push_back(bp->getIdx(idx, idy, idz));
-                    NumMyElements++;
             }
 	}
     }
