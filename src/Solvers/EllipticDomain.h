@@ -7,6 +7,7 @@
 #include <string>
 #include <cmath>
 #include "IrregularDomain.h"
+#include "Structure/BoundaryGeometry.h"
 
 class EllipticDomain : public IrregularDomain {
 
@@ -14,6 +15,9 @@ public:
 
     EllipticDomain(Vector_t nr, Vector_t hr);
     EllipticDomain(double semimajor, double semiminor, Vector_t nr, Vector_t hr, std::string interpl);
+    EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, std::string interpl);
+    EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, std::string interpl);
+
     ~EllipticDomain();
 
     /// returns discretization at (x,y,z)
