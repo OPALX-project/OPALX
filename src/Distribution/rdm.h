@@ -12,13 +12,12 @@
 
 #include <cmath>
 #include <iostream>
+#include <stdexcept>
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 
-#include "error.h"
-#include "physical_error.h"
 #include "matrix_vector_operation.h"
 
 // Remark: Comments starting with "///" are doxygen comments, comments with "//" are normal comments.
@@ -38,7 +37,10 @@ class RDM
         typedef boost::numeric::ublas::matrix<value_type> matrix_type;
         /// Dense vector type definition
         typedef boost::numeric::ublas::vector<value_type> vector_type;
-
+        
+        /// Default constructor (sets only NumOfRDMs and DimOfRDMs)
+        RDM();
+        
         /// Returns the i-th Real Dirac matrix
         /*!
          * @param i specifying the matrix (has to be in the range from 0 to 15)
@@ -95,15 +97,11 @@ class RDM
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
-// PUBLIC MEMBER VARIABLES
-// -----------------------------------------------------------------------------------------------------------------------
-
-short NumOfRDMs = 16;
-short DimOfRDMs = 4;
-
-// -----------------------------------------------------------------------------------------------------------------------
 // PUBLIC MEMBER FUNCTIONS
 // -----------------------------------------------------------------------------------------------------------------------
+
+template<typename Value_type, typename Size_type>
+RDM<Value_type, Size_type>::RDM() : NumOfRDMs(16), DimOfRDMs(4) {};
 
 template<typename Value_type, typename Size_type>
 typename RDM<Value_type, Size_type>::sparse_matrix_type RDM<Value_type, Size_type>::getRDM(short i) {
@@ -125,7 +123,7 @@ typename RDM<Value_type, Size_type>::sparse_matrix_type RDM<Value_type, Size_typ
         case 13: rdm(0,3) = rdm(3,0) = -1; rdm(1,2) = rdm(2,1) = 1;	break;
         case 14: rdm(0,3) = rdm(1,2) = -1; rdm(2,1) = rdm(3,0) = 1;	break;
         case 15: rdm(0,0) = rdm(1,1) = rdm(2,2) = rdm(3,3) = 1;	break;
-        default: Error::message("RDM<Value_type, Size_type>::generateRDM(short& i)",Error::notdefined); break;
+        default: throw std::out_of_range("Error in RDM::generate: 0 <= i <= 15"); break;
     }
     return rdm;
 }
@@ -136,8 +134,8 @@ typename RDM<Value_type, Size_type>::vector_type RDM<Value_type, Size_type>::dec
      * Formula (11) from paper:
      * Geometrical method of decoupling
      */
-    if(M.size1() != 4 && M.size1() != M.size2())
-        Error::message("RDM<Value_type, Size_type>::decompose(const matrix_type&)", Error::dim);
+    if (M.size1() != 4 && M.size1() != M.size2())
+        throw std::length_error("Error in RDM::decompose: Wrong matrix dimensions.");
 
     vector_type coeffs(16);
 
@@ -162,7 +160,7 @@ typename RDM<Value_type, Size_type>::vector_type RDM<Value_type, Size_type>::dec
 template<typename Value_type, typename Size_type>
 typename RDM<Value_type, Size_type>::matrix_type RDM<Value_type, Size_type>::combine(const vector_type& coeffs) {
     if (coeffs.size() > 16)
-        Error::message("RDM<Value_type, Size_type>::combine(const vector_type&)",Error::size);
+        throw std::length_error("Error in RDM::combine: Wrong size of coefficient vector.");
 
     // initialize a 4x4 zero matrix
     matrix_type M = boost::numeric::ublas::zero_matrix<value_type>(4,4);
@@ -227,7 +225,9 @@ void RDM<Value_type, Size_type>::diagonalize(matrix_type& Ms, sparse_matrix_type
     E(0) = mult(4); E(1) = mult(5); E(2) = mult(6);
     B(0) = -mult(7); B(1) = -mult(8); B(2) = -mult(9);
     mr = boost::numeric::ublas::inner_prod(E,B);
-    b = eps*B+matt_boost::cross_prod(E,P);  
+    b = eps*B+matt_boost::cross_prod(E,P);
+    
+    // Transformation distinction made according to function "rdm_Decouple_F" in rdm.c of Dr. Christian Baumgarten
 
     if (std::fabs(mr) < std::fabs(b(1))) {
         transform(Ms,short(2),0.5 * std::atanh(mr / b(1)),R,invR);
@@ -248,9 +248,10 @@ void RDM<Value_type, Size_type>::diagonalize(matrix_type& Ms, sparse_matrix_type
     value_type P2 = boost::numeric::ublas::inner_prod(P,P);
     value_type E2 = boost::numeric::ublas::inner_prod(E,E);
     
+    // 5. Transform with \gamma_{0}
     transform(Ms,short(0),0.25 * std::atan2(mb,0.5 * (E2 - P2)),R,invR);
 
-    // 5. Transformation with \gamma_{8}
+    // 6. Transformation with \gamma_{8}
     P(0) = mult(1); P(2) = mult(3);
     
     transform(Ms,short(8),-0.5 * std::atan2(P(2),P(0)),R,invR);

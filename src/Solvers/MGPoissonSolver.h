@@ -145,6 +145,7 @@ private:
     bool hasGeometryChanged_m;
     /// flag is set when OPAL changed decomposition of mesh
     bool hasParallelDecompositionChanged_m;
+    int repartFreq_m;
     /// flag specifying if problem is redistributed with RCB
     bool useRCB_m;
     /// flag specifying if we are verbose
@@ -252,7 +253,6 @@ private:
     /// converts IPPL grid to a 3D Epetra_Map
     /// \param localId local IPPL grid node indices
     void IPPLToMap3D(NDIndex<3> localId);
-    void IPPLToMap3DGeo(NDIndex<3> localId);
 
     /** returns a discretized stencil that has Neumann BC in z direction and
      * Dirichlet BC on the surface of a specified geometry

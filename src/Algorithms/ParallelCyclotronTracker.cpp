@@ -164,7 +164,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  *
  */
 ParallelCyclotronTracker::~ParallelCyclotronTracker() {
-    for(list<Component *>::iterator compindex = myElements.begin(); compindex != myElements.end(); compindex++) {
+    for(std::list<Component *>::iterator compindex = myElements.begin(); compindex != myElements.end(); compindex++) {
         delete(*compindex);
     }
     for(beamline_list::iterator fdindex = FieldDimensions.begin(); fdindex != FieldDimensions.end(); fdindex++) {
@@ -182,7 +182,7 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
  * @param none
  */
 void ParallelCyclotronTracker::initializeBoundaryGeometry() {
-  for(list<Component *>::iterator compindex = myElements.begin(); compindex != myElements.end(); compindex++) {
+  for(std::list<Component *>::iterator compindex = myElements.begin(); compindex != myElements.end(); compindex++) {
     bgf_m = dynamic_cast<ElementBase *>(*compindex)->getBoundaryGeometry();
     if(!bgf_m)
       continue;
@@ -238,31 +238,31 @@ void ParallelCyclotronTracker::openFiles(std::string SfileName) {
     std::string  SfileName2 = SfileName + std::string("-Angle0.dat");
 
     outfTheta0_m.precision(8);
-    outfTheta0_m.setf(ios::scientific, ios::floatfield);
+    outfTheta0_m.setf(std::ios::scientific, std::ios::floatfield);
     outfTheta0_m.open(SfileName2.c_str());
-    outfTheta0_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma" << endl;
+    outfTheta0_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma" << std::endl;
 
     SfileName2 = SfileName + std::string("-Angle1.dat");
     outfTheta1_m.precision(8);
-    outfTheta1_m.setf(ios::scientific, ios::floatfield);
+    outfTheta1_m.setf(std::ios::scientific, std::ios::floatfield);
     outfTheta1_m.open(SfileName2.c_str());
-    outfTheta1_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << endl;
+    outfTheta1_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << std::endl;
 
     SfileName2 = SfileName + std::string("-Angle2.dat");
     outfTheta2_m.precision(8);
-    outfTheta2_m.setf(ios::scientific, ios::floatfield);
+    outfTheta2_m.setf(std::ios::scientific, std::ios::floatfield);
     outfTheta2_m.open(SfileName2.c_str());
-    outfTheta2_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << endl;
+    outfTheta2_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << std::endl;
 
     // for single Particle Mode, output after each turn, to define matched initial phase ellipse.
 
     SfileName2 = SfileName + std::string("-afterEachTurn.dat");
 
     outfThetaEachTurn_m.precision(8);
-    outfThetaEachTurn_m.setf(ios::scientific, ios::floatfield);
+    outfThetaEachTurn_m.setf(std::ios::scientific, std::ios::floatfield);
 
     outfThetaEachTurn_m.open(SfileName2.c_str());
-    outfTheta2_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << endl;
+    outfTheta2_m << "#  r [mm]      beta_r*gamma       theta [mm]      beta_theta*gamma        z [mm]          beta_z*gamma"  << std::endl;
 }
 
 /**
@@ -1180,9 +1180,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     // if initialTotalNum_m = 2, trigger SEO mode
     // prepare for transverse tuning calculation
-    vector<double> Ttime, Tdeltr, Tdeltz;
+    std::vector<double> Ttime, Tdeltr, Tdeltz;
     // prepare for transverse tuning calculation
-    vector<int> TturnNumber;
+    std::vector<int> TturnNumber;
     turnnumber_m = 1;
 
 
@@ -1507,13 +1507,13 @@ void ParallelCyclotronTracker::Tracker_LF() {
                 *gmsg << "*** Turn " << turnnumber_m << endl;
 
                 dumpEachTurn = true;
-                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                                     << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                                     << " " << temp_meanTheta / PIOVER180
                                     << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                                     << " " << variable_m[2]
-                                    << " " << variable_m[5] << endl;
+                                    << " " << variable_m[5] << std::endl;
             }
             // FixMe: should be defined elesewhere !
             // define 3 special azimuthal angles where dump particle's six parameters  at each turn into 3 ASCII files.
@@ -1521,33 +1521,33 @@ void ParallelCyclotronTracker::Tracker_LF() {
             const double azimuth_angle1 = 22.5 * PIOVER180;
             const double azimuth_angle2 = 45.0 * PIOVER180;
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / PIOVER180
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+                             << " " << variable_m[5] << std::endl;
             }
 
             if((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / PIOVER180
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+                             << " " << variable_m[5] << std::endl;
             }
 
             if((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / PIOVER180
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+                             << " " << variable_m[5] << std::endl;
             }
             oldReferenceTheta = temp_meanTheta;
         }
@@ -1759,8 +1759,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
         *gmsg << "* The particles energy bin reset frequency is set to " << resetBinFreq << endl;
 
     // If initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
-    vector<double> Ttime, Tdeltr, Tdeltz;
-    vector<int> TturnNumber;
+    std::vector<double> Ttime, Tdeltr, Tdeltz;
+    std::vector<int> TturnNumber;
     turnnumber_m = 1;
 
     bool flagNoDeletion = false;
@@ -1830,8 +1830,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                 double x;
                 int  id;
-                vector<double> tmpr;
-                vector<int> tmpi;
+                std::vector<double> tmpr;
+                std::vector<int> tmpi;
 
                 int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
 
@@ -1888,8 +1888,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                                 tmpr.push_back(itsBunch->P[found[ii]](jj));
                             }
                         }
-                        vector<double>::iterator itParameter = tmpr.begin();
-                        vector<int>::iterator  itId = tmpi.begin();
+                        std::vector<double>::iterator itParameter = tmpr.begin();
+                        std::vector<int>::iterator  itId = tmpi.begin();
 
                         for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
                             outfTrackOrbit_m << "ID" << *itId;
@@ -1897,7 +1897,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                                 outfTrackOrbit_m << " " << *itParameter;
                                 itParameter++;
                             }
-                            outfTrackOrbit_m << endl;
+                            outfTrackOrbit_m << std::endl;
                         }
                         // sample frequency = SinglePartDumpFreq
                     } else {
@@ -2417,7 +2417,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 if((step_m % SinglePartDumpFreq == 0)) {
                     outfTrackOrbit_m << "ID" << (itsBunch->ID[i]);
                     outfTrackOrbit_m << " " << variable_m[0] << " " << variable_m[3] << " " << variable_m[1] << " "
-                         << variable_m[4] << " " << variable_m[2] << " " << variable_m[5] << endl;
+                         << variable_m[4] << " " << variable_m[2] << " " << variable_m[5] << std::endl;
                 }
 
                 double OldTheta = 0.0;
@@ -2465,7 +2465,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             if((step_m % SinglePartDumpFreq == 0)) {
               outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
               outfTrackOrbit_m << " " << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " " <<itsBunch->R[i](1)
-                               << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2)<< endl;
+                               << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2)<< std::endl;
             }
 
             // change phase space parameters from local frame of bunch (dr,dtheta,dz) to global Cartesian frame (X,Y,Z)
@@ -2483,13 +2483,13 @@ void ParallelCyclotronTracker::Tracker_RK4() {
               dumpEachTurn = true;
               *gmsg << "Turn " << turnnumber_m << endl;
 
-              outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
               outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                                   << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                                   << " " << temp_meanTheta / pi * 180
                                   << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                                   << " " << variable_m[2]
-                                  << " " << variable_m[5] << endl;
+                                  << " " << variable_m[5] << std::endl;
             }
 
             //define 3 special azimuthal angles where dump particle's six parameters  at each turn into 3 ASCII files.
@@ -2498,33 +2498,33 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             const double azimuth_angle2 = 45.0 / 180.0 * pi;
 
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-              outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
               outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                            << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                            << " " << temp_meanTheta / pi * 180
                            << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                            << " " << variable_m[2]
-                           << " " << variable_m[5] << endl;
+                           << " " << variable_m[5] << std::endl;
             }
 
             if((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-              outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
               outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                            << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                            << " " << temp_meanTheta / pi * 180
                            << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                            << " " << variable_m[2]
-                           << " " << variable_m[5] << endl;
+                           << " " << variable_m[5] << std::endl;
             }
 
             if((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-              outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+              outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
               outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                            << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                            << " " << temp_meanTheta / pi * 180
                            << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                            << " " << variable_m[2]
-                           << " " << variable_m[5] << endl;
+                           << " " << variable_m[5] << std::endl;
             }
 
             oldReferenceTheta = temp_meanTheta;
@@ -2847,8 +2847,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
     // If initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
     // Where is the IF here? -DW
-    vector<double> Ttime, Tdeltr, Tdeltz;
-    vector<int> TturnNumber;
+    std::vector<double> Ttime, Tdeltr, Tdeltz;
+    std::vector<int> TturnNumber;
     turnnumber_m = 1;
 
     // --- Output to user --- //
@@ -3350,7 +3350,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                                      << " " << variable_m[1]
                                      << " " << variable_m[4]
                                      << " " << variable_m[2]
-                                     << " " << variable_m[5] << endl;
+                                     << " " << variable_m[5] << std::endl;
                 }
 
                 double OldTheta = 0.0;
@@ -3451,7 +3451,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
                     outfTrackOrbit_m << " " << itsBunch->R[i](0) << " " << itsBunch->P[i](0) << " " << itsBunch->R[i](1)
-                                     << " " << itsBunch->P[i](1) << " " << itsBunch->R[i](2) << " " << itsBunch->P[i](2) << endl;
+                                     << " " << itsBunch->P[i](1) << " " << itsBunch->R[i](2) << " " << itsBunch->P[i](2) << std::endl;
                 }
 
                 for(int j = 0; j < 3; j++) {
@@ -3472,43 +3472,43 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     *gmsg << "* SPT: Finished turn " << turnnumber_m - 1 << endl;
 
-                    outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+                    outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfThetaEachTurn_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                         << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
                                         << " " << temp_meanTheta / PIOVER180
                                         << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                         << " " << variable_m[2]
-                                        << " " << variable_m[5] << endl;
+                                        << " " << variable_m[5] << std::endl;
                 }
 
                 if ((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                    outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+                    outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfTheta0_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                  << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
                                  << " " << temp_meanTheta / PIOVER180
                                  << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                  << " " << variable_m[2]
-                                 << " " << variable_m[5] << endl;
+                                 << " " << variable_m[5] << std::endl;
                 }
 
                 if ((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                    outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+                    outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfTheta1_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                  << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
                                  << " " << temp_meanTheta / PIOVER180
                                  << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                  << " " << variable_m[2]
-                                 << " " << variable_m[5] << endl;
+                                 << " " << variable_m[5] << std::endl;
                 }
 
                 if ((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                    outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << endl;
+                    outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfTheta2_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                  << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
                                  << " " << temp_meanTheta / PIOVER180
                                  << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                  << " " << variable_m[2]
-                                 << " " << variable_m[5] << endl;
+                                 << " " << variable_m[5] << std::endl;
                 }
 
                 oldReferenceTheta = temp_meanTheta;
@@ -3940,7 +3940,7 @@ bool ParallelCyclotronTracker::RFkick(RFCavity * rfcavity, const double t, const
 }
 
 
-struct adder : public unary_function<double, void> {
+struct adder : public std::unary_function<double, void> {
     adder() : sum(0) {}
     double sum;
     void operator()(double x) { sum += x; }
@@ -3958,7 +3958,7 @@ struct adder : public unary_function<double, void> {
  *
  * @return
  */
-bool ParallelCyclotronTracker::getTunes(vector<double> &t, vector<double> &r, vector<double> &z,
+bool ParallelCyclotronTracker::getTunes(std::vector<double> &t, std::vector<double> &r, std::vector<double> &z,
                                         int lastTurn, double &nur, double &nuz) {
     TUNE_class *tune;
 
@@ -4379,13 +4379,13 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 ++turnnumber_m;
                 *gmsg << "Turn " << turnnumber_m << endl;
                 dumpEachTurn = true;
-                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                                     << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                                     << " " << temp_meanTheta / pi * 180.0
                                     << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                                     << " " << variable_m[2]
-                                    << " " << variable_m[5] << endl;
+                                    << " " << variable_m[5] << std::endl;
             }
             // FixMe: should be defined elesewhere !
             // define 3 special azimuthal angles where dump particle's six parameters  at each turn into 3 ASCII files.
@@ -4393,33 +4393,33 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             const double azimuth_angle1 = 22.5 / 180.0 * pi;
             const double azimuth_angle2 = 45.0 / 180.0 * pi;
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+                             << " " << variable_m[5] << std::endl;
             }
 
             if((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+                             << " " << variable_m[5] << std::endl;
             }
 
             if((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << endl;
+                outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
                              << " " << temp_meanTheta / pi * 180
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
-                             << " " << variable_m[5] << endl;
+                             << " " << variable_m[5] << std::endl;
             }
             oldReferenceTheta = temp_meanTheta;
         }
@@ -5020,20 +5020,20 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
 
     std::string f = OpalData::getInstance()->getInputBasename() + std::string("-trackOrbit.dat");
 
-    outfTrackOrbit_m.setf(ios::scientific, ios::floatfield);
+    outfTrackOrbit_m.setf(std::ios::scientific, std::ios::floatfield);
     outfTrackOrbit_m.precision(8);
 
     if(myNode_m == 0) {
 
         if(OpalData::getInstance()->inRestartRun()) {
 
-            outfTrackOrbit_m.open(f.c_str(), ios::app);
-            outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getLocalTrackStep() << endl;
+            outfTrackOrbit_m.open(f.c_str(), std::ios::app);
+            outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getLocalTrackStep() << std::endl;
         } else {
 
             outfTrackOrbit_m.open(f.c_str());
-            outfTrackOrbit_m << "# The six-dimensional phase space data in the global Cartesian coordinates" << endl;
-            outfTrackOrbit_m << "# Part. ID    x [mm]       beta_x*gamma       y [mm]      beta_y*gamma        z [mm]      beta_z*gamma" << endl;
+            outfTrackOrbit_m << "# The six-dimensional phase space data in the global Cartesian coordinates" << std::endl;
+            outfTrackOrbit_m << "# Part. ID    x [mm]       beta_x*gamma       y [mm]      beta_y*gamma        z [mm]      beta_z*gamma" << std::endl;
         }
     }
 }
@@ -5218,8 +5218,8 @@ void ParallelCyclotronTracker::singleParticleDump() {
 
         double x;
         int id;
-        vector<double> tmpr;
-        vector<int> tmpi;
+        std::vector<double> tmpr;
+        std::vector<int> tmpi;
 
         int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
 
@@ -5285,8 +5285,8 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 }
             }
 
-            vector<double>::iterator itParameter = tmpr.begin();
-            vector<int>::iterator itId = tmpi.begin();
+            std::vector<double>::iterator itParameter = tmpr.begin();
+            std::vector<int>::iterator itId = tmpi.begin();
 
             for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
 
@@ -5298,7 +5298,7 @@ void ParallelCyclotronTracker::singleParticleDump() {
                     itParameter++;
                 }
 
-                outfTrackOrbit_m << endl;
+                outfTrackOrbit_m << std::endl;
             }
         } else {
 
@@ -5332,7 +5332,7 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 outfTrackOrbit_m << "ID" << itsBunch->ID[i] << " ";
                 outfTrackOrbit_m << itsBunch->R[i](0) << " " << itsBunch->P[i](0) << " ";
                 outfTrackOrbit_m << itsBunch->R[i](1) << " " << itsBunch->P[i](1) << " ";
-                outfTrackOrbit_m << itsBunch->R[i](2) << " " << itsBunch->P[i](2) << endl;
+                outfTrackOrbit_m << itsBunch->R[i](2) << " " << itsBunch->P[i](2) << std::endl;
             }
         }
     }
