@@ -22,6 +22,7 @@
 #include "Algorithms/PartPusher.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Utilities/Options.h"
 #include "Fields/Fieldmap.hh"
 #include <iostream>
 #include <fstream>
@@ -1219,7 +1220,7 @@ bool SBend::IsPositionInExitField(Vector_t R, Vector_t &RExit) {
 }
 
 void SBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
-
+  if(Options::info) {
     msg << endl
         << "Start of field map:      "
         << startField_m
@@ -1311,25 +1312,26 @@ void SBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << bendAngleY * 180.0 / Physics::pi
         << " degrees) in y plane"
         << endl << endl;
-
+  }
 }
 
 void SBend::ReadFieldMap(Inform &msg) {
-
+  if(Options::info) {
     msg << getName() << " using file ";
     fieldmap_m->getInfo(&msg);
-    Fieldmap::readMap(fileName_m);
-    fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
-                                           entranceParameter2_m,
-                                           entranceParameter3_m);
-    fieldmap_m->Get1DProfile1ExitParam(exitParameter1_m,
-                                       exitParameter2_m,
-                                       exitParameter3_m);
-    SetGapFromFieldMap();
-    fieldmap_m->Get1DProfile1EngeCoeffs(engeCoeffsEntry_m,
-                                        engeCoeffsExit_m);
-    polyOrderEntry_m = engeCoeffsEntry_m.size() - 1;
-    polyOrderExit_m = engeCoeffsExit_m.size() - 1;
+  }
+  Fieldmap::readMap(fileName_m);
+  fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
+					 entranceParameter2_m,
+					 entranceParameter3_m);
+  fieldmap_m->Get1DProfile1ExitParam(exitParameter1_m,
+				     exitParameter2_m,
+				     exitParameter3_m);
+  SetGapFromFieldMap();
+  fieldmap_m->Get1DProfile1EngeCoeffs(engeCoeffsEntry_m,
+				      engeCoeffsExit_m);
+  polyOrderEntry_m = engeCoeffsEntry_m.size() - 1;
+  polyOrderExit_m = engeCoeffsExit_m.size() - 1;
 
 }
 
@@ -1584,8 +1586,9 @@ bool SBend::SetupDefaultFieldMap(Inform &msg) {
             << endl;
         return false;
     } else {
-        fieldmap_m->getInfo(&msg);
-        return true;
+      if(Options::info) 
+	fieldmap_m->getInfo(&msg);
+      return true;
     }
 
 }

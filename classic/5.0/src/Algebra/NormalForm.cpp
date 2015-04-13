@@ -40,7 +40,7 @@ using std::imag;
 using std::pow;
 using std::real;
 using std::swap;
-
+using std::complex;
 
 // Tolerance for accepting an eigenvalue.
 namespace {

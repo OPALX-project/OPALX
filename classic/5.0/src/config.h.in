@@ -20,4 +20,4 @@
 #define VERSION ${VERSION}
 
 /* repository svn version */
-#define SVN_VERSION ${OPAL_WC_REVISION}
+#define GIT_VERSION ${OPAL_WC_REVISION}

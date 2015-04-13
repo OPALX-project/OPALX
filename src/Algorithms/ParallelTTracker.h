@@ -22,6 +22,10 @@
 #include "Algorithms/PartPusher.h"
 #include "Structure/DataSink.h"
 
+#include "BasicActions/Option.h"
+#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
+
 #include "Physics/Physics.h"
 #ifdef HAVE_AMR_SOLVER
 #include <Amr.H>
@@ -416,7 +420,7 @@ private:
     void setOptionalVariables();
     bool hasEndOfLineReached();
     void doSchottyRenormalization();
-    void setupSUV();
+    void setupSUV(bool updateReference = true);
     void handleRestartRun();
     void prepareEmission();
     void setTime();
@@ -555,8 +559,6 @@ inline void ParallelTTracker::visitCyclotronValley(const CyclotronValley &cv) {
 }
 
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
-    using Physics::c;
-
     int localNum = itsBunch->getLocalNum();
     for(int i = 0; i < localNum; ++i)
         pusher.kick(itsBunch->R[i], itsBunch->P[i], itsBunch->Ef[i], itsBunch->Bf[i], itsBunch->dt[i]);
@@ -564,8 +566,6 @@ inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
 }
 
 inline void ParallelTTracker::kickParticlesAutophase(const BorisPusher &pusher) {
-    using Physics::c;
-
     int localNum = itsBunch->getLocalNum();
     for(int i = 0; i < localNum; ++i)
         pusher.kick(itsBunch->R[i], itsBunch->P[i], itsBunch->Ef[i], itsBunch->Bf[i], itsBunch->dt[i]);
@@ -574,8 +574,6 @@ inline void ParallelTTracker::kickParticlesAutophase(const BorisPusher &pusher) 
 
 // BoundaryGeometry version of kickParticles function
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher, const int &flg) {
-    using Physics::c;
-
     int localNum = itsBunch->getLocalNum();
     for(int i = 0; i < localNum; ++i) {
         if(itsBunch->TriID[i] == 0) { //TriID[i] will be 0 if particles don't collide the boundary before kick;
@@ -805,8 +803,10 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
     if(psDump) {
         // Write fields to .h5 file.
         itsDataSink_m->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
-        msg << "* Wrote beam phase space." << endl;
-        msg << *itsBunch << endl;
+	if (Options::info) {
+	  msg << "* Wrote beam phase space." << endl;
+	  msg << *itsBunch << endl;
+	}
     }
 
     if(statDump) {
@@ -835,7 +835,8 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
 	  }
 	}
         // Write statistical data.
-        msg << "* Wrote beam statistics." << endl;
+	if (Options::info)
+	  msg << "* Wrote beam statistics." << endl;
         itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2), collimatorLosses);
     }
 

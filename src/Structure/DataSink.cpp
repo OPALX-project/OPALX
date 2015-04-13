@@ -15,6 +15,8 @@
 
 #include "H5hut.h"
 
+#include <queue>
+
 extern Inform *gmsg;
 
 using namespace std;
@@ -74,8 +76,8 @@ DataSink::DataSink() :
 }
 
 DataSink::DataSink(int restartStep) :
-  lossWrCounter_m(0),
-  H5file_m(NULL)
+    lossWrCounter_m(0),
+    H5file_m(NULL)
 {
     doHDF5_m = Options::enableHDF5;
     if (!doHDF5_m) {
@@ -102,22 +104,22 @@ DataSink::DataSink(int restartStep) :
     ofstream lBalFile(lBalFileName_m.c_str(), ios::in);
 
     if(statFile.is_open()) {
-      // File exists so we append data to end.
-      firstWriteToStat_m = false;
-      statFile.close();
-      *gmsg << "Appending statistical data to existing data file: " << statFileName_m << endl;
+        // File exists so we append data to end.
+        firstWriteToStat_m = false;
+        statFile.close();
+        *gmsg << "Appending statistical data to existing data file: " << statFileName_m << endl;
     } else {
-      statFile.clear();
-      *gmsg << "Creating new file for statistical data: " << statFileName_m << endl;
+        statFile.clear();
+        *gmsg << "Creating new file for statistical data: " << statFileName_m << endl;
     }
 
     if(lBalFile.is_open()) {
-      // File exists so we append data to end.
-      lBalFile.close();
-      *gmsg << "Appending load balance data to existing data file: " << lBalFileName_m << endl;
+        // File exists so we append data to end.
+        lBalFile.close();
+        *gmsg << "Appending load balance data to existing data file: " << lBalFileName_m << endl;
     } else {
-      lBalFile.clear();
-      *gmsg << "Creating new file for load balance data: " << lBalFileName_m << endl;
+        lBalFile.clear();
+        *gmsg << "Creating new file for load balance data: " << lBalFileName_m << endl;
     }
 
     // Define file name.
@@ -137,7 +139,7 @@ DataSink::DataSink(int restartStep) :
     *gmsg << "numStepsInFile " << numStepsInFile << endl;
 
     if(restartStep == -1) {
-      restartStep = numStepsInFile;
+        restartStep = numStepsInFile;
     }
 
     // Use same dump frequency.
@@ -167,12 +169,12 @@ void DataSink::writeH5FileAttributes() {
 
     if (!doHDF5_m) return;
 
-	h5_int64_t rc;
+    h5_int64_t rc;
     /// Function steps:
 
     /// Write file attributes to describe phase space to H5 file.
     stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION;
     rc = H5WriteFileAttribString(H5file_m, "OPAL_version", OPAL_version.str().c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -338,129 +340,129 @@ void DataSink::writeH5FileAttributes() {
     firstWriteH5part_m = false;
 
     /*
-    stringstream inputFileContent;
-    hsize_t ContentLength;
-    hsize_t write_length;
-    hsize_t length;
-    hsize_t start = 0;
-    hsize_t dmax = H5S_UNLIMITED;
+      stringstream inputFileContent;
+      hsize_t ContentLength;
+      hsize_t write_length;
+      hsize_t length;
+      hsize_t start = 0;
+      hsize_t dmax = H5S_UNLIMITED;
 
-    herr_t herr;
+      herr_t herr;
 
-    hid_t group_id;
-    hid_t shape;
-    hid_t dataset_id;
-    hid_t diskshape;
-    hid_t memshape;
+      hid_t group_id;
+      hid_t shape;
+      hid_t dataset_id;
+      hid_t diskshape;
+      hid_t memshape;
 
-    char group_name[] = "INPUT";
-    char dataset_name[] = "InputFile";
+      char group_name[] = "INPUT";
+      char dataset_name[] = "InputFile";
 
-    char *FileContent = NULL;
+      char *FileContent = NULL;
 
-    if(H5file_m->timegroup >= 0) {
-        herr = H5Gclose(H5file_m->timegroup);
-        H5file_m->timegroup = -1;
-    }
+      if(H5file_m->timegroup >= 0) {
+      herr = H5Gclose(H5file_m->timegroup);
+      H5file_m->timegroup = -1;
+      }
 
-    if(Ippl::myNode() == 0) {
-        struct stat st;
-        off_t fsize;
-        if(stat(OpalData::getInstance()->getInputFn().c_str(), &st) == 0) {
-            fsize = st.st_size;
-        }
-        ContentLength = fsize / sizeof(char);
-        FileContent = new char[ContentLength];
+      if(Ippl::myNode() == 0) {
+      struct stat st;
+      off_t fsize;
+      if(stat(OpalData::getInstance()->getInputFn().c_str(), &st) == 0) {
+      fsize = st.st_size;
+      }
+      ContentLength = fsize / sizeof(char);
+      FileContent = new char[ContentLength];
 
-        filebuf inputFileBuffer;
-        inputFileBuffer.open(OpalData::getInstance()->getInputFn().c_str(), ios::in);
-        istream inputFile(&inputFileBuffer);
+      filebuf inputFileBuffer;
+      inputFileBuffer.open(OpalData::getInstance()->getInputFn().c_str(), ios::in);
+      istream inputFile(&inputFileBuffer);
 
-        inputFile.get(FileContent, ContentLength, '\0');
+      inputFile.get(FileContent, ContentLength, '\0');
 
-        inputFileBuffer.close();
-        write_length = ContentLength;
+      inputFileBuffer.close();
+      write_length = ContentLength;
 
-    } else {
-        FileContent = new char[1];
-        //        FileContent[0] = '.';
-        write_length = 0;
-    }
-    //     long n = static_cast<long>(floor( 0.5 + ContentLength / Ippl::getNodes() ) );
-    //     int N = n * Ippl::getNodes() - ContentLength;
+      } else {
+      FileContent = new char[1];
+      //        FileContent[0] = '.';
+      write_length = 0;
+      }
+      //     long n = static_cast<long>(floor( 0.5 + ContentLength / Ippl::getNodes() ) );
+      //     int N = n * Ippl::getNodes() - ContentLength;
 
-    //     int signN = N > 0 ? 1 : -1;
-    //     if (Ippl::myNode() < signN * N) {
-    //         length = n - signN;
-    //         start = Ippl::myNode() * length;
-    //     } else {
-    //         length = n;
-    //         start = Ippl::myNode() * length - N;
-    //     }
+      //     int signN = N > 0 ? 1 : -1;
+      //     if (Ippl::myNode() < signN * N) {
+      //         length = n - signN;
+      //         start = Ippl::myNode() * length;
+      //     } else {
+      //         length = n;
+      //         start = Ippl::myNode() * length - N;
+      //     }
 
-    MPI_Bcast(&ContentLength,
-              1,
-              MPI_LONG_LONG_INT,
-              0,
-              Ippl::getComm());
+      MPI_Bcast(&ContentLength,
+      1,
+      MPI_LONG_LONG_INT,
+      0,
+      Ippl::getComm());
 
-    herr = H5Gget_objinfo(H5file_m->file, group_name, 1, NULL);
-    if(herr >= 0) {  // there exists a group 'INPUT'
-        delete[] FileContent;
-        return;
-    }
+      herr = H5Gget_objinfo(H5file_m->file, group_name, 1, NULL);
+      if(herr >= 0) {  // there exists a group 'INPUT'
+      delete[] FileContent;
+      return;
+      }
 
-    group_id = H5Gcreate(H5file_m->file, group_name, 0);
+      group_id = H5Gcreate(H5file_m->file, group_name, 0);
 
-    shape = H5Screate_simple(1, &ContentLength, &ContentLength);
-    dataset_id = H5Dcreate(group_id,
-                           dataset_name,
-                           H5T_NATIVE_CHAR,
-                           shape,
-                           H5P_DEFAULT);
-    H5Sclose(shape);
+      shape = H5Screate_simple(1, &ContentLength, &ContentLength);
+      dataset_id = H5Dcreate(group_id,
+      dataset_name,
+      H5T_NATIVE_CHAR,
+      shape,
+      H5P_DEFAULT);
+      H5Sclose(shape);
 
-    diskshape = H5Dget_space(dataset_id);
-    H5Sselect_hyperslab(diskshape,
-                        H5S_SELECT_SET,
-                        &start,
-                        NULL,
-                        &write_length,
-                        NULL);
+      diskshape = H5Dget_space(dataset_id);
+      H5Sselect_hyperslab(diskshape,
+      H5S_SELECT_SET,
+      &start,
+      NULL,
+      &write_length,
+      NULL);
 
-    memshape = H5Screate_simple(1, &write_length, &dmax);
+      memshape = H5Screate_simple(1, &write_length, &dmax);
 
-    herr = H5Dwrite(dataset_id,
-                    H5T_NATIVE_CHAR,
-                    memshape,
-                    diskshape,
-                    H5file_m->xfer_prop,
-                    FileContent);
+      herr = H5Dwrite(dataset_id,
+      H5T_NATIVE_CHAR,
+      memshape,
+      diskshape,
+      H5file_m->xfer_prop,
+      FileContent);
 
-    H5Sclose(memshape);
-    H5Dclose(dataset_id);
-    H5Sclose(diskshape);
-    H5Gclose(group_id);
+      H5Sclose(memshape);
+      H5Dclose(dataset_id);
+      H5Sclose(diskshape);
+      H5Gclose(group_id);
 
-    delete[] FileContent;
+      delete[] FileContent;
 
     */
 }
 
 void DataSink::retriveCavityInformation(string fn) {
 
-  h5_int64_t rc;
-  h5_int64_t nAutoPhaseCavities = 0;
-  rc = H5ReadFileAttribInt64(H5file_m, "nAutoPhaseCavities", &nAutoPhaseCavities);
-  if(rc != H5_SUCCESS)
-    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-  for(long i = 1; i <= nAutoPhaseCavities; i++) {
-    stringstream is;
-    is << i;
-    string elName = string("Cav-") + is.str() + string("-name");
-    string elVal  = string("Cav-") + is.str() + string("-value");
-    char name[128];
-    h5_float64_t phi = 0;
+    h5_int64_t rc;
+    h5_int64_t nAutoPhaseCavities = 0;
+    rc = H5ReadFileAttribInt64(H5file_m, "nAutoPhaseCavities", &nAutoPhaseCavities);
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    for(long i = 1; i <= nAutoPhaseCavities; i++) {
+        stringstream is;
+        is << i;
+        string elName = string("Cav-") + is.str() + string("-name");
+        string elVal  = string("Cav-") + is.str() + string("-value");
+        char name[128];
+        h5_float64_t phi = 0;
 
         rc = H5ReadFileAttribString(H5file_m, elName.c_str(), name);
         if(rc != H5_SUCCESS)
@@ -474,7 +476,7 @@ void DataSink::retriveCavityInformation(string fn) {
 
 void DataSink::storeCavityInformation() {
     if (!doHDF5_m) return;
-	/// Write number of Cavities with autophase information
+    /// Write number of Cavities with autophase information
     h5_int64_t nAutopPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
 
     h5_int64_t rc;
@@ -553,9 +555,9 @@ int DataSink::storeFieldmaps() {
 
 void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
 
-	if (!doHDF5_m) return;
+    if (!doHDF5_m) return;
 
-	h5_int64_t rc;
+    h5_int64_t rc;
     /// Function steps:
 
     /// Start timer.
@@ -588,7 +590,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
     double energySpread = beam.getdE();
 
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-                   (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
+        (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
 
     beam.get_PBounds(minP, maxP);
 
@@ -749,7 +751,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     /*
-       Attributes originally not in OPAL-t
+      Attributes originally not in OPAL-t
 
     */
 
@@ -765,7 +767,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     /*
-       Done attributes originally not in OPAL-t
+      Done attributes originally not in OPAL-t
 
     */
 
@@ -881,10 +883,10 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHea
         NDIndex<3> idx = beam.getFieldLayout().getLocalNDIndex();
         NDIndex<3> elem;
         h5_err_t herr = H5Block3dSetView(
-                            H5file_m,
-                            idx[0].min(), idx[0].max(),
-                            idx[1].min(), idx[1].max(),
-                            idx[2].min(), idx[2].max());
+                                         H5file_m,
+                                         idx[0].min(), idx[0].max(),
+                                         idx[1].min(), idx[1].max(),
+                                         idx[2].min(), idx[2].max());
 
         if(herr < 0)
             *gmsg << "H5Block3dSetView err " << herr << endl;
@@ -960,7 +962,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     double energySpread = beam.getdE();
 
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-      (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
+        (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
 
     Vektor< double, 3 >  maxP(0.0);
     Vektor< double, 3 >  minP(0.0);
@@ -1159,7 +1161,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
 
 
     /*
-       Attributes originally not in OPAL-cycl
+      Attributes originally not in OPAL-cycl
     */
 
     double sposHead = 0.0;
@@ -1176,7 +1178,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     /*
-       Done attributes originally not in OPAL-cycl
+      Done attributes originally not in OPAL-cycl
     */
 
     setOPALcycl();
@@ -1290,10 +1292,10 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
         NDIndex<3> idx = beam.getFieldLayout().getLocalNDIndex();
         NDIndex<3> elem;
         h5_err_t herr = H5Block3dSetView(
-                            H5file_m,
-                            idx[0].min(), idx[0].max(),
-                            idx[1].min(), idx[1].max(),
-                            idx[2].min(), idx[2].max());
+                                         H5file_m,
+                                         idx[0].min(), idx[0].max(),
+                                         idx[1].min(), idx[1].max(),
+                                         idx[2].min(), idx[2].max());
 
         if(herr < 0)
             *gmsg << "H5Block3dSetView err " << herr << endl;
@@ -1341,7 +1343,7 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 
     if (!doHDF5_m) return;
 
-	h5_int64_t rc;
+    h5_int64_t rc;
     /// Function steps:
 
     /// Start timer.
@@ -1352,16 +1354,16 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
     beam.calcBeamParameters();
 
     /*
-    "dEdt", "double","MeV/ps", "beam energy");
-    "dE",   "double","MeV",    "rms energy spread");
-    "Imax", "double","A",      "max bunch current");
-    "Irms", "double","A",      "rms bunch current");
+      "dEdt", "double","MeV/ps", "beam energy");
+      "dE",   "double","MeV",    "rms energy spread");
+      "Imax", "double","A",      "max bunch current");
+      "Irms", "double","A",      "rms bunch current");
 
-    "tau",  "double","ps",     "rms bunch length");
-    "Rx",   "double","m",      "beam radius x");
-    "Ry",   "double","m",      "beam radius y");
-    "Px",   "double","mrad",   "beam divergence x");
-    "Py",   "double","mrad",   "beam divergence y");
+      "tau",  "double","ps",     "rms bunch length");
+      "Rx",   "double","m",      "beam radius x");
+      "Ry",   "double","m",      "beam radius y");
+      "Px",   "double","mrad",   "beam divergence x");
+      "Py",   "double","mrad",   "beam divergence y");
     */
 
     //TODO:
@@ -1389,7 +1391,7 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
     double meanEnergy = beam.get_meanEnergy() * 1e-6;
 
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-                   (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
+        (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
 
     //beam.get_PBounds(minP,maxP);
 
@@ -1586,9 +1588,9 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 
 void DataSink::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
 
-	if (!doHDF5_m) return;
+    if (!doHDF5_m) return;
 
-	/// Start timer.
+    /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
 
     /// Calculate beam statistical parameters etc. Put them in the right format
@@ -1677,9 +1679,9 @@ void DataSink::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
 
 void DataSink::dumpStashedPhaseSpaceEnvelope() {
 
-	if (!doHDF5_m) return;
+    if (!doHDF5_m) return;
 
-	h5_int64_t rc;
+    h5_int64_t rc;
     /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
 
@@ -1850,9 +1852,9 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
 
     double  pathLength = 0.0;
     if (OpalData::getInstance()->isInOPALCyclMode())
-      pathLength = beam.getLPath();
+        pathLength = beam.getLPath();
     else
-      pathLength = sposRef;
+        pathLength = sposRef;
 
     /// Write data to files. If this is the first write to the beam statistics file, write SDDS
     /// header information.
@@ -1884,12 +1886,12 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
         }
 
         os_statData << beam.getT() << setw(pwi) << "\t"                                       // 1
-                    << pathLength << setw(pwi) << "\t"                                           // 2
+                    << pathLength << setw(pwi) << "\t"                                        // 2
 
                     << beam.getTotalNum() << setw(pwi) << "\t"                                // 3
-                    << Q << setw(pwi) << "\t"                                  // 4
+                    << Q << setw(pwi) << "\t"                                                 // 4
 
-                    << E << setw(pwi) << "\t"                             // 5
+                    << E << setw(pwi) << "\t"                                                 // 5
 
                     << beam.get_rrms()(0) << setw(pwi) << "\t"                                // 6
                     << beam.get_rrms()(1) << setw(pwi) << "\t"                                // 7
@@ -1911,22 +1913,22 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
                     << beam.get_maxExtend()(1) << setw(pwi) << "\t"                           // 19
                     << beam.get_maxExtend()(2) << setw(pwi) << "\t"                           // 20
 
-                    // Write out Courant Snyder parameters.
-                    << beam.get_rprrms()(0) << setw(pwi) << "\t" // 21
-                    << beam.get_rprrms()(1) << setw(pwi) << "\t" // 22
-                    << beam.get_rprrms()(2) << setw(pwi) << "\t" // 23
+            // Write out Courant Snyder parameters.
+                    << beam.get_rprrms()(0) << setw(pwi) << "\t"                              // 21
+                    << beam.get_rprrms()(1) << setw(pwi) << "\t"                              // 22
+                    << beam.get_rprrms()(2) << setw(pwi) << "\t"                              // 23
 
-                    << 0.0 << setw(pwi) << "\t" // 24
-                    << 0.0 << setw(pwi) << "\t" // 25
+                    << 0.0 << setw(pwi) << "\t"                                                // 24
+                    << 0.0 << setw(pwi) << "\t"                                                // 25
 
-                    // Write out dispersion.
-                    << beam.get_Dx() << setw(pwi) << "\t"                                               // 26
-                    << beam.get_DDx() << setw(pwi) << "\t"                                               // 27
-                    << beam.get_Dy() << setw(pwi) << "\t"                                               // 28
-                    << beam.get_DDy() << setw(pwi) << "\t"                                               // 29
+            // Write out dispersion.
+                    << beam.get_Dx() << setw(pwi) << "\t"                                      // 26
+                    << beam.get_DDx() << setw(pwi) << "\t"                                     // 27
+                    << beam.get_Dy() << setw(pwi) << "\t"                                      // 28
+                    << beam.get_DDy() << setw(pwi) << "\t"                                     // 29
 
 
-                    // Write head/reference particle/tail field information.
+            // Write head/reference particle/tail field information.
                     << FDext[0](0) << setw(pwi) << "\t"                                         // 30 B-head x
                     << FDext[0](1) << setw(pwi) << "\t"                                         // 31 B-head y
                     << FDext[0](2) << setw(pwi) << "\t"                                         // 32 B-head z
@@ -2049,21 +2051,21 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
                     << beam.get_maxExtend()(1) << setw(pwi) << "\t"                           // 19
                     << beam.get_maxExtend()(2) << setw(pwi) << "\t"                           // 20
 
-                    // Write out Courant Snyder parameters.
+            // Write out Courant Snyder parameters.
                     << 0.0  << setw(pwi) << "\t"                                              // 21
                     << 0.0  << setw(pwi) << "\t"                                              // 22
 
                     << 0.0 << setw(pwi) << "\t"                                               // 23
                     << 0.0 << setw(pwi) << "\t"                                               // 24
 
-                    // Write out dispersion.
+            // Write out dispersion.
                     << beam.get_Dx() << setw(pwi) << "\t"                                     // 25
                     << beam.get_DDx() << setw(pwi) << "\t"                                    // 26
                     << beam.get_Dy() << setw(pwi) << "\t"                                     // 27
                     << beam.get_DDy() << setw(pwi) << "\t"                                    // 28
 
 
-                    // Write head/reference particle/tail field information.
+            // Write head/reference particle/tail field information.
                     << FDext[0](0) << setw(pwi) << "\t"                                       // 29 B-head x
                     << FDext[0](1) << setw(pwi) << "\t"                                       // 30 B-head y
                     << FDext[0](2) << setw(pwi) << "\t"                                       // 31 B-head z
@@ -2120,10 +2122,10 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << ", contents=\"stat parameters\" &end" << endl;
 
     outputFile << "&parameter name=processors, type=long, ";
-    outputFile << "description=\"Number of Processors\" &end" << endl;
+    outputFile << "description=\"Number of Cores used\" &end" << endl;
 
     outputFile << "&parameter name=revision, type=string, "
-               << "description=\"svn revision of opal\" &end\n";
+               << "description=\"git revision of opal\" &end\n";
 
     outputFile << "&column name=t, type=double, units=s, ";
     outputFile << "description=\"1 Time\" &end" << endl;
@@ -2181,7 +2183,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&column name=zpz, type=double, units=1 , ";
     outputFile << "description=\"23 Correlation zpz  \" &end" << endl;
 
-    outputFile << "&column name=notused2, type=double, units=1 , ";
+    outputFile << "&column name=notused1, type=double, units=1 , ";
     outputFile << "description=\"24 notused1 in y  \" &end" << endl;
 
     outputFile << "&column name=notused2, type=double, units=1 , ";
@@ -2263,10 +2265,10 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "&column name=" << losses[i].first << ", type=long, units=1, ";
         outputFile << "description=\"" << columnStart++ << " " << losses[i].second << "\" &end" << endl;
     }
-    outputFile << "&data mode=ascii &end" << endl;
+    outputFile << "&data mode=ascii, no_row_counts=1 &end" << endl;
 
-    outputFile << "Cores used " << Ippl::getNodes() << endl;
-    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION << endl;
+    outputFile << Ippl::getNodes() << endl;
+    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION << endl;
 }
 
 
@@ -2349,9 +2351,9 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
 
 void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, BoundaryGeometry &bg, string fn) {
 
-	if (!doHDF5_m) return;
+    if (!doHDF5_m) return;
 
-	h5_int64_t rc;
+    h5_int64_t rc;
     /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
     if(firstWriteH5Surface_m) {
@@ -2576,7 +2578,7 @@ void DataSink::writeGeomToVtk(BoundaryGeometry &bg, string fn) {
 
 void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
 
-	if (!doHDF5_m) return;
+    if (!doHDF5_m) return;
 
     h5_int64_t rc;
     /// Define file names.
@@ -2612,7 +2614,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION;
     rc = H5WriteFileAttribString(H5file, "OPAL_version", OPAL_version.str().c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -2871,7 +2873,7 @@ void DataSink::setOPALcycl() {
 
     if (!doHDF5_m) return;
 
-	string OPALFlavour("opal-cycl");
+    string OPALFlavour("opal-cycl");
     h5_int64_t rc = H5WriteStepAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -2884,12 +2886,41 @@ void DataSink::setOPALcycl() {
  */
 void DataSink::setOPALt() {
 
-	if (!doHDF5_m) return;
+    if (!doHDF5_m) return;
 
-	string OPALFlavour("opal-t");
+    string OPALFlavour("opal-t");
     h5_int64_t rc = H5WriteStepAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+}
+
+/** \brief
+ *  delete the last 'numberOfLines' lines of the file 'fileName'
+ */
+void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) const {
+    std::string line;
+    std::queue<std::string> allLines;
+    std::fstream fs;
+
+    fs.open (fileName.c_str(), std::fstream::in);
+
+    if (!fs.is_open()) return;
+
+    while (getline(fs, line)) {
+        allLines.push(line);
+    }
+    fs.close();
+
+
+    fs.open (fileName.c_str(), std::fstream::out);
+
+    if (!fs.is_open()) return;
+
+    while (allLines.size() > numberOfLines) {
+        fs << allLines.front() << "\n";
+        allLines.pop();
+    }
+    fs.close();
 }
 
 /***************************************************************************

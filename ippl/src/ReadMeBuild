@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# used modules on merlin00: 1) sge/n1ge6            2) defaultenvironment   3) root/root-5.10.00    4) mpi/mpich-1.2.7
+# on Linux (Melrin00)
+#
+# MERLIN PGI
+# Currently Loaded Modulefiles:
+#  1) sge/n1ge6                  2) defaultenvironment         3) hdf5/hdf5-1.6.5            4) pgi/pgi-7.1_64             5) mpi/mpich2-1.0.6-pgi-7.0
+#
+#
+# on Cray XT3 (Horizon)
+# Currently Loaded Modulefiles:
+#  1) modules/3.1.6         6) xt-libsci/1.4.45     11) xt-service/1.4.45    16) xt-crms/1.4.45       21) zlib/1.2.3
+#  2) MySQL/4.0.26          7) xt-mpt/1.4.45        12) xt-libc/1.4.45       17) xt-lustre-ss/1.4.45  22) szip/2.0
+#  3) acml/3.0              8) xt-pe/1.4.45         13) xt-os/1.4.45         18) iobuf/1.0.3          23) hdf5/1.6.5
+#  4) pgi/6.1.4             9) PrgEnv-pgi/1.4.45    14) xt-catamount/1.4.45  19) Base-opts/1.4.45     24) craypat/3.0
+#  5) totalview/7.2.0      10) xt-pbs/5.3.5         15) xt-boot/1.4.45       20) subversion/1.4.2     25) gcc-catamount/3.3
+
+mkdir ~/ippl_build
+cd ~/ippl_build
+CXX=mpicxx F77=gfortran cmake -DCMAKE_VERBOSE_MAKEFILE=OFF -DCMAKE_INSTALL_PREFIX=~/extlib/ippl ~/svnwork/ippl
+
+# Depending on your architecture use on of the following flags:
+#   -DLINUXGCC=ON   "Use Linux GCC flags"   DEFAULT
+#   -DXT3GCC=ON     "Use XT3 GCC flags"
+#   -DLINUXPGI=ON   "Use Linux PGI flags"
+
+
+# build with N threads
+make -j N
+
+# note libippl.a and Makefile.def is installed in CMAKE_INSTALL_PREFIX/lib and src/headers installed with a symbolic link in CMAKE_INSTALL_PREFIX/include
+make install

@@ -56,12 +56,8 @@ public:
 
     void reset() { H5call_m = 0; }
 
-private:
-
-    DataSink(const DataSink &) { }
-    DataSink &operator = (const DataSink &) { return *this; }
-
-public:
+    void rewindLinesSDDS(size_t numberOfLines) const;
+    void rewindLinesLBal(size_t numberOfLines) const;
 
     /** \brief Set and querie which flavor has written the data
      *
@@ -253,12 +249,16 @@ public:
 
 private:
 
+    DataSink(const DataSink &) { }
+    DataSink &operator = (const DataSink &) { return *this; }
+
     std::string convert2Int(int number) {
         std::stringstream ss;//create a stringstream
         ss << std::setw(5) << std::setfill('0') <<  number; //add number to the stream
         return ss.str();//return a string with the contents of the stream
     }
 
+    void rewindLines(const std::string &fileName, size_t numberOfLines) const;
 
     /** \brief First write to the statistics output file.
      *
@@ -358,6 +358,27 @@ private:
         }
     };
 };
+
+/** \brief
+ *  delete the last 'numberOfLines' lines of the statistics file
+ */
+inline
+void DataSink::rewindLinesSDDS(size_t numberOfLines) const {
+    if (Ippl::myNode() == 0) {
+        rewindLines(statFileName_m, numberOfLines);
+    }
+}
+
+/** \brief
+ *   delete the last 'numberOfLines' lines of the load balance file
+ */
+inline
+void DataSink::rewindLinesLBal(size_t numberOfLines) const {
+    if (Ippl::myNode() == 0) {
+        rewindLines(lBalFileName_m, numberOfLines);
+    }
+}
+
 
 #endif // DataSink_H_
 

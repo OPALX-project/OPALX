@@ -29,6 +29,7 @@ using std::imag;
 using std::max;
 using std::real;
 using std::swap;
+using std::complex;
 
 
 // Helper function.

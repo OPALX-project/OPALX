@@ -1,0 +1,21 @@
+SET (_SRCS
+  )
+
+SET (_HDRS
+  f2c.h
+  FFTBase.hpp
+  FFTBase.h
+  FFT.hpp
+  FFT.h
+  fftpack_FFT.h
+  SCSL_FFT.h
+  )
+
+INCLUDE_DIRECTORIES (
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
+
+INSTALL (FILES ${_HDRS} DESTINATION include/FFT)

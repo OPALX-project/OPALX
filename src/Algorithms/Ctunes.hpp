@@ -46,7 +46,7 @@ TUNE_class::~TUNE_class(void)
 
 }
 
-int TUNE_class::LombAnalysis(vector<double> &x, vector<double> &y, int nhis, double Norm)
+int TUNE_class::LombAnalysis(std::vector<double> &x, std::vector<double> &y, int nhis, double Norm)
 /*-----------------------------------------------------------------------------
  *  Launch Lomb analysis and plot results
  *  =======================================
@@ -68,7 +68,7 @@ int TUNE_class::LombAnalysis(vector<double> &x, vector<double> &y, int nhis, dou
 
     char   mess[80];
     LOMB_class *la;
-    vector<LOMB_TYPE> lodata, lodata2;
+    std::vector<LOMB_TYPE> lodata, lodata2;
     /*---------------------------------------------------------------------------*/
 
     /*
@@ -165,7 +165,7 @@ int TUNE_class::LombAnalysis(double *x, double *y, int Ndat, int nhis)
 
     char   mess[80];
     LOMB_class *la;
-    vector<LOMB_TYPE> lodata, lodata2;
+    std::vector<LOMB_TYPE> lodata, lodata2;
     /*---------------------------------------------------------------------------*/
 
     sprintf(mess, "TUNE_class LombAnalysis requested");

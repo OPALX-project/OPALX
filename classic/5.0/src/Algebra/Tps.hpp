@@ -42,8 +42,6 @@
 #ifndef IPPL_GPLUSPLUS
 #include <functional>
 #endif
-using std::max;
-using std::min;
 
 
 // Helper functions.
@@ -282,7 +280,7 @@ Tps<T> &Tps<T>::operator=(const T &rhs) {
 template <class T>
 Tps<T> Tps<T>::filter(int minOrder, int maxOrder) const {
     // Compute order limits.
-    maxOrder = min(maxOrder, getMaxOrder());
+    maxOrder = std::min(maxOrder, getMaxOrder());
     int trcOrder = getTruncOrder();
     int variables = getVariables();
 
@@ -436,13 +434,13 @@ Tps<T> &Tps<T>::operator+=(const Tps<T> &rhs) {
                                 "Number of variables inconsistent.");
             }
 
-            int trunc = min(getTruncOrder(), rhs.getTruncOrder());
-            int xOrder = min(getMaxOrder(), trunc);
-            int yOrder = min(rhs.getMaxOrder(), trunc);
+            int trunc = std::min(getTruncOrder(), rhs.getTruncOrder());
+            int xOrder = std::min(getMaxOrder(), trunc);
+            int yOrder = std::min(rhs.getMaxOrder(), trunc);
             int xLength = getSize(xOrder);
             int yLength = getSize(yOrder);
-            int xyLength = min(xLength, yLength);
-            TpsRep<T> *p = TpsRep<T>::create(max(xOrder, yOrder), trunc, v1);
+            int xyLength = std::min(xLength, yLength);
+            TpsRep<T> *p = TpsRep<T>::create(std::max(xOrder, yOrder), trunc, v1);
             const T *x = rep->data();
             const T *y = rhs.rep->data();
             T *z = p->data();
@@ -471,14 +469,14 @@ Tps<T> &Tps<T>::operator-=(const Tps<T> &rhs) {
                                 "Number of variables inconsistent.");
             }
 
-            int trunc = min(getTruncOrder(), rhs.getTruncOrder());
-            int xOrder = min(getMaxOrder(), trunc);
-            int yOrder = min(rhs.getMaxOrder(), trunc);
+            int trunc = std::min(getTruncOrder(), rhs.getTruncOrder());
+            int xOrder = std::min(getMaxOrder(), trunc);
+            int yOrder = std::min(rhs.getMaxOrder(), trunc);
             int xLength = getSize(xOrder);
             int yLength = getSize(yOrder);
-            int xyLength = min(xLength, yLength);
+            int xyLength = std::min(xLength, yLength);
 
-            TpsRep<T> *p = TpsRep<T>::create(max(xOrder, yOrder), trunc, v1);
+            TpsRep<T> *p = TpsRep<T>::create(std::max(xOrder, yOrder), trunc, v1);
             const T *x = rep->data();
             const T *y = rhs.rep->data();
             T *z = p->data();
@@ -550,12 +548,12 @@ bool Tps<T>::operator==(const Tps<T> &rhs) const {
     if(int v1 = getVariables()) {
         if(int v2 = rhs.getVariables()) {
             if(v1 == v2) {
-                int trunc = min(getTruncOrder(), rhs.getTruncOrder());
-                int xOrder = min(getMaxOrder(), trunc);
-                int yOrder = min(rhs.getMaxOrder(), trunc);
+                int trunc = std::min(getTruncOrder(), rhs.getTruncOrder());
+                int xOrder = std::min(getMaxOrder(), trunc);
+                int yOrder = std::min(rhs.getMaxOrder(), trunc);
                 int xLength  = getSize(xOrder);
                 int yLength  = getSize(yOrder);
-                int xyLength = getSize(min(xOrder, yOrder));
+                int xyLength = getSize(std::min(xOrder, yOrder));
                 const T *x = rep->data();
                 const T *y = rhs.rep->data();
 
@@ -837,25 +835,25 @@ Tps<T> Tps<T>::multiply(const Tps<T> &rhs, int trunc) const {
             if(getTruncOrder() != EXACT) {
                 int cut = getTruncOrder();
                 if(rhs[0] == 0.0) ++cut;
-                trunc = min(trunc, cut);
+                trunc = std::min(trunc, cut);
             }
 
             if(rhs.getTruncOrder() != EXACT) {
                 int cut = rhs.getTruncOrder();
                 if((*this)[0] == 0.0) ++cut;
-                trunc = min(trunc, cut);
+                trunc = std::min(trunc, cut);
             }
 
-            int maxOrder = min(getMaxOrder() + rhs.getMaxOrder(), trunc);
+            int maxOrder = std::min(getMaxOrder() + rhs.getMaxOrder(), trunc);
 
             TpsRep<T> *p = TpsRep<T>::create(maxOrder, trunc, v1);
             const T *x = rep->data();
             T *z = p->data();
             int yBot = 0;
-            int yHig = min(rhs.getMaxOrder(), trunc);
+            int yHig = std::min(rhs.getMaxOrder(), trunc);
 
             for(int yOrd = 0; yOrd <= yHig; yOrd++) {
-                int xOrd = min(getMaxOrder(), trunc - yOrd);
+                int xOrd = std::min(getMaxOrder(), trunc - yOrd);
                 int xTop = getSize(xOrd);
                 int yTop = getSize(yOrd);
 
@@ -905,7 +903,7 @@ Tps<T> Tps<T>::inverse(int trunc) const {
     if(isConstant()) {
         return Tps<T>(T(1) / aZero);
     } else {
-        int cut = min(trunc, getTruncOrder());
+        int cut = std::min(trunc, getTruncOrder());
         T *series = new T[cut+1];
         series[0] = T(1) / aZero;
 
@@ -952,8 +950,8 @@ Tps<T> Tps<T>::integral(int var) const {
         throw LogicalError("TpsRep::integral()", "Cannot integrate a constant.");
     }
 
-    int trcO = min(rep->trcOrd + 1, truncOrder);
-    int maxO = min(rep->maxOrd + 1, trcO);
+    int trcO = std::min(rep->trcOrd + 1, truncOrder);
+    int maxO = std::min(rep->maxOrd + 1, trcO);
     TpsRep<T> *p = TpsRep<T>::create(maxO, trcO, getVariables());
 
     const T *x = rep->data();
@@ -976,8 +974,8 @@ Tps<T> Tps<T>::multiplyVariable(int var) const {
                            "Cannot multiply a constant by a numbered variable.");
     }
 
-    int trcO = min(rep->trcOrd + 1, truncOrder);
-    int maxO = min(rep->maxOrd + 1, trcO);
+    int trcO = std::min(rep->trcOrd + 1, truncOrder);
+    int maxO = std::min(rep->maxOrd + 1, trcO);
     TpsRep<T> *p = TpsRep<T>::create(maxO, trcO, getVariables());
 
     const T *x = rep->data();
@@ -1002,10 +1000,10 @@ Tps<T> Tps<T>::scaleMonomials(const Tps<T> &rhs) const {
                         "Number of variables inconsistent.");
     }
 
-    int order = min(getMaxOrder(), rhs.getMaxOrder());
-    int trunc = min(getTruncOrder(), rhs.getTruncOrder());
+    int order = std::min(getMaxOrder(), rhs.getMaxOrder());
+    int trunc = std::min(getTruncOrder(), rhs.getTruncOrder());
 
-    TpsRep<T> *p = TpsRep<T>::create(min(order, trunc), trunc, v1);
+    TpsRep<T> *p = TpsRep<T>::create(std::min(order, trunc), trunc, v1);
     const T *x = rep->data();
     const T *y = rhs.rep->data();
     T *z = p->data();
@@ -1039,7 +1037,7 @@ int Tps<T>::getMaxOrder() const {
 
 template <class T>
 int Tps<T>::getTruncOrder() const {
-    return min(rep->trcOrd, truncOrder);
+    return std::min(rep->trcOrd, truncOrder);
 }
 
 

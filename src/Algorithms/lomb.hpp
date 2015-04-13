@@ -8,8 +8,6 @@
 #include "lomb.h"
 #include <iostream>
 
-using namespace std;
-
 bool operator <(const LOMB_TYPE &a, const LOMB_TYPE &b) {
     return a.y < b.y;
 }
@@ -42,7 +40,7 @@ LOMB_class::~LOMB_class(void)
 }
 
 
-int LOMB_class::period(vector<LOMB_TYPE> *indata, vector<LOMB_TYPE> *outdata,
+int LOMB_class::period(std::vector<LOMB_TYPE> *indata, std::vector<LOMB_TYPE> *outdata,
                        double ofac, double hifac, int *nout, int *jmax, double *prob,
                        int amp)
 /*---------------------------------------------------------------------------*
@@ -58,7 +56,7 @@ int LOMB_class::period(vector<LOMB_TYPE> *indata, vector<LOMB_TYPE> *outdata,
     //double arg,wtemp,*wi,*wpi,*wpr,*wr;
     double arg, wtemp;
 
-    vector<double> wi, wpi, wpr, wr;
+    std::vector<double> wi, wpi, wpr, wr;
 
     LOMB_TYPE pt;
 
@@ -83,7 +81,7 @@ int LOMB_class::period(vector<LOMB_TYPE> *indata, vector<LOMB_TYPE> *outdata,
 
 
     if(avevar(indata, &ave, &var) != 0) {
-        cerr << "LOMB: Average failed!\n";
+        std::cerr << "LOMB: Average failed!\n";
         return(-1);
     }
 
@@ -112,7 +110,7 @@ int LOMB_class::period(vector<LOMB_TYPE> *indata, vector<LOMB_TYPE> *outdata,
 
     // check wr range and data range !!!!
     if((wr.end() - wr.begin()) != n) {
-        cerr << "LOMB: Vector range mismatch!!!\n";
+        std::cerr << "LOMB: Vector range mismatch!!!\n";
         return(-1);
     }
 
@@ -185,7 +183,7 @@ int LOMB_class::period(vector<LOMB_TYPE> *indata, vector<LOMB_TYPE> *outdata,
 }
 
 
-int LOMB_class::avevar(vector<LOMB_TYPE> *data, double *ave, double *var)
+int LOMB_class::avevar(std::vector<LOMB_TYPE> *data, double *ave, double *var)
 /*---------------------------------------------------------------------------*
  * NR routine
  * ==========
@@ -207,7 +205,7 @@ int LOMB_class::avevar(vector<LOMB_TYPE> *data, double *ave, double *var)
     n = q - p;
 
     if(n < 2) {
-        cerr << "Only one datapoint -> no averaging....\n";
+        std::cerr << "Only one datapoint -> no averaging....\n";
         return(-1);
     }
 
@@ -258,7 +256,7 @@ double LOMB_class::Signi(double *peak, int *nout, double *ofac)
 }
 
 
-int LOMB_class::moment(vector<LOMB_TYPE> *indata, double *ave, double *adev,
+int LOMB_class::moment(std::vector<LOMB_TYPE> *indata, double *ave, double *adev,
                        double *sdev, double *var, double *skew, double *curt)
 /*---------------------------------------------------------------------------*
  * Calculate the first moments of a distribution (free after NR)
@@ -277,7 +275,7 @@ int LOMB_class::moment(vector<LOMB_TYPE> *indata, double *ave, double *adev,
     int      n;
     double  pnr, s, ep;
 
-    vector<double> xvec;
+    std::vector<double> xvec;
 
     CI_lt p, q;
     CI_vd xp;
@@ -289,7 +287,7 @@ int LOMB_class::moment(vector<LOMB_TYPE> *indata, double *ave, double *adev,
     n = q - p;
 
     if(n < 2) {
-        cerr << "To few data points for moment analysis!\n";
+        std::cerr << "To few data points for moment analysis!\n";
         return(-1);
     }
 
@@ -347,7 +345,7 @@ int LOMB_class::moment(vector<LOMB_TYPE> *indata, double *ave, double *adev,
         *skew = *skew / ((double)nn * pow(*sdev, 3.));
         *curt = *curt / ((double)nn * pow(*var, 2.)) - 3.;
     } else {
-        cerr << "No skew or kurtosis when zero variance in moment\n";
+        std::cerr << "No skew or kurtosis when zero variance in moment\n";
     }
 
     return(0);

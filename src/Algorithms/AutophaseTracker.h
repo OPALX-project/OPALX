@@ -39,6 +39,9 @@
 
 #include <queue>
 
+#define AP_VISITELEMENT(elem) virtual void visit##elem(const elem &el) \
+    { itsOpalBeamline_m.visit(el, *this, &itsBunch_m); }
+
 class BMultipoleField;
 class PartData;
 
@@ -54,7 +57,7 @@ public:
 
 
     virtual void visitBeamline(const Beamline &bl);
-    virtual void visitAlignWrapper(const AlignWrapper &);
+    AP_VISITELEMENT(AlignWrapper);//virtual void visitAlignWrapper(const AlignWrapper &);
     virtual void visitBeamBeam(const BeamBeam &);
     virtual void visitCollimator(const Collimator &);
     virtual void visitCorrector(const Corrector &);
