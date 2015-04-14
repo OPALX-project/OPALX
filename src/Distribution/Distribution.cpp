@@ -53,9 +53,13 @@ extern Inform *gmsg;
 #define DISTDBG1
 #define noDISTDBG2
 
-#define COMPLAINONFAILURE(rc)     if(rc != H5_SUCCESS)                  \
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+#define COMPLAINONFAILURE(rc)     complainOnFailure(rc, __FILE__, __LINE__);
 
+inline
+void complainOnFailure(int rc, const std::string &file, int line) {
+    if(rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << file << " @ line " << line << endl);
+}
 //
 // Class Distribution
 // ------------------------------------------------------------------------
