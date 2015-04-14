@@ -1678,7 +1678,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 
                 for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
                     for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
-                        *gmsg << "* " <<  std::setprecision(4)  << siggen.getSigma()(i,j) << "\t";
+                        *gmsg << "* " <<  std::setprecision(4)  << std::setw(14) << siggen.getSigma()(i,j) << "\t";
                     }
                     *gmsg << "*" << endl;
                 }
