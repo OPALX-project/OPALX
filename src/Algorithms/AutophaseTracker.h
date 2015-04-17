@@ -6,9 +6,10 @@
 //
 
 #include "Algorithms/PartBunch.h"
-#include "Utilities/ClassicField.h"
-#include "Elements/OpalBeamline.h"
 #include "Algorithms/PartPusher.h"
+#include "Algorithms/PartData.h"
+class ClassicField;
+#include "Elements/OpalBeamline.h"
 
 #include "Beamlines/Beamline.h"
 #include "AbsBeamline/AlignWrapper.h"
@@ -42,8 +43,7 @@
 #define AP_VISITELEMENT(elem) virtual void visit##elem(const elem &el) \
     { itsOpalBeamline_m.visit(el, *this, &itsBunch_m); }
 
-class BMultipoleField;
-class PartData;
+#define AP_IGNOREELEMENT(elem) virtual void visit##elem(const elem &) { }
 
 class AutophaseTracker: public DefaultVisitor {
 public:
@@ -57,153 +57,54 @@ public:
 
 
     virtual void visitBeamline(const Beamline &bl);
-    AP_VISITELEMENT(AlignWrapper);//virtual void visitAlignWrapper(const AlignWrapper &);
-    virtual void visitBeamBeam(const BeamBeam &);
-    virtual void visitCollimator(const Collimator &);
-    virtual void visitCorrector(const Corrector &);
-    virtual void visitDegrader(const Degrader &);
-    virtual void visitDiagnostic(const Diagnostic &);
-    virtual void visitDrift(const Drift &);
-    virtual void visitLambertson(const Lambertson &);
-    virtual void visitMarker(const Marker &);
-    virtual void visitMonitor(const Monitor &);
-    virtual void visitMultipole(const Multipole &);
-    virtual void visitProbe(const Probe &);
-    virtual void visitRBend(const RBend &);
-    virtual void visitRFCavity(const RFCavity &);
-    virtual void visitTravelingWave(const TravelingWave &);
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-    virtual void visitSBend(const SBend &);
-    virtual void visitSeparator(const Separator &);
-    virtual void visitSeptum(const Septum &);
-    virtual void visitSolenoid(const Solenoid &);
-    virtual void visitParallelPlate(const ParallelPlate &);
-    virtual void visitCyclotronValley(const CyclotronValley &);
+    AP_VISITELEMENT(AlignWrapper)
+    AP_IGNOREELEMENT(BeamBeam)
+    AP_IGNOREELEMENT(Collimator)
+    AP_IGNOREELEMENT(Corrector)
+    AP_IGNOREELEMENT(CyclotronValley)
+    AP_IGNOREELEMENT(Degrader)
+    AP_IGNOREELEMENT(Diagnostic)
+    AP_IGNOREELEMENT(Drift)
+    AP_IGNOREELEMENT(Lambertson)
+    AP_IGNOREELEMENT(Marker)
+    AP_IGNOREELEMENT(Monitor)
+    AP_IGNOREELEMENT(Multipole)
+    AP_IGNOREELEMENT(ParallelPlate)
+    AP_IGNOREELEMENT(Probe)
+    AP_IGNOREELEMENT(RBend)
+    AP_VISITELEMENT(RFCavity)
+    AP_IGNOREELEMENT(RFQuadrupole)
+    AP_IGNOREELEMENT(SBend)
+    AP_IGNOREELEMENT(Separator)
+    AP_IGNOREELEMENT(Septum)
+    AP_IGNOREELEMENT(Solenoid)
+    AP_VISITELEMENT(TravelingWave)
 
 private:
     ClassicField* checkCavity(double s);
     void updateRFElement(std::string elName, double maxPhi);
     void updateAllRFElements(double phiShift);
-    void adjustCavityPhase();
+    void adjustCavityPhase(Component *);
     double APtrack(Component *cavity, double cavity_start, const double &phi) const;
     double getGlobalPhaseShift();
     void handleOverlappingMonitors();
     void prepareSections();
     double getEnergyMeV(const Vector_t &p);
+    void evaluateField();
 
     OpalBeamline itsOpalBeamline_m;
     FieldList cavities_m;
     FieldList::iterator currentAPCavity_m;
     PartBunch itsBunch_m;
     BorisPusher itsPusher_m;
+
+    IpplTimings::TimerRef timeIntegrationTimer_m;
+    IpplTimings::TimerRef fieldEvaluationTimer_m;
+
 };
 
 inline void AutophaseTracker::visitBeamline(const Beamline &bl) {
     bl.iterate(*dynamic_cast<BeamlineVisitor *>(this), false);
-}
-
-inline void AutophaseTracker::visitAlignWrapper(const AlignWrapper &wrap) {
-    itsOpalBeamline_m.visit(wrap, *this, &itsBunch_m);
-}
-
-inline void AutophaseTracker::visitBeamBeam(const BeamBeam &bb) {
-    itsOpalBeamline_m.visit(bb, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitCollimator(const Collimator &coll) {
-    itsOpalBeamline_m.visit(coll, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitCorrector(const Corrector &corr) {
-    itsOpalBeamline_m.visit(corr, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitDegrader(const Degrader &deg) {
-    itsOpalBeamline_m.visit(deg, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitDiagnostic(const Diagnostic &diag) {
-    itsOpalBeamline_m.visit(diag, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitDrift(const Drift &drift) {
-    itsOpalBeamline_m.visit(drift, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitLambertson(const Lambertson &lamb) {
-    itsOpalBeamline_m.visit(lamb, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitMarker(const Marker &marker) {
-    itsOpalBeamline_m.visit(marker, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitMonitor(const Monitor &mon) {
-    itsOpalBeamline_m.visit(mon, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitMultipole(const Multipole &mult) {
-    itsOpalBeamline_m.visit(mult, *this, &itsBunch_m);
-}
-
-inline void AutophaseTracker::visitProbe(const Probe &prob) {
-    itsOpalBeamline_m.visit(prob, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitRBend(const RBend &bend) {
-    itsOpalBeamline_m.visit(bend, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitRFCavity(const RFCavity &as) {
-    itsOpalBeamline_m.visit(as, *this, &itsBunch_m);
-}
-
-inline void AutophaseTracker::visitTravelingWave(const TravelingWave &as) {
-    itsOpalBeamline_m.visit(as, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    itsOpalBeamline_m.visit(rfq, *this, &itsBunch_m);
-}
-
-inline void AutophaseTracker::visitSBend(const SBend &bend) {
-    itsOpalBeamline_m.visit(bend, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitSeparator(const Separator &sep) {
-    itsOpalBeamline_m.visit(sep, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitSeptum(const Septum &sept) {
-    itsOpalBeamline_m.visit(sept, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitSolenoid(const Solenoid &solenoid) {
-    itsOpalBeamline_m.visit(solenoid, *this, &itsBunch_m);
-}
-
-
-inline void AutophaseTracker::visitParallelPlate(const ParallelPlate &pplate) {
-    itsOpalBeamline_m.visit(pplate, *this, &itsBunch_m);
-}
-
-inline void AutophaseTracker::visitCyclotronValley(const CyclotronValley &cv) {
-    itsOpalBeamline_m.visit(cv, *this, &itsBunch_m);
 }
 
 inline double AutophaseTracker::getEnergyMeV(const Vector_t &p) {
