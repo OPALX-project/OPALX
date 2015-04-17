@@ -1,10 +1,6 @@
 #include "Algorithms/AutophaseTracker.h"
-#include "Algorithms/PartPusher.h"
+#include "Utilities/ClassicField.h"
 #include "AbstractObjects/OpalData.h"
-#include "AbsBeamline/Monitor.h"
-#include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/TravelingWave.h"
-#include "Algorithms/PartData.h"
 #include "Utilities/OpalOptions.h"
 
 AutophaseTracker::AutophaseTracker(const Beamline &beamline, const PartData& data, const double &T0):
@@ -130,156 +126,106 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
                                const std::queue<unsigned long long> &maxTrackSteps) {
     Inform msg("Autophasing ");
 
-    // Vector_t rmin, rmax;
+    Vector_t rmin, rmax;
+    Vector_t &refR = itsBunch_m.R[0];
+    Vector_t &refP = itsBunch_m.P[0];
+    std::queue<double> dtAutoPhasing(dtAllTracks);
+    std::queue<double> maxSPosAutoPhasing(maxZ);
+    std::queue<unsigned long long> maxStepsAutoPhasing(maxTrackSteps);
 
-    // std::queue<double> dtAutoPhasing(dtTracks);
-    // std::queue<double> maxSPosAutoPhasing(maxZ);
-    // std::queue<unsigned long long> maxStepsAutoPhasing(maxTrackSteps);
-
-    // maxSPosAutoPhasing.back() = itsOpalBeamline_m.calcBeamlineLenght();
+    maxSPosAutoPhasing.back() = itsOpalBeamline_m.calcBeamlineLenght();
 
     // const int numRefinements = Options::autoPhase;
 
-    // size_t step = 0;
-    // const int dtfraction = 2;
+    size_t step = 0;
+    const int dtfraction = 2;
+    double scaleFactor = dtAutoPhasing.front() / dtfraction * Physics::c;
 
-    // bends_m = 0;  //fixme: AP and bends will not work at the moment
+    itsBunch_m.LastSection[0] -= 1;
+    itsOpalBeamline_m.getSectionIndexAt(refR, itsBunch_m.LastSection[0]);
 
-    // for(unsigned int i = 0; i < itsBunch_m.getLocalNum(); ++i) {
-    //     long &l = itsBunch_m.LastSection[i];
-    //     l = -1;
-    //     itsOpalBeamline_m.getSectionIndexAt(itsBunch_m.R[i], l);
-    //     itsBunch_m.ResetLocalCoordinateSystem(i, itsOpalBeamline_m.getOrientation(l),
-    //                                           itsOpalBeamline_m.getSectionStart(l));
-    // }
+    double margin = 10. * refP(2) * scaleFactor / sqrt(1.0 + dot(refP, refP));
+    margin = margin < 0.01 ? 0.01 : margin;
 
-    // RefPartR_suv_m = RefPartR_zxy_m = rmin = rmax = itsBunch_m.R[0];
-    // RefPartP_suv_m = RefPartP_zxy_m = itsBunch_m.P[0];
+    itsOpalBeamline_m.switchElements(refR(2), refR(2) + margin, true);
 
-    // /* Activate all elements which influence the particles when the simulation starts;
-    //  * mark all elements which are already past.
-    //  *
-    //  * Increase margin from 3.*c*dt to 10.*c*dt to prevent that fieldmaps are accessed
-    //  * before they are allocated when increasing the timestep in the gun.
-    //  */
+    Component *cavity = NULL;
 
-    // double margin = 10. * RefPartP_suv_m(2) * scaleFactor / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
+    while (maxStepsAutoPhasing.size() > 0) {
+        maxStepsAutoPhasing.front() = maxStepsAutoPhasing.front() * dtfraction + step;
+        double newDt = dtAutoPhasing.front() / dtfraction;
+        double scaleFactor = newDt * Physics::c;
+        Vector_t vscaleFactor = Vector_t(scaleFactor);
+        itsBunch_m.setdT(newDt);
+        itsBunch_m.dt = newDt;
 
-    // margin = 0.01 > margin ? 0.01 : margin;
+        msg << "\n"
+            << "**********************************************\n"
+            << "new set of dt, zstop and max number of time steps\n"
+            << "**********************************************\n\n"
+            << "start at t = " << itsBunch_m.getT() << " [s], "
+            << "zstop at z = " << maxSPosAutoPhasing.front() << " [m],\n "
+            << "dt = " << itsBunch_m.dt[0] << " [s], "
+            << "step = " << step << ", "
+            << "R =  " << refR << " [m]" << endl;
 
-    // itsOpalBeamline_m.switchElements(rmin(2) - margin, rmax(2) + margin, true);
-
-    // double cavity_start = 0.0;
-    // Component *cavity = NULL;
-
-    // while (maxStepsAutoPhasing.size() > 0) {
-    //     maxStepsAutoPhasing.front() = maxStepsAutoPhasing.front() * dtfraction + step;
-    //     double newDt = dtAutoPhasing.front() / dtfraction;
-    //     double scaleFactor = newDt * Physics::c;
-    //     double vscaleFactor = Vector_t(scaleFactor);
-    //     itsBunch_m.setdT(newDt);
-    //     itsBunch_m.dt = newDt;
-
-    //     msg << "\n"
-    //         << "**********************************************\n"
-    //         << "new set of dt, zstop and max number of time steps\n"
-    //         << "**********************************************\n\n"
-    //         << "start at t = " << itsBunch_m.getT() << " [s], "
-    //         << "zstop at z = " << maxSPosAutoPhasing.front() << " [m],\n "
-    //         << "dt = " << itsBunch_m.dt[0] << " [s], "
-    //         << "step = " << step << ", "
-    //         << "R =  " << itsBunch_m.R[0] << " [m]" << endl;
-
-    //     for(; step < maxStepsAutoPhasing.front(); ++step) {
+        for(; step < maxStepsAutoPhasing.front(); ++step) {
 
 
-    //         adjustCavityPhase(cavity);
+            adjustCavityPhase(cavity);
 
 
-    //         IpplTimings::startTimer(timeIntegrationTimer1_m);
-    //         double t = itsBunch_m.getT();
+            IpplTimings::startTimer(timeIntegrationTimer_m);
+            double t = itsBunch_m.getT();
 
-    //         // increase margin from 3.*c*dt to 10.*c*dt to prevent that fieldmaps are accessed
-    //         // before they are allocated when increasing the timestep in the gun.
+            margin = 10. * refP(2) * scaleFactor / sqrt(1.0 + dot(refP, refP));
+            margin = 0.01 > margin ? 0.01 : margin;
+            itsOpalBeamline_m.switchElements(refR(2), refR(2) + margin, true);
 
-    //         switchElements(10.0);
-    //         itsOpalBeamline_m.resetStatus();
-
-
-    //         for(unsigned int i = 0; i < itsBunch_m.getLocalNum(); ++i) {
-    //             itsBunch_m.R[i] /= Vector_t(Physics::c * itsBunch_m.getdT());
-    //             itsPusher_m.push(itsBunch_m.R[i], itsBunch_m.P[i], itsBunch_m.dt[i]);
-    //             itsBunch_m.R[i] *= Vector_t(Physics::c * itsBunch_m.getdT());
-    //         }
-    //         IpplTimings::stopTimer(timeIntegrationTimer1_m);
-
-    //         itsBunch_m.Ef = Vector_t(0.0);
-    //         itsBunch_m.Bf = Vector_t(0.0);
-
-    //         IpplTimings::startTimer(timeFieldEvaluation_m);
-    //         for(unsigned int i = 0; i < itsBunch_m.getLocalNum(); ++i) {
-    //             long ls = itsBunch_m.LastSection[i];
-    //             itsOpalBeamline_m.getSectionIndexAt(itsBunch_m.R[i], ls);
-    //             if(ls != itsBunch_m.LastSection[i]) {
-    //                 if(!itsOpalBeamline_m.section_is_glued_to(itsBunch_m.LastSection[i], ls)) {
-    //                     itsBunch_m.ResetLocalCoordinateSystem(i, itsOpalBeamline_m.getOrientation(ls), itsOpalBeamline_m.getSectionStart(ls));
-    //                 }
-    //                 itsBunch_m.LastSection[i] = ls;
-    //             }
-
-    //             Vector_t externalE, externalB;
-    //             const unsigned long rtv = itsOpalBeamline_m.getFieldAt(i, itsBunch_m.R[i], ls, itsBunch_m.getT() + itsBunch_m.dt[i] / 2., externalE, externalB);
-    //             if (rtv)
-    //                 ;
-    //             itsBunch_m.Ef[i] += externalE;
-    //             itsBunch_m.Bf[i] += externalB;
-    //         }
-    //         IpplTimings::stopTimer(timeFieldEvaluation_m);
-
-    //         IpplTimings::startTimer(timeIntegrationTimer2_m);
-    //         double recpgamma = 1.0 / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
-    //         RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor;
-
-    //         for(unsigned int i = 0; i < itsBunch_m.getLocalNum(); ++i) {
-    //             itsPusher_m.kick(itsBunch_m.R[i], itsBunch_m.P[i], itsBunch_m.Ef[i], itsBunch_m.Bf[i], itsBunch_m.dt[i]);
-    //         }
-
-    //         itsBunch_m.calcBeamParametersLight();
-
-    //         for(unsigned int i = 0; i < itsBunch_m.getLocalNum(); ++i) {
-    //             itsBunch_m.R[i] /= Vector_t(Physics::c * itsBunch_m.getdT());
-    //             itsPusher_m.push(itsBunch_m.R[i], itsBunch_m.P[i], itsBunch_m.dt[i]);
-    //             itsBunch_m.R[i] *= Vector_t(Physics::c * itsBunch_m.getdT());
-    //         }
-    //         t += itsBunch_m.getdT();
-    //         itsBunch_m.setT(t);
-    //         IpplTimings::stopTimer(timeIntegrationTimer2_m);
-
-    //         double sposRef	= 0.0;
-
-    //         if(!(step % 5000))	{
-
-    //             if (itsBunch_m.getLocalNum() != 0)
-    //                 sposRef = itsBunch_m.R[0](2);
-
-    //             reduce(sposRef,sposRef,OpAddAssign());
-
-    //             if(sposRef > maxSPosAutoPhasing.front())
-    //                 maxStepsAutoPhasing.front() = step;
+            itsOpalBeamline_m.resetStatus();
 
 
-    //             INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch_m.getT() << " [s], "
-    //                     << "E= " << itsBunch_m.get_meanEnergy() << " [MeV] " << endl);
-    //         }
-    //     }
 
-    //     dtAutoPhasing.pop();
-    //     maxSPosAutoPhasing.pop();
-    //     maxStepsAutoPhasing.pop();
-    // }
+            refR /= Vector_t(Physics::c * itsBunch_m.getdT());
+            itsPusher_m.push(refR, refP, itsBunch_m.dt[0]);
+            refR *= Vector_t(Physics::c * itsBunch_m.getdT());
+
+            IpplTimings::stopTimer(timeIntegrationTimer_m);
+
+            evaluateField();
+
+            IpplTimings::startTimer(timeIntegrationTimer_m);
+
+            itsPusher_m.kick(refR, refP, itsBunch_m.Ef[0], itsBunch_m.Bf[0], itsBunch_m.dt[0]);
+
+            // itsBunch_m.calcBeamParametersLight();
+
+            refR /= Vector_t(Physics::c * itsBunch_m.getdT());
+            itsPusher_m.push(refR, refP, itsBunch_m.dt[0]);
+            refR *= Vector_t(Physics::c * itsBunch_m.getdT());
+
+            t += itsBunch_m.getdT();
+            itsBunch_m.setT(t);
+            IpplTimings::stopTimer(timeIntegrationTimer_m);
+
+            if(step % 5000 == 0) {
+
+                double sposRef = refR(2);
+                if(sposRef > maxSPosAutoPhasing.front())
+                    maxStepsAutoPhasing.front() = step;
+
+                INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch_m.getT() << " [s], "
+                        << "E= " << itsBunch_m.get_meanEnergy() << " [MeV] " << endl);
+            }
+        }
+
+        dtAutoPhasing.pop();
+        maxSPosAutoPhasing.pop();
+        maxStepsAutoPhasing.pop();
+    }
 }
 
-void AutophaseTracker::adjustCavityPhase() {
+void AutophaseTracker::adjustCavityPhase(Component *) {
     if (itsBunch_m.getLocalNum() == 0) return;
 
     // // let's do a drifting step to probe if the particle will reach element in next step
@@ -426,6 +372,27 @@ void AutophaseTracker::adjustCavityPhase() {
     //     << "E= " << Emax << " (MeV), " << "phi_nom= " << orig_phi *Physics::rad2deg << endl;
 
     // OpalData::getInstance()->setMaxPhase(cavity->getName(), Phimax);
+}
+
+void AutophaseTracker::evaluateField() {
+    IpplTimings::startTimer(fieldEvaluationTimer_m);
+
+    Vector_t &refR = itsBunch_m.R[0];
+
+    itsBunch_m.Ef = Vector_t(0.0);
+    itsBunch_m.Bf = Vector_t(0.0);
+
+    long ls = itsBunch_m.LastSection[0];
+    itsOpalBeamline_m.getSectionIndexAt(refR, ls);
+    itsBunch_m.LastSection[0] = ls;
+
+    Vector_t externalE, externalB;
+    itsOpalBeamline_m.getFieldAt(0, refR, ls, itsBunch_m.getT() + itsBunch_m.dt[0] / 2., externalE, externalB);
+
+    itsBunch_m.Ef[0] += externalE;
+    itsBunch_m.Bf[0] += externalB;
+
+    IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
 
 double AutophaseTracker::APtrack(Component *cavity, double cavityStart_pos, const double &phi) const {
