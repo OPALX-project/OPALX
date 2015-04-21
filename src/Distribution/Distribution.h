@@ -199,7 +199,8 @@ public:
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
 private:
 #ifdef WITH_UNIT_TESTS
-    FRIEND_TEST(GaussTest, FullSigmaTest);
+    FRIEND_TEST(GaussTest, FullSigmaTest1);
+    FRIEND_TEST(GaussTest, FullSigmaTest2);
 #endif
 
     Distribution(const std::string &name, Distribution *parent);
