@@ -37,6 +37,9 @@
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_qrng.h>
 
+#ifdef WITH_UNIT_TESTS
+#include <gtest/gtest_prod.h>
+#endif
 
 class Beam;
 class PartBunch;
@@ -195,6 +198,9 @@ public:
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
 private:
+#ifdef WITH_UNIT_TESTS
+    FRIEND_TEST(GaussTest, FullSigmaTest);
+#endif
 
     Distribution(const std::string &name, Distribution *parent);
 
