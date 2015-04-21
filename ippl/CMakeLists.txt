@@ -183,7 +183,9 @@ SET (CMAKE_CXX_FLAGS
 
 ### add test directories ####################################
 ADD_SUBDIRECTORY (src)
-ADD_SUBDIRECTORY (test)
+IF (ENABLE_IPPLTESTS)
+    ADD_SUBDIRECTORY (test)
+ENDIF (ENABLE_IPPLTESTS)
 
 ### write configure file ####################################
 CONFIGURE_FILE ( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
