@@ -1721,7 +1721,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
             correlationMatrix_m(3, 2) = 1e-3 * sigma(2, 3) / (sigmaR_m[1] * sigmaP_m[1]);
             correlationMatrix_m(5, 4) = 1e-3 * sigma(4, 5) / (sigmaR_m[2] * sigmaP_m[2]);
             correlationMatrix_m(4, 0) = 1e-6 * sigma(0, 4) / (sigmaR_m[0] * sigmaR_m[2]);
-            correlationMatrix_m(4, 1) = 1e-3 * sigma(1, 4) / (sigmaP_m[0] * sigmaP_m[2]);
+            correlationMatrix_m(4, 1) = 1e-3 * sigma(1, 4) / (sigmaP_m[0] * sigmaR_m[2]);
             correlationMatrix_m(5, 0) = 1e-3 * sigma(0, 5) / (sigmaR_m[0] * sigmaP_m[2]);
             correlationMatrix_m(5, 1) = sigma(1, 5) / (sigmaP_m[0] * sigmaP_m[2]);
 
