@@ -4,7 +4,7 @@ set (TEST_EXE opal_unit_tests)
 set (SRC_DIRS classic_src opal_src)
 
 set (CMAKE_CXX_FLAGS
-    "${OPAL_CXX_FLAGS}"
+    "${OPAL_CXX_FLAGS} -DWITH_UNIT_TESTS"
 )
 
 set (TEST_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
