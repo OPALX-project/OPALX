@@ -35,15 +35,18 @@ Inform *gmsg;
 #include "Fields/Fieldmap.hh"
 #include "FixedAlgebra/FTps.h"
 
-#include "BasicActions/Option.h"                                                                     
-#include "Utilities/OpalOptions.h"                                                                    
-#include "Utilities/Options.h"   
+#include "BasicActions/Option.h"
+#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
 
 #include "config.h"
 
 #ifdef HAVE_AMR_SOLVER
 #include <ParallelDescriptor.H>
 #endif
+
+#include <gsl/gsl_errno.h>
 
 //  DTA
 #define NC 5
@@ -58,6 +61,11 @@ void printStringVector(const std::vector<std::string> &strings) {
     if(nc != 0) std::cout << std::endl;
     std::cout << std::endl;
 }
+
+void errorHandlerGSL(const char *reason,
+                     const char *file,
+                     int line,
+                     int gsl_errno);
 // /DTA
 
 // Global data.
@@ -89,6 +97,8 @@ int main(int argc, char *argv[]) {
 
     H5SetVerbosityLevel(0); //65535);
 
+    gsl_set_error_handler(&errorHandlerGSL);
+
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
 
@@ -96,19 +106,6 @@ int main(int argc, char *argv[]) {
     std::string mySpace("            ");
 
     if(Ippl::myNode() == 0) remove("errormsg.txt");
-
-    /*
-
-       hmsg << mySpace << std::string("   _______  _______  _______  _  ")<< endl;
-       hmsg << mySpace << std::string("  (  ___  )(  ____ )(  ___  )( ")<< endl;
-       hmsg << mySpace << std::string("  | (   ) || (    )|| (   ) || (")<< endl;
-       hmsg << mySpace << std::string("  | |   | || (____)|| (___) || |")<< endl;
-       hmsg << mySpace << std::string("  | |   | ||  _____)|  ___  || |")<< endl;
-       hmsg << mySpace << std::string("  | |   | || (      | (   ) || |")<< endl;
-    //  hmsg << mySpace << std::string("  | (___) || )      | )   ( || (____/\")<< endl;
-    //
-    hmsg << mySpace << std::string("  (_______)|//       |//     /\|(_______// ")<< endl;
-    */
 
     hmsg << mySpace <<  "   ____  _____       ___ " << endl;
     hmsg << mySpace <<  "  / __ \\|  __ \\ /\\   | | " << endl;
@@ -232,7 +229,7 @@ int main(int argc, char *argv[]) {
         //// /DTA
 
 
-	
+
         IpplTimings::stopTimer(mainTimer);
 
         if (Options::info) {
@@ -291,4 +288,11 @@ int main(int argc, char *argv[]) {
         *gmsg << "Unexpected error." << endl;
         abort();
     }
+}
+
+void errorHandlerGSL(const char *reason,
+                     const char *file,
+                     int,
+                     int) {
+    throw OpalException(file, reason);
 }

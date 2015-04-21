@@ -355,7 +355,7 @@ private:
     Vector_t cutoffR_m;
     Vector_t cutoffP_m;
     Vector_t mBinomial_m;
-    std::vector<double> distCorr_m;
+    SymTenzor<double, 6> correlationMatrix_m;
 
     // Laser profile.
     std::string laserProfileFileName_m;
