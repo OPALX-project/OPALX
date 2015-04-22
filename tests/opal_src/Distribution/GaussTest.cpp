@@ -16,8 +16,7 @@ Inform *gmsg;
 
 #include "gsl/gsl_statistics_double.h"
 
-#include <boost/filesystem.hpp>
-
+#include <cstdio>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -157,7 +156,7 @@ TEST(GaussTest, FullSigmaTest1) {
     //    delete ippl;
     delete[] arg;
 
-    boost::filesystem::remove(inputFileName);
+    std::remove(inputFileName);
 }
 
 TEST(GaussTest, FullSigmaTest2) {
@@ -286,5 +285,5 @@ TEST(GaussTest, FullSigmaTest2) {
     //    delete ippl;
     delete[] arg;
 
-    boost::filesystem::remove(inputFileName);
+    std::remove(inputFileName);
 }
