@@ -891,9 +891,19 @@ void ParallelTTracker::doAutoPhasing() {
                         << " phi= " << (*it).second << " (rad)" << endl);
             }
         } else {
-            AutophaseTracker ap(itsBeamline_m, itsReference, itsBunch->getT());
-            ap.execute(dtAllTracks_m, zStop_m, localTrackSteps_m);
+#ifdef NEWTRACKER
+            Vector_t meanP = itsBunch->get_pmean();
+            Vector_t meanR = itsBunch->get_rmean();
 
+            AutophaseTracker apTracker(itsBeamline_m,
+                                       itsReference,
+                                       itsBunch->getT(),
+                                       meanR(2),
+                                       meanP(2));
+            apTracker.execute(dtAllTracks_m,
+                              zStop_m,
+                              localTrackSteps_m);
+#else
             int tag = 101;
             int Parent = 0;
 
@@ -963,6 +973,7 @@ void ParallelTTracker::doAutoPhasing() {
             itsBunch->pop();
             itsDataSink_m->storeCavityInformation();
         }
+#endif
     }
     updateAllRFElements(OpalData::getInstance()->getGlobalPhaseShift());
     INFOMSG("finished autophasing" << endl);
