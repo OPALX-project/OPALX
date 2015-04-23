@@ -94,7 +94,7 @@ void OpalSection::setOrientation(const Vector_t &angle) {
     updateEndCache();
 }
 
-bool OpalSection::find(const std::shared_ptr<Component> check) const {
+bool OpalSection::find(std::shared_ptr<const Component> check) const {
     bool found = false;
     for(size_t index = 0; index < elements_m.size(); ++ index) {
         if(elements_m[index] == check) {

@@ -47,7 +47,11 @@ class ClassicField;
 
 class AutophaseTracker: public DefaultVisitor {
 public:
-    AutophaseTracker(const Beamline &beamline, const PartData &ref, const double &T0);
+    AutophaseTracker(const Beamline &beamline,
+                     const PartData &ref,
+                     const double &T0,
+                     double initialR,
+                     double initialP);
     virtual ~AutophaseTracker();
 
     FieldList executeAutoPhaseForSliceTracker();
@@ -84,13 +88,27 @@ private:
     ClassicField* checkCavity(double s);
     void updateRFElement(std::string elName, double maxPhi);
     void updateAllRFElements(double phiShift);
-    void adjustCavityPhase(Component *);
     double APtrack(Component *cavity, double cavity_start, const double &phi) const;
+    void track(double uptoSPos,
+               size_t &step,
+               std::queue<double> &dtAllTracks,
+               std::queue<double> &maxZ,
+               std::queue<unsigned long long> &maxTrackSteps);
+
     double getGlobalPhaseShift();
     void handleOverlappingMonitors();
     void prepareSections();
     double getEnergyMeV(const Vector_t &p);
     void evaluateField();
+    Component* getNextCavity(const Component *current);
+    void advanceTime(size_t & step, const size_t maxSteps, const double beginNextCavity);
+    double guessCavityPhase(Component *);
+    double optimizeCavityPhase(Component *,
+                               double initialPhase,
+                               size_t currentStep,
+                               double dt);
+    double getBeginCavity(Component *);
+    double getEndCavity(Component *);
 
     OpalBeamline itsOpalBeamline_m;
     FieldList cavities_m;
@@ -103,12 +121,24 @@ private:
 
 };
 
-inline void AutophaseTracker::visitBeamline(const Beamline &bl) {
+inline
+void AutophaseTracker::visitBeamline(const Beamline &bl) {
     bl.iterate(*dynamic_cast<BeamlineVisitor *>(this), false);
 }
 
-inline double AutophaseTracker::getEnergyMeV(const Vector_t &p) {
+inline
+double AutophaseTracker::getEnergyMeV(const Vector_t &p) {
     return (sqrt(dot(p, p) + 1.0) - 1.0) * itsBunch_m.getM() * 1e-6;
+}
+
+inline
+double AutophaseTracker::getBeginCavity(Component* comp) {
+    if (comp == NULL) return -1e6;
+
+    double startComp = 0.0, endComp = 0.0;
+    comp->getDimensions(startComp, endComp);
+
+    return startComp;
 }
 
 #endif

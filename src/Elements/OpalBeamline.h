@@ -43,8 +43,8 @@ public:
     OpalBeamline();
     ~OpalBeamline();
 
-    CompVec &getPredecessors(const std::shared_ptr<Component>);
-    CompVec &getSuccessors(const std::shared_ptr<Component>);
+    CompVec &getPredecessors(std::shared_ptr<const Component>);
+    CompVec &getSuccessors(std::shared_ptr<const Component>);
     OpalSection &getSectionAt(const Vector_t &, long &);
     OpalSection &getSection(const unsigned int &);
     void getSectionIndexAt(const Vector_t &, long &) const;

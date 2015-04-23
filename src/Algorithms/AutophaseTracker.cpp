@@ -3,17 +3,445 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalOptions.h"
 
-AutophaseTracker::AutophaseTracker(const Beamline &beamline, const PartData& data, const double &T0):
+#define DTFRACTION 2
+
+AutophaseTracker::AutophaseTracker(const Beamline &beamline,
+                                   const PartData& data,
+                                   const double &T0,
+                                   double initialR,
+                                   double initialP):
     DefaultVisitor(beamline, false, false),
     itsBunch_m(&data),
     itsPusher_m(data)
 {
     itsBunch_m.setT(T0);
+    if(Ippl::myNode() == 0) {
+        itsBunch_m.create(1);
+        itsBunch_m.R[0] = Vector_t(0.0, 0.0, initialR);
+        itsBunch_m.P[0] = Vector_t(0.0, 0.0, initialP);
+        itsBunch_m.Bin[0] = 0;
+        itsBunch_m.Q[0] = itsBunch_m.getChargePerParticle();
+        itsBunch_m.PType[0] = 0;
+        itsBunch_m.LastSection[0] = 0;
+    }
+
     visitBeamline(beamline);
 }
 
 AutophaseTracker::~AutophaseTracker()
 { }
+
+void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
+                               const std::queue<double> &maxZ,
+                               const std::queue<unsigned long long> &maxTrackSteps) {
+    Inform msg("Autophasing ");
+
+    if (Ippl::myNode() != 0) return;
+
+    Vector_t rmin, rmax;
+    Vector_t &refR = itsBunch_m.R[0];
+    Vector_t &refP = itsBunch_m.P[0];
+    std::queue<double> dtAutoPhasing(dtAllTracks);
+    std::queue<double> maxSPosAutoPhasing(maxZ);
+    std::queue<unsigned long long> maxStepsAutoPhasing(maxTrackSteps);
+
+    maxSPosAutoPhasing.back() = itsOpalBeamline_m.calcBeamlineLenght();
+
+    size_t step = 0;
+    const int dtfraction = DTFRACTION;
+    double newDt = dtAutoPhasing.front() / dtfraction;
+    double scaleFactor = newDt * Physics::c;
+
+    itsBunch_m.LastSection[0] -= 1;
+    itsOpalBeamline_m.getSectionIndexAt(refR, itsBunch_m.LastSection[0]);
+
+    double margin = 10. * refP(2) * scaleFactor / sqrt(1.0 + dot(refP, refP));
+    margin = margin < 0.01 ? 0.01 : margin;
+
+    itsOpalBeamline_m.switchElements(refR(2) - margin, refR(2) + margin, true);
+
+    Component *cavity = NULL;
+    while (true) {
+        Component *next = getNextCavity(cavity);
+        if (next == NULL) break;
+
+        double beginNext = getBeginCavity(next);
+        if (refR(2) < beginNext) break;
+
+        cavity = next;
+    }
+
+    while (maxStepsAutoPhasing.size() > 0) {
+        maxStepsAutoPhasing.front() = maxStepsAutoPhasing.front() * dtfraction + step;
+        newDt = dtAutoPhasing.front() / dtfraction;
+        scaleFactor = newDt * Physics::c;
+        Vector_t vscaleFactor = Vector_t(scaleFactor);
+        itsBunch_m.setdT(newDt);
+        itsBunch_m.dt = newDt;
+
+        msg << "\n"
+            << "**********************************************\n"
+            << "new set of dt, zstop and max number of time steps\n"
+            << "**********************************************\n\n"
+            << "start at t = " << itsBunch_m.getT() << " [s], "
+            << "zstop at z = " << maxSPosAutoPhasing.front() << " [m],\n "
+            << "dt = " << itsBunch_m.dt[0] << " [s], "
+            << "step = " << step << ", "
+            << "R =  " << refR << " [m]" << endl;
+
+        for(; step < maxStepsAutoPhasing.front(); ++ step) {
+            Component *next = getNextCavity(cavity);
+            if (next == NULL) break;
+
+            double beginNext, endNext;
+            next->getDimensions(beginNext, endNext);
+            double sStop = beginNext;
+            bool reachesNextCavity = true;
+            if (sStop > maxSPosAutoPhasing.front()) {
+                sStop = maxSPosAutoPhasing.front();
+                reachesNextCavity = false;
+            }
+
+            advanceTime(step, maxStepsAutoPhasing.front(), sStop);
+            if (step >= maxStepsAutoPhasing.front() || !reachesNextCavity) break;
+
+            INFOMSG("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+            INFOMSG("\nFound " << next->getName()
+                    << " at " << sStop << " [m], "
+                    << "step  " << step << ", "
+                    << "t = " << itsBunch_m.getT() << " [s],\n"
+                    << "E = " << getEnergyMeV(refP) << " [MeV]\n"
+                    << "start phase scan ... \n");
+
+            double guess = guessCavityPhase(next);
+            optimizeCavityPhase(next,
+                                guess,
+                                step,
+                                newDt);
+            INFOMSG("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+
+            track(endNext,
+                  step,
+                  dtAutoPhasing,
+                  maxSPosAutoPhasing,
+                  maxStepsAutoPhasing);
+
+            cavity = next;
+        }
+
+        if (dtAutoPhasing.size() == 0) break;
+
+        dtAutoPhasing.pop();
+        maxSPosAutoPhasing.pop();
+        maxStepsAutoPhasing.pop();
+    }
+}
+
+void AutophaseTracker::track(double uptoSPos,
+                             size_t &step,
+                             std::queue<double> &dtAutoPhasing,
+                             std::queue<double> &maxSPosAutoPhasing,
+                             std::queue<unsigned long long> &maxStepsAutoPhasing) {
+    Vector_t &refR = itsBunch_m.R[0];
+    Vector_t &refP = itsBunch_m.P[0];
+    double t = itsBunch_m.getT();
+    const int dtfraction = DTFRACTION;
+
+    while (maxStepsAutoPhasing.size() > 0) {
+        maxStepsAutoPhasing.front() = maxStepsAutoPhasing.front() * dtfraction + step;
+        double newDt = dtAutoPhasing.front() / dtfraction;
+        double scaleFactor = newDt * Physics::c;
+        Vector_t vscaleFactor = Vector_t(scaleFactor);
+        itsBunch_m.setdT(newDt);
+        itsBunch_m.dt[0] = newDt;
+
+        for(; step < maxStepsAutoPhasing.front(); ++ step) {
+            IpplTimings::startTimer(timeIntegrationTimer_m);
+
+            double margin = 10. * refP(2) * scaleFactor / sqrt(1.0 + dot(refP, refP));
+            margin = 0.01 > margin ? 0.01 : margin;
+            itsOpalBeamline_m.switchElements(refR(2), refR(2) + margin, true);
+
+            itsOpalBeamline_m.resetStatus();
+
+            refR /= vscaleFactor;
+            itsPusher_m.push(refR, refP, itsBunch_m.dt[0]);
+            refR *= vscaleFactor;
+
+            IpplTimings::stopTimer(timeIntegrationTimer_m);
+
+            evaluateField();
+
+            IpplTimings::startTimer(timeIntegrationTimer_m);
+
+            itsPusher_m.kick(refR, refP, itsBunch_m.Ef[0], itsBunch_m.Bf[0], itsBunch_m.dt[0]);
+
+            refR /= vscaleFactor;
+            itsPusher_m.push(refR, refP, itsBunch_m.dt[0]);
+            refR *= vscaleFactor;
+
+            t += itsBunch_m.getdT();
+            itsBunch_m.setT(t);
+            IpplTimings::stopTimer(timeIntegrationTimer_m);
+
+            if (refR(2) > uptoSPos) return;
+
+            if(refR(2) > maxSPosAutoPhasing.front())
+                maxStepsAutoPhasing.front() = step;
+
+            if(step % 5000 == 0) {
+                INFOMSG("step = " << step << ", spos = " << refR(2) << " [m], t= " << itsBunch_m.getT() << " [s], "
+                        << "E = " << getEnergyMeV(refP) << " [MeV] " << endl);
+            }
+        }
+
+        dtAutoPhasing.pop();
+        maxSPosAutoPhasing.pop();
+        maxStepsAutoPhasing.pop();
+    }
+}
+
+Component* AutophaseTracker::getNextCavity(const Component *current) {
+    auto cavities = itsOpalBeamline_m.getSuccessors(std::shared_ptr<const Component>(current));
+
+    if (cavities.size() > 0) {
+        return cavities.front().get();
+    }
+
+    return NULL;
+}
+
+void AutophaseTracker::advanceTime(size_t &step, const size_t maxSteps, const double beginNextCavity) {
+    Vector_t &refR = itsBunch_m.R[0];
+    Vector_t &refP = itsBunch_m.P[0];
+
+    const double distance = beginNextCavity - refR(2);
+    if (distance < 0.0) return;
+
+    const double beta = refP(2) / sqrt(dot(refP, refP) + 1.0);
+    size_t  numSteps = std::floor(distance / (beta * Physics::c * itsBunch_m.dt[0]));
+    numSteps = std::min(numSteps, maxSteps - step);
+    double timeDifference = numSteps * itsBunch_m.dt[0];
+
+    itsBunch_m.setT(timeDifference + itsBunch_m.getT());
+    step += numSteps;
+    refR = Vector_t(0.0, 0.0, beta * Physics::c * timeDifference);
+    refP = Vector_t(0.0, 0.0, sqrt(dot(refP, refP)));
+}
+
+double AutophaseTracker::guessCavityPhase(Component *cavity) {
+    Vector_t &refR = itsBunch_m.R[0];
+    Vector_t &refP = itsBunch_m.P[0];
+
+    double cavityStart = getBeginCavity(cavity);
+    double orig_phi = 0.0, Phimax = 0.0;
+
+    const double beta = refP(2) / sqrt(dot(refP, refP) + 1.0);
+    const double tErr  = (cavityStart - refR(2)) / (Physics::c * beta);
+
+    bool apVeto;
+    if(cavity->getType() == "TravelingWave") {
+        TravelingWave *element = static_cast<TravelingWave *>(cavity);
+        orig_phi = element->getPhasem();
+        apVeto = element->getAutophaseVeto();
+        if(apVeto) {
+            INFOMSG(" ----> APVETO -----> "
+                    << element->getName() <<  endl);
+            return orig_phi;
+        }
+        INFOMSG(cavity->getName() << ", "
+                << "phi = " << orig_phi << ", \n");
+
+        Phimax = element->getAutoPhaseEstimate(getEnergyMeV(refP),
+                                               itsBunch_m.getT() + tErr,
+                                               itsBunch_m.getQ(),
+                                               itsBunch_m.getM() * 1e-6);
+    } else {
+        RFCavity *element = static_cast<RFCavity *>(cavity);
+        orig_phi = element->getPhasem();
+        apVeto = element->getAutophaseVeto();
+        if(apVeto) {
+            INFOMSG(" ----> APVETO -----> "
+                    << element->getName() << endl);
+            return orig_phi;
+        }
+        INFOMSG(cavity->getName() << ", "
+                << "phi = " << orig_phi << ", \n");
+
+        Phimax = element->getAutoPhaseEstimate(getEnergyMeV(refP),
+                                               itsBunch_m.getT() + tErr,
+                                               itsBunch_m.getQ(),
+                                               itsBunch_m.getM() * 1e-6);
+    }
+
+    return Phimax;
+}
+
+double AutophaseTracker::optimizeCavityPhase(Component *cavity,
+                                             double initialPhase,
+                                             size_t currentStep,
+                                             double dt) {
+
+    if(cavity->getType() == "TravelingWave") {
+        if (static_cast<TravelingWave *>(cavity)->getAutophaseVeto()) return initialPhase;
+    } else {
+        if (static_cast<RFCavity *>(cavity)->getAutophaseVeto()) return initialPhase;
+    }
+
+    itsBunch_m.setdT(dt);
+    itsBunch_m.dt[0] = dt;
+    double Phimax = initialPhase;
+    double phi = initialPhase;
+    double originalPhase = 0.0, PhiAstra = 0.0;
+    double dphi = Physics::pi / 360.0;
+    double cavityStart = getBeginCavity(cavity);
+    const int numRefinements = Options::autoPhase;
+
+    int j = -1;
+
+    double E = APtrack(cavity, cavityStart, phi);
+    double Emax = E;
+    do {
+        j ++;
+        Emax = E;
+        initialPhase = phi;
+        phi -= dphi;
+        E = APtrack(cavity, cavityStart, phi);
+    } while(E > Emax);
+
+    if(j == 0) {
+        phi = initialPhase;
+        E = Emax;
+        j = -1;
+        do {
+            j ++;
+            Emax = E;
+            initialPhase = phi;
+            phi += dphi;
+            E = APtrack(cavity, cavityStart, phi);
+        } while(E > Emax);
+    }
+
+    for(int rl = 0; rl < numRefinements; ++ rl) {
+        dphi /= 2.;
+        phi = initialPhase - dphi;
+        E = APtrack(cavity, cavityStart, phi);
+        if(E > Emax) {
+            initialPhase = phi;
+            Emax = E;
+        } else {
+            phi = initialPhase + dphi;
+            E = APtrack(cavity, cavityStart, phi);
+            if(E > Emax) {
+                initialPhase = phi;
+                Emax = E;
+            }
+        }
+    }
+    Phimax = initialPhase;
+
+    if(cavity->getType() == "TravelingWave") {
+        TravelingWave *element = static_cast<TravelingWave *>(cavity);
+        originalPhase = element->getPhasem();
+        element->updatePhasem(Phimax + originalPhase);
+    } else {
+        RFCavity *element = static_cast<RFCavity *>(cavity);
+        originalPhase = element->getPhasem();
+        element->updatePhasem(Phimax + originalPhase);
+    }
+
+    PhiAstra = (Phimax * Physics::rad2deg) + 90.0;
+    PhiAstra -= floor(PhiAstra / 360.) * 360.;
+
+    INFOMSG(cavity->getName() << "_phi = "  << Phimax << " rad / "
+            << Phimax *Physics::rad2deg <<  " deg, AstraPhi = " << PhiAstra << " deg,\n"
+            << "E = " << Emax << " (MeV), " << "phi_nom = " << originalPhase *Physics::rad2deg);
+
+    OpalData::getInstance()->setMaxPhase(cavity->getName(), Phimax);
+
+    return Phimax + originalPhase;
+}
+
+void AutophaseTracker::evaluateField() {
+    IpplTimings::startTimer(fieldEvaluationTimer_m);
+
+    Vector_t &refR = itsBunch_m.R[0];
+
+    itsBunch_m.Ef = Vector_t(0.0);
+    itsBunch_m.Bf = Vector_t(0.0);
+
+    long ls = itsBunch_m.LastSection[0];
+    itsOpalBeamline_m.getSectionIndexAt(refR, ls);
+    itsBunch_m.LastSection[0] = ls;
+
+    Vector_t externalE, externalB;
+    itsOpalBeamline_m.getFieldAt(0, refR, ls, itsBunch_m.getT() + itsBunch_m.dt[0] / 2., externalE, externalB);
+
+    itsBunch_m.Ef[0] += externalE;
+    itsBunch_m.Bf[0] += externalB;
+
+    IpplTimings::stopTimer(fieldEvaluationTimer_m);
+}
+
+double AutophaseTracker::APtrack(Component *cavity, double cavityStart, const double &phi) const {
+    const Vector_t &refR = itsBunch_m.R[0];
+    const Vector_t &refP = itsBunch_m.P[0];
+
+    double beta = refP(2) / std::sqrt(dot(refP, refP) + 1.0);
+    beta = std::max(beta, 0.0001);
+    double tErr  = (cavityStart - refR(2)) / (Physics::c * beta);
+
+    double finalMomentum = 0.0;
+    if(cavity->getType() == "TravelingWave") {
+        TravelingWave *tws = static_cast<TravelingWave *>(cavity);
+        tws->updatePhasem(phi);
+        std::pair<double, double> pe = tws->trackOnAxisParticle(refP(2),
+                                                                itsBunch_m.getT() + tErr,
+                                                                itsBunch_m.dt[0],
+                                                                itsBunch_m.getQ(),
+                                                                itsBunch_m.getM() * 1e-6);
+        finalMomentum = pe.first;
+    } else {
+        RFCavity *rfc = static_cast<RFCavity *>(cavity);
+        rfc->updatePhasem(phi);
+
+        std::pair<double, double> pe = rfc->trackOnAxisParticle(refP(2),
+                                                                itsBunch_m.getT() + tErr,
+                                                                itsBunch_m.dt[0],
+                                                                itsBunch_m.getQ(),
+                                                                itsBunch_m.getM() * 1e-6);
+        finalMomentum = pe.first;
+    }
+    double finalGamma = sqrt(1.0 + finalMomentum * finalMomentum);
+    double finalKineticEnergy = (finalGamma - 1.0) * itsBunch_m.getM() * 1e-6;
+    return finalKineticEnergy;
+}
+
+
+double AutophaseTracker::getGlobalPhaseShift() {
+
+    if(Options::autoPhase > 0) {
+        double gPhaseSave = OpalData::getInstance()->getGlobalPhaseShift();
+        OpalData::getInstance()->setGlobalPhaseShift(0.0);
+        return gPhaseSave;
+    } else
+        return 0;
+
+}
+
+ClassicField* AutophaseTracker::checkCavity(double s) {
+
+    for(FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++ fit) {
+        if((fit != currentAPCavity_m)
+           && ((*fit).getStart() <= s) && (s <= (*fit).getEnd())) {
+            currentAPCavity_m = fit;
+
+            return &(*fit);
+        }
+    }
+
+    return NULL;
+}
 
 // FieldList AutophaseTracker::executeAutoPhaseForSliceTracker() {
 //     Inform msg("executeAutoPhaseForSliceTracker ");
@@ -119,336 +547,3 @@ AutophaseTracker::~AutophaseTracker()
 //     OpalData::getInstance()->setGlobalPhaseShift(gPhaseSave);
 //     return cavities_m;
 // }
-
-
-void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
-                               const std::queue<double> &maxZ,
-                               const std::queue<unsigned long long> &maxTrackSteps) {
-    Inform msg("Autophasing ");
-
-    Vector_t rmin, rmax;
-    Vector_t &refR = itsBunch_m.R[0];
-    Vector_t &refP = itsBunch_m.P[0];
-    std::queue<double> dtAutoPhasing(dtAllTracks);
-    std::queue<double> maxSPosAutoPhasing(maxZ);
-    std::queue<unsigned long long> maxStepsAutoPhasing(maxTrackSteps);
-
-    maxSPosAutoPhasing.back() = itsOpalBeamline_m.calcBeamlineLenght();
-
-    // const int numRefinements = Options::autoPhase;
-
-    size_t step = 0;
-    const int dtfraction = 2;
-    double scaleFactor = dtAutoPhasing.front() / dtfraction * Physics::c;
-
-    itsBunch_m.LastSection[0] -= 1;
-    itsOpalBeamline_m.getSectionIndexAt(refR, itsBunch_m.LastSection[0]);
-
-    double margin = 10. * refP(2) * scaleFactor / sqrt(1.0 + dot(refP, refP));
-    margin = margin < 0.01 ? 0.01 : margin;
-
-    itsOpalBeamline_m.switchElements(refR(2), refR(2) + margin, true);
-
-    Component *cavity = NULL;
-
-    while (maxStepsAutoPhasing.size() > 0) {
-        maxStepsAutoPhasing.front() = maxStepsAutoPhasing.front() * dtfraction + step;
-        double newDt = dtAutoPhasing.front() / dtfraction;
-        double scaleFactor = newDt * Physics::c;
-        Vector_t vscaleFactor = Vector_t(scaleFactor);
-        itsBunch_m.setdT(newDt);
-        itsBunch_m.dt = newDt;
-
-        msg << "\n"
-            << "**********************************************\n"
-            << "new set of dt, zstop and max number of time steps\n"
-            << "**********************************************\n\n"
-            << "start at t = " << itsBunch_m.getT() << " [s], "
-            << "zstop at z = " << maxSPosAutoPhasing.front() << " [m],\n "
-            << "dt = " << itsBunch_m.dt[0] << " [s], "
-            << "step = " << step << ", "
-            << "R =  " << refR << " [m]" << endl;
-
-        for(; step < maxStepsAutoPhasing.front(); ++step) {
-
-
-            adjustCavityPhase(cavity);
-
-
-            IpplTimings::startTimer(timeIntegrationTimer_m);
-            double t = itsBunch_m.getT();
-
-            margin = 10. * refP(2) * scaleFactor / sqrt(1.0 + dot(refP, refP));
-            margin = 0.01 > margin ? 0.01 : margin;
-            itsOpalBeamline_m.switchElements(refR(2), refR(2) + margin, true);
-
-            itsOpalBeamline_m.resetStatus();
-
-
-
-            refR /= Vector_t(Physics::c * itsBunch_m.getdT());
-            itsPusher_m.push(refR, refP, itsBunch_m.dt[0]);
-            refR *= Vector_t(Physics::c * itsBunch_m.getdT());
-
-            IpplTimings::stopTimer(timeIntegrationTimer_m);
-
-            evaluateField();
-
-            IpplTimings::startTimer(timeIntegrationTimer_m);
-
-            itsPusher_m.kick(refR, refP, itsBunch_m.Ef[0], itsBunch_m.Bf[0], itsBunch_m.dt[0]);
-
-            // itsBunch_m.calcBeamParametersLight();
-
-            refR /= Vector_t(Physics::c * itsBunch_m.getdT());
-            itsPusher_m.push(refR, refP, itsBunch_m.dt[0]);
-            refR *= Vector_t(Physics::c * itsBunch_m.getdT());
-
-            t += itsBunch_m.getdT();
-            itsBunch_m.setT(t);
-            IpplTimings::stopTimer(timeIntegrationTimer_m);
-
-            if(step % 5000 == 0) {
-
-                double sposRef = refR(2);
-                if(sposRef > maxSPosAutoPhasing.front())
-                    maxStepsAutoPhasing.front() = step;
-
-                INFOMSG("step = " << step << ", spos = " << sposRef << " [m], t= " << itsBunch_m.getT() << " [s], "
-                        << "E= " << itsBunch_m.get_meanEnergy() << " [MeV] " << endl);
-            }
-        }
-
-        dtAutoPhasing.pop();
-        maxSPosAutoPhasing.pop();
-        maxStepsAutoPhasing.pop();
-    }
-}
-
-void AutophaseTracker::adjustCavityPhase(Component *) {
-    if (itsBunch_m.getLocalNum() == 0) return;
-
-    // // let's do a drifting step to probe if the particle will reach element in next step
-    // Vector_t R_drift = itsBunch_m.R[0] + itsBunch_m.P[0] / sqrt(1.0 + dot(itsBunch_m.P[0],
-    //                                                                       itsBunch_m.P[0])) * vscaleFactor;
-    // ClassicField comp = checkCavity(R_drift[2]);
-
-    // if (comp == NULL) return;
-
-    // Component *cavity = comp->getElement().get();
-    // double cavityStart = comp->getStart();
-    // double orig_phi = 0.0;
-    // double Phimax = 0.0, Emax = 0.0;
-    // double PhiAstra;
-
-    // const double beta = sqrt(1. - 1 / (itsBunch_m.P[0](2) * itsBunch_m.P[0](2) + 1.));
-    // const double tErr  = (cavityStart - itsBunch_m.R[0](2)) / (Physics::c * beta);
-
-    // bool apVeto;
-
-    // INFOMSG("Found " << cavity->getName()
-    //         << " at " << itsBunch_m.R[0](2) << " [m], "
-    //         << "step  " << step << ", "
-    //         << "t= " << itsBunch_m.getT() << " [s],\n"
-    //         << "E= " << getEnergyMeV(itsBunch_m.P[0]) << " [MeV]\n"
-    //         << "start phase scan ... " << endl);
-
-
-    // INFOMSG("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
-    // if(cavity->getType() == "TravelingWave") {
-    //     TravelingWave *element = static_cast<TravelingWave *>(cavity);
-    //     orig_phi = element->getPhasem();
-    //     apVeto = element->getAutophaseVeto();
-    //     if(apVeto) {
-    //         msg << " ----> APVETO -----> "
-    //             << element->getName() <<  endl;
-    //         Phimax = orig_phi;
-    //     }
-    //     INFOMSG(cavity->getName() << ", "
-    //             << "start Ekin= " << getEnergyMeV(itsBunch_m.P[0]) << " MeV, "
-    //             << "t= " << itsBunch_m.getT() << " s, "
-    //             << "phi= " << orig_phi << ", " << endl;);
-
-    //     if(!apVeto) {
-    //         Phimax = element->getAutoPhaseEstimate(getEnergyMeV(itsBunch_m.P[0]),
-    //                                                itsBunch_m.getT() + tErr,
-    //                                                itsBunch_m.getQ(),
-    //                                                itsBunch_m.getM() * 1e-6);
-    //     }
-    // } else {
-    //     RFCavity *element = static_cast<RFCavity *>(cavity);
-    //     orig_phi = element->getPhasem();
-    //     apVeto = element->getAutophaseVeto();
-    //     if(apVeto) {
-    //         msg << " ----> APVETO -----> "
-    //             << element->getName() << endl;
-    //         Phimax = orig_phi;
-    //     }
-    //     INFOMSG(cavity->getName() << ", "
-    //             << "start Ekin= " << getEnergyMeV(itsBunch_m.P[0]) << " MeV, "
-    //             << "t= " << itsBunch_m.getT() << " s, "
-    //             << "phi= " << orig_phi << ", " << endl;);
-
-    //     if(!apVeto) {
-    //         Phimax = element->getAutoPhaseEstimate(getEnergyMeV(itsBunch_m.P[0]),
-    //                                                itsBunch_m.getT() + tErr,
-    //                                                itsBunch_m.getQ(),
-    //                                                itsBunch_m.getM() * 1e-6);
-    //     }
-    // }
-
-    // double Phiini = Phimax;
-    // double phi = Phiini;
-    // double dphi = Physics::pi / 360.0;
-    // int j = -1;
-
-    // double E = APtrack(cavity, cavityStart, phi);
-    // if(!apVeto) {
-    //     msg << "Did APtrack with phi= " << phi << " result E= " << E << endl;
-    //     do {
-    //         j ++;
-    //         Emax = E;
-    //         Phiini = phi;
-    //         phi -= dphi;
-    //         E = APtrack(cavity, cavityStart, phi);
-    //     } while(E > Emax);
-
-    //     if(j == 0) {
-    //         phi = Phiini;
-    //         E = Emax;
-    //         j = -1;
-    //         do {
-    //             j ++;
-    //             Emax = E;
-    //             Phiini = phi;
-    //             phi += dphi;
-    //             E = APtrack(cavity, cavityStart, phi);
-    //         } while(E > Emax);
-    //     }
-    //     for(int refinementLevel = 0; refinementLevel < numRefinements; refinementLevel ++) {
-    //         dphi /= 2.;
-    //         phi = Phiini - dphi;
-    //         E = APtrack(cavity, cavityStart, phi);
-    //         if(E > Emax) {
-    //             Phiini = phi;
-    //             Emax = E;
-    //         } else {
-    //             phi = Phiini + dphi;
-    //             E = APtrack(cavity, cavityStart, phi);
-    //             if(E > Emax) {
-    //                 Phiini = phi;
-    //                 Emax = E;
-    //             }
-    //         }
-    //     }
-    //     Phimax = Phiini;
-    //     phi = Phimax + orig_phi;
-
-    //     INFOMSG("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% \n");
-    // } else {
-    //     msg << "Tracking with phi= " << orig_phi << " result E= " << E << endl;
-    //     phi = orig_phi;
-    //     Emax = E;
-    //     E = APtrack(cavity, cavityStart, phi - Physics::pi);
-    //     msg << "Tracking with phi= " << orig_phi - Physics::pi << " result E= " << E << endl;
-    //     if (E > Emax) {
-    //         phi = orig_phi - Physics::pi;
-    //         Phimax = phi;
-    //         Emax = E;
-    //     }
-    // }
-
-    // if(cavity->getType() == "TravelingWave") {
-    //     static_cast<TravelingWave *>(cavity)->updatePhasem(phi);
-    // } else {
-    //     static_cast<RFCavity *>(cavity)->updatePhasem(phi);
-    // }
-
-    // PhiAstra = (Phimax * Physics::rad2deg) + 90.0;
-    // PhiAstra -= floor(PhiAstra / 360.) * 360.;
-
-    // msg << cavity->getName() << "_phi= "  << Phimax << " rad / "
-    //     << Phimax *Physics::rad2deg <<  " deg, AstraPhi= " << PhiAstra << " deg,\n"
-    //     << "E= " << Emax << " (MeV), " << "phi_nom= " << orig_phi *Physics::rad2deg << endl;
-
-    // OpalData::getInstance()->setMaxPhase(cavity->getName(), Phimax);
-}
-
-void AutophaseTracker::evaluateField() {
-    IpplTimings::startTimer(fieldEvaluationTimer_m);
-
-    Vector_t &refR = itsBunch_m.R[0];
-
-    itsBunch_m.Ef = Vector_t(0.0);
-    itsBunch_m.Bf = Vector_t(0.0);
-
-    long ls = itsBunch_m.LastSection[0];
-    itsOpalBeamline_m.getSectionIndexAt(refR, ls);
-    itsBunch_m.LastSection[0] = ls;
-
-    Vector_t externalE, externalB;
-    itsOpalBeamline_m.getFieldAt(0, refR, ls, itsBunch_m.getT() + itsBunch_m.dt[0] / 2., externalE, externalB);
-
-    itsBunch_m.Ef[0] += externalE;
-    itsBunch_m.Bf[0] += externalB;
-
-    IpplTimings::stopTimer(fieldEvaluationTimer_m);
-}
-
-double AutophaseTracker::APtrack(Component *cavity, double cavityStart_pos, const double &phi) const {
-    double beta = std::max(sqrt(1. - 1 / (itsBunch_m.P[0](2) * itsBunch_m.P[0](2) + 1.)), 0.0001);
-    double tErr  = (cavityStart_pos - itsBunch_m.R[0](2)) / (Physics::c * beta);
-
-    //    INFOMSG("beta = " << beta << " tErr = " << tErr << endl;);
-
-    double finalMomentum = 0.0;
-    if(cavity->getType() == "TravelingWave") {
-        TravelingWave *tws = static_cast<TravelingWave *>(cavity);
-        tws->updatePhasem(phi);
-        std::pair<double, double> pe = tws->trackOnAxisParticle(itsBunch_m.P[0](2),
-                                                                itsBunch_m.getT() + tErr,
-                                                                itsBunch_m.dt[0],
-                                                                itsBunch_m.getQ(),
-                                                                itsBunch_m.getM() * 1e-6);
-        finalMomentum = pe.first;
-    } else {
-        RFCavity *rfc = static_cast<RFCavity *>(cavity);
-        rfc->updatePhasem(phi);
-
-        std::pair<double, double> pe = rfc->trackOnAxisParticle(itsBunch_m.P[0](2),
-                                                                itsBunch_m.getT() + tErr,
-                                                                itsBunch_m.dt[0],
-                                                                itsBunch_m.getQ(),
-                                                                itsBunch_m.getM() * 1e-6);
-        finalMomentum = pe.first;
-    }
-    double finalGamma = sqrt(1.0 + finalMomentum * finalMomentum);
-    double finalKineticEnergy = (finalGamma - 1.0) * itsBunch_m.getM() * 1e-6;
-    return finalKineticEnergy;
-}
-
-
-double AutophaseTracker::getGlobalPhaseShift() {
-
-    if(Options::autoPhase > 0) {
-        double gPhaseSave = OpalData::getInstance()->getGlobalPhaseShift();
-        OpalData::getInstance()->setGlobalPhaseShift(0.0);
-        return gPhaseSave;
-    } else
-        return 0;
-
-}
-
-ClassicField* AutophaseTracker::checkCavity(double s) {
-
-    for(FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++ fit) {
-        if((fit != currentAPCavity_m)
-           && ((*fit).getStart() <= s) && (s <= (*fit).getEnd())) {
-            currentAPCavity_m = fit;
-
-            return &(*fit);
-        }
-    }
-
-    return NULL;
-}
