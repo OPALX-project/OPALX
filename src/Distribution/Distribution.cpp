@@ -228,6 +228,7 @@ Distribution::Distribution():
     energyBinHist_m(NULL),
     randGenEmit_m(NULL),
     pTotThermal_m(0.0),
+    pmean_m(0.0),
     cathodeWorkFunc_m(0.0),
     laserEnergy_m(0.0),
     cathodeFermiEnergy_m(0.0),
@@ -306,6 +307,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     energyBinHist_m(NULL),
     randGenEmit_m(parent->randGenEmit_m),
     pTotThermal_m(parent->pTotThermal_m),
+    pmean_m(parent->pmean_m),
     cathodeWorkFunc_m(parent->cathodeWorkFunc_m),
     laserEnergy_m(parent->laserEnergy_m),
     cathodeFermiEnergy_m(parent->cathodeFermiEnergy_m),
@@ -4590,13 +4592,14 @@ void Distribution::SetupEmissionModelAstra(PartBunch &beam) {
 
     gsl_rng_env_setup();
     randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
+    pmean_m = Vector_t(0.0, 0.0, 0.5 * pTotThermal_m);
 }
 
 void Distribution::SetupEmissionModelNone(PartBunch &beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
-
+    pmean_m = Vector_t(0.0, 0.0, pTotThermal_m);
 }
 
 void Distribution::SetupEmissionModelNonEquil() {
@@ -4615,6 +4618,9 @@ void Distribution::SetupEmissionModelNonEquil() {
 
     gsl_rng_env_setup();
     randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
+
+    // TODO: get better estimate of pmean
+    pmean_m = 0.5 * (cathodeWorkFunc_m + emitEnergyUpperLimit_m);
 }
 
 void Distribution::SetupEnergyBins(double maxTOrZ, double minTOrZ) {
