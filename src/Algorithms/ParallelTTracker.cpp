@@ -891,9 +891,14 @@ void ParallelTTracker::doAutoPhasing() {
                         << " phi= " << (*it).second << " (rad)" << endl);
             }
         } else {
+            //#define NEWTRACKER
 #ifdef NEWTRACKER
             Vector_t meanP = itsBunch->get_pmean();
             Vector_t meanR = itsBunch->get_rmean();
+            if (itsBunch->getTotalNum() == 0) {
+                meanP = itsBunch->get_pmean_Distribution();
+                meanR = 0.0;
+            }
 
             AutophaseTracker apTracker(itsBeamline_m,
                                        itsReference,
@@ -903,6 +908,13 @@ void ParallelTTracker::doAutoPhasing() {
             apTracker.execute(dtAllTracks_m,
                               zStop_m,
                               localTrackSteps_m);
+
+
+            iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
+            iterator_t end = OpalData::getInstance()->getLastMaxPhases();
+            for(; it < end; ++ it) {
+                updateRFElement((*it).first, (*it).second);
+            }
 #else
             int tag = 101;
             int Parent = 0;
