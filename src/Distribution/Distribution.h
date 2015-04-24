@@ -142,6 +142,7 @@ public:
     const PartData &GetReference() const;
     double GetTEmission();
 
+    Vector_t get_pmean() const;
     double GetEkin() const;
     double GetLaserEnergy() const;
     double GetWorkFunctionRf() const;
@@ -314,6 +315,7 @@ private:
 
     // ASTRA and NONE photo emission model.
     double pTotThermal_m;           /// Total thermal momentum.
+    Vector_t pmean_m;
 
     // NONEQUIL photo emission model.
     double cathodeWorkFunc_m;       /// Cathode material work function (eV).
@@ -440,6 +442,11 @@ private:
 
 inline Inform &operator<<(Inform &os, const Distribution &d) {
     return d.printInfo(os);
+}
+
+inline
+Vector_t Distribution::get_pmean() const {
+    return pmean_m;
 }
 
 #endif // OPAL_Distribution_HH

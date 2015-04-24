@@ -2959,3 +2959,7 @@ bool PartBunch::WeHaveEnergyBins() {
     else
         return false;
 }
+
+Vector_t PartBunch::get_pmean_Distribution() const {
+    return dist_m->get_pmean();
+}
