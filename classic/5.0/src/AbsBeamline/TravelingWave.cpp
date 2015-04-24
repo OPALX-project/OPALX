@@ -498,8 +498,6 @@ const std::string &TravelingWave::getType() const {
 }
 
 double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, const double &q, const double &mass) {
-    Inform msg("Autophasing ");
-    msg << setprecision(8);
     vector<double> t, E, t2, E2;
     vector<pair<double, double> > F;
     double Dz;
@@ -585,8 +583,10 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
                     int I = i - N3 - 1 + 2 * N1 + N2;
                     E[i] = E[i - 1] + q * scale_m * getdE(i, I, t, phi + phaseE, F);
                 }
-                msg << "estimated phi= " << tmp_phi << " rad, "
-                    << "Ekin= " << E[N3 - 1] << " MeV" << endl;
+
+                const int prevPrecision = Ippl::Info->precision(8);
+                INFOMSG("estimated phi= " << tmp_phi << " rad, "
+                        << "Ekin= " << E[N3 - 1] << " MeV" << setprecision(prevPrecision) << endl);
                 //                 std::stringstream fn;
                 //                 fn << getName() << ".dat";
                 //                 ofstream ckrtest(fn.str().c_str());
@@ -657,6 +657,10 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
             //             msg << ", Ekin= " << E[N3-1] << " MeV" << endl;
         }
 
+
+        const int prevPrecision = Ippl::Info->precision(8);
+        INFOMSG("estimated phi= " << tmp_phi << " rad, "
+                << "Ekin= " << E[N3 - 1] << " MeV" << setprecision(prevPrecision) << endl);
 
         return phi;
     } else {

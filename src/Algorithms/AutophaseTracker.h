@@ -8,6 +8,8 @@
 #include "Algorithms/PartBunch.h"
 #include "Algorithms/PartPusher.h"
 #include "Algorithms/PartData.h"
+#include "Algorithms/PBunchDefs.h"
+
 class ClassicField;
 #include "Elements/OpalBeamline.h"
 
@@ -85,10 +87,9 @@ public:
     AP_VISITELEMENT(TravelingWave)
 
 private:
-    ClassicField* checkCavity(double s);
     void updateRFElement(std::string elName, double maxPhi);
     void updateAllRFElements(double phiShift);
-    double APtrack(Component *cavity, double cavity_start, const double &phi) const;
+    double APtrack(const std::shared_ptr<Component> &cavity, double cavity_start, const double &phi) const;
     void track(double uptoSPos,
                size_t &step,
                std::queue<double> &dtAllTracks,
@@ -100,21 +101,21 @@ private:
     void prepareSections();
     double getEnergyMeV(const Vector_t &p);
     void evaluateField();
-    Component* getNextCavity(const Component *current);
+    std::shared_ptr<Component> getNextCavity(const std::shared_ptr<Component> &current);
     void advanceTime(size_t & step, const size_t maxSteps, const double beginNextCavity);
-    double guessCavityPhase(Component *);
-    double optimizeCavityPhase(Component *,
+    double guessCavityPhase(const std::shared_ptr<Component> &);
+    double optimizeCavityPhase(const std::shared_ptr<Component> &,
                                double initialPhase,
                                size_t currentStep,
                                double dt);
-    double getBeginCavity(Component *);
-    double getEndCavity(Component *);
+    double getBeginCavity(const std::shared_ptr<Component> &);
+    double getEndCavity(const std::shared_ptr<Component> &);
 
     OpalBeamline itsOpalBeamline_m;
-    FieldList cavities_m;
     FieldList::iterator currentAPCavity_m;
     PartBunch itsBunch_m;
     BorisPusher itsPusher_m;
+    Layout_t *particleLayout_m;
 
     IpplTimings::TimerRef timeIntegrationTimer_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
@@ -132,13 +133,23 @@ double AutophaseTracker::getEnergyMeV(const Vector_t &p) {
 }
 
 inline
-double AutophaseTracker::getBeginCavity(Component* comp) {
+double AutophaseTracker::getBeginCavity(const std::shared_ptr<Component> &comp) {
     if (comp == NULL) return -1e6;
 
     double startComp = 0.0, endComp = 0.0;
     comp->getDimensions(startComp, endComp);
 
     return startComp;
+}
+
+inline
+double AutophaseTracker::getEndCavity(const std::shared_ptr<Component> &comp) {
+    if (comp == NULL) return -1e6;
+
+    double startComp = 0.0, endComp = 0.0;
+    comp->getDimensions(startComp, endComp);
+
+    return endComp;
 }
 
 #endif
