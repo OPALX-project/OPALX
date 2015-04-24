@@ -894,13 +894,15 @@ void ParallelTTracker::doAutoPhasing() {
 
             Vector_t stashedP = itsBunch->get_pmean();
             Vector_t initialR(0.0);
-            // TODO: get correct thermal energy of particles for Astra model
-            Vector_t initialP(0.0, 0.0, std::max(stashedP(2), 1e-6));
+            Vector_t initialP(0.0, 0.0, stashedP(2));
 
-            if (itsBunch->getTotalNum() > 0) { // we are not emiting otherwise there wouldn't be any particles yet
+            if (itsBunch->getTotalNum() > 0) { // not emiting
                 Vector_t stashedR = itsBunch->get_rmean();
                 initialR(2) = stashedR(2);
+            } else {
+                initialP(2) = itsBunch->get_pmean_Distribution()(2);
             }
+            initialP(2) = std::max(initialP(2), 1e-6);
 
             itsBunch->stash();
             double zStop = itsOpalBeamline_m.calcBeamlineLenght();
