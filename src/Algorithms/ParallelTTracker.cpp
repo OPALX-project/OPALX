@@ -915,6 +915,8 @@ void ParallelTTracker::doAutoPhasing() {
             if (itsBunch->getTotalNum() > 0) { // we are not emiting otherwise there wouldn't be any particles yet
                 Vector_t stashedR = itsBunch->get_rmean();
                 initialR(2) = stashedR(2);
+            } else {
+                initialP = itsBunch->get_pmean_Distribution();
             }
 
             itsBunch->stash();
@@ -972,8 +974,8 @@ void ParallelTTracker::doAutoPhasing() {
             itsBunch->update();
             itsBunch->pop();
             itsDataSink_m->storeCavityInformation();
-        }
 #endif
+        }
     }
     updateAllRFElements(OpalData::getInstance()->getGlobalPhaseShift());
     INFOMSG("finished autophasing" << endl);

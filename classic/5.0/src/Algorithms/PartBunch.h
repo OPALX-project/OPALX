@@ -324,6 +324,7 @@ public:
     Vector_t get_prms() const;
     Vector_t get_rprrms() const;
     Vector_t get_pmean() const;
+    Vector_t get_pmean_Distribution() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
     Vector_t get_hr() const;
@@ -1148,7 +1149,7 @@ size_t PartBunch::getLoadBalance(int p) const {
     return globalPartPerNode_m[p];
 }
 
-inline 
+inline
 size_t PartBunch::getMinLocalNum() {
 /// Get the minimal number of particles per node
   if (minLocNum_m < 0)
