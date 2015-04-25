@@ -891,8 +891,11 @@ void ParallelTTracker::doAutoPhasing() {
                         << " phi= " << (*it).second << " (rad)" << endl);
             }
         } else {
-            //#define NEWTRACKER
+
+#define NEWTRACKER
 #ifdef NEWTRACKER
+            int tag = 101;
+            int parent = 0;
             Vector_t meanP = itsBunch->get_pmean();
             Vector_t meanR = itsBunch->get_rmean();
             if (itsBunch->getTotalNum() == 0) {
@@ -910,11 +913,40 @@ void ParallelTTracker::doAutoPhasing() {
                               localTrackSteps_m);
 
 
-            iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
-            iterator_t end = OpalData::getInstance()->getLastMaxPhases();
-            for(; it < end; ++ it) {
-                updateRFElement((*it).first, (*it).second);
+            if (Ippl::myNode() == 0) {
+                // now send all max phases and names of the cavities to
+                // all the other nodes for updating.
+                Message *mess = new Message();
+                putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
+
+                iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
+                iterator_t end = OpalData::getInstance()->getLastMaxPhases();
+                for(; it < end; ++ it) {
+                    updateRFElement((*it).first, (*it).second);
+                    putMessage(*mess, (*it).first);
+                    putMessage(*mess, (*it).second);
+                }
+                Ippl::Comm->broadcast_all(mess, tag);
+
+                delete mess;
+            } else {
+                // receive max phases and names and update the structure
+                int nData = 0;
+                Message *mess = Ippl::Comm->receive_block(parent, tag);
+                getMessage(*mess, nData);
+                for(int i = 0; i < nData; i++) {
+                    std::string elName;
+                    double maxPhi;
+                    getMessage(*mess, elName);
+                    getMessage(*mess, maxPhi);
+                    updateRFElement(elName, maxPhi);
+                    OpalData::getInstance()->setMaxPhase(elName, maxPhi);
+                }
+
+                delete mess;
             }
+            itsBunch->update();
+            itsDataSink_m->storeCavityInformation();
 #else
             int tag = 101;
             int Parent = 0;
