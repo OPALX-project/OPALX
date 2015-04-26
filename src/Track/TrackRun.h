@@ -76,6 +76,7 @@ private:
     void setupFieldsolver();
 
     double setDistributionParallelT(Beam *beam);
+    void findPhasesForMaxEnergy() const;
     ParallelTTracker *setupForAutophase();
 
     // Pointer to tracking algorithm.
