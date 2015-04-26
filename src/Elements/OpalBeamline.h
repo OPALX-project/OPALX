@@ -43,8 +43,8 @@ public:
     OpalBeamline();
     ~OpalBeamline();
 
-    CompVec &getPredecessors(const std::shared_ptr<Component>);
-    CompVec &getSuccessors(const std::shared_ptr<Component>);
+    CompVec &getPredecessors(std::shared_ptr<const Component>);
+    CompVec &getSuccessors(std::shared_ptr<const Component>);
     OpalSection &getSectionAt(const Vector_t &, long &);
     OpalSection &getSection(const unsigned int &);
     void getSectionIndexAt(const Vector_t &, long &) const;
@@ -84,7 +84,7 @@ public:
     unsigned long getFieldAt(const Vector_t &, const Vector_t &, const double &, Vector_t &, Vector_t &);
 
     template<class T>
-    void visit(const T &, Tracker &, PartBunch *);
+    void visit(const T &, BeamlineVisitor &, PartBunch *);
 
     void prepareSections();
     void print(Inform &) const;
@@ -298,7 +298,7 @@ inline bool OpalBeamline::section_is_glued_to(const long &i, const long &j) cons
 }
 
 template<class T> inline
-void OpalBeamline::visit(const T &element, Tracker &, PartBunch *bunch) {
+void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) {
     Inform msg("OPAL ");
     std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()->removeWrappers()));
     if(!elptr->hasAttribute("ELEMEDGE")) {
@@ -316,18 +316,18 @@ void OpalBeamline::visit(const T &element, Tracker &, PartBunch *bunch) {
 }
 
 template<> inline
-void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, Tracker &aTracker, PartBunch *) {
+void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, BeamlineVisitor &visitor, PartBunch *) {
     if(wrap.getType() == "beamline") {
         Beamline *bl = dynamic_cast<Beamline *>(wrap.getElement());
-        bl->iterate(aTracker, false);
+        bl->iterate(visitor, false);
     } else {
-        wrap.getElement()->accept(aTracker);
+        wrap.getElement()->accept(visitor);
     }
 }
 
 /*
 template<> inline
-void OpalBeamline::visit<Corrector>(const Corrector &element, Tracker &, PartBunch *bunch) {
+void OpalBeamline::visit<Corrector>(const Corrector &element, BeamlineVisitor &, PartBunch *bunch) {
     Inform msg("visit<Corrector ");
 
     Corrector *elptr = dynamic_cast<Corrector *>(element.clone()->removeWrappers());
@@ -348,43 +348,43 @@ void OpalBeamline::visit<Corrector>(const Corrector &element, Tracker &, PartBun
 }
 */
 template<> inline
-void OpalBeamline::visit<BeamBeam>(const BeamBeam &element, Tracker &, PartBunch *) {
+void OpalBeamline::visit<BeamBeam>(const BeamBeam &element, BeamlineVisitor &, PartBunch *) {
     Inform msg("OPAL ");
     msg << element.getType() << " not implemented yet!" << endl;
 }
 
 template<> inline
-void OpalBeamline::visit<Diagnostic>(const Diagnostic &element, Tracker &, PartBunch *) {
+void OpalBeamline::visit<Diagnostic>(const Diagnostic &element, BeamlineVisitor &, PartBunch *) {
     Inform msg("OPAL ");
     msg << element.getType() << " not implemented yet!" << endl;
 }
 
 template<> inline
-void OpalBeamline::visit<Lambertson>(const Lambertson &element, Tracker &, PartBunch *) {
+void OpalBeamline::visit<Lambertson>(const Lambertson &element, BeamlineVisitor &, PartBunch *) {
     Inform msg("OPAL ");
     msg << element.getType() << " not implemented yet!" << endl;
 }
 
 template<> inline
-void OpalBeamline::visit<Marker>(const Marker &element, Tracker &, PartBunch *) {
+void OpalBeamline::visit<Marker>(const Marker &element, BeamlineVisitor &, PartBunch *) {
   if (Options::info)
     WARNMSG(element.getType() << " not implemented yet!" << endl);
 }
 
 template<> inline
-void OpalBeamline::visit<RFQuadrupole>(const RFQuadrupole &element, Tracker &, PartBunch *) {
+void OpalBeamline::visit<RFQuadrupole>(const RFQuadrupole &element, BeamlineVisitor &, PartBunch *) {
     Inform msg("OPAL ");
     msg << element.getType() << " not implemented yet!" << endl;
 }
 
 template<> inline
-void OpalBeamline::visit<Separator>(const Separator &element, Tracker &, PartBunch *) {
+void OpalBeamline::visit<Separator>(const Separator &element, BeamlineVisitor &, PartBunch *) {
     Inform msg("OPAL ");
     msg << element.getType() << " not implemented yet!" << endl;
 }
 
 template<> inline
-void OpalBeamline::visit<Septum>(const Septum &element, Tracker &, PartBunch *) {
+void OpalBeamline::visit<Septum>(const Septum &element, BeamlineVisitor &, PartBunch *) {
     Inform msg("OPAL ");
     msg << element.getType() << " not implemented yet!" << endl;
 }
