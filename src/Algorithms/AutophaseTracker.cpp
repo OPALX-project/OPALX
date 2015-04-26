@@ -5,8 +5,6 @@
 
 #define DTFRACTION 2
 
-extern Inform *gmsg;
-
 AutophaseTracker::AutophaseTracker(const Beamline &beamline,
                                    const PartData& data,
                                    const double &T0,
@@ -42,7 +40,11 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
                                const std::queue<double> &maxZ,
                                const std::queue<unsigned long long> &maxTrackSteps) {
 
-    if (Ippl::myNode() != 0) return;
+    if (Ippl::myNode() != 0) {
+        receiveCavityPhases();
+        return;
+    }
+    INFOMSG("\n\nstart autophasing\n" << endl);
 
     Vector_t rmin, rmax;
     Vector_t &refR = itsBunch_m.R[0];
@@ -60,7 +62,7 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
 
     itsBunch_m.LastSection[0] -= 1;
     itsOpalBeamline_m.getSectionIndexAt(refR, itsBunch_m.LastSection[0]);
-    itsOpalBeamline_m.print(*gmsg);
+    itsOpalBeamline_m.print(*Ippl::Info);
 
     itsOpalBeamline_m.switchAllElements();
 
@@ -140,6 +142,10 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         maxSPosAutoPhasing.pop();
         maxStepsAutoPhasing.pop();
     }
+
+    sendCavityPhases();
+
+    INFOMSG("\n\nfinished autophasing\n\n" << endl);
 }
 
 void AutophaseTracker::track(double uptoSPos,
@@ -162,12 +168,6 @@ void AutophaseTracker::track(double uptoSPos,
 
         for(; step < maxStepsAutoPhasing.front(); ++ step) {
             IpplTimings::startTimer(timeIntegrationTimer_m);
-
-            // double margin = 10. * refP(2) * scaleFactor / sqrt(1.0 + dot(refP, refP));
-            // margin = 0.01 > margin ? 0.01 : margin;
-            // itsOpalBeamline_m.switchElements(refR(2), refR(2) + margin, true);
-
-            // itsOpalBeamline_m.resetStatus();
 
             refR /= vscaleFactor;
             itsPusher_m.push(refR, refP, itsBunch_m.dt[0]);
@@ -429,118 +429,39 @@ double AutophaseTracker::APtrack(const std::shared_ptr<Component> &cavity, doubl
 }
 
 
-double AutophaseTracker::getGlobalPhaseShift() {
+void AutophaseTracker::sendCavityPhases() {
+    typedef std::vector<MaxPhasesT>::iterator iterator_t;
 
-    if(Options::autoPhase > 0) {
-        double gPhaseSave = OpalData::getInstance()->getGlobalPhaseShift();
-        OpalData::getInstance()->setGlobalPhaseShift(0.0);
-        return gPhaseSave;
-    } else
-        return 0;
+    int tag = 101;
+    Message *mess = new Message();
+    putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
 
+    iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
+    iterator_t end = OpalData::getInstance()->getLastMaxPhases();
+    for(; it < end; ++ it) {
+        putMessage(*mess, (*it).first);
+        putMessage(*mess, (*it).second);
+    }
+    Ippl::Comm->broadcast_all(mess, tag);
+
+    delete mess;
 }
 
-// FieldList AutophaseTracker::executeAutoPhaseForSliceTracker() {
-//     Inform msg("executeAutoPhaseForSliceTracker ");
+void AutophaseTracker::receiveCavityPhases() {
+    typedef std::vector<MaxPhasesT>::iterator iterator_t;
 
-//     double gPhaseSave;
+    int parent = 0;
+    int tag = 101;
+    int nData = 0;
+    Message *mess = Ippl::Comm->receive_block(parent, tag);
+    getMessage(*mess, nData);
+    for(int i = 0; i < nData; i++) {
+        std::string elName;
+        double maxPhi;
+        getMessage(*mess, elName);
+        getMessage(*mess, maxPhi);
+        OpalData::getInstance()->setMaxPhase(elName, maxPhi);
+    }
 
-//     gPhaseSave = OpalData::getInstance()->getGlobalPhaseShift();
-//     OpalData::getInstance()->setGlobalPhaseShift(0.0);
-
-//     // make sure that no monitor has overlap with two tracks
-//     FieldList monitors = itsOpalBeamline_m.getElementByType("Monitor");
-//     for(FieldList::iterator it = monitors.begin(); it != monitors.end(); ++ it) {
-//         double zbegin, zend;
-//         it->getElement()->getDimensions(zbegin, zend);
-//         if(zbegin < zStop_m.front() && zend >= zStop_m.front()) {
-//             msg << "\033[0;31m"
-//                 << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-//                 << "% Removing '" << it->getElement()->getName() << "' since it resides in two tracks.   %\n"
-//                 << "% Please adjust zstop or place your monitor at a different position to prevent this. %\n "
-//                 << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-//                 << "\033[0m"
-//                 << endl;
-//             static_cast<Monitor *>(it->getElement().get())->moveBy(-zend - 0.001);
-//             itsOpalBeamline_m.removeElement(it->getElement()->getName());
-//         }
-//     }
-//     itsOpalBeamline_m.prepareSections();
-
-//     cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
-//     FieldList::iterator currentAPCavity = cavities_m.end();
-//     FieldList travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
-//     cavities_m.merge(travelingwaves, ClassicField::SortAsc);
-
-//     int tag = 101;
-//     int Parent = 0;
-//     Vector_t iniR(0.0);
-//     Vector_t iniP(0.0, 0.0, 1E-6);
-//     PID_t id;
-//     Ppos_t r, p, x;
-//     ParticleAttrib<double> q, dt;
-//     ParticleAttrib<int> bin;
-//     ParticleAttrib<long> ls;
-//     ParticleAttrib<short> ptype;
-
-//     if(Ippl::myNode() == 0)
-//         itsBunch_m.create(1);
-//     itsBunch_m.update();
-
-//     if(Ippl::myNode() == 0) {
-//         itsBunch_m.R[0] = iniR;
-//         itsBunch_m.P[0] = iniP;
-//         itsBunch_m.Bin[0] = 0;
-//         itsBunch_m.Q[0] = itsBunch_m.getChargePerParticle();
-//         itsBunch_m.PType[0] = 0;
-//         itsBunch_m.LastSection[0] = 0;
-
-//         RefPartP_suv_m = iniP;
-//         RefPartR_suv_m = iniR;
-//     }
-
-//     updateSpaceOrientation(false);
-//     execute(zStop);
-//     if(Ippl::myNode() == 0) {
-//         RefPartP_suv_m = itsBunch_m.P[0];
-//         // need to rebuild for updateAllRFElements
-//         cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
-//         travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
-//         cavities_m.merge(travelingwaves, ClassicField::SortAsc);
-
-//         // now send all max phases and names of the cavities to
-//         // all the other nodes for updating.
-//         Message *mess = new Message();
-//         putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
-
-//         for(std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
-//             putMessage(*mess, (*it).first);
-//             putMessage(*mess, (*it).second);
-//         }
-//         Ippl::Comm->broadcast_all(mess, tag);
-
-//         delete mess;
-//     } else {
-//         // receive max phases and names and update the structures
-//         int nData = 0;
-//         Message *mess = Ippl::Comm->receive_block(Parent, tag);
-//         getMessage(*mess, nData);
-//         for(int i = 0; i < nData; i++) {
-//             std::string elName;
-//             double maxPhi;
-//             getMessage(*mess, elName);
-//             getMessage(*mess, maxPhi);
-//             updateRFElement(elName, maxPhi);
-//             OpalData::getInstance()->setMaxPhase(elName, maxPhi);
-//         }
-
-//         delete mess;
-//     }
-
-//     if(Ippl::myNode() == 0)
-//         itsBunch_m.destroy(1, 0);
-//     itsBunch_m.update();
-
-//     OpalData::getInstance()->setGlobalPhaseShift(gPhaseSave);
-//     return cavities_m;
-// }
+    delete mess;
+}

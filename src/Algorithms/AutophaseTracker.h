@@ -110,6 +110,8 @@ private:
                                double dt);
     double getBeginCavity(const std::shared_ptr<Component> &);
     double getEndCavity(const std::shared_ptr<Component> &);
+    void sendCavityPhases();
+    void receiveCavityPhases();
 
     OpalBeamline itsOpalBeamline_m;
     FieldList::iterator currentAPCavity_m;
