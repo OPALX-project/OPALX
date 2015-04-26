@@ -4595,7 +4595,6 @@ void Distribution::SetupEmissionModelAstra(PartBunch &beam) {
 
     gsl_rng_env_setup();
     randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
-    pmean_m = Vector_t(0.0, 0.0, 0.5 * pTotThermal_m);
 }
 
 void Distribution::SetupEmissionModelNone(PartBunch &beam) {
