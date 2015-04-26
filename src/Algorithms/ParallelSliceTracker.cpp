@@ -10,6 +10,7 @@
 #include "Distribution/Distribution.h"
 #include "Lines/Sequence.h"
 #include "Utilities/Timer.h"
+#include "AbsBeamline/SpecificElementVisitor.h"
 
 class PartData;
 
@@ -22,14 +23,12 @@ ParallelSliceTracker::ParallelSliceTracker(const Beamline &beamline,
 
 ParallelSliceTracker::ParallelSliceTracker(const Beamline &beamline,
         EnvelopeBunch &bunch, DataSink &ds, const PartData &reference,
-        bool revBeam, bool revTrack, int maxSTEPS, double zstop,
-        ParallelTTracker &mySlApTracker):
+        bool revBeam, bool revTrack, int maxSTEPS, double zstop):
     Tracker(beamline, reference, revBeam, revTrack),
     maxSteps_m(maxSTEPS),
     zstop_m(zstop) {
 
     itsBunch_m      = &bunch;
-    mySlApTracker_m = &mySlApTracker;
     itsDataSink_m   = &ds;
 
     itsOpalBeamline_m = std::unique_ptr<OpalBeamline>(new OpalBeamline());
@@ -39,6 +38,10 @@ ParallelSliceTracker::ParallelSliceTracker(const Beamline &beamline,
     timeFieldEvaluation_m    = IpplTimings::getTimer("Field evaluation");
     BinRepartTimer_m         = IpplTimings::getTimer("Time of Binary repart.");
     WakeFieldTimer_m         = IpplTimings::getTimer("Time of Wake Field calc.");
+
+    cavities_m = itsOpalBeamline_m->getElementByType("RFCavity");
+    auto travelingwaves = itsOpalBeamline_m->getElementByType("TravelingWave");
+    cavities_m.merge(travelingwaves, ClassicField::SortAsc);
 }
 
 
@@ -51,23 +54,20 @@ ParallelSliceTracker::~ParallelSliceTracker()
  * the element. This is done on all nodes except node 0 where
  * the Autophase took place.
  */
-void ParallelSliceTracker::updateRFElement(std::string elName, double maxPhi) {
-    FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
-    FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
-    cl.merge(twl, ClassicField::SortAsc);
-    double phi = 0.0;
+void ParallelSliceTracker::updateRFElement(std::string elName, double maxPhase) {
+    double phase = 0.0;
 
-    for (FieldList::iterator fit = cl.begin(); fit != cl.end(); ++fit) {
+    for (FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++fit) {
         if ((*fit).getElement()->getName() == elName) {
             if ((*fit).getElement()->getType() == "TravelingWave") {
-                phi  =  static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
-                phi += maxPhi;
-                static_cast<TravelingWave *>((*fit).getElement().get())->setPhasem(phi);
+                phase  =  static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
+                static_cast<TravelingWave *>((*fit).getElement().get())->updatePhasem(phase + maxPhase);
             } else {
-                phi  = static_cast<RFCavity *>((*fit).getElement().get())->getPhasem();
-                phi += maxPhi;
-                static_cast<RFCavity *>((*fit).getElement().get())->setPhasem(phi);
+                phase  = static_cast<RFCavity *>((*fit).getElement().get())->getPhasem();
+                static_cast<RFCavity *>((*fit).getElement().get())->updatePhasem(phase + maxPhase);
             }
+
+            break;
         }
     }
 }
@@ -77,53 +77,39 @@ void ParallelSliceTracker::updateRFElement(std::string elName, double maxPhi) {
  * All RF-Elements gets updated, where the phiShift is the
  * global phase shift in units of seconds.
  */
-void ParallelSliceTracker::updateAllRFElements() {
-  Inform msg("ParallelSliceTracker ");
+void ParallelSliceTracker::printRFPhases() {
+    Inform msg("ParallelSliceTracker ");
 
-    FieldList cl  = itsOpalBeamline_m->getElementByType("RFCavity");
-    FieldList twl = itsOpalBeamline_m->getElementByType("TravelingWave");
-    cl.merge(twl, ClassicField::SortAsc);
+    FieldList &cl = cavities_m;
 
-    const double RADDEG = 1.0 / Physics::pi * 180.0;
-    const double phiShift = OpalData::getInstance()->getGlobalPhaseShift();
+    const double RADDEG = 180.0 / Physics::pi;
+    const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
 
     msg << "\n-------------------------------------------------------------------------------------\n";
 
     for (FieldList::iterator it = cl.begin(); it != cl.end(); ++it) {
-        if ((*it).getElement()->getType() == "TravelingWave") {
-            const double apphi = getCavityPhase(cavities_m, (*it).getElement()->getName());
-            static_cast<TravelingWave *>((*it).getElement().get())->updatePhasem(apphi);
-	    const double freq = static_cast<TravelingWave *>((*it).getElement().get())->getFrequencym();
-	    msg << (*it).getElement()->getName()
-		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
-		<< "(global phase shift= " << -phiShift *freq *RADDEG << " degree) \n";
+        std::shared_ptr<Component> element(it->getElement());
+        std::string name = element->getName();
+        double frequency;
+        double phase;
+
+        if (element->getType() == "TravelingWave") {
+            phase = static_cast<TravelingWave *>(element.get())->getPhasem();
+	    frequency = static_cast<TravelingWave *>(element.get())->getFrequencym();
         } else {
-            const double apphi = getCavityPhase(cavities_m, (*it).getElement()->getName());
-            static_cast<RFCavity *>((*it).getElement().get())->updatePhasem(apphi+phiShift);
-	    const double freq = static_cast<RFCavity *>((*it).getElement().get())->getFrequencym();
-	    msg << (*it).getElement()->getName()
-		<< ": phi= phi_nom + phi_maxE + global phase shift= " << (apphi*RADDEG)-(phiShift*freq*RADDEG) << " degree, "
-		<< "(global phase shift= " << -phiShift *freq *RADDEG << "(degree) \n";
+            phase = static_cast<RFCavity *>(element.get())->getPhasem();
+	    frequency = static_cast<RFCavity *>(element.get())->getFrequencym();
         }
+
+        msg << (it == cl.begin()? "": "\n")
+            << name
+            << ": phi = phi_nom + phi_maxE + global phase shift = " << (phase - globalTimeShift * frequency) * RADDEG << " degree, "
+            << "(global phase shift = " << -globalTimeShift *frequency *RADDEG << " degree) \n";
     }
+
     msg << "-------------------------------------------------------------------------------------\n"
 	<< endl;
 }
-
-
-double ParallelSliceTracker::getCavityPhase(FieldList cav, std::string name) {
-    double phi = 0.0;
-    for (FieldList::iterator fit = cav.begin(); fit != cav.end(); ++fit) {
-        if ((*fit).getElement()->getName() == name) {
-            if ((*fit).getElement()->getType() == "TravelingWave")
-                phi = static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
-            else
-                phi = static_cast<RFCavity *>((*fit).getElement().get())->getPhasem();
-        }
-    }
-    return phi;
-}
-
 
 void ParallelSliceTracker::applyEntranceFringe(double angle, double curve,
         const BMultipoleField &field, double scale) {
@@ -155,7 +141,7 @@ void ParallelSliceTracker::execute() {
         << itsReference.getQ() << endl;
 
     prepareSections();
-    doAutoPhasing();
+    handleAutoPhasing();
 
     Vector_t rmin, rmax;
 
@@ -201,24 +187,22 @@ void ParallelSliceTracker::timeIntegration() {
 }
 
 
-void ParallelSliceTracker::doAutoPhasing() {
+void ParallelSliceTracker::handleAutoPhasing() {
 
-    if (Options::autoPhase > 0 && !OpalData::getInstance()->hasBunchAllocated()) {
+    if (Options::autoPhase == 0) return;
 
-        cavities_m = mySlApTracker_m->executeAutoPhaseForSliceTracker();
-
-        updateAllRFElements();
-
-    } else if (Options::autoPhase > 0 && OpalData::getInstance()->hasBunchAllocated()) {
-
-        for (std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
-            updateRFElement((*it).first, (*it).second);
-        }
+    if(OpalData::getInstance()->inRestartRun()) {
+        itsDataSink_m->retriveCavityInformation(OpalData::getInstance()->getInputFn());
+    } else {
+        itsDataSink_m->storeCavityInformation();
     }
 
-    // save autophase information in order to skip autophase in a restart run
-    if ((!OpalData::getInstance()->inRestartRun()) && (Options::autoPhase > 0))
-        itsDataSink_m->storeCavityInformation();
+    auto it = OpalData::getInstance()->getFirstMaxPhases();
+    auto end = OpalData::getInstance()->getLastMaxPhases();
+    for (; it != end; ++ it) {
+        updateRFElement((*it).first, (*it).second);
+    }
+    printRFPhases();
 }
 
 

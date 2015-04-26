@@ -2031,6 +2031,8 @@ void Distribution::CreateOpalT(PartBunch &beam,
     if (emitting_m) {
         CheckEmissionParameters();
         SetupEmissionModel(beam);
+    } else {
+        pmean_m = Vector_t(0.0, 0.0, ConverteVToBetaGamma(GetEkin(), beam.getM()));
     }
 
     /*
@@ -4589,6 +4591,7 @@ void Distribution::SetupEmissionModelAstra(PartBunch &beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
+    pmean_m = Vector_t(0.0, 0.0, 0.5 * pTotThermal_m);
 
     gsl_rng_env_setup();
     randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
@@ -4599,6 +4602,7 @@ void Distribution::SetupEmissionModelNone(PartBunch &beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
+
     pmean_m = Vector_t(0.0, 0.0, pTotThermal_m);
 }
 
