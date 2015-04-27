@@ -3773,6 +3773,7 @@ void Distribution::ReflectDistribution(size_t &numberOfParticles) {
         pzDist_m.push_back(pzDist_m.at(partIndex));
     }
     numberOfParticles = tOrZDist_m.size();
+    reduce(numberOfParticles, numberOfParticles, OpAddAssign());
 }
 
 void Distribution::ScaleDistCoordinates() {
