@@ -172,7 +172,7 @@ void DataSink::writeH5FileAttributes() {
 
     /// Write file attributes to describe phase space to H5 file.
     stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << SVN_VERSION;
     rc = H5WriteFileAttribString(H5file_m, "OPAL_version", OPAL_version.str().c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
@@ -2123,7 +2123,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "description=\"Number of Cores used\" &end" << endl;
 
     outputFile << "&parameter name=revision, type=string, "
-               << "description=\"svn revision of opal\" &end\n";
+               << "description=\"git revision of opal\" &end\n";
 
     outputFile << "&column name=t, type=double, units=s, ";
     outputFile << "description=\"1 Time\" &end" << endl;
@@ -2266,7 +2266,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&data mode=ascii, no_row_counts=1 &end" << endl;
 
     outputFile << Ippl::getNodes() << endl;
-    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION << endl;
+    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << SVN_VERSION << endl;
 }
 
 
@@ -2612,7 +2612,7 @@ void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " svn rev. " << SVN_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << SVN_VERSION;
     rc = H5WriteFileAttribString(H5file, "OPAL_version", OPAL_version.str().c_str());
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
