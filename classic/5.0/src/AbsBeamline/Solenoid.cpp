@@ -231,7 +231,7 @@ bool Solenoid::bends() const {
 }
 
 
-void Solenoid::goOnline() {
+void Solenoid::goOnline(const double &) {
     Fieldmap::readMap(filename_m);
     online_m = true;
 }

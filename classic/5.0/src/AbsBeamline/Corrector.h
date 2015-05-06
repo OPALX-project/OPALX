@@ -85,6 +85,8 @@ public:
 
     virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
 
+    virtual void goOnline(const double &kineticEnergy);
+
     virtual void finalise();
 
     virtual bool bends() const;
@@ -93,16 +95,16 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
-    void SetKickX(double k);
+    void setKickX(double k);
 
-    void SetKickY(double k);
+    void setKickY(double k);
 
-    double GetKickX() const;
+    double getKickX() const;
 
-    double GetKickY() const;
+    double getKickY() const;
 
 
- private:
+private:
     double startField_m;
     double endField_m;
     double kickX_m;
@@ -122,5 +124,25 @@ protected:
 
 
 };
+
+inline
+void Corrector::setKickX(double k) {
+    kickX_m = k;
+}
+
+inline
+void Corrector::setKickY(double k) {
+    kickY_m = k;
+}
+
+inline
+double Corrector::getKickX() const {
+    return kickX_m;
+}
+
+inline
+double Corrector::getKickY() const {
+    return kickY_m;
+}
 
 #endif // CLASSIC_Corrector_HH

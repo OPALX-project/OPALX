@@ -111,9 +111,6 @@ void Septum::finalise()
 bool Septum::bends() const {
     return false;
 }
-void Septum::goOnline() {
-    online_m = true;
-}
 
 void Septum::goOffline() {
     online_m = false;

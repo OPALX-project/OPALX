@@ -54,7 +54,6 @@ public:
     virtual void finalise();
 
     virtual bool bends() const;
-    virtual void goOnline();
 
     virtual void goOffline();
 

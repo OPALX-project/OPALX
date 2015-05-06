@@ -215,17 +215,6 @@ bool ParallelPlate::bends() const {
     return false;
 }
 
-
-void ParallelPlate::goOnline() {
-
-    online_m = true;
-}
-
-void ParallelPlate::goOffline() {
-
-    online_m = false;
-}
-
 void ParallelPlate::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = startField_m;
     zEnd = endField_m;
