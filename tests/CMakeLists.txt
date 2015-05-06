@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
+FIND_PACKAGE (GTest REQUIRED)
 
 set (TEST_EXE opal_unit_tests)
 set (SRC_DIRS classic_src opal_src)
@@ -51,6 +52,7 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR}
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
+    ${GTest_INCLUDE_DIRS}
 )
 
 # Check to see if cmake finds the test files
