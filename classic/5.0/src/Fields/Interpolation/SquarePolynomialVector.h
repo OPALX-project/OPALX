@@ -37,8 +37,9 @@
 namespace interpolation {
 
 /** SquarePolynomialVector, an arbitrary order polynomial vector class.
+ *  \brief SquarePolynomialVector describes a vector of multivariate polynomials
  *
- *  SquarePolynomialVector describes a vector of multivariate polynomials\n
+ *  Consider the vector of multivariate polynomials
  *  \f$y_i = a_0 + Sum (a_j x^j)\f$
  *  i.e. maps a vector \f$\vec{x}\f$ onto a vector \f$\vec{y}\f$ with\n
  *  \f$\vec{y} = a_0 + sum( a_{j_1j_2...j_n} x_1^{j_1} x_2^{j_2} ... x_n^{j_n})\f$.
@@ -58,10 +59,10 @@ namespace interpolation {
  *  \n
  *
  *  Nb: it is a SquarePolynomialVector because coefficients include all
- *  polynomial coefficients with \f$ i_ j <= n $\f; coefficients sit within an
+ *  polynomial coefficients with \f$ i_ j <= n \f$; coefficients sit within an
  *  n-dimensional square. The distinction should be made with a PolynomialVector
  *  where coefficients include all polynomial coefficients with 
- *  \f$ \Sigma(i_j) <= n.
+ *  \f$ \Sigma(i_j) <= n. \f$
  */
 
 class SquarePolynomialVector {

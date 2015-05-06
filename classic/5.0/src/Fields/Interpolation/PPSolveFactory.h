@@ -35,7 +35,8 @@ namespace interpolation {
 
 class PolynomialPatch;
 
-/** \class[PPSolveFactory] solves the system of linear equations to interpolate
+/** \class PPSolveFactory
+ *  \brief PPSolveFactory solves the system of linear equations to interpolate
  *  from a grid of points using higher order polynomials, creating a
  *  PolynomialPatch object. The order of the polynomial is user-defined.
  *
@@ -61,18 +62,17 @@ class PolynomialPatch;
  *  of picking values and derivatives for fitting, SolveFactory then does the
  *  actual solve for each individual polynomial.
  */
-
 class PPSolveFactory {
   public:
     /** Constructor
      *
-     *  \param[points] Set of points on which values are stored. Must be a
-     *                 rectangular grid. PPSolveFactory takes ownership of
-     *                 points (will delete on exit).
-     *  \param[values] Set of values to which we fit. Must be one value per mesh
-     *                 point and each value must have the same size.
-     *  \param[polyPatchOrder] The order of the fitted part of the polynomial.
-     *  \param[smoothingOrder] The total order of the fitted and the smoothed
+     *  \param points Set of points on which values are stored. Must be a
+     *                rectangular grid. PPSolveFactory takes ownership of
+     *                points (will delete on exit).
+     *  \param values Set of values to which we fit. Must be one value per mesh
+     *                point and each value must have the same size.
+     *  \param polyPatchOrder The order of the fitted part of the polynomial.
+     *  \param smoothingOrder The total order of the fitted and the smoothed
      *                 part of the polynomial. Smoothing order should always be
      *                 >= polyPatchOrder. So for example if polyPatchOrder
      *                 is 2 and smoothing order is 2, we get a 2nd order

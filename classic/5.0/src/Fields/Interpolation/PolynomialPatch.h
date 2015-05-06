@@ -34,35 +34,34 @@
 
 namespace interpolation {
 
-/** \class[PolynomialPatch] patches together many SquarePolynomialVectors to
+/** \class PolynomialPatch
+ *  \brief Patches together many SquarePolynomialVectors to
  *  make a multidimensional polynomial spline.
  *
  *  SquarePolynomialVectors are distributed on a mesh. 
- *  \param[grid_points_] The grid points on which patches are defined.
+ *  \param grid_points_ The grid points on which patches are defined.
  *         SquarePolynomialVector owns this memory (deletes on destructor).
- *  \param[validity_region_] Defines whether a region is valid or not. This is
+ *  \param validity_region_ Defines whether a region is valid or not. This is
  *         defined as a mesh for compatibility with the
  *         SectorMagneticFieldMap (but possibly this is the wrong way to do
  *         it - better as a lookup, like bool is_valid(point), which could be
  *         inherited from the VectorMap class)
  *         SquarePolynomialVector owns this memory (deletes on destructor).
- *  \param[points_] The PolynomialVector data
+ *  \param points_ The PolynomialVector data
  *         SquarePolynomialVector owns this memory (deletes on destructor).
- *  \param[point_dimension_] Dimension of the ordinate
- *  \param[value_dimension_] Dimension of the abscissa
+ *  \param point_dimension_ Dimension of the ordinate
+ *  \param value_dimension_ Dimension of the abscissa
  */
-
-
 class PolynomialPatch : public VectorMap {
   public:
     /** Construct the PolynomialPatch
      *
-     *  \param[grid_points_] the mesh over which the polynomials are
+     *  \param grid_points_ the mesh over which the polynomials are
      *         distributed. PolynomialPatch takes ownership of this memory.
-     *  \param[validity_region_] the mesh over which the grid points are valid;
+     *  \param validity_region the mesh over which the grid points are valid;
      *         the validity region is defined by min/max values of the grid.
      *         PolynomialPatch takes ownership of this memory.
-     *  \param[polynomials_] the set of polynomials which make up the patch.
+     *  \param polynomials_ the set of polynomials which make up the patch.
      *         PolynomialPatch takes ownership of this memory.
      */
     PolynomialPatch(Mesh* grid_points_,
@@ -88,9 +87,9 @@ class PolynomialPatch : public VectorMap {
 
     /** Get the value at a given point 
      *
-     *  \param[point] array of length point_dimension_. Caller owns this memory.
+     *  \param point array of length point_dimension_. Caller owns this memory.
      *        Not bound checked - it wants to be fast.
-     *  \param[value] array of length value_dimension_. Data gets overwritten by
+     *  \param value array of length value_dimension_. Data gets overwritten by
      *        PolynomialPatch. Caller owns this memory. Not bound checked.
      */
     virtual void function(const double* point, double* value) const;
@@ -103,7 +102,7 @@ class PolynomialPatch : public VectorMap {
 
     /** Get the nearest SquarePolynomialVector to point
      *
-     *  \param[point] array of length point_dimension_. Caller owns this memory.
+     *  \param point array of length point_dimension_. Caller owns this memory.
      *        Not bound checked.
      */
     SquarePolynomialVector* getPolynomialVector(const double* point) const;
