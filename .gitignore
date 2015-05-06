@@ -33,6 +33,9 @@ classic/5.0/src/Construction/cmake_install.cmake
 classic/5.0/src/Fields/CMakeFiles
 classic/5.0/src/Fields/Makefile
 classic/5.0/src/Fields/cmake_install.cmake
+classic/5.0/src/Fields/Interpolation/CMakeFiles
+classic/5.0/src/Fields/Interpolation/Makefile
+classic/5.0/src/Fields/Interpolation/cmake_install.cmake
 classic/5.0/src/Filters/CMakeFiles
 classic/5.0/src/Filters/Makefile
 classic/5.0/src/Filters/cmake_install.cmake
@@ -57,6 +60,7 @@ classic/5.0/src/Utilities/Makefile
 classic/5.0/src/Utilities/cmake_install.cmake
 classic/5.0/src/cmake_install.cmake
 classic/5.0/src/config.h
+classic/5.0/src/libCLASSIC.a
 /cmake_install.cmake
 src/AbstractObjects/CMakeFiles
 src/AbstractObjects/Makefile
@@ -136,4 +140,5 @@ src/unit_tests/cmake_install.cmake
 src/unit_tests/gtest/include/
 src/unit_tests/gtest/lib/
 src/unit_tests/gtest/src/
+
 

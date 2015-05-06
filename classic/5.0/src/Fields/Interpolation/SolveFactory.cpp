@@ -62,7 +62,7 @@ void SolveFactory::BuildHInvMatrix(
             h_inv_(i+1, j+1) = poly_vec[j];
         }
     }
-    for (int i = 0; i < deriv_positions.size(); ++i) {
+    for (size_t i = 0; i < deriv_positions.size(); ++i) {
         std::vector<double> deriv_vec = MakeSquareDerivVector(deriv_positions[i],
                                                               deriv_indices[i]);
         for (int j = 0; j < n_poly_coeffs_; ++j) {
@@ -133,7 +133,6 @@ SquarePolynomialVector* SolveFactory::PolynomialSolve(
               "Values and derivatives over or under constrained"
         );
     }
-    int pointDim = square_temp_.PointDimension();
     int valueDim = 0;
     if (values.size() != 0) {
         valueDim = values[0].size();

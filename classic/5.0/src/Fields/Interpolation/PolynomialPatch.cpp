@@ -59,7 +59,7 @@ PolynomialPatch::PolynomialPatch(Mesh* grid_points,
             );
     }
     point_dimension_ = grid_points_->getPositionDimension();
-    if (validity_region_->getPositionDimension() != point_dimension_) {
+    if (validity_region_->getPositionDimension() != int(point_dimension_)) {
         throw GeneralClassicException(
                           "PolynomialPatch::PolynomialPatch",
                           "PolynomialPatch validity_region_ has bad dimension");

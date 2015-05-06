@@ -117,8 +117,6 @@ void SectorMagneticFieldMap::setInterpolator(VectorMap* interpolator) {
     }
     interpolator_m = interpolator;
     if (interpolator_m != NULL) {
-        ThreeDGrid* fp_grid = dynamic_cast<ThreeDGrid*>(interpolator_m->getMesh());
-
         if (interpolator_m->getPointDimension() != 3)
             throw(LogicalError(
                       "SectorMagneticFieldMap::setInterpolator",
@@ -135,13 +133,11 @@ void SectorMagneticFieldMap::setInterpolator(VectorMap* interpolator) {
                       "SectorMagneticFieldMap::setInterpolator",
                       "Attempt to load interpolator with grid not ThreeDGrid"
                   ));
-        double phiTol = (grid->maxZ()-grid->minZ())*fractionalBBPhiTolerance_m;
         SectorField::setPolarBoundingBox
                                     (grid->minX(), grid->minY()-grid->maxY(), grid->minZ(),
                                      grid->maxX(), grid->maxY(), grid->maxZ(),
                                      0., 0., 0.);
     }
-    Mesh* mesh = interpolator_m->getMesh();
     print(std::cerr);
 }
 
