@@ -130,15 +130,17 @@ src/ValueDefinitions/cmake_install.cmake
 src/cmake_install.cmake
 src/config.h
 src/opal
+src/libOPAL.a
+ippl/src/libippl.a
+ippl/IPPLConfig_install.cmake
 *~
 /Debug/
 src/opal_unit_tests
-src/unit_tests/CMakeFiles/
-src/unit_tests/Makefile
-src/unit_tests/classic_src/Fields/Interpolation/PolynomialVectorTest.cpp_
-src/unit_tests/cmake_install.cmake
-src/unit_tests/gtest/include/
-src/unit_tests/gtest/lib/
-src/unit_tests/gtest/src/
+*CMakeFiles/
+*Makefile
+*cmake_install.cmake
+tests/tools/gtest
+tests/opal_unit_tests
+
 
 

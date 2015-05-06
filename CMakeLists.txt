@@ -35,10 +35,9 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
-	message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
-
+        message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
     elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
     endif ()
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
@@ -203,11 +202,6 @@ ADD_SUBDIRECTORY (classic/5.0/src)
 ADD_SUBDIRECTORY (src)
 
 IF (BUILD_OPAL_UNIT_TESTS)
-    FIND_PACKAGE (GTest REQUIRED)
-
-    # touch CMakeLists to force cmake to redo the glob for new test source files
-    # otherwise cmake does not detect new source files
-    EXECUTE_PROCESS(COMMAND touch ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
-    ADD_SUBDIRECTORY(tests)
-
+     ADD_SUBDIRECTORY(tests)
 ENDIF (BUILD_OPAL_UNIT_TESTS)
+
