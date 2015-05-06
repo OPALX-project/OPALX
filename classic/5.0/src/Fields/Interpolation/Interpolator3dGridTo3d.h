@@ -28,10 +28,12 @@
 #ifndef _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO3D_HH_
 #define _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO3D_HH_
 
-#include "Fields/SectorMagneticFieldMap/Mesh.h"
-#include "Fields/SectorMagneticFieldMap/VectorMap.h"
-#include "Fields/SectorMagneticFieldMap/Interpolator3dGridTo1d.h"
-#include "Fields/SectorMagneticFieldMap/TriLinearInterpolator.h"
+#include "Fields/Interpolation/Mesh.h"
+#include "Fields/Interpolation/VectorMap.h"
+#include "Fields/Interpolation/Interpolator3dGridTo1d.h"
+#include "Fields/Interpolation/TriLinearInterpolator.h"
+
+namespace interpolation {
 
 /** Interpolator3dGridTo3d interpolates from 3d grid to a 3d vector
  *
@@ -217,6 +219,8 @@ void Interpolator3dGridTo3d::clear() {
     for (int i = 0; i < 3; i++)
         delete interpolator_m[i];
     coordinates_m->remove(this);
+}
+
 }
 
 #endif

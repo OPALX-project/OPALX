@@ -27,6 +27,7 @@
 
 #include <vector>
 
+namespace interpolation {
 // inline declarations for Mesh class - keep them in a separate file to keep the
 // header file clean.
 
@@ -178,5 +179,6 @@ bool operator!=(const Mesh::Iterator& lhs, const Mesh::Iterator& rhs) {
     if (lhs.mesh_m == rhs.mesh_m && lhs.state_m == rhs.state_m)
         return false;
     return true;
+}
 }
 

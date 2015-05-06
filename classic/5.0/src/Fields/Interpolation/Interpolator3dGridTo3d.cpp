@@ -25,8 +25,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Fields/SectorMagneticFieldMap/Interpolator3dGridTo3d.h"
+#include "Fields/Interpolation/Interpolator3dGridTo3d.h"
 #include "Utilities/LogicalError.h"
+
+namespace interpolation {
 
 Interpolator3dGridTo3d::Interpolator3dGridTo3d
                                            (const Interpolator3dGridTo3d& rhs) {
@@ -76,4 +78,5 @@ void Interpolator3dGridTo3d::setAll(ThreeDGrid* grid,
                    )
       );
     }
+}
 }

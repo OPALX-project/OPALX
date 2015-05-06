@@ -216,3 +216,10 @@ TEST(RingSectionTest, TestDoesOverlap) {
     EXPECT_FALSE(ors3.doesOverlap(f1, f1));
     EXPECT_FALSE(ors3.doesOverlap(f4, f4));
 }
+
+TEST(RingSectionTest, TestToDoFails) {
+    EXPECT_TRUE(false) << "SectorMagneticFieldMap: fixed bug that I rotated from Cartesian B field to Polar B field when I want Cartesian B field; moved Symmetry operation (reflection in Bphi/Bz) to field map lookup, it should be done at build time; added some print statements.\n"
+    << "ParallelCyclotronTracker: added the WRite3DFieldMap routines that should be removed; would it be possible to make a routine to write the field map?\n"
+    << "RingSection: changed the transformation routines in getFieldSTregnth; add unit test to follow\n"
+    << std::endl;
+}

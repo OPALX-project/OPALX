@@ -28,7 +28,8 @@
 #ifndef _SRC_LEGACY_INTERFACE_INTERPOLATION_TRILINEARINTERPOLATOR_HH_
 #define _SRC_LEGACY_INTERFACE_INTERPOLATION_TRILINEARINTERPOLATOR_HH_
 
-#include "Fields/SectorMagneticFieldMap/Interpolator3dGridTo1d.h"
+#include "Fields/Interpolation/Interpolator3dGridTo1d.h"
+namespace interpolation {
 
 /** TriLinearInterpolator performs a linear interpolation in x then y then z
  *
@@ -89,7 +90,7 @@ TriLinearInterpolator::~TriLinearInterpolator() {
 TriLinearInterpolator* TriLinearInterpolator::clone() const {
     return new TriLinearInterpolator(*this);
 }
-
+}
 #endif
 
 

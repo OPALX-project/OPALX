@@ -31,6 +31,8 @@
 #ifndef _CLASSIC_FIELDS_MESH_H_
 #define _CLASSIC_FIELDS_MESH_H_
 
+namespace interpolation {
+
 class VectorMap;
 
 /** Mesh Base class for meshing routines
@@ -63,7 +65,7 @@ class Mesh {
      *
      *  Dual is a polyhedron that has centre of each face as a point on the mesh
      */
-    virtual Mesh* dual() = 0;
+    virtual Mesh* dual() const = 0;
 
     /** Destructor - does nothing */
     inline virtual ~Mesh();
@@ -338,7 +340,9 @@ inline bool operator> (const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
  */
 std::ostream& operator<<(std::ostream& out, const Mesh::Iterator& it);
 
-#include "Fields/SectorMagneticFieldMap/Mesh-inl.icc"
+}
+
+#include "Fields/Interpolation/Mesh-inl.icc"
 
 #endif
 

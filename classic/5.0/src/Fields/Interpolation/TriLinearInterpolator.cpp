@@ -25,7 +25,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Fields/SectorMagneticFieldMap/TriLinearInterpolator.h"
+#include "Fields/Interpolation/TriLinearInterpolator.h"
+
+namespace interpolation {
 
 TriLinearInterpolator::TriLinearInterpolator(const TriLinearInterpolator& lhs) {
     coordinates_m = new ThreeDGrid(*lhs.coordinates_m);
@@ -74,5 +76,6 @@ void TriLinearInterpolator::function
     Value[0]  = (f_xy[1] - f_xy[0])/
                 (coordinates_m->z(k+2) - coordinates_m->z(k+1))*
                 (Point[2] - coordinates_m->z(k+1)) + f_xy[0];
+}
 }
 
