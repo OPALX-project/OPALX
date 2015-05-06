@@ -116,7 +116,7 @@ public:
 
     //    virtual bool determineEntryPoint(const double &kineticEnergy, const double &tolerance) = 0;
 
-    virtual void goOnline();
+    virtual void goOnline(const double &kineticEnergy);
 
     virtual void goOffline();
 

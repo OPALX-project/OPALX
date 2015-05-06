@@ -82,13 +82,6 @@ public:
 
     virtual bool bends() const;
 
-    virtual void goOnline();
-
-    virtual void goOffline();
-
-
-
-
 
 private:
     std::string filename_m;             /**< The name of the inputfile*/

@@ -67,7 +67,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual void goOnline();
+    virtual void goOnline(const double &kineticEnergy);
 
     virtual void goOffline();
 
