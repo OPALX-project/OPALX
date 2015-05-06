@@ -40,7 +40,9 @@ namespace interpolation {
     class ThreeDGrid;
 }
 
-/** \class SectorMagneticFieldMap handles field map grids with sector geometry
+/** \class[SectorMagneticFieldMap] 
+ *
+ *  \brief handles field map grids with sector geometry
  *
  *  SectorMagneticFieldMap provides an interface to the 3D interpolator
  *  routines for 3D field maps in a sector geometry. Interpolation is done from
@@ -230,7 +232,9 @@ class SectorMagneticFieldMap : public SectorField {
 };
 
 
-/** \class SectorMagneticFieldMap::IO handles reading sector field maps
+/** \class[SectorMagneticFieldMap::IO]
+ *
+ *  \brief handles reading sector field maps
  *
  *  SectorMagneticFieldMap::IO provides routines to read a sector field map for
  *  input to tracking.

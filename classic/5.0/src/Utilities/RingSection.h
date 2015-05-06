@@ -32,7 +32,9 @@
 
 #include "AbsBeamline/Component.h"
 
-/** \class RingSection Component placement handler in ring geometry
+/** \class[RingSection]
+ *
+ *  \brief Component placement handler in ring geometry
  *
  *  RingSection handles placement of a component when it is placed in a ring
  *  geometry. Here the primary index for section placement is azimuthal angle.

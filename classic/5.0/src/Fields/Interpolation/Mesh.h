@@ -35,7 +35,8 @@ namespace interpolation {
 
 class VectorMap;
 
-/** Mesh Base class for meshing routines
+/** \class Mesh
+ *  \brief Base class for meshing routines
  *
  *  Aim is to describe a set of points in various dimensions etc for use in
  *  interpolation routines. Concrete classes are TwoDGrid, ThreeDGrid, NDGrid
@@ -149,7 +150,7 @@ class Mesh {
 };
 
 
-/** \class Mesh::Iterator object
+/** \class Mesh::Iterator
  *
  *  Used to loop over some, or all, points in the mesh, as in stl Enables e.g.
  *  generic file I/O operations on a field map without knowing the details of

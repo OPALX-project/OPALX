@@ -30,22 +30,23 @@
 
 namespace interpolation {
 
-/** \class PolynomialCoefficient represents a coefficient in a multi-dimensional
+/** \class PolynomialCoefficient
+ * \brief PolynomialCoefficient represents a coefficient in a multi-dimensional
  *  polynomial
  *
  *  PolynomialCoefficient has three member data
- *  \param[inVarByVec_m] is the x power to which the coefficient pertains,
+ *  \param inVarByVec_m is the x power to which the coefficient pertains,
  *  indexed by vector e.g. \f$x_1^4 x_2^3 =\f$ {1,1,1,1,2,2,2}
- *  \param[outVar_m] is the output y variable to which the coefficient pertains
- *  \param[coefficient] is the value of the coefficient
+ *  \param outVar_m is the output y variable to which the coefficient pertains
+ *  \param coefficient is the value of the coefficient
  */
 class PolynomialCoefficient
 {
   public:
     /** Construct the coefficient
-     *  \param[inVariablesByVector] x power indexed like e.g.
-     *  \param[outVariable] y index that the coefficient pertains to
-     *  \param[coefficient] value of the coefficient
+     *  \param inVariablesByVector x power indexed like e.g.
+     *  \param outVariable y index that the coefficient pertains to
+     *  \param coefficient value of the coefficient
      */
     PolynomialCoefficient(std::vector<int> inVariablesByVector,
                           int outVariable,
@@ -81,8 +82,8 @@ class PolynomialCoefficient
     /** Transform coefficient from subspace space_in to subspace space_out, both
      *  subspaces of some larger space
      *
-     *  \param{spaceIn} Describes the input subspace
-     *  \param{spaceOut} Describes the output subspace
+     *  \param spaceIn  Describes the input subspace
+     *  \param spaceOut  Describes the output subspace
      *  Throws an exception if the coefficient is not in the input or output
      *  subspace
      *  So for coeff({1,2},0,1.1), coeff.space_transform({0,2,3,5}, {4,7,1,2,3,0})

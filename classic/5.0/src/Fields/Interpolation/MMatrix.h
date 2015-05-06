@@ -42,14 +42,16 @@ namespace interpolation {
 
 ///////////////// MMatrix     /////////////////
 
-/** @class MMatrix C++ wrapper for GSL matrix
+/** \class MMatrix
+ * 
+ *  C++ wrapper for GSL matrix
  *  MMatrix class handles matrix algebra, maths operators and some
  *  higher level calculation like matrix inversion, eigenvector
  *  analysis etc
  *
  *  Use template to define two types:\n
- *  (i) MMatrix<double> is a matrix of doubles\n
- *  (ii) MMatrix<m_complex> is a matrix of m_complex\n
+ *  (i) MMatrix\<double\> is a matrix of doubles\n
+ *  (ii) MMatrix\<m_complex\> is a matrix of m_complex\n
  *
  *  Maths operators and a few others are defined, but maths operators
  *  don't allow operations between types - i.e. you can't multiply
@@ -70,35 +72,35 @@ public:
 
   /** @brief Construct a matrix and fill with data from memory data_beginning
    *
-   *  @params nrows number of rows
-   *  @params ncols number of columns
-   *  @params data_beginning pointer to the start of a memory block of size
-   *          nrows*ncols with data laid out <row> <row> <row>. Note MMatrix
-   *          does not take ownership of memory in data_beginning.
+   *  @param nrows number of rows
+   *  @param ncols number of columns
+   *  @param data_beginning pointer to the start of a memory block of size
+   *          nrows*ncols with data laid out \<row\> \<row\> \<row\>. Note
+   *          MMatrix does not take ownership of memory in data_beginning.
    */
   MMatrix(size_t nrows, size_t ncols, Tmplt* data_beginning );
 
   /** @brief Construct a matrix and fill with identical data
    *
-   *  @params nrows number of rows
-   *  @params ncols number of columns
-   *  @params data variable to be copied into all items in the matrix
+   *  @param nrows number of rows
+   *  @param ncols number of columns
+   *  @param value variable to be copied into all items in the matrix
    */
   MMatrix(size_t nrows, size_t ncols, Tmplt  value);
 
   /** @brief Construct a matrix and fill all fields with 0
    *
-   *  @params nrows number of rows
-   *  @params ncols number of columns
+   *  @param nrows number of rows
+   *  @param ncols number of columns
    */
   MMatrix(size_t nrows, size_t ncols);
 
   /** @brief Construct a square matrix filling on and off diagonal values
    *
-   *  @params i number of rows and number of columns
-   *  @params diag_value fill values with row == column (i.e. on the diagonal)
+   *  @param i number of rows and number of columns
+   *  @param diag_value fill values with row == column (i.e. on the diagonal)
    *          with this value
-   *  @params off_diag_value fill values with row != column (i.e. off the
+   *  @param off_diag_value fill values with row != column (i.e. off the
    *          diagonal) with this value
    */
   static MMatrix<Tmplt>  Diagonal(size_t i, Tmplt diag_value, Tmplt off_diag_value);

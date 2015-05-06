@@ -33,10 +33,11 @@
 
 namespace interpolation {
 
-/** \class[SolveFactory] is a factory class for solving a set of linear
+/** \class SolveFactory
+ * \brief SolveFactory is a factory class for solving a set of linear
  *  equations to generate a polynomial based on nearby points.
  *
- *  See also \class[PPSolveFactory] for more details
+ *  See also PPSolveFactory for more details
  *
  */
 
@@ -44,21 +45,21 @@ class SolveFactory {
   public:
     /** Construct a new SolveFactory.
      *
-     *  \param[polynomial_order] Order of the polynomial part of the fit
-     *  \param[smoothing_order] Order of the smoothing part of the fit; should
+     *  \param polynomial_order Order of the polynomial part of the fit
+     *  \param smoothing_order Order of the smoothing part of the fit; should
      *         always be >= polynomial_order
-     *  \param[point_dim] Dimension of the points (i.e. space of x), for
+     *  \param point_dim Dimension of the points (i.e. space of x), for
      *                    y = f(x)
-     *  \param[value_dim] Dimension of the values (i.e. space of y), for
+     *  \param value_dim Dimension of the values (i.e. space of y), for
      *                    y = f(x)
-     *  \param[positions] Position of the values; should be a vector of length
+     *  \param positions Position of the values; should be a vector of length
      *                    polynomial_order^point_dim. Each element should be a
      *                    vector of length point_dim
-     *  \param[deriv_positions] Position of the derivatives; should be a vector
+     *  \param deriv_positions Position of the derivatives; should be a vector
      *                    of length 
      *                    smoothing_oder^point_dim - polynomial_order^point_dim.
      *                    Each element should be a vector of length point_dim.
-     *  \param[deriv_indices] Index the derivatives. Should be a vector with
+     *  \param deriv_indices Index the derivatives. Should be a vector with
      *                    same length as deriv_positions. Each element should
      *                    be a vector of length point_dim. Each element tells us
      *                    what derivative will be defined, indexing by the order
@@ -83,9 +84,9 @@ class SolveFactory {
 
     /** Solve to get a SquarePolynomialVector 
      * 
-     *  \param[values] Set of y values for the solve, giving function values at
+     *  \param values Set of y values for the solve, giving function values at
      *                 the positions defined in the constructor
-     *  \param[deriv_values] Set of y derivatives for the solve, giving q^th
+     *  \param deriv_values Set of y derivatives for the solve, giving q^th
      *                 derivatives, q defined by deriv_indices, at positions
      *                 defined by deriv_positions (in constructor)
      */
@@ -95,7 +96,7 @@ class SolveFactory {
 
     /** Convert a position vector to a set of polynomial products
      *
-     *  \param[position] a position vector \f$ x_{b} \f$
+     *  \param position a position vector \f$ x_{b} \f$
      *
      *  Return value is a set of polynomial products \f$ x_{b}^{p} \f$
      */
@@ -103,8 +104,8 @@ class SolveFactory {
 
     /** Convert a position vector to a derivative of a set of polynomial products
      *
-     *  \param[position] a position vector \f$ x_{b} \f$
-     *  \param[derivIndices] indexes the derivative, \f$\vec{q} \f$
+     *  \param position a position vector \f$ x_{b} \f$
+     *  \param derivIndices indexes the derivative, \f$\vec{q} \f$
      *
      *  Return value is a set of derivatives of polynomial products
      *  \f$ p_j!/(p_j-q_j)! x_{b_j}^{p_j-q_j} \f$
