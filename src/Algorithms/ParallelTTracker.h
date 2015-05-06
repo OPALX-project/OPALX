@@ -233,8 +233,6 @@ public:
         mpacflg_m = mpacflg;
     }
 
-    FieldList executeAutoPhaseForSliceTracker();
-
 private:
 
     // Not implemented.
@@ -253,8 +251,6 @@ private:
 
     OpalBeamline itsOpalBeamline_m;
     LineDensity  lineDensity_m;
-
-    //FieldList cavities_m; //XXX: in Tracker.h
 
 
     Vector_t RefPartR_zxy_m;
@@ -377,10 +373,8 @@ private:
     }
 
     void kickParticles(const BorisPusher &pusher);
-    void kickParticlesAutophase(const BorisPusher &pusher);
     void kickParticles(const BorisPusher &pusher, const int &flg);
     void updateReferenceParticle();
-    void updateReferenceParticleAutophase();
 
     void updateSpaceOrientation(const bool &move = false);
     Vector_t TransformTo(const Vector_t &vec, const Vector_t &ori) const;
@@ -390,16 +384,13 @@ private:
     void writePhaseSpace(const long long step, const double &sposRef, bool psDump, bool statDump);
 
     /********** BEGIN AUTOPHSING STUFF **********/
-    void checkCavity(double s, Component *& comp, double & cavity_start_pos);
     void updateRFElement(std::string elName, double maxPhi);
-    void updateAllRFElements(double phiShift);
-    void executeAutoPhase(int numRefs, double zStop);
-    double APtrack(Component *cavity, double cavity_start, const double &phi) const;
-    double getGlobalPhaseShift();
+    void printRFPhases();
+    void handleAutoPhasing();
+    /************ END AUTOPHSING STUFF **********/
+
     void handleOverlappingMonitors();
     void prepareSections();
-    void doAutoPhasing();
-    /************ END AUTOPHSING STUFF **********/
 
     double ptoEMeV(Vector_t p);
 
@@ -420,7 +411,7 @@ private:
     void setOptionalVariables();
     bool hasEndOfLineReached();
     void doSchottyRenormalization();
-    void setupSUV();
+    void setupSUV(bool updateReference = true);
     void handleRestartRun();
     void prepareEmission();
     void setTime();
@@ -565,13 +556,6 @@ inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
     itsBunch->calcBeamParameters();
 }
 
-inline void ParallelTTracker::kickParticlesAutophase(const BorisPusher &pusher) {
-    int localNum = itsBunch->getLocalNum();
-    for(int i = 0; i < localNum; ++i)
-        pusher.kick(itsBunch->R[i], itsBunch->P[i], itsBunch->Ef[i], itsBunch->Bf[i], itsBunch->dt[i]);
-    itsBunch->calcBeamParametersLight();
-}
-
 // BoundaryGeometry version of kickParticles function
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher, const int &flg) {
     int localNum = itsBunch->getLocalNum();
@@ -586,27 +570,6 @@ inline void ParallelTTracker::kickParticles(const BorisPusher &pusher, const int
 inline void ParallelTTracker::updateReferenceParticle() {
     RefPartR_suv_m = itsBunch->get_rmean() * scaleFactor_m;
     RefPartP_suv_m = itsBunch->get_pmean();
-
-    /* Update the position of the reference particle in ZXY-coordinates. The angle between the ZXY- and the SUV-coordinate
-     *  system is determined by the momentum of the reference particle. We calculate the momentum of the reference
-     *  particle by rotating the centroid momentum (= momentum of the reference particle in the SUV-coordinate system).
-     *  Then we push the reference particle with this momentum for half a time step.
-     */
-
-    double gamma = sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
-
-    /* First update the momentum of the reference particle in zxy coordinate system, then update its position     */
-    RefPartP_zxy_m = dot(space_orientation_m, RefPartP_suv_m);
-
-    RefPartR_zxy_m += RefPartP_zxy_m * scaleFactor_m / (2. * gamma);
-    RefPartR_suv_m += RefPartP_suv_m * scaleFactor_m / (2. * gamma);
-
-}
-
-
-inline void ParallelTTracker::updateReferenceParticleAutophase() {
-    RefPartR_suv_m = itsBunch->R[0] * scaleFactor_m;
-    RefPartP_suv_m = itsBunch->P[0];
 
     /* Update the position of the reference particle in ZXY-coordinates. The angle between the ZXY- and the SUV-coordinate
      *  system is determined by the momentum of the reference particle. We calculate the momentum of the reference

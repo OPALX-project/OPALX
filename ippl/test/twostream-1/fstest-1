@@ -1,0 +1,4 @@
+rm -r fstest-1-data
+mkdir fstest-1-data
+./twostream-1 test-1.inp driftsc-2.inp | tee fstest-1-data/out.dat
+mv fstest-data/*.* fstest-1-data

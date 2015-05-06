@@ -806,8 +806,6 @@ const std::string &RFCavity::getType() const {
 }
 
 double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const double &q, const double &mass) {
-    Inform msg("Autophasing ");
-    msg << setprecision(8);
     vector<double> t, E, t2, E2;
     std::vector< std::vector< double > > F(numFieldmaps());
     std::vector< std::pair< double, double > > G;
@@ -913,8 +911,10 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
                         E[i] += q * scale * getdE(i, t, min_dz, phi + Dphi, frequency, F[j]) ;
                     }
                 }
-                msg << "estimated phi= " << tmp_phi << " rad, "
-                    << "Ekin= " << E[N - 1] << " MeV" << endl;
+                const int prevPrecision = Ippl::Info->precision(8);
+                INFOMSG("estimated phi= " << tmp_phi << " rad, "
+                        << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
+
                 return tmp_phi;
             }
             phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
@@ -965,6 +965,10 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
                 }
             }
         }
+
+        const int prevPrecision = Ippl::Info->precision(8);
+        INFOMSG("estimated phi= " << tmp_phi << " rad, "
+                << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
 
         return phi;
     } else {

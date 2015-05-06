@@ -43,7 +43,7 @@ public:
     const bool &hasSurfacePhysics() const;
 
     void push_back(std::shared_ptr<Component>);
-    bool find(const std::shared_ptr<Component>) const;
+    bool find(std::shared_ptr<const Component>) const;
     CompVec &getElements();
 
     void print(Inform &) const;

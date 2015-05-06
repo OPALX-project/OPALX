@@ -114,6 +114,8 @@ public:
 
     virtual bool bends() const = 0;
 
+    //    virtual bool determineEntryPoint(const double &kineticEnergy, const double &tolerance) = 0;
+
     virtual void goOnline();
 
     virtual void goOffline();

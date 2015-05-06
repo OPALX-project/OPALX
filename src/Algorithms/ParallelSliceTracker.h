@@ -57,7 +57,7 @@ public:
     explicit ParallelSliceTracker(const Beamline &bl, EnvelopeBunch &bunch,
                                   DataSink &ds, const PartData &data,
                                   bool revBeam, bool revTrack, int maxSTEPS,
-                                  double zstop, ParallelTTracker &mySlApTracker);
+                                  double zstop);
 
     virtual ~ParallelSliceTracker();
 
@@ -98,8 +98,7 @@ private:
     void operator=(const ParallelSliceTracker &);
 
     void updateRFElement(std::string elName, double maxPhi);
-    void updateAllRFElements();
-    double getCavityPhase(FieldList cav, std::string name);
+    void printRFPhases();
 
     double currentSimulationTime_m;
     bool globalEOL_m;
@@ -107,8 +106,6 @@ private:
     std::unique_ptr<OpalBeamline> itsOpalBeamline_m;
 
     EnvelopeBunch *itsBunch_m;
-
-    ParallelTTracker *mySlApTracker_m;
 
     DataSink *itsDataSink_m;
 
@@ -136,7 +133,7 @@ private:
     void writeLastStepPhaseSpace(const long long step, const double &sposRef);
 
     void prepareSections();
-    void doAutoPhasing();
+    void handleAutoPhasing();
     void timeIntegration();
     void computeExternalFields();
     void switchElements(double scaleMargin = 3.0);
