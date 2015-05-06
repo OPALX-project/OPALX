@@ -701,6 +701,10 @@ void PartBunch::computeSelfFields(int binNumber) {
     eg_m = Vector_t(0.0);
 
     if(fs_m->hasValidSolver()) {
+         /// Mesh the whole domain
+         if(fs_m->getFieldSolverType() == "SAAMG")
+             resizeMesh();
+
         /// Scatter charge onto space charge grid.
         this->Q *= this->dt;
         if(!interpolationCacheSet_m) {
@@ -893,8 +897,8 @@ void PartBunch::resizeMesh() {
     double xmax = fs_m->solver_m->getXRangeMax();
     double ymin = fs_m->solver_m->getYRangeMin();
     double ymax = fs_m->solver_m->getYRangeMax();
-    double zmin = rmin_m[2]; //fs_m->solver_m->getZRangeMin();
-    double zmax = rmax_m[2]; //fs_m->solver_m->getZRangeMax();
+    double zmin = fs_m->solver_m->getZRangeMin();
+    double zmax = fs_m->solver_m->getZRangeMax();
 
     if(xmin > rmin_m[0] || xmax < rmax_m[0] ||
        ymin > rmin_m[1] || ymax < rmax_m[1]) {
@@ -915,12 +919,11 @@ void PartBunch::resizeMesh() {
         boundp();
         get_bounds(rmin_m, rmax_m);
     }
-    // extend domain with extra "ghost" point
-    Vector_t mymin = Vector_t(xmin, ymin , zmin-hr_m[2]);
-    Vector_t mymax = Vector_t(xmax, ymax , zmax+hr_m[2]);
+    Vector_t mymin = Vector_t(xmin, ymin , zmin);
+    Vector_t mymax = Vector_t(xmax, ymax , zmax);
 
     for(int i = 0; i < 3; i++)
-        hr_m[i]   = (mymax[i] - mymin[i]) / nr_m[i];
+        hr_m[i]   = (mymax[i] - mymin[i])/nr_m[i];
 
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(mymin);
@@ -945,10 +948,9 @@ void PartBunch::computeSelfFields() {
     eg_m = Vector_t(0.0);
 
     if(fs_m->hasValidSolver()) {
-        //use the mesh that is already set
-        //if (fs_m->getFieldSolverType() == "SAAMG")
-        //   resizeMesh();
-	// INFOMSG("after resizeMesh" << hr_m << endl);
+        //mesh the whole domain
+        if(fs_m->getFieldSolverType() == "SAAMG")
+            resizeMesh();
 
         INFOMSG("mesh size" << hr_m << endl);
         //scatter charges onto grid
@@ -1220,6 +1222,9 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
     eg_m = Vector_t(0.0);
 
     if(fs_m->hasValidSolver()) {
+        /// mesh the whole domain
+        if(fs_m->getFieldSolverType() == "SAAMG")
+            resizeMesh();
         /// scatter particles charge onto grid.
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
 
@@ -1412,6 +1417,9 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     double gamma = getBinGamma(bin);
 
     if(fs_m->hasValidSolver()) {
+        /// mesh the whole domain
+        if(fs_m->getFieldSolverType() == "SAAMG")
+            resizeMesh();
 
         /// scatter particles charge onto grid.
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
@@ -2950,4 +2958,8 @@ bool PartBunch::WeHaveEnergyBins() {
         return dist_m->GetNumberOfEnergyBins() > 0;
     else
         return false;
+}
+
+Vector_t PartBunch::get_pmean_Distribution() const {
+    return dist_m->get_pmean();
 }

@@ -1,0 +1,16 @@
+SET (_SRCS
+  )
+
+SET (_HDRS
+  DomainMap.hpp
+  DomainMap.h
+  )
+
+INCLUDE_DIRECTORIES (
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+ADD_SOURCES (${_SRCS})
+ADD_HEADERS (${_HDRS})
+
+INSTALL (FILES ${_HDRS} DESTINATION include/DomainMap)

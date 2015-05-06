@@ -39,7 +39,7 @@ public:
 
     /// returns number of nodes in xy plane
     int getNumXY(int idz);
-    /// calculates intersection 
+    // calculates intersection  
     void Compute(Vector_t hr);
     // calculates intersection with rotated and shifted geometry 
     void Compute(Vector_t hr, NDIndex<3> localId);
@@ -93,7 +93,7 @@ private:
     std::map<int, int> numXZ;
 
     // Number of nodes in the xy plane (for this case: independent of the z coordinate)
-    int nxy_m;
+    int nxy_m[1000];
     // mapping (x,y,z) -> idxyz
     std::map<int, int> IdxMap;
     // Mapping idxyz -> (x,y,z)
@@ -106,6 +106,7 @@ private:
 
     Vector_t Geo_nr_m;
     Vector_t Geo_hr_m;
+    Vector_t geomCentroid_m;
     Vector_t minCoords_m;
     Vector_t maxCoords_m;
 

@@ -35,9 +35,10 @@ Inform *gmsg;
 #include "Fields/Fieldmap.hh"
 #include "FixedAlgebra/FTps.h"
 
-#include "BasicActions/Option.h"                                                                     
-#include "Utilities/OpalOptions.h"                                                                    
-#include "Utilities/Options.h"   
+#include "BasicActions/Option.h"
+#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
 
 #include "config.h"
 
@@ -45,9 +46,14 @@ Inform *gmsg;
 #include <ParallelDescriptor.H>
 #endif
 
+#include <gsl/gsl_errno.h>
+
+#include <boost/filesystem.hpp>
+
+#include <cstring>
+
 //  DTA
 #define NC 5
-#define MY_MASK 0755
 
 void printStringVector(const std::vector<std::string> &strings) {
     unsigned int iend = strings.size(), nc = 0;
@@ -58,6 +64,11 @@ void printStringVector(const std::vector<std::string> &strings) {
     if(nc != 0) std::cout << std::endl;
     std::cout << std::endl;
 }
+
+void errorHandlerGSL(const char *reason,
+                     const char *file,
+                     int line,
+                     int gsl_errno);
 // /DTA
 
 // Global data.
@@ -76,6 +87,8 @@ int main(int argc, char *argv[]) {
     ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
 
+    namespace fs = boost::filesystem;
+
 #ifdef HAVE_AMR_SOLVER
     *gmsg << "Initializing BoxLib with inputs file " << argv[1] << endl;
     BoxLib::Initialize(argc, argv, true, Ippl::getComm());
@@ -89,6 +102,8 @@ int main(int argc, char *argv[]) {
 
     H5SetVerbosityLevel(0); //65535);
 
+    gsl_set_error_handler(&errorHandlerGSL);
+
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
 
@@ -96,19 +111,6 @@ int main(int argc, char *argv[]) {
     std::string mySpace("            ");
 
     if(Ippl::myNode() == 0) remove("errormsg.txt");
-
-    /*
-
-       hmsg << mySpace << std::string("   _______  _______  _______  _  ")<< endl;
-       hmsg << mySpace << std::string("  (  ___  )(  ____ )(  ___  )( ")<< endl;
-       hmsg << mySpace << std::string("  | (   ) || (    )|| (   ) || (")<< endl;
-       hmsg << mySpace << std::string("  | |   | || (____)|| (___) || |")<< endl;
-       hmsg << mySpace << std::string("  | |   | ||  _____)|  ___  || |")<< endl;
-       hmsg << mySpace << std::string("  | |   | || (      | (   ) || |")<< endl;
-    //  hmsg << mySpace << std::string("  | (___) || )      | )   ( || (____/\")<< endl;
-    //
-    hmsg << mySpace << std::string("  (_______)|//       |//     /\|(_______// ")<< endl;
-    */
 
     hmsg << mySpace <<  "   ____  _____       ___ " << endl;
     hmsg << mySpace <<  "  / __ \\|  __ \\ /\\   | | " << endl;
@@ -118,20 +120,29 @@ int main(int argc, char *argv[]) {
     hmsg << mySpace <<  "  \\____/|_| /_/    \\_\\______|" << endl;
 
 
-    *gmsg << endl << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION << "  (c) PSI, http://amas.web.psi.ch" << endl
+    *gmsg << endl
+          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION << "\n\n"
+          << "                (c) PSI, http://amas.web.psi.ch" << endl
           << endl;
-    *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) to the OPAL developers " << PACKAGE_BUGREPORT << endl;
-    *gmsg << "Time: " << timeStr << " date: " << dateStr << endl;
+    *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
+    *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
 
 
     /*
       Make a directory data for some of the output
     */
     if(Ippl::myNode() == 0) {
-        int temp = umask(0);
-        if((temp = mkdir("data", MY_MASK)) != 0) {
-            *gmsg << "NOTE " << errno << ": unable to mkdir; " << strerror(errno) << endl;
+        if (!fs::exists("data")) {
+            boost::system::error_code error_code;
+            fs::create_directory("data", error_code);
+            std::cerr << error_code.message() << std::endl;
+            // use error code to prevent create_directory from throwing an exception
         }
+    }
+    Ippl::Comm->barrier();
+    if (!fs::is_directory("data")) {
+        std::cerr << "unable to create directory; aborting" << std::endl;
+        abort();
     }
 
     const OpalParser parser;
@@ -160,22 +171,28 @@ int main(int argc, char *argv[]) {
         FileStream::setEcho(true);
 
 #ifndef __LIBCATAMOUNT__
-        std::string startup = getenv("HOME");
-        startup += "/init.opal";
-        FileStream::setEcho(false);
-        FileStream *is;
+        char *startup = getenv("HOME");
+        if (startup != NULL && fs::exists(strncat(startup, "/init.opal", 20))) {
 
-        try {
-            is = new FileStream(startup);
-        } catch(...) {
-            is = 0;
-            *gmsg << "No startup file \"" << startup << "\" found. Note: this is not mandatory for an OPAL simulation!" << endl;
-        }
+            FileStream::setEcho(false);
+            FileStream *is;
 
-        if(is) {
-            *gmsg << "Reading startup file \"" << startup << "\"." << endl;
-            parser.run(is);
-            *gmsg << "Finished reading startup file." << endl;
+            try {
+                is = new FileStream(startup);
+            } catch(...) {
+                is = 0;
+                ERRORMSG("Could not open startup file \"" << startup << "\".\n"
+                         << "Note: this is not mandatory for an OPAL simulation!\n");
+            }
+
+            if(is) {
+                *gmsg << "Reading startup file \"" << startup << "\"." << endl;
+                parser.run(is);
+                *gmsg << "Finished reading startup file." << endl;
+            }
+        } else {
+            *gmsg << "Couldn't find startup file \"" << startup << "\".\n"
+                  << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
         }
 #else
         *gmsg << "On Cray can not read startup file" << endl;
@@ -232,7 +249,7 @@ int main(int argc, char *argv[]) {
         //// /DTA
 
 
-	
+
         IpplTimings::stopTimer(mainTimer);
 
         if (Options::info) {
@@ -291,4 +308,11 @@ int main(int argc, char *argv[]) {
         *gmsg << "Unexpected error." << endl;
         abort();
     }
+}
+
+void errorHandlerGSL(const char *reason,
+                     const char *file,
+                     int,
+                     int) {
+    throw OpalException(file, reason);
 }

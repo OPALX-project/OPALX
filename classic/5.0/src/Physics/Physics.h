@@ -42,6 +42,12 @@ namespace Physics {
     /// The logarithm of $e$ to the base 10
     extern const double log10e;
 
+    /// The conversion factor from radians to degrees
+    extern const double rad2deg;
+
+    /// The conversion factor from degrees to radians
+    extern const double deg2rad;
+
     /// The velocity of light in m/s
     extern const double c;
 
@@ -123,7 +129,6 @@ namespace Physics {
     extern const double e0mc;
     // e/m
     extern const double e0m;
-
 };
 
 #endif // CLASSIC_Physics_HH
