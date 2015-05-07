@@ -22,6 +22,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
 
 // Class Corrector
 // ------------------------------------------------------------------------
