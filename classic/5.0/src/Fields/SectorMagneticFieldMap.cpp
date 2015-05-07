@@ -203,16 +203,15 @@ bool SectorMagneticFieldMap::getFieldstrengthPolar
 bool SectorMagneticFieldMap::getFieldstrength
                     (const Vector_t &R_c, Vector_t &E_c, Vector_t &B_c) const {
     // coordinate transform; field is in the x-z plane but OPAL-CYCL assumes
-    // x-y plane; make sure to keep right handed coordinate system
-    // I also do a rotation through 180 deg about x to make the bend in the
-    // correct sense but this should be implemented in the end by Ring (i.e.
-    // should be able to do off-midplane transformations)
+    // x-y plane; rotate to the start of the bend and into polar coordinates;
+    // apply mirror symmetry about the midplane
     double radius = (getPolarBoundingBoxMin()[0]+getPolarBoundingBoxMax()[0])/2;
     double midplane = (getPolarBoundingBoxMin()[1]+getPolarBoundingBoxMax()[1])/2;
     double R_temp[3] = {R_c(0)+radius, R_c(1), R_c(2)};
     double B_temp[3] = {0., 0., 0.};
     SectorField::convertToPolar(R_temp);
-    if (R_temp[1] < midplane) {
+    bool mirror = R_temp[1] < midplane;
+    if (mirror) {
         R_temp[1] = midplane + (midplane - R_temp[1]);
     }
     // interpolator has phi in 0. to dphi
@@ -224,11 +223,7 @@ bool SectorMagneticFieldMap::getFieldstrength
     interpolator_m->function(R_temp, B_temp);
     // and here we transform back
     // we want phi in 0. to dphi
-    if (R_temp[1] > midplane) {
-        B_temp[0] *= +1; // reflect Bx
-        B_temp[2] *= +1; // reflect Bz
-    }
-    if (R_temp[1] < midplane) {
+    if (mirror) {
         B_temp[0] *= -1; // reflect Bx
         B_temp[2] *= -1; // reflect Bz
     }
@@ -258,20 +253,20 @@ void SectorMagneticFieldMap::clearFieldCache() {
 void SectorMagneticFieldMap::getInfo(Inform* msg) {
    std::vector<double> bbmin = SectorField::getPolarBoundingBoxMin();
    std::vector<double> bbmax = SectorField::getPolarBoundingBoxMax();
-   (*msg) << Filename_m << " (3D Sector Magnetostatic); "
-          << "zini=   " << bbmin[2] << " mm;  zfinal= " << bbmax[2] << " mm;"
-          << "phiini= " << bbmin[1] << " rad; phifinal= " << bbmax[1] << " rad;"
-          << "rini=   " << bbmin[0] << " mm;  rfinal=  " << bbmax[0] << " mm;"
+   (*msg) << Filename_m << " (3D Sector Magnetostatic);\n"
+          << "  zini=   " << bbmin[1] << " mm;  zfinal= " << bbmax[1] << " mm;\n"
+          << "  phiini= " << bbmin[2] << " rad; phifinal= " << bbmax[2] << " rad;\n"
+          << "  rini=   " << bbmin[0] << " mm;  rfinal=  " << bbmax[0] << " mm;"
           << endl;
 }
 
 void SectorMagneticFieldMap::print(std::ostream& out) {
    std::vector<double> bbmin = SectorField::getPolarBoundingBoxMin();
    std::vector<double> bbmax = SectorField::getPolarBoundingBoxMax();
-   out << Filename_m << " (3D Sector Magnetostatic); "
-       << "zini= " << bbmin[2] << " m; zfinal= " << bbmax[2] << " m;"
-       << "phiini= " << bbmin[1] << " rad; phifinal= " << bbmax[1] << " rad;"
-       << "rini= " << bbmin[0] << " m; rfinal= " << bbmax[0] << " m;"
+   out << Filename_m << " (3D Sector Magnetostatic);\n"
+       << "  zini= " << bbmin[1] << " m; zfinal= " << bbmax[1] << " mm;\n"
+       << "  phiini= " << bbmin[2] << " rad; phifinal= " << bbmax[2] << " rad;\n"
+       << "  rini= " << bbmin[0] << " m; rfinal= " << bbmax[0] << " mm;\n"
        << std::endl;
 }
 
