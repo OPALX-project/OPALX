@@ -52,7 +52,7 @@ set (BOOSTROOT $ENV{BOOST_DIR})
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED OFF)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package (Boost 1.55.0 COMPONENTS  regex filesystem system)
+find_package (Boost 1.55.0 REQUIRED COMPONENTS  regex filesystem system)
 if (Boost_INCLUDE_DIRS)
     message (STATUS "Found boost include dir: ${Boost_INCLUDE_DIR}")
     message (STATUS "Found boost library dir: ${Boost_LIBRARY_DIR}")
@@ -164,28 +164,17 @@ IF (NO_FIELD_ASSIGN_OPTIMIZATION)
 	)
 ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
 
-INCLUDE(FindSubversion)
-IF(Subversion_SVN_EXECUTABLE)
-
-    EXECUTE_PROCESS(COMMAND ${Subversion_SVN_EXECUTABLE} info ${CMAKE_CURRENT_SOURCE_DIR}
-        OUTPUT_VARIABLE OPAL_WC_INFO
-        ERROR_VARIABLE Subversion_svn_info_error
-        RESULT_VARIABLE Subversion_svn_info_result
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-    IF(${Subversion_svn_info_result} EQUAL 0)
-        Subversion_WC_INFO(${CMAKE_CURRENT_SOURCE_DIR} OPAL)
-    ELSE()
-        SET (OPAL_WC_REVISION 0)
-        EXECUTE_PROCESS(
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            COMMAND git rev-parse HEAD
-            OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
-            )
-        SET (OPAL_WC_REVISION \"${GIT_OUT}\")
-    ENDIF()
+INCLUDE(FindGit)
+IF(GIT_FOUND)
+    SET (OPAL_WC_REVISION 0)
+    EXECUTE_PROCESS(
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND git rev-parse HEAD
+        OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    SET (OPAL_WC_REVISION \"${GIT_OUT}\")
 ELSE()
-    MESSAGE (STATUS "could not find subversion")
+    MESSAGE (STATUS "could not find git")
     SET (OPAL_WC_REVISION \"\")
 ENDIF()
 
