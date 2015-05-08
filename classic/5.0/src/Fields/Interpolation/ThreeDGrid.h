@@ -33,7 +33,9 @@
 #include <algorithm>
 #include <vector>
 
-#include "Fields/SectorMagneticFieldMap/Mesh.h"
+#include "Fields/Interpolation/Mesh.h"
+
+namespace interpolation {
 
 /** ThreeDGrid holds grid information for a rectangular grid used in e.g.
  *  interpolation
@@ -61,7 +63,7 @@ class ThreeDGrid : public Mesh {
     Mesh * clone() {return new ThreeDGrid(*this);}
 
     /** Not implemented (returns NULL) */
-    Mesh * dual () {return NULL;}
+    Mesh * dual () const;
 
     /** Default constructor */
     ThreeDGrid();
@@ -291,10 +293,22 @@ class ThreeDGrid : public Mesh {
     /** Return the point in the mesh nearest to position */
     Mesh::Iterator getNearest(const double* position) const;
 
+    /** Custom LowerBound routine like std::lower_bound
+     *
+     *  Make a binary search to find the element in vec with vec[i] <= x.
+     *  \param vec STL vector object (could make this any sorted iterator...)
+     *  \param x object for which to search.
+     *  \param index vectorLowerBound sets index to the position of the element. If
+     *    x < vec[0], vectorLowerBound fills with -1.
+     */
+    static void vectorLowerBound(std::vector<double> vec, double x, int& index);
+
   protected:
     // Change position
-    virtual Mesh::Iterator& addEquals(Mesh::Iterator& lhs, int difference) const;
-    virtual Mesh::Iterator& subEquals(Mesh::Iterator& lhs, int difference) const;
+    virtual Mesh::Iterator& addEquals(Mesh::Iterator& lhs,
+                                      int difference) const;
+    virtual Mesh::Iterator& subEquals(Mesh::Iterator& lhs,
+                                      int difference) const;
     virtual Mesh::Iterator& addEquals
                         (Mesh::Iterator& lhs, const Mesh::Iterator& rhs) const;
     virtual Mesh::Iterator& subEquals
@@ -328,12 +342,18 @@ class ThreeDGrid : public Mesh {
     friend Mesh::Iterator& operator+=
                         (Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
 
-    friend bool operator==(const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
-    friend bool operator!=(const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
-    friend bool operator>=(const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
-    friend bool operator<=(const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
-    friend bool operator< (const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
-    friend bool operator> (const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
+    friend bool operator==(const Mesh::Iterator& lhs,
+                           const Mesh::Iterator& rhs);
+    friend bool operator!=(const Mesh::Iterator& lhs,
+                           const Mesh::Iterator& rhs);
+    friend bool operator>=(const Mesh::Iterator& lhs,
+                           const Mesh::Iterator& rhs);
+    friend bool operator<=(const Mesh::Iterator& lhs,
+                           const Mesh::Iterator& rhs);
+    friend bool operator< (const Mesh::Iterator& lhs,
+                           const Mesh::Iterator& rhs);
+    friend bool operator> (const Mesh::Iterator& lhs,
+                           const Mesh::Iterator& rhs);
 };
 
 double* ThreeDGrid::newXArray() {
@@ -357,27 +377,6 @@ double* ThreeDGrid::newZArray() {
     return z;
 }
 
-void ThreeDGrid::xLowerBound(const double& x, int& xIndex) const {
-    if (constantSpacing_m)
-        xIndex = static_cast<int>(floor((x - x_m[0])/(x_m[1]-x_m[0]) ));
-    else
-        xIndex = std::lower_bound(x_m.begin(), x_m.end(), x)-x_m.begin()-1;
-}
-
-void ThreeDGrid::yLowerBound(const double& y, int& yIndex) const {
-    if (constantSpacing_m)
-        yIndex = static_cast<int>(floor((y - y_m[0])/(y_m[1]-y_m[0])));
-    else
-        yIndex = std::lower_bound(y_m.begin(), y_m.end(), y)-y_m.begin()-1;
-}
-
-void ThreeDGrid::zLowerBound(const double& z, int& zIndex) const {
-    if (constantSpacing_m)
-        zIndex = static_cast<int>(floor((z - z_m[0])/(z_m[1]-z_m[0])));
-    else
-        zIndex = std::lower_bound(z_m.begin(), z_m.end(), z)-z_m.begin()-1;
-}
-
 void ThreeDGrid::lowerBound(const double& x, int& xIndex,
                             const double& y, int& yIndex,
                             const double& z, int& zIndex) const {
@@ -387,15 +386,38 @@ void ThreeDGrid::lowerBound(const double& x, int& xIndex,
 }
 
 void ThreeDGrid::lowerBound(const double& x,
-                                   const double& y,
-                                   const double& z,
-                                   Mesh::Iterator& it) const {
+                            const double& y,
+                            const double& z,
+                            Mesh::Iterator& it) const {
     xLowerBound(x, it[0]);
     yLowerBound(y, it[1]);
     zLowerBound(z, it[2]);
     it[0]++;
     it[1]++;
     it[2]++;
+}
+
+void ThreeDGrid::xLowerBound(const double& x, int& xIndex) const {
+    if (constantSpacing_m)
+        xIndex = static_cast<int>(floor((x - x_m[0])/(x_m[1]-x_m[0]) ));
+    else {
+        vectorLowerBound(x_m, x, xIndex);
+    }
+}
+
+
+void ThreeDGrid::yLowerBound(const double& y, int& yIndex) const {
+    if (constantSpacing_m)
+        yIndex = static_cast<int>(floor((y - y_m[0])/(y_m[1]-y_m[0])));
+    else
+        vectorLowerBound(y_m, y, yIndex);
+}
+
+void ThreeDGrid::zLowerBound(const double& z, int& zIndex) const {
+    if (constantSpacing_m)
+        zIndex = static_cast<int>(floor((z - z_m[0])/(z_m[1]-z_m[0])));
+    else
+        vectorLowerBound(z_m, z, zIndex);
 }
 
 double ThreeDGrid::minX() const {
@@ -451,6 +473,6 @@ void ThreeDGrid::setConstantSpacing(bool spacing) {
 bool ThreeDGrid::getConstantSpacing() const {
     return constantSpacing_m;
 }
-
+}
 #endif
 

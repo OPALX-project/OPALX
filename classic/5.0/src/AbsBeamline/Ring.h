@@ -43,7 +43,9 @@ class LossDataSink;
 class PartBunch;
 class FieldMap;
 
-/** @class Ring describes a ring type geometry for tracking
+/** \class[Ring]
+ *
+ *  \brief Ring describes a ring type geometry for tracking
  *
  *  Ring describes a ring type geometry for tracking. Ring provides the
  *  necessary interfaces for e.g. OPAL-CYCL to track through the ring geometry,

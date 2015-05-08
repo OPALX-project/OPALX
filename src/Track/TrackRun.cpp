@@ -29,6 +29,7 @@
 #include "Algorithms/ParallelTTracker.h"
 #include "Algorithms/ParallelSliceTracker.h"
 #include "Algorithms/ParallelCyclotronTracker.h"
+#include "Algorithms/AutophaseTracker.h"
 
 #include "Attributes/Attributes.h"
 #include "Beamlines/TBeamline.h"
@@ -299,15 +300,15 @@ void TrackRun::setupSliceTracker() {
           << " Inputfile is " << OPAL->getInputFn() << endl;
 
 
-    ParallelTTracker *mySlApTracker = setupForAutophase();
+    findPhasesForMaxEnergy();
+
     itsTracker = new ParallelSliceTracker(*Track::block->use->fetchLine(),
                                           dynamic_cast<EnvelopeBunch &>(*Track::block->slbunch),
                                           *ds,
                                           Track::block->reference,
                                           false, false,
                                           Track::block->localTimeSteps.front(),
-                                          Track::block->zstop.front(),
-                                          *mySlApTracker);
+                                          Track::block->zstop.front());
 }
 
 void TrackRun::setupTTracker(){
@@ -406,6 +407,8 @@ void TrackRun::setupTTracker(){
     *gmsg << *beam << endl;
     *gmsg << *fs   << endl;
     *gmsg << *Track::block->bunch  << endl;
+
+    findPhasesForMaxEnergy();
 
     *gmsg << "Phase space dump frequency " << Options::psDumpFreq << " and "
           << "statistics dump frequency " << Options::statDumpFreq << " w.r.t. the time step." << endl;
@@ -757,6 +760,63 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
     // Return charge per macroparticle.
     return beam->getCharge() * beam->getCurrent() / beam->getFrequency() / numberOfParticles;
 
+}
+
+void TrackRun::findPhasesForMaxEnergy() const {
+    if (Options::autoPhase == 0 ||
+        OpalData::getInstance()->inRestartRun() ||
+        OpalData::getInstance()->hasBunchAllocated()) return;
+
+    std::queue<unsigned long long> localTrackSteps;
+    std::queue<double> dtAllTracks;
+    std::queue<double> zStop;
+
+    const PartBunch *bunch = Track::block->bunch;
+    if (bunch == NULL) {
+        bunch = Track::block->slbunch;
+    }
+    if (bunch == NULL) {
+        throw OpalException("findPhasesForMaxEnergy()",
+                            "no valid PartBunch object found");
+    }
+
+    Vector_t meanP = bunch->get_pmean();
+    Vector_t meanR = bunch->get_rmean();
+    if (bunch->getTotalNum() == 0) {
+        meanP = bunch->get_pmean_Distribution();
+        meanR = 0.0;
+    }
+    AutophaseTracker apTracker(*Track::block->use->fetchLine(),
+                               Track::block->reference,
+                               bunch->getT(),
+                               meanR(2),
+                               meanP(2));
+
+    {
+        std::vector<unsigned long long>::const_iterator it = Track::block->localTimeSteps.begin();
+        std::vector<unsigned long long>::const_iterator end = Track::block->localTimeSteps.end();
+        for (; it != end; ++ it) {
+            localTrackSteps.push(*it);
+        }
+    }
+
+    {
+        std::vector<double>::const_iterator it = Track::block->dT.begin();
+        std::vector<double>::const_iterator end = Track::block->dT.end();
+        for (; it != end; ++ it) {
+            dtAllTracks.push(*it);
+        }
+    }
+
+    {
+        std::vector<double>::const_iterator it = Track::block->zstop.begin();
+        std::vector<double>::const_iterator end = Track::block->zstop.end();
+        for (; it != end; ++ it) {
+            zStop.push(*it);
+        }
+    }
+
+    apTracker.execute(dtAllTracks, zStop, localTrackSteps);
 }
 
 ParallelTTracker *TrackRun::setupForAutophase() {

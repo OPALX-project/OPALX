@@ -79,6 +79,7 @@ include_directories (Solvers/amr
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
+    ${GTEST_INCLUDE_DIR}
 )
 
 link_directories (
@@ -98,6 +99,7 @@ set (OPAL_LIBS
     z
     mpi
     mpi_cxx
+    ${Boost_LIBRARIES}
 )
 
 add_library( OPALib ${OPAL_SRCS} opal.cpp )

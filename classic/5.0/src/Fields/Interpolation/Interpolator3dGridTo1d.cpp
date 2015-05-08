@@ -25,5 +25,18 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Fields/SectorMagneticFieldMap/VectorMap.h"
+#include "Fields/Interpolation/Interpolator3dGridTo1d.h"
 
+namespace interpolation {
+void Interpolator3dGridTo1d::deleteFunc(double*** func) {
+    if (func == NULL)
+        return;
+    for (int i = 0; i < getNumberOfXCoords(); i++) {
+        for (int j = 0; j < getNumberOfYCoords(); j++)
+            delete [] func[i][j];
+        delete [] func[i];
+    }
+    delete [] func;
+    func = NULL;
+}
+}

@@ -25,12 +25,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Fields/SectorMagneticFieldMap/ThreeDGrid.h"
+#include "Fields/Interpolation/ThreeDGrid.h"
 #include "Utilities/LogicalError.h"
 
+namespace interpolation {
+
 ThreeDGrid::ThreeDGrid()
-    : x_m(2, 0), y_m(2, 0), z_m(2, 0), xSize_m(0), ySize_m(0), zSize_m(0), maps_m(0),
-      constantSpacing_m(false) {
+    : x_m(2, 0), y_m(2, 0), z_m(2, 0), xSize_m(0), ySize_m(0), zSize_m(0),
+      maps_m(0), constantSpacing_m(false) {
     setConstantSpacing();
     x_m[1] = y_m[1] = z_m[1] = 1.;
 }
@@ -70,8 +72,8 @@ ThreeDGrid::ThreeDGrid(double dX, double dY, double dZ,
                        int numberOfXCoords, int numberOfYCoords,
                        int numberOfZCoords)
     :  x_m(numberOfXCoords), y_m(numberOfYCoords), z_m(numberOfZCoords),
-       xSize_m(numberOfXCoords), ySize_m(numberOfYCoords), zSize_m(numberOfZCoords),
-       maps_m(), constantSpacing_m(true) {
+       xSize_m(numberOfXCoords), ySize_m(numberOfYCoords),
+       zSize_m(numberOfZCoords), maps_m(), constantSpacing_m(true) {
     for (int i = 0; i < numberOfXCoords; i++)
         x_m[i] = minX+i*dX;
     for (int j = 0; j < numberOfYCoords; j++)
@@ -96,12 +98,28 @@ Mesh::Iterator ThreeDGrid::end() const {
     return Mesh::Iterator(end, this);
 }
 
-void ThreeDGrid::getPosition(const Mesh::Iterator& it, double * position) const {
+void ThreeDGrid::getPosition(const Mesh::Iterator& it,
+                             double * position) const {
     position[0] = x(it.state_m[0]);
     position[1] = y(it.state_m[1]);
     position[2] = z(it.state_m[2]);
 }
 
+Mesh* ThreeDGrid::dual() const {
+    std::vector<double> new_x(x_m.size()-1);
+    std::vector<double> new_y(y_m.size()-1);
+    std::vector<double> new_z(z_m.size()-1);
+    for (size_t i = 0; i < x_m.size()-1; ++i) {
+        new_x[i] = (x_m[i]+x_m[i+1])/2.;
+    }
+    for (size_t i = 0; i < y_m.size()-1; ++i) {
+        new_y[i] = (y_m[i]+y_m[i+1])/2.;
+    }
+    for (size_t i = 0; i < z_m.size()-1; ++i) {
+        new_z[i] = (z_m[i]+z_m[i+1])/2.;
+    }
+    return new ThreeDGrid(new_x, new_y, new_z);
+}
 
 Mesh::Iterator& ThreeDGrid::addEquals
     (Mesh::Iterator& lhs, int difference) const {
@@ -147,6 +165,29 @@ Mesh::Iterator& ThreeDGrid::subEquals
     return lhs;
 }
 
+void ThreeDGrid::vectorLowerBound(std::vector<double> vec,
+                                  double x,
+                                  int& index) {
+    if (x < vec[0]) {
+        index = -1;
+        return;
+    }
+    if (x >= vec.back()) {
+        index = vec.size()-1;
+        return;
+    }
+    size_t xLower = 0;
+    size_t xUpper = vec.size()-1;
+    while (xUpper - xLower > 1) {
+        index = (xUpper+xLower)/2;
+        if (x >= vec[index]) {
+            xLower = index;
+        } else {
+            xUpper = index;
+        }
+    }
+    index = xLower;
+}
 
 Mesh::Iterator& ThreeDGrid::addEquals
                       (Mesh::Iterator& lhs, const Mesh::Iterator& rhs) const {
@@ -190,7 +231,8 @@ bool ThreeDGrid::isGreater
                 (const Mesh::Iterator& lhs, const Mesh::Iterator& rhs) const {
     if (lhs.state_m[0] > rhs.state_m[0])
         return true;
-    else if (lhs.state_m[0] == rhs.state_m[0] && lhs.state_m[1] > rhs.state_m[1])
+    else if (lhs.state_m[0] == rhs.state_m[0] &&
+             lhs.state_m[1] > rhs.state_m[1])
         return true;
     else if (lhs.state_m[0] == rhs.state_m[0] &&
              lhs.state_m[1] == rhs.state_m[1] &&
@@ -202,7 +244,7 @@ bool ThreeDGrid::isGreater
 // remove *map if it exists; delete this if there are no more VectorMaps
 void ThreeDGrid::remove(VectorMap* map) {
     std::vector<VectorMap*>::iterator it =
-                                    std::find(maps_m.begin(), maps_m.end(), map);
+                                   std::find(maps_m.begin(), maps_m.end(), map);
     if (it < maps_m.end()) {
         maps_m.erase(it);
     }
@@ -214,7 +256,7 @@ void ThreeDGrid::remove(VectorMap* map) {
 // add *map if it has not already been added
 void ThreeDGrid::add(VectorMap* map) {
     std::vector<VectorMap*>::iterator it =
-                                     std::find(maps_m.begin(), maps_m.end(), map);
+                                   std::find(maps_m.begin(), maps_m.end(), map);
     if (it == maps_m.end()) {
         maps_m.push_back(map);
     }
@@ -273,3 +315,5 @@ Mesh::Iterator ThreeDGrid::getNearest(const double* position) const {
         index[2] = zSize_m;
     return Mesh::Iterator(index, this);
 }
+}
+

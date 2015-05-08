@@ -30,7 +30,9 @@
 
 #include <vector>
 
-#include "Fields/SectorMagneticFieldMap/ThreeDGrid.h"
+#include "Fields/Interpolation/ThreeDGrid.h"
+
+namespace interpolation {
 
 /** VectorMap is an abstract class that defines mapping from one vector to
  *  another.
@@ -86,7 +88,7 @@ class VectorMap {
     virtual             ~VectorMap() {;}
 
     /** Return the mesh used by the vector map or NULL if no mesh */
-    virtual ThreeDGrid*        getMesh() const {return NULL;}
+    virtual Mesh* getMesh() const {return NULL;}
   private:
 };
 
@@ -113,5 +115,5 @@ void VectorMap::functionAppend
     function(&point_vec[i][0], &value_vec[i][0]);
   }
 }
-
+}
 #endif  // _CLASSIC_FIELDS_VECTORMAP_HH_

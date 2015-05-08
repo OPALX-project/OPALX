@@ -60,6 +60,15 @@ void complainOnFailure(int rc, const std::string &file, int line) {
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << file << " @ line " << line << endl);
 }
+
+SymTenzor<double, 6> getUnit6x6() {
+    SymTenzor<double, 6> unit6x6;
+    for (unsigned int i = 0; i < 6u; ++ i) {
+        unit6x6(i,i) = 1.0;
+    }
+    return unit6x6;
+}
+
 //
 // Class Distribution
 // ------------------------------------------------------------------------
@@ -177,7 +186,7 @@ namespace LegacyAttributesT
 {
     enum LegacyAttributesT {
         // DESCRIPTION OF THE DISTRIBUTION:
-        DEBIN,
+        DEBIN = AttributesT::SIZE,
         SBIN,
         TEMISSION,
         SIGLASER,
@@ -201,8 +210,8 @@ namespace LegacyAttributesT
 }
 
 Distribution::Distribution():
-    Definition(AttributesT::SIZE + LegacyAttributesT::SIZE, "DISTRIBUTION",
-               "The DISTRIBUTION statement defines data for the 6D particle distribution."),
+    Definition( LegacyAttributesT::SIZE, "DISTRIBUTION",
+                "The DISTRIBUTION statement defines data for the 6D particle distribution."),
     distrTypeT_m(DistrTypeT::NODIST),
     numberOfDistributions_m(1),
     emitting_m(false),
@@ -219,6 +228,7 @@ Distribution::Distribution():
     energyBinHist_m(NULL),
     randGenEmit_m(NULL),
     pTotThermal_m(0.0),
+    pmean_m(0.0),
     cathodeWorkFunc_m(0.0),
     laserEnergy_m(0.0),
     cathodeFermiEnergy_m(0.0),
@@ -228,6 +238,7 @@ Distribution::Distribution():
     sigmaTRise_m(0.0),
     sigmaTFall_m(0.0),
     tPulseLengthFWHM_m(0.0),
+    correlationMatrix_m(getUnit6x6()),
     laserProfileFileName_m(""),
     laserImageName_m(""),
     laserIntensityCut_m(0.0),
@@ -296,6 +307,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     energyBinHist_m(NULL),
     randGenEmit_m(parent->randGenEmit_m),
     pTotThermal_m(parent->pTotThermal_m),
+    pmean_m(parent->pmean_m),
     cathodeWorkFunc_m(parent->cathodeWorkFunc_m),
     laserEnergy_m(parent->laserEnergy_m),
     cathodeFermiEnergy_m(parent->cathodeFermiEnergy_m),
@@ -322,7 +334,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     sigmaP_m(parent->sigmaP_m),
     cutoffR_m(parent->cutoffR_m),
     cutoffP_m(parent->cutoffP_m),
-    distCorr_m(parent->distCorr_m),
+    correlationMatrix_m(parent->correlationMatrix_m),
     laserProfileFileName_m(parent->laserProfileFileName_m),
     laserImageName_m(parent->laserImageName_m),
     laserIntensityCut_m(parent->laserIntensityCut_m),
@@ -586,7 +598,7 @@ void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep) {
 
     IpplTimings::startTimer(beam.distrReload_m);
 
-    //        beam.setTEmission(Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::TEMISSION]));
+    //        beam.setTEmission(Attributes::getReal(itsAttr[ LegacyAttributesT::TEMISSION]));
     fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
 
 #ifdef PARALLEL_IO
@@ -1094,7 +1106,7 @@ double Distribution::GetTEmission() {
         distrTypeT_m = DistrTypeT::BINOMIAL;
 
     tPulseLengthFWHM_m = Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]);
-    cutoff_m = Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::CUTOFF]);
+    cutoff_m = Attributes::getReal(itsAttr[ LegacyAttributesT::CUTOFF]);
     tRise_m = Attributes::getReal(itsAttr[AttributesT::TRISE]);
     tFall_m = Attributes::getReal(itsAttr[AttributesT::TFALL]);
     double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
@@ -1649,7 +1661,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
             SigmaGenerator<double,unsigned int> siggen(I_m,
                                                        Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
                                                        Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
-                                                       Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
+                                                       Attributes::getReal(itsAttr[AttributesT::ET])*1E6,
                                                        wo,
                                                        E_m*1E-6,
                                                        CyclotronElement->getCyclHarm(),
@@ -1676,11 +1688,12 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
                 *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", " << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
                 *gmsg << "* Sigma-Matrix " << endl;
 
-                for(unsigned int i=0; i<siggen.getSigma().size1(); ++i) {
-                    for(unsigned int j=0; j<siggen.getSigma().size2(); ++j) {
-                        *gmsg << "* " <<  std::setprecision(4)  << std::setw(18) << siggen.getSigma()(i,j);
+                for(unsigned int i = 0; i < siggen.getSigma().size1(); ++ i) {
+                    *gmsg << std::setprecision(4)  << std::setw(11) << siggen.getSigma()(i,0);
+                    for(unsigned int j = 1; j < siggen.getSigma().size2(); ++ j) {
+                        *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen.getSigma()(i,j);
                     }
-                    *gmsg << "*" << endl;
+                    *gmsg << " \\\\" << endl;
                 }
             }
             else {
@@ -1697,21 +1710,24 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
               moment:  rad
 
             */
-            sigmaR_m[0] = std::sqrt(1E-3*siggen.getSigma()(0,0));    // rms x
-            sigmaR_m[1] = std::sqrt(1E-3*siggen.getSigma()(2,2));    // rms y
-            sigmaR_m[2] = std::sqrt(1E-3*siggen.getSigma()(4,4));    // rms z
+            const auto &sigma = siggen.getSigma();
+            sigmaR_m[0] = 1E-3 * std::sqrt(sigma(0,0));    // rms x
+            sigmaR_m[1] = 1E-3 * std::sqrt(sigma(2,2));    // rms y
+            sigmaR_m[2] = 1E-3 * std::sqrt(sigma(4,4));    // rms z
 
-            sigmaP_m[0] = std::sqrt(1E-3*siggen.getSigma()(1,1));    // UNITS ...
-            sigmaP_m[1] = std::sqrt(1E-3*siggen.getSigma()(3,3));
-            sigmaP_m[2] = std::sqrt(1E-3*siggen.getSigma()(5,5));
+            sigmaP_m[0] = std::sqrt(sigma(1,1));    // UNITS ...
+            sigmaP_m[1] = std::sqrt(sigma(3,3));
+            sigmaP_m[2] = std::sqrt(sigma(5,5));
 
-            distCorr_m.push_back(1E-3*siggen.getSigma()(0,1));  // R12
-            distCorr_m.push_back(1E-3*siggen.getSigma()(2,3));  // R34
-            distCorr_m.push_back(1E-3*siggen.getSigma()(4,5));  // R56
-            distCorr_m.push_back(1E-3*siggen.getSigma()(0,5));  // R16
-            distCorr_m.push_back(1E-3*siggen.getSigma()(1,5));  // R26
-            distCorr_m.push_back(1E-3*siggen.getSigma()(0,4));  // R15
-            distCorr_m.push_back(1E-3*siggen.getSigma()(1,4));  // R25
+            correlationMatrix_m(1, 0) = 1e-3 * sigma(0, 1) / (sigmaR_m[0] * sigmaP_m[0]);
+            correlationMatrix_m(3, 2) = 1e-3 * sigma(2, 3) / (sigmaR_m[1] * sigmaP_m[1]);
+            correlationMatrix_m(5, 4) = 1e-3 * sigma(4, 5) / (sigmaR_m[2] * sigmaP_m[2]);
+            correlationMatrix_m(4, 0) = 1e-6 * sigma(0, 4) / (sigmaR_m[0] * sigmaR_m[2]);
+            correlationMatrix_m(4, 1) = 1e-3 * sigma(1, 4) / (sigmaP_m[0] * sigmaR_m[2]);
+            correlationMatrix_m(5, 0) = 1e-3 * sigma(0, 5) / (sigmaR_m[0] * sigmaP_m[2]);
+            correlationMatrix_m(5, 1) = sigma(1, 5) / (sigmaP_m[0] * sigmaP_m[2]);
+
+            inputMoUnits_m = InputMomentumUnitsT::NONE;
 
         } else {
             *gmsg << "Not converged." << endl;
@@ -2015,6 +2031,8 @@ void Distribution::CreateOpalT(PartBunch &beam,
     if (emitting_m) {
         CheckEmissionParameters();
         SetupEmissionModel(beam);
+    } else {
+        pmean_m = Vector_t(0.0, 0.0, ConverteVToBetaGamma(GetEkin(), beam.getM()));
     }
 
     /*
@@ -2056,7 +2074,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
 void Distribution::DestroyBeam(PartBunch &beam) {
 
     particlesPerDist_m.clear();
-    distCorr_m.clear();
     xDist_m.clear();
     pxDist_m.clear();
     yDist_m.clear();
@@ -2351,8 +2368,7 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
     gsl_qrng *quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, 2);
 
     int numberOfSampleBins
-        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[AttributesT::SIZE
-                                                                 + LegacyAttributesT::SBIN])));
+        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[LegacyAttributesT::SBIN])));
     int numberOfEnergyBins
         = std::abs(static_cast<int> (Attributes::getReal(itsAttr[AttributesT::NBIN])));
 
@@ -2462,21 +2478,20 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
 
 
     // Calculate emittance and Twiss parameters.
-    std::vector<double> emittance;
+    Vector_t emittance;
     for (unsigned int index = 0; index < 3; index++) {
-        double value = sigmaR_m[index] * sigmaP_m[index]
-            * cos(asin(distCorr_m.at(index)));
-        emittance.push_back(value);
+        emittance(index) = sigmaR_m[index] * sigmaP_m[index]
+            * cos(asin(correlationMatrix_m(2 * index + 1, 2 * index)));
     }
 
-    std::vector<double> beta;
-    std::vector<double> gamma;
-    std::vector<double> alpha;
+    Vector_t beta;
+    Vector_t gamma;
+    Vector_t alpha;
     for (unsigned int index = 0; index < 3; index++) {
-        beta.push_back(pow(sigmaR_m[index], 2.0) / emittance.at(index));
-        gamma.push_back(pow(sigmaP_m[index], 2.0) / emittance.at(index));
-        alpha.push_back(-distCorr_m.at(index)
-                        * sqrt(beta.at(index) * gamma.at(index)));
+        beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
+        gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
+        alpha(index) = -correlationMatrix_m(2 * index + 1, 2 * index)
+                        * sqrt(beta(index) * gamma(index));
     }
 
     Vector_t M = Vector_t(0.0);
@@ -2489,12 +2504,12 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
     Vector_t PL = Vector_t(0.0);
 
     for(unsigned int index = 0; index < 3; index++) {
-        gamma.at(index) *= cutoffR_m[index];
-        beta.at(index)  *= cutoffP_m[index];
-        M[index]      =  sqrt(emittance.at(index) * beta.at(index));
-        PM[index]     =  sqrt(emittance.at(index) * gamma.at(index));
-        COSCHI[index] =  sqrt(1.0 / (1.0 + pow(alpha.at(index), 2.0)));
-        SINCHI[index] = -alpha.at(index) * COSCHI[index];
+        gamma(index) *= cutoffR_m[index];
+        beta(index)  *= cutoffP_m[index];
+        M[index]      =  sqrt(emittance(index) * beta(index));
+        PM[index]     =  sqrt(emittance(index) * gamma(index));
+        COSCHI[index] =  sqrt(1.0 / (1.0 + pow(alpha(index), 2.0)));
+        SINCHI[index] = -alpha(index) * COSCHI[index];
         CHI[index]    =  atan2(SINCHI[index], COSCHI[index]);
         AMI[index]    =  1.0 / mBinomial_m[index];
         L[index]      =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * M[index];
@@ -2543,17 +2558,17 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
             U = A * cos(AL);
             V = A * sin(AL);
 
-            double tempa = 1.0 - distCorr_m.at(0) * distCorr_m.at(0);
-            const double l32 = (distCorr_m.at(6) - distCorr_m.at(0) * distCorr_m.at(5)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            double tempb = 1 - distCorr_m.at(5) * distCorr_m.at(5) - l32 * l32;
+            double tempa = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
+            const double l32 = (correlationMatrix_m(4, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
+            double tempb = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
             const double l33 = sqrt(std::abs(tempb)) * tempb / std::abs(tempb);
-            x[2] = Ucp * distCorr_m.at(5) + Vcp * l32 + U * l33;
-            const double l42 = (distCorr_m.at(4) - distCorr_m.at(0) * distCorr_m.at(3)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            const double l43 = (distCorr_m.at(2) - distCorr_m.at(5) * distCorr_m.at(3) - l42 * l32) / l33;
-            double tempc = 1 - distCorr_m.at(3) * distCorr_m.at(3) - l42 * l42 - l43 * l43;
+            x[2] = Ucp * correlationMatrix_m(4, 0) + Vcp * l32 + U * l33;
+            const double l42 = (correlationMatrix_m(5, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
+            const double l43 = (correlationMatrix_m(5, 4) - correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
+            double tempc = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
             const double l44 = sqrt(std::abs(tempc)) * tempc / std::abs(tempc);
 
-            p[2] = Ucp * distCorr_m.at(3) + Vcp * l42 + U * l43 + V * l44;
+            p[2] = Ucp * correlationMatrix_m(5, 0) + Vcp * l42 + U * l43 + V * l44;
             x[2]  *= L[2];
             p[2] *= PL[2];
 
@@ -2585,17 +2600,17 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
             U = A * cos(AL);
             V = A * sin(AL);
 
-            double tempa = 1.0 - distCorr_m.at(0) * distCorr_m.at(0);
-            const double l32 = (distCorr_m.at(6) - distCorr_m.at(0) * distCorr_m.at(5)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            double tempb = 1 - distCorr_m.at(5) * distCorr_m.at(5) - l32 * l32;
-            const double l33 = sqrt(std::abs(tempb)) * tempb / std::abs(tempb);
-            x[2] = Ucp * distCorr_m.at(5) + Vcp * l32 + U * l33;
-            const double l42 = (distCorr_m.at(4) - distCorr_m.at(0) * distCorr_m.at(3)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            const double l43 = (distCorr_m.at(2) - distCorr_m.at(5) * distCorr_m.at(3) - l42 * l32) / l33;
-            double tempc = 1 - distCorr_m.at(3) * distCorr_m.at(3) - l42 * l42 - l43 * l43;
-            const double l44 = sqrt(std::abs(tempc)) * tempc / std::abs(tempc);
+            double tempa = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
+            const double l32 = std::copysign(1.0, tempa) * (correlationMatrix_m(4, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / sqrt(std::abs(tempa));
+            double tempb = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
+            const double l33 = std::copysign(1.0, tempb) * sqrt(std::abs(tempb));
+            x[2] = Ucp * correlationMatrix_m(4, 0) + Vcp * l32 + U * l33;
+            const double l42 = std::copysign(1.0, tempa) * (correlationMatrix_m(5, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / sqrt(std::abs(tempa));
+            const double l43 = (correlationMatrix_m(5, 4) - correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
+            double tempc = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
+            const double l44 = std::copysign(1.0, tempc) * sqrt(std::abs(tempc));
 
-            p[2] = Ucp * distCorr_m.at(3) + Vcp * l42 + U * l43 + V * l44;
+            p[2] = Ucp * correlationMatrix_m(5, 0) + Vcp * l42 + U * l43 + V * l44;
             x[2]  *= M[2];
             p[2] *= PM[2];
 
@@ -2816,44 +2831,26 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_vector * rx = gsl_vector_alloc(6);
     gsl_vector * ry = gsl_vector_alloc(6);
 
-    int i,j;
-
-    for (i = 0; i < 6; i++) {
-        for (j = 0; j < 6; j++) {
-            if (i==j)
-                gsl_matrix_set (m, i, j, 1.0);
-            else
-                gsl_matrix_set (m, i, j, 0.0);
+    for (unsigned int i = 0; i < 6; ++ i) {
+        gsl_matrix_set(m, i, i, correlationMatrix_m(i, i));
+        for (unsigned int j = 0; j < i; ++ j) {
+            gsl_matrix_set(m, i, j, correlationMatrix_m(i, j));
+            gsl_matrix_set(m, j, i, correlationMatrix_m(i, j));
         }
     }
-    gsl_matrix_set (m,0,1, distCorr_m.at(0));
-    gsl_matrix_set (m,1,0, distCorr_m.at(0));
-    gsl_matrix_set (m,2,3, distCorr_m.at(1));
-    gsl_matrix_set (m,3,2, distCorr_m.at(1));
-    gsl_matrix_set (m,4,5, distCorr_m.at(2));
-    gsl_matrix_set (m,5,4, distCorr_m.at(2));
 
-    gsl_matrix_set (m,5,0, distCorr_m.at(3));
-    gsl_matrix_set (m,0,5, distCorr_m.at(3));
-    gsl_matrix_set (m,5,1, distCorr_m.at(4));
-    gsl_matrix_set (m,1,5, distCorr_m.at(4));
-
-    gsl_matrix_set (m,4,0, distCorr_m.at(5));
-    gsl_matrix_set (m,0,4, distCorr_m.at(5));
-    gsl_matrix_set (m,4,1, distCorr_m.at(6));
-    gsl_matrix_set (m,1,4, distCorr_m.at(6));
 #define DISTDBG1
 #ifdef DISTDBG1
     *gmsg << "* m before gsl_linalg_cholesky_decomp" << endl;
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
             if (j==0)
-                *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = "
-                      << std::setprecision(3) << gsl_matrix_get (m, i, j);
+                *gmsg << "* r(" << std::setprecision(1) << i << ", : ) = "
+                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
             else
-                *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
+                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
         }
-        *gmsg << "*" << endl;
+        *gmsg << " \\\\" << endl;
     }
 #endif
 
@@ -2863,25 +2860,25 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         throw OpalException("Distribution::GenerateGaussZ",
                             "gsl_linalg_cholesky_decomp failed");
     }
-    // so make the lower part zero.
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < i ; j++) {
+    // so make the upper part zero.
+    for (int i = 0; i < 5; ++ i) {
+        for (int j = i+1; j < 6 ; ++ j) {
             gsl_matrix_set (m, i, j, 0.0);
         }
     }
-    gsl_matrix_transpose(m);
+
 #define DISTDBG2
 #ifdef DISTDBG2
     *gmsg << "* m after gsl_linalg_cholesky_decomp" << endl;
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
             if (j==0)
-                *gmsg << "* r(" << std::setprecision(1) << i << "," << std::setprecision(1) << j << ") = "
-                      << std::setprecision(3) << gsl_matrix_get (m, i, j);
+                *gmsg << "* r(" << std::setprecision(1) << i << ", : ) = "
+                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
             else
-                *gmsg << "\t" << std::setprecision(3) << gsl_matrix_get (m, i, j);
+                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
         }
-        *gmsg << "*" << endl;
+        *gmsg << " \\\\" << endl;
     }
 #endif
 
@@ -3125,6 +3122,30 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
     // Generate coordinates.
     gsl_rng_env_setup();
     gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
+    gsl_matrix * m  = gsl_matrix_alloc (4, 4);
+    gsl_vector * rx = gsl_vector_alloc(4);
+    gsl_vector * ry = gsl_vector_alloc(4);
+
+    for (unsigned int i = 0; i < 4; ++ i) {
+        gsl_matrix_set(m, i, i, correlationMatrix_m(i, i));
+        for (unsigned int j = 0; j < i; ++ j) {
+            gsl_matrix_set(m, i, j, correlationMatrix_m(i, j));
+            gsl_matrix_set(m, j, i, correlationMatrix_m(i, j));
+        }
+    }
+
+    int errcode = gsl_linalg_cholesky_decomp(m);
+
+    if (errcode == GSL_EDOM) {
+        throw OpalException("Distribution::GenerateTransverseGauss",
+                            "gsl_linalg_cholesky_decomp failed");
+    }
+
+    for (int i = 0; i < 3; ++ i) {
+        for (int j = i+1; j < 4 ; ++ j) {
+            gsl_matrix_set (m, i, j, 0.0);
+        }
+    }
 
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
@@ -3134,25 +3155,19 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
         double y = 0.0;
         double py = 0.0;
 
-        double random1 = 0.0;
-        double random2 = 0.0;
-        double random3 = 0.0;
-        double random4 = 0.0;
         bool allow = false;
         while (!allow) {
 
+            gsl_vector_set(rx, 0, gsl_ran_gaussian (randGen,1.0));
+            gsl_vector_set(rx, 1, gsl_ran_gaussian (randGen,1.0));
+            gsl_vector_set(rx, 2, gsl_ran_gaussian (randGen,1.0));
+            gsl_vector_set(rx, 3, gsl_ran_gaussian (randGen,1.0));
 
-            random1 = gsl_ran_gaussian (randGen,1.0);
-            random2 = gsl_ran_gaussian (randGen,1.0);
-            x = random1 * sigmaR_m[0];
-            px = sigmaP_m[0] * (random1* distCorr_m.at(0)
-                                + random2 * sqrt(1.0 - pow(distCorr_m.at(0), 2.0)));
-
-            random3 = gsl_ran_gaussian (randGen,1.0);
-            random4 = gsl_ran_gaussian (randGen,1.0);
-            y = random3 * sigmaR_m[1];
-            py = sigmaP_m[1] * (random3 * distCorr_m.at(1)
-                                + random4 * sqrt(1.0 - pow(distCorr_m.at(1), 2.0)));
+            gsl_blas_dgemv(CblasNoTrans, 1.0, m, rx, 0.0, ry);
+            x = sigmaR_m[0] * gsl_vector_get(ry, 0);
+            px = sigmaP_m[0] * gsl_vector_get(ry, 1);
+            y = sigmaR_m[1] * gsl_vector_get(ry, 2);
+            py = sigmaP_m[1] * gsl_vector_get(ry, 3);
 
             bool xAndYOk = false;
             if (cutoffR_m[0] <= 0.0 && cutoffR_m[1] <= 0.0)
@@ -3162,8 +3177,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             else if (cutoffR_m[1] <= 0.0)
                 xAndYOk = (std::abs(x) <= sigmaR_m[1] * cutoffR_m[0]);
             else
-                xAndYOk = (pow(x, 2.0) + pow(y, 2.0) <= sigmaR_m[0] * cutoffR_m[0]
-                           * sigmaR_m[1] * cutoffR_m[1]);
+                xAndYOk = (pow(x / (sigmaR_m[0] * cutoffR_m[0]), 2.0) + pow(y / (sigmaR_m[1] * cutoffR_m[1]), 2.0) <= 1.0);
 
             bool pxAndPyOk = false;
             if (cutoffP_m[0] <= 0.0 && cutoffP_m[1] <= 0.0)
@@ -3173,8 +3187,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             else if (cutoffP_m[1] <= 0.0)
                 pxAndPyOk = (std::abs(px) <= sigmaP_m[1] * cutoffP_m[0]);
             else
-                pxAndPyOk = (pow(px, 2.0) + pow(py, 2.0) <= sigmaP_m[0] * cutoffP_m[0]
-                             * sigmaP_m[1] * cutoffP_m[1]);
+                pxAndPyOk = (pow(px / (sigmaP_m[0] * cutoffP_m[0]), 2.0) + pow(py / (sigmaP_m[1] * cutoffP_m[1]), 2.0) <= 1.0);
 
             allow = (xAndYOk && pxAndPyOk);
 
@@ -3434,13 +3447,13 @@ void Distribution::PrintDistBinomial(Inform &os) const {
         os << "* MT       = " << mBinomial_m[2] << endl;
     else
         os << "* MZ       = " << mBinomial_m[2] << endl;
-    os << "* CORRX    = " << distCorr_m.at(0) << endl;
-    os << "* CORRY    = " << distCorr_m.at(1) << endl;
-    os << "* CORRZ    = " << distCorr_m.at(2) << endl;
-    os << "* R61      = " << distCorr_m.at(3) << endl;
-    os << "* R62      = " << distCorr_m.at(4) << endl;
-    os << "* R51      = " << distCorr_m.at(5) << endl;
-    os << "* R52      = " << distCorr_m.at(6) << endl;
+    os << "* CORRX    = " << correlationMatrix_m(1, 0) << endl;
+    os << "* CORRY    = " << correlationMatrix_m(3, 2) << endl;
+    os << "* CORRZ    = " << correlationMatrix_m(5, 4) << endl;
+    os << "* R61      = " << correlationMatrix_m(5, 0) << endl;
+    os << "* R62      = " << correlationMatrix_m(5, 1) << endl;
+    os << "* R51      = " << correlationMatrix_m(4, 0) << endl;
+    os << "* R52      = " << correlationMatrix_m(4, 1) << endl;
 }
 
 void Distribution::PrintDistFlattop(Inform &os) const {
@@ -3526,13 +3539,13 @@ void Distribution::PrintDistMatchedGauss(Inform &os) const {
     os << "* SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
     os << "* AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
 
-    os << "* CORRX    = " << distCorr_m.at(0) << endl;
-    os << "* CORRY    = " << distCorr_m.at(1) << endl;
-    os << "* CORRZ    = " << distCorr_m.at(2) << endl;
-    os << "* R61      = " << distCorr_m.at(3) << endl;
-    os << "* R62      = " << distCorr_m.at(4) << endl;
-    os << "* R51      = " << distCorr_m.at(5) << endl;
-    os << "* R52      = " << distCorr_m.at(6) << endl;
+    os << "* CORRX    = " << correlationMatrix_m(1, 0) << endl;
+    os << "* CORRY    = " << correlationMatrix_m(3, 2) << endl;
+    os << "* CORRZ    = " << correlationMatrix_m(5, 4) << endl;
+    os << "* R61      = " << correlationMatrix_m(5, 0) << endl;
+    os << "* R62      = " << correlationMatrix_m(5, 1) << endl;
+    os << "* R51      = " << correlationMatrix_m(4, 0) << endl;
+    os << "* R52      = " << correlationMatrix_m(4, 1) << endl;
     os << "* CUTOFFX  = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
     os << "* CUTOFFY  = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
     os << "* CUTOFFZ  = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
@@ -3565,8 +3578,8 @@ void Distribution::PrintDistGauss(Inform &os) const {
            << " [Beta Gamma]" << endl;
         os << "* SIGMAPY                       = " << sigmaP_m[1]
            << " [Beta Gamma]" << endl;
-        os << "* CORRX                         = " << distCorr_m.at(0) << endl;
-        os << "* CORRY                         = " << distCorr_m.at(1) << endl;
+        os << "* CORRX                         = " << correlationMatrix_m(1, 0) << endl;
+        os << "* CORRY                         = " << correlationMatrix_m(3, 2) << endl;
         os << "* CUTOFFX                       = " << cutoffR_m[0]
            << " [units of SIGMAX]" << endl;
         os << "* CUTOFFY                       = " << cutoffR_m[1]
@@ -3584,13 +3597,13 @@ void Distribution::PrintDistGauss(Inform &os) const {
         os << "* SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
         os << "* AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
 
-        os << "* CORRX    = " << distCorr_m.at(0) << endl;
-        os << "* CORRY    = " << distCorr_m.at(1) << endl;
-        os << "* CORRZ    = " << distCorr_m.at(2) << endl;
-        os << "* R61      = " << distCorr_m.at(3) << endl;
-        os << "* R62      = " << distCorr_m.at(4) << endl;
-        os << "* R51      = " << distCorr_m.at(5) << endl;
-        os << "* R52      = " << distCorr_m.at(6) << endl;
+        os << "* CORRX    = " << correlationMatrix_m(1, 0) << endl;
+        os << "* CORRY    = " << correlationMatrix_m(3, 2) << endl;
+        os << "* CORRZ    = " << correlationMatrix_m(5, 4) << endl;
+        os << "* R61      = " << correlationMatrix_m(5, 0) << endl;
+        os << "* R62      = " << correlationMatrix_m(5, 1) << endl;
+        os << "* R51      = " << correlationMatrix_m(4, 0) << endl;
+        os << "* R52      = " << correlationMatrix_m(4, 1) << endl;
         os << "* CUTOFFX  = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
         os << "* CUTOFFY  = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
         os << "* CUTOFFZ  = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
@@ -3760,6 +3773,7 @@ void Distribution::ReflectDistribution(size_t &numberOfParticles) {
         pzDist_m.push_back(pzDist_m.at(partIndex));
     }
     numberOfParticles = tOrZDist_m.size();
+    reduce(numberOfParticles, numberOfParticles, OpAddAssign());
 }
 
 void Distribution::ScaleDistCoordinates() {
@@ -4070,20 +4084,20 @@ void Distribution::SetAttributes() {
      */
 
     // Parameters for emitting a distribution.
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::DEBIN]
+    itsAttr[ LegacyAttributesT::DEBIN]
         = Attributes::makeReal("DEBIN", "Energy band for a bin in keV that defines "
                                "when to combine bins. That is, when the energy "
                                "spread of all bins is below this number "
                                "combine bins into a single bin.", 1000000.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::SBIN]
+    itsAttr[ LegacyAttributesT::SBIN]
         = Attributes::makeReal("SBIN", "Number of sample bins to use per energy bin "
                                "when emitting a distribution.", 100.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::TEMISSION]
+    itsAttr[ LegacyAttributesT::TEMISSION]
         = Attributes::makeReal("TEMISSION", "Time it takes to emit distribution.", 0.0);
 
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::SIGLASER]
+    itsAttr[ LegacyAttributesT::SIGLASER]
         = Attributes::makeReal("SIGLASER","Sigma of (uniform) laser spot size.", 0.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::AG]
+    itsAttr[ LegacyAttributesT::AG]
         = Attributes::makeReal("AG", "Acceleration gradient at photocathode surface "
                                "(MV/m).", 0.0);
 
@@ -4092,47 +4106,47 @@ void Distribution::SetAttributes() {
      * Specific to type GAUSS and GUNGAUSSFLATTOPTH and ASTRAFLATTOPTH. These
      * last two distribution will eventually just become a subset of GAUSS.
      */
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::SIGMAPT] = Attributes::makeReal("SIGMAPT", "SIGMApt", 0.0);
+    itsAttr[ LegacyAttributesT::SIGMAPT] = Attributes::makeReal("SIGMAPT", "SIGMApt", 0.0);
 
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::TRANSVCUTOFF]
+    itsAttr[ LegacyAttributesT::TRANSVCUTOFF]
         = Attributes::makeReal("TRANSVCUTOFF", "Transverse cut-off in units of sigma.",
                                -3.0);
 
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::CUTOFF]
+    itsAttr[ LegacyAttributesT::CUTOFF]
         = Attributes::makeReal("CUTOFF", "Longitudinal cutoff for Gaussian in units "
                                "of sigma.", 3.0);
 
 
     // Mixed use attributes (used by more than one distribution type).
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::Z]
+    itsAttr[ LegacyAttributesT::Z]
         = Attributes::makeReal("Z", "Average longitudinal position of distribution "
                                "in z coordinates (m).", -99.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::T]
+    itsAttr[ LegacyAttributesT::T]
         = Attributes::makeReal("T", "Average longitudinal position of distribution "
                                "in t coordinates (s).", 0.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::PT]
+    itsAttr[ LegacyAttributesT::PT]
         = Attributes::makeReal("PT", "Average longitudinal momentum of distribution.",
                                0.0);
 
 
     // Attributes that are not yet implemented.
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::ALPHAX]
+    itsAttr[ LegacyAttributesT::ALPHAX]
         = Attributes::makeReal("ALPHAX", "Courant Snyder parameter.", 0.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::ALPHAY]
+    itsAttr[ LegacyAttributesT::ALPHAY]
         = Attributes::makeReal("ALPHAY", "Courant Snyder parameter.", 0.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::BETAX]
+    itsAttr[ LegacyAttributesT::BETAX]
         = Attributes::makeReal("BETAX", "Courant Snyder parameter.", 1.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::BETAY]
+    itsAttr[ LegacyAttributesT::BETAY]
         = Attributes::makeReal("BETAY", "Courant Snyder parameter.", 1.0);
 
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::DX]
+    itsAttr[ LegacyAttributesT::DX]
         = Attributes::makeReal("DX", "Dispersion in x (R16 in Transport notation).", 0.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::DDX]
+    itsAttr[ LegacyAttributesT::DDX]
         = Attributes::makeReal("DDX", "First derivative of DX.", 0.0);
 
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::DY]
+    itsAttr[ LegacyAttributesT::DY]
         = Attributes::makeReal("DY", "Dispersion in y (R36 in Transport notation).", 0.0);
-    itsAttr[AttributesT::SIZE + LegacyAttributesT::DDY]
+    itsAttr[ LegacyAttributesT::DDY]
         = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
 }
 
@@ -4249,18 +4263,18 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
      * Set Distribution parameters. Do all the necessary checks depending
      * on the input attributes.
      */
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
+    correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[AttributesT::CORRX]);
+    correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[AttributesT::CORRY]);
+    correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRT]);
+    correlationMatrix_m(4, 0) = Attributes::getReal(itsAttr[AttributesT::R51]);
+    correlationMatrix_m(4, 1) = Attributes::getReal(itsAttr[AttributesT::R52]);
+    correlationMatrix_m(5, 0) = Attributes::getReal(itsAttr[AttributesT::R61]);
+    correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[AttributesT::R62]);
 
     //CORRZ overrides CORRT. We initially use CORRT for legacy compatibility.
     if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-        distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
+        correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
 
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));
 
     sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
                         std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
@@ -4272,8 +4286,7 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
 
     sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
                         std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIZE
-                                                             + LegacyAttributesT::SIGMAPT])));
+                        std::abs(Attributes::getReal(itsAttr[LegacyAttributesT::SIGMAPT])));
 
     // SIGMAPZ overrides SIGMAPT. We initially use SIGMAPT for legacy compatibility.
     if (Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]) != 0.0)
@@ -4311,7 +4324,7 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
     if (emitting_m) {
         sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
         mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::MT]));
-        distCorr_m.at(2) = std::abs(Attributes::getReal(itsAttr[AttributesT::CORRT]));
+        correlationMatrix_m(5, 4) = std::abs(Attributes::getReal(itsAttr[AttributesT::CORRT]));
     }
 }
 
@@ -4342,13 +4355,13 @@ void Distribution::SetDistParametersFlattop(double massIneV) {
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
                          Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
 
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
-    distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
+    correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[AttributesT::CORRX]);
+    correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[AttributesT::CORRY]);
+    correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRT]);
 
     // CORRZ overrides CORRT.
     if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-        distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
+        correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
 
 
     if (emitting_m) {
@@ -4458,13 +4471,12 @@ void Distribution::SetDistParametersGauss(double massIneV) {
         if(cr.size()>0) {
             if(cr.size() == 15) {
                 *gmsg << "* Use r to specify correlations" << endl;
-                distCorr_m.push_back(cr.at(0));   // corr x,px
-                distCorr_m.push_back(cr.at(6));   // corr y,py
-                distCorr_m.push_back(cr.at(14));  // corr z,pz
-                distCorr_m.push_back(cr.at(4));   // corr R16
-                distCorr_m.push_back(cr.at(8));   // corr R26
-                distCorr_m.push_back(cr.at(11));  // corr R36
-                distCorr_m.push_back(cr.at(13));  // corr R46
+                unsigned int k = 0;
+                for (unsigned int i = 0; i < 5; ++ i) {
+                    for (unsigned int j = i + 1; j < 6; ++ j, ++ k) {
+                        correlationMatrix_m(j, i) = cr.at(k);
+                    }
+                }
 
             }
             else {
@@ -4473,18 +4485,17 @@ void Distribution::SetDistParametersGauss(double massIneV) {
             }
         }
         else {
-            distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRX]));
-            distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRY]));
-            distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::CORRT]));
+            correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[AttributesT::CORRX]);
+            correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[AttributesT::CORRY]);
+            correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRT]);
+            correlationMatrix_m(4, 0) = Attributes::getReal(itsAttr[AttributesT::R51]);
+            correlationMatrix_m(4, 1) = Attributes::getReal(itsAttr[AttributesT::R52]);
+            correlationMatrix_m(5, 0) = Attributes::getReal(itsAttr[AttributesT::R61]);
+            correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[AttributesT::R62]);
 
             // CORRZ overrides CORRT.
             if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-                distCorr_m.at(2) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
-
-            distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R61]));
-            distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R62]));
-            distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R51]));
-            distCorr_m.push_back(Attributes::getReal(itsAttr[AttributesT::R52]));
+                correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
         }
     }
 
@@ -4581,6 +4592,7 @@ void Distribution::SetupEmissionModelAstra(PartBunch &beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
+    pmean_m = Vector_t(0.0, 0.0, 0.5 * pTotThermal_m);
 
     gsl_rng_env_setup();
     randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
@@ -4591,6 +4603,7 @@ void Distribution::SetupEmissionModelNone(PartBunch &beam) {
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
 
+    pmean_m = Vector_t(0.0, 0.0, pTotThermal_m);
 }
 
 void Distribution::SetupEmissionModelNonEquil() {
@@ -4609,6 +4622,9 @@ void Distribution::SetupEmissionModelNonEquil() {
 
     gsl_rng_env_setup();
     randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
+
+    // TODO: get better estimate of pmean
+    pmean_m = 0.5 * (cathodeWorkFunc_m + emitEnergyUpperLimit_m);
 }
 
 void Distribution::SetupEnergyBins(double maxTOrZ, double minTOrZ) {
@@ -4631,14 +4647,13 @@ void Distribution::SetupParticleBins(double massIneV, PartBunch &beam) {
         if (energyBins_m)
             delete energyBins_m;
 
-        int sampleBins = static_cast<int>(std::abs(Attributes::getReal(itsAttr[AttributesT::SIZE
-                                                                               + LegacyAttributesT::SBIN])));
+        int sampleBins = static_cast<int>(std::abs(Attributes::getReal(itsAttr[LegacyAttributesT::SBIN])));
         energyBins_m = new PartBins(numberOfEnergyBins_m, sampleBins);
 
-        double dEBins = Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::DEBIN]);
+        double dEBins = Attributes::getReal(itsAttr[ LegacyAttributesT::DEBIN]);
         energyBins_m->setRebinEnergy(dEBins);
 
-        if (Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT])!=0.0)
+        if (Attributes::getReal(itsAttr[ LegacyAttributesT::PT])!=0.0)
             WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC or use OFFSETPZ" << endl);
 
         // we get gamma from PC of the beam
@@ -4714,7 +4729,7 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
      * for legacy compatiblity. OFFSETT always overrides T, even
      * when zero, for an emitted beam.
      */
-    double deltaTOrZ = Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::T]);
+    double deltaTOrZ = Attributes::getReal(itsAttr[ LegacyAttributesT::T]);
     if (emitting_m)
         deltaTOrZ = Attributes::getReal(itsAttr[AttributesT::OFFSETT]);
     else {
@@ -4726,7 +4741,7 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
     double deltaPy = Attributes::getReal(itsAttr[AttributesT::OFFSETPY]);
     double deltaPz = Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]);
 
-    if (Attributes::getReal(itsAttr[AttributesT::SIZE + LegacyAttributesT::PT])!=0.0)
+    if (Attributes::getReal(itsAttr[LegacyAttributesT::PT])!=0.0)
         WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
 
     // Check input momentum units.

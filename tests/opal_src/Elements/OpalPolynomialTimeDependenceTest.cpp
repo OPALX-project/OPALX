@@ -41,15 +41,15 @@ TEST(OpalPolynomialTimeDependenceTest, PrintTest) {
 }
 
 TEST(OpalPolynomialTimeDependenceTest, UpdateTest) {
-    std::cerr << "HELLO" << std::endl;
+    // std::cerr << "HELLO" << std::endl;
     TestElement element;
-    std::cerr << "WORLD" << std::endl;
+    // std::cerr << "WORLD" << std::endl;
     element.setAttribute("P0", 99.);
-    std::cerr << "ATTR" << std::endl;
+    // std::cerr << "ATTR" << std::endl;
     OpalPolynomialTimeDependence dependence;
-    std::cerr << "FILL" << std::endl;
+    // std::cerr << "FILL" << std::endl;
     // makes a segmentation fault...
     // dependence.fillRegisteredAttributes(element, OpalElement::IDEAL_FLAG);
-    std::cerr << "DONE" << std::endl;
+    // std::cerr << "DONE" << std::endl;
 
 }
