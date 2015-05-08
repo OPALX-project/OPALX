@@ -4,6 +4,7 @@ set (_SRCS
   MPSplitIntegrator.cpp
   ThickMapper.cpp
   ThickTracker.cpp
+  AutophaseTracker.cpp
   ParallelTTracker.cpp
   ParallelCyclotronTracker.cpp
   ParallelSliceTracker.cpp

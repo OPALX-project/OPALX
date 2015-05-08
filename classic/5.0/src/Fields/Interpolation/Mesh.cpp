@@ -25,10 +25,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Fields/SectorMagneticFieldMap/Mesh.h"
+#include "Fields/Interpolation/Mesh.h"
 
 #include <iomanip>
 
+namespace interpolation {
 std::ostream& operator<<(std::ostream& out, const Mesh::Iterator& it) {
     out << std::setw(5) << it.toInteger() << " ** ";
     for (unsigned int i = 0; i < it.getState().size(); i++)
@@ -39,3 +40,5 @@ std::ostream& operator<<(std::ostream& out, const Mesh::Iterator& it) {
             << it.getPosition()[i] << " ";
     return out;
 }
+}
+

@@ -31,9 +31,12 @@
 #ifndef _CLASSIC_FIELDS_MESH_H_
 #define _CLASSIC_FIELDS_MESH_H_
 
+namespace interpolation {
+
 class VectorMap;
 
-/** Mesh Base class for meshing routines
+/** \class Mesh
+ *  \brief Base class for meshing routines
  *
  *  Aim is to describe a set of points in various dimensions etc for use in
  *  interpolation routines. Concrete classes are TwoDGrid, ThreeDGrid, NDGrid
@@ -63,7 +66,7 @@ class Mesh {
      *
      *  Dual is a polyhedron that has centre of each face as a point on the mesh
      */
-    virtual Mesh* dual() = 0;
+    virtual Mesh* dual() const = 0;
 
     /** Destructor - does nothing */
     inline virtual ~Mesh();
@@ -147,7 +150,7 @@ class Mesh {
 };
 
 
-/** \class Mesh::Iterator object
+/** \class Mesh::Iterator
  *
  *  Used to loop over some, or all, points in the mesh, as in stl Enables e.g.
  *  generic file I/O operations on a field map without knowing the details of
@@ -338,7 +341,9 @@ inline bool operator> (const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
  */
 std::ostream& operator<<(std::ostream& out, const Mesh::Iterator& it);
 
-#include "Fields/SectorMagneticFieldMap/Mesh-inl.icc"
+}
+
+#include "Fields/Interpolation/Mesh-inl.icc"
 
 #endif
 

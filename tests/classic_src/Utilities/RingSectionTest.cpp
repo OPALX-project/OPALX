@@ -216,3 +216,4 @@ TEST(RingSectionTest, TestDoesOverlap) {
     EXPECT_FALSE(ors3.doesOverlap(f1, f1));
     EXPECT_FALSE(ors3.doesOverlap(f4, f4));
 }
+

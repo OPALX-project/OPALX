@@ -216,5 +216,3 @@ TEST(VariableRFCavityTest, TestApplyBoundingBox) {
     EXPECT_FALSE(cav1.apply(R, centroid, t, E, B));
 }
 
-TEST(VariableRFCavityTest, DISABLED_TestAccept) {
-}

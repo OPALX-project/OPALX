@@ -32,7 +32,8 @@ namespace Physics {
     const double u_two_pi   = 1.0 / (2.0 * pi);
     const double e          = 2.7182818284590452354;
     const double log10e     = 0.43429448190325182765;
-
+    const double rad2deg    = 180.0 / pi;
+    const double deg2rad    = pi / 180.0;
 
     // Universal physical constants
     // ----------------------------------------------------------------------

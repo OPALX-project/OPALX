@@ -28,8 +28,10 @@
 #ifndef _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO1D_H_
 #define _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO1D_H_
 
-#include "Fields/SectorMagneticFieldMap/VectorMap.h"
-#include "Fields/SectorMagneticFieldMap/ThreeDGrid.h"
+#include "Fields/Interpolation/VectorMap.h"
+#include "Fields/Interpolation/ThreeDGrid.h"
+
+namespace interpolation {
 
 /** Interpolator3dGridTo1d is an abstraction for lookup on a 3D mesh to get a 1D
  *  value.
@@ -216,4 +218,5 @@ void Interpolator3dGridTo1d::clear() {
     coordinates_m->remove(this);
 }
 
+}
 #endif  // _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO1D_HH_
