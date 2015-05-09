@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 // include files
-#include "Utility/Pstring.h"
 #include "AppTypes/Vektor.h"
 #include "AppTypes/Tenzor.h"
 #include "AppTypes/SymTenzor.h"
