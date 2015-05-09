@@ -33,12 +33,16 @@
 #include <map>
 #include <iostream>
 
-#include "Fields/SectorMagneticFieldMap/SectorField.h"
+#include "Fields/SectorField.h"
 
-class Interpolator3dGridTo3d;
-class ThreeDGrid;
+namespace interpolation {
+    class VectorMap;
+    class ThreeDGrid;
+}
 
-/** \class SectorMagneticFieldMap handles field map grids with sector geometry
+/** \class[SectorMagneticFieldMap] 
+ *
+ *  \brief handles field map grids with sector geometry
  *
  *  SectorMagneticFieldMap provides an interface to the 3D interpolator
  *  routines for 3D field maps in a sector geometry. Interpolation is done from
@@ -77,9 +81,15 @@ class SectorMagneticFieldMap : public SectorField {
      *         field map - either "Dipole" or "None"
      *  \param length_units multiplier for lengths
      *  \param field_units multiplier for fields
+     *  \param polynomial_order order of polynomial fit to the mesh points
+     *  \param smoothing_order order of smoothing (should be >= polynomial_order)
      */
-    SectorMagneticFieldMap(std::string file_name, std::string symmetry,
-                           double length_units, double field_units);
+    SectorMagneticFieldMap(std::string file_name,
+                           std::string symmetry,
+                           double length_units,
+                           double field_units,
+                           int polynomial_order,
+                           int smoothing_order);
 
     /** Copy constructor - makes a deep copy of the field map */
     SectorMagneticFieldMap(const SectorMagneticFieldMap& field);
@@ -125,14 +135,14 @@ class SectorMagneticFieldMap : public SectorField {
      *
      *  Note SectorMagneticFieldMap still owns this memory.
      */
-    Interpolator3dGridTo3d* getInterpolator();
+    interpolation::VectorMap* getInterpolator();
 
     /** Set the interpolator
      *
      *  \param interpolator set the field map interpolator. Note
      *  SectorMagneticFieldMap now owns the memory pointed to by interpolator
      */
-    void setInterpolator(Interpolator3dGridTo3d* interpolator);
+    void setInterpolator(interpolation::VectorMap* interpolator);
 
 
     /** Get the field map file name */
@@ -188,23 +198,28 @@ class SectorMagneticFieldMap : public SectorField {
     /** Get change in azimuthal angle between entrance and exit */
     double getDeltaPhi() const;
 
-    void test_f();
-
     friend class FieldMap;
 
   private:
     enum symmetry {none, dipole};
+
+    /** Reflect R_temp about y if below bbmin 
+     *  \returns true if symmetry transformation was applied
+     */
+    bool applySymmetry(double* R_temp) const;
 
     static symmetry StringToSymmetry(std::string name);
     static std::string SymmetryToString(symmetry sym);
 
     void Rotate(double* value, double angle);
 
-    Interpolator3dGridTo3d* interpolator_m;
+    interpolation::VectorMap* interpolator_m;
     symmetry symmetry_m;
     std::vector<double> units_m;
     const std::string filename_m;
     double phiOffset_m;
+    int poly_order_m;
+    int smoothing_order_m;
 
     static const double fractionalBBPhiTolerance_m;
     static std::map<std::string, SectorMagneticFieldMap*> _fields;
@@ -217,7 +232,9 @@ class SectorMagneticFieldMap : public SectorField {
 };
 
 
-/** \class SectorMagneticFieldMap::IO handles reading sector field maps
+/** \class[SectorMagneticFieldMap::IO]
+ *
+ *  \brief handles reading sector field maps
  *
  *  SectorMagneticFieldMap::IO provides routines to read a sector field map for
  *  input to tracking.
@@ -232,9 +249,14 @@ class SectorMagneticFieldMap::IO {
      *  \param units units of the file - should be 6-vector
      *  \param sym symmetry of the file - either "none" (full field map) or
      *         "dipole" (field map is reflected about y = 0)
+     *  \param poly_order order of the polynomial fit
+     *  \param smoothing_order order of the polynomial smoothing
      */
-    static Interpolator3dGridTo3d* readMap(std::string file_name,
-               std::vector<double> units, SectorMagneticFieldMap::symmetry sym);
+    static interpolation::VectorMap* readMap(std::string file_name,
+                                           std::vector<double> units,
+                                           SectorMagneticFieldMap::symmetry sym,
+                                           int poly_order,
+                                           int smoothing_order);
 
   private:
     static const double floatTolerance_m;
@@ -245,15 +267,22 @@ class SectorMagneticFieldMap::IO {
                              (std::string file_name, std::vector<double> units);
 
     // generate a grid based on the input map file
-    static ThreeDGrid* generateGrid
-                        (const std::vector< std::vector<double> > field_points,
+    static interpolation::ThreeDGrid* generateGrid(
+                         const std::vector< std::vector<double> > field_points,
                          SectorMagneticFieldMap::symmetry sym);
 
     // get the interpolator based on field points and grid information
-    static Interpolator3dGridTo3d* getInterpolator
-                        (const std::vector< std::vector<double> > field_points,
-                         ThreeDGrid* grid,
+    static interpolation::VectorMap* getInterpolator(
+                         const std::vector< std::vector<double> > field_points,
+                         interpolation::ThreeDGrid* grid,
                          SectorMagneticFieldMap::symmetry sym);
+
+    static interpolation::VectorMap* getInterpolatorPolyPatch(
+                         const std::vector< std::vector<double> > field_points,
+                         interpolation::ThreeDGrid* grid,
+                         SectorMagneticFieldMap::symmetry sym,
+                         int poly_order,
+                         int smoothing_order);
 
     // Compare two floats are same within tolerance
     static bool floatGreaterEqual(double in1, double in2);

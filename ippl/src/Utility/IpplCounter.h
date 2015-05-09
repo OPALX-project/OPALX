@@ -33,8 +33,6 @@
 
 // include files
 #include "Utility/Inform.h"
-#include "Utility/Pstring.h"
-
 
 class IpplCounter
 {

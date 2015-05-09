@@ -1,0 +1,48 @@
+#
+# Find gtest Google Test includes and library
+#
+# gtest
+# It can be found at:
+#     http://amas.web.psi.ch/tools/GSL/index.html
+#
+# GTEST_INCLUDE_DIR - where to find gtest/gtest.h
+# GTEST_LIBRARY     - libgtest.a path
+# GTEST_MAIN_LIBRARY     - libgtest_main.a path
+# GTEST_FOUND       - do not attempt to use if "no" or undefined.
+
+FIND_PATH(GTEST_INCLUDE_DIR gtest/gtest.h
+    HINTS $ENV{GTEST_INCLUDE_PATH} $ENV{GTEST_INCLUDE_DIR} $ENV{GTEST_PREFIX}/include $ENV{GTEST_ROOT}/include ${PROJECT_SOURCE_DIR}/tests/tools/gtest/include
+    PATHS ENV CPP_INCLUDE_PATH
+)
+
+FIND_LIBRARY(GTEST_LIBRARY gtest
+    HINTS $ENV{GTEST_LIBRARY_PATH} $ENV{GTEST_LIBRARY_DIR} $ENV{GTEST_PREFIX}/lib $ENV{GTEST_ROOT}/lib $ENV{GTEST}/lib ${PROJECT_SOURCE_DIR}/tests/tools/gtest/lib
+    PATHS ENV LIBRARY_PATH
+)
+
+FIND_LIBRARY(GTEST_LIBRARY_MAIN gtest_main
+    HINTS $ENV{GTEST_LIBRARY_PATH} $ENV{GTEST_LIBRARY_DIR} $ENV{GTEST_PREFIX}/lib $ENV{GTEST_ROOT}/lib $ENV{GTEST}/lib ${PROJECT_SOURCE_DIR}/tests/tools/gtest/lib
+    PATHS ENV LIBRARY_PATH
+)
+
+set( GTEST_BOTH_LIBRARIES
+    ${GTEST_LIBRARY}
+    ${GTEST_LIBRARY_MAIN}
+)
+
+IF(GTEST_INCLUDE_DIR AND GTEST_LIBRARY)
+    SET( GTEST_FOUND "YES" )
+ENDIF(GTEST_INCLUDE_DIR AND GTEST_LIBRARY)
+
+IF (GTEST_FOUND)
+   IF (NOT GTEST_FIND_QUIETLY)
+      MESSAGE(STATUS "Found gtest libraries: ${GTEST_BOTH_LIBRARIES}")
+      MESSAGE(STATUS "Found gtest include dir: ${GTEST_INCLUDE_DIR}")
+   ENDIF (NOT GTEST_FIND_QUIETLY)
+ELSE (GTEST_FOUND)
+   IF (GTest_FIND_REQUIRED)
+      MESSAGE(FATAL_ERROR "Could not find GTEST!")
+   ENDIF (GTest_FIND_REQUIRED)
+ENDIF (GTEST_FOUND)
+
+

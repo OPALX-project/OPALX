@@ -28,7 +28,6 @@
 #include "Utility/IpplStats.h"
 #include "Utility/PAssert.h"
 #include "Utility/RandomNumberGen.h"
-#include "Utility/Pstring.h"
 #include "Utility/vmap.h"
 #include "DataSource/DataConnectCreator.h"
 #include "Message/CommCreator.h"
