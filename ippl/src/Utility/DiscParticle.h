@@ -20,7 +20,6 @@
 
 // include files
 #include "Utility/DiscConfig.h"
-#include "Utility/Pstring.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
 #include "Message/Message.h"
