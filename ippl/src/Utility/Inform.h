@@ -46,8 +46,6 @@
 #include <strstream.h>
 #endif
 
-#include "Utility/Pstring.h"
-
 
 // range of Inform message levels
 #define MIN_INFORM_LEVEL	1

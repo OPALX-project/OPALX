@@ -25,10 +25,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include "Fields/SectorMagneticFieldMap.h"
-#include "Fields/SectorMagneticFieldMap/Mesh.h"
-#include "Fields/SectorMagneticFieldMap/ThreeDGrid.h"
-#include "Fields/SectorMagneticFieldMap/Interpolator3dGridTo3d.h"
+// Grid on which field values are stored
+#include "Fields/Interpolation/Mesh.h"
+#include "Fields/Interpolation/ThreeDGrid.h"
+// Linear interpolation routines
+#include "Fields/Interpolation/VectorMap.h"
+#include "Fields/Interpolation/Interpolator3dGridTo3d.h"
+// Higher order interpolation routines
+#include "Fields/Interpolation/PolynomialPatch.h"
+#include "Fields/Interpolation/PPSolveFactory.h"
 
 #include "Utilities/LogicalError.h"
 
@@ -40,18 +47,23 @@
 #include <fstream>
 #include <string>
 
+using namespace interpolation;
+
 // allow a fairly generous phi tolerance - we don't care about phi much and
 // calculation can be flaky due to ascii truncation of double and conversions
 // from polar to Cartesian
-const double SectorMagneticFieldMap::fractionalBBPhiTolerance_m(1e-2);
+const double SectorMagneticFieldMap::fractionalBBPhiTolerance_m(1e-12);
 std::map<std::string, SectorMagneticFieldMap*> SectorMagneticFieldMap::_fields;
 
 SectorMagneticFieldMap::SectorMagneticFieldMap(std::string file_name,
                                                std::string symmetry,
                                                double length_units,
-                                               double field_units)
+                                               double field_units,
+                                               int polynomial_order,
+                                               int smoothing_order)
        : SectorField(file_name), interpolator_m(NULL), symmetry_m(dipole),
-         units_m(6, 1.), filename_m(file_name), phiOffset_m(0.) {
+         units_m(6, 1.), filename_m(file_name), phiOffset_m(0.),
+         poly_order_m(polynomial_order), smoothing_order_m(smoothing_order) {
     units_m[0] *= length_units;
     units_m[1] *= length_units;
     units_m[2] *= length_units;
@@ -64,7 +76,8 @@ SectorMagneticFieldMap::SectorMagneticFieldMap(std::string file_name,
         _fields[file_name] = new SectorMagneticFieldMap(*this);
     } else {
         SectorMagneticFieldMap* tgt = _fields[file_name];
-        if (symmetry_m != tgt->symmetry_m || units_m != tgt->units_m ||
+        if (symmetry_m != tgt->symmetry_m ||
+            units_m != tgt->units_m ||
             filename_m != tgt->filename_m) {
             throw(LogicalError(
                     "SectorMagneticFieldMap::SectorMagneticFieldMap",
@@ -72,46 +85,60 @@ SectorMagneticFieldMap::SectorMagneticFieldMap(std::string file_name,
                     std::string("file but different settings")
                   ));
         }
-        setInterpolator(tgt->interpolator_m->clone());
+        setInterpolator(tgt->interpolator_m);
     }
-    phiOffset_m = -interpolator_m->getMesh()->minZ();
+    ThreeDGrid* grid = dynamic_cast<ThreeDGrid*>(interpolator_m->getMesh());
+    phiOffset_m = -grid->minZ();
 }
 
 SectorMagneticFieldMap::SectorMagneticFieldMap
-                                        (const SectorMagneticFieldMap& field)
+                                           (const SectorMagneticFieldMap& field)
     : SectorField(field), interpolator_m(NULL), symmetry_m(field.symmetry_m),
       units_m(field.units_m),
       filename_m(field.filename_m), phiOffset_m(field.phiOffset_m) {
-    Interpolator3dGridTo3d* interpolator = NULL;
+    VectorMap* interpolator = NULL;
     if (field.interpolator_m != NULL) {
-        interpolator = field.interpolator_m->clone();
+        interpolator = field.interpolator_m;
     }
     setInterpolator(interpolator);
 }
 
 SectorMagneticFieldMap::~SectorMagneticFieldMap() {
-    delete interpolator_m;
+    // delete interpolator_m; We reuse the interpolators... hack! should use smart pointer
 }
 
-Interpolator3dGridTo3d* SectorMagneticFieldMap::getInterpolator() {
+VectorMap* SectorMagneticFieldMap::getInterpolator() {
     return interpolator_m;
 }
 
-void SectorMagneticFieldMap::setInterpolator
-                                        (Interpolator3dGridTo3d* interpolator) {
+void SectorMagneticFieldMap::setInterpolator(VectorMap* interpolator) {
     if (interpolator_m != NULL) {
         delete interpolator_m;
     }
     interpolator_m = interpolator;
     if (interpolator_m != NULL) {
-        ThreeDGrid* grid = interpolator_m->getMesh();
-        double phiTol = (grid->maxZ()-grid->minZ())*fractionalBBPhiTolerance_m;
+        if (interpolator_m->getPointDimension() != 3)
+            throw(LogicalError(
+                      "SectorMagneticFieldMap::setInterpolator",
+                      "Attempt to load interpolator with PointDimension != 3")
+                  );
+        if (interpolator_m->getValueDimension() != 3)
+            throw(LogicalError(
+                      "SectorMagneticFieldMap::setInterpolator",
+                      "Attempt to load interpolator with ValueDimension != 3"
+                  ));
+        ThreeDGrid* grid = dynamic_cast<ThreeDGrid*>(interpolator_m->getMesh());
+        if (grid == NULL)
+            throw(LogicalError(
+                      "SectorMagneticFieldMap::setInterpolator",
+                      "Attempt to load interpolator with grid not ThreeDGrid"
+                  ));
         SectorField::setPolarBoundingBox
-                                    (grid->minX(), grid->minY(), grid->minZ(),
+                                    (grid->minX(), grid->minY()-grid->maxY(), grid->minZ(),
                                      grid->maxX(), grid->maxY(), grid->maxZ(),
-                                     0., 0., phiTol);
+                                     0., 0., 0.);
     }
-    delete interpolator_m->clone(); // why?
+    print(std::cerr);
 }
 
 std::string SectorMagneticFieldMap::getSymmetry() const {
@@ -123,7 +150,8 @@ void SectorMagneticFieldMap::setSymmetry(std::string name) {
 }
 
 void SectorMagneticFieldMap::readMap() {
-    setInterpolator(IO::readMap(filename_m, units_m, symmetry_m));
+    setInterpolator(IO::readMap
+            (filename_m, units_m, symmetry_m, poly_order_m, smoothing_order_m));
 }
 
 void SectorMagneticFieldMap::freeMap() {
@@ -175,37 +203,44 @@ bool SectorMagneticFieldMap::getFieldstrengthPolar
 bool SectorMagneticFieldMap::getFieldstrength
                     (const Vector_t &R_c, Vector_t &E_c, Vector_t &B_c) const {
     // coordinate transform; field is in the x-z plane but OPAL-CYCL assumes
-    // x-y plane; make sure to keep right handed coordinate system
-    // I also do a rotation through 180 deg about x to make the bend in the
-    // correct sense but this should be implemented in the end by Ring (i.e.
-    // should be able to do off-midplane transformations)
+    // x-y plane; rotate to the start of the bend and into polar coordinates;
+    // apply mirror symmetry about the midplane
     double radius = (getPolarBoundingBoxMin()[0]+getPolarBoundingBoxMax()[0])/2;
+    double midplane = (getPolarBoundingBoxMin()[1]+getPolarBoundingBoxMax()[1])/2;
     double R_temp[3] = {R_c(0)+radius, R_c(1), R_c(2)};
     double B_temp[3] = {0., 0., 0.};
     SectorField::convertToPolar(R_temp);
+    bool mirror = R_temp[1] < midplane;
+    if (mirror) {
+        R_temp[1] = midplane + (midplane - R_temp[1]);
+    }
     // interpolator has phi in 0. to dphi
     R_temp[2] -= phiOffset_m;
+    // bool symmetryWasApplied = applySymmetry(R_temp);
     if (!isInBoundingBox(R_temp)) {
-        // std::cerr << "SectorMagneticFieldMap r: " << radius << " R_c " << R_c << " R_temp "
-        //          << R_temp[0] << " " << R_temp[1] << " " << R_temp[2]
-        //          << std::endl;
         return true;
     }
     interpolator_m->function(R_temp, B_temp);
     // and here we transform back
     // we want phi in 0. to dphi
-    R_temp[2] += phiOffset_m;
-    SectorField::convertToCartesian(R_temp, B_temp);
-    B_c(0) = B_temp[0];
-    B_c(1) = B_temp[1];
-    B_c(2) = B_temp[2];
-    // B_c *= 10.;
-    // std::cerr << "\nSMFM::getFieldStrength r: " << radius << " R_c: " << R_c
-    //          << " R_p: " << R_temp[0] << " " << R_temp[1] << " " << R_temp[2]
-    //          << " B: " << B_c[0] << " " << B_c[1] << " " << B_c[2] << std::endl;
+    if (mirror) {
+        B_temp[0] *= -1; // reflect Bx
+        B_temp[2] *= -1; // reflect Bz
+    }
+    B_c(0) = B_temp[0]*cos(phiOffset_m)-B_temp[2]*sin(phiOffset_m); // x
+    B_c(1) = B_temp[1]; // axial
+    B_c(2) = B_temp[0]*sin(phiOffset_m)+B_temp[2]*cos(phiOffset_m); // z
     return false;
 }
 
+bool SectorMagneticFieldMap::applySymmetry(double* R_temp) const {
+    double ymin = SectorField::getPolarBoundingBoxMin()[1];
+    if (symmetry_m == dipole && R_temp[1] <= ymin) {
+        R_temp[1] = 2*ymin-R_temp[1];
+        return true;
+    }
+    return false;
+}
 
 void SectorMagneticFieldMap::clearFieldCache() {
     for (std::map<std::string, SectorMagneticFieldMap*>::iterator it =
@@ -218,18 +253,20 @@ void SectorMagneticFieldMap::clearFieldCache() {
 void SectorMagneticFieldMap::getInfo(Inform* msg) {
    std::vector<double> bbmin = SectorField::getPolarBoundingBoxMin();
    std::vector<double> bbmax = SectorField::getPolarBoundingBoxMax();
-   (*msg) << Filename_m << " (3D Sector Magnetostatic); "
-          << "zini= " << bbmin[2] << " m; zfinal= " << bbmax[2] << " m;"
-          << "rini= " << bbmin[0] << " m; rfinal= " << bbmax[0] << " m;"
+   (*msg) << Filename_m << " (3D Sector Magnetostatic);\n"
+          << "  zini=   " << bbmin[1] << " mm;  zfinal= " << bbmax[1] << " mm;\n"
+          << "  phiini= " << bbmin[2] << " rad; phifinal= " << bbmax[2] << " rad;\n"
+          << "  rini=   " << bbmin[0] << " mm;  rfinal=  " << bbmax[0] << " mm;"
           << endl;
 }
 
 void SectorMagneticFieldMap::print(std::ostream& out) {
    std::vector<double> bbmin = SectorField::getPolarBoundingBoxMin();
    std::vector<double> bbmax = SectorField::getPolarBoundingBoxMax();
-   out << Filename_m << " (3D Sector Magnetostatic); "
-       << "zini= " << bbmin[2] << " m; zfinal= " << bbmax[2] << " m;"
-       << "rini= " << bbmin[0] << " m; rfinal= " << bbmax[0] << " m;"
+   out << Filename_m << " (3D Sector Magnetostatic);\n"
+       << "  zini= " << bbmin[1] << " m; zfinal= " << bbmax[1] << " mm;\n"
+       << "  phiini= " << bbmin[2] << " rad; phifinal= " << bbmax[2] << " rad;\n"
+       << "  rini= " << bbmin[0] << " m; rfinal= " << bbmax[0] << " mm;\n"
        << std::endl;
 }
 
@@ -243,25 +280,39 @@ void SectorMagneticFieldMap::swap() {}
 
 
 double SectorMagneticFieldMap::getDeltaPhi() const {
-    ThreeDGrid* grid = interpolator_m->getMesh();
+    ThreeDGrid* grid = reinterpret_cast<ThreeDGrid*>(interpolator_m->getMesh());
     return grid->maxZ() - grid->minZ();
 }
 
 const double SectorMagneticFieldMap::IO::floatTolerance_m = 1e-3;
 const int SectorMagneticFieldMap::IO::sortOrder_m[3] = {0, 1, 2};
 
-Interpolator3dGridTo3d* SectorMagneticFieldMap::IO::readMap
-                          (std::string file_name, std::vector<double> units,
-                                        SectorMagneticFieldMap::symmetry sym) {
+VectorMap* SectorMagneticFieldMap::IO::readMap(
+                          std::string file_name,
+                          std::vector<double> units,
+                          SectorMagneticFieldMap::symmetry sym,
+                          int polynomial_order,
+                          int smoothing_order) {
     try {
-        INFOMSG("Opening sector field map " << file_name << endl);
+        INFOMSG("Opening sector field map " << file_name
+                << " fit order " << polynomial_order
+                << " smoothing order " << smoothing_order << endl);
         // get raw data
         std::vector< std::vector<double> > field_points = readLines
                                                              (file_name, units);
         // build grid
         ThreeDGrid* grid = generateGrid(field_points, sym);
         // build interpolator (convert grid to useful units)
-        return getInterpolator(field_points, grid, sym);
+        if (polynomial_order == 1 && smoothing_order == 1) {
+            return getInterpolator(field_points, grid, sym);
+        } else {
+            return getInterpolatorPolyPatch(
+                                  field_points,
+                                  grid,
+                                  sym,
+                                  polynomial_order,
+                                  smoothing_order);
+        }
     } catch(std::exception& exc) {
         throw(LogicalError(
                      "SectorMagneticFieldMap::IO::ReadMap",
@@ -271,14 +322,42 @@ Interpolator3dGridTo3d* SectorMagneticFieldMap::IO::readMap
     return NULL;
 }
 
-Interpolator3dGridTo3d* SectorMagneticFieldMap::IO::getInterpolator
+VectorMap* SectorMagneticFieldMap::IO::getInterpolatorPolyPatch(
+                          std::vector< std::vector<double> > field_points,
+                          ThreeDGrid* grid,
+                          SectorMagneticFieldMap::symmetry sym,
+                          int polynomial_order,
+                          int smoothing_order) {
+    // too lazy to write code to handle this case - not available to user anyway
+    if (sym != SectorMagneticFieldMap::dipole) {
+        throw(LogicalError(
+                     "SectorMagneticFieldMap::IO::ReadMap",
+                     "Failed to recognise symmetry type"
+               ));
+    }
+    std::vector< std::vector<double> > data(field_points.size(),
+                                            std::vector<double>(3));
+    for (size_t i = 0; i < field_points.size(); ++i) {
+        data[i][0] = field_points[i][3];
+        data[i][1] = field_points[i][4];
+        data[i][2] = field_points[i][5];
+    }
+    // symmetry is dipole
+    try {
+        INFOMSG("Calculating polynomials..." << endl);
+        PPSolveFactory solver(grid, data, polynomial_order, smoothing_order);
+        PolynomialPatch* patch = solver.solve();
+        INFOMSG("                       ... done" << endl);
+        return patch;
+    } catch (GeneralClassicException& exc) {
+        throw exc;
+    }
+}
+
+VectorMap* SectorMagneticFieldMap::IO::getInterpolator
                         (const std::vector< std::vector<double> > field_points,
                          ThreeDGrid* grid,
                          SectorMagneticFieldMap::symmetry sym) {
-    int y_start = 0;
-    if (sym == SectorMagneticFieldMap::dipole) {
-        y_start = (grid->ySize()+1)/2-1;
-    }
     // build field arrays
     double *** Bx, *** By, *** Bz;
     int index = 0;
@@ -293,7 +372,7 @@ Interpolator3dGridTo3d* SectorMagneticFieldMap::IO::getInterpolator
             Bx[i][j] = new double[grid->zSize()];
             By[i][j] = new double[grid->zSize()];
             Bz[i][j] = new double[grid->zSize()];
-            for (int k = 0; k < grid->zSize() && j >= y_start; ++k) {
+            for (int k = 0; k < grid->zSize(); ++k) {
                 Bx[i][j][k] = field_points[index][3];
                 By[i][j][k] = field_points[index][4];
                 Bz[i][j][k] = field_points[index][5];
@@ -301,22 +380,8 @@ Interpolator3dGridTo3d* SectorMagneticFieldMap::IO::getInterpolator
             }
         }
     }
-
-    // extend field array downwards if field is dipole
-    if (sym == SectorMagneticFieldMap::dipole) {
-        for (int i = 0; i < grid->xSize(); ++i) {
-            for (int j = 0; j < y_start; ++j) {
-                for (int k = 0; k < grid->zSize(); ++k) {
-                    Bx[i][j][k] = -Bx[i][grid->ySize()-j-1][k];
-                    By[i][j][k] = By[i][grid->ySize()-j-1][k];
-                    Bz[i][j][k] = -Bz[i][grid->ySize()-j-1][k];
-                    ++index;
-                }
-            }
-        }
-    }
-
-    return new Interpolator3dGridTo3d(grid, Bx, By, Bz);
+    Interpolator3dGridTo3d* interpolator = new Interpolator3dGridTo3d(grid, Bx, By, Bz);
+    return dynamic_cast<VectorMap*>(interpolator);
 }
 
 bool SectorMagneticFieldMap::IO::comparator(std::vector<double> field_item1,
@@ -390,7 +455,7 @@ ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
                        (const std::vector< std::vector<double> > field_points,
                         SectorMagneticFieldMap::symmetry sym) {
     std::vector<double> r_grid(1, field_points[0][0]);
-    std::vector<double> y_grid(1, field_points[0][1]);
+    std::vector<double> y_grid(1, field_points[0][1]), y_grid_neg;
     std::vector<double> phi_grid(1, field_points[0][2]);
     for (size_t i = 0; i < field_points.size(); ++i) {
         if (floatGreaterEqual(field_points[i][0], r_grid.back())) {
@@ -403,15 +468,8 @@ ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
             phi_grid.push_back(field_points[i][2]);
         }
     }
-
+    
     // reflect about y if symmetry is dipole
-    int y_end = static_cast<int>(y_grid.size());
-    if (sym == SectorMagneticFieldMap::dipole) {
-        for (int i = 0; i < y_end-1; ++i) {
-            y_grid.insert(y_grid.begin(), 2.*y_grid[i]-y_grid[2*i+1]);
-        }
-        y_end = y_grid.size();
-    }
     INFOMSG("Grid size (r, y, phi) = ("
             << r_grid.size() << ", " << y_grid.size() << ", " << phi_grid.size()
             << ")" << endl);
@@ -423,6 +481,7 @@ ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
             << ")" << endl);
 
     ThreeDGrid* grid = new ThreeDGrid(r_grid, y_grid, phi_grid);
+    grid->setConstantSpacing(true);
     return grid;
 }
 

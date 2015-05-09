@@ -155,9 +155,8 @@ int main(int argc, char *argv[])
 		    ndiStandard[1]    * ky * yfact -
 		    ndiStandard[2]    * kz * zfact ) );
   
-  // RC FFT tests
-  
-  RFieldSPStan = real(CFieldPPStan);
+  // RC FFT tests  
+  RFieldSPStan = 0;//real(CFieldPPStan);
   CFieldSPStan0h = dcomplex(0.0,0.0);
 
   Inform fo1(NULL,"realField.dat",Inform::OVERWRITE);

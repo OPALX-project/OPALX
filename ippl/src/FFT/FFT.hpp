@@ -76,7 +76,7 @@ FFT<CCTransform,Dim,T>::FFT(
     	
 #ifdef IPPL_DKS_MIC
   INFOMSG("Init DKS base MIC" << endl);
-  base.setAPI("OpenCL", 6);
+  base.setAPI("OpenMP", 6);
   base.setDevice("-mic", 4);
   base.initDevice();
 #endif
@@ -350,10 +350,10 @@ FFT<CCTransform, Dim, T>::transform(
   void *mem_ptr;
   int size = N[0]*N[1]*N[2];
     
+  base.setupFFT(3, N);
   mem_ptr = base.allocateMemory<Complex_t>(size, ierr);
   ierr = base.writeData<Complex_t>(mem_ptr, localdata, size);
-    
-    
+        
   if (direction == 1) {
     base.callFFT(mem_ptr, 3, N);
     base.callNormalizeFFT(mem_ptr, 3, N); 
@@ -857,7 +857,7 @@ FFT<RCTransform,Dim,T>::FFT(
     	
 #ifdef IPPL_DKS_MIC
   INFOMSG("Init DKS base MIC" <<  endl);
-  base.setAPI("OpenCL", 6);
+  base.setAPI("OpenMP", 6);
   base.setDevice("-mic", 4);
   base.initDevice();
 #endif
@@ -928,7 +928,7 @@ FFT<RCTransform,Dim,T>::FFT(
     	
 #ifdef IPPL_DKS_MIC
   INFOMSG("Init DKS base MIC" << endl);
-  base.setAPI("OpenCL", 6);
+  base.setAPI("OpenMP", 6);
   base.setDevice("-mic", 4);
   base.initDevice();
 #endif

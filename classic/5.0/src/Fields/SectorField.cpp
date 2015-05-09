@@ -25,7 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Fields/SectorMagneticFieldMap/SectorField.h"
+#include "Fields/SectorField.h"
 
 #include <math.h>
 

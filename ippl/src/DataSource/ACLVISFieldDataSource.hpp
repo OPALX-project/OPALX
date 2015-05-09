@@ -30,7 +30,6 @@
 #include "Field/Field.h"
 #include "Message/Communicate.h"
 #include "Utility/IpplInfo.h"
-#include "Utility/Pstring.h"
 
 
 ////////////////////////////////////////////////////////////////////////////

@@ -126,7 +126,7 @@ public:
     	
 #ifdef IPPL_DKS_MIC
     INFOMSG("Init DKS base MIC" << endl);
-    base.setAPI("OpenCL", 6);
+    base.setAPI("OpenMP", 6);
     base.setDevice("-mic", 4);
     base.initDevice();
 #endif
