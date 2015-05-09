@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 // include files
-#include "Utility/Pstring.h"
+#include <string> 
 
 
 class NamedObj {

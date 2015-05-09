@@ -23,7 +23,6 @@
  */
 
 // include files
-#include "Utility/Pstring.h"
 #include <cstddef>
 
 #ifdef IPPL_STDSTL
