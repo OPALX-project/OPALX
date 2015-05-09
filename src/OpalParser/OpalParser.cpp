@@ -1,3 +1,4 @@
+
 // ------------------------------------------------------------------------
 // $RCSfile: OpalParser.cpp,v $
 // ------------------------------------------------------------------------
@@ -594,7 +595,7 @@ void OpalParser::run() const {
             ERRORMSG("\n*** Runtime-error ******************\n");
             ERRORMSG(ex.what());
             ERRORMSG("\n************************************\n" << endl);
-            abort();
+            throw std::runtime_error("in Parser");
         } catch(exception &ex) {
             *gmsg << "\n*** Error:\n";
             stat->printWhere(false);
@@ -607,7 +608,7 @@ void OpalParser::run() const {
             *gmsg << "    ";
             stat->print();
             *gmsg << "    Unexpected exception caught.\n" << endl;
-            abort();
+	    throw std::runtime_error("in Parser");
         }
 
         delete stat;

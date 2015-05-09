@@ -29,7 +29,6 @@
  *************************************************************************/
 
 // include files
-#include "Utility/Pstring.h"
 #include "Utility/my_auto_ptr.h"
 #include "Ippl.h"
 #ifdef IPPL_STDSTL

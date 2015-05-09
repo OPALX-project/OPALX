@@ -36,7 +36,6 @@
  *************************************************************************/
 
 // include files
-#include "Utility/Pstring.h"
 #include "Utility/Timer.h"
 #include "Utility/my_auto_ptr.h"
 

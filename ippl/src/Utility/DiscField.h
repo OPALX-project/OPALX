@@ -26,7 +26,6 @@
 #include "Field/Field.h"
 #include "Utility/DiscBuffer.h"
 #include "Utility/DiscConfig.h"
-#include "Utility/Pstring.h"
 #include "Utility/Inform.h"
 #include "Utility/vmap.h"
 #include "Utility/IpplTimings.h"
