@@ -18,11 +18,14 @@ link_directories (
 
 SET (IPPL_LIBS ippl)
 
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
-include_directories (${DKS_INCLUDE_DIR})
-link_directories (${DKS_LIBRARY_DIR})
-SET (IPPL_LIBS ${IPPL_LIBS} dks)
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
+
+   include_directories (${DKS_INCLUDE_DIR})
+   link_directories (${DKS_LIBRARY_DIR})
+   #SET (IPPL_LIBS ${IPPL_LIBS} dks)
+   SET (IPPL_LIBS ${IPPL_LIBS} ${DKS_LIBRARY_DIR}/libdks.a)
+
+ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
 
 
 add_executable (TestFFT TestFFT.cpp)

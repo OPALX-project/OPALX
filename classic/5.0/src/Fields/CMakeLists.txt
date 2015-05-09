@@ -37,11 +37,14 @@ set (_SRCS
   FM1DProfile2.cpp
   FMDummy.cpp
   SectorMagneticFieldMap.cpp
+  SectorField.cpp
   )
 
 include_directories (
-  SectorMagneticFieldMap
+  Interpolation
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
+
+add_subdirectory (Interpolation)
 
 add_cl_sources(${_SRCS})
