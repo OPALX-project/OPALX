@@ -79,18 +79,16 @@ include_directories (Solvers/amr
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
+    ${GTEST_INCLUDE_DIR}
 )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
     ${CLASSIC_SOURCE_DIR}
-    ${DOOM_SOURCE_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
     ${CCSE_LIBRARY_DIR}
 )
-#   "/opt/parmetis/parmetis-3.1"
-#   "/opt/intel-mkl/mkl-10.0/lib/em64t"
 
 set (OPAL_LIBS
     m
@@ -101,6 +99,7 @@ set (OPAL_LIBS
     z
     mpi
     mpi_cxx
+    ${Boost_LIBRARIES}
 )
 
 add_library( OPALib ${OPAL_SRCS} opal.cpp )
@@ -109,28 +108,11 @@ set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 add_executable( opal Main.cpp )
 target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran ${CMAKE_DL_LIBS})
 
-# build unit tests; unit tests are defined in unit_tests directory, we build the
-# executable here so that we can use the OPAL src and lib definitions
-if (BUILD_OPAL_UNIT_TESTS)
-    # touch CMakeLists to force cmake to redo the glob for new test source files
-    # otherwise cmake does not detect new source files
-    execute_process(COMMAND touch ${CMAKE_CURRENT_SOURCE_DIR}/unit_tests/CMakeLists.txt)
-    add_subdirectory(unit_tests)
-    # include and link gtest library
-    # this can be built using the script provided at
-    #     unit_test/gtest/bin/install_gtest.bash
-    link_directories( ${GTEST_LIB_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/../classic/5.0/src ${CMAKE_CURRENT_BINARY_DIR}/../ippl/src)
-    include_directories(${GTEST_INCLUDE_DIR})
-    # Check to see if cmake finds the test files
-    message(STATUS "unit test src files: ${TEST_SRCS}")
-    # Build the test exe. We don't do an install on the unit test exe as it is
-    # assumed that this is internal to opal
-    add_executable(${TEST_EXE} ${TEST_SRCS}) # the opal and classic sources are not needed again if we link agains libOPAL and libCLASSIC!
-    target_link_libraries(${TEST_EXE} OPALib CLASSIC ippl ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_LINK_TARGETS} )
-endif (BUILD_OPAL_UNIT_TESTS)
-
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS OPALib DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 install (FILES opal.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
 install (FILES Utilities/OpalException.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
+
+set (OPAL_LIBS ${OPAL_LIBS} PARENT_SCOPE)
+set (OPAL_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)

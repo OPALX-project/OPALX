@@ -156,6 +156,21 @@ class SBend3D : public Component {
     /** Set the scale factor */
     void setFieldUnits(double fieldUnits) {fieldUnits_m = fieldUnits;}
 
+    /** Get the polynomial order */
+    int getPolynomialOrder() const {return polyOrder_m;}
+
+    /** Set the polynomial order */
+    void setPolynomialOrder(int polyOrder) {polyOrder_m = polyOrder;}
+
+    /** Get the smoothing factor */
+    int getSmoothingOrder() const {return smoothOrder_m;}
+
+    /** Set the smoothing factor */
+    void setSmoothingOrder(int polyOrder) {smoothOrder_m = polyOrder;}
+
+    /** Get the sector magnetic field map */
+    SectorMagneticFieldMap* getSectorMagneticFieldMap() const {return map_m;}
+
   private:
     SectorMagneticFieldMap* map_m;
     // Geometry
@@ -163,6 +178,9 @@ class SBend3D : public Component {
     // Units used for field maps
     double fieldUnits_m;
     double lengthUnits_m;
+    // Polynomial interpolation
+    int polyOrder_m;
+    double smoothOrder_m;
     // Not implemented (I think this is something to do with error fields?)
     BMultipoleField dummy;
 };

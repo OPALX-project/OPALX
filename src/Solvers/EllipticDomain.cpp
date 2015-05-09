@@ -29,6 +29,39 @@ EllipticDomain::EllipticDomain(double semimajor, double semiminor, Vector_t nr, 
         interpolationMethod = QUADRATIC;
 }
 
+EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr, std::string interpl) {
+    SemiMajor = bgeom->getA();
+    SemiMinor = bgeom->getB();
+    setMinMaxZ(bgeom->getS(), bgeom->getLength());
+    setNr(nr);
+    setHr(hr);
+
+    if(interpl == "CONSTANT")
+        interpolationMethod = CONSTANT;
+    else if(interpl == "LINEAR")
+        interpolationMethod = LINEAR;
+    else if(interpl == "QUADRATIC")
+        interpolationMethod = QUADRATIC;
+}
+
+EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, std::string interpl) {
+    SemiMajor = bgeom->getA();
+    SemiMinor = bgeom->getB();
+    setMinMaxZ(bgeom->getS(), bgeom->getLength());
+    Vector_t hr_m; 
+    hr_m[0] = (getXRangeMax()-getXRangeMin())/nr[0];
+    hr_m[1] = (getYRangeMax()-getYRangeMin())/nr[1];
+    hr_m[2] = (getZRangeMax()-getZRangeMin())/nr[2];
+    setHr(hr_m);
+
+    if(interpl == "CONSTANT")
+        interpolationMethod = CONSTANT;
+    else if(interpl == "LINEAR")
+        interpolationMethod = LINEAR;
+    else if(interpl == "QUADRATIC")
+        interpolationMethod = QUADRATIC;
+}
+
 EllipticDomain::~EllipticDomain() {
     //nothing so far
 }
@@ -143,7 +176,6 @@ void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
                 CoordMap[idx++] = toCoordIdx(x, y);
                 nxy_m++;
             }
-
         }
     }
 

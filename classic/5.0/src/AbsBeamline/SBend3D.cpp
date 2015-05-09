@@ -32,13 +32,14 @@
 SBend3D::SBend3D(const std::string &name)
         : Component(name), map_m(NULL),
          planarArcGeometry_m(1., 1.), fieldUnits_m(1.), lengthUnits_m(1.),
-         dummy() {
+         polyOrder_m(1), smoothOrder_m(1), dummy() {
 }
 
 SBend3D::SBend3D(const SBend3D &right)
         : Component(right), map_m(NULL),
           planarArcGeometry_m(right.planarArcGeometry_m),
           fieldUnits_m(right.fieldUnits_m), lengthUnits_m(right.lengthUnits_m),
+          polyOrder_m(right.polyOrder_m), smoothOrder_m(right.smoothOrder_m),
           dummy() {
     RefPartBunch_m = right.RefPartBunch_m;
     if (right.map_m != NULL)
@@ -116,18 +117,18 @@ void SBend3D::setFieldMapFileName(std::string name) {
         map_m = NULL;
     }
     if (name != "") {
-        map_m = new SectorMagneticFieldMap
-                                  (name, "Dipole", lengthUnits_m, fieldUnits_m);
+        map_m = new SectorMagneticFieldMap(
+                        name,
+                        "Dipole",
+                        lengthUnits_m,
+                        fieldUnits_m,
+                        polyOrder_m,
+                        smoothOrder_m);
         double r_curv = (map_m->getPolarBoundingBoxMax()[0]+
                          map_m->getPolarBoundingBoxMin()[0])/2.;
         double delta_phi = map_m->getDeltaPhi();
         planarArcGeometry_m.setElementLength(r_curv*delta_phi);
         planarArcGeometry_m.setCurvature(1./r_curv);
-        //std::cerr << "RCURV " << r_curv << " DPHI " << delta_phi << " DELTA X: "
-        //          << planarArcGeometry_m.getTotalTransform().getVector()(0) << " Y: "
-        //          << planarArcGeometry_m.getTotalTransform().getVector()(1) << " Z: "
-        //          << planarArcGeometry_m.getTotalTransform().getVector()(2) << " phi: "
-        //          << planarArcGeometry_m.getTotalTransform().getRotation().getAxis()(1) << std::endl;
     }
 }
 
