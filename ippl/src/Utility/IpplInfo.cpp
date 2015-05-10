@@ -643,7 +643,7 @@ void IpplInfo::abort(const char *msg, int exitcode) {
         Comm = 0;
     }
 
-    // that's it, folks
+    // that's it, folks this error will be propperly catched in the main
     throw std::runtime_error("Error form IpplInfo::abort");   
 }
 
@@ -857,7 +857,7 @@ void IpplInfo::param_error(const char *param, const char *msg,
     if ( msg != 0 )
         ERRORMSG(": " << msg);
     ERRORMSG(endl);
-    abort(0, 0);
+    IpplInfo::abort(0, 0);
 }
 
 void IpplInfo::param_error(const char *param, const char *msg1,
@@ -871,7 +871,7 @@ void IpplInfo::param_error(const char *param, const char *msg1,
     if ( msg2 != 0 )
         ERRORMSG(msg2);
     ERRORMSG(endl);
-    abort(0, 0);
+    IpplInfo::abort(0, 0);
 }
 
 
