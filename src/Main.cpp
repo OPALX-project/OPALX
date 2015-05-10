@@ -170,7 +170,6 @@ int main(int argc, char *argv[]) {
         // Read startup file.
         FileStream::setEcho(true);
 
-#ifndef __LIBCATAMOUNT__
         char *startup = getenv("HOME");
         if (startup != NULL && fs::exists(strncat(startup, "/init.opal", 20))) {
 
@@ -194,9 +193,6 @@ int main(int argc, char *argv[]) {
             *gmsg << "Couldn't find startup file \"" << startup << "\".\n"
                   << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
         }
-#else
-        *gmsg << "On Cray can not read startup file" << endl;
-#endif
 
         if(argc > 1)
             OPAL->storeInputFn(std::string(argv[1]));
@@ -242,13 +238,6 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        ////  DTA
-        //  std::cout << std::endl << std::endl;
-        //  vector<std::string> names=OPAL->getAllNames();
-        //  printStringVector(names);
-        //// /DTA
-
-
 
         IpplTimings::stopTimer(mainTimer);
 
@@ -286,8 +275,7 @@ int main(int argc, char *argv[]) {
         }
 
         Ippl::Comm->barrier();
-        // cleanup/free global data
-        Fieldmap::clearDictionary();
+	Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
         delete ippl;
@@ -298,15 +286,21 @@ int main(int argc, char *argv[]) {
         return 0;
 
     } catch(ClassicException &ex) {
-        *gmsg << endl << "*** User error detected by function \""
-              << ex.where() << "\"" << endl;
-        abort();
+      *gmsg << endl << "*** User error detected by function \""
+	    << ex.where() << "\"" << endl;
+      abort();
+  
     } catch(std::bad_alloc &) {
-        *gmsg << "Sorry, virtual memory exhausted." << endl;
-        abort();
+      *gmsg << "Sorry, virtual memory exhausted." << endl;
+      abort();
+
+    } catch(std::exception const& e) {   
+      *gmsg << "Exception: " << e.what() << "\n";
+       abort();
+       
     } catch(...) {
-        *gmsg << "Unexpected error." << endl;
-        abort();
+      *gmsg << "Unexpected exception." << endl;
+      abort();
     }
 }
 
