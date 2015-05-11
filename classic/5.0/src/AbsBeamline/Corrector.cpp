@@ -79,9 +79,9 @@ bool Corrector::apply(const Vector_t &R, const Vector_t &centroid, const double 
 }
 
 void Corrector::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-  endField_m = endField = startField + getElementLength();
-  RefPartBunch_m = bunch;
-  startField_m = startField;
+    endField_m = endField = startField + getElementLength();
+    RefPartBunch_m = bunch;
+    startField_m = startField;
 }
 
 void Corrector::finalise()
@@ -92,7 +92,11 @@ void Corrector::goOnline(const double &kineticEnergy) {
         throw GeneralClassicException("Corrector::goOnline", "given kinetic energy is negative");
     }
 
+
     const double pathLength = getGeometry().getElementLength();
+    const double minLength = Physics::c * RefPartBunch_m->getdT();
+    if (pathLength < minLength) throw GeneralClassicException("Corrector::goOnline", "length of corrector, L= " + std::to_string(pathLength) + ", shorter than distance covered during one time step, dS= " + std::to_string(minLength));
+
     const double momentum = sqrt(std::pow(kineticEnergy * 1e6, 2.0) + 2.0 * kineticEnergy * 1e6 * RefPartBunch_m->getM());
     const double magnitude = momentum / (Physics::c * pathLength);
     kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
