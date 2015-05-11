@@ -185,7 +185,7 @@ bool CyclotronValley::bends() const {
 }
 
 
-void CyclotronValley::goOnline() {
+void CyclotronValley::goOnline(const double &) {
     Fieldmap::readMap(filename_m);
     online_m = true;
 }

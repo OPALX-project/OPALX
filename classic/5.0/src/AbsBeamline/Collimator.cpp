@@ -316,7 +316,7 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
 
-    goOnline();
+    goOnline(-1e6);
 }
 
 void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
@@ -331,7 +331,7 @@ void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
 
-    goOnline();
+    goOnline(-1e6);
 }
 
 void Collimator::finalise()
@@ -341,7 +341,7 @@ void Collimator::finalise()
   *gmsg << "* Finalize probe" << endl;
 }
 
-void Collimator::goOnline() {
+void Collimator::goOnline(const double &) {
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");

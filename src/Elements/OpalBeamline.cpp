@@ -304,7 +304,7 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &cent
     }
 }
 
-void OpalBeamline::switchElements(const double &min, const double &max, const bool &nomonitors) {
+void OpalBeamline::switchElements(const double &min, const double &max, const double &kineticEnergy, const bool &nomonitors) {
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         // don't set online monitors if the centroid of the bunch is allready inside monitor
         // or if explicitly not desired (eg during auto phasing)
@@ -312,13 +312,13 @@ void OpalBeamline::switchElements(const double &min, const double &max, const bo
             double spos = (max + min) / 2.;
             if(!nomonitors && spos < (*flit).getStart()) {
                 if(!(*flit).isOn() && max > (*flit).getStart()) {
-                    (*flit).setOn();
+                    (*flit).setOn(kineticEnergy);
                 }
             }
 
         } else {
             if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
-                (*flit).setOn();
+                (*flit).setOn(kineticEnergy);
             }
         }
         /////////////////////////
@@ -335,7 +335,7 @@ void OpalBeamline::switchElements(const double &min, const double &max, const bo
 void OpalBeamline::switchAllElements() {
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         if(!(*flit).isOn()) {
-            (*flit).setOn();
+            (*flit).setOn(-1.0);
         }
     }
 

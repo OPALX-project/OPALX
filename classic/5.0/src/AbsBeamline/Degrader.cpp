@@ -166,7 +166,7 @@ void Degrader::finalise()
   *gmsg << "* Finalize Degrader" << endl;
 }
 
-void Degrader::goOnline() {
+void Degrader::goOnline(const double &) {
  Inform msg("Degrader::goOnline ");
    if(RefPartBunch_m == NULL) {
         if(!informed_m) {

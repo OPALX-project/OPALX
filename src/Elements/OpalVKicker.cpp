@@ -93,7 +93,7 @@ void OpalVKicker::update() {
 
     corr->setElementLength(length);
     corr->setBx(kick * factor);
-    corr->SetKickY(Attributes::getReal(itsAttr[KICK]));
+    corr->setKickY(Attributes::getReal(itsAttr[KICK]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(corr);

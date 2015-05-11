@@ -565,7 +565,7 @@ bool RFCavity::bends() const {
 }
 
 
-void RFCavity::goOnline() {
+void RFCavity::goOnline(const double &) {
     std::vector<string>::iterator fmap_it;
     for(fmap_it = multiFilenames_m.begin(); fmap_it != multiFilenames_m.end(); ++ fmap_it) {
         Fieldmap::readMap(*fmap_it);

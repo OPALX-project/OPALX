@@ -109,7 +109,7 @@ void Monitor::finalise() {
 
 }
 
-void Monitor::goOnline() {
+void Monitor::goOnline(const double &) {
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             Inform msg("Monitor ");

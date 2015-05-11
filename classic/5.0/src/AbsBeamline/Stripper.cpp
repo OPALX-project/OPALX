@@ -172,9 +172,6 @@ void Stripper::finalise() {
 bool Stripper::bends() const {
     return false;
 }
-void Stripper::goOnline() {
-    online_m = true;
-}
 
 void Stripper::goOffline() {
     online_m = false;

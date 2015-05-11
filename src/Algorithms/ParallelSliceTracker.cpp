@@ -282,7 +282,8 @@ void ParallelSliceTracker::switchElements(double scaleMargin) {
         itsOpalBeamline_m->resetStatus();
         currentSimulationTime_m = itsBunch_m->getT();
         itsOpalBeamline_m->switchElements(itsBunch_m->zTail() - margin,
-                                          itsBunch_m->zHead() + margin);
+                                          itsBunch_m->zHead() + margin,
+                                          itsBunch_m->Eavg() * 1e-6);
 }
 
 

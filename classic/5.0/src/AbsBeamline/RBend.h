@@ -196,6 +196,8 @@ public:
     /// Indicates that element bends the beam.
     virtual bool bends() const;
 
+    virtual void goOnline(const double &kineticEnergy);
+
     virtual void finalise();
     virtual void getDimensions(double &sBegin, double &sEnd) const;
     virtual const std::string &getType() const;

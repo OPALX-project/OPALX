@@ -87,7 +87,7 @@ trackMap(FVps<double, 6> &, const PartData &, bool, bool) const {
                        "Called for component \"" + getName() + "\".");
 }
 
-void Component::goOnline() {
+void Component::goOnline(const double &) {
     online_m = true;
 }
 
