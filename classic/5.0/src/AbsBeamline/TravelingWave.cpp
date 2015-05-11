@@ -477,7 +477,7 @@ bool TravelingWave::bends() const {
 }
 
 
-void TravelingWave::goOnline() {
+void TravelingWave::goOnline(const double &) {
     Fieldmap::readMap(CoreFilename_m);
     online_m = true;
 }

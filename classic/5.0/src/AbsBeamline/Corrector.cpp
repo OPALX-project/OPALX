@@ -20,7 +20,9 @@
 
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-
+#include "Algorithms/PartBunch.h"
+#include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
 
 // Class Corrector
 // ------------------------------------------------------------------------
@@ -77,19 +79,27 @@ bool Corrector::apply(const Vector_t &R, const Vector_t &centroid, const double 
 }
 
 void Corrector::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-  Inform m("Corrector::initialise ");
-
   endField_m = endField = startField + getElementLength();
   RefPartBunch_m = bunch;
   startField_m = startField;
-
-  BDipoleField f = getField();
-  kickField_m = Vector_t(f.getBx(),f.getBy(),0.0);
-  m << "B= " << kickField_m << endl;
 }
 
 void Corrector::finalise()
 { }
+
+void Corrector::goOnline(const double &kineticEnergy) {
+    if (kineticEnergy < 0.0) {
+        throw GeneralClassicException("Corrector::goOnline", "given kinetic energy is negative");
+    }
+
+    const double pathLength = getGeometry().getElementLength();
+    const double momentum = sqrt(std::pow(kineticEnergy * 1e6, 2.0) + 2.0 * kineticEnergy * 1e6 * RefPartBunch_m->getM());
+    const double magnitude = momentum / (Physics::c * pathLength);
+    kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
+
+    INFOMSG("Corrector::goOnline " << "at Ekin= " << kineticEnergy << " MeV, B= " << kickField_m << " T"<< endl);
+    online_m = true;
+}
 
 bool Corrector::bends() const {
     return false;
@@ -105,11 +115,3 @@ const std::string &Corrector::getType() const {
     static const std::string type("Corrector");
     return type;
 }
-
-void Corrector::SetKickX(double k) {kickX_m = k; }
-
-void Corrector::SetKickY(double k) {kickY_m = k; }
-
-double Corrector::GetKickX() const {return kickX_m; }
-
-double Corrector::GetKickY() const {return kickY_m; }

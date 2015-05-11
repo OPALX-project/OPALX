@@ -129,9 +129,6 @@ void Probe::finalise() {
 bool Probe::bends() const {
     return false;
 }
-void Probe::goOnline() {
-    online_m = true;
-}
 
 void Probe::goOffline() {
     online_m = false;

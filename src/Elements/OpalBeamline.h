@@ -66,7 +66,7 @@ public:
     void setStatus(const unsigned int &, const bool &);
     const bool &getStatus(const unsigned int &) const;
 
-    void switchElements(const double &, const double &, const bool &nomonitors = false);
+    void switchElements(const double &, const double &, const double &kineticEnergy, const bool &nomonitors = false);
     void switchAllElements();
 
     void switchElementsOff(const double &, const std::string &eltype = "All");

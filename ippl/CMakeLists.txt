@@ -124,7 +124,7 @@ IF (USE_MIC)
 ENDIF (USE_MIC)
 
 ### CXX_FLAGS specific to compiler and platform #############
-find_package (MPI REQUIRED)
+#find_package (MPI REQUIRED)
 message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
 message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
@@ -196,6 +196,11 @@ SET (IPPLXT3PGI
 SET (CMAKE_CXX_FLAGS
     "${OTHER_CXX_FLAGS} ${IPPL_CXX_FLAGS} ${CMAKE_CXX_FLAGS} "
 )
+
+SET (IPPL_CMAKE_CXX_FLAGS "${IPPL_CXX_FLAGS}" PARENT_SCOPE)
+SET (IPPL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" PARENT_SCOPE)
+SET (IPPL_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" PARENT_SCOPE)
+SET (IPPL_LIBRARY "ippl" PARENT_SCOPE)
 
 ### add test directories ####################################
 ADD_SUBDIRECTORY (src)

@@ -17,7 +17,7 @@ public:
     void setStart(const double & z);
     void setEnd(const double & z);
     const bool &isOn() const;
-    void setOn();
+    void setOn(const double &kinematicEnergy);
     void setOff();
 
     static bool SortAsc(const ClassicField &fle1, const ClassicField &fle2) {
