@@ -88,7 +88,7 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
 
 private:
     std::string filename_m;             /**< The name of the inputfile*/

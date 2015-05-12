@@ -57,7 +57,7 @@ public:
     void setFast(bool fast);
 
     bool getFast() const;
-    const std::string &getType() const;
+    ElementBase::ElementType getType() const;
     virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
    
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);

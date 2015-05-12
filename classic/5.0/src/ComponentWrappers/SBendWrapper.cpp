@@ -141,9 +141,8 @@ double SBendWrapper::getStepsize()  const {
 }
 
 
-const std::string &SBendWrapper::getType() const {
-    static const std::string type("SBendWrapper");
-    return type;
+ElementBase::ElementType SBendWrapper::getType() const {
+    return SBENDWRAPPER;
 }
 
 

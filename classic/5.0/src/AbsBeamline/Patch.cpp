@@ -76,8 +76,7 @@ void Patch::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Patch::getType() const {
-    static const std::string type("Patch");
-    return type;
+ElementBase::ElementType Patch::getType() const {
+    return PATCH;
 }
 

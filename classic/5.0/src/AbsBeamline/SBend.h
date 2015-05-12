@@ -189,7 +189,7 @@ public:
 
     virtual void finalise();
     virtual void getDimensions(double &sBegin, double &sEnd) const;
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
     virtual void initialise(PartBunch *bunch,
                             double &startField,
                             double &endField,

@@ -251,8 +251,7 @@ void Solenoid::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Solenoid::getType() const {
-    static const std::string type("Solenoid");
-    return type;
+ElementBase::ElementType Solenoid::getType() const {
+    return SOLENOID;
 }
 

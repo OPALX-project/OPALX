@@ -78,7 +78,7 @@ public:
 
     bool getFast() const;
 
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

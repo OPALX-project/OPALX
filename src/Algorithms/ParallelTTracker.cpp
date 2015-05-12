@@ -292,7 +292,7 @@ void ParallelTTracker::updateRFElement(std::string elName, double maxPhase) {
     double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
     for (FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++fit) {
         if ((*fit).getElement()->getName() == elName) {
-            if ((*fit).getElement()->getType() == "TravelingWave") {
+            if ((*fit).getElement()->getType() == ElementBase::TRAVELINGWAVE) {
                 phase  =  static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
                 frequency = static_cast<TravelingWave *>((*fit).getElement().get())->getFrequencym();
                 maxPhase -= frequency * globalTimeShift;
@@ -331,7 +331,7 @@ void ParallelTTracker::printRFPhases() {
         double frequency;
         double phase;
 
-        if (element->getType() == "TravelingWave") {
+        if (element->getType() == ElementBase::TRAVELINGWAVE) {
             phase = static_cast<TravelingWave *>(element.get())->getPhasem();
 	    frequency = static_cast<TravelingWave *>(element.get())->getFrequencym();
         } else {
@@ -1588,7 +1588,7 @@ void ParallelTTracker::bgf_main_collision_test() {
 void ParallelTTracker::handleOverlappingMonitors() {
     // make sure that no monitor has overlap with two tracks
     Inform msg("ParallelTTracker ");
-    FieldList monitors = itsOpalBeamline_m.getElementByType("Monitor");
+    FieldList monitors = itsOpalBeamline_m.getElementByType(ElementBase::MONITOR);
     for(FieldList::iterator it = monitors.begin(); it != monitors.end(); ++ it) {
         double zbegin, zend;
         it->getElement()->getDimensions(zbegin, zend);
@@ -1612,8 +1612,8 @@ void ParallelTTracker::prepareSections() {
     handleOverlappingMonitors();
     itsOpalBeamline_m.prepareSections();
 
-    cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
-    FieldList travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
+    cavities_m = itsOpalBeamline_m.getElementByType(ElementBase::RFCAVITY);
+    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementBase::TRAVELINGWAVE);
     cavities_m.merge(travelingwaves, ClassicField::SortAsc);
 }
 

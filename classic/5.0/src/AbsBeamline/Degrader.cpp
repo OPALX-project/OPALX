@@ -229,9 +229,8 @@ void Degrader::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const std::string &Degrader::getType() const {
-    static const std::string type("DEGRADER");
-    return type;
+ElementBase::ElementType Degrader::getType() const {
+    return DEGRADER;
 }
 
 string Degrader::getDegraderShape() {

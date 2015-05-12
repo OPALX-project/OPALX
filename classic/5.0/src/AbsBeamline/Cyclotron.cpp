@@ -174,8 +174,12 @@ void Cyclotron::setType(std::string t) {
     type_m = t;
 }
 
-const std::string &Cyclotron::getType() const {
+const std::string &Cyclotron::getCyclotronType() const {
     return type_m;
+}
+
+ElementBase::ElementType Cyclotron::getType() const {
+    return CYCLOTRON;
 }
 
 void Cyclotron::setCyclHarm(double h) {

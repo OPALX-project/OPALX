@@ -75,7 +75,6 @@ void Lambertson::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const std::string &Lambertson::getType() const {
-    static const std::string type("Lambertson");
-    return type;
+ElementBase::ElementType Lambertson::getType() const {
+    return LAMBERTSON;
 }

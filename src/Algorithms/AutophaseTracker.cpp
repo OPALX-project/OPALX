@@ -246,7 +246,7 @@ double AutophaseTracker::guessCavityPhase(const std::shared_ptr<Component> &cavi
     const double tErr  = (cavityStart - refR(2)) / (Physics::c * beta);
 
     bool apVeto;
-    if(cavity->getType() == "TravelingWave") {
+    if(cavity->getType() == ElementBase::TRAVELINGWAVE) {
         TravelingWave *element = static_cast<TravelingWave *>(cavity.get());
         orig_phi = element->getPhasem();
         apVeto = element->getAutophaseVeto();
@@ -288,7 +288,7 @@ double AutophaseTracker::optimizeCavityPhase(const std::shared_ptr<Component> &c
                                              size_t currentStep,
                                              double dt) {
 
-    if(cavity->getType() == "TravelingWave") {
+    if(cavity->getType() == ElementBase::TRAVELINGWAVE) {
         if (static_cast<TravelingWave *>(cavity.get())->getAutophaseVeto()) return initialPhase;
     } else {
         if (static_cast<RFCavity *>(cavity.get())->getAutophaseVeto()) return initialPhase;
@@ -346,7 +346,7 @@ double AutophaseTracker::optimizeCavityPhase(const std::shared_ptr<Component> &c
     }
     Phimax = initialPhase;
 
-    if(cavity->getType() == "TravelingWave") {
+    if(cavity->getType() == ElementBase::TRAVELINGWAVE) {
         TravelingWave *element = static_cast<TravelingWave *>(cavity.get());
         originalPhase = element->getPhasem();
         element->updatePhasem(Phimax + originalPhase);
@@ -399,7 +399,7 @@ double AutophaseTracker::APtrack(const std::shared_ptr<Component> &cavity, doubl
 
     double initialPhase = 0.0;
     double finalMomentum = 0.0;
-    if(cavity->getType() == "TravelingWave") {
+    if(cavity->getType() == ElementBase::TRAVELINGWAVE) {
         TravelingWave *tws = static_cast<TravelingWave *>(cavity.get());
         initialPhase = tws->getPhasem();
         tws->updatePhasem(phi);

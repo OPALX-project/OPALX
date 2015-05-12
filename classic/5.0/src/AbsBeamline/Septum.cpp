@@ -215,7 +215,6 @@ void Septum::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Septum::getType() const {
-    static const std::string type("Septum");
-    return type;
+ElementBase::ElementType Septum::getType() const {
+    return SEPTUM;
 }

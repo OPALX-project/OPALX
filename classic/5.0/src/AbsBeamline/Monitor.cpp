@@ -154,9 +154,8 @@ void Monitor::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Monitor::getType() const {
-    static const std::string type("Monitor");
-    return type;
+ElementBase::ElementType Monitor::getType() const {
+    return MONITOR;
 }
 
 void Monitor::moveBy(const double &dz) {

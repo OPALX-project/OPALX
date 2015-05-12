@@ -377,37 +377,37 @@ private:
 
     // Transform the x- and y-parts of a particle attribute (position, momentum, fields) from the
     // local reference frame to the global reference frame.
-    void localToGlobal(ParticleAttrib<Vector_t> & vectorArray, 
+    void localToGlobal(ParticleAttrib<Vector_t> & vectorArray,
                        double phi, Vector_t const translationToGlobal = 0);
 
     // Overloaded version of globalToLocal using a quaternion for 3D rotation
-    inline void globalToLocal(ParticleAttrib<Vector_t> & vectorArray, 
-                              Quaternion_t const quaternion, 
+    inline void globalToLocal(ParticleAttrib<Vector_t> & vectorArray,
+                              Quaternion_t const quaternion,
                               Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of localToGlobal using a quaternion for 3D rotation
     inline void localToGlobal(ParticleAttrib<Vector_t> & vectorArray,
-                              Quaternion_t const quaternion, 
+                              Quaternion_t const quaternion,
                               Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of globalToLocal using phi and theta for pseudo 3D rotation
-    inline void globalToLocal(ParticleAttrib<Vector_t> & particleVectors, 
-                              double const phi, double const psi, 
+    inline void globalToLocal(ParticleAttrib<Vector_t> & particleVectors,
+                              double const phi, double const psi,
                               Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of localToGlobal using phi and theta for pseudo 3D rotation
-    inline void localToGlobal(ParticleAttrib<Vector_t> & particleVectors, 
-                              double const phi, double const psi, 
+    inline void localToGlobal(ParticleAttrib<Vector_t> & particleVectors,
+                              double const phi, double const psi,
                               Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of globalToLocal using phi and theta for pseudo 3D rotation, single vector
-    inline void globalToLocal(Vector_t & myVector, 
-                              double const phi, double const psi, 
+    inline void globalToLocal(Vector_t & myVector,
+                              double const phi, double const psi,
                               Vector_t const meanR = Vector_t(0.0));
 
     // Overloaded version of localToGlobal using phi and theta for pseudo 3D rotation, single vector
-    inline void localToGlobal(Vector_t & myVector, 
-                              double const phi, double const psi, 
+    inline void localToGlobal(Vector_t & myVector,
+                              double const phi, double const psi,
                               Vector_t const meanR = Vector_t(0.0));
 
     // Rotate the particles by an angle and axis defined in the quaternion (4-vector w,x,y,z)

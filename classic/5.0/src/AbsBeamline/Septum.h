@@ -80,7 +80,7 @@ public:
     bool  checkSeptum(PartBunch &bunch);
     double calculateAngle(double x, double y);
 
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

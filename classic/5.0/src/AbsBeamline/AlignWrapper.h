@@ -95,7 +95,7 @@ public:
 
     /// Get element type std::string.
     //  Returns the type std::string for the enclosed item.
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementBase::ElementType getType() const;
 
     /// Disallow misalignment of an already misaligned object.
     //  This method returns [b]this[/b], since "this" is already an
