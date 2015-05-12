@@ -774,7 +774,7 @@ inline void ParallelTTracker::writePhaseSpace(const long long step, const double
 
     if(statDump) {
         std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
-        FieldList collimators = itsOpalBeamline_m.getElementByType("Collimator");
+        FieldList collimators = itsOpalBeamline_m.getElementByType(ElementBase::COLLIMATOR);
 	if (collimators.size() != 0) {
 	  for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
   	    Collimator* coll = static_cast<Collimator*>(it->getElement().get());

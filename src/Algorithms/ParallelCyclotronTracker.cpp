@@ -456,7 +456,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     std::string fmfn = elptr->getFieldMapFN();
     *gmsg << "* Field map file name = " << fmfn << " " << endl;
 
-    std::string type = elptr->getType();
+    std::string type = elptr->getCyclotronType();
     *gmsg << "* Type of cyclotron = " << type << " " << endl;
 
     double rmin = elptr->getMinR();

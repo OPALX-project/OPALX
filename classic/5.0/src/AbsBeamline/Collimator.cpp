@@ -569,9 +569,8 @@ void Collimator::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const std::string &Collimator::getType() const {
-    static const std::string type("Collimator");
-    return type;
+ElementBase::ElementType Collimator::getType() const {
+    return COLLIMATOR;
 }
 
 string Collimator::getCollimatorShape() {

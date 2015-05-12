@@ -221,7 +221,6 @@ void ParallelPlate::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &ParallelPlate::getType() const {
-    static const std::string type("ParallelPlate");
-    return type;
+ElementBase::ElementType ParallelPlate::getType() const {
+    return PARALLELPLATE;
 }

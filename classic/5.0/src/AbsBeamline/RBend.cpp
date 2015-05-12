@@ -414,9 +414,8 @@ void RBend::getDimensions(double &sBegin, double &sEnd) const {
     sEnd = endField_m;
 }
 
-const std::string &RBend::getType() const {
-    static const std::string type("RBend");
-    return type;
+ElementBase::ElementType RBend::getType() const {
+    return RBEND;
 }
 
 void RBend::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {

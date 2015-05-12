@@ -64,9 +64,8 @@ const BGeometryBase &MPSplitIntegrator::getGeometry() const {
 }
 
 
-const std::string &MPSplitIntegrator::getType() const {
-    static std::string type("MPSplitIntegrator");
-    return type;
+ElementBase::ElementType MPSplitIntegrator::getType() const {
+    return MPSPLITINTEGRATOR;
 }
 
 

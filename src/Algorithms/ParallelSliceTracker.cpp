@@ -39,8 +39,8 @@ ParallelSliceTracker::ParallelSliceTracker(const Beamline &beamline,
     BinRepartTimer_m         = IpplTimings::getTimer("Time of Binary repart.");
     WakeFieldTimer_m         = IpplTimings::getTimer("Time of Wake Field calc.");
 
-    cavities_m = itsOpalBeamline_m->getElementByType("RFCavity");
-    auto travelingwaves = itsOpalBeamline_m->getElementByType("TravelingWave");
+    cavities_m = itsOpalBeamline_m->getElementByType(ElementBase::RFCAVITY);
+    auto travelingwaves = itsOpalBeamline_m->getElementByType(ElementBase::TRAVELINGWAVE);
     cavities_m.merge(travelingwaves, ClassicField::SortAsc);
 }
 
@@ -59,7 +59,7 @@ void ParallelSliceTracker::updateRFElement(std::string elName, double maxPhase) 
 
     for (FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++fit) {
         if ((*fit).getElement()->getName() == elName) {
-            if ((*fit).getElement()->getType() == "TravelingWave") {
+            if ((*fit).getElement()->getType() == ElementBase::TRAVELINGWAVE) {
                 phase  =  static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
                 static_cast<TravelingWave *>((*fit).getElement().get())->updatePhasem(phase + maxPhase);
             } else {
@@ -93,7 +93,7 @@ void ParallelSliceTracker::printRFPhases() {
         double frequency;
         double phase;
 
-        if (element->getType() == "TravelingWave") {
+        if (element->getType() == ElementBase::TRAVELINGWAVE) {
             phase = static_cast<TravelingWave *>(element.get())->getPhasem();
 	    frequency = static_cast<TravelingWave *>(element.get())->getFrequencym();
         } else {

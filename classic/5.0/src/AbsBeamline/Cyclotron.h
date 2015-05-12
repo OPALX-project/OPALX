@@ -37,21 +37,21 @@ struct BfieldData {
     //~ double *dbt;    //dBz/dtheta
     //~ double *dbtt;   //d2Bz/dtheta2
     //~ double *dbttt;  //d3Bz/dtheta3
-//~ 
+//~
     //~ // to be calculated in getdiffs: all other derivatives:
     //~ double *dbr;    // dBz/dr
     //~ double *dbrr;   // ...
     //~ double *dbrrr;
-//~ 
+//~
     //~ double *dbrt;
     //~ double *dbrrt;
     //~ double *dbrtt;
-//~ 
+//~
     //~ // used to get (Br,Btheta,Bz) at any off-plane point
     //~ double *f2;  // for Bz
     //~ double *f3;  // for Br
     //~ double *g3;  // for Btheta
-//~ 
+//~
     std::vector<double> bfld;   //Bz
     std::vector<double> dbt;    //dBz/dtheta
     std::vector<double> dbtt;   //d2Bz/dtheta2
@@ -132,7 +132,8 @@ public:
     void setRfFieldMapFN(std::vector<std::string> rffmapfn);
 
     void setType(std::string t);
-    virtual const std::string &getType() const;
+    const std::string &getCyclotronType() const;
+    virtual ElementBase::ElementType getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
@@ -158,7 +159,7 @@ public:
 
     void   setZinit(double zinit);
     virtual double getZinit() const;
-    
+
     void   setPZinit(double zinit);
     virtual double getPZinit() const;
 
@@ -221,7 +222,7 @@ private:
     std::vector<double> rffrequ_m;
     std::vector<double> rfphi_m;
     std::vector<double> escale_m; // a scale factor for the E-field
-    std::vector<bool> superpose_m; // electric fields are superposed or not 
+    std::vector<bool> superpose_m; // electric fields are superposed or not
 
     double symmetry_m;
 
@@ -260,13 +261,13 @@ private:
     BPositions BP;
 
     BFieldType myBFieldType_m;
-    
+
     // RF field map handler
     //    Fieldmap *RFfield;
-    std::vector<Fieldmap *> RFfields_m; 
+    std::vector<Fieldmap *> RFfields_m;
     std::vector<std::string> RFfilename_m;
 
-    // handling for store the particle out of region 
+    // handling for store the particle out of region
     std::unique_ptr<LossDataSink> lossDs_m;
 
     void   getdiffs();

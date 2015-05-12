@@ -800,9 +800,8 @@ void RFCavity::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &RFCavity::getType() const {
-    static const std::string type("RFCavity");
-    return type;
+ElementBase::ElementType RFCavity::getType() const {
+    return RFCAVITY;
 }
 
 double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const double &q, const double &mass) {

@@ -307,7 +307,6 @@ void Probe::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = position_m + 0.005;
 }
 
-const std::string &Probe::getType() const {
-    static const std::string type("Probe");
-    return type;
+ElementBase::ElementType Probe::getType() const {
+    return PROBE;
 }

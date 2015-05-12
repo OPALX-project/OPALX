@@ -368,9 +368,8 @@ void SBend::getDimensions(double &sBegin, double &sEnd) const {
     sEnd = endField_m;
 }
 
-const std::string &SBend::getType() const {
-    static const std::string type("SBend");
-    return type;
+ElementBase::ElementType SBend::getType() const {
+    return SBEND;
 }
 
 void SBend::initialise(PartBunch *bunch,

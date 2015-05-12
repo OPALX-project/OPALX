@@ -115,7 +115,6 @@ void Corrector::getDimensions(double &zBegin, double &zEnd) const
   zEnd = startField_m + getElementLength();
 }
 
-const std::string &Corrector::getType() const {
-    static const std::string type("Corrector");
-    return type;
+ElementBase::ElementType Corrector::getType() const {
+    return CORRECTOR;
 }

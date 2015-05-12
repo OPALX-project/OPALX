@@ -492,9 +492,8 @@ void TravelingWave::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &TravelingWave::getType() const {
-    static const std::string type("TravelingWave");
-    return type;
+ElementBase::ElementType TravelingWave::getType() const {
+    return TRAVELINGWAVE;
 }
 
 double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, const double &q, const double &mass) {
