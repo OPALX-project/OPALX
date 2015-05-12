@@ -440,6 +440,17 @@ void OpalBeamline::prepareSections() {
                 }
             }
         }
+        if (sections_m[i].doDipoleFieldsOverlap()) {
+            const CompVec &elements = sections_m[i].getElements();
+            auto it = elements.begin();
+            std::string elementNames = (*it)->getName();
+
+            for (++ it; it != elements.end(); ++ it) {
+                elementNames += ", " + (*it)->getName();
+            }
+            throw OpalException("OpalBeamline::prepareSections",
+                                "Fields overlap with dipole fields; not supported yet;\n*** affected elements: " + elementNames);
+        }
     }
 
 

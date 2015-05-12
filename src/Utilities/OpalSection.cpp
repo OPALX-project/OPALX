@@ -62,8 +62,6 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
             boundarygeometry_m = (*clit)->getBoundaryGeometry();
             has_boundarygeometry_m = true;
         }
-
-
     }
     if(has_wake_m && !wakefunction_m) {
         // we then dismissed them all or there is
@@ -165,4 +163,25 @@ void OpalSection::updateEndCache() {
         EndCache_m.u_factor = tanb * sinc / cosa - tana * cosc;
         EndCache_m.v_factor = -tanb * cosc / cosa - tana * sinc;
     }
+}
+
+bool OpalSection::doDipoleFieldsOverlap() const {
+    if (!bends_m) return false;
+
+    unsigned int numFieldContributions = 0;
+    for (auto it = elements_m.begin(); it != elements_m.end(); ++ it) {
+        switch((*it)->getType()) {
+        case ElementBase::CORRECTOR:
+        case ElementBase::MULTIPOLE:
+        case ElementBase::RBEND:
+        case ElementBase::RFCAVITY:
+        case ElementBase::RFQUADRUPOLE:
+        case ElementBase::SBEND:
+        case ElementBase::SOLENOID:
+        case ElementBase::TRAVELINGWAVE:
+            ++ numFieldContributions;
+        default:
+        }
+    }
+    return (numFieldContributions > 1);
 }
