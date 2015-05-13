@@ -180,7 +180,9 @@ bool OpalSection::doDipoleFieldsOverlap() const {
         case ElementBase::SOLENOID:
         case ElementBase::TRAVELINGWAVE:
             ++ numFieldContributions;
+            break;
         default:
+            break;
         }
     }
     return (numFieldContributions > 1);
