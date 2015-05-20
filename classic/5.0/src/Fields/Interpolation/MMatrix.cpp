@@ -43,6 +43,21 @@ MMatrix<Tmplt>::MMatrix() : _matrix(NULL)
 template MMatrix<double>   ::MMatrix();
 template MMatrix<m_complex>::MMatrix();
 
+template MMatrix<double>    MMatrix<double>   ::Diagonal(size_t i, double    diag, double    off_diag);
+template MMatrix<m_complex> MMatrix<m_complex>::Diagonal(size_t i, m_complex diag, m_complex off_diag);
+
+template std::istream& operator>>(std::istream& in, MMatrix<double>&    mat);
+template std::istream& operator>>(std::istream& in, MMatrix<m_complex>& mat);
+
+template MMatrix<double>   ::MMatrix(size_t i, size_t j, double*    data_beg );
+template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex* data_beg );
+template MMatrix<double>   ::MMatrix(size_t i, size_t j, double    value);
+template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex value);
+template MMatrix<double>   ::MMatrix(size_t i, size_t j );
+template MMatrix<m_complex>::MMatrix(size_t i, size_t j );
+
+template MMatrix<double>    MMatrix<double>   ::inverse() const;
+template MMatrix<m_complex> MMatrix<m_complex>::inverse() const;
 
 template <>
 void MMatrix<double>::delete_matrix()
@@ -106,27 +121,21 @@ MMatrix<Tmplt>::MMatrix(size_t i, size_t j, Tmplt* data_beg ) : _matrix(NULL)
 {
   build_matrix(i, j, data_beg);
 }
-template MMatrix<double>   ::MMatrix(size_t i, size_t j, double*    data_beg );
-template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex* data_beg );
 
 template <class Tmplt>
 MMatrix<Tmplt>::MMatrix(size_t i, size_t j, Tmplt  value    )
 {
-  build_matrix(i, j);
-  for(size_t a=1; a<=i; a++)
-    for(size_t b=1; b<=j; b++)
-      operator()(a,b) = value;
+    build_matrix(i, j);
+    for(size_t a=1; a<=i; a++)
+        for(size_t b=1; b<=j; b++)
+            operator()(a,b) = value;
 }
-template MMatrix<double>   ::MMatrix(size_t i, size_t j, double    value);
-template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex value);
 
 template <class Tmplt>
 MMatrix<Tmplt>::MMatrix(size_t i, size_t j )
 {
   build_matrix(i, j);
 }
-template MMatrix<double>   ::MMatrix(size_t i, size_t j );
-template MMatrix<m_complex>::MMatrix(size_t i, size_t j );
 
 template <class Tmplt>
 MMatrix<Tmplt> MMatrix<Tmplt>::Diagonal(size_t i, Tmplt diag_value, Tmplt off_diag_value)
@@ -140,8 +149,6 @@ MMatrix<Tmplt> MMatrix<Tmplt>::Diagonal(size_t i, Tmplt diag_value, Tmplt off_di
   }
   return mm;
 }
-template MMatrix<double>    MMatrix<double>   ::Diagonal(size_t i, double    diag, double    off_diag);
-template MMatrix<m_complex> MMatrix<m_complex>::Diagonal(size_t i, m_complex diag, m_complex off_diag);
 
 
 template <class Tmplt>
@@ -218,8 +225,6 @@ MMatrix<Tmplt> MMatrix<Tmplt>::inverse()     const
   copy.invert();
   return copy;
 }
-template MMatrix<double>    MMatrix<double>   ::inverse() const;
-template MMatrix<m_complex> MMatrix<m_complex>::inverse() const;
 
 
 template <>
@@ -366,8 +371,6 @@ template <class Tmplt> std::istream& operator>>(std::istream& in, MMatrix<Tmplt>
       in >> mat(i,j);
   return in;
 }
-template std::istream& operator>>(std::istream& in, MMatrix<double>&    mat);
-template std::istream& operator>>(std::istream& in, MMatrix<m_complex>& mat);
 
 
 ///////////////// INTERFACES
