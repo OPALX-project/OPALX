@@ -226,8 +226,8 @@ void SquarePolynomialVector::PrintContainer(std::ostream& out, const Container& 
 //  class Container::iterator it;
   std::stringstream strstr1("");
   std::stringstream strstr2("");
-  class Container::const_iterator it1 = container.begin();
-  class Container::const_iterator it2 = it1;
+  typename Container::const_iterator it1 = container.begin();
+  typename Container::const_iterator it2 = it1;
   while(it1!=container.end())
   {
     it2++;
