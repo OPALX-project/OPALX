@@ -1391,199 +1391,82 @@ void ParallelTTracker::applySchottkyCorrection(PartBunch &itsBunch, int ne, doub
 }
 
 void ParallelTTracker::bgf_main_collision_test() {
-
-    Inform msg("ParallelTTracker ");
-
     if(!bgf_m) return;
 
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
     /**
      Here we check if a particles is
-     outside the domain, flag it for
+     outside the geometry, flag it for
      deletion and create secondaries
      */
-    if(secondaryFlg_m == 1) {
-        /*
-         entry for Furman-Pivi's secondary emission model
-         itsBunch->getLocalNum() will change immediately, so we
-         need Inc_num to record the local particle number before
-         secondary emission, otherwise will be recursive generate
-         secondaries and cause problem.
-         */
-        size_t Inc_num = itsBunch->getLocalNum();
 
+    for(size_t i = 0; i < itsBunch->getLocalNum (); i++) {
         double dtime = 0.5 * itsBunch->getdT();
-
         double seyNum = 0;
 
-        for(size_t i = 0; i < Inc_num; i++) {
-
+        if(secondaryFlg_m != 1) {
+            // mark secondaries generated in last step as old
             if(itsBunch->PType[i] == 3)
-                // secondaries generated in last step will be set to be old
-                // secondaries.
-
                 itsBunch->PType[i] = 2;
-
-            if(itsBunch->TriID[i] == 0) {
-                /*
-                 for primary bunch, primary dark current particles,
-                 old secondaries in previous time steps and newly
-                 generated secondaries which have no collision with
-                 boundary in both first and second half step, do main
-                 collision test and emit the secondaries.
-                 */
-                Vector_t intecoords = outr;
-                int triId = 0;
-                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
-                if(res == 0) {
-                    res += bgf_m->doBGphysics(intecoords, triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
-                }
-                if(res >= 0) {
-                    itsBunch->Bin[i] = -1;
-                    Nimpact_m++;
-                    SeyNum_m += seyNum;
-                }
-            } else {
-                /*
-                 Particles which collide the boundary in previous
-                 two tests will not do main collision test and directly
-                 call secondary emission module according to their
-                 energy and momentum before collision. Attention, these
-                 secondaries have not been kicked and are without new
-                 momentum.
-                 */
-
-                int triId = itsBunch->TriID[i];
-
-                int res = bgf_m->doBGphysics(itsBunch->R[i], triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
-                if(res >= 0) {
-                    itsBunch->Bin[i] = -1;
-                    Nimpact_m++;
-                    SeyNum_m += seyNum;
-                }
-            }
         }
 
-        /*===========================
-         Now we do fieldemission
-         ============================== */
-        if(itsBunch->getT() < surfaceEmissionStop_m) {
-            numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
-            itsBunch->boundp();
-            numParticlesInSimulation_m = itsBunch->getTotalNum();
-        } else
-            msg << "* No field emission dT = " << itsBunch->getT() << endl;
-
-    } else if(secondaryFlg_m != 0) {
-        // entry for Vaughan's secondary emission model
-
-        const int para_null = 0;// dummy parameter for overloading the Vaughan's version of BoundaryGeometry::doBGphysics();
-
-        // itsBunch->getLocalNum() will change immediately, so we need Inc_num to record the
-        // local particle number before secondary emission, otherwise will be recursive generate secondaries and cause problem.
-        size_t Inc_num = itsBunch->getLocalNum();
-
-        double dtime = 0.5 * itsBunch->getdT();
-
-        double seyNum = 0;
-
-        for(size_t i = 0; i < Inc_num; i++) {
-
-            if(itsBunch->PType[i] == 3)
-                itsBunch->PType[i] = 2;// secondaries generated in last step will be set to be old secondaries.
-            // for primary bunch, primary dark current particles, old secondaries in previous time steps and newly generated
-            // secondaries which have no collision with boundary in both first and second half step, do main collision test and emit the secondaries.
-            if(itsBunch->TriID[i] == 0) {
-                Vector_t intecoords = outr;
-                int triId = 0;
-
-                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
-
-                if(res == 0) {
-                    res += bgf_m->doBGphysics(intecoords, triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum, para_null);
-                }
-
-                if(res >= 0) {
-                    itsBunch->Bin[i] = -1;
-                    Nimpact_m++;
-                    SeyNum_m += seyNum;
-                }
-            } else {
-                // Particles which collide the boundary in previous two tests will not do main collision test and directly call
-                // secondary emission module according to their energy and momentum before collision. Attention, these secondaries have not
-                // been kicked and are without new momentum.
-                int triId = itsBunch->TriID[i];
-                //assert(dot(itsBunch->P[i], bgf_m->TriNormals_m[triId]) < 0);
-                int res = bgf_m->doBGphysics(itsBunch->R[i], triId, itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum, para_null);
-
-                if(res >= 0) {
-                    itsBunch->Bin[i] = -1;
-                    Nimpact_m++;
-                    SeyNum_m += seyNum;
-                }
-            }
+        /*
+          for primary bunch, primary dark current particles,
+          old secondaries in previous time steps and newly
+          generated secondaries which have no collision with
+          boundary in both first and second half step, do main
+          collision test and emit the secondaries.
+        */
+        int res = 0;
+        int triId = itsBunch->TriID[i];
+        Vector_t position = itsBunch->R[i];
+        if(triId == 0) {
+            // no previous collision
+            Vector_t intersection_pt = outr;
+            res = bgf_m->PartInside (
+                itsBunch->R[i], itsBunch->P[i], dtime,
+                itsBunch->PType[i], itsBunch->Q[i], intersection_pt, triId);
+            if (res < 0) continue;
+            position = intersection_pt;
         }
 
-        /*===========================
-         Now we do fieldemission
-         ============================== */
-        if(itsBunch->getT() < surfaceEmissionStop_m) {
-            numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
-            itsBunch->boundp();
-            numParticlesInSimulation_m = itsBunch->getTotalNum();
-        } else
-            msg << "* No field emission dT = " << itsBunch->getT() << endl;
+        /*
+          Attention: New secondaries have not been kicked and are without new momentum.
+        */
+        if(secondaryFlg_m == 1) {
+            res += bgf_m->emitSecondaryFurmanPivi (
+                position, triId,
+                itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
 
-    } else {// the case without secondary emission, i.e., secondaryFlg==0
-
-        for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
-            Vector_t intecoords = outr;
-            if(itsBunch->TriID[i] == 0) { // Particles which do not collide the boundary in collision test after kick
-                int triId = 0;
-                int res = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], itsBunch->getdT(), itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
-                if(res == 0) {
-                    res += bgf_m->doBGphysics(intecoords, triId);
-                }
-                if(res >= 0) {
-                    itsBunch->Bin[i] = -1;
-                    Nimpact_m++;
-                }
-            } else {// Particles which collide the boundary in collision test after kick will not do main collision test and directly call doBGphysics function.
-                int triId = itsBunch->TriID[i];
-
-                //assert(dot(itsBunch->P[i], bgf_m->TriNormals_m[triId]) < 0);
-                int res = bgf_m->doBGphysics(intecoords, triId);
-
-                if(res >= 0) {
-		    itsBunch->Bin[i] = -1;
-		    Nimpact_m++;
-                }
-            }
+        } else if(secondaryFlg_m != 0) {
+            res += bgf_m->emitSecondaryVaughan (
+                position, triId,
+                itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
+            
+        } else {
+            res += bgf_m->emitSecondaryNone (
+                position, triId);
         }
-
-        /*========================
-	  Now we do fieldemission
-	  =========================== */
-        if(itsBunch->getT() < surfaceEmissionStop_m)
-	  numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
-        else
-	  msg << "* No field emission dT = " << itsBunch->getT() << endl;
-        /*  if (itsBunch->getTotalNum()!= 0) {
-	    itsBunch->boundp();
-	    msg<<"After boundp"<<endl;
-	    }
-	    numParticlesInSimulation_m = itsBunch->getTotalNum();
-	*/
-    }
+        if(res >= 0) {
+            itsBunch->Bin[i] = -1;
+            Nimpact_m++;
+            SeyNum_m += seyNum;
+        }
+    } // end for()
 
     for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
-      if (bgf_m->isOutsideApperture(itsBunch->R[i])) {
-	itsBunch->Bin[i] = -1;
-      }
+        if (bgf_m->isOutsideApperture(itsBunch->R[i])) {
+            itsBunch->Bin[i] = -1;
+        }
     }
 
+    // Now we do field emission
+    if(itsBunch->getT() < surfaceEmissionStop_m)
+        numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
+    else
+        msg << "* No field emission dT = " << itsBunch->getT() << endl;
+    
     itsBunch->boundp();
-
     numParticlesInSimulation_m = itsBunch->getTotalNum();
 }
 
@@ -1643,7 +1526,6 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
 void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
     if(bgf_m == NULL || secondaryFlg_m == 0) return;
-
     IpplTimings::startTimer(timeIntegrationTimer1_m);
 
     /// We do collision test for newly generated secondaries before integration in the first half step of each time step.
@@ -1665,7 +1547,6 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
         if(itsBunch->PType[i] == 3) { // only test newly generated secondaries
             particleHitBoundary = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], 0.5 * itsBunch->dt[i], itsBunch->PType[i], itsBunch->Q[i], intecoords, triId) == 0;
         }
-
 
         if(particleHitBoundary) {// if hit, set particle position to intersection points coordinates and scale the position;
             // no scaling required
@@ -1756,7 +1637,6 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
 
     if(!bgf_m) return;
-
     /// After kick, we do collision test before integration in second half step with new momentum, if hit, then move collision particles to the position where collision occurs.
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
@@ -1782,16 +1662,12 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
         Vector_t intecoords = outr;
         int triId = 0;
         itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
-        if(itsBunch->TriID[i] == 0) { // test all particles except those already have collided the boundary in the first half step.
-            Vector_t scale_factor(0.0);
-
+        if(itsBunch->TriID[i] == 0) {   // test all particles except those already have collided the boundary in the first half step.
             particleHitBoundary =  bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId) == 0;
-
             if(particleHitBoundary) {
                 itsBunch->R[i] = intecoords / Vector_t(Physics::c * itsBunch->dt[i]);
                 itsBunch->TriID[i] = triId;
-                scale_factor = vscaleFactor_m;
-            } else {//if no collision do normal push in the second half-step
+            } else {                    //if no collision do normal push in the second half-step
                 itsBunch->R[i] /= Vector_t(Physics::c * itsBunch->dt[i]);
                 pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
             }
@@ -2322,11 +2198,7 @@ void ParallelTTracker::initializeBoundaryGeometry() {
 
   Inform msg("ParallelTTracker ");
 
-  /*
-    For the moment, the Boundary geomentry must be attachedto the first element
-
-  */
-
+  // for the time being, the Boundary geomentry must be attachedto the first element
   bgf_m = itsOpalBeamline_m.getBoundaryGeometry(0);
   if (bgf_m) {
     Distribution *dist = NULL;
@@ -2658,3 +2530,10 @@ Vector_t ParallelTTracker::calcMeanP() const {
     reduce(meanP, meanP, OpAddAssign());
     return meanP / Vector_t(itsBunch->getTotalNum());
 }
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
