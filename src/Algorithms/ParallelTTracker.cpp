@@ -1460,9 +1460,8 @@ void ParallelTTracker::bgf_main_collision_test() {
 
     // Now we do field emission
     if(itsBunch->getT() < surfaceEmissionStop_m)
-        numberOfFieldEmittedParticles_m += bgf_m->doFNemission(itsOpalBeamline_m, itsBunch, itsBunch->getT());
-    else
-        msg << "* No field emission dT = " << itsBunch->getT() << endl;
+        numberOfFieldEmittedParticles_m +=
+            bgf_m->doFNemission (itsOpalBeamline_m, itsBunch, itsBunch->getT());
     
     itsBunch->boundp();
     numParticlesInSimulation_m = itsBunch->getTotalNum();
