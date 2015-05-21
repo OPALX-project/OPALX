@@ -76,7 +76,6 @@ void BeamBeam::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &BeamBeam::getType() const {
-    static const std::string type("BeamBeam");
-    return type;
+ElementBase::ElementType BeamBeam::getType() const {
+    return BEAMBEAM;
 }

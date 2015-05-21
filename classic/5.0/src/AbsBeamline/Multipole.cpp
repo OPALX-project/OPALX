@@ -378,7 +378,6 @@ void Multipole::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Multipole::getType() const {
-    static const std::string type("Multipole");
-    return type;
+ElementBase::ElementType Multipole::getType() const {
+    return MULTIPOLE;
 }

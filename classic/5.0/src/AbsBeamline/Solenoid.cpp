@@ -231,7 +231,7 @@ bool Solenoid::bends() const {
 }
 
 
-void Solenoid::goOnline() {
+void Solenoid::goOnline(const double &) {
     Fieldmap::readMap(filename_m);
     online_m = true;
 }
@@ -251,8 +251,7 @@ void Solenoid::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Solenoid::getType() const {
-    static const std::string type("Solenoid");
-    return type;
+ElementBase::ElementType Solenoid::getType() const {
+    return SOLENOID;
 }
 

@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2015, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -43,11 +43,11 @@ bool SquarePolynomialVector::_printHeaders=true;
 std::vector< std::vector< std::vector<int> > > SquarePolynomialVector::_polyKeyByPower;
 std::vector< std::vector< std::vector<int> > > SquarePolynomialVector::_polyKeyByVector;
 
-SquarePolynomialVector::SquarePolynomialVector() 
+SquarePolynomialVector::SquarePolynomialVector()
     : _pointDim(0), _polyCoeffs() {
 }
 
-SquarePolynomialVector::SquarePolynomialVector (const SquarePolynomialVector& pv) 
+SquarePolynomialVector::SquarePolynomialVector (const SquarePolynomialVector& pv)
     : _pointDim(pv._pointDim),
       _polyCoeffs(pv._polyCoeffs.num_row(), pv._polyCoeffs.num_col(), 0.) {
     SetCoefficients(pv._polyCoeffs);
@@ -114,7 +114,7 @@ void  SquarePolynomialVector::F(const double*   point,    double* value)        
 
 void  SquarePolynomialVector::F(const MVector<double>& point,   MVector<double>& value) const
 {
-    MVector<double> polyVector(_polyCoeffs.num_col(), 1); 
+    MVector<double> polyVector(_polyCoeffs.num_col(), 1);
     MakePolyVector(point, polyVector);
     MVector<double> answer = _polyCoeffs*polyVector;
     for(unsigned int i=0; i<ValueDimension(); i++) value(i+1) = answer(i+1);
@@ -226,8 +226,8 @@ void SquarePolynomialVector::PrintContainer(std::ostream& out, const Container& 
 //  class Container::iterator it;
   std::stringstream strstr1("");
   std::stringstream strstr2("");
-  class Container::const_iterator it1 = container.begin();
-  class Container::const_iterator it2 = it1; 
+  typename Container::const_iterator it1 = container.begin();
+  typename Container::const_iterator it2 = it1;
   while(it1!=container.end())
   {
     it2++;
@@ -246,5 +246,3 @@ void SquarePolynomialVector::PrintContainer(std::ostream& out, const Container& 
 }
 
 }
-
-

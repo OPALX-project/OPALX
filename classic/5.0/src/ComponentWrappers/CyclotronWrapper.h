@@ -91,7 +91,7 @@ public:
     virtual double getStepsize() const;
 
     /// Get element type string.
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
 
     /// Get design Cyclotron.
     //  Version for constant object.

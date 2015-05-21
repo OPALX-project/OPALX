@@ -51,7 +51,6 @@
  ***************************************************************************/
 
 // include files
-#include "Utility/Pstring.h"
 #include "Utility/vmap.h"
 #include "Utility/Inform.h"
 

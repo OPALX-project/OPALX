@@ -52,7 +52,7 @@ public:
 
     void getDimensions(double &zBegin, double &zEnd) const;
 
-    const std::string &getType() const;
+    ElementBase::ElementType getType() const;
 
     std::string getFieldMapFN() const;
 
@@ -81,13 +81,6 @@ public:
     virtual void finalise();
 
     virtual bool bends() const;
-
-    virtual void goOnline();
-
-    virtual void goOffline();
-
-
-
 
 
 private:

@@ -12,7 +12,6 @@
 #define DISC_META_H
 
 // include files
-#include "Utility/Pstring.h"
 #include "Utility/Inform.h"
 #include "Utility/vmap.h"
 

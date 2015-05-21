@@ -86,11 +86,8 @@ void toss_cookies( const char *cond, const char *file, int line )
   // inform other nodes they should quit
   Ippl::exitAllNodes(cond, false);
 
-#ifndef IPPL_NO_EXCEPTIONS
-    throw assertion( cond, file, line );
-#else
-    abort();
-#endif
+  throw assertion( cond, file, line );
+
 }
 
 //---------------------------------------------------------------------------//
@@ -106,11 +103,8 @@ void insist( const char *cond, const char *msg, const char *file, int line )
     sprintf( fullmsg, "%s\nAssertion '%s' failed in \n%s on line %8d.",
 	     msg, cond, file, line );
 
-#ifndef IPPL_NO_EXCEPTIONS
     throw assertion( fullmsg );
-#else
-    abort();
-#endif
+
 }
 
 //---------------------------------------------------------------------------//

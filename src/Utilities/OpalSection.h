@@ -69,6 +69,7 @@ public:
         return EndCache_m;
     }
 
+    bool doDipoleFieldsOverlap() const;
 private:
     CompVec elements_m;
     double start_m;

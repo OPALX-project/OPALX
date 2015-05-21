@@ -172,9 +172,6 @@ void Stripper::finalise() {
 bool Stripper::bends() const {
     return false;
 }
-void Stripper::goOnline() {
-    online_m = true;
-}
 
 void Stripper::goOffline() {
     online_m = false;
@@ -387,9 +384,8 @@ void Stripper::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = position_m + 0.005;
 }
 
-const std::string &Stripper::getType() const {
-    static const std::string type("Stripper");
-    return type;
+ElementBase::ElementType Stripper::getType() const {
+    return STRIPPER;
 }
 
 

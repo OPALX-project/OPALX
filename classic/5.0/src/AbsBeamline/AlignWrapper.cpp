@@ -92,7 +92,7 @@ const BGeometryBase &AlignWrapper::getGeometry() const {
 }
 
 
-const std::string &AlignWrapper::getType() const {
+ElementBase::ElementBase::ElementType AlignWrapper::getType() const {
     return itsElement->getType();
 }
 

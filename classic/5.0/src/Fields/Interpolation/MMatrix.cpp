@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2015, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -43,6 +43,21 @@ MMatrix<Tmplt>::MMatrix() : _matrix(NULL)
 template MMatrix<double>   ::MMatrix();
 template MMatrix<m_complex>::MMatrix();
 
+template MMatrix<double>    MMatrix<double>   ::Diagonal(size_t i, double    diag, double    off_diag);
+template MMatrix<m_complex> MMatrix<m_complex>::Diagonal(size_t i, m_complex diag, m_complex off_diag);
+
+template std::istream& operator>>(std::istream& in, MMatrix<double>&    mat);
+template std::istream& operator>>(std::istream& in, MMatrix<m_complex>& mat);
+
+template MMatrix<double>   ::MMatrix(size_t i, size_t j, double*    data_beg );
+template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex* data_beg );
+template MMatrix<double>   ::MMatrix(size_t i, size_t j, double    value);
+template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex value);
+template MMatrix<double>   ::MMatrix(size_t i, size_t j );
+template MMatrix<m_complex>::MMatrix(size_t i, size_t j );
+
+template MMatrix<double>    MMatrix<double>   ::inverse() const;
+template MMatrix<m_complex> MMatrix<m_complex>::inverse() const;
 
 template <>
 void MMatrix<double>::delete_matrix()
@@ -61,23 +76,23 @@ void MMatrix<m_complex>::delete_matrix()
 
 template <>
 MMatrix<double>& MMatrix<double>::operator= (const MMatrix<double>& mm)
-{ 
+{
   if (&mm == this) return *this;
   delete_matrix();
   if(!mm._matrix) { _matrix = NULL; return *this; }
-  _matrix = gsl_matrix_alloc( mm.num_row(), mm.num_col() ); 
-  gsl_matrix_memcpy((gsl_matrix*)_matrix, (const gsl_matrix*)mm._matrix);  
+  _matrix = gsl_matrix_alloc( mm.num_row(), mm.num_col() );
+  gsl_matrix_memcpy((gsl_matrix*)_matrix, (const gsl_matrix*)mm._matrix);
   return *this;
 }
 
 template <>
 MMatrix<m_complex>& MMatrix<m_complex>::operator= (const MMatrix<m_complex>& mm)
-{ 
+{
   if (&mm == this) return *this;
   delete_matrix();
   if(!mm._matrix) { _matrix = NULL; return *this; }
-  _matrix = gsl_matrix_complex_alloc( mm.num_row(), mm.num_col() ); 
-  gsl_matrix_complex_memcpy((gsl_matrix_complex*)_matrix, (const gsl_matrix_complex*)mm._matrix);  
+  _matrix = gsl_matrix_complex_alloc( mm.num_row(), mm.num_col() );
+  gsl_matrix_complex_memcpy((gsl_matrix_complex*)_matrix, (const gsl_matrix_complex*)mm._matrix);
   return *this;
 }
 
@@ -106,27 +121,21 @@ MMatrix<Tmplt>::MMatrix(size_t i, size_t j, Tmplt* data_beg ) : _matrix(NULL)
 {
   build_matrix(i, j, data_beg);
 }
-template MMatrix<double>   ::MMatrix(size_t i, size_t j, double*    data_beg );
-template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex* data_beg );
 
 template <class Tmplt>
 MMatrix<Tmplt>::MMatrix(size_t i, size_t j, Tmplt  value    )
 {
-  build_matrix(i, j);
-  for(size_t a=1; a<=i; a++)
-    for(size_t b=1; b<=j; b++)
-      operator()(a,b) = value;
+    build_matrix(i, j);
+    for(size_t a=1; a<=i; a++)
+        for(size_t b=1; b<=j; b++)
+            operator()(a,b) = value;
 }
-template MMatrix<double>   ::MMatrix(size_t i, size_t j, double    value);
-template MMatrix<m_complex>::MMatrix(size_t i, size_t j, m_complex value);
 
 template <class Tmplt>
 MMatrix<Tmplt>::MMatrix(size_t i, size_t j )
 {
   build_matrix(i, j);
 }
-template MMatrix<double>   ::MMatrix(size_t i, size_t j );
-template MMatrix<m_complex>::MMatrix(size_t i, size_t j );
 
 template <class Tmplt>
 MMatrix<Tmplt> MMatrix<Tmplt>::Diagonal(size_t i, Tmplt diag_value, Tmplt off_diag_value)
@@ -140,14 +149,12 @@ MMatrix<Tmplt> MMatrix<Tmplt>::Diagonal(size_t i, Tmplt diag_value, Tmplt off_di
   }
   return mm;
 }
-template MMatrix<double>    MMatrix<double>   ::Diagonal(size_t i, double    diag, double    off_diag);
-template MMatrix<m_complex> MMatrix<m_complex>::Diagonal(size_t i, m_complex diag, m_complex off_diag);
 
 
 template <class Tmplt>
 MMatrix<Tmplt>::~MMatrix()
 {
-  delete_matrix(); 
+  delete_matrix();
 }
 template MMatrix<double>::~MMatrix();
 template MMatrix<m_complex>::~MMatrix();
@@ -218,12 +225,10 @@ MMatrix<Tmplt> MMatrix<Tmplt>::inverse()     const
   copy.invert();
   return copy;
 }
-template MMatrix<double>    MMatrix<double>   ::inverse() const;
-template MMatrix<m_complex> MMatrix<m_complex>::inverse() const;
 
 
 template <>
-void MMatrix<m_complex>::invert() 
+void MMatrix<m_complex>::invert()
 {
   if(num_row() != num_col()) throw(GeneralClassicException("MMatrix::invert()", "Attempt to get inverse of non-square matrix"));
   gsl_permutation* perm = gsl_permutation_alloc(num_row());
@@ -232,7 +237,7 @@ void MMatrix<m_complex>::invert()
   gsl_linalg_complex_LU_decomp ( (gsl_matrix_complex*)lu._matrix, perm, &s);
   gsl_linalg_complex_LU_invert ( (gsl_matrix_complex*)lu._matrix, perm, (gsl_matrix_complex*)_matrix);
   gsl_permutation_free( perm );
-  for(size_t i=1; i<=num_row(); i++) 
+  for(size_t i=1; i<=num_row(); i++)
     for(size_t j=1; j<=num_row(); j++)
       if(operator()(i,j) != operator()(i,j)) throw(GeneralClassicException("MMatrix::invert()", "Failed to invert matrix - singular?"));
 }
@@ -247,7 +252,7 @@ void MMatrix<double>::invert()
   gsl_linalg_LU_decomp ( (gsl_matrix*)lu._matrix, perm, &s);
   gsl_linalg_LU_invert ( (gsl_matrix*)lu._matrix, perm, (gsl_matrix*)_matrix);
   gsl_permutation_free( perm );
-  for(size_t i=1; i<=num_row(); i++) 
+  for(size_t i=1; i<=num_row(); i++)
     for(size_t j=1; j<=num_row(); j++)
       if(operator()(i,j) != operator()(i,j)) throw(GeneralClassicException("MMatrix::invert()", "Failed to invert matrix - singular?"));
 }
@@ -288,7 +293,7 @@ Tmplt MMatrix<Tmplt>::trace() const
   for(size_t i=2; i<=num_row() && i<=num_col(); i++) t+= operator()(i,i);
   return t;
 }
-template double    MMatrix<double>::trace()    const; 
+template double    MMatrix<double>::trace()    const;
 template m_complex MMatrix<m_complex>::trace() const;
 
 
@@ -325,19 +330,19 @@ template std::pair<MVector<m_complex>, MMatrix<m_complex> > MMatrix<double>::eig
 ///////////// OPERATORS
 
 MMatrix<double>& operator *= (MMatrix<double>& m1,  MMatrix<double>  m2)
-{ 
-  MMatrix<double> out(m1.num_row(), m2.num_col());  
-  gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1., (gsl_matrix*)m1._matrix, (gsl_matrix*)m2._matrix, 0., (gsl_matrix*)out._matrix); 
+{
+  MMatrix<double> out(m1.num_row(), m2.num_col());
+  gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1., (gsl_matrix*)m1._matrix, (gsl_matrix*)m2._matrix, 0., (gsl_matrix*)out._matrix);
   m1 = out;
   return m1;
 }
 
 MMatrix<m_complex> & operator *= (MMatrix<m_complex>& m1,  MMatrix<m_complex>  m2)
-{ 
-  MMatrix<m_complex> out(m1.num_row(), m2.num_col()); 
-  gsl_blas_zgemm( CblasNoTrans, CblasNoTrans, m_complex_build(1.), (gsl_matrix_complex*)m1._matrix, 
-                  (gsl_matrix_complex*)m2._matrix, m_complex_build(0.), (gsl_matrix_complex*)out._matrix); 
-  m1 = out; 
+{
+  MMatrix<m_complex> out(m1.num_row(), m2.num_col());
+  gsl_blas_zgemm( CblasNoTrans, CblasNoTrans, m_complex_build(1.), (gsl_matrix_complex*)m1._matrix,
+                  (gsl_matrix_complex*)m2._matrix, m_complex_build(0.), (gsl_matrix_complex*)out._matrix);
+  m1 = out;
   return m1;
 }
 
@@ -366,18 +371,16 @@ template <class Tmplt> std::istream& operator>>(std::istream& in, MMatrix<Tmplt>
       in >> mat(i,j);
   return in;
 }
-template std::istream& operator>>(std::istream& in, MMatrix<double>&    mat);
-template std::istream& operator>>(std::istream& in, MMatrix<m_complex>& mat);
 
 
 ///////////////// INTERFACES
-const gsl_matrix*         MMatrix_to_gsl(const MMatrix<double>&    m)  
+const gsl_matrix*         MMatrix_to_gsl(const MMatrix<double>&    m)
 {
   if(m._matrix == NULL) throw(GeneralClassicException("MMatrix_to_gsl", "Attempt to reference uninitialised matrix"));
   return (gsl_matrix*)m._matrix;
 }
 
-const gsl_matrix_complex* MMatrix_to_gsl(const MMatrix<m_complex>& m) 
+const gsl_matrix_complex* MMatrix_to_gsl(const MMatrix<m_complex>& m)
 {
   if(m._matrix == NULL) throw(GeneralClassicException("MMatrix_to_gsl", "Attempt to reference uninitialised matrix"));
   return (gsl_matrix_complex*)m._matrix;
@@ -412,7 +415,7 @@ MMatrix<m_complex> complex(MMatrix<double> real)
 
 MMatrix<m_complex> complex(MMatrix<double> real, MMatrix<double> imaginary)
 {
-  if(real.num_row() != imaginary.num_row() || real.num_col() != imaginary.num_col()) 
+  if(real.num_row() != imaginary.num_row() || real.num_col() != imaginary.num_col())
     throw(GeneralClassicException("MMatrix<m_complex>::complex", "Attempt to build complex matrix when real and imaginary matrix don't have the same size"));
   MMatrix<m_complex> mc(real.num_row(), real.num_col());
   for(size_t i=1; i<=mc.num_row(); i++)

@@ -87,7 +87,7 @@ trackMap(FVps<double, 6> &, const PartData &, bool, bool) const {
                        "Called for component \"" + getName() + "\".");
 }
 
-void Component::goOnline() {
+void Component::goOnline(const double &) {
     online_m = true;
 }
 
@@ -111,7 +111,6 @@ void Component::getMisalignment(double &x, double &y, double &s) const {
     s = ds_m;
 }
 
-const std::string &Component::getType() const {
-    static const std::string type("");
-    return type;
+ElementBase::ElementType Component::getType() const {
+    return ElementBase::ANY;
 }

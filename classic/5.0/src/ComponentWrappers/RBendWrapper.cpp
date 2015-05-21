@@ -141,9 +141,8 @@ double RBendWrapper::getStepsize()  const {
 }
 
 
-const std::string &RBendWrapper::getType() const {
-    static const std::string type("RBendWrapper");
-    return type;
+ElementBase::ElementType RBendWrapper::getType() const {
+    return RBENDWRAPPER;
 }
 
 

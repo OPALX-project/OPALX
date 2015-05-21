@@ -134,8 +134,8 @@ public:
     //  of the element, and a copy of the user-defined attributes.
     virtual ElementImage *getImage() const;
 
-    /// Get beamline type string.
-    virtual const std::string &getType() const;
+    /// Get beamline type
+    virtual ElementBase::ElementType getType() const;
 
     /// Append a T object.
     virtual void append(const T &);
@@ -148,12 +148,6 @@ protected:
     /// The beamline geometry.
     //  Exists to match the interface for ElementBase.
     BeamlineGeometry itsGeometry;
-
-private:
-
-    const std::string type;
-
-
 };
 
 
@@ -162,19 +156,19 @@ private:
 
 template <class T>
 TBeamline<T>::TBeamline():
-    Beamline(), std::list<T>(), itsGeometry(*this), type("beamline")
+    Beamline(), std::list<T>(), itsGeometry(*this)
 {}
 
 
 template <class T>
 TBeamline<T>::TBeamline(const std::string &name):
-    Beamline(name), std::list<T>(), itsGeometry(*this), type("beamline")
+    Beamline(name), std::list<T>(), itsGeometry(*this)
 {}
 
 
 template <class T>
 TBeamline<T>::TBeamline(const TBeamline<T> &rhs):
-    Beamline(rhs), std::list<T>(rhs), itsGeometry(*this), type("beamline")
+    Beamline(rhs), std::list<T>(rhs), itsGeometry(*this)
 {}
 
 
@@ -395,8 +389,8 @@ ElementImage *TBeamline<T>::getImage() const {
 
 
 template <class T> inline
-const std::string &TBeamline<T>::getType() const {
-    return type;
+ElementBase::ElementType TBeamline<T>::getType() const {
+    return BEAMLINE;
 }
 
 

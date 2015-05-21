@@ -292,7 +292,7 @@ void ParallelTTracker::updateRFElement(std::string elName, double maxPhase) {
     double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
     for (FieldList::iterator fit = cavities_m.begin(); fit != cavities_m.end(); ++fit) {
         if ((*fit).getElement()->getName() == elName) {
-            if ((*fit).getElement()->getType() == "TravelingWave") {
+            if ((*fit).getElement()->getType() == ElementBase::TRAVELINGWAVE) {
                 phase  =  static_cast<TravelingWave *>((*fit).getElement().get())->getPhasem();
                 frequency = static_cast<TravelingWave *>((*fit).getElement().get())->getFrequencym();
                 maxPhase -= frequency * globalTimeShift;
@@ -331,7 +331,7 @@ void ParallelTTracker::printRFPhases() {
         double frequency;
         double phase;
 
-        if (element->getType() == "TravelingWave") {
+        if (element->getType() == ElementBase::TRAVELINGWAVE) {
             phase = static_cast<TravelingWave *>(element.get())->getPhasem();
 	    frequency = static_cast<TravelingWave *>(element.get())->getFrequencym();
         } else {
@@ -477,6 +477,8 @@ void ParallelTTracker::executeDefaultTracker() {
 
             computeSpaceChargeFields();
 
+            switchElements(10.0);
+
             selectDT();
             emitParticles(step);
             selectDT();
@@ -497,9 +499,6 @@ void ParallelTTracker::executeDefaultTracker() {
             dumpStats(step, psDump, statDump);
 
             if(hasEndOfLineReached()) break;
-
-            double margin = 0.1;
-            switchElements(margin);
 
             itsBunch->incTrackSteps();
 
@@ -787,8 +786,7 @@ void ParallelTTracker::executeAMRTracker()
 
         if(hasEndOfLineReached()) break;
 
-        double margin = 0.1;
-        switchElements(margin);
+        switchElements(10.0);
 
         itsBunch->incTrackSteps();
 
@@ -988,7 +986,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
         itsBunch->get_bounds(rmin, rmax);
         margin = 10. * RefPartP_suv_m(2) * scaleFactor_m / sqrt(1.0 + pSqr(RefPartP_suv_m, RefPartP_suv_m));
         margin = 0.01 > margin ? 0.01 : margin;
-        itsOpalBeamline_m.switchElements(rmin(2) - margin, rmax(2) + margin);
+        itsOpalBeamline_m.switchElements(rmin(2) - margin, rmax(2) + margin, getEnergyMeV(RefPartP_suv_m));
     }
 
     double minBinEmitted  = 10.0;
@@ -1250,7 +1248,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
         // trigger the elements
         margin = 3. * RefPartP_suv_m(2) * recpgamma;
         margin = 0.01 > margin ? 0.01 : margin;
-        itsOpalBeamline_m.switchElements((rmin(2) - margin)*scaleFactor_m, (rmax(2) + margin)*scaleFactor_m);
+        itsOpalBeamline_m.switchElements((rmin(2) - margin)*scaleFactor_m, (rmax(2) + margin)*scaleFactor_m, getEnergyMeV(RefPartP_suv_m));
 
         // start normal particle loop part 2 for simulation without boundary geometry.
         for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
@@ -1473,7 +1471,7 @@ void ParallelTTracker::bgf_main_collision_test() {
 void ParallelTTracker::handleOverlappingMonitors() {
     // make sure that no monitor has overlap with two tracks
     Inform msg("ParallelTTracker ");
-    FieldList monitors = itsOpalBeamline_m.getElementByType("Monitor");
+    FieldList monitors = itsOpalBeamline_m.getElementByType(ElementBase::MONITOR);
     for(FieldList::iterator it = monitors.begin(); it != monitors.end(); ++ it) {
         double zbegin, zend;
         it->getElement()->getDimensions(zbegin, zend);
@@ -1497,8 +1495,8 @@ void ParallelTTracker::prepareSections() {
     handleOverlappingMonitors();
     itsOpalBeamline_m.prepareSections();
 
-    cavities_m = itsOpalBeamline_m.getElementByType("RFCavity");
-    FieldList travelingwaves = itsOpalBeamline_m.getElementByType("TravelingWave");
+    cavities_m = itsOpalBeamline_m.getElementByType(ElementBase::RFCAVITY);
+    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementBase::TRAVELINGWAVE);
     cavities_m.merge(travelingwaves, ClassicField::SortAsc);
 }
 
@@ -1983,9 +1981,9 @@ void ParallelTTracker::switchElements(double scaleMargin) {
     double recpgamma = 1. / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
 
     // trigger the elements
-    double margin = scaleMargin * RefPartP_suv_m(2) * recpgamma;
+    double margin = scaleMargin * RefPartP_suv_m(2) * recpgamma * Physics::c * itsBunch->getdT();
     margin = 0.01 > margin ? 0.01 : margin;
-    itsOpalBeamline_m.switchElements((rmin(2) - margin), (rmax(2) + margin));
+    itsOpalBeamline_m.switchElements((rmin(2) - margin), (rmax(2) + margin), getEnergyMeV(RefPartP_suv_m));
 }
 
 void ParallelTTracker::doBinaryRepartition() {

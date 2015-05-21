@@ -166,7 +166,7 @@ void Degrader::finalise()
   *gmsg << "* Finalize Degrader" << endl;
 }
 
-void Degrader::goOnline() {
+void Degrader::goOnline(const double &) {
  Inform msg("Degrader::goOnline ");
    if(RefPartBunch_m == NULL) {
         if(!informed_m) {
@@ -229,9 +229,8 @@ void Degrader::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const std::string &Degrader::getType() const {
-    static const std::string type("DEGRADER");
-    return type;
+ElementBase::ElementType Degrader::getType() const {
+    return DEGRADER;
 }
 
 string Degrader::getDegraderShape() {

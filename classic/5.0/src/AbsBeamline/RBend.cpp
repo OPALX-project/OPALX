@@ -297,26 +297,6 @@ bool RBend::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
 
     if(designRadius_m > 0.0) {
 
-        // Check if we need to reinitialize the bend field amplitude.
-        if(reinitialize_m) {
-            reinitialize_m = Reinitialize();
-            recalcRefTraj_m = false;
-        }
-
-        /*
-         * Always recalculate the reference trajectory on first call even
-         * if we do not reinitialize the bend. The reference trajectory
-         * has to be calculated at the same energy as the actual beam or
-         * we do not get accurate values for the magnetic field in the output
-         * file.
-         */
-        if(recalcRefTraj_m) {
-            double angleX = 0.0;
-            double angleY = 0.0;
-            CalculateRefTrajectory(angleX, angleY);
-            recalcRefTraj_m = false;
-        }
-
         // Shift position to magnet frame.
         Vector_t X = RefPartBunch_m->X[i];
         X(2) += startField_m - elementEdge_m;
@@ -404,14 +384,38 @@ void RBend::finalise() {
     online_m = false;
 }
 
+void RBend::goOnline(const double &) {
+
+    // Check if we need to reinitialize the bend field amplitude.
+    if(reinitialize_m) {
+        reinitialize_m = Reinitialize();
+        recalcRefTraj_m = false;
+    }
+
+    /*
+     * Always recalculate the reference trajectory on first call even
+     * if we do not reinitialize the bend. The reference trajectory
+     * has to be calculated at the same energy as the actual beam or
+     * we do not get accurate values for the magnetic field in the output
+     * file.
+     */
+    if(recalcRefTraj_m) {
+        double angleX = 0.0;
+        double angleY = 0.0;
+        CalculateRefTrajectory(angleX, angleY);
+        recalcRefTraj_m = false;
+    }
+
+    online_m = true;
+}
+
 void RBend::getDimensions(double &sBegin, double &sEnd) const {
     sBegin = startField_m;
     sEnd = endField_m;
 }
 
-const std::string &RBend::getType() const {
-    static const std::string type("RBend");
-    return type;
+ElementBase::ElementType RBend::getType() const {
+    return RBEND;
 }
 
 void RBend::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
@@ -1370,22 +1374,19 @@ void RBend::ReadFieldMap(Inform &msg) {
 
 bool RBend::Reinitialize() {
 
-    if(designEnergy_m != RefPartBunch_m->get_meanEnergy() * 1.0e6) {
+    designEnergy_m = RefPartBunch_m->get_meanEnergy() * 1.0e6;
+    SetBendStrength();
+    double bendAngleX = 0.0;
+    double bendAngleY = 0.0;
+    CalculateRefTrajectory(bendAngleX, bendAngleY);
 
-        designEnergy_m = RefPartBunch_m->get_meanEnergy() * 1.0e6;
-        SetBendStrength();
-        double bendAngleX = 0.0;
-        double bendAngleY = 0.0;
-        CalculateRefTrajectory(bendAngleX, bendAngleY);
+    Inform msg("RBend ");
+    msg << "Bend design energy changed to: "
+        << designEnergy_m * 1.0e-6
+        << " MeV"
+        << endl;
+    Print(msg, bendAngleX, bendAngleY);
 
-        Inform msg("SBend ");
-        msg << "Bend design energy changed to: "
-            << designEnergy_m * 1.0e-6
-            << " MeV"
-            << endl;
-        Print(msg, bendAngleX, bendAngleY);
-
-    }
 
     return false;
 }

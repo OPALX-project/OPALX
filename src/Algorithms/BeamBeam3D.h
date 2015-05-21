@@ -98,7 +98,7 @@ public:
     virtual ElementImage *getImage() const;
 
     /// Return type name string.
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
 
     /// Get the bunch charge.
     //  Return number of particles times the particle charge in the strong

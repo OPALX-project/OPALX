@@ -145,8 +145,79 @@ const ConstChannel *ElementBase::getConstChannel(const std::string &aKey) const 
 }
 
 
+std::string ElementBase::getTypeString() const {
+    switch (getType()) {
+    case ALIGNWRAPPER:
+        return "AlignWrapper";
+    case BEAMBEAM:
+        return "BeamBeam";
+    case BEAMLINE:
+        return "Beamline";
+    case COLLIMATOR:
+        return "Collimator";
+    case CORRECTOR:
+        return "Corrector";
+    case CYCLOTRON:
+        return "Cyclotron";
+    case CYCLOTRONVALLEY:
+        return "CyclotronValley";
+    case DEGRADER:
+        return "Degrader";
+    case DIAGNOSTIC:
+        return "Diagnostic";
+    case DRIFT:
+        return "Drift";
+    case INTEGRATOR:
+        return "Integrator";
+    case LAMBERTSON:
+        return "Lambertson";
+    case MARKER:
+        return "Marker";
+    case MONITOR:
+        return "Monitor";
+    case MULTIPOLE:
+        return "Multipole";
+    case OFFSET:
+        return "Offset";
+    case PARALLELPLATE:
+        return "ParallelPlate";
+    case PATCH:
+        return "Patch";
+    case PROBE:
+        return "Probe";
+    case RBEND:
+        return "RBend";
+    case RFCAVITY:
+        return "RFCavity";
+    case RFQUADRUPOLE:
+        return "RFQuadrupole";
+    case RING:
+        return "Ring";
+    case SBEND3D:
+        return "SBend3D";
+    case SBEND:
+        return "SBend";
+    case SEPARATOR:
+        return "Separator";
+    case SEPTUM:
+        return "Septum";
+    case SOLENOID:
+        return "Solenoid";
+    case STRIPPER:
+        return "Stripper";
+    case TRAVELINGWAVE:
+        return "TravelingWave";
+    case VARIABLERFCAVITY:
+        return "VariableRFCavity";
+    case ANY:
+    default:
+        return "";
+    }
+}
+
 ElementImage *ElementBase::getImage() const {
-    return new ElementImage(getName(), getType(), userAttribs);
+    std::string type = getTypeString();
+    return new ElementImage(getName(), type, userAttribs);
 }
 
 

@@ -9,7 +9,7 @@ class TestElement : public ElementBase {
   public:
 
     TestElement() : ElementBase(), base(NULL), type("") {}
-    const std::string &getType() const {return type;}
+    ElementBase::ElementType getType() const {return ElementBase::ANY;}
     BGeometryBase  &getGeometry() {
         return *base;
     }
