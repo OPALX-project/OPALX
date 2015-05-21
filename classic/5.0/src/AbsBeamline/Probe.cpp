@@ -129,9 +129,6 @@ void Probe::finalise() {
 bool Probe::bends() const {
     return false;
 }
-void Probe::goOnline() {
-    online_m = true;
-}
 
 void Probe::goOffline() {
     online_m = false;
@@ -310,7 +307,6 @@ void Probe::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = position_m + 0.005;
 }
 
-const std::string &Probe::getType() const {
-    static const std::string type("Probe");
-    return type;
+ElementBase::ElementType Probe::getType() const {
+    return PROBE;
 }

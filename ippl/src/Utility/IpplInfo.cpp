@@ -28,7 +28,6 @@
 #include "Utility/IpplStats.h"
 #include "Utility/PAssert.h"
 #include "Utility/RandomNumberGen.h"
-#include "Utility/Pstring.h"
 #include "Utility/vmap.h"
 #include "DataSource/DataConnectCreator.h"
 #include "Message/CommCreator.h"
@@ -644,12 +643,8 @@ void IpplInfo::abort(const char *msg, int exitcode) {
         Comm = 0;
     }
 
-    // that's it, folks
-    
-    if (exitcode < 0)
-        ::abort();
-    else
-        ::exit(exitcode);
+    // that's it, folks this error will be propperly catched in the main
+    throw std::runtime_error("Error form IpplInfo::abort");   
 }
 
 
@@ -676,9 +671,8 @@ void IpplInfo::abortAllNodes(const char *msg, bool abortThisNode) {
     if (getNodes() > 1)
         Comm->broadcast_others(new Message, IPPL_ABORT_TAG);
 
-    // Now quit ourselves, if necessary
-    if (abortThisNode)
-        ::abort();
+    throw std::runtime_error("Error form IpplInfo::abortAllNodes");   
+
 }
 
 void IpplInfo::exitAllNodes(const char *msg, bool exitThisNode) {
@@ -863,7 +857,7 @@ void IpplInfo::param_error(const char *param, const char *msg,
     if ( msg != 0 )
         ERRORMSG(": " << msg);
     ERRORMSG(endl);
-    abort(0, 0);
+    IpplInfo::abort(0, 0);
 }
 
 void IpplInfo::param_error(const char *param, const char *msg1,
@@ -877,7 +871,7 @@ void IpplInfo::param_error(const char *param, const char *msg1,
     if ( msg2 != 0 )
         ERRORMSG(msg2);
     ERRORMSG(endl);
-    abort(0, 0);
+    IpplInfo::abort(0, 0);
 }
 
 

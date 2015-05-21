@@ -185,7 +185,7 @@ bool CyclotronValley::bends() const {
 }
 
 
-void CyclotronValley::goOnline() {
+void CyclotronValley::goOnline(const double &) {
     Fieldmap::readMap(filename_m);
     online_m = true;
 }
@@ -205,7 +205,6 @@ void CyclotronValley::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &CyclotronValley::getType() const {
-    static const std::string type("CyclotronValley");
-    return type;
+ElementBase::ElementType CyclotronValley::getType() const {
+    return CYCLOTRONVALLEY;
 }

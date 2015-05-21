@@ -79,7 +79,6 @@ void Drift::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = startField_m + getElementLength();
 }
 
-const std::string &Drift::getType() const {
-    static const std::string type("Drift");
-    return type;
+ElementBase::ElementType Drift::getType() const {
+    return DRIFT;
 }

@@ -93,9 +93,8 @@ Corrector::Plane CorrectorWrapper::getPlane() const {
 }
 
 
-const std::string &CorrectorWrapper::getType() const {
-    static const std::string type("CorrectorWrapper");
-    return type;
+ElementBase::ElementType CorrectorWrapper::getType() const {
+    return CORRECTORWRAPPER;
 }
 
 

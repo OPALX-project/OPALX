@@ -116,7 +116,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual void goOnline();
+    virtual void goOnline(const double &kineticEnergy);
 
     virtual void goOffline();
 
@@ -158,7 +158,7 @@ public:
 
     double spline(double z, double *za);
 
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

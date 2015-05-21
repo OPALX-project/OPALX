@@ -116,7 +116,7 @@ public:
 
     //    virtual bool determineEntryPoint(const double &kineticEnergy, const double &tolerance) = 0;
 
-    virtual void goOnline();
+    virtual void goOnline(const double &kineticEnergy);
 
     virtual void goOffline();
 
@@ -132,7 +132,7 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const = 0;
 
-    virtual const std::string &getType() const;
+    virtual ElementBase::ElementType getType() const;
 
     virtual void setComponentType(std::string name) { };
     virtual std::string getComponentType() const { return ""; };

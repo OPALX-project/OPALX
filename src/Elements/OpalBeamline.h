@@ -66,10 +66,10 @@ public:
     void setStatus(const unsigned int &, const bool &);
     const bool &getStatus(const unsigned int &) const;
 
-    void switchElements(const double &, const double &, const bool &nomonitors = false);
+    void switchElements(const double &, const double &, const double &kineticEnergy, const bool &nomonitors = false);
     void switchAllElements();
 
-    void switchElementsOff(const double &, const std::string &eltype = "All");
+    void switchElementsOff(const double &, ElementBase::ElementType eltype = ElementBase::ANY);
     void switchElementsOff();
 
     WakeFunction *getWakeFunction(const unsigned int &);
@@ -91,7 +91,7 @@ public:
 
     bool section_is_glued_to(const long &i, const long &j) const;
 
-    FieldList getElementByType(const std::string type);
+    FieldList getElementByType(ElementBase::ElementType);
 
     // need this for autophasing in case we have multiple tracks
     double calcBeamlineLenght();
@@ -317,7 +317,7 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
 
 template<> inline
 void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, BeamlineVisitor &visitor, PartBunch *) {
-    if(wrap.getType() == "beamline") {
+    if(wrap.getType() == ElementBase::BEAMLINE) {
         Beamline *bl = dynamic_cast<Beamline *>(wrap.getElement());
         bl->iterate(visitor, false);
     } else {

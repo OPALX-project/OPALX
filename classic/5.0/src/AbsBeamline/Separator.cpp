@@ -76,8 +76,7 @@ void Separator::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Separator::getType() const {
-    static const std::string type("Separator");
-    return type;
+ElementBase::ElementType Separator::getType() const {
+    return SEPARATOR;
 }
 

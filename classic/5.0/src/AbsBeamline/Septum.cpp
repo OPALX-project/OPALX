@@ -111,9 +111,6 @@ void Septum::finalise()
 bool Septum::bends() const {
     return false;
 }
-void Septum::goOnline() {
-    online_m = true;
-}
 
 void Septum::goOffline() {
     online_m = false;
@@ -218,7 +215,6 @@ void Septum::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &Septum::getType() const {
-    static const std::string type("Septum");
-    return type;
+ElementBase::ElementType Septum::getType() const {
+    return SEPTUM;
 }

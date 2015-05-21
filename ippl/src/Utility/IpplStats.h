@@ -39,7 +39,6 @@
 #include "Utility/IpplInfo.h"
 #include "Utility/Timer.h"
 #include "Utility/Inform.h"
-#include "Utility/Pstring.h"
 
 #ifdef IPPL_STDSTL
 #include <vector>

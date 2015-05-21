@@ -263,13 +263,9 @@ void MagneticField::ReadHeader(int *nr, int *nth, double *rmin, double *dr, doub
 
   std::ifstream fin(fname.c_str());
 
-  if (!fin || !fin.is_open()) {
-      std::cerr << "Exit in reading." << std::endl; std::abort();
-//     throw(LogicalError(
-// 		       "SectorMagneticFieldMap::IO::ReadLines",
-// 		       "Failed to open file "+fname
-// 		       ));
-  }
+  if (!fin || !fin.is_open()) 
+    throw std::runtime_error("Magnetic Field read error");
+
   double dthtmp;
   fin >> *rmin;
   *rmin /= 1000.0;

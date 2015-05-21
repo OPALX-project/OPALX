@@ -109,9 +109,8 @@ const StraightGeometry &MultipoleWrapper::getGeometry() const {
 }
 
 
-const std::string &MultipoleWrapper::getType() const {
-    static const std::string type("MultipoleWrapper");
-    return type;
+ElementBase::ElementType MultipoleWrapper::getType() const {
+    return MULTIPOLEWRAPPER;
 }
 
 

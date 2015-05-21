@@ -78,8 +78,7 @@ void RFQuadrupole::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-const std::string &RFQuadrupole::getType() const {
-    static const std::string type("RFQuadrupole");
-    return type;
+ElementBase::ElementType RFQuadrupole::getType() const {
+    return RFQUADRUPOLE;
 }
 

@@ -251,26 +251,6 @@ bool SBend::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
 
     if(designRadius_m > 0.0) {
 
-        // Check if we need to reinitialize the bend field amplitude.
-        if(reinitialize_m) {
-            reinitialize_m = Reinitialize();
-            recalcRefTraj_m = false;
-        }
-
-        /*
-         * Always recalculate the reference trajectory on first call even
-         * if we do not reinitialize the bend. The reference trajectory
-         * has to be calculated at the same energy as the actual beam or
-         * we do not get accurate values for the magnetic field in the output
-         * file.
-         */
-        if(recalcRefTraj_m) {
-            double angleX = 0.0;
-            double angleY = 0.0;
-            CalculateRefTrajectory(angleX, angleY);
-            recalcRefTraj_m = false;
-        }
-
         // Shift position to magnet frame.
         Vector_t X = RefPartBunch_m->X[i];
         X(2) += startField_m - elementEdge_m;
@@ -358,14 +338,38 @@ void SBend::finalise() {
     online_m = false;
 }
 
+void SBend::goOnline(const double &) {
+
+    // Check if we need to reinitialize the bend field amplitude.
+    if(reinitialize_m) {
+        reinitialize_m = Reinitialize();
+        recalcRefTraj_m = false;
+    }
+
+    /*
+     * Always recalculate the reference trajectory on first call even
+     * if we do not reinitialize the bend. The reference trajectory
+     * has to be calculated at the same energy as the actual beam or
+     * we do not get accurate values for the magnetic field in the output
+     * file.
+     */
+    if(recalcRefTraj_m) {
+        double angleX = 0.0;
+        double angleY = 0.0;
+        CalculateRefTrajectory(angleX, angleY);
+        recalcRefTraj_m = false;
+    }
+
+    online_m = true;
+}
+
 void SBend::getDimensions(double &sBegin, double &sEnd) const {
     sBegin = startField_m;
     sEnd = endField_m;
 }
 
-const std::string &SBend::getType() const {
-    static const std::string type("SBend");
-    return type;
+ElementBase::ElementType SBend::getType() const {
+    return SBEND;
 }
 
 void SBend::initialise(PartBunch *bunch,
@@ -1586,7 +1590,7 @@ bool SBend::SetupDefaultFieldMap(Inform &msg) {
             << endl;
         return false;
     } else {
-      if(Options::info) 
+      if(Options::info)
 	fieldmap_m->getInfo(&msg);
       return true;
     }

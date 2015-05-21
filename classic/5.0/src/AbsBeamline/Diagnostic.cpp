@@ -71,9 +71,8 @@ bool Diagnostic::bends() const {
     return false;
 }
 
-const std::string &Diagnostic::getType() const {
-    static const std::string type("Diagnostic");
-    return type;
+ElementBase::ElementType Diagnostic::getType() const {
+    return DIAGNOSTIC;
 }
 
 void Diagnostic::getDimensions(double &zBegin, double &zEnd) const

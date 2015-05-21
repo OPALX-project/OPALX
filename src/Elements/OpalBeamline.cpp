@@ -304,21 +304,21 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &cent
     }
 }
 
-void OpalBeamline::switchElements(const double &min, const double &max, const bool &nomonitors) {
+void OpalBeamline::switchElements(const double &min, const double &max, const double &kineticEnergy, const bool &nomonitors) {
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         // don't set online monitors if the centroid of the bunch is allready inside monitor
         // or if explicitly not desired (eg during auto phasing)
-        if(flit->getElement()->getType() == "Monitor") {
+        if(flit->getElement()->getType() == ElementBase::MONITOR) {
             double spos = (max + min) / 2.;
             if(!nomonitors && spos < (*flit).getStart()) {
                 if(!(*flit).isOn() && max > (*flit).getStart()) {
-                    (*flit).setOn();
+                    (*flit).setOn(kineticEnergy);
                 }
             }
 
         } else {
             if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
-                (*flit).setOn();
+                (*flit).setOn(kineticEnergy);
             }
         }
         /////////////////////////
@@ -335,14 +335,14 @@ void OpalBeamline::switchElements(const double &min, const double &max, const bo
 void OpalBeamline::switchAllElements() {
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         if(!(*flit).isOn()) {
-            (*flit).setOn();
+            (*flit).setOn(-1.0);
         }
     }
 
 }
 
-void OpalBeamline::switchElementsOff(const double &min, const std::string &eltype) {
-    if(eltype == "All") {
+void OpalBeamline::switchElementsOff(const double &min, ElementBase::ElementType eltype) {
+    if(eltype == ElementBase::ANY) {
         for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
             if((*flit).isOn() && min >= (*flit).getEnd()) {
                 (*flit).setOff();
@@ -440,6 +440,17 @@ void OpalBeamline::prepareSections() {
                 }
             }
         }
+        if (sections_m[i].doDipoleFieldsOverlap()) {
+            const CompVec &elements = sections_m[i].getElements();
+            auto it = elements.begin();
+            std::string elementNames = (*it)->getName();
+
+            for (++ it; it != elements.end(); ++ it) {
+                elementNames += ", " + (*it)->getName();
+            }
+            throw OpalException("OpalBeamline::prepareSections",
+                                "Fields overlap with dipole fields; not supported yet;\n*** affected elements: " + elementNames);
+        }
     }
 
 
@@ -492,7 +503,7 @@ double OpalBeamline::calcBeamlineLenght() {
 }
 
 
-FieldList OpalBeamline::getElementByType(const std::string type) {
+FieldList OpalBeamline::getElementByType(ElementBase::ElementType type) {
     FieldList elements_of_requested_type;
     for(FieldList::iterator fit = elements_m.begin(); fit != elements_m.end(); ++ fit) {
         if((*fit).getElement()->getType() == type) {

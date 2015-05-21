@@ -28,9 +28,6 @@
 #include "DataSource/FileDataConnect.h"
 #include "Utility/DiscParticle.h"
 #include "Utility/IpplInfo.h"
-#include "Utility/Pstring.h"
-
-
 
 ////////////////////////////////////////////////////////////////////////////
 // constructor: the name, the connection, the transfer method,

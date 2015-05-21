@@ -23,7 +23,6 @@
 // include files
 #include "DataSource/DataSource.h"
 #include "Utility/NamedObj.h"
-#include "Utility/Pstring.h"
 
 // forward declarations
 class DataSourceObject;

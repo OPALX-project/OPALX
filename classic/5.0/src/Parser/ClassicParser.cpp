@@ -233,7 +233,9 @@ void ClassicParser::parse(Statement &statement) const {
         statement.printWhere(false);
         statement.print();
         *gmsg << "Unexpected exception caught." << endl << endl;
-        abort();
+
+	// send problem to main where this will be propperly catched
+	throw std::runtime_error("Parser error");
     }
 }
 

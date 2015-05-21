@@ -137,9 +137,8 @@ ElementImage *BeamBeam3D::getImage() const {
 }
 
 
-const std::string &BeamBeam3D::getType() const {
-    static const std::string type("BeamBeam3D");
-    return type;
+ElementBase::ElementType BeamBeam3D::getType() const {
+    return BEAMBEAM3D;
 }
 
 

@@ -77,7 +77,6 @@ void Marker::getDimensions(double &zBegin, double &zEnd) const {
 
 }
 
-const std::string &Marker::getType() const {
-    static const std::string type("Marker");
-    return type;
+ElementBase::ElementType Marker::getType() const {
+    return MARKER;
 }

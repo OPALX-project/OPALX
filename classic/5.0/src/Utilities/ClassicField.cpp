@@ -13,9 +13,9 @@ ClassicField::~ClassicField() {
     element_m = NULL;
 }
 
-void ClassicField::setOn() {
+void ClassicField::setOn(const double &kineticEnergy) {
     if(!is_on_m) {
-        element_m->goOnline();
+        element_m->goOnline(kineticEnergy);
         INFOMSG(element_m->getName() << " gone live" << endl);
         is_on_m = true;
     }

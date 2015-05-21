@@ -135,8 +135,51 @@ public:
     /// Set element name.
     virtual void setName(const std::string &name);
 
+
+    enum ElementType {ALIGNWRAPPER
+                    , BEAMBEAM
+                    , BEAMBEAM3D
+                    , BEAMLINE
+                    , COLLIMATOR
+                    , CORRECTOR
+                    , CORRECTORWRAPPER
+                    , CYCLOTRON
+                    , CYCLOTRONWRAPPER
+                    , CYCLOTRONVALLEY
+                    , DEGRADER
+                    , DIAGNOSTIC
+                    , DRIFT
+                    , INTEGRATOR
+                    , LAMBERTSON
+                    , MARKER
+                    , MONITOR
+                    , MPSPLITINTEGRATOR
+                    , MULTIPOLE
+                    , MULTIPOLEWRAPPER
+                    , OFFSET
+                    , PARALLELPLATE
+                    , PATCH
+                    , PROBE
+                    , RBEND
+                    , RBENDWRAPPER
+                    , RFCAVITY
+                    , RFQUADRUPOLE
+                    , RING
+                    , SBEND3D
+                    , SBEND
+                    , SBENDWRAPPER
+                    , SEPARATOR
+                    , SEPTUM
+                    , SOLENOID
+                    , STRIPPER
+                    , TRAVELINGWAVE
+                    , VARIABLERFCAVITY
+                    , ANY};
+
     /// Get element type std::string.
-    virtual const std::string &getType() const = 0;
+    virtual ElementType getType() const = 0;
+
+    std::string getTypeString() const;
 
     /// Get geometry.
     //  Return the element geometry.
