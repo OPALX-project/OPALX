@@ -90,12 +90,12 @@ public:
         int& triId);
 
     // non secondary emission version.
-    int doBGphysics (
+    int emitSecondaryNone (
         const Vector_t& intecoords,
         const int& triId);
 
     // call Furman-Pivi's model
-    int doBGphysics (
+    int emitSecondaryFurmanPivi (
         const Vector_t& intecoords,
         const int& triId,
         const double& incQ,
@@ -104,14 +104,13 @@ public:
         double& seyNum);
 
     // call Vaughan's model
-    int doBGphysics (
+    int emitSecondaryVaughan (
         const Vector_t& intecoords,
         const int& triId,
         const double& incQ,
         const Vector_t& incMomentum,
         PartBunch* itsBunch,
-        double& seyNum,
-        const int& para_null);
+        double& seyNum);
 
     size_t doFNemission (
         OpalBeamline& itsOpalBeamline,
