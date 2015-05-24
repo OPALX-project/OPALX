@@ -1008,7 +1008,7 @@ void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartSte
 
     COMPLAINONFAILURE(H5PartSetView(H5file, starti, endi));
     N = (int)H5PartGetNumParticles(H5file);
-    assert(N >= 0 && (unsigned int) N != beam.numMySlices());
+    assert(N >= 0 && (unsigned int) N == beam.numMySlices());
 
     double actualT;
     COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "TIME", &actualT));
