@@ -2046,12 +2046,9 @@ BoundaryGeometry::PartInside (
 
     IpplTimings::startTimer (TPartInside_m);
 
-    // set P1 to next particle position
-    const double p_sq = dot (v, v);
-    const double betaP = 1.0 / sqrt (1.0 + p_sq);
-
-    const Vector_t P0 = r;              //particle position in timestep n;
-    const Vector_t P1 = r + (Physics::c * betaP * v * dt); //particle position in tstep n+1
+    // P0, P1: particle position in time steps n and n+1
+    const Vector_t P0 = r;
+    const Vector_t P1 = r + (Physics::c * v * dt / sqrt (1.0 + dot(v,v)));
 
     Vector_t tmp_intersect_pt = 0.0;
     int tmp_triangle_id = -1;
@@ -2161,7 +2158,7 @@ BoundaryGeometry::printInfo (Inform& os) const {
    Determine physical behaviour when particle hits the boundary triangle,
    non secondary emission version.
  */
-int BoundaryGeometry::doBGphysics (
+int BoundaryGeometry::emitSecondaryNone (
     const Vector_t& intecoords,
     const int& triId
     ) {
@@ -2180,7 +2177,7 @@ int BoundaryGeometry::doBGphysics (
    Determine physical behaviour when particle hits the boundary triangle,
    call Furman-Pivi's secondary emission model.
  */
-int BoundaryGeometry::doBGphysics (
+int BoundaryGeometry::emitSecondaryFurmanPivi (
     const Vector_t& intecoords,
     const int& triId,
     const double& incQ,
@@ -2188,8 +2185,6 @@ int BoundaryGeometry::doBGphysics (
     PartBunch* itsBunch,
     double& seyNum
     ) {
-    Inform msg ("BGphyDebug");
-
     const double p_sq = dot (incMomentum, incMomentum);
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
@@ -2203,19 +2198,15 @@ int BoundaryGeometry::doBGphysics (
     } else if (BGtag & BGphysics::SecondaryEmission) {
         int se_Num = 0;
         int seType = 0;
-
-        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
-            sqrt (dot (incMomentum, incMomentum));
+        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / sqrt (p_sq);
         if (cosTheta < 0) {
-            //cosTheta should be positive
-            ERRORMSG("cosTheta = " << cosTheta
-                     << " intecoords = " << intecoords
-                     << endl);
-            ERRORMSG("incident momentum = " << incMomentum
-                     << " triNormal = " << TriNormals_m[triId]
-                     << endl);
+            ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
+                      "    incident momentum=" << incMomentum << endl <<
+                      "    triNormal=" << TriNormals_m[triId] << endl <<
+                      "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
+                      "    intecoords = " << intecoords << endl);
+            assert(cosTheta>=0);
         }
-        assert(cosTheta>=0);
         int idx = 0;
         if (intecoords != Point (triId, 1)) {
             idx = 1; // intersection is not the 1st vertex
@@ -2244,14 +2235,13 @@ int BoundaryGeometry::doBGphysics (
    Determine physical behaviour when particle hits the boundary triangle,
    call Vaughan's secondary emission model.
  */
-int BoundaryGeometry::doBGphysics (
+int BoundaryGeometry::emitSecondaryVaughan (
     const Vector_t& intecoords,
     const int& triId,
     const double& incQ,
     const Vector_t& incMomentum,
     PartBunch* itsBunch,
-    double& seyNum,
-    const int& para_null
+    double& seyNum
     ) {
     const double p_sq = dot (incMomentum, incMomentum);
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
@@ -2266,17 +2256,16 @@ int BoundaryGeometry::doBGphysics (
     } else if (BGtag & BGphysics::SecondaryEmission) {
         int se_Num = 0;
         int seType = 0;
-        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) /
-            sqrt (dot (incMomentum, incMomentum));
+        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / sqrt (p_sq);
         //cosTheta should be positive
         if (cosTheta < 0) {
-            INFOMSG ("incident momentum=" << incMomentum
-                     << " triNormal=" << TriNormals_m[triId]
-                     << " dot=" << dot (incMomentum, TriNormals_m[triId])
-                     << " cosTheta = " << cosTheta
-                     << endl);
+            ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
+                      "    incident momentum=" << incMomentum << endl <<
+                      "    triNormal=" << TriNormals_m[triId] << endl <<
+                      "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
+                      "    intecoords = " << intecoords << endl);
+            assert(cosTheta>=0);
         }
-        //assert(cosTheta>=0);
         int idx = 0;
         if (intecoords != Point (triId, 1)) {
             // intersection is not the 1st vertex
