@@ -25,7 +25,6 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  bstring.h
   DiscBuffer.h
   DiscConfig.h
   DiscField.hpp
@@ -62,7 +61,6 @@ SET (_HDRS
   Pooled.hpp
   Pooled.h
   Pool.h
-  Pstring.h
   RandomNumberGen.h
   RefBlock.h
   RefCounted.h
