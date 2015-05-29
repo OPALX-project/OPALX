@@ -1434,7 +1434,7 @@ void SBend::SetBendEffectiveLength(double startField, double endField) {
 
     // Adjust field map to match bend angle.
     double error = std::abs(actualBendAngle - angle_m);
-    if(error > 1.0 - 6)
+    if(error > 1.0e-6)
         FindBendEffectiveLength(startField, endField);
 
 }
