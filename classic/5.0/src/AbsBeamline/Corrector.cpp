@@ -70,7 +70,7 @@ bool Corrector::apply(const size_t &i, const double &t, double E[], double B[]) 
 }
 
 bool Corrector::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-  B = kickField_m;
+  B += kickField_m;
   return false;
 }
 
