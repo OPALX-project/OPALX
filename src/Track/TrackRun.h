@@ -40,6 +40,7 @@ class Distribution;
 class Tracker;
 class ParallelTTracker;
 class FieldSolver;
+class H5PartWrapper;
 
 // Class TrackRun
 // ------------------------------------------------------------------------
@@ -89,6 +90,8 @@ private:
     FieldSolver  *fs;
 
     DataSink *ds;
+
+    H5PartWrapper *phaseSpaceSink_m;
 
     OpalData *OPAL;
 

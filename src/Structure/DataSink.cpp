@@ -11,11 +11,17 @@
 #include "Utilities/Options.h"
 #include "Fields/Fieldmap.hh"
 #include "Structure/BoundaryGeometry.h"
+#include "Structure/H5PartWrapper.h"
+#include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
 
 #include "H5hut.h"
 
+#include <boost/filesystem.hpp>
+
 #include <queue>
+#include <regex>
+#include <sstream>
 
 extern Inform *gmsg;
 
@@ -31,18 +37,62 @@ using namespace std;
 DataSink::DataSink() :
     lossWrCounter_m(0),
     doHDF5_m(true),
-    H5file_m(NULL)
+    h5wrapper_m(NULL)
+{ }
+
+DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
+    lossWrCounter_m(0),
+    h5wrapper_m(h5wrapper)
+{
+    namespace fs = boost::filesystem;
+
+    doHDF5_m = Options::enableHDF5;
+    if (!doHDF5_m) {
+        throw OpalException("DataSink::DataSink(int)",
+                            "Can not restart when HDF5 is disabled");
+    }
+
+    H5PartTimer_m = IpplTimings::getTimer("H5PartTimer");
+    StatMarkerTimer_m = IpplTimings::getTimer("StatMarkerTimer");
+
+    /// Set flags whether SDDS file exists or have to write header first.
+    firstWriteToStat_m = true;
+
+    string fn = OpalData::getInstance()->getInputBasename();
+
+    statFileName_m = fn + string(".stat");
+    lBalFileName_m = fn + string(".lbal");
+
+    unsigned int linesToRewind = 0;
+    if (fs::exists(statFileName_m)) {
+        firstWriteToStat_m = false;
+        INFOMSG("Appending statistical data to existing data file: " << statFileName_m << endl);
+        double spos = h5wrapper->getLastPosition();
+        linesToRewind = rewindSDDStoSPos(spos);
+    } else {
+        INFOMSG("Creating new file for statistical data: " << statFileName_m << endl);
+    }
+
+    if (fs::exists(lBalFileName_m)) {
+        INFOMSG("Appending load balance data to existing data file: " << lBalFileName_m << endl);
+        rewindLinesLBal(linesToRewind);
+    } else {
+        INFOMSG("Creating new file for load balance data: " << lBalFileName_m << endl);
+    }
+}
+
+DataSink::DataSink(H5PartWrapper *h5wrapper):
+    lossWrCounter_m(0),
+    h5wrapper_m(h5wrapper)
 {
     /// Constructor steps:
     /// Get timers from IPPL.
     H5PartTimer_m = IpplTimings::getTimer("H5PartTimer");
-    H5BlockTimer_m = IpplTimings::getTimer("H5BlockTimer");
     StatMarkerTimer_m = IpplTimings::getTimer("StatMarkerTimer");
 
     /// Set file write flags to true. These will be set to false after first
     /// write operation.
     firstWriteToStat_m = true;
-    firstWriteH5part_m = true;
     firstWriteH5Surface_m = true;
     /// Define file names.
     string fn = OpalData::getInstance()->getInputBasename();
@@ -50,884 +100,53 @@ DataSink::DataSink() :
     statFileName_m = fn + string(".stat");
     lBalFileName_m = fn + string(".lbal");
 
-    fn += string(".h5");
-
     doHDF5_m = Options::enableHDF5;
 
-    if (doHDF5_m) {
-        /// Open H5 file. Check that it opens correctly.
-#ifdef PARALLEL_IO
-        H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
-#else
-        H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
-#endif
-        if (H5file_m == (void*)H5_ERR) {
-            throw OpalException("DataSink::DataSink()",
-                                "failed to open h5 file '" + fn + "'");
-        }
-        /// Write file attributes.
-        writeH5FileAttributes();
-    }
-    else {
-        H5file_m = NULL;
-    }
-    /// Set current record/time step to 0.
-    H5call_m = 0;
-}
-
-DataSink::DataSink(int restartStep) :
-    lossWrCounter_m(0),
-    H5file_m(NULL)
-{
-    doHDF5_m = Options::enableHDF5;
-    if (!doHDF5_m) {
-        throw OpalException("DataSink::DataSink(int)",
-                            "Can not restart when HDF5 is disabled");
-    }
-    /// Constructor steps:
-    h5_int64_t rc;
-    /// Get timers from IPPL.
-    H5PartTimer_m = IpplTimings::getTimer("H5PartTimer");
-    H5BlockTimer_m = IpplTimings::getTimer("H5BlockTimer");
-    StatMarkerTimer_m = IpplTimings::getTimer("StatMarkerTimer");
-
-    /// Set file write flags. Since this is a restart, assume H5 file is old.
-    firstWriteToStat_m = true;
-    firstWriteH5part_m = false;
-    /// Get file name root.
-    string fn = OpalData::getInstance()->getInputBasename();
-
-    statFileName_m = fn + string(".stat");
-    lBalFileName_m = fn + string(".lbal");
-    /// Test if .stat and .lbal files exist. If they do, new data will be appended.
-    ofstream statFile(statFileName_m.c_str(), ios::in);
-    ofstream lBalFile(lBalFileName_m.c_str(), ios::in);
-
-    if(statFile.is_open()) {
-        // File exists so we append data to end.
-        firstWriteToStat_m = false;
-        statFile.close();
-        *gmsg << "Appending statistical data to existing data file: " << statFileName_m << endl;
-    } else {
-        statFile.clear();
-        *gmsg << "Creating new file for statistical data: " << statFileName_m << endl;
-    }
-
-    if(lBalFile.is_open()) {
-        // File exists so we append data to end.
-        lBalFile.close();
-        *gmsg << "Appending load balance data to existing data file: " << lBalFileName_m << endl;
-    } else {
-        lBalFile.clear();
-        *gmsg << "Creating new file for load balance data: " << lBalFileName_m << endl;
-    }
-
-    // Define file name.
-    fn += string(".h5");
-
-    H5file_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_RDWR, Ippl::getComm());
-
-    *gmsg << "Will append to " << fn << endl;
-
-    if(H5file_m == (void*)H5_ERR) {
-        throw OpalException("DataSink::DataSink(int)",
-                            "failed to open h5 file '" + fn + "'");
-    }
-
-    int numStepsInFile = H5GetNumSteps(H5file_m);
-
-    *gmsg << "numStepsInFile " << numStepsInFile << endl;
-
-    if(restartStep == -1) {
-        restartStep = numStepsInFile;
-    }
-
-    // Use same dump frequency.
-    h5_int64_t dumpfreq = 0;
-    rc = H5ReadFileAttribInt64(H5file_m, "dump frequency", &dumpfreq);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    OpalData::getInstance()->setRestartDumpFreq(dumpfreq);
-
-    // Set current record/time step to restart step.
-    H5call_m = restartStep;
-
+    h5wrapper_m->writeHeader();
 }
 
 DataSink::~DataSink() {
-    h5_int64_t rc;
-    if(H5file_m) {
-        rc = H5CloseFile(H5file_m);
-	H5file_m = NULL;
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    }
-    Ippl::Comm->barrier();
-}
-
-void DataSink::writeH5FileAttributes() {
-
-    if (!doHDF5_m) return;
-
-    h5_int64_t rc;
-    /// Function steps:
-
-    /// Write file attributes to describe phase space to H5 file.
-    stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION;
-    rc = H5WriteFileAttribString(H5file_m, "OPAL_version", OPAL_version.str().c_str());
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "tUnit", "s");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "xUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "yUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "zUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "pxUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "pyUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "pzUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "qUnit", "Cb");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "idUnit", "1");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "ptype", "1");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "lastsection", "1");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "SPOSUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "TIMEUnit", "s");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "#gammaUnit", "1");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "ENERGYUnit", "MeV");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "#varepsilonUnit", "m rad");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "#varepsilonrUnit", "m rad");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "#varepsilon-geomUnit", "m rad");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "#sigmaUnit", " ");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "RMSXUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "RMSRUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "RMSPUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "maxdEUnit", "MeV");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "max#phiUnit", "deg");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "phizUnit", "deg");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "dEUnit", "MeV");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file_m, "mpart", "GeV");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "qi", "C");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write file attributes to describe fields of head/ref particle/tail.
-    rc = H5WriteFileAttribString(H5file_m, "spos-headUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "E-headUnit", "MV/m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "B-headUnit", "T");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "spos-refUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "E-refUnit", "MV/m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "B-refUnit", "T");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "spos-tailUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "E-tailUnit", "MV/m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "B-tailUnit", "T");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "StepUnit", " ");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "LocalTrackStepUnit", " ");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "GlobalTrackStepUnit", " ");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "NumBunchUnit", " ");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "NumPartUnit", " ");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "RefPartRUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "RefPartPUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file_m, "SteptoLastInjUnit", "");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write file dump frequency.
-    h5_int64_t dumpfreq = Options::psDumpFreq;
-    rc = H5WriteFileAttribInt64(H5file_m, "dump frequency", &dumpfreq, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write global phase change
-    h5_float64_t dphi = OpalData::getInstance()->getGlobalPhaseShift();
-    rc = H5WriteFileAttribFloat64(H5file_m, "dPhiGlobal", &dphi, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Reset first write flag.
-    firstWriteH5part_m = false;
-
-    /*
-      stringstream inputFileContent;
-      hsize_t ContentLength;
-      hsize_t write_length;
-      hsize_t length;
-      hsize_t start = 0;
-      hsize_t dmax = H5S_UNLIMITED;
-
-      herr_t herr;
-
-      hid_t group_id;
-      hid_t shape;
-      hid_t dataset_id;
-      hid_t diskshape;
-      hid_t memshape;
-
-      char group_name[] = "INPUT";
-      char dataset_name[] = "InputFile";
-
-      char *FileContent = NULL;
-
-      if(H5file_m->timegroup >= 0) {
-      herr = H5Gclose(H5file_m->timegroup);
-      H5file_m->timegroup = -1;
-      }
-
-      if(Ippl::myNode() == 0) {
-      struct stat st;
-      off_t fsize;
-      if(stat(OpalData::getInstance()->getInputFn().c_str(), &st) == 0) {
-      fsize = st.st_size;
-      }
-      ContentLength = fsize / sizeof(char);
-      FileContent = new char[ContentLength];
-
-      filebuf inputFileBuffer;
-      inputFileBuffer.open(OpalData::getInstance()->getInputFn().c_str(), ios::in);
-      istream inputFile(&inputFileBuffer);
-
-      inputFile.get(FileContent, ContentLength, '\0');
-
-      inputFileBuffer.close();
-      write_length = ContentLength;
-
-      } else {
-      FileContent = new char[1];
-      //        FileContent[0] = '.';
-      write_length = 0;
-      }
-      //     long n = static_cast<long>(floor( 0.5 + ContentLength / Ippl::getNodes() ) );
-      //     int N = n * Ippl::getNodes() - ContentLength;
-
-      //     int signN = N > 0 ? 1 : -1;
-      //     if (Ippl::myNode() < signN * N) {
-      //         length = n - signN;
-      //         start = Ippl::myNode() * length;
-      //     } else {
-      //         length = n;
-      //         start = Ippl::myNode() * length - N;
-      //     }
-
-      MPI_Bcast(&ContentLength,
-      1,
-      MPI_LONG_LONG_INT,
-      0,
-      Ippl::getComm());
-
-      herr = H5Gget_objinfo(H5file_m->file, group_name, 1, NULL);
-      if(herr >= 0) {  // there exists a group 'INPUT'
-      delete[] FileContent;
-      return;
-      }
-
-      group_id = H5Gcreate(H5file_m->file, group_name, 0);
-
-      shape = H5Screate_simple(1, &ContentLength, &ContentLength);
-      dataset_id = H5Dcreate(group_id,
-      dataset_name,
-      H5T_NATIVE_CHAR,
-      shape,
-      H5P_DEFAULT);
-      H5Sclose(shape);
-
-      diskshape = H5Dget_space(dataset_id);
-      H5Sselect_hyperslab(diskshape,
-      H5S_SELECT_SET,
-      &start,
-      NULL,
-      &write_length,
-      NULL);
-
-      memshape = H5Screate_simple(1, &write_length, &dmax);
-
-      herr = H5Dwrite(dataset_id,
-      H5T_NATIVE_CHAR,
-      memshape,
-      diskshape,
-      H5file_m->xfer_prop,
-      FileContent);
-
-      H5Sclose(memshape);
-      H5Dclose(dataset_id);
-      H5Sclose(diskshape);
-      H5Gclose(group_id);
-
-      delete[] FileContent;
-
-    */
-}
-
-void DataSink::retriveCavityInformation(string fn) {
-
-    h5_int64_t rc;
-    h5_int64_t nAutoPhaseCavities = 0;
-    rc = H5ReadFileAttribInt64(H5file_m, "nAutoPhaseCavities", &nAutoPhaseCavities);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(long i = 1; i <= nAutoPhaseCavities; i++) {
-        stringstream is;
-        is << i;
-        string elName = string("Cav-") + is.str() + string("-name");
-        string elVal  = string("Cav-") + is.str() + string("-value");
-        char name[128];
-        h5_float64_t phi = 0;
-
-        rc = H5ReadFileAttribString(H5file_m, elName.c_str(), name);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5ReadFileAttribFloat64(H5file_m, elVal.c_str(), &phi);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        OpalData::getInstance()->setMaxPhase(string(name), double(phi));
-    }
+    h5wrapper_m = NULL;
 }
 
 void DataSink::storeCavityInformation() {
     if (!doHDF5_m) return;
-    /// Write number of Cavities with autophase information
-    h5_int64_t nAutopPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
 
-    h5_int64_t rc;
-
-    rc = H5WriteFileAttribInt64(H5file_m, "nAutoPhaseCavities", &nAutopPhaseCavities, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    int elNum = 1;
-    for(vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases(); it < OpalData::getInstance()->getLastMaxPhases(); it++) {
-        stringstream is;
-        is << elNum;
-        string elName = string("Cav-") + is.str() + string("-name");
-        string elVal  = string("Cav-") + is.str() + string("-value");
-
-        h5_float64_t phi = (*it).second;
-        string name   = (*it).first;
-
-        rc = H5WriteFileAttribString(H5file_m, elName.c_str(), name.c_str());
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteFileAttribFloat64(H5file_m, elVal.c_str(), &phi, 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        INFOMSG("Saved phases in the h5 file: " << elName << "->" << name <<   " --- " << elVal << " ->" << phi << endl);
-        elNum++;
-    }
-}
-
-
-int DataSink::storeFieldmaps() {
-
-    vector<string> fieldmap_list = Fieldmap::getListFieldmapNames();
-    vector<file_size_name> fieldmap_list2;
-    off_t fsize;
-    struct stat st;
-    int Nf = 0;
-    int Np = Ippl::getNodes();
-    if(Np > 20) Np = 20;  // limit the number of processors that write data
-
-    for(vector<string>::const_iterator it = fieldmap_list.begin(); it != fieldmap_list.end(); ++ it) {
-        if(stat((*it).c_str(), &st) == 0) {
-            fsize = st.st_size;
-            ++ Nf;
-        } else {
-            continue;
-        }
-        fieldmap_list2.push_back(file_size_name((*it), fsize));
-    }
-    sort(fieldmap_list2.begin(), fieldmap_list2.end(), file_size_name::SortAsc);
-
-
-
-    if(Ippl::myNode() < Np) {
-        for(int i = 0; i < Nf / Np; ++ i) {
-            int lid = i * Np + Ippl::myNode();
-            string filename = fieldmap_list2[lid].file_name_m;
-            int ContentLength = fieldmap_list2[lid].file_size_m / sizeof(char);
-
-            filebuf inputFileBuffer;
-            inputFileBuffer.open(filename.c_str(), ios::in);
-            istream inputFile(&inputFileBuffer);
-
-            std::unique_ptr<char[]> FileContent(new char[ContentLength]);
-
-            inputFile.get(FileContent.get(), ContentLength, '\0');
-
-            inputFileBuffer.close();
-        }
-    }
-    //group_id = H5Gcreate ( H5file_m->file, group_name, 0 );
-    return Nf;
-
-    return 1;
+    h5wrapper_m->storeCavityInformation();
 }
 
 void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
 
     if (!doHDF5_m) return;
 
-    h5_int64_t rc;
-    /// Function steps:
-
-    /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
-
-    /// Calculate beam statistical parameters etc. Put them in the right format
-    /// for H5 file write.
-    beam.calcBeamParameters();
-
-    double               actPos   = beam.get_sPos();
-    double               t        = beam.getT();
-    Vektor< double, 3 >  rmin     = beam.get_origin();
-    Vektor< double, 3 >  rmax     = beam.get_maxExtend();
-    Vektor< double, 3 >  centroid = beam.get_centroid();
-
-    size_t nLoc                   = beam.getLocalNum();
-
-    Vektor< double, 3 >  maxP(0.0);
-    Vektor< double, 3 >  minP(0.0);
-
-    Vektor<double, 3 > xsigma = beam.get_rrms();
-    Vektor<double, 3 > psigma = beam.get_prms();
-    Vektor<double, 3 > vareps = beam.get_norm_emit();
-    Vektor<double, 3 > geomvareps = beam.get_emit();
-    Vektor<double, 3 > RefPartR = beam.RefPart_R;
-    Vektor<double, 3 > RefPartP = beam.RefPart_P;
-    Vektor<double, 3>  pmean = beam.get_pmean();
-
-    double meanEnergy = beam.get_meanEnergy();
-    double energySpread = beam.getdE();
-
-    double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-        (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
-
-    beam.get_PBounds(minP, maxP);
-
-    h5_int64_t localTrackStep = (h5_int64_t)beam.getLocalTrackStep();
-    h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
-
-    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-    ///Get the particle decomposition from all the compute nodes.
-    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
-    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
-
-    for(int i = 0; i < Ippl::getNodes(); i++) {
-        globN[i] = locN[i] = 0;
-    }
-    locN[Ippl::myNode()] = nLoc;
-    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
-
-    /* ------------------------------------------------------------------------ */
-
-    rc = H5SetStep(H5file_m, H5call_m);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5PartSetNumParticles(H5file_m, nLoc);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RMSX", (h5_float64_t *)&xsigma, 3);    //sigma
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon", (h5_float64_t *)&vareps, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RMSP", (h5_float64_t *)&psigma, 3);    //sigma
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "MEANP", (h5_float64_t *)&pmean, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "centroid", (h5_float64_t *)&centroid, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "maxX", (h5_float64_t *)&rmax, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "minX", (h5_float64_t *)&rmin, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "maxP", (h5_float64_t *)&maxP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "minP", (h5_float64_t *)&minP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-ref", (h5_float64_t *)&FDext[2], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-ref", (h5_float64_t *)&FDext[3], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-head", (h5_float64_t *)&FDext[0], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-head", (h5_float64_t *)&FDext[1], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-tail", (h5_float64_t *)&FDext[4], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-tail", (h5_float64_t *)&FDext[5], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RefPartR", (h5_float64_t *)&RefPartR, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    // scalar values
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "SPOS",     &actPos, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "Step",       &H5call_m, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#sigma",   &sigma, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "TIME",     &t, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "ENERGY",   &meanEnergy, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "dE",       &energySpread, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep",        &localTrackStep, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep",        &globalTrackStep, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-
-    /// Write particle mass and charge per particle. (Consider making these file attributes.)
-    double mpart = 1.0e-9 * beam.getM();
-    double     Q = beam.getCharge();
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "mpart", &mpart, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "Q", &Q, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-head", &sposHead, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-ref",  &sposRef, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-tail", &sposTail, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /*
-      Attributes originally not in OPAL-t
-
-    */
-
-    h5_int64_t numBunch = 1;
-    h5_int64_t SteptoLastInj = 0;
-
-    rc = H5WriteStepAttribInt64(H5file_m, "NumBunch",         &numBunch, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "SteptoLastInj",    &SteptoLastInj, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /*
-      Done attributes originally not in OPAL-t
-
-    */
-
-    setOPALt();
-
-    /// Write beam phase space.
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "y", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "z", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "px", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "py", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "pz", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Q[i];
-    rc = H5PartWriteDataFloat64(H5file_m, "q", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        larray[i] =  beam.ID[i];
-    rc = H5PartWriteDataInt64(H5file_m, "id", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        larray[i] = (h5_int64_t) beam.PType[i];
-    rc = H5PartWriteDataInt64(H5file_m, "ptype", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        larray[i] =  beam.LastSection[i];
-    rc = H5PartWriteDataInt64(H5file_m, "lastsection", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    // Need this because rc = H5root does not yet work with
-    // a vaiable number of data
-
-    if(Options::ebDump) {
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Ef[i](0);
-        rc = H5PartWriteDataFloat64(H5file_m, "Ex", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Ef[i](1);
-        rc = H5PartWriteDataFloat64(H5file_m, "Ey", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Ef[i](2);
-        rc = H5PartWriteDataFloat64(H5file_m, "Ez", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Bf[i](0);
-        rc = H5PartWriteDataFloat64(H5file_m, "Bx", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Bf[i](1);
-        rc = H5PartWriteDataFloat64(H5file_m, "By", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Bf[i](2);
-        rc = H5PartWriteDataFloat64(H5file_m, "Bz", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    }
-
-    /// Write space charge field map if asked for.
-    if(Options::rhoDump) {
-
-        IpplTimings::startTimer(H5BlockTimer_m);
-
-        NDIndex<3> idx = beam.getFieldLayout().getLocalNDIndex();
-        NDIndex<3> elem;
-        h5_err_t herr = H5Block3dSetView(
-                                         H5file_m,
-                                         idx[0].min(), idx[0].max(),
-                                         idx[1].min(), idx[1].max(),
-                                         idx[2].min(), idx[2].max());
-
-        if(herr < 0)
-            *gmsg << "H5Block3dSetView err " << herr << endl;
-
-        std::unique_ptr<h5_float64_t[]> data(new h5_float64_t[(idx[0].max() + 1)  * (idx[1].max() + 1) * (idx[2].max() + 1)]);
-
-        int ii = 0;
-        // h5block uses the fortran convention of storing data:
-        // INTEGER, DIMENSION(2,3) :: a
-        // => {a(1,1), a(2,1), a(1,2), a(2,2), a(1,3), a(2,3)}
-        for(int i = idx[2].min(); i <= idx[2].max(); ++i) {
-            for(int j = idx[1].min(); j <= idx[1].max(); ++j) {
-                for(int k = idx[0].min(); k <= idx[0].max(); ++k) {
-                    data[ii] = beam.getRho(k, j, i);
-                    ii++;
-                }
-            }
-        }
-        herr = H5Block3dWriteScalarFieldFloat64(H5file_m, "rho", data.get());
-        if(herr < 0)
-            *gmsg << "H5Block3dWriteScalarField err " << herr << endl;
-
-        /// Need this to align particles and fields when writing space charge map.
-        herr = H5Block3dSetFieldOrigin(H5file_m, "rho",
-                                       (h5_float64_t)beam.get_origin()(0),
-                                       (h5_float64_t)beam.get_origin()(1),
-                                       (h5_float64_t)beam.get_origin()(2));
-
-        herr = H5Block3dSetFieldSpacing(H5file_m, "rho",
-                                        (h5_float64_t)beam.get_hr()(0),
-                                        (h5_float64_t)beam.get_hr()(1),
-                                        (h5_float64_t)beam.get_hr()(2));
-
-    }
-    /// Step record/time step index.
-    H5call_m++;
-
-    /// %Stop timer.
+    std::map<std::string, double> additionalAttributes = {
+        std::make_pair("sposHead", sposHead),
+        std::make_pair("sposRef", sposRef),
+        std::make_pair("sposTail", sposTail),
+        std::make_pair("B-ref_x", FDext[0](0)),
+        std::make_pair("B-ref_z", FDext[0](1)),
+        std::make_pair("B-ref_y", FDext[0](2)),
+        std::make_pair("E-ref_x", FDext[1](0)),
+        std::make_pair("E-ref_z", FDext[1](1)),
+        std::make_pair("E-ref_y", FDext[1](2)),
+        std::make_pair("B-head_x", FDext[2](0)),
+        std::make_pair("B-head_z", FDext[2](1)),
+        std::make_pair("B-head_y", FDext[2](2)),
+        std::make_pair("E-head_x", FDext[3](0)),
+        std::make_pair("E-head_z", FDext[3](1)),
+        std::make_pair("E-head_y", FDext[3](2)),
+        std::make_pair("B-tail_x", FDext[4](0)),
+        std::make_pair("B-tail_z", FDext[4](1)),
+        std::make_pair("B-tail_y", FDext[4](2)),
+        std::make_pair("E-tail_x", FDext[5](0)),
+        std::make_pair("E-tail_z", FDext[5](1)),
+        std::make_pair("E-tail_y", FDext[5](2))};
+
+    h5wrapper_m->writeStep(beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
-    if(Options::rhoDump)
-        IpplTimings::stopTimer(H5BlockTimer_m);
+
+    return;
 }
 
 
@@ -940,649 +159,71 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
     if (!doHDF5_m) return -1;
     //if (beam.getLocalNum() == 0) return -1; //TEMP for testing -DW
 
-    h5_int64_t rc;
     IpplTimings::startTimer(H5PartTimer_m);
-
-    beam.calcBeamParameters_cycl();
-
-    double               t        = beam.getT();
-
-    Vektor< double, 3 >  rmin     = beam.get_origin();
-    Vektor< double, 3 >  rmax     = beam.get_maxExtend();
-    Vektor< double, 3 >  centroid = beam.get_centroid();
-    size_t nLoc                   = beam.getLocalNum();
-    Vektor<double, 3 > xsigma = beam.get_rrms();
-    Vektor<double, 3 > psigma = beam.get_prms();
-    Vektor<double, 3 > geomvareps = beam.get_emit();
-    Vektor<double, 3 > vareps = beam.get_norm_emit();
-
-    Vektor<double, 3 > RefPartR = beam.RefPart_R;
-    Vektor<double, 3 > RefPartP = beam.RefPart_P;
-
-    double energySpread = beam.getdE();
-
-    double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-        (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
-
-    Vektor< double, 3 >  maxP(0.0);
-    Vektor< double, 3 >  minP(0.0);
-    beam.get_PBounds(minP, maxP);
-
-    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-    double  pathLength = beam.getLPath();
-
-    h5_int64_t localTrackStep = (h5_int64_t)beam.getLocalTrackStep();
-    h5_int64_t globalTrackStep = (h5_int64_t)beam.getGlobalTrackStep();
-    h5_int64_t numBunch = (h5_int64_t)beam.getNumBunch();
-    h5_int64_t SteptoLastInj = (h5_int64_t)beam.getSteptoLastInj();
-
-    h5_int64_t localFrame = 0;
-    if (local) localFrame = 1;
-
-    ///Get the particle decomposition from all the compute nodes.
-    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
-    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
-
-    for(int i = 0; i < Ippl::getNodes(); i++) {
-        globN[i] = locN[i] = 0;
-    }
-    locN[Ippl::myNode()] = nLoc;
-    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
-
-    /* ------------------------------------------------------------------------ */
-
-    rc = H5SetStep(H5file_m, H5call_m);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5PartSetNumParticles(H5file_m, nLoc);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "LocalTrackStep", &localTrackStep, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep", &globalTrackStep, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "SPOS",     &pathLength, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "Step",       &H5call_m, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#sigma",   &sigma, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RMSX", (h5_float64_t *)&xsigma, 3);    //sigma
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RMSP", (h5_float64_t *)&psigma, 3);    //sigma
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "maxX", (h5_float64_t *)&rmax, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "minX", (h5_float64_t *)&rmin, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "maxP", (h5_float64_t *)&maxP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "minP", (h5_float64_t *)&minP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "centroid", (h5_float64_t *)&centroid, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "TIME",     &t, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "ENERGY",   &meanEnergy, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon", (h5_float64_t *)&vareps, 3);     //unnormalized
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3); //normalized
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "dE",       &energySpread, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-ref", (h5_float64_t *)&FDext[0], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-ref", (h5_float64_t *)&FDext[1], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-head", (h5_float64_t *)&FDext[0], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-head", (h5_float64_t *)&FDext[1], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-tail", (h5_float64_t *)&FDext[4], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-tail", (h5_float64_t *)&FDext[5], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RefPartR", (h5_float64_t *)&RefPartR, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "REFPR", (h5_float64_t *)&refPr, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "REFPT", (h5_float64_t *)&refPt, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "REFPZ", (h5_float64_t *)&refPz, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "REFR", (h5_float64_t *)&refR, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "REFTHETA", (h5_float64_t *)&refTheta, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "REFZ", (h5_float64_t *)&refZ, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "AZIMUTH", (h5_float64_t *)&azimuth, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "ELEVATION", (h5_float64_t *)&elevation, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "LOCAL", &localFrame, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write particle mass and charge per particle. (Consider making these file attributes.)
-    double mpart = 1.0e-9 * beam.getM();
-    double     Q = beam.getCharge();
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "mpart", &mpart, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "Q", &Q, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-
-    rc = H5WriteStepAttribInt64(H5file_m, "NumBunch",         &numBunch, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file_m, "SteptoLastInj",    &SteptoLastInj, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-
-    /*
-      Attributes originally not in OPAL-cycl
-    */
-
-    double sposHead = 0.0;
-    double sposRef = 0.0;
-    double sposTail = 0.0;
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-head", &sposHead, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-ref",  &sposRef, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-tail", &sposTail, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /*
-      Done attributes originally not in OPAL-cycl
-    */
-
-    setOPALcycl();
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "y", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "z", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](0);
-    rc = H5PartWriteDataFloat64(H5file_m, "px", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](1);
-    rc = H5PartWriteDataFloat64(H5file_m, "py", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](2);
-    rc = H5PartWriteDataFloat64(H5file_m, "pz", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Q[i];
-    rc = H5PartWriteDataFloat64(H5file_m, "q", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        larray[i] =  beam.ID[i];
-    rc = H5PartWriteDataInt64(H5file_m, "id", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        larray[i] =  beam.PType[i];
-    rc = H5PartWriteDataInt64(H5file_m, "ptype", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        larray[i] =  beam.LastSection[i];
-    rc = H5PartWriteDataInt64(H5file_m, "lastsection", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    // Need this because rc = H5root does not yet work with
-    // avaiable number of data
-    if(Options::ebDump) {
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Ef[i](0);
-        rc = H5PartWriteDataFloat64(H5file_m, "Ex", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Ef[i](1);
-        rc = H5PartWriteDataFloat64(H5file_m, "Ey", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Ef[i](2);
-        rc = H5PartWriteDataFloat64(H5file_m, "Ez", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Bf[i](0);
-        rc = H5PartWriteDataFloat64(H5file_m, "Bx", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Bf[i](1);
-        rc = H5PartWriteDataFloat64(H5file_m, "By", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  beam.Bf[i](2);
-        rc = H5PartWriteDataFloat64(H5file_m, "Bz", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    }
-
-    /// Write space charge field map if asked for.
-    if(Options::rhoDump) {
-
-        IpplTimings::startTimer(H5BlockTimer_m);
-
-        NDIndex<3> idx = beam.getFieldLayout().getLocalNDIndex();
-        NDIndex<3> elem;
-        h5_err_t herr = H5Block3dSetView(
-                                         H5file_m,
-                                         idx[0].min(), idx[0].max(),
-                                         idx[1].min(), idx[1].max(),
-                                         idx[2].min(), idx[2].max());
-
-        if(herr < 0)
-            *gmsg << "H5Block3dSetView err " << herr << endl;
-
-        std::unique_ptr<h5_float64_t[]> data(new h5_float64_t[(idx[0].max() + 1)  * (idx[1].max() + 1) * (idx[2].max() + 1)]);
-
-        int ii = 0;
-        // h5block uses the fortran convention of storing data:
-        // INTEGER, DIMENSION(2,3) :: a
-        // => {a(1,1), a(2,1), a(1,2), a(2,2), a(1,3), a(2,3)}
-        for(int i = idx[2].min(); i <= idx[2].max(); ++i) {
-            for(int j = idx[1].min(); j <= idx[1].max(); ++j) {
-                for(int k = idx[0].min(); k <= idx[0].max(); ++k) {
-                    data[ii] = beam.getRho(k, j, i);
-                    ii++;
-                }
-            }
-        }
-        herr = H5Block3dWriteScalarFieldFloat64(H5file_m, "rho", data.get());
-        if(herr < 0)
-            *gmsg << "H5Block3dWriteScalarField err " << herr << endl;
-
-        /// Need this to align particles and fields when writing space charge map.
-        herr = H5Block3dSetFieldOrigin(H5file_m, "rho",
-                                       (h5_float64_t)beam.get_origin()(0),
-                                       (h5_float64_t)beam.get_origin()(1),
-                                       (h5_float64_t)beam.get_origin()(2));
-
-        herr = H5Block3dSetFieldSpacing(H5file_m, "rho",
-                                        (h5_float64_t)beam.get_hr()(0),
-                                        (h5_float64_t)beam.get_hr()(1),
-                                        (h5_float64_t)beam.get_hr()(2));
-
-    }
-    /// Step record/time step index.
-    H5call_m++;
-
+    std::map<std::string, double> additionalAttributes = {
+        std::make_pair("REFPR", refPr),
+        std::make_pair("REFPT", refPt),
+        std::make_pair("REFPZ", refPz),
+        std::make_pair("REFR", refR),
+        std::make_pair("REFTHETA", refTheta),
+        std::make_pair("REFZ", refZ),
+        std::make_pair("AZIMUTH", azimuth),
+        std::make_pair("ELEVATION", elevation),
+        std::make_pair("B-ref_x", FDext[0](0)),
+        std::make_pair("B-ref_z", FDext[0](1)),
+        std::make_pair("B-ref_y", FDext[0](2)),
+        std::make_pair("E-ref_x", FDext[1](0)),
+        std::make_pair("E-ref_z", FDext[1](1)),
+        std::make_pair("E-ref_y", FDext[1](2)),
+        std::make_pair("B-head_x", FDext[2](0)),
+        std::make_pair("B-head_z", FDext[2](1)),
+        std::make_pair("B-head_y", FDext[2](2)),
+        std::make_pair("E-head_x", FDext[3](0)),
+        std::make_pair("E-head_z", FDext[3](1)),
+        std::make_pair("E-head_y", FDext[3](2)),
+        std::make_pair("B-tail_x", FDext[4](0)),
+        std::make_pair("B-tail_z", FDext[4](1)),
+        std::make_pair("B-tail_y", FDext[4](2)),
+        std::make_pair("E-tail_x", FDext[5](0)),
+        std::make_pair("E-tail_z", FDext[5](1)),
+        std::make_pair("E-tail_y", FDext[5](2))};
+
+    h5wrapper_m->writeStep(beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
-    if(Options::rhoDump)
-        IpplTimings::stopTimer(H5BlockTimer_m);
-    return (int)(H5call_m - 1);
+
+    ++ H5call_m;
+    return H5call_m - 1;
 }
 
 void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
 
     if (!doHDF5_m) return;
 
-    h5_int64_t rc;
-    /// Function steps:
-
-    /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
+    std::map<std::string, double> additionalAttributes = {
+        std::make_pair("sposHead", sposHead),
+        std::make_pair("sposRef", sposRef),
+        std::make_pair("sposTail", sposTail),
+        std::make_pair("B-ref_x", FDext[0](0)),
+        std::make_pair("B-ref_z", FDext[0](1)),
+        std::make_pair("B-ref_y", FDext[0](2)),
+        std::make_pair("E-ref_x", FDext[1](0)),
+        std::make_pair("E-ref_z", FDext[1](1)),
+        std::make_pair("E-ref_y", FDext[1](2)),
+        std::make_pair("B-head_x", FDext[2](0)),
+        std::make_pair("B-head_z", FDext[2](1)),
+        std::make_pair("B-head_y", FDext[2](2)),
+        std::make_pair("E-head_x", FDext[3](0)),
+        std::make_pair("E-head_z", FDext[3](1)),
+        std::make_pair("E-head_y", FDext[3](2)),
+        std::make_pair("B-tail_x", FDext[4](0)),
+        std::make_pair("B-tail_z", FDext[4](1)),
+        std::make_pair("B-tail_y", FDext[4](2)),
+        std::make_pair("E-tail_x", FDext[5](0)),
+        std::make_pair("E-tail_z", FDext[5](1)),
+        std::make_pair("E-tail_y", FDext[5](2))};
 
-    /// Calculate beam statistical parameters etc. Put them in the right format
-    /// for H5 file write.
-    beam.calcBeamParameters();
-
-    /*
-      "dEdt", "double","MeV/ps", "beam energy");
-      "dE",   "double","MeV",    "rms energy spread");
-      "Imax", "double","A",      "max bunch current");
-      "Irms", "double","A",      "rms bunch current");
-
-      "tau",  "double","ps",     "rms bunch length");
-      "Rx",   "double","m",      "beam radius x");
-      "Ry",   "double","m",      "beam radius y");
-      "Px",   "double","mrad",   "beam divergence x");
-      "Py",   "double","mrad",   "beam divergence y");
-    */
-
-    //TODO:
-    Vektor<double, 3> RefPartR = Vector_t(0.0); //beam.RefPart_R;
-    Vektor<double, 3> RefPartP = Vector_t(0.0); //beam.RefPart_P;
-    Vektor<double, 3> centroid = Vector_t(0.0);
-    Vektor<double, 3> geomvareps = Vector_t(0.0); //beam.emtn();
-
-    double actPos   = beam.get_sPos();
-    double t        = beam.getT();
-
-    size_t nLoc = beam.getLocalNum();
-
-    Vektor<double, 3> xsigma = beam.sigmax();
-    Vektor<double, 3> psigma = beam.sigmap();
-    Vektor<double, 3> vareps = beam.get_norm_emit();
-    // min beam radius
-    Vektor<double, 3> rmin     = beam.minX();
-    // max beam radius
-    Vektor<double, 3> rmax     = beam.maxX();
-    Vektor<double, 3> maxP = beam.maxP();
-    Vektor<double, 3> minP = beam.minP();
-
-    //in MeV
-    double meanEnergy = beam.get_meanEnergy() * 1e-6;
-
-    double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-        (2.0 * beam.get_gamma() * 17.0e3 * ((geomvareps[0] * geomvareps[0]) + (geomvareps[1] * geomvareps[1])));
-
-    //beam.get_PBounds(minP,maxP);
-
-    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-
-    ///Get the particle decomposition from all the compute nodes.
-    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
-    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
-
-    for(int i = 0; i < Ippl::getNodes(); i++) {
-        globN[i] = locN[i] = 0;
-    }
-    locN[Ippl::myNode()] = nLoc;
-    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
-
-    /// Set current record/time step.
-    rc = H5SetStep(H5file_m, H5call_m);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5PartSetNumParticles(H5file_m, nLoc);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write statistical data.
-    rc = H5WriteStepAttribFloat64(H5file_m, "SPOS",     &actPos, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "#sigma",   &sigma, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "RMSX", (h5_float64_t *)&xsigma, 3);    //sigma
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "RMSP", (h5_float64_t *)&psigma, 3);    //sigma
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "maxX", (h5_float64_t *)&rmax, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "minX", (h5_float64_t *)&rmin, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "maxP", (h5_float64_t *)&maxP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "minP", (h5_float64_t *)&minP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "centroid", (h5_float64_t *)&centroid, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "TIME",     &t, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "ENERGY",   &meanEnergy, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "RefPartR", (h5_float64_t *)&RefPartR, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write head/reference particle/tail field information.
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-head", (h5_float64_t *)&FDext[0], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-head", (h5_float64_t *)&FDext[1], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-ref", (h5_float64_t *)&FDext[2], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-ref", (h5_float64_t *)&FDext[3], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "B-tail", (h5_float64_t *)&FDext[4], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "E-tail", (h5_float64_t *)&FDext[5], 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-head", &sposHead, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-ref",  &sposRef, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "spos-tail", &sposTail, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write number of compute nodes.
-    //    H5WriteStepAttribInt64(H5file_m, "nloc", globN, Ippl::getNodes());
-
-    /// Write particle mass and charge per particle. (Consider making these
-    /// file attributes.)
-    double mpart = 1.0e-9 * beam.getM();
-    double    qi = beam.getChargePerParticle();
-
-    rc = H5WriteStepAttribFloat64(H5file_m, "mpart", &mpart, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteStepAttribFloat64(H5file_m, "qi", &qi, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    /// Write normalized emittance.
-    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon", (h5_float64_t *)&vareps, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write geometric emittance.
-    rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Write beam phase space.
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getX(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getY(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "y", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getZ(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "z", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getPx(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "px", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getPy(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "py", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getPz(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "pz", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getBeta(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "beta", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getX0(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "X0", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getPx0(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "pX0", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getY0(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "Y0", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.getPy0(i);
-    rc = H5PartWriteDataFloat64(H5file_m, "pY0", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// Step record/time step index.
-    H5call_m++;
-
-    /// %Stop timer.
+    h5wrapper_m->writeStep(beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
@@ -1593,84 +234,11 @@ void DataSink::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
     /// Start timer.
     IpplTimings::startTimer(H5PartTimer_m);
 
-    /// Calculate beam statistical parameters etc. Put them in the right format
-    /// for H5 file write.
-    beam.calcBeamParameters();
-
-    //TODO:
-    stash_RefPartR.push_back(Vector_t(0.0)); //beam.RefPart_R;
-    stash_RefPartP.push_back(Vector_t(0.0)); //beam.RefPart_P;
-    stash_centroid.push_back(Vector_t(0.0));
-
-    stash_actPos.push_back(beam.get_sPos());
-    stash_t.push_back(beam.getT());
-
-    stash_nTot.push_back(beam.getTotalNum());
-    size_t nLoc = beam.getLocalNum();
-    stash_nLoc.push_back(nLoc);
-
-    stash_xsigma.push_back(beam.sigmax());
-    stash_psigma.push_back(beam.sigmap());
-    stash_vareps.push_back(beam.get_norm_emit());
-    stash_geomvareps.push_back(beam.emtn());
-    stash_rmin.push_back(beam.minX());
-    stash_rmax.push_back(beam.maxX());
-    stash_maxP.push_back(beam.maxP());
-    stash_minP.push_back(beam.minP());
-
-    //in MeV
-    stash_meanEnergy.push_back(beam.get_meanEnergy() * 1e-6);
-
-    //stash_sigma.push_back(((xsigma[0]*xsigma[0])+(xsigma[1]*xsigma[1])) /
-    //    (2.0*beam.get_gamma()*17.0e3*((geomvareps[0]*geomvareps[0]) + (geomvareps[1]*geomvareps[1]))));
-
-    //beam.get_PBounds(minP,maxP);
-
-    ///Get the particle decomposition from all the compute nodes.
-    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
-    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
-
-    for(int i = 0; i < Ippl::getNodes(); i++) {
-        globN[i] = locN[i] = 0;
-    }
-    locN[Ippl::myNode()] = nLoc;
-    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
-
-    stash_sposHead.push_back(sposHead);
-    stash_sposRef.push_back(sposRef);
-    stash_sposTail.push_back(sposTail);
-    stash_Bhead.push_back(FDext[0]);
-    stash_Ehead.push_back(FDext[1]);
-    stash_Bref.push_back(FDext[2]);
-    stash_Eref.push_back(FDext[3]);
-    stash_Btail.push_back(FDext[4]);
-    stash_Etail.push_back(FDext[5]);
-
-    /// Write particle mass and charge per particle. (Consider making these
-    /// file attributes.)
-    stash_mpart.push_back(1.0e-9 * beam.getM());
-    stash_qi.push_back(beam.getChargePerParticle());
-
-    /// Write beam phase space.
-    //for (size_t i=0; i<nLoc;i++)
-    //farray[i] =  beam.getX(i);
-
-    //for (size_t i=0; i<nLoc;i++)
-    //farray[i] =  beam.getY(i);
-
-    //for (size_t i=0; i<nLoc;i++)
-    //farray[i] =  beam.getZ(i);
-
-    //for (size_t i=0; i<nLoc;i++)
-    //farray[i] =  beam.getPx(i);
-
-    //for (size_t i=0; i<nLoc;i++)
-    //farray[i] =  beam.getPy(i);
-
-    //for (size_t i=0; i<nLoc;i++)
-    //farray[i] =  beam.getPz(i);
-
-    /// Step record/time step index.
+    static_cast<H5PartWrapperForPS*>(h5wrapper_m)->stashPhaseSpaceEnvelope(beam,
+                                                                           FDext,
+                                                                           sposHead,
+                                                                           sposRef,
+                                                                           sposTail);
     H5call_m++;
 
     /// %Stop timer.
@@ -1681,147 +249,7 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
 
     if (!doHDF5_m) return;
 
-    h5_int64_t rc;
-    /// Start timer.
-    IpplTimings::startTimer(H5PartTimer_m);
-
-    size_t nLoc = stash_nLoc[0];
-    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-
-    //FIXME: restart step
-    for(int step = 0; step < H5call_m; step++) {
-
-        /// Set current record/time step.
-        rc = H5SetStep(H5file_m, step);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        nLoc = stash_nLoc[step];
-        rc = H5PartSetNumParticles(H5file_m, nLoc);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        /// Write statistical data.
-        rc = H5WriteStepAttribFloat64(H5file_m, "SPOS",     &stash_actPos[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        //rc = H5WriteStepAttribFloat64(H5file_m,"#sigma",  &stash_sigma[step],1);
-        rc = H5WriteStepAttribFloat64(H5file_m, "RMSX", (h5_float64_t *)&stash_xsigma[step], 3);    //sigma
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "RMSP", (h5_float64_t *)&stash_psigma[step], 3);    //sigma
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "maxX", (h5_float64_t *)&stash_rmax[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "minX", (h5_float64_t *)&stash_rmin[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "maxP", (h5_float64_t *)&stash_maxP[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "minP", (h5_float64_t *)&stash_minP[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "centroid", (h5_float64_t *)&stash_centroid[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "TIME", (h5_float64_t *)&stash_t[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "ENERGY", (h5_float64_t *)&stash_meanEnergy[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "RefPartR", (h5_float64_t *)&stash_RefPartR[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&stash_RefPartP[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        /// Write head/reference particle/tail field information.
-        rc = H5WriteStepAttribFloat64(H5file_m, "B-head", (h5_float64_t *)&stash_Bhead[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "E-head", (h5_float64_t *)&stash_Ehead[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "B-ref", (h5_float64_t *)&stash_Bref[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "E-ref", (h5_float64_t *)&stash_Eref[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "B-tail", (h5_float64_t *)&stash_Btail[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "E-tail", (h5_float64_t *)&stash_Etail[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        rc = H5WriteStepAttribFloat64(H5file_m, "spos-head", (h5_float64_t *)&stash_sposHead[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "spos-ref", (h5_float64_t *)&stash_sposRef[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "spos-tail", (h5_float64_t *)&stash_sposTail[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        /// Write number of compute nodes.
-        //H5WriteStepAttribFloat64(H5file_m,"nloc", globN, Ippl::getNodes());
-
-        /// Write particle mass and charge per particle. (Consider making these
-        /// file attributes.)
-        rc = H5WriteStepAttribFloat64(H5file_m, "mpart", &stash_mpart[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file_m, "qi", &stash_qi[step], 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        /// Write normalized emittance.
-        rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon", (h5_float64_t *)&stash_vareps[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        /// Write geometric emittance.
-        rc = H5WriteStepAttribFloat64(H5file_m, "#varepsilon-geom", (h5_float64_t *)&stash_geomvareps[step], 3);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        /// Write beam phase space.
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  0.0; //beam.getX(i);
-        rc = H5PartWriteDataFloat64(H5file_m, "x", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  0.0; //beam.getY(i);
-        rc = H5PartWriteDataFloat64(H5file_m, "y", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  0.0; //beam.getZ(i);
-        rc = H5PartWriteDataFloat64(H5file_m, "z", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  0.0; //beam.getPx(i);
-        rc = H5PartWriteDataFloat64(H5file_m, "px", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  0.0; //beam.getPy(i);
-        rc = H5PartWriteDataFloat64(H5file_m, "py", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        for(size_t i = 0; i < nLoc; i++)
-            farray[i] =  0.0; //beam.getPz(i);
-        rc = H5PartWriteDataFloat64(H5file_m, "pz", farray);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        //rc = H5Fflush(H5file_m->file, rc = H5F_SCOPE_GLOBAL);
-
-    }
+    static_cast<H5PartWrapperForPS*>(h5wrapper_m)->dumpStashedPhaseSpaceEnvelope();
 
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -2276,13 +704,13 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
 
     size_t temp = lossWrCounter_m ;
 
-    string ffn = fn + convert2Int(temp) + string("Z.dat");
+    string ffn = fn + convertToString(temp) + string("Z.dat");
     std::unique_ptr<Inform> ofp(new Inform(NULL, ffn.c_str(), Inform::OVERWRITE, 0));
     Inform &fid = *ofp;
     setInform(fid);
     fid.precision(6);
 
-    string ftrn =  fn + string("triangle") + convert2Int(temp) + string(".dat");
+    string ftrn =  fn + string("triangle") + convertToString(temp) + string(".dat");
     std::unique_ptr<Inform> oftr(new Inform(NULL, ftrn.c_str(), Inform::OVERWRITE, 0));
     Inform &fidtr = *oftr;
     setInform(fidtr);
@@ -2575,270 +1003,6 @@ void DataSink::writeGeomToVtk(BoundaryGeometry &bg, string fn) {
     }
 }
 
-
-void DataSink::storeOneBunch(const PartBunch &beam, const string fn_appendix) {
-
-    if (!doHDF5_m) return;
-
-    h5_int64_t rc;
-    /// Define file names.
-    string fn = OpalData::getInstance()->getInputBasename();
-    fn = fn + fn_appendix + string(".h5");
-    h5_file_t *H5file;
-
-    const size_t nLoc = beam.getLocalNum();
-
-    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-
-#ifdef PARALLEL_IO
-    H5file = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
-#else
-    H5file = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
-#endif
-
-    if(H5file == (void*)H5_ERR) {
-        throw OpalException("DataSink::storeOneBunch",
-                            "failed to open h5 file '" + fn + "' for backup bunch in OPAL-CYCL");
-    }
-
-    h5_int64_t H5call = 0;
-    /// Set current record/time step.
-    rc = H5SetStep(H5file, H5call);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5PartSetNumParticles(H5file, nLoc);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION;
-    rc = H5WriteFileAttribString(H5file, "OPAL_version", OPAL_version.str().c_str());
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "StepUnit", " ");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteFileAttribString(H5file, "xUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "yUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "zUnit", "m");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "pxUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "pyUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "pzUnit", "#beta#gamma");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "massUnit", "GeV");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "chargeUnit", "C");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5WriteFileAttribString(H5file, "ptype", "1");
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5WriteStepAttribInt64(H5file, "Step", &H5call, 1);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](0) / 1000.0;
-    rc = H5PartWriteDataFloat64(H5file, "x", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](1) / 1000.0;
-    rc = H5PartWriteDataFloat64(H5file, "y", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.R[i](2) / 1000.0;
-    rc = H5PartWriteDataFloat64(H5file, "z", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](0);
-    rc = H5PartWriteDataFloat64(H5file, "px", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](1);
-    rc = H5PartWriteDataFloat64(H5file, "py", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.P[i](2);
-    rc = H5PartWriteDataFloat64(H5file, "pz", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.M[i];
-    rc = H5PartWriteDataFloat64(H5file, "mass", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        farray[i] =  beam.Q[i];
-    rc = H5PartWriteDataFloat64(H5file, "charge", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t i = 0; i < nLoc; i++)
-        larray[i] =  beam.PType[i];
-    rc = H5PartWriteDataInt64(H5file, "ptype", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    rc = H5CloseFile(H5file);
-    H5file = NULL;
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    Ippl::Comm->barrier();
-}
-
-bool DataSink::readOneBunch(PartBunch &beam, const string fn_appendix, const size_t BinID) {
-
-    if (!doHDF5_m) return false;
-
-    h5_int64_t rc;
-    /// Define file names.
-    string fn = OpalData::getInstance()->getInputBasename();
-    fn = fn + fn_appendix + string(".h5");
-    h5_file_t *H5file;
-
-#ifdef PARALLEL_IO
-    H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());
-#else
-    H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY);
-#endif
-    if(H5file == (void*)H5_ERR) {
-        throw OpalException("DataSink::readOneBunch",
-                            "failed to open h5 file '" + fn + "'");
-    }
-
-    h5_int64_t H5call = 0;
-    rc = H5SetStep(H5file, H5call);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    const size_t globalN = (size_t)H5PartGetNumParticles(H5file);
-
-    const size_t myNode = (size_t)Ippl::myNode();
-    size_t numberOfParticlesPerNode = (size_t) floor((double) globalN / Ippl::getNodes());
-    long long starti = myNode * numberOfParticlesPerNode;
-    long long endi = 0;
-    // ensure that we dont miss any particle in the end
-    if(myNode + 1 == (size_t) Ippl::getNodes())
-        endi = -1;
-    else
-        endi = starti + numberOfParticlesPerNode;
-
-    rc = H5PartSetView(H5file, starti, endi);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    const size_t InjectN = (size_t)H5PartGetNumParticles(H5file);
-
-
-    std::unique_ptr<char[]> varray(new char[(InjectN*sizeof(double))]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-
-    const size_t LocalNum = beam.getLocalNum();
-    const size_t NewLocalNum = LocalNum + InjectN;
-
-    beam.create(InjectN);
-
-    rc = H5PartReadDataFloat64(H5file, "x", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++) {
-        beam.R[ii](0) = farray[ii - LocalNum] * 1000.0; // m --> mm
-        // unlike the process in of restart, here we set bin index forcely,
-        // because this new bunch should  be a new bin with lowest energy.
-        beam.Bin[ii] = BinID;
-    }
-    rc = H5PartReadDataFloat64(H5file, "y", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.R[ii](1) = farray[ii - LocalNum] * 1000.0; // m --> mm;
-
-    rc = H5PartReadDataFloat64(H5file, "z", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.R[ii](2) = farray[ii - LocalNum] * 1000.0; // m --> mm;
-
-    rc = H5PartReadDataFloat64(H5file, "px", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.P[ii](0) = farray[ii - LocalNum];
-
-    rc = H5PartReadDataFloat64(H5file, "py", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.P[ii](1) = farray[ii - LocalNum];
-
-    rc = H5PartReadDataFloat64(H5file, "pz", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.P[ii](2) = farray[ii - LocalNum];
-
-    rc = H5PartReadDataFloat64(H5file, "mass", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.M[ii] = farray[ii - LocalNum];
-
-    rc = H5PartReadDataFloat64(H5file, "charge", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.Q[ii] = farray[ii - LocalNum];
-
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++)
-        beam.PType[ii] = 0;
-
-    // update the bin status
-    if(beam.weHaveBins())
-        beam.pbin_m->updateStatus(BinID + 1, InjectN);
-
-    Ippl::Comm->barrier();
-    rc = H5CloseFile(H5file);
-    H5file = NULL;
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    // update statistics parameters of PartBunch
-    // allocate ID for new particles
-    // do not call boundp() here
-
-    return true;
-
-}
-
 /** \brief Find out which if we write HDF5 or not
  *
  *
@@ -2848,56 +1012,13 @@ bool DataSink::doHDF5() {
     return doHDF5_m;
 }
 
-/** \brief Find out which flavor has written the data of
- *   the h5 file.
- *
- *
- */
-bool DataSink::isOPALt() {
-
-    if (!doHDF5_m) return false;
-
-    char opalFlavour[128];
-    h5_int64_t rc = H5ReadStepAttribString(H5file_m, "OPAL_flavour", opalFlavour);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    return (std::string(opalFlavour)==std::string("opal-t"));
-}
-
-/** \brief
- *
- *
- *
- */
-void DataSink::setOPALcycl() {
-
-    if (!doHDF5_m) return;
-
-    string OPALFlavour("opal-cycl");
-    h5_int64_t rc = H5WriteStepAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-}
-
-/** \brief
- *
- *
- *
- */
-void DataSink::setOPALt() {
-
-    if (!doHDF5_m) return;
-
-    string OPALFlavour("opal-t");
-    h5_int64_t rc = H5WriteStepAttribString(H5file_m, "OPAL_flavour", OPALFlavour.c_str());
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-}
 
 /** \brief
  *  delete the last 'numberOfLines' lines of the file 'fileName'
  */
 void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) const {
+    if (numberOfLines == 0) return;
+
     std::string line;
     std::queue<std::string> allLines;
     std::fstream fs;
@@ -2921,6 +1042,79 @@ void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) co
         allLines.pop();
     }
     fs.close();
+}
+
+/** \brief
+ *  rewind the SDDS file such that the spos of the last step is less or equal to maxSPos
+ */
+unsigned int DataSink::rewindLinesSDDS(const std::string &fileName, double maxSPos) const {
+    std::string line;
+    std::queue<std::string> allLines;
+    std::fstream fs;
+    unsigned int numParameters = 0;
+    unsigned int numColumns = 0;
+    unsigned int sposColumnNr = 0;
+    double spos, lastSPos = -1.0;
+
+    std::regex parameters("^&parameter name=");
+    std::regex column("^&column name=([a-zA-Z0-9\\$_]+),");
+    std::regex data("^&data mode=ascii");
+    std::smatch match;
+
+    std::istringstream linestream;
+    fs.open (fileName.c_str(), std::fstream::in);
+
+    if (!fs.is_open()) return 0;
+
+    while (getline(fs, line)) {
+        allLines.push(line);
+    }
+    fs.close();
+
+
+    fs.open (fileName.c_str(), std::fstream::out);
+
+    if (!fs.is_open()) return 0;
+
+    do {
+        line = allLines.front();
+        allLines.pop();
+        fs << line << "\n";
+        if (std::regex_search(line, match, parameters)) {
+            ++numParameters;
+        } else if (std::regex_search(line, match, column)) {
+            ++numColumns;
+            if (match[1] == "s") {
+                sposColumnNr = numColumns;
+            }
+        }
+    } while (!std::regex_search(line, match, data));
+
+    for (unsigned int i = 0; i < numParameters; ++ i) {
+        fs << allLines.front() << "\n";
+        allLines.pop();
+    }
+
+    while (allLines.size() > 0) {
+        line = allLines.front();
+        linestream.str(line);
+
+        for (unsigned int i = 0; i < sposColumnNr; ++ i) {
+            linestream >> spos;
+        }
+
+        if ((spos > maxSPos && std::abs(spos - maxSPos) > 1e-6 * std::abs(spos - lastSPos)) || spos == lastSPos) break;
+
+        allLines.pop();
+
+        fs << line << "\n";
+
+        lastSPos = spos;
+    }
+
+    fs.close();
+
+    return allLines.size();
 }
 
 /***************************************************************************

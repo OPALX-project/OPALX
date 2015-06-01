@@ -301,11 +301,12 @@ bool FieldSolver::hasValidSolver() {
 }
 
 Inform &FieldSolver::printInfo(Inform &os) const {
-  std::string fsType;
-  if (Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC"))
+    std::string fsType;
+    if (Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC"))
 	fsType = Attributes::getString(itsAttr[FSTYPE])+"-zPeriodic";
-      else
+    else
 	fsType = Attributes::getString(itsAttr[FSTYPE]);
+
     os << "* ************* F I E L D S O L V E R ********************************************** " << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* TYPE         " << fsType << '\n'
@@ -314,31 +315,35 @@ Inform &FieldSolver::printInfo(Inform &os) const {
        << "* MY           " << Attributes::getReal(itsAttr[MY])   << '\n'
        << "* MT           " << Attributes::getReal(itsAttr[MT])   << '\n'
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << endl;
-    if(Attributes::getString(itsAttr[FSTYPE]) == "P3M")
+
+    if(fsType == "P3M")
         os << "* RPP          " << Attributes::getReal(itsAttr[RPP]) << endl;
-    if(Attributes::getString(itsAttr[FSTYPE]) == "FFT" || Attributes::getString(itsAttr[FSTYPE]) == "P3M")
+
+    if(fsType == "FFT" || fsType == "P3M") {
         os << "* GRRENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
-    else
+    } else if (fsType != "NONE") {
         os << "* GEOMETRY     " << Attributes::getString(itsAttr[GEOMETRY]) << '\n'
            << "* ITSOLVER     " << Attributes::getString(itsAttr[ITSOLVER])   << '\n'
            << "* INTERPL      " << Attributes::getString(itsAttr[INTERPL])  << '\n'
            << "* TOL          " << Attributes::getReal(itsAttr[TOL])        << '\n'
            << "* MAXITERS     " << Attributes::getReal(itsAttr[MAXITERS]) << '\n'
            << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
+    }
+
     if(Attributes::getBool(itsAttr[PARFFTX]))
-        os << "* XDIM is parallel  " << endl;
+        os << "* XDIM         parallel  " << endl;
     else
-        os << "* XDIM is serial  " << endl;
+        os << "* XDIM         serial  " << endl;
 
     if(Attributes::getBool(itsAttr[PARFFTY]))
-        os << "* YDIM is parallel  " << endl;
+        os << "* YDIM         parallel  " << endl;
     else
-        os << "* YDIM is serial  " << endl;
+        os << "* YDIM         serial  " << endl;
 
     if(Attributes::getBool(itsAttr[PARFFTT]))
-        os << "* Z(T)DIM is parallel  " << endl;
+        os << "* Z(T)DIM      parallel  " << endl;
     else
-        os << "* Z(T)DIM is serial  " << endl;
+        os << "* Z(T)DIM      serial  " << endl;
 
     INFOMSG(*mesh_m << endl);
     INFOMSG(*PL_m << endl);

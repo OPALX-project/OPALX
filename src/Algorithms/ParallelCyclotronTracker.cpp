@@ -68,6 +68,7 @@
 #include "Utilities/NumToStr.h"
 #include "Utilities/OpalException.h"
 
+#include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Utilities/OpalOptions.h"
 
@@ -4049,8 +4050,41 @@ void ParallelCyclotronTracker::saveOneBunch() {
     ptype_mb.create(npart_mb);
     ptype_mb = itsBunch->PType;
 
+    std::map<std::string, double> additionalAttributes = {
+        std::make_pair("REFPR", 0.0),
+        std::make_pair("REFPT", 0.0),
+        std::make_pair("REFPZ", 0.0),
+        std::make_pair("REFR", 0.0),
+        std::make_pair("REFTHETA", 0.0),
+        std::make_pair("REFZ", 0.0),
+        std::make_pair("AZIMUTH", 0.0),
+        std::make_pair("ELEVATION", 0.0),
+        std::make_pair("B-ref_x",  0.0),
+        std::make_pair("B-ref_z",  0.0),
+        std::make_pair("B-ref_y",  0.0),
+        std::make_pair("E-ref_x",  0.0),
+        std::make_pair("E-ref_z",  0.0),
+        std::make_pair("E-ref_y",  0.0),
+        std::make_pair("B-head_x", 0.0),
+        std::make_pair("B-head_z", 0.0),
+        std::make_pair("B-head_y", 0.0),
+        std::make_pair("E-head_x", 0.0),
+        std::make_pair("E-head_z", 0.0),
+        std::make_pair("E-head_y", 0.0),
+        std::make_pair("B-tail_x", 0.0),
+        std::make_pair("B-tail_z", 0.0),
+        std::make_pair("B-tail_y", 0.0),
+        std::make_pair("E-tail_x", 0.0),
+        std::make_pair("E-tail_z", 0.0),
+        std::make_pair("E-tail_y", 0.0)};
+
     std::string fn_appendix = "-onebunch";
-    itsDataSink->storeOneBunch(*itsBunch, fn_appendix);
+    std::string fileName = OpalData::getInstance()->getInputBasename() + fn_appendix + ".h5";
+
+    H5PartWrapperForPC h5wrapper(fileName);
+    h5wrapper.writeHeader();
+    h5wrapper.writeStep(*itsBunch, additionalAttributes);
+    h5wrapper.close();
 
 }
 
@@ -4094,34 +4128,62 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
 
     if(restartflag) {
         *gmsg << "----------------Read beam from hdf5 file----------------" << endl;
-        const size_t LocalNum = itsBunch->getLocalNum();
+        size_t localNum = itsBunch->getLocalNum();
+
+        PartBunch tmpBunch(&itsReference);
 
         std::string fn_appendix = "-onebunch";
-        itsDataSink->readOneBunch(*itsBunch, fn_appendix, BinID);
+        std::string fileName = OpalData::getInstance()->getInputBasename() + fn_appendix + ".h5";
+        H5PartWrapperForPC dataSource(fileName, H5_O_RDONLY);
+
+        long numParticles = dataSource.getNumParticles();
+        size_t numParticlesPerNode = numParticles / Ippl::getNodes();
+
+        size_t firstParticle = numParticlesPerNode * Ippl::myNode();
+        size_t lastParticle = firstParticle + numParticlesPerNode - 1;
+        if (Ippl::myNode() == Ippl::getNodes() - 1)
+            lastParticle = numParticles - 1;
+
+        numParticles = lastParticle - firstParticle + 1;
+        PAssert(numParticles >= 0);
+
+        dataSource.readStep(tmpBunch, firstParticle, lastParticle);
+        dataSource.close();
+
+        tmpBunch.boundp();
+
+        // itsDataSink->readOneBunch(*itsBunch, fn_appendix, BinID);
         restartflag = false;
 
-        const size_t NewLocalNum = itsBunch->getLocalNum();
+        npart_mb = tmpBunch.getLocalNum();
 
-        npart_mb = NewLocalNum - LocalNum;
-
+        itsBunch->create(npart_mb);
         r_mb.create(npart_mb);
         p_mb.create(npart_mb);
         m_mb.create(npart_mb);
         q_mb.create(npart_mb);
         ptype_mb.create(npart_mb);
 
-        for(size_t ii = 0; ii < npart_mb; ii++) {
-            r_mb[ii] = itsBunch->R[ii+LocalNum];
-            p_mb[ii] = itsBunch->P[ii+LocalNum];
-            m_mb[ii] = itsBunch->M[ii+LocalNum];
-            q_mb[ii] = itsBunch->Q[ii+LocalNum];
-            ptype_mb[ii] = itsBunch->PType[ii+LocalNum];
+        for(size_t ii = 0; ii < npart_mb; ++ ii, ++ localNum) {
+            itsBunch->R[localNum] = tmpBunch.R[ii];
+            itsBunch->P[localNum] = tmpBunch.P[ii];
+            itsBunch->M[localNum] = tmpBunch.M[ii];
+            itsBunch->Q[localNum] = tmpBunch.Q[ii];
+            itsBunch->PType[localNum] = 0;
+            itsBunch->Bin[localNum] = BinID;
+
+            r_mb[ii] = itsBunch->R[localNum];
+            p_mb[ii] = itsBunch->P[localNum];
+            m_mb[ii] = itsBunch->M[localNum];
+            q_mb[ii] = itsBunch->Q[localNum];
+            ptype_mb[ii] = itsBunch->PType[localNum];
         }
 
-    } else
+    } else {
         readOneBunch(BinID);
 
-    itsBunch->boundp();
+        itsBunch->boundp();
+    }
 
     return true;
 }

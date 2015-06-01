@@ -47,6 +47,7 @@ class PartBins;
 class EnvelopeBunch;
 class BoundaryGeometry;
 class LaserProfile;
+class H5PartWrapper;
 
 namespace DistrTypeT
 {
@@ -112,10 +113,10 @@ public:
                      bool scan);
     void CreateOpalT(PartBunch &beam, size_t &numberOfParticles, bool scan);
     void CreatePriPart(PartBunch *beam, BoundaryGeometry &bg);
-    void DoRestartOpalT(PartBunch &p, size_t Np, int restartStep);
+    void DoRestartOpalT(PartBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
     void DoRestartOpalCycl(PartBunch &p, size_t Np, int restartStep,
-                        const int specifiedNumBunch);
-    void DoRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep);
+                        const int specifiedNumBunch, H5PartWrapper *h5wrapper);
+    void DoRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
     size_t EmitParticles(PartBunch &beam, double eZ);
     static Distribution *find(const std::string &name);
 

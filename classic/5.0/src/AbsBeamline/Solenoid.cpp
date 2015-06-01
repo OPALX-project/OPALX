@@ -204,11 +204,11 @@ void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField
 
     RefPartBunch_m = bunch;
 
-    msg << getName() << " using file ";
+    *Ippl::Info << getName() << " using file ";
     myFieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
 
     if(myFieldmap_m != NULL) {
-        myFieldmap_m->getInfo(&msg);
+        myFieldmap_m->getInfo(Ippl::Info);
         if(fabs(dx_m) > EPS_MISALIGNMENT || fabs(dy_m) > EPS_MISALIGNMENT || fabs(ds_m) > EPS_MISALIGNMENT) {
             msg << "misaligned by dx = " << dx_m << ", dy = " << dy_m << ", dz = " << ds_m << endl;
         }

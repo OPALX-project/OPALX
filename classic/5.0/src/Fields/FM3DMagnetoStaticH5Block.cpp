@@ -165,8 +165,8 @@ void FM3DMagnetoStaticH5Block::readMap() {
             delete[] Nz_read_start;
             delete[] Nz_read_length;
 
-            msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
-                << endl;
+            INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+                    << endl);
 
         } else {
             WARNMSG("could not read file '" << Filename_m << "'" << endl);

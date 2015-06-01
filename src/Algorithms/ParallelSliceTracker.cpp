@@ -191,9 +191,7 @@ void ParallelSliceTracker::handleAutoPhasing() {
 
     if (Options::autoPhase == 0) return;
 
-    if(OpalData::getInstance()->inRestartRun()) {
-        itsDataSink_m->retriveCavityInformation(OpalData::getInstance()->getInputFn());
-    } else {
+    if(!OpalData::getInstance()->inRestartRun()) {
         itsDataSink_m->storeCavityInformation();
     }
 

@@ -638,7 +638,7 @@ void PartBunch::calcGammas() {
     if(emittedBins >= 2) {
         for(int i = 1; i < emittedBins; i++) {
             if(binemitted_m[i - 1] != 0 && binemitted_m[i] != 0)
-                INFOMSG("dE= " << getM() * 1.0E-3 * (bingamma_m[i - 1] - bingamma_m[i]) << " [keV] of Bin " << i - 1 << " and " << i << endl);
+                INFOMSG("d(gamma)= " << 100.0 * std::abs(bingamma_m[i - 1] - bingamma_m[i]) / bingamma_m[i] << " [%] between bin " << i - 1 << " and " << i << endl);
         }
     }
 }

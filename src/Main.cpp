@@ -134,9 +134,10 @@ int main(int argc, char *argv[]) {
     if(Ippl::myNode() == 0) {
         if (!fs::exists("data")) {
             boost::system::error_code error_code;
-            fs::create_directory("data", error_code);
-            std::cerr << error_code.message() << std::endl;
-            // use error code to prevent create_directory from throwing an exception
+            if (!fs::create_directory("data", error_code)) {
+                std::cerr << error_code.message() << std::endl;
+                // use error code to prevent create_directory from throwing an exception
+            }
         }
     }
     Ippl::Comm->barrier();
@@ -194,8 +195,10 @@ int main(int argc, char *argv[]) {
                   << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
         }
 
-        if(argc > 1)
+        if(argc > 1) {
             OPAL->storeInputFn(std::string(argv[1]));
+            OPAL->setRestartFileName(OPAL->getInputBasename() + std::string(".h5"));
+        }
 
         if(argc > 3) {
             if(argc > 5) {
@@ -289,15 +292,15 @@ int main(int argc, char *argv[]) {
       *gmsg << endl << "*** User error detected by function \""
 	    << ex.where() << "\"" << endl;
       abort();
-  
+
     } catch(std::bad_alloc &) {
       *gmsg << "Sorry, virtual memory exhausted." << endl;
       abort();
 
-    } catch(std::exception const& e) {   
+    } catch(std::exception const& e) {
       *gmsg << "Exception: " << e.what() << "\n";
        abort();
-       
+
     } catch(...) {
       *gmsg << "Unexpected exception." << endl;
       abort();

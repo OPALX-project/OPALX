@@ -170,8 +170,8 @@ void FM3DH5Block_nonscale::readMap() {
                 FieldstrengthHz_m[i] *= 1.0e6 * mu_0 ;
             }
 
-            msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
-                << endl;
+            INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+                    << endl);
 
         } else {
             WARNMSG("could not read file '" << Filename_m << "'")
