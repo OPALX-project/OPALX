@@ -175,8 +175,8 @@ void FM3DDynamic::readMap() {
             FieldstrengthHy_m[i] /= Ezmax;
         }
 
-        msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+                << endl);
 
     }
 }

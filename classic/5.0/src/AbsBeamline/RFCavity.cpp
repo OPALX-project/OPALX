@@ -461,8 +461,8 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
 
             fmap->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
             if(zEnd > zBegin) {
-                msg << getName() << " using file ";
-                fmap->getInfo(&msg);
+                *Ippl::Info << getName() << " using file ";
+                fmap->getInfo(Ippl::Info);
                 if(fabs((frequency - fmap->getFrequency()) / frequency) > 0.01) {
                     errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename << "';\n"
                              << frequency / two_pi * 1e-6 << " MHz <> "

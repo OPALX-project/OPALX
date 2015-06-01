@@ -190,8 +190,8 @@ void FM1DProfile2::readMap() {
         delete[] leastSquareMatrix;
         delete[] rightHandSide;
 
-        msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+                << endl);
 
     }
 }

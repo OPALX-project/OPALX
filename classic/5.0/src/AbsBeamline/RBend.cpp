@@ -1353,10 +1353,9 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
 }
 
 void RBend::ReadFieldMap(Inform &msg) {
-    if(Options::info) {
-      msg << getName() << " using file ";
-      fieldmap_m->getInfo(&msg);
-    }
+    *Ippl::Info << getName() << " using file ";
+    fieldmap_m->getInfo(Ippl::Info);
+    
     Fieldmap::readMap(fileName_m);
     fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
                                            entranceParameter2_m,
@@ -1380,12 +1379,11 @@ bool RBend::Reinitialize() {
     double bendAngleY = 0.0;
     CalculateRefTrajectory(bendAngleX, bendAngleY);
 
-    Inform msg("RBend ");
-    msg << "Bend design energy changed to: "
-        << designEnergy_m * 1.0e-6
-        << " MeV"
-        << endl;
-    Print(msg, bendAngleX, bendAngleY);
+    INFOMSG("Bend design energy changed to: "
+            << designEnergy_m * 1.0e-6
+            << " MeV"
+            << endl);
+    Print(*Ippl::Info, bendAngleX, bendAngleY);
 
 
     return false;

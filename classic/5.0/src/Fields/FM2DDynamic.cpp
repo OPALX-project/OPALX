@@ -151,8 +151,8 @@ void FM2DDynamic::readMap() {
             FieldstrengthHt_m[i] *= mu_0 / Ezmax; // H -> B
         }
 
-        msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+                << endl);
 
     }
 }

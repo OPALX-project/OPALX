@@ -216,8 +216,8 @@ void FM2DDynamic_cspline::readMap() {
         delete[] FieldstrengthEr;
         delete[] FieldstrengthHt;
 
-        msg << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+                << endl);
 
     }
 }

@@ -39,6 +39,8 @@
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
 #include "AbstractObjects/BeamSequence.h"
+#include "Structure/H5PartWrapper.h"
+#include "Structure/H5PartWrapperForPC.h"
 
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
@@ -592,349 +594,94 @@ void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
     *gmsg << *beam << endl;
 }
 
-void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep) {
-    h5_file_t *H5file;
-    std::string fn;
+void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep, H5PartWrapper *dataSource) {
 
     IpplTimings::startTimer(beam.distrReload_m);
 
-    //        beam.setTEmission(Attributes::getReal(itsAttr[ LegacyAttributesT::TEMISSION]));
-    fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
+    long numParticles = dataSource->getNumParticles();
+    size_t numParticlesPerNode = numParticles / Ippl::getNodes();
 
-#ifdef PARALLEL_IO
-    H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());
-#else
-    H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, 0);
-#endif
+    size_t firstParticle = numParticlesPerNode * Ippl::myNode();
+    size_t lastParticle = firstParticle + numParticlesPerNode - 1;
+    if (Ippl::myNode() == Ippl::getNodes() - 1)
+        lastParticle = numParticles - 1;
 
-    if(H5file == (void*)H5_ERR) {
-	throw OpalException("Distribution::DoRestartOpalT",
-                            "could not open file '" + fn + "'");
-    }
+    numParticles = lastParticle - firstParticle + 1;
+    PAssert(numParticles >= 0);
 
-    if(restartStep == -1) {
-        restartStep = H5GetNumSteps(H5file) - 1 ;
-        OpalData::getInstance()->setRestartStep(restartStep);
-    } else {
-        if(restartStep != H5GetNumSteps(H5file) - 1 && !OpalData::getInstance()->hasRestartFile()) {
-            throw OpalException("Distribution::DoRestartOpalT",
-                                "can't append to the file '" + fn + "'");
-        }
-    }
+    beam.create(numParticles);
 
-    COMPLAINONFAILURE(H5SetStep(H5file, restartStep));
-
-    int N = (int)H5PartGetNumParticles(H5file);
-
-    int numberOfParticlesPerNode = (int) floor((double) N / Ippl::getNodes());
-    long long starti = Ippl::myNode() * numberOfParticlesPerNode;
-    long long endi = starti + numberOfParticlesPerNode - 1;
-
-    // In case we miss some particles we add them at the end on the last core
-    if(Ippl::myNode() == (Ippl::getNodes() - 1)) {
-        if(Ippl::getNodes()*numberOfParticlesPerNode < N)
-            endi += (N - (Ippl::getNodes() * numberOfParticlesPerNode));
-    }
-
-    COMPLAINONFAILURE(H5PartSetView(H5file, starti, endi));
-    N = (int)H5PartGetNumParticles(H5file);
-    assert(N >= 0);
-
-    double actualT;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "TIME", &actualT));
-    beam.setT(actualT);
-
-    double dPhiGlobal;
-    COMPLAINONFAILURE(H5ReadFileAttribFloat64(H5file, "dPhiGlobal", &dPhiGlobal));
-    OpalData::getInstance()->setGlobalPhaseShift(dPhiGlobal);
-
-    h5_int64_t ltstep;
-    COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "LocalTrackStep", &ltstep));
-    beam.setLocalTrackStep((long long)ltstep);
-
-    h5_int64_t gtstep;
-    COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "GlobalTrackStep", &gtstep));
-    beam.setGlobalTrackStep((long long)gtstep);
-
-    Vektor<double, 3> RefPartR;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "RefPartR", (h5_float64_t *)&RefPartR));
-    beam.RefPart_R = RefPartR;
-
-    Vektor<double, 3> RefPartP;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "RefPartP", (h5_float64_t *)&RefPartP));
-    beam.RefPart_P = RefPartP;
-
-    std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
-    h5_float64_t *farray = reinterpret_cast<h5_float64_t *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-    beam.create(N);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "x", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n) {
-        beam.R[n](0) = farray[n];
-        beam.Bin[n] = 0; // not initialized
-    }
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "y", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.R[n](1) = farray[n];
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "z", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.R[n](2) = farray[n];
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "px", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.P[n](0) = farray[n];
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "py", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.P[n](1) = farray[n];
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "pz", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.P[n](2) = farray[n];
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "q", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.Q[n] = farray[n];
-
-    COMPLAINONFAILURE(H5PartReadDataInt64(H5file, "lastsection", larray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.LastSection[n] = (short) larray[n];
-
-    Ippl::Comm->barrier();
-    COMPLAINONFAILURE(H5CloseFile(H5file));
+    dataSource->readHeader();
+    dataSource->readStep(beam, firstParticle, lastParticle);
 
     beam.boundp();
+
+    double actualT = beam.getT();
+    long long ltstep = beam.getLocalTrackStep();
+    long long gtstep = beam.getGlobalTrackStep();
 
     IpplTimings::stopTimer(beam.distrReload_m);
 
-    *gmsg << "Total number of particles in the h5 file = " << N << " NPerBunch= " << beam.getTotalNum()
-          << " Global step " << gtstep << " Local step " << ltstep << endl
-          << " restart step= " << restartStep << " time of restart = " << actualT
-          << " phishift= " << OpalData::getInstance()->getGlobalPhaseShift() << endl;
+    *gmsg << "Total number of particles in the h5 file= " << beam.getTotalNum() << "\n"
+          << "Global step= " << gtstep << "; Local step= " << ltstep << "; "
+          << "restart step= " << restartStep << "\n"
+          << "time of restart= " << actualT << "; phishift= " << OpalData::getInstance()->getGlobalPhaseShift() << endl;
 }
 
-void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep, const int specifiedNumBunch) {
+void Distribution::DoRestartOpalCycl(PartBunch &beam,
+                                     size_t Np,
+                                     int restartStep,
+                                     const int specifiedNumBunch,
+                                     H5PartWrapper *dataSource) {
 
-    h5_int64_t rc;
+    // h5_int64_t rc;
     IpplTimings::startTimer(beam.distrReload_m);
-    *gmsg << "---------------- Start reading hdf5 file----------------" << endl;
-    h5_file_t *H5file;
+    INFOMSG("---------------- Start reading hdf5 file----------------" << endl);
 
-    std::string fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
+    long numParticles = dataSource->getNumParticles();
+    size_t numParticlesPerNode = numParticles / Ippl::getNodes();
 
-#ifdef PARALLEL_IO
-    H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());
-#else
-    H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, 0);
-#endif
+    size_t firstParticle = numParticlesPerNode * Ippl::myNode();
+    size_t lastParticle = firstParticle + numParticlesPerNode - 1;
+    if (Ippl::myNode() == Ippl::getNodes() - 1)
+        lastParticle = numParticles - 1;
 
-    if(H5file == (void*)H5_ERR) {
-        throw OpalException("Distribution::DoRestartOpalCycl",
-                            "could not open file '" + fn + "'");
-    }
+    numParticles = lastParticle - firstParticle + 1;
+    PAssert(numParticles >= 0);
 
-    if(restartStep == -1) {
-        restartStep = H5GetNumSteps(H5file) - 1;
-        OpalData::getInstance()->setRestartStep(restartStep);
-    } else {
-        if(restartStep != H5GetNumSteps(H5file) - 1 && !OpalData::getInstance()->hasRestartFile()) {
-            throw OpalException("Distribution::DoRestartOpalCycl",
-                                "can't append to the file '" + fn + "'");
-        }
-    }
+    beam.create(numParticles);
 
-    *gmsg << "Restart from hdf5 format file " << fn
-          << ", read phase space data of DumpStep " << (int)restartStep << endl;
+    dataSource->readHeader();
+    dataSource->readStep(beam, firstParticle, lastParticle);
 
-    COMPLAINONFAILURE(H5SetStep(H5file, restartStep));
-    const int globalN = (int)H5PartGetNumParticles(H5file);
-
-    *gmsg << "total number of particles = " << globalN << endl;
-
-    int numberOfParticlesPerNode = (int) floor((double) globalN / Ippl::getNodes());
-    long long starti = Ippl::myNode() * numberOfParticlesPerNode;
-    long long endi = 0;
-
-    if(Ippl::myNode() == Ippl::getNodes() - 1)
-        endi = -1;
-    else
-        endi = starti + numberOfParticlesPerNode - 1;
-
-    COMPLAINONFAILURE(H5PartSetView(H5file, starti, endi));
-    const int localN = (int)H5PartGetNumParticles(H5file);
-    assert(localN >= 0);
-
-    h5_int64_t ltstep;
-    COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "LocalTrackStep", &ltstep));
-    beam.setLocalTrackStep((long long)ltstep);
-
-    h5_int64_t gtstep;
-    COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "GlobalTrackStep", &gtstep));
-    beam.setGlobalTrackStep((long long)gtstep);
-
-    char opalFlavour[128];
-    COMPLAINONFAILURE(H5ReadStepAttribString(H5file, "OPAL_flavour", opalFlavour));
-
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "REFPR",&referencePr_m));
-
-    referencePt_m = 0.0;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "REFPT",&referencePt_m));
-
-    referencePz_m = 0.0;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "REFPZ",&referencePz_m));
-
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "REFR",&referenceR_m));
-
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "REFTHETA",&referenceTheta_m));
-
-    referenceZ_m = 0.0;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "REFZ",&referenceZ_m));
-
-    double meanE;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "ENERGY", &meanE));
-
-    double pathLength;;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "SPOS", &pathLength));
-
-    beam.setLPath(pathLength);
-
-    *gmsg << "* Restart Energy = " << meanE << " (MeV), Path lenght = " << pathLength << " (m)" <<  endl;
-
-    // beam.getM() in eV, meanE in MeV had to change 1e3 to 1e6 -DW
-    double ga = 1 + meanE / beam.getM() * 1.0e6;
-    double be = sqrt(1.0 - (1.0 / (ga * ga)));
-
-    bega_m = be * ga;
-
-    *gmsg << "* Gamma = " << ga << ", Beta = " << be << endl;
-
-    std::unique_ptr<char[]> varray(new char[(localN)*sizeof(double)]);
-
-    double *farray = reinterpret_cast<double *>(varray.get());
-
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-    beam.create(localN);
-
-    if(strcmp(opalFlavour, "opal-t") == 0) {
-
-        *gmsg << "Restart from hdf5 file generated by OPAL-t" << endl;
-
-        // force the initial time to zero
-        beam.setT(0.0);
-        beam.setLocalTrackStep((long long) 0 );
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "x", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.R[n](0) = -farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "y", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.R[n](2) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "z", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.R[n](1) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "px", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.P[n](0) = -farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "py", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.P[n](2) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "pz", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.P[n](1) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataInt64(H5file, "id", larray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.ID[n] = larray[n];
-
-    } else {
-
-        *gmsg << "Restart from hdf5 file generated by OPAL-cycl" << endl;
-
-        COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "AZIMUTH", &phi_m));
-
-        COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "ELEVATION", &psi_m));
-
-        h5_int64_t localDump = 0;
-        previousH5Local_m = false;
-
-        rc = H5ReadStepAttribInt64(H5file, "LOCAL", &localDump);
-        if(rc != H5_SUCCESS) {
-
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-            throw OpalException("Error during restart for Cyclotron Tracker:",
-                                "You are trying to restart from a legacy file that doesn't contain\
-  information on local/global frame. We are working on legacy support, but for now you have to use\
-  OPAL 1.3.0!");
-
-        } else {
-
-            if (localDump == 1) previousH5Local_m = true;
-        }
-
-        double actualT;
-        COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "TIME", &actualT));
-        beam.setT(actualT);
-
-        h5_int64_t SteptoLastInj;
-        COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "SteptoLastInj", &SteptoLastInj));
-        beam.setSteptoLastInj((int)SteptoLastInj);
-        *gmsg << "Tracking Step since last bunch injection is " << SteptoLastInj << endl;
-
-        h5_int64_t numBunch;
-        COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "NumBunch", &numBunch));
-        beam.setNumBunch((int)numBunch);
-        *gmsg << numBunch << " Bunches(bins) exist in this file" << endl;
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "x", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.R[n](0) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "y", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.R[n](1) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "z", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.R[n](2) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "px", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.P[n](0) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "py", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.P[n](1) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "pz", farray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.P[n](2) = farray[n];
-
-        COMPLAINONFAILURE(H5PartReadDataInt64(H5file, "id", larray));
-        for(unsigned long int n = 0; n < (unsigned int) localN; ++n)
-            beam.ID[n] = larray[n];
-
-        // only for multi-bunch mode
-        if(specifiedNumBunch > 1) {
-            // the allowed maximal bin number is set to 1000
-            beam.setPBins(new PartBinsCyc(1000, numBunch));
-        }
-    }
-
-    Ippl::Comm->barrier();
-    COMPLAINONFAILURE(H5CloseFile(H5file));
-    beam.boundp();
     beam.Q = beam.getChargePerParticle();
 
-    if(strcmp(opalFlavour, "opal-t") == 0) {
+    beam.boundp();
+
+    double meanE = static_cast<H5PartWrapperForPC*>(dataSource)->getMeanKineticEnergy();
+
+    const int globalN = beam.getTotalNum();
+    INFOMSG("Restart from hdf5 format file " << OpalData::getInstance()->getInputBasename() << ".h5" << endl);
+    INFOMSG("total number of particles = " << globalN << endl);
+    INFOMSG("* Restart Energy = " << meanE << " (MeV), Path lenght = " << beam.getLPath() << " (m)" <<  endl);
+    INFOMSG("Tracking Step since last bunch injection is " << beam.getSteptoLastInj() << endl);
+    INFOMSG(beam.getNumBunch() << " Bunches(bins) exist in this file" << endl);
+
+    double gamma = 1 + meanE / beam.getM() * 1.0e6;
+    double beta = sqrt(1.0 - (1.0 / std::pow(gamma, 2.0)));
+
+    INFOMSG("* Gamma = " << gamma << ", Beta = " << beta << endl);
+
+    if(dataSource->predecessorIsSameFlavour()) {
+        INFOMSG("Restart from hdf5 file generated by OPAL-cycl" << endl);
+        if(specifiedNumBunch > 1) {
+            // the allowed maximal bin number is set to 1000
+            beam.setPBins(new PartBinsCyc(1000, beam.getNumBunch()));
+        }
+
+    } else {
+        INFOMSG("Restart from hdf5 file generated by OPAL-t" << endl);
+
         Vector_t meanR(0.0, 0.0, 0.0);
         Vector_t meanP(0.0, 0.0, 0.0);
         unsigned long int newLocalN = beam.getLocalNum();
@@ -948,7 +695,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         meanR /= Vector_t(globalN);
         reduce(meanP, meanP, OpAddAssign());
         meanP /= Vector_t(globalN);
-        *gmsg << "Rmean = " << meanR << "[m], Pmean=" << meanP << endl;
+        INFOMSG("Rmean = " << meanR << "[m], Pmean=" << meanP << endl);
 
         for(unsigned int i = 0; i < newLocalN; ++i) {
             beam.R[i] -= meanR;
@@ -956,126 +703,24 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam, size_t Np, int restartStep
         }
     }
 
-    *gmsg << "----------------Finish reading hdf5 file----------------" << endl;
+    INFOMSG("---------------Finished reading hdf5 file---------------" << endl);
     IpplTimings::stopTimer(beam.distrReload_m);
 }
 
-void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartStep) {
-    h5_file_t *H5file;
-    std::string fn;
-
+void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartStep,
+                                  H5PartWrapper *dataSource) {
     IpplTimings::startTimer(beam.distrReload_m);
-
-    if(OpalData::getInstance()->hasRestartFile()) {
-        fn = OpalData::getInstance()->getRestartFileName();
-        *gmsg << "Restart from a specified file:" << fn << endl;
-
-    } else {
-        fn = OpalData::getInstance()->getInputBasename() + std::string(".h5");
-    }
-
-#ifdef PARALLEL_IO
-    H5file = H5OpenFile(fn.c_str(), H5_O_RDONLY, Ippl::getComm());
-#else
-    H5file = H5PartOpenFile(fn.c_str(), H5_O_RDONLY, 0);
-#endif
-
-    if(H5file == (void*)H5_ERR) {
-        throw OpalException("Distribution::DoRestartOpalE",
-                            "could not open file '" + fn + "'");
-    }
-
-    if(restartStep == -1) {
-        restartStep = H5GetNumSteps(H5file) - 1;
-        OpalData::getInstance()->setRestartStep(restartStep);
-    } else {
-        if(restartStep != H5GetNumSteps(H5file) - 1 && !OpalData::getInstance()->hasRestartFile()) {
-            throw OpalException("Distribution::DoRestartOpalE",
-                                "can't append to the file '" + fn + "'");
-        }
-    }
-
-    COMPLAINONFAILURE(H5SetStep(H5file, restartStep));
-    int N = (int)H5PartGetNumParticles(H5file);
-
-    h5_int64_t totalSteps = H5GetNumSteps(H5file);
-    *gmsg << "total number of slices = " << N << " total steps " << totalSteps << endl;
+    int N = dataSource->getNumParticles();
+    *gmsg << "total number of slices = " << N << endl;
 
     beam.distributeSlices(N);
     beam.createBunch();
     long long starti = beam.mySliceStartOffset();
     long long endi = beam.mySliceEndOffset();
 
-    COMPLAINONFAILURE(H5PartSetView(H5file, starti, endi));
-    N = (int)H5PartGetNumParticles(H5file);
-    assert(N >= 0 && (unsigned int) N == beam.numMySlices());
+    dataSource->readHeader();
+    dataSource->readStep(beam, starti, endi);
 
-    double actualT;
-    COMPLAINONFAILURE(H5ReadStepAttribFloat64(H5file, "TIME", &actualT));
-
-    beam.setT(actualT);
-    double dPhiGlobal;
-    COMPLAINONFAILURE(H5ReadFileAttribFloat64(H5file, "dPhiGlobal", &dPhiGlobal));
-    OpalData::getInstance()->setGlobalPhaseShift(dPhiGlobal);
-
-    h5_int64_t ltstep;
-    COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "LocalTrackStep", &ltstep));
-    beam.setLocalTrackStep((long long)ltstep);
-
-    h5_int64_t gtstep;
-    COMPLAINONFAILURE(H5ReadStepAttribInt64(H5file, "GlobalTrackStep", &gtstep));
-    beam.setGlobalTrackStep((long long)gtstep);
-
-    std::unique_ptr<char[]> varray(new char[(N)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "x", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n) {
-        beam.setX(n, farray[n]);
-    }
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "y", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setY(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "z", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setZ(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "px", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setPx(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "py", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setPy(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "beta", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setBeta(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "X0", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setX0(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "pX0", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setPx0(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "Y0", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setY0(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataFloat64(H5file, "pY0", farray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.setPy0(n, farray[n]);
-
-    COMPLAINONFAILURE(H5PartReadDataInt64(H5file, "lastsection", larray));
-    for(unsigned long int n = 0; n < (unsigned int) N; ++n)
-        beam.LastSection[n] = (short) larray[n];
-
-    Ippl::Comm->barrier();
-    COMPLAINONFAILURE(H5CloseFile(H5file));
     beam.setCharge(beam.getChargePerParticle());
     IpplTimings::stopTimer(beam.distrReload_m);
 }
@@ -1176,8 +821,8 @@ int Distribution::GetSurfMaterial() {return (int)Attributes::getReal(itsAttr[Att
 
 Inform &Distribution::printInfo(Inform &os) const {
 
-    os << "********************** DISTRIBUTION **********************" << endl;
-    os << endl;
+    os << "* ************* D I S T R I B U T I O N ********************************************" << endl;
+    os << "* " << endl;
     if (OpalData::getInstance()->inRestartRun()) {
         os << "* In restart. Distribution read in from .h5 file." << endl;
     } else {
@@ -1192,14 +837,14 @@ Inform &Distribution::printInfo(Inform &os) const {
 
         size_t distCount = 1;
         for (unsigned distIndex = 0; distIndex < addedDistributions_m.size(); distIndex++) {
-            os << endl;
+            os << "* " << endl;
             os << "* Added Distribution #" << distCount << endl;
             os << "* ----------------------" << endl;
             addedDistributions_m.at(distIndex)->PrintDist(os, particlesPerDist_m.at(distCount));
             distCount++;
         }
 
-        os << endl;
+        os << "* " << endl;
         if (numberOfEnergyBins_m > 0) {
             os << "* Number of energy bins    = " << numberOfEnergyBins_m << endl;
 
@@ -1212,14 +857,14 @@ Inform &Distribution::printInfo(Inform &os) const {
             os << "* Emission time            = " << tEmission_m << " [sec]" << endl;
             os << "* Time per bin             = " << tEmission_m/numberOfEnergyBins_m << " [sec]" << endl;
             os << "* Bin delta t              = " << tBin_m << " [sec]" << endl;
-            os << endl;
+            os << "* " << endl;
             PrintEmissionModel(os);
-            os << endl;
+            os << "* " << endl;
         } else
             os << "* Distribution is injected." << endl;
     }
-    os << endl;
-    os << "* *********************************************************" << endl;
+    os << "* " << endl;
+    os << "* **********************************************************************************" << endl;
 
     return os;
 }
@@ -2224,9 +1869,9 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
         currentSampleBin_m++;
         if (currentSampleBin_m == numberOfSampleBins_m) {
 
-            *gmsg << "*Bin number: "
-                  << currentEnergyBin_m
-                  << " has emitted all particles (new emit)." << endl;
+            INFOMSG("*Bin number: "
+                    << currentEnergyBin_m
+                    << " has emitted all particles (new emit)." << endl);
             currentSampleBin_m = 0;
             currentEnergyBin_m++;
 
@@ -3114,7 +2759,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
         gsl_qrng_free(quasiRandGen1D);
 
     if (quasiRandGen2D != NULL)
-        gsl_qrng_free(quasiRandGen1D);
+        gsl_qrng_free(quasiRandGen2D);
 }
 
 void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
@@ -3386,10 +3031,10 @@ std::vector<double>& Distribution::GetBGzDist() {
 void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
 
     if (numberOfParticles > 0) {
-        os << "Number of particles: "
+        os << "* Number of particles: "
            << numberOfParticles * (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE)? 2: 1)
            << endl
-           << endl;
+           << "* " << endl;
     }
 
     switch (distrTypeT_m) {
@@ -3431,7 +3076,7 @@ void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
 void Distribution::PrintDistBinomial(Inform &os) const {
 
     os << "* Distribution type: BINOMIAL" << endl;
-    os << endl;
+    os << "* " << endl;
     os << "* SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
     os << "* SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
     if (emitting_m)
@@ -3473,7 +3118,7 @@ void Distribution::PrintDistFlattop(Inform &os) const {
         break;
 
     }
-    os << endl;
+    os << "* " << endl;
 
     if (laserProfile_m != NULL) {
 
@@ -3523,7 +3168,7 @@ void Distribution::PrintDistFlattop(Inform &os) const {
 
 void Distribution::PrintDistFromFile(Inform &os) const {
     os << "* Distribution type: FROMFILE" << endl;
-    os << endl;
+    os << "* " << endl;
     os << "* Input file:        "
        << Attributes::getString(itsAttr[AttributesT::FNAME]) << endl;
 }
@@ -3556,7 +3201,7 @@ void Distribution::PrintDistMatchedGauss(Inform &os) const {
 
 void Distribution::PrintDistGauss(Inform &os) const {
     os << "* Distribution type: GAUSS" << endl;
-    os << endl;
+    os << "* " << endl;
     if (emitting_m) {
         os << "* Sigma Time Rise               = " << sigmaTRise_m
            << " [sec]" << endl;
@@ -3616,7 +3261,7 @@ void Distribution::PrintDistGauss(Inform &os) const {
 void Distribution::PrintDistSurfEmission(Inform &os) const {
 
     os << "* Distribution type: SURFACEEMISION" << endl;
-    os << endl;
+    os << "* " << endl;
     os << "* * Number of electrons for surface emission  "
        << Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]) << endl;
     os << "* * Initialized electrons inward margin for surface emission  "
@@ -3677,7 +3322,7 @@ void Distribution::PrintDistSurfEmission(Inform &os) const {
 void Distribution::PrintDistSurfAndCreate(Inform &os) const {
 
     os << "* Distribution type: SURFACERANDCREATE" << endl;
-    os << endl;
+    os << "* " << endl;
     os << "* * Number of electrons initialized on the surface as primaries  "
        << Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]) << endl;
     os << "* * Initialized electrons inward margin for surface emission  "
@@ -3689,7 +3334,7 @@ void Distribution::PrintDistSurfAndCreate(Inform &os) const {
 
 void Distribution::PrintEmissionModel(Inform &os) const {
 
-    os << "* ----------------THERMAL EMITTANCE MODEL----------------" << endl;
+    os << "* ------------- THERMAL EMITTANCE MODEL --------------------------------------------" << endl;
 
     switch (emissionModel_m) {
 
@@ -3706,7 +3351,7 @@ void Distribution::PrintEmissionModel(Inform &os) const {
         break;
     }
 
-    os << "* -------------------------------------------------------" << endl;
+    os << "* ----------------------------------------------------------------------------------" << endl;
 
 }
 
@@ -3734,7 +3379,7 @@ void Distribution::PrintEmissionModelNonEquil(Inform &os) const {
 
 void Distribution::PrintEnergyBins(Inform &os) const {
 
-    os << endl;
+    os << "* " << endl;
     for (int binIndex = numberOfEnergyBins_m - 1; binIndex >=0; binIndex--) {
         size_t sum = 0;
         for (int sampleIndex = 0; sampleIndex < numberOfSampleBins_m; sampleIndex++)
@@ -3744,7 +3389,7 @@ void Distribution::PrintEnergyBins(Inform &os) const {
         os << "* Energy Bin # " << numberOfEnergyBins_m - binIndex
            << " contains " << sum << " particles" << endl;
     }
-    os << endl;
+    os << "* " << endl;
 
 }
 
@@ -4770,14 +4415,15 @@ void Distribution::WriteOutFileHeader() {
     if (Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
 
         if (Ippl::myNode() == 0) {
-            *gmsg << "***********************************************************" << endl;
-            *gmsg << "Write initial distribution to file \"data/distribution.data\"" << endl;
-            *gmsg << "***********************************************************" << endl;
+            *gmsg << "* **********************************************************************************" << endl;
+            *gmsg << "* Write initial distribution to file \"data/distribution.data\"" << endl;
+            *gmsg << "* **********************************************************************************" << endl;
             std::ofstream outputFile("data/distribution.data");
             if (outputFile.bad()) {
                 *gmsg << "Unable to open output file \"data/distribution.data\"" << endl;
             } else {
                 outputFile.setf(std::ios::left);
+                outputFile << "# ";
                 if (emitting_m) {
                     outputFile.width(17);
                     outputFile << "x [m]";

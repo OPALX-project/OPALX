@@ -7,6 +7,10 @@ set (_SRCS
   BoundaryGeometry.cpp
   FieldSolver.cpp
   DataSink.cpp
+  H5PartWrapper.cpp
+  H5PartWrapperForPC.cpp
+  H5PartWrapperForPS.cpp
+  H5PartWrapperForPT.cpp
   )
 
 include_directories (

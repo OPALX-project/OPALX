@@ -398,8 +398,8 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
         CoreFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
 
         if(zEnd > zBegin) {
-            msg << getName() << " using file ";
-            CoreFieldmap_m->getInfo(&msg);
+            *Ippl::Info << getName() << " using file ";
+            CoreFieldmap_m->getInfo(Ippl::Info);
             if(fabs((frequency_m - CoreFieldmap_m->getFrequency()) / frequency_m) > 0.01) {
                 errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" <<  CoreFilename_m + "';\n"
                          << frequency_m / two_pi * 1e-6 << " MHz <> "

@@ -41,7 +41,7 @@ namespace OPALTimer {
 
     std::string Timer::time() const {
         char buffer[12];
-        strftime(buffer, 12, "%H.%M.%S", localtime(&timer));
+        strftime(buffer, 12, "%H:%M:%S", localtime(&timer));
         return std::string(buffer, 8);
     }
 }

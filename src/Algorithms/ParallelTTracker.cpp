@@ -72,7 +72,6 @@
 class PartData;
 
 using namespace std;
-using namespace OPALTimer;
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    const PartData &reference,
@@ -323,7 +322,7 @@ void ParallelTTracker::printRFPhases() {
     const double RADDEG = 180.0 / Physics::pi;
     const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
 
-    msg << "\n-------------------------------------------------------------------------------------\n";
+    INFOMSG("\n-------------------------------------------------------------------------------------\n");
 
     for (FieldList::iterator it = cl.begin(); it != cl.end(); ++it) {
         std::shared_ptr<Component> element(it->getElement());
@@ -339,14 +338,14 @@ void ParallelTTracker::printRFPhases() {
 	    frequency = static_cast<RFCavity *>(element.get())->getFrequencym();
         }
 
-        msg << (it == cl.begin()? "": "\n")
-            << name
-            << ": phi = phi_nom + phi_maxE + global phase shift = " << phase * RADDEG << " degree, "
-            << "(global phase shift = " << -globalTimeShift *frequency *RADDEG << " degree) \n";
+        INFOMSG((it == cl.begin()? "": "\n")
+                << name
+                << ": phi = phi_nom + phi_maxE + global phase shift = " << phase * RADDEG << " degree, "
+                << "(global phase shift = " << -globalTimeShift *frequency *RADDEG << " degree) \n");
     }
 
-    msg << "-------------------------------------------------------------------------------------\n"
-	<< endl;
+    INFOMSG("-------------------------------------------------------------------------------------\n"
+            << endl);
 }
 
 void ParallelTTracker::handleAutoPhasing() {
@@ -354,9 +353,7 @@ void ParallelTTracker::handleAutoPhasing() {
 
     if(Options::autoPhase == 0) return;
 
-    if(OpalData::getInstance()->inRestartRun()) {
-        itsDataSink_m->retriveCavityInformation(OpalData::getInstance()->getInputFn());
-    } else {
+    if(!OpalData::getInstance()->inRestartRun()) {
         itsDataSink_m->storeCavityInformation();
     }
 
@@ -425,10 +422,10 @@ void ParallelTTracker::executeDefaultTracker() {
     << "max integration steps " << localTrackSteps_m.front() << ", next step= " << step << endl;
     msg << "Using default (Boris-Buneman) integrator" << endl;
 
+    itsOpalBeamline_m.print(*Ippl::Info);
+
     if (Options::info)
-      itsOpalBeamline_m.print(msg);
-    else
-      msg << "Silent track ... " << endl;
+        msg << "Silent track ... " << endl;
 
     setupSUV(!(OpalData::getInstance()->inRestartRun() || (OpalData::getInstance()->hasBunchAllocated() && !Options::scan)));
 
@@ -2007,11 +2004,12 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
     Inform msg("ParallelTTracker ");
 
     if(numParticlesInSimulation_m == 0) {
-        msg << myt2.time() << " "
-        << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << "; "
-        << "   -- no emission yet --     "
-        << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s]"
-        << endl;
+      if (Options::info)
+          msg << myt2.time() << " "
+              << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << "; "
+              << "   -- no emission yet --     "
+              << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s]"
+              << endl;
         return;
     }
 
@@ -2033,23 +2031,24 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
     size_t totalParticles_f = numParticlesInSimulation_m;
     if(totalParticles_f <= minBinEmitted_m) {
-        msg << myt2.time() << " "
-        << "Step " << setw(6) << itsBunch->getGlobalTrackStep() << "; "
-        << "only " << setw(4) << totalParticles_f << " particles emitted; "
-        << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
-        << "E="    << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
-        << endl;
+      if (Options::info)
+          msg << myt2.time() << " "
+              << "Step " << setw(6) << itsBunch->getGlobalTrackStep() << "; "
+              << "only " << setw(4) << totalParticles_f << " particles emitted; "
+              << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
+              << "E="    << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
+              << endl;
     } else if(std::isnan(sposRef) || std::isinf(sposRef)) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
       if (Options::info)
-        msg << myt2.time() << " "
-	    << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << " "
-	    << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
-	    << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
-	    << "E="  << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
-	    << endl;
+          msg << myt2.time() << " "
+                  << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << " "
+                  << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
+                  << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
+                  << "E="  << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
+                  << endl;
 
         writePhaseSpace(step, sposRef, psDump, statDump);
     }

@@ -34,7 +34,7 @@
 class PartBunch;
 class EnvelopeBunch;
 class BoundaryGeometry;
-
+class H5PartWrapper;
 
 class DataSink {
 public:
@@ -44,57 +44,26 @@ public:
      * opposed to a calculation restart).
      */
     DataSink();
+    DataSink(H5PartWrapper *h5wrapper);
 
     /** \brief Restart constructor.
      *
      * This constructor is called when a calculation is restarted using data from
      * an existing H5 file.
      */
-    DataSink(int restartStep);
+    DataSink(H5PartWrapper *h5wrapper, int restartStep);
 
     ~DataSink();
 
-    void reset() { H5call_m = 0; }
+    void reset();
 
     void rewindLinesSDDS(size_t numberOfLines) const;
     void rewindLinesLBal(size_t numberOfLines) const;
-
-    /** \brief Set and querie which flavor has written the data
-     *
-     *
-     */
-    bool isOPALt();
-
-    void setOPALcycl();
-
-    void setOPALt();
+    unsigned int rewindSDDStoSPos(double maxSpos) const;
 
     bool doHDF5();
 
-    /** \brief Write the particle distribution data into a independent H5 file
-     *   for bunch injection in multi-bunch simulation in cyclotrom
-     *
-     *
-     */
-    void storeOneBunch(const PartBunch &beam, const std::string fn_appendix);
-
-
-
-    /** \brief Read the particle distribution data from a independent H5 file
-     *   for bunch injection in multi-bunch simulation in cyclotrom
-     *
-     *
-     */
-    bool readOneBunch(PartBunch &beam, const std::string fn_appendix, const size_t BinID);
-
-
-
-    /** \brief Read cavity information from  H5 file
-     *
-     *
-     *
-     */
-    void retriveCavityInformation(std::string fn);
+    void changeH5Wrapper(H5PartWrapper *h5wrapper);
 
     /** \brief Write cavity information from  H5 file
      *
@@ -102,13 +71,6 @@ public:
      *
      */
     void storeCavityInformation();
-
-    /** \brief Write H5 file attributes.
-     *
-     * Called when new H5 is created to initialize file. Write file attributes
-     * to describe stored data.
-     */
-    void writeH5FileAttributes();
 
     /** \brief Write statistical data.
      *
@@ -209,13 +171,6 @@ public:
     void dumpStashedPhaseSpaceEnvelope();
     void writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
 
-    /** \brief stores the field maps
-     *
-     * \return Returns the number of field maps just written
-     */
-
-    int storeFieldmaps();
-
     /**
      * Write particle loss data to an ASCII fille for histogram
      * @param fn specifies the name of ASCII file
@@ -252,13 +207,10 @@ private:
     DataSink(const DataSink &) { }
     DataSink &operator = (const DataSink &) { return *this; }
 
-    std::string convert2Int(int number) {
-        std::stringstream ss;//create a stringstream
-        ss << std::setw(5) << std::setfill('0') <<  number; //add number to the stream
-        return ss.str();//return a string with the contents of the stream
-    }
+    static std::string convertToString(int number);
 
     void rewindLines(const std::string &fileName, size_t numberOfLines) const;
+    unsigned int rewindLinesSDDS(const std::string &fileName, double maxSPos) const;
 
     /** \brief First write to the statistics output file.
      *
@@ -267,13 +219,6 @@ private:
      * reset to false so that header information is only written once.
      */
     bool firstWriteToStat_m;
-
-    /** \brief First write to the H5 file.
-     *
-     * If true, file attributes and other initialization information are written to file.
-     * Variable is then reset to false so that H5 file is only initialized once.
-     */
-    bool firstWriteH5part_m;
 
     /** \brief First write to the H5 surface loss file.
      *
@@ -287,9 +232,6 @@ private:
 
     /// Name of output file for processor load balancing information.
     std::string lBalFileName_m;
-
-    /// %Pointer to H5 file for particle data.
-    h5_file_t *H5file_m;
 
     /// Name of output file for surface loss data.
     std::string surfaceLossFileName_m;
@@ -306,58 +248,19 @@ private:
     /// Timer to track particle data/H5 file write time.
     IpplTimings::TimerRef H5PartTimer_m;
 
-    /// Timer to track field data/H5 file write time.
-    IpplTimings::TimerRef H5BlockTimer_m;
-
     /// needed to create index for vtk file
     unsigned int lossWrCounter_m;
-
-    /// Vectors for envelope buffering
-    std::vector< Vektor<double, 3> > stash_RefPartR;
-    std::vector< Vektor<double, 3> > stash_RefPartP;
-    std::vector< Vektor<double, 3> > stash_centroid;
-    std::vector< Vektor<double, 3> > stash_geomvareps;
-    std::vector< Vektor<double, 3> > stash_xsigma;
-    std::vector< Vektor<double, 3> > stash_psigma;
-    std::vector< Vektor<double, 3> > stash_vareps;
-    std::vector< Vektor<double, 3> > stash_rmin;
-    std::vector< Vektor<double, 3> > stash_rmax;
-    std::vector< Vektor<double, 3> > stash_maxP;
-    std::vector< Vektor<double, 3> > stash_minP;
-    std::vector< Vektor<double, 3> > stash_Bhead;
-    std::vector< Vektor<double, 3> > stash_Ehead;
-    std::vector< Vektor<double, 3> > stash_Bref;
-    std::vector< Vektor<double, 3> > stash_Eref;
-    std::vector< Vektor<double, 3> > stash_Btail;
-    std::vector< Vektor<double, 3> > stash_Etail;
-    std::vector< double > stash_actPos;
-    std::vector< double > stash_t;
-    std::vector< double > stash_meanEnergy;
-    std::vector< double > stash_sigma;
-    std::vector< double > stash_mpart;
-    std::vector< double > stash_qi;
-    std::vector< double > stash_sposHead;
-    std::vector< double > stash_sposRef;
-    std::vector< double > stash_sposTail;
-    std::vector< size_t > stash_nLoc;
-    std::vector< size_t > stash_nTot;
 
     /// flag to discable all HDF5 output
     bool doHDF5_m;
 
-    struct file_size_name {
-        off_t file_size_m;
-        std::string file_name_m;
-        file_size_name(const std::string &fn, const off_t &fs) {
-            file_name_m = fn;
-            file_size_m = fs;
-        }
-
-        static bool SortAsc(const file_size_name &fle1, const file_size_name &fle2) {
-            return (fle1.file_size_m < fle2.file_size_m);
-        }
-    };
+    H5PartWrapper *h5wrapper_m;
 };
+
+inline
+void DataSink::reset() {
+    H5call_m = 0;
+}
 
 /** \brief
  *  delete the last 'numberOfLines' lines of the statistics file
@@ -379,6 +282,29 @@ void DataSink::rewindLinesLBal(size_t numberOfLines) const {
     }
 }
 
+/** \brief
+ *  delete the last 'numberOfLines' lines of the statistics file
+ */
+inline
+unsigned int DataSink::rewindSDDStoSPos(double maxSPos) const {
+    if (Ippl::myNode() == 0) {
+        return rewindLinesSDDS(statFileName_m, maxSPos);
+    }
+
+    return 0;
+}
+
+inline
+void DataSink::changeH5Wrapper(H5PartWrapper *h5wrapper) {
+    h5wrapper_m = h5wrapper;
+}
+
+inline
+std::string DataSink::convertToString(int number) {
+    std::stringstream ss;
+    ss << std::setw(5) << std::setfill('0') <<  number;
+    return ss.str();
+}
 
 #endif // DataSink_H_
 
