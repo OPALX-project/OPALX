@@ -247,6 +247,8 @@ void H5PartWrapperForPT::writeHeader() {
 }
 
 void H5PartWrapperForPT::writeStep(PartBunch& bunch, const std::map<std::string, double> &additionalStepAttributes) {
+    if (bunch.getTotalNum() == 0) return;
+
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
 }
@@ -259,8 +261,6 @@ void H5PartWrapperForPT::writeStepHeader(PartBunch& bunch, const std::map<std::s
     Vector_t rmin     = bunch.get_origin();
     Vector_t rmax     = bunch.get_maxExtend();
     Vector_t centroid = bunch.get_centroid();
-
-    size_t numLocalParticles = bunch.getLocalNum();
 
     Vector_t maxP(0.0);
     Vector_t minP(0.0);
@@ -293,7 +293,6 @@ void H5PartWrapperForPT::writeStepHeader(PartBunch& bunch, const std::map<std::s
     /* ------------------------------------------------------------------------ */
 
     REPORTONERROR(H5SetStep(file_m, numSteps_m));
-    REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
 
     char const *OPALFlavour = "opal-t";
     WRITESTRINGSTEPATTRIB(file_m, "OPAL_flavour", OPALFlavour);
@@ -380,6 +379,8 @@ void H5PartWrapperForPT::writeStepHeader(PartBunch& bunch, const std::map<std::s
 
 void H5PartWrapperForPT::writeStepData(PartBunch& bunch) {
     size_t numLocalParticles = bunch.getLocalNum();
+
+    REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
 
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);

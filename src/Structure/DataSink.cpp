@@ -18,9 +18,9 @@
 #include "H5hut.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 
 #include <queue>
-#include <regex>
 #include <sstream>
 
 extern Inform *gmsg;
@@ -1056,10 +1056,10 @@ unsigned int DataSink::rewindLinesSDDS(const std::string &fileName, double maxSP
     unsigned int sposColumnNr = 0;
     double spos, lastSPos = -1.0;
 
-    std::regex parameters("^&parameter name=");
-    std::regex column("^&column name=([a-zA-Z0-9\\$_]+),");
-    std::regex data("^&data mode=ascii");
-    std::smatch match;
+    boost::regex parameters("^&parameter name=");
+    boost::regex column("^&column name=([a-zA-Z0-9\\$_]+),");
+    boost::regex data("^&data mode=ascii");
+    boost::smatch match;
 
     std::istringstream linestream;
     fs.open (fileName.c_str(), std::fstream::in);
@@ -1080,15 +1080,15 @@ unsigned int DataSink::rewindLinesSDDS(const std::string &fileName, double maxSP
         line = allLines.front();
         allLines.pop();
         fs << line << "\n";
-        if (std::regex_search(line, match, parameters)) {
+        if (boost::regex_search(line, match, parameters)) {
             ++numParameters;
-        } else if (std::regex_search(line, match, column)) {
+        } else if (boost::regex_search(line, match, column)) {
             ++numColumns;
             if (match[1] == "s") {
                 sposColumnNr = numColumns;
             }
         }
-    } while (!std::regex_search(line, match, data));
+    } while (!boost::regex_search(line, match, data));
 
     for (unsigned int i = 0; i < numParameters; ++ i) {
         fs << allLines.front() << "\n";
