@@ -226,6 +226,8 @@ void H5PartWrapperForPS::writeHeader() {
 }
 
 void H5PartWrapperForPS::writeStep(PartBunch& bunch, const std::map<std::string, double> &additionalStepAttributes) {
+    if (static_cast<EnvelopeBunch*>(&bunch)->getTotalNum() == 0) return;
+
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
 }

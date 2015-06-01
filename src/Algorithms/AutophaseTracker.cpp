@@ -344,20 +344,21 @@ double AutophaseTracker::optimizeCavityPhase(const std::shared_ptr<Component> &c
             }
         }
     }
-    Phimax = initialPhase;
+    Phimax = std::fmod(initialPhase, 2 * Physics::pi);
 
     if(cavity->getType() == ElementBase::TRAVELINGWAVE) {
         TravelingWave *element = static_cast<TravelingWave *>(cavity.get());
         originalPhase = element->getPhasem();
-        element->updatePhasem(Phimax + originalPhase);
+        double newPhase = std::fmod(originalPhase + Phimax, 2 * Physics::pi);
+        element->updatePhasem(newPhase);
     } else {
         RFCavity *element = static_cast<RFCavity *>(cavity.get());
         originalPhase = element->getPhasem();
-        element->updatePhasem(Phimax + originalPhase);
+        double newPhase = std::fmod(originalPhase + Phimax, 2 * Physics::pi);
+        element->updatePhasem(newPhase);
     }
 
-    PhiAstra = (Phimax * Physics::rad2deg) + 90.0;
-    PhiAstra -= floor(PhiAstra / 360.) * 360.;
+    PhiAstra = std::fmod((Phimax * Physics::rad2deg) + 90.0, 360.0);
 
     INFOMSG(cavity->getName() << "_phi = "  << Phimax << " rad / "
             << Phimax *Physics::rad2deg <<  " deg, AstraPhi = " << PhiAstra << " deg,\n"

@@ -268,6 +268,8 @@ void H5PartWrapperForPC::writeHeader() {
 }
 
 void H5PartWrapperForPC::writeStep(PartBunch& bunch, const std::map<std::string, double> &additionalStepAttributes) {
+    if (bunch.getTotalNum() == 0) return;
+
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
 
