@@ -234,9 +234,8 @@ void H5PartWrapperForPS::writeStep(PartBunch& bunch, const std::map<std::string,
 
 void H5PartWrapperForPS::writeStepHeader(PartBunch& bunch,
                                          const std::map<std::string, double> &additionalStepAttributes) {
-    bunch.calcBeamParameters();
-
     EnvelopeBunch *ebunch = static_cast<EnvelopeBunch*>(&bunch);
+    ebunch->calcBeamParameters();
 
     double   actPos   = ebunch->get_sPos();
     double   t        = ebunch->getT();
