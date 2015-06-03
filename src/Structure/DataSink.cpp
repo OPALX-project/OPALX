@@ -1103,7 +1103,7 @@ unsigned int DataSink::rewindLinesSDDS(const std::string &fileName, double maxSP
             linestream >> spos;
         }
 
-        if ((spos > maxSPos && std::abs(spos - maxSPos) > 1e-6 * std::abs(spos - lastSPos)) || spos == lastSPos) break;
+        if ((spos - maxSPos) > 1e-20 * Physics::c || (spos - lastSPos) < 1e-20 * Physics::c) break;
 
         allLines.pop();
 
