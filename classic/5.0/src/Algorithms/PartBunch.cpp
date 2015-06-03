@@ -134,10 +134,10 @@ PartBunch::PartBunch(const PartData *ref):
     addAttribute(PType);
     addAttribute(TriID);
 
-    selfFieldTimer_m = IpplTimings::getTimer("SelfField");
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     statParamTimer_m = IpplTimings::getTimer("Statistics");
-    compPotenTimer_m  = IpplTimings::getTimer("Potential");
+    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
+    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
@@ -2075,6 +2075,7 @@ void PartBunch::calcBeamParameters() {
 
 void PartBunch::calcBeamParametersLight() {
     // for Autophase, avoids communication
+    IpplTimings::startTimer(statParamTimer_m);
 
     const double m0 = getM() * 1.E-6;
 

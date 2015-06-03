@@ -39,7 +39,8 @@ FFTBoxPoissonSolver::FFTBoxPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::s
     mesh2_m(0),
     layout2_m(0),
     greensFunction_m(greensFunction),
-    a_m(boxSize) {
+    a_m(boxSize)
+{
     int i;
     domain_m = layout_m->getDomain();
 
@@ -87,22 +88,22 @@ FFTBoxPoissonSolver::FFTBoxPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::s
                                          (nr_m[i] - domain_m[i]));
     }
 
-    GreensFunctionTimer_m = IpplTimings::getTimer("GreenFTotal");
+    GreensFunctionTimer_m = IpplTimings::getTimer("SF: GreenFTotal");
 
-    IntGreensFunctionTimer1_m = IpplTimings::getTimer("IntGreenF1");
-    IntGreensFunctionTimer2_m = IpplTimings::getTimer("IntGreenF2");
-    IntGreensFunctionTimer3_m = IpplTimings::getTimer("IntGreenF3");
-    IntGreensFunctionTimer4_m = IpplTimings::getTimer("IntGreenF4");
+    if(greensFunction_m == std::string("INTEGRATED")) {
+        IntGreensFunctionTimer1_m = IpplTimings::getTimer("SF: IntGreenF1");
+        IntGreensFunctionTimer2_m = IpplTimings::getTimer("SF: IntGreenF2");
+        IntGreensFunctionTimer3_m = IpplTimings::getTimer("SF: IntGreenF3");
+        IntGreensFunctionTimer4_m = IpplTimings::getTimer("SF: IntGreenF4");
 
-    ShIntGreensFunctionTimer1_m = IpplTimings::getTimer("ShIntGreenF1");
-    ShIntGreensFunctionTimer2_m = IpplTimings::getTimer("ShIntGreenF2");
-    ShIntGreensFunctionTimer3_m = IpplTimings::getTimer("ShIntGreenF3");
-    ShIntGreensFunctionTimer4_m = IpplTimings::getTimer("ShIntGreenF4");
-
-    GreensFunctionTimer1_m = IpplTimings::getTimer("GreenF1");
-    GreensFunctionTimer2_m = IpplTimings::getTimer("GreenF2");
-    GreensFunctionTimer3_m = IpplTimings::getTimer("GreenF3");
-    GreensFunctionTimer4_m = IpplTimings::getTimer("GreenF4");
+        ShIntGreensFunctionTimer1_m = IpplTimings::getTimer("SF: ShIntGreenF1");
+        ShIntGreensFunctionTimer2_m = IpplTimings::getTimer("SF: ShIntGreenF2");
+        ShIntGreensFunctionTimer3_m = IpplTimings::getTimer("SF: ShIntGreenF3");
+        ShIntGreensFunctionTimer4_m = IpplTimings::getTimer("SF: ShIntGreenF4");
+    } else {
+        GreensFunctionTimer1_m = IpplTimings::getTimer("SF: GreenF1");
+        GreensFunctionTimer4_m = IpplTimings::getTimer("SF: GreenF4");
+    }
 }
 
 FFTBoxPoissonSolver::FFTBoxPoissonSolver(PartBunch &beam, std::string greensFunction):
@@ -110,7 +111,8 @@ FFTBoxPoissonSolver::FFTBoxPoissonSolver(PartBunch &beam, std::string greensFunc
     layout_m(&beam.getFieldLayout()),
     mesh2_m(0),
     layout2_m(0),
-    greensFunction_m(greensFunction) {
+    greensFunction_m(greensFunction)
+{
     int i;
     domain_m = layout_m->getDomain();
 
@@ -152,22 +154,22 @@ FFTBoxPoissonSolver::FFTBoxPoissonSolver(PartBunch &beam, std::string greensFunc
                                          (nr_m[i] - domain_m[i]) *
                                          (nr_m[i] - domain_m[i]));
     }
-    GreensFunctionTimer_m = IpplTimings::getTimer("GreenFTotal");
+    GreensFunctionTimer_m = IpplTimings::getTimer("SF: GreenFTotal");
 
-    IntGreensFunctionTimer1_m = IpplTimings::getTimer("IntGreenF1");
-    IntGreensFunctionTimer2_m = IpplTimings::getTimer("IntGreenF2");
-    IntGreensFunctionTimer3_m = IpplTimings::getTimer("IntGreenF3");
-    IntGreensFunctionTimer4_m = IpplTimings::getTimer("IntGreenF4");
+    if(greensFunction_m == std::string("INTEGRATED")) {
+        IntGreensFunctionTimer1_m = IpplTimings::getTimer("SF: IntGreenF1");
+        IntGreensFunctionTimer2_m = IpplTimings::getTimer("SF: IntGreenF2");
+        IntGreensFunctionTimer3_m = IpplTimings::getTimer("SF: IntGreenF3");
+        IntGreensFunctionTimer4_m = IpplTimings::getTimer("SF: IntGreenF4");
 
-    ShIntGreensFunctionTimer1_m = IpplTimings::getTimer("ShIntGreenF1");
-    ShIntGreensFunctionTimer2_m = IpplTimings::getTimer("ShIntGreenF2");
-    ShIntGreensFunctionTimer3_m = IpplTimings::getTimer("ShIntGreenF3");
-    ShIntGreensFunctionTimer4_m = IpplTimings::getTimer("ShIntGreenF4");
-
-    GreensFunctionTimer1_m = IpplTimings::getTimer("GreenF1");
-    GreensFunctionTimer2_m = IpplTimings::getTimer("GreenF2");
-    GreensFunctionTimer3_m = IpplTimings::getTimer("GreenF3");
-    GreensFunctionTimer4_m = IpplTimings::getTimer("GreenF4");
+        ShIntGreensFunctionTimer1_m = IpplTimings::getTimer("SF: ShIntGreenF1");
+        ShIntGreensFunctionTimer2_m = IpplTimings::getTimer("SF: ShIntGreenF2");
+        ShIntGreensFunctionTimer3_m = IpplTimings::getTimer("SF: ShIntGreenF3");
+        ShIntGreensFunctionTimer4_m = IpplTimings::getTimer("SF: ShIntGreenF4");
+    } else {
+        GreensFunctionTimer1_m = IpplTimings::getTimer("SF: GreenF1");
+        GreensFunctionTimer4_m = IpplTimings::getTimer("SF: GreenF4");
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -282,23 +284,23 @@ void FFTBoxPoissonSolver::greensFunction() {
 }
 
 /** If the beam has a longitudinal size >> transverse size the
-  * direct Green function at each mesh point is not efficient
-  * (needs a lot of mesh points along the transverse size to
-  * get a good resolution)
-  *
-  * If the charge density function is uniform within each cell
-  * the following Green's function can be defined:
-  *
-  * \f[ \overline{G}(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}  cout << I << endl;
-  cout << J << endl;
-  cout << K << endl;
-  cout << IE << endl;
-  cout << JE << endl;
-  cout << KE << endl;
+ * direct Green function at each mesh point is not efficient
+ * (needs a lot of mesh points along the transverse size to
+ * get a good resolution)
+ *
+ * If the charge density function is uniform within each cell
+ * the following Green's function can be defined:
+ *
+ * \f[ \overline{G}(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}  cout << I << endl;
+ cout << J << endl;
+ cout << K << endl;
+ cout << IE << endl;
+ cout << JE << endl;
+ cout << KE << endl;
 
-) = \int_{x_{i'} - h_x/2}^{x_{i'} + h_x/2} dx' \int_{y_{j'} - h_y/2}^{y_{j'} + h_y/2} dy' \int_{z_{k'} - h_z/2}^{z_{k'} + h_z/2} dz' G(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}).
-  * \f]
-  */
+ ) = \int_{x_{i'} - h_x/2}^{x_{i'} + h_x/2} dx' \int_{y_{j'} - h_y/2}^{y_{j'} + h_y/2} dy' \int_{z_{k'} - h_z/2}^{z_{k'} + h_z/2} dz' G(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}).
+ * \f]
+ */
 void FFTBoxPoissonSolver::integratedGreensFunction() {
 
     tmpgreen = 0.0;
@@ -308,8 +310,8 @@ void FFTBoxPoissonSolver::integratedGreensFunction() {
     IpplTimings::startTimer(IntGreensFunctionTimer1_m);
 
     /**
-      * This integral can be calculated analytically in a closed from:
-      */
+     * This integral can be calculated analytically in a closed from:
+     */
     for(int k = idx[2].first(); k < std::min(nr_m[2] + 2, idx[2].last() + 3); k++) {
         for(int j = idx[1].first(); j < std::min(nr_m[1] + 2, idx[1].last() + 3); j++) {
             for(int i = idx[0].first(); i < std::min(nr_m[0] + 2, idx[0].last() + 3); i++) {
@@ -357,8 +359,8 @@ void FFTBoxPoissonSolver::integratedGreensFunction() {
 
     //assign seems to have problems when we need values that are on another CPU, i.e. [I+1]
     /*assign(rho2_m[I][J][K] ,
-           tmpgreen[I+1][J+1][K+1] - tmpgreen[I][J+1][K+1] - tmpgreen[I+1][J][K+1] + tmpgreen[I][J][K+1] - tmpgreen[I+1][J+1][K] +
-           tmpgreen[I][J+1][K] + tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
+      tmpgreen[I+1][J+1][K+1] - tmpgreen[I][J+1][K+1] - tmpgreen[I+1][J][K+1] + tmpgreen[I][J][K+1] - tmpgreen[I+1][J+1][K] +
+      tmpgreen[I][J+1][K] + tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
 
     grntr_m[0][0][0] = grntr_m[0][0][1];
 
@@ -487,7 +489,7 @@ void FFTBoxPoissonSolver::shiftedIntGreensFunction(double zshift) {
      ** (x[nr_m[0]:1]^2   + y[0:nr_m[1]-1]^2 + (z_c - z[nr_m[2]:1])^2)^{-0.5}
      ** (x[0:nr_m[0]-1]^2 + y[nr_m[1]:1]^2   + (z_c - z[nr_m[2]:1])^2)^{-0.5}
      ** (x[nr_m[0]:1]^2   + y[nr_m[1]:1]^2   + (z_c - z[nr_m[2]:1])^2)^{-0.5}
-    */
+     */
 
     grntr_m[IE][J ][K ] = grntr_m[2*nr_m[0] - IE][J][K];
     grntr_m[I ][JE][K ] = grntr_m[I][2*nr_m[1] - JE][K];
