@@ -117,8 +117,6 @@ private:
     IpplTimings::TimerRef ShIntGreensFunctionTimer4_m;
 
     IpplTimings::TimerRef GreensFunctionTimer1_m;
-    IpplTimings::TimerRef GreensFunctionTimer2_m;
-    IpplTimings::TimerRef GreensFunctionTimer3_m;
     IpplTimings::TimerRef GreensFunctionTimer4_m;
 };
 

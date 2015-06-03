@@ -55,7 +55,8 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     layout3_m(nullptr),
     mesh4_m(nullptr),
     layout4_m(nullptr),
-    greensFunction_m(greensFunction) {
+    greensFunction_m(greensFunction)
+{
     int i;
 
     bcz_m = (bcz==std::string("PERIODIC"));   // for DC beams, the z direction has periodic boundary conditions
@@ -72,47 +73,47 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     }
 
     if (bcz_m) {
-      // The FFT's require double-sized field sizes in order to
-      // simulate an isolated system.  The FFT of the charge density field, rho,
-      // would otherwise mimic periodic boundary conditions, i.e. as if there were
-      // several beams set a periodic distance apart.  The double-sized fields in x and
-      // alleviate this problem, in z we have periodic BC's
-      for(i = 0; i < 2; i++) {
-        hr_m[i] = mesh_m->get_meshSpacing(i);
-        nr_m[i] = domain_m[i].length();
-        domain2_m[i] = Index(2 * nr_m[i] + 1);
-      }
+        // The FFT's require double-sized field sizes in order to
+        // simulate an isolated system.  The FFT of the charge density field, rho,
+        // would otherwise mimic periodic boundary conditions, i.e. as if there were
+        // several beams set a periodic distance apart.  The double-sized fields in x and
+        // alleviate this problem, in z we have periodic BC's
+        for(i = 0; i < 2; i++) {
+            hr_m[i] = mesh_m->get_meshSpacing(i);
+            nr_m[i] = domain_m[i].length();
+            domain2_m[i] = Index(2 * nr_m[i] + 1);
+        }
 
-      hr_m[2] = mesh_m->get_meshSpacing(2);
-      nr_m[2] = domain_m[2].length();
-      domain2_m[2] = Index(2 * nr_m[2] + 1);
+        hr_m[2] = mesh_m->get_meshSpacing(2);
+        nr_m[2] = domain_m[2].length();
+        domain2_m[2] = Index(2 * nr_m[2] + 1);
 
-      for(i = 0; i < 2 * 3; ++i) {
-        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
-        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
-      }
-      // z-direction
-      bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
-      bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
-      vbc_m[4] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(4);
-      vbc_m[5] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(5);
+        for(i = 0; i < 2 * 3; ++i) {
+            bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+            vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+        }
+        // z-direction
+        bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
+        bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
+        vbc_m[4] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(4);
+        vbc_m[5] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(5);
     }
     else {
-      // The FFT's require double-sized field sizes in order to
-      // simulate an isolated system.  The FFT of the charge density field, rho,
-      // would otherwise mimic periodic boundary conditions, i.e. as if there were
-      // several beams set a periodic distance apart.  The double-sized fields
-      // alleviate this problem.
-      for(i = 0; i < 3; i++) {
-        hr_m[i] = mesh_m->get_meshSpacing(i);
-        nr_m[i] = domain_m[i].length();
-        domain2_m[i] = Index(2 * nr_m[i] + 1);
-      }
+        // The FFT's require double-sized field sizes in order to
+        // simulate an isolated system.  The FFT of the charge density field, rho,
+        // would otherwise mimic periodic boundary conditions, i.e. as if there were
+        // several beams set a periodic distance apart.  The double-sized fields
+        // alleviate this problem.
+        for(i = 0; i < 3; i++) {
+            hr_m[i] = mesh_m->get_meshSpacing(i);
+            nr_m[i] = domain_m[i].length();
+            domain2_m[i] = Index(2 * nr_m[i] + 1);
+        }
 
-      for(i = 0; i < 2 * 3; ++i) {
-        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
-        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
-      }
+        for(i = 0; i < 2 * 3; ++i) {
+            bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+            vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+        }
     }
 
     // create double sized mesh and layout objects for the use in the FFT's
@@ -171,23 +172,23 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
                                           (2 * nr_m[i] - domain2_m[i]));
     }
 
-    GreensFunctionTimer_m = IpplTimings::getTimer("GreensFTotal");
+    GreensFunctionTimer_m = IpplTimings::getTimer("SF: GreensFTotal");
 
-    IntGreensFunctionTimer1_m = IpplTimings::getTimer("IntGreenF1");
-    IntGreensFunctionTimer2_m = IpplTimings::getTimer("IntGreenF2");
-    IntGreensFunctionTimer3_m = IpplTimings::getTimer("IntGreenF3");
-    IntGreensMirrorTimer1_m = IpplTimings::getTimer("MirrorRho1");
+    if(greensFunction_m == std::string("INTEGRATED")) {
+        IntGreensFunctionTimer1_m = IpplTimings::getTimer("SF: IntGreenF1");
+        IntGreensFunctionTimer2_m = IpplTimings::getTimer("SF: IntGreenF2");
+        IntGreensFunctionTimer3_m = IpplTimings::getTimer("SF: IntGreenF3");
+        IntGreensMirrorTimer1_m = IpplTimings::getTimer("SF: MirrorRho1");
 
-    ShIntGreensFunctionTimer1_m = IpplTimings::getTimer("ShIntGreenF1");
-    ShIntGreensFunctionTimer2_m = IpplTimings::getTimer("ShIntGreenF2");
-    ShIntGreensFunctionTimer3_m = IpplTimings::getTimer("ShIntGreenF3");
-    ShIntGreensFunctionTimer4_m = IpplTimings::getTimer("ShIntGreenF4");
-    IntGreensMirrorTimer2_m = IpplTimings::getTimer("MirrorRho2");
-
-    GreensFunctionTimer1_m = IpplTimings::getTimer("GreenF1");
-    GreensFunctionTimer2_m = IpplTimings::getTimer("GreenF2");
-    GreensFunctionTimer3_m = IpplTimings::getTimer("GreenF3");
-    GreensFunctionTimer4_m = IpplTimings::getTimer("GreenF4");
+        ShIntGreensFunctionTimer1_m = IpplTimings::getTimer("SF: ShIntGreenF1");
+        ShIntGreensFunctionTimer2_m = IpplTimings::getTimer("SF: ShIntGreenF2");
+        ShIntGreensFunctionTimer3_m = IpplTimings::getTimer("SF: ShIntGreenF3");
+        ShIntGreensFunctionTimer4_m = IpplTimings::getTimer("SF: ShIntGreenF4");
+        IntGreensMirrorTimer2_m = IpplTimings::getTimer("SF: MirrorRho2");
+    } else {
+        GreensFunctionTimer1_m = IpplTimings::getTimer("SF: GreenF1");
+        GreensFunctionTimer4_m = IpplTimings::getTimer("SF: GreenF4");
+    }
 }
 
 
@@ -200,7 +201,8 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
     layout3_m(nullptr),
     mesh4_m(nullptr),
     layout4_m(nullptr),
-    greensFunction_m(greensFunction) {
+    greensFunction_m(greensFunction)
+{
     int i;
     domain_m = layout_m->getDomain();
 
@@ -422,23 +424,23 @@ void FFTPoissonSolver::greensFunction() {
 }
 
 /** If the beam has a longitudinal size >> transverse size the
-  * direct Green function at each mesh point is not efficient
-  * (needs a lot of mesh points along the transverse size to
-  * get a good resolution)
-  *
-  * If the charge density function is uniform within each cell
-  * the following Green's function can be defined:
-  *
-  * \f[ \overline{G}(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}  cout << I << endl;
-  cout << J << endl;
-  cout << K << endl;
-  cout << IE << endl;
-  cout << JE << endl;
-  cout << KE << endl;
+ * direct Green function at each mesh point is not efficient
+ * (needs a lot of mesh points along the transverse size to
+ * get a good resolution)
+ *
+ * If the charge density function is uniform within each cell
+ * the following Green's function can be defined:
+ *
+ * \f[ \overline{G}(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}  cout << I << endl;
+ cout << J << endl;
+ cout << K << endl;
+ cout << IE << endl;
+ cout << JE << endl;
+ cout << KE << endl;
 
-) = \int_{x_{i'} - h_x/2}^{x_{i'} + h_x/2} dx' \int_{y_{j'} - h_y/2}^{y_{j'} + h_y/2} dy' \int_{z_{k'} - h_z/2}^{z_{k'} + h_z/2} dz' G(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}).
-  * \f]
-  */
+ ) = \int_{x_{i'} - h_x/2}^{x_{i'} + h_x/2} dx' \int_{y_{j'} - h_y/2}^{y_{j'} + h_y/2} dy' \int_{z_{k'} - h_z/2}^{z_{k'} + h_z/2} dz' G(x_i - x_{i'}, y_j - y_{j'}, z_k - z_{k'}).
+ * \f]
+ */
 void FFTPoissonSolver::integratedGreensFunction() {
 
     NDIndex<3> idx =  layout4_m->getLocalNDIndex();
@@ -448,8 +450,8 @@ void FFTPoissonSolver::integratedGreensFunction() {
     IpplTimings::startTimer(IntGreensFunctionTimer1_m);
 
     /**
-      * This integral can be calculated analytically in a closed from:
-      */
+     * This integral can be calculated analytically in a closed from:
+     */
     for(int k = idx[2].first(); k <= idx[2].last() + 1; k++) {
         for(int j = idx[1].first(); j <=  idx[1].last() + 1; j++) {
             for(int i = idx[0].first(); i <= idx[0].last() + 1; i++) {
@@ -478,10 +480,10 @@ void FFTPoissonSolver::integratedGreensFunction() {
 
     //assign seems to have problems when we need values that are on another CPU, i.e. [I+1]
     /*assign(rho2_m[I][J][K] ,
-           tmpgreen[I+1][J+1][K+1] - tmpgreen[I][J+1][K+1] -
-           tmpgreen[I+1][J][K+1] + tmpgreen[I][J][K+1] -
-           tmpgreen[I+1][J+1][K] + tmpgreen[I][J+1][K] +
-           tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
+      tmpgreen[I+1][J+1][K+1] - tmpgreen[I][J+1][K+1] -
+      tmpgreen[I+1][J][K+1] + tmpgreen[I][J][K+1] -
+      tmpgreen[I+1][J+1][K] + tmpgreen[I][J+1][K] +
+      tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
 
     Index I = nr_m[0] + 1;
     Index J = nr_m[1] + 1;
