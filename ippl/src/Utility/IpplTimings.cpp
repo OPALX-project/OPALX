@@ -182,7 +182,7 @@ void IpplTimings::print() {
 
     auto begin = ++ TimerList.begin();
     auto end = TimerList.end();
-    std::sort(begin, end, [](my_auto_ptr<TimerInfo>& a, my_auto_ptr<TimerInfo>& b)
+    std::sort(begin, end, [](const my_auto_ptr<TimerInfo>& a, const my_auto_ptr<TimerInfo>& b)
               {
                   return boost::ilexicographical_compare(a->name, b->name);
               });
@@ -264,7 +264,7 @@ void IpplTimings::print(std::string fn) {
 
     auto begin = ++ TimerList.begin();
     auto end = TimerList.end();
-    std::sort(begin, end, [](my_auto_ptr<TimerInfo>& a, my_auto_ptr<TimerInfo>& b)
+    std::sort(begin, end, [](const my_auto_ptr<TimerInfo>& a, const my_auto_ptr<TimerInfo>& b)
               {
                   return boost::ilexicographical_compare(a->name, b->name);
               });
