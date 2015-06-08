@@ -443,13 +443,20 @@ void OpalBeamline::prepareSections() {
         if (sections_m[i].doDipoleFieldsOverlap()) {
             const CompVec &elements = sections_m[i].getElements();
             auto it = elements.begin();
-            std::string elementNames = (*it)->getName();
-
-            for (++ it; it != elements.end(); ++ it) {
-                elementNames += ", " + (*it)->getName();
+            std::stringstream elementNamesStream;
+            std::string elementNames;
+            for (; it != elements.end(); ++ it) {
+                double start, end;
+                (*it)->getDimensions(start, end);
+                elementNamesStream << (*it)->getName() << ": "
+                                   << "start= " << start << " m, "
+                                   << "end= " << end << " m,\n";
             }
+            elementNames = elementNamesStream.str();
+            elementNames.erase(elementNames.length() - 2, 1);
             throw OpalException("OpalBeamline::prepareSections",
-                                "Fields overlap with dipole fields; not supported yet;\n*** affected elements: " + elementNames);
+                                "Fields overlap with dipole fields; not supported yet;\n*** affected elements:\n" + elementNames +
+                                "***");
         }
     }
 

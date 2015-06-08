@@ -1,31 +1,27 @@
-#ifndef CLASSIC_FIELDMAP1DDYNAMICFAST_HH
-#define CLASSIC_FIELDMAP1DDYNAMICFAST_HH
+#ifndef CLASSIC_FIELDMAP1DELECTROSTATICFAST_HH
+#define CLASSIC_FIELDMAP1DELECTROSTATICFAST_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
-
-class FM1DDynamic_fast: public Fieldmap {
+class FM1DElectroStatic_fast: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E,
-                                    Vector_t &B, const DiffDirection &dir) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd,
                                     double &rBegin, double &rEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal,
                                     double &yIni, double &yFinal,
                                     double &zIni, double &zFinal) const;
+    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E,
+                                    Vector_t &B, const DiffDirection &dir) const;
     virtual void swap();
     virtual void getInfo(Inform *);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
-    virtual void getOnaxisEz(std::vector<std::pair<double, double>> &eZ);
 
 private:
-    FM1DDynamic_fast(std::string aFilename);
-    ~FM1DDynamic_fast();
+    FM1DElectroStatic_fast(std::string aFilename);
+    ~FM1DElectroStatic_fast();
 
     virtual void readMap();
     virtual void freeMap();
@@ -45,14 +41,10 @@ private:
     void convertHeaderData();
     void normalizeField(double maxEz, std::vector<double> &fourierCoefs);
     double readFileData(std::ifstream &fieldFile, double fieldData[]);
-    double readFileData(std::ifstream &fieldFile,
-                        std::vector<std::pair<double, double>> &eZ);
     bool readFileHeader(std::ifstream &fieldFile);
-    void scaleField(double maxEz, std::vector<std::pair<double, double>> &eZ);
     int stripFileHeader(std::ifstream &fieldFile);
 
-    double frequency_m;                     /// Field angular frequency (Hz).
-    double twoPiOverLambdaSq_m;             /// 2 Pi divided by the field RF wavelength squared.
+    void prepareForMapCheck(unsigned int accuracy, std::vector<double> &fourierCoefs);
 
     double rBegin_m;                        /// Minimum radius of field.
     double rEnd_m;                          /// Maximum radius of field.

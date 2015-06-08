@@ -21,7 +21,7 @@
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 
 #include <iostream>

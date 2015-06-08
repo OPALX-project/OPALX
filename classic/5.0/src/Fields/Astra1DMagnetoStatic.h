@@ -1,11 +1,9 @@
-#ifndef CLASSIC_AstraFIELDMAP1DELECTROSTATICFAST_HH
-#define CLASSIC_AstraFIELDMAP1DELECTROSTATICFAST_HH
+#ifndef CLASSIC_AstraFIELDMAP1DMAGNETOSTATIC_HH
+#define CLASSIC_AstraFIELDMAP1DMAGNETOSTATIC_HH
 
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
-class Astra1DElectroStatic_fast: public Fieldmap {
+class Astra1DMagnetoStatic: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
@@ -18,22 +16,19 @@ public:
     virtual void setFrequency(double freq);
 
 private:
-    Astra1DElectroStatic_fast(std::string aFilename);
-    ~Astra1DElectroStatic_fast();
+    Astra1DMagnetoStatic(std::string aFilename);
+    ~Astra1DMagnetoStatic();
 
     virtual void readMap();
     virtual void freeMap();
 
-    double* onAxisField_m;
-    gsl_spline *onAxisInterpolants_m[4];
-    gsl_interp_accel *onAxisAccel_m[4];
-
-    double hz_m;
+    double *FourCoefs_m;
 
     double zbegin_m;
     double zend_m;
     double length_m;
 
+    int accuracy_m;
     int num_gridpz_m;
 
     friend class Fieldmap;

@@ -1,7 +1,7 @@
 #ifndef CLASSIC_AstraFIELDMAP1DELECTROSTATIC_HH
 #define CLASSIC_AstraFIELDMAP1DELECTROSTATIC_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 class Astra1DElectroStatic: public Fieldmap {
 

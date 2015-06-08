@@ -26,7 +26,7 @@
 #include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Algorithms/PartPusher.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include <vector>
 
 class Fieldmap;

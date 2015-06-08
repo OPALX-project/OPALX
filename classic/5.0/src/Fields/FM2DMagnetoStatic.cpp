@@ -1,5 +1,5 @@
-#include "Fields/FM2DMagnetoStatic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM2DMagnetoStatic.h"
+#include "Fields/Fieldmap.hpp"
 
 #include <fstream>
 #include <ios>
@@ -72,10 +72,7 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename):
 }
 
 FM2DMagnetoStatic::~FM2DMagnetoStatic() {
-    if(FieldstrengthBz_m != NULL) {
-        delete[] FieldstrengthBz_m;
-        delete[] FieldstrengthBr_m;
-    }
+    freeMap();
 }
 
 void FM2DMagnetoStatic::readMap() {

@@ -22,7 +22,7 @@
 #include "Physics/Physics.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 #include "Solvers/SurfacePhysicsHandler.hh"

@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 inline Fieldmap::Fieldmap(const std::string & aFilename) :
     Filename_m(aFilename),

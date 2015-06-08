@@ -1,5 +1,5 @@
-#include "Fields/FM3DDynamic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM3DDynamic.h"
+#include "Fields/Fieldmap.hpp"
 
 #include "Physics/Physics.h"
 
@@ -88,14 +88,7 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
 
 
 FM3DDynamic::~FM3DDynamic() {
-    if(FieldstrengthEz_m != NULL) {
-        delete[] FieldstrengthEz_m;
-        delete[] FieldstrengthEx_m;
-        delete[] FieldstrengthEy_m;
-        delete[] FieldstrengthHz_m;
-        delete[] FieldstrengthHx_m;
-        delete[] FieldstrengthHy_m;
-    }
+    freeMap();
 }
 
 void FM3DDynamic::readMap() {
@@ -182,17 +175,23 @@ void FM3DDynamic::readMap() {
 }
 
 void FM3DDynamic::freeMap() {
-    cout << "Begin of the freeMap" << endl;
     if(FieldstrengthEz_m != NULL) {
-        Inform msg("FM3DD ");
         delete[] FieldstrengthEz_m;
         delete[] FieldstrengthEx_m;
         delete[] FieldstrengthEy_m;
         delete[] FieldstrengthHz_m;
         delete[] FieldstrengthHx_m;
         delete[] FieldstrengthHy_m;
-        msg << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
-            << endl;
+
+        FieldstrengthEz_m = NULL;
+        FieldstrengthEx_m = NULL;
+        FieldstrengthEy_m = NULL;
+        FieldstrengthHz_m = NULL;
+        FieldstrengthHx_m = NULL;
+        FieldstrengthHy_m = NULL;
+
+        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+                << endl);
     }
 }
 

@@ -1,5 +1,5 @@
-#include "Fields/FM1DMagnetoStatic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM1DMagnetoStatic.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "gsl/gsl_fft_real.h"
 
@@ -34,6 +34,7 @@ FM1DMagnetoStatic::FM1DMagnetoStatic(std::string aFilename)
 }
 
 FM1DMagnetoStatic::~FM1DMagnetoStatic() {
+    freeMap();
 }
 
 void FM1DMagnetoStatic::readMap() {

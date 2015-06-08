@@ -21,7 +21,7 @@
 #include "AbsBeamline/Multipole.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 
 extern Inform *gmsg;

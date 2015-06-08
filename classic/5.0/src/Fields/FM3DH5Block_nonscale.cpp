@@ -1,5 +1,5 @@
-#include "Fields/FM3DH5Block_nonscale.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM3DH5Block_nonscale.h"
+#include "Fields/Fieldmap.hpp"
 #include "H5hut.h"
 #include "Physics/Physics.h"
 
@@ -73,7 +73,7 @@ FM3DH5Block_nonscale::FM3DH5Block_nonscale(std::string aFilename):
 
 
 FM3DH5Block_nonscale::~FM3DH5Block_nonscale() {
-
+    freeMap();
 }
 
 void FM3DH5Block_nonscale::readMap() {
@@ -181,7 +181,6 @@ void FM3DH5Block_nonscale::readMap() {
 
 void FM3DH5Block_nonscale::freeMap() {
     if(!FieldstrengthEz_m.empty()) {
-        Inform msg("FM3DH5_NS ");
         FieldstrengthEx_m.clear();
         FieldstrengthEy_m.clear();
         FieldstrengthEz_m.clear();
@@ -189,8 +188,8 @@ void FM3DH5Block_nonscale::freeMap() {
         FieldstrengthHy_m.clear();
         FieldstrengthHz_m.clear();
 
-        msg << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+                << endl);
     }
 }
 

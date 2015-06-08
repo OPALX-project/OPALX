@@ -1,5 +1,5 @@
-#include "Fields/Astra1DMagnetoStatic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/Astra1DMagnetoStatic.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -58,9 +58,7 @@ Astra1DMagnetoStatic::Astra1DMagnetoStatic(std::string aFilename)
 }
 
 Astra1DMagnetoStatic::~Astra1DMagnetoStatic() {
-    if(FourCoefs_m != NULL) {
-        delete[] FourCoefs_m;
-    }
+    freeMap();
 }
 
 void Astra1DMagnetoStatic::readMap() {
@@ -147,6 +145,7 @@ void Astra1DMagnetoStatic::freeMap() {
     if(FourCoefs_m != NULL) {
 
         delete[] FourCoefs_m;
+        FourCoefs_m = NULL;
 
         INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }

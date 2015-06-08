@@ -24,7 +24,7 @@
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "Utilities/GeneralClassicException.h"
 #include <fstream>
 

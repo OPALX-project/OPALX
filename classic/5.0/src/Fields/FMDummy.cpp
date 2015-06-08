@@ -1,5 +1,5 @@
-#include "Fields/FMDummy.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FMDummy.h"
+#include "Fields/Fieldmap.hpp"
 
 
 using namespace std;

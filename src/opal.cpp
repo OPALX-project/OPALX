@@ -9,7 +9,7 @@ Inform *gmsg;
 #include "OpalParser/OpalParser.h"
 #include "Parser/FileStream.h"
 #include "Utilities/OpalException.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 #include "config.h"
 

@@ -8,6 +8,9 @@
 #include <vector>
 #include "Algorithms/Vektor.h"
 
+#include "gsl/gsl_interp.h"
+#include "gsl/gsl_spline.h"
+
 enum MapType {
     UNKNOWN = 0,
     T1DDynamic,
@@ -127,6 +130,22 @@ protected:
     void disableFieldmapWarning();
     void noFieldmapWarning();
 
+    void lowResolutionWarning(double squareError, double maxError);
+
+    void checkMap(unsigned int accuracy,
+                  std::pair<double, double> fieldDimensions,
+                  double deltaZ,
+                  const std::vector<double> &fourierCoefficients,
+                  gsl_spline *splineCoefficients,
+                  gsl_interp_accel *splineAccelerator);
+
+    void checkMap(unsigned int accuracy,
+                  double length,
+                  const std::vector<double> &zSampling,
+                  const std::vector<double> &fourierCoefficients,
+                  gsl_spline *splineCoefficients,
+                  gsl_interp_accel *splineAccelerator);
+
 public:
     virtual void readMap() = 0;
     virtual void freeMap() = 0;
@@ -143,16 +162,13 @@ private:
         MapType Type;
         Fieldmap *Map;
         unsigned int RefCounter;
-        unsigned int FreeCounter;
         bool read;
-        FieldmapDescription(MapType aType, Fieldmap *aMap) {
-            Type = aType;
-            Map = aMap;
-            RefCounter = 1;
-	    FreeCounter = 0;// fixme: chuan add this because in multipacting simulation FreeCounter can not be properly initialized.
-            read = false;
-        }
-        //     increaseCounter
+        FieldmapDescription(MapType aType, Fieldmap *aMap):
+            Type(aType),
+            Map(aMap),
+            RefCounter(1),
+            read(false)
+        { }
     };
 
     static std::map<std::string, FieldmapDescription> FieldmapDictionary;

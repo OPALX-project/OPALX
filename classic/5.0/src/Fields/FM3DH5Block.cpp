@@ -1,5 +1,5 @@
-#include "Fields/FM3DH5Block.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM3DH5Block.h"
+#include "Fields/Fieldmap.hpp"
 #include "H5hut.h"
 #include "Physics/Physics.h"
 
@@ -73,7 +73,7 @@ FM3DH5Block::FM3DH5Block(std::string aFilename):
 
 
 FM3DH5Block::~FM3DH5Block() {
-
+    freeMap();
 }
 
 void FM3DH5Block::readMap() {
@@ -214,7 +214,6 @@ void FM3DH5Block::readMap() {
 
 void FM3DH5Block::freeMap() {
     if(!FieldstrengthEz_m.empty()) {
-        Inform msg("FM3DD ");
         FieldstrengthEx_m.clear();
         FieldstrengthEy_m.clear();
         FieldstrengthEz_m.clear();
@@ -222,8 +221,8 @@ void FM3DH5Block::freeMap() {
         FieldstrengthHy_m.clear();
         FieldstrengthHz_m.clear();
 
-        msg << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+                << endl);
     }
 }
 

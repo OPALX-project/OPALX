@@ -1,5 +1,5 @@
-#include "Fields/FM3DMagnetoStaticH5Block.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM3DMagnetoStaticH5Block.h"
+#include "Fields/Fieldmap.hpp"
 #include "H5hut.h"
 #include "Physics/Physics.h"
 
@@ -70,7 +70,7 @@ FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
 
 
 FM3DMagnetoStaticH5Block::~FM3DMagnetoStaticH5Block() {
-
+    freeMap();
 }
 
 void FM3DMagnetoStaticH5Block::readMap() {
@@ -175,7 +175,6 @@ void FM3DMagnetoStaticH5Block::readMap() {
 }
 
 void FM3DMagnetoStaticH5Block::freeMap() {
-    Inform msg("FM3DMagH5 ");
     if(!FieldstrengthEz_m.empty()) {
         FieldstrengthEx_m.clear();
         FieldstrengthEy_m.clear();
@@ -183,8 +182,8 @@ void FM3DMagnetoStaticH5Block::freeMap() {
         FieldstrengthBx_m.clear();
         FieldstrengthBy_m.clear();
         FieldstrengthBz_m.clear();
-        msg << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+                << endl);
     }
 
 }

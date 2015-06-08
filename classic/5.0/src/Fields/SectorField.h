@@ -30,7 +30,7 @@
 
 #include <vector>
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 /** \class SectorField
  *

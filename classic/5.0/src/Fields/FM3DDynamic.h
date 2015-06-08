@@ -1,7 +1,7 @@
 #ifndef CLASSIC_FIELDMAP3DDYNAMIC_HH
 #define CLASSIC_FIELDMAP3DDYNAMIC_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 class FM3DDynamic: public Fieldmap {
 
