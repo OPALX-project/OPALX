@@ -1,5 +1,5 @@
-#include "Fields/FM1DDynamic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM1DDynamic.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 
 #include "gsl/gsl_fft_real.h"
@@ -36,6 +36,7 @@ FM1DDynamic::FM1DDynamic(std::string aFilename):
 }
 
 FM1DDynamic::~FM1DDynamic() {
+    freeMap();
 }
 
 void FM1DDynamic::readMap() {

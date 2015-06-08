@@ -1,12 +1,9 @@
-#ifndef CLASSIC_FIELDMAP1DELECTROSTATICFAST_HH
-#define CLASSIC_FIELDMAP1DELECTROSTATICFAST_HH
+#ifndef CLASSIC_FIELDMAP1DMAGNETOSTATICFAST_HH
+#define CLASSIC_FIELDMAP1DMAGNETOSTATICFAST_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
-
-class FM1DElectroStatic_fast: public Fieldmap {
+class FM1DMagnetoStatic_fast: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
@@ -23,15 +20,17 @@ public:
     virtual void setFrequency(double freq);
 
 private:
-    FM1DElectroStatic_fast(std::string aFilename);
-    ~FM1DElectroStatic_fast();
+    FM1DMagnetoStatic_fast(std::string aFilename);
+    ~FM1DMagnetoStatic_fast();
 
     virtual void readMap();
     virtual void freeMap();
 
     bool checkFileData(std::ifstream &fieldFile, bool parsingPassed);
-    void computeFieldDerivatives(int accuracy, std::vector<double> fourierCoefs,
-                                 double onAxisFieldP[], double onAxisFieldPP[],
+    void computeFieldDerivatives(int accuracy,
+                                 std::vector<double> fourierCoefs,
+                                 double onAxisFieldP[],
+                                 double onAxisFieldPP[],
                                  double onAxisFieldPPP[]);
     void computeFieldOffAxis(const Vector_t &R, Vector_t &E, Vector_t &B,
                              std::vector<double> fieldComponents) const;
@@ -42,10 +41,12 @@ private:
                                      double onAxisFieldPP[],
                                      double onAxisFieldPPP[]);
     void convertHeaderData();
-    void normalizeField(double maxEz, std::vector<double> &fourierCoefs);
+    void normalizeField(double maxBz, std::vector<double> &fourierCoefs);
     double readFileData(std::ifstream &fieldFile, double fieldData[]);
     bool readFileHeader(std::ifstream &fieldFile);
     int stripFileHeader(std::ifstream &fieldFile);
+
+    void prepareForMapCheck(unsigned int accuracy, std::vector<double> &fourierCoefs);
 
     double rBegin_m;                        /// Minimum radius of field.
     double rEnd_m;                          /// Maximum radius of field.

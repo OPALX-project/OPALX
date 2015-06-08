@@ -1,6 +1,7 @@
-#include "Fields/FM1DDynamic_fast.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM1DDynamic_fast.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include "gsl/gsl_fft_real.h"
 
@@ -37,17 +38,7 @@ FM1DDynamic_fast::FM1DDynamic_fast(std::string aFilename):
 }
 
 FM1DDynamic_fast::~FM1DDynamic_fast() {
-    if(onAxisField_m != NULL) {
-        delete [] onAxisField_m;
-        gsl_spline_free(onAxisFieldInterpolants_m);
-        gsl_spline_free(onAxisFieldPInterpolants_m);
-        gsl_spline_free(onAxisFieldPPInterpolants_m);
-        gsl_spline_free(onAxisFieldPPPInterpolants_m);
-        gsl_interp_accel_free(onAxisFieldAccel_m);
-        gsl_interp_accel_free(onAxisFieldPAccel_m);
-        gsl_interp_accel_free(onAxisFieldPPAccel_m);
-        gsl_interp_accel_free(onAxisFieldPPPAccel_m);
-    }
+    freeMap();
 }
 
 void FM1DDynamic_fast::readMap() {
@@ -61,9 +52,8 @@ void FM1DDynamic_fast::readMap() {
         double maxEz = readFileData(fieldFile, onAxisField_m);
         fieldFile.close();
 
-        std::vector<double> fourierCoefs
-        = computeFourierCoefficients(accuracy,
-                                     onAxisField_m);
+        std::vector<double> fourierCoefs = computeFourierCoefficients(accuracy,
+                                                                      onAxisField_m);
         normalizeField(maxEz, fourierCoefs);
 
         double *onAxisFieldP = new double[numberOfGridPoints_m];
@@ -73,6 +63,8 @@ void FM1DDynamic_fast::readMap() {
                                 onAxisFieldPP, onAxisFieldPPP);
         computeInterpolationVectors(onAxisFieldP, onAxisFieldPP,
                                     onAxisFieldPPP);
+
+        prepareForMapCheck(accuracy, fourierCoefs);
 
         delete [] onAxisFieldP;
         delete [] onAxisFieldPP;
@@ -86,6 +78,8 @@ void FM1DDynamic_fast::readMap() {
 void FM1DDynamic_fast::freeMap() {
     if(onAxisField_m != NULL) {
         delete [] onAxisField_m;
+        onAxisField_m = NULL;
+
         gsl_spline_free(onAxisFieldInterpolants_m);
         gsl_spline_free(onAxisFieldPInterpolants_m);
         gsl_spline_free(onAxisFieldPPInterpolants_m);
@@ -419,4 +413,17 @@ int FM1DDynamic_fast::stripFileHeader(std::ifstream &fieldFile) {
         accuracy = numberOfGridPoints_m;
 
     return accuracy;
+}
+
+void FM1DDynamic_fast::prepareForMapCheck(unsigned int accuracy, std::vector<double> &fourierCoefs) {
+    std::vector<double> zSampling(numberOfGridPoints_m);
+    for(int zStepIndex = 0; zStepIndex < numberOfGridPoints_m; zStepIndex++)
+        zSampling[zStepIndex] = deltaZ_m * zStepIndex;
+
+    checkMap(accuracy,
+             length_m,
+             zSampling,
+             fourierCoefs,
+             onAxisFieldInterpolants_m,
+             onAxisFieldAccel_m);
 }

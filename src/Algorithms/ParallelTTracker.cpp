@@ -322,7 +322,7 @@ void ParallelTTracker::printRFPhases() {
     const double RADDEG = 180.0 / Physics::pi;
     const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
 
-    INFOMSG("\n-------------------------------------------------------------------------------------\n");
+    msg << "\n-------------------------------------------------------------------------------------\n";
 
     for (FieldList::iterator it = cl.begin(); it != cl.end(); ++it) {
         std::shared_ptr<Component> element(it->getElement());
@@ -338,14 +338,14 @@ void ParallelTTracker::printRFPhases() {
 	    frequency = static_cast<RFCavity *>(element.get())->getFrequencym();
         }
 
-        INFOMSG((it == cl.begin()? "": "\n")
-                << name
-                << ": phi = phi_nom + phi_maxE + global phase shift = " << phase * RADDEG << " degree, "
-                << "(global phase shift = " << -globalTimeShift *frequency *RADDEG << " degree) \n");
+        msg << (it == cl.begin()? "": "\n")
+            << name
+            << ": phi = phi_nom + phi_maxE + global phase shift = " << phase * RADDEG << " degree, "
+            << "(global phase shift = " << -globalTimeShift *frequency *RADDEG << " degree) \n";
     }
 
-    INFOMSG("-------------------------------------------------------------------------------------\n"
-            << endl);
+    msg << "-------------------------------------------------------------------------------------\n"
+        << endl;
 }
 
 void ParallelTTracker::handleAutoPhasing() {
@@ -422,7 +422,7 @@ void ParallelTTracker::executeDefaultTracker() {
     << "max integration steps " << localTrackSteps_m.front() << ", next step= " << step << endl;
     msg << "Using default (Boris-Buneman) integrator" << endl;
 
-    itsOpalBeamline_m.print(*Ippl::Info);
+    itsOpalBeamline_m.print(msg);
 
     if (Options::info)
         msg << "Silent track ... " << endl;
@@ -1437,7 +1437,7 @@ void ParallelTTracker::bgf_main_collision_test() {
             res += bgf_m->emitSecondaryVaughan (
                 position, triId,
                 itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
-            
+
         } else {
             res += bgf_m->emitSecondaryNone (
                 position, triId);
@@ -1459,7 +1459,7 @@ void ParallelTTracker::bgf_main_collision_test() {
     if(itsBunch->getT() < surfaceEmissionStop_m)
         numberOfFieldEmittedParticles_m +=
             bgf_m->doFNemission (itsOpalBeamline_m, itsBunch, itsBunch->getT());
-    
+
     itsBunch->boundp();
     numParticlesInSimulation_m = itsBunch->getTotalNum();
 }

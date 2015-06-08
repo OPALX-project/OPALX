@@ -1,28 +1,27 @@
-#ifndef CLASSIC_FIELDMAP1DDYNAMIC_HH
-#define CLASSIC_FIELDMAP1DDYNAMIC_HH
+#ifndef CLASSIC_FIELDMAP1DMAGNETOSTATIC_HH
+#define CLASSIC_FIELDMAP1DMAGNETOSTATIC_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
-class FM1DDynamic: public Fieldmap {
+class FM1DMagnetoStatic: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E,
-                                    Vector_t &B, const DiffDirection &dir) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd,
                                     double &rBegin, double &rEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal,
                                     double &yIni, double &yFinal,
                                     double &zIni, double &zFinal) const;
+    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E,
+                                    Vector_t &B, const DiffDirection &dir) const;
     virtual void swap();
     virtual void getInfo(Inform *);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
-    virtual void getOnaxisEz(std::vector<std::pair<double, double>> &eZ);
 
 private:
-    FM1DDynamic(std::string aFilename);
-    ~FM1DDynamic();
+    FM1DMagnetoStatic(std::string aFilename);
+    ~FM1DMagnetoStatic();
 
     virtual void readMap();
     virtual void freeMap();
@@ -35,14 +34,8 @@ private:
     void computeFourierCoefficients(double maxEz, double fieldData[]);
     void convertHeaderData();
     double readFileData(std::ifstream &fieldFile, double fieldData[]);
-    double readFileData(std::ifstream &fieldFile,
-                        std::vector<std::pair<double, double>> &eZ);
     bool readFileHeader(std::ifstream &fieldFile);
-    void scaleField(double maxEz, std::vector<std::pair<double, double>> &eZ);
     void stripFileHeader(std::ifstream &fieldFile);
-
-    double frequency_m;                     /// Field angular frequency (Hz).
-    double twoPiOverLambdaSq_m;             /// 2 Pi divided by the field RF wavelength squared.
 
     double rBegin_m;                        /// Minimum radius of field.
     double rEnd_m;                          /// Maximum radius of field.

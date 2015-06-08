@@ -1,5 +1,5 @@
-#include "Fields/FM2DDynamic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM2DDynamic.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 
 #include <fstream>
@@ -86,11 +86,7 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
 
 
 FM2DDynamic::~FM2DDynamic() {
-    if(FieldstrengthEz_m != NULL) {
-        delete[] FieldstrengthEz_m;
-        delete[] FieldstrengthEr_m;
-        delete[] FieldstrengthHt_m;
-    }
+    freeMap();
 }
 
 void FM2DDynamic::readMap() {
@@ -159,13 +155,15 @@ void FM2DDynamic::readMap() {
 
 void FM2DDynamic::freeMap() {
     if(FieldstrengthEz_m != NULL) {
-        Inform msg("FM2DD ");
         delete[] FieldstrengthEz_m;
+        FieldstrengthEz_m = NULL;
         delete[] FieldstrengthEr_m;
+        FieldstrengthEr_m = NULL;
         delete[] FieldstrengthHt_m;
+        FieldstrengthHt_m = NULL;
 
-        msg << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+                << endl);
     }
 }
 

@@ -9,7 +9,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalOptions.h"
 #include "Utilities/Options.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPS.h"

@@ -1,5 +1,5 @@
-#include "Fields/FM1DElectroStatic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM1DElectroStatic.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 
 #include "gsl/gsl_fft_real.h"
@@ -35,6 +35,7 @@ FM1DElectroStatic::FM1DElectroStatic(std::string aFilename):
 }
 
 FM1DElectroStatic::~FM1DElectroStatic() {
+    freeMap();
 }
 
 void FM1DElectroStatic::readMap() {

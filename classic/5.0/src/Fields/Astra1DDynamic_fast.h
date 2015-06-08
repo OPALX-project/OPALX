@@ -1,9 +1,9 @@
-#ifndef CLASSIC_AstraFIELDMAP1DDYNAMIC_HH
-#define CLASSIC_AstraFIELDMAP1DDYNAMIC_HH
+#ifndef CLASSIC_AstraFIELDMAP1DDYNAMICFAST_HH
+#define CLASSIC_AstraFIELDMAP1DDYNAMICFAST_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Astra1D_fast.h"
 
-class Astra1DDynamic: public Fieldmap {
+class Astra1DDynamic_fast: public Astra1D_fast {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
@@ -17,23 +17,16 @@ public:
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
 
 private:
-    Astra1DDynamic(std::string aFilename);
-    ~Astra1DDynamic();
+    Astra1DDynamic_fast(std::string aFilename);
+    virtual ~Astra1DDynamic_fast();
 
     virtual void readMap();
-    virtual void freeMap();
 
-    double *restrict FourCoefs_m;
+    bool readFileHeader(std::ifstream &file);
+    int stripFileHeader(std::ifstream &file);
 
     double frequency_m;
     double xlrep_m;
-
-    double zbegin_m;
-    double zend_m;
-    double length_m;
-
-    int accuracy_m;
-    int num_gridpz_m;
 
     friend class Fieldmap;
 };

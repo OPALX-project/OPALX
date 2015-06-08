@@ -1,9 +1,9 @@
-#ifndef CLASSIC_AstraFIELDMAP1DMAGNETOSTATIC_HH
-#define CLASSIC_AstraFIELDMAP1DMAGNETOSTATIC_HH
+#ifndef CLASSIC_AstraFIELDMAP1DMAGNETOSTATICFAST_HH
+#define CLASSIC_AstraFIELDMAP1DMAGNETOSTATICFAST_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Astra1D_fast.h"
 
-class Astra1DMagnetoStatic: public Fieldmap {
+class Astra1DMagnetoStatic_fast: public Astra1D_fast {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
@@ -16,20 +16,13 @@ public:
     virtual void setFrequency(double freq);
 
 private:
-    Astra1DMagnetoStatic(std::string aFilename);
-    ~Astra1DMagnetoStatic();
+    Astra1DMagnetoStatic_fast(std::string aFilename);
+    virtual ~Astra1DMagnetoStatic_fast();
 
     virtual void readMap();
-    virtual void freeMap();
 
-    double *FourCoefs_m;
-
-    double zbegin_m;
-    double zend_m;
-    double length_m;
-
-    int accuracy_m;
-    int num_gridpz_m;
+    bool readFileHeader(std::ifstream &file);
+    int stripFileHeader(std::ifstream &file);
 
     friend class Fieldmap;
 };

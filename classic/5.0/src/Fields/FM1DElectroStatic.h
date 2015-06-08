@@ -1,7 +1,7 @@
 #ifndef CLASSIC_FIELDMAP1DELECTROSTATIC_HH
 #define CLASSIC_FIELDMAP1DELECTROSTATIC_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 class FM1DElectroStatic: public Fieldmap {
 

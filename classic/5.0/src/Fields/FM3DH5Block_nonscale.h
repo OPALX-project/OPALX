@@ -1,7 +1,7 @@
 #ifndef CLASSIC_FIELDMAP3DH5BLOCK_nonscale_HH
 #define CLASSIC_FIELDMAP3DH5BLOCK_nonscale_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "hdf5.h"
 #include "H5hut.h"
 

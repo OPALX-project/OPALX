@@ -1,11 +1,12 @@
-#ifndef CLASSIC_FIELDMAP3DMAGNETOSTATICH5BLOCK_HH
-#define CLASSIC_FIELDMAP3DMAGNETOSTATICH5BLOCK_HH
+#ifndef CLASSIC_FIELDMAP3DH5BLOCK_HH
+#define CLASSIC_FIELDMAP3DH5BLOCK_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "hdf5.h"
 #include "H5hut.h"
+#include <vector>
 
-class FM3DMagnetoStaticH5Block: public Fieldmap {
+class FM3DH5Block: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
@@ -16,9 +17,11 @@ public:
     virtual void getInfo(Inform *msg);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
+    virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
+
 private:
-    FM3DMagnetoStaticH5Block(std::string aFilename);
-    ~FM3DMagnetoStaticH5Block();
+    FM3DH5Block(std::string aFilename);
+    ~FM3DH5Block();
 
     virtual void readMap();
     virtual void freeMap();
@@ -26,9 +29,9 @@ private:
     std::vector<h5_float64_t> FieldstrengthEz_m;    /**< 3D array with Ez */
     std::vector<h5_float64_t> FieldstrengthEx_m;    /**< 3D array with Ex */
     std::vector<h5_float64_t> FieldstrengthEy_m;    /**< 3D array with Ey */
-    std::vector<h5_float64_t> FieldstrengthBz_m;    /**< 3D array with Bz */
-    std::vector<h5_float64_t> FieldstrengthBx_m;    /**< 3D array with Bx */
-    std::vector<h5_float64_t> FieldstrengthBy_m;    /**< 3D array with By */
+    std::vector<h5_float64_t> FieldstrengthHz_m;    /**< 3D array with Hz */
+    std::vector<h5_float64_t> FieldstrengthHx_m;    /**< 3D array with Hx */
+    std::vector<h5_float64_t> FieldstrengthHy_m;    /**< 3D array with Hy */
 
     h5_float64_t frequency_m;
 

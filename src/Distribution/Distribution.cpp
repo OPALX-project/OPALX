@@ -2062,10 +2062,10 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
     int saveProcessor = -1;
     double tCoord = 0.0;
 
+    int effectiveNumParticles = 0;
+    int largestBin = 0;
+    std::vector<int> numParticlesInBin(numberOfEnergyBins,0);
     for(int k = 0; k < numberOfEnergyBins; ++ k) {
-        gsl_ran_discrete_t *table
-            = gsl_ran_discrete_preproc(numberOfSampleBins,
-                                       &(distributionTable[numberOfSampleBins * k]));
         double loc_fraction = -distributionTable[numberOfSampleBins * k] / tot;
 
         weight = 2.0;
@@ -2075,9 +2075,19 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
         }
         loc_fraction -= distributionTable[numberOfSampleBins * (k + 1)]
             * (5. - weight) / tot;
-        int bin_size = static_cast<int>(std::floor(loc_fraction * numberOfParticles + 0.5)); //number of particles in bin!
+        numParticlesInBin[k] = static_cast<int>(std::floor(loc_fraction * numberOfParticles + 0.5));
+        effectiveNumParticles += numParticlesInBin[k];
+        if (numParticlesInBin[k] > numParticlesInBin[largestBin]) largestBin = k;
+    }
 
-        for(int i = 0; i < bin_size; i++) {
+    numParticlesInBin[largestBin] += (numberOfParticles - effectiveNumParticles);
+
+    for(int k = 0; k < numberOfEnergyBins; ++ k) {
+        gsl_ran_discrete_t *table
+            = gsl_ran_discrete_preproc(numberOfSampleBins,
+                                       &(distributionTable[numberOfSampleBins * k]));
+
+        for(int i = 0; i < numParticlesInBin[k]; i++) {
             double xx[2];
             gsl_qrng_get(quasiRandGen, xx);
             tCoord = hi * (xx[1] + static_cast<int>(gsl_ran_discrete(randGen, table))

@@ -1,11 +1,9 @@
-#ifndef CLASSIC_FIELDMAP2DELECTROSTATIC_CSPLINE_HH
-#define CLASSIC_FIELDMAP2DELECTROSTATIC_CSPLINE_HH
+#ifndef CLASSIC_FIELDMAP2DELECTROSTATIC_HH
+#define CLASSIC_FIELDMAP2DELECTROSTATIC_HH
 
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
-class FM2DElectroStatic_cspline: public Fieldmap {
+class FM2DElectroStatic: public Fieldmap {
 
 public:
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
@@ -18,23 +16,14 @@ public:
     virtual void setFrequency(double freq);
 
 private:
-    FM2DElectroStatic_cspline(std::string aFilename);
-    ~FM2DElectroStatic_cspline();
+    FM2DElectroStatic(std::string aFilename);
+    ~FM2DElectroStatic();
 
     virtual void readMap();
     virtual void freeMap();
 
-    gsl_spline **Ez_interpolants_m;
-    gsl_spline **Er_interpolants_m;
-
-    gsl_interp_accel **Ez_accel_m;
-    gsl_interp_accel **Er_accel_m;
-
-    double *Ez_values_m;
-    double *Er_values_m;
-
-    double *zvals_m;
-    double *rvals_m;
+    double *FieldstrengthEz_m;    /**< 2D array with Ez, read in first along z0 - r0 to rN then z1 - r0 to rN until zN - r0 to rN  */
+    double *FieldstrengthEr_m;    /**< 2D array with Er, read in like Ez*/
 
     double rbegin_m;
     double rend_m;

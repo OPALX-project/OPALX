@@ -21,7 +21,7 @@
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"

@@ -21,7 +21,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 
 #include <iostream>

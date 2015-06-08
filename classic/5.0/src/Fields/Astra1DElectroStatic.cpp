@@ -1,5 +1,5 @@
-#include "Fields/Astra1DElectroStatic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/Astra1DElectroStatic.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -59,9 +59,7 @@ Astra1DElectroStatic::Astra1DElectroStatic(std::string aFilename)
 }
 
 Astra1DElectroStatic::~Astra1DElectroStatic() {
-    if(FourCoefs_m != NULL) {
-        delete[] FourCoefs_m;
-    }
+    freeMap();
 }
 
 void Astra1DElectroStatic::readMap() {
@@ -152,6 +150,7 @@ void Astra1DElectroStatic::freeMap() {
     if(FourCoefs_m != NULL) {
 
         delete[] FourCoefs_m;
+        FourCoefs_m = NULL;
 
         INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }

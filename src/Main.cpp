@@ -32,7 +32,7 @@ Inform *gmsg;
 #include "Parser/FileStream.h"
 #include "Parser/TerminalStream.h"
 #include "Utilities/Timer.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "FixedAlgebra/FTps.h"
 
 #include "BasicActions/Option.h"
@@ -254,22 +254,25 @@ int main(int argc, char *argv[]) {
             std::ifstream errormsg("errormsg.txt");
             if(errormsg.good()) {
                 char buffer[256];
-                std::string closure("*                                                                                  *\n");
+                std::string closure("                                                                                 *\n");
                 *gmsg << "\n"
                       << "* **********************************************************************************\n"
-                      << "* ************** E R R O R * * M E S S A G E S *************************************\n"
+                      << "* ************** W A R N I N G / E R R O R * * M E S S A G E S *********************\n"
                       << "* **********************************************************************************"
                       << endl;
                 errormsg.getline(buffer, 256);
                 while(errormsg.good()) {
+                    *gmsg << "* ";
                     if(errormsg.gcount() == 1) {
                         *gmsg << closure;
-                    } else {
+                    } else if ((size_t)errormsg.gcount() <= closure.size()) {
                         *gmsg << buffer << closure.substr(errormsg.gcount() - 1);
+                    } else {
+                        *gmsg << buffer << endl;
                     }
                     errormsg.getline(buffer, 256);
                 }
-                *gmsg << closure
+                *gmsg << "* " << closure
                       << "* **********************************************************************************\n"
                       << "* **********************************************************************************"
                       << endl;

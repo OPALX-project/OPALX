@@ -1,5 +1,5 @@
-#include "Fields/Astra1DDynamic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/Astra1DDynamic.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -65,9 +65,7 @@ Astra1DDynamic::Astra1DDynamic(std::string aFilename):
 }
 
 Astra1DDynamic::~Astra1DDynamic() {
-    if(FourCoefs_m != NULL) {
-        delete[] FourCoefs_m;
-    }
+    freeMap();
 }
 
 void Astra1DDynamic::readMap() {
@@ -156,11 +154,10 @@ void Astra1DDynamic::readMap() {
 
 void Astra1DDynamic::freeMap() {
     if(FourCoefs_m != NULL) {
-        Inform msg("*1DD ");
-
         delete[] FourCoefs_m;
+        FourCoefs_m = NULL;
 
-        msg << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl;
+        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }
 }
 

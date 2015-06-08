@@ -1,5 +1,5 @@
-#include "Fields/FM2DElectroStatic.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM2DElectroStatic.h"
+#include "Fields/Fieldmap.hpp"
 
 #include <fstream>
 #include <ios>
@@ -73,10 +73,7 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
 }
 
 FM2DElectroStatic::~FM2DElectroStatic() {
-    if(FieldstrengthEz_m != NULL) {
-        delete[] FieldstrengthEz_m;
-        delete[] FieldstrengthEr_m;
-    }
+    freeMap();
 }
 
 void FM2DElectroStatic::readMap() {
@@ -137,11 +134,13 @@ void FM2DElectroStatic::readMap() {
 
 void FM2DElectroStatic::freeMap() {
     if(FieldstrengthEz_m != NULL) {
-        Inform msg("FM2DES ");
         delete[] FieldstrengthEz_m;
+        FieldstrengthEz_m = NULL;
         delete[] FieldstrengthEr_m;
-        msg << typeset_msg("freed field map '" + Filename_m + "'", "info") << "\n"
-            << endl;
+        FieldstrengthEr_m = NULL;
+
+        INFOMSG(typeset_msg("freed field map '" + Filename_m + "'", "info") << "\n"
+                << endl)
     }
 }
 

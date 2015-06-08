@@ -1,7 +1,7 @@
 #ifndef CLASSIC_FIELDMAP1DPROFILE2_HH
 #define CLASSIC_FIELDMAP1DPROFILE2_HH
 
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 
 class FM1DProfile2: public Fieldmap {
 

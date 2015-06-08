@@ -16,15 +16,13 @@ set (_SRCS
   FM3DMagnetoStaticH5Block.cpp
   FM3DDynamic.cpp
   FM2DElectroStatic.cpp
-  FM2DElectroStatic_cspline.cpp
   FM2DMagnetoStatic.cpp
-  FM2DMagnetoStatic_cspline.cpp
   FM2DDynamic.cpp
-  FM2DDynamic_cspline.cpp
   FM1DDynamic.cpp
   FM1DDynamic_fast.cpp
+  Astra1D_fast.cpp
   Astra1DDynamic.cpp
-  Astra1DDynamic_fast.cpp 
+  Astra1DDynamic_fast.cpp
   FM1DElectroStatic.cpp
   FM1DElectroStatic_fast.cpp
   Astra1DElectroStatic.cpp

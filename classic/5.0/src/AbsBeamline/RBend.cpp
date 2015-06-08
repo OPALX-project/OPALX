@@ -22,9 +22,7 @@
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/Options.h"
-#include "Fields/Fieldmap.hh"
-#include "Fields/FM1DProfile1.hh"
-#include "Fields/FM1DProfile2.hh"
+#include "Fields/Fieldmap.h"
 #include <iostream>
 #include <fstream>
 
@@ -1355,7 +1353,7 @@ void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
 void RBend::ReadFieldMap(Inform &msg) {
     *Ippl::Info << getName() << " using file ";
     fieldmap_m->getInfo(Ippl::Info);
-    
+
     Fieldmap::readMap(fileName_m);
     fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
                                            entranceParameter2_m,

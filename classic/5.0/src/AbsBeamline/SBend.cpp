@@ -23,7 +23,7 @@
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/Options.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include <iostream>
 #include <fstream>
 

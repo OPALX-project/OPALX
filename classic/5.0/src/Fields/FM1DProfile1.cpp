@@ -1,5 +1,5 @@
-#include "Fields/FM1DProfile1.hh"
-#include "Fields/Fieldmap.icc"
+#include "Fields/FM1DProfile1.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 
 #include <fstream>

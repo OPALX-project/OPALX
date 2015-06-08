@@ -21,7 +21,7 @@
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
-#include "Fields/Fieldmap.hh"
+#include "Fields/Fieldmap.h"
 #include "Utilities/GeneralClassicException.h"
 
 #include "gsl/gsl_interp.h"
