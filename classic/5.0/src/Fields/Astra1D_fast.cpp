@@ -125,12 +125,6 @@ std::vector<double> Astra1D_fast::computeFourierCoefficients(int accuracy,
         RealValues[iii] = evenFieldSampling[i];
     }
 
-    std::ofstream out("test.dat");
-    for (int i = 0; i < 2 * num_gridpz_m; ++ i) {
-        int ii = std::abs(i - num_gridpz_m + 1);
-        out << ii << "\t" << RealValues[i] << "\t" << evenFieldSampling[ii] << std::endl;
-    }
-
     gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
     gsl_fft_real_workspace *work = gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
 
