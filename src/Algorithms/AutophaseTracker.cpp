@@ -2,8 +2,11 @@
 #include "Utilities/ClassicField.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalOptions.h"
+#include "Utilities/Timer.h"
 
 #define DTFRACTION 2
+
+extern Inform *gmsg;
 
 AutophaseTracker::AutophaseTracker(const Beamline &beamline,
                                    const PartData& data,
@@ -44,7 +47,8 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         receiveCavityPhases();
         return;
     }
-    INFOMSG("\n\nstart autophasing\n" << endl);
+    OPALTimer::Timer clock;
+    *gmsg << level1 << "\n\nstart autophasing at " << clock.time() << "\n" << endl;
 
     Vector_t rmin, rmax;
     Vector_t &refR = itsBunch_m.R[0];
@@ -62,7 +66,7 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
 
     itsBunch_m.LastSection[0] -= 1;
     itsOpalBeamline_m.getSectionIndexAt(refR, itsBunch_m.LastSection[0]);
-    itsOpalBeamline_m.print(*Ippl::Info);
+    itsOpalBeamline_m.print(*gmsg);
 
     itsOpalBeamline_m.switchAllElements();
 
@@ -85,12 +89,12 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         itsBunch_m.setdT(newDt);
         itsBunch_m.dt = newDt;
 
-        INFOMSG("\n"
-                << "**********************************************\n"
+        INFOMSG(level2 << "\n"
+                << "*************************************************\n"
                 << "new set of dt, zstop and max number of time steps\n"
-                << "**********************************************\n\n"
+                << "*************************************************\n\n"
                 << "start at t = " << itsBunch_m.getT() << " [s], "
-                << "zstop at z = " << maxSPosAutoPhasing.front() << " [m],\n "
+                << "zstop at z = " << maxSPosAutoPhasing.front() << " [m],\n"
                 << "dt = " << itsBunch_m.dt[0] << " [s], "
                 << "step = " << step << ", "
                 << "R =  " << refR << " [m]" << endl);
@@ -111,8 +115,8 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
             advanceTime(step, maxStepsAutoPhasing.front(), sStop);
             if (step >= maxStepsAutoPhasing.front() || !reachesNextCavity) break;
 
-            INFOMSG("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
-            INFOMSG("\nFound " << next->getName()
+            INFOMSG(level2 << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+            INFOMSG(level2 << "\nFound " << next->getName()
                     << " at " << sStop << " [m], "
                     << "step  " << step << ", "
                     << "t = " << itsBunch_m.getT() << " [s], "
@@ -125,7 +129,7 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
                                 step,
                                 newDt);
 
-            INFOMSG("\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+            INFOMSG(level2 << "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
 
             track(endNext,
                   step,
@@ -145,7 +149,7 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
 
     sendCavityPhases();
 
-    INFOMSG("\n\nfinished autophasing\n\n" << endl);
+    *gmsg << level1 << "\n\nfinished autophasing" << clock.time() << "\n\n"  << endl;
 }
 
 void AutophaseTracker::track(double uptoSPos,

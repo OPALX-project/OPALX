@@ -6,14 +6,11 @@
 #include <fstream>
 #include <ios>
 
-extern Inform *gmsg;
-
 using namespace std;
 using Physics::mu_0;
 
 FM3DH5Block::FM3DH5Block(std::string aFilename):
     Fieldmap(aFilename) {
-    Inform msg("FM3DH5 ");
     h5_err_t h5err;
     h5_size_t grid_rank;
     h5_size_t grid_dims[3];
@@ -78,7 +75,6 @@ FM3DH5Block::~FM3DH5Block() {
 
 void FM3DH5Block::readMap() {
     if(FieldstrengthEz_m.empty()) {
-        Inform msg("FM3DH5 ");
         h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
 
         if(file != (void*)H5_ERR) {
@@ -203,11 +199,11 @@ void FM3DH5Block::readMap() {
             //     FieldstrengthHy_m[i] *= 1.0e6 * mu_0 / Ezmax;
             //     FieldstrengthHz_m[i] *= 1.0e6 * mu_0 / Ezmax;
             // }
-            INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+            INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                     << endl);
 
         } else {
-            WARNMSG("could not read file '" << Filename_m << "'")
+            ERRORMSG("could not read file '" << Filename_m << "'")
         }
     }
 }
@@ -221,13 +217,12 @@ void FM3DH5Block::freeMap() {
         FieldstrengthHy_m.clear();
         FieldstrengthHz_m.clear();
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
     }
 }
 
 bool FM3DH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
-  //  Inform msg("FM3DH5 ");
     const int index_x = static_cast<int>(floor((R(0) - xbegin_m) / hx_m));
     const double lever_x = (R(0) - xbegin_m) / hx_m - index_x;
 

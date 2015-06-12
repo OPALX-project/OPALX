@@ -356,20 +356,25 @@ void Collimator::goOnline(const double &) {
         return;
     }
 
-    if (Options::info) {
-      if(isAPepperPot_m)
-        *gmsg << "* Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-      else if(isASlit_m)
-        *gmsg << "* Slit x= " << getXsize() << " Slit y= " << getYsize() << " start= " << position_m << " fn= " << filename_m << endl;
-      else if(isARColl_m)
-        *gmsg << "* RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-      else if(isACColl_m)
-        *gmsg << "* CCollimator angle start " << xstart_m << " (Deg) angle end " << ystart_m << " (Deg) R start " << xend_m << " (mm) R rend " << yend_m << " (mm)" << endl;
-      else if(isAWire_m)
+    *gmsg << level3;
+    if(isAPepperPot_m)
+        *gmsg << "* Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m
+              << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+    else if(isASlit_m)
+        *gmsg << "* Slit x= " << getXsize() << " Slit y= " << getYsize()
+              << " start= " << position_m << " fn= " << filename_m << endl;
+    else if(isARColl_m)
+        *gmsg << "* RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m
+              << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+    else if(isACColl_m)
+        *gmsg << "* CCollimator angle start " << xstart_m << " (Deg) angle end " << ystart_m << " (Deg) "
+              << "R start " << xend_m << " (mm) R rend " << yend_m << " (mm)" << endl;
+    else if(isAWire_m)
         *gmsg << "* Wire x= " << x0_m << " y= " << y0_m << endl;
-      else
-        *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-    }
+    else
+        *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m
+              << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+
 
     PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
     PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));

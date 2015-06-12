@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -17,7 +17,7 @@
  *	then ending the message by sending the 'inform' manipulator.  In
  *      fact, Inform works much like an ostream, although it may actually
  *      just use stdio for I/O.
- *      
+ *
  *	Each message is assigned the current 'level of interest'; the lower
  *	the level, the more important it is.  Each Inform object is also
  *      set for a current level; messages with a level <= the current level
@@ -75,12 +75,20 @@ public:
   // to write to, as well as as the print node
   Inform(const char *, std::ostream&, int = 0);
 
+  // fourth constructor: this specifies the prefix and an Inform instance
+  // from which the ostream object is copied, as well as as the print node
+  Inform(const char *myname, const Inform& os, int pnode = 0);
+
   // destructor
   ~Inform();
-  
+
   // turn messages on/off
   void on(const bool o) { On = o; }
   bool isOn() const { return On; }
+
+  // change output destination
+  void setDestination(std::ostream &dest);
+  std::ostream& getDestination() { return *MsgDest; }
 
   // get/set the current output level
   Inform& setOutputLevel(const int);
@@ -240,5 +248,5 @@ inline Inform& operator<<(Inform& out, const std::string& s) {
 /***************************************************************************
  * $RCSfile: Inform.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: Inform.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: Inform.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

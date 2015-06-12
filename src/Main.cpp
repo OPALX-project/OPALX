@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
         int arg = 1;
 
         // Read startup file.
-        FileStream::setEcho(true);
+        FileStream::setEcho(Options::echo);
 
         char *startup = getenv("HOME");
         if (startup != NULL && fs::exists(strncat(startup, "/init.opal", 20))) {
@@ -190,6 +190,7 @@ int main(int argc, char *argv[]) {
                 parser.run(is);
                 *gmsg << "Finished reading startup file." << endl;
             }
+            FileStream::setEcho(Options::echo);
         } else {
             *gmsg << "Couldn't find startup file \"" << startup << "\".\n"
                   << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
@@ -244,9 +245,7 @@ int main(int argc, char *argv[]) {
 
         IpplTimings::stopTimer(mainTimer);
 
-        if (Options::info) {
-	  IpplTimings::print();
-	}
+        IpplTimings::print();
 
 	IpplTimings::print(std::string("timing.dat"));
 
@@ -255,27 +254,27 @@ int main(int argc, char *argv[]) {
             if(errormsg.good()) {
                 char buffer[256];
                 std::string closure("                                                                                 *\n");
-                *gmsg << "\n"
-                      << "* **********************************************************************************\n"
-                      << "* ************** W A R N I N G / E R R O R * * M E S S A G E S *********************\n"
-                      << "* **********************************************************************************"
-                      << endl;
+                ERRORMSG("\n"
+                         << "* **********************************************************************************\n"
+                         << "* ************** W A R N I N G / E R R O R * * M E S S A G E S *********************\n"
+                         << "* **********************************************************************************"
+                         << endl);
                 errormsg.getline(buffer, 256);
                 while(errormsg.good()) {
-                    *gmsg << "* ";
+                    ERRORMSG("* ");
                     if(errormsg.gcount() == 1) {
-                        *gmsg << closure;
+                        ERRORMSG(closure);
                     } else if ((size_t)errormsg.gcount() <= closure.size()) {
-                        *gmsg << buffer << closure.substr(errormsg.gcount() - 1);
+                        ERRORMSG(buffer << closure.substr(errormsg.gcount() - 1));
                     } else {
-                        *gmsg << buffer << endl;
+                        ERRORMSG(buffer << endl);
                     }
                     errormsg.getline(buffer, 256);
                 }
-                *gmsg << "* " << closure
-                      << "* **********************************************************************************\n"
-                      << "* **********************************************************************************"
-                      << endl;
+                ERRORMSG("* " << closure
+                         << "* **********************************************************************************\n"
+                         << "* **********************************************************************************"
+                         << endl);
             }
             errormsg.close();
         }

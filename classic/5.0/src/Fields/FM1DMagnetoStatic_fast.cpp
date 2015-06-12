@@ -70,7 +70,7 @@ void FM1DMagnetoStatic_fast::readMap() {
         delete [] onAxisFieldPP;
         delete [] onAxisFieldPPP;
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
                 << endl);
     }
 }
@@ -89,7 +89,7 @@ void FM1DMagnetoStatic_fast::freeMap() {
         gsl_interp_accel_free(onAxisFieldPPAccel_m);
         gsl_interp_accel_free(onAxisFieldPPPAccel_m);
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info")
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info")
                 << endl);
     }
 }

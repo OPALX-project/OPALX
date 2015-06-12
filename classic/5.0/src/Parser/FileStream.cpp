@@ -23,11 +23,10 @@
 #include <iomanip>
 #include <iostream>
 
-
 // Class FileStream
 // ------------------------------------------------------------------------
 
-bool FileStream::echoFlag = true;
+bool FileStream::echoFlag = false;
 
 
 FileStream::FileStream(const std::string &name):

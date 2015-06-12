@@ -17,7 +17,7 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
     FieldstrengthHz_m(NULL),
     FieldstrengthHx_m(NULL),
     FieldstrengthHy_m(NULL) {
-    Inform msg("FM3DD ");
+
     std::string tmpString;
     double tmpDouble;
 
@@ -93,7 +93,7 @@ FM3DDynamic::~FM3DDynamic() {
 
 void FM3DDynamic::readMap() {
     if(FieldstrengthEz_m == NULL) {
-        Inform msg("FM3DD ");
+
         ifstream in(Filename_m.c_str());
         int tmpInt;
         std::string tmpString;
@@ -168,7 +168,7 @@ void FM3DDynamic::readMap() {
             FieldstrengthHy_m[i] /= Ezmax;
         }
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                 << endl);
 
     }
@@ -190,7 +190,7 @@ void FM3DDynamic::freeMap() {
         FieldstrengthHx_m = NULL;
         FieldstrengthHy_m = NULL;
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
     }
 }

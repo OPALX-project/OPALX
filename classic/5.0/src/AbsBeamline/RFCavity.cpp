@@ -407,7 +407,7 @@ bool RFCavity::apply(const Vector_t &R, const Vector_t &centroid, const double &
 void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
     using Physics::two_pi;
     double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
-    Inform msg("RFCavity ");
+    Inform msg("RFCavity ", *gmsg);
     std::stringstream errormsg;
     RefPartBunch_m = bunch;
 
@@ -461,15 +461,14 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
 
             fmap->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
             if(zEnd > zBegin) {
-                *Ippl::Info << getName() << " using file ";
-                fmap->getInfo(Ippl::Info);
+                msg << level2 << getName() << " using file ";
+                fmap->getInfo(&msg);
                 if(fabs((frequency - fmap->getFrequency()) / frequency) > 0.01) {
                     errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename << "';\n"
                              << frequency / two_pi * 1e-6 << " MHz <> "
                              << fmap->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER";
                     std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
-                    msg << errormsg_str << "\n"
-                        << endl;
+                    ERRORMSG(errormsg_str << "\n" << endl);
                     if(Ippl::myNode() == 0) {
                         std::ofstream omsg("errormsg.txt", std::ios_base::app);
                         omsg << errormsg_str << std::endl;
@@ -519,9 +518,7 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
 void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
     using Physics::pi;
 
-    //    Inform msg("visitRFCavity read voltage");
     RefPartBunch_m = bunch;
-    //    INFOMSG("q= " << RefPartBunch_m->getQ() << " m= " << RefPartBunch_m->getM() / 1.0E9 << endl);
 
     ifstream in(filename_m.c_str());
     if(!in.good()) {
@@ -529,13 +526,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
                                       "failed to open file '" + filename_m + "', please check if it exists");
     }
     *gmsg << "* Read cavity voltage profile data" << endl;
-      // << "    (data format: s/L, v, dV/dr)" << endl;
 
     in >> num_points_m;
-
-    //~ if(RNormal_m != NULL) delete[] RNormal_m;
-    //~ if(VrNormal_m != NULL)delete[] VrNormal_m;
-    //~ if(DvDr_m != NULL)    delete[] DvDr_m;
 
     RNormal_m  = std::unique_ptr<double[]>(new double[num_points_m]);
     VrNormal_m = std::unique_ptr<double[]>(new double[num_points_m]);
@@ -644,13 +636,11 @@ void RFCavity::setComponentType(std::string name) {
         type_m = SGSW;
     } else {
         if(name != "") {
-            Inform msg("RFCavity ");
             std::stringstream errormsg;
             errormsg << "CAVITY TYPE " << name << " DOES NOT EXIST; \n"
                      << "CHANGING TO REGULAR STANDING WAVE";
             std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
-            msg << errormsg_str << "\n"
-                << endl;
+            ERRORMSG(errormsg_str << "\n" << endl);
             if(Ippl::myNode() == 0) {
                 ofstream omsg("errormsg.txt", ios_base::app);
                 omsg << errormsg_str << endl;
@@ -760,10 +750,6 @@ double RFCavity::spline(double z, double *za) {
             break;
         }
     }
-
-    // Inform msg("visitRFCavity read voltage");
-
-    //*gmsg <<"num_points_m = "<<num_points_m<<", ih = "<<ih<<", il = "<<il<<endl;
 
     double x1 =  RNormal_m[il];
     double x2 =  RNormal_m[ih];

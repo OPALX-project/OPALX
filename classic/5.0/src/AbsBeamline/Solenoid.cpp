@@ -27,6 +27,7 @@
 #include <iostream>
 #include <fstream>
 
+extern Inform *gmsg;
 
 // Class Solenoid
 // ------------------------------------------------------------------------
@@ -199,18 +200,18 @@ bool Solenoid::apply(const Vector_t &R, const Vector_t &centroid, const  double 
 }
 
 void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-    Inform msg("Solenoid ");
+    Inform msg("Solenoid ", *gmsg);
     double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
 
     RefPartBunch_m = bunch;
 
-    *Ippl::Info << getName() << " using file ";
     myFieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
 
     if(myFieldmap_m != NULL) {
-        myFieldmap_m->getInfo(Ippl::Info);
-        if(fabs(dx_m) > EPS_MISALIGNMENT || fabs(dy_m) > EPS_MISALIGNMENT || fabs(ds_m) > EPS_MISALIGNMENT) {
-            msg << "misaligned by dx = " << dx_m << ", dy = " << dy_m << ", dz = " << ds_m << endl;
+        msg << level2 << getName() << " using file ";
+        myFieldmap_m->getInfo(&msg);
+        if(std::abs(dx_m) > EPS_MISALIGNMENT || std::abs(dy_m) > EPS_MISALIGNMENT || std::abs(ds_m) > EPS_MISALIGNMENT) {
+            msg << level2 << "misaligned by dx = " << dx_m << ", dy = " << dy_m << ", dz = " << ds_m << endl;
         }
 
         myFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
@@ -254,4 +255,3 @@ void Solenoid::getDimensions(double &zBegin, double &zEnd) const {
 ElementBase::ElementType Solenoid::getType() const {
     return SOLENOID;
 }
-

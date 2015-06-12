@@ -913,17 +913,17 @@ void
 UniformCartesian<Dim,MFLOAT>::
 print(Inform& out)
 {
-  out << "======UniformCartesian<" << Dim << ",MFLOAT>==begin======" << endl;
-  unsigned int d;
-  for (d=0; d < Dim; d++)
-    out << "gridSizes[" << d << "] = " << gridSizes[d] << endl;
-  out << "origin = " << origin << endl;
-  for (d=0; d < Dim; d++)
-    out << "meshSpacing[" << d << "] = " << meshSpacing[d] << endl;
-  for (d=0; d < (1u<<Dim); d++)
-    out << "Dvc[" << d << "] = " << Dvc[d] << endl;
-  out << "cell volume = " << volume << endl;
-  out << "======UniformCartesian<" << Dim << ",MFLOAT>==end========" << endl;
+    out << "======UniformCartesian<" << Dim << ",MFLOAT>==begin======\n";
+    unsigned int d;
+    for (d=0; d < Dim; d++)
+        out << "gridSizes[" << d << "] = " << gridSizes[d] << "\n";
+    out << "origin = " << origin << "\n";
+    for (d=0; d < Dim; d++)
+        out << "meshSpacing[" << d << "] = " << meshSpacing[d] << "\n";
+    for (d=0; d < (1u<<Dim); d++)
+        out << "Dvc[" << d << "] = " << Dvc[d] << "\n";
+    out << "cell volume = " << volume << "\n";
+    out << "======UniformCartesian<" << Dim << ",MFLOAT>==end========\n";
 }
 
 //--------------------------------------------------------------------------

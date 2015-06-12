@@ -345,8 +345,8 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     else
         os << "* Z(T)DIM      serial  " << endl;
 
-    INFOMSG(*mesh_m << endl);
-    INFOMSG(*PL_m << endl);
+    INFOMSG(level3 << *mesh_m << endl);
+    INFOMSG(level3 << *PL_m << endl);
     if(solver_m)
         os << *solver_m << endl;
     os << "* ********************************************************************************** " << endl;

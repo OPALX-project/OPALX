@@ -105,11 +105,10 @@ void IpplTimings::print() {
 
     // report the average time for each timer
     Inform msg("Timings");
+    msg << level1 << "-----------------------------------------------------------------\n";
+    msg << "     Timing (dclock) results for " << Ippl::getNodes() << " nodes:" << "\n";
     msg << "-----------------------------------------------------------------";
-    msg << endl;
-    msg << "     Timing (dclock) results for " << Ippl::getNodes() << " nodes:" << endl;
-    msg << "-----------------------------------------------------------------";
-    msg << endl;
+    msg << "\n";
     for (i=0; i<1; ++i){
 	TimerInfo *tptr = TimerList[i].get();
 	double walltotal = 0.0;
@@ -120,7 +119,7 @@ void IpplTimings::print() {
 	msg << " Wall tot = ";
 	msg.width(10);
 	msg << walltotal;
-	msg << endl << endl;
+	msg << "\n\n";
     }
 
     for (i=1; i < TimerList.size(); ++i) {
@@ -135,17 +134,17 @@ void IpplTimings::print() {
 	    msg << ".";
 	msg << " Wall max = ";
 	msg.width(10);
-	msg << wallmax << endl;
+	msg << wallmax << "\n";
 	for (j = 0; j < 21; ++j)
 	    msg << " ";
 	msg << " Wall avg = ";
 	msg.width(10);
-	msg << wallavg / Ippl::getNodes() << endl;
+	msg << wallavg / Ippl::getNodes() << "\n";
 	for (j = 0; j < 21; ++j)
 	    msg << " ";
 	msg << " Wall min = ";
 	msg.width(10);
-	msg << wallmin << endl << endl;
+	msg << wallmin << "\n\n";
     }
     msg << "-----------------------------------------------------------------";
     msg << endl;
@@ -161,11 +160,12 @@ void IpplTimings::print() {
 
     // report the average time for each timer
     Inform msg("Timings");
+    msg << level1
+        << "-----------------------------------------------------------------";
+    msg << "\n";
+    msg << "     Timing results for " << Ippl::getNodes() << " nodes:" << "\n";
     msg << "-----------------------------------------------------------------";
-    msg << endl;
-    msg << "     Timing results for " << Ippl::getNodes() << " nodes:" << endl;
-    msg << "-----------------------------------------------------------------";
-    msg << endl;
+    msg << "\n";
 
     {
         TimerInfo *tptr = TimerList[0].get();
@@ -177,7 +177,7 @@ void IpplTimings::print() {
             << std::string().assign(20 - lengthName,'.')
             << " Wall tot = " << std::setw(10) << walltotal << ","
             << " CPU tot = " << std::setw(10) << cputotal << "\n"
-            << endl;
+            << "\n";
     }
 
     auto begin = ++ TimerList.begin();
@@ -209,7 +209,7 @@ void IpplTimings::print() {
             << std::string().assign(20,' ')
             << " Wall min = " << std::setw(10) << wallmin << ","
             << " CPU min = " << std::setw(10) << cpumin << "\n"
-            << endl;
+            << "\n";
     }
     msg << "-----------------------------------------------------------------";
     msg << endl;
@@ -234,18 +234,18 @@ void IpplTimings::print(std::string fn) {
     // Inform msg("Timings");
     /*
      *msg << "---------------------------------------------------------------------------";
-     *msg << endl;
-     *msg << "     Timing results for " << Ippl::getNodes() << " nodes:" << endl;
+     *msg << "\n";
+     *msg << "     Timing results for " << Ippl::getNodes() << " nodes:" << "\n";
      *msg << "---------------------------------------------------------------------------";
      *msg << " name nodes (cputot cpumax) (walltot wallmax) cpumin wallmin cpuav wallav  ";
-     *msg << endl;
+     *msg << "\n";
      */
 
     *msg << std::setw(27) << "num Nodes"
          << std::setw(10) << "CPU tot"
          << std::setw(11) << "Wall tot\n"
          << std::string().assign(47,'=')
-         << endl;
+         << "\n";
     {
         TimerInfo *tptr = TimerList[0].get();
         double walltotal = 0.0, cputotal = 0.0;
@@ -259,7 +259,7 @@ void IpplTimings::print(std::string fn) {
         *msg  << " " << std::setw(6)  << Ippl::getNodes()
               << " " << std::setw(9) << std::setprecision(4) << cputotal
               << " " << std::setw(9) << std::setprecision(4) << walltotal
-              << endl;
+              << "\n";
     }
 
     auto begin = ++ TimerList.begin();
@@ -278,7 +278,7 @@ void IpplTimings::print(std::string fn) {
          << std::setw(10) << "CPU avg"
          << std::setw(11) << "Wall avg\n"
          << std::string().assign(87,'=')
-         << endl;
+         << "\n";
     for (unsigned int i=1; i < TimerList.size(); ++i) {
         TimerInfo *tptr = TimerList[i].get();
         double wallmax = 0.0, cpumax = 0.0, wallmin = 0.0, cpumin = 0.0;

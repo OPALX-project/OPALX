@@ -387,7 +387,7 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
     using Physics::pi;
     using Physics::two_pi;
 
-    Inform msg("TravelingWave ");
+    Inform msg("TravelingWave ", *gmsg);
     std::stringstream errormsg;
 
     RefPartBunch_m = bunch;
@@ -398,15 +398,14 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
         CoreFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
 
         if(zEnd > zBegin) {
-            *Ippl::Info << getName() << " using file ";
-            CoreFieldmap_m->getInfo(Ippl::Info);
-            if(fabs((frequency_m - CoreFieldmap_m->getFrequency()) / frequency_m) > 0.01) {
+            msg << level2 << getName() << " using file ";
+            CoreFieldmap_m->getInfo(&msg);
+            if(std::abs((frequency_m - CoreFieldmap_m->getFrequency()) / frequency_m) > 0.01) {
                 errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" <<  CoreFilename_m + "';\n"
                          << frequency_m / two_pi * 1e-6 << " MHz <> "
                          << CoreFieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER\n";
                 std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
-                msg << errormsg_str << "\n"
-                    << endl;
+                ERRORMSG(errormsg_str << "\n" << endl);
                 if(Ippl::myNode() == 0) {
                     ofstream omsg("errormsg.txt", ios_base::app);
                     omsg << errormsg_str << endl;
@@ -427,7 +426,7 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
             */
 
             if(dx_m > 1e-10 || dy_m > 1e-10)
-                msg << "misaligned by dx = " << dx_m << ", dy = " << dy_m << endl;
+                msg << level2 << "misaligned by dx = " << dx_m << ", dy = " << dy_m << endl;
 
             if(hasAttribute("MODE")) {
                 Mode_m = getAttribute("MODE");
@@ -436,8 +435,8 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
                 errormsg.str("");
                 errormsg  << "NO MODE GIVEN; 2\\pi/3 MODE ASSUMED.";
                 std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
-                msg << errormsg_str << "\n"
-                    << endl;
+                ERRORMSG(errormsg_str << "\n" << endl);
+
                 if(Ippl::myNode() == 0) {
                     ofstream omsg("errormsg.txt", ios_base::app);
                     omsg << errormsg_str << endl;
@@ -560,7 +559,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
                 B += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdB(i, I, t, phaseE, F);
             }
 
-            if(fabs(B) > 0.0000001) {
+            if(std::abs(B) > 0.0000001) {
                 tmp_phi = atan(A / B);
             } else {
                 tmp_phi = Physics::pi / 2;
@@ -569,7 +568,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
                 tmp_phi += Physics::pi;
             }
 
-            if(fabs(phi - tmp_phi) < frequency_m * (t[N3 - 1] - t[0]) / N3) {
+            if(std::abs(phi - tmp_phi) < frequency_m * (t[N3 - 1] - t[0]) / N3) {
                 for(int i = 1; i < N1; ++ i) {
                     E[i] = E[i - 1] + q * scale_m * getdE(i, i, t, phi, F);
                 }
@@ -686,7 +685,7 @@ pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
     for(unsigned int i = 0; i < F.size(); ++i) {
         zvals[i] = F[i].first;
         onAxisField[i] = F[i].second;
-        if(fabs(onAxisField[i]) > Ezmax) Ezmax = fabs(onAxisField[i]);
+        if(std::abs(onAxisField[i]) > Ezmax) Ezmax = std::abs(onAxisField[i]);
     }
     //    Ezmax /= 1e6;
     double z = zvals[0];

@@ -19,7 +19,7 @@ FM1DProfile2::FM1DProfile2(std::string aFilename)
       zExit_m(0.0),
       cosExitRotation_m(1.0),
       sinExitRotation_m(0.0) {
-    Inform msg("FM1DP ");
+
     int tmpInt;
     std::string tmpString;
     double tmpDouble;
@@ -94,7 +94,6 @@ void FM1DProfile2::readMap() {
     if(EngeCoefs_entry_m == NULL) {
         double tolerance = 1e-8;
 
-        Inform msg("FM1DP2 ");
         ifstream in(Filename_m.c_str());
 
         int tmpInt;
@@ -190,7 +189,7 @@ void FM1DProfile2::readMap() {
         delete[] leastSquareMatrix;
         delete[] rightHandSide;
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                 << endl);
 
     }
@@ -198,13 +197,12 @@ void FM1DProfile2::readMap() {
 
 void FM1DProfile2::freeMap() {
     if(EngeCoefs_entry_m != NULL) {
-        Inform msg("FM1DMS ");
 
         delete[] EngeCoefs_entry_m;
         delete[] EngeCoefs_exit_m;
 
-        msg << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << "\n"
-            << endl;
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << "\n"
+                << endl);
 
     }
 }

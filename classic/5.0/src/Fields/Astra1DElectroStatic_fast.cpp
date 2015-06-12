@@ -64,7 +64,7 @@ void Astra1DElectroStatic_fast::readMap() {
                  onAxisAccel_m[0]);
 
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << endl);
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << endl);
     }
 }
 

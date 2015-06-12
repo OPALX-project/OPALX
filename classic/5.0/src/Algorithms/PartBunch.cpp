@@ -622,10 +622,10 @@ void PartBunch::calcGammas() {
         reduce(pInBin, pInBin, OpAddAssign());
         if(pInBin != 0) {
             bingamma_m[i] /= pInBin;
-            INFOMSG("Bin " << i << " gamma = " << setw(8) << scientific << setprecision(5) << bingamma_m[i] << "; NpInBin= " << setw(8) << setfill(' ') << pInBin << endl);
+            INFOMSG(level2 << "Bin " << i << " gamma = " << setw(8) << scientific << setprecision(5) << bingamma_m[i] << "; NpInBin= " << setw(8) << setfill(' ') << pInBin << endl);
         } else {
             bingamma_m[i] = 1.0;
-            INFOMSG("Bin " << i << " has no particles " << endl);
+            INFOMSG(level2 << "Bin " << i << " has no particles " << endl);
         }
         s += pInBin;
     }
@@ -638,7 +638,8 @@ void PartBunch::calcGammas() {
     if(emittedBins >= 2) {
         for(int i = 1; i < emittedBins; i++) {
             if(binemitted_m[i - 1] != 0 && binemitted_m[i] != 0)
-                INFOMSG("d(gamma)= " << 100.0 * std::abs(bingamma_m[i - 1] - bingamma_m[i]) / bingamma_m[i] << " [%] between bin " << i - 1 << " and " << i << endl);
+                INFOMSG(level2 << "d(gamma)= " << 100.0 * std::abs(bingamma_m[i - 1] - bingamma_m[i]) / bingamma_m[i] << " [%] "
+                        << "between bin " << i - 1 << " and " << i << endl);
         }
     }
 }
@@ -909,7 +910,7 @@ void PartBunch::resizeMesh() {
                R[n](1) < ymin || R[n](1) > ymax) {
 
                 // delete the particle
-                INFOMSG("destroyed particle with id=" << n << endl;);
+                INFOMSG(level2 << "destroyed particle with id=" << n << endl;);
                 destroy(1, n);
             }
 
@@ -952,7 +953,7 @@ void PartBunch::computeSelfFields() {
         if(fs_m->getFieldSolverType() == "SAAMG")
             resizeMesh();
 
-        INFOMSG("mesh size" << hr_m << endl);
+        INFOMSG(level3 << "mesh size" << hr_m << endl);
         //scatter charges onto grid
         this->Q *= this->dt;
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
@@ -1675,7 +1676,7 @@ void PartBunch::setBCAllOpen() {
         getBConds()[i] = ParticleNoBCond;
     }
     dcBeam_m=false;
-    INFOMSG("BC set for normal Beam" << endl);
+    INFOMSG(level3 << "BC set for normal Beam" << endl);
 }
 
 void PartBunch::setBCForDCBeam() {
@@ -1691,7 +1692,7 @@ void PartBunch::setBCForDCBeam() {
     bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
     this->getBConds()[5] = ParticlePeriodicBCond;
     dcBeam_m=true;
-    INFOMSG("BC set for DC-Beam" << endl);
+    INFOMSG(level3 << "BC set for DC-Beam" << endl);
 }
 
 void PartBunch::boundp() {
@@ -2317,26 +2318,26 @@ Inform &PartBunch::print(Inform &os) {
     if(this->getTotalNum() != 0) {  // to suppress Nan's
         Inform::FmtFlags_t ff = os.flags();
         os << scientific;
-        os << endl;
-        os << "* ************** B U N C H ********************************************************* " << endl;
+        os << level1 << "\n";
+        os << "* ************** B U N C H ********************************************************* \n";
         os << "* NP              =   " << this->getTotalNum() << "\n";
         os << "* Qtot            =   " << setw(12) << setprecision(5) << abs(sum(Q)) * 1.0e9 << " [nC]       "
            << "Qi    = " << setw(12) << std::abs(qi_m) * 1e9 << " [nC]" << "\n";
         os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV]      "
-           << "dEkin = " << setw(12) << dE_m << " [MeV]" << endl;
-        os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]" << endl;
-        os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]" << endl;
-        os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]" << endl;
-        os << "* rms momenta     = " << setw(12) << setprecision(5) << prms_m << " [beta gamma]" << endl;
-        os << "* mean position   = " << setw(12) << setprecision(5) << rmean_m << " [m]" << endl;
-        os << "* mean momenta    = " << setw(12) << setprecision(5) << pmean_m << " [beta gamma]" << endl;
-        os << "* rms emittance   = " << setw(12) << setprecision(5) << eps_m << " (not normalized)" << endl;
-        os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << endl;
-        os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]" << endl;
-        os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]" << endl;
+           << "dEkin = " << setw(12) << dE_m << " [MeV]\n";
+        os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]\n";
+        os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]\n";
+        os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]\n";
+        os << "* rms momenta     = " << setw(12) << setprecision(5) << prms_m << " [beta gamma]\n";
+        os << "* mean position   = " << setw(12) << setprecision(5) << rmean_m << " [m]\n";
+        os << "* mean momenta    = " << setw(12) << setprecision(5) << pmean_m << " [beta gamma]\n";
+        os << "* rms emittance   = " << setw(12) << setprecision(5) << eps_m << " (not normalized)\n";
+        os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << "\n";
+        os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]\n";
+        os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]\n";
         os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s]        "
-           << "dT    = " << setw(12) << getdT() << " [s]" << endl;
-        os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]" << endl;
+           << "dT    = " << setw(12) << getdT() << " [s]\n";
+        os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]\n";
         os << "* ********************************************************************************** " << endl;
         os.flags(ff);
     }

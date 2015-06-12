@@ -10,7 +10,6 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
     : Fieldmap(aFilename),
       FieldstrengthEz_m(NULL),
       FieldstrengthEr_m(NULL) {
-    Inform msg("FM2DES ");
     ifstream file;
     std::string tmpString;
     double tmpDouble;
@@ -79,7 +78,6 @@ FM2DElectroStatic::~FM2DElectroStatic() {
 void FM2DElectroStatic::readMap() {
     if(FieldstrengthEz_m == NULL) {
         // declare variables and allocate memory
-        Inform msg("FM2DES ");
         ifstream in;
         int tmpInt;
         std::string tmpString;
@@ -127,8 +125,8 @@ void FM2DElectroStatic::readMap() {
             FieldstrengthEz_m[i] *= 1e6 / Ezmax;
             FieldstrengthEr_m[i] *= 1e6 / Ezmax;
         }
-        msg << typeset_msg("read in field map '" + Filename_m + "'", "info") << "\n"
-            << endl;
+        INFOMSG(typeset_msg("read in field map '" + Filename_m + "'", "info") << "\n"
+                << endl);
     }
 }
 

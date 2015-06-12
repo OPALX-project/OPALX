@@ -124,7 +124,7 @@ void FM2DMagnetoStatic::readMap() {
             FieldstrengthBr_m[i] /= Bzmax;
         }
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")  << endl);
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")  << endl);
     }
 }
 
@@ -136,7 +136,7 @@ void FM2DMagnetoStatic::freeMap() {
         FieldstrengthBz_m = NULL;
         FieldstrengthBr_m = NULL;
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }
 }
 
