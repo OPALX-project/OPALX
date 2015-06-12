@@ -19,9 +19,6 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
     sBegin_m(0.0),
     sEnd_m(0.0) {
 
-    // Change inform message.
-    Inform msg("FM1DP ");
-
     // Read file header information. Set field type.
     Type = T1DProfile1;
 
@@ -116,7 +113,6 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
         } else {
 
             // No field map file or field map file is somehow flawed.
-            Inform msg("FM1DMS ");
             noFieldmapWarning();
             sBegin_m = 0.0;
             sEnd_m = sBegin_m - 1.0e-3;
@@ -135,8 +131,6 @@ void FM1DProfile1::readMap() {
 
     if(!engeCoeffsExit_m.empty())
         engeCoeffsExit_m.clear();
-
-    Inform msg("FM1DP1 ");
 
     if(Filename_m == "1DPROFILE1-DEFAULT") {
 
@@ -190,7 +184,7 @@ void FM1DProfile1::readMap() {
 
         inputFile.close();
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
                 << "\n" << endl);
 
     }

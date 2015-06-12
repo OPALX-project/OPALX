@@ -1157,11 +1157,12 @@ void Distribution::CreateDistributionFlattop(size_t numberOfParticles, double ma
 
 void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double massIneV) {
 
-    *gmsg << "\n-------------------------------------------------" << endl;
+    *gmsg << level3 << "\n"
+          << "------------------------------------------------------------------------------------\n";
     *gmsg << "READ INITIAL DISTRIBUTION FROM FILE \""
           << Attributes::getString(itsAttr[AttributesT::FNAME])
-          << "\"" << endl;
-    *gmsg << "-------------------------------------------------\n" << endl;
+          << "\"\n";
+    *gmsg << "------------------------------------------------------------------------------------\n" << endl;
 
     // Data input file is only read by node 0.
     std::ifstream inputFile;

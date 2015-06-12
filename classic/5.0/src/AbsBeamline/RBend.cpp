@@ -26,6 +26,8 @@
 #include <iostream>
 #include <fstream>
 
+extern Inform *gmsg;
+
 // Class RBend
 // ------------------------------------------------------------------------
 
@@ -418,7 +420,7 @@ ElementBase::ElementType RBend::getType() const {
 
 void RBend::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
 
-    Inform msg("RBend ");
+    Inform msg("RBend ", *gmsg);
 
     if(InitializeFieldMap(msg)) {
 
@@ -436,9 +438,9 @@ void RBend::initialise(PartBunch *bunch, double &startField, double &endField, c
         endField = endField_m;
 
     } else {
-        msg << " There is something wrong with your field map \""
-            << fileName_m
-            << "\"";
+        ERRORMSG("There is something wrong with your field map \""
+                 << fileName_m
+                 << "\"");
         endField = startField - 1.0e-3;
     }
 }
@@ -986,9 +988,9 @@ bool RBend::FindBendLength(Inform &msg,
 
 
         if(bendLength <= 0.0) {
-            msg << "Magnet length inferred from field map is less than or equal"
-                " to zero. Check your bend magnet input."
-                << endl;
+            ERRORMSG("Magnet length inferred from field map is less than or equal"
+                     " to zero. Check your bend magnet input."
+                     << endl);
             return false;
         } else
             return true;
@@ -1255,104 +1257,102 @@ bool RBend::IsPositionInExitField(Vector_t R, Vector_t &RExit) {
 }
 
 void RBend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
-  if (Options::info) {
-    msg << endl
+    msg << level2 << "\n"
         << "Start of field map:      "
         << startField_m
         << " m (in s coordinates)"
-        << endl;
+        << "\n";
     msg << "End of field map:        "
         << endField_m
         << " m (in s coordinates)"
-        << endl;
+        << "\n";
     msg << "Entrance edge of magnet: "
         << elementEdge_m
         << " m (in s coordinates)"
-        << endl;
-    msg << endl
+        << "\n";
+    msg << "\n"
         << "Reference Trajectory Properties"
-        << endl
+        << "\n"
         << "==============================="
-        << endl << endl;
+        << "\n\n";
     msg << "Bend angle magnitude:    "
         << angle_m
         << " rad ("
         << angle_m * 180.0 / Physics::pi
         << " degrees)"
-        << endl;
+        << "\n";
     msg << "Entrance edge angle:     "
         << entranceAngle_m
         << " rad ("
         << entranceAngle_m * 180.0 / Physics::pi
         << " degrees)"
-        << endl;
+        << "\n";
     msg << "Exit edge angle:         "
         << exitAngle_m
         << " rad ("
         << exitAngle_m * 180.0 / Physics::pi
         << " degrees)"
-        << endl;
+        << "\n";
     msg << "Bend design radius:      "
         << designRadius_m
         << " m"
-        << endl;
+        << "\n";
     msg << "Bend design energy:      "
         << designEnergy_m
         << " eV"
-        << endl;
-    msg << endl
+        << "\n";
+    msg << "\n"
         << "Bend Field and Rotation Properties"
-        << endl
+        << "\n"
         << "=================================="
-        << endl << endl;
+        << "\n\n";
     msg << "Field amplitude:         "
         << fieldAmplitude_m
         << " T"
-        << endl;
+        << "\n";
     msg << "Field index:  "
         << fieldIndex_m
-        << endl;
+        << "\n";
     msg << "Rotation about x axis:   "
         << Orientation_m(1)
         << " rad ("
         << Orientation_m(1) * 180.0 / Physics::pi
         << " degrees)"
-        << endl;
+        << "\n";
     msg << "Rotation about y axis:   "
         << Orientation_m(0)
         << " rad ("
         << Orientation_m(0) * 180.0 / Physics::pi
         << " degrees)"
-        << endl;
+        << "\n";
     msg << "Rotation about z axis:   "
         << Orientation_m(2)
         << " rad ("
         << Orientation_m(2) * 180.0 / Physics::pi
         << " degrees)"
-        << endl;
-    msg << endl
+        << "\n";
+    msg << "\n"
         << "Reference Trajectory Properties Through Bend Magnet with Fringe Fields"
-        << endl
+        << "\n"
         << "======================================================================"
-        << endl << endl;
+        << "\n\n";
     msg << "Reference particle is bent: "
         << bendAngleX
         << " rad ("
         << bendAngleX * 180.0 / Physics::pi
         << " degrees) in x plane"
-        << endl;
+        << "\n";
     msg << "Reference particle is bent: "
         << bendAngleY
         << " rad ("
         << bendAngleY * 180.0 / Physics::pi
         << " degrees) in y plane"
-        << endl << endl;
-  }
+        << "\n" << endl;
 }
 
 void RBend::ReadFieldMap(Inform &msg) {
-    *Ippl::Info << getName() << " using file ";
-    fieldmap_m->getInfo(Ippl::Info);
+    msg << level2 << getName() << " using file ";
+    fieldmap_m->getInfo(&msg);
 
     Fieldmap::readMap(fileName_m);
     fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
@@ -1377,7 +1377,7 @@ bool RBend::Reinitialize() {
     double bendAngleY = 0.0;
     CalculateRefTrajectory(bendAngleX, bendAngleY);
 
-    INFOMSG("Bend design energy changed to: "
+    INFOMSG(level2 << "Bend design energy changed to: "
             << designEnergy_m * 1.0e-6
             << " MeV"
             << endl);
@@ -1611,13 +1611,14 @@ bool RBend::SetupBendGeometry(Inform &msg, double &startField, double &endField)
 bool RBend::SetupDefaultFieldMap(Inform &msg) {
 
     if(gap_m <= 0.0 || length_m <= 0.0) {
-        msg << "If using \"1DPROFILE1-DEFAULT\" field map you must set the "
-            "bend attributes GAP and L in the OPAL input file."
-            << endl;
+        ERRORMSG("If using \"1DPROFILE1-DEFAULT\" field map you must set the "
+                 "bend attributes GAP and L in the OPAL input file."
+                 << endl);
         return false;
     } else {
         fieldmap_m->SetFieldGap(gap_m);
-	if(Options::info) fieldmap_m->getInfo(&msg);
+	msg << level2;
+        fieldmap_m->getInfo(&msg);
         return true;
     }
 
@@ -1641,16 +1642,16 @@ void RBend::SetupPusher(PartBunch *bunch) {
 
 bool RBend::TreatAsDrift(Inform &msg) {
     if(designEnergy_m <= 0.0) {
-        msg << "Warning: bend design energy is zero. Treating as drift."
-            << endl;
+        WARNMSG("Warning: bend design energy is zero. Treating as drift."
+                << endl);
         designRadius_m = 0.0;
         return true;
 
     } else if(angle_m == 0.0 &&
               pow(bX_m, 2.0) + pow(bY_m, 2.0) == 0.0) {
 
-        msg << "Warning bend angle/strength is zero. Treating as drift."
-            << endl;
+        WARNMSG("Warning bend angle/strength is zero. Treating as drift."
+                << endl);
         designRadius_m = 0.0;
         return true;
 

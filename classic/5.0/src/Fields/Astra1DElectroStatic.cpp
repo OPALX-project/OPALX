@@ -141,7 +141,7 @@ void Astra1DElectroStatic::readMap() {
         delete[] zvals;
         delete[] RealValues;
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << endl);
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << endl);
 
     }
 }
@@ -152,7 +152,7 @@ void Astra1DElectroStatic::freeMap() {
         delete[] FourCoefs_m;
         FourCoefs_m = NULL;
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }
 }
 

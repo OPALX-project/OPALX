@@ -6,14 +6,11 @@
 #include <fstream>
 #include <ios>
 
-extern Inform *gmsg;
-
 using namespace std;
 using Physics::mu_0;
 
 FM3DH5Block_nonscale::FM3DH5Block_nonscale(std::string aFilename):
     Fieldmap(aFilename) {
-    Inform msg("FM3DH5 ");
     h5_err_t h5err;
     h5_size_t grid_rank;
     h5_size_t grid_dims[3];
@@ -78,7 +75,6 @@ FM3DH5Block_nonscale::~FM3DH5Block_nonscale() {
 
 void FM3DH5Block_nonscale::readMap() {
     if(FieldstrengthEz_m.empty()) {
-        Inform msg("FM3DH5_NS ");
         h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
 
         if(file != (void*)H5_ERR) {
@@ -170,11 +166,11 @@ void FM3DH5Block_nonscale::readMap() {
                 FieldstrengthHz_m[i] *= 1.0e6 * mu_0 ;
             }
 
-            INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+            INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                     << endl);
 
         } else {
-            WARNMSG("could not read file '" << Filename_m << "'")
+            ERRORMSG("could not read file '" << Filename_m << "'")
         }
     }
 }
@@ -188,7 +184,7 @@ void FM3DH5Block_nonscale::freeMap() {
         FieldstrengthHy_m.clear();
         FieldstrengthHz_m.clear();
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
     }
 }

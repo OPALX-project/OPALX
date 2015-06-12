@@ -449,7 +449,8 @@ void TrackRun::setupTTracker(){
 
     findPhasesForMaxEnergy();
 
-    *gmsg << "Phase space dump frequency " << Options::psDumpFreq << " and "
+    *gmsg << level2
+          << "Phase space dump frequency " << Options::psDumpFreq << " and "
           << "statistics dump frequency " << Options::statDumpFreq << " w.r.t. the time step." << endl;
 #ifdef HAVE_AMR_SOLVER
     itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),

@@ -1,7 +1,7 @@
 
 namespace Options {
     // The global program options.
-    bool echo = true;
+    bool echo = false;
     bool info = true;
     bool csrDump = false;
     bool ppdebug = false;

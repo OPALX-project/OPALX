@@ -16,7 +16,7 @@ using Physics::two_pi;
 Astra1DDynamic::Astra1DDynamic(std::string aFilename):
     Fieldmap(aFilename),
     FourCoefs_m(NULL) {
-    Inform msg("*1DD ");
+
     ifstream file;
     int skippedValues = 0;
     std::string tmpString;
@@ -71,7 +71,6 @@ Astra1DDynamic::~Astra1DDynamic() {
 void Astra1DDynamic::readMap() {
     if(FourCoefs_m == NULL) {
         // declare variables and allocate memory
-        Inform msg("*1DD ");
         ifstream in;
 
         bool parsing_passed = true;
@@ -148,7 +147,7 @@ void Astra1DDynamic::readMap() {
         delete[] zvals;
         delete[] RealValues;
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m + "'", "info") << endl);
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m + "'", "info") << endl);
     }
 }
 
@@ -157,7 +156,7 @@ void Astra1DDynamic::freeMap() {
         delete[] FourCoefs_m;
         FourCoefs_m = NULL;
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }
 }
 

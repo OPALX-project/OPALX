@@ -50,7 +50,7 @@ void FM1DMagnetoStatic::readMap() {
         computeFourierCoefficients(maxBz, fieldData);
         delete [] fieldData;
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")
                 << endl);
     }
 }
@@ -60,7 +60,7 @@ void FM1DMagnetoStatic::freeMap() {
     if(!fourierCoefs_m.empty()) {
         fourierCoefs_m.clear();
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info")
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info")
                 << endl);
     }
 }

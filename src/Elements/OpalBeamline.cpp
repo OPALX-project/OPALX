@@ -490,11 +490,11 @@ void OpalBeamline::prepareSections() {
 void OpalBeamline::print(Inform &msg) const {
     SectionList::const_iterator sec_it;
 
-    msg << "\n--- BEGIN FIELD LIST ---------------------------------------------------------------\n" << endl;
+    msg << level1 << "\n--- BEGIN FIELD LIST ---------------------------------------------------------------\n\n";
     for(sec_it = sections_m.begin(); sec_it != sections_m.end(); ++ sec_it) {
         (*sec_it).print(msg);
     }
-    msg << "\n--- END FIELD LIST -----------------------------------------------------------------\n" << endl;
+    msg << level1 << "\n--- END FIELD LIST -----------------------------------------------------------------\n" << endl;
 }
 
 

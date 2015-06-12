@@ -349,44 +349,36 @@ void OpalBeamline::visit<Corrector>(const Corrector &element, BeamlineVisitor &,
 */
 template<> inline
 void OpalBeamline::visit<BeamBeam>(const BeamBeam &element, BeamlineVisitor &, PartBunch *) {
-    Inform msg("OPAL ");
-    msg << element.getTypeString() << " not implemented yet!" << endl;
-}
-
-template<> inline
-void OpalBeamline::visit<Diagnostic>(const Diagnostic &element, BeamlineVisitor &, PartBunch *) {
-    Inform msg("OPAL ");
-    msg << element.getTypeString() << " not implemented yet!" << endl;
-}
-
-template<> inline
-void OpalBeamline::visit<Lambertson>(const Lambertson &element, BeamlineVisitor &, PartBunch *) {
-    Inform msg("OPAL ");
-    msg << element.getTypeString() << " not implemented yet!" << endl;
-}
-
-template<> inline
-void OpalBeamline::visit<Marker>(const Marker &element, BeamlineVisitor &, PartBunch *) {
-  if (Options::info)
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
+void OpalBeamline::visit<Diagnostic>(const Diagnostic &element, BeamlineVisitor &, PartBunch *) {
+    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
+}
+
+template<> inline
+void OpalBeamline::visit<Lambertson>(const Lambertson &element, BeamlineVisitor &, PartBunch *) {
+    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
+}
+
+template<> inline
+void OpalBeamline::visit<Marker>(const Marker &element, BeamlineVisitor &, PartBunch *) {
+}
+
+template<> inline
 void OpalBeamline::visit<RFQuadrupole>(const RFQuadrupole &element, BeamlineVisitor &, PartBunch *) {
-    Inform msg("OPAL ");
-    msg << element.getTypeString() << " not implemented yet!" << endl;
+    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
 void OpalBeamline::visit<Separator>(const Separator &element, BeamlineVisitor &, PartBunch *) {
-    Inform msg("OPAL ");
-    msg << element.getTypeString() << " not implemented yet!" << endl;
+    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
 void OpalBeamline::visit<Septum>(const Septum &element, BeamlineVisitor &, PartBunch *) {
-    Inform msg("OPAL ");
-    msg << element.getTypeString() << " not implemented yet!" << endl;
+    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 inline

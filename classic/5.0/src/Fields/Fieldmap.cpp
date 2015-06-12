@@ -22,6 +22,7 @@
 #include "Fields/FM1DProfile2.h"
 #include "Fields/FMDummy.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Options.h"
 #include "Physics/Physics.h"
 
 #include "H5hut.h"
@@ -32,8 +33,6 @@
 
 #define REGISTER_PARSE_TYPE(X) template <> struct Fieldmap::TypeParseTraits<X> \
     { static const char* name; } ; const char* Fieldmap::TypeParseTraits<X>::name = #X
-
-extern Inform *gmsg;
 
 Fieldmap *Fieldmap::getFieldmap(std::string Filename, bool fast) {
     std::map<std::string, FieldmapDescription>::iterator position = FieldmapDictionary.find(Filename);
@@ -476,15 +475,14 @@ bool Fieldmap::interpreteEOF(std::ifstream &in) {
 void Fieldmap::interpreteWarning(const std::string &error_msg,
                                  const std::string &expecting,
                                  const std::string &found) {
-    Inform msg("Fieldmap ");
     std::stringstream errormsg;
     std::stringstream tmpmsg;
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "expecting: '" << expecting << "' on line " << lines_read_m << ",\n"
              << "found instead: '" << found << "'.";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-    msg << errormsg_str << "\n"
-        << endl;
+    ERRORMSG(errormsg_str << "\n" << endl);
+
     if(Ippl::myNode() == 0) {
         std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg_str << std::endl;
@@ -508,15 +506,14 @@ void Fieldmap::interpreteWarning(const std::ios_base::iostate &state,
 }
 
 void Fieldmap::missingValuesWarning() {
-    Inform msg("Fieldmap ");
     std::stringstream errormsg;
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "There are only " << lines_read_m - 1 << " lines in the file, expecting more.\n"
              << "Please check the section about field maps in the user manual.";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
 
-    msg << errormsg_str << "\n"
-        << endl;
+    ERRORMSG(errormsg_str << "\n" << endl);
+
     if(Ippl::myNode() == 0) {
         std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg_str << std::endl;
@@ -525,14 +522,14 @@ void Fieldmap::missingValuesWarning() {
 }
 
 void Fieldmap::exceedingValuesWarning() {
-    Inform msg("Fieldmap ");
     std::stringstream errormsg;
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "There are too many lines in the file, expecting only " << lines_read_m << " lines.\n"
              << "Please check the section about field maps in the user manual.";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-    msg << errormsg_str << "\n"
-        << endl;
+
+    ERRORMSG(errormsg_str << "\n" << endl);
+
     if(Ippl::myNode() == 0) {
         std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg_str << std::endl;
@@ -541,12 +538,12 @@ void Fieldmap::exceedingValuesWarning() {
 }
 
 void Fieldmap::disableFieldmapWarning() {
-    Inform msg("Fieldmap ");
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" + Filename_m + "' DUE TO PARSING ERRORS." ;
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-    msg << errormsg_str << "\n"
-        << endl;
+
+    ERRORMSG(errormsg_str << "\n" << endl);
+
     if(Ippl::myNode() == 0) {
         std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg_str << std::endl;
@@ -555,12 +552,12 @@ void Fieldmap::disableFieldmapWarning() {
 }
 
 void Fieldmap::noFieldmapWarning() {
-    Inform msg("Fieldmap ");
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" << Filename_m << "' SINCE FILE COULDN'T BE FOUND!";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-    msg << errormsg_str << "\n"
-        << endl;
+
+    ERRORMSG(errormsg_str << "\n" << endl);
+
     if(Ippl::myNode() == 0) {
         std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg.str() << std::endl;
@@ -569,7 +566,6 @@ void Fieldmap::noFieldmapWarning() {
 }
 
 void Fieldmap::lowResolutionWarning(double squareError, double maxError) {
-    Inform msg("Fieldmap ");
     std::stringstream errormsg;
     errormsg << "IT SEEMS THAT YOU USE TOO FEW FOURIER COMPONENTS TO SUFFICIENTLY WELL\n"
              << "RESOLVE THE FIELD MAP '" << Filename_m << "'.\n"
@@ -580,8 +576,9 @@ void Fieldmap::lowResolutionWarning(double squareError, double maxError) {
              << "The lower limit for the two ratios is 1e-2\n"
              << "Have a look into the directory data/ for a reconstruction of the field map.\n";
     std::string errormsg_str = typeset_msg(errormsg.str(), "warning");
-    msg << errormsg_str << "\n"
-        << endl;
+
+    ERRORMSG(errormsg_str << "\n" << endl);
+
     if(Ippl::myNode() == 0) {
         std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg.str() << std::endl;

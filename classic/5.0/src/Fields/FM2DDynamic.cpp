@@ -13,7 +13,6 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
       FieldstrengthEz_m(NULL),
       FieldstrengthEr_m(NULL),
       FieldstrengthHt_m(NULL) {
-    Inform msg("FM2DD ");
     ifstream file;
     std::string tmpString;
     double tmpDouble;
@@ -92,7 +91,6 @@ FM2DDynamic::~FM2DDynamic() {
 void FM2DDynamic::readMap() {
     if(FieldstrengthEz_m == NULL) {
         // declare variables and allocate memory
-        Inform msg("FM2DD ");
         ifstream in;
         int tmpInt;
         std::string tmpString;
@@ -147,7 +145,7 @@ void FM2DDynamic::readMap() {
             FieldstrengthHt_m[i] *= mu_0 / Ezmax; // H -> B
         }
 
-        INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                 << endl);
 
     }
@@ -162,7 +160,7 @@ void FM2DDynamic::freeMap() {
         delete[] FieldstrengthHt_m;
         FieldstrengthHt_m = NULL;
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
     }
 }

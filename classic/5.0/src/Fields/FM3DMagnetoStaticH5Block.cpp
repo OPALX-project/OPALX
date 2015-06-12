@@ -6,14 +6,11 @@
 #include <fstream>
 #include <ios>
 
-extern Inform *gmsg;
-
 using namespace std;
 using Physics::mu_0;
 
 FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
     Fieldmap(aFilename) {
-    Inform msg("FM3DMagnetoStaticH5Block ");
     h5_err_t h5err;
     h5_size_t grid_rank;
     h5_size_t grid_dims[3];
@@ -75,7 +72,6 @@ FM3DMagnetoStaticH5Block::~FM3DMagnetoStaticH5Block() {
 
 void FM3DMagnetoStaticH5Block::readMap() {
     if(FieldstrengthEz_m.empty()) {
-        Inform msg("FM3DMagH5 ");
         h5_file_t *file = H5OpenFile(Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
 
         if(file != (void*)H5_ERR) {
@@ -165,11 +161,11 @@ void FM3DMagnetoStaticH5Block::readMap() {
             delete[] Nz_read_start;
             delete[] Nz_read_length;
 
-            INFOMSG(typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+            INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                     << endl);
 
         } else {
-            WARNMSG("could not read file '" << Filename_m << "'" << endl);
+            ERRORMSG("could not read file '" << Filename_m << "'" << endl);
         }
     }
 }
@@ -182,14 +178,13 @@ void FM3DMagnetoStaticH5Block::freeMap() {
         FieldstrengthBx_m.clear();
         FieldstrengthBy_m.clear();
         FieldstrengthBz_m.clear();
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
     }
 
 }
 
 bool FM3DMagnetoStaticH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
-    Inform msg("FM3DMagH5 ");
     const int index_x = static_cast<int>(floor((R(0) - xbegin_m) / hx_m));
     const double lever_x = (R(0) - xbegin_m) / hx_m - index_x;
 
@@ -204,11 +199,11 @@ bool FM3DMagnetoStaticH5Block::getFieldstrength(const Vector_t &R, Vector_t &E, 
     }
 
     if(index_x + 2 > num_gridpx_m || index_y + 2 > num_gridpy_m) {
-        msg << "Field strength at R " << R << " out of field maps" << endl;
+        ERRORMSG("Field strength at R " << R << " out of field maps" << endl);
         return false;// if x or y > xmax or ymax, do nothing just let E and B unchange in the element with this field map, we check if a particle outside domain in BoundaryGeometry, not here. That's resonable if we have field mapped without covering entire boundary of an element.
     }
     if(index_x < 0 || index_y < 0) {
-        msg << "Field strength at R " << R << " out of field maps" << endl;
+        ERRORMSG("Field strength at R " << R << " out of field maps" << endl);
         return false;// if x or y < xmin or ymin, do nothing just let E and B unchange in the element with this field map, we check if a particle outside domain in BoundaryGeometry, not here. That's resonable if we have field mapped without covering entire boundary of an element.
     }
     const long index1 = index_x + (index_y + index_z * num_gridpy_m) * num_gridpx_m;
