@@ -1356,24 +1356,33 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
               moment:  rad
 
             */
-            const auto &sigma = siggen.getSigma();
-            sigmaR_m[0] = 1E-3 * std::sqrt(sigma(0,0));    // rms x
-            sigmaR_m[1] = 1E-3 * std::sqrt(sigma(2,2));    // rms y
-            sigmaR_m[2] = 1E-3 * std::sqrt(sigma(4,4));    // rms z
+            auto sigma = siggen.getSigma();
+            // change units from mm to m
+            for (unsigned int i = 0; i < 3; ++ i) {
+                for (unsigned int j = 0; j < 6; ++ j) {
+                    sigma(2 * i, j) *= 1e-3;
+                    sigma(j, 2 * i) *= 1e-3;
+                }
+            }
 
-            sigmaP_m[0] = std::sqrt(sigma(1,1));    // UNITS ...
-            sigmaP_m[1] = std::sqrt(sigma(3,3));
-            sigmaP_m[2] = std::sqrt(sigma(5,5));
+            for (unsigned int i = 0; i < 3; ++ i) {
+                sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
+                sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
+            }
 
-            correlationMatrix_m(1, 0) = 1e-3 * sigma(0, 1) / (sigmaR_m[0] * sigmaP_m[0]);
-            correlationMatrix_m(3, 2) = 1e-3 * sigma(2, 3) / (sigmaR_m[1] * sigmaP_m[1]);
-            correlationMatrix_m(5, 4) = 1e-3 * sigma(4, 5) / (sigmaR_m[2] * sigmaP_m[2]);
-            correlationMatrix_m(4, 0) = 1e-6 * sigma(0, 4) / (sigmaR_m[0] * sigmaR_m[2]);
-            correlationMatrix_m(4, 1) = 1e-3 * sigma(1, 4) / (sigmaP_m[0] * sigmaR_m[2]);
-            correlationMatrix_m(5, 0) = 1e-3 * sigma(0, 5) / (sigmaR_m[0] * sigmaP_m[2]);
-            correlationMatrix_m(5, 1) = sigma(1, 5) / (sigmaP_m[0] * sigmaP_m[2]);
+            if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+                for (unsigned int i = 0; i < 3; ++ i) {
+                    sigmaP_m[i] = ConverteVToBetaGamma(sigmaP_m[i], massIneV);
+                }
+            }
 
-            inputMoUnits_m = InputMomentumUnitsT::NONE;
+            correlationMatrix_m(1, 0) = sigma(0, 1) / sqrt(sigma(0, 0) * sigma(1, 1));
+            correlationMatrix_m(3, 2) = sigma(2, 3) / sqrt(sigma(2, 2) * sigma(3, 3));
+            correlationMatrix_m(5, 4) = sigma(4, 5) / sqrt(sigma(4, 4) * sigma(5, 5));
+            correlationMatrix_m(4, 0) = sigma(0, 4) / sqrt(sigma(0, 0) * sigma(4, 4));
+            correlationMatrix_m(4, 1) = sigma(1, 4) / sqrt(sigma(1, 1) * sigma(4, 4));
+            correlationMatrix_m(5, 0) = sigma(0, 5) / sqrt(sigma(0, 0) * sigma(5, 5));
+            correlationMatrix_m(5, 1) = sigma(1, 5) / sqrt(sigma(1, 1) * sigma(5, 5));
 
         } else {
             *gmsg << "Not converged." << endl;
