@@ -240,7 +240,7 @@ private:
     h5_file_t *H5fileS_m;
 
     /// Current record, or time step, of H5 file.
-    h5_int64_t H5call_m;
+    int H5call_m;
 
     /// Timer to track statistics write time.
     IpplTimings::TimerRef StatMarkerTimer_m;
