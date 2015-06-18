@@ -380,7 +380,6 @@ FFT<CCTransform, Dim, T>::transform(
   return;
 }
 #else
-
 template <unsigned Dim, class T>
 void
 FFT<CCTransform,Dim,T>::transform(
@@ -910,7 +909,6 @@ FFT<RCTransform,Dim,T>::FFT(
 #ifdef IPPL_DKS
 #ifdef IPPL_DKS_OPENCL
   INFOMSG("Init DKS base opencl" << endl);
-  //base = DKSBase();
   base.setAPI("OpenCL", 6);
   base.setDevice("-gpu", 4);
   base.initDevice();
@@ -922,6 +920,7 @@ FFT<RCTransform,Dim,T>::FFT(
   base.setAPI("Cuda", 4);
   base.setDevice("-gpu", 4);
   base.initDevice();
+  base.setupFFT(0, NULL);
 
   base.createStream(fftStreamId);
 #endif
@@ -1482,27 +1481,7 @@ FFT<RCTransform,Dim,T>::transform(
     }
     
     //call real to complex fft
-    //read real_ptr
-    /*
-    int sreal = NR_g[0] * NR_g[1] * NR_g[2];
-    double *tmpreal = new double[sreal];
-    base.readData<double>(real_ptr, tmpreal, sreal);
-    std::cout << "Real old:" << std::endl;
-    for (int i = 0; i < sreal; i++) std::cout << tmpreal[i] << "\t";
-    std::cout << std::endl;
-    */
     base.callR2CFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g); 
-    
-    //read comp_ptr
-    /*
-    int scomp = NC_g[0] * NC_g[1] * NC_g[2];
-    std::complex<double> *tmpcomp = new std::complex<double>[scomp];
-    base.readData< complex<double> >(comp_ptr, tmpcomp, scomp);
-    std::cout << "Comp old:" << std::endl;
-    for (int i = 0; i < scomp; i++) std::cout << tmpcomp[i] << "\t";
-    std::cout << std::endl;
-    */
-    //===
       	
     //if only one node is working do dksbase read otherwise use cuda aware mpi
     if (Ippl::getNodes() > 1) {
@@ -1551,8 +1530,8 @@ FFT<RCTransform,Dim,T>::transform(
   }
     
   // normalize:
-  if (direction == +1) 
-    g = g * this->getNormFact();
+  //if (direction == +1) 
+  //  g = g * this->getNormFact();
 	  
   // finish timing the whole mess
   IpplTimings::stopTimer(tottimer);
@@ -1965,10 +1944,9 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
     //call real to complex fft
     dksbase.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g);   
 
-    //cormalize
+    //normalize
     if (direction == +1)
       dksbase.callNormalizeC2RFFT(real_ptr, nTransformDims, (int*)NR_g);
-
 
     if (Ippl::getNodes() > 1) {
       dksbase.syncDevice();
@@ -2130,11 +2108,12 @@ FFT<RCTransform,Dim,T>::transform(
   int sizecomp = NC_l[0]*NC_l[1]*NC_l[2];
   int totalreal = tempR->getDomain().size();
   int totalcomp = temp->getDomain().size();
-    
+      
   //local vnodes get starting position for complex field subdomains
   int *cidx = new int[Ippl::getNodes()];
   int *cidy = new int[Ippl::getNodes()];
   int *cidz = new int[Ippl::getNodes()];
+  /*
   for (typename Layout_t::const_iterator_iv i_s = temp->getLayout().begin_iv(); i_s != temp->getLayout().end_iv(); ++i_s) {
     Domain_t tmp = (*i_s).second->getDomain();
     int node = (*i_s).second->getNode();
@@ -2151,11 +2130,12 @@ FFT<RCTransform,Dim,T>::transform(
     cidy[node] = tmp[1].min();
     cidz[node] = tmp[2].min();
   }
-
+  */
   //local vnodes get starting position for real field subdomains
   int *idx = new int[Ippl::getNodes()];
   int *idy = new int[Ippl::getNodes()];
   int *idz = new int[Ippl::getNodes()];
+  /*
   for (typename Layout_t::const_iterator_iv i_s = tempR->getLayout().begin_iv(); i_s != tempR->getLayout().end_iv(); ++i_s) {
     Domain_t tmp = (*i_s).second->getDomain();
     int node = (*i_s).second->getNode();
@@ -2172,7 +2152,7 @@ FFT<RCTransform,Dim,T>::transform(
     idy[node] = tmp[1].min();
     idz[node] = tmp[2].min();
   }
-    
+  */
   //do the FFT on GPU    
   int ierr;
   void *real_ptr, *comp_ptr;
@@ -2194,6 +2174,8 @@ FFT<RCTransform,Dim,T>::transform(
     
     //call real to complex fft
     base.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g); 
+    if (direction == -1) 
+      base.callNormalizeC2RFFT(real_ptr, nTransformDims, (int*)NR_g);
     
     if (Ippl::getNodes() > 1) {
       MPI_Barrier(Ippl::getComm());
@@ -2228,7 +2210,7 @@ FFT<RCTransform,Dim,T>::transform(
   }
 	
   // Normalize:
-  if (direction == +1) g = g * this->getNormFact();
+  //if (direction == +1) g = g * this->getNormFact();
   	
   // finish timing the whole mess
   IpplTimings::stopTimer(tottimer);

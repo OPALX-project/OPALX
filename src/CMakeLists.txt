@@ -86,6 +86,11 @@ link_directories (
     ${CCSE_LIBRARY_DIR}
 )
 
+IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+   include_directories (${DKS_INCLUDE_DIR})
+   link_directories (${DKS_LIBRARY_DIR})
+ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+
 set (OPAL_LIBS
     m
     ${GSL_LIBRARY}
@@ -97,6 +102,12 @@ set (OPAL_LIBS
     mpi_cxx
     ${Boost_LIBRARIES}
 )
+
+IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+   set (OPAL_LIBS	  
+       ${OPAL_LIBS}
+       dks)
+ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
 add_library( OPALib ${OPAL_SRCS} opal.cpp )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )

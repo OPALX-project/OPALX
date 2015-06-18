@@ -60,7 +60,7 @@ DKSBase *IpplInfo::DKS = new DKSBase("OpenCL", "-gpu");
 #endif
 
 #ifdef IPPL_DKS_MIC
-DKSBase *IpplInfo::DKS = new DKSBase("OpenCL", "-mic");
+DKSBase *IpplInfo::DKS = new DKSBase("OpenMP", "-mic");
 #endif
 
 #endif
