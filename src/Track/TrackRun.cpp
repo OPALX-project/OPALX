@@ -99,7 +99,7 @@ TrackRun::TrackRun():
     phaseSpaceSink_m(NULL) {
     itsAttr[METHOD] = Attributes::makeString
                       ("METHOD", "Name of tracking algorithm to use:\n"
-                       "\t\t\t\"THIN\" (default) or \"THICK,PARALLEL-T,PARALLEL-TA,PARALLEL-Z,PARALLEL-SLICE\".", "THIN");
+                       "\t\t\t\"THIN\" (default) or \"THICK,PARALLEL-T,CYCLOTRON-T,PARALLEL-SLICE,AUTOPHASE\".", "THIN");
     itsAttr[TURNS] = Attributes::makeReal
                      ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron", 1.0);
 
@@ -110,7 +110,7 @@ TrackRun::TrackRun():
                       ("PARAMB", " Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
 
     itsAttr[FNAME] = Attributes::makeString
-                     ("FILE", "Name of file to be written", "TRACK");
+                     ("FNAME", "Name of file to be written", "TRACK");
 
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam ", "BEAM");
@@ -173,6 +173,10 @@ void TrackRun::execute() {
 
     } else if(method == "CYCLOTRON-T") {
         setupCyclotronTracker();
+    } else if(method == "AUTOPHASE") {
+        executeAutophaseTracker();
+
+        return;
     } else {
         throw OpalException("TrackRun::execute()",
                             "Method name \"" + method + "\" unknown.");
@@ -826,7 +830,7 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
 
 }
 
-void TrackRun::findPhasesForMaxEnergy() const {
+void TrackRun::findPhasesForMaxEnergy(bool writeToFile) const {
     if (Options::autoPhase == 0 ||
         OpalData::getInstance()->inRestartRun() ||
         OpalData::getInstance()->hasBunchAllocated()) return;
@@ -881,61 +885,33 @@ void TrackRun::findPhasesForMaxEnergy() const {
     }
 
     apTracker.execute(dtAllTracks, zStop, localTrackSteps);
+
+    if (writeToFile) {
+        std::string fileName = OpalData::getInstance()->getInputBasename() + "_phases.in";
+        apTracker.save(fileName);
+    }
 }
 
-ParallelTTracker *TrackRun::setupForAutophase() {
-
-    Inform m("setupForAutophase() ");
+void TrackRun::executeAutophaseTracker() {
 
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-
-    DataSink *ds = NULL;
-
-
-    fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
-
-    fs->initCartesianFields();
-
-    Track::block->bunch->setSolver(fs);
-
-    std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
-    if (distr_str.size() == 0) {
-        dist = Distribution::find(defaultDistribution);
-    } else {
-        dist = Distribution::find(distr_str.at(0));
-    }
-
-    double charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
-
-    charge /= beam->getNumberOfParticles();
+    double charge = setDistributionParallelT(beam);
 
     Track::block->bunch->setdT(Track::block->dT.front());
-
-    Track::block->bunch->resetIfScan();
-
-    Track::block->bunch->LastSection = 1;
+    Track::block->bunch->dtScInit_m = Track::block->dtScInit;
+    Track::block->bunch->deltaTau_m = Track::block->deltaTau;
+    Track::block->bunch->setT(Track::block->t0_m);
 
     Track::block->bunch->setCharge(charge);
 
-    Track::block->bunch->setChargeZeroPart(charge);// just set bunch->qi_m=charge, don't set bunch->Q[] as we have not initialized any particle yet.
+    double couplingConstant = 1.0 / (4 * pi * epsilon_0);
+    Track::block->bunch->setCouplingConstant(couplingConstant);
 
-    double coefE = 1.0 / (4 * pi * epsilon_0);
-    Track::block->bunch->setCouplingConstant(coefE);
-    size_t N = 1;
-#ifdef HAVE_AMR_SOLVER
-    Amr* null_amrptr = 0;
-    return new ParallelTTracker(*Track::block->use->fetchLine(),
-                                dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                Track::block->reference, false, false, Track::block->localTimeSteps,
-                                Track::block->zstop, Track::block->timeIntegrator,
-				Track::block->dT, N, null_amrptr);
-#else
-    return new ParallelTTracker(*Track::block->use->fetchLine(),
-                                dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                Track::block->reference, false, false, Track::block->localTimeSteps,
-                                Track::block->zstop, Track::block->timeIntegrator,
-				Track::block->dT, N);
-#endif
+
+    Track::block->bunch->calcBeamParameters();
+
+    findPhasesForMaxEnergy(true);
+
 }
 
 #ifdef HAVE_AMR_SOLVER

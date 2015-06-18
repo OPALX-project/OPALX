@@ -61,6 +61,8 @@ public:
                  const std::queue<double> &maxZ,
                  const std::queue<unsigned long long> &maxTrackSteps);
 
+    void save(const std::string &fname);
+
 
     virtual void visitBeamline(const Beamline &bl);
     AP_VISITELEMENT(AlignWrapper)
@@ -112,6 +114,7 @@ private:
     double getEndCavity(const std::shared_ptr<Component> &);
     void sendCavityPhases();
     void receiveCavityPhases();
+    void printCavityPhases();
 
     OpalBeamline itsOpalBeamline_m;
     FieldList::iterator currentAPCavity_m;

@@ -16,11 +16,40 @@
 #include "AbsBeamline/Degrader.h"
 #include <gsl/gsl_rng.h>
 
+#include "Utility/IpplTimings.h"
+
+#ifdef OPAL_DKS
+#include "DKSBase.h"
+#endif
+
 class ElementBase;
 class PartBunch;
 class LossDataSink;
 class Inform;
 
+#ifdef OPAL_DKS
+typedef struct __align__(16) {
+    int label;
+    unsigned localID;
+    Vector_t Rincol;
+    Vector_t Pincol;
+    long IDincol;
+    int Binincol;
+    double DTincol;
+    double Qincol;
+    long LastSecincol;
+    Vector_t Bfincol;
+    Vector_t Efincol;
+} PART;
+
+typedef struct {
+  int label;
+  unsigned localID;
+  Vector_t Rincol;
+  Vector_t Pincol;
+} PART_DKS;
+
+#else
 typedef struct {
     int label;
     unsigned localID;
@@ -34,6 +63,7 @@ typedef struct {
     Vector_t Bfincol;
     Vector_t Efincol;
 } PART;
+#endif
 
 
 class CollimatorPhysics: public SurfacePhysicsHandler {
@@ -56,10 +86,26 @@ private:
     void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
     void EnergyLoss(double &Eng, bool &pdead, double &deltat);
 
-    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P, double thetacou, double deltas, int coord);
+    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P, 
+	     double thetacou, double deltas, int coord);
 
     void copyFromBunch(PartBunch &bunch);
     void addBackToBunch(PartBunch &bunch, unsigned i);
+
+#ifdef OPAL_DKS
+    void copyFromBunchDKS(PartBunch &bunch);
+    void addBackToBunchDKS(PartBunch &bunch, unsigned i);
+
+    void setupCollimatorDKS(PartBunch &bunch, Degrader *deg);
+    void clearCollimatorDKS();
+
+    void applyDKS();
+    void applyHost(PartBunch &bunch, Degrader *deg, Collimator *coll);
+    void deleteParticleFromLocalVectorDKS();
+  
+#endif
+
+
     void deleteParticleFromLocalVector();
 
     bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll); 
@@ -105,9 +151,32 @@ private:
     double Emax_m;
     double Emin_m;
 
+
+
     std::vector<PART> locParts_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
+
+#ifdef OPAL_DKS
+    DKSBase dksbase;
+    int curandInitSet;
+  
+    int ierr;
+    int maxparticles;
+    int numparticles;
+    int numlocalparts;
+    void *par_ptr;
+    void *mem_ptr;
+
+    std::vector<PART_DKS> dksParts_m;
+
+    static const int numpar = 12;
+#endif
+
+  IpplTimings::TimerRef DegraderApplyTimer_m;
+  IpplTimings::TimerRef DegraderLoopTimer_m;
+  IpplTimings::TimerRef DegraderInitTimer_m;
+
 
 };
 
