@@ -12,6 +12,7 @@
  ***************************************************************************/
 
 #include "Ippl.h"
+#include <typeinfo>
 
 #ifdef IPPL_USE_STANDARD_HEADERS
 #include <complex>
@@ -29,14 +30,43 @@ bool Configure(int argc, char *argv[],
   Inform msg("Configure ");
   Inform errmsg("Error ");
 
-  string bc_str;
-  string dist_str;
-  *nx = 16; 
-  *ny = 16;
-  *nz = 1024;
-  *nLoop = 1; 
-  *serialDim = 0;
+  /*
+    string bc_str;
+    string dist_str;
+    *nx = 8; 
+    *ny = 8;
+    *nz = 16;
+    *nLoop = 1; 
+    *serialDim = 0;
 
+    if (*serialDim == 0)
+    msg << "Serial dimension is x" << endl;
+    else if (*serialDim == 1)
+    msg << "Serial dimension is y" << endl;
+    else if (*serialDim == 2)
+    msg << "Serial dimension is z" << endl;
+    else {
+    *serialDim = 0;
+    msg << "Serial dimension is x" << endl;
+    }
+    *processes = Ippl::getNodes();
+    */
+  for (int i=1; i < argc; ++i) {
+    string s(argv[i]);
+    if (s == "-grid") {
+      *nx = atoi(argv[++i]);
+      *ny = atoi(argv[++i]);
+      *nz = atoi(argv[++i]);
+    }   else if (s == "-Loop") {
+      *nLoop = atoi(argv[++i]);
+    } else if (s == "-Decomp") {
+      *serialDim = atoi(argv[++i]);
+    } 
+    else {
+      errmsg << "Illegal format for or unknown option '" << s.c_str() << "'.";
+      errmsg << endl;
+    }
+  }
   if (*serialDim == 0)
     msg << "Serial dimension is x" << endl;
   else if (*serialDim == 1)
@@ -44,10 +74,12 @@ bool Configure(int argc, char *argv[],
   else if (*serialDim == 2)
     msg << "Serial dimension is z" << endl;
   else {
-    *serialDim = 0;
-    msg << "Serial dimension is x" << endl;
+    msg << "All parallel" << endl;
+    *serialDim = -1;
   }
+
   *processes = Ippl::getNodes();
+
 
   return true;
 }
@@ -57,6 +89,11 @@ int main(int argc, char *argv[])
   
   Ippl ippl(argc,argv);
   Inform testmsg(NULL,0);
+
+  static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
+  static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("fftTimer");
+
+  IpplTimings::startTimer(mainTimer);
   
   const unsigned D=3U;
   bool compressTemps = false;
@@ -143,31 +180,46 @@ int main(int argc, char *argv[])
 
   CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
     sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
- 		    ndiStandard[1]    * ky * yfact +
-		    ndiStandard[2]    * kz * zfact ) +
+		   ndiStandard[1]    * ky * yfact +
+		   ndiStandard[2]    * kz * zfact ) +
 	      sin( (ndiStandard[0]+1) * kx * xfact -
-		    ndiStandard[1]    * ky * yfact -
-		    ndiStandard[2]    * kz * zfact ) ) + 
+		   ndiStandard[1]    * ky * yfact -
+		   ndiStandard[2]    * kz * zfact ) ) + 
     cfact * (-cos( (ndiStandard[0]+1) * kx * xfact +
-		    ndiStandard[1]    * ky * yfact +
-		    ndiStandard[2]    * kz * zfact ) + 
-	      cos( (ndiStandard[0]+1) * kx * xfact -
-		    ndiStandard[1]    * ky * yfact -
-		    ndiStandard[2]    * kz * zfact ) );
+		   ndiStandard[1]    * ky * yfact +
+		   ndiStandard[2]    * kz * zfact ) + 
+	     cos( (ndiStandard[0]+1) * kx * xfact -
+		  ndiStandard[1]    * ky * yfact -
+		  ndiStandard[2]    * kz * zfact ) );
   
-  // RC FFT tests  
-  RFieldSPStan = 0;//real(CFieldPPStan);
-  CFieldSPStan0h = dcomplex(0.0,0.0);
+  cout << "TYPEINFO:" << endl;
+  cout << typeid(RFieldSPStan[0][0][0]).name() << endl;
+  cout << typeid(CFieldPPStan[0][0][0]).name() << endl;
 
-  Inform fo1(NULL,"realField.dat",Inform::OVERWRITE);
-   
+  // RC FFT tests  
+
+  //RFieldSPStan = real(CFieldPPStan);
   for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
     for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
       for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
-	fo1 << x << " " << y << " " << z << " " <<  RFieldSPStan[x][y][z].get() << endl;
+	RFieldSPStan[x][y][z] = real(CFieldPPStan[x][y][z].get());
       }
     }
   }
+ 
+  CFieldSPStan0h = dcomplex(0.0,0.0);
+
+  /*
+    Inform fo1(NULL,"realField.dat",Inform::OVERWRITE);
+   
+    for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
+    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
+    for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
+    fo1 << x << " " << y << " " << z << " " <<  RFieldSPStan[x][y][z].get() << endl;
+    }
+    }
+    }
+  */
 
   // create RC FFT object
   FFT<RCTransform,D,double> rcfft(ndiStandard, ndiStandard0h, compressTemps);
@@ -179,29 +231,50 @@ int main(int argc, char *argv[])
   Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
   
   testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
+
+  double total_time = 0;
+  rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
+  rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
+
   for (unsigned i=0; i<nLoop; i++) {
     RFieldSPStan_save = RFieldSPStan;
-    timer.start();
-    rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
 
-    for(int x = ndiStandard0h[0].first(); x <= ndiStandard0h[0].last(); x++) {
+    IpplTimings::startTimer(fftTimer);
+    rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
+    /*
+      for(int x = ndiStandard0h[0].first(); x <= ndiStandard0h[0].last(); x++) {
       for(int y = ndiStandard0h[1].first(); y <= ndiStandard0h[1].last(); y++) {
-	for(int z = ndiStandard0h[2].first(); z <= ndiStandard0h[2].last(); z++) {
-	  fo2 << x << " " << y << " " << z << " " <<  real(CFieldSPStan0h[x][y][z].get()) << " " << imag(CFieldSPStan0h[x][y][z].get()) << endl;
-	}
+      for(int z = ndiStandard0h[2].first(); z <= ndiStandard0h[2].last(); z++) {
+      fo2 << x << " " << y << " " << z << " " <<  real(CFieldSPStan0h[x][y][z].get()) << " " << imag(CFieldSPStan0h[x][y][z].get()) << endl;
       }
-    }    
+      }
+      }   
+    */
 
     rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
-    timer.stop();
+    IpplTimings::stopTimer(fftTimer);
+
+    //total_time+= timer.cpu_time();
+    /*
+      Inform fo2(NULL,"FFTrealResult.dat",Inform::OVERWRITE);
+      for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
+      for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
+      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
+      fo2 << x << " " << y << " " << z << " " <<  RFieldSPStan[x][y][z].get() << endl;
+      }
+      }
+      }
+    */
+
   
     diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
     realDiff = max(diffFieldSPStan);
     testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
   }
-  
-  testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
-  timer.clear();
+
+  IpplTimings::stopTimer(mainTimer);
+  IpplTimings::print();
+  IpplTimings::print(std::string("TestRC.timing"));
 
   return 0;
 }

@@ -259,6 +259,25 @@ private:
     Vector_t RefPartP_suv_m;
 
 
+#ifdef OPAL_DKS
+  DKSBase dksbase;
+
+  void *r_ptr;
+  void *p_ptr;
+  void *x_ptr;
+
+  void *lastSec_ptr;
+  void *orient_ptr;
+  void *dt_ptr;
+
+  int ierr;
+
+  int stream1;
+  int stream2;
+
+  unsigned int numDeviceElements;
+#endif
+
     bool globalEOL_m;
 
     bool wakeStatus_m;
@@ -345,6 +364,11 @@ private:
     IpplTimings::TimerRef timeFieldEvaluation_m ;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
+
+  IpplTimings::TimerRef timeIntegrationTimer1Loop1_m;
+  IpplTimings::TimerRef timeIntegrationTimer1Loop2_m;
+  IpplTimings::TimerRef timeIntegrationTimer2Loop1_m;
+  IpplTimings::TimerRef timeIntegrationTimer2Loop2_m;
 
     // 1 --- LF-2 (Boris-Buneman)
     // 3 --- AMTS (Adaptive Boris-Buneman with multiple time stepping)

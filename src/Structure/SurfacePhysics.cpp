@@ -39,6 +39,7 @@ namespace {
         RADIUS, // Radius of the tube
         SIGMA,
         TAU,
+	NPART,
         SIZE
     };
 }
@@ -62,6 +63,8 @@ SurfacePhysics::SurfacePhysics():
 
     itsAttr[TAU] = Attributes::makeReal
                    ("TAU", "Material constant dependant on the  beam pipe material");
+
+    itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
     SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
     defSurfacePhysics->builtin = true;

@@ -4,6 +4,9 @@
 #include "Utilities/OpalOptions.h"
 #include "Utilities/Timer.h"
 
+#include <iostream>
+#include <fstream>
+
 #define DTFRACTION 2
 
 extern Inform *gmsg;
@@ -121,7 +124,7 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
                     << "step  " << step << ", "
                     << "t = " << itsBunch_m.getT() << " [s], "
                     << "E = " << getEnergyMeV(refP) << " [MeV]\n\n"
-                    << "start phase scan ... \n");
+                    << "start phase scan ... " << endl;);
 
             double guess = guessCavityPhase(next);
             optimizeCavityPhase(next,
@@ -129,7 +132,7 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
                                 step,
                                 newDt);
 
-            INFOMSG(level2 << "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+            INFOMSG(level2 << "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl);
 
             track(endNext,
                   step,
@@ -147,9 +150,10 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         maxStepsAutoPhasing.pop();
     }
 
+    printCavityPhases();
     sendCavityPhases();
 
-    *gmsg << level1 << "\n\nfinished autophasing" << clock.time() << "\n\n"  << endl;
+    *gmsg << level1 << "\n\nfinished autophasing " << clock.time() << "\n\n"  << endl;
 }
 
 void AutophaseTracker::track(double uptoSPos,
@@ -199,8 +203,9 @@ void AutophaseTracker::track(double uptoSPos,
                 maxStepsAutoPhasing.front() = step;
 
             if(step % 5000 == 0) {
-                INFOMSG("step = " << step << ", spos = " << refR(2) << " [m], t= " << itsBunch_m.getT() << " [s], "
-                        << "E = " << getEnergyMeV(refP) << " [MeV] " << endl);
+                INFOMSG(level2 << "step = " << step << ", spos = " << refR(2) << " [m], "
+                        << "t= " << itsBunch_m.getT() << " [s], " << "E = " << getEnergyMeV(refP) << " [MeV] "
+                        << endl);
             }
         }
 
@@ -255,12 +260,12 @@ double AutophaseTracker::guessCavityPhase(const std::shared_ptr<Component> &cavi
         orig_phi = element->getPhasem();
         apVeto = element->getAutophaseVeto();
         if(apVeto) {
-            INFOMSG(" ----> APVETO -----> "
+            INFOMSG(level2 << " ----> APVETO -----> "
                     << element->getName() <<  endl);
             return orig_phi;
         }
-        INFOMSG(cavity->getName() << ", "
-                << "phi = " << orig_phi << endl);
+        INFOMSG(level2 << cavity->getName() << ", "
+                << "phase = " << orig_phi << " rad" << endl);
 
         Phimax = element->getAutoPhaseEstimate(getEnergyMeV(refP),
                                                itsBunch_m.getT() + tErr,
@@ -271,12 +276,12 @@ double AutophaseTracker::guessCavityPhase(const std::shared_ptr<Component> &cavi
         orig_phi = element->getPhasem();
         apVeto = element->getAutophaseVeto();
         if(apVeto) {
-            INFOMSG(" ----> APVETO -----> "
+            INFOMSG(level2 << " ----> APVETO -----> "
                     << element->getName() << endl);
             return orig_phi;
         }
-        INFOMSG(cavity->getName() << ", "
-                << "phi = " << orig_phi << endl);
+        INFOMSG(level2 << cavity->getName() << ", "
+                << "phase = " << orig_phi << " rad" << endl);
 
         Phimax = element->getAutoPhaseEstimate(getEnergyMeV(refP),
                                                itsBunch_m.getT() + tErr,
@@ -469,4 +474,71 @@ void AutophaseTracker::receiveCavityPhases() {
     }
 
     delete mess;
+}
+
+void AutophaseTracker::printCavityPhases() {
+    std::shared_ptr<Component> cavity = NULL;
+    const double RADDEG = 180.0 / Physics::pi;
+    const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
+
+    *gmsg << level1 << "\n-------------------------------------------------------------------------------------\n";
+    while (true) {
+        std::shared_ptr<Component> next = getNextCavity(cavity);
+        if (next == NULL) break;
+
+        std::string name = next->getName();
+        double frequency;
+        double phase;
+
+        if (next->getType() == ElementBase::TRAVELINGWAVE) {
+            phase = static_cast<TravelingWave *>(next.get())->getPhasem();
+	    frequency = static_cast<TravelingWave *>(next.get())->getFrequencym();
+        } else {
+            phase = static_cast<RFCavity *>(next.get())->getPhasem();
+	    frequency = static_cast<RFCavity *>(next.get())->getFrequencym();
+        }
+
+        phase -= globalTimeShift * frequency;
+
+        *gmsg << (cavity == NULL? "": "\n")
+            << name
+            << ": phi = phi_nom + phi_maxE + global phase shift = " << phase * RADDEG << " degree, "
+            << "(global phase shift = " << -globalTimeShift *frequency *RADDEG << " degree) \n";
+
+        cavity = next;
+    }
+    *gmsg << "-------------------------------------------------------------------------------------\n"
+          << endl;
+}
+
+void AutophaseTracker::save(const std::string &fname) {
+    std::ofstream out(fname);
+
+    std::shared_ptr<Component> cavity = NULL;
+    const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
+
+    while (true) {
+        std::shared_ptr<Component> next = getNextCavity(cavity);
+        if (next == NULL) break;
+
+        std::string name = next->getName();
+        double frequency;
+        double phase;
+
+        if (next->getType() == ElementBase::TRAVELINGWAVE) {
+            phase = static_cast<TravelingWave *>(next.get())->getPhasem();
+	    frequency = static_cast<TravelingWave *>(next.get())->getFrequencym();
+        } else {
+            phase = static_cast<RFCavity *>(next.get())->getPhasem();
+	    frequency = static_cast<RFCavity *>(next.get())->getFrequencym();
+        }
+
+        phase -= globalTimeShift * frequency;
+
+        out << name << "_lag = " << phase << ";\n";
+
+        cavity = next;
+    }
+
+    out.close();
 }

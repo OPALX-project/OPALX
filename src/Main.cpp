@@ -151,10 +151,8 @@ int main(int argc, char *argv[]) {
     //  DTA
     std::cout.precision(16);
     std::cout.setf(std::ios::scientific, std::ios::floatfield);
-    std::cout.setf(std::ios::showpos);
     std::cerr.precision(16);
     std::cerr.setf(std::ios::scientific, std::ios::floatfield);
-    std::cerr.setf(std::ios::showpos);
     // /DTA
 
     // Set global truncation orders.
