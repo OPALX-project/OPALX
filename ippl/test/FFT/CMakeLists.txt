@@ -25,13 +25,17 @@ IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
    #SET (IPPL_LIBS ${IPPL_LIBS} dks)
    SET (IPPL_LIBS ${IPPL_LIBS} ${DKS_LIBRARY_DIR}/libdks.a)
 
+
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
 
 
 add_executable (TestFFT TestFFT.cpp)
 add_executable (TestRC TestRC.cpp)
+add_executable (TestRCGPU TestRCGPU.cpp)
+
 
 target_link_libraries (TestFFT ${IPPL_LIBS})
 target_link_libraries (TestRC ${IPPL_LIBS})
+target_link_libraries (TestRCGPU ${IPPL_LIBS})
 
 

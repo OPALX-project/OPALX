@@ -55,7 +55,7 @@ public:
     assertion( const char *cond, const char *file, int line );
     assertion( const char *m );
     assertion( const assertion& a );
-    ~assertion() { delete[] msg; }
+  ~assertion() throw() { delete[] msg; }
     assertion& operator=( const assertion& a );
     const char* what() const noexcept { return msg; }
 };

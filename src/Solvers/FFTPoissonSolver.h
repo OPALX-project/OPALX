@@ -31,6 +31,12 @@
 #include <memory>
 //////////////////////////////////////////////////////////////
 #include "PoissonSolver.h"
+
+#ifdef OPAL_DKS
+#include "DKSBase.h"
+#include "nvToolsExt.h"
+#endif
+
 class PartBunch;
 
 //////////////////////////////////////////////////////////////
@@ -43,6 +49,10 @@ public:
     FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction, std::string bcz);
 
     ~FFTPoissonSolver();
+
+#ifdef OPAL_DKS
+    DKSBase dksbase;
+#endif
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
@@ -91,6 +101,20 @@ private:
     // grntr_m is the Fourier transformed Green's function
     // domain3_m and mesh3_ are used
     CxField_t grntr_m;
+
+#ifdef OPAL_DKS
+    //pointer for Fourier transformed Green's function on GPU
+    void * grntr_m_ptr;
+    void * rho2_m_ptr;
+    void * tmpgreen_ptr;
+    void *rho2real_m_ptr;
+    void *rho2tr_m_ptr;
+
+    //stream id for calculating greens function
+    int streamGreens;
+    int streamFFT;
+  
+#endif
 
     // Fields used to eliminate excess calculation in greensFunction()
     // mesh2_m and layout2_m are used
@@ -155,6 +179,8 @@ private:
 
     IpplTimings::TimerRef GreensFunctionTimer1_m;
     IpplTimings::TimerRef GreensFunctionTimer4_m;
+
+    IpplTimings::TimerRef ComputePotential_m;
 };
 
 inline Inform &operator<<(Inform &os, const FFTPoissonSolver &fs) {

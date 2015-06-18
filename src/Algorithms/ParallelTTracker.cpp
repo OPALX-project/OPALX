@@ -125,7 +125,12 @@ BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
 WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
 Nimpact_m(0),
 SeyNum_m(0.0),
-sphys_m(NULL){
+sphys_m(NULL),
+timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
+timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
+timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
+timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2"))
+{
 }
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
@@ -181,7 +186,12 @@ BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
 WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
 timeIntegrator_m(timeIntegrator),
 Nimpact_m(0),
-SeyNum_m(0.0) {
+SeyNum_m(0.0),
+timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
+timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
+timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
+timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2")) 
+{
 
     for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
         localTrackSteps_m.push(*it);
@@ -194,6 +204,12 @@ SeyNum_m(0.0) {
     }
 
     //    itsBeamline = dynamic_cast<Beamline*>(beamline.clone());
+
+#ifdef OPAL_DKS
+    dksbase.setAPI("Cuda", 4);
+    dksbase.setDevice("-gpu", 4);
+    dksbase.initDevice();
+#endif
 
 }
 
@@ -253,7 +269,12 @@ WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
 timeIntegrator_m(timeIntegrator),
 Nimpact_m(0),
 SeyNum_m(0.0),
-amrptr(amrptr_in){
+amrptr(amrptr_in),
+timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
+timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
+timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
+timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2"))
+{
 
     for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
         localTrackSteps_m.push(*it);
@@ -264,6 +285,13 @@ amrptr(amrptr_in){
     for (std::vector<double>::const_iterator it = zstop.begin(); it != zstop.end(); ++ it) {
         zStop_m.push(*it);
     }
+
+#ifdef OPAL_DKS
+    dksbase.setAPI("Cuda", 4);
+    dksbase.setDevice("-gpu", 4);
+    dksbase.initDevice();
+#endif
+
 }
 #endif
 
@@ -440,6 +468,49 @@ void ParallelTTracker::executeDefaultTracker() {
     wakeStatus_m = false;
     surfaceStatus_m = false;
 
+#ifdef OPAL_DKS
+
+    //get number of elements in the bunch
+    numDeviceElements = itsBunch->getLocalNum();
+
+    //allocate memory on device  
+    r_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+    p_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+    x_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+ 
+    lastSec_ptr = dksbase.allocateMemory<long>(numDeviceElements, ierr);
+    dt_ptr = dksbase.allocateMemory<double>(numDeviceElements, ierr);
+    orient_ptr = dksbase.allocateMemory<Vector_t>(itsOpalBeamline_m.sections_m.size(), ierr);
+
+    //get all the section orientations
+    int nsec = itsOpalBeamline_m.sections_m.size();
+    Vector_t *orientation = new Vector_t[nsec];
+    for (long i = 0; i < nsec; i++) {
+        orientation[i] = itsOpalBeamline_m.getOrientation(i);
+    }
+
+    //write orientations to device
+    dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
+    
+    //page lock itsBunch->X, itsBunch->R, itsBunch-P
+    dksbase.registerHostMemory(&itsBunch->R[0], numDeviceElements);
+    dksbase.registerHostMemory(&itsBunch->P[0], numDeviceElements);
+    dksbase.registerHostMemory(&itsBunch->X[0], numDeviceElements);
+    dksbase.registerHostMemory(&itsBunch->dt[0], numDeviceElements);
+    dksbase.registerHostMemory(&itsBunch->LastSection[0], numDeviceElements);
+
+    //write R, P and X data to device
+    dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], numDeviceElements);
+    dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], numDeviceElements);
+    dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], numDeviceElements);
+
+    //create two new streams
+    dksbase.createStream(stream1);
+    dksbase.createStream(stream2);
+
+    delete[] orientation;
+#endif
+
     while (localTrackSteps_m.size() > 0) {
         localTrackSteps_m.front() += step;
         dtCurrentTrack_m = dtAllTracks_m.front();
@@ -511,6 +582,23 @@ void ParallelTTracker::executeDefaultTracker() {
     OPALTimer::Timer myt3;
     itsOpalBeamline_m.switchElementsOff();
     *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
+
+#ifdef OPAL_DKS
+    //free device memory
+    dksbase.freeMemory<Vector_t>(r_ptr, numDeviceElements);
+    dksbase.freeMemory<Vector_t>(p_ptr, numDeviceElements);
+    dksbase.freeMemory<Vector_t>(x_ptr, numDeviceElements);
+    dksbase.freeMemory<long>(lastSec_ptr, numDeviceElements);
+    dksbase.freeMemory<Vector_t>(orient_ptr, itsOpalBeamline_m.sections_m.size());
+    dksbase.freeMemory<double>(dt_ptr, numDeviceElements);
+
+    //unregister page lock itsBunch->X, itsBunch->R, itsBunch-P
+    dksbase.unregisterHostMemory(&itsBunch->R[0]);
+    dksbase.unregisterHostMemory(&itsBunch->P[0]);
+    dksbase.unregisterHostMemory(&itsBunch->X[0]);
+    dksbase.unregisterHostMemory(&itsBunch->dt[0]);
+    dksbase.unregisterHostMemory(&itsBunch->LastSection[0]);
+#endif
 }
 
 void ParallelTTracker::executeAMTSTracker() {
@@ -1496,6 +1584,40 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
     if(bgf_m != NULL && secondaryFlg_m > 0) return;
 
+    IpplTimings::startTimer(timeIntegrationTimer1Loop1_m);
+#ifdef OPAL_DKS
+
+    //write data only if degrader has started and there are particles going to or comming from material
+    if (surfaceStatus_m) {
+        //write R to device
+        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
+        //write P to device
+        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum(), stream1);
+    }
+    //calc push
+    dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), NULL,
+                                     itsBunch->getdT(), Physics::c, false, stream1);
+    //read R from device
+    dksbase.readDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
+
+    if (surfaceStatus_m) {
+        //write X to device
+        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
+    }
+    //write LastSection to device
+    dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0], itsBunch->getLocalNum(), 
+                                 stream2);
+    //calc push
+    dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr, 
+                                              itsBunch->getLocalNum(), 
+                                              itsOpalBeamline_m.sections_m.size(),
+                                              NULL, itsBunch->getdT(), Physics::c, false, stream2);
+    //read R from device
+    dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
+    
+    //sync and wait till all tasks and reads are complete
+    dksbase.syncDevice();
+#else
     itsBunch->switchToUnitlessPositions();
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         //scale each particle with c*dt
@@ -1505,6 +1627,8 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
         pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
     }
     itsBunch->switchOffUnitlessPositions();
+#endif
+    IpplTimings::stopTimer(timeIntegrationTimer1Loop1_m);
 
     if(numParticlesInSimulation_m > minBinEmitted_m) {
         itsBunch->boundp();
@@ -1595,6 +1719,43 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
     //switchElements();
 
+
+IpplTimings::startTimer(timeIntegrationTimer2Loop1_m);
+#ifdef OPAL_DKS
+
+  if (surfaceStatus_m) {
+    //write R to device
+    dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
+    //write P to device
+    dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum(), stream1);
+  }
+  //wrote dt to device
+  dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], itsBunch->getLocalNum(), stream1);
+  //calc push
+  dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr, 
+				   itsBunch->getdT(), Physics::c, true, stream1);
+  //read R from device
+  dksbase.readDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
+
+  if (surfaceStatus_m) {
+    //write X to device
+    dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
+  }
+  //write LastSection to device
+  dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0], 
+			       itsBunch->getLocalNum(), stream2);
+  //calc push
+  dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr, 
+					    itsBunch->getLocalNum(), 
+					    itsOpalBeamline_m.sections_m.size(),
+					    dt_ptr, itsBunch->getdT(), Physics::c, true, stream2);
+  //read R from device
+  dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
+
+  //sync and wait till all tasks and reads are complete
+  dksbase.syncDevice();
+
+#else
     itsBunch->switchToUnitlessPositions(true);
     // start normal particle loop part 2 for simulation without boundary geometry.
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
@@ -1612,8 +1773,9 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
         //the particle is now in sync with the simulation timestep
 
     }
-
     itsBunch->switchOffUnitlessPositions(true);
+#endif
+    IpplTimings::stopTimer(timeIntegrationTimer2Loop1_m);
 
     //std::fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
@@ -1912,10 +2074,50 @@ void ParallelTTracker::computeExternalFields() {
         ne = itsBunch->boundp_destroyT();
         numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
+    numParticlesInSimulation_m  = itsBunch->getTotalNum();
 
     if(numParticlesInSimulation_m > minBinEmitted_m) {
       itsBunch->update();
     }
+
+    //dks check number of particles in each node, adjust cpu and gpu memory if bunch size exceeds
+    //previously allocated memory
+#ifdef OPAL_DKS
+    if (itsBunch->getLocalNum() > numDeviceElements) {
+        //unregister page lock itsBunch->X, itsBunch->R, itsBunch-P
+        dksbase.unregisterHostMemory(&itsBunch->R[0]);
+        dksbase.unregisterHostMemory(&itsBunch->P[0]);
+        dksbase.unregisterHostMemory(&itsBunch->X[0]);
+        dksbase.unregisterHostMemory(&itsBunch->dt[0]);
+        dksbase.unregisterHostMemory(&itsBunch->LastSection[0]);
+
+        //free old device memory
+        dksbase.freeMemory<Vector_t>(r_ptr, numDeviceElements);
+        dksbase.freeMemory<Vector_t>(p_ptr, numDeviceElements);
+        dksbase.freeMemory<Vector_t>(x_ptr, numDeviceElements);
+        dksbase.freeMemory<long>(lastSec_ptr, numDeviceElements);
+        dksbase.freeMemory<double>(dt_ptr, numDeviceElements);
+
+        //assign new device memory size
+        numDeviceElements = itsBunch->getLocalNum();
+        
+        //register new pagelocked memory
+        dksbase.registerHostMemory(&itsBunch->R[0], numDeviceElements);
+        dksbase.registerHostMemory(&itsBunch->P[0], numDeviceElements);
+        dksbase.registerHostMemory(&itsBunch->X[0], numDeviceElements);
+        dksbase.registerHostMemory(&itsBunch->dt[0], numDeviceElements);
+        dksbase.registerHostMemory(&itsBunch->LastSection[0], numDeviceElements);
+
+        //allocate memory on device  
+        r_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+        p_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+        x_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+        lastSec_ptr = dksbase.allocateMemory<long>(numDeviceElements, ierr);
+        dt_ptr = dksbase.allocateMemory<double>(numDeviceElements, ierr);
+
+    }
+
+#endif
 
     /// indicate at least one a node has only 1 particles
     if(surfaceStatus_m) {

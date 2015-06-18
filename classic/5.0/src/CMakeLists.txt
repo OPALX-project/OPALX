@@ -64,6 +64,10 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src  # libclassic should not have any dependencies on libopal
 )
 
+IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+   include_directories (${DKS_INCLUDE_DIR})
+ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+
 add_library( CLASSIC ${CLASSIC_SRCS} )
 install (TARGETS CLASSIC DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 install (FILES Utilities/ClassicException.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
