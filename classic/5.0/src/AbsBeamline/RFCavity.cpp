@@ -897,7 +897,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
                     }
                 }
                 const int prevPrecision = Ippl::Info->precision(8);
-                INFOMSG("estimated phi= " << tmp_phi << " rad, "
+                INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
                         << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
 
                 return tmp_phi;
@@ -952,7 +952,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
         }
 
         const int prevPrecision = Ippl::Info->precision(8);
-        INFOMSG("estimated phi= " << tmp_phi << " rad, "
+        INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
                 << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
 
         return phi;

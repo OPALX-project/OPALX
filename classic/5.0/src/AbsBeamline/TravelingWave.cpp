@@ -583,43 +583,8 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
                 }
 
                 const int prevPrecision = Ippl::Info->precision(8);
-                INFOMSG("estimated phi= " << tmp_phi << " rad, "
+                INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
                         << "Ekin= " << E[N3 - 1] << " MeV" << setprecision(prevPrecision) << endl);
-                //                 std::stringstream fn;
-                //                 fn << getName() << ".dat";
-                //                 ofstream ckrtest(fn.str().c_str());
-                //                 ckrtest << setprecision(12);
-                //                 for (int i = 0; i < N1; ++ i) {
-                //                     ckrtest << startField_m + F[i].first << "\t"
-                //                             << t[i] << "\t"
-                //                             << scale_m * cos(frequency_m * t[i] + phi) * F[i].second << "\t"
-                //                             << E[i] << "\t"
-                //                             << cos(frequency_m * t[i] + phi) << "\t"
-                //                             << i << endl;
-                //                 }
-                //                 for (int i = N1; i < N3 - N1 + 1; ++ i) {
-                //                     int I = (i - N1) % N2 + N1;
-                //                     int J = (i - N1 + N4) % N2 + N1;
-                //                     double Z = startField_m + F[I].first + floor((i - N1) / N2) * Dz;
-                //                     ckrtest << Z << "\t"
-                //                             << t[i] << "\t"
-                //                             << scaleCore_m * (cos(frequency_m * t[i] + phaseC1 + phi) * F[I].second +
-                //                                               cos(frequency_m * t[i] + phaseC2 + phi) * F[J].second) << "\t"
-                //                             << E[i] << "\t"
-                //                             << frequency_m * t[i] + phi << "\t"
-                //                             << I << endl;
-                //                 }
-                //                 for (int i = N3 - N1 + 1; i < N3; ++ i) {
-                //                     int I = i - N3 - 1 + 2 * N1 + N2;
-                //                     double Z = startField_m + F[I].first + ((NumCells_m - 1) * Mode_m - 1) * Dz;
-                //                     ckrtest << Z << "\t"
-                //                             << t[i] << "\t"
-                //                             << scale_m * cos(frequency_m * t[i] + phaseE + phi) * F[I].second << "\t"
-                //                             << E[i] << "\t"
-                //                             << frequency_m * t[i] + phi << "\t"
-                //                             << I << endl;
-                //                 }
-                //                 ckrtest.close();
                 return tmp_phi;
             }
             phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
@@ -657,7 +622,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 
 
         const int prevPrecision = Ippl::Info->precision(8);
-        INFOMSG("estimated phi= " << tmp_phi << " rad, "
+        INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
                 << "Ekin= " << E[N3 - 1] << " MeV" << setprecision(prevPrecision) << endl);
 
         return phi;

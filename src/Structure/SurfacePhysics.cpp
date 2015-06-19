@@ -66,8 +66,6 @@ SurfacePhysics::SurfacePhysics():
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
-    std::cout << "Debug ==> Number of particles: " << Attributes::getReal(itsAttr[NPART]) << std::endl;
-
     SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
     defSurfacePhysics->builtin = true;
 
