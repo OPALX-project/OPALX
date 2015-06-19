@@ -99,7 +99,7 @@ TrackRun::TrackRun():
     phaseSpaceSink_m(NULL) {
     itsAttr[METHOD] = Attributes::makeString
                       ("METHOD", "Name of tracking algorithm to use:\n"
-                       "\t\t\t\"THIN\" (default) or \"THICK,PARALLEL-T,PARALLEL-TA,PARALLEL-Z,PARALLEL-SLICE\".", "THIN");
+                       "\t\t\t\"THIN\" (default) or \"THICK,PARALLEL-T,CYCLOTRON-T,PARALLEL-SLICE,AUTOPHASE\".", "THIN");
     itsAttr[TURNS] = Attributes::makeReal
                      ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron", 1.0);
 
@@ -110,7 +110,7 @@ TrackRun::TrackRun():
                       ("PARAMB", " Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
 
     itsAttr[FNAME] = Attributes::makeString
-                     ("FILE", "Name of file to be written", "TRACK");
+                     ("FNAME", "Name of file to be written", "TRACK");
 
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam ", "BEAM");
