@@ -2036,7 +2036,6 @@ void ParallelTTracker::computeExternalFields() {
         ne = itsBunch->boundp_destroyT();
         numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
-    numParticlesInSimulation_m  = itsBunch->getTotalNum();
 
     if(numParticlesInSimulation_m > minBinEmitted_m) {
       itsBunch->update();
