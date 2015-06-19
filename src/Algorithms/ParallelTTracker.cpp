@@ -190,7 +190,7 @@ SeyNum_m(0.0),
 timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
 timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
 timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
-timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2")) 
+timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2"))
 {
 
     for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
@@ -338,42 +338,6 @@ void ParallelTTracker::updateRFElement(std::string elName, double maxPhase) {
     }
 }
 
-void ParallelTTracker::printRFPhases() {
-    /**
-     All RF-Elements gets updated, where the phiShift is the
-     global phase shift in units of seconds.
-     */
-    FieldList &cl = cavities_m;
-
-    const double RADDEG = 180.0 / Physics::pi;
-    const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
-
-    *gmsg << level1 << "\n-------------------------------------------------------------------------------------\n";
-
-    for (FieldList::iterator it = cl.begin(); it != cl.end(); ++it) {
-        std::shared_ptr<Component> element(it->getElement());
-        std::string name = element->getName();
-        double frequency;
-        double phase;
-
-        if (element->getType() == ElementBase::TRAVELINGWAVE) {
-            phase = static_cast<TravelingWave *>(element.get())->getPhasem();
-	    frequency = static_cast<TravelingWave *>(element.get())->getFrequencym();
-        } else {
-            phase = static_cast<RFCavity *>(element.get())->getPhasem();
-	    frequency = static_cast<RFCavity *>(element.get())->getFrequencym();
-        }
-
-        *gmsg << (it == cl.begin()? "": "\n")
-            << name
-            << ": phi = phi_nom + phi_maxE + global phase shift = " << phase * RADDEG << " degree, "
-            << "(global phase shift = " << -globalTimeShift *frequency *RADDEG << " degree) \n";
-    }
-
-    *gmsg << "-------------------------------------------------------------------------------------\n"
-        << endl;
-}
-
 void ParallelTTracker::handleAutoPhasing() {
     typedef std::vector<MaxPhasesT>::iterator iterator_t;
 
@@ -388,8 +352,6 @@ void ParallelTTracker::handleAutoPhasing() {
     for(; it < end; ++ it) {
         updateRFElement((*it).first, (*it).second);
     }
-
-    printRFPhases();
 }
 
 void ParallelTTracker::execute() {
@@ -473,11 +435,11 @@ void ParallelTTracker::executeDefaultTracker() {
     //get number of elements in the bunch
     numDeviceElements = itsBunch->getLocalNum();
 
-    //allocate memory on device  
+    //allocate memory on device
     r_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
     p_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
     x_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
- 
+
     lastSec_ptr = dksbase.allocateMemory<long>(numDeviceElements, ierr);
     dt_ptr = dksbase.allocateMemory<double>(numDeviceElements, ierr);
     orient_ptr = dksbase.allocateMemory<Vector_t>(itsOpalBeamline_m.sections_m.size(), ierr);
@@ -491,7 +453,7 @@ void ParallelTTracker::executeDefaultTracker() {
 
     //write orientations to device
     dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
-    
+
     //page lock itsBunch->X, itsBunch->R, itsBunch-P
     dksbase.registerHostMemory(&itsBunch->R[0], numDeviceElements);
     dksbase.registerHostMemory(&itsBunch->P[0], numDeviceElements);
@@ -1605,16 +1567,16 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
         dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
     }
     //write LastSection to device
-    dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0], itsBunch->getLocalNum(), 
+    dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0], itsBunch->getLocalNum(),
                                  stream2);
     //calc push
-    dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr, 
-                                              itsBunch->getLocalNum(), 
+    dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
+                                              itsBunch->getLocalNum(),
                                               itsOpalBeamline_m.sections_m.size(),
                                               NULL, itsBunch->getdT(), Physics::c, false, stream2);
     //read R from device
     dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
-    
+
     //sync and wait till all tasks and reads are complete
     dksbase.syncDevice();
 #else
@@ -1732,7 +1694,7 @@ IpplTimings::startTimer(timeIntegrationTimer2Loop1_m);
   //wrote dt to device
   dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], itsBunch->getLocalNum(), stream1);
   //calc push
-  dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr, 
+  dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr,
 				   itsBunch->getdT(), Physics::c, true, stream1);
   //read R from device
   dksbase.readDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
@@ -1742,11 +1704,11 @@ IpplTimings::startTimer(timeIntegrationTimer2Loop1_m);
     dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
   }
   //write LastSection to device
-  dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0], 
+  dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0],
 			       itsBunch->getLocalNum(), stream2);
   //calc push
-  dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr, 
-					    itsBunch->getLocalNum(), 
+  dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
+					    itsBunch->getLocalNum(),
 					    itsOpalBeamline_m.sections_m.size(),
 					    dt_ptr, itsBunch->getdT(), Physics::c, true, stream2);
   //read R from device
@@ -2100,7 +2062,7 @@ void ParallelTTracker::computeExternalFields() {
 
         //assign new device memory size
         numDeviceElements = itsBunch->getLocalNum();
-        
+
         //register new pagelocked memory
         dksbase.registerHostMemory(&itsBunch->R[0], numDeviceElements);
         dksbase.registerHostMemory(&itsBunch->P[0], numDeviceElements);
@@ -2108,7 +2070,7 @@ void ParallelTTracker::computeExternalFields() {
         dksbase.registerHostMemory(&itsBunch->dt[0], numDeviceElements);
         dksbase.registerHostMemory(&itsBunch->LastSection[0], numDeviceElements);
 
-        //allocate memory on device  
+        //allocate memory on device
         r_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
         p_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
         x_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
