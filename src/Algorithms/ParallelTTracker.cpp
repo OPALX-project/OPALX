@@ -2037,8 +2037,9 @@ void ParallelTTracker::computeExternalFields() {
         numParticlesInSimulation_m  = itsBunch->getTotalNum();
     }
 
-    if(numParticlesInSimulation_m > minBinEmitted_m) {
-      itsBunch->update();
+    if(numParticlesInSimulation_m > minBinEmitted_m || itsBunch->getTotalNum() > minBinEmitted_m) {
+        itsBunch->update();
+        numParticlesInSimulation_m = itsBunch->getTotalNum();
     }
 
     //dks check number of particles in each node, adjust cpu and gpu memory if bunch size exceeds
