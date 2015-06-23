@@ -57,7 +57,7 @@ public:
     assertion( const assertion& a );
   ~assertion() throw() { delete[] msg; }
     assertion& operator=( const assertion& a );
-    const char* what() const noexcept { return msg; }
+    const char* what()  { return msg; }
 };
 
 //---------------------------------------------------------------------------//
