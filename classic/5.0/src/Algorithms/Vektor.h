@@ -25,18 +25,18 @@ public:
     Quaternion& operator*=(const Quaternion &);
     const Quaternion operator/(const double &) const;
 
-    const double Norm() const;
-    const double length() const;
+    double Norm() const;
+    double length() const;
     Quaternion & normalize();
 
-    const bool isUnit() const;
-    const bool isPure() const;
-    const bool isPureUnit() const;
+    bool isUnit() const;
+    bool isPure() const;
+    bool isPureUnit() const;
 
     const Quaternion inverse() const;
     const Quaternion conjugate() const;
 
-    const double real() const;
+    double real() const;
     const Vector_t imag() const;
 
     const Vector_t rotate(const Vector_t &) const;
@@ -76,31 +76,31 @@ Quaternion::Quaternion(const double & realPart, const Vector_t & vec):
 {}
 
 inline
-const double Quaternion::Norm() const
+double Quaternion::Norm() const
 {
     return dot(*this, *this);
 }
 
 inline
-const double Quaternion::length() const
+double Quaternion::length() const
 {
     return sqrt(this->Norm());
 }
 
 inline
-const bool Quaternion::isUnit() const
+bool Quaternion::isUnit() const
 {
     return (std::abs(this->Norm() - 1.0) < 1e-12);
 }
 
 inline
-const bool Quaternion::isPure() const
+bool Quaternion::isPure() const
 {
     return (std::abs((*this)(0)) < 1e-12);
 }
 
 inline
-const bool Quaternion::isPureUnit() const
+bool Quaternion::isPureUnit() const
 {
     return (this->isPure() && this->isUnit());
 }
@@ -114,7 +114,7 @@ const Quaternion Quaternion::conjugate() const
 }
 
 inline
-const double Quaternion::real() const
+double Quaternion::real() const
 {
     return (*this)(0);
 }
