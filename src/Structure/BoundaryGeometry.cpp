@@ -186,19 +186,19 @@ public:
     inline const Vector_t& v1() const {
         return pts[0];
     }
-    inline const double v1(int i) const {
+    inline double v1(int i) const {
         return pts[0][i];
     }
     inline const Vector_t& v2() const {
         return pts[1];
     }
-    inline const double v2(int i) const {
+    inline double v2(int i) const {
         return pts[1][i];
     }
     inline const Vector_t& v3() const {
         return pts[2];
     }
-    inline const double v3(int i) const {
+    inline double v3(int i) const {
         return pts[2][i];
     }
 
