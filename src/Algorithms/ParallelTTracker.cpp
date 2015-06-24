@@ -125,7 +125,6 @@ BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
 WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
 Nimpact_m(0),
 SeyNum_m(0.0),
-sphys_m(NULL),
 timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
 timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
 timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
@@ -1898,9 +1897,9 @@ void ParallelTTracker::computeExternalFields() {
     Inform msg("ParallelTTracker ", *gmsg);
 
     unsigned long hasWake = 0;
-    unsigned long hasSurfacePhysics = 0;
+    int hasSurfacePhysics = 0;
     long wfSection = 0;
-    long sphysSection = 0;
+    std::set<long> sphysSections;
 
     globalEOL_m = true;
     bool emission_in_progress = itsBunch->GetIfBeamEmitting();
@@ -1930,8 +1929,7 @@ void ParallelTTracker::computeExternalFields() {
         }
 
         if((rtv & BEAMLINE_SURFACEPHYSICS) && hasSurfacePhysics == 0) {
-            sphysSection = ls;
-            hasSurfacePhysics = 1;
+            sphysSections.insert(ls);
         }
 
         bends_m = bends_m || (rtv & BEAMLINE_BEND);
@@ -1954,8 +1952,10 @@ void ParallelTTracker::computeExternalFields() {
     IpplTimings::stopTimer(timeFieldEvaluation_m);
 
     reduce(hasWake, hasWake, OpAddAssign());
-    reduce(hasSurfacePhysics, hasSurfacePhysics, OpAddAssign());
     reduce(bends_m, bends_m, OpAddAssign());
+
+    hasSurfacePhysics = sphysSections.size();
+    reduce(hasSurfacePhysics, hasSurfacePhysics, OpMaxAssign());
 
     if(hasWake > 0) {
         IpplTimings::startTimer(WakeFieldTimer_m);
@@ -1993,38 +1993,70 @@ void ParallelTTracker::computeExternalFields() {
     }
 
     if(hasSurfacePhysics > 0) {    // in a section we have an element with surface physics
+        std::set<long> old_sphysSections;
+        std::vector<long> leftBehindSections, newSections;
+        for (auto it: sphys_m) {
+            old_sphysSections.insert(it.first);
+        }
+
+        std::vector<long> sectionsWithSurfacePhysics(sphysSections.begin(), sphysSections.end());
+        sectionsWithSurfacePhysics.resize(Ippl::getNodes() * hasSurfacePhysics, -1);
+        MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                      &sectionsWithSurfacePhysics[0], hasSurfacePhysics, MPI_LONG,
+                      Ippl::getComm());
+        sphysSections.insert(sectionsWithSurfacePhysics.begin(),
+                             sectionsWithSurfacePhysics.end());
+        auto dummySection = sphysSections.find(-1);
+        if (dummySection != sphysSections.end()) {
+            sphysSections.erase(dummySection);
+        }
+
+        newSections.resize(leftBehindSections.size());
+        {
+            leftBehindSections.resize(std::max(old_sphysSections.size(),
+                                               sphysSections.size()));
+            auto last = std::set_difference(old_sphysSections.begin(), old_sphysSections.end(),
+                                            sphysSections.begin(), sphysSections.end(),
+                                            leftBehindSections.begin());
+            leftBehindSections.resize(last - leftBehindSections.begin());
+        }
+        for (long it: leftBehindSections) {
+            sphys_m[it] = NULL;
+            sphys_m.erase(it);
+        }
+
+        {
+            newSections.resize(std::max(old_sphysSections.size(),
+                                        sphysSections.size()));
+            auto last = std::set_difference(sphysSections.begin(), sphysSections.end(),
+                                            old_sphysSections.begin(), old_sphysSections.end(),
+                                            newSections.begin());
+            newSections.resize(last - newSections.begin());
+        }
+        for (long it: newSections) {
+            sphys_m.insert(std::make_pair(it, itsOpalBeamline_m.getSurfacePhysicsHandler(it)));
+        }
+
         if(!surfaceStatus_m) {
             msg << level2 << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
-
-            // now get surface physics handler
-            reduce(sphysSection, sphysSection, OpMaxAssign());
-            if (sphys_m==NULL)
-                sphys_m = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
-            else {
-                /* FixMe: this needs to be redone !
-                In case we have an other
-                handler, delete the first one and use the new one
-                */
-                ERRORMSG("Internal error: try to allocate second SurfacePhysicsHandler - SRCFILE" << __FILE__ << " LINE " << __LINE__ << endl);
-                SurfacePhysicsHandler *sphysNew = itsOpalBeamline_m.getSurfacePhysicsHandler(sphysSection);
-                if (sphysNew != sphys_m && sphysNew != NULL) {
-                    //delete sphys_m; FixMe: should do this right!!!
-                    sphys_m = sphysNew;
-                }
-            }
         }
-        if(sphys_m == NULL) {
-            INFOMSG("no surface physics attached" << endl);
-        } else {
-            sphys_m->apply(*itsBunch);
-            sphys_m->print(msg);
+
+        for (auto it: sphys_m) {
+            it.second->apply(*itsBunch);
+            it.second->print(msg);
         }
     } else if(surfaceStatus_m) {
-        if (sphys_m->stillActive()) {
-            sphys_m->apply(*itsBunch);
-            sphys_m->print(msg);
-        } else {
+        for (auto it: sphys_m) {
+            if (it.second->stillActive()) {
+                it.second->apply(*itsBunch);
+                it.second->print(msg);
+            } else {
+                it.second = NULL;
+                sphys_m.erase(it.first);
+            }
+        }
+        if (sphys_m.size() == 0) {
             msg << level2 << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = false;
         }
@@ -2084,7 +2116,9 @@ void ParallelTTracker::computeExternalFields() {
     /// indicate at least one a node has only 1 particles
     if(surfaceStatus_m) {
       itsBunch->gatherLoadBalanceStatistics();
-      sphys_m->AllParticlesIn(itsBunch->getMinLocalNum() <= 1);
+      for (auto it: sphys_m) {
+          it.second->AllParticlesIn(itsBunch->getMinLocalNum() <= 1);
+      }
     }
 
     if(ne > 0)

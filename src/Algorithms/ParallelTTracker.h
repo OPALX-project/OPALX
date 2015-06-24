@@ -379,7 +379,7 @@ private:
     double SeyNum_m;
 
 
-    SurfacePhysicsHandler *sphys_m;
+    std::map<long, SurfacePhysicsHandler*> sphys_m;
 
 
     /********************** END VARIABLES ***********************************/
