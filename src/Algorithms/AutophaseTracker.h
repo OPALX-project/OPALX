@@ -56,7 +56,6 @@ public:
                      double initialP);
     virtual ~AutophaseTracker();
 
-    FieldList executeAutoPhaseForSliceTracker();
     void execute(const std::queue<double> &dtAllTracks,
                  const std::queue<double> &maxZ,
                  const std::queue<unsigned long long> &maxTrackSteps);
@@ -89,8 +88,6 @@ public:
     AP_VISITELEMENT(TravelingWave)
 
 private:
-    void updateRFElement(std::string elName, double maxPhi);
-    void updateAllRFElements(double phiShift);
     double APtrack(const std::shared_ptr<Component> &cavity, double cavity_start, const double &phi) const;
     void track(double uptoSPos,
                size_t &step,
@@ -98,9 +95,6 @@ private:
                std::queue<double> &maxZ,
                std::queue<unsigned long long> &maxTrackSteps);
 
-    double getGlobalPhaseShift();
-    void handleOverlappingMonitors();
-    void prepareSections();
     double getEnergyMeV(const Vector_t &p);
     void evaluateField();
     std::shared_ptr<Component> getNextCavity(const std::shared_ptr<Component> &current);
