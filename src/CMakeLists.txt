@@ -106,7 +106,7 @@ set (OPAL_LIBS
 IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
    set (OPAL_LIBS	  
        ${OPAL_LIBS}
-       dks)
+       ${DKS_LIBRARY_DIR}/libdks.a)
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
 add_library( OPALib ${OPAL_SRCS} opal.cpp )

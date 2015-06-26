@@ -276,6 +276,11 @@ private:
   int stream2;
 
   unsigned int numDeviceElements;
+
+  void registerHostMemory();
+  void unregisterHostMemory();
+  void allocateDeviceMemory();
+  void freeDeviceMemory();
 #endif
 
     bool globalEOL_m;

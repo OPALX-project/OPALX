@@ -112,7 +112,6 @@ IF (USE_MIC)
 ENDIF (USE_MIC)
 ### END DKS part ###
 
-
 # Handle options
 OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
 
@@ -238,3 +237,6 @@ ADD_SUBDIRECTORY (src)
 IF (BUILD_OPAL_UNIT_TESTS)
      ADD_SUBDIRECTORY(tests)
 ENDIF (BUILD_OPAL_UNIT_TESTS)
+
+
+
