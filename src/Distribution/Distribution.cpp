@@ -1329,7 +1329,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
                             Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
                             CyclotronElement->getPHIinit(),
                             false))  {
-                std::array<double,3> Emit = siggen.getEmittances();
+	        std::array<double,3> Emit = siggen.getEmittances();
 
                 *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", " << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
                 *gmsg << "* Sigma-Matrix " << endl;
@@ -1376,13 +1376,13 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
                 }
             }
 
-            correlationMatrix_m(1, 0) = sigma(0, 1) / sqrt(sigma(0, 0) * sigma(1, 1));
-            correlationMatrix_m(3, 2) = sigma(2, 3) / sqrt(sigma(2, 2) * sigma(3, 3));
-            correlationMatrix_m(5, 4) = sigma(4, 5) / sqrt(sigma(4, 4) * sigma(5, 5));
-            correlationMatrix_m(4, 0) = sigma(0, 4) / sqrt(sigma(0, 0) * sigma(4, 4));
-            correlationMatrix_m(4, 1) = sigma(1, 4) / sqrt(sigma(1, 1) * sigma(4, 4));
-            correlationMatrix_m(5, 0) = sigma(0, 5) / sqrt(sigma(0, 0) * sigma(5, 5));
-            correlationMatrix_m(5, 1) = sigma(1, 5) / sqrt(sigma(1, 1) * sigma(5, 5));
+            correlationMatrix_m(1, 0) = sigma(0, 1) / (sqrt(sigma(0, 0) * sigma(1, 1)));
+	    correlationMatrix_m(3, 2) = sigma(2, 3) / (sqrt(sigma(2, 2) * sigma(3, 3)));
+            correlationMatrix_m(5, 4) = sigma(4, 5) / (sqrt(sigma(4, 4) * sigma(5, 5)));
+	    correlationMatrix_m(4, 0) = sigma(0, 4) / (sqrt(sigma(0, 0) * sigma(4, 4)));
+	    correlationMatrix_m(4, 1) = sigma(1, 4) / (sqrt(sigma(1, 1) * sigma(4, 4)));
+	    correlationMatrix_m(5, 0) = sigma(0, 5) / (sqrt(sigma(0, 0) * sigma(5, 5)));
+	    correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
 
         } else {
             *gmsg << "Not converged." << endl;
