@@ -263,8 +263,6 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       }
     } while (onlyOneLoopOverParticles == false);
 
-    if (Ippl::myNode() == 0)
-      nvtxRangePop();
 #else
     
     do{
