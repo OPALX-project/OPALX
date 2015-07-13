@@ -111,7 +111,6 @@ private:
     void printCavityPhases();
 
     OpalBeamline itsOpalBeamline_m;
-    FieldList::iterator currentAPCavity_m;
     PartBunch itsBunch_m;
     BorisPusher itsPusher_m;
     Layout_t *particleLayout_m;

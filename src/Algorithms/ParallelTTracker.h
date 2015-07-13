@@ -360,8 +360,6 @@ private:
 
     Tenzor<double, 3> space_orientation_m;
 
-    FieldList::iterator currently_ap_cavity_m;
-
     // Vector of the scale factor for dimensionless variables (FIXME: move to PartBunch)
 
     IpplTimings::TimerRef timeIntegrationTimer1_m;
