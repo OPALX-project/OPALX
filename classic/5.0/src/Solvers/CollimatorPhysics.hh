@@ -28,7 +28,7 @@ class LossDataSink;
 class Inform;
 
 #ifdef OPAL_DKS
-typedef struct __align__(16) {
+typedef struct {
     int label;
     unsigned localID;
     Vector_t Rincol;

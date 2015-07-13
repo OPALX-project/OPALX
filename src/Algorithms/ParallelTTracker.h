@@ -276,6 +276,11 @@ private:
   int stream2;
 
   unsigned int numDeviceElements;
+
+  void registerHostMemory();
+  void unregisterHostMemory();
+  void allocateDeviceMemory();
+  void freeDeviceMemory();
 #endif
 
     bool globalEOL_m;
@@ -379,7 +384,7 @@ private:
     double SeyNum_m;
 
 
-    SurfacePhysicsHandler *sphys_m;
+    std::map<long, SurfacePhysicsHandler*> sphys_m;
 
 
     /********************** END VARIABLES ***********************************/

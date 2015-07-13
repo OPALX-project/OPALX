@@ -361,11 +361,13 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
 
             // properties of one turn
             container_type h_turn = cof.getInverseBendingRadius();
-            container_type r_turn = cof.getOrbit();
+            container_type r_turn = cof.getOrbit(angle);
             container_type ds_turn = cof.getPathLength();
             container_type fidx_turn = cof.getFieldIndex();
             tunes = cof.getTunes();                          // tunes = {nur, nuz}
             ravg = cof.getAverageRadius();                   // average radius
+
+	    container_type peo = cof.getMomentum(angle);
 
             // write properties to file (if write_m = true)
             if (write_m) {
@@ -378,12 +380,12 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
                 writeTunes << E_m << std::setw(30) << std::setprecision(10) << tunes.first << std::setw(25) << tunes.second << std::endl;
 
                 // write average radius
-                std::ofstream writeAvgRadius("data/AverageRadius.dat", std::ios::app);
+                std::ofstream writeAvgRadius("data/AverageValues.dat", std::ios::app);
 
                 if(writeAvgRadius.tellp() == 0) // if nothing yet written --> write description
-                    writeAvgRadius << "energy [MeV]" << std::setw(15) << "avg. radius [m]" << std::endl;
+		  writeAvgRadius << "energy [MeV]" << std::setw(15) << "avg. radius [m]" << std::setw(15) << "r [m]" << std::setw(15) << "pr [m]" << std::endl;
 
-                writeAvgRadius << E_m << std::setw(25) << std::setprecision(10) << ravg << std::endl;
+                writeAvgRadius << E_m << std::setw(25) << std::setprecision(10) << ravg << std::setw(25) << std::setprecision(10) << r_turn[0] << std::setw(25) << std::setprecision(10) << peo[0] << std::endl;
 
                 // write frequency error
                 std::ofstream writePhase("data/FrequencyError.dat",std::ios::app);
