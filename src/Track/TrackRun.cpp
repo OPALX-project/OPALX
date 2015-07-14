@@ -110,7 +110,7 @@ TrackRun::TrackRun():
                       ("PARAMB", " Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
 
     itsAttr[FNAME] = Attributes::makeString
-                     ("FNAME", "Name of file to be written", "TRACK");
+                     ("FILE", "Name of file to be written", "TRACK");
 
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam ", "BEAM");
