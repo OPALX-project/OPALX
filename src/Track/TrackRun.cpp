@@ -226,11 +226,12 @@ void TrackRun::execute() {
 
 void TrackRun::setupSliceTracker() {
     OpalData::getInstance()->setInOPALEnvMode();
+    bool isFollowupTrack = OPAL->hasSLBunchAllocated() && !Options::scan;
     if(!OPAL->hasSLBunchAllocated()) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, NEW TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
-    } else if(OPAL->hasSLBunchAllocated() && !Options::scan) {
+    } else if(isFollowupTrack) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, FOLLOWUP TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
@@ -246,6 +247,11 @@ void TrackRun::setupSliceTracker() {
         phaseSpaceSink_m = new H5PartWrapperForPS(OPAL->getInputBasename() + std::string(".h5"),
                                                   OPAL->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
+                                                  H5_O_WRONLY);
+    } else if (isFollowupTrack) {
+        phaseSpaceSink_m = new H5PartWrapperForPS(OPAL->getInputBasename() + std::string(".h5"),
+                                                  -1,
+                                                  OPAL->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     } else {
         phaseSpaceSink_m = new H5PartWrapperForPS(OPAL->getInputBasename() + std::string(".h5"),
@@ -385,6 +391,11 @@ void TrackRun::setupTTracker(){
                                                   OPAL->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
+    } else if (isFollowupTrack) {
+        phaseSpaceSink_m = new H5PartWrapperForPT(OPAL->getInputBasename() + std::string(".h5"),
+                                                  -1,
+                                                  OPAL->getInputBasename() + std::string(".h5"),
+                                                  H5_O_WRONLY);
     } else {
         phaseSpaceSink_m = new H5PartWrapperForPT(OPAL->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
@@ -507,6 +518,11 @@ void TrackRun::setupCyclotronTracker(){
         phaseSpaceSink_m = new H5PartWrapperForPC(OPAL->getInputBasename() + std::string(".h5"),
                                                   OPAL->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
+                                                  H5_O_WRONLY);
+    } else if (OPAL->hasBunchAllocated() && !Options::scan) {
+        phaseSpaceSink_m = new H5PartWrapperForPC(OPAL->getInputBasename() + std::string(".h5"),
+                                                  -1,
+                                                  OPAL->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     } else {
         phaseSpaceSink_m = new H5PartWrapperForPC(OPAL->getInputBasename() + std::string(".h5"),
