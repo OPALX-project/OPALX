@@ -29,13 +29,15 @@ IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
 
 
-add_executable (TestFFT TestFFT.cpp)
-add_executable (TestRC TestRC.cpp)
-add_executable (TestRCGPU TestRCGPU.cpp)
+#add_executable (TestFFT TestFFT.cpp)
+#add_executable (TestRC TestRC.cpp)
+#add_executable (TestRCGPU TestRCGPU.cpp)
+add_executable (TestRCMIC TestRCMIC.cpp)
 
 
-target_link_libraries (TestFFT ${IPPL_LIBS})
-target_link_libraries (TestRC ${IPPL_LIBS})
-target_link_libraries (TestRCGPU ${IPPL_LIBS})
+#target_link_libraries (TestFFT ${IPPL_LIBS})
+#target_link_libraries (TestRC ${IPPL_LIBS})
+#target_link_libraries (TestRCGPU ${IPPL_LIBS})
+target_link_libraries (TestRCMIC ${IPPL_LIBS})
 
 
