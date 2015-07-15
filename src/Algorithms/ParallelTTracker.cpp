@@ -459,10 +459,10 @@ void ParallelTTracker::executeDefaultTracker() {
 
     //allocate memory on device for particle
     allocateDeviceMemory();
-    
+
     //page lock itsBunch->X, itsBunch->R, itsBunch-P
     registerHostMemory();
-    
+
     //write R, P and X data to device
     dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum());
     dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum());
@@ -552,7 +552,7 @@ void ParallelTTracker::executeDefaultTracker() {
 
     //unregister page lock itsBunch->X, itsBunch->R, itsBunch-P
     unregisterHostMemory();
-    
+
 #endif
 }
 
@@ -1439,9 +1439,8 @@ void ParallelTTracker::bgf_main_collision_test() {
         double seyNum = 0;
 
         if(secondaryFlg_m != 1) {
-            // mark secondaries generated in last step as old
-            if(itsBunch->PType[i] == 3)
-                itsBunch->PType[i] = 2;
+            if(itsBunch->PType[i] == ParticleType::NEWSECONDARY)
+                itsBunch->PType[i] = ParticleType::SECONDARY;
         }
 
         /*
@@ -1621,7 +1620,7 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
         Vector_t intecoords = outr;
         int triId = 0;
 
-        if(itsBunch->PType[i] == 3) { // only test newly generated secondaries
+        if(itsBunch->PType[i] == ParticleType::NEWSECONDARY) {
             particleHitBoundary = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], 0.5 * itsBunch->dt[i], itsBunch->PType[i], itsBunch->Q[i], intecoords, triId) == 0;
         }
 
@@ -1686,7 +1685,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
     IpplTimings::startTimer(timeIntegrationTimer2Loop1_m);
 #ifdef OPAL_DKS
- 
+
     //check if number of particles in bunch has changed then write
     if (surfaceStatus_m || itsBunch->getLocalNum() != numDeviceElements) {
 
@@ -1697,7 +1696,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
             allocateDeviceMemory();
             registerHostMemory();
         }
-     
+
         //write R to device
         dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
         //write P to device
@@ -1724,7 +1723,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
                                               dt_ptr, itsBunch->getdT(), Physics::c, true, stream2);
     //read R from device
     dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
-    
+
     //sync and wait till all tasks and reads are complete
     dksbase.syncDevice();
 
@@ -2819,7 +2818,7 @@ void ParallelTTracker::unregisterHostMemory() {
 
 void ParallelTTracker::allocateDeviceMemory() {
 
-    //allocate memory on device  
+    //allocate memory on device
     r_ptr = dksbase.allocateMemory<Vector_t>(itsBunch->getLocalNum(), ierr);
     p_ptr = dksbase.allocateMemory<Vector_t>(itsBunch->getLocalNum(), ierr);
     x_ptr = dksbase.allocateMemory<Vector_t>(itsBunch->getLocalNum(), ierr);

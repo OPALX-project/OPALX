@@ -298,7 +298,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
         setGeom(Swidth);
 
         for(unsigned int i = 0; i < tempnum; ++i) {
-            if(bunch.PType[i] == 0) {
+            if(bunch.PType[i] == ParticleType::REGULAR) {
                 pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
                 if(pflag != 0) {
                     // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
@@ -341,7 +341,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                         // change the mass and charge
                         bunch.M[i] = opmass_m;
                         bunch.Q[i] = opcharge_m * q_e;
-                        bunch.PType[i] = 1;
+                        bunch.PType[i] = ParticleType::STRIPPED;
 
                         int j = 1;
                         //create new particles
@@ -352,7 +352,7 @@ bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const doub
                           bunch.Q[tempnum+count] = bunch.Q[i];
                           bunch.M[tempnum+count] = bunch.M[i];
                           // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid repetitive stripping.
-                          bunch.PType[tempnum+count] = 1;
+                          bunch.PType[tempnum+count] = ParticleType::STRIPPED;
                           count++;
                           j++;
                         }

@@ -499,7 +499,7 @@ void TrackRun::setupCyclotronTracker(){
 
     setupFieldsolver();
 
-    Track::block->bunch->PType = 0;
+    Track::block->bunch->PType = ParticleType::REGULAR;
 
     std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
     if (distr_str.size() == 0) {

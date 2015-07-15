@@ -87,7 +87,7 @@ public:
     void makHistograms();
 
     /** \brief After each Schottky scan we delete
-    all the particles.
+        all the particles.
 
     */
     void cleanUpParticles();
@@ -124,7 +124,7 @@ public:
 
     /*
 
-    Energy bins related functions
+      Energy bins related functions
 
     */
 
@@ -187,7 +187,7 @@ public:
 
     /*
 
-    Mesh and Field Layout related functions
+      Mesh and Field Layout related functions
 
     */
 
@@ -523,10 +523,10 @@ private:
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
 
- public:
+public:
     void calcEMean(); // update eKin_m;
     void correctEnergy(double avrgp);
- private:
+private:
 
     /*
       Member variables starts here
@@ -689,7 +689,7 @@ private:
 
     Distribution *dist_m;
 
- // flag to tell if we are a DC-beam
+    // flag to tell if we are a DC-beam
     bool dcBeam_m;
 
 
@@ -1012,22 +1012,22 @@ double PartBunch::getGaBeLa() const { // used in Distribution
 
 inline
 double PartBunch::get_sPos() {
-    if(sum(PType != 0)) {
+    if(sum(PType != ParticleType::REGULAR)) {
         const size_t n = getLocalNum();
         size_t numPrimBeamParts = 0;
         double z = 0.0;
         if(n != 0) {
-	  for(size_t i = 0; i < n; i++) {
-	    if(PType[i] == 0) {
-	      z += R[i](2);
-	      numPrimBeamParts++;
-	    }
-	  }
+            for(size_t i = 0; i < n; i++) {
+                if(PType[i] == ParticleType::REGULAR) {
+                    z += R[i](2);
+                    numPrimBeamParts++;
+                }
+            }
         }
         reduce(z, z, OpAddAssign());
 	reduce(numPrimBeamParts, numPrimBeamParts, OpAddAssign());
 	if(numPrimBeamParts != 0)
-	  z = z / numPrimBeamParts;
+            z = z / numPrimBeamParts;
         return z;
     } else {
         const size_t n = getTotalNum();
@@ -1151,10 +1151,10 @@ size_t PartBunch::getLoadBalance(int p) const {
 
 inline
 size_t PartBunch::getMinLocalNum() {
-/// Get the minimal number of particles per node
-  if (minLocNum_m < 0)
-    gatherLoadBalanceStatistics();
-  return minLocNum_m;
+    /// Get the minimal number of particles per node
+    if (minLocNum_m < 0)
+        gatherLoadBalanceStatistics();
+    return minLocNum_m;
 }
 
 inline

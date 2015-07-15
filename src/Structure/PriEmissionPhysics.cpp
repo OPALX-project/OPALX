@@ -79,7 +79,7 @@ void PriEmissionPhysics::Fieldemission(PartBunch *itsBunch, const double &fa, co
                 itsBunch->R[count[pc]] = (vertex[0] + r1 * (vertex[1] -  vertex[0]) + r2 * (1 - r1) * (vertex[2] -  vertex[0])) +  TriNormal * tmpd ;
                 itsBunch->P[count[pc]] = Vector_t(0.0);
                 itsBunch->Bin[count[pc]] = 0;
-                itsBunch->PType[count[pc]] = 1;
+                itsBunch->PType[count[pc]] = ParticleType::FIELDEMISSION;
                 itsBunch->TriID[count[pc]] = 0;
                 itsBunch->Q[count[pc]] = chargeScalFactor * itsBunch->getChargePerParticle();
                 itsBunch->LastSection[count[pc]] = 0;
@@ -125,7 +125,7 @@ void PriEmissionPhysics::Fieldemission(PartBunch *itsBunch, const double &fa, co
                 itsBunch->R[count[pc]] =  vertex[0] + r1 * (vertex[1] -  vertex[0]) + r2 * (1 - r1) * (vertex[2] -  vertex[0]) +  TriNormal * tmpd;  // During our simulation, we find some emitted particles will not move if they just on the surface. So here we also add margins =  TriNormal * tmpd from the emission surface to make sure that the emitted particles will "feel" the RF field.
                 itsBunch->P[count[pc]] = Vector_t(0.0);
                 itsBunch->Bin[count[pc]] = 0;
-                itsBunch->PType[count[pc]] = 1;
+                itsBunch->PType[count[pc]] = ParticleType::FIELDEMISSION;
                 itsBunch->TriID[count[pc]] = 0;
                 itsBunch->Q[count[pc]] = chargeScalFactor * itsBunch->getChargePerParticle();
                 itsBunch->LastSection[count[pc]] = 0;

@@ -44,4 +44,13 @@ typedef Field<dcomplex, 3, Mesh_t, Center_t>     CxField_t;
 typedef FFT<RCTransform, 3, double>              FFT_t;
 typedef FFT<SineTransform, 3, double>            SINE_t;
 
+namespace ParticleType {
+    enum { REGULAR,
+           FIELDEMISSION,
+           SECONDARY,
+           NEWSECONDARY,
+           STRIPPED,
+           PROBE};
+}
+
 #endif

@@ -319,7 +319,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 
 	itsBunch->P[lowMark] = P_global;
 	itsBunch->Bin[lowMark] = 0;
-	itsBunch->PType[lowMark] = 3;// 3 to denote the newly generated secondaries
+	itsBunch->PType[lowMark] = ParticleType::NEWSECONDARY;
 	itsBunch->TriID[lowMark] = 0;
 	//itsBunch->Q[lowMark] = incQ_l*seNum;// charge of simulation particle will be sum of secondaies
 	itsBunch->Q[lowMark] = incQ_l*seyNum;// charge of simulation particle will be multiplied by SEY.
@@ -360,7 +360,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 
 	    itsBunch->P[lowMark+i] = P_global;
 	    itsBunch->Bin[lowMark+i] = 0;
-	    itsBunch->PType[lowMark+i] = 3;//3 to denote the newly generated secondaries
+	    itsBunch->PType[lowMark+i] = ParticleType::NEWSECONDARY;
 	    itsBunch->TriID[lowMark+i] = 0;
 	    itsBunch->Q[lowMark+i] = incQ_l;
 	    itsBunch->LastSection[lowMark+i] = 0;
@@ -578,7 +578,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosT
 
 	itsBunch->P[lowMark] = P_global;
 	itsBunch->Bin[lowMark] = 0;
-	itsBunch->PType[lowMark] = 3;//3 to denote the newly generated secondaries
+	itsBunch->PType[lowMark] = ParticleType::NEWSECONDARY;
 	itsBunch->TriID[lowMark] = 0;
 	itsBunch->Q[lowMark] = incQ_l*seyNum;
 	itsBunch->LastSection[lowMark] = 0;// fixme: what about last section !=0 ?
@@ -614,7 +614,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosT
 
 	    itsBunch->P[lowMark+i] = P_global;
 	    itsBunch->Bin[lowMark+i] = 0;
-	    itsBunch->PType[lowMark+i] = 3;//3 to denote the newly generated secondaries
+	    itsBunch->PType[lowMark+i] = ParticleType::NEWSECONDARY;
 	    itsBunch->TriID[lowMark+i] = 0;
 	    itsBunch->Q[lowMark+i] = incQ_l;
 	    itsBunch->LastSection[lowMark+i] = 0;
