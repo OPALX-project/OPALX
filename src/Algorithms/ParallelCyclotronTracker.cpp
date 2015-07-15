@@ -4171,7 +4171,7 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
             itsBunch->P[localNum] = tmpBunch.P[ii];
             itsBunch->M[localNum] = tmpBunch.M[ii];
             itsBunch->Q[localNum] = tmpBunch.Q[ii];
-            itsBunch->PType[localNum] = 0;
+            itsBunch->PType[localNum] = ParticleType::REGULAR;
             itsBunch->Bin[localNum] = BinID;
 
             r_mb[ii] = itsBunch->R[localNum];

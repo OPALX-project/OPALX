@@ -527,7 +527,7 @@ void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
                             beam->P[lowMark + count] = betagamma * bg.getMomenta(count);
                         }
                         beam->Bin[lowMark + count] = 0;
-                        beam->PType[lowMark + count] = 0; // create primary particle bunch;
+                        beam->PType[lowMark + count] = ParticleType::REGULAR;
                         beam->TriID[lowMark + count] = 0;
                         beam->Q[lowMark + count] = beam->getChargePerParticle();
                         beam->LastSection[lowMark + count] = 0;
@@ -569,7 +569,7 @@ void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
                             beam->R[lowMark + count] = bg.getCooridinate(count); // for node0 the particle number N_mean =  N_mean + N_extra
                         beam->P[lowMark + count] = Vector_t(0.0);
                         beam->Bin[lowMark + count] = 0;
-                        beam->PType[lowMark + count] = 0; // create primary particle bunch.
+                        beam->PType[lowMark + count] = ParticleType::REGULAR;
                         beam->TriID[lowMark + count] = 0;
                         beam->Q[lowMark + count] = beam->getChargePerParticle();
                         beam->LastSection[lowMark + count] = 0;
@@ -1428,7 +1428,7 @@ void  Distribution::CreateBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg
                         beam.R[lowMark + count] = bg.getCooridinate(count);
                     beam.P[lowMark + count] = Vector_t(0.0);
                     beam.Bin[lowMark + count] = 0;
-                    beam.PType[lowMark + count] = 1; // create darkcurrent particles.
+                    beam.PType[lowMark + count] = ParticleType::FIELDEMISSION;
                     beam.TriID[lowMark + count] = 0;
                     beam.Q[lowMark + count] = beam.getChargePerParticle();
                     beam.LastSection[lowMark + count] = 0;
@@ -1827,7 +1827,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 beam.LastSection[numberOfEmittedParticles] = -1;
                 beam.Ef[numberOfEmittedParticles] = Vector_t(0.0);
                 beam.Bf[numberOfEmittedParticles] = Vector_t(0.0);
-                beam.PType[numberOfEmittedParticles] = 0;
+                beam.PType[numberOfEmittedParticles] = ParticleType::REGULAR;
                 beam.TriID[numberOfEmittedParticles] = 0;
                 numberOfEmittedParticles++;
                 beam.iterateEmittedBin(currentEnergyBin_m - 1);
@@ -2904,7 +2904,7 @@ void Distribution::InjectBeam(PartBunch &beam) {
         beam.Q[partIndex] = beam.getChargePerParticle();
         beam.Ef[partIndex] = Vector_t(0.0);
         beam.Bf[partIndex] = Vector_t(0.0);
-        beam.PType[partIndex] = 0;
+        beam.PType[partIndex] = ParticleType::REGULAR;
         beam.TriID[partIndex] = 0;
 
         if (numberOfEnergyBins_m > 0) {

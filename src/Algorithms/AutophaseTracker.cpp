@@ -31,7 +31,7 @@ AutophaseTracker::AutophaseTracker(const Beamline &beamline,
         itsBunch_m.P[0] = Vector_t(0.0, 0.0, initialP);
         itsBunch_m.Bin[0] = 0;
         itsBunch_m.Q[0] = itsBunch_m.getChargePerParticle();
-        itsBunch_m.PType[0] = 0;
+        itsBunch_m.PType[0] = ParticleType::REGULAR;
         itsBunch_m.LastSection[0] = 0;
     }
 

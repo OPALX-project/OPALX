@@ -2852,12 +2852,12 @@ void PartBunch::pop() {
 
 double PartBunch::getZPos() {
 
-    if(sum(PType != 0)) {
+    if(sum(PType != ParticleType::REGULAR)) {
         size_t numberOfPrimaryParticles = 0;
         double zAverage = 0.0;
         if(getLocalNum() != 0) {
             for(size_t partIndex = 0; partIndex < getLocalNum(); partIndex++) {
-                if(PType[partIndex] == 0) {
+                if(PType[partIndex] == ParticleType::REGULAR) {
                     zAverage += X[partIndex](2);
                     numberOfPrimaryParticles++;
                 }
