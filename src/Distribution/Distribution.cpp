@@ -55,14 +55,6 @@ extern Inform *gmsg;
 #define DISTDBG1
 #define noDISTDBG2
 
-#define COMPLAINONFAILURE(rc)     complainOnFailure(rc, __FILE__, __LINE__);
-
-inline
-void complainOnFailure(int rc, const std::string &file, int line) {
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << file << " @ line " << line << endl);
-}
-
 SymTenzor<double, 6> getUnit6x6() {
     SymTenzor<double, 6> unit6x6;
     for (unsigned int i = 0; i < 6u; ++ i) {
@@ -1837,7 +1829,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 pxWrite_m.push_back(px);
                 yWrite_m.push_back(yDist_m.at(particleIndex));
                 pyWrite_m.push_back(py);
-                tOrZWrite_m.push_back(beam.getdT() - deltaT + currentEmissionTime_m);
+                tOrZWrite_m.push_back(-(beam.getdT() - deltaT + currentEmissionTime_m));
                 pzWrite_m.push_back(pz);
                 binWrite_m.push_back(currentEnergyBin_m);
             }
@@ -2614,20 +2606,14 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
     if (flattopTime < 0.0)
         flattopTime = 0.0;
 
+    double normalizedFlankArea = 0.5 * sqrt(2.0 * Physics::pi) * gsl_sf_erf(cutoffR_m[2] / sqrt(2.0));
     double distArea = flattopTime
-        + 0.5 * sqrt(2.0 * Physics::pi)
-        * (sigmaTRise_m + sigmaTFall_m);
+        + (sigmaTRise_m + sigmaTFall_m) * normalizedFlankArea;
 
     // Find number of particles in rise, fall and flat top.
-    size_t numRise = numberOfParticles * 0.5 * gsl_sf_erf(cutoffR_m[2] / sqrt(2.0))
-        * sqrt(2.0 * Physics::pi) * sigmaTRise_m / distArea;
-    size_t numFall = numberOfParticles - numRise;
-    size_t numFlat = 0;
-    if (flattopTime != 0.0) {
-        numFall = numberOfParticles * 0.5 * gsl_sf_erf(cutoffR_m[2] / sqrt(2.0))
-            * sqrt(2.0 * Physics::pi) * sigmaTFall_m / distArea;
-        numFlat = numberOfParticles - numRise - numFall;
-    }
+    size_t numRise = numberOfParticles * sigmaTRise_m * normalizedFlankArea / distArea;
+    size_t numFall = numberOfParticles * sigmaTFall_m * normalizedFlankArea / distArea;
+    size_t numFlat = numberOfParticles - numRise - numFall;
 
     // Generate particles in tail.
     gsl_rng_env_setup();
@@ -4267,8 +4253,12 @@ void Distribution::SetupEmissionModelNone(PartBunch &beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
     pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
+    double avgPz = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
+    size_t numParticles = pzDist_m.size();
+    reduce(avgPz, avgPz, OpAddAssign());
+    reduce(numParticles, numParticles, OpAddAssign());
 
-    pmean_m = Vector_t(0.0, 0.0, pTotThermal_m);
+    pmean_m = Vector_t(0.0, 0.0, pTotThermal_m + avgPz / numParticles);
 }
 
 void Distribution::SetupEmissionModelNonEquil() {
@@ -4354,23 +4344,19 @@ void Distribution::ShiftBeam(double &maxTOrZ, double &minTOrZ) {
                 minTOrZ -= tEmission_m;
                 maxTOrZ -= tEmission_m;
             } else {
-                if (maxTOrZ != 0.0) {
-                    for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-                        *tOrZIt -= maxTOrZ;
-
-                    minTOrZ -= maxTOrZ;
-                    maxTOrZ -= maxTOrZ;
-                }
-            }
-
-        } else {
-            if (maxTOrZ != 0.0) {
                 for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
                     *tOrZIt -= maxTOrZ;
 
                 minTOrZ -= maxTOrZ;
                 maxTOrZ -= maxTOrZ;
             }
+
+        } else {
+            for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
+                *tOrZIt -= maxTOrZ;
+
+            minTOrZ -= maxTOrZ;
+            maxTOrZ -= maxTOrZ;
         }
 
     } else {
