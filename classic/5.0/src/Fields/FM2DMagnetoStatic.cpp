@@ -4,13 +4,13 @@
 #include <fstream>
 #include <ios>
 
-using namespace std;
+extern Inform *gmsg;
 
 FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename):
     Fieldmap(aFilename),
     FieldstrengthBz_m(NULL),
     FieldstrengthBr_m(NULL) {
-    ifstream file;
+    std::ifstream file;
     std::string tmpString;
     double tmpDouble;
 
@@ -33,7 +33,7 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename):
             parsing_passed = parsing_passed &&
                              interpreteLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
         } else {
-            cerr << "unknown orientation of 2D magnetostatic fieldmap" << endl;
+            std::cerr << "unknown orientation of 2D magnetostatic fieldmap" << std::endl;
             parsing_passed = false;
         }
 
@@ -78,7 +78,7 @@ FM2DMagnetoStatic::~FM2DMagnetoStatic() {
 void FM2DMagnetoStatic::readMap() {
     if(FieldstrengthBz_m == NULL) {
         // declare variables and allocate memory
-        ifstream in;
+        std::ifstream in;
         int tmpInt;
         std::string tmpString;
         double tmpDouble, Bzmax = 0.0;
@@ -112,9 +112,9 @@ void FM2DMagnetoStatic::readMap() {
         in.close();
 
         // find maximum field
-        for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
-            if(fabs(FieldstrengthBz_m[i]) > Bzmax) {
-                Bzmax = fabs(FieldstrengthBz_m[i]);
+        for(int i = 0; i < num_gridpz_m; ++ i) {
+            if(std::abs(FieldstrengthBz_m[i]) > Bzmax) {
+                Bzmax = std::abs(FieldstrengthBz_m[i]);
             }
         }
 

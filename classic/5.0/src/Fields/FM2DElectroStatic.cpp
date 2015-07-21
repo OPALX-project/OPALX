@@ -113,8 +113,8 @@ void FM2DElectroStatic::readMap() {
             }
 
             for(int i = 0; i < num_gridpz_m; i++) {
-                if(fabs(FieldstrengthEz_m[i]) > Ezmax) {
-                    Ezmax = fabs(FieldstrengthEz_m[i]);
+                if(std::abs(FieldstrengthEz_m[i]) > Ezmax) {
+                    Ezmax = std::abs(FieldstrengthEz_m[i]);
                 }
             }
         }
