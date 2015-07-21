@@ -5,7 +5,9 @@
 #include <fstream>
 #include <ios>
 
-using namespace std;
+extern Inform *gmsg;
+
+// using namespace std;
 using Physics::mu_0;
 
 FM2DDynamic::FM2DDynamic(std::string aFilename)
@@ -13,7 +15,7 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
       FieldstrengthEz_m(NULL),
       FieldstrengthEr_m(NULL),
       FieldstrengthHt_m(NULL) {
-    ifstream file;
+    std::ifstream file;
     std::string tmpString;
     double tmpDouble;
 
@@ -40,7 +42,7 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
             parsing_passed = parsing_passed &&
                              interpreteLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
         } else {
-            cerr << "unknown orientation of 2D dynamic fieldmap" << endl;
+            std::cerr << "unknown orientation of 2D dynamic fieldmap" << std::endl;
             parsing_passed = false;
             zbegin_m = 0.0;
             zend_m = -1e-3;
@@ -91,7 +93,7 @@ FM2DDynamic::~FM2DDynamic() {
 void FM2DDynamic::readMap() {
     if(FieldstrengthEz_m == NULL) {
         // declare variables and allocate memory
-        ifstream in;
+        std::ifstream in;
         int tmpInt;
         std::string tmpString;
         double tmpDouble, Ezmax = 0.0;
@@ -133,9 +135,9 @@ void FM2DDynamic::readMap() {
 
 
         // find maximum field
-        for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
-            if(fabs(FieldstrengthEz_m[i]) > Ezmax) {
-                Ezmax = fabs(FieldstrengthEz_m[i]);
+        for(int i = 0; i < num_gridpz_m; ++ i) {
+            if(std::abs(FieldstrengthEz_m[i]) > Ezmax) {
+                Ezmax = std::abs(FieldstrengthEz_m[i]);
             }
         }
 
@@ -238,7 +240,7 @@ void FM2DDynamic::setFrequency(double freq) {
     frequency_m = freq;
 }
 
-void FM2DDynamic::getOnaxisEz(vector<pair<double, double> > & F) {
+void FM2DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
     double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
     std::string tmpString;
     F.resize(num_gridpz_m);
@@ -247,12 +249,5 @@ void FM2DDynamic::getOnaxisEz(vector<pair<double, double> > & F) {
         F[i].first = dz * i;
         F[i].second = FieldstrengthEz_m[i] / 1e6;
 
-        // if(fabs(F[i].second) > Ez_max) {
-        //     Ez_max = fabs(F[i].second);
-        // }
     }
-
-    // for(int i = 0; i < num_gridpz_m; ++ i) {
-    //     F[i].second /= Ez_max;
-    // }
 }
