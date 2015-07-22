@@ -2493,7 +2493,7 @@ size_t PartBunch::boundp_destroyT() {
 
     if(WeHaveEnergyBins()) {
         const int lastBin = dist_m->GetLastEmittedEnergyBin();
-        for(int i = 0; i <= lastBin; i++) {
+        for(int i = 0; i < lastBin; i++) {
             binemitted_m[i] = tmpbinemitted[i];
         }
     }

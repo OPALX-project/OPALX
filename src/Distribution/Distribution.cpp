@@ -214,7 +214,7 @@ Distribution::Distribution():
     tEmission_m(0.0),
     tBin_m(0.0),
     currentEmissionTime_m(0.0),
-    currentEnergyBin_m(0),
+    currentEnergyBin_m(1),
     currentSampleBin_m(0),
     numberOfEnergyBins_m(0),
     numberOfSampleBins_m(0),
@@ -1050,7 +1050,7 @@ void Distribution::CheckEmissionParameters() {
         numberOfSampleBins_m = 1;
 
     // Initialize emission counters.
-    currentEnergyBin_m = 0;
+    currentEnergyBin_m = 1;
     currentSampleBin_m = 0;
 
 }
@@ -1814,7 +1814,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                                pz / (2.0 * particleGamma));
                 beam.P[numberOfEmittedParticles]
                     = Vector_t(px, py, pz);
-                beam.Bin[numberOfEmittedParticles] = currentEnergyBin_m;
+                beam.Bin[numberOfEmittedParticles] = currentEnergyBin_m - 1;
                 beam.Q[numberOfEmittedParticles] = beam.getChargePerParticle();
                 beam.LastSection[numberOfEmittedParticles] = -1;
                 beam.Ef[numberOfEmittedParticles] = Vector_t(0.0);
@@ -1822,7 +1822,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 beam.PType[numberOfEmittedParticles] = ParticleType::REGULAR;
                 beam.TriID[numberOfEmittedParticles] = 0;
                 numberOfEmittedParticles++;
-                beam.iterateEmittedBin(currentEnergyBin_m);
+                beam.iterateEmittedBin(currentEnergyBin_m - 1);
 
                 // Save particles to vectors for writing initial distribution.
                 xWrite_m.push_back(xDist_m.at(particleIndex));
@@ -1831,7 +1831,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 pyWrite_m.push_back(py);
                 tOrZWrite_m.push_back(-(beam.getdT() - deltaT + currentEmissionTime_m));
                 pzWrite_m.push_back(pz);
-                binWrite_m.push_back(currentEnergyBin_m + 1);
+                binWrite_m.push_back(currentEnergyBin_m);
             }
         }
 
@@ -1872,7 +1872,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
         if (currentSampleBin_m == numberOfSampleBins_m) {
 
             INFOMSG("*Bin number: "
-                    << currentEnergyBin_m + 1
+                    << currentEnergyBin_m
                     << " has emitted all particles (new emit)." << endl);
             currentSampleBin_m = 0;
             currentEnergyBin_m++;
@@ -1882,7 +1882,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
         /*
          * Set beam to emitted. Make sure temporary storage is cleared.
          */
-        if (currentEnergyBin_m >= numberOfEnergyBins_m || tOrZDist_m.empty()) {
+        if (currentEnergyBin_m > numberOfEnergyBins_m || tOrZDist_m.empty()) {
             emitting_m = false;
 
             xDist_m.clear();
@@ -1892,7 +1892,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
             tOrZDist_m.clear();
             pzDist_m.clear();
 
-            currentEnergyBin_m = numberOfEnergyBins_m - 1;
+            currentEnergyBin_m = numberOfEnergyBins_m;
         }
 
     }
