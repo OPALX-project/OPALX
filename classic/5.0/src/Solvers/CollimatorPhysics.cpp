@@ -119,7 +119,7 @@ bool CollimatorPhysics::checkHit(Vector_t R, Vector_t P, double dt, Degrader *de
 }
 
 void CollimatorPhysics::apply(PartBunch &bunch) {
-  IpplTimings::startTimer(DegraderApplyTimer_m); 
+  IpplTimings::startTimer(DegraderApplyTimer_m);
 
   Inform m ("CollimatorPhysics::apply ");
     /*
@@ -138,7 +138,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     Eavg_m = 0.0;
     Emax_m = 0.0;
     Emin_m = 0.0;
-    
+
     bunchToMatStat_m  = 0;
     redifusedStat_m   = 0;
     stoppedPartStat_m = 0;
@@ -161,19 +161,19 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     else {
       coll = dynamic_cast<Collimator *>(element_ref_m);
     }
-    
+
     if(allParticleInMat_m) {
       /*
 	WE ARE HERE because on one node only 1 particles,
 	not in the material i.e. in the bunch are left.
 
-	Now integrate particles in the matierial 
+	Now integrate particles in the matierial
 	until on every node more than 2 partciles - out
-	of the material - exist.	
+	of the material - exist.
       */
       m << "All Particles are in the material ... " << endl;
-      onlyOneLoopOverParticles = false;      
-    }   
+      onlyOneLoopOverParticles = false;
+    }
 
 #ifdef OPAL_DKS
 
@@ -188,7 +188,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       //write particles to GPU if there are any to write
       if (dksParts_m.size() >= 0) {
 	//wrtie data from dksParts_m to the end of mem_ptr (offset = numparticles)
-	dksbase.writeDataAsync<PART_DKS>(mem_ptr, &dksParts_m[0], 
+	dksbase.writeDataAsync<PART_DKS>(mem_ptr, &dksParts_m[0],
 					 dksParts_m.size(), -1, numparticles);
 
 	//update number of particles on Device
@@ -204,7 +204,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       }
 
       //execute CollimatorPhysics loop and sort on particles that are on host
-      if (dksParts_m.size() > 0) {	
+      if (dksParts_m.size() > 0) {
 	applyHost(bunch, deg, coll);
 	if (stoppedPartStat_m > 0 || redifusedStat_m > 0)
 	  deleteParticleFromLocalVectorDKS();
@@ -215,7 +215,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       if (numparticles > 0) {
 	dksbase.callCollimatorPhysicsSort(mem_ptr, numparticles, numaddback);
       }
-      
+
       //read particles from GPU if any are comming out of material
       if (numaddback > 0) {
 	//get particles that are in material on host
@@ -224,11 +224,11 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	//resize dksParts_m to hold particles that need to go back to bunch
 	dksParts_m.resize(parthost + numaddback);
 
-	//read particles that need to be added back to bunch 
+	//read particles that need to be added back to bunch
 	//particles that need to be added back are at the end of Device array
-	dksbase.readData<PART_DKS>(mem_ptr, &dksParts_m[parthost], numaddback, 
+	dksbase.readData<PART_DKS>(mem_ptr, &dksParts_m[parthost], numaddback,
 				   numparticles - numaddback);
-      
+
 	//add particles back to the bunch
 	for (unsigned int i = parthost; i < dksParts_m.size(); ++i) {
 	  if (dksParts_m[i].label == -2) {
@@ -236,7 +236,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	    redifusedStat_m++;
 	  } else {
 	    stoppedPartStat_m++;
-	    lossDs_m->addParticle(dksParts_m[i].Rincol, dksParts_m[i].Pincol, 
+	    lossDs_m->addParticle(dksParts_m[i].Rincol, dksParts_m[i].Pincol,
 				  -locParts_m[dksParts_m[i].localID].IDincol);
 	  }
 	}
@@ -247,16 +247,16 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	//update number of particles on Device
 	numparticles -= numaddback;
       }
-           
+
       IpplTimings::stopTimer(DegraderLoopTimer_m);
 
       bunch.boundp();
-      
-      if (onlyOneLoopOverParticles) 
+
+      if (onlyOneLoopOverParticles)
 	copyFromBunchDKS(bunch);
-           
+
       T_m += dT_m;
-      
+
       if (!onlyOneLoopOverParticles) {
 	bunch.gatherLoadBalanceStatistics();
 	onlyOneLoopOverParticles = (bunch.getMinLocalNum() > 1);
@@ -264,7 +264,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     } while (onlyOneLoopOverParticles == false);
 
 #else
-    
+
     do{
       IpplTimings::startTimer(DegraderLoopTimer_m);
       for(unsigned int i = 0; i < locParts_m.size(); ++i) {
@@ -278,7 +278,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	    EnergyLoss(Eng, pdead, dT_m);
 
 	    if(!pdead) {
-            
+
 	      double ptot =  sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
 	      P = P * ptot / sqrt(dot(P, P));
 	      /*
@@ -286,14 +286,14 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 		The checkInColl call just above will detect if the
 		particle is rediffused from the material into vacuum.
 	      */
-	      
+
 	      CoulombScat(R, P, dT_m);
-	      
+
 	      locParts_m[i].Rincol = R;
 	      locParts_m[i].Pincol = P;
-	      
+
 	      calcStat(Eng);
-	      
+
 	    } else {
 	      // The particle is stopped in the material, set lable_m to -1
 	      locParts_m[i].label = -1.0;
@@ -315,9 +315,9 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	      redifusedStat_m++;
 	    }
 	  }
-	}          
+	}
       }
-      
+
       /*
 	delete absorbed particles and particles that went to the bunch
       */
@@ -333,17 +333,17 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       /*
 	if we are not looping copy newly arrived particles
        */
-      if (onlyOneLoopOverParticles) 
+      if (onlyOneLoopOverParticles)
 	copyFromBunch(bunch);
-           
-      T_m += dT_m;              // update local time 
-      
+
+      T_m += dT_m;              // update local time
+
       if (!onlyOneLoopOverParticles) {
 	bunch.gatherLoadBalanceStatistics();
 	onlyOneLoopOverParticles = (bunch.getMinLocalNum() > 1);
-	//	m << "npl,npt= " << bunch.getLocalNum() << "," << bunch.getTotalNum() << " npm= " << locParts_m.size() << " redifused = " << redifusedStat_m << endl;	
-      }     
-    } while (onlyOneLoopOverParticles == false);    
+	//	m << "npl,npt= " << bunch.getLocalNum() << "," << bunch.getTotalNum() << " npm= " << locParts_m.size() << " redifused = " << redifusedStat_m << endl;
+      }
+    } while (onlyOneLoopOverParticles == false);
 
 #endif
 
@@ -424,22 +424,22 @@ void  CollimatorPhysics::Material() {
 
     /*
       needs to be checked !
-      
+
       Z from http://journals.aps.org/prb/pdf/10.1103/PhysRevB.40.8530
      */
 
     if(material_m == "Mylar") {
         Z_m = 6.702;
-        A_m = 12.88;       
+        A_m = 12.88;
         rho_m = 1.4;
 
         X0_m = 39.95 / rho_m / 100;
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
 	A2_c = 3.350;
-	A3_c = 1683
-	A4_c = 1900
-	A5_c = 2.513e-02
+	A3_c = 1683;
+	A4_c = 1900;
+	A5_c = 2.513e-02;
     }
 
 
@@ -452,7 +452,7 @@ void  CollimatorPhysics::Material() {
       X0_m = 24.01 / rho_m / 100;
       I_m = 10 * Z_m;
       n_m = rho_m / A_m * Avo;
-      
+
       A2_c = 4.739;
       A3_c = 2.766e3;
       A4_c = 1.645e2;
@@ -627,7 +627,7 @@ void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, doubl
     else
 	Psixz = atan(px/pz) + Physics::pi;
 
-    // Apply the rotation about the random angle thetacou & change from beam 
+    // Apply the rotation about the random angle thetacou & change from beam
     // coordinate system to the lab coordinate system using Psixz (2 dimensions)
     pxz = sqrt(px*px + pz*pz);
     if(coord==1) {
@@ -756,9 +756,9 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
       x.Bfincol      = bunch.Bf[i];
       x.Efincol      = bunch.Ef[i];
       x.label        = 0;            // allive in matter
-      
+
       locParts_m.push_back(x);
-      
+
       bunchToMatStat_m++;
     }
   }
@@ -767,7 +767,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 
 void CollimatorPhysics::print(Inform &msg){
   Inform::FmtFlags_t ff = msg.flags();
- 
+
   // ToDo: need to move that to a statistics function
 #ifdef OPAL_DKS
   locPartsInMat_m = numparticles + dksParts_m.size();
@@ -784,7 +784,7 @@ void CollimatorPhysics::print(Inform &msg){
       << " Material " << material_m << " Particles in material " << locPartsInMat_m << endl;
   msg << "Coll/Deg statistics: "
       << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
-      << " stopped " << stoppedPartStat_m << endl;  
+      << " stopped " << stoppedPartStat_m << endl;
 
   msg.flags(ff);
 }
@@ -867,16 +867,16 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
       x.Bfincol      = bunch.Bf[i];
       x.Efincol      = bunch.Ef[i];
       x.label        = 0;            // allive in matter
-   
+
       PART_DKS x_gpu;
       x_gpu.label = x.label;
       x_gpu.localID = x.localID;
       x_gpu.Rincol = x.Rincol;
       x_gpu.Pincol = x.Pincol;
-   
+
       locParts_m.push_back(x);
       dksParts_m.push_back(x_gpu);
-      
+
       bunchToMatStat_m++;
       numlocalparts++;
     }
@@ -895,7 +895,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg) {
 
     //allocate memory for particles
     mem_ptr = dksbase.allocateMemory<PART_DKS>(size, ierr);
-     
+
     maxparticles = size;
     numparticles = 0;
     numlocalparts = 0;
@@ -907,12 +907,12 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg) {
     dksbase.callInitRandoms(size);
     curandInitSet = 1;
 
-    //create and transfer parameter array  
+    //create and transfer parameter array
     Material();
     double zBegin, zEnd;
     deg->getDimensions(zBegin, zEnd);
 
-    double params[numpar] = {zBegin, deg->getZSize(), rho_m, Z_m, 
+    double params[numpar] = {zBegin, deg->getZSize(), rho_m, Z_m,
 			     A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m};
     dksbase.writeDataAsync<double>(par_ptr, params, numpar);
 
@@ -944,9 +944,9 @@ void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *c
 
       if(checkHit(R,P,dT_m, deg, coll)) {
 	EnergyLoss(Eng, pdead, dT_m);
-	
+
 	if(!pdead) {
-	  
+
 	  double ptot =  sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
 	  P = P * ptot / sqrt(dot(P, P));
 	  /*
@@ -954,14 +954,14 @@ void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *c
 	    The checkInColl call just above will detect if the
 	    particle is rediffused from the material into vacuum.
 	  */
-	      
+
 	  CoulombScat(R, P, dT_m);
-	  
+
 	  dksParts_m[i].Rincol = R;
 	  dksParts_m[i].Pincol = P;
-	      
+
 	  calcStat(Eng);
-	      
+
 	} else {
 	  // The particle is stopped in the material, set lable_m to -1
 	  dksParts_m[i].label = -1.0;
@@ -983,7 +983,7 @@ void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *c
 	  redifusedStat_m++;
 	}
       }
-    }          
+    }
   }
 
 }
@@ -998,7 +998,7 @@ void CollimatorPhysics::deleteParticleFromLocalVectorDKS() {
 
   // find start of particles to delete
   std::vector<PART_DKS>::iterator inv = dksParts_m.begin() + stoppedPartStat_m + redifusedStat_m;
-  
+
   /*
   for (; inv != dksParts_m.end(); inv++) {
     if ((*inv).label == -1)
@@ -1007,9 +1007,7 @@ void CollimatorPhysics::deleteParticleFromLocalVectorDKS() {
   */
 
   dksParts_m.erase(inv,dksParts_m.end());
-  
+
 }
 
 #endif
-
-
