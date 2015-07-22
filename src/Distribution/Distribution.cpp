@@ -214,8 +214,8 @@ Distribution::Distribution():
     tEmission_m(0.0),
     tBin_m(0.0),
     currentEmissionTime_m(0.0),
-    currentEnergyBin_m(0.0),
-    currentSampleBin_m(0.0),
+    currentEnergyBin_m(1),
+    currentSampleBin_m(0),
     numberOfEnergyBins_m(0),
     numberOfSampleBins_m(0),
     energyBins_m(NULL),
@@ -376,7 +376,7 @@ Distribution::~Distribution() {
     }
 
     if (randGenEmit_m != NULL) {
-        delete randGenEmit_m;
+        gsl_rng_free(randGenEmit_m);
         randGenEmit_m = NULL;
     }
 
@@ -1891,6 +1891,8 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
             pyDist_m.clear();
             tOrZDist_m.clear();
             pzDist_m.clear();
+
+            currentEnergyBin_m = numberOfEnergyBins_m;
         }
 
     }
@@ -2383,7 +2385,7 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
     }
     if (randGenStandard)
-        delete randGenStandard;
+        gsl_rng_free(randGenStandard);
 
     if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
@@ -2470,7 +2472,7 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
         }
     }
     if (randGenStandard)
-        delete randGenStandard;
+        gsl_rng_free(randGenStandard);
 
     if (quasiRandGen1D != NULL)
         gsl_qrng_free(quasiRandGen1D);
@@ -2595,7 +2597,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     std::cout << "bega= " << std::sqrt(pxm*pxm + pym*pym + pzm*pzm) << std::endl;
     */
     if (randGen)
-        delete randGen;
+        gsl_rng_free(randGen);
 }
 
 void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
@@ -2857,7 +2859,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
         }
     }
     if (randGen)
-        delete randGen;
+        gsl_rng_free(randGen);
 }
 
 void Distribution::InitializeBeam(PartBunch &beam) {
