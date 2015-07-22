@@ -361,22 +361,7 @@ const std::string CollimatorPhysics::getType() const {
 //  ------------------------------------------------------------------------
 void  CollimatorPhysics::Material() {
 
-    if(material_m == "Cu") {
-        Z_m = 29.0;
-        A_m = 63.546;
-        rho_m = 8.96;
-
-        X0_m = 12.86 / rho_m / 100;
-        I_m = 10. * Z_m;
-        n_m = rho_m / A_m * Avo;
-
-        A2_c = 4.194;
-        A3_c = 4.649E3;
-        A4_c = 8.113E1;
-        A5_c = 2.42E-2;
-    }
-
-    if(material_m == "Be") {
+    if(material_m == "Berilium") {
         Z_m = 4.0;
         A_m = 9.012;
         rho_m = 1.848;
@@ -424,7 +409,7 @@ void  CollimatorPhysics::Material() {
 
     }
 
-    if(material_m == "Mo") {
+    if(material_m == "Molybdenum") {
         Z_m = 42.0;
         A_m = 95.94;
         rho_m = 10.22;
@@ -445,19 +430,18 @@ void  CollimatorPhysics::Material() {
       Z from http://journals.aps.org/prb/pdf/10.1103/PhysRevB.40.8530
      */
 
-    if(material_m == "My") {
-        Z_m = 4.54;
+    if(material_m == "Mylar") {
+        Z_m = 6.702;
         A_m = 12.88;       
         rho_m = 1.4;
 
-        X0_m = 9.8 / rho_m / 100;
+        X0_m = 39.95 / rho_m / 100;
         I_m = 10 * Z_m;
         n_m = rho_m / A_m * Avo;
-
-        A2_c = 1.0;
-        A3_c = 1.0;
-        A4_c = 1.0;
-        A5_c = 1.0;
+	A2_c = 3.350;
+	A3_c = 1683
+	A4_c = 1900
+	A5_c = 2.513e-02
     }
 
 
@@ -581,22 +565,6 @@ void  CollimatorPhysics::Material() {
       A4_c = 2.699e3;
       A5_c = 1.568e-2;
     }
-
-    if (material_m == "Mylar") {
-      Z_m = 100;
-      A_m = 192;
-      rho_m = 1.4;
-
-      X0_m = 39.95 / rho_m / 100;
-      I_m = 10 * Z_m;
-      n_m = rho_m / A_m * Avo;
-      
-      A2_c = 1.343e1;
-      A3_c = 1.069e4;
-      A4_c = 7.723e2;
-      A5_c = 2.153e-2;
-    }
-
 }
 
 /// Energy Loss:  using the Bethe-Bloch equation.
