@@ -24,12 +24,14 @@ SET (IPPL_CXX_FLAGS "")
 SET (OTHER_CXX_FLAGS "")
 
 IF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-   SET (CMAKE_BUILD_TYPE RelWithDebInfo)
+    SET (CMAKE_BUILD_TYPE RelWithDebInfo)
 ENDIF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 
-SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
-SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
-SET (CMAKE_CXX_FLAGS_DEBUG  "-O3 -g")
+IF (NOT IPPL_USED_FROM_OPAL)
+    SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
+    SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
+    SET (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
+ENDIF (NOT IPPL_USED_FROM_OPAL)
 
 ### CXX_FLAGS specific to build type ########################
 IF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
@@ -90,7 +92,7 @@ ENDIF (ENABLE_CUDA)
 IF (ENABLE_OPENMP)
     SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -openmp -mkl -offload -DDKS_MIC")
 
-    FIND_PROGRAM(XIAR xiar)	
+    FIND_PROGRAM(XIAR xiar)
     IF(XIAR)
 	SET(CMAKE_AR "${XIAR}")
     ENDIF(XIAR)
@@ -134,34 +136,35 @@ IF (LINUXGCC)
     MESSAGE (STATUS "Linux GCC flags SET")
     SET (IPPL_CXX_FLAGS
         "-DIPPL_LINUX -DIPPL_STRINGSTREAM ${IPPL_CXX_FLAGS}"
-    )
+        )
     SET (OTHER_CXX_FLAGS
         "-ftemplate-depth-80 -funroll-loops -fstrict-aliasing ${OTHER_CXX_FLAGS}"
-    )
+        )
 
-    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-        SET (OTHER_CXX_FLAGS
-             "-std=c++0x -diag-disable 383,981 ${OTHER_CXX_FLAGS}")
-
-    ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        SET (OTHER_CXX_FLAGS
-             "-Wall -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CXX_FLAGS}")
-
-    ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        IF (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.8.0")
+    IF (NOT IPPL_USED_FROM_OPAL)
+        IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
             SET (OTHER_CXX_FLAGS
+                "-std=c++0x -diag-disable 383,981 ${OTHER_CXX_FLAGS}")
+
+        ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+            SET (OTHER_CXX_FLAGS
+                "-Wall -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG ${OTHER_CXX_FLAGS}")
+
+        ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+            IF (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.8.0")
+                SET (OTHER_CXX_FLAGS
 	            "-Wall -std=c++0x")
 
-        ELSEIF (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7")
-            SET (OTHER_CXX_FLAGS
-                "-Wall -Wno-reorder -std=c++1y")
-        ENDIF ()
-    ELSE ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-        # using unknown compiler
-        MESSAGE (STATUS "${COMPILER_NAME} is using a compiler (${CMAKE_CXX_COMPILER_ID}) we were not thinking of!
+            ELSEIF (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7")
+                SET (OTHER_CXX_FLAGS
+                    "-Wall -Wno-reorder -std=c++1y")
+            ENDIF ()
+        ELSE ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+            # using unknown compiler
+            MESSAGE (STATUS "${COMPILER_NAME} is using a compiler (${CMAKE_CXX_COMPILER_ID}) we were not thinking of!
                  Please use the gnu compiler or the intel compiler if you are having problems.")
-    ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-
+        ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+    ENDIF (NOT IPPL_USED_FROM_OPAL)
     SET (IPPL_VERSION_NAME "\"V${IPPL_VERSION_MAJOR}.${IPPL_VERSION_MINOR} Linux GNU\"")
 ENDIF (LINUXGCC)
 
@@ -169,10 +172,10 @@ IF (XT3GCC)
     MESSAGE (STATUS "XT3 GCC flags SET")
     SET (IPPL_CXX_FLAGS
         "-DIPPL_XT3 -DIPPL_DEBUG -DIPPL_LINUX -DIPPL_STRINGSTREAM ${IPPL_CXX_FLAGS}"
-    )
+        )
     SET (OTHER_CXX_FLAGS
         "-Wno-deprecated -ftemplate-depth-80 -funroll-loops -fstrict-aliasing"
-    )
+        )
     SET (IPPL_VERSION_NAME "\"V${IPPL_VERSION_MAJOR}.${IPPL_VERSION_MINOR} XT3 GNU\"")
 ENDIF (XT3GCC)
 
@@ -180,7 +183,7 @@ IF (LINUXPGI)
     MESSAGE(STATUS "Linux PGI flags SET")
     SET (IPPL_CXX_FLAGS
         "-DIPPLProf -DIPPL_GPLUSPLUS -DMPICH_IGNORE_CXX_SEEK -DIPPL_LINUX ${IPPL_CXX_FLAGS}"
-    )
+        )
     SET (IPPL_VERSION_NAME "\"V${IPPL_VERSION_MAJOR}.${IPPL_VERSION_MINOR} Linux PGI\"")
 ENDIF (LINUXPGI)
 
