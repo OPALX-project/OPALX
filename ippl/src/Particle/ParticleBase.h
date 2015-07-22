@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -139,10 +139,10 @@ public:
   typedef PLayout                           Layout_t;
   typedef typename PLayout::Position_t      Position_t;
   typedef typename PLayout::Index_t         Index_t;
-  
+
   typedef typename PLayout::ParticlePos_t   ParticlePos_t;
   typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
- 
+
   typedef typename PLayout::pair_iterator   pair_iterator;
   typedef typename PLayout::pair_t          pair_t;
   typedef typename PLayout::UpdateFlags     UpdateFlags;
@@ -158,10 +158,24 @@ public:
   // constructor 1: no arguments, so create an uninitialized ParticleBase.
   // If this constructor is used, the user must call 'initialize' with
   // a layout object in order to use this.
-  ParticleBase() : Layout(0) { }
+    ParticleBase() :
+        Layout(NULL),
+        TotalNum(0),
+        LocalNum(0),
+        DestroyNum(0),
+        GhostNum(0)
+    { }
 
-  // constructor 2: arguments = layout to use.
-  ParticleBase(PLayout *layout) : Layout(layout) { setup(); }
+    // constructor 2: arguments = layout to use.
+    ParticleBase(PLayout *layout) :
+        Layout(layout),
+        TotalNum(0),
+        LocalNum(0),
+        DestroyNum(0),
+        GhostNum(0)
+    {
+        setup();
+    }
 
   // destructor - delete the layout if necessary
   ~ParticleBase() {
@@ -269,25 +283,25 @@ public:
   size_t putMessage(Message&, const std::vector<size_t>&);
 
   size_t putMessage(Message&, size_t);
-  
+
 
   Format* getFormat();
 
   size_t writeMsgBuffer(MsgBuffer*&, const std::vector<size_t>&);
-  
+
   template<class O>
   size_t writeMsgBufferWithOffsets(MsgBuffer*&, const std::vector<size_t>&, const std::vector<O>&);
-  
+
   size_t readMsgBuffer(MsgBuffer *);
   size_t readGhostMsgBuffer(MsgBuffer *, int);
-    
+
   // Retrieve particles from the given message and store them.
   // Return the number of particles retrieved.
   size_t getMessage(Message&);
-  
+
   size_t getSingleMessage(Message&);
 
-  // retrieve particles from the given message and store them, also 
+  // retrieve particles from the given message and store them, also
   // signaling we are creating the given number of particles.  Return the
   // number of particles created.
   size_t getMessageAndCreate(Message&);
@@ -320,7 +334,7 @@ public:
   size_t ghostGetMessage(Message&, int);
 
   size_t ghostGetSingleMessage(Message&, int);
-  
+
   // delete M ghost particles, starting with the Ith particle.  This is
   // always done immediately.
   void ghostDestroy(size_t, size_t);
@@ -384,5 +398,5 @@ private:
 /***************************************************************************
  * $RCSfile: ParticleBase.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: ParticleBase.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleBase.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/
