@@ -2492,8 +2492,8 @@ size_t PartBunch::boundp_destroyT() {
     calcBeamParameters();
 
     if(WeHaveEnergyBins()) {
-        const int lastBin = dist_m->GetLastEmittedEnergyBin() + 1;
-        for(int i = 0; i < lastBin; i++) {
+        const int lastBin = dist_m->GetLastEmittedEnergyBin();
+        for(int i = 0; i <= lastBin; i++) {
             binemitted_m[i] = tmpbinemitted[i];
         }
     }
@@ -2747,21 +2747,14 @@ bool PartBunch::resetPartBinID2(const double eta) {
 void PartBunch::setPBins(PartBins *pbin) {
     pbin_m = pbin;
     *gmsg << *pbin_m << endl;
-    bingamma_m = std::unique_ptr<double[]>(new double[pbin_m->getNBins()]);
-    binemitted_m = std::unique_ptr<size_t[]>(new size_t[pbin_m->getNBins()]);
-    for(int i = 0; i < pbin_m->getNBins(); i++)
-        binemitted_m[i] = 0;
+    SetEnergyBins(pbin_m->getNBins());
 }
 
 
 void PartBunch::setPBins(PartBinsCyc *pbin) {
 
     pbin_m = pbin;
-    bingamma_m = std::unique_ptr<double[]>(new double[pbin_m->getNBins()]);
-    binemitted_m = std::unique_ptr<size_t[]>(new size_t[pbin_m->getNBins()]);
-    for(int i = 0; i < pbin_m->getNBins(); i++)
-        binemitted_m[i] = 0;
-
+    SetEnergyBins(pbin_m->getNBins());
 }
 
 void PartBunch::stash() {

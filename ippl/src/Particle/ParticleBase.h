@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -132,249 +132,263 @@ template<class PLayout>
 class ParticleBase : public DataSource {
 
 public:
-  // useful enums
-  enum { Dim = PLayout::Dimension };
+    // useful enums
+    enum { Dim = PLayout::Dimension };
 
-  // useful typedefs and enums
-  typedef PLayout                           Layout_t;
-  typedef typename PLayout::Position_t      Position_t;
-  typedef typename PLayout::Index_t         Index_t;
-  
-  typedef typename PLayout::ParticlePos_t   ParticlePos_t;
-  typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
- 
-  typedef typename PLayout::pair_iterator   pair_iterator;
-  typedef typename PLayout::pair_t          pair_t;
-  typedef typename PLayout::UpdateFlags     UpdateFlags;
-  typedef std::vector<ParticleAttribBase *>      attrib_container_t;
-  typedef attrib_container_t::iterator      attrib_iterator;
-  typedef ParticleAttribBase::SortList_t    SortList_t;
+    // useful typedefs and enums
+    typedef PLayout                           Layout_t;
+    typedef typename PLayout::Position_t      Position_t;
+    typedef typename PLayout::Index_t         Index_t;
 
-  // our position, and our global ID's
-  ParticlePos_t   R;
-  ParticleIndex_t ID;
+    typedef typename PLayout::ParticlePos_t   ParticlePos_t;
+    typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
+
+    typedef typename PLayout::pair_iterator   pair_iterator;
+    typedef typename PLayout::pair_t          pair_t;
+    typedef typename PLayout::UpdateFlags     UpdateFlags;
+    typedef std::vector<ParticleAttribBase *>      attrib_container_t;
+    typedef attrib_container_t::iterator      attrib_iterator;
+    typedef ParticleAttribBase::SortList_t    SortList_t;
+
+    // our position, and our global ID's
+    ParticlePos_t   R;
+    ParticleIndex_t ID;
 
 public:
-  // constructor 1: no arguments, so create an uninitialized ParticleBase.
-  // If this constructor is used, the user must call 'initialize' with
-  // a layout object in order to use this.
-  ParticleBase() : Layout(0) { }
+    // constructor 1: no arguments, so create an uninitialized ParticleBase.
+    // If this constructor is used, the user must call 'initialize' with
+    // a layout object in order to use this.
+    ParticleBase() :
+        Layout(NULL),
+        TotalNum(0),
+        LocalNum(0),
+        DestroyNum(0),
+        GhostNum(0)
+    { }
 
-  // constructor 2: arguments = layout to use.
-  ParticleBase(PLayout *layout) : Layout(layout) { setup(); }
+    // constructor 2: arguments = layout to use.
+    ParticleBase(PLayout *layout) :
+        Layout(layout),
+        TotalNum(0),
+        LocalNum(0),
+        DestroyNum(0),
+        GhostNum(0)
+    {
+        setup();
+    }
 
-  // destructor - delete the layout if necessary
-  ~ParticleBase() {
-    if (Layout != 0)
-      delete Layout;
-  }
+    // destructor - delete the layout if necessary
+    ~ParticleBase() {
+        if (Layout != 0)
+            delete Layout;
+    }
 
-  //
-  // Initialization methods
-  //
+    //
+    // Initialization methods
+    //
 
-  // For a ParticleBase that was created with the default constructor,
-  // initialize performs the same actions as are done in the non-default
-  // constructor.  If this object has already been initialized, it is
-  // an error.  For initialize, you must supply a layout instance.
-  void initialize(PLayout *);
+    // For a ParticleBase that was created with the default constructor,
+    // initialize performs the same actions as are done in the non-default
+    // constructor.  If this object has already been initialized, it is
+    // an error.  For initialize, you must supply a layout instance.
+    void initialize(PLayout *);
 
 
-  //
-  // Accessor functions for this class
-  //
+    //
+    // Accessor functions for this class
+    //
 
-  // return/change the total or local number of particles
-  size_t getTotalNum() const { return TotalNum; }
-  size_t getLocalNum() const { return LocalNum; }
-  size_t getDestroyNum() const { return DestroyNum; }
-  size_t getGhostNum() const { return GhostNum; }
-  void setTotalNum(size_t n) { TotalNum = n; }
-  void setLocalNum(size_t n) { LocalNum = n; }
+    // return/change the total or local number of particles
+    size_t getTotalNum() const { return TotalNum; }
+    size_t getLocalNum() const { return LocalNum; }
+    size_t getDestroyNum() const { return DestroyNum; }
+    size_t getGhostNum() const { return GhostNum; }
+    void setTotalNum(size_t n) { TotalNum = n; }
+    void setLocalNum(size_t n) { LocalNum = n; }
 
-  // get the layout manager
-  PLayout& getLayout() { return *Layout; }
-  const PLayout& getLayout() const { return *Layout; }
+    // get the layout manager
+    PLayout& getLayout() { return *Layout; }
+    const PLayout& getLayout() const { return *Layout; }
 
-  // get or set the boundary conditions container
-  ParticleBConds<Position_t,PLayout::Dimension>& getBConds() {
-    return Layout->getBConds();
-  }
-  void setBConds(const ParticleBConds<Position_t,PLayout::Dimension>& bc) {
-    Layout->setBConds(bc);
-  }
+    // get or set the boundary conditions container
+    ParticleBConds<Position_t,PLayout::Dimension>& getBConds() {
+        return Layout->getBConds();
+    }
+    void setBConds(const ParticleBConds<Position_t,PLayout::Dimension>& bc) {
+        Layout->setBConds(bc);
+    }
 
-  // Return a boolean value indicating if we are on a processor which can
-  // be used for single-node particle creation and initialization
-  bool singleInitNode() const;
+    // Return a boolean value indicating if we are on a processor which can
+    // be used for single-node particle creation and initialization
+    bool singleInitNode() const;
 
-  // get or set the flags used to indicate what to do during the update
-  bool getUpdateFlag(UpdateFlags f) const {
-    return getLayout().getUpdateFlag(f);
-  }
-  void setUpdateFlag(UpdateFlags f, bool val) {
-    getLayout().setUpdateFlag(f, val);
-  }
+    // get or set the flags used to indicate what to do during the update
+    bool getUpdateFlag(UpdateFlags f) const {
+        return getLayout().getUpdateFlag(f);
+    }
+    void setUpdateFlag(UpdateFlags f, bool val) {
+        getLayout().setUpdateFlag(f, val);
+    }
 
-  //
-  // attribute manipulation methods
-  //
+    //
+    // attribute manipulation methods
+    //
 
-  // add a new attribute ... called by constructor of this and derived classes
-  void addAttribute(ParticleAttribBase& pa) { AttribList.push_back(&pa); }
+    // add a new attribute ... called by constructor of this and derived classes
+    void addAttribute(ParticleAttribBase& pa) { AttribList.push_back(&pa); }
 
-  // get a pointer to the base class for the Nth attribute
-  ParticleAttribBase&
-  getAttribute(attrib_container_t::size_type N) { return *(AttribList[N]); }
+    // get a pointer to the base class for the Nth attribute
+    ParticleAttribBase&
+    getAttribute(attrib_container_t::size_type N) { return *(AttribList[N]); }
 
-  // return the number of attributes in our list
-  attrib_container_t::size_type
-  numAttributes() const { return AttribList.size(); }
+    // return the number of attributes in our list
+    attrib_container_t::size_type
+    numAttributes() const { return AttribList.size(); }
 
-  // obtain the beginning and end iterators for our attribute list
-  attrib_iterator begin() { return AttribList.begin(); }
-  attrib_iterator end()   { return AttribList.end(); }
+    // obtain the beginning and end iterators for our attribute list
+    attrib_iterator begin() { return AttribList.begin(); }
+    attrib_iterator end()   { return AttribList.end(); }
 
-  // reset the particle ID's to be globally consecutive, 0 thru TotalNum-1.
-  void resetID();
+    // reset the particle ID's to be globally consecutive, 0 thru TotalNum-1.
+    void resetID();
 
-  //
-  // Global operations on all attributes
-  //
+    //
+    // Global operations on all attributes
+    //
 
-  // Update the particle object after a timestep.  This routine will change
-  // our local, total, create particle counts properly.
-  void update();
-  void update(const ParticleAttrib<char>& canSwap);
+    // Update the particle object after a timestep.  This routine will change
+    // our local, total, create particle counts properly.
+    void update();
+    void update(const ParticleAttrib<char>& canSwap);
 
-  // create 1 new particle with a given ID
-  void createWithID(unsigned id);
+    // create 1 new particle with a given ID
+    void createWithID(unsigned id);
 
-  // create M new particles on this processor
-  void create(size_t);
+    // create M new particles on this processor
+    void create(size_t);
 
-  // create np new particles globally, equally distributed among all processors
-  void globalCreate(size_t np);
+    // create np new particles globally, equally distributed among all processors
+    void globalCreate(size_t np);
 
-  // delete M particles, starting with the Ith particle.  If the last argument
-  // is true, the destroy will be done immediately, otherwise the request
-  // will be cached.
-  void destroy(size_t, size_t, bool = false);
+    // delete M particles, starting with the Ith particle.  If the last argument
+    // is true, the destroy will be done immediately, otherwise the request
+    // will be cached.
+    void destroy(size_t, size_t, bool = false);
 
-  // Put the data for M particles starting from local index I in a Message.
-  // Return the number of particles put in the Message.
-  size_t putMessage(Message&, size_t, size_t);
-  // put the data for particles on a list into a Message, given list of indices
-  // Return the number of particles put in the Message.
-  size_t putMessage(Message&, const std::vector<size_t>&);
+    // Put the data for M particles starting from local index I in a Message.
+    // Return the number of particles put in the Message.
+    size_t putMessage(Message&, size_t, size_t);
+    // put the data for particles on a list into a Message, given list of indices
+    // Return the number of particles put in the Message.
+    size_t putMessage(Message&, const std::vector<size_t>&);
 
-  size_t putMessage(Message&, size_t);
-  
+    size_t putMessage(Message&, size_t);
 
-  Format* getFormat();
 
-  size_t writeMsgBuffer(MsgBuffer*&, const std::vector<size_t>&);
-  
-  template<class O>
-  size_t writeMsgBufferWithOffsets(MsgBuffer*&, const std::vector<size_t>&, const std::vector<O>&);
-  
-  size_t readMsgBuffer(MsgBuffer *);
-  size_t readGhostMsgBuffer(MsgBuffer *, int);
-    
-  // Retrieve particles from the given message and store them.
-  // Return the number of particles retrieved.
-  size_t getMessage(Message&);
-  
-  size_t getSingleMessage(Message&);
+    Format* getFormat();
 
-  // retrieve particles from the given message and store them, also 
-  // signaling we are creating the given number of particles.  Return the
-  // number of particles created.
-  size_t getMessageAndCreate(Message&);
+    size_t writeMsgBuffer(MsgBuffer*&, const std::vector<size_t>&);
 
-  // Actually perform the delete atoms action for all the attributes; the
-  // calls to destroy() only stored a list of what to do.  This actually
-  // does it.  This should in most cases only be called by the layout manager.
-  void performDestroy();
+    template<class O>
+    size_t writeMsgBufferWithOffsets(MsgBuffer*&, const std::vector<size_t>&, const std::vector<O>&);
 
-  // Apply the given sortlist to all the attributes.
-  void sort(SortList_t &);
+    size_t readMsgBuffer(MsgBuffer *);
+    size_t readGhostMsgBuffer(MsgBuffer *, int);
 
-  //
-  // Global operations on all ghost attributes ... generally, these should
-  // only be used by the layout object
-  //
+    // Retrieve particles from the given message and store them.
+    // Return the number of particles retrieved.
+    size_t getMessage(Message&);
 
-  // Put the data for M particles starting from local index I in a Message.
-  // Return the number of particles put in the Message.  This is for building
-  // ghost particle interaction lists.
-  size_t ghostPutMessage(Message&, size_t, size_t);
+    size_t getSingleMessage(Message&);
 
-  // put the data for particles on a list into a Message, given list of indices
-  // Return the number of particles put in the Message.  This is for building
-  // ghost particle interaction lists.
-  size_t ghostPutMessage(Message&, const std::vector<size_t>&);
+    // retrieve particles from the given message and store them, also
+    // signaling we are creating the given number of particles.  Return the
+    // number of particles created.
+    size_t getMessageAndCreate(Message&);
 
-  // Retrieve particles from the given message and sending node and store them.
-  // Return the number of particles retrieved.
-  size_t ghostGetMessage(Message&, int);
+    // Actually perform the delete atoms action for all the attributes; the
+    // calls to destroy() only stored a list of what to do.  This actually
+    // does it.  This should in most cases only be called by the layout manager.
+    void performDestroy();
 
-  size_t ghostGetSingleMessage(Message&, int);
-  
-  // delete M ghost particles, starting with the Ith particle.  This is
-  // always done immediately.
-  void ghostDestroy(size_t, size_t);
+    // Apply the given sortlist to all the attributes.
+    void sort(SortList_t &);
 
-  //
-  // I/O
-  //
+    //
+    // Global operations on all ghost attributes ... generally, these should
+    // only be used by the layout object
+    //
 
-  // print out debugging information
-  void printDebug(Inform&);
+    // Put the data for M particles starting from local index I in a Message.
+    // Return the number of particles put in the Message.  This is for building
+    // ghost particle interaction lists.
+    size_t ghostPutMessage(Message&, size_t, size_t);
+
+    // put the data for particles on a list into a Message, given list of indices
+    // Return the number of particles put in the Message.  This is for building
+    // ghost particle interaction lists.
+    size_t ghostPutMessage(Message&, const std::vector<size_t>&);
+
+    // Retrieve particles from the given message and sending node and store them.
+    // Return the number of particles retrieved.
+    size_t ghostGetMessage(Message&, int);
+
+    size_t ghostGetSingleMessage(Message&, int);
+
+    // delete M ghost particles, starting with the Ith particle.  This is
+    // always done immediately.
+    void ghostDestroy(size_t, size_t);
+
+    //
+    // I/O
+    //
+
+    // print out debugging information
+    void printDebug(Inform&);
 
 protected:
-  // a virtual function which is called by this base class to get a
-  // specific instance of DataSourceObject based on the type of data
-  // and the connection method (the argument to the call).
-  virtual DataSourceObject *createDataSourceObject(const char *nm,
-						   DataConnect *dc, int tm) {
-    return make_DataSourceObject(nm, dc, tm, *this);
-  }
+    // a virtual function which is called by this base class to get a
+    // specific instance of DataSourceObject based on the type of data
+    // and the connection method (the argument to the call).
+    virtual DataSourceObject *createDataSourceObject(const char *nm,
+                                                     DataConnect *dc, int tm) {
+        return make_DataSourceObject(nm, dc, tm, *this);
+    }
 
 private:
-  // our layout object, which we delete in our destructor
-  PLayout *Layout;
+    // our layout object, which we delete in our destructor
+    PLayout *Layout;
 
-  // our list of attributes
-  attrib_container_t AttribList;
+    // our list of attributes
+    attrib_container_t AttribList;
 
-  // our current number of total and local atoms, and
-  // the number of particles we've deleted since the last update
-  // also, the number of ghost particles
-  size_t TotalNum;
-  size_t LocalNum;
-  size_t DestroyNum;
-  size_t GhostNum;
+    // our current number of total and local atoms, and
+    // the number of particles we've deleted since the last update
+    // also, the number of ghost particles
+    size_t TotalNum;
+    size_t LocalNum;
+    size_t DestroyNum;
+    size_t GhostNum;
 
-  // unique particle ID number generation value
-  unsigned NextID;
+    // unique particle ID number generation value
+    unsigned NextID;
 
-  // list of destroy events for the next update.  The data
-  // is not actually destroyed until the update phase.
-  // Each destroy is stored as a pair of unsigned ints, the particle
-  // index I to start at and the number of particles M to destroy.
-  std::vector< std::pair<size_t,size_t> > DestroyList;
+    // list of destroy events for the next update.  The data
+    // is not actually destroyed until the update phase.
+    // Each destroy is stored as a pair of unsigned ints, the particle
+    // index I to start at and the number of particles M to destroy.
+    std::vector< std::pair<size_t,size_t> > DestroyList;
 
-  //
-  // private methods
-  //
+    //
+    // private methods
+    //
 
-  // set up this new object:  add attributes and check in to the layout
-  void setup();
+    // set up this new object:  add attributes and check in to the layout
+    void setup();
 
-  // Return a new unique ID value for use by new particles.
-  // The ID number = (i * numprocs) + myproc, i = 0, 1, 2, ...
-  unsigned getNextID();
+    // Return a new unique ID value for use by new particles.
+    // The ID number = (i * numprocs) + myproc, i = 0, 1, 2, ...
+    unsigned getNextID();
 };
 
 #include "Particle/ParticleBase.hpp"
@@ -384,5 +398,5 @@ private:
 /***************************************************************************
  * $RCSfile: ParticleBase.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: ParticleBase.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleBase.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/
