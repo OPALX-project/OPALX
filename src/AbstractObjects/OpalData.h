@@ -22,6 +22,7 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
+#include <map>
 
 class PartBunch;
 class EnvelopeBunch;
@@ -34,6 +35,8 @@ class BoundaryGeometry;
 
 // store element name, max phase
 typedef std::pair<std::string, double > MaxPhasesT;
+typedef std::map<double, double> energyEvolution_t;
+typedef energyEvolution_t::value_type energyEvData_t;
 
 
 
@@ -221,14 +224,18 @@ public:
     ///
     BoundaryGeometry *getGlobalGeometry();
 
-    
+
     bool hasGlobalGeometry();
-    
+
     void setMaxPhase(std::string elName, double phi);
 
     std::vector<MaxPhasesT>::iterator getFirstMaxPhases();
     std::vector<MaxPhasesT>::iterator getLastMaxPhases();
     int getNumberOfMaxPhases();
+
+    void addEnergyData(double spos, double ekin);
+    energyEvolution_t::iterator getFirstEnergyData();
+    energyEvolution_t::iterator getLastEnergyData();
 
     unsigned long long getMaxTrackSteps();
     void setMaxTrackSteps(unsigned long long s);

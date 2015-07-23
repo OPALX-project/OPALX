@@ -124,6 +124,7 @@ struct OpalDataImpl {
     BoundaryGeometry *bg_m;
 
     std::vector<MaxPhasesT> maxPhases_m;
+    energyEvolution_t energyEvolution_m;
 
     // The cartesian mesh
     Mesh_t *mesh_m;
@@ -380,6 +381,18 @@ std::vector<MaxPhasesT>::iterator OpalData::getLastMaxPhases() {
 
 int OpalData::getNumberOfMaxPhases() {
     return p->maxPhases_m.size();
+}
+
+void OpalData::addEnergyData(double spos, double ekin) {
+    p->energyEvolution_m.insert(std::make_pair(spos, ekin));
+}
+
+energyEvolution_t::iterator OpalData::getFirstEnergyData() {
+    return p->energyEvolution_m.begin();
+}
+
+energyEvolution_t::iterator OpalData::getLastEnergyData() {
+    return p->energyEvolution_m.end();
 }
 
 
