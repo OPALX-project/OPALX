@@ -289,6 +289,7 @@ private:
     void SetFieldBoundaries(double startField, double endField);
     void SetupPusher(PartBunch *bunch);
     bool TreatAsDrift(Inform &msg, double chordlength);
+    void retrieveDesignEnergy(double startField);
 
     BorisPusher pusher_m;       /// Pusher used to integrate reference particle
     /// through the bend.

@@ -23,6 +23,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/Options.h"
 #include "Fields/Fieldmap.h"
+#include "AbstractObjects/OpalData.h"
 #include <iostream>
 #include <fstream>
 
@@ -423,10 +424,12 @@ void RBend::initialise(PartBunch *bunch, double &startField, double &endField, c
     Inform msg("RBend ", *gmsg);
 
     if(InitializeFieldMap(msg)) {
+        retrieveDesignEnergy(startField);
 
         SetupPusher(bunch);
         ReadFieldMap(msg);
         SetupBendGeometry(msg, startField, endField);
+
         double bendAngleX = 0.0;
         double bendAngleY = 0.0;
         CalculateRefTrajectory(bendAngleX, bendAngleY);
@@ -1657,4 +1660,13 @@ bool RBend::TreatAsDrift(Inform &msg) {
 
     } else
         return false;
+}
+
+void RBend::retrieveDesignEnergy(double startField) {
+    energyEvolution_t::iterator it = OpalData::getInstance()->getFirstEnergyData();
+    energyEvolution_t::iterator end = OpalData::getInstance()->getLastEnergyData();
+    for (; it != end; ++ it) {
+        if ((*it).first > startField) break;
+        designEnergy_m = (*it).second;
+    }
 }

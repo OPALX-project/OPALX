@@ -375,6 +375,10 @@ double AutophaseTracker::optimizeCavityPhase(const std::shared_ptr<Component> &c
 
     OpalData::getInstance()->setMaxPhase(cavity->getName(), Phimax);
 
+    double cavBegin, cavEnd;
+    cavity->getDimensions(cavBegin, cavEnd);
+    OpalData::getInstance()->addEnergyData(cavEnd, Emax * 1e6);
+
     return Phimax + originalPhase;
 }
 
@@ -440,17 +444,28 @@ double AutophaseTracker::APtrack(const std::shared_ptr<Component> &cavity, doubl
 
 
 void AutophaseTracker::sendCavityPhases() {
-    typedef std::vector<MaxPhasesT>::iterator iterator_t;
 
     int tag = 101;
     Message *mess = new Message();
     putMessage(*mess, OpalData::getInstance()->getNumberOfMaxPhases());
 
-    iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
-    iterator_t end = OpalData::getInstance()->getLastMaxPhases();
-    for(; it < end; ++ it) {
-        putMessage(*mess, (*it).first);
-        putMessage(*mess, (*it).second);
+    {
+        typedef std::vector<MaxPhasesT>::iterator iterator_t;
+        iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
+        iterator_t end = OpalData::getInstance()->getLastMaxPhases();
+        for(; it != end; ++ it) {
+            putMessage(*mess, (*it).first);
+            putMessage(*mess, (*it).second);
+        }
+    }
+    {
+        typedef energyEvolution_t::iterator iterator_t;
+        iterator_t it = OpalData::getInstance()->getFirstEnergyData();
+        iterator_t end = OpalData::getInstance()->getLastEnergyData();
+        for(; it != end; ++ it) {
+            putMessage(*mess, (*it).first);
+            putMessage(*mess, (*it).second);
+        }
     }
     Ippl::Comm->broadcast_all(mess, tag);
 
@@ -458,21 +473,33 @@ void AutophaseTracker::sendCavityPhases() {
 }
 
 void AutophaseTracker::receiveCavityPhases() {
-    typedef std::vector<MaxPhasesT>::iterator iterator_t;
 
     int parent = 0;
     int tag = 101;
     int nData = 0;
     Message *mess = Ippl::Comm->receive_block(parent, tag);
     getMessage(*mess, nData);
-    for(int i = 0; i < nData; i++) {
-        std::string elName;
-        double maxPhi;
-        getMessage(*mess, elName);
-        getMessage(*mess, maxPhi);
-        OpalData::getInstance()->setMaxPhase(elName, maxPhi);
-    }
 
+    {
+        typedef std::vector<MaxPhasesT>::iterator iterator_t;
+        for(int i = 0; i < nData; i++) {
+            std::string elName;
+            double maxPhi;
+            getMessage(*mess, elName);
+            getMessage(*mess, maxPhi);
+            OpalData::getInstance()->setMaxPhase(elName, maxPhi);
+        }
+    }
+    {
+        typedef energyEvolution_t::iterator iterator_t;
+        for(int i = 0; i < nData; i++) {
+            double spos;
+            double maxEnergy;
+            getMessage(*mess, spos);
+            getMessage(*mess, maxEnergy);
+            OpalData::getInstance()->addEnergyData(spos, maxEnergy);
+        }
+    }
     delete mess;
 }
 
