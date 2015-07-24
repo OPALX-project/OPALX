@@ -384,7 +384,6 @@ void SBend::initialise(PartBunch *bunch,
 
     if(InitializeFieldMap(msg)) {
         retrieveDesignEnergy(startField);
-        msg << getName() << "\t" << "design energy: " << designEnergy_m << endl;
 
         SetupPusher(bunch);
         ReadFieldMap(msg);
