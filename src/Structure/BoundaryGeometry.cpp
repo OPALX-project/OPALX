@@ -1785,11 +1785,11 @@ Change orientation if diff is:
 
 /*
   Line segment triangle intersection test. This method should be used only
-  for "tiny" line segments. A tiny line segment is tiny, if the number of
-  voxels covering the bounding box of the line segment is small (<=27).
+  for "tiny" line segments or, to be more exact, if the number of
+  voxels covering the bounding box of the line segment is small (<<100).
 
   Actually the method can be used for any line segment, but may not perform
-  well. Performace depends on the size of the bunding box of the line
+  well. Performace depends on the size of the bounding box of the line
   segment.
 
   The method returns the number of intersections of the line segment defined
