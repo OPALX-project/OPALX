@@ -20,7 +20,7 @@
 #include <iostream>
 #include <cmath>
 
-#define TESTLASEREMISSION
+//#define TESTLASEREMISSION
 
 extern Inform *gmsg;
 
