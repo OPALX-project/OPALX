@@ -622,10 +622,10 @@ void PartBunch::calcGammas() {
         reduce(pInBin, pInBin, OpAddAssign());
         if(pInBin != 0) {
             bingamma_m[i] /= pInBin;
-            INFOMSG(level2 << "Bin " << i << " gamma = " << setw(8) << scientific << setprecision(5) << bingamma_m[i] << "; NpInBin= " << setw(8) << setfill(' ') << pInBin << endl);
+            INFOMSG(level2 << "Bin " << std::setw(3) << i << " gamma = " << setw(8) << scientific << setprecision(5) << bingamma_m[i] << "; NpInBin= " << setw(8) << setfill(' ') << pInBin << endl);
         } else {
             bingamma_m[i] = 1.0;
-            INFOMSG(level2 << "Bin " << i << " has no particles " << endl);
+            INFOMSG(level2 << "Bin " << std::setw(3) << i << " has no particles " << endl);
         }
         s += pInBin;
     }
