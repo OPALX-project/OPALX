@@ -134,6 +134,11 @@ namespace AttributesT
         LASERPROFFN,
         IMAGENAME,
         INTENSITYCUT,
+        FLIPX,
+        FLIPY,
+        ROTATE90,
+        ROTATE180,
+        ROTATE270,
         NPDARKCUR,
         INWARDMARGIN,
         EINITHR,
@@ -847,8 +852,8 @@ Inform &Distribution::printInfo(Inform &os) const {
         if (emitting_m) {
             os << "* Distribution is emitted. " << endl;
             os << "* Emission time            = " << tEmission_m << " [sec]" << endl;
-            os << "* Time per bin             = " << tEmission_m/numberOfEnergyBins_m << " [sec]" << endl;
-            os << "* Bin delta t              = " << tBin_m << " [sec]" << endl;
+            os << "* Time per bin             = " << tEmission_m / numberOfEnergyBins_m << " [sec]" << endl;
+            os << "* Delta t during emission  = " << tBin_m / numberOfSampleBins_m << " [sec]" << endl;
             os << "* " << endl;
             PrintEmissionModel(os);
             os << "* " << endl;
@@ -1553,8 +1558,8 @@ void Distribution::CreateOpalE(Beam *beam,
         SetDistParametersGauss(beam->getMass());
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        INFOMSG("GUNGAUSSFLATTOPTH"<<endl)
-            SetDistParametersFlattop(beam->getMass());
+        INFOMSG("GUNGAUSSFLATTOPTH"<<endl);
+        SetDistParametersFlattop(beam->getMass());
         beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
         break;
     default:
@@ -1592,9 +1597,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
                                std::vector<Distribution *> addedDistributions,
                                size_t &numberOfParticles,
                                bool scan) {
-    // This is PC from BEAM
 
-    avrgpz_m = OpalData::getInstance()->getP0(); // beam.getP()/beam.getM();
     addedDistributions_m = addedDistributions;
     CreateOpalT(beam, numberOfParticles, scan);
 }
@@ -1871,7 +1874,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
         currentSampleBin_m++;
         if (currentSampleBin_m == numberOfSampleBins_m) {
 
-            INFOMSG("*Bin number: "
+            INFOMSG(level3 << "* Bin number: "
                     << currentEnergyBin_m
                     << " has emitted all particles (new emit)." << endl);
             currentSampleBin_m = 0;
@@ -2286,7 +2289,7 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
             yDist_m.push_back(x[1]);
             pyDist_m.push_back(p[1]);
             tOrZDist_m.push_back(x[2]);
-            pzDist_m.push_back(avrgpz_m *(1+p[2]));
+            pzDist_m.push_back(avrgpz_m * (1 + p[2]));
         }
 
     }
@@ -2302,7 +2305,7 @@ void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
         double y = 0.0;
         double py = 0.0;
 
-        laserProfile_m->GetXY(&x, &y);
+        laserProfile_m->getXY(x, y);
 
         // Save to each processor in turn.
         saveProcessor++;
@@ -2310,9 +2313,9 @@ void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
             saveProcessor = 0;
 
         if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
+            xDist_m.push_back(x * sigmaR_m[0]);
             pxDist_m.push_back(px);
-            yDist_m.push_back(y);
+            yDist_m.push_back(y * sigmaR_m[1]);
             pyDist_m.push_back(py);
         }
     }
@@ -2580,12 +2583,12 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
                 throw OpalException("Distribution::GenerateGaussZ",
                                     "oops... something wrong with GSL matvec");
             }
-            xDist_m.push_back(            sigmaR_m[0]*gsl_vector_get(ry, 0));
-            pxDist_m.push_back(           sigmaP_m[0]*gsl_vector_get(ry, 1));
-            yDist_m.push_back(            sigmaR_m[1]*gsl_vector_get(ry, 2));
-            pyDist_m.push_back(           sigmaP_m[1]*gsl_vector_get(ry, 3));
-            tOrZDist_m.push_back(         sigmaR_m[2]*gsl_vector_get(ry, 4));
-            pzDist_m.push_back(avrgpz_m +(sigmaP_m[2]*gsl_vector_get(ry, 5)));
+            xDist_m.push_back(            sigmaR_m[0] * gsl_vector_get(ry, 0));
+            pxDist_m.push_back(           sigmaP_m[0] * gsl_vector_get(ry, 1));
+            yDist_m.push_back(            sigmaR_m[1] * gsl_vector_get(ry, 2));
+            pyDist_m.push_back(           sigmaP_m[1] * gsl_vector_get(ry, 3));
+            tOrZDist_m.push_back(         sigmaR_m[2] * gsl_vector_get(ry, 4));
+            pzDist_m.push_back(avrgpz_m + sigmaP_m[2] * gsl_vector_get(ry, 5));
         }
     }
 
@@ -3656,6 +3659,16 @@ void Distribution::SetAttributes() {
         = Attributes::makeReal("INTENSITYCUT", "For background subtraction of laser "
                                "image profile, in % of max intensity.",
                                0.0);
+    itsAttr[AttributesT::FLIPX]
+        = Attributes::makeBool("FLIPX", "Flip laser profile horizontally", false);
+    itsAttr[AttributesT::FLIPY]
+        = Attributes::makeBool("FLIPY", "Flip laser profile vertically", false);
+    itsAttr[AttributesT::ROTATE90]
+        = Attributes::makeBool("ROTATE90", "Rotate laser profile 90 degrees counter clockwise", false);
+    itsAttr[AttributesT::ROTATE180]
+        = Attributes::makeBool("ROTATE180", "Rotate laser profile 180 degrees counter clockwise", false);
+    itsAttr[AttributesT::ROTATE270]
+        = Attributes::makeBool("ROTATE270", "Rotate laser profile 270 degrees counter clockwise", false);
 
     // Dark current and field emission model parameters.
     itsAttr[AttributesT::NPDARKCUR]
@@ -3878,7 +3891,6 @@ void Distribution::SetEmissionTime(double &maxT, double &minT) {
         case DistrTypeT::GUNGAUSSFLATTOPTH:
             tEmission_m = tPulseLengthFWHM_m + (cutoffR_m[2] - sqrt(2.0 * log(2.0)))
                 * (sigmaTRise_m + sigmaTFall_m);
-            INFOMSG("tEm= " << tEmission_m << endl);
             break;
 
         default:
@@ -4068,9 +4080,17 @@ void Distribution::SetDistParametersFlattop(double massIneV) {
     if (!(laserProfileFileName_m == std::string(""))) {
         laserImageName_m = Attributes::getString(itsAttr[AttributesT::IMAGENAME]);
         laserIntensityCut_m = std::abs(Attributes::getReal(itsAttr[AttributesT::INTENSITYCUT]));
+        short flags = 0;
+        if (Attributes::getBool(itsAttr[AttributesT::FLIPX])) flags |= LaserProfile::FLIPX;
+        if (Attributes::getBool(itsAttr[AttributesT::FLIPY])) flags |= LaserProfile::FLIPY;
+        if (Attributes::getBool(itsAttr[AttributesT::ROTATE90])) flags |= LaserProfile::ROTATE90;
+        if (Attributes::getBool(itsAttr[AttributesT::ROTATE180])) flags |= LaserProfile::ROTATE180;
+        if (Attributes::getBool(itsAttr[AttributesT::ROTATE270])) flags |= LaserProfile::ROTATE270;
+
         laserProfile_m = new LaserProfile(laserProfileFileName_m,
                                           laserImageName_m,
-                                          laserIntensityCut_m);
+                                          laserIntensityCut_m,
+                                          flags);
     }
 
     // Legacy for ASTRAFLATTOPTH.
