@@ -2094,7 +2094,7 @@ void ParallelTTracker::computeExternalFields() {
     }
 
     if(ne > 0)
-        msg << level2 << "* Deleted " << ne << " particles, "
+        msg << level1 << "* Deleted " << ne << " particles, "
 	   << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
 }
 

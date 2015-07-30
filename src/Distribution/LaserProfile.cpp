@@ -9,319 +9,348 @@
 // Class: LaserProfile
 //
 // ------------------------------------------------------------------------
+
 #include "Distribution/LaserProfile.h"
 #include "Utility/Inform.h"
+#include "Utilities/OpalException.h"
 
-using namespace std;
+#include <boost/filesystem.hpp>
 
-void LaserProfile::ReadFile(string fn, string imagestr, double cut) {
+#include <fstream>
+#include <iostream>
+#include <cmath>
 
-    Inform m("LaserProfile::ReadFile ");
-    hid_t h5 = H5Fopen(fn.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-    hid_t gr = H5Gopen2 (h5, imagestr.c_str(), H5P_DEFAULT);
+//#define TESTLASEREMISSION
 
-    hid_t dsetBit = H5Dopen2 (gr, "CameraBits", H5P_DEFAULT);
-    dsetBit = H5Dopen2 (gr, "CameraGain", H5P_DEFAULT);
+extern Inform *gmsg;
 
-    double bitData[] = { -1 };
-    H5Dread(dsetBit, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, bitData);
-    int  bits = static_cast<int>(bitData[0]);
+LaserProfile::LaserProfile(const std::string &fileName,
+                           const std::string &imageName,
+                           double intensityCut,
+                           short flags):
+    sizeX_m(0),
+    sizeY_m(0),
+    hist2d_m(NULL),
+    rng_m(NULL),
+    pdf_m(NULL),
+    centerMass_m(0.0),
+    standardDeviation_m(0.0){
 
+    unsigned short *image = readFile(fileName, imageName, intensityCut);
+
+    if (flags & FLIPX) flipX(image);
+    if (flags & FLIPY) flipY(image);
+    if (flags & ROTATE90) {
+        swapXY(image);
+        flipX(image);
+    }
+    if (flags & ROTATE180) {
+        flipX(image);
+        flipY(image);
+    }
+    if (flags & ROTATE270) {
+        swapXY(image);
+        flipY(image);
+    }
+
+#ifdef TESTLASEREMISSION
+    saveOrigData(image);
+#endif
+
+    filterSpikes(image);
+    normalizeProfileData(intensityCut, image);
+    computeProfileStatistics(image);
+    fillHistrogram(image);
+
+    delete[] image;
+
+    setupRNG();
+
+#ifdef TESTLASEREMISSION
+    saveHistogram();
+    sampleDist();
+#endif
+
+    printInfo();
+}
+
+LaserProfile::~LaserProfile() {
+    gsl_histogram2d_pdf_free(pdf_m);
+    gsl_histogram2d_free(hist2d_m);
+    gsl_rng_free(rng_m);
+}
+
+unsigned short * LaserProfile::readFile(const std::string &fileName,
+                                        const std::string &imageName,
+                                        double insCut) {
+
+    namespace fs = boost::filesystem;
+    if (!fs::exists(fileName)) {
+        throw OpalException("LaserProfile::readFile",
+                            "given file '" + fileName + "' does not exist");
+    }
+
+    hid_t h5 = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    hid_t group = H5Gopen2 (h5, imageName.c_str(), H5P_DEFAULT);
+
+    if (group < 0) {
+        throw OpalException("LaserProfile::readFile",
+                            "given image name '" + imageName + "' does not exist");
+    }
 
     hsize_t dim[2];
-    hid_t   dset = H5Dopen2 (gr, "CameraData", H5P_DEFAULT);
+    hid_t   dataSet = H5Dopen2 (group, "CameraData", H5P_DEFAULT);
 
-    hid_t filespace = H5Dget_space(dset);
-    H5Sget_simple_extent_dims(filespace, dim, NULL);
-    filespace = H5Screate_simple(2, dim, NULL);
-    /*
-    filespace = H5Screate_simple(3, dim, NULL);
-    */
+    if (dataSet < 0) {
+        throw OpalException("LaserProfile::readFile",
+                            "data set 'CameraData' does not exist");
+    }
+
+    hid_t dataSetSpace = H5Dget_space(dataSet);
+    H5Sget_simple_extent_dims(dataSetSpace, dim, NULL);
+    hid_t filespace = H5Screate_simple(2, dim, NULL);
 
     sizeX_m        = dim[0];
     sizeY_m        = dim[1];
-    /*
-    int nImage     = dim[0];
-    sizeX_m        = dim[1];
-    sizeY_m        = dim[2];
-    */
 
-    // selection of hyperslab in hdf5 file:
-    hsize_t start[]  = {0, 0}; // Start of hyperslab
-    hsize_t count[]  = {sizeX_m, sizeY_m};   // Block count
-    /*
-    hsize_t start[]  = {imageNumber,0,0};  // Start of hyperslab
-    hsize_t count[]  = {imageNumber,sizeX_m,sizeY_m};    // Block count
-    */
+    hsize_t startHyperslab[]  = {0, 0};
+    hsize_t blockCount[]  = {sizeX_m, sizeY_m};
 
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, count, NULL);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, startHyperslab, NULL, blockCount, NULL);
 
-    unsigned short int  *image = new unsigned short int  [sizeX_m*sizeY_m];
-    hid_t mem = H5Screate_simple(2, count, NULL);
-    /*
-    hid_t mem = H5Screate_simple(3, count, NULL);
-    */
+    unsigned short  *image = new unsigned short  [sizeX_m * sizeY_m];
+    hid_t mem = H5Screate_simple(2, blockCount, NULL);
 
-    H5Dread(dset, H5T_NATIVE_USHORT, mem, filespace, H5P_DEFAULT, image);
+    H5Dread(dataSet, H5T_NATIVE_USHORT, mem, filespace, H5P_DEFAULT, image);
 
-    m << "# Read image done .... sizeX= " << sizeX_m << " sizeY= " << sizeY_m << " Bits= " << bits << endl;
+    H5Sclose(mem);
+    H5Sclose(filespace);
+    H5Dclose(dataSetSpace);
+    H5Dclose(dataSet);
+    H5Gclose(group);
+    H5Fclose(h5);
 
-    int pixel = 0;
-    hsize_t col = 1;
-    hsize_t row = 1;
+    return image;
+}
 
-    hist2d_m = gsl_histogram2d_alloc(sizeX_m, sizeY_m);
-    gsl_histogram2d_set_ranges_uniform(hist2d_m, 0.0, 1.0, 0.0, 1.0);   // all bins are set to 0 too
+void LaserProfile::flipX(unsigned short *image) {
+    unsigned int col2 = sizeX_m - 1;
+    for (unsigned int col1 = 0; col1 < col2; ++ col1, -- col2) {
 
-    cout << "sizeX_m=" << sizeX_m << "; sizeY_m=" << sizeY_m << endl;
-
-    bool doBackGroundCut_m = 1;
-    unsigned short int profileMax_m;
-    if(doBackGroundCut_m)
-        GetProfileMax(&profileMax_m, image);
-
-    //    exit ();
-
-    /*
-
-    for (col=1; col<=sizeX_m; col++) {
-    for (row=1; row<=sizeY_m; row++) {
-      //        int val = (image[pixel++] >> shift); // lowest bits are insignificant
-      int val = (image[pixel++]);
-        //      if ((200 < col < 300) && (200 < row < 300))
-        //      gsl_histogram2d_accumulate (hist2d_m, col/sizeX_m, row/sizeY_m, val);
-        if ( (700<col)&&(col<1000)&&(1<row)&&(row<300) ) {
-        gsl_histogram2d_accumulate (hist2d_m, double(col)/sizeX_m, double(row)/sizeY_m, val);
-        if( ((col==5)||(col==250)||(col==500)||(col==800))&&((row==100)||(row==300)||(row==500)||(row==700)) ) {
-            cout << col << " " << row << " val=" << val << endl;
-            cout << "col/sizeX_m=" << double(col)/sizeX_m << "; row/sizeY_m=" << double(row)/sizeY_m << endl;
-        }
+        unsigned int pixel1 = col1 * sizeY_m;
+        unsigned int pixel2 = col2 * sizeY_m;
+        for (unsigned int row = 0; row < sizeY_m; ++ row) {
+            std::swap(image[pixel1 ++], image[pixel2 ++]);
         }
     }
+}
+
+void LaserProfile::flipY(unsigned short *image) {
+    for (unsigned int col = 0; col < sizeX_m; ++ col) {
+
+        unsigned int pixel1 = col * sizeY_m;
+        unsigned int pixel2 = (col + 1) * sizeY_m - 1;
+
+        unsigned int row2 = sizeY_m - 1;
+        for (unsigned int row1 = 0; row1 < row2; ++ row1, -- row2) {
+            std::swap(image[pixel1 ++], image[pixel2 --]);
+        }
     }
-    cout << "xmax=" << gsl_histogram2d_xmax(hist2d_m) << "; xmin=" << gsl_histogram2d_xmin(hist2d_m) << endl;
-    cout << "ymax=" << gsl_histogram2d_ymax(hist2d_m) << "; ymin=" << gsl_histogram2d_ymin(hist2d_m) << endl;
-    cout << "max_val=" << gsl_histogram2d_max_val(hist2d_m) << "; min_val=" << gsl_histogram2d_min_val(hist2d_m) << endl;
-    cout << "xmean=" << gsl_histogram2d_xmean(hist2d_m) << "; xsigma=" << gsl_histogram2d_xsigma(hist2d_m) << endl;
-    cout << "ymean=" << gsl_histogram2d_ymean(hist2d_m) << "; ysigma=" << gsl_histogram2d_ysigma(hist2d_m) << endl;
-    cout << "sum=" << gsl_histogram2d_sum(hist2d_m) << endl;
+}
 
-    */
+void LaserProfile::swapXY(unsigned short *image) {
+    unsigned short *copy = new unsigned short [sizeX_m * sizeY_m];
+    for (unsigned int col = 0; col < sizeX_m; ++ col) {
+        for (unsigned int row = 0; row < sizeY_m; ++ row) {
+            unsigned int pixel1 = col * sizeY_m + row;
+            unsigned int pixel2 = row * sizeX_m + col;
 
-    /*
-
-    if (doBackGroundCut_m) {
-      GetProfileMax();
-      double wkjdfkjdf=0.14;
-      for (col=1; col<=sizeX_m; col++) {
-        for (row=1; row<=sizeY_m; row++) {
-
-            val =
-
-        // Background cut starts here
-        if ( (val*1.0)/(MAX*1.0) < wkjdfkjdf )
-            val = 0;
-        if ( (val*1.0)/(profileMax_m*1.0) >= wkjdfkjdf )
-            val = ((val*1.0)/profileMax_m - wkjdfkjdf)/(1-wkjdfkjdf) * profileMax_m;
-        // end of cut
-
-        if ( (700<col)&&(col<1000)&&(1<row)&&(row<300) ) {
-          gsl_histogram2d_accumulate (hist2d_m, double(col)/sizeX_m, double(row)/sizeY_m, val);
-          if( ((col==5)||(col==250)||(col==500)||(col==800))&&((row==100)||(row==300)||(row==500)||(row==700)) ) {
-            cout << col << " " << row << " val=" << val << endl;
-            cout << "col/sizeX_m=" << double(col)/sizeX_m << "; row/sizeY_m=" << double(row)/sizeY_m << endl;
-          }
+            copy[pixel2] = image[pixel1];
         }
-        }
-      }
-      cout << "profileMax = " << profileMax << endl;
     }
 
-    */
+    for (unsigned int pixel = 0; pixel < sizeX_m * sizeY_m; ++ pixel) {
+        image[pixel] = copy[pixel];
+    }
 
-    /*
+    delete[] copy;
 
-    else {
+    std::swap(sizeX_m, sizeY_m);
+}
 
-    */
+void LaserProfile::filterSpikes(unsigned short *image) {
+    hsize_t idx = sizeY_m + 1;
+    hsize_t idxN = idx - sizeY_m;
+    hsize_t idxNW = idxN - 1, idxNE = idxN + 1;
+    hsize_t idxW = idx - 1, idxE = idx + 1;
+    hsize_t idxS = idx + sizeY_m;
+    hsize_t idxSW = idxS - 1, idxSE = idxS + 1;
 
-    double insCut = 0.45;
+    for (hsize_t i = 1; i < sizeX_m - 1; ++ i) {
+        for (hsize_t j = 1; j < sizeY_m - 1; ++ j) {
 
-    //  double MAX = gsl_histogram2d_max_val(hist2d_m); // MAX =Maximum im Laserprofil
-    //  cout << "profileMax_m = " << profileMax_m << endl;
-    for(col = sizeX_m; col >= 1; col--) {
-        for(row = 1; row <= sizeY_m; row++) {
-            //
-            //        if (pixel == 0)
-            //          cout << "pixel == 0; image[pixel] = " << image[pixel] << "; image[pixel+1] = " << image[pixel+1] << endl;
+            if (image[idx] > 0) {
+                if (image[idxNW] == 0 &&
+                    image[idxN] == 0 &&
+                    image[idxNE] == 0 &&
+                    image[idxW] == 0 &&
+                    image[idxE] == 0 &&
+                    image[idxSW] == 0 &&
+                    image[idxS] == 0 &&
+                    image[idxSE] == 0) {
 
-            // int val = (image[pixel++] >> shift); // lowest bits are insignificant
-            double val;
-            /*
-                    if (pixel == 0)
-                      { val = (image[pixel++]);
-                        cout << "val = " << val << "; image[pixel] = " << image[pixel] << endl; }
-                    else
-                      val = (image[pixel++]);
-            */
-            val = (image[pixel++]);
-            // Background cut starts here
-            if((val * 1.0) / (profileMax_m * 1.0) < insCut)
-                val = 0;
-            if((val * 1.0) / (profileMax_m * 1.0) >= insCut)
-                val = ((val * 1.0) / profileMax_m - insCut) / (1 - insCut) * profileMax_m;
-            // end of cut
-
-
-
-            if((700 < col) && (col < 1000) && (1 < row) && (row < 300)) {
-                gsl_histogram2d_accumulate(hist2d_m, double(col) / sizeX_m, double(row) / sizeY_m, val);
-                //          if( ((col==5)||(col==250)||(col==500)||(col==800))&&((row==100)||(row==300)||(row==500)||(row==700)) ) {
-                //            cout << col << " " << row << " val=" << val << endl;
-                //            cout << "col/sizeX_m=" << double(col)/sizeX_m << "; row/sizeY_m=" << double(row)/sizeY_m << endl;
-                //          }
+                    image[idx] = 0;
+                }
             }
 
+            ++ idxNW; ++ idxN; ++ idxNE;
+            ++ idxW;  ++ idx;  ++ idxE;
+            ++ idxSW; ++ idxS; ++ idxSE;
+        }
+    }
+}
 
+void LaserProfile::normalizeProfileData(double intensityCut, unsigned short *image) {
+    unsigned short int profileMax;
+    getProfileMax(profileMax, image);
 
-            //      if ((200 < col < 300) && (200 < row < 300))
-            //          gsl_histogram2d_accumulate (hist2d_m, col/sizeX_m, row/sizeY_m, val);
+    unsigned int pixel = 0;
+    for (unsigned int col = 0; col < sizeX_m; ++ col) {
+        for(unsigned int row = 0; row < sizeY_m; ++ row, ++ pixel) {
+            double val = (double(image[pixel]) / profileMax - intensityCut) / (1.0 - intensityCut);
+
+            val = std::max(0.0, val);
+            image[pixel] = std::floor(val * profileMax + 0.5);
+        }
+    }
+}
+
+void LaserProfile::computeProfileStatistics(unsigned short *image) {
+    double totalMass = 0.0;
+    centerMass_m = Vector_t(0.0);
+    standardDeviation_m = Vector_t(0.0);
+
+    unsigned int pixel = 0;
+    for(unsigned int col = 0; col < sizeX_m; ++ col) {
+        for(unsigned int row = 0; row < sizeY_m; ++ row, ++ pixel) {
+            double val = image[pixel];
+
+            centerMass_m(0) += val * col;
+            centerMass_m(1) += val * row;
+            standardDeviation_m(0) += val * col*col;
+            standardDeviation_m(1) += val * row*row;
+            totalMass += val;
         }
     }
 
-    /*
+    centerMass_m /= totalMass;
+    standardDeviation_m(0) = sqrt(standardDeviation_m(0) / totalMass -
+                                  centerMass_m(0)*centerMass_m(0));
+    standardDeviation_m(1) = sqrt(standardDeviation_m(1) / totalMass -
+                                  centerMass_m(1)*centerMass_m(1));
+}
 
+void LaserProfile::fillHistrogram(unsigned short *image) {
+    unsigned int histSizeX = std::floor(10 * standardDeviation_m(0) + 0.5);
+    unsigned int histSizeY = std::floor(10 * standardDeviation_m(1) + 0.5);
+    histSizeX += (1 - histSizeX % 2);
+    histSizeY += (1 - histSizeY % 2);
+    double histRangeX = histSizeX / standardDeviation_m(0) / 2;
+    double histRangeY = histSizeY / standardDeviation_m(1) / 2;
+    double binSizeX = histRangeX * 2 / histSizeX;
+    double binSizeY = histRangeY * 2 / histSizeY;
+
+    hist2d_m = gsl_histogram2d_alloc(histSizeX, histSizeY);
+    gsl_histogram2d_set_ranges_uniform(hist2d_m,
+                                       -histRangeX, histRangeX,
+                                       -histRangeY, histRangeY);
+
+    unsigned int pixel = 0;
+    for (unsigned int col = 0; col < sizeX_m; ++ col) {
+        double x = (col - centerMass_m(0)) / standardDeviation_m(0);
+        x = std::floor(x / binSizeX + 0.5) * binSizeX;
+        if (std::abs(x) > 5.0) {
+            pixel += sizeY_m;
+            continue;
+        }
+
+
+        for (unsigned int row = 0; row < sizeY_m; ++ row, ++ pixel) {
+            double val = image[pixel];
+            double y = (row - centerMass_m(1)) / standardDeviation_m(1);
+            y = std::floor(y / binSizeY + 0.5) * binSizeY;
+
+            if (std::abs(y) > 5.0) continue;
+
+            gsl_histogram2d_accumulate(hist2d_m, x, y, val);
+        }
     }
+}
 
-    */
-
-
-    SaveDist();
+void LaserProfile::setupRNG() {
+    unsigned int histSizeX = hist2d_m->nx, histSizeY = hist2d_m->ny;
 
     gsl_rng_env_setup();
 
     const gsl_rng_type *T = gsl_rng_default;
-    r_m = gsl_rng_alloc(T);
+    rng_m = gsl_rng_alloc(T);
 
-    pdf_m = gsl_histogram2d_pdf_alloc(sizeX_m, sizeY_m);
+    pdf_m = gsl_histogram2d_pdf_alloc(histSizeX, histSizeY);
     gsl_histogram2d_pdf_init(pdf_m, hist2d_m);
-
-    SampleDist();
-
-    double aa, bb;
-    GetXY(&aa, &bb);
-    cout << "x aa=" << aa << "; y bb=" << bb << endl;
-
 }
 
+void LaserProfile::printInfo() {
+    INFOMSG(level3 << "* **********************************************************************************\n");
+    INFOMSG("* LASER PROFILE \n");
+    INFOMSG("* size = " << sizeX_m << " x " << sizeY_m << " pixels \n");
+    INFOMSG("* center of mass: x = " << centerMass_m(0) << ", y = " << centerMass_m(1) << "\n");
+    INFOMSG("* standard deviation: x = " << standardDeviation_m(0) << ", y = " << standardDeviation_m(1) << "\n");
+    INFOMSG("* **********************************************************************************" << endl);
+}
 
+void LaserProfile::saveOrigData(unsigned short *image) {
+    std::ofstream out("data/originalLaserProfile.dat");
 
-/*-----*/
-void LaserProfile::SaveDist() {
-    FILE  *fh = fopen("dist2dhist.dat", "w");
+    unsigned int index = 0;
+    for (unsigned int i = 0; i < sizeX_m; ++ i) {
+        for (unsigned int j = 0; j < sizeY_m; ++ j) {
+            out << image[index++] << "\t";
+        }
+        out << std::endl;
+    }
+}
+
+void LaserProfile::saveHistogram() {
+    FILE  *fh = fopen("data/LaserHistogram.dat", "w");
     gsl_histogram2d_fprintf(fh, hist2d_m, "%g", "%g");
     fclose(fh);
 }
 
-
-void LaserProfile::SampleDist() {
-    FILE  *fh = fopen("distsampled.dat", "w");
+void LaserProfile::sampleDist() {
+    std::ofstream fh("data/LaserEmissionSampled.dat");
     double x, y;
 
-    for(int i = 0; i < 10000; i++) {
-        GetXY(&x, &y);
-        fprintf(fh, "%g %g \n", x, y);
+    for(int i = 0; i < 1000000; i++) {
+        getXY(x, y);
+        fh << x << "\t" << y << "\n";
     }
 
-
-    fclose(fh);
+    fh.close();
 }
 
-void LaserProfile::GetXY(double *s_x, double *s_y) {
-    double x, y;
-    double u = gsl_rng_uniform(r_m);
-    double v = gsl_rng_uniform(r_m);
+void LaserProfile::getXY(double &x, double &y) {
+    double u = gsl_rng_uniform(rng_m);
+    double v = gsl_rng_uniform(rng_m);
     gsl_histogram2d_pdf_sample(pdf_m, u, v, &x, &y);
-
-    *s_x = x;
-    *s_y = y;
-
-    //  *s_x = x*sizeX_m;
-    //  *s_y = y*sizeY_m;
 }
 
-void LaserProfile::GetProfileMax(unsigned short int *profileMax_m, unsigned short int image[]) {
+void LaserProfile::getProfileMax(unsigned short &maxIntensity, unsigned short *image) {
+    unsigned int numberPixels = sizeX_m * sizeY_m;
 
-    int image_len = sizeX_m * sizeY_m;
-    //*profileMax_m = image[i];       // start with max = first element
+    maxIntensity = 0;
 
-    *profileMax_m = 0;
-
-    cout << " profileMax_m = " << profileMax_m << " ; *profileMax_m = " << *profileMax_m << endl;
-    for(int i = 0; i < image_len; i++) {
-        if(image[i] > *profileMax_m)
-            *profileMax_m = image[i];
+    for(unsigned int i = 0; i < numberPixels; i++) {
+        if(image[i] > maxIntensity)
+            maxIntensity = image[i];
     }
 }
-
-
-#ifdef LASERPROFILE_TEST
-/*---------------------------------------------*/
-/*---------------------------------------------*/
-/*-----*/
-double LaserProfile::GetX() {
-    double x, y;
-    double u = gsl_rng_uniform(r_m);
-    double v = gsl_rng_uniform(r_m);
-    gsl_histogram2d_pdf_sample(pdf_m, u, v, &x, &y);
-    printf("%g %g\n", x * sizeX_m, y * sizeY);
-
-    return x * sizeX_m;
-}
-
-/*-----*/
-double LaserProfile::GetY() {
-    double x, y;
-    double u = gsl_rng_uniform(r_m);
-    double v = gsl_rng_uniform(r_m);
-    gsl_histogram2d_pdf_sample(pdf_m, u, v, &x, &y);
-    printf("%g %g\n", x * sizeX_m, y * sizeY_m);
-
-    return y * sizeY_m;
-}
-
-
-int main(int argc, const char *argv[]) {
-
-    LaserProfile test(argc, argv);
-
-    test.GetX();
-    test.GetX();
-    test.GetX();
-    test.GetX();
-    test.GetX();
-    test.GetX();
-    test.GetX();
-
-    cout << "\n";
-
-    test.GetY();
-    test.GetY();
-    test.GetY();
-    test.GetY();
-    test.GetY();
-    test.GetY();
-
-    SaveDist();
-
-    double a, b;
-    test.GetXY(&a, &b);
-    cout << "\n";
-    cout << a << "\t" << b << "\n";
-
-    return 0;
-}
-#endif
-
-/*---------------------------------------------*/
-/*---------------------------------------------*/

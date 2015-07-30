@@ -44,10 +44,9 @@
 #include "Utilities/OpalException.h"
 
 #include <cmath>
+#include <iterator>
 
 using namespace Expressions;
-using namespace Physics;
-
 
 // Class Beam
 // ------------------------------------------------------------------------
@@ -99,7 +98,7 @@ Beam::Beam():
     Definition(SIZE, "BEAM",
                "The \"BEAM\" statement defines data for a the particles "
                "in a beam."),
-    reference(1.0, m_p *energy_scale, 1.0 * energy_scale) {
+    reference(1.0, Physics::m_p *energy_scale, 1.0 * energy_scale) {
 
     itsAttr[FIELDSOLVER] = Attributes::makeString
                            ("FIELDSOLVER", "Name of the attached field solver ");
@@ -271,21 +270,32 @@ void Beam::setET(double value) {
 
 void Beam::update() {
     // Find the particle name.
-    static const char *names[] = {
-        "ELECTRON", "PROTON", "POSITRON", "ANTIPROTON", "CARBON", "HMINUS", "URANIUM", "MUON", "DEUTERON", "XENON", "H2P"
-    };
-
-    static const double masses[] = {
-        m_e, m_p, m_e, m_p, m_c, m_hm, m_u, m_mu, m_d, m_xe, 2 * m_p
-    };
-
-    static const double charges[] = {
-        -1.0, 1.0, 1.0, -1.0, 12.0, -1.0, 35.0, -1.0, 1.0, 20.0, 1.0
-    };
-
     if(itsAttr[PARTICLE]) {
+        static const char *names[] = {
+            "ELECTRON", "PROTON", "POSITRON", "ANTIPROTON", "CARBON", "HMINUS", "URANIUM", "MUON", "DEUTERON", "XENON", "H2P"
+        };
+
+        static const double masses[] = {
+            Physics::m_e,
+            Physics::m_p,
+            Physics::m_e,
+            Physics::m_p,
+            Physics::m_c,
+            Physics::m_hm,
+            Physics::m_u,
+            Physics::m_mu,
+            Physics::m_d,
+            Physics::m_xe,
+            2 * Physics::m_p
+        };
+
+        static const double charges[] = {
+            -1.0, 1.0, 1.0, -1.0, 12.0, -1.0, 35.0, -1.0, 1.0, 20.0, 1.0
+        };
+        const unsigned int numParticleNames = std::end(names) - std::begin(names);
+
         std::string pName  = Attributes::getString(itsAttr[PARTICLE]);
-        for(int i = 0; i < 11; ++i) {
+        for(unsigned int i = 0; i < numParticleNames; ++ i) {
             if(pName == names[i]) {
                 Attributes::setReal(itsAttr[MASS], masses[i]);
                 Attributes::setReal(itsAttr[CHARGE], charges[i]);
@@ -296,7 +306,7 @@ void Beam::update() {
 
     // Set up particle reference; convert all to eV for CLASSIC.
     double mass =
-        (itsAttr[MASS] ? Attributes::getReal(itsAttr[MASS]) : m_p) * energy_scale;
+        (itsAttr[MASS] ? Attributes::getReal(itsAttr[MASS]) : Physics::m_p) * energy_scale;
     double charge = itsAttr[CHARGE] ? Attributes::getReal(itsAttr[CHARGE]) : 1.0;
     reference = PartData(charge, mass, 1.0);
 
