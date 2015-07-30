@@ -11,7 +11,9 @@
 // Class: LaserProfile
 //
 // ------------------------------------------------------------------------
-// #include <Ippl.h>
+
+#include "Algorithms/Vektor.h"
+
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram2d.h>
 #include <string>
@@ -21,37 +23,46 @@
 class LaserProfile {
 
 public:
-    LaserProfile() {
-    }
+    LaserProfile(const std::string &fileName,
+                 const std::string &imageName,
+                 double intensityCut,
+                 short flags);
 
-    LaserProfile(std::string fn, std::string image, double cut) {
-        ReadFile(fn, image, cut);
-    }
+    ~LaserProfile();
 
-    ~LaserProfile() {
-        gsl_histogram2d_pdf_free(pdf_m);
-        gsl_histogram2d_free(hist2d_m);
-        gsl_rng_free(r_m);
-    }
-    void ReadFile(std::string fn, std::string image, double cut);
+    void getXY(double &x, double &y);
 
-    void SaveDist();
-    void SampleDist();
-    void GetXY(double *s_x, double *s_y);
-
-#ifdef LASERPROFILE_TEST
-    void GetX();
-#endif
-
-    // void BackGroundCut(double cut );
-    void GetProfileMax(unsigned short int *profileMax_m, unsigned short int   *image);
-
+    enum {FLIPX = 1,
+          FLIPY = 2,
+          ROTATE90 = 4,
+          ROTATE180 = 8,
+          ROTATE270 = 16};
 private:
-    //unsigned short int profileMax_m;
+    unsigned short * readFile(const std::string &fileName,
+                              const std::string &imageName,
+                              double intensityCut);
+    void flipX(unsigned short *image);
+    void flipY(unsigned short *image);
+    void swapXY(unsigned short *image);
+    void filterSpikes(unsigned short *image);
+    void normalizeProfileData(double intensityCut, unsigned short *image);
+    void computeProfileStatistics(unsigned short *image);
+    void fillHistrogram(unsigned short *image);
+    void setupRNG();
+    void printInfo();
+
+    void saveOrigData(unsigned short *image);
+    void saveHistogram();
+    void sampleDist();
+
+    void getProfileMax(unsigned short &profileMax_m, unsigned short *image);
+
     hsize_t sizeX_m, sizeY_m;
     gsl_histogram2d *hist2d_m;
-    gsl_rng *r_m;
+    gsl_rng *rng_m;
     gsl_histogram2d_pdf *pdf_m;
 
+    Vector_t centerMass_m;
+    Vector_t standardDeviation_m;
 };
 #endif
