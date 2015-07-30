@@ -1256,7 +1256,7 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
 
         IpplTimings::stopTimer(timeFieldEvaluation_m);
 
-        //        if(itsBunch->getLocalNum() == 0)
+        // if(itsBunch->getLocalNum() == 0)
         //    global_EOL = false;
 
         /**
@@ -1271,7 +1271,8 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
 
         totalParticles_f = totalParticles_i - ne;
         if(ne > 0)
-            msg << "* Deleted in Shotky " << ne << " particles, remaining " << totalParticles_f << " particles" << endl; //benchmark output
+            msg << "* Deleted in Shotky " << ne << " particles, remaining "
+                << totalParticles_f << " particles" << endl; //benchmark output
 
         kickParticles(pusher);
 
@@ -1283,28 +1284,37 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
         itsBunch->RefPart_R = RefPartR_zxy_m;
         itsBunch->RefPart_P = RefPartP_zxy_m;
 
-        // calculate the dimensions of the bunch and add a small margin to them; then decide which elements have to be triggered
-        // when an element is triggered memory is allocated and the field map is read in
+        /*
+          calculate the dimensions of the bunch and add a small margin to them;
+          then decide which elements have to be triggered when an element is
+          triggered memory is allocated and the field map is read in
+        */
         itsBunch->get_bounds(rmin, rmax);
 
         // trigger the elements
         margin = 3. * RefPartP_suv_m(2) * recpgamma;
         margin = 0.01 > margin ? 0.01 : margin;
-        itsOpalBeamline_m.switchElements((rmin(2) - margin)*scaleFactor_m, (rmax(2) + margin)*scaleFactor_m, getEnergyMeV(RefPartP_suv_m));
+        itsOpalBeamline_m.switchElements(
+            (rmin(2) - margin)*scaleFactor_m,
+            (rmax(2) + margin)*scaleFactor_m,
+            getEnergyMeV(RefPartP_suv_m));
 
         // start normal particle loop part 2 for simulation without boundary geometry.
         for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-            /** \f[ \vec{x}_{n+1} = \vec{x}_{n+1/2} + \frac{1}{2}\vec{v}_{n+1/2}\quad (= \vec{x}_{n+1/2} + \frac{\Delta t}{2} \frac{\vec{\beta}_{n+1/2}\gamma_{n+1/2}}{\gamma_{n+1/2}}) \f]
-             * \code
-             * R[i] += 0.5 * P[i] * recpgamma;
-             * \endcode
-             */
             pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
             //and scale back to dimensions
-            itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
+            itsBunch->R[i] *= Vector_t (
+                Physics::c * itsBunch->dt[i],
+                Physics::c * itsBunch->dt[i],
+                Physics::c * itsBunch->dt[i]);
             // update local coordinate system
             itsBunch->X[i] /= vscaleFactor;
-            pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
+            pusher.push(
+                itsBunch->X[i],
+                TransformTo (
+                    itsBunch->P[i],
+                    itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
+                itsBunch->getdT());
             itsBunch->X[i] *= vscaleFactor;
             //reset time step if particle was emitted in the first half-step
             //the particle is now in sync with the simulation timestep
@@ -1332,9 +1342,11 @@ double ParallelTTracker::schottkyLoop(double rescale_coeff) {
                 INFOMSG(myt2.time() << " Step " << step << "; only " << totalParticles_f << " particles emitted; t= " << t
                         << " [s] E=" << itsBunch->get_meanEnergy() << " [MeV] " << endl);
             } else if(std::isnan(sposRef) || std::isinf(sposRef)) {
-                INFOMSG(myt2.time() << " Step " << step << "; there seems to be something wrong with the position of the bunch!" << endl);
+                INFOMSG(myt2.time() << " Step " << step
+                        << "; there seems to be something wrong with the position of the bunch!" << endl);
             } else {
-                INFOMSG(myt2.time() << " Step " << step << " at " << sposRef << " [m] t= " << t << " [s] E=" << itsBunch->get_meanEnergy() << " [MeV] " << endl);
+                INFOMSG(myt2.time() << " Step " << step
+                        << " at " << sposRef << " [m] t= " << t << " [s] E=" << itsBunch->get_meanEnergy() << " [MeV] " << endl);
                 if(step % Options::psDumpFreq == 0 || step % Options::statDumpFreq == 0) {
                     size_t nLoc = itsBunch->getLocalNum();
                     reduce(nLoc, nLoc, OpMultipplyAssign());
@@ -1396,11 +1408,10 @@ void ParallelTTracker::applySchottkyCorrection(PartBunch &itsBunch, int ne, doub
      Space charge is not yet included
      */
 
-
-    double laser_erg = itsBunch.getLaserEnergy(); // 4.7322; energy of single photon of 262nm laser  [eV]
-    double workFunction = itsBunch.getWorkFunctionRf(); // espace energy for copper (4.31)  [eV]
-
-    const double schottky_coeff = 0.037947; // coeffecient for calculate schottky potenial from E field [eV/(MV^0.5)]
+    double laser_erg = itsBunch.getLaserEnergy();
+    double workFunction = itsBunch.getWorkFunctionRf();
+    // coeffecient for calculate schottky potenial from E field [eV/(MV^0.5)]
+    const double schottky_coeff = 0.037947;
 
     if(ne == 0)
         return ;
@@ -1418,10 +1429,13 @@ void ParallelTTracker::applySchottkyCorrection(PartBunch &itsBunch, int ne, doub
         itsOpalBeamline_m.getFieldAt(n, itsBunch.R[n], ls, par_t, externalE, externalB);
         Ez = externalE(2);
 
-        // fabs(Ez): if the field of cathode surface is in the right direction, it will increase the
-        // energy which electron obtain. If the field is in the wrong direction, this particle will
-        // be back to the cathode surface and then be deleted automaticly by OPAL,  we don't add
-        // another logical branch to handle this. So fabs is the simplest way to handle this
+        /*
+          fabs(Ez): if the field of cathode surface is in the right direction,
+          it will increase the energy which electron obtain. If the field is in
+          the wrong direction, this particle will be back to the cathode surface
+          and then be deleted automaticly by OPAL,  we don't add another logical
+          branch to handle this. So fabs is the simplest way to handle this
+        */
         obtain_erg = laser_erg - workFunction + schottky_coeff * sqrt(fabs(Ez) / 1E6);
         double schottkyScale = obtain_erg * obtain_erg * rescale_coeff;
 
@@ -1516,13 +1530,14 @@ void ParallelTTracker::handleOverlappingMonitors() {
         double zbegin, zend;
         it->getElement()->getDimensions(zbegin, zend);
         if(zbegin < zStop_m.front() && zend >= zStop_m.back()) {
-            ERRORMSG("\033[0;31m"
-                     << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-                     << "% Removing '" << it->getElement()->getName() << "' since it resides in two tracks.   %\n"
-                     << "% Please adjust zstop or place your monitor at a different position to prevent this. %\n "
-                     << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
-                     << "\033[0m"
-                     << endl);
+            ERRORMSG(
+                "\033[0;31m"
+                << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+                << "% Removing '" << it->getElement()->getName() << "' since it resides in two tracks.   %\n"
+                << "% Please adjust zstop or place your monitor at a different position to prevent this. %\n "
+                << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+                << "\033[0m"
+                << endl);
             static_cast<Monitor *>(it->getElement().get())->moveBy(-zend - 0.001);
             itsOpalBeamline_m.removeElement(it->getElement()->getName());
         }
@@ -1556,23 +1571,27 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
         dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum(), stream1);
     }
     //calc push
-    dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), NULL,
-                                     itsBunch->getdT(), Physics::c, false, stream1);
+    dksbase.callParallelTTrackerPush (
+        r_ptr, p_ptr, itsBunch->getLocalNum(), NULL,
+        itsBunch->getdT(), Physics::c, false, stream1);
     //read R from device
-    dksbase.readDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
+    dksbase.readDataAsync<Vector_t> (
+        r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
 
     if (surfaceStatus_m) {
         //write X to device
         dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
     }
     //write LastSection to device
-    dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0], itsBunch->getLocalNum(),
-                                 stream2);
+    dksbase.writeDataAsync<long> (
+        lastSec_ptr, &itsBunch->LastSection[0], itsBunch->getLocalNum(),
+        stream2);
     //calc push
-    dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
-                                              itsBunch->getLocalNum(),
-                                              itsOpalBeamline_m.sections_m.size(),
-                                              NULL, itsBunch->getdT(), Physics::c, false, stream2);
+    dksbase.callParallelTTrackerPushTransform(
+        x_ptr, p_ptr, lastSec_ptr, orient_ptr,
+        itsBunch->getLocalNum(),
+        itsOpalBeamline_m.sections_m.size(),
+        NULL, itsBunch->getdT(), Physics::c, false, stream2);
     //read R from device
     dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
 
@@ -1585,7 +1604,12 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
         pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
 
         // update local coordinate system of particleInform &PartBunc
-        pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
+        pusher.push(
+            itsBunch->X[i],
+            TransformTo(
+                itsBunch->P[i],
+                itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
+            itsBunch->getdT());
     }
     itsBunch->switchOffUnitlessPositions();
 #endif
@@ -1602,11 +1626,15 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
     if(bgf_m == NULL || secondaryFlg_m == 0) return;
     IpplTimings::startTimer(timeIntegrationTimer1_m);
 
-    /// We do collision test for newly generated secondaries before integration in the first half step of each time step.
-    /// This is because only secondary emission model yield non zero inital momenta. The initial momenta of field emitted particles are zero.
-    //  If hit, we set itsBunch->R[i] to intersection points, else we do normal integration.
-    Nimpact_m = 0; // Initial parallel plate benchmark variable.
-    SeyNum_m = 0; // Initial parallel plate benchmark variable.
+    /*
+      We do collision test for newly generated secondaries before integration
+      in the first half step of each time step.  This is because only secondary
+      emission model yield non zero inital momenta. The initial momenta of
+      field emitted particles are zero.  If hit, we set itsBunch->R[i] to
+      intersection points, else we do normal integration.
+    */
+    Nimpact_m = 0;  // Initial parallel plate benchmark variable.
+    SeyNum_m = 0;   // Initial parallel plate benchmark variable.
 
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
     double dt = itsBunch->getdT();
@@ -1618,22 +1646,40 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
         Vector_t intecoords = outr;
         int triId = 0;
 
-        if(itsBunch->PType[i] == 3) { // only test newly generated secondaries
-            particleHitBoundary = bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], 0.5 * itsBunch->dt[i], itsBunch->PType[i], itsBunch->Q[i], intecoords, triId) == 0;
+        if (itsBunch->PType[i] == 3) {
+            particleHitBoundary = bgf_m->PartInside(
+                itsBunch->R[i],
+                itsBunch->P[i],
+                0.5 * itsBunch->dt[i],
+                itsBunch->PType[i],
+                itsBunch->Q[i],
+                intecoords,
+                triId) == 0;
         }
 
-        if(particleHitBoundary) {// if hit, set particle position to intersection points coordinates and scale the position;
-            // no scaling required
+        if(particleHitBoundary) {
+            /*
+              set particle position to intersection points coordinates and
+              scale the position;
+              no scaling required
+            */
             itsBunch->R[i] = intecoords/bgf_vscaleFactor;
             itsBunch->TriID[i] = triId;
         } else {
             itsBunch->R[i] /= bgf_vscaleFactor;
             pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
         }
-        // FIXME, is the local update necessary here?
-        // update local coordinate system for particle
+        /*
+          :FIXME: is the local update necessary here?
+          update local coordinate system for particle
+        */
         itsBunch->X[i] /= bgf_vscaleFactor;
-        pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
+        pusher.push (
+            itsBunch->X[i],
+            TransformTo(
+                itsBunch->P[i],
+                itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
+            itsBunch->getdT());
 
         itsBunch->R[i] *= bgf_vscaleFactor;
         itsBunch->X[i] *= bgf_vscaleFactor;
@@ -1729,7 +1775,12 @@ IpplTimings::startTimer(timeIntegrationTimer2Loop1_m);
         //and scale back to dimensions
 
         // update local coordinate system
-        pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
+        pusher.push (
+            itsBunch->X[i],
+            TransformTo(
+                itsBunch->P[i],
+                itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
+            itsBunch->getdT());
         //reset time step if particle was emitted in the first half-step
         //the particle is now in sync with the simulation timestep
 
@@ -1749,8 +1800,11 @@ IpplTimings::startTimer(timeIntegrationTimer2Loop1_m);
 void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
 
     if(!bgf_m) return;
-    /// After kick, we do collision test before integration in second half step with new momentum, if hit, then move collision particles to the position where collision occurs.
-
+    /*
+      After kick, we do collision test before integration in second half step
+      with new momentum, if hit, then move collision particles to the position
+      where collision occurs.
+    */
     IpplTimings::startTimer(timeIntegrationTimer2_m);
 
     // push the reference particle by a half step
@@ -1774,17 +1828,26 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
         Vector_t intecoords = outr;
         int triId = 0;
         itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
-        if(itsBunch->TriID[i] == 0) {   // test all particles except those already have collided the boundary in the first half step.
-            particleHitBoundary =  bgf_m->PartInside(itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId) == 0;
+        // test all particles except those already have collided the boundary in the first half step.
+        if(itsBunch->TriID[i] == 0) {
+            particleHitBoundary =  bgf_m->PartInside(
+                itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i],
+                itsBunch->Q[i], intecoords, triId) == 0;
             if(particleHitBoundary) {
                 itsBunch->R[i] = intecoords / Vector_t(Physics::c * itsBunch->dt[i]);
                 itsBunch->TriID[i] = triId;
-            } else {                    //if no collision do normal push in the second half-step
+            } else {
+                //if no collision do normal push in the second half-step
                 itsBunch->R[i] /= Vector_t(Physics::c * itsBunch->dt[i]);
                 pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
             }
             itsBunch->X[i] /= Vector_t(Physics::c * itsBunch->dt[i]);
-            pusher.push(itsBunch->X[i], TransformTo(itsBunch->P[i], itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])), itsBunch->getdT());
+            pusher.push(
+                itsBunch->X[i],
+                TransformTo(
+                    itsBunch->P[i],
+                    itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
+                itsBunch->getdT());
         }
         itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
         itsBunch->X[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
@@ -2260,7 +2323,8 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
         itsDataSink_m->writePartlossZASCII(*itsBunch, *bgf_m, std::string("data/Partloss-"));
 
         long long ustep = step;
-        itsDataSink_m->writeImpactStatistics(*itsBunch, ustep, Nimpact_m, SeyNum_m, numberOfFieldEmittedParticles_m, nEmissionMode_m, std::string("data/PartStatistics"));
+        itsDataSink_m->writeImpactStatistics(
+            *itsBunch, ustep, Nimpact_m, SeyNum_m, numberOfFieldEmittedParticles_m, nEmissionMode_m, std::string("data/PartStatistics"));
 
         if(((Options::surfDumpFreq) > 0) && ((step % Options::surfDumpFreq) == 0)) {
             itsDataSink_m->writeSurfaceInteraction(*itsBunch, ustep, *bgf_m, std::string("SurfaceInteraction"));
@@ -2392,175 +2456,213 @@ void ParallelTTracker::prepareEmission() {
 
 void ParallelTTracker::initializeBoundaryGeometry() {
 
-  Inform msg("ParallelTTracker ", *gmsg);
+    Inform msg("ParallelTTracker ", *gmsg);
 
-  // for the time being, the Boundary geomentry must be attachedto the first element
-  bgf_m = itsOpalBeamline_m.getBoundaryGeometry(0);
-  if (bgf_m) {
-    Distribution *dist = NULL;
-    Distribution *distrand = NULL;
-    std::vector<std::string> distr_str = bgf_m->getDistributionArray();
+    // for the time being, the Boundary geomentry must be attachedto the first element
+    bgf_m = itsOpalBeamline_m.getBoundaryGeometry(0);
+    if (bgf_m) {
+        Distribution *dist = NULL;
+        Distribution *distrand = NULL;
+        std::vector<std::string> distr_str = bgf_m->getDistributionArray();
 
-    if(distr_str.size() == 0) {
-      std::string distr = bgf_m->getDistribution();
-      if(!distr.empty()) {
-	msg << "* Find boundary geometry, start at: " << bgf_m->getS() << " (m) Distribution= " << bgf_m->getDistribution() << endl;
-	dist = Distribution::find(bgf_m->getDistribution());
-	msg << "* " << *dist << endl;
-      } else {
-	throw OpalException("ParallelTTracker::execute()",
-			    "No distribution attached to BoundaryGeometry. Please check the input file... ...");
-      }
-    } else {
-      msg << "************************************************************************************************* " << endl;
-      msg <<  "* Find boundary geometry, start at: " << bgf_m->getS()  << " (m). " << endl;
-      msg << "* Attached more than one distribution: " << endl;
-      for(std::vector<std::string>::const_iterator dit = distr_str.begin(); dit != distr_str.end(); ++ dit) {
-	Distribution *d = Distribution::find(*dit);
-	msg << "* Distribution: " << *dit << " distribution type: " << d->GetTypeofDistribution() << endl;
-	msg << "************************************************************************************************* " << endl;
-	if(d->GetTypeofDistribution() == "SURFACEEMISSION") {
-	  dist = d;
-	  msg << *dist << endl;
-	} else if(d->GetTypeofDistribution() == "SURFACERANDCREATE") {
-	  distrand = d;
-	  msg << *distrand << endl;
-	  // here nbparts should be non zero as these particles will be the initialization of primary bunch.
-	  size_t nbparts = distrand->GetNumberOfDarkCurrentParticles();
-	  double darkinwardmargin = distrand->GetDarkCurrentParticlesInwardMargin();
-	  double einitthreshold = distrand->GetEInitThreshold();
-	  // make sure that the elements have already been switched on before initializing particles in position where the electric field > einitthreshold.
-	  bgf_m->setEInitThreshold(einitthreshold);
-	  if(!mpacflg_m) {
-	    bgf_m->createPriPart(nbparts, darkinwardmargin, itsOpalBeamline_m, itsBunch);
-	    distrand->CreatePriPart(itsBunch, *bgf_m);
-	    numParticlesInSimulation_m = itsBunch->getTotalNum();
-	  } else {
-	    /*
-	      Multipacting flag set true. Generate primary particles.
-	      Activate all elements (switch on the field map of elements in multipacting) in multipacting simulation
-	    */
+        if(distr_str.size() == 0) {
+            std::string distr = bgf_m->getDistribution();
+            if(!distr.empty()) {
+                msg << "* Find boundary geometry, start at: " << bgf_m->getS()
+                    << " (m) Distribution= " << bgf_m->getDistribution() << endl;
+                dist = Distribution::find(bgf_m->getDistribution());
+                msg << "* " << *dist << endl;
+            } else {
+                throw OpalException("ParallelTTracker::execute()",
+                                    "No distribution attached to BoundaryGeometry. Please check the input file... ...");
+            }
+        } else {
+            msg << "************************************************************************************************* " << endl;
+            msg <<  "* Find boundary geometry, start at: " << bgf_m->getS()  << " (m). " << endl;
+            msg << "* Attached more than one distribution: " << endl;
+            for(std::vector<std::string>::const_iterator dit = distr_str.begin(); dit != distr_str.end(); ++ dit) {
+                Distribution *d = Distribution::find(*dit);
+                msg << "* Distribution: " << *dit << " distribution type: " << d->GetTypeofDistribution() << endl;
+                msg << "************************************************************************************************* " << endl;
+                if(d->GetTypeofDistribution() == "SURFACEEMISSION") {
+                    dist = d;
+                    msg << *dist << endl;
+                } else if(d->GetTypeofDistribution() == "SURFACERANDCREATE") {
+                    distrand = d;
+                    msg << *distrand << endl;
+                    /*
+                      here nbparts should be non zero as these particles will
+                      be the initialization of primary bunch.
+                    */
+                    size_t nbparts = distrand->GetNumberOfDarkCurrentParticles();
+                    double darkinwardmargin = distrand->GetDarkCurrentParticlesInwardMargin();
+                    double einitthreshold = distrand->GetEInitThreshold();
+                    /*
+                      make sure that the elements have already been switched
+                      on before initializing particles in position where the
+                      electric field > einitthreshold.
+                    */
+                    bgf_m->setEInitThreshold(einitthreshold);
+                    if(!mpacflg_m) {
+                        bgf_m->createPriPart(nbparts, darkinwardmargin, itsOpalBeamline_m, itsBunch);
+                        distrand->CreatePriPart(itsBunch, *bgf_m);
+                        numParticlesInSimulation_m = itsBunch->getTotalNum();
+                    } else {
+                        /*
+                          Multipacting flag set true. Generate primary particles.
+                          Activate all elements (switch on the field map of elements
+                          in multipacting) in multipacting simulation
+                        */
 
-	    itsOpalBeamline_m.switchAllElements();
-	    // it is possible to generate initial particles according to E field, since all elements switched on before we create particles.
-	    bgf_m->createPriPart(nbparts, darkinwardmargin, itsOpalBeamline_m, itsBunch);
-	    // for Parallel Plate benchmark, Vw should be defined in input file and will be invoked by getVw method in createPriPart().
-	    // for other multipacting simulation no need to define the Vw in SURFACERANDCREATE in input file.
-	    distrand->CreatePriPart(itsBunch, *bgf_m);
-	    numParticlesInSimulation_m = itsBunch->getTotalNum();
-	    itsBunch->calcBeamParameters();
-	    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-	      long &l = itsBunch->LastSection[i];
-	      l = -1;
-	      itsOpalBeamline_m.getSectionIndexAt(itsBunch->R[i], l);
-	      itsBunch->ResetLocalCoordinateSystem(i, itsOpalBeamline_m.getOrientation(l), itsOpalBeamline_m.getSectionStart(l));
-	    }
+                        itsOpalBeamline_m.switchAllElements();
+                        /*
+                          it is possible to generate initial particles according
+                          to E field, since all elements switched on before we
+                          create particles.
+                        */
+                        bgf_m->createPriPart(nbparts, darkinwardmargin, itsOpalBeamline_m, itsBunch);
+                        /*
+                          for Parallel Plate benchmark, Vw should be defined in
+                          input file and will be invoked by getVw method in
+                          createPriPart().  For other multipacting simulation
+                          no need to define the Vw in SURFACERANDCREATE in input
+                          file.
+                        */
+                        distrand->CreatePriPart(itsBunch, *bgf_m);
+                        numParticlesInSimulation_m = itsBunch->getTotalNum();
+                        itsBunch->calcBeamParameters();
+                        for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+                            long &l = itsBunch->LastSection[i];
+                            l = -1;
+                            itsOpalBeamline_m.getSectionIndexAt (itsBunch->R[i], l);
+                            itsBunch->ResetLocalCoordinateSystem (
+                                i,
+                                itsOpalBeamline_m.getOrientation(l),
+                                itsOpalBeamline_m.getSectionStart(l));
+                        }
 
-	    // Check if there are any particles in simulation. If there are,
-	    // as in a restart, use the usual function to calculate beam
-	    // parameters. If not, calculate beam parameters of the initial
-	    // beam distribution.
+                        /*
+                          Check if there are any particles in simulation. If there are,
+                          as in a restart, use the usual function to calculate beam
+                          parameters. If not, calculate beam parameters of the initial
+                          beam distribution.
+                        */
+                        if(numParticlesInSimulation_m == 0) {
+                            itsBunch->calcBeamParametersInitial();
+                        } else {
+                            itsBunch->calcBeamParameters();
+                        }
 
-	    if(numParticlesInSimulation_m == 0) {
-	      itsBunch->calcBeamParametersInitial();
-	    } else {
-	      itsBunch->calcBeamParameters();
-	    }
+                        //updateSpaceOrientation(false);
+                        RefPartR_suv_m = RefPartR_zxy_m = itsBunch->get_rmean();
+                        RefPartP_suv_m = RefPartP_zxy_m = itsBunch->get_pmean();
+                        msg << *itsBunch << endl;
+                    }
+                } else {
+                    throw OpalException("ParallelTTracker::execute()",
+                                        "Unacceptable distribution type:\"" +
+                                        d->GetTypeofDistribution() +
+                                        "\". Need to check the input file... ...");
+                }
+            }
+        }
 
-	    //updateSpaceOrientation(false);
-	    RefPartR_suv_m = RefPartR_zxy_m = itsBunch->get_rmean();
-	    RefPartP_suv_m = RefPartP_zxy_m = itsBunch->get_pmean();
-	    msg << *itsBunch << endl;
-	  }
-	} else {
-	  throw OpalException("ParallelTTracker::execute()",
-			      "Unacceptable distribution type:\"" +
-			      d->GetTypeofDistribution() + "\". Need to check the input file... ...");
-	}
-      }
+        /// this is still in BoundaryGeometry
+        size_t nbparts = dist->GetNumberOfDarkCurrentParticles();
+        double darkinwardmargin = dist->GetDarkCurrentParticlesInwardMargin();
+        double workFunction = dist->GetWorkFunction();
+        double fieldEnhancement = dist->GetFieldEnhancement();
+        size_t maxfnemission = dist->GetMaxFNemissionPartPerTri();
+        double fieldFNthreshold = dist->GetFieldFNThreshold();
+        double parameterFNA = dist->GetFNParameterA();
+        double parameterFNB = dist->GetFNParameterB();
+        double parameterFNY = dist->GetFNParameterY();
+        double parameterFNVYZe = dist->GetFNParameterVYZero();
+        double parameterFNVYSe = dist->GetFNParameterVYSecond();
+
+        secondaryFlg_m = dist->GetSecondaryEmissionFlag();
+        nEmissionMode_m = dist->GetEmissionMode();
+        bgf_m->setNEmissionMode(nEmissionMode_m);
+        if(secondaryFlg_m) {
+            if(secondaryFlg_m == 1) {
+                int BoundaryMatType = dist->GetSurfMaterial();
+                bgf_m->setBoundaryMatType(BoundaryMatType);
+                if(Options::ppdebug) {
+                    /*
+                      set thermal velocity of Maxwellian distribution of
+                      secondaries for benchmark
+                    */
+                    double vVThermal = dist->GetvVThermal();
+                    bgf_m->setvVThermal(vVThermal);
+                    double ppVw = dist->GetVw();
+                    bgf_m->setVw(ppVw);
+                } else {
+                    bgf_m->setvVThermal(1.0);
+                    bgf_m->setVw(1.0);
+                }
+            } else {
+                /*
+                  parameters for Vaughan's secondary model
+                */
+                // sey_0 in Vaughan's model
+                double vSeyZero = dist->GetvSeyZero();
+                // energy related to sey_0 in Vaughan's model
+                double vEZero = dist->GetvEZero();
+                // sey max in Vaughan's model
+                double vSeyMax = dist->GetvSeyMax();
+                // Emax in Vaughan's model
+                double vEmax = dist->GetvEmax();
+                // fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
+                double vKenergy = dist->GetvKenergy();
+                // fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
+                double vKtheta = dist->GetvKtheta();
+                // return thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
+                double vVThermal = dist->GetvVThermal();
+                double ppVw = dist->GetVw();
+                bgf_m->setVw(ppVw);
+                bgf_m->setvSeyZero(vSeyZero);
+                bgf_m->setvEZero(vEZero);
+                bgf_m->setvSeyMax(vSeyMax);
+                bgf_m->setvEmax(vEmax);
+                bgf_m->setvKenergy(vKenergy);
+                bgf_m->setvKtheta(vKtheta);
+                bgf_m->setvVThermal(vVThermal);
+            }
+        }
+        if(nbparts != 0) {
+            /*
+              :FIXME: maybe need to be called in each time step for modeling
+              creating darkcurrent in each time step
+            */
+            bgf_m->createParticlesOnSurface(nbparts, darkinwardmargin, itsOpalBeamline_m, *itsBunch);
+            dist->CreateBoundaryGeometry(*itsBunch, *bgf_m);
+        }
+        bgf_m->setWorkFunction(workFunction);
+        bgf_m->setFieldEnhancement(fieldEnhancement);
+        bgf_m->setMaxFN(maxfnemission);
+        bgf_m->setFNTreshold(fieldFNthreshold);
+        bgf_m->setFNParameterA(parameterFNA);
+        bgf_m->setFNParameterB(parameterFNB);
+        bgf_m->setFNParameterY(parameterFNY);
+        bgf_m->setFNParameterVYZe(parameterFNVYZe);
+        bgf_m->setFNParameterVYSe(parameterFNVYSe);
+        numParticlesInSimulation_m = itsBunch->getTotalNum();
+        if(numParticlesInSimulation_m > 0) {
+            writePhaseSpace(0, 0, true, true); // dump the initial particles
+        }
+        itsDataSink_m->writeGeomToVtk(*bgf_m, std::string("data/testGeometry-00000.vtk"));
+        //itsDataSink->writePartlossZASCII(*itsBunch, *bgf_m, std::string("vtk/PartlossZ-"));
+
+        OpalData::getInstance()->setGlobalGeometry(bgf_m);
+
+        RealVariable *maxnp = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MAXPARTSNUM"));
+        if(maxnp) {
+            // set upper limit of particle number in simulation
+            maxNparts_m = static_cast<size_t>(maxnp->getReal());
+        }
+
+        msg << "Boundary geometry initialized " << endl;
     }
-
-    /// this is still in BoundaryGeometry
-    size_t nbparts = dist->GetNumberOfDarkCurrentParticles();
-    double darkinwardmargin = dist->GetDarkCurrentParticlesInwardMargin();
-    double workFunction = dist->GetWorkFunction();
-    double fieldEnhancement = dist->GetFieldEnhancement();
-    size_t maxfnemission = dist->GetMaxFNemissionPartPerTri();
-    double fieldFNthreshold = dist->GetFieldFNThreshold();
-    double parameterFNA = dist->GetFNParameterA();
-    double parameterFNB = dist->GetFNParameterB();
-    double parameterFNY = dist->GetFNParameterY();
-    double parameterFNVYZe = dist->GetFNParameterVYZero();
-    double parameterFNVYSe = dist->GetFNParameterVYSecond();
-
-    secondaryFlg_m = dist->GetSecondaryEmissionFlag();
-    nEmissionMode_m = dist->GetEmissionMode();
-    bgf_m->setNEmissionMode(nEmissionMode_m);
-    if(secondaryFlg_m) {
-      if(secondaryFlg_m == 1) {
-	int BoundaryMatType = dist->GetSurfMaterial();
-	bgf_m->setBoundaryMatType(BoundaryMatType);
-	if(Options::ppdebug) {
-	  double vVThermal = dist->GetvVThermal();//return thermal velocity of Maxwellian distribution of secondaries for benchmark
-	  bgf_m->setvVThermal(vVThermal);
-	  double ppVw = dist->GetVw();
-	  bgf_m->setVw(ppVw);
-	} else {
-	  bgf_m->setvVThermal(1.0);
-	  bgf_m->setVw(1.0);
-	}
-      } else {
-	/*
-	  parameters for Vaughan's secondary model
-	*/
-	double vSeyZero = dist->GetvSeyZero();// return sey_0 in Vaughan's model
-	double vEZero = dist->GetvEZero();// return the energy related to sey_0 in Vaughan's model
-	double vSeyMax = dist->GetvSeyMax();// return sey max in Vaughan's model
-	double vEmax = dist->GetvEmax();// return Emax in Vaughan's model
-	double vKenergy = dist->GetvKenergy();// return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
-	double vKtheta = dist->GetvKtheta();// return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
-	double vVThermal = dist->GetvVThermal();// return thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
-	double ppVw = dist->GetVw();
-	bgf_m->setVw(ppVw);
-	bgf_m->setvSeyZero(vSeyZero);
-	bgf_m->setvEZero(vEZero);
-	bgf_m->setvSeyMax(vSeyMax);
-	bgf_m->setvEmax(vEmax);
-	bgf_m->setvKenergy(vKenergy);
-	bgf_m->setvKtheta(vKtheta);
-	bgf_m->setvVThermal(vVThermal);
-      }
-    }
-    if(nbparts != 0) {
-      //fixme: maybe need to be called in each time step for modeling creating darkcurrent in each time step
-      bgf_m->createParticlesOnSurface(nbparts, darkinwardmargin, itsOpalBeamline_m, *itsBunch);
-      dist->CreateBoundaryGeometry(*itsBunch, *bgf_m);
-    }
-    bgf_m->setWorkFunction(workFunction);
-    bgf_m->setFieldEnhancement(fieldEnhancement);
-    bgf_m->setMaxFN(maxfnemission);
-    bgf_m->setFNTreshold(fieldFNthreshold);
-    bgf_m->setFNParameterA(parameterFNA);
-    bgf_m->setFNParameterB(parameterFNB);
-    bgf_m->setFNParameterY(parameterFNY);
-    bgf_m->setFNParameterVYZe(parameterFNVYZe);
-    bgf_m->setFNParameterVYSe(parameterFNVYSe);
-    numParticlesInSimulation_m = itsBunch->getTotalNum();
-    if(numParticlesInSimulation_m > 0) {
-      writePhaseSpace(0, 0, true, true); // dump the initial particles
-    }
-    itsDataSink_m->writeGeomToVtk(*bgf_m, std::string("data/testGeometry-00000.vtk"));
-    //itsDataSink->writePartlossZASCII(*itsBunch, *bgf_m, std::string("vtk/PartlossZ-"));
-
-    OpalData::getInstance()->setGlobalGeometry(bgf_m);
-
-    RealVariable *maxnp = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MAXPARTSNUM"));
-    if(maxnp) {
-      maxNparts_m = static_cast<size_t>(maxnp->getReal());  // set upper limit of particle number in simulation
-    }
-
-    msg << "Boundary geometry initialized " << endl;
-  }
 }
 
 void ParallelTTracker::push(double h) {
