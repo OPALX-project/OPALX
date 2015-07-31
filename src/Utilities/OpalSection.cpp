@@ -22,7 +22,10 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
     orientation_m(0.0),
     exit_face_angle_m(0.0),
     previous_is_glued_m(false),
-    glued_to_m(NULL) {
+    glued_to_m(NULL),
+    StartCache_m(),
+    EndCache_m()
+{
     for(CompVec::const_iterator clit = elements_m.begin(); clit != elements_m.end(); ++ clit) {
         if((*clit)->bends()) {
             bends_m = true;
