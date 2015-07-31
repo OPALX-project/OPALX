@@ -854,15 +854,15 @@ BoundaryGeometry::BoundaryGeometry(
     gsl_rng_env_setup();
     randGen_m = gsl_rng_alloc(gsl_rng_default);
 
-    h5FileName_m = Attributes::getString (itsAttr[FGEOM]);
-    if (!h5FileName_m.empty ())
-        initialize ();
-
     Tinitialize_m =   IpplTimings::getTimer ("Initialize geometry");
     TisInside_m =     IpplTimings::getTimer ("Inside test");
     TfastIsInside_m = IpplTimings::getTimer ("Fast inside test");
     TRayTrace_m =     IpplTimings::getTimer ("Ray tracing");
     TPartInside_m =   IpplTimings::getTimer ("Particle Inside");
+
+    h5FileName_m = Attributes::getString (itsAttr[FGEOM]);
+    if (!h5FileName_m.empty ())
+        initialize ();
  }
 
 BoundaryGeometry::~BoundaryGeometry() {
