@@ -1647,10 +1647,10 @@ Change orientation if diff is:
             do {
                 parts++;
                 makeTriangleNormalInwardPointingSubMesh (bg, triangle_id);
-                while (bg->isOriented_m[triangle_id]) triangle_id++;
+                while (bg->isOriented_m[triangle_id] && (triangle_id < bg->numTriangles_m)) triangle_id++;
             } while (triangle_id < bg->numTriangles_m);
 
-            delete bg->isOriented_m;
+            delete[] bg->isOriented_m;
             bg->isOriented_m = 0;
             bg->triangleNeighbors_m.clear ();
 
@@ -2263,7 +2263,10 @@ int BoundaryGeometry::emitSecondaryVaughan (
                       "    incident momentum=" << incMomentum << endl <<
                       "    triNormal=" << TriNormals_m[triId] << endl <<
                       "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
-                      "    intecoords = " << intecoords << endl);
+                      "    intecoords = " << intecoords << endl <<
+                      "    triangle ID = " << triId << endl <<
+                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2) << getPoint(triId, 2) << ")"
+                      << endl);
             assert(cosTheta>=0);
         }
         int idx = 0;
