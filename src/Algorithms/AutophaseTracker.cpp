@@ -22,6 +22,9 @@ AutophaseTracker::AutophaseTracker(const Beamline &beamline,
     particleLayout_m(NULL)
 {
     particleLayout_m = new Layout_t();
+    timeIntegrationTimer_m = IpplTimings::getTimer("AP: time integration");
+    fieldEvaluationTimer_m = IpplTimings::getTimer("AP: field evaluation");
+
     itsBunch_m.initialize(particleLayout_m);
     itsBunch_m.setT(T0);
 

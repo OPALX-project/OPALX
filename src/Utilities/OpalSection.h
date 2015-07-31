@@ -57,6 +57,11 @@ public:
     }
 
     struct OrientationCache {
+        OrientationCache():
+            u_factor(0.0),
+            v_factor(0.0)
+        {}
+
         double u_factor;
         double v_factor;
     };
