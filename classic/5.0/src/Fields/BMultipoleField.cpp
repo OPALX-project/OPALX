@@ -83,14 +83,18 @@ inline BMultipoleField::Pair BMultipoleField::Pair::operator-() const
 // ------------------------------------------------------------------------
 
 BMultipoleField::BMultipoleField():
-    pairs(0),
+    pairs(NULL),
     itsOrder(0)
 {}
 
 
 BMultipoleField::BMultipoleField(const BMultipoleField &rhs):
-    pairs(new Pair[rhs.itsOrder]),
+    pairs(NULL),
     itsOrder(rhs.itsOrder) {
+
+    if (itsOrder > 0)
+        pairs = new Pair[itsOrder];
+
     for(int i = 0; i < itsOrder; i++) {
         pairs[i] = rhs.pairs[i];
     }
@@ -104,9 +108,10 @@ BMultipoleField::~BMultipoleField() {
 
 BMultipoleField &BMultipoleField::operator=(const BMultipoleField &rhs) {
     if(&rhs != this) {
-        Pair *temp = new Pair[rhs.itsOrder];
-        if(pairs != 0) delete [] pairs;
-        pairs = temp;
+        if(pairs != NULL) delete[] pairs;
+
+        if (rhs.itsOrder > 0)
+            pairs = new Pair[rhs.itsOrder];
         itsOrder = rhs.itsOrder;
 
         for(int i = 0; i < itsOrder; i++) {

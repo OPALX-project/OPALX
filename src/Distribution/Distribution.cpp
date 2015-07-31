@@ -55,6 +55,8 @@ extern Inform *gmsg;
 #define DISTDBG1
 #define noDISTDBG2
 
+#define SMALLESTCUTOFF 1e-12
+
 SymTenzor<double, 6> getUnit6x6() {
     SymTenzor<double, 6> unit6x6;
     for (unsigned int i = 0; i < 6u; ++ i) {
@@ -2387,8 +2389,8 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
         }
 
     }
-    if (randGenStandard)
-        gsl_rng_free(randGenStandard);
+
+    gsl_rng_free(randGenStandard);
 
     if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
@@ -2474,14 +2476,13 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
             pzDist_m.push_back(pz);
         }
     }
-    if (randGenStandard)
-        gsl_rng_free(randGenStandard);
 
-    if (quasiRandGen1D != NULL)
+    gsl_rng_free(randGenStandard);
+
+    if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
-
-    if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
+    }
 }
 
 void Distribution::GenerateGaussZ(size_t numberOfParticles) {
@@ -2489,15 +2490,15 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_rng_env_setup();
     gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
 
-    gsl_matrix * m  = gsl_matrix_alloc (6, 6);
+    gsl_matrix * corMat  = gsl_matrix_alloc (6, 6);
     gsl_vector * rx = gsl_vector_alloc(6);
     gsl_vector * ry = gsl_vector_alloc(6);
 
     for (unsigned int i = 0; i < 6; ++ i) {
-        gsl_matrix_set(m, i, i, correlationMatrix_m(i, i));
+        gsl_matrix_set(corMat, i, i, correlationMatrix_m(i, i));
         for (unsigned int j = 0; j < i; ++ j) {
-            gsl_matrix_set(m, i, j, correlationMatrix_m(i, j));
-            gsl_matrix_set(m, j, i, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, i, j, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, j, i, correlationMatrix_m(i, j));
         }
     }
 
@@ -2508,15 +2509,15 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         for (int j = 0; j < 6; j++) {
             if (j==0)
                 *gmsg << "* r(" << std::setprecision(1) << i << ", : ) = "
-                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
             else
-                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
         }
         *gmsg << " \\\\" << endl;
     }
 #endif
 
-    int errcode = gsl_linalg_cholesky_decomp(m);
+    int errcode = gsl_linalg_cholesky_decomp(corMat);
 
     if (errcode == GSL_EDOM) {
         throw OpalException("Distribution::GenerateGaussZ",
@@ -2525,7 +2526,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     // so make the upper part zero.
     for (int i = 0; i < 5; ++ i) {
         for (int j = i+1; j < 6 ; ++ j) {
-            gsl_matrix_set (m, i, j, 0.0);
+            gsl_matrix_set (corMat, i, j, 0.0);
         }
     }
 
@@ -2536,9 +2537,9 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         for (int j = 0; j < 6; j++) {
             if (j==0)
                 *gmsg << "* r(" << std::setprecision(1) << i << ", : ) = "
-                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
             else
-                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
         }
         *gmsg << " \\\\" << endl;
     }
@@ -2546,32 +2547,61 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
+        bool allow = false;
 
-        double rval = 0.0;
+        double x = 0.0;
+        double px = 0.0;
+        double y = 0.0;
+        double py = 0.0;
+        double z = 0.0;
+        double pz = 0.0;
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[0])
-            ;
-        gsl_vector_set(rx,0,rval);
+        while (!allow) {
+            gsl_vector_set(rx, 0, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 1, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 2, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 3, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 4, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 5, gsl_ran_gaussian(randGen, 1.0));
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[0])
-            ;
-        gsl_vector_set(rx,1,rval);
+            gsl_blas_dgemv(CblasNoTrans, 1.0, corMat, rx, 0.0, ry);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[1])
-            ;
-        gsl_vector_set(rx,2,rval);
+            x = gsl_vector_get(ry, 0);
+            px = gsl_vector_get(ry, 1);
+            y = gsl_vector_get(ry, 2);
+            py = gsl_vector_get(ry, 3);
+            z = gsl_vector_get(ry, 4);
+            pz = gsl_vector_get(ry, 5);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[1])
-            ;
-        gsl_vector_set(rx,3,rval);
+            bool xAndYOk = false;
+            if (cutoffR_m[0] < SMALLESTCUTOFF && cutoffR_m[1] < SMALLESTCUTOFF)
+                xAndYOk = true;
+            else if (cutoffR_m[0] < SMALLESTCUTOFF)
+                xAndYOk = (std::abs(y) <= cutoffR_m[1]);
+            else if (cutoffR_m[1] < SMALLESTCUTOFF)
+                xAndYOk = (std::abs(x) <= cutoffR_m[0]);
+            else
+                xAndYOk = (pow(x / cutoffR_m[0], 2.0) + pow(y / cutoffR_m[1], 2.0) <= 1.0);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[2])
-            ;
-        gsl_vector_set(rx,4,rval);
+            bool pxAndPyOk = false;
+            if (cutoffP_m[0] < SMALLESTCUTOFF && cutoffP_m[1] < SMALLESTCUTOFF)
+                pxAndPyOk = true;
+            else if (cutoffP_m[0] < SMALLESTCUTOFF)
+                pxAndPyOk = (std::abs(py) <= cutoffP_m[1]);
+            else if (cutoffP_m[1] < SMALLESTCUTOFF)
+                pxAndPyOk = (std::abs(px) <= cutoffP_m[0]);
+            else
+                pxAndPyOk = (pow(px / cutoffP_m[0], 2.0) + pow(py / cutoffP_m[1], 2.0) <= 1.0);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[2])
-            ;
-        gsl_vector_set(rx,5,rval);
+            allow = (xAndYOk && pxAndPyOk && std::abs(z) < cutoffR_m[2] && std::abs(pz) < cutoffP_m[2]);
+        }
+
+        x *= sigmaR_m[0];
+        y *= sigmaR_m[1];
+        z *= sigmaR_m[2];
+        px *= sigmaP_m[0];
+        py *= sigmaP_m[1];
+        pz *= sigmaP_m[2];
 
         // Save to each processor in turn.
         saveProcessor++;
@@ -2579,28 +2609,19 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             saveProcessor = 0;
 
         if (Ippl::myNode() == saveProcessor) {
-            if (gsl_blas_dgemv(CblasNoTrans,1.0,m,rx,0.0,ry)) {
-                throw OpalException("Distribution::GenerateGaussZ",
-                                    "oops... something wrong with GSL matvec");
-            }
-            xDist_m.push_back(            sigmaR_m[0] * gsl_vector_get(ry, 0));
-            pxDist_m.push_back(           sigmaP_m[0] * gsl_vector_get(ry, 1));
-            yDist_m.push_back(            sigmaR_m[1] * gsl_vector_get(ry, 2));
-            pyDist_m.push_back(           sigmaP_m[1] * gsl_vector_get(ry, 3));
-            tOrZDist_m.push_back(         sigmaR_m[2] * gsl_vector_get(ry, 4));
-            pzDist_m.push_back(avrgpz_m + sigmaP_m[2] * gsl_vector_get(ry, 5));
+            xDist_m.push_back(x);
+            pxDist_m.push_back(px);
+            yDist_m.push_back(y);
+            pyDist_m.push_back(py);
+            tOrZDist_m.push_back(z);
+            pzDist_m.push_back(avrgpz_m + pz);
         }
     }
 
-    /*
-    //std::for_each(v.rbegin(), v.rend(), [&](int n) { sum_of_elements += n; });
-    double pxm = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0);
-    double pym = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0);
-    double pzm = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
-    std::cout << "bega= " << std::sqrt(pxm*pxm + pym*pym + pzm*pzm) << std::endl;
-    */
-    if (randGen)
-        gsl_rng_free(randGen);
+    gsl_rng_free(randGen);
+    gsl_vector_free(rx);
+    gsl_vector_free(ry);
+    gsl_matrix_free(corMat);
 }
 
 void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
@@ -2762,15 +2783,12 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
     }
 
     gsl_rng_free(randGenGSL);
+    gsl_rng_free(randGen);
 
-    if (randGen)
-        gsl_rng_free(randGen);
-
-    if (quasiRandGen1D != NULL)
+    if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
-
-    if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
+    }
 }
 
 void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
@@ -2778,19 +2796,19 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
     // Generate coordinates.
     gsl_rng_env_setup();
     gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
-    gsl_matrix * m  = gsl_matrix_alloc (4, 4);
+    gsl_matrix * corMat  = gsl_matrix_alloc (4, 4);
     gsl_vector * rx = gsl_vector_alloc(4);
     gsl_vector * ry = gsl_vector_alloc(4);
 
     for (unsigned int i = 0; i < 4; ++ i) {
-        gsl_matrix_set(m, i, i, correlationMatrix_m(i, i));
+        gsl_matrix_set(corMat, i, i, correlationMatrix_m(i, i));
         for (unsigned int j = 0; j < i; ++ j) {
-            gsl_matrix_set(m, i, j, correlationMatrix_m(i, j));
-            gsl_matrix_set(m, j, i, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, i, j, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, j, i, correlationMatrix_m(i, j));
         }
     }
 
-    int errcode = gsl_linalg_cholesky_decomp(m);
+    int errcode = gsl_linalg_cholesky_decomp(corMat);
 
     if (errcode == GSL_EDOM) {
         throw OpalException("Distribution::GenerateTransverseGauss",
@@ -2799,7 +2817,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
 
     for (int i = 0; i < 3; ++ i) {
         for (int j = i+1; j < 4 ; ++ j) {
-            gsl_matrix_set (m, i, j, 0.0);
+            gsl_matrix_set (corMat, i, j, 0.0);
         }
     }
 
@@ -2819,35 +2837,39 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             gsl_vector_set(rx, 2, gsl_ran_gaussian (randGen,1.0));
             gsl_vector_set(rx, 3, gsl_ran_gaussian (randGen,1.0));
 
-            gsl_blas_dgemv(CblasNoTrans, 1.0, m, rx, 0.0, ry);
-            x = sigmaR_m[0] * gsl_vector_get(ry, 0);
-            px = sigmaP_m[0] * gsl_vector_get(ry, 1);
-            y = sigmaR_m[1] * gsl_vector_get(ry, 2);
-            py = sigmaP_m[1] * gsl_vector_get(ry, 3);
+            gsl_blas_dgemv(CblasNoTrans, 1.0, corMat, rx, 0.0, ry);
+            x = gsl_vector_get(ry, 0);
+            px = gsl_vector_get(ry, 1);
+            y = gsl_vector_get(ry, 2);
+            py = gsl_vector_get(ry, 3);
 
             bool xAndYOk = false;
-            if (cutoffR_m[0] <= 0.0 && cutoffR_m[1] <= 0.0)
+            if (cutoffR_m[0] < SMALLESTCUTOFF && cutoffR_m[1] < SMALLESTCUTOFF)
                 xAndYOk = true;
-            else if (cutoffR_m[0] <= 0.0)
-                xAndYOk = (std::abs(y) <= sigmaR_m[1] * cutoffR_m[1]);
-            else if (cutoffR_m[1] <= 0.0)
-                xAndYOk = (std::abs(x) <= sigmaR_m[1] * cutoffR_m[0]);
+            else if (cutoffR_m[0] < SMALLESTCUTOFF)
+                xAndYOk = (std::abs(y) <= cutoffR_m[1]);
+            else if (cutoffR_m[1] < SMALLESTCUTOFF)
+                xAndYOk = (std::abs(x) <= cutoffR_m[0]);
             else
-                xAndYOk = (pow(x / (sigmaR_m[0] * cutoffR_m[0]), 2.0) + pow(y / (sigmaR_m[1] * cutoffR_m[1]), 2.0) <= 1.0);
+                xAndYOk = (pow(x / cutoffR_m[0], 2.0) + pow(y / cutoffR_m[1], 2.0) <= 1.0);
 
             bool pxAndPyOk = false;
-            if (cutoffP_m[0] <= 0.0 && cutoffP_m[1] <= 0.0)
+            if (cutoffP_m[0] < SMALLESTCUTOFF && cutoffP_m[1] < SMALLESTCUTOFF)
                 pxAndPyOk = true;
-            else if (cutoffP_m[0] <= 0.0)
-                pxAndPyOk = (std::abs(py) <= sigmaP_m[1] * cutoffP_m[1]);
-            else if (cutoffP_m[1] <= 0.0)
-                pxAndPyOk = (std::abs(px) <= sigmaP_m[1] * cutoffP_m[0]);
+            else if (cutoffP_m[0] < SMALLESTCUTOFF)
+                pxAndPyOk = (std::abs(py) <= cutoffP_m[1]);
+            else if (cutoffP_m[1] < SMALLESTCUTOFF)
+                pxAndPyOk = (std::abs(px) <= cutoffP_m[0]);
             else
-                pxAndPyOk = (pow(px / (sigmaP_m[0] * cutoffP_m[0]), 2.0) + pow(py / (sigmaP_m[1] * cutoffP_m[1]), 2.0) <= 1.0);
+                pxAndPyOk = (pow(px / cutoffP_m[0], 2.0) + pow(py / cutoffP_m[1], 2.0) <= 1.0);
 
             allow = (xAndYOk && pxAndPyOk);
 
         }
+        x *= sigmaR_m[0];
+        y *= sigmaR_m[1];
+        px *= sigmaP_m[0];
+        py *= sigmaP_m[1];
 
         // Save to each processor in turn.
         saveProcessor++;
@@ -2861,8 +2883,11 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             pyDist_m.push_back(py);
         }
     }
-    if (randGen)
-        gsl_rng_free(randGen);
+
+    gsl_rng_free(randGen);
+    gsl_matrix_free(corMat);
+    gsl_vector_free(rx);
+    gsl_vector_free(ry);
 }
 
 void Distribution::InitializeBeam(PartBunch &beam) {
