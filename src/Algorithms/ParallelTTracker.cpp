@@ -2781,7 +2781,7 @@ void ParallelTTracker::writePhaseSpace(const long long step, const double &sposR
         FDext[2 * k + 1] = externalE * 1e-6;
     }
 
-    if(psDump) {
+    if(psDump && (itsBunch->getTotalNum() > 0)) {
         // Write fields to .h5 file.
         itsDataSink_m->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
         msg << level3 << "* Wrote beam phase space." << endl;
