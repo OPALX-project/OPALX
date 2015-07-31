@@ -2547,32 +2547,61 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
 
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
+        bool allow = false;
 
-        double rval = 0.0;
+        double x = 0.0;
+        double px = 0.0;
+        double y = 0.0;
+        double py = 0.0;
+        double z = 0.0;
+        double pz = 0.0;
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[0])
-            ;
-        gsl_vector_set(rx,0,rval);
+        while (!allow) {
+            gsl_vector_set(rx, 0, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 1, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 2, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 3, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 4, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 5, gsl_ran_gaussian(randGen, 1.0));
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[0])
-            ;
-        gsl_vector_set(rx,1,rval);
+            gsl_blas_dgemv(CblasNoTrans, 1.0, corMat, rx, 0.0, ry);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[1])
-            ;
-        gsl_vector_set(rx,2,rval);
+            x = gsl_vector_get(ry, 0);
+            px = gsl_vector_get(ry, 1);
+            y = gsl_vector_get(ry, 2);
+            py = gsl_vector_get(ry, 3);
+            z = gsl_vector_get(ry, 4);
+            pz = gsl_vector_get(ry, 5);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[1])
-            ;
-        gsl_vector_set(rx,3,rval);
+            bool xAndYOk = false;
+            if (cutoffR_m[0] < SMALLESTCUTOFF && cutoffR_m[1] < SMALLESTCUTOFF)
+                xAndYOk = true;
+            else if (cutoffR_m[0] < SMALLESTCUTOFF)
+                xAndYOk = (std::abs(y) <= cutoffR_m[1]);
+            else if (cutoffR_m[1] < SMALLESTCUTOFF)
+                xAndYOk = (std::abs(x) <= cutoffR_m[0]);
+            else
+                xAndYOk = (pow(x / cutoffR_m[0], 2.0) + pow(y / cutoffR_m[1], 2.0) <= 1.0);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffR_m[2])
-            ;
-        gsl_vector_set(rx,4,rval);
+            bool pxAndPyOk = false;
+            if (cutoffP_m[0] < SMALLESTCUTOFF && cutoffP_m[1] < SMALLESTCUTOFF)
+                pxAndPyOk = true;
+            else if (cutoffP_m[0] < SMALLESTCUTOFF)
+                pxAndPyOk = (std::abs(py) <= cutoffP_m[1]);
+            else if (cutoffP_m[1] < SMALLESTCUTOFF)
+                pxAndPyOk = (std::abs(px) <= cutoffP_m[0]);
+            else
+                pxAndPyOk = (pow(px / cutoffP_m[0], 2.0) + pow(py / cutoffP_m[1], 2.0) <= 1.0);
 
-        while (std::abs((rval = gsl_ran_gaussian (randGen,1.0)))>cutoffP_m[2])
-            ;
-        gsl_vector_set(rx,5,rval);
+            allow = (xAndYOk && pxAndPyOk && std::abs(z) < cutoffR_m[2] && std::abs(pz) < cutoffP_m[2]);
+        }
+
+        x *= sigmaR_m[0];
+        y *= sigmaR_m[1];
+        z *= sigmaR_m[2];
+        px *= sigmaP_m[0];
+        py *= sigmaP_m[1];
+        pz *= sigmaP_m[2];
 
         // Save to each processor in turn.
         saveProcessor++;
@@ -2580,16 +2609,12 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             saveProcessor = 0;
 
         if (Ippl::myNode() == saveProcessor) {
-            if (gsl_blas_dgemv(CblasNoTrans,1.0,corMat,rx,0.0,ry)) {
-                throw OpalException("Distribution::GenerateGaussZ",
-                                    "oops... something wrong with GSL matvec");
-            }
-            xDist_m.push_back(            sigmaR_m[0] * gsl_vector_get(ry, 0));
-            pxDist_m.push_back(           sigmaP_m[0] * gsl_vector_get(ry, 1));
-            yDist_m.push_back(            sigmaR_m[1] * gsl_vector_get(ry, 2));
-            pyDist_m.push_back(           sigmaP_m[1] * gsl_vector_get(ry, 3));
-            tOrZDist_m.push_back(         sigmaR_m[2] * gsl_vector_get(ry, 4));
-            pzDist_m.push_back(avrgpz_m + sigmaP_m[2] * gsl_vector_get(ry, 5));
+            xDist_m.push_back(x);
+            pxDist_m.push_back(px);
+            yDist_m.push_back(y);
+            pyDist_m.push_back(py);
+            tOrZDist_m.push_back(z);
+            pzDist_m.push_back(avrgpz_m + pz);
         }
     }
 
@@ -2813,34 +2838,38 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             gsl_vector_set(rx, 3, gsl_ran_gaussian (randGen,1.0));
 
             gsl_blas_dgemv(CblasNoTrans, 1.0, corMat, rx, 0.0, ry);
-            x = sigmaR_m[0] * gsl_vector_get(ry, 0);
-            px = sigmaP_m[0] * gsl_vector_get(ry, 1);
-            y = sigmaR_m[1] * gsl_vector_get(ry, 2);
-            py = sigmaP_m[1] * gsl_vector_get(ry, 3);
+            x = gsl_vector_get(ry, 0);
+            px = gsl_vector_get(ry, 1);
+            y = gsl_vector_get(ry, 2);
+            py = gsl_vector_get(ry, 3);
 
             bool xAndYOk = false;
             if (cutoffR_m[0] < SMALLESTCUTOFF && cutoffR_m[1] < SMALLESTCUTOFF)
                 xAndYOk = true;
             else if (cutoffR_m[0] < SMALLESTCUTOFF)
-                xAndYOk = (std::abs(y) <= sigmaR_m[1] * cutoffR_m[1]);
+                xAndYOk = (std::abs(y) <= cutoffR_m[1]);
             else if (cutoffR_m[1] < SMALLESTCUTOFF)
-                xAndYOk = (std::abs(x) <= sigmaR_m[1] * cutoffR_m[0]);
+                xAndYOk = (std::abs(x) <= cutoffR_m[0]);
             else
-                xAndYOk = (pow(x / (sigmaR_m[0] * cutoffR_m[0]), 2.0) + pow(y / (sigmaR_m[1] * cutoffR_m[1]), 2.0) <= 1.0);
+                xAndYOk = (pow(x / cutoffR_m[0], 2.0) + pow(y / cutoffR_m[1], 2.0) <= 1.0);
 
             bool pxAndPyOk = false;
             if (cutoffP_m[0] < SMALLESTCUTOFF && cutoffP_m[1] < SMALLESTCUTOFF)
                 pxAndPyOk = true;
             else if (cutoffP_m[0] < SMALLESTCUTOFF)
-                pxAndPyOk = (std::abs(py) <= sigmaP_m[1] * cutoffP_m[1]);
+                pxAndPyOk = (std::abs(py) <= cutoffP_m[1]);
             else if (cutoffP_m[1] < SMALLESTCUTOFF)
-                pxAndPyOk = (std::abs(px) <= sigmaP_m[1] * cutoffP_m[0]);
+                pxAndPyOk = (std::abs(px) <= cutoffP_m[0]);
             else
-                pxAndPyOk = (pow(px / (sigmaP_m[0] * cutoffP_m[0]), 2.0) + pow(py / (sigmaP_m[1] * cutoffP_m[1]), 2.0) <= 1.0);
+                pxAndPyOk = (pow(px / cutoffP_m[0], 2.0) + pow(py / cutoffP_m[1], 2.0) <= 1.0);
 
             allow = (xAndYOk && pxAndPyOk);
 
         }
+        x *= sigmaR_m[0];
+        y *= sigmaR_m[1];
+        px *= sigmaP_m[0];
+        py *= sigmaP_m[1];
 
         // Save to each processor in turn.
         saveProcessor++;
