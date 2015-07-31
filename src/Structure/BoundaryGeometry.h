@@ -484,6 +484,7 @@ private:
     }
 
     inline Vector_t getPoint (const int triangle_id, const int vertex_id) {
+        assert (1 <= vertex_id && vertex_id <=3);
         return Points_m[Triangles_m[4 * triangle_id + vertex_id]];
     }
 
