@@ -227,6 +227,9 @@ int main(int argc, char *argv[]) {
             FileStream *is;
 
             try {
+            	boost::filesystem::path p (argv[arg]);
+            	boost::filesystem::path dir = p.parent_path ();
+            	boost::filesystem::current_path (dir);
                 is = new FileStream(argv[arg]);
             } catch(...) {
                 is = 0;
