@@ -236,24 +236,24 @@ private:
 
     void AdjustFringeFields(double ratio);
     double CalculateBendAngle();
-    void CalcCentralField(Vector_t R,
+    void CalcCentralField(const Vector_t &R,
                           double deltaX,
                           double angle,
                           Vector_t &B);
-    void CalcDistFromRefOrbitCentralField(Vector_t R,
+    void CalcDistFromRefOrbitCentralField(const Vector_t &R,
                                           double &deltaX,
                                           double &angle);
     void CalcEngeFunction(double zNormalized,
-                          std::vector<double> engeCoeff,
+                          const std::vector<double> &engeCoeff,
                           int polyOrder,
                           double &engeFunc,
                           double &engeFuncDeriv,
                           double &engeFuncSecDerivNorm);
-    void CalcEntranceFringeField(Vector_t REntrance,
+    void CalcEntranceFringeField(const Vector_t &REntrance,
                                  double deltaX,
                                  Vector_t &B);
-    void CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B);
-    void CalculateMapField(Vector_t R, Vector_t &E, Vector_t &B);
+    void CalcExitFringeField(const Vector_t &RExit, double deltaX, Vector_t &B);
+    void CalculateMapField(const Vector_t &R, Vector_t &E, Vector_t &B);
     void CalculateRefTrajectory(double &angleX, double &angleY);
     double EstimateFieldAdjustmentStep(double actualBendAngle,
                                        double mass,
@@ -269,16 +269,16 @@ private:
     bool FindIdealBendParameters(double chordLength);
     void FindReferenceExitOrigin(double &x, double &z);
     bool InitializeFieldMap(Inform &msg);
-    bool InMagnetCentralRegion(Vector_t R, double &deltaX, double &angle);
-    bool InMagnetEntranceRegion(Vector_t R, double &deltaX);
-    bool InMagnetExitRegion(Vector_t R, double &deltaX);
-    bool IsPositionInEntranceField(Vector_t R, Vector_t &REntrance);
-    bool IsPositionInExitField(Vector_t R, Vector_t &RExit);
+    bool InMagnetCentralRegion(const Vector_t &R, double &deltaX, double &angle);
+    bool InMagnetEntranceRegion(const Vector_t &R, double &deltaX);
+    bool InMagnetExitRegion(const Vector_t &R, double &deltaX);
+    bool IsPositionInEntranceField(const Vector_t &R, Vector_t &REntrance);
+    bool IsPositionInExitField(const Vector_t &R, Vector_t &RExit);
     void Print(Inform &msg, double bendAngleX, double bendAngle);
     void ReadFieldMap(Inform &msg);
     bool Reinitialize();
-    Vector_t RotateOutOfBendFrame(Vector_t X);
-    Vector_t RotateToBendFrame(Vector_t X);
+    Vector_t RotateOutOfBendFrame(const Vector_t &X);
+    Vector_t RotateToBendFrame(const Vector_t &X);
     void SetBendEffectiveLength(double startField, double endField);
     void SetBendStrength();
     void SetEngeOriginDelta(double delta);
