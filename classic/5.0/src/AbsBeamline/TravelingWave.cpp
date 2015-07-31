@@ -30,22 +30,37 @@
 
 extern Inform *gmsg;
 
-using namespace std;
-
 // Class TravelingWave
 // ------------------------------------------------------------------------
 
 TravelingWave::TravelingWave():
     Component(),
-    NumCells_m(0),
-    fast_m(false)
+    CoreFilename_m(""),
+    CoreFieldmap_m(NULL),
+    scale_m(1.0),
+    scaleCore_m(1.0),
+    phase_m(0.0),
+    phaseCore1_m(0.0),
+    phaseCore2_m(0.0),
+    phaseExit_m(0.0),
+    frequency_m(0.0),
+    startField_m(0.0),
+    startCoreField_m(0.0),
+    startExitField_m(0.0),
+    mappedStartExitField_m(0.0),
+    PeriodLength_m(0.0),
+    NumCells_m(1),
+    CellLength_m(0.0),
+    Mode_m(1),
+    fast_m(false),
+    autophaseVeto_m(false)
 {}
 
 
 TravelingWave::TravelingWave(const TravelingWave &right):
     Component(right),
     CoreFilename_m(right.CoreFilename_m),
-    CoreFieldmap_m(right.CoreFieldmap_m),
+    CoreFieldmap_m(NULL),
     scale_m(right.scale_m),
     scaleCore_m(right.scaleCore_m),
     phase_m(right.phase_m),
@@ -67,7 +82,26 @@ TravelingWave::TravelingWave(const TravelingWave &right):
 
 
 TravelingWave::TravelingWave(const std::string &name):
-    Component(name)
+    Component(name),
+    CoreFilename_m(""),
+    CoreFieldmap_m(NULL),
+    scale_m(1.0),
+    scaleCore_m(1.0),
+    phase_m(0.0),
+    phaseCore1_m(0.0),
+    phaseCore2_m(0.0),
+    phaseExit_m(0.0),
+    frequency_m(0.0),
+    startField_m(0.0),
+    startCoreField_m(0.0),
+    startExitField_m(0.0),
+    mappedStartExitField_m(0.0),
+    PeriodLength_m(0.0),
+    NumCells_m(1),
+    CellLength_m(0.0),
+    Mode_m(1),
+    fast_m(false),
+    autophaseVeto_m(false)
 {}
 
 
@@ -96,7 +130,7 @@ void TravelingWave::setFieldMapFN(std::string fn) {
 //   ExitFilename_m = fn;
 // }
 
-string TravelingWave::getFieldMapFN() const {
+std::string TravelingWave::getFieldMapFN() const {
     return CoreFilename_m;
 }
 
@@ -120,7 +154,7 @@ void TravelingWave::setPhasem(double phase) {
     phase_m = phase;
     phaseCore1_m = phase_m + pi * Mode_m / 2.0;
     phaseCore2_m = phase_m + pi * Mode_m * 1.5;
-    phaseExit_m = phase_m - 2.0 * pi * ((NumCells_m - 1) * Mode_m - floor((NumCells_m - 1) * Mode_m));
+    phaseExit_m = phase_m - 2.0 * pi * ((NumCells_m - 1) * Mode_m - std::floor((NumCells_m - 1) * Mode_m));
 }
 
 double TravelingWave::getPhasem() const {
@@ -407,8 +441,8 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
                 std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
                 ERRORMSG(errormsg_str << "\n" << endl);
                 if(Ippl::myNode() == 0) {
-                    ofstream omsg("errormsg.txt", ios_base::app);
-                    omsg << errormsg_str << endl;
+                    std::ofstream omsg("errormsg.txt", std::ios_base::app);
+                    omsg << errormsg_str << std::endl;
                     omsg.close();
                 }
                 frequency_m = CoreFieldmap_m->getFrequency();
@@ -438,8 +472,8 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
                 ERRORMSG(errormsg_str << "\n" << endl);
 
                 if(Ippl::myNode() == 0) {
-                    ofstream omsg("errormsg.txt", ios_base::app);
-                    omsg << errormsg_str << endl;
+                    std::ofstream omsg("errormsg.txt", std::ios_base::app);
+                    omsg << errormsg_str << std::endl;
                     omsg.close();
                 }
             }
@@ -496,8 +530,8 @@ ElementBase::ElementType TravelingWave::getType() const {
 }
 
 double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, const double &q, const double &mass) {
-    vector<double> t, E, t2, E2;
-    vector<pair<double, double> > F;
+    std::vector<double> t, E, t2, E2;
+    std::vector<std::pair<double, double> > F;
     double Dz;
     int N1, N2, N3, N4;
     double A, B;
@@ -584,7 +618,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 
                 const int prevPrecision = Ippl::Info->precision(8);
                 INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
-                        << "Ekin= " << E[N3 - 1] << " MeV" << setprecision(prevPrecision) << endl);
+                        << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << endl);
                 return tmp_phi;
             }
             phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
@@ -623,7 +657,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 
         const int prevPrecision = Ippl::Info->precision(8);
         INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
-                << "Ekin= " << E[N3 - 1] << " MeV" << setprecision(prevPrecision) << endl);
+                << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << endl);
 
         return phi;
     } else {
@@ -631,17 +665,17 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
     }
 }
 
-pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
-        const double &t0,
-        const double &dt,
-        const double &q,
-        const double &mass) {
+std::pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
+                                                        const double &t0,
+                                                        const double &dt,
+                                                        const double &q,
+                                                        const double &mass) {
     double phase = frequency_m * t0 + phase_m;
     double p = p0;
     double t = t0;
     double cdt = Physics::c * dt;
     double dphi = frequency_m * dt;
-    vector<pair<double, double> > F;
+    std::vector<std::pair<double, double> > F;
     CoreFieldmap_m->getOnaxisEz(F);
 
     double *zvals = new double[F.size()];
@@ -717,5 +751,5 @@ pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
     const double beta = sqrt(1. - 1 / (p * p + 1.));
     const double tErr  = (z - (startExitField_m + 0.5 * PeriodLength_m + zbegin)) / (Physics::c * beta);
 
-    return pair<double, double>(p, t - tErr);
+    return std::pair<double, double>(p, t - tErr);
 }

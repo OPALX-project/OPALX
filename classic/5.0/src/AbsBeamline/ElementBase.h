@@ -41,6 +41,7 @@ enum ElemType {
     isRF,
     isDipole,
     isMultipole,
+    isOther
 };
 
 
