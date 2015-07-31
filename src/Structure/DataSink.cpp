@@ -386,7 +386,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
 
                     << beam.getdE() << setw(pwi) << "\t";                                       // 48 dE energy spread
 
-        if(Ippl::getNodes() == 1) {
+        if(Ippl::getNodes() == 1 && beam.getLocalNum() > 0) {
             os_statData << beam.R[0](0) << setw(pwi) << "\t";                                    // 49 R0_x
             os_statData << beam.R[0](1) << setw(pwi) << "\t";                                    // 50 R0_y
             os_statData << beam.R[0](2) << setw(pwi) << "\t";                                    // 51 R0_z
@@ -394,6 +394,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
             os_statData << beam.P[0](1) << setw(pwi) << "\t";                                    // 53 P0_y
             os_statData << beam.P[0](2) << setw(pwi) << "\t";                                    // 54 P0_z
         }
+
 
         for(size_t i = 0; i < losses.size(); ++ i) {
             os_statData << losses[i].second << setw(pwi) << "\t";

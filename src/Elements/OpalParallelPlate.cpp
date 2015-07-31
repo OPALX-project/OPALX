@@ -30,7 +30,9 @@ extern Inform *gmsg;
 
 OpalParallelPlate::OpalParallelPlate():
     OpalElement(SIZE, "PARALLELPLATE",
-                "The \"PARALLELPLATE\" element defines an  cavity.") {
+                "The \"PARALLELPLATE\" element defines an  cavity."),
+    obgeo_m(NULL)
+{
     itsAttr[VOLT] = Attributes::makeReal
                     ("VOLT", " voltage in MV");
     itsAttr[FREQ] = Attributes::makeReal
@@ -62,7 +64,9 @@ OpalParallelPlate::OpalParallelPlate():
 
 
 OpalParallelPlate::OpalParallelPlate(const std::string &name, OpalParallelPlate *parent):
-    OpalElement(name, parent) {
+    OpalElement(name, parent),
+    obgeo_m(NULL)
+{
     setElement((new ParallelPlateRep(name))->makeAlignWrapper());
 }
 
