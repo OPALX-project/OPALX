@@ -574,7 +574,7 @@ double RBend::CalculateBendAngle() {
 
 }
 
-void RBend::CalcCentralField(Vector_t R,
+void RBend::CalcCentralField(const Vector_t &R,
                              double deltaX,
                              double angle,
                              Vector_t &B) {
@@ -589,7 +589,7 @@ void RBend::CalcCentralField(Vector_t R,
 }
 
 void RBend::CalcEngeFunction(double zNormalized,
-                             std::vector<double> engeCoeff,
+                             const std::vector<double> &engeCoeff,
                              int polyOrder,
                              double &engeFunc,
                              double &engeFuncDeriv,
@@ -652,7 +652,7 @@ void RBend::CalcEngeFunction(double zNormalized,
     }
 }
 
-void RBend::CalcEntranceFringeField(Vector_t REntrance,
+void RBend::CalcEntranceFringeField(const Vector_t &REntrance,
                                     double deltaX,
                                     Vector_t &B) {
 
@@ -683,7 +683,7 @@ void RBend::CalcEntranceFringeField(Vector_t REntrance,
 
 }
 
-void RBend::CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B) {
+void RBend::CalcExitFringeField(const Vector_t &RExit, double deltaX, Vector_t &B) {
 
     double zNormalized = RExit(2) / gap_m;
     double engeFunc = 0.0;
@@ -710,7 +710,7 @@ void RBend::CalcExitFringeField(Vector_t RExit, double deltaX, Vector_t &B) {
     B(2) = bXExit * sinExitAngle_m + bZExit * cosExitAngle_m;
 }
 
-void RBend::CalculateMapField(Vector_t R, Vector_t &E, Vector_t &B) {
+void RBend::CalculateMapField(const Vector_t &R, Vector_t &E, Vector_t &B) {
 
     E = Vector_t(0.0);
     B = Vector_t(0.0);
@@ -1169,7 +1169,7 @@ bool RBend::InitializeFieldMap(Inform &msg) {
 
 }
 
-bool RBend::InMagnetCentralRegion(Vector_t R, double &deltaX, double &angle) {
+bool RBend::InMagnetCentralRegion(const Vector_t &R, double &deltaX, double &angle) {
 
     deltaX = sqrt(pow(R(2), 2.0) + pow(R(0) + designRadius_m, 2.0)) - designRadius_m;
     if(std::abs(deltaX) <= aperture_m / 2.0) {
@@ -1182,7 +1182,7 @@ bool RBend::InMagnetCentralRegion(Vector_t R, double &deltaX, double &angle) {
 
 }
 
-bool RBend::InMagnetEntranceRegion(Vector_t R, double &deltaX) {
+bool RBend::InMagnetEntranceRegion(const Vector_t &R, double &deltaX) {
 
     if(std::abs(R(0)) <= aperture_m / 2.0) {
 
@@ -1203,7 +1203,7 @@ bool RBend::InMagnetEntranceRegion(Vector_t R, double &deltaX) {
 
 }
 
-bool RBend::InMagnetExitRegion(Vector_t R, double &deltaX) {
+bool RBend::InMagnetExitRegion(const Vector_t &R, double &deltaX) {
 
     Vector_t RTransformed(0.0, R(1), 0.0);
     RTransformed(0) = (R(0) - xExit_m) * cosExitAngle_m
@@ -1224,7 +1224,7 @@ bool RBend::InMagnetExitRegion(Vector_t R, double &deltaX) {
         return false;
 }
 
-bool RBend::IsPositionInEntranceField(Vector_t R, Vector_t &REntrance) {
+bool RBend::IsPositionInEntranceField(const Vector_t &R, Vector_t &REntrance) {
     if (polyOrderEntry_m < 0)
         return false;
 
@@ -1241,7 +1241,7 @@ bool RBend::IsPositionInEntranceField(Vector_t R, Vector_t &REntrance) {
         return false;
 }
 
-bool RBend::IsPositionInExitField(Vector_t R, Vector_t &RExit) {
+bool RBend::IsPositionInExitField(const Vector_t &R, Vector_t &RExit) {
     if (polyOrderExit_m < 0)
         return false;
 
@@ -1390,7 +1390,7 @@ bool RBend::Reinitialize() {
     return false;
 }
 
-Vector_t RBend::RotateOutOfBendFrame(Vector_t X) {
+Vector_t RBend::RotateOutOfBendFrame(const Vector_t &X) {
 
     /*
      * Rotate vector out of the bend's local coordinate system back to
@@ -1424,7 +1424,7 @@ Vector_t RBend::RotateOutOfBendFrame(Vector_t X) {
 
 }
 
-Vector_t RBend::RotateToBendFrame(Vector_t X) {
+Vector_t RBend::RotateToBendFrame(const Vector_t &X) {
 
     /*
      * Rotate vector to the bend's local coordinate system.
