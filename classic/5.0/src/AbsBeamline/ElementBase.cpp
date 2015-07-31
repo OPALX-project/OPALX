@@ -43,7 +43,8 @@ ElementBase::ElementBase():
     userAttribs(),
     wake_m(NULL),
     bgeometry_m(NULL),
-    sphys_m(NULL)
+    sphys_m(NULL),
+    elType_m(isOther)
 {}
 
 
@@ -54,7 +55,9 @@ ElementBase::ElementBase(const ElementBase &right):
     userAttribs(right.userAttribs),
     wake_m(right.wake_m),
     bgeometry_m(right.bgeometry_m),
-    sphys_m(right.sphys_m) {
+    sphys_m(right.sphys_m),
+    elType_m(right.elType_m)
+{
 
     if(sphys_m) {
         sphys_m->updateElement(this);
@@ -71,7 +74,8 @@ ElementBase::ElementBase(const std::string &name):
     userAttribs(),
     wake_m(NULL),
     bgeometry_m(NULL),
-    sphys_m(NULL)
+    sphys_m(NULL),
+    elType_m(isOther)
 {}
 
 
