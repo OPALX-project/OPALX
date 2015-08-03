@@ -1,5 +1,3 @@
-#include "revision.h"
-
 /* Name of package */
 #define PACKAGE ${PACKAGE}
 
