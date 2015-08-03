@@ -37,6 +37,7 @@
 #include <fstream>
 #include <string>
 #include "config.h"
+#include "revision.h"
 
 extern Inform *gmsg;
 

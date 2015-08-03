@@ -5,6 +5,7 @@
 #include "Structure/DataSink.h"
 
 #include "config.h"
+#include "revision.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalOptions.h"
