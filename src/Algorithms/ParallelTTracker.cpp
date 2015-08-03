@@ -2073,8 +2073,11 @@ void ParallelTTracker::computeExternalFields() {
             old_sphysSections.insert(it.first);
         }
 
-        std::vector<long> sectionsWithSurfacePhysics(sphysSections.begin(), sphysSections.end());
-        sectionsWithSurfacePhysics.resize(Ippl::getNodes() * hasSurfacePhysics, -1);
+        std::vector<long> sectionsWithSurfacePhysics(Ippl::getNodes() * hasSurfacePhysics, -1);
+        unsigned int insPosition = Ippl::myNode() * hasSurfacePhysics;
+        for (auto it :sphysSections)
+            sectionsWithSurfacePhysics[insPosition ++] = it;
+
         MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                       &sectionsWithSurfacePhysics[0], hasSurfacePhysics, MPI_LONG,
                       Ippl::getComm());
