@@ -17,8 +17,10 @@
 // ------------------------------------------------------------------------
 
 #include "ValueDefinitions/StringConstant.h"
+#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
+#include "revision.h"
 #include <iostream>
 
 
@@ -31,12 +33,25 @@ StringConstant::StringConstant():
                     "string constant:\n"
                     "\tSTRING CONSTANT <name> = <String-expression>;\n") {
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
+
+    OpalData *OPAL = OpalData::getInstance();
+    std::string gitRevision(GIT_VERSION);
+    OPAL->create(new StringConstant("GITREVISION", this, gitRevision));
 }
 
 
 StringConstant::StringConstant(const std::string &name, StringConstant *parent):
     ValueDefinition(name, parent)
 {}
+
+
+StringConstant::StringConstant(const std::string &name, StringConstant *parent, const std::string &value):
+    ValueDefinition(name, parent)
+{
+    Attributes::setString(itsAttr[0], value);
+    itsAttr[0].setReadOnly(true);
+    builtin = true;
+}
 
 
 StringConstant::~StringConstant()

@@ -54,6 +54,7 @@ private:
 
     // Clone constructor.
     StringConstant(const std::string &name, StringConstant *parent);
+    StringConstant(const std::string &name, StringConstant *parent, const std::string &value);
 };
 
 #endif // OPAL_StringConstant_HH
