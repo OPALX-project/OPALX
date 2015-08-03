@@ -86,7 +86,7 @@ private:
     void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
     void EnergyLoss(double &Eng, bool &pdead, double &deltat);
 
-    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P, 
+    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
 	     double thetacou, double deltas, int coord);
 
     void copyFromBunch(PartBunch &bunch);
@@ -102,26 +102,18 @@ private:
     void applyDKS();
     void applyHost(PartBunch &bunch, Degrader *deg, Collimator *coll);
     void deleteParticleFromLocalVectorDKS();
-  
+
 #endif
 
 
     void deleteParticleFromLocalVector();
 
-    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll); 
-
-    inline void calcStat(double Eng) {
-      Eavg_m += Eng;
-      if (Emin_m > Eng)
-	Emin_m = Eng;
-      if (Emax_m < Eng)
-	Emax_m = Eng;
-    }
+    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll);
 
     bool allParticlesIn_m;
-  
+
     double  T_m;                     // own time, maybe larger than in the bunch object
-                                    
+
     double dT_m;                     // dt from bunch
 
     gsl_rng *rGen_m;
@@ -145,14 +137,6 @@ private:
     unsigned redifusedStat_m;
     size_t locPartsInMat_m;
 
-    // some statistics
-
-    double Eavg_m;
-    double Emax_m;
-    double Emin_m;
-
-
-
     std::vector<PART> locParts_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
@@ -160,7 +144,7 @@ private:
 #ifdef OPAL_DKS
     DKSBase dksbase;
     int curandInitSet;
-  
+
     int ierr;
     int maxparticles;
     int numparticles;
