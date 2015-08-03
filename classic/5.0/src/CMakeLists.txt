@@ -11,6 +11,7 @@ set (PACKAGE_TARNAME \"classic\")
 set (PACKAGE_VERSION \"5.1.4\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/revision.h)
 
 
 #FIXME: get from Makefile.def (IPPL)

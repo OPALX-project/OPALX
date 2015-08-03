@@ -4,6 +4,7 @@
 #include "Utilities/Options.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/GeneralClassicException.h"
+#include "config.h"
 
 LossDataSink::LossDataSink(std::string elem, bool hdf5Save):
     element_m(elem),

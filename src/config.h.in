@@ -1,3 +1,5 @@
+#include "revision.h"
+
 /* Name of package */
 #define PACKAGE ${PACKAGE}
 
@@ -12,8 +14,3 @@
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION ${PACKAGE_VERSION}
-
-/* repository svn version */
-#define GIT_VERSION ${OPAL_WC_REVISION}
-
-/*#define GIT_VERSION ${GIT_VERSION}*/

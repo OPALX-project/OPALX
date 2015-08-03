@@ -60,6 +60,7 @@ classic/5.0/src/Utilities/Makefile
 classic/5.0/src/Utilities/cmake_install.cmake
 classic/5.0/src/cmake_install.cmake
 classic/5.0/src/config.h
+classic/5.0/src/revision.h
 classic/5.0/src/libCLASSIC.a
 /cmake_install.cmake
 src/AbstractObjects/CMakeFiles
@@ -129,6 +130,7 @@ src/ValueDefinitions/Makefile
 src/ValueDefinitions/cmake_install.cmake
 src/cmake_install.cmake
 src/config.h
+src/revision.h
 src/opal
 src/libOPAL.a
 ippl/src/libippl.a
