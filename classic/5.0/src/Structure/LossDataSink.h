@@ -12,8 +12,6 @@
 #include <hdf5.h>
 #include "H5hut.h"
 
-#include "config.h"
-
 /*
   - In the destructor we do ALL the file handling
   - h5hut_mode_m defines h5hut or ASCII

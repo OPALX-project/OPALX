@@ -7,6 +7,7 @@ set (PACKAGE_TARNAME \"opal\")
 set (PACKAGE_VERSION \"1.3.99.1\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/revision.h)
 
 set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
@@ -104,7 +105,7 @@ set (OPAL_LIBS
 )
 
 IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
-   set (OPAL_LIBS	  
+   set (OPAL_LIBS
        ${OPAL_LIBS}
        ${DKS_LIBRARY_DIR}/libdks.a)
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
