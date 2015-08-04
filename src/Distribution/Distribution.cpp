@@ -55,6 +55,8 @@ extern Inform *gmsg;
 #define DISTDBG1
 #define noDISTDBG2
 
+#define SMALLESTCUTOFF 1e-12
+
 SymTenzor<double, 6> getUnit6x6() {
     SymTenzor<double, 6> unit6x6;
     for (unsigned int i = 0; i < 6u; ++ i) {
@@ -2384,8 +2386,8 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
         }
 
     }
-    if (randGenStandard)
-        gsl_rng_free(randGenStandard);
+
+    gsl_rng_free(randGenStandard);
 
     if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
@@ -2471,14 +2473,13 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
             pzDist_m.push_back(pz);
         }
     }
-    if (randGenStandard)
-        gsl_rng_free(randGenStandard);
 
-    if (quasiRandGen1D != NULL)
+    gsl_rng_free(randGenStandard);
+
+    if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
-
-    if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
+    }
 }
 
 void Distribution::GenerateGaussZ(size_t numberOfParticles) {
@@ -2486,15 +2487,15 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     gsl_rng_env_setup();
     gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
 
-    gsl_matrix * m  = gsl_matrix_alloc (6, 6);
+    gsl_matrix * corMat  = gsl_matrix_alloc (6, 6);
     gsl_vector * rx = gsl_vector_alloc(6);
     gsl_vector * ry = gsl_vector_alloc(6);
 
     for (unsigned int i = 0; i < 6; ++ i) {
-        gsl_matrix_set(m, i, i, correlationMatrix_m(i, i));
+        gsl_matrix_set(corMat, i, i, correlationMatrix_m(i, i));
         for (unsigned int j = 0; j < i; ++ j) {
-            gsl_matrix_set(m, i, j, correlationMatrix_m(i, j));
-            gsl_matrix_set(m, j, i, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, i, j, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, j, i, correlationMatrix_m(i, j));
         }
     }
 
@@ -2505,15 +2506,15 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         for (int j = 0; j < 6; j++) {
             if (j==0)
                 *gmsg << "* r(" << std::setprecision(1) << i << ", : ) = "
-                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
             else
-                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
         }
         *gmsg << " \\\\" << endl;
     }
 #endif
 
-    int errcode = gsl_linalg_cholesky_decomp(m);
+    int errcode = gsl_linalg_cholesky_decomp(corMat);
 
     if (errcode == GSL_EDOM) {
         throw OpalException("Distribution::GenerateGaussZ",
@@ -2522,7 +2523,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
     // so make the upper part zero.
     for (int i = 0; i < 5; ++ i) {
         for (int j = i+1; j < 6 ; ++ j) {
-            gsl_matrix_set (m, i, j, 0.0);
+            gsl_matrix_set (corMat, i, j, 0.0);
         }
     }
 
@@ -2533,9 +2534,9 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         for (int j = 0; j < 6; j++) {
             if (j==0)
                 *gmsg << "* r(" << std::setprecision(1) << i << ", : ) = "
-                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                      << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
             else
-                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (m, i, j);
+                *gmsg << " & " << std::setprecision(4) << std::setw(10) << gsl_matrix_get (corMat, i, j);
         }
         *gmsg << " \\\\" << endl;
     }
@@ -2576,7 +2577,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             saveProcessor = 0;
 
         if (Ippl::myNode() == saveProcessor) {
-            if (gsl_blas_dgemv(CblasNoTrans,1.0,m,rx,0.0,ry)) {
+            if (gsl_blas_dgemv(CblasNoTrans,1.0,corMat,rx,0.0,ry)) {
                 throw OpalException("Distribution::GenerateGaussZ",
                                     "oops... something wrong with GSL matvec");
             }
@@ -2589,15 +2590,10 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         }
     }
 
-    /*
-    //std::for_each(v.rbegin(), v.rend(), [&](int n) { sum_of_elements += n; });
-    double pxm = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0);
-    double pym = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0);
-    double pzm = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
-    std::cout << "bega= " << std::sqrt(pxm*pxm + pym*pym + pzm*pzm) << std::endl;
-    */
-    if (randGen)
-        gsl_rng_free(randGen);
+    gsl_rng_free(randGen);
+    gsl_vector_free(rx);
+    gsl_vector_free(ry);
+    gsl_matrix_free(corMat);
 }
 
 void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
@@ -2759,15 +2755,12 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
     }
 
     gsl_rng_free(randGenGSL);
+    gsl_rng_free(randGen);
 
-    if (randGen)
-        gsl_rng_free(randGen);
-
-    if (quasiRandGen1D != NULL)
+    if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
-
-    if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
+    }
 }
 
 void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
@@ -2775,19 +2768,19 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
     // Generate coordinates.
     gsl_rng_env_setup();
     gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
-    gsl_matrix * m  = gsl_matrix_alloc (4, 4);
+    gsl_matrix * corMat  = gsl_matrix_alloc (4, 4);
     gsl_vector * rx = gsl_vector_alloc(4);
     gsl_vector * ry = gsl_vector_alloc(4);
 
     for (unsigned int i = 0; i < 4; ++ i) {
-        gsl_matrix_set(m, i, i, correlationMatrix_m(i, i));
+        gsl_matrix_set(corMat, i, i, correlationMatrix_m(i, i));
         for (unsigned int j = 0; j < i; ++ j) {
-            gsl_matrix_set(m, i, j, correlationMatrix_m(i, j));
-            gsl_matrix_set(m, j, i, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, i, j, correlationMatrix_m(i, j));
+            gsl_matrix_set(corMat, j, i, correlationMatrix_m(i, j));
         }
     }
 
-    int errcode = gsl_linalg_cholesky_decomp(m);
+    int errcode = gsl_linalg_cholesky_decomp(corMat);
 
     if (errcode == GSL_EDOM) {
         throw OpalException("Distribution::GenerateTransverseGauss",
@@ -2796,7 +2789,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
 
     for (int i = 0; i < 3; ++ i) {
         for (int j = i+1; j < 4 ; ++ j) {
-            gsl_matrix_set (m, i, j, 0.0);
+            gsl_matrix_set (corMat, i, j, 0.0);
         }
     }
 
@@ -2816,7 +2809,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             gsl_vector_set(rx, 2, gsl_ran_gaussian (randGen,1.0));
             gsl_vector_set(rx, 3, gsl_ran_gaussian (randGen,1.0));
 
-            gsl_blas_dgemv(CblasNoTrans, 1.0, m, rx, 0.0, ry);
+            gsl_blas_dgemv(CblasNoTrans, 1.0, corMat, rx, 0.0, ry);
             x = sigmaR_m[0] * gsl_vector_get(ry, 0);
             px = sigmaP_m[0] * gsl_vector_get(ry, 1);
             y = sigmaR_m[1] * gsl_vector_get(ry, 2);
@@ -2858,8 +2851,11 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             pyDist_m.push_back(py);
         }
     }
-    if (randGen)
-        gsl_rng_free(randGen);
+
+    gsl_rng_free(randGen);
+    gsl_matrix_free(corMat);
+    gsl_vector_free(rx);
+    gsl_vector_free(ry);
 }
 
 void Distribution::InitializeBeam(PartBunch &beam) {
