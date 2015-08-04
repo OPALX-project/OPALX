@@ -565,6 +565,12 @@ void  CollimatorPhysics::Material() {
         A4_c = 2.699e3;
         A5_c = 1.568e-2;
     }
+
+    // mean exitation energy from Leo
+    if (Z_m < 13.0)
+        I_m = 12 * Z_m + 7.0;
+    else
+        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 }
 
 /// Energy Loss:  using the Bethe-Bloch equation.
