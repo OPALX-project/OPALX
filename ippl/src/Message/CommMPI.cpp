@@ -105,6 +105,8 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
     // restore original executable name without absolute path
     strcpy(argv[0],execname);
 
+    free(execname);
+
     // duplicate the MPI_COMM_WORLD communicator, so that we can use
     // a communicator that will not conflict with other users of MPI_COMM_WORLD
     MPI_Comm_dup(mpicomm, &communicator);
