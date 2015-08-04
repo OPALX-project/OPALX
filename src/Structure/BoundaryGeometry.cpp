@@ -1647,10 +1647,10 @@ Change orientation if diff is:
             do {
                 parts++;
                 makeTriangleNormalInwardPointingSubMesh (bg, triangle_id);
-                while (bg->isOriented_m[triangle_id]) triangle_id++;
+                while (bg->isOriented_m[triangle_id] && triangle_id < bg->numTriangles_m) triangle_id++;
             } while (triangle_id < bg->numTriangles_m);
 
-            delete bg->isOriented_m;
+            delete[] bg->isOriented_m;
             bg->isOriented_m = 0;
             bg->triangleNeighbors_m.clear ();
 
