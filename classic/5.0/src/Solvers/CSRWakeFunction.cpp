@@ -23,7 +23,7 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
     Inform msg("CSRWake ");
 
     const double &meshSpacing = bunch.getMesh().get_meshSpacing(2);
-    const Vector_t &meshOrigin = bunch.getMesh().get_origin();
+    const double centerFirstCell = bunch.getMesh().get_origin()[2] + 0.5 * meshSpacing;
 
     calculateLineDensity(bunch, meshSpacing);
 
@@ -54,12 +54,12 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
     // calculate the wake field seen by the particles
     for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
         const Vector_t &R = bunch.R[i];
-        int indexz = (int)floor((R(2) - meshOrigin(2)) / meshSpacing);
-        double leverz = (R(2) - meshOrigin(2)) / meshSpacing - indexz;
+        unsigned int indexz = (int)floor((R(2) - centerFirstCell) / meshSpacing);
+        double leverz = (R(2) - centerFirstCell) / meshSpacing - indexz;
+        PAssert(indexz < lineDensity_m.size() - 1);
+
         bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
     }
-
-
 
     if(Options::csrDump) {
         static std::string oldBendName;
