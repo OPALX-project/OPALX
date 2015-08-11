@@ -66,9 +66,6 @@
 #endif
 #include <vector>
 
-using std::cerr;
-using std::endl;
-
 
 // Namespace Expressions
 // ------------------------------------------------------------------------
@@ -178,23 +175,24 @@ namespace Expressions {
     // ----------------------------------------------------------------------
 
     static const TFunction1<double, double> table1[] = {
-        { "TRUNC",  -1, Truncate },
-        { "ROUND",  -1, Round    },
-        { "FLOOR",  -1, std::floor    },
-        { "CEIL",   -1, std::ceil     },
-        { "SIGN",   -1, Sign     },
-        { "SQRT",   -1, std::sqrt     },
-        { "LOG",    -1, std::log      },
-        { "EXP",    -1, std::exp      },
-        { "SIN",    -1, std::sin      },
-        { "COS",    -1, std::cos      },
-        { "ABS",    -1, std::abs },
-        { "TAN",    -1, std::tan      },
-        { "ASIN",   -1, std::asin     },
-        { "ACOS",   -1, std::acos     },
-        { "ATAN",   -1, std::atan     },
-        { "TGAUSS", -2, Tgauss   },
-        { 0,        -1, 0        }
+        { "TRUNC",  -1, Truncate   },
+        { "ROUND",  -1, Round      },
+        { "FLOOR",  -1, std::floor },
+        { "CEIL",   -1, std::ceil  },
+        { "SIGN",   -1, Sign       },
+        { "SQRT",   -1, std::sqrt  },
+        { "LOG",    -1, std::log   },
+        { "EXP",    -1, std::exp   },
+        { "SIN",    -1, std::sin   },
+        { "COS",    -1, std::cos   },
+        { "ABS",    -1, std::abs   },
+        { "TAN",    -1, std::tan   },
+        { "ASIN",   -1, std::asin  },
+        { "ACOS",   -1, std::acos  },
+        { "ATAN",   -1, std::atan  },
+        { "TGAUSS", -2, Tgauss     },
+        { "ERF",    -1, std::erf   },
+        { 0,        -1, 0          }
     };
 
     // Real functions with two arguments.
@@ -236,8 +234,8 @@ namespace Expressions {
             }
             return result;
         } else if(Options::warn) {
-            cerr << "\n### Warning ### \"VMIN\" function of empty array.\n"
-                 << endl;
+            std::cerr << "\n### Warning ### \"VMIN\" function of empty array.\n"
+                      << std::endl;
         }
         return 0.0;
     }
@@ -250,8 +248,8 @@ namespace Expressions {
             }
             return result;
         } else if(Options::warn) {
-            cerr << "\n### Warning ### \"VMAX\" function of empty array.\n"
-                 << endl;
+            std::cerr << "\n### Warning ### \"VMAX\" function of empty array.\n"
+                      << std::endl;
         }
         return 0.0;
     }
@@ -264,8 +262,8 @@ namespace Expressions {
             }
             return sqrt(result / double(array.size()));
         } else if(Options::warn) {
-            cerr << "\n### Warning ### \"VRMS\" function of empty array.\n"
-                 << endl;
+            std::cerr << "\n### Warning ### \"VRMS\" function of empty array.\n"
+                      << std::endl;
         }
         return 0.0;
     }
@@ -278,8 +276,8 @@ namespace Expressions {
             }
             return result;
         } else if(Options::warn) {
-            cerr << "\n### Warning ### \"VABSMAX\" function of empty array.\n"
-                 << endl;
+            std::cerr << "\n### Warning ### \"VABSMAX\" function of empty array.\n"
+                      << std::endl;
         }
         return 0.0;
     }

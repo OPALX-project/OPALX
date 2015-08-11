@@ -8,7 +8,9 @@ extern Inform *gmsg;
 OpalBeamline::OpalBeamline():
     sections_m(),
     elements_m(),
-    prepared_m(false) {
+    prepared_m(false),
+    online_secs_m(NULL)
+{
     online_sections_m = new int[5 * Ippl::getNodes()];
     // This is needed to communicate across the nodes which sections are online. We should allocate memory to store
     // (# of nodes) * (max # of sections which are online) integers.
@@ -53,6 +55,9 @@ CompVec &OpalBeamline::getPredecessors(std::shared_ptr<const Component> element)
 CompVec &OpalBeamline::getSuccessors(std::shared_ptr<const Component> element) {
     size_t index;
     bool found = false;
+
+    if (sections_m.size() == 0)
+        return dummy_list_m;
 
     if (element == NULL)
         return sections_m[0].getElements();
@@ -111,6 +116,8 @@ void OpalBeamline::getSectionIndexAt(const Vector_t &pos, long &initial_guess) c
     if(initial_guess > -1 && (size_t) initial_guess >= sections_m.size()) initial_guess = static_cast<long>(sections_m.size()) - 1;
 
     if(prepared_m) {
+        if (sections_m.size() == 0) return;
+
         if(initial_guess == -1 && pos(2) > sections_m[0].getStart(pos(0), pos(1)))
             initial_guess = 0;
 
@@ -369,6 +376,11 @@ void OpalBeamline::prepareSections() {
     FieldList::iterator flit;
     list<double>::iterator pos_it, next_it, last_it;
     const double tolerance = 1.e-4;
+
+    if (elements_m.size() == 0) {
+        prepared_m = true;
+        return;
+    }
 
     /* there might be elements with length zero or extremely short ones.
        we delete them such that they don't appear in the simulation

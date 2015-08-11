@@ -4241,13 +4241,13 @@ void Distribution::SetDistParametersGauss(double massIneV) {
                 sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAZ]));
 
         }
+    }
 
-        if (std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR])) > 0.0) {
-            sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
-            sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
-            cutoffR_m[0] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
-            cutoffR_m[1] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
-        }
+    if (std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR])) > 0.0) {
+        sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
+        sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
+        cutoffR_m[0] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
+        cutoffR_m[1] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
     }
 }
 
