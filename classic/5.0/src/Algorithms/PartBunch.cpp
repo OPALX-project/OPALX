@@ -51,6 +51,8 @@
 
 using Physics::pi;
 
+using namespace std;
+
 extern Inform *gmsg;
 
 // Class PartBunch
