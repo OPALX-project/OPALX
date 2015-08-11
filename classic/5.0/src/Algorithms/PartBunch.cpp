@@ -51,8 +51,6 @@
 
 using Physics::pi;
 
-using namespace std;
-
 extern Inform *gmsg;
 
 // Class PartBunch
@@ -486,7 +484,7 @@ double PartBunch::getZ(int i) {
  */
 void PartBunch::calcLineDensity() {
     //   e_dim_tag decomp[3];
-    list<ListElem> listz;
+    std::list<ListElem> listz;
 
     //   for (int d=0; d < 3; ++d) {                                    // this does not seem to work properly
     //     decomp[d] = getFieldLayout().getRequestedDistribution(d);
@@ -575,23 +573,23 @@ void PartBunch::calcLineDensity() {
     reduce(&(lineDensity_m[0]), &(lineDensity_m[0]) + nBinsLineDensity_m, &(lineDensity_m[0]), OpAddAssign());
 }
 
-void PartBunch::fillArray(double *lineDensity, const list<ListElem> &l) {
+void PartBunch::fillArray(double *lineDensity, const std::list<ListElem> &l) {
     unsigned int mmax = 0;
     unsigned int nmax = 0;
     unsigned int count = 0;
 
-    for(list<ListElem>::const_iterator it = l.begin(); it != l.end() ; ++it)  {
+    for(std::list<ListElem>::const_iterator it = l.begin(); it != l.end() ; ++it)  {
         if(it->m > mmax) mmax = it->m;
         if(it->n > nmax) nmax = it->n;
     }
-    for(list<ListElem>::const_iterator it = l.begin(); it != l.end(); ++it)
+    for(std::list<ListElem>::const_iterator it = l.begin(); it != l.end(); ++it)
         if((it->m < mmax) && (it->n < nmax)) {
             lineDensity[count] = it->den;
             count++;
         }
 }
 
-void PartBunch::getLineDensity(vector<double> &lineDensity) {
+void PartBunch::getLineDensity(std::vector<double> &lineDensity) {
     if(bool(lineDensity_m)) {
         if(lineDensity.size() != nBinsLineDensity_m)
             lineDensity.resize(nBinsLineDensity_m, 0.0);
@@ -622,7 +620,7 @@ void PartBunch::calcGammas() {
         reduce(pInBin, pInBin, OpAddAssign());
         if(pInBin != 0) {
             bingamma_m[i] /= pInBin;
-            INFOMSG(level2 << "Bin " << std::setw(3) << i << " gamma = " << setw(8) << scientific << setprecision(5) << bingamma_m[i] << "; NpInBin= " << setw(8) << setfill(' ') << pInBin << endl);
+            INFOMSG(level2 << "Bin " << std::setw(3) << i << " gamma = " << std::setw(8) << std::scientific << std::setprecision(5) << bingamma_m[i] << "; NpInBin= " << std::setw(8) << std::setfill(' ') << pInBin << endl);
         } else {
             bingamma_m[i] = 1.0;
             INFOMSG(level2 << "Bin " << std::setw(3) << i << " has no particles " << endl);
@@ -1963,7 +1961,7 @@ void PartBunch::calcMomentsInitial() {
 
     for(size_t k = 0; k < pbin_m->getNp(); k++) {
         for(int binNumber = 0; binNumber < pbin_m->getNBins(); binNumber++) {
-            vector<double> p;
+            std::vector<double> p;
 
             if(pbin_m->getPart(k, binNumber, p)) {
                 part[0] = p.at(0);
@@ -2130,7 +2128,7 @@ void PartBunch::calcBeamParametersInitial() {
 
                 rrms_m(i) = sqrt(rsqsum(i) / N);
                 prms_m(i) = sqrt(psqsum(i) / N);
-                eps_m(i)  = sqrt(max(eps2(i), zero));
+                eps_m(i)  = sqrt(std::max(eps2(i), zero));
                 double tmp = rrms_m(i) * prms_m(i);
                 fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
             }
@@ -2241,7 +2239,7 @@ void PartBunch::moveBunchToCathode(double &t) {
 
     for(int bin = 0; bin < getNumBins(); ++bin) {
         for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-            vector<double> p;
+            std::vector<double> p;
             if(pbin_m->getPart(i, bin, p)) {
                 avrg_betagamma += sqrt(1.0 + p[3] * p[3] + p[4] * p[4] + p[5] * p[5]);
                 if(p[2] > maxspos) maxspos = p[2];
@@ -2258,7 +2256,7 @@ void PartBunch::moveBunchToCathode(double &t) {
         gmsg << "move bunch by " << num_steps *dist_per_step << "; DT = " << num_steps *getdT() << endl;
         for(int bin = 0; bin < getNumBins(); ++bin) {
             for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-                vector<double> p;
+                std::vector<double> p;
                 if(pbin_m->getPart(i, bin, p)) {
                     pbin_m->updatePartPos(i, bin, p[2] + num_steps * dist_per_step);
                 }
@@ -2283,7 +2281,7 @@ void PartBunch::printBinHist() {
         if(Ippl::myNode() == 0) {
             for(int bin = 0; bin < getNumBins(); ++bin) {
                 for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-                    vector<double> p;
+                    std::vector<double> p;
                     if(pbin_m->getPart(i, bin, p)) {
                         if(p[2] > maxz) maxz = p[2];
                         if(p[2] < minz) minz = p[2];
@@ -2294,7 +2292,7 @@ void PartBunch::printBinHist() {
             int minihist[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
             for(int bin = 0; bin < getNumBins(); ++bin) {
                 for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-                    vector<double> p;
+                    std::vector<double> p;
                     if(pbin_m->getPart(i, bin, p)) {
                         ++minihist[(int)floor((p[2] - minz) / dz)];
                     }
@@ -2317,27 +2315,27 @@ void PartBunch::printBinHist() {
 Inform &PartBunch::print(Inform &os) {
     if(this->getTotalNum() != 0) {  // to suppress Nan's
         Inform::FmtFlags_t ff = os.flags();
-        os << scientific;
+        os << std::scientific;
         os << level1 << "\n";
         os << "* ************** B U N C H ********************************************************* \n";
         os << "* NP              =   " << this->getTotalNum() << "\n";
-        os << "* Qtot            =   " << setw(12) << setprecision(5) << abs(sum(Q)) * 1.0e9 << " [nC]       "
-           << "Qi    = " << setw(12) << std::abs(qi_m) * 1e9 << " [nC]" << "\n";
-        os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV]      "
-           << "dEkin = " << setw(12) << dE_m << " [MeV]\n";
-        os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]\n";
-        os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]\n";
-        os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]\n";
-        os << "* rms momenta     = " << setw(12) << setprecision(5) << prms_m << " [beta gamma]\n";
-        os << "* mean position   = " << setw(12) << setprecision(5) << rmean_m << " [m]\n";
-        os << "* mean momenta    = " << setw(12) << setprecision(5) << pmean_m << " [beta gamma]\n";
-        os << "* rms emittance   = " << setw(12) << setprecision(5) << eps_m << " (not normalized)\n";
-        os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << "\n";
-        os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]\n";
-        os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]\n";
-        os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s]        "
-           << "dT    = " << setw(12) << getdT() << " [s]\n";
-        os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]\n";
+        os << "* Qtot            =   " << std::setw(12) << std::setprecision(5) << abs(sum(Q)) * 1.0e9 << " [nC]       "
+           << "Qi    = " << std::setw(12) << std::abs(qi_m) * 1e9 << " [nC]" << "\n";
+        os << "* Ekin            =   " << std::setw(12) << std::setprecision(5) << eKin_m << " [MeV]      "
+           << "dEkin = " << std::setw(12) << dE_m << " [MeV]\n";
+        os << "* rmax            = " << std::setw(12) << std::setprecision(5) << rmax_m << " [m]\n";
+        os << "* rmin            = " << std::setw(12) << std::setprecision(5) << rmin_m << " [m]\n";
+        os << "* rms beam size   = " << std::setw(12) << std::setprecision(5) << rrms_m << " [m]\n";
+        os << "* rms momenta     = " << std::setw(12) << std::setprecision(5) << prms_m << " [beta gamma]\n";
+        os << "* mean position   = " << std::setw(12) << std::setprecision(5) << rmean_m << " [m]\n";
+        os << "* mean momenta    = " << std::setw(12) << std::setprecision(5) << pmean_m << " [beta gamma]\n";
+        os << "* rms emittance   = " << std::setw(12) << std::setprecision(5) << eps_m << " (not normalized)\n";
+        os << "* rms correlation = " << std::setw(12) << std::setprecision(5) << rprms_m << "\n";
+        os << "* hr              = " << std::setw(12) << std::setprecision(5) << hr_m << " [m]\n";
+        os << "* dh              =   " << std::setw(12) << std::setprecision(5) << dh_m << " [m]\n";
+        os << "* t               =   " << std::setw(12) << std::setprecision(5) << getT() << " [s]        "
+           << "dT    = " << std::setw(12) << getdT() << " [s]\n";
+        os << "* spos            =   " << std::setw(12) << std::setprecision(5) << get_sPos() << " [m]\n";
         os << "* ********************************************************************************** " << endl;
         os.flags(ff);
     }
@@ -2372,8 +2370,8 @@ void PartBunch::calcBeamParameters_cycl() {
     for(unsigned int i = 0 ; i < Dim; i++) {
         rrms_m(i) = sqrt(rsqsum(i) / TotalNp);
         prms_m(i) = sqrt(psqsum(i) / TotalNp);
-        //eps_m(i)  = sqrt( max( eps2(i), zero ) );
-        eps_norm_m(i)  = sqrt(max(eps2(i), zero));
+        //eps_m(i)  = sqrt( std::max( eps2(i), zero ) );
+        eps_norm_m(i)  = sqrt(std::max(eps2(i), zero));
         double tmp    = rrms_m(i) * prms_m(i);
         fac(i)  = (tmp == 0) ? zero : 1.0 / tmp;
     }
