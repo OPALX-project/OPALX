@@ -747,7 +747,8 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     sigma(0,5) = sigma(5,0) = invAB * (ex / Omega + ez / omega) * mega;                 // [sigma(0,5)] = [sigma(5,0)] = m rad * 10^{6} = mm mrad	// 1000: m --> mm and 1000 to promille
     sigma(1,1) = invAB * (B * ex * Omega + A * ez * omega) * mega;                      // [sigma(1,1)] = rad * 10^{6} = mrad (and promille)
     sigma(1,4) = sigma(4,1) = invAB * (ex * Omega+ez * omega) / (K * gamma2_m) * mega;  // [sigma(1,4)] = [sigma(4,1)] = m rad * 10^{6} = mm mrad
-    sigma(2,2) = sigma(3,3) = invAB * ey / (std::sqrt(h * h * nuz * nuz - K)) * mega;   // formula (31), [sigma(2,2)] = [sigma(3,3)] = m rad * 10^{6} = mm mrad
+    sigma(2,2) = ey / (std::sqrt(h * h * nuz * nuz - K)) * mega;                        // formula (31), [sigma(2,2)] = m rad * 10^{6} = mm mrad
+    sigma(3,3) = (ey * mega) * (ey * mega) / sigma(2,2);
     sigma(4,4) = invAB * (A * ex * Omega + B * ez * omega) / (K * gamma2_m) * mega;     // [sigma(4,4)] = m^{2} rad * 10^{6} = mm^{2} rad = mm mrad
     sigma(5,5) = invAB * (ex / (B * Omega) + ez / (A * omega)) * mega;                  // formula (30), [sigma(5,5)] = rad * 10^{6} = mrad (and promille)
 
