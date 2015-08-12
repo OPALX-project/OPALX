@@ -541,7 +541,7 @@ void ParallelTTracker::executeDefaultTracker() {
     }
 
     bool const psDump = (itsBunch->getGlobalTrackStep() - 1) % Options::psDumpFreq != 0;
-    bool const statDump = true;
+    bool const statDump = (itsBunch->getGlobalTrackStep() - 1) % Options::statDumpFreq != 0;
     writePhaseSpace((step + 1), itsBunch->get_sPos(), psDump, statDump);
     msg << level2 << "Dump phase space of last step" << endl;
     OPALTimer::Timer myt3;
