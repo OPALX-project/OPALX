@@ -2238,12 +2238,13 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
  */
 int BoundaryGeometry::emitSecondaryVaughan (
     const Vector_t& intecoords,
-    const int& triId,
-    const double& incQ,
-    const Vector_t& incMomentum,
+    const int i,
     PartBunch* itsBunch,
     double& seyNum
     ) {
+    const int triId = itsBunch->TriID[i];
+    const double incQ = itsBunch->Q[i];
+    const Vector_t& incMomentum = itsBunch->P[i];
     const double p_sq = dot (incMomentum, incMomentum);
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
@@ -2258,9 +2259,10 @@ int BoundaryGeometry::emitSecondaryVaughan (
         int se_Num = 0;
         int seType = 0;
         double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / sqrt (p_sq);
-        //cosTheta should be positive
+        //cosTheta must be positive
         if (cosTheta < 0) {
             ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
+                      "    particle position = " << itsBunch->R[i] << endl <<
                       "    incident momentum=" << incMomentum << endl <<
                       "    triNormal=" << TriNormals_m[triId] << endl <<
                       "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
