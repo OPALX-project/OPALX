@@ -242,7 +242,6 @@ void FM2DDynamic::setFrequency(double freq) {
 
 void FM2DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
     double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
-    std::string tmpString;
     F.resize(num_gridpz_m);
 
     for(int i = 0; i < num_gridpz_m; ++ i) {

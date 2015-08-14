@@ -153,6 +153,10 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         maxStepsAutoPhasing.pop();
     }
 
+    INFOMSG(level2 << "step = " << step << ", spos = " << refR(2) << " [m], "
+            << "t= " << itsBunch_m.getT() << " [s], " << "E = " << getEnergyMeV(refP) << " [MeV] "
+            << endl);
+
     printCavityPhases();
     sendCavityPhases();
 
@@ -166,6 +170,7 @@ void AutophaseTracker::track(double uptoSPos,
                              std::queue<unsigned long long> &maxStepsAutoPhasing) {
     Vector_t &refR = itsBunch_m.R[0];
     Vector_t &refP = itsBunch_m.P[0];
+
     double t = itsBunch_m.getT();
     const int dtfraction = DTFRACTION;
 

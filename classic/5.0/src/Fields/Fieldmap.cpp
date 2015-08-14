@@ -675,6 +675,7 @@ void Fieldmap::SetFieldGap(double gap) {
 }
 
 REGISTER_PARSE_TYPE(int);
+REGISTER_PARSE_TYPE(unsigned int);
 REGISTER_PARSE_TYPE(double);
 REGISTER_PARSE_TYPE(std::string);
 

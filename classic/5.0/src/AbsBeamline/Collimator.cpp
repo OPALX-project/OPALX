@@ -208,17 +208,13 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
                 }
             }
             return !alive;
-        } else if(isASlit_m) {
-            return (R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize());
-        } else if (isARColl_m) {
-            return (R(0) <= -getXsize() || R(1) <= -getYsize() || R(0) >= getXsize() || R(1) >= getYsize());
+        } else if(isASlit_m || isARColl_m) {
+            return (std::abs(R(0)) >= getXsize() || std::abs(R(1)) >= getYsize());
         } else if(isAWire_m) {
             ERRORMSG("Not yet implemented");
         } else {
             // case of an elliptic collimator
-            const double trm1 = ((R(0)*R(0))/(getXsize()*getXsize()));
-            const double trm2 = ((R(1)*R(1))/(getYsize()*getYsize()));
-            return (trm1 + trm2) > 1.0;
+            return (std::pow(R(0) / getXsize(), 2.0) + std::pow(R(1) / getYsize(), 2.0)) >= 1.0;
         }
     }
     return false;
@@ -342,6 +338,20 @@ void Collimator::finalise()
 }
 
 void Collimator::goOnline(const double &) {
+    print();
+
+    PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    PosZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    MomentumX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    MomentumY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    MomentumZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    time_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    id_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    online_m = true;
+}
+
+void Collimator::print() {
     if(RefPartBunch_m == NULL) {
         if(!informed_m) {
             std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
@@ -364,8 +374,9 @@ void Collimator::goOnline(const double &) {
         *gmsg << "* Slit x= " << getXsize() << " Slit y= " << getYsize()
               << " start= " << position_m << " fn= " << filename_m << endl;
     else if(isARColl_m)
-        *gmsg << "* RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m
-              << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "* RCollimator a= " << getXsize() << " b= " << getYsize()
+              << " start= " << position_m << " fn= " << filename_m
+              << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isACColl_m)
         *gmsg << "* CCollimator angle start " << xstart_m << " (Deg) angle end " << ystart_m << " (Deg) "
               << "R start " << xend_m << " (mm) R rend " << yend_m << " (mm)" << endl;
@@ -374,48 +385,6 @@ void Collimator::goOnline(const double &) {
     else
         *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m
               << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-
-
-    PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    PosZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    MomentumX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    MomentumY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    MomentumZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    time_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    id_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    online_m = true;
-}
-
-void Collimator::print() {
-    if(RefPartBunch_m == NULL) {
-        if(!informed_m) {
-            std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
-            *gmsg << errormsg << "\n"
-                  << endl;
-            if(Ippl::myNode() == 0) {
-                ofstream omsg("errormsg.txt", ios_base::app);
-                omsg << errormsg << endl;
-                omsg.close();
-            }
-            informed_m = true;
-        }
-        return;
-    }
-
-    if(isAPepperPot_m)
-        *gmsg << "Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-    else if(isASlit_m)
-        *gmsg << "Slit x= " << getXsize() << " Slit y= " << getYsize() << " start= " << position_m << " fn= " << filename_m << endl;
-    else if(isARColl_m)
-        *gmsg << "RCollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-    else if(isACColl_m)
-        *gmsg << "CCollimator angstart= " << xstart_m << " angend " << ystart_m << " rstart " << xend_m << " rend " << yend_m << endl;
-    else if(isAWire_m)
-        *gmsg << "Wire x= " << x0_m << " y= " << y0_m << endl;
-    else
-        *gmsg << "ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-
 }
 
 void Collimator::goOffline() {
