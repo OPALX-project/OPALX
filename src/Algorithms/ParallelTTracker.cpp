@@ -1470,12 +1470,17 @@ void ParallelTTracker::bgf_main_collision_test() {
         int res = 0;
         int triId = itsBunch->TriID[i];
         Vector_t position = itsBunch->R[i];
-        if(triId == 0) {
+        if (triId == 0) {
             // no previous collision
             Vector_t intersection_pt = outr;
             res = bgf_m->PartInside (
-                itsBunch->R[i], itsBunch->P[i], dtime,
-                itsBunch->PType[i], itsBunch->Q[i], intersection_pt, triId);
+                itsBunch->R[i],
+                itsBunch->P[i],
+                dtime,
+                itsBunch->PType[i],
+                itsBunch->Q[i],
+                intersection_pt,
+                triId);
             if (res < 0) continue;
             position = intersection_pt;
         }
@@ -1483,15 +1488,19 @@ void ParallelTTracker::bgf_main_collision_test() {
         /*
           Attention: New secondaries have not been kicked and are without new momentum.
         */
-        if(secondaryFlg_m == 1) {
+        if (secondaryFlg_m == 1) {
             res += bgf_m->emitSecondaryFurmanPivi (
-                position, triId,
-                itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
+                position,
+                triId,
+                itsBunch->Q[i],
+                itsBunch->P[i],
+                itsBunch, seyNum);
 
-        } else if(secondaryFlg_m != 0) {
+        } else if (secondaryFlg_m != 0) {
             res += bgf_m->emitSecondaryVaughan (
-                position, triId,
-                itsBunch->Q[i], itsBunch->P[i], itsBunch, seyNum);
+                position,
+                i,
+                itsBunch, seyNum);
 
         } else {
             res += bgf_m->emitSecondaryNone (
@@ -1826,11 +1835,9 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
     RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor_m;
 
 
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-
-        itsBunch->R[i] /= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
-
-	}
+    for (unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        itsBunch->R[i] /= Vector_t (Physics::c * itsBunch->dt[i]);
+    }
     kickParticles(pusher, 0);
     handleBends();
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
@@ -1841,14 +1848,19 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
         bool particleHitBoundary = false;
         Vector_t intecoords = outr;
         int triId = 0;
-        itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i], Physics::c * itsBunch->dt[i]);
+        itsBunch->R[i] *= Vector_t (Physics::c * itsBunch->dt[i]);
         // test all particles except those already have collided the boundary in the first half step.
         if(itsBunch->TriID[i] == 0) {
             particleHitBoundary =  bgf_m->PartInside(
-                itsBunch->R[i], itsBunch->P[i], dtime, itsBunch->PType[i],
-                itsBunch->Q[i], intecoords, triId) == 0;
+                itsBunch->R[i],
+                itsBunch->P[i],
+                dtime,
+                itsBunch->PType[i],
+                itsBunch->Q[i],
+                intecoords,
+                triId) == 0;
             if(particleHitBoundary) {
-                itsBunch->R[i] = intecoords / Vector_t(Physics::c * itsBunch->dt[i]);
+                itsBunch->R[i] = intecoords / Vector_t (Physics::c * itsBunch->dt[i]);
                 itsBunch->TriID[i] = triId;
             } else {
                 //if no collision do normal push in the second half-step
