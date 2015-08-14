@@ -3,6 +3,7 @@ set (_SRCS
   AttributeSet.cpp
   BeamBeam.cpp
   BeamlineVisitor.cpp
+  Bend.cpp
   Collimator.cpp
   Component.cpp
   Corrector.cpp
