@@ -106,9 +106,7 @@ public:
     // call Vaughan's model
     int emitSecondaryVaughan (
         const Vector_t& intecoords,
-        const int& triId,
-        const double& incQ,
-        const Vector_t& incMomentum,
+        const int i,
         PartBunch* itsBunch,
         double& seyNum);
 
@@ -314,8 +312,8 @@ public:
     std::vector<Vector_t> TriBarycenters_m;
 
     /**
-       @param TriPrPartloss_m store the number of primary particles hitting the
-       Id th triangle. The Id number is the same with triangle Id(not vertex ID).
+       @param TriPrPartloss_m[i]:
+       cummulative sum of primary particles charge hitting triangle 'i'
     */
     double* TriPrPartloss_m;
 
