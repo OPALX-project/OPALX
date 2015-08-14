@@ -911,14 +911,14 @@ void TrackRun::findPhasesForMaxEnergy(bool writeToFile) const {
 void TrackRun::executeAutophaseTracker() {
 
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-    double charge = setDistributionParallelT(beam);
+    /*double charge =*/ setDistributionParallelT(beam);
 
     Track::block->bunch->setdT(Track::block->dT.front());
     Track::block->bunch->dtScInit_m = Track::block->dtScInit;
     Track::block->bunch->deltaTau_m = Track::block->deltaTau;
     Track::block->bunch->setT(Track::block->t0_m);
 
-    Track::block->bunch->setCharge(charge);
+    // Track::block->bunch->setCharge(charge);
 
     double couplingConstant = 1.0 / (4 * pi * epsilon_0);
     Track::block->bunch->setCouplingConstant(couplingConstant);

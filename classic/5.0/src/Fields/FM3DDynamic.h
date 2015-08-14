@@ -14,6 +14,7 @@ public:
     virtual void getInfo(Inform *msg);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
+    virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
 
 private:
     FM3DDynamic(std::string aFilename);
@@ -43,9 +44,9 @@ private:
     double hx_m;                   /**< length between points in grid, x-direction */
     double hy_m;                   /**< length between points in grid, y-direction */
     double hz_m;                   /**< length between points in grid, z-direction */
-    int num_gridpx_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
-    int num_gridpy_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
-    int num_gridpz_m;              /**< Read in number of points after 0(not counted here) in grid, z-direction*/
+    unsigned int num_gridpx_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
+    unsigned int num_gridpy_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
+    unsigned int num_gridpz_m;              /**< Read in number of points after 0(not counted here) in grid, z-direction*/
 
     bool swap_m;
     friend class Fieldmap;
