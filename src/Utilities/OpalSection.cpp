@@ -112,18 +112,14 @@ void OpalSection::print(Inform &msg) const {
     if(glued_to_m) {
         mymsg << "--- "
               << start_m << " m -- "
-              << end_m << " m -- "
-              << "alpha = " << orientation_m(0) << " -- "
-              << "beta = "  << orientation_m(1) << " (glued to next) ";
+              << end_m << " m -- (glued to next) ";
         if(boundarygeometry_m)
             mymsg << " has boundary geometry start at " << boundarygeometry_m->getS() ;
         msg << mymsg.str() << closure.substr(mymsg.str().length());
     } else {
         mymsg << "--- "
               << start_m << " m -- "
-              << end_m << " m -- "
-              << "alpha = " << orientation_m(0) << " -- "
-              << "beta = "  << orientation_m(1) << " ";
+              << end_m << " m -- ";
         if(boundarygeometry_m)
             mymsg  << " has boundary geometry ";
 

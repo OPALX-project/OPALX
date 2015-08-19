@@ -26,9 +26,9 @@ private:
     double *FieldstrengthEz_m;    /**< 3D array with Ez */
     double *FieldstrengthEx_m;    /**< 3D array with Ex */
     double *FieldstrengthEy_m;    /**< 3D array with Ey */
-    double *FieldstrengthHz_m;    /**< 3D array with Hz */
-    double *FieldstrengthHx_m;    /**< 3D array with Hx */
-    double *FieldstrengthHy_m;    /**< 3D array with Hy */
+    double *FieldstrengthBz_m;    /**< 3D array with Bz */
+    double *FieldstrengthBx_m;    /**< 3D array with Bx */
+    double *FieldstrengthBy_m;    /**< 3D array with By */
 
     double frequency_m;
 
