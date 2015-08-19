@@ -16,9 +16,9 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
     FieldstrengthEz_m(NULL),
     FieldstrengthEx_m(NULL),
     FieldstrengthEy_m(NULL),
-    FieldstrengthHz_m(NULL),
-    FieldstrengthHx_m(NULL),
-    FieldstrengthHy_m(NULL) {
+    FieldstrengthBz_m(NULL),
+    FieldstrengthBx_m(NULL),
+    FieldstrengthBy_m(NULL) {
 
     std::string tmpString;
     double tmpDouble;
@@ -110,30 +110,21 @@ void FM3DDynamic::readMap() {
         FieldstrengthEz_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
         FieldstrengthEx_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
         FieldstrengthEy_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthHz_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthHx_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthHy_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
+        FieldstrengthBz_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
+        FieldstrengthBx_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
+        FieldstrengthBy_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
 
-        //       if (swap_m)
-        //         for (int i = 0; i < num_gridpz_m; i++)
-        //           {
-        //             for (int j = 0; j < num_gridpr_m; j++)
-        //               in >> FieldstrengthEr_m[i + j * num_gridpz_m] >> FieldstrengthEz_m[i + j * num_gridpz_m] >> FieldstrengthHt_m[i + j * num_gridpz_m] >> tmpDouble;
-        //             if (fabs(FieldstrengthEz_m[i]) > Ezmax) Ezmax = fabs(FieldstrengthEz_m[i]);
-        //           }
-        //       else
-        //         {
         long ii = 0;
         for(unsigned int i = 0; i < num_gridpx_m; ++ i) {
             for(unsigned int j = 0; j < num_gridpy_m; ++ j) {
                 for(unsigned int k = 0; k < num_gridpz_m; ++ k) {
                     interpreteLine<double>(in,
-                                           FieldstrengthEz_m[ii],
-                                           FieldstrengthEy_m[ii],
                                            FieldstrengthEx_m[ii],
-                                           FieldstrengthHz_m[ii],
-                                           FieldstrengthHy_m[ii],
-                                           FieldstrengthHx_m[ii]);
+                                           FieldstrengthEy_m[ii],
+                                           FieldstrengthEz_m[ii],
+                                           FieldstrengthBx_m[ii],
+                                           FieldstrengthBy_m[ii],
+                                           FieldstrengthBz_m[ii]);
                     ++ ii;
                 }
             }
@@ -152,7 +143,10 @@ void FM3DDynamic::readMap() {
             -- index_y;
         }
 
-        ii = (index_y + index_x * num_gridpy_m) * num_gridpz_m;
+        static unsigned int deltaX = num_gridpy_m * num_gridpz_m;
+        static unsigned int deltaY = num_gridpz_m;
+
+        ii = index_x * deltaX + index_y * deltaY;
         for(unsigned int i = 0; i < num_gridpz_m; i++) {
             if(std::abs(FieldstrengthEz_m[ii]) > Ezmax) {
                 Ezmax = std::abs(FieldstrengthEz_m[ii]);
@@ -165,9 +159,9 @@ void FM3DDynamic::readMap() {
             FieldstrengthEz_m[i] *= 1e6 / Ezmax;
             FieldstrengthEx_m[i] *= 1e6 / Ezmax;
             FieldstrengthEy_m[i] *= 1e6 / Ezmax;
-            FieldstrengthHz_m[i] *= Physics::mu_0 / Ezmax;
-            FieldstrengthHx_m[i] *= Physics::mu_0 / Ezmax;
-            FieldstrengthHy_m[i] *= Physics::mu_0 / Ezmax;
+            FieldstrengthBz_m[i] *= Physics::mu_0 / Ezmax;
+            FieldstrengthBx_m[i] *= Physics::mu_0 / Ezmax;
+            FieldstrengthBy_m[i] *= Physics::mu_0 / Ezmax;
         }
 
         INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
@@ -180,16 +174,16 @@ void FM3DDynamic::freeMap() {
         delete[] FieldstrengthEz_m;
         delete[] FieldstrengthEx_m;
         delete[] FieldstrengthEy_m;
-        delete[] FieldstrengthHz_m;
-        delete[] FieldstrengthHx_m;
-        delete[] FieldstrengthHy_m;
+        delete[] FieldstrengthBz_m;
+        delete[] FieldstrengthBx_m;
+        delete[] FieldstrengthBy_m;
 
         FieldstrengthEz_m = NULL;
         FieldstrengthEx_m = NULL;
         FieldstrengthEy_m = NULL;
-        FieldstrengthHz_m = NULL;
-        FieldstrengthHx_m = NULL;
-        FieldstrengthHy_m = NULL;
+        FieldstrengthBz_m = NULL;
+        FieldstrengthBx_m = NULL;
+        FieldstrengthBy_m = NULL;
 
         INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
@@ -247,32 +241,32 @@ bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
         + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthEz_m[index1 +          deltaY + deltaZ]
         + lever_x           * lever_y         * lever_z         * FieldstrengthEz_m[index1 + deltaX + deltaY + deltaZ];
 
-    B(0) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthHx_m[index1                           ]
-        + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthHx_m[index1 + deltaX                  ]
-        + (1.0 - lever_x)   * lever_y         * (1.0 - lever_z) * FieldstrengthHx_m[index1 +          deltaY         ]
-        + lever_x           * lever_y         * (1.0 - lever_z) * FieldstrengthHx_m[index1 + deltaX + deltaY         ]
-        + (1.0 - lever_x)   * (1.0 - lever_y) * lever_z         * FieldstrengthHx_m[index1 +                   deltaZ]
-        + lever_x           * (1.0 - lever_y) * lever_z         * FieldstrengthHx_m[index1 + deltaX +          deltaZ]
-        + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthHx_m[index1 +          deltaY + deltaZ]
-        + lever_x           * lever_y         * lever_z         * FieldstrengthHx_m[index1 + deltaX + deltaY + deltaZ];
+    B(0) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthBx_m[index1                           ]
+        + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthBx_m[index1 + deltaX                  ]
+        + (1.0 - lever_x)   * lever_y         * (1.0 - lever_z) * FieldstrengthBx_m[index1 +          deltaY         ]
+        + lever_x           * lever_y         * (1.0 - lever_z) * FieldstrengthBx_m[index1 + deltaX + deltaY         ]
+        + (1.0 - lever_x)   * (1.0 - lever_y) * lever_z         * FieldstrengthBx_m[index1 +                   deltaZ]
+        + lever_x           * (1.0 - lever_y) * lever_z         * FieldstrengthBx_m[index1 + deltaX +          deltaZ]
+        + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthBx_m[index1 +          deltaY + deltaZ]
+        + lever_x           * lever_y         * lever_z         * FieldstrengthBx_m[index1 + deltaX + deltaY + deltaZ];
 
-    B(1) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthHy_m[index1                           ]
-        + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthHy_m[index1 + deltaX                  ]
-        + (1.0 - lever_x)   * lever_y         * (1.0 - lever_z) * FieldstrengthHy_m[index1 +          deltaY         ]
-        + lever_x           * lever_y         * (1.0 - lever_z) * FieldstrengthHy_m[index1 + deltaX + deltaY         ]
-        + (1.0 - lever_x)   * (1.0 - lever_y) * lever_z         * FieldstrengthHy_m[index1 +                   deltaZ]
-        + lever_x           * (1.0 - lever_y) * lever_z         * FieldstrengthHy_m[index1 + deltaX +          deltaZ]
-        + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthHy_m[index1 +          deltaY + deltaZ]
-        + lever_x           * lever_y         * lever_z         * FieldstrengthHy_m[index1 + deltaX + deltaY + deltaZ];
+    B(1) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthBy_m[index1                           ]
+        + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthBy_m[index1 + deltaX                  ]
+        + (1.0 - lever_x)   * lever_y         * (1.0 - lever_z) * FieldstrengthBy_m[index1 +          deltaY         ]
+        + lever_x           * lever_y         * (1.0 - lever_z) * FieldstrengthBy_m[index1 + deltaX + deltaY         ]
+        + (1.0 - lever_x)   * (1.0 - lever_y) * lever_z         * FieldstrengthBy_m[index1 +                   deltaZ]
+        + lever_x           * (1.0 - lever_y) * lever_z         * FieldstrengthBy_m[index1 + deltaX +          deltaZ]
+        + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthBy_m[index1 +          deltaY + deltaZ]
+        + lever_x           * lever_y         * lever_z         * FieldstrengthBy_m[index1 + deltaX + deltaY + deltaZ];
 
-    B(2) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthHz_m[index1                           ]
-        + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthHz_m[index1 + deltaX                  ]
-        + (1.0 - lever_x)   * lever_y         * (1.0 - lever_z) * FieldstrengthHz_m[index1 +          deltaY         ]
-        + lever_x           * lever_y         * (1.0 - lever_z) * FieldstrengthHz_m[index1 + deltaX + deltaY         ]
-        + (1.0 - lever_x)   * (1.0 - lever_y) * lever_z         * FieldstrengthHz_m[index1 +                   deltaZ]
-        + lever_x           * (1.0 - lever_y) * lever_z         * FieldstrengthHz_m[index1 + deltaX +          deltaZ]
-        + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthHz_m[index1 +          deltaY + deltaZ]
-        + lever_x           * lever_y         * lever_z         * FieldstrengthHz_m[index1 + deltaX + deltaY + deltaZ];
+    B(2) += (1.0 - lever_x) * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthBz_m[index1                           ]
+        + lever_x           * (1.0 - lever_y) * (1.0 - lever_z) * FieldstrengthBz_m[index1 + deltaX                  ]
+        + (1.0 - lever_x)   * lever_y         * (1.0 - lever_z) * FieldstrengthBz_m[index1 +          deltaY         ]
+        + lever_x           * lever_y         * (1.0 - lever_z) * FieldstrengthBz_m[index1 + deltaX + deltaY         ]
+        + (1.0 - lever_x)   * (1.0 - lever_y) * lever_z         * FieldstrengthBz_m[index1 +                   deltaZ]
+        + lever_x           * (1.0 - lever_y) * lever_z         * FieldstrengthBz_m[index1 + deltaX +          deltaZ]
+        + (1.0 - lever_x)   * lever_y         * lever_z         * FieldstrengthBz_m[index1 +          deltaY + deltaZ]
+        + lever_x           * lever_y         * lever_z         * FieldstrengthBz_m[index1 + deltaX + deltaY + deltaZ];
 
     return false;
 }

@@ -14,7 +14,7 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
     : Fieldmap(aFilename),
       FieldstrengthEz_m(NULL),
       FieldstrengthEr_m(NULL),
-      FieldstrengthHt_m(NULL) {
+      FieldstrengthBt_m(NULL) {
     std::ifstream file;
     std::string tmpString;
     double tmpDouble;
@@ -100,7 +100,7 @@ void FM2DDynamic::readMap() {
 
         FieldstrengthEz_m = new double[num_gridpz_m * num_gridpr_m];
         FieldstrengthEr_m = new double[num_gridpz_m * num_gridpr_m];
-        FieldstrengthHt_m = new double[num_gridpz_m * num_gridpr_m];
+        FieldstrengthBt_m = new double[num_gridpz_m * num_gridpr_m];
 
         // read in field map and parse it
         in.open(Filename_m.c_str());
@@ -115,7 +115,7 @@ void FM2DDynamic::readMap() {
                     interpreteLine<double, double, double, double>(in,
                             FieldstrengthEr_m[i + j * num_gridpz_m],
                             FieldstrengthEz_m[i + j * num_gridpz_m],
-                            FieldstrengthHt_m[i + j * num_gridpz_m],
+                            FieldstrengthBt_m[i + j * num_gridpz_m],
                             tmpDouble);
                 }
             }
@@ -126,7 +126,7 @@ void FM2DDynamic::readMap() {
                             FieldstrengthEz_m[i + j * num_gridpz_m],
                             FieldstrengthEr_m[i + j * num_gridpz_m],
                             tmpDouble,
-                            FieldstrengthHt_m[i + j * num_gridpz_m]);
+                            FieldstrengthBt_m[i + j * num_gridpz_m]);
                 }
             }
         }
@@ -144,7 +144,7 @@ void FM2DDynamic::readMap() {
         for(int i = 0; i < num_gridpr_m * num_gridpz_m; i++) {
             FieldstrengthEz_m[i] *= 1.e6 / Ezmax; // conversion MV/m to V/m and normalization
             FieldstrengthEr_m[i] *= 1.e6 / Ezmax;
-            FieldstrengthHt_m[i] *= mu_0 / Ezmax; // H -> B
+            FieldstrengthBt_m[i] *= mu_0 / Ezmax; // H -> B
         }
 
         INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
@@ -159,8 +159,8 @@ void FM2DDynamic::freeMap() {
         FieldstrengthEz_m = NULL;
         delete[] FieldstrengthEr_m;
         FieldstrengthEr_m = NULL;
-        delete[] FieldstrengthHt_m;
-        FieldstrengthHt_m = NULL;
+        delete[] FieldstrengthBt_m;
+        FieldstrengthBt_m = NULL;
 
         INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
@@ -195,16 +195,16 @@ bool FM2DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
                      + (1.0 - leverz) * leverr         * FieldstrengthEz_m[index2]
                      + leverz         * leverr         * FieldstrengthEz_m[index2 + 1];
 
-    double HfieldT = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthHt_m[index1]
-                     + leverz         * (1.0 - leverr) * FieldstrengthHt_m[index1 + 1]
-                     + (1.0 - leverz) * leverr         * FieldstrengthHt_m[index2]
-                     + leverz         * leverr         * FieldstrengthHt_m[index2 + 1];
+    double BfieldT = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthBt_m[index1]
+                     + leverz         * (1.0 - leverr) * FieldstrengthBt_m[index1 + 1]
+                     + (1.0 - leverz) * leverr         * FieldstrengthBt_m[index2]
+                     + leverz         * leverr         * FieldstrengthBt_m[index2 + 1];
 
     if(RR > 1e-10) {
         E(0) += EfieldR * R(0) / RR;
         E(1) += EfieldR * R(1) / RR;
-        B(0) -= HfieldT * R(1) / RR;
-        B(1) += HfieldT * R(0) / RR;
+        B(0) -= BfieldT * R(1) / RR;
+        B(1) += BfieldT * R(0) / RR;
     }
     E(2) += EfieldZ;
 

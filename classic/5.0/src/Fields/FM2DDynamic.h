@@ -27,7 +27,7 @@ private:
 
     double *FieldstrengthEz_m;    /**< 2D array with Ez, read in first along z0 - r0 to rN then z1 - r0 to rN until zN - r0 to rN  */
     double *FieldstrengthEr_m;    /**< 2D array with Er, read in like Ez*/
-    double *FieldstrengthHt_m;    /**< 2D array with Er, read in like Ez*/
+    double *FieldstrengthBt_m;    /**< 2D array with Er, read in like Ez*/
 
     double frequency_m;
 
