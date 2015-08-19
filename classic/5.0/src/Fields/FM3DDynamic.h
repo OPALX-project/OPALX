@@ -14,6 +14,7 @@ public:
     virtual void getInfo(Inform *msg);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
+    virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
 
 private:
     FM3DDynamic(std::string aFilename);
@@ -25,9 +26,9 @@ private:
     double *FieldstrengthEz_m;    /**< 3D array with Ez */
     double *FieldstrengthEx_m;    /**< 3D array with Ex */
     double *FieldstrengthEy_m;    /**< 3D array with Ey */
-    double *FieldstrengthHz_m;    /**< 3D array with Hz */
-    double *FieldstrengthHx_m;    /**< 3D array with Hx */
-    double *FieldstrengthHy_m;    /**< 3D array with Hy */
+    double *FieldstrengthBz_m;    /**< 3D array with Bz */
+    double *FieldstrengthBx_m;    /**< 3D array with Bx */
+    double *FieldstrengthBy_m;    /**< 3D array with By */
 
     double frequency_m;
 
@@ -43,9 +44,9 @@ private:
     double hx_m;                   /**< length between points in grid, x-direction */
     double hy_m;                   /**< length between points in grid, y-direction */
     double hz_m;                   /**< length between points in grid, z-direction */
-    int num_gridpx_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
-    int num_gridpy_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
-    int num_gridpz_m;              /**< Read in number of points after 0(not counted here) in grid, z-direction*/
+    unsigned int num_gridpx_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
+    unsigned int num_gridpy_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
+    unsigned int num_gridpz_m;              /**< Read in number of points after 0(not counted here) in grid, z-direction*/
 
     bool swap_m;
     friend class Fieldmap;
