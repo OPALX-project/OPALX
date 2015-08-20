@@ -1619,7 +1619,7 @@ Change orientation if diff is:
             BoundaryGeometry* bg,
             const int triangle_id
             ) {
-            bg->TriNormals_m.insert(bg->TriNormals_m.begin()+triangle_id,normalVector (bg, triangle_id));
+            bg->TriNormals_m[triangle_id] = normalVector (bg, triangle_id);
             if (!hasInwardPointingNormal (bg, triangle_id)) {
                 bg->TriNormals_m[triangle_id] = -bg->TriNormals_m[triangle_id];
                 int id = bg->PointID (triangle_id, 2);
@@ -1640,7 +1640,7 @@ Change orientation if diff is:
 
             bg->isOriented_m = new bool[bg->numTriangles_m];
             memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->numTriangles_m);
-            bg->TriNormals_m.reserve (bg->numTriangles_m);
+            bg->TriNormals_m.resize (bg->numTriangles_m);
 
             int triangle_id = 0;
             int parts = 0;
