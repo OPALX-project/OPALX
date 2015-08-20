@@ -1660,11 +1660,6 @@ Change orientation if diff is:
             } else {
                 *gmsg << "* " << __func__ << ": mesh is discontiguous (" << parts << ") parts." << endl;
             }
-
-            // compute inward-normals
-            for (int triangle_id = 1; triangle_id < bg->numTriangles_m; triangle_id++) {
-                bg->TriNormals_m.push_back (normalVector (bg, triangle_id));
-            }
             *gmsg << "* Triangle Normal built done." << endl;
         }
 
