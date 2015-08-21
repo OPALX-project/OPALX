@@ -97,9 +97,7 @@ public:
     // call Furman-Pivi's model
     int emitSecondaryFurmanPivi (
         const Vector_t& intecoords,
-        const int& triId,
-        const double& incQ,
-        const Vector_t& incMomentum,
+        const int i,
         PartBunch* itsBunch,
         double& seyNum);
 
