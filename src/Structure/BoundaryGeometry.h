@@ -81,8 +81,8 @@ public:
         PartBunch* itsBunch);
 
     int PartInside (
-        const Vector_t r,
-        const Vector_t v,
+        const Vector_t& r,
+        const Vector_t& v,
         const double dt,
         int Parttype,
         const double Qloss,
@@ -382,15 +382,15 @@ private:
         const int k);
 
     int intersectTinyLineSegmentBoundary (
-        const Vector_t,
-        const Vector_t,
+        const Vector_t&,
+        const Vector_t&,
         Vector_t&,
         int&
         );
 
     int intersectLineSegmentBoundary (
-        const Vector_t P0,
-        const Vector_t P1,
+        const Vector_t& P0,
+        const Vector_t& P1,
         Vector_t& intersection_pt,
         int& triangle_id
         );
@@ -479,7 +479,7 @@ private:
         return (apert_m.size() != 0);
     }
 
-    inline Vector_t getPoint (const int triangle_id, const int vertex_id) {
+    inline const Vector_t& getPoint (const int triangle_id, const int vertex_id) {
         assert (1 <= vertex_id && vertex_id <=3);
         return Points_m[Triangles_m[4 * triangle_id + vertex_id]];
     }
@@ -496,15 +496,6 @@ private:
         const Vector_t& P1,
         const int triangle_id,
         Vector_t& I);
-
-    /*
-      Map point to unique voxel ID.
-    */
-    inline bool mapPoint2VoxelIndices(
-        const Vector_t pt,
-        int& i,
-        int& j,
-        int& k);
 
     inline int mapVoxelIndices2ID (const int i, const int j, const int k);
     inline Vector_t mapIndices2Voxel (const int, const int, const int);

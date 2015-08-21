@@ -1584,9 +1584,9 @@ Change orientation if diff is:
             BoundaryGeometry* const bg,
             const int triangle_id
             ) {
-            const Vector_t A = bg->getPoint (triangle_id, 1);
-            const Vector_t B = bg->getPoint (triangle_id, 2);
-            const Vector_t C = bg->getPoint (triangle_id, 3);
+            const Vector_t& A = bg->getPoint (triangle_id, 1);
+            const Vector_t& B = bg->getPoint (triangle_id, 2);
+            const Vector_t& C = bg->getPoint (triangle_id, 3);
 
             // choose a point P close to the center of the triangle
             const Vector_t P = (A+B+C)/3 + bg->TriNormals_m[triangle_id] * 0.1;
@@ -1647,7 +1647,8 @@ Change orientation if diff is:
             do {
                 parts++;
                 makeTriangleNormalInwardPointingSubMesh (bg, triangle_id);
-                while (bg->isOriented_m[triangle_id] && (triangle_id < bg->numTriangles_m)) triangle_id++;
+                while (bg->isOriented_m[triangle_id] && (triangle_id < bg->numTriangles_m))
+                    triangle_id++;
             } while (triangle_id < bg->numTriangles_m);
 
             delete[] bg->isOriented_m;
@@ -1788,13 +1789,13 @@ Change orientation if diff is:
   segment.
 
   The method returns the number of intersections of the line segment defined
-  by the points P and Q with the boundary. If there are intersections, the
-  closest intersection point with respect to P wil be returned.
+  by the points P and Q with the boundary. If there are multiple intersections,
+  the nearest intersection point with respect to P wil be returned.
  */
 int
 BoundaryGeometry::intersectTinyLineSegmentBoundary (
-    const Vector_t P,                   // [i] starting point of ray
-    const Vector_t Q,                   // [i] end point of ray
+    const Vector_t& P,                  // [i] starting point of ray
+    const Vector_t& Q,                  // [i] end point of ray
     Vector_t& intersect_pt,             // [o] intersection with boundary
     int& triangle_id                    // [o] intersected triangle
     ) {
@@ -1827,14 +1828,14 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
 
     /*
       Triangles can - and in many cases do - intersect with more than one
-      voxel. So, if we loop over all voxels spaned by P and Q, we might
-      perform the same line-triangle intersection test more than once
-      and must be take this into account when counting the intersections
-      with the boundary.
+      voxel.  If we loop over all voxels intersecting with the line segment
+      spaned by the points P and Q, we might perform the same line-triangle
+      intersection test more than once.  We must this into account when
+      counting the intersections with the boundary.
 
-      To avoid double counting we can either build a set of all relevant
-      triangles and loop over this set or we loop over all voxels and
-      remember the intersecting triangles.
+      To avoid multiple counting we can either
+      - build a set of all relevant triangles and loop over this set
+      - or we loop over all voxels and remember the intersecting triangles.
 
       The first solution is implemented here.
      */
@@ -1860,7 +1861,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
                 }
 
                 /*
-                  get triangles intersectiong with this voxel and add them to
+                  get triangles intersecting with this voxel and add them to
                   the to be tested triangles.
                  */
                 const int voxel_id = mapVoxelIndices2ID (i, j, k);
@@ -1945,8 +1946,8 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
  */
 int
 BoundaryGeometry::intersectLineSegmentBoundary (
-    const Vector_t P0,                  // [in] starting point of ray
-    const Vector_t P1,                  // [in] end point of ray
+    const Vector_t& P0,                 // [in] starting point of ray
+    const Vector_t& P1,                 // [in] end point of ray
     Vector_t& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] triangle the line segment intersects with
     ) {
@@ -2014,8 +2015,8 @@ BoundaryGeometry::intersectLineSegmentBoundary (
  */
 int
 BoundaryGeometry::PartInside (
-    const Vector_t r,                   // [in] particle position
-    const Vector_t v,                   // [in] momentum
+    const Vector_t& r,                  // [in] particle position
+    const Vector_t& v,                  // [in] momentum
     const double dt,                    // [in]
     const int Parttype,                 // [in] type of particle
     const double Qloss,                 // [in]
