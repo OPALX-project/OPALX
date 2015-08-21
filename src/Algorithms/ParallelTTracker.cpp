@@ -1495,9 +1495,7 @@ void ParallelTTracker::bgf_main_collision_test() {
         if (secondaryFlg_m == 1) {
             res += bgf_m->emitSecondaryFurmanPivi (
                 position,
-                triId,
-                itsBunch->Q[i],
-                itsBunch->P[i],
+                i,
                 itsBunch, seyNum);
 
         } else if (secondaryFlg_m != 0) {

@@ -2175,12 +2175,13 @@ int BoundaryGeometry::emitSecondaryNone (
  */
 int BoundaryGeometry::emitSecondaryFurmanPivi (
     const Vector_t& intecoords,
-    const int& triId,
-    const double& incQ,
-    const Vector_t& incMomentum,
+    const int i,
     PartBunch* itsBunch,
     double& seyNum
     ) {
+    const int& triId = itsBunch->TriID[i];
+    const double& incQ = itsBunch->Q[i];
+    const Vector_t& incMomentum = itsBunch->P[i];
     const double p_sq = dot (incMomentum, incMomentum);
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
@@ -2197,10 +2198,15 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
         double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / sqrt (p_sq);
         if (cosTheta < 0) {
             ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
+                      "    particle position = " << itsBunch->R[i] << endl <<
                       "    incident momentum=" << incMomentum << endl <<
                       "    triNormal=" << TriNormals_m[triId] << endl <<
                       "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
-                      "    intecoords = " << intecoords << endl);
+                      "    intecoords = " << intecoords << endl <<
+                      "    triangle ID = " << triId << endl <<
+                      "    triangle = (" << getPoint(triId, 1)
+                      << getPoint(triId, 2) << getPoint(triId, 2) << ")"
+                      << endl);
             assert(cosTheta>=0);
         }
         int idx = 0;
@@ -2237,8 +2243,8 @@ int BoundaryGeometry::emitSecondaryVaughan (
     PartBunch* itsBunch,
     double& seyNum
     ) {
-    const int triId = itsBunch->TriID[i];
-    const double incQ = itsBunch->Q[i];
+    const int& triId = itsBunch->TriID[i];
+    const double& incQ = itsBunch->Q[i];
     const Vector_t& incMomentum = itsBunch->P[i];
     const double p_sq = dot (incMomentum, incMomentum);
     const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
