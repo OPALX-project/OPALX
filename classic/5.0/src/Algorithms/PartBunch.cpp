@@ -833,6 +833,47 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// and must be converted to the right units.
         imagePotential *= getCouplingConstant();
 
+#ifdef DBG_SCALARFIELD
+        int dumpFreq = 100;
+        if ((fieldDBGStep_m + 1) % dumpFreq == 0) {
+            INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+
+            ofstream fstr2;
+            fstr2.precision(9);
+
+            std::string SfileName = OpalData::getInstance()->getInputBasename();
+
+            std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m / dumpFreq);
+            fstr2.open(phi_fn.c_str(), ios::out);
+            NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
+            Vector_t origin = rho_m.get_mesh().get_origin();
+            Vector_t spacing(rho_m.get_mesh().get_meshSpacing(0),
+                             rho_m.get_mesh().get_meshSpacing(1),
+                             rho_m.get_mesh().get_meshSpacing(2));
+            *gmsg << (rmin(0) - origin(0)) / spacing(0) << "\t"
+                  << (rmin(1)  - origin(1)) / spacing(1) << "\t"
+                  << (rmin(2)  - origin(2)) / spacing(2) << "\t"
+                  << rmin(2) << endl;
+            for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
+                for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
+                    for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
+                        fstr2 << std::setw(5) << x + 1
+                              << std::setw(5) << y + 1
+                              << std::setw(5) << z + 1
+                              << std::setw(17) << origin(2) + z * spacing(2)
+                              << std::setw(17) << rho_m[x][y][z].get()
+                              << std::setw(17) << imagePotential[x][y][z].get() << endl;
+                    }
+                }
+            }
+            fstr2.close();
+
+            INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        }
+
+        auto tmp_eg = eg_m;
+#endif
+
         /// IPPL Grad numerical computes gradient to find the
         /// electric field (in rest frame of this bin's image
         /// charge).
@@ -867,6 +908,47 @@ void PartBunch::computeSelfFields(int binNumber) {
             *gmsg << "Bin " << binNumber
                   << ", Image Field along z axis E = " << eg_m[mx2][my2][i]
                   << ", Pot = " << rho_m[mx2][my2][i]  << endl;
+#endif
+
+#ifdef DBG_SCALARFIELD
+        if ((fieldDBGStep_m + 1) % dumpFreq == 0) {
+            INFOMSG("*** START DUMPING E FIELD ***" << endl);
+
+            std::string SfileName = OpalData::getInstance()->getInputBasename();
+
+            ofstream fstr2;
+            fstr2.precision(9);
+
+            std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m / dumpFreq);
+            Vector_t origin = eg_m.get_mesh().get_origin();
+            Vector_t spacing(eg_m.get_mesh().get_meshSpacing(0),
+                             eg_m.get_mesh().get_meshSpacing(1),
+                             eg_m.get_mesh().get_meshSpacing(2));
+            fstr2.open(e_field.c_str(), ios::out);
+            NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
+            for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
+                for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
+                    for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
+                        Vector_t ef = eg_m[x][y][z].get() + tmp_eg[x][y][z].get();
+                        fstr2 << std::setw(5) << x + 1
+                              << std::setw(5) << y + 1
+                              << std::setw(5) << z + 1
+                              << std::setw(17) << origin(2) + z * spacing(2)
+                              << std::setw(17) << ef(0)
+                              << std::setw(17) << ef(1)
+                              << std::setw(17) << ef(2) << endl;
+                    }
+                }
+            }
+
+            fstr2.close();
+
+            //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
+            //MPI_File_close(&file);
+
+            INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+        }
+            fieldDBGStep_m++;
 #endif
 
         /// Interpolate electric field at particle positions.  We reuse the
@@ -910,7 +992,7 @@ void PartBunch::resizeMesh() {
                R[n](1) < ymin || R[n](1) > ymax) {
 
                 // delete the particle
-                INFOMSG(level2 << "destroyed particle with id=" << n << endl;);
+                INFOMSG(level2 << "destroyed particle with id=" << ID[n] << endl;);
                 destroy(1, n);
             }
 
@@ -980,12 +1062,9 @@ void PartBunch::computeSelfFields() {
         ofstream fstr1;
         fstr1.precision(9);
 
-        std::ostringstream istr;
-        istr << fieldDBGStep_m;
-
         std::string SfileName = OpalData::getInstance()->getInputBasename();
 
-        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
+        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
         fstr1.open(rho_fn.c_str(), ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
         for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
@@ -1021,12 +1100,11 @@ void PartBunch::computeSelfFields() {
         //write out rho
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        std::ostringstream oss;
 
         ofstream fstr2;
         fstr2.precision(9);
 
-        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
+        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
         fstr2.open(phi_fn.c_str(), ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
@@ -1078,7 +1156,7 @@ void PartBunch::computeSelfFields() {
         ofstream fstr;
         fstr.precision(9);
 
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
+        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
         fstr.open(e_field.c_str(), ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
@@ -1731,9 +1809,10 @@ void PartBunch::boundp() {
 	}
 	else {
 	  for(int i = 0; i < dimIdx; i++) {
-	    rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
-	    rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
-	    hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+              double length = std::abs(rmax_m[i] - rmin_m[i]);
+              rmax_m[i] += dh_m * length;
+              rmin_m[i] -= dh_m * length;
+              hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
 	  }
 
 	  //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
@@ -2334,7 +2413,7 @@ Inform &PartBunch::print(Inform &os) {
         os << "* rms emittance   = " << std::setw(12) << std::setprecision(5) << eps_m << " (not normalized)\n";
         os << "* rms correlation = " << std::setw(12) << std::setprecision(5) << rprms_m << "\n";
         os << "* hr              = " << std::setw(12) << std::setprecision(5) << hr_m << " [m]\n";
-        os << "* dh              =   " << std::setw(12) << std::setprecision(5) << dh_m << " [m]\n";
+        os << "* dh              =   " << std::setw(12) << std::setprecision(5) << dh_m * 100 << " [%]\n";
         os << "* t               =   " << std::setw(12) << std::setprecision(5) << getT() << " [s]        "
            << "dT    = " << std::setw(12) << getdT() << " [s]\n";
         os << "* spos            =   " << std::setw(12) << std::setprecision(5) << get_sPos() << " [m]\n";
@@ -2544,8 +2623,9 @@ void PartBunch::boundp_destroy() {
         }
     }
     for(int i = 0; i < dimIdx; i++) {
-        rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
-        rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
+        double length = std::abs(rmax_m[i] - rmin_m[i]);
+        rmax_m[i] += dh_m * length;
+        rmin_m[i] -= dh_m * length;
         hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
     }
 
