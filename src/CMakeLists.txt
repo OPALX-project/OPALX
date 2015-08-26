@@ -4,7 +4,7 @@ set (PACKAGE \"opal\")
 set (PACKAGE_BUGREPORT \"opal@lists.psi.ch\")
 set (PACKAGE_NAME \"OPAL\")
 set (PACKAGE_TARNAME \"opal\")
-set (PACKAGE_VERSION \"1.3.99.1\")
+set (PACKAGE_VERSION \"1.4.0rc3\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
@@ -104,7 +104,7 @@ set (OPAL_LIBS
 )
 
 IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
-   set (OPAL_LIBS	  
+   set (OPAL_LIBS
        ${OPAL_LIBS}
        dks)
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
