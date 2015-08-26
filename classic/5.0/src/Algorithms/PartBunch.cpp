@@ -1730,11 +1730,12 @@ void PartBunch::boundp() {
 	  hzSave = hr_m[2];
 	}
 	else {
-	  for(int i = 0; i < dimIdx; i++) {
-	    rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
-	    rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
-	    hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-	  }
+            for(int i = 0; i < dimIdx; i++) {
+                double length = std::abs(rmax_m[i] - rmin_m[i]);
+                rmax_m[i] += dh_m * length;
+                rmin_m[i] -= dh_m * length;
+                hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+            }
 
 	  //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 	}
@@ -2334,7 +2335,7 @@ Inform &PartBunch::print(Inform &os) {
         os << "* rms emittance   = " << setw(12) << setprecision(5) << eps_m << " (not normalized)\n";
         os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << "\n";
         os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]\n";
-        os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]\n";
+        os << "* dh              =   " << setw(12) << setprecision(5) << dh_m * 100 << " [%]\n";
         os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s]        "
            << "dT    = " << setw(12) << getdT() << " [s]\n";
         os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]\n";
@@ -2544,8 +2545,9 @@ void PartBunch::boundp_destroy() {
         }
     }
     for(int i = 0; i < dimIdx; i++) {
-        rmax_m[i] += dh_m * abs(rmax_m[i] - rmin_m[i]);
-        rmin_m[i] -= dh_m * abs(rmax_m[i] - rmin_m[i]);
+        double length = std::abs(rmax_m[i] - rmin_m[i]);
+        rmax_m[i] += dh_m * length;
+        rmin_m[i] -= dh_m * length;
         hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
     }
 

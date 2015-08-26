@@ -458,6 +458,24 @@ void TrackRun::setupTTracker(){
         }
     }
 
+    if (isFollowupTrack || OPAL->inRestartRun()) {
+        double spos = Track::block->bunch->get_sPos();
+        auto &zstop = Track::block->zstop;
+        auto &timeStep = Track::block->localTimeSteps;
+        auto &dT = Track::block->dT;
+
+        unsigned int i = 0;
+        while (i + 1 < zstop.size() && zstop.front() < spos) {
+            ++ i;
+        }
+
+        zstop.erase(zstop.begin(), zstop.begin() + i);
+        timeStep.erase(timeStep.begin(), timeStep.begin() + i);
+        dT.erase(dT.begin(), dT.begin() + i);
+
+        Track::block->bunch->setdT(dT.front());
+    }
+
     *gmsg << *beam << endl;
     *gmsg << *fs   << endl;
     *gmsg << *Track::block->bunch  << endl;
