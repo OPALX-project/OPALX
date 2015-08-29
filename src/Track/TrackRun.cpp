@@ -458,7 +458,7 @@ void TrackRun::setupTTracker(){
         }
     }
 
-    if (isFollowupTrack || OPAL->inRestartRun()) {
+    if (Track::block->bunch->getTotalNum() > 0) {
         double spos = Track::block->bunch->get_sPos();
         auto &zstop = Track::block->zstop;
         auto &timeStep = Track::block->localTimeSteps;
