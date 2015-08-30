@@ -2306,7 +2306,7 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
     size_t totalParticles_f = numParticlesInSimulation_m;
     if(totalParticles_f <= minBinEmitted_m) {
-        msg << level3 << myt2.time() << " "
+        msg << myt2.time() << " "
             << "Step " << setw(6) << itsBunch->getGlobalTrackStep() << "; "
             << "only " << setw(4) << totalParticles_f << " particles emitted; "
             << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
@@ -2316,7 +2316,7 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
-        msg << level3 << myt2.time() << " "
+        msg << myt2.time() << " "
             << "Step " << setw(6) <<  itsBunch->getGlobalTrackStep() << " "
             << "at " << fixed      << setprecision(3) << setw(8) << sposPrint << sposUnit
             << "t= " << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
