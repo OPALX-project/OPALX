@@ -143,6 +143,16 @@ src/opal_unit_tests
 *cmake_install.cmake
 tests/tools/gtest
 tests/opal_unit_tests
-
+.DS_Store
+classic/.DS_Store
+classic/5.0/.DS_Store
+classic/5.0/src/.DS_Store
+classic/5.0/src/AbsBeamline/.DS_Store
+ippl/.DS_Store
+ippl/doc/.DS_Store
+ippl/doc/tex/.DS_Store
+ippl/test/.DS_Store
+ippl/test/particle/.DS_Store
+src/.DS_Store
 
 

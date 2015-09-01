@@ -69,6 +69,7 @@ namespace {
         ENABLEHDF5,
         ASCIIDUMP,
         BOUNDPDESTROYFQ,
+	BEAMHALOBOUNDARY,
         SIZE
     };
 }
@@ -160,6 +161,9 @@ Option::Option():
     itsAttr[BOUNDPDESTROYFQ] = Attributes::makeReal
       ("BOUNDPDESTROYFQ", "The frequency to do boundp_destroy to delete lost particles. Default 10",10.0);
 
+    itsAttr[BEAMHALOBOUNDARY] = Attributes::makeReal
+      ("BEAMHALOBOUNDARY", "Defines in therms of sigma where the halo starts Default 0.0",0.0);
+
     FileStream::setEcho(echo);
     rangen.init55(seed);
 }
@@ -200,6 +204,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
     Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], 10);
+    Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], 0);
 }
 
 
@@ -313,11 +318,11 @@ void Option::execute() {
         rngtype = std::string("RANDOM");
     }
     
-    if(itsAttr[BOUNDPDESTROYFQ]) {
-        boundpDestroyFreq = int(Attributes::getReal(itsAttr[BOUNDPDESTROYFQ]));
+    if(itsAttr[BEAMHALOBOUNDARY]) {
+      beamHaloBoundary  = Attributes::getReal(itsAttr[BEAMHALOBOUNDARY]);
     }
     else {
-      boundpDestroyFreq = 10;
+      beamHaloBoundary = 0;
     }
 
     // Set message flags.
