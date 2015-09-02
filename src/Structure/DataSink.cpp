@@ -390,15 +390,17 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
                     << FDext[5](1) << setw(pwi) << "\t"                                         // 46 E-tail y
                     << FDext[5](2) << setw(pwi) << "\t"                                         // 47 E-tail z
 
-                    << beam.getdE() << setw(pwi) << "\t";                                       // 48 dE energy spread
+                    << beam.getdE() << setw(pwi) << "\t"                                        // 48 dE energy spread
+
+                    << npOutside << setw(pwi) << "\t";                                          // 49 number of particles outside n*sigma
 
         if(Ippl::getNodes() == 1 && beam.getLocalNum() > 0) {
-            os_statData << beam.R[0](0) << setw(pwi) << "\t";                                    // 49 R0_x
-            os_statData << beam.R[0](1) << setw(pwi) << "\t";                                    // 50 R0_y
-            os_statData << beam.R[0](2) << setw(pwi) << "\t";                                    // 51 R0_z
-            os_statData << beam.P[0](0) << setw(pwi) << "\t";                                    // 52 P0_x
-            os_statData << beam.P[0](1) << setw(pwi) << "\t";                                    // 53 P0_y
-            os_statData << beam.P[0](2) << setw(pwi) << "\t";                                    // 54 P0_z
+            os_statData << beam.R[0](0) << setw(pwi) << "\t";                                   // 50 R0_x
+            os_statData << beam.R[0](1) << setw(pwi) << "\t";                                   // 51 R0_y
+            os_statData << beam.R[0](2) << setw(pwi) << "\t";                                   // 52 R0_z
+            os_statData << beam.P[0](0) << setw(pwi) << "\t";                                   // 53 P0_x
+            os_statData << beam.P[0](1) << setw(pwi) << "\t";                                   // 54 P0_y
+            os_statData << beam.P[0](2) << setw(pwi) << "\t";                                   // 55 P0_z
         }
 
 
@@ -431,11 +433,6 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
     /// Calculate beam statistics and gather load balance statistics.
     beam.calcBeamParameters();
     beam.gatherLoadBalanceStatistics();
-
-    size_t npOutside = 0;
-    if (Options::beamHaloBoundary>0)
-        npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary*beam.get_rrms());
-//    *gmsg << "npOutside 2 = " << npOutside << endl;
 
     /// Write data to files. If this is the first write to the beam statistics file, write SDDS
     /// header information.
@@ -534,6 +531,7 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
                     << FDext[5](2) << setw(pwi) << "\t"                                       // 46 E-tail z
 
                     << beam.get_dEdt() << setw(pwi) << "\t"                                   // 47 dE energy spread
+            
                     << endl;
 
 
@@ -686,6 +684,9 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
 
     outputFile << "&column name=dE, type=double, units=MeV , ";
     outputFile << "description=\"48 energy spread of the beam  \" &end" << endl;
+
+    outputFile << "&column name=partsOutside, type=double, units=1 , ";
+    outputFile << "description=\"49 outside n*sigma of the beam  \" &end" << endl;
 
     unsigned int columnStart = 49;
     if(Ippl::getNodes() == 1) {
