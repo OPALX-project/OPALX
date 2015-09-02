@@ -282,6 +282,11 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     beam.calcBeamParameters();
     beam.gatherLoadBalanceStatistics();
 
+    size_t npOutside = 0;
+    if (Options::beamHaloBoundary>0)
+        npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary*beam.get_rrms());
+    // *gmsg << "npOutside 1 = " << npOutside << " beamHaloBoundary= " << Options::beamHaloBoundary << " rrms= " << beam.get_rrms() << endl;
+
     double  pathLength = 0.0;
     if (OpalData::getInstance()->isInOPALCyclMode())
         pathLength = beam.getLPath();
@@ -426,6 +431,11 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
     /// Calculate beam statistics and gather load balance statistics.
     beam.calcBeamParameters();
     beam.gatherLoadBalanceStatistics();
+
+    size_t npOutside = 0;
+    if (Options::beamHaloBoundary>0)
+        npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary*beam.get_rrms());
+//    *gmsg << "npOutside 2 = " << npOutside << endl;
 
     /// Write data to files. If this is the first write to the beam statistics file, write SDDS
     /// header information.

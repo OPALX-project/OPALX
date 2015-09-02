@@ -185,6 +185,9 @@ public:
     /** \brief calculates back the max/min of the efield on the grid */
     std::pair<Vector_t, Vector_t> getEExtrema();
 
+    /** \brief returns the number of particles outside of a box defined by x */
+    size_t calcNumPartsOutside(Vector_t x);
+
     /*
 
       Mesh and Field Layout related functions
