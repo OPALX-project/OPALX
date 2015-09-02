@@ -689,6 +689,18 @@ double PartBunch::getMaxdEBins() {
         return DBL_MAX;
 }
 
+size_t PartBunch::calcNumPartsOutside(Vector_t x) {
+    
+    partPerNode_m[Ippl::myNode()] = 0;
+    
+    for(unsigned long k = 0; k < this->getLocalNum(); ++k) 
+        if (abs(R[k](0)-get_rmean()(0)) > x(0) || abs(R[k](1)-get_rmean()(1)) > x(1) || abs(R[k](2)-get_rmean()(2)) > x(2))
+            partPerNode_m[Ippl::myNode()]++;
+    
+    reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
+    return *globalPartPerNode_m.get();
+
+}
 
 void PartBunch::computeSelfFields(int binNumber) {
     IpplTimings::startTimer(selfFieldTimer_m);
