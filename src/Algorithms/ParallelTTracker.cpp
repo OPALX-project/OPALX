@@ -2888,12 +2888,14 @@ void ParallelTTracker::writePhaseSpace(const long long step, const double &sposR
          << "\t " << externalB(0) << "\t " << externalB(1) << "\t " << externalB(2) << endl;
 #endif
 
-    for(int k = 0; k < 3; ++k) {
-        externalB = Vector_t(0.0);
-        externalE = Vector_t(0.0);
-        itsOpalBeamline_m.getFieldAt(pos[k], itsBunch->get_rmean(), itsBunch->getT() - 0.5 * itsBunch->getdT(), externalE, externalB);
-        FDext[2 * k]   = externalB;
-        FDext[2 * k + 1] = externalE * 1e-6;
+    if (psDump || statDump) {
+        for(int k = 0; k < 3; ++k) {
+            externalB = Vector_t(0.0);
+            externalE = Vector_t(0.0);
+            itsOpalBeamline_m.getFieldAt(pos[k], itsBunch->get_rmean(), itsBunch->getT() - 0.5 * itsBunch->getdT(), externalE, externalB);
+            FDext[2 * k]   = externalB;
+            FDext[2 * k + 1] = externalE * 1e-6;
+        }
     }
 
     if(psDump && (itsBunch->getTotalNum() > 0)) {

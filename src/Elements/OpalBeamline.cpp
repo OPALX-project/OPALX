@@ -74,22 +74,22 @@ CompVec &OpalBeamline::getSuccessors(std::shared_ptr<const Component> element) {
     }
 }
 
-OpalSection &OpalBeamline::getSectionAt(const Vector_t &pos, long &initial_guess) {
-    if(initial_guess >= (long) sections_m.size()) initial_guess = static_cast<long>(sections_m.size()) - 1;
+OpalSection &OpalBeamline::getSectionAt(const Vector_t &pos, long &sectionIndex) {
+    if(sectionIndex >= (long) sections_m.size()) sectionIndex = static_cast<long>(sections_m.size()) - 1;
 
     if(prepared_m) {
         if(pos(2) < sections_m[0].getStart(pos(0), pos(1))) return dummy_section_m;
         if(pos(2) > sections_m.back().getEnd(pos(0), pos(1))) {
-            initial_guess = BEAMLINE_EOL;
+            sectionIndex = BEAMLINE_EOL;
             return dummy_section_m;
         }
-        if(initial_guess == -1) initial_guess = 0;
+        if(sectionIndex == -1) sectionIndex = sections_m.size() - 1;
 
-        while(pos(2) > sections_m[initial_guess].getEnd(pos(0), pos(1))) ++initial_guess;
-        while(pos(2) < sections_m[initial_guess].getStart(pos(0), pos(1))) --initial_guess;
+        while(pos(2) < sections_m[sectionIndex].getStart(pos(0), pos(1))) --sectionIndex;
+        while(pos(2) > sections_m[sectionIndex].getEnd(pos(0), pos(1))) ++sectionIndex;
 
-        if(pos(2) >= sections_m[initial_guess].getStart(pos(0), pos(1)) &&
-           pos(2) <= sections_m[initial_guess].getEnd(pos(0), pos(1))) return sections_m[initial_guess];
+        if(pos(2) >= sections_m[sectionIndex].getStart(pos(0), pos(1)) &&
+           pos(2) <= sections_m[sectionIndex].getEnd(pos(0), pos(1))) return sections_m[sectionIndex];
 
         return dummy_section_m;
     }
@@ -234,10 +234,9 @@ unsigned long OpalBeamline::getFieldAt(const unsigned int &index, const Vector_t
 }
 
 unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-
     unsigned long rtv = 0x00;
 
-    long initial_guess = 0;
+    long initial_guess = -1;
     B = Vector_t(0.0);
     E = Vector_t(0.0);
 
