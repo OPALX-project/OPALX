@@ -240,9 +240,9 @@ void Option::execute() {
     if(itsAttr[SEED]) {
         seed = int(Attributes::getReal(itsAttr[SEED]));
 	if (seed == -1)
-	  rangen.init55(time(0));
+            rangen.init55(time(0));
 	else
-	  rangen.init55(seed);
+            rangen.init55(seed);
     }
 
     if(itsAttr[PSDUMPFREQ]) {
@@ -287,7 +287,7 @@ void Option::execute() {
         surfDumpFreq = int(Attributes::getReal(itsAttr[SURFDUMPFREQ]));
     }
     if(itsAttr[NUMBLOCKS]) {
-       numBlocks = int(Attributes::getReal(itsAttr[NUMBLOCKS]));
+        numBlocks = int(Attributes::getReal(itsAttr[NUMBLOCKS]));
     }
     if(itsAttr[RECYCLEBLOCKS]) {
         recycleBlocks = int(Attributes::getReal(itsAttr[RECYCLEBLOCKS]));
@@ -303,7 +303,7 @@ void Option::execute() {
     if(itsAttr[SCHOTTKYCORR]) {
         schottkyCorrection = bool(Attributes::getBool(itsAttr[SCHOTTKYCORR]));
     } else {
-      schottkyCorrection = false;
+        schottkyCorrection = false;
     }
 
     if(itsAttr[SCHOTTKYRENO]) {
@@ -317,18 +317,18 @@ void Option::execute() {
     } else {
         rngtype = std::string("RANDOM");
     }
-    
+
     if(itsAttr[BEAMHALOBOUNDARY]) {
-      beamHaloBoundary  = Attributes::getReal(itsAttr[BEAMHALOBOUNDARY]);
+        beamHaloBoundary  = Attributes::getReal(itsAttr[BEAMHALOBOUNDARY]);
     }
     else {
-      beamHaloBoundary = 0;
+        beamHaloBoundary = 0;
     }
 
     // Set message flags.
     FileStream::setEcho(echo);
 
     if(Attributes::getBool(itsAttr[TELL])) {
-    *gmsg << "\nCurrent settings of options:\n" << *this << endl;
+        *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
 }

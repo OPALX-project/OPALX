@@ -16,6 +16,5 @@ namespace Options {
     // the particle will be deleted artifically to hold the accuracy of space charge calculation. The default setting of -1 stands for no deletion.
     int remotePartDel = -1;
 
-  double beamHaloBoundary = 0;
-
+    double beamHaloBoundary = 0;
 }
