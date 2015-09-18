@@ -719,6 +719,28 @@ public:
     Vector_t pts[2];
 };
 
+static inline Vector_t normalVector (
+    const Vector_t& A,
+    const Vector_t& B,
+    const Vector_t& C
+    ) {
+    const Vector_t N = cross (B - A, C - A);
+    const double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
+    assert (gsl_fcmp (magnitude, 0.0, EPS) > 0); // in case we have degenerted triangles
+    return N / magnitude;
+}
+
+// Calculate the area of triangle given by id.
+static inline double computeArea (
+    const Vector_t& A,
+    const Vector_t& B,
+    const Vector_t& C
+    ) {
+    const Vector_t AB = A - B;
+    const Vector_t AC = C - A;
+    return(0.5 * sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
+}
+
 
 /*
   ____                           _
@@ -1566,20 +1588,6 @@ Change orientation if diff is:
             delete[] adjacencies_to_pt;
         }
 
-        static inline Vector_t normalVector (
-            BoundaryGeometry* const bg,
-            const int triangle_id
-            ) {
-            const Vector_t A = bg->getPoint (triangle_id, 1);
-            const Vector_t B = bg->getPoint (triangle_id, 2);
-            const Vector_t C = bg->getPoint (triangle_id, 3);
-
-            const Vector_t N = cross (B - A, C - A);
-            const double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
-            assert (gsl_fcmp (magnitude, 0.0, EPS) > 0); // in case we have degenerted triangles
-            return N / magnitude;
-        }
-
         static bool hasInwardPointingNormal (
             BoundaryGeometry* const bg,
             const int triangle_id
@@ -1587,9 +1595,10 @@ Change orientation if diff is:
             const Vector_t& A = bg->getPoint (triangle_id, 1);
             const Vector_t& B = bg->getPoint (triangle_id, 2);
             const Vector_t& C = bg->getPoint (triangle_id, 3);
-
+            const Vector_t  triNormal = normalVector (A, B, C);
+            
             // choose a point P close to the center of the triangle
-            const Vector_t P = (A+B+C)/3 + bg->TriNormals_m[triangle_id] * 0.1;
+            const Vector_t P = (A+B+C)/3 + triNormal * 0.1;
 
             /*
               The triangle normal points inward, if P is
@@ -1601,7 +1610,7 @@ Change orientation if diff is:
                 pointing in the same direction.
             */
             const bool is_inside = isInside (bg, P);
-            const double dotPA_N = dot (P - A, bg->TriNormals_m[0]);
+            const double dotPA_N = dot (P - A, triNormal);
             return (is_inside && dotPA_N >= 0) || (!is_inside && dotPA_N < 0);
         }
 
@@ -1619,9 +1628,7 @@ Change orientation if diff is:
             BoundaryGeometry* bg,
             const int triangle_id
             ) {
-            bg->TriNormals_m[triangle_id] = normalVector (bg, triangle_id);
             if (!hasInwardPointingNormal (bg, triangle_id)) {
-                bg->TriNormals_m[triangle_id] = -bg->TriNormals_m[triangle_id];
                 int id = bg->PointID (triangle_id, 2);
                 bg->PointID (triangle_id, 2) = bg->PointID (triangle_id, 3);
                 bg->PointID (triangle_id, 3) = id;
@@ -1640,7 +1647,6 @@ Change orientation if diff is:
 
             bg->isOriented_m = new bool[bg->numTriangles_m];
             memset (bg->isOriented_m, 0, sizeof (bg->isOriented_m[0])*bg->numTriangles_m);
-            bg->TriNormals_m.resize (bg->numTriangles_m);
 
             int triangle_id = 0;
             int parts = 0;
@@ -1661,13 +1667,6 @@ Change orientation if diff is:
                 *gmsg << "* " << __func__ << ": mesh is discontiguous (" << parts << ") parts." << endl;
             }
             *gmsg << "* Triangle Normal built done." << endl;
-        }
-
-        // Calculate the area of triangle given by id.
-        static inline double computeArea (BoundaryGeometry* bg, int id) {
-            Vector_t AB = bg->getPoint (id, 2) - bg->getPoint (id, 1);
-            Vector_t AC = bg->getPoint (id, 3) - bg->getPoint (id, 1);
-            return(0.5 * sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
         }
 
         /*
@@ -1759,19 +1758,30 @@ Change orientation if diff is:
     Local::computeGeometryInterval (this);
 
     computeMeshVoxelization ();
-    Local::makeTriangleNormalInwardPointing (this);
-    Local::setBGphysicstag (this);
 
     TriPrPartloss_m = new double[numTriangles_m];
     TriFEPartloss_m = new double[numTriangles_m];
     TriSePartloss_m = new double[numTriangles_m];
+    TriNormals_m.resize (numTriangles_m);
+    TriBarycenters_m.resize (numTriangles_m);
+    TriAreas_m.resize (numTriangles_m);
+
+    Local::makeTriangleNormalInwardPointing (this);
+    Local::setBGphysicstag (this);
+
     for (int i = 0; i < numTriangles_m; i++) {
-        TriBarycenters_m.push_back ((getPoint (i, 1) + getPoint (i, 2) + getPoint (i, 3)) / 3.0);
-        TriAreas_m.push_back (Local::computeArea (this, i));
+        const Vector_t& A = getPoint (i, 1);
+        const Vector_t& B = getPoint (i, 2);
+        const Vector_t& C = getPoint (i, 3);
+
+        TriBarycenters_m[i] = ((A + B + C) / 3.0);
+        TriAreas_m[i] = computeArea (A, B, C);
 
         TriPrPartloss_m[i] = 0.0;
         TriFEPartloss_m[i] = 0.0;
         TriSePartloss_m[i] = 0.0;
+        TriNormals_m[i] = normalVector (A, B, C);
+
     }
     *gmsg << "* Triangle barycent built done." << endl;
 
