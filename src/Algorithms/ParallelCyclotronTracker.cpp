@@ -354,6 +354,28 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(elptr);
 
+    // Is this a Spiral Inflector Simulation? If yes, we'll give the user some 
+    // useful information
+    spiral_flag = elptr->getSpiralFlag();
+
+    if(spiral_flag) {
+
+        *gmsg << endl << "* This is a Spiral Inflector Simulation! This means the following:" << endl;
+        *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;        
+        *gmsg         << "*     (Use BANDRF type cyclotron and use RFMAPFN to load both magnetic" << endl;
+        *gmsg         << "*     and electric fields, setting SUPERPOSE to an array of TRUE values.)" << endl;
+        *gmsg         << "* 2.) It is strongly recommended to use the SAAMG fieldsolver," << endl; 
+        *gmsg         << "*     FFT does not give the correct results (boundaty conditions are missing)." << endl;
+        *gmsg         << "* 3.) The whole geometry will be meshed and used for the fieldsolve." << endl;
+        *gmsg         << "*     There will be no transformations of the bunch into a local frame und consequently," << endl; 
+        *gmsg         << "*     the problem will be treated non-relativistically!" << endl; 
+        *gmsg         << "*     (This is not an issue for spiral inflectors as they are typically < 100 keV/amu.)" << endl;
+        *gmsg << endl << "* Note: For now, multi-bunch mode (MBM) needs to be de-activated for spiral inflector" << endl;
+        *gmsg         << "* and space charge needs to be solved every time-step. numBunch_m and scSolveFreq are reset." << endl;
+        numBunch_m = 1;
+
+    }
+
     // Fresh run (no restart):
     if(!OpalData::getInstance()->inRestartRun()) {
 
@@ -1295,7 +1317,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                     // 2.after each revolution
                     // 3.existing bunches is less than the specified bunches
                     // 4.FORCE mode, or AUTO mode with flagTransition = true
-                    // Note: restart from 1 < BunchCount < numBunch_m must be avoided.
+                    // Note: restart from 1 < BnchCount < numBunch_m must be avoided.
                     *gmsg << "step " << step_m << ", inject a new bunch... ... ..." << endl;
                     BunchCount_m++;
 
@@ -2787,7 +2809,14 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     // Read in some control parameters
     const int SinglePartDumpFreq = Options::sptDumpFreq;
     const int resetBinFreq = Options::rebinFreq;
-    const int scSolveFreq = Options::scSolveFreq;
+
+    int scSolveFreq;
+
+    if (spiral_flag)
+	scSolveFreq = 1;	    
+    else
+        scSolveFreq = Options::scSolveFreq;
+
     const int boundpDestroyFreq = Options::boundpDestroyFreq;
     const bool doDumpAfterEachTurn = Options::psDumpEachTurn;
 
@@ -2815,7 +2844,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     int stepsNextCheck = step_m + stepsPerTurn; // Steps to next check for transition
     //int stepToLastInj = itsBunch->getSteptoLastInj(); // TODO: Do we need this? -DW
 
-    // Record how many bunches have already been injected. ONLY FOR MPM
+    // Record how many bunches have already been injected. ONLY FOR MBM
     BunchCount_m = itsBunch->getNumBunch();
     BinCount_m = BunchCount_m;
 
@@ -3096,40 +3125,61 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     } else {
                         // --- Single bunch mode --- //
-                        double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
+			
+			// If we are doing a spiral inflector simulation and are using the SAAMG solver 
+                        // we don't rotate or translate the bunch and gamma is 1.0 (non-relativistic).
+			if (spiral_flag and itsBunch->getFieldSolverType() == "SAAMG") {
 
-	                Quaternion_t quaternionToYAxis;
+				itsBunch->R *= Vector_t(0.001); // mm --> m
 
-                        getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
+				IpplTimings::stopTimer(TransformTimer_m);
 
-                        globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
+				itsBunch->setGlobalMeanR(Vector_t(0.0, 0.0, 0.0));
+				itsBunch->setGlobalToLocalQuaternion(Quaternion_t(1.0, 0.0, 0.0, 0.0));
 
-                        itsBunch->R *= Vector_t(0.001); // mm --> m
+				itsBunch->computeSelfFields_cycl(1.0);	
 
-                        if((step_m + 1) % boundpDestroyFreq == 0)
-                            itsBunch->boundp_destroy();
-                        else
-                            itsBunch->boundp();
+				IpplTimings::startTimer(TransformTimer_m);
 
-                        IpplTimings::stopTimer(TransformTimer_m);
+				itsBunch->R *= Vector_t(1000.0); // m --> mm			
 
-                        repartition();
+			} else {
+				double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
 
-                        itsBunch->setGlobalMeanR(0.001 * meanR);
-                        itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
-                        itsBunch->computeSelfFields_cycl(temp_meangamma);
+				Quaternion_t quaternionToYAxis;
 
-                        IpplTimings::startTimer(TransformTimer_m);
+				getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
 
-                        //scale coordinates back
-                        itsBunch->R *= Vector_t(1000.0); // m --> mm
+				globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
 
-                        // Transform coordinates back to global
-                        localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
+				itsBunch->R *= Vector_t(0.001); // mm --> m
 
-                        // Transform self field back to global frame (rotate only)
-                        localToGlobal(itsBunch->Ef, quaternionToYAxis);
-                        localToGlobal(itsBunch->Bf, quaternionToYAxis);
+				if((step_m + 1) % boundpDestroyFreq == 0)
+					itsBunch->boundp_destroy();
+				else
+					itsBunch->boundp();
+
+				IpplTimings::stopTimer(TransformTimer_m);
+
+				repartition();
+
+				itsBunch->setGlobalMeanR(0.001 * meanR);
+				itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
+
+				itsBunch->computeSelfFields_cycl(temp_meangamma);
+
+				IpplTimings::startTimer(TransformTimer_m);
+
+				//scale coordinates back
+				itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+				// Transform coordinates back to global
+				localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
+
+				// Transform self field back to global frame (rotate only)
+				localToGlobal(itsBunch->Ef, quaternionToYAxis);
+				localToGlobal(itsBunch->Bf, quaternionToYAxis);
+			}
                     }
 
                     IpplTimings::stopTimer(TransformTimer_m);

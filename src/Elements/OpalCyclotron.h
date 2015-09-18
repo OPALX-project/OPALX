@@ -45,10 +45,10 @@ public:
         RFMAPFN,   // The filename of the fieldmap
         BSCALE,    // A scalar to scale the B-field
         ESCALE,    // A scalar to scale the RF field
-        TCR1,      //trim coil r1 (mm)
-        TCR2,      //trim coil r2 (mm)
-        MBTC,      //max bfield of trim coil (kG)
-        SLPTC,     //slope of the rising edge
+        TCR1,      // trim coil r1 (mm)
+        TCR2,      // trim coil r2 (mm)
+        MBTC,      // max bfield of trim coil (kG)
+        SLPTC,     // slope of the rising edge
 	RFPHI,     // the initial phase of RF field
 	SUPERPOSE, // whether the electric field map are superposed or not
 	MINZ,      // minimal vertical extend of the machine
@@ -57,6 +57,7 @@ public:
 	MAXR,      // maximal radial extend of the machine
 	FMLOWE,    // minimal energy of the field map
 	FMHIGHE,   // maximal energy of the field map
+	SPIRAL,    // flag whether or not this is a spiral inflector simulation
         SIZE
     };
 

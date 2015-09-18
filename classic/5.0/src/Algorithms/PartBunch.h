@@ -385,6 +385,8 @@ public:
 
     bool hasFieldSolver();
 
+    std::string getFieldSolverType() const;
+
     void setLPath(double s);
     double getLPath() const;
 

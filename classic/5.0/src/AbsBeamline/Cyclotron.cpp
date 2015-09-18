@@ -58,6 +58,7 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     phiinit_m(right.phiinit_m),
     zinit_m(right.zinit_m),
     pzinit_m(right.pzinit_m),
+    spiral_flag_m(right.spiral_flag_m),
     type_m(right.type_m),
     harm_m(right.harm_m),
     bscale_m(right.bscale_m),
@@ -127,6 +128,14 @@ void Cyclotron::setPZinit(double pzinit){
 
 double Cyclotron::getPZinit() const {
     return pzinit_m;
+}
+
+void Cyclotron::setSpiralFlag(bool spiral_flag) {
+    spiral_flag_m = spiral_flag;
+}
+
+bool Cyclotron::getSpiralFlag() const {
+    return spiral_flag_m;
 }
 
 void Cyclotron::setFieldMapFN(std::string f) {
