@@ -261,6 +261,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     bp->setGlobalMeanR(itsBunch_m->getGlobalMeanR());
     bp->setGlobalToLocalQuaternion(itsBunch_m->getGlobalToLocalQuaternion());
     bp->setNr(nr_m);
+
     NDIndex<3> localId = layout_m->getLocalNDIndex();
 
     IpplTimings::startTimer(FunctionTimer1_m);
@@ -277,6 +278,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     if (Teuchos::is_null(RHS)) 
         RHS = rcp(new Epetra_Vector(*Map));
     RHS->PutScalar(0.0);
+
     // get charge densities from IPPL field and store in Epetra vector (RHS)
     IpplTimings::startTimer(FunctionTimer3_m);
     int id = 0;
