@@ -81,8 +81,8 @@ public:
         PartBunch* itsBunch);
 
     int PartInside (
-        const Vector_t r,
-        const Vector_t v,
+        const Vector_t& r,
+        const Vector_t& v,
         const double dt,
         int Parttype,
         const double Qloss,
@@ -382,15 +382,15 @@ private:
         const int k);
 
     int intersectTinyLineSegmentBoundary (
-        const Vector_t,
-        const Vector_t,
+        const Vector_t&,
+        const Vector_t&,
         Vector_t&,
         int&
         );
 
     int intersectLineSegmentBoundary (
-        const Vector_t P0,
-        const Vector_t P1,
+        const Vector_t& P0,
+        const Vector_t& P1,
         Vector_t& intersection_pt,
         int& triangle_id
         );
