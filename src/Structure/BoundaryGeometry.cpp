@@ -1804,8 +1804,8 @@ Change orientation if diff is:
  */
 int
 BoundaryGeometry::intersectTinyLineSegmentBoundary (
-    const Vector_t P,                   // [i] starting point of ray
-    const Vector_t Q,                   // [i] end point of ray
+    const Vector_t& P,                  // [i] starting point of ray
+    const Vector_t& Q,                  // [i] end point of ray
     Vector_t& intersect_pt,             // [o] intersection with boundary
     int& triangle_id                    // [o] intersected triangle
     ) {
@@ -1956,8 +1956,8 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
  */
 int
 BoundaryGeometry::intersectLineSegmentBoundary (
-    const Vector_t P0,                  // [in] starting point of ray
-    const Vector_t P1,                  // [in] end point of ray
+    const Vector_t& P0,                 // [in] starting point of ray
+    const Vector_t& P1,                 // [in] end point of ray
     Vector_t& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] triangle the line segment intersects with
     ) {
@@ -2025,8 +2025,8 @@ BoundaryGeometry::intersectLineSegmentBoundary (
  */
 int
 BoundaryGeometry::PartInside (
-    const Vector_t r,                   // [in] particle position
-    const Vector_t v,                   // [in] momentum
+    const Vector_t& r,                  // [in] particle position
+    const Vector_t& v,                  // [in] momentum
     const double dt,                    // [in]
     const int Parttype,                 // [in] type of particle
     const double Qloss,                 // [in]
