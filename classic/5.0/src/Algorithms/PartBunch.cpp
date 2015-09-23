@@ -373,7 +373,13 @@ double PartBunch::getLaserEnergy() const {
         return 0.0;
 }
 
-
+/// \brief Return the fieldsolver type if we have a fieldsolver
+std::string PartBunch::getFieldSolverType() const {
+    if(fs_m)
+        return fs_m->getFieldSolverType(); 
+    else
+        return "";
+}
 
 /** \brief After each Schottky scan we delete all the particles.
 
@@ -1052,7 +1058,6 @@ void PartBunch::computeSelfFields() {
         if(fs_m->getFieldSolverType() == "SAAMG")
             resizeMesh();
 
-        INFOMSG(level3 << "mesh size" << hr_m << endl);
         //scatter charges onto grid
         this->Q *= this->dt;
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
@@ -1321,6 +1326,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         /// mesh the whole domain
         if(fs_m->getFieldSolverType() == "SAAMG")
             resizeMesh();
+
         /// scatter particles charge onto grid.
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
 

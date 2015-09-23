@@ -227,6 +227,8 @@ private:
     double referencePsi;
     double referencePhi;
 
+    bool spiral_flag = false;
+
     Vector_t PreviousMeanP;
 
     bool previousH5Local;
