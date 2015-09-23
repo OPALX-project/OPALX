@@ -125,10 +125,8 @@ BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
 WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
 Nimpact_m(0),
 SeyNum_m(0.0),
-timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
-timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
-timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
-timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2"))
+timeIntegrationTimer1Push_m(IpplTimings::getTimer("TIntegration1Push")),
+timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
 {
 }
 
@@ -186,10 +184,8 @@ WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
 timeIntegrator_m(timeIntegrator),
 Nimpact_m(0),
 SeyNum_m(0.0),
-timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
-timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
-timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
-timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2"))
+timeIntegrationTimer1Push_m(IpplTimings::getTimer("TIntegration1Push")),
+timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
 {
 
     for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
@@ -269,10 +265,8 @@ timeIntegrator_m(timeIntegrator),
 Nimpact_m(0),
 SeyNum_m(0.0),
 amrptr(amrptr_in),
-timeIntegrationTimer1Loop1_m(IpplTimings::getTimer("TIntegration1Loop1")),
-timeIntegrationTimer1Loop2_m(IpplTimings::getTimer("TIntegration1Loop2")),
-timeIntegrationTimer2Loop1_m(IpplTimings::getTimer("TIntegration2Loop1")),
-timeIntegrationTimer2Loop2_m(IpplTimings::getTimer("TIntegration2Loop2"))
+timeIntegrationTimer1Push_m(IpplTimings::getTimer("TIntegration1Push")),
+timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
 {
 
     for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
@@ -1560,10 +1554,12 @@ void ParallelTTracker::prepareSections() {
 
 void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
+    IpplTimings::startTimer(timeIntegrationTimer1_m);
     if(bgf_m != NULL && secondaryFlg_m > 0) return;
 
+    IpplTimings::startTimer(timeIntegrationTimer1Push_m);
 #ifdef OPAL_DKS
-    IpplTimings::startTimer(timeIntegrationTimer1Loop1_m);
+    
     //check if number of particles in bunch has changed then write
     if (surfaceStatus_m || itsBunch->getLocalNum() != numDeviceElements) {
 
@@ -1607,9 +1603,7 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
     //sync and wait till all tasks and reads are complete
     dksbase.syncDevice();
-    IpplTimings::stopTimer(timeIntegrationTimer1Loop1_m);
 #else
-    IpplTimings::startTimer(timeIntegrationTimer1_m);
     itsBunch->switchToUnitlessPositions();
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         //scale each particle with c*dt
@@ -1624,14 +1618,14 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
             itsBunch->getdT());
     }
     itsBunch->switchOffUnitlessPositions();
-    IpplTimings::stopTimer(timeIntegrationTimer1_m);
+
 #endif
+    IpplTimings::stopTimer(timeIntegrationTimer1Push_m);
 
     if(numParticlesInSimulation_m > minBinEmitted_m) {
         itsBunch->boundp();
     }
-
-
+    IpplTimings::stopTimer(timeIntegrationTimer1_m);
 }
 
 void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
@@ -1725,18 +1719,18 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
      in the very first step of a new-born particle.
 
      */
+
     IpplTimings::startTimer(timeIntegrationTimer2_m);
     // push the reference particle by a half step
     double recpgamma = 1.0 / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
     RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor_m;
     kickParticles(pusher);
     handleBends();
-    IpplTimings::stopTimer(timeIntegrationTimer2_m);
 
     //switchElements();
-
+    IpplTimings::startTimer(timeIntegrationTimer2Push_m);
 #ifdef OPAL_DKS
-    IpplTimings::startTimer(timeIntegrationTimer2Loop1_m);
+    
     //check if number of particles in bunch has changed then write
     if (surfaceStatus_m || itsBunch->getLocalNum() != numDeviceElements) {
 
@@ -1777,9 +1771,8 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
     //sync and wait till all tasks and reads are complete
     dksbase.syncDevice();
-    IpplTimings::stopTimer(timeIntegrationTimer2Loop1_m);
+
 #else
-    IpplTimings::startTimer(timeIntegrationTimer2_m);
     itsBunch->switchToUnitlessPositions(true);
     // start normal particle loop part 2 for simulation without boundary geometry.
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
@@ -1803,9 +1796,9 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
     }
     itsBunch->switchOffUnitlessPositions(true);
-    IpplTimings::stopTimer(timeIntegrationTimer2_m);
 #endif
-    IpplTimings::startTimer(timeIntegrationTimer2_m);
+    IpplTimings::stopTimer(timeIntegrationTimer2Push_m);
+
     //std::fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         itsBunch->dt[i] = itsBunch->getdT();
