@@ -198,6 +198,9 @@ public:
     void setFMHighE(double e);
     virtual double getFMHighE() const;
 
+    void setSpiralFlag(bool spiral_flag);
+    virtual bool getSpiralFlag() const;
+
     virtual bool apply(const size_t &id, const double &t, double E[], double B[]);
 
     virtual bool apply(const size_t &id, const double &t, Vector_t &E, Vector_t &B);
@@ -231,6 +234,8 @@ private:
     double phiinit_m;
     double zinit_m;
     double pzinit_m;
+
+    bool spiral_flag_m;
 
     std::string type_m; /* what type of field we use */
     double harm_m;

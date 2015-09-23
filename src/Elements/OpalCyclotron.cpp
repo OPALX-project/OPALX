@@ -23,7 +23,6 @@
 #include "Structure/BoundaryGeometry.h"
 #include "Physics/Physics.h"
 
-
 // Class OpalCyclotron
 // ------------------------------------------------------------------------
 
@@ -109,6 +108,10 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[FMHIGHE]     = Attributes::makeReal
                         ("FMHIGHE","Maximal Energy [MeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
 
+    itsAttr[SPIRAL]     = Attributes::makeBool
+                        ("SPIRAL","Flag whether or not this is a spiral inflector simulation", false);
+
+
     registerStringAttribute("FMAPFN");
     registerStringAttribute("GEOMETRY");
     registerStringAttribute("RFMAPFN");
@@ -191,6 +194,8 @@ void OpalCyclotron::update() {
     double fmLowE = Attributes::getReal(itsAttr[FMLOWE]);
     double fmHighE = Attributes::getReal(itsAttr[FMHIGHE]);
 
+    bool spiral_flag = Attributes::getBool(itsAttr[SPIRAL]);
+ 
     cycl->setFieldMapFN(fmapfm);
     cycl->setSymmetry(symmetry);
 
@@ -218,8 +223,7 @@ void OpalCyclotron::update() {
     cycl->setFMLowE(fmLowE);
     cycl->setFMHighE(fmHighE);
 
-
-
+    cycl->setSpiralFlag(spiral_flag);
 
     std::vector<std::string> fm_str = Attributes::getStringArray(itsAttr[RFMAPFN]);
     std::vector<double> scale_str = Attributes::getRealArray(itsAttr[ESCALE]);
