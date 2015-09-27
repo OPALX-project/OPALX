@@ -481,7 +481,7 @@ void ParallelTTracker::executeDefaultTracker() {
         for(; step < localTrackSteps_m.front(); ++step) {
             bends_m = 0;
             numberOfFieldEmittedParticles_m = 0;
-
+            
             itsOpalBeamline_m.resetStatus();
 
             // we dump later, after one step.
@@ -522,6 +522,7 @@ void ParallelTTracker::executeDefaultTracker() {
 
             bool const psDump = itsBunch->getGlobalTrackStep() % Options::psDumpFreq == 0;
             bool const statDump = itsBunch->getGlobalTrackStep() % Options::statDumpFreq == 0;
+            *gmsg<<" localTrackSteps_m.size: "<<localTrackSteps_m.size()<<" localTrackSteps_m.front(): "<<localTrackSteps_m.front()<<" Step: "<<step<<" psDump: "<<psDump<<" statDump: "<<statDump<<endl;//chuan debug
             dumpStats(step, psDump, statDump);
 
             if(hasEndOfLineReached()) break;
@@ -1455,7 +1456,7 @@ void ParallelTTracker::bgf_main_collision_test() {
         double dtime = 0.5 * itsBunch->getdT();
         double seyNum = 0;
 
-        if(secondaryFlg_m != 1) {
+        if(secondaryFlg_m != 0) {//chuan: only for the secondary emission, change the particle type to be the old secondaries.
             if(itsBunch->PType[i] == ParticleType::NEWSECONDARY)
                 itsBunch->PType[i] = ParticleType::SECONDARY;
         }
@@ -1480,7 +1481,7 @@ void ParallelTTracker::bgf_main_collision_test() {
                 itsBunch->PType[i],
                 itsBunch->Q[i],
                 intersection_pt,
-                triId);
+                itsBunch->TriID[i]);//Chuan: should be itsBunch->TriID[i];
             if (res < 0) continue;
             position = intersection_pt;
         }
