@@ -73,11 +73,6 @@
 #define DF_READ_META_TAG        4000000
 #define DF_TAG_CYCLE             100000
 
-// Tags for VtkFieldDataSource and VtkParticleBaseDataSource
-#define DS_FIELD_TAG            4500000 // FieldDataSource::update()
-#define DS_PB_TAG               4600000 // ParticleBaseDataSource::update()
-#define DS_CYCLE                 100000
-
 // Special tags used by Particle classes for communication.
 #define P_WEIGHTED_LAYOUT_TAG   5000000
 #define P_WEIGHTED_RETURN_TAG   5100000

@@ -157,9 +157,8 @@ private:
     static const int numpar = 12;
 #endif
 
-  IpplTimings::TimerRef DegraderApplyTimer_m;
-  IpplTimings::TimerRef DegraderLoopTimer_m;
-  IpplTimings::TimerRef DegraderInitTimer_m;
+  IpplTimings::TimerRef DegraderApplyTotalTimer_m;
+  IpplTimings::TimerRef DegraderApplyParticleLoopTimer_m;
 
 
 };
