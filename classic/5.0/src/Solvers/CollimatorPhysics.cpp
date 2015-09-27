@@ -89,9 +89,8 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     curandInitSet = -1;
 #endif
 
-    DegraderApplyTimer_m = IpplTimings::getTimer("DegraderApply");
-    DegraderLoopTimer_m = IpplTimings::getTimer("DegraderLoop");
-    DegraderInitTimer_m = IpplTimings::getTimer("DegraderInit");
+    DegraderApplyTotalTimer_m = IpplTimings::getTimer("CollPhysApply");
+    DegraderApplyParticleLoopTimer_m = IpplTimings::getTimer("CollPhysApplyLoop");
 }
 
 CollimatorPhysics::~CollimatorPhysics() {
@@ -119,7 +118,7 @@ bool CollimatorPhysics::checkHit(Vector_t R, Vector_t P, double dt, Degrader *de
 }
 
 void CollimatorPhysics::apply(PartBunch &bunch) {
-    IpplTimings::startTimer(DegraderApplyTimer_m);
+    IpplTimings::startTimer(DegraderApplyTotalTimer_m);
 
     Inform m ("CollimatorPhysics::apply ");
     /*
@@ -179,7 +178,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
     int numaddback;
     do {
 
-        IpplTimings::startTimer(DegraderLoopTimer_m);
+        IpplTimings::startTimer(DegraderApplyParticleLoopTimer_m);
 
         //write particles to GPU if there are any to write
         if (dksParts_m.size() >= 0) {
@@ -244,7 +243,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
             numparticles -= numaddback;
         }
 
-        IpplTimings::stopTimer(DegraderLoopTimer_m);
+        IpplTimings::stopTimer(DegraderApplyParticleLoopTimer_m);
 
         bunch.boundp();
 
@@ -261,7 +260,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
 #else
     do{
-        IpplTimings::startTimer(DegraderLoopTimer_m);
+        IpplTimings::startTimer(DegraderApplyParticleLoopTimer_m);
         for(unsigned int i = 0; i < locParts_m.size(); ++i) {
             if(locParts_m[i].label != -1) {
                 bool pdead = false;
@@ -314,8 +313,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
           delete absorbed particles and particles that went to the bunch
         */
         deleteParticleFromLocalVector();
-
-        IpplTimings::stopTimer(DegraderLoopTimer_m);
+        IpplTimings::stopTimer(DegraderApplyParticleLoopTimer_m);
 
         /*
           because we have particles going back from material to the bunch
@@ -335,11 +333,12 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
             onlyOneLoopOverParticles = (bunch.getMinLocalNum() > 1);
             //	m << "npl,npt= " << bunch.getLocalNum() << "," << bunch.getTotalNum() << " npm= " << locParts_m.size() << " redifused = " << redifusedStat_m << endl;
         }
+
     } while (onlyOneLoopOverParticles == false);
 
 #endif
 
-    IpplTimings::stopTimer(DegraderApplyTimer_m);
+    IpplTimings::stopTimer(DegraderApplyTotalTimer_m);
 }
 
 
@@ -890,8 +889,6 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg) {
 
     if (curandInitSet == -1) {
 
-        IpplTimings::startTimer(DegraderInitTimer_m);
-
         int size = bunch.getLocalNum() + 0.05 * bunch.getLocalNum();
         //allocate memory for parameters
         par_ptr = dksbase.allocateMemory<double>(numpar, ierr);
@@ -918,8 +915,6 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg) {
         double params[numpar] = {zBegin, deg->getZSize(), rho_m, Z_m,
                                  A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m};
         dksbase.writeDataAsync<double>(par_ptr, params, numpar);
-
-        IpplTimings::stopTimer(DegraderInitTimer_m);
 
     }
 
