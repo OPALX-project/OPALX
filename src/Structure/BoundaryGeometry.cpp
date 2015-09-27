@@ -1480,7 +1480,6 @@ Change orientation if diff is:
             int ic[2];
             int id[2];
             int n = 0;
-
             for (int i = 1; i <= 3; i++) {
                 for (int j = 1; j <= 3; j++) {
                     if (bg->PointID (triangle_id, j) == bg->PointID (ref_id, i)) {
@@ -1598,8 +1597,13 @@ Change orientation if diff is:
             const Vector_t  triNormal = normalVector (A, B, C);
             
             // choose a point P close to the center of the triangle
-            const Vector_t P = (A+B+C)/3 + triNormal * 0.1;
-
+            //const Vector_t P = (A+B+C)/3 + triNormal * 0.1;
+            double minvoxelmesh = bg->voxelMesh_m.sizeOfVoxel[0];
+            if (minvoxelmesh > bg->voxelMesh_m.sizeOfVoxel[1])
+                minvoxelmesh = bg->voxelMesh_m.sizeOfVoxel[1];
+            if (minvoxelmesh > bg->voxelMesh_m.sizeOfVoxel[2])
+                minvoxelmesh = bg->voxelMesh_m.sizeOfVoxel[2];
+            const Vector_t P = (A+B+C)/3 + triNormal * minvoxelmesh;
             /*
               The triangle normal points inward, if P is
               - outside the geometry and the dot product is negativ
@@ -2215,7 +2219,7 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
                       "    intecoords = " << intecoords << endl <<
                       "    triangle ID = " << triId << endl <<
                       "    triangle = (" << getPoint(triId, 1)
-                      << getPoint(triId, 2) << getPoint(triId, 2) << ")"
+                      << getPoint(triId, 2) << getPoint(triId, 3) << ")"
                       << endl);
             assert(cosTheta>=0);
         }
@@ -2279,7 +2283,7 @@ int BoundaryGeometry::emitSecondaryVaughan (
                       "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
                       "    intecoords = " << intecoords << endl <<
                       "    triangle ID = " << triId << endl <<
-                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2) << getPoint(triId, 2) << ")"
+                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2) << getPoint(triId, 3) << ")"
                       << endl);
             assert(cosTheta>=0);
         }
