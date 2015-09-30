@@ -52,6 +52,11 @@ public:
         XY
     };
 
+    enum Type {
+        TEMPORAL,
+        SPATIAL
+    };
+
     /// Constructor with given name.
     explicit Monitor(const std::string &name);
 
@@ -93,6 +98,8 @@ public:
 
     void setOutputFN(std::string fn);
 
+    void setType(Type type);
+
     void moveBy(const double & dz);
 private:
 
@@ -101,6 +108,7 @@ private:
     std::string filename_m;               /**< The name of the outputfile*/
     Plane plane_m;
     double position_m;
+    Type type_m;
 
     bool informed_m;
     unsigned int step_m;
@@ -110,4 +118,8 @@ private:
     std::unique_ptr<LossDataSink> lossDs_m;
 };
 
+inline
+void Monitor::setType(Monitor::Type type) {
+    type_m = type;
+}
 #endif // CLASSIC_Monitor_HH
