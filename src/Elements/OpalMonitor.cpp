@@ -21,7 +21,6 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MonitorRep.h"
 
-
 // Class OpalMonitor
 // ------------------------------------------------------------------------
 
@@ -30,8 +29,11 @@ OpalMonitor::OpalMonitor():
                 "The \"MONITOR\" element defines a monitor for both planes.") {
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "Monitor output filename");
+    itsAttr[MONITORTYPE] = Attributes::makeString
+                           ("MONITORTYPE", "TEMPORAL or SPATIAL (default)");
 
     registerStringAttribute("OUTFN");
+    registerStringAttribute("MONITORTYPE");
 
     setElement((new MonitorRep("MONITOR"))->makeAlignWrapper());
 }
@@ -59,6 +61,11 @@ void OpalMonitor::update() {
     mon->setElementLength(length);
     mon->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
+    if (Attributes::getString(itsAttr[MONITORTYPE]) == "TEMPORAL") {
+        mon->setType(Monitor::TEMPORAL);
+    } else {
+        mon->setType(Monitor::SPATIAL);
+    }
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(mon);
 }
