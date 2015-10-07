@@ -2283,7 +2283,8 @@ int BoundaryGeometry::emitSecondaryVaughan (
                       "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
                       "    intecoords = " << intecoords << endl <<
                       "    triangle ID = " << triId << endl <<
-                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2) << getPoint(triId, 3) << ")"
+                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2) << getPoint(triId, 3) << ")"<< endl <<
+                      "    Particle No. = (" << i << ")"
                       << endl);
             assert(cosTheta>=0);
         }
