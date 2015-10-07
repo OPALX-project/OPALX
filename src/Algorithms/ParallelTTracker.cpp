@@ -68,7 +68,7 @@
 #include "Utilities/OpalException.h"
 #include "Solvers/SurfacePhysicsHandler.hh"
 #include "Structure/BoundaryGeometry.h"
-
+#define EPS 10e-10
 class PartData;
 
 using namespace std;
@@ -516,7 +516,6 @@ void ParallelTTracker::executeDefaultTracker() {
 
             bool const psDump = itsBunch->getGlobalTrackStep() % Options::psDumpFreq == 0;
             bool const statDump = itsBunch->getGlobalTrackStep() % Options::statDumpFreq == 0;
-            *gmsg<<" localTrackSteps_m.size: "<<localTrackSteps_m.size()<<" localTrackSteps_m.front(): "<<localTrackSteps_m.front()<<" Step: "<<step<<" psDump: "<<psDump<<" statDump: "<<statDump<<endl;//chuan debug
             dumpStats(step, psDump, statDump);
 
             if(hasEndOfLineReached()) break;
@@ -1445,11 +1444,10 @@ void ParallelTTracker::bgf_main_collision_test() {
      outside the geometry, flag it for
      deletion and create secondaries
      */
-
-    for(size_t i = 0; i < itsBunch->getLocalNum (); i++) {
+    size_t Inc_num = itsBunch->getLocalNum();
+    for(size_t i = 0; i < Inc_num; i++) {
         double dtime = 0.5 * itsBunch->getdT();
         double seyNum = 0;
-
         if(secondaryFlg_m != 0) {//chuan: only for the secondary emission, change the particle type to be the old secondaries.
             if(itsBunch->PType[i] == ParticleType::NEWSECONDARY)
                 itsBunch->PType[i] = ParticleType::SECONDARY;
@@ -1652,7 +1650,6 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
         bool particleHitBoundary = false;
         Vector_t intecoords = outr;
         int triId = 0;
-
         if (itsBunch->PType[i] == ParticleType::NEWSECONDARY) {
             particleHitBoundary = bgf_m->PartInside(
                 itsBunch->R[i],
@@ -1663,8 +1660,8 @@ void ParallelTTracker::timeIntegration1_bgf(BorisPusher & pusher) {
                 intecoords,
                 triId) == 0;
         }
-
-        if(particleHitBoundary) {
+        Vector_t rtmp = itsBunch->R[i];
+        if(particleHitBoundary && (std::fabs(rtmp[0]-intecoords[0])>EPS) && (std::fabs(rtmp[1]-intecoords[1])>EPS) && (std::fabs(rtmp[2]-intecoords[2])>EPS)) {
             /*
               set particle position to intersection points coordinates and
               scale the position;
@@ -1820,23 +1817,22 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
     // push the reference particle by a half step
     double recpgamma = 1.0 / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
     RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor_m;
-
-
-    for (unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-        itsBunch->R[i] /= Vector_t (Physics::c * itsBunch->dt[i]);
-    }
     kickParticles(pusher, 0);
-    handleBends();
+    handleBends(); 
+    
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
-
     double dtime = 0.5 * itsBunch->getdT();
 
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         bool particleHitBoundary = false;
         Vector_t intecoords = outr;
         int triId = 0;
-        itsBunch->R[i] *= Vector_t (Physics::c * itsBunch->dt[i]);
-        // test all particles except those already have collided the boundary in the first half step.
+
+        /*
+          test all particles except those already have collided the boundary in the first half step.
+          particles which already have collided the boundary in the first half step will stay at 
+          the positions that they collide on the boundaries.
+         */
         if(itsBunch->TriID[i] == 0) {
             particleHitBoundary =  bgf_m->PartInside(
                 itsBunch->R[i],
@@ -1861,9 +1857,9 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
                     itsBunch->P[i],
                     itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
                 itsBunch->getdT());
+            itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
+            itsBunch->X[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
         }
-        itsBunch->R[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
-        itsBunch->X[i] *= Vector_t(Physics::c * itsBunch->dt[i]);
     }
 
     //fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());
@@ -2018,7 +2014,6 @@ void ParallelTTracker::computeExternalFields() {
 
         itsBunch->Ef[i] += externalE;
         itsBunch->Bf[i] += externalB;
-
         // in case a particle is pushed behind the emission surface, delete the particle
         if(itsBunch->R[i](2) < 0)
             itsBunch->Bin[i] = -1;

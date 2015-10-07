@@ -575,7 +575,6 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosT
 
 	itsBunch->create(1);
 	itsBunch->R[lowMark] = interCoords_l;
-
 	itsBunch->P[lowMark] = P_global;
 	itsBunch->Bin[lowMark] = 0;
 	itsBunch->PType[lowMark] = ParticleType::NEWSECONDARY;
