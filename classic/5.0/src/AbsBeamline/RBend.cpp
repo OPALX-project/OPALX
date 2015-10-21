@@ -137,12 +137,12 @@ ElementBase::ElementType RBend::getType() const {
 
 void RBend::SetBendAngle(double angle) {
     getAngle() = angle;
-    getExitAngle() = angle - getEntranceAngle();
+    getExitAngle() = std::abs(angle) - getEntranceAngle();
 }
 
 void RBend::SetEntranceAngle(double entranceAngle) {
     getEntranceAngle() = entranceAngle;
-    getExitAngle() = getAngle() - entranceAngle;
+    getExitAngle() = std::abs(getAngle()) - entranceAngle;
 }
 
 bool RBend::FindChordLength(Inform &msg,
@@ -153,8 +153,8 @@ bool RBend::FindChordLength(Inform &msg,
      * Find bend chord length. If this was not set by the user using the
      * L (length) attribute, infer it from the field map.
      */
-    chordLength = 2 * getLength() * sin(0.5 * getAngle()) /
-        (sin(getEntranceAngle()) + sin(getAngle() - getEntranceAngle()));
+    chordLength = 2 * getLength() * sin(0.5 * std::abs(getAngle())) /
+        (sin(getEntranceAngle()) + sin(std::abs(getAngle()) - getEntranceAngle()));
     if(chordLength > 0.0) {
         chordLengthFromMap = false;
         return true;
