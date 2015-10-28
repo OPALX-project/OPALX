@@ -84,13 +84,15 @@ private:
 
     void Material();
     void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
-    void EnergyLoss(double &Eng, bool &pdead, double &deltat);
+    bool EnergyLoss(double &Eng, double &deltat);
 
     void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
 	     double thetacou, double deltas, int coord);
 
     void copyFromBunch(PartBunch &bunch);
-    void addBackToBunch(PartBunch &bunch, unsigned i);
+    void addBackToBunch(PartBunch &bunch, size_t i);
+
+  inline void doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col);
 
 #ifdef OPAL_DKS
     void copyFromBunchDKS(PartBunch &bunch);
@@ -109,8 +111,6 @@ private:
     void deleteParticleFromLocalVector();
 
     bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll);
-
-    bool allParticlesIn_m;
 
     double  T_m;                     // own time, maybe larger than in the bunch object
 

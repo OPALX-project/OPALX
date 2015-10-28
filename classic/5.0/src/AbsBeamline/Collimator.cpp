@@ -306,13 +306,13 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
 
     sphys_m = getSurfacePhysics();
 
-    if (!sphys_m) {
-        if (filename_m == std::string(""))
-            lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-        else
-            lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-    }
-
+    //if (!sphys_m) {
+    if (filename_m == std::string(""))
+      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else 
+      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+      //}
+    
     goOnline(-1e6);
 }
 
@@ -321,13 +321,13 @@ void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
 
     sphys_m = getSurfacePhysics();
 
-    if (!sphys_m) {
-        if (filename_m == std::string(""))
-            lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-        else
-            lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-    }
-
+    //    if (!sphys_m) {
+    if (filename_m == std::string(""))
+      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else
+      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    //    }
+    
     goOnline(-1e6);
 }
 
