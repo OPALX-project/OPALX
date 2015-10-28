@@ -373,12 +373,24 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolator
             By[i][j] = new double[grid->zSize()];
             Bz[i][j] = new double[grid->zSize()];
             for (int k = 0; k < grid->zSize(); ++k) {
+                if (index >= int(field_points.size())) {
+                    throw(LogicalError(
+                                 "SectorMagneticFieldMap::IO::getInterpolator",
+                                 "Ran out of field points during read operation; check bounds and ordering"
+                           ));
+                }
                 Bx[i][j][k] = field_points[index][3];
                 By[i][j][k] = field_points[index][4];
                 Bz[i][j][k] = field_points[index][5];
                 ++index;
             }
         }
+    }
+    if (index != int(field_points.size())) {
+        throw(LogicalError(
+                     "SectorMagneticFieldMap::IO::getInterpolator",
+                     "Too many field points during read operation; check bounds and ordering"
+               ));
     }
     Interpolator3dGridTo3d* interpolator = new Interpolator3dGridTo3d(grid, Bx, By, Bz);
     return dynamic_cast<VectorMap*>(interpolator);

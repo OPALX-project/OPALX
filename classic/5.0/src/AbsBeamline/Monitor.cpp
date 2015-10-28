@@ -39,6 +39,7 @@ Monitor::Monitor():
     Component(),
     filename_m(""),
     plane_m(OFF),
+    type_m(SPATIAL),
     position_m(0.0),
     informed_m(false)
 {}
@@ -48,6 +49,7 @@ Monitor::Monitor(const Monitor &right):
     Component(right),
     filename_m(right.filename_m),
     plane_m(right.plane_m),
+    type_m(right.type_m),
     position_m(right.position_m),
     informed_m(right.informed_m)
 {}
@@ -57,6 +59,7 @@ Monitor::Monitor(const std::string &name):
     Component(name),
     filename_m(""),
     plane_m(OFF),
+    type_m(SPATIAL),
     position_m(0.0),
     informed_m(false)
 {}
@@ -79,11 +82,26 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) 
     const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
-    if(online_m && R(2) < position_m && R(2) + P(2) * recpgamma > position_m) {
-        double frac = (position_m - R(2)) / (P(2) * recpgamma);
+    if(online_m) {
+        if (type_m == SPATIAL) {
+            if (R(2) < position_m && R(2) + P(2) * recpgamma > position_m) {
+                double frac = (position_m - R(2)) / (P(2) * recpgamma);
 
-        lossDs_m->addParticle(Vector_t(R(0) + frac * P(0) * recpgamma, R(1) + frac * P(1) * recpgamma, position_m),
-                                   P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
+                lossDs_m->addParticle(Vector_t(R(0) + frac * P(0) * recpgamma, R(1) + frac * P(1) * recpgamma, position_m),
+                                      P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
+            }
+        } else {
+            const Vector_t rmean = RefPartBunch_m->get_rmean();
+            const Vector_t pmean = RefPartBunch_m->get_pmean();
+            double recpgammamean = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(pmean, pmean));
+
+            if (rmean(2) < position_m && rmean(2) + pmean(2) * recpgammamean > position_m) {
+                double frac = (position_m - rmean(2)) / (pmean(2) * recpgammamean);
+
+                lossDs_m->addParticle(R + frac * P * recpgamma, P, RefPartBunch_m->ID[i],
+                                      t + frac * RefPartBunch_m->getdT(), 0);
+            }
+        }
     }
 
     return false;
