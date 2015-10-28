@@ -231,11 +231,12 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
     const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
     bool pdead = false;
     pdead = isInColl(R,P,recpgamma);
-
     if(pdead) {
-        double frac = (R(2) - position_m) / P(2) * recpgamma;
-        lossDs_m->addParticle(R,P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
-        ++losses_m;
+      if (lossDs_m) {
+	double frac = (R(2) - position_m) / P(2) * recpgamma;
+	lossDs_m->addParticle(R,P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
+      }
+      ++losses_m;
     }
     return pdead;
 }

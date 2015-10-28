@@ -31,6 +31,7 @@ public:
 
     enum {
         OUTFN = COMMON,
+        MONITORTYPE,
         SIZE
     };
 
