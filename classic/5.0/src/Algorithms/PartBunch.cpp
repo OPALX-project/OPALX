@@ -1800,7 +1800,8 @@ void PartBunch::boundp() {
     /*
       Assume rmin_m < 0.0
      */
-
+    Inform m("boundp ", INFORM_ALL_NODES);
+    
     IpplTimings::startTimer(boundpTimer_m);
     //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
     if ( !(R.isDirty() || ID.isDirty() ) && stateOfLastBoundP_ == unit_state_) return; //-DW
@@ -1845,7 +1846,9 @@ void PartBunch::boundp() {
 	  hr_m[2] = hzSave;
 	  //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 	}
-
+    
+   // if (getTotalNum() < 200) m << "before set fields Nl= " << getLocalNum() << endl;
+        
 	if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
 	  getMesh().set_meshSpacing(&(hr_m[0]));
 	  getMesh().set_origin(rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0));
@@ -1988,7 +1991,7 @@ void PartBunch::gatherLoadBalanceStatistics() {
    minLocNum_m =  std::numeric_limits<size_t>::max();
 
    for(int i = 0; i < Ippl::getNodes(); i++)
-        partPerNode_m[i] = globalPartPerNode_m[i] = 0.0;
+        partPerNode_m[i] = globalPartPerNode_m[i] = 0;
 
     partPerNode_m[Ippl::myNode()] = this->getLocalNum();
 
@@ -2558,22 +2561,31 @@ void PartBunch::calcEMean() {
 
 size_t PartBunch::boundp_destroyT() {
 
+    /*
+     (ne < nL)
+     
+     */
+    const unsigned int minNumOfParticlesPerCore = this->getMimumNumberOfParticlesPerCore();
+    
     NDIndex<Dim> domain = getFieldLayout().getDomain();
     for(int i = 0; i < Dim; i++)
         nr_m[i] = domain[i].length();
 
     std::unique_ptr<size_t[]> tmpbinemitted;
 
-    size_t ne = 0;
-    boundp();
 
+    update();
+    
+    size_t ne = 0;
+    const size_t nL = this->getLocalNum();
+    
     if(WeHaveEnergyBins()) {
         tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[GetNumberOfEnergyBins()]);
         for(int i = 0; i < GetNumberOfEnergyBins(); i++) {
             tmpbinemitted[i] = 0;
         }
-        for(unsigned int i = 0; i < this->getLocalNum(); i++) {
-            if(Bin[i] < 0) {
+        for(unsigned int i = 0; i < nL; i++) {
+            if ((Bin[i] < 0) && (i < nL)) {
                 ne++;
                 this->destroy(1, i);
             } else
@@ -2581,18 +2593,25 @@ size_t PartBunch::boundp_destroyT() {
         }
     } else {
         for(unsigned int i = 0; i < this->getLocalNum(); i++) {
-            if((Bin[i] < 0) && ((this->getLocalNum() - ne) > 1)) {   // need in minimum 1 particle per node
+            if((Bin[i] < 0) && ((nL - ne) > minNumOfParticlesPerCore)) {   // need in minimum 2 particle per node
                 ne++;
                 this->destroy(1, i);
             }
         }
-	lowParticleCount_m = ((this->getLocalNum() - ne) <= 1);
-	reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+        lowParticleCount_m = ((nL - ne) <= minNumOfParticlesPerCore);
+        reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
     }
+    
     update();
-    boundp();
+    
+    if (lowParticleCount_m) {
+        Inform m ("boundp_destroyT a) ", INFORM_ALL_NODES);
+        m << level3 << "Warning low number of particles on some cores nL= " << nL << " ne= " << ne << " NLocal= " << this->getLocalNum() << endl;
+    } else {
+        boundp();
+    }
     calcBeamParameters();
-
+    gatherLoadBalanceStatistics();
     if(WeHaveEnergyBins()) {
         const int lastBin = dist_m->GetLastEmittedEnergyBin();
         for(int i = 0; i < lastBin; i++) {
