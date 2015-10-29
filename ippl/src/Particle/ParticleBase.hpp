@@ -50,8 +50,6 @@
 template<class PLayout>
 void ParticleBase<PLayout>::initialize(PLayout *layout) {
 
-
-
   // make sure we have not already been initialized, and that we have
   // been given a good layout
   PAssert(Layout == 0);
@@ -68,12 +66,11 @@ void ParticleBase<PLayout>::initialize(PLayout *layout) {
 template<class PLayout>
 void ParticleBase<PLayout>::setup() {
 
-
-
   TotalNum = 0;
   LocalNum = 0;
   DestroyNum = 0;
   GhostNum = 0;
+  MIN_NUM_PART_PER_CORE = 2;
 
   // shift ID back so that first ID retrieved is myNode
   NextID = Ippl::Comm->myNode() - Ippl::Comm->getNodes();
@@ -91,14 +88,11 @@ void ParticleBase<PLayout>::setup() {
 /////////////////////////////////////////////////////////////////////
 // Return a boolean value indicating if we are on a processor which can
 // be used for single-node particle creation and initialization
+
 template<class PLayout>
 bool ParticleBase<PLayout>::singleInitNode() const {
-
-
-
-  return (Ippl::Comm->myNode() == 0);
+    return (Ippl::Comm->myNode() == 0);
 }
-
 
 /////////////////////////////////////////////////////////////////////
 // Return a new unique ID value for use by new particles.
