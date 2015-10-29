@@ -150,6 +150,9 @@ public:
     typedef attrib_container_t::iterator      attrib_iterator;
     typedef ParticleAttribBase::SortList_t    SortList_t;
 
+    // useful constants
+    unsigned int MIN_NUM_PART_PER_CORE;
+
     // our position, and our global ID's
     ParticlePos_t   R;
     ParticleIndex_t ID;
@@ -205,6 +208,9 @@ public:
     size_t getGhostNum() const { return GhostNum; }
     void setTotalNum(size_t n) { TotalNum = n; }
     void setLocalNum(size_t n) { LocalNum = n; }
+
+    unsigned int getMimumNumberOfParticlesPerCore() const { return MIN_NUM_PART_PER_CORE; };
+
 
     // get the layout manager
     PLayout& getLayout() { return *Layout; }
