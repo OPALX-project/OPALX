@@ -1,5 +1,5 @@
 OPTION, ECHO=FALSE;
-OPTION, PSDUMPFREQ=10;
+OPTION, PSDUMPFREQ=1;
 
 TITLE,STRING="Collimator simulation";
 
@@ -45,7 +45,7 @@ T     =  0.005,     SIGMAT= 0.0005,
 PT    =  Edes*1E9, SIGMAPT=0.0, CORRT=0.0, R61=0.0;
 
 FS1:FIELDSOLVER, FSTYPE=NONE, MX=64, MY=64, MT=64, 
-                 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+                 PARFFTX=true, PARFFTY=true, PARFFTT=false,
                  BCFFTX=open, BCFFTY=open, BCFFTT=open, 
                  BBOXINCR=1, GREENSF=STANDARD;
 
