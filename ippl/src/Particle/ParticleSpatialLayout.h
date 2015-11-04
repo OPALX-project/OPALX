@@ -533,16 +533,17 @@ protected:
                                 }
                                 else
                                 {
-                                    // the node has been found - add index to put list
-                                    unsigned node = (*(touchingVN.first)).second->getNode();
-                                    PAssert(SwapNodeList[d][node]);
-                                    PutList[node].push_back(ip);
+				    
+				    // the node has been found - add index to put list
+				    unsigned node = (*(touchingVN.first)).second->getNode();
+				    PAssert(SwapNodeList[d][node]);
+				    PutList[node].push_back(ip);
 
-                                    // .. and then add to DestroyList
-                                    PData.destroy(1, ip);
-
-                                    // indicate we found it to quit this check
-                                    foundit = true;
+				    // .. and then add to DestroyList
+				    PData.destroy(1, ip);
+				    
+				    // indicate we found it to quit this check
+				    foundit = true;
                                 }
                             }
                         }
@@ -642,13 +643,13 @@ protected:
                 }
                 else
                 {
-                    // the node has been found - add index to put list
-                    unsigned node = (*(touchingVN.first)).second->getNode();
-                    PAssert(SwapNodeList[0][node]);
-                    PutList[node].push_back(ip);
+		    // the node has been found - add index to put list
+		    unsigned node = (*(touchingVN.first)).second->getNode();
+		    PAssert(SwapNodeList[0][node]);
+		    PutList[node].push_back(ip);
 
-                    // .. and then add to DestroyList
-                    PData.destroy(1, ip);
+		    // .. and then add to DestroyList
+		    PData.destroy(1, ip);
                 }
             }
 
@@ -1175,6 +1176,7 @@ protected:
 
         std::multimap<unsigned, unsigned> p2n; //<node ID, particle ID>
 
+	int particlesLeft = LocalNum;
         for (unsigned int ip=0; ip<LocalNum; ++ip)
         {
             for (unsigned int j = 0; j < Dim; j++)
@@ -1191,6 +1193,11 @@ protected:
             if (found)
                 continue;
 
+	    
+	    int minParticlesPerNode = PData.getMimumNumberOfParticlesPerCore();
+	    if (particlesLeft <= minParticlesPerNode)
+		break; //leave atleast minimum number of particles per core
+
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
             //external location
@@ -1201,6 +1208,7 @@ protected:
 
             p2n.insert(std::pair<unsigned, unsigned>(destination, ip));
             sent++;
+	    particlesLeft--;
         }
 
         //reduce message count so every node knows how many messages to receive
@@ -1297,6 +1305,7 @@ protected:
 
         std::multimap<unsigned, unsigned> p2n; //<node ID, particle ID>
 
+	int particlesLeft = LocalNum;
         for (unsigned int ip=0; ip<LocalNum; ++ip)
         {
             if (!bool(canSwap[ip]))//skip if it can't be swapped
@@ -1316,6 +1325,10 @@ protected:
             if (found)
                 continue;
 
+	    int minParticlesPerNode = PData.getMimumNumberOfParticlesPerCore();
+	    if (particlesLeft <= minParticlesPerNode)
+		continue; //leave atleast minimum number of particles per core
+
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
 			//external location
@@ -1326,6 +1339,7 @@ protected:
 
             p2n.insert(std::pair<unsigned, unsigned>(destination, ip));
             sent++;
+	    particlesLeft--;
         }
 
         //reduce message count so every node knows how many messages to receive
