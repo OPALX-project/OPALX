@@ -127,7 +127,7 @@ void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *c
             if(checkHit(R,P,dT_m, deg, col)) {
                 bool pdead = EnergyLoss(Eng, dT_m);
                 if(!pdead) {
-                    double ptot =  sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
+                    double ptot = sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
                     P = P * ptot / sqrt(dot(P, P));
                     /*
                      Now scatter and transport particle in material.
@@ -276,14 +276,14 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
     int numaddback;
     do {
-
         IpplTimings::startTimer(DegraderLoopTimer_m);
 
         //write particles to GPU if there are any to write
-        if (dksParts_m.size() >= 0) {
+        if (dksParts_m.size() > 0) {
             //wrtie data from dksParts_m to the end of mem_ptr (offset = numparticles)
+	  
             dksbase.writeDataAsync<PART_DKS>(mem_ptr, &dksParts_m[0],
-                                             dksParts_m.size(), -1, numparticles);
+					     dksParts_m.size(), -1, numparticles);
 
             //update number of particles on Device
             numparticles += dksParts_m.size();
@@ -345,11 +345,17 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	locPartsInMat_m = numparticles;
 	reduce(locPartsInMat_m,locPartsInMat_m, OpAddAssign());
 
+	int maxPerNode = bunch.getLocalNum();
+        reduce(maxPerNode, maxPerNode, OpMaxAssign());
+
+	/*
 	bunch.gatherLoadBalanceStatistics();
-        onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMimumNumberOfParticlesPerCore()
+	onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMimumNumberOfParticlesPerCore()
+				     || locPartsInMat_m <= 0);
+	*/
+	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
     } while (onlyOneLoopOverParticles == false);
-
 #else
 
     do{
@@ -361,6 +367,10 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         */
         deleteParticleFromLocalVector();
         IpplTimings::stopTimer(DegraderLoopTimer_m);
+
+	/*
+	  delete left behind particles from bunch before boundp and update
+	*/
 
         /*
           because we have particles going back from material to the bunch
@@ -378,8 +388,15 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 	locPartsInMat_m = locParts_m.size();
 	reduce(locPartsInMat_m,locPartsInMat_m, OpAddAssign());
 
+	int maxPerNode = bunch.getLocalNum();
+        reduce(maxPerNode, maxPerNode, OpMaxAssign());
+
+	/*
         bunch.gatherLoadBalanceStatistics();
         onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMimumNumberOfParticlesPerCore()
+				     || locPartsInMat_m <= 0);
+	*/
+	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
  
     } while (onlyOneLoopOverParticles == false);
