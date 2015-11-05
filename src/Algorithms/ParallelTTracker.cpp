@@ -546,7 +546,6 @@ void ParallelTTracker::executeDefaultTracker() {
     //free device memory
     freeDeviceMemory();
     dksbase.freeMemory<Vector_t>(orient_ptr, itsOpalBeamline_m.sections_m.size());
-
     //unregister page lock itsBunch->X, itsBunch->R, itsBunch-P
     unregisterHostMemory();
 
@@ -2080,6 +2079,7 @@ void ParallelTTracker::computeExternalFields() {
     }
 
     if(hasSurfacePhysics > 0) {    // in a section we have an element with surface physics
+
         std::set<long> old_sphysSections;
         std::vector<long> leftBehindSections, newSections;
         for (auto it: sphys_m) {
@@ -2110,6 +2110,7 @@ void ParallelTTracker::computeExternalFields() {
                                             leftBehindSections.begin());
             leftBehindSections.resize(last - leftBehindSections.begin());
         }
+
         for (long it: leftBehindSections) {
             sphys_m[it] = NULL;
             sphys_m.erase(it);
@@ -2123,6 +2124,7 @@ void ParallelTTracker::computeExternalFields() {
                                             newSections.begin());
             newSections.resize(last - newSections.begin());
         }
+
         for (long it: newSections) {
             sphys_m.insert(std::make_pair(it, itsOpalBeamline_m.getSurfacePhysicsHandler(it)));
         }
@@ -2153,7 +2155,7 @@ void ParallelTTracker::computeExternalFields() {
     }
 
     size_t ne = 0;    
-    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > 1);
+    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > itsBunch->getMimumNumberOfParticlesPerCore());
     if(globPartOutOfBounds) {
         ne = itsBunch->boundp_destroyT();
         numParticlesInSimulation_m  = itsBunch->getTotalNum();
@@ -2166,10 +2168,17 @@ void ParallelTTracker::computeExternalFields() {
 
     /// indicate at least one a node has only 1 particles
     if(surfaceStatus_m) {
-      itsBunch->gatherLoadBalanceStatistics();
-      for (auto it: sphys_m) {
-          it.second->AllParticlesIn(itsBunch->getMinLocalNum() <= 1);
+        /*
+          itsBunch->gatherLoadBalanceStatistics();
+          for (auto it: sphys_m) {
+          it.second->AllParticlesIn(itsBunch->getMinLocalNum() <= itsBunch->getMimumNumberOfParticlesPerCore());
       }
+        */
+        for (auto it: sphys_m) {
+            int maxPerNode = itsBunch->getLocalNum();
+            reduce(maxPerNode, maxPerNode, OpMaxAssign());
+            it.second->AllParticlesIn((unsigned)maxPerNode <= itsBunch->getMimumNumberOfParticlesPerCore());
+        }
     }
 
     if(ne > 0)
@@ -2918,22 +2927,27 @@ void ParallelTTracker::writePhaseSpace(const long long step, const double &sposR
 
 void ParallelTTracker::registerHostMemory() {
 
-    dksbase.registerHostMemory(&itsBunch->R[0], itsBunch->getLocalNum());
-    dksbase.registerHostMemory(&itsBunch->P[0], itsBunch->getLocalNum());
-    dksbase.registerHostMemory(&itsBunch->X[0], itsBunch->getLocalNum());
-    dksbase.registerHostMemory(&itsBunch->dt[0], itsBunch->getLocalNum());
-    dksbase.registerHostMemory(&itsBunch->LastSection[0], itsBunch->getLocalNum());
-
+    if (Ippl::getNodes() == 1) {
+        dksbase.registerHostMemory(&itsBunch->R[0], itsBunch->getLocalNum());
+        dksbase.registerHostMemory(&itsBunch->P[0], itsBunch->getLocalNum());
+        dksbase.registerHostMemory(&itsBunch->X[0], itsBunch->getLocalNum());
+        dksbase.registerHostMemory(&itsBunch->dt[0], itsBunch->getLocalNum());
+        dksbase.registerHostMemory(&itsBunch->LastSection[0], itsBunch->getLocalNum());
+    }
     numDeviceElements = itsBunch->getLocalNum();
 
 }
 
 void ParallelTTracker::unregisterHostMemory() {
-    dksbase.unregisterHostMemory(&itsBunch->R[0]);
-    dksbase.unregisterHostMemory(&itsBunch->P[0]);
-    dksbase.unregisterHostMemory(&itsBunch->X[0]);
-    dksbase.unregisterHostMemory(&itsBunch->dt[0]);
-    dksbase.unregisterHostMemory(&itsBunch->LastSection[0]);
+    
+    if (Ippl::getNodes() == 1) {
+        dksbase.unregisterHostMemory(&itsBunch->R[0]);
+        dksbase.unregisterHostMemory(&itsBunch->P[0]);
+        dksbase.unregisterHostMemory(&itsBunch->X[0]);
+        dksbase.unregisterHostMemory(&itsBunch->dt[0]);
+        dksbase.unregisterHostMemory(&itsBunch->LastSection[0]);
+    }
+    
 }
 
 void ParallelTTracker::allocateDeviceMemory() {
