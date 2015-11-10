@@ -124,6 +124,12 @@ int main(int argc, char *argv[]) {
           << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
           << endl;
+
+#ifdef OPAL_DKS
+    *gmsg << "OPAL compiled with DKS (Dynamic Kernel Scheduler) Version " 
+	  << DKS_VERSION << endl << endl;
+#endif
+
     *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
     *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
 
