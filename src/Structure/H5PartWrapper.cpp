@@ -39,22 +39,8 @@ H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::
     namespace fs = boost::filesystem;
 
     if (sourceFile == "") sourceFile = fileName_m;
-    if (sourceFile == fileName_m) {
+    copyFile(sourceFile, restartStep, flags);
 
-        if (!fs::exists(sourceFile)) throw OpalException("H5PartWrapper::H5PartWrapper",
-                                                         "source file '" + sourceFile + "' does not exist");
-        Ippl::Comm->barrier();
-
-        sourceFile = copyFilePrefix_m + fileName_m;
-        if (Ippl::myNode() == 0) {
-            fs::rename(fileName_m, sourceFile);
-        }
-    }
-
-    open(flags);
-    copyFile(sourceFile, restartStep);
-
-    close();
     open(H5_O_RDWR);
 }
 
@@ -104,7 +90,7 @@ void H5PartWrapper::storeCavityInformation() {
     }
 }
 
-void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep) {
+void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int32_t flags) {
 
     namespace fs = boost::filesystem;
     if (!fs::exists(sourceFile)) {
@@ -112,24 +98,36 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep) {
                             "source file '" + sourceFile + "' does not exist");
     }
 
-    h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
-    h5_ssize_t numStepsInSource = H5GetNumSteps(source);
+    if (sourceFile == fileName_m) {
+        h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
+        h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
-    if (lastStep == -1 || lastStep >= numStepsInSource) {
-        REPORTONERROR(H5SetStep(source, numStepsInSource - 1));
+        if (lastStep == -1 || lastStep >= numStepsInSource) {
+            REPORTONERROR(H5SetStep(source, numStepsInSource - 1));
 
-        char opalFlavour[128];
-        READSTEPATTRIB(String, source, "OPAL_flavour", opalFlavour);
-        predecessorOPALFlavour_m = std::string(opalFlavour);
+            char opalFlavour[128];
+            READSTEPATTRIB(String, source, "OPAL_flavour", opalFlavour);
+            predecessorOPALFlavour_m = std::string(opalFlavour);
+
+            REPORTONERROR(H5CloseFile(source));
+
+            numSteps_m = numStepsInSource;
+            return;
+        }
 
         REPORTONERROR(H5CloseFile(source));
-        close();
 
-        copyFileSystem(sourceFile);
+        Ippl::Comm->barrier();
 
-        numSteps_m = numStepsInSource;
+        std::string sourceFileName = copyFilePrefix_m + fileName_m;
+        if (Ippl::myNode() == 0) {
+            fs::rename(fileName_m, sourceFileName);
+        }
 
-    } else {
+        Ippl::Comm->barrier();
+
+        open(flags);
+        source = H5OpenFile(sourceFileName.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
 
         copyHeader(source);
 
@@ -138,10 +136,45 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep) {
         ++ numSteps_m;
 
         REPORTONERROR(H5CloseFile(source));
-    }
 
-    if (sourceFile == copyFilePrefix_m + fileName_m && Ippl::myNode() == 0) {
-        fs::remove(sourceFile);
+        if (Ippl::myNode() == 0) {
+            fs::remove(sourceFileName);
+        }
+
+        close();
+    } else {
+
+        open(flags);
+
+        h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
+        h5_ssize_t numStepsInSource = H5GetNumSteps(source);
+
+        if (lastStep == -1 || lastStep >= numStepsInSource) {
+            REPORTONERROR(H5SetStep(source, numStepsInSource - 1));
+
+            char opalFlavour[128];
+            READSTEPATTRIB(String, source, "OPAL_flavour", opalFlavour);
+            predecessorOPALFlavour_m = std::string(opalFlavour);
+
+            REPORTONERROR(H5CloseFile(source));
+            close();
+
+            copyFileSystem(sourceFile);
+
+            numSteps_m = numStepsInSource;
+
+        } else {
+
+            copyHeader(source);
+
+            // don't copy the whole file, it takes very long
+            copyStep(source, lastStep);
+            ++ numSteps_m;
+
+            REPORTONERROR(H5CloseFile(source));
+        }
+
+        close();
     }
 }
 
@@ -396,6 +429,7 @@ void H5PartWrapper::copyStepData(h5_file_t *source) {
         }
     }
 
+    numParticles = H5PartGetNumParticles(file_m);
     REPORTONERROR(H5PartSetView(source, -1, -1));
 }
 
