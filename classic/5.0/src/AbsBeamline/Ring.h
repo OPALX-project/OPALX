@@ -296,6 +296,9 @@ class Ring : public Component {
     /** Set the rotational symmetry of the ring (number of cells) */
     void setSymmetry(double symmetry) {symmetry_m = symmetry;}
 
+    /** Set the scaling factor for the fields */
+    void setScale(double scale) {scale_m = scale;}
+
     /** Get the rotational symmetry of the ring (number of cells) */
     double getSymmetry() const {return symmetry_m;}
 
@@ -386,6 +389,8 @@ class Ring : public Component {
 
     // number of cells/rotational symmetry of the ring
     int symmetry_m;
+
+    double scale_m;
 
     // rf harmonic number
     double cyclHarm_m;

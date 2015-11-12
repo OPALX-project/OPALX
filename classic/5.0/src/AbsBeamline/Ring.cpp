@@ -139,8 +139,8 @@ bool Ring::apply(const Vector_t &R, const Vector_t &centroid,
         Vector_t B_temp(0.0, 0.0, 0.0);
         Vector_t E_temp(0.0, 0.0, 0.0);
         outOfBounds &= sections[i]->getFieldValue(R, centroid, t, E_temp, B_temp);
-        B += B_temp;
-        E += E_temp;
+        B += (scale_m * B_temp);
+        E += (scale_m * E_temp);
     }
     // std::cerr << "Ring::apply " << sections.size() << " Pos: " << R << " B: " << B << std::endl;
     return outOfBounds;
