@@ -42,14 +42,15 @@ class OpalRingDefinition: public OpalElement {
   public:
     /** Enumeration maps to UI parameters */
     enum {
-        LATTICE_RINIT = COMMON,
-        LATTICE_PHIINIT,
-        LATTICE_THETAINIT,
+        LAT_RINIT = COMMON,
+        LAT_PHIINIT,
+        LAT_THETAINIT,
         BEAM_RINIT,
         BEAM_PHIINIT,
         BEAM_PRINIT,
         HARMONIC_NUMBER,
         SYMMETRY,
+        SCALE,
         RFFREQ,
         IS_CLOSED,
         SIZE // size of the enum

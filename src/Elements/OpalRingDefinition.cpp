@@ -36,14 +36,13 @@
 OpalRingDefinition::OpalRingDefinition() :
     OpalElement(SIZE, "RINGDEFINITION",
                 "The \"RINGDEFINITION\" element defines basic ring parameters.") {
+  
     itsAttr[HARMONIC_NUMBER] = Attributes::makeReal("HARMONIC_NUMBER",
                                                     "The assumed harmonic number of the ring (i.e. number of bunches in the ring on a given turn).");
-    itsAttr[LATTICE_RINIT] = Attributes::makeReal("LATTICE_RINIT",
+    itsAttr[LAT_RINIT] = Attributes::makeReal("LAT_RINIT",
                                                   "The initial radius of the first element to be placed in the ring [mm].");
-    itsAttr[LATTICE_PHIINIT] = Attributes::makeReal("LATTICE_PHIINIT",
-                                                    "The initial angle around the ring of the first element to be placed. [deg]");
-    itsAttr[LATTICE_THETAINIT] = Attributes::makeReal("LATTICE_THETAINIT",
-                                                      "The angle relative to the tangent of the ring for the first element to be placed [deg].");
+    itsAttr[LAT_PHIINIT] = Attributes::makeReal("LAT_PHIINIT", "The initial angle around the ring of the first element to be placed. [deg]");
+    itsAttr[LAT_THETAINIT] = Attributes::makeReal("LAT_THETAINIT", "The angle relative to the tangent of the ring for the first element to be placed [deg].");
     itsAttr[BEAM_PHIINIT] = Attributes::makeReal("BEAM_PHIINIT",
                                                  "The initial angle around the ring of the beam [deg].");
     itsAttr[BEAM_PRINIT] = Attributes::makeReal("BEAM_PRINIT",
@@ -52,6 +51,7 @@ OpalRingDefinition::OpalRingDefinition() :
                                                "The initial radius of the beam [mm].");
     itsAttr[SYMMETRY] = Attributes::makeReal("SYMMETRY",
                                              "The rotational symmetry of the lattice.");
+    itsAttr[SCALE] = Attributes::makeReal("SCALE", "Scale the fields by a multiplicative factor",1.0);
     // should be in RF cavity definition; this comes from cyclotron definition,
     // but not right
     itsAttr[RFFREQ] = Attributes::makeReal("RFFREQ",
@@ -60,14 +60,15 @@ OpalRingDefinition::OpalRingDefinition() :
     itsAttr[IS_CLOSED] = Attributes::makeString("IS_CLOSED",
                                                 "Set to 'false' to disable checking for closure of the ring");
 
-    registerRealAttribute("LATTICE_RINIT");
-    registerRealAttribute("LATTICE_PHIINIT");
-    registerRealAttribute("LATTICE_THETAINIT");
+    registerRealAttribute("LAT_RINIT");
+    registerRealAttribute("LAT_PHIINIT");
+    registerRealAttribute("LAT_THETAINIT");
     registerRealAttribute("BEAM_RINIT");
     registerRealAttribute("BEAM_PHIINIT");
     registerRealAttribute("BEAM_PRINIT");
     registerRealAttribute("HARMONIC_NUMBER");
     registerRealAttribute("SYMMETRY");
+    registerRealAttribute("SCALE");
     registerRealAttribute("RFFREQ");
     registerStringAttribute("IS_CLOSED");
 
@@ -100,12 +101,12 @@ void OpalRingDefinition::update() {
     ring->setBeamPhiInit(Attributes::getReal(itsAttr[BEAM_PHIINIT]));
     ring->setBeamPRInit(Attributes::getReal(itsAttr[BEAM_PRINIT]));
     ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT]));
-    ring->setLatticeRInit(Attributes::getReal(itsAttr[LATTICE_RINIT]));
-    ring->setLatticePhiInit
-        (Attributes::getReal(itsAttr[LATTICE_PHIINIT])*degree);
-    ring->setLatticeThetaInit
-        (Attributes::getReal(itsAttr[LATTICE_THETAINIT])*degree);
-    ring->setSymmetry(Attributes::getReal(itsAttr[SYMMETRY]));
+    ring->setLatticeRInit(Attributes::getReal(itsAttr[LAT_RINIT]));
+    ring->setLatticePhiInit(Attributes::getReal(itsAttr[LAT_PHIINIT])*degree);
+    ring->setLatticeThetaInit(Attributes::getReal(itsAttr[LAT_THETAINIT])*degree);
+        ring->setSymmetry(Attributes::getReal(itsAttr[SYMMETRY]));
+    ring->setScale(Attributes::getReal(itsAttr[SCALE]));
+
     ring->setHarmonicNumber(Attributes::getReal(itsAttr[HARMONIC_NUMBER]));
     ring->setRFFreq(Attributes::getReal(itsAttr[RFFREQ]));
     ring->setIsClosed(!(Attributes::getString(itsAttr[IS_CLOSED])=="FALSE"));
