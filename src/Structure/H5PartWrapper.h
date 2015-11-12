@@ -52,7 +52,7 @@ protected:
 
     void open(h5_int32_t flags);
 
-    void copyFile(const std::string &sourceFile, int lastStep = -1);
+    void copyFile(const std::string &sourceFile, int lastStep = -1, h5_int32_t flags = H5_O_WRONLY);
     void copyFileSystem(const std::string &sourceFile);
     void copyHeader(h5_file_t *source);
     void copyStep(h5_file_t *source, int step);
