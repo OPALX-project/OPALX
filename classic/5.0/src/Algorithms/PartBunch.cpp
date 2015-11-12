@@ -159,6 +159,9 @@ PartBunch::PartBunch(const PartData *ref):
         pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
     }
     */
+
+    // set the default IPPL behaviour
+    setMimumNumberOfParticlesPerCore(0);
 }
 
 PartBunch::PartBunch(const PartBunch &rhs):
