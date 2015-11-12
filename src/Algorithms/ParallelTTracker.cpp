@@ -2080,6 +2080,11 @@ void ParallelTTracker::computeExternalFields() {
 
     if(hasSurfacePhysics > 0) {    // in a section we have an element with surface physics
 
+        // this is a workaround fighting the zero partilce problem on a core
+        // noy yet understood 
+        // with setMimumNumberOfParticlesPerCore(2) degrader simulations for the PSI gantry are running
+        itsBunch->setMimumNumberOfParticlesPerCore(2);
+
         std::set<long> old_sphysSections;
         std::vector<long> leftBehindSections, newSections;
         for (auto it: sphys_m) {
@@ -2151,6 +2156,7 @@ void ParallelTTracker::computeExternalFields() {
         if (sphys_m.size() == 0) {
             msg << level2 << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = false;
+            itsBunch->setMimumNumberOfParticlesPerCore(0);
         }
     }
 
