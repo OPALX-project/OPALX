@@ -70,7 +70,6 @@ void ParticleBase<PLayout>::setup() {
   LocalNum = 0;
   DestroyNum = 0;
   GhostNum = 0;
-  MIN_NUM_PART_PER_CORE = 2;
 
   // shift ID back so that first ID retrieved is myNode
   NextID = Ippl::Comm->myNode() - Ippl::Comm->getNodes();

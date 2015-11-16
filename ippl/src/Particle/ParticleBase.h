@@ -163,6 +163,7 @@ public:
     // a layout object in order to use this.
     ParticleBase() :
         Layout(NULL),
+        MIN_NUM_PART_PER_CORE(0),
         TotalNum(0),
         LocalNum(0),
         DestroyNum(0),
@@ -172,6 +173,7 @@ public:
     // constructor 2: arguments = layout to use.
     ParticleBase(PLayout *layout) :
         Layout(layout),
+        MIN_NUM_PART_PER_CORE(0),
         TotalNum(0),
         LocalNum(0),
         DestroyNum(0),
