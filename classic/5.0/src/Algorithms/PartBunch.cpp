@@ -2568,7 +2568,7 @@ size_t PartBunch::boundp_destroyT() {
      (ne < nL)
 
      */
-    const unsigned int minNumOfParticlesPerCore = this->getMimumNumberOfParticlesPerCore();
+    const unsigned int minNumOfParticlesPerCore = this->getMinimumNumberOfParticlesPerCore();
 
     NDIndex<Dim> domain = getFieldLayout().getDomain();
     for(int i = 0; i < Dim; i++)

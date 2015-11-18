@@ -350,10 +350,10 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
 	/*
 	bunch.gatherLoadBalanceStatistics();
-	onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMimumNumberOfParticlesPerCore()
+	onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMinimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
 	*/
-	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMimumNumberOfParticlesPerCore()
+	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
     } while (onlyOneLoopOverParticles == false);
 #else
@@ -393,10 +393,10 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
 	/*
         bunch.gatherLoadBalanceStatistics();
-        onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMimumNumberOfParticlesPerCore()
+        onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMinimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
 	*/
-	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMimumNumberOfParticlesPerCore()
+	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
  
     } while (onlyOneLoopOverParticles == false);
@@ -814,7 +814,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
-    const unsigned int minNumOfParticlesPerCore = bunch.getMimumNumberOfParticlesPerCore();
+    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
     for(unsigned int i = 0; i < nL; ++i) {
         if ((bunch.Bin[i]<0) && ((nL-ne)>minNumOfParticlesPerCore)
 	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll)) 
@@ -940,7 +940,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
 
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
-    const unsigned int minNumOfParticlesPerCore = bunch.getMimumNumberOfParticlesPerCore();
+    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
     for(unsigned int i = 0; i < nL; ++i) {
 	if ((bunch.Bin[i]<0) && ((nL-ne)>minNumOfParticlesPerCore) 
 	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll)) 

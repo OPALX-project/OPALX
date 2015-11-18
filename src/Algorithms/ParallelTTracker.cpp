@@ -2161,7 +2161,7 @@ void ParallelTTracker::computeExternalFields() {
     }
 
     size_t ne = 0;    
-    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > itsBunch->getMimumNumberOfParticlesPerCore());
+    bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > itsBunch->getMinimumNumberOfParticlesPerCore());
     if(globPartOutOfBounds) {
         ne = itsBunch->boundp_destroyT();
         numParticlesInSimulation_m  = itsBunch->getTotalNum();
@@ -2177,13 +2177,13 @@ void ParallelTTracker::computeExternalFields() {
         /*
           itsBunch->gatherLoadBalanceStatistics();
           for (auto it: sphys_m) {
-          it.second->AllParticlesIn(itsBunch->getMinLocalNum() <= itsBunch->getMimumNumberOfParticlesPerCore());
+          it.second->AllParticlesIn(itsBunch->getMinLocalNum() <= itsBunch->getMinimumNumberOfParticlesPerCore());
       }
         */
         for (auto it: sphys_m) {
             int maxPerNode = itsBunch->getLocalNum();
             reduce(maxPerNode, maxPerNode, OpMaxAssign());
-            it.second->AllParticlesIn((unsigned)maxPerNode <= itsBunch->getMimumNumberOfParticlesPerCore());
+            it.second->AllParticlesIn((unsigned)maxPerNode <= itsBunch->getMinimumNumberOfParticlesPerCore());
         }
     }
 
