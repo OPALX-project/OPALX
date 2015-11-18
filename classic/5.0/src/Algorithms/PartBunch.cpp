@@ -141,8 +141,8 @@ PartBunch::PartBunch(const PartData *ref):
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
-    distrCreate_m = IpplTimings::getTimer("CreatDistr");
-    distrReload_m = IpplTimings::getTimer("LoadDistr");
+    distrCreate_m = IpplTimings::getTimer("Create Distr");
+    distrReload_m = IpplTimings::getTimer("Load Distr");
 
 
     partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
