@@ -1176,7 +1176,7 @@ protected:
 
         std::multimap<unsigned, unsigned> p2n; //<node ID, particle ID>
 
-        int minParticlesPerNode = PData.getMimumNumberOfParticlesPerCore();
+        int minParticlesPerNode = PData.getMinimumNumberOfParticlesPerCore();
         int particlesLeft = LocalNum;
         for (unsigned int ip=0; ip<LocalNum; ++ip)
         {
@@ -1304,7 +1304,7 @@ protected:
 
         std::multimap<unsigned, unsigned> p2n; //<node ID, particle ID>
 
-        int minParticlesPerNode = PData.getMimumNumberOfParticlesPerCore();
+        int minParticlesPerNode = PData.getMinimumNumberOfParticlesPerCore();
 	int particlesLeft = LocalNum;
         for (unsigned int ip=0; ip<LocalNum; ++ip)
         {

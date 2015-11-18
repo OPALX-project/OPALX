@@ -211,7 +211,7 @@ public:
     void setTotalNum(size_t n) { TotalNum = n; }
     void setLocalNum(size_t n) { LocalNum = n; }
 
-    unsigned int getMimumNumberOfParticlesPerCore() const { return MIN_NUM_PART_PER_CORE; };
+    unsigned int getMinimumNumberOfParticlesPerCore() const { return MIN_NUM_PART_PER_CORE; };
     void setMimumNumberOfParticlesPerCore(unsigned int n) { MIN_NUM_PART_PER_CORE=n; };
 
 
