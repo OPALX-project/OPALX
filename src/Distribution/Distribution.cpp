@@ -1605,6 +1605,8 @@ void Distribution::CreateOpalT(PartBunch &beam,
                                size_t &numberOfParticles,
                                bool scan) {
 
+    IpplTimings::startTimer(beam.distrCreate_m);
+
     // This is PC from BEAM
     avrgpz_m = beam.getP()/beam.getM();
 
@@ -1718,6 +1720,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
     if (!emitting_m)
         InjectBeam(beam);
 
+    IpplTimings::stopTimer(beam.distrCreate_m);
 }
 
 void Distribution::DestroyBeam(PartBunch &beam) {
