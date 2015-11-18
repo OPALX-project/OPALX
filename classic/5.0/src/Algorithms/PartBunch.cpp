@@ -141,8 +141,8 @@ PartBunch::PartBunch(const PartData *ref):
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
-    distrCreate_m = IpplTimings::getTimer("CreatDistr");
-    distrReload_m = IpplTimings::getTimer("LoadDistr");
+    distrCreate_m = IpplTimings::getTimer("Create Distr");
+    distrReload_m = IpplTimings::getTimer("Load Distr");
 
 
     partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
@@ -379,7 +379,7 @@ double PartBunch::getLaserEnergy() const {
 /// \brief Return the fieldsolver type if we have a fieldsolver
 std::string PartBunch::getFieldSolverType() const {
     if(fs_m)
-        return fs_m->getFieldSolverType(); 
+        return fs_m->getFieldSolverType();
     else
         return "";
 }
@@ -1804,7 +1804,7 @@ void PartBunch::boundp() {
       Assume rmin_m < 0.0
      */
     Inform m("boundp ", INFORM_ALL_NODES);
-    
+
     IpplTimings::startTimer(boundpTimer_m);
     //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
     if ( !(R.isDirty() || ID.isDirty() ) && stateOfLastBoundP_ == unit_state_) return; //-DW
@@ -1849,9 +1849,9 @@ void PartBunch::boundp() {
 	  hr_m[2] = hzSave;
 	  //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 	}
-    
+
    // if (getTotalNum() < 200) m << "before set fields Nl= " << getLocalNum() << endl;
-        
+
 	if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
 	  getMesh().set_meshSpacing(&(hr_m[0]));
 	  getMesh().set_origin(rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0));
@@ -2566,10 +2566,10 @@ size_t PartBunch::boundp_destroyT() {
 
     /*
      (ne < nL)
-     
+
      */
     const unsigned int minNumOfParticlesPerCore = this->getMimumNumberOfParticlesPerCore();
-    
+
     NDIndex<Dim> domain = getFieldLayout().getDomain();
     for(int i = 0; i < Dim; i++)
         nr_m[i] = domain[i].length();
@@ -2578,10 +2578,10 @@ size_t PartBunch::boundp_destroyT() {
 
 
     update();
-    
+
     size_t ne = 0;
     const size_t nL = this->getLocalNum();
-    
+
     if(WeHaveEnergyBins()) {
         tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[GetNumberOfEnergyBins()]);
         for(int i = 0; i < GetNumberOfEnergyBins(); i++) {
@@ -2604,9 +2604,9 @@ size_t PartBunch::boundp_destroyT() {
         lowParticleCount_m = ((nL - ne) <= minNumOfParticlesPerCore);
         reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
     }
-    
+
     update();
-    
+
     if (lowParticleCount_m) {
         Inform m ("boundp_destroyT a) ", INFORM_ALL_NODES);
         m << level3 << "Warning low number of particles on some cores nL= " << nL << " ne= " << ne << " NLocal= " << this->getLocalNum() << endl;
