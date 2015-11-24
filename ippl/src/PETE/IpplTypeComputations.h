@@ -840,31 +840,31 @@ struct PETEUnaryReturn<AntiSymTenzor<T,Dim>, FnCofactors> {
 // Life is pitiful and barely worth living without partial specialization.
 // Sigh, I guess we'll limp along...
 
-#define _UNARY_TENSOR_RETURNS_(T, D)                                        \
-template<> struct PETEUnaryReturn<Tenzor<T,D>, FnTrace>                     \
-{ typedef T type; };                                                        \
-template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnTrace>                  \
-{ typedef T type; };                                                        \
-template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnTrace>              \
-{ typedef T type; };                                                        \
-template<> struct PETEUnaryReturn<Tenzor<T,D>, FnDet>                       \
-{ typedef T type; };                                                        \
-template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnDet>                    \
-{ typedef T type; };                                                        \
-template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnDet>                \
-{ typedef T type; };                                                        \
-template<> struct PETEUnaryReturn<Tenzor<T,D>, FnTranspose>                 \
-{ typedef Tenzor<T,D> type; };                                              \
-template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnTranspose>              \
-{ typedef SymTenzor<T,D> type; }                                            \
-template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnTranspose>          \
-{ typedef AntiSymTenzor<T,D> type; }                                        \
-template<> struct PETEUnaryReturn<Tenzor<T,D>, FnCofactors>                 \
-{ typedef Tenzor<T,D> type; };                                              \
-template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnCofactors>              \
-{ typedef Tenzor<T,D> type; }                                               \
-template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnCofactors>          \
-{ typedef SymTenzor<T,D> type; }
+#define _UNARY_TENSOR_RETURNS_(T, D) 
+template<> struct PETEUnaryReturn<Tenzor<T,D>, FnTrace>                     
+{ typedef T type; };                                                        
+template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnTrace>                  
+{ typedef T type; };                                                        
+template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnTrace>              
+{ typedef T type; };                                                        
+template<> struct PETEUnaryReturn<Tenzor<T,D>, FnDet>                       
+{ typedef T type; };                                                        
+template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnDet>                    
+{ typedef T type; };                                                        
+template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnDet>                
+{ typedef T type; };                                                        
+template<> struct PETEUnaryReturn<Tenzor<T,D>, FnTranspose>                 
+{ typedef Tenzor<T,D> type; };                                              
+template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnTranspose>              
+{ typedef SymTenzor<T,D> type; };					
+template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnTranspose>      
+{ typedef AntiSymTenzor<T,D> type; };					
+template<> struct PETEUnaryReturn<Tenzor<T,D>, FnCofactors>             
+{ typedef Tenzor<T,D> type; };                                          
+template<> struct PETEUnaryReturn<SymTenzor<T,D>, FnCofactors>          
+{ typedef Tenzor<T,D> type; };						
+template<> struct PETEUnaryReturn<AntiSymTenzor<T,D>, FnCofactors>      
+{ typedef SymTenzor<T,D> type; };
 
 _UNARY_TENSOR_RETURNS_(short,1U)
 _UNARY_TENSOR_RETURNS_(int,1U)
