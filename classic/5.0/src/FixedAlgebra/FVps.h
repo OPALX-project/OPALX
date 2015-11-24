@@ -20,6 +20,7 @@
 //
 // ------------------------------------------------------------------------
 
+#include <algorithm>
 #include <iosfwd>
 
 template <class T> class Array1D;
@@ -151,6 +152,9 @@ public:
     /// Multiply and assign.
     FVps &operator*=(const FTps<T, N> &rhs);
 
+    /// Multiply.
+    FVps operator*(const FVps<T, N>& rhs) const;
+
     /// Divide and assign.
     //  Throw DivideError if constant part of [b]rhs[/b] is zero.
     FVps &operator/=(const FTps<T, N> &rhs);
@@ -226,6 +230,10 @@ public:
 
     /// Substitute map into matrix.
     FVps substituteInto(const FMatrix<T, N, N> &lhs) const;
+
+    // Get a FTps that is a combination of the polynomials of FVps.                                                                 
+    // Computes a FTps by multiplying the FTps of FVps using the powers specified by [b]power[/b].                                   
+    FTps<T, N> getFTps(const FArray1D<int, N>& power) const;
 
     /// Get a FVps from stream [b]is[/b].
     std::istream &get(std::istream &is);

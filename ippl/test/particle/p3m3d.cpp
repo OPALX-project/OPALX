@@ -137,7 +137,7 @@ public:
 
     void update()
     {
-        Inform msg("update");
+      Inform msg("update");
         bounds(this->R, rmin_m, rmax_m);
 
         Vector_t stretch = 0.6/nr_m;
@@ -435,7 +435,7 @@ struct ApplyField {
 };
 
 int main(int argc, char *argv[]){
-    Ippl ippl(argc, argv);
+    Ippl ippl(argc, argv);
     Inform msg(argv[0]);
     Inform msg2all(argv[0],INFORM_ALL_NODES);
 

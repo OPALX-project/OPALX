@@ -24,7 +24,7 @@
 
 //#define DEBUG_FTps_CC
 
-//#include "FixedAlgebra/FTps.h"
+#include "FixedAlgebra/FTps.h"
 #include "FixedAlgebra/FTpsData.h"
 #include "Algebra/Array1D.h"
 #include "FixedAlgebra/FArray1D.h"
@@ -1489,6 +1489,13 @@ FTps<T, N> FTps<T, N>::taylor(const Array1D<T> &series, int order) const {
     for(int m = 1; m <= order; ++m) {
         if(result.itsRep->trcOrd < m) result.setTruncOrder(m);
         result = x.multiply(result, m);
+        
+        /*
+         * has to be set, otherwise if coefficient is zero --> next coefficient doesn't get
+         * counted, e.g. with cos(x)
+         */
+        result.setMinOrder(0);
+        
         result.itsRep->data[0] = series[order-m];
     }
 
@@ -1506,6 +1513,61 @@ void FTps<T, N>::unique() {
     }
 }
 
+template <class T, int N>
+std::list<int> FTps<T, N>::getListOfNonzeroCoefficients() const {
+    
+    // get total number of coefficients
+    int size = getSize();
+    
+    // initialize list
+    std::list<int> coeffs;
+    
+    // loop over all coefficients
+    for (int i = 0; i < size; ++i) {
+        // get index of non-zero coefficients
+        if (getCoefficient(i) != 0) {
+            coeffs.push_back(i);
+        }
+    }
+    
+    return coeffs;
+}
+
+template <class T, int N>
+FArray1D<int, N> FTps<T, N>::extractExponents(int index) const {
+    
+    // check index
+    if ( index < 0 || getSize() - 1 < index)
+        throw LogicalError("FVps<T,N>::extractExponents(var)","Index out of range.");
+    
+    // get exponents of monomial
+    FMonomial<N> mono = FTps<T, N>::getExponents(index);
+    
+    // array of exponents
+    FArray1D<int, N> expons;
+    
+    // copy monomials to array 
+    for (int i = 0; i < N; ++i)
+        expons[i] = mono[i];
+    
+    return expons;
+}
+
+template <class T, int N>
+FTps<T, N> FTps<T, N>::makePower(int power) const {
+    
+    if (power < 0)
+        throw LogicalError("FTps<T,N>::makePower(power)","Power is negative.");
+    
+    FTps<T, N> result = *this;
+    
+    // gets truncated in case of being bigger than global truncation order
+    for (int i = 1; i < power; ++i) {
+        //result *= *this;
+        result = result.multiply(*this, globalTruncOrder);
+    }
+    return result;
+}
 
 template <class T, int N>
 std::istream &FTps<T, N>::get(std::istream &is) {

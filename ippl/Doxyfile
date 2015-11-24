@@ -25,7 +25,7 @@ ABBREVIATE_BRIEF       = "The $name class" \
 ALWAYS_DETAILED_SEC    = NO
 INLINE_INHERITED_MEMB  = NO
 FULL_PATH_NAMES        = YES
-STRIP_FROM_PATH        = /dshome/adelmann/svnwork/ippl/
+STRIP_FROM_PATH        = /Users/adelmann/git/opal-src/ippl/
 STRIP_FROM_INC_PATH    = 
 SHORT_NAMES            = NO
 JAVADOC_AUTOBRIEF      = NO
@@ -77,7 +77,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = /dshome/adelmann/svnwork/ippl/src
+INPUT                  = /Users/adelmann/git/opal-src/ippl/src
 FILE_PATTERNS          = *.c \
                          *.cc \
                          *.cxx \
@@ -89,7 +89,8 @@ FILE_PATTERNS          = *.c \
                          *.CC \
                          *.C++ \
                          *.H \
-                         *.HH
+                         *.HH \
+			 *.hpp
 RECURSIVE              = YES
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
