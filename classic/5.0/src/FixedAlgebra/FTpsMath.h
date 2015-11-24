@@ -93,6 +93,14 @@ FTps<T, N> sech(const FTps<T, N> &x, int trunc = (FTps<T, N>::EXACT));
 template <class T, int N>
 FTps<T, N> csch(const FTps<T, N> &x, int trunc = (FTps<T, N>::EXACT));
 
+/// Error function.
+template <class T, int N>
+FTps<T, N> erf(const FTps<T, N> &x, int trunc = (FTps<T, N>::EXACT));
+
+/// Complementary error function.
+template <class T, int N>
+FTps<T, N> erfc(const FTps<T, N> &x, int trunc = (FTps<T, N>::EXACT));
+
 
 // Implementation
 // ------------------------------------------------------------------------
@@ -307,7 +315,7 @@ FTps<T, N> cosh(const FTps<T, N> &x, int trunc) {
 
     if(trcOrder == FTps<T, N>::EXACT)
         throw LogicalError("::cosh(FTps<T,N> &x, int trunc)",
-                           "Hyperbolic cossine of EXACT polynomial must be truncated.");
+                           "Hyperbolic cosine of EXACT polynomial must be truncated.");
 
     T aZero = x[0];
     if(x.getMinOrder() != 0) aZero = T(0);
@@ -358,6 +366,38 @@ FTps<T, N> csch(const FTps<T, N> &x, int trunc) {
         throw DomainError("csch(const FTps &,int)");
 
     return sinh(x, trunc).inverse();
+}
+
+/// Error function.
+template <class T, int N>
+FTps<T, N> erf(const FTps<T, N> &x, int trunc) {
+    // Default: trunc = EXACT
+    int trcOrder = std::min(x.getTruncOrder(), trunc);
+
+    if(trcOrder == FTps<T, N>::EXACT)
+        throw LogicalError("::erf(FTps<T,N> &x, int trunc)",
+                           "Error function of EXACT polynomial must be truncated.");
+
+    T aZero = x[0];
+    if(x.getMinOrder() != 0) aZero = T(0);
+    
+    Array1D<T> series(trcOrder + 1);
+    series[0] = std::erf(aZero);
+    series[1] = 2.0 / std::sqrt(M_PI) * std::exp(-aZero*aZero);
+    
+    for(int i = 2; i <= trcOrder; ++i) {
+        series[i] = - 2.0 / double(i-1) * double((i-2)) * series[i-2] / double(i);
+    }
+    
+    return x.taylor(series, trcOrder);
+}
+
+/// Complementary error function.
+template <class T, int N>
+FTps<T, N> erfc(const FTps<T, N> &x, int trunc) {
+    // Default: trunc = EXACT
+    
+    return T(1) - erf(x, trunc);
 }
 
 #endif // CLASSIC_FTpsMath_HH

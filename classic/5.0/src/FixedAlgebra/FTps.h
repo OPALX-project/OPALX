@@ -22,6 +22,7 @@
 
 #include "FixedAlgebra/FTpsData.h"
 #include <iosfwd>
+#include <list>
 // #include <climits>
 
 struct TpsSubstitution;
@@ -359,6 +360,18 @@ public:
 
     /// Make representation unique.
     inline void unique();
+    
+    /// Get a list containing the indexes of non-zero coefficients of a FTps
+    // Returns a STL list containing the indexes
+    std::list<int> getListOfNonzeroCoefficients() const;
+    
+    /// Extract exponents of coefficient
+    // Retuns a 1D Array containing the exponents to index [b]index[/b].
+    FArray1D<int, N> extractExponents(int index) const;
+    
+    /// Multiply FTps with itself
+    // Return the power of the truncated power series
+    FTps<T, N> makePower(int power) const;
 
     /// Read FTps on the stream [b]is[/b].
     std::istream &get(std::istream &is);
@@ -486,6 +499,6 @@ std::ostream &operator<<(std::ostream &os, const FTps<T, N> &);
 
 // Implementation.
 #include "FixedAlgebra/FVps.h"
-#include <FixedAlgebra/FTps.hpp>
+#include "FixedAlgebra/FTps.hpp"
 
 #endif // CLASSIC_FTps_HH
