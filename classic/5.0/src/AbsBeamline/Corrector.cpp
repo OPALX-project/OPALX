@@ -101,7 +101,6 @@ void Corrector::goOnline(const double &kineticEnergy) {
     const double magnitude = momentum / (Physics::c * pathLength);
     kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
 
-    INFOMSG("Corrector::goOnline " << "at Ekin= " << kineticEnergy << " MeV, B= " << kickField_m << " T"<< endl);
     online_m = true;
 }
 
