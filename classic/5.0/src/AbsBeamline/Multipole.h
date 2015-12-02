@@ -112,6 +112,7 @@ public:
     double EngeFact(double z);
     double EngeFunc(double z);
 private:
+    void computeField(Vector_t R, const double &t, Vector_t &E, Vector_t &B);
 
     // Not implemented.
     void operator=(const Multipole &);
