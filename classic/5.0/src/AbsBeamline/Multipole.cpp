@@ -311,28 +311,24 @@ void Multipole::computeField(Vector_t R, const double &t, Vector_t &E, Vector_t 
 
                 default:
                     {
-                        static Quaternion skewRotation(cos(Physics::pi/(4*(i+1))), sin(Physics::pi/(4*(i+1))) * Vector_t(0,0,-1));
-                        R = skewRotation.rotate(R);
                         double powMinusOne = 1;
-                        Vector_t Btmp(0.0);
+                        double Bx = 0, By = 0;
                         for (int j = 1; j <= (i + 1) / 2; ++ j) {
-                            Btmp(0) += powMinusOne * SkewComponents[i] * (std::pow(R(0), i - 2 * j + 1) * fact[i - 2 * j + 1] *
-                                                                          std::pow(R(1), 2 * j - 1) * fact[2 * j - 1]);
-                            Btmp(1) += powMinusOne * SkewComponents[i] * (std::pow(R(0), i - 2 * j + 2) * fact[i - 2 * j + 2] *
-                                                                          std::pow(R(1), 2 * j - 2) * fact[2 * j - 2]);
+                            Bx -= powMinusOne * SkewComponents[i] * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] *
+                                                                     Rn[2 * j - 2](1) * fact[2 * j - 2]);
+                            By += powMinusOne * SkewComponents[i] * (Rn[i - 2 * j + 1](0) * fact[i - 2 * j + 1] *
+                                                                     Rn[2 * j - 1](1) * fact[2 * j - 1]);
                             powMinusOne *= -1;
                         }
 
                         if ((i + 1) / 2 == i / 2) {
                             int j = (i + 2) / 2;
-                            Btmp(1) += powMinusOne * SkewComponents[i] * (std::pow(R(0), i - 2 * j + 2) * fact[i - 2 * j + 2] *
-                                                                          std::pow(R(1), 2 * j - 2) * fact[2 * j - 2]);
+                            Bx -= powMinusOne * SkewComponents[i] * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] *
+                                                                     Rn[2 * j - 2](1) * fact[2 * j - 2]);
                         }
-                        R = skewRotation.conjugate().rotate(R);
-                        Btmp = skewRotation.conjugate().rotate(Btmp);
 
-                        B(0) += Btmp(0);
-                        B(1) += Btmp(1);
+                        B(0) += Bx;
+                        B(1) += By;
                     }
                 }
 
