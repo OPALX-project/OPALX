@@ -47,6 +47,8 @@
 
 #include <boost/numeric/ublas/io.hpp>
 
+extern Inform *gmsg;
+
 /// @brief This class computes the matched distribution
 template<typename Value_type, typename Size_type>
 class SigmaGenerator
@@ -382,8 +384,8 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
                 // write average radius
                 std::ofstream writeAvgRadius("data/AverageValues.dat", std::ios::app);
 
-                if(writeAvgRadius.tellp() == 0) // if nothing yet written --> write description
-		  writeAvgRadius << "energy [MeV]" << std::setw(15) << "avg. radius [m]" << std::setw(15) << "r [m]" << std::setw(15) << "pr [m]" << std::endl;
+                if (writeAvgRadius.tellp() == 0) // if nothing yet written --> write description
+                    writeAvgRadius << "energy [MeV]" << std::setw(15) << "avg. radius [m]" << std::setw(15) << "r [m]" << std::setw(15) << "pr [m]" << std::endl;
 
                 writeAvgRadius << E_m << std::setw(25) << std::setprecision(10) << ravg << std::setw(25) << std::setprecision(10) << r_turn[0] << std::setw(25) << std::setprecision(10) << peo[0] << std::endl;
 
@@ -413,8 +415,20 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
                 writePhase.close();
                 writeProperties.close();
             }
-
-            // compute the number of steps per degree
+            
+            // write to terminal
+            *gmsg << "* ----------------------------" << endl
+                  << "* Closed orbit info (Gordon units):" << endl
+                  << "*" << endl
+                  << "* average radius: " << ravg << " [m]" << endl
+                  << "* initial radius: " << r_turn[0] << " [m]" << endl
+                  << "* initial momentum: " << peo[0] << " [m]" << endl
+                  << "* frequency error: " << cof.getFrequencyError() << endl
+                  << "* horizontal tune: " << tunes.first << endl
+                  << "* vertical tune: " << tunes.second << endl
+                  << "* ----------------------------" << endl << endl;
+            
+                  // compute the number of steps per degree
             value_type deg_step = N_m / 360.0;
             // compute starting point of computation
             size_type start = deg_step * angle;
