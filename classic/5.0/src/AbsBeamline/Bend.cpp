@@ -803,6 +803,54 @@ void Bend::CalculateRefTrajectory(double &angleX, double &angleY) {
     else
         angleY = atan2(P(1), P(2));
 
+
+    std::ofstream traj(std::string("data/") + getName() + std::string("_traj.dat"));
+    traj.precision(8);
+
+    double E1 = getEntranceAngle();
+    double cosE1 = cos(0.5 * E1), sinE1 = sin(0.5 * E1);
+    double zRotation = Orientation_m(2);
+    Quaternion toStandard = (Quaternion(cosE1, sinE1 * Vector_t(0, 1, 0)) *
+                             Quaternion(cos(0.5 * zRotation), sin(0.5 * zRotation) * Vector_t(0, 0, -1)));
+
+    X = Vector_t(0.0, 0.0, startField_m - elementEdge_m);
+    P = Vector_t(0.0, 0.0, betaGamma);
+
+    deltaS = 0.0;
+
+    while(deltaS < bendLength) {
+
+        X /= Vector_t(Physics::c * dt);
+        pusher_m.push(X, P, dt);
+        X *= Vector_t(Physics::c * dt);
+
+        Vector_t eField(0.0, 0.0, 0.0);
+        Vector_t bField(0.0, 0.0, 0.0);
+        Vector_t XInBendFrame = RotateToBendFrame(X);
+
+        /*
+         * Add in transverse bend displacements. (ds is already
+         * accounted for.)
+         */
+        CalculateMapField(XInBendFrame, eField, bField);
+        bField = fieldAmplitude_m * RotateOutOfBendFrame(bField);
+
+        X /= Vector_t(Physics::c * dt);
+        pusher_m.kick(X, P, eField, bField, dt);
+        Vector_t R = toStandard.rotate(X * Physics::c * dt);
+        traj << std::setw(16) << R(0)
+             << std::setw(16) << R(2)
+             << std::setw(16) << bField(1)
+             << std::endl;
+
+
+        pusher_m.push(X, P, dt);
+        X *= Vector_t(Physics::c * dt);
+
+        deltaS += refTrajMapStepSize_m;
+
+    }
+
 }
 
 double Bend::EstimateFieldAdjustmentStep(double actualBendAngle,
