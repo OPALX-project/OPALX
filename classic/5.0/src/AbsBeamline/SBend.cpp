@@ -758,6 +758,15 @@ void SBend::CalculateRefTrajectory(double &angleX, double &angleY) {
     const double betaGamma = sqrt(gamma * gamma - 1.);
     const double dt = RefPartBunch_m->getdT();
 
+    std::ofstream trajectoryOutput(std::string("data/") + getName() + std::string("_traj.dat"));
+    trajectoryOutput.precision(8);
+
+    double E1 = entranceAngle_m;
+    double cosE1 = cos(0.5 * E1), sinE1 = sin(0.5 * E1);
+    double zRotation = Orientation_m(2);
+    Quaternion toStandard = (Quaternion(cosE1, sinE1 * Vector_t(0, 1, 0)) *
+                             Quaternion(cos(0.5 * zRotation), sin(0.5 * zRotation) * Vector_t(0, 0, -1)));
+
     Vector_t X(0.0, 0.0, startField_m - elementEdge_m);
     Vector_t P(0.0, 0.0, betaGamma);
 
@@ -799,6 +808,13 @@ void SBend::CalculateRefTrajectory(double &angleX, double &angleY) {
         X /= Vector_t(Physics::c * dt);
         pusher_m.kick(X, P, eField, bField, dt);
 
+        Vector_t R = toStandard.rotate(X * Physics::c * dt);
+        Vector_t Bf = toStandard.rotate(bField);
+        trajectoryOutput << std::setw(16) << R(0)
+                         << std::setw(16) << R(2)
+                         << std::setw(16) << Bf(1)
+                         << std::endl;
+
         pusher_m.push(X, P, dt);
         X *= Vector_t(Physics::c * dt);
 
@@ -809,6 +825,7 @@ void SBend::CalculateRefTrajectory(double &angleX, double &angleY) {
         deltaS += refTrajMapStepSize_m;
 
     }
+    trajectoryOutput.close();
 
     refTrajMapSize_m = refTrajMapX_m.size();
 
