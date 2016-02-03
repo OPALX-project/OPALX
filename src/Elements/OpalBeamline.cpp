@@ -374,7 +374,7 @@ void OpalBeamline::prepareSections() {
     CompVec tmp;
     FieldList::iterator flit;
     list<double>::iterator pos_it, next_it, last_it;
-    const double tolerance = 1.e-10;
+    const double tolerance = 1.e-4;
 
     if (elements_m.size() == 0) {
         prepared_m = true;
