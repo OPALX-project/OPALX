@@ -479,7 +479,6 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
 
     // AAA Scale and shift coordinates according to distribution input.
     ScaleDistCoordinates();
-    ShiftDistCoordinates(massIneV);
 }
 
 void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
@@ -1515,6 +1514,8 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
     if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         ReflectDistribution(numberOfPartToCreate);
 
+    ShiftDistCoordinates(beam.getM());
+
     // Setup energy bins.
     if (numberOfEnergyBins_m > 0) {
         FillParticleBins();
@@ -1678,6 +1679,8 @@ void Distribution::CreateOpalT(PartBunch &beam,
     // Now reflect particles if Options::cZero is true
     if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         ReflectDistribution(numberOfParticles);
+
+    ShiftDistCoordinates(beam.getM());
 
     // Check number of particles in distribution.
     CheckParticleNumber(numberOfParticles);
