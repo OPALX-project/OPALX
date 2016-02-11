@@ -1,11 +1,5 @@
 cmake_minimum_required (VERSION 2.8.10)
 
-set (PACKAGE \"opal\")
-set (PACKAGE_BUGREPORT \"opal@lists.psi.ch\")
-set (PACKAGE_NAME \"OPAL\")
-set (PACKAGE_TARNAME \"opal\")
-set (PACKAGE_VERSION \"1.4.0\")
-
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
 set (CMAKE_CXX_FLAGS
