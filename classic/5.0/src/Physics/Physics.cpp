@@ -51,13 +51,13 @@ namespace Physics {
     const double alpha      = 7.29735308e-03;
 
     // constants for electrons:
-    const double m_e        = 0.51099906e-03;
+    const double m_e        = 0.51099892e-03;
     const double r_e        = 2.81794092e-15;
     const double lamda_e    = 3.86159323e-13;
     const double a_e        = 1.159652193e-03;
 
     // constants for protons:
-    const double m_p        = 0.93827231e+00;
+    const double m_p        = 0.93827204e+00;
     const double r_p        = 1.53469857e-18;
     const double lamda_p    = 2.10308937e-16;
     const double a_p        = 1.792847386e+00;
@@ -70,7 +70,7 @@ namespace Physics {
     const double m_u        = 238 * 0.931494027e+00;
 
     // constants for muon:
-    const double m_mu       = 0.1057;
+    const double m_mu       = 0.10565837;
 
     // constants for minus hydrogen:
     const double m_hm       = 0.939277e+00;
