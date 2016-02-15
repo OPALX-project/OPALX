@@ -357,6 +357,7 @@ private:
     unsigned long bends_m;
 
     size_t numParticlesInSimulation_m;
+    size_t totalParticlesInSimulation_m;
 
     Tenzor<double, 3> space_orientation_m;
 
