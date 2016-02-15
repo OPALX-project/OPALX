@@ -2228,7 +2228,7 @@ void ParallelTTracker::computeExternalFields() {
         }
     }
 
-    if(ne > 0) {
+    if(ne > 0 || surfaceStatus_m) {
         msg << level1 << "* Deleted " << ne << " particles, "
           << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
         totalParticlesInSimulation_m -= ne;
