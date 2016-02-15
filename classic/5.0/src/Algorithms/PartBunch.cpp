@@ -1839,7 +1839,8 @@ void PartBunch::boundp() {
               double length = std::abs(rmax_m[i] - rmin_m[i]);
               rmax_m[i] += dh_m * length;
               rmin_m[i] -= dh_m * length;
-              hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+	      if (length > 0)
+		hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
 	  }
 
 	  //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
