@@ -310,7 +310,10 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &cent
     }
 }
 
+
 void OpalBeamline::switchElements(const double &min, const double &max, const double &kineticEnergy, const bool &nomonitors) {
+
+    FieldList::iterator fprev;
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         // don't set online monitors if the centroid of the bunch is allready inside monitor
         // or if explicitly not desired (eg during auto phasing)
@@ -323,9 +326,20 @@ void OpalBeamline::switchElements(const double &min, const double &max, const do
             }
 
         } else {
-            if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
+	  if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
                 (*flit).setOn(kineticEnergy);
             }
+
+	  //check if multiple degraders follow one another with no other elements in between
+	  //if element is off and it is a degrader
+	  if (!(*flit).isOn() && flit->getElement()->getType() == ElementBase::DEGRADER) {
+	    //check if previous element: is on, is a degrader, ends where new element starts
+	    if ( (*fprev).isOn() && fprev->getElement()->getType() == ElementBase::DEGRADER 
+		 && ((*fprev).getEnd() + 0.01 > (*flit).getStart()) )
+	      {
+		(*flit).setOn(kineticEnergy);
+	      }
+	  }
         }
         /////////////////////////
         // does not work like that
@@ -333,7 +347,7 @@ void OpalBeamline::switchElements(const double &min, const double &max, const do
         //             (*flit).setOff();
         //         }
         /////////////////////////
-
+	fprev = flit;
     }
 }
 
@@ -374,7 +388,7 @@ void OpalBeamline::prepareSections() {
     CompVec tmp;
     FieldList::iterator flit;
     list<double>::iterator pos_it, next_it, last_it;
-    const double tolerance = 1.e-4;
+    const double tolerance = 1.e-5;
 
     if (elements_m.size() == 0) {
         prepared_m = true;
