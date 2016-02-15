@@ -117,6 +117,7 @@ maxNparts_m(0),
 numberOfFieldEmittedParticles_m(std::numeric_limits<size_t>::max()),
 bends_m(0),
 numParticlesInSimulation_m(0),
+totalParticlesInSimulation_m(0),
 space_orientation_m(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
 timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
 timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
@@ -175,6 +176,7 @@ maxNparts_m(0),
 numberOfFieldEmittedParticles_m(numeric_limits<size_t>::max()),
 bends_m(0),
 numParticlesInSimulation_m(0),
+totalParticlesInSimulation_m(0),
 space_orientation_m(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
 timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
 timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
@@ -255,6 +257,7 @@ maxNparts_m(0),
 numberOfFieldEmittedParticles_m(numeric_limits<size_t>::max()),
 bends_m(0),
 numParticlesInSimulation_m(0),
+totalParticlesInSimulation_m(0),
 space_orientation_m(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0),
 timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
 timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
@@ -383,6 +386,7 @@ void ParallelTTracker::executeDefaultTracker() {
     handleAutoPhasing();
 
     numParticlesInSimulation_m = itsBunch->getTotalNum();
+    totalParticlesInSimulation_m = itsBunch->getTotalNum();
 
     OPALTimer::Timer myt1;
 
@@ -2035,6 +2039,23 @@ void ParallelTTracker::computeExternalFields() {
 
     }
 
+    //if any new surfacephysics sections enabled, check if there are other surface physics 
+    //elements fallowing directy after it, then handle these elements as well, to process particles
+    //moving from one degrader to another
+    std::set<long> attachedSphysSections;
+    for (long it: sphysSections) {
+       
+        //get the section it + 1 if it has surface physics
+        long newit = it + 1;
+        while ( itsOpalBeamline_m.getSection(newit).hasSurfacePhysics() ) {
+            attachedSphysSections.insert(newit);
+            newit++;
+        }
+
+    }
+    //merge two sets
+    sphysSections.insert(attachedSphysSections.begin(), attachedSphysSections.end());
+
     IpplTimings::stopTimer(timeFieldEvaluation_m);
 
     reduce(hasWake, hasWake, OpAddAssign());
@@ -2083,7 +2104,7 @@ void ParallelTTracker::computeExternalFields() {
         // this is a workaround fighting the zero partilce problem on a core
         // noy yet understood 
         // with setMimumNumberOfParticlesPerCore(2) degrader simulations for the PSI gantry are running
-        itsBunch->setMimumNumberOfParticlesPerCore(2);
+        itsBunch->setMimumNumberOfParticlesPerCore(0);
 
         std::set<long> old_sphysSections;
         std::vector<long> leftBehindSections, newSections;
@@ -2117,8 +2138,10 @@ void ParallelTTracker::computeExternalFields() {
         }
 
         for (long it: leftBehindSections) {
-            sphys_m[it] = NULL;
-            sphys_m.erase(it);
+            if (!sphys_m[it]->stillActive()) {
+                sphys_m[it] = NULL;
+                sphys_m.erase(it);
+            }
         }
 
         {
@@ -2138,21 +2161,42 @@ void ParallelTTracker::computeExternalFields() {
             msg << level2 << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
         }
+      
+    } 
 
-        for (auto it: sphys_m) {
-            it.second->apply(*itsBunch);
-            it.second->print(msg);
-        }
-    } else if(surfaceStatus_m) {
-        for (auto it: sphys_m) {
-            if (it.second->stillActive()) {
-                it.second->apply(*itsBunch);
-                it.second->print(msg);
-            } else {
-                it.second = NULL;
-                sphys_m.erase(it.first);
+    if (surfaceStatus_m) {
+        do {
+            ///all particles in material if max per node is 2 and other degraders have 0 particles
+            //check if more than one degrader has particles
+            long degraderWithParticles;
+            int degradersWithParticlesCount = 0;
+            for (auto it: sphys_m) {
+                it.second->AllParticlesIn(false);
+                if (it.second->getParticlesInMat() > 0) {
+                    degraderWithParticles = it.first;
+                    degradersWithParticlesCount++;
+                }
             }
-        }
+        
+            //if max particles per node is 2, and only one degrader has particles set 
+            //AllParticlesIn for this degrader to true
+            int maxPerNode = itsBunch->getLocalNum();
+            reduce(maxPerNode, maxPerNode, OpMaxAssign());
+            bool allParticlesInMat = ( (unsigned)maxPerNode <= itsBunch->getMinimumNumberOfParticlesPerCore() && degradersWithParticlesCount == 1 );
+
+            if (allParticlesInMat) {
+                sphys_m[degraderWithParticles]->AllParticlesIn(true);
+                msg << "All particles in degrader" << endl;
+            }
+
+            for (auto it: sphys_m) {
+                it.second->apply(*itsBunch, totalParticlesInSimulation_m);
+                it.second->print(msg);
+            }
+            itsBunch->boundp();    
+        } while (itsBunch->getTotalNum() == 0);
+        
+
         if (sphys_m.size() == 0) {
             msg << level2 << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = false;
@@ -2171,25 +2215,25 @@ void ParallelTTracker::computeExternalFields() {
         itsBunch->update();
         numParticlesInSimulation_m = itsBunch->getTotalNum();
     }
-
-    /// indicate at least one a node has only 1 particles
-    if(surfaceStatus_m) {
-        /*
-          itsBunch->gatherLoadBalanceStatistics();
-          for (auto it: sphys_m) {
-          it.second->AllParticlesIn(itsBunch->getMinLocalNum() <= itsBunch->getMinimumNumberOfParticlesPerCore());
-      }
-        */
+    
+    //remove surface physics elements from start of the list till hit one which is still active
+    if (surfaceStatus_m) {
         for (auto it: sphys_m) {
-            int maxPerNode = itsBunch->getLocalNum();
-            reduce(maxPerNode, maxPerNode, OpMaxAssign());
-            it.second->AllParticlesIn((unsigned)maxPerNode <= itsBunch->getMinimumNumberOfParticlesPerCore());
+            if (it.second->stillActive()) {
+                break;
+            } else {
+                it.second = NULL;
+                sphys_m.erase(it.first);
+            }
         }
     }
 
-    if(ne > 0)
+    if(ne > 0) {
         msg << level1 << "* Deleted " << ne << " particles, "
           << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
+        totalParticlesInSimulation_m -= ne;
+    }  
+
 }
 
 void ParallelTTracker::handleBends() {
@@ -2223,6 +2267,7 @@ void ParallelTTracker::handleBends() {
 
     itsBunch->RefPart_R = RefPartR_zxy_m;
     itsBunch->RefPart_P = RefPartP_zxy_m;
+
 }
 
 void ParallelTTracker::switchElements(double scaleMargin) {
