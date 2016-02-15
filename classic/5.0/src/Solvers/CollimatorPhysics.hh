@@ -71,7 +71,7 @@ public:
     CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
     ~CollimatorPhysics();
 
-    void apply(PartBunch &bunch);
+    void apply(PartBunch &bunch, size_t numParticlesInSimulation = 0);
 
     virtual const std::string getType() const;
 
@@ -79,8 +79,11 @@ public:
     bool stillActive();
 
     inline double getTime() {return T_m;}
+    std::string getName() { return FN_m;}
+    size_t getParticlesInMat() { return locPartsInMat_m;}
 
     inline void doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col);
+
 
 private:
 
@@ -99,7 +102,7 @@ private:
     void copyFromBunchDKS(PartBunch &bunch);
     void addBackToBunchDKS(PartBunch &bunch, unsigned i);
 
-    void setupCollimatorDKS(PartBunch &bunch, Degrader *deg);
+    void setupCollimatorDKS(PartBunch &bunch, Degrader *deg, size_t numParticlesInSimulation);
     void clearCollimatorDKS();
 
     void applyDKS();
