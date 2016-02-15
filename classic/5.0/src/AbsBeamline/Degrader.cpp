@@ -122,7 +122,13 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
     pdead = isInMaterial(R(2));
 
     if(pdead) {
-      RefPartBunch_m->Bin[i] = -1;
+      //if particle was allready marked as -1 (it means it should have gone into degrader but didn't)
+      //set the label to -2 (will not go into degrader and will be deleted when particles per core > 2)
+      if (RefPartBunch_m->Bin[i] < 0)
+	RefPartBunch_m->Bin[i] = -2;
+      else
+	RefPartBunch_m->Bin[i] = -1;
+
       double frac = (R(2) - position_m) / P(2) * recpgamma;
       PosX_m.push_back(R(0));
       PosY_m.push_back(R(1));
