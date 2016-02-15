@@ -52,7 +52,6 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     allParticlesIn_m(false)
 {
 
-
     gsl_rng_env_setup();
     rGen_m = gsl_rng_alloc(gsl_rng_default);
 
@@ -219,7 +218,7 @@ bool CollimatorPhysics::checkHit(Vector_t R, Vector_t P, double dt, Degrader *de
     return hit;
 }
 
-void CollimatorPhysics::apply(PartBunch &bunch) {
+void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation) {
     IpplTimings::startTimer(DegraderApplyTimer_m);
 
     Inform m ("CollimatorPhysics::apply ", INFORM_ALL_NODES);
@@ -252,11 +251,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
     /*
       Because this is not propper set in the Component class when calling in the Constructor
-    */
-#ifdef OPAL_DKS
-    Degrader   *deg  = NULL;
-    deg = dynamic_cast<Degrader *>(element_ref_m);
-#else
+    */  
     Degrader   *deg  = NULL;
     Collimator *coll = NULL;
 
@@ -267,36 +262,37 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
       coll = dynamic_cast<Collimator *>(element_ref_m);
     }
 
-#endif
+    //#endif
 
 #ifdef OPAL_DKS
 
-    //if firs call to apply setup needed accelerator resources
-    setupCollimatorDKS(bunch, deg);
+    if (collshape_m == "DEGRADER") {
 
-    int numaddback;
-    do {
+      //if firs call to apply setup needed accelerator resources
+      setupCollimatorDKS(bunch, deg, numParticlesInSimulation);
+
+      int numaddback;
+      do {
         IpplTimings::startTimer(DegraderLoopTimer_m);
 
         //write particles to GPU if there are any to write
         if (dksParts_m.size() > 0) {
-            //wrtie data from dksParts_m to the end of mem_ptr (offset = numparticles)
+	  //wrtie data from dksParts_m to the end of mem_ptr (offset = numparticles)  
+	  dksbase.writeDataAsync<PART_DKS>(mem_ptr, &dksParts_m[0],
+					   dksParts_m.size(), -1, numparticles);
 	  
-            dksbase.writeDataAsync<PART_DKS>(mem_ptr, &dksParts_m[0],
-					     dksParts_m.size(), -1, numparticles);
-
-            //update number of particles on Device
-            numparticles += dksParts_m.size();
-
-            //free locParts_m vector
-            dksParts_m.erase(dksParts_m.begin(), dksParts_m.end());
+	  //update number of particles on Device
+	  numparticles += dksParts_m.size();
+	  
+	  //free locParts_m vector
+	  dksParts_m.erase(dksParts_m.begin(), dksParts_m.end());
         }
 
         //execute CollimatorPhysics kernels on GPU if any particles are there
         if (numparticles > 0) {
-            dksbase.callCollimatorPhysics2(mem_ptr, par_ptr, numparticles);
+	  dksbase.callCollimatorPhysics2(mem_ptr, par_ptr, numparticles);
         }
-
+	
         //sort device particles and get number of particles comming back to bunch
         numaddback = 0;
         if (numparticles > 0) {
@@ -306,56 +302,84 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         //read particles from GPU if any are comming out of material
         if (numaddback > 0) {
 
-            //resize dksParts_m to hold particles that need to go back to bunch
-            dksParts_m.resize(numaddback);
+	  //resize dksParts_m to hold particles that need to go back to bunch
+	  dksParts_m.resize(numaddback);
 
-            //read particles that need to be added back to bunch
-            //particles that need to be added back are at the end of Device array
-            dksbase.readData<PART_DKS>(mem_ptr, &dksParts_m[0], numaddback,
-                                       numparticles - numaddback);
+	  //read particles that need to be added back to bunch
+	  //particles that need to be added back are at the end of Device array
+	  dksbase.readData<PART_DKS>(mem_ptr, &dksParts_m[0], numaddback,
+				     numparticles - numaddback);
 
-            //add particles back to the bunch
-            for (unsigned int i = 0; i < dksParts_m.size(); ++i) {
-                if (dksParts_m[i].label == -2) {
-                    addBackToBunchDKS(bunch, i);
-                    redifusedStat_m++;
-                } else {
-                    stoppedPartStat_m++;
-                    lossDs_m->addParticle(dksParts_m[i].Rincol, dksParts_m[i].Pincol,
-                                          -locParts_m[dksParts_m[i].localID].IDincol);
-                }
-            }
-
-            //erase particles that came from device from host array
-            dksParts_m.erase(dksParts_m.begin(), dksParts_m.end());
-
-            //update number of particles on Device
-            numparticles -= numaddback;
+	  //add particles back to the bunch
+	  for (unsigned int i = 0; i < dksParts_m.size(); ++i) {
+	    if (dksParts_m[i].label == -2) {
+	      addBackToBunchDKS(bunch, i);
+	      redifusedStat_m++;
+	    } else {
+	      stoppedPartStat_m++;
+	      lossDs_m->addParticle(dksParts_m[i].Rincol, dksParts_m[i].Pincol,
+				    -locParts_m[dksParts_m[i].localID].IDincol);
+	    }
+	  }
+	  
+	  //erase particles that came from device from host array
+	  dksParts_m.erase(dksParts_m.begin(), dksParts_m.end());
+	  
+	  //update number of particles on Device
+	  numparticles -= numaddback;
         }
 
         IpplTimings::stopTimer(DegraderLoopTimer_m);
 
-        bunch.boundp();
-
         if (onlyOneLoopOverParticles)
-            copyFromBunchDKS(bunch);
+	  copyFromBunchDKS(bunch);
+
+        //bunch.boundp();
 
         T_m += dT_m;
 
 	locPartsInMat_m = numparticles;
 	reduce(locPartsInMat_m,locPartsInMat_m, OpAddAssign());
-
+	
 	int maxPerNode = bunch.getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
-
-	/*
-	bunch.gatherLoadBalanceStatistics();
-	onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMinimumNumberOfParticlesPerCore()
-				     || locPartsInMat_m <= 0);
-	*/
 	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
-    } while (onlyOneLoopOverParticles == false);
+	
+      } while (onlyOneLoopOverParticles == false);
+
+    } else {
+
+      do{
+        IpplTimings::startTimer(DegraderLoopTimer_m);
+
+        doPhysics(bunch,deg,coll);
+	/*
+          delete absorbed particles and particles that went to the bunch
+        */
+        deleteParticleFromLocalVector();
+        IpplTimings::stopTimer(DegraderLoopTimer_m);
+
+        /*
+          if we are not looping copy newly arrived particles
+        */
+        if (onlyOneLoopOverParticles)
+	  copyFromBunch(bunch);
+        
+        T_m += dT_m;              // update local time
+
+	locPartsInMat_m = locParts_m.size();
+	reduce(locPartsInMat_m,locPartsInMat_m, OpAddAssign());
+
+	
+	int maxPerNode = bunch.getLocalNum();
+        reduce(maxPerNode, maxPerNode, OpMaxAssign());
+	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
+				     || locPartsInMat_m <= 0);
+	
+      } while (onlyOneLoopOverParticles == false);
+
+    }
 #else
 
     do{
@@ -367,16 +391,7 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
         */
         deleteParticleFromLocalVector();
         IpplTimings::stopTimer(DegraderLoopTimer_m);
-
-	/*
-	  delete left behind particles from bunch before boundp and update
-	*/
-
-        /*
-          because we have particles going back from material to the bunch
-        */
-        bunch.boundp();
-        
+      
         /*
           if we are not looping copy newly arrived particles
         */
@@ -390,12 +405,6 @@ void CollimatorPhysics::apply(PartBunch &bunch) {
 
 	int maxPerNode = bunch.getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
-
-	/*
-        bunch.gatherLoadBalanceStatistics();
-        onlyOneLoopOverParticles = ( bunch.getMinLocalNum() > bunch.getMinimumNumberOfParticlesPerCore()
-				     || locPartsInMat_m <= 0);
-	*/
 	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
 				     || locPartsInMat_m <= 0);
  
@@ -816,7 +825,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
     size_t ne = 0;
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
     for(unsigned int i = 0; i < nL; ++i) {
-        if ((bunch.Bin[i]<0) && ((nL-ne)>minNumOfParticlesPerCore)
+        if ((bunch.Bin[i]==-1 || bunch.Bin[i]==1) && ((nL-ne)>minNumOfParticlesPerCore)
 	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll)) 
 	  {
             PART x;
@@ -836,6 +845,8 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
             ne++;
             bunchToMatStat_m++;
 
+	    //mark particle to be deleted from bunch as soon as it enters the material
+	    bunch.destroy(1, i);
         }
     }
     
@@ -857,7 +868,7 @@ void CollimatorPhysics::print(Inform &msg){
     reduce(stoppedPartStat_m,stoppedPartStat_m, OpAddAssign());
 
     msg << std::scientific;
-    msg << "--- CollimatorPhysics - Type is " << collshape_m << " Name " << FN_m
+    msg << " --- CollimatorPhysics - Type is " << collshape_m << " Name " << FN_m
         << " Material " << material_m << " Particles in material " << locPartsInMat_m << endl;
     msg << "Coll/Deg statistics: "
         << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
@@ -938,13 +949,16 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
     else
       coll = dynamic_cast<Collimator *>(element_ref_m);
 
+
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
-    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
+    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore(); 
+
     for(unsigned int i = 0; i < nL; ++i) {
-	if ((bunch.Bin[i]<0) && ((nL-ne)>minNumOfParticlesPerCore) 
+	if ((bunch.Bin[i]==-1 || bunch.Bin[i]==1) && ((nL-ne)>minNumOfParticlesPerCore) 
 	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll)) 
 	  {
+
             PART x;
             x.localID      = numlocalparts; //unique id for each particle
             x.DTincol      = bunch.dt[i];
@@ -970,27 +984,33 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
 	    ne++;
             bunchToMatStat_m++;
             numlocalparts++;
-        }
-    }
 
+	    //mark particle to be deleted from bunch as soon as it enters the material
+	    bunch.destroy(1, i);
+	  }
+    }
+    
 }
 
-void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg) {
+void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg, 
+					   size_t numParticlesInSimulation) 
+{
 
     if (curandInitSet == -1) {
 
         IpplTimings::startTimer(DegraderInitTimer_m);
 
         //int size = bunch.getLocalNum() + 0.5 * bunch.getLocalNum();
-	int size = bunch.getTotalNum() + 0.5 * bunch.getTotalNum();
+	//int size = bunch.getTotalNum() + 0.5 * bunch.getTotalNum();
+	int size = numParticlesInSimulation;
 
         //allocate memory for parameters
         par_ptr = dksbase.allocateMemory<double>(numpar, ierr);
 
         //allocate memory for particles
-        mem_ptr = dksbase.allocateMemory<PART_DKS>(size, ierr);
+        mem_ptr = dksbase.allocateMemory<PART_DKS>((int)size, ierr);
 
-        maxparticles = size;
+        maxparticles = (int)size;
         numparticles = 0;
         numlocalparts = 0;
 
