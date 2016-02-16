@@ -77,6 +77,7 @@ public:
 
     void print(Inform& os);
     bool stillActive();
+    bool stillAlive(PartBunch &bunch);
 
     inline double getTime() {return T_m;}
     std::string getName() { return FN_m;}

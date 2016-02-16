@@ -879,6 +879,35 @@ void CollimatorPhysics::print(Inform &msg){
 
 bool CollimatorPhysics::stillActive() { return locPartsInMat_m != 0;}
 
+bool CollimatorPhysics::stillAlive(PartBunch &bunch) {
+
+  bool degraderAlive = true;
+
+  //free GPU memory in case element is degrader, it is empty and bunch has moved past it
+  if(collshape_m == "DEGRADER" && locPartsInMat_m == 0) {
+    Degrader   *deg  = NULL;
+    deg = dynamic_cast<Degrader *>(element_ref_m);
+    
+    //get the size of the degrader
+    double zBegin, zEnd;
+    deg->getDimensions(zBegin, zEnd);
+
+    //get the average Z position of the bunch
+    Vector_t bunchOrigin = bunch.get_origin();
+
+    //if bunch has moved past degrader free GPU memory
+    if (bunchOrigin[2] > zBegin) {
+      degraderAlive = false;
+      #ifdef OPAL_DKS
+      clearCollimatorDKS();
+      #endif
+    }
+  }
+
+  return degraderAlive;
+
+}
+
 
 bool myCompF(PART x, PART y) {
     return x.label > y.label;
