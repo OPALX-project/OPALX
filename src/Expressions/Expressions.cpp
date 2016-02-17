@@ -17,13 +17,14 @@
 //
 // ------------------------------------------------------------------------
 
+#include "Algorithms/PartBunch.h"
 #include "AbstractObjects/Expressions.h"
-
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/PlaceRep.h"
 #include "AbstractObjects/RangeRep.h"
 #include "AbstractObjects/Table.h"
 #include "AbstractObjects/TableRowRep.h"
+#include "AbstractObjects/OpalData.h"
 #include "Expressions/ABinary.h"
 #include "Expressions/AColumn.h"
 #include "Expressions/AList.h"
@@ -152,6 +153,16 @@ namespace Expressions {
     // Real functions without arguments.
     // ----------------------------------------------------------------------
 
+
+    double getEkin() {
+        auto p = OpalData::getInstance()->getPartBunch();
+        if (p)
+            return p->get_meanEnergy();
+        else
+            return -1.0;
+    }
+    
+
     double ranf() {
         return Options::rangen.uniform();
     }
@@ -163,6 +174,7 @@ namespace Expressions {
     }
 
     static const TFunction0<double> table0[] = {
+        {"GETEKIN", -2, getEkin},
         {"RANF",    -2, ranf   },
         {"GAUSS",   -2, gauss  },
         {"SI",      -2, SFunction::arcIn  },
