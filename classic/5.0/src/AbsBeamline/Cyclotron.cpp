@@ -256,16 +256,18 @@ double Cyclotron::getSLPtc() const {
     return slptc_m;
 }
 
+
 void Cyclotron::setMinR(double r) {
     minr_m = r;
-}
-double Cyclotron::getMinR() const {
-    return minr_m;
 }
 
 void Cyclotron::setMaxR(double r) {
     maxr_m = r;
 }
+double Cyclotron::getMinR() const {
+    return minr_m;
+}
+
 double Cyclotron::getMaxR() const {
     return maxr_m;
 }
@@ -281,6 +283,22 @@ void Cyclotron::setMaxZ(double z) {
 }
 double Cyclotron::getMaxZ() const {
     return maxz_m;
+}
+
+void Cyclotron::setTCr1V(vector<double> tcr1) {
+    tcr1V_m = tcr1;
+}
+
+void Cyclotron::setTCr2V(vector<double> tcr2) {
+    tcr2V_m = tcr2;
+}
+
+void Cyclotron::setMBtcV(vector<double> mbtc) {
+    mbtcV_m = mbtc;
+}
+
+void Cyclotron::setSLPtcV(vector<double> slptc) {
+    slptcV_m = slptc;
 }
 
 void Cyclotron::setFMLowE(double e) { fmLowE_m = e;}
