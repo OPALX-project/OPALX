@@ -368,8 +368,8 @@ private:
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
   
-  IpplTimings::TimerRef timeIntegrationTimer1Push_m;
-  IpplTimings::TimerRef timeIntegrationTimer2Push_m;
+    IpplTimings::TimerRef timeIntegrationTimer1Push_m;
+    IpplTimings::TimerRef timeIntegrationTimer2Push_m;
 
     // 1 --- LF-2 (Boris-Buneman)
     // 3 --- AMTS (Adaptive Boris-Buneman with multiple time stepping)

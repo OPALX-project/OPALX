@@ -78,14 +78,26 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[TCR1]     = Attributes::makeReal
                         ("TCR1", "trim coil r1 [mm]");
 
+    itsAttr[TCR1V]     = Attributes::makeRealArray
+                        ("TCR1V", "array of trim coil r1 [mm]");
+
     itsAttr[TCR2]     = Attributes::makeReal
                         ("TCR2", "trim coil r2 [mm]");
+
+    itsAttr[TCR2V]     = Attributes::makeRealArray
+                        ("TCR2V", "array of trim coil r2 [mm]");
 
     itsAttr[MBTC]     = Attributes::makeReal
                         ("MBTC", "max bfield of trim coil [kG]");
 
+    itsAttr[MBTCV]     = Attributes::makeRealArray
+                        ("MBTCV", "array of max bfield values of trim coils [kG]");
+
     itsAttr[SLPTC]    = Attributes::makeReal
                         ("SLPTC", "slope of the rising edge");
+
+    itsAttr[SLPTCV]    = Attributes::makeRealArray
+                        ("SLPTCV", "array of slopes of the rising edge");
 
     itsAttr[MINZ]     = Attributes::makeReal
                         ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
@@ -230,6 +242,19 @@ void OpalCyclotron::update() {
     std::vector<double> phi_str = Attributes::getRealArray(itsAttr[RFPHI]);
     std::vector<double> rff_str = Attributes::getRealArray(itsAttr[RFFREQ]);
     std::vector<bool> superpose_str = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
+
+
+    std::vector<double> tcr1v  = Attributes::getRealArray(itsAttr[TCR1V]);
+    std::vector<double> tcr2v  = Attributes::getRealArray(itsAttr[TCR2V]);
+    std::vector<double> mbtcv  = Attributes::getRealArray(itsAttr[MBTCV]);
+    std::vector<double> slptcv = Attributes::getRealArray(itsAttr[SLPTCV]);
+
+    unsigned int vsize = tcr1v.size();
+
+    if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) && 
+	(mbtcv.size() == vsize) && (slptcv.size() == vsize)) {
+      INFOMSG("Use " << vsize << " trimcoils" << endl);
+    }
 
     // if ((fm_str.size() == scale_str.size()) &&
     //     (fm_str.size() == phi_str.size()) &&
