@@ -180,6 +180,11 @@ public:
     void   setSLPtc(double slptc);
     virtual  double getSLPtc() const;
 
+    void   setTCr1V(std::vector<double>  tcr1);
+    void   setTCr2V(std::vector<double>  tcr2);
+    void   setMBtcV(std::vector<double>  mbtc);
+    void   setSLPtcV(std::vector<double>  slptc);
+
     void   setSuperpose(std::vector<bool> flag);
     //    virtual bool getSuperpose() const;
 
@@ -246,6 +251,11 @@ private:
     double tcr2_m;
     double mbtc_m;
     double slptc_m;
+
+    std::vector<double> tcr1V_m;
+    std::vector<double> tcr2V_m;
+    std::vector<double> mbtcV_m;
+    std::vector<double> slptcV_m;
 
     double minr_m;
     double maxr_m;

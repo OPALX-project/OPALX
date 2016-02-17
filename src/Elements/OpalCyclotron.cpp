@@ -243,7 +243,6 @@ void OpalCyclotron::update() {
     std::vector<double> rff_str = Attributes::getRealArray(itsAttr[RFFREQ]);
     std::vector<bool> superpose_str = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
 
-
     std::vector<double> tcr1v  = Attributes::getRealArray(itsAttr[TCR1V]);
     std::vector<double> tcr2v  = Attributes::getRealArray(itsAttr[TCR2V]);
     std::vector<double> mbtcv  = Attributes::getRealArray(itsAttr[MBTCV]);
@@ -252,22 +251,12 @@ void OpalCyclotron::update() {
     unsigned int vsize = tcr1v.size();
 
     if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) && 
-	(mbtcv.size() == vsize) && (slptcv.size() == vsize)) {
-      INFOMSG("Use " << vsize << " trimcoils" << endl);
+	(mbtcv.size() == vsize) && (slptcv.size() == vsize) && (vsize!=0)) {
+      cycl->setTCr1V(tcr1v);
+      cycl->setTCr2V(tcr2v);
+      cycl->setMBtcV(mbtcv);
+      cycl->setSLPtcV(slptcv);
     }
-
-    // if ((fm_str.size() == scale_str.size()) &&
-    //     (fm_str.size() == phi_str.size()) &&
-    //     (fm_str.size() == rff_str.size())) {
-
-    //     std::vector<std::string>::const_iterator fm    = fm_str.begin();
-    //     std::vector<double>::const_iterator scale = scale_str.begin();
-    //     std::vector<double>::const_iterator phi   = phi_str.begin();
-    //     std::vector<double>::const_iterator rff   = rff_str.begin();
-
-    //     for( ; fm != fm_str.end(); ++fm,++scale,++phi,++rff)
-    //         INFOMSG(" FM= " << *fm << "\t SCALE= " << *scale << "\t PHI= " << *phi << "\t FREQU= " << *rff << endl;);
-    // }
 
     cycl->setRfPhi(phi_str);
     cycl->setEScale(scale_str);
