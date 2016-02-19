@@ -113,6 +113,9 @@ public:
 
     Cyclotron();
     Cyclotron(const Cyclotron &);
+
+    void applyTrimCoil(double r, double z, double slptc, double tcr1, double tcr2, double mbtc, double *br, double *bz);
+
     virtual ~Cyclotron();
 
     /// Apply visitor to Cyclotron.
@@ -136,6 +139,8 @@ public:
     virtual ElementBase::ElementType getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
+
+    unsigned int getNumberOfTrimcoils() const;
 
     void setCyclHarm(double h);
     virtual double getCyclHarm() const;
@@ -180,12 +185,12 @@ public:
     void   setSLPtc(double slptc);
     virtual  double getSLPtc() const;
 
-    void   setTCr1V(std::vector<double>  tcr1);
-    void   setTCr2V(std::vector<double>  tcr2);
-    void   setMBtcV(std::vector<double>  mbtc);
-    void   setSLPtcV(std::vector<double>  slptc);
+    void setTCr1V(std::vector<double>  tcr1);
+    void setTCr2V(std::vector<double>  tcr2);
+    void setMBtcV(std::vector<double>  mbtc);
+    void setSLPtcV(std::vector<double>  slptc);
 
-    void   setSuperpose(std::vector<bool> flag);
+    void setSuperpose(std::vector<bool> flag);
     //    virtual bool getSuperpose() const;
 
     void setMinR(double r);
