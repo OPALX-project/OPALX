@@ -503,8 +503,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     */
 
     double h = elptr->getCyclHarm();
+    *gmsg << "* Number of trimcoils = " << elptr->getNumberOfTrimcoils() << endl;
     *gmsg << "* Harmonic number h = " << h << " " << endl;
-
     /**
     if (elptr->getSuperpose())
         *gmsg << "* Fields are superposed " << endl;
