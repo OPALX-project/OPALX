@@ -133,13 +133,14 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  * @param revTrack
  * @param maxSTEPS
  * @param timeIntegrator
+ * @param offset
  */
 ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    PartBunch &bunch,
                                                    DataSink &ds,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
-                                                   int maxSTEPS, int timeIntegrator):
+                                                   int maxSTEPS, int timeIntegrator, Vector_t offset):
     Tracker(beamline, reference, revBeam, revTrack),
     maxSteps_m(maxSTEPS),
     timeIntegrator_m(timeIntegrator),
@@ -148,7 +149,8 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     initialLocalNum_m(bunch.getLocalNum()),
     initialTotalNum_m(bunch.getTotalNum()),
     opalRing_m(NULL),
-    lastDumpedStep_m(0) {
+    lastDumpedStep_m(0),
+    offset_m(offset) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsBunch = &bunch;
     itsDataSink = &ds;
@@ -5164,8 +5166,8 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         if(initialTotalNum_m > 2) {
             for(size_t i = 0; i < initialLocalNum_m; ++i) {
                 if(itsBunch->ID[i] == 0) {
-                    itsBunch->R[i] = Vector_t(0.0);
-                    itsBunch->P[i] = Vector_t(0.0);
+		  itsBunch->R[i] = offset_m; 
+		  itsBunch->P[i] = Vector_t(0.0);
                 }
             }
         }
