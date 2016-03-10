@@ -655,12 +655,9 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* Statistics dump frequency  = " << Options::statDumpFreq << " w.r.t. the time step." << endl;
     *gmsg << "* ********************************************************************************** " << endl;
 
-    Vector_t offset = dist->getOffset();
-
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
                                               dynamic_cast<PartBunch &>(*Track::block->bunch), *ds, Track::block->reference,
-                                              false, false, Track::block->localTimeSteps.front(), Track::block->timeIntegrator,
-					      offset);
+                                              false, false, Track::block->localTimeSteps.front(), Track::block->timeIntegrator);
 
     itsTracker->setNumBunch(specifiedNumBunch);
 
