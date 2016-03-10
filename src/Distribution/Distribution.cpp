@@ -1513,7 +1513,7 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
     // Now reflect particles if Options::cZero is true.
     if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         ReflectDistribution(numberOfPartToCreate);
-
+    //ADA
     ShiftDistCoordinates(beam.getM());
 
     // Setup energy bins.
@@ -4423,6 +4423,13 @@ void Distribution::ShiftBeam(double &maxTOrZ, double &minTOrZ) {
 
 }
 
+Vector_t Distribution::getOffset()
+{ 
+  return Vector_t(Attributes::getReal(itsAttr[AttributesT::OFFSETX]),
+		  Attributes::getReal(itsAttr[AttributesT::OFFSETY]),
+		  Attributes::getReal(itsAttr[AttributesT::OFFSETZ]));
+}
+
 void Distribution::ShiftDistCoordinates(double massIneV) {
 
     double deltaX = Attributes::getReal(itsAttr[AttributesT::OFFSETX]);
@@ -4458,7 +4465,7 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
     default:
         break;
     }
-
+    INFOMSG("Np= " << tOrZDist_m.size() << endl);
     for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
         xDist_m.at(particleIndex) += deltaX;
         pxDist_m.at(particleIndex) += deltaPx;

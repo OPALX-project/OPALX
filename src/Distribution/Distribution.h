@@ -184,6 +184,7 @@ public:
     void SetDistToEmitted(bool emitted);
     void SetDistType();
     void ShiftBeam(double &maxTOrZ, double &minTOrZ);
+    Vector_t getOffset();
 
     // in case if OPAL-cycl in restart mode
     double GetBeGa() {return bega_m;}
