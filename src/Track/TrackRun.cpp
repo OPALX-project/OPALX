@@ -465,7 +465,7 @@ void TrackRun::setupTTracker(){
         auto &dT = Track::block->dT;
 
         unsigned int i = 0;
-        while (i + 1 < zstop.size() && zstop.front() < spos) {
+        while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
             ++ i;
         }
 
