@@ -65,7 +65,7 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelCyclotronTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
-                                      const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, int timeIntegrator, Vector_t offset);
+                                      const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, int timeIntegrator);
 
     virtual ~ParallelCyclotronTracker();
 
@@ -235,8 +235,6 @@ private:
 
     double sinRefTheta_m;
     double cosRefTheta_m;
-
-    Vector_t offset_m; // is zero unless the distribution has an offset
 
     /// The number of bunches specified in TURNS of RUN commond
     int numBunch_m;
