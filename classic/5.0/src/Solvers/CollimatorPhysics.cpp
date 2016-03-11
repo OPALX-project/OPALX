@@ -262,8 +262,6 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
       coll = dynamic_cast<Collimator *>(element_ref_m);
     }
 
-    //#endif
-
 #ifdef OPAL_DKS
 
     if (collshape_m == "DEGRADER") {
@@ -343,8 +341,13 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 	
 	int maxPerNode = bunch.getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
-	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
-				     || locPartsInMat_m <= 0);
+	
+	//more than one loop only if all the particles are in this degrader
+	if (allParticleInMat_m) {
+	  onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
+	} else {
+	  onlyOneLoopOverParticles = true;
+	}
 	
       } while (onlyOneLoopOverParticles == false);
 
@@ -374,8 +377,11 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 	
 	int maxPerNode = bunch.getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
-	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
-				     || locPartsInMat_m <= 0);
+	if (allParticleInMat_m) {
+	  onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
+	} else {
+	  onlyOneLoopOverParticles = true;
+	}
 	
       } while (onlyOneLoopOverParticles == false);
 
@@ -405,8 +411,11 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 
 	int maxPerNode = bunch.getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
-	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore()
-				     || locPartsInMat_m <= 0);
+	if (allParticleInMat_m) {
+	  onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
+	} else {
+	  onlyOneLoopOverParticles = true;
+	}
  
     } while (onlyOneLoopOverParticles == false);
 
@@ -867,8 +876,15 @@ void CollimatorPhysics::print(Inform &msg){
     reduce(redifusedStat_m,redifusedStat_m, OpAddAssign());
     reduce(stoppedPartStat_m,stoppedPartStat_m, OpAddAssign());
 
+    /*
+    Degrader   *deg  = NULL;
+    deg = dynamic_cast<Degrader *>(element_ref_m);
+    double zBegin, zEnd;
+    deg->getDimensions(zBegin, zEnd);
+    */
+
     msg << std::scientific;
-    msg << " --- CollimatorPhysics - Type is " << collshape_m << " Name " << FN_m
+    msg << "--- CollimatorPhysics - Type is " << collshape_m << " Name " << FN_m
         << " Material " << material_m << " Particles in material " << locPartsInMat_m << endl;
     msg << "Coll/Deg statistics: "
         << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m

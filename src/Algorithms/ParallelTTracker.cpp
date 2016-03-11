@@ -2041,14 +2041,20 @@ void ParallelTTracker::computeExternalFields() {
 
     //if any new surfacephysics sections enabled, check if there are other surface physics 
     //elements fallowing directy after it, then handle these elements as well, to process particles
-    //moving from one degrader to another
+    //moving from one degrader to another   
     std::set<long> attachedSphysSections;
     for (long it: sphysSections) {
        
         //get the section it + 1 if it has surface physics
         long newit = it + 1;
         while ( itsOpalBeamline_m.getSection(newit).hasSurfacePhysics() ) {
-            attachedSphysSections.insert(newit);
+
+            //check if two sections following one another dont share the same surface physics handler
+            if (itsOpalBeamline_m.getSection(newit).getSurfacePhysicsHandler() != 
+                itsOpalBeamline_m.getSection(newit - 1).getSurfacePhysicsHandler())
+            {
+                attachedSphysSections.insert(newit);
+            }
             newit++;
         }
 
@@ -2189,11 +2195,29 @@ void ParallelTTracker::computeExternalFields() {
                 msg << "All particles in degrader" << endl;
             }
 
+            unsigned redifusedParticles = 0;
             for (auto it: sphys_m) {
                 it.second->apply(*itsBunch, totalParticlesInSimulation_m);
                 it.second->print(msg);
+
+                redifusedParticles += it.second->getRedifused();
+                //if all particles where in material update time to time in degrader
+                if (allParticlesInMat)
+                    itsBunch->setT(it.second->getTime() - itsBunch->getdT());
             }
-            itsBunch->boundp();    
+
+            //perform boundp only if there are particles in the bunch, or there are particles
+            //comming out of the degrader
+            if ((unsigned)maxPerNode > itsBunch->getMinimumNumberOfParticlesPerCore() || 
+                redifusedParticles > 0)
+            {
+                itsBunch->boundp();    
+            }
+             
+            //if bunch has no particles update time to time in degrader
+            if (itsBunch->getTotalNum() == 0)
+                itsBunch->setT(itsBunch->getT() + itsBunch->getdT());
+
         } while (itsBunch->getTotalNum() == 0);
         
 
@@ -2352,7 +2376,7 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
             << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
             << "E="    << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
             << endl;
-    } else if(std::isnan(sposRef) || std::isinf(sposRef)) {
+    } else if(std::isnan(sposRef) || std::isinf(sposRef)) {      
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
