@@ -82,6 +82,7 @@ public:
     inline double getTime() {return T_m;}
     std::string getName() { return FN_m;}
     size_t getParticlesInMat() { return locPartsInMat_m;}
+    unsigned getRedifused() { return redifusedStat_m;}
 
     inline void doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col);
 

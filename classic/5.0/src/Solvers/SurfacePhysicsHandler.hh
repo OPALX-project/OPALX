@@ -19,6 +19,7 @@ public:
     virtual double getTime() = 0;
     virtual std::string getName() = 0;
     virtual size_t getParticlesInMat() = 0;
+    virtual unsigned getRedifused() = 0;
     void AllParticlesIn(bool p);
     void updateElement(ElementBase *newref);
   
