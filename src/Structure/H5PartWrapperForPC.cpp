@@ -427,78 +427,63 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
-        f64buffer[i] =  bunch.R[i](0);
+      f64buffer[i] =  bunch.R[i](0);
     WRITEDATA(Float64, file_m, "x", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
         f64buffer[i] =  bunch.R[i](1);
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
-        f64buffer[i] =  bunch.R[i](2);
+      f64buffer[i] =  bunch.R[i](2);
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
-        f64buffer[i] =  bunch.P[i](0);
+      f64buffer[i] =  bunch.P[i](0);
     WRITEDATA(Float64, file_m, "px", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
-        f64buffer[i] =  bunch.P[i](1);
+      f64buffer[i] =  bunch.P[i](1);
     WRITEDATA(Float64, file_m, "py", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
-        f64buffer[i] =  bunch.P[i](2);
+      f64buffer[i] =  bunch.P[i](2);
     WRITEDATA(Float64, file_m, "pz", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
-        f64buffer[i] =  bunch.Q[i];
+      f64buffer[i] =  bunch.Q[i];
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
         f64buffer[i] =  bunch.M[i];
     WRITEDATA(Float64, file_m, "mass", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-      if (bunch.ID[i] != 0)
         i32buffer[i] =  bunch.ID[i];
     WRITEDATA(Int32, file_m, "id", i32buffer);
 
     if(Options::ebDump) {
         for(size_t i = 0; i < numLocalParticles; ++ i)
-	  if (bunch.ID[i] != 0)
             f64buffer[i] =  bunch.Ef[i](0);
         WRITEDATA(Float64, file_m, "Ex", f64buffer);
 
         for(size_t i = 0; i < numLocalParticles; ++ i)
-	  if (bunch.ID[i] != 0)
             f64buffer[i] =  bunch.Ef[i](1);
         WRITEDATA(Float64, file_m, "Ey", f64buffer);
 
         for(size_t i = 0; i < numLocalParticles; ++ i)
-	  if (bunch.ID[i] != 0)
             f64buffer[i] =  bunch.Ef[i](2);
         WRITEDATA(Float64, file_m, "Ez", f64buffer);
 
         for(size_t i = 0; i < numLocalParticles; ++ i)
-	  if (bunch.ID[i] != 0)
             f64buffer[i] =  bunch.Bf[i](0);
         WRITEDATA(Float64, file_m, "Bx", f64buffer);
 	
         for(size_t i = 0; i < numLocalParticles; ++ i)
-	  if (bunch.ID[i] != 0)
             f64buffer[i] =  bunch.Bf[i](1);
         WRITEDATA(Float64, file_m, "By", f64buffer);
 
         for(size_t i = 0; i < numLocalParticles; ++ i)
-	  if (bunch.ID[i] != 0)
             f64buffer[i] =  bunch.Bf[i](2);
         WRITEDATA(Float64, file_m, "Bz", f64buffer);
 
