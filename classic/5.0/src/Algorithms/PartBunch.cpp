@@ -26,6 +26,7 @@
 #include <cfloat>
 #include <fstream>
 #include <iomanip>
+#include <memory>
 
 #include "AbstractObjects/OpalData.h"   // OPAL file
 #include "Distribution/Distribution.h"  // OPAL file
