@@ -33,7 +33,7 @@
 
 #include <iosfwd>
 #include <vector>
-
+#include <memory>
 
 class Distribution;
 class LossDataSink;

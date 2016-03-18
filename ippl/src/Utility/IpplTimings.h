@@ -43,6 +43,7 @@
 #include <vector>
 #include <map>
 #include <limits>
+#include <string>
 #else
 #include <vector.h>
 #include <map.h>
