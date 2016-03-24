@@ -49,6 +49,10 @@ public:
         TCR2,      // trim coil r2 (mm)
         MBTC,      // max bfield of trim coil (kG)
         SLPTC,     // slope of the rising edge
+        TCR1V,      // trim coil r1 (mm)
+        TCR2V,      // trim coil r2 (mm)
+        MBTCV,      // max bfield of trim coil (kG)
+        SLPTCV,     // slope of the rising edge
 	RFPHI,     // the initial phase of RF field
 	SUPERPOSE, // whether the electric field map are superposed or not
 	MINZ,      // minimal vertical extend of the machine

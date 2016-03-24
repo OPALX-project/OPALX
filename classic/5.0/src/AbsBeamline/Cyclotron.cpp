@@ -66,6 +66,10 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     tcr2_m(right.tcr2_m),
     mbtc_m(right.mbtc_m),
     slptc_m(right.slptc_m),
+    tcr1V_m(right.tcr1V_m),
+    tcr2V_m(right.tcr2V_m),
+    mbtcV_m(right.mbtcV_m),
+    slptcV_m(right.slptcV_m),
     minr_m(right.minr_m),
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
@@ -83,6 +87,31 @@ Cyclotron::Cyclotron(const std::string &name):
 
 Cyclotron::~Cyclotron() {
     //~ if(BP.rarr) delete[] BP.rarr;
+}
+
+
+void Cyclotron::applyTrimCoil(double r, double z, double slptc, double tcr1, double tcr2, double mbtc, double *br, double *bz) { 
+  /// updated bz and br with trim coil contributions
+  if(tcr1 != 0.0 && tcr2 != 0.0) {
+    const double Amax1 = 1;
+    const double Amax2 = 3;
+    const double Amin = -2;
+    const double x01 = 4;
+    const double x02 = 8;
+    const double h1 = 0.03;
+    const double h2 = 0.2;
+    const double ftc = slptc;
+    double part1 = pow(10.0, (r / ftc - tcr1 / ftc - x01) * h1);
+    double part2 = pow(10.0, (x02 - r / ftc + tcr1 / ftc) * h2);
+    double part3 = -(Amax1 - Amin) * h1 * log(10) / ftc / (1 + part1) / (1 + part1) * part1;
+    double part4 = (Amax2 - Amin) * h2 * log(10) / ftc / (1 + part2) / (1 + part2) * part2;
+    double dr = mbtc / 2.78 * (part3 + part4);
+    double btr = mbtc / 2.78 * (Amin + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2) - 1.0);
+    if(r < tcr2)       {
+      *bz -= btr;
+      *br -= dr * z;
+    }
+  }
 }
 
 
@@ -207,6 +236,10 @@ void Cyclotron::setEScale(vector<double> s) {
     escale_m = s;
 }
 
+unsigned int Cyclotron::getNumberOfTrimcoils() const {
+  return tcr1V_m.size();
+}
+
 double Cyclotron::getCyclHarm() const {
     return harm_m;
 }
@@ -256,16 +289,18 @@ double Cyclotron::getSLPtc() const {
     return slptc_m;
 }
 
+
 void Cyclotron::setMinR(double r) {
     minr_m = r;
-}
-double Cyclotron::getMinR() const {
-    return minr_m;
 }
 
 void Cyclotron::setMaxR(double r) {
     maxr_m = r;
 }
+double Cyclotron::getMinR() const {
+    return minr_m;
+}
+
 double Cyclotron::getMaxR() const {
     return maxr_m;
 }
@@ -281,6 +316,22 @@ void Cyclotron::setMaxZ(double z) {
 }
 double Cyclotron::getMaxZ() const {
     return maxz_m;
+}
+
+void Cyclotron::setTCr1V(vector<double> tcr1) {
+    tcr1V_m = tcr1;
+}
+
+void Cyclotron::setTCr2V(vector<double> tcr2) {
+    tcr2V_m = tcr2;
+}
+
+void Cyclotron::setMBtcV(vector<double> mbtc) {
+    mbtcV_m = mbtc;
+}
+
+void Cyclotron::setSLPtcV(vector<double> slptc) {
+    slptcV_m = slptc;
 }
 
 void Cyclotron::setFMLowE(double e) { fmLowE_m = e;}
@@ -457,36 +508,15 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         // bt = -( btf - btcub );
         bt = - btf;
 
-        /* Br Btheta -> Bx By */
-        if(tcr1_m != 0.0 && tcr2_m != 0.0) {
-            double partR = sqrt(R[0] * R[0] + R[1] * R[1]);
-            double Amax1 = 1;
-            double Amax2 = 3;
-            double Amin = -2;
-            double x01 = 4;
-            double x02 = 8;
-            double h1 = 0.03;
-            double h2 = 0.2;
-            double ftc = slptc_m;
-            double part1 = pow(10.0, (partR / ftc - tcr1_m / ftc - x01) * h1);
-            double part2 = pow(10.0, (x02 - partR / ftc + tcr1_m / ftc) * h2);
-            double part3 = -(Amax1 - Amin) * h1 * log(10) / ftc / (1 + part1) / (1 + part1) * part1;
-            double part4 = (Amax2 - Amin) * h2 * log(10) / ftc / (1 + part2) / (1 + part2) * part2;
-            double dr = mbtc_m / 2.78 * (part3 + part4);
-            double btr = mbtc_m / 2.78 * (Amin + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2) - 1.0);
 
-            // trim coil
-            // double tca1 = 4;
-            // double tca2 = 22;
-            // bz=bz*(1-btr/20);
-            //for (int kk=0;kk<8;++kk) {
-            //if  (tet>tca1+kk&&tet<tca2+kk) {
+        /* Br Btheta -> Bx By */	
 
-            if(partR < tcr2_m)       {
-                bz -= btr;
-                br -= dr * R[2];
-            }
-        }
+	if (slptcV_m.size() != 0) {	 
+	  for (unsigned int i=0; i<slptcV_m.size(); i++)
+	    applyTrimCoil(rad, R[2], slptcV_m[i], tcr1V_m[i], tcr2V_m[i], mbtcV_m[i], &br, &bz);
+	}
+	else
+	  applyTrimCoil(rad, R[2], slptc_m, tcr1_m, tcr2_m, mbtc_m, &br, &bz);
 
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
         B[1] = br * sin(tet_rad) + bt * cos(tet_rad);
