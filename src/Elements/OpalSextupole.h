@@ -33,6 +33,8 @@ public:
     enum {
         K2 = COMMON,  // The normal sextupole strength.
         K2S,          // The skew sextupole strength.
+        DX,
+        DY,
         SIZE
     };
 

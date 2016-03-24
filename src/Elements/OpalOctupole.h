@@ -33,6 +33,8 @@ public:
     enum {
         K3 = COMMON,  // The normal octupole coefficient.
         K3S,          // The skew octupole coefficient.
+        DX,
+        DY,
         SIZE
     };
 
