@@ -78,14 +78,26 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[TCR1]     = Attributes::makeReal
                         ("TCR1", "trim coil r1 [mm]");
 
+    itsAttr[TCR1V]     = Attributes::makeRealArray
+                        ("TCR1V", "array of trim coil r1 [mm]");
+
     itsAttr[TCR2]     = Attributes::makeReal
                         ("TCR2", "trim coil r2 [mm]");
+
+    itsAttr[TCR2V]     = Attributes::makeRealArray
+                        ("TCR2V", "array of trim coil r2 [mm]");
 
     itsAttr[MBTC]     = Attributes::makeReal
                         ("MBTC", "max bfield of trim coil [kG]");
 
+    itsAttr[MBTCV]     = Attributes::makeRealArray
+                        ("MBTCV", "array of max bfield values of trim coils [kG]");
+
     itsAttr[SLPTC]    = Attributes::makeReal
                         ("SLPTC", "slope of the rising edge");
+
+    itsAttr[SLPTCV]    = Attributes::makeRealArray
+                        ("SLPTCV", "array of slopes of the rising edge");
 
     itsAttr[MINZ]     = Attributes::makeReal
                         ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
@@ -231,18 +243,20 @@ void OpalCyclotron::update() {
     std::vector<double> rff_str = Attributes::getRealArray(itsAttr[RFFREQ]);
     std::vector<bool> superpose_str = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
 
-    // if ((fm_str.size() == scale_str.size()) &&
-    //     (fm_str.size() == phi_str.size()) &&
-    //     (fm_str.size() == rff_str.size())) {
+    std::vector<double> tcr1v  = Attributes::getRealArray(itsAttr[TCR1V]);
+    std::vector<double> tcr2v  = Attributes::getRealArray(itsAttr[TCR2V]);
+    std::vector<double> mbtcv  = Attributes::getRealArray(itsAttr[MBTCV]);
+    std::vector<double> slptcv = Attributes::getRealArray(itsAttr[SLPTCV]);
 
-    //     std::vector<std::string>::const_iterator fm    = fm_str.begin();
-    //     std::vector<double>::const_iterator scale = scale_str.begin();
-    //     std::vector<double>::const_iterator phi   = phi_str.begin();
-    //     std::vector<double>::const_iterator rff   = rff_str.begin();
+    unsigned int vsize = tcr1v.size();
 
-    //     for( ; fm != fm_str.end(); ++fm,++scale,++phi,++rff)
-    //         INFOMSG(" FM= " << *fm << "\t SCALE= " << *scale << "\t PHI= " << *phi << "\t FREQU= " << *rff << endl;);
-    // }
+    if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) && 
+	(mbtcv.size() == vsize) && (slptcv.size() == vsize) && (vsize!=0)) {
+      cycl->setTCr1V(tcr1v);
+      cycl->setTCr2V(tcr2v);
+      cycl->setMBtcV(mbtcv);
+      cycl->setSLPtcV(slptcv);
+    }
 
     cycl->setRfPhi(phi_str);
     cycl->setEScale(scale_str);

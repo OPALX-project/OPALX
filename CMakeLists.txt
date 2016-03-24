@@ -244,3 +244,12 @@ ADD_SUBDIRECTORY (src)
 IF (BUILD_OPAL_UNIT_TESTS)
      ADD_SUBDIRECTORY(tests)
 ENDIF (BUILD_OPAL_UNIT_TESTS)
+
+# make variables visible in other CMakeKists files
+set(OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
+         CACHE INTERNAL "" FORCE
+)
+ 
+set(OPAL_LIBS ${OPAL_LIBS}
+         CACHE INTERNAL "" FORCE
+)
