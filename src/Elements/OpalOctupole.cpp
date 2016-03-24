@@ -42,6 +42,13 @@ OpalOctupole::OpalOctupole():
                   ("K3", "Normalised upright octupole coefficient in m^(-4)");
     itsAttr[K3S] = Attributes::makeReal
                    ("K3S", "Normalised skew octupole coefficient in m^(-4)");
+    itsAttr[DX] = Attributes::makeReal
+      ("DX", "Misalignment in x direction",0.0);
+    itsAttr[DY] = Attributes::makeReal
+      ("DY", "Misalignment in y direction",0.0);
+
+    registerRealAttribute("DX");
+    registerRealAttribute("DY");
 
     setElement((new MultipoleRep("OCTUPOLE"))->makeWrappers());
 }
@@ -123,6 +130,13 @@ void OpalOctupole::update() {
     field.setNormalComponent(4, factor * Attributes::getReal(itsAttr[K3]));
     field.setSkewComponent(4, factor * Attributes::getReal(itsAttr[K3S]));
     oct->setField(field);
+
+    oct->setNormalComponent(2, Attributes::getReal(itsAttr[K3]));
+    oct->setSkewComponent(2, Attributes::getReal(itsAttr[K3S]));
+
+    double dx = Attributes::getReal(itsAttr[DX]);
+    double dy = Attributes::getReal(itsAttr[DY]);
+    oct->setMisalignment(dx, dy, 0.0);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(oct);
