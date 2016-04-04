@@ -16,11 +16,13 @@
 #include <utility>
 #include <vector>
 
+#include "Physics/Physics.h"
+
 #include <boost/numeric/ublas/matrix.hpp>
 
 #include "matrix_vector_operation.h"
 #include "math.h"
-#include "physics.h"
+// #include "physics.h"
 
 template<typename Value_type, typename Size_type>
 class Harmonics
@@ -45,9 +47,10 @@ public:
      * @param nth is the number of angle steps
      * @param nr is the number of radial steps
      * @param nSector is the number of sectors
-     * @param E is the energy
+     * @param E is the kinetic energy [MeV]
+     * @param E0 is the potential energy [MeV]
      */
-    Harmonics(value_type, value_type, value_type, size_type, size_type, size_type, value_type);
+    Harmonics(value_type, value_type, value_type, size_type, size_type, size_type, value_type, value_type);
 
     /// Compute all maps of the cyclotron using harmonics
     /*!
@@ -88,6 +91,8 @@ private:
     value_type ds_m;
     /// Stores the energy for which we perform the computation
     value_type E_m;
+    /// Stores the potential energy [MeV]
+    value_type E0_m;
 
     /// Compute some matrix (ask Dr. C. Baumgarten)
     matrix_type __Mix6(value_type, value_type, value_type);
@@ -105,8 +110,8 @@ private:
 
 template<typename Value_type, typename Size_type>
 Harmonics<Value_type, Size_type>::Harmonics(value_type wo, value_type Emin, value_type Emax,
-    size_type nth, size_type nr, size_type nSector, value_type E)
-    : wo_m(wo), Emin_m(Emin), Emax_m(Emax), nth_m(nth), nr_m(nr), nSector_m(nSector), E_m(E)
+    size_type nth, size_type nr, size_type nSector, value_type E, value_type E0)
+    : wo_m(wo), Emin_m(Emin), Emax_m(Emax), nth_m(nth), nr_m(nr), nSector_m(nSector), E_m(E), E0_m(E0)
 {}
 
 template<typename Value_type, typename Size_type>
@@ -214,11 +219,11 @@ std::vector<typename Harmonics<Value_type, Size_type>::matrix_type> Harmonics<Va
         psi = fac * (1.0 + std::sin(g2) * std::sin(g2)) / std::cos(g2);
         t2eff[i] = std::tan(g2 + psi);
 
-        beta_m     = wo_m / physics::c * len[i] / two_pi;
+        beta_m     = wo_m / Physics::c * len[i] / two_pi;
         gamma[i] = 1.0 / std::sqrt(1.0 - beta_m * beta_m);
-        E[i]     = physics::E0 * (gamma[i] - 1.0);
-        PC[i]    = physics::E0 * gamma[i] * beta_m;
-        Bmag[i]  = physics::E0 * 1.0e6 / physics::c * beta_m * gamma[i] / r[i] * 10.0;
+        E[i]     = E0_m * (gamma[i] - 1.0);
+        PC[i]    = E0_m * gamma[i] * beta_m;
+        Bmag[i]  = E0_m * 1.0e6 / Physics::c * beta_m * gamma[i] / r[i] * 10.0;
 
         if (!set && E[i] >= E_m) {
             set = true;
