@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-#include "physics.h"
+// #include "physics.h"
 
 #include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
 
@@ -51,6 +51,7 @@ class ClosedOrbitFinder
         /// Sets the initial values for the integration and calls findOrbit().
         /*!
          * @param E is the energy [MeV] to which the closed orbit should be found
+         * @param E0 is the potential energy (particle energy at rest) [MeV].
          * @param wo is the nominal orbital frequency (see paper of Dr. C. Baumgarten: "Transverse-Longitudinal
          * Coupling by Space Charge in Cyclotrons" (2012), formula (1))
          * @param N specifies the number of splits (2pi/N), i.e number of integration steps
@@ -67,7 +68,7 @@ class ClosedOrbitFinder
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
          */
-        ClosedOrbitFinder(value_type, value_type, size_type, value_type, size_type, value_type, value_type, size_type,
+        ClosedOrbitFinder(value_type, value_type, value_type, size_type, value_type, size_type, value_type, value_type, size_type,
                           value_type, size_type, size_type, value_type, const std::string&, bool = true);
 
         /// Returns the inverse bending radius (size of container N+1)
@@ -161,6 +162,10 @@ class ClosedOrbitFinder
 
         /// Is the energy for which the closed orbit should be found
         value_type E_m;
+        
+        /// Is the potential energy [MeV]
+        value_type E0_m;
+        
         /// Is the nominal orbital frequency
         value_type wo_m;
         /// Number of integration steps
@@ -237,6 +242,21 @@ class ClosedOrbitFinder
 
         /// ONLY FOR STAND-ALONE PROGRAM
         float** bmag_m;
+        
+        /*!
+         * This quantity is defined in the paper "Transverse-Longitudinal Coupling by Space Charge in Cyclotrons" 
+         * of Dr. Christian Baumgarten (2012)
+         * The lambda function takes the orbital frequency \f$ \omega_{o} \f$ (also defined in paper) as input argument.
+         */
+        std::function<double(double)> acon_m = [](double wo) { return Physics::c / wo; };
+        
+        /// Cyclotron unit \f$ \left[T\right] \f$ (Tesla)
+        /*!
+         * The lambda function takes the orbital frequency \f$ \omega_{o} \f$ as input argument.
+         */
+        std::function<double(double, double)> bcon_m = [](double e0, double wo) {
+            return e0 * 1.0e7 / (/* physics::q0 */ 1.0 * Physics::c * Physics::c / wo);
+        };
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -244,14 +264,14 @@ class ClosedOrbitFinder
 // -----------------------------------------------------------------------------------------------------------------------
 
     template<typename Value_type, typename Size_type, class Stepper>
-ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type E, value_type wo, size_type N,
+ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type E, value_type E0, value_type wo, size_type N,
                                                                      value_type accuracy, size_type maxit,
                                                                      value_type Emin, value_type Emax, size_type nSector,
                                                                      value_type rmin, size_type ntheta, size_type nradial,
                                                                      value_type dr, const std::string& fieldmap,
                                                                      bool domain)
-: nxcross_m(0), nzcross_m(0), E_m(E), wo_m(wo), N_m(N), dtheta_m(2.0*M_PI/value_type(N)),
-  gamma_m(E/physics::E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
+: nxcross_m(0), nzcross_m(0), E_m(E), E0_m(E0), wo_m(wo), N_m(N), dtheta_m(Physics::two_pi/value_type(N)),
+  gamma_m(E/E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
   rmin_m(rmin), ntheta_m(ntheta), nradial_m(nradial), dr_m(dr), lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
   vertOscDone_m(false), fieldmap_m(fieldmap), domain_m(domain), stepper_m()
 {
@@ -420,8 +440,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     pr_m.resize(N_m+1);
 
     // store acon and bcon locally
-    value_type acon = physics::acon(wo_m);               // [acon] = m
-    value_type invbcon = 1.0 / physics::bcon(wo_m);        // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
+    value_type acon = acon_m(wo_m);               // [acon] = m
+    value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);        // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
 
     // helper constants
     value_type p2;                                      // p^2 = p*p
@@ -459,7 +479,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / Physics::pi,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
 
@@ -509,7 +529,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     dE = (dE > 0.25) ? 0.25 : dE;
 
     // energy dependent values
-    value_type en = E / physics::E0;                      // en = E/E0 = E/(mc^2) (E0 is kinetic energy)
+    value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
     value_type p = acon * std::sqrt(en * (2.0 + en));     // momentum [p] = m; Gordon, formula (3)
     value_type gamma2 = (1.0 + en) * (1.0 + en);          // = gamma^2
     value_type beta = std::sqrt(1.0 - 1.0 / gamma2);
@@ -584,7 +604,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             E += dE;
 
         // set constants for new energy E
-        en = E / physics::E0;                     // en = E/E0 = E/(mc^2) (E0 is kinetic energy)
+        en = E / E0_m;                     // en = E/E0 = E/(mc^2) (E0 is potential energy)
         p = acon * std::sqrt(en * (2.0 + en));    // momentum [p] = m; Gordon, formula (3)
         p2 = p * p;                               // p^2 = p*p
         gamma2 = (1.0 + en) * (1.0 + en);
@@ -616,8 +636,7 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
 
     // cos(mu)
     value_type cos = 0.5 * (y[0] + py2);
-
-    value_type twopi = 2.0 * M_PI;
+    
     value_type mu;
 
     // sign of sin(mu) has to be equal to y2
@@ -634,7 +653,7 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
 
         // Gordon, formula (36b)
         value_type muPrime = -std::acosh(std::fabs(cos));      // mu'
-        mu = n * M_PI + muPrime;
+        mu = n * Physics::pi + muPrime;
 
     } else {
         value_type muPrime = (uneven) ? std::acos(-cos) : std::acos(cos);    // mu'
@@ -645,13 +664,13 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
         */
 
         // Gordon, formula (36)
-        mu = ncross * M_PI + muPrime;
+        mu = ncross * Physics::pi + muPrime;
 
         // if sign(y[1]) > 0 && sign(sin(mu)) < 0
         if (!negative && std::signbit(std::sin(mu))) {
-            mu = ncross * M_PI - muPrime;
+            mu = ncross * Physics::pi - muPrime;
         } else if (negative && !std::signbit(std::sin(mu))) {
-            mu = ncross * M_PI - muPrime + twopi;
+            mu = ncross * Physics::pi - muPrime + Physics::two_pi;
         }
     }
 
@@ -663,7 +682,7 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
     if (domain_m)
         mu *= nSector_m;
 
-    return mu / twopi;
+    return mu * Physics::u_two_pi;
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
@@ -678,9 +697,9 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
     // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
 
-    value_type invbcon = 1.0 / physics::bcon(wo_m);
-    value_type en = E_m / physics::E0;                                  // en = E/E0 = E/(mc^2) (E0 is kinetic energy)
-    value_type p = physics::acon(wo_m) * std::sqrt(en * (2.0 + en));    // momentum [p] = m; Gordon, formula (3)
+    value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);
+    value_type en = E_m / E0_m;                                  // en = E/E0 = E/(mc^2) (E0 is potential energy)
+    value_type p = acon_m(wo_m) * std::sqrt(en * (2.0 + en));    // momentum [p] = m; Gordon, formula (3)
     value_type p2 = p * p;
     value_type theta = 0.0;                                             // angle for interpolating
     value_type ptheta;
@@ -692,7 +711,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180.0 / M_PI,nradial_m,ntheta_m,r_m[i],rmin_m,dr_m,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180.0 / Physics::pi,nradial_m,ntheta_m,r_m[i],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -723,8 +742,8 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
 
-    value_type en = E_m / physics::E0;                                  // en = E/E0 = E/(mc^2) with kinetic energy E0
-    value_type p = physics::acon(wo_m) * std::sqrt(en *(en + 2.0));     // Gordon, formula (3)
+    value_type en = E_m / E0_m;                                  // en = E/E0 = E/(mc^2) with potential energy E0
+    value_type p = acon_m(wo_m) * std::sqrt(en *(en + 2.0));     // Gordon, formula (3)
     value_type p2 = p * p;                                              // p^2 = p*p
     size_type idx = 0;                                                  // index for going through container
     value_type pr2;                                                     // pr^2 = pr*pr
@@ -732,7 +751,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     value_type zold = 0.0;                                              // for counting nzcross
 
     // store bcon locally
-    value_type invbcon = 1.0 / physics::bcon(wo_m);     // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
+    value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);     // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
 
     // define the ODEs (using lambda function)
     std::function<void(const state_type&, state_type&, const double)> vertical = [&](const state_type &y,
@@ -750,7 +769,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / M_PI,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
+        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / Physics::pi,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -798,7 +817,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     pz_m[0] = y[3];
     z_m[1] = y[4];
     pz_m[1] = y[5];
-    phase_m = y[6] / (2.0 * M_PI);
+    phase_m = y[6] * Physics::u_two_pi; // / (2.0 * Physics::pi);
 
     /* domain_m = true --> only integrated over a single sector
      * --> multiply by nSector_m to get correct phase_m
