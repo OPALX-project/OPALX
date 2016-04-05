@@ -43,6 +43,13 @@ OpalSextupole::OpalSextupole():
                   ("K2", "Normalised upright sextupole coefficient in m^(-3)");
     itsAttr[K2S] = Attributes::makeReal
                    ("K2S", "Normalised skew sextupole coefficient in m^(-3)");
+    itsAttr[DX] = Attributes::makeReal
+      ("DX", "Misalignment in x direction",0.0);
+    itsAttr[DY] = Attributes::makeReal
+      ("DY", "Misalignment in y direction",0.0);
+
+    registerRealAttribute("DX");
+    registerRealAttribute("DY");
 
     setElement((new MultipoleRep("SEXTUPOLE"))->makeWrappers());
 }
@@ -125,6 +132,13 @@ void OpalSextupole::update() {
     field.setNormalComponent(3, factor * Attributes::getReal(itsAttr[K2]));
     field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K2S]));
     sext->setField(field);
+
+    sext->setNormalComponent(2, Attributes::getReal(itsAttr[K2]));
+    sext->setSkewComponent(2, Attributes::getReal(itsAttr[K2S]));
+
+    double dx = Attributes::getReal(itsAttr[DX]);
+    double dy = Attributes::getReal(itsAttr[DY]);
+    sext->setMisalignment(dx, dy, 0.0);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(sext);
