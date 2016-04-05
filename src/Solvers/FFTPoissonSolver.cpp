@@ -429,6 +429,7 @@ FFTPoissonSolver::~FFTPoissonSolver() {
 // the Poisson's equation
 
 void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift) {
+  
     // use grid of complex doubled in both dimensions
     // and store rho in lower left quadrant of doubled grid
     rho2_m = 0.0;
@@ -467,6 +468,7 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift
     Index J = nr_m[1];
     Index K = nr_m[2];
     rho[I][J][K] = rho2_m[I][J][nr_m[2] - K - 1];
+
 }
 
 
@@ -515,13 +517,15 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     dksbase.syncDevice();
     MPI_Barrier(Ippl::getComm());
-    
+
     if (Ippl::myNode() == 0) {
       IpplTimings::startTimer(GreensFunctionTimer_m);
       integratedGreensFunction();
       IpplTimings::stopTimer(GreensFunctionTimer_m);
-    }
-    
+      //transform the greens function
+      int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
+      dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
+    }  
     MPI_Barrier(Ippl::getComm());
 
     //transform rho2_m keep pointer to GPU memory where results are stored in rho2tr_m_ptr  
@@ -529,11 +533,12 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     if (Ippl::myNode() == 0) {
       //transform the greens function
-      int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
-      dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
+      //int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
+      //dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
       
       //multiply fields and free unneeded memory
       int sizecomp = grntr_m.getLayout().getDomain().size();
+      dksbase.syncDevice();
       dksbase.callMultiplyComplexFields(rho2tr_m_ptr, grntr_m_ptr, sizecomp);
     }
    
