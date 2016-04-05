@@ -502,7 +502,7 @@ public:
   */
 #ifdef IPPL_DKS
   void transformDKSCR(int direction, RealField_t& g, void* real_ptr, void* comp_ptr, 
-		      DKSBase &dksbase, const bool& constInput=false);
+		      DKSBase &dksbase, int streamId = -1, const bool& constInput=false);
 #endif
 
 private:

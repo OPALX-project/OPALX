@@ -1161,13 +1161,15 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
   //check the domain of incoming field
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
-    
+   
   PAssert( this->checkDomain(this->getDomain(), in_dom) );
-  
+
   unsigned nTransformDims = this->numTransformDims();
-  
-  RealField_t* tempR = tempRField_m; //
-  
+
+  //*** using tempRField_m and transposing f field ***//
+  /*
+  RealField_t* tempR = tempRField_m;
+    
   if (!constInput) {
     // see if we can use input field f as a temporary
     bool skipTemp = true;
@@ -1197,12 +1199,15 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
     if (skipTemp)
       tempR = &f;
   }
-
+  
   // if we're not using input as a temporary ...
   if (tempR != &f) {
     // transpose and permute to real field with transform dim first
     (*tempR)[tempR->getDomain()] = f[in_dom];
   }
+  */
+  //*** just use f field as is and keep decomposition as defined in input file ***//
+  RealField_t* tempR = &f;
 	
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   rl_i = tempR->begin_if();
@@ -1222,8 +1227,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
     NR_g[d] = (int)tempR->getDomain()[d].length();
     NC_g[d] = NR_g[d];
   }
-  NC_g[0] = (NC_g[0] / 2) + 1;
-	
+  NC_g[0] = (NC_g[0] / 2) + 1;	
 	
   //get global and local domain sizes	
   int sizereal = NR_l[0]*NR_l[1]*NR_l[2];
@@ -1273,15 +1277,16 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
       
     } else {
       //write real data to device
-      dksbase.writeData<T>(real_ptr, localreal, totalreal);
+      dksbase.writeDataAsync<T>(real_ptr, localreal, totalreal, streamId);
+      //dksbase.writeData<T>(real_ptr, localreal, totalreal);
     }
     
-    //call real to complex fft
-    dksbase.callR2CFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g); 
+    //call real to complex fft   
+    dksbase.callR2CFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g, streamId); 
 
     //normalize fft
     if (direction == +1)
-      dksbase.callNormalizeFFT(comp_ptr, nTransformDims, (int*) NC_g);
+      dksbase.callNormalizeFFT(comp_ptr, nTransformDims, (int*) NC_g, streamId);
     	
   } else {
     if (streamId == -1) {
@@ -1297,17 +1302,14 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
     }
    
   }
-
   /* end dks part */
-	  
-
 
   // finish timing the whole mess
   IpplTimings::stopTimer(tottimer);	
 }
 #endif
 
-
+/*
 #ifdef IPPL_DKS
 template <unsigned Dim, class T>
 void
@@ -1476,7 +1478,10 @@ FFT<RCTransform,Dim,T>::transform(
     cidy[node] = tmp[1].min();
     cidz[node] = tmp[2].min();
   }
-	
+
+  //int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
+  //int cid[3] = {cidx[Ippl::myNode()], cidy[Ippl::myNode()], cidz[Ippl::myNode()]};	
+
   int ierr;
   void *real_ptr, *comp_ptr;
 	    
@@ -1491,6 +1496,7 @@ FFT<RCTransform,Dim,T>::transform(
       //gather data from different mpi processes directly into gpu buffer
       base.gather3DData( real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
 			 Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
+      
     } else {
       //write real data to device
       ierr = base.writeData<T>(real_ptr, localreal, totalreal);
@@ -1504,8 +1510,9 @@ FFT<RCTransform,Dim,T>::transform(
       //scatter data to different mpi processes directly from gpu buffer
       MPI_Barrier( Ippl::getComm() );
       
-      base.scatter3DData(comp_ptr, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz, 
-			 Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
+      base.scatter3DData(comp_ptr, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, 
+			 cidz, Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
+      
     } else {
       //read complex data from device
       base.readData<Complex_t>(comp_ptr, localcomp, totalcomp);
@@ -1516,6 +1523,7 @@ FFT<RCTransform,Dim,T>::transform(
     base.freeMemory<Complex_t>(comp_ptr, totalcomp);
     
   } else {
+    
     //send data via gatherv to gpu controled by root process
     base.gather3DData( NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
@@ -1523,11 +1531,8 @@ FFT<RCTransform,Dim,T>::transform(
     MPI_Barrier(Ippl::getComm());
     base.scatter3DData(NULL, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz, 
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
-		
+    		
   }
-  /* end dks part */
-
-
 	
   //assign complex field
   if (temp != &g) {
@@ -1554,6 +1559,7 @@ FFT<RCTransform,Dim,T>::transform(
   	
 }
 #else
+*/
 template <unsigned Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transform(
@@ -1843,7 +1849,7 @@ FFT<RCTransform,Dim,T>::transform(
   IpplTimings::stopTimer(tottimer);
   
 }
-#endif
+//#endif
 
 //-----------------------------------------------------------------------------
 // RC FFT; opposite direction, from complex to real
@@ -1863,6 +1869,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 				       void* real_ptr,
 				       void* comp_ptr,
 				       DKSBase &dksbase,
+				       int streamId,
 				       const bool& constInput)
 {
   // time the whole mess
@@ -1872,14 +1879,20 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
   
+  //if (Ippl::myNode() == 0)
+  //  std::cout << "DEBUG INVERSE g: " << g.getLayout() << std::endl;
+
   PAssert( this->checkDomain(this->getDomain(),out_dom) );
   
   unsigned nTransformDims = this->numTransformDims();
   
   // see if we can put final result directly into g
   RealField_t* tempR;
-  bool skipTemp = true;
 
+  /*** using tempRField_m and transposing to g field in the end ***/
+  /*
+  bool skipTemp = true;
+  
   // more rigorous match required here; check that layouts are identical
   if (!(out_layout == *tempRLayout_m)) {
     skipTemp = false;
@@ -1900,7 +1913,13 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
     tempR = &g;
   else 
     tempR = tempRField_m;
+  */
+  //***Use g as is and keep decomposition as defined in input file***/
+  tempR = &g;
+  //if (Ippl::myNode() == 0)
+  //  std::cout << "DEBUG INVERSE tempR: " << tempR->getLayout() << std::endl;
   
+
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   rl_i = tempR->begin_if();
 
@@ -1908,6 +1927,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
   RealLField_t* rldf = (*rl_i).second.get();
   // make sure we are uncompressed
   rldf->Uncompress();
+
   // get the raw data pointers
   T* localreal = rldf->getP();
 	
@@ -1921,9 +1941,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
   NC_g[0] = (NC_g[0] / 2) + 1;
 	
   //get sizes of global and local domains
-  //int sizereal = NR_l[0]*NR_l[1]*NR_l[2];
   int totalreal = tempR->getDomain().size();
-  //int totalcomp = NC_g[0]*NC_g[1]*NC_g[2];
 
   //local vnodes get starting position for real field subdomains
   int *idx = new int[Ippl::getNodes()];
@@ -1947,22 +1965,16 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
   }
     
   int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
-  //do the FFT on GPU    
-  //int ierr;
-  //void *real_ptr;
-   
+ 
   /* DKS part */
   if (Ippl::myNode() == 0) {
     
-    //allocate memory on device for real and complex arrays
-    //real_ptr = dksbase.allocateMemory<T>(totalreal, ierr);
-    
     //call real to complex fft
-    dksbase.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g);   
+    dksbase.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g, streamId);   
 
     //normalize
     if (direction == +1)
-      dksbase.callNormalizeC2RFFT(real_ptr, nTransformDims, (int*)NR_g);
+      dksbase.callNormalizeC2RFFT(real_ptr, nTransformDims, (int*)NR_g, streamId);
 
     if (Ippl::getNodes() > 1) {
       dksbase.syncDevice();
@@ -1978,7 +1990,9 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
       MPI_Barrier(Ippl::getComm());
     } else {
       //read real data from device
-      dksbase.readData<T>(real_ptr, localreal, totalreal);
+      dksbase.readDataAsync<T>(real_ptr, localreal, totalreal, streamId);
+      dksbase.syncDevice();
+      //dksbase.readData<T>(real_ptr, localreal, totalreal);
     }
     	    
   } else {
@@ -2008,7 +2022,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 #endif
 
 
-
+/*
 #ifdef IPPL_DKS
 template <unsigned Dim, class T>
 void
@@ -2087,11 +2101,11 @@ FFT<RCTransform,Dim,T>::transform(
   else 
     tempR = tempRField_m;
 	
-  /*
-    unsigned nTransformDims = this->numTransformDims();
-    RealField_t* tempR = &g;
-    ComplexField_t* temp = &f;
-  */
+  
+    //unsigned nTransformDims = this->numTransformDims();
+    //RealField_t* tempR = &g;
+    //ComplexField_t* temp = &f;
+  
 	
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   rl_i = tempR->begin_if();
@@ -2129,7 +2143,7 @@ FFT<RCTransform,Dim,T>::transform(
   int *cidx = new int[Ippl::getNodes()];
   int *cidy = new int[Ippl::getNodes()];
   int *cidz = new int[Ippl::getNodes()];
-  /*
+  
   for (typename Layout_t::const_iterator_iv i_s = temp->getLayout().begin_iv(); i_s != temp->getLayout().end_iv(); ++i_s) {
     Domain_t tmp = (*i_s).second->getDomain();
     int node = (*i_s).second->getNode();
@@ -2146,12 +2160,12 @@ FFT<RCTransform,Dim,T>::transform(
     cidy[node] = tmp[1].min();
     cidz[node] = tmp[2].min();
   }
-  */
+  
   //local vnodes get starting position for real field subdomains
   int *idx = new int[Ippl::getNodes()];
   int *idy = new int[Ippl::getNodes()];
   int *idz = new int[Ippl::getNodes()];
-  /*
+  
   for (typename Layout_t::const_iterator_iv i_s = tempR->getLayout().begin_iv(); i_s != tempR->getLayout().end_iv(); ++i_s) {
     Domain_t tmp = (*i_s).second->getDomain();
     int node = (*i_s).second->getNode();
@@ -2168,12 +2182,15 @@ FFT<RCTransform,Dim,T>::transform(
     idy[node] = tmp[1].min();
     idz[node] = tmp[2].min();
   }
-  */
+  
+  //int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
+  //int cid[3] = {cidx[Ippl::myNode()], cidy[Ippl::myNode()], cidz[Ippl::myNode()]};	
+
   //do the FFT on GPU    
   int ierr;
   void *real_ptr, *comp_ptr;
    
-  /* DKS part */
+  //DKS part
   if (Ippl::myNode() == 0) {
     
     //allocate memory on device for real and complex arrays
@@ -2181,8 +2198,9 @@ FFT<RCTransform,Dim,T>::transform(
     comp_ptr = base.allocateMemory<Complex_t>(totalcomp, ierr);
     
     if (Ippl::getNodes() > 1) {
-      base.gather3DData( comp_ptr, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz, 
-			 Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
+      base.gather3DData( comp_ptr, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, 
+			 cidx, cidy, cidz, Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
+
     } else {
       //write real data to device
       ierr = base.writeData<Complex_t>(comp_ptr, localcomp, totalcomp);
@@ -2197,6 +2215,7 @@ FFT<RCTransform,Dim,T>::transform(
       MPI_Barrier(Ippl::getComm());
       base.scatter3DData(real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
 			 Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
+      
     } else {
       //read real data from device
       base.readData<T>(real_ptr, localreal, totalreal);
@@ -2206,7 +2225,7 @@ FFT<RCTransform,Dim,T>::transform(
     base.freeMemory<T>(real_ptr, totalreal);
     base.freeMemory<Complex_t>(comp_ptr, totalcomp);
   } else {
-    
+
     //send data via gatherv to gpu controled by root process
     base.gather3DData( NULL, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz, 
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
@@ -2216,7 +2235,7 @@ FFT<RCTransform,Dim,T>::transform(
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
 			
   }
-  /* end dks part */
+  //end dks part
 
   // Now assign into output Field, and compress last temp's storage:
   if (tempR != &g) {
@@ -2232,6 +2251,7 @@ FFT<RCTransform,Dim,T>::transform(
   IpplTimings::stopTimer(tottimer);
 }
 #else
+*/
 template <unsigned Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transform(
@@ -2485,7 +2505,7 @@ FFT<RCTransform,Dim,T>::transform(
   // finish up timing the whole mess
   IpplTimings::stopTimer(tottimer);
 }
-#endif
+//#endif
 
 //=============================================================================
 // 1D FFT RCTransform Constructors
