@@ -17,7 +17,6 @@
 #include <boost/numeric/ublas/matrix.hpp>
 
 #include "matrix_vector_operation.h"
-#include "physics.h"
 
 #include "FixedAlgebra/FTps.h"
 #include "FixedAlgebra/FMatrix.h"

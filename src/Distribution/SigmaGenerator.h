@@ -30,6 +30,8 @@
 #include <utility>
 #include <vector>
 
+#include "Physics/Physics.h"
+
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector.hpp>
@@ -37,7 +39,7 @@
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
 
 #include "math.h"
-#include "physics.h"
+// #include "physics.h"
 #include "rdm.h"
 
 #include "matrix_vector_operation.h"
@@ -265,7 +267,7 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
         value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSector, value_type rmin,
         size_type N, size_type ntheta, size_type nradial, value_type dr, const std::string& fieldmap, size_type truncOrder, bool write)
 : I_m(I), wo_m(wo), E_m(E),
-  gamma_m(E/physics::E0+1.0), gamma2_m(gamma_m*gamma_m),
+  gamma_m(E/m+1.0), gamma2_m(gamma_m*gamma_m),
   nh_m(nh), beta_m(std::sqrt(1.0-1.0/gamma2_m)), m_m(m), niterations_m(0), converged_m(false),
   Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), rmin_m(rmin), N_m(N), nStepsPerSector_m(N/nSector), ntheta_m(ntheta),
   nradial_m(nradial), dr_m(dr), error_m(std::numeric_limits<value_type>::max()),
@@ -273,12 +275,12 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
 {
     // set emittances (initialization like that due to old compiler version)
     // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = mm mrad
-    emittance_m[0] = ex * M_PI;
-    emittance_m[1] = ey * M_PI;
-    emittance_m[2] = ez * M_PI;
+    emittance_m[0] = ex * Physics::pi;
+    emittance_m[1] = ey * Physics::pi;
+    emittance_m[2] = ez * Physics::pi;
 
     // minimum beta*gamma
-    value_type minGamma = Emin_m / physics::E0 + 1.0;
+    value_type minGamma = Emin_m / m_m + 1.0;
     value_type bgam = std::sqrt(minGamma * minGamma - 1.0);
 
     // normalized emittance (--> multiply with beta*gamma)
@@ -306,12 +308,12 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
 
     Hsc_m = [&](value_type sigx, value_type sigy, value_type sigz) {
         // convert m from MeV/c^2 to eV*s^{2}/m^{2}
-        value_type m = m_m * 1.0e6 / (physics::c * physics::c);
+        value_type m = m_m * 1.0e6 / (Physics::c * Physics::c);
 
         // formula (57)
-        value_type lam = 2.0 * M_PI*physics::c / (wo_m * nh_m); // wavelength, [lam] = m
-        value_type K3 = 3.0 * physics::q0 * I_m * lam / (20.0 * std::sqrt(5.0) * M_PI * physics::eps0 * m *
-                        physics::c * physics::c * physics::c * beta_m * beta_m * gamma_m * gamma2_m);            // [K3] = m
+        value_type lam = 2.0 * Physics::pi*Physics::c / (wo_m * nh_m); // wavelength, [lam] = m
+        value_type K3 = 3.0 * /* physics::q0 */ 1.0 * I_m * lam / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m *
+                        Physics::c * Physics::c * Physics::c * beta_m * beta_m * gamma_m * gamma2_m);            // [K3] = m
 
         value_type milli = 1.0e-3;
 
@@ -359,7 +361,11 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
         std::pair<value_type,value_type> tunes;
 
         if (!harmonic) {
-            ClosedOrbitFinder<value_type, size_type, boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, wo_m, N_m, accuracy, maxitOrbit, Emin_m, Emax_m, nSector_m, rmin_m, ntheta_m, nradial_m, dr_m, fieldmap_m,false);
+            ClosedOrbitFinder<value_type, size_type, boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
+                                                                                                                maxitOrbit, Emin_m, Emax_m,
+                                                                                                                nSector_m, rmin_m, ntheta_m,
+                                                                                                                nradial_m, dr_m, fieldmap_m,
+                                                                                                                false);
 
             // properties of one turn
             container_type h_turn = cof.getInverseBendingRadius();
@@ -440,7 +446,7 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
             std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
 
         } else {
-            Harmonics<value_type, size_type> H(wo_m,Emin_m, Emax_m, ntheta_m, nradial_m, nSector_m, E_m);
+            Harmonics<value_type, size_type> H(wo_m,Emin_m, Emax_m, ntheta_m, nradial_m, nSector_m, E_m, m_m);
             Mcycs = H.computeMap("data/inj2sym_mainharms.4","data/inj2sym_mainharms.8",4);
             ravg = H.getRadius();
             tunes = H.getTunes();
@@ -637,7 +643,7 @@ inline typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator
 template<typename Value_type, typename Size_type>
 inline std::array<Value_type,3> SigmaGenerator<Value_type, Size_type>::getEmittances() const {
     value_type bgam = gamma_m*beta_m;
-    return std::array<value_type,3>({emittance_m[0]/M_PI/bgam, emittance_m[1]/M_PI/bgam, emittance_m[2]/M_PI/bgam});
+    return std::array<value_type,3>({emittance_m[0]/Physics::pi/bgam, emittance_m[1]/Physics::pi/bgam, emittance_m[2]/Physics::pi/bgam});
 }
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -679,7 +685,7 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     value_type kilo = 1.0e3;
 
     // convert mass m_m from MeV/c^2 to eV*s^{2}/m^{2}
-    value_type m = m_m * mega/(physics::c * physics::c);        // [m] = eV*s^{2}/m^{2}, [m_m] = MeV/c^2
+    value_type m = m_m * mega/(Physics::c * Physics::c);        // [m] = eV*s^{2}/m^{2}, [m_m] = MeV/c^2
 
     /* Emittance [ex] = [ey] = [ez] = mm mrad (emittance_m are normalized emittances
      * (i.e. emittance multiplied with beta*gamma)
@@ -703,11 +709,11 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     value_type h = 1.0 / ravg;            // [h] = 1/m
 
     // formula (57)
-    value_type lam = 2.0 * M_PI * physics::c / (wo_m * nh_m); // wavelength, [lam] = m
-    value_type K3 = 3.0 * physics::q0 * I_m * lam / (20.0 * std::sqrt(5.0) * M_PI * physics::eps0 * m *
-                    physics::c * physics::c * physics::c * beta_m * beta_m * gamma2_m * gamma_m);               // [K3] = m
+    value_type lam = 2.0 * Physics::pi * Physics::c / (wo_m * nh_m); // wavelength, [lam] = m
+    value_type K3 = 3.0 * /* physics::q0 */ 1.0 * I_m * lam / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m *
+                    Physics::c * Physics::c * Physics::c * beta_m * beta_m * gamma2_m * gamma_m);               // [K3] = m
 
-    value_type alpha = physics::q0 * physics::mu0 * I_m / (5.0 * std::sqrt(10.0) * m * physics::c *
+    value_type alpha = /* physics::q0 */ 1.0 * Physics::mu_0 * I_m / (5.0 * std::sqrt(10.0) * m * Physics::c *
                        gamma_m * nh_m) * std::sqrt(rcyc * rcyc * rcyc / (e * e * e));                           // [alpha] = 1/rad --> [alpha] = 1
 
     value_type sig0 = std::sqrt(2.0 * rcyc * e) / gamma_m;                                                      // [sig0] = m*sqrt(rad) --> [sig0] = m
