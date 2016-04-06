@@ -422,7 +422,7 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
 
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
+    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
 
@@ -459,8 +459,8 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
     WRITEDATA(Float64, file_m, "mass", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
-        i32buffer[i] =  bunch.ID[i];
-    WRITEDATA(Int32, file_m, "id", i32buffer);
+        i64buffer[i] =  bunch.ID[i];
+    WRITEDATA(Int64, file_m, "id", i64buffer);
 
     if(Options::ebDump) {
         for(size_t i = 0; i < numLocalParticles; ++ i)
