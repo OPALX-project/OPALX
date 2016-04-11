@@ -406,13 +406,20 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
                 // write other properties
                 std::string energy = float2string(E_m);
                 std::ofstream writeProperties("data/PropertiesForEnergy"+energy+"MeV.dat", std::ios::app);
-                writeProperties << std::left << std::setw(25) << "orbit radius" << std::setw(25);
-                writeProperties << "inverse bending radius" << std::setw(25) << "field index";
-                writeProperties << std::setw(25) << "path length" << std::endl;
+                writeProperties << std::left
+                                << std::setw(25) << "orbit radius"
+                                << std::setw(25) << "orbit momentum"
+                                << std::setw(25) << "inverse bending radius"
+                                << std::setw(25) << "field index"
+                                << std::setw(25) << "path length" << std::endl;
 
                 for (size_type i = 0; i < r_turn.size(); ++i) {
-                    writeProperties << std::setprecision(10) << std::left << std::setw(25) << r_turn[i];
-                    writeProperties << std::setw(25) << h_turn[i] << std::setw(25) << fidx_turn[i] << std::setw(25) <<  ds_turn[i] << std::endl;
+                    writeProperties << std::setprecision(10) << std::left
+                                    << std::setw(25) << r_turn[i]
+                                    << std::setw(25) << peo[i]
+                                    << std::setw(25) << h_turn[i]
+                                    << std::setw(25) << fidx_turn[i]
+                                    << std::setw(25) <<  ds_turn[i] << std::endl;
                 }
 
                 // close all files within this if-statement
