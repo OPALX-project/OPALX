@@ -435,7 +435,7 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
                   << "*" << endl
                   << "* average radius: " << ravg << " [m]" << endl
                   << "* initial radius: " << r_turn[0] << " [m]" << endl
-                  << "* initial momentum: " << peo[0] << " [m]" << endl
+                  << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
                   << "* frequency error: " << cof.getFrequencyError() << endl
                   << "* horizontal tune: " << tunes.first << endl
                   << "* vertical tune: " << tunes.second << endl

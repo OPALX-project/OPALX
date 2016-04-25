@@ -98,6 +98,7 @@ class ClosedOrbitFinder
         /// part, i.e. it takes the next starting index below. There's no interpolation of the momentum.
         /*!
          * @param angle is the start angle for the output. Has to be within [0°,360°[ (default: 0°).
+         * @returns the momentum in \f$ \beta * \gamma \f$ units
          */
         container_type getMomentum(value_type angle = 0);
 
@@ -385,6 +386,28 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
         // copy start to end
         std::copy_n(pr_m.begin(), start, pr.end() - start);
     }
+    
+    // change units from meters to \beta * \gamma
+    /* in Gordon paper:
+     * 
+     * p = \gamma * \beta * a
+     * 
+     * where a = c / \omega_{0} with \omega_{0} = 2 * \pi * \nu_{0} = 2 * \pi * \nu_{rf} / h
+     * 
+     * c: speed of light
+     * h: harmonic number
+     * v_{rf}: nomial rf frequency
+     * 
+     * Units:
+     * 
+     * [a] = m --> [p] = m
+     * 
+     * The momentum in \beta * \gamma is obtained by dividing by (\beta * \gamma * a)
+     */
+    value_type beta = std::sqrt(1.0 - 1.0 / ( gamma_m * gamma_m ) );
+    value_type factor =  1.0 / ( beta * gamma_m * acon_m(wo_m) );
+    std::for_each(pr.begin(), pr.end(), [factor](value_type p) { return p * factor; });
+    
     return pr;
 }
 
