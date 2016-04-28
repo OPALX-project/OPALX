@@ -402,10 +402,9 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
      * 
      * [a] = m --> [p] = m
      * 
-     * The momentum in \beta * \gamma is obtained by dividing by (\beta * \gamma * a)
+     * The momentum in \beta * \gamma is obtained by dividing by "a"
      */
-    value_type beta = std::sqrt(1.0 - 1.0 / ( gamma_m * gamma_m ) );
-    value_type factor =  1.0 / ( beta * gamma_m * acon_m(wo_m) );
+    value_type factor =  1.0 / acon_m(wo_m);
     std::for_each(pr.begin(), pr.end(), [factor](value_type p) { return p * factor; });
     
     return pr;
