@@ -31,6 +31,9 @@
 #include <vector>
 
 #include "Physics/Physics.h"
+#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -39,7 +42,6 @@
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
 
 #include "math.h"
-// #include "physics.h"
 #include "rdm.h"
 
 #include "matrix_vector_operation.h"
@@ -460,6 +462,10 @@ template<typename Value_type, typename Size_type>
             tunes = H.getTunes();
             const_ds = H.getPathLength();
         }
+
+
+	if(Options::cloTuneOnly)
+	  throw OpalException("Do only CLO and tune calculation","... ");
 
         // initialize sigma matrices (for each angle one) (first guess)
         initialize(tunes.second,ravg);
