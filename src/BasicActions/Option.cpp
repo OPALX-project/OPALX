@@ -70,6 +70,7 @@ namespace {
         ASCIIDUMP,
         BOUNDPDESTROYFQ,
 	BEAMHALOBOUNDARY,
+	CLOTUNEONLY,
         SIZE
     };
 }
@@ -141,6 +142,9 @@ Option::Option():
     itsAttr[SCHOTTKYCORR] =  Attributes::makeBool
                                    ("SCHOTTKYCORR", "If set to true a Schottky correction to the charge is applied ", schottkyCorrection);
 
+    itsAttr[CLOTUNEONLY] =  Attributes::makeBool
+                                   ("CLOTUNEONLY", "If set to true stop after CLO and tune calculation ", cloTuneOnly);
+
     itsAttr[SCHOTTKYRENO] =  Attributes::makeReal
                                          ("SCHOTTKYRENO", "IF set to a value greater than 0.0 the Schottky correction scan is disabled and the value is used for charge renormalization ", schottkyRennormalization);
 
@@ -196,6 +200,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[SURFDUMPFREQ], surfDumpFreq);
     Attributes::setBool(itsAttr[CZERO], cZero);
     Attributes::setBool(itsAttr[SCHOTTKYCORR], schottkyCorrection);
+    Attributes::setBool(itsAttr[CLOTUNEONLY], cloTuneOnly);
     Attributes::setString(itsAttr[RNGTYPE], std::string(rngtype));
     Attributes::setReal(itsAttr[SCHOTTKYRENO], schottkyRennormalization);
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
@@ -323,6 +328,12 @@ void Option::execute() {
     }
     else {
         beamHaloBoundary = 0;
+    }
+
+    if(itsAttr[CLOTUNEONLY]) {
+        cloTuneOnly = bool(Attributes::getBool(itsAttr[CLOTUNEONLY]));
+    } else {
+        cloTuneOnly = false;
     }
 
     // Set message flags.
