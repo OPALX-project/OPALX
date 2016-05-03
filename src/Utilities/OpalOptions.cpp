@@ -61,12 +61,8 @@ namespace Options {
 
     double schottkyRennormalization = -1;
 
-    // // If true change the time step during emission from the cathode so that that one bin
-    // // of the time histogram that describes the longitudinal beam distribution is emitted
-    // // during each time step. If false then the time step during emission is set so that one
-    // // energy bin of the beam is emitted during each time step.
-    // bool fineEmission = true;
-
+    bool cloTuneOnly;
+   
     // Governs how often boundp_destroy is called to destroy lost particles
     // Mainly used in the CyclotronTracker as of now -DW
     int boundpDestroyFreq = 10;
