@@ -454,7 +454,6 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
 
     case DistrTypeT::MATCHEDGAUSS:
         CreateMatchedGaussDistribution(numberOfParticles, massIneV);
-	*gmsg << "DONE3 " << endl;
         break;
     case DistrTypeT::FROMFILE:
         CreateDistributionFromFile(numberOfParticles, massIneV);
@@ -478,12 +477,8 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
         INFOMSG("Distribution unknown." << endl;);
         break;
     }
-
-    *gmsg << "Before Scale " << endl;
     // AAA Scale and shift coordinates according to distribution input.
-    //    ScaleDistCoordinates();
-    *gmsg << "Scale done " << endl;
-
+    ScaleDistCoordinates();
 }
 
 void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
@@ -1309,7 +1304,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       MagneticField::ReadHeader(&nr, &nth, &rmin, &dr, &dth, &nsc, Attributes::getString(itsAttr[AttributesT::FMAPFN]));
 
       int Nint = 1000;
-      bool writeMap = false;
+      bool writeMap = true;
 
       SigmaGenerator<double,unsigned int> *siggen = new SigmaGenerator<double,unsigned int>(I_m,
 						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
@@ -1331,8 +1326,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
 						 writeMap);
 
-
-                  
+      
       if(siggen->match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
 		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
 		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
@@ -1344,6 +1338,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	
 	if (Attributes::getReal(itsAttr[AttributesT::RGUESS]) > 0)
 	  *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS]) << " (m) " << endl;
+
 	*gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", " << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
 	*gmsg << "* Sigma-Matrix " << endl;
 
@@ -1365,6 +1360,9 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	  
 	*/
 
+	if(Options::cloTuneOnly)
+	  throw OpalException("Do only CLO and tune calculation","... ");
+                  
 
 	auto sigma = siggen->getSigma();
 	// change units from mm to m
