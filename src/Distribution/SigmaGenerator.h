@@ -109,9 +109,10 @@ class SigmaGenerator
          * @param maxit is the maximum number of iterations (the program stops if within this value no stationary distribution was found)
          * @param maxitOrbit is the maximum number of iterations for finding closed orbit
          * @param angle defines the start of the sector (one can choose any angle between 0° and 360°)
+	 * @param guess value of radius for closed orbit finder
          * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
          */
-        bool match(value_type, size_type, size_type, value_type, bool);
+        bool match(value_type, size_type, size_type, value_type, value_type, bool);
 
         /// Block diagonalizes the symplex part of the one turn transfer matrix
         /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>. It returns a vector containing the four eigenvalues
@@ -340,7 +341,7 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
 }
 
 template<typename Value_type, typename Size_type>
-bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle, bool harmonic) {
+  bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle, value_type rguess, bool harmonic) {
     /* compute the equilibrium orbit for energy E_
      * and get the the following properties:
      * - inverse bending radius h
@@ -364,7 +365,7 @@ bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type
             ClosedOrbitFinder<value_type, size_type, boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
                                                                                                                 maxitOrbit, Emin_m, Emax_m,
                                                                                                                 nSector_m, rmin_m, ntheta_m,
-                                                                                                                nradial_m, dr_m, fieldmap_m,
+                                                                                                                nradial_m, dr_m, fieldmap_m, rguess,
                                                                                                                 false);
 
             // properties of one turn

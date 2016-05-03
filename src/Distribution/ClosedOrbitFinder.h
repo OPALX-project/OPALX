@@ -65,11 +65,12 @@ class ClosedOrbitFinder
          * @param nradial is the number of radial splits (fieldmap variable)
          * @param dr is the radial step size, \f$ \left[\Delta r\right] = \si{m} \f$
          * @param fieldmap is the location of the file that specifies the magnetic field
+	 * @param guesss value of radius for closed orbit finder 
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
          */
         ClosedOrbitFinder(value_type, value_type, value_type, size_type, value_type, size_type, value_type, value_type, size_type,
-                          value_type, size_type, size_type, value_type, const std::string&, bool = true);
+                          value_type, size_type, size_type, value_type, const std::string&, value_type, bool = true);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type& getInverseBendingRadius();
@@ -243,6 +244,9 @@ class ClosedOrbitFinder
 
         /// ONLY FOR STAND-ALONE PROGRAM
         float** bmag_m;
+
+	/// a guesss for the clo finder
+	value_type rguess_m;
         
         /*!
          * This quantity is defined in the paper "Transverse-Longitudinal Coupling by Space Charge in Cyclotrons" 
@@ -270,15 +274,16 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type 
                                                                      value_type Emin, value_type Emax, size_type nSector,
                                                                      value_type rmin, size_type ntheta, size_type nradial,
                                                                      value_type dr, const std::string& fieldmap,
+								     value_type rguess,
                                                                      bool domain)
 : nxcross_m(0), nzcross_m(0), E_m(E), E0_m(E0), wo_m(wo), N_m(N), dtheta_m(Physics::two_pi/value_type(N)),
   gamma_m(E/E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
   rmin_m(rmin), ntheta_m(ntheta), nradial_m(nradial), dr_m(dr), lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
-  vertOscDone_m(false), fieldmap_m(fieldmap), domain_m(domain), stepper_m()
+  vertOscDone_m(false), fieldmap_m(fieldmap), domain_m(domain), stepper_m(), rguess_m(rguess)
 {
 
-    if (Emin_m > Emax_m || E_m < Emin_m || E > Emax_m)
-        throw std::domain_error("Error in ClosedOrbitFinder: Emin <= E <= Emax and Emin < Emax");
+  //    if (Emin_m > Emax_m || E_m < Emin_m || E > Emax_m)
+  //      throw std::domain_error("Error in ClosedOrbitFinder: Emin <= E <= Emax and Emin < Emax");
 
     // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
     if (gamma_m == 0)
@@ -483,7 +488,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         // count number of crossings (excluding starting point --> idx>0)
         nxcross_m += (idx > 0) * (y[4] * xold < 0);
         xold = y[4];
-
         ++idx;
     };
 
@@ -541,11 +545,16 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      *
      */
 
+    // step size of energy
+    value_type dE; 
+
+    if (Emin_m == Emax_m)
+      dE = 0.0;
+    else
+      dE = (E_m - Emin_m) / (Emax_m - Emin_m);
+
     // iterate until suggested energy (start with minimum energy)
     value_type E = Emin_m;
-
-    // step size of energy
-    value_type dE = (E_m - Emin_m) / (Emax_m - Emin_m);
 
     // energy increase not more than 0.25
     dE = (dE > 0.25) ? 0.25 : dE;
@@ -561,12 +570,17 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // set initial values for radius and radial momentum for lowest energy Emin
     // orbit, [r] = m; Gordon, formula (20)
     // radial momentum; Gordon, formula (20)
-    container_type init = {beta * acon, 0.0};
+
+    container_type init;
+    if (rguess_m < 0)
+      init = {beta * acon, 0.0};
+    else
+      init = {rguess_m, 0.0};
 
     // store initial values for updating values for higher energies
     container_type previous_init = {0.0, 0.0};
 
-    do {
+    //    do {
 
         // (re-)set inital values for r and pr
         r_m[0] = init[0];
@@ -610,7 +624,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
 
             // compute amplitude of the error
             error = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1] * invgamma4) / r_m[0];
-
         } while (error > accuracy && niterations++ < maxit);
 
         // reset iteration counter
@@ -633,7 +646,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invgamma4 = 1.0 / (gamma2 * gamma2);
 
 
-    } while (E != E_m);
+	//    } while (E != E_m);
 
     /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
      * number of integrations steps there.
