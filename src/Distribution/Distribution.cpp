@@ -1309,9 +1309,9 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       MagneticField::ReadHeader(&nr, &nth, &rmin, &dr, &dth, &nsc, Attributes::getString(itsAttr[AttributesT::FMAPFN]));
 
       int Nint = 1000;
-      bool writeMap = true;
-      
-      SigmaGenerator<double,unsigned int> siggen(I_m,
+      bool writeMap = false;
+
+      SigmaGenerator<double,unsigned int> *siggen = new SigmaGenerator<double,unsigned int>(I_m,
 						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
 						 Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
 						 Attributes::getReal(itsAttr[AttributesT::ET])*1E6,
@@ -1330,29 +1330,31 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 Attributes::getString(itsAttr[AttributesT::FMAPFN]),
 						 Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
 						 writeMap);
-      
-      if(siggen.match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
+
+
+                  
+      if(siggen->match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
 		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
 		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
 		      CyclotronElement->getPHIinit(),
 		      Attributes::getReal(itsAttr[AttributesT::RGUESS]),
 		      false))  {
 	
-	std::array<double,3> Emit = siggen.getEmittances();
+	std::array<double,3> Emit = siggen->getEmittances();
 	
 	if (Attributes::getReal(itsAttr[AttributesT::RGUESS]) > 0)
 	  *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS]) << " (m) " << endl;
 	*gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", " << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
 	*gmsg << "* Sigma-Matrix " << endl;
 
-	for(unsigned int i = 0; i < siggen.getSigma().size1(); ++ i) {
-	  *gmsg << std::setprecision(4)  << std::setw(11) << siggen.getSigma()(i,0);
-	  for(unsigned int j = 1; j < siggen.getSigma().size2(); ++ j) {
-	    *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen.getSigma()(i,j);
+	for(unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
+	  *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
+	  for(unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
+	    *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
 	  }
 	  *gmsg << " \\\\" << endl;
 	}
-
+     
 	/*
 	  
 	  Now setup the distribution generator
@@ -1362,8 +1364,9 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	  moment:  rad
 	  
 	*/
-	
-	auto sigma = siggen.getSigma();
+
+
+	auto sigma = siggen->getSigma();
 	// change units from mm to m
 	for (unsigned int i = 0; i < 3; ++ i) {
 	  for (unsigned int j = 0; j < 6; ++ j) {
@@ -1390,12 +1393,15 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	correlationMatrix_m(4, 1) = sigma(1, 4) / (sqrt(sigma(1, 1) * sigma(4, 4)));
 	correlationMatrix_m(5, 0) = sigma(0, 5) / (sqrt(sigma(0, 0) * sigma(5, 5)));
 	correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
-      
+
 	CreateDistributionGauss(numberOfParticles, massIneV);      
       }
       else {
 	*gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
       }
+      
+      if (siggen)
+	delete siggen;
     }
     else
       throw OpalException("Distribution::CreateMatchedGaussDistribution", "didn't find any Cyclotron element in line");
@@ -2632,7 +2638,6 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             pzDist_m.push_back(avrgpz_m + pz);
         }
     }
-
     gsl_rng_free(randGen);
     gsl_vector_free(rx);
     gsl_vector_free(ry);
