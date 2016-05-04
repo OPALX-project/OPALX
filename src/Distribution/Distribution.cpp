@@ -1337,7 +1337,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	std::array<double,3> Emit = siggen->getEmittances();
 	
 	if (Attributes::getReal(itsAttr[AttributesT::RGUESS]) > 0)
-	  *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS]) << " (m) " << endl;
+	  *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS])/1000.0 << " (m) " << endl;
 
 	*gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", " << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
 	*gmsg << "* Sigma-Matrix " << endl;
