@@ -575,7 +575,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     if (rguess_m < 0)
       init = {beta * acon, 0.0};
     else
-      init = {rguess_m, 0.0};
+      init = {rguess_m/1000.0, 0.0};
 
     // store initial values for updating values for higher energies
     container_type previous_init = {0.0, 0.0};
