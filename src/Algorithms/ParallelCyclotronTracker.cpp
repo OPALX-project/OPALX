@@ -531,6 +531,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         fieldflag = 5;
     } else if(type == std::string("BANDRF")) {
         fieldflag = 6;
+    } else if(type == std::string("SYNCHROCYCLOTRON")) {
+	fieldflag = 7;
     } else //(type == "RING")
         fieldflag = 1;
 

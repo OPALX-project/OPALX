@@ -40,9 +40,10 @@ public:
         PHIINIT,   // The initial phase [deg]
         ZINIT,     // The initial z coordinate [m]
         PZINIT,    // The initial vertical momentum [pz/p0] []
-        RFFREQ,    // First hamonic of the RF system
-        FMAPFN,    // The filename of the fieldmap
-        RFMAPFN,   // The filename of the fieldmap
+        RFFREQ,    // First hamonic of the RF system [MHz]
+        FMAPFN,    // The filename of the mid-plane fieldmap
+        RFMAPFN,   // The filename(s) of the RF fieldmap
+	RFFCFN,    // The filename(s) of coefficients for RF frequency function f(t) 
         BSCALE,    // A scalar to scale the B-field
         ESCALE,    // A scalar to scale the RF field
         TCR1,      // trim coil r1 (mm)
