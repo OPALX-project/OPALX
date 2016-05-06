@@ -91,7 +91,7 @@ Cyclotron::~Cyclotron() {
 }
 
 
-void Cyclotron::applyTrimCoil(double r, double z, double slptc, double tcr1, double tcr2, double mbtc, double *br, double *bz) { 
+void Cyclotron::applyTrimCoil(double r, double z, double slope, double tcr1, double tcr2, double magnitude, double *br, double *bz) { 
   /// updated bz and br with trim coil contributions
   if(tcr1 != 0.0 && tcr2 != 0.0) {
     const double Amax1 = 1;
@@ -101,13 +101,22 @@ void Cyclotron::applyTrimCoil(double r, double z, double slptc, double tcr1, dou
     const double x02 = 8;
     const double h1 = 0.03;
     const double h2 = 0.2;
-    const double ftc = slptc;
-    double part1 = pow(10.0, (r / ftc - tcr1 / ftc - x01) * h1);
-    double part2 = pow(10.0, (x02 - r / ftc + tcr1 / ftc) * h2);
-    double part3 = -(Amax1 - Amin) * h1 * log(10) / ftc / (1 + part1) / (1 + part1) * part1;
-    double part4 = (Amax2 - Amin) * h2 * log(10) / ftc / (1 + part2) / (1 + part2) * part2;
-    double dr = mbtc / 2.78 * (part3 + part4);
-    double btr = mbtc / 2.78 * (Amin + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2) - 1.0);
+    double part1;
+    double part2;
+
+    if (r < ((tcr2+tcr1)/2)) {
+      part1 = pow(10.0, (r / slope - tcr1 / slope - x01) * h1);
+      part2 = pow(10.0, (x02 - r / slope + tcr1 / slope) * h2);
+    }
+    else {
+      part1 = pow(10.0, (tcr2 / slope - r / slope - x01) * h1);
+      part2 = pow(10.0, (x02 - tcr2 / slope + r / slope) * h2);
+    }
+    double part3 = -(Amax1 - Amin) * h1 * log(10) / slope / (1 + part1) / (1 + part1) * part1;
+    double part4 = (Amax2 - Amin) * h2 * log(10) / slope / (1 + part2) / (1 + part2) * part2;
+    double dr = magnitude / 2.78 * (part3 + part4);
+    double btr = magnitude / 2.78 * (Amin + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2) - 1.0);
+    
     if(r < tcr2)       {
       *bz -= btr;
       *br -= dr * z;
