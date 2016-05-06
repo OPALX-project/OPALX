@@ -100,12 +100,8 @@ namespace Options {
     ///
     extern double schottkyRennormalization;
 
-    // CKR: nowhere used
-    // /// If true change the time step during emision from the cathode so that that one bin
-    // /// of the time histogram that describes the longitudinal beam distribution is emitted
-    // /// during each time step. If false then the time step during emission is set so that one
-    // /// energy bin of the beam is emitted during each time step.
-    // extern bool fineEmission;
+    /// Do closed orbit and tune calculation only.
+    extern bool cloTuneOnly;
 }
 
 #endif

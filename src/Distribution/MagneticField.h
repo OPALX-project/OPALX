@@ -9,6 +9,12 @@
 #ifndef MAGNETICFIELD_H
 #define MAGNETICFIELD_H
 
+#include "Utilities/GeneralClassicException.h"
+
+#define CHECK_CYC_FSCANF_EOF(arg) if(arg == EOF)\
+    throw GeneralClassicException("Cyclotron::getFieldFromFile",\
+                                  "fscanf returned EOF at " #arg);
+
 #include <iostream>
 
 #include <cmath>
@@ -261,25 +267,22 @@ int MagneticField::interpolate1(double *bint,double *brint,double *btint,int ith
 
 void MagneticField::ReadHeader(int *nr, int *nth, double *rmin, double *dr, double *dth, int *nsc, std::string fname){
 
-  std::ifstream fin(fname.c_str());
-
-  if (!fin || !fin.is_open()) 
-    throw std::runtime_error("Magnetic Field read error");
-
-  double dthtmp;
-  fin >> *rmin;
-  *rmin /= 1000.0;
-  fin >> *dr;
-  *dr /= 1000.0;
-  fin >> *nsc;
-  fin >> dthtmp;
-  if (dthtmp<0.0)
-    *dth = -1.0/dthtmp;
+  FILE *f = fopen(fname.c_str(),"r");
+  if (f != NULL) {
+    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", rmin));
+    *rmin /= 1000.0; 
+    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", dr));
+    *dr /= 1000.0;
+    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", nsc));
+    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", dth));
+    if (*dth<0.0)
+      *dth = -1.0 / *dth;
+    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", nth));
+    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", nr));
+    fclose(f);
+  }
   else
-    *dth = dthtmp;
-  fin >> *nth;  
-  fin >> *nr;
-  fin.close();
+    throw GeneralClassicException("MagneticField::ReadHeader", "can not open " + fname);
 }
 
 // Sum=0: Read Field Map with nr,nth entries from file "fname" into array "b"
@@ -290,19 +293,23 @@ int MagneticField::ReadSectorMap(float** b,int nr,int nth,int nsc, std::string f
     double tmp;
     int i,j,k,err=0;
     FILE *f;
-    
+
+    if ((nr <= 0) || (nth <= 0))
+      throw GeneralClassicException("MagneticField::ReadSectorMap", "nr or nth <= 0 ");
+
+
     f = fopen(fname.c_str(),"r");
     if (f != NULL) {
-
         // overread the 6 header lines
-        for (int n=0; n<5; n++)
+        for (int n=0; n<6; n++)
           err=(fscanf(f,"%lf",&tmp)==EOF); 
-      
+	int dread = 0;
         j=0;
 	while ((j<nr)&&(err==0)) {		// j: distance (radius)
 	    for (i=0;i<nth;i++) {		// i: angles
-		err=(fscanf(f,"%lf",&tmp)==EOF);
+		err=(fscanf(f,"%16lE",&tmp)==EOF);
 		if (!err) {
+		  dread++;
 		    if (sum) {
 			for (k=0;k<nsc;k++)
 			    b[i+nth*k][j]+=sum*tmp;	// b is a (1440 x 8) x 141 matrix
@@ -316,8 +323,12 @@ int MagneticField::ReadSectorMap(float** b,int nr,int nth,int nsc, std::string f
 	    if (!err) j++;
 	}
 	fclose(f);
-	return j;
-    } else std::cerr << "Error" << std::endl; //ERRORMSG("Can not open " << fname << endl);
+	if (dread != (nr*nth))
+	  throw GeneralClassicException("MagneticField::ReadSectorMap", "Expected number of datapoint not matched");
+	else
+	  return j;
+    } else 
+      throw GeneralClassicException("MagneticField::ReadSectorMap", "Can not open" + fname);
     return 0;
 }
 
