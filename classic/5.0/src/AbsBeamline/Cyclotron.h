@@ -28,7 +28,7 @@
 class Fieldmap;
 class LossDataSink;
 
-enum BFieldType {PSIBF, CARBONBF,ANSYSBF,AVFEQBF, FFAGBF,BANDRF};
+enum BFieldType {PSIBF,CARBONBF,ANSYSBF,AVFEQBF,FFAGBF,BANDRF,SYNCHRO};
 
 struct BfieldData {
     std::string filename;
@@ -133,6 +133,7 @@ public:
     virtual std::string getFieldMapFN() const;
 
     void setRfFieldMapFN(std::vector<std::string> rffmapfn);
+    void setRFFCoeffFN(std::vector<std::string> rff_coeff_fn);
 
     void setType(std::string t);
     const std::string &getCyclotronType() const;
@@ -233,8 +234,9 @@ private:
 
     std::string fmapfn_m; /* stores the filename of the fieldmap */
     std::vector<double> rffrequ_m;
+    std::vector< std::vector<double> > rffc_m;
     std::vector<double> rfphi_m;
-    std::vector<double> escale_m; // a scale factor for the E-field
+    std::vector<double> escale_m;  // a scale factor for the E-field
     std::vector<bool> superpose_m; // electric fields are superposed or not
 
     double symmetry_m;
@@ -286,7 +288,8 @@ private:
     //    Fieldmap *RFfield;
     std::vector<Fieldmap *> RFfields_m;
     std::vector<std::string> RFfilename_m;
-
+    std::vector<std::string> RFFCoeff_fn_m;
+    
     // handling for store the particle out of region
     std::unique_ptr<LossDataSink> lossDs_m;
 
@@ -302,6 +305,10 @@ private:
     void   getFieldFromFile_AVFEQ(const double &scaleFactor);
     void   getFieldFromFile_FFAG(const double &scaleFactor);
     void   getFieldFromFile_BandRF(const double &scaleFactor);
+    void   getFieldFromFile_Synchrocyclotron(const double &scaleFactor);
+
+    // Necessary for quick and dirty phase output -DW
+    //int waiting_for_gap = 1;
 
     inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
 

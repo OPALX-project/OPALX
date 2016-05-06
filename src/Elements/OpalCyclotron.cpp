@@ -67,7 +67,10 @@ OpalCyclotron::OpalCyclotron():
  	                ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF");
 
     itsAttr[RFMAPFN]  = Attributes::makeStringArray
-                        ("RFMAPFN", "Filename for the RF fieldmap(s)");
+                        ("RFMAPFN", "Filename(s) for the RF fieldmap(s)");
+
+    itsAttr[RFFCFN]   = Attributes::makeStringArray
+                        ("RFFCFN", "Filename(s) for the RF Frequency Coefficients");
 
     itsAttr[RFPHI]    = Attributes::makeRealArray
                         ("RFPHI", "Initial phase(s) of the electric field map(s) [deg]");
@@ -127,6 +130,7 @@ OpalCyclotron::OpalCyclotron():
     registerStringAttribute("FMAPFN");
     registerStringAttribute("GEOMETRY");
     registerStringAttribute("RFMAPFN");
+    registerStringAttribute("RFFCFN");
     registerStringAttribute("TYPE");
     registerRealAttribute("CYHARMON");
     registerRealAttribute("RINIT");
@@ -238,6 +242,7 @@ void OpalCyclotron::update() {
     cycl->setSpiralFlag(spiral_flag);
 
     std::vector<std::string> fm_str = Attributes::getStringArray(itsAttr[RFMAPFN]);
+    std::vector<std::string> rffcfn_str = Attributes::getStringArray(itsAttr[RFFCFN]);
     std::vector<double> scale_str = Attributes::getRealArray(itsAttr[ESCALE]);
     std::vector<double> phi_str = Attributes::getRealArray(itsAttr[RFPHI]);
     std::vector<double> rff_str = Attributes::getRealArray(itsAttr[RFFREQ]);
@@ -261,6 +266,7 @@ void OpalCyclotron::update() {
     cycl->setRfPhi(phi_str);
     cycl->setEScale(scale_str);
     cycl->setRfFieldMapFN(fm_str);
+    cycl->setRFFCoeffFN(rffcfn_str);
     cycl->setRfFrequ(rff_str);
     cycl->setSuperpose(superpose_str);
 
