@@ -273,7 +273,7 @@ void MagneticField::ReadHeader(int *nr, int *nth, double *rmin, double *dr, doub
     *rmin /= 1000.0; 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", dr));
     *dr /= 1000.0;
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", nsc));
+    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", nsc));
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", dth));
     if (*dth<0.0)
       *dth = -1.0 / *dth;
