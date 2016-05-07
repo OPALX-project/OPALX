@@ -57,7 +57,7 @@ int BCondBase<T,D,M,C>::allComponents = -9999;
 
 // Use this macro to specialize PETE_apply functions for component-wise
 // operators and built-in types and print an error message.
-
+ 
 #define COMPONENT_APPLY_BUILTIN(OP,T)                                       \
 inline void PETE_apply(const OP<T>&, T&, const T&)                          \
 {                                                                           \
@@ -134,6 +134,20 @@ template<class T, unsigned int D, class M, class C>
 void PeriodicFace<T,D,M,C>::write(std::ostream& out) const
 {
   out << "PeriodicFace" << ", Face=" << BCondBase<T,D,M,C>::m_face;
+}
+
+//BENI adds Interpolation face BC
+template<class T, unsigned int D, class M, class C>
+void InterpolationFace<T,D,M,C>::write(std::ostream& out) const
+{
+  out << "InterpolationFace" << ", Face=" << BCondBase<T,D,M,C>::m_face;
+}
+
+//BENI adds ParallelInterpolation face BC
+template<class T, unsigned int D, class M, class C>
+void ParallelInterpolationFace<T,D,M,C>::write(std::ostream& out) const
+{
+  out << "ParallelInterpolationFace" << ", Face=" << BCondBase<T,D,M,C>::m_face;
 }
 
 template<class T, unsigned int D, class M, class C>
@@ -289,6 +303,16 @@ template<class T, unsigned D, class M, class C>
 PeriodicFace<T,D,M,C>::PeriodicFace(unsigned f, int i, int j)
   : BCondBase<T,D,M,C>(f,i,j)
 {
+	//std::cout << "(1) Constructor periodic face called" << std::endl;
+
+
+}
+
+//BENI adds Interpolation face BC
+template<class T, unsigned D, class M, class C>
+InterpolationFace<T,D,M,C>::InterpolationFace(unsigned f, int i, int j)
+  : BCondBase<T,D,M,C>(f,i,j)
+{
 
 
 }
@@ -352,7 +376,7 @@ struct OpPeriodic
 #endif
 };
 template<class T>
-inline void PETE_apply(const OpPeriodic<T>& e, T& a, const T& b) { a = b; }
+inline void PETE_apply(const OpPeriodic<T>& e, T& a, const T& b) {a = b; }
 
 // Special, for applying to single component of multicomponent elemental type:
 template<class T>
@@ -372,7 +396,6 @@ inline void PETE_apply(const OpPeriodicComponent<T>& e, T& a, const T& b)
 // Note: if user uses non-multicomponent (no operator[]) types of his own,
 // he'll get a compile error. See comments regarding similar specializations
 // for OpExtrapolateComponent for a more details.
-
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,char)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,bool)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,int)
@@ -382,6 +405,7 @@ COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,long)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,float)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,double)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,dcomplex)
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -395,9 +419,77 @@ COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,dcomplex)
 // PeriodicFace::apply() function body.
 //----------------------------------------------------------------------------
 
+
+//BENI: Do the whole operation part with += for Interpolation Boundary Conditions
+//////////////////////////////////////////////////////////////////////
+
+// Applicative templates for PeriodicFace:
+
+// Standard, for applying to all components of elemental type:
+// (N.B.: could just use OpAssign, but put this in for clarity and consistency
+// with other appliciative templates in this module.)
+template<class T>
+struct OpInterpolation
+{
+#ifdef IPPL_PURIFY
+  OpInterpolation() {}
+  OpInterpolation(const OpInterpolation<T> &) {}
+  OpInterpolation<T>& operator=(const OpInterpolation<T> &) { return *this; }
+#endif
+};
+template<class T>
+inline void PETE_apply(const OpInterpolation<T>& e, T& a, const T& b) {a = a + b; }
+
+// Special, for applying to single component of multicomponent elemental type:
+template<class T>
+struct OpInterpolationComponent
+{
+  OpInterpolationComponent(int c) : Component(c) {}
+  int Component;
+};
+
+template<class T>
+inline void PETE_apply(const OpInterpolationComponent<T>& e, T& a, const T& b)
+{ a[e.Component] = a[e.Component]+b[e.Component]; }
+
+// Following specializations are necessary because of the runtime branches in
+// code which unfortunately force instantiation of OpPeriodicComponent
+// instances for non-multicomponent types like {char,double,...}.
+// Note: if user uses non-multicomponent (no operator[]) types of his own,
+// he'll get a compile error. See comments regarding similar specializations
+// for OpExtrapolateComponent for a more details.
+
+
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,char)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,bool)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,int)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,unsigned)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,short)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,long)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,float)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,double)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,dcomplex)
+//////////////////////////////////////////////////////////////////////
+
+//----------------------------------------------------------------------------
+// For unspecified centering, can't implement PeriodicFace::apply()
+// correctly, and can't partial-specialize yet, so... don't have a prototype
+// for unspecified centering, so user gets a compile error if he tries to
+// invoke it for a centering not yet implemented. Implement external functions
+// which are specializations for the various centerings
+// {Cell,Vert,CartesianCentering}; these are called from the general
+// PeriodicFace::apply() function body.
+//----------------------------------------------------------------------------
+
+
 template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
 			 Field<T,D,M,Cell>& A );
+//BENI adds InterpolationFace ONLY Cell centered implementation!!!
+template<class T, unsigned D, class M>
+void InterpolationFaceBCApply(InterpolationFace<T,D,M,Cell>& pf,
+			 Field<T,D,M,Cell>& A );
+
 template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Vert>& pf,
 			 Field<T,D,M,Vert>& A );
@@ -410,10 +502,18 @@ template<class T, unsigned D, class M, class C>
 void PeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
 
+	//std::cout << "(2) PeriodicFace::apply" << std::endl;
 
   PeriodicFaceBCApply(*this, A);
 }
+//BENI adds InterpolationFace
+template<class T, unsigned D, class M, class C>
+void InterpolationFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
+{
 
+
+  InterpolationFaceBCApply(*this, A);
+}
 
 //-----------------------------------------------------------------------------
 // Specialization of PeriodicFace::apply() for Cell centering.
@@ -425,6 +525,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
 {
 
 
+	//std::cout << "(3) PeriodicFaceBCApply called" << std::endl;
   // NOTE: See the PeriodicFaceBCApply functions below for more
   // comprehensible comments --TJW
 
@@ -505,6 +606,105 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
 		  } else {
 		    BrickExpression<D,LFI,LFI,OpPeriodicComponent<T> >
 		      (lhs,rhs,OpPeriodicComponent<T>(pf.getComponent())).apply();
+		  }
+                }
+            }
+        }
+    }
+}
+
+//BENI adds for InterpolationFace
+//-----------------------------------------------------------------------------
+// Specialization of InterpolationFace::apply() for Cell centering.
+// Rather, indirectly-called specialized global function InerpolationFaceBCApply
+//-----------------------------------------------------------------------------
+template<class T, unsigned D, class M>
+void InterpolationFaceBCApply(InterpolationFace<T,D,M,Cell>& pf,
+			 Field<T,D,M,Cell>& A )
+{
+
+  // NOTE: See the PeriodicFaceBCApply functions below for more
+  // comprehensible comments --TJW
+
+  // Find the slab that is the source (BENI: opposite to periodic BC).
+  const NDIndex<D>& domain( A.getDomain() );
+
+  NDIndex<D> slab = AddGuardCells(domain,A.getGuardCellSizes());
+  unsigned d = pf.getFace()/2;
+  int offset;
+  if ( pf.getFace() & 1 )
+    {
+      slab[d] = Index( domain[d].max() + 1, domain[d].max() + A.leftGuard(d) );
+      offset = -domain[d].length();
+    }
+  else
+    {
+      slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
+      offset = domain[d].length();
+    }
+
+  INFOMSG("InterpolationFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
+
+  // Loop over the ones the slab touches.
+  typename Field<T,D,M,Cell>::iterator_if fill_i;
+  for (fill_i=A.begin_if(); fill_i!=A.end_if(); ++fill_i)
+    {
+      // Cache some things we will use often below.
+      LField<T,D> &fill = *(*fill_i).second;
+      const NDIndex<D> &fill_alloc = fill.getAllocated();
+      if ( slab.touches( fill_alloc ) )
+        {
+          // Find what it touches in this LField.
+          //BENI: The ghost values are the source to be accumulated to the boundaries
+		  NDIndex<D> src = slab.intersect( fill_alloc );
+
+          // BENI: destination is the boundary on the other side
+          NDIndex<D> dest = src;
+          dest[d] = dest[d] + offset;
+		 // std::cout << "src = " << src << std::endl;
+		 // std::cout << "dest = " << dest << std::endl;
+
+
+          // Loop over the ones that src touches.
+          typename Field<T,D,M,Cell>::iterator_if from_i;
+          for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
+            {
+              // Cache a few things.
+              LField<T,D> &from = *(*from_i).second;
+              const NDIndex<D> &from_owned = from.getOwned();
+              const NDIndex<D> &from_alloc = from.getAllocated();
+              // BENI: If destination touches this LField...
+              if ( dest.touches( from_owned ) )
+                {
+		  // bfh: Worry about compression ...
+		  // If 'fill' is a compressed LField, then writing data into
+		  // it via the expression will actually write the value for
+		  // all elements of the LField.  We can do the following:
+		  //   a) figure out if the 'fill' elements are all the same
+		  //      value, if 'from' elements are the same value, if
+		  //      the 'fill' elements are the same as the elements
+		  //      throughout that LField, and then just do an
+		  //      assigment for a single element
+		  //   b) just uncompress the 'fill' LField, to make sure we
+		  //      do the right thing.
+		  // I vote for b).
+		  fill.Uncompress();
+
+                  NDIndex<D> from_it = src.intersect( from_alloc );
+                  NDIndex<D> fill_it = dest.plugBase( from_it );
+                  // Build iterators for the copy...
+                  typedef typename LField<T,D>::iterator LFI;
+                  LFI lhs = fill.begin(fill_it);
+                  LFI rhs = from.begin(from_it);
+                  // And do the assignment.
+		  // BrickExpression<D,LFI,LFI,OpAssign >(lhs,rhs).apply();
+		  if (pf.getComponent() == BCondBase<T,D,M,Cell>::allComponents) {
+			  //std::cout << "TRY to apply OPInterpol" << std::endl;
+		    BrickExpression<D,LFI,LFI,OpInterpolation<T> >
+		      (lhs,rhs,OpInterpolation<T>()).apply();
+		  } else {
+		    BrickExpression<D,LFI,LFI,OpInterpolationComponent<T> >
+		      (lhs,rhs,OpInterpolationComponent<T>(pf.getComponent())).apply();
 		  }
                 }
             }
@@ -999,7 +1199,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 // the destination domain and the offset, and that is separated out
 // into the CalcParallelPeriodicDomain functions defined above.
 //-----------------------------------------------------------------------------
-
+//#define PRINT_DEBUG
 template<class T, unsigned D, class M, class C>
 void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 {
@@ -1040,12 +1240,12 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   //  3. Receive messages and evaluate remaining pieces.
   //
   //===========================================================================
-
+/*
 #ifdef PRINT_DEBUG
   msg << "Starting BC Calculation for face "
       << getFace() << "." << endl;
 #endif
-
+*/
   //===========================================================================
   //  0. Calculate destination domain and the offset.
   //===========================================================================
@@ -1357,13 +1557,13 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
             dest_range(layout.touch_range_rdv(dest_owned,gc));
 
           typename Layout_t::touch_iterator_dv rv_i;
-
+/*
 #ifdef PRINT_DEBUG
 	  msg << "  Touch calculation found "
 	      << distance(dest_range.first, dest_range.second)
 	      << " elements." << endl;
 #endif
-
+*/
 
           for (rv_i = dest_range.first; rv_i != dest_range.second; ++rv_i)
             {
@@ -1663,6 +1863,736 @@ void ParallelPeriodicFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
     }
 }
+
+
+////////////////////////////////////////
+// BENI adds CalcParallelInterpolationDomain
+/////////////////////////////////////////////
+template <class T, unsigned D, class M>
+inline void
+CalcParallelInterpolationDomain(const Field<T,D,M,Cell> &A,
+			   const ParallelInterpolationFace<T,D,M,Cell>& pf,
+			   NDIndex<D> &src_slab,
+			   int &offset)
+{
+  // Direction Dim has faces 2*Dim and 2*Dim + 1, so the following
+  // expression converts the face index to the direction index.
+
+  unsigned d = pf.getFace()/2;
+
+  const NDIndex<D>& domain(A.getDomain());
+
+  if (pf.getFace() & 1) // Odd ("top" or "right") face
+    {
+      // The cells that we need to fill start one beyond the last
+      // physical cell at the "top" and continue to the last guard
+      // cell. Change "dest_slab" to restrict direction "d" to this
+      // subdomain.
+
+      src_slab[d] =
+	Index(domain[d].max() + 1, domain[d].max() + A.leftGuard(d));
+
+      // The offset to the cells that we are going to read; i.e. the
+      // read domain will be "dest_slab + offset". This is the number of
+      // physical cells in that direction.
+
+      offset = -domain[d].length();
+    }
+  else // Even ("bottom" or "left") face
+    {
+      // The cells that we need to fill start with the first guard
+      // cell on the bottom and continue up through the cell before
+      // the first physical cell.
+
+      src_slab[d] =
+	Index(domain[d].min() - A.leftGuard(d), domain[d].min()-1);
+
+      // See above.
+
+      offset = domain[d].length();
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////
+//BENI adds parallelInterpo;lationBC apply
+//////////////////////////////////////////////////////////////////////
+template<class T, unsigned D, class M, class C>
+void ParallelInterpolationFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
+{
+
+#ifdef PRINT_DEBUG
+  Inform msg("PInterpolationBC", INFORM_ALL_NODES);
+#endif
+
+
+  // Useful typedefs:
+
+  typedef T                   Element_t;
+  typedef NDIndex<D>          Domain_t;
+  typedef LField<T,D>         LField_t;
+  typedef typename LField_t::iterator  LFI_t;
+  typedef Field<T,D,M,C>      Field_t;
+  typedef FieldLayout<D>      Layout_t;
+
+  //===========================================================================
+  //
+  // Unlike most boundary conditions, periodic BCs are (in general)
+  // non-local. Indeed, they really are identical to the guard-cell
+  // seams between LFields internal to the Field. In this case the
+  // LFields just have a periodic geometry, but the FieldLayout
+  // doesn't express this, so we duplicate the code, which is quite
+  // similar to fillGuardCellsr, but somewhat more complicated, here.
+  // The complications arise from three sources:
+  //
+  //  - The source and destination domains are offset, not overlapping.
+  //  - Only a subset of all LFields are, in general, involved.
+  //  - The corners must be handled correctly.
+  //
+  // Here's the plan:
+  //
+  //  0. Calculate source and destination domains.
+  //  1. Build send and receive lists, and send messages.
+  //  2. Evaluate local pieces directly.
+  //  3. Receive messages and evaluate remaining pieces.
+  //
+  //===========================================================================
+/*
+#ifdef PRINT_DEBUG
+  msg << "Starting BC Calculation for face "
+      << getFace() << "." << endl;
+#endif
+*/
+  //===========================================================================
+  //  0. Calculate destination domain and the offset.
+  //===========================================================================
+
+  // Find the slab that is the destination. First get the whole
+  // domain, including guard cells, and then restrict it to the area
+  // that this BC will fill.
+
+  const NDIndex<D>& domain(A.getDomain());
+
+  NDIndex<D> src_slab = AddGuardCells(domain,A.getGuardCellSizes());
+
+  // Direction Dim has faces 2*Dim and 2*Dim + 1, so the following
+  // expression converts the face index to the direction index.
+
+  unsigned d = this->getFace()/2;
+
+  int offset;
+
+  CalcParallelInterpolationDomain(A,*this,src_slab,offset);
+
+  Domain_t dest_slab = src_slab;
+  dest_slab[d] = dest_slab[d] + offset;
+
+#ifdef PRINT_DEBUG
+  msg << "dest_slab = " << dest_slab << endl;
+  msg << "src_slab  = " << src_slab  << endl;
+  //  stop_here();
+#endif
+
+
+  //===========================================================================
+  //  1. Build send and receive lists and send messages
+  //===========================================================================
+
+  // Declare these at this scope so that we don't have to duplicate
+  // the local code. (fillguardcells puts these in the scope of the
+  // "if (nprocs > 1) { ... }" section, but has to duplicate the
+  // code for the local fills as a result. The cost of this is a bit
+  // of stackspace, and the cost of allocating an empty map.)
+
+  // Container for holding Domain -> LField mapping
+  // so that we can sort out which messages go where.
+
+  typedef std::multimap<Domain_t,LField_t*, std::less<Domain_t> > ReceiveMap_t;
+
+  // (Time this since it allocates an empty map.)
+
+
+
+  ReceiveMap_t receive_map;
+
+
+
+  // Number of nodes that will send us messages.
+
+  int receive_count = 0;
+  int send_count = 0;
+
+  // Communications tag
+
+  int bc_comm_tag;
+
+
+  // Next fill the dest_list and src_list, lists of the LFields that
+  // touch the destination and source domains, respectively.
+
+  // (Do we need this for local-only code???)
+
+  // (Also, if a domain ends up in both lists, it will only be
+  // involved in local communication. We should structure this code to
+  // take advantage of this, otherwise all existing parallel code is
+  // going to incur additional overhead that really is unnecessary.)
+  // (In other words, we should be able to do the general case, but
+  // this capability shouldn't slow down the typical cases too much.)
+
+  typedef std::vector<LField_t*> DestList_t;
+  typedef std::vector<LField_t*> SrcList_t;
+  typedef typename DestList_t::iterator DestListIterator_t;
+  typedef typename SrcList_t::iterator SrcListIterator_t;
+
+  DestList_t dest_list;
+  SrcList_t src_list;
+
+  dest_list.reserve(1);
+  src_list.reserve(1);
+
+  typename Field_t::iterator_if lf_i;
+
+#ifdef PRINT_DEBUG
+  msg << "Starting dest & src domain calculation." << endl;
+#endif
+
+  for (lf_i = A.begin_if(); lf_i != A.end_if(); ++lf_i)
+    {
+      LField_t &lf = *lf_i->second;
+
+      // We fill if our OWNED domain touches the
+      // destination slab.
+
+      //const Domain_t &lf_allocated = lf.getAllocated();
+      const Domain_t &lf_owned = lf.getOwned();
+
+#ifdef PRINT_DEBUG
+      msg << "  Processing subdomain : " << lf_owned << endl;
+      //      stop_here();
+#endif
+
+      if (lf_owned.touches(dest_slab))
+	dest_list.push_back(&lf);
+
+      // We only provide data if our owned cells touch
+      // the source slab (although we actually send the
+      // allocated data).
+
+      const Domain_t &lf_allocated = lf.getAllocated();
+
+      if (lf_allocated.touches(src_slab))
+	src_list.push_back(&lf);
+    }
+
+#ifdef PRINT_DEBUG
+  msg << "  dest_list has " << dest_list.size() << " elements." << endl;
+  msg << "  src_list has " << src_list.size() << " elements." << endl;
+#endif
+
+  DestListIterator_t dest_begin = dest_list.begin();
+  DestListIterator_t dest_end   = dest_list.end();
+  SrcListIterator_t src_begin  = src_list.begin();
+  SrcListIterator_t src_end    = src_list.end();
+
+  // Aliases to some of Field A's properties...
+
+  const Layout_t &layout      = A.getLayout();
+  const GuardCellSizes<D> &gc = A.getGuardCellSizes();
+
+  int nprocs = Ippl::getNodes();
+
+  if (nprocs > 1) // Skip send/receive code if we're single-processor.
+    {
+
+
+#ifdef PRINT_DEBUG
+      msg << "Starting receive calculation." << endl;
+      //      stop_here();
+#endif
+
+      //---------------------------------------------------
+      // Receive calculation
+      //---------------------------------------------------
+
+      // Mask indicating the nodes will send us messages.
+
+      std::vector<bool> receive_mask(nprocs,false);
+
+      DestListIterator_t dest_i;
+
+      for (dest_i = dest_begin; dest_i != dest_end; ++dest_i)
+        {
+          // Cache some information about this local array.
+
+          LField_t &dest_lf = **dest_i;
+
+          const Domain_t &dest_lf_alloc = dest_lf.getAllocated();
+
+	  // Calculate the destination domain in this LField, and the
+	  // source domain (which may be spread across multipple
+	  // processors) from whence that domain will be filled:
+
+	  const Domain_t dest_domain = dest_lf_alloc.intersect(dest_slab);
+
+	  Domain_t src_domain = dest_domain;
+	  //BENI:sign change for offset occurs when we iterate over destination first and calulate 
+	  // src domain from dest domain
+	  src_domain[d] = src_domain[d] - offset;
+
+          // Find the remote LFields that contain src_domain. Note
+          // that we have to fill from the full allocated domains in
+          // order to properly fill the corners of the boundary cells,
+          // BUT we only need to intersect with the physical domain.
+          // Intersecting the allocated domain would result in
+          // unnecessary messages. (In fact, only the corners *need* to
+          // send the allocated domains, but for regular decompositions,
+          // sending the allocated domains will result in fewer
+          // messages [albeit larger ones] than sending only from
+          // physical cells.)
+
+//BENI: include ghost cells for src_range
+          typename Layout_t::touch_range_dv
+            src_range(layout.touch_range_rdv(src_domain,gc));
+
+	  // src_range is a begin/end pair into a list of remote
+	  // domain/vnode pairs whose physical domains touch
+	  // src_domain. Iterate through this list and set up the
+	  // receive map and the receive mask.
+
+          typename Layout_t::touch_iterator_dv rv_i;
+
+          for (rv_i = src_range.first; rv_i != src_range.second; ++rv_i)
+            {
+              // Intersect src_domain with the allocated cells for the
+	      // remote LField (rv_alloc). This will give us the strip
+	      // that will be sent. Translate this domain back to the
+	      // domain of the receiving LField.
+
+	      //const Domain_t rv_alloc = AddGuardCells(rv_i->first,gc);
+	      const Domain_t rv_alloc = rv_i->first;
+
+              Domain_t hit = src_domain.intersect(rv_alloc);
+			  //BENI: sign change
+	      hit[d] = hit[d] + offset;
+
+	      // Save this domain and the LField pointer
+
+              typedef typename ReceiveMap_t::value_type value_type;
+
+              receive_map.insert(value_type(hit,&dest_lf));
+
+#ifdef PRINT_DEBUG
+	      msg << "  Need remote data for domain: " << hit << endl;
+#endif
+
+              // Note who will be sending this data
+
+              int rnode = rv_i->second->getNode();
+
+              receive_mask[rnode] = true;
+
+            } // rv_i
+	} // dest_i
+
+      receive_count = 0;
+
+      for (int iproc = 0; iproc < nprocs; ++iproc)
+	if (receive_mask[iproc]) ++receive_count;
+
+
+#ifdef PRINT_DEBUG
+      msg << "  Expecting to see " << receive_count << " messages." << endl;
+      msg << "Done with receive calculation." << endl;
+      //      stop_here();
+#endif
+
+
+
+
+
+
+#ifdef PRINT_DEBUG
+      msg << "Starting send calculation" << endl;
+#endif
+
+      //---------------------------------------------------
+      // Send calculation
+      //---------------------------------------------------
+
+      // Array of messages to be sent.
+
+      std::vector<Message *> messages(nprocs);
+      for (int miter=0; miter < nprocs; messages[miter++] = 0);
+
+      // Debugging info.
+
+#ifdef PRINT_DEBUG
+      // KCC 3.2d has trouble with this. 3.3 doesn't, but
+      // some are still using 3.2.
+      //      vector<int> ndomains(nprocs,0);
+      std::vector<int> ndomains(nprocs);
+      for(int i = 0; i < nprocs; ++i) ndomains[i] = 0;
+#endif
+
+      SrcListIterator_t src_i;
+
+      for (src_i = src_begin; src_i != src_end; ++src_i)
+        {
+          // Cache some information about this local array.
+
+          LField_t &src_lf = **src_i;
+
+	  // We need to send the allocated data to properly fill the
+	  // corners when using periodic BCs in multipple dimensions.
+	  // However, we don't want to send to nodes that only would
+	  // receive data from our guard cells. Thus we do the
+	  // intersection test with our owned data.
+
+      const Domain_t &src_lf_owned = src_lf.getOwned();
+	  const Domain_t &src_lf_alloc = src_lf.getAllocated();
+
+	  // Calculate the owned and allocated parts of the source
+	  // domain in this LField, and corresponding destination
+	  // domains.
+
+	  const Domain_t src_owned = src_lf_owned.intersect(src_slab);
+	  const Domain_t src_alloc = src_lf_alloc.intersect(src_slab);
+
+	  Domain_t dest_owned = src_owned;
+	  dest_owned[d] = dest_owned[d] + offset;
+
+	  Domain_t dest_alloc = src_alloc;
+	  dest_alloc[d] = dest_alloc[d] + offset;
+
+#ifdef PRINT_DEBUG
+	  msg << "  Considering LField with the domains:" << endl;
+	  msg << "     owned = " << src_lf_owned << endl;
+	  msg << "     alloc = " << src_lf_alloc << endl;
+	  msg << "  The intersections with src_slab are:" << endl;
+	  msg << "     owned = " << src_owned << endl;
+	  msg << "     alloc = " << src_alloc << endl;
+#endif
+
+          // Find the remote LFields whose allocated cells (note the
+	  // additional "gc" arg) are touched by dest_owned.
+
+          typename Layout_t::touch_range_dv
+            dest_range(layout.touch_range_rdv(dest_owned,gc));
+
+          typename Layout_t::touch_iterator_dv rv_i;
+/*
+#ifdef PRINT_DEBUG
+	  msg << "  Touch calculation found "
+	      << distance(dest_range.first, dest_range.second)
+	      << " elements." << endl;
+#endif
+*/
+
+          for (rv_i = dest_range.first; rv_i != dest_range.second; ++rv_i)
+            {
+              // Find the intersection of the returned domain with the
+	      // allocated version of the translated source domain.
+	      // Translate this intersection back to the source side.
+
+              Domain_t hit = dest_alloc.intersect(rv_i->first);
+	      hit[d] = hit[d] - offset;
+
+              // Find out who owns this remote domain.
+
+              int rnode = rv_i->second->getNode();
+
+#ifdef PRINT_DEBUG
+              msg << "  Overlap domain = " << rv_i->first << endl;
+              msg << "  Inters. domain = " << hit;
+              msg << "  --> node " << rnode << endl;
+#endif
+
+              // Create an LField iterator for this intersection region,
+              // and try to compress it. (Copied from fillGuardCells -
+	      // not quite sure how this works yet. JAC)
+
+              // storage for LField compression
+
+              Element_t compressed_value;
+              LFI_t msgval = src_lf.begin(hit, compressed_value);
+              msgval.TryCompress();
+
+              // Put intersection domain and field data into message
+
+              if (!messages[rnode])
+		{
+		  messages[rnode] = new Message;
+		  PAssert(messages[rnode]);
+		}
+
+              messages[rnode]->put(hit);    // puts Dim items in Message
+              messages[rnode]->put(msgval); // puts 3 items in Message
+
+#ifdef PRINT_DEBUG
+              ndomains[rnode]++;
+#endif
+            }  // rv_i
+	} // src_i
+
+      // Get message tag.
+
+      bc_comm_tag =
+	Ippl::Comm->next_tag(BC_PARALLEL_PERIODIC_TAG,BC_TAG_CYCLE);
+
+
+
+      // Send the messages.
+
+      for (int iproc = 0; iproc < nprocs; ++iproc)
+	{
+	  if (messages[iproc])
+	    {
+
+#ifdef PRINT_DEBUG
+	      msg << "  ParallelPeriodicBCApply: Sending message to node "
+		  << iproc << endl
+		  << "    number of domains  = " << ndomains[iproc] << endl
+		  << "    number of MsgItems = "
+		  << messages[iproc]->size() << endl;
+#endif
+
+	      Ippl::Comm->send(messages[iproc], iproc, bc_comm_tag);
+	      ++send_count;
+
+	    }
+
+	}
+
+#ifdef PRINT_DEBUG
+      msg << "  Sent " << send_count << " messages" << endl;
+      msg << "Done with send." << endl;
+#endif
+
+
+
+
+
+    } // if (nprocs > 1)
+
+
+
+
+  //===========================================================================
+  //  2. Evaluate local pieces directly.
+  //===========================================================================
+
+#ifdef PRINT_DEBUG
+  msg << "Starting local calculation." << endl;
+#endif
+
+  DestListIterator_t dest_i;
+
+  for (dest_i = dest_begin; dest_i != dest_end; ++dest_i)
+    {
+      // Cache some information about this local array.
+
+      LField_t &dest_lf = **dest_i;
+
+      const Domain_t &dest_lf_alloc = dest_lf.getAllocated();
+      //const Domain_t &dest_lf_owned = dest_lf.getOwned();
+
+      const Domain_t dest_domain = dest_lf_alloc.intersect(dest_slab);
+
+      Domain_t src_domain = dest_domain;
+	  //BENI:sign change for offset occurs when we iterate over destination first and calulate 
+	  // src domain from dest domain
+      src_domain[d] = src_domain[d] - offset;
+
+      SrcListIterator_t src_i;
+
+      for (src_i = src_begin; src_i != src_end; ++src_i)
+        {
+          // Cache some information about this local array.
+
+          LField_t &src_lf = **src_i;
+
+	  // Unlike fillGuardCells, we need to send the allocated
+	  // data.  This is necessary to properly fill the corners
+	  // when using periodic BCs in multipple dimensions.
+
+          //const Domain_t &src_lf_owned = src_lf.getOwned();
+          const Domain_t &src_lf_alloc = src_lf.getAllocated();
+
+	  // Only fill from LFields whose physical domain touches
+	  // the translated destination domain.
+
+	  if (src_domain.touches(src_lf_alloc))
+	    {
+	      // Worry about compression. Should do this right
+	      // (considering the four different combinations), but
+	      // for now just do what the serial version does:
+
+	      dest_lf.Uncompress();
+
+	      // Calculate the actual source and destination domains.
+
+	      Domain_t real_src_domain =
+		src_domain.intersect(src_lf_alloc);
+
+	      Domain_t real_dest_domain = real_src_domain;
+		  //BENI: same sign change as above
+	      real_dest_domain[d] = real_dest_domain[d] + offset;
+
+#ifdef PRINT_DEBUG
+	      msg << "  Copying local data . . ." << endl;
+	      msg << "    source domain = " << real_src_domain << endl;
+	      msg << "    dest domain   = " << real_dest_domain << endl;
+#endif
+
+	      // Build the iterators for the copy
+
+	      LFI_t lhs = dest_lf.begin(real_dest_domain);
+	      LFI_t rhs = src_lf.begin(real_src_domain);
+
+	      // And do the assignment:
+
+	      if (this->getComponent() == BCondBase<T,D,M,C>::allComponents)
+		{
+		  BrickExpression<D,LFI_t,LFI_t,OpInterpolation<T> >
+		    (lhs,rhs,OpInterpolation<T>()).apply();
+		}
+	      else
+		{
+		  BrickExpression<D,LFI_t,LFI_t,OpInterpolationComponent<T> >
+		    (lhs,rhs,OpInterpolationComponent<T>(this->getComponent())).apply();
+		}
+            }
+        }
+    }
+
+#ifdef PRINT_DEBUG
+  msg << "Done with local calculation." << endl;
+#endif
+
+
+
+
+  //===========================================================================
+  //  3. Receive messages and evaluate remaining pieces.
+  //===========================================================================
+
+  if (nprocs > 1)
+    {
+
+
+
+#ifdef PRINT_DEBUG
+      msg << "Starting receive..." << endl;
+      //      stop_here();
+#endif
+
+      while (receive_count > 0)
+	{
+
+	  // Receive the next message.
+
+	  int any_node = COMM_ANY_NODE;
+
+
+
+	  Message* message =
+	    Ippl::Comm->receive_block(any_node,bc_comm_tag);
+	  PAssert(message);
+
+	  --receive_count;
+
+
+
+	  // Determine the number of domains being sent
+
+	  int ndomains = message->size() / (D + 3);
+
+#ifdef PRINT_DEBUG
+	  msg << "  Message received from node "
+	      << any_node << "," << endl
+	      << "  number of domains = " << ndomains << endl;
+#endif
+
+	  for (int idomain=0; idomain < ndomains; ++idomain)
+	    {
+	      // Extract the intersection domain from the message
+	      // and translate it to the destination side.
+
+	      Domain_t intersection;
+	      intersection.getMessage(*message);
+		  //BENI:: sign change
+	      intersection[d] = intersection[d] + offset;
+
+	      // Extract the rhs iterator from it.
+
+	      Element_t compressed_value;
+	      LFI_t rhs(compressed_value);
+	      rhs.getMessage(*message);
+
+#ifdef PRINT_DEBUG
+	      msg << "  Received remote overlap region = "
+		  << intersection << endl;
+#endif
+
+	      // Find the LField it is destined for.
+
+	      typename ReceiveMap_t::iterator hit =
+		receive_map.find(intersection);
+
+	      PAssert(hit != receive_map.end());
+
+	      // Build the lhs brick iterator.
+
+	      // Should have been
+	      // LField<T,D> &lf = *hit->second;
+	      // but SGI's 7.2  multimap doesn't have op->().
+
+	      LField<T,D> &lf = *(*hit).second;
+
+	      // Check and see if we really have to do this.
+
+#ifdef PRINT_DEBUG
+	      msg << "   LHS compressed ? " << lf.IsCompressed();
+	      msg << ", LHS value = " << *lf.begin() << endl;
+	      msg << "   RHS compressed ? " << rhs.IsCompressed();
+	      msg << ", RHS value = " << *rhs << endl;
+	      msg << "   *rhs == *lf.begin() ? "
+		  << (*rhs == *lf.begin()) << endl;
+#endif
+	      if (!(rhs.IsCompressed() && lf.IsCompressed() &&
+		    (*rhs == *lf.begin())))
+		{
+		  // Yep. gotta do it.
+
+		  lf.Uncompress();
+		  LFI_t lhs = lf.begin(intersection);
+
+		  // Do the assignment.
+
+#ifdef PRINT_DEBUG
+		  msg << "   Doing copy." << endl;
+#endif
+
+		  //BrickExpression<D,LFI_t,LFI_t,OpAssign>(lhs,rhs).apply();
+		  BrickExpression<D,LFI_t,LFI_t,OpInterpolation<T> >(lhs,rhs,OpInterpolation<T>()).apply();
+		}
+
+	      // Take that entry out of the receive list.
+
+	      receive_map.erase(hit);
+	    }
+
+	  delete message;
+	}
+
+
+#ifdef PRINT_DEBUG
+      msg << "Done with receive." << endl;
+#endif
+
+    }
+}
+
 
 
 //////////////////////////////////////////////////////////////////////

@@ -859,6 +859,7 @@ PETE_DefineUnary(sinh, (sinh(a)), FnHypSin)
 PETE_DefineUnary(sqrt, (sqrt(a)), FnSqrt)
 PETE_DefineUnary(tan, (tan(a)), FnTan)
 PETE_DefineUnary(tanh, (tanh(a)), FnHypTan)
+PETE_DefineUnary(erf, (erf(a)), FnErf)
 
 //
 // Define OpCast specially because it doesn't fit 

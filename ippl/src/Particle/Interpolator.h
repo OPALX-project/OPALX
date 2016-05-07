@@ -121,6 +121,15 @@ struct CacheDataCIC {
   Vektor<T,Dim> Delta_m;
 };
 
+//BENI:
+// define struct for cached mesh info for TSC interpolator
+template <class T, unsigned Dim>
+struct CacheDataTSC {
+  NDIndex<Dim> Index_m;
+  int Offset_m[Dim];
+  Vektor<T,Dim> Delta_m;
+};
+
 template <class T, unsigned Dim>
 inline std::ostream &operator<<(std::ostream &o, const CacheDataCIC<T,Dim> &c)
 {
