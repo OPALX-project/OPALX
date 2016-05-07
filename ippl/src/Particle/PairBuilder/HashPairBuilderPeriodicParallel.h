@@ -37,7 +37,7 @@ class HashPairBuilderPeriodicParallel
 				std::size_t size = particles.getLocalNum()+particles.getGhostNum();
 
 				Inform dmsg("debug_msg:");
-				std::cout << "We use parallel hash pair builder small chaining mesh****************************" << std::endl;
+				INFOMSG("We use parallel hash pair builder small chaining mesh****************************" << endl);
 
 				//compute which dimensions are really serial process neighbors itself in this direction
 				Vektor<bool,3> parallel_dims(0,0,0);
