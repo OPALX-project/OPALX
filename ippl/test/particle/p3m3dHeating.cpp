@@ -206,7 +206,7 @@ class ChargedParticles : public ParticleBase<PL> {
 			avg_vel[1]=avg_vel[1]/N;
 			avg_vel[2]=avg_vel[2]/N;
 
-			std::cout << "Node " << Ippl::myNode() << "stores avg_vel[0]= " << avg_vel[0] << std::endl;
+			INFOMSG("Node " << Ippl::myNode() << "stores avg_vel[0]= " << avg_vel[0] << endl);
 
 			for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
 				for(unsigned i = 0; i < Dim; i++) {
@@ -366,10 +366,10 @@ class ChargedParticles : public ParticleBase<PL> {
 			if(Ippl::myNode()==0)
 				std::cout << "beam center = " << beam_center << std::endl;
 			
-			double r;
+			// double r;
 			for (unsigned i=0; i<this->getLocalNum(); ++i) {
 				Rrel=this->R[i]-beam_center;
-				r = sqrt(dot(Rrel,Rrel));
+				// r = sqrt(dot(Rrel,Rrel));
 				//EF[i]+=Rrel/r*f*r*focusingForce;
 				EF[i]+=Rrel/beam_radius*f*focusingForce;
 			}
