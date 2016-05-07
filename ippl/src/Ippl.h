@@ -77,6 +77,7 @@
 #include "Particle/BoxParticleCachingPolicy.h"
 #include "Particle/CellParticleCachingPolicy.h"
 #include "Particle/PairBuilder/HashPairBuilder.h"
+#include "Particle/PairBuilder/HashPairBuilderPeriodic.h"
 #include "Particle/PairBuilder/PairConditions.h"
 
 
@@ -86,6 +87,7 @@
 // IPPL Field <--> Particle interpolators
 #include "Particle/IntNGP.h"
 #include "Particle/IntCIC.h"
+#include "Particle/IntTSC.h"
 #include "Particle/IntSUDS.h"
 
 #ifdef HAVE_EXPDE

@@ -628,6 +628,16 @@ struct FnHypTan
   enum { tag = PETE_UnaryPassThruTag };
 };
 
+struct FnErf
+{
+#ifdef IPPL_PURIFY
+  FnErf() {}
+  FnErf(const FnErf &) {}
+  FnErf& operator=(const FnErf &) { return *this; }
+#endif
+  enum { tag = PETE_UnaryPassThruTag };
+};
+
 
 ///////////////////////////////////////////////////////////////////////////
 //

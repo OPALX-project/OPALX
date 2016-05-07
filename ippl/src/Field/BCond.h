@@ -306,6 +306,41 @@ public:
   virtual void write(std::ostream& out) const;
 };
 
+
+
+//////////////////////////////////////////////////////////////////////
+//BENI adds Periodic Boundary Conditions for Interpolations///////////
+//////////////////////////////////////////////////////////////////////
+template<class T,
+         unsigned D, 
+         class M=UniformCartesian<D,double>, 
+         class C=typename M::DefaultCentering>
+class InterpolationFace : public BCondBase<T,D,M,C>
+{
+public:
+  // Constructor takes zero, one, or two int's specifying components of 
+  // multicomponent types like Vektor/Tenzor/Anti/SymTenzor this BC applies to.
+  // Zero int's specified means apply to all components; one means apply to
+  // component (i), and two means apply to component (i,j),
+  typedef BCondBase<T,D,M,C> BCondBaseTDMC;
+
+  InterpolationFace(unsigned f, 
+	       int i = BCondBaseTDMC::allComponents,
+	       int j = BCondBaseTDMC::allComponents);
+
+  // Apply the boundary condition to a particular Field.
+  virtual void apply( Field<T,D,M,C>& );
+
+  // Make a copy of the concrete type.
+  virtual BCondBase<T,D,M,C>* clone() const
+  {
+    return new InterpolationFace<T,D,M,C>( *this );
+  }
+
+  // Print out information about the BC to a stream.
+  virtual void write(std::ostream& out) const;
+};
+
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned D, 
@@ -346,6 +381,51 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+// BENI adds parallel Interpolation Face
+//////////////////////////////////////////////////////////////////////
+
+template<class T, unsigned D, 
+         class M=UniformCartesian<D,double>, 
+         class C=typename M::DefaultCentering>
+class ParallelInterpolationFace : public InterpolationFace<T,D,M,C>
+{
+public:
+
+  // Constructor takes zero, one, or two int's specifying components
+  // of multicomponent types like Vektor/Tenzor/AntiTenzor/SymTenzor
+  // this BC applies to.  Zero int's means apply to all components;
+  // one means apply to component (i), and two means apply to
+  // component (i,j),
+
+  typedef BCondBase<T,D,M,C> Base_t;
+
+  ParallelInterpolationFace(unsigned f, 
+		       int i = Base_t::allComponents,
+		       int j = Base_t::allComponents)
+    : InterpolationFace<T,D,M,C>(f,i,j) 
+  { }
+
+  // Apply the boundary condition to a particular Field.
+
+  virtual void apply( Field<T,D,M,C>& );
+
+  // Make a copy of the concrete type.
+
+  virtual Base_t * clone() const
+  {
+    return new ParallelInterpolationFace<T,D,M,C>( *this );
+  }
+
+  // Print out information about the BC to a stream.
+
+  virtual void write(std::ostream& out) const;
+};
+
+//////////////////////////////////////////////////////////////////////////
+
 
 template<class T,
          unsigned D, 

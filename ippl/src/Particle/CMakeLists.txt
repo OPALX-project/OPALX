@@ -9,10 +9,12 @@ SET (_HDRS
   IntCIC.h
   Interpolator.h
   IntNGP.h
+  IntTSC.h
   IntSUDS.h
   NoParticleCachingPolicy.h
   PairBuilder/BasicPairBuilder.h
   PairBuilder/HashPairBuilder.h
+  PairBuilder/HashPairBuilderPeriodic.h
   PairBuilder/PairConditions.h
   PairBuilder/SortingPairBuilder.h
   ParticleAttribBase.h
