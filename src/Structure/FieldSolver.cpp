@@ -19,6 +19,7 @@
 #include "Structure/FieldSolver.h"
 #include "Solvers/FFTPoissonSolver.h"
 #include "Solvers/FFTBoxPoissonSolver.h"
+#include "Solvers/P3MPoissonSolver.h"
 #ifdef HAVE_SAAMG_SOLVER
 #include "Solvers/MGPoissonSolver.h"
 #endif
@@ -63,7 +64,9 @@ namespace {
         TOL,        // tolerance of the SAAMG preconditioned solver [SAAMG only]
         MAXITERS,   // max number of iterations [SAAMG only]
         PRECMODE,   // preconditioner mode [SAAMG only]
-        RPP,        // defines in units of the meshsize where the PP interactions takes place [P3M only]
+        RC,         // cutoff radius for PP interactions
+	ALPHA,      // Green’s function splitting parameter
+	EPSILON,    // regularization for PP interaction
         // FOR XXX BASED SOLVER
         SIZE
     };
@@ -93,7 +96,9 @@ FieldSolver::FieldSolver():
     itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
 
     // P3M only:
-    itsAttr[RPP]  = Attributes::makeReal("RPP", "Defines in units of the meshsize where the PP interactions takes place ", 1);
+    itsAttr[RC]  = Attributes::makeReal("RC", "cutoff radius for PP interactions",0.0);
+    itsAttr[ALPHA]  = Attributes::makeReal("ALPHA", "Green’s function splitting parameter",0.0);
+    itsAttr[EPSILON]  = Attributes::makeReal("EPSILON", "regularization for PP interaction",0.0);
 
     //SAAMG and in case of FFT with dirichlet BC in x and y
     itsAttr[GEOMETRY] = Attributes::makeString("GEOMETRY", "GEOMETRY to be used as domain boundary", "");
@@ -221,80 +226,77 @@ bool FieldSolver::isAMRSolver() {
 
 
 void FieldSolver::initSolver(PartBunch &b) {
-    itsBunch_m = &b;
-     std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
-     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
-     std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
-
-     if(Attributes::getString(itsAttr[FSTYPE]) == "FFT" || Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
-
-	bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
-        if(sinTrafo) {
-            std::cout << "FFTBOX ACTIVE" << std::endl;
-            //we go over all geometries and add the Geometry Elements to the geometry list
-            std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
-            std::string tmp = "";
-            //split and add all to list
-            std::vector<BoundaryGeometry *> geometries;
-            for(unsigned int i = 0; i <= geoms.length(); i++) {
-                if(geoms[i] == ',' || i == geoms.length()) {
-                    BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
-                    if(geom != 0)
-                        geometries.push_back(geom);
-                    tmp.clear();
-                } else
-                    tmp += geoms[i];
-            }
-            BoundaryGeometry *ttmp = geometries[0];
-            solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), ttmp->getA());
-            itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-            fsType_m = "FFTBOX";
-        } else {
-            solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
-            itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-            fsType_m = "FFT";
-        }
-
-    } else if(Attributes::getString(itsAttr[FSTYPE]) == "SAAMG") {
-#ifdef HAVE_SAAMG_SOLVER
-        //we go over all geometries and add the Geometry Elements to the geometry list
-        std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
-        std::string tmp = "";
-        //split and add all to list
-        std::vector<BoundaryGeometry *> geometries;
-        for(unsigned int i = 0; i <= geoms.length(); i++) {
-            if(geoms[i] == ',' || i == geoms.length()) {
-                BoundaryGeometry *geom = OpalData::getInstance()->getGlobalGeometry();
-                if(geom != 0) {
-                    geometries.push_back(geom);
-                }
-                tmp.clear();
-            } else
-                tmp += geoms[i];
-        }
-        solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]),
-                                                                    Attributes::getString(itsAttr[INTERPL]),
-                                                                    Attributes::getReal(itsAttr[TOL]),
-                                                                    Attributes::getReal(itsAttr[MAXITERS]),
-                                                                    Attributes::getString(itsAttr[PRECMODE]));
-        itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-        fsType_m = "SAAMG";
-#else
-        INFOMSG("SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1" << endl);
-        INFOMSG("switching to FFT solver..." << endl);
-        solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
-        fsType_m = "FFT";
-#endif
-    } else if(Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
-
-        fsType_m = "P3M";
+  itsBunch_m = &b;
+  std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
+  std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
+  std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
+  
+  if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") { 
+    bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
+    if(sinTrafo) {
+      std::cout << "FFTBOX ACTIVE" << std::endl;
+      //we go over all geometries and add the Geometry Elements to the geometry list
+      std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
+      std::string tmp = "";
+      //split and add all to list
+      std::vector<BoundaryGeometry *> geometries;
+      for(unsigned int i = 0; i <= geoms.length(); i++) {
+	if(geoms[i] == ',' || i == geoms.length()) {
+	  BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
+	  if(geom != 0)
+	    geometries.push_back(geom);
+	  tmp.clear();
+	} else
+	  tmp += geoms[i];
+      }
+      BoundaryGeometry *ttmp = geometries[0];
+      solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), ttmp->getA());
+      itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+      fsType_m = "FFTBOX";
     } else {
-        solver_m = 0;
-        INFOMSG("no solver attached" << endl);
+      solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
+      itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+      fsType_m = "FFT";
     }
-
+  } else if (Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
+    solver_m = new P3MPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
+    fsType_m = "P3M";
+  } else if(Attributes::getString(itsAttr[FSTYPE]) == "SAAMG") {
+#ifdef HAVE_SAAMG_SOLVER
+    //we go over all geometries and add the Geometry Elements to the geometry list
+    std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
+    std::string tmp = "";
+    //split and add all to list
+    std::vector<BoundaryGeometry *> geometries;
+    for(unsigned int i = 0; i <= geoms.length(); i++) {
+      if(geoms[i] == ',' || i == geoms.length()) {
+	BoundaryGeometry *geom = OpalData::getInstance()->getGlobalGeometry();
+	if(geom != 0) {
+	  geometries.push_back(geom);
+	}
+	tmp.clear();
+      } else
+	tmp += geoms[i];
+    }
+    solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]),
+				   Attributes::getString(itsAttr[INTERPL]),
+				   Attributes::getReal(itsAttr[TOL]),
+				   Attributes::getReal(itsAttr[MAXITERS]),
+				   Attributes::getString(itsAttr[PRECMODE]));
+    itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+    fsType_m = "SAAMG";
+#else
+    INFOMSG("SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1" << endl);
+    INFOMSG("switching to FFT solver..." << endl);
+    solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
+    fsType_m = "FFT";
+#endif
+  } 
+  else {
+    solver_m = 0;
+    INFOMSG("no solver attached" << endl);
+  }    
 }
-
 
 bool FieldSolver::hasValidSolver() {
     return (solver_m != 0);
@@ -317,9 +319,13 @@ Inform &FieldSolver::printInfo(Inform &os) const {
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << endl;
 
     if(fsType == "P3M")
-        os << "* RPP          " << Attributes::getReal(itsAttr[RPP]) << endl;
+      
+      os << "* RC         " << Attributes::getReal(itsAttr[RC]) << '\n'
+	 << "* ALPHA      " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
+	 << "* EPSILON    " << Attributes::getReal(itsAttr[EPSILON]) << endl;
+    
 
-    if(fsType == "FFT" || fsType == "P3M") {
+    if(fsType == "FFT") {
         os << "* GRRENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
     } else if (fsType != "NONE") {
         os << "* GEOMETRY     " << Attributes::getString(itsAttr[GEOMETRY]) << '\n'

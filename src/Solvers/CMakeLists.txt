@@ -1,4 +1,5 @@
 set (_SRCS
+  P3MPoissonSolver.cpp
   FFTPoissonSolver.cpp
   FFTBoxPoissonSolver.cpp
   MGPoissonSolver.cpp
