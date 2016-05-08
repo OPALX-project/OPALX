@@ -473,6 +473,7 @@ class ChargedParticles : public ParticleBase<PL> {
 			return eg_m[x][y][z].get();
 		}
 
+        const Vector_t get_hr() { return hr_m; }
 
 
 		//private:

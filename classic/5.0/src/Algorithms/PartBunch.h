@@ -62,6 +62,8 @@ public:
     PartBunch(const PartBunch &);
     ~PartBunch();
 
+    void runTests();
+    
     bool GetIfBeamEmitting();
     int GetLastEmittedEnergyBin();
     size_t GetNumberOfEmissionSteps();
@@ -204,6 +206,8 @@ public:
 
     void setBCForDCBeam();
 
+    void setBCAllPeriodic();
+    
     void boundp();
 
     /** delete particles which are too far away from the center of beam*/
@@ -330,8 +334,10 @@ public:
     Vector_t get_pmean_Distribution() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
+    
     Vector_t get_hr() const;
-
+    void set_hr(Vector_t h);
+    
     double get_Dx() const;
     double get_Dy() const;
 
@@ -454,6 +460,7 @@ public:
     ParticleAttrib< Vector_t > P;      // particle momentum //  ParticleSpatialLayout<double, 3>::ParticlePos_t P;
     ParticleAttrib< double >   Q;      // charge per simulation particle, unit: C.
     ParticleAttrib< double >   M;      // mass per simulation particle, for multi-species particle tracking, unit:GeV/c^2.
+    ParticleAttrib< double >   Phi;
     ParticleAttrib< Vector_t > Ef;     // e field vector
     ParticleAttrib< Vector_t > Eftmp;  // e field vector for gun simulations
 
@@ -1113,6 +1120,12 @@ inline
 Vector_t PartBunch::get_norm_emit() const {
     return eps_norm_m;
 }
+
+inline
+void PartBunch::set_hr(Vector_t hr)  {
+    hr_m = hr;
+}
+
 
 inline
 Vector_t PartBunch::get_hr() const {

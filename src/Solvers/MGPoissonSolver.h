@@ -123,7 +123,7 @@ public:
     double getYRangeMax() { return bp->getYRangeMax(); }
     double getZRangeMin() { return bp->getZRangeMin(); }
     double getZRangeMax() { return bp->getZRangeMax(); }
-
+    void test(PartBunch &bunch) { } 
     /// useful load balance information
     void printLoadBalanceStats();
 

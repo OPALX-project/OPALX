@@ -88,9 +88,9 @@ FieldSolver::FieldSolver():
     itsAttr[PARFFTT] = Attributes::makeBool("PARFFTT", "True, dimension 2 i.e z(t) is parallelized", true);
 
     //FFT ONLY:
-    itsAttr[BCFFTX] = Attributes::makeString("BCFFTX", "Boundary conditions in x: open, dirichlet (box) ");
-    itsAttr[BCFFTY] = Attributes::makeString("BCFFTY", "Boundary conditions in y: open, dirichlet (box) ");
-    itsAttr[BCFFTT] = Attributes::makeString("BCFFTT", "Boundary conditions in z(t): open, periodoc");
+    itsAttr[BCFFTX] = Attributes::makeString("BCFFTX", "Boundary conditions in x: open, dirichlet (box), periodic");
+    itsAttr[BCFFTY] = Attributes::makeString("BCFFTY", "Boundary conditions in y: open, dirichlet (box), periodic");
+    itsAttr[BCFFTT] = Attributes::makeString("BCFFTT", "Boundary conditions in z(t): open, periodic");
 
     itsAttr[GREENSF]  = Attributes::makeString("GREENSF", "Which Greensfunction to be used [STANDARD | INTEGRATED]", "INTEGRATED");
     itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
@@ -230,7 +230,7 @@ void FieldSolver::initSolver(PartBunch &b) {
   std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
   std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
   std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
-  
+
   if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") { 
     bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
     if(sinTrafo) {
@@ -259,8 +259,12 @@ void FieldSolver::initSolver(PartBunch &b) {
       fsType_m = "FFT";
     }
   } else if (Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
-    solver_m = new P3MPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
-    fsType_m = "P3M";
+      solver_m = new P3MPoissonSolver(mesh_m, FL_m, Attributes::getReal(itsAttr[RC]), Attributes::getReal(itsAttr[ALPHA]), Attributes::getReal(itsAttr[EPSILON]));
+
+      PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
+      PL_m->enableCaching();
+
+      fsType_m = "P3M";
   } else if(Attributes::getString(itsAttr[FSTYPE]) == "SAAMG") {
 #ifdef HAVE_SAAMG_SOLVER
     //we go over all geometries and add the Geometry Elements to the geometry list
@@ -303,15 +307,11 @@ bool FieldSolver::hasValidSolver() {
 }
 
 Inform &FieldSolver::printInfo(Inform &os) const {
-    std::string fsType;
-    if (Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC"))
-	fsType = Attributes::getString(itsAttr[FSTYPE])+"-zPeriodic";
-    else
-	fsType = Attributes::getString(itsAttr[FSTYPE]);
-
+    std::string fsType = Attributes::getString(itsAttr[FSTYPE]);
+    
     os << "* ************* F I E L D S O L V E R ********************************************** " << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
-       << "* TYPE         " << fsType << '\n'
+       << "* TYPE         " << Attributes::getString(itsAttr[FSTYPE]) << '\n'
        << "* N-PROCESSORS " << Ippl::getNodes() << '\n'
        << "* MX           " << Attributes::getReal(itsAttr[MX])   << '\n'
        << "* MY           " << Attributes::getReal(itsAttr[MY])   << '\n'
@@ -320,14 +320,14 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 
     if(fsType == "P3M")
       
-      os << "* RC         " << Attributes::getReal(itsAttr[RC]) << '\n'
-	 << "* ALPHA      " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
-	 << "* EPSILON    " << Attributes::getReal(itsAttr[EPSILON]) << endl;
+    os << "* RC           " << Attributes::getReal(itsAttr[RC]) << '\n'
+	   << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
+	   << "* EPSILON      " << Attributes::getReal(itsAttr[EPSILON]) << endl;
     
 
     if(fsType == "FFT") {
         os << "* GRRENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
-    } else if (fsType != "NONE") {
+    } else if (fsType == "SAAMG") {
         os << "* GEOMETRY     " << Attributes::getString(itsAttr[GEOMETRY]) << '\n'
            << "* ITSOLVER     " << Attributes::getString(itsAttr[ITSOLVER])   << '\n'
            << "* INTERPL      " << Attributes::getString(itsAttr[INTERPL])  << '\n'

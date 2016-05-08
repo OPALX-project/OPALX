@@ -549,7 +549,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
       offset = domain[d].length();
     }
 
-  INFOMSG("PeriodicFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
+  DEBUGMSG("PeriodicFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
 
   // Loop over the ones the slab touches.
   typename Field<T,D,M,Cell>::iterator_if fill_i;
@@ -643,7 +643,7 @@ void InterpolationFaceBCApply(InterpolationFace<T,D,M,Cell>& pf,
       offset = domain[d].length();
     }
 
-  INFOMSG("InterpolationFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
+  DEBUGMSG("InterpolationFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
 
   // Loop over the ones the slab touches.
   typename Field<T,D,M,Cell>::iterator_if fill_i;
