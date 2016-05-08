@@ -20,7 +20,7 @@
 
 #ifndef P3M_POISSON_SOLVER_H_
 #define P3M_POISSON_SOLVER_H_
-
+const unsigned Dim = 3;
 
 #ifdef dontOPTIMIZE_FIELD_ASSIGNMENT
 #define FIELDASSIGNOPTIMIZATION __attribute__((optimize(0)))
@@ -31,7 +31,7 @@
 #include <memory>
 //////////////////////////////////////////////////////////////
 #include "PoissonSolver.h"
-
+#include "Algorithms/PartBunch.h"
 class PartBunch;
 
 //////////////////////////////////////////////////////////////
@@ -39,12 +39,15 @@ class PartBunch;
 class P3MPoissonSolver : public PoissonSolver {
 public:
     // constructor and destructor
-    P3MPoissonSolver(PartBunch &bunch, std::string greensFuntion);
-
-    P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction, std::string bcz);
+    P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps);
 
     ~P3MPoissonSolver();
 
+    void initFields();
+    
+    void calculateGridForces(PartBunch &bunch, double interaction_radius, double alpha, double eps);
+    
+    void calculatePairForces(PartBunch &bunch, double interaction_radius, double alpha, double eps);
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
@@ -54,17 +57,9 @@ public:
     // compute the scalar potential in open space
     void computePotential(Field_t &rho, Vector_t hr);
 
-    // compute the green's function for a Poisson problem and put it in in grntm_m
-    // uses grnIField_m to eliminate excess calculation in greenFunction()
-    // given mesh information in nr and hr
-    void greensFunction();
-
-    /// compute the integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
-    void integratedGreensFunction();
-
-    /// compute the shifted integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
-    void shiftedIntGreensFunction(double zshift);
-
+    void applyConstantFocusing(PartBunch &bunch, double f, double r);
+    void test(PartBunch &bunch);
+    
     double getXRangeMin() {return 1.0;}
     double getXRangeMax() {return 1.0;}
     double getYRangeMin() {return 1.0;}
@@ -72,28 +67,34 @@ public:
     double getZRangeMin() {return 1.0;}
     double getZRangeMax() {return 1.0;}
 
+    void computeAvgSpaceChargeForces(PartBunch &bunch);
 
     Inform &print(Inform &os) const;
 private:
-
-    void mirrorRhoField() FIELDASSIGNOPTIMIZATION;
-    void mirrorRhoField(Field_t & ggrn2);// FIELDASSIGNOPTIMIZATION;
-
-    // rho2_m is the charge-density field with mesh doubled in each dimension
-    Field_t rho2_m;
-
+    
+    BConds<double, Dim, Mesh_t, Center_t> bc_m;
+    BConds<double, Dim, Mesh_t, Center_t> bcp_m;
+    BConds<Vector_t, Dim, Mesh_t, Center_t> vbc_m;
+    
+    // rho_m is the charge-density field with mesh doubled in each dimension
+    Field_t rho_m;
+    Field_t phi_m;
+    
+    VField_t eg_m;
+    
     // real field with layout of complex field: domain3_m
     Field_t greentr_m;
 
-    // rho2tr_m is the Fourier transformed charge-density field
-    // domain3_m and mesh3_ are used
-    CxField_t rho2tr_m;
-    CxField_t imgrho2tr_m;
-
+    CxField_t rhocmpl_m;
+    CxField_t grncmpl_m;
+    
     // grntr_m is the Fourier transformed Green's function
     // domain3_m and mesh3_ are used
     CxField_t grntr_m;
 
+    // the FFT object
+    std::unique_ptr<FFTC_t> fft_m;
+    
 
     // Fields used to eliminate excess calculation in greensFunction()
     // mesh2_m and layout2_m are used
@@ -104,60 +105,35 @@ private:
     Mesh_t *mesh_m;
     FieldLayout_t *layout_m;
 
-    // mesh and layout objects for rho2_m
-    std::unique_ptr<Mesh_t> mesh2_m;
-    std::unique_ptr<FieldLayout_t> layout2_m;
-
-    //
-    std::unique_ptr<Mesh_t> mesh3_m;
-    std::unique_ptr<FieldLayout_t> layout3_m;
-
-    // mesh and layout for integrated greens function
-    std::unique_ptr<Mesh_t> mesh4_m;
-    std::unique_ptr<FieldLayout_t> layout4_m;
-
+    
     // tmp
     Field_t tmpgreen;
 
     // domains for the various fields
     NDIndex<3> domain_m;             // original domain, gridsize
     // mesh and gridsize defined outside of P3M class, given as
-    // parameter to the constructor (mesh and layout object).
-    NDIndex<3> domain2_m;            // doubled gridsize (2*Nx,2*Ny,2*Nz)
-    NDIndex<3> domain3_m;            // field for the complex values of the RC transformation
-    NDIndex<3> domain4_m;
-    // (2*Nx,Ny,2*Nz)
+    
+    
     NDIndex<3> domainP3MConstruct_m;
-
-    // mesh spacing and size values
+ 
+    
+    double interaction_radius_m;
+    double alpha_m;
+    double eps_m;
+    
     Vector_t hr_m;
     Vektor<int, 3> nr_m;
+    
+    // for tests
+    Vektor<double,Dim> avgEF_m;
+    double globSumEf_m[Dim];
 
-    /// for defining the boundary conditions
-    BConds<double, 3, Mesh_t, Center_t> bc_m;
-    BConds<Vector_t, 3, Mesh_t, Center_t> vbc_m;
 
-    std::string greensFunction_m;
+public:
+    Vektor<double,3> extend_l;
+    Vektor<double,3> extend_r;
 
-    bool bcz_m;
-
-    IpplTimings::TimerRef GreensFunctionTimer_m;
-
-    IpplTimings::TimerRef IntGreensFunctionTimer1_m;
-    IpplTimings::TimerRef IntGreensFunctionTimer2_m;
-    IpplTimings::TimerRef IntGreensFunctionTimer3_m;
-    IpplTimings::TimerRef IntGreensMirrorTimer1_m;
-
-    IpplTimings::TimerRef ShIntGreensFunctionTimer1_m;
-    IpplTimings::TimerRef ShIntGreensFunctionTimer2_m;
-    IpplTimings::TimerRef ShIntGreensFunctionTimer3_m;
-    IpplTimings::TimerRef ShIntGreensFunctionTimer4_m;
-    IpplTimings::TimerRef IntGreensMirrorTimer2_m;
-
-    IpplTimings::TimerRef GreensFunctionTimer1_m;
-    IpplTimings::TimerRef GreensFunctionTimer4_m;
-
-    IpplTimings::TimerRef ComputePotential_m;
+    
 };
 
 inline Inform &operator<<(Inform &os, const P3MPoissonSolver &fs) {

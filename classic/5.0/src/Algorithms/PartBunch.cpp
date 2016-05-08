@@ -125,6 +125,7 @@ PartBunch::PartBunch(const PartData *ref):
     addAttribute(P);
     addAttribute(Q);
     addAttribute(M);
+    addAttribute(Phi);
     addAttribute(Ef);
     addAttribute(Eftmp);
 
@@ -384,6 +385,37 @@ std::string PartBunch::getFieldSolverType() const {
     else
         return "";
 }
+
+
+void PartBunch::runTests() {
+    
+    Vector_t ll(-0.005);
+    Vector_t ur(0.005);
+
+    this->setBCAllPeriodic();
+    
+    NDIndex<3> domain = getFieldLayout().getDomain();
+    for(int i = 0; i < Dim; i++)
+        nr_m[i] = domain[i].length();
+    
+    for(int i = 0; i < 3; i++)
+        hr_m[i] = (ur[i] - ll[i]) / nr_m[i];
+    
+    getMesh().set_meshSpacing(&(hr_m[0]));
+    getMesh().set_origin(ll);
+    
+    rho_m.initialize(getMesh(),
+                     getFieldLayout(),
+                     GuardCellSizes<Dim>(1),
+                     bc_m);
+    eg_m.initialize(getMesh(),
+                    getFieldLayout(),
+                    GuardCellSizes<Dim>(1),
+                    vbc_m);
+
+    fs_m->solver_m->test(*this);
+}
+
 
 /** \brief After each Schottky scan we delete all the particles.
 
@@ -1773,6 +1805,26 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 */
+
+void PartBunch::setBCAllPeriodic() {
+    for(int i = 0; i < 2 * 3; ++i) {
+        
+        if (Ippl::getNodes()>1) {
+            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
+            //std periodic boundary conditions for gradient computations etc.
+            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
+        }
+        else {
+            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
+            //std periodic boundary conditions for gradient computations etc.
+            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
+        }
+        getBConds()[i] =  ParticlePeriodicBCond;
+    }
+    dcBeam_m=true;
+    INFOMSG(level3 << "BC set P3M, all periodic" << endl);
+}
+
 
 void PartBunch::setBCAllOpen() {
     for(int i = 0; i < 2 * 3; ++i) {

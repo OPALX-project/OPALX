@@ -492,11 +492,15 @@ void TrackRun::setupTTracker(){
                                       Track::block->zstop, Track::block->timeIntegrator, Track::block->dT,
                                       beam->getNumberOfParticles(),amrptr);
 #else
+    
+    Track::block->bunch->runTests();
+ /*
     itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                       dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                       Track::block->reference, false, false, Track::block->localTimeSteps,
                                       Track::block->zstop, Track::block->timeIntegrator, Track::block->dT,
                                       beam->getNumberOfParticles());
+ */
 #endif
     itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
 }

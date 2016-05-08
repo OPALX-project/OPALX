@@ -79,7 +79,7 @@ public:
     double getYRangeMax() {return 1.0;}
     double getZRangeMin() {return 1.0;}
     double getZRangeMax() {return 1.0;}
-
+    void test(PartBunch &bunch) { }
 
     Inform &print(Inform &os) const;
 private:

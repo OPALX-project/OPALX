@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////
 #include "Algorithms/PBunchDefs.h"
 //////////////////////////////////////////////////////////////
-
+class PartBunch;
 //use Barton and Nackman Trick to avoid virtual functions
 //template <class T_Leaftype>
 class PoissonSolver {
@@ -29,8 +29,9 @@ public:
     virtual double getYRangeMax() = 0;
     virtual double getZRangeMin() = 0;
     virtual double getZRangeMax() = 0;
-
+    virtual void test(PartBunch &bunch) = 0 ;
     virtual ~PoissonSolver(){};
+    
 };
 
 inline Inform &operator<<(Inform &os, const PoissonSolver &fs) {

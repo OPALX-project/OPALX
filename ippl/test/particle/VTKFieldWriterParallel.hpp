@@ -116,6 +116,38 @@ void dumpVTKScalar( FieldType & f, const ParticleType & p,int iteration = 0, std
 }
 
 template<typename ParticleType>
+void dumpParticlesOPAL( const ParticleType & p, int iteration=0) {
+    
+    std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
+    std::ofstream csvout;
+    csvout.precision(10);
+    csvout.setf(std::ios::scientific, std::ios::floatfield);
+    
+    std::stringstream fname;
+    fname << "data/dist";
+    fname << std::setw(1) << Ippl::myNode();
+    fname << std::setw(5) << "_it_";
+    fname << std::setw(4) << std::setfill('0') << iteration;
+    fname << ".dat";
+    
+    // open a new data file for this iteration
+    // and start with header
+    csvout.open(fname.str().c_str(), std::ios::out);
+
+    csvout << p->getLocalNum() << std::endl;
+    
+    for (unsigned i=0; i<p->getLocalNum()+p->getGhostNum(); ++i) {
+        csvout << p->R[i][0] << "\t" << p->v[i][0] << "\t" << p->R[i][1] << "\t" << p->v[i][1]<< "\t" << p->R[i][2]<< "\t" << p->v[i][2] <<  std::endl;
+    }
+
+    // close the output file for this iteration:
+    csvout.close();
+}
+
+
+
+
+template<typename ParticleType>
 void dumpParticlesCSV( const ParticleType & p, int iteration=0) {
 
 	std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
