@@ -63,7 +63,14 @@ RFCavity::RFCavity():
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    num_points_m(0) {
+    num_points_m(0),
+    phase_td_m(nullptr),
+    amplitude_td_m(nullptr),
+    frequency_td_m(nullptr),
+    phase_name_m(""),
+    amplitude_name_m(""),
+    frequency_name_m("")
+{
     setElType(isRF);
 }
 
@@ -91,7 +98,14 @@ RFCavity::RFCavity(const RFCavity &right):
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    num_points_m(right.num_points_m) {
+    num_points_m(right.num_points_m),
+    phase_td_m(right.phase_td_m),
+    amplitude_td_m(right.amplitude_td_m),
+    frequency_td_m(right.frequency_td_m),
+    phase_name_m(right.phase_name_m),
+    amplitude_name_m(right.amplitude_name_m),
+    frequency_name_m(right.frequency_name_m) {
+
     setElType(isRF);
 
     std::vector<string>::const_iterator fname_it;
@@ -140,6 +154,9 @@ RFCavity::RFCavity(const std::string &name):
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
+    phase_td_m(nullptr),
+    amplitude_td_m(nullptr),
+    frequency_td_m(nullptr),
     //     RNormal_m(std::nullptr_t(NULL)),
     //     VrNormal_m(std::nullptr_t(NULL)),
     //     DvDr_m(std::nullptr_t(NULL)),
@@ -157,6 +174,39 @@ RFCavity::~RFCavity() {
     //~ delete[] DvDr_m;
     //~ }
 }
+
+
+std::shared_ptr<AbstractTimeDependence> RFCavity::getAmplitudeModel() const {
+  return amplitude_td_m;
+}
+
+std::shared_ptr<AbstractTimeDependence> RFCavity::getPhaseModel() const {
+  return phase_td_m;
+}
+
+std::shared_ptr<AbstractTimeDependence> RFCavity::getFrequencyModel() const {
+  return frequency_td_m;
+}
+
+void RFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> amplitude_td) {
+  amplitude_td_m = amplitude_td;
+}
+
+void RFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phase_td) {
+  phase_td_m = phase_td;
+}
+
+void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequency_td) {
+  INFOMSG("frequency_td " << frequency_td << endl);
+  frequency_td_m = frequency_td;
+}
+
+
+void RFCavity::setFrequencyModelName(std::string name) {
+  frequency_name_m=name;
+}
+
+
 
 
 void RFCavity::accept(BeamlineVisitor &visitor) const {
@@ -546,6 +596,9 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
     sinAngle_m = sin(angle_m / 180.0 * pi);
     cosAngle_m = cos(angle_m / 180.0 * pi);
 
+    if (frequency_td_m)
+      *gmsg << "* timedependent frequency model " << frequency_name_m << endl;
+    
     *gmsg << "* Cavity voltage data read successfully!" << endl;
 }
 

@@ -52,6 +52,9 @@ public:
         PDIS,           // perpendicular distance from symmetric line of cavity gap to machine center
         GAPWIDTH,       // constant gap width of cavity
         PHI0,           // initial phase of cavity
+	PHASE_MODEL,    // time dependent parameter
+	AMPLITUDE_MODEL,// time dependent parameter
+	FREQUENCY_MODEL,// time dependent parameter
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
         SIZE
