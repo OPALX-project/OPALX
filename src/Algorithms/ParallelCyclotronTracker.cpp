@@ -18,7 +18,8 @@
 
 #include <Algorithms/Ctunes.hpp>
 #include "Algorithms/ParallelCyclotronTracker.h"
-
+#include "Algorithms/PolynomialTimeDependence.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
 #include <cfloat>
 #include <iostream>
 #include <fstream>
@@ -49,6 +50,8 @@
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
 #include "AbsBeamline/VariableRFCavity.h"
+
+#include "AbstractObjects/Element.h"
 
 #include "Elements/OpalBeamline.h"
 #include "AbsBeamline/Ring.h"
@@ -813,12 +816,31 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     double pdis = elptr->getPerpenDistance();
     *gmsg << "* Cavity Shift distance= " << pdis << " [mm] " << endl;
 
-
     double phi0 = elptr->getPhi0();
     *gmsg << "* Initial RF phase (t=0)= " << phi0 << " [deg] " << endl;
 
+    std::shared_ptr<AbstractTimeDependence> freq_atd = nullptr;
+    std::shared_ptr<AbstractTimeDependence> ampl_atd = nullptr;
+    std::shared_ptr<AbstractTimeDependence> phase_atd = nullptr;
+
+    if (elptr->getFrequencyModelName() != "") {
+      freq_atd = AbstractTimeDependence::getTimeDependence(elptr->getFrequencyModelName());
+      *gmsg << "* Variable frequency RF Model name " << elptr->getFrequencyModelName() << endl;
+    }
+
+    if (elptr->getAmplitudeModelName() != "") {
+      ampl_atd = AbstractTimeDependence::getTimeDependence(elptr->getAmplitudeModelName());
+      *gmsg << "* Variable amplitude RF Model name " << elptr->getAmplitudeModelName() << endl;
+    }
+
+    if (elptr->getPhaseModelName() != "") {
+      phase_atd = AbstractTimeDependence::getTimeDependence(elptr->getPhaseModelName());
+      *gmsg << "* Variable phase RF Model name " << elptr->getPhaseModelName() << endl;
+    }
+
     // read cavity voltage profile data from file.
-    elptr->initialise(itsBunch, 1.0);
+    //    elptr->initialise(itsBunch, 1.0, freq_atd, ampl_atd, phase_atd);
+    elptr->initialise(itsBunch, 1.0, freq_atd);
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)

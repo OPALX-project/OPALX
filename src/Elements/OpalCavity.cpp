@@ -18,6 +18,7 @@
 
 #include "Elements/OpalCavity.h"
 #include "AbstractObjects/Attribute.h"
+#include "Algorithms/AbstractTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/RFCavityRep.h"
 #include "Structure/OpalWake.h"
@@ -26,7 +27,7 @@
 
 extern Inform *gmsg;
 
-// Class OpalCavity
+// Class OpalCavity for OPAL-cycl
 // ------------------------------------------------------------------------
 
 OpalCavity::OpalCavity():
@@ -78,6 +79,14 @@ OpalCavity::OpalCavity():
     itsAttr[DY] = Attributes::makeReal
       ("DY", "Misalignment in y direction",0.0);
 
+
+    // attibutes for timedependent values
+    itsAttr[PHASE_MODEL] = Attributes::makeString("PHASE_MODEL",
+						  "The name of the phase time dependence model.");
+    itsAttr[AMPLITUDE_MODEL] = Attributes::makeString("AMPLITUDE_MODEL",
+						      "The name of the amplitude time dependence model.");
+    itsAttr[FREQUENCY_MODEL] = Attributes::makeString("FREQUENCY_MODEL",
+						      "The name of the frequency time dependence model.");
     registerRealAttribute("VOLT");
     registerRealAttribute("FREQ");
     registerRealAttribute("LAG");
@@ -92,6 +101,11 @@ OpalCavity::OpalCavity():
     registerRealAttribute("PHI0");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
+
+    // attibutes for timedependent values
+    registerStringAttribute("PHASE_MODEL");
+    registerStringAttribute("AMPLITUDE_MODEL");
+    registerStringAttribute("FREQUENCY_MODEL");
 
     setElement((new RFCavityRep("RFCAVITY"))->makeAlignWrapper());
 }
@@ -122,6 +136,19 @@ void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
     if(flag != ERROR_FLAG) {
         const RFCavityRep *rfc =
             dynamic_cast<const RFCavityRep *>(base.removeWrappers());
+
+	std::shared_ptr<AbstractTimeDependence> phase_model = rfc->getPhaseModel();
+	std::shared_ptr<AbstractTimeDependence> freq_model = rfc->getFrequencyModel();
+	std::shared_ptr<AbstractTimeDependence> amp_model = rfc->getAmplitudeModel();
+	std::string phase_name = AbstractTimeDependence::getName(phase_model);
+	std::string amp_name = AbstractTimeDependence::getName(amp_model);
+	std::string freq_name = AbstractTimeDependence::getName(freq_model);
+
+
+	attributeRegistry["PHASE_MODEL"]->setString(phase_name);
+	attributeRegistry["AMPLITUDE_MODEL"]->setString(amp_name);
+	attributeRegistry["FREQUENCY_MODEL"]->setString(freq_name);
+
         attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
         attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
         attributeRegistry["LAG"]->setReal(rfc->getPhase());
@@ -136,6 +163,7 @@ void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
 
 
 void OpalCavity::update() {
+
     using Physics::two_pi;
     RFCavityRep *rfc =
         dynamic_cast<RFCavityRep *>(getElement()->removeWrappers());
@@ -214,6 +242,10 @@ void OpalCavity::update() {
     rfc->setPerpenDistance(pdis);
     rfc->setGapWidth(gapwidth);
     rfc->setPhi0(phi0);
+
+    rfc->setPhaseModelName(Attributes::getString(itsAttr[PHASE_MODEL]));    
+    rfc->setAmplitudeModelName(Attributes::getString(itsAttr[AMPLITUDE_MODEL]));    
+    rfc->setFrequencyModelName(Attributes::getString(itsAttr[FREQUENCY_MODEL]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(rfc);

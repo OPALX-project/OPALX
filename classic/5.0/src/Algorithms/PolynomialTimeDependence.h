@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <iostream>
-
+#include "Ippl.h"
 #include "Algorithms/AbstractTimeDependence.h"
 
 class PolynomialTimeDependence : public AbstractTimeDependence {
@@ -18,6 +18,8 @@ class PolynomialTimeDependence : public AbstractTimeDependence {
       return d;
     }
 
+    Inform &print(Inform &os);
+
   private:
     std::vector<double> coeffs;
 };
@@ -30,6 +32,12 @@ double PolynomialTimeDependence::getValue(double time) {
         t_power *= time;
     }
     return x;
+}
+
+
+inline
+Inform &operator<<(Inform &os, PolynomialTimeDependence &p) {
+  return p.print(os);
 }
 
 #endif

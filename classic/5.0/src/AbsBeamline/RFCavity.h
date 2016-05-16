@@ -21,7 +21,7 @@
 //
 // ------------------------------------------------------------------------
 
-
+#include "Algorithms/AbstractTimeDependence.h"
 #include "AbsBeamline/Component.h"
 #include "Physics/Physics.h"
 
@@ -162,6 +162,30 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
+
+    virtual std::shared_ptr<AbstractTimeDependence> getAmplitudeModel() const;
+    virtual std::shared_ptr<AbstractTimeDependence> getPhaseModel() const;
+    virtual std::shared_ptr<AbstractTimeDependence> getFrequencyModel() const;
+
+    virtual void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
+    void setAmplitudeModelName(std::string name) {amplitude_name_m=name;}
+    std::string getAmplitudeModelName() { return amplitude_name_m;}
+
+    virtual void setPhaseModel(std::shared_ptr<AbstractTimeDependence> time_dep);
+    void setPhaseModelName(std::string name) {phase_name_m=name;}
+    std::string getPhaseModelName() { return phase_name_m;}
+
+    virtual void setFrequencyModel(std::shared_ptr<AbstractTimeDependence> time_dep);
+    virtual void setFrequencyModelName(std::string name);
+    std::string getFrequencyModelName() { return frequency_name_m;}
+
+ protected:
+    std::shared_ptr<AbstractTimeDependence> phase_td_m;
+    std::string phase_name_m;
+    std::shared_ptr<AbstractTimeDependence> amplitude_td_m;
+    std::string amplitude_name_m;
+    std::shared_ptr<AbstractTimeDependence> frequency_td_m;
+    std::string frequency_name_m;
 private:
     std::string filename_m;             /**< The name of the inputfile*/
     std::vector<std::string> multiFilenames_m;
