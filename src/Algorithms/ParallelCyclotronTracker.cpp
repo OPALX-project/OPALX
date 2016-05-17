@@ -840,7 +840,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
 
     // read cavity voltage profile data from file.
     //    elptr->initialise(itsBunch, 1.0, freq_atd, ampl_atd, phase_atd);
-    elptr->initialise(itsBunch, 1.0, freq_atd);
+    elptr->initialise(itsBunch, 1.0); 
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
