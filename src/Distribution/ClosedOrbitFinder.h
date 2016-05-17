@@ -580,7 +580,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // store initial values for updating values for higher energies
     container_type previous_init = {0.0, 0.0};
 
-    //    do {
+       do {
 
         // (re-)set inital values for r and pr
         r_m[0] = init[0];
@@ -646,7 +646,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invgamma4 = 1.0 / (gamma2 * gamma2);
 
 
-	//    } while (E != E_m);
+	   } while (E != E_m);
 
     /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
      * number of integrations steps there.
