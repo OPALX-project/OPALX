@@ -819,28 +819,47 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     double phi0 = elptr->getPhi0();
     *gmsg << "* Initial RF phase (t=0)= " << phi0 << " [deg] " << endl;
 
+
+    /*
+      Setup time dependence and in case of no
+      timedependence use a polynom with  a_0 = 1 and a_k = 0, k = 1,2,3.
+     */
+
     std::shared_ptr<AbstractTimeDependence> freq_atd = nullptr;
     std::shared_ptr<AbstractTimeDependence> ampl_atd = nullptr;
     std::shared_ptr<AbstractTimeDependence> phase_atd = nullptr;
 
+    std::vector<double>  unityVec;
+    unityVec.push_back(1.);
+    unityVec.push_back(0.);
+    unityVec.push_back(0.);
+    unityVec.push_back(0.);
+    
     if (elptr->getFrequencyModelName() != "") {
       freq_atd = AbstractTimeDependence::getTimeDependence(elptr->getFrequencyModelName());
       *gmsg << "* Variable frequency RF Model name " << elptr->getFrequencyModelName() << endl;
     }
+    else
+        freq_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
 
     if (elptr->getAmplitudeModelName() != "") {
       ampl_atd = AbstractTimeDependence::getTimeDependence(elptr->getAmplitudeModelName());
       *gmsg << "* Variable amplitude RF Model name " << elptr->getAmplitudeModelName() << endl;
     }
+    else
+        ampl_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
 
     if (elptr->getPhaseModelName() != "") {
       phase_atd = AbstractTimeDependence::getTimeDependence(elptr->getPhaseModelName());
       *gmsg << "* Variable phase RF Model name " << elptr->getPhaseModelName() << endl;
     }
+    else
+        phase_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
 
     // read cavity voltage profile data from file.
-    //    elptr->initialise(itsBunch, 1.0, freq_atd, ampl_atd, phase_atd);
-    elptr->initialise(itsBunch, 1.0); 
+    elptr->initialise(itsBunch, 1.0, freq_atd, ampl_atd, phase_atd);
+
+//    elptr->initialise(itsBunch, 1.0); 
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)

@@ -110,7 +110,13 @@ public:
 
     virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
 
-    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
+//    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
+
+    virtual void initialise(PartBunch *bunch, const double &scaleFactor, std::shared_ptr<AbstractTimeDependence> freq_atd,
+                            std::shared_ptr<AbstractTimeDependence> ampl_atd, std::shared_ptr<AbstractTimeDependence> phase_atd);
+
+
+
 
     virtual void finalise();
 
