@@ -565,10 +565,17 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
-void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor) {
+void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor, std::shared_ptr<AbstractTimeDependence> freq_atd,
+                          std::shared_ptr<AbstractTimeDependence> ampl_atd, std::shared_ptr<AbstractTimeDependence> phase_atd) {
+
     using Physics::pi;
 
     RefPartBunch_m = bunch;
+
+    /// set the time dependent models
+    setAmplitudeModel(ampl_atd);
+    setPhaseModel(phase_atd);
+    setFrequencyModel(freq_atd);
 
     ifstream in(filename_m.c_str());
     if(!in.good()) {
@@ -716,6 +723,18 @@ double RFCavity::getCycFrequency()const {
     return  frequency_m;
 }
 
+
+
+/**
+   \brief used in OPAL-cycl
+
+   Is called from OPAL-cycl and can handle 
+   time dependent frequency, amplitude and phase
+
+   At the moment (test) only the frequence is time
+   dependent
+
+ */
 void RFCavity::getMomentaKick(const double normalRadius, double momentum[], const double t, const double dtCorrt, const int PID, const double restMass, const int chargenumber) {
     using Physics::two_pi;
     using Physics::pi;
@@ -733,6 +752,9 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
 
     double transit_factor = 0.0;
     double Ufactor = 1.0;
+
+    double frequency_save = frequency_m;
+    frequency_m *= frequency_td_m->getValue(t);
 
     if(gapwidth_m > 0.0) {
         transit_factor = 0.5 * frequency_m * gapwidth_m * 1.0e-3 / (c * beta);
@@ -766,10 +788,10 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
 
     if(PID == 0) {
       *gmsg << "* Cavity " << getName() << " Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
-	      << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
-	      << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV]" << endl;
+            << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
+            << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV] Time dep freq = " << frequency_td_m->getValue(t) << endl;
     }
-
+    frequency_m = frequency_save;
 }
 
 /* cubic spline subrutine */
