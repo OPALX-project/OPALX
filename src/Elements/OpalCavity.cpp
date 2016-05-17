@@ -137,18 +137,6 @@ void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
         const RFCavityRep *rfc =
             dynamic_cast<const RFCavityRep *>(base.removeWrappers());
 
-	std::shared_ptr<AbstractTimeDependence> phase_model = rfc->getPhaseModel();
-	std::shared_ptr<AbstractTimeDependence> freq_model = rfc->getFrequencyModel();
-	std::shared_ptr<AbstractTimeDependence> amp_model = rfc->getAmplitudeModel();
-	std::string phase_name = AbstractTimeDependence::getName(phase_model);
-	std::string amp_name = AbstractTimeDependence::getName(amp_model);
-	std::string freq_name = AbstractTimeDependence::getName(freq_model);
-
-
-	attributeRegistry["PHASE_MODEL"]->setString(phase_name);
-	attributeRegistry["AMPLITUDE_MODEL"]->setString(amp_name);
-	attributeRegistry["FREQUENCY_MODEL"]->setString(freq_name);
-
         attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
         attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
         attributeRegistry["LAG"]->setReal(rfc->getPhase());

@@ -176,18 +176,6 @@ RFCavity::~RFCavity() {
 }
 
 
-std::shared_ptr<AbstractTimeDependence> RFCavity::getAmplitudeModel() const {
-  return amplitude_td_m;
-}
-
-std::shared_ptr<AbstractTimeDependence> RFCavity::getPhaseModel() const {
-  return phase_td_m;
-}
-
-std::shared_ptr<AbstractTimeDependence> RFCavity::getFrequencyModel() const {
-  return frequency_td_m;
-}
-
 void RFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> amplitude_td) {
   amplitude_td_m = amplitude_td;
 }
@@ -197,7 +185,6 @@ void RFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phase_td) {
 }
 
 void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequency_td) {
-  INFOMSG("frequency_td " << frequency_td << endl);
   frequency_td_m = frequency_td;
 }
 
@@ -603,8 +590,8 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor, std::shar
     sinAngle_m = sin(angle_m / 180.0 * pi);
     cosAngle_m = cos(angle_m / 180.0 * pi);
 
-    if (frequency_td_m)
-      *gmsg << "* timedependent frequency model " << frequency_name_m << endl;
+    if (frequency_name_m != "")
+      *gmsg << "* Timedependent frequency model " << frequency_name_m << endl;
     
     *gmsg << "* Cavity voltage data read successfully!" << endl;
 }

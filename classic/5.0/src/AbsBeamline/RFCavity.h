@@ -169,10 +169,6 @@ public:
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
 
-    virtual std::shared_ptr<AbstractTimeDependence> getAmplitudeModel() const;
-    virtual std::shared_ptr<AbstractTimeDependence> getPhaseModel() const;
-    virtual std::shared_ptr<AbstractTimeDependence> getFrequencyModel() const;
-
     virtual void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
     void setAmplitudeModelName(std::string name) {amplitude_name_m=name;}
     std::string getAmplitudeModelName() { return amplitude_name_m;}
