@@ -35,7 +35,7 @@
 #include "ChargedParticleFactory.hpp"
 
 
-// dimension of our positionsma
+// dimension of our positions
 const unsigned Dim = 3;
 //const double ke=1./(4.*M_PI*8.8e-14);
 const double ke=2.532638e8;
@@ -192,26 +192,29 @@ public:
     }
     
     void compute_temperature() {
-        double loc_temp[Dim]={};
-        double loc_avg_vel[Dim]={};
+        Inform m("compute_temperature ");
+        double loc_temp[Dim]={0.0,0.0,0.0};
+        double loc_avg_vel[Dim]={0.0,0.0,0.0};
+
         for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
-            for(unsigned i = 0; i < Dim; i++) {
-                loc_avg_vel[i]   += this->v[k](i);
-            }
+	  for(unsigned i = 0; i < Dim; i++) {
+	    loc_avg_vel[i]   += this->v[k](i);
+	  }
         }
         reduce(&(loc_avg_vel[0]), &(loc_avg_vel[0]) + Dim,
                &(avg_vel[0]), OpAddAssign());
+
         const double N =  static_cast<double>(this->getTotalNum());
         avg_vel[0]=avg_vel[0]/N;
         avg_vel[1]=avg_vel[1]/N;
         avg_vel[2]=avg_vel[2]/N;
         
-        INFOMSG("Node " << Ippl::myNode() << "stores avg_vel[0]= " << avg_vel[0] << endl);
+        m << "avg_vel[0]= " << avg_vel[0] << " avg_vel[1]= " << avg_vel[1] << " avg_vel[2]= " << avg_vel[2] <<  endl;
         
         for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
-            for(unsigned i = 0; i < Dim; i++) {
-                loc_temp[i]   += (this->v[k](i)-avg_vel[i])*(this->v[k](i)-avg_vel[i]);
-            }
+	  for(unsigned i = 0; i < Dim; i++) {
+	    loc_temp[i]   += (this->v[k](i)-avg_vel[i])*(this->v[k](i)-avg_vel[i]);
+	  }
         }
         reduce(&(loc_temp[0]), &(loc_temp[0]) + Dim,
                &(temperature[0]), OpAddAssign());
@@ -301,9 +304,6 @@ public:
         }
         rvrms_m = rvsum * fac;
         
-        INFOMSG("rmsx= " << rrms_m << endl);
-        
-        
     }
     
     void calc_kinetic_energy() {
@@ -342,6 +342,8 @@ public:
     }
     
     void computeAvgSpaceChargeForces() {
+        Inform m("computeAvgSpaceChargeForces ");
+        
         const double N =  static_cast<double>(this->getTotalNum());
         double locAvgEF[Dim]={};
         for (unsigned i=0; i<this->getLocalNum(); ++i) {
@@ -353,28 +355,19 @@ public:
         reduce(&(locAvgEF[0]), &(locAvgEF[0]) + Dim,
                &(globSumEF[0]), OpAddAssign());
         
-        if(Ippl::myNode()==0){
-            std::cout << "globSumEF = " << globSumEF[0] << "\t" << globSumEF[0] << "\t" << globSumEF[0] << std::endl;
-        }
+        
+        m << "globSumEF = " << globSumEF[0] << "\t" << globSumEF[1] << "\t" << globSumEF[2] << endl;
+        
         avgEF[0]=globSumEF[0]/N;
         avgEF[1]=globSumEF[1]/N;
         avgEF[2]=globSumEF[2]/N;
+
     }
     
     void applyConstantFocusing(double f,double beam_radius) {
-        //computeAvgSpaceChargeForces();
         double focusingForce=sqrt(dot(avgEF,avgEF));
-        Vektor<double,Dim> beam_center(0,0,0);
-        Vektor<double,Dim> Rrel;
-        if(Ippl::myNode()==0)
-            std::cout << "beam center = " << beam_center << " f= " << f << " br " << beam_radius << std::endl;
-        
-        // double r;
         for (unsigned i=0; i<this->getLocalNum(); ++i) {
-            Rrel=this->R[i]-beam_center;
-            // r = sqrt(dot(Rrel,Rrel));
-            //EF[i]+=Rrel/r*f*r*focusingForce;
-            EF[i]+=Rrel/beam_radius*f*focusingForce;
+            EF[i]+=this->R[i]/beam_radius*f*focusingForce;
         }
     }
     
@@ -464,9 +457,6 @@ public:
         Phi.gather(phi_m, this->R, IntrplCIC_t());
     }
     
-    void get_bounds(Vector_t &rmin, Vector_t &rmax) {
-        bounds(this->R, rmin, rmax);
-    }
     
     Vector_t getRmin() {
         return this->rmin_m;
@@ -475,6 +465,7 @@ public:
         return this->rmax_m;
     }
     
+    Vector_t get_hr() { return hr_m;}
     
     void closeH5(){
         H5CloseFile(H5f_m);
@@ -484,7 +475,7 @@ public:
         H5f_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
     }
     
-    const Vector_t get_hr() { return hr_m; }
+    
     
     //private:
     BConds<double, Dim, Mesh_t, Center_t> bc_m;
@@ -526,7 +517,7 @@ public:
     
     Vektor<int,Dim> Nx;
     Vektor<int,Dim> Nv;
-    
+    Vektor<double,Dim> Vmax;
     //Fields for tracking distribution function
     Field2d_t f_m;
     Mesh2d_t mesh2d_m;
@@ -650,23 +641,17 @@ int main(int argc, char *argv[]){
     FL            = new FieldLayout_t(*mesh, decomp);
     playout_t* PL = new playout_t(*FL, *mesh);
     
+    PL->setAllCacheDimensions(interaction_radius);
+    PL->enableCaching();
     
     /////////// Create the particle distribution /////////////////////////////////////////////////////
     double L = box_length/2.;
     Vektor<double,Dim> extend_l(-L,-L,-L);
     Vektor<double,Dim> extend_r(L,L,L);
     
-    msg << "interaction_radius " << interaction_radius << endl;
-    msg << "extend_l = " << extend_l << endl;
-    msg << "extend_r = " << extend_r << endl;
-    
-    msg << "charge_per_part = " << charge_per_part << endl;
-    msg << "mass_per_part = " << mass_per_part << endl;
-    
+    Vektor<double,Dim> Vmax(6,6,6);
     P = new ChargedParticles<playout_t>(PL, nr, decomp, extend_l, extend_r);
-    
     createParticleDistributionHeating(P,extend_l,extend_r,beam_radius, Nparticle,charge_per_part,mass_per_part);
-    
     
     //COmpute and write temperature
     P->compute_temperature();
@@ -679,18 +664,15 @@ int main(int argc, char *argv[]){
     msg << endl << endl;
     Ippl::Comm->barrier();
     
-    dumpParticlesCSV(P,0);
-    
-    dumpParticlesOPAL(P,0);
+    //dumpParticlesCSV(P,0);
     
     INFOMSG(P->getMesh() << endl);
     INFOMSG(P->getFieldLayout() << endl);
     msg << endl << endl;
     
-    msg<<"number of particles = " << endl;
-    msg<< P->getTotalNum() << endl;
-    msg<<"Total charge Q = " << endl;
-    msg<< P->total_charge << endl;
+    msg<<"number of particles = " << P->getTotalNum() << endl;
+    msg<<"Total charge Q      = " << P->total_charge << endl;
+
     ////////////////////////////////////////////////////////////////////////////////////////////
     std::string fname;
     fname = "data/particleData";
@@ -700,18 +682,15 @@ int main(int argc, char *argv[]){
     dumpH5partVelocity(P,0);
     unsigned printid=1;
     
-    
-    Vector_t l,u;
-    P->get_bounds(l,u);
-    msg << "Starting iterations ..." << l << u << endl;
-    
+    msg << "Starting iterations ..." << endl;
+    P->compute_temperature();
     // calculate initial space charge forces 
     P->calculateGridForces(interaction_radius,alpha,0,0,0);
     P->calculatePairForces(interaction_radius,eps,alpha);
     
     //avg space charge forces for constant focusing
     P->computeAvgSpaceChargeForces();	
-    
+
     //dumpVTKVector(P->eg_m, P,0,"EFieldAfterPMandPP");
     
     //compute quantities to check correctness:
@@ -721,7 +700,12 @@ int main(int argc, char *argv[]){
      P->calc_kinetic_energy();
      writeEnergy(P,0);
      */
+    
+    IpplTimings::TimerRef gridTimer = IpplTimings::getTimer("GridTimer");
+    IpplTimings::TimerRef particleTimer = IpplTimings::getTimer("ParticleTimer");
+    
     for (int it=0; it<iterations; it++) {
+      /*
         P->calcMoments();
         P->computeBeamStatistics();
         writeBeamStatisticsVelocity(P,it);
@@ -729,6 +713,7 @@ int main(int argc, char *argv[]){
         P->calc_kinetic_energy();
         P->calc_field_energy();
         writeEnergy(P,it);
+      */        
         // advance the particle positions
         // basic leapfrogging timestep scheme.  velocities are offset
         // by half a timestep from the positions.
@@ -738,19 +723,13 @@ int main(int argc, char *argv[]){
         P->update();
         
         // compute the electric field
-        msg << "calculating grid" << endl;
-        IpplTimings::TimerRef gridTimer = IpplTimings::getTimer("GridTimer");
+        
+        
         IpplTimings::startTimer(gridTimer);
-        
         P->calculateGridForces(interaction_radius,alpha,0,it+1,0);
-        
         IpplTimings::stopTimer(gridTimer);
         
-        msg << "calculating pairs" << endl;
-        
-        IpplTimings::TimerRef particleTimer = IpplTimings::getTimer("ParticleTimer");
         IpplTimings::startTimer(particleTimer);
-        
         P->calculatePairForces(interaction_radius,eps,alpha);
         IpplTimings::stopTimer(particleTimer);
         
@@ -760,10 +739,13 @@ int main(int argc, char *argv[]){
         //P->computeAvgSpaceChargeForces();
         //if (Ippl::myNode()==0)
         //std::cout <<"avg E-Field = " << P->avgEF << std::endl;
+
         P->applyConstantFocusing(focusingForce,beam_radius);
+
         assign(P->v, P->v + dt * P->Q/P->m * (P->EF));
         
-        
+        P->compute_temperature();
+
         if (it%print_every==0){
             //dumpConservedQuantities(P,printid);
             //compute quantities
@@ -785,9 +767,6 @@ int main(int argc, char *argv[]){
     
     P->closeH5();
     Ippl::Comm->barrier();
-    
-    msg<<"number of particles = " << endl;
-    msg<< P->getTotalNum() << endl;
     
     IpplTimings::stopTimer(allTimer);
     
