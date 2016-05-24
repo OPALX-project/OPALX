@@ -68,7 +68,7 @@ public:
     double getZRangeMax() {return 1.0;}
 
     void computeAvgSpaceChargeForces(PartBunch &bunch);
-
+    void compute_temperature(PartBunch &bunch);
     Inform &print(Inform &os) const;
 private:
     
