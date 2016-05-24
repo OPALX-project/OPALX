@@ -118,7 +118,7 @@ void dumpVTKScalar( FieldType & f, const ParticleType & p,int iteration = 0, std
 template<typename ParticleType>
 void dumpParticlesOPAL( const ParticleType & p, int iteration=0) {
     
-    std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
+  //    std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
     std::ofstream csvout;
     csvout.precision(10);
     csvout.setf(std::ios::scientific, std::ios::floatfield);
@@ -150,7 +150,7 @@ void dumpParticlesOPAL( const ParticleType & p, int iteration=0) {
 template<typename ParticleType>
 void dumpParticlesCSV( const ParticleType & p, int iteration=0) {
 
-	std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
+  //	std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
 	std::ofstream csvout;
 	csvout.precision(10);
 	csvout.setf(std::ios::scientific, std::ios::floatfield);
@@ -183,7 +183,7 @@ void dumpParticlesCSVp( const ParticleType & p, int iteration=0) {
 
 	if(Ippl::myNode()==0) {
 
-		std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
+	  //		std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
 		std::ofstream csvout;
 		csvout.precision(15);
 		csvout.setf(std::ios::scientific, std::ios::floatfield);
@@ -262,7 +262,7 @@ void dumpParticlesCSVp( const ParticleType & p, int iteration=0) {
 				if (iteration==0){
 					csvout << "it,rrmsX, rrmsY, rrmsZ, vrmsX,vrmsY,vrmsZ,rmeanX,rmeanY,rmeanZ,vmeanX,vmeanY,vmeanZ,epsX,epsY,epsZ,rvrmsX,rvrmsY,rvrmsZ" << std::endl;
 				}
-				csvout << iteration << ", "<< p->rrms_m <<","<< p->vrms_m <<","<< p->rmean_m <<","<< p->vmean_m <<"," << p->eps_m <<","<<  p->rvrms_m << std::endl;
+				csvout << iteration << " "<< p->rrms_m <<" "<< p->vrms_m <<" "<< p->rmean_m <<" "<< p->vmean_m <<" " << p->eps_m <<" "<<  p->rvrms_m << std::endl;
 				// close the output file for this iteration:
 				csvout.close();
 }

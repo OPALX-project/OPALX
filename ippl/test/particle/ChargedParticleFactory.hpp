@@ -556,10 +556,12 @@ void createParticleDistributionEquiPartSphere(Particles & P, Vektor<double,3> ex
 
 template<typename Particles>
 void createParticleDistributionHeating(Particles & P, Vektor<double,3> extend_l, Vektor<double,3> extend_r, double beam_radius, unsigned Nparts,double qi, double mi) {
-	std::cout << "Initializing Cold Sphere" << std::endl;
+    Inform msg("p3m3dHeating ");
+    
+    msg << "Initializing Cold Sphere" << endl;
 	P->total_charge=0;
 	unsigned Nparticle = Nparts; 
-	std::cout << "Number of particles = " << Nparticle << std::endl;
+
 	//the momenta are normally distributed with std deviation sigma_px
 		
 	std::default_random_engine generator(0);
