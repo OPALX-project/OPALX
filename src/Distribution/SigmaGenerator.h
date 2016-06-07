@@ -25,7 +25,6 @@
 #include <list>
 #include <numeric>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -739,7 +738,7 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     } else if (alpha >= 0) {
         sig = sig0 * (1 + alpha * (0.25 - 0.03125 * alpha));
     } else {
-        throw std::range_error("Error in SigmaGenerator::initialize: Alpha value out of range.");
+        throw OpalException("SigmaGenerator::initialize()", "Negative alpha value: " + std::to_string(alpha) + " < 0");
     }
 
     // K = Kx = Ky = Kz
@@ -752,19 +751,19 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
 
     // b must be positive, otherwise no real-valued frequency
     if (b < 0)
-        throw std::domain_error("Error in SigmaGenerator::initialize: b < 0");
+        throw OpalException("SigmaGenerator::initialize()", "Negative value --> No real-valued frequency.");
 
     value_type tmp = a * a - b;           // [tmp] = 1/m^{4}
     if (tmp < 0)
-        throw std::invalid_argument("Error in SigmaGenerator::initialize: a^{2} - b < 0");
+        throw OpalException("SigmaGenerator::initialize()", "Square root of negative number.");
 
     tmp = std::sqrt(tmp);               // [tmp] = 1/m^{2}
 
     if (a < tmp)
-        throw std::invalid_argument("Error in SigmaGenerator::initialize: Square root of negative number.");
+        throw OpalException("Error in SigmaGenerator::initialize()", "Square root of negative number.");
 
     if (h * h * nuz * nuz <= K)
-        throw std::invalid_argument("Error in SigmaGenerator::initialize: h^{2} * nu_{z}^{2} <= K (Square root of negative number)");
+        throw OpalException("SigmaGenerator::initialize()", "h^{2} * nu_{z}^{2} <= K (i.e. square root of negative number)");
 
     value_type Omega = std::sqrt(a + tmp);                // formula (22), [Omega] = 1/m
     value_type omega = std::sqrt(a - tmp);                // formula (22), [omega] = 1/m
