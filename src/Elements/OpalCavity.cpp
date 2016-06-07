@@ -27,7 +27,7 @@
 
 extern Inform *gmsg;
 
-// Class OpalCavity for OPAL-cycl
+// Class OpalCavity for all flavours
 // ------------------------------------------------------------------------
 
 OpalCavity::OpalCavity():
