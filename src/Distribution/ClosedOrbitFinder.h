@@ -284,18 +284,17 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type 
   rmin_m(rmin), ntheta_m(ntheta), nradial_m(nradial), dr_m(dr), lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
   vertOscDone_m(false), fieldmap_m(fieldmap), domain_m(domain), stepper_m(), rguess_m(rguess)
 {
-
-     if ( Emin_m > Emax_m )
-       throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
-                           "Incorrect cyclotron energy (MeV) bounds: Maximum cyclotron energy smaller than minimum cyclotron energy.");
+    
+    if ( Emin_m > Emax_m )
+        throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
+                            "Incorrect cyclotron energy (MeV) bounds: Maximum cyclotron energy smaller than minimum cyclotron energy.");
+    
+//     // Even if the numbers are equal --> if statement is true.
+//     if ( E_m < Emin_m )
+//         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy smaller than minimum cyclotron energy");
      
-//      if ( E_m < Emin_m )
-//          throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
-//                              "Kinetic energy (" + std::to_string(E_m) + " MeV) smaller than minimum cyclotron energy (" + std::to_string(Emin_m) + " MeV)");
-     
-     if ( E_m > Emax_m )
-         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
-                             "Kinetic energy (" + std::to_string(E_m) + " MeV) bigger than maximum cyclotron energy (" + std::to_string(Emax_m) + " MeV)");
+    if ( E_m > Emax_m )
+        throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy exceeds cyclotron energy");
 
     // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
     if (gamma_m == 0)

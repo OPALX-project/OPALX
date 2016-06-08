@@ -40,7 +40,6 @@
 
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
 
-#include "math.h"
 #include "rdm.h"
 
 #include "matrix_vector_operation.h"
@@ -960,8 +959,10 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
      */
 
     value_type cosy = 0.5 * (M(2,2) + M(3,3));
-
-    value_type invsiny = matt::sign(M(2,3)) / std::sqrt(std::fabs( 1.0 - cosy * cosy));
+    
+    value_type sign = (std::signbit(M(2,3))) ? value_type(-1) : value_type(1);
+    
+    value_type invsiny = sign / std::sqrt(std::fabs( 1.0 - cosy * cosy));
 
     value_type alphay = 0.5 * (M(2,2) - M(3,3)) * invsiny;
     value_type betay  =   M(2,3) * invsiny;
