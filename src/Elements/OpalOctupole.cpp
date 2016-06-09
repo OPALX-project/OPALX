@@ -131,8 +131,8 @@ void OpalOctupole::update() {
     field.setSkewComponent(4, factor * Attributes::getReal(itsAttr[K3S]));
     oct->setField(field);
 
-    oct->setNormalComponent(2, Attributes::getReal(itsAttr[K3]));
-    oct->setSkewComponent(2, Attributes::getReal(itsAttr[K3S]));
+    oct->setNormalComponent(4, Attributes::getReal(itsAttr[K3]));
+    oct->setSkewComponent(4, Attributes::getReal(itsAttr[K3S]));
 
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
