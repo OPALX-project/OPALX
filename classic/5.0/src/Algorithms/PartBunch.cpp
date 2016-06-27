@@ -2704,7 +2704,7 @@ void PartBunch::boundp_destroy() {
 
     calcBeamParameters_cycl();
 
-    const double checkfactor = Options::remotePartDel;
+    const int checkfactor = Options::remotePartDel;
 
     if (checkfactor != 0.0) {
       // yes we do remote particle delete (why remote ?)
