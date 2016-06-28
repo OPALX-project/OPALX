@@ -103,7 +103,7 @@ Option::Option():
                            ("SCSOLVEFREQ", "The frequency to solve space charge fields. its default value is 1");
     itsAttr[MTSSUBSTEPS] = Attributes::makeReal("MTSSUBSTEPS", "How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator");
     itsAttr[REMOTEPARTDEL] = Attributes::makeReal
-      ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, its default values is 0 (no delete) ");
+      ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, its default values is 0 (no delete) ",0.0);
     itsAttr[PSDUMPLOCALFRAME] = Attributes::makeBool
                                 ("PSDUMPLOCALFRAME", "If true, in local Cartesian frame, otherwise in global Cartesian frame, only aviable for OPAL-cycl, its default value is false");
     itsAttr[SPTDUMPFREQ] = Attributes::makeReal

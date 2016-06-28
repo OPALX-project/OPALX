@@ -2704,11 +2704,12 @@ void PartBunch::boundp_destroy() {
 
     calcBeamParameters_cycl();
 
-    const int checkfactor = Options::remotePartDel;
+    double checkfactor = Options::remotePartDel;
 
     if (checkfactor != 0.0) {
       // yes we do remote particle delete (why remote ?)
       if (checkfactor < 0) { // cut in 3D
+	checkfactor *= -1.0;
 	// check the bunch if its full size is larger than checkfactor times of its rms size
 	if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
 	  for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
