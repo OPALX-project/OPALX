@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 PROJECT_NAME           = "OPAL (Object Oriented Parallel Accelerator Library)" 
-PROJECT_NUMBER         = "1.2.0"
+PROJECT_NUMBER         = "1.5.0"
 OUTPUT_DIRECTORY       = ./doc
 CREATE_SUBDIRS         = YES
 OUTPUT_LANGUAGE        = English
@@ -183,12 +183,12 @@ PERLMOD_MAKEVAR_PREFIX =
 # Configuration options related to the preprocessor   
 #---------------------------------------------------------------------------
 ENABLE_PREPROCESSING   = YES
-MACRO_EXPANSION        = NO
+MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = YES
 INCLUDE_PATH           = 
 INCLUDE_FILE_PATTERNS  = 
-PREDEFINED             = ENABLE_SAAMG_SOLVER ENABLE_AMR_SOLVER
+PREDEFINED             = HAVE_AMR_SOLVER=1 HAVE_AMR_SOLVER=1
 EXPAND_AS_DEFINED      = 
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
