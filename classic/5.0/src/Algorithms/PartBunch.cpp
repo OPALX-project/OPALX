@@ -2704,22 +2704,39 @@ void PartBunch::boundp_destroy() {
 
     calcBeamParameters_cycl();
 
-    const int checkfactor = Options::remotePartDel;
+    int checkfactor = Options::remotePartDel;
+    if (checkfactor != 0) {
     // check the bunch if its full size is larger than checkfactor times of its rms size
-    if(checkfactor != -1) {
-        if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
-            for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-                // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
-                if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
-                    // put particle onto deletion list
-                    destroy(1, ii);
-                    //update bin parameter
-                    if(weHaveBins()) countLost[Bin[ii]] += 1 ;
-
-                    gmsgAll << "REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii] << ", beam rms = " << rrms_m << endl;
-                }
-            }
-        }
+    if(checkfactor < 0) {
+      checkfactor *= -1;
+      if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
+	for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+	  // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
+	  if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
+	    // put particle onto deletion list
+	    destroy(1, ii);
+	    //update bin parameter
+	    if(weHaveBins()) countLost[Bin[ii]] += 1 ;
+	    INFOMSG("REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii] << ", beam rms = " << rrms_m << endl;);
+	  }
+	}
+      }
+    }
+    
+    if(checkfactor > 0) {
+      if(len[0] > checkfactor * rrms_m[0] || len[2] > checkfactor * rrms_m[2]) {
+	for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+	  // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
+	  if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
+	    // put particle onto deletion list
+	    destroy(1, ii);
+	    //update bin parameter
+	    if(weHaveBins()) countLost[Bin[ii]] += 1 ;
+	    INFOMSG("REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii] << ", beam rms = " << rrms_m << endl;);
+	  }
+	}
+      }
+    }
     }
     for(int i = 0; i < dimIdx; i++) {
         double length = std::abs(rmax_m[i] - rmin_m[i]);
