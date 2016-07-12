@@ -2707,44 +2707,39 @@ void PartBunch::boundp_destroy() {
     double checkfactor = Options::remotePartDel;
 
     if (checkfactor != 0.0) {
-      // yes we do remote particle delete (why remote ?)
-      if (checkfactor < 0) { // cut in 3D
-	checkfactor *= -1.0;
-	// check the bunch if its full size is larger than checkfactor times of its rms size
-	if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
-	  for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-	    // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
-	    if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
-	      // put particle onto deletion list
-	      destroy(1, ii);
-	      //update bin parameter
-	      if(weHaveBins()) countLost[Bin[ii]] += 1 ;
-	      
-	      gmsgAll << "REMOTE PARTICLE DELETION (3D): ID = " << ID[ii] << ", R = " << R[ii] << ", beam rms = " << rrms_m << endl;
-	    }
-	  }
-	}
-      }
-      else { // cut in 2D only 
-	// Caveats: only make sense for OPAL-cycl
-	// Caveats caveats: need to make OPAL-cycl compatible with OPAL-t w.r.t. the meaning of x,y,z! 
-	// check the bunch if its full size is larger than checkfactor times of its rms size
-	if(len[0] > checkfactor * rrms_m[0] || len[2] > checkfactor * rrms_m[2]) {
-	  for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-	    // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
-	    if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
-	      // put particle onto deletion list
-	      destroy(1, ii);
-	      //update bin parameter
-	      if(weHaveBins()) countLost[Bin[ii]] += 1 ;
-	      
-	      gmsgAll << "REMOTE PARTICLE DELETION (2D): ID = " << ID[ii] << ", R = " << R[ii] << ", beam rms = " << rrms_m << endl;
-	    }
-	  }
-	}
-      }
+        // yes we do remote particle delete (why remote ?)
+        if (checkfactor < 0) { // cut in 3D
+            checkfactor *= -1.0;
+            // check the bunch if its full size is larger than checkfactor times of its rms size
+            if(len[0] > checkfactor * rrms_m[0] || len[1] > checkfactor * rrms_m[1] || len[2] > checkfactor * rrms_m[2]) {
+                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+                    // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
+                    if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
+                        // put particle onto deletion list
+                        destroy(1, ii);
+                        //update bin parameter
+                        if(weHaveBins()) countLost[Bin[ii]] += 1 ;
+                    }
+                }
+            }
+        }
+        else { // cut in 2D only 
+            // Caveats: only make sense for OPAL-cycl
+            // Caveats caveats: need to make OPAL-cycl compatible with OPAL-t w.r.t. the meaning of x,y,z! 
+            // check the bunch if its full size is larger than checkfactor times of its rms size
+            if(len[0] > checkfactor * rrms_m[0] || len[2] > checkfactor * rrms_m[2]) {
+                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+                    // delete the particle if the ditance to the beam center is larger than 8 times of beam's rms size
+                    if(abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] || abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]) {
+                        // put particle onto deletion list
+                        destroy(1, ii);
+                        //update bin parameter
+                        if(weHaveBins()) countLost[Bin[ii]] += 1 ;
+                    }
+                }
+            }
+        }
     }
-
 
     for(int i = 0; i < dimIdx; i++) {
         double length = std::abs(rmax_m[i] - rmin_m[i]);
