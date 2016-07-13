@@ -19,7 +19,7 @@
 #include "Attributes/Attributes.h"
 #include "ValueDefinitions/RealVariable.h"
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"

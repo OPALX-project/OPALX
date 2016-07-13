@@ -23,7 +23,7 @@
 #include "Structure/DataSink.h"
 
 #include "BasicActions/Option.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 
 #include "Physics/Physics.h"

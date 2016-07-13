@@ -10,7 +10,7 @@
 #include "Algorithms/Tracker.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Options.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 

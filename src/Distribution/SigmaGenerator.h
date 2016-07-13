@@ -30,7 +30,7 @@
 #include <vector>
 
 #include "Physics/Physics.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 

@@ -73,7 +73,7 @@
 
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 
 #include "Ctunes.h"
 #include <cassert>

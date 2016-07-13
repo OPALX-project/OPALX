@@ -36,7 +36,7 @@ Inform *gmsg;
 #include "FixedAlgebra/FTps.h"
 
 #include "BasicActions/Option.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 

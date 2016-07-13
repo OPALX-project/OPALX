@@ -8,7 +8,7 @@
 #include "revision.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/BoundaryGeometry.h"
