@@ -25,7 +25,7 @@
 
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "halton1d_sequence.hh"
 #include "AbstractObjects/OpalData.h"

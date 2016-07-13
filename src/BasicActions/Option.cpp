@@ -20,7 +20,7 @@
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
 #include "Utilities/Options.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Random.h"
 #include <ctime>
 #include <iostream>
@@ -157,7 +157,7 @@ Option::Option():
                           ("NLHS", "Number of stored old solutions for extrapolating the new starting vector. Default value is 1 and just the last solution is used.");
 
     itsAttr[ENABLEHDF5] = Attributes::makeBool
-                      ("ENABLEHDF5", "If true, HDF5 actions are enabled", true);
+        ("ENABLEHDF5", "If true, HDF5 actions are enabled", enableHDF5);
 
     itsAttr[ASCIIDUMP] = Attributes::makeBool
         ("ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", false);

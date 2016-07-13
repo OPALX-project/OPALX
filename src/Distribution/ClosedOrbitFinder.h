@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 

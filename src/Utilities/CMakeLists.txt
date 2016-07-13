@@ -2,7 +2,6 @@ set (_SRCS
   NumToStr.cpp
   OpalException.cpp
   OpalFilter.cpp
-  OpalOptions.cpp
   OpalSection.cpp
   RegularExpression.cpp
   Round.cpp

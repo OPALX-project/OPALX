@@ -19,7 +19,7 @@
 #include "AbsBeamline/Septum.h"
 
 #include "BasicActions/Option.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalSection.h"
 #include "Utilities/ClassicField.h"
