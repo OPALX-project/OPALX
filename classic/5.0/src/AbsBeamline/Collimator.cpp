@@ -276,7 +276,8 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
 
     if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+//        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+        if( r1 > r_start - 1.0 && r1 < r_end + 1.0 ){
             size_t tempnum = bunch.getLocalNum();
             int pflag = 0;
             for(unsigned int i = 0; i < tempnum; ++i) {
