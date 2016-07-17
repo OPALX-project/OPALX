@@ -17,6 +17,7 @@
 #include "AbsBeamline/Multipole.h"
 #include "Structure/LossDataSink.h" // OPAL file
 #include "Utilities/Options.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include "Ippl.h"
 
@@ -449,7 +450,7 @@ void  CollimatorPhysics::Material() {
 
     }
 
-    if(material_m == "Graphite") {
+    else if(material_m == "Graphite") {
         Z_m = 6.0;
         A_m = 12.0107;
         rho_m = 2.210;
@@ -465,7 +466,7 @@ void  CollimatorPhysics::Material() {
 
     }
 
-    if(material_m == "GraphiteR6710") {
+    else if(material_m == "GraphiteR6710") {
         Z_m = 6.0;
         A_m = 12.0107;
         rho_m = 1.88;
@@ -481,7 +482,7 @@ void  CollimatorPhysics::Material() {
 
     }
 
-    if(material_m == "Molybdenum") {
+    else if(material_m == "Molybdenum") {
         Z_m = 42.0;
         A_m = 95.94;
         rho_m = 10.22;
@@ -502,7 +503,7 @@ void  CollimatorPhysics::Material() {
       Z from http://journals.aps.org/prb/pdf/10.1103/PhysRevB.40.8530
     */
 
-    if(material_m == "Mylar") {
+    else if(material_m == "Mylar") {
         Z_m = 6.702;
         A_m = 12.88;
         rho_m = 1.4;
@@ -518,7 +519,7 @@ void  CollimatorPhysics::Material() {
 
 
     //new materials
-    if (material_m == "Aluminum") {
+    else if (material_m == "Aluminum") {
         Z_m = 13;
         A_m = 26.98;
         rho_m = 2.7;
@@ -533,7 +534,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.023e-2;
     }
 
-    if (material_m == "Copper") {
+    else if (material_m == "Copper") {
         Z_m = 29;
         A_m = 63.54;
         rho_m = 8.96;
@@ -548,7 +549,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.242e-2;
     }
 
-    if (material_m == "Titan") {
+    else if (material_m == "Titan") {
         Z_m = 22;
         A_m = 47.8;
         rho_m = 4.54;
@@ -563,7 +564,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 8.930e-3;
     }
 
-    if (material_m == "AluminaAl2O3") {
+    else if (material_m == "AluminaAl2O3") {
         Z_m = 50;
         A_m = 101.96;
         rho_m = 3.97;
@@ -578,7 +579,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 4.474e-3;
     }
 
-    if (material_m == "Air") {
+    else if (material_m == "Air") {
         Z_m = 7;
         A_m = 14;
         rho_m = 0.0012;
@@ -593,7 +594,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.513e-2;
     }
 
-    if (material_m == "Kapton") {
+    else if (material_m == "Kapton") {
         Z_m = 6;
         A_m = 12;
         rho_m = 1.4;
@@ -608,7 +609,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 1.638e-2;
     }
 
-    if (material_m == "Gold") {
+    else if (material_m == "Gold") {
         Z_m = 79;
         A_m = 197;
         rho_m = 19.3;
@@ -623,7 +624,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.077e-2;
     }
 
-    if (material_m == "Water") {
+    else if (material_m == "Water") {
         Z_m = 10;
         A_m = 18;
         rho_m = 1;
@@ -638,6 +639,9 @@ void  CollimatorPhysics::Material() {
         A5_c = 1.568e-2;
     }
 
+    else {
+      throw GeneralClassicException("CollimatorPhysics::Material","Material not found ...");
+    } 
     // mean exitation energy from Leo
     if (Z_m < 13.0)
         I_m = 12 * Z_m + 7.0;
