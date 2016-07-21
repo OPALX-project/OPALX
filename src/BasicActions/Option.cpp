@@ -274,7 +274,7 @@ void Option::execute() {
 
 
     if(itsAttr[REMOTEPARTDEL]) {
-        remotePartDel = int(Attributes::getReal(itsAttr[REMOTEPARTDEL]));
+        remotePartDel = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
     }
 
     if(itsAttr[REPARTFREQ]) {
