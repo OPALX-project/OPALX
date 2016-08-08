@@ -35,8 +35,7 @@ public:
     /// returns type of boundary condition
     std::string getType() {return "Geometric";}
     /// queries if a given (x,y,z) coordinate lies inside the domain
-    inline bool isInside(int idx, int idy, int idz); 
-
+    inline bool isInside(int idx, int idy, int idz);
     /// returns number of nodes in xy plane
     int getNumXY(int idz);
     // calculates intersection  
@@ -98,6 +97,10 @@ private:
     std::map<int, int> IdxMap;
     // Mapping idxyz -> (x,y,z)
     std::map<int, int> CoordMap;
+
+    // Mapping all cells that are inside the geometry
+    std::map<int, bool> IsInsideMap;
+
     // Interpolation type
     int interpolationMethod;
  
@@ -109,6 +112,7 @@ private:
     Vector_t geomCentroid_m;
     Vector_t minCoords_m;
     Vector_t maxCoords_m;
+    Vector_t globalInsideP0_m;
 
     // Conversion from (x,y,z) to index in xyz plane
     inline int toCoordIdx(int idx, int idy, int idz);
