@@ -2689,6 +2689,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     // Total number of particles determines single particle mode (SPM, 1 particle) or
     // Static Equilibrium Orbit Mode (SEO, 2 particles)
 
+    // *gmsg << "*** Running Tracker_Generic ***" << endl;
+
     //if (timeIntegrator_m == 1) BorisPusher pusher; // Create a BorisPusher only for LF-2 method
     BorisPusher pusher; // TEMP: OPAL will not compile without a pusher. -DW
 
@@ -3589,35 +3591,37 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
         // Here is global frame, don't do itsBunch->boundp();
 
-        // Check separately for phase space (ps) and statistics (stat) data dump frequency
-        if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
-            || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
+	if (itsBunch->getTotalNum()>0) { // Only dump last step if we have particles left.
+            // Check separately for phase space (ps) and statistics (stat) data dump frequency
+            if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
+                || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
-            // Write phase space data to h5 file
-            bunchDumpPhaseSpaceData();
+                // Write phase space data to h5 file
+                bunchDumpPhaseSpaceData();
+           }
+
+            if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2)
+                || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
+
+                // Write statistics data to stat file
+                bunchDumpStatData();
+            }
         }
-
-        if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2)
-            || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
-
-            // Write statistics data to stat file
-            bunchDumpStatData();
-        }
-
         if(!(step_m + 1 % 1000))
             *gmsg << "Step " << step_m + 1 << endl;
 
-    } // end for: the integration is DONE after maxSteps_m steps!
+    } // end for: the integration is DONE after maxSteps_m steps or if all particles are lost!
 
     // Some post-integration stuff
     *gmsg << endl;
     *gmsg << "* ---------------------------- DONE TRACKING PARTICLES -------------------------------- * " << endl;
 
-    if (!(itsBunch->getTotalNum()>0))
-      throw OpalException("ParallelCyclotronTracker::Tracker_MTS()", "No particles anymore, give up now!");
+    // TODO: This is totally wrecking saving paricles that were lost on collimators, etc.
+    // if no particles remain! -DW
+    //if (!(itsBunch->getTotalNum()>0))
+    //  throw OpalException("ParallelCyclotronTracker::Tracker_Generic()", "No particles anymore, give up now!");
 
     // Calculate tunes after tracking.
-
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
         if(itsBunch->ID[ii] == 0) {
             double FinalMomentum2 = pow(itsBunch->P[ii](0), 2.0) + pow(itsBunch->P[ii](1), 2.0) + pow(itsBunch->P[ii](2), 2.0);
@@ -3651,17 +3655,26 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
     if(initialTotalNum_m == 1) closeFiles();
 
-    // Print out the Bunch information at end of the run. Because the bunch information
-    // displays in units of m we have to change back and forth one more time.
-    // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
-    itsBunch->R *= Vector_t(0.001); // mm --> m
-
-    itsBunch->calcBeamParameters_cycl();
-
     *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
-    *gmsg << *itsBunch << endl;
 
-    itsBunch->R *= Vector_t(1000.0); // m --> mm
+    if (itsBunch->getTotalNum()>0){
+        // Print out the Bunch information at end of the run. Because the bunch information
+        // displays in units of m we have to change back and forth one more time.
+        // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
+        itsBunch->R *= Vector_t(0.001); // mm --> m
+
+        itsBunch->calcBeamParameters_cycl();
+
+        *gmsg << *itsBunch << endl;
+
+        itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+    } else {
+
+	*gmsg << endl << "* No Particles left in bunch!" << endl;
+        *gmsg << "* **********************************************************************************" << endl;
+
+    }
 }
 
 bool ParallelCyclotronTracker::getFieldsAtPoint(const double &t, const size_t &Pindex, Vector_t &Efield, Vector_t &Bfield) {

@@ -265,14 +265,17 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     NDIndex<3> localId = layout_m->getLocalNDIndex();
 
     IpplTimings::startTimer(FunctionTimer1_m);
+    // Compute boundary intersections (only do on the first step)
     if(!itsBunch_m->getLocalTrackStep())
         bp->Compute(hr, localId);
     IpplTimings::stopTimer(FunctionTimer1_m);
 
     // Define the Map
+    INFOMSG(level2 << "* Computing Map..." << endl);
     IpplTimings::startTimer(FunctionTimer2_m);
     computeMap(localId);
     IpplTimings::stopTimer(FunctionTimer2_m);
+    INFOMSG(level2 << "* Done." << endl);
 
     // Allocate the RHS with the new Epetra Map
     if (Teuchos::is_null(RHS)) 
@@ -280,30 +283,50 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     RHS->PutScalar(0.0);
 
     // get charge densities from IPPL field and store in Epetra vector (RHS)
+    Ippl::Comm->barrier();
+    std::cout << "* Node:" << Ippl::myNode() << ", Filling RHS..." << std::endl;
+    Ippl::Comm->barrier();
     IpplTimings::startTimer(FunctionTimer3_m);
     int id = 0;
     float scaleFactor = itsBunch_m->getdT();
+
+ 
+    std::cout << "* Node:" << Ippl::myNode() << ", Rho for final element: " << rho[localId[0].last()][localId[1].last()][localId[2].last()].get() << std::endl;
+
+    Ippl::Comm->barrier();
+    std::cout << "* Node:" << Ippl::myNode() << ", Local nx*ny*nz = " <<  localId[2].last() *  localId[0].last() *  localId[1].last() << std::endl;
+    std::cout << "* Node:" << Ippl::myNode() << ", Number of reserved local elements in RHS: " << RHS->MyLength() << std::endl;
+    std::cout << "* Node:" << Ippl::myNode() << ", Number of reserved global elements in RHS: " << RHS->GlobalLength() << std::endl;
+    Ippl::Comm->barrier();
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                  if (bp->isInside(idx, idy, idz))
-                    RHS->Values()[id++] = 4*M_PI*rho[idx][idy][idz].get()/scaleFactor;
+		    if (bp->isInside(idx, idy, idz))
+                        RHS->Values()[id++] = 4*M_PI*rho[idx][idy][idz].get()/scaleFactor;
             }
         }
     }
+
+    std::cout << "* Node:" << Ippl::myNode() << ", Number of Local Inside Points " << id << std::endl;
+    Ippl::Comm->barrier();
     IpplTimings::stopTimer(FunctionTimer3_m);
+    std::cout << "* Node:" << Ippl::myNode() << ", Done." << std::endl;
+    Ippl::Comm->barrier();
 
     // build discretization matrix
+    INFOMSG(level2 << "* Building Discretization Matrix..." << endl);
     IpplTimings::startTimer(FunctionTimer4_m);
     if(Teuchos::is_null(A))
         A = rcp(new Epetra_CrsMatrix(Copy, *Map,  7, true));
     ComputeStencil(hr, RHS);
     IpplTimings::stopTimer(FunctionTimer4_m);
+    INFOMSG(level2 << "* Done." << endl);
 
 #ifdef DBG_STENCIL
     EpetraExt::RowMatrixToMatlabFile("DiscrStencil.dat", *A);
 #endif
 
+    INFOMSG(level2 << "* Computing Preconditioner..." << endl);
     IpplTimings::startTimer(FunctionTimer5_m);
     if(!MLPrec) {
         MLPrec = new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m);
@@ -312,11 +335,12 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     } else if (precmode_m == REUSE_PREC){
     }
     IpplTimings::stopTimer(FunctionTimer5_m);
+    INFOMSG(level2 << "* Done." << endl);
 
     // setup preconditioned iterative solver
     // use old LHS solution as initial guess
+    INFOMSG(level2 << "* Final Setup of Solver..." << endl);
     IpplTimings::startTimer(FunctionTimer6_m);
-
     problem_ptr->setOperator(A);
     problem_ptr->setLHS(LHS);
     problem_ptr->setRHS(RHS);
@@ -330,15 +354,19 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         }
     }
     IpplTimings::stopTimer(FunctionTimer6_m);
+    INFOMSG(level2 << "* Done." << endl);
+
     std::ofstream timings;
     char filename[50];
     sprintf(filename, "timing_MX%d_MY%d_MZ%d_nProc%d_recB%d_numB%d_nLHS%d", orig_nr_m[0], orig_nr_m[1], orig_nr_m[2], Comm.NumProc(), recycleBlocks_m, numBlocks_m, nLHS_m);
     if(Comm.MyPID() == 0) timings.open(filename, std::ios::app);
     double time = MPI_Wtime();
 
+    INFOMSG(level2 << "* Solving for Space Charge..." << endl);
     IpplTimings::startTimer(FunctionTimer7_m);
     	solver_ptr->solve();
     IpplTimings::stopTimer(FunctionTimer7_m);
+    INFOMSG(level2 << "* Done." << endl);
 
     time = MPI_Wtime() - time;
     double minTime, maxTime, avgTime;
@@ -394,7 +422,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                 if (bp->isInside(idx, idy, idz))
+		    if (bp->isInside(idx, idy, idz))
                     numMyGridPoints++;
              }
         }
@@ -412,7 +440,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                 if (bp->isInside(idx, idy, idz)) {
+		    if (bp->isInside(idx, idy, idz)) {
                     v[0] = (double)idx;
                     v[stride] = (double)idy;
                     v[stride2] = (double)idz;
@@ -446,13 +474,14 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
 }
 
 void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
+
     int NumMyElements = 0;
     std::vector<int> MyGlobalElements;
 
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                if (bp->isInside(idx, idy, idz)) {
+		    if (bp->isInside(idx, idy, idz)) {
                     MyGlobalElements.push_back(bp->getIdx(idx, idy, idz));
                     NumMyElements++;
                 }
