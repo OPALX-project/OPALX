@@ -59,7 +59,7 @@
 #include "AbstractObjects/OpalData.h"
 
 #include "BasicActions/Option.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 
 #include "Distribution/Distribution.h"

@@ -73,7 +73,7 @@
 
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 
 #include "Ctunes.h"
 #include <cassert>
@@ -1654,82 +1654,6 @@ void ParallelCyclotronTracker::Tracker_LF() {
             // Write Phase Space and Statistics Data to h5 and dat files
             bunchDumpPhaseSpaceData();
 
-            // extE_m = Vector_t(0.0, 0.0, 0.0);
-            // extB_m = Vector_t(0.0, 0.0, 0.0);
-
-            // //--------------------- calculate mean coordinates  of bunch -------------------------------//
-            // //------------  and calculate the external field at the mass of bunch-----------------------//
-
-            // Vector_t const meanR = calcMeanR();
-	    // // *gmsg << "* meanR=( " << meanR(0) << " " << meanR(1) << " " << meanR(2) << " ) [mm] " << endl;
-
-            // beamline_list::iterator DumpSindex = FieldDimensions.begin();
-            // (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), itsBunch->getT() * 1e9, extE_m, extB_m);
-            // FDext_m[0] = extB_m / 10.0; // kgauss -> T
-            // FDext_m[1] = extE_m;
-
-            // // --------------------------- Particle dumping ------------------------------------------ //
-            // // Note: Don't dump when
-            // // 1. after one turn
-            // // in order to sychronize the dump step for multi-bunch and single bunch for compare
-            // // with each other during post-process phase.
-            // double const E = itsBunch->get_meanEnergy();
-
-            // if(!(Options::psDumpLocalFrame)) {
-            //     // --------------------------- Dump in global frame ---------------------------------- //
-
-            //     itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-            //     itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0,0.0,0.0);
-
-            //     itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-            //     *gmsg << "* Phase space dump " << lastDumpedStep_m << " (global frame) at integration step "
-            //           << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" 	    << " E = " << itsBunch->get_meanEnergy()  << endl;
-
-            // } else {
-            //     // --------------------------- Dump in local frame ---------------------------------- //
-
-	    //     Vector_t const meanP = calcMeanP();
-	    //     double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-
-            //     // TEMP for testing -DW ********************************************
-            //     // NEW:
-	    //     Vektor<double, 4> quaternionToXAxis;
-            //     Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
-
-            //     getQuaternionTwoVectors(meanP, xaxis, quaternionToXAxis);
-
-            //     globalToLocal(itsBunch->R, quaternionToXAxis, meanR);
-            //     globalToLocal(itsBunch->P, quaternionToXAxis, meanP);
-
-            //     // OLD:
-            //     //globalToLocal(itsBunch->R, phi, meanR);
-            //     //globalToLocal(itsBunch->P, phi, meanP);
-            //     // TEMP END ********************************************************
-
-	    //     itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-	    //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-	    //     itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
-
-	    //     itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-            //     // TEMP for testing -DW ********************************************
-            //     // NEW:
-            //     localToGlobal(itsBunch->R, quaternionToXAxis, meanR);
-            //     localToGlobal(itsBunch->P, quaternionToXAxis, meanP);
-
-            //     // OLD:
-            //     //localToGlobal(itsBunch->R, phi, meanR);
-            //     //localToGlobal(itsBunch->P, phi, meanP);
-            //     // TEMP END ********************************************************
-
-	    //     *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-	    // 	      << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns]" << " E = " << E  << " phi= " << phi/pi*180.0 << endl;
-            // }
-            // // -------------------- Done with particle dumping ------------------------------------ //
             IpplTimings::stopTimer(DumpTimer_m);
         }
     }
@@ -2699,87 +2623,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             // Write Phase Space and Statistics Data to h5 and dat files
             bunchDumpPhaseSpaceData();
-
-            // extE_m = Vector_t(0.0, 0.0, 0.0);
-            // extB_m = Vector_t(0.0, 0.0, 0.0);
-
-            // //--------------------- calculate mean coordinates  of bunch -------------------------------//
-            // //------------  and calculate the external field at the mass of bunch-----------------------//
-
-            // Vector_t meanR = calcMeanR();
-
-            // // define longitudinal direction of the bunch
-            // // x:[0] transverse horizontal, y:[1] longitudinal, z:[2] transverse vertical
-
-            // beamline_list::iterator DumpSindex = FieldDimensions.begin();
-            // (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), t, extE_m, extB_m);
-            // FDext_m[0] = extB_m / 10.0; // kgauss -> T
-            // FDext_m[1] = extE_m;
-
-            // // ---------------------------- Particle dumping ----------------------------------------- //
-            // // Note: Don't dump when
-            // // 1. after one turn
-            // // in order to sychronize the dump step for multi-bunch and single
-            // // bunch for compare with each other during post-process phase.
-            // double const E = itsBunch->get_meanEnergy();
-
-            // if(!(Options::psDumpLocalFrame)) {
-            //     // --------------------------- Dump in global frame ----------------------------------- //
-	    //     // Fixme: ROGERS: BUG - THIS IO ROUTINE CAUSES FACTOR 100 SLOW DOWN IN PROCESSING TIME!!!
-
-            //     itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-            //     itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
-            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-
-            //     itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-            //     *gmsg << "* Phase space dump " << lastDumpedStep_m
-            //           << " (global frame) at integration step " << step_m + 1
-            //           << " T = " << t << " [ns]" << endl;
-
-            // } else {
-            //     // --------------------------- Dump in local frame ----------------------------------- //
-
-            //     double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
-
-            //     // TEMP for testing -DW ********************************************
-            //     // NEW:
-	    //     Quaternion_t quaternionToXAxis;
-            //     Vector_t const xaxis = Vector_t(1.0, 0.0, 0.0);
-
-            //     getQuaternionTwoVectors(meanP, xaxis, quaternionToXAxis);
-
-            //     globalToLocal(itsBunch->R, quaternionToXAxis, meanR);
-            //     globalToLocal(itsBunch->P, quaternionToXAxis, meanP);
-
-            //     // OLD:
-            //     //globalToLocal(itsBunch->R, phi, meanR);
-            //     //globalToLocal(itsBunch->P, phi, meanP);
-            //     // TEMP END ********************************************************
-
-            //     // dump in local frame
-            //     itsBunch->R /= Vector_t(1000.0); // mm --> m
-
-            //     lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, FDext_m, E, referencePr, referenceR, referenceTheta);
-            //     itsDataSink->writeStatData(*itsBunch, FDext_m , 0.0, 0.0, 0.0, E);
-
-            //     itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-            //     // TEMP for testing -DW ********************************************
-            //     // NEW:
-            //     localToGlobal(itsBunch->R, quaternionToXAxis, meanR);
-            //     localToGlobal(itsBunch->P, quaternionToXAxis, meanP);
-
-            //     // OLD:
-            //     //localToGlobal(itsBunch->R, phi, meanR);
-            //     //localToGlobal(itsBunch->P, phi, meanP);
-            //     // TEMP END ********************************************************
-
-            //     *gmsg << "* Phase space dump " << lastDumpedStep_m << " (local frame) at integration step "
-            //           << step_m + 1 << " T = " << itsBunch->getT() * 1e9 << " [ns], phi = " << phi/pi*180.0 <<" [deg]" <<endl;
-            // }
-            // // ------------- Done with dumping ------------------------------------------------------- //
             IpplTimings::stopTimer(DumpTimer_m);
         }
         if(!(step_m + 1 % 1000))
@@ -5535,11 +5378,16 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
         globalToLocal(itsBunch->P, phi, psi);
     }
 
+
+    itsBunch->R *= Vector_t(0.001); // mm --> m
+
     FDext_m[0] = extB_m / 10.0; // kgauss --> T
     FDext_m[1] = extE_m;
 
     // Save the stat file
     itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0, E);
+
+    itsBunch->R *= Vector_t(1000.0); // mm --> m
 
     // If we are in local mode, transform back after saving
     if(Options::psDumpLocalFrame) {

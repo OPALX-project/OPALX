@@ -26,7 +26,7 @@
 #include "Errors/ErrorParser.h"
 #include "Errors/MPHandler.h"
 #include "Errors/MPRemover.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Round.h"
 
 

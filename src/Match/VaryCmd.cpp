@@ -21,7 +21,7 @@
 #include "Match/ConcreteVar.h"
 #include "Match/Match.h"
 #include "Match/MatchLimits.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include <iostream>
 
 

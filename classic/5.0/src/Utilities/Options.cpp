@@ -1,3 +1,5 @@
+#include "Utilities/Random.h"
+#include <string>
 
 namespace Options {
     // The global program options.
@@ -9,12 +11,79 @@ namespace Options {
     // If true create symmetric distribution
     bool cZero = false;
 
-    bool enableHDF5 = true;
     bool asciidump = false;
 
     // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size of the bunch in any dimension,
     // the particle will be deleted artifically to hold the accuracy of space charge calculation. The default setting of -1 stands for no deletion.
-    int remotePartDel = -1;
+    double remotePartDel = 0.0;
 
     double beamHaloBoundary = 0;
+
+    // The global program options.
+    bool mtrace = false;
+    bool verify = false;
+    bool warn = true;
+    bool psDumpEachTurn = false;
+    bool psDumpLocalFrame = false;
+    bool scan = false;
+    bool rhoDump = false;
+    bool ebDump = false;
+
+    bool enableHDF5 = true;
+
+    // bool efDump = false;
+
+    // The global random generator.
+    Random rangen;
+
+    // The current random seed.
+    int seed  = 123456789;
+
+    // the number of refinements of the search range for the phase with maximum energy
+    // if eq 0 then no autophase
+    int autoPhase = 0;
+
+    // The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
+    int psDumpFreq = 10;
+    // // The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
+    // double rDump = 0.0;
+
+    // The frequency to dump statistical quantities such as beam RMS properties, i.e. dump
+    // when step%statDumpFreq == 0.
+    int statDumpFreq = 10;
+
+    // The frequency to dump single particle trajectory of particles with ID = 0 & 1
+    int sptDumpFreq = 1;
+
+    // The frequency to do particles repartition for better load balance between nodes
+    int repartFreq = 10;
+
+    // The frequency to reset energy bin ID for all particles
+    int rebinFreq = 100;
+
+    /// The frequency to solve space charge fields.
+    int scSolveFreq = 1;
+
+    // How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator
+    int mtsSubsteps = 1;
+
+    // The frequency to dump the particle-geometry surface interation data, -1 stands for no dump.
+    int surfDumpFreq = -1;
+
+    // Options for the Belos solver
+    int numBlocks = 0;
+    int recycleBlocks = 0;
+    int nLHS = 1;
+
+    std::string rngtype = std::string("RANDOM");
+
+    bool schottkyCorrection = false;
+
+    double schottkyRennormalization = -1;
+
+    bool cloTuneOnly;
+   
+    // Governs how often boundp_destroy is called to destroy lost particles
+    // Mainly used in the CyclotronTracker as of now -DW
+    int boundpDestroyFreq = 10;
 }

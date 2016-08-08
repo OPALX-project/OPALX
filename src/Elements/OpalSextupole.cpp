@@ -133,8 +133,8 @@ void OpalSextupole::update() {
     field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K2S]));
     sext->setField(field);
 
-    sext->setNormalComponent(2, Attributes::getReal(itsAttr[K2]));
-    sext->setSkewComponent(2, Attributes::getReal(itsAttr[K2S]));
+    sext->setNormalComponent(3, Attributes::getReal(itsAttr[K2]));
+    sext->setSkewComponent(3, Attributes::getReal(itsAttr[K2S]));
 
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);

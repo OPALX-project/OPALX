@@ -19,10 +19,13 @@
 #include <functional>
 #include <limits>
 #include <numeric>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "Utilities/Options.h"
+#include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
 
 // #include "physics.h"
 
@@ -281,13 +284,21 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type 
   rmin_m(rmin), ntheta_m(ntheta), nradial_m(nradial), dr_m(dr), lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
   vertOscDone_m(false), fieldmap_m(fieldmap), domain_m(domain), stepper_m(), rguess_m(rguess)
 {
-
-  //    if (Emin_m > Emax_m || E_m < Emin_m || E > Emax_m)
-  //      throw std::domain_error("Error in ClosedOrbitFinder: Emin <= E <= Emax and Emin < Emax");
+    
+    if ( Emin_m > Emax_m )
+        throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
+                            "Incorrect cyclotron energy (MeV) bounds: Maximum cyclotron energy smaller than minimum cyclotron energy.");
+    
+//     // Even if the numbers are equal --> if statement is true.
+//     if ( E_m < Emin_m )
+//         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy smaller than minimum cyclotron energy");
+     
+    if ( E_m > Emax_m )
+        throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy exceeds cyclotron energy");
 
     // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
     if (gamma_m == 0)
-        throw std::invalid_argument("Error in ClosedOrbitFinder: Relativistic factor equal zero.");
+        throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Relativistic factor equal zero.");
 
     // if domain_m = true --> integrate over a single sector
     if (domain_m) {
@@ -498,7 +509,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     {
         pr2 = y[1] * y[1];
         if (p2 < pr2)
-            throw std::domain_error("Error in ClosedOrbitFinder::findOrbit: p_{r} > p^{2} (defined in Gordon paper)");
+            throw OpalException("ClosedOrbitFinder::findOrbit()", "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
 
         // Gordon, formula (5c)
         ptheta = std::sqrt(p2 - pr2);
@@ -795,8 +806,8 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     {
         pr2 = y[1] * y[1];
         if (p2 < pr2) {
-            throw std::domain_error("Error in ClosedOrbitFinder::computeVerticalOscillations: p_{r} > p^{2}"
-            "(defined in Gordon paper)");
+            throw OpalException("ClosedOrbitFinder::computeVerticalOscillations()",
+                                "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
         }
 
         // Gordon, formula (5c)
