@@ -44,6 +44,7 @@ public:
         FMAPFN,    // The filename of the mid-plane fieldmap
         RFMAPFN,   // The filename(s) of the RF fieldmap
 	RFFCFN,    // The filename(s) of coefficients for RF frequency function f(t) 
+	RFVCFN,    // The filename(s) of coefficients for RF voltage function v(t) 
         BSCALE,    // A scalar to scale the B-field
         ESCALE,    // A scalar to scale the RF field
         TCR1,      // trim coil r1 (mm)
