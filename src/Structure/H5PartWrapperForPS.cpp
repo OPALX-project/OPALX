@@ -9,7 +9,7 @@
 #include "Algorithms/PartBunch.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Physics/Physics.h"
 

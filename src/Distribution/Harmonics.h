@@ -21,8 +21,6 @@
 #include <boost/numeric/ublas/matrix.hpp>
 
 #include "matrix_vector_operation.h"
-#include "math.h"
-// #include "physics.h"
 
 template<typename Value_type, typename Size_type>
 class Harmonics
@@ -531,7 +529,10 @@ typename Harmonics<Value_type, Size_type>::matrix_type Harmonics<Value_type, Siz
     M(1,0) = - s * fx / r;
     M(2,2) = M(3,3) = C;
     M(2,3) = S * r / fy;
-    M(3,2) = matt::sign(k) * S * fy / r;
+    
+    value_type sign = (std::signbit(k)) ? value_type(-1) : value_type(1);
+    
+    M(3,2) = sign * S * fy / r;
     M(4,5) = l / gam2 - r / (1.0 + k) * (phi - s / fx);
     M(4,0)= - (M(1,5) = s / fx);
     M(4,1)= - (M(0,5) = r * (1.0 - c) / (1.0 + k));

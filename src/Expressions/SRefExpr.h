@@ -23,7 +23,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Expressions/SValue.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include <iosfwd>
 #if defined(__GNUC__) && __GNUC__ < 3
 #include <strstream>

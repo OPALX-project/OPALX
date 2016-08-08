@@ -1,7 +1,7 @@
 #include "Algorithms/AutophaseTracker.h"
 #include "Utilities/ClassicField.h"
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 
 #include <iostream>

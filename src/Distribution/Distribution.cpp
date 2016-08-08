@@ -25,7 +25,7 @@
 
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "halton1d_sequence.hh"
 #include "AbstractObjects/OpalData.h"
@@ -1374,8 +1374,13 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	}
 	
 	for (unsigned int i = 0; i < 3; ++ i) {
+          if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
+              throw OpalException("Distribution::CreateMatchedGaussDistribution()", "Negative value on the diagonal of the sigma matrix.");
+              
 	  sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
 	  sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
+          
+          
 	}
 	
 	if (inputMoUnits_m == InputMomentumUnitsT::EV) {
@@ -1396,6 +1401,11 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
       }
       else {
 	*gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
+        
+        if (siggen)
+            delete siggen;
+        
+        throw OpalException("Distribution::CreateMatchedGaussDistribution", "didn't find any matched distribution.");
       }
       
       if (siggen)

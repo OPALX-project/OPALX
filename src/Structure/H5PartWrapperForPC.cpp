@@ -8,7 +8,7 @@
 #include "revision.h"
 #include "Algorithms/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Physics/Physics.h"
 

@@ -30,7 +30,7 @@
 #include "Physics/Physics.h"
 #include "Tables/Flatten.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/OpalOptions.h"
+#include "Utilities/Options.h"
 
 #include <cmath>
 #include <iomanip>
