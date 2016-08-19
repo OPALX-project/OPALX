@@ -33,7 +33,7 @@ namespace Expressions {
     //  The result is defined as the values contained in that column,
     //  delimited by a range.
 
-    class AColumn: public Array<double> {
+    class AColumn: public OArray<double> {
 
     public:
 
@@ -47,7 +47,7 @@ namespace Expressions {
         ~AColumn();
 
         /// Make clone.
-        virtual Array<double> *clone() const;
+        virtual OArray<double> *clone() const;
 
         /// Evaluate.
         virtual std::vector<double> evaluate() const;

@@ -49,7 +49,7 @@ namespace Expressions {
         virtual ~AUnary();
 
         /// Make clone.
-        virtual Array<T> *clone() const;
+        virtual OArray<T> *clone() const;
 
         /// Evaluate.
         virtual std::vector<T> evaluate() const;
@@ -92,7 +92,7 @@ namespace Expressions {
 
 
     template <class T, class U> inline
-    Array<T> *AUnary<T, U>::clone() const {
+    OArray<T> *AUnary<T, U>::clone() const {
         return new AUnary<T, U>(*this);
     }
 

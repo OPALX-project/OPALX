@@ -33,7 +33,7 @@ namespace Expressions {
     //  appended to the result array.
 
     template <class T>
-    class AList: public Array<T> {
+    class AList: public OArray<T> {
 
     public:
 
@@ -49,7 +49,7 @@ namespace Expressions {
         virtual ~AList();
 
         /// Make clone.
-        virtual Array<T> *clone() const;
+        virtual OArray<T> *clone() const;
 
         /// Evaluate.
         virtual std::vector<T> evaluate() const;
@@ -96,7 +96,7 @@ namespace Expressions {
 
 
     template <class T>
-    Array<T> *AList<T>::clone() const {
+    OArray<T> *AList<T>::clone() const {
         return new AList<T>(*this);
     }
 

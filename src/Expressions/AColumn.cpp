@@ -30,14 +30,14 @@
 namespace Expressions {
 
     AColumn::AColumn(const AColumn &rhs):
-        Array<double>(rhs), tab_name(rhs.tab_name),
+        OArray<double>(rhs), tab_name(rhs.tab_name),
         col_name(rhs.col_name), itsRange(rhs.itsRange)
     {}
 
 
     AColumn::AColumn
     (const std::string &tName, const std::string &cName, const RangeRep &rng):
-        Array<double>(), tab_name(tName), col_name(cName), itsRange(rng)
+        OArray<double>(), tab_name(tName), col_name(cName), itsRange(rng)
     {}
 
 
@@ -45,7 +45,7 @@ namespace Expressions {
     {}
 
 
-    Array<double> *AColumn::clone() const {
+    OArray<double> *AColumn::clone() const {
         return new AColumn(*this);
     }
 
