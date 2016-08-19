@@ -765,7 +765,7 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = ./src \
-                         ./classic/5.0/src
+                         ./classic/src
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -789,7 +789,9 @@ FILE_PATTERNS          = *.c \
                          *.cpp \
                          *.cc \
                          *.h \
-                         *.hh
+                         *.hh \
+			 *.H \
+			 *.f90
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
