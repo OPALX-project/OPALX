@@ -43,7 +43,7 @@ namespace Expressions {
     //  containing expression.
 
     template <class T>
-    class ARefExpr: public Array<T>, public Invalidator {
+    class ARefExpr: public OArray<T>, public Invalidator {
 
     public:
 
@@ -56,7 +56,7 @@ namespace Expressions {
         virtual ~ARefExpr();
 
         /// Make clone.
-        virtual Array<T> *clone() const;
+        virtual OArray<T> *clone() const;
 
         /// Evaluate the reference and return the value referred to.
         virtual std::vector<T> evaluate() const;
@@ -110,7 +110,7 @@ namespace Expressions {
 
 
     template <class T>
-    Array<T> *ARefExpr<T>::clone() const {
+    OArray<T> *ARefExpr<T>::clone() const {
         return new ARefExpr<T>(*this);
     }
 

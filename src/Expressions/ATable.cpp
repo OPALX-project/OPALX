@@ -28,13 +28,13 @@ using namespace std;
 namespace Expressions {
 
     ATable::ATable(const ATable &rhs):
-        Array<double>(rhs), itsExpr(rhs.itsExpr),
+        OArray<double>(rhs), itsExpr(rhs.itsExpr),
         itsBegin(rhs.itsBegin), itsEnd(rhs.itsEnd), itsStep(rhs.itsEnd)
     {}
 
 
     ATable::ATable(int n1, int n2, int n3):
-        Array<double>(), itsExpr(), itsBegin(n1), itsEnd(n2), itsStep(n3)
+        OArray<double>(), itsExpr(), itsBegin(n1), itsEnd(n2), itsStep(n3)
     {}
 
 
@@ -42,7 +42,7 @@ namespace Expressions {
     {}
 
 
-    Array<double> *ATable::clone() const {
+    OArray<double> *ATable::clone() const {
         return new ATable(*this);
     }
 

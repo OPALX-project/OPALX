@@ -51,7 +51,7 @@ namespace Expressions {
         virtual ~ABinary();
 
         /// Make clone.
-        virtual Array<T> *clone() const;
+        virtual OArray<T> *clone() const;
 
         /// Evaluate.
         virtual std::vector<T> evaluate() const;
@@ -96,7 +96,7 @@ namespace Expressions {
 
 
     template <class T, class U> inline
-    Array<T> *ABinary<T, U>::clone() const {
+    OArray<T> *ABinary<T, U>::clone() const {
         return new ABinary<T, U>(*this);
     }
 

@@ -32,7 +32,7 @@ namespace Expressions {
     //  The result is an array formed by the values found in selected
     //  columns of a given row.
 
-    class ARow: public Array<double> {
+    class ARow: public OArray<double> {
 
     public:
 
@@ -47,7 +47,7 @@ namespace Expressions {
         ~ARow();
 
         /// Make clone.
-        virtual Array<double> *clone() const;
+        virtual OArray<double> *clone() const;
 
         /// Evaluate.
         virtual std::vector<double> evaluate() const;

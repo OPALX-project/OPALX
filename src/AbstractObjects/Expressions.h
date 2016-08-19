@@ -146,17 +146,17 @@ namespace Expressions {
     // ----------------------------------------------------------------------
     /// An array expression.
 
-    template <class T> class Array {
+    template <class T> class OArray {
 
     public:
 
-        Array();
-        Array(const Array &);
-        virtual ~Array();
+        OArray();
+        OArray(const OArray &);
+        virtual ~OArray();
 
         /// Copy expression.
         //  Deep copy.
-        virtual Array<T> *clone() const = 0;
+        virtual OArray<T> *clone() const = 0;
 
         /// Evaluate.
         //  Recursively evaluate the expression and return the result.
@@ -175,7 +175,7 @@ namespace Expressions {
     private:
 
         // Not implemented.
-        void operator=(const Array &);
+        void operator=(const OArray &);
     };
 
 
@@ -184,12 +184,12 @@ namespace Expressions {
     /// A pointer to an array expression.
 
     template <class T> class PtrToArray:
-        public OwnPtr<Array<T> > {
+        public OwnPtr<OArray<T> > {
 
     public:
 
         /// Constructor from object just created.
-        PtrToArray(Array<T> *rhs);
+        PtrToArray(OArray<T> *rhs);
 
         PtrToArray();
         PtrToArray(const PtrToArray &rhs);
@@ -290,26 +290,26 @@ namespace Expressions {
     }
 
 
-    // Implementation of class Expression::Array<T>.
+    // Implementation of class Expression::OArray<T>.
     // ----------------------------------------------------------------------
 
     template <class T> inline
-    Array<T>::Array()
+    OArray<T>::OArray()
     {}
 
 
     template <class T> inline
-    Array<T>::Array(const Array<T> &)
+    OArray<T>::OArray(const OArray<T> &)
     {}
 
 
     template <class T> inline
-    Array<T>::~Array()
+    OArray<T>::~OArray()
     {}
 
 
     template <class T> inline
-    bool Array<T>::isConstant() const {
+    bool OArray<T>::isConstant() const {
         return false;
     }
 
@@ -373,19 +373,19 @@ namespace Expressions {
 
     template <class T> inline
     PtrToArray<T>::PtrToArray():
-        OwnPtr<Array<T> >()
+        OwnPtr<OArray<T> >()
     {}
 
 
     template <class T> inline
     PtrToArray<T>::PtrToArray(const PtrToArray &rhs):
-        OwnPtr<Array<T> >(rhs)
+        OwnPtr<OArray<T> >(rhs)
     {}
 
 
     template <class T> inline
-    PtrToArray<T>::PtrToArray(Array<T> *rhs):
-        OwnPtr<Array<T> >(rhs)
+    PtrToArray<T>::PtrToArray(OArray<T> *rhs):
+        OwnPtr<OArray<T> >(rhs)
     {}
 
 

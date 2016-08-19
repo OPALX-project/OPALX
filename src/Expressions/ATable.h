@@ -35,7 +35,7 @@ namespace Expressions {
     //  turn, evaluating the scalar expression for this value, and storing
     //  it in the proper place.
 
-    class ATable: public Array<double> {
+    class ATable: public OArray<double> {
 
     public:
 
@@ -48,7 +48,7 @@ namespace Expressions {
         ~ATable();
 
         /// Make clone.
-        virtual Array<double> *clone() const;
+        virtual OArray<double> *clone() const;
 
         /// Store the generating expression.
         //  A representation of the expression read in the TABLE() function.

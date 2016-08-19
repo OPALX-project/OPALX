@@ -29,14 +29,14 @@ using namespace std;
 namespace Expressions {
 
     ARow::ARow(const ARow &rhs):
-        Array<double>(rhs), tabName(rhs.tabName), position(rhs.position),
+        OArray<double>(rhs), tabName(rhs.tabName), position(rhs.position),
         columns(rhs.columns)
     {}
 
 
     ARow::ARow(const std::string &tName, const PlaceRep &row,
                const std::vector<std::string> &cols):
-        Array<double>(), tabName(tName), position(row), columns(cols)
+        OArray<double>(), tabName(tName), position(row), columns(cols)
     {}
 
 
@@ -44,7 +44,7 @@ namespace Expressions {
     {}
 
 
-    Array<double> *ARow::clone() const {
+    OArray<double> *ARow::clone() const {
         return new ARow(*this);
     }
 
