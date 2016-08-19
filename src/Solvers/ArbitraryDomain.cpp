@@ -33,6 +33,10 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     minCoords_m = bgeom->getmincoords();
     maxCoords_m = bgeom->getmaxcoords();
     geomCentroid_m = (minCoords_m + maxCoords_m)/2.0;
+    
+    // TODO: THis needs to be made into OPTION of the geometry. 
+    // A user defined point that is INSIDE with 100% certainty. -DW
+    globalInsideP0_m = Vector_t(0.0, 0.0, -0.13);
 
     setNr(nr);
     for(int i=0; i<3; i++)
@@ -184,6 +188,8 @@ void ArbitraryDomain::Compute(Vector_t hr){
 
 void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 
+    INFOMSG(level2 << "* Starting the Boundary Intersection Tests..." << endl);
+
     setHr(hr);
 
     globalMeanR_m = getGlobalMeanR();
@@ -210,53 +216,58 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
     IntersectHiZ.clear();
 
     // Calculate intersection
-    Vector_t P, saveP, dir, I;
+    Vector_t P, dir, I;
+    // Vector_t saveP, saveP_old;
+    Vector_t P0 = globalInsideP0_m;
 
-    // Get minimum coordinates of boundary geometry
-    Vector_t geomMinCoords = bgeom_m->getmincoords();
-
-    // Reference Point that is inside (allowed particle region)
-    // This is dangerous, who knows if this is really an "inside" point? -DW
-    // TODO: Change to more generalized approach
-    Vector_t P0 = geomCentroid_m;
-
+    // We cannot assume that the geometry is symmetric about the xy, xz, and yz planes!
+    // In my spiral inflector simulation, this is not the case for z direction for 
+    // example (-0.13 to +0.025). -DW   
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
-	 //saveP[2] = (idz - (nr[2]-1)/2.0)*hr[2];
-	 saveP[2] = geomMinCoords[2] + (idz + 0.5) * hr[2];
+
+	 //saveP_old[2] = (idz - (nr[2]-1)/2.0)*hr[2];
+	 P[2] = minCoords_m[2] + (idz + 0.5) * hr[2];
+ 
          for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
-	     //saveP[1] = (idy - (nr[1]-1)/2.0)*hr[1];
-	     saveP[1] = geomMinCoords[1] + (idy + 0.5) * hr[1];
-    	     for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
-		  // We cannot assume that the geometry is symmetric about the xy, xz, and yz planes!
-                  // In my spiral inflector simulation, this is not the case for z direction for 
-                  // example. -DW   
-	       	  // saveP[0] = (idx - (nr[0]-1)/2.0)*hr[0];
-		  saveP[0] = geomMinCoords[0] + (idx + 0.5) * hr[0];
 
-		  P = saveP;
+	     //saveP_old[1] = (idy - (nr[1]-1)/2.0)*hr[1];
+	     P[1] = minCoords_m[1] + (idy + 0.5) * hr[1];
+ 
+   	     for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
 
-		  rotateWithQuaternion(P, localToGlobalQuaternion_m);
+	          //saveP_old[0] = (idx - (nr[0]-1)/2.0)*hr[0];
+		  P[0] = minCoords_m[0] + (idx + 0.5) * hr[0];
+
+		  // *gmsg << "Now working on point " << saveP << " (original was " << saveP_old << ")" << endl;
+
+		  //P = saveP;
+
+		  //rotateWithQuaternion(P, localToGlobalQuaternion_m);
 		  //P += geomCentroid_m; //sorry, this doesn't make sense. -DW
-                  P += globalMeanR_m;
+                  //P += globalMeanR_m;
 
 		  if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
 
-#ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-		     *gmsg << "INSIDE" << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
-#endif
-                     // Commenting this out seems to reduce the number of INSIDE points that fail
-		     // the intersection test. It was meant to make the algorithm faster, but
-		     // is not strictly necessary... -DW
-		     //P0 = P;
+		      // Fill the map with true or false values for very fast isInside tests
+                      // during the rest of the fieldsolve.
+		      IsInsideMap[toCoordIdx(idx, idy, idz)] = true;
 
-                     std::tuple<int, int, int> pos(idx, idy, idz);
+                      // Replace the old reference point with the new point (which we know is
+		      // inside because we just tested for it. This makes the algorithm faster
+		      // because fastIsInside() creates a number of segments that depends on the
+		      // distance between P and P0. Using the previous P as the new P0
+                      // assures the smallest possible distance in most cases. -DW
+		      P0 = P;
+
+                      std::tuple<int, int, int> pos(idx, idy, idz);
 		     
-		     rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		      //rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		      dir = Vector_t(0, 0, 1);
 
-		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
+		      if (bgeom_m->intersectRayBoundary(P, dir, I)) {
 			//I -= geomCentroid_m;
-			I -= globalMeanR_m;
-                        rotateWithQuaternion(I, globalToLocalQuaternion_m);
+			//I -= globalMeanR_m;
+                        //rotateWithQuaternion(I, globalToLocalQuaternion_m);
        	      		IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
 		     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -266,21 +277,22 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 
 		     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
 			//I -= geomCentroid_m;
-			I -= globalMeanR_m;
-			rotateWithQuaternion(I, globalToLocalQuaternion_m);
+			//I -= globalMeanR_m;
+			//rotateWithQuaternion(I, globalToLocalQuaternion_m);
        	      		IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
 		     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
 			   *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
-	  	     }
+		     }
 
-	             rotateYAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+	             //rotateYAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		     dir = Vector_t(0, 1, 0);
 
 		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
 			 //I -= geomCentroid_m;
-			 I -= globalMeanR_m;
-			 rotateWithQuaternion(I, globalToLocalQuaternion_m);
+			 //I -= globalMeanR_m;
+			 //rotateWithQuaternion(I, globalToLocalQuaternion_m);
        	      		 IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
 	   	     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -290,8 +302,8 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 
 		     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
 			//I -= geomCentroid_m;
-			I -= globalMeanR_m;
-			rotateWithQuaternion(I, globalToLocalQuaternion_m);
+			//I -= globalMeanR_m;
+			//rotateWithQuaternion(I, globalToLocalQuaternion_m);
        	      		IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
 		     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -299,12 +311,13 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 #endif
 		     }
 		     
-	             rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+	             //rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
+		     dir = Vector_t(1, 0, 0);
 
 		     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
 			//I -= geomCentroid_m;
-			I -= globalMeanR_m;
-			rotateWithQuaternion(I, globalToLocalQuaternion_m);
+			//I -= globalMeanR_m;
+			//rotateWithQuaternion(I, globalToLocalQuaternion_m);
        	      		IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
 		     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -314,8 +327,8 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 
 		     if (bgeom_m->intersectRayBoundary(P, -dir, I)){
 		        //I -= geomCentroid_m;
-			I -= globalMeanR_m;
-			rotateWithQuaternion(I, globalToLocalQuaternion_m);
+			//I -= globalMeanR_m;
+			//rotateWithQuaternion(I, globalToLocalQuaternion_m);
        	      		IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
 		     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -323,24 +336,29 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 #endif
 		     }
 		  } else {
+                      IsInsideMap[toCoordIdx(idx, idy, idz)] = false;
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-			   *gmsg << "OUTSIDE" << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+		      *gmsg << "OUTSIDE" << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
 		  }
 	     }
 	 }
      }
 
+    INFOMSG(level2 << "* Finding number of ghost nodes to the left..." << endl);
+
     //number of ghost nodes to the left
     int numGhostNodesLeft = 0;
     if(localId[2].first() != 0) {
         for(int idx = 0; idx < nr[0]; idx++) {
             for(int idy = 0; idy < nr[1]; idy++) {
-                if(isInside(idx, idy, localId[2].first() - zGhostOffsetLeft))
+		    if(isInside(idx, idy, localId[2].first() - zGhostOffsetLeft))
                     numGhostNodesLeft++;
             }
         }
     }
+
+    INFOMSG(level2 << "* Finding number of xy points in each plane along z..." << endl);
 
     //xy points in z plane
     int numxy = 0;
@@ -362,23 +380,26 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
     MPI_Scan(&numtotal, &startIdx, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
     startIdx -= numtotal;
 
-    //build up index and coord map
+    // Build up index and coord map
     IdxMap.clear();
     CoordMap.clear();
     register int index = startIdx - numGhostNodesLeft;
 
+    INFOMSG(level2 << "* Building up index and coordinate map..." << endl);
+
     for(int idz = localId[2].first() - zGhostOffsetLeft; idz <= localId[2].last() + zGhostOffsetRight; idz++) {
         for(int idy = 0; idy < nr[1]; idy++) {
             for(int idx = 0; idx < nr[0]; idx++) {
-                if(isInside(idx, idy, idz)) {
+		if(isInside(idx, idy, idz)) {
                     IdxMap[toCoordIdx(idx, idy, idz)] = index;
                     CoordMap[index] = toCoordIdx(idx, idy, idz);
                     index++;
                 }
-
             }
         }
     }
+
+    INFOMSG(level2 << "* Done." << endl);
 }
 
 // Conversion from (x,y,z) to index in xyz plane
@@ -388,6 +409,7 @@ inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
 
 // Conversion from (x,y,z) to index on the 3D grid
 int ArbitraryDomain::getIdx(int idx, int idy, int idz) {
+       
      if(isInside(idx, idy, idz) && idx >= 0 && idy >= 0 && idz >= 0)
          return IdxMap[toCoordIdx(idx, idy, idz)];
      else
@@ -404,6 +426,24 @@ inline void ArbitraryDomain::getCoord(int idxyz, int &idx, int &idy, int &idz) {
     idz = id;
 }
 
+inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
+  
+    return IsInsideMap[toCoordIdx(idx, idy, idz)];
+}
+
+/*
+inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
+    Vector_t P;
+
+    P[0] = minCoords_m[0] + (idx + 0.5) * hr[0];
+    P[1] = minCoords_m[1] + (idy + 0.5) * hr[1]; 
+    P[2] = minCoords_m[2] + (idz + 0.5) * hr[2];
+    
+    return (bgeom_m->fastIsInside(globalInsideP0_m, P) % 2 == 0);
+}
+*/
+
+/*
 inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
     Vector_t P;
 
@@ -445,12 +485,12 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
 
     return ret;
 }
+*/
 
 int ArbitraryDomain::getNumXY(int z) {
 
 	return numXY[z];
 }
-
 
 void ArbitraryDomain::getBoundaryStencil(int idxyz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
     int idx = 0, idy = 0, idz = 0;
