@@ -99,18 +99,15 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 		// cout<<"Single Eemit[0]: "<<Eemit[0]<<endl;
 		/*---------------------End Of Maxwellian Distribution(For Benchmark)--------------------*/
 	    } else {
-
-		// For absorption case in constant simulation particle mode, just use true secondary emission with 1 particle energy distribution for Furman Pivi model.
+		// For absorption case in constant simulation particle mode,
+		    // just use true secondary emission with 1 particle energy distribution for Furman Pivi model.
 		double u2 = IpplRandom();
 
                 double temp = incEnergy / seEpsn_m[0];
                 double p0 = gammp(sePn_m[0], temp);
                 temp = p0 * u2;
                 Eemit[0] = seEpsn_m[0] * invgammp(temp, sePn_m[0]) ;
-
-
 	    }
-
 	}
 
 
