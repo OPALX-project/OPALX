@@ -99,6 +99,7 @@ public:
         const Vector_t& intecoords,
         const int i,
         PartBunch* itsBunch,
+        const int& triId,
         double& seyNum);
 
     // call Vaughan's model

@@ -2157,7 +2157,7 @@ BoundaryGeometry::printInfo (Inform& os) const {
   |_|   |_| |_|\__, |___/_|\___|___/
                 |___/
 
-  start here ...
+  starts here ...
 */
 
 /**
@@ -2187,13 +2187,19 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
     const Vector_t& intecoords,
     const int i,
     PartBunch* itsBunch,
+    const int& triId,
     double& seyNum
     ) {
-    const int& triId = itsBunch->TriID[i];
+#if DEBUG_MP
+    *gmsg << "BoundaryGeometry::emitSecondaryPivi()"
+          << "particle ID = " << i << endl;
+#endif
+    //const int& triId = itsBunch->TriID[i];
     const double& incQ = itsBunch->Q[i];
     const Vector_t& incMomentum = itsBunch->P[i];
     const double p_sq = dot (incMomentum, incMomentum);
-    const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
+    // incidend energy in eV
+    const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;
 
     short BGtag = TriBGphysicstag_m[triId];
     if (BGtag & BGphysics::Nop) {
@@ -2208,14 +2214,15 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
         double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / sqrt (p_sq);
         if (cosTheta < 0) {
             ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
+                      "    paricle ID = " << i << endl <<
                       "    particle position = " << itsBunch->R[i] << endl <<
                       "    incident momentum=" << incMomentum << endl <<
                       "    triNormal=" << TriNormals_m[triId] << endl <<
                       "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
                       "    intecoords = " << intecoords << endl <<
                       "    triangle ID = " << triId << endl <<
-                      "    triangle = (" << getPoint(triId, 1)
-                      << getPoint(triId, 2) << getPoint(triId, 2) << ")"
+                      "    triangle = (" << std::setprecision(9) << getPoint(triId, 1)
+                      << getPoint(triId, 2) << getPoint(triId, 3) << ")"
                       << endl);
             assert(cosTheta>=0);
         }
@@ -2249,7 +2256,7 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
  */
 int BoundaryGeometry::emitSecondaryVaughan (
     const Vector_t& intecoords,
-    const int i,
+    const int i,                        // particle ID
     PartBunch* itsBunch,
     double& seyNum
     ) {
@@ -2279,7 +2286,8 @@ int BoundaryGeometry::emitSecondaryVaughan (
                       "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
                       "    intecoords = " << intecoords << endl <<
                       "    triangle ID = " << triId << endl <<
-                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2) << getPoint(triId, 2) << ")"
+                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2)
+                      << getPoint(triId, 3) << ")"
                       << endl);
             assert(cosTheta>=0);
         }
@@ -2396,11 +2404,12 @@ void BoundaryGeometry::createParticlesOnSurface (
                                             centroid, itsBunch.getdT (), E, B);
             }
             partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
-
         }
         Message* mess = new Message ();
         putMessage (*mess, partsr_m.size ());
-        for (std::vector<Vector_t>::iterator myIt = partsr_m.begin (); myIt != partsr_m.end (); myIt++) {
+        for (std::vector<Vector_t>::iterator myIt = partsr_m.begin ();
+             myIt != partsr_m.end ();
+             myIt++) {
             putMessage (*mess, *myIt);
 
         }
