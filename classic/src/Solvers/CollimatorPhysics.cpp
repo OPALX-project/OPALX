@@ -353,7 +353,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
       } while (onlyOneLoopOverParticles == false);
 
     } else {
-
+      
       do{
         IpplTimings::startTimer(DegraderLoopTimer_m);
 
@@ -871,7 +871,10 @@ void CollimatorPhysics::print(Inform &msg){
 
     // ToDo: need to move that to a statistics function
 #ifdef OPAL_DKS
-    locPartsInMat_m = numparticles + dksParts_m.size();
+    if (collshape_m == "DEGRADER")
+      locPartsInMat_m = numparticles + dksParts_m.size();
+    else
+      locPartsInMat_m = locParts_m.size();
 #else
     locPartsInMat_m = locParts_m.size();
 #endif
