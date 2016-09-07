@@ -100,7 +100,6 @@ PartBunch::PartBunch(const PartData *ref):
     distDump_m(0),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
-    stash_iniP_m(0.0),
     bunchStashed_m(false),
     fieldDBGStep_m(0),
     dh_m(1e-12),
@@ -207,7 +206,6 @@ PartBunch::PartBunch(const PartBunch &rhs):
     distDump_m(rhs.distDump_m),
     stash_Nloc_m(rhs.stash_Nloc_m),
     stash_iniR_m(rhs.stash_iniR_m),
-    stash_iniP_m(rhs.stash_iniP_m),
     bunchStashed_m(rhs.bunchStashed_m),
     fieldDBGStep_m(rhs.fieldDBGStep_m),
     dh_m(rhs.dh_m),
@@ -273,7 +271,6 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     distDump_m(0),
     stash_Nloc_m(0),
     stash_iniR_m(0.0),
-    stash_iniP_m(0.0),
     bunchStashed_m(false),
     fieldDBGStep_m(0),
     dh_m(1e-12),
@@ -300,60 +297,6 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
 PartBunch::~PartBunch() {
 
 }
-
-/// \brief make density histograms
-void PartBunch::makHistograms()  {
-    IpplTimings::startTimer(histoTimer_m);
-    const unsigned int bins = 1000;
-    if(getTotalNum() > bins) {
-        int tag = Ippl::Comm->next_tag(IPPL_APP_TAG1, IPPL_APP_CYCLE);
-        gsl_histogram *h = gsl_histogram_alloc(bins);
-        const double l = rmax_m[2] - rmin_m[2]; // max => min
-        gsl_histogram_set_ranges_uniform(h, 0.0, l);
-        const double minz = abs(rmin_m[2]);
-
-        // 1d hitogram z positions
-        for(size_t n = 0; n < getLocalNum(); n++)
-            gsl_histogram_increment(h, R[n](2) - minz);
-
-        // now we need to reduce
-
-        if(Ippl::myNode() == 0) {
-            // wait for msg from all processors (EXEPT NODE 0)
-            int notReceived = Ippl::getNodes() - 1;
-            double recVal = 0;
-            while(notReceived > 0) {
-                int node = COMM_ANY_NODE;
-                std::unique_ptr<Message> rmsg(Ippl::Comm->receive_block(node, tag));
-                if(!bool(rmsg))
-                    ERRORMSG("Could not receive from client nodes in makHistograms." << endl);
-                for(unsigned int i = 0; i < bins; i++) {
-                    rmsg->get(&recVal);
-                    gsl_histogram_increment(h, recVal);
-                }
-                notReceived--;
-            }
-            std::stringstream filename_str;
-            static unsigned int file_number = 0;
-            ++ file_number;
-            filename_str << "data/zhist-" << file_number << ".dat";
-            FILE *fp;
-            fp = fopen(filename_str.str().c_str(), "w");
-            gsl_histogram_fprintf(fp, h, "%g", "%g");
-            fclose(fp);
-        } else {
-            Message *smsg = new Message();
-            for(unsigned int i = 0; i < bins; i++)
-                smsg->put(gsl_histogram_get(h, i));
-            bool res = Ippl::Comm->send(smsg, 0, tag);
-            if(! res)
-                ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl);
-        }
-        gsl_histogram_free(h);
-    }
-    IpplTimings::stopTimer(histoTimer_m);
-}
-
 
 /// \brief Need Ek for the Schottky effect calculation (eV)
 double PartBunch::getEkin() const {
@@ -464,19 +407,6 @@ bool PartBunch::hasFieldSolver() {
         return fs_m->hasValidSolver();
     else
         return false;
-}
-
-
-bool PartBunch::hasZeroNLP() {
-    /**
-       Check if a node has no particles
-     */
-    Inform m("hasZeroNLP() ", INFORM_ALL_NODES);
-    int minnlp = 0;
-    int nlp = getLocalNum();
-    minnlp = 100000;
-    reduce(nlp, minnlp, OpMinAssign());
-    return (minnlp == 0);
 }
 
 double PartBunch::getPx(int i) {
@@ -642,9 +572,6 @@ void PartBunch::getLineDensity(std::vector<double> &lineDensity) {
     }
 }
 
-void PartBunch::updateBinStructure()
-{ }
-
 void PartBunch::calcGammas() {
 
     const int emittedBins = dist_m->GetNumberOfEnergyBins();
@@ -704,31 +631,6 @@ void PartBunch::calcGammas_cycl() {
         INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i) << " gamma = " << bingamma_m[i] << endl);
     }
 
-}
-
-
-double PartBunch::getMaxdEBins() {
-
-    const int emittedBins = pbin_m->getLastemittedBin();
-
-    double maxdE = DBL_MIN;
-    double maxdEGlobal = DBL_MIN;
-    if(emittedBins >= 1) {
-        for(int i = 1; i < emittedBins; i++) {
-            const size_t pInBin1 = (binemitted_m[i]);
-            const size_t pInBin2 = (binemitted_m[i - 1]);
-            if(pInBin1 != 0 && pInBin2 != 0) {
-                double de = fabs(getM() * 1.0E-3 * (bingamma_m[i - 1] - bingamma_m[i]));
-                if(de > maxdE)
-                    maxdE = de;
-            }
-        }
-
-        reduce(maxdE, maxdEGlobal, OpMaxAssign());
-
-        return maxdEGlobal;
-    } else
-        return DBL_MAX;
 }
 
 size_t PartBunch::calcNumPartsOutside(Vector_t x) {
@@ -1925,31 +1827,6 @@ void PartBunch::boundp() {
     IpplTimings::stopTimer(boundpTimer_m);
 }
 
-void PartBunch::calcWeightedAverages(Vector_t &CentroidPosition, Vector_t &CentroidMomentum) const {
-    double gamma;
-    double cent[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    const double N =  static_cast<double>(this->getTotalNum());
-
-    for(unsigned int i = 0; i < this->getLocalNum(); i++) {
-        gamma = sqrt(1.0 + dot(this->P[i], this->P[i]));
-        cent[0] += this->R[i](0);
-        cent[1] += this->R[i](1);
-        cent[2] += this->R[i](2);
-        cent[3] += this->P[i](0) / gamma;
-        cent[4] += this->P[i](1) / gamma;
-        cent[5] += this->P[i](2) / gamma;
-
-    }
-    reduce(&(cent[0]), &(cent[0]) + 6, &(cent[0]), OpAddAssign());
-
-    CentroidPosition(0) = cent[0] / N;
-    CentroidPosition(1) = cent[1] / N;
-    CentroidPosition(2) = cent[2] / N;
-    CentroidMomentum(0) = cent[3] / N;
-    CentroidMomentum(1) = cent[4] / N;
-    CentroidMomentum(2) = cent[5] / N;
-}
-
 void PartBunch::rotateAbout(const Vector_t &Center, const Vector_t &Momentum) {
     double AbsMomentumProj = sqrt(Momentum(0) * Momentum(0) + Momentum(2) * Momentum(2));
     double AbsMomentum = sqrt(dot(Momentum, Momentum));
@@ -2010,39 +1887,6 @@ void PartBunch::ResetLocalCoordinateSystem(const int &i, const Vector_t &Orienta
         X[i] = temp;
 }
 
-
-void PartBunch::beamEllipsoid(FVector<double, 6>   &centroid,
-                              FMatrix<double, 6, 6> &moment) {
-    for(int i = 0; i < 6; ++i) {
-        centroid(i) = 0.0;
-        for(int j = 0; j <= i; ++j) {
-            moment(i, j) = 0.0;
-        }
-    }
-
-    //  PartBunch::const_iterator last = end();
-    // for (PartBunch::const_iterator part = begin(); part != last; ++part) {
-
-    Particle part;
-
-    for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-        part = get_part(ii);
-        for(int i = 0; i < 6; ++i) {
-            centroid(i) += part[i];
-            for(int j = 0; j <= i; ++j) {
-                moment(i, j) += part[i] * part[j];
-            }
-        }
-    }
-
-    double factor = 1.0 / double(this->getTotalNum());
-    for(int i = 0; i < 6; ++i) {
-        centroid(i) *= factor;
-        for(int j = 0; j <= i; ++j) {
-            moment(j, i) = moment(i, j) *= factor;
-        }
-    }
-}
 
 void PartBunch::gatherLoadBalanceStatistics() {
    minLocNum_m =  std::numeric_limits<size_t>::max();
@@ -2236,23 +2080,6 @@ void PartBunch::calcBeamParameters() {
     IpplTimings::stopTimer(statParamTimer_m);
 }
 
-void PartBunch::calcBeamParametersLight() {
-    // for Autophase, avoids communication
-    IpplTimings::startTimer(statParamTimer_m);
-
-    const double m0 = getM() * 1.E-6;
-
-    const size_t locNp = this->getLocalNum();
-
-    // Find unnormalized emittance.
-    double gamma = 0.0;
-    for(size_t i = 0; i < locNp; i++)
-        gamma += sqrt(1.0 + dot(P[i], P[i]));
-
-    eKin_m = (gamma - 1.0) * m0;
-
-    IpplTimings::stopTimer(statParamTimer_m);
-}
 
 void PartBunch::calcBeamParametersInitial() {
     using Physics::c;
@@ -2369,12 +2196,6 @@ void PartBunch::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
  \f$\Delta t_{full-timestep}\f$.
   */
 
-double PartBunch::getTBin() {
-    if(dist_m)
-        return dist_m->GetEnergyBinDeltaT();
-    else
-        return 0.0;
-}
 
 double PartBunch::GetEmissionDeltaT() {
     return dist_m->GetEmissionDeltaT();
@@ -2386,94 +2207,6 @@ size_t PartBunch::EmitParticles(double eZ) {
 
 }
 
-
-double PartBunch::calcTimeDelay(const double &jifactor) {
-    double gamma = pbin_m->getGamma();
-    double beta = sqrt(1. - (1. / (gamma * gamma)));
-    double xmin, xmax;
-    pbin_m->getExtrema(xmin, xmax);
-    double length = xmax - xmin;
-
-    return length * jifactor / (Physics::c * beta);
-}
-
-void PartBunch::moveBunchToCathode(double &t) {
-    double avrg_betagamma = 0.0;
-    double maxspos = -9999999.99;
-
-    for(int bin = 0; bin < getNumBins(); ++bin) {
-        for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-            std::vector<double> p;
-            if(pbin_m->getPart(i, bin, p)) {
-                avrg_betagamma += sqrt(1.0 + p[3] * p[3] + p[4] * p[4] + p[5] * p[5]);
-                if(p[2] > maxspos) maxspos = p[2];
-            }
-        }
-    }
-    avrg_betagamma /= pbin_m->getNp();
-    double dist_per_step = sqrt(1.0 - (1.0 / (avrg_betagamma * avrg_betagamma))) * Physics::c * getdT();
-    if(maxspos < 0.0) {
-        double num_steps = floor(-maxspos / dist_per_step);
-        t += num_steps * getdT();
-
-        Inform gmsg("PartBunch");
-        gmsg << "move bunch by " << num_steps *dist_per_step << "; DT = " << num_steps *getdT() << endl;
-        for(int bin = 0; bin < getNumBins(); ++bin) {
-            for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-                std::vector<double> p;
-                if(pbin_m->getPart(i, bin, p)) {
-                    pbin_m->updatePartPos(i, bin, p[2] + num_steps * dist_per_step);
-                }
-            }
-        }
-    }
-}
-
-void PartBunch::printBinHist() {
-    if(weHaveBins()) {
-        std::unique_ptr<int[]> binhisto(new int[getNumBins()]);
-        double maxz = -999999999.99, minz = 999999999.99;
-
-        for(int bin = 0; bin < getNumBins(); ++bin) {
-            binhisto[bin] = 0;
-        }
-        for(size_t i = 0; i < getLocalNum(); ++i) {
-            ++binhisto[this->Bin[i]];
-        }
-        reduce(&(binhisto[0]), &(binhisto[0]) + getNumBins(), &(binhisto[0]), OpAddAssign());
-
-        if(Ippl::myNode() == 0) {
-            for(int bin = 0; bin < getNumBins(); ++bin) {
-                for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-                    std::vector<double> p;
-                    if(pbin_m->getPart(i, bin, p)) {
-                        if(p[2] > maxz) maxz = p[2];
-                        if(p[2] < minz) minz = p[2];
-                    }
-                }
-            }
-            double dz = (maxz - minz) / 20;
-            int minihist[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            for(int bin = 0; bin < getNumBins(); ++bin) {
-                for(size_t i = 0; i < pbin_m->getNp(); ++i) {
-                    std::vector<double> p;
-                    if(pbin_m->getPart(i, bin, p)) {
-                        ++minihist[(int)floor((p[2] - minz) / dz)];
-                    }
-                }
-            }
-            INFOMSG("particles are between " << minz << " and " << maxz << endl;);
-            for(int i = 0; i < 20; ++i) {
-                INFOMSG(i << ": " << minihist[i] << endl;);
-            }
-
-            INFOMSG("\n\n"
-                    << "effective histogram:" << endl;);
-            for(int bin = 0; bin < getNumBins(); ++bin)
-                INFOMSG(bin << ": " << binhisto[bin] << endl;);
-        }
-    }
-}
 
 
 Inform &PartBunch::print(Inform &os) {
@@ -2836,58 +2569,6 @@ double PartBunch::calcMeanPhi() {
     return meanPhi;
 }
 
-size_t PartBunch::getNumPartInBin(int BinID) const {
-    if(weHaveBins())
-        return pbin_m->getGlobalBinCount(BinID);
-    else
-        return this->getTotalNum();
-}
-
-// this function reset the BinID for each particles according to its current gamma
-// for the time it is designed for cyclotron where energy gain per turn may be changing.
-bool PartBunch::resetPartBinID() {
-
-    size_t partInBin[numBunch_m];
-
-    if(numBunch_m != pbin_m->getLastemittedBin()) {
-        ERRORMSG("Bunch number does NOT equal to bin number! Not implemented yet!!!" << endl);
-        return false;
-    }
-
-    for(int ii = 0; ii < numBunch_m; ii++) partInBin[ii] = 0 ;
-
-    // update mass gamma for each bin first
-    INFOMSG("Before reset Bin: " << endl);
-    calcGammas_cycl();
-
-    // reset bin index for each particle and
-    // calculate total particles number for each bin
-    for(unsigned long int n = 0; n < this->getLocalNum(); n++) {
-        double deltgamma[numBunch_m];
-        double gamma = sqrt(1.0 + dot(P[n], P[n]));
-
-        int index = 0;
-        for(int ii = 0; ii < numBunch_m; ii++)
-            deltgamma[ii] = abs(bingamma_m[ii] - gamma);
-
-        for(int ii = 0; ii < numBunch_m; ii++)
-            if(*(deltgamma + index) > *(deltgamma + ii))
-                index = ii;
-
-        Bin[n] = index;
-        partInBin[index]++;
-    }
-
-    pbin_m->resetPartInBin(partInBin);
-
-    // after reset Particle Bin ID, update mass gamma of each bin again
-    INFOMSG("After reset Bin: " << endl);
-    calcGammas_cycl();
-
-    return true;
-
-}
-
 // this function reset the BinID for each particles according to its current beta*gamma
 // it is for multi-turn extraction cyclotron with small energy gain
 // the bin number can be different with the bunch number
@@ -2956,122 +2637,6 @@ void PartBunch::setPBins(PartBinsCyc *pbin) {
     SetEnergyBins(pbin_m->getNBins());
 }
 
-void PartBunch::stash() {
-
-    size_t Nloc = getLocalNum();
-
-    if(bunchStashed_m) {
-        *gmsg << "ERROR: bunch already stashed, call pop() first" << endl;
-        return;
-    }
-
-    if(Nloc > 0) {
-        // save all particles
-        stash_Nloc_m = Nloc;
-        stash_iniR_m = get_rmean();
-        stash_iniP_m = get_pmean();
-
-        stash_id_m.create(Nloc);
-        stash_r_m.create(Nloc);
-        stash_p_m.create(Nloc);
-        stash_x_m.create(Nloc);
-        stash_q_m.create(Nloc);
-        stash_bin_m.create(Nloc);
-        stash_dt_m.create(Nloc);
-        stash_ls_m.create(Nloc);
-        stash_ptype_m.create(Nloc);
-
-        stash_id_m    = this->ID;
-        stash_r_m     = this->R;
-        stash_p_m     = this->P;
-        stash_x_m     = this->X;
-        stash_q_m     = this->Q;
-        stash_bin_m   = this->Bin;
-        stash_dt_m    = this->dt;
-        stash_ls_m    = this->LastSection;
-        stash_ptype_m = this->PType;
-
-        // and destroy all particles in bunch
-        destroy(Nloc, 0);
-    }
-
-    update();
-
-    bunchStashed_m = true;
-}
-
-void PartBunch::pop() {
-
-    if(!bunchStashed_m) return;
-
-    size_t Nloc = getLocalNum();
-    if(getTotalNum() > 0) {
-        destroy(Nloc, 0);
-    }
-    update();
-
-    if (stash_Nloc_m > 0) {
-        this->create(stash_Nloc_m);
-
-        this->ID          = stash_id_m;
-        this->R           = stash_r_m;
-        this->P           = stash_p_m;
-        this->X           = stash_x_m;
-        this->Q           = stash_q_m;
-        this->Bin         = stash_bin_m;
-        this->dt          = stash_dt_m;
-        this->LastSection = stash_ls_m;
-        this->PType       = stash_ptype_m;
-
-        stash_iniR_m = Vector_t(0.0);
-        stash_iniP_m = Vector_t (0.0, 0.0, 1E-6);
-
-        stash_id_m.destroy(stash_Nloc_m, 0);
-        stash_r_m.destroy(stash_Nloc_m, 0);
-        stash_p_m.destroy(stash_Nloc_m, 0);
-        stash_x_m.destroy(stash_Nloc_m, 0);
-        stash_q_m.destroy(stash_Nloc_m, 0);
-        stash_dt_m.destroy(stash_Nloc_m, 0);
-        stash_bin_m.destroy(stash_Nloc_m, 0);
-        stash_ls_m.destroy(stash_Nloc_m, 0);
-        stash_ptype_m.destroy(stash_Nloc_m, 0);
-    }
-
-    bunchStashed_m = false;
-
-    update();
-}
-
-double PartBunch::getZPos() {
-
-    if(sum(PType != ParticleType::REGULAR)) {
-        size_t numberOfPrimaryParticles = 0;
-        double zAverage = 0.0;
-        if(getLocalNum() != 0) {
-            for(size_t partIndex = 0; partIndex < getLocalNum(); partIndex++) {
-                if(PType[partIndex] == ParticleType::REGULAR) {
-                    zAverage += X[partIndex](2);
-                    numberOfPrimaryParticles++;
-                }
-            }
-            if(numberOfPrimaryParticles != 0)
-                zAverage /= numberOfPrimaryParticles;
-        }
-        reduce(zAverage, zAverage, OpAddAssign());
-        zAverage /= Ippl::getNodes();
-
-        return zAverage;
-    } else {
-        if(getTotalNum() > 0)
-            return sum(X(2)) / getTotalNum();
-        else
-            return 0.0;
-    }
-}
-
-void PartBunch::getXBounds(Vector_t &xMin, Vector_t &xMax) {
-    bounds(X, xMin, xMax);
-}
 
 void PartBunch::iterateEmittedBin(int binNumber) {
     binemitted_m[binNumber]++;
