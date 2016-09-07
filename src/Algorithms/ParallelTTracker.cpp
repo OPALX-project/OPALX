@@ -2248,7 +2248,7 @@ void ParallelTTracker::computeExternalFields() {
             } else {
                 //check if degrader is empty and bunch has moved past it (needed to free GPU memory)
                 if ( !it.second->stillAlive(*itsBunch) )
-                    msg << "Degrader " << it.second->getName() << " has become inactive" << endl;
+                    msg << "Surface physiscs at element " << it.second->getName() << " has become inactive" << endl;
                
                 it.second = NULL;
                 sphys_m.erase(it.first);                

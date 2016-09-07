@@ -23,6 +23,8 @@
 #include "Physics/Physics.h"
 #include "config.h"
 
+#include "Utility/IpplInfo.h"
+
 #include <cmath>
 #include <iostream>
 
@@ -69,6 +71,7 @@ RealConstant::RealConstant():
         }
     }
     OPAL->create(new RealConstant("OPALVERSION", this, version));
+    OPAL->create(new RealConstant("RANK", this, Ippl::myNode()));
 }
 
 
