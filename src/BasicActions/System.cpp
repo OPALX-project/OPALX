@@ -48,13 +48,14 @@ System *System::clone(const std::string &name) {
     return new System(name, this);
 }
 
-
+/// node 0 is executing only
 void System::execute() {
-int res = system(Attributes::getString(itsAttr[0]).c_str());
- if (res!=0)
-   ERRORMSG("System call failed" << endl);
+  if(Ippl::myNode() == 0) {
+    int res = system(Attributes::getString(itsAttr[0]).c_str());
+    if (res!=0)
+      ERRORMSG("System call failed" << endl);
+  }
 }
-
 
 void System::parse(Statement &statement) {
     parseShortcut(statement);
