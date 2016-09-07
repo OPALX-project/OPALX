@@ -72,21 +72,13 @@ public:
     void SetEnergyBins(int numberOfEnergyBins);
     bool WeHaveEnergyBins();
 
-    // helpers to store and restore a PartBunch
-    void stash();
-    void pop();
-    Vector_t getStashIniP() const;
-
     enum UnitState_t { units = 0, unitless = 1 };
-    UnitState_t getUnitState() const;
 
     //FIXME: unify methods, use convention that all particles have own dt
     void switchToUnitlessPositions(bool use_dt_per_particle = false);
 
     //FIXME: unify methods, use convention that all particles have own dt
     void switchOffUnitlessPositions(bool use_dt_per_particle = false);
-
-    void makHistograms();
 
     /** \brief After each Schottky scan we delete
         all the particles.
@@ -96,20 +88,9 @@ public:
 
     void resetIfScan();
 
-    double getRho(NDIndex<3> e);
-
     double getRho(int x, int y, int z);
 
-    bool itIsMyTurn(int *n);
-
-    bool hasZeroNLP();
-
     void do_binaryRepart();
-
-
-
-    /// per default the MT value of the field solver is used
-    void set_nBinsLineDensity(int n);
 
     void calcLineDensity();
     void fillArray(double *lineDensity, const std::list<ListElem> &l);
@@ -120,8 +101,6 @@ public:
                          size_t &np,
                          bool scan);
 
-
-    void setGridIsFixed();
     bool isGridFixed();
 
     /*
@@ -136,10 +115,6 @@ public:
 
     bool weHaveBins() const;
 
-    double getRebinEnergy();
-
-    void weHaveNOBins();
-
     void setPBins(PartBins *pbin);
     void setPBins(PartBinsCyc *pbin);
 
@@ -149,23 +124,11 @@ public:
     */
     size_t EmitParticles(double eZ);
 
-    double calcTimeDelay(const double &jifactor);
-    void moveBunchToCathode(double &t);
-    void printBinHist();
-
     void rebin();
 
     int getNumBins();
 
     int getLastemittedBin();
-
-    void updatePartInBin(size_t countLost[]);
-
-    /** \brief we need this because only node 0 is emitting */
-    void updateBinStructure();
-
-    /** \brief report if any particle has been lost */
-    void reportParticleLoss();
 
     /** \brief Compute the gammas of all bins */
     void calcGammas();
@@ -180,9 +143,6 @@ public:
 
     /** \brief Set the charge of all other the ones in bin to zero */
     void setBinCharge(int bin);
-
-    /** \brief gets back the maximum dE of all the bins */
-    double getMaxdEBins();
 
     /** \brief calculates back the max/min of the efield on the grid */
     std::pair<Vector_t, Vector_t> getEExtrema();
@@ -235,14 +195,6 @@ public:
 
     virtual void setZ(int i, double zcoo);
 
-    virtual void setKR(Vector_t value, int i);
-
-    virtual void setKT(Vector_t value, int i);
-
-    virtual void BetOut(FILE *dat, FILE *sli);
-
-    virtual void plotR();
-
     void get_bounds(Vector_t &rmin, Vector_t &rmax);
 
     /*
@@ -257,12 +209,6 @@ public:
     void set_part(Particle p, int ii);
 
     Particle get_part(int ii);
-
-    /// Return bunch distribution.
-    //  Return the bunch centroid in [b]centroid[/b],
-    //  and the second moments in [b]moment[/b].
-    void beamEllipsoid(FVector<double, 6>   &centroid,
-                       FMatrix<double, 6, 6> &moment);
 
     /// Return maximum amplitudes.
     //  The matrix [b]D[/b] is used to normalise the first two modes.
@@ -289,8 +235,6 @@ public:
 
     void resetInterpolationCache(bool clearCache = false);
 
-    void calcWeightedAverages(Vector_t &CentroidPosition, Vector_t &CentroidMomentum) const;
-
     /** EulerAngle[0] = rotation about the y-axis, EulerAngle[1] = rotation about x-axis
      *  EulerAngle[2] = rotation about the y'-axis */
 
@@ -300,10 +244,6 @@ public:
 
     void ResetLocalCoordinateSystem(const int &i, const Vector_t &Orientation, const double &origin);
 
-    // OLD stuff should go away
-    bool isZPeriodic() const;
-    double getGaBeLa() const;
-
     /**
      * get the spos of the primary beam
      *
@@ -312,17 +252,9 @@ public:
      */
     double get_sPos();
 
-    /// Get average z position from local "lab frame" coordinates, X.
-    double getZPos();
-
-    /// Get bounds of local "lab frame" coordinates, X.
-    void getXBounds(Vector_t &xMin, Vector_t &xMax);
-
-    double   get_phase() const;
     double   get_gamma() const;
 
     double get_meanEnergy() const;
-    //  double* get_energy() {return energy_m; }
     Vector_t get_origin() const;
     Vector_t get_maxExtend() const;
     Vector_t get_centroid() const;
@@ -336,7 +268,6 @@ public:
     Vector_t get_norm_emit() const;
     
     Vector_t get_hr() const;
-    void set_hr(Vector_t h);
     
     double get_Dx() const;
     double get_Dy() const;
@@ -345,18 +276,14 @@ public:
     double get_DDy() const;
 
     void set_meshEnlargement(double dh);
-    double get_meshEnlargement() const;
 
     void gatherLoadBalanceStatistics();
     size_t getLoadBalance(int p) const;
-    size_t getMinLocalNum();
-
 
 
     void get_PBounds(Vector_t &min, Vector_t &max) const;
 
     void calcBeamParameters();
-    void calcBeamParametersLight();   // used in autophase and avoides communication
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
     void calcBeamParameters_cycl();
 
@@ -399,8 +326,6 @@ public:
     void setStepsPerTurn(int n);
     int getStepsPerTurn() const;
 
-    inline bool hasLowParticleCount() {return lowParticleCount_m;}
-
     /// step in multiple TRACK commands
     inline void setGlobalTrackStep(long long n) {globalTrackStep_m = n;}
     inline long long getGlobalTrackStep() const {return globalTrackStep_m;}
@@ -424,11 +349,7 @@ public:
 
     /// calculate average angle of longitudinal direction of bins
     double calcMeanPhi();
-
-    size_t getNumPartInBin(int BinID) const;
-
-    /// reset Bin[] for each particle
-    bool resetPartBinID();
+    
     /// reset Bin[] for each particle according to the method given in paper PAST-AB(064402) by  G. Fubiani et al.
     bool resetPartBinID2(const double eta);
 
@@ -449,9 +370,7 @@ public:
     virtual void actT();
     const PartData *getReference() const;
 
-    double getTBin();
     double GetEmissionDeltaT();
-    bool isDcBeam();
 
     void iterateEmittedBin(int binNumber);
 
@@ -478,9 +397,6 @@ public:
 
     /// scalar potential
     Field_t rho_m;
-
-    /// scalar fields for projecttion i.e. line densities
-    Field_t tmpFieldZ_m;
 
     /// vector field on the grid
     VField_t  eg_m;
@@ -509,10 +425,6 @@ public:
 
     // For AMTS integrator in OPAL-T
     double dtScInit_m, deltaTau_m;
-
-    /// for the Courant Shnider parameters
-    Vector_t csBeta_m;
-    Vector_t csAlpha_m;
 
     /// if a local node has less than 2 particles  lowParticleCount_m == true
     bool lowParticleCount_m;
@@ -642,7 +554,6 @@ private:
     // variables for stashing a bunch
     unsigned int stash_Nloc_m;
     Vector_t stash_iniR_m;
-    Vector_t stash_iniP_m;
     PID_t stash_id_m;
     Ppos_t stash_r_m, stash_p_m, stash_x_m;
     ParticleAttrib<double> stash_q_m, stash_dt_m;
@@ -707,18 +618,6 @@ private:
 
 };
 
-inline
-bool PartBunch::isDcBeam() { return dcBeam_m;}
-
-inline
-Vector_t PartBunch::getStashIniP() const {
-    return stash_iniP_m;
-}
-
-inline
-PartBunch::UnitState_t PartBunch::getUnitState() const {
-    return unit_state_;
-}
 
 inline
 void PartBunch::switchToUnitlessPositions(bool use_dt_per_particle) {
@@ -769,23 +668,9 @@ void PartBunch::switchOffUnitlessPositions(bool use_dt_per_particle) {
     if(hasToReset) R.resetDirtyFlag();
 }
 
-
-inline
-double PartBunch::getRho(NDIndex<3> e) {
-    return rho_m.localElement(e);
-}
-
 inline
 double PartBunch::getRho(int x, int y, int z) {
     return rho_m[x][y][z].get();
-}
-
-inline
-bool PartBunch::itIsMyTurn(int *n) {
-    bool res = (*n == myNode_m);
-    n++;
-    if(*n == nodes_m) *n = 0;
-    return res;
 }
 
 inline
@@ -795,16 +680,6 @@ void PartBunch::do_binaryRepart() {
     update();
     get_bounds(rmin_m, rmax_m);
     boundp();
-}
-
-inline
-void PartBunch::set_nBinsLineDensity(int n) {
-    nBinsLineDensity_m = n;
-}
-
-inline
-void PartBunch::setGridIsFixed() {
-    fixed_grid = true;
 }
 
 inline
@@ -820,18 +695,6 @@ void   PartBunch::setTEmission(double t) {
 inline
 double PartBunch::getTEmission() {
     return tEmission_m;
-}
-
-inline
-double PartBunch::getRebinEnergy() {
-    return pbin_m->getRebinEnergy();
-}
-
-inline
-void PartBunch::weHaveNOBins() {
-    if(pbin_m != NULL)
-        delete pbin_m;
-    pbin_m = NULL;
 }
 
 inline
@@ -856,12 +719,6 @@ int PartBunch::getLastemittedBin() {
         return pbin_m->getLastemittedBin();
     else
         return 0;
-}
-
-inline
-void PartBunch::updatePartInBin(size_t countLost[]) {
-    if(pbin_m != NULL)
-        pbin_m->updatePartInBin(countLost);
 }
 
 inline
@@ -915,18 +772,6 @@ double PartBunch::getPy0(int i) {
 
 inline
 void PartBunch::setZ(int i, double zcoo) {};
-
-inline
-void PartBunch::setKR(Vector_t value, int i) {};
-
-inline
-void PartBunch::setKT(Vector_t value, int i) {};
-
-inline
-void PartBunch::BetOut(FILE *dat, FILE *sli) {};
-
-inline
-void PartBunch::plotR() {};
 
 inline
 void PartBunch::get_bounds(Vector_t &rmin, Vector_t &rmax) {
@@ -1013,16 +858,6 @@ void PartBunch::resetInterpolationCache(bool clearCache) {
 }
 
 inline
-bool PartBunch::isZPeriodic() const { // used in Distribution
-    return false;
-}
-
-inline
-double PartBunch::getGaBeLa() const { // used in Distribution
-    return 1.0;
-}
-
-inline
 double PartBunch::get_sPos() {
     if(sum(PType != ParticleType::REGULAR)) {
         const size_t n = getLocalNum();
@@ -1051,11 +886,6 @@ double PartBunch::get_sPos() {
 }
 
 inline
-double   PartBunch::get_phase() const {
-    return 1.0;
-}
-
-inline
 double   PartBunch::get_gamma() const {
     return 1.0;
 }
@@ -1065,11 +895,6 @@ inline
 double PartBunch::get_meanEnergy() const {
     return eKin_m;
 }
-
-// inline
-// double* PartBunch::get_energy() {
-//     return energy_m;
-//}
 
 inline
 Vector_t PartBunch::get_origin() const {
@@ -1122,12 +947,6 @@ Vector_t PartBunch::get_norm_emit() const {
 }
 
 inline
-void PartBunch::set_hr(Vector_t hr)  {
-    hr_m = hr;
-}
-
-
-inline
 Vector_t PartBunch::get_hr() const {
     return hr_m;
 }
@@ -1158,21 +977,8 @@ void PartBunch::set_meshEnlargement(double dh) {
 }
 
 inline
-double PartBunch::get_meshEnlargement() const {
-    return dh_m;
-}
-
-inline
 size_t PartBunch::getLoadBalance(int p) const {
     return globalPartPerNode_m[p];
-}
-
-inline
-size_t PartBunch::getMinLocalNum() {
-    /// Get the minimal number of particles per node
-    if (minLocNum_m < 0)
-        gatherLoadBalanceStatistics();
-    return minLocNum_m;
 }
 
 inline
