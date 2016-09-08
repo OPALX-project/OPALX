@@ -221,7 +221,7 @@ namespace Expressions {
             itsObject = OpalData::getInstance()->find(obj_name);
             if(itsObject == 0) {
                 if(att_name.empty()  &&  itsIndex <= 0) {
-                    static Object *variable = OpalData::getInstance()->find("REAL_VARIABLE");
+                    Object *variable = OpalData::getInstance()->find("REAL_VARIABLE");
                     itsObject = variable->clone(obj_name);
                     OpalData::getInstance()->define(itsObject);
 
