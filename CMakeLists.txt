@@ -134,6 +134,10 @@ OPTION (NOCPLUSPLUS11_NULLPTR "Disable C++11 nullptr support" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
+IF (USE_H5HUT2)
+	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_H5HUT2")
+ENDIF (USE_H5HUT2)
+
 if (ENABLE_AMR_SOLVER)
     message (STATUS "----> Enable AMR")
 
