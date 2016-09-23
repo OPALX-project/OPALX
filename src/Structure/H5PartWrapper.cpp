@@ -20,7 +20,7 @@ extern Inform *gmsg;
 std::string H5PartWrapper::copyFilePrefix_m = ".copy";
 
 H5PartWrapper::H5PartWrapper(const std::string &fileName, h5_int32_t flags):
-    file_m(NULL),
+    file_m(0),
     fileName_m(fileName),
     predecessorOPALFlavour_m("NOT SET"),
     numSteps_m(0),
@@ -30,7 +30,7 @@ H5PartWrapper::H5PartWrapper(const std::string &fileName, h5_int32_t flags):
 }
 
 H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::string sourceFile, h5_int32_t flags):
-    file_m(NULL),
+	file_m(0),
     fileName_m(fileName),
     predecessorOPALFlavour_m("NOT SET"),
     numSteps_m(0),
@@ -54,13 +54,26 @@ void H5PartWrapper::close() {
 
         REPORTONERROR(H5CloseFile(file_m));
 
-        file_m = NULL;
+        file_m = 0;
     }
 }
 
 void H5PartWrapper::open(h5_int32_t flags) {
     close();
+
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = Ippl::getComm();
+    h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+    assert (h5err != H5_ERR);
+    file_m = H5OpenFile (fileName_m.c_str(), flags, props);
+    assert (file_m != H5_ERR);
+#else
     file_m = H5OpenFile(fileName_m.c_str(), H5_FLUSH_STEP | flags, Ippl::getComm());
+    assert (file_m != (void*)H5_ERR);
+#endif
+
+    
 }
 
 void H5PartWrapper::storeCavityInformation() {
@@ -99,7 +112,17 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
     }
 
     if (sourceFile == fileName_m) {
+#if defined (USE_H5HUT2)
+        h5_prop_t props = H5CreateFileProp ();
+        MPI_Comm comm = Ippl::getComm();
+        h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+        assert (h5err != H5_ERR);
+        h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
+        assert (source != H5_ERR);
+#else
         h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
+        assert (source != (void*)H5_ERR);
+#endif
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
@@ -127,8 +150,17 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         Ippl::Comm->barrier();
 
         open(flags);
+#if defined (USE_H5HUT2)
+	props = H5CreateFileProp ();
+	comm = Ippl::getComm();
+	h5err = H5SetPropFileMPIOCollective (props, &comm);
+	assert (h5err != H5_ERR);
+	source = H5OpenFile (sourceFileName.c_str(), H5_O_RDONLY, props);
+	assert (source != H5_ERR);
+#else
         source = H5OpenFile(sourceFileName.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
-
+        assert (source != (void*)H5_ERR);
+#endif
         copyHeader(source);
 
         // don't copy the whole file, it takes very long
@@ -146,7 +178,17 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 
         open(flags);
 
+#if defined (USE_H5HUT2)
+        h5_prop_t props = H5CreateFileProp ();
+        MPI_Comm comm = Ippl::getComm();
+        h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+        assert (h5err != H5_ERR);
+        h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
+        assert (source != H5_ERR);
+#else
         h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
+        assert (source != (void*)H5_ERR);
+#endif
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
@@ -215,7 +257,13 @@ void H5PartWrapper::copyFileSystem(const std::string &sourceFile) {
     }
 }
 
-void H5PartWrapper::copyHeader(h5_file_t *source) {
+void H5PartWrapper::copyHeader(
+#if defined (USE_H5HUT2)
+    h5_file_t source
+#else
+    h5_file_t *source
+#endif
+    ) {
     h5_int64_t numFileAttributes = H5GetNumFileAttribs(source);
 
     const h5_size_t lengthAttributeName = 256;
@@ -290,7 +338,14 @@ void H5PartWrapper::copyHeader(h5_file_t *source) {
     }
 }
 
-void H5PartWrapper::copyStep(h5_file_t *source, int step) {
+void H5PartWrapper::copyStep(
+#if defined (USE_H5HUT2)
+    h5_file_t source,
+#else
+    h5_file_t *source,
+#endif
+    int step
+    ) {
     REPORTONERROR(H5SetStep(file_m, numSteps_m));
     REPORTONERROR(H5SetStep(source, step));
 
@@ -298,7 +353,13 @@ void H5PartWrapper::copyStep(h5_file_t *source, int step) {
     copyStepData(source);
 }
 
-void H5PartWrapper::copyStepHeader(h5_file_t *source) {
+void H5PartWrapper::copyStepHeader(
+#if defined (USE_H5HUT2)
+    h5_file_t source
+#else
+    h5_file_t *source
+#endif
+    ) {
     h5_int64_t numStepAttributes = H5GetNumStepAttribs(source);
 
     h5_size_t lengthAttributeName = 256;
@@ -376,7 +437,13 @@ void H5PartWrapper::copyStepHeader(h5_file_t *source) {
     }
 }
 
-void H5PartWrapper::copyStepData(h5_file_t *source) {
+void H5PartWrapper::copyStepData(
+#if defined (USE_H5HUT2)
+    h5_file_t source
+#else
+    h5_file_t *source
+#endif
+    ) {
     h5_size_t lengthSetName = 256;
     char setName[lengthSetName];
     h5_int64_t setType;
@@ -468,3 +535,10 @@ size_t H5PartWrapper::getNumParticles() const {
 
     return numParticles;
 }
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

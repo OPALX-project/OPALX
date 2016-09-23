@@ -802,17 +802,23 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     IpplTimings::startTimer(H5PartTimer_m);
     if(firstWriteH5Surface_m) {
         firstWriteH5Surface_m = false;
-#ifdef PARALLEL_IO
-        H5fileS_m = H5OpenFile(surfaceLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
-#else
-        H5fileS_m = H5OpenFile(surfaceLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, 0);
-#endif
 
+#if defined (USE_H5HUT2)
+	h5_prop_t props = H5CreateFileProp ();
+	MPI_Comm comm = Ippl::getComm();
+	H5SetPropFileMPIOCollective (props, &comm);
+	H5fileS_m = H5OpenFile (surfaceLossFileName_m.c_str(), H5_O_WRONLY, props);
+        if(H5fileS_m == H5_ERR) {
+            throw OpalException("DataSink::writeSurfaceInteraction",
+                                "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
+        }
+#else
+        H5fileS_m = H5OpenFile(surfaceLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
         if(H5fileS_m == (void*)H5_ERR) {
             throw OpalException("DataSink::writeSurfaceInteraction",
                                 "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
         }
-
+#endif
 
     }
     int nTot = bg.getNumBFaces();

@@ -7,10 +7,12 @@
 #include "config.h"
 #include "revision.h"
 
+#include <assert.h>
+
 LossDataSink::LossDataSink(std::string elem, bool hdf5Save):
     element_m(elem),
     h5hut_mode_m(hdf5Save),
-    H5file_m(NULL)
+    H5file_m(0)
 {
     x_m.clear();
     y_m.clear();
@@ -44,29 +46,33 @@ LossDataSink::LossDataSink() {
 }
 
 LossDataSink::~LossDataSink() {
-  h5_int64_t rc;
-  if(H5file_m) {
-    rc = H5CloseFile(H5file_m);
-    H5file_m = NULL;
-    if(rc != H5_SUCCESS)
-      ERRORMSG("H5 rc= " << rc << " element " << element_m << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-  }
-  Ippl::Comm->barrier();
+    h5_int64_t rc;
+    if (H5file_m) {
+        rc = H5CloseFile(H5file_m);
+        assert (rc != H5_ERR);
+        H5file_m = 0;
+    }
+    Ippl::Comm->barrier();
 }
 
 void LossDataSink::openH5() {
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = Ippl::getComm();
+    H5SetPropFileMPIOCollective (props, &comm);
+    H5file_m = H5OpenFile (fn_m.c_str(), H5_O_RDONLY, props);
 
-    /// Open H5 file. Check that it opens correctly.
-#ifdef PARALLEL_IO
-    H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, Ippl::getComm());
+    if(H5file_m == H5_ERR) {
+        throw GeneralClassicException("LossDataSink::openH5",
+                                      "failed to open h5 file '" + fn_m + "'");
+    }
 #else
-    H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, 0);
-#endif
-
+    H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, Ippl::getComm());
     if(H5file_m == (void*)H5_ERR) {
         throw GeneralClassicException("LossDataSink::openH5",
                                       "failed to open h5 file '" + fn_m + "'");
     }
+#endif
 }
 
 void LossDataSink::writeHeaderH5() {
@@ -165,7 +171,7 @@ void LossDataSink::save() {
 	writeHeaderH5();
 	saveH5();
 	H5CloseFile(H5file_m);
-	H5file_m = NULL;
+	H5file_m = 0;
 	Ippl::Comm->barrier();
     }
     else {
@@ -435,3 +441,10 @@ void LossDataSink::saveASCII() {
             ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
     }
 }
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

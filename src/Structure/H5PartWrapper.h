@@ -54,11 +54,17 @@ protected:
 
     void copyFile(const std::string &sourceFile, int lastStep = -1, h5_int32_t flags = H5_O_WRONLY);
     void copyFileSystem(const std::string &sourceFile);
+#if defined (USE_H5HUT2)
+    void copyHeader(h5_file_t source);
+    void copyStep(h5_file_t source, int step);
+    void copyStepHeader(h5_file_t source);
+    void copyStepData(h5_file_t source);
+#else
     void copyHeader(h5_file_t *source);
     void copyStep(h5_file_t *source, int step);
     void copyStepHeader(h5_file_t *source);
     void copyStepData(h5_file_t *source);
-
+#endif
     void sendFailureMessage(bool failed,
                             const std::string &where,
                             const std::string &what);
@@ -68,7 +74,11 @@ protected:
 
     static void reportOnError(h5_int64_t rc, const char* file, int line);
 
+#if defined (USE_H5HUT2)
+    h5_file_t file_m;
+#else
     h5_file_t *file_m;
+#endif
     std::string fileName_m;
     std::string predecessorOPALFlavour_m;
     h5_int64_t numSteps_m;
