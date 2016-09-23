@@ -1718,10 +1718,18 @@ Change orientation if diff is:
     *gmsg << "* Scale all points of geometry by " << xyzscale << endl;
 
     rc = H5SetErrorHandler (H5AbortErrorhandler);
-    if (rc != H5_SUCCESS)
-        ERRORMSG ("H5 rc = " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
+    assert (rc != H5_ERR);
     H5SetVerbosityLevel (1);
-    h5_file_t* f = H5OpenFile (h5FileName_m.c_str (), H5_O_RDONLY, Ippl::getComm());
+
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = Ippl::getComm();
+    H5SetPropFileMPIOCollective (props, &comm);
+    h5_file_t f = H5OpenFile (h5FileName_m.c_str(), H5_O_RDONLY, props);
+#else
+    h5_file_t *f = H5OpenFile (h5FileName_m.c_str(), H5_O_RDONLY, Ippl::getComm());
+#endif
+    
     h5t_mesh_t* m = NULL;
     H5FedOpenTriangleMesh (f, "0", &m);
     H5FedSetLevel (m, 0);

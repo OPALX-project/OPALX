@@ -200,9 +200,12 @@ map<string, unsigned int> Monitor::h5pfiles_s = map<string, unsigned int>();
         h5_int64_t rc;
         if(step_m == 0) {
 #ifdef PARALLEL_IO
-            H5file = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, Ippl::getComm());
+	    h5_prop_t props = H5CreateFileProp ();
+	    MPI_Comm = Ippl::getComm();
+	    H5SetPropFileMPIOCollective (props, &comm);
+            H5file = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, props);
 #else
-            H5file = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, 0);
+            H5file = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, H5_PROP_DEFAULT);
 #endif
             rc = H5WriteFileAttribString(H5file, "timeUnit", "s");
             if(rc != H5_SUCCESS)

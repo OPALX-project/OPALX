@@ -31,6 +31,8 @@
 #include <fstream>
 #include <ios>
 
+#include <assert.h>
+
 #define REGISTER_PARSE_TYPE(X) template <> struct Fieldmap::TypeParseTraits<X> \
     { static const char* name; } ; const char* Fieldmap::TypeParseTraits<X>::name = #X
 
@@ -287,34 +289,42 @@ MapType Fieldmap::readHeader(std::string Filename) {
         char name[20];
         h5_size_t len_name = sizeof(name);
         h5_int64_t ftype;
+#if defined (USE_H5HUT2)
+	h5_prop_t props = H5CreateFileProp ();
+        MPI_Comm comm = Ippl::getComm();
+        h5err = H5SetPropFileMPIOCollective (props, &comm);
+        assert (h5err != H5_ERR);
+        h5_file_t file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, props);
+	assert (file != H5_ERR);
+#else
+	h5_file_t *file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
+	assert (file != (void*)H5_ERR);
+#endif
+	
+	h5err = H5SetStep(file, 0);
+        assert (h5err != H5_ERR);
+	h5_int64_t num_fields = H5BlockGetNumFields(file);
+        assert (num_fields != H5_ERR);
+	MapType maptype = UNKNOWN;
 
-        h5_file_t *file = H5OpenFile(Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
-        if(file != (void*)H5_ERR) {
-            h5err = H5SetStep(file, 0);
-            if(h5err != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            h5_int64_t num_fields = H5BlockGetNumFields(file);
-            MapType maptype = UNKNOWN;
-            for(h5_ssize_t i = 0; i < num_fields; ++ i) {
-                h5err = H5BlockGetFieldInfo(file, (h5_size_t)i, name, len_name, &grid_rank, grid_dims, &field_dims, &ftype);
-                if(h5err != H5_SUCCESS)
-                    ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-                // using field name "Bfield" and "Hfield" to distinguish the type
-                if(strcmp(name, "Bfield") == 0) {
-                    maptype = T3DMagnetoStaticH5Block;
-                    break;
-                } else if(strcmp(name, "Hfield") == 0) {
-                    maptype = T3DDynamicH5Block;
-                    break;
-                }
+	for(h5_ssize_t i = 0; i < num_fields; ++ i) {
+            h5err = H5BlockGetFieldInfo(file, (h5_size_t)i, name, len_name, &grid_rank, grid_dims, &field_dims, &ftype);
+            assert (h5err != H5_ERR);
+            // using field name "Bfield" and "Hfield" to distinguish the type
+            if(strcmp(name, "Bfield") == 0) {
+                maptype = T3DMagnetoStaticH5Block;
+                break;
+            } else if(strcmp(name, "Hfield") == 0) {
+                maptype = T3DDynamicH5Block;
+                break;
             }
-            h5err = H5CloseFile(file);
-            if(h5err != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << h5err << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            if(maptype != UNKNOWN)
-                return maptype;
         }
+        h5err = H5CloseFile(file);
+        assert (h5err != H5_SUCCESS);
+        if(maptype != UNKNOWN)
+            return maptype;
     }
+
     if(strcmp(magicnumber, "Astr") == 0) {
         char tmpString[3] = "  ";
         interpreter.read(tmpString, 2);
@@ -682,3 +692,10 @@ REGISTER_PARSE_TYPE(std::string);
 std::string Fieldmap::alpha_numeric("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+\211");
 std::map<std::string, Fieldmap::FieldmapDescription> Fieldmap::FieldmapDictionary = std::map<std::string, Fieldmap::FieldmapDescription>();
 char Fieldmap::buffer_m[READ_BUFFER_LENGTH];
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
