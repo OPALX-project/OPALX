@@ -39,6 +39,7 @@
 #include <boost/numeric/ublas/vector.hpp>
 
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
+#include <boost/numeric/odeint/integrate/check_adapter.hpp>
 
 #include "rdm.h"
 
