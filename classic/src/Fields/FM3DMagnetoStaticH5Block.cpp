@@ -14,6 +14,9 @@ using Physics::mu_0;
 FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
     Fieldmap(aFilename) {
     h5_err_t h5err;
+#if defined (NDEBUG)
+    (void)h5err;
+#endif
     h5_size_t grid_rank;
     h5_size_t grid_dims[3];
     h5_size_t field_dims;
@@ -87,6 +90,9 @@ void FM3DMagnetoStaticH5Block::readMap() {
         return;
     }
     h5_int64_t h5err;
+#if defined (NDEBUG)
+    (void)h5err;
+#endif
 
 #if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();

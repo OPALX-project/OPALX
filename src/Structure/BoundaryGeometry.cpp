@@ -1689,7 +1689,6 @@ Change orientation if diff is:
 
     };
 
-    h5_int64_t rc;
     debugFlags_m = 0;
     *gmsg << "* Initializing Boundary Geometry..." << endl;
     IpplTimings::startTimer (Tinitialize_m);
@@ -1717,6 +1716,10 @@ Change orientation if diff is:
     *gmsg << "* Z-scale all points of geometry by " << zscale << endl;
     *gmsg << "* Scale all points of geometry by " << xyzscale << endl;
 
+    h5_int64_t rc;
+#if defined (NDEBUG)
+    (void)rc;
+#endif
     rc = H5SetErrorHandler (H5AbortErrorhandler);
     assert (rc != H5_ERR);
     H5SetVerbosityLevel (1);
