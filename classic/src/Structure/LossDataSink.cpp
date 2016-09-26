@@ -46,8 +46,11 @@ LossDataSink::LossDataSink() {
 }
 
 LossDataSink::~LossDataSink() {
-    h5_int64_t rc;
     if (H5file_m) {
+        h5_int64_t rc;
+#if defined (NDEBUG)
+        (void)rc;
+#endif
         rc = H5CloseFile(H5file_m);
         assert (rc != H5_ERR);
         H5file_m = 0;
@@ -62,7 +65,7 @@ void LossDataSink::openH5() {
     H5SetPropFileMPIOCollective (props, &comm);
     H5file_m = H5OpenFile (fn_m.c_str(), H5_O_RDONLY, props);
 
-    if(H5file_m == H5_ERR) {
+    if(H5file_m == (h5_file_t)H5_ERR) {
         throw GeneralClassicException("LossDataSink::openH5",
                                       "failed to open h5 file '" + fn_m + "'");
     }
