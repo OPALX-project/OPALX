@@ -65,6 +65,9 @@ void H5PartWrapper::open(h5_int32_t flags) {
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+#if defined (NDEBUG)
+    (void)h5err;
+#endif
     assert (h5err != H5_ERR);
     file_m = H5OpenFile (fileName_m.c_str(), flags, props);
     assert (file_m != H5_ERR);
@@ -116,6 +119,9 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+#if defined (NDEBUG)
+        (void)h5err;
+#endif
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
         assert (source != H5_ERR);
@@ -182,6 +188,9 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+#if defined (NDEBUG)
+        (void)h5err;
+#endif
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
         assert (source != H5_ERR);
