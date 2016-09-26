@@ -48,148 +48,188 @@ Fieldmap *Fieldmap::getFieldmap(std::string Filename, bool fast) {
         switch(type) {
         case T1DDynamic:
             if(fast) {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T1DDynamic,
-                                                                                        new FM1DDynamic_fast(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T1DDynamic, new FM1DDynamic_fast(Filename))));
             } else {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T1DDynamic,
-                                                                                        new FM1DDynamic(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T1DDynamic, new FM1DDynamic(Filename))));
             }
             return (*position.first).second.Map;
             break;
 
         case TAstraDynamic:
             if(fast) {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(TAstraDynamic,
-                                                                                        new Astra1DDynamic_fast(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            TAstraDynamic, new Astra1DDynamic_fast(Filename))));
             } else {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(TAstraDynamic,
-                                                                                        new Astra1DDynamic(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            TAstraDynamic, new Astra1DDynamic(Filename))));
             }
             return (*position.first).second.Map;
             break;
 
         case T1DElectroStatic:
             if(fast) {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T1DElectroStatic,
-                                                                                        new FM1DElectroStatic_fast(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T1DElectroStatic, new FM1DElectroStatic_fast(Filename))));
             } else {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T1DElectroStatic,
-                                                                                        new FM1DElectroStatic(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T1DElectroStatic, new FM1DElectroStatic(Filename))));
             }
             return (*position.first).second.Map;
             break;
 
         case TAstraElectroStatic:
             if(fast) {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(TAstraElectroStatic,
-                                                                                        new Astra1DElectroStatic_fast(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            TAstraElectroStatic, new Astra1DElectroStatic_fast(Filename))));
             } else {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(TAstraElectroStatic,
-                                                                                        new Astra1DElectroStatic(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            TAstraElectroStatic, new Astra1DElectroStatic(Filename))));
             }
             return (*position.first).second.Map;
             break;
 
         case T1DMagnetoStatic:
             if(fast) {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T1DMagnetoStatic,
-                                                                                        new FM1DMagnetoStatic_fast(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T1DMagnetoStatic, new FM1DMagnetoStatic_fast(Filename))));
             } else {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T1DMagnetoStatic,
-                                                                                        new FM1DMagnetoStatic(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T1DMagnetoStatic, new FM1DMagnetoStatic(Filename))));
             }
             return (*position.first).second.Map;
             break;
 
         case TAstraMagnetoStatic:
             if(fast) {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(TAstraMagnetoStatic,
-                                                                                        new Astra1DMagnetoStatic_fast(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            TAstraMagnetoStatic, new Astra1DMagnetoStatic_fast(Filename))));
             } else {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(TAstraMagnetoStatic,
-                                                                                        new Astra1DMagnetoStatic(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            TAstraMagnetoStatic, new Astra1DMagnetoStatic(Filename))));
             }
             return (*position.first).second.Map;
             break;
 
         case T1DProfile1:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(T1DProfile1,
-                                                                                    new FM1DProfile1(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename,
+                    FieldmapDescription(T1DProfile1, new FM1DProfile1(Filename))));
             return (*position.first).second.Map;
             break;
 
         case T1DProfile2:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(T1DProfile2,
-                                                                                    new FM1DProfile2(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename,
+                    FieldmapDescription(
+                        T1DProfile2, new FM1DProfile2(Filename))));
             return (*position.first).second.Map;
             break;
 
         case T2DDynamic:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(T2DDynamic,
-                                                                                    new FM2DDynamic(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename,
+                    FieldmapDescription(
+                        T2DDynamic, new FM2DDynamic(Filename))));
             return (*position.first).second.Map;
             break;
 
         case T2DElectroStatic:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(T2DElectroStatic,
-                                                                                    new FM2DElectroStatic(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename,
+                    FieldmapDescription(
+                        T2DElectroStatic, new FM2DElectroStatic(Filename))));
             return (*position.first).second.Map;
             break;
 
         case T2DMagnetoStatic:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(T2DMagnetoStatic,
-                                                                                    new FM2DMagnetoStatic(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename,
+                    FieldmapDescription(
+                        T2DMagnetoStatic, new FM2DMagnetoStatic(Filename))));
             return (*position.first).second.Map;
             break;
 
         case T3DDynamic:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(T3DDynamic,
-                                                                                    new FM3DDynamic(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename,
+                    FieldmapDescription(
+                        T3DDynamic, new FM3DDynamic(Filename))));
             return (*position.first).second.Map;
             break;
 
         case T3DMagnetoStaticH5Block:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(T3DMagnetoStaticH5Block,
-                                                                                    new FM3DMagnetoStaticH5Block(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename, FieldmapDescription(
+                        T3DMagnetoStaticH5Block, new FM3DMagnetoStaticH5Block(Filename))));
             return (*position.first).second.Map;
             break;
 
         case T3DDynamicH5Block:
             if(fast) {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T3DDynamic,
-                                                                                        new FM3DH5Block_nonscale(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T3DDynamic, new FM3DH5Block_nonscale(Filename))));
             } else {
-                position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                    FieldmapDescription(T3DDynamic,
-                                                                                        new FM3DH5Block(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(
+                            T3DDynamic, new FM3DH5Block(Filename))));
             }
             return (*position.first).second.Map;
             break;
 
         default:
-            position = FieldmapDictionary.insert(std::make_pair(Filename,
-                                                                FieldmapDescription(UNKNOWN,
-                                                                                    new FMDummy(Filename))));
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename, FieldmapDescription(UNKNOWN, new FMDummy(Filename))));
             return (*position.first).second.Map;
         }
     }
@@ -282,20 +322,20 @@ MapType Fieldmap::readHeader(std::string Filename) {
         return T1DElectroStatic;
 
     if(strcmp(magicnumber, "\211HDF") == 0) {
-        h5_err_t h5err;
-        h5_size_t grid_rank;
-        h5_size_t grid_dims[3];
-        h5_size_t field_dims;
+        h5_err_t h5err = 0;
+#if defined (NDEBUG)
+        // mark variable as unused
+        (void)h5err;
+#endif
         char name[20];
         h5_size_t len_name = sizeof(name);
-        h5_int64_t ftype;
 #if defined (USE_H5HUT2)
 	h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5err = H5SetPropFileMPIOCollective (props, &comm);
         assert (h5err != H5_ERR);
         h5_file_t file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, props);
-	assert (file != H5_ERR);
+	assert (file != (h5_file_t)H5_ERR);
 #else
 	h5_file_t *file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
 	assert (file != (void*)H5_ERR);
@@ -303,12 +343,14 @@ MapType Fieldmap::readHeader(std::string Filename) {
 	
 	h5err = H5SetStep(file, 0);
         assert (h5err != H5_ERR);
+
 	h5_int64_t num_fields = H5BlockGetNumFields(file);
         assert (num_fields != H5_ERR);
 	MapType maptype = UNKNOWN;
 
 	for(h5_ssize_t i = 0; i < num_fields; ++ i) {
-            h5err = H5BlockGetFieldInfo(file, (h5_size_t)i, name, len_name, &grid_rank, grid_dims, &field_dims, &ftype);
+            h5err = H5BlockGetFieldInfo(
+                file, (h5_size_t)i, name, len_name, NULL, NULL, NULL, NULL);
             assert (h5err != H5_ERR);
             // using field name "Bfield" and "Hfield" to distinguish the type
             if(strcmp(name, "Bfield") == 0) {
