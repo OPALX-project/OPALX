@@ -320,7 +320,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
             }
         }
         h5err = H5CloseFile(file);
-        assert (h5err != H5_SUCCESS);
+        assert (h5err != H5_ERR);
         if(maptype != UNKNOWN)
             return maptype;
     }
