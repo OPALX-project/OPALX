@@ -123,7 +123,7 @@ ENDIF (USE_MIC)
 # Handle options
 OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
 
-OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
+OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" ON)
 
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
