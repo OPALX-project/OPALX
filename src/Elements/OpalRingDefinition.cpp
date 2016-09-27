@@ -102,6 +102,7 @@ void OpalRingDefinition::update() {
     ring->setBeamPRInit(Attributes::getReal(itsAttr[BEAM_PRINIT]));
     ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT]));
     ring->setLatticeRInit(Attributes::getReal(itsAttr[LAT_RINIT]));
+    INFOMSG("LAT_PHIINIT " << Attributes::getReal(itsAttr[LAT_PHIINIT])*degree << endl);
     ring->setLatticePhiInit(Attributes::getReal(itsAttr[LAT_PHIINIT])*degree);
     ring->setLatticeThetaInit(Attributes::getReal(itsAttr[LAT_THETAINIT])*degree);
         ring->setSymmetry(Attributes::getReal(itsAttr[SYMMETRY]));
