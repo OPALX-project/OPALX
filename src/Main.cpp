@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
     FTps<double, 4>::setGlobalTruncOrder(15);
     FTps<double, 6>::setGlobalTruncOrder(10);
 
-    OpalData *OPAL = OpalData::getInstance();
+    OpalData *opal = OpalData::getInstance();
 
     try {
         Configure::configure();
@@ -201,8 +201,8 @@ int main(int argc, char *argv[]) {
         }
 
         if(argc > 1) {
-            OPAL->storeInputFn(std::string(argv[1]));
-            OPAL->setRestartFileName(OPAL->getInputBasename() + std::string(".h5"));
+            opal->storeInputFn(std::string(argv[1]));
+            opal->setRestartFileName(opal->getInputBasename() + std::string(".h5"));
         }
 
         if(argc > 3) {
@@ -211,17 +211,17 @@ int main(int argc, char *argv[]) {
                 for(int ii = 2; ii < 6; ii = ii + 2)
                     // The sequence of the two arguments is free
                     if(std::string(argv[ii]) == std::string("-restart")) {
-                        OPAL->setRestartRun();
-                        OPAL->setRestartStep(atoi(argv[ii+1]));
-                        OPAL->setRestartFileName(argv[1]);
+                        opal->setRestartRun();
+                        opal->setRestartStep(atoi(argv[ii+1]));
+                        opal->setRestartFileName(argv[1]);
                     } else if((std::string(argv[ii]) == std::string("-restartfn"))) {
-                        OPAL->setRestartFileName(argv[ii+1]);
+                        opal->setRestartFileName(argv[ii+1]);
                     }
             } else {
                 // will append dumping date into old h5 file
                 if(std::string(argv[2]) == std::string("-restart")) {
-                    OPAL->setRestartRun();
-                    OPAL->setRestartStep(atoi(argv[3]));
+                    opal->setRestartRun();
+                    opal->setRestartStep(atoi(argv[3]));
                 }
             }
         }

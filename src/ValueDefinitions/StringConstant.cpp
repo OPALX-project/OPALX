@@ -34,9 +34,9 @@ StringConstant::StringConstant():
                     "\tSTRING CONSTANT <name> = <String-expression>;\n") {
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
 
-    OpalData *OPAL = OpalData::getInstance();
+    OpalData *opal = OpalData::getInstance();
     std::string gitRevision(GIT_VERSION);
-    OPAL->create(new StringConstant("GITREVISION", this, gitRevision));
+    opal->create(new StringConstant("GITREVISION", this, gitRevision));
 }
 
 

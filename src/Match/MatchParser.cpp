@@ -45,15 +45,15 @@ MatchParser::MatchParser():
     MatchDirectory.insert("VARY",       new VaryCmd());
 
     // Table commands: Use exemplars from main directory.
-    OpalData *OPAL = OpalData::getInstance();
-    MatchDirectory.insert("SURVEY",     OPAL->find("SURVEY"));
-    MatchDirectory.insert("TWISS",      OPAL->find("TWISS"));
-    MatchDirectory.insert("TWISSTRACK", OPAL->find("TWISSTRACK"));
-    MatchDirectory.insert("TWISSTRACK", OPAL->find("TWISSTRACK"));
+    OpalData *opal = OpalData::getInstance();
+    MatchDirectory.insert("SURVEY",     opal->find("SURVEY"));
+    MatchDirectory.insert("TWISS",      opal->find("TWISS"));
+    MatchDirectory.insert("TWISSTRACK", opal->find("TWISSTRACK"));
+    MatchDirectory.insert("TWISSTRACK", opal->find("TWISSTRACK"));
     // JMJ 10/4/2000: added following commands here, seems harmless
-    MatchDirectory.insert("VALUE", OPAL->find("VALUE"));
-    MatchDirectory.insert("SYSTEM", OPAL->find("SYSTEM"));
-    //   MatchDirectory.insert("OPTION", OPAL->find("OPTION")); // does not work
+    MatchDirectory.insert("VALUE", opal->find("VALUE"));
+    MatchDirectory.insert("SYSTEM", opal->find("SYSTEM"));
+    //   MatchDirectory.insert("OPTION", opal->find("OPTION")); // does not work
 }
 
 

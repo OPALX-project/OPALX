@@ -68,7 +68,7 @@ void H5PartWrapperForPT::readHeader() {
     }
 
     if (attributeNames.find("nAutoPhaseCavities") != attributeNames.end()) {
-        auto OPAL = OpalData::getInstance();
+        auto opal = OpalData::getInstance();
         char name[128];
         h5_float64_t phase;
         h5_int64_t numAutoPhaseCavities;
@@ -81,7 +81,7 @@ void H5PartWrapperForPT::readHeader() {
             READFILEATTRIB(String, file_m, elementName.c_str(), name);
             READFILEATTRIB(Float64, file_m, elementPhase.c_str(), &phase);
 
-            OPAL->setMaxPhase(name, phase);
+            opal->setMaxPhase(name, phase);
         }
     }
 }
