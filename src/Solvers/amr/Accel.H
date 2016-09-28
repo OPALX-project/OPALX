@@ -321,11 +321,6 @@ public:
     void GetParticleLocations (Array<Real>& part_locs);
     void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
 
-    //
-    // Values that we need from OPAL: c and the coupling constant
-    //
-    static Real opal_coupling;
-
 protected:
 
     // 

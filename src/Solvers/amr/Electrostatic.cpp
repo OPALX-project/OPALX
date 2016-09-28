@@ -173,7 +173,6 @@ void
 Electrostatic::solve_for_old_phi (int               level,
                                   MultiFab&         phi,
                                   PArray<MultiFab>& grad_phi,
-                                  Real              opal_coupling,
                                   int               fill_interior)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -188,14 +187,13 @@ Electrostatic::solve_for_old_phi (int               level,
     // We shouldn't need to use virtual or ghost particles for old phi solves.
 
     const Real time  = level_data[level].get_state_data(Elec_Field_Type).prevTime();
-    solve_for_phi(level, Rhs, phi, grad_phi, opal_coupling, time, fill_interior);
+    solve_for_phi(level, Rhs, phi, grad_phi, time, fill_interior);
 }
 
 void
 Electrostatic::solve_for_new_phi (int               level,
                                   MultiFab&         phi,
                                   PArray<MultiFab>& grad_phi,
-                                  Real              opal_coupling,
                                   int               fill_interior,
                                   int               field_n_grow)
 {
@@ -211,7 +209,7 @@ Electrostatic::solve_for_new_phi (int               level,
     AddGhostParticlesToRhs(level,Rhs,0);
     
     const Real time = level_data[level].get_state_data(Elec_Field_Type).curTime();
-    solve_for_phi(level, Rhs, phi, grad_phi, opal_coupling, time, fill_interior);
+    solve_for_phi(level, Rhs, phi, grad_phi, time, fill_interior);
 }
 
 void
@@ -219,7 +217,6 @@ Electrostatic::solve_for_phi (int               level,
                               MultiFab&         Rhs,
                               MultiFab&         phi,
                               PArray<MultiFab>& grad_phi,
-                              Real              opal_coupling,
                               Real              time,
                               int               fill_interior)
 
@@ -230,8 +227,8 @@ Electrostatic::solve_for_phi (int               level,
     const Real* dx = parent->Geom(level).CellSize();
 
     if (ParallelDescriptor::IOProcessor())
-        std::cout << " ... multiplying the RHS by " << opal_coupling << " in solve_for_phi " << std::endl;
-    Rhs.mult(-opal_coupling);
+        std::cout << " ... multiplying the RHS by " << -8.9875517879979115e+09 << " in solve_for_phi " << std::endl;
+    Rhs.mult(-8.9875517879979115e+09);  //opal_coupling ( 4 * pi * epsilon_0 ));
 
 //  *****************************************************************************
 //  FOR TIMINGS
@@ -746,7 +743,6 @@ Electrostatic::get_crse_grad_phi (int               level,
 void
 Electrostatic::multilevel_solve_for_new_phi (int level,
                                              int finest_level,
-                                             Real opal_coupling,
                                              int use_previous_phi_as_guess)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -765,14 +761,13 @@ Electrostatic::multilevel_solve_for_new_phi (int level,
     }
 
     int is_new = 1;
-    actual_multilevel_solve(level, finest_level, opal_coupling, grad_phi_curr,
+    actual_multilevel_solve(level, finest_level, grad_phi_curr,
                             is_new, use_previous_phi_as_guess);
 }
 
 void
 Electrostatic::multilevel_solve_for_old_phi (int level,
                                              int finest_level,
-                                             Real opal_coupling,
                                              int use_previous_phi_as_guess)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -791,21 +786,20 @@ Electrostatic::multilevel_solve_for_old_phi (int level,
     }
 
     int is_new = 0;
-    actual_multilevel_solve(level, finest_level, opal_coupling, grad_phi_prev,
+    actual_multilevel_solve(level, finest_level, grad_phi_prev,
                             is_new, use_previous_phi_as_guess);
 }
 
 void
-Electrostatic::multilevel_solve_for_phi(int level, int finest_level, Real opal_coupling, 
+Electrostatic::multilevel_solve_for_phi(int level, int finest_level,
                                         int use_previous_phi_as_guess)
 {
-    multilevel_solve_for_new_phi(level, finest_level, opal_coupling, use_previous_phi_as_guess);
+    multilevel_solve_for_new_phi(level, finest_level, use_previous_phi_as_guess);
 }
 
 void
 Electrostatic::actual_multilevel_solve (int                 level,
                                   int                       finest_level,
-                                  Real                      opal_coupling,
                                   Array<PArray<MultiFab> >& grad_phi,
                                   int                       is_new,
                                   int                       use_previous_phi_as_guess)
@@ -843,7 +837,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
        std::cout << "Norm of RHS at level          " << level+i << " is " << Rhs_particles[i].norm0() << std::endl;
 
     for (int lev = 0; lev < num_levels; lev++)
-        Rhs_particles[lev].mult(-opal_coupling, 0, 1);
+        Rhs_particles[lev].mult(-8.9875517879979115e+09, 0, 1);  //opal_coupling ( 4 * pi * epsilon_0 )
 
     for (int i = 0; i < num_levels; i++)
        std::cout << "Norm of RHS*coupling at level " << level+i << " is " << Rhs_particles[i].norm0() << std::endl;
