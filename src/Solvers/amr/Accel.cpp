@@ -35,7 +35,6 @@ int Accel::show_timings = 0;
 Real Accel::init_shrink = 1.0;
 Real Accel::change_max  = 1.1;
 
-Real Accel::opal_c         = -1.0;
 Real Accel::opal_coupling  = -1.0;
 
 BCRec Accel::phys_bc;
@@ -85,7 +84,6 @@ Accel::read_params ()
     pp.query("dump_old", dump_old);
 
     // Note that we *MUST* input these (hence the "get" instead of "query")
-    pp.get("opal_c", opal_c);
     pp.get("opal_coupling", opal_coupling);
 
     // Get boundary conditions

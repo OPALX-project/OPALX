@@ -2,6 +2,9 @@
 #ifndef _Accel_H_
 #define _Accel_H_
 
+
+#include "Physics/Physics.h"
+
 #include <BC_TYPES.H>
 #include <AmrLevel.H>
 #include <ErrorList.H>
@@ -321,7 +324,6 @@ public:
     //
     // Values that we need from OPAL: c and the coupling constant
     //
-    static Real opal_c;
     static Real opal_coupling;
 
 protected:

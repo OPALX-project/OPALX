@@ -125,7 +125,7 @@ Accel::advance (Real time,
         std::cout << "MKD ... updating particle positions and velocity\n";
     
     Real gammaz = Accel::thePAPC()->sumParticleMomenta(zmom_comp);
-    Real betaC  = gammaz / ( sqrt(gammaz*gammaz+1) * opal_c );
+    Real betaC  = gammaz / ( sqrt(gammaz*gammaz+1) * Physics::c );
 
     for (int lev = level; lev <= finest_level_to_advance; lev++)
     {
@@ -212,7 +212,7 @@ Accel::advance (Real time,
 
     // Compute this again since the momenta changed in the MKD call
     gammaz = Accel::thePAPC()->sumParticleMomenta(zmom_comp);
-    betaC  = gammaz / ( sqrt(gammaz*gammaz+1) * opal_c );
+    betaC  = gammaz / ( sqrt(gammaz*gammaz+1) * Physics::c );
 
     for (int lev = level; lev <= finest_level_to_advance; lev++)
     {

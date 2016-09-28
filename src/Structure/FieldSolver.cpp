@@ -367,7 +367,6 @@ void FieldSolver::initSolver(PartBunch &b) {
         
         //BEGIN TO BE REMOVED
         ParmParse ppr("accel");
-    //    ppr.add("opal_c", 299792458.0);
     //    ppr.add("opal_coupling", 8.9875517879979115e+09);
         ppr.add("fixed_dt", 1.0e-10);
         //END TO BE REMOVED
