@@ -35,8 +35,8 @@ bool Element::canReplaceBy(Object *object) {
 
 
 Element *Element::find(const std::string &name) {
-    OpalData *OPAL = OpalData::getInstance();
-    Element *element = dynamic_cast<Element *>(OPAL->find(name));
+    OpalData *opal = OpalData::getInstance();
+    Element *element = dynamic_cast<Element *>(opal->find(name));
     if(element == 0) {
         throw OpalException("Element::find()",
                             "Element \"" + name + "\" not found.");
