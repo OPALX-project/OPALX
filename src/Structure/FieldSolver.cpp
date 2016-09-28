@@ -34,6 +34,10 @@
 #include "AbstractObjects/Element.h"
 #include "Algorithms/PartBunch.h"
 
+#ifdef HAVE_AMR_SOLVER
+    #include <ParmParse.H>
+#endif
+
 using namespace Expressions;
 using namespace Physics;
 
@@ -67,6 +71,14 @@ namespace {
         RC,         // cutoff radius for PP interactions
 	ALPHA,      // Green’s function splitting parameter
 	EPSILON,    // regularization for PP interaction
+#ifdef HAVE_AMR_SOLVER
+        AMRMAXLEVEL, // AMR, maximum refinement level
+        AMRREFX,     // AMR, refinement ratio in x
+        AMRREFY,     // AMR, refinement ratio in y
+        AMRREFT,     // AMR, refinement ration in z
+        AMRSUBCYCLE, // AMR, subcycling in time for refined levels (default: false)
+        AMRMAXGRID,  // AMR, maximum grid size (default: 16)
+#endif
         // FOR XXX BASED SOLVER
         SIZE
     };
@@ -107,7 +119,20 @@ FieldSolver::FieldSolver():
     itsAttr[TOL] = Attributes::makeReal("TOL", "Tolerance for iterative solver", 1e-8);
     itsAttr[MAXITERS] = Attributes::makeReal("MAXITERS", "Maximum number of iterations of iterative solver", 100);
     itsAttr[PRECMODE]  = Attributes::makeString("PRECMODE", "Preconditioner Mode [STD | HIERARCHY | REUSE]", "HIERARCHY");
-
+    
+    // AMR
+#ifdef HAVE_AMR_SOLVER
+    itsAttr[AMRMAXLEVEL] = Attributes::makeReal("AMRMAXLEVEL", "Maximum number of levels in AMR", 0);
+    itsAttr[AMRREFX] = Attributes::makeReal("AMRREFX", "Refinement ration in x-direction in AMR", 2);
+    itsAttr[AMRREFY] = Attributes::makeReal("AMRREFY", "Refinement ration in y-direction in AMR", 2); 
+    itsAttr[AMRREFT] = Attributes::makeReal("AMRREFT", "Refinement ration in z-direction in AMR", 2);
+    itsAttr[AMRSUBCYCLE] = Attributes::makeBool("AMRSUBCYCLE",
+                                                "Subcycling in time for refined levels in AMR", false);
+    itsAttr[AMRMAXGRID] = Attributes::makeReal("AMRMAXGRID", "Maximum grid size in AMR", 16);
+    
+    amrptr_m = 0;
+#endif
+    
     mesh_m = 0;
     FL_m = 0;
     PL_m = 0;
@@ -220,86 +245,224 @@ bool FieldSolver::hasPeriodicZ() {
   return Attributes::getString(itsAttr[BCFFTT])==std::string("PERIODIC");
 }
 
+#ifdef HAVE_AMR_SOLVER
 bool FieldSolver::isAMRSolver() {
   return Attributes::getString(itsAttr[FSTYPE])==std::string("AMR");
 }
 
+int FieldSolver::amrMaxLevel() {
+    return Attributes::getReal(itsAttr[AMRMAXLEVEL]);
+}
+
+int FieldSolver::amrRefRatioX() {
+    return Attributes::getReal(itsAttr[AMRREFX]);
+}
+
+int FieldSolver::amrRefRatioY() {
+    return Attributes::getReal(itsAttr[AMRREFY]);
+}
+
+int FieldSolver::amrRefRatioT() {
+    return Attributes::getReal(itsAttr[AMRREFT]);
+}
+
+bool FieldSolver::amrSubCycling() {
+    return Attributes::getBool(itsAttr[AMRSUBCYCLE]);
+}
+
+int FieldSolver::amrMaxGridSize() {
+    return Attributes::getReal(itsAttr[AMRMAXGRID]);
+}
+#endif
 
 void FieldSolver::initSolver(PartBunch &b) {
-  itsBunch_m = &b;
-  std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
-  std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
-  std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
-
-  if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") { 
-    bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
-    if(sinTrafo) {
-      std::cout << "FFTBOX ACTIVE" << std::endl;
-      //we go over all geometries and add the Geometry Elements to the geometry list
-      std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
-      std::string tmp = "";
-      //split and add all to list
-      std::vector<BoundaryGeometry *> geometries;
-      for(unsigned int i = 0; i <= geoms.length(); i++) {
-	if(geoms[i] == ',' || i == geoms.length()) {
-	  BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
-	  if(geom != 0)
-	    geometries.push_back(geom);
-	  tmp.clear();
-	} else
-	  tmp += geoms[i];
-      }
-      BoundaryGeometry *ttmp = geometries[0];
-      solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), ttmp->getA());
-      itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-      fsType_m = "FFTBOX";
-    } else {
-      solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
-      itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-      fsType_m = "FFT";
-    }
+    itsBunch_m = &b;
+    std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
+    std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
+    std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
+    
+    if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") { 
+        bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
+        if(sinTrafo) {
+            std::cout << "FFTBOX ACTIVE" << std::endl;
+            //we go over all geometries and add the Geometry Elements to the geometry list
+            std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
+            std::string tmp = "";
+            //split and add all to list
+            std::vector<BoundaryGeometry *> geometries;
+            for(unsigned int i = 0; i <= geoms.length(); i++) {
+                if(geoms[i] == ',' || i == geoms.length()) {
+                    BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
+                    if(geom != 0)
+                        geometries.push_back(geom);
+                    tmp.clear();
+                } else
+                tmp += geoms[i];
+            }
+            BoundaryGeometry *ttmp = geometries[0];
+            solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), ttmp->getA());
+            itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+            fsType_m = "FFTBOX";
+        } else {
+            solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
+            itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+            fsType_m = "FFT";
+        }
   } else if (Attributes::getString(itsAttr[FSTYPE]) == "P3M") {
       solver_m = new P3MPoissonSolver(mesh_m, FL_m, Attributes::getReal(itsAttr[RC]), Attributes::getReal(itsAttr[ALPHA]), Attributes::getReal(itsAttr[EPSILON]));
-
+      
       PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
       PL_m->enableCaching();
-
+      
       fsType_m = "P3M";
-  } else if(Attributes::getString(itsAttr[FSTYPE]) == "SAAMG") {
+    } else if(Attributes::getString(itsAttr[FSTYPE]) == "SAAMG") {
 #ifdef HAVE_SAAMG_SOLVER
-    //we go over all geometries and add the Geometry Elements to the geometry list
-    std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
-    std::string tmp = "";
-    //split and add all to list
-    std::vector<BoundaryGeometry *> geometries;
-    for(unsigned int i = 0; i <= geoms.length(); i++) {
-      if(geoms[i] == ',' || i == geoms.length()) {
-	BoundaryGeometry *geom = OpalData::getInstance()->getGlobalGeometry();
-	if(geom != 0) {
-	  geometries.push_back(geom);
-	}
-	tmp.clear();
-      } else
-	tmp += geoms[i];
-    }
-    solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]),
-				   Attributes::getString(itsAttr[INTERPL]),
-				   Attributes::getReal(itsAttr[TOL]),
-				   Attributes::getReal(itsAttr[MAXITERS]),
-				   Attributes::getString(itsAttr[PRECMODE]));
-    itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-    fsType_m = "SAAMG";
+        //we go over all geometries and add the Geometry Elements to the geometry list
+        std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
+        std::string tmp = "";
+        //split and add all to list
+        std::vector<BoundaryGeometry *> geometries;
+        for(unsigned int i = 0; i <= geoms.length(); i++) {
+            if(geoms[i] == ',' || i == geoms.length()) {
+                BoundaryGeometry *geom = OpalData::getInstance()->getGlobalGeometry();
+                if(geom != 0) {
+                    geometries.push_back(geom);
+                }
+                tmp.clear();
+            } else
+            tmp += geoms[i];
+        }
+        solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]),
+                                        Attributes::getString(itsAttr[INTERPL]),
+                                        Attributes::getReal(itsAttr[TOL]),
+                                        Attributes::getReal(itsAttr[MAXITERS]),
+                                        Attributes::getString(itsAttr[PRECMODE]));
+        itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+        fsType_m = "SAAMG";
 #else
-    INFOMSG("SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1" << endl);
-    INFOMSG("switching to FFT solver..." << endl);
-    solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
-    fsType_m = "FFT";
+        INFOMSG("SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1" << endl);
+        INFOMSG("switching to FFT solver..." << endl);
+        solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]),bcz);
+        fsType_m = "FFT";
 #endif
-  } 
-  else {
-    solver_m = 0;
-    INFOMSG("no solver attached" << endl);
-  }    
+    }
+#ifdef HAVE_AMR_SOLVER
+    else if (Attributes::getString(itsAttr[FSTYPE]) == "AMR") {
+        Inform m("FieldSolver::initSolver-amr ");
+        fsType_m = "AMR";
+        
+        // Add the parsed AMR attributes to BoxLib (please check BoxLib/Src/C_AMRLib/Amr.cpp)
+        ParmParse pp("amr");
+    
+        pp.add("max_level", Attributes::getReal(itsAttr[AMRMAXLEVEL]));
+        
+        
+//     IntVect refRatios = { (int)Attributes::getReal(itsAttr[AMRREFX]),
+// 			  (int)Attributes::getReal(itsAttr[AMRREFY]),
+// 			  (int)Attributes::getReal(itsAttr[AMRREFT])
+// 			 };
+        pp.add("ref_ratio", (int)Attributes::getReal(itsAttr[AMRREFX])/*refRatios*/); //FIXME
+    
+        pp.add("max_grid_size", Attributes::getReal(itsAttr[AMRMAXGRID]));
+        
+        //BEGIN TO BE REMOVED
+        ParmParse ppr("accel");
+    //    ppr.add("opal_c", 299792458.0);
+    //    ppr.add("opal_coupling", 8.9875517879979115e+09);
+        ppr.add("fixed_dt", 1.0e-10);
+        //END TO BE REMOVED
+    
+        FieldLayout<3>::iterator_iv locDomBegin = FL_m->begin_iv();
+        FieldLayout<3>::iterator_iv locDomEnd = FL_m->end_iv();
+        FieldLayout<3>::iterator_dv globDomBegin = FL_m->begin_rdv();
+        FieldLayout<3>::iterator_dv globDomEnd = FL_m->end_rdv();
+            
+        BoxArray lev0_grids(Ippl::getNodes());
+    
+        Array<int> procMap;
+        procMap.resize(lev0_grids.size()+1); // +1 is a historical thing, do not ask	
+        
+        // first iterate over the local owned domain(s)
+        for(FieldLayout<3>::const_iterator_iv v_i = locDomBegin ; v_i != locDomEnd; ++v_i) {
+            std::ostringstream stream;
+            stream << *((*v_i).second);	 
+            
+            std::pair<Box,unsigned int> res = getBlGrids(stream.str());
+            lev0_grids.set(res.second,res.first);
+            procMap[res.second] = Ippl::myNode();
+        }
+        
+        // then iterate over the non-local domain(s)
+        for(FieldLayout<3>::iterator_dv v_i = globDomBegin ; v_i != globDomEnd; ++v_i) {
+            std::ostringstream stream;
+            stream << *((*v_i).second);
+            
+            std::pair<Box,unsigned int> res = getBlGrids(stream.str());
+            lev0_grids.set(res.second,res.first);
+            procMap[res.second] = res.second;
+        }
+        procMap[lev0_grids.size()] = Ippl::myNode();
+        
+        // This init call will cache the distribution map as determined by procMap
+        // so that all data will end up on the right processor
+        RealBox rb;
+        Array<Real> prob_lo(3);
+        Array<Real> prob_hi(3);
+        
+        prob_lo.set(0, -0.02); //-0.08);
+        prob_lo.set(1, -0.02); //-0.08);
+        prob_lo.set(2, 0.0); //-0.12);
+        prob_hi.set(0, 0.02); //0.08);
+        prob_hi.set(1, 0.02); //0.08);
+        prob_hi.set(2, 0.04); //0.16);
+        
+        rb.setLo(prob_lo);
+        rb.setHi(prob_hi);
+        
+        int coord_sys = 0;
+            
+        NDIndex<3> ipplDom = FL_m->getDomain();
+        
+        Array<int> ncell(3);
+        ncell[0] = ipplDom[0].length();
+        ncell[1] = ipplDom[1].length();
+        ncell[2] = ipplDom[2].length();
+        
+        std::vector<int   > nr(3);
+        std::vector<double> hr(3);
+        std::vector<double> prob_lo_in(3);
+        for (int i = 0; i < 3; i++) {
+            nr[i] = ncell[i];
+            hr[i] = (prob_hi[i] - prob_lo[i]) / ncell[i];
+            prob_lo_in[i] = prob_lo[i];
+        }
+        
+        int maxLevel = -1;
+        amrptr_m = new Amr(&rb,maxLevel,ncell,coord_sys);
+        
+        if(amrptr_m)
+            m << fsType_m << " solver: amrptr_m ready " << endl;
+        
+        Real strt_time = 0.0;
+        Real stop_time = 1.0;
+        
+        amrptr_m->InitializeInit(strt_time, stop_time, &lev0_grids, &procMap);
+        
+        if(amrptr_m)
+            m << fsType_m << " solver: amrptr_m Init done " << endl;
+        
+        BoundaryDomain* bd = new BoundaryDomain(nr,hr);
+        
+        amrptr_m->setBoundaryGeometry(bd->GetIntersectLoX(), bd->GetIntersectHiX(),
+                                        bd->GetIntersectLoY(), bd->GetIntersectHiY());
+        
+        m << fsType_m << " solver boundary geometry initialized " << endl;
+    }
+#endif
+    else {
+        solver_m = 0;
+        INFOMSG("no solver attached" << endl);
+    }    
 }
 
 bool FieldSolver::hasValidSolver() {
@@ -319,10 +482,9 @@ Inform &FieldSolver::printInfo(Inform &os) const {
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << endl;
 
     if(fsType == "P3M")
-      
-    os << "* RC           " << Attributes::getReal(itsAttr[RC]) << '\n'
-	   << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
-	   << "* EPSILON      " << Attributes::getReal(itsAttr[EPSILON]) << endl;
+        os << "* RC           " << Attributes::getReal(itsAttr[RC]) << '\n'
+           << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
+           << "* EPSILON      " << Attributes::getReal(itsAttr[EPSILON]) << endl;
     
 
     if(fsType == "FFT") {
@@ -335,6 +497,16 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* MAXITERS     " << Attributes::getReal(itsAttr[MAXITERS]) << '\n'
            << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
     }
+#ifdef HAVE_AMR_SOLVER
+    else if (fsType == "AMR") {
+        os << "* AMRMAXLEVEL  " << Attributes::getReal(itsAttr[AMRMAXLEVEL]) << '\n'
+           << "* AMRREFX      " << Attributes::getReal(itsAttr[AMRREFX]) << '\n'
+           << "* AMRREFY      " << Attributes::getReal(itsAttr[AMRREFY]) << '\n'
+           << "* AMRREFT      " << Attributes::getReal(itsAttr[AMRREFT]) << '\n'
+           << "* AMRSUBCYCLE  " << Attributes::getBool(itsAttr[AMRSUBCYCLE]) << '\n'
+           << "* AMRMAXGRID   " << Attributes::getReal(itsAttr[AMRMAXGRID]) << endl;
+    }
+#endif
 
     if(Attributes::getBool(itsAttr[PARFFTX]))
         os << "* XDIM         parallel  " << endl;
@@ -358,3 +530,60 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     os << "* ********************************************************************************** " << endl;
     return os;
 }
+
+#ifdef HAVE_AMR_SOLVER
+// TO BE REMOVED
+std::vector<std::string> FieldSolver::filterString(std::string str) {
+  /*
+    pid tokens[0]
+    il == tokens[2], ih == tokens[3]
+    jl == tokens[5], jh == tokens[6]
+    kl == tokens[9], kh == tokens[9]
+   */
+
+  // charakters to remove from the string
+  char chars[] = "Node=;vn_mDmain{[][][]}:,";
+
+  for (unsigned int i = 0; i < strlen(chars); ++i)
+    std::replace(str.begin(), str.end(), chars[i], ' ');
+
+  std::vector<std::string> tokens;
+
+  // filter spaces
+  std::istringstream iss(str);
+  copy(std::istream_iterator<std::string>(iss),
+       std::istream_iterator<std::string>(),
+       std::back_inserter<std::vector<std::string> >(tokens));
+  return tokens;
+}
+
+std::pair<Box,unsigned int> FieldSolver::getBlGrids(std::string str){
+
+  std::vector<std::string> tokens = filterString(str);
+
+  unsigned int theGrid;
+  std::istringstream (tokens[0]) >> theGrid;
+
+  int ilo,ihi,jlo,jhi,klo,khi;
+
+  std::istringstream (tokens[2]) >> ilo;
+  std::istringstream (tokens[5]) >> jlo;
+  std::istringstream (tokens[8]) >> klo;
+  std::istringstream (tokens[3]) >> ihi;
+  std::istringstream (tokens[6]) >> jhi;
+  std::istringstream (tokens[9]) >> khi;
+
+  Inform m2a("AMR ",INFORM_ALL_NODES);
+  /*
+  m2a << "Grid " << tokens[0]
+      << " i (" << tokens[2] << " ... " << tokens[3] << ")"
+      << " j (" << tokens[5] << " ... " << tokens[6] << ")"
+      << " k (" << tokens[8] << " ... " << tokens[9] << ")" << " myNode " << Ippl::myNode() << endl;
+  */
+  IntVect loEnd(ilo,jlo,klo);
+  IntVect hiEnd(ihi,jhi,khi);
+  Box bx(loEnd,hiEnd);
+
+  return std::pair<Box,unsigned int>(bx,theGrid);
+}
+#endif
