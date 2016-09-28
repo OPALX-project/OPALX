@@ -90,9 +90,8 @@ int main(int argc, char *argv[]) {
     namespace fs = boost::filesystem;
 
 #ifdef HAVE_AMR_SOLVER
-    *gmsg << "Initializing BoxLib with inputs file " << argv[1] << endl;
-    BoxLib::Initialize(argc, argv, true, Ippl::getComm());
-    *gmsg << "Done initializing BoxLib with inputs file " << argv[1] << endl;
+    // false: build no parmparse, we use the OPAL parser instead.
+    BoxLib::Initialize(argc, argv, false, Ippl::getComm());
 #endif
 
     OPALTimer::Timer simtimer;
