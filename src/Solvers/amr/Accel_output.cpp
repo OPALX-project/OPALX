@@ -29,7 +29,7 @@ Accel::writePlotFile (const std::string& dir,
                       ostream&           os,
                       VisMF::How         how)
 {
-    int i, n;
+    int n;
     //
     // The list of indices of State to write to plotfile.
     // first component of pair is state_type,
@@ -91,7 +91,7 @@ Accel::writePlotFile (const std::string& dir,
         //
         // Names of variables -- first state, then derived
         //
-        for (i = 0; i < plot_var_map.size(); i++)
+        for (unsigned int i = 0; i < plot_var_map.size(); i++)
         {
             int typ = plot_var_map[i].first;
             int comp = plot_var_map[i].second;
@@ -109,22 +109,22 @@ Accel::writePlotFile (const std::string& dir,
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (unsigned int i = 0; i < BL_SPACEDIM; i++)
             os << Geometry::ProbLo(i) << ' ';
         os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (unsigned int i = 0; i < BL_SPACEDIM; i++)
             os << Geometry::ProbHi(i) << ' ';
         os << '\n';
-        for (i = 0; i < f_lev; i++)
+        for (int i = 0; i < f_lev; i++)
             os << parent->refRatio(i)[0] << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
             os << parent->Geom(i).Domain() << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
             os << parent->levelSteps(i) << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
         {
             for (int k = 0; k < BL_SPACEDIM; k++)
                 os << parent->Geom(i).CellSize()[k] << ' ';
@@ -163,7 +163,7 @@ Accel::writePlotFile (const std::string& dir,
         os << level << ' ' << grids.size() << ' ' << cur_time << '\n';
         os << parent->levelSteps(level) << '\n';
 
-        for (i = 0; i < grids.size(); ++i)
+        for (unsigned int i = 0; i < grids.size(); ++i)
         {
             RealBox gridloc = RealBox(grids[i], geom.CellSize(), geom.ProbLo());
             for (n = 0; n < BL_SPACEDIM; n++)
@@ -193,7 +193,7 @@ Accel::writePlotFile (const std::string& dir,
     //
     // Cull data from state variables -- use no ghost cells.
     //
-    for (i = 0; i < plot_var_map.size(); i++)
+    for (unsigned int i = 0; i < plot_var_map.size(); i++)
     {
         int typ = plot_var_map[i].first;
         int comp = plot_var_map[i].second;
