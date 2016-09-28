@@ -111,7 +111,7 @@ Accel::advance (Real time,
         // Solve for phi
         // If a single-level calculation we can still use the previous phi as a guess.
         int use_previous_phi_as_guess = 1;
-        e_field_solver->multilevel_solve_for_old_phi(level, finest_level, opal_coupling, 
+        e_field_solver->multilevel_solve_for_old_phi(level, finest_level, 
                                                      use_previous_phi_as_guess);
     }
 
@@ -183,7 +183,7 @@ Accel::advance (Real time,
     int use_previous_phi_as_guess = 1;
     if (finest_level_to_advance > level)
     {
-        e_field_solver->multilevel_solve_for_new_phi(level, finest_level_to_advance, opal_coupling, 
+        e_field_solver->multilevel_solve_for_new_phi(level, finest_level_to_advance, 
                                                      use_previous_phi_as_guess);
     }
     else
@@ -191,7 +191,7 @@ Accel::advance (Real time,
         int fill_interior = 0;
         e_field_solver->solve_for_new_phi(level,get_new_data(Elec_Potential_Type),
                                           e_field_solver->get_grad_phi_curr(level),
-                                          opal_coupling, fill_interior, field_n_grow);
+                                          fill_interior, field_n_grow);
     }
 
     if (show_timings)

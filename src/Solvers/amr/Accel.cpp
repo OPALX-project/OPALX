@@ -35,8 +35,6 @@ int Accel::show_timings = 0;
 Real Accel::init_shrink = 1.0;
 Real Accel::change_max  = 1.1;
 
-Real Accel::opal_coupling  = -1.0;
-
 BCRec Accel::phys_bc;
 
 ErrorList Accel::err_list;
@@ -82,9 +80,6 @@ Accel::read_params ()
     pp.query("fixed_dt", fixed_dt);
     pp.query("initial_dt", initial_dt);
     pp.query("dump_old", dump_old);
-
-    // Note that we *MUST* input these (hence the "get" instead of "query")
-    pp.get("opal_coupling", opal_coupling);
 
     // Get boundary conditions
     // Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
@@ -622,7 +617,7 @@ Accel::post_restart ()
         // Do multilevel solve here.  We now store phi in the checkpoint file so we can use it
         //  at restart.
         int use_previous_phi_as_guess = 1;
-        e_field_solver->multilevel_solve_for_phi(0,parent->finestLevel(),opal_coupling,use_previous_phi_as_guess);
+        e_field_solver->multilevel_solve_for_phi(0,parent->finestLevel(),use_previous_phi_as_guess);
                                                  
 
         for (int k = 0; k <= parent->finestLevel(); k++)
@@ -652,7 +647,7 @@ Accel::post_regrid (int lbase,
     if ((level == lbase) && cur_time > 0)
     {
         int use_previous_phi_as_guess = 1;
-        e_field_solver->multilevel_solve_for_phi(level, new_finest, opal_coupling, use_previous_phi_as_guess);
+        e_field_solver->multilevel_solve_for_phi(level, new_finest, use_previous_phi_as_guess);
     }
 }
 
@@ -675,7 +670,7 @@ Accel::post_init (Real stop_time)
     // Solve on full multilevel hierarchy
     //
 
-    e_field_solver->multilevel_solve_for_phi(0, finest_level, opal_coupling);
+    e_field_solver->multilevel_solve_for_phi(0, finest_level);
 
     // Make this call just to fill the initial state data.
     for (int k = 0; k <= finest_level; k++)
