@@ -138,37 +138,49 @@ IF (USE_H5HUT2)
 	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_H5HUT2")
 ENDIF (USE_H5HUT2)
 
-if (ENABLE_AMR_SOLVER)
-    message (STATUS "----> Enable AMR")
-
-    find_package (CCSE REQUIRED HINTS $ENV{CCSE_INCLUDE_DIRS} $ENV{CCSE_LIBRARY_DIR})
-    include ($ENV{BOXLIB_HOME}/Tools/CMake/CCSEOptions.cmake)
-
-    set (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
-    set (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
-    set (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
-    set (BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
-    set (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
-    set (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
-    set (ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")
-    set (CMAKE_CXX_FLAGS "-Wno-sign-compare -DHAVE_AMR_SOLVER -DTULIN ${CMAKE_CXX_FLAGS}")
-    set (CCSE_INCLUDE_DIRS $ENV{CCSE_INCLUDE_DIRS})
-    set (CCSE_LIBRARY_DIR $ENV{CCSE_LIBRARY_DIR})
-
-    set(CCSE_LIBRARIES box_camrdata;cboxlib;cfboxlib;fboxlib)
-    foreach (L ${CCSE_LIBRARIES})
-        find_library(CCSE_LIBRARY
-            NAMES ${L}
-            HINTS ${CCSE_LIBRARY_DIR}
-            NO_DEFAULT_PATH)
-
-        if ( NOT CCSE_LIBRARY )
-            message(SEND_ERROR "Cannot locate CCSE library: ${L}")
-        endif()
-
-    endforeach()
-    message (STATUS "----> Enable AMR done")
-endif (ENABLE_AMR_SOLVER)
+IF (ENABLE_AMR_SOLVER)
+    ENABLE_LANGUAGE (Fortran)
+    
+    SET ( CCSE_DIR $ENV{BOXLIB_PREFIX} )
+    SET ( CCSE_LIBRARY_DIR $ENV{BOXLIB_LIBRARY_DIR} )
+    
+    FIND_PACKAGE (CCSE REQUIRED)
+    
+    MESSAGE (STATUS "Found BoxLib include dir: ${CCSE_INCLUDE_DIR}")
+    MESSAGE (STATUS "Found BoxLib library dir: ${CCSE_LIBRARY_DIR}")
+    MESSAGE (STATUS "Found BoxLib perl dir: ${CCSE_PERL_DIR}")
+    
+    SET (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
+    SET (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
+    SET (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
+    SET (BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
+    SET (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
+    SET (BL_DEBUG 0 CACHE INT "Include debugging information in BoxLib build")
+    SET (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
+    SET (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in BoxLib build")
+    
+    # FIXME disable due to BoxLib
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-maybe-uninitialized")
+    
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_PRECISION=${BL_PRECISION}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_MPI=${ENABLE_MPI}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_OpenMP=${ENABLE_OpenMP}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_PARTICLES=${BL_USE_PARTICLES}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_DEBUG=${BL_DEBUG}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_BACKTRACE=${ENABLE_BACKTRACE}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PROFILING=${ENABLE_PROFILING}")
+    
+    MESSAGE (STATUS "Use following BoxLib settings:")
+    MESSAGE (STATUS "  BL_SPACEDIM = ${BL_SPACEDIM}")
+    MESSAGE (STATUS "  BL_MACHINE = ${BL_MACHINE}")
+    MESSAGE (STATUS "  BL_PRECISION = ${BL_PRECISION}")
+    MESSAGE (STATUS "  ENABLE_MPI = ${ENABLE_MPI}")
+    MESSAGE (STATUS "  ENABLE_OpenMP = ${ENABLE_OpenMP}")
+    MESSAGE (STATUS "  BL_DEBUG = ${BL_DEBUG}")
+    MESSAGE (STATUS "  BL_USE_PARTICLES = ${BL_USE_PARTICLES}")
+    MESSAGE (STATUS "  ENABLE_BACKTRACE = ${ENABLE_BACKTRACE}")
+    MESSAGE (STATUS "  ENABLE_PROFILING = ${ENABLE_PROFILING}")
+ENDIF (ENABLE_AMR_SOLVER)
 
 if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
