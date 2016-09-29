@@ -27,9 +27,9 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
 
     gmsg = new Inform("OPAL ");
 
-    OpalData *OPAL = OpalData::getInstance();
+    OpalData *opal = OpalData::getInstance();
     Configure::configure();
-    OPAL->storeInputFn(inputfile);
+    opal->storeInputFn(inputfile);
 
     //FIXME
     if(restartStep > 0) throw new OpalException("run_opal", "Restart not implemented yet!");

@@ -22,6 +22,6 @@
         ! Passing data from C++ into f90
         use parallel
 
-        call parallel_initialize()
+!         call parallel_initialize()
 
       end subroutine parallel_init_fortran

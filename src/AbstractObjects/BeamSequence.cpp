@@ -34,8 +34,8 @@ const std::string BeamSequence::getCategory() const {
 
 
 BeamSequence *BeamSequence::find(const std::string &name) {
-    OpalData *OPAL = OpalData::getInstance();
-    BeamSequence *bs = dynamic_cast<BeamSequence *>(OPAL->find(name));
+    OpalData *opal = OpalData::getInstance();
+    BeamSequence *bs = dynamic_cast<BeamSequence *>(opal->find(name));
     if(bs == 0) {
         throw OpalException("BeamSequence::find()",
                             "Beam line or sequence \"" + name + "\" not found.");

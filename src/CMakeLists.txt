@@ -17,6 +17,10 @@ IF(ENABLE_AMR_SOLVER)
     set (CMAKE_CXX_FLAGS
         "-DHAVE_AMR_SOLVER ${CMAKE_CXX_FLAGS}"
     )
+    # FIXME Find a better solution!
+    # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
+    set (AMR_SRC Solvers/amr/AccelBld.cpp)
+    set (AMR_INCLUDE_DIR Solvers/amr)
 ENDIF(ENABLE_AMR_SOLVER)
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -52,14 +56,18 @@ add_subdirectory (OpalParser)
 add_subdirectory (Match)
 add_subdirectory (PhysicsActions)
 add_subdirectory (Solvers)
-add_subdirectory (Solvers/amr)
 add_subdirectory (Structure)
 add_subdirectory (Tables)
 add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
-include_directories (Solvers/amr
+IF (ENABLE_AMR_SOLVER)
+    add_subdirectory (Solvers/amr)
+    include_directories(${AMR_INCLUDE_DIR})
+ENDIF (ENABLE_AMR_SOLVER)
+
+include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
@@ -106,8 +114,7 @@ ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
 add_library( OPALib ${OPAL_SRCS} opal.cpp )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
-
-add_executable( opal Main.cpp )
+add_executable( opal Main.cpp ${AMR_SRC} )
 target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
