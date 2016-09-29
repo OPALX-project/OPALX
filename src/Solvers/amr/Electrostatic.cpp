@@ -840,7 +840,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
 
     AddVirtualParticlesToRhs(finest_level,Rhs_particles);
 
-#ifdef DUMMY_EXAMPLE
+#ifdef AMR_DUMMY_SOLVE
     for (int lev = 0; lev < num_levels; ++lev)
         Rhs_particles[lev].setVal(-1.0);
 #endif
@@ -883,7 +883,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
     }
 #endif
 
-#ifndef DUMMY_EXAMPLE
+#ifndef AMR_DUMMY_SOLVE
     // rhs: /*-*/ \rho / (4 * pi * epsilon_0 )
     for (int lev = 0; lev < num_levels; lev++)
         Rhs_particles[lev].mult(-8.9875517879979115e+09, 0, 1);  //opal_coupling ( 4 * pi * epsilon_0 )

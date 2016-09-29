@@ -205,6 +205,11 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
     endif ()
 endif ()
 
+IF (AMR_DUMMY_SOLVE)
+    MESSAGE (STATUS "\nSolve Poisson equation with rhs equal 1")
+    SET (CMAKE_CXX_FLAGS "-DAMR_DUMMY_SOLVE ${CMAKE_CXX_FLAGS}")
+ENDIF (AMR_DUMMY_SOLVE)
+
 IF (DBG_SCALARFIELD)
     MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
     SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
