@@ -1,11 +1,15 @@
 #ifndef _Electrostatic_H_
 #define _Electrostatic_H_
 
+// BoxLib headers
 #include <AmrLevel.H>
 #include <FluxRegister.H>
 #include <Particles.H>
 
 #include "TrilinosSolver.h"
+
+// OPAL headers
+#include "Utility/Inform.h"
 
 class Electrostatic {
 
@@ -32,8 +36,10 @@ public:
     //
     void swap_time_levels(int level);
 
-    void solve_for_old_phi(int level, MultiFab& phi, PArray<MultiFab>& grad_phi, int fill_interior);
-    void solve_for_new_phi(int level, MultiFab& phi, PArray<MultiFab>& grad_phi, int fill_interior, int field_n_grow = 1);
+    void solve_for_old_phi(int level, MultiFab& phi, PArray<MultiFab>& grad_phi,
+                           int fill_interior);
+    void solve_for_new_phi(int level, MultiFab& phi, PArray<MultiFab>& grad_phi,
+                           int fill_interior, int field_n_grow = 1);
     void solve_for_phi(int level, MultiFab& Rhs, MultiFab& phi,
                        PArray<MultiFab>& grad_phi, 
                        Real time,
@@ -46,10 +52,14 @@ public:
                       const MultiFab& drho_and_drhoU, const MultiFab& dphi,
                       PArray<MultiFab>& grad_delta_phi_cc);
 
-    void multilevel_solve_for_old_phi(int level, int finest_level, int use_previous_phi_as_guess=0);
-    void multilevel_solve_for_new_phi(int level, int finest_level, int use_previous_phi_as_guess=0);
-    void multilevel_solve_for_phi(int level, int finest_level, int use_previous_phi_as_guess=0);
-    void actual_multilevel_solve(int level, int finest_level, Array<PArray<MultiFab> >& grad_phi, int is_new,
+    void multilevel_solve_for_old_phi(int level, int finest_level,
+                                      int use_previous_phi_as_guess=0);
+    void multilevel_solve_for_new_phi(int level, int finest_level,
+                                      int use_previous_phi_as_guess=0);
+    void multilevel_solve_for_phi(int level, int finest_level,
+                                  int use_previous_phi_as_guess=0);
+    void actual_multilevel_solve(int level, int finest_level,
+                                 Array<PArray<MultiFab> >& grad_phi, int is_new,
                                  int use_previous_phi_as_guess=0);
 
     Real compute_level_average(int level, MultiFab* mf);
