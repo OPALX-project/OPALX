@@ -39,23 +39,23 @@ RealConstant::RealConstant():
     itsAttr[0] = Attributes::makeReal("VALUE", "The constant value", 0.0);
 
     // Define the standard constants.
-    OpalData *OPAL = OpalData::getInstance();
-    OPAL->create(new RealConstant("PI",     this, Physics::pi));
-    OPAL->create(new RealConstant("TWOPI",  this, Physics::two_pi));
-    OPAL->create(new RealConstant("RADDEG", this, 180.0 / Physics::pi));
-    OPAL->create(new RealConstant("DEGRAD", this, Physics::pi / 180.0));
-    OPAL->create(new RealConstant("E",      this, Physics::e));
+    OpalData *opal = OpalData::getInstance();
+    opal->create(new RealConstant("PI",     this, Physics::pi));
+    opal->create(new RealConstant("TWOPI",  this, Physics::two_pi));
+    opal->create(new RealConstant("RADDEG", this, 180.0 / Physics::pi));
+    opal->create(new RealConstant("DEGRAD", this, Physics::pi / 180.0));
+    opal->create(new RealConstant("E",      this, Physics::e));
 
-    OPAL->create(new RealConstant("EMASS",  this, Physics::m_e));
-    OPAL->create(new RealConstant("PMASS",  this, Physics::m_p));
-    OPAL->create(new RealConstant("HMMASS", this, Physics::m_hm));
-    OPAL->create(new RealConstant("UMASS", this, Physics::m_u));
-    OPAL->create(new RealConstant("CMASS", this, Physics::m_c));
-    OPAL->create(new RealConstant("MMASS", this, Physics::m_mu));
-    OPAL->create(new RealConstant("DMASS", this, Physics::m_d));
-    OPAL->create(new RealConstant("XEMASS", this, Physics::m_xe));
+    opal->create(new RealConstant("EMASS",  this, Physics::m_e));
+    opal->create(new RealConstant("PMASS",  this, Physics::m_p));
+    opal->create(new RealConstant("HMMASS", this, Physics::m_hm));
+    opal->create(new RealConstant("UMASS", this, Physics::m_u));
+    opal->create(new RealConstant("CMASS", this, Physics::m_c));
+    opal->create(new RealConstant("MMASS", this, Physics::m_mu));
+    opal->create(new RealConstant("DMASS", this, Physics::m_d));
+    opal->create(new RealConstant("XEMASS", this, Physics::m_xe));
 
-    OPAL->create(new RealConstant("CLIGHT", this, Physics::c));
+    opal->create(new RealConstant("CLIGHT", this, Physics::c));
 
     std::string version_str(PACKAGE_VERSION);
     int version = 0;
@@ -70,8 +70,8 @@ RealConstant::RealConstant():
             i = n;
         }
     }
-    OPAL->create(new RealConstant("OPALVERSION", this, version));
-    OPAL->create(new RealConstant("RANK", this, Ippl::myNode()));
+    opal->create(new RealConstant("OPALVERSION", this, version));
+    opal->create(new RealConstant("RANK", this, Ippl::myNode()));
 }
 
 

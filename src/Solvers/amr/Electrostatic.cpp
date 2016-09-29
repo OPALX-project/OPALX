@@ -9,6 +9,9 @@
 #include "Accel_F.H"
 #include "TrilinosSolver.h"
 
+
+extern Inform *gmsg;
+
 // MAX_LEV defines the maximum number of AMR levels allowed by the parent "Amr" object
 #define MAX_LEV 15
 
@@ -67,7 +70,7 @@ Electrostatic::read_params ()
             ParallelDescriptor::ReduceRealMax(end, IOProc);
 
             if (ParallelDescriptor::IOProcessor())
-                std::cout << "Electrostatic::read_params() time = " << end
+                *gmsg << "Electrostatic::read_params() time = " << end
                           << '\n';
         }
 
@@ -80,7 +83,7 @@ Electrostatic::install_level (int       level,
                         AmrLevel* level_data_to_install)
 {
     if (verbose > 1 && ParallelDescriptor::IOProcessor())
-        std::cout << "Installing Electrostatic level " << level << '\n';
+        *gmsg << "Installing Electrostatic level " << level << '\n';
 
     level_data.clear(level);
     level_data.set(level, level_data_to_install);
@@ -115,7 +118,7 @@ Electrostatic::install_level (int       level,
 
     finest_level_allocated = level;
     if (verbose > 1 && ParallelDescriptor::IOProcessor())
-        std::cout << "Done installing Electrostatic level " << level << '\n';
+        *gmsg << "Done installing Electrostatic level " << level << '\n';
 }
 
 int
@@ -173,12 +176,11 @@ void
 Electrostatic::solve_for_old_phi (int               level,
                                   MultiFab&         phi,
                                   PArray<MultiFab>& grad_phi,
-                                  Real              opal_coupling,
                                   int               fill_interior)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Electrostatic ... single level solve for old phi at level " 
-                  << level << std::endl;
+        *gmsg << "Electrostatic ... single level solve for old phi at level " 
+                  << level << endl;
 
     MultiFab Rhs(grids[level], 1, 0);
     Rhs.setVal(0.0);
@@ -188,20 +190,19 @@ Electrostatic::solve_for_old_phi (int               level,
     // We shouldn't need to use virtual or ghost particles for old phi solves.
 
     const Real time  = level_data[level].get_state_data(Elec_Field_Type).prevTime();
-    solve_for_phi(level, Rhs, phi, grad_phi, opal_coupling, time, fill_interior);
+    solve_for_phi(level, Rhs, phi, grad_phi, time, fill_interior);
 }
 
 void
 Electrostatic::solve_for_new_phi (int               level,
                                   MultiFab&         phi,
                                   PArray<MultiFab>& grad_phi,
-                                  Real              opal_coupling,
                                   int               fill_interior,
                                   int               field_n_grow)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Electrostatic ... single level solve for new phi at level " 
-                  << level << std::endl;
+        *gmsg << "Electrostatic ... single level solve for new phi at level " 
+                  << level << endl;
 
     MultiFab Rhs(grids[level], 1, 0);
     Rhs.setVal(0.0);
@@ -211,7 +212,7 @@ Electrostatic::solve_for_new_phi (int               level,
     AddGhostParticlesToRhs(level,Rhs,0);
     
     const Real time = level_data[level].get_state_data(Elec_Field_Type).curTime();
-    solve_for_phi(level, Rhs, phi, grad_phi, opal_coupling, time, fill_interior);
+    solve_for_phi(level, Rhs, phi, grad_phi, time, fill_interior);
 }
 
 void
@@ -219,19 +220,17 @@ Electrostatic::solve_for_phi (int               level,
                               MultiFab&         Rhs,
                               MultiFab&         phi,
                               PArray<MultiFab>& grad_phi,
-                              Real              opal_coupling,
                               Real              time,
                               int               fill_interior)
 
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << " ... solve for phi at level " << level << '\n';
+        *gmsg << " ... solve for phi at level " << level << '\n';
 
     const Real* dx = parent->Geom(level).CellSize();
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << " ... multiplying the RHS by " << opal_coupling << " in solve_for_phi " << std::endl;
-    Rhs.mult(-opal_coupling);
+#if 1
+    Rhs.mult(-8.9875517879979115e+09);
+#endif
 
 //  *****************************************************************************
 //  FOR TIMINGS
@@ -246,7 +245,7 @@ Electrostatic::solve_for_phi (int               level,
 #ifndef NDEBUG
     if (Rhs.contains_nan(0,1,0))
     {
-        std::cout << "Rhs in solve_for_phi at level " << level << " has NaNs" << std::endl;
+        *gmsg << "Rhs in solve_for_phi at level " << level << " has NaNs" << endl;
         BoxLib::Abort("");
     }
 #endif
@@ -346,7 +345,6 @@ Electrostatic::solve_for_phi (int               level,
 
     phi_p[0].FillBoundary();
 
-    std::cout << "Norm of Sol at level " << level << " is " << phi_p[0].norm0() << std::endl;
     delete trilinos_solver;
 
 //  *****************************************************************************
@@ -358,7 +356,7 @@ Electrostatic::solve_for_phi (int               level,
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
         ParallelDescriptor::ReduceRealMax(end_solve,IOProc);
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Electrostatic:: time in solve          = " << end_solve << '\n';
+            *gmsg << "Electrostatic:: time in solve          = " << end_solve << '\n';
     }
 
 //  *****************************************************************************
@@ -380,7 +378,7 @@ Electrostatic::solve_for_phi (int               level,
         ParallelDescriptor::ReduceRealMax(end, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Electrostatic::solve_for_phi() time = " << end << '\n';
+            *gmsg << "Electrostatic::solve_for_phi() time = " << end << '\n';
     }
 //  *****************************************************************************
 //  END TIMINGS
@@ -394,6 +392,7 @@ Electrostatic::solve_for_delta_phi (int                        crse_level,
                               PArray<MultiFab>&          delta_phi,
                               PArray<PArray<MultiFab> >& grad_delta_phi)
 {
+  /*
 #if 0
     const int num_levels = fine_level - crse_level + 1;
 
@@ -505,6 +504,7 @@ Electrostatic::solve_for_delta_phi (int                        crse_level,
     delete [] phi_p;
     delete [] Rhs_p;
 #endif
+  */
 }
 
 void
@@ -518,10 +518,10 @@ Electrostatic::e_field_sync (int               crse_level,
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        std::cout << " ... gravity_sync at crse_level " << crse_level << '\n';
-        std::cout << " ...     up to finest_level     " << fine_level << '\n';
+        *gmsg << " ... gravity_sync at crse_level " << crse_level << '\n'
+              << " ...     up to finest_level     " << fine_level << '\n';
     }
-#if 0
+    /*#if 0
 
     // Build Rhs for solve for delta_phi
     MultiFab crse_rhs(grids[crse_level], 1, 0);
@@ -649,6 +649,7 @@ Electrostatic::e_field_sync (int               crse_level,
         }
     }
 #endif
+    */
 }
 
 void
@@ -657,6 +658,7 @@ Electrostatic::get_crse_phi (int       level,
                        Real      time)
 {
     BL_ASSERT(level != 0);
+    /*
 #if 0
 
     const Real t_old = level_data[level-1].get_state_data(Elec_Field_Type).prevTime();
@@ -701,6 +703,7 @@ Electrostatic::get_crse_phi (int       level,
     const Geometry& geom = parent->Geom(level-1);
     geom.FillPeriodicBoundary(phi_crse, true);
 #endif
+    */
 }
 
 void
@@ -746,12 +749,11 @@ Electrostatic::get_crse_grad_phi (int               level,
 void
 Electrostatic::multilevel_solve_for_new_phi (int level,
                                              int finest_level,
-                                             Real opal_coupling,
                                              int use_previous_phi_as_guess)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Electrostatic ... multilevel solve for new phi at base level " << level
-                  << " to finest level " << finest_level << '\n';
+        *gmsg << "Electrostatic ... multilevel solve for new phi at base level " << level
+              << " to finest level " << finest_level << '\n';
 
     for (int lev = level; lev <= finest_level; lev++)
     {
@@ -765,19 +767,18 @@ Electrostatic::multilevel_solve_for_new_phi (int level,
     }
 
     int is_new = 1;
-    actual_multilevel_solve(level, finest_level, opal_coupling, grad_phi_curr,
+    actual_multilevel_solve(level, finest_level, grad_phi_curr,
                             is_new, use_previous_phi_as_guess);
 }
 
 void
 Electrostatic::multilevel_solve_for_old_phi (int level,
                                              int finest_level,
-                                             Real opal_coupling,
                                              int use_previous_phi_as_guess)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Electrostatic ... multilevel solve for old phi at base level " << level
-                  << " to finest level " << finest_level << '\n';
+        *gmsg << "Electrostatic ... multilevel solve for old phi at base level " << level
+              << " to finest level " << finest_level << '\n';
 
     for (int lev = level; lev <= finest_level; lev++)
     {
@@ -791,21 +792,19 @@ Electrostatic::multilevel_solve_for_old_phi (int level,
     }
 
     int is_new = 0;
-    actual_multilevel_solve(level, finest_level, opal_coupling, grad_phi_prev,
+    actual_multilevel_solve(level, finest_level, grad_phi_prev,
                             is_new, use_previous_phi_as_guess);
 }
 
 void
-Electrostatic::multilevel_solve_for_phi(int level, int finest_level, Real opal_coupling, 
-                                        int use_previous_phi_as_guess)
+Electrostatic::multilevel_solve_for_phi(int level, int finest_level, int use_previous_phi_as_guess)
 {
-    multilevel_solve_for_new_phi(level, finest_level, opal_coupling, use_previous_phi_as_guess);
+    multilevel_solve_for_new_phi(level, finest_level, use_previous_phi_as_guess);
 }
 
 void
 Electrostatic::actual_multilevel_solve (int                 level,
                                   int                       finest_level,
-                                  Real                      opal_coupling,
                                   Array<PArray<MultiFab> >& grad_phi,
                                   int                       is_new,
                                   int                       use_previous_phi_as_guess)
@@ -832,22 +831,64 @@ Electrostatic::actual_multilevel_solve (int                 level,
        Rhs_particles[lev].setVal(0.);
     } 
 
-    std::cout << "Adding Particles ... " << std::endl;
+    *gmsg << "Total: " << Accel::thePAPC()->TotalNumberOfParticles() << endl
+          << "Level: " << Accel::thePAPC()->NumberOfParticlesAtLevel(0) << endl;
+
     AddParticlesToRhs(level,finest_level,Rhs_particles);
-    std::cout << "Adding Ghost Particles ... " << std::endl;
+
     AddGhostParticlesToRhs(level,Rhs_particles);
-    std::cout << "Adding Virtual Particles ... " << std::endl;
+
     AddVirtualParticlesToRhs(finest_level,Rhs_particles);
 
-    for (int i = 0; i < num_levels; i++)
-       std::cout << "Norm of RHS at level          " << level+i << " is " << Rhs_particles[i].norm0() << std::endl;
+#ifdef AMR_DUMMY_SOLVE
+    for (int lev = 0; lev < num_levels; ++lev)
+        Rhs_particles[lev].setVal(-1.0);
+#endif
+    
+#ifdef DBG_SCALARFIELD
+    for (int l = 0; l < num_levels; ++l) {
+        for (MFIter mfi(Rhs_particles[l]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            FArrayBox& fab = Rhs_particles[l][mfi];
 
+            for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
+                if ( proc == ParallelDescriptor::MyProc() ) {
+                    std::string outfile = "data/amr-rho_scalar-level-" + std::to_string(l);
+                    
+                    std::ofstream out;
+                    
+                    if ( proc == 0 )
+                        out.open(outfile);
+                    else
+                        out.open(outfile, std::ios_base::app);
+                    
+                    if ( !out.is_open() )
+                        throw OpalException("Error in Electrostatic::actual_multilevel_solve",
+                                            "Couldn't open the file: " + outfile);
+                    
+                    for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                        for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                            for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                                IntVect ivec(i, j, k);
+                                out << i + 1 << " " << j + 1 << " " << k + 1 << " " << fab(ivec, 0) << " " << proc
+                                    << std::endl;
+                            }
+                        }
+                    }
+                    out.close();
+                }
+                ParallelDescriptor::Barrier();
+            }
+        }
+    }
+#endif
+
+#ifndef AMR_DUMMY_SOLVE
+    // rhs: /*-*/ \rho / (4 * pi * epsilon_0 )
     for (int lev = 0; lev < num_levels; lev++)
-        Rhs_particles[lev].mult(-opal_coupling, 0, 1);
-
-    for (int i = 0; i < num_levels; i++)
-       std::cout << "Norm of RHS*coupling at level " << level+i << " is " << Rhs_particles[i].norm0() << std::endl;
-
+        Rhs_particles[lev].mult(-8.9875517879979115e+09, 0, 1);  //opal_coupling ( 4 * pi * epsilon_0 )
+#endif
+    
 //  *****************************************************************************
 //  FOR TIMINGS
 //  *****************************************************************************
@@ -857,7 +898,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
         Real      end    = ParallelDescriptor::second() - strt_rhs;
         ParallelDescriptor::ReduceRealMax(end,IOProc);
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Electrostatic:: time in making rhs        = " << end << '\n';
+            *gmsg << "Electrostatic:: time in making rhs        = " << end << '\n';
     }
 
 //  *****************************************************************************
@@ -908,8 +949,9 @@ Electrostatic::actual_multilevel_solve (int                 level,
 
         if (!use_previous_phi_as_guess)
            phi_p[lev].setVal(0.,phi_p[lev].nGrow());
-    }
 
+    }
+     
     // Average phi from fine to coarse level before the solve.
     for (int lev = num_levels-1; lev > 0; lev--)
     {
@@ -925,21 +967,26 @@ Electrostatic::actual_multilevel_solve (int                 level,
        BoxLib::Error("This only works for single level right now");
 
     const Real* dx = parent->Geom(level).CellSize();
+    
+    *gmsg << "dx = " << dx[0] << ", dy = " << dx[1] << ", dz = " << dx[2] << endl;
+    
     Solver* trilinos_solver = init_trilinos(Rhs_particles,phi_p,dx);
-
+    
 //  *****************************************************************************
 //  FOR TIMINGS
 //  *****************************************************************************
     if (show_timings)
         ParallelDescriptor::Barrier();
     const Real strt_solve = ParallelDescriptor::second();
-
+    
 //  *****************************************************************************
 //  Actual solve
 //  *****************************************************************************
     trilinos_solver->Compute();
+    
     trilinos_solver->CopySolution(phi_p);
-
+    
+    
     // Average phi from fine to coarse level after the solve since the coarse grid
     //   values under the fine grid have not been defined.
     for (int lev = num_levels-1; lev > 0; lev--)
@@ -947,17 +994,13 @@ Electrostatic::actual_multilevel_solve (int                 level,
         const IntVect ratio = parent->refRatio(level+lev-1);
         average_down(phi_p[lev-1], phi_p[lev], ratio);
     }
-
     for (int i = 0; i < num_levels; i++)
         phi_p[i].FillBoundary();
 
-    for (int i = 0; i < num_levels; i++)
-       std::cout << "Norm of Sol at level " << level+i << " is " << phi_p[i].norm0() << std::endl;
-
     if (phi_p[0].norm0() > 1.e100)
        for (MFIter mfi(phi_p[0]); mfi.isValid(); ++mfi)
-           std::cout << "BAD PHI " << phi_p[0][mfi] << std::endl;
-
+           *gmsg << "BAD PHI " << phi_p[0][mfi] << endl;
+       
     delete trilinos_solver;
 
 //  *****************************************************************************
@@ -968,7 +1011,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
     {
         ParallelDescriptor::ReduceRealMax(end_solve,IOProc);
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Electrostatic:: time in solve          = " << end_solve << '\n';
+            *gmsg << "Electrostatic:: time in solve          = " << end_solve << '\n';
     }
 
 //  *****************************************************************************
@@ -1009,8 +1052,8 @@ Electrostatic::actual_multilevel_solve (int                 level,
         ParallelDescriptor::ReduceRealMax(end,IOProc);
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "Electrostatic:: all                  : time = " << end << '\n';
-            std::cout << "Electrostatic:: all but solve        : time = " << end - end_solve << '\n';
+            *gmsg << "Electrostatic:: all                  : time = " << end << '\n'
+                  << "Electrostatic:: all but solve        : time = " << end - end_solve << '\n';
         }
     }
 //  *****************************************************************************
@@ -1018,7 +1061,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
 //  *****************************************************************************
 
     if (ParallelDescriptor::IOProcessor())
-       std::cout << "Leaving multilevel solver now ... " << std::endl;
+        *gmsg << "Leaving multilevel solver now ... " << endl;
 }
 
 void
@@ -1091,7 +1134,7 @@ Electrostatic::get_new_e_field (int       level,
                                 MultiFab& e_field,
                                 Real      time)
 {
-    // Fill grow cells in `grad_phi`, will need to compute `grad_phi_cc` in
+    /// Fill grow cells in `grad_phi`, will need to compute `grad_phi_cc` in
     // 1 grow cell
     const Geometry& geom = parent->Geom(level);
     if (level == 0)
@@ -1138,6 +1181,46 @@ Electrostatic::get_new_e_field (int       level,
 
     MultiFab& E_new = level_data[level].get_new_data(Elec_Field_Type);
     MultiFab::Copy(E_new, e_field, 0, 0, BL_SPACEDIM, 0);
+
+#ifdef DBG_SCALARFIELD
+    /* Writes electric field vector to a file.
+     * Format: x, y, z, ex, ey, ez, processor
+     */
+    for (MFIter mfi(E_new); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        FArrayBox& fab = E_new[mfi];
+        
+        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
+            
+            if ( proc == ParallelDescriptor::MyProc() ) {
+                std::string outfile = "data/amr-e_field-level-" + std::to_string(level);
+                
+                std::ofstream out;
+                
+                if ( proc == 0 )
+                    out.open(outfile);
+                else
+                   out.open(outfile, std::ios_base::app);
+                
+                if ( !out.is_open() )
+                    throw OpalException("Error in Electrostatic::get_new_e_field",
+                                        "Couldn't open the file: " + outfile);
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                            IntVect ivec(i, j, k);
+                            out << i + 1 << " " << j + 1 << " " << k + 1
+                                << " " << fab(ivec, 0) << " " << fab(ivec, 1) << " " << fab(ivec, 2) << " "
+                                << proc << std::endl;
+                        }
+                    }
+                }
+                out.close();
+            }
+            ParallelDescriptor::Barrier();
+        }
+    }
+#endif
 
     // This is a hack-y way to fill the ghost cell values of e_field
     //   before returning it
@@ -1442,7 +1525,7 @@ Electrostatic::fill_ec_grow (int                     level,
     }
 }
 
-#if 0
+/*#if 0
 void
 Electrostatic::make_mg_bc ()
 {
@@ -1485,6 +1568,7 @@ Electrostatic::make_mg_bc ()
     }
 }
 #endif
+*/
 
 void
 Electrostatic::AddParticlesToRhs (int               level,
@@ -1505,19 +1589,52 @@ Electrostatic::AddParticlesToRhs(int base_level, int finest_level, PArray<MultiF
     const int num_levels = finest_level - base_level + 1;
 
     PArray<MultiFab> PartMF;
+    //BEGIN MATTHIAS
+    //PartMF.resize(num_levels, PArrayManage);
+    //PartMF.set(0, new MultiFab(grids[0] , 1, 1));
+    //PartMF[0].setVal(0.0);
+    //END MATTHIAS
+    
+    // call: BoxLib ParticleContainer::AssignDensity
     Accel::thePAPC()->AssignDensity(PartMF, base_level, 1, finest_level);
+    
+    //BEGIN MATTHIAS
+    //Accel::thePAPC()->AssignDensitySingleLevel(PartMF[0], 0, 1, 0);
+    
+    //for (int level = finest_level - 1 - base_level; level >= 0; level--)
+    //Electrostatic::average_down(PartMF[level], PartMF[level+1],  parent->refRatio(level+base_level));
+
+    //for (int level = 0; level < num_levels; ++level)
+    //	MultiFab::Add(Rhs_particles[base_level + level], PartMF[level], 0, 0, 1, 0);
+    
+    //std::cerr << Accel::thePAPC()->TotalNumberOfParticles() << " "
+	//      << Accel::thePAPC()->sumParticleMass(0) << std::endl;
+    //Array<Real> charge;
+    //Accel::thePAPC()->GetParticleData(charge, 0, 1);
+
+    //double sum = 0;
+    //for (int i = 0; i < charge.size(); ++i)
+	//sum += charge[i];
+    //std::cerr << sum << std::endl;
+    //END MATTHIAS
+
+
+  // TULIN
+
     for (int lev = 0; lev < num_levels; lev++)
     {
         if (PartMF[lev].contains_nan())
         {
-            std::cout << "Testing particle density at level " << base_level+lev << std::endl;
+            *gmsg << "Testing particle density at level " << base_level+lev << endl;
             BoxLib::Abort("...PartMF has NaNs in Electrostatic::actual_multilevel_solve()");
         }
     }
+    *gmsg << "finest_level=" << finest_level <<  " base_level=" << base_level << endl;
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
     {
         const IntVect ratio = parent->refRatio(lev+base_level);
+        *gmsg << "lev=" << lev << " ratio=" << endl; 
         average_down(PartMF[lev], PartMF[lev+1], ratio);
     }
 

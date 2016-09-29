@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// $RCSfile: TrackRun.cpp,v $
+// /*$RCSfile*/: TrackRun.cpp,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1.4.1 $
 // ------------------------------------------------------------------------
@@ -122,7 +122,7 @@ TrackRun::TrackRun():
                              ("DISTRIBUTION", "List of particle distributions to be used ");
     itsAttr[MULTIPACTING] = Attributes::makeBool
                             ("MULTIPACTING", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry", false);
-    OPAL = OpalData::getInstance();
+    opal = OpalData::getInstance();
 }
 
 
@@ -134,7 +134,7 @@ TrackRun::TrackRun(const std::string &name, TrackRun *parent):
     fs(NULL),
     ds(NULL),
     phaseSpaceSink_m(NULL) {
-    OPAL = OpalData::getInstance();
+    opal = OpalData::getInstance();
 }
 
 
@@ -214,20 +214,20 @@ void TrackRun::execute() {
         //    Track::block->bunch = itsTracker->getBunch();
     } else {
         itsTracker->execute();
-        OPAL->setRestartRun(false);
+        opal->setRestartRun(false);
     }
 
-    OPAL->bunchIsAllocated();
+    opal->bunchIsAllocated();
     if(method == "PARALLEL-SLICE")
-        OPAL->slbunchIsAllocated();
+        opal->slbunchIsAllocated();
 
     delete itsTracker;
 }
 
 void TrackRun::setupSliceTracker() {
     OpalData::getInstance()->setInOPALEnvMode();
-    bool isFollowupTrack = OPAL->hasSLBunchAllocated() && !Options::scan;
-    if(!OPAL->hasSLBunchAllocated()) {
+    bool isFollowupTrack = opal->hasSLBunchAllocated() && !Options::scan;
+    if(!opal->hasSLBunchAllocated()) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, NEW TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
@@ -235,7 +235,7 @@ void TrackRun::setupSliceTracker() {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, FOLLOWUP TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
-    } else if(OPAL->hasSLBunchAllocated() && Options::scan) {
+    } else if(opal->hasSLBunchAllocated() && Options::scan) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, SCAN TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
@@ -243,18 +243,18 @@ void TrackRun::setupSliceTracker() {
 
     Beam   *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
-    if(OPAL->inRestartRun()) {
-        phaseSpaceSink_m = new H5PartWrapperForPS(OPAL->getInputBasename() + std::string(".h5"),
-                                                  OPAL->getRestartStep(),
+    if(opal->inRestartRun()) {
+        phaseSpaceSink_m = new H5PartWrapperForPS(opal->getInputBasename() + std::string(".h5"),
+                                                  opal->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
     } else if (isFollowupTrack) {
-        phaseSpaceSink_m = new H5PartWrapperForPS(OPAL->getInputBasename() + std::string(".h5"),
+        phaseSpaceSink_m = new H5PartWrapperForPS(opal->getInputBasename() + std::string(".h5"),
                                                   -1,
-                                                  OPAL->getInputBasename() + std::string(".h5"),
+                                                  opal->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     } else {
-        phaseSpaceSink_m = new H5PartWrapperForPS(OPAL->getInputBasename() + std::string(".h5"),
+        phaseSpaceSink_m = new H5PartWrapperForPS(opal->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     }
 
@@ -285,18 +285,18 @@ void TrackRun::setupSliceTracker() {
 
     double charge = 0.0;
 
-    if(!OPAL->hasSLBunchAllocated()) {
-        if(!OPAL->inRestartRun()) {
+    if(!opal->hasSLBunchAllocated()) {
+        if(!opal->inRestartRun()) {
 
             dist->CreateOpalE(beam, distrs_m, Track::block->slbunch, 0.0, 0.0);
-            OPAL->setGlobalPhaseShift(0.5 * dist->GetTEmission());
+            opal->setGlobalPhaseShift(0.5 * dist->GetTEmission());
 
         } else {
             /***
                 reload slice distribution
             */
 
-            dist->DoRestartOpalE(*Track::block->slbunch, beam->getNumberOfParticles(), OPAL->getRestartStep(), phaseSpaceSink_m);
+            dist->DoRestartOpalE(*Track::block->slbunch, beam->getNumberOfParticles(), opal->getRestartStep(), phaseSpaceSink_m);
         }
     } else {
         charge = 1.0;
@@ -312,25 +312,25 @@ void TrackRun::setupSliceTracker() {
     //Track::block->slbunch->calcBeamParameters();
 
 
-    if(!OPAL->inRestartRun()) {
-        if(!OPAL->hasDataSinkAllocated()) {
-            OPAL->setDataSink(new DataSink(phaseSpaceSink_m));
+    if(!opal->inRestartRun()) {
+        if(!opal->hasDataSinkAllocated()) {
+            opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else {
-            ds = OPAL->getDataSink();
+            ds = opal->getDataSink();
             ds->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
-        OPAL->setDataSink(new DataSink(phaseSpaceSink_m, -1));
+        opal->setDataSink(new DataSink(phaseSpaceSink_m, -1));
     }
 
-    ds = OPAL->getDataSink();
+    ds = opal->getDataSink();
 
-    if(!OPAL->hasBunchAllocated())
+    if(!opal->hasBunchAllocated())
         *gmsg << *dist << endl;
     *gmsg << *beam << endl;
     *gmsg << *Track::block->slbunch  << endl;
     *gmsg << "Phase space dump frequency is set to " << Options::psDumpFreq
-          << " Inputfile is " << OPAL->getInputFn() << endl;
+          << " Inputfile is " << opal->getInputFn() << endl;
 
 
     findPhasesForMaxEnergy();
@@ -346,9 +346,9 @@ void TrackRun::setupSliceTracker() {
 
 void TrackRun::setupTTracker(){
     OpalData::getInstance()->setInOPALTMode();
-    bool isFollowupTrack = (OPAL->hasBunchAllocated() && !Options::scan);
+    bool isFollowupTrack = (opal->hasBunchAllocated() && !Options::scan);
 
-    if(OPAL->hasBunchAllocated()) {
+    if(opal->hasBunchAllocated()) {
         if (Options::scan) {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "* Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK in SCAN MODE" << endl;
@@ -386,18 +386,18 @@ void TrackRun::setupTTracker(){
 
     setupFieldsolver();
 
-    if(OPAL->inRestartRun()) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(OPAL->getInputBasename() + std::string(".h5"),
-                                                  OPAL->getRestartStep(),
+    if(opal->inRestartRun()) {
+        phaseSpaceSink_m = new H5PartWrapperForPT(opal->getInputBasename() + std::string(".h5"),
+                                                  opal->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
     } else if (isFollowupTrack) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(OPAL->getInputBasename() + std::string(".h5"),
+        phaseSpaceSink_m = new H5PartWrapperForPT(opal->getInputBasename() + std::string(".h5"),
                                                   -1,
-                                                  OPAL->getInputBasename() + std::string(".h5"),
+                                                  opal->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     } else {
-        phaseSpaceSink_m = new H5PartWrapperForPT(OPAL->getInputBasename() + std::string(".h5"),
+        phaseSpaceSink_m = new H5PartWrapperForPT(opal->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     }
 
@@ -407,7 +407,7 @@ void TrackRun::setupTTracker(){
     Track::block->bunch->dtScInit_m = Track::block->dtScInit;
     Track::block->bunch->deltaTau_m = Track::block->deltaTau;
 
-    if (!isFollowupTrack && !OPAL->inRestartRun())
+    if (!isFollowupTrack && !opal->inRestartRun())
         Track::block->bunch->setT(Track::block->t0_m);
 
     bool mpacflg = Attributes::getBool(itsAttr[MULTIPACTING]);
@@ -426,31 +426,31 @@ void TrackRun::setupTTracker(){
     }
 
 #ifdef HAVE_AMR_SOLVER
-    Amr *amrptr = setupAMRSolver();
+    setupAMRSolver();
 #endif
 
-    if(!OPAL->inRestartRun()) {
-        if(!OPAL->hasDataSinkAllocated() && !Options::scan) {
-            OPAL->setDataSink(new DataSink(phaseSpaceSink_m));
+    if(!opal->inRestartRun()) {
+        if(!opal->hasDataSinkAllocated() && !Options::scan) {
+            opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else if(Options::scan) {
-            ds = OPAL->getDataSink();
+            ds = opal->getDataSink();
             if(ds)
                 delete ds;
-            OPAL->setDataSink(new DataSink(phaseSpaceSink_m));
+            opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else {
-            ds = OPAL->getDataSink();
+            ds = opal->getDataSink();
             ds->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
-        OPAL->setDataSink(new DataSink(phaseSpaceSink_m, -1));//OPAL->getRestartStep()));
+        opal->setDataSink(new DataSink(phaseSpaceSink_m, -1));//opal->getRestartStep()));
     }
 
-    ds = OPAL->getDataSink();
+    ds = opal->getDataSink();
 
-    if(OPAL->hasBunchAllocated() && Options::scan)
+    if(opal->hasBunchAllocated() && Options::scan)
         ds->reset();
 
-    if(!OPAL->hasBunchAllocated() || Options::scan) {
+    if(!opal->hasBunchAllocated() || Options::scan) {
         if(!mpacflg) {
             *gmsg << *dist << endl;
         } else {
@@ -490,7 +490,7 @@ void TrackRun::setupTTracker(){
                                       dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                       Track::block->reference, false, false, Track::block->localTimeSteps,
                                       Track::block->zstop, Track::block->timeIntegrator, Track::block->dT,
-                                      beam->getNumberOfParticles(),amrptr);
+                                      beam->getNumberOfParticles(), fs->getAmrPtr());
 #else
     
 #ifdef P3M_TEST
@@ -539,18 +539,18 @@ void TrackRun::setupCyclotronTracker(){
 
     const int specifiedNumBunch = int(std::abs(Round(Attributes::getReal(itsAttr[TURNS]))));
 
-    if(OPAL->inRestartRun()) {
-        phaseSpaceSink_m = new H5PartWrapperForPC(OPAL->getInputBasename() + std::string(".h5"),
-                                                  OPAL->getRestartStep(),
+    if(opal->inRestartRun()) {
+        phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
+                                                  opal->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
-    } else if (OPAL->hasBunchAllocated() && !Options::scan) {
-        phaseSpaceSink_m = new H5PartWrapperForPC(OPAL->getInputBasename() + std::string(".h5"),
+    } else if (opal->hasBunchAllocated() && !Options::scan) {
+        phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
                                                   -1,
-                                                  OPAL->getInputBasename() + std::string(".h5"),
+                                                  opal->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     } else {
-        phaseSpaceSink_m = new H5PartWrapperForPC(OPAL->getInputBasename() + std::string(".h5"),
+        phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
                                                   H5_O_WRONLY);
     }
 
@@ -571,8 +571,8 @@ void TrackRun::setupCyclotronTracker(){
         */
         macrocharge = beam->getCurrent() / (beam->getFrequency() * 1.0e6); // [MHz]-->[Hz]
 
-        if(!OPAL->hasBunchAllocated()) {
-            if(!OPAL->inRestartRun()) {
+        if(!opal->hasBunchAllocated()) {
+            if(!opal->inRestartRun()) {
                 macrocharge /= beam->getNumberOfParticles();
                 macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
                 dist->CreateOpalCycl(*Track::block->bunch,
@@ -584,13 +584,13 @@ void TrackRun::setupCyclotronTracker(){
             } else {
                 dist->DoRestartOpalCycl(*Track::block->bunch,
                                         beam->getNumberOfParticles(),
-                                        OPAL->getRestartStep(),
+                                        opal->getRestartStep(),
                                         specifiedNumBunch,
                                         phaseSpaceSink_m);
                 macrocharge /= beam->getNumberOfParticles();
                 macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
             }
-        } else if(OPAL->hasBunchAllocated() && Options::scan) {
+        } else if(opal->hasBunchAllocated() && Options::scan) {
             macrocharge /= beam->getNumberOfParticles();
             macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
             dist->CreateOpalCycl(*Track::block->bunch,
@@ -610,7 +610,7 @@ void TrackRun::setupCyclotronTracker(){
         throw (beam->getNumberOfParticles() != Track::block->bunch->getTotalNum());
     }
     catch (bool notEqual) {
-        if (notEqual && !OPAL->inRestartRun()) {
+        if (notEqual && !opal->inRestartRun()) {
             throw OpalException("TrackRun::execute CYCLOTRON_T",
                                 "Number of macro particles and NPART on BEAM are not equal");
         }
@@ -626,31 +626,31 @@ void TrackRun::setupCyclotronTracker(){
     // statistical data are calculated (rms, eps etc.)
     Track::block->bunch->calcBeamParameters_cycl();
 
-    if(!OPAL->inRestartRun())
-        if(!OPAL->hasDataSinkAllocated()) {
+    if(!opal->inRestartRun())
+        if(!opal->hasDataSinkAllocated()) {
             ds = new DataSink(phaseSpaceSink_m);
-            OPAL->setDataSink(ds);
+            opal->setDataSink(ds);
         } else {
-            ds = OPAL->getDataSink();
+            ds = opal->getDataSink();
             ds->changeH5Wrapper(phaseSpaceSink_m);
         }
     else {
         ds = new DataSink(phaseSpaceSink_m, -1);
-        OPAL->setDataSink(ds);
+        opal->setDataSink(ds);
     }
 
-    if(OPAL->hasBunchAllocated() && Options::scan)
+    if(opal->hasBunchAllocated() && Options::scan)
         ds->reset();
 
-    if(!OPAL->hasBunchAllocated() && !Options::scan) {
+    if(!opal->hasBunchAllocated() && !Options::scan) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == CYCLOTRON-T, NEW TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
-    } else if(OPAL->hasBunchAllocated() && !Options::scan) {
+    } else if(opal->hasBunchAllocated() && !Options::scan) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == CYCLOTRON-T, FOLLOWUP TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
-    } else if(OPAL->hasBunchAllocated() && Options::scan) {
+    } else if(opal->hasBunchAllocated() && Options::scan) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == CYCLOTRON-T, SCAN TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
@@ -668,7 +668,7 @@ void TrackRun::setupCyclotronTracker(){
 
     itsTracker->setNumBunch(specifiedNumBunch);
 
-    if(OPAL->inRestartRun()) {
+    if(opal->inRestartRun()) {
 
         H5PartWrapperForPC *h5pw = static_cast<H5PartWrapperForPC*>(phaseSpaceSink_m);
         itsTracker->setBeGa(h5pw->getMeanMomentum());
@@ -699,7 +699,7 @@ void TrackRun::setupCyclotronTracker(){
 
         // only for regular  run of multi bunches, instantiate the  PartBins class
         // note that for restart run of multi bunches, PartBins class is instantiated in function doRestart_cycl()
-        if(!OPAL->inRestartRun()) {
+        if(!opal->inRestartRun()) {
 
             // already exist bins number initially
             const int BinCount = 1;
@@ -728,9 +728,9 @@ void TrackRun::setupCyclotronTracker(){
         double paraMb = Attributes::getReal(itsAttr[PARAMB]);
         itsTracker->setParaAutoMode(paraMb);
 
-        if(OPAL->inRestartRun()) {
+        if(opal->inRestartRun()) {
 
-            itsTracker->setLastDumpedStep(OPAL->getRestartStep());
+            itsTracker->setLastDumpedStep(opal->getRestartStep());
 
             if(Track::block->bunch->pbin_m->getLastemittedBin() < 2) {
                 itsTracker->setMultiBunchMode(2);
@@ -823,8 +823,8 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
      * Initialize distributions.
      */
     size_t numberOfParticles = beam->getNumberOfParticles();
-    if (!OPAL->hasBunchAllocated()) {
-        if (!OPAL->inRestartRun()) {
+    if (!opal->hasBunchAllocated()) {
+        if (!opal->inRestartRun()) {
             if (!Attributes::getBool(itsAttr[MULTIPACTING])) {
                 /*
                  * Here we are not doing a restart or doing a mulitpactor run
@@ -843,15 +843,15 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
                 Vector_t rMax;
                 Track::block->bunch->get_bounds(rMin, rMax);
 
-                OPAL->setGlobalPhaseShift(0.5 * dist->GetTEmission());
+                opal->setGlobalPhaseShift(0.5 * dist->GetTEmission());
             }
         } else {
             /*
              * Read in beam from restart file.
              */
-            dist->DoRestartOpalT(*Track::block->bunch, numberOfParticles, OPAL->getRestartStep(), phaseSpaceSink_m);
+            dist->DoRestartOpalT(*Track::block->bunch, numberOfParticles, opal->getRestartStep(), phaseSpaceSink_m);
         }
-    } else if (OPAL->hasBunchAllocated() && Options::scan) {
+    } else if (opal->hasBunchAllocated() && Options::scan) {
         /*
          * We are in scan mode and have already allocated a bunch. So, we need to
          * do a couple more things.
@@ -863,7 +863,7 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
         Track::block->bunch->resetIfScan();
         Track::block->bunch->LastSection = 1;
 
-        OPAL->setGlobalPhaseShift(0.5 * dist->GetTEmission());
+        opal->setGlobalPhaseShift(0.5 * dist->GetTEmission());
     }
 
     // Return charge per macroparticle.
@@ -956,159 +956,16 @@ void TrackRun::executeAutophaseTracker() {
 }
 
 #ifdef HAVE_AMR_SOLVER
-std::vector<std::string> TrackRun::filterString(std::string str) {
-  /*
-    pid tokens[0]
-    il == tokens[2], ih == tokens[3]
-    jl == tokens[5], jh == tokens[6]
-    kl == tokens[9], kh == tokens[9]
-   */
+void TrackRun::setupAMRSolver() {
+    
+    if ( fs->isAMRSolver() ) {
+        *gmsg << *Track::block->bunch  << endl;
+        *gmsg << *fs   << endl;
+        
+        std::vector<double> x(3);
+        std::vector<double> attr(11);
 
-  // charakters to remove from the string
-  char chars[] = "Node=;vn_mDmain{[][][]}:,";
-
-  for (unsigned int i = 0; i < strlen(chars); ++i)
-    std::replace(str.begin(), str.end(), chars[i], ' ');
-
-  std::vector<std::string> tokens;
-
-  // filter spaces
-  std::istringstream iss(str);
-  copy(std::istream_iterator<std::string>(iss),
-       std::istream_iterator<std::string>(),
-       std::back_inserter<std::vector<std::string> >(tokens));
-  return tokens;
-}
-
-std::pair<Box,unsigned int> TrackRun::getBlGrids(std::string str){
-
-  std::vector<std::string> tokens = filterString(str);
-
-  unsigned int theGrid;
-  std::istringstream (tokens[0]) >> theGrid;
-
-  int ilo,ihi,jlo,jhi,klo,khi;
-
-  std::istringstream (tokens[2]) >> ilo;
-  std::istringstream (tokens[5]) >> jlo;
-  std::istringstream (tokens[8]) >> klo;
-  std::istringstream (tokens[3]) >> ihi;
-  std::istringstream (tokens[6]) >> jhi;
-  std::istringstream (tokens[9]) >> khi;
-
-  Inform m2a("AMR ",INFORM_ALL_NODES);
-  /*
-  m2a << "Grid " << tokens[0]
-      << " i (" << tokens[2] << " ... " << tokens[3] << ")"
-      << " j (" << tokens[5] << " ... " << tokens[6] << ")"
-      << " k (" << tokens[8] << " ... " << tokens[9] << ")" << " myNode " << Ippl::myNode() << endl;
-  */
-  IntVect loEnd(ilo,jlo,klo);
-  IntVect hiEnd(ihi,jhi,khi);
-  Box bx(loEnd,hiEnd);
-
-  return std::pair<Box,unsigned int>(bx,theGrid);
-}
-
-Amr* TrackRun::setupAMRSolver() {
-    Amr* amrptr;
-    //	if (fs->isAMRSolver()) {
-    *gmsg << "A M R Initialization " << endl;
-    *gmsg << *Track::block->bunch  << endl;
-    *gmsg << *fs   << endl;
-
-    FieldLayout<3>::iterator_iv locDomBegin = Track::block->bunch->getFieldLayout().begin_iv();
-    FieldLayout<3>::iterator_iv locDomEnd = Track::block->bunch->getFieldLayout().end_iv();
-    FieldLayout<3>::iterator_dv globDomBegin = Track::block->bunch->getFieldLayout().begin_rdv();
-    FieldLayout<3>::iterator_dv globDomEnd = Track::block->bunch->getFieldLayout().end_rdv();
-
-    NDIndex<3> ipplDom = Track::block->bunch->getFieldLayout().getDomain();
-
-    BoxArray lev0_grids(Ippl::getNodes());
-
-    Array<int> procMap;
-    procMap.resize(lev0_grids.size()+1); // +1 is a historical thing, do not ask
-
-    // first iterate over the local owned domain(s)
-    for(FieldLayout<3>::const_iterator_iv v_i = locDomBegin ; v_i != locDomEnd; ++v_i) {
-        std::ostringstream stream;
-        stream << *((*v_i).second);
-
-        std::pair<Box,unsigned int> res = getBlGrids(stream.str());
-        lev0_grids.set(res.second,res.first);
-        procMap[res.second] = Ippl::myNode();
-    }
-
-    // then iterate over the non-local domain(s)
-    for(FieldLayout<3>::iterator_dv v_i = globDomBegin ; v_i != globDomEnd; ++v_i) {
-        std::ostringstream stream;
-        stream << *((*v_i).second);
-
-        std::pair<Box,unsigned int> res = getBlGrids(stream.str());
-        lev0_grids.set(res.second,res.first);
-        procMap[res.second] = res.second;
-    }
-    procMap[lev0_grids.size()] = Ippl::myNode();
-
-    // This init call will cache the distribution map as determined by procMap
-    // so that all data will end up on the right processor
-    RealBox rb;
-    Array<Real> prob_lo(3);
-    Array<Real> prob_hi(3);
-
-    Vector_t rmin;
-    Vector_t rmax;
-    Track::block->bunch->get_bounds(rmin, rmax);
-
-    // Set up a problem size with dx = dy = dz and large enough
-    //  to hold the geometric boundary.
-    prob_lo.set(0,-0.025);
-    prob_lo.set(1,-0.025);
-    prob_lo.set(2,-0.050);
-    prob_hi.set(0, 0.025);
-    prob_hi.set(1, 0.025);
-    prob_hi.set(2, 0.050);
-
-    rb.setLo(prob_lo);
-    rb.setHi(prob_hi);
-
-    int coord_sys = 0;
-
-    Array<int> ncell(3);
-    ncell[0] = ipplDom[0].length();
-    ncell[1] = ipplDom[1].length();
-    ncell[2] = ipplDom[2].length();
-
-    std::vector<int   > nr(3);
-    std::vector<double> hr(3);
-    std::vector<double> prob_lo_in(3);
-    for (int i = 0; i < 3; i++)
-        {
-            nr[i] = ncell[i];
-            hr[i] = (prob_hi[i] - prob_lo[i]) / ncell[i];
-            prob_lo_in[i] = prob_lo[i];
-        }
-
-    // We set this to -1 so that we can now control max_lev from the inputs file
-    int maxLevel = -1;
-
-    amrptr = new Amr(&rb,maxLevel,ncell,coord_sys);
-
-    Real strt_time = 0.0;
-    Real stop_time = 1.0;
-
-    // This init call will cache the distribution map as determined by procMap                                                                                            // so that all data will end up on the right processor
-    amrptr->InitializeInit(strt_time, stop_time, &lev0_grids, &procMap);
-
-    BoundaryDomain* bd = new BoundaryDomain(nr,hr);
-    amrptr->setBoundaryGeometry(bd->GetIntersectLoX(), bd->GetIntersectHiX(),
-                                bd->GetIntersectLoY(), bd->GetIntersectHiY());
-
-    std::vector<double> x(3);
-    std::vector<double> attr(11);
-
-    for (size_t i=0; i<Track::block->bunch->getLocalNum(); i++)
-        {
+        for (size_t i=0; i<Track::block->bunch->getLocalNum(); i++) {
             // X, Y, Z are stored separately from the other attributes
             for (unsigned int k=0; k<3; k++)
                 x[k] = Track::block->bunch->R[i](k);
@@ -1144,23 +1001,24 @@ Amr* TrackRun::setupAMRSolver() {
             int particle_id = Track::block->bunch->ID[i] + 1;
             attr[3*DIM + 1] = particle_id;
 
-            amrptr->addOneParticle(particle_id, Ippl::myNode(), x, attr);
+            fs->getAmrPtr()->addOneParticle(particle_id, Ippl::myNode(), x, attr);
         }
 
-    // It is essential that we call this routine since the particles
-    //    may not currently be defined on the same processor as the grid
-    //    that will hold them in the AMR world.
-    amrptr->RedistributeParticles();
-
-    // This part of the call must come after we add the particles
-    // since this one calls post_init which does the field solve.
-    amrptr->FinalizeInit(strt_time, stop_time);
-
-    amrptr->writePlotFile();
-
-    *gmsg << "A M R Initialization DONE" << endl;
-
-    return amrptr;
+        // It is essential that we call this routine since the particles
+        //    may not currently be defined on the same processor as the grid
+        //    that will hold them in the AMR world.
+        fs->getAmrPtr()->RedistributeParticles();
+    
+        // This part of the call must come after we add the particles
+        // since this one calls post_init which does the field solve.
+        double start_time = 0.0;
+        double stop_time = 1.0;
+        
+        fs->getAmrPtr()->FinalizeInit(start_time, stop_time);
+        fs->getAmrPtr()->writePlotFile();
+    
+        *gmsg << "A M R Initialization DONE" << endl;
+    }
 }
 
 #endif

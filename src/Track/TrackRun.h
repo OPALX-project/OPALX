@@ -93,13 +93,11 @@ private:
 
     H5PartWrapper *phaseSpaceSink_m;
 
-    OpalData *OPAL;
+    OpalData *opal;
 
     static const std::string defaultDistribution;
 #ifdef HAVE_AMR_SOLVER
-    Amr* setupAMRSolver();
-    std::vector<std::string>  filterString(std::string str);
-    std::pair<Box,unsigned int> getBlGrids(std::string str);
+    void setupAMRSolver();
 #endif
 };
 

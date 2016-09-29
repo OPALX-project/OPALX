@@ -1,103 +1,131 @@
-#include <EpetraExt_MatrixMatrix.h>
-#include <vector>
-#include <sstream>
-#include <iostream>
-#include <fstream>
+#include "TrilinosSolver.h"
+
 #include <cmath>
 #include <ctime>
 
-#include <ParallelDescriptor.H>
+extern Inform *gmsg;
 
-#include "TrilinosSolver.h"
+Solver::Solver(Epetra_MpiComm& comm,
+               std::string itsolver,
+               bool verbose, 
+               double tol,
+               int maxit,
+               int nBlocks,
+               int nRecycleBlocks, 
+               unsigned int nLhs,
+               int nLevels,
+               PArray<MultiFab>& rhs,
+               PArray<MultiFab>& soln,
+               const Real* hr_in,
+               const Real* prob_lo_in,
+               BoundaryPointList& xlo,
+               BoundaryPointList& xhi,
+               BoundaryPointList& ylo,
+               BoundaryPointList& yhi):
+    comm_m(comm),
+    itsolver_m(itsolver),
+    isReusingHierarchy_m(true),
+    isReusingPreconditioner_m(false),
+    nBlocks_m(nBlocks),
+    nRecycleBlocks_m(nRecycleBlocks),
+    nLhs_m(nLhs),
+    MLList_m(),
+    xlo_m(xlo),
+    xhi_m(xhi),
+    ylo_m(ylo),
+    yhi_m(yhi),
+    idxMap_m(1)
+{
+    idxMap_m.set(0, new iMultiFab(rhs[0].boxArray(), 1 , 0));
+    verbose_m = 0;
+    
+    
+    for (int i = 0; i < 3; i++) {
+        hr[i] = hr_in[i];
+        prob_lo[i] = prob_lo_in[i];
+    }
+    
+    // setup ml preconditioner parameters
+    setupMultiLevelList();
+    
+    // get the problem dimension ( just single level support )
+    BoxArray ba(rhs[0].boxArray());
+    domain_m = ba.minimalBox();
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        // +1 is needed since for e.g. for a 32x32x32 mesh: loVect = 0 and hiVect = 31
+        nGridPoints_m[i] = domain_m.hiVect()[i] - domain_m.loVect()[i] + 1;
+    }
+    
+    SetupProblem(rhs,soln);
+    
+    MLPrec = Teuchos::null;
+    
+    // setup Belos parameters
+    setupBelosList_m(maxit, tol);
+    
+    
+    // setup Belos solver
+    if (nBlocks_m == 0 || nRecycleBlocks_m == 0) {
+	if (itsolver_m == "CG")
+	    solver = Teuchos::rcp( new Belos::BlockCGSolMgr<double,MV,OP>() );
+	else if (itsolver_m == "GMRES")
+	    solver = Teuchos::rcp( new Belos::BlockGmresSolMgr<double,MV,OP>() );
+    } else
+	solver = Teuchos::rcp( new Belos::RCGSolMgr<double,MV,OP>() );
+    
+    convStatusTest = Teuchos::rcp( new Belos::StatusTestGenResNorm<ST,MV,OP> (tol) );
+    convStatusTest->defineScaleForm(Belos::NormOfRHS, Belos::TwoNorm);
+    
+#ifdef UserConv
+    solver->setUserConvStatusTest(convStatusTest);
+#endif
+}
+
+Solver::~Solver() {}
+
 
 void
-Solver::SetupProblem(PArray<MultiFab>& rhs , PArray<MultiFab>& soln) 
-{
-
-    // Now we create the map
-    // Note: 1) it is important to set  numMyGridPoints = 0 outside the MFIter loop
-    //       2) "bx" here is the cell-centered non-overlapping box
-    int nlevs = rhs.size();
-    int numMyGridPoints = 0;
-    std::vector<int> MyGlobalElements;
-
-    // This offset is the same for all grids at all levels on this processor
-    int my_offset = proc_offset[ParallelDescriptor::MyProc()];
-
-    for (int lev = 0; lev < nlevs; lev++) 
-    {
-       for (MFIter mfi(rhs[lev]); mfi.isValid(); ++mfi)
-       {
-          IArrayBox& fab_mask =  mask[lev][mfi];
-          IArrayBox& fab_imap =  imap[lev][mfi];
-
-          const Box& bx = mfi.validbox();
-
-          for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; z++) 
-          for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; y++) 
-          for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; x++) 
-          {
-             // Only add this point to the list of unknowns if mask == 0
-             IntVect iv(x,y,z);
-             if (fab_mask(iv,0) == INSIDE)
-             {
-                 MyGlobalElements.push_back(fab_imap(iv,0));
-                 numMyGridPoints++;
-             }
-         }
-       }
-    }
-
-    // Define the Map
-    Map = new Epetra_Map(-1, numMyGridPoints, &MyGlobalElements[0], 0, Comm_m);
-
-    // Allocate the RHS and LHS with the new Epetra Map
-    RHS = rcp(new Epetra_Vector(*Map));
-    LHS = rcp(new Epetra_Vector(*Map));
+Solver::SetupProblem(PArray<MultiFab>& rhs , PArray<MultiFab>& soln) {
+    // only single level support
     
-    int local_idx;
-
-    // Copy the values from rhs into RHS->Values()
-    // Copy the values from soln into LHS->Values()
-    // Note: "bx" here is the cell-centered non-overlapping box
-    for (int lev = 0; lev < nlevs; lev++) 
-    {
-       for (MFIter mfi(rhs[lev]); mfi.isValid(); ++mfi)
-       {
-          const Box& bx = mfi.validbox();
-          FArrayBox& fab_rhs  =  rhs[lev][mfi];
-          FArrayBox& fab_lhs  = soln[lev][mfi];
-          IArrayBox& fab_mask = mask[lev][mfi];
-          IArrayBox& fab_imap = imap[lev][mfi];
-
-          for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; z++) 
-          for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; y++) 
-          for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; x++) 
-          {
-             IntVect iv(x,y,z);
-
-             if (fab_mask(iv,0) == INSIDE)
-             {
-                 local_idx = fab_imap(iv,0) - my_offset;
+    // get my global indices
+    std::vector<int> gidx;
+    fillGlobalIndex_m(gidx, rhs[0 /*level*/]);
     
-                 // Set rhs and lhs
-                 RHS->Values()[local_idx] = fab_rhs(iv,0);
-                 LHS->Values()[local_idx] = fab_lhs(iv,0);
-             }
-          }
-       }
-    }
-
-#if 0
-    if(verbose_m)
-        this->printLoadBalanceStats();
-#endif
-
-    // We change the 7 to a 10 because at a coarse-fine boundary
-    // the coarse cell sees 4 fine cells instead of 1 coarse cell.
-    A = rcp(new Epetra_CrsMatrix(Copy, *Map, 10));
-    ComputeStencil();
-    std::cout << "Made it out of ComputeStencil " << std::endl;
+    /*
+     * construct the mapping for the linear system of equations
+     */
+    // total number of elements
+    int N = 1;
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+        N *= nGridPoints_m[i];
+    
+    // Epetra_Map(int NumGlobalElements, int NumMyElements, const int* MyGlobalElements,
+    //            int IndexBase, const Epetra_Comm& Comm)
+    Epetra_Map map(N, gidx.size(), &gidx[0], 0, comm_m);
+    
+    
+    if (nLhs_m > 0)
+	P = Teuchos::rcp(new Epetra_MultiVector(/**Map*/map, nLhs_m, false));
+    
+    
+    /*
+     * fill right-hand side vector (false: do not initialize with default value zero)
+     */
+    
+    RHS = Teuchos::rcp( new Epetra_Vector(map, false) );
+    
+    fillRHS_m(rhs[0/*level*/]);
+    
+    /*
+     * fill left-hand side vector (initial guess is 1.0 everywhere)
+     */
+    LHS = Teuchos::rcp( new Epetra_Vector(map, false) );
+    
+    /*
+     * fill system matrix (7 elements per row)
+     */
+    fillSysMatrix_m(map);
 }
 
 void Solver::extrapolateLHS() {
@@ -106,81 +134,98 @@ void Solver::extrapolateLHS() {
 // Pik (x) := (x − xi ) Pi+1,k−1(x) − (x − xi+k ) Pi,k−1(x) /(xi+k − xi )
 // k = 1, . . . , n, i = 0, . . . , n − k.
 
+    if ( !nLhs_m ) {
+	// default initial guess
+	LHS->PutScalar(1.0);
+	return;
+    } else if ( nLhs_m < 0 )
+	throw OpalException("Error in TrilinosSolver::extrapolateLHS",
+			    "Invalid number of previous lhs solutions");
+
     std::deque< Epetra_Vector >::iterator it = OldLHS.begin();
 
-    if(nLHS_m == 0)
-        LHS->PutScalar(1.0);
-    else if(OldLHS.size() == 1)
-        *LHS = *it;
-    else if(OldLHS.size() == 2){
-        LHS->Update (2.0, *it++, -1.0, *it, 0.0);
-    }
-    else if(OldLHS.size() > 0)
-    {
-        int n = OldLHS.size();
-        for(int i=0; i<n; ++i){
+    switch ( OldLHS.size() ) {
+
+    case 1:
+	*LHS = *it;
+	break;
+    case 2:
+	LHS->Update (2.0, *it++, -1.0, *it, 0.0);
+	break;
+    default:
+	// > 2 previous solutions
+	int n = OldLHS.size();
+        for (int i = 0; i < n; ++i)
             *(*P)(i) = *it++;
-        }
-        for(int k = 1; k < n; ++k){// x==0 & xi==i+1
-            for(int i = 0; i < n-k; ++i){
-                (*P)(i)->Update(-(i+1)/(float)k, *(*P)(i+1), (i+k+1)/(float)k);//TODO test
-            }
-        }
+	
+        for (int k = 1; k < n; ++k) // x==0 & xi==i+1
+            for (int i = 0; i < n - k; ++i)
+                (*P)(i)->Update( -(i + 1) / (float)k, *(*P)(i + 1), (i + k + 1) / (float)k);//TODO test
+
         *LHS = *(*P)(0);
-    }
-    else
-    {
-        std::cout << "Invalid number of old LHS: " + OldLHS.size() << std::endl;
+	break;
     }
 }
 
 void Solver::CopySolution(PArray<MultiFab>& soln)
 {
-    int nlevs     = soln.size();
-    int my_offset = proc_offset[ParallelDescriptor::MyProc()];
-
-    for (int lev = 0; lev < nlevs; lev++) 
-    {
-       // Initialize to zero since we only copy when cells are INSIDE
-       soln[lev].setVal(0.0);
-
-       for (MFIter mfi(soln[lev]); mfi.isValid(); ++mfi)
-       {
-
-          const Box& bx = mfi.validbox();
-          FArrayBox& fab_lhs  = soln[lev][mfi];
-          IArrayBox& fab_mask = mask[lev][mfi];
-          IArrayBox& fab_imap = imap[lev][mfi];
-
-          for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; z++) 
-          for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; y++) 
-          for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; x++) 
-          {
-             IntVect iv(x,y,z);
-             if (fab_mask(iv,0) == INSIDE)
-             {
-                 int local_idx = fab_imap(iv,0) - my_offset;
-                 fab_lhs(iv,0) = LHS->Values()[local_idx];
-             }
-         }
-       }
+    int lidx = 0;
+    for (MFIter mfi(soln[0 /*level*/]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        FArrayBox& lhs = soln[0][mfi];
+        IArrayBox& idx = idxMap_m[0][mfi];
+        
+        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    lhs({i, j, k}) = LHS->Values()[ /*idx( {i, j, k} )*/lidx++ ];
+                }
+            }
+        }
+#ifdef DBG_SCALARFIELD
+        /* Write the potential of all levels to file in the format: x, y, z, \phi
+         */
+        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == ParallelDescriptor::MyProc() ) {
+                std::string outfile = "data/amr-phi_scalar-level-" + std::to_string(0);
+                std::ofstream out;
+                
+                if ( proc == 0 )
+                    out.open(outfile);
+                else
+                    out.open(outfile, std::ios_base::app);
+                
+                if ( !out.is_open() )
+                    throw OpalException("Error in TrilinosSolver::CopySolution",
+                                        "Couldn't open the file: " + outfile);
+                    
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                            IntVect ivec(i, j, k);
+                            // add one in order to have same convention as PartBunch::computeSelfField()
+                            out << i + 1 << " " << j + 1 << " " << k + 1 << " "
+                                << lhs(ivec, 0) << " " << proc << std::endl;
+                        }
+                    }
+                }
+                out.close();
+            }
+            ParallelDescriptor::Barrier();
+        }
+#endif
     }
 }
 
 int 
-Solver::getNumIters()
-{
+Solver::getNumIters() {
     return solver->getNumIters();
 }
 
 void 
-Solver::Compute()
-{
-    //LHS->Random();
-    //LHS->PutScalar(1.0);
+Solver::Compute() {
+    // estimate a good initial guess
     extrapolateLHS();
-    std::cout << "Done with extrapolateLHS " << std::endl; 
-    std::cout << " .... and starting to solve " << std::endl; 
 
     // create the preconditioner object and compute hierarchy
     // true -> create the multilevel hirarchy
@@ -195,408 +240,234 @@ Solver::Compute()
     // already available information on the hierarchy. A particular
     // care is required to use ReComputePreconditioner() with nonzero
     // threshold.
-
-    if(MLPrec == Teuchos::null) // first repetition we need to create a new preconditioner
-        MLPrec = rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
-    else if(isReusingHierarchy_m)
+    
+    if(MLPrec == Teuchos::null) { // first repetition we need to create a new preconditioner
+        MLPrec = Teuchos::rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
+    } else if(isReusingHierarchy_m) {
         MLPrec->ReComputePreconditioner();
-    else if(isReusingPreconditioner_m) {
+    } else if(isReusingPreconditioner_m) {
         // do nothing since we are reusing old preconditioner
     } else { // create a new preconditioner in every repetition
         delete MLPrec.get();//MLPrec now RCP => delete??? TODO
-        MLPrec = rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
+        MLPrec = Teuchos::rcp(new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m));
     }
-
+    
     // Setup problem
     problem.setOperator(A);
     problem.setLHS(LHS);
     problem.setRHS(RHS);
-    prec = rcp(new Belos::EpetraPrecOp(MLPrec));
+    prec = Teuchos::rcp(new Belos::EpetraPrecOp(MLPrec));
     problem.setLeftPrec(prec);
-    solver->setParameters(rcp(&belosList, false));
-    solver->setProblem(rcp(&problem,false));
+    solver->setParameters(Teuchos::rcp(&belosList_m, false));
+    solver->setProblem(Teuchos::rcp(&problem,false));
     if(!problem.isProblemSet()){
-        if (problem.setProblem() == false) {
-            std::cout << std::endl << "ERROR:  Belos::LinearProblem failed to set up correctly!" << std::endl;
-        }
+        if ( !problem.setProblem() )
+	  throw OpalException("Error in TrilinosSolver::Compute",
+				"Belos::LinearProblem failed to set up correctly.");
     }
 
     // Solve problem
-    // Timer
-    MPI_Barrier(MPI_COMM_WORLD);
-
     solver->solve();
-
-    // Timer
-    MPI_Barrier(MPI_COMM_WORLD);
 
     // Store new LHS in OldLHS
     OldLHS.push_front(*(LHS.get()));
-    if(OldLHS.size() > nLHS_m) OldLHS.pop_back();
-    std::cout<<"#OldLHS: "<<OldLHS.size()<<std::endl;
+    if(OldLHS.size() > nLhs_m) OldLHS.pop_back();
 }
 
-void 
-Solver::printLoadBalanceStats() {
+// ------------------------------------------------------------------------------------------------------------
+// PROTECTED MEMBER VARIABLES
+// ------------------------------------------------------------------------------------------------------------
 
-    //compute some load balance statistics
-    size_t myNumPart = Map->NumMyElements();
-    size_t NumPart = Map->NumGlobalElements() * 1.0/Comm_m.NumProc();
-    double imbalance = 1.0;
-    if(myNumPart >= NumPart)
-        imbalance += (myNumPart-NumPart)/NumPart;
+inline void Solver::setupMultiLevelList() {
+    ML_Epetra::SetDefaults("SA", MLList_m);
+    MLList_m.set("max levels", 8);
+    MLList_m.set("increasing or decreasing", "increasing");
+
+    // we use a V-cycle
+    MLList_m.set("prec type", "MGV");
+
+    // uncoupled aggregation is used (every processor aggregates
+    // only local data)
+    MLList_m.set("aggregation: type", "Uncoupled");
+
+    // smoother related parameters
+    MLList_m.set("smoother: type","Chebyshev");
+    MLList_m.set("smoother: sweeps", 3);
+    MLList_m.set("smoother: pre or post", "both");
+
+    // on the coarsest level we solve with  Tim Davis' implementation of
+    // Gilbert-Peierl's left-looking sparse partial pivoting algorithm,
+    // with Eisenstat & Liu's symmetric pruning. Gilbert's version appears
+    // as \c [L,U,P]=lu(A) in MATLAB. It doesn't exploit dense matrix
+    // kernels, but it is the only sparse LU factorization algorithm known to be
+    // asymptotically optimal, in the sense that it takes time proportional to the
+    // number of floating-point operations.
+    MLList_m.set("coarse: type", "Amesos-KLU");
+
+    //XXX: or use Chebyshev coarse level solver
+    // SEE PAPER FOR EVALUATION KLU vs. Chebyshev
+    //MLList.set("coarse: sweeps", 10);
+    //MLList.set("coarse: type", "Chebyshev");
+
+    // turn on all output
+    if(verbose_m)
+        MLList_m.set("ML output", 101);
     else
-        imbalance += (NumPart-myNumPart)/NumPart;
+        MLList_m.set("ML output", -1);
 
-    double max=0.0, min=0.0, avg=0.0;
-    int minn=0, maxn=0;
-    MPI_Reduce(&imbalance, &min, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&imbalance, &max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&imbalance, &avg, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&myNumPart, &minn, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&myNumPart, &maxn, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-
-    avg /= Comm_m.NumProc();
-    if(Comm_m.MyPID() == 0) cout << "LBAL min = " << min << ", max = " << max << ", avg = " << avg << endl;
-
+    // heuristic for max coarse size depending on number of processors
+    int coarsest_size = std::max(comm_m.NumProc() * 10, 1024);
+    MLList_m.set("coarse: max size", coarsest_size);
 }
 
-void
-Solver::construct_mask_and_imap()
-{
-    int nlevs = mask.size();
-    BoxArray ba;
 
-    int comp = 0;
+// -------------------------------------------------------------------------------------------------------------
+// PRIVATE MEMBER FUNCTIONS
+// -------------------------------------------------------------------------------------------------------------
 
-    // Set the ghost cell values of the level = 0 mask to OUTSIDE
-    // Set the interior   values of the level = 0 mask to INSIDE
-    int lev = 0;
-    for (MFIter mfi(mask[lev]); mfi.isValid(); ++mfi)
-    {
-        const Box& fab_bx = mask[lev][mfi].box();
-        mask[lev][mfi].setVal(OUTSIDE,fab_bx,comp,1);
+void Solver::setupBelosList_m(int maxit, double tol) {
+    belosList_m.set("Maximum Iterations", maxit);    // Maximum number of iterations allowed
+    belosList_m.set("Convergence Tolerance", tol);     // Relative convergence tolerance requested
 
-        const Box& bx = mfi.validbox();
-        mask[lev][mfi].setVal(INSIDE,bx,comp,1);
+    if(nBlocks_m != 0 && nRecycleBlocks_m != 0) {    // only set if solver==RCGSolMgr
+	belosList_m.set("Num Blocks", nBlocks_m);      // Maximum number of blocks in Krylov space
+	belosList_m.set("Num Recycled Blocks", nRecycleBlocks_m); // Number of vectors in recycle space
     }
 
-    // Set the ghost cell values of the level > 0 mask to COARSER
-    // Set the interior   values of the level > 0 mask to INSIDE
-    for (int lev = 1; lev < nlevs; lev++)
-    {
-        for (MFIter mfi(mask[lev]); mfi.isValid(); ++mfi)
-        {
-            const Box& fab_bx = mask[lev][mfi].box();
-            mask[lev][mfi].setVal(COARSER,fab_bx,comp,1);
+    if(verbose_m) {
+	belosList_m.set("Verbosity", Belos::Errors + Belos::Warnings + Belos::TimingDetails + Belos::FinalSummary + Belos::StatusTestDetails);
+	belosList_m.set("Output Frequency", 1);
+    } else
+	belosList_m.set("Verbosity", Belos::Errors + Belos::FinalSummary);
+}
 
-            const Box& bx = mfi.validbox();
-            mask[lev][mfi].setVal(INSIDE,bx,comp,1);
-        }
-    }
 
-    // Just in case ...
-    // Fill the ghost cells of all IABS 
-    for (int lev = 0; lev < nlevs; lev++)
-    {
-       mask[lev].FillBoundary();
-    }
+int Solver::coordBox2globalIdx_m(const IntVect& coord) {
+    return coord[0] + nGridPoints_m[0] * coord[1] + nGridPoints_m[0] * nGridPoints_m[1] * coord[2];
+}
 
-    if (ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "PROBLO " << prob_lo[0] << " " << prob_lo[1] << " " << prob_lo[2] << std::endl;
-        std::cout << "DX     " <<      hr[0] << " " <<      hr[1] << " " <<      hr[2] << std::endl;
-    }
 
-    std::multimap < std::pair<int, int>, double >::iterator itr; 
-
-    // At coarsest level we test for cells outside the boundary geometry
-    lev = 0;
-    BoxArray lev0_ba(mask[0].boxArray());
-    Box prob_domain = lev0_ba.minimalBox();
-
-    for (MFIter mfi(mask[lev]); mfi.isValid(); ++mfi)
-    {
-         const Box& bx = mfi.validbox();
-         IArrayBox& fab_mask = mask[lev][mfi];
-
-         // First find lo and hi intersections (xlo, xhi) at fixed i
-         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; k++)
-         for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; j++)
-         {
-      	     std::pair<int, int> coordyz(j,k);
-
-       	     itr = xlo.find(coordyz);
-             Real inter_xlo = itr->second;     
-             
-       	     itr = xhi.find(coordyz);
-             Real inter_xhi= itr->second;     
-
-      	     // Test if we are outside of domain in x-dir
-             for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; i++)
-             {
-                IntVect iv(i,j,k);
-                Real x = prob_lo[0] + (i+.5)*hr[0];
-                if (x < inter_xlo               || x > inter_xhi || 
-                    i < prob_domain.loVect()[0] || i > prob_domain.hiVect()[0])  
-                {
-                    fab_mask(iv,0) = OUTSIDE;
-                }
-             }
-         }
-
-         // Next find lo and hi intersections (ylo, yhi) at fixed j
-         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; k++)
-         for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; i++)
-         {
-      	     std::pair<int, int> coordxz(i,k);
-
-       	     itr = ylo.find(coordxz);
-             Real inter_ylo = itr->second;     
-
-       	     itr = yhi.find(coordxz);
-             Real inter_yhi = itr->second;     
-
-      	     // Test if we are outside of domain in y-dir
-             for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; j++)
-             {
-                IntVect iv(i,j,k);
-                Real y = prob_lo[1] + (j+.5)*hr[1];
-                if (y < inter_ylo               || y > inter_yhi || 
-                    j < prob_domain.loVect()[1] || j > prob_domain.hiVect()[1])  
-                {
-                    fab_mask(iv,0) = OUTSIDE;
-                }
-             }
-         }
-    }
-
-    // At all levels but the finest we test to see cells are covered by finer grids
-    if (nlevs > 1)
-       for (int lev = 0; lev < nlevs-1; lev++)
-       {
-          ba = mask[lev+1].boxArray();
-          ba.coarsen(2);
-          for (int b = 0; b < ba.size(); b++)
-          {
-             mask[lev].setVal(COVERED,ba[b],0,1);
-          }
-       }
-
-    // Fill the ghost cells of all IABS at each level
-    for (int lev = 0; lev < nlevs; lev++)
-        mask[lev].FillBoundary();
-
-    // Now define the imap -- first default to -1
-    for (int lev = 0; lev < nlevs; lev++)
-        imap[lev].setVal(-1);
-
-    // We know there are the same number of processes as grids at level 0
-    int nprocs = mask[0].boxArray().size();
-    int cells_per_proc[nprocs];
-    for (int i = 0; i < nprocs; i++) cells_per_proc[i] = 0;
-
-    // First figure out how many valid points on each processor
-    int ct = 0;
-    for (int lev = 0; lev < nlevs; lev++)
-    {
-       for (MFIter mfi(mask[lev]); mfi.isValid(); ++mfi)
-       {
-         int grid_id = mfi.index();
-         IArrayBox& fab_mask =  mask[lev][mfi];
-         const Box& bx = mfi.validbox();
-
-         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; k++)
-         for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; j++)
-         for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; i++)
-         {
-             IntVect iv(i,j,k);
-             if (fab_mask(iv,0) == INSIDE) ct++;
-         }
-         cells_per_proc[grid_id] = ct;
-       }
-    }
-    // Send cells_per_proc from every processor to every processor
-    ParallelDescriptor::ReduceIntSum(cells_per_proc,nprocs);
-    ParallelDescriptor::Bcast(cells_per_proc,nprocs);
-
-    proc_offset = new int[nprocs];
-    proc_offset[0] = 0;
-    for (int i = 0; i < nprocs; i++)
-        proc_offset[i] = proc_offset[i-1] + cells_per_proc[i-1];
-
-    //
-    // Send proc_offset of every grid to every processor
-    //
-    ParallelDescriptor::Bcast(proc_offset,nprocs);
-
-    int my_offset = proc_offset[ParallelDescriptor::MyProc()];
-
-    // Make sure to set idx to 0
-    int local_idx = 0;
+void Solver::fillGlobalIndex_m(std::vector<int>& gidx, const MultiFab& rhs) {
     
-    // Here do just the level 0 grids -- these don't have the
-    // special factor 2 indexing
-    lev = 0;
-    {
-       for (MFIter mfi(mask[lev]); mfi.isValid(); ++mfi)
-       {
-         IArrayBox& fab_mask =  mask[lev][mfi];
-         IArrayBox& fab_imap =  imap[lev][mfi];
-         const Box& bx = mfi.validbox();
-         std::cout << "LEVEL 0 BOX " << bx << std::endl;
-
-         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; k++)
-         for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; j++)
-         for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; i++)
-         {
-             IntVect iv(i,j,k);
-             if (fab_mask(iv,0) == INSIDE)
-             {
-                 fab_imap(iv,0) = my_offset + local_idx;
-                 local_idx++;
-             }
-         }
-       }
-    }
-
-    // Now do the level > 0 grids -- these use a special indexing
-    // so that if we know just one index we know all indices in that
-    // 2x2x2 box.
-    for (int lev = 1; lev < nlevs; lev++)
-    {
-       for (MFIter mfi(mask[lev]); mfi.isValid(); ++mfi)
-       {
-         IArrayBox& fab_mask =  mask[lev][mfi];
-         IArrayBox& fab_imap =  imap[lev][mfi];
-         const Box& bx = mfi.validbox();
-         std::cout << "LEVEL " << lev << "  BOX " << bx << std::endl;
-
-         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; k+=2)
-         for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; j+=2)
-         for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; i+=2)
-         {
-             // DO NOT THE ORDER OF THESE LINES -- this is the order assumed
-             //   in ComputeStencil -- if you change it here you must
-             //   change the definitions for COVERED cells in ComputeSTencil
-             IntVect iv_lll(i  ,j  ,k  );
-             IntVect iv_hll(i+1,j  ,k  );
-             IntVect iv_lhl(i  ,j+1,k  );
-             IntVect iv_hhl(i+1,j+1,k  );
-             IntVect iv_llh(i  ,j  ,k+1);
-             IntVect iv_hlh(i+1,j  ,k+1);
-             IntVect iv_lhh(i  ,j+1,k+1);
-             IntVect iv_hhh(i+1,j+1,k+1);
-
-             // Note that if iv_lll is INSIDE then all 8 cells are INSIDE
-             if (fab_mask(iv_lll,0) == INSIDE)
-             {
-                 fab_imap(iv_lll,0) = my_offset + local_idx; local_idx++;
-                 fab_imap(iv_hll,0) = my_offset + local_idx; local_idx++;
-                 fab_imap(iv_lhl,0) = my_offset + local_idx; local_idx++;
-                 fab_imap(iv_hhl,0) = my_offset + local_idx; local_idx++;
-                 fab_imap(iv_llh,0) = my_offset + local_idx; local_idx++;
-                 fab_imap(iv_hlh,0) = my_offset + local_idx; local_idx++;
-                 fab_imap(iv_lhh,0) = my_offset + local_idx; local_idx++;
-                 fab_imap(iv_hhh,0) = my_offset + local_idx; local_idx++;
-             }
- 
-             if (i == 30 && j == 30 && k == 30) 
-                 std::cout << "CONSTRUCTING IMAP(31,31,31) " << fab_imap(iv_hhh,0) << std::endl; 
-         }
-       }
-    }
-    // Replace the imap value of COVERED cells by the imap value of the iv_lll cell
-    //         on the finer grid covering it
-    for (int lev = 0; lev < nlevs-1; lev++)
-        avgDownImap(imap[lev],imap[lev+1]);
-
-    // Replace the imap value of COVERED cells by the imap value of the iv_lll cell
-    //         on the finer grid covering it
-    for (int lev = 1; lev < nlevs; lev++)
-        FillImapGhostCells(imap[lev-1],imap[lev], mask[lev]);
-
-    // Fill the ghost cells of all IABS at this level
-    for (int lev = 0; lev < nlevs; lev++)
-    {
-       imap[lev].FillBoundary();
-    }
-}
-
-void
-Solver::avgDownImap(iMultiFab& crse, iMultiFab& fine)
-{
-    IntVect ratio(2,2,2);
-
-    BoxArray crse_fine_BA(fine.boxArray().size());
-
-    for (int i = 0; i < fine.boxArray().size(); ++i)
-        crse_fine_BA.set(i,BoxLib::coarsen(fine.boxArray()[i],ratio));
-
-    iMultiFab crse_fine(crse_fine_BA,1,0);
-
-    for (MFIter mfi(fine); mfi.isValid(); ++mfi)
-    {
-        const int        i        = mfi.index();
-        const Box&       ovlp     = crse_fine_BA[i];
-        IArrayBox&       crse_fab = crse_fine[i];
-        const IArrayBox& fine_fab = fine[i];
-
-        // Loop over the coarse indices of the box where the fine and
-        // coarse grids overlap
-        for (int k = ovlp.loVect()[2]; k <= ovlp.hiVect()[2]; k++)
-        for (int j = ovlp.loVect()[1]; j <= ovlp.hiVect()[1]; j++)
-        for (int i = ovlp.loVect()[0]; i <= ovlp.hiVect()[0]; i++)
-        {   
-              IntVect iv_crse(  i,  j,  k);
-              IntVect iv_lll (2*i,2*j,2*k);
-              crse_fab(iv_crse,0) = fine_fab(iv_lll,0);
-        }   
-    }
-
-    crse.copy(crse_fine);
-}
-
-void
-Solver::FillImapGhostCells(iMultiFab& crse_imap, iMultiFab& fine_imap, iMultiFab& fine_mask)
-{
-    IntVect ratio(2,2,2);
-
-    BoxArray crse_fine_BA(fine_imap.boxArray().size());
-
-    // Create a coarse boxArray that holds the fine boxes PLUS ghost cells
-    // This boxArray is at coarse resolution but uses the processor distribution
-    // of the fine boxArray.
-    for (int i = 0; i < fine_imap.boxArray().size(); ++i)
-        crse_fine_BA.set(i,BoxLib::grow(BoxLib::coarsen(fine_imap.boxArray()[i],ratio),1));
-
-    iMultiFab crse_fine(crse_fine_BA,1,0);
-
-    // This boxArray is at coarse resolution but uses the processor distribution
-    // We copy the crse imap values into this new MultiFab.
-    crse_fine.copy(crse_imap);
-
-    for (MFIter mfi(fine_imap); mfi.isValid(); ++mfi)
-    {
-        const int        i   = mfi.index();
-        const Box&   fine_bx = mfi.validbox();
-
-        const IArrayBox& crse_imap_fab = crse_fine[i];
-              IArrayBox& fine_imap_fab = fine_imap[i];
-        const IArrayBox& fine_mask_fab = fine_mask[i];
-
-        // Loop over the fine indices including ghost cells -- but only fill
-        // from the coarse grid if the mask says COARSER
-        for (int k = fine_bx.loVect()[2]-1; k <= fine_bx.hiVect()[2]+1; k++)
-        for (int j = fine_bx.loVect()[1]-1; j <= fine_bx.hiVect()[1]+1; j++)
-        for (int i = fine_bx.loVect()[0]-1; i <= fine_bx.hiVect()[0]+1; i++)
-        {   
-              IntVect iv_fine(i,j,k);
-              if (fine_mask_fab(iv_fine,0) == COARSER)
-              {
-                 IntVect iv_crse(i/2,j/2,k/2);
-                 fine_imap_fab(iv_fine,0) = crse_imap_fab(iv_crse,0);
-              }
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
+        IArrayBox& ifab = idxMap_m[0][mfi];
+        const Box& bx = mfi.validbox();
+        
+        // iterate over local indices given by the box boundary
+        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    IntVect coord(i, j, k);
+                    ifab(coord) = coordBox2globalIdx_m( coord );
+                    gidx.push_back( ifab(coord) );
+                }
+            }
         }
+    }
+}
+
+void Solver::fillRHS_m(const MultiFab& rhs) {
+    
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
+        const FArrayBox& fab = rhs[mfi];
+        const Box& bx = mfi.validbox();
+        
+        // local index
+        int lidx = 0;
+        
+        // iterate over local indices given by the box boundary
+        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    RHS->Values()[lidx++] = fab({i, j, k});
+                }
+            }
+        }
+    }
+}
+
+void Solver::fillSysMatrix_m(const Epetra_Map& map) {
+    // not nice coding
+    
+    A = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy, map, 7) );
+    
+    double values[7] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    int indices[7] = { 0, 0, 0, 0, 0, 0, 0};
+    int nEntries = 0;
+    
+    for (MFIter mfi(idxMap_m[0]); mfi.isValid(); ++mfi) {
+        IArrayBox& ifab = idxMap_m[0][mfi];
+        const Box& bx = mfi.validbox();
+        
+        // iterate over local indices given by the box boundary
+        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    // ordering: center, west, east, north, south, front, back
+                    getStencil({i, j, k}, &values[0], &indices[0], nEntries, ifab);
+                    int row = ifab( {i, j, k} );
+                    A->InsertGlobalValues(row , nEntries, &values[0], &indices[0]);
+                }
+            }
+        }
+    }
+    
+    A->FillComplete();
+    
+    *gmsg << "Number of non-zeros: " << A->NumGlobalNonzeros () << endl;
+}
+
+void Solver::getStencil(const IntVect& coord, double* values, int* indices, int& nEntries, const IArrayBox& ifab) {
+    // not nice coding
+    
+    
+    nEntries = 0;
+    
+    
+    int center = ifab( coord );
+    
+    values[nEntries] = - 2.0 / ( hr[0] * hr[0]) - 2.0 / ( hr[1] * hr[1] ) - 2.0 / ( hr[2] * hr[2] );
+    indices[nEntries++] = ifab( coord );
+    
+    
+    int nx = nGridPoints_m[0];
+    int ny = nGridPoints_m[1];
+    int nz = nGridPoints_m[2];
+    
+    
+    // west
+    if ( center % nx != 0 ) {
+        values[nEntries] = 1.0 / (hr[0] * hr[0]);
+        indices[nEntries++] = center - 1;
+    }
+    
+    // east
+    if ( (center + 1) % nx != 0 && center + 1 < nx * ny * nz ) {
+        values[nEntries] = 1.0 / (hr[0] * hr[0]);
+        indices[nEntries++] = center + 1;
+    }
+    
+    // south
+    if ( center - nx >= 0 && center % (nx * ny) >= nx ) {
+        values[nEntries] = 1.0 / (hr[1] * hr[1]);
+        indices[nEntries++] = center - nx;
+    }
+    
+    // north
+    if ( (center + nx) % (nx * ny) > ny - 1 && (center + nx) < nx * ny * nz ) {
+        values[nEntries] = 1.0 / (hr[1] * hr[1]);
+        indices[nEntries++] = center + nx;
+    }
+    
+    // front
+    if ( center - nx * ny >= 0 ) {
+        values[nEntries] = 1.0 / (hr[2] * hr[2]);
+        indices[nEntries++] = center - nx * ny;
+    }
+    
+    // back
+    if ( center + nx * ny < nx * ny * nz ) {
+        values[nEntries] = 1.0 / (hr[2] * hr[2]);
+        indices[nEntries++] = center + nx * ny;
     }
 }

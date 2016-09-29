@@ -15,7 +15,6 @@ set (_SRCS
   Src_3d/ProbInit.f90
   Src_3d/Tagging_3d.f90
   Src_3d/bc_fill_3d.f90
-  ComputeStencil.cpp
   TrilinosSolver.cpp
   init_trilinos.cpp
 )

@@ -22,7 +22,7 @@ using namespace Teuchos;
 Solver*
 Electrostatic::init_trilinos(PArray<MultiFab>& rhs, PArray<MultiFab>& soln, const Real* dx)
 {
-    Epetra_MpiComm Comm(MPI_COMM_WORLD);
+    Epetra_MpiComm Comm(/*MPI_COMM_WORLD*/ParallelDescriptor::Communicator());
 
     // default values
 
@@ -38,8 +38,10 @@ Electrostatic::init_trilinos(PArray<MultiFab>& rhs, PArray<MultiFab>& soln, cons
 
     /// A block CG iteration for SPD linear problems."CG"
     /// A block GMRES iteration for non-Hermitian linear problems. "GMRES"
-    std::string itsolver = "GMRES"; 
-
+// #if 1 
+//     std::string itsolver = "GMRES"; 
+// #endif
+    std::string itsolver = "CG"; 
     int nlevs = rhs.size();
 
     BoundaryPointList& xlo = parent->getIntersectLoX();
@@ -48,8 +50,8 @@ Electrostatic::init_trilinos(PArray<MultiFab>& rhs, PArray<MultiFab>& soln, cons
     BoundaryPointList& yhi = parent->getIntersectHiY();
 
     const Real* prob_lo = Geometry::ProbLo();
-
-    Solver* s = new Solver(Comm, itsolver, interpl, verbose,
+    
+    Solver* s = new Solver(Comm, itsolver, verbose,
                            tol, maxiters, numBlocks, recycleBlocks, maxOldLHS,
                            nlevs, rhs, soln, dx, prob_lo, xlo, xhi, ylo, yhi);
 

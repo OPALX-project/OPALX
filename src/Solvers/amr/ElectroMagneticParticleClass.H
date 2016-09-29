@@ -9,7 +9,7 @@ class EMPC
 public:
 
     EMPC (Amr* amr)
-        : ParticleContainer<N>(amr){}
+        : ParticleContainer<N>((ParGDBBase*)amr->GetParGDB()), m_amr(amr) {}
 
     void FillEvec (MultiFab& field_vector, int level, Real betaC,             int e_comp, int b_comp);
     void MKD      (int level, Real timestep, int field_ngrow    , int v_comp, int e_comp, int b_comp);
@@ -35,6 +35,9 @@ public:
     typedef typename  ParticleContainer<N>::PMap PMap;
 
 protected:
+    
+private:
+    Amr* m_amr;
 
 };
 
@@ -52,7 +55,7 @@ EMPC<N>::FillEvec (MultiFab& field_vector, int lev, Real betaC, int e_comp, int 
     PMap&      pmap      = this->m_particles[lev];
 
     MultiFab* gv_pointer;
-    if (this->m_amr->getLevel(lev).ParticlesOnSameGrids())
+    if (((ParGDB*)this->m_amr->GetParGDB())->OnSameGrids(lev, field_vector))
     {
         gv_pointer = &field_vector;
     }
@@ -85,7 +88,7 @@ EMPC<N>::FillEvec (MultiFab& field_vector, int lev, Real betaC, int e_comp, int 
             {
                 BL_ASSERT(p.m_grid == grid);
                 Real field[BL_SPACEDIM];
-                ParticleBase::GetGravity(efab, this->m_amr, p, field);
+                ParticleBase::GetGravity(efab, this->m_amr->Geom(lev), p, field);
 
                 // These are the components of the electric field
                 p.m_data[e_comp  ] = field[0];
@@ -174,7 +177,7 @@ EMPC<N>::MKD (int lev, Real dt, int field_ngrow, int v_comp, int e_comp, int b_c
                 // Move the particle to the proper ghost cell. 
                 //      and remove any *ghost* particles that have gone too far
                 // Note that this should only negate ghost particles, not real particles.
-                if (!ParticleBase::RestrictedWhere(p,this->m_amr, field_ngrow-2))
+                if (!ParticleBase::RestrictedWhere(p,(ParGDBBase*)this->m_amr->GetParGDB(), field_ngrow-2))
                 {
                     // Assert that the particle being removed is a ghost particle;
                     // the ghost particle is no longer in relevant ghost cells for this grid.
