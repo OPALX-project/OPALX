@@ -16,4 +16,4 @@
 /* repository svn version */
 #define GIT_VERSION ${OPAL_WC_REVISION}
 
-/*#define GIT_VERSION ${GIT_VERSION}*/
+#define BOOST_VERSION ${Boost_VERSION}

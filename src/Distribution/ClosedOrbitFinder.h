@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "physics.h"
+#include "config.h"
 
 #include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
 
@@ -30,6 +31,9 @@
 #include <fstream>
 
 // include headers for integration
+#if BOOST_VERSION >= 106000
+#include <boost/numeric/odeint/integrate/check_adapter.hpp>
+#endif
 #include <boost/numeric/odeint/integrate/integrate_n_steps.hpp>
 
 /// @brief Finds a closed orbit of a cyclotron for a given energy
