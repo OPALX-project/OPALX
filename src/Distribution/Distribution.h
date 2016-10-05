@@ -215,8 +215,8 @@ private:
     //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
 
     void AddDistributions();
-    void ApplyEmissionModel(double eZ, double &px, double &py, double &pz);
-    void ApplyEmissModelAstra(double &px, double &py, double &pz);
+    void ApplyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
+    void ApplyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
     void ApplyEmissModelNone(double &pz);
     void ApplyEmissModelNonEquil(double eZ, double &px, double &py, double &pz);
     void Create(size_t &numberOfParticles, double massIneV);
@@ -332,6 +332,7 @@ private:
     double cathodeTemp_m;           /// Cathode temperature (K).
     double emitEnergyUpperLimit_m;  /// Upper limit on emission energy distribution (eV).
 
+    std::vector<std::vector<double> > additionalRNs_m;
 
     // Beam coordinate containers.
     std::vector<double> xDist_m;

@@ -472,6 +472,40 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
         break;
     }
 
+    if (emitting_m) {
+        unsigned int numAdditionalRNsPerParticle = 0;
+        if (emissionModel_m == EmissionModelT::ASTRA) {
+            numAdditionalRNsPerParticle = 2;
+        }
+
+        if (Options::cZero) {
+            numAdditionalRNsPerParticle *= 2;
+        }
+
+        int saveProcessor = -1;
+
+        for (size_t partIndex = 0; partIndex < numberOfParticles; ++ partIndex) {
+
+            // Save to each processor in turn.
+            ++ saveProcessor;
+            if (saveProcessor >= Ippl::getNodes())
+                saveProcessor = 0;
+
+            if (Ippl::myNode() == saveProcessor) {
+                std::vector<double> rns;
+                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
+                    double x = gsl_rng_uniform(randGenEmit_m);
+                    rns.push_back(x);
+                }
+                additionalRNs_m.push_back(rns);
+            } else {
+                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
+                    gsl_rng_uniform(randGenEmit_m);
+                }
+            }
+        }
+    }
+
     // AAA Scale and shift coordinates according to distribution input.
     ScaleDistCoordinates();
 }
@@ -922,7 +956,7 @@ void Distribution::AddDistributions() {
     }
 }
 
-void Distribution::ApplyEmissionModel(double eZ, double &px, double &py, double &pz) {
+void Distribution::ApplyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
 
     switch (emissionModel_m) {
 
@@ -930,7 +964,7 @@ void Distribution::ApplyEmissionModel(double eZ, double &px, double &py, double 
         ApplyEmissModelNone(pz);
         break;
     case EmissionModelT::ASTRA:
-        ApplyEmissModelAstra(px, py, pz);
+        ApplyEmissModelAstra(px, py, pz, additionalRNs);
         break;
     case EmissionModelT::NONEQUIL:
         ApplyEmissModelNonEquil(eZ, px, py, pz);
@@ -940,10 +974,10 @@ void Distribution::ApplyEmissionModel(double eZ, double &px, double &py, double 
     }
 }
 
-void Distribution::ApplyEmissModelAstra(double &px, double &py, double &pz) {
+void Distribution::ApplyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
 
-    double phi = 2.0 * acos(sqrt(gsl_rng_uniform(randGenEmit_m)));
-    double theta = 2.0 * Physics::pi * gsl_rng_uniform(randGenEmit_m);
+    double phi = 2.0 * acos(sqrt(additionalRNs[0]));
+    double theta = 2.0 * Physics::pi * additionalRNs[1];
 
     px = pTotThermal_m * sin(phi) * cos(theta);
     py = pTotThermal_m * sin(phi) * sin(theta);
@@ -1632,6 +1666,16 @@ void Distribution::CreateOpalT(PartBunch &beam,
          addedDistIt != addedDistributions_m.end(); addedDistIt++)
         (*addedDistIt)->SetDistType();
 
+    // Check if this is to be an emitted beam.
+    CheckIfEmitted();
+
+    if (emitting_m) {
+        CheckEmissionParameters();
+        SetupEmissionModel(beam);
+    } else {
+        pmean_m = Vector_t(0.0, 0.0, ConverteVToBetaGamma(GetEkin(), beam.getM()));
+    }
+
     /*
      * If Options::cZero is true than we reflect generated distribution
      * to ensure that the transverse averages are 0.0.
@@ -1648,9 +1692,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
      * determined here.
      */
     CalcPartPerDist(numberOfParticles);
-
-    // Check if this is to be an emitted beam.
-    CheckIfEmitted();
 
     /*
      * Force added distributions to the same emission condition as the main
@@ -1682,13 +1723,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
     // Check number of particles in distribution.
     CheckParticleNumber(numberOfParticles);
 
-    if (emitting_m) {
-        CheckEmissionParameters();
-        SetupEmissionModel(beam);
-    } else {
-        pmean_m = Vector_t(0.0, 0.0, ConverteVToBetaGamma(GetEkin(), beam.getM()));
-    }
-
     /*
      * Find max. and min. particle positions in the bunch. For the
      * case of an emitted beam these will be in time (seconds). For
@@ -1715,6 +1749,17 @@ void Distribution::CreateOpalT(PartBunch &beam,
 
     InitializeBeam(beam);
     WriteOutFileHeader();
+
+    if (emitting_m && Options::cZero) {
+        std::vector<std::vector<double> > mirrored;
+        const auto end = additionalRNs_m.end();
+        for (auto it = additionalRNs_m.begin(); it != end; ++ it) {
+            std::vector<double> tmp((*it).begin() + 2, (*it).end());
+            mirrored.push_back(tmp);
+            (*it).erase((*it).begin() + 2, (*it).end());
+        }
+        additionalRNs_m.insert(additionalRNs_m.end(), mirrored.begin(), mirrored.end());
+    }
 
     /*
      * If this is an injected beam, we create particles right away.
@@ -1806,7 +1851,14 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 double px = pxDist_m.at(particleIndex);
                 double py = pyDist_m.at(particleIndex);
                 double pz = pzDist_m.at(particleIndex);
-                ApplyEmissionModel(eZ, px, py, pz);
+                std::vector<double> additionalRNs;
+                if (additionalRNs_m.size() > particleIndex) {
+                    additionalRNs = additionalRNs_m[particleIndex];
+                } else {
+                    additionalRNs = std::vector<double>({gsl_rng_uniform(randGenEmit_m),
+                                                         gsl_rng_uniform(randGenEmit_m)});
+                }
+                ApplyEmissionModel(eZ, px, py, pz, additionalRNs);
 
                 double particleGamma
                     = std::sqrt(1.0
@@ -1860,6 +1912,11 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
             std::swap(pyDist_m.at(*ptbErasedIt), pyDist_m.back());
             std::swap(tOrZDist_m.at(*ptbErasedIt), tOrZDist_m.back());
             std::swap(pzDist_m.at(*ptbErasedIt), pzDist_m.back());
+            if (additionalRNs_m.size() == xDist_m.size()) {
+                std::swap(additionalRNs_m.at(*ptbErasedIt), additionalRNs_m.back());
+
+                additionalRNs_m.pop_back();
+            }
 
             xDist_m.pop_back();
             pxDist_m.pop_back();
