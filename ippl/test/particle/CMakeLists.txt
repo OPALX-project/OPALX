@@ -12,7 +12,7 @@ link_directories (
     ${CMAKE_SOURCE_DIR}/src
 )
 
-SET (IPPL_LIBS ${OPAL_LIBS})
+SET (IPPL_LIBS ippl)
 SET (COMPILE_FLAGS ${OPAL_CXX_FLAGS})
 
 IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
@@ -32,7 +32,7 @@ add_executable (PIC3d PIC3d.cpp)
 target_link_libraries (PIC3d ${IPPL_LIBS})
 
 add_executable (p3m3dHeating p3m3dHeating.cpp)
-target_link_libraries (p3m3dHeating ${IPPL_LIBS})
+target_link_libraries (p3m3dHeating ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY} z ${CMAKE_DL_LIBS})
 
 #add_executable (p3m3d p3m3d.cpp)
 #target_link_libraries (p3m3d ${IPPL_LIBS})
@@ -50,7 +50,7 @@ target_link_libraries (p3m3dHeating ${IPPL_LIBS})
 #target_link_libraries (p3m3dRegressionTests ${IPPL_LIBS})
 
 add_executable (p3m3dMicrobunching p3m3dMicrobunching.cpp)
-target_link_libraries (p3m3dMicrobunching ${IPPL_LIBS})
+target_link_libraries (p3m3dMicrobunching ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY} z ${CMAKE_DL_LIBS})
 
 #add_executable (p3m3d_periodic p3m3d_periodic.cpp)
 #target_link_libraries (p3m3d_periodic ${IPPL_LIBS})
