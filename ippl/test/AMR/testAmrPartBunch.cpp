@@ -21,7 +21,7 @@ This test program sets up a simple sine-wave electric field in 3D,
 
 Usage:
 
- mpirun -np 2 PIC3d 128 128 128 10000 10 NGP OOP GUARDCELLS --commlib mpi --info 0
+ mpirun -np 2 PIC3d 128 128 128 10000 10 GUARDCELLS --commlib mpi --info 0
 
 ***************************************************************************/
 
@@ -48,8 +48,8 @@ typedef IntNGP IntrplNGP_t;
 
 #define GUARDCELL 1
 
-enum BC_t {OOO,OOP,PPP};
-enum InterPol_t {NGP,CIC};
+enum BC_t {PPP};
+enum InterPol_t {CIC};
 
 const double pi = acos(-1.0);
 const double qmmax = 1.0;       // maximum value for particle q/m
@@ -152,8 +152,6 @@ class ChargedParticles : public ParticleBase<PL> {
 
   Vektor<int,Dim> nr_m;
 
-  BC_t bco_m;
-  InterPol_t interpol_m;
   bool fieldNotInitialized_m;
   bool doRepart_m;
   bool withGuardCells_m;
@@ -173,8 +171,6 @@ public:
 
     ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim], bool gCells) :
         ParticleBase<PL>(pl),
-        bco_m(bc),
-        interpol_m(interpol),
         fieldNotInitialized_m(true),
         doRepart_m(true),
         withGuardCells_m(gCells)
@@ -189,16 +185,8 @@ public:
             decomp_m[i]=decomp[i];
     }
 
-    /*
-      In case we have OOP or PPP boundary conditions
-      we must define the domain, i.e can not be deduced from the
-      particles as in the OOO case.
-    */
-
     ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) :
         ParticleBase<PL>(pl),
-        bco_m(bc),
-        interpol_m(interpol),
 	fieldNotInitialized_m(true),
         doRepart_m(true),
         withGuardCells_m(gCells),
@@ -217,12 +205,7 @@ public:
     }
 
     void setupBCs() {
-        if (bco_m == OOO)
-            setBCAllOpen();
-        else if (bco_m == PPP)
             setBCAllPeriodic();
-        else
-            setBCOOP();
     }
 
     inline const Mesh_t& getMesh() const { return this->getLayout().getLayout().getMesh(); }
@@ -238,12 +221,8 @@ public:
     }
 
     void gather(int iteration) {
-        if (interpol_m==CIC)
-            gatherCIC();
-        else
-            gatherNGP();
-
-		scatterCIC();
+        gatherCIC();
+        scatterCIC();
         NDIndex<Dim> lDom = getFieldLayout().getLocalNDIndex();
         dumpVTK(EFDMag_m,lDom,nr_m[0],nr_m[1],nr_m[2],iteration,hr_m[0],hr_m[1],hr_m[2]);
     }
@@ -251,10 +230,8 @@ public:
     double scatter() {
         Inform m("scatter ");
         double initialQ = sum(qm);
-        if (interpol_m==CIC)
-            scatterCIC();
-        else
-            scatterNGP();
+        
+        scatterCIC();
 
         /*
           now sum over all gridpoints ... a bit nasty !
@@ -295,27 +272,13 @@ public:
         double hz   = hr_m[2];
         double zmin = rmin_m[2];
         double zmax = rmax_m[2];
-
-        if (bco_m != PPP) {
-            bounds(this->R, rmin_m, rmax_m);
-
-            NDIndex<Dim> domain = this->getFieldLayout().getDomain();
-
-            for (unsigned int i=0; i<Dim; i++)
-                nr_m[i] = domain[i].length();
-
-            for (unsigned int i=0; i<Dim; i++)
-                hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0);
-
-            if (bco_m == OOP) {
-                rmin_m[2] = zmin;
-                rmax_m[2] = zmax;
-                hr_m[2] = hz;
-            }
-
+        
+        
+        if(fieldNotInitialized_m) {
+            fieldNotInitialized_m=false;
             getMesh().set_meshSpacing(&(hr_m[0]));
             getMesh().set_origin(rmin_m);
-
+            
             if(withGuardCells_m) {
                 EFD_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), vbc_m);
                 EFDMag_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), bc_m);
@@ -325,21 +288,7 @@ public:
                 EFDMag_m.initialize(getMesh(), getFieldLayout(), bc_m);
             }
         }
-        else {
-            if(fieldNotInitialized_m) {
-                fieldNotInitialized_m=false;
-                getMesh().set_meshSpacing(&(hr_m[0]));
-                getMesh().set_origin(rmin_m);
-                if(withGuardCells_m) {
-                    EFD_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), vbc_m);
-                    EFDMag_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), bc_m);
-                }
-                else {
-                    EFD_m.initialize(getMesh(), getFieldLayout(), vbc_m);
-                    EFDMag_m.initialize(getMesh(), getFieldLayout(), bc_m);
-                }
-            }
-        }
+        
         this->update();
     }
 
@@ -481,14 +430,6 @@ public:
 
 private:
 
-    inline void setBCAllOpen() {
-        for (unsigned i=0; i < 2*Dim; i++) {
-            this->getBConds()[i] = ParticleNoBCond;
-            bc_m[i]  = new ZeroFace<double  ,Dim,Mesh_t,Center_t>(i);
-            vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-        }
-    }
-
     inline void setBCAllPeriodic() {
         for (unsigned i=0; i < 2*Dim; i++) {
             this->getBConds()[i] = ParticlePeriodicBCond;
@@ -496,41 +437,16 @@ private:
             vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
         }
     }
-
-    inline void setBCOOP() {
-        for (unsigned i=0; i < 2*Dim - 2; i++) {
-            bc_m[i]  = new ZeroFace<double  ,Dim,Mesh_t,Center_t>(i);
-            vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-            this->getBConds()[i] = ParticleNoBCond;
-        }
-        for (unsigned i= 2*Dim - 2; i < 2*Dim; i++) {
-            bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
-            vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-            this->getBConds()[i] = ParticlePeriodicBCond;
-        }
-    }
-
-    inline void gatherNGP() {
-        // create interpolater object (nearest-grid-point method)
-        IntNGP myinterp;
-        E.gather(EFD_m, this->R, myinterp);
-    }
-
+    
     inline void gatherCIC() {
         // create interpolater object (cloud in cell method)
         IntCIC myinterp;
         E.gather(EFD_m, this->R, myinterp);
     }
-
+    
     inline void scatterCIC() {
         // create interpolater object (cloud in cell method)
         IntCIC myinterp;
-        qm.scatter(EFDMag_m, this->R, myinterp);
-    }
-
-    inline void scatterNGP() {
-        // create interpolater object (cloud in cell method)
-        IntNGP myinterp;
         qm.scatter(EFDMag_m, this->R, myinterp);
     }
 
@@ -546,41 +462,18 @@ int main(int argc, char *argv[]){
     const unsigned int totalP = atoi(argv[4]);
     const unsigned int nt     = atoi(argv[5]);
 
-    InterPol_t myInterpol;
-    if (std::string(argv[6])==std::string("CIC"))
-        myInterpol = CIC;
-    else
-        myInterpol = NGP;
+    InterPol_t myInterpol = CIC;
 
     bool gCells;
-    gCells =  (std::string(argv[8])==std::string("GUARDCELLS"));
+    gCells =  (std::string(argv[6])==std::string("GUARDCELLS"));
 
     msg << "Particle test PIC3d " << endl;
     msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
-
-    if (myInterpol==CIC)
-        msg << "Cloud in cell (CIC) interpolation selected" << endl;
-    else
-        msg << "Nearest grid point (NGP) interpolation selected" << endl;
 
     if (gCells)
         msg << "Using guard cells" << endl;
     else
         msg << "Not using guard cells" << endl;
-
-    BC_t myBC;
-    if (std::string(argv[7])==std::string("OOO")) {
-        myBC = OOO; // open boundary
-        msg << "BC == OOO" << endl;
-    }
-    else if (std::string(argv[7])==std::string("OOP")) {
-        myBC = OOP; // open boundary in x and y, periodic in z
-        msg << "BC == OOP" << endl;
-    }
-    else {
-        myBC = PPP; // all periodic
-        msg << "BC == PPP" << endl;
-    }
 
     e_dim_tag decomp[Dim];
     unsigned serialDim = 2;
@@ -609,20 +502,15 @@ int main(int argc, char *argv[]){
     FL            = new FieldLayout_t(*mesh, decomp);
     playout_t* PL = new playout_t(*FL, *mesh);
 
-    if (myBC==OOO)
-        P = new ChargedParticles<playout_t>(PL,myBC,myInterpol,decomp,gCells);
-    else {
-        /*
-          In case of periodic BC's define
-          the domain with hr and rmin
-        */
-
-        Vector_t hr(1.0);
-        Vector_t rmin(0.0);
-        Vector_t rmax(nr);
-
-        P = new ChargedParticles<playout_t>(PL,myBC,myInterpol,hr,rmin,rmax,decomp,gCells);
-    }
+    /*
+     * In case of periodic BC's define
+     * the domain with hr and rmin
+     */
+    Vector_t hr(1.0);
+    Vector_t rmin(0.0);
+    Vector_t rmax(nr);
+    
+    P = new ChargedParticles<playout_t>(PL, PPP, myInterpol,hr,rmin,rmax,decomp,gCells);
 
     // initialize the particle object: do all initialization on one node,
     // and distribute to others
