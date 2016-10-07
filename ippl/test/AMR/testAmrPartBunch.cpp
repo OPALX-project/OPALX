@@ -44,7 +44,6 @@ typedef CenteredFieldLayout<Dim, Mesh_t, Center_t> FieldLayout_t;
 typedef Field<double, Dim, Mesh_t, Center_t>       Field_t;
 typedef Field<Vector_t, Dim, Mesh_t, Center_t>     VField_t;
 typedef IntCIC IntrplCIC_t;
-typedef IntNGP IntrplNGP_t;
 
 #define GUARDCELL 1
 
@@ -54,91 +53,6 @@ enum InterPol_t {CIC};
 const double pi = acos(-1.0);
 const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
-
-
-void dumpVTK(Field<Vektor<double,3>,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int iteration,
-             double dx, double dy, double dz) {
-
-    std::ofstream vtkout;
-    vtkout.precision(10);
-    vtkout.setf(std::ios::scientific, std::ios::floatfield);
-
-    std::stringstream fname;
-    fname << "data/ef_";
-    fname << std::setw(4) << std::setfill('0') << iteration;
-    fname << ".vtk";
-
-    // open a new data file for this iteration
-    // and start with header
-    vtkout.open(fname.str().c_str(), std::ios::out);
-    vtkout << "# vtk DataFile Version 2.0" << std::endl;
-    vtkout << "pic3d" << std::endl;
-    vtkout << "ASCII" << std::endl;
-    vtkout << "DATASET STRUCTURED_POINTS" << std::endl;
-    vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl;
-    vtkout << "ORIGIN 0 0 0" << std::endl;
-    vtkout << "SPACING " << dx << " " << dy << " " << dz << std::endl;
-    vtkout << "POINT_DATA " << nx*ny*nz << std::endl;
-
-    vtkout << "VECTORS E-Field float" << std::endl;
-    for (int z=lDom[2].first(); z<lDom[2].last(); z++) {
-        for (int y=lDom[1].first(); y<lDom[1].last(); y++) {
-            for (int x=lDom[0].first(); x<lDom[0].last(); x++) {
-                Vektor<double, 3> tmp = EFD[x][y][z].get();
-                vtkout << tmp(0) << "\t"
-                       << tmp(1) << "\t"
-                       << tmp(2) << std::endl;
-            }
-        }
-    }
-
-    // close the output file for this iteration:
-    vtkout.close();
-}
-
-
-void dumpVTK(Field<double,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int iteration,
-             double dx, double dy, double dz) {
-
-    std::ofstream vtkout;
-    vtkout.precision(10);
-    vtkout.setf(std::ios::scientific, std::ios::floatfield);
-
-    std::stringstream fname;
-    fname << "data/scalar_";
-    fname << std::setw(4) << std::setfill('0') << iteration;
-    fname << ".vtk";
-
-    //SERIAL at the moment
-    //if (Ippl::myNode() == 0) {
-
-    // open a new data file for this iteration
-    // and start with header
-    vtkout.open(fname.str().c_str(), std::ios::out);
-    vtkout << "# vtk DataFile Version 2.0" << std::endl;
-    vtkout << "toyfdtd" << std::endl;
-    vtkout << "ASCII" << std::endl;
-    vtkout << "DATASET STRUCTURED_POINTS" << std::endl;
-    vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl;
-    vtkout << "ORIGIN 0 0 0" << std::endl;
-    vtkout << "SPACING " << dx << " " << dy << " " << dz << std::endl;
-    vtkout << "POINT_DATA " << nx*ny*nz << std::endl;
-
-    vtkout << "SCALARS E-Field float" << std::endl;
-    vtkout << "LOOKUP_TABLE default" << std::endl;
-    for (int z=lDom[2].first(); z<=lDom[2].last(); z++) {
-        for (int y=lDom[1].first(); y<=lDom[1].last(); y++) {
-            for (int x=lDom[0].first(); x<=lDom[0].last(); x++) {
-                vtkout << EFD[x][y][z].get() << std::endl;
-            }
-        }
-    }
-
-    // close the output file for this iteration:
-    vtkout.close();
-}
-
-
 
 
 template<class PL>
@@ -153,7 +67,6 @@ class ChargedParticles : public ParticleBase<PL> {
   Vektor<int,Dim> nr_m;
 
   bool fieldNotInitialized_m;
-  bool doRepart_m;
   bool withGuardCells_m;
 
   e_dim_tag decomp_m[Dim];
@@ -172,7 +85,6 @@ public:
     ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim], bool gCells) :
         ParticleBase<PL>(pl),
         fieldNotInitialized_m(true),
-        doRepart_m(true),
         withGuardCells_m(gCells)
     {
         // register the particle attributes
@@ -188,7 +100,6 @@ public:
     ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) :
         ParticleBase<PL>(pl),
 	fieldNotInitialized_m(true),
-        doRepart_m(true),
         withGuardCells_m(gCells),
 	hr_m(hr),
         rmin_m(rmin),
@@ -220,23 +131,11 @@ public:
         return dynamic_cast<FieldLayout_t&>(this->getLayout().getLayout().getFieldLayout());
     }
 
-    void gather(int iteration) {
-        gatherCIC();
-        scatterCIC();
-        NDIndex<Dim> lDom = getFieldLayout().getLocalNDIndex();
-        dumpVTK(EFDMag_m,lDom,nr_m[0],nr_m[1],nr_m[2],iteration,hr_m[0],hr_m[1],hr_m[2]);
-    }
-
     double scatter() {
         Inform m("scatter ");
         double initialQ = sum(qm);
         
         scatterCIC();
-
-        /*
-          now sum over all gridpoints ... a bit nasty !
-
-        */
 
         Field<double,Dim> tmpf;
         NDIndex<Dim> domain = getFieldLayout().getDomain();
@@ -269,11 +168,6 @@ public:
 
     void myUpdate() {
 
-        double hz   = hr_m[2];
-        double zmin = rmin_m[2];
-        double zmax = rmax_m[2];
-        
-        
         if(fieldNotInitialized_m) {
             fieldNotInitialized_m=false;
             getMesh().set_meshSpacing(&(hr_m[0]));
@@ -310,9 +204,6 @@ public:
             m << "Node " << i << " has "
               <<   globalPartPerNode[i]/this->getTotalNum()*100.0 << " \% of the total particles " << endl;
     }
-
-
-
 
     void initFields() {
         Inform m("initFields ");
@@ -428,6 +319,15 @@ public:
         }
     }
 
+
+    inline void gatherCIC() {
+        // create interpolater object (cloud in cell method)
+        IntCIC myinterp;
+        E.gather(EFD_m, this->R, myinterp);
+    }
+    
+
+
 private:
 
     inline void setBCAllPeriodic() {
@@ -436,12 +336,6 @@ private:
             bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
         }
-    }
-    
-    inline void gatherCIC() {
-        // create interpolater object (cloud in cell method)
-        IntCIC myinterp;
-        E.gather(EFD_m, this->R, myinterp);
     }
     
     inline void scatterCIC() {
@@ -555,7 +449,7 @@ int main(int argc, char *argv[]){
         P->myUpdate();
 
         // gather the local value of the E field
-        P->gather(it);
+        P->gatherCIC();
 
         // advance the particle velocities
         assign(P->P, P->P + dt * P->qm * P->E);
