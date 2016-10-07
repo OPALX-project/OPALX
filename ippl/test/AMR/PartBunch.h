@@ -5,7 +5,7 @@
 
 
 template<class PL>
-class PartBunch : public ParticleBase<PL>,
+class PartBunch : public IpplParticleBase<PL>,
                   public PartBunchBase
 {
   Field<Vektor<double,Dim>,Dim> EFD_m;
@@ -32,7 +32,7 @@ class PartBunch : public ParticleBase<PL>,
 
 public:
     PartBunch(PL* pl, e_dim_tag decomp[Dim]) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
         fieldNotInitialized_m(true)
     {
         // register the particle attributes
@@ -46,7 +46,7 @@ public:
     }
 
     PartBunch(PL* pl, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim]) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
 	fieldNotInitialized_m(true),
 	hr_m(hr),
         rmin_m(rmin),
@@ -64,11 +64,15 @@ public:
     
     //BEGIN PartBunchBase functions
     void create(int nloc) {
-        ParticleBase<PL>::create(nloc);
+        IpplParticleBase<PL>::create(nloc);
+    }
+    
+    size_t getLocalNum() const {
+        return IpplParticleBase<PL>::getLocalNum();
     }
     
     inline Vector_t& getR(int i) {
-        return ParticleBase<PL>::R[i];
+        return IpplParticleBase<PL>::R[i];
     }
     
     inline double& getQM(int i) {
@@ -87,27 +91,6 @@ public:
     inline Vector_t& getB(int i) {
         return B[i];
     }
-    
-    inline ParticleAttrib<Vector_t>& getR() {
-        return ParticleBase<PL>::R;
-    }
-    
-    inline ParticleAttrib<double>& getQM() {
-        return qm;
-    }
-    
-    inline ParticleAttrib<Vector_t>& getP() {
-        return P;
-    }
-    
-    
-    inline ParticleAttrib<Vector_t>& getE() {
-        return E;
-    }
-    
-    inline ParticleAttrib<Vector_t>& getB() {
-        return B;
-    }
     //END PartBunchBase functions
     
 
@@ -118,10 +101,6 @@ public:
     inline const Mesh_t& getMesh() const { return this->getLayout().getLayout().getMesh(); }
 
     inline Mesh_t& getMesh() { return this->getLayout().getLayout().getMesh(); }
-
-    inline const FieldLayout_t& getFieldLayout() const {
-        return dynamic_cast<FieldLayout_t&>( this->getLayout().getLayout().getFieldLayout());
-    }
 
     inline FieldLayout_t& getFieldLayout() {
         return dynamic_cast<FieldLayout_t&>(this->getLayout().getLayout().getFieldLayout());

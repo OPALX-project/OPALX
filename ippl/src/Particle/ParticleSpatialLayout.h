@@ -26,7 +26,7 @@
 
 // include files
 #include "Particle/ParticleLayout.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Region/RegionLayout.h"
 #include "Message/Message.h"
 #include "FieldLayout/FieldLayoutUser.h"
@@ -141,11 +141,11 @@ public:
     // Particle swapping/update routines
     //
 
-    // Update the location and indices of all atoms in the given ParticleBase
+    // Update the location and indices of all atoms in the given IpplParticleBase
     // object.  This handles swapping particles among processors if
     // needed, and handles create and destroy requests.  When complete,
     // all nodes have correct layout information.
-    void update(ParticleBase< ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& p,
+    void update(IpplParticleBase< ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& p,
                 const ParticleAttrib<char>* canSwap=0);
 
 
@@ -335,7 +335,7 @@ protected:
     }
 
     // swap particles to neighboring nodes if they have moved too far
-    // PB is the type of ParticleBase which should have it's layout rebuilt.
+    // PB is the type of IpplParticleBase which should have it's layout rebuilt.
     //mwerks  template<class PB>
     //mwerks  unsigned swap_particles(unsigned, PB&);
     /////////////////////////////////////////////////////////////////////
@@ -829,7 +829,7 @@ protected:
 
 
 
-    // PB is the type of ParticleBase which should have it's layout rebuilt.
+    // PB is the type of IpplParticleBase which should have it's layout rebuilt.
     //mwerks  template<class PB>
     //mwerks  unsigned swap_particles(unsigned, PB&, const ParticleAttrib<char>&);
     /////////////////////////////////////////////////////////////////////

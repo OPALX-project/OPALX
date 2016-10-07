@@ -29,7 +29,7 @@
 #include "Meshes/Cartesian.h"
 
 // 2D Cartesian instantiations
-template class FileParticleBaseDataSource<ParticleInteractLayout<
+template class FileIpplParticleBaseDataSource<ParticleInteractLayout<
    IPPL_PRECISION_TYPE, 2U, Cartesian<2U,IPPL_PRECISION_TYPE> > >;
 
 

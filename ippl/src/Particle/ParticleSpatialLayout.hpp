@@ -262,13 +262,13 @@ void ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy>::rebuild_neighbor_data()
 
 
 /////////////////////////////////////////////////////////////////////
-// Update the location and indices of all atoms in the given ParticleBase
+// Update the location and indices of all atoms in the given IpplParticleBase
 // object.  This handles swapping particles among processors if
 // needed, and handles create and destroy requests.  When complete,
 // all nodes have correct layout information.
 template <class T, unsigned Dim, class Mesh, class CachingPolicy>
 void ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy>::update(
-    ParticleBase< ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& PData,
+    IpplParticleBase< ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& PData,
     const ParticleAttrib<char>* canSwap)
 {
 

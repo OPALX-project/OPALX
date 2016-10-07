@@ -23,7 +23,7 @@
 // forward declarations
 template<class T, unsigned Dim, class M, class C> class Field;
 template<class T> class ParticleAttrib;
-template<class PLayout> class ParticleBase;
+template<class PLayout> class IpplParticleBase;
 template<class T> class ScalarDataSource;
 template<class T> class StringDataSource;
 class DataSourceObject;
@@ -45,10 +45,10 @@ make_DataSourceObject(const char *, DataConnect *, int, ParticleAttrib<T>&);
 
 
 // a version of make_DataSourceObject for ParticleAttrib's.
-// arguments: name, connection type, transfer method, ParticleBase
+// arguments: name, connection type, transfer method, IpplParticleBase
 template<class PLayout>
 DataSourceObject *
-make_DataSourceObject(const char *,DataConnect *,int,ParticleBase<PLayout>&);
+make_DataSourceObject(const char *,DataConnect *,int,IpplParticleBase<PLayout>&);
 
 // a version of make_DataSourceObject for Scalar's.
 // arguments: name, connection type, transfer method, ScalarDataSource

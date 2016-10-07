@@ -28,7 +28,7 @@
 // include files
 #include "Particle/ParticleSpatialLayout.h"
 #include "Particle/ParticleInteractAttrib.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Region/RegionLayout.h"
 
 #include <vector>
@@ -85,11 +85,11 @@ public:
   // Particle swapping/update routines
   //
 
-  // Update the location and indices of all atoms in the given ParticleBase
+  // Update the location and indices of all atoms in the given IpplParticleBase
   // object.  This handles swapping particles among processors if
   // needed, and handles create and destroy requests.  When complete,
   // all nodes have correct layout information.
-  void update(ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& p,
+  void update(IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& p,
               const ParticleAttrib<char>* canSwap=0);
 
 
@@ -98,7 +98,7 @@ public:
   // If this is the first call of this
   // method after update(), this must make sure up-to-date info on particles
   // from neighboring nodes is available.
-  void getCashedParticles(ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >&);
+  void getCashedParticles(IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >&);
 
   // specify the interaction radius ... two versions, one which gives a
   // single value for all atoms
@@ -156,17 +156,17 @@ private:
   void rebuild_interaction_data(const bool periodicBC[2*Dim]);
 
   // copy particles to other nodes for pairlist computation.  The arguments
-  // are the current number of local particles, and the ParticleBase object.
+  // are the current number of local particles, and the IpplParticleBase object.
   // This will also calculate the pairlists if necessary.
   void swap_ghost_particles(unsigned,
-		    ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >&);
+		    IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >&);
 
   // copy particles to other nodes for pairlist computation.  The arguments
-  // are the current number of local particles, and the ParticleBase object.
+  // are the current number of local particles, and the IpplParticleBase object.
   // This will also calculate the pairlists if necessary.
   // special version to take account of periodic boundaries
   void swap_ghost_particles(unsigned,
-		    ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >&,
+		    IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >&,
                     const bool periodicBC[2*Dim]);
 
   // change the value of the maximum local interaction radius

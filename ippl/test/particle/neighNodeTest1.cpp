@@ -65,11 +65,11 @@ typedef Cell                                       Center_t;
 typedef CenteredFieldLayout<Dim, Mesh_t, Center_t> FieldLayout_t;
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
 
     ChargedParticles(PL* pl, e_dim_tag decomp[Dim]) :
-        ParticleBase<PL>(pl)
+        IpplParticleBase<PL>(pl)
     {
 	setBCAllOpen();
         for(int i=0; i<Dim; i++)

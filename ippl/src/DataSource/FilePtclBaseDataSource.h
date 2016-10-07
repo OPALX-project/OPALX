@@ -13,31 +13,31 @@
 
 /***********************************************************************
  * 
- * class FileParticleBaseDataSource
+ * class FileIpplParticleBaseDataSource
  *
  * A specific version of DataSourceObject which takes the data for
- * a given ParticleBase and writes it to a file using a DiscParticle
+ * a given IpplParticleBase and writes it to a file using a DiscParticle
  * object.
  *
  ***********************************************************************/
 
 // include files
 #include "DataSource/DataSourceObject.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Utility/DiscParticle.h"
 
 
 template<class T>
-class FileParticleBaseDataSource : public DataSourceObject {
+class FileIpplParticleBaseDataSource : public DataSourceObject {
 
 public:
   // constructor: the name, the connection, the transfer method,
-  // the ParticleBase to connect
-  FileParticleBaseDataSource(const char *, DataConnect *, int,
-			     ParticleBase<T> &);
+  // the IpplParticleBase to connect
+  FileIpplParticleBaseDataSource(const char *, DataConnect *, int,
+			     IpplParticleBase<T> &);
 
   // destructor
-  virtual ~FileParticleBaseDataSource();
+  virtual ~FileIpplParticleBaseDataSource();
 
   //
   // virtual function interface.
@@ -56,8 +56,8 @@ private:
   // the DiscParticle object, which read/writes the data
   DiscParticle *DP;
 
-  // the ParticleBase to read into (or write from)
-  ParticleBase<T> &MyParticles;
+  // the IpplParticleBase to read into (or write from)
+  IpplParticleBase<T> &MyParticles;
 
   // the number of frames we have read or written (i.e. or current record)
   int counter;

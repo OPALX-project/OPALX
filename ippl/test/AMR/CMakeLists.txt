@@ -9,18 +9,19 @@ set (CMAKE_CXX_FLAGS
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
+    ${CCSE_INCLUDE_DIR}
 )
 
 link_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${CCSE_LIBRARY_DIR}
 )
 
 SET (IPPL_LIBS ippl)
 
 add_executable (testAmrPartBunch testAmrPartBunch.cpp)
 
-
-target_link_libraries (testAmrPartBunch ${IPPL_LIBS})
+target_link_libraries (testAmrPartBunch ${IPPL_LIBS} ${CCSE_LIBRARIES} -lgfortran)
 
 

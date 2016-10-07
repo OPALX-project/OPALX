@@ -46,7 +46,7 @@ public:
      *    - Updating the total particle count.
      * @param particles Particle container.
      */
-    void update(ParticleBase< ParticleLayoutFromGrid >& particles);    
+    void update(IpplParticleBase< ParticleLayoutFromGrid >& particles);    
     /**
      * Test if x is inside the domain assigned to my processor.
      * @param x Position to test.
@@ -109,7 +109,7 @@ private:
      * @param particles Particle container
      * @return Number of locally stored particles after redistribution
      */
-    size_t redistribute_particles(ParticleBase< ParticleLayoutFromGrid >& particles);
+    size_t redistribute_particles(IpplParticleBase< ParticleLayoutFromGrid >& particles);
     /**
      * Pointer to the grid data structure.
      */

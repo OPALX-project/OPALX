@@ -87,13 +87,13 @@ struct ApplyField;
 
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
     ParticleAttrib<double>     	Q;
     ParticleAttrib<Vector_t> 	EF;
 
     ChargedParticles(PL* pl, Vector_t nr, e_dim_tag decomp[Dim]) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
         nr_m(nr)
     {
         this->addAttribute(Q);
@@ -156,7 +156,7 @@ public:
 
         domain_m = this->getFieldLayout().getDomain();
 
-        ParticleBase<PL>::update();
+        IpplParticleBase<PL>::update();
     }
 
 

@@ -33,12 +33,12 @@
 
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
   ParticleAttrib<double>     qm;       // charge-to-mass ratio
   typename PL::ParticlePos_t V;        // particle velocity
   typename PL::ParticlePos_t E;        // electric field at particle position
-  ChargedParticles(PL* pl) : ParticleBase<PL>(pl) {
+  ChargedParticles(PL* pl) : IpplParticleBase<PL>(pl) {
     // register the particle attributes
     addAttribute(qm);
     addAttribute(V);

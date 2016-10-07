@@ -57,13 +57,13 @@ ParticleUniformLayout<T, Dim>::~ParticleUniformLayout() {
 
 
 /////////////////////////////////////////////////////////////////////
-// Update the location and indices of all atoms in the given ParticleBase
+// Update the location and indices of all atoms in the given IpplParticleBase
 // object.  This handles swapping particles among processors if
 // needed, and handles create and destroy requests.  When complete,
 // all nodes have correct layout information.
 template<class T, unsigned Dim>
 void ParticleUniformLayout<T, Dim>::update(
-  ParticleBase< ParticleUniformLayout<T, Dim> >& PData,
+  IpplParticleBase< ParticleUniformLayout<T, Dim> >& PData,
   const ParticleAttrib<char>* canSwap) {
 
   int i, j;			// loop variables
