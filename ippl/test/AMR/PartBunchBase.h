@@ -34,7 +34,7 @@ public:
     virtual Vector_t getRMax() = 0;
     virtual Vector_t getHr() = 0;
 
-#ifndef AMR    
+#if 0    
     virtual const Mesh_t& getMesh() const = 0;
     virtual Mesh_t& getMesh() = 0;
     virtual FieldLayout_t& getFieldLayout() = 0;

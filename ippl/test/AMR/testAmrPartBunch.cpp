@@ -43,9 +43,12 @@ Usage:
 
 const double dt = 1.0;          // size of timestep
 
-#ifdef AMR
+#if 1
 int main(int argc, char *argv[]){
     Ippl ippl(argc, argv);
+    
+    BoxLib::Initialize(argc,argv, false);
+    
     Inform msg(argv[0]);
     Inform msg2all(argv[0],INFORM_ALL_NODES);
 
@@ -55,7 +58,7 @@ int main(int argc, char *argv[]){
     const unsigned int nt     = atoi(argv[5]);
     
     int max_level = 0;
-    int nx = 16, ny = 16, nz = 16;
+    int nx = 32, ny = 32, nz = 32;
     
     
     /*
@@ -65,12 +68,15 @@ int main(int argc, char *argv[]){
     IntVect high(nx - 1, ny - 1, nz - 1);    
     Box bx(low, high);
     
+    BoxArray ba(bx);
+    
+    ba.maxSize(16);
     
     // box [-1,1]x[-1,1]x[-1,1]
     RealBox domain;
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, -1.0);
-        domain.setHi(i,  1.0);
+        domain.setLo(i, 0.0);
+        domain.setHi(i, 1.0);
     }
     
     
@@ -80,6 +86,11 @@ int main(int argc, char *argv[]){
     Geometry geom;
     geom.define(bx, &domain, 0, bc);
     
+    msg2all << bx << endl;
+    
+    DistributionMapping dmap;
+    dmap.define(ba, 1 /*nprocs*/);
+    
     /*
      * initialize particle bunch
      */
@@ -87,8 +98,39 @@ int main(int argc, char *argv[]){
     msg << "Particle test testAmrPartBunch " << endl;
     msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
     
-    PartBunchBase* bunch = new AmrPartBunch();
+    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba);
     
+    RealBox particle_box;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        particle_box.setLo(i, 0.1);
+        particle_box.setHi(i, 0.9);
+    }
+    
+    dynamic_cast<AmrPartBunch*>(bunch)->InitRandom(std::atoi(argv[4]), /* nParticles*/
+                      42 /*seed*/,
+                      1 /* particle mass*/,
+                      false /*serialize*/,
+                      particle_box);
+    
+    
+    bunch->myUpdate();
+    
+    for (size_t i = 0; i < bunch->getLocalNum(); ++i)
+        msg2all << bunch->getR(i) << endl;
+    
+    
+    MultiFab mf(ba, 1, 1);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(mf, 0);
+    
+    
+    std::cout << mf.max(0) << std::endl << mf.min(0) << std::endl;
+    
+    Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0);
+    
+    double invVol = 1.0 / (nx * ny * nz);
+    
+    std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
+              << "Charge sum: " << charge << std::endl;
     
     delete bunch;
     
