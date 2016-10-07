@@ -63,7 +63,7 @@
 #include "Utility/DiscField.h"
 
 // IPPL Particles classes
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/PAssign.h"
 #include "Particle/PAssignDefs.h"
 #include "Particle/ParticleSpatialLayout.h"

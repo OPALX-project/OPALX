@@ -41,7 +41,7 @@
 
 
 template<class T, unsigned Dim>
-class PDBAtoms : public ParticleBase< ParticleInteractLayout<T, Dim> > {
+class PDBAtoms : public IpplParticleBase< ParticleInteractLayout<T, Dim> > {
 
 typedef  ParticleInteractLayout<T, Dim> Layout_t;
 

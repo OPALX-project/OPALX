@@ -121,12 +121,12 @@ assuming the non local part of $f1$ is initialized with zero.
  this presentation details are omitted, only the structure and important issues are
  highlighted. 
  \subsection{The {\em ChargedParticles} Class}
- The base class {\tt ParticleBase} is augmented with attributes such as charge to mass ration
+ The base class {\tt IpplParticleBase} is augmented with attributes such as charge to mass ration
  {\tt qm}, the vector momenta {\tt P} and the vector holding the electric field {\tt E}. 
  \begin{code}
  ChargedParticles(PL* pl, Vector_t hr, Vector_t rmin, 
                   Vector_t rmax, e_dim_tag decomp[Dim]) :
-                  ParticleBase<PL>(pl),
+                  IpplParticleBase<PL>(pl),
                   hr_m(hr),
                   rmin_m(rmin),
                   rmax_m(rmax),

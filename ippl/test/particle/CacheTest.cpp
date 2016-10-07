@@ -42,12 +42,12 @@ const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
     ParticleAttrib<double>     qm;
 
     ChargedParticles(PL *pl, Vector_t nr, Vector_t hr, Vector_t rmin, e_dim_tag decomp[Dim], bool gCells = true) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
         nr_m(nr),
         hr_m(hr),
         rmin_m(rmin),
@@ -110,7 +110,7 @@ public:
     }
 
     void printParticles() {
-        Inform msg("ParticleBase", INFORM_ALL_NODES);
+        Inform msg("IpplParticleBase", INFORM_ALL_NODES);
         Ippl::Comm->barrier();
 
         for(int i = 0; i < Ippl::getNodes(); ++i) {

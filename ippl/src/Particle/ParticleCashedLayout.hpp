@@ -26,7 +26,7 @@
 // include files
 #include "Particle/ParticleCashedLayout.h"
 #include "Particle/ParticleBConds.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Region/RegionLayout.h"
 #include "FieldLayout/FieldLayout.h"
 #include "Utility/IpplInfo.h"
@@ -137,7 +137,7 @@ T ParticleCashedLayout<T,Dim,Mesh>::getMaxLocalInteractionRadius() {
 // method after update(), this must make sure up-to-date info on particles
 // from neighboring nodes is available.
 template < class T, unsigned Dim, class Mesh >
-void ParticleCashedLayout<T,Dim,Mesh>::getCashedParticles(ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData) {
+void ParticleCashedLayout<T,Dim,Mesh>::getCashedParticles(IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData) {
 
   //IFF: all the swap_ghost_particle methods will return immediately if
   //no swap is necessary
@@ -407,13 +407,13 @@ void ParticleCashedLayout<T,Dim,Mesh>::rebuild_interaction_data(
 
 
 /////////////////////////////////////////////////////////////////////
-// Update the location and indices of all atoms in the given ParticleBase
+// Update the location and indices of all atoms in the given IpplParticleBase
 // object.  This handles swapping particles among processors if
 // needed, and handles create and destroy requests.  When complete,
 // all nodes have correct layout information.
 template < class T, unsigned Dim, class Mesh >
 void ParticleCashedLayout<T,Dim,Mesh>::update(
-  ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData,
+  IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData,
   const ParticleAttrib<char>* canSwap) {
 
   unsigned N = Ippl::getNodes();
@@ -549,7 +549,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::update(
 
 /////////////////////////////////////////////////////////////////////
 // copy particles to other nodes for pairlist computation.  The arguments
-// are the current number of local particles, and the ParticleBase object.
+// are the current number of local particles, and the IpplParticleBase object.
 // Make sure not to send any particles to, or receive particles from,
 // nodes which have no particles on them.  This also takes care of
 // building the pairlists.
@@ -557,7 +557,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::update(
 template < class T, unsigned Dim, class Mesh >
 void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 							      LocalNum,
-   ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData) {
+   IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData) {
 
   unsigned int i;			// loop variables
 
@@ -680,7 +680,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 
 /////////////////////////////////////////////////////////////////////
 // copy particles to other nodes to cashed particle container.  The arguments
-// are the current number of local particles, and the ParticleBase object.
+// are the current number of local particles, and the IpplParticleBase object.
 // Make sure not to send any particles to, or receive particles from,
 // nodes which have no particles on them.
 //
@@ -688,7 +688,7 @@ void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 template < class T, unsigned Dim, class Mesh >
 void ParticleCashedLayout<T,Dim,Mesh>::swap_ghost_particles(
    unsigned LocalNum,
-   ParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData,
+   IpplParticleBase< ParticleCashedLayout<T,Dim,Mesh> >& PData,
    const bool periodicBC[2*Dim])
 {
   unsigned int i, j;			// loop variables

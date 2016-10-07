@@ -23,8 +23,8 @@ SET (_HDRS
   ParticleAttrib.h
   ParticleBalancer.hpp
   ParticleBalancer.h
-  ParticleBase.hpp
-  ParticleBase.h
+  IpplParticleBase.hpp
+  IpplParticleBase.h
   ParticleBConds.h
   ParticleCashedLayout.hpp
   ParticleCashedLayout.h

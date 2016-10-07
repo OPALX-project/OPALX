@@ -12,7 +12,7 @@
 #include <cassert>
 #include "ParticleLayoutFromGrid.h"
 
-void ParticleLayoutFromGrid::update(ParticleBase< ParticleLayoutFromGrid >& particles) {
+void ParticleLayoutFromGrid::update(IpplParticleBase< ParticleLayoutFromGrid >& particles) {
     unsigned num_procs = Ippl::getNodes();
     unsigned my_id = Ippl::myNode();
     size_t num_my_particles   = particles.getLocalNum();
@@ -22,7 +22,7 @@ void ParticleLayoutFromGrid::update(ParticleBase< ParticleLayoutFromGrid >& part
     particles.performDestroy();
     num_my_particles -= num_destroyed_particles;
     
-    // FIXME: This should be done in ParticleBase::performDestroy()
+    // FIXME: This should be done in IpplParticleBase::performDestroy()
     particles.setLocalNum(num_my_particles);
 
     // Apply boundary conditions to the particle positions
@@ -53,7 +53,7 @@ void ParticleLayoutFromGrid::apply_bconds(ParticlePos_t& R)
     }    
 }
 
-size_t ParticleLayoutFromGrid::redistribute_particles(ParticleBase< ParticleLayoutFromGrid >& particles) 
+size_t ParticleLayoutFromGrid::redistribute_particles(IpplParticleBase< ParticleLayoutFromGrid >& particles) 
 {
     unsigned num_procs = Ippl::getNodes();
     unsigned my_id = Ippl::myNode();
@@ -124,7 +124,7 @@ size_t ParticleLayoutFromGrid::redistribute_particles(ParticleBase< ParticleLayo
     num_my_particles -= particles.getDestroyNum();
     particles.performDestroy();
     
-    // FIXME: This should be done in ParticleBase::performDestroy()
+    // FIXME: This should be done in IpplParticleBase::performDestroy()
     particles.setLocalNum(num_my_particles);
     
     // Receive particles
@@ -140,7 +140,7 @@ size_t ParticleLayoutFromGrid::redistribute_particles(ParticleBase< ParticleLayo
         delete recmsg;
     }
     
-    // FIXME: This should be done in ParticleBase::getMessage()
+    // FIXME: This should be done in IpplParticleBase::getMessage()
     particles.setLocalNum(num_my_particles);
     
     delete[] put_list;

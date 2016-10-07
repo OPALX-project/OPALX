@@ -24,18 +24,18 @@
  ***************************************************************************/
 
 // include files
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/ParticleSpatialLayout.h"
 #include "Meshes/UniformCartesian.h"
 
 // 1D UniformCartesian instantiations
-template class ParticleBase<ParticleSpatialLayout<
+template class IpplParticleBase<ParticleSpatialLayout<
    IPPL_PRECISION_TYPE, 1U, UniformCartesian<1U,IPPL_PRECISION_TYPE> > >;
 
 
 /***************************************************************************
- * $RCSfile: ParticleBaseSpatial_Unif_1D.cpp,v $   $Author: adelmann $
+ * $RCSfile: IpplParticleBaseSpatial_Unif_1D.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:29 $
- * IPPL_VERSION_ID: $Id: ParticleBaseSpatial_Unif_1D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IpplParticleBaseSpatial_Unif_1D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
  ***************************************************************************/
 

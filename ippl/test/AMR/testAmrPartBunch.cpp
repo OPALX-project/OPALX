@@ -32,11 +32,70 @@ Usage:
 #include <iostream>
 #include <set>
 
+
+#include <Array.H>
+#include <Geometry.H>
+#include <MultiFab.H>
+
 #include "PartBunch.h"
+#include "AmrPartBunch.h"
+
 
 const double dt = 1.0;          // size of timestep
 
-
+#ifdef AMR
+int main(int argc, char *argv[]){
+    Ippl ippl(argc, argv);
+    Inform msg(argv[0]);
+    Inform msg2all(argv[0],INFORM_ALL_NODES);
+
+    Vektor<int,Dim> nr(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
+
+    const unsigned int totalP = atoi(argv[4]);
+    const unsigned int nt     = atoi(argv[5]);
+    
+    int max_level = 0;
+    int nx = 16, ny = 16, nz = 16;
+    
+    
+    /*
+     * set up the geometry
+     */
+    IntVect low(0, 0, 0);
+    IntVect high(nx - 1, ny - 1, nz - 1);    
+    Box bx(low, high);
+    
+    
+    // box [-1,1]x[-1,1]x[-1,1]
+    RealBox domain;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        domain.setLo(i, -1.0);
+        domain.setHi(i,  1.0);
+    }
+    
+    
+    // periodic boundary conditions in all directions
+    int bc[BL_SPACEDIM] = {1, 1, 1};
+    
+    Geometry geom;
+    geom.define(bx, &domain, 0, bc);
+    
+    /*
+     * initialize particle bunch
+     */
+    
+    msg << "Particle test testAmrPartBunch " << endl;
+    msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
+    
+    PartBunchBase* bunch = new AmrPartBunch();
+    
+    
+    delete bunch;
+    
+    return 0;
+}
+
+#else
 int main(int argc, char *argv[]){
     Ippl ippl(argc, argv);
     Inform msg(argv[0]);
@@ -57,7 +116,6 @@ int main(int argc, char *argv[]){
 
     Mesh_t *mesh;
     FieldLayout_t *FL;
-//     PartBunch<playout_t>  *bunch;
 
     NDIndex<Dim> domain;
     for (unsigned i=0; i<Dim; i++)
@@ -95,14 +153,15 @@ int main(int argc, char *argv[]){
     double q = 1.0/totalP;
 
     // random initialization for charge-to-mass ratio
-    assign(bunch->getQM(),q);
+    for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+        bunch->getQM(i) = q;
 
     msg << "particles created and initial conditions assigned " << endl;
 
     // redistribute particles based on spatial layout
     bunch->myUpdate();
 
-    msg << "initial update and initial mesh done .... Q= " << sum(bunch->getQM()) << endl;
+//     msg << "initial update and initial mesh done .... Q= " << sum(bunch->getQM()) << endl;
     msg << bunch->getMesh() << endl;
     msg << bunch->getFieldLayout() << endl;
 
@@ -118,7 +177,8 @@ int main(int argc, char *argv[]){
         // advance the particle positions
         // basic leapfrogging timestep scheme.  velocities are offset
         // by half a timestep from the positions.
-        assign(bunch->getR(), bunch->getR() + dt * bunch->getP());
+        for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+            bunch->getR(i) += dt * bunch->getP(i);
 
         // update particle distribution across processors
         bunch->myUpdate();
@@ -127,14 +187,19 @@ int main(int argc, char *argv[]){
         bunch->gatherCIC();
 
         // advance the particle velocities
-        assign(bunch->getP(), bunch->getP() + dt * bunch->getQM() * bunch->getE());
+        for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+            bunch->getP(i) += dt * bunch->getQM(i) * bunch->getE(i);
+        
         msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
             << bunch->getRMax() << bunch->getHr() << endl;
     }
     Ippl::Comm->barrier();
+    
+    delete bunch;
     msg << "Particle test testAmrPartBunch: End." << endl;
     return 0;
 }
+#endif
 
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
