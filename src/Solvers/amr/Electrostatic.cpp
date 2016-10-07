@@ -742,7 +742,7 @@ Electrostatic::get_crse_grad_phi (int               level,
         grad_phi_crse[i].FillBoundary();
 
         const Geometry& geom = parent->Geom(level-1);
-        geom.FillPeriodicBoundary(grad_phi_crse[i], false);
+//         geom.FillPeriodicBoundary(grad_phi_crse[i], false);
     }
 }
 
@@ -1077,7 +1077,7 @@ Electrostatic::get_old_e_field (int       level,
         {
             grad_phi_prev[level][i].setBndry(0);
             grad_phi_prev[level][i].FillBoundary();
-            geom.FillPeriodicBoundary(grad_phi_prev[level][i]);
+//             geom.FillPeriodicBoundary(grad_phi_prev[level][i]);
         }
     }
     else
@@ -1112,7 +1112,7 @@ Electrostatic::get_old_e_field (int       level,
     }
 
     e_field.FillBoundary();
-    geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
+//     geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
 
     MultiFab& G_old = level_data[level].get_old_data(Elec_Field_Type);
     MultiFab::Copy(G_old, e_field, 0, 0, BL_SPACEDIM, 0);
@@ -1143,7 +1143,7 @@ Electrostatic::get_new_e_field (int       level,
         {
             grad_phi_curr[level][i].setBndry(0);
             grad_phi_curr[level][i].FillBoundary();
-            geom.FillPeriodicBoundary(grad_phi_curr[level][i]);
+//             geom.FillPeriodicBoundary(grad_phi_curr[level][i]);
         }
     }
     else
@@ -1177,7 +1177,7 @@ Electrostatic::get_new_e_field (int       level,
     }
 
     e_field.FillBoundary();
-    geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
+//     geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
 
     MultiFab& E_new = level_data[level].get_new_data(Elec_Field_Type);
     MultiFab::Copy(E_new, e_field, 0, 0, BL_SPACEDIM, 0);
@@ -1521,7 +1521,7 @@ Electrostatic::fill_ec_grow (int                     level,
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         ecF[n].FillBoundary();
-        fgeom.FillPeriodicBoundary(ecF[n], true);
+//         fgeom.FillPeriodicBoundary(ecF[n], true);
     }
 }
 
