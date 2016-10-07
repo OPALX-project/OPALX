@@ -34,7 +34,6 @@ Usage:
 
 #include "PartBunch.h"
 
-const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
 
 
@@ -48,8 +47,6 @@ int main(int argc, char *argv[]){
     const unsigned int totalP = atoi(argv[4]);
     const unsigned int nt     = atoi(argv[5]);
 
-    InterPol_t myInterpol = CIC;
-
     msg << "Particle test testAmrPartBunch " << endl;
     msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
 
@@ -60,7 +57,7 @@ int main(int argc, char *argv[]){
 
     Mesh_t *mesh;
     FieldLayout_t *FL;
-    PartBunch<playout_t>  *P;
+//     PartBunch<playout_t>  *bunch;
 
     NDIndex<Dim> domain;
     for (unsigned i=0; i<Dim; i++)
@@ -82,57 +79,57 @@ int main(int argc, char *argv[]){
     Vector_t rmin(0.0);
     Vector_t rmax(nr);
     
-    P = new PartBunch<playout_t>(PL, PPP, myInterpol,hr,rmin,rmax,decomp);
+    PartBunchBase* bunch = new PartBunch<playout_t>(PL,hr,rmin,rmax,decomp);
 
     // initialize the particle object: do all initialization on one node,
     // and distribute to others
 
     unsigned long int nloc = totalP / Ippl::getNodes();
 
-    P->create(nloc);
+    bunch->create(nloc);
     for (unsigned long int i = 0; i< nloc; i++) {
         for (int d = 0; d<3; d++)
-            P->R[i](d) =  IpplRandom() * nr[d];
+            bunch->getR(i)(d) =  IpplRandom() * nr[d];
     }
 
     double q = 1.0/totalP;
 
     // random initialization for charge-to-mass ratio
-    assign(P->qm,q);
+    assign(bunch->getQM(),q);
 
     msg << "particles created and initial conditions assigned " << endl;
 
     // redistribute particles based on spatial layout
-    P->myUpdate();
+    bunch->myUpdate();
 
-    msg << "initial update and initial mesh done .... Q= " << sum(P->qm) << endl;
-    msg << P->getMesh() << endl;
-    msg << P->getFieldLayout() << endl;
+    msg << "initial update and initial mesh done .... Q= " << sum(bunch->getQM()) << endl;
+    msg << bunch->getMesh() << endl;
+    msg << bunch->getFieldLayout() << endl;
 
-    msg << "scatter test done delta= " <<  P->scatter() << endl;
+    msg << "scatter test done delta= " <<  bunch->scatter() << endl;
 
-    P->initFields();
-    msg << "P->initField() done " << endl;
+    bunch->initFields();
+    msg << "bunch->initField() done " << endl;
 
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
     for (unsigned int it=0; it<nt; it++) {
-        P->gatherStatistics();
+        bunch->gatherStatistics();
         // advance the particle positions
         // basic leapfrogging timestep scheme.  velocities are offset
         // by half a timestep from the positions.
-        assign(P->R, P->R + dt * P->P);
+        assign(bunch->getR(), bunch->getR() + dt * bunch->getP());
 
         // update particle distribution across processors
-        P->myUpdate();
+        bunch->myUpdate();
 
         // gather the local value of the E field
-        P->gatherCIC();
+        bunch->gatherCIC();
 
         // advance the particle velocities
-        assign(P->P, P->P + dt * P->qm * P->E);
-        msg << "Finished iteration " << it << " - min/max r and h " << P->getRMin()
-            << P->getRMax() << P->getHr() << endl;
+        assign(bunch->getP(), bunch->getP() + dt * bunch->getQM() * bunch->getE());
+        msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
+            << bunch->getRMax() << bunch->getHr() << endl;
     }
     Ippl::Comm->barrier();
     msg << "Particle test testAmrPartBunch: End." << endl;

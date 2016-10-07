@@ -3,9 +3,6 @@
 
 #include "PartBunchBase.h"
 
-enum BC_t {PPP};
-enum InterPol_t {CIC};
-
 
 template<class PL>
 class PartBunch : public ParticleBase<PL>,
@@ -28,13 +25,13 @@ class PartBunch : public ParticleBase<PL>,
   Vector_t rmax_m;
 
 
-public:
     ParticleAttrib<double>     qm; // charge-to-mass ratio
     typename PL::ParticlePos_t P;  // particle velocity
     typename PL::ParticlePos_t E;  // electric field at particle position
     typename PL::ParticlePos_t B;  // magnetic field at particle position
 
-    PartBunch(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim]) :
+public:
+    PartBunch(PL* pl, e_dim_tag decomp[Dim]) :
         ParticleBase<PL>(pl),
         fieldNotInitialized_m(true)
     {
@@ -48,7 +45,7 @@ public:
             decomp_m[i]=decomp[i];
     }
 
-    PartBunch(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim]) :
+    PartBunch(PL* pl, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim]) :
         ParticleBase<PL>(pl),
 	fieldNotInitialized_m(true),
 	hr_m(hr),
@@ -64,6 +61,55 @@ public:
         for (unsigned int i=0; i<Dim; i++)
             decomp_m[i]=decomp[i];
     }
+    
+    //BEGIN PartBunchBase functions
+    void create(int nloc) {
+        ParticleBase<PL>::create(nloc);
+    }
+    
+    inline Vector_t& getR(int i) {
+        return ParticleBase<PL>::R[i];
+    }
+    
+    inline double& getQM(int i) {
+        return qm[i];
+    }
+    
+    inline Vector_t& getP(int i) {
+        return P[i];
+    }
+    
+    
+    inline Vector_t& getE(int i) {
+        return E[i];
+    }
+    
+    inline Vector_t& getB(int i) {
+        return B[i];
+    }
+    
+    inline ParticleAttrib<Vector_t>& getR() {
+        return ParticleBase<PL>::R;
+    }
+    
+    inline ParticleAttrib<double>& getQM() {
+        return qm;
+    }
+    
+    inline ParticleAttrib<Vector_t>& getP() {
+        return P;
+    }
+    
+    
+    inline ParticleAttrib<Vector_t>& getE() {
+        return E;
+    }
+    
+    inline ParticleAttrib<Vector_t>& getB() {
+        return B;
+    }
+    //END PartBunchBase functions
+    
 
     void setupBCs() {
             setBCAllPeriodic();

@@ -24,6 +24,34 @@ class PartBunchBase {
 public:
     
     
+    virtual void myUpdate() = 0;
+    virtual void create(int) = 0;
+    virtual void gatherStatistics() = 0;
+    
+    virtual Vector_t getRMin() = 0;
+    virtual Vector_t getRMax() = 0;
+    virtual Vector_t getHr() = 0;
+    
+    virtual const Mesh_t& getMesh() const = 0;
+    virtual Mesh_t& getMesh() = 0;
+//     virtual const FieldLayout_t& getFieldLayout() const = 0;
+    virtual FieldLayout_t& getFieldLayout() = 0;
+    
+    virtual double scatter() = 0;
+    virtual void initFields() = 0;
+    virtual void gatherCIC() = 0;
+    
+    virtual Vector_t& getR(int i) = 0;
+    virtual double& getQM(int i) = 0;
+    virtual Vector_t& getP(int i) = 0;
+    virtual Vector_t& getE(int i) = 0;
+    virtual Vector_t& getB(int i) = 0;
+    
+    virtual ParticleAttrib<Vector_t>& getR() = 0;
+    virtual ParticleAttrib<double>& getQM() = 0;
+    virtual ParticleAttrib<Vector_t>& getP() = 0;
+    virtual ParticleAttrib<Vector_t>& getE() = 0;
+    virtual ParticleAttrib<Vector_t>& getB() = 0;
     
 };
 
