@@ -1,6 +1,8 @@
 #ifndef AMRPARTBUNCH_H
 #define AMRPARTBUNCH_H
 
+#include "PartBunchBase.h"
+
 class AmrPartBunch : public PartBunchBase,
                      /* 0: charge-to-mass ratio
                       * 1:3: particle velocity
