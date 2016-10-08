@@ -12,10 +12,12 @@
 
 /// Particle bunch class for BoxLib
 class AmrPartBunch : public PartBunchBase,
-                    public ParticleContainer<7, 0>
+                     public ParticleContainer<3 /*real attributes*/, 0>
 {
 public:
     typedef std::map<int, std::tuple<int, int, int> > map_t;
+    
+    static size_t nAttributes;
 
 public:
     
@@ -93,7 +95,10 @@ private:
     double qm;
 };
 
-
+// ----------------------------------------------------------------------------
+// STATIC MEMBER VARIABLES
+// ----------------------------------------------------------------------------
+size_t AmrPartBunch::nAttributes = 3;
 
 // ----------------------------------------------------------------------------
 // PUBLIC MEMBER FUNCTIONS
@@ -115,7 +120,7 @@ AmrPartBunch::~AmrPartBunch()
 
 void AmrPartBunch::buildIndexMapping_m() {
     
-//     idxMap_m.clear();
+    idxMap_m.clear();
     
     int i = 0;
     nLocalParticles_m = 0;
@@ -139,6 +144,9 @@ void AmrPartBunch::buildIndexMapping_m() {
 
 
 void AmrPartBunch::myUpdate() {
+    
+    Redistribute();
+    
     buildIndexMapping_m();
     
 //     for (int i = 0; i < nLocalParticles_m; i++) {
@@ -152,9 +160,37 @@ void AmrPartBunch::myUpdate() {
 
 
 void AmrPartBunch::create(size_t m) {
-    // dummy values, just to reserve space
-    // InitRandom(total count, seed, particle mass, serialize)
-    ParticleContainer<7, 0>::InitRandom (m * ParallelDescriptor::NProcs(), 42, 1.0, false);
+    /* Each processor constructs m
+     * particles. These have to be
+     * redistributed when giving
+     * the "real" values since they
+     * belong to different grids
+     * and thus different processors.
+     */
+    if ( m_particles.size() == 0) {
+        m_particles.reserve(15);
+        m_particles.resize(m_gdb->finestLevel()+1);
+    }
+    
+    for (size_t i = 0; i < m; ++i) {
+        ParticleType p;
+        
+        p.m_id  = ParticleBase::NextID();
+        p.m_cpu = ParallelDescriptor::MyProc();
+        
+        // fill position with zeros
+        for (int j = 0; j < BL_SPACEDIM; ++j)
+            p.m_pos[j] = 0.0;
+        
+        // fill zeros for all floating point attributes
+        for (size_t att = 0; att < nAttributes; ++att)
+            p.m_data[att] = 0.0;
+        
+        // assign a particle to a grid --> sets p.m_grid
+        ParticleBase::Where(p,m_gdb);
+        
+        m_particles[p.m_lev][p.m_grid].push_back(p);
+    }
     
     buildIndexMapping_m();
 }
