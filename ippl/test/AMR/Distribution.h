@@ -28,7 +28,7 @@ public:
     /// Transfer distribution to particle bunch object.
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
      */
-    void copy(PartBunchBase* bunch);
+    void injectBeam(PartBunchBase& bunch);
     
 private:
     container_t x_m;    ///< Horizontal particle positions [m]
@@ -62,13 +62,13 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
     }
 }
 
-void Distribution::copy(PartBunchBase* bunch) {
+void Distribution::injectBeam(PartBunchBase& bunch) {
     
     // create memory space
-    bunch->create(nloc_m);
+    bunch.create(nloc_m);
     
-    for (size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
+    for (size_t i = 0; i < bunch.getLocalNum(); ++i)
+        bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
 }
 
 #endif

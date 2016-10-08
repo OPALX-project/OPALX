@@ -76,9 +76,9 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
      * In case of periodic BC's define
      * the domain with hr and rmin
      */
-    Vector_t hr(1.0);
+    Vector_t hr(1.0 / nr(0), 1.0 / nr(1), 1.0 / nr(2));
     Vector_t rmin(0.0);
-    Vector_t rmax(nr);
+    Vector_t rmax(1.0);
     
     PartBunchBase* bunch = new PartBunch<playout_t>(PL,hr,rmin,rmax,decomp);
     
@@ -89,14 +89,11 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
     unsigned long int nloc = nParticles / Ippl::getNodes();
     Distribution dist;
     dist.uniform(0.0, 1.0, nloc, Ippl::myNode());
-    dist.copy(bunch);
+    dist.injectBeam(*bunch);
     
     bunch->print();
     
-    
-    
-    
-    
+    bunch->myUpdate();
     
     double q = 1.0/nParticles;
 
@@ -107,7 +104,6 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 //     msg << "particles created and initial conditions assigned " << endl;
 
     // redistribute particles based on spatial layout
-    bunch->myUpdate();
 
 //     msg << "initial update and initial mesh done .... Q= " << sum(bunch->getQM()) << endl;
 //     msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getMesh() << endl;
@@ -195,12 +191,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     dist.uniform(0.0, 1.0, nloc, ParallelDescriptor::MyProc());
-    dist.copy(bunch);
-    
-    bunch->print();
-    
+    dist.injectBeam(*bunch);
     
     bunch->myUpdate();
+    bunch->print();
+    
     
 //     for (size_t i = 0; i < bunch->getLocalNum(); ++i)
 //         msg2all << bunch->getR(i) << endl;

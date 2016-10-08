@@ -1,6 +1,8 @@
 #ifndef PARTBUNCHBASE__H
 #define PARTBUNCHBASE__H
 
+#include <iomanip>
+
 // dimension of our positions
 const unsigned Dim = 3;
 
@@ -124,7 +126,8 @@ void PartBunchBase::print() {
         
         if ( p == Ippl::myNode() )
             for (size_t i = 0; i < getLocalNum(); ++i) {
-                std::cout << getR(i) << std::endl;
+                std::cout << std::setprecision(8) << getR(i)(0) << " "
+                          << getR(i)(1) << " " << getR(i)(2) << std::endl;
             }
         
         Ippl::Comm->barrier();
