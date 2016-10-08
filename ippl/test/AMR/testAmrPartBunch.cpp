@@ -33,7 +33,7 @@ Usage:
 #include <vector>
 #include <iostream>
 #include <set>
-
+#include <sstream>
 
 #include <Array.H>
 #include <Geometry.H>
@@ -41,6 +41,8 @@ Usage:
 
 #include "PartBunch.h"
 #include "AmrPartBunch.h"
+
+#include "Distribution.h"
 
 
 const double dt = 1.0;          // size of timestep
@@ -53,7 +55,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
     e_dim_tag decomp[Dim];
     unsigned serialDim = 2;
 
-    msg << "Serial dimension is " << serialDim  << endl;
+//     msg << "Serial dimension is " << serialDim  << endl;
 
     Mesh_t *mesh;
     FieldLayout_t *FL;
@@ -79,40 +81,45 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
     Vector_t rmax(nr);
     
     PartBunchBase* bunch = new PartBunch<playout_t>(PL,hr,rmin,rmax,decomp);
-
-    // initialize the particle object: do all initialization on one node,
-    // and distribute to others
-
+    
+    
+    /*
+     * initialize a particle distribution
+     */
     unsigned long int nloc = nParticles / Ippl::getNodes();
-
-    bunch->create(nloc);
-    for (unsigned long int i = 0; i< nloc; i++) {
-        for (int d = 0; d<3; d++)
-            bunch->getR(i)(d) =  IpplRandom() * nr[d];
-    }
-
+    Distribution dist;
+    dist.uniform(0.0, 1.0, nloc, Ippl::myNode());
+    dist.copy(bunch);
+    
+    bunch->print();
+    
+    
+    
+    
+    
+    
     double q = 1.0/nParticles;
 
     // random initialization for charge-to-mass ratio
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
         bunch->getQM(i) = q;
 
-    msg << "particles created and initial conditions assigned " << endl;
+//     msg << "particles created and initial conditions assigned " << endl;
 
     // redistribute particles based on spatial layout
     bunch->myUpdate();
 
 //     msg << "initial update and initial mesh done .... Q= " << sum(bunch->getQM()) << endl;
-    msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getMesh() << endl;
-    msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getFieldLayout() << endl;
+//     msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getMesh() << endl;
+//     msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getFieldLayout() << endl;
 
-    msg << "scatter test done delta= " <<  bunch->scatter() << endl;
+//     msg << "scatter test done delta= " <<  bunch->scatter() << endl;
 
     bunch->initFields();
-    msg << "bunch->initField() done " << endl;
+//     msg << "bunch->initField() done " << endl;
 
     // begin main timestep loop
-    msg << "Starting iterations ..." << endl;
+//     msg << "Starting iterations ..." << endl;
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         // advance the particle positions
@@ -131,13 +138,13 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
             bunch->getP(i) += dt * bunch->getQM(i) * bunch->getE(i);
         
-        msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
-            << bunch->getRMax() << bunch->getHr() << endl;
+//         msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
+//             << bunch->getRMax() << bunch->getHr() << endl;
     }
     Ippl::Comm->barrier();
     
     delete bunch;
-    msg << "Particle test testAmrPartBunch: End." << endl;
+//     msg << "Particle test testAmrPartBunch: End." << endl;
 }
 
 
@@ -173,7 +180,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     DistributionMapping dmap;
     dmap.define(ba, ParallelDescriptor::NProcs() /*nprocs*/);
     
-    msg << geom << endl;
+//     msg << geom << endl;
     
     /*
      * initialize particle bunch
@@ -181,37 +188,36 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba);
     
-    RealBox particle_box;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        particle_box.setLo(i, 0.1);
-        particle_box.setHi(i, 0.9);
-    }
     
-    dynamic_cast<AmrPartBunch*>(bunch)->InitRandom(nParticles,
-                      42 /*seed*/,
-                      1 /* particle mass*/,
-                      false /*serialize*/,
-                      particle_box);
+    /*
+     * initialize a particle distribution
+     */
+    unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
+    Distribution dist;
+    dist.uniform(0.0, 1.0, nloc, ParallelDescriptor::MyProc());
+    dist.copy(bunch);
+    
+    bunch->print();
     
     
     bunch->myUpdate();
     
-    for (size_t i = 0; i < bunch->getLocalNum(); ++i)
-        msg2all << bunch->getR(i) << endl;
+//     for (size_t i = 0; i < bunch->getLocalNum(); ++i)
+//         msg2all << bunch->getR(i) << endl;
     
     
     MultiFab mf(ba, 1, 1);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(mf, 0);
     
     
-    std::cout << mf.max(0) << std::endl << mf.min(0) << std::endl;
+//     std::cout << mf.max(0) << std::endl << mf.min(0) << std::endl;
     
     Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0);
     
     double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
     
-    std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-              << "Charge sum: " << charge << std::endl;
+//     std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
+//               << "Charge sum: " << charge << std::endl;
     
     delete bunch;
 }
@@ -234,6 +240,9 @@ int main(int argc, char *argv[]) {
     size_t nParticles = std::atoi(argv[5]);
     size_t nTimeSteps = std::atoi(argv[6]);
     
+    std::stringstream call;
+    call << "Call: mpirun -np [#procs] testAmrPartBunch [IPPL or BOXLIB] "
+         << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] [#timesteps] ";
     
     msg << "Particle test running with" << endl
         << "- #timesteps = " << nTimeSteps << endl
@@ -242,11 +251,22 @@ int main(int argc, char *argv[]) {
     
     
     if ( std::strcmp(argv[1], "IPPL") ) {
+        if ( argc != 9 ) {
+            msg << call.str() << "[max. level] [max. box size]" << endl;
+            return -1;
+        }
+        
+        
         BoxLib::Initialize(argc,argv, false);
         size_t maxLevel = std::atoi(argv[7]);
         doBoxLib(nr, nParticles, maxLevel, nTimeSteps, msg, msg2all);
-    } else
+    } else {
+        if ( argc != 7 )  {
+            msg << call.str() << endl;
+            return -1;
+        }
         doIppl(nr, nParticles, nTimeSteps, msg, msg2all);
+    }
     
     return 0;
 }
