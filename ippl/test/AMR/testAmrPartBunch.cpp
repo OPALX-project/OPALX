@@ -21,7 +21,9 @@ This test program sets up a simple sine-wave electric field in 3D,
 
 Usage:
 
- mpirun -np 2 testAmrPartBunch 128 128 128 10000 10
+ mpirun -np 4 testAmrPartBunch IPPL 32 32 32 100 10
+ 
+ mpirun -np 4 testAmrPartBunch BOXLIB 32 32 32 100 10 0
 
 ***************************************************************************/
 
@@ -43,113 +45,10 @@ Usage:
 
 const double dt = 1.0;          // size of timestep
 
-#if 1
-int main(int argc, char *argv[]){
-    Ippl ippl(argc, argv);
-    
-    BoxLib::Initialize(argc,argv, false);
-    
-    Inform msg(argv[0]);
-    Inform msg2all(argv[0],INFORM_ALL_NODES);
 
-    Vektor<int,Dim> nr(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
-
-    const unsigned int totalP = atoi(argv[4]);
-    const unsigned int nt     = atoi(argv[5]);
-    
-    int max_level = 0;
-    int nx = 32, ny = 32, nz = 32;
-    
-    
-    /*
-     * set up the geometry
-     */
-    IntVect low(0, 0, 0);
-    IntVect high(nx - 1, ny - 1, nz - 1);    
-    Box bx(low, high);
-    
-    BoxArray ba(bx);
-    
-    ba.maxSize(16);
-    
-    // box [-1,1]x[-1,1]x[-1,1]
-    RealBox domain;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, 0.0);
-        domain.setHi(i, 1.0);
-    }
-    
-    
-    // periodic boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {1, 1, 1};
-    
-    Geometry geom;
-    geom.define(bx, &domain, 0, bc);
-    
-    msg2all << bx << endl;
-    
-    DistributionMapping dmap;
-    dmap.define(ba, 1 /*nprocs*/);
-    
-    /*
-     * initialize particle bunch
-     */
-    
-    msg << "Particle test testAmrPartBunch " << endl;
-    msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
-    
-    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba);
-    
-    RealBox particle_box;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        particle_box.setLo(i, 0.1);
-        particle_box.setHi(i, 0.9);
-    }
-    
-    dynamic_cast<AmrPartBunch*>(bunch)->InitRandom(std::atoi(argv[4]), /* nParticles*/
-                      42 /*seed*/,
-                      1 /* particle mass*/,
-                      false /*serialize*/,
-                      particle_box);
-    
-    
-    bunch->myUpdate();
-    
-    for (size_t i = 0; i < bunch->getLocalNum(); ++i)
-        msg2all << bunch->getR(i) << endl;
-    
-    
-    MultiFab mf(ba, 1, 1);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(mf, 0);
-    
-    
-    std::cout << mf.max(0) << std::endl << mf.min(0) << std::endl;
-    
-    Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0);
-    
-    double invVol = 1.0 / (nx * ny * nz);
-    
-    std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-              << "Charge sum: " << charge << std::endl;
-    
-    delete bunch;
-    
-    return 0;
-}
-
-#else
-int main(int argc, char *argv[]){
-    Ippl ippl(argc, argv);
-    Inform msg(argv[0]);
-    Inform msg2all(argv[0],INFORM_ALL_NODES);
-
-    Vektor<int,Dim> nr(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
-
-    const unsigned int totalP = atoi(argv[4]);
-    const unsigned int nt     = atoi(argv[5]);
-
-    msg << "Particle test testAmrPartBunch " << endl;
-    msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
+void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
+            size_t nTimeSteps, Inform& msg, Inform& msg2all)
+{
 
     e_dim_tag decomp[Dim];
     unsigned serialDim = 2;
@@ -184,7 +83,7 @@ int main(int argc, char *argv[]){
     // initialize the particle object: do all initialization on one node,
     // and distribute to others
 
-    unsigned long int nloc = totalP / Ippl::getNodes();
+    unsigned long int nloc = nParticles / Ippl::getNodes();
 
     bunch->create(nloc);
     for (unsigned long int i = 0; i< nloc; i++) {
@@ -192,7 +91,7 @@ int main(int argc, char *argv[]){
             bunch->getR(i)(d) =  IpplRandom() * nr[d];
     }
 
-    double q = 1.0/totalP;
+    double q = 1.0/nParticles;
 
     // random initialization for charge-to-mass ratio
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
@@ -204,8 +103,8 @@ int main(int argc, char *argv[]){
     bunch->myUpdate();
 
 //     msg << "initial update and initial mesh done .... Q= " << sum(bunch->getQM()) << endl;
-    msg << bunch->getMesh() << endl;
-    msg << bunch->getFieldLayout() << endl;
+    msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getMesh() << endl;
+    msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getFieldLayout() << endl;
 
     msg << "scatter test done delta= " <<  bunch->scatter() << endl;
 
@@ -214,7 +113,7 @@ int main(int argc, char *argv[]){
 
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
-    for (unsigned int it=0; it<nt; it++) {
+    for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         // advance the particle positions
         // basic leapfrogging timestep scheme.  velocities are offset
@@ -239,9 +138,118 @@ int main(int argc, char *argv[]){
     
     delete bunch;
     msg << "Particle test testAmrPartBunch: End." << endl;
+}
+
+
+void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
+              size_t maxLevel, size_t nTimeSteps, Inform& msg,
+              Inform& msg2all)
+{
+    /*
+     * set up the geometry
+     */
+    IntVect low(0, 0, 0);
+    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
+    Box bx(low, high);
+    
+    BoxArray ba(bx);
+    
+    ba.maxSize(16);
+    
+    // box [-1,1]x[-1,1]x[-1,1]
+    RealBox domain;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        domain.setLo(i, 0.0);
+        domain.setHi(i, 1.0);
+    }
+    
+    
+    // periodic boundary conditions in all directions
+    int bc[BL_SPACEDIM] = {1, 1, 1};
+    
+    Geometry geom;
+    geom.define(bx, &domain, 0, bc);
+    
+    DistributionMapping dmap;
+    dmap.define(ba, ParallelDescriptor::NProcs() /*nprocs*/);
+    
+    msg << geom << endl;
+    
+    /*
+     * initialize particle bunch
+     */
+    
+    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba);
+    
+    RealBox particle_box;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        particle_box.setLo(i, 0.1);
+        particle_box.setHi(i, 0.9);
+    }
+    
+    dynamic_cast<AmrPartBunch*>(bunch)->InitRandom(nParticles,
+                      42 /*seed*/,
+                      1 /* particle mass*/,
+                      false /*serialize*/,
+                      particle_box);
+    
+    
+    bunch->myUpdate();
+    
+    for (size_t i = 0; i < bunch->getLocalNum(); ++i)
+        msg2all << bunch->getR(i) << endl;
+    
+    
+    MultiFab mf(ba, 1, 1);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(mf, 0);
+    
+    
+    std::cout << mf.max(0) << std::endl << mf.min(0) << std::endl;
+    
+    Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0);
+    
+    double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
+    
+    std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
+              << "Charge sum: " << charge << std::endl;
+    
+    delete bunch;
+}
+
+
+int main(int argc, char *argv[]) {
+    
+    Ippl ippl(argc, argv);
+    
+    Inform msg(argv[1]);
+    Inform msg2all(argv[1], INFORM_ALL_NODES);
+    
+    
+    // number of grid points in each direction
+    Vektor<size_t, 3> nr(std::atoi(argv[2]),
+                         std::atoi(argv[3]),
+                         std::atoi(argv[4]));
+    
+    
+    size_t nParticles = std::atoi(argv[5]);
+    size_t nTimeSteps = std::atoi(argv[6]);
+    
+    
+    msg << "Particle test running with" << endl
+        << "- #timesteps = " << nTimeSteps << endl
+        << "- #particles = " << nParticles << endl
+        << "- grid       = " << nr << endl;
+    
+    
+    if ( std::strcmp(argv[1], "IPPL") ) {
+        BoxLib::Initialize(argc,argv, false);
+        size_t maxLevel = std::atoi(argv[7]);
+        doBoxLib(nr, nParticles, maxLevel, nTimeSteps, msg, msg2all);
+    } else
+        doIppl(nr, nParticles, nTimeSteps, msg, msg2all);
+    
     return 0;
 }
-#endif
 
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $

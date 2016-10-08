@@ -9,14 +9,6 @@
 
 #include <Particles.H>
 
-// class AmrParticleContainer : public ParticleContainer<7, 0>
-// {
-// public:
-// //     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox()) {
-// //         ParticleContainer<7, 0>::InitRandom (icount, iseed, particleMass, serialize, bx);
-// //     }
-// };
-
 
 class AmrPartBunch : public PartBunchBase,
                     public ParticleContainer<7, 0>
@@ -36,8 +28,9 @@ private:
 public:
     
     AmrPartBunch(const Geometry            & geom, 
-		       const DistributionMapping & dmap,
-		       const BoxArray            & ba) : ParticleContainer(geom, dmap, ba) {}
+                 const DistributionMapping & dmap,
+                 const BoxArray            & ba) : ParticleContainer(geom, dmap, ba)
+                 {}
     
     
     virtual ~AmrPartBunch() {}

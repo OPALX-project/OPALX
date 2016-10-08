@@ -20,7 +20,7 @@ const double pi = acos(-1.0);
 
 
 class PartBunchBase {
-    
+
 public:
     
     virtual ~PartBunchBase() {}
@@ -33,12 +33,6 @@ public:
     virtual Vector_t getRMin() = 0;
     virtual Vector_t getRMax() = 0;
     virtual Vector_t getHr() = 0;
-
-#if 0    
-    virtual const Mesh_t& getMesh() const = 0;
-    virtual Mesh_t& getMesh() = 0;
-    virtual FieldLayout_t& getFieldLayout() = 0;
-#endif
     
     virtual double scatter() = 0;
     virtual void initFields() = 0;
