@@ -36,6 +36,15 @@ public:
      */
     void uniform(double lower, double upper, size_t nloc, int seed);
     
+    /// Generate a Gaussian particle distribution
+    /*!
+     * @param mean also called centroid
+     * @param stddev is the standard deviation
+     * @param nloc is the local number of particles
+     * @param seed of the Mersenne-Twister
+     */
+    void gaussian(double mean, double stddev, size_t nloc, int seed);
+    
     /// Transfer distribution to particle bunch object.
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
      */
@@ -72,6 +81,26 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
         z_m[i] = dist(mt);
     }
 }
+
+void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
+    
+    nloc_m = nloc;
+    
+    std::mt19937_64 mt(seed);
+    
+    std::uniform_real_distribution<> dist(mean, stddev);
+    
+    x_m.resize(nloc);
+    y_m.resize(nloc);
+    z_m.resize(nloc);
+    
+    for (size_t i = 0; i < nloc; ++i) {
+        x_m[i] = dist(mt);
+        y_m[i] = dist(mt);
+        z_m[i] = dist(mt);
+    }
+}
+
 
 void Distribution::injectBeam(PartBunchBase& bunch) {
     

@@ -115,7 +115,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 //     msg << "bunch->initField() done " << endl;
 
     // begin main timestep loop
-//     msg << "Starting iterations ..." << endl;
+    msg << "Starting iterations ..." << endl;
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         // advance the particle positions
@@ -134,13 +134,13 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
             bunch->setP(bunch->getP(i) + dt * bunch->getQM(i) * bunch->getE(i), i);
         
-//         msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
-//             << bunch->getRMax() << bunch->getHr() << endl;
+        msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
+            << bunch->getRMax() << bunch->getHr() << endl;
     }
     Ippl::Comm->barrier();
     
     delete bunch;
-//     msg << "Particle test testAmrPartBunch: End." << endl;
+    msg << "Particle test testAmrPartBunch: End." << endl;
 }
 
 
@@ -196,9 +196,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     bunch->myUpdate();
     bunch->print();
     
+    double q = 1.0 / nParticles;
+
+    // random initialization for charge-to-mass ratio
+    for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+        bunch->setQM(q, i);
     
-//     for (size_t i = 0; i < bunch->getLocalNum(); ++i)
-//         msg2all << bunch->getR(i) << endl;
+    
     
     
     MultiFab mf(ba, 1, 1);
@@ -211,37 +215,38 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
     
-//     std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-//               << "Charge sum: " << charge << std::endl;
+    std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
+              << "Charge sum: " << charge << std::endl;
     
     
     
+    // begin main timestep loop
+    msg << "Starting iterations ..." << endl;
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
-//         // advance the particle positions
-//         // basic leapfrogging timestep scheme.  velocities are offset
-//         // by half a timestep from the positions.
-//         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-//             bunch->getR(i) += dt * bunch->getP(i);
-// 
-//         // update particle distribution across processors
-//         bunch->myUpdate();
-// 
-//         // gather the local value of the E field
-//         bunch->gatherCIC();
-// 
-//         // advance the particle velocities
-//         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-//             bunch->getP(i) += dt * bunch->getQM(i) * bunch->getE(i);
-//         
-// //         msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
-// //             << bunch->getRMax() << bunch->getHr() << endl;
+        // advance the particle positions
+        // basic leapfrogging timestep scheme.  velocities are offset
+        // by half a timestep from the positions.
+        for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+            bunch->setR(bunch->getR(i) + dt * bunch->getP(i), i);
+
+        // update particle distribution across processors
+        bunch->myUpdate();
+
+        // gather the local value of the E field
+        bunch->gatherCIC();
+
+        // advance the particle velocities
+        for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+            bunch->setP(bunch->getP(i) + dt * bunch->getQM(i) * bunch->getE(i), i);
+        
+        msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
+            << bunch->getRMax() << bunch->getHr() << endl;
     }
-    
-    
-    
+    ParallelDescriptor::Barrier();
     
     delete bunch;
+    msg << "Particle test testAmrPartBunch: End." << endl;
 }
 
 

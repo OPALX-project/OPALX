@@ -71,19 +71,15 @@ public:
     ///@todo Implement
     void gatherCIC();
     
-    Vector_t getR(int i);
+    inline Vector_t getR(int i);
     
-    ///@todo
-    double getQM(int i);
+    inline double getQM(int i);
     
-    ///@todo
-    Vector_t getP(int i);
+    inline Vector_t getP(int i);
     
-    ///@todo
-    Vector_t getE(int i);
+    inline Vector_t getE(int i);
     
-    ///@todo
-    Vector_t getB(int i);
+    inline Vector_t getB(int i);
     
     inline void setR(Vector_t pos, int i);
     
@@ -107,10 +103,6 @@ private:
      * and vice-versa
      */
     map_t idxMap_m;
-    
-    // remove
-    Vector_t R, P, E, B;
-    double qm;
 };
 
 // ----------------------------------------------------------------------------
@@ -290,13 +282,22 @@ Vector_t AmrPartBunch::getP(int i) {
 
 
 Vector_t AmrPartBunch::getE(int i) {
-    return E;
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    return Vector_t(m_particles[l][g][dq].m_data[4],
+                    m_particles[l][g][dq].m_data[5],
+                    m_particles[l][g][dq].m_data[6]);
 }
 
 
 Vector_t AmrPartBunch::getB(int i) {
-    return B;
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    return Vector_t(m_particles[l][g][dq].m_data[7],
+                    m_particles[l][g][dq].m_data[8],
+                    m_particles[l][g][dq].m_data[9]);
 }
+
 
 void AmrPartBunch::setR(Vector_t pos, int i) {
     int l, g, dq;
@@ -306,12 +307,14 @@ void AmrPartBunch::setR(Vector_t pos, int i) {
         m_particles[l][g][dq].m_pos[d] = pos(d);
 }
 
+
 void AmrPartBunch::setQM(double q, int i) {
     int l, g, dq;
     std::tie(l,g,dq) = idxMap_m[i];
     
     m_particles[l][g][dq].m_data[0] = q;
 }
+
 
 void AmrPartBunch::setP(Vector_t v, int i) {
     int l, g, dq;
@@ -321,6 +324,7 @@ void AmrPartBunch::setP(Vector_t v, int i) {
         m_particles[l][g][dq].m_data[d + 1] = v(d);
 }
 
+
 void AmrPartBunch::setE(Vector_t Ef, int i) {
     int l, g, dq;
     std::tie(l,g,dq) = idxMap_m[i];
@@ -328,6 +332,7 @@ void AmrPartBunch::setE(Vector_t Ef, int i) {
     for (int d = 0; d < 3; ++d)
         m_particles[l][g][dq].m_data[d + 4] = Ef(d);
 }
+
 
 void AmrPartBunch::setB(Vector_t Bf, int i) {
     int l, g, dq;
