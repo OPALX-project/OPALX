@@ -145,8 +145,8 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              size_t maxLevel, size_t nTimeSteps, Inform& msg,
-              Inform& msg2all)
+              size_t maxLevel, size_t maxBoxSize,
+              size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
     /*
      * set up the geometry
@@ -157,7 +157,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     BoxArray ba(bx);
     
-    ba.maxSize(16);
+    ba.maxSize(maxBoxSize);
     
     // box [-1,1]x[-1,1]x[-1,1]
     RealBox domain;
@@ -257,6 +257,14 @@ int main(int argc, char *argv[]) {
     Inform msg(argv[1]);
     Inform msg2all(argv[1], INFORM_ALL_NODES);
     
+    std::stringstream call;
+    call << "Call: mpirun -np [#procs] testAmrPartBunch [IPPL or BOXLIB] "
+         << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] [#timesteps] ";
+    
+    if ( argc < 7 ) {
+        msg << call.str() << endl;
+        return -1;
+    }
     
     // number of grid points in each direction
     Vektor<size_t, 3> nr(std::atoi(argv[2]),
@@ -267,9 +275,6 @@ int main(int argc, char *argv[]) {
     size_t nParticles = std::atoi(argv[5]);
     size_t nTimeSteps = std::atoi(argv[6]);
     
-    std::stringstream call;
-    call << "Call: mpirun -np [#procs] testAmrPartBunch [IPPL or BOXLIB] "
-         << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] [#timesteps] ";
     
     msg << "Particle test running with" << endl
         << "- #timesteps = " << nTimeSteps << endl
@@ -283,17 +288,12 @@ int main(int argc, char *argv[]) {
             return -1;
         }
         
-        
         BoxLib::Initialize(argc,argv, false);
         size_t maxLevel = std::atoi(argv[7]);
-        doBoxLib(nr, nParticles, maxLevel, nTimeSteps, msg, msg2all);
-    } else {
-        if ( argc != 7 )  {
-            msg << call.str() << endl;
-            return -1;
-        }
+        size_t maxBoxSize = std::atoi(argv[8]);
+        doBoxLib(nr, nParticles, maxLevel, maxBoxSize, nTimeSteps, msg, msg2all);
+    } else
         doIppl(nr, nParticles, nTimeSteps, msg, msg2all);
-    }
     
     return 0;
 }
