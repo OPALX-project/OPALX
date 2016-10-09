@@ -172,7 +172,8 @@ Accel::particle_est_time_step (Real& est_dt)
         std::cout << "NUM OF GLOBL TOTAL PARTS AT LEVEL IN EST_TIME_STEP " << total_num << std::endl;
     }
 
-    const Real est_dt_particle = PAPC->estTimestep(e_field, level, particle_cfl);
+    //FIXME BoxLib was updated --> no ParticleContainer<NR,NI>::estTimestep function anymore
+    const Real est_dt_particle = 1.0e-5; //PAPC->estTimestep(e_field, level, particle_cfl);
 
     if (est_dt_particle > 0)
         est_dt = std::min(est_dt, est_dt_particle);

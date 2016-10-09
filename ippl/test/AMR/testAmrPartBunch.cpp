@@ -206,12 +206,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     MultiFab mf(ba, 1, 1);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(mf, 0);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, 0 /*level*/);
     
     
 //     std::cout << mf.max(0) << std::endl << mf.min(0) << std::endl;
     
-    Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0);
+    Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, 0 /*level*/);
     
     double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
     
