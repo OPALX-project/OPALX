@@ -72,7 +72,7 @@ Accel::particle_derive (const std::string& name, Real time, int ngrow)
         // asking for one level's worth because otherwise we don't get the
         // coarse-fine distribution of particles correct.
         PArray<MultiFab> particle_mf;
-        Accel::thePAPC()->AssignDensity(particle_mf);
+        Accel::thePAPC()->AssignDensity(0, particle_mf);
 
         for (int lev = parent->finestLevel()-1; lev >= 0; lev--)
         {
@@ -94,7 +94,7 @@ Accel::particle_derive (const std::string& name, Real time, int ngrow)
         // asking for one level's worth because otherwise we don't get the
         // coarse-fine distribution of particles correct.
         PArray<MultiFab> particle_mf;
-        Accel::thePAPC()->AssignDensity(particle_mf);
+        Accel::thePAPC()->AssignDensity(0, particle_mf);
        
         for (int lev = parent->finestLevel()-1; lev >= 0; lev--)
         {
