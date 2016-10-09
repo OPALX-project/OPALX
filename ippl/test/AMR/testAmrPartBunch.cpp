@@ -145,7 +145,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              size_t maxLevel, size_t maxBoxSize,
+              size_t nLevels, size_t maxBoxSize,
               size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
     /*
@@ -154,10 +154,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     IntVect low(0, 0, 0);
     IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
     Box bx(low, high);
-    
-    BoxArray ba(bx);
-    
-    ba.maxSize(maxBoxSize);
     
     // box [-1,1]x[-1,1]x[-1,1]
     RealBox domain;
@@ -170,19 +166,65 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // periodic boundary conditions in all directions
     int bc[BL_SPACEDIM] = {1, 1, 1};
     
-    Geometry geom;
-    geom.define(bx, &domain, 0, bc);
+    Array<Geometry> geom(nLevels);
     
-    DistributionMapping dmap;
-    dmap.define(ba, ParallelDescriptor::NProcs() /*nprocs*/);
+    // level 0 describes physical domain
+    geom[0].define(bx, &domain, 0, bc);
     
-//     msg << geom << endl;
+    
+    /*
+     * refinement ratio
+     */
+    Array<int> rr(nLevels - 1);
+    for (size_t lev = 1; lev < nLevels; ++lev)
+        rr[lev - 1] = 2;
+    
+    for (size_t lev = 1; lev < nLevels; ++lev) {
+        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
+                                        rr[lev - 1]),
+                         &domain, 0, bc);
+    }
+    
+    
+    // Container for boxes at all levels
+    Array<BoxArray> ba(nLevels);
+    
+    // box at level 0
+    ba[0].define(bx);
+    
+    ///@todo Next higher boxes are hard-coded.
+    for (size_t lev = 1; lev < nLevels; ++lev) {
+        IntVect refined_lo(0.25 * nr[0] * rr[lev - 1],
+                           0.25 * nr[1] * rr[lev - 1],
+                           0.25 * nr[2] * rr[lev - 1]);
+        
+        IntVect refined_hi(0.75 * nr[0] * rr[lev - 1] - 1,
+                           0.75 * nr[1] * rr[lev - 1] - 1,
+                           0.75 * nr[2] * rr[lev - 1] - 1);
+
+        Box refined_patch(refined_lo, refined_hi);
+        ba[lev].define(refined_patch);
+    }
+    
+    // break BoxArrays into maxBoxSize^3
+    for (size_t lev = 0; lev < nLevels; ++lev)
+        ba[lev].maxSize(maxBoxSize);
+    
+    
+    /*
+     * distribution mapping
+     */
+    
+    Array<DistributionMapping> dmap(nLevels);
+    
+    for (size_t lev = 0; lev < nLevels; ++lev)
+        dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
     
     /*
      * initialize particle bunch
      */
     
-    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba);
+    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba, rr);
     
     
     /*
@@ -205,7 +247,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     
-    MultiFab mf(ba, 1, 1);
+    MultiFab mf(ba[0], 1, 1);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, 0 /*level*/);
     
     
@@ -284,14 +326,14 @@ int main(int argc, char *argv[]) {
     
     if ( std::strcmp(argv[1], "IPPL") ) {
         if ( argc != 9 ) {
-            msg << call.str() << "[max. level] [max. box size]" << endl;
+            msg << call.str() << "[#levels] [max. box size]" << endl;
             return -1;
         }
         
         BoxLib::Initialize(argc,argv, false);
-        size_t maxLevel = std::atoi(argv[7]);
+        size_t nLevels = std::atoi(argv[7]);
         size_t maxBoxSize = std::atoi(argv[8]);
-        doBoxLib(nr, nParticles, maxLevel, maxBoxSize, nTimeSteps, msg, msg2all);
+        doBoxLib(nr, nParticles, nLevels, maxBoxSize, nTimeSteps, msg, msg2all);
     } else
         doIppl(nr, nParticles, nTimeSteps, msg, msg2all);
     

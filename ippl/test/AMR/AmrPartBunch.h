@@ -36,6 +36,13 @@ public:
     AmrPartBunch(const Geometry & geom, const DistributionMapping & dmap,
                  const BoxArray & ba);
     
+    /// Just calls constructor of ParticleContainer
+    AmrPartBunch(const Array<Geometry>& geom,
+                 const Array<DistributionMapping>& dmap,
+                 const Array<BoxArray>& ba,
+                 const Array<int>& rr);
+                 
+    
     /// Does nothing.
     virtual ~AmrPartBunch();
     
@@ -118,6 +125,13 @@ AmrPartBunch::AmrPartBunch(const Geometry& geom,
                            const DistributionMapping & dmap,
                            const BoxArray & ba)
     : ParticleContainer(geom, dmap, ba)
+{ }
+
+AmrPartBunch::AmrPartBunch(const Array<Geometry>& geom,
+                           const Array<DistributionMapping>& dmap,
+                           const Array<BoxArray>& ba,
+                           const Array<int>& rr)
+    : ParticleContainer(geom, dmap, ba, rr)
 { }
 
 
@@ -218,6 +232,11 @@ void AmrPartBunch::gatherStatistics() {
     for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
         m << "Node " << i << " has "
           <<   globalPartPerNode[i]/this->getTotalNum()*100.0 << " \% of the total particles " << endl;
+    
+    
+    for (int lev = 0; lev < m_particles.size(); ++lev)
+        m << "#particles at level " << lev << ": "
+          << NumberOfParticlesAtLevel(lev) << endl;
 }
 
 
