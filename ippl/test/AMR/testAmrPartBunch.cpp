@@ -99,7 +99,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 
     // random initialization for charge-to-mass ratio
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->getQM(i) = q;
+        bunch->setQM(q, i);
 
 //     msg << "particles created and initial conditions assigned " << endl;
 
@@ -122,7 +122,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
         // basic leapfrogging timestep scheme.  velocities are offset
         // by half a timestep from the positions.
         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-            bunch->getR(i) += dt * bunch->getP(i);
+            bunch->setR(bunch->getR(i) + dt * bunch->getP(i), i);
 
         // update particle distribution across processors
         bunch->myUpdate();
@@ -132,7 +132,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 
         // advance the particle velocities
         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-            bunch->getP(i) += dt * bunch->getQM(i) * bunch->getE(i);
+            bunch->setP(bunch->getP(i) + dt * bunch->getQM(i) * bunch->getE(i), i);
         
 //         msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
 //             << bunch->getRMax() << bunch->getHr() << endl;
@@ -213,6 +213,33 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
 //     std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
 //               << "Charge sum: " << charge << std::endl;
+    
+    
+    
+    for (unsigned int it=0; it<nTimeSteps; it++) {
+        bunch->gatherStatistics();
+//         // advance the particle positions
+//         // basic leapfrogging timestep scheme.  velocities are offset
+//         // by half a timestep from the positions.
+//         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+//             bunch->getR(i) += dt * bunch->getP(i);
+// 
+//         // update particle distribution across processors
+//         bunch->myUpdate();
+// 
+//         // gather the local value of the E field
+//         bunch->gatherCIC();
+// 
+//         // advance the particle velocities
+//         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+//             bunch->getP(i) += dt * bunch->getQM(i) * bunch->getE(i);
+//         
+// //         msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
+// //             << bunch->getRMax() << bunch->getHr() << endl;
+    }
+    
+    
+    
     
     delete bunch;
 }

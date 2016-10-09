@@ -1,6 +1,18 @@
 #ifndef PARTBUNCH_H
 #define PARTBUNCH_H
 
+/*!
+ * @file PartBunch.h
+ * @details Particle bunch class
+ * for IPPL
+ * @authors Matthias Frey \n
+ *          Andreas Adelmann \n
+ *          Ann Almgren \n
+ *          Weiqun Zhang
+ * @date LBNL, October 2016
+ */
+
+
 #include "PartBunchBase.h"
 
 /// Particle bunch class using IPPL
@@ -69,17 +81,27 @@ public:
     
     inline size_t getLocalNum() const;
     
-    inline Vector_t& getR(int i);
+    inline size_t getTotalNum() const;
     
-    inline double& getQM(int i);
+    inline Vector_t getR(int i);
     
-    inline Vector_t& getP(int i);
+    inline double getQM(int i);
     
-    inline Vector_t& getE(int i);
+    inline Vector_t getP(int i);
     
-    inline Vector_t& getB(int i);
+    inline Vector_t getE(int i);
+    
+    inline Vector_t getB(int i);
     
     inline void setR(Vector_t pos, int i);
+    
+    inline void setQM(double q, int i);
+    
+    inline void setP(Vector_t v, int i);
+    
+    inline void setE(Vector_t Ef, int i);
+    
+    inline void setB(Vector_t Bf, int i);
     
     double scatter();
 
@@ -276,31 +298,36 @@ size_t PartBunch<PL>::getLocalNum() const {
 
 
 template <class PL>
-Vector_t& PartBunch<PL>::getR(int i) {
+size_t PartBunch<PL>::getTotalNum() const {
+    return IpplParticleBase<PL>::getTotalNum();
+}
+
+template <class PL>
+Vector_t PartBunch<PL>::getR(int i) {
     return IpplParticleBase<PL>::R[i];
 }
 
 
 template <class PL>
-inline double& PartBunch<PL>::getQM(int i) {
+inline double PartBunch<PL>::getQM(int i) {
     return qm[i];
 }
 
 
 template <class PL>
-inline Vector_t& PartBunch<PL>::getP(int i) {
+inline Vector_t PartBunch<PL>::getP(int i) {
     return P[i];
 }
 
 
 template <class PL>
-inline Vector_t& PartBunch<PL>::getE(int i) {
+inline Vector_t PartBunch<PL>::getE(int i) {
     return E[i];
 }
 
 
 template <class PL>
-inline Vector_t& PartBunch<PL>::getB(int i) {
+inline Vector_t PartBunch<PL>::getB(int i) {
     return B[i];
 }
 
@@ -308,6 +335,29 @@ template <class PL>
 void PartBunch<PL>::setR(Vector_t pos, int i) {
     for (int d = 0; d < 3; ++d)
         IpplParticleBase<PL>::R[i](d) = pos(d);
+}
+
+template <class PL>
+void PartBunch<PL>::setQM(double q, int i) {
+    qm[i] = q;
+}
+
+template <class PL>
+void PartBunch<PL>::setP(Vector_t v, int i) {
+    for (int d = 0; d < 3; ++d)
+        P(d) = v(d);
+}
+
+template <class PL>
+void PartBunch<PL>::setE(Vector_t Ef, int i) {
+    for (int d = 0; d < 3; ++d)
+        E(d) = Ef(d);
+}
+
+template <class PL>
+void PartBunch<PL>::setB(Vector_t Bf, int i) {
+    for (int d = 0; d < 3; ++d)
+        B(d) = Bf(d);
 }
 
 
@@ -366,7 +416,7 @@ void PartBunch<PL>::myUpdate() {
 template <class PL>
 void PartBunch<PL>::gatherStatistics() {
     Inform m("gatherStatistics ");
-    Inform m2a("gatherStatistics ",INFORM_ALL_NODES);
+    Inform m2a("gatherStatistics ", INFORM_ALL_NODES);
 
     double *partPerNode = new double[Ippl::getNodes()];
     double *globalPartPerNode = new double[Ippl::getNodes()];
