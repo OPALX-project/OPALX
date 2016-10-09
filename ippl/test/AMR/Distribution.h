@@ -1,11 +1,22 @@
 #ifndef DISTRIBUTION_H
 #define DISTRIBUTION_H
 
+/*!
+ * @file Distribution.h
+ * @details Generates distributions
+ * for a particle bunch.
+ * @authors Matthias Frey \n
+ *          Andreas Adelmann \n
+ *          Ann Almgren \n
+ *          Weiqun Zhang
+ * @date LBNL, October 2016
+ */
+
 #include <random>
+#include <iostream>
 
 #include "PartBunchBase.h"
 
-#include <iostream>
 
 /// Create particle distributions
 class Distribution {

@@ -1,6 +1,17 @@
 #ifndef AMRPARTBUNCH_H
 #define AMRPARTBUNCH_H
 
+/*!
+ * @file AmrPartBunch.h
+ * @details Particle bunch class
+ * for BoxLib
+ * @authors Matthias Frey \n
+ *          Andreas Adelmann \n
+ *          Ann Almgren \n
+ *          Weiqun Zhang
+ * @date LBNL, October 2016
+ */
+
 
 #include <map>
 #include <tuple>
@@ -12,7 +23,7 @@
 
 /// Particle bunch class for BoxLib
 class AmrPartBunch : public PartBunchBase,
-                     public ParticleContainer<3 /*real attributes*/, 0>
+                     public ParticleContainer<10 /*real attributes*/, 0>
 {
 public:
     typedef std::map<int, std::tuple<int, int, int> > map_t;
@@ -34,13 +45,13 @@ public:
     
     void myUpdate();
     
-    
     void create(size_t m);
     
-    ///@todo Implement
     void gatherStatistics();
     
     size_t getLocalNum() const;
+    
+    size_t getTotalNum() const;
     
     ///@todo Implement
     Vector_t getRMin();
@@ -60,22 +71,29 @@ public:
     ///@todo Implement
     void gatherCIC();
     
-    Vector_t& getR(int i);
+    Vector_t getR(int i);
     
     ///@todo
-    double& getQM(int i);
+    double getQM(int i);
     
     ///@todo
-    Vector_t& getP(int i);
+    Vector_t getP(int i);
     
     ///@todo
-    Vector_t& getE(int i);
+    Vector_t getE(int i);
     
     ///@todo
-    Vector_t& getB(int i);
+    Vector_t getB(int i);
     
     inline void setR(Vector_t pos, int i);
     
+    inline void setQM(double q, int i);
+    
+    inline void setP(Vector_t v, int i);
+    
+    inline void setE(Vector_t Ef, int i);
+    
+    inline void setB(Vector_t Bf, int i);
     
 private:
     /// Create the index mapping in order to have random access
@@ -98,7 +116,7 @@ private:
 // ----------------------------------------------------------------------------
 // STATIC MEMBER VARIABLES
 // ----------------------------------------------------------------------------
-size_t AmrPartBunch::nAttributes = 3;
+size_t AmrPartBunch::nAttributes = 10;
 
 // ----------------------------------------------------------------------------
 // PUBLIC MEMBER FUNCTIONS
@@ -148,14 +166,6 @@ void AmrPartBunch::myUpdate() {
     Redistribute();
     
     buildIndexMapping_m();
-    
-//     for (int i = 0; i < nLocalParticles_m; i++) {
-//         int l,g,dq;
-//         std::tie(l,g,dq) = idxMap_m[i];
-//         std::cout << "i= " << i << " ---> ";
-//         std::cout << "level= " << l << " grid= " << g << " dqIndex= " << dq;
-//         std::cout << std::endl;
-//     }
 }
 
 
@@ -196,11 +206,36 @@ void AmrPartBunch::create(size_t m) {
 }
 
 
-void AmrPartBunch::gatherStatistics() { }
+void AmrPartBunch::gatherStatistics() {
+    Inform m("gatherStatistics ");
+    Inform m2a("gatherStatistics ", INFORM_ALL_NODES);
+    
+    double *partPerNode = new double[ParallelDescriptor::NProcs()];
+    double *globalPartPerNode = new double[ParallelDescriptor::NProcs()];
+    
+    for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+        partPerNode[i] = globalPartPerNode[i] = 0.0;
+    
+    partPerNode[ParallelDescriptor::MyProc()] = this->getLocalNum();
+    
+    reduce(partPerNode,
+           partPerNode + ParallelDescriptor::NProcs(),
+           globalPartPerNode,
+           OpAddAssign());
+    
+    for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+        m << "Node " << i << " has "
+          <<   globalPartPerNode[i]/this->getTotalNum()*100.0 << " \% of the total particles " << endl;
+}
 
 
 size_t AmrPartBunch::getLocalNum() const {
     return nLocalParticles_m;
+}
+
+size_t AmrPartBunch::getTotalNum() const {
+    ///@bug In ParticleContainer of BoxLib (check second boolean)
+    return TotalNumberOfParticles(true, true);
 }
 
 
@@ -208,7 +243,7 @@ Vector_t AmrPartBunch::getRMin() {
     return Vector_t(0.0, 0.0, 0.0);
 }
 
-
+// 
 Vector_t AmrPartBunch::getRMax() {
     return Vector_t(0.0, 0.0, 0.0);
 }
@@ -229,36 +264,39 @@ void AmrPartBunch::initFields() {}
 void AmrPartBunch::gatherCIC() {}
 
 
-Vector_t& AmrPartBunch::getR(int i) {
+Vector_t AmrPartBunch::getR(int i) {
     int l, g, dq;
     std::tie(l,g,dq) = idxMap_m[i];
-    R = Vector_t(m_particles[l][g][dq].m_pos[0],
-                 m_particles[l][g][dq].m_pos[1],
-                 m_particles[l][g][dq].m_pos[2]);
-    
-    return R;
+    return Vector_t(m_particles[l][g][dq].m_pos[0],
+                    m_particles[l][g][dq].m_pos[1],
+                    m_particles[l][g][dq].m_pos[2]);
 }
 
 
-double& AmrPartBunch::getQM(int i) {
-    return qm;
+double AmrPartBunch::getQM(int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    return m_particles[l][g][dq].m_data[0];
 }
 
 
-Vector_t& AmrPartBunch::getP(int i) {
-    return P;
+Vector_t AmrPartBunch::getP(int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    return Vector_t(m_particles[l][g][dq].m_data[1],
+                    m_particles[l][g][dq].m_data[2],
+                    m_particles[l][g][dq].m_data[3]);
 }
 
 
-Vector_t& AmrPartBunch::getE(int i) {
+Vector_t AmrPartBunch::getE(int i) {
     return E;
 }
 
 
-Vector_t& AmrPartBunch::getB(int i) {
+Vector_t AmrPartBunch::getB(int i) {
     return B;
 }
-
 
 void AmrPartBunch::setR(Vector_t pos, int i) {
     int l, g, dq;
@@ -266,6 +304,37 @@ void AmrPartBunch::setR(Vector_t pos, int i) {
     
     for (int d = 0; d < 3; ++d)
         m_particles[l][g][dq].m_pos[d] = pos(d);
+}
+
+void AmrPartBunch::setQM(double q, int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    
+    m_particles[l][g][dq].m_data[0] = q;
+}
+
+void AmrPartBunch::setP(Vector_t v, int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    
+    for (int d = 0; d < 3; ++d)
+        m_particles[l][g][dq].m_data[d + 1] = v(d);
+}
+
+void AmrPartBunch::setE(Vector_t Ef, int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    
+    for (int d = 0; d < 3; ++d)
+        m_particles[l][g][dq].m_data[d + 4] = Ef(d);
+}
+
+void AmrPartBunch::setB(Vector_t Bf, int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    
+    for (int d = 0; d < 3; ++d)
+        m_particles[l][g][dq].m_data[d + 7] = Bf(d);
 }
 
 #endif
