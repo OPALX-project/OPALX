@@ -46,12 +46,18 @@ Usage:
 #include "Distribution.h"
 
 
+
+
+
 const double dt = 1.0;          // size of timestep
 
 
 void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
             size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
+
+    static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");
+    static IpplTimings::TimerRef tracTimer = IpplTimings::getTimer("trac");    
 
     e_dim_tag decomp[Dim];
     unsigned serialDim = 2;
@@ -82,20 +88,19 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
     Vector_t rmax(1.0);
     
     PartBunchBase* bunch = new PartBunch<playout_t>(PL,hr,rmin,rmax,decomp);
-    
-    
+        
     /*
      * initialize a particle distribution
      */
+    IpplTimings::startTimer(distTimer);
     unsigned long int nloc = nParticles / Ippl::getNodes();
     Distribution dist;
     dist.uniform(0.2, 0.8, nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
-    
-//     bunch->print();
-    
+    // bunch->print();    
     bunch->myUpdate();
-    
+    IpplTimings::stopTimer(distTimer);
+
     double q = 1.0/nParticles;
 
     // random initialization for charge-to-mass ratio
@@ -117,6 +122,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
+    IpplTimings::startTimer(tracTimer);
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
 //         // advance the particle positions
@@ -139,7 +145,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 //             << bunch->getRMax() << bunch->getHr() << endl;
     }
     Ippl::Comm->barrier();
-    
+    IpplTimings::stopTimer(tracTimer);
     delete bunch;
     msg << "Particle test testAmrPartBunch: End." << endl;
 }
@@ -149,7 +155,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
               size_t nLevels, size_t maxBoxSize,
               size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
-    
+    static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");    
+    static IpplTimings::TimerRef tracTimer = IpplTimings::getTimer("trac");    
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
@@ -216,18 +223,16 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // initialize a particle distribution
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
+    IpplTimings::startTimer(distTimer);
     dist.uniform(0.2, 0.8, nloc, ParallelDescriptor::MyProc());
-    
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
-    
     bunch->gatherStatistics();
-    
     // redistribute on single-level
     bunch->myUpdate();
-    
+    IpplTimings::stopTimer(distTimer);
     bunch->gatherStatistics();
-//     bunch->print();
+    //     bunch->print();
     
     double q = 1.0 / nParticles;
 
@@ -294,6 +299,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
+    IpplTimings::startTimer(tracTimer);
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         // advance the particle positions
@@ -305,7 +311,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 
     }
     ParallelDescriptor::Barrier();
-    
+    IpplTimings::stopTimer(tracTimer);
+
     delete bunch;
     msg << "Particle test testAmrPartBunch: End." << endl;
 }
@@ -318,6 +325,10 @@ int main(int argc, char *argv[]) {
     Inform msg(argv[1]);
     Inform msg2all(argv[1], INFORM_ALL_NODES);
     
+
+    static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
+    IpplTimings::startTimer(mainTimer);
+
     std::stringstream call;
     call << "Call: mpirun -np [#procs] testAmrPartBunch [IPPL or BOXLIB] "
          << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] [#timesteps] ";
@@ -356,6 +367,13 @@ int main(int argc, char *argv[]) {
     } else
         doIppl(nr, nParticles, nTimeSteps, msg, msg2all);
     
+
+    IpplTimings::stopTimer(mainTimer);
+
+    IpplTimings::print();
+    std::string tfn = std::string(argv[1]) + std::string("-cores=") + std::to_string(Ippl::getNodes());
+    IpplTimings::print(tfn);
+
     return 0;
 }
 
