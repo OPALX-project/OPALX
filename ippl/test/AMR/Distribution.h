@@ -132,6 +132,13 @@ void Distribution::injectBeam(PartBunchBase& bunch) {
         bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
         bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i);
     }
+    
+    x_m.clear();
+    y_m.clear();
+    z_m.clear();
+    px_m.clear();
+    py_m.clear();
+    pz_m.clear();
 }
 
 #endif
