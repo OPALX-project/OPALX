@@ -54,6 +54,11 @@ private:
     container_t x_m;    ///< Horizontal particle positions [m]
     container_t y_m;    ///< Vertical particle positions [m]
     container_t z_m;    ///< Longitudinal particle positions [m]
+    
+    container_t px_m;   ///< Horizontal particle momentum
+    container_t py_m;   ///< Vertical particle momentum
+    container_t pz_m;   ///< Longitudinal particle momentum
+    
     size_t nloc_m;      ///< Local number of particles
 };
 
@@ -75,10 +80,18 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
     y_m.resize(nloc);
     z_m.resize(nloc);
     
+    px_m.resize(nloc);
+    py_m.resize(nloc);
+    pz_m.resize(nloc);
+    
     for (size_t i = 0; i < nloc; ++i) {
         x_m[i] = dist(mt);
         y_m[i] = dist(mt);
         z_m[i] = dist(mt);
+        
+        px_m[i] = dist(mt);
+        py_m[i] = dist(mt);
+        pz_m[i] = dist(mt);
     }
 }
 
@@ -94,10 +107,18 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
     y_m.resize(nloc);
     z_m.resize(nloc);
     
+    px_m.resize(nloc);
+    py_m.resize(nloc);
+    pz_m.resize(nloc);
+    
     for (size_t i = 0; i < nloc; ++i) {
         x_m[i] = dist(mt);
         y_m[i] = dist(mt);
         z_m[i] = dist(mt);
+        
+        px_m[i] = dist(mt);
+        py_m[i] = dist(mt);
+        pz_m[i] = dist(mt);
     }
 }
 
@@ -107,8 +128,10 @@ void Distribution::injectBeam(PartBunchBase& bunch) {
     // create memory space
     bunch.create(nloc_m);
     
-    for (size_t i = 0; i < bunch.getLocalNum(); ++i)
+    for (size_t i = 0; i < bunch.getLocalNum(); ++i) {
         bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
+        bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i);
+    }
 }
 
 #endif

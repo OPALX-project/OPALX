@@ -169,6 +169,12 @@ void AmrPartBunch::buildIndexMapping_m() {
 
 void AmrPartBunch::myUpdate() {
     
+    ///@bug periodic shift (otherwise we get an error when tracking)
+    for (int i = 0; i < m_particles.size(); ++i)
+        for (unsigned int g = 0; g < m_particles[i].size(); ++g)
+            for (unsigned int d = 0; d < m_particles[i][g].size(); ++d)
+                ParticleBase::PeriodicWhere(m_particles[i][g][d], GetParGDB());
+    
     Redistribute();
     
     buildIndexMapping_m();
