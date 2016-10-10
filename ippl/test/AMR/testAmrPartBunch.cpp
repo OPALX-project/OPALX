@@ -35,6 +35,7 @@ Usage:
 #include <set>
 #include <sstream>
 
+
 #include <Array.H>
 #include <Geometry.H>
 #include <MultiFab.H>
@@ -55,7 +56,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
     e_dim_tag decomp[Dim];
     unsigned serialDim = 2;
 
-//     msg << "Serial dimension is " << serialDim  << endl;
+    msg << "Serial dimension is " << serialDim  << endl;
 
     Mesh_t *mesh;
     FieldLayout_t *FL;
@@ -88,10 +89,10 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
      */
     unsigned long int nloc = nParticles / Ippl::getNodes();
     Distribution dist;
-    dist.uniform(0.0, 1.0, nloc, Ippl::myNode());
+    dist.uniform(0.2, 0.8, nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     
-    bunch->print();
+//     bunch->print();
     
     bunch->myUpdate();
     
@@ -101,41 +102,41 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
         bunch->setQM(q, i);
 
-//     msg << "particles created and initial conditions assigned " << endl;
+    msg << "particles created and initial conditions assigned " << endl;
 
     // redistribute particles based on spatial layout
 
 //     msg << "initial update and initial mesh done .... Q= " << sum(bunch->getQM()) << endl;
-//     msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getMesh() << endl;
-//     msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getFieldLayout() << endl;
+    msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getMesh() << endl;
+    msg << dynamic_cast<PartBunch<playout_t>*>(bunch)->getFieldLayout() << endl;
 
-//     msg << "scatter test done delta= " <<  bunch->scatter() << endl;
+    msg << "scatter test done delta= " <<  bunch->scatter() << endl;
 
     bunch->initFields();
-//     msg << "bunch->initField() done " << endl;
+    msg << "bunch->initField() done " << endl;
 
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
-        // advance the particle positions
-        // basic leapfrogging timestep scheme.  velocities are offset
-        // by half a timestep from the positions.
+//         // advance the particle positions
+//         // basic leapfrogging timestep scheme.  velocities are offset
+//         // by half a timestep from the positions.
         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
             bunch->setR(bunch->getR(i) + dt * bunch->getP(i), i);
 
         // update particle distribution across processors
         bunch->myUpdate();
 
-        // gather the local value of the E field
-        bunch->gatherCIC();
-
-        // advance the particle velocities
-        for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-            bunch->setP(bunch->getP(i) + dt * bunch->getQM(i) * bunch->getE(i), i);
-        
-        msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
-            << bunch->getRMax() << bunch->getHr() << endl;
+//         // gather the local value of the E field
+//         bunch->gatherCIC();
+// 
+//         // advance the particle velocities
+//         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+//             bunch->setP(bunch->getP(i) + dt * bunch->getQM(i) * bunch->getE(i), i);
+//         
+//         msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
+//             << bunch->getRMax() << bunch->getHr() << endl;
     }
     Ippl::Comm->barrier();
     
@@ -148,6 +149,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
               size_t nLevels, size_t maxBoxSize,
               size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
+    
+    // ========================================================================
+    // 1. initialize physical domain (just single-level)
+    // ========================================================================
+    
     /*
      * set up the geometry
      */
@@ -171,6 +177,19 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // level 0 describes physical domain
     geom[0].define(bx, &domain, 0, bc);
     
+    // Container for boxes at all levels
+    Array<BoxArray> ba(nLevels);
+    
+    // box at level 0
+    ba[0].define(bx);
+    ba[0].maxSize(maxBoxSize);
+    
+    /*
+     * distribution mapping
+     */
+    Array<DistributionMapping> dmap(nLevels);
+    dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    
     
     /*
      * refinement ratio
@@ -179,6 +198,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (size_t lev = 1; lev < nLevels; ++lev)
         rr[lev - 1] = 2;
     
+    
     for (size_t lev = 1; lev < nLevels; ++lev) {
         geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
                                         rr[lev - 1]),
@@ -186,12 +206,41 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     }
     
     
-    // Container for boxes at all levels
-    Array<BoxArray> ba(nLevels);
+    // ========================================================================
+    // 2. initialize all particles (just single-level)
+    // ========================================================================
     
-    // box at level 0
-    ba[0].define(bx);
+    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba, rr);
     
+    
+    // initialize a particle distribution
+    unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
+    Distribution dist;
+    dist.uniform(0.2, 0.8, nloc, ParallelDescriptor::MyProc());
+    
+    // copy particles to the PartBunchBase object.
+    dist.injectBeam(*bunch);
+    
+    bunch->gatherStatistics();
+    
+    // redistribute on single-level
+    bunch->myUpdate();
+    
+    bunch->gatherStatistics();
+//     bunch->print();
+    
+    double q = 1.0 / nParticles;
+
+    // random initialization for charge-to-mass ratio
+    for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+        bunch->setQM(q, i);
+    
+    
+    // ========================================================================
+    // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
+    //    other levels)
+    // ========================================================================
+
     ///@todo Next higher boxes are hard-coded.
     for (size_t lev = 1; lev < nLevels; ++lev) {
         IntVect refined_lo(0.25 * nr[0] * rr[lev - 1],
@@ -207,45 +256,26 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     }
     
     // break BoxArrays into maxBoxSize^3
-    for (size_t lev = 0; lev < nLevels; ++lev)
+    for (size_t lev = 1; lev < nLevels; ++lev) {
         ba[lev].maxSize(maxBoxSize);
-    
-    
-    /*
-     * distribution mapping
-     */
-    
-    Array<DistributionMapping> dmap(nLevels);
-    
-    for (size_t lev = 0; lev < nLevels; ++lev)
         dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
+    }
     
-    /*
-     * initialize particle bunch
-     */
-    
-    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba, rr);
+    for (size_t lev = 1; lev < nLevels; ++lev)
+        dynamic_cast<AmrPartBunch*>(bunch)->SetParticleBoxArray(lev, dmap[lev], ba[lev]);
     
     
-    /*
-     * initialize a particle distribution
-     */
-    unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
-    Distribution dist;
-    dist.uniform(0.0, 1.0, nloc, ParallelDescriptor::MyProc());
-    dist.injectBeam(*bunch);
+    // ========================================================================
+    // 3. multi-level redistribute
+    // ========================================================================
     
     bunch->myUpdate();
-    bunch->print();
-    
-    double q = 1.0 / nParticles;
-
-    // random initialization for charge-to-mass ratio
-    for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->setQM(q, i);
     
     
     
+    // ========================================================================
+    // do some operations on the data
+    // ========================================================================
     
     MultiFab mf(ba[0], 1, 1);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, 0 /*level*/);
@@ -267,23 +297,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         // advance the particle positions
-        // basic leapfrogging timestep scheme.  velocities are offset
-        // by half a timestep from the positions.
         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
             bunch->setR(bunch->getR(i) + dt * bunch->getP(i), i);
 
         // update particle distribution across processors
         bunch->myUpdate();
 
-        // gather the local value of the E field
-        bunch->gatherCIC();
-
-        // advance the particle velocities
-        for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-            bunch->setP(bunch->getP(i) + dt * bunch->getQM(i) * bunch->getE(i), i);
-        
-        msg << "Finished iteration " << it << " - min/max r and h " << bunch->getRMin()
-            << bunch->getRMax() << bunch->getHr() << endl;
     }
     ParallelDescriptor::Barrier();
     
