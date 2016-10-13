@@ -21,8 +21,10 @@ link_directories (
 SET (IPPL_LIBS ippl)
 
 add_executable (testAmrPartBunch testAmrPartBunch.cpp)
+add_executable (testSolver testSolver.cpp)
 
 # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
 target_link_libraries (testAmrPartBunch ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
+target_link_libraries (testSolver ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
 
 

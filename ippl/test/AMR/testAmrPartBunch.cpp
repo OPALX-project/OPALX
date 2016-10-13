@@ -335,11 +335,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // solve                                                                                                                                                                                                     
     Solver sol;
     sol.solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
-    
-    std::cout << "RHS: " << rhs[0].max(0) << std::endl;
-    std::cout << "PHI: " << phi[0].max(0) << std::endl;
-    std::cout << "E: " << grad_phi[0].max(0) << std::endl;
-    
 #endif
     // ========================================================================
     // do some operations on the data
