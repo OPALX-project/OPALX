@@ -21,6 +21,8 @@ IF(ENABLE_AMR_SOLVER)
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
     set (AMR_SRC Solvers/amr/AccelBld.cpp)
     set (AMR_INCLUDE_DIR Solvers/amr)
+    set (CBOXLIB -lmpi -lmpi_mpifh -lcboxlib)
+    
 ENDIF(ENABLE_AMR_SOLVER)
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -115,7 +117,7 @@ ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 add_library( OPALib ${OPAL_SRCS} opal.cpp )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 add_executable( opal Main.cpp ${AMR_SRC} )
-target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} -lgfortran ${CMAKE_DL_LIBS})
+target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
