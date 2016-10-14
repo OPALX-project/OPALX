@@ -32,7 +32,7 @@ c) in order to run you add following line either to your
    .bashrc file or you execute it everytime you want to start
    a new session in a new terminal
    
-   source /home/matthias/yt-x86_64/bin/activate
+   source $YT_DIR/yt-x86_64/bin/activate
     
 d) just run the script with python
    
