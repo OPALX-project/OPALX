@@ -1,3 +1,19 @@
+/* Matthias Frey
+ * 13. - 14. October, LBNL
+ * 
+ * Compute \Lap(\phi) = -1 and write plot files
+ * that can be visualized by yt (python visualize.py)
+ * or by AmrVis of the CCSE group at LBNL.
+ * 
+ * Domain:  [0, 1] x [0, 1] x [0, 1]
+ * BC:      Dirichlet boundary conditions
+ * #Levels: single level (currently)
+ * 
+ * Call:
+ *  mpirun -np [#cores] testSolver [#gridpints x] [#gridpints y] [#gridpints z]
+ *      [max. grid size]
+ */
+
 #include <iostream>
 
 #include <BoxLib.H>
@@ -14,8 +30,14 @@ int main(int argc, char* argv[]) {
     BoxLib::Initialize(argc, argv, false);
     
     int nLevels = 1;
-    int nr[BL_SPACEDIM] = {32, 32, 32};
-    int maxBoxSize = 32;
+    int nr[BL_SPACEDIM] = {
+        std::atoi(argv[1]),
+        std::atoi(argv[2]),
+        std::atoi(argv[3])
+    };
+    
+    
+    int maxBoxSize = std::atoi(argv[4]);
     
     
     // setup geometry
@@ -54,17 +76,17 @@ int main(int argc, char* argv[]) {
         efield.set(l, new MultiFab(ba[l], BL_SPACEDIM, 1));
     }
     
+    
+    Array<int> refRatio;
+    for (int i = 0; i < refRatio.size(); ++i)
+        refRatio[i] = 2;
+    
     int base_level = 0;
     int fine_level = nLevels - 1;
     
     // rho is equal to one everywhere
     for (int l = 0; l < nLevels; ++l)
         rho[l].setVal(-1.0);
-    
-//     // write plot file for yt
-//     std::string dir = "density_0";
-//     Real time = 0.0;
-//     writePlotFile(dir, rho[0], geom[0], time);
     
     Real offset = 0.0;
     Solver sol;
@@ -75,7 +97,7 @@ int main(int argc, char* argv[]) {
     
     std::string dir = "plt0000";
     Real time = 0.0;
-    writePlotFile(dir, rho[0], phi[0], efield[0], geom[0], time);
+    writePlotFile(dir, rho, phi, efield, refRatio, geom, time);
     
     for (int l = 0; l < nLevels; ++l) {
         std::cout << "[" << rho[l].min(0) << " " << rho[l].max(0) << "]" << std::endl

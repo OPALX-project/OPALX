@@ -46,34 +46,18 @@ Solver::solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<Mul
 
     Real     strt    = ParallelDescriptor::second();
 
-//     // ***************************************************
-//     // Make sure the RHS sums to 0 if fully periodic
-//     // ***************************************************
-//     for (int lev = base_level; lev <= finest_level; lev++) {
-// 	Real n0 = rhs[lev].norm0();
-//     }
-// 
-//     for (int lev = base_level; lev <= finest_level; lev++)
-//         rhs[lev].plus(-offset, 0, 1, 0);
-// 
-//     for (int lev = base_level; lev <= finest_level; lev++) {
-// 	Real n0 = rhs[lev].norm0();
-//     }
-
     // ***************************************************
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
-
-   solve_with_f90  (rhs,phi,grad_phi_edge,geom,base_level,finest_level,tol,abs_tol);
+    
+    solve_with_f90  (rhs,phi,grad_phi_edge,geom,base_level,finest_level,tol,abs_tol);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)
     {
         BoxLib::average_face_to_cellcenter(grad_phi[lev], grad_phi_edge[lev], geom[lev]);
-	grad_phi[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+        grad_phi[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }
-
-    // VisMF::Write(grad_phi[0],"GradPhi");
 
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -92,7 +76,7 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
 
     int mg_bc[2*BL_SPACEDIM];
 
-    // This tells the solver that we are using periodic bc's
+    // This tells the solver that we are using Dirichlet bc's
     if (!Geometry::isAnyPeriodic())
     {
         for (int dir = 0; dir < BL_SPACEDIM; ++dir)
@@ -128,17 +112,15 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     }
 
     fmg.set_const_gravity_coeffs();
-//     fmg.set_scalars(0.0, -1.0);
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
     fmg.set_verbose(0);
     fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
    
-    for (int ilev = 0; ilev < nlevs; ++ilev)
-    {
-	int amr_level = ilev + base_level;
-	fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        int amr_level = ilev + base_level;
+        fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
     }
 }
 
