@@ -46,19 +46,19 @@ Solver::solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<Mul
 
     Real     strt    = ParallelDescriptor::second();
 
-    // ***************************************************
-    // Make sure the RHS sums to 0 if fully periodic
-    // ***************************************************
-    for (int lev = base_level; lev <= finest_level; lev++) {
-	Real n0 = rhs[lev].norm0();
-    }
-
-    for (int lev = base_level; lev <= finest_level; lev++)
-        rhs[lev].plus(-offset, 0, 1, 0);
-
-    for (int lev = base_level; lev <= finest_level; lev++) {
-	Real n0 = rhs[lev].norm0();
-    }
+//     // ***************************************************
+//     // Make sure the RHS sums to 0 if fully periodic
+//     // ***************************************************
+//     for (int lev = base_level; lev <= finest_level; lev++) {
+// 	Real n0 = rhs[lev].norm0();
+//     }
+// 
+//     for (int lev = base_level; lev <= finest_level; lev++)
+//         rhs[lev].plus(-offset, 0, 1, 0);
+// 
+//     for (int lev = base_level; lev <= finest_level; lev++) {
+// 	Real n0 = rhs[lev].norm0();
+//     }
 
     // ***************************************************
     // Solve for phi and return both phi and grad_phi_edge
@@ -93,15 +93,16 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     int mg_bc[2*BL_SPACEDIM];
 
     // This tells the solver that we are using periodic bc's
-    if (Geometry::isAllPeriodic())
+    if (!Geometry::isAnyPeriodic())
     {
         for (int dir = 0; dir < BL_SPACEDIM; ++dir)
         {
-            mg_bc[2*dir + 0] = 0;
-            mg_bc[2*dir + 1] = 0;
+            // Dirichlet BC
+            mg_bc[2*dir + 0] = MGT_BC_DIR;
+            mg_bc[2*dir + 1] = MGT_BC_DIR;
         }
     } else {
-	BoxLib::Abort("non periodic boundaries not supported here");
+	BoxLib::Abort("periodic boundaries not supported here");
     }
 
     // Have to do some packing because these arrays does not always start with base_level
@@ -127,6 +128,7 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     }
 
     fmg.set_const_gravity_coeffs();
+//     fmg.set_scalars(0.0, -1.0);
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;

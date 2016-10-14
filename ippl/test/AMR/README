@@ -1,0 +1,39 @@
+In order to run this test you need a proper installation of
+BoxLib. The output files can be visualized using yt python.
+
+1. Installation of BoxLib
+-------------------------
+a) git clone https://github.com/BoxLib-Codes/BoxLib
+b) mkdir build
+c) cd build
+d) Load modules: cmake/2.8.12.2, gcc/4.8.3, openmpi/1.8.2
+d) cmake -DBL_USE_PARTICLES=1 -DBL_USE_FORTRAN_MPI=1 -DCMAKE_INSTALL_PREFIX=$TARGET_DIR /path/to/root/CMakeList.txt/file
+e) make
+f) make install
+g) export environment variables:
+    $ export BOXLIB_HOME=$TARGET_DIR
+    $ export BOXLIB_PEFIX=$BOXLIB_HOME
+    $ export BOXLIB_INCLUDE_DIR=$BOXLIB_HOME/include
+    $ export BOXLIB_LIBRARY_DIR=$BOXLIB_HOME/lib
+    $ export BOXLIB_PERL_DIR=$BOXLIB_HOME/perl
+
+
+2. Installation of OPAL
+-----------------------
+a) cmake -DENABLE_IPPLTESTS=1 /path/to/root/CMakeList.txt/file
+b) make
+
+
+3. Installation of yt
+--------------------
+a) visit http://yt-project.org/
+b) follow instructions of website
+c) in order to run you add following line either to your
+   .bashrc file or you execute it everytime you want to start
+   a new session in a new terminal
+   
+   source /home/matthias/yt-x86_64/bin/activate
+    
+d) just run the script with python
+   
+   $ python visualize.py
