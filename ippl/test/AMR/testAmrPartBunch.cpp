@@ -46,7 +46,6 @@ Usage:
 #include "Distribution.h"
 #include "Solver.h"
 
-
 #define SOLVER 1
 
 
@@ -300,6 +299,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         phi[lev].setVal(0.0);
         grad_phi[lev].setVal(0.0);
     }
+    
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
@@ -317,6 +317,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 
     for (size_t lev = 0; lev < nLevels; lev++)
         MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    
     
     
     // **************************************************************************                                                                                                                                

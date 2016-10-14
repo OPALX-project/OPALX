@@ -7,13 +7,15 @@
 
 #include "Solver.h"
 
+#include "writePlotFile.H"
+
 int main(int argc, char* argv[]) {
     
     BoxLib::Initialize(argc, argv, false);
     
     int nLevels = 1;
-    int nr[BL_SPACEDIM] = {64, 64, 64};
-    int maxBoxSize = 16;
+    int nr[BL_SPACEDIM] = {32, 32, 32};
+    int maxBoxSize = 32;
     
     
     // setup geometry
@@ -27,8 +29,8 @@ int main(int argc, char* argv[]) {
         domain.setHi(i, 1.0);
     }
     
-    // periodic boundary conditions
-    int bc[BL_SPACEDIM] = {1, 1, 1};
+    // dirichlet boundary conditions
+    int bc[BL_SPACEDIM] = {0, 0, 0};
     
     Array<Geometry> geom(nLevels);
     geom[0].define(bx, &domain, 0, bc);
@@ -57,8 +59,12 @@ int main(int argc, char* argv[]) {
     
     // rho is equal to one everywhere
     for (int l = 0; l < nLevels; ++l)
-        rho[l].setVal(1.0);
+        rho[l].setVal(-1.0);
     
+//     // write plot file for yt
+//     std::string dir = "density_0";
+//     Real time = 0.0;
+//     writePlotFile(dir, rho[0], geom[0], time);
     
     Real offset = 0.0;
     Solver sol;
@@ -66,6 +72,10 @@ int main(int argc, char* argv[]) {
                         base_level, fine_level,
                         offset);
     
+    
+    std::string dir = "plt0000";
+    Real time = 0.0;
+    writePlotFile(dir, rho[0], phi[0], efield[0], geom[0], time);
     
     for (int l = 0; l < nLevels; ++l) {
         std::cout << "[" << rho[l].min(0) << " " << rho[l].max(0) << "]" << std::endl
@@ -75,6 +85,8 @@ int main(int argc, char* argv[]) {
                   << efield[l].max(1) << ", " << efield[l].max(2) << ") ]" << std::endl;
                   
     }
+    
+    
     
     BoxLib::Finalize();
     
