@@ -26,7 +26,7 @@
 // include files
 #include "Particle/ParticleInteractLayout.h"
 #include "Particle/ParticleBConds.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Region/RegionLayout.h"
 #include "FieldLayout/FieldLayout.h"
 #include "Utility/IpplInfo.h"
@@ -136,7 +136,7 @@ T ParticleInteractLayout<T,Dim,Mesh>::getMaxLocalInteractionRadius() {
 template < class T, unsigned Dim, class Mesh >
 void ParticleInteractLayout<T,Dim,Mesh>::getPairlist(unsigned n,
   pair_iterator& bpi, pair_iterator& epi,
-  ParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData) {
+  IpplParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData) {
 
   // check if we have any particle boundary conditions
   if (getUpdateFlag(ParticleLayout<T,Dim>::BCONDS)) {
@@ -404,13 +404,13 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data(
 
 
 /////////////////////////////////////////////////////////////////////
-// Update the location and indices of all atoms in the given ParticleBase
+// Update the location and indices of all atoms in the given IpplParticleBase
 // object.  This handles swapping particles among processors if
 // needed, and handles create and destroy requests.  When complete,
 // all nodes have correct layout information.
 template < class T, unsigned Dim, class Mesh >
 void ParticleInteractLayout<T,Dim,Mesh>::update(
-  ParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData,
+  IpplParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData,
   const ParticleAttrib<char>* canSwap) {
 
   unsigned N = Ippl::getNodes();
@@ -544,14 +544,14 @@ void ParticleInteractLayout<T,Dim,Mesh>::update(
 
 /////////////////////////////////////////////////////////////////////
 // copy particles to other nodes for pairlist computation.  The arguments
-// are the current number of local particles, and the ParticleBase object.
+// are the current number of local particles, and the IpplParticleBase object.
 // Make sure not to send any particles to, or receive particles from,
 // nodes which have no particles on them.  This also takes care of
 // building the pairlists.
 template < class T, unsigned Dim, class Mesh >
 void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned 
 							      LocalNum,
-   ParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData) {
+   IpplParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData) {
 
   unsigned int i;			// loop variables
 
@@ -678,7 +678,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 
 /////////////////////////////////////////////////////////////////////
 // copy particles to other nodes for pairlist computation.  The arguments
-// are the current number of local particles, and the ParticleBase object.
+// are the current number of local particles, and the IpplParticleBase object.
 // Make sure not to send any particles to, or receive particles from,
 // nodes which have no particles on them.  This also takes care of
 // building the pairlists.
@@ -686,7 +686,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 template < class T, unsigned Dim, class Mesh >
 void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(
    unsigned LocalNum,
-   ParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData,
+   IpplParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData,
    const bool periodicBC[2*Dim])
 {
   unsigned int i, j;			// loop variables
@@ -914,7 +914,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(
 template < class T, unsigned Dim, class Mesh >
 void ParticleInteractLayout<T,Dim,Mesh>::find_pairs(const unsigned LocalNum,
        const unsigned a1, const unsigned a2, const bool initLists,
-       ParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData) {
+       IpplParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData) {
 
   unsigned i, j;			// loop variables
 

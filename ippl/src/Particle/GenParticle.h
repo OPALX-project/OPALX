@@ -14,25 +14,25 @@
 /*
  * GenParticle - Specialized Particle container with just one more attribute.
  *
- * GenParticle is a special version of a ParticleBase class, specialized
+ * GenParticle is a special version of a IpplParticleBase class, specialized
  * to have one more attribute of type T2 in addition to the normal attributes
- * defined in ParticleBase.
+ * defined in IpplParticleBase.
  */
 
 // include files
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 
 
 // GenParticle class definition
 template<class PLayout, class T>
-class GenParticle : public ParticleBase<PLayout> {
+class GenParticle : public IpplParticleBase<PLayout> {
 
 public:
   // the extra attribute for this class
   ParticleAttrib<T> data;
 
   // constructor: user-provided Layout object must be supplied
-  GenParticle(PLayout* L) : ParticleBase<PLayout>(L) {
+  GenParticle(PLayout* L) : IpplParticleBase<PLayout>(L) {
     addAttribute(data);
   }
 

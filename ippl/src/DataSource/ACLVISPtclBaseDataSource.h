@@ -13,15 +13,15 @@
 
 /***********************************************************************
  * 
- * class ACLVISParticleBaseDataSource
+ * class ACLVISIpplParticleBaseDataSource
  *
- * ACLVISParticleBaseDataSource is a specific version of ParticleBaseDataSource
- * which takes position and attribute data for a given ParticleBase and
+ * ACLVISIpplParticleBaseDataSource is a specific version of IpplParticleBaseDataSource
+ * which takes position and attribute data for a given IpplParticleBase and
  * provides it to an external agency.  This is done by collecting data on
  * node 0, and formatting it for VTK use.
  *
- * ACLVISParticleBaseDataSource will take the position data, and all connected
- * attributes for the ParticleBase, and update their values.
+ * ACLVISIpplParticleBaseDataSource will take the position data, and all connected
+ * attributes for the IpplParticleBase, and update their values.
  *
  ***********************************************************************/
 
@@ -31,21 +31,21 @@
 
 
 // forward declarations
-template<class PLayout> class ParticleBase;
+template<class PLayout> class IpplParticleBase;
 class ACLVISDataConnect;
 
 
 // class definition
 template<class PLayout>
-class ACLVISParticleBaseDataSource : public ParticleBaseDataSource {
+class ACLVISIpplParticleBaseDataSource : public IpplParticleBaseDataSource {
 
 public:
   // constructor: name, connection method, transfer method, pbase
-  ACLVISParticleBaseDataSource(const char *, DataConnect *, int,
-			       ParticleBase<PLayout>&);
+  ACLVISIpplParticleBaseDataSource(const char *, DataConnect *, int,
+			       IpplParticleBase<PLayout>&);
 
   // destructor
-  virtual ~ACLVISParticleBaseDataSource();
+  virtual ~ACLVISIpplParticleBaseDataSource();
 
   //
   // DataSourceObject virtual function interface.
@@ -61,7 +61,7 @@ public:
   virtual void interact(const char * = 0);
 
   //
-  // ParticleBaseDataSource virtual function interface
+  // IpplParticleBaseDataSource virtual function interface
   //
 
   // make a connection using the given attribute.  Return success.
@@ -71,13 +71,13 @@ public:
   // particle base and the given attribute.  Return success.
   virtual bool disconnect_attrib(ParticleAttribDataSource *);
 
-  // check to see if the given ParticleAttribBase is in this ParticleBase's
+  // check to see if the given ParticleAttribBase is in this IpplParticleBase's
   // list of registered attributes.  Return true if this is so.
   virtual bool has_attrib(ParticleAttribBase *);
 
 private:
   // the set of particles to connect
-  ParticleBase<PLayout>& MyParticleBase;
+  IpplParticleBase<PLayout>& MyIpplParticleBase;
 
   // recast of DataConnect to ACL-specific object
   ACLVISDataConnect *ACLVISConnection;

@@ -13,14 +13,14 @@
 
 /***********************************************************************
  *
- * class ParticleBaseDataSource
+ * class IpplParticleBaseDataSource
  *
- * ParticleBaseDataSource is a base class which
- * stores a static list of all ParticleBaseDataSource's (stored as
- * ParticleBaseDataSource pointers) which are currently connected.  This
+ * IpplParticleBaseDataSource is a base class which
+ * stores a static list of all IpplParticleBaseDataSource's (stored as
+ * IpplParticleBaseDataSource pointers) which are currently connected.  This
  * is needed so that ParticleAttrib's can determine if their parent
- * ParticleBase has been previously connected, and if so they can then
- * put themselves in the list for that ParticleBase as an attribute to be
+ * IpplParticleBase has been previously connected, and if so they can then
+ * put themselves in the list for that IpplParticleBase as an attribute to be
  * transmitted along with the particle positions.  Subclasses provide
  * specific functionality to connect to external agencies such as viz
  * programs.
@@ -42,19 +42,19 @@ class ParticleAttribDataSource;
 class ParticleAttribBase;
 
 
-class ParticleBaseDataSource : public DataSourceObject {
+class IpplParticleBaseDataSource : public DataSourceObject {
 
 public:
   // some useful typedefs
   typedef std::vector<ParticleAttribDataSource *> AttribList_t;
-  typedef std::vector<ParticleBaseDataSource *>   BaseList_t;
+  typedef std::vector<IpplParticleBaseDataSource *>   BaseList_t;
 
 public:
   // constructor: name, connection method, transfer method
-  ParticleBaseDataSource(const char *, DataConnect *, int, DataSource *);
+  IpplParticleBaseDataSource(const char *, DataConnect *, int, DataSource *);
 
   // destructor
-  virtual ~ParticleBaseDataSource();
+  virtual ~IpplParticleBaseDataSource();
 
   // get the begin/end iterators for the list of attributes
   AttribList_t::iterator begin_attrib() { return AttribList.begin(); }
@@ -66,17 +66,17 @@ public:
 
   // try to add a new ParticleAttrib (stored in a ParticleAttribDataSource
   // object) to our list of connected attributes.  This will check through
-  // the list of registered ParticleBase's, and add it to the proper one.
+  // the list of registered IpplParticleBase's, and add it to the proper one.
   // If none are found, this returns NULL, otherwise this method returns
-  // a pointer to the ParticleBaseDataSource to which the attrib was added.
+  // a pointer to the IpplParticleBaseDataSource to which the attrib was added.
   // This function is static, so that it may be called without a specific
-  // ParticleBaseDataSource instance.
+  // IpplParticleBaseDataSource instance.
   static
-  ParticleBaseDataSource* find_particle_base(ParticleAttribDataSource *,
+  IpplParticleBaseDataSource* find_particle_base(ParticleAttribDataSource *,
 					     ParticleAttribBase *);
 
   //
-  // ParticleBaseDataSource public virtual function interface
+  // IpplParticleBaseDataSource public virtual function interface
   //
 
   // make a connection using the given attribute.  Return success.
@@ -86,12 +86,12 @@ public:
   // particle base and the given attribute.  Return success.
   virtual bool disconnect_attrib(ParticleAttribDataSource *);
 
-  // check to see if the given ParticleAttribBase is in this ParticleBase's
+  // check to see if the given ParticleAttribBase is in this IpplParticleBase's
   // list of registered attributes.  Return true if this is so.
   virtual bool has_attrib(ParticleAttribBase *) = 0;
 
 protected:
-  // register ourselves as a properly-connected ParticleBase holder.  This
+  // register ourselves as a properly-connected IpplParticleBase holder.  This
   // should be called by the connect method in subclasses after a successful
   // checkin.
   void checkin();
@@ -102,10 +102,10 @@ protected:
 
 private:
   // a non-static list of the ParticleAttrib's which have been requested
-  // to connect to the same receiver as this object's ParticleBase
+  // to connect to the same receiver as this object's IpplParticleBase
   AttribList_t AttribList;
 
-  // a static list of the currently-connected ParticleBaseDataSource's.
+  // a static list of the currently-connected IpplParticleBaseDataSource's.
   static BaseList_t BaseList;
 };
 

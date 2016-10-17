@@ -142,7 +142,7 @@ void dumpVTK(Field<double,3> &EFD, NDIndex<3> lDom, int nx, int ny, int nz, int 
 
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 
   Field<Vektor<double,Dim>,Dim> EFD_m;
   Field<double,Dim> EFDMag_m;
@@ -172,7 +172,7 @@ public:
     typename PL::ParticlePos_t B;  // magnetic field at particle position
 
     ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim], bool gCells) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
         bco_m(bc),
         interpol_m(interpol),
         fieldNotInitialized_m(true),
@@ -196,7 +196,7 @@ public:
     */
 
     ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
         bco_m(bc),
         interpol_m(interpol),
 	fieldNotInitialized_m(true),

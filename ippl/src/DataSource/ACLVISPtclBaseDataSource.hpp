@@ -28,7 +28,7 @@
 #include "DataSource/ACLVISOperations.h"
 #include "DataSource/ACLVISDataConnect.h"
 #include "DataSource/PtclAttribDataSource.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Message/Communicate.h"
 #include "Utility/IpplInfo.h"
  
@@ -38,14 +38,14 @@
 ////////////////////////////////////////////////////////////////////////////
 // constructor: name, connection method, transfer method, pbase
 template<class PLayout>
-ACLVISParticleBaseDataSource<PLayout>::ACLVISParticleBaseDataSource(const
+ACLVISIpplParticleBaseDataSource<PLayout>::ACLVISIpplParticleBaseDataSource(const
 								    char *nm,
-         DataConnect *dc, int tm, ParticleBase<PLayout>& PB)
-  : ParticleBaseDataSource(nm, dc, tm, &PB), MyParticleBase(PB),
+         DataConnect *dc, int tm, IpplParticleBase<PLayout>& PB)
+  : IpplParticleBaseDataSource(nm, dc, tm, &PB), MyIpplParticleBase(PB),
     IDMap(&IDMapA), NewIDMap(&IDMapB)
 {
 
-  // make sure we do not have a ParticleBase with positions greater than
+  // make sure we do not have a IpplParticleBase with positions greater than
   // 3 dimensions
   CTAssert(PLayout::Dimension < 4);
 
@@ -70,7 +70,7 @@ ACLVISParticleBaseDataSource<PLayout>::ACLVISParticleBaseDataSource(const
 ////////////////////////////////////////////////////////////////////////////
 // destructor
 template<class PLayout>
-ACLVISParticleBaseDataSource<PLayout>::~ACLVISParticleBaseDataSource() {
+ACLVISIpplParticleBaseDataSource<PLayout>::~ACLVISIpplParticleBaseDataSource() {
 
 }
 
@@ -78,7 +78,7 @@ ACLVISParticleBaseDataSource<PLayout>::~ACLVISParticleBaseDataSource() {
 ////////////////////////////////////////////////////////////////////////////
 // make a connection using the given attribute.  Return success.
 template<class PLayout>
-bool ACLVISParticleBaseDataSource<PLayout>::connect_attrib(
+bool ACLVISIpplParticleBaseDataSource<PLayout>::connect_attrib(
 	   ParticleAttribDataSource *pa) {
 
   // on parent node, establish connection to ACLVIS for this base+attrib pair
@@ -89,7 +89,7 @@ bool ACLVISParticleBaseDataSource<PLayout>::connect_attrib(
 		       (ReadParticleTool *)(pa->getConnectStorage()),
 		       ParticleDataType);
 
-  return ParticleBaseDataSource::connect_attrib(pa);
+  return IpplParticleBaseDataSource::connect_attrib(pa);
 }
 
 
@@ -97,7 +97,7 @@ bool ACLVISParticleBaseDataSource<PLayout>::connect_attrib(
 // disconnect from the external agency the connection involving this
 // particle base and the given attribute.  Return success.
 template<class PLayout>
-bool ACLVISParticleBaseDataSource<PLayout>::disconnect_attrib(
+bool ACLVISIpplParticleBaseDataSource<PLayout>::disconnect_attrib(
 	   ParticleAttribDataSource *pa) {
 
   // on parent node, remove connection to ACLVIS for this base+attrib pair
@@ -108,20 +108,20 @@ bool ACLVISParticleBaseDataSource<PLayout>::disconnect_attrib(
     ACLVISConnection->getConnection()->disconnect((void *)pa);
 #endif
 
-  return ParticleBaseDataSource::disconnect_attrib(pa);
+  return IpplParticleBaseDataSource::disconnect_attrib(pa);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////
-// check to see if the given ParticleAttrib is in this ParticleBase's
+// check to see if the given ParticleAttrib is in this IpplParticleBase's
 // list of registered attributes.  Return true if this is so.
 template<class PLayout>
-bool ACLVISParticleBaseDataSource<PLayout>::has_attrib(
+bool ACLVISIpplParticleBaseDataSource<PLayout>::has_attrib(
 	    ParticleAttribBase *pa) {
 
-  // go through the list of registered attributes in our ParticleBase ...
-  typename ParticleBase<PLayout>::attrib_iterator attr=MyParticleBase.begin();
-  typename ParticleBase<PLayout>::attrib_iterator endattr=MyParticleBase.end();
+  // go through the list of registered attributes in our IpplParticleBase ...
+  typename IpplParticleBase<PLayout>::attrib_iterator attr=MyIpplParticleBase.begin();
+  typename IpplParticleBase<PLayout>::attrib_iterator endattr=MyIpplParticleBase.end();
   for ( ; attr != endattr; ++attr)
     if (pa == *attr)
       return true;
@@ -136,7 +136,7 @@ bool ACLVISParticleBaseDataSource<PLayout>::has_attrib(
 // data (e.g., for a viz program, to rotate it, change representation, etc.)
 // This should only return when the manipulation is done.
 template<class PLayout>
-void ACLVISParticleBaseDataSource<PLayout>::interact(const char *str) {
+void ACLVISIpplParticleBaseDataSource<PLayout>::interact(const char *str) {
   
   
 
@@ -163,7 +163,7 @@ void ACLVISParticleBaseDataSource<PLayout>::interact(const char *str) {
 // Update the object, that is, make sure the receiver of the data has a
 // current and consistent snapshot of the current state.  Return success.
 template<class PLayout>
-bool ACLVISParticleBaseDataSource<PLayout>::update() {
+bool ACLVISIpplParticleBaseDataSource<PLayout>::update() {
   
   
 
@@ -178,8 +178,8 @@ bool ACLVISParticleBaseDataSource<PLayout>::update() {
   int n, tag = Ippl::Comm->next_tag(DS_PB_TAG, DS_CYCLE);
   unsigned N = Ippl::getNodes();
   unsigned myN = Ippl::myNode();
-  unsigned locN = MyParticleBase.getLocalNum();
-  unsigned totN = MyParticleBase.getTotalNum();
+  unsigned locN = MyIpplParticleBase.getLocalNum();
+  unsigned totN = MyIpplParticleBase.getTotalNum();
   unsigned currIndx = 0;
 
   typename AttribList_t::iterator attr;
@@ -198,8 +198,8 @@ bool ACLVISParticleBaseDataSource<PLayout>::update() {
 
       if (locN > 0) {
 	// put position and ID data into a message
-	MyParticleBase.R.putMessage(*msg, locN, 0);
-	MyParticleBase.ID.putMessage(*msg, locN, 0);
+	MyIpplParticleBase.R.putMessage(*msg, locN, 0);
+	MyIpplParticleBase.ID.putMessage(*msg, locN, 0);
 
 	// put attribute data into a message
 	for (attr=begin_attrib(), endattr=end_attrib();
@@ -231,8 +231,8 @@ bool ACLVISParticleBaseDataSource<PLayout>::update() {
 	  //dbgmsg << "Inserting local data ..." << endl;
 	  for (attr=begin_attrib(),endattr=end_attrib();attr!=endattr;++attr){
 	    (*attr)->insert_data(locN, currIndx, 0);
-	    insert_pos(locN, currIndx, &(MyParticleBase.R[0]),
-		       &(MyParticleBase.ID[0]), *attr);
+	    insert_pos(locN, currIndx, &(MyIpplParticleBase.R[0]),
+		       &(MyIpplParticleBase.ID[0]), *attr);
 	  }
 	}
 
@@ -302,7 +302,7 @@ bool ACLVISParticleBaseDataSource<PLayout>::update() {
 // specific storage.  Arguments = number of particles, starting index,
 // pointer to value, pointer to ID's, and ParticleAttribDataSource
 template<class PLayout>
-void ACLVISParticleBaseDataSource<PLayout>::insert_pos(
+void ACLVISIpplParticleBaseDataSource<PLayout>::insert_pos(
 		      unsigned N, unsigned sIndx,
 		      typename PLayout::SingleParticlePos_t* data,
 		      typename PLayout::Index_t* iddata,

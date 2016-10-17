@@ -48,8 +48,8 @@ template <class T, int> class FVector;
 /// Particle Bunch.
 //  A representation of a particle bunch as a vector of particles.
 
-// class PartBunch: public std::vector<Particle>, public ParticleBase< ParticleSpatialLayout<double, 3> > {
-class PartBunch: public ParticleBase< ParticleSpatialLayout<double, 3> > {
+// class PartBunch: public std::vector<Particle>, public IpplParticleBase< ParticleSpatialLayout<double, 3> > {
+class PartBunch: public IpplParticleBase< ParticleSpatialLayout<double, 3> > {
 
 public:
     /// Default constructor.

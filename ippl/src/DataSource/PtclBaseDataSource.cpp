@@ -30,12 +30,12 @@
 
 
 // static objects for this class
-ParticleBaseDataSource::BaseList_t ParticleBaseDataSource::BaseList;
+IpplParticleBaseDataSource::BaseList_t IpplParticleBaseDataSource::BaseList;
 
 
 ///////////////////////////////////////////////////////////////////////////
 // constructor: name, connection method, transfer method
-ParticleBaseDataSource::ParticleBaseDataSource(const char *nm,
+IpplParticleBaseDataSource::IpplParticleBaseDataSource(const char *nm,
 					       DataConnect *dc,
 					       int tm,
 					       DataSource *ds)
@@ -44,13 +44,13 @@ ParticleBaseDataSource::ParticleBaseDataSource(const char *nm,
 
 ///////////////////////////////////////////////////////////////////////////
 // destructor ... unregister ourselves if this has not already been done
-ParticleBaseDataSource::~ParticleBaseDataSource() {
+IpplParticleBaseDataSource::~IpplParticleBaseDataSource() {
 
   // disconnect all our currently connected attributes
   while (AttribList.size() > 0)
     disconnect_attrib(AttribList.front());
 
-  // remove ourselves from the list of available ParticleBase containers
+  // remove ourselves from the list of available IpplParticleBase containers
   checkout();
 }
 
@@ -58,21 +58,21 @@ ParticleBaseDataSource::~ParticleBaseDataSource() {
 ///////////////////////////////////////////////////////////////////////////
 // try to add a new ParticleAttrib (stored in a ParticleAttribDataSource
 // object) to our list of connected attributes.  This will check through
-// the list of registered ParticleBase's, and add it to the proper one.
+// the list of registered IpplParticleBase's, and add it to the proper one.
 // If none are found, this returns NULL, otherwise this method returns
-// a pointer to the ParticleBaseDataSource to which the attrib was added.
+// a pointer to the IpplParticleBaseDataSource to which the attrib was added.
 // This function is static, so that it may be called without a specific
-// ParticleBaseDataSource instance.
-ParticleBaseDataSource*
-ParticleBaseDataSource::find_particle_base(ParticleAttribDataSource *pa,
+// IpplParticleBaseDataSource instance.
+IpplParticleBaseDataSource*
+IpplParticleBaseDataSource::find_particle_base(ParticleAttribDataSource *pa,
 					   ParticleAttribBase *pabase) {
 
   // search through the particle base holders, and check for matching
   // connection method, and if pa is in currbase
-  BaseList_t::iterator currbase = ParticleBaseDataSource::begin_base();
-  BaseList_t::iterator endbase = ParticleBaseDataSource::end_base();
+  BaseList_t::iterator currbase = IpplParticleBaseDataSource::begin_base();
+  BaseList_t::iterator endbase = IpplParticleBaseDataSource::end_base();
   for ( ; currbase != endbase; ++currbase ) {
-    ParticleBaseDataSource *list = *currbase;
+    IpplParticleBaseDataSource *list = *currbase;
     if (pa->getConnection()==list->getConnection() && list->has_attrib(pabase))
       return list;
   }
@@ -83,15 +83,15 @@ ParticleBaseDataSource::find_particle_base(ParticleAttribDataSource *pa,
 
 
 ///////////////////////////////////////////////////////////////////////////
-// register ourselves as a properly-connected ParticleBase holder.  This
+// register ourselves as a properly-connected IpplParticleBase holder.  This
 // should be called by the constructors of subclasses after a successful
 // connect.  Argument = name of this particle base
-void ParticleBaseDataSource::checkin() {
+void IpplParticleBaseDataSource::checkin() {
   
 
   // first see if we're already here ...
-  BaseList_t::iterator currbase = ParticleBaseDataSource::begin_base();
-  BaseList_t::iterator endbase = ParticleBaseDataSource::end_base();
+  BaseList_t::iterator currbase = IpplParticleBaseDataSource::begin_base();
+  BaseList_t::iterator endbase = IpplParticleBaseDataSource::end_base();
   for ( ; currbase != endbase; ++currbase )
     if (*currbase == this)
       return;			// we're already checked in
@@ -103,7 +103,7 @@ void ParticleBaseDataSource::checkin() {
 
 ///////////////////////////////////////////////////////////////////////////
 // unregister ourselves ... generally called by subclass destructors.
-void ParticleBaseDataSource::checkout() {
+void IpplParticleBaseDataSource::checkout() {
   
 
   for (unsigned i=0; i < BaseList.size(); ++i) {
@@ -118,7 +118,7 @@ void ParticleBaseDataSource::checkout() {
 
 ////////////////////////////////////////////////////////////////////////////
 // make a connection using the given attribute.  Return success.
-bool ParticleBaseDataSource::connect_attrib(ParticleAttribDataSource *pa) {
+bool IpplParticleBaseDataSource::connect_attrib(ParticleAttribDataSource *pa) {
   AttribList.push_back(pa);
   return true;
 }
@@ -127,7 +127,7 @@ bool ParticleBaseDataSource::connect_attrib(ParticleAttribDataSource *pa) {
 ////////////////////////////////////////////////////////////////////////////
 // disconnect from the external agency the connection involving this
 // particle base and the given attribute.  Return success.
-bool ParticleBaseDataSource::disconnect_attrib(ParticleAttribDataSource *pa) {
+bool IpplParticleBaseDataSource::disconnect_attrib(ParticleAttribDataSource *pa) {
 
   // remove the attribute from our list
   int i, size = AttribList.size();

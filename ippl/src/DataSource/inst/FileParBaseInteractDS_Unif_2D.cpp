@@ -29,7 +29,7 @@
 #include "Meshes/UniformCartesian.h"
 
 // 2D UniformCartesian instantiations
-template class FileParticleBaseDataSource<ParticleInteractLayout<
+template class FileIpplParticleBaseDataSource<ParticleInteractLayout<
    IPPL_PRECISION_TYPE, 2U, UniformCartesian<2U,IPPL_PRECISION_TYPE> > >;
 
 

@@ -24,12 +24,28 @@ IF(H5Hut_INCLUDE_DIR AND H5Hut_LIBRARY)
 ENDIF(H5Hut_INCLUDE_DIR AND H5Hut_LIBRARY)
 
 IF (H5Hut_FOUND)
-   IF (NOT H5Hut_FIND_QUIETLY)
-      MESSAGE(STATUS "Found H5Hut libraries: ${H5Hut_LIBRARY}")
-      MESSAGE(STATUS "Found H5Hut include dir: ${H5Hut_INCLUDE_DIR}")
-   ENDIF (NOT H5Hut_FIND_QUIETLY)
+    IF (NOT H5Hut_FIND_QUIETLY)
+        MESSAGE(STATUS "Found H5Hut libraries: ${H5Hut_LIBRARY}")
+        MESSAGE(STATUS "Found H5Hut include dir: ${H5Hut_INCLUDE_DIR}")
+    ENDIF (NOT H5Hut_FIND_QUIETLY)
 ELSE (H5Hut_FOUND)
-   IF (H5Hut_FIND_REQUIRED)
-      MESSAGE(FATAL_ERROR "Could not find H5Hut!")
-   ENDIF (H5Hut_FIND_REQUIRED)
+    IF (H5Hut_FIND_REQUIRED)
+        MESSAGE(FATAL_ERROR "Could not find H5Hut!")
+    ENDIF (H5Hut_FIND_REQUIRED)
 ENDIF (H5Hut_FOUND)
+
+include (CheckIncludeFile)
+CHECK_INCLUDE_FILE (H5_file_attribs.h HAVE_API2_FUNCTIONS "-DPARALLEL_IO")
+
+IF (HAVE_API2_FUNCTIONS)
+    MESSAGE (STATUS "H5hut version is >= 2")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_H5HUT2")
+ELSE (HAVE_API2_FUNCTIONS)
+    MESSAGE (STATUS "H5hut version is 1.x")
+ENDIF (HAVE_API2_FUNCTIONS)
+
+# Local Variables:
+# mode:cmake
+# cmake-tab-width: 4
+# indent-tabs-mode:nil
+# End:
