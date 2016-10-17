@@ -1751,7 +1751,7 @@ void PartBunch::setBCForDCBeam() {
       getBConds()[i] = ParticlePeriodicBCond;
     }
     dcBeam_m=true;
-    INFOMSG(level3 << "BC set for DC-Beam" << endl);
+    INFOMSG(level3 << "BC set for DC-Beam, all periodic" << endl);
 }
 
 void PartBunch::boundp() {
