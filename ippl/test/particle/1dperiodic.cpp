@@ -61,7 +61,7 @@ const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
   ParticleAttrib<double>     qm; // charge-to-mass ratio
   typename PL::ParticlePos_t P;  // particle velocity
@@ -69,7 +69,7 @@ public:
   typename PL::ParticlePos_t B;  // magnetic field at particle position
 
   ChargedParticles(PL* pl, InterPol_t interpol, Vector_t hr, e_dim_tag decomp[Dim], Vector_t mesh_org) : 
-    ParticleBase<PL>(pl),
+    IpplParticleBase<PL>(pl),
     interpol_m(interpol),
     hr_m(hr),
     fieldNotInitialized_m(true),

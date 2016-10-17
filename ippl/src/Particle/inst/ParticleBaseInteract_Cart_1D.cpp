@@ -24,18 +24,18 @@
  ***************************************************************************/
 
 // include files
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/ParticleInteractLayout.h"
 #include "Meshes/Cartesian.h"
 
 // 1D Cartesian instantiations
-template class ParticleBase<ParticleInteractLayout<
+template class IpplParticleBase<ParticleInteractLayout<
    IPPL_PRECISION_TYPE, 1U, Cartesian<1U,IPPL_PRECISION_TYPE> > >;
 
 
 /***************************************************************************
- * $RCSfile: ParticleBaseInteract_Cart_1D.cpp,v $   $Author: adelmann $
+ * $RCSfile: IpplParticleBaseInteract_Cart_1D.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:29 $
- * IPPL_VERSION_ID: $Id: ParticleBaseInteract_Cart_1D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IpplParticleBaseInteract_Cart_1D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
  ***************************************************************************/
 

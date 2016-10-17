@@ -27,7 +27,7 @@
 #include "Utility/DiscParticle.h"
 #include "Utility/DiscConfig.h"
 #include "Utility/PAssert.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/ParticleAttrib.h"
 #include "Message/Communicate.h"
 #include "Message/Tags.h"
@@ -38,9 +38,9 @@
 
 ///////////////////////////////////////////////////////////////////////////
 //                           READ METHODS
-// read the specifed record in the file into the given ParticleBase or
+// read the specifed record in the file into the given IpplParticleBase or
 // ParticleAttrib object, depending on how the DiscParticle was created.
-// If the method is to read all the ParticleBase, this will delete all the
+// If the method is to read all the IpplParticleBase, this will delete all the
 // existing particles in the given object, create new ones and store the
 // values, and then do an update.  If an attribute is being read, this
 // will only work if the number of particles in the attribute already
@@ -50,7 +50,7 @@
 
 ///////////////////////////////////////////////////////////////////////////
 //                           WRITE METHODS
-// write the data from the given ParticleBase or ParticleAttrib into the
+// write the data from the given IpplParticleBase or ParticleAttrib into the
 // file.  Data is appended as a new record, and the meta file is updated.
 //
 ///////////////////////////////////////////////////////////////////////////

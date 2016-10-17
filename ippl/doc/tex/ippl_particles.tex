@@ -18,12 +18,12 @@ The data type of each attribute, the number of attributes, and the names for the
 
 \section{Defining a User-Specified \texttt{Particle} Class}
 
-There is no specific class within the \ippl framework called \texttt{Particle}. Rather, the first step in deploying particles within a \ippl application is to define a user-specified \texttt{Particle} class, which contains the attributes required for each particle, as well as any, specific methods or data the user may need. To do this, the \texttt{ParticleBase} and \texttt{ParticleAttrib} classes are used, along with a selected subclass of the \texttt{ParticleLayout} class. The steps to follow in creating a new \texttt{Particle} class are:
+There is no specific class within the \ippl framework called \texttt{Particle}. Rather, the first step in deploying particles within a \ippl application is to define a user-specified \texttt{Particle} class, which contains the attributes required for each particle, as well as any, specific methods or data the user may need. To do this, the \texttt{IpplParticleBase} and \texttt{ParticleAttrib} classes are used, along with a selected subclass of the \texttt{ParticleLayout} class. The steps to follow in creating a new \texttt{Particle} class are:
 \begin{itemize}
     \item Based on the type of interactions which the particles have with each other and with external objects such as a \texttt{Field}, select a method of distributing the particles among the nodes in a parallel machine.
     \item Next, decide what attributes each particle should possess.
-    \item Third, create a subclass of \texttt{ParticleBase} which includes these attributes (specified as instances of the \texttt{ParticleAttrib} class template).
-    \item Finally, instantiate this user-defined subclass of \texttt{ParticleBase} and create and initialize storage for the particles which are to be maintained by this object. 
+    \item Third, create a subclass of \texttt{IpplParticleBase} which includes these attributes (specified as instances of the \texttt{ParticleAttrib} class template).
+    \item Finally, instantiate this user-defined subclass of \texttt{IpplParticleBase} and create and initialize storage for the particles which are to be maintained by this object. 
 \end{itemize}
 
 The following sections describe in more detail how to accomplish these steps.
@@ -81,23 +81,23 @@ ParticleAttrib<double> density;
 
 declares an instance of \texttt{ParticleAttrib} named 'density', which will store a quantity of type double for all the particles of the \texttt{Particle} class that contains this data member.
 
-\subsection{Specifying a User-Defined \texttt{Particle} Class: \\The \texttt{ParticleBase} Class}
+\subsection{Specifying a User-Defined \texttt{Particle} Class: \\The \texttt{IpplParticleBase} Class}
 
-\texttt{ParticleBase} is the class that all user-defined \texttt{Particle} classes must specify as their base class. It stores the list of attributes for the particles (which are maintained as instances of \texttt{ParticleAttrib}) and a selected parallel layout mechanism. In addition to providing all the capabilities for performing operations on the particles and their attributes, \texttt{ParticleBase} also defines two specific attributes which all user-defined \texttt{Particle} classes inherit:
+\texttt{IpplParticleBase} is the class that all user-defined \texttt{Particle} classes must specify as their base class. It stores the list of attributes for the particles (which are maintained as instances of \texttt{ParticleAttrib}) and a selected parallel layout mechanism. In addition to providing all the capabilities for performing operations on the particles and their attributes, \texttt{IpplParticleBase} also defines two specific attributes which all user-defined \texttt{Particle} classes inherit:
 \begin{smallcode}
 ParticleAttrib<Vektor<T,Dim>>  R; 
 ParticleAttrib<unsigned>      ID;
 \end{smallcode}
 
 
-The first attribute, \texttt{R}, represents the position of each particle. Each position is stored as a \texttt{Vektor<T, Dim>}, which is a \ippl data type representing a dim-dimensional vector with elements of type \texttt{T}. The second attribute, \texttt{ID}, stores a unique unsigned integer value for each particle. The values are not guaranteed to be in any particular order, but they are guaranteed to be unique for each particle. \texttt{ParticleBase} has one template parameter, the layout class to be used to assign particles
-to processors (e.g., \texttt{ParticleSpatialLayout}). The data type and dimensionality of the particle position attribute (\texttt{R}) will be the same as those used to create the specific \texttt{ParticleLayout} derived class. Each \texttt{ParticleBase} contains one instance of the chosen layout class. There are two constructors for \texttt{ParticleBase}: a default constructor that creates a new instance of the layout class using the layout's default constructor, and a constructor which takes a pointer to an instance of the
-layout class. The second version of the \texttt{ParticleBase} constructor is useful when the desired layout class requires arguments to its constructor (e.g., \texttt{ParticleSpatialLayout}, which may be give in a \texttt{FieldLayout} pointer).
+The first attribute, \texttt{R}, represents the position of each particle. Each position is stored as a \texttt{Vektor<T, Dim>}, which is a \ippl data type representing a dim-dimensional vector with elements of type \texttt{T}. The second attribute, \texttt{ID}, stores a unique unsigned integer value for each particle. The values are not guaranteed to be in any particular order, but they are guaranteed to be unique for each particle. \texttt{IpplParticleBase} has one template parameter, the layout class to be used to assign particles
+to processors (e.g., \texttt{ParticleSpatialLayout}). The data type and dimensionality of the particle position attribute (\texttt{R}) will be the same as those used to create the specific \texttt{ParticleLayout} derived class. Each \texttt{IpplParticleBase} contains one instance of the chosen layout class. There are two constructors for \texttt{IpplParticleBase}: a default constructor that creates a new instance of the layout class using the layout's default constructor, and a constructor which takes a pointer to an instance of the
+layout class. The second version of the \texttt{IpplParticleBase} constructor is useful when the desired layout class requires arguments to its constructor (e.g., \texttt{ParticleSpatialLayout}, which may be give in a \texttt{FieldLayout} pointer).
 
-Using \texttt{ParticleBase}, \texttt{ParticleAttrib}, and a selected class derived from \texttt{ParticleLayout,} you can create a user-defined \texttt{Particle} class using the following code template: \\
+Using \texttt{IpplParticleBase}, \texttt{ParticleAttrib}, and a selected class derived from \texttt{ParticleLayout,} you can create a user-defined \texttt{Particle} class using the following code template: \\
 \clearpage
 \begin{codeln}
-class Bunch : public ParticleBase< ParticleSpatiaILayout<double,3> > 
+class Bunch : public IpplParticleBase< ParticleSpatiaILayout<double,3> > 
 { 
 public: 
     // Attributes for this particle class (besides position and ID). 
@@ -105,7 +105,7 @@ public:
     ParticleAttribs Vektor<double,2> > vel; 	// velocity 
 
     // constructor 
-    Bunch(Layout\_t *L) : ParticleBase<Layout\_t>(L) { 
+    Bunch(Layout\_t *L) : IpplParticleBase<Layout\_t>(L) { 
         addAttribute(qm); 
         addAttribute(vel); 
     } 
@@ -114,15 +114,15 @@ public:
 
 Let us describe this example in detail by discussing the important lines in the order of use.
 
-Line 1: You may select whatever name is appropriate for the specialized \texttt{Particle} class, but it must be derived from \texttt{ParticleBase}. 
+Line 1: You may select whatever name is appropriate for the specialized \texttt{Particle} class, but it must be derived from \texttt{IpplParticleBase}. 
 
-In this case, we explicitly specify the type of layout to use (\texttt{ParticleSpatialLayout}), with particle position attribute type and dimensionality template parameters of double and 3, respectively. Alternatively, \texttt{Bunch} may have been declared as a class template itself and may have passed on the layout template parameters to \texttt{ParticleBase}. In that case, the first line would instead look like
+In this case, we explicitly specify the type of layout to use (\texttt{ParticleSpatialLayout}), with particle position attribute type and dimensionality template parameters of double and 3, respectively. Alternatively, \texttt{Bunch} may have been declared as a class template itself and may have passed on the layout template parameters to \texttt{IpplParticleBase}. In that case, the first line would instead look like
 \begin{smallcode}
 template <class PLayout> 
-class Bunch : public ParticleBase<PLayout> 
+class Bunch : public IpplParticleBase<PLayout> 
 \end{smallcode}
 
-Lines 5-6: Here is where the attributes for the particles in the \texttt{Particle} object are declared. They may be given any name other than \texttt{R} or \texttt{ID}. Instead of stating the type and dimensionality of this attribute specifically, you may also use one of the following typedefs and constants defined in \texttt{ParticleBase}:
+Lines 5-6: Here is where the attributes for the particles in the \texttt{Particle} object are declared. They may be given any name other than \texttt{R} or \texttt{ID}. Instead of stating the type and dimensionality of this attribute specifically, you may also use one of the following typedefs and constants defined in \texttt{IpplParticleBase}:
 \begin{itemize}
           \item \texttt{Dim} - the dimensionality of the particle position attribute (in this example, 3)
           \item \texttt{Position\_t} - the type of data used to store the position attribute components (here, this type is double)
@@ -133,18 +133,18 @@ and could have been used to specify the attribute \texttt{vel} in the above exam
 \begin{itemize}
 \item \texttt{ParticleIndex\_t} - a typedef for the particle global \texttt{ID} attribute; it is short for \texttt{ParticleAttrib<unsigned>} 
 \end{itemize}
-The constructor for this user-defined class must initialize \texttt{ParticleBase} with a pointer to an instance of the selected layout class. 
+The constructor for this user-defined class must initialize \texttt{IpplParticleBase} with a pointer to an instance of the selected layout class. 
 
 In this example, the layout class is \texttt{ParticleSpatialLayout}, but using one of the typedefs listed above, we can abbreviate this as \texttt{Layout\_t}. Note that we only define one constructor here, omitting the default constructor. This is done because \texttt{ParticleSpatialLayout} (which we have hard-coded as the layout for this user-defined \texttt{Particle} class) requires an argument to its constructor, and this can only be provided if we use a constructor for our \texttt{Particle} class as shown here. A new instance of this class would be declared in an application as follows:
 \begin{smallcode}
 Bunch myBunch (new ParticleSpatialLayout<double,3>(myFieldLayout)); 
 \end{smallcode}
 where my\texttt{FieldLayout} was a \texttt{FieldLayout} object created previously. The only action that is required in the constructor for the derived class is to inform the base class of the declared attributes, 
-using the \texttt{addAttribute(.)} method of \texttt{ParticleBase}, which registers the specified \texttt{ParticleAttrib} instance with the parent class \texttt{ParticleBase}. The order in which attributes are registered is not important.
+using the \texttt{addAttribute(.)} method of \texttt{IpplParticleBase}, which registers the specified \texttt{ParticleAttrib} instance with the parent class \texttt{IpplParticleBase}. The order in which attributes are registered is not important.
 
 \subsection{Example \texttt{Particle} Classes: The \texttt{Genparticle} and \texttt{GenArrayParticle} Classes}
-The \ippl framework provides two classes which are examples of \texttt{Particle} classes derived from \texttt{ParticleBase}: \texttt{Genparticle} and \texttt{GenArrayParticle}. They may be used as samples from which to build new classes, or they may be used to quickly include particle capabilities in an application. \texttt{Genparticle} is a \texttt{Particle} class with three attributes: \texttt{R} and \texttt{ID} inherited from \texttt{ParticleBase}, and an attribute named data with elements
-of an arbitrary type. \texttt{Genparticle} has two template parameters: the type of particle layout to use and the type \texttt{T} of attribute data. It has two constructors just as \texttt{ParticleBase} does: the default and one taking a layout pointer. An example of instantiating a \texttt{GenParticle}object is shown below.
+The \ippl framework provides two classes which are examples of \texttt{Particle} classes derived from \texttt{IpplParticleBase}: \texttt{Genparticle} and \texttt{GenArrayParticle}. They may be used as samples from which to build new classes, or they may be used to quickly include particle capabilities in an application. \texttt{Genparticle} is a \texttt{Particle} class with three attributes: \texttt{R} and \texttt{ID} inherited from \texttt{IpplParticleBase}, and an attribute named data with elements
+of an arbitrary type. \texttt{Genparticle} has two template parameters: the type of particle layout to use and the type \texttt{T} of attribute data. It has two constructors just as \texttt{IpplParticleBase} does: the default and one taking a layout pointer. An example of instantiating a \texttt{GenParticle}object is shown below.
 \begin{smallcode}
 GenParticle<ParticleUniforrnLayout<float,3>,UserDefinedType> GP(); 
 \end{smallcode}
@@ -164,7 +164,7 @@ After a specific \texttt{Particle} class has been defined and created in a \ippl
 
 \subsection{Creating New \texttt{Particle}s}
 
-When a \texttt{Particle} object is created, it is initially empty. Storage for new particles is allocated using the create (unsigned) method of \texttt{ParticleBase}. For example, if a \texttt{Particle} object bunch has been created already, the statement
+When a \texttt{Particle} object is created, it is initially empty. Storage for new particles is allocated using the create (unsigned) method of \texttt{IpplParticleBase}. For example, if a \texttt{Particle} object bunch has been created already, the statement
 \begin{smallcode}
 bunch.create(100); 
 \end{smallcode}
@@ -172,8 +172,8 @@ bunch.create(100);
 
 will allocate storage for 100 new particles. All the attributes for the particles in the \texttt{Particle} object will have this new storage allocated. The data is uninitialized, except for the global \texttt{ID} attribute; you must assign the proper values to the position and any other attributes that have been defined. The new storage is appended to the end of any existing storage.
 
-\texttt{ParticleBase} includes two methods that allow you to query how many particles exist. The function \texttt{getTotalNum()} will return the total number of particles being stored among all the processors; the function \texttt{getLocalNum()} will return the number of particles just on the local node. Although the new storage space is allocated on the local processor on which the call to create was executed, the \texttt{Particle} class will not officially add the particles to its
-local count (and will not tell any other processors it has created these new particles) until you call the \texttt{update()} method of \texttt{ParticleBase}. Thus, a call to \texttt{getLocalNum()} will report the same number just before and just after the call to create. The storage does exist after create is called, but only after the \texttt{update} method (which is discussed in more detail in a later section) has been called will all the processors have correct information on their local and total particle counts.
+\texttt{IpplParticleBase} includes two methods that allow you to query how many particles exist. The function \texttt{getTotalNum()} will return the total number of particles being stored among all the processors; the function \texttt{getLocalNum()} will return the number of particles just on the local node. Although the new storage space is allocated on the local processor on which the call to create was executed, the \texttt{Particle} class will not officially add the particles to its
+local count (and will not tell any other processors it has created these new particles) until you call the \texttt{update()} method of \texttt{IpplParticleBase}. Thus, a call to \texttt{getLocalNum()} will report the same number just before and just after the call to create. The storage does exist after create is called, but only after the \texttt{update} method (which is discussed in more detail in a later section) has been called will all the processors have correct information on their local and total particle counts.
 
 \subsection{Initializing Attribute Data}
 
@@ -198,7 +198,7 @@ In this example, 100 new particles are created, and the \texttt{R} and \texttt{v
 \subsection{Initializing Attribute Data on Parallel Architectures}
 
 The code shown in the previous example has one problem when used on parallel architectures: the call to create is performed on each processor, so if there were P processors a total of 100*P particles would be created. This may be the desired behavior, if so, the previous example is sufficient. However, if you are reading data on particle positions and other attributes from a file or some other source, you may wish to create particles on a single processor, and then distribute the
-data to the proper nodes. To do this, you need to call create and assign initial data on only one node but call update on all the processors. The \texttt{singlelnitNode()} method of \texttt{ParticleBase} will return a boolean value indicating whether the local processor should be used to create and initialize new particles in this way. The following example demonstrates how to use this method for initializing particles: \\
+data to the proper nodes. To do this, you need to call create and assign initial data on only one node but call update on all the processors. The \texttt{singlelnitNode()} method of \texttt{IpplParticleBase} will return a boolean value indicating whether the local processor should be used to create and initialize new particles in this way. The following example demonstrates how to use this method for initializing particles: \\
 \begin{code}
 // create and'initialize data for an instance of Bunch 
 Bunch myBunch(new Bunch::Layout\_t(myFieldLayout)); 
@@ -216,16 +216,16 @@ myBunch.update();
 
 \subsection{Deleting \texttt{Particle}s}
 
-\texttt{Particle}s may also be deleted during a simulation. The method \texttt{destroy (unsigned M, unsigned I)} of \texttt{ParticleBase} will delete \texttt{M} particles, starting with the \texttt{I}th particle. The index \texttt{I} here refers to the local particle index, not the global \texttt{ID} value. Thus \texttt{I = 0} means delete particles starting with the first one on the local processor.
+\texttt{Particle}s may also be deleted during a simulation. The method \texttt{destroy (unsigned M, unsigned I)} of \texttt{IpplParticleBase} will delete \texttt{M} particles, starting with the \texttt{I}th particle. The index \texttt{I} here refers to the local particle index, not the global \texttt{ID} value. Thus \texttt{I = 0} means delete particles starting with the first one on the local processor.
 
 Unlike the situation when creating new particles, the storage locations for the deleted particles will not be removed from attribute data storage until \texttt{update} is called. Instead, the requests to delete particles are cached until the update phase, at which time all the deletions are performed. You are allowed to issue multiple delete requests between \texttt{update}s. For example, if there are 100 particles on a local node, and you request to delete particles 0 to 10
 and then request to delete particles 60 to 70, nothing will change in the attribute storage until you call \texttt{update}, and no change will occur to the local and total particle counts until \texttt{update()} is complete.
 
 \subsection{Updating \texttt{Particle}s: The \texttt{update()} Method}
 
-The \texttt{update()} method of \texttt{ParticleBase} is responsible for making sure that all processors have correct information about how many particles exist and where they are located in a parallel machine. As mentioned previously, \texttt{update} must be called by all processors after a sequence of particle creation or deletion operations. The \texttt{update} method is also responsible for maintaining a proper assignment of particles to processors, based on the particular
+The \texttt{update()} method of \texttt{IpplParticleBase} is responsible for making sure that all processors have correct information about how many particles exist and where they are located in a parallel machine. As mentioned previously, \texttt{update} must be called by all processors after a sequence of particle creation or deletion operations. The \texttt{update} method is also responsible for maintaining a proper assignment of particles to processors, based on the particular
 \texttt{ParticleLayout} class used to create the
-\texttt{ParticleBase} object. Typically, this layout mechanism depends on the position of particles, so when particles change their position, they may need to be reassigned to a new processor to maintain the proper layout. In this case, the \texttt{update} method should be called whenever a computation is complete which alters the attributes (e.g. position) that a layout depends upon. The following short example demonstrates using \texttt{update} in conjunction with some operation that alters the x-coordinate of a
+\texttt{IpplParticleBase} object. Typically, this layout mechanism depends on the position of particles, so when particles change their position, they may need to be reassigned to a new processor to maintain the proper layout. In this case, the \texttt{update} method should be called whenever a computation is complete which alters the attributes (e.g. position) that a layout depends upon. The following short example demonstrates using \texttt{update} in conjunction with some operation that alters the x-coordinate of a
 set of particles. \\
 \begin{code}
 // do some computation involving myBunch for several time steps 
@@ -296,9 +296,9 @@ for(int i=0; i < nptcls ++i) {
 \section{Nearest-Neighbor Interactions (Jakob)}
 
 %A standard need for many types of particle simulation is the execution of some calculation involving an interaction between one particle and all other particles within a given interaction region or radius. The interaction may involve particles that are on other processors, so it is important to efficiently communicate the necessary data between the nodes and limit the amount of work used in determining the nearest-neighbor interaction pairlists. For this type of computation,
-%\texttt{ParticleBase} provides a specialized iterator, called \texttt{pair\_iterator}, which allows you to iterate over all neighbors of a given particle. The specific layout mechanism used by a \texttt{Particle} object takes care of calculating which particles lie within a selected interaction radius of each other, taking into account nearby particles which may reside on other processors in a parallel machine. The first step in calculating nearest-neighbor interactions is to specify what constitutes the
+%\texttt{IpplParticleBase} provides a specialized iterator, called \texttt{pair\_iterator}, which allows you to iterate over all neighbors of a given particle. The specific layout mechanism used by a \texttt{Particle} object takes care of calculating which particles lie within a selected interaction radius of each other, taking into account nearby particles which may reside on other processors in a parallel machine. The first step in calculating nearest-neighbor interactions is to specify what constitutes the
 %neighborhood. Currently, only a radially symmetric interaction neighborhood is supported in \ippl. The interaction radius may be the same for each particle, or it may be a scalar attribute of the \texttt{Particle} class (of the same type as that used for the particle coordinates, e.g., \texttt{double} or \texttt{float}). Before any nearest-neighbor calculation is performed, you must specify the interaction radius of the particles. This is done using the
-%\texttt{setInteractionRadius()} method of \texttt{ParticleBase}, giving as an argument either a single scalar value that will be used for all the particles, or a \texttt{ParticleAttrib<T>} quantity. In the latter case, each particle can have a different interaction radius. \texttt{ParticleBase} will remember this data and use it in the calculation of interaction lists. You may call these methods more than once; the most recent value given for the interaction radius is used to determine the
+%\texttt{setInteractionRadius()} method of \texttt{IpplParticleBase}, giving as an argument either a single scalar value that will be used for all the particles, or a \texttt{ParticleAttrib<T>} quantity. In the latter case, each particle can have a different interaction radius. \texttt{IpplParticleBase} will remember this data and use it in the calculation of interaction lists. You may call these methods more than once; the most recent value given for the interaction radius is used to determine the
 %nearest-neighbor pairlists. After changing the interaction radius, you should as always perform an \texttt{update()} to make sure all nodes have correct information on how to find neighboring particles. You may, for example, update the \texttt{ParticleAttrib} used to store the individual particle interaction radii as the last step of some calculation, and then call \texttt{update()}. You can retrieve the interaction radius for any local particle by calling the method
 %\texttt{getlnteractionRadius(unsigned)} of the \texttt{Particle} object containing that particle.
 
@@ -306,8 +306,8 @@ for(int i=0; i < nptcls ++i) {
 %\begin{smallcode}
 %getpairlist(unsigned, pair_iterator&, pair_iterator&)
 %\end{smallcode}
-%method of \texttt{ParticleBase}. The first argument is the local index of the central particle under consideration. The second and third arguments are, set equal to begin and end
-%\texttt{pair\_iterator} objects for the specified particle. The type \texttt{pair\_iterator} is defined in \texttt{ParticleBase}. This set of \texttt{pair\_iterator} objects is then used to retrieve the local indices of all particles within the interaction region of the central particle.
+%method of \texttt{IpplParticleBase}. The first argument is the local index of the central particle under consideration. The second and third arguments are, set equal to begin and end
+%\texttt{pair\_iterator} objects for the specified particle. The type \texttt{pair\_iterator} is defined in \texttt{IpplParticleBase}. This set of \texttt{pair\_iterator} objects is then used to retrieve the local indices of all particles within the interaction region of the central particle.
 
 %Here is an example of how to use this mechanism: \\
 %\clearpage
@@ -325,7 +325,7 @@ for(int i=0; i < nptcls ++i) {
 %}
 %myPtcls.update();
 %\end{codeln}
-%On line 2, we declare the iterators used to obtain the beginning and end of the list of particle neighbors. These iterators are set in the call to \texttt{getpairlist} on line 4. Of particular note is how the data for each neighbor is obtained from the iterator, as done in lines 6-8: dereferencing the iterator returns an object of type \texttt{ParticleBase:: pair\_t}, which stores a pair of values the local index of the neighboring particle, and the square of the distance
+%On line 2, we declare the iterators used to obtain the beginning and end of the list of particle neighbors. These iterators are set in the call to \texttt{getpairlist} on line 4. Of particular note is how the data for each neighbor is obtained from the iterator, as done in lines 6-8: dereferencing the iterator returns an object of type \texttt{IpplParticleBase:: pair\_t}, which stores a pair of values the local index of the neighboring particle, and the square of the distance
 %between the particles. The index and separation are obtained by accessing the member data elements \texttt{first} and \texttt{second}, respectively, of the \texttt{pair\_t} object.
 
 

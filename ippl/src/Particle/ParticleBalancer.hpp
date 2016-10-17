@@ -25,7 +25,7 @@
 
 // include files
 #include "Particle/ParticleBalancer.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/ParticleSpatialLayout.h"
 #include "Particle/ParticleUniformLayout.h"
 #include "Particle/ParticleAttrib.h"
@@ -39,11 +39,11 @@
 
 
 /////////////////////////////////////////////////////////////////////////////
-// calculate a new RegionLayout for a given ParticleBase, and distribute the
+// calculate a new RegionLayout for a given IpplParticleBase, and distribute the
 // new RegionLayout to all the nodes.  This uses a Field BinaryBalancer.
 template < class T, unsigned Dim, class Mesh, class CachingPolicy>
 bool
-BinaryRepartition(ParticleBase<ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& PB, double offset) {
+BinaryRepartition(IpplParticleBase<ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& PB, double offset) {
   
   
 
@@ -141,7 +141,7 @@ BinaryRepartition(ParticleBase<ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >
 // the same, but taking a uniform layout (this will not actually do anything)
 template<class T, unsigned Dim>
 bool
-BinaryRepartition(ParticleBase<ParticleUniformLayout<T,Dim> >&, double offset) {
+BinaryRepartition(IpplParticleBase<ParticleUniformLayout<T,Dim> >&, double offset) {
   // for a uniform layout, this repartition method does nothing, so just
   // exit
   return true;

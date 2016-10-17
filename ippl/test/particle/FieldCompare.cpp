@@ -18,7 +18,7 @@
 
 // A simple particle object using an InteractLayout
 template<class T, unsigned Dim>
-class InteractAtoms : public ParticleBase< ParticleInteractLayout<T, Dim> > {
+class InteractAtoms : public IpplParticleBase< ParticleInteractLayout<T, Dim> > {
 
 public:
   // the attributes for this set of particles (atoms).
@@ -27,7 +27,7 @@ public:
 
   // the constructor: we need FieldLayout for the particles
   InteractAtoms(FieldLayout<Dim>& fl)
-    : ParticleBase< ParticleInteractLayout<T,Dim> >(
+    : IpplParticleBase< ParticleInteractLayout<T,Dim> >(
 			    new ParticleInteractLayout<T,Dim>(fl)) {
       // register our attributes with the base class
       addAttribute(A);
@@ -38,7 +38,7 @@ public:
 
 // A simple particle object using a SpatialLayout
 template<class T, unsigned Dim>
-class SpatialAtoms : public ParticleBase< ParticleSpatialLayout<T, Dim> > {
+class SpatialAtoms : public IpplParticleBase< ParticleSpatialLayout<T, Dim> > {
 
 public:
   // the attributes for this set of particles (atoms).
@@ -47,7 +47,7 @@ public:
 
   // the constructor: we need FieldLayout for the particles
   SpatialAtoms(FieldLayout<Dim>& fl)
-    : ParticleBase< ParticleSpatialLayout<T,Dim> >(
+    : IpplParticleBase< ParticleSpatialLayout<T,Dim> >(
 			    new ParticleSpatialLayout<T,Dim>(fl)) {
       // register our attributes with the base class
       addAttribute(A);

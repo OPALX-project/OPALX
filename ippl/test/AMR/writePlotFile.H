@@ -1,0 +1,173 @@
+#include <fstream>
+#include <iomanip>
+
+#include <Geometry.H>
+#include <VisMF.H>
+
+void
+writePlotFile (const std::string& dir,
+               const PArray<MultiFab>& rho,
+               const PArray<MultiFab>& phi,
+               const PArray<MultiFab>& efield,
+               const Array<int>& refRatio,
+               const Array<Geometry>& geom,
+	       const Real&        time)
+{
+    int nLevels = rho.size();
+    //
+    // Only let 64 CPUs be writing at any one time.
+    //
+    VisMF::SetNOutFiles(64);
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!BoxLib::UtilCreateDirectory(dir, 0755))
+            BoxLib::CreateDirectoryFailed(dir);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Barrier();
+
+    std::string HeaderFileName = dir + "/Header";
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    std::ofstream HeaderFile;
+
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    int nData = rho[0].nComp() + phi[0].nComp() + efield[0].nComp();
+    
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Only the IOProcessor() writes to the header file.
+        //
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
+        if (!HeaderFile.good())
+            BoxLib::FileOpenFailed(HeaderFileName);
+        HeaderFile << "HyperCLaw-V1.1\n";
+
+        HeaderFile << nData << '\n';
+
+	// variable names
+        for (int ivar = 1; ivar <= rho[0].nComp(); ivar++) {
+          HeaderFile << "rho\n";
+        }
+        
+        for (int ivar = 1; ivar <= phi[0].nComp(); ivar++) {
+          HeaderFile << "phi\n";
+        }
+        
+//         for (int ivar = 1; ivar <= efield.nComp(); ivar++) {
+          HeaderFile << "Ex\nEy\nEz\n";
+//         }
+        
+        
+        // dimensionality
+        HeaderFile << BL_SPACEDIM << '\n';
+        
+        // time
+        HeaderFile << time << '\n';
+        HeaderFile << nLevels << std::endl; // maximum level number (0=single level)
+        HeaderFile << nLevels - 1 << std::endl; // finest level
+        
+        // physical domain
+        for (int i = 0; i < BL_SPACEDIM; i++)
+            HeaderFile << geom[0].ProbLo(i) << ' ';
+        HeaderFile << '\n';
+        for (int i = 0; i < BL_SPACEDIM; i++)
+            HeaderFile << geom[0].ProbHi(i) << ' ';
+        
+        // reference ratio
+        for (int i = 0; i < nLevels; ++i)
+            HeaderFile << refRatio[i] << ' ';
+        HeaderFile << std::endl;
+        
+        // geometry domain for all levels
+        for (int i = 0; i < nLevels; ++i)
+            HeaderFile << geom[i].Domain() << ' ';
+        HeaderFile << std::endl;
+        
+        // number of time steps
+        HeaderFile << 0 << " " << std::endl;
+        
+        // cell sizes for all level
+        for (int i = 0; i < nLevels; ++i) {
+            for (int k = 0; k < BL_SPACEDIM; k++)
+                HeaderFile << geom[i].CellSize()[k] << ' ';
+            HeaderFile << '\n';
+        }
+        
+        // coordinate system
+        HeaderFile << geom[0].Coord() << '\n';
+        HeaderFile << "0\n"; // write boundary data
+    }
+    
+    for (int lev = 0; lev < nLevels; ++lev) {
+        // Build the directory to hold the MultiFab at this level.
+        // The name is relative to the directory containing the Header file.
+        //
+        static const std::string BaseName = "/Cell";
+    
+        std::string Level = BoxLib::Concatenate("Level_", lev, 1);
+        //
+        // Now for the full pathname of that directory.
+        //
+        std::string FullPath = dir;
+        if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
+            FullPath += '/';
+        FullPath += Level;
+        //
+        // Only the I/O processor makes the directory if it doesn't already exist.
+        //
+        if (ParallelDescriptor::IOProcessor())
+            if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
+                BoxLib::CreateDirectoryFailed(FullPath);
+        //
+        // Force other processors to wait till directory is built.
+        //
+        ParallelDescriptor::Barrier();
+        
+        if (ParallelDescriptor::IOProcessor())
+        {
+            HeaderFile << lev << ' ' << rho[lev].boxArray().size() << ' ' << 0 << '\n';
+            HeaderFile << 0 << '\n';    // # time steps at this level
+    
+            for (int i = 0; i < rho[lev].boxArray().size(); ++i)
+            {
+                RealBox loc = RealBox(rho[lev].boxArray()[i],geom[i].CellSize(),geom[i].ProbLo());
+                for (int n = 0; n < BL_SPACEDIM; n++)
+                    HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
+            }
+    
+            std::string PathNameInHeader = Level;
+            PathNameInHeader += BaseName;
+            HeaderFile << PathNameInHeader << '\n';
+        }
+        
+        MultiFab data(rho[lev].boxArray(), nData, 0);
+        
+        // dst, src, srccomp, dstcomp, numcomp, nghost
+        /*
+        * srccomp: the component to copy
+        * dstcmop: the component where to copy
+        * numcomp: how many compoents to copy
+        */
+        MultiFab::Copy(data, rho[lev],    0, 0, 1, 0);
+        MultiFab::Copy(data, phi[lev],    0, 1, 1, 0);
+        MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
+        MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
+        MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez
+        
+        
+        //
+        // Use the Full pathname when naming the MultiFab.
+        //
+        std::string TheFullPath = FullPath;
+        TheFullPath += BaseName;
+    
+        VisMF::Write(data,TheFullPath);
+    }
+}

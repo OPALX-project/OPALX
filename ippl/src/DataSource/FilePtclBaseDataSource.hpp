@@ -33,10 +33,10 @@
 // constructor: the name, the connection, the transfer method,
 // the particlebase to connect
 template<class T>
-FileParticleBaseDataSource<T>::FileParticleBaseDataSource(const char *nm,
+FileIpplParticleBaseDataSource<T>::FileIpplParticleBaseDataSource(const char *nm,
 							  DataConnect *dc,
 							  int tm,
-							  ParticleBase<T>& P)
+							  IpplParticleBase<T>& P)
     : DataSourceObject(nm,&P,dc,tm), DP(0), MyParticles(P), counter(0) {
 
   std::string filestring = "file";
@@ -58,7 +58,7 @@ FileParticleBaseDataSource<T>::FileParticleBaseDataSource(const char *nm,
 ////////////////////////////////////////////////////////////////////////////
 // destructor
 template<class T>
-FileParticleBaseDataSource<T>::~FileParticleBaseDataSource() {
+FileIpplParticleBaseDataSource<T>::~FileIpplParticleBaseDataSource() {
 
   if (DP != 0)
     delete DP;
@@ -69,7 +69,7 @@ FileParticleBaseDataSource<T>::~FileParticleBaseDataSource() {
 // Update the object, that is, make sure the receiver of the data has a
 // current and consistent snapshot of the current state.  Return success.
 template<class T>
-bool FileParticleBaseDataSource<T>::update() {
+bool FileIpplParticleBaseDataSource<T>::update() {
 
   if (TransferMethod == DataSource::OUTPUT)
     return DP->write(MyParticles);
@@ -86,7 +86,7 @@ bool FileParticleBaseDataSource<T>::update() {
 // representation, etc.).
 // This should only return when the manipulation is done.
 template<class T>
-void FileParticleBaseDataSource<T>::interact(const char *) {}
+void FileIpplParticleBaseDataSource<T>::interact(const char *) {}
 
 
 /***************************************************************************

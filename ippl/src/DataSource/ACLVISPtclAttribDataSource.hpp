@@ -52,12 +52,12 @@ ACLVISParticleAttribDataSource<T>::ACLVISParticleAttribDataSource(const
     ERRORMSG("ACLVIS data connections may only be of type OUTPUT." << endl);
     Connection = 0;
   } else {    
-    // check if our ParticleBase container has been connected already ...
+    // check if our IpplParticleBase container has been connected already ...
     if (PBase != 0) {
       // yes it has ... set up our ACLVIS info.
       // make a Tool object to store the data on the parent node
       // We do not need to register this with the ACLVIS API, as this is
-      // done by the ACLVISParticleBaseDataSource
+      // done by the ACLVISIpplParticleBaseDataSource
       if (getConnection()->onConnectNode())
 	LocalData = new ReadParticleTool;
 
@@ -78,7 +78,7 @@ ACLVISParticleAttribDataSource<T>::ACLVISParticleAttribDataSource(const
 template<class T>
 ACLVISParticleAttribDataSource<T>::~ACLVISParticleAttribDataSource() {
 
-  // disassociate ourselves from the ParticleBase container
+  // disassociate ourselves from the IpplParticleBase container
   if (PBase != 0)
     PBase->disconnect_attrib(this);
 
@@ -100,7 +100,7 @@ bool ACLVISParticleAttribDataSource<T>::update() {
   
   
 
-  // just return, the user should do an update for the ParticleBase
+  // just return, the user should do an update for the IpplParticleBase
   return true;
 }
 

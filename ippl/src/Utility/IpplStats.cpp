@@ -73,7 +73,7 @@ IpplStats::IpplStats() : StatList(), Time(),
   EndScalarCodes(StatList, "Number of scalar code section finalizes"),
 
   ParticleAttribs(StatList, "ParticleAttrib objects created"),
-  ParticleBases(StatList, "ParticleBase objects created"),
+  IpplParticleBases(StatList, "IpplParticleBase objects created"),
   ParticleUpdates(StatList, "Particle object updates"),
   ParticleExpressions(StatList, "Particle expressions evaluted"),
   ParticleGathers(StatList, "Particle/Field gather operations"),

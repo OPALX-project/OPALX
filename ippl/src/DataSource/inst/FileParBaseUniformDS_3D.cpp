@@ -28,7 +28,7 @@
 #include "Particle/ParticleUniformLayout.h"
 
 // 3D instantiations
-template class FileParticleBaseDataSource<
+template class FileIpplParticleBaseDataSource<
    ParticleUniformLayout<IPPL_PRECISION_TYPE,3U> >;
 
 

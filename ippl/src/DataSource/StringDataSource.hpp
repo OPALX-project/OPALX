@@ -50,7 +50,7 @@ DataSourceObject *StringDataSource<T>::createDataSourceObject(const char *nm,
 
   DataSourceObject *dso = 0;
   if (method == "aclvis") {
-    // create a DataSourceObject for this ParticleBase which will connect to
+    // create a DataSourceObject for this IpplParticleBase which will connect to
     // the ACL visualization code
 
   } else if (method == "paws") {

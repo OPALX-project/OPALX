@@ -24,15 +24,15 @@
  ***************************************************************************/
 
 // include files
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/ParticleUniformLayout.h"
 
 // 2D instantiations
-template class ParticleBase< ParticleUniformLayout<IPPL_PRECISION_TYPE,2U> >;
+template class IpplParticleBase< ParticleUniformLayout<IPPL_PRECISION_TYPE,2U> >;
 
 
 /***************************************************************************
- * $RCSfile: ParticleBaseUniform_2D.cpp,v $   $Author: adelmann $
+ * $RCSfile: IpplParticleBaseUniform_2D.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:29 $
- * IPPL_VERSION_ID: $Id: ParticleBaseUniform_2D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IpplParticleBaseUniform_2D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
  ***************************************************************************/
