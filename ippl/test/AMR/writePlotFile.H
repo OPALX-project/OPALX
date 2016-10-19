@@ -57,7 +57,7 @@ writePlotFile (const std::string& dir,
         }
         
         for (int ivar = 1; ivar <= phi[0].nComp(); ivar++) {
-          HeaderFile << "phi\n";
+          HeaderFile << "potential\n";
         }
         
 //         for (int ivar = 1; ivar <= efield.nComp(); ivar++) {

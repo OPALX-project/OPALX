@@ -36,13 +36,13 @@ slc = yt.SlicePlot(ds, normal='x', fields='Ez')
 slc.annotate_grids()
 slc.save()
 
-slc = yt.SlicePlot(ds, normal='z', fields='phi')
+slc = yt.SlicePlot(ds, normal='z', fields='potential')
 slc.annotate_grids()
 slc.save()
 
 ad = ds.all_data()
 
-phi = ad['phi']
+phi = ad['potential']
 print ( phi.max() )
 print ( phi.min() )
 
