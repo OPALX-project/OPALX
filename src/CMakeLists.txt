@@ -65,6 +65,8 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
+add_sources (opal.cpp)
+
 IF (ENABLE_AMR_SOLVER)
     add_subdirectory (Solvers/amr)
     set (OPAL_SRCS
@@ -118,7 +120,7 @@ IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
        )
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
-add_library( OPALib ${OPAL_SRCS} opal.cpp )
+add_library( OPALib ${OPAL_SRCS})
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
