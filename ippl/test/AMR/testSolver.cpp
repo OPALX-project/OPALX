@@ -134,8 +134,6 @@ int main(int argc, char* argv[]) {
                         base_level, fine_level,
                         offset);
     
-    
-    
     // ------------------------------------------------------------------------
     // Write BoxLib plotfile
     // ------------------------------------------------------------------------
@@ -145,7 +143,7 @@ int main(int argc, char* argv[]) {
     
     for (int l = 0; l < nLevels; ++l) {
         std::cout << "[" << rho[l].min(0) << " " << rho[l].max(0) << "]" << std::endl
-                  << "[" << phi[l].min(0) << " " << rho[l].max(0) << "]" << std::endl
+                  << "[" << phi[l].min(0) << " " << phi[l].max(0) << "]" << std::endl
                   << "[ (" << efield[l].min(0) << ", " << efield[l].min(1) << ", "
                   << efield[l].min(2) << ") , (" << efield[l].max(0) << ", "
                   << efield[l].max(1) << ", " << efield[l].max(2) << ") ]" << std::endl;
