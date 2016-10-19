@@ -70,8 +70,8 @@ writePlotFile (const std::string& dir,
         
         // time
         HeaderFile << time << '\n';
-        HeaderFile << nLevels << std::endl; // maximum level number (0=single level)
-        HeaderFile << nLevels - 1 << std::endl; // finest level
+        HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
+//         HeaderFile << nLevels - 1 << std::endl; // finest level
         
         // physical domain
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -79,9 +79,10 @@ writePlotFile (const std::string& dir,
         HeaderFile << '\n';
         for (int i = 0; i < BL_SPACEDIM; i++)
             HeaderFile << geom[0].ProbHi(i) << ' ';
+        HeaderFile << std::endl;
         
         // reference ratio
-        for (int i = 0; i < nLevels; ++i)
+        for (int i = 0; i < refRatio.size(); ++i)
             HeaderFile << refRatio[i] << ' ';
         HeaderFile << std::endl;
         
@@ -137,7 +138,7 @@ writePlotFile (const std::string& dir,
     
             for (int i = 0; i < rho[lev].boxArray().size(); ++i)
             {
-                RealBox loc = RealBox(rho[lev].boxArray()[i],geom[i].CellSize(),geom[i].ProbLo());
+                RealBox loc = RealBox(rho[lev].boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
                 for (int n = 0; n < BL_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
