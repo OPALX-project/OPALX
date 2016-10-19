@@ -1880,6 +1880,9 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 std::vector<double> additionalRNs;
                 if (additionalRNs_m.size() > particleIndex) {
                     additionalRNs = additionalRNs_m[particleIndex];
+                } else {
+                    additionalRNs = std::vector<double>({gsl_rng_uniform(randGenEmit_m),
+                                                         gsl_rng_uniform(randGenEmit_m)});
                 }
                 ApplyEmissionModel(eZ, px, py, pz, additionalRNs);
 

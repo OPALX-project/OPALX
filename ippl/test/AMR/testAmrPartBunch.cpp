@@ -44,9 +44,9 @@ Usage:
 #include "AmrPartBunch.h"
 
 #include "Distribution.h"
+#include "Solver.h"
 
-
-
+#define SOLVER 1
 
 
 const double dt = 1.0;          // size of timestep
@@ -277,7 +277,66 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     bunch->myUpdate();
     
     
+    // =======================================================================                                                                                                                                   
+    // 4. prepare for multi-level solve                                                                                                                                                                          
+    // =======================================================================
+#ifdef SOLVER
+    PArray<MultiFab> rhs;
+    PArray<MultiFab> phi;
+    PArray<MultiFab> grad_phi;
+
+    rhs.resize(nLevels,PArrayManage);
+    phi.resize(nLevels,PArrayManage);
+    grad_phi.resize(nLevels,PArrayManage);
+
+    for (size_t lev = 0; lev < nLevels; ++lev) {
+        //                                    # component # ghost cells                                                                                                                                          
+        rhs.set     (lev,new MultiFab(ba[lev],1          ,0));
+        phi.set     (lev,new MultiFab(ba[lev],1          ,1));
+        grad_phi.set(lev,new MultiFab(ba[lev],BL_SPACEDIM,1));
+
+        rhs[lev].setVal(0.0);
+        phi[lev].setVal(0.0);
+        grad_phi[lev].setVal(0.0);
+    }
     
+
+    // Define the density on level 0 from all particles at all levels                                                                                                                                            
+    int base_level   = 0;
+    int finest_level = nLevels - 1;
+
+    PArray<MultiFab> PartMF;
+    PartMF.resize(nLevels,PArrayManage);
+    PartMF.set(0,new MultiFab(ba[0],1,1));
+    PartMF[0].setVal(0.0);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, PartMF, base_level, 1, finest_level);
+    //MyPC->AssignDensitySingleLevel(0, PartMF[0],0,1,0);                                                                                                                                                        
+
+    for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
+        BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
+
+    for (size_t lev = 0; lev < nLevels; lev++)
+        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    
+    
+    
+    // **************************************************************************                                                                                                                                
+    // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
+    //     to make the Poisson equations solvable                                                                                                                                                                
+    // **************************************************************************                                                                                                                                
+
+    Real offset = 0.;
+    if (geom[0].isAllPeriodic())
+    {
+        for (size_t lev = 0; lev < nLevels; lev++)
+            offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
+        offset /= geom[0].ProbSize();
+    }
+
+    // solve                                                                                                                                                                                                     
+    Solver sol;
+    sol.solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+#endif
     // ========================================================================
     // do some operations on the data
     // ========================================================================
@@ -308,6 +367,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 
         // update particle distribution across processors
         bunch->myUpdate();
+        
+        dynamic_cast<AmrPartBunch*>(bunch)->WritePlotFile(".", "boxlib-timestep-" + std::to_string(it));
 
     }
     ParallelDescriptor::Barrier();

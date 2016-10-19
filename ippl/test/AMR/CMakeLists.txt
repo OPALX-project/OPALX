@@ -3,7 +3,7 @@ MESSAGE (STATUS "Adding test AMR found in ${_relPath}")
 MESSAGE (STATUS "MPI COMPILER ${MPI_UNDERLYING_COMPILER}")
 
 set (CMAKE_CXX_FLAGS
-      "-O3 ${CMAKE_CXX_FLAGS}"
+      "-O3 ${CMAKE_CXX_FLAGS} -DBL_USE_FORTRAN_MPI"
     )
 
 include_directories (
@@ -20,8 +20,12 @@ link_directories (
 
 SET (IPPL_LIBS ippl)
 
-add_executable (testAmrPartBunch testAmrPartBunch.cpp)
 
-target_link_libraries (testAmrPartBunch ${IPPL_LIBS} ${CCSE_LIBRARIES} -lgfortran)
+add_executable (testAmrPartBunch testAmrPartBunch.cpp)
+add_executable (testSolver testSolver.cpp)
+
+# Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
+target_link_libraries (testAmrPartBunch ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
+target_link_libraries (testSolver ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
 
 

@@ -1739,19 +1739,19 @@ void PartBunch::setBCAllOpen() {
 }
 
 void PartBunch::setBCForDCBeam() {
+    //UL: set periodic BC in all dimensions
     for(int i = 0; i < 2 * 3; ++i) {
-        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
-        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
-        getBConds()[i] = ParticleNoBCond;
+      if (Ippl::getNodes() > 1) {
+        bc_m[i] = new ParallelPeriodicFace<double, 3, Mesh_t, Center_t>(i);
+        vbc_m[i] = new ParallelPeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+      } else {
+	bc_m[i] = new PeriodicFace<double, 3, Mesh_t, Center_t>(i);
+        vbc_m[i] = new PeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+      }
+      getBConds()[i] = ParticlePeriodicBCond;
     }
-
-    // z-direction
-    bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
-    this->getBConds()[4] = ParticlePeriodicBCond;
-    bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
-    this->getBConds()[5] = ParticlePeriodicBCond;
     dcBeam_m=true;
-    INFOMSG(level3 << "BC set for DC-Beam" << endl);
+    INFOMSG(level3 << "BC set for DC-Beam, all periodic" << endl);
 }
 
 void PartBunch::boundp() {
