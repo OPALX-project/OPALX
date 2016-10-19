@@ -69,10 +69,6 @@ add_sources (opal.cpp)
 
 IF (ENABLE_AMR_SOLVER)
     add_subdirectory (Solvers/amr)
-    set (OPAL_SRCS
-        ${OPAL_SRCS}
-        ${AMR_SRC}
-        )
     include_directories(${AMR_INCLUDE_DIR})
 ENDIF (ENABLE_AMR_SOLVER)
 
@@ -124,7 +120,7 @@ add_library( OPALib ${OPAL_SRCS})
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
-add_executable( opal Main.cpp )
+add_executable( opal Main.cpp ${AMR_SRC})
 target_link_libraries( opal OPALib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
