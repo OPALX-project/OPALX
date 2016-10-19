@@ -140,16 +140,16 @@ ENDIF (USE_H5HUT2)
 
 IF (ENABLE_AMR_SOLVER)
     ENABLE_LANGUAGE (Fortran)
-    
+
     SET ( CCSE_DIR $ENV{BOXLIB_PREFIX} )
     SET ( CCSE_LIBRARY_DIR $ENV{BOXLIB_LIBRARY_DIR} )
-    
+
     FIND_PACKAGE (CCSE REQUIRED)
-    
+
     MESSAGE (STATUS "Found BoxLib include dir: ${CCSE_INCLUDE_DIR}")
     MESSAGE (STATUS "Found BoxLib library dir: ${CCSE_LIBRARY_DIR}")
     MESSAGE (STATUS "Found BoxLib perl dir: ${CCSE_PERL_DIR}")
-    
+
     SET (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
     SET (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
     SET (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
@@ -158,10 +158,10 @@ IF (ENABLE_AMR_SOLVER)
     SET (BL_DEBUG 0 CACHE INT "Include debugging information in BoxLib build")
     SET (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
     SET (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in BoxLib build")
-    
+
     # FIXME disable due to BoxLib
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-maybe-uninitialized")
-    
+
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_PRECISION=${BL_PRECISION}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_MPI=${ENABLE_MPI}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_OpenMP=${ENABLE_OpenMP}")
@@ -169,7 +169,7 @@ IF (ENABLE_AMR_SOLVER)
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_DEBUG=${BL_DEBUG}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_BACKTRACE=${ENABLE_BACKTRACE}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PROFILING=${ENABLE_PROFILING}")
-    
+
     MESSAGE (STATUS "Use following BoxLib settings:")
     MESSAGE (STATUS "  BL_SPACEDIM = ${BL_SPACEDIM}")
     MESSAGE (STATUS "  BL_MACHINE = ${BL_MACHINE}")
@@ -263,7 +263,6 @@ ENDIF()
 
 SET (IPPL_USED_FROM_OPAL "TRUE")
 ADD_SUBDIRECTORY (ippl)
-ADD_SUBDIRECTORY (classic/src)
 ADD_SUBDIRECTORY (src)
 
 IF (BUILD_OPAL_UNIT_TESTS)
@@ -274,7 +273,7 @@ ENDIF (BUILD_OPAL_UNIT_TESTS)
 set(OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
          CACHE INTERNAL "" FORCE
 )
- 
+
 set(OPAL_LIBS ${OPAL_LIBS}
          CACHE INTERNAL "" FORCE
 )
