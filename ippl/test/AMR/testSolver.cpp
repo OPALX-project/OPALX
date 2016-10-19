@@ -76,6 +76,12 @@ int main(int argc, char* argv[]) {
         refRatio[i] = 2;
     
     for (int lev = 1; lev < nLevels; ++lev) {
+        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
+                                        refRatio[lev - 1]),
+                         &domain, 0, bc);
+    }
+    
+    for (int lev = 1; lev < nLevels; ++lev) {
         IntVect refined_lo(0.25 * nr[0] * refRatio[lev - 1],
                            0.25 * nr[1] * refRatio[lev - 1],
                            0.25 * nr[2] * refRatio[lev - 1]);
@@ -89,14 +95,8 @@ int main(int argc, char* argv[]) {
     }
     
     for (int lev = 1; lev < nLevels; ++lev) {
-        ba[lev].maxSize(maxBoxSize);
+        ba[lev].maxSize(maxBoxSize / refRatio[lev - 1]);
         dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
-    }
-    
-    for (int lev = 1; lev < nLevels; ++lev) {
-        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
-                                        refRatio[lev - 1]),
-                         &domain, 0, bc);
     }
     
     

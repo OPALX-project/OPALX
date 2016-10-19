@@ -32,7 +32,7 @@ slc = yt.SlicePlot(ds, normal='z', fields='Ey')
 slc.annotate_grids()
 slc.save()
 
-slc = yt.SlicePlot(ds, normal='z', fields='Ez')
+slc = yt.SlicePlot(ds, normal='x', fields='Ez')
 slc.annotate_grids()
 slc.save()
 
