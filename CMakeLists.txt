@@ -123,7 +123,7 @@ ENDIF (USE_MIC)
 # Handle options
 OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
 
-OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" ON)
+OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
@@ -183,6 +183,8 @@ IF (ENABLE_AMR_SOLVER)
 ENDIF (ENABLE_AMR_SOLVER)
 
 if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
+    MESSAGE ("Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
+    MESSAGE ("Enable AMR_SOLVER    " ${ENABLE_AMR_SOLVER})
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
 
     message (STATUS "Found Trilinos: ${Trilinos_DIR}")

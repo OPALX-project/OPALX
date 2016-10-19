@@ -71,6 +71,8 @@
 #include "Utilities/NumToStr.h"
 #include "Utilities/OpalException.h"
 
+#include "BasicActions/DumpFields.h"
+
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Utilities/Options.h"
@@ -1143,6 +1145,7 @@ void ParallelCyclotronTracker::execute() {
 
     extE_m = Vector_t(0.0, 0.0, 0.0);
     extB_m = Vector_t(0.0, 0.0, 0.0);
+    DumpFields::writeFields((((*FieldDimensions.begin())->second).second));
 
     if(timeIntegrator_m == 0) {
         *gmsg << "* 4th order Runge-Kutta integrator" << endl;
@@ -2405,7 +2408,6 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 // change phase space parameters from local frame of bunch (dr,dtheta,dz) to global Cartesian frame (X,Y,Z)
                 for(int j = 0; j < 3; j++)variable_m[j] = itsBunch->R[i](j); //[x,y,z]  units: [mm]
                 for(int j = 0; j < 3; j++)variable_m[j+3] = itsBunch->P[i](j); //[px,py,pz]  units: []
-
                 if((step_m % SinglePartDumpFreq == 0)) {
                     outfTrackOrbit_m << "ID" << (itsBunch->ID[i]);
                     outfTrackOrbit_m << " " << variable_m[0] << " " << variable_m[3] << " " << variable_m[1] << " "
@@ -2457,7 +2459,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             if((step_m % SinglePartDumpFreq == 0)) {
               outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
               outfTrackOrbit_m << " " << itsBunch->R[i](0) << " " <<itsBunch->P[i](0) << " " <<itsBunch->R[i](1)
-                               << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2)<< std::endl;
+                               << " " << itsBunch->P[i](1) << " " <<itsBunch->R[i](2) << " " <<itsBunch->P[i](2) << std::endl;
             }
 
             // change phase space parameters from local frame of bunch (dr,dtheta,dz) to global Cartesian frame (X,Y,Z)
