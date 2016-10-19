@@ -305,14 +305,14 @@ TEST(RingTest, TestApply) {
             Vector_t pos(x, y, -0.5);
             Vector_t centroid, B, E;
             // std::cout << pos << " ** " << std::flush;
-            EXPECT_FALSE(ring.apply(pos, centroid, 0., E, B))  << ::burnAfterReading(debugOutput);
+            EXPECT_FALSE(ring.apply(pos, centroid, 0., E, B))  << " for pos " << pos << ::burnAfterReading(debugOutput);
             // std::cout << B << " " << E << std::endl;
             Vector_t BRef(0.0, 0.0, 0.0);
             if (x > 0. and x < 1.)
                 BRef = Vector_t(x-1., y+2., -0.5);
             for (int i = 0; i < 3; ++i) {
-                EXPECT_NEAR(B(i), BRef(i), 1e-6)  << ::burnAfterReading(debugOutput);
-                EXPECT_NEAR(E(i), -BRef(i), 1e-6) << ::burnAfterReading(debugOutput);
+                EXPECT_NEAR(B(i), BRef(i), 1e-6)  << " for pos " << pos << ::burnAfterReading(debugOutput);
+                EXPECT_NEAR(E(i), -BRef(i), 1e-6) << " for pos " << pos << ::burnAfterReading(debugOutput);
             }
         }
         // check that we get something reasonable for all phi

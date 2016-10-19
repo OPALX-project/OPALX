@@ -60,7 +60,7 @@ class ThreeDGrid : public Mesh {
     class Iterator;
 
     /** Deep copy the grid */
-    Mesh * clone() {return new ThreeDGrid(*this);}
+    ThreeDGrid * clone() {return new ThreeDGrid(*this);}
 
     /** Not implemented (returns NULL) */
     Mesh * dual () const;

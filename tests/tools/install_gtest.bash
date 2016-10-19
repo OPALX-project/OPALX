@@ -44,10 +44,10 @@ check_dependencies() {
 
 download_gtest() {
     source_dir=${here}/gtest
-    gtest_dir=gtest-${vers}
-    file=${gtest_dir}.zip
-    url=http://googletest.googlecode.com/files/${file}
-    md5="2d6ec8ccdf5c46b05ba54a9fd1d130d7  ${file}"
+    gtest_dir=${source_dir}/googletest-release-${vers}
+    file=release-${vers}.zip
+    url=https://github.com/google/googletest/archive/${file}
+    md5="ef5e700c8a0f3ee123e2e0209b8b4961  ${file}"
 
     echo "Get a new copy of the gtest library if required"
     mkdir -p ${source_dir}
@@ -71,9 +71,10 @@ download_gtest() {
 build_gtest() {
     build_dir=build
     echo "Build the gtest library"
+    rm -r ${build_dir}
     mkdir ${build_dir}
     cd ${build_dir}
-    cmake -DCMAKE_INSTALL_PREFIX=$source_dir $source_dir/$gtest_dir
+    GTEST_ROOT=${gtest_dir} cmake -DCMAKE_INSTALL_PREFIX=${source_dir} ${gtest_dir}
 
     make
     if [ $? -ne 0 ]; then
@@ -83,16 +84,17 @@ build_gtest() {
 }
 
 install_gtest() {
-    echo "Installing the gtest library"
 
-    install_dir=$source_dir
+    install_dir=${source_dir}
     inc_dir=${install_dir}/include/
     lib_dir=${install_dir}/lib/
+
+    echo "Installing the gtest library from ${source_dir} to ${install_dir}"
 
     # I toyed with the idea of doing a cleanup here, decided against it in the
     # end; so we overwrite but don't clean existing
     mkdir -p ${inc_dir}
-    cp -rf ${source_dir}/${gtest_dir}/include/* ${install_dir}/include/
+    cp -rf ${gtest_dir}/include/* ${install_dir}/include/
     mkdir -p ${install_dir}/lib/
     cp -r ${source_dir}/${build_dir}/*.a ${install_dir}/lib/
 

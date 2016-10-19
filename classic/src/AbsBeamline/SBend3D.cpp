@@ -87,6 +87,7 @@ bool SBend3D::apply(const size_t &i, const double &t,
 
 bool SBend3D::apply(const Vector_t &R, const Vector_t &centroid,
            const double &t, Vector_t &E, Vector_t &B) {
+    //std::cerr << "ROGERS SBend3D::apply " << R << " " << B << std::endl;
     return map_m->getFieldstrength(R, E, B);
 }
 

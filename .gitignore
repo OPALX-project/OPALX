@@ -10,3 +10,4 @@ Makefile
 revision.h
 src/opal
 tests/tools/gtest
+tests/opal_unit_test

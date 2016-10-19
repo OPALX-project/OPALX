@@ -390,7 +390,7 @@ class Ring : public Component {
     // number of cells/rotational symmetry of the ring
     int symmetry_m;
 
-    double scale_m;
+    double scale_m = 1.;
 
     // rf harmonic number
     double cyclHarm_m;
