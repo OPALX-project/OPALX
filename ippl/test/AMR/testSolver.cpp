@@ -11,7 +11,7 @@
  * 
  * Call:
  *  mpirun -np [#cores] testSolver [#gridpints x] [#gridpints y] [#gridpints z]
- *      [max. grid size]
+ *      [max. grid size] [#levels]
  */
 
 #include <iostream>
@@ -29,7 +29,6 @@ int main(int argc, char* argv[]) {
     
     BoxLib::Initialize(argc, argv, false);
     
-    int nLevels = 1;
     int nr[BL_SPACEDIM] = {
         std::atoi(argv[1]),
         std::atoi(argv[2]),
@@ -38,6 +37,7 @@ int main(int argc, char* argv[]) {
     
     
     int maxBoxSize = std::atoi(argv[4]);
+    int nLevels = std::atoi(argv[5]);
     
     
     // setup geometry
@@ -66,6 +66,45 @@ int main(int argc, char* argv[]) {
     dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
     
     
+    
+    
+    // ------------------------------------------------------------------------
+    // Refined Meshes
+    // ------------------------------------------------------------------------
+    Array<int> refRatio(nLevels-1);
+    for (int i = 0; i < refRatio.size(); ++i)
+        refRatio[i] = 2;
+    
+    for (int lev = 1; lev < nLevels; ++lev) {
+        IntVect refined_lo(0.25 * nr[0] * refRatio[lev - 1],
+                           0.25 * nr[1] * refRatio[lev - 1],
+                           0.25 * nr[2] * refRatio[lev - 1]);
+        
+        IntVect refined_hi(0.75 * nr[0] * refRatio[lev - 1] - 1,
+                           0.75 * nr[1] * refRatio[lev - 1] - 1,
+                           0.75 * nr[2] * refRatio[lev - 1] - 1);
+
+        Box refined_patch(refined_lo, refined_hi);
+        ba[lev].define(refined_patch);
+    }
+    
+    for (int lev = 1; lev < nLevels; ++lev) {
+        ba[lev].maxSize(maxBoxSize);
+        dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
+    }
+    
+    for (int lev = 1; lev < nLevels; ++lev) {
+        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
+                                        refRatio[lev - 1]),
+                         &domain, 0, bc);
+    }
+    
+    
+    // ------------------------------------------------------------------------
+    // Initialize MultiFabs
+    // ------------------------------------------------------------------------
+    
+    
     PArray<MultiFab> rho(nLevels);
     PArray<MultiFab> phi(nLevels);
     PArray<MultiFab> efield(nLevels);
@@ -77,9 +116,6 @@ int main(int argc, char* argv[]) {
     }
     
     
-    Array<int> refRatio;
-    for (int i = 0; i < refRatio.size(); ++i)
-        refRatio[i] = 2;
     
     int base_level = 0;
     int fine_level = nLevels - 1;
@@ -88,6 +124,10 @@ int main(int argc, char* argv[]) {
     for (int l = 0; l < nLevels; ++l)
         rho[l].setVal(-1.0);
     
+    
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid
+    // ------------------------------------------------------------------------
     Real offset = 0.0;
     Solver sol;
     sol.solve_for_accel(rho, phi, efield, geom,
@@ -95,6 +135,10 @@ int main(int argc, char* argv[]) {
                         offset);
     
     
+    
+    // ------------------------------------------------------------------------
+    // Write BoxLib plotfile
+    // ------------------------------------------------------------------------
     std::string dir = "plt0000";
     Real time = 0.0;
     writePlotFile(dir, rho, phi, efield, refRatio, geom, time);
