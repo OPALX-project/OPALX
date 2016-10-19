@@ -17,7 +17,9 @@ add_subdirectory (Solvers)
 add_subdirectory (Structure)
 add_subdirectory (Utilities)
 
-install (FILES Utilities/ClassicException.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
+install (FILES Utilities/ClassicException.h Utilities/Options.h Utilities/Random.h
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities"
+    )
 
 set (CLASSIC_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 set (OPAL_SRCS "${OPAL_SRCS}" PARENT_SCOPE)
