@@ -97,9 +97,9 @@ int main(int argc, char* argv[]) {
     
     // just write interior points
     std::ofstream pout("phi.dat");
-    for (int i = 1; i < nr[0]; ++i)
-        for (int j = 1; j < nr[1]; ++j)
-            for (int k = 1; k < nr[2]; ++k)
+    for (int i = 1; i < nr[0] + 1; ++i)
+        for (int j = 1; j < nr[1] + 1; ++j)
+            for (int k = 1; k < nr[2] + 1; ++k)
                 pout << i << " " << j << " " << k << " "
                      << phi[i][j][k] << std::endl;
     
