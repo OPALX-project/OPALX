@@ -57,7 +57,7 @@ writePlotFile (const std::string& dir,
         }
         
         for (int ivar = 1; ivar <= phi[0].nComp(); ivar++) {
-          HeaderFile << "phi\n";
+          HeaderFile << "potential\n";
         }
         
 //         for (int ivar = 1; ivar <= efield.nComp(); ivar++) {
@@ -71,7 +71,6 @@ writePlotFile (const std::string& dir,
         // time
         HeaderFile << time << '\n';
         HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
-//         HeaderFile << nLevels - 1 << std::endl; // finest level
         
         // physical domain
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -154,13 +153,14 @@ writePlotFile (const std::string& dir,
         /*
         * srccomp: the component to copy
         * dstcmop: the component where to copy
-        * numcomp: how many compoents to copy
+        * numcomp: how many components to copy
         */
         MultiFab::Copy(data, rho[lev],    0, 0, 1, 0);
         MultiFab::Copy(data, phi[lev],    0, 1, 1, 0);
-        MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
-        MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
-        MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez
+        MultiFab::Copy(data, efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
+//         MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
+//         MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
+//         MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez
         
         
         //

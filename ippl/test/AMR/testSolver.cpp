@@ -76,28 +76,43 @@ int main(int argc, char* argv[]) {
         refRatio[i] = 2;
     
     for (int lev = 1; lev < nLevels; ++lev) {
-        IntVect refined_lo(0.25 * nr[0] * refRatio[lev - 1],
-                           0.25 * nr[1] * refRatio[lev - 1],
-                           0.25 * nr[2] * refRatio[lev - 1]);
-        
-        IntVect refined_hi(0.75 * nr[0] * refRatio[lev - 1] - 1,
-                           0.75 * nr[1] * refRatio[lev - 1] - 1,
-                           0.75 * nr[2] * refRatio[lev - 1] - 1);
-
-        Box refined_patch(refined_lo, refined_hi);
-        ba[lev].define(refined_patch);
-    }
-    
-    for (int lev = 1; lev < nLevels; ++lev) {
-        ba[lev].maxSize(maxBoxSize);
-        dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
-    }
-    
-    for (int lev = 1; lev < nLevels; ++lev) {
         geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
                                         refRatio[lev - 1]),
                          &domain, 0, bc);
     }
+    
+    int fine = 1.0;
+    for (int lev = 1; lev < nLevels; ++lev) {
+        fine *= refRatio[lev - 1];
+        
+        if ( lev == 1) {
+            IntVect refined_lo(0.25 * nr[0] * fine,
+                                0.25 * nr[1] * fine,
+                                0.25 * nr[2] * fine);
+            
+            IntVect refined_hi(0.75 * nr[0] * fine - 1,
+                                0.75 * nr[1] * fine - 1,
+                                0.75 * nr[2] * fine - 1);
+        Box refined_patch(refined_lo, refined_hi);
+        ba[lev].define(refined_patch);
+        } else if ( lev == 2) {
+            IntVect refined_lo(0.375 * nr[0] * fine,
+                                0.375* nr[1] * fine,
+                                0.375 * nr[2] * fine);
+            
+            IntVect refined_hi(0.625 * nr[0] * fine - 1,
+                               0.625 * nr[1] * fine - 1,
+                                0.625* nr[2] * fine - 1);
+
+            Box refined_patch(refined_lo, refined_hi);
+            ba[lev].define(refined_patch);
+        }
+        ba[lev].maxSize(maxBoxSize); // / refRatio[lev - 1]);
+        dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
+    }
+    
+//     for (int lev = 1; lev < nLevels; ++lev) {
+//     }
     
     
     // ------------------------------------------------------------------------
@@ -134,8 +149,6 @@ int main(int argc, char* argv[]) {
                         base_level, fine_level,
                         offset);
     
-    
-    
     // ------------------------------------------------------------------------
     // Write BoxLib plotfile
     // ------------------------------------------------------------------------
@@ -145,7 +158,7 @@ int main(int argc, char* argv[]) {
     
     for (int l = 0; l < nLevels; ++l) {
         std::cout << "[" << rho[l].min(0) << " " << rho[l].max(0) << "]" << std::endl
-                  << "[" << phi[l].min(0) << " " << rho[l].max(0) << "]" << std::endl
+                  << "[" << phi[l].min(0) << " " << phi[l].max(0) << "]" << std::endl
                   << "[ (" << efield[l].min(0) << ", " << efield[l].min(1) << ", "
                   << efield[l].min(2) << ") , (" << efield[l].max(0) << ", "
                   << efield[l].max(1) << ", " << efield[l].max(2) << ") ]" << std::endl;

@@ -37,3 +37,9 @@ c) in order to run you add following line either to your
 d) just run the script with python
    
    $ python visualize.py
+   
+   
+The following programs are in this directory:
+    - testAmrPartBunch:     OPAL - BoxLib - Particle - Marriage example
+    - testSolver:           Solving \Lap\phi = -1 using FMultiGrid solver of BoxLib
+    - iterative:            Solving \Lap\phi = -1 using an iterative scheme

@@ -39,12 +39,14 @@ Usage:
 #include <Array.H>
 #include <Geometry.H>
 #include <MultiFab.H>
+#include <ParmParse.H>
 
 #include "PartBunch.h"
 #include "AmrPartBunch.h"
 
 #include "Distribution.h"
 #include "Solver.h"
+#include "AmrOpal.h"
 
 #define SOLVER 1
 
@@ -177,7 +179,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     // periodic boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {1, 1, 1};
+    int bc[BL_SPACEDIM] = {0, 0, 0};
     
     Array<Geometry> geom(nLevels);
     
@@ -245,19 +247,53 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
     //    other levels)
     // ========================================================================
-
+    
+    ParmParse pp("amr");
+    pp.add("max_level", int(nLevels - 1));
+    pp.add("ref_ratio", int(2)); //FIXME
+    pp.add("max_grid_size", int(maxBoxSize));
+    
+    std::vector<int> tmp(3); tmp[0] = nr[0]; tmp[1] = nr[1]; tmp[2] = nr[2];
+    pp.addarr("n_cell", tmp);//IntVect(nr[0], nr[1], nr[2]));
+    
+    AmrOpal myAmrOpal;
+    
+    myAmrOpal.SetBoxArray(0, ba[0]);
+    
+    MultiFab nPartPerCell;
+    TagBoxArray tags;
+    Real time = 0.0;
+    int tag_level = 0;
+    
+    myAmrOpal.ErrorEst(tag_level, nPartPerCell, tags, time);
+    
     ///@todo Next higher boxes are hard-coded.
-    for (size_t lev = 1; lev < nLevels; ++lev) {
-        IntVect refined_lo(0.25 * nr[0] * rr[lev - 1],
-                           0.25 * nr[1] * rr[lev - 1],
-                           0.25 * nr[2] * rr[lev - 1]);
+    int fine = 1.0;
+    for (int lev = 1; lev < int(nLevels); ++lev) {
+        fine *= rr[lev - 1];
         
-        IntVect refined_hi(0.75 * nr[0] * rr[lev - 1] - 1,
-                           0.75 * nr[1] * rr[lev - 1] - 1,
-                           0.75 * nr[2] * rr[lev - 1] - 1);
-
+        if ( lev == 1) {
+            IntVect refined_lo(0.25 * nr[0] * fine,
+                                0.25 * nr[1] * fine,
+                                0.25 * nr[2] * fine);
+            
+            IntVect refined_hi(0.75 * nr[0] * fine - 1,
+                                0.75 * nr[1] * fine - 1,
+                                0.75 * nr[2] * fine - 1);
         Box refined_patch(refined_lo, refined_hi);
         ba[lev].define(refined_patch);
+        } else if ( lev == 2) {
+            IntVect refined_lo(0.375 * nr[0] * fine,
+                                0.375* nr[1] * fine,
+                                0.375 * nr[2] * fine);
+            
+            IntVect refined_hi(0.625 * nr[0] * fine - 1,
+                               0.625 * nr[1] * fine - 1,
+                                0.625* nr[2] * fine - 1);
+
+            Box refined_patch(refined_lo, refined_hi);
+            ba[lev].define(refined_patch);
+        }
     }
     
     // break BoxArrays into maxBoxSize^3
@@ -266,8 +302,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
     }
     
-    for (size_t lev = 1; lev < nLevels; ++lev)
-        dynamic_cast<AmrPartBunch*>(bunch)->SetParticleBoxArray(lev, dmap[lev], ba[lev]);
+    for (size_t lev = 1; lev < nLevels; ++lev) {
+        dynamic_cast<AmrPartBunch*>(bunch)->SetParticleBoxArray(lev, /*dmap[lev],*/ ba[lev]);
+        dynamic_cast<AmrPartBunch*>(bunch)->SetParticleDistributionMap(lev, dmap[lev]);
+    }
     
     
     // ========================================================================
@@ -309,7 +347,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     PartMF.resize(nLevels,PArrayManage);
     PartMF.set(0,new MultiFab(ba[0],1,1));
     PartMF[0].setVal(0.0);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, PartMF, base_level, 1, finest_level);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, finest_level);
     //MyPC->AssignDensitySingleLevel(0, PartMF[0],0,1,0);                                                                                                                                                        
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
@@ -326,12 +364,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
-    if (geom[0].isAllPeriodic())
-    {
-        for (size_t lev = 0; lev < nLevels; lev++)
-            offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
-        offset /= geom[0].ProbSize();
-    }
+//     if (geom[0].isAllPeriodic())
+//     {
+//         for (size_t lev = 0; lev < nLevels; lev++)
+//             offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
+//         offset /= geom[0].ProbSize();
+//     }
 
     // solve                                                                                                                                                                                                     
     Solver sol;

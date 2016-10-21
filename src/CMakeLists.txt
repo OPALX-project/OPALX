@@ -22,7 +22,7 @@ IF(ENABLE_AMR_SOLVER)
     set (AMR_SRC Solvers/amr/AccelBld.cpp)
     set (AMR_INCLUDE_DIR Solvers/amr)
     set (CBOXLIB -lmpi -lmpi_mpifh -lcboxlib)
-    
+
 ENDIF(ENABLE_AMR_SOLVER)
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -47,6 +47,7 @@ add_subdirectory (Algorithms)
 add_subdirectory (Aperture)
 add_subdirectory (Attributes)
 add_subdirectory (BasicActions)
+add_subdirectory (Classic)
 add_subdirectory (Distribution)
 add_subdirectory (Editor)
 add_subdirectory (Elements)
@@ -64,28 +65,28 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
+add_sources (opal.cpp)
+
 IF (ENABLE_AMR_SOLVER)
     add_subdirectory (Solvers/amr)
     include_directories(${AMR_INCLUDE_DIR})
 ENDIF (ENABLE_AMR_SOLVER)
 
 include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${OPAL_SRC_DIR}
+    ${CLASSIC_SRC_DIR}
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
     ${GSL_INCLUDE_DIR}
-    ${CLASSIC_SOURCE_DIR}
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
-    ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIR}
 )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
-    ${CLASSIC_SOURCE_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
     ${CCSE_LIBRARY_DIR}
@@ -97,27 +98,30 @@ IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
 set (OPAL_LIBS
-    m
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${IPPL_LIBRARY}
-    z
+    ${Boost_LIBRARIES}
     mpi
     mpi_cxx
-    ${Boost_LIBRARIES}
+    m
+    z
 )
 
 IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
    set (OPAL_LIBS
        ${OPAL_LIBS}
-       ${DKS_LIBRARY_DIR}/libdks.a)
+       ${DKS_LIBRARY_DIR}/libdks.a
+       )
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
-add_library( OPALib ${OPAL_SRCS} opal.cpp )
+add_library( OPALib ${OPAL_SRCS})
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
-add_executable( opal Main.cpp ${AMR_SRC} )
-target_link_libraries( opal OPALib CLASSIC ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
+
+add_executable( opal Main.cpp ${AMR_SRC})
+target_link_libraries( opal OPALib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
