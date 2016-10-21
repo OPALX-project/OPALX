@@ -165,7 +165,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
               size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");    
-    static IpplTimings::TimerRef tracTimer = IpplTimings::getTimer("trac");    
+    static IpplTimings::TimerRef tracTimer = IpplTimings::getTimer("trac");
+    static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
@@ -399,7 +400,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 
     // solve                                                                                                                                                                                                     
     Solver sol;
+    IpplTimings::startTimer(solvTimer);
     sol.solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    IpplTimings::stopTimer(solvTimer);
 #endif
     // ========================================================================
     // do some operations on the data
