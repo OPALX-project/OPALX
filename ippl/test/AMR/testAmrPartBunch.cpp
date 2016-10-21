@@ -48,7 +48,7 @@ Usage:
 #include "Solver.h"
 #include "AmrOpal.h"
 
-#define SOLVER 1
+// #define SOLVER
 
 
 const double dt = 1.0;          // size of timestep
@@ -236,10 +236,20 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     dist.uniform(0.2, 0.8, nloc, ParallelDescriptor::MyProc());
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
+    
+    msg << "****************************************************" << endl
+        << "            BEAM INJECTED (single level)            " << endl
+        << "****************************************************" << endl;
+    
     bunch->gatherStatistics();
     // redistribute on single-level
     bunch->myUpdate();
     IpplTimings::stopTimer(distTimer);
+    
+    msg << "****************************************************" << endl
+        << "         BEAM REDISTRIBUTED (single level)          " << endl
+        << "****************************************************" << endl;
+    
     bunch->gatherStatistics();
     //     bunch->print();
     
@@ -255,17 +265,17 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     //    other levels)
     // ========================================================================
     
-    ParmParse pp("amr");
-    pp.add("max_level", int(nLevels - 1));
-    pp.add("ref_ratio", int(2)); //FIXME
-    pp.add("max_grid_size", int(maxBoxSize));
-    
-    std::vector<int> tmp(3); tmp[0] = nr[0]; tmp[1] = nr[1]; tmp[2] = nr[2];
-    pp.addarr("n_cell", tmp);//IntVect(nr[0], nr[1], nr[2]));
-    
-    AmrOpal myAmrOpal;
-    
-    myAmrOpal.SetBoxArray(0, ba[0]);
+//     ParmParse pp("amr");
+//     pp.add("max_level", int(nLevels - 1));
+//     pp.add("ref_ratio", int(2)); //FIXME
+//     pp.add("max_grid_size", int(maxBoxSize));
+//     
+//     std::vector<int> tmp(3); tmp[0] = nr[0]; tmp[1] = nr[1]; tmp[2] = nr[2];
+//     pp.addarr("n_cell", tmp);//IntVect(nr[0], nr[1], nr[2]));
+//     
+//     AmrOpal myAmrOpal;
+//     
+//     myAmrOpal.SetBoxArray(0, ba[0]);
     
 //     MultiFab nPartPerCell;
 //     TagBoxArray tags;
@@ -287,8 +297,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             IntVect refined_hi(0.75 * nr[0] * fine - 1,
                                 0.75 * nr[1] * fine - 1,
                                 0.75 * nr[2] * fine - 1);
-        Box refined_patch(refined_lo, refined_hi);
-        ba[lev].define(refined_patch);
+            Box refined_patch(refined_lo, refined_hi);
+            ba[lev].define(refined_patch);
         } else if ( lev == 2) {
             IntVect refined_lo(0.375 * nr[0] * fine,
                                 0.375* nr[1] * fine,
@@ -321,9 +331,14 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     bunch->myUpdate();
     
+    msg << "****************************************************" << endl
+        << "          BEAM REDISTRIBUTED (multi level)          " << endl
+        << "****************************************************" << endl;
     
-    // write particle file
-    dynamic_cast<AmrPartBunch*>(bunch)->Checkpoint(".", "particles0000", true);
+    bunch->gatherStatistics();
+    
+//     // write particle file
+//     dynamic_cast<AmrPartBunch*>(bunch)->Checkpoint(".", "particles0000", true);
     
     
     // =======================================================================                                                                                                                                   
