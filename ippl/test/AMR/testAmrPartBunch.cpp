@@ -54,6 +54,9 @@ Usage:
 const double dt = 1.0;          // size of timestep
 
 
+// ============================================================================
+// IPPL
+// ============================================================================
 void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
             size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
@@ -153,6 +156,10 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 }
 
 
+
+// ============================================================================
+// BOXLIB
+// ============================================================================
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
               size_t nLevels, size_t maxBoxSize,
               size_t nTimeSteps, Inform& msg, Inform& msg2all)
@@ -179,7 +186,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     // periodic boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {0, 0, 0};
+    int bc[BL_SPACEDIM] = {1, 1, 1};
     
     Array<Geometry> geom(nLevels);
     
@@ -260,12 +267,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     myAmrOpal.SetBoxArray(0, ba[0]);
     
-    MultiFab nPartPerCell;
-    TagBoxArray tags;
-    Real time = 0.0;
-    int tag_level = 0;
+//     MultiFab nPartPerCell;
+//     TagBoxArray tags;
+//     Real time = 0.0;
+//     int tag_level = 0;
     
-    myAmrOpal.ErrorEst(tag_level, nPartPerCell, tags, time);
+//     myAmrOpal.ErrorEst(tag_level, nPartPerCell, tags, time);
     
     ///@todo Next higher boxes are hard-coded.
     int fine = 1.0;
@@ -313,6 +320,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // ========================================================================
     
     bunch->myUpdate();
+    
+    
+    // write particle file
+    dynamic_cast<AmrPartBunch*>(bunch)->Checkpoint(".", "particles0000", true);
     
     
     // =======================================================================                                                                                                                                   
@@ -364,12 +375,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
-//     if (geom[0].isAllPeriodic())
-//     {
-//         for (size_t lev = 0; lev < nLevels; lev++)
-//             offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
-//         offset /= geom[0].ProbSize();
-//     }
+    if (geom[0].isAllPeriodic())
+    {
+        for (size_t lev = 0; lev < nLevels; lev++)
+            offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
+        offset /= geom[0].ProbSize();
+    }
 
     // solve                                                                                                                                                                                                     
     Solver sol;
@@ -406,7 +417,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         // update particle distribution across processors
         bunch->myUpdate();
         
-        dynamic_cast<AmrPartBunch*>(bunch)->WritePlotFile(".", "boxlib-timestep-" + std::to_string(it));
+//         dynamic_cast<AmrPartBunch*>(bunch)->WritePlotFile(".", "boxlib-timestep-" + std::to_string(it));
 
     }
     ParallelDescriptor::Barrier();
