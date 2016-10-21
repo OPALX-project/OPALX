@@ -1,6 +1,7 @@
 #ifndef PARTBUNCHBASE__H
 #define PARTBUNCHBASE__H
 
+#include <Ippl.h>
 #include <iomanip>
 
 // dimension of our positions
@@ -147,7 +148,7 @@ public:
     virtual void gatherCIC() = 0;
     
     /// Writes the particles (x, y, z) to the shell.
-    void print();
+    inline void print();
 };
 
 

@@ -266,24 +266,56 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     //    other levels)
     // ========================================================================
     
-//     ParmParse pp("amr");
-//     pp.add("max_level", int(nLevels - 1));
-//     pp.add("ref_ratio", int(2)); //FIXME
-//     pp.add("max_grid_size", int(maxBoxSize));
-//     
-//     std::vector<int> tmp(3); tmp[0] = nr[0]; tmp[1] = nr[1]; tmp[2] = nr[2];
-//     pp.addarr("n_cell", tmp);//IntVect(nr[0], nr[1], nr[2]));
-//     
-//     AmrOpal myAmrOpal;
-//     
+    
+    /*
+     * create an Amr object
+     */
+    
+    ParmParse pp("amr");
+    pp.add("max_grid_size", int(maxBoxSize));
+    
+    Array<int> nCells(3);
+    for (int i = 0; i < 3; ++i)
+        nCells[i] = nr[i];
+    
+    AmrOpal myAmrOpal(&domain, int(nLevels), nCells, 0 /* cartesian */, bunch);
+    myAmrOpal.initFineLevels();
+    
+    
+    // print some information
+    Inform amr("AMR");
+    amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
+        << "Finest level = " << myAmrOpal.finestLevel() << endl;
+    for (int i = 0; i < int(nLevels); ++i)
+        amr << "Max. ref. ratio level " << i << ": "
+            << myAmrOpal.MaxRefRatio(i) << endl;
+    for (int i = 0; i < int(nLevels); ++i)
+        amr << "Max. grid size level" << i << ": "
+            << myAmrOpal.maxGridSize(i) << endl;
+    
+    for (int i = 0; i < int(nLevels); ++i)
+        amr << "BoxArray level" << i << ": "
+            << myAmrOpal.boxArray(i) << endl;
+            
+            
+    /*
+     * do tagging
+     */
 //     myAmrOpal.SetBoxArray(0, ba[0]);
     
 //     MultiFab nPartPerCell;
 //     TagBoxArray tags;
 //     Real time = 0.0;
 //     int tag_level = 0;
-    
 //     myAmrOpal.ErrorEst(tag_level, nPartPerCell, tags, time);
+    
+    
+    // print some information
+    for (int i = 0; i < int(nLevels); ++i)
+        amr << "BoxArray level" << i << ": "
+            << myAmrOpal.boxArray(i) << endl;
+    
+    
     
     ///@todo Next higher boxes are hard-coded.
     int fine = 1.0;
@@ -314,6 +346,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         }
     }
     
+    
+    /*
+     * particles need to know the BoxArray
+     * and DistributionMapping
+     */
     // break BoxArrays into maxBoxSize^3
     for (size_t lev = 1; lev < nLevels; ++lev) {
         ba[lev].maxSize(maxBoxSize);
