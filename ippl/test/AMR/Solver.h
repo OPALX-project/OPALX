@@ -77,16 +77,24 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     int mg_bc[2*BL_SPACEDIM];
 
     // This tells the solver that we are using Dirichlet bc's
-    if (!Geometry::isAnyPeriodic())
-    {
-        for (int dir = 0; dir < BL_SPACEDIM; ++dir)
-        {
+    if (Geometry::isAllPeriodic()) {
+        if ( ParallelDescriptor::IOProcessor() )
+            std::cerr << "Periodic BC" << std::endl;
+        
+        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+            // periodic BC
+            mg_bc[2*dir + 0] = MGT_BC_PER;
+            mg_bc[2*dir + 1] = MGT_BC_PER;
+        }
+    } else {
+        if ( ParallelDescriptor::IOProcessor() )
+            std::cerr << "Dirichlet BC" << std::endl;
+        
+        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             // Dirichlet BC
             mg_bc[2*dir + 0] = MGT_BC_DIR;
             mg_bc[2*dir + 1] = MGT_BC_DIR;
         }
-    } else {
-	BoxLib::Abort("periodic boundaries not supported here");
     }
 
     // Have to do some packing because these arrays does not always start with base_level
