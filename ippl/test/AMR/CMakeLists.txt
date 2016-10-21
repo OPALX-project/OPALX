@@ -24,7 +24,7 @@ IF (ENABLE_AMR_SOLVER)
     
     set(F90_source_files Tagging_nd.f90)
     
-    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp ${F90_source_files})
+    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files})
     add_executable (testSolver testSolver.cpp)
     add_executable (iterative iterative.cpp)
     
