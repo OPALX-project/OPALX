@@ -107,13 +107,12 @@ int main(int argc, char* argv[]) {
             Box refined_patch(refined_lo, refined_hi);
             ba[lev].define(refined_patch);
         }
-        std::cout << ba[lev] << std::endl;
-    }
-    
-    for (int lev = 1; lev < nLevels; ++lev) {
         ba[lev].maxSize(maxBoxSize); // / refRatio[lev - 1]);
         dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
     }
+    
+//     for (int lev = 1; lev < nLevels; ++lev) {
+//     }
     
     
     // ------------------------------------------------------------------------
