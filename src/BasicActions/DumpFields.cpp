@@ -167,9 +167,9 @@ void DumpFields::writeFieldThis(Component* field) {
     fout << 1 << " x [mm]\n";
     fout << 2 << " y [mm]\n";
     fout << 3 << " z [mm]\n";
-    fout << 4 << " Bx [T]\n";
-    fout << 5 << " By [T]\n";
-    fout << 6 << " Bz [T]\n";
+    fout << 4 << " Bx [kGauss]\n";
+    fout << 5 << " By [kGauss]\n";
+    fout << 6 << " Bz [kGauss]\n";
     fout << 0 << std::endl;
     for (interpolation::Mesh::Iterator it = grid_m->begin();
          it < grid_m->end();
