@@ -18,6 +18,8 @@
 
 #include "PartBunchBase.h"
 
+#include <AmrParGDB.H>
+
 #include <Particles.H>
 
 
@@ -97,6 +99,10 @@ public:
     inline void setE(Vector_t Ef, int i);
     
     inline void setB(Vector_t Bf, int i);
+    
+    void setParGDB(AmrParGDB* gdb) {
+        Define(gdb);
+    }
     
 private:
     /// Create the index mapping in order to have random access

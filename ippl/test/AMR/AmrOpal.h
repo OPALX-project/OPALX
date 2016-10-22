@@ -16,7 +16,7 @@ public:
     // defines BoxArray, DistributionMapping of level 0
     void initBaseLevel();
     
-    void initFineLevels();
+//     void initFineLevels();
     
     void regrid (int lbase, Real time);
     
@@ -26,14 +26,15 @@ public:
     void MakeNewLevel (int lev, Real time,
                        const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
-    void doTagging(int lev, MultiFab& mf, TagBoxArray& tags);
+    
+    void writePlotFile();
 
 protected:
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
     
 private:
     AmrPartBunch* bunch_m;
-//     PArray<MultiFab> nPartPerCell_m;
+    PArray<MultiFab> nPartPerCell_m;
     
 };
 

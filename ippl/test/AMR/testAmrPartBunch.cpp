@@ -161,7 +161,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 // BOXLIB
 // ============================================================================
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              size_t nLevels, size_t maxBoxSize,
+              size_t nMaxLevels, size_t maxBoxSize,
               size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");    
@@ -189,52 +189,72 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // periodic boundary conditions in all directions
     int bc[BL_SPACEDIM] = {1, 1, 1};
     
-    Array<Geometry> geom(nLevels);
+    
+    Geometry geom;
     
     // level 0 describes physical domain
-    geom[0].define(bx, &domain, 0, bc);
+    geom.define(bx, &domain, 0, bc);
     
     // Container for boxes at all levels
-    Array<BoxArray> ba(nLevels);
+    BoxArray ba;
     
     // box at level 0
-    ba[0].define(bx);
-    ba[0].maxSize(maxBoxSize);
+    ba.define(bx);
+    msg << "Max. Grid Size = " << maxBoxSize << endl;
+    ba.maxSize(maxBoxSize);
     
     /*
      * distribution mapping
      */
-    Array<DistributionMapping> dmap(nLevels);
-    dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    DistributionMapping dmap;
+    dmap.define(ba, ParallelDescriptor::NProcs() /*nprocs*/);
     
-    
-    /*
-     * refinement ratio
-     */
-    Array<int> rr(nLevels - 1);
-    for (size_t lev = 1; lev < nLevels; ++lev)
-        rr[lev - 1] = 2;
-    
-    
-    for (size_t lev = 1; lev < nLevels; ++lev) {
-        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
-                                        rr[lev - 1]),
-                         &domain, 0, bc);
-    }
+//     Array<Geometry> geom(nMaxLevels);
+//     
+//     // level 0 describes physical domain
+//     geom[0].define(bx, &domain, 0, bc);
+//     
+//     // Container for boxes at all levels
+//     Array<BoxArray> ba(nMaxLevels);
+//     
+//     // box at level 0
+//     ba[0].define(bx);
+//     ba[0].maxSize(maxBoxSize);
+//     
+//     /*
+//      * distribution mapping
+//      */
+//     Array<DistributionMapping> dmap(nMaxLevels);
+//     dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+//     
+//     
+//     /*
+//      * refinement ratio
+//      */
+//     Array<int> rr(nMaxLevels - 1);
+//     for (size_t lev = 1; lev < nMaxLevels; ++lev)
+//         rr[lev - 1] = 2;
+//     
+//     
+//     for (size_t lev = 1; lev < nMaxLevels; ++lev) {
+//         geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
+//                                         rr[lev - 1]),
+//                          &domain, 0, bc);
+//     }
     
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba, rr);
+    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba);
     
     
     // initialize a particle distribution
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    dist.uniform(0.2, 0.8, nloc, ParallelDescriptor::MyProc());
+    dist.uniform(0.3, 0.7, nloc, ParallelDescriptor::MyProc());
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
     
@@ -273,95 +293,73 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
+//     pp.add("blocking_factor", int(maxBoxSize));
+//     pp.add("refine_grid_layout", int(0));
     
     Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
-    AmrOpal myAmrOpal(&domain, int(nLevels), nCells, 0 /* cartesian */, bunch);
-    myAmrOpal.initFineLevels();
+    // nLevel = nMaxLevels + 1
+    int nLevels = nMaxLevels + 1;
+    AmrOpal myAmrOpal(&domain, int(nMaxLevels), nCells, 0 /* cartesian */, bunch);
     
-    
-    // print some information
-    Inform amr("AMR");
-    amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
-        << "Finest level = " << myAmrOpal.finestLevel() << endl;
-    for (int i = 0; i < int(nLevels); ++i)
-        amr << "Max. ref. ratio level " << i << ": "
-            << myAmrOpal.MaxRefRatio(i) << endl;
-    for (int i = 0; i < int(nLevels); ++i)
-        amr << "Max. grid size level" << i << ": "
+    for (int i = 0; i < nLevels; ++i)
+        msg << "Max. grid size level" << i << ": "
             << myAmrOpal.maxGridSize(i) << endl;
+//     myAmrOpal.initFineLevels();
     
-    for (int i = 0; i < int(nLevels); ++i)
-        amr << "BoxArray level" << i << ": "
-            << myAmrOpal.boxArray(i) << endl;
-            
-            
     /*
      * do tagging
      */
-//     myAmrOpal.SetBoxArray(0, ba[0]);
+//     dynamic_cast<AmrPartBunch*>(bunch)->setParGDB(myAmrOpal.GetParGDB());
     
-//     MultiFab nPartPerCell;
-//     TagBoxArray tags;
-//     Real time = 0.0;
-//     int tag_level = 0;
-//     myAmrOpal.ErrorEst(tag_level, nPartPerCell, tags, time);
+    
+    Array<int> rr(nMaxLevels);
+    for (int lev = 1; lev < nLevels; ++lev)
+        rr[lev-1] = 2;
+    dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
+                                                myAmrOpal.DistributionMap(),
+                                                myAmrOpal.boxArray(),
+                                                rr);
+    
+    for (int i = 0; i < int(nMaxLevels); ++i) {
+        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+        msg << "DONE " << i << "th regridding." << endl;
+    }
+    
+    
+    msg << "****************************************************" << endl
+        << "                   BEAM GEOMETRY                    " << endl
+        << "****************************************************" << endl;
+    for (int i = 0; i < nLevels; ++i)
+        msg << dynamic_cast<AmrPartBunch*>(bunch)->GetParGDB()->Geom(i) << endl;
+    
+    
+    msg << "****************************************************" << endl
+        << "                   BEAM BOXARRAY                    " << endl
+        << "****************************************************" << endl;
+    for (int i = 0; i < nLevels; ++i)
+        msg << dynamic_cast<AmrPartBunch*>(bunch)->GetParGDB()->boxArray(i) << endl;
+    
     
     
     // print some information
-    for (int i = 0; i < int(nLevels); ++i)
+    myAmrOpal.writePlotFile();
+    
+    Inform amr("AMR");
+    amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
+        << "Finest level = " << myAmrOpal.finestLevel() << endl;
+    for (int i = 0; i < int(nMaxLevels); ++i)
+        amr << "Max. ref. ratio level " << i << ": "
+            << myAmrOpal.MaxRefRatio(i) << endl;
+    for (int i = 0; i < nLevels; ++i)
+        amr << "Max. grid size level" << i << ": "
+            << myAmrOpal.maxGridSize(i) << endl;
+    
+    for (int i = 0; i < nLevels; ++i)
         amr << "BoxArray level" << i << ": "
             << myAmrOpal.boxArray(i) << endl;
-    
-    
-    
-    ///@todo Next higher boxes are hard-coded.
-    int fine = 1.0;
-    for (int lev = 1; lev < int(nLevels); ++lev) {
-        fine *= rr[lev - 1];
-        
-        if ( lev == 1) {
-            IntVect refined_lo(0.25 * nr[0] * fine,
-                                0.25 * nr[1] * fine,
-                                0.25 * nr[2] * fine);
-            
-            IntVect refined_hi(0.75 * nr[0] * fine - 1,
-                                0.75 * nr[1] * fine - 1,
-                                0.75 * nr[2] * fine - 1);
-            Box refined_patch(refined_lo, refined_hi);
-            ba[lev].define(refined_patch);
-        } else if ( lev == 2) {
-            IntVect refined_lo(0.375 * nr[0] * fine,
-                                0.375* nr[1] * fine,
-                                0.375 * nr[2] * fine);
-            
-            IntVect refined_hi(0.625 * nr[0] * fine - 1,
-                               0.625 * nr[1] * fine - 1,
-                                0.625* nr[2] * fine - 1);
-
-            Box refined_patch(refined_lo, refined_hi);
-            ba[lev].define(refined_patch);
-        }
-    }
-    
-    
-    /*
-     * particles need to know the BoxArray
-     * and DistributionMapping
-     */
-    // break BoxArrays into maxBoxSize^3
-    for (size_t lev = 1; lev < nLevels; ++lev) {
-        ba[lev].maxSize(maxBoxSize);
-        dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
-    }
-    
-    for (size_t lev = 1; lev < nLevels; ++lev) {
-        dynamic_cast<AmrPartBunch*>(bunch)->SetParticleBoxArray(lev, /*dmap[lev],*/ ba[lev]);
-        dynamic_cast<AmrPartBunch*>(bunch)->SetParticleDistributionMap(lev, dmap[lev]);
-    }
-    
     
     // ========================================================================
     // 3. multi-level redistribute
@@ -391,7 +389,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     phi.resize(nLevels,PArrayManage);
     grad_phi.resize(nLevels,PArrayManage);
 
-    for (size_t lev = 0; lev < nLevels; ++lev) {
+    for (int lev = 0; lev < nLevels; ++lev) {
         //                                    # component # ghost cells                                                                                                                                          
         rhs.set     (lev,new MultiFab(ba[lev],1          ,0));
         phi.set     (lev,new MultiFab(ba[lev],1          ,1));
@@ -405,7 +403,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
-    int finest_level = nLevels - 1;
+    int finest_level = nMaxLevels;
 
     PArray<MultiFab> PartMF;
     PartMF.resize(nLevels,PArrayManage);
@@ -417,7 +415,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
         BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
 
-    for (size_t lev = 0; lev < nLevels; lev++)
+    for (int lev = 0; lev < nLevels; lev++)
         MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     
     
@@ -430,7 +428,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     Real offset = 0.;
     if (geom[0].isAllPeriodic())
     {
-        for (size_t lev = 0; lev < nLevels; lev++)
+        for (int lev = 0; lev < nLevels; lev++)
             offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
         offset /= geom[0].ProbSize();
     }
@@ -445,7 +443,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // do some operations on the data
     // ========================================================================
     
-    MultiFab mf(ba[0], 1, 1);
+    MultiFab mf(ba/*[0]*/, 1, 1);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, 0 /*level*/);
     
     
@@ -526,9 +524,9 @@ int main(int argc, char *argv[]) {
         }
         
         BoxLib::Initialize(argc,argv, false);
-        size_t nLevels = std::atoi(argv[7]);
+        size_t nMaxLevels = std::atoi(argv[7]);
         size_t maxBoxSize = std::atoi(argv[8]);
-        doBoxLib(nr, nParticles, nLevels, maxBoxSize, nTimeSteps, msg, msg2all);
+        doBoxLib(nr, nParticles, nMaxLevels, maxBoxSize, nTimeSteps, msg, msg2all);
     } else
         doIppl(nr, nParticles, nTimeSteps, msg, msg2all);
     
