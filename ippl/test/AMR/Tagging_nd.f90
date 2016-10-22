@@ -37,10 +37,13 @@ subroutine state_error(tag,tag_lo,tag_hi, &
 
   integer          :: i, j, k
 
+!   print *, "lo ", lo(:)
+!   print *, "hi ", hi(:)
   ! Tag on regions of high phi
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
+!               print *, "tagging ", i, j, k
            if (state(i,j,k) .ge. phierr) then
               tag(i,j,k) = set
            endif
