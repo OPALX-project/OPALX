@@ -4,6 +4,8 @@
 #include <AmrCore.H>
 #include "AmrPartBunch.h"
 
+#include <MultiFabUtil.H>
+
 class AmrOpal : public AmrCore {
     
 public:
@@ -27,7 +29,14 @@ public:
                        const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
     
-    void writePlotFile();
+    void info() {
+        for (int i = 0; i < finest_level; ++i)
+            std::cout << "density level " << i << ": "
+                      << nPartPerCell_m[i].min(0) << " "
+                      << nPartPerCell_m[i].max(0) << std::endl;
+    }
+    
+    void writePlotFile(std::string filename, int step);
 
 protected:
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;

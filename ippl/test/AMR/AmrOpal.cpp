@@ -1,7 +1,6 @@
 #include "AmrOpal.h"
 #include "AmrOpal_F.h"
 #include <PlotFileUtil.H>
-#include <MultiFabUtil.H>
 
 
 // AmrOpal::AmrOpal() { }
@@ -11,6 +10,8 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
 {
     initBaseLevel();
     nPartPerCell_m.resize(max_level_in + 1, PArrayManage);
+    
+    nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1));
 }
 
 AmrOpal::~AmrOpal() { }
@@ -32,8 +33,7 @@ void AmrOpal::initBaseLevel() {
 // void AmrOpal::initFineLevels() { }
 
 
-void AmrOpal::writePlotFile() {
-    std::string plotfilename = "amr0000";
+void AmrOpal::writePlotFile(std::string filename, int step) {
     
     std::vector<std::string> varnames(1, "rho");
     
@@ -43,31 +43,27 @@ void AmrOpal::writePlotFile() {
     
     const auto& mf = tmp;
     
-    std::cout << "Size: " << nPartPerCell_m.size() << std::endl;
-    std::cout << "Finest level: " << finest_level << std::endl;
+//     std::cout << "Size: " << nPartPerCell_m.size() << std::endl;
+//     std::cout << "Finest level: " << finest_level << std::endl;
     
-    Array<int> istep(finest_level, 0);
+    Array<int> istep(this->maxLevel(), step);
     
-    BoxLib::WriteMultiLevelPlotifle(plotfilename, finest_level, mf, varnames,
+    BoxLib::WriteMultiLevelPlotifle(filename, finest_level, mf, varnames,
                                     Geom(), 0.0, istep, refRatio());
 }
 
 
 void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     
+    bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[lev], lev);
     
-    BoxArray ba = this->boxArray(lev);
+//     BoxArray ba = this->boxArray(lev);
+//     
+//     std::cerr << "DEFINE level = " << lev << std::endl;
+//     nPartPerCell_m.set(lev, new MultiFab(ba, 1, 1));
     
-//     std::cout << "BoxArray: " << ba << std::endl;
-    
-    nPartPerCell_m.set(lev, new MultiFab(ba, 1, 1));
-    bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[lev], 0, 1, 0);
-    
-    
-//     AssignDensity (int rho_index, bool sub_cycle, PArray<MultiFab>& mf, 
-// 			int lev_min = 0, int ncomp = 1, int finest_level = -1)
-    
-    bunch_m->AssignDensity(0, false, nPartPerCell_m, 0, 1, lev);
+    // rho_index, sub_cycle, PArray<MultiFab>& mf, lev_min = 0, ncomp, finest_level = -1
+//     bunch_m->AssignDensity(0, false, nPartPerCell_m, 0, 1, lev);
     
     std::cout << nPartPerCell_m[lev].min(0) << " " << nPartPerCell_m[lev].max(0) << std::endl;
 //     std::cout << nPartPerCell_m[lev].minIndex(0) << " " << nPartPerCell_m[lev].maxIndex(0) << std::endl;
@@ -113,6 +109,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
             tagfab.tags_and_untags(itags, tilebx);
         }
     }
+    std::cerr << "FINEST: " << finest_level << std::endl;
 }
 
 
@@ -123,9 +120,6 @@ AmrOpal::regrid (int lbase, Real time)
     Array<BoxArray> new_grids(finest_level+2);
     
     MakeNewGrids(lbase, time, new_finest, new_grids);
-    
-    if (new_finest > finest_level)
-        finest_level = new_finest;
 
     BL_ASSERT(new_finest <= finest_level+1);
 
@@ -162,12 +156,10 @@ AmrOpal::regrid (int lbase, Real time)
 	}
     }
     
+    std::cout << "NEW: " << new_finest << " OLD: " << finest_level << std::endl;
     
-//     for (int lev = finest_level-1; lev >= 0; --lev) {
-//         BoxLib::average_down(nPartPerCell_m[lev+1], nPartPerCell_m[lev],
-//                              geom[lev+1], geom[lev], 0,
-//                              nPartPerCell_m[lev].nComp(), refRatio(lev));
-//     }
+    if (new_finest > finest_level)
+        finest_level = new_finest;
     
     // update to multilevel
     bunch_m->myUpdate();
@@ -185,10 +177,18 @@ AmrOpal::RemakeLevel (int lev, Real time,
 //     auto old_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
 
 //     FillPatch(lev, time, *new_state, 0, ncomp);
-
+    
+//     if ( new_grids.empty() )
+//         return;
+    
+    
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
+    
+    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1));
 
+//     std::cerr << nPartPerCell_m[lev].is_nodal() << std::endl;
+    
 //     std::swap(new_state, phi_new[lev]);
 //     std::swap(old_state, phi_old[lev]);
 
@@ -208,8 +208,17 @@ AmrOpal::MakeNewLevel (int lev, Real time,
 //     const int ncomp = 1;
 //     const int nghost = 0;
 
+    
+    
+//     if ( new_grids.empty() )
+//         return;
+    
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
+    
+    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1));
+    
+//     std::cerr << nPartPerCell_m[lev].is_nodal() << std::endl;
 
 //     phi_new[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
 //     phi_old[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
