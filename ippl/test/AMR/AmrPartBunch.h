@@ -100,9 +100,9 @@ public:
     
     inline void setB(Vector_t Bf, int i);
     
-    void setParGDB(AmrParGDB* gdb) {
-        Define(gdb);
-    }
+//     void setParGDB(AmrParGDB* gdb) {
+//         Define(gdb);
+//     }
     
 private:
     /// Create the index mapping in order to have random access
