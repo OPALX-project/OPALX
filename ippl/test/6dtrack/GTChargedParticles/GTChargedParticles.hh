@@ -12,7 +12,7 @@
 typedef ParticleSpatialLayout<double, 6> playout_t;
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 
   
   typedef UniformCartesian<6,double>               Mesh_t;

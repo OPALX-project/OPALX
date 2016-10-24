@@ -31,6 +31,10 @@
 #include "BeamlineGeometry/Euclid3DGeometry.h"
 #include "AbsBeamline/Component.h"
 
+/** Mockups for an Opal Component (e.g. field object). The idea is to test
+ *  field lookup routines and placement routines and the like by generating a
+ *  "fake" component.
+ */ 
 class MockComponent : public Component {
 public:
     MockComponent() : Component("MockComponent"), geom_m(NULL) {
@@ -51,7 +55,6 @@ public:
     }
     bool apply(const Vector_t& r, const Vector_t& c, const double& t,
                Vector_t& E, Vector_t& B) {
-        // std::cerr << "  MockComponent::apply " << this << " " << r << std::endl;
         if (r(0) < 0. || r(0) > 1. ||
             r(1) < -1. || r(1) > 0. ||
             r(2) < 0. || r(2) > 1.)
@@ -127,3 +130,4 @@ private:
 
 
 #endif
+

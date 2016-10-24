@@ -17,9 +17,9 @@
  *
  * ParticleAttribDataSource is a base class for classes which
  * provides functionality needed to have the attributes check to see if
- * their associated ParticleBase has been previously connected, and if so,
+ * their associated IpplParticleBase has been previously connected, and if so,
  * to add this object to the list of connected attributes for that
- * ParticleBase.  This also provides virtual functions for transmitting
+ * IpplParticleBase.  This also provides virtual functions for transmitting
  * and receiving attribute data from other nodes.
  *
  ***********************************************************************/
@@ -30,7 +30,7 @@
 
 
 // forward declarations
-class ParticleBaseDataSource;
+class IpplParticleBaseDataSource;
 class ParticleAttribBase;
 class DataSource;
 
@@ -74,7 +74,7 @@ public:
 
 protected:
   // container holding our particle base ... used for disconnection
-  ParticleBaseDataSource *PBase;
+  IpplParticleBaseDataSource *PBase;
 };
 
 

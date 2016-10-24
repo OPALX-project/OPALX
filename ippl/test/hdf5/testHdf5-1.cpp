@@ -28,9 +28,9 @@ using namespace std;
 
 typedef Vektor<double,3> Vector_t;
 
-class ChargedParticles: public ParticleBase<double,3> {
+class ChargedParticles: public IpplParticleBase<double,3> {
 private:
-  typedef ParticleBase<double,3>::ParticlePos_t ParticlePos_t;
+  typedef IpplParticleBase<double,3>::ParticlePos_t ParticlePos_t;
 
   Grid *grid_m;
 

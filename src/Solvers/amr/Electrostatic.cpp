@@ -742,7 +742,7 @@ Electrostatic::get_crse_grad_phi (int               level,
         grad_phi_crse[i].FillBoundary();
 
         const Geometry& geom = parent->Geom(level-1);
-        geom.FillPeriodicBoundary(grad_phi_crse[i], false);
+//         geom.FillPeriodicBoundary(grad_phi_crse[i], false);
     }
 }
 
@@ -1077,7 +1077,7 @@ Electrostatic::get_old_e_field (int       level,
         {
             grad_phi_prev[level][i].setBndry(0);
             grad_phi_prev[level][i].FillBoundary();
-            geom.FillPeriodicBoundary(grad_phi_prev[level][i]);
+//             geom.FillPeriodicBoundary(grad_phi_prev[level][i]);
         }
     }
     else
@@ -1112,7 +1112,7 @@ Electrostatic::get_old_e_field (int       level,
     }
 
     e_field.FillBoundary();
-    geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
+//     geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
 
     MultiFab& G_old = level_data[level].get_old_data(Elec_Field_Type);
     MultiFab::Copy(G_old, e_field, 0, 0, BL_SPACEDIM, 0);
@@ -1143,7 +1143,7 @@ Electrostatic::get_new_e_field (int       level,
         {
             grad_phi_curr[level][i].setBndry(0);
             grad_phi_curr[level][i].FillBoundary();
-            geom.FillPeriodicBoundary(grad_phi_curr[level][i]);
+//             geom.FillPeriodicBoundary(grad_phi_curr[level][i]);
         }
     }
     else
@@ -1177,7 +1177,7 @@ Electrostatic::get_new_e_field (int       level,
     }
 
     e_field.FillBoundary();
-    geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
+//     geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
 
     MultiFab& E_new = level_data[level].get_new_data(Elec_Field_Type);
     MultiFab::Copy(E_new, e_field, 0, 0, BL_SPACEDIM, 0);
@@ -1521,7 +1521,7 @@ Electrostatic::fill_ec_grow (int                     level,
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         ecF[n].FillBoundary();
-        fgeom.FillPeriodicBoundary(ecF[n], true);
+//         fgeom.FillPeriodicBoundary(ecF[n], true);
     }
 }
 
@@ -1579,7 +1579,7 @@ Electrostatic::AddParticlesToRhs (int               level,
     MultiFab particle_mf(grids[level], 1, ngrow);
 
     particle_mf.setVal(0.);
-    Accel::thePAPC()->AssignDensitySingleLevel(particle_mf, level);
+    Accel::thePAPC()->AssignDensitySingleLevel(0, particle_mf, level);
     MultiFab::Add(Rhs, particle_mf, 0, 0, 1, 0);
 }
 
@@ -1596,7 +1596,7 @@ Electrostatic::AddParticlesToRhs(int base_level, int finest_level, PArray<MultiF
     //END MATTHIAS
     
     // call: BoxLib ParticleContainer::AssignDensity
-    Accel::thePAPC()->AssignDensity(PartMF, base_level, 1, finest_level);
+    Accel::thePAPC()->AssignDensity(0, PartMF, base_level, 1, finest_level);
     
     //BEGIN MATTHIAS
     //Accel::thePAPC()->AssignDensitySingleLevel(PartMF[0], 0, 1, 0);
@@ -1655,7 +1655,7 @@ Electrostatic::AddVirtualParticlesToRhs (int               level,
         MultiFab particle_mf(grids[level], 1, ngrow);
         particle_mf.setVal(0.);
 
-        Accel::theVirtPC()->AssignDensitySingleLevel(particle_mf, level, 1, 1);
+        Accel::theVirtPC()->AssignDensitySingleLevel(0, particle_mf, level, 1, 1);
         MultiFab::Add(Rhs, particle_mf, 0, 0, 1, 0);
     }
 }
@@ -1670,7 +1670,7 @@ Electrostatic::AddVirtualParticlesToRhs(int finest_level, PArray<MultiFab>& Rhs_
         MultiFab VirtPartMF(grids[finest_level], 1, 1);
         VirtPartMF.setVal(0.0);
 
-        Accel::theVirtPC()->AssignDensitySingleLevel(VirtPartMF, finest_level, 1, 1);
+        Accel::theVirtPC()->AssignDensitySingleLevel(0, VirtPartMF, finest_level, 1, 1);
         MultiFab::Add(Rhs_particles[finest_level], VirtPartMF, 0, 0, 1, 0);
     }
 }
@@ -1686,7 +1686,7 @@ Electrostatic::AddGhostParticlesToRhs (int               level,
         MultiFab ghost_mf(grids[level], 1, ngrow);
 
         ghost_mf.setVal(0.);
-        Accel::theGhostPC()->AssignDensitySingleLevel(ghost_mf, level, 1, -1);
+        Accel::theGhostPC()->AssignDensitySingleLevel(0, ghost_mf, level, 1, -1);
         MultiFab::Add(Rhs, ghost_mf, 0, 0, 1, 0);
     }
 }
@@ -1703,7 +1703,7 @@ Electrostatic::AddGhostParticlesToRhs(int level, PArray<MultiFab>& Rhs_particles
 
         // Get the Ghost particle mass function. Note that Ghost particles should
         // only affect the coarsest level so we use a single level solve
-        Accel::theGhostPC()->AssignDensitySingleLevel(GhostPartMF, level, 1, -1);
+        Accel::theGhostPC()->AssignDensitySingleLevel(0, GhostPartMF, level, 1, -1);
         MultiFab::Add(Rhs_particles[0], GhostPartMF, 0, 0, 1, 0);
     }
 }

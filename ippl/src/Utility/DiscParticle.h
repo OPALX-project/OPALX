@@ -41,7 +41,7 @@
 #include <cstdio>
 
 // forward declarations
-template<class T> class ParticleBase;
+template<class T> class IpplParticleBase;
 template<class T> class ParticleAttrib;
 class Message;
 
@@ -89,7 +89,7 @@ public:
   unsigned int get_NumRecords() const { return RecordList.size(); }
 
   // Query for the mode of the Nth record, which can be either ALL (meaning
-  // an entire ParticleBase's list of attributes was written out), or
+  // an entire IpplParticleBase's list of attributes was written out), or
   // ATTRIB (meaning only one specific attribute was written out).
   int get_DataMode(unsigned int record=0) const {
     return (RecordList[record]->attributes > 0 ? ALL : ATTRIB);
@@ -131,33 +131,33 @@ public:
   //
   // read methods
   //
-  // read the specifed record in the file into the given ParticleBase or
+  // read the specifed record in the file into the given IpplParticleBase or
   // ParticleAttrib object.
-  // If the method is to read all the ParticleBase, this will delete all the
+  // If the method is to read all the IpplParticleBase, this will delete all the
   // existing particles in the given object, create new ones and store the
   // values, and then do an update.  If an attribute is being read, this
   // will only work if the number of particles in the attribute already
   // matches the number in the file.
 
-  // a templated read for ParticleBase objects.  This should only be called
+  // a templated read for IpplParticleBase objects.  This should only be called
   // if the object was opened with iomode == INPUT
-  //   pbase = ParticleBase object to read into
+  //   pbase = IpplParticleBase object to read into
   //   record = which record to read.  DiscParticle does not keep a 'current
   //          file position' pointer, instead you explicitly request which
   //          record you wish to read.
   // Return success of operation.
   //mwerks  template<class T>
-  //mwerks  bool read(ParticleBase<T> &pbase, unsigned int record=0);
+  //mwerks  bool read(IpplParticleBase<T> &pbase, unsigned int record=0);
   ///////////////////////////////////////////////////////////////////////////
-  // a templated read for ParticleBase objects.  This should only be called
+  // a templated read for IpplParticleBase objects.  This should only be called
   // if the object was opened with iomode == INPUT, datamode == ALL.
-  //   pbase = ParticleBase object to read into
+  //   pbase = IpplParticleBase object to read into
   //   record = which record to read.  DiscParticle does not keep a 'current
   //          file position' pointer, instead you explicitly request which
   //          record you wish to read.
   // Return success of operation.
   template<class T>
-  bool read(ParticleBase<T> &pbase, unsigned int record) {
+  bool read(IpplParticleBase<T> &pbase, unsigned int record) {
 
     // re-read the meta file since it might have changed
     ConfigOK = read_meta(); 
@@ -174,11 +174,11 @@ public:
       return false;
     } else if (get_DataMode(record) != ALL) {
       ERRORMSG("Record " << record << " does not contain information for an ");
-      ERRORMSG("entire ParticleBase." << endl);
+      ERRORMSG("entire IpplParticleBase." << endl);
       return false;
     } else if (get_NumAttributes(record) != pbase.numAttributes()) {
       ERRORMSG("Record " << record <<" has a different number of attributes ");
-      ERRORMSG("than in the given ParticleBase." << endl);
+      ERRORMSG("than in the given IpplParticleBase." << endl);
       return false;
     }
 
@@ -193,11 +193,11 @@ public:
       }
     }
 
-    DPCTLDBG(std::string dbgmsgname("DiscParticle::read(ParticleBase) "));
+    DPCTLDBG(std::string dbgmsgname("DiscParticle::read(IpplParticleBase) "));
     DPCTLDBG(dbgmsgname += Config->getConfigFile());
     DPCTLDBG(Inform dbgmsg(dbgmsgname.c_str(), INFORM_ALL_NODES));
 
-    // since we're reading in data for the entire ParticleBase, delete all the
+    // since we're reading in data for the entire IpplParticleBase, delete all the
     // existing particles, and do an update, before reading in new particles
     DPCTLDBG(dbgmsg << "Deleting existing " << pbase.getLocalNum());
     DPCTLDBG(dbgmsg << " particles." << endl);
@@ -361,24 +361,24 @@ public:
   //
   // write methods
   //
-  // write the data from the given ParticleBase or ParticleAttrib into the
+  // write the data from the given IpplParticleBase or ParticleAttrib into the
   // file.  Data is appended as a new record.
 
-  // a templated write for ParticleBase objects.  All attributes in the
-  // ParticleBase are written as a single record.  This should only be
+  // a templated write for IpplParticleBase objects.  All attributes in the
+  // IpplParticleBase are written as a single record.  This should only be
   // called if the object was opened with iomode == OUTPUT or APPEND.
-  //   pbase = ParticleBase object to read from.
+  //   pbase = IpplParticleBase object to read from.
   // Return success of operation.
   //mwerks  template<class T>
-  //mwerks  bool write(ParticleBase<T> &pbase);
+  //mwerks  bool write(IpplParticleBase<T> &pbase);
   ///////////////////////////////////////////////////////////////////////////
-  // a templated write for ParticleBase objects.  All attributes in the
-  // ParticleBase are written as a single record.  This should only be
+  // a templated write for IpplParticleBase objects.  All attributes in the
+  // IpplParticleBase are written as a single record.  This should only be
   // called if the object was opened with iomode == OUTPUT or APPEND.
-  //   pbase = ParticleBase object to read into
+  //   pbase = IpplParticleBase object to read into
   // Return success of operation.
   template<class T>
-  bool write(ParticleBase<T> &pbase) {
+  bool write(IpplParticleBase<T> &pbase) {
 
     // generate a tag to use for communication
     int tag = Ippl::Comm->next_tag(FB_WRITE_TAG, FB_TAG_CYCLE);
@@ -401,7 +401,7 @@ public:
 
 //   ada:  incDiscWrites is not found  INCIPPLSTAT(incDiscWrites);
 
-    DPCTLDBG(std::string dbgmsgname("DiscParticle::write(ParticleBase) "));
+    DPCTLDBG(std::string dbgmsgname("DiscParticle::write(IpplParticleBase) "));
     DPCTLDBG(dbgmsgname += Config->getConfigFile());
     DPCTLDBG(Inform dbgmsg(dbgmsgname.c_str(), INFORM_ALL_NODES));
 
@@ -691,7 +691,7 @@ private:
 
     int attributes;		 // number of attributes; 0 == just writing
 				 // one attribute, > 0 == writing a whole
-				 // ParticleBase's worth of particles
+				 // IpplParticleBase's worth of particles
     int globalparticles;	 // total number of particles in whole system
     std::vector<int> localparticles;  // number of particles in this fileset's files
     std::vector<int> bytesize;	 // how many bytes/attrib elem in each attrib

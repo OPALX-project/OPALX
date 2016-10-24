@@ -133,21 +133,21 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
 
 
 ////////////////////////////////////////////////////////////////////////////
-// a version of make_DataSourceObject for ParticleBase's
+// a version of make_DataSourceObject for IpplParticleBase's
 template<class PLayout>
 DataSourceObject *
 make_DataSourceObject(const char *nm, DataConnect *dc, int t,
-		      ParticleBase<PLayout>& P) {
+		      IpplParticleBase<PLayout>& P) {
 
   // get the connection method name, and make a string out of it
   std::string method(dc->DSID());
 
   DataSourceObject *dso = 0;
   if (method == "aclvis") {
-    // create a DataSourceObject for this ParticleBase which will connect to
+    // create a DataSourceObject for this IpplParticleBase which will connect to
     // the ACL visualization code
 #ifdef IPPL_ACLVIS
-    dso = new ACLVISParticleBaseDataSource<PLayout>(nm, dc, t, P);
+    dso = new ACLVISIpplParticleBaseDataSource<PLayout>(nm, dc, t, P);
 #endif
 
   } else if (method == "paws") {
@@ -157,7 +157,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
   } else if (method == "file") {
     // create a DataSourceObject for this FILE which will connect to
     // a file
-    dso = new FileParticleBaseDataSource<PLayout>(nm, dc, t, P);
+    dso = new FileIpplParticleBaseDataSource<PLayout>(nm, dc, t, P);
   }
 
   // make a default connection is nothing has been found
@@ -179,7 +179,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
 
   DataSourceObject *dso = 0;
   if (method == "aclvis") {
-    // create a DataSourceObject for this ParticleBase which will connect to
+    // create a DataSourceObject for this IpplParticleBase which will connect to
     // the ACL visualization code
 
   } else if (method == "paws") {
@@ -213,7 +213,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
 
   DataSourceObject *dso = 0;
   if (method == "aclvis") {
-    // create a DataSourceObject for this ParticleBase which will connect to
+    // create a DataSourceObject for this IpplParticleBase which will connect to
     // the ACL visualization code
 
   } else if (method == "paws") {

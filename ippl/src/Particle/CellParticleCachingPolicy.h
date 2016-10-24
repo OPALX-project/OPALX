@@ -41,7 +41,7 @@ public:
 	
 	template<class C>
 	void updateGhostParticles(
-		ParticleBase< ParticleSpatialLayout<T,Dim,Mesh,C > > &PData,
+		IpplParticleBase< ParticleSpatialLayout<T,Dim,Mesh,C > > &PData,
 		ParticleSpatialLayout<T, Dim, Mesh, C > &PLayout
 		)
 	{

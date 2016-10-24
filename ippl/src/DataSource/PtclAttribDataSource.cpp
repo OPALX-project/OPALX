@@ -35,7 +35,7 @@ ParticleAttribDataSource::ParticleAttribDataSource(const char *nm,
 
   // find a particlebase object which contains this attribute; if none
   // found, it is an error
-  PBase = ParticleBaseDataSource::find_particle_base(this, pa);
+  PBase = IpplParticleBaseDataSource::find_particle_base(this, pa);
 
   // if we did find it ...
   if (PBase != 0) {

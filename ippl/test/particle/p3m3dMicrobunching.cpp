@@ -113,7 +113,7 @@ double readNextBeamParamValue(std::basic_istream<CharT,Traits>& input) {
 
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 	public:
 		ParticleAttrib<double>     	Q; //Charge [elementary charge e]
 		ParticleAttrib<double>     	m; //rest mass [MeV/c^2]
@@ -123,7 +123,7 @@ class ChargedParticles : public ParticleBase<PL> {
 		ParticleAttrib<int>	ID; //unique ID for debugging reasons => remove for production
 
 		ChargedParticles(PL* pl, Vektor<double,3> nr, e_dim_tag decomp[Dim], unsigned seedID_=0) :
-			ParticleBase<PL>(pl),
+			IpplParticleBase<PL>(pl),
 			nr_m(nr),
 			seedID(seedID_)
 	{
@@ -244,7 +244,7 @@ class ChargedParticles : public ParticleBase<PL> {
 			domain_m = this->getFieldLayout().getDomain();
 			lDomain_m = this->getFieldLayout().getLocalNDIndex(); 
 
-			ParticleBase<PL>::update();
+			IpplParticleBase<PL>::update();
 		}
 
 

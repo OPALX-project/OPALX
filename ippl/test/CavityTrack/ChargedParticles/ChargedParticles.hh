@@ -74,7 +74,7 @@
 
 
 template <class T, unsigned int Dim>
-class ChargedParticles : public ParticleBase< ParticleSpatialLayout<T,Dim> > {
+class ChargedParticles : public IpplParticleBase< ParticleSpatialLayout<T,Dim> > {
   
 private:
     
@@ -317,7 +317,7 @@ public:
       
     //constructor
     ChargedParticles(Layout_t *playout, BCT bc) : 
-            ParticleBase< ParticleSpatialLayout<T,Dim> >(playout),
+            IpplParticleBase< ParticleSpatialLayout<T,Dim> >(playout),
             bcType_m(bc),
             numberOfClones(0)
         {
