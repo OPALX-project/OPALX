@@ -31,7 +31,7 @@ FM3DH5Block_nonscale::FM3DH5Block_nonscale(std::string aFilename):
     h5err = H5SetPropFileMPIOCollective (props, &comm);
     assert (h5err != H5_ERR);
     h5_file_t file = H5OpenFile (aFilename.c_str(), H5_O_RDONLY, props);
-    assert (file != H5_ERR);
+    assert (file != (h5_file_t)H5_ERR);
 #else
     h5_file_t *file = H5OpenFile (aFilename.c_str(), H5_O_RDONLY, Ippl::getComm());
     assert (file != (void*)H5_ERR);
@@ -97,7 +97,7 @@ void FM3DH5Block_nonscale::readMap() {
     h5err = H5SetPropFileMPIOCollective (props, &comm);
     assert (h5err != H5_ERR);
     h5_file_t file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
-    assert (file != H5_ERR);
+    assert (file != (h5_file_t)H5_ERR);
 #else
     h5_file_t *file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
     assert (file != (void*)H5_ERR);
