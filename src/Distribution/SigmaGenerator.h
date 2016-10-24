@@ -39,7 +39,7 @@
 #include <boost/numeric/ublas/vector.hpp>
 
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
-#if Boost_VERSION >= 106000
+#if BOOST_VERSION >= 106000
 #include <boost/numeric/odeint/integrate/check_adapter.hpp>
 #endif
 
