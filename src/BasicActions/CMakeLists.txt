@@ -1,6 +1,7 @@
 set (_SRCS
   Call.cpp
   Dump.cpp
+  DumpFields.cpp
   Echo.cpp
   Help.cpp
   Option.cpp

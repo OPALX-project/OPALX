@@ -58,7 +58,7 @@ const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
   ParticleAttrib<double>     qm; // charge-to-mass ratio
   typename PL::ParticlePos_t V;  // particle velocity
@@ -68,7 +68,7 @@ public:
   Vector_t hr_m;
   Vektor<int,Dim> nr_m;
 
-  ChargedParticles(PL* pl) : ParticleBase<PL>(pl) {
+  ChargedParticles(PL* pl) : IpplParticleBase<PL>(pl) {
     // register the particle attributes
     addAttribute(qm);
     addAttribute(V);

@@ -41,7 +41,7 @@
 #include "Index/NDIndex.h"
 #include "FieldLayout/FieldLayout.h"
 #include "Particle/ParticleSpatialLayout.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/PAssign.h"
 #include "Utility/RNGLattice.h"
 #include "Utility/ParticleDebug.h"
@@ -58,13 +58,13 @@ using namespace std;
 
 //-----------------------------------------------------------------------------
 // Simple user Particles class definition
-class Particles: public ParticleBase< ParticleSpatialLayout<double, 3> > {
+class Particles: public IpplParticleBase< ParticleSpatialLayout<double, 3> > {
 public:
   //tjwdebug: add a scalar attribute:
   ParticleAttrib<double> sa;
   // Constructor: 
   Particles(ParticleSpatialLayout<double,3>* psl) : 
-    ParticleBase<ParticleSpatialLayout<double, 3> >(psl) {
+    IpplParticleBase<ParticleSpatialLayout<double, 3> >(psl) {
       //tjwdebug: add a scalar attribute:
       addAttribute(sa);
   }

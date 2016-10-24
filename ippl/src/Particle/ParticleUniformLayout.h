@@ -22,7 +22,7 @@
 
 // include files
 #include "Particle/ParticleLayout.h"
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 
 #ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
@@ -64,11 +64,11 @@ public:
   // Particle swapping/update routines
   //
 
-  // Update the location and indices of all atoms in the given ParticleBase
+  // Update the location and indices of all atoms in the given IpplParticleBase
   // object.  This handles swapping particles among processors if
   // needed, and handles create and destroy requests.  When complete,
   // all nodes have correct layout information.
-  void update(ParticleBase< ParticleUniformLayout<T,Dim> >& p,
+  void update(IpplParticleBase< ParticleUniformLayout<T,Dim> >& p,
               const ParticleAttrib<char>* canSwap = 0);
 
   //

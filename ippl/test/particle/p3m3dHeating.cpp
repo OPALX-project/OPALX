@@ -98,7 +98,7 @@ struct SpecializedGreensFunction<3> {
 
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
     ParticleAttrib<double>     	Q;
     ParticleAttrib<double>     	m;
@@ -108,7 +108,7 @@ public:
     ParticleAttrib<int>	ID; //velocity of the particles
     
     ChargedParticles(PL* pl, Vektor<double,3> nr, e_dim_tag decomp[Dim],Vektor<double,3> extend_l_, Vektor<double,3> extend_r_) :
-    ParticleBase<PL>(pl),
+    IpplParticleBase<PL>(pl),
     nr_m(nr),
     extend_l(extend_l_),
     extend_r(extend_r_)
@@ -188,7 +188,7 @@ public:
         domain_m = this->getFieldLayout().getDomain();
         lDomain_m = this->getFieldLayout().getLocalNDIndex();
         
-        ParticleBase<PL>::update();
+        IpplParticleBase<PL>::update();
     }
     
     void compute_temperature() {

@@ -24,18 +24,18 @@
  ***************************************************************************/
 
 // include files
-#include "Particle/ParticleBase.h"
+#include "Particle/IpplParticleBase.h"
 #include "Particle/ParticleInteractLayout.h"
 #include "Meshes/UniformCartesian.h"
 
 // 3D UniformCartesian instantiations
-template class ParticleBase<ParticleInteractLayout<
+template class IpplParticleBase<ParticleInteractLayout<
    IPPL_PRECISION_TYPE, 3U, UniformCartesian<3U,IPPL_PRECISION_TYPE> > >;
 
 
 /***************************************************************************
- * $RCSfile: ParticleBaseInteract_Unif_3D.cpp,v $   $Author: adelmann $
+ * $RCSfile: IpplParticleBaseInteract_Unif_3D.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:29 $
- * IPPL_VERSION_ID: $Id: ParticleBaseInteract_Unif_3D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IpplParticleBaseInteract_Unif_3D.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
  ***************************************************************************/
 

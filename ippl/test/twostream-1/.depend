@@ -184,7 +184,7 @@ twostream-1.o: twostream-1.cpp \
   /home/adelmann/ippl/src/Utility/IpplTimings.h \
   /home/adelmann/ippl/src/Utility/my_auto_ptr.h \
   /home/adelmann/ippl/src/PETE/IpplExpressions.h \
-  /home/adelmann/ippl/src/Particle/ParticleBase.h \
+  /home/adelmann/ippl/src/Particle/IpplParticleBase.h \
   /home/adelmann/ippl/src/Particle/ParticleBConds.h \
   /home/adelmann/ippl/src/Particle/ParticleAttrib.h \
   /home/adelmann/ippl/src/Particle/ParticleAttribBase.h \
@@ -274,8 +274,8 @@ twostream-1.o: twostream-1.cpp \
   /home/adelmann/ippl/src/expde/grid/SSten.h \
   /home/adelmann/ippl/src/expde/grid/gridbase.h \
   /home/adelmann/ippl/src/expde/grid/grid.h \
-  /home/adelmann/ippl/src/Particle/ParticleBase.cpp \
-  /home/adelmann/ippl/src/Particle/ParticleBase.h \
+  /home/adelmann/ippl/src/Particle/IpplParticleBase.cpp \
+  /home/adelmann/ippl/src/Particle/IpplParticleBase.h \
   /home/adelmann/ippl/src/Message/Communicate.h \
   /home/adelmann/ippl/src/Particle/PAssign.h \
   /home/adelmann/ippl/src/Particle/PAssignDefs.h \

@@ -135,7 +135,7 @@ public:
   //
 
   void incParticleAttribs() { ++ParticleAttribs.Value; }
-  void incParticleBases() { ++ParticleBases.Value; }
+  void incIpplParticleBases() { ++IpplParticleBases.Value; }
   void incParticleUpdates() { ++ParticleUpdates.Value; }
   void incParticleExpressions() { ++ParticleExpressions.Value; }
   void incParticleGathers() { ++ParticleGathers.Value; }
@@ -223,7 +223,7 @@ private:
   StatData EndScalarCodes;
 
   StatData ParticleAttribs;
-  StatData ParticleBases;
+  StatData IpplParticleBases;
   StatData ParticleUpdates;
   StatData ParticleExpressions;
   StatData ParticleGathers;

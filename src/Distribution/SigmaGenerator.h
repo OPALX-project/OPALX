@@ -39,7 +39,9 @@
 #include <boost/numeric/ublas/vector.hpp>
 
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
+#if BOOST_VERSION >= 106000
 #include <boost/numeric/odeint/integrate/check_adapter.hpp>
+#endif
 
 #include "rdm.h"
 
@@ -430,7 +432,7 @@ template<typename Value_type, typename Size_type>
                 writePhase.close();
                 writeProperties.close();
             }
-            
+
             // write to terminal
             *gmsg << "* ----------------------------" << endl
                   << "* Closed orbit info (Gordon units):" << endl
@@ -442,7 +444,7 @@ template<typename Value_type, typename Size_type>
                   << "* horizontal tune: " << tunes.first << endl
                   << "* vertical tune: " << tunes.second << endl
                   << "* ----------------------------" << endl << endl;
-            
+
                   // compute the number of steps per degree
             value_type deg_step = N_m / 360.0;
             // compute starting point of computation
@@ -960,9 +962,9 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
      */
 
     value_type cosy = 0.5 * (M(2,2) + M(3,3));
-    
+
     value_type sign = (std::signbit(M(2,3))) ? value_type(-1) : value_type(1);
-    
+
     value_type invsiny = sign / std::sqrt(std::fabs( 1.0 - cosy * cosy));
 
     value_type alphay = 0.5 * (M(2,2) - M(3,3)) * invsiny;

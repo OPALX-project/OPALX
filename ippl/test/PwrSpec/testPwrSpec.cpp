@@ -59,11 +59,11 @@ const double pi = acos(-1.0);
 const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
 
-class ChargedParticles : public ParticleBase<playout_t> {
+class ChargedParticles : public IpplParticleBase<playout_t> {
 public:
 
     ChargedParticles(playout_t* pl, BC_t bc, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) :
-        ParticleBase<playout_t>(pl),
+        IpplParticleBase<playout_t>(pl),
         bco_m(bc),
         hr_m(hr),
         rmin_m(rmin),

@@ -285,7 +285,7 @@ int main(int argc, char *argv[]) {
   IpplTimings::stopTimer(mainTimer); 
   IpplTimings::print();
   
-  delete bunch;  // No "delete layout;" already done in ParticleBase::~ParticleBase()
+  delete bunch;  // No "delete layout;" already done in IpplParticleBase::~IpplParticleBase()
   delete grid;
   delete geom_domain;
   return 0;

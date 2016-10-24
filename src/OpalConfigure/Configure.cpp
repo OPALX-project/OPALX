@@ -25,6 +25,7 @@
 // Basic action commands.
 #include "BasicActions/Call.h"
 #include "BasicActions/Dump.h"
+#include "BasicActions/DumpFields.h"
 #include "BasicActions/Echo.h"
 #include "BasicActions/Help.h"
 #include "BasicActions/Option.h"
@@ -145,6 +146,7 @@ namespace Configure {
         OpalData *opal = OpalData::getInstance();
         opal->create(new Call());
         opal->create(new Dump());
+        opal->create(new DumpFields());
         opal->create(new Echo());
         opal->create(new Dynamic());
         opal->create(new Eigen());

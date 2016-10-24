@@ -53,7 +53,7 @@ struct SpecializedGreensFunction<3> {
 
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 
 public:
 
@@ -61,7 +61,7 @@ public:
     ParticleAttrib<Vector_t> 	EF;
 
     ChargedParticles(PL* pl, Vector_t nr, e_dim_tag decomp[3]) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
         nr_m(nr)
     {
         this->addAttribute(Q);
@@ -113,7 +113,7 @@ public:
         getMesh().set_meshSpacing(&(hr_m[0]));
         getMesh().set_origin(rmin_m);
 
-        ParticleBase<PL>::update();
+        IpplParticleBase<PL>::update();
     }
 
     //FIXME: explain in more detail why we double fields and why we sometimes

@@ -39,12 +39,12 @@ const double qmmax = 1.0;       // maximum value for particle q/m
 const double dt = 1.0;          // size of timestep
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 public:
     ParticleAttrib<double>     qm;
 
     ChargedParticles(PL* pl, InterPol_t interpol, Vector_t nr, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells = true) :
-        ParticleBase<PL>(pl),
+        IpplParticleBase<PL>(pl),
         interpol_m(interpol),
         nr_m(nr),
         hr_m(hr),
