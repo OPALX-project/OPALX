@@ -79,7 +79,7 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     // This tells the solver that we are using Dirichlet bc's
     if (Geometry::isAllPeriodic()) {
         if ( ParallelDescriptor::IOProcessor() )
-            std::cerr << "Periodic BC" << std::endl;
+//             std::cerr << "Periodic BC" << std::endl;
         
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             // periodic BC
@@ -88,7 +88,7 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
         }
     } else {
         if ( ParallelDescriptor::IOProcessor() )
-            std::cerr << "Dirichlet BC" << std::endl;
+//             std::cerr << "Dirichlet BC" << std::endl;
         
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             // Dirichlet BC

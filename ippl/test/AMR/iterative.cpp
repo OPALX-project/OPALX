@@ -8,7 +8,7 @@
  *      g++ -std=c++11 iterative.cpp -o iterative
  * 
  * Running:
- *      ./iterative [#gridpoints x] [#gridpoints y] [#gridpoints z] [nsteps]
+ *      ./iterative [#gridpoints] [nsteps]
  * 
  * Visualization:
  *      The program writes 4 files (phi.dat, ex.dat, ey.dat, ez.dat) that

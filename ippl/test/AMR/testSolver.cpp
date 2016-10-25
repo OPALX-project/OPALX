@@ -1,5 +1,5 @@
 /* Matthias Frey
- * 13. - 14. October, LBNL
+ * 13. - 14. October 2016, LBNL
  * 
  * Compute \Lap(\phi) = -1 and write plot files
  * that can be visualized by yt (python visualize.py)
@@ -110,9 +110,6 @@ int main(int argc, char* argv[]) {
         ba[lev].maxSize(maxBoxSize); // / refRatio[lev - 1]);
         dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
     }
-    
-//     for (int lev = 1; lev < nLevels; ++lev) {
-//     }
     
     
     // ------------------------------------------------------------------------
