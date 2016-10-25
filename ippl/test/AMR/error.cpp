@@ -155,6 +155,8 @@ int main(int argc, char* argv[]) {
     
     double l2error = doSolve(nr, maxBoxSize, nLevels);
     
+    ParallelDescriptor::Barrier();
+    
     if ( ParallelDescriptor::MyProc() == 0 ) {
         std::ofstream out("l2_error.dat", std::ios::app);
         out << nLevels << " " << l2error << std::endl;
