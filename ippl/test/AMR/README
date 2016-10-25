@@ -4,6 +4,7 @@ BoxLib. The output files can be visualized using yt python.
 1. Installation of BoxLib
 -------------------------
 a) git clone https://github.com/BoxLib-Codes/BoxLib
+a1) git checkout amrcore
 b) mkdir build
 c) cd build
 d) Load modules: cmake/2.8.12.2, gcc/4.8.3, openmpi/1.8.2
@@ -43,3 +44,4 @@ The following programs are in this directory:
     - testAmrPartBunch:     OPAL - BoxLib - Particle - Marriage example
     - testSolver:           Solving \Lap\phi = -1 using FMultiGrid solver of BoxLib
     - iterative:            Solving \Lap\phi = -1 using an iterative scheme
+    - error:                Solve \Lap\phi = -1 with refinement and without and do a comparison.
