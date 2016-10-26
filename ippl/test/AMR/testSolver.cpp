@@ -12,6 +12,8 @@
  * Call:
  *  mpirun -np [#cores] testSolver [#gridpints x] [#gridpints y] [#gridpints z]
  *      [max. grid size] [#levels]
+ * 
+ * The refinement is done over the whole domain.
  */
 
 #include <iostream>
@@ -26,6 +28,14 @@
 #include "writePlotFile.H"
 
 int main(int argc, char* argv[]) {
+    
+    if (argc != 6) {
+        std::cerr << "mpirun -np [#cores] testSolver [#gridpints x] "
+                  << "[#gridpints y] [#gridpints z] [max. grid size] "
+                  << "[#levels]" << std::endl;
+        return -1;
+    }
+    
     
     BoxLib::Initialize(argc, argv, false);
     
@@ -85,28 +95,13 @@ int main(int argc, char* argv[]) {
     for (int lev = 1; lev < nLevels; ++lev) {
         fine *= refRatio[lev - 1];
         
-        if ( lev == 1) {
-            IntVect refined_lo(0.25 * nr[0] * fine,
-                                0.25 * nr[1] * fine,
-                                0.25 * nr[2] * fine);
-            
-            IntVect refined_hi(0.75 * nr[0] * fine - 1,
-                                0.75 * nr[1] * fine - 1,
-                                0.75 * nr[2] * fine - 1);
+        IntVect refined_lo(0, 0, 0);
+        IntVect refined_hi(nr[0] * fine - 1,
+                           nr[1] * fine - 1,
+                           nr[2] * fine - 1);
+        
         Box refined_patch(refined_lo, refined_hi);
         ba[lev].define(refined_patch);
-        } else if ( lev == 2) {
-            IntVect refined_lo(0.375 * nr[0] * fine,
-                                0.375* nr[1] * fine,
-                                0.375 * nr[2] * fine);
-            
-            IntVect refined_hi(0.625 * nr[0] * fine - 1,
-                               0.625 * nr[1] * fine - 1,
-                                0.625* nr[2] * fine - 1);
-
-            Box refined_patch(refined_lo, refined_hi);
-            ba[lev].define(refined_patch);
-        }
         ba[lev].maxSize(maxBoxSize); // / refRatio[lev - 1]);
         dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
     }
