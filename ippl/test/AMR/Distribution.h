@@ -101,7 +101,7 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
     
     std::mt19937_64 mt(seed);
     
-    std::uniform_real_distribution<> dist(mean, stddev);
+    std::normal_distribution<double> dist(mean, stddev);
     
     x_m.resize(nloc);
     y_m.resize(nloc);

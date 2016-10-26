@@ -560,7 +560,7 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
-    std::string tfn = std::string(argv[1]) + std::string("-cores=") + std::to_string(Ippl::getNodes());
+    std::string tfn = std::string(argv[1]) + "-cores=" + std::to_string(Ippl::getNodes());
     IpplTimings::print(tfn);
 
     return 0;
