@@ -15,8 +15,6 @@
 #include "Solver.h"
 #include <fstream>
 
-#include "writePlotFile.H"
-
 double doSolve(int nr[3], int maxBoxSize, int nLevels) {
     // setup geometry
     IntVect lo(0, 0, 0);
@@ -131,10 +129,6 @@ double doSolve(int nr[3], int maxBoxSize, int nLevels) {
     
     // comparison
     MultiFab::Subtract(phi_single[0], phi[0], 0, 0, 1, 1);
-    
-//     std::string dir = "plt0000";
-//     Real time = 0.0;
-//     writePlotFile(dir, rho, phi, efield, refRatio, geom, time);
     
     return phi_single[0].norm2();
 }
