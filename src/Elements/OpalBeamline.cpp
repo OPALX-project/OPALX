@@ -260,7 +260,7 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &cent
                     rtv |= BEAMLINE_OOB;
                 }
             }
-            if(! rtv & BEAMLINE_OOB) {
+            if(! (rtv & BEAMLINE_OOB)) {
 
                 const Vector_t &ori = section.getOrientation();
                 if(fabs(ori(0)) > 1.e-10 || fabs(ori(1)) > 1.e-10 || fabs(ori(2)) > 1.e-10) {
