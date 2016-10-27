@@ -2660,10 +2660,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     } else {
         // not for multibunch
-        if(!(itsBunch->weHaveBins()))
-          *gmsg << "*" << endl;
-	  *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
-          *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
+	if(!(itsBunch->weHaveBins())) {
+            *gmsg << "*" << endl;
+	    *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
+            *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
+	}
     }
 
     Ippl::Comm->barrier();
@@ -3645,12 +3646,12 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
     } else {
         // not for multibunch
-        if(!(itsBunch->weHaveBins()))
-          *gmsg << "*" << endl;
-	  *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
-          *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
+	if(!(itsBunch->weHaveBins())) {
+            *gmsg << "*" << endl;
+	    *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
+            *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
+	}
     }
-
     Ippl::Comm->barrier();
 
     if(myNode_m == 0) outfTrackOrbit_m.close();
