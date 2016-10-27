@@ -296,8 +296,8 @@ void ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy>::update(
     if (this->getUpdateFlag(ParticleLayout<T,Dim>::BCONDS))
         this->apply_bconds(LocalNum, PData.R, this->getBConds(), RLayout.getDomain());
 
-	if(caching)
-            this->updateCacheInformation(*this);
+    if(caching)
+        this->updateCacheInformation(*this);
 
     // swap particles, if necessary
     if (N > 1 && this->getUpdateFlag(ParticleLayout<T,Dim>::SWAP))
