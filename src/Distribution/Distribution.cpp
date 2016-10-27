@@ -4715,8 +4715,9 @@ void Distribution::WriteOutFileInjection() {
 
                 std::ofstream outputFile("data/distribution.data", std::fstream::app);
                 if (outputFile.bad()) {
-                    *gmsg << "Node " << Ippl::myNode << " unable to write"
-                          << "to file \"data/distribution.data\"" << endl;
+		     *gmsg << "Node " << Ippl::myNode()
+			   << " unable to write to file \"data/distribution.data\""
+			   << endl;
                 } else {
 
                     outputFile.precision(9);
@@ -4755,3 +4756,9 @@ void Distribution::WriteOutFileInjection() {
         }
     }
 }
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
