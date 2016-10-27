@@ -1,5 +1,5 @@
 /* Matthias Frey
- * 13. - 14. October, LBNL
+ * 13. - 14. October 2016, LBNL
  * 
  * Compute \Lap(\phi) = -1 and write plot files
  * that can be visualized by yt (python visualize.py)
@@ -11,7 +11,9 @@
  * 
  * Call:
  *  mpirun -np [#cores] testSolver [#gridpints x] [#gridpints y] [#gridpints z]
- *      [max. grid size] [#levels]
+ *      [max. grid size] [#levels] [plotfile]
+ * 
+ * The refinement is done over the whole domain.
  */
 
 #include <iostream>
@@ -25,9 +27,26 @@
 
 #include "writePlotFile.H"
 
+#include "Ippl.h"
+
 int main(int argc, char* argv[]) {
     
+    if (argc != 7) {
+        std::cerr << "mpirun -np [#cores] testSolver [#gridpints x] "
+                  << "[#gridpints y] [#gridpints z] [max. grid size] "
+                  << "[#levels] [plotfile (boolean)]" << std::endl;
+        return -1;
+    }
+    
+    Ippl ippl(argc, argv);
+    
+    static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
+    IpplTimings::startTimer(mainTimer);
+    
     BoxLib::Initialize(argc, argv, false);
+    
+    
+    static IpplTimings::TimerRef solverTimer = IpplTimings::getTimer("solver");
     
     int nr[BL_SPACEDIM] = {
         std::atoi(argv[1]),
@@ -38,6 +57,7 @@ int main(int argc, char* argv[]) {
     
     int maxBoxSize = std::atoi(argv[4]);
     int nLevels = std::atoi(argv[5]);
+    bool doWrite = std::atoi(argv[6]);
     
     
     // setup geometry
@@ -85,34 +105,16 @@ int main(int argc, char* argv[]) {
     for (int lev = 1; lev < nLevels; ++lev) {
         fine *= refRatio[lev - 1];
         
-        if ( lev == 1) {
-            IntVect refined_lo(0.25 * nr[0] * fine,
-                                0.25 * nr[1] * fine,
-                                0.25 * nr[2] * fine);
-            
-            IntVect refined_hi(0.75 * nr[0] * fine - 1,
-                                0.75 * nr[1] * fine - 1,
-                                0.75 * nr[2] * fine - 1);
+        IntVect refined_lo(0, 0, 0);
+        IntVect refined_hi(nr[0] * fine - 1,
+                           nr[1] * fine - 1,
+                           nr[2] * fine - 1);
+        
         Box refined_patch(refined_lo, refined_hi);
         ba[lev].define(refined_patch);
-        } else if ( lev == 2) {
-            IntVect refined_lo(0.375 * nr[0] * fine,
-                                0.375* nr[1] * fine,
-                                0.375 * nr[2] * fine);
-            
-            IntVect refined_hi(0.625 * nr[0] * fine - 1,
-                               0.625 * nr[1] * fine - 1,
-                                0.625* nr[2] * fine - 1);
-
-            Box refined_patch(refined_lo, refined_hi);
-            ba[lev].define(refined_patch);
-        }
         ba[lev].maxSize(maxBoxSize); // / refRatio[lev - 1]);
         dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
     }
-    
-//     for (int lev = 1; lev < nLevels; ++lev) {
-//     }
     
     
     // ------------------------------------------------------------------------
@@ -145,29 +147,36 @@ int main(int argc, char* argv[]) {
     // ------------------------------------------------------------------------
     Real offset = 0.0;
     Solver sol;
+    
+    IpplTimings::startTimer(solverTimer);
     sol.solve_for_accel(rho, phi, efield, geom,
                         base_level, fine_level,
                         offset);
+    IpplTimings::stopTimer(solverTimer);
     
     // ------------------------------------------------------------------------
     // Write BoxLib plotfile
     // ------------------------------------------------------------------------
-    std::string dir = "plt0000";
-    Real time = 0.0;
-    writePlotFile(dir, rho, phi, efield, refRatio, geom, time);
     
-    for (int l = 0; l < nLevels; ++l) {
-        std::cout << "[" << rho[l].min(0) << " " << rho[l].max(0) << "]" << std::endl
-                  << "[" << phi[l].min(0) << " " << phi[l].max(0) << "]" << std::endl
-                  << "[ (" << efield[l].min(0) << ", " << efield[l].min(1) << ", "
-                  << efield[l].min(2) << ") , (" << efield[l].max(0) << ", "
-                  << efield[l].max(1) << ", " << efield[l].max(2) << ") ]" << std::endl;
-                  
+    if (doWrite) {
+        std::string dir = "plt0000";
+        Real time = 0.0;
+        writePlotFile(dir, rho, phi, efield, refRatio, geom, time);
     }
     
+    IpplTimings::stopTimer(mainTimer);
     
+    IpplTimings::print();
     
-    BoxLib::Finalize();
+    std::string tfn = std::string(argv[0])
+                        + "-cores=" + std::to_string(Ippl::getNodes())
+                        + "-levels=" + std::to_string(nLevels)
+                        + "-gridx=" + std::to_string(nr[0])
+                        + "-gridy=" + std::to_string(nr[1])
+                        + "-gridz=" + std::to_string(nr[2])
+                        + "-gridsize=" + std::to_string(maxBoxSize);
+                        
+    IpplTimings::print(tfn);
     
     return 0;
 }

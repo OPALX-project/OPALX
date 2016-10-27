@@ -27,8 +27,10 @@ IF (ENABLE_AMR_SOLVER)
     add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files})
     add_executable (testSolver testSolver.cpp)
     add_executable (iterative iterative.cpp)
+    add_executable (testError error.cpp AmrPartBunch.cpp)
     
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
     target_link_libraries (testAmrPartBunch ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
     target_link_libraries (testSolver ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
+    target_link_libraries (testError ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
 ENDIF(ENABLE_AMR_SOLVER)

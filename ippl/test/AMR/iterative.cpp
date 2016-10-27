@@ -8,7 +8,7 @@
  *      g++ -std=c++11 iterative.cpp -o iterative
  * 
  * Running:
- *      ./iterative [#gridpoints x] [#gridpoints y] [#gridpoints z] [nsteps]
+ *      ./iterative [#gridpoints] [nsteps]
  * 
  * Visualization:
  *      The program writes 4 files (phi.dat, ex.dat, ey.dat, ez.dat) that
@@ -29,20 +29,13 @@ typedef std::vector<matrix_t> tensor_t;
 
 int main(int argc, char* argv[]) {
     
-    if (argc != 5) {
-        std::cerr << "./iterative [nx] [ny] [nz] [nsteps]" << std::endl;
+    if (argc != 3) {
+        std::cerr << "./iterative [nx] [nsteps]" << std::endl;
         return -1;
     }
     
-    int nr[3] = {
-        std::atoi(argv[1]),
-        std::atoi(argv[2]),
-        std::atoi(argv[3]),
-    };
-    
-    std::cout << "nx = " << nr[0] << std::endl
-              << "ny = " << nr[1] << std::endl
-              << "nz = " << nr[2] << std::endl;
+    int n = std::atoi(argv[1]); // grid points
+    double h = 1.0 / double(n); // mesh size
     
     // charge density initialized with -1
     double rho = -1.0;
@@ -53,53 +46,71 @@ int main(int argc, char* argv[]) {
      * + 2 since we have Dirichlet boundary
      * conditions and we just consider interior points
      */
-    tensor_t phi(nr[0] + 2,
-                 matrix_t(nr[1] + 2,
-                          vector_t(nr[2] + 2)
+    tensor_t phi(n + 2,
+                 matrix_t(n + 2,
+                          vector_t(n + 2)
                          )
                 );
     
     
-    tensor_t newphi(nr[0] + 2,
-                 matrix_t(nr[1] + 2,
-                          vector_t(nr[2] + 2)
+    tensor_t newphi(n + 2,
+                 matrix_t(n + 2,
+                          vector_t(n + 2)
                          )
                 );
     
     
-    // mesh sizes
-    double h[3] = { 1.0 / double(nr[0]),
-                    1.0 / double(nr[1]),
-                    1.0 / double(nr[2])
-    };
-    
-    double inx = 1.0 / (h[0] * h[0]);
-    double iny = 1.0 / (h[1] * h[1]);
-    double inz = 1.0 / (h[2] * h[2]);
-    
-    double fac = -1.0 / (2.0 * ( inx + iny + inz ));
+    double fac = - h * h / 6.0;
+    double inv = 1.0 / 6.0;
     
     // solve (boundary is zero)
-    for (int t = 0; t < std::atoi(argv[4]); ++t) {
-        for (int i = 1; i < nr[0] + 1; ++i)
-            for (int j = 1; j < nr[1] + 1; ++j)
-                for (int k = 1; k < nr[2] + 1; ++k) {
-                    newphi[i][j][k] = fac * ( rho
-                                                    - inx * (phi[i+1][j][k] + phi[i-1][j][k])
-                                                    - iny * (phi[i][j+1][k] + phi[i][j-1][k])
-                                                    - inz * (phi[i][j][k+1] + phi[i][j][k-1])
-                                                    );
+    /*
+     * boundary is the edge and not the nodal point
+     * we can get a zero edge when we imply
+     * that
+     * \phi[i-1] = -\phi[i] for i = 1 and i = n
+     * 
+     * (also for j and k direction)
+     */
+    for (int t = 0; t < std::atoi(argv[2]); ++t) {
+        for (int i = 1; i < n + 1; ++i)
+            for (int j = 1; j < n + 1; ++j)
+                for (int k = 1; k < n + 1; ++k) {
+                    newphi[i][j][k] = fac * rho + inv * (phi[i+1][j][k] + phi[i-1][j][k] +
+                                                          phi[i][j+1][k] + phi[i][j-1][k] +
+                                                          phi[i][j][k+1] + phi[i][j][k-1]
+                                                         );
                 }
         std::swap(phi, newphi);
+        
+        
+        // update boundary
+        for (int i = 0; i < n + 2; ++i)
+            for (int j = 0; j < n + 2; ++j) {
+                phi[i][j][0] = -phi[i][j][1];
+                phi[i][j][n+1] = -phi[i][j][n];
+            }
+        
+        for (int i = 0; i < n + 2; ++i)
+            for (int k = 0; k < n + 2; ++k) {
+                phi[i][0][k] = -phi[i][1][k];
+                phi[i][n+1][k] = -phi[i][n][k];
+            }
+        
+        for (int j = 0; j < n + 2; ++j)
+            for (int k = 0; k < n + 2; ++k) {
+                phi[0][j][k] = -phi[1][j][k];
+                phi[n+1][j][k] = -phi[n][j][k];
+            }
     }
     
     
     
     // just write interior points
     std::ofstream pout("phi.dat");
-    for (int i = 1; i < nr[0] + 1; ++i)
-        for (int j = 1; j < nr[1] + 1; ++j)
-            for (int k = 1; k < nr[2] + 1; ++k)
+    for (int i = 1; i < n + 1; ++i)
+        for (int j = 1; j < n + 1; ++j)
+            for (int k = 1; k < n + 1; ++k)
                 pout << i << " " << j << " " << k << " "
                      << phi[i][j][k] << std::endl;
     
@@ -110,36 +121,36 @@ int main(int argc, char* argv[]) {
      * (longitudinal direction)
      * using central difference
      */
-    int half = 0.5 * nr[2];
+    int half = 0.5 * n;
     
     // electric field in x
     std::ofstream exout("ex.dat");
-    for (int i = 1; i < nr[0] + 1; ++i)
-        for (int j = 1; j < nr[1] + 1; ++j)
+    for (int i = 1; i < n + 1; ++i)
+        for (int j = 1; j < n + 1; ++j)
             exout << i - 1 << " " << j - 1 << " "
-                  << 0.5 * (phi[i + 1][j][half] - phi[i - 1][j][half]) / h[0]
+                  << 0.5 * (phi[i + 1][j][half] - phi[i - 1][j][half]) / h
                   << std::endl;
     
     exout.close();
     
     // electric field in y
     std::ofstream eyout("ey.dat");
-    for (int i = 1; i < nr[0] + 1; ++i)
-        for (int j = 1; j < nr[1] + 1; ++j)
+    for (int i = 1; i < n + 1; ++i)
+        for (int j = 1; j < n + 1; ++j)
             eyout << i - 1 << " " << j - 1 << " "
-                  << 0.5 * (phi[i][j + 1][half] - phi[i][j - 1][half]) / h[1]
+                  << 0.5 * (phi[i][j + 1][half] - phi[i][j - 1][half]) / h
                   << std::endl;
     
     eyout.close();
     
     
     // electric field in z (in x half)
-    half = 0.5 * nr[0];
+    half = 0.5 * n;
     std::ofstream ezout("ez.dat");
-    for (int j = 1; j < nr[1] + 1; ++j)
-        for (int k = 1; k < nr[2] + 1; ++k)
+    for (int j = 1; j < n + 1; ++j)
+        for (int k = 1; k < n + 1; ++k)
             ezout << j - 1 << " " << k - 1 << " "
-                  << 0.5 * (phi[half][j][k + 1] - phi[half][j][k - 1]) / h[2]
+                  << 0.5 * (phi[half][j][k + 1] - phi[half][j][k - 1]) / h
                   << std::endl;
     
     ezout.close();
