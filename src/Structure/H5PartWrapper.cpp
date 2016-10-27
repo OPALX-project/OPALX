@@ -70,7 +70,7 @@ void H5PartWrapper::open(h5_int32_t flags) {
 #endif
     assert (h5err != H5_ERR);
     file_m = H5OpenFile (fileName_m.c_str(), flags, props);
-    assert (file_m != H5_ERR);
+    assert (file_m != (h5_file_t)H5_ERR);
 #else
     file_m = H5OpenFile(fileName_m.c_str(), H5_FLUSH_STEP | flags, Ippl::getComm());
     assert (file_m != (void*)H5_ERR);
@@ -124,7 +124,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 #endif
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
-        assert (source != H5_ERR);
+        assert (source != (h5_file_t)H5_ERR);
 #else
         h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
         assert (source != (void*)H5_ERR);
@@ -162,7 +162,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 	h5err = H5SetPropFileMPIOCollective (props, &comm);
 	assert (h5err != H5_ERR);
 	source = H5OpenFile (sourceFileName.c_str(), H5_O_RDONLY, props);
-	assert (source != H5_ERR);
+	assert (source != (h5_file_t)H5_ERR);
 #else
         source = H5OpenFile(sourceFileName.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
         assert (source != (void*)H5_ERR);
@@ -193,7 +193,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 #endif
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
-        assert (source != H5_ERR);
+        assert (source != (h5_file_t)H5_ERR);
 #else
         h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
         assert (source != (void*)H5_ERR);
