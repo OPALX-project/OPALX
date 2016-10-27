@@ -1,4 +1,3 @@
-add_subdirectory (Algorithms)
 add_subdirectory (BasicActions)
 add_subdirectory (Distribution)
 add_subdirectory (Elements)
