@@ -45,6 +45,13 @@ public:
      */
     void gaussian(double mean, double stddev, size_t nloc, int seed);
     
+    /// Read in a distribution from an H5 file
+    /*!
+     * @param filename is the path and name of the H5 file.
+     * @param step to be read in.
+     */
+    void readH5(const std::string& filename, int step);
+    
     /// Transfer distribution to particle bunch object.
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
      */
@@ -61,84 +68,5 @@ private:
     
     size_t nloc_m;      ///< Local number of particles
 };
-
-
-
-// ----------------------------------------------------------------------------
-// PUBLIC MEMBER FUNCTIONS
-// ----------------------------------------------------------------------------
-
-void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
-    
-    nloc_m = nloc;
-    
-    std::mt19937_64 mt(seed);
-    
-    std::uniform_real_distribution<> dist(lower, upper);
-    
-    x_m.resize(nloc);
-    y_m.resize(nloc);
-    z_m.resize(nloc);
-    
-    px_m.resize(nloc);
-    py_m.resize(nloc);
-    pz_m.resize(nloc);
-    
-    for (size_t i = 0; i < nloc; ++i) {
-        x_m[i] = dist(mt);
-        y_m[i] = dist(mt);
-        z_m[i] = dist(mt);
-        
-        px_m[i] = dist(mt);
-        py_m[i] = dist(mt);
-        pz_m[i] = dist(mt);
-    }
-}
-
-void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
-    
-    nloc_m = nloc;
-    
-    std::mt19937_64 mt(seed);
-    
-    std::normal_distribution<double> dist(mean, stddev);
-    
-    x_m.resize(nloc);
-    y_m.resize(nloc);
-    z_m.resize(nloc);
-    
-    px_m.resize(nloc);
-    py_m.resize(nloc);
-    pz_m.resize(nloc);
-    
-    for (size_t i = 0; i < nloc; ++i) {
-        x_m[i] = dist(mt);
-        y_m[i] = dist(mt);
-        z_m[i] = dist(mt);
-        
-        px_m[i] = dist(mt);
-        py_m[i] = dist(mt);
-        pz_m[i] = dist(mt);
-    }
-}
-
-
-void Distribution::injectBeam(PartBunchBase& bunch) {
-    
-    // create memory space
-    bunch.create(nloc_m);
-    
-    for (size_t i = 0; i < bunch.getLocalNum(); ++i) {
-        bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
-        bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i);
-    }
-    
-    x_m.clear();
-    y_m.clear();
-    z_m.clear();
-    px_m.clear();
-    py_m.clear();
-    pz_m.clear();
-}
 
 #endif

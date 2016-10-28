@@ -1,36 +1,63 @@
 IF (ENABLE_AMR_SOLVER)
     FILE (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     MESSAGE (STATUS "Adding test AMR found in ${_relPath}")
-    MESSAGE (STATUS "MPI COMPILER ${MPI_UNDERLYING_COMPILER}")
+#     MESSAGE (STATUS "MPI COMPILER ${MPI_UNDERLYING_COMPILER}")
+    
+    find_package (MPI REQUIRED)
+#     message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
+#     message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
+    message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
+#     message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
     
     set (CMAKE_CXX_FLAGS
         "-O3 ${CMAKE_CXX_FLAGS} -DBL_USE_FORTRAN_MPI"
         )
     
+    set (CMAKE_CXX_FLAGS
+        "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+    )
+    
     include_directories (
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/ippl/src
+        ${IPPL_INCLUDE_DIR}
+        ${H5Hut_INCLUDE_DIR}
+        ${HDF5_INCLUDE_DIR}
         ${CCSE_INCLUDE_DIR}
     )
     
     link_directories (
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/src
+        ${IPPL_LIBRARY_DIR}
         ${CCSE_LIBRARY_DIR}
     )
     
-    SET (IPPL_LIBS ippl)
-    
+    set (LIBS
+        ${H5Hut_LIBRARY}
+        ${HDF5_LIBRARY}
+        ${IPPL_LIBRARY}
+        ippl
+        mpi
+        mpi_cxx
+        mpi_mpifh
+        z
+        m
+    )
     
     set(F90_source_files Tagging_nd.f90)
     
-    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files})
-    add_executable (testSolver testSolver.cpp)
+    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files})
+    add_executable (testSolver testSolver.cpp H5Reader.cpp Distribution.cpp)
     add_executable (iterative iterative.cpp)
-    add_executable (testError error.cpp AmrPartBunch.cpp)
+    add_executable (testError error.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp)
+    
+    add_executable (testH5Read testH5Read.cpp H5Reader.cpp Distribution.cpp)
     
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
-    target_link_libraries (testAmrPartBunch ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
-    target_link_libraries (testSolver ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
-    target_link_libraries (testError ${IPPL_LIBS} -lmpi -lmpi_mpifh -lgfortran ${CCSE_LIBRARIES} -lcboxlib)
+    target_link_libraries (testAmrPartBunch ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    target_link_libraries (testSolver ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    target_link_libraries (testError ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (testH5Read ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 ENDIF(ENABLE_AMR_SOLVER)
