@@ -1,0 +1,404 @@
+#include "PoissonProblems.h"
+
+PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels)
+    : maxGridSize_m(maxGridSize), nLevels_m(nLevels)
+{
+    nr_m[0] = nr[0];
+    nr_m[1] = nr[1];
+    nr_m[2] = nr[2];
+    
+    // setup geometry
+    IntVect lo(0, 0, 0);
+    IntVect hi(nr[0] - 1, nr[1] - 1, nr[2] - 1);
+    Box bx(lo, hi);
+    
+    RealBox domain;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        domain.setLo(i, 0.0);
+        domain.setHi(i, 1.0);
+    }
+    
+    // dirichlet boundary conditions
+    int bc[BL_SPACEDIM] = {0, 0, 0};
+    
+    geom_m.resize(nLevels);
+    geom_m[0].define(bx, &domain, 0, bc);
+    
+    ba_m.resize(nLevels);
+    ba_m[0].define(bx);
+    ba_m[0].maxSize(maxGridSize);
+    
+    dmap_m.resize(nLevels);
+    dmap_m[0].define(ba_m[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    
+    // refinement ratios
+    refRatio_m.resize(nLevels - 1);
+    for (int i = 0; i < refRatio_m.size(); ++i)
+        refRatio_m[i] = 2;
+    
+    // geometries of refined levels
+    for (int lev = 1; lev < nLevels; ++lev) {
+        geom_m[lev].define(BoxLib::refine(geom_m[lev - 1].Domain(),
+                                          refRatio_m[lev - 1]),
+                           &domain, 0, bc);
+    }
+}
+
+
+double PoissonProblems::doSolveNoParticles() {
+    
+    // ------------------------------------------------------------------------
+    // Refined Meshes
+    // ------------------------------------------------------------------------
+    refineWholeDomain_m();
+    
+    // ------------------------------------------------------------------------
+    // Initialize MultiFabs (rho, phi, efield, ...)
+    // ------------------------------------------------------------------------
+    initMultiFabs_m();
+    
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (multi level)
+    // ------------------------------------------------------------------------
+    int base_level = 0;
+    int fine_level = nLevels_m - 1;
+    
+    // rho is equal to one everywhere
+    for (int l = 0; l < nLevels_m; ++l)
+        rho_m[l].setVal(-1.0);
+    
+    
+    Real offset = 0.0;
+    Solver sol;
+    sol.solve_for_accel(rho_m, phi_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    // get solution on coarsest level by averaging down from finest.
+    for (int i = fine_level-1; i >= 0; --i) {
+        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+    }
+    
+    
+    std::string dir = "plt0000";
+    Real time = 0.0;
+    writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
+    
+    
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (single level)
+    // ------------------------------------------------------------------------
+    base_level = 0;
+    fine_level = 0;
+    
+    
+    sol.solve_for_accel(rho_m, phi_single_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    
+    // comparison
+    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    
+    return phi_single_m[0].norm2();
+}
+
+
+double PoissonProblems::doSolveParticlesUniform() {
+    
+    PartBunchBase* bunch = new AmrPartBunch(geom_m[0], dmap_m[0], ba_m[0]);
+    
+    int nParticles = std::pow(2 /* refinement ratio */, 3*(nLevels_m - 1)) * nr_m[0] * nr_m[1] * nr_m[2];
+    
+    bunch->create(nParticles / ParallelDescriptor::NProcs());
+    
+    // each particle is in the center of a cell
+    for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+        bunch->setQM(-1.0 / nParticles , i);
+    
+    
+    // ------------------------------------------------------------------------
+    // Refined Meshes
+    // ------------------------------------------------------------------------
+    refineWholeDomain_m();
+    
+    
+    // ------------------------------------------------------------------------
+    // Generate particles in the center of the finest cell
+    // ------------------------------------------------------------------------
+    int cnt = 0;
+    double ref = std::pow(2, nLevels_m - 1);
+    
+    Real dx = *(geom_m[nLevels_m - 1].CellSize()) * 0.5;
+    
+    double inx = 1.0 / (nr_m[0] * ref);
+    double iny = 1.0 / (nr_m[1] * ref);
+    double inz = 1.0 / (nr_m[2] * ref);
+        
+    for (int j = 0; j < ba_m[nLevels_m - 1].size(); ++j) {
+        Box bx = ba_m[nLevels_m - 1].get(j);
+        
+        for (int k = bx.loVect()[0]; k <= bx.hiVect()[0]; ++k)
+            for (int l = bx.loVect()[1]; l <= bx.hiVect()[1]; ++l)
+                for (int m = bx.loVect()[2]; m <= bx.hiVect()[2]; ++m) {
+                    bunch->setR(Vector_t(k * inx + dx,
+                                         l * iny + dx,
+                                         m * inz + dx),
+                                cnt++);
+                }
+    }
+    
+    
+    // ------------------------------------------------------------------------
+    // Redistribute particles on multi-level
+    // ------------------------------------------------------------------------
+    dynamic_cast<AmrPartBunch*>(bunch)->Define(geom_m, dmap_m, ba_m, refRatio_m);
+    
+    bunch->myUpdate();
+    
+    bunch->gatherStatistics();
+    
+    // ------------------------------------------------------------------------
+    // Initialize MultiFabs (rho, phi, efield, ...)
+    // ------------------------------------------------------------------------
+    initMultiFabs_m();
+    
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (multi level)
+    // ------------------------------------------------------------------------
+    int base_level = 0;
+    int fine_level = nLevels_m - 1;
+    
+    
+    PArray<MultiFab> PartMF;
+    PartMF.resize(nLevels_m,PArrayManage);
+    
+    for (int i = 0; i < nLevels_m; ++i) {
+        PartMF.set(i, new MultiFab(ba_m[i], 1, 0));
+        PartMF[i].setVal(0.0);
+    }
+    
+    dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
+
+    for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
+        BoxLib::average_down(PartMF[lev+1],PartMF[lev], 0, 1, refRatio_m[lev]);
+
+    for (int lev = 0; lev < nLevels_m; lev++)
+        MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    
+    for (int i = 0; i < nLevels_m; ++i)
+        std::cout << rho_m[i].min(0) << " " << rho_m[i].max(0) << std::endl;
+    
+    Real offset = 0.0;
+    Solver sol;
+    sol.solve_for_accel(rho_m, phi_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    // get solution on coarsest level by averaging down from finest.
+    for (int i = fine_level-1; i >= 0; --i) {
+        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+    }
+    
+    std::string dir = "plt0000";
+    Real time = 0.0;
+    writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
+    
+    
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (single level)
+    // ------------------------------------------------------------------------
+    base_level = 0;
+    fine_level = 0;
+    
+    
+    sol.solve_for_accel(rho_m, phi_single_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    
+    
+    // comparison
+    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    
+    return phi_single_m[0].norm2();
+}
+
+
+
+double PoissonProblems::doSolveParticlesGaussian(int nParticles) {
+    
+    // ------------------------------------------------------------------------
+    // Refined Meshes
+    // ------------------------------------------------------------------------
+    int fine = 1.0;
+    for (int lev = 1; lev < nLevels_m; ++lev) {
+        fine *= refRatio_m[lev - 1];
+        
+        if ( lev == 1) {
+            IntVect refined_lo(0.25 * nr_m[0] * fine,
+                               0.25 * nr_m[1] * fine,
+                               0.25 * nr_m[2] * fine);
+            
+            IntVect refined_hi(0.75 * nr_m[0] * fine - 1,
+                               0.75 * nr_m[1] * fine - 1,
+                               0.75 * nr_m[2] * fine - 1);
+        
+            Box refined_patch(refined_lo, refined_hi);
+            ba_m[lev].define(refined_patch);
+            
+        } else if ( lev == 2 ) {
+            IntVect refined_lo(0.375 * nr_m[0] * fine,
+                               0.375 * nr_m[1] * fine,
+                               0.375 * nr_m[2] * fine);
+            
+            IntVect refined_hi(0.625 * nr_m[0] * fine - 1,
+                               0.625 * nr_m[1] * fine - 1,
+                               0.625 * nr_m[2] * fine - 1);
+        
+            Box refined_patch(refined_lo, refined_hi);
+            ba_m[lev].define(refined_patch);
+        }
+        
+        ba_m[lev].maxSize(maxGridSize_m);
+        dmap_m[lev].define(ba_m[lev], ParallelDescriptor::NProcs() /*nprocs*/);
+    }
+    
+    
+    // ------------------------------------------------------------------------
+    // Generate particles
+    // ------------------------------------------------------------------------
+    PartBunchBase* bunch = new AmrPartBunch(geom_m[0], dmap_m[0], ba_m[0]);
+    
+    int nloc = nParticles / ParallelDescriptor::NProcs();
+    Distribution dist;
+    dist.gaussian(0.5, 0.05, nloc, ParallelDescriptor::MyProc());
+    dist.injectBeam(*bunch);
+    
+    for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+        bunch->setQM(-1.0, i);
+    
+    
+    // redistribute on multi-level
+    dynamic_cast<AmrPartBunch*>(bunch)->Define (geom_m, dmap_m, ba_m, refRatio_m);
+    
+    bunch->myUpdate();
+    
+    bunch->gatherStatistics();
+    
+    
+    // ------------------------------------------------------------------------
+    // Initialize MultiFabs (rho, phi, efield, ...)
+    // ------------------------------------------------------------------------
+    initMultiFabs_m();
+    
+    
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (multi level)
+    // ------------------------------------------------------------------------
+    int base_level = 0;
+    int fine_level = nLevels_m - 1;
+    
+    
+    PArray<MultiFab> PartMF;
+    PartMF.resize(nLevels_m, PArrayManage);
+    
+    for (int i = 0; i < nLevels_m; ++i) {
+        PartMF.set(i, new MultiFab(ba_m[i], 1, 0));
+        PartMF[i].setVal(0.0);
+    }
+    
+    dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
+
+    for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
+        BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
+
+    for (int lev = 0; lev < nLevels_m; lev++)
+        MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    
+    Real offset = 0.0;
+    Solver sol;
+    sol.solve_for_accel(rho_m, phi_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    // get solution on coarsest level by averaging down from finest.
+    for (int i = fine_level-1; i >= 0; --i) {
+        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+    }
+    
+    std::string dir = "plt0000";
+    Real time = 0.0;
+    writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (single level)
+    // ------------------------------------------------------------------------
+    base_level = 0;
+    fine_level = 0;
+    
+    
+    sol.solve_for_accel(rho_m, phi_single_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    
+    
+    // comparison
+    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    
+    return phi_single_m[0].norm2();
+    
+}
+
+
+
+double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
+    
+    
+    return 0.0;
+}
+
+
+
+void PoissonProblems::refineWholeDomain_m() {
+    int fine = 1.0;
+    for (int lev = 1; lev < nLevels_m; ++lev) {
+        fine *= refRatio_m[lev - 1];
+        
+        IntVect refined_lo(0, 0, 0);
+            
+        IntVect refined_hi(nr_m[0] * fine - 1,
+                           nr_m[1] * fine - 1,
+                           nr_m[2] * fine - 1);
+        
+        Box refined_patch(refined_lo, refined_hi);
+        ba_m[lev].define(refined_patch);
+        
+        ba_m[lev].maxSize(maxGridSize_m);
+        dmap_m[lev].define(ba_m[lev], ParallelDescriptor::NProcs() /*nprocs*/);
+    }
+}
+
+
+void PoissonProblems::initMultiFabs_m() {
+    rho_m.resize(nLevels_m);
+    phi_m.resize(nLevels_m);
+    efield_m.resize(nLevels_m);
+    phi_single_m.resize(nLevels_m);   // single level solve
+    
+    for (int l = 0; l < nLevels_m; ++l) {
+        rho_m.set(l, new MultiFab(ba_m[l], 1, 0));
+        rho_m[l].setVal(0.0);
+        
+        phi_m.set(l, new MultiFab(ba_m[l], 1, 1));
+        phi_m[l].setVal(0.0);
+        
+        phi_single_m.set(l, new MultiFab(ba_m[l], 1, 1));
+        phi_single_m[l].setVal(0.0);
+        
+        efield_m.set(l, new MultiFab(ba_m[l], BL_SPACEDIM, 1));
+        efield_m[l].setVal(0.0);
+    }
+}
