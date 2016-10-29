@@ -10,6 +10,7 @@
  *          Ann Almgren \n
  *          Weiqun Zhang
  * @date LBNL, October 2016
+ * @brief Generate different particle distributions
  */
 
 #include <random>

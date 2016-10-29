@@ -4,6 +4,25 @@
 #include <Geometry.H>
 #include <VisMF.H>
 
+/*!
+ * @file writePlotFile.H
+ * @author Matthias Frey
+ * @date October, 2016, LBNL
+ * @details This functions writes the density, potential
+ * and the electric field components to a BoxLib plotfile
+ * that can be visualized using yt.
+ * @brief Write a BoxLib plotfile
+ */
+
+/*!
+ * @param dir where to store
+ * @param rho is the density on all levels
+ * @param phi is the potential on all levels
+ * @param efield are the electric field components on all levels
+ * @param refRatio are the refinement ratios among the levels
+ * @param geom are the geometries of all levels
+ * @param time specifies the step.
+ */
 inline void
 writePlotFile (const std::string& dir,
                const PArray<MultiFab>& rho,

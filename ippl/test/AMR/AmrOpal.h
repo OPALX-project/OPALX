@@ -6,29 +6,65 @@
 
 #include <MultiFabUtil.H>
 
+/*!
+ * @file AmrOpal.h
+ * @authors Matthias Frey
+ *          Ann Almgren
+ *          Weiqun Zhang
+ * @date October 2016, LBNL
+ * @details This class implements the abstract base class
+ * AmrCore of the BoxLib library. It defines functionalities
+ * to do Amr calculations.
+ * @brief Concrete AMR implementation
+ */
+
+/// Concrete AMR implementation
 class AmrOpal : public AmrCore {
     
 public:
-    
-//     AmrOpal();
+    /*!
+     * Create an AMR object.
+     * @param rb is the physical domain
+     * @param max_level_in is the max. number of allowed AMR levels
+     * @param n_cell_in is the number of grid cells at the coarsest level
+     * @param bunch is the particle bunch
+     */
     AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord, PartBunchBase* bunch);
-
-    virtual ~AmrOpal();
     
-    // defines BoxArray, DistributionMapping of level 0
-    void initBaseLevel();
+    virtual ~AmrOpal();     ///< does nothing
     
-//     void initFineLevels();
+    void initBaseLevel();   ///< defines BoxArray, DistributionMapping of level 0
     
+    /*!
+     * @param lbase is the level on top of which a new level is created
+     * @param time not used
+     */
     void regrid (int lbase, Real time);
     
+    /*!
+     * Update the grids and the distributionmapping for a specific level
+     * @param lev is the current level
+     * @param time not used
+     * @param new_grids are the new created grids for this level
+     * @param new_dmap is the new distribution to processors
+     */
     void RemakeLevel (int lev, Real time,
                       const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
+    /*!
+     * Create completeley new grids for a level
+     * @param lev is the current level
+     * @param time not used
+     * @param new_grids are the new created grids for this level
+     * @param new_dmap is the new distribution to processors
+     */
     void MakeNewLevel (int lev, Real time,
                        const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
     
+    /*!
+     * Print the number of particles per cell (minimum and maximum)
+     */
     void info() {
         for (int i = 0; i < finest_level; ++i)
             std::cout << "density level " << i << ": "
@@ -36,14 +72,20 @@ public:
                       << nPartPerCell_m[i].max(0) << std::endl;
     }
     
+    /*!
+     * Write a timestamp file for displaying with yt.
+     */
     void writePlotFile(std::string filename, int step);
 
 protected:
+    /*!
+     * Is called in the AmrCore function for performing tagging.
+     */
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
     
 private:
-    AmrPartBunch* bunch_m;
-    PArray<MultiFab> nPartPerCell_m;
+    AmrPartBunch* bunch_m;                  ///< Particle bunch
+    PArray<MultiFab> nPartPerCell_m;        ///< used in tagging.
     
 };
 

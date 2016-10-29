@@ -31,6 +31,7 @@ const double pi = acos(-1.0);
  *          Ann Almgren \n
  *          Weiqun Zhang
  * @date LBNL, October 2016
+ * @brief Abstract base class for particle bunches
  */
 
 
