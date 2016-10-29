@@ -1,7 +1,8 @@
-/* Matthias Frey
- * 13. - 14. October 2016, LBNL
- * 
- * Compute \Lap(\phi) = -1 and write plot files
+/*!
+ * @file testSolver.cpp
+ * @author Matthias Frey
+ * @date 13. - 14. October 2016, LBNL
+ * @details Compute \f$\Delta\phi = -1\f$ and write plot files
  * that can be visualized by yt (python visualize.py)
  * or by AmrVis of the CCSE group at LBNL.
  * 
@@ -14,6 +15,7 @@
  *      [max. grid size] [#levels] [plotfile]
  * 
  * The refinement is done over the whole domain.
+ * @brief Computes \f$\Delta\phi = -1\f$ using only grids.
  */
 
 #include <iostream>

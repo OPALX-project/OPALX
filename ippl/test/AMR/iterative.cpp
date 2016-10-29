@@ -1,7 +1,8 @@
-/* Author: Matthias Frey
- * Date: 19. Oct. 2016, LBNL
- * 
- * Solve \Lap(\phi) = -1 in 3D iteratively [nsteps] with
+/*!
+ * @file iterative.cpp
+ * @author Matthias Frey
+ * @date 19. Oct. 2016, LBNL
+ * @details Solve \f$\Delta\phi = -1\f$ in 3D iteratively [nsteps] with
  * Dirichlet boundary conditions (zero)
  * 
  * Compiling:
@@ -14,6 +15,7 @@
  *      The program writes 4 files (phi.dat, ex.dat, ey.dat, ez.dat) that
  *      can be visualized using the Python script vis_iter.py
  *      (run: python vis_iter.py)
+ * @brief Solve \f$\Delta\phi = -1\f$ in 3D iteratively
  */
 
 #include <fstream>

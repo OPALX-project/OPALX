@@ -1,15 +1,11 @@
-/* Author: Matthias Frey
- * 25. - 26. October 2016
- * 
- * Solve \Lap\ph = \rho
- * on the domain [0, 1] x [0, 1] x [0, 1]
- * for different ways of \rho initializations
- * 
- * doSolveNoParticles:          \rho = -1 everywhere (no particles)
- * doSolveParticlesUniform:     \rho = -1 everywhere (initialized by particles, idea: we generate particles on the
- *                              cell center and then do an AssignDensity-function call --> \rho = -1 everywhere
- * doSolveParticlesGaussian:    \rho is a Gaussian distribution initialized by particles
- * doSolveParticlesReal:        Read in a H5 cyclotron file and use its particle distribution for \rho
+/*!
+ * @file error.cpp
+ * @author Matthias Frey
+ * @date 25. - 26. October 2016
+ * @details Compares single-level solve with multi-level solve using
+ * the PoissonProblems class. Each run appends the \f$ L_{2}\f$-error
+ * to the file \e l2_error.dat.
+ * @brief Compares the single-level solve with the multi-level solve
  */
 
 #include <fstream>

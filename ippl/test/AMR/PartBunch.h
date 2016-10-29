@@ -10,6 +10,8 @@
  *          Ann Almgren \n
  *          Weiqun Zhang
  * @date LBNL, October 2016
+ * @brief Concrete implementation of PartBunchBase. It
+ * is the OPAL particle bunch class.
  */
 
 

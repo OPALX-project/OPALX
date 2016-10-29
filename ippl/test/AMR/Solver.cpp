@@ -3,7 +3,7 @@
 
 void 
 Solver::solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-		const Array<Geometry>& geom, int base_level, int finest_level, Real offset)
+                        const Array<Geometry>& geom, int base_level, int finest_level, Real offset)
 {
  
     Real tol     = 1.e-10;
@@ -43,9 +43,9 @@ Solver::solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<Mul
 
 void 
 Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
-		       Array< PArray<MultiFab> >& grad_phi_edge, 
-		       const Array<Geometry>& geom, int base_level,
-		       int finest_level, Real tol, Real abs_tol)
+                       Array< PArray<MultiFab> >& grad_phi_edge,
+                       const Array<Geometry>& geom, int base_level,
+                       int finest_level, Real tol, Real abs_tol)
 {
     int nlevs = finest_level - base_level + 1;
 
