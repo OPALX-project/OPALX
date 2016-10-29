@@ -4,7 +4,7 @@
 #include <Geometry.H>
 #include <VisMF.H>
 
-void
+inline void
 writePlotFile (const std::string& dir,
                const PArray<MultiFab>& rho,
                const PArray<MultiFab>& phi,
