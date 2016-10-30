@@ -10,18 +10,22 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "PoissonProblems.h"
 
 int main(int argc, char* argv[]) {
     
-    if ( argc != 8 ) {
-        std::cerr << "mpirun -np [#cores] testError [gridx] [gridy] [gridz] "
-                  << "[max. grid] [#levels] "
-                  << "[NOPARTICLES/UNIFORM/GAUSSIAN/REAL] "
-                  << "[#particles] [REAL: H5 file]" << std::endl;
+    std::stringstream cmd;
+    cmd << "mpirun -np [#cores] testError [gridx] [gridy] [gridz] "
+        << "[max. grid] [#levels] [NOPARTICLES/UNIFORM/GAUSSIAN/REAL]";
+    
+    if ( argc < 7 ) {
+        std::cerr << cmd.str() << std::endl;
         return -1;
     }
+    
+    Ippl ippl(argc, argv);
     
     BoxLib::Initialize(argc, argv, false);
     
@@ -34,7 +38,6 @@ int main(int argc, char* argv[]) {
     
     int maxGridSize = std::atoi(argv[4]);
     int nLevels = std::atoi(argv[5]);
-    int nParticles = std::atoi(argv[7]);
     
     double l2error = 0.0;
     bool solved = true;
@@ -45,11 +48,27 @@ int main(int argc, char* argv[]) {
         l2error = pp.doSolveNoParticles();
     else if ( std::strcmp(argv[6], "UNIFORM") == 0 )
         l2error = pp.doSolveParticlesUniform();
-    else if ( std::strcmp(argv[6], "GAUSSIAN") == 0 )
+    else if ( std::strcmp(argv[6], "GAUSSIAN") == 0 ) {
+        
+        if ( argc != 8 ) {
+            std::cerr << cmd.str() << " [#particles]" << std::endl;
+            return -1;
+        }
+        
+        int nParticles = std::atoi(argv[7]);
+        
         l2error = pp.doSolveParticlesGaussian(nParticles);
-    else if ( std::strcmp(argv[6], "REAL") == 0 )
-        l2error = pp.doSolveParticlesReal(nParticles /* step */, argv[8]);
-    else {
+    } else if ( std::strcmp(argv[6], "REAL") == 0 ) {
+        
+        if ( argc != 9 ) {
+            std::cerr << cmd.str() << " [step] [REAL: H5 file]" << std::endl;
+            return -1;
+        }
+        
+        int step = std::atoi(argv[7]);
+        
+        l2error = pp.doSolveParticlesReal(step, argv[8]);
+    } else {
         if ( ParallelDescriptor::MyProc() == 0 )
             std::cerr << "Not supported solver." << std::endl
                       << "Use:" << std::endl
@@ -70,7 +89,7 @@ int main(int argc, char* argv[]) {
         out.close();
     }
     
-    BoxLib::Finalize();
+//     BoxLib::Finalize();
     
     return 0;
 }

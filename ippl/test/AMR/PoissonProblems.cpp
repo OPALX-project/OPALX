@@ -1,5 +1,7 @@
 #include "PoissonProblems.h"
 
+#include "AmrOpal.h"
+
 PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels)
     : maxGridSize_m(maxGridSize), nLevels_m(nLevels)
 {
@@ -12,17 +14,16 @@ PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels)
     IntVect hi(nr[0] - 1, nr[1] - 1, nr[2] - 1);
     Box bx(lo, hi);
     
-    RealBox domain;
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, 0.0);
-        domain.setHi(i, 1.0);
+        domain_m.setLo(i, 0.0);
+        domain_m.setHi(i, 1.0);
     }
     
     // dirichlet boundary conditions
     int bc[BL_SPACEDIM] = {0, 0, 0};
     
     geom_m.resize(nLevels);
-    geom_m[0].define(bx, &domain, 0, bc);
+    geom_m[0].define(bx, &domain_m, 0, bc);
     
     ba_m.resize(nLevels);
     ba_m[0].define(bx);
@@ -40,7 +41,7 @@ PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels)
     for (int lev = 1; lev < nLevels; ++lev) {
         geom_m[lev].define(BoxLib::refine(geom_m[lev - 1].Domain(),
                                           refRatio_m[lev - 1]),
-                           &domain, 0, bc);
+                           &domain_m, 0, bc);
     }
 }
 
@@ -356,6 +357,43 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles) {
 
 double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     
+    // ------------------------------------------------------------------------
+    // Read in particle distribution
+    // ------------------------------------------------------------------------
+    PartBunchBase* bunch = new AmrPartBunch(geom_m[0], dmap_m[0], ba_m[0]);
+    dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
+    
+    Distribution dist;
+    dist.readH5(h5file, step);
+    dist.injectBeam(*bunch);
+    
+    // ------------------------------------------------------------------------
+    // Do AMR with tagging
+    // ------------------------------------------------------------------------
+    Array<int> nCells(3);
+    for (int i = 0; i < 3; ++i)
+        nCells[i] = nr_m[i];
+    
+    ParmParse pp("amr");
+    pp.add("max_grid_size", maxGridSize_m);
+    
+    AmrOpal myAmrOpal(&domain_m, nLevels_m - 1, nCells, 0 /* cartesian */, bunch);
+    
+    dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
+                                                myAmrOpal.DistributionMap(),
+                                                myAmrOpal.boxArray(),
+                                                refRatio_m);
+    
+    
+    std::cout << myAmrOpal.maxLevel() << std::endl
+              << myAmrOpal.finestLevel() << std::endl;
+    
+    
+    for (int i = 0; i < myAmrOpal.maxLevel(); ++i)
+        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+    
+    
+    myAmrOpal.info();
     
     return 0.0;
 }

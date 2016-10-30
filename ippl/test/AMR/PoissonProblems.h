@@ -43,6 +43,7 @@ public:
     /*!
      * Solves \f$\Delta\phi = -1\f$ only on the grid. In case of
      * nLevels > 0, the refinement is performed on the whole domain.
+     * @returns l2 error (single-level vs. multi-level solve)
      */
     double doSolveNoParticles();
     
@@ -51,6 +52,7 @@ public:
      * particles on the finest level. The charge is scaled
      * such that the rhs is -1 everywhere on the domain. In case of
      * nLevels > 0, the refinement is performed on the whole domain.
+     * @returns l2 error (single-level vs. multi-level solve)
      */
     double doSolveParticlesUniform();
     
@@ -58,6 +60,7 @@ public:
      * Solves \f$\Delta\phi = \rho\f$ where the particles are
      * randomly initialized.
      * @param nParticles to be generated
+     * @returns l2 error (single-level vs. multi-level solve)
      */
     double doSolveParticlesGaussian(int nParticles);
     
@@ -66,6 +69,7 @@ public:
      * read in from a H5 file (Cyclotron)
      * @param step specifies where to read in the H5 file
      * @param h5file specifies the path and filename
+     * @returns l2 error (single-level vs. multi-level solve)
      */
     double doSolveParticlesReal(int step, std::string h5file);
     
@@ -74,6 +78,7 @@ private:
     void initMultiFabs_m();         ///< Initialize the MultiFab's for solving Poisson with MultiGrid solver
     
 private:
+    RealBox domain_m;                       ///< Physical domain [0, 1] x [0, 1] x [0, 1]
     int nr_m[3];                            ///< Number of grid cells in each dimension (x, y, z)
     int maxGridSize_m;                      ///< Max. grid size of each level
     int nLevels_m;                          ///< Number of levels
