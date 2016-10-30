@@ -68,7 +68,7 @@ void Distribution::readH5(const std::string& filename, int step) {
     
     
     
-    long nloc_m = h5.getNumParticles();
+    nloc_m = h5.getNumParticles();
     size_t numParticlesPerNode = nloc_m / Ippl::getNodes();
 
     size_t firstParticle = numParticlesPerNode * Ippl::myNode();
