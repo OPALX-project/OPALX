@@ -1,11 +1,13 @@
-# Author: Matthias Frey
-# Date: 19. Oct. 2016, LBNL
+##
+# @file vis_iter.py
+# @author Matthias Frey
+# @date 19. Oct. 2016, LBNL
 #
-# Script for visualizing the outpuf files
-# of iterative.cpp
-# It plots the potential (centered in longitudinal direction)
-# and the elecric field
-# components (centered)
+# @pre Environment variable OPAL_BUILD has to be set.
+# @details Script for visualizing the output files of iterative.cpp.
+#          It plots the potential (centered in longitudinal direction)
+#          and the elecric field components (centered)
+# @brief Plot potential and electric field of iterative.cpp
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,6 +38,9 @@ h = int(0.5 * max(k))
 xi = np.extract(k == h, i)
 yi = np.extract(k == h, j)
 phi = np.extract(k == h, phi)
+
+print max(phi)
+print min(phi)
 
 
 

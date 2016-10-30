@@ -1,3 +1,11 @@
+!> @file Tagging_nd.f90
+!! @author Weiqun Zhang
+!! @date October 2016, LBNL
+!! @details This Fortran routine is used for tagging
+!!          the cells at a level for refinement.
+!!          In case of refinement a cell of the tagbox is
+!!          marked "set" otherwise "clear".
+!! @brief Fortran routine for tagging cells.
 
 ! ::: -----------------------------------------------------------
 ! ::: This routine will tag high error cells based on the state
@@ -17,6 +25,19 @@
 ! ::: level       => refinement level of this array
 ! ::: -----------------------------------------------------------
 
+!> Called by AmrOpal::ErrorEst.
+!! @param tag integer tag array
+!! @param tag_lo lower index extent of tag array
+!! @param tag_hi upper index extent of tag array
+!! @param state is the state array
+!! @param set is the integer value to tag cell fo refinement
+!! @param clear is the integer value to untag a cell
+!! @param lo is the lower left corner of the work region we are allowed to change
+!! @param hi is the upper right corner of the work region we are allowed to change
+!! @param dx is the cell size
+!! @param problo is the physical location of the lower left corner of the problem domain
+!! @param time is the problem evolution time
+!! @param level is the refinement level of this array
 subroutine state_error(tag,tag_lo,tag_hi, &
                        state,state_lo,state_hi, &
                        set,clear,&

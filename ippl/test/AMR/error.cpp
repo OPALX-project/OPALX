@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
     ParallelDescriptor::Barrier();
     
     if ( ParallelDescriptor::MyProc() == 0 && solved) {
-        std::ofstream out("l2_error.dat", std::ios::app);
+        std::ofstream out("l2_error_" + std::string(argv[6]) + ".dat", std::ios::app);
         out << nLevels << " " << l2error << std::endl;
         out.close();
     }
