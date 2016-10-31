@@ -97,7 +97,22 @@ IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
    link_directories (${DKS_LIBRARY_DIR})
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
-set (OPAL_LIBS
+
+# remove digits from hostname: edison03 -> edison
+STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "$ENV{HOSTNAME}")
+
+IF(${HOSTNAME_BASE} MATCHES "edison")
+ SET (OPAL_LIBS
+    ${GSL_LIBRARY}
+    ${H5Hut_LIBRARY}
+    ${HDF5_LIBRARY}
+    ${IPPL_LIBRARY}
+    ${Boost_LIBRARIES}
+    m
+    z
+ )
+ELSE()
+ SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
@@ -108,6 +123,9 @@ set (OPAL_LIBS
     m
     z
 )
+ENDIF(${HOSTNAME_BASE} MATCHES "edison")
+
+
 
 IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
    set (OPAL_LIBS
