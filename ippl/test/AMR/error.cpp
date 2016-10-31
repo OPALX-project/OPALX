@@ -18,9 +18,9 @@ int main(int argc, char* argv[]) {
     
     std::stringstream cmd;
     cmd << "mpirun -np [#cores] testError [gridx] [gridy] [gridz] "
-        << "[max. grid] [#levels] [NOPARTICLES/UNIFORM/GAUSSIAN/REAL]";
+        << "[max. grid] [#levels] [domain, e.g. 0 1] [NOPARTICLES/UNIFORM/GAUSSIAN/REAL]";
     
-    if ( argc < 7 ) {
+    if ( argc < 9 ) {
         std::cerr << cmd.str() << std::endl;
         return -1;
     }
@@ -41,16 +41,18 @@ int main(int argc, char* argv[]) {
     
     double l2error = 0.0;
     bool solved = true;
+    double lower = std::atof(argv[6]);
+    double upper = std::atof(argv[7]);
     
-    PoissonProblems pp(nr, maxGridSize, nLevels);
+    PoissonProblems pp(nr, maxGridSize, nLevels, lower, upper);
     
-    if ( std::strcmp(argv[6], "NOPARTICLES") == 0 )
+    if ( std::strcmp(argv[8], "NOPARTICLES") == 0 )
         l2error = pp.doSolveNoParticles();
-    else if ( std::strcmp(argv[6], "UNIFORM") == 0 )
+    else if ( std::strcmp(argv[8], "UNIFORM") == 0 )
         l2error = pp.doSolveParticlesUniform();
-    else if ( std::strcmp(argv[6], "GAUSSIAN") == 0 ) {
+    else if ( std::strcmp(argv[8], "GAUSSIAN") == 0 ) {
         
-        if ( argc != 8 ) {
+        if ( argc != 10 ) {
             std::cerr << cmd.str() << " [#particles]" << std::endl;
             return -1;
         }
@@ -58,16 +60,16 @@ int main(int argc, char* argv[]) {
         int nParticles = std::atoi(argv[7]);
         
         l2error = pp.doSolveParticlesGaussian(nParticles);
-    } else if ( std::strcmp(argv[6], "REAL") == 0 ) {
+    } else if ( std::strcmp(argv[8], "REAL") == 0 ) {
         
-        if ( argc != 9 ) {
+        if ( argc != 11 ) {
             std::cerr << cmd.str() << " [step] [REAL: H5 file]" << std::endl;
             return -1;
         }
         
-        int step = std::atoi(argv[7]);
+        int step = std::atoi(argv[9]);
         
-        l2error = pp.doSolveParticlesReal(step, argv[8]);
+        l2error = pp.doSolveParticlesReal(step, argv[10]);
     } else {
         if ( ParallelDescriptor::MyProc() == 0 )
             std::cerr << "Not supported solver." << std::endl

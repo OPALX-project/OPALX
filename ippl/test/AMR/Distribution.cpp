@@ -23,6 +23,8 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
     py_m.resize(nloc);
     pz_m.resize(nloc);
     
+    q_m.resize(nloc);
+    
     for (size_t i = 0; i < nloc; ++i) {
         x_m[i] = dist(mt);
         y_m[i] = dist(mt);
@@ -31,6 +33,8 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
         px_m[i] = dist(mt);
         py_m[i] = dist(mt);
         pz_m[i] = dist(mt);
+        
+        q_m[i] = 1.0;
     }
 }
 
@@ -50,6 +54,8 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
     py_m.resize(nloc);
     pz_m.resize(nloc);
     
+    q_m.resize(nloc);
+    
     for (size_t i = 0; i < nloc; ++i) {
         x_m[i] = dist(mt);
         y_m[i] = dist(mt);
@@ -58,6 +64,9 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
         px_m[i] = dist(mt);
         py_m[i] = dist(mt);
         pz_m[i] = dist(mt);
+        
+        
+        q_m[i] = 1.0;
     }
 }
 
@@ -86,9 +95,12 @@ void Distribution::readH5(const std::string& filename, int step) {
     py_m.resize(nloc_m);
     pz_m.resize(nloc_m);
     
+    q_m.resize(nloc_m);
+    
     h5.read(x_m, px_m,
             y_m, py_m,
             z_m, pz_m,
+            q_m,
             firstParticle,
             lastParticle);
     
@@ -104,6 +116,7 @@ void Distribution::injectBeam(PartBunchBase& bunch) {
     for (int i = bunch.getLocalNum() - 1; i >= 0; --i) {
         bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
         bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i);
+        bunch.setQM(q_m[i], i);
         
         x_m.pop_back();
         y_m.pop_back();
@@ -111,5 +124,7 @@ void Distribution::injectBeam(PartBunchBase& bunch) {
         px_m.pop_back();
         py_m.pop_back();
         pz_m.pop_back();
+        
+        q_m.pop_back();
     }
 }
