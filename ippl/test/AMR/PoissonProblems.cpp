@@ -2,7 +2,9 @@
 
 #include "AmrOpal.h"
 
-PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels, double lower, double upper)
+PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels,
+                                 const std::vector<double>& lower,
+                                 const std::vector<double>& upper)
     : maxGridSize_m(maxGridSize), nLevels_m(nLevels)
 {
     nr_m[0] = nr[0];
@@ -15,8 +17,8 @@ PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels, double
     Box bx(lo, hi);
     
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain_m.setLo(i, lower);
-        domain_m.setHi(i, upper);
+        domain_m.setLo(i, lower[i]);
+        domain_m.setHi(i, upper[i]);
     }
     
     // dirichlet boundary conditions
