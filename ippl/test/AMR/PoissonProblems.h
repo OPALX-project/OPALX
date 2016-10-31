@@ -39,7 +39,9 @@ public:
      * @param lower boundary of physical domain (applied in all dimensions)
      * @param upper boundary of phyiscal domain (applied in all dimensions)
      */
-    PoissonProblems(int nr[3], int maxGridSize, int nLevels, double lower = 0.0, double upper = 1.0);
+    PoissonProblems(int nr[3], int maxGridSize, int nLevels,
+                    const std::vector<double>& lower,
+                    const std::vector<double>& upper);
     
     
     /*!
