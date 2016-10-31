@@ -36,8 +36,10 @@ public:
      * @param nr is the number of grid cells in x, y, and z of the coarsest level
      * @param maxGridSize is the max. size of a grid
      * @param nLevels is the max. number of nLevels
+     * @param lower boundary of physical domain (applied in all dimensions)
+     * @param upper boundary of phyiscal domain (applied in all dimensions)
      */
-    PoissonProblems(int nr[3], int maxGridSize, int nLevels);
+    PoissonProblems(int nr[3], int maxGridSize, int nLevels, double lower = 0.0, double upper = 1.0);
     
     
     /*!

@@ -32,6 +32,7 @@ void H5Reader::read(Distribution::container_t& x,
                     Distribution::container_t& py,
                     Distribution::container_t& z,
                     Distribution::container_t& pz,
+                    Distribution::container_t& q,
                     size_t firstParticle,
                     size_t lastParticle)
 {
@@ -56,6 +57,9 @@ void H5Reader::read(Distribution::container_t& x,
     READDATA(Float64, file_m, "y", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         z[n] = f64buffer[n];
+        
+        // do shift due to box
+        z[n] -= int(z[n]);
     }
 
     READDATA(Float64, file_m, "z", f64buffer);
@@ -77,12 +81,12 @@ void H5Reader::read(Distribution::container_t& x,
     for(long int n = 0; n < numParticles; ++ n) {
         py[n] = f64buffer[n];
     }
-/*
+
     READDATA(Float64, file_m, "q", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.Q[n] = f64buffer[n];
+        q[n] = f64buffer[n];
     }
-
+/*
     READDATA(Float64, file_m, "mass", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         bunch.M[n] = f64buffer[n];

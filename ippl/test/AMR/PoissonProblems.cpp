@@ -2,7 +2,7 @@
 
 #include "AmrOpal.h"
 
-PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels)
+PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels, double lower, double upper)
     : maxGridSize_m(maxGridSize), nLevels_m(nLevels)
 {
     nr_m[0] = nr[0];
@@ -15,8 +15,8 @@ PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels)
     Box bx(lo, hi);
     
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain_m.setLo(i, 0.0);
-        domain_m.setHi(i, 1.0);
+        domain_m.setLo(i, lower);
+        domain_m.setHi(i, upper);
     }
     
     // dirichlet boundary conditions
@@ -367,6 +367,11 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     dist.readH5(h5file, step);
     dist.injectBeam(*bunch);
     
+//     for (uint i = 0; i < bunch->getLocalNum(); ++i)
+//         std::cout << bunch->getR(i) << std::endl;
+    
+    bunch->gatherStatistics();
+    
     // ------------------------------------------------------------------------
     // Do AMR with tagging
     // ------------------------------------------------------------------------
@@ -384,18 +389,86 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
                                                 myAmrOpal.boxArray(),
                                                 refRatio_m);
     
-    
-    std::cout << myAmrOpal.maxLevel() << std::endl
-              << myAmrOpal.finestLevel() << std::endl;
-    
-    
     for (int i = 0; i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
+    // Apply mapping and boxes to *this
+    geom_m = myAmrOpal.Geom();
+    dmap_m = myAmrOpal.DistributionMap();
+    ba_m = myAmrOpal.boxArray();
+    
+    
+    std::cout << "max. level = " << myAmrOpal.maxLevel() << std::endl
+              << "finest level = " << myAmrOpal.finestLevel() << std::endl;
     
     myAmrOpal.info();
     
-    return 0.0;
+    
+//     myAmrOpal.writePlotFile("amr0000", 1.0);
+    
+    bunch->gatherStatistics();
+    
+    
+    // ------------------------------------------------------------------------
+    // Initialize MultiFabs (rho, phi, efield, ...)
+    // ------------------------------------------------------------------------
+    initMultiFabs_m();
+    
+    
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (multi level)
+    // ------------------------------------------------------------------------
+    int base_level = 0;
+    int fine_level = nLevels_m - 1;
+    
+    
+    PArray<MultiFab> PartMF;
+    PartMF.resize(nLevels_m, PArrayManage);
+    
+    for (int i = 0; i < nLevels_m; ++i) {
+        PartMF.set(i, new MultiFab(ba_m[i], 1, 0));
+        PartMF[i].setVal(0.0);
+    }
+    
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
+
+    for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
+        BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
+
+    for (int lev = 0; lev < nLevels_m; lev++)
+        MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    
+    Real offset = 0.0;
+    Solver sol;
+    sol.solve_for_accel(rho_m, phi_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    // get solution on coarsest level by averaging down from finest.
+    for (int i = fine_level-1; i >= 0; --i) {
+        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+    }
+    
+    std::string dir = "plt0000";
+    Real time = 0.0;
+    writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
+    // ------------------------------------------------------------------------
+    // Solve with MultiGrid (single level)
+    // ------------------------------------------------------------------------
+    base_level = 0;
+    fine_level = 0;
+    
+    
+    sol.solve_for_accel(rho_m, phi_single_m, efield_m, geom_m,
+                        base_level, fine_level,
+                        offset);
+    
+    
+    
+    // comparison
+    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    
+    return phi_single_m[0].norm2();
 }
 
 

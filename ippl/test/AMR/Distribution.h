@@ -66,6 +66,7 @@ private:
     container_t px_m;   ///< Horizontal particle momentum
     container_t py_m;   ///< Vertical particle momentum
     container_t pz_m;   ///< Longitudinal particle momentum
+    container_t q_m;    ///< Particle charge (always set to 1.0, except for Distribution::readH5)
     
     size_t nloc_m;      ///< Local number of particles
 };

@@ -45,6 +45,17 @@ public:
     /*!
      * Copy the particle distribution to the containers of
      * the Distribution class. (parallel read)
+     * It performs a shift in longitduinal direction due to the
+     * box extent
+     * @param x - coordinate
+     * @param px - coordinate
+     * @param y - coordinate
+     * @param py - coordinate
+     * @param z - coordinate
+     * @param pz - coordinate
+     * @param q is the particle charge
+     * @param firstParticle to read (core specific)
+     * @param lastParticle to read (core specific)
      */
     void read(Distribution::container_t& x,
               Distribution::container_t& px,
@@ -52,6 +63,7 @@ public:
               Distribution::container_t& py,
               Distribution::container_t& z,
               Distribution::container_t& pz,
+              Distribution::container_t& q,
               size_t firstParticle,
               size_t lastParticle);
     
