@@ -64,9 +64,11 @@ public:
      * Solves \f$\Delta\phi = \rho\f$ where the particles are
      * randomly initialized.
      * @param nParticles to be generated
+     * @param mean of the Gaussian distribution
+     * @param stddev is the standard deviation of the Gaussian distribution
      * @returns l2 error (single-level vs. multi-level solve)
      */
-    double doSolveParticlesGaussian(int nParticles);
+    double doSolveParticlesGaussian(int nParticles, double mean, double stddev);
     
     /*!
      * Solve the Poisson equation with a real particle distribution
