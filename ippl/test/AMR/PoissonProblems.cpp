@@ -2,6 +2,8 @@
 
 #include "AmrOpal.h"
 
+#include "Physics/Physics.h"
+
 PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels,
                                  const std::vector<double>& lower,
                                  const std::vector<double>& upper)
@@ -230,7 +232,7 @@ double PoissonProblems::doSolveParticlesUniform() {
 
 
 
-double PoissonProblems::doSolveParticlesGaussian(int nParticles) {
+double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, double stddev) {
     
     // ------------------------------------------------------------------------
     // Refined Meshes
@@ -276,7 +278,7 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles) {
     
     int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
-    dist.gaussian(0.5, 0.05, nloc, ParallelDescriptor::MyProc());
+    dist.gaussian(mean, stddev, nloc, ParallelDescriptor::MyProc());
     dist.injectBeam(*bunch);
     
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
@@ -427,18 +429,23 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     PArray<MultiFab> PartMF;
     PartMF.resize(nLevels_m, PArrayManage);
     
-    for (int i = 0; i < nLevels_m; ++i) {
-        PartMF.set(i, new MultiFab(ba_m[i], 1, 0));
-        PartMF[i].setVal(0.0);
-    }
+//     for (int i = 0; i < nLevels_m; ++i) {
+        PartMF.set(0, new MultiFab(ba_m[0], 1, 1));
+        PartMF[0].setVal(0.0);
+//     }
     
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
 
     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
-    for (int lev = 0; lev < nLevels_m; lev++)
+    double constant = 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+    
+    for (int lev = 0; lev < nLevels_m; lev++) {
+        PartMF[lev].mult(constant, 0, 1);
+        
         MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    }
     
     Real offset = 0.0;
     Solver sol;

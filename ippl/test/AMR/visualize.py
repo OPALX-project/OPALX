@@ -14,16 +14,32 @@ import os
 import yt
 
 opal = os.environ['OPAL_BUILD']
-ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='mks')
+ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='accel')
 
 ds.print_stats()
 
 
+print ("Field list:")
 print (ds.field_list)
 
+print ("Derived field list:")
 print (ds.derived_field_list)
 
+
 slc = yt.SlicePlot(ds, normal='z', fields='rho')
+slc.annotate_grids()
+slc.save()
+
+slc = yt.ProjectionPlot(ds, 'x', fields='rho')
+slc.annotate_grids()
+slc.save()
+
+
+slc = yt.ProjectionPlot(ds, 'y', fields='rho')
+slc.annotate_grids()
+slc.save()
+
+slc = yt.ProjectionPlot(ds, 'z', fields='rho', width=(0.05, 0.05))
 slc.annotate_grids()
 slc.save()
 
@@ -35,19 +51,19 @@ slc = yt.SlicePlot(ds, normal='z', fields='Ey')
 slc.annotate_grids()
 slc.save()
 
-slc = yt.SlicePlot(ds, normal='x', fields='Ez')
-slc.annotate_grids()
-slc.save()
+#slc = yt.SlicePlot(ds, normal='x', fields='Ez')
+#slc.annotate_grids()
+#slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='potential')
 slc.annotate_grids()
 slc.save()
 
-ad = ds.all_data()
+#ad = ds.all_data()
 
-phi = ad['potential']
-print ( phi.max() )
-print ( phi.min() )
+#phi = ad['potential']
+#print ( phi.max() )
+#print ( phi.min() )
 
 #dx = ad['dx']
 #print ( "dx = ", dx )

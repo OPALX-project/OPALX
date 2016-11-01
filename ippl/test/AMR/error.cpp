@@ -60,14 +60,16 @@ int main(int argc, char* argv[]) {
         l2error = pp.doSolveParticlesUniform();
     else if ( std::strcmp(argv[12], "GAUSSIAN") == 0 ) {
         
-        if ( argc != 14 ) {
-            std::cerr << cmd.str() << " [#particles]" << std::endl;
+        if ( argc != 16 ) {
+            std::cerr << cmd.str() << " [#particles] [mean] [stddev]" << std::endl;
             return -1;
         }
         
         int nParticles = std::atoi(argv[13]);
+        double mean = std::atof(argv[14]);
+        double stddev = std::atof(argv[15]);    // standard deviation
         
-        l2error = pp.doSolveParticlesGaussian(nParticles);
+        l2error = pp.doSolveParticlesGaussian(nParticles, mean, stddev);
     } else if ( std::strcmp(argv[12], "REAL") == 0 ) {
         
         if ( argc != 15 ) {
