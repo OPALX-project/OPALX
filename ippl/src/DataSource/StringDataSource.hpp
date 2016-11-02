@@ -28,12 +28,6 @@
 #include "DataSource/DataConnect.h"
 #include  
 
-
-#ifdef IPPL_PAWS
-#include "IpplPaws/PawsStringDataSource.h"
-#endif
-
-
 //////////////////////////////////////////////////////////////////////////
 // a virtual function which is called by this base class to get a
 // specific instance of DataSourceObject based on the type of data
@@ -49,17 +43,7 @@ DataSourceObject *StringDataSource<T>::createDataSourceObject(const char *nm,
   std::string method(dc->DSID());
 
   DataSourceObject *dso = 0;
-  if (method == "aclvis") {
-    // create a DataSourceObject for this IpplParticleBase which will connect to
-    // the ACL visualization code
-
-  } else if (method == "paws") {
-    // create a DataSourceObject for this ParticleAttrib which will connect to
-    // another PAWS application
-#ifdef IPPL_PAWS
-    dso = new PawsStringDataSource<T>(nm, dc, tm, *this);
-#endif
-  } else if (method == "file") {
+  if (method == "file") {
     // create a DataSourceObject for this FILE which will connect to
     // a file
   }

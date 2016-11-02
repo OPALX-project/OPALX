@@ -31,7 +31,7 @@
  * To construct a DataSource, a specific subclass of DataSourceObject
  * must be created, which provides the particular implementation of
  * these interface functions based on the type of data (ParticleAttrib
- * or Field) and the destination of the data (e.g., PAWS, ACL viz, etc.)
+ * or Field) and the destination of the data
  *
  * Objects in Ippl which want to be a source for data to some other
  * agency should then do the following:

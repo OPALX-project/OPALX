@@ -28,40 +28,14 @@
 #include "DataSource/DataConnect.h"
 #include "DataSource/FileDataConnect.h"
 #include "Utility/IpplInfo.h"
-
-
-// include ACLVIS code if available
-#ifdef IPPL_ACLVIS
-#include "DataSource/ACLVISDataConnect.h"
-#endif
-
-// include PAWS code if available
-#ifdef IPPL_PAWS
-#include "IpplPaws/PawsDataConnect.h"
-#endif
-
 #include <cstring>
 
 
 // static data for this file
-static const int CONNECTMETHODS = 4;   // includes "no connection" method
-static const char *ConnectMethodList  = "aclvis, paws, file, or none";
-static const char *ConnectMethodNames[CONNECTMETHODS] =
-  { "aclvis", "paws", "file", "none" };
-static bool  ConnectMethodSupported[CONNECTMETHODS] = {
-#ifdef IPPL_ACLVIS
-  true,
-#else
-  false,
-#endif
-#ifdef IPPL_PAWS
-  true,
-#else
-  false,
-#endif
-  true,
-  true
-};
+static const int CONNECTMETHODS = 2;   // includes "no connection" method
+static const char *ConnectMethodList  = "file, or none";
+static const char *ConnectMethodNames[CONNECTMETHODS] = {"file", "none" };
+static bool  ConnectMethodSupported[CONNECTMETHODS] = {true, true};
 
 
 // a global instance of DataConnectCreator ... when this is destroyed
@@ -153,7 +127,6 @@ bool DataConnectCreator::known(int cm) {
 /////////////////////////////////////////////////////////////////////////
 // check if the given connection method is known at all
 bool DataConnectCreator::known(const char *nm) {
-  
   return known(libindex(nm));
 }
 
@@ -170,39 +143,22 @@ DataConnect *DataConnectCreator::create(int cm, const char *nm, int n) {
   DataConnect *dataconn = 0;
 
   // figure out how many nodes the connection should use, if it cares
-  // at all about that.  For example, ACLVIS may use multipple nodes
-  // in the visualization, or maybe just one.
+  // at all about that.  
   int nodes = n;
   if (n <= 0)
     nodes = getDefaultNodes();
 
-  // based on the connection method, create a new DataConnect
   if (cm == 0) {
-    // use the ACLVIS library for the connection, which will result in the
-    // data objects being displayed in a visualization window
-#ifdef IPPL_ACLVIS
-    dataconn = new ACLVISDataConnect(nm, nodes);
-#endif
-  } else if (cm == 1) {
-    // use the PAWS library for the connection, which is a general-purpose
-    // method for transferring data to/from another application
-#ifdef IPPL_PAWS
-    dataconn = new PawsDataConnect(nm, nodes);
-#endif
-  } else if (cm == 2) {
     // transfer the data to/from a file using some form of parallel I/O
     dataconn = new FileDataConnect(nm, nodes);
-  } else if (cm == 3) {
+  } else if (cm == 1) {
     // just make a dummy connect object, which does nothing
-    dataconn = new DataConnect(nm, getMethodName(cm), DataSource::OUTPUT,
-			       nodes);
+    dataconn = new DataConnect(nm, getMethodName(cm), DataSource::OUTPUT, nodes);
   }
-
   // make sure we have something
   if (dataconn == 0) {
     ERRORMSG("DataConnectCreator: unknown connection method." << endl);
   }
-
   return dataconn;
 }
 

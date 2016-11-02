@@ -21,7 +21,7 @@
  * different types of objects to connect (e.g. Field or ParticleAttrib)
  * must be given to the constructor of DataSource.  The specific
  * implementation (a class derived from DataSourceObject) must also be
- * customized to the type of data receivers, either a PAWS connection or
+ * customized to the type of data receivers, or
  * another external program or an API within the same process.
  *
  * While a single DataSource may be connected to several DataConnect's, and
