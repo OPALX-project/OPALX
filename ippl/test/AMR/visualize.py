@@ -27,27 +27,30 @@ print (ds.derived_field_list)
 
 
 slc = yt.SlicePlot(ds, normal='z', fields='rho')
+slc.set_unit('rho', 'e/m**3')
 slc.annotate_grids()
 slc.save()
 
-slc = yt.ProjectionPlot(ds, 'x', fields='rho')
-slc.annotate_grids()
-slc.save()
+#slc = yt.ProjectionPlot(ds, 'x', fields='rho')
+#slc.annotate_grids()
+#slc.save()
 
 
-slc = yt.ProjectionPlot(ds, 'y', fields='rho')
-slc.annotate_grids()
-slc.save()
+#slc = yt.ProjectionPlot(ds, 'y', fields='rho')
+#slc.annotate_grids()
+#slc.save()
 
-slc = yt.ProjectionPlot(ds, 'z', fields='rho', width=(0.05, 0.05))
-slc.annotate_grids()
-slc.save()
+#slc = yt.ProjectionPlot(ds, 'z', fields='rho') #, width=(0.05, 0.05))
+#slc.annotate_grids()
+#slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='Ex')
+slc.set_unit('Ex', 'V/m')
 slc.annotate_grids()
 slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='Ey')
+slc.set_unit('Ey', 'V/m')
 slc.annotate_grids()
 slc.save()
 
@@ -56,14 +59,18 @@ slc.save()
 #slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='potential')
+slc.set_unit('potential', 'V')
 slc.annotate_grids()
 slc.save()
 
-#ad = ds.all_data()
+ad = ds.all_data()
 
-#phi = ad['potential']
-#print ( phi.max() )
-#print ( phi.min() )
+print ( ad.quantities.extrema("rho") )
 
+rho = ad['rho']
+print ( "Density: ", rho.max() )
+print ( "Density: ", rho.max().in_units('e/m**3') )
+print ( "Potential: ", ad['potential'].max() )
+print ( "Potential: ", ad['potential'].in_units('V').max() )
 #dx = ad['dx']
 #print ( "dx = ", dx )
