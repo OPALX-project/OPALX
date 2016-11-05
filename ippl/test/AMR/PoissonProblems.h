@@ -79,6 +79,13 @@ public:
      */
     double doSolveParticlesReal(int step, std::string h5file);
     
+    /*!
+     * Generates 3 bunches with nParticles and same standard deviation
+     * @param nParticles is the number of particles per bunch
+     * @param stddev is the standard deviation of each bunch
+     */
+    double doSolveMultiGaussians(int nParticles, double stddev);
+    
 private:
     void refineWholeDomain_m();     ///< Create refined levels (DistributionMapping and BoxArray)
     void initMultiFabs_m();         ///< Initialize the MultiFab's for solving Poisson with MultiGrid solver
