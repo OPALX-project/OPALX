@@ -101,7 +101,7 @@ ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 # remove digits from hostname: edison03 -> edison
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 
-IF(${HOSTNAME_BASE} MATCHES "edison")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
@@ -110,7 +110,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison")
     ${Boost_LIBRARIES}
     m
     z
- )
+)
 ELSE()
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
@@ -123,7 +123,7 @@ ELSE()
     m
     z
 )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
 
 
