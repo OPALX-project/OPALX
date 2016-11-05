@@ -73,7 +73,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
 
     const Real* dx      = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
-    Real nPart = 1.0e-12;
+    Real nPart = 1.0;
     
 //     std::cout << "dx = " << *dx << " prob_lo = " << *prob_lo << std::endl;
     
