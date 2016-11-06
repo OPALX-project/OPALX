@@ -48,7 +48,7 @@ IF (ENABLE_AMR_SOLVER)
     
     set(F90_source_files Tagging_nd.f90)
     
-    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files})
+    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
     add_executable (testSolver testSolver.cpp H5Reader.cpp Distribution.cpp Solver.cpp)
     add_executable (iterative iterative.cpp)
     add_executable (testError error.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp PoissonProblems.cpp Solver.cpp AmrOpal.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp)
