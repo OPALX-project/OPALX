@@ -503,7 +503,10 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
-    double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+    // eps in C / (V * m)
+//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+    // eps in e / (V * m)
+    double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
     
     for (int lev = 0; lev < nLevels_m; lev++) {
         PartMF[lev].mult(constant, 0, 1);
@@ -524,7 +527,18 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     
     std::string dir = "plt0000";
     Real time = 0.0;
+    
+    for (int lev = 0; lev < nLevels_m; lev++) {
+        rho_m[lev].mult(1.0 / constant, 0, 1);
+    }
+    
     writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
+    
+    
+    for (int lev = 0; lev < nLevels_m; lev++) {
+        rho_m[lev].mult(constant, 0, 1);
+    }
+    
     // ------------------------------------------------------------------------
     // Solve with MultiGrid (single level)
     // ------------------------------------------------------------------------

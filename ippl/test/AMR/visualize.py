@@ -26,7 +26,17 @@ print ("Derived field list:")
 print (ds.derived_field_list)
 
 
-slc = yt.SlicePlot(ds, normal='z', fields='rho')
+slc = yt.SlicePlot(ds, normal='z', fields='rho') #, width=(0.05, 0.05))
+slc.set_unit('rho', 'e/m**3')
+slc.annotate_grids()
+slc.save()
+
+slc = yt.SlicePlot(ds, normal='y', fields='rho')
+slc.set_unit('rho', 'e/m**3')
+slc.annotate_grids()
+slc.save()
+
+slc = yt.SlicePlot(ds, normal='x', fields='rho')
 slc.set_unit('rho', 'e/m**3')
 slc.annotate_grids()
 slc.save()
@@ -54,9 +64,10 @@ slc.set_unit('Ey', 'V/m')
 slc.annotate_grids()
 slc.save()
 
-#slc = yt.SlicePlot(ds, normal='x', fields='Ez')
-#slc.annotate_grids()
-#slc.save()
+slc = yt.SlicePlot(ds, normal='x', fields='Ez')
+slc.set_unit('Ez', 'V/m')
+slc.annotate_grids()
+slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='potential')
 slc.set_unit('potential', 'V')
