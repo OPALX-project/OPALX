@@ -61,8 +61,8 @@ EMPC<N>::FillEvec (MultiFab& field_vector, int lev, Real betaC, int e_comp, int 
     }
     else 
     {
-        gv_pointer = new MultiFab(this->m_amr->ParticleBoxArray(lev),
-                                  field_vector.nComp(),field_vector.nGrow(),Fab_allocate);
+//         gv_pointer = new MultiFab(this->m_amr->ParticleBoxArray(lev),
+//                                   field_vector.nComp(),field_vector.nGrow(),Fab_allocate);
         for (MFIter mfi(*gv_pointer); mfi.isValid(); ++mfi)
             gv_pointer->setVal(0.);
         gv_pointer->copy(field_vector,0,0,field_vector.nComp());
