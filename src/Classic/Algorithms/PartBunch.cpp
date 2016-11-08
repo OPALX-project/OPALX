@@ -1919,6 +1919,21 @@ void PartBunch::calcMoments() {
         }
     }
 
+    /*
+      find particle with ID==0
+      and save index in zID
+     */
+
+    unsigned long zID = 0;
+    bool found = false;
+    for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
+        if (this->ID[k] == 0) {
+            found  = true;
+            zID = k;
+            break;
+        }
+    }
+    
     for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
         part[1] = this->P[k](0);
         part[3] = this->P[k](1);
@@ -1926,7 +1941,7 @@ void PartBunch::calcMoments() {
         part[0] = this->R[k](0);
         part[2] = this->R[k](1);
         part[4] = this->R[k](2);
-
+        
         for(int i = 0; i < 2 * Dim; i++) {
             loc_centroid[i]   += part[i];
             for(int j = 0; j <= i; j++) {
@@ -1934,6 +1949,23 @@ void PartBunch::calcMoments() {
             }
         }
     }
+    
+    if (found) {
+        part[1] = this->P[zID](0);
+        part[3] = this->P[zID](1);
+        part[5] = this->P[zID](2);
+        part[0] = this->R[zID](0);
+        part[2] = this->R[zID](1);
+        part[4] = this->R[zID](2);
+        
+        for(int i = 0; i < 2 * Dim; i++) {
+            loc_centroid[i]   -= part[i];
+            for(int j = 0; j <= i; j++) {
+                loc_moment[i][j]   -= part[i] * part[j];
+            }
+        }
+    } 
+
 
     for(int i = 0; i < 2 * Dim; i++) {
         for(int j = 0; j < i; j++) {
