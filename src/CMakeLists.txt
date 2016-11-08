@@ -26,9 +26,9 @@ IF(ENABLE_AMR_SOLVER)
     set (AMR_INCLUDE_DIR Solvers/amr)
     set (CBOXLIB -lcboxlib)
     
-    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
         set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
-    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
     
 ENDIF(ENABLE_AMR_SOLVER)
 
