@@ -62,6 +62,8 @@ public:
                        const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
     
+    void ClearLevel(int lev);
+    
     /*!
      * Print the number of particles per cell (minimum and maximum)
      */
