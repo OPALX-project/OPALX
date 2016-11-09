@@ -60,8 +60,11 @@ Usage:
 double dt = 1.0;          // size of timestep
 
 
-void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch, PArray<MultiFab>& rhs,
-             PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, const Array<Geometry>& geom,
+void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
+             std::vector<std::unique_ptr<MultiFab> >& rhs,
+             std::vector<std::unique_ptr<MultiFab> >& phi,
+             std::vector<std::unique_ptr<MultiFab> >& grad_phi,
+             const Array<Geometry>& geom,
              const Array<int>& rr, int nLevels)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
@@ -69,19 +72,19 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch, PArray<MultiFab>& rhs,
     // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
 
-    rhs.resize(nLevels,PArrayManage);
-    phi.resize(nLevels,PArrayManage);
-    grad_phi.resize(nLevels,PArrayManage);
+    rhs.resize(nLevels);
+    phi.resize(nLevels);
+    grad_phi.resize(nLevels);
 
     for (int lev = 0; lev < nLevels; ++lev) {
         //                                    # component # ghost cells                                                                                                                                          
-        rhs.set     (lev,new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
-        phi.set     (lev,new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
-        grad_phi.set(lev,new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM,1));
+        rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
+        phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
+        grad_phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM,1));
 
-        rhs[lev].setVal(0.0);
-        phi[lev].setVal(0.0);
-        grad_phi[lev].setVal(0.0);
+        rhs[lev]->setVal(0.0);
+        phi[lev]->setVal(0.0);
+        grad_phi[lev]->setVal(0.0);
     }
     
 
@@ -99,7 +102,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch, PArray<MultiFab>& rhs,
         BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
 
     for (int lev = 0; lev < nLevels; lev++)
-        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     
     
     // eps in C / (V * m)
@@ -110,7 +113,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch, PArray<MultiFab>& rhs,
     for (int lev = 0; lev < nLevels; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);
         
-        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     }
     
     // **************************************************************************                                                                                                                                
@@ -458,9 +461,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
     
     
-    PArray<MultiFab> rhs;
-    PArray<MultiFab> phi;
-    PArray<MultiFab> grad_phi;
+    std::vector<std::unique_ptr<MultiFab> > rhs;
+    std::vector<std::unique_ptr<MultiFab> > phi;
+    std::vector<std::unique_ptr<MultiFab> > grad_phi;
     
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
     
@@ -476,9 +479,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         // update time step according to levels
         dt = 0.5 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
         
-        // advance the particle positions
-        for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-            bunch->setR(bunch->getR(i) + dt * bunch->getP(i), i);
+//         // advance the particle positions
+//         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
+//             bunch->setR(bunch->getR(i) + dt * bunch->getP(i), i);
         
         
         // update Amr object

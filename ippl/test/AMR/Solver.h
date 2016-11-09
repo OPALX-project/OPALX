@@ -14,6 +14,9 @@
 #include <VisMF.H>
 #include <FMultiGrid.H>
 
+#include <memory>
+#include <vector>
+
 /*!
  * @file Solver.h
  * @author Matthias Frey
@@ -41,7 +44,9 @@ public:
      * @param finest_level up to which solver goes
      * @param offset is zero in case of Dirichlet boundary conditions.
      */
-    void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi,
+    void solve_for_accel(std::vector<std::unique_ptr<MultiFab> >& rhs,
+                         std::vector<std::unique_ptr<MultiFab> >& phi,
+                         std::vector<std::unique_ptr<MultiFab> >& grad_phi,
                          const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
     
     /*!
@@ -55,7 +60,8 @@ public:
      * @param tol is \f$ 10^{-10}\f$ (specified in solve_for_accel)
      * @param abs_tol is \f$ 10^{-14}\f$ (specified in solve_for_accel)
      */
-    void solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
+    void solve_with_f90(std::vector<std::unique_ptr<MultiFab> >& rhs,
+                        std::vector<std::unique_ptr<MultiFab> >& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
                         const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
 };
 

@@ -25,9 +25,9 @@
  */
 inline void
 writePlotFile (const std::string& dir,
-               const PArray<MultiFab>& rho,
-               const PArray<MultiFab>& phi,
-               const PArray<MultiFab>& efield,
+               const std::vector<std::unique_ptr<MultiFab> >& rho,
+               const std::vector<std::unique_ptr<MultiFab> >& phi,
+               const std::vector<std::unique_ptr<MultiFab> >& efield,
                const Array<int>& refRatio,
                const Array<Geometry>& geom,
 	       const Real&        time)
@@ -56,7 +56,7 @@ writePlotFile (const std::string& dir,
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int nData = rho[0].nComp() + phi[0].nComp() + efield[0].nComp();
+    int nData = rho[0]->nComp() + phi[0]->nComp() + efield[0]->nComp();
     
     if (ParallelDescriptor::IOProcessor())
     {
@@ -71,11 +71,11 @@ writePlotFile (const std::string& dir,
         HeaderFile << nData << '\n';
 
 	// variable names
-        for (int ivar = 1; ivar <= rho[0].nComp(); ivar++) {
+        for (int ivar = 1; ivar <= rho[0]->nComp(); ivar++) {
           HeaderFile << "rho\n";
         }
         
-        for (int ivar = 1; ivar <= phi[0].nComp(); ivar++) {
+        for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++) {
           HeaderFile << "potential\n";
         }
         
@@ -151,12 +151,12 @@ writePlotFile (const std::string& dir,
         
         if (ParallelDescriptor::IOProcessor())
         {
-            HeaderFile << lev << ' ' << rho[lev].boxArray().size() << ' ' << 0 << '\n';
+            HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 << '\n';
             HeaderFile << 0 << '\n';    // # time steps at this level
     
-            for (int i = 0; i < rho[lev].boxArray().size(); ++i)
+            for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
             {
-                RealBox loc = RealBox(rho[lev].boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
+                RealBox loc = RealBox(rho[lev]->boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
                 for (int n = 0; n < BL_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
@@ -166,7 +166,7 @@ writePlotFile (const std::string& dir,
             HeaderFile << PathNameInHeader << '\n';
         }
         
-        MultiFab data(rho[lev].boxArray(), nData, 0);
+        MultiFab data(rho[lev]->boxArray(), nData, 0);
         
         // dst, src, srccomp, dstcomp, numcomp, nghost
         /*
@@ -174,9 +174,9 @@ writePlotFile (const std::string& dir,
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
-        MultiFab::Copy(data, rho[lev],    0, 0, 1, 0);
-        MultiFab::Copy(data, phi[lev],    0, 1, 1, 0);
-        MultiFab::Copy(data, efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
+        MultiFab::Copy(data, *rho[lev],    0, 0, 1, 0);
+        MultiFab::Copy(data, *phi[lev],    0, 1, 1, 0);
+        MultiFab::Copy(data, *efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
 //         MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
 //         MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
 //         MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez

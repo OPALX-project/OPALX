@@ -124,14 +124,14 @@ int main(int argc, char* argv[]) {
     // ------------------------------------------------------------------------
     
     
-    PArray<MultiFab> rho(nLevels);
-    PArray<MultiFab> phi(nLevels);
-    PArray<MultiFab> efield(nLevels);
+    std::vector<std::unique_ptr<MultiFab> > rho(nLevels);
+    std::vector<std::unique_ptr<MultiFab> > phi(nLevels);
+    std::vector<std::unique_ptr<MultiFab> > efield(nLevels);
     
     for (int l = 0; l < nLevels; ++l) {
-        rho.set(l, new MultiFab(ba[l], 1, 0));
-        phi.set(l, new MultiFab(ba[l], 1, 1));
-        efield.set(l, new MultiFab(ba[l], BL_SPACEDIM, 1));
+        rho[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], 1, 0));
+        phi[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], 1, 1));
+        efield[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], BL_SPACEDIM, 1));
     }
     
     
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
     
     // rho is equal to one everywhere
     for (int l = 0; l < nLevels; ++l)
-        rho[l].setVal(-1.0);
+        rho[l]->setVal(-1.0);
     
     
     // ------------------------------------------------------------------------
