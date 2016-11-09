@@ -9,7 +9,6 @@
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
  ***************************************************************************/
-
 #include "Ippl.h"
 #include <complex>
 using namespace std;
@@ -17,24 +16,33 @@ using namespace std;
 int main(int argc, char *argv[])
 {
   Ippl ippl(argc,argv);
-  Inform testmsg(NULL,0);
+  static IpplTimings::TimerRef mainprgTimer = IpplTimings::getTimer("mainprg");
+  static IpplTimings::TimerRef cosFFTTimer = IpplTimings::getTimer("cosFFT");
+  IpplTimings::startTimer(mainprgTimer);
+
+  Inform msg("TestFFTCos ",0);
+  Inform msg2all("TestFFTCos ",INFORM_ALL_NODES);
+
+
+
+  //msg << "HEllo " << endl;
+
+  //msg2all << "HEllo " << endl;
 
   const unsigned D=3U;
+
   unsigned ngrid[D];   // grid sizes
 
   double realDiff;
 
-  // Various counters, constants, etc:
-  
+  // Various counters, constants, etc:  
   double pi = acos(-1.0);
   double twopi = 2.0*pi;
   
-  Timer timer;
-
   // Layout information:
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
   for (unsigned int d=0; d<D; d++) 
-    allParallel[d] = PARALLEL;
+      allParallel[d] = PARALLEL;
 
   // Compression of temporaries:
   bool compressTemps = false;
@@ -46,59 +54,68 @@ int main(int argc, char *argv[])
   for (unsigned int d=0; d<D; d++) 
       ndiStandard[d] = Index(ngrid[d]);
 
+  msg << ndiStandard << endl;
+
   // all parallel layout, standard domain, normal axis order
   FieldLayout<D> layoutPPStan(ndiStandard,allParallel);
 
-  BareField<double,D> RFieldPPStan(layoutPPStan);
-  BareField<double,D> RFieldPPStan_save(layoutPPStan);
-  BareField<double,D> diffFieldPPStan(layoutPPStan);    
+  msg << layoutPPStan << endl;
+
+  BareField<double,D> RField(layoutPPStan);
+  BareField<double,D> RField_save(layoutPPStan);
+  BareField<double,D> diffField(layoutPPStan);    
 
   double xfact, kx, yfact, ky, zfact, kz;
   xfact = pi/(ngrid[0] + 1.0);
   yfact = 2.0*twopi/(ngrid[1]);
   zfact = 2.0*twopi/(ngrid[2]);
   kx = 1.0; ky = 2.0; kz = 3.0; // wavenumbers
-  RFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
+
+
+  RField[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
+
     1.0  * ( sin( (ndiStandard[0]+1) * kx * xfact +
 		   ndiStandard[1]    * ky * yfact +
 		   ndiStandard[2]    * kz * zfact ) +
-	      sin( (ndiStandard[0]+1) * kx * xfact -
+	       sin( (ndiStandard[0]+1) * kx * xfact -
 		   ndiStandard[1]    * ky * yfact -
 		   ndiStandard[2]    * kz * zfact ) ) + 
     0.0  * (-cos( (ndiStandard[0]+1) * kx * xfact +
 		   ndiStandard[1]    * ky * yfact +
 		   ndiStandard[2]    * kz * zfact ) + 
-	     cos( (ndiStandard[0]+1) * kx * xfact -
-		  ndiStandard[1]    * ky * yfact -
-		  ndiStandard[2]    * kz * zfact ) );
+	       cos( (ndiStandard[0]+1) * kx * xfact -
+		   ndiStandard[1]    * ky * yfact -
+		   ndiStandard[2]    * kz * zfact ) );
   
+  RField_save = RField;
+
   bool cosTransformDims[D];
   for (unsigned int d=0; d<D; ++d) 
-    cosTransformDims[d] = true;
+      cosTransformDims[d] = true;
   
-  RFieldPPStan_save = RFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]];
-
-  RFieldPPStan = RFieldPPStan_save;
-    
   // ToDo
-  //  FFT<CosTransform,D,double> cosfft2(ndiStandard, cosTransformDims, compressTemps);
+  // FFT<CosTransform,D,double> cosfft2(ndiStandard, cosTransformDims, compressTemps);
+  
   FFT<SineTransform,D,double> sinefft2(ndiStandard, cosTransformDims, compressTemps);
 
-  testmsg << "In-place cosine transform using all-parallel layout ..." << endl;
-  timer.start();
-  sinefft2.transform(-1, RFieldPPStan);
-  sinefft2.transform( 1, RFieldPPStan);
+  msg << "In-place cosine transform using all-parallel layout ..." << endl;
+
+  IpplTimings::startTimer(cosFFTTimer);
+  sinefft2.transform(-1, RField);
+  sinefft2.transform( 1, RField);
+  IpplTimings::stopTimer(cosFFTTimer);
 
   // ToDo
-  //  cosfft2.transform(-1, RFieldPPStan);
-  // cosfft2.transform( 1, RFieldPPStan);
-  timer.stop();
+  // cosfft2.transform(-1, RField);
+  // cosfft2.transform( 1, RField);
   
-  diffFieldPPStan = Abs(RFieldPPStan - RFieldPPStan_save);
-  realDiff = max(diffFieldPPStan);
-  testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
-  testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
-  timer.clear();
+  diffField = Abs(RField - RField_save);
+  realDiff = max(diffField);
+  msg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+
+  IpplTimings::stopTimer(mainprgTimer);
+  IpplTimings::print();
+  IpplTimings::print(string(argv[0])+string(".timing"));
   return 0;
 }
 /***************************************************************************

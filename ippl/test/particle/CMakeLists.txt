@@ -28,11 +28,11 @@ set_source_files_properties(SOURCE PIC3d.cpp p3m3d.cpp
                             PROPERTY COMPILE_FLAGS
                             -fno-tree-vrp)
 
-add_executable (PIC3d PIC3d.cpp)
-target_link_libraries (PIC3d ${IPPL_LIBS})
+#add_executable (PIC3d PIC3d.cpp)
+#target_link_libraries (PIC3d ${IPPL_LIBS})
 
-add_executable (p3m3dHeating p3m3dHeating.cpp)
-target_link_libraries (p3m3dHeating ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY} z ${CMAKE_DL_LIBS})
+#add_executable (p3m3dHeating p3m3dHeating.cpp)
+#target_link_libraries (p3m3dHeating ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY} z ${CMAKE_DL_LIBS})
 
 #add_executable (p3m3d p3m3d.cpp)
 #target_link_libraries (p3m3d ${IPPL_LIBS})
@@ -49,8 +49,8 @@ target_link_libraries (p3m3dHeating ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY
 #add_executable (p3m3dRegressionTests p3m3dRegressionTests.cpp)
 #target_link_libraries (p3m3dRegressionTests ${IPPL_LIBS})
 
-add_executable (p3m3dMicrobunching p3m3dMicrobunching.cpp)
-target_link_libraries (p3m3dMicrobunching ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY} z ${CMAKE_DL_LIBS})
+#add_executable (p3m3dMicrobunching p3m3dMicrobunching.cpp)
+#target_link_libraries (p3m3dMicrobunching ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY} z ${CMAKE_DL_LIBS})
 
 #add_executable (p3m3d_periodic p3m3d_periodic.cpp)
 #target_link_libraries (p3m3d_periodic ${IPPL_LIBS})
