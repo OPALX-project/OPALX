@@ -873,15 +873,8 @@ int RtsLayer::setAndParseProfileGroups(char *prog, char *str)
       switch (str[0])
       {
         case 'a' :
-	case 'A' : // Assign or ACLMPL Group
-	  if (strncasecmp(str,"ac", 2) == 0) {
-	    // ACLMPL enabled 
-	    RtsLayer::enableProfileGroup(TAU_ACLMPL); 
-	  } 
-	  else {
-	    // Assign enabled 
-	    RtsLayer::enableProfileGroup(TAU_ASSIGN);
-          }
+	case 'A' : 
+	  RtsLayer::enableProfileGroup(TAU_ASSIGN);
 	  break;
         case 'f' :
 	case 'F' : // Field or FFT Group
@@ -976,10 +969,6 @@ int RtsLayer::setAndParseProfileGroups(char *prog, char *str)
             // default - for u is USER 
  	    RtsLayer::enableProfileGroup(TAU_USER);
           }
-	  break;
-        case 'v' :
-	case 'V' : // ACLVIS Group
-	  RtsLayer::enableProfileGroup(TAU_VIZ);
 	  break;
 	case '1' : // User1
 	  RtsLayer::enableProfileGroup(TAU_USER1);

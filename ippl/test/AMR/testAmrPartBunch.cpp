@@ -48,12 +48,90 @@ Usage:
 #include "Solver.h"
 #include "AmrOpal.h"
 
+#include "writePlotFile.H"
+
 #include <cmath>
+
+#include "Physics/Physics.h"
 
 // #define SOLVER
 
 
 double dt = 1.0;          // size of timestep
+
+
+void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch, PArray<MultiFab>& rhs,
+             PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, const Array<Geometry>& geom,
+             const Array<int>& rr, int nLevels)
+{
+    static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
+    // =======================================================================                                                                                                                                   
+    // 4. prepare for multi-level solve                                                                                                                                                                          
+    // =======================================================================
+
+    rhs.resize(nLevels,PArrayManage);
+    phi.resize(nLevels,PArrayManage);
+    grad_phi.resize(nLevels,PArrayManage);
+
+    for (int lev = 0; lev < nLevels; ++lev) {
+        //                                    # component # ghost cells                                                                                                                                          
+        rhs.set     (lev,new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
+        phi.set     (lev,new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
+        grad_phi.set(lev,new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM,1));
+
+        rhs[lev].setVal(0.0);
+        phi[lev].setVal(0.0);
+        grad_phi[lev].setVal(0.0);
+    }
+    
+
+    // Define the density on level 0 from all particles at all levels                                                                                                                                            
+    int base_level   = 0;
+    int finest_level = myAmrOpal.finestLevel();
+
+    PArray<MultiFab> PartMF;
+    PartMF.resize(nLevels,PArrayManage);
+    PartMF.set(0,new MultiFab(myAmrOpal.boxArray()[0],1,1));
+    PartMF[0].setVal(0.0);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, finest_level);
+
+    for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
+        BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
+
+    for (int lev = 0; lev < nLevels; lev++)
+        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    
+    
+    // eps in C / (V * m)
+//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+    // eps in e / (V * m)
+//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
+    
+    for (int lev = 0; lev < nLevels; lev++) {
+//         PartMF[lev].mult(constant, 0, 1);
+        
+        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    }
+    
+    // **************************************************************************                                                                                                                                
+    // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
+    //     to make the Poisson equations solvable                                                                                                                                                                
+    // **************************************************************************                                                                                                                                
+
+    Real offset = 0.;
+    if (geom[0].isAllPeriodic())
+    {
+        for (int lev = 0; lev < nLevels; lev++)
+            offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
+        offset /= geom[0].ProbSize();
+    }
+
+    // solve                                                                                                                                                                                                     
+    Solver sol;
+    IpplTimings::startTimer(solvTimer);
+    sol.solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    IpplTimings::stopTimer(solvTimer);
+}
 
 
 // ============================================================================
@@ -168,10 +246,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");    
     static IpplTimings::TimerRef tracTimer = IpplTimings::getTimer("trac");
-    static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
+    
+    // nLevel = nMaxLevels + 1
+    int nLevels = nMaxLevels + 1;
     
     /*
      * set up the geometry
@@ -183,46 +263,62 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // box [-1,1]x[-1,1]x[-1,1]
     RealBox domain;
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, 0.0);
-        domain.setHi(i, 1.0);
+        domain.setLo(i, -1.0);
+        domain.setHi(i,  1.0);
     }
     
     
     // periodic boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {1, 1, 1};
+    int bc[BL_SPACEDIM] = {0, 0, 0};
     
     
-    Geometry geom;
+    Array<Geometry> geom;
+    geom.resize(nLevels);
     
     // level 0 describes physical domain
-    geom.define(bx, &domain, 0, bc);
+    geom[0].define(bx, &domain, 0, bc);
     
     // Container for boxes at all levels
-    BoxArray ba;
+    Array<BoxArray> ba;
+    ba.resize(nLevels);
     
     // box at level 0
-    ba.define(bx);
+    ba[0].define(bx);
     msg << "Max. Grid Size = " << maxBoxSize << endl;
-    ba.maxSize(maxBoxSize);
+    ba[0].maxSize(maxBoxSize);
     
     /*
      * distribution mapping
      */
-    DistributionMapping dmap;
-    dmap.define(ba, ParallelDescriptor::NProcs() /*nprocs*/);
+    Array<DistributionMapping> dmap;
+    dmap.resize(nLevels);
+    dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    
+    
+    Array<int> rr(nLevels - 1);
+    for (int lev = 0; lev < rr.size(); ++lev)
+        rr[lev] = 2;
+    
+    // geometries of refined levels
+    for (int lev = 1; lev < nLevels; ++lev) {
+        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
+                                        rr[lev - 1]),
+                         &domain, 0, bc);
+    }
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba);
+    PartBunchBase* bunch = new AmrPartBunch(geom[0], dmap[0], ba[0]);
     
     
     // initialize a particle distribution
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    dist.uniform(0.3, 0.7, nloc, ParallelDescriptor::MyProc());
+    dist.gaussian(0.0, 0.1, nloc, ParallelDescriptor::MyProc());
+//     dist.uniform(0.3, 0.7, nloc, ParallelDescriptor::MyProc());
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
     
@@ -240,13 +336,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         << "****************************************************" << endl;
     
     bunch->gatherStatistics();
-    //     bunch->print();
-    
-    double q = 1.0 / nParticles;
-
-    // random initialization for charge-to-mass ratio
-    for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->setQM(q, i);
     
     
     // ========================================================================
@@ -259,6 +348,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
      * create an Amr object
      */
     
+    
+//     dynamic_cast<AmrPartBunch*>(bunch)->Define (geom, dmap, ba, rr);
+    
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
     
@@ -266,8 +358,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
-    // nLevel = nMaxLevels + 1
-    int nLevels = nMaxLevels + 1;
     AmrOpal myAmrOpal(&domain, int(nMaxLevels), nCells, 0 /* cartesian */, bunch);
     
     for (int i = 0; i < nLevels; ++i)
@@ -277,9 +367,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     /*
      * do tagging
      */
-    Array<int> rr(nMaxLevels);
-    for (int lev = 1; lev < nLevels; ++lev)
-        rr[lev-1] = 2;
     dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
                                                 myAmrOpal.DistributionMap(),
                                                 myAmrOpal.boxArray(),
@@ -296,9 +383,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     myAmrOpal.info();
-//     myAmrOpal.averageDown();
-//     myAmrOpal.finestDensityAssign();
-//     bunch->myUpdate();
     
     msg << "****************************************************" << endl
         << "          BEAM REDISTRIBUTED (multi level)          " << endl
@@ -321,12 +405,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (int i = 0; i < nLevels; ++i)
         msg << dynamic_cast<AmrPartBunch*>(bunch)->GetParGDB()->boxArray(i) << endl;
     
-    
-    
-//     // print some information
-//     myAmrOpal.writePlotFile("amr0000");
-//     myAmrOpal.free();
-    
     Inform amr("AMR");
     amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
         << "Finest level = " << myAmrOpal.finestLevel() << endl;
@@ -346,98 +424,45 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 //     dynamic_cast<AmrPartBunch*>(bunch)->Checkpoint(".", "particles0000", true);
     
     
-    // =======================================================================                                                                                                                                   
-    // 4. prepare for multi-level solve                                                                                                                                                                          
-    // =======================================================================
-#ifdef SOLVER
-    PArray<MultiFab> rhs;
-    PArray<MultiFab> phi;
-    PArray<MultiFab> grad_phi;
-
-    rhs.resize(nLevels,PArrayManage);
-    phi.resize(nLevels,PArrayManage);
-    grad_phi.resize(nLevels,PArrayManage);
-
-    for (int lev = 0; lev < nLevels; ++lev) {
-        //                                    # component # ghost cells                                                                                                                                          
-        rhs.set     (lev,new MultiFab(ba[lev],1          ,0));
-        phi.set     (lev,new MultiFab(ba[lev],1          ,1));
-        grad_phi.set(lev,new MultiFab(ba[lev],BL_SPACEDIM,1));
-
-        rhs[lev].setVal(0.0);
-        phi[lev].setVal(0.0);
-        grad_phi[lev].setVal(0.0);
-    }
     
-
-    // Define the density on level 0 from all particles at all levels                                                                                                                                            
-    int base_level   = 0;
-    int finest_level = nMaxLevels;
-
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nLevels,PArrayManage);
-    PartMF.set(0,new MultiFab(ba[0],1,1));
-    PartMF[0].setVal(0.0);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, finest_level);
-
-    for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
-
-    for (int lev = 0; lev < nLevels; lev++)
-        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-    
-    
-    
-    // **************************************************************************                                                                                                                                
-    // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
-    //     to make the Poisson equations solvable                                                                                                                                                                
-    // **************************************************************************                                                                                                                                
-
-    Real offset = 0.;
-    if (geom[0].isAllPeriodic())
-    {
-        for (int lev = 0; lev < nLevels; lev++)
-            offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
-        offset /= geom[0].ProbSize();
-    }
-
-    // solve                                                                                                                                                                                                     
-    Solver sol;
-    IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
-    IpplTimings::stopTimer(solvTimer);
-#endif
-    // ========================================================================
-    // do some operations on the data
-    // ========================================================================
-    
-    
-    for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
-        
-        if ( myAmrOpal.boxArray(i).empty() )
-            break;
-        
-        MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
-        dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
-        Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-        
-        double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
-        
-        /* refinement factor */
-        invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
-        
-        std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-                  << "Charge sum: " << charge << std::endl;
-
-        
-    }
-    
-    std::string plotfilename = BoxLib::Concatenate("amr", 0, 4);
-    myAmrOpal.writePlotFile(plotfilename, 0);
+//     // ========================================================================
+//     // do some operations on the data
+//     // ========================================================================
+//     
+//     
+//     for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
+//         
+//         if ( myAmrOpal.boxArray(i).empty() )
+//             break;
+//         
+//         MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
+//         dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
+//         Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
+//         
+//         double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
+//         
+//         /* refinement factor */
+//         invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
+//         
+//         std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
+//                   << "Charge sum: " << charge << std::endl;
+// 
+//         
+//     }
+//     
+//     std::string plotfilename = BoxLib::Concatenate("amr", 0, 4);
+//     myAmrOpal.writePlotFile(plotfilename, 0);
     
     
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
+    
+    
+    PArray<MultiFab> rhs;
+    PArray<MultiFab> phi;
+    PArray<MultiFab> grad_phi;
+    
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
     
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
@@ -446,7 +471,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->gatherStatistics();
         
         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
-        myAmrOpal.writePlotFile(plotfilename, it);
+        writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
         
         // update time step according to levels
         dt = 0.5 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
@@ -463,41 +488,44 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             msg << "DONE " << i << "th regridding." << endl;
         }
         
-        //
-        for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
-            MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
-            dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
-            Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-            
-            double invVol = 1.0 / ( nr[0] * nr[1] * nr[2] );
-            
-            /* refinement factor */
-            invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
-            
-            std::cout << "MultiFab sum (not normalized): " << mf.sum() << std::endl;
-            std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-                      << "Charge sum: " << charge << std::endl;
-
         
-        }
-        //
+        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
         
-//         myAmrOpal.averageDown();
-        
-        amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
-            << "Finest level = " << myAmrOpal.finestLevel() << endl;
-        for (int i = 0; i < int(nMaxLevels); ++i)
-            amr << "Max. ref. ratio level " << i << ": "
-                << myAmrOpal.MaxRefRatio(i) << endl;
-        for (int i = 0; i < nLevels; ++i)
-            amr << "Max. grid size level" << i << ": "
-                << myAmrOpal.maxGridSize(i) << endl;
-        
-        for (int i = 0; i < nLevels; ++i)
-            amr << "BoxArray level" << i << ": "
-                << myAmrOpal.boxArray(i) << endl;
-
-        msg << "Done timestep " << it << " using dt = " << dt << endl;
+//         //
+//         for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
+//             MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
+//             dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
+//             Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
+//             
+//             double invVol = 1.0 / ( nr[0] * nr[1] * nr[2] );
+//             
+//             /* refinement factor */
+//             invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
+//             
+//             std::cout << "MultiFab sum (not normalized): " << mf.sum() << std::endl;
+//             std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
+//                       << "Charge sum: " << charge << std::endl;
+// 
+//         
+//         }
+//         //
+//         
+// //         myAmrOpal.averageDown();
+//         
+//         amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
+//             << "Finest level = " << myAmrOpal.finestLevel() << endl;
+//         for (int i = 0; i < int(nMaxLevels); ++i)
+//             amr << "Max. ref. ratio level " << i << ": "
+//                 << myAmrOpal.MaxRefRatio(i) << endl;
+//         for (int i = 0; i < nLevels; ++i)
+//             amr << "Max. grid size level" << i << ": "
+//                 << myAmrOpal.maxGridSize(i) << endl;
+//         
+//         for (int i = 0; i < nLevels; ++i)
+//             amr << "BoxArray level" << i << ": "
+//                 << myAmrOpal.boxArray(i) << endl;
+// 
+//         msg << "Done timestep " << it << " using dt = " << dt << endl;
     }
     ParallelDescriptor::Barrier();
     IpplTimings::stopTimer(tracTimer);

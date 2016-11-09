@@ -787,122 +787,122 @@ void ParallelTTracker::executeAMRTracker()
     itsBunch->Ef = Vector_t(0.0);
     itsBunch->Bf = Vector_t(0.0);
 
-    for(; step < localTrackSteps_m.front(); ++step)
-    {
-        bends_m = 0;
-        numberOfFieldEmittedParticles_m = 0;
-
-        itsOpalBeamline_m.resetStatus();
-
-        // we dump later, after one step.
-        // dumpStats(step, true, true);
-
-        Real stop_time = -1.;
-
-        std::cout << "                " << std::endl;
-        std::cout << " ************** " << std::endl;
-        std::cout << " DOING STEP ... " << step << std::endl;
-        std::cout << " ************** " << std::endl;
-        std::cout << "                " << std::endl;
-
-        Real dt_from_amr = amrptr->coarseTimeStepDt(stop_time);
-
-        std::cout << "                " << std::endl;
-        std::cout << " ************** " << std::endl;
-        std::cout << " COMPLETED STEP ... " << step << " WITH DT = " << dt_from_amr << std::endl;
-        std::cout << " ************** " << std::endl;
-        std::cout << "                " << std::endl;
-
-        t += dt_from_amr;
-        itsBunch->setT(t);
-
-        bool const psDump = step % Options::psDumpFreq == 0;
-        bool const statDump = step % Options::statDumpFreq == 0;
-        dumpStats(step, psDump, statDump);
-
-        if(hasEndOfLineReached()) break;
-
-        switchElements(10.0);
-
-        itsBunch->incTrackSteps();
-
-        // These routines return the particle data for all of the particles and on all of the processes
-
-        Array<int> particle_ids;
-        amrptr->GetParticleIDs(particle_ids);
-
-        Array<int> particle_cpu;
-        amrptr->GetParticleCPU(particle_cpu);
-
-        Array<Real> locs;
-        amrptr->GetParticleLocations(locs);
-
-        // Here we assume that we have stored, Q, V, ... in the particle data in TrackRun.cpp
-        int start_comp = 1;
-        int   num_comp = 3;
-	Array<Real> Qs;
-        Array<Real> vels;
-        Array<Real> Evec;
-
-        amrptr->GetParticleData(Qs,0,1);
-        amrptr->GetParticleData(vels,start_comp,num_comp);
-    	//amrptr->GetParticleData(vels,start_comp,6);
-        amrptr->GetParticleData(Evec,4,num_comp);
-
-        std::cout << "SIZE OF PARTICLE IDs "  << particle_ids.size() << std::endl;
-        std::cout << "SIZE OF PARTICLE CPU "  << particle_cpu.size() << std::endl;
-        std::cout << "SIZE OF PARTICLE LOCS " << locs.size() << std::endl;
-        std::cout << "SIZE OF PARTICLE VELS " << vels.size() << std::endl;
-        std::cout << "SIZE OF PARTICLE EFIELD " << Evec.size() << std::endl;
-
-
-        int num_particles_total = particle_ids.size();
-
-	double gamma=itsReference.getGamma();
-	std:: cout << " GAMMA" << gamma << std::endl;
-
-        Vector_t rmin;
-        Vector_t rmax;
-        itsBunch->get_bounds(rmin, rmax);
-
-        FVector<double,6> six_vect;
-
-	for (int i = 0; i < num_particles_total; i++)
-        {
-             if (i < 3 ) std::cout << "PARTICLE ID " << particle_ids[i] << "\n"
-				    << Qs[i] << "\n"
-                                    << "  " << locs[3*i  ] << " " << vels[3*i  ] << "\n"
-		 		    << "  " << locs[3*i+1] << " " << vels[3*i+1] << "\n"
-		 		    << "  " << locs[3*i+2] << " " << vels[3*i+2] << "\n"
-#if 0
-		 		    << "  " << locs[3*i]   << " " << vels[3*i+3] << "\n"
-		 		    << "  " << locs[3*i+1] << " " << vels[3*i+4] << "\n"
-		 		    << "  " << locs[3*i+2] << " " << vels[3*i+5] << "\n"
-#endif
-                                    << "  " << locs[3*i  ] << " " << Evec[3*i  ] << "\n"
-		 		    << "  " << locs[3*i+1] << " " << Evec[3*i+1] << "\n"
-		 		    << "  " << locs[3*i+2] << " " << Evec[3*i+2] << "\n"
-		 		    << std::endl;
-             if (particle_cpu[i] == Ippl::myNode())
-             {
-                 six_vect[0] = locs[3*i  ];
-                 six_vect[1] = vels[3*i  ] * gamma / Physics::c;
-                 six_vect[2] = locs[3*i+1];
-                 six_vect[3] = vels[3*i+1] * gamma / Physics::c;
-                 six_vect[4] = locs[3*i+2];
-                 six_vect[5] = vels[3*i+2] * gamma / Physics::c;
-
-                 // We subtract one from the particle_id because we added one to it when we
-                 //    passed the particle into the AMR stuff.
-                 // std::cout << "ON NODE ID " << Ippl::myNode() << " ADDING PARTICLE "
-                 //          << particle_ids[i] << " WITH X,Y,Z "
-                 //          << locs[3*i] << " " << locs[3*i+1] << " " << locs[3*i+2] << std::endl;
-                 itsBunch->set_part(six_vect, particle_ids[i]-1);
-		 for (int k=0; k<3; k++)
-			itsBunch->Ef[particle_ids[i]-1](k) = Evec[3*i+k];
-             }
-	}
-    }
+//     for(; step < localTrackSteps_m.front(); ++step)
+//     {
+//         bends_m = 0;
+//         numberOfFieldEmittedParticles_m = 0;
+// 
+//         itsOpalBeamline_m.resetStatus();
+// 
+//         // we dump later, after one step.
+//         // dumpStats(step, true, true);
+// 
+//         Real stop_time = -1.;
+// 
+//         std::cout << "                " << std::endl;
+//         std::cout << " ************** " << std::endl;
+//         std::cout << " DOING STEP ... " << step << std::endl;
+//         std::cout << " ************** " << std::endl;
+//         std::cout << "                " << std::endl;
+// 
+//         Real dt_from_amr = amrptr->coarseTimeStepDt(stop_time);
+// 
+//         std::cout << "                " << std::endl;
+//         std::cout << " ************** " << std::endl;
+//         std::cout << " COMPLETED STEP ... " << step << " WITH DT = " << dt_from_amr << std::endl;
+//         std::cout << " ************** " << std::endl;
+//         std::cout << "                " << std::endl;
+// 
+//         t += dt_from_amr;
+//         itsBunch->setT(t);
+// 
+//         bool const psDump = step % Options::psDumpFreq == 0;
+//         bool const statDump = step % Options::statDumpFreq == 0;
+//         dumpStats(step, psDump, statDump);
+// 
+//         if(hasEndOfLineReached()) break;
+// 
+//         switchElements(10.0);
+// 
+//         itsBunch->incTrackSteps();
+// 
+//         // These routines return the particle data for all of the particles and on all of the processes
+// 
+//         Array<int> particle_ids;
+//         amrptr->GetParticleIDs(particle_ids);
+// 
+//         Array<int> particle_cpu;
+//         amrptr->GetParticleCPU(particle_cpu);
+// 
+//         Array<Real> locs;
+//         amrptr->GetParticleLocations(locs);
+// 
+//         // Here we assume that we have stored, Q, V, ... in the particle data in TrackRun.cpp
+//         int start_comp = 1;
+//         int   num_comp = 3;
+// 	Array<Real> Qs;
+//         Array<Real> vels;
+//         Array<Real> Evec;
+// 
+//         amrptr->GetParticleData(Qs,0,1);
+//         amrptr->GetParticleData(vels,start_comp,num_comp);
+//     	//amrptr->GetParticleData(vels,start_comp,6);
+//         amrptr->GetParticleData(Evec,4,num_comp);
+// 
+//         std::cout << "SIZE OF PARTICLE IDs "  << particle_ids.size() << std::endl;
+//         std::cout << "SIZE OF PARTICLE CPU "  << particle_cpu.size() << std::endl;
+//         std::cout << "SIZE OF PARTICLE LOCS " << locs.size() << std::endl;
+//         std::cout << "SIZE OF PARTICLE VELS " << vels.size() << std::endl;
+//         std::cout << "SIZE OF PARTICLE EFIELD " << Evec.size() << std::endl;
+// 
+// 
+//         int num_particles_total = particle_ids.size();
+// 
+// 	double gamma=itsReference.getGamma();
+// 	std:: cout << " GAMMA" << gamma << std::endl;
+// 
+//         Vector_t rmin;
+//         Vector_t rmax;
+//         itsBunch->get_bounds(rmin, rmax);
+// 
+//         FVector<double,6> six_vect;
+// 
+// 	for (int i = 0; i < num_particles_total; i++)
+//         {
+//              if (i < 3 ) std::cout << "PARTICLE ID " << particle_ids[i] << "\n"
+// 				    << Qs[i] << "\n"
+//                                     << "  " << locs[3*i  ] << " " << vels[3*i  ] << "\n"
+// 		 		    << "  " << locs[3*i+1] << " " << vels[3*i+1] << "\n"
+// 		 		    << "  " << locs[3*i+2] << " " << vels[3*i+2] << "\n"
+// #if 0
+// 		 		    << "  " << locs[3*i]   << " " << vels[3*i+3] << "\n"
+// 		 		    << "  " << locs[3*i+1] << " " << vels[3*i+4] << "\n"
+// 		 		    << "  " << locs[3*i+2] << " " << vels[3*i+5] << "\n"
+// #endif
+//                                     << "  " << locs[3*i  ] << " " << Evec[3*i  ] << "\n"
+// 		 		    << "  " << locs[3*i+1] << " " << Evec[3*i+1] << "\n"
+// 		 		    << "  " << locs[3*i+2] << " " << Evec[3*i+2] << "\n"
+// 		 		    << std::endl;
+//              if (particle_cpu[i] == Ippl::myNode())
+//              {
+//                  six_vect[0] = locs[3*i  ];
+//                  six_vect[1] = vels[3*i  ] * gamma / Physics::c;
+//                  six_vect[2] = locs[3*i+1];
+//                  six_vect[3] = vels[3*i+1] * gamma / Physics::c;
+//                  six_vect[4] = locs[3*i+2];
+//                  six_vect[5] = vels[3*i+2] * gamma / Physics::c;
+// 
+//                  // We subtract one from the particle_id because we added one to it when we
+//                  //    passed the particle into the AMR stuff.
+//                  // std::cout << "ON NODE ID " << Ippl::myNode() << " ADDING PARTICLE "
+//                  //          << particle_ids[i] << " WITH X,Y,Z "
+//                  //          << locs[3*i] << " " << locs[3*i+1] << " " << locs[3*i+2] << std::endl;
+//                  itsBunch->set_part(six_vect, particle_ids[i]-1);
+// 		 for (int k=0; k<3; k++)
+// 			itsBunch->Ef[particle_ids[i]-1](k) = Evec[3*i+k];
+//              }
+// 	}
+//     }
 
     Vector_t rmin;
     Vector_t rmax;

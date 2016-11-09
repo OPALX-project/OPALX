@@ -185,7 +185,14 @@ IF (ENABLE_AMR_SOLVER)
     MESSAGE (STATUS "  ENABLE_PROFILING = ${ENABLE_PROFILING}")
 ENDIF (ENABLE_AMR_SOLVER)
 
-if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
+# remove digits from hostname: edison03 -> edison
+STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
+
+# In case of Edison and Cori the find_package(Trilinos) gives the wrong
+# Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
+# cray-tpsl/16.06.1 libraries -> Linker error.
+# We can avoid this issue by not going into the if-statement
+if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER) )
     MESSAGE ("Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
     MESSAGE ("Enable AMR_SOLVER    " ${ENABLE_AMR_SOLVER})
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})

@@ -37,22 +37,6 @@
 #include "DataSource/FilePtclBaseDataSource.h"
 #include "DataSource/FilePtclAttribDataSource.h"
 
-// aclvis connection method
-#ifdef IPPL_ACLVIS
-#include "DataSource/ACLVISFieldDataSource.h"
-#include "DataSource/ACLVISPtclBaseDataSource.h"
-#include "DataSource/ACLVISPtclAttribDataSource.h"
-#endif
-
-// paws connection method
-#ifdef IPPL_PAWS
-#include "IpplPaws/PawsFieldDataSource.h"
-#include "IpplPaws/PawsPtclAttribDataSource.h"
-#include "IpplPaws/PawsScalarDataSource.h"
-#include "IpplPaws/PawsStringDataSource.h"
-#endif
-
-
 ////////////////////////////////////////////////////////////////////////////
 // a version of make_DataSourceObject for Field's.
 // arguments: name, connection type, transfer metohd, Field
@@ -66,21 +50,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
 
   // find what method it is, and make the appropriate DataSourceObject
   DataSourceObject *dso = 0;
-  if (method == "aclvis") {
-    // create a DataSourceObject for this Field which will connect to
-    // the ACL visualization code
-#ifdef IPPL_ACLVIS
-    dso = new ACLVISFieldDataSource<T,Dim,M,C>(nm, dc, t, F);
-#endif
-
-  } else if (method == "paws") {
-    // create a DataSourceObject for this Field which will connect to
-    // another PAWS application
-#ifdef IPPL_PAWS
-    dso = new PawsFieldDataSource<T,Dim,M,C>(nm, dc, t, F);
-#endif
-
-  } else if (method == "file") {
+  if (method == "file") {
     // create a DataSourceObject for this Field which will connect to a file
     dso = new FileFieldDataSource<T,Dim,M,C>(nm, dc, t, F);
   }
@@ -104,21 +74,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
   std::string method(dc->DSID());
 
   DataSourceObject *dso = 0;
-  if (method == "aclvis") {
-    // create a DataSourceObject for this ParticleAttrib which will connect to
-    // the ACL visualization code
-#ifdef IPPL_ACLVIS
-    dso = new ACLVISParticleAttribDataSource<T>(nm, dc, t, P);
-#endif
-
-  } else if (method == "paws") {
-    // create a DataSourceObject for this ParticleAttrib which will connect to
-    // another PAWS application
-#ifdef IPPL_PAWS
-    dso = new PawsParticleAttribDataSource<T>(nm, dc, t, P);
-#endif
-
-  } else if (method == "file") {
+  if (method == "file") {
     // create a DataSourceObject for this ParticleAttrib which will connect to
     // a file
     dso = new FileParticleAttribDataSource<T>(nm, dc, t, P);
@@ -143,18 +99,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
   std::string method(dc->DSID());
 
   DataSourceObject *dso = 0;
-  if (method == "aclvis") {
-    // create a DataSourceObject for this IpplParticleBase which will connect to
-    // the ACL visualization code
-#ifdef IPPL_ACLVIS
-    dso = new ACLVISIpplParticleBaseDataSource<PLayout>(nm, dc, t, P);
-#endif
-
-  } else if (method == "paws") {
-    // create a DataSourceObject for this ParticleAttrib which will connect to
-    // another PAWS application
-
-  } else if (method == "file") {
+  if (method == "file") {
     // create a DataSourceObject for this FILE which will connect to
     // a file
     dso = new FileIpplParticleBaseDataSource<PLayout>(nm, dc, t, P);
@@ -178,17 +123,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
   std::string method(dc->DSID());
 
   DataSourceObject *dso = 0;
-  if (method == "aclvis") {
-    // create a DataSourceObject for this IpplParticleBase which will connect to
-    // the ACL visualization code
-
-  } else if (method == "paws") {
-    // create a DataSourceObject for this ParticleAttrib which will connect to
-    // another PAWS application
-#ifdef IPPL_PAWS
-    dso = new PawsScalarDataSource<T>(nm, dc, t, S);
-#endif
-  } else if (method == "file") {
+  if (method == "file") {
     // create a DataSourceObject for this FILE which will connect to
     // a file
   }
@@ -212,17 +147,7 @@ make_DataSourceObject(const char *nm, DataConnect *dc, int t,
   std::string method(dc->DSID());
 
   DataSourceObject *dso = 0;
-  if (method == "aclvis") {
-    // create a DataSourceObject for this IpplParticleBase which will connect to
-    // the ACL visualization code
-
-  } else if (method == "paws") {
-    // create a DataSourceObject for this ParticleAttrib which will connect to
-    // another PAWS application
-#ifdef IPPL_PAWS
-    dso = new PawsStringDataSource<T>(nm, dc, t, S);
-#endif
-  } else if (method == "file") {
+  if (method == "file") {
     // create a DataSourceObject for this FILE which will connect to
     // a file
   }
