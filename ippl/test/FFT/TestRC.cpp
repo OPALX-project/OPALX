@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
   
   testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
 
-  double total_time = 0;
+
   rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
   rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
 
@@ -254,6 +254,7 @@ int main(int argc, char *argv[])
     rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
     IpplTimings::stopTimer(fftTimer);
 
+    //double total_time = 0;
     //total_time+= timer.cpu_time();
     /*
       Inform fo2(NULL,"FFTrealResult.dat",Inform::OVERWRITE);
