@@ -70,7 +70,7 @@ double PoissonProblems::doSolveNoParticles() {
     
     // rho is equal to one everywhere
     for (int l = 0; l < nLevels_m; ++l)
-        rho_m[l].setVal(-1.0);
+        rho_m[l]->setVal(-1.0);
     
     
     Real offset = 0.0;
@@ -81,7 +81,7 @@ double PoissonProblems::doSolveNoParticles() {
     
     // get solution on coarsest level by averaging down from finest.
     for (int i = fine_level-1; i >= 0; --i) {
-        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+        BoxLib::average_down(*phi_m[i+1], *phi_m[i], 0, 1, refRatio_m[i]);
     }
     
     
@@ -103,9 +103,9 @@ double PoissonProblems::doSolveNoParticles() {
     
     
     // comparison
-    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    MultiFab::Subtract(*phi_single_m[0], *phi_m[0], 0, 0, 1, 1);
     
-    return phi_single_m[0].norm2();
+    return phi_single_m[0]->norm2();
 }
 
 
@@ -190,10 +190,10 @@ double PoissonProblems::doSolveParticlesUniform() {
         BoxLib::average_down(PartMF[lev+1],PartMF[lev], 0, 1, refRatio_m[lev]);
 
     for (int lev = 0; lev < nLevels_m; lev++)
-        MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     
     for (int i = 0; i < nLevels_m; ++i)
-        std::cout << rho_m[i].min(0) << " " << rho_m[i].max(0) << std::endl;
+        std::cout << rho_m[i]->min(0) << " " << rho_m[i]->max(0) << std::endl;
     
     Real offset = 0.0;
     Solver sol;
@@ -203,7 +203,7 @@ double PoissonProblems::doSolveParticlesUniform() {
     
     // get solution on coarsest level by averaging down from finest.
     for (int i = fine_level-1; i >= 0; --i) {
-        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+        BoxLib::average_down(*phi_m[i+1], *phi_m[i], 0, 1, refRatio_m[i]);
     }
     
     std::string dir = "plt0000";
@@ -225,9 +225,9 @@ double PoissonProblems::doSolveParticlesUniform() {
     
     
     // comparison
-    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    MultiFab::Subtract(*phi_single_m[0], *phi_m[0], 0, 0, 1, 1);
     
-    return phi_single_m[0].norm2();
+    return phi_single_m[0]->norm2();
 }
 
 
@@ -364,7 +364,7 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     for (int lev = 0; lev < nLevels_m; lev++) {
         PartMF[lev].mult(constant, 0, 1);
         
-        MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     }
     
     Real offset = 0.0;
@@ -375,14 +375,14 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     
     // get solution on coarsest level by averaging down from finest.
     for (int i = fine_level-1; i >= 0; --i) {
-        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+        BoxLib::average_down(*phi_m[i+1], *phi_m[i], 0, 1, refRatio_m[i]);
     }
     
     std::string dir = "plt0000";
     Real time = 0.0;
     
     for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev].mult(1.0 / constant, 0, 1);
+        rho_m[lev]->mult(1.0 / constant, 0, 1);
     }
     
     writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
@@ -394,7 +394,7 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     
     
     for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev].mult(constant, 0, 1);
+        rho_m[lev]->mult(constant, 0, 1);
     }
     
     sol.solve_for_accel(rho_m, phi_single_m, efield_m, geom_m,
@@ -404,9 +404,9 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     
     
     // comparison
-    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    MultiFab::Subtract(*phi_single_m[0], *phi_m[0], 0, 0, 1, 1);
     
-    return phi_single_m[0].norm2();
+    return phi_single_m[0]->norm2();
     
 }
 
@@ -511,7 +511,7 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     for (int lev = 0; lev < nLevels_m; lev++) {
         PartMF[lev].mult(constant, 0, 1);
         
-        MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     }
     
     Real offset = 0.0;
@@ -522,21 +522,21 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     
     // get solution on coarsest level by averaging down from finest.
     for (int i = fine_level-1; i >= 0; --i) {
-        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+        BoxLib::average_down(*phi_m[i+1], *phi_m[i], 0, 1, refRatio_m[i]);
     }
     
     std::string dir = "plt0000";
     Real time = 0.0;
     
     for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev].mult(1.0 / constant, 0, 1);
+        rho_m[lev]->mult(1.0 / constant, 0, 1);
     }
     
     writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
     
     
     for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev].mult(constant, 0, 1);
+        rho_m[lev]->mult(constant, 0, 1);
     }
     
     // ------------------------------------------------------------------------
@@ -553,9 +553,9 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     
     
     // comparison
-    MultiFab::Subtract(phi_single_m[0], phi_m[0], 0, 0, 1, 1);
+    MultiFab::Subtract(*phi_single_m[0], *phi_m[0], 0, 0, 1, 1);
     
-    return phi_single_m[0].norm2();
+    return phi_single_m[0]->norm2();
 }
 
 double PoissonProblems::doSolveMultiGaussians(int nParticles, double stddev) {
@@ -653,7 +653,7 @@ double PoissonProblems::doSolveMultiGaussians(int nParticles, double stddev) {
     for (int lev = 0; lev < nLevels_m; lev++) {
         PartMF[lev].mult(constant, 0, 1);
         
-        MultiFab::Add(rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     }
     
     Real offset = 0.0;
@@ -664,7 +664,7 @@ double PoissonProblems::doSolveMultiGaussians(int nParticles, double stddev) {
     
     // get solution on coarsest level by averaging down from finest.
     for (int i = fine_level-1; i >= 0; --i) {
-        BoxLib::average_down(phi_m[i+1], phi_m[i], 0, 1, refRatio_m[i]);
+        BoxLib::average_down(*phi_m[i+1], *phi_m[i], 0, 1, refRatio_m[i]);
     }
     
     std::string dir = "plt0000";
@@ -701,16 +701,16 @@ void PoissonProblems::initMultiFabs_m() {
     phi_single_m.resize(nLevels_m);   // single level solve
     
     for (int l = 0; l < nLevels_m; ++l) {
-        rho_m.set(l, new MultiFab(ba_m[l], 1, 0));
-        rho_m[l].setVal(0.0);
+        rho_m[l] = std::unique_ptr<MultiFab>(new MultiFab(ba_m[l], 1, 0));
+        rho_m[l]->setVal(0.0);
         
-        phi_m.set(l, new MultiFab(ba_m[l], 1, 1));
-        phi_m[l].setVal(0.0);
+        phi_m[l] = std::unique_ptr<MultiFab>(new MultiFab(ba_m[l], 1, 1));
+        phi_m[l]->setVal(0.0);
         
-        phi_single_m.set(l, new MultiFab(ba_m[l], 1, 1));
-        phi_single_m[l].setVal(0.0);
+        phi_single_m[l] = std::unique_ptr<MultiFab>(new MultiFab(ba_m[l], 1, 1));
+        phi_single_m[l]->setVal(0.0);
         
-        efield_m.set(l, new MultiFab(ba_m[l], BL_SPACEDIM, 1));
-        efield_m[l].setVal(0.0);
+        efield_m[l] = std::unique_ptr<MultiFab>(new MultiFab(ba_m[l], BL_SPACEDIM, 1));
+        efield_m[l]->setVal(0.0);
     }
 }

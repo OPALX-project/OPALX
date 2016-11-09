@@ -100,10 +100,10 @@ private:
     Array<BoxArray> ba_m;                   ///< All boxes of each level
     Array<int> refRatio_m;                  ///< Refinement ratios among levels (here: 2)
     
-    PArray<MultiFab> rho_m;                 ///< Density (i.e. rhs)
-    PArray<MultiFab> phi_m;                 ///< Potential
-    PArray<MultiFab> efield_m;              ///< Electric field
-    PArray<MultiFab> phi_single_m;          ///< Potential for single-level solve
+    std::vector<std::unique_ptr<MultiFab> > rho_m;                 ///< Density (i.e. rhs)
+    std::vector<std::unique_ptr<MultiFab> > phi_m;                 ///< Potential
+    std::vector<std::unique_ptr<MultiFab> > efield_m;              ///< Electric field
+    std::vector<std::unique_ptr<MultiFab> > phi_single_m;          ///< Potential for single-level solve
     
 };
 
