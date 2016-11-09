@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
   
   FFT<SineTransform,D,double> sinefft2(ndiStandard, cosTransformDims, compressTemps);
 
+  msg << &sinefft2 << endl;
   msg << "In-place cosine transform using all-parallel layout ..." << endl;
 
   IpplTimings::startTimer(cosFFTTimer);
