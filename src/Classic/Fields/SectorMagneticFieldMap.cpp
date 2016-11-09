@@ -49,6 +49,8 @@
 
 using namespace interpolation;
 
+extern Inform *gmsg;
+
 // allow a fairly generous phi tolerance - we don't care about phi much and
 // calculation can be flaky due to ascii truncation of double and conversions
 // from polar to Cartesian
@@ -294,9 +296,9 @@ VectorMap* SectorMagneticFieldMap::IO::readMap(
                           int polynomial_order,
                           int smoothing_order) {
     try {
-        INFOMSG("Opening sector field map " << file_name
+        *gmsg <<"* Opening sector field map " << file_name
                 << " fit order " << polynomial_order
-                << " smoothing order " << smoothing_order << endl);
+                << " smoothing order " << smoothing_order << endl;
         // get raw data
         std::vector< std::vector<double> > field_points = readLines
                                                              (file_name, units);
@@ -427,7 +429,7 @@ std::vector< std::vector<double> > SectorMagneticFieldMap::IO::readLines
                ));
     }
     // skip header lines
-    INFOMSG("Opened "+file_name << endl);
+    *gmsg << "* Opened "+file_name << endl;
     for (size_t i = 0; i < 8; ++i) {
         std::getline(fin, line);
     }
@@ -445,7 +447,7 @@ std::vector< std::vector<double> > SectorMagneticFieldMap::IO::readLines
             line_number++;
         }
     }
-    INFOMSG("Read " << line_number << " lines" << endl);
+    *gmsg << "* Read " << line_number << " lines" << endl;
 
     // convert coordinates to polar; nb we leave field as cartesian
     for (size_t i = 0; i < field_points.size(); ++i) {
@@ -482,15 +484,15 @@ ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
     }
     
     // reflect about y if symmetry is dipole
-    INFOMSG("Grid size (r, y, phi) = ("
-            << r_grid.size() << ", " << y_grid.size() << ", " << phi_grid.size()
-            << ")" << endl);
-    INFOMSG("Grid min (r [mm], y [mm], phi [rad]) = ("
-            << r_grid[0] << ", " << y_grid[0] << ", " << phi_grid[0]
-            << ")" << endl);
-    INFOMSG("Grid max (r [mm], y [mm], phi [rad]) = ("
-            << r_grid.back() << ", " << y_grid.back() << ", " << phi_grid.back()
-            << ")" << endl);
+    *gmsg << "* Grid size (r, y, phi) = ("
+          << r_grid.size() << ", " << y_grid.size() << ", " << phi_grid.size()
+          << ")" << endl;
+    *gmsg << "* Grid min (r [mm], y [mm], phi [rad]) = ("
+          << r_grid[0] << ", " << y_grid[0] << ", " << phi_grid[0]
+          << ")" << endl;
+    *gmsg << "* Grid max (r [mm], y [mm], phi [rad]) = ("
+          << r_grid.back() << ", " << y_grid.back() << ", " << phi_grid.back()
+          << ")" << endl;
 
     ThreeDGrid* grid = new ThreeDGrid(r_grid, y_grid, phi_grid);
     grid->setConstantSpacing(true);
