@@ -30,7 +30,6 @@
 **			  -DPROFILING_ON to enable profiling (ESSENTIAL)  **
 **			  -DPROFILE_STATS for Std. Deviation of Excl Time **
 **			  -DPROFILE_CALLS  for trace of each invocation   **
-**			  -DIPPL_STDSTL for using STD STL in IPPL src   **
 **			  -DDEBUG_PROF  for internal debugging messages   **
 **	Documentation	: See http://www.acl.lanl.gov/tau	          **
 ***************************************************************************/
@@ -77,35 +76,10 @@ SPACE for 			0x00080000
 
 #define TAU_MAX_THREADS 1024
 
-#if (defined(PROFILING_ON) || defined(TRACING_ON))
-
-
-#include  
-
-#ifndef NO_RTTI /* RTTI is present  */
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <typeinfo>
-#else
-#include <typeinfo.h>
-#endif
-
-#endif /* NO_RTTI  */
-
-#ifdef IPPL_STDSTL
-
 #include <vector>
-// Standard STL has pair class in Utility header
 #include <utility>
 #include <list>
-
-#else
-
-#include <vector.h>
-#include <pair.h>
-#include <list.h>
-
-#endif // IPPL_STDSTL
 
 
 /////////////////////////////////////////////////////////////////////

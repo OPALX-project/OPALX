@@ -17,11 +17,7 @@
 #include "PETE/IpplExpressions.h"
 #include "AppTypes/TSVMeta.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template <class T, unsigned D> class SymTenzor;

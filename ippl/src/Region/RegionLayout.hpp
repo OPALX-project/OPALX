@@ -660,12 +660,7 @@ RegionLayout<T,Dim,MeshType>::make_rnodes(const NDRegion<T,Dim>& dom,
   // check in with us, so we know that all user's can be cast to
   // FieldLayoutUser.
   for (iterator_user p = begin_user(); p != end_user(); ++p) {
-#ifndef IPPL_KAI
-    FieldLayoutUser *user = dynamic_cast<FieldLayoutUser *>((*p).second);
-#else
-    // minor hack to work around RTTI bug in KCC 3.2; use C-style cast
     FieldLayoutUser *user = (FieldLayoutUser *) (*p).second;
-#endif
     user->Repartition(this);
   }
 }

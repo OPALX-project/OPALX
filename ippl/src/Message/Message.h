@@ -93,15 +93,11 @@ DEFINE_ALL_BUILTIN_TRAIT_CLASS(int)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(unsigned int)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(long)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(unsigned long)
-#if defined(IPPL_LONGLONG)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(long long)
-#endif
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(float)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(double)
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(dcomplex)
-#if ( !defined(IPPL_USE_SINGLE_PRECISION) )
 DEFINE_ALL_BUILTIN_TRAIT_CLASS(fComplex)
-#endif
 
 /////////////////////////////////////////////////////////////////////
 // a class to put single items into a Message, which can be specialized
@@ -166,11 +162,8 @@ public:
         // a very simple struct for storing MsgItem data
         struct MsgItemBuf
         {
-#if defined(IPPL_LONGLONG)
             unsigned long long d1, d2, d3, d4;
-#else
-            unsigned long d1, d2, d3, d4;
-#endif
+
             MsgItemBuf() { }
             MsgItemBuf(const MsgItemBuf& m) : d1(m.d1),d2(m.d2),d3(m.d3),d4(m.d4) {}
             ~MsgItemBuf() { }

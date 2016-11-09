@@ -32,13 +32,8 @@
 
 #include "Field/BareField.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 #include <iomanip> // need format fcns setf() and setprecision() from here
-#else
-#include <iostream.h>
-#include <iomanip.h> // need format fcns setf() and setprecision() from here
-#endif
 
 
 //----------------------------------------------------------------------

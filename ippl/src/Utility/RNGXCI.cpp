@@ -28,13 +28,8 @@
 
 // initialize static variables for RNGXCI
 
-#if defined(IPPL_LONGLONG)
 const RNlong RNGXCI::RN_MULT   =  19073486328125LL;        // 5^19 
 const RNlong RNGXCI::RN_MOD    = 281474976710656LL;        // 2^48 
-#else
-const RNlong RNGXCI::RN_MULT   =  19073486328125L;         // 5^19 
-const RNlong RNGXCI::RN_MOD    = 281474976710656L;         // 2^48 
-#endif
 const RNlong RNGXCI::RN_PERIOD = RNGXCI::RN_MOD/4; // period
 // normalize to (0,1)
 const double RNGXCI::RN_NORM   = 1./281474976710656.;

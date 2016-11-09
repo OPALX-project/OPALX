@@ -14,11 +14,7 @@
 // include files
 #include "Field/BrickIterator.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 template<class T, unsigned Dim>
 class CompressedBrickIterator;

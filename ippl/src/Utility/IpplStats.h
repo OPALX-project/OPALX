@@ -40,12 +40,7 @@
 #include "Utility/Timer.h"
 #include "Utility/Inform.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif
-
 
 class IpplStats {
 

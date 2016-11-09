@@ -20,17 +20,8 @@
 #include "Utility/Inform.h"
 #include <memory>
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template <unsigned Dim> class FieldLayout;

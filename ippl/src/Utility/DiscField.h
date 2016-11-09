@@ -33,25 +33,11 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <fcntl.h>
-#ifdef __MWERKS__
-#include <stat.h>
-//#include <types.h>
-#else
 #include <sys/stat.h>
 #include <sys/types.h>
-#endif // __MWERKS__
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif // IPPL_STDSTL
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template<unsigned Dim, class T> class UniformCartesian;
@@ -66,11 +52,7 @@ template <unsigned Dim, class T>
 struct DFOffsetData {
   int           vnodedata[6*Dim];
   bool          isCompressed;
-#if defined(IPPL_LONGLONG)
   long long     offset;
-#else
-  long          offset;
-#endif
   T             compressedVal;
 };
 
@@ -1023,11 +1005,7 @@ public:
 private:
   // private typedefs
   typedef vmap<NDIndex<Dim>, int>  GlobalIDList_t;
-#if defined(IPPL_LONGLONG)
   typedef long long  Offset_t; 
-#else
-  typedef long  Offset_t; 
-#endif
 
   //
   // meta data (static info for the file which does not change)
