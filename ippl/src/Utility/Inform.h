@@ -31,21 +31,9 @@
  *      argument to the constructor may also be set to the node to print on.
  */
 
-// include files
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 #include <iomanip>
-#else
-#include <iostream.h>
-#include <iomanip.h>
-#endif
-
-#ifdef IPPL_NO_STRINGSTREAM
 #include <sstream>
-#else
-#include <strstream.h>
-#endif
-
 
 // range of Inform message levels
 #define MIN_INFORM_LEVEL	1
@@ -137,17 +125,10 @@ private:
   // name of this object; put at the start of each message.
   char *Name;
 
-#ifdef IPPL_NO_STRINGSTREAM
   // storage for the message text
   std::string MsgBuf;
   // an ostringstream used to format the messages
   std::ostringstream FormatBuf;
-#else
-  // storage for the message text
-  char MsgBuf[MAX_INFORM_MSG_SIZE];
-  // an ostrstream used to format the messages
-  ostrstream FormatBuf;
-#endif
 
   // where to put the messages; can be changed, by default = cout
   std::ostream *MsgDest;
@@ -222,19 +203,12 @@ Inform& operator<<(Inform& o, const void *val) {
   return o;
 }
 
-#if defined(IPPL_LONGLONG)
 // specialized version of operator<< to handle long long type (KCC workaround)
 inline
 Inform& operator<<(Inform& o, const long long& val) {
-#if ( defined(IPPL_KAI) || defined(IPPL_PGI) )
-  // cast to long double before sending to ostream
-  o.getStream() << static_cast<long double>(val);
-#else
   o.getStream() << val;
-#endif
   return o;
 }
-#endif // IPPL_LONGLONG
 
 // specialized function for sending strings to Inform object
 inline Inform& operator<<(Inform& out, const std::string& s) {

@@ -49,11 +49,7 @@ public:
   void printIt();
 
 private:
-#if defined(IPPL_LONGLONG)
   typedef long long CounterLong;
-#else
-  typedef long CounterLong;
-#endif
 
   CounterLong totalcyc_m;
   CounterLong totalinst_m;

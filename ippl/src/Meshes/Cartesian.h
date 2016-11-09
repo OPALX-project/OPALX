@@ -20,11 +20,7 @@
 #include "Meshes/CartesianCentering.h"
 #include "AppTypes/Vektor.h"
 
-#ifdef IPPL_STDSTL
 #include <map>
-#else
-#include <map.h>
-#endif // IPPL_STDSTL
 
 // forward declarations
 template<class T, unsigned D> class BareField;

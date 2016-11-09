@@ -66,23 +66,9 @@ It should gradually get expanded to include as many as make sense.
 #include "Utility/Pooled.h"
 #include "Utility/PAssert.h"
 
-#ifdef IPPL_STDSTL
-
 #include <list>
 #include <iterator>
-#ifndef __MWERKS__
-#endif
-// Standard STL defines pair in Utility header
 #include <utility>
-
-#else
-
-#include <list.h>
-#include <iterator.h>
-#include <pair.h>
-
-#endif // IPPL_STDSTL
-
 #include <cstddef>
 
 template < class Key, class T , class Touches, class Contains, class Split > 

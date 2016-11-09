@@ -21,12 +21,7 @@
  ***********************************************************************/
 
 // include standard complex header file
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <complex>
-#else
-#include <complex.h>
-#endif
-
 
 #ifdef IPPL_HAS_TEMPLATED_COMPLEX
 

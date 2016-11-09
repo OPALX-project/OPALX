@@ -39,15 +39,10 @@
 #include "Utility/Timer.h"
 #include "Utility/my_auto_ptr.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
 #include <map>
 #include <limits>
 #include <string>
-#else
-#include <vector.h>
-#include <map.h>
-#endif // IPPL_STDSTL
 
 // a simple class used to store timer values
 class IpplTimerInfo

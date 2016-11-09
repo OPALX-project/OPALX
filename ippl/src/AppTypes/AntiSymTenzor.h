@@ -18,11 +18,7 @@
 #include "AppTypes/TSVMeta.h"
 #include "AppTypes/Tenzor.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 
 //////////////////////////////////////////////////////////////////////
