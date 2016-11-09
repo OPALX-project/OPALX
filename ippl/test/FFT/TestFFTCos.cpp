@@ -11,7 +11,6 @@
  ***************************************************************************/
 
 #include "Ippl.h"
-
 #include <complex>
 using namespace std;
 
