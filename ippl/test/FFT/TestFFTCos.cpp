@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   double realDiff;
 
   // Various counters, constants, etc:
-  int d;
+  
   double pi = acos(-1.0);
   double twopi = 2.0*pi;
   
@@ -34,17 +34,17 @@ int main(int argc, char *argv[])
 
   // Layout information:
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
-  for (d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++) 
     allParallel[d] = PARALLEL;
 
   // Compression of temporaries:
   bool compressTemps = false;
 
-  for (d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++) 
       ngrid[d] = atoi(argv[1]);
   
   NDIndex<D> ndiStandard;
-  for (d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++) 
       ndiStandard[d] = Index(ngrid[d]);
 
   // all parallel layout, standard domain, normal axis order
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 		  ndiStandard[2]    * kz * zfact ) );
   
   bool cosTransformDims[D];
-  for (d=0; d<D; ++d) 
+  for (unsigned int d=0; d<D; ++d) 
     cosTransformDims[d] = true;
   
   RFieldPPStan_save = RFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]];
