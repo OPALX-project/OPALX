@@ -426,16 +426,37 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
 
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
 
+    /*
+      find particle with ID==0
+      and save index in zID
+     */
+
+    size_t zID = 0;
+    bool found = false;
+    for(size_t k = 0; k < numLocalParticles; ++k) {
+        if (bunch.ID[k] == 0) {
+            found = true;
+            zID = k;
+            break;
+        }
+    }
+
     for(size_t i = 0; i < numLocalParticles; ++ i)
       f64buffer[i] =  bunch.R[i](0);
+    if (found)
+        f64buffer[zID] = bunch.R[zID+1](0);
     WRITEDATA(Float64, file_m, "x", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
         f64buffer[i] =  bunch.R[i](1);
+    if (found)
+        f64buffer[zID] = bunch.R[zID+1](1);
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
       f64buffer[i] =  bunch.R[i](2);
+    if (found)
+        f64buffer[zID] = bunch.R[zID+1](2);
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)

@@ -33,6 +33,7 @@
 #include "Structure/FieldSolver.h"      // OPAL file
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include "Algorithms/ListElem.h"
 
@@ -1758,7 +1759,7 @@ void PartBunch::boundp() {
     /*
       Assume rmin_m < 0.0
      */
-    Inform m("boundp ", INFORM_ALL_NODES);
+    // Inform m("boundp ", INFORM_ALL_NODES);
 
     IpplTimings::startTimer(boundpTimer_m);
     //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
@@ -1769,42 +1770,42 @@ void PartBunch::boundp() {
     if(!isGridFixed()) {
         const int dimIdx = 3;
 
-	/**
-	   In case of dcBeam_m && hr_m < 0
-	   this is the first call to boundp and we
-	   have to set hr completely i.e. x,y and z.
+        /**
+           In case of dcBeam_m && hr_m < 0
+           this is the first call to boundp and we
+           have to set hr completely i.e. x,y and z.
+        */
 
-	 */
+        const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
+        double hzSave;
 
-	const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
-	double hzSave;
+        NDIndex<3> domain = getFieldLayout().getDomain();
+        for(int i = 0; i < Dim; i++)
+            nr_m[i] = domain[i].length();
 
-	NDIndex<3> domain = getFieldLayout().getDomain();
-	for(int i = 0; i < Dim; i++)
-	  nr_m[i] = domain[i].length();
+        get_bounds(rmin_m, rmax_m);
+        Vector_t len = rmax_m - rmin_m;
 
-	get_bounds(rmin_m, rmax_m);
-	Vector_t len = rmax_m - rmin_m;
+        if (!fullUpdate) {
+            hzSave = hr_m[2];
+        }
+        else {
+            for(int i = 0; i < dimIdx; i++) {
+                double length = std::abs(rmax_m[i] - rmin_m[i]);
+                rmax_m[i] += dh_m * length;
+                rmin_m[i] -= dh_m * length;
+                if (length > 0)
+                    hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+            }
+            // m << "It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl;
+        }
+        if (!fullUpdate) {
+            hr_m[2] = hzSave;
+            //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+        }
 
-	if (!fullUpdate) {
-	  hzSave = hr_m[2];
-	}
-	else {
-	  for(int i = 0; i < dimIdx; i++) {
-              double length = std::abs(rmax_m[i] - rmin_m[i]);
-              rmax_m[i] += dh_m * length;
-              rmin_m[i] -= dh_m * length;
-	      if (length > 0)
-		hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-	  }
-
-	  //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
-	}
-
-	if (!fullUpdate) {
-	  hr_m[2] = hzSave;
-	  //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
-	}
+        if ((hr_m[0] <= 0.0) || (hr_m[1] <= 0.0) || (hr_m[2] <= 0.0))
+            throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
 
    // if (getTotalNum() < 200) m << "before set fields Nl= " << getLocalNum() << endl;
 
@@ -1919,6 +1920,21 @@ void PartBunch::calcMoments() {
         }
     }
 
+    /*
+      find particle with ID==0
+      and save index in zID
+     */
+
+    unsigned long zID = 0;
+    bool found = false;
+    for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
+        if (this->ID[k] == 0) {
+            found  = true;
+            zID = k;
+            break;
+        }
+    }
+    
     for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
         part[1] = this->P[k](0);
         part[3] = this->P[k](1);
@@ -1926,7 +1942,7 @@ void PartBunch::calcMoments() {
         part[0] = this->R[k](0);
         part[2] = this->R[k](1);
         part[4] = this->R[k](2);
-
+        
         for(int i = 0; i < 2 * Dim; i++) {
             loc_centroid[i]   += part[i];
             for(int j = 0; j <= i; j++) {
@@ -1934,6 +1950,23 @@ void PartBunch::calcMoments() {
             }
         }
     }
+    
+    if (found) {
+        part[1] = this->P[zID](0);
+        part[3] = this->P[zID](1);
+        part[5] = this->P[zID](2);
+        part[0] = this->R[zID](0);
+        part[2] = this->R[zID](1);
+        part[4] = this->R[zID](2);
+        
+        for(int i = 0; i < 2 * Dim; i++) {
+            loc_centroid[i]   -= part[i];
+            for(int j = 0; j <= i; j++) {
+                loc_moment[i][j]   -= part[i] * part[j];
+            }
+        }
+    } 
+
 
     for(int i = 0; i < 2 * Dim; i++) {
         for(int j = 0; j < i; j++) {
