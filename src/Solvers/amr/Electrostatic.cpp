@@ -1596,7 +1596,7 @@ Electrostatic::AddParticlesToRhs(int base_level, int finest_level, PArray<MultiF
     //END MATTHIAS
     
     // call: BoxLib ParticleContainer::AssignDensity
-    Accel::thePAPC()->AssignDensity(0, PartMF, base_level, 1, finest_level);
+//     Accel::thePAPC()->AssignDensity(0, PartMF, base_level, 1, finest_level);
     
     //BEGIN MATTHIAS
     //Accel::thePAPC()->AssignDensitySingleLevel(PartMF[0], 0, 1, 0);

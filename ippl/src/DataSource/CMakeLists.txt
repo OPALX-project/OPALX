@@ -8,14 +8,6 @@ SET (_SRCS
   )
 
 SET (_HDRS
-  ACLVISDataConnect.h
-  ACLVISFieldDataSource.hpp
-  ACLVISFieldDataSource.h
-  ACLVISOperations.h
-  ACLVISPtclAttribDataSource.hpp
-  ACLVISPtclAttribDataSource.h
-  ACLVISPtclBaseDataSource.hpp
-  ACLVISPtclBaseDataSource.h
   DataConnectCreator.h
   DataConnect.h
   DataSource.h

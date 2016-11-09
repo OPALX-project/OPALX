@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     std::stringstream cmd;
     cmd << "mpirun -np [#cores] testError [gridx] [gridy] [gridz] "
         << "[max. grid] [#levels] [hor. domain, e.g. 0 1] [vert. domain] "
-        << "[long. domain] [NOPARTICLES/UNIFORM/GAUSSIAN/REAL]";
+        << "[long. domain] [NOPARTICLES/UNIFORM/GAUSSIAN/REAL/MULTIGAUSS]";
     
     if ( argc < 13 ) {
         std::cerr << cmd.str() << std::endl;
@@ -60,14 +60,16 @@ int main(int argc, char* argv[]) {
         l2error = pp.doSolveParticlesUniform();
     else if ( std::strcmp(argv[12], "GAUSSIAN") == 0 ) {
         
-        if ( argc != 14 ) {
-            std::cerr << cmd.str() << " [#particles]" << std::endl;
+        if ( argc != 16 ) {
+            std::cerr << cmd.str() << " [#particles] [mean] [stddev]" << std::endl;
             return -1;
         }
         
         int nParticles = std::atoi(argv[13]);
+        double mean = std::atof(argv[14]);
+        double stddev = std::atof(argv[15]);    // standard deviation
         
-        l2error = pp.doSolveParticlesGaussian(nParticles);
+        l2error = pp.doSolveParticlesGaussian(nParticles, mean, stddev);
     } else if ( std::strcmp(argv[12], "REAL") == 0 ) {
         
         if ( argc != 15 ) {
@@ -78,6 +80,15 @@ int main(int argc, char* argv[]) {
         int step = std::atoi(argv[13]);
         
         l2error = pp.doSolveParticlesReal(step, argv[14]);
+    } else if ( std::strcmp(argv[12], "MULTIGAUSS") == 0 ) {
+        if ( argc != 15 ) {
+            std::cerr << cmd.str() << " [#particles] [stddev]" << std::endl;
+            return -1;
+        }
+        int nParticles = std::atoi(argv[13]);
+        double stddev = std::atof(argv[14]);    // standard deviation
+        
+        l2error = pp.doSolveMultiGaussians(nParticles, stddev);
     } else {
         if ( ParallelDescriptor::MyProc() == 0 )
             std::cerr << "Not supported solver." << std::endl
@@ -94,7 +105,7 @@ int main(int argc, char* argv[]) {
     ParallelDescriptor::Barrier();
     
     if ( ParallelDescriptor::MyProc() == 0 && solved) {
-        std::ofstream out("l2_error_" + std::string(argv[6]) + ".dat", std::ios::app);
+        std::ofstream out("l2_error_" + std::string(argv[12]) + ".dat", std::ios::app);
         out << nLevels << " " << l2error << std::endl;
         out.close();
     }

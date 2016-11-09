@@ -64,9 +64,11 @@ public:
      * Solves \f$\Delta\phi = \rho\f$ where the particles are
      * randomly initialized.
      * @param nParticles to be generated
+     * @param mean of the Gaussian distribution
+     * @param stddev is the standard deviation of the Gaussian distribution
      * @returns l2 error (single-level vs. multi-level solve)
      */
-    double doSolveParticlesGaussian(int nParticles);
+    double doSolveParticlesGaussian(int nParticles, double mean, double stddev);
     
     /*!
      * Solve the Poisson equation with a real particle distribution
@@ -76,6 +78,13 @@ public:
      * @returns l2 error (single-level vs. multi-level solve)
      */
     double doSolveParticlesReal(int step, std::string h5file);
+    
+    /*!
+     * Generates 3 bunches with nParticles and same standard deviation
+     * @param nParticles is the number of particles per bunch
+     * @param stddev is the standard deviation of each bunch
+     */
+    double doSolveMultiGaussians(int nParticles, double stddev);
     
 private:
     void refineWholeDomain_m();     ///< Create refined levels (DistributionMapping and BoxArray)

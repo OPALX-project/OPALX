@@ -1001,7 +1001,7 @@ void TrackRun::setupAMRSolver() {
             int particle_id = Track::block->bunch->ID[i] + 1;
             attr[3*DIM + 1] = particle_id;
 
-            fs->getAmrPtr()->addOneParticle(particle_id, Ippl::myNode(), x, attr);
+//             fs->getAmrPtr()->addOneParticle(particle_id, Ippl::myNode(), x, attr);
         }
 
         // It is essential that we call this routine since the particles
