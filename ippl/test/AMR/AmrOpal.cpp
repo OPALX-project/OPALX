@@ -48,7 +48,7 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
     
     Array<int> istep(this->maxLevel(), step);
     
-    BoxLib::WriteMultiLevelPlotifle(filename, finest_level, mf, varnames,
+    BoxLib::WriteMultiLevelPlotfile(filename, finest_level, mf, varnames,
                                     Geom(), 0.0, istep, refRatio());
 }
 
@@ -57,16 +57,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     
     bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[lev], lev);
     
-//     BoxArray ba = this->boxArray(lev);
-//     
-//     std::cerr << "DEFINE level = " << lev << std::endl;
-//     nPartPerCell_m.set(lev, new MultiFab(ba, 1, 1));
-    
-    // rho_index, sub_cycle, PArray<MultiFab>& mf, lev_min = 0, ncomp, finest_level = -1
-//     bunch_m->AssignDensity(0, false, nPartPerCell_m, 0, 1, lev);
-    
     std::cout << nPartPerCell_m[lev].min(0) << " " << nPartPerCell_m[lev].max(0) << std::endl;
-//     std::cout << nPartPerCell_m[lev].minIndex(0) << " " << nPartPerCell_m[lev].maxIndex(0) << std::endl;
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -74,8 +65,6 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     const Real* dx      = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
     Real nPart = 1.0;
-    
-//     std::cout << "dx = " << *dx << " prob_lo = " << *prob_lo << std::endl;
     
     
 #ifdef _OPENMP
@@ -109,7 +98,6 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
             tagfab.tags_and_untags(itags, tilebx);
         }
     }
-    std::cerr << "FINEST: " << finest_level << std::endl;
 }
 
 
@@ -185,7 +173,7 @@ AmrOpal::RemakeLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1));
+    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, new_dmap));
 
 //     std::cerr << nPartPerCell_m[lev].is_nodal() << std::endl;
     
@@ -205,29 +193,15 @@ void
 AmrOpal::MakeNewLevel (int lev, Real time,
 		      const BoxArray& new_grids, const DistributionMapping& new_dmap)
 {
-//     const int ncomp = 1;
-//     const int nghost = 0;
-
-    
-    
-//     if ( new_grids.empty() )
-//         return;
-    
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1));
+    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, dmap[lev]));
+}
+
+void AmrOpal::ClearLevel(int lev) {
     
-//     std::cerr << nPartPerCell_m[lev].is_nodal() << std::endl;
-
-//     phi_new[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
-//     phi_old[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
-
-//     t_new[lev] = time;
-//     t_old[lev] = time - 1.e200;
-
-//     if (lev > 0 && do_reflux) {
-// 	flux_reg[lev] = std::unique_ptr<FluxRegister>
-// 	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
-//     }
+//     nPartPerCell_m.reset(lev, nullptr);
+    ClearBoxArray(lev);
+    ClearDistributionMap(lev);
 }
