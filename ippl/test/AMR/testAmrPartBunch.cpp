@@ -244,7 +244,7 @@ void doIppl(const Vektor<size_t, 3>& nr, size_t nParticles,
 // BOXLIB
 // ============================================================================
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              size_t nMaxLevels, size_t maxBoxSize,
+              int nLevels, size_t maxBoxSize,
               size_t nTimeSteps, Inform& msg, Inform& msg2all)
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");    
@@ -253,8 +253,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    // nLevel = nMaxLevels + 1
-    int nLevels = nMaxLevels + 1;
+    /*
+     * nLevel is the number of levels allowed, i.e if nLevel = 1
+     * we just run single-level
+     */
     
     /*
      * set up the geometry
@@ -361,7 +363,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
-    AmrOpal myAmrOpal(&domain, int(nMaxLevels), nCells, 0 /* cartesian */, bunch);
+    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */, bunch);
     
     for (int i = 0; i < nLevels; ++i)
         msg << "Max. grid size level" << i << ": "
@@ -411,7 +413,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     Inform amr("AMR");
     amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
         << "Finest level = " << myAmrOpal.finestLevel() << endl;
-    for (int i = 0; i < int(nMaxLevels); ++i)
+    for (int i = 0; i < nLevels - 1; ++i)
         amr << "Max. ref. ratio level " << i << ": "
             << myAmrOpal.MaxRefRatio(i) << endl;
     for (int i = 0; i < nLevels; ++i)
@@ -475,6 +477,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         
         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
         writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
+        
+        myAmrOpal.writePlotFile("box_test_", it);
         
         // update time step according to levels
         dt = 0.5 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
@@ -581,9 +585,9 @@ int main(int argc, char *argv[]) {
         }
         
         BoxLib::Initialize(argc,argv, false);
-        size_t nMaxLevels = std::atoi(argv[7]);
+        size_t nLevels = std::atoi(argv[7]) + 1; // i.e. nLevels = 0 --> only single level
         size_t maxBoxSize = std::atoi(argv[8]);
-        doBoxLib(nr, nParticles, nMaxLevels, maxBoxSize, nTimeSteps, msg, msg2all);
+        doBoxLib(nr, nParticles, nLevels, maxBoxSize, nTimeSteps, msg, msg2all);
     } else
         doIppl(nr, nParticles, nTimeSteps, msg, msg2all);
     
