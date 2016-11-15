@@ -57,13 +57,16 @@ Usage:
 // #define SOLVER
 
 
+// typedef std::vector<std::unique_ptr<MultiFab> > container_t;
+typedef Array<std::unique_ptr<MultiFab> > container_t;
+
 double dt = 1.0;          // size of timestep
 
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
-             std::vector<std::unique_ptr<MultiFab> >& rhs,
-             std::vector<std::unique_ptr<MultiFab> >& phi,
-             std::vector<std::unique_ptr<MultiFab> >& grad_phi,
+             container_t& rhs,
+             container_t& phi,
+             container_t& grad_phi,
              const Array<Geometry>& geom,
              const Array<int>& rr, int nLevels)
 {
@@ -92,17 +95,18 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
 
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nLevels,PArrayManage);
-    PartMF.set(0,new MultiFab(myAmrOpal.boxArray()[0],1,1));
-    PartMF[0].setVal(0.0);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, finest_level);
+//     Array<std::unique_ptr<MultiFab> > PartMF;
+//     PArray<MultiFab> PartMF;
+//     PartMF.resize(nLevels,PArrayManage);
+//     PartMF.set(0,new MultiFab(myAmrOpal.boxArray()[0],1,1));
+//     PartMF[0].setVal(0.0);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
 
-    for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
+//     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
+//         BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
 
-    for (int lev = 0; lev < nLevels; lev++)
-        MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+//     for (int lev = 0; lev < nLevels; lev++)
+//         MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     
     
     // eps in C / (V * m)
@@ -110,11 +114,11 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // eps in e / (V * m)
 //     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
     
-    for (int lev = 0; lev < nLevels; lev++) {
+//     for (int lev = 0; lev < nLevels; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);
         
-        MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-    }
+//         MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+//     }
     
     // **************************************************************************                                                                                                                                
     // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
@@ -132,7 +136,13 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // solve                                                                                                                                                                                                     
     Solver sol;
     IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    sol.solve_for_accel(rhs,
+                        phi,
+                        grad_phi,
+                        geom,
+                        base_level,
+                        finest_level,
+                        offset);
     IpplTimings::stopTimer(solvTimer);
 }
 
@@ -301,7 +311,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     Array<int> rr(nLevels - 1);
-    for (int lev = 0; lev < rr.size(); ++lev)
+    for (unsigned int lev = 0; lev < rr.size(); ++lev)
         rr[lev] = 2;
     
     // geometries of refined levels
@@ -463,9 +473,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
     
     
-    std::vector<std::unique_ptr<MultiFab> > rhs;
-    std::vector<std::unique_ptr<MultiFab> > phi;
-    std::vector<std::unique_ptr<MultiFab> > grad_phi;
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
     
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
     
@@ -476,6 +486,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->gatherStatistics();
         
         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
+//         myAmrOpal.writePlotFile(plotfilename, it);
         writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
         
         myAmrOpal.writePlotFile("box_test_", it);

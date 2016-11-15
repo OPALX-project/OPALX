@@ -24,8 +24,8 @@
 class AmrOpal : public AmrCore {
     
 private:
-    typedef std::vector<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
-    typedef PArray<MultiFab> mp_mt;
+    typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
+//     typedef PArray<MultiFab> mp_mt;
     
 public:
     /*!
@@ -76,8 +76,8 @@ public:
     void info() {
         for (int i = 0; i < finest_level; ++i)
             std::cout << "density level " << i << ": "
-                      << nPartPerCell_m[i].min(0) << " "
-                      << nPartPerCell_m[i].max(0) << std::endl;
+                      << nPartPerCell_m[i]->min(0) << " "
+                      << nPartPerCell_m[i]->max(0) << std::endl;
     }
     
     /*!
@@ -93,7 +93,7 @@ protected:
     
 private:
     AmrPartBunch* bunch_m;      ///< Particle bunch
-    /*mfs_mt*/mp_mt nPartPerCell_m;      ///< used in tagging.
+    mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
     
 };
 

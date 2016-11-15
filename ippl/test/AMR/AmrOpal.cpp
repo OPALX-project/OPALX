@@ -9,10 +9,11 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     bunch_m(dynamic_cast<AmrPartBunch*>(bunch))
 {
     initBaseLevel();
-    nPartPerCell_m.resize(max_level_in + 1, PArrayManage);
+    nPartPerCell_m.resize(max_level_in + 1);//, PArrayManage);
+//     nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1));
     
-//     nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 1));
-    nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1));
+    nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 0/*1*/));
+    nPartPerCell_m[0]->setVal(0.0);
 }
 
 AmrOpal::~AmrOpal() { }
@@ -79,7 +80,7 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int nData = nPartPerCell_m[0].nComp();
+    int nData = nPartPerCell_m[0]->nComp();
     
     if (ParallelDescriptor::IOProcessor())
     {
@@ -94,7 +95,7 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
         HeaderFile << nData << '\n';
 
 	// variable names
-        for (int ivar = 1; ivar <= nPartPerCell_m[0].nComp(); ivar++) {
+        for (int ivar = 1; ivar <= nPartPerCell_m[0]->nComp(); ivar++) {
           HeaderFile << "rho\n";
         }
         
@@ -166,12 +167,12 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
         
         if (ParallelDescriptor::IOProcessor())
         {
-            HeaderFile << lev << ' ' << nPartPerCell_m[lev].boxArray().size() << ' ' << 0 << '\n';
+            HeaderFile << lev << ' ' << nPartPerCell_m[lev]->boxArray().size() << ' ' << 0 << '\n';
             HeaderFile << 0 << '\n';    // # time steps at this level
     
-            for (int i = 0; i < nPartPerCell_m[lev].boxArray().size(); ++i)
+            for (int i = 0; i < nPartPerCell_m[lev]->boxArray().size(); ++i)
             {
-                RealBox loc = RealBox(nPartPerCell_m[lev].boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
+                RealBox loc = RealBox(nPartPerCell_m[lev]->boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
                 for (int n = 0; n < BL_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
@@ -181,7 +182,7 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
             HeaderFile << PathNameInHeader << '\n';
         }
         
-        MultiFab data(nPartPerCell_m[lev].boxArray(), nData, 0);
+        MultiFab data(nPartPerCell_m[lev]->boxArray(), nData, 0);
         
         // dst, src, srccomp, dstcomp, numcomp, nghost
         /*
@@ -189,7 +190,7 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
-        MultiFab::Copy(data, nPartPerCell_m[lev],    0, 0, 1, 0);
+        MultiFab::Copy(data, *nPartPerCell_m[lev],    0, 0, 1, 0);
         
         //
         // Use the Full pathname when naming the MultiFab.
@@ -205,14 +206,16 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
 
 void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     
-//     bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[lev], lev);
+//     for (int i = 0; i < lev; ++i)
+//         nPartPerCell_m.clear(lev);
     
-    for (int i = 0; i < lev; ++i)
-        nPartPerCell_m[i].setVal(0.0);
+//         nPartPerCell_m[i].clear();//setVal(0.0);
+//     bunch_m->AssignDensitySingleLevel(0, /***/nPartPerCell_m[lev], lev);
+    
     
     bunch_m->AssignDensity(0, false, nPartPerCell_m, 0, 1, lev);
     
-    std::cout << lev << " " << nPartPerCell_m[lev].min(0) << " " << nPartPerCell_m[lev].max(0) << std::endl;
+    std::cout << lev << " " << nPartPerCell_m[lev]->min(0) << " " << nPartPerCell_m[lev]->max(0) << std::endl;
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -228,7 +231,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     {
         Array<int>  itags;
         
-        for (MFIter mfi(nPartPerCell_m[lev],true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*nPartPerCell_m[lev],true); mfi.isValid(); ++mfi) {
             const Box&  tilebx  = mfi.tilebox();
             
             TagBox&     tagfab  = tags[mfi];
@@ -243,7 +246,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
             const int*  thi     = tilebx.hiVect();
 
             state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D(nPartPerCell_m[lev][mfi]),
+                        BL_TO_FORTRAN_3D((*nPartPerCell_m[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
                         ZFILL(dx), ZFILL(prob_lo), &time, &nPart);
@@ -317,8 +320,9 @@ AmrOpal::RemakeLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, new_dmap));
+//     nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, new_dmap));
 //     nPartPerCell_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, 1, 1, new_dmap));
+    nPartPerCell_m[lev].reset(new MultiFab(new_grids, 1, 1, new_dmap));
 }
 
 void
@@ -329,14 +333,14 @@ AmrOpal::MakeNewLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, dmap[lev]));
-//     nPartPerCell_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, 1, 1, dmap[lev]));
+//     nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, dmap[lev]));
+    nPartPerCell_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, 1, 1, dmap[lev]));
 }
 
 void AmrOpal::ClearLevel(int lev) {
     
-//     nPartPerCell_m[lev].release();  // equivalent: nPartPerCell_m[lev].reset(nullptr);
-    nPartPerCell_m.clear(lev);
+    nPartPerCell_m[lev].release();  // equivalent: nPartPerCell_m[lev].reset(nullptr);
+//     nPartPerCell_m.clear(lev);
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
 }

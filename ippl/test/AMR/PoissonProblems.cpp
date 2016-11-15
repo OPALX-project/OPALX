@@ -38,7 +38,7 @@ PoissonProblems::PoissonProblems(int nr[3], int maxGridSize, int nLevels,
     
     // refinement ratios
     refRatio_m.resize(nLevels - 1);
-    for (int i = 0; i < refRatio_m.size(); ++i)
+    for (unsigned int i = 0; i < refRatio_m.size(); ++i)
         refRatio_m[i] = 2;
     
     // geometries of refined levels
@@ -175,22 +175,22 @@ double PoissonProblems::doSolveParticlesUniform() {
     int fine_level = nLevels_m - 1;
     
     
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nLevels_m,PArrayManage);
+//     PArray<MultiFab> PartMF;
+//     PartMF.resize(nLevels_m,PArrayManage);
     
-    for (int i = 0; i < nLevels_m; ++i) {
-        PartMF.set(i, new MultiFab(ba_m[i], 1, 0));
-        PartMF[i].setVal(0.0);
-    }
+//     for (int i = 0; i < nLevels_m; ++i) {
+//         PartMF.set(i, new MultiFab(ba_m[i], 1, 0));
+//         PartMF[i].setVal(0.0);
+//     }
     
     dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rho_m, base_level, 1, fine_level);
 
-    for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1],PartMF[lev], 0, 1, refRatio_m[lev]);
+//     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
+//         BoxLib::average_down(PartMF[lev+1],PartMF[lev], 0, 1, refRatio_m[lev]);
 
-    for (int lev = 0; lev < nLevels_m; lev++)
-        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+//     for (int lev = 0; lev < nLevels_m; lev++)
+//         MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     
     for (int i = 0; i < nLevels_m; ++i)
         std::cout << rho_m[i]->min(0) << " " << rho_m[i]->max(0) << std::endl;
@@ -342,30 +342,30 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     int fine_level = nLevels_m - 1;
     
     
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nLevels_m, PArrayManage);
+//     PArray<MultiFab> PartMF;
+//     PartMF.resize(nLevels_m, PArrayManage);
     
-    for (int i = 0; i < nLevels_m; ++i) {
-        PartMF.set(i, new MultiFab(ba_m[i], 1, 1));
-        PartMF[i].setVal(0.0);
-    }
+//     for (int i = 0; i < nLevels_m; ++i) {
+//         PartMF.set(i, new MultiFab(ba_m[i], 1, 1));
+//         PartMF[i].setVal(0.0);
+//     }
     
     dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rho_m, base_level, 1, fine_level);
 
-    for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
+//     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
+//         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
     
     // eps in C / (V * m)
 //     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
     // eps in e / (V * m)
-    double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
+//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
     
-    for (int lev = 0; lev < nLevels_m; lev++) {
-        PartMF[lev].mult(constant, 0, 1);
-        
-        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-    }
+//     for (int lev = 0; lev < nLevels_m; lev++) {
+//         PartMF[lev].mult(constant, 0, 1);
+//         
+//         MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+//     }
     
     Real offset = 0.0;
     Solver sol;
@@ -381,9 +381,9 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     std::string dir = "plt0000";
     Real time = 0.0;
     
-    for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev]->mult(1.0 / constant, 0, 1);
-    }
+//     for (int lev = 0; lev < nLevels_m; lev++) {
+//         rho_m[lev]->mult(1.0 / constant, 0, 1);
+//     }
     
     writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
     // ------------------------------------------------------------------------
@@ -393,9 +393,9 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     fine_level = 0;
     
     
-    for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev]->mult(constant, 0, 1);
-    }
+//     for (int lev = 0; lev < nLevels_m; lev++) {
+//         rho_m[lev]->mult(constant, 0, 1);
+//     }
     
     sol.solve_for_accel(rho_m, phi_single_m, efield_m, geom_m,
                         base_level, fine_level,
@@ -490,29 +490,29 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     int fine_level = nLevels_m - 1;
     
     
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nLevels_m, PArrayManage);
+//     PArray<MultiFab> PartMF;
+//     PartMF.resize(nLevels_m, PArrayManage);
     
 //     for (int i = 0; i < nLevels_m; ++i) {
-        PartMF.set(0, new MultiFab(ba_m[0], 1, 1));
-        PartMF[0].setVal(0.0);
+//         PartMF.set(0, new MultiFab(ba_m[0], 1, 1));
+//         PartMF[0].setVal(0.0);
 //     }
     
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rho_m, base_level, 1, fine_level);
 
-    for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
+//     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
+//         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
     // eps in C / (V * m)
 //     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
     // eps in e / (V * m)
-    double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
-    
-    for (int lev = 0; lev < nLevels_m; lev++) {
-        PartMF[lev].mult(constant, 0, 1);
-        
-        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-    }
+//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
+//     
+//     for (int lev = 0; lev < nLevels_m; lev++) {
+//         PartMF[lev].mult(constant, 0, 1);
+//         
+//         MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+//     }
     
     Real offset = 0.0;
     Solver sol;
@@ -528,16 +528,16 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
     std::string dir = "plt0000";
     Real time = 0.0;
     
-    for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev]->mult(1.0 / constant, 0, 1);
-    }
+//     for (int lev = 0; lev < nLevels_m; lev++) {
+//         rho_m[lev]->mult(1.0 / constant, 0, 1);
+//     }
     
     writePlotFile(dir, rho_m, phi_m, efield_m, refRatio_m, geom_m, time);
     
     
-    for (int lev = 0; lev < nLevels_m; lev++) {
-        rho_m[lev]->mult(constant, 0, 1);
-    }
+//     for (int lev = 0; lev < nLevels_m; lev++) {
+//         rho_m[lev]->mult(constant, 0, 1);
+//     }
     
     // ------------------------------------------------------------------------
     // Solve with MultiGrid (single level)
@@ -635,26 +635,26 @@ double PoissonProblems::doSolveMultiGaussians(int nParticles, double stddev) {
     int fine_level = nLevels_m - 1;
     
     
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nLevels_m, PArrayManage);
+//     PArray<MultiFab> PartMF;
+//     PartMF.resize(nLevels_m, PArrayManage);
     
 //     for (int i = 0; i < nLevels_m; ++i) {
-        PartMF.set(0, new MultiFab(ba_m[0], 1, 1));
-        PartMF[0].setVal(0.0);
+//         PartMF.set(0, new MultiFab(ba_m[0], 1, 1));
+//         PartMF[0].setVal(0.0);
 //     }
     
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, PartMF, base_level, 1, fine_level);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rho_m, base_level, 1, fine_level);
 
-    for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
+//     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
+//         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
-    double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
     
-    for (int lev = 0; lev < nLevels_m; lev++) {
-        PartMF[lev].mult(constant, 0, 1);
-        
-        MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-    }
+//     for (int lev = 0; lev < nLevels_m; lev++) {
+//         PartMF[lev].mult(constant, 0, 1);
+//         
+//         MultiFab::Add(*rho_m[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+//     }
     
     Real offset = 0.0;
     Solver sol;
