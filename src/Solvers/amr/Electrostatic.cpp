@@ -31,7 +31,7 @@ Electrostatic::Electrostatic (Amr*   Parent,
     level_data(MAX_LEV),
     grad_phi_curr(MAX_LEV),
     grad_phi_prev(MAX_LEV),
-    phi_flux_reg(MAX_LEV,PArrayManage),
+    phi_flux_reg(MAX_LEV),
     grids(MAX_LEV),
     level_solver_resnorm(MAX_LEV),
     phys_bc(_phys_bc)
@@ -80,40 +80,35 @@ Electrostatic::read_params ()
 
 void
 Electrostatic::install_level (int       level,
-                        AmrLevel* level_data_to_install)
+                              AmrLevel* level_data_to_install)
 {
     if (verbose > 1 && ParallelDescriptor::IOProcessor())
         *gmsg << "Installing Electrostatic level " << level << '\n';
 
-    level_data.clear(level);
-    level_data.set(level, level_data_to_install);
+    level_data[level] = level_data_to_install;
 
-    grids[level] = level_data[level].boxArray();
+    grids[level] = level_data[level]->boxArray();
 
     level_solver_resnorm[level] = 0;
-
-    grad_phi_prev[level].clear();
-    grad_phi_prev[level].resize(BL_SPACEDIM, PArrayManage);
+    
+    grad_phi_prev[level].resize(BL_SPACEDIM);
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
-        grad_phi_prev[level].set(n, new MultiFab(BoxArray(grids[level]).surroundingNodes(n), 1, 1));
-        grad_phi_prev[level][n].setVal(1.e50,grad_phi_prev[level][n].nGrow());
+        grad_phi_prev[level][n].reset(new MultiFab(BoxArray(grids[level]).surroundingNodes(n), 1, 1));
+        grad_phi_prev[level][n]->setVal(1.e50,grad_phi_prev[level][n]->nGrow());
     }
-
-    grad_phi_curr[level].clear();
-    grad_phi_curr[level].resize(BL_SPACEDIM, PArrayManage);
+    
+    grad_phi_curr[level].resize(BL_SPACEDIM);
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
-        grad_phi_curr[level].set(n, new MultiFab(BoxArray(grids[level]).surroundingNodes(n), 1, 1));
-        grad_phi_curr[level][n].setVal(1.e50,grad_phi_curr[level][n].nGrow());
+        grad_phi_curr[level][n].reset(new MultiFab(BoxArray(grids[level]).surroundingNodes(n), 1, 1));
+        grad_phi_curr[level][n]->setVal(1.e50,grad_phi_curr[level][n]->nGrow());
     }
 
     if (level > 0)
     {
-        phi_flux_reg.clear(level);
-        IntVect crse_ratio = parent->refRatio(level-1);
-        phi_flux_reg.set(level, new FluxRegister(grids[level], crse_ratio,
-                                                 level, 1));
+        const IntVect& crse_ratio = parent->refRatio(level-1);
+        phi_flux_reg[level].reset(new FluxRegister(grids[level], crse_ratio, level, 1));
     }
 
     finest_level_allocated = level;
@@ -133,24 +128,24 @@ Electrostatic::get_no_composite ()
     return no_composite;
 }
 
-PArray<MultiFab>&
+Array<MultiFab*>
 Electrostatic::get_grad_phi_prev (int level)
 {
-    return grad_phi_prev[level];
+    return BoxLib::GetArrOfPtrs(grad_phi_prev[level]);
 }
 
-PArray<MultiFab>&
+Array<MultiFab*>
 Electrostatic::get_grad_phi_curr (int level)
 {
-    return grad_phi_curr[level];
+    return BoxLib::GetArrOfPtrs(grad_phi_curr[level]);
 }
 
 void
 Electrostatic::plus_grad_phi_curr (int               level,
-                             PArray<MultiFab>& addend)
+                                   const Array<MultiFab*>& addend)
 {
     for (int n = 0; n < BL_SPACEDIM; n++)
-        grad_phi_curr[level][n].plus(addend[n], 0, 1, 0);
+        grad_phi_curr[level][n]->plus(*addend[n], 0, 1, 0);
 }
 
 void
@@ -158,24 +153,22 @@ Electrostatic::swap_time_levels (int level)
 {
     for (int n=0; n < BL_SPACEDIM; n++)
     {
-        MultiFab* dummy = grad_phi_curr[level].remove(n);
-        grad_phi_prev[level].clear(n);
-        grad_phi_prev[level].set(n, dummy);
-        grad_phi_curr[level].set(n, new MultiFab(BoxArray(grids[level]).surroundingNodes(n), 1, 1));
-        grad_phi_curr[level][n].setVal(1.e50,grad_phi_curr[level][n].nGrow());
+        std::swap(grad_phi_prev[level][n], grad_phi_curr[level][n]);
+        grad_phi_curr[level][n].reset(new MultiFab(BoxArray(grids[level]).surroundingNodes(n), 1, 1));
+        grad_phi_curr[level][n]->setVal(1.e50,grad_phi_curr[level][n]->nGrow());
     }
 }
 
 void
 Electrostatic::zero_phi_flux_reg (int level)
 {
-    phi_flux_reg[level].setVal(0);
+    phi_flux_reg[level]->setVal(0);
 }
 
 void
 Electrostatic::solve_for_old_phi (int               level,
                                   MultiFab&         phi,
-                                  PArray<MultiFab>& grad_phi,
+                                  const Array<MultiFab*>& grad_phi,
                                   int               fill_interior)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -189,14 +182,14 @@ Electrostatic::solve_for_old_phi (int               level,
 
     // We shouldn't need to use virtual or ghost particles for old phi solves.
 
-    const Real time  = level_data[level].get_state_data(Elec_Field_Type).prevTime();
+    const Real time  = level_data[level]->get_state_data(Elec_Field_Type).prevTime();
     solve_for_phi(level, Rhs, phi, grad_phi, time, fill_interior);
 }
 
 void
 Electrostatic::solve_for_new_phi (int               level,
                                   MultiFab&         phi,
-                                  PArray<MultiFab>& grad_phi,
+                                  const Array<MultiFab*>& grad_phi,
                                   int               fill_interior,
                                   int               field_n_grow)
 {
@@ -211,7 +204,7 @@ Electrostatic::solve_for_new_phi (int               level,
     AddVirtualParticlesToRhs(level,Rhs,field_n_grow);
     AddGhostParticlesToRhs(level,Rhs,0);
     
-    const Real time = level_data[level].get_state_data(Elec_Field_Type).curTime();
+    const Real time = level_data[level]->get_state_data(Elec_Field_Type).curTime();
     solve_for_phi(level, Rhs, phi, grad_phi, time, fill_interior);
 }
 
@@ -219,7 +212,7 @@ void
 Electrostatic::solve_for_phi (int               level,
                               MultiFab&         Rhs,
                               MultiFab&         phi,
-                              PArray<MultiFab>& grad_phi,
+                              const Array<MultiFab*>& grad_phi,
                               Real              time,
                               int               fill_interior)
 
@@ -322,11 +315,11 @@ Electrostatic::solve_for_phi (int               level,
 //  *****************************************************************************
 
     // Need to pass multi-level rather than single-level MultiFabs to init_trilinos
-    PArray<MultiFab> phi_p(1);
-    PArray<MultiFab> rhs_p(1);
+    Array<MultiFab*> phi_p(1);
+    Array<MultiFab*> rhs_p(1);
 
-    phi_p.set(0,&phi);
-    rhs_p.set(0,&Rhs);
+    phi_p[0] = &phi;
+    rhs_p[0] = &Rhs;
 
     Solver* trilinos_solver = init_trilinos(rhs_p,phi_p,dx);
 
@@ -343,7 +336,7 @@ Electrostatic::solve_for_phi (int               level,
     trilinos_solver->Compute();
     trilinos_solver->CopySolution(phi_p);
 
-    phi_p[0].FillBoundary();
+    phi_p[0]->FillBoundary();
 
     delete trilinos_solver;
 
@@ -362,9 +355,9 @@ Electrostatic::solve_for_phi (int               level,
 //  *****************************************************************************
 //  Get the fluxes on cell faces (*not* centers)
 //  ***************************************************************************** 
-    grad_phi[0].setVal(0.,grad_phi[0].nGrow());
-    grad_phi[1].setVal(0.,grad_phi[1].nGrow());
-    grad_phi[2].setVal(0.,grad_phi[2].nGrow());
+    grad_phi[0]->setVal(0.,grad_phi[0]->nGrow());
+    grad_phi[1]->setVal(0.,grad_phi[1]->nGrow());
+    grad_phi[2]->setVal(0.,grad_phi[2]->nGrow());
     compute_face_fluxes(grids[level], grad_phi, phi, dx);
 
 //  *****************************************************************************
@@ -389,8 +382,8 @@ void
 Electrostatic::solve_for_delta_phi (int                        crse_level,
                               int                        fine_level,
                               MultiFab&                  crse_rhs,
-                              PArray<MultiFab>&          delta_phi,
-                              PArray<PArray<MultiFab> >& grad_delta_phi)
+                              const Array<MultiFab*>&          delta_phi,
+                              const Array<Array<MultiFab*> >& grad_delta_phi)
 {
   /*
 #if 0
@@ -512,7 +505,7 @@ Electrostatic::e_field_sync (int               crse_level,
                        int               fine_level,
                        const MultiFab&   drho_and_drhoU,
                        const MultiFab&   dphi,
-                       PArray<MultiFab>& grad_delta_phi_cc)
+                       const Array<MultiFab*>& grad_delta_phi_cc)
 {
     BL_ASSERT(parent->finestLevel()>crse_level);
 
@@ -708,13 +701,13 @@ Electrostatic::get_crse_phi (int       level,
 
 void
 Electrostatic::get_crse_grad_phi (int               level,
-                                  PArray<MultiFab>& grad_phi_crse,
+                                  Array<std::unique_ptr<MultiFab> >& grad_phi_crse,
                                   Real              time)
 {
     BL_ASSERT(level!=0);
 
-    const Real t_old = level_data[level-1].get_state_data(Elec_Field_Type).prevTime();
-    const Real t_new = level_data[level-1].get_state_data(Elec_Field_Type).curTime();
+    const Real t_old = level_data[level-1]->get_state_data(Elec_Field_Type).prevTime();
+    const Real t_new = level_data[level-1]->get_state_data(Elec_Field_Type).curTime();
     const Real alpha = (time - t_old) / (t_new - t_old);
 
     FArrayBox grad_phi_crse_temp;
@@ -723,26 +716,25 @@ Electrostatic::get_crse_grad_phi (int               level,
 
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
-        BL_ASSERT(!grad_phi_crse.defined(i));
+        BL_ASSERT(grad_phi_crse[i] == nullptr);
         const BoxArray eba = BoxArray(grids[level-1]).surroundingNodes(i);
-        grad_phi_crse.set(i, new MultiFab(eba, 1, 0));
+        grad_phi_crse[i].reset(new MultiFab(eba, 1, 0));
 
-        for (MFIter mfi(grad_phi_crse[i]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*grad_phi_crse[i]); mfi.isValid(); ++mfi)
         {
             grad_phi_crse_temp.resize(mfi.validbox(),1);
 
-            grad_phi_crse_temp.copy(grad_phi_prev[level-1][i][mfi]);
+            grad_phi_crse_temp.copy((*grad_phi_prev[level-1][i])[mfi]);
             const Real omalpha = 1.0 - alpha;
             grad_phi_crse_temp.mult(omalpha);
 
-            grad_phi_crse[i][mfi].copy(grad_phi_curr[level-1][i][mfi]);
-            grad_phi_crse[i][mfi].mult(alpha);
-            grad_phi_crse[i][mfi].plus(grad_phi_crse_temp);
+            (*grad_phi_crse[i])[mfi].copy((*grad_phi_curr[level-1][i])[mfi]);
+            (*grad_phi_crse[i])[mfi].mult(alpha);
+            (*grad_phi_crse[i])[mfi].plus(grad_phi_crse_temp);
         }
-        grad_phi_crse[i].FillBoundary();
 
         const Geometry& geom = parent->Geom(level-1);
-//         geom.FillPeriodicBoundary(grad_phi_crse[i], false);
+        grad_phi_crse[i]->FillBoundary(geom.periodicity());
     }
 }
 
@@ -760,14 +752,14 @@ Electrostatic::multilevel_solve_for_new_phi (int level,
         BL_ASSERT(grad_phi_curr[lev].size()==BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; ++n)
         {
-            grad_phi_curr[lev].clear(n);
+//             grad_phi_curr[lev].clear(n);
             const BoxArray eba = BoxArray(grids[lev]).surroundingNodes(n);
-            grad_phi_curr[lev].set(n, new MultiFab(eba, 1, 1));
+            grad_phi_curr[lev][n].reset(new MultiFab(eba, 1, 1));
         }
     }
 
     int is_new = 1;
-    actual_multilevel_solve(level, finest_level, grad_phi_curr,
+    actual_multilevel_solve(level, finest_level, BoxLib::GetArrOfArrOfPtrs(grad_phi_curr),
                             is_new, use_previous_phi_as_guess);
 }
 
@@ -785,14 +777,13 @@ Electrostatic::multilevel_solve_for_old_phi (int level,
         BL_ASSERT(grad_phi_prev[lev].size() == BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; ++n)
         {
-            grad_phi_prev[lev].clear(n);
             const BoxArray eba = BoxArray(grids[lev]).surroundingNodes(n);
-            grad_phi_prev[lev].set(n, new MultiFab(eba, 1, 1));
+            grad_phi_prev[lev][n].reset(new MultiFab(eba, 1, 1));
         }
     }
 
     int is_new = 0;
-    actual_multilevel_solve(level, finest_level, grad_phi_prev,
+    actual_multilevel_solve(level, finest_level, BoxLib::GetArrOfArrOfPtrs(grad_phi_prev),
                             is_new, use_previous_phi_as_guess);
 }
 
@@ -805,7 +796,7 @@ Electrostatic::multilevel_solve_for_phi(int level, int finest_level, int use_pre
 void
 Electrostatic::actual_multilevel_solve (int                 level,
                                   int                       finest_level,
-                                  Array<PArray<MultiFab> >& grad_phi,
+                                  const Array<Array<MultiFab*> >& grad_phi,
                                   int                       is_new,
                                   int                       use_previous_phi_as_guess)
 {
@@ -824,25 +815,24 @@ Electrostatic::actual_multilevel_solve (int                 level,
 //  *****************************************************************************
 //   Create RHS based on particle locations and charge
 //  *****************************************************************************
-    PArray<MultiFab> Rhs_particles(num_levels,PArrayManage);
+    Array<std::unique_ptr<MultiFab> > Rhs_particles(num_levels);
     for (int lev = 0; lev < num_levels; lev++)
     { 
-       Rhs_particles.set(lev, new MultiFab(grids[level+lev], 1, 0));
-       Rhs_particles[lev].setVal(0.);
+       Rhs_particles[lev].reset(new MultiFab(grids[level+lev], 1, 0));
+       Rhs_particles[lev]->setVal(0.);
     } 
 
     *gmsg << "Total: " << Accel::thePAPC()->TotalNumberOfParticles() << endl
           << "Level: " << Accel::thePAPC()->NumberOfParticlesAtLevel(0) << endl;
 
-    AddParticlesToRhs(level,finest_level,Rhs_particles);
-
-    AddGhostParticlesToRhs(level,Rhs_particles);
-
-    AddVirtualParticlesToRhs(finest_level,Rhs_particles);
+    const auto& prhsp = BoxLib::GetArrOfPtrs(Rhs_particles);
+    AddParticlesToRhs(level,finest_level, prhsp);
+    AddGhostParticlesToRhs(level, prhsp);
+    AddVirtualParticlesToRhs(finest_level, prhsp);
 
 #ifdef AMR_DUMMY_SOLVE
     for (int lev = 0; lev < num_levels; ++lev)
-        Rhs_particles[lev].setVal(-1.0);
+        Rhs_particles[lev]->setVal(-1.0);
 #endif
     
 #ifdef DBG_SCALARFIELD
@@ -886,7 +876,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
 #ifndef AMR_DUMMY_SOLVE
     // rhs: /*-*/ \rho / (4 * pi * epsilon_0 )
     for (int lev = 0; lev < num_levels; lev++)
-        Rhs_particles[lev].mult(-8.9875517879979115e+09, 0, 1);  //opal_coupling ( 4 * pi * epsilon_0 )
+        Rhs_particles[lev]->mult(-8.9875517879979115e+09, 0, 1);  //opal_coupling ( 4 * pi * epsilon_0 )
 #endif
     
 //  *****************************************************************************
@@ -933,22 +923,22 @@ Electrostatic::actual_multilevel_solve (int                 level,
 //  *****************************************************************************
 //  We will work in result data structure directly
 //  *****************************************************************************
-    PArray<MultiFab> phi_p(num_levels);
+    Array<MultiFab*> phi_p(num_levels);
 
     for (int lev = 0; lev < num_levels; lev++)
     {
         if (is_new == 0)
         {
-           phi_p.set(lev, &level_data[level+lev].get_old_data(Elec_Potential_Type));
+           phi_p[lev] = &(level_data[level+lev]->get_old_data(Elec_Potential_Type));
         }
         else
         {
            // Working in result data structure directly
-           phi_p.set(lev, &level_data[level+lev].get_new_data(Elec_Potential_Type));
+           phi_p[lev] = &(level_data[level+lev]->get_new_data(Elec_Potential_Type));
         }
 
         if (!use_previous_phi_as_guess)
-           phi_p[lev].setVal(0.,phi_p[lev].nGrow());
+           phi_p[lev]->setVal(0.,phi_p[lev]->nGrow());
 
     }
      
@@ -956,7 +946,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
     for (int lev = num_levels-1; lev > 0; lev--)
     {
         const IntVect ratio = parent->refRatio(level+lev-1);
-        average_down(phi_p[lev-1], phi_p[lev], ratio);
+        average_down(*phi_p[lev-1], *phi_p[lev], ratio);
     }
 
 //  *****************************************************************************
@@ -970,7 +960,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
     
     *gmsg << "dx = " << dx[0] << ", dy = " << dx[1] << ", dz = " << dx[2] << endl;
     
-    Solver* trilinos_solver = init_trilinos(Rhs_particles,phi_p,dx);
+    Solver* trilinos_solver = init_trilinos(BoxLib::GetArrOfPtrs(Rhs_particles),phi_p,dx);
     
 //  *****************************************************************************
 //  FOR TIMINGS
@@ -991,15 +981,15 @@ Electrostatic::actual_multilevel_solve (int                 level,
     //   values under the fine grid have not been defined.
     for (int lev = num_levels-1; lev > 0; lev--)
     {
-        const IntVect ratio = parent->refRatio(level+lev-1);
-        average_down(phi_p[lev-1], phi_p[lev], ratio);
+        const IntVect& ratio = parent->refRatio(level+lev-1);
+        average_down(*phi_p[lev-1], *phi_p[lev], ratio);
     }
     for (int i = 0; i < num_levels; i++)
-        phi_p[i].FillBoundary();
+        phi_p[i]->FillBoundary();
 
-    if (phi_p[0].norm0() > 1.e100)
-       for (MFIter mfi(phi_p[0]); mfi.isValid(); ++mfi)
-           *gmsg << "BAD PHI " << phi_p[0][mfi] << endl;
+    if (phi_p[0]->norm0() > 1.e100)
+       for (MFIter mfi(*phi_p[0]); mfi.isValid(); ++mfi)
+           *gmsg << "BAD PHI " << (*phi_p[0])[mfi] << endl;
        
     delete trilinos_solver;
 
@@ -1020,7 +1010,7 @@ Electrostatic::actual_multilevel_solve (int                 level,
     for (int lev = 0; lev < num_levels; lev++)
     {
         const Real* dx = parent->Geom(level+lev).CellSize();
-        compute_face_fluxes(grids[level+lev], grad_phi[level+lev], phi_p[lev], dx);
+        compute_face_fluxes(grids[level+lev], grad_phi[level+lev], *phi_p[lev], dx);
     }
 
     // Average phi from fine to coarse level
@@ -1029,13 +1019,13 @@ Electrostatic::actual_multilevel_solve (int                 level,
         const IntVect ratio = parent->refRatio(lev-1);
         if (is_new == 1)
         {
-            average_down(level_data[lev-1].get_new_data(Elec_Potential_Type),
-                         level_data[lev  ].get_new_data(Elec_Potential_Type), ratio);
+            average_down(level_data[lev-1]->get_new_data(Elec_Potential_Type),
+                         level_data[lev  ]->get_new_data(Elec_Potential_Type), ratio);
         }
         else if (is_new == 0)
         {
-            average_down(level_data[lev-1].get_old_data(Elec_Potential_Type),
-                         level_data[lev  ].get_old_data(Elec_Potential_Type), ratio);
+            average_down(level_data[lev-1]->get_old_data(Elec_Potential_Type),
+                         level_data[lev  ]->get_old_data(Elec_Potential_Type), ratio);
         }
     }
 
@@ -1075,16 +1065,17 @@ Electrostatic::get_old_e_field (int       level,
     {
         for (int i = 0; i < BL_SPACEDIM ; i++)
         {
-            grad_phi_prev[level][i].setBndry(0);
-            grad_phi_prev[level][i].FillBoundary();
+            grad_phi_prev[level][i]->setBndry(0);
+            grad_phi_prev[level][i]->FillBoundary(geom.periodicity());
 //             geom.FillPeriodicBoundary(grad_phi_prev[level][i]);
         }
     }
     else
     {
-        PArray<MultiFab> crse_grad_phi(BL_SPACEDIM, PArrayManage);
+        Array<std::unique_ptr<MultiFab> > crse_grad_phi(BL_SPACEDIM);
         get_crse_grad_phi(level, crse_grad_phi, time);
-        fill_ec_grow(level, grad_phi_prev[level], crse_grad_phi);
+        fill_ec_grow(level, BoxLib::GetArrOfPtrs(grad_phi_prev[level]),
+                     BoxLib::GetArrOfPtrs(crse_grad_phi));
     }
 
     int lo_bc[BL_SPACEDIM];
@@ -1105,16 +1096,16 @@ Electrostatic::get_old_e_field (int       level,
         BL_FORT_PROC_CALL(FORT_AVG_EC_TO_CC, fort_avg_ec_to_cc)
             (bx.loVect(), bx.hiVect(), lo_bc, &symmetry_type,
              BL_TO_FORTRAN(e_field[i]),
-             D_DECL(BL_TO_FORTRAN(grad_phi_prev[level][0][i]),
-                    BL_TO_FORTRAN(grad_phi_prev[level][1][i]),
-                    BL_TO_FORTRAN(grad_phi_prev[level][2][i])),
+             D_DECL(BL_TO_FORTRAN((*grad_phi_prev[level][0])[i]),
+                    BL_TO_FORTRAN((*grad_phi_prev[level][1])[i]),
+                    BL_TO_FORTRAN((*grad_phi_prev[level][2])[i])),
              problo);
     }
 
-    e_field.FillBoundary();
+    e_field.FillBoundary(geom.periodicity());
 //     geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
 
-    MultiFab& G_old = level_data[level].get_old_data(Elec_Field_Type);
+    MultiFab& G_old = level_data[level]->get_old_data(Elec_Field_Type);
     MultiFab::Copy(G_old, e_field, 0, 0, BL_SPACEDIM, 0);
 
     // This is a hack-y way to fill the ghost cell values of e_field
@@ -1141,16 +1132,17 @@ Electrostatic::get_new_e_field (int       level,
     {
         for (int i = 0; i < BL_SPACEDIM ; i++)
         {
-            grad_phi_curr[level][i].setBndry(0);
-            grad_phi_curr[level][i].FillBoundary();
+            grad_phi_curr[level][i]->setBndry(0);
+            grad_phi_curr[level][i]->FillBoundary(geom.periodicity());
 //             geom.FillPeriodicBoundary(grad_phi_curr[level][i]);
         }
     }
     else
     {
-        PArray<MultiFab> crse_grad_phi(BL_SPACEDIM, PArrayManage);
+        Array<std::unique_ptr<MultiFab> > crse_grad_phi(BL_SPACEDIM);
         get_crse_grad_phi(level, crse_grad_phi, time);
-        fill_ec_grow(level, grad_phi_curr[level], crse_grad_phi);
+        fill_ec_grow(level, BoxLib::GetArrOfPtrs(grad_phi_curr[level]),
+                     BoxLib::GetArrOfPtrs(crse_grad_phi));
     }
 
     int lo_bc[BL_SPACEDIM];
@@ -1171,15 +1163,16 @@ Electrostatic::get_new_e_field (int       level,
         BL_FORT_PROC_CALL(FORT_AVG_EC_TO_CC, fort_avg_ec_to_cc)
             (bx.loVect(), bx.hiVect(), lo_bc, &symmetry_type,
              BL_TO_FORTRAN(e_field[i]),
-             D_DECL(BL_TO_FORTRAN(grad_phi_curr[level][0][i]),
-                    BL_TO_FORTRAN(grad_phi_curr[level][1][i]), BL_TO_FORTRAN(grad_phi_curr[level][2][i])),
+             D_DECL(BL_TO_FORTRAN((*grad_phi_curr[level][0])[i]),
+                    BL_TO_FORTRAN((*grad_phi_curr[level][1])[i]),
+                    BL_TO_FORTRAN((*grad_phi_curr[level][2])[i])),
              problo);
     }
 
-    e_field.FillBoundary();
+    e_field.FillBoundary(geom.periodicity());
 //     geom.FillPeriodicBoundary(e_field, 0, BL_SPACEDIM);
 
-    MultiFab& E_new = level_data[level].get_new_data(Elec_Field_Type);
+    MultiFab& E_new = level_data[level]->get_new_data(Elec_Field_Type);
     MultiFab::Copy(E_new, e_field, 0, 0, BL_SPACEDIM, 0);
 
 #ifdef DBG_SCALARFIELD
@@ -1238,8 +1231,8 @@ void
 Electrostatic::add_to_fluxes(int level, int iteration, int ncycle)
 {
     const int       finest_level      = parent->finestLevel();
-    FluxRegister*   phi_fine          = (level<finest_level ? &phi_flux_reg[level+1] : 0);
-    FluxRegister*   phi_current       = (level>0 ? &phi_flux_reg[level] : 0);
+    FluxRegister*   phi_fine          = (level<finest_level ? phi_flux_reg[level+1].get() : 0);
+    FluxRegister*   phi_current       = (level>0 ? phi_flux_reg[level].get() : 0);
     const Geometry& geom              = parent->Geom(level);
     const Real*     dx                = geom.CellSize();
     const Real      area[BL_SPACEDIM] = { dx[1]*dx[2], dx[0]*dx[2], dx[0]*dx[1] };
@@ -1254,7 +1247,7 @@ Electrostatic::add_to_fluxes(int level, int iteration, int ncycle)
             for (MFIter mfi(fluxes); mfi.isValid(); ++mfi)
             {
                 FArrayBox& gphi_flux = fluxes[mfi];
-                gphi_flux.copy(grad_phi_curr[level][n][mfi]);
+                gphi_flux.copy((*grad_phi_curr[level][n])[mfi]);
                 gphi_flux.mult(area[n]);
             }
 
@@ -1266,7 +1259,7 @@ Electrostatic::add_to_fluxes(int level, int iteration, int ncycle)
     {
         for (int n = 0; n < BL_SPACEDIM; ++n)
         {
-            phi_current->FineAdd(grad_phi_curr[level][n], n, 0, 0, 1, area[n]);
+            phi_current->FineAdd(*grad_phi_curr[level][n], n, 0, 0, 1, area[n]);
         }
     }
 }
@@ -1289,52 +1282,52 @@ Electrostatic::average_fine_ec_onto_crse_ec(int level, int is_new)
         crse_gphi_fine_BA.set(i, BoxLib::coarsen(grids[level+1][i],
                                                  fine_ratio));
 
-    PArray<MultiFab> crse_gphi_fine(BL_SPACEDIM, PArrayManage);
+    Array<std::unique_ptr<MultiFab> > crse_gphi_fine(BL_SPACEDIM);
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
         const BoxArray eba = BoxArray(crse_gphi_fine_BA).surroundingNodes(n);
-        crse_gphi_fine.set(n, new MultiFab(eba, 1, 0));
+        crse_gphi_fine[n].reset(new MultiFab(eba, 1, 0));
     }
 
     if (is_new == 1)
     {
-        for (MFIter mfi(grad_phi_curr[level+1][0]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*grad_phi_curr[level+1][0]); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
             const Box& overlap = crse_gphi_fine_BA[i];
 
             BL_FORT_PROC_CALL(FORT_AVERAGE_EC, fort_average_ec)
-                (D_DECL(BL_TO_FORTRAN(grad_phi_curr[level+1][0][mfi]),
-                        BL_TO_FORTRAN(grad_phi_curr[level+1][1][mfi]),
-                        BL_TO_FORTRAN(grad_phi_curr[level+1][2][mfi])),
-                 D_DECL(BL_TO_FORTRAN(crse_gphi_fine[0][mfi]),
-                        BL_TO_FORTRAN(crse_gphi_fine[1][mfi]),
-                        BL_TO_FORTRAN(crse_gphi_fine[2][mfi])),
+                (D_DECL(BL_TO_FORTRAN((*grad_phi_curr[level+1][0])[mfi]),
+                        BL_TO_FORTRAN((*grad_phi_curr[level+1][1])[mfi]),
+                        BL_TO_FORTRAN((*grad_phi_curr[level+1][2])[mfi])),
+                 D_DECL(BL_TO_FORTRAN((*crse_gphi_fine[0])[mfi]),
+                        BL_TO_FORTRAN((*crse_gphi_fine[1])[mfi]),
+                        BL_TO_FORTRAN((*crse_gphi_fine[2])[mfi])),
                  overlap.loVect(), overlap.hiVect(), fine_ratio.getVect());
         }
 
         for (int n = 0; n < BL_SPACEDIM; ++n)
-            grad_phi_curr[level][n].copy(crse_gphi_fine[n]);
+            grad_phi_curr[level][n]->copy(*crse_gphi_fine[n]);
     }
     else if (is_new == 0)
     {
-        for (MFIter mfi(grad_phi_prev[level+1][0]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*grad_phi_prev[level+1][0]); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
             const Box& overlap = crse_gphi_fine_BA[i];
 
             BL_FORT_PROC_CALL(FORT_AVERAGE_EC, fort_average_ec)
-                (D_DECL(BL_TO_FORTRAN(grad_phi_prev[level+1][0][mfi]),
-                        BL_TO_FORTRAN(grad_phi_prev[level+1][1][mfi]),
-                        BL_TO_FORTRAN(grad_phi_prev[level+1][2][mfi])),
-                 D_DECL(BL_TO_FORTRAN(crse_gphi_fine[0][mfi]),
-                        BL_TO_FORTRAN(crse_gphi_fine[1][mfi]),
-                        BL_TO_FORTRAN(crse_gphi_fine[2][mfi])),
+                (D_DECL(BL_TO_FORTRAN((*grad_phi_prev[level+1][0])[mfi]),
+                        BL_TO_FORTRAN((*grad_phi_prev[level+1][1])[mfi]),
+                        BL_TO_FORTRAN((*grad_phi_prev[level+1][2])[mfi])),
+                 D_DECL(BL_TO_FORTRAN((*crse_gphi_fine[0])[mfi]),
+                        BL_TO_FORTRAN((*crse_gphi_fine[1])[mfi]),
+                        BL_TO_FORTRAN((*crse_gphi_fine[2])[mfi])),
                  overlap.loVect(), overlap.hiVect(), fine_ratio.getVect());
         }
 
         for (int n = 0; n < BL_SPACEDIM; ++n)
-            grad_phi_prev[level][n].copy(crse_gphi_fine[n]);
+            grad_phi_prev[level][n]->copy(*crse_gphi_fine[n]);
     }
 }
 
@@ -1376,13 +1369,13 @@ Electrostatic::reflux_phi (int       level,
 {
     const Geometry& geom = parent->Geom(level);
     dphi.setVal(0);
-    phi_flux_reg[level+1].Reflux(dphi, 1.0, 0, 0, 1, geom);
+    phi_flux_reg[level+1]->Reflux(dphi, 1.0, 0, 0, 1, geom);
 }
 
 void
 Electrostatic::fill_ec_grow (int                     level,
-                       PArray<MultiFab>&       ecF,
-                       const PArray<MultiFab>& ecC) const
+                       const Array<MultiFab*>&       ecF,
+                       const Array<MultiFab*>& ecC) const
 {
     //
     // Fill grow cells of the edge-centered mfs.  Assume
@@ -1391,12 +1384,12 @@ Electrostatic::fill_ec_grow (int                     level,
     //
     BL_ASSERT(ecF.size() == BL_SPACEDIM);
 
-    const int nGrow = ecF[0].nGrow();
+    const int nGrow = ecF[0]->nGrow();
 
     if (nGrow == 0 || level == 0) return;
 
-    BL_ASSERT(nGrow == ecF[1].nGrow());
-    BL_ASSERT(nGrow == ecF[2].nGrow());
+    BL_ASSERT(nGrow == ecF[1]->nGrow());
+    BL_ASSERT(nGrow == ecF[2]->nGrow());
 
     const BoxArray& fgrids = grids[level];
     const Geometry& fgeom  = parent->Geom(level);
@@ -1458,12 +1451,12 @@ Electrostatic::fill_ec_grow (int                     level,
         // Gotta do it in steps since parallel copy only does valid region.
         //
         {
-            BoxArray edge_grids = ecC[n].boxArray();
-            edge_grids.grow(ecC[n].nGrow());
+            BoxArray edge_grids = ecC[n]->boxArray();
+            edge_grids.grow(ecC[n]->nGrow());
             MultiFab ecCG(edge_grids, 1, 0);
 
-            for (MFIter mfi(ecC[n]); mfi.isValid(); ++mfi)
-                ecCG[mfi].copy(ecC[n][mfi]);
+            for (MFIter mfi(*ecC[n]); mfi.isValid(); ++mfi)
+                ecCG[mfi].copy((*ecC[n])[mfi]);
 
             crse_src.copy(ecCG);
         }
@@ -1484,7 +1477,7 @@ Electrostatic::fill_ec_grow (int                     level,
         // this level u_mac valid only on surrounding faces of valid
         // region - this op will not fill grow region.
         //
-        fine_src.copy(ecF[n]); // parallel copy
+        fine_src.copy(*ecF[n]); // parallel copy
 
         for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
         {
@@ -1503,8 +1496,8 @@ Electrostatic::fill_ec_grow (int                     level,
         //
         // Build a mf with no grow cells on ecF grown boxes, do parallel copy into.
         //
-        BoxArray fgridsG = ecF[n].boxArray();
-        fgridsG.grow(ecF[n].nGrow());
+        BoxArray fgridsG = ecF[n]->boxArray();
+        fgridsG.grow(ecF[n]->nGrow());
 
         MultiFab ecFG(fgridsG, 1, 0);
 
@@ -1512,15 +1505,15 @@ Electrostatic::fill_ec_grow (int                     level,
 
         fine_src.clear();
 
-        ecFG.copy(ecF[n]);   // Parallel copy
+        ecFG.copy(*ecF[n]);   // Parallel copy
 
-        for (MFIter mfi(ecF[n]); mfi.isValid(); ++mfi)
-            ecF[n][mfi].copy(ecFG[mfi]);
+        for (MFIter mfi(*ecF[n]); mfi.isValid(); ++mfi)
+            (*ecF[n])[mfi].copy(ecFG[mfi]);
     }
 
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
-        ecF[n].FillBoundary();
+        ecF[n]->FillBoundary(fgeom.periodicity());
 //         fgeom.FillPeriodicBoundary(ecF[n], true);
     }
 }
@@ -1584,11 +1577,11 @@ Electrostatic::AddParticlesToRhs (int               level,
 }
 
 void
-Electrostatic::AddParticlesToRhs(int base_level, int finest_level, PArray<MultiFab>& Rhs_particles)
+Electrostatic::AddParticlesToRhs(int base_level, int finest_level, const Array<MultiFab*>& Rhs_particles)
 {
     const int num_levels = finest_level - base_level + 1;
 
-    PArray<MultiFab> PartMF;
+//     PArray<MultiFab> PartMF;
     //BEGIN MATTHIAS
     //PartMF.resize(num_levels, PArrayManage);
     //PartMF.set(0, new MultiFab(grids[0] , 1, 1));
@@ -1618,7 +1611,8 @@ Electrostatic::AddParticlesToRhs(int base_level, int finest_level, PArray<MultiF
     //std::cerr << sum << std::endl;
     //END MATTHIAS
 
-
+// Weiqun: commented this out for now because ParMF is not defined.
+/*
   // TULIN
 
     for (int lev = 0; lev < num_levels; lev++)
@@ -1642,6 +1636,7 @@ Electrostatic::AddParticlesToRhs(int base_level, int finest_level, PArray<MultiF
     {
         MultiFab::Add(Rhs_particles[lev], PartMF[lev], 0, 0, 1, 0);
     }
+*/
 }
 
 void
@@ -1661,7 +1656,7 @@ Electrostatic::AddVirtualParticlesToRhs (int               level,
 }
 
 void
-Electrostatic::AddVirtualParticlesToRhs(int finest_level, PArray<MultiFab>& Rhs_particles)
+Electrostatic::AddVirtualParticlesToRhs(int finest_level, const Array<MultiFab*>& Rhs_particles)
 {
     if (finest_level < parent->finestLevel() && Accel::theVirtPC() != 0)
     {
@@ -1671,7 +1666,7 @@ Electrostatic::AddVirtualParticlesToRhs(int finest_level, PArray<MultiFab>& Rhs_
         VirtPartMF.setVal(0.0);
 
         Accel::theVirtPC()->AssignDensitySingleLevel(0, VirtPartMF, finest_level, 1, 1);
-        MultiFab::Add(Rhs_particles[finest_level], VirtPartMF, 0, 0, 1, 0);
+        MultiFab::Add(*Rhs_particles[finest_level], VirtPartMF, 0, 0, 1, 0);
     }
 }
 
@@ -1692,7 +1687,7 @@ Electrostatic::AddGhostParticlesToRhs (int               level,
 }
 
 void
-Electrostatic::AddGhostParticlesToRhs(int level, PArray<MultiFab>& Rhs_particles)
+Electrostatic::AddGhostParticlesToRhs(int level, const Array<MultiFab*>& Rhs_particles)
 {
     if (level > 0 && Accel::theGhostPC() != 0)
     {
@@ -1704,18 +1699,18 @@ Electrostatic::AddGhostParticlesToRhs(int level, PArray<MultiFab>& Rhs_particles
         // Get the Ghost particle mass function. Note that Ghost particles should
         // only affect the coarsest level so we use a single level solve
         Accel::theGhostPC()->AssignDensitySingleLevel(0, GhostPartMF, level, 1, -1);
-        MultiFab::Add(Rhs_particles[0], GhostPartMF, 0, 0, 1, 0);
+        MultiFab::Add(*Rhs_particles[0], GhostPartMF, 0, 0, 1, 0);
     }
 }
 
 void 
-Electrostatic::compute_face_fluxes(BoxArray& these_grids, PArray<MultiFab>& grad_phi, 
+Electrostatic::compute_face_fluxes(BoxArray& these_grids, const Array<MultiFab*>& grad_phi, 
                                    MultiFab& phi, const Real* dx)
 {
     // Initialize the gradients to zero to deal with ghost cell fluxes.
-    grad_phi[0].setVal(0.,grad_phi[0].nGrow());
-    grad_phi[1].setVal(0.,grad_phi[1].nGrow());
-    grad_phi[2].setVal(0.,grad_phi[2].nGrow());
+    grad_phi[0]->setVal(0.,grad_phi[0]->nGrow());
+    grad_phi[1]->setVal(0.,grad_phi[1]->nGrow());
+    grad_phi[2]->setVal(0.,grad_phi[2]->nGrow());
 
     // Compute the face-based fluxes by simple centered differencing.
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)
@@ -1726,9 +1721,9 @@ Electrostatic::compute_face_fluxes(BoxArray& these_grids, PArray<MultiFab>& grad
         BL_FORT_PROC_CALL(FORT_COMPUTE_EC, fort_compute_ec)
             (bx.loVect(), bx.hiVect(), 
              BL_TO_FORTRAN(phi[i]),
-             D_DECL(BL_TO_FORTRAN(grad_phi[0][i]),
-                    BL_TO_FORTRAN(grad_phi[1][i]),
-                    BL_TO_FORTRAN(grad_phi[2][i])),
+             D_DECL(BL_TO_FORTRAN((*grad_phi[0])[i]),
+                    BL_TO_FORTRAN((*grad_phi[1])[i]),
+                    BL_TO_FORTRAN((*grad_phi[2])[i])),
              dx);
     }
 }

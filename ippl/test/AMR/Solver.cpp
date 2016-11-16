@@ -127,7 +127,7 @@ Solver::solve_with_f90(container_t& rhs,
     fmg.set_verbose(0);
     fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
     
-    Array<Array<MultiFab*> > g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
+    const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         int amr_level = ilev + base_level;

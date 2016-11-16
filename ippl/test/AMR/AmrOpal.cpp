@@ -339,7 +339,7 @@ AmrOpal::MakeNewLevel (int lev, Real time,
 
 void AmrOpal::ClearLevel(int lev) {
     
-    nPartPerCell_m[lev].release();  // equivalent: nPartPerCell_m[lev].reset(nullptr);
+    nPartPerCell_m[lev].reset();
 //     nPartPerCell_m.clear(lev);
     ClearBoxArray(lev);
     ClearDistributionMap(lev);

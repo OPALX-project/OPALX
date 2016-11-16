@@ -17,10 +17,10 @@
 #include <string>
 #include <iostream>
 
-using namespace Teuchos;
+// using namespace Teuchos;
 
 Solver*
-Electrostatic::init_trilinos(PArray<MultiFab>& rhs, PArray<MultiFab>& soln, const Real* dx)
+Electrostatic::init_trilinos(const Array<MultiFab*>& rhs, const Array<MultiFab*>& soln, const Real* dx)
 {
     Epetra_MpiComm Comm(/*MPI_COMM_WORLD*/ParallelDescriptor::Communicator());
 

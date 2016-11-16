@@ -14,8 +14,8 @@ Solver::Solver(Epetra_MpiComm& comm,
                int nRecycleBlocks, 
                unsigned int nLhs,
                int nLevels,
-               PArray<MultiFab>& rhs,
-               PArray<MultiFab>& soln,
+               const Array<MultiFab*>& rhs,
+               const Array<MultiFab*>& soln,
                const Real* hr_in,
                const Real* prob_lo_in,
                BoundaryPointList& xlo,
@@ -36,7 +36,7 @@ Solver::Solver(Epetra_MpiComm& comm,
     yhi_m(yhi),
     idxMap_m(1)
 {
-    idxMap_m.set(0, new iMultiFab(rhs[0].boxArray(), 1 , 0));
+    idxMap_m[0].reset(new iMultiFab(rhs[0]->boxArray(), 1 , 0));
     verbose_m = 0;
     
     
@@ -49,7 +49,7 @@ Solver::Solver(Epetra_MpiComm& comm,
     setupMultiLevelList();
     
     // get the problem dimension ( just single level support )
-    BoxArray ba(rhs[0].boxArray());
+    BoxArray ba(rhs[0]->boxArray());
     domain_m = ba.minimalBox();
     for (int i = 0; i < BL_SPACEDIM; ++i) {
         // +1 is needed since for e.g. for a 32x32x32 mesh: loVect = 0 and hiVect = 31
@@ -85,12 +85,12 @@ Solver::~Solver() {}
 
 
 void
-Solver::SetupProblem(PArray<MultiFab>& rhs , PArray<MultiFab>& soln) {
+Solver::SetupProblem(const Array<MultiFab*>& rhs , const Array<MultiFab*>& soln) {
     // only single level support
     
     // get my global indices
     std::vector<int> gidx;
-    fillGlobalIndex_m(gidx, rhs[0 /*level*/]);
+    fillGlobalIndex_m(gidx, *rhs[0 /*level*/]);
     
     /*
      * construct the mapping for the linear system of equations
@@ -115,7 +115,7 @@ Solver::SetupProblem(PArray<MultiFab>& rhs , PArray<MultiFab>& soln) {
     
     RHS = Teuchos::rcp( new Epetra_Vector(map, false) );
     
-    fillRHS_m(rhs[0/*level*/]);
+    fillRHS_m(*rhs[0/*level*/]);
     
     /*
      * fill left-hand side vector (initial guess is 1.0 everywhere)
@@ -167,13 +167,13 @@ void Solver::extrapolateLHS() {
     }
 }
 
-void Solver::CopySolution(PArray<MultiFab>& soln)
+void Solver::CopySolution(const Array<MultiFab*>& soln)
 {
     int lidx = 0;
-    for (MFIter mfi(soln[0 /*level*/]); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(*soln[0 /*level*/]); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
-        FArrayBox& lhs = soln[0][mfi];
-        IArrayBox& idx = idxMap_m[0][mfi];
+        FArrayBox& lhs = (*soln[0])[mfi];
+        IArrayBox& idx = (*idxMap_m[0])[mfi];
         
         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
             for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
@@ -350,7 +350,7 @@ int Solver::coordBox2globalIdx_m(const IntVect& coord) {
 void Solver::fillGlobalIndex_m(std::vector<int>& gidx, const MultiFab& rhs) {
     
     for (MFIter mfi(rhs); mfi.isValid(); ++mfi) {
-        IArrayBox& ifab = idxMap_m[0][mfi];
+        IArrayBox& ifab = (*idxMap_m[0])[mfi];
         const Box& bx = mfi.validbox();
         
         // iterate over local indices given by the box boundary
@@ -395,8 +395,8 @@ void Solver::fillSysMatrix_m(const Epetra_Map& map) {
     int indices[7] = { 0, 0, 0, 0, 0, 0, 0};
     int nEntries = 0;
     
-    for (MFIter mfi(idxMap_m[0]); mfi.isValid(); ++mfi) {
-        IArrayBox& ifab = idxMap_m[0][mfi];
+    for (MFIter mfi(*idxMap_m[0]); mfi.isValid(); ++mfi) {
+        IArrayBox& ifab = (*idxMap_m[0])[mfi];
         const Box& bx = mfi.validbox();
         
         // iterate over local indices given by the box boundary
