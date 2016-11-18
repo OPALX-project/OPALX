@@ -488,52 +488,36 @@ void ParticleAttrib<T>::calcSortList(SortList_t &slist, bool ascending)
 // considered "local", so they should be in the range 0 ... localnum-1.
 // The sort-list does not have to have been calcualted by calcSortList,
 // it could be calculated by some other means, but it does have to
-// be in the same format.  Note that the routine may need to modify
-// the sort-list temporarily, but it will return it in the same state.
+// be in the same format.  Note that the routine doesn't modify
+// the sort-list.
 template<class T>
 void ParticleAttrib<T>::sort(SortList_t &slist)
 {
   // Make sure the sort-list has the proper length.
   PAssert(slist.size() >= size());
-
+  
   // Inform dbgmsg("PA<T>::sort");
   // dbgmsg << "Sorting " << size() << " items." << endl;
-
-  // Go through the sort-list instructions, and move items around.
-  int i, mysize = size();
-  for (i=0; i < mysize; ++i) {
-    PAssert(slist[i] < mysize);
-
-    // skip this swap if the swap-list value is negative.  This
-    // happens when we've already put the item in the proper place.
-    if (slist[i] >= 0 && slist[i] != i) {
-      // We should not have a negative slist value for the destination
-      PAssert(slist[slist[i]] >= 0);
-
-      // OK, swap the items
+  
+  int todo = slist.size() - 1;
+  int i = 0;
+  while ( todo > 0 ) {
+      int j = slist[i];
       T tmpval = ParticleList[i];
-      ParticleList[i] = ParticleList[slist[i]];
-      ParticleList[slist[i]] = tmpval;
-      //dbgmsg << "Swapping item " << i << " to position " << slist[i] << endl;
-
-      // then indicate that we've put this
-      // item in the proper location.
-      slist[slist[i]] -= mysize;
-      // } else {
-      //  dbgmsg << "Skipping item " << i << " in sort: slist[" << i << "] = ";
-      //  dbgmsg << slist[i] << endl;
-    }
-  }
-
-  // Restore the sort-list
-  for (i=0; i < mysize; ++i) {
-    if (slist[i] < 0)
-      slist[i] += mysize;
-    // dbgmsg << "At end of sort: restored slist[" << i << "] = " << slist[i];
-    // dbgmsg << ", data[" << i << "] = " << ParticleList[i] << endl;
+      
+      // find slist value that is equal to i
+      // swap ParticleList values accordingly
+      while ( j != i ) {
+          std::swap(tmpval, ParticleList[j]);
+          //dbgmsg << "Swapping item " << i << " with " << j << endl;
+          --todo;
+          j = slist[j];
+      }
+      ParticleList[i] = tmpval;
+      ++i;
+      --todo;
   }
 }
-
 
 //////////////////////////////////////////////////////////////////////
 // scatter functions
