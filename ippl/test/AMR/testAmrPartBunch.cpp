@@ -473,11 +473,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
     
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
+//     container_t rhs;
+//     container_t phi;
+//     container_t grad_phi;
     
-    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+//     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
     
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
@@ -485,14 +485,15 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         
-        std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
+//         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
 //         myAmrOpal.writePlotFile(plotfilename, it);
-        writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
+//         writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
         
-        myAmrOpal.writePlotFile("box_test_", it);
+        std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
+        myAmrOpal.writePlotFile(plotfilename, it);
         
         // update time step according to levels
-        dt = 0.5 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
+//         dt = 0.5 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
         
 //         // advance the particle positions
 //         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
@@ -507,7 +508,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         }
         
         
-        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+//         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
         
 //         //
 //         for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
