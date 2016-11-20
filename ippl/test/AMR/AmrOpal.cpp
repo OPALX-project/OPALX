@@ -1,6 +1,7 @@
 #include "AmrOpal.h"
 #include "AmrOpal_F.h"
 #include <PlotFileUtil.H>
+// #include <MultiFabUtil.H>
 
 
 // AmrOpal::AmrOpal() { }
@@ -12,7 +13,7 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     nPartPerCell_m.resize(max_level_in + 1);//, PArrayManage);
 //     nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1));
     
-    nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 0/*1*/));
+    nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 1));
     nPartPerCell_m[0]->setVal(0.0);
 }
 
@@ -206,14 +207,24 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
 
 void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     
-//     for (int i = 0; i < lev; ++i)
-//         nPartPerCell_m.clear(lev);
     
-//         nPartPerCell_m[i].clear();//setVal(0.0);
-//     bunch_m->AssignDensitySingleLevel(0, /***/nPartPerCell_m[lev], lev);
+    for (int i = lev; i <= finest_level; ++i) {
+        nPartPerCell_m[i]->setVal(0.0);
+        std::cout << "GROW: " << nPartPerCell_m[i]->nGrow() << std::endl;
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[i], i);
+    }
+
+    for (int i = finest_level-1; i >= lev; --i) {
+        MultiFab tmp(nPartPerCell_m[i]->boxArray(), 1, 0, nPartPerCell_m[i]->DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(*nPartPerCell_m[i+1], tmp, 0, 1, refRatio(i));
+        MultiFab::Add(*nPartPerCell_m[i], tmp, 0, 0, 1, 0);
+    }
     
     
-    bunch_m->AssignDensity(0, false, nPartPerCell_m, 0, 1, lev);
+//     bunch_m->AssignDensity(0, false, nPartPerCell_m, 0, 1, finest_level);
+    
+//     std::cout << "finest: " << finest_level << std::endl;
     
     std::cout << lev << " " << nPartPerCell_m[lev]->min(0) << " " << nPartPerCell_m[lev]->max(0) << std::endl;
     
