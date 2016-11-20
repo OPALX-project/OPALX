@@ -32,12 +32,7 @@
 #include "Utility/PAssert.h"
 #include "Message/Communicate.h"
 #include "Message/Message.h"
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iomanip>
-#else
-#include <iomanip.h>
-#endif
 
 // debugging macro
 #ifdef IPPL_PRINTDEBUG

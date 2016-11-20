@@ -48,12 +48,7 @@
 #include "SubField/SubFieldIter.h"
 #include "SubField/SubFieldTraits.h"
 #include "PETE/IpplExpressions.h"
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template <class T, unsigned Dim, class S> class SubBareField;

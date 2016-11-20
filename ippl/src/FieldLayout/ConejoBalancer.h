@@ -28,11 +28,7 @@
 #include "Field/BareField.h"
 #include "FieldLayout/MultiBalancer.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif
 
 // forward declarations
 class MultiBalancer;

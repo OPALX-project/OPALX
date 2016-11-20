@@ -15,11 +15,7 @@
 #include "Utility/Pooled.h"
 #include "Field/CompressedBrickIterator.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template <class T, unsigned Dim> class LField;

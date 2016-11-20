@@ -30,11 +30,7 @@
 #include "Field/BrickExpression.h"
 
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iomanip>
-#else
-#include <iomanip.h>
-#endif
 
 
 //------------------------------------------------------------------

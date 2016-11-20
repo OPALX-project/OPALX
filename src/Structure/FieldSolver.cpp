@@ -407,12 +407,12 @@ void FieldSolver::initSolver(PartBunch &b) {
         Array<Real> prob_lo(3);
         Array<Real> prob_hi(3);
         
-        prob_lo.set(0, -0.02); //-0.08);
-        prob_lo.set(1, -0.02); //-0.08);
-        prob_lo.set(2, 0.0); //-0.12);
-        prob_hi.set(0, 0.02); //0.08);
-        prob_hi.set(1, 0.02); //0.08);
-        prob_hi.set(2, 0.04); //0.16);
+        prob_lo[0] = -0.02; //-0.08);
+        prob_lo[1] = -0.02; //-0.08);
+        prob_lo[2] =  0.0; //-0.12);
+        prob_hi[0] =  0.02; //0.08);
+        prob_hi[1] =  0.02; //0.08);
+        prob_hi[2] =  0.04; //0.16);
         
         rb.setLo(prob_lo);
         rb.setHi(prob_hi);

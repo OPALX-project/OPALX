@@ -29,8 +29,6 @@
 #include "Utility/IpplInfo.h"
 
 
-#ifdef IPPL_STDSTL
-
 #include <iterator>
 // Rogue Wave STL for PGI compiler doesn't have iterator_traits!!
 
@@ -72,20 +70,10 @@ struct iterator_traits<const _Tp*>
 }
 #endif // IPPL_PGI
 
-#else
 
-#include <iterator.h>
 
-#endif
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <new>
 #include <memory>
-#else
-#include <new.h>
-#include <memory.h>
-#endif
-
 #include <cstdlib>
 #include <cstddef>
 

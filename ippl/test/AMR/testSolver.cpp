@@ -31,6 +31,8 @@
 
 #include "Ippl.h"
 
+typedef Solver::container_t container_t;
+
 int main(int argc, char* argv[]) {
     
     if (argc != 7) {
@@ -94,7 +96,7 @@ int main(int argc, char* argv[]) {
     // Refined Meshes
     // ------------------------------------------------------------------------
     Array<int> refRatio(nLevels-1);
-    for (int i = 0; i < refRatio.size(); ++i)
+    for (unsigned int i = 0; i < refRatio.size(); ++i)
         refRatio[i] = 2;
     
     for (int lev = 1; lev < nLevels; ++lev) {
@@ -124,14 +126,14 @@ int main(int argc, char* argv[]) {
     // ------------------------------------------------------------------------
     
     
-    PArray<MultiFab> rho(nLevels);
-    PArray<MultiFab> phi(nLevels);
-    PArray<MultiFab> efield(nLevels);
+    container_t rho(nLevels);
+    container_t phi(nLevels);
+    container_t efield(nLevels);
     
     for (int l = 0; l < nLevels; ++l) {
-        rho.set(l, new MultiFab(ba[l], 1, 0));
-        phi.set(l, new MultiFab(ba[l], 1, 1));
-        efield.set(l, new MultiFab(ba[l], BL_SPACEDIM, 1));
+        rho[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], 1, 0));
+        phi[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], 1, 1));
+        efield[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], BL_SPACEDIM, 1));
     }
     
     
@@ -141,7 +143,7 @@ int main(int argc, char* argv[]) {
     
     // rho is equal to one everywhere
     for (int l = 0; l < nLevels; ++l)
-        rho[l].setVal(-1.0);
+        rho[l]->setVal(-1.0);
     
     
     // ------------------------------------------------------------------------
@@ -151,9 +153,13 @@ int main(int argc, char* argv[]) {
     Solver sol;
     
     IpplTimings::startTimer(solverTimer);
-    sol.solve_for_accel(rho, phi, efield, geom,
-                        base_level, fine_level,
-                        offset);
+//     sol.solve_for_accel(BoxLib::GetArrOfPtrs(rho),
+//                         BoxLib::GetArrOfPtrs(phi),
+//                         BoxLib::GetArrOfPtrs(efield),
+//                         geom,
+//                         base_level,
+//                         fine_level,
+//                         offset);
     IpplTimings::stopTimer(solverTimer);
     
     // ------------------------------------------------------------------------

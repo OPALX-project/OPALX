@@ -34,11 +34,7 @@
 #include "Message/Message.h"
 
 
-#ifdef IPPL_STDSTL
 #include <algorithm>
-#else
-#include <algo.h>
-#endif // IPPL_STDSTL
 
 /////////////////////////////////////////////////////////////////////
 // constructor, from a FieldLayout

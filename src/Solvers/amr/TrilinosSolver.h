@@ -121,8 +121,8 @@ public:
 	   int nRecycleBlocks, 
            unsigned int nLhs,
 	   int nLevels,
-	   PArray<MultiFab>& rhs,
-	   PArray<MultiFab>& soln,
+	   const Array<MultiFab*>& rhs,
+	   const Array<MultiFab*>& soln,
            const Real* hr_in,
 	   const Real* prob_lo_in,
            BoundaryPointList& xlo,
@@ -142,7 +142,7 @@ public:
     void Compute();
 
     /** Performs setup of data distribution and problem (system matrix, RHS, LHS).  */
-    void SetupProblem(PArray<MultiFab>& rhs, PArray<MultiFab>& soln); 
+    void SetupProblem(const Array<MultiFab*>& rhs, const Array<MultiFab*>& soln); 
 
     /*!
      * Copy the solution of the linear system of equations (done by Trilinos)
@@ -151,7 +151,7 @@ public:
      * on all levels. At the moment just single-core supported.
      * @param soln will be filled with the solution of Trilinos.
      */
-    void CopySolution(PArray<MultiFab>& soln);
+    void CopySolution(const Array<MultiFab*>& soln);
 
     /*!
      * Number of iterations
@@ -186,7 +186,7 @@ private:
     
     Box domain_m;                       ///< Dimension of the coarsest level --> problem dimension
     int nGridPoints_m[BL_SPACEDIM];     ///< Number of grid points in each direction.
-    PArray<iMultiFab> idxMap_m;         ///< Mapping between Trilinos and BoxLib
+    Array<std::unique_ptr<iMultiFab>>  idxMap_m;         ///< Mapping between Trilinos and BoxLib
 
     /// preconditioner object
     Teuchos::RCP<ML_Epetra::MultiLevelPreconditioner> MLPrec;

@@ -74,7 +74,11 @@ public:
     
 private:
     std::string filename_m;     ///< Path and filename
-    h5_file_t* file_m;          ///< Pointer to the opened file
+#if defined (USE_H5HUT2)
+    h5_file_t file_m;           ///< Opened file
+#else
+    h5_file_t *file_m;
+#endif        
     
 };
 

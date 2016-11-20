@@ -46,7 +46,7 @@ void
 EMPC<N>::FillEvec (MultiFab& field_vector, int lev, Real betaC, int e_comp, int b_comp)
 {
     // If there are no particles at this level
-    if (lev >= this->m_particles.size())
+    if (lev >= int(this->m_particles.size()))
         return;
 
     // Make sure we have enough room to store the charge, velocity and field.
@@ -61,8 +61,8 @@ EMPC<N>::FillEvec (MultiFab& field_vector, int lev, Real betaC, int e_comp, int 
     }
     else 
     {
-        gv_pointer = new MultiFab(this->m_amr->ParticleBoxArray(lev),
-                                  field_vector.nComp(),field_vector.nGrow(),Fab_allocate);
+//         gv_pointer = new MultiFab(this->m_amr->ParticleBoxArray(lev),
+//                                   field_vector.nComp(),field_vector.nGrow(),Fab_allocate);
         for (MFIter mfi(*gv_pointer); mfi.isValid(); ++mfi)
             gv_pointer->setVal(0.);
         gv_pointer->copy(field_vector,0,0,field_vector.nComp());
@@ -115,7 +115,7 @@ EMPC<N>::MKD (int lev, Real dt, int field_ngrow, int v_comp, int e_comp, int b_c
     BL_ASSERT(lev >= 0);
 
     //If there are no particles at this level
-    if (lev >= this->m_particles.size())
+    if (lev >= int(this->m_particles.size()))
         return;
 
     Real v_cross_b[3];

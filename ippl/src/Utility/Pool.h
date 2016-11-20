@@ -13,15 +13,8 @@
 
 // include files
 #include <cstddef>
-#ifndef __MWERKS__
-#include <memory.h>
-#endif
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif
-
+#include <memory.h>
 class Pool 
 {
 private:
