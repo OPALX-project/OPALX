@@ -34,21 +34,35 @@ IF (ENABLE_AMR_SOLVER)
         ${CCSE_LIBRARY_DIR}
     )
     
-    set (LIBS
-        ${H5Hut_LIBRARY}
-        ${HDF5_LIBRARY}
-        ${IPPL_LIBRARY}
-        ippl
-        mpi
-        mpi_cxx
-        mpi_mpifh
-        z
-        m
-    )
+    # remove digits from hostname: edison03 -> edison
+    STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
+    
+    IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+        SET (LIBS
+            ${H5Hut_LIBRARY}
+            ${HDF5_LIBRARY}
+            ${IPPL_LIBRARY}
+            ippl
+            m
+            z
+        )
+    ELSE()
+        SET (LIBS
+            ${H5Hut_LIBRARY}
+            ${HDF5_LIBRARY}
+            ${IPPL_LIBRARY}
+            ippl
+            mpi
+            mpi_cxx
+            mpi_mpifh
+            m
+            z
+        )
+    ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
     
     set(F90_source_files Tagging_nd.f90)
     
-    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files})
+    add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
     add_executable (testSolver testSolver.cpp H5Reader.cpp Distribution.cpp Solver.cpp)
     add_executable (iterative iterative.cpp)
     add_executable (testError error.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp PoissonProblems.cpp Solver.cpp AmrOpal.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp)

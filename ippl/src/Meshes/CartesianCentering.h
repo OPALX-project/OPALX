@@ -20,13 +20,8 @@
 #ifndef CARTESIAN_CENTERING_H
 #define CARTESIAN_CENTERING_H
 
-// include files
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 #include <string>
-#else
-#include <iostream.h>
-#endif
 
 // Enumeration of basic 1D (one-component) centering types:
 // May add to this when unstructured comes in, and it means something to

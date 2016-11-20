@@ -2,21 +2,29 @@
 
 
 void 
-Solver::solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-                        const Array<Geometry>& geom, int base_level, int finest_level, Real offset)
+Solver::solve_for_accel(container_t& rhs,
+                        container_t& phi,
+                        container_t& grad_phi, 
+                        const Array<Geometry>& geom,
+                        int base_level,
+                        int finest_level,
+                        Real offset)
 {
  
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
 
-    Array< PArray<MultiFab> > grad_phi_edge;
-    grad_phi_edge.resize(rhs.size());
+    Array< Array<std::unique_ptr<MultiFab> > > grad_phi_edge(rhs.size());
+//     grad_phi_edge.resize(rhs.size());
 
     for (int lev = base_level; lev <= finest_level ; lev++)
     {
-        grad_phi_edge[lev].resize(BL_SPACEDIM, PArrayManage);
-        for (int n = 0; n < BL_SPACEDIM; ++n)
-            grad_phi_edge[lev].set(n, new MultiFab(BoxArray(rhs[lev].boxArray()).surroundingNodes(n), 1, 1));
+        grad_phi_edge[lev].resize(BL_SPACEDIM);
+        for (int n = 0; n < BL_SPACEDIM; ++n) {
+            BoxArray ba = rhs[lev]->boxArray();
+            grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 1));
+//             grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
+        }
     }
 
     Real     strt    = ParallelDescriptor::second();
@@ -25,13 +33,24 @@ Solver::solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<Mul
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
     
-    solve_with_f90  (rhs,phi,grad_phi_edge,geom,base_level,finest_level,tol,abs_tol);
+    solve_with_f90  (rhs,
+                     phi,
+                     grad_phi_edge,
+//                      grad_phi_edge,
+                     geom,
+                     base_level,
+                     finest_level,
+                     tol,
+                     abs_tol);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)
     {
-        BoxLib::average_face_to_cellcenter(grad_phi[lev], grad_phi_edge[lev], geom[lev]);
-        grad_phi[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+        BoxLib::average_face_to_cellcenter(*grad_phi[lev],
+                                           BoxLib::GetArrOfConstPtrs(grad_phi_edge[lev]),
+//                                            grad_phi_edge[lev],
+                                           geom[lev]);
+        grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }
 
     {
@@ -42,10 +61,14 @@ Solver::solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<Mul
 
 
 void 
-Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
-                       Array< PArray<MultiFab> >& grad_phi_edge,
-                       const Array<Geometry>& geom, int base_level,
-                       int finest_level, Real tol, Real abs_tol)
+Solver::solve_with_f90(container_t& rhs,
+                       container_t& phi,
+                       Array< container_t >& grad_phi_edge,
+                       const Array<Geometry>& geom,
+                       int base_level,
+                       int finest_level,
+                       Real tol,
+                       Real abs_tol)
 {
     int nlevs = finest_level - base_level + 1;
 
@@ -73,13 +96,16 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     }
 
     // Have to do some packing because these arrays does not always start with base_level
-    PArray<Geometry> geom_p(nlevs);
-    PArray<MultiFab> rhs_p(nlevs);
-    PArray<MultiFab> phi_p(nlevs);
+    /*P*/Array<Geometry> geom_p(nlevs);
+    /*P*/container_pt rhs_p(nlevs);
+    /*P*/container_pt phi_p(nlevs);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
-	geom_p.set(ilev, &geom[ilev+base_level]);
-	rhs_p.set (ilev,  &rhs[ilev+base_level]);
-	phi_p.set (ilev,  &phi[ilev+base_level]);
+        geom_p[ilev] = geom[ilev+base_level];
+        rhs_p[ilev] = rhs[ilev+base_level].get();
+        phi_p[ilev] = phi[ilev+base_level].get();
+//         geom_p.set(ilev, &geom[ilev+base_level]);
+// 	rhs_p.set (ilev,  rhs[ilev+base_level].get());
+// 	phi_p.set (ilev,  phi[ilev+base_level].get());
     }
     
     // Refinement ratio is hardwired to 2 here.
@@ -89,9 +115,9 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     FMultiGrid fmg(geom_p, base_level, crse_ratio);
 
     if (base_level == 0) {
-	fmg.set_bc(mg_bc, phi[base_level]);
+	fmg.set_bc(mg_bc, *phi[base_level]);
     } else {
-	fmg.set_bc(mg_bc, phi[base_level-1], phi[base_level]);
+	fmg.set_bc(mg_bc, *phi[base_level-1], *phi[base_level]);
     }
 
     fmg.set_const_gravity_coeffs();
@@ -100,9 +126,11 @@ Solver::solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     int need_grad_phi = 1;
     fmg.set_verbose(0);
     fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
-   
+    
+    const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
+    
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         int amr_level = ilev + base_level;
-        fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
+        fmg.get_fluxes(g_phi_edge[amr_level], ilev);
     }
 }

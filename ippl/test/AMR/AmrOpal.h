@@ -6,6 +6,8 @@
 
 #include <MultiFabUtil.H>
 
+#include <memory>
+
 /*!
  * @file AmrOpal.h
  * @authors Matthias Frey
@@ -20,6 +22,10 @@
 
 /// Concrete AMR implementation
 class AmrOpal : public AmrCore {
+    
+private:
+    typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
+//     typedef PArray<MultiFab> mp_mt;
     
 public:
     /*!
@@ -62,14 +68,16 @@ public:
                        const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
     
+    void ClearLevel(int lev);
+    
     /*!
      * Print the number of particles per cell (minimum and maximum)
      */
     void info() {
         for (int i = 0; i < finest_level; ++i)
             std::cout << "density level " << i << ": "
-                      << nPartPerCell_m[i].min(0) << " "
-                      << nPartPerCell_m[i].max(0) << std::endl;
+                      << nPartPerCell_m[i]->min(0) << " "
+                      << nPartPerCell_m[i]->max(0) << std::endl;
     }
     
     /*!
@@ -84,8 +92,8 @@ protected:
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
     
 private:
-    AmrPartBunch* bunch_m;                  ///< Particle bunch
-    PArray<MultiFab> nPartPerCell_m;        ///< used in tagging.
+    AmrPartBunch* bunch_m;      ///< Particle bunch
+    mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
     
 };
 

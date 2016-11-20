@@ -217,10 +217,10 @@ Accel::particle_redistribute (int lbase, bool init)
 
         int flev = parent->finestLevel();
 	
-        while (!parent->getAmrLevels().defined(flev))
+        while (parent->getAmrLevels()[flev] == nullptr)
             flev--;
  
-        if (ba.size() != flev+1)
+        if (int(ba.size()) != flev+1)
         {
             ba.resize(flev+1);
             dm.resize(flev+1);

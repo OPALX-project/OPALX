@@ -26,18 +26,8 @@
 
 
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif // IPPL_STDSTL
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
-
 #include <cstdio>
 
 // forward declarations

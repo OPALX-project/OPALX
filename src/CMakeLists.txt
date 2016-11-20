@@ -7,6 +7,9 @@ set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
 
+# remove digits from hostname: edison03 -> edison
+STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
+
 IF(ENABLE_SAAMG_SOLVER)
     set (CMAKE_CXX_FLAGS
         "-DHAVE_SAAMG_SOLVER ${CMAKE_CXX_FLAGS}"
@@ -21,8 +24,12 @@ IF(ENABLE_AMR_SOLVER)
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
     set (AMR_SRC Solvers/amr/AccelBld.cpp)
     set (AMR_INCLUDE_DIR Solvers/amr)
-    set (CBOXLIB -lmpi -lmpi_mpifh -lcboxlib)
-
+    set (CBOXLIB -lcboxlib)
+    
+    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
+        set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
+    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
+    
 ENDIF(ENABLE_AMR_SOLVER)
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -97,11 +104,7 @@ IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
    link_directories (${DKS_LIBRARY_DIR})
 ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
-
-# remove digits from hostname: edison03 -> edison
-STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
-
-IF(${HOSTNAME_BASE} MATCHES "edison")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
@@ -110,7 +113,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison")
     ${Boost_LIBRARIES}
     m
     z
- )
+)
 ELSE()
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
@@ -123,7 +126,7 @@ ELSE()
     m
     z
 )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
 
 

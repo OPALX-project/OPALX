@@ -22,11 +22,7 @@
 #include "Region/PRegion.h"
 #include "Utility/PAssert.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 class Message;

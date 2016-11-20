@@ -71,16 +71,17 @@ Accel::particle_derive (const std::string& name, Real time, int ngrow)
         // We need to do the multilevel `assign_density` even though we're only
         // asking for one level's worth because otherwise we don't get the
         // coarse-fine distribution of particles correct.
-        PArray<MultiFab> particle_mf;
-        Accel::thePAPC()->AssignDensity(0, particle_mf);
+        Array<std::unique_ptr<MultiFab> > particle_mf;
+        bool sub_cycle = false; // parent->sub_cycle();
+        Accel::thePAPC()->AssignDensity(0, sub_cycle, particle_mf);
 
         for (int lev = parent->finestLevel()-1; lev >= 0; lev--)
         {
-            const IntVect ratio = parent->refRatio(lev);
-            Electrostatic::average_down(particle_mf[lev], particle_mf[lev+1], ratio);
+            const IntVect& ratio = parent->refRatio(lev);
+            Electrostatic::average_down(*particle_mf[lev], *particle_mf[lev+1], ratio);
         }
 
-        MultiFab::Copy(*derive_dat, particle_mf[level], 0, 0, 1, 0);
+        MultiFab::Copy(*derive_dat, *particle_mf[level], 0, 0, 1, 0);
 
         return derive_dat;
     }
@@ -93,16 +94,17 @@ Accel::particle_derive (const std::string& name, Real time, int ngrow)
         // We need to do the multilevel `assign_density` even though we're only
         // asking for one level's worth because otherwise we don't get the
         // coarse-fine distribution of particles correct.
-        PArray<MultiFab> particle_mf;
-        Accel::thePAPC()->AssignDensity(0, particle_mf);
+        Array<std::unique_ptr<MultiFab> > particle_mf;
+        bool sub_cycle = false; // parent->subCycle();
+        Accel::thePAPC()->AssignDensity(0, sub_cycle, particle_mf);
        
         for (int lev = parent->finestLevel()-1; lev >= 0; lev--)
         {
-            const IntVect ratio = parent->refRatio(lev);
-            Electrostatic::average_down(particle_mf[lev], particle_mf[lev+1], ratio);
+            const IntVect& ratio = parent->refRatio(lev);
+            Electrostatic::average_down(*particle_mf[lev], *particle_mf[lev+1], ratio);
         }
 
-        MultiFab::Copy(*derive_dat, particle_mf[level], 0, 0, 1, 0);
+        MultiFab::Copy(*derive_dat, *particle_mf[level], 0, 0, 1, 0);
 
         MultiFab* gas_density = derive("density",time,0);
 

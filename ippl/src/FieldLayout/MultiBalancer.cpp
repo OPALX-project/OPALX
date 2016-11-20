@@ -27,13 +27,9 @@
 #include "FieldLayout/MultiBalancer.h"
 #include "Utility/PAssert.h"
 
-#ifdef IPPL_STDSTL
 // Standard STL names this header "algorithm"
 #include <algorithm>
 using namespace std;
-#else
-#include <algo.h>
-#endif // IPPL_STDSTL
 
 //////////////////////////////////////////////////////////////////////
 

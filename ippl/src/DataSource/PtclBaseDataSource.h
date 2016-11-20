@@ -30,12 +30,7 @@
 // include files 
 #include "DataSource/DataSourceObject.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif // IPPL_STDSTL
-
 
 // forward declarations
 class ParticleAttribDataSource;

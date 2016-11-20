@@ -79,6 +79,13 @@ public:
      */
     double doSolveParticlesReal(int step, std::string h5file);
     
+    /*!
+     * Generates 3 bunches with nParticles and same standard deviation
+     * @param nParticles is the number of particles per bunch
+     * @param stddev is the standard deviation of each bunch
+     */
+    double doSolveMultiGaussians(int nParticles, double stddev);
+    
 private:
     void refineWholeDomain_m();     ///< Create refined levels (DistributionMapping and BoxArray)
     void initMultiFabs_m();         ///< Initialize the MultiFab's for solving Poisson with MultiGrid solver
@@ -93,10 +100,10 @@ private:
     Array<BoxArray> ba_m;                   ///< All boxes of each level
     Array<int> refRatio_m;                  ///< Refinement ratios among levels (here: 2)
     
-    PArray<MultiFab> rho_m;                 ///< Density (i.e. rhs)
-    PArray<MultiFab> phi_m;                 ///< Potential
-    PArray<MultiFab> efield_m;              ///< Electric field
-    PArray<MultiFab> phi_single_m;          ///< Potential for single-level solve
+    Array<std::unique_ptr<MultiFab> > rho_m;                 ///< Density (i.e. rhs)
+    Array<std::unique_ptr<MultiFab> > phi_m;                 ///< Potential
+    Array<std::unique_ptr<MultiFab> > efield_m;              ///< Electric field
+    Array<std::unique_ptr<MultiFab> > phi_single_m;          ///< Potential for single-level solve
     
 };
 

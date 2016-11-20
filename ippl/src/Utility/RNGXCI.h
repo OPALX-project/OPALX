@@ -38,15 +38,8 @@
 
 // define type that we ensure is 8 bytes long
 #define LONG_IS_8_BYTES (((1L<<16)<<16)<<16)
-#if defined(IPPL_LONGLONG)
-  typedef long long  RNlong;
-#else
-  #if LONG_IS_8_BYTES
-    typedef long     RNlong;
-  #else
-    error
-  #endif
-#endif
+typedef long long  RNlong;
+
 
 class RNGXCI {
 

@@ -99,22 +99,10 @@
 #include "DataSource/DataSource.h"
 #include "DataSource/MakeDataSource.h"
 #include "Message/Formatter.h"
-
-#ifdef IPPL_STDSTL
 #include <vector>
 #include <algorithm>  // Include algorithms
 #include <utility>
-#else
-#include <vector.h>
-#include <pair.h>
-#endif // IPPL_STDSTL
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
-
 
 // forward declarations
 class Inform;

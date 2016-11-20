@@ -36,19 +36,9 @@
 //////////////////////////////////////////////////////////////////////
 
 // include files
-#ifdef IPPL_STDSTL
 #include <vector>
-// Standard STL has pair class in Utility header
 #include <utility>
-// Standard STL calls this header "functional"
 #include <functional>
-#else
-#include <vector.h>
-#include <pair.h>
-#include <function.h>
-#endif // IPPL_STDSTL
-
-
 
 //////////////////////////////////////////////////////////////////////
 
@@ -82,10 +72,8 @@ public:
   typedef Compare key_compare;
     
   class value_compare : public 
-#ifdef IPPL_STDSTL
-std::
-#endif
-binary_function<value_type, value_type, bool>
+
+std::binary_function<value_type, value_type, bool>
   {
   private:
     Compare comp;

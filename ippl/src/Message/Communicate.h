@@ -347,19 +347,11 @@ protected:
 
     // compute the size of storage needed to add 'size' bytes to a buffer,
     // in order to keep everything word-aligned
-#if defined(IPPL_LONGLONG)
     static inline unsigned int wordround(int size)
     {
         return sizeof(long long) *
                ((size + sizeof(long long) - 1)/sizeof(long long));
     }
-#else
-    static inline unsigned int wordround(int size)
-    {
-        return sizeof(long) *
-               ((size + sizeof(long) - 1)/sizeof(long));
-    }
-#endif
 
     // compute a wordround value for 'size' bytes, then add that to the
     // given 'pos' pointer

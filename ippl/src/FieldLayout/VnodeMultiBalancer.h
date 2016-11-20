@@ -18,11 +18,7 @@
 //-----------------------------------------------------------------------------
 
 // include files
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif // IPPL_STDSTL
 
 // Forward declarations:
 template<unsigned Dim> class FieldLayout;

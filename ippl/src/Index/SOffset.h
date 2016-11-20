@@ -16,11 +16,7 @@
 #include "Utility/PAssert.h"
 #include "Message/Message.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template <unsigned Dim> class SOffset;

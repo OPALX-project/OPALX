@@ -23,12 +23,8 @@
 
 #include "Ippl.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <complex>
 using namespace std;
-#else
-#include <complex.h>
-#endif
 
 enum TestCases {test1};
 

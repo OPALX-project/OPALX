@@ -15,11 +15,7 @@
 #include "Field/IndexedBareField.h"
 #include "Utility/PAssert.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template<class T, unsigned D, class M, class C> class Field;

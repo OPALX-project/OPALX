@@ -81,10 +81,7 @@ MAKE_INITIALIZER(int)
 MAKE_INITIALIZER(long)
 MAKE_INITIALIZER(float)
 MAKE_INITIALIZER(double)
-#ifdef IPPL_LONGLONG
 MAKE_INITIALIZER(long long)
-#endif
-
 
 //////////////////////////////////////////////////////////////////////
 //

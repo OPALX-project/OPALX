@@ -24,11 +24,7 @@
 #include "Particle/ParticleLayout.h"
 #include "Particle/IpplParticleBase.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 class Inform;
