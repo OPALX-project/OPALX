@@ -279,7 +279,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     unsigned int pwi = 10;
 
     /// Calculate beam statistics and gather load balance statistics.
-    beam.calcBeamParameters();
+//    beam.calcBeamParameters_cycl();
     beam.gatherLoadBalanceStatistics();
 
     size_t npOutside = 0;
