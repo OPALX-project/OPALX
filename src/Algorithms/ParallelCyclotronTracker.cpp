@@ -1321,7 +1321,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                     *gmsg << "checking for automatically injecting new bunch ..." << endl;
 
                     itsBunch->R *= Vector_t(0.001); // mm --> m
-                    itsBunch->calcBeamParameters_cycl();
+                    itsBunch->calcBeamParameters();
                     itsBunch->R *= Vector_t(1000.0); // m --> mm
 
                     Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
@@ -1929,7 +1929,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         *gmsg << "checking for automatically injecting new bunch ..." << endl;
 
                         itsBunch->R *= Vector_t(0.001); // mm --> m
-                        itsBunch->calcBeamParameters_cycl();
+                        itsBunch->calcBeamParameters();
                         itsBunch->R *= Vector_t(1000.0); // m --> mm
 
                         Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
@@ -2863,7 +2863,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                         *gmsg << "* MBM: Checking for automatically injecting new bunch ..." << endl;
 
                         itsBunch->R *= Vector_t(0.001); // mm --> m
-                        itsBunch->calcBeamParameters_cycl();
+                        itsBunch->calcBeamParameters();
                         itsBunch->R *= Vector_t(1000.0); // m --> mm
 
                         Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
@@ -3666,7 +3666,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
         // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
         itsBunch->R *= Vector_t(0.001); // mm --> m
 
-        itsBunch->calcBeamParameters_cycl();
+        itsBunch->calcBeamParameters();
 
         *gmsg << *itsBunch << endl;
 
@@ -4276,7 +4276,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                     // 2.After each revolution
                     // 3.only one bunch exists
                     *gmsg << "checking for automatically injecting new bunch ..." << endl;
-                    itsBunch->calcBeamParameters_cycl();
+                    itsBunch->calcBeamParameters();
                     Vector_t Rmean = itsBunch->get_centroid();
                     RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
                     Vector_t Rrms = itsBunch->get_rrms();
@@ -5019,7 +5019,7 @@ bool ParallelCyclotronTracker::deleteParticle(){
       itsBunch->boundp();
       //itsBunch->update();
 
-      itsBunch->calcBeamParameters_cycl();
+      itsBunch->calcBeamParameters();
 
       itsBunch->R *= Vector_t(1000.0); // m --> mm
 
@@ -5193,7 +5193,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     repartition();
     checkNumPart(std::string("* After repartition: "));
 
-    itsBunch->calcBeamParameters_cycl();
+    itsBunch->calcBeamParameters();
 
     *gmsg << endl << "* *********************** Bunch information in local frame: ************************";
     *gmsg << *itsBunch << endl;
@@ -5219,7 +5219,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
     itsBunch->R *= Vector_t(0.001); // mm --> m
 
-    itsBunch->calcBeamParameters_cycl();
+    itsBunch->calcBeamParameters();
 
     *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
     *gmsg << *itsBunch << endl;

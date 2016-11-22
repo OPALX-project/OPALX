@@ -285,7 +285,6 @@ public:
 
     void calcBeamParameters();
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
-    void calcBeamParameters_cycl();
 
     double getCouplingConstant() const;
     void setCouplingConstant(double c);

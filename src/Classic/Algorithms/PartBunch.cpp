@@ -2297,98 +2297,6 @@ Inform &PartBunch::print(Inform &os) {
 }
 
 
-void PartBunch::calcBeamParameters_cycl() {
-    using Physics::c;
-
-    Vector_t eps2, fac, rsqsum, psqsum, rpsum;
-
-    const size_t locNp = this->getLocalNum();
-    //double localeKin = 0.0;
-
-    const double zero = 0.0;
-    const double TotalNp =  static_cast<double>(this->getTotalNum());
-
-    // calculate centroid_m and moments_m
-    calcMoments();
-
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        rmean_m(i) = centroid_m[2 * i] / TotalNp;
-        pmean_m(i) = centroid_m[(2 * i) + 1] / TotalNp;
-        rsqsum(i) = moments_m(2 * i, 2 * i) - TotalNp * rmean_m(i) * rmean_m(i);
-        psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - TotalNp * pmean_m(i) * pmean_m(i);
-        rpsum(i) =  moments_m((2 * i), (2 * i) + 1) - TotalNp * rmean_m(i) * pmean_m(i);
-    }
-    eps2      = (rsqsum * psqsum - rpsum * rpsum) / (TotalNp * TotalNp);
-    rpsum /= TotalNp;
-
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        rrms_m(i) = sqrt(rsqsum(i) / TotalNp);
-        prms_m(i) = sqrt(psqsum(i) / TotalNp);
-        //eps_m(i)  = sqrt( std::max( eps2(i), zero ) );
-        eps_norm_m(i)  = sqrt(std::max(eps2(i), zero));
-        double tmp    = rrms_m(i) * prms_m(i);
-        fac(i)  = (tmp == 0) ? zero : 1.0 / tmp;
-    }
-
-    rprms_m = rpsum * fac;
-
-    // y: longitudinal direction; z: vertical direction.
-
-    if (nodes_m > 1) {
-        Dx_m = moments_m(0, 5) / locNp;
-        DDx_m = moments_m(1, 5) / locNp;
-        
-        Dy_m = moments_m(2, 5) / locNp;
-        DDy_m = moments_m(3, 5) / locNp;
-    }
-    else {
-      /** 
-	  This is a easy way to follow the linear dispersion
-
-	  The position of the first 4 particles when read from file
-	  can be set to zero and a dp/p0 can be set, hence the dispersion
-	  orbit can be followed.
-      */
-        for(size_t i = 0; i < locNp; i++) {
-            if (ID[i] == 1) {
-                Dx_m = R[i](0);
-            }
-            else if (ID[i] == 2) {
-                DDx_m = R[i](0);
-            }
-            else if (ID[i] == 3) {
-                Dy_m = R[i](0);
-            }
-            else if (ID[i] == 4) {
-                DDy_m = R[i](0);
-            }
-        }
-    }
-    
-    // calculate mean energy
-    calcEMean();
-
-    /*
-    *gmsg << endl;
-    *gmsg << "* In calcBeamParameters_cycl():" << endl;
-    *gmsg << "* eKin_m = " << eKin_m << endl;
-
-    double meanLocalBetaGamma = sqrt(pow(1 + localeKin / (getM() * 1.0e-6), 2.0) - 1);
-
-    double betagamma = meanLocalBetaGamma * locNp;
-
-    // sum the betagamma of all nodes
-    reduce(betagamma, betagamma, OpAddAssign());
-    betagamma /= TotalNp;
-    */
-
-    double betagamma = sqrt(pow(1.0 + eKin_m / (getM() * 1.0e-6), 2.0) - 1.0);
-    // *gmsg << "* betagamma = " << betagamma << endl;
-
-    // obtain the global RMS emmitance, it make no sense for multi-bunch simulation
-    eps_m = eps_norm_m / Vector_t(betagamma);
-}
-
 void PartBunch::correctEnergy(double avrgp_m) {
 
   const double totalNp = static_cast<double>(this->getTotalNum());
@@ -2518,7 +2426,7 @@ void PartBunch::boundp_destroy() {
     get_bounds(rmin_m, rmax_m);
     len = rmax_m - rmin_m;
 
-    calcBeamParameters_cycl();
+    calcBeamParameters();
 
     double checkfactor = Options::remotePartDel;
 
