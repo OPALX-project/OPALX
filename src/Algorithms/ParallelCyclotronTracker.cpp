@@ -5407,7 +5407,6 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // If we are in local mode, transform back after saving
     if(Options::psDumpLocalFrame) {
-
         localToGlobal(itsBunch->R, phi, psi);
         localToGlobal(itsBunch->P, phi, psi);
     }
