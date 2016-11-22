@@ -2084,11 +2084,42 @@ void PartBunch::calcBeamParameters() {
 
     rprms_m = rpsum * fac;
 
-    Dx_m = moments_m(0, 5) / N;
-    DDx_m = moments_m(1, 5) / N;
+    if (nodes_m > 1) {
+      Dx_m = moments_m(0, 5) / N;
+      DDx_m = moments_m(1, 5) / N;
+      
+      Dy_m = moments_m(2, 5) / N;
+      DDy_m = moments_m(3, 5) / N;
 
-    Dy_m = moments_m(2, 5) / N;
-    DDy_m = moments_m(3, 5) / N;
+    }
+    else {
+      /** 
+	  This is a easy way to follow the linear dispersion
+
+	  The position of the first 4 particles when read from file
+	  can be set to zero and a dp/p0 can be set, hence the dispersion
+	  orbit can be followed.
+      */
+      Inform m("Dispersion ");
+      for(size_t i = 0; i < locNp; i++) {
+	if (ID[i] == 1) {
+	  Dx_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;	  
+	}
+	else if (ID[i] == 2) {
+	  DDx_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
+	}
+	else if (ID[i] == 3) {
+	  Dy_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
+	}
+	else if (ID[i] == 4) {
+	  DDy_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
+	}
+      }
+    }
 
     /*
       double rmax = sqrt(dot(rmax_m,rmax_m));
@@ -2278,7 +2309,7 @@ void PartBunch::calcBeamParameters_cycl() {
 
     Vector_t eps2, fac, rsqsum, psqsum, rpsum;
 
-    //const size_t locNp = this->getLocalNum();
+    const size_t locNp = this->getLocalNum();
     //double localeKin = 0.0;
 
     const double zero = 0.0;
@@ -2309,11 +2340,43 @@ void PartBunch::calcBeamParameters_cycl() {
     rprms_m = rpsum * fac;
 
     // y: longitudinal direction; z: vertical direction.
-    Dx_m = moments_m(0, 3) / TotalNp;
-    DDx_m = moments_m(1, 3) / TotalNp;
 
-    Dy_m = moments_m(4, 3) / TotalNp;
-    DDy_m = moments_m(5, 3) / TotalNp;
+    if (nodes_m > 1) {
+      Dx_m = moments_m(0, 5) / locNp;
+      DDx_m = moments_m(1, 5) / locNp;
+      
+      Dy_m = moments_m(2, 5) / locNp;
+      DDy_m = moments_m(3, 5) / locNp;
+
+    }
+    else {
+      /** 
+	  This is a easy way to follow the linear dispersion
+
+	  The position of the first 4 particles when read from file
+	  can be set to zero and a dp/p0 can be set, hence the dispersion
+	  orbit can be followed.
+      */
+      Inform m("Dispersion ");
+      for(size_t i = 0; i < locNp; i++) {
+	if (ID[i] == 1) {
+	  Dx_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;	  
+	}
+	else if (ID[i] == 2) {
+	  DDx_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
+	}
+	else if (ID[i] == 3) {
+	  Dy_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
+	}
+	else if (ID[i] == 4) {
+	  DDy_m = R[i](0);
+	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
+	}
+      }
+    }
 
     // calculate mean energy
     calcEMean();

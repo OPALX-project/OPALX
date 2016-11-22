@@ -629,17 +629,28 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
 
     outputFile << "&column name=notused2, type=double, units=1 , ";
     outputFile << "description=\"25 notused2 in y  \" &end" << endl;
+    if (Ippl::getNodes()>1) {
+      outputFile << "&column name=Dx, type=double, units=m , ";
+      outputFile << "description=\"26 Dispersion in x  \" &end" << endl;
+      outputFile << "&column name=DDx, type=double, units=1 , ";
+      outputFile << "description=\"27 Derivative of dispersion in x  \" &end" << endl;
 
-    outputFile << "&column name=Dx, type=double, units=m , ";
-    outputFile << "description=\"26 Dispersion in x  \" &end" << endl;
-    outputFile << "&column name=DDx, type=double, units=1 , ";
-    outputFile << "description=\"27 Derivative of dispersion in x  \" &end" << endl;
+      outputFile << "&column name=Dy, type=double, units=m , ";
+      outputFile << "description=\"28 Dispersion in y  \" &end" << endl;
+      outputFile << "&column name=DDy, type=double, units=1 , ";
+      outputFile << "description=\"29 Derivative of dispersion in y  \" &end" << endl;
+    }
+    else {
+      outputFile << "&column name=Dx1, type=double, units=m , ";
+      outputFile << "description=\"26 Dispersion in x particle 1  \" &end" << endl;
+      outputFile << "&column name=Dx2, type=double, units=1 , ";
+      outputFile << "description=\"27 Dispersion in x particle 2  \" &end" << endl;
 
-    outputFile << "&column name=Dy, type=double, units=m , ";
-    outputFile << "description=\"28 Dispersion in y  \" &end" << endl;
-    outputFile << "&column name=DDy, type=double, units=1 , ";
-    outputFile << "description=\"29 Derivative of dispersion in y  \" &end" << endl;
-
+      outputFile << "&column name=Dx3, type=double, units=m , ";
+      outputFile << "description=\"28 Dispersion in x particle 3  \" &end" << endl;
+      outputFile << "&column name=Dx4, type=double, units=1 , ";
+      outputFile << "description=\"29 Dispersion in x particle 4  \" &end" << endl;
+    }
     outputFile << "&column name=Bx_head, type=double, units=T , ";
     outputFile << "description=\"30 Bx-Field component of head particle  \" &end" << endl;
     outputFile << "&column name=By_head, type=double, units=T , ";
